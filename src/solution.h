@@ -21,7 +21,9 @@
 
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
-  SOLN_MODE_TIME_MATCHED
+  SOLN_MODE_TIME_MATCHED,
+  SOLN_MODE_NO_DGNSS,
+  SOLN_MODE_MULTI_ANTENNA
 } dgnss_solution_mode_t;
 
 typedef enum {
