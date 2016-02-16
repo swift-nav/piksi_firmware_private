@@ -234,6 +234,10 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                               &common_data->carrier_phase);
     alias_detect_first(&data->alias_detect, data->cs[1].I, data->cs[1].Q);
   }
+
+  common_data->alert = tracker_alert_update(channel_info->context,
+                                            common_data->alert);
+
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                    common_data->TOW_ms,
                                    data->short_cycle ? 1 : (data->int_ms-1));

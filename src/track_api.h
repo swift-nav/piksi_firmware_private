@@ -46,6 +46,7 @@ typedef struct {
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
   float cn0;                   /**< Current estimate of C/N0. */
+  u8 alert;                    /**< Alert flag. 0 = healthy, 1 = unhealthy. */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
@@ -107,6 +108,7 @@ void tracker_retune(tracker_context_t *context, double carrier_freq,
                     double code_phase_rate, u8 rollover_count);
 s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
                        u32 int_ms);
+u8 tracker_alert_update(tracker_context_t *context, u8 current_alert);
 void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
                              s32 corr_prompt_real);
 u8 tracker_bit_length_get(tracker_context_t *context);
