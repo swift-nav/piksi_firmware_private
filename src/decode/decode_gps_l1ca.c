@@ -96,12 +96,6 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
         log_warn_sid(channel_info->sid, "TOW set failed");
       }
     }
-
-    /* Update alert flag */
-    u8 alert = data->nav_msg.alert;
-    if (!tracking_channel_alert_sync(channel_info->tracking_channel, alert)) {
-      log_warn_sid(channel_info->sid, "alert set failed");
-    }
   }
 
   /* Check if there is a new nav msg subframe to process. */
@@ -111,9 +105,22 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   /* Decode nav data to temporary structure */
   gps_l1ca_decoded_data_t dd;
   s8 ret = process_subframe(&data->nav_msg, channel_info->sid, &dd);
-  if (ret <= 0)
-    return;
 
+  if (ret <= 0) {
+    /* If a large number of parity failures stop using the satellite */
+    /* Clear the old ephemeris as the satellite has failed */
+    if (data->nav_msg.parity_failures >= 7) {
+      ephemeris_clear(channel_info->sid);
+    }
+
+    return;
+  }
+
+  /* Update alert flag */
+  u8 alert = data->nav_msg.alert;
+  if (!tracking_channel_alert_sync(channel_info->tracking_channel, alert)) {
+    log_warn_sid(channel_info->sid, "alert set failed");
+  }
 
   if (dd.gps_l2c_sv_capability_upd_flag) {
     /* Store new L2C value  */
