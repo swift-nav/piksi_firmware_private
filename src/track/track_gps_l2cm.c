@@ -17,7 +17,7 @@
 #include "track_api.h"
 #include "manage.h"
 #include "track.h"
-#include "l2c_capb.h"
+#include "ndb.h"
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
@@ -195,7 +195,9 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
     return; /* L2C signal from the SV is already in track */
   }
 
-  if (0 == (gps_l2cm_l2c_cap_read() & ((u32)1 << (sat - 1)))) {
+  u32 capb;
+  ndb_gps_l2cm_l2c_cap_read(&capb);
+  if (0 == (capb & ((u32)1 << (sat - 1)))) {
     return;
   }
 
