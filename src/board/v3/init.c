@@ -27,6 +27,7 @@
 #include "sbp.h"
 #include "error.h"
 #include "frontend.h"
+#include "xadc.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03050000U)
@@ -104,6 +105,7 @@ void init(void)
 
   frontend_configure();
   random_init();
+  xadc_init();
 }
 
 static void nap_conf_check(void)
