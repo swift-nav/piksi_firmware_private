@@ -15,6 +15,7 @@
 #define TRACK_GPS_L2CM_INTERNAL
 #include "track_gps_l2cm.h"
 #include "track_api.h"
+#include "track_cn0.h"
 #include "manage.h"
 #include "track.h"
 #include "ndb.h"
@@ -62,18 +63,8 @@
 #define LD_PARAMS          "0.0247, 1.5, 50, 240"
 #define LD_PARAMS_DISABLE  "0.02, 1e-6, 1, 1"
 
-#define CN0_EST_LPF_CUTOFF 0.1f
-
-#define INTEG_PERIOD_20_MS 20
-
-static const u8 integration_periods[] = {
-  INTEG_PERIOD_20_MS
-};
-
 #define INTEG_PERIODS_NUM (sizeof(integration_periods) / \
                            sizeof(integration_periods[0]))
-
-static cn0_est_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM];
 
 static struct loop_params {
   float code_bw, code_zeta, code_k, carr_to_code;
@@ -97,6 +88,7 @@ typedef struct {
   aided_tl_state_t tl_state;   /**< Tracking loop filter state. */
   corr_t cs[3];                /**< EPL correlation results in correlation period. */
   cn0_est_state_t cn0_est;     /**< C/N0 Estimator. */
+  cn0_filter_t    cn0_filt;    /**< C/N0 Filter */
   u8 int_ms;                   /**< Integration length. */
   bool short_cycle;            /**< Set to true when a short 1ms integration is requested. */
   u8 startup;                  /**< An indicator of start-up phase. */
@@ -123,7 +115,6 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
 
 static bool parse_loop_params(struct setting *s, const char *val);
 static bool parse_lock_detect_params(struct setting *s, const char *val);
-static void precompute_cn0_est_params(void);
 
 static const tracker_interface_t tracker_interface_gps_l2cm = {
   .code =         CODE_GPS_L2CM,
@@ -166,8 +157,6 @@ void track_gps_l2cm_register(void)
     gps_l2cm_trackers[i].active = false;
     gps_l2cm_trackers[i].data = &gps_l2cm_tracker_data[i];
   }
-
-  precompute_cn0_est_params();
 
   tracker_interface_register(&tracker_interface_list_element_gps_l2cm);
 }
@@ -274,8 +263,8 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->short_cycle = true;
   data->startup = 2;
 
-  /* Initialise C/N0 estimator */
-  cn0_est_init(&data->cn0_est, 1e3 / data->int_ms, common_data->cn0);
+  /* Initialize C/N0 estimator and filter */
+  track_cn0_init(data->int_ms, &data->cn0_est, &data->cn0_filt, common_data->cn0);
 
   /* Initialize lock detector */
   lock_detect_init(&data->lock_detect,
@@ -441,32 +430,10 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
-  {
-    cn0_est_params_t params;
-    const cn0_est_params_t *pparams = NULL;
-
-    /* TODO
-     * Store a pointer to the cn0_est_params_t in the gps_l1ca_tracker_data_t
-     * structure so we don't have to scan through the whole array each time
-     */
-    for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-      if(data->int_ms == integration_periods[i]) {
-        pparams = &cn0_est_pre_computed[i];
-        break;
-      }
-    }
-
-    if(NULL == pparams) {
-      cn0_est_compute_params(&params, 1e3f / data->int_ms, CN0_EST_LPF_CUTOFF,
-                             1e3f / data->int_ms);
-      pparams = &params;
-    }
-
-    common_data->cn0 = cn0_est(&data->cn0_est,
-                               pparams,
-                               (float) cs[1].I/data->int_ms,
-                               (float) cs[1].Q/data->int_ms);
-  }
+  common_data->cn0 = track_cn0_update(data->int_ms,
+                                      &data->cn0_est,
+                                      &data->cn0_filt,
+                                      cs[1].I, cs[1].Q);
 
   if (common_data->cn0 > track_cn0_drop_thres) {
     common_data->cn0_above_drop_thres_count = common_data->update_count;
@@ -609,18 +576,4 @@ static bool parse_lock_detect_params(struct setting *s, const char *val)
   memcpy(&lock_detect_params, &p, sizeof(lock_detect_params));
 
   return true;
-}
-
-/* Pre-compute C/N0 estimator and filter parameters. The parameters are
- * computed using equivalent of cn0_est_compute_params() function for
- * integration periods and cut-off frequency defined in this file.
- */
-static void precompute_cn0_est_params(void)
-{
-  for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    cn0_est_compute_params(&cn0_est_pre_computed[i],
-                           1e3f / integration_periods[i],
-                           CN0_EST_LPF_CUTOFF,
-                           1e3f / integration_periods[i]);
-  }
 }

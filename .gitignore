@@ -30,6 +30,7 @@ scripts/RELEASE-VERSION
 .project
 .pydevproject
 .settings/
+.pydevproject
 
 src/version.h
 
