@@ -28,6 +28,7 @@
 #include "track_api.h"
 #include "track_internal.h"
 #include "track_cn0.h"
+#include "track_profiles.h"
 #include "simulator.h"
 #include "settings.h"
 #include "signal.h"
@@ -154,6 +155,7 @@ void track_setup(void)
   }
 
   track_cn0_params_init();
+  tp_init();
 
   platform_track_setup();
 }
