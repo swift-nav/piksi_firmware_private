@@ -111,11 +111,11 @@ typedef struct {
   u32           accel_count:5;     /**< State lock counter for dynamics threshold */
   u32           accel_count_idx:2; /**< State lock value for dynamics threshold */
   u32           lock_time_ms:16;   /**< Profile lock count down timer */
-  float         prev_val[4];       /**< Filtered counters: v,a,j,C/N0 */
-  float         filt_val[4];       /**< Filtered counters: v,a,j,C/N0 */
-  float         mean_acc[4];       /**< Mean accumulators: v,a,j,C/N0 */
+  float         prev_val[4];       /**< Filtered counters: v,a,l,C/N0 */
+  float         filt_val[4];       /**< Filtered counters: v,a,l,C/N0 */
+  float         mean_acc[4];       /**< Mean accumulators: v,a,l,C/N0 */
   u32           mean_cnt;          /**< Mean value divider */
-  lp1_filter_t  lp_filters[4];     /**< Moving average filters: v,a,j,C/N0 */
+  lp1_filter_t  lp_filters[4];     /**< Moving average filters: v,a,l,C/N0 */
   u32           time;              /**< Tracking time */
   u32           last_print_time;   /**< Last debug print time */
 } tp_profile_internal_t;
@@ -134,13 +134,25 @@ static const tp_cn0_params_t cn0_params_default = {
 };
 
 /**
- * Lock detector profile
+ * Lock detector parameters
  */
-static const tp_lock_detect_params_t ld_params_disable = {
-  .k1 = 0.02f,
-  .k2 = 1e-6f,
-  .lp = 1,
-  .lo = 1
+enum {
+  TP_LD_PARAMS_DISABLE,
+  TP_LD_PARAMS_EXTRAOPT,
+  TP_LD_PARAMS_OPT,
+  TP_LD_PARAMS_NORMAL,
+  TP_LD_PARAMS_PESS
+};
+
+/**
+ * Lock detector profiles
+ */
+static const tp_lock_detect_params_t ld_params[] = {
+  { 0.02f, 1e-6f,   1,  1, }, /* TP_LD_PARAMS_DISABLE */
+  { 0.02,   0.8f, 150, 50, }, /* LD_PARAMS_EXTRAOPT */
+  { 0.02,   1.1f, 150, 50, }, /* LD_PARAMS_OPT */
+  { 0.05,   1.4f, 150, 50, }, /* LD_PARAMS_NORMAL */
+  { 0.10f,  1.4f, 200, 50, }  /* TP_LD_PARAMS_PESS */
 };
 
 /**
@@ -364,25 +376,19 @@ enum
 static const tp_loop_params_t *loop_params[] = {
   &loop_params_initial,
 #ifdef TP_USE_1MS_PROFILES
-  &loop_params_1ms_s,
-  &loop_params_1ms_n,
-  &loop_params_1ms_u,
+  &loop_params_1ms_s, &loop_params_1ms_n, &loop_params_1ms_u,
 #endif /* TP_USE_1MS_PROFILES */
 #ifdef TP_USE_2MS_PROFILES
   &loop_params_2ms,
 #endif /* TP_USE_2MS_PROFILES */
 #ifdef TP_USE_5MS_PROFILES
-  &loop_params_5ms_s,
-  &loop_params_5ms_n,
-  &loop_params_5ms_n,
+  &loop_params_5ms_s, &loop_params_5ms_n, &loop_params_5ms_n,
 #endif /* TP_USE_5MS_PROFILES */
 #ifdef TP_USE_10MS_PROFILES
   &loop_params_10ms,
 #endif /* TP_USE_10MS_PROFILES */
 #ifdef TP_USE_20MS_PROFILES
-  &loop_params_20ms_s,
-  &loop_params_20ms_n,
-  &loop_params_20ms_n,
+  &loop_params_20ms_s, &loop_params_20ms_n, &loop_params_20ms_n,
 #endif /* TP_USE_20MS_PROFILES */
 };
 
@@ -616,7 +622,14 @@ static void get_profile_params(tp_profile_internal_t *profile,
   log_debug_sid(profile->sid, "Activating profile %u [%u][%u])",
                 profile_idx, profile->cur_profile_i, profile->cur_profile_d);
 
-  config->lock_detect_params = ld_params_disable;
+  const tp_lock_detect_params_t *p_ld_params = NULL;
+  if (profile->cur_profile_i !=  TP_PROFILE_ROW_INI) {
+    p_ld_params = &ld_params[TP_LD_PARAMS_NORMAL];
+  } else {
+    p_ld_params = &ld_params[TP_LD_PARAMS_DISABLE];
+  }
+
+  config->lock_detect_params = *p_ld_params;
   config->loop_params = *loop_params[profile_idx];
   config->use_alias_detection = false;
   config->cn0_params = cn0_params_default;
@@ -652,24 +665,31 @@ static void update_stats(tp_profile_internal_t *profile,
                          const tp_report_t *data)
 {
   float loop_freq = 1000 / data->time_ms;
-  float speed, accel, jitter, cn0;
+  float speed, accel, cn0, lock;
 
   /* Compute products */
   speed = compute_speed(profile->sid, data);
   accel = (profile->prev_val[0] - speed) * loop_freq;
-  jitter = (profile->prev_val[1] - accel) * loop_freq;
-  cn0 = data->cn0;
+  cn0 = data->cn0_raw;
+  if (data->lock_q != 0.f) {
+    lock = data->lock_i / data->lock_q;
+    if (lock > 100.f) {
+      lock = 100.f;
+    }
+  } else {
+    lock = 100.f;
+  }
 
   /* Store new unfiltered values */
   profile->prev_val[0] = speed;
   profile->prev_val[1] = accel;
-  profile->prev_val[2] = jitter;
+  profile->prev_val[2] = lock;
   profile->prev_val[3] = cn0;
 
   /* Update RMS counters */
   profile->mean_acc[0] += speed * speed;
   profile->mean_acc[1] += accel * accel;
-  profile->mean_acc[2] += jitter * jitter;
+  profile->mean_acc[2] += lock * lock;
   profile->mean_acc[3] += cn0 * cn0;
   profile->mean_cnt += 1;
 
@@ -678,18 +698,18 @@ static void update_stats(tp_profile_internal_t *profile,
   const lp1_filter_params_t *pp = get_lp1_params(data->time_ms, &p);
   speed = lp1_filter_update(&profile->lp_filters[0], pp, speed);
   accel = (profile->filt_val[0] - speed) * loop_freq;
-  jitter = (profile->filt_val[1] - accel) * loop_freq;
   /* Currently we don't additionally filter acceleration and jitter:
    *
    * accel = lp1_filter_update(&profile->lp_filters[1], pp, accel);
    * jitter = lp1_filter_update(&profile->lp_filters[2], pp, jitter);
+   * cn0 = lp1_filter_update(&profile->lp_filters[3], pp, data->cn0);
    */
-  cn0 = lp1_filter_update(&profile->lp_filters[3], pp, data->cn0);
+  lock = lp1_filter_update(&profile->lp_filters[2], pp, lock);
 
   profile->filt_val[0] = speed;
   profile->filt_val[1] = accel;
-  profile->filt_val[2] = jitter;
-  profile->filt_val[3] = cn0;
+  profile->filt_val[2] = lock;
+  profile->filt_val[3] = data->cn0;
 }
 
 /**
@@ -718,16 +738,14 @@ static void print_stats(tp_profile_internal_t *profile)
     u8 lp_idx = profile_matrix[profile->cur_profile_i][profile->cur_profile_d];
 
     log_info_sid(profile->sid,
-                 "MRS: T=%dms N=%d CN0=%.2f/%.2f (%.2f) s=%.3f a=%.3f j=%.3f",
+                 "MRS: %dms CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.3f",
                  (int)loop_params[lp_idx]->coherent_ms,
-                 profile->mean_cnt,
-                 c, c + profile->cn0_offset, c + TP_SNR_OFFSET,
+                 c, c + TP_SNR_OFFSET,
                  s, a, j
                 );
     log_info_sid(profile->sid,
-                 "AVG: T=%dms N=%d CN0=%.2f (%.2f) s=%.3f a=%.3f j=%.3f",
+                 "AVG: %dms CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.3f",
                  (int)loop_params[lp_idx]->coherent_ms,
-                 profile->mean_cnt,
                  profile->filt_val[3],
                  profile->filt_val[3] + TP_SNR_OFFSET,
                  profile->filt_val[0],
@@ -757,6 +775,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   /** TODO add TCXO drift support */
 
   bool        must_change_profile = false;
+  bool        must_keep_profile   = false;
   u8          next_profile_i      = 0;
   u8          next_profile_d      = 0;
   const char *reason              = "cn0 OK";
@@ -766,6 +785,9 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
 
   snr = profile->filt_val[3] + profile->cn0_offset + TP_SNR_OFFSET;
   acc = profile->filt_val[1];
+
+  /* When we have a lock, and lock ratio is good, do not change the mode */
+  must_keep_profile = profile->last_report.olock && profile->filt_val[2] > 4.f;
 
   /* First, check if the profile change is required:
    * - There must be no scheduled profile change.
@@ -783,7 +805,8 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
       profile->low_cn0_count = 0;
       profile->lock_time_ms = TP_CHANGE_LOCK_COUNTDOWN_MS;
     }
-    if (!must_change_profile &&
+    if (!must_keep_profile &&
+        !must_change_profile &&
         profile->cur_profile_i != TP_LP_IDX_INI &&
         profile->lock_time_ms == 0) {
       /* When running over 1ms integration, there are four transitions
@@ -836,7 +859,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
    * At the moment three dynamic states are supported: low, medium and high
    * dynamics. They are separated by an acceleration trigger.
    */
-  if (profile->lock_time_ms == 0) {
+  if (!must_keep_profile && profile->lock_time_ms == 0) {
     const char *dyn_reason = "";
     u8 dyn_idx = TP_PROFILE_DYN_INI;
     if (acc < TP_ACCEL_THRESHOLD_LOW) {
@@ -908,13 +931,14 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     u8 lp2_idx = profile_matrix[profile->next_profile_i][profile->next_profile_d];
 
     log_info_sid(profile->sid,
-                 "Profile change: %dms [%d][%d]->%dms [%d][%d] r=%s (%.2f)/%s (%.2f)",
+                 "Profile change: %dms [%d][%d]->%dms [%d][%d] r=%s (%.2f)/%s (%.2f) l=%.2f",
                  (int)loop_params[lp1_idx]->coherent_ms,
                  profile->cur_profile_i, profile->cur_profile_d,
                  (int)loop_params[lp2_idx]->coherent_ms,
                  profile->next_profile_i, profile->next_profile_d,
                  reason, snr,
-                 reason2, acc
+                 reason2, acc,
+                 profile->filt_val[2]
                  );
   }
 }
