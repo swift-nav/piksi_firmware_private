@@ -27,9 +27,11 @@
  */
 typedef enum
 {
+  TP_TM_INITIAL,    /**< Initial tracking mode (same as pipelining otherwise) */
   TP_TM_PIPELINING, /**< Default tracking mode */
-  TP_TM_ONE_PLUS_N, /**< Integration period split */
-  TP_TM_SPLIT,
+  TP_TM_ONE_PLUS_N1, /**< Integration period split */
+  TP_TM_ONE_PLUS_N2, /**< Integration period split */
+  TP_TM_SPLIT,      /**< Split integration into 1ms with constant parameters */
   TP_TM_IMMEDIATE   /**< Immediate feedback */
 } tp_tm_e;
 
@@ -124,6 +126,7 @@ tp_result_e tp_tracking_stop(gnss_signal_t sid);
 tp_result_e tp_get_profile(gnss_signal_t sid, tp_config_t *config, bool commit);
 tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params);
 bool        tp_has_new_profile(gnss_signal_t sid);
+const tp_loop_params_t *tp_get_next_loop_params(gnss_signal_t sid);
 tp_result_e tp_report_data(gnss_signal_t sid, const tp_report_t *data);
 
 #ifdef __cplusplus
