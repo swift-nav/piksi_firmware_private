@@ -24,8 +24,8 @@
 #define IRQ_ID_FRONTEND_AOK IRQ_ID_FPGA9
 #define FRONTEND_AOK_PRIORITY 4
 
-#define SD_FTDI  (&SD2)
-#define SD_UARTA (&SD1)
+#define SD_FTDI  NULL
+#define SD_UARTA NULL
 #define SD_UARTB NULL
 
 /*

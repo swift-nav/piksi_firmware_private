@@ -3,9 +3,9 @@ MAKEFLAGS += SWIFTNAV_ROOT=$(SWIFTNAV_ROOT)
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
 ifneq ($(V),1)
-Q := @
-# Do not print "Entering directory ...".
-MAKEFLAGS += --no-print-directory
+	Q := @
+	# Do not print "Entering directory ...".
+	MAKEFLAGS += --no-print-directory
 endif
 
 ifneq (,$(findstring W32,$(shell uname)))
@@ -19,17 +19,10 @@ else
 endif
 
 ifeq ($(PIKSI_HW),)
-  PIKSI_HW=v3
-endif
-
-ifeq ($(PIKSI_HW),v2)
-	$(error PIKSI_HW=v2 is no longer supported.)
+	PIKSI_HW=v3
 endif
 
 ifeq ($(PIKSI_HW),v3)
-	CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
-	CMAKEFLAGS += -DMAX_CHANNELS=31
-
 	ifeq ($(PIKSI_REV),)
 		PIKSI_REV=microzed
 	endif
@@ -50,13 +43,31 @@ MAKEFLAGS += BUILDFOLDER=$(BUILDFOLDER)
 
 LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
+OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(BUILDFOLDER)
+
+MAKEFLAGS += LIBSBP_BUILDDIR=$(LIBSBP_BUILDDIR)
+MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
+MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
+
+FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
+        $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
+
+ifeq ($(PIKSI_HW),v2)
+	$(error PIKSI_HW=v2 is no longer supported.)
+endif
+
+ifeq ($(PIKSI_HW),v3)
+	CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
+	CMAKEFLAGS += -DMAX_CHANNELS=31
+	FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
+endif
 
 .PHONY: all tests firmware docs hitl_setup hitl .FORCE
 
 all: firmware # tests
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
 
-firmware: $(LIBSBP_BUILDDIR)/src/libsbp-static.a $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
+firmware: $(FW_DEPS)
 	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) -r -C src $(MAKEFLAGS)
 
@@ -71,14 +82,27 @@ tests:
 $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	@printf "BUILD   libsbp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSBP_BUILDDIR); cd $(LIBSBP_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake $(CMAKEFLAGS) ../
+	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
 $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a: .FORCE
 	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
-	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake $(CMAKEFLAGS) ../
+	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	      -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake \
+	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
+
+$(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
+	@printf "BUILD   open-amp for target $(PIKSI_TARGET)\n"; \
+	mkdir -p $(OPENAMP_BUILDDIR) ; cd $(OPENAMP_BUILDDIR); \
+	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	      -DCMAKE_TOOLCHAIN_FILE=../cmake/platforms/Toolchain-gcc-arm-embedded.cmake \
+	      -DMACHINE=custom \
+	      $(CMAKEFLAGS) ../
+	$(MAKE) -C $(OPENAMP_BUILDDIR) $(MAKEFLAGS)
 
 clean:
 	@printf "CLEAN   src\n"; \
@@ -87,6 +111,8 @@ clean:
 	$(RM) -rf $(LIBSBP_BUILDDIR)
 	@printf "CLEAN   libswiftnav\n"; \
 	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
+	@printf "CLEAN   open-amp\n"; \
+	$(RM) -rf $(OPENAMP_BUILDDIR)
 	$(Q)for i in tests/*; do \
 		if [ -d $$i ]; then \
 			printf "CLEAN   $$i\n"; \

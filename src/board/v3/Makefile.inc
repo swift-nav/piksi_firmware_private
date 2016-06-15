@@ -65,7 +65,9 @@ include $(CHIBIOS)/os/hal/ports/ZYNQ7000/platform.mk
 include $(CHIBIOS)/os/rt/ports/ARM/compilers/GCC/mk/port_generic.mk
 
 BOARDDIR := $(SWIFTNAV_ROOT)/src/board/v3
-BOARDINC := $(REVINC) $(BOARDDIR)
+BOARDINC := $(REVINC) \
+            $(BOARDDIR) \
+            $(SWIFTNAV_ROOT)/open-amp/lib/include
 
 BOARDSRC := \
         $(REVSRC) \
@@ -83,6 +85,7 @@ BOARDSRC := \
         $(BOARDDIR)/nap/nap_dummy.o \
         $(BOARDDIR)/nap/track_channel.o \
         $(BOARDDIR)/platform_signal.o \
+        $(BOARDDIR)/resource_table.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
@@ -94,6 +97,10 @@ BOARDASM := \
         $(BOARDDIR)/cpu_init.s \
         $(BOARDDIR)/mmu_table.s \
         $(BOARDDIR)/error_asm.s \
+
+BOARDLIBS := -lopen_amp
+
+BOARDLIBDIR := $(OPENAMP_BUILDDIR)/lib
 
 # Define linker script file here
 LDSCRIPT= $(BOARDDIR)/ZYNQ7000.ld
