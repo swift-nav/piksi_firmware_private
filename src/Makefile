@@ -220,19 +220,17 @@ DADEFS =
 DINCDIR =
 
 # List the default directory to look for the libraries here
-LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
-LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
-
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/CBLAS/src \
           $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/BLAS/SRC \
           $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/SRC \
           $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/F2CLIBS/libf2c \
-          $(LIBSWIFTNAV_BUILDDIR)/libfec/src
+          $(LIBSWIFTNAV_BUILDDIR)/libfec/src \
+          $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = -lsbp-static -lswiftnav-static \
+DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav-static \
         -llapack -lcblas -lblas \
         -lf2c -lm -lc -lnosys -lfec
 
