@@ -21,7 +21,7 @@
 #define DATA_MEMORY_BARRIER() asm volatile ("dmb" : : : "memory")
 
 #define FFT_TIMEOUT_ms (100)
-#define TIMING_COMPARE_DELTA (99375) /* 1ms */
+#define TIMING_COMPARE_DELTA (NAP_FRONTEND_SAMPLE_RATE_Hz * 1e-3) /* 1ms */
 
 static BSEMAPHORE_DECL(axi_dma_rx_bsem, 0);
 
