@@ -60,8 +60,12 @@ ifeq ($(USE_VERBOSE_COMPILE),)
   USE_VERBOSE_COMPILE = no
 endif
 
+ifeq ($(BUILDFOLDER),)
+  BUILDFOLDER = build
+endif
+
 ifeq ($(BUILDDIR),)
-  BUILDDIR = $(SWIFTNAV_ROOT)/build
+  BUILDDIR = $(SWIFTNAV_ROOT)/$(BUILDFOLDER)
 endif
 
 #
@@ -214,14 +218,16 @@ DADEFS =
 DINCDIR =
 
 # List the default directory to look for the libraries here
-DLIBDIR = $(SWIFTNAV_ROOT)/libsbp/c/build/src \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/src \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/CBLAS/src \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/clapack-3.2.1-CMAKE/BLAS/SRC \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/clapack-3.2.1-CMAKE/SRC \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/clapack-3.2.1-CMAKE/F2CLIBS/libf2c \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/libfec/src \
-          $(SWIFTNAV_ROOT)/libswiftnav/build/src
+LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
+LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
+
+DLIBDIR = $(LIBSBP_BUILDDIR)/src \
+          $(LIBSWIFTNAV_BUILDDIR)/src \
+          $(LIBSWIFTNAV_BUILDDIR)/CBLAS/src \
+          $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/BLAS/SRC \
+          $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/SRC \
+          $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/F2CLIBS/libf2c \
+          $(LIBSWIFTNAV_BUILDDIR)/libfec/src
 
 # List all default libraries here
 DLIBS = -lsbp-static -lswiftnav-static \
