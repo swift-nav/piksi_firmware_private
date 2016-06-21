@@ -41,7 +41,8 @@ typedef struct {
   alias_detect_t   alias_detect;           /**< Alias lock detector. */
   lock_detect_t    lock_detect;            /**< Phase-lock detector state. */
   u8               int_ms;                 /**< Current integration length. */
-  u8               cycle_cnt: 5;           /**<  */
+  u8               cycle_no: 5;            /**< Number of cycle inside current
+                                            *   integration mode. */
   u8               use_alias_detection: 1; /**< Flag for alias detection control */
   u8               alias_detect_first: 1;
   u8               tracking_mode: 3;       /**< Tracking mode */
@@ -97,42 +98,59 @@ static void tracker_gps_l1ca_update_parameters(
   const tp_loop_params_t *l = &next_params->loop_params;
   const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
 
-  //data->int_ms = MIN(l->coherent_ms,
-  //                   tracker_bit_length_get(channel_info->context));
+  const float old_loop_freq = 1000.f / data->int_ms;
+
   data->tracking_mode = next_params->loop_params.mode;
   bool use_alias_detection = data->use_alias_detection;
   data->use_alias_detection = next_params->use_alias_detection;
+
+  /*
+   * Coherent integration is possible for intervals longer, than bit length,
+   * assuming that accumulated bit value error is sufficiently small to allow
+   * data wipe off.
+   *
+   * data->int_ms = MIN(l->coherent_ms,
+   *                    tracker_bit_length_get(channel_info->context));
+   */
   data->int_ms = next_params->loop_params.coherent_ms;
   data->has_next_params = false;
+
+  /* Set the step number for mode switch. Current step is one step behind bit
+   * edge */
   switch (l->mode) {
   case TP_TM_SPLIT:
-    data->cycle_cnt = data->int_ms - 1;
+    data->cycle_no = data->int_ms - 1;
     break;
+
   case TP_TM_ONE_PLUS_N1:
-    data->cycle_cnt = 1;
+    data->cycle_no = 1;
     break;
+
   case TP_TM_ONE_PLUS_N2:
-    data->cycle_cnt = data->int_ms / 20;
+    data->cycle_no = data->int_ms / 20;
     break;
+
   case TP_TM_INITIAL:
   case TP_TM_PIPELINING:
   case TP_TM_IMMEDIATE:
-    data->cycle_cnt = 0;
+    data->cycle_no = 0;
     break;
+
   default:
     assert(false);
   }
 
-  float loop_freq = 1000.f / data->int_ms;
-  u8 cn0_ms = data->int_ms;
-  float ld_int_ms = data->int_ms;
+  float loop_freq = 1000.f / data->int_ms; /**< Tracking loop frequency */
+  u8 cn0_ms = data->int_ms;       /**< C/N0 integration time */
+  float ld_int_ms = data->int_ms; /**< Lock detector integration time */
+
   if (data->tracking_mode == TP_TM_SPLIT) {
     /* 1ms coherent interval split is used. */
     cn0_ms = 1;
     ld_int_ms = 1;
   } else if (data->tracking_mode == TP_TM_ONE_PLUS_N2) {
     /* 20+ms coherent interval split is used. */
-    cn0_ms = 20;
+    //cn0_ms = 20;
     // ld_int_ms = 20;
   }
 
@@ -162,6 +180,13 @@ static void tracker_gps_l1ca_update_parameters(
                     l->carr_to_code,
                     l->carr_bw, l->carr_zeta, l->carr_k,
                     l->carr_fll_aid_gain);
+
+    if (old_loop_freq != loop_freq) {
+      /* When loop frequency changes, reset partially reset filter state. */
+      data->tl_state.carr_filt.prev_error = 0.f;
+      data->tl_state.code_filt.prev_error = 0.f;
+    }
+
     lock_detect_reinit(&data->lock_detect,
                        ld->k1 * ld_int_ms,
                        ld->k2,
@@ -247,12 +272,15 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
     case TP_TM_ONE_PLUS_N2:
       rollover_count = 0;
       break;
+
     case TP_TM_IMMEDIATE:
     case TP_TM_PIPELINING:
     case TP_TM_INITIAL:
-    default:
       rollover_count = next_params.loop_params.coherent_ms - 1;
       break;
+
+    default:
+      assert(false);
     }
   } else {
     /* Continuation of the current stage */
@@ -260,18 +288,20 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
     case TP_TM_SPLIT:
       rollover_count = 0;
       break;
+
     case TP_TM_ONE_PLUS_N1:
-      rollover_count = data->cycle_cnt == 0 ?
+      rollover_count = data->cycle_no == 0 ?
                        0 :
                        data->int_ms - 2;
       break;
+
     case TP_TM_ONE_PLUS_N2:
       {
         u8 n_bits = data->int_ms / 20;
-        if (data->cycle_cnt == n_bits - 1) {
+        if (data->cycle_no == n_bits - 1) {
           /* First interval is 1ms */
           rollover_count = 0;
-        } else if (data->cycle_cnt == n_bits) {
+        } else if (data->cycle_no == n_bits) {
           /* Second interval is 19ms */
           rollover_count = 18;
         } else {
@@ -280,11 +310,13 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
         }
       }
       break;
+
     case TP_TM_IMMEDIATE:
     case TP_TM_PIPELINING:
     case TP_TM_INITIAL:
       rollover_count = data->int_ms - 1;
       break;
+
     default:
       assert(false);
     }
@@ -305,24 +337,29 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
   switch (data->tracking_mode)
   {
   case TP_TM_SPLIT:
-    next_ms = data->cycle_cnt + 2 == data->int_ms ? data->int_ms : 0;
+    next_ms = data->cycle_no + 2 == data->int_ms ? data->int_ms : 0;
     break;
+
   case TP_TM_ONE_PLUS_N1:
-    next_ms = data->cycle_cnt == 0 ? data->int_ms: 0;
+    next_ms = data->cycle_no == 0 ? data->int_ms: 0;
     break;
+
   case TP_TM_ONE_PLUS_N2:
-    if (data->cycle_cnt == 1) {
+    if (data->cycle_no == 1) {
       next_ms = 0;
     } else {
       next_ms = 20;
     }
     break;
+
   case TP_TM_INITIAL:
   case TP_TM_PIPELINING:
   case TP_TM_IMMEDIATE:
-  default:
     next_ms = data->int_ms;
     break;
+
+  default:
+    assert(false);
   }
 
   if (0 != next_ms &&
@@ -385,38 +422,41 @@ static void mode_change_complete(const tracker_channel_info_t *channel_info,
  */
 static void update_cycle_counter(gps_l1ca_tracker_data_t *data)
 {
-  u8 cycles_cnt_limit;
+  u8 cycle_cnt; /**< Number of cycles in the current tracking mode */
+
   switch (data->tracking_mode) {
   case TP_TM_SPLIT:
     /* Special integration mode: each coherent integration is split into a
      * number of 1ms integrations. */
-    cycles_cnt_limit = data->int_ms;
+    cycle_cnt = data->int_ms;
     break;
+
   case TP_TM_ONE_PLUS_N1:
     /* One plus N integrations.
      * Each cycle has two integrations: short (1ms) and long */
-    cycles_cnt_limit = 2;
+    cycle_cnt = 2;
     break;
+
   case TP_TM_ONE_PLUS_N2:
     /* One plus N long integrations.
      * Each cycle has two integrations in the first bit, and one extra
      * integration per additional bit. */
-    cycles_cnt_limit = data->int_ms / 20 + 1;
+    cycle_cnt = data->int_ms / 20 + 1;
     break;
+
   case TP_TM_INITIAL:
   case TP_TM_IMMEDIATE:
   case TP_TM_PIPELINING:
     /* One cycle only. */
-    cycles_cnt_limit = 0;
+    cycle_cnt = 0;
     break;
+
   default:
     assert(false);
   }
-  if (cycles_cnt_limit > 0) {
-    if (++data->cycle_cnt == cycles_cnt_limit) {
-      data->cycle_cnt = 0;
-    }
-  }
+
+  if (cycle_cnt > 0 && ++data->cycle_no == cycle_cnt)
+    data->cycle_no = 0;
 }
 
 enum
@@ -436,6 +476,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   u8 int_ms; /* Integration time for the currently reported value */
   u8 update_count_ms; /* Update counter. */
   u8 use_controller = true;
+  u8 use_cn0 = true;
   u8 sum_up = SUM_UP_NONE;
   float ld_int_ms = data->int_ms;
 
@@ -444,37 +485,45 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   {
   case TP_TM_SPLIT:
     int_ms = 1;
-    sum_up = data->cycle_cnt > 1 ? SUM_UP_ONE : SUM_UP_NONE;
+    sum_up = data->cycle_no > 1 ? SUM_UP_ONE : SUM_UP_NONE;
     ld_int_ms = 1;
     update_count_ms = data->int_ms;
     break;
+
   case TP_TM_ONE_PLUS_N1:
-    int_ms = data->cycle_cnt == 0 ? 1 : data->int_ms - 1;
-    sum_up = data->cycle_cnt != 0 ? SUM_UP_ONE : SUM_UP_NONE;
+    int_ms = data->cycle_no == 0 ? 1 : data->int_ms - 1;
+    sum_up = data->cycle_no != 0 ? SUM_UP_ONE : SUM_UP_NONE;
     update_count_ms = data->int_ms;
     break;
+
   case TP_TM_ONE_PLUS_N2:
     use_controller = false;
-    if (data->cycle_cnt == 0) {
+    if (data->cycle_no == 0) {
       int_ms = 1;
       sum_up = SUM_UP_NONE;
-    } else if (data->cycle_cnt == 1) {
+    } else if (data->cycle_no == 1) {
       int_ms = 19;
       sum_up = SUM_UP_ONE_FLIP;
     } else {
       int_ms = 20;
       sum_up = SUM_UP_FLIP;
     }
-    if (data->cycle_cnt == data->int_ms / 20)
+    if (data->cycle_no == data->int_ms / 20)
       use_controller = true;
+    else
+      use_cn0 = false;
     update_count_ms = 20;
     break;
+
   case TP_TM_INITIAL:
   case TP_TM_IMMEDIATE:
   case TP_TM_PIPELINING:
-  default:
     int_ms = data->int_ms;
     update_count_ms = data->int_ms;
+    break;
+
+  default:
+    assert(false);
   }
   /* Prompt correlations for C/N0 estimator */
   corr_t cs_now[3]; /**< Correlations from FPGA */
@@ -491,12 +540,14 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     for (int i = 0; i < 3; ++i)
       cs_bit[i] = data->cs[i] = cs_now[i];
     break;
+
   case SUM_UP_ONE:
     for (int i = 0; i < 3; ++i) {
       cs_bit[i].I = data->cs[i].I += cs_now[i].I;
       cs_bit[i].Q = data->cs[i].Q += cs_now[i].Q;
     }
     break;
+
   case SUM_UP_ONE_FLIP:
     for (int i = 0; i < 3; ++i) {
       cs_bit[i].I = data->cs[i].I += cs_now[i].I;
@@ -509,6 +560,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
         data->cs[i].Q = -data->cs[i].Q;
       }
     break;
+
   case SUM_UP_FLIP:
     /* When using multi-bit coherent integration, invert new values if needed. */
     if (cs_now[1].I > 0)
@@ -522,9 +574,11 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
         data->cs[i].Q -= cs_bit[i].Q = cs_now[i].Q;
       }
     break;
+
   default:
     assert(false);
   }
+
   if (data->tracking_mode == TP_TM_ONE_PLUS_N2 ) {
 //    log_info_sid(channel_info->sid, "Scan: %d: n=%d/%d b=%d/%d s=%d/%d",
 //                 data->cycle_cnt,
@@ -537,9 +591,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                            common_data->TOW_ms,
                                            int_ms);
 
-  if ((data->tracking_mode == TP_TM_ONE_PLUS_N1 && data->cycle_cnt == 0) ||
-      (data->tracking_mode == TP_TM_ONE_PLUS_N2 && data->cycle_cnt == 0) ||
-      (data->tracking_mode == TP_TM_SPLIT && data->cycle_cnt < data->int_ms - 1)) {
+  if ((data->tracking_mode == TP_TM_ONE_PLUS_N1 && data->cycle_no == 0) ||
+      (data->tracking_mode == TP_TM_ONE_PLUS_N2 && data->cycle_no == 0) ||
+      (data->tracking_mode == TP_TM_SPLIT && data->cycle_no < data->int_ms - 1)) {
     /* If we're doing long integrations, alternate between short and long
      * cycles.  This is because of FPGA pipelining and latency.  The
      * loop parameters can only be updated at the end of the second
@@ -582,29 +636,31 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   /* Correlations should already be in chan->cs thanks to
    * tracking_channel_get_corrs. */
   const corr_t* cs = data->cs;
+  if (use_cn0) {
+    /* Update C/N0 estimate */
+    common_data->cn0 = track_cn0_update(data->int_ms,
+                                        &data->cn0_est,
+                                        &data->cn0_filt,
+                                        cs_now[1].I, cs_now[1].Q);
 
-  /* Update C/N0 estimate */
-  common_data->cn0 = track_cn0_update(data->int_ms,
-                                      &data->cn0_est,
-                                      &data->cn0_filt,
-                                      cs_now[1].I, cs_now[1].Q);
-  tp_cn0_params_t cn0_params;
-  tp_get_cn0_params(channel_info->sid, &cn0_params);
+    tp_cn0_params_t cn0_params;
+    tp_get_cn0_params(channel_info->sid, &cn0_params);
 
-  if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
-      data->lock_detect.outp) {
-    /* When C/N0 is above a drop threshold or there is a pessimistic lock,
-     * tracking shall continue.
-     */
-    common_data->cn0_above_drop_thres_count = common_data->update_count;
-  }
+    if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
+        data->lock_detect.outp) {
+      /* When C/N0 is above a drop threshold or there is a pessimistic lock,
+       * tracking shall continue.
+       */
+      common_data->cn0_above_drop_thres_count = common_data->update_count;
+    }
 
-  if (common_data->cn0 < cn0_params.track_cn0_use_thres) {
-    /* SNR has dropped below threshold, indicate that the carrier phase
-     * ambiguity is now unknown as cycle slips are likely. */
-    tracker_ambiguity_unknown(channel_info->context);
-    /* Update the latest time we were below the threshold. */
-    common_data->cn0_below_use_thres_count = common_data->update_count;
+    if (common_data->cn0 < cn0_params.track_cn0_use_thres) {
+      /* SNR has dropped below threshold, indicate that the carrier phase
+       * ambiguity is now unknown as cycle slips are likely. */
+      tracker_ambiguity_unknown(channel_info->context);
+      /* Update the latest time we were below the threshold. */
+      common_data->cn0_below_use_thres_count = common_data->update_count;
+    }
   }
 
   if (use_controller) {
@@ -622,28 +678,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   if (last_outp && !data->lock_detect.outp) {
     log_info_sid(channel_info->sid, "PLL stress");
     tracker_ambiguity_unknown(channel_info->context);
+  } else if (last_outp != data->lock_detect.outp) {
+    log_info_sid(channel_info->sid, "PLL pessimistic lock");
   }
-
-#if 0
-  if (data->tracking_mode == TP_TM_ONE_PLUS_N &&
-      (channel_info->sid.sat == 1 || channel_info->sid.sat == 12)) {
-    /* Extrapolating I/Q measurements from a shorted integration time into a
-     * longer one. For example, in 1+N mode, the coherent N millisecond
-     * integration shall be approximated into N+1 interval measurements to
-     * linearize PLL/FLL models.
-     * Generally, I branch grows according to N_samples^2 and Q branch grows
-     * according to N_samples.
-     */
-    float k_q = (float)data->int_ms / (data->int_ms - 1);
-    float k_i = k_q * k_q;
-    for (u32 i = 0; i < 3; i++) {
-      cs2[i].I = cs_now[2-i].I * k_i;
-      cs2[i].Q = cs_now[2-i].Q * k_q;
-    }
-  } else {
-  }
-#else
-#endif
 
     /* TODO: Make this more elegant. */
     correlation_t cs2[3];
