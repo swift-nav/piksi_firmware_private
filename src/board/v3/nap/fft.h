@@ -14,6 +14,7 @@
 #define SWIFTNAV_FFT_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/signal.h>
 
 #define FFT_LEN_LOG2_MIN 15
 #define FFT_LEN_LOG2_MAX 15
@@ -32,23 +33,17 @@ typedef enum {
 } fft_dir_t;
 
 typedef enum {
-  FFT_SAMPLES_INPUT_RF1_CH0 = 0,
-  FFT_SAMPLES_INPUT_RF1_CH1 = 1,
-  FFT_SAMPLES_INPUT_RF2_CH0 = 2,
-  FFT_SAMPLES_INPUT_RF2_CH1 = 3,
-  FFT_SAMPLES_INPUT_RF3_CH0 = 4,
-  FFT_SAMPLES_INPUT_RF3_CH1 = 5,
-  FFT_SAMPLES_INPUT_RF4_CH0 = 6,
-  FFT_SAMPLES_INPUT_RF5_CH1 = 7
+  FFT_SAMPLES_INPUT_RF1 = 0,
+  FFT_SAMPLES_INPUT_RF2 = 1,
+  FFT_SAMPLES_INPUT_RF3 = 2,
+  FFT_SAMPLES_INPUT_RF4 = 3,
 } fft_samples_input_t;
 
 bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
-         fft_dir_t dir, u32 scale_schedule);
+         fft_dir_t dir, u32 scale_schedule, constellation_t gnss);
 
 bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
                  u32 len_log2, fft_dir_t dir, u32 scale_schedule,
-                 u32 *sample_count);
-
-bool raw_samples_get(u8 *out, u32 len_samples, u32 *sample_count);
+                 u32 *sample_count, constellation_t gnss);
 
 #endif /* SWIFTNAV_FFT_H */

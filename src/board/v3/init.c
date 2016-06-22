@@ -29,7 +29,7 @@
 #include "frontend.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL  (0x03000000U)
+#define REQUIRED_NAP_VERSION_VAL  (0x03040000U)
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
@@ -70,21 +70,6 @@ void pre_init(void)
   led_setup();
 }
 
-static void random_init(void)
-{
-  u64 sample_data;
-  u32 seed = 0;
-  u32 sample_count;
-
-  if (!raw_samples_get((void*)&sample_data, sizeof(sample_data), &sample_count))
-    log_error("Failed to read sample buffer for RNG seed");
-
-  for (int i = 0; i < 32; i++)
-    seed ^= sample_data >> i;
-
-  srand(seed);
-}
-
 void init(void)
 {
   fault_handling_setup();
@@ -96,7 +81,6 @@ void init(void)
   nap_callbacks_setup();
 
   frontend_configure();
-  random_init();
 }
 
 static bool nap_version_ok(u32 version)

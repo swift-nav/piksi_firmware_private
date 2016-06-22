@@ -69,6 +69,7 @@ typedef struct {
   float code_phase;       /**< Code phase (chips). */
   float cn0_init;         /**< C/N0 estimate (dBHz). */
   s8 elevation;           /**< Elevation (deg). */
+  s8 glo_freq_channel;    /**< Number of frequency channel for GLO SV [-7..6] */
 } tracking_startup_params_t;
 
 /** \} */

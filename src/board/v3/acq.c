@@ -9,7 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
+#define DEBUG 1
 #include "acq.h"
 
 #include <ch.h>
@@ -19,16 +19,14 @@
 #include <libswiftnav/logging.h>
 
 #include "nap/nap_constants.h"
+#include "nap/nap_hw.h"
 #include "nap/fft.h"
 
-#define CHIP_RATE 1.023e6f
-#define CODE_LENGTH 1023
 #define CODE_MULT 16384
 #define RESULT_DIV 32
 #define FFT_SCALE_SCHED_CODE 0x15555555
 #define FFT_SCALE_SCHED_SAMPLES 0x15555555
 #define FFT_SCALE_SCHED_INV 0x15550000
-#define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1_CH0
 
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
@@ -39,27 +37,42 @@ float acq_bin_width(void)
 }
 
 bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
-                float cf_bin_width, acq_result_t *acq_result)
+                float cf_bin_width, acq_result_t *acq_result, s8 glo_channel)
 {
   /* Configuration */
   u32 fft_len_log2 = FFT_LEN_LOG2_MAX;
   u32 fft_len = 1 << fft_len_log2;
   float fft_bin_width = NAP_ACQ_SAMPLE_RATE_Hz / fft_len;
-  float chips_per_sample = CHIP_RATE / NAP_ACQ_SAMPLE_RATE_Hz;
+  float chips_per_sample = code_to_chip_rate(sid.code) / NAP_ACQ_SAMPLE_RATE_Hz;
+  constellation_t gnss = sid_to_constellation(sid);
+  /* select frontend */
+  fft_samples_input_t fft_samples_input = (CONSTELLATION_GLO == gnss) ?
+                                          FFT_SAMPLES_INPUT_RF2 :
+                                          FFT_SAMPLES_INPUT_RF1;
+
+  if (CONSTELLATION_GLO == gnss) {
+    /* set mixer input frequency according to GLO channel */
+    NAP->ACQ_PINC = glo_channel_to_freq(glo_channel, sid.code) * 4294967296.0
+                    / NAP_ACQ_SAMPLE_RATE_Hz;
+  }
 
   /* Generate, resample, and FFT code */
   static fft_cplx_t code_fft[FFT_LEN_MAX];
   code_resample(sid, chips_per_sample, code_fft, fft_len);
   if (!fft(code_fft, code_fft, fft_len_log2,
-           FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
+           FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE,
+           gnss)) {
+    log_debug("1");
     return false;
   }
 
   /* FFT samples */
   u32 sample_count;
   static fft_cplx_t sample_fft[FFT_LEN_MAX];
-  if(!fft_samples(FFT_SAMPLES_INPUT, sample_fft, fft_len_log2,
-                  FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
+  if(!fft_samples(fft_samples_input, sample_fft, fft_len_log2,
+                  FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count,
+                  gnss)) {
+    log_debug("2");
     return false;
   }
 
@@ -97,31 +110,26 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
     /* Inverse FFT */
     if (!fft(result_fft, result_fft, fft_len_log2,
-             FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV)) {
+             FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV, gnss)) {
       return false;
     }
 
     /* Peak search */
-    float mag_sq_sum = 0.0f;
-    bool match = false;
-    for (u32 i=0; i<fft_len; i++) {
-      const fft_cplx_t *r = &result_fft[i];
-
-      float re = (float)r->re;
-      float im = (float)r->im;
-      float mag_sq = re*re + im*im;
-      mag_sq_sum += mag_sq;
-
-      if (mag_sq > best_mag_sq) {
-        best_mag_sq = mag_sq;
-        best_doppler = doppler;
-        best_sample_offset = i;
-        match = true;
-      }
+    u32 acq_status = NAP->ACQ_STATUS;
+    float mag_sq = (float)NAP->ACQ_PEAK_MAGSQ;
+    if (mag_sq > best_mag_sq) {
+      best_doppler = doppler;
+      best_mag_sq = mag_sq;
+      best_mag_sq_sum = (float)NAP->ACQ_SUM_MAGSQ;
+      best_sample_offset = ((acq_status & NAP_ACQ_STATUS_PEAK_INDEX_Msk)
+          >> NAP_ACQ_STATUS_PEAK_INDEX_Pos);
     }
 
-    if (match) {
-      best_mag_sq_sum = mag_sq_sum;
+    if (acq_status & NAP_ACQ_STATUS_PEAK_MAGSQ_OVF_Msk) {
+      log_error("Acquisition: Magnitude squared overflow.");
+    }
+    if (acq_status & NAP_ACQ_STATUS_SUM_MAGSQ_OVF_Msk) {
+      log_error("Acquisition: Magnitude squared sum overflow.");
     }
   }
 
@@ -137,7 +145,8 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
-  cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
+  cp -= code_to_chip_count(sid.code)
+        * floorf(cp / code_to_chip_count(sid.code));
 
   /* Compute C/N0 */
   float snr = best_mag_sq / (best_mag_sq_sum / fft_len);
@@ -156,7 +165,7 @@ static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length)
 {
   const u8 *code = ca_code(sid);
-  u32 code_length = CODE_LENGTH;
+  u32 code_length = code_to_chip_count(sid.code);
 
   float chip_offset = 0.0f;
   for (u32 i=0; i<resampled_length; i++) {
