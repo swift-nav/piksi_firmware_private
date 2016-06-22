@@ -26,6 +26,6 @@ typedef struct {
 float acq_bin_width(void);
 
 bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
-                float cf_bin_width, acq_result_t *acq_result);
+                float cf_bin_width, acq_result_t *acq_result, s8 glo_channel);
 
 #endif /* SWIFTNAV_ACQ_H */

@@ -396,36 +396,78 @@ static void manage_acq()
   log_debug("SV %u (%u) selected", acq->sid.sat, acq->sid.code);
 
   acq_result_t acq_result;
-  if (acq_search(acq->sid, acq->dopp_hint_low, acq->dopp_hint_high,
-                 ACQ_FULL_CF_STEP, &acq_result)) {
+  if (CONSTELLATION_GLO == sid_to_constellation(acq->sid)) {
+    /* search process for GLO SVs */
+    /* go through all frequency channels for each GLO SV */
+    for (s8 fc = -7; fc <= 6; fc++) {
+      log_debug("Search GLO channel %d", fc);
+      if (acq_search(acq->sid, acq->dopp_hint_low, acq->dopp_hint_high,
+                     ACQ_FULL_CF_STEP, &acq_result, fc)) {
+        log_debug("GLO search results: sample count %u, CP %15.10f, CF %15.10f, CN0 %7.5f",
+                  acq_result.sample_count,
+                  acq_result.cp,
+                  acq_result.cf,
+                  acq_result.cn0);
+#if 0
+        /* Send result of an acquisition to the host. */
+        acq_result_send(acq->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
 
-    /* Send result of an acquisition to the host. */
-    acq_result_send(acq->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
+        if (acq_result.cn0 < ACQ_THRESHOLD) {
+          /* Didn't find the satellite :( try next frequency channel*/
+          continue;
+        }
 
-    if (acq_result.cn0 < ACQ_THRESHOLD) {
-      /* Didn't find the satellite :( */
-      /* Double the size of the doppler search space for next time. */
-      float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
-      acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, ACQ_FULL_CF_MAX);
-      acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, ACQ_FULL_CF_MIN);
-      /* Decay hint scores */
-      for (u8 i = 0; i < ACQ_HINT_NUM; i++)
-        acq->score[i] = (acq->score[i] * 3) / 4;
-      /* Reset hint score for acquisition. */
-      acq->score[ACQ_HINT_PREV_ACQ] = 0;
-      return;
+        tracking_startup_params_t tracking_startup_params = {
+          .sid = acq->sid,
+          .sample_count = acq_result.sample_count,
+          .carrier_freq = acq_result.cf,
+          .code_phase = acq_result.cp,
+          .cn0_init = acq_result.cn0,
+          .elevation = TRACKING_ELEVATION_UNKNOWN,
+          .glo_freq_channel = fc
+        };
+
+        tracking_startup_request(&tracking_startup_params);
+        /* no need to scan other channels */
+        break;
+#endif
+      } else {
+        log_debug("GLO search FALSE");
+      }
     }
+  } else {
+    /* non-GLO search process */
+    if (acq_search(acq->sid, acq->dopp_hint_low, acq->dopp_hint_high,
+                   ACQ_FULL_CF_STEP, &acq_result, 0)) {
 
-    tracking_startup_params_t tracking_startup_params = {
-      .sid = acq->sid,
-      .sample_count = acq_result.sample_count,
-      .carrier_freq = acq_result.cf,
-      .code_phase = acq_result.cp,
-      .cn0_init = acq_result.cn0,
-      .elevation = TRACKING_ELEVATION_UNKNOWN
-    };
+      /* Send result of an acquisition to the host. */
+      acq_result_send(acq->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
 
-    tracking_startup_request(&tracking_startup_params);
+      if (acq_result.cn0 < ACQ_THRESHOLD) {
+        /* Didn't find the satellite :( */
+        /* Double the size of the doppler search space for next time. */
+        float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
+        acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, ACQ_FULL_CF_MAX);
+        acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, ACQ_FULL_CF_MIN);
+        /* Decay hint scores */
+        for (u8 i = 0; i < ACQ_HINT_NUM; i++)
+          acq->score[i] = (acq->score[i] * 3) / 4;
+        /* Reset hint score for acquisition. */
+        acq->score[ACQ_HINT_PREV_ACQ] = 0;
+        return;
+      }
+
+      tracking_startup_params_t tracking_startup_params = {
+        .sid = acq->sid,
+        .sample_count = acq_result.sample_count,
+        .carrier_freq = acq_result.cf,
+        .code_phase = acq_result.cp,
+        .cn0_init = acq_result.cn0,
+        .elevation = TRACKING_ELEVATION_UNKNOWN
+      };
+
+      tracking_startup_request(&tracking_startup_params);
+    }
   }
 }
 
