@@ -49,7 +49,7 @@
 #define LD_PARAMS_EXTRAOPT "0.02, 0.8, 150, 50"
 #define LD_PARAMS_DISABLE  "0.02, 1e-6, 1, 1"
 
-#define CN0_EST_LPF_CUTOFF 5
+#define CN0_EST_LPF_CUTOFF 0.1
 
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
@@ -65,7 +65,7 @@ static struct lock_detect_params {
   u16 lp, lo;
 } lock_detect_params;
 
-static float track_cn0_use_thres = 31.0; /* dBHz */
+static float track_cn0_use_thres = 37.0; /* dBHz */
 static float track_cn0_drop_thres = 31.0;
 
 static char loop_params_string[120] = LOOP_PARAMS_MED;
@@ -250,12 +250,12 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
      * of 0.1 Hz.
      */
     static const cn0_est_params_t pre_computed[] = {
-      {3.0000000e+01f, 9.8652211e-08f, -1.9991114e+00f, 9.9911182e-01f},
-      {2.6989700e+01f, 3.9443364e-07f, -1.9982228e+00f, 9.9822443e-01f},
-      {2.3979400e+01f, 1.5763345e-06f, -1.9964457e+00f, 9.9645200e-01f},
-      {2.3010300e+01f, 2.4619300e-06f, -1.9955571e+00f, 9.9556697e-01f},
-      {2.0000000e+01f, 9.8259168e-06f, -1.9911143e+00f, 9.9115360e-01f},
-      {1.6989700e+01f, 3.9130205e-05f, -1.9822289e+00f, 9.8238545e-01f}
+      {3.0000000e+01f, 9.8652194e-08f, -1.9991113e+00f, 9.9911177e-01f},
+      {2.6989700e+01f, 3.9443353e-07f, -1.9982228e+00f, 9.9822444e-01f},
+      {2.3979401e+01f, 1.5763328e-06f, -1.9964458e+00f, 9.9645197e-01f},
+      {2.3010300e+01f, 2.4619260e-06f, -1.9955571e+00f, 9.9556691e-01f},
+      {2.0000000e+01f, 9.8258515e-06f, -1.9911141e+00f, 9.9115360e-01f},
+      {1.6989700e+01f, 3.9129183e-05f, -1.9822294e+00f, 9.8238576e-01f}
     };
 
     cn0_est_params_t params;
