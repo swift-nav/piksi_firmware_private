@@ -35,7 +35,7 @@
 #define TP_USE_5MS_PROFILES
 #define TP_USE_10MS_PROFILES
 #define TP_USE_20MS_PROFILES
-#define TP_USE_40MS_PROFILES
+// #define TP_USE_40MS_PROFILES
 
 // #define TP_USE_MEAN_VALUES
 
@@ -67,7 +67,7 @@
 #define TP_DEFAULT_CN0_DROP_THRESHOLD (25.5f)
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD (10.5f)
+#define TP_HARD_CN0_DROP_THRESHOLD (15.5f)
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
 #define TP_SNR_OFFSET  (-172.f)
 /** C/N0 threshold for increasing integration time */
