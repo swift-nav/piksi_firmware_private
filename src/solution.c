@@ -661,7 +661,6 @@ static void solution_thread(void *arg)
      */
     for (u8 i = 0; i < n_ready_tdcp; i++) {
       double pr_err = GPS_C * gpsdifftime(&position_solution.time, &rec_time);
-      nav_meas_tdcp[i].raw_pseudorange += pr_err;
       nav_meas_tdcp[i].pseudorange += pr_err;
     }
     /*
