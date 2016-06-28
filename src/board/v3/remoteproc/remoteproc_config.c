@@ -11,21 +11,15 @@
  */
 
 #include <openamp/open_amp.h>
-#include "resource_table.h"
+#include <openamp/hil.h>
 
-#define RPMSG_IPU_C0_FEATURES       1
-#define VIRTIO_RPMSG_F_NS           0
+#include "remoteproc_config.h"
+#include "gic.h"
 
-/* Resource table entries */
-#define ELF_START                   0x1E000000
-#define ELF_SIZE                    0x01000000
-#define NUM_VRINGS                  2
-#define VRING_ALIGN                 0x00001000
-#define VRING_SIZE                  0x00010000
-#define NUM_TABLE_ENTRIES           2
+extern struct hil_platform_ops proc_ops;
 
-const struct remote_resource_table __attribute__((section (".resource_table")))
-resources = {
+struct remote_resource_table __attribute__((section (".resource_table")))
+resource_table = {
   .version = 1,
   .num = NUM_TABLE_ENTRIES,
   .reserved = {0, 0},
@@ -54,17 +48,63 @@ resources = {
     .reserved = {0, 0}
   },
   .rpmsg_vring0 = {
-    .da = 0,
+    .da = 0xffffffff,
     .align = VRING_ALIGN,
     .num = VRING_SIZE,
-    .notifyid = 0,
+    .notifyid = VRING0_IRQ,
     .reserved = 0
   },
   .rpmsg_vring1 = {
-    .da = 0,
+    .da = 0xffffffff,
     .align = VRING_ALIGN,
     .num = VRING_SIZE,
-    .notifyid = 0,
+    .notifyid = VRING1_IRQ,
     .reserved = 0
   }
+};
+
+const struct hil_proc hil_proc = {
+  .cpu_id = MASTER_CPU_ID,
+  .sh_buff = {
+    .start_addr = 0,
+    .size = 0,
+    .flags = 0
+  },
+  .vdev = {
+    .num_vrings = 0,
+    .dfeatures = 0,
+    .gfeatures = 0,
+    .vring_info[0] = {
+      .vq = NULL,
+      .phy_addr = NULL,
+      .num_descs = 0,
+      .align = 0,
+      .intr_info = {
+        .vect_id = VRING0_IRQ,
+        .priority = VRING0_IRQ_PRIO,
+        .trigger_type = IRQ_SENSITIVITY_EDGE,
+        .data = NULL
+      },
+    },
+    .vring_info[1] = {
+      .vq = NULL,
+      .phy_addr = NULL,
+      .num_descs = 0,
+      .align = 0,
+      .intr_info = {
+        .vect_id = VRING1_IRQ,
+        .priority = VRING1_IRQ_PRIO,
+        .trigger_type = IRQ_SENSITIVITY_EDGE,
+        .data = NULL
+      },
+    },
+  },
+  .num_chnls = NUM_CHANNELS,
+  .chnls[0] = {
+    .name = CHANNEL0_NAME
+  },
+  .ops = &proc_ops,
+  .attr = 0,
+  .cpu_bitmask = 0,
+  .slock = NULL
 };

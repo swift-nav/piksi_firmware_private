@@ -10,21 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stddef.h>
-#include <openamp/open_amp.h>
+#ifndef SWIFTNAV_REMOTEPROC_H
+#define SWIFTNAV_REMOTEPROC_H
 
-#define NO_RESOURCE_ENTRIES         8
+void remoteproc_setup(void);
 
-/* Resource table for the given remote */
-struct remote_resource_table {
-  unsigned int version;
-  unsigned int num;
-  unsigned int reserved[2];
-  unsigned int offset[NO_RESOURCE_ENTRIES];
-  /* text carveout entry */
-  struct fw_rsc_carveout elf_cout;
-  /* rpmsg vdev entry */
-  struct fw_rsc_vdev rpmsg_vdev;
-  struct fw_rsc_vdev_vring rpmsg_vring0;
-  struct fw_rsc_vdev_vring rpmsg_vring1;
-};
+#endif /* SWIFTNAV_REMOTEPROC_H */

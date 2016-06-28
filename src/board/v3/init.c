@@ -30,6 +30,7 @@
 #include "xadc.h"
 #include "nt1065.h"
 #include "system_monitor.h"
+#include "remoteproc/remoteproc.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03050000U)
@@ -76,6 +77,7 @@ static void reset_callback_register(void)
 void pre_init(void)
 {
   led_setup();
+  remoteproc_setup();
 }
 
 static void random_init(void)
