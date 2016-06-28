@@ -114,10 +114,10 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     }
 
     if (acq_status & NAP_ACQ_STATUS_PEAK_MAGSQ_OVF_Msk) {
-      log_error("Acquisition: Magnitude squared overflow.");
+      log_warn("Acquisition: Magnitude squared overflow.");
     }
     if (acq_status & NAP_ACQ_STATUS_SUM_MAGSQ_OVF_Msk) {
-      log_error("Acquisition: Magnitude squared sum overflow.");
+      log_warn("Acquisition: Magnitude squared sum overflow.");
     }
   }
 
