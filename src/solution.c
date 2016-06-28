@@ -82,7 +82,6 @@ static last_good_fix_t lgf;
 static u16 lock_counters[PLATFORM_SIGNAL_COUNT];
 
 bool disable_raim = false;
-bool disable_velocity = false;
 bool send_heading = false;
 
 void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
@@ -569,9 +568,10 @@ static void solution_thread(void *arg)
     dops_t dops;
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, disable_velocity,
+    /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
+     * just return the rough value from the tracking loop. */
+    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &lgf.position_solution, &dops);
-
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
       /* TODO: Make this based on time since last error instead of a simple
@@ -1004,7 +1004,6 @@ void solution_setup()
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
-  SETTING("solution", "disable_velocity", disable_velocity, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
 
   nmea_setup();

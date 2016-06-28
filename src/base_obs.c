@@ -38,7 +38,6 @@
 #include "ndb.h"
 
 extern bool disable_raim;
-extern bool disable_velocity;
 
 /** \defgroup base_obs Base station observation handling
  * \{ */
@@ -165,7 +164,9 @@ static void update_obss(obss_t *new_obss)
 
     /* Calculate a position solution. */
     /* disable_raim controlled by external setting (see solution.c). */
-    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, disable_velocity, &soln, &dops);
+    /* Skip velocity solving for the base incase we have bad doppler values
+     * due to a cycle slip. */
+    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true, &soln, &dops);
 
     if (ret >= 0 && soln.valid) {
       /* The position solution calculation was sucessful. Unfortunately the
