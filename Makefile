@@ -83,11 +83,11 @@ $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a: .FORCE
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
 $(OPENAMP_BUILDDIR)/lib/libopen-amp.a:
-	@printf "BUILD   open-amp\n"; \
+	@printf "BUILD   open-amp for target $(PIKSI_HW)\n"; \
 	mkdir -p $(OPENAMP_BUILDDIR) ; cd $(OPENAMP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	      -DCMAKE_TOOLCHAIN_FILE=../cmake/platforms/Toolchain-gcc-arm-embedded.cmake \
-	      -DWITH_OBSOLETE=on -DWITH_APPS=off -DCMAKE_SYSTEM_PROCESSOR=cortex-a9 -DMACHINE=zynq7 \
+	      -DMACHINE=custom \
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(OPENAMP_BUILDDIR) $(MAKEFLAGS)
 
