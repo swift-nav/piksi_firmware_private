@@ -12,6 +12,8 @@
 
 #include "peripherals/usart.h"
 
+#include "remoteproc/rpmsg.h"
+
 void usart_support_init(void)
 {
 }
@@ -29,30 +31,22 @@ void usart_support_disable(void *sd)
 
 u32 usart_support_n_read(void *sd)
 {
-  (void)sd;
-  return 0;
+  return rpmsg_rx_fifo_length(SD_TO_RPMSG_EPT(sd));
 }
 
 u32 usart_support_tx_n_free(void *sd)
 {
-  (void)sd;
-  return 0;
+  return rpmsg_tx_fifo_space(SD_TO_RPMSG_EPT(sd));
 }
 
 u32 usart_support_read_timeout(void *sd, u8 data[], u32 len, u32 timeout)
 {
-  (void)sd;
-  (void)data;
-  (void)len;
   (void)timeout;
-  return 0;
+  return rpmsg_rx_fifo_read(SD_TO_RPMSG_EPT(sd), data, len);
 }
 
 u32 usart_support_write(void *sd, const u8 data[], u32 len)
 {
-  (void)sd;
-  (void)data;
-  (void)len;
-  return 0;
+  return rpmsg_tx_fifo_write(SD_TO_RPMSG_EPT(sd), data, len);
 }
 
