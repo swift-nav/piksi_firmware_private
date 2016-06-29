@@ -99,6 +99,18 @@ void ephemeris_new(ephemeris_t *e)
   }
 }
 
+void ephemeris_clear(gnss_signal_t sid) {
+  assert(sid_supported(sid));
+
+  u32 index = sid_to_global_index(sid);
+  log_info_sid(sid, "Clearing ephemeris");
+
+  ephemeris_lock();
+  memset(&es[index], 0, sizeof(ephemeris_t));
+  memset(&es_candidate[index], 0, sizeof(ephemeris_t));
+  ephemeris_unlock();
+}
+
 static void ephemeris_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
   (void)sender_id; (void)context;
