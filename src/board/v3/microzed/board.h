@@ -18,19 +18,11 @@
 #define _BOARD_H_
 
 #include <gic.h>
-#include "remoteproc/rpmsg.h"
 
 #define IRQ_ID_NAP_TRACK IRQ_ID_FPGA3
 #define NAP_IRQ_PRIORITY 4
 #define IRQ_ID_FRONTEND_AOK IRQ_ID_FPGA9
 #define FRONTEND_AOK_PRIORITY 4
-
-#define RPMSG_EPT_TO_SD(rpmsg_ept) ((void *)((int)(rpmsg_ept) + 1))
-#define SD_TO_RPMSG_EPT(sd) ((rpmsg_endpoint_t)((int)(sd) - 1))
-
-#define SD_FTDI  RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_A)
-#define SD_UARTA RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_B)
-#define SD_UARTB RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
 
 /*
  * Setup for the Digilent uZed board.
