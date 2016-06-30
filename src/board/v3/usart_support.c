@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "usart_support.h"
 #include "peripherals/usart.h"
-
 #include "remoteproc/rpmsg.h"
 
 void usart_support_init(void)

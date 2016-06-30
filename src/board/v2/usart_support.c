@@ -14,6 +14,7 @@
 
 #include <libswiftnav/logging.h>
 
+#include "usart_support.h"
 #include "peripherals/usart.h"
 #include "error.h"
 #include "main.h"
