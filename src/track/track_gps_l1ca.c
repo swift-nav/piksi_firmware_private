@@ -36,7 +36,8 @@ typedef struct {
   aided_tl_state_t tl_state;               /**< Tracking loop filter state. */
   corr_t           cs[3];                  /**< EPL correlation results in
                                             *   correlation period. */
-  cn0_est_state_t  cn0_est;                /**< C/N0 Estimator. */
+  track_cn0_est_e  cn0_est_type;           /**< C/N0 estimator type */
+  cn0_est_state_t  cn0_est;                /**< C/N0 estimator state. */
   cn0_filter_t     cn0_filt;               /**< C/N0 Filter */
   alias_detect_t   alias_detect;           /**< Alias lock detector. */
   lock_detect_t    lock_detect;            /**< Phase-lock detector state. */
@@ -194,8 +195,19 @@ static void tracker_gps_l1ca_update_parameters(
                        ld->lo);
   }
 
-  /* Initialize C/N0 estimator and filter */
-  track_cn0_init(cn0_ms, &data->cn0_est, &data->cn0_filt, common_data->cn0);
+  {
+    tp_cn0_params_t cn0_params;
+    tp_get_cn0_params(channel_info->sid, &cn0_params);
+
+    data->cn0_est_type = cn0_params.est;
+
+    /* Initialize C/N0 estimator and filter */
+    track_cn0_init(cn0_params.est,    /* C/N0 estimator type */
+                   cn0_ms,            /* C/N0 period in ms */
+                   &data->cn0_est,    /* C/N0 estimator state */
+                   &data->cn0_filt,   /* C/N0 filter state */
+                   common_data->cn0); /* Initial C/N0 value */
+  }
 
   data->alias_detect_first = true;
 
@@ -601,7 +613,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
      */
 
     if (data->tracking_mode == TP_TM_SPLIT) {
-      common_data->cn0 = track_cn0_update(1, &data->cn0_est, &data->cn0_filt, cs_now[1].I, cs_now[1].Q);
+      common_data->cn0 = track_cn0_update(data->cn0_est_type, 1,
+                                          &data->cn0_est, &data->cn0_filt,
+                                          cs_now[1].I, cs_now[1].Q);
 
       lock_detect_update(&data->lock_detect, cs_now[1].I, cs_now[1].Q, 1);
     }
@@ -637,14 +651,29 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
    * tracking_channel_get_corrs. */
   const corr_t* cs = data->cs;
   if (use_cn0) {
+    tp_cn0_params_t cn0_params;
+    tp_get_cn0_params(channel_info->sid, &cn0_params);
+
+    if (cn0_params.est != data->cn0_est_type) {
+      float cn0_ms = data->int_ms; /**< C/N0 input period in ms */
+
+      data->cn0_est_type = cn0_params.est;
+
+      /* Initialize C/N0 estimator and filter */
+      track_cn0_init(cn0_params.est,    /* C/N0 estimator type */
+                     cn0_ms,            /* C/N0 period in ms */
+                     &data->cn0_est,    /* C/N0 estimator state */
+                     &data->cn0_filt,   /* C/N0 filter state */
+                     common_data->cn0); /* Initial C/N0 value */
+
+    }
+
     /* Update C/N0 estimate */
-    common_data->cn0 = track_cn0_update(data->int_ms,
+    common_data->cn0 = track_cn0_update(data->cn0_est_type,
+                                        data->int_ms,
                                         &data->cn0_est,
                                         &data->cn0_filt,
                                         cs_now[1].I, cs_now[1].Q);
-
-    tp_cn0_params_t cn0_params;
-    tp_get_cn0_params(channel_info->sid, &cn0_params);
 
     if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
         data->lock_detect.outp) {
@@ -703,12 +732,14 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
        * input parameters are scaled to stabilize tracker.
        */
       const tp_loop_params_t *lp = tp_get_next_loop_params(channel_info->sid);
-      /* TODO utilize noise bandwidth and damping ratio */
-      float k1 = (float)data->int_ms / lp->coherent_ms;
-      float k2 = k1 * k1;
-      for (u32 i = 0; i < 3; i++) {
-        cs2[i].I *= k1;
-        cs2[i].Q *= k2;
+      if (data->int_ms != lp->coherent_ms) {
+        /* TODO utilize noise bandwidth and damping ratio */
+        float k1 = (float)data->int_ms / lp->coherent_ms;
+        float k2 = k1 * k1;
+        for (u32 i = 0; i < 3; i++) {
+          cs2[i].I *= k1;
+          cs2[i].Q *= k2;
+        }
       }
     }
 

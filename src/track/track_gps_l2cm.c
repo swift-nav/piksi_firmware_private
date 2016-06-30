@@ -38,6 +38,9 @@
 /* Alias detection interval [ms] */
 #define L2C_ALIAS_DETECT_INTERVAL_MS     500
 
+/** C/N0 estimator to use */
+#define L2C_CN0_ESTIMATOR TRACK_CN0_EST_BL
+
 /* Number of chips to integrate over in the short cycle interval [chips]
  * The value must be within [0..GPS_L2C_CHIPS_NUM].
  * GPS_L2C_CHIPS_NUM equals to 20ms
@@ -264,7 +267,11 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->startup = 2;
 
   /* Initialize C/N0 estimator and filter */
-  track_cn0_init(data->int_ms, &data->cn0_est, &data->cn0_filt, common_data->cn0);
+  track_cn0_init(L2C_CN0_ESTIMATOR, /* C/N0 estimator type */
+                 data->int_ms,      /* C/N0 period in ms */
+                 &data->cn0_est,    /* C/N0 estimator state */
+                 &data->cn0_filt,   /* C/N0 filter state */
+                 common_data->cn0); /* Initial C/N0 value */
 
   /* Initialize lock detector */
   lock_detect_init(&data->lock_detect,
@@ -430,7 +437,8 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
-  common_data->cn0 = track_cn0_update(data->int_ms,
+  common_data->cn0 = track_cn0_update(L2C_CN0_ESTIMATOR,
+                                      data->int_ms,
                                       &data->cn0_est,
                                       &data->cn0_filt,
                                       cs[1].I, cs[1].Q);

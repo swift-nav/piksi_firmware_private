@@ -12,6 +12,8 @@
 
 #include "track_cn0.h"
 
+#include <assert.h>
+
 #define INTEG_PERIOD_1_MS  1
 #define INTEG_PERIOD_2_MS  2
 #define INTEG_PERIOD_4_MS  4
@@ -52,7 +54,9 @@ void track_cn0_params_init(void)
   }
 }
 
-const track_cn0_params_t *track_cn0_get_params(u8 int_ms, track_cn0_params_t *p)
+const track_cn0_params_t *track_cn0_get_params(track_cn0_est_e t,
+                                               u8 int_ms,
+                                               track_cn0_params_t *p)
 {
   const track_cn0_params_t *pparams = NULL;
 
@@ -67,6 +71,17 @@ const track_cn0_params_t *track_cn0_get_params(u8 int_ms, track_cn0_params_t *p)
     float loop_freq = 1e3f / int_ms;
     cn0_est_compute_params(&p->est_params, CN0_EST_BW_HZ, CN0_EST_LPF_ALPHA,
                            loop_freq);
+
+    switch (t) {
+    case TRACK_CN0_EST_BL:
+    case TRACK_CN0_EST_SNV:
+      /* TODO add calibration values specific to filter types */
+      break;
+
+    default:
+      assert(false);
+    }
+
     cn0_filter_compute_params(&p->filter_params,
                               CN0_EST_LPF_CUTOFF_HZ,
                               loop_freq);
@@ -77,22 +92,54 @@ const track_cn0_params_t *track_cn0_get_params(u8 int_ms, track_cn0_params_t *p)
 }
 
 
-void track_cn0_init(u8 int_ms, cn0_est_state_t *e, cn0_filter_t *f, float cn0_0)
+void track_cn0_init(track_cn0_est_e t,
+                    u8 int_ms,
+                    cn0_est_state_t *e,
+                    cn0_filter_t *f,
+                    float cn0_0)
 {
   track_cn0_params_t p;
-  const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
+  const track_cn0_params_t *pp = track_cn0_get_params(t, int_ms, &p);
 
-  cn0_est_init(e, &pp->est_params, cn0_0);
+  switch (t) {
+  case TRACK_CN0_EST_BL:
+    cn0_est_bl_init(e, &pp->est_params, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_SNV:
+    cn0_est_snv_init(e, &pp->est_params, cn0_0);
+    break;
+
+  default:
+    assert(false);
+  }
+
   cn0_filter_init(f, &pp->filter_params, cn0_0);
 }
 
-float track_cn0_update(u8 int_ms, cn0_est_state_t *e, cn0_filter_t *f,
+float track_cn0_update(track_cn0_est_e t,
+                       u8 int_ms,
+                       cn0_est_state_t *e,
+                       cn0_filter_t *f,
                        float I, float Q)
 {
   track_cn0_params_t p;
-  const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
+  const track_cn0_params_t *pp = track_cn0_get_params(t, int_ms, &p);
+  float cn0 = 0;
 
-  float cn0 = cn0_est_update(e, &pp->est_params, I, Q);
+  switch (t) {
+  case TRACK_CN0_EST_BL:
+    cn0 = cn0_est_bl_update(e, &pp->est_params, I, Q);
+    break;
+
+  case TRACK_CN0_EST_SNV:
+    cn0 = cn0_est_snv_update(e, &pp->est_params, I, Q);
+    break;
+
+  default:
+    assert(false);
+  }
+
   cn0 = cn0_filter_update(f, &pp->filter_params, cn0);
 
   return cn0;

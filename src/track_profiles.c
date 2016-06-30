@@ -35,7 +35,7 @@
 #define TP_USE_5MS_PROFILES
 #define TP_USE_10MS_PROFILES
 #define TP_USE_20MS_PROFILES
-// #define TP_USE_40MS_PROFILES
+//#define TP_USE_40MS_PROFILES
 
 // #define TP_USE_MEAN_VALUES
 
@@ -62,22 +62,27 @@
 #define ARR_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 /** Default C/N0 threshold in dB/Hz for keeping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_USE_THRESHOLD  (31.f)
+#define TP_DEFAULT_CN0_USE_THRESHOLD  (37.f)
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD (25.5f)
+#define TP_DEFAULT_CN0_DROP_THRESHOLD (31.f)
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD (15.5f)
+#define TP_HARD_CN0_DROP_THRESHOLD (21.f)
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
-#define TP_SNR_OFFSET  (-172.f)
+//#define TP_SNR_OFFSET  (-155.f)
+#define TP_SNR_OFFSET  (-174.f + 2.f)
+
+#define TP_CN0_SNV2BL_THRESHOLD  (44.f)
+#define TP_CN0_BL2SNV_THRESHOLD  (TP_CN0_SNV2BL_THRESHOLD - 4.f)
+
 /** C/N0 threshold for increasing integration time */
-#if defined(TP_USE_SPLIT_MODE)
-#define TP_SNR_THRESHOLD_MIN (37.f + TP_SNR_OFFSET)
-#else
-#define TP_SNR_THRESHOLD_MIN (35.f + TP_SNR_OFFSET)
-#endif
+//#if defined(TP_USE_SPLIT_MODE)
+//#define TP_SNR_THRESHOLD_MIN (39.f + TP_SNR_OFFSET)
+//#else
+//#define TP_SNR_THRESHOLD_MIN (40.f + TP_SNR_OFFSET)
+//#endif
 /** C/N0 threshold for decreasing integration time */
-#define TP_SNR_THRESHOLD_MAX (40.f + TP_SNR_OFFSET)
+//#define TP_SNR_THRESHOLD_MAX (TP_SNR_THRESHOLD_MIN + 4.f)
 /** C/N0 threshold state lock counter */
 #define TP_SNR_STATE_COUNT_LOCK (/*31*/3)
 /** PLL lock threshold for state freeze */
@@ -149,6 +154,7 @@ typedef struct {
   u32           accel_count:5;     /**< State lock counter for dynamics threshold */
   u32           accel_count_idx:2; /**< State lock value for dynamics threshold */
   u32           lock_time_ms:16;   /**< Profile lock count down timer */
+  u32           cn0_est:1;
   float         cn0_offset;        /**< C/N0 offset in dB to tune thresholds */
   float         filt_val[4];       /**< Filtered counters: v,a,l,C/N0 */
 #if defined(TP_USE_MEAN_VALUES)
@@ -219,6 +225,7 @@ enum
 #endif
 #ifdef TP_USE_20MS_PROFILES
   TP_PROFILE_ROW_20MS,
+  TP_PROFILE_ROW_20MS_SS,
 #endif
 #ifdef TP_USE_40MS_PROFILES
   TP_PROFILE_ROW_40MS,
@@ -285,6 +292,8 @@ static const tp_loop_params_t loop_params[] = {
   { 1, .7f, 1, 1540, 10, .7f, 1.f, 0, 20, TP_TM_LONG_MODE },/*TP_LP_IDX_20MS_N*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
   { 1, .7f, 1, 1540, 12, .7f, 1.f, 0, 20, TP_TM_LONG_MODE },/*TP_LP_IDX_20MS_U*/
+
+  { 1, .7f, 1, 1540, 43.5, .7f, .95f, 0, 20, TP_TM_LONG_MODE }, /*TP_LP_IDX_20MS_SS*/
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
@@ -329,6 +338,7 @@ enum
   TP_LP_IDX_20MS_S, /**< 20MS 1+N integration; stable. */
   TP_LP_IDX_20MS_N, /**< 20MS 1+N integration; normal. */
   TP_LP_IDX_20MS_U, /**< 20MS 1+N integration; unstable. */
+  TP_LP_IDX_20MS_SS
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
@@ -340,6 +350,8 @@ enum
 
 typedef struct
 {
+  u8 cn0_min;
+  u8 cn0_max;
   u8 ld_params;
   u8 loop_params[TP_PROFILE_DYN_COUNT];
 } tp_loop_params_row_t;
@@ -351,26 +363,27 @@ typedef struct
  * second dimension is the dynamics profile.
  */
 static const tp_loop_params_row_t profile_matrix[] = {
-  {TP_LD_PARAMS_DISABLE, {TP_LP_IDX_INI,  TP_LP_IDX_INI,  TP_LP_IDX_INI}},
+  {40, 60, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_INI,  TP_LP_IDX_INI,  TP_LP_IDX_INI}},
 
 #ifdef TP_USE_1MS_PROFILES
-  {TP_LD_PARAMS_NORMAL, {TP_LP_IDX_1MS_S,  TP_LP_IDX_1MS_N,  TP_LP_IDX_1MS_U}},
+  {40, 60, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_1MS_S,  TP_LP_IDX_1MS_N,  TP_LP_IDX_1MS_U}},
 #endif
 
 #ifdef TP_USE_2MS_PROFILES
-  {TP_LD_PARAMS_NORMAL, {TP_LP_IDX_2MS, TP_LP_IDX_2MS, TP_LP_IDX_2MS}},
+  {37, 45, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_2MS, TP_LP_IDX_2MS, TP_LP_IDX_2MS}},
 #endif /* TP_USE_2MS_PROFILES */
 
 #ifdef TP_USE_5MS_PROFILES
-  {TP_LD_PARAMS_NORMAL, {TP_LP_IDX_5MS_S, TP_LP_IDX_5MS_N, TP_LP_IDX_5MS_U}},
+  {36, 40, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_5MS_S, TP_LP_IDX_5MS_N, TP_LP_IDX_5MS_U}},
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
-  {TP_LD_PARAMS_NORMAL, {TP_LP_IDX_10MS, TP_LP_IDX_10MS, TP_LP_IDX_10MS}},
+  {32, 37, TP_LD_PARAMS_OPT, {TP_LP_IDX_10MS, TP_LP_IDX_10MS, TP_LP_IDX_10MS}},
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
-  {TP_LD_PARAMS_NORMAL, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
+  {29, 35, TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
+  {24, 30, TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS}},
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
@@ -667,14 +680,22 @@ static void print_stats(tp_profile_internal_t *profile)
                  s, a, j
                 );
 #endif
+    const char *cn0_est_str = "?";
+    switch (profile->cn0_est) {
+    case TRACK_CN0_EST_BL: cn0_est_str = "BL"; break;
+    case TRACK_CN0_EST_SNV: cn0_est_str = "SNV"; break;
+    default: assert(false);
+    }
+
     log_info_sid(profile->sid,
-                 "AVG: %dms CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.3f",
+                 "AVG: %dms CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.3f %s",
                  (int)loop_params[lp_idx].coherent_ms,
                  profile->filt_val[3],
                  profile->filt_val[3] + TP_SNR_OFFSET,
                  profile->filt_val[0],
                  profile->filt_val[1],
-                 profile->filt_val[2]
+                 profile->filt_val[2],
+                 cn0_est_str
                 );
   }
 }
@@ -698,13 +719,36 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   u8          next_profile_d      = 0;
   const char *reason              = "cn0 OK";
   const char *reason2             = "dynamics OK";
-  float       snr = 0.;
+  float       cn0 = 0.;
   float       acc = 0.;
   //float       loc = 0.;
 
-  snr = profile->filt_val[3] + profile->cn0_offset + TP_SNR_OFFSET;
+  cn0 = profile->filt_val[3];
+//  profile->cn0_offset + TP_SNR_OFFSET;
   acc = profile->filt_val[1];
   // loc = profile->filt_val[2];
+
+#if 0
+
+  switch (profile->cn0_est) {
+  case TRACK_CN0_EST_BL:
+    if (profile->filt_val[3] < TP_CN0_BL2SNV_THRESHOLD - profile->cn0_offset) {
+      profile->cn0_est = TRACK_CN0_EST_SNV;
+      log_info_sid(profile->sid, "Changed C/N0 estimator to SNV");
+    }
+    break;
+
+  case TRACK_CN0_EST_SNV:
+    if (profile->filt_val[3] > TP_CN0_SNV2BL_THRESHOLD - profile->cn0_offset) {
+      profile->cn0_est = TRACK_CN0_EST_BL;
+      log_info_sid(profile->sid, "Changed C/N0 estimator to BL");
+    }
+    break;
+
+  default:
+    assert(false);
+  }
+#endif
 
   /* When we have a lock, and lock ratio is good, do not change the mode */
   // must_keep_profile = profile->olock && profile->filt_val[2] > 4.f;
@@ -740,10 +784,11 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
        * are around factor of 2. This means there is ~3 dB/Hz gain/loss when
        * increasing/decreasing integration times.
        */
-
-      if (snr >= TP_SNR_THRESHOLD_MAX /* && loc < TP_LOCK_THRESHOLD */) {
+      if (profile->cur_profile_i > TP_PROFILE_ROW_FIRST) {
+        u8 cn0_limit1 = profile_matrix[profile->cur_profile_i].cn0_max;
+        u8 cn0_limit2 = profile_matrix[profile->cur_profile_i - 1].cn0_min;
+        if (cn0 >= cn0_limit1 && cn0 >= cn0_limit2 /* && loc < TP_LOCK_THRESHOLD */) {
         /* SNR is high - look for relaxing profile */
-        if (profile->cur_profile_i > TP_PROFILE_ROW_FIRST) {
           profile->high_cn0_count++;
           profile->low_cn0_count = 0;
 
@@ -756,9 +801,11 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
             next_profile_d = profile->cur_profile_d;
           }
         }
-      } else if (snr < TP_SNR_THRESHOLD_MIN) {
+      }
+      if (profile->cur_profile_i < TP_PROFILE_ROW_COUNT - 1) {
+        u8 cn0_limit = profile_matrix[profile->cur_profile_i].cn0_min;
+        if (cn0 < cn0_limit) {
         /* SNR is low - look for more restricting profile */
-        if (profile->cur_profile_i < TP_PROFILE_ROW_COUNT - 1) {
           profile->high_cn0_count = 0;
           profile->low_cn0_count++;
           if (profile->low_cn0_count == TP_SNR_STATE_COUNT_LOCK) {
@@ -856,7 +903,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
                  profile->cur_profile_i, profile->cur_profile_d,
                  (int)loop_params[lp2_idx].coherent_ms,
                  profile->next_profile_i, profile->next_profile_d,
-                 reason, snr,
+                 reason, cn0,
                  reason2, acc,
                  profile->filt_val[2]
                  );
@@ -1040,6 +1087,8 @@ tp_result_e tp_tracking_start(gnss_signal_t sid,
     tp_profile_internal_t *profile = allocate_profile(sid);
     if (NULL != profile) {
 
+      profile->cn0_est = TRACK_CN0_EST_BL;
+
       profile->filt_val[0] = compute_speed(sid, data);
       profile->filt_val[1] = 0.;
       profile->filt_val[2] = 0.;
@@ -1153,7 +1202,9 @@ tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params)
      * example, 20ms integration has threshold by 13 dB lower, than for 1ms
      * integration. */
     cn0_params->track_cn0_drop_thres -= profile->cn0_offset;
-    cn0_params->track_cn0_use_thres -= profile->cn0_offset;
+    // cn0_params->track_cn0_use_thres -= profile->cn0_offset;
+
+    cn0_params->est = (track_cn0_est_e)profile->cn0_est;
 
     /* Currently, we don't have an algorithm that can differentiate tracked
      * signal from noise at C/N0 in range [21..23). This corresponds to SNR

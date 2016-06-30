@@ -15,6 +15,9 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/track.h>
+
+#include "track_cn0.h"
 
 /** \addtogroup track
  * \{ */
@@ -66,6 +69,8 @@ typedef struct {
  * Lock detector parameters.
  */
 typedef struct {
+  track_cn0_est_e est;
+
   float track_cn0_use_thres; /* dBHz */
   float track_cn0_drop_thres;
 } tp_cn0_params_t;
