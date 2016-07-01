@@ -9,7 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
+#define DEBUG 1
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -78,6 +78,10 @@ typedef struct {
 } acq_status_t;
 static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
 
+#define GLO_ACQ_CHANNELS 14
+
+static acq_status_t glo_acq_status[GLO_ACQ_CHANNELS];
+
 static bool track_mask[PLATFORM_SIGNAL_COUNT];
 
 #define SCORE_COLDSTART     100
@@ -118,10 +122,11 @@ static almanac_t almanac[PLATFORM_SIGNAL_COUNT];
 static float elevation_mask = 0.0; /* degrees */
 static bool sbas_enabled = false;
 
-static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf);
+//static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf);
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
-static void manage_acq(void);
+//static void manage_acq(void);
+static void manage_glo_acq(void);
 static void manage_track(void);
 
 static void manage_tracking_startup(void);
@@ -169,7 +174,8 @@ static void manage_acq_thread(void *arg)
   (void)arg;
   chRegSetThreadName("manage acq");
   while (TRUE) {
-    manage_acq();
+//    manage_acq();
+    manage_glo_acq();
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
   }
@@ -198,6 +204,16 @@ void manage_acq_setup()
       track_mask[i] = true;
     }
   }
+  /* Initial state of GLO acquisition status */
+  for (u32 i=0; i < GLO_ACQ_CHANNELS; i++) {
+    glo_acq_status[i].state = ACQ_PRN_ACQUIRING;
+    glo_acq_status[i].masked = false;
+    memset(&acq_status[i].score, 0, sizeof(glo_acq_status[i].score));
+    glo_acq_status[i].dopp_hint_low = -10000;
+    glo_acq_status[i].dopp_hint_high = 10000;
+    glo_acq_status[i].sid.code = CODE_GLO_L1CA; /* NOTE: use L1CA only for now */
+    glo_acq_status[i].sid.sat = 1; /* no SV info at the moment */
+  }
 
   sbp_register_cbk(
     SBP_MSG_ALMANAC,
@@ -219,7 +235,7 @@ void manage_acq_setup()
   );
 }
 
-
+#if 0
 /** Using available almanac and ephemeris information, determine
  * whether a satellite is in view and the range of doppler frequencies
  * in which we expect to find it.
@@ -345,7 +361,7 @@ static acq_status_t * choose_acq_sat(void)
   assert(!"Error picking a sat for acquisition");
   return NULL;
 }
-
+#endif
 /** Hint acqusition at satellites observed by peer.
 
 RTK relies on a common set of measurements, have the receivers focus search
@@ -363,10 +379,11 @@ void manage_set_obs_hint(gnss_signal_t sid)
   if (valid)
     acq_status[sid_to_global_index(sid)].score[ACQ_HINT_REMOTE_OBS] = SCORE_OBS;
 }
-
+#if 0
 /** Manages acquisition searches and starts tracking channels after successful acquisitions. */
 static void manage_acq()
 {
+
   /* Decide which SID to try and then start it acquiring. */
   acq_status_t *acq = choose_acq_sat();
   if (acq == NULL) {
@@ -384,7 +401,7 @@ static void manage_acq()
 
   acq_result_t acq_result;
   if (acq_search(acq->sid, acq->dopp_hint_low, acq->dopp_hint_high,
-                 ACQ_FULL_CF_STEP, &acq_result)) {
+                 ACQ_FULL_CF_STEP, &acq_result, 0)) {
 
     /* Send result of an acquisition to the host. */
     acq_result_send(acq->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
@@ -414,8 +431,43 @@ static void manage_acq()
 
     tracking_startup_request(&tracking_startup_params);
   }
-}
 
+}
+#endif
+/** Manages GLO acquisition searches and starts tracking channels after
+ * successful acquisitions. */
+static void manage_glo_acq()
+{
+  static u8 i = 7;
+
+  acq_result_t acq_result;
+  static const gnss_signal_t aaa = {.code = CODE_GLO_L1CA, .sat = 1};
+
+//  log_debug("Search GLO channel %d, CF %15.10f",
+//                  i, glo_channel_to_freq(i, glo_acq_status[i].sid.code));
+  if (acq_search(aaa, -10000, 10000,
+                 ACQ_FULL_CF_STEP, &acq_result, i-7)) {
+
+    /* Send result of an acquisition to the host. */
+//    acq_result_send(glo_acq_status[i].sid, acq_result.cn0,
+//                    acq_result.cp, acq_result.cf);
+
+    if (true) {
+      log_debug("GLO search results %d: sample count %u, CP %15.10f, CF %15.10f, CN0 %7.5f",
+                i-7,
+                acq_result.sample_count,
+                acq_result.cp,
+                acq_result.cf,
+                acq_result.cn0);
+//      while(1);
+    }
+  }
+
+//  i++; /* next GLO freq channel */
+  if (i >= 14 )
+    i = 0;
+}
+#if 0
 /** Send results of an acquisition to the host.
  *
  * \param sid SID of the acquisition
@@ -436,7 +488,7 @@ static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf)
                sizeof(msg_acq_result_t),
                (u8 *)&acq_result_msg);
 }
-
+#endif
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.

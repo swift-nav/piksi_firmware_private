@@ -48,7 +48,8 @@ void nap_setup(void)
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  NAP_FE->BB_PINC[0] = (u32)round(14.58e6 * pow(2.0, 32.0)
+  NAP_FE->BB_PINC[0] = NAP_FE_BASEBAND_MIXER_PINC;
+  NAP_FE->BB_PINC[1] = (u32)round(12.0e6 * 4294967296.0
                                    / NAP_FRONTEND_SAMPLE_RATE_Hz);
 
   /* Enable NAP interrupt */
