@@ -72,7 +72,20 @@
 //#define TP_SNR_OFFSET  (-155.f)
 #define TP_SNR_OFFSET  (-174.f + 2.f)
 
-#define TP_CN0_SNV2BL_THRESHOLD  (44.f)
+#if defined(BOARD_PIKSI_V2)
+/* PIKSIv2 */
+#define PLATFORM_SWITCH_OFFSET 0
+#elif defined(BOARD_DIGILENT_UZED)
+/* PIKSIv3 */
+#define PLATFORM_SWITCH_OFFSET 10
+#else
+#error Unsupported board
+#endif
+
+// #define PLATFORM_SWITCH_OFFSET 6.f
+#define PCN0(x) ((float)(x)+PLATFORM_SWITCH_OFFSET)
+
+#define TP_CN0_SNV2BL_THRESHOLD  PCN0(44.f)
 #define TP_CN0_BL2SNV_THRESHOLD  (TP_CN0_SNV2BL_THRESHOLD - 4.f)
 
 /** C/N0 threshold for increasing integration time */
@@ -363,27 +376,27 @@ typedef struct
  * second dimension is the dynamics profile.
  */
 static const tp_loop_params_row_t profile_matrix[] = {
-  {40, 60, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_INI,  TP_LP_IDX_INI,  TP_LP_IDX_INI}},
+  {PCN0(40), PCN0(60), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_INI,  TP_LP_IDX_INI,  TP_LP_IDX_INI}},
 
 #ifdef TP_USE_1MS_PROFILES
-  {40, 60, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_1MS_S,  TP_LP_IDX_1MS_N,  TP_LP_IDX_1MS_U}},
+  {PCN0(40), PCN0(60), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_1MS_S,  TP_LP_IDX_1MS_N,  TP_LP_IDX_1MS_U}},
 #endif
 
 #ifdef TP_USE_2MS_PROFILES
-  {37, 45, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_2MS, TP_LP_IDX_2MS, TP_LP_IDX_2MS}},
+  {PCN0(37), PCN0(45), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_2MS, TP_LP_IDX_2MS, TP_LP_IDX_2MS}},
 #endif /* TP_USE_2MS_PROFILES */
 
 #ifdef TP_USE_5MS_PROFILES
-  {36, 40, TP_LD_PARAMS_NORMAL, {TP_LP_IDX_5MS_S, TP_LP_IDX_5MS_N, TP_LP_IDX_5MS_U}},
+  {PCN0(36), PCN0(40), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_5MS_S, TP_LP_IDX_5MS_N, TP_LP_IDX_5MS_U}},
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
-  {32, 37, TP_LD_PARAMS_OPT, {TP_LP_IDX_10MS, TP_LP_IDX_10MS, TP_LP_IDX_10MS}},
+  {PCN0(32), PCN0(37), TP_LD_PARAMS_OPT, {TP_LP_IDX_10MS, TP_LP_IDX_10MS, TP_LP_IDX_10MS}},
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
-  {29, 35, TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
-  {24, 30, TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS}},
+  {PCN0(29), PCN0(35), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
+  {PCN0(24), PCN0(30), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS}},
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
@@ -728,7 +741,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   acc = profile->filt_val[1];
   // loc = profile->filt_val[2];
 
-#if 0
+#if 1
 
   switch (profile->cn0_est) {
   case TRACK_CN0_EST_BL:

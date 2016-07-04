@@ -21,13 +21,23 @@
 /* See http://dsp.stackexchange.com/questions/378/ */
 //#define CN0_EST_LPF_ALPHA     (0.016666667f) /* N=72 */
 //#define CN0_EST_LPF_ALPHA     (0.005555556f) /* N=200 */
-#define CN0_EST_LPF_ALPHA     (.1f)
+#define CN0_EST_LPF_ALPHA     (.05f)
 /* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like */
-#define CN0_EST_LPF_CUTOFF_HZ (.1f)
+#define CN0_EST_LPF_CUTOFF_HZ (.05f)
 /* Noise bandwidth: GPS L1 1.023 * 2. Make 16dB offset. */
-#define CN0_EST_BW_HZ         (float)(1e6 * 2 / NAP_FRONTEND_SAMPLE_RATE_Hz * 40)
-// #define CN0_EST_BW_HZ         (float)(1e6 * 2 / NAP_FRONTEND_SAMPLE_RATE_Hz * 40 * 1000)
+//#define CN0_EST_BW_HZ         (float)(1e6 * 2 / NAP_FRONTEND_SAMPLE_RATE_Hz * 40)
+//#define CN0_EST_BW_HZ         (float)(1e6 * 2 / NAP_FRONTEND_SAMPLE_RATE_Hz * 40 * 1000)
 //#define CN0_EST_BW_HZ         (2e6f * 4e1f)
+#if defined(BOARD_PIKSI_V2)
+/* PIKSIv2 */
+#define CN0_EST_BW_HZ           (3.1e-7f * (float)NAP_FRONTEND_SAMPLE_RATE_Hz) /* ~5 */
+#elif defined(BOARD_DIGILENT_UZED)
+/* PIKSIv3 */
+// #define CN0_EST_BW_HZ         (32.f) /* ~32 */
+#define CN0_EST_BW_HZ           (3.1e-7f * (float)NAP_FRONTEND_SAMPLE_RATE_Hz) /* ~5 */
+#else
+#error Unsupported board
+#endif
 
 /* Configure C/N0 estimator algorithm */
 #define cn0_est_state_t           cn0_est_state_t
