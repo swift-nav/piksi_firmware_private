@@ -438,15 +438,15 @@ static void manage_acq()
  * successful acquisitions. */
 static void manage_glo_acq()
 {
-  static u8 i = 7;
+  static u8 i = 0;
 
   acq_result_t acq_result;
   static const gnss_signal_t aaa = {.code = CODE_GLO_L1CA, .sat = 1};
 
 //  log_debug("Search GLO channel %d, CF %15.10f",
 //                  i, glo_channel_to_freq(i, glo_acq_status[i].sid.code));
-  if (acq_search(aaa, -10000, 10000,
-                 ACQ_FULL_CF_STEP, &acq_result, i-7)) {
+  if (acq_search(aaa, -ACQ_FULL_CF_MAX, ACQ_FULL_CF_MAX,
+                 ACQ_FULL_CF_STEP, &acq_result, i)) {
 
     /* Send result of an acquisition to the host. */
 //    acq_result_send(glo_acq_status[i].sid, acq_result.cn0,
@@ -454,18 +454,18 @@ static void manage_glo_acq()
 
     if (true) {
       log_debug("GLO search results %d: sample count %u, CP %15.10f, CF %15.10f, CN0 %7.5f",
-                i-7,
+                i,
                 acq_result.sample_count,
                 acq_result.cp,
                 acq_result.cf,
                 acq_result.cn0);
-//      while(1);
     }
   }
-
-//  i++; /* next GLO freq channel */
+#if 0
+  i++; /* next GLO freq channel */
   if (i >= 14 )
     i = 0;
+#endif
 }
 #if 0
 /** Send results of an acquisition to the host.

@@ -72,14 +72,14 @@ static u32 length_points_get(u32 len_log2)
  */
 static void control_set_dma(constellation_t gnss)
 {
-  (void)gnss;
+//  (void)gnss;
   NAP->ACQ_CONTROL =
       (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_DMA      << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (0                                  << NAP_ACQ_CONTROL_LENGTH_Pos) |
       (NAP_ACQ_CONTROL_PEAK_SEARCH        << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
-#if 0
+#if 1
   /* switch on mixer for GLO acquisition */
   if (CONSTELLATION_GLO == gnss)
     NAP->ACQ_CONTROL |= (NAP_ACQ_CONTROL_MIXER << NAP_ACQ_CONTROL_MIXER_Pos);
@@ -94,16 +94,18 @@ static void control_set_dma(constellation_t gnss)
 static void control_set_samples(fft_samples_input_t samples_input,
                                 u32 len_points, constellation_t gnss)
 {
+//  (void)gnss;
   NAP->ACQ_CONTROL =
       (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       ((samples_input)                    << NAP_ACQ_CONTROL_FRONTEND_Pos) |
-      (len_points                         << NAP_ACQ_CONTROL_LENGTH_Pos);
-
+      (len_points                         << NAP_ACQ_CONTROL_LENGTH_Pos) |
+      (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
+#if 1
   /* switch on mixer for GLO acquisition */
   if (CONSTELLATION_GLO == gnss)
     NAP->ACQ_CONTROL |= (NAP_ACQ_CONTROL_MIXER << NAP_ACQ_CONTROL_MIXER_Pos);
-
+#endif
   /* Set up timing compare */
   while (1) {
     chSysLock();
