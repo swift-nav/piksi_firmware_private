@@ -16,6 +16,8 @@
 #include <libswiftnav/track.h>
 #include <nap/nap_constants.h>
 
+#include <board.h>
+
 /* C/N0 estimator IIR averaging coefficient */
 /* See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22 */
 /* See http://dsp.stackexchange.com/questions/378/ */
@@ -24,17 +26,20 @@
 #define CN0_EST_LPF_ALPHA     (.05f)
 /* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like */
 #define CN0_EST_LPF_CUTOFF_HZ (.05f)
-/* Noise bandwidth: GPS L1 1.023 * 2. Make 16dB offset. */
-//#define CN0_EST_BW_HZ         (float)(1e6 * 2 / NAP_FRONTEND_SAMPLE_RATE_Hz * 40)
-//#define CN0_EST_BW_HZ         (float)(1e6 * 2 / NAP_FRONTEND_SAMPLE_RATE_Hz * 40 * 1000)
-//#define CN0_EST_BW_HZ         (2e6f * 4e1f)
+
+/* Noise bandwidth: GPS L1 1.023 * 2. Normalized with sample rate. The
+ * approximate formula is:
+ *
+ * CN0_EST_BW_HZ = 3.1e-7f * NAP_FRONTEND_SAMPLE_RATE_Hz
+ *
+ * For V2 the ENBW is 5, for V3 it is 32.
+ */
 #if defined(BOARD_PIKSI_V2)
 /* PIKSIv2 */
-#define CN0_EST_BW_HZ           (3.1e-7f * (float)NAP_FRONTEND_SAMPLE_RATE_Hz) /* ~5 */
+#define CN0_EST_BW_HZ         (5.f)
 #elif defined(BOARD_DIGILENT_UZED)
 /* PIKSIv3 */
-// #define CN0_EST_BW_HZ         (32.f) /* ~32 */
-#define CN0_EST_BW_HZ           (3.1e-7f * (float)NAP_FRONTEND_SAMPLE_RATE_Hz) /* ~5 */
+#define CN0_EST_BW_HZ         (32.f)
 #else
 #error Unsupported board
 #endif
