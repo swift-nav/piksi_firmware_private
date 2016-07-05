@@ -20,11 +20,9 @@
 #include <ch.h>
 #include <hal.h>
 
-#include "gic.h"
+#include "remoteproc_env.h"
 
-#define RPROC_VIRTIO_THD_PRIO (HIGHPRIO-20)
-#define RPROC_VIRTIO_THD_STACK_SIZE 4096
-#define RPROC_VIRTIO_THD_WAIT_TIMEOUT_ms 200
+#include "gic.h"
 
 static bool env_initialized = false;
 
@@ -40,11 +38,7 @@ typedef struct {
 } irq_status_t;
 static irq_status_t irq_status[IRQ_STATUS_COUNT];
 
-static BSEMAPHORE_DECL(irq_bsem, false);
-
-static thread_t *tp_rproc_virtio = NULL;
-static THD_WORKING_AREA(wa_rproc_virtio_thread, RPROC_VIRTIO_THD_STACK_SIZE);
-static THD_FUNCTION(rproc_virtio_thread, arg);
+static remoteproc_env_irq_callback_t irq_callback = NULL;
 
 static void rproc_virtio_irq_handler(void *context);
 
@@ -60,6 +54,25 @@ struct hil_platform_ops proc_ops = {
   .boot_cpu         = _boot_cpu,
   .shutdown_cpu     = _shutdown_cpu,
 };
+
+void remoteproc_env_irq_callback_set(remoteproc_env_irq_callback_t callback)
+{
+  irq_callback = callback;
+}
+
+void remoteproc_env_irq_process(void)
+{
+  for (int i=0; i<IRQ_STATUS_COUNT; i++) {
+    irq_status_t *s = &irq_status[i];
+    if (s->pending) {
+      s->pending = false;
+
+      if (s->allocated) {
+        hil_isr(s->vring_hw);
+      }
+    }
+  }
+}
 
 int env_init()
 {
@@ -78,13 +91,6 @@ int env_init()
     s->allocated = false;
     s->pending = false;
     s->vring_hw = NULL;
-  }
-
-  if (tp_rproc_virtio == NULL) {
-    tp_rproc_virtio =
-        chThdCreateStatic(wa_rproc_virtio_thread,
-                          sizeof(wa_rproc_virtio_thread),
-                          RPROC_VIRTIO_THD_PRIO, rproc_virtio_thread, NULL);
   }
 
   return 0;
@@ -382,33 +388,12 @@ static void _shutdown_cpu(int cpu_id)
   assert(!"unsupported");
 }
 
-static THD_FUNCTION(rproc_virtio_thread, arg)
-{
-  (void)arg;
-  chRegSetThreadName("rproc virtio");
-
-  while (1) {
-    chBSemWaitTimeout(&irq_bsem, MS2ST(RPROC_VIRTIO_THD_WAIT_TIMEOUT_ms));
-
-    for (int i=0; i<IRQ_STATUS_COUNT; i++) {
-      irq_status_t *s = &irq_status[i];
-      if (s->pending) {
-        s->pending = false;
-
-        if (s->allocated) {
-          hil_isr(s->vring_hw);
-        }
-      }
-    }
-  }
-}
-
 static void rproc_virtio_irq_handler(void *context)
 {
   irq_status_t *s = (irq_status_t *)context;
   s->pending = true;
 
-  chSysLockFromISR();
-  chBSemSignalI(&irq_bsem);
-  chSysUnlockFromISR();
+  if (irq_callback != NULL) {
+    irq_callback();
+  }
 }

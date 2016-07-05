@@ -22,6 +22,7 @@
 
 #include "rpmsg.h"
 #include "remoteproc_config.h"
+#include "remoteproc_env.h"
 #include "lib/fifo.h"
 
 #define ENDPOINT_FIFO_SIZE 4096
@@ -29,6 +30,7 @@
 
 #define RPMSG_THD_PRIO (HIGHPRIO-21)
 #define RPMSG_THD_STACK_SIZE 4096
+#define RPMSG_THD_PERIOD_ms 10
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
   [RPMSG_ENDPOINT_A] = 100,
@@ -55,6 +57,10 @@ static struct rsc_table_info rsc_table_info = {
   .size = sizeof(resource_table)
 };
 
+static BSEMAPHORE_DECL(rpmsg_thd_bsem, false);
+
+static void remoteproc_env_irq_callback(void);
+
 static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel);
 static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel);
 static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel, void *data,
@@ -74,6 +80,8 @@ void rpmsg_setup(void)
     fifo_init(&d->tx_fifo, d->tx_buf, sizeof(d->tx_buf));
     fifo_init(&d->rx_fifo, d->rx_buf, sizeof(d->rx_buf));
   }
+
+  remoteproc_env_irq_callback_set(remoteproc_env_irq_callback);
 
   int status = remoteproc_resource_init(&rsc_table_info,
                                         rpmsg_channel_created,
@@ -105,6 +113,13 @@ u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         const u8 *buffer, u32 length)
 {
   return fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
+}
+
+static void remoteproc_env_irq_callback(void)
+{
+  chSysLockFromISR();
+  chBSemSignalI(&rpmsg_thd_bsem);
+  chSysUnlockFromISR();
 }
 
 static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel)
@@ -157,6 +172,10 @@ static THD_FUNCTION(rpmsg_thread, arg)
   chRegSetThreadName("rpmsg");
 
   while (1) {
+    chBSemWaitTimeout(&rpmsg_thd_bsem, MS2ST(RPMSG_THD_PERIOD_ms));
+
+    remoteproc_env_irq_process();
+
     for (u32 i=0; i<RPMSG_ENDPOINT__COUNT; i++) {
       endpoint_data_t *d = &endpoint_data[i];
 
@@ -185,7 +204,5 @@ static THD_FUNCTION(rpmsg_thread, arg)
         length -= buffer_length;
       }
     }
-
-    chThdSleep(1);
   }
 }
