@@ -22,9 +22,9 @@
 /* See http://dsp.stackexchange.com/questions/378/ */
 //#define CN0_EST_LPF_ALPHA     (0.016666667f) /* N=72 */
 //#define CN0_EST_LPF_ALPHA     (0.005555556f) /* N=200 */
-#define CN0_EST_LPF_ALPHA     (.005f)
+#define CN0_EST_LPF_ALPHA     (.0167f)
 /* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like */
-#define CN0_EST_LPF_CUTOFF_HZ (.05f)
+#define CN0_EST_LPF_CUTOFF_HZ (.1f)
 
 /* Noise bandwidth: GPS L1 1.023 * 2. Normalized with sample rate. The
  * approximate formula is:

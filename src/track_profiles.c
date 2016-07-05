@@ -85,7 +85,7 @@
 // #define PLATFORM_SWITCH_OFFSET 6.f
 #define PCN0(x) ((float)(x)+PLATFORM_SWITCH_OFFSET)
 
-#define TP_CN0_SNV2BL_THRESHOLD  PCN0(44.f)
+#define TP_CN0_SNV2BL_THRESHOLD  PCN0(47.f)
 #define TP_CN0_BL2SNV_THRESHOLD  (TP_CN0_SNV2BL_THRESHOLD - 4.f)
 
 /** C/N0 threshold for increasing integration time */
@@ -306,7 +306,7 @@ static const tp_loop_params_t loop_params[] = {
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
   { 1, .7f, 1, 1540, 12, .7f, 1.f, 0, 20, TP_TM_LONG_MODE },/*TP_LP_IDX_20MS_U*/
 
-  { 1, .7f, 1, 1540, 43.5, .7f, .95f, 0, 20, TP_TM_LONG_MODE }, /*TP_LP_IDX_20MS_SS*/
+  { 1, .7f, 1.5f, 1540, 6, .7f, 2.f, 0.5, 20, TP_TM_LONG_MODE }, /*TP_LP_IDX_20MS_SS*/
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
