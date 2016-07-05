@@ -90,8 +90,7 @@ static bool use_alias_detection = true;
 typedef struct {
   aided_tl_state_t tl_state;   /**< Tracking loop filter state. */
   corr_t cs[3];                /**< EPL correlation results in correlation period. */
-  cn0_est_state_t cn0_est;     /**< C/N0 Estimator. */
-  cn0_filter_t    cn0_filt;    /**< C/N0 Filter */
+  track_cn0_state_t cn0_est;   /**< C/N0 Estimator. */
   u8 int_ms;                   /**< Integration length. */
   bool short_cycle;            /**< Set to true when a short 1ms integration is requested. */
   u8 startup;                  /**< An indicator of start-up phase. */
@@ -267,10 +266,8 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->startup = 2;
 
   /* Initialize C/N0 estimator and filter */
-  track_cn0_init(L2C_CN0_ESTIMATOR, /* C/N0 estimator type */
-                 data->int_ms,      /* C/N0 period in ms */
+  track_cn0_init(data->int_ms,      /* C/N0 period in ms */
                  &data->cn0_est,    /* C/N0 estimator state */
-                 &data->cn0_filt,   /* C/N0 filter state */
                  common_data->cn0); /* Initial C/N0 value */
 
   /* Initialize lock detector */
@@ -440,7 +437,6 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   common_data->cn0 = track_cn0_update(L2C_CN0_ESTIMATOR,
                                       data->int_ms,
                                       &data->cn0_est,
-                                      &data->cn0_filt,
                                       cs[1].I, cs[1].Q);
 
   if (common_data->cn0 > track_cn0_drop_thres) {

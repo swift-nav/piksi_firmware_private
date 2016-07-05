@@ -16,39 +16,6 @@
 #include <libswiftnav/track.h>
 #include <nap/nap_constants.h>
 
-#include <board.h>
-
-/* C/N0 estimator IIR averaging coefficient */
-/* See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22 */
-/* See http://dsp.stackexchange.com/questions/378/ */
-//#define CN0_EST_LPF_ALPHA     (0.016666667f) /* N=72 */
-//#define CN0_EST_LPF_ALPHA     (0.005555556f) /* N=200 */
-#define CN0_EST_LPF_ALPHA     (.05f)
-/* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like */
-#define CN0_EST_LPF_CUTOFF_HZ (.05f)
-
-/* Noise bandwidth: GPS L1 1.023 * 2. Normalized with sample rate. The
- * approximate formula is:
- *
- * CN0_EST_BW_HZ = 3.1e-7f * NAP_FRONTEND_SAMPLE_RATE_Hz
- *
- * For V2 the ENBW is 5, for V3 it is 32.
- */
-#if defined(BOARD_PIKSI_V2)
-/* PIKSIv2 */
-#define CN0_EST_BW_HZ         (5.f)
-#elif defined(BOARD_DIGILENT_UZED)
-/* PIKSIv3 */
-#define CN0_EST_BW_HZ         (32.f)
-#else
-#error Unsupported board
-#endif
-
-/* Configure C/N0 estimator algorithm */
-#define cn0_est_state_t           cn0_est_state_t
-#define cn0_est_compute_params    cn0_est_compute_params
-#define cn0_est_init              cn0_est_bl_init
-#define cn0_est_update            cn0_est_bl_update
 /* Configure C/N0 value filter algorithm */
 #define cn0_filter_params_t       lp1_filter_params_t
 #define cn0_filter_compute_params lp1_filter_compute_params
@@ -60,13 +27,12 @@
  * C/N0 estimator types
  */
 typedef enum {
-  TRACK_CN0_EST_BL,  /**< */
-  TRACK_CN0_EST_SNV, /**< */
-  TRACK_CN0_EST_DEFAULT = TRACK_CN0_EST_BL
+  TRACK_CN0_EST_BL,  /**< Beauliu's method */
+  TRACK_CN0_EST_SNV, /**< Signal to noise variance method */
 } track_cn0_est_e;
 
 /**
- * C/N0 estimator state
+ * C/N0 estimator parameters.
  */
 typedef struct
 {
@@ -74,18 +40,24 @@ typedef struct
   cn0_filter_params_t filter_params; /**< Additional C/N0 value LP filter */
 } track_cn0_params_t;
 
+/**
+ * C/N0 estimator state.
+ */
+typedef struct
+{
+  cn0_est_state_t primary;   /**< Estimator for high SNR values */
+  cn0_est_state_t secondary; /**< Estimator for low SNR values */
+  cn0_filter_t    filter;    /**< Additional C/N0 filter */
+} track_cn0_state_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
 void track_cn0_params_init(void);
-const track_cn0_params_t *track_cn0_get_params(track_cn0_est_e t, u8 int_ms,
-                                               track_cn0_params_t *p);
-
-void track_cn0_init(track_cn0_est_e t, u8 int_ms, cn0_est_state_t *e,
-                    cn0_filter_t *f, float cn0_0);
-float track_cn0_update(track_cn0_est_e t, u8 int_ms, cn0_est_state_t *e,
-                       cn0_filter_t *f, float I, float Q);
+void track_cn0_init(u8 int_ms, track_cn0_state_t *e, float cn0_0);
+float track_cn0_update(track_cn0_est_e t, u8 int_ms, track_cn0_state_t *e,
+                       float I, float Q);
 
 #ifdef __cplusplus
 }

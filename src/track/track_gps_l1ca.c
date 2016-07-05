@@ -37,8 +37,7 @@ typedef struct {
   corr_t           cs[3];                  /**< EPL correlation results in
                                             *   correlation period. */
   track_cn0_est_e  cn0_est_type;           /**< C/N0 estimator type */
-  cn0_est_state_t  cn0_est;                /**< C/N0 estimator state. */
-  cn0_filter_t     cn0_filt;               /**< C/N0 Filter */
+  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t   alias_detect;           /**< Alias lock detector. */
   lock_detect_t    lock_detect;            /**< Phase-lock detector state. */
   u8               int_ms;                 /**< Current integration length. */
@@ -202,10 +201,8 @@ static void tracker_gps_l1ca_update_parameters(
     data->cn0_est_type = cn0_params.est;
 
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(cn0_params.est,    /* C/N0 estimator type */
-                   cn0_ms,            /* C/N0 period in ms */
+    track_cn0_init(cn0_ms,            /* C/N0 period in ms */
                    &data->cn0_est,    /* C/N0 estimator state */
-                   &data->cn0_filt,   /* C/N0 filter state */
                    common_data->cn0); /* Initial C/N0 value */
   }
 
@@ -614,7 +611,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
     if (data->tracking_mode == TP_TM_SPLIT) {
       common_data->cn0 = track_cn0_update(data->cn0_est_type, 1,
-                                          &data->cn0_est, &data->cn0_filt,
+                                          &data->cn0_est,
                                           cs_now[1].I, cs_now[1].Q);
 
       lock_detect_update(&data->lock_detect, cs_now[1].I, cs_now[1].Q, 1);
@@ -660,10 +657,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       data->cn0_est_type = cn0_params.est;
 
       /* Initialize C/N0 estimator and filter */
-      track_cn0_init(cn0_params.est,    /* C/N0 estimator type */
-                     cn0_ms,            /* C/N0 period in ms */
+      track_cn0_init(cn0_ms,            /* C/N0 period in ms */
                      &data->cn0_est,    /* C/N0 estimator state */
-                     &data->cn0_filt,   /* C/N0 filter state */
                      common_data->cn0); /* Initial C/N0 value */
 
     }
@@ -672,7 +667,6 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     common_data->cn0 = track_cn0_update(data->cn0_est_type,
                                         data->int_ms,
                                         &data->cn0_est,
-                                        &data->cn0_filt,
                                         cs_now[1].I, cs_now[1].Q);
 
     if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
