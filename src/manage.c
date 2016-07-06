@@ -445,27 +445,27 @@ static void manage_glo_acq()
 
 //  log_debug("Search GLO channel %d, CF %15.10f",
 //                  i, glo_channel_to_freq(i, glo_acq_status[i].sid.code));
-  if (acq_search(aaa, -ACQ_FULL_CF_MAX, ACQ_FULL_CF_MAX,
-                 ACQ_FULL_CF_STEP, &acq_result, i)) {
+  if (acq_search(aaa, -10000, 10000,
+                 ACQ_FULL_CF_STEP, &acq_result, i-7)) {
 
     /* Send result of an acquisition to the host. */
 //    acq_result_send(glo_acq_status[i].sid, acq_result.cn0,
 //                    acq_result.cp, acq_result.cf);
 
-    if (true) {
+    if (acq_result.cn0 > ACQ_THRESHOLD) {
       log_debug("GLO search results %d: sample count %u, CP %15.10f, CF %15.10f, CN0 %7.5f",
-                i,
+                i-7,
                 acq_result.sample_count,
                 acq_result.cp,
                 acq_result.cf,
                 acq_result.cn0);
     }
   }
-#if 0
+
   i++; /* next GLO freq channel */
   if (i >= 14 )
     i = 0;
-#endif
+
 }
 #if 0
 /** Send results of an acquisition to the host.

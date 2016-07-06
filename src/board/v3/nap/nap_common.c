@@ -22,6 +22,8 @@
 #include "track.h"
 #include "system_monitor.h"
 
+#include <libswiftnav/constants.h>
+
 #include <math.h>
 #include <string.h>
 
@@ -49,8 +51,9 @@ void nap_setup(void)
   axi_dma_start(&AXIDMADriver1);
 
   NAP_FE->BB_PINC[0] = NAP_FE_BASEBAND_MIXER_PINC;
-  NAP_FE->BB_PINC[1] = (u32)round(12.0e6 * 4294967296.0
-                                   / NAP_FRONTEND_SAMPLE_RATE_Hz);
+//  NAP_FE->BB_PINC[1] = (u32)round((12.0e6 + 3 * GLO_L1_DELTA_HZ) * 4294967296.0
+//                                   / NAP_FRONTEND_SAMPLE_RATE_Hz);
+  NAP->ACQ_PINC = 0;
 
   /* Enable NAP interrupt */
   chThdCreateStatic(wa_nap_exti, sizeof(wa_nap_exti), HIGHPRIO-1, nap_exti_thread, NULL);

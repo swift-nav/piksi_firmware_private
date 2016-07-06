@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
@@ -22,6 +23,7 @@
 #include "nap/nap_constants.h"
 #include "nap/nap_hw.h"
 #include "nap/fft.h"
+#include "nap/nap_fe_hw.h"
 
 #define CODE_MULT 16384
 #define RESULT_DIV 32
@@ -40,7 +42,6 @@ float acq_bin_width(void)
 bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
                 float cf_bin_width, acq_result_t *acq_result, s8 glo_channel)
 {
-  (void)glo_channel;
   /* Configuration */
   u32 fft_len_log2 = FFT_LEN_LOG2_MAX;
   u32 fft_len = 1 << fft_len_log2;
@@ -48,10 +49,9 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float chips_per_sample = code_to_chip_rate(sid.code) / NAP_ACQ_SAMPLE_RATE_Hz;
   constellation_t gnss = sid_to_constellation(sid);
   /* select frontend */
-  fft_samples_input_t fft_samples_input = FFT_SAMPLES_INPUT_RF2;
-//      (CONSTELLATION_GLO == gnss) ?
-//                                          FFT_SAMPLES_INPUT_RF2 :
-//                                          FFT_SAMPLES_INPUT_RF1;
+  fft_samples_input_t fft_samples_input = (CONSTELLATION_GLO == gnss) ?
+                                          FFT_SAMPLES_INPUT_RF2 :
+                                          FFT_SAMPLES_INPUT_RF1;
 
   /* Generate, resample, and FFT code */
   static fft_cplx_t code_fft[FFT_LEN_MAX];
@@ -66,17 +66,11 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* FFT samples */
   u32 sample_count;
   static fft_cplx_t sample_fft[FFT_LEN_MAX];
-#if 0
   if (CONSTELLATION_GLO == gnss) {
     /* set mixer input frequency according to GLO channel */
-    NAP->ACQ_PINC = /*glo_channel_to_freq(glo_channel, sid.code)*/
-                    (s32)((0.0 + glo_channel * GLO_L1_DELTA_HZ) * 4294967296.0
+    NAP_FE->BB_PINC[1] = (s32)((12.0e6 + glo_channel * GLO_L1_DELTA_HZ) * 4294967296.0
                     / NAP_FRONTEND_SAMPLE_RATE_Hz);
-    log_debug("NAP->ACQ_PINC %x", NAP->ACQ_PINC);
-    log_debug("cf_min %10.5f, cf_max %10.5f, cf_bin_width %10.5f",
-              cf_min, cf_max, cf_bin_width);
   }
-#endif
   if(!fft_samples(fft_samples_input, sample_fft, fft_len_log2,
                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count,
                   gnss)) {
@@ -119,6 +113,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     /* Inverse FFT */
     if (!fft(result_fft, result_fft, fft_len_log2,
              FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV, gnss)) {
+      log_debug("3");
       return false;
     }
 
