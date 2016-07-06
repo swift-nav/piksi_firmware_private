@@ -80,8 +80,6 @@ static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
 
 #define GLO_ACQ_CHANNELS 14
 
-static acq_status_t glo_acq_status[GLO_ACQ_CHANNELS];
-
 static bool track_mask[PLATFORM_SIGNAL_COUNT];
 
 #define SCORE_COLDSTART     100
@@ -121,11 +119,12 @@ static almanac_t almanac[PLATFORM_SIGNAL_COUNT];
 
 static float elevation_mask = 0.0; /* degrees */
 static bool sbas_enabled = false;
+static bool glo_enabled = true;
 
-//static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf);
+static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf);
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
-//static void manage_acq(void);
+static void manage_acq(void);
 static void manage_glo_acq(void);
 static void manage_track(void);
 
@@ -174,7 +173,7 @@ static void manage_acq_thread(void *arg)
   (void)arg;
   chRegSetThreadName("manage acq");
   while (TRUE) {
-//    manage_acq();
+    manage_acq();
     manage_glo_acq();
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
@@ -203,16 +202,12 @@ void manage_acq_setup()
       acq_status[i].masked = true;
       track_mask[i] = true;
     }
-  }
-  /* Initial state of GLO acquisition status */
-  for (u32 i=0; i < GLO_ACQ_CHANNELS; i++) {
-    glo_acq_status[i].state = ACQ_PRN_ACQUIRING;
-    glo_acq_status[i].masked = false;
-    memset(&acq_status[i].score, 0, sizeof(glo_acq_status[i].score));
-    glo_acq_status[i].dopp_hint_low = -10000;
-    glo_acq_status[i].dopp_hint_high = 10000;
-    glo_acq_status[i].sid.code = CODE_GLO_L1CA; /* NOTE: use L1CA only for now */
-    glo_acq_status[i].sid.sat = 1; /* no SV info at the moment */
+
+    if (!glo_enabled &&
+          (sid_to_constellation(acq_status[i].sid) == CONSTELLATION_GLO)) {
+        acq_status[i].masked = true;
+        track_mask[i] = true;
+    }
   }
 
   sbp_register_cbk(
@@ -235,7 +230,6 @@ void manage_acq_setup()
   );
 }
 
-#if 0
 /** Using available almanac and ephemeris information, determine
  * whether a satellite is in view and the range of doppler frequencies
  * in which we expect to find it.
@@ -361,7 +355,7 @@ static acq_status_t * choose_acq_sat(void)
   assert(!"Error picking a sat for acquisition");
   return NULL;
 }
-#endif
+
 /** Hint acqusition at satellites observed by peer.
 
 RTK relies on a common set of measurements, have the receivers focus search
@@ -379,7 +373,7 @@ void manage_set_obs_hint(gnss_signal_t sid)
   if (valid)
     acq_status[sid_to_global_index(sid)].score[ACQ_HINT_REMOTE_OBS] = SCORE_OBS;
 }
-#if 0
+
 /** Manages acquisition searches and starts tracking channels after successful acquisitions. */
 static void manage_acq()
 {
@@ -431,43 +425,55 @@ static void manage_acq()
 
     tracking_startup_request(&tracking_startup_params);
   }
-
 }
-#endif
-/** Manages GLO acquisition searches and starts tracking channels after
- * successful acquisitions. */
+
+/** Manages GLO acquisition searches and starts tracking channels
+ * after successful acquisitions. */
 static void manage_glo_acq()
 {
-  static u8 i = 0;
+  /* Now try to search GLONASS */
+  if (glo_enabled) {
+    acq_result_t acq_result;
+    static u8 glo_freq_n = 0; /* GLO frequency number -7..6 */
+    /* does not care about .sat on GLO acquisition stage */
+    static const gnss_signal_t glo_sid = {.code = CODE_GLO_L1CA, .sat = 1};
+    if (acq_search(glo_sid, -10000, 10000,
+                   ACQ_FULL_CF_STEP, &acq_result, glo_freq_n-7)) {
 
-  acq_result_t acq_result;
-  static const gnss_signal_t aaa = {.code = CODE_GLO_L1CA, .sat = 1};
+      /* Send result of an acquisition to the host. */
+      acq_result_send(glo_sid, acq_result.cn0,
+                   acq_result.cp, acq_result.cf);
 
-//  log_debug("Search GLO channel %d, CF %15.10f",
-//                  i, glo_channel_to_freq(i, glo_acq_status[i].sid.code));
-  if (acq_search(aaa, -10000, 10000,
-                 ACQ_FULL_CF_STEP, &acq_result, i-7)) {
+      if (acq_result.cn0 > ACQ_THRESHOLD) {
+        /* Found something!*/
+        log_debug("GLO search results %d: sample count %u, CP %15.10f, CF %15.10f, CN0 %7.5f",
+                  glo_freq_n-7,
+                  acq_result.sample_count,
+                  acq_result.cp,
+                  acq_result.cf,
+                  acq_result.cn0);
+      }
+      /* track it */
+#if 0 /* uncomment it when GLO tracking is ready */
+      tracking_startup_params_t tracking_startup_params = {
+        .sid = glo_sid,
+        .sample_count = acq_result.sample_count,
+        .carrier_freq = acq_result.cf,
+        .code_phase = acq_result.cp,
+        .cn0_init = acq_result.cn0,
+        .elevation = TRACKING_ELEVATION_UNKNOWN
+      };
 
-    /* Send result of an acquisition to the host. */
-//    acq_result_send(glo_acq_status[i].sid, acq_result.cn0,
-//                    acq_result.cp, acq_result.cf);
-
-    if (acq_result.cn0 > ACQ_THRESHOLD) {
-      log_debug("GLO search results %d: sample count %u, CP %15.10f, CF %15.10f, CN0 %7.5f",
-                i-7,
-                acq_result.sample_count,
-                acq_result.cp,
-                acq_result.cf,
-                acq_result.cn0);
+      tracking_startup_request(&tracking_startup_params);
+#endif
     }
+
+    glo_freq_n++; /* nect time try to fine other GLO channel */
+    if (glo_freq_n >= 14 )
+      glo_freq_n = 0;
   }
-
-  i++; /* next GLO freq channel */
-  if (i >= 14 )
-    i = 0;
-
 }
-#if 0
+
 /** Send results of an acquisition to the host.
  *
  * \param sid SID of the acquisition
@@ -488,7 +494,7 @@ static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf)
                sizeof(msg_acq_result_t),
                (u8 *)&acq_result_msg);
 }
-#endif
+
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.

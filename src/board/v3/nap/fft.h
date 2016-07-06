@@ -40,7 +40,7 @@ typedef enum {
 } fft_samples_input_t;
 
 bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
-         fft_dir_t dir, u32 scale_schedule, constellation_t gnss);
+         fft_dir_t dir, u32 scale_schedule);
 
 bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
                  u32 len_log2, fft_dir_t dir, u32 scale_schedule,

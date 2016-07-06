@@ -28,7 +28,7 @@ static BSEMAPHORE_DECL(axi_dma_rx_bsem, 0);
 static void axi_dma_tx_callback(bool success);
 static void axi_dma_rx_callback(bool success);
 static u32 length_points_get(u32 len_log2);
-static void control_set_dma(constellation_t gnss);
+static void control_set_dma(void);
 static void control_set_samples(fft_samples_input_t samples_input,
                                 u32 len_points, constellation_t gnss);
 static void config_set(fft_dir_t dir, u32 scale_schedule);
@@ -70,20 +70,14 @@ static u32 length_points_get(u32 len_log2)
 
 /** Set the ACQ control register for DMA input.
  */
-static void control_set_dma(constellation_t gnss)
+static void control_set_dma()
 {
-//  (void)gnss;
   NAP->ACQ_CONTROL =
       (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_DMA      << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (0                                  << NAP_ACQ_CONTROL_LENGTH_Pos) |
       (NAP_ACQ_CONTROL_PEAK_SEARCH        << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
-#if 1
-  /* switch on mixer for GLO acquisition */
-  if (CONSTELLATION_GLO == gnss)
-    NAP->ACQ_CONTROL |= (NAP_ACQ_CONTROL_MIXER << NAP_ACQ_CONTROL_MIXER_Pos);
-#endif
 }
 
 /** Set the ACQ control register for frontend samples input.
@@ -94,18 +88,17 @@ static void control_set_dma(constellation_t gnss)
 static void control_set_samples(fft_samples_input_t samples_input,
                                 u32 len_points, constellation_t gnss)
 {
-//  (void)gnss;
   NAP->ACQ_CONTROL =
       (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       ((samples_input)                    << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (len_points                         << NAP_ACQ_CONTROL_LENGTH_Pos) |
       (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
-#if 1
+
   /* switch on mixer for GLO acquisition */
   if (CONSTELLATION_GLO == gnss)
     NAP->ACQ_CONTROL |= (NAP_ACQ_CONTROL_MIXER << NAP_ACQ_CONTROL_MIXER_Pos);
-#endif
+
   /* Set up timing compare */
   while (1) {
     chSysLock();
@@ -187,9 +180,9 @@ static bool wait(void)
  * \return True if the FFT was successfully computed, false otherwise.
  */
 bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
-         fft_dir_t dir, u32 scale_schedule, constellation_t gnss)
+         fft_dir_t dir, u32 scale_schedule)
 {
-  control_set_dma(gnss);
+  control_set_dma();
   config_set(dir, scale_schedule);
   start(in, out, len_log2);
   return wait();

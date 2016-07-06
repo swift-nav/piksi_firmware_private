@@ -57,8 +57,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   static fft_cplx_t code_fft[FFT_LEN_MAX];
   code_resample(sid, chips_per_sample, code_fft, fft_len);
   if (!fft(code_fft, code_fft, fft_len_log2,
-           FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE,
-           gnss)) {
+           FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
     log_debug("1");
     return false;
   }
@@ -112,7 +111,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
     /* Inverse FFT */
     if (!fft(result_fft, result_fft, fft_len_log2,
-             FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV, gnss)) {
+             FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV)) {
       log_debug("3");
       return false;
     }
