@@ -18,9 +18,6 @@ script:
   - test $TRAVIS_PULL_REQUEST != "false" && export BUCKET=swiftnav-artifacts-pull-requests && export ANONYMOUS=true || true
   - git fetch --tags --unshallow
   - test $TRAVIS_OS_NAME == "linux" && ./publish.sh requirements.yaml || true
-  - make PIKSI_HW=v2
-  - test $TRAVIS_OS_NAME == "linux" && PRODUCT_VERSION=v2 ./publish.sh build_v2/piksi_firmware.{bin,dmp,elf,hex} || true
-  - make clean
   - make PIKSI_HW=v3
   - test $TRAVIS_OS_NAME == "linux" && PRODUCT_VERSION=v3 ./publish.sh build_v3/piksi_firmware.{bin,dmp,elf,hex} || true
 

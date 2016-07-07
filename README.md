@@ -1,7 +1,10 @@
-piksi_firmware
+piksi_firmware_private
 ==============
 
 [![Build status][1]][2]
+
+### Note: Piksi v2 is no longer supported.
+Follow [this link](https://github.com/swift-nav/piksi_firmware_private/tree/last-v2-commit) for the final Piksi v2 compatible commit.
 
 Firmware for the Swift Navigation Piksi GPS Receiver.
 
@@ -13,7 +16,7 @@ Checking Out Submodules
 ChibiOS, libopencm3, libsbp and libswiftnav are submodules of this git repository.
 Check them out using:
 
-	git submodule update --init
+	git submodule update --init --recursive
 
 Remember to run `git submodule update` after pulling in the latest changes to
 ensure all the submodules are in sync.
@@ -47,4 +50,3 @@ For additional details about the toolchain installation, please see
 
 [1]: https://travis-ci.com/swift-nav/piksi_firmware_private.svg?token=qpdcpHVrbHsVtRxV2VHR&branch=master
 [2]: https://travis-ci.com/swift-nav/piksi_firmware_private
-
