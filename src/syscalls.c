@@ -141,6 +141,19 @@ void * _sbrk(int incr)
   return p;
 }
 
+/* Implement malloc_lock() and malloc_unlock() */
+void __malloc_lock(struct _reent *r)
+{
+  (void)r;
+  reent_lock();
+}
+
+void __malloc_unlock(struct _reent *r)
+{
+  (void)r;
+  reent_unlock();
+}
+
 /* sprintf() which bypasses REENT mutex */
 int fallback_sprintf(char *str, const char *fmt, ...)
 {
