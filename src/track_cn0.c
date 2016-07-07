@@ -79,11 +79,95 @@ void track_cn0_params_init(void)
                            CN0_EST_BW_HZ,
                            CN0_EST_LPF_ALPHA,
                            loop_freq);
+    cn0_est_pre_computed[i].est_params.t_int = integration_periods[i];
     cn0_filter_compute_params(&cn0_est_pre_computed[i].filter_params,
                               CN0_EST_LPF_CUTOFF_HZ,
                               loop_freq);
   }
 }
+
+static void init_estimator(cn0_est_state_t *e,
+                           const cn0_est_params_t *p,
+                           track_cn0_est_e t,
+                           float cn0_0)
+{
+  switch (t) {
+  case TRACK_CN0_EST_RSCN:
+    cn0_est_rscn_init(e, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_BL:
+    cn0_est_bl_init(e, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_SNV:
+    cn0_est_rscn_init(e, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_MM:
+    cn0_est_mm_init(e, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_NWPR:
+    cn0_est_nwpr_init(e, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_SVR:
+    cn0_est_svr_init(e, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_CH:
+    cn0_est_ch_init(e, p, cn0_0);
+    break;
+
+  default:
+    assert(false);
+  }
+
+}
+
+static float update_estimator(cn0_est_state_t *e,
+                              const cn0_est_params_t *p,
+                              track_cn0_est_e t,
+                              float I, float Q)
+{
+  float cn0 = 0;
+  switch (t) {
+  case TRACK_CN0_EST_RSCN:
+    cn0 = cn0_est_rscn_update(e, p, I, Q);
+    break;
+
+  case TRACK_CN0_EST_BL:
+    cn0 = cn0_est_bl_update(e, p, I, Q);
+    break;
+
+  case TRACK_CN0_EST_SNV:
+    cn0 = cn0_est_snv_update(e, p, I, Q);
+    break;
+
+  case TRACK_CN0_EST_MM:
+    cn0 = cn0_est_mm_update(e, p, I, Q);
+    break;
+
+  case TRACK_CN0_EST_NWPR:
+    cn0 = cn0_est_nwpr_update(e, p, I, Q);
+    break;
+
+  case TRACK_CN0_EST_SVR:
+    cn0 = cn0_est_svr_update(e, p, I, Q);
+    break;
+
+  case TRACK_CN0_EST_CH:
+    cn0 = cn0_est_ch_update(e, p, I, Q);
+    break;
+
+  default:
+    assert(false);
+  }
+
+  return cn0;
+}
+
 
 static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
                                                       track_cn0_params_t *p)
@@ -92,6 +176,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
 
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     if (int_ms == integration_periods[i]) {
+      //cn0_est_pre_computed[i].est_params.t_int = int_ms;
       pparams = &cn0_est_pre_computed[i];
       break;
     }
@@ -101,10 +186,12 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
     float loop_freq = 1e3f / int_ms;
     cn0_est_compute_params(&p->est_params, CN0_EST_BW_HZ, CN0_EST_LPF_ALPHA,
                            loop_freq);
+    p->est_params.t_int = int_ms;
 
     cn0_filter_compute_params(&p->filter_params,
                               CN0_EST_LPF_CUTOFF_HZ,
                               loop_freq);
+
     pparams = p;
   }
 
@@ -119,8 +206,8 @@ void track_cn0_init(u8 int_ms,
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
 
-  cn0_est_bl_init(&e->primary, &pp->est_params, cn0_0);
-  cn0_est_snv_init(&e->secondary, &pp->est_params, cn0_0);
+  init_estimator(&e->primary, &pp->est_params, TRACK_CN0_EST_PRIMARY, cn0_0);
+  init_estimator(&e->secondary, &pp->est_params, TRACK_CN0_EST_SECONDARY, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 }
@@ -133,20 +220,19 @@ float track_cn0_update(track_cn0_est_e t,
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
   float cn0 = 0;
-  float cn0_bl, cn0_snv;
+  float cn0_pri;
+  float cn0_sec;
 
-  cn0_bl = cn0_est_bl_update(&e->primary, &pp->est_params, I, Q);
-  cn0_snv = cn0_est_snv_update(&e->secondary, &pp->est_params, I, Q);
+  cn0_pri = update_estimator(&e->primary, &pp->est_params, TRACK_CN0_EST_PRIMARY, I, Q);
+  cn0_sec = update_estimator(&e->secondary, &pp->est_params, TRACK_CN0_EST_SECONDARY, I, Q);
 
   switch (t) {
-  case TRACK_CN0_EST_BL:
-    cn0 = cn0_bl;
+  case TRACK_CN0_EST_PRIMARY:
+    cn0 = cn0_pri;
     break;
-
-  case TRACK_CN0_EST_SNV:
-    cn0 = cn0_snv;
+  case TRACK_CN0_EST_SECONDARY:
+    cn0 = cn0_sec;
     break;
-
   default:
     assert(false);
   }

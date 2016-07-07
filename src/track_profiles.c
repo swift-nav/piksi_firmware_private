@@ -45,7 +45,7 @@
  * - One plus N (TP_USE_ONE_PLUS_N_MODE)
  * - 1 millisecond integrations (TP_USE_SPLIT_MODE)
  */
-// #define TP_USE_SPLIT_MODE
+//#define TP_USE_SPLIT_MODE
 #define TP_USE_ONE_PLUS_N_MODE
 
 #if defined(TP_USE_SPLIT_MODE)
@@ -64,12 +64,12 @@
 /** Default C/N0 threshold in dB/Hz for keeping track (for 1 ms integration) */
 #define TP_DEFAULT_CN0_USE_THRESHOLD  (37.f)
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD (31.f)
+#define TP_DEFAULT_CN0_DROP_THRESHOLD (0.f)
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD (21.f)
+#define TP_HARD_CN0_DROP_THRESHOLD (0.f)
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
-//#define TP_SNR_OFFSET  (-155.f)
+//# define TP_SNR_OFFSET  (-155.f)
 #define TP_SNR_OFFSET  (-174.f + 2.f)
 
 #if defined(BOARD_PIKSI_V2)
@@ -167,7 +167,7 @@ typedef struct {
   u32           accel_count:5;     /**< State lock counter for dynamics threshold */
   u32           accel_count_idx:2; /**< State lock value for dynamics threshold */
   u32           lock_time_ms:16;   /**< Profile lock count down timer */
-  u32           cn0_est:1;
+  u32           cn0_est:3;
   float         cn0_offset;        /**< C/N0 offset in dB to tune thresholds */
   float         filt_val[4];       /**< Filtered counters: v,a,l,C/N0 */
 #if defined(TP_USE_MEAN_VALUES)
@@ -696,8 +696,13 @@ static void print_stats(tp_profile_internal_t *profile)
 #endif
     const char *cn0_est_str = "?";
     switch (profile->cn0_est) {
+    case TRACK_CN0_EST_RSCN: cn0_est_str = "RSCN"; break;
     case TRACK_CN0_EST_BL: cn0_est_str = "BL"; break;
     case TRACK_CN0_EST_SNV: cn0_est_str = "SNV"; break;
+    case TRACK_CN0_EST_MM: cn0_est_str = "MM"; break;
+    case TRACK_CN0_EST_NWPR: cn0_est_str = "NWPR"; break;
+    case TRACK_CN0_EST_SVR: cn0_est_str = "SVR"; break;
+    case TRACK_CN0_EST_CH: cn0_est_str = "CH"; break;
     default: assert(false);
     }
 
@@ -742,20 +747,20 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   acc = profile->filt_val[1];
   // loc = profile->filt_val[2];
 
-#if 0
+#if 1
 
   switch (profile->cn0_est) {
-  case TRACK_CN0_EST_BL:
+  case TRACK_CN0_EST_PRIMARY:
     if (profile->filt_val[3] < TP_CN0_BL2SNV_THRESHOLD - profile->cn0_offset) {
-      profile->cn0_est = TRACK_CN0_EST_SNV;
-      log_info_sid(profile->sid, "Changed C/N0 estimator to SNV");
+      profile->cn0_est = TRACK_CN0_EST_SECONDARY;
+      log_info_sid(profile->sid, "Changed C/N0 estimator to secondary");
     }
     break;
 
-  case TRACK_CN0_EST_SNV:
+  case TRACK_CN0_EST_SECONDARY:
     if (profile->filt_val[3] > TP_CN0_SNV2BL_THRESHOLD - profile->cn0_offset) {
-      profile->cn0_est = TRACK_CN0_EST_BL;
-      log_info_sid(profile->sid, "Changed C/N0 estimator to BL");
+      profile->cn0_est = TRACK_CN0_EST_PRIMARY;
+      log_info_sid(profile->sid, "Changed C/N0 estimator to primary");
     }
     break;
 
@@ -1100,8 +1105,7 @@ tp_result_e tp_tracking_start(gnss_signal_t sid,
   if (NULL != config) {
     tp_profile_internal_t *profile = allocate_profile(sid);
     if (NULL != profile) {
-
-      profile->cn0_est = TRACK_CN0_EST_BL;
+      profile->cn0_est = TRACK_CN0_EST_PRIMARY;
 
       profile->filt_val[0] = compute_speed(sid, data);
       profile->filt_val[1] = 0.;
