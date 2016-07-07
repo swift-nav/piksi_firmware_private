@@ -32,8 +32,29 @@
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
 
+#if 1
+#define tl_state_t       aided_tl_state_t
+#define tl_state_init    aided_tl_init
+#define tl_state_retune  aided_tl_retune
+#define tl_state_update  aided_tl_update
+#define tl_state_adjust  aided_tl_adjust
+#elif 0
+#define tl_state_t       aided_tl_state3_t
+#define tl_state_init    aided_tl_init3
+#define tl_state_retune  aided_tl_retune3
+#define tl_state_update  aided_tl_update3
+#define tl_state_adjust  aided_tl_adjust3
+#elif 1
+#define tl_state_t       aided_tl_state3b_t
+#define tl_state_init    aided_tl_init3b
+#define tl_state_retune  aided_tl_retune3b
+#define tl_state_update  aided_tl_update3b
+#define tl_state_adjust  aided_tl_adjust3b
+#endif
+
 typedef struct {
-  aided_tl_state_t tl_state;               /**< Tracking loop filter state. */
+  tl_state_t       tl_state;               /**< Tracking loop filter state. */
+  aided_tl_state_t tl_state_ref;
   corr_t           cs[3];                  /**< EPL correlation results in
                                             *   correlation period. */
   track_cn0_est_e  cn0_est_type;           /**< C/N0 estimator type */
@@ -100,6 +121,10 @@ static void tracker_gps_l1ca_update_parameters(
 
   const float old_loop_freq = 1000.f / data->int_ms;
 
+  if (data->tracking_mode == TP_TM_INITIAL && next_params->loop_params.mode != TP_TM_INITIAL) {
+    init = true;
+  }
+
   data->tracking_mode = next_params->loop_params.mode;
   bool use_alias_detection = data->use_alias_detection;
   data->use_alias_detection = next_params->use_alias_detection;
@@ -157,13 +182,39 @@ static void tracker_gps_l1ca_update_parameters(
   if (init) {
     log_debug_sid(channel_info->sid, "Initializing TL");
 
-    aided_tl_init(&(data->tl_state), loop_freq,
-                  common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
-                  l->code_bw, l->code_zeta, l->code_k,
-                  l->carr_to_code,
-                  common_data->carrier_freq,
-                  l->carr_bw, l->carr_zeta, l->carr_k,
-                  l->carr_fll_aid_gain);
+    if (data->tracking_mode != TP_TM_INITIAL) {
+      tl_state_init(&data->tl_state, loop_freq,
+                    common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
+                    l->code_bw, l->code_zeta, l->code_k,
+                    l->carr_to_code,
+                    common_data->carrier_freq,
+                    l->carr_bw, l->carr_zeta, l->carr_k,
+                    l->carr_fll_aid_gain);
+
+//      log_info_sid(channel_info->sid, "Computed: b0=%f b1=%f b2=%f",
+//                   data->tl_state.phase_b0,
+//                   data->tl_state.phase_b1,
+//                   data->tl_state.phase_b2
+//                   );
+
+//      float T = data->int_ms / 1000.f;
+//      data->tl_state.phase_b0 = 0.02530 / T;
+//      data->tl_state.phase_b1 = 2.836e-4 / T;
+//      data->tl_state.phase_b2 = 1.252e-6 / T;
+//      log_info_sid(channel_info->sid, "Updated: b0=%f b1=%f b2=%f",
+//                   data->tl_state.phase_b0,
+//                   data->tl_state.phase_b1,
+//                   data->tl_state.phase_b2
+//                   );
+      log_info_sid(channel_info->sid, "LF=%f", common_data->carrier_freq);
+    } else
+      aided_tl_init(&data->tl_state_ref, loop_freq,
+                    common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
+                    l->code_bw, l->code_zeta, l->code_k,
+                    l->carr_to_code,
+                    common_data->carrier_freq,
+                    l->carr_bw, l->carr_zeta, l->carr_k,
+                    l->carr_fll_aid_gain);
 
     lock_detect_init(&data->lock_detect,
                      ld->k1 * ld_int_ms,
@@ -174,17 +225,25 @@ static void tracker_gps_l1ca_update_parameters(
   } else {
     log_debug_sid(channel_info->sid, "Re-tuning TL");
 
-    /* Recalculate filter coefficients */
-    aided_tl_retune(&data->tl_state, loop_freq,
-                    l->code_bw, l->code_zeta, l->code_k,
-                    l->carr_to_code,
-                    l->carr_bw, l->carr_zeta, l->carr_k,
-                    l->carr_fll_aid_gain);
+    if (data->tracking_mode != TP_TM_INITIAL)
+      /* Recalculate filter coefficients */
+      tl_state_retune(&data->tl_state, loop_freq,
+                      l->code_bw, l->code_zeta, l->code_k,
+                      l->carr_to_code,
+                      l->carr_bw, l->carr_zeta, l->carr_k,
+                      l->carr_fll_aid_gain);
+    else
+      aided_tl_retune(&data->tl_state_ref, loop_freq,
+                      l->code_bw, l->code_zeta, l->code_k,
+                      l->carr_to_code,
+                      l->carr_bw, l->carr_zeta, l->carr_k,
+                      l->carr_fll_aid_gain);
+
 
     if (old_loop_freq != loop_freq) {
       /* When loop frequency changes, reset partially reset filter state. */
-      data->tl_state.carr_filt.prev_error = 0.f;
-      data->tl_state.code_filt.prev_error = 0.f;
+//      data->tl_state.carr_filt.prev_error = 0.f;
+//      data->tl_state.code_filt.prev_error = 0.f;
     }
 
     lock_detect_reinit(&data->lock_detect,
@@ -737,10 +796,20 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       }
     }
 
-    aided_tl_update(&data->tl_state, cs2);
 
-    common_data->carrier_freq = data->tl_state.carr_freq;
-    common_data->code_phase_rate = data->tl_state.code_freq + GPS_CA_CHIPPING_RATE;
+    if (data->tracking_mode == TP_TM_INITIAL) {
+      aided_tl_update(&data->tl_state_ref, cs2);
+      common_data->carrier_freq = data->tl_state_ref.carr_freq;
+      common_data->code_phase_rate = data->tl_state_ref.code_freq + GPS_CA_CHIPPING_RATE;
+    } else {
+      tl_state_update(&data->tl_state, cs2);
+      common_data->carrier_freq = data->tl_state.carr_freq;
+      common_data->code_phase_rate = data->tl_state.code_freq + GPS_CA_CHIPPING_RATE;
+//      log_info_sid(channel_info->sid, "carr=%f %f e=%f code=%f",
+//                   data->tl_state.carr_freq, data->tl_state.phase_out,
+//                   data->tl_state.phase_prev_a,
+//                   data->tl_state.code_freq);
+    }
 
     /* Attempt alias detection if we have pessimistic phase lock detect, OR
        (optimistic phase lock detect AND are in second-stage tracking) */
@@ -766,8 +835,10 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
           /* Indicate that a mode change has occurred. */
           common_data->mode_change_count = common_data->update_count;
 
-          data->tl_state.carr_freq += err;
-          data->tl_state.carr_filt.y = data->tl_state.carr_freq;
+          if (data->tracking_mode == TP_TM_INITIAL)
+            aided_tl_adjust(&data->tl_state_ref, err);
+          else
+            tl_state_adjust(&data->tl_state, err);
         }
       }
     } else if (data->alias_detect_first)

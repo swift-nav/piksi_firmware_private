@@ -29,16 +29,18 @@
 /* Noise bandwidth: GPS L1 1.023 * 2. Normalized with sample rate. The
  * approximate formula is:
  *
- * CN0_EST_BW_HZ = 3.1e-7f * NAP_FRONTEND_SAMPLE_RATE_Hz
+ * CN0_EST_BW_HZ = NBW / TRACK_SAMPLE_FREQ
  *
- * For V2 the ENBW is 5, for V3 it is 32.
+ * For V2 the ENBW is 4.88, for V3 it is 26.4.
  */
 #if defined(BOARD_PIKSI_V2)
 /* PIKSIv2 */
-#define CN0_EST_BW_HZ         (5.f)
+/* #define CN0_EST_BW_HZ  (float)(2e6 / TRACK_SAMPLE_FREQ * 40) */
+#define CN0_EST_BW_HZ     (4.88f)
 #elif defined(BOARD_DIGILENT_UZED)
 /* PIKSIv3 */
-#define CN0_EST_BW_HZ         (32.f)
+/* #define CN0_EST_BW_HZ  (float)(33e6 / TRACK_SAMPLE_FREQ  * 20) */
+#define CN0_EST_BW_HZ     (26.4f)
 #else
 #error Unsupported board
 #endif

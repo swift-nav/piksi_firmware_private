@@ -32,8 +32,8 @@
  */
 //#define TP_USE_1MS_PROFILES
 //#define TP_USE_2MS_PROFILES
-#define TP_USE_5MS_PROFILES
-#define TP_USE_10MS_PROFILES
+//#define TP_USE_5MS_PROFILES
+//#define TP_USE_10MS_PROFILES
 #define TP_USE_20MS_PROFILES
 //#define TP_USE_40MS_PROFILES
 
@@ -286,7 +286,7 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_USE_5MS_PROFILES
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 15, 1.f, 1, 0, 5, TP_TM_LONG_MODE }, /*TP_LP_IDX_5MS_S*/
+  { 1, 0.7f, 1, 1540, 18, 1.f, 1, 0, 5, TP_TM_LONG_MODE }, /*TP_LP_IDX_5MS_S*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
   { 1, 0.7f, 1, 1540, 25, .7f, 1, 0, 5, TP_TM_LONG_MODE }, /*TP_LP_IDX_5MS_N*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
@@ -742,7 +742,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   acc = profile->filt_val[1];
   // loc = profile->filt_val[2];
 
-#if 1
+#if 0
 
   switch (profile->cn0_est) {
   case TRACK_CN0_EST_BL:
@@ -798,7 +798,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
        * are around factor of 2. This means there is ~3 dB/Hz gain/loss when
        * increasing/decreasing integration times.
        */
-      if (profile->cur_profile_i > TP_PROFILE_ROW_FIRST) {
+      if (profile->cur_profile_i > TP_PROFILE_ROW_FIRST && profile->cur_profile_i < TP_PROFILE_ROW_COUNT ) {
         u8 cn0_limit1 = profile_matrix[profile->cur_profile_i].cn0_max;
         u8 cn0_limit2 = profile_matrix[profile->cur_profile_i - 1].cn0_min;
         if (cn0 >= cn0_limit1 && cn0 >= cn0_limit2 /* && loc < TP_LOCK_THRESHOLD */) {
