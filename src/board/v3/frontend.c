@@ -47,7 +47,7 @@ void frontend_configure(void)
     spi_write(11, 0x08);
     spi_write(12, 0x1C);
     spi_write(13, 0x03);
-    spi_write(14, 0x69);
+    spi_write(14, 0x1E);
     spi_write(15, 0x2B);
     spi_write(16, 0x74);
     spi_write(17, 0xF1);
