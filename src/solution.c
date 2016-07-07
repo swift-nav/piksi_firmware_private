@@ -629,150 +629,52 @@ static void solution_thread(void *arg)
                          NMEA_GGA_FIX_GPS, clock_jump);
     }
 
-    /* There are two corrections that are applied to the pseudorange,
-     * the first is done to remove receiver clock error which we now know
-     * (since we've performed a PVT solve).  To remove the receiver
-     * clock error from the pseudorange we need to add the PVT time
-     * correction term into the pseudorange.  To be more explicit, we
-     * start with the pseudorange using Leick's notation:
-     *
-     *      P(t) = c * [t - TOT(t) + dt_k(t) - dt^p(t)]
-     *
-     * Where dt_k is the receiver clock error and dt^p is the satellite clock error,
-     * and TOT(t) is the time of transmission for a signal that arrived at time t.
-     *
-     * When we first compute the raw_pseudorange (in calc_navigation_measurements)
-     * dt_k(t) and dt^p(t) are unknown, so we ignore them and set:
-     *
-     *      P_uncorrected(tor) = P(tor) - c dt_k(tor) + c dt^p(t)
-     *                         = c (tor - TOT(tor))
-     *
-     * Now that we know the receiver error we can get a more accurate pseudorange
-     * by accounting for the receiver error (dt_k(t))
-     *
-     *      P_corrected(t_pvt) = P_uncorrected(tor) + c dt_k(t_pvt)
-     *                         = P_uncorrected(tor) + c (t_pvt - tor)
-     *                         = c (t_pvt - TOT(tor))
-     *                         = c (t_pvt - TOT(t_pvt)).
-     *
-     *  The last bit comes from TOT(tor) == TOT(t_pvt), which simply stems from
-     *  the fact that uncorrected and corrected pseudoranges correspond to the
-     *  exact same observations.
-     */
-    for (u8 i = 0; i < n_ready_tdcp; i++) {
-      double pr_err = GPS_C * gpsdifftime(&position_solution.time, &rec_time);
-      nav_meas_tdcp[i].raw_pseudorange += pr_err;
-      nav_meas_tdcp[i].pseudorange += pr_err;
-    }
-    /*
-     * The next correction is done to create a new pseudorange that is valid for
-     * a different time of arrival.  In particular we'd like to propagate all the
-     * observations such that they represent what we would have observed had
-     * the observations all arrived at the current epoch (t').
-     */
-
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
     double expected_tow = round(position_solution.time.tow * soln_freq)
                           / soln_freq;
-    double t_err = expected_tow - position_solution.time.tow;
 
-    /* Only send observations that are closely aligned with the desired
-     * solution epochs to ensure they haven't been propagated too far. */
-    if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
+    /* If we have a recent set of observations from the base station, do a
+     * differential solution. */
+    double pdt;
+    chMtxLock(&base_obs_lock);
+    if (base_obss.n > 0 && !simulation_enabled()) {
+      if ((pdt = gpsdifftime(&position_solution.time, &base_obss.tor))
+            < MAX_AGE_OF_DIFFERENTIAL) {
 
-      /* Update observation time. */
-      gps_time_t new_obs_time;
-      new_obs_time.wn = position_solution.time.wn;
-      new_obs_time.tow = expected_tow;
+        /* Propagate base station observations to the current time and
+         * process a low-latency differential solution. */
 
-      /* Propagate observations to desired time. */
-      /* We have to use the tdcp_doppler result to account for TCXO drift. */
-      /* nav_meas_tdcp is updated in place, skipping elements if required. */
-      u8 n_ready_tdcp_new = 0;
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
+        /* Hook in low-latency filter here. */
+        if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+            base_obss.has_pos) {
 
-        /* Copy measurement to new index if a previous measurement
-         * has been skipped. */
-        if (i != n_ready_tdcp_new) {
-          memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
-        }
-
-        nm->raw_pseudorange += t_err * nm->raw_doppler *
-                               code_to_lambda(nm->sid.code);
-        nm->raw_carrier_phase += t_err * nm->raw_doppler;
-
-        nm->tot = new_obs_time;
-        nm->tot.tow -= nm->raw_pseudorange / GPS_C;
-        normalize_gps_time(&nm->tot);
-
-        const ephemeris_t *e = ephemeris_get(nm->sid);
-        u8 eph_valid;
-        s8 ss_ret;
-        double clock_err;
-        double clock_rate_err;
-
-        ephemeris_lock();
-        eph_valid = ephemeris_valid(e, &nm->tot);
-        if (eph_valid) {
-          ss_ret = calc_sat_state(e, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                  &clock_err, &clock_rate_err);
-        }
-        ephemeris_unlock();
-
-        if (!eph_valid || (ss_ret != 0)) {
-          continue;
-        }
-
-        n_ready_tdcp_new++;
-      }
-
-      /* Update n_ready_tdcp. */
-      n_ready_tdcp = n_ready_tdcp_new;
-
-      /* If we have a recent set of observations from the base station, do a
-       * differential solution. */
-      double pdt;
-      chMtxLock(&base_obs_lock);
-      if (base_obss.n > 0 && !simulation_enabled()) {
-        if ((pdt = gpsdifftime(&new_obs_time, &base_obss.tor))
-              < MAX_AGE_OF_DIFFERENTIAL) {
-
-          /* Propagate base station observations to the current time and
-           * process a low-latency differential solution. */
-
-          /* Hook in low-latency filter here. */
-          if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
-              base_obss.has_pos) {
-
-            sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
-            u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
-                                    base_obss.n, base_obss.nm,
-                                    base_obss.sat_dists, base_obss.pos_ecef,
-                                    sdiffs);
-            if (num_sdiffs >= 4) {
-              output_baseline(num_sdiffs, sdiffs, &new_obs_time, pdt,
-                              dops.hdop, base_obss.sender_id);
-            }
+          sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
+          u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
+                                  base_obss.n, base_obss.nm,
+                                  base_obss.sat_dists, base_obss.pos_ecef,
+                                  sdiffs);
+          if (num_sdiffs >= 4) {
+            output_baseline(num_sdiffs, sdiffs, &position_solution.time, pdt,
+                            dops.hdop, base_obss.sender_id);
           }
         }
       }
-      chMtxUnlock(&base_obs_lock);
+    }
+    chMtxUnlock(&base_obs_lock);
 
-      /* Output observations only every obs_output_divisor times, taking
-       * care to ensure that the observations are aligned. */
-      /* Also only output observations once our receiver clock is
-       * correctly set. */
-      double t_check = expected_tow * (soln_freq / obs_output_divisor);
-      if (!simulation_enabled() &&
-          time_quality == TIME_FINE &&
-          fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-        /* Post the observations to the mailbox. */
-        post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
-        /* Send the observations. */
-        send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
-      }
+    /* Output observations only every obs_output_divisor times, taking
+     * care to ensure that the observations are aligned. */
+    /* Also only output observations once our receiver clock is
+     * correctly set. */
+    double t_check = expected_tow * (soln_freq / obs_output_divisor);
+    if (!simulation_enabled() &&
+        time_quality == TIME_FINE &&
+        fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
+      /* Post the observations to the mailbox. */
+      post_observations(n_ready_tdcp, nav_meas_tdcp, &position_solution.time);
+      /* Send the observations. */
+      send_observations(n_ready_tdcp, nav_meas_tdcp, &position_solution.time);
     }
 
     /* Calculate time till the next desired solution epoch. */
