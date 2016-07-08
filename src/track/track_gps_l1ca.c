@@ -120,6 +120,9 @@ static void tracker_gps_l1ca_update_parameters(
   const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
 
   const float old_loop_freq = 1000.f / data->int_ms;
+  u8 old_cn0_ms = data->int_ms;
+  if (data->tracking_mode == TP_TM_SPLIT)
+    old_cn0_ms = 1;
 
   if (data->tracking_mode == TP_TM_INITIAL && next_params->loop_params.mode != TP_TM_INITIAL) {
     init = true;
@@ -242,8 +245,8 @@ static void tracker_gps_l1ca_update_parameters(
 
     if (old_loop_freq != loop_freq) {
       /* When loop frequency changes, reset partially reset filter state. */
-//      data->tl_state.carr_filt.prev_error = 0.f;
-//      data->tl_state.code_filt.prev_error = 0.f;
+      data->tl_state.carr_filt.prev_error = 0.f;
+      data->tl_state.code_filt.prev_error = 0.f;
     }
 
     lock_detect_reinit(&data->lock_detect,
@@ -253,7 +256,7 @@ static void tracker_gps_l1ca_update_parameters(
                        ld->lo);
   }
 
-  {
+  if (init || cn0_ms != old_cn0_ms) {
     tp_cn0_params_t cn0_params;
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
