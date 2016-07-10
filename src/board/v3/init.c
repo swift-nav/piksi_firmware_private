@@ -104,6 +104,7 @@ static bool nap_version_ok(u32 version)
   return ((version & REQUIRED_NAP_VERSION_MASK) == REQUIRED_NAP_VERSION_VAL);
 }
 
+
 static void nap_version_check(void)
 {
   u32 nap_version = nap_conf_rd_version();
