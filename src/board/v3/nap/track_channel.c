@@ -49,7 +49,7 @@
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP       \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
-#define SPACING_HALF_CHIP ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 2)
+#define SPACING_HALF_CHIP ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 24)
 
 static struct nap_ch_state {
   u32 code_phase;   /**< Fractional part of code phase. */
