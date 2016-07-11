@@ -220,11 +220,9 @@ float track_cn0_update(track_cn0_est_e t,
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
   float cn0 = 0;
-  float cn0_pri;
-  float cn0_sec;
 
-  cn0_pri = update_estimator(&e->primary, &pp->est_params, TRACK_CN0_EST_PRIMARY, I, Q);
-  cn0_sec = update_estimator(&e->secondary, &pp->est_params, TRACK_CN0_EST_SECONDARY, I, Q);
+  float cn0_pri = update_estimator(&e->primary, &pp->est_params, TRACK_CN0_EST_PRIMARY, I, Q);
+  float cn0_sec = update_estimator(&e->secondary, &pp->est_params, TRACK_CN0_EST_SECONDARY, I, Q);
 
   switch (t) {
   case TRACK_CN0_EST_PRIMARY:

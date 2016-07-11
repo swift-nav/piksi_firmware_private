@@ -38,6 +38,12 @@ typedef enum
   TP_TM_IMMEDIATE   /**< Immediate feedback */
 } tp_tm_e;
 
+typedef enum
+{
+  TP_CTRL_PLL,
+  TP_CTRL_FLL,
+} tp_ctrl_e;
+
 /**
  * Tracking loop parameters.
  */
@@ -53,6 +59,7 @@ typedef struct
   float   carr_fll_aid_gain;  /**< FLL assistance coefficient */
   u8      coherent_ms;        /**< Coherent integration period in ms */
   tp_tm_e mode;               /**< Operation mode */
+  tp_ctrl_e ctrl;             /**< Operation mode */
 } tp_loop_params_t;
 
 /**
@@ -107,6 +114,7 @@ typedef struct
   u32    sample_count;    /**< Channel sample count */
   float  lock_i;          /**< Filtered I value from the lock detector */
   float  lock_q;          /**< Filtered Q value from the lock detector */
+  float  lock_f;          /**< DLL/FLL lock detector */
 } tp_report_t;
 
 /**
