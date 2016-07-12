@@ -35,7 +35,7 @@
 #define TP_USE_5MS_PROFILES
 #define TP_USE_10MS_PROFILES
 #define TP_USE_20MS_PROFILES
-#define TP_USE_40MS_PROFILES
+// #define TP_USE_40MS_PROFILES
 
 // #define TP_USE_MEAN_VALUES
 
@@ -238,7 +238,8 @@ enum
 #endif
 #ifdef TP_USE_20MS_PROFILES
   TP_PROFILE_ROW_20MS,
-//  TP_PROFILE_ROW_20MS_SS,
+  TP_PROFILE_ROW_20MS_SS,
+#define TP_PROFILE_ROW_20MS_SS TP_PROFILE_ROW_20MS_SS
 #endif
 #ifdef TP_USE_40MS_PROFILES
   TP_PROFILE_ROW_40MS,
@@ -269,8 +270,12 @@ enum
  * match the TP_LP_IDX_XYZ enumeration value.
  */
 static const tp_loop_params_t loop_params[] = {
+ /*
+  * DLL              PLL          FLL MS LOOP_MODE     CONTROLLER
+  * BW Zeta  K  C2C  BW   Zeta K  BW
+  */
   /* "(1 ms, (1, 0.7, 1, 1540), (40, 0.7, 1, 5))" */
-  { 1, 0.7f, 1, 1540, 40, .7f, 1, 5, 1, TP_TM_INITIAL, TP_CTRL_PLL }, /*TP_LP_IDX_INI*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 20, 1, TP_TM_INITIAL, TP_CTRL_PLL }, /*TP_LP_IDX_INI*/
 
 #ifdef TP_USE_1MS_PROFILES
   { 1, 1.f, 1, 1540, 12, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL }, /*TP_LP_IDX_1MS_S*/
@@ -286,28 +291,30 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_USE_5MS_PROFILES
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 18, 1.f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_S*/
+  { 1, 0.7f, 1, 1540, 16, 1.f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_S*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 25, .7f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_N*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 2, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_N*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 25, .7f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_U*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_U*/
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 16, .7f, 1., 5, 10, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_10MS*/
+  { 1, .7f, 1, 1540, 16, .7f, 1., 0, 10, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_10MS*/
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 8, .7f, 1.f, 0, 20, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_20MS_S*/
+  { 1, .7f, 1, 1540, 7, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_20MS_S*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 10, .7f, 1.f, 0, 20, TP_TM_LONG_MODE, TP_CTRL_PLL },/*TP_LP_IDX_20MS_N*/
+  { 1, .7f, 1, 1540, 8, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL },/*TP_LP_IDX_20MS_N*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 12, .7f, 1.f, 0, 20, TP_TM_LONG_MODE, TP_CTRL_PLL },/*TP_LP_IDX_20MS_U*/
+  { 1, .7f, 1, 1540, 10, .7f, 1.f, 2, 20, TP_TM_LONG_MODE, TP_CTRL_PLL },/*TP_LP_IDX_20MS_U*/
 
+#ifdef TP_PROFILE_ROW_20MS_SS
   /* FLL-assisted PLL. K_c = 1.2 */
-  { 1, .7f, 1.2f, 1540, 6, .7f, 1.2f, 0.3, 20, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_20MS_SS*/
+  { .5, .7f, 1, 1540, 7, .7f, 1.f, 3, 20, TP_TM_LONG_MODE, TP_CTRL_FLL }, /*TP_LP_IDX_20MS_SS*/
+#endif
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
@@ -397,7 +404,9 @@ static const tp_loop_params_row_t profile_matrix[] = {
 
 #ifdef TP_USE_20MS_PROFILES
   {PCN0(27), PCN0(35), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
-//  {PCN0(24), PCN0(33), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS}},
+#ifdef TP_PROFILE_ROW_20MS_SS
+  {PCN0(24), PCN0(31), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS}},
+#endif
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_40MS_PROFILES
@@ -573,7 +582,17 @@ static void get_profile_params(tp_profile_internal_t *profile,
 
   config->lock_detect_params = ld_params[ld_params_idx];
   config->loop_params = loop_params[loop_profile_idx];
-  config->use_alias_detection = false;
+
+  /*
+   * TODO: alias detection is not working correctly as it requires independent
+   * bit-aligned integration accumulator with equal intervals.
+   */
+
+  if (config->loop_params.mode != TP_TM_INITIAL &&
+      config->loop_params.ctrl == TP_CTRL_PLL)
+    config->use_alias_detection = false; /* true; */
+  else
+    config->use_alias_detection = false;
 
   tp_get_cn0_params(profile->sid, &config->cn0_params);
 }

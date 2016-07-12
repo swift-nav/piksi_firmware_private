@@ -34,6 +34,9 @@
 
 /*
  * Initial tracking: loop selection
+ *
+ * The initial tracking doesn't have bit lock and is using pipelining. The
+ * coefficient computation differs from non-pipelining tracking modes.
  */
 #if 1
 /* PLL-assisted DLL. FLL-assisted PLL. FLL is first order, DLL and PLL are
@@ -45,13 +48,21 @@
 #define tl_ini_state_update  aided_tl_update
 #define tl_ini_state_adjust  aided_tl_adjust
 #define tl_ini_state_get_dll_error  aided_tl_get_dll_error
+#elif 0
+/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order */
+#define tl_ini_state_t       aided_tl_state3b_t
+#define tl_ini_state_init    aided_tl_init3b
+#define tl_ini_state_retune  aided_tl_retune3b
+#define tl_ini_state_update  aided_tl_update3b
+#define tl_ini_state_adjust  aided_tl_adjust3b
+#define tl_ini_state_get_dll_error  aided_tl_get_dll_error3b
 #endif
 
 /*
  * Main tracking: PLL loop selection
  */
 
-#if 0
+#if 1
 /* PLL-assisted DLL. FLL is first order, PLL and DLL are second order */
 #define tl_pll_state_t       aided_tl_state_t
 #define tl_pll_state_init    aided_tl_init
@@ -81,7 +92,7 @@
  * Main tracking: FLL loop selection
  */
 
-#if 0
+#if 1
 /* FLL-assisted DLL. FLL is first order and DLL is second order */
 #define tl_fll_state_t       aided_tl_state_fll1_t
 #define tl_fll_state_init    aided_tl_fll1_init
@@ -926,7 +937,18 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
         assert(false);
       }
 
-      lp1_filter_update(&data->fll_lock_detect, &data->fll_lock_params, dll_err);
+      dll_err = lp1_filter_update(&data->fll_lock_detect, &data->fll_lock_params, dll_err);
+//      if (fabsf(dll_err) > 0.12f && !data->lock_detect.outp) {
+//        log_info_sid(channel_info->sid, "Adjusting code error=%f", dll_err * 1540);
+//        switch (data->tracking_ctrl) {
+//        case TP_CTRL_PLL:
+//          tl_pll_state_adjust(&data->pll_state, dll_err * 1540);
+//          break;
+//        case TP_CTRL_FLL:
+//          tl_fll_state_adjust(&data->fll_state, dll_err * 1540);
+//          break;
+//        }
+//      }
 //      log_info_sid(channel_info->sid, "carr=%f %f code=%f",
 //                   common_data->carrier_freq, data->tl_state_ref.carr_freq,
 //                   // data->tl_state.freq_prev,
