@@ -286,16 +286,16 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_USE_5MS_PROFILES
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 18, 1.f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_S*/
+  { 1, 0.7f, 1, 1540, 18, 1.f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_S*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 25, .7f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_N*/
+  { 1, 0.7f, 1, 1540, 25, .7f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_N*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
   { 1, 0.7f, 1, 1540, 25, .7f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_U*/
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 16, .7f, 1., 0, 10, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_10MS*/
+  { 1, .7f, 1, 1540, 16, .7f, 1., 5, 10, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_10MS*/
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES

@@ -32,13 +32,33 @@
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
 
+/*
+ * Initial tracking: loop selection
+ */
 #if 1
+/* PLL-assisted DLL. FLL-assisted PLL. FLL is first order, DLL and PLL are
+ * second order
+ */
+#define tl_ini_state_t       aided_tl_state_t
+#define tl_ini_state_init    aided_tl_init
+#define tl_ini_state_retune  aided_tl_retune
+#define tl_ini_state_update  aided_tl_update
+#define tl_ini_state_adjust  aided_tl_adjust
+#define tl_ini_state_get_dll_error  aided_tl_get_dll_error
+#endif
+
+/*
+ * Main tracking: PLL loop selection
+ */
+
+#if 0
 /* PLL-assisted DLL. FLL is first order, PLL and DLL are second order */
 #define tl_pll_state_t       aided_tl_state_t
 #define tl_pll_state_init    aided_tl_init
 #define tl_pll_state_retune  aided_tl_retune
 #define tl_pll_state_update  aided_tl_update
 #define tl_pll_state_adjust  aided_tl_adjust
+#define tl_pll_state_get_dll_error  aided_tl_get_dll_error
 #elif 0
 /* PLL-assisted DLL. FLL and DLL are second order, PLL is third order */
 #define tl_pll_state_t       aided_tl_state3_t
@@ -46,21 +66,29 @@
 #define tl_pll_state_retune  aided_tl_retune3
 #define tl_pll_state_update  aided_tl_update3
 #define tl_pll_state_adjust  aided_tl_adjust3
-#elif 0
+#define tl_pll_state_get_dll_error  aided_tl_get_dll_error3
+#elif 1
 /* PLL-assisted DLL. FLL and DLL are second order, PLL is third order */
 #define tl_pll_state_t       aided_tl_state3b_t
 #define tl_pll_state_init    aided_tl_init3b
 #define tl_pll_state_retune  aided_tl_retune3b
 #define tl_pll_state_update  aided_tl_update3b
 #define tl_pll_state_adjust  aided_tl_adjust3b
+#define tl_pll_state_get_dll_error  aided_tl_get_dll_error3b
 #endif
-#if 1
+
+/*
+ * Main tracking: FLL loop selection
+ */
+
+#if 0
 /* FLL-assisted DLL. FLL is first order and DLL is second order */
 #define tl_fll_state_t       aided_tl_state_fll1_t
 #define tl_fll_state_init    aided_tl_fll1_init
 #define tl_fll_state_retune  aided_tl_fll1_retune
 #define tl_fll_state_update  aided_tl_fll1_update
 #define tl_fll_state_adjust  aided_tl_fll1_adjust
+#define tl_fll_state_get_dll_error  aided_tl_fll1_get_dll_error
 #elif 1
 /* FLL-assisted DLL. FLL and DLL are both second order */
 #define tl_fll_state_t       aided_tl_state_fll2_t
@@ -68,14 +96,15 @@
 #define tl_fll_state_retune  aided_tl_fll2_retune
 #define tl_fll_state_update  aided_tl_fll2_update
 #define tl_fll_state_adjust  aided_tl_fll2_adjust
+#define tl_fll_state_get_dll_error  aided_tl_fll2_get_dll_error
 #endif
 
 typedef struct {
   union {
     tl_pll_state_t   pll_state;            /**< Tracking loop filter state. */
     tl_fll_state_t   fll_state;            /**< Tracking loop filter state. */
+    tl_ini_state_t   ini_state;            /**< Tracking loop initial */
   };
-  aided_tl_state_t tl_state_ref;
   corr_t           cs[3];                  /**< EPL correlation results in
                                             *   correlation period. */
   track_cn0_est_e  cn0_est_type;           /**< C/N0 estimator type */
@@ -250,13 +279,13 @@ static void tracker_gps_l1ca_update_parameters(
 //                   );
       log_info_sid(channel_info->sid, "LF=%f", common_data->carrier_freq);
     } else
-      aided_tl_init(&data->tl_state_ref, loop_freq,
-                    common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
-                    l->code_bw, l->code_zeta, l->code_k,
-                    l->carr_to_code,
-                    common_data->carrier_freq,
-                    l->carr_bw, l->carr_zeta, l->carr_k,
-                    l->carr_fll_aid_gain);
+      tl_ini_state_init(&data->ini_state, loop_freq,
+                        common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
+                        l->code_bw, l->code_zeta, l->code_k,
+                        l->carr_to_code,
+                        common_data->carrier_freq,
+                        l->carr_bw, l->carr_zeta, l->carr_k,
+                        l->carr_fll_aid_gain);
 
     lock_detect_init(&data->lock_detect,
                      ld->k1 * ld_int_ms,
@@ -288,11 +317,11 @@ static void tracker_gps_l1ca_update_parameters(
         assert(false);
       }
     else
-      aided_tl_retune(&data->tl_state_ref, loop_freq,
-                      l->code_bw, l->code_zeta, l->code_k,
-                      l->carr_to_code,
-                      l->carr_bw, l->carr_zeta, l->carr_k,
-                      l->carr_fll_aid_gain);
+      tl_ini_state_retune(&data->ini_state, loop_freq,
+                          l->code_bw, l->code_zeta, l->code_k,
+                          l->carr_to_code,
+                          l->carr_bw, l->carr_zeta, l->carr_k,
+                          l->carr_fll_aid_gain);
 
 
     if (old_loop_freq != loop_freq) {
@@ -792,8 +821,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                         cs_now[1].I, cs_now[1].Q);
 
     if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
-        (data->tracking_ctrl == TP_CTRL_PLL && data->lock_detect.outp) ||
-        (data->tracking_ctrl == TP_CTRL_FLL && data->fll_lock_detect.yn < 0.1)) {
+        (data->tracking_ctrl == TP_CTRL_PLL && data->lock_detect.outp)
+        // || (data->tracking_ctrl == TP_CTRL_FLL && data->fll_lock_detect.yn < 0.01)
+        ) {
       /* When C/N0 is above a drop threshold or there is a pessimistic lock,
        * tracking shall continue.
        */
@@ -819,6 +849,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       lock_detect_update(&data->lock_detect, cs_now[1].I, cs_now[1].Q, ld_int_ms);
       outo = data->lock_detect.outo;
       outp = data->lock_detect.outp;
+      if (data->fll_lock_detect.yn >= 0.10) {
+        outo = outp = false;
+      }
     } else if (data->tracking_ctrl == TP_CTRL_FLL) {
       outp = false;
       outo = data->fll_lock_detect.yn < 0.1;
@@ -870,9 +903,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
 
     if (data->tracking_mode == TP_TM_INITIAL) {
-      aided_tl_update(&data->tl_state_ref, cs2);
-      common_data->carrier_freq = data->tl_state_ref.carr_freq;
-      common_data->code_phase_rate = data->tl_state_ref.code_freq + GPS_CA_CHIPPING_RATE;
+      tl_ini_state_update(&data->ini_state, cs2);
+      common_data->carrier_freq = data->ini_state.carr_freq;
+      common_data->code_phase_rate = data->ini_state.code_freq + GPS_CA_CHIPPING_RATE;
     } else {
       float dll_err = 0;
       switch (data->tracking_ctrl) {
@@ -880,13 +913,14 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
         tl_pll_state_update(&data->pll_state, cs2);
         common_data->carrier_freq = data->pll_state.carr_freq;
         common_data->code_phase_rate = data->pll_state.code_freq + GPS_CA_CHIPPING_RATE;
-        dll_err = data->pll_state.code_filt.y;
+        // dll_err = data->pll_state.code_filt.y;
+        dll_err = tl_pll_state_get_dll_error(&data->pll_state);
         break;
       case TP_CTRL_FLL:
         tl_fll_state_update(&data->fll_state, cs2);
         common_data->carrier_freq = data->fll_state.carr_freq;
         common_data->code_phase_rate = data->fll_state.code_freq + GPS_CA_CHIPPING_RATE;
-        dll_err = data->fll_state.code_sum;
+        dll_err = tl_fll_state_get_dll_error(&data->fll_state);
         break;
       default:
         assert(false);
@@ -924,7 +958,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
           common_data->mode_change_count = common_data->update_count;
 
           if (data->tracking_mode == TP_TM_INITIAL)
-            aided_tl_adjust(&data->tl_state_ref, err);
+            tl_ini_state_adjust(&data->ini_state, err);
           else
             switch (data->tracking_ctrl) {
             case TP_CTRL_PLL:
@@ -946,10 +980,11 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       float dll_err = 0;
       switch (data->tracking_ctrl) {
       case TP_CTRL_PLL:
-        dll_err = data->pll_state.code_filt.y;
+        dll_err = tl_pll_state_get_dll_error(&data->pll_state);
+        // dll_err = data->pll_state.code_filt.y;
         break;
       case TP_CTRL_FLL:
-        dll_err = data->fll_state.code_sum;
+        dll_err = tl_fll_state_get_dll_error(&data->fll_state);
         break;
       default:
         assert(false);
