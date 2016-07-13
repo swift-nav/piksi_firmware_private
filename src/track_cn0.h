@@ -65,6 +65,7 @@ void track_cn0_params_init(void);
 void track_cn0_init(u8 int_ms, track_cn0_state_t *e, float cn0_0);
 float track_cn0_update(track_cn0_est_e t, u8 int_ms, track_cn0_state_t *e,
                        float I, float Q);
+const char *track_cn0_str(track_cn0_est_e t);
 
 #ifdef __cplusplus
 }

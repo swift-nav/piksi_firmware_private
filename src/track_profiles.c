@@ -44,16 +44,28 @@
  * - Simple pipelining
  * - One plus N (TP_USE_ONE_PLUS_N_MODE)
  * - 1 millisecond integrations (TP_USE_SPLIT_MODE)
+ * - 5 millisecond integrations (TP_USE_5MS_SPLIT_MODE)
  */
 //#define TP_USE_SPLIT_MODE
-#define TP_USE_ONE_PLUS_N_MODE
+//#define TP_USE_ONE_PLUS_N_MODE
+#define TP_USE_5MS_SPLIT_MODE
 
 #if defined(TP_USE_SPLIT_MODE)
-#define TP_TM_LONG_MODE TP_TM_SPLIT
+#define TP_TM_5MS_MODE  TP_TM_SPLIT
+#define TP_TM_10MS_MODE TP_TM_SPLIT
+#define TP_TM_20MS_MODE TP_TM_SPLIT
+#elif defined(TP_USE_5MS_SPLIT_MODE)
+#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N5
+#define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N5
+#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N5
 #elif defined(TP_USE_ONE_PLUS_N_MODE)
-#define TP_TM_LONG_MODE TP_TM_ONE_PLUS_N1
+#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
+#define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N
+#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N
 #else
-#define TP_TM_LONG_MODE TP_TM_PIPELINING
+#define TP_TM_5MS_MODE  TP_TM_PIPELINING
+#define TP_TM_10MS_MODE TP_TM_PIPELINING
+#define TP_TM_20MS_MODE TP_TM_PIPELINING
 #endif
 
 /** Maximum number of supported satellite vehicles */
@@ -69,8 +81,8 @@
 /** C/N0 threshold when we can't say if we are still tracking */
 #define TP_HARD_CN0_DROP_THRESHOLD (20.f)
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
-//# define TP_SNR_OFFSET  (-155.f)
-#define TP_SNR_OFFSET  (-174.f + 2.f)
+#define TP_NOISE_FIGURE (2.f)
+#define TP_SNR_OFFSET   (-174.f + TP_NOISE_FIGURE)
 
 #if defined(BOARD_PIKSI_V2)
 /* PIKSIv2 */
@@ -146,9 +158,9 @@ typedef struct {
   gnss_signal_t sid;               /**< Signal identifier. */
   // tp_report_t   last_report;       /**< Last data from tracker */
   u32           used: 1;           /**< Flag if the profile entry is in use */
-  u32           olock: 1;          /**<  */
-  u32           plock: 1;          /**<  */
-  u32           bsync: 1;          /**<  */
+  u32           olock: 1;          /**< PLL optimistic lock flag */
+  u32           plock: 1;          /**< PLL pessimistic lock flag */
+  u32           bsync: 1;          /**< Bit sync flag */
   u32           profile_update:1;  /**< Flag if the profile update is required */
   u32           cur_profile_i:3;   /**< Index of the currently active profile (integration) */
   u32           cur_profile_d:3;   /**< Index of the currently active profile (dynamics) */
@@ -283,29 +295,29 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_USE_5MS_PROFILES
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 16, 1.f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_S*/
+  { 1, 0.7f, 1, 1540, 16, 1.f, 1, 0, 5, TP_TM_5MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_S*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 16, .7f, 1, 2, 5, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_N*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 2, 5, TP_TM_5MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_N*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 16, .7f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_U*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 10, 5, TP_TM_5MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_U*/
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 16, .7f, 1., 0, 10, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_10MS*/
+  { 1, .7f, 1, 1540, 16, .7f, 1., 0, 10, TP_TM_10MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_10MS*/
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 7, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_20MS_S*/
+  { 1, .7f, 1, 1540, 7, .7f, 1.f, 1, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_20MS_S*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 8, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_N*/
+  { 1, .7f, 1, 1540, 8, .7f, 1.f, 1, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_N*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 10, .7f, 1.f, 2, 20, TP_TM_LONG_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_U*/
+  { 1, .7f, 1, 1540, 10, .7f, 1.f, 2, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_U*/
 
 #ifdef TP_PROFILE_ROW_20MS_SS
   /* FLL-assisted PLL. K_c = 1.2 */
-  { .5, .7f, 1, 1540, 7, .7f, 1.f, 3, 20, TP_TM_LONG_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_SS*/
+  { .5, .7f, 1, 1540, 7, .7f, 1.f, 3, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_SS*/
 #endif
 #endif /* TP_USE_20MS_PROFILES */
 
@@ -681,6 +693,22 @@ static const char *get_ctrl_str(tp_ctrl_e v)
   return str;
 }
 
+static const char *get_mode_str(tp_tm_e v)
+{
+  const char *str = "?";
+  switch (v) {
+  case TP_TM_INITIAL: str = "INI"; break;
+  case TP_TM_IMMEDIATE: str = "IMD"; break;
+  case TP_TM_PIPELINING: str = "PIP"; break;
+  case TP_TM_SPLIT: str = "SPL"; break;
+  case TP_TM_ONE_PLUS_N: str = "1+N"; break;
+  case TP_TM_ONE_PLUS_N5: str = "1+5N"; break;
+  case TP_TM_ONE_PLUS_N20: str = "1+20N"; break;
+  default: assert(false);
+  }
+  return str;
+}
+
 /**
  * Helper method to dump tracking statistics into log.
  *
@@ -721,30 +749,25 @@ static void print_stats(tp_profile_internal_t *profile)
                  s, a, j
                 );
 #endif
-    const char *cn0_est_str = "?";
-    switch (profile->cn0_est) {
-    case TRACK_CN0_EST_RSCN: cn0_est_str = "RSCN"; break;
-    case TRACK_CN0_EST_BL: cn0_est_str = "BL"; break;
-    case TRACK_CN0_EST_SNV: cn0_est_str = "SNV"; break;
-    case TRACK_CN0_EST_MM: cn0_est_str = "MM"; break;
-    case TRACK_CN0_EST_NWPR: cn0_est_str = "NWPR"; break;
-    case TRACK_CN0_EST_SVR: cn0_est_str = "SVR"; break;
-    case TRACK_CN0_EST_CH: cn0_est_str = "CH"; break;
-    default: assert(false);
-    }
+    const char *cn0_est_str = track_cn0_str(profile->cn0_est);
+    const char *c1 = get_ctrl_str(loop_params[lp_idx].ctrl);
+    const char *m1 = get_mode_str(loop_params[lp_idx].mode);
 
-    const char *m1 = get_ctrl_str(loop_params[lp_idx].ctrl);
-
+    /*
+     * PRINT: integration time, loop mode, controller mode,
+     *        C/N0 estimator, C/N0 value, SNR value (dBm),
+     *        PR rate, PR rate change,
+     *        PLL lock detector ratio, FLL/DLL error
+     */
     log_info_sid(profile->sid,
-                 "AVG: %dms %s CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.2f/%.2f %s",
-                 (int)loop_params[lp_idx].coherent_ms, m1,
-                 profile->filt_val[3],
+                 "AVG: %dms %s %s CN0_%s=%.2f (%.2f) VA=%.3f/%.3f l=%.2f/%.2f",
+                 (int)loop_params[lp_idx].coherent_ms, m1, c1,
+                 cn0_est_str, profile->filt_val[3],
                  profile->filt_val[3] + TP_SNR_OFFSET,
                  profile->filt_val[0],
                  profile->filt_val[1],
                  profile->filt_val[2],
-                 profile->filt_val[4],
-                 cn0_est_str
+                 profile->filt_val[4]
                 );
   }
 }
@@ -947,14 +970,16 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     u8 lp2_idx = profile_matrix[profile->next_profile_i].loop_params[profile->next_profile_d];
 
 
-    const char *m1 = get_ctrl_str(loop_params[lp1_idx].ctrl);
-    const char *m2 = get_ctrl_str(loop_params[lp2_idx].ctrl);
+    const char *c1 = get_ctrl_str(loop_params[lp1_idx].ctrl);
+    const char *m1 = get_mode_str(loop_params[lp1_idx].mode);
+    const char *c2 = get_ctrl_str(loop_params[lp2_idx].ctrl);
+    const char *m2 = get_mode_str(loop_params[lp2_idx].mode);
 
     log_info_sid(profile->sid,
-                 "Profile change: %dms %s [%d][%d]->%dms %s [%d][%d] r=%s (%.2f)/%s (%.2f) l=%.2f/%.2f",
-                 (int)loop_params[lp1_idx].coherent_ms, m1,
+                 "Profile change: %dms %s %s [%d][%d]->%dms %s %s [%d][%d] r=%s (%.2f)/%s (%.2f) l=%.2f/%.2f",
+                 (int)loop_params[lp1_idx].coherent_ms, m1, c1,
                  profile->cur_profile_i, profile->cur_profile_d,
-                 (int)loop_params[lp2_idx].coherent_ms, m2,
+                 (int)loop_params[lp2_idx].coherent_ms, m2, c2,
                  profile->next_profile_i, profile->next_profile_d,
                  reason, cn0,
                  reason2, acc,
@@ -1056,8 +1081,9 @@ static float compute_cn0_profile_offset(u8 profile_i, u8 profile_d)
     }
 
     switch (lp->mode) {
-    case TP_TM_ONE_PLUS_N1:
-    case TP_TM_ONE_PLUS_N2:
+    case TP_TM_ONE_PLUS_N:
+    case TP_TM_ONE_PLUS_N20:
+    case TP_TM_ONE_PLUS_N5:
     case TP_TM_SPLIT:
       /* Very unfortunate, but the integrator handles N-1 milliseconds */
       cn0_offset_index--;

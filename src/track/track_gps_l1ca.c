@@ -170,6 +170,8 @@ static void tracker_gps_l1ca_update_parameters(
   u8 old_cn0_ms = data->int_ms;
   if (data->tracking_mode == TP_TM_SPLIT)
     old_cn0_ms = 1;
+  else if (data->tracking_mode == TP_TM_ONE_PLUS_N5)
+    old_cn0_ms = 5;
 
   if (data->tracking_mode == TP_TM_INITIAL && next_params->loop_params.mode != TP_TM_INITIAL) {
     init = true;
@@ -199,12 +201,16 @@ static void tracker_gps_l1ca_update_parameters(
     data->cycle_no = data->int_ms - 1;
     break;
 
-  case TP_TM_ONE_PLUS_N1:
+  case TP_TM_ONE_PLUS_N:
     data->cycle_no = 1;
     break;
 
-  case TP_TM_ONE_PLUS_N2:
+  case TP_TM_ONE_PLUS_N20:
     data->cycle_no = data->int_ms / 20;
+    break;
+
+  case TP_TM_ONE_PLUS_N5:
+    data->cycle_no = data->int_ms / 5;
     break;
 
   case TP_TM_INITIAL:
@@ -225,7 +231,10 @@ static void tracker_gps_l1ca_update_parameters(
     /* 1ms coherent interval split is used. */
     cn0_ms = 1;
     ld_int_ms = 1;
-  } else if (data->tracking_mode == TP_TM_ONE_PLUS_N2) {
+  } else if (data->tracking_mode == TP_TM_ONE_PLUS_N5) {
+    cn0_ms = 5;
+    ld_int_ms = 5;
+  } else if (data->tracking_mode == TP_TM_ONE_PLUS_N20) {
     /* 20+ms coherent interval split is used. */
     //cn0_ms = 20;
     // ld_int_ms = 20;
@@ -355,8 +364,9 @@ static void tracker_gps_l1ca_update_parameters(
 
   if (data->use_alias_detection) {
     u8 alias_detect_ms = data->int_ms;
-    if (l->mode == TP_TM_ONE_PLUS_N1 ||
-        l->mode == TP_TM_ONE_PLUS_N2 ||
+    if (l->mode == TP_TM_ONE_PLUS_N ||
+        l->mode == TP_TM_ONE_PLUS_N5 ||
+        l->mode == TP_TM_ONE_PLUS_N20 ||
         l->mode == TP_TM_SPLIT)
       alias_detect_ms--;
 
@@ -422,8 +432,9 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
     /* Mode switch: first integration interval of the next configuration */
     switch (next_params.loop_params.mode) {
     case TP_TM_SPLIT:
-    case TP_TM_ONE_PLUS_N1:
-    case TP_TM_ONE_PLUS_N2:
+    case TP_TM_ONE_PLUS_N:
+    case TP_TM_ONE_PLUS_N5:
+    case TP_TM_ONE_PLUS_N20:
       rollover_count = 0;
       break;
 
@@ -443,13 +454,29 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
       rollover_count = 0;
       break;
 
-    case TP_TM_ONE_PLUS_N1:
+    case TP_TM_ONE_PLUS_N:
       rollover_count = data->cycle_no == 0 ?
                        0 :
                        data->int_ms - 2;
       break;
 
-    case TP_TM_ONE_PLUS_N2:
+    case TP_TM_ONE_PLUS_N5:
+      {
+        u8 n_bits = data->int_ms / 5;
+        if (data->cycle_no == n_bits - 1) {
+          /* First interval is 1ms */
+          rollover_count = 0;
+        } else if (data->cycle_no == n_bits) {
+          /* Second interval is 4ms */
+          rollover_count = 3;
+        } else {
+          /* Other intervals are 5ms */
+          rollover_count = 4;
+        }
+      }
+      break;
+
+    case TP_TM_ONE_PLUS_N20:
       {
         u8 n_bits = data->int_ms / 20;
         if (data->cycle_no == n_bits - 1) {
@@ -494,11 +521,19 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
     next_ms = data->cycle_no + 2 == data->int_ms ? data->int_ms : 0;
     break;
 
-  case TP_TM_ONE_PLUS_N1:
+  case TP_TM_ONE_PLUS_N:
     next_ms = data->cycle_no == 0 ? data->int_ms: 0;
     break;
 
-  case TP_TM_ONE_PLUS_N2:
+  case TP_TM_ONE_PLUS_N5:
+    if (data->cycle_no == 1) {
+      next_ms = 0;
+    } else {
+      next_ms = 5;
+    }
+    break;
+
+  case TP_TM_ONE_PLUS_N20:
     if (data->cycle_no == 1) {
       next_ms = 0;
     } else {
@@ -585,13 +620,20 @@ static void update_cycle_counter(gps_l1ca_tracker_data_t *data)
     cycle_cnt = data->int_ms;
     break;
 
-  case TP_TM_ONE_PLUS_N1:
+  case TP_TM_ONE_PLUS_N:
     /* One plus N integrations.
      * Each cycle has two integrations: short (1ms) and long */
     cycle_cnt = 2;
     break;
 
-  case TP_TM_ONE_PLUS_N2:
+  case TP_TM_ONE_PLUS_N5:
+    /* One plus N 5ms integrations.
+     * Each cycle has two integrations in the first bit, and one extra
+     * integration per additional bit. */
+    cycle_cnt = data->int_ms / 5 + 1;
+    break;
+
+  case TP_TM_ONE_PLUS_N20:
     /* One plus N long integrations.
      * Each cycle has two integrations in the first bit, and one extra
      * integration per additional bit. */
@@ -644,13 +686,32 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     update_count_ms = data->int_ms;
     break;
 
-  case TP_TM_ONE_PLUS_N1:
+  case TP_TM_ONE_PLUS_N:
     int_ms = data->cycle_no == 0 ? 1 : data->int_ms - 1;
     sum_up = data->cycle_no != 0 ? SUM_UP_ONE : SUM_UP_NONE;
     update_count_ms = data->int_ms;
     break;
 
-  case TP_TM_ONE_PLUS_N2:
+  case TP_TM_ONE_PLUS_N5:
+    use_controller = false;
+    if (data->cycle_no == 0) {
+      int_ms = 1;
+      sum_up = SUM_UP_NONE;
+    } else if (data->cycle_no == 1) {
+      int_ms = 4;
+      sum_up = SUM_UP_ONE;
+    } else {
+      int_ms = 5;
+      sum_up = SUM_UP_ONE;
+    }
+    if (data->cycle_no == data->int_ms / 5)
+      use_controller = true;
+    else
+      use_cn0 = false;
+    update_count_ms = 5;
+    break;
+
+  case TP_TM_ONE_PLUS_N20:
     use_controller = false;
     if (data->cycle_no == 0) {
       int_ms = 1;
@@ -733,7 +794,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     assert(false);
   }
 
-  if (data->tracking_mode == TP_TM_ONE_PLUS_N2 ) {
+  if (data->tracking_mode == TP_TM_ONE_PLUS_N20 ) {
 //    log_info_sid(channel_info->sid, "Scan: %d: n=%d/%d b=%d/%d s=%d/%d",
 //                 data->cycle_cnt,
 //                 cs_now[1].I, cs_now[1].Q,
@@ -745,8 +806,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                            common_data->TOW_ms,
                                            int_ms);
 
-  if ((data->tracking_mode == TP_TM_ONE_PLUS_N1 && data->cycle_no == 0) ||
-      (data->tracking_mode == TP_TM_ONE_PLUS_N2 && data->cycle_no == 0) ||
+  if ((data->tracking_mode == TP_TM_ONE_PLUS_N && data->cycle_no == 0) ||
+      (data->tracking_mode == TP_TM_ONE_PLUS_N5 && data->cycle_no == 0) ||
+      (data->tracking_mode == TP_TM_ONE_PLUS_N20 && data->cycle_no == 0) ||
       (data->tracking_mode == TP_TM_SPLIT && data->cycle_no < data->int_ms - 1)) {
     /* If we're doing long integrations, alternate between short and long
      * cycles.  This is because of FPGA pipelining and latency.  The

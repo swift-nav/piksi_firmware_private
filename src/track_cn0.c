@@ -239,3 +239,19 @@ float track_cn0_update(track_cn0_est_e t,
 
   return cn0;
 }
+
+const char *track_cn0_str(track_cn0_est_e t)
+{
+  const char *str = "?";
+  switch (t) {
+  case TRACK_CN0_EST_RSCN: str = "RSCN"; break;
+  case TRACK_CN0_EST_BL: str = "BL"; break;
+  case TRACK_CN0_EST_SNV: str = "SNV"; break;
+  case TRACK_CN0_EST_MM: str = "MM"; break;
+  case TRACK_CN0_EST_NWPR: str = "NWPR"; break;
+  case TRACK_CN0_EST_SVR: str = "SVR"; break;
+  case TRACK_CN0_EST_CH: str = "CH"; break;
+  default: assert(false);
+  }
+  return str;
+}
