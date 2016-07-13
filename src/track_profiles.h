@@ -38,10 +38,15 @@ typedef enum
   TP_TM_IMMEDIATE   /**< Immediate feedback */
 } tp_tm_e;
 
+/**
+ * Controller types.
+ */
 typedef enum
 {
-  TP_CTRL_PLL,
-  TP_CTRL_FLL,
+  TP_CTRL_PLL2, /**< Second order PLL. */
+  TP_CTRL_PLL3, /**< Third order PLL. */
+  TP_CTRL_FLL1, /**< First order PLL. */
+  TP_CTRL_FLL2, /**< Second order PLL. */
 } tp_ctrl_e;
 
 /**

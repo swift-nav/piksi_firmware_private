@@ -85,17 +85,9 @@
 // #define PLATFORM_SWITCH_OFFSET 6.f
 #define PCN0(x) ((float)(x)+PLATFORM_SWITCH_OFFSET)
 
-#define TP_CN0_SNV2BL_THRESHOLD  PCN0(47.f)
-#define TP_CN0_BL2SNV_THRESHOLD  (TP_CN0_SNV2BL_THRESHOLD - 4.f)
+#define TP_CN0_SEC2PRI_THRESHOLD  PCN0(47.f)
+#define TP_CN0_PRI2SEC_THRESHOLD  (TP_CN0_SEC2PRI_THRESHOLD - 4.f)
 
-/** C/N0 threshold for increasing integration time */
-//#if defined(TP_USE_SPLIT_MODE)
-//#define TP_SNR_THRESHOLD_MIN (39.f + TP_SNR_OFFSET)
-//#else
-//#define TP_SNR_THRESHOLD_MIN (40.f + TP_SNR_OFFSET)
-//#endif
-/** C/N0 threshold for decreasing integration time */
-//#define TP_SNR_THRESHOLD_MAX (TP_SNR_THRESHOLD_MIN + 4.f)
 /** C/N0 threshold state lock counter */
 #define TP_SNR_STATE_COUNT_LOCK (/*31*/3)
 /** PLL lock threshold for state freeze */
@@ -275,45 +267,45 @@ static const tp_loop_params_t loop_params[] = {
   * BW Zeta  K  C2C  BW   Zeta K  BW
   */
   /* "(1 ms, (1, 0.7, 1, 1540), (40, 0.7, 1, 5))" */
-  { 1, 0.7f, 1, 1540, 16, .7f, 1, 20, 1, TP_TM_INITIAL, TP_CTRL_PLL }, /*TP_LP_IDX_INI*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 20, 1, TP_TM_INITIAL, TP_CTRL_PLL2 }, /*TP_LP_IDX_INI*/
 
 #ifdef TP_USE_1MS_PROFILES
-  { 1, 1.f, 1, 1540, 12, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL }, /*TP_LP_IDX_1MS_S*/
-  { 1, 1.f, 1, 1540, 20, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL }, /*TP_LP_IDX_1MS_N*/
+  { 1, 1.f, 1, 1540, 12, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL2 }, /*TP_LP_IDX_1MS_S*/
+  { 1, 1.f, 1, 1540, 20, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL2 }, /*TP_LP_IDX_1MS_N*/
   /* (1 ms, (1, 0.7, 1, 1540), (40, 0.7, 1, 5)) */
-  { 1, .7f, 1, 1540, 40, .7f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL }, /*TP_LP_IDX_1MS_U*/
+  { 1, .7f, 1, 1540, 40, .7f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL2 }, /*TP_LP_IDX_1MS_U*/
 #endif /* TP_USE_1MS_PROFILES */
 
 #ifdef TP_USE_2MS_PROFILES
   /* (2 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0)) */
-  { 1, 1.f, 1, 1540, 14, 1.f, 1, 0, 2, TP_TM_PIPELINING, TP_CTRL_PLL }, /* TP_LP_IDX_2MS*/
+  { 1, 1.f, 1, 1540, 14, 1.f, 1, 0, 2, TP_TM_PIPELINING, TP_CTRL_PLL2 }, /* TP_LP_IDX_2MS*/
 #endif /* TP_USE_2MS_PROFILES */
 
 #ifdef TP_USE_5MS_PROFILES
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 16, 1.f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_S*/
+  { 1, 0.7f, 1, 1540, 16, 1.f, 1, 0, 5, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_S*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 16, .7f, 1, 2, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_N*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 2, 5, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_N*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 16, .7f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_5MS_U*/
+  { 1, 0.7f, 1, 1540, 16, .7f, 1, 10, 5, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_U*/
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 16, .7f, 1., 0, 10, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_10MS*/
+  { 1, .7f, 1, 1540, 16, .7f, 1., 0, 10, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_10MS*/
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 7, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL }, /*TP_LP_IDX_20MS_S*/
+  { 1, .7f, 1, 1540, 7, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_20MS_S*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 8, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL },/*TP_LP_IDX_20MS_N*/
+  { 1, .7f, 1, 1540, 8, .7f, 1.f, 1, 20, TP_TM_LONG_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_N*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 10, .7f, 1.f, 2, 20, TP_TM_LONG_MODE, TP_CTRL_PLL },/*TP_LP_IDX_20MS_U*/
+  { 1, .7f, 1, 1540, 10, .7f, 1.f, 2, 20, TP_TM_LONG_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_U*/
 
 #ifdef TP_PROFILE_ROW_20MS_SS
   /* FLL-assisted PLL. K_c = 1.2 */
-  { .5, .7f, 1, 1540, 7, .7f, 1.f, 3, 20, TP_TM_LONG_MODE, TP_CTRL_FLL }, /*TP_LP_IDX_20MS_SS*/
+  { .5, .7f, 1, 1540, 7, .7f, 1.f, 3, 20, TP_TM_LONG_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_SS*/
 #endif
 #endif /* TP_USE_20MS_PROFILES */
 
@@ -589,7 +581,8 @@ static void get_profile_params(tp_profile_internal_t *profile,
    */
 
   if (config->loop_params.mode != TP_TM_INITIAL &&
-      config->loop_params.ctrl == TP_CTRL_PLL)
+      (config->loop_params.ctrl == TP_CTRL_PLL2 ||
+       config->loop_params.ctrl == TP_CTRL_PLL3))
     config->use_alias_detection = false; /* true; */
   else
     config->use_alias_detection = false;
@@ -675,6 +668,19 @@ static void update_stats(tp_profile_internal_t *profile,
   profile->filt_val[4] = data->lock_f;
 }
 
+static const char *get_ctrl_str(tp_ctrl_e v)
+{
+  const char *str = "?";
+  switch (v) {
+  case TP_CTRL_PLL2: str = "PLL2"; break;
+  case TP_CTRL_PLL3: str = "PLL3"; break;
+  case TP_CTRL_FLL1: str = "FLL1"; break;
+  case TP_CTRL_FLL2: str = "FLL2"; break;
+  default: assert(false);
+  }
+  return str;
+}
+
 /**
  * Helper method to dump tracking statistics into log.
  *
@@ -727,12 +733,7 @@ static void print_stats(tp_profile_internal_t *profile)
     default: assert(false);
     }
 
-    const char *m1 = "?";
-    switch (loop_params[lp_idx].ctrl) {
-    case TP_CTRL_PLL: m1 = "PLL"; break;
-    case TP_CTRL_FLL: m1 = "FLL"; break;
-    default: assert(false);
-    }
+    const char *m1 = get_ctrl_str(loop_params[lp_idx].ctrl);
 
     log_info_sid(profile->sid,
                  "AVG: %dms %s CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.2f/%.2f %s",
@@ -780,14 +781,14 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
 
   switch (profile->cn0_est) {
   case TRACK_CN0_EST_PRIMARY:
-    if (profile->filt_val[3] < TP_CN0_BL2SNV_THRESHOLD - profile->cn0_offset) {
+    if (profile->filt_val[3] < TP_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset) {
       profile->cn0_est = TRACK_CN0_EST_SECONDARY;
       log_info_sid(profile->sid, "Changed C/N0 estimator to secondary");
     }
     break;
 
   case TRACK_CN0_EST_SECONDARY:
-    if (profile->filt_val[3] > TP_CN0_SNV2BL_THRESHOLD - profile->cn0_offset) {
+    if (profile->filt_val[3] > TP_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset) {
       profile->cn0_est = TRACK_CN0_EST_PRIMARY;
       log_info_sid(profile->sid, "Changed C/N0 estimator to primary");
     }
@@ -946,18 +947,8 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     u8 lp2_idx = profile_matrix[profile->next_profile_i].loop_params[profile->next_profile_d];
 
 
-    const char *m1 = "?";
-    const char *m2 = "?";
-    switch (loop_params[lp1_idx].ctrl) {
-    case TP_CTRL_PLL: m1 = "PLL"; break;
-    case TP_CTRL_FLL: m1 = "FLL"; break;
-    default: assert(false);
-    }
-    switch (loop_params[lp2_idx].ctrl) {
-    case TP_CTRL_PLL: m2 = "PLL"; break;
-    case TP_CTRL_FLL: m2 = "FLL"; break;
-    default: assert(false);
-    }
+    const char *m1 = get_ctrl_str(loop_params[lp1_idx].ctrl);
+    const char *m2 = get_ctrl_str(loop_params[lp2_idx].ctrl);
 
     log_info_sid(profile->sid,
                  "Profile change: %dms %s [%d][%d]->%dms %s [%d][%d] r=%s (%.2f)/%s (%.2f) l=%.2f/%.2f",
