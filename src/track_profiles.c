@@ -47,8 +47,8 @@
  * - 5 millisecond integrations (TP_USE_5MS_SPLIT_MODE)
  */
 //#define TP_USE_SPLIT_MODE
-//#define TP_USE_ONE_PLUS_N_MODE
-#define TP_USE_5MS_SPLIT_MODE
+#define TP_USE_ONE_PLUS_N_MODE
+//#define TP_USE_5MS_SPLIT_MODE
 
 #if defined(TP_USE_SPLIT_MODE)
 #define TP_TM_5MS_MODE  TP_TM_SPLIT
@@ -595,7 +595,7 @@ static void get_profile_params(tp_profile_internal_t *profile,
   if (config->loop_params.mode != TP_TM_INITIAL &&
       (config->loop_params.ctrl == TP_CTRL_PLL2 ||
        config->loop_params.ctrl == TP_CTRL_PLL3))
-    config->use_alias_detection = false; /* true; */
+    config->use_alias_detection = true;
   else
     config->use_alias_detection = false;
 

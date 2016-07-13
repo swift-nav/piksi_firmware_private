@@ -111,7 +111,6 @@ typedef struct {
   u8               cycle_no: 5;            /**< Number of cycle inside current
                                             *   integration mode. */
   u8               use_alias_detection: 1; /**< Flag for alias detection control */
-  u8               alias_detect_first: 1;
   u8               tracking_mode: 3;       /**< Tracking mode */
   u8               tracking_ctrl: 2;       /**< Tracking controller type */
   u8               has_next_params: 1;     /**< Flag if stage transition is in
@@ -360,12 +359,10 @@ static void tracker_gps_l1ca_update_parameters(
     lp1_filter_init(&data->fll_lock_detect, &data->fll_lock_params, data->fll_lock_detect.yn);
   }
 
-  data->alias_detect_first = true;
-
   if (data->use_alias_detection) {
     u8 alias_detect_ms = data->int_ms;
     if (l->mode == TP_TM_ONE_PLUS_N ||
-        l->mode == TP_TM_ONE_PLUS_N5 ||
+//        l->mode == TP_TM_ONE_PLUS_N5 ||
         l->mode == TP_TM_ONE_PLUS_N20 ||
         l->mode == TP_TM_SPLIT)
       alias_detect_ms--;
@@ -694,6 +691,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
   case TP_TM_ONE_PLUS_N5:
     use_controller = false;
+
     if (data->cycle_no == 0) {
       int_ms = 1;
       sum_up = SUM_UP_NONE;
@@ -823,6 +821,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
       lock_detect_update(&data->lock_detect, cs_now[1].I, cs_now[1].Q, 1);
     }
+
+    if (data->use_alias_detection)
+      alias_detect_first(&data->alias_detect, cs_now[1].I, cs_now[1].Q);
 
     /* We may change the integration time here, but only if the next long
      * integration period reaches bit boundary */
@@ -1010,21 +1011,45 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     /* Attempt alias detection if we have pessimistic phase lock detect, OR
        (optimistic phase lock detect AND are in second-stage tracking) */
     if (data->use_alias_detection &&
-        ((data->tracking_mode == TP_TM_INITIAL && data->lock_detect.outp) ||
-         (data->tracking_mode != TP_TM_INITIAL && data->lock_detect.outo))) {
+        (data->tracking_mode != TP_TM_INITIAL && data->lock_detect.outo)) {
+
       /* Last period integration time */
       u8 alias_ms = update_count_ms;
+      bool alias_first = false;
+      bool alias_second = false;
 
-      if (data->alias_detect_first) {
-        alias_detect_first(&data->alias_detect, data->cs[1].I, data->cs[1].Q);
-        data->alias_detect_first = false;
-      } else {
-        s32 I = (cs[1].I - data->alias_detect.first_I) / alias_ms;
-        s32 Q = (cs[1].Q - data->alias_detect.first_Q) / alias_ms;
+      switch (data->tracking_mode)
+      {
+      case TP_TM_ONE_PLUS_N:
+        if (data->int_ms == 10 || data->int_ms == 5) {
+          alias_first = true;
+          alias_second = true;
+          if (data->cycle_no == 1)
+            alias_ms--;
+        }
+        break;
+
+      case TP_TM_ONE_PLUS_N5:
+        alias_first = true;
+        alias_second = true;
+        if (data->cycle_no == 1)
+          alias_ms--;
+
+        break;
+
+      default:
+        break;
+      }
+
+      if (alias_second) {
+        float I = (cs_now[1].I - data->alias_detect.first_I) / alias_ms;
+        float Q = (cs_now[1].Q - data->alias_detect.first_Q) / alias_ms;
         float err = alias_detect_second(&data->alias_detect, I, Q);
-        if (fabs(err) > (250 / data->int_ms)) {
+        if (fabs(err) > (250 / alias_ms)) {
           if (data->lock_detect.outp) {
-            log_warn_sid(channel_info->sid, "False phase lock detected");
+            log_warn_sid(channel_info->sid, "False phase lock detected: %f, %d", err, alias_ms);
+          } else {
+            log_warn_sid(channel_info->sid, "False optimistic lock detected: %f, %d", err, alias_ms);
           }
 
           tracker_ambiguity_unknown(channel_info->context);
@@ -1048,9 +1073,11 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
             assert(false);
           }
         }
+
+        if (alias_first)
+          alias_detect_first(&data->alias_detect, cs_now[1].I, cs_now[1].Q);
       }
-    } else if (data->alias_detect_first)
-      data->alias_detect_first = false;
+    }
 
 
     {
