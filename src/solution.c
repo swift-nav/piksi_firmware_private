@@ -699,12 +699,15 @@ static void solution_thread(void *arg)
           memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
         }
 
-        nm->raw_pseudorange += t_err * nm->raw_doppler *
-                               code_to_lambda(nm->sid.code);
         nm->raw_carrier_phase += t_err * nm->raw_doppler;
+        /* Note, the pseudorange correction has opposite sign because Doppler
+         * has the opposite sign compared to the pseudorange rate. */
+        nm->raw_pseudorange -= t_err * nm->raw_doppler *
+                               code_to_lambda(nm->sid.code);
 
-        nm->tot = new_obs_time;
-        nm->tot.tow -= nm->raw_pseudorange / GPS_C;
+        /* Also apply the time correction to the time of transmission so the
+         * satellite positions can be calculated for the correct time. */
+        nm->tot.tow += t_err;
         normalize_gps_time(&nm->tot);
 
         const ephemeris_t *e = ephemeris_get(nm->sid);
