@@ -659,11 +659,11 @@ static void solution_thread(void *arg)
      *  the fact that uncorrected and corrected pseudoranges correspond to the
      *  exact same observations.
      */
-    for (u8 i = 0; i < n_ready_tdcp; i++) {
+    /*for (u8 i = 0; i < n_ready_tdcp; i++) {
       double pr_err = GPS_C * gpsdifftime(&position_solution.time, &rec_time);
       nav_meas_tdcp[i].raw_pseudorange += pr_err;
       nav_meas_tdcp[i].pseudorange += pr_err;
-    }
+    }*/
     /*
      * The next correction is done to create a new pseudorange that is valid for
      * a different time of arrival.  In particular we'd like to propagate all the
