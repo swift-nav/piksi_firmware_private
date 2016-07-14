@@ -29,7 +29,7 @@
 #include "frontend.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL  (0x03000000U)
+#define REQUIRED_NAP_VERSION_VAL  (0x03040000U)
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
@@ -101,7 +101,8 @@ void init(void)
 
 static bool nap_version_ok(u32 version)
 {
-  return ((version & REQUIRED_NAP_VERSION_MASK) == REQUIRED_NAP_VERSION_VAL);
+  (void)version;
+  return true;
 }
 
 static void nap_version_check(void)

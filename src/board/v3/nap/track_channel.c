@@ -49,7 +49,7 @@
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP       \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
-#define SPACING_HALF_CHIP ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 2)
+#define SPACING_HALF_CHIP ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 24)
 
 static struct nap_ch_state {
   u32 code_phase;   /**< Fractional part of code phase. */
@@ -132,14 +132,11 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   /* PRN code */
   control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
   /* RF frontend channel */
-  control |= (sid_to_rf_frontend_channel(sid) << NAP_TRK_CONTROL_RF_FE_Pos) &
-             NAP_TRK_CONTROL_RF_FE_Msk;
+  control |= (sid_to_rf_frontend_channel(sid) << NAP_TRK_CONTROL_FRONTEND_Pos) &
+             NAP_TRK_CONTROL_FRONTEND_Msk;
   /* Constellation and band for tracking */
   control |= (sid_to_nap_code(sid) << NAP_TRK_CONTROL_CODE_Pos) &
              NAP_TRK_CONTROL_CODE_Msk;
-  /* We are not utilizing multiple signals within one RF channel at the moment.
-     Therefore, RF_FE_CH is 0 and below statement in a NOP. */
-  control |= (0 << NAP_TRK_CONTROL_RF_FE_CH_Pos) & NAP_TRK_CONTROL_RF_FE_CH_Msk;
 
   t->CONTROL = control;
   /* We always start at zero code phase */
