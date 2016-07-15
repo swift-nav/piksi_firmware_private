@@ -77,8 +77,8 @@ void rpmsg_setup(void)
     endpoint_data_t *d = &endpoint_data[i];
     d->rpmsg_endpoint = NULL;
     d->addr = endpoint_addr_config[i];
-    fifo_init(&d->tx_fifo, d->tx_buf, sizeof(d->tx_buf));
-    fifo_init(&d->rx_fifo, d->rx_buf, sizeof(d->rx_buf));
+    fifo_init(&d->tx_fifo, FIFO_MODE_RECORD, d->tx_buf, sizeof(d->tx_buf));
+    fifo_init(&d->rx_fifo, FIFO_MODE_STANDARD, d->rx_buf, sizeof(d->rx_buf));
   }
 
   remoteproc_env_irq_callback_set(remoteproc_env_irq_callback);
@@ -112,7 +112,9 @@ u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint, u8 *buffer, u32 length)
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         const u8 *buffer, u32 length)
 {
-  return fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
+  u32 n = fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
+  chBSemSignal(&rpmsg_thd_bsem);
+  return n;
 }
 
 static void remoteproc_env_irq_callback(void)
@@ -184,9 +186,7 @@ static THD_FUNCTION(rpmsg_thread, arg)
       }
 
       fifo_t *fifo = &d->tx_fifo;
-      u32 length = fifo_length(fifo);
-
-      while (length > 0) {
+      while (1) {
         u8 buffer[RPMSG_BUFFER_SIZE_MAX];
         u32 buffer_length = fifo_peek(fifo, buffer,
                                       MIN(rpmsg_buffer_size, sizeof(buffer)));
@@ -201,7 +201,6 @@ static THD_FUNCTION(rpmsg_thread, arg)
         }
 
         fifo_remove(fifo, buffer_length);
-        length -= buffer_length;
       }
     }
   }

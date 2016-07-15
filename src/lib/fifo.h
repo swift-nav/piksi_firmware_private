@@ -15,16 +15,23 @@
 
 #include <libswiftnav/common.h>
 
+typedef enum {
+  FIFO_MODE_STANDARD,
+  FIFO_MODE_RECORD
+} fifo_mode_t;
+
 typedef u32 fifo_size_t;
 
 typedef struct {
   fifo_size_t read_index;
   fifo_size_t write_index;
   fifo_size_t buffer_size;
+  fifo_mode_t mode;
   u8 *buffer;
 } fifo_t;
 
-void fifo_init(fifo_t *fifo, u8 *buffer, fifo_size_t buffer_size);
+void fifo_init(fifo_t *fifo, fifo_mode_t mode,
+               u8 *buffer, fifo_size_t buffer_size);
 
 fifo_size_t fifo_length(fifo_t *fifo);
 fifo_size_t fifo_space(fifo_t *fifo);
@@ -34,5 +41,7 @@ fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length);
 fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length);
 
 fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length);
+fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length);
+fifo_size_t fifo_add(fifo_t *fifo, fifo_size_t length);
 
 #endif /* SWIFTNAV_FIFO_H */
