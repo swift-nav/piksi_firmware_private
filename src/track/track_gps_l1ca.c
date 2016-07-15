@@ -155,6 +155,40 @@ void track_gps_l1ca_register(void)
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }
 
+/**
+ * Get C/N0 estimator update period in ms.
+ *
+ * \param[in] data Tracker data.
+ *
+ * \return C/N0 estimator update period in ms.
+ */
+static u8 get_cn0_ms(const gps_l1ca_tracker_data_t *data)
+{
+  u8 cn0_ms = data->int_ms;
+  switch (data->tracking_mode) {
+  case TP_TM_INITIAL:
+  case TP_TM_IMMEDIATE:
+  case TP_TM_PIPELINING:
+  case TP_TM_ONE_PLUS_N:
+  case TP_TM_ONE_PLUS_N20:
+    cn0_ms = data->int_ms;
+    break;
+
+  case TP_TM_ONE_PLUS_N5:
+    cn0_ms = 5;
+    break;
+
+  case TP_TM_SPLIT:
+    cn0_ms = 1;
+    break;
+
+  default:
+    assert(false);
+  }
+
+  return cn0_ms;
+}
+
 static void tracker_gps_l1ca_update_parameters(
     const tracker_channel_info_t *channel_info,
     tracker_common_data_t *common_data,
@@ -166,11 +200,7 @@ static void tracker_gps_l1ca_update_parameters(
   const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
 
   const float old_loop_freq = 1000.f / data->int_ms;
-  u8 old_cn0_ms = data->int_ms;
-  if (data->tracking_mode == TP_TM_SPLIT)
-    old_cn0_ms = 1;
-  else if (data->tracking_mode == TP_TM_ONE_PLUS_N5)
-    old_cn0_ms = 5;
+  u8 old_cn0_ms = get_cn0_ms(data);
 
   if (data->tracking_mode == TP_TM_INITIAL && next_params->loop_params.mode != TP_TM_INITIAL) {
     init = true;
@@ -223,19 +253,16 @@ static void tracker_gps_l1ca_update_parameters(
   }
 
   float loop_freq = 1000.f / data->int_ms; /**< Tracking loop frequency */
-  u8 cn0_ms = data->int_ms;       /**< C/N0 integration time */
+  u8 cn0_ms = get_cn0_ms(data);   /**< C/N0 integration time */
   float ld_int_ms = data->int_ms; /**< Lock detector integration time */
 
   if (data->tracking_mode == TP_TM_SPLIT) {
     /* 1ms coherent interval split is used. */
-    cn0_ms = 1;
     ld_int_ms = 1;
   } else if (data->tracking_mode == TP_TM_ONE_PLUS_N5) {
-    cn0_ms = 5;
     ld_int_ms = 5;
   } else if (data->tracking_mode == TP_TM_ONE_PLUS_N20) {
     /* 20+ms coherent interval split is used. */
-    //cn0_ms = 20;
     // ld_int_ms = 20;
   }
 
