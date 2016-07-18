@@ -317,7 +317,7 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_PROFILE_ROW_20MS_SS
   /* FLL-assisted PLL. K_c = 1.2 */
-  { .5, .7f, 1, 1540, 7, .7f, 1.f, 3, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_SS*/
+  { .6, .7f, 1, 1540, 4, .7f, 1.f, 3, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_SS*/
 #endif
 #endif /* TP_USE_20MS_PROFILES */
 
@@ -969,6 +969,10 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     u8 lp1_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
     u8 lp2_idx = profile_matrix[profile->next_profile_i].loop_params[profile->next_profile_d];
 
+    if (lp1_idx == lp2_idx && profile->cur_profile_i == profile->next_profile_i) {
+      profile->cur_profile_i = profile->next_profile_i;
+      profile->profile_update = false;
+    }
 
     const char *c1 = get_ctrl_str(loop_params[lp1_idx].ctrl);
     const char *m1 = get_mode_str(loop_params[lp1_idx].mode);

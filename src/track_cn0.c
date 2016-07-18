@@ -17,13 +17,16 @@
 
 #include <board.h>
 
-/* C/N0 estimator IIR averaging coefficient */
-/* See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22 */
-/* See http://dsp.stackexchange.com/questions/378/ */
-//#define CN0_EST_LPF_ALPHA     (0.016666667f) /* N=72 */
-//#define CN0_EST_LPF_ALPHA     (0.005555556f) /* N=200 */
+/* C/N0 estimator IIR averaging coefficient:
+ * See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22
+ * See http://dsp.stackexchange.com/questions/378/
+ *
+ * For N=72 Alpha=0.016(6)
+ * For N=200 Alpha=0.0055(5)
+ */
 #define CN0_EST_LPF_ALPHA     (.0167f)
-/* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like */
+/* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
+ * and the slower is the response. */
 #define CN0_EST_LPF_CUTOFF_HZ (.1f)
 
 /* Noise bandwidth: GPS L1 1.023 * 2. Normalized with sample rate. The
@@ -36,7 +39,7 @@
 #if defined(BOARD_PIKSI_V2)
 /* PIKSIv2 */
 /* #define CN0_EST_BW_HZ  (float)(2e6 / TRACK_SAMPLE_FREQ * 40) */
-#define CN0_EST_BW_HZ     (4.88f)
+#define CN0_EST_BW_HZ     (4.35f)
 #elif defined(BOARD_DIGILENT_UZED)
 /* PIKSIv3 */
 /* #define CN0_EST_BW_HZ  (float)(33e6 / TRACK_SAMPLE_FREQ  * 20) */

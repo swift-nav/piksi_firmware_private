@@ -21,6 +21,7 @@
 #include <libswiftnav/track.h>
 
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include "settings.h"
@@ -31,6 +32,10 @@
 
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
+
+#define L1CA_FLOCK_INTERVAL_MS   (5000)
+#define L1CA_FLOCK_THRESHOLD_HZ  (20)
+#define L1CA_FLOCK_EF_ALPHA      (0.03f)
 
 /*
  * Initial tracking: loop selection
@@ -105,8 +110,8 @@ typedef struct {
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t   alias_detect;           /**< Alias lock detector. */
   lock_detect_t    lock_detect;            /**< Phase-lock detector state. */
-  lp1_filter_params_t fll_lock_params;
-  lp1_filter_t     fll_lock_detect;
+  float            fll_lock_detect;
+  u16              fll_lock_counter;       /**< False lock state duration counter */
   u8               int_ms;                 /**< Current integration length. */
   u8               cycle_no: 5;            /**< Number of cycle inside current
                                             *   integration mode. */
@@ -378,12 +383,11 @@ static void tracker_gps_l1ca_update_parameters(
                    common_data->cn0); /* Initial C/N0 value */
   }
 
+  data->fll_lock_counter = 0;
   if (init || loop_freq != old_loop_freq) {
-    lp1_filter_compute_params(&data->fll_lock_params, 0.1, loop_freq);
-    lp1_filter_init(&data->fll_lock_detect, &data->fll_lock_params, 0);
+    data->fll_lock_detect = 0;
   } else {
-    lp1_filter_compute_params(&data->fll_lock_params, 0.1, loop_freq);
-    lp1_filter_init(&data->fll_lock_detect, &data->fll_lock_params, data->fll_lock_detect.yn);
+    data->fll_lock_detect = 0;
   }
 
   if (data->use_alias_detection) {
@@ -934,14 +938,14 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       lock_detect_update(&data->lock_detect, cs_now[1].I, cs_now[1].Q, ld_int_ms);
       outo = data->lock_detect.outo;
       outp = data->lock_detect.outp;
-      if (data->fll_lock_detect.yn >= 0.10) {
-        outo = outp = false;
-      }
+//      if (data->fll_lock_detect >= 0.10) {
+//        outo = outp = false;
+//      }
     } else if (data->tracking_ctrl == TP_CTRL_FLL1 ||
                data->tracking_ctrl == TP_CTRL_FLL2) {
       /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
       outp = false;
-      outo = data->fll_lock_detect.yn < 0.1;
+      outo = data->fll_lock_detect < 0.1;
     }
 
     if (outo)
@@ -990,6 +994,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
 
     float dll_err = 0;
+
     switch (data->tracking_ctrl) {
     case TP_CTRL_PLL2:
       tl_pll2_update(&data->pll2_state, cs2);
@@ -1019,21 +1024,50 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       assert(false);
     }
 
-    dll_err = lp1_filter_update(&data->fll_lock_detect, &data->fll_lock_params, dll_err);
-//      if (fabsf(dll_err) > 0.12f && !data->lock_detect.outp) {
-//        log_info_sid(channel_info->sid, "Adjusting code error=%f", dll_err * 1540);
-//        switch (data->tracking_ctrl) {
-//        case TP_CTRL_PLL:
-//          tl_pll_state_adjust(&data->pll_state, dll_err * 1540);
-//          break;
-//        case TP_CTRL_FLL:
-//          tl_fll_state_adjust(&data->fll_state, dll_err * 1540);
-//          break;
-//        }
-//      }
-//      log_info_sid(channel_info->sid, "carr=%f %f code=%f",
-//                   common_data->carrier_freq, data->tl_state_ref.carr_freq,
-//                   // data->tl_state.freq_prev,
+    /* Exponential filter for DLL/FLL error */
+    data->fll_lock_detect += L1CA_FLOCK_EF_ALPHA * (dll_err - data->fll_lock_detect);
+
+    if (data->tracking_ctrl == TP_CTRL_PLL2 &&
+        (data->int_ms == 5 || data->int_ms == 10 || data->int_ms == 20)) {
+      s32 err_hz = (s32)(data->fll_lock_detect * 1540.f + 0.5f);
+      s32 abs_err_hz = abs(err_hz);
+
+      /* FLL-assisted DLL implementation: when the error between FLL and DLL
+       * become too large, FLL frequency is adjusted. */
+      if (abs_err_hz > L1CA_FLOCK_THRESHOLD_HZ)
+        data->fll_lock_counter ++;
+      else
+        data->fll_lock_counter = 0;
+
+      if (data->fll_lock_counter == L1CA_FLOCK_INTERVAL_MS / data->int_ms)
+      {
+        err_hz = ((abs_err_hz - 20) / 50) * 50 + 25;
+        if (data->fll_lock_detect < 0)
+          err_hz = -err_hz;
+
+        /* Reset FLL/DLL error state */
+        data->fll_lock_counter = 0;
+        data->fll_lock_detect = 0;
+
+        log_info_sid(channel_info->sid, "DLL stress %" PRId32, err_hz);
+
+        switch (data->tracking_ctrl) {
+        case TP_CTRL_PLL2:
+          tl_pll2_adjust(&data->pll2_state, err_hz);
+          break;
+        case TP_CTRL_PLL3:
+          tl_pll3_adjust(&data->pll3_state, err_hz);
+          break;
+        case TP_CTRL_FLL1:
+          tl_fll1_adjust(&data->fll1_state, err_hz);
+          break;
+        case TP_CTRL_FLL2:
+          tl_fll2_adjust(&data->fll2_state, err_hz);
+          break;
+        default: assert(false);
+        }
+      }
+    }
 
     /* Attempt alias detection if we have pessimistic phase lock detect, OR
        (optimistic phase lock detect AND are in second-stage tracking) */
@@ -1119,7 +1153,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       report.plock = data->lock_detect.outp;
       report.lock_i = data->lock_detect.lpfi.y;
       report.lock_q = data->lock_detect.lpfq.y;
-      report.lock_f = dll_err;
+      report.lock_f = data->fll_lock_detect * 1540.f;
       report.sample_count = common_data->sample_count;
       report.time_ms = data->int_ms;
 
