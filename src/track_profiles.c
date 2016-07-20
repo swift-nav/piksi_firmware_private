@@ -35,6 +35,7 @@
 #define TP_USE_5MS_PROFILES
 #define TP_USE_10MS_PROFILES
 #define TP_USE_20MS_PROFILES
+#define TP_USE_20MS_PROFILES_FLL
 // #define TP_USE_40MS_PROFILES
 
 // #define TP_USE_MEAN_VALUES
@@ -242,8 +243,9 @@ enum
 #endif
 #ifdef TP_USE_20MS_PROFILES
   TP_PROFILE_ROW_20MS,
-  TP_PROFILE_ROW_20MS_SS,
-#define TP_PROFILE_ROW_20MS_SS TP_PROFILE_ROW_20MS_SS
+#endif
+#ifdef TP_USE_20MS_PROFILES_FLL
+  TP_PROFILE_ROW_20MS_FLL,
 #endif
 #ifdef TP_USE_40MS_PROFILES
   TP_PROFILE_ROW_40MS,
@@ -314,12 +316,12 @@ static const tp_loop_params_t loop_params[] = {
   { 1, .7f, 1, 1540, 8, .7f, 1.f, 1, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_N*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
   { 1, .7f, 1, 1540, 10, .7f, 1.f, 2, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_U*/
-
-#ifdef TP_PROFILE_ROW_20MS_SS
-  /* FLL-assisted PLL. K_c = 1.2 */
-  { .6, .7f, 1, 1540, 4, .7f, 1.f, 3, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_SS*/
-#endif
 #endif /* TP_USE_20MS_PROFILES */
+
+#ifdef TP_USE_20MS_PROFILES_FLL
+  /* FLL-assisted PLL. K_c = 1.2 */
+  { .6, .7f, 1, 1540, 4, .7f, 1.f, 2, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_FLL*/
+#endif
 
 #ifdef TP_USE_40MS_PROFILES
   /*  "(40 ms, (1, 0.7, 1, 1540), (8, 0.7, 1, 0))" */
@@ -363,8 +365,11 @@ enum
   TP_LP_IDX_20MS_S, /**< 20MS 1+N integration; stable. */
   TP_LP_IDX_20MS_N, /**< 20MS 1+N integration; normal. */
   TP_LP_IDX_20MS_U, /**< 20MS 1+N integration; unstable. */
-  TP_LP_IDX_20MS_SS,
 #endif /* TP_USE_20MS_PROFILES */
+
+#ifdef TP_USE_20MS_PROFILES_FLL
+  TP_LP_IDX_20MS_FLL, /**< 20MS FLL-assisted DLL */
+#endif /* TP_USE_20MS_PROFILES_FLL */
 
 #ifdef TP_USE_40MS_PROFILES
   TP_LP_IDX_40MS_S,   /**< 40MS 1+N2 integration; stable. */
@@ -408,10 +413,11 @@ static const tp_loop_params_row_t profile_matrix[] = {
 
 #ifdef TP_USE_20MS_PROFILES
   {PCN0(27), PCN0(35), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
-#ifdef TP_PROFILE_ROW_20MS_SS
-  {PCN0(24), PCN0(31), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS, TP_LP_IDX_20MS_SS}},
-#endif
 #endif /* TP_USE_20MS_PROFILES */
+
+#ifdef TP_USE_20MS_PROFILES_FLL
+  {PCN0(24), PCN0(31), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_FLL, TP_LP_IDX_20MS_FLL, TP_LP_IDX_20MS_FLL}},
+#endif /* TP_USE_20MS_PROFILES_FLL */
 
 #ifdef TP_USE_40MS_PROFILES
   {PCN0(20), PCN0(29), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_40MS_S, TP_LP_IDX_40MS_N, TP_LP_IDX_40MS_U}},
