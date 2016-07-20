@@ -36,6 +36,8 @@
 #define L1CA_FLOCK_INTERVAL_MS   (5000)
 #define L1CA_FLOCK_THRESHOLD_HZ  (20)
 #define L1CA_FLOCK_EF_ALPHA      (0.03f)
+#define L1CA_FLOCK_FSTEP         (50.f)
+#define L1CA_USE_POWER_DISCIMINATOR 0
 
 /*
  * Initial tracking: loop selection
@@ -110,6 +112,9 @@ typedef struct {
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t   alias_detect;           /**< Alias lock detector. */
   lock_detect_t    lock_detect;            /**< Phase-lock detector state. */
+#if L1CA_USE_POWER_DISCIMINATOR
+  float            fll_epl[3];
+#endif
   float            fll_lock_detect;
   u16              fll_lock_counter;       /**< False lock state duration counter */
   u8               int_ms;                 /**< Current integration length. */
@@ -180,7 +185,8 @@ static u8 get_cn0_ms(const gps_l1ca_tracker_data_t *data)
     break;
 
   case TP_TM_ONE_PLUS_N5:
-    cn0_ms = 5;
+    cn0_ms = data->int_ms;
+    // cn0_ms = 5;
     break;
 
   case TP_TM_SPLIT:
@@ -734,9 +740,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       sum_up = SUM_UP_ONE;
     }
     if (data->cycle_no == data->int_ms / 5)
-      use_controller = true;
+      use_controller = use_cn0 = true;
     else
-      use_cn0 = false;
+      use_controller = use_cn0 = false;
     update_count_ms = 5;
     break;
 
@@ -823,14 +829,6 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     assert(false);
   }
 
-  if (data->tracking_mode == TP_TM_ONE_PLUS_N20 ) {
-//    log_info_sid(channel_info->sid, "Scan: %d: n=%d/%d b=%d/%d s=%d/%d",
-//                 data->cycle_cnt,
-//                 cs_now[1].I, cs_now[1].Q,
-//                 cs_bit[1].I, cs_bit[1].Q,
-//                 data->cs[1].I, data->cs[1].Q);
-  }
-
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
                                            int_ms);
@@ -882,6 +880,40 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   if (data->tracking_mode != TP_TM_INITIAL) {
     tracker_correlations_send(channel_info->context, cs_bit);
   }
+
+#if L1CA_USE_POWER_DISCIMINATOR
+  if (data->tracking_mode == TP_TM_ONE_PLUS_N5 &&
+      data->int_ms == 20 &&
+      (data->tracking_ctrl == TP_CTRL_FLL1 ||
+       data->tracking_ctrl == TP_CTRL_FLL2)) {
+    /*
+     * FLL power measurements.
+     * In FLL power discriminator mode, frequency changes in cycles 1, 2 and 3.
+     * The frequency offsets are -F_step, +F_step, 0.
+     */
+
+    float I = cs_now[1].I, Q = cs_now[1].Q;
+    float power = I * I + Q * Q;
+
+    switch (data->cycle_no) {
+    case 2:
+      data->fll_epl[0] += (power - data->fll_epl[0]) * 1;
+      break;
+
+    case 3:
+      data->fll_epl[2] += (power - data->fll_epl[2]) * 1;
+      break;
+
+    case 4:
+      data->fll_epl[1] += (power - data->fll_epl[1]) * 1;
+      break;
+
+    default: break;
+    }
+  } else {
+    data->fll_epl[0] = data->fll_epl[1] = data->fll_epl[2] = 0;
+  }
+#endif /* L1CA_USE_POWER_DISCIMINATOR */
 
   /* Correlations should already be in chan->cs thanks to
    * tracking_channel_get_corrs. */
@@ -1009,13 +1041,44 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       dll_err = tl_pll3_get_dll_error(&data->pll3_state);
       break;
     case TP_CTRL_FLL1:
+#if L1CA_USE_POWER_DISCIMINATOR
+      if (data->tracking_mode == TP_TM_ONE_PLUS_N5 && data->int_ms == 20) {
+        data->fll_lock_counter++;
+        if (data->fll_lock_counter > 4) {
+          data->fll_lock_counter = 0;
+          aided_tl_fll1_update2(&data->fll1_state, cs2, data->fll_epl, L1CA_FLOCK_FSTEP);
+          data->fll_epl[0] = data->fll_epl[1] = data->fll_epl[2] = 0;
+        } else {
+          aided_tl_fll1_update2(&data->fll1_state, cs2, NULL, 0);
+        }
+      } else {
+        tl_fll1_update(&data->fll1_state, cs2);
+      }
+#else
       tl_fll1_update(&data->fll1_state, cs2);
+#endif
       common_data->carrier_freq = data->fll1_state.carr_freq;
       common_data->code_phase_rate = data->fll1_state.code_freq + GPS_CA_CHIPPING_RATE;
       dll_err = tl_fll1_get_dll_error(&data->fll1_state);
       break;
     case TP_CTRL_FLL2:
+#if L1CA_USE_POWER_DISCIMINATOR
+      if (data->tracking_mode == TP_TM_ONE_PLUS_N5 && data->int_ms == 20) {
+        data->fll_lock_counter++;
+        if (data->fll_lock_counter > 4) {
+          data->fll_lock_counter = 0;
+          aided_tl_fll2_update2(&data->fll2_state, cs2, data->fll_epl, L1CA_FLOCK_FSTEP);
+          data->fll_epl[0] = data->fll_epl[1] = data->fll_epl[2] = 0;
+        } else {
+          aided_tl_fll2_update2(&data->fll2_state, cs2, NULL, 0);
+        }
+      } else {
+        tl_fll2_update(&data->fll2_state, cs2);
+      }
+#else
       tl_fll2_update(&data->fll2_state, cs2);
+#endif
+
       common_data->carrier_freq = data->fll2_state.carr_freq;
       common_data->code_phase_rate = data->fll2_state.code_freq + GPS_CA_CHIPPING_RATE;
       dll_err = tl_fll1_get_dll_error(&data->fll1_state);
@@ -1049,7 +1112,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
         data->fll_lock_counter = 0;
         data->fll_lock_detect = 0;
 
-        log_info_sid(channel_info->sid, "DLL stress %" PRId32, err_hz);
+        log_info_sid(channel_info->sid, "False lock error %" PRId32, err_hz);
 
         switch (data->tracking_ctrl) {
         case TP_CTRL_PLL2:
@@ -1164,7 +1227,32 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   mode_change_complete(channel_info, common_data, data);
   mode_change_init(channel_info, common_data, data);
 
-  tracker_retune(channel_info->context, common_data->carrier_freq,
+
+  float freq_offset = 0.f;
+
+#if L1CA_USE_POWER_DISCIMINATOR
+  if (data->tracking_mode == TP_TM_ONE_PLUS_N5 &&
+      data->int_ms == 20 &&
+      (data->tracking_ctrl == TP_CTRL_FLL1 || data->tracking_ctrl == TP_CTRL_FLL2)) {
+
+    float freq_step = L1CA_FLOCK_FSTEP;
+
+    switch (data->cycle_no) {
+    case 1:
+      freq_offset = -freq_step;
+      break;
+
+    case 2:
+      freq_offset = freq_step;
+      break;
+
+    default: break;
+    }
+  }
+#endif
+
+
+  tracker_retune(channel_info->context, common_data->carrier_freq + freq_offset,
                  common_data->code_phase_rate,
                  compute_rollover_count(channel_info, data));
 
