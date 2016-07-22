@@ -65,6 +65,11 @@ void nap_rd_dna(u8 dna[])
   }
 }
 
+bool nap_locked(void)
+{
+  return (NAP->STATUS & NAP_STATUS_AUTH_LOCKED_Msk) ? true : false;
+}
+
 void nap_unlock(const u8 key[])
 {
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_KEY_ADDR_Msk |
