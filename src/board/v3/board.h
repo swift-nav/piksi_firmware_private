@@ -36,10 +36,10 @@
 #define BOARD_DIGILENT_UZED
 #define BOARD_NAME "Digilent uZed"
 
-#define LINE_LED1 PAL_LINE(GPIO1, 15)
-#define LINE_LED2 PAL_LINE(GPIO1, 19)
+#define LINE_LED1 PAL_LINE(GPIO0, 0)
+#define LINE_LED2 PAL_LINE(GPIO0, 0)
 
-#define SPI_SS_GPIO_LINE PAL_LINE(GPIO0, 13)
+#define SPI_SS_FRONTEND_GPIO_LINE PAL_LINE(GPIO3, 0)
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
