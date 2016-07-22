@@ -55,4 +55,4 @@ SECTIONS {
 }
 
 __main_thread_stack_base__ = __stacks_base__;
-_ecoffee_fs_area = _coffee_fs_area + 8096;
+_ecoffee_fs_area = _coffee_fs_area + 51200;
