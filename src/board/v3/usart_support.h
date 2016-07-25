@@ -18,8 +18,11 @@
 #define RPMSG_EPT_TO_SD(rpmsg_ept) ((void *)((int)(rpmsg_ept) + 1))
 #define SD_TO_RPMSG_EPT(sd) ((rpmsg_endpoint_t)((int)(sd) - 1))
 
-#define SD_FTDI  RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_A)
-#define SD_UARTA RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_B)
-#define SD_UARTB RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
+#define SD_FTDI       RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_A)
+#define SD_UARTA      NULL
+#define SD_UARTB      NULL
+
+#define SD_SETTINGS   RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_B)
+#define SD_FLASH      RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
 
 #endif /* SWIFTNAV_USART_SUPPORT_H */
