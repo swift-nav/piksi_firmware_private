@@ -34,13 +34,19 @@ ifeq ($(PIKSI_HW),v3)
 	CMAKEFLAGS += -DMAX_CHANNELS=31
 endif
 
+BUILDFOLDER = build_$(PIKSI_HW)
+MAKEFLAGS += BUILDFOLDER=$(BUILDFOLDER)
+
+LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
+LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
+
 .PHONY: all tests firmware docs hitl_setup hitl hitlv3 .FORCE
 
 all: firmware # tests
 	@printf "BUILDING For target $(PIKSI_HW)\n"
 
-firmware: libsbp/c/build/src/libsbp-static.a libswiftnav/build/src/libswiftnav-static.a
-	@printf "BUILD  src for target $(PIKSI_HW)\n"; \
+firmware: $(LIBSBP_BUILDDIR)/src/libsbp-static.a $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
+	@printf "BUILD   src for target $(PIKSI_HW)\n"; \
 	$(MAKE) -r -C src $(MAKEFLAGS)
 
 tests:
@@ -51,25 +57,25 @@ tests:
 		fi; \
 	done
 
-libsbp/c/build/src/libsbp-static.a:
+$(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	@printf "BUILD   libsbp for target $(PIKSI_HW)\n"; \
-	mkdir -p libsbp/c/build; cd libsbp/c/build; \
+	mkdir -p $(LIBSBP_BUILDDIR); cd $(LIBSBP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake $(CMAKEFLAGS) ../
-	$(MAKE) -C libsbp/c/build $(MAKEFLAGS)
+	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
-libswiftnav/build/src/libswiftnav-static.a: .FORCE
+$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a: .FORCE
 	@printf "BUILD   libswiftnav for target $(PIKSI_HW)\n"; \
-	mkdir -p libswiftnav/build; cd libswiftnav/build; \
+	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake $(CMAKEFLAGS) ../
-	$(MAKE) -C libswiftnav/build $(MAKEFLAGS)
+	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
 
 clean:
 	@printf "CLEAN   src\n"; \
 	$(MAKE) -C src $(MAKEFLAGS) clean
 	@printf "CLEAN   libsbp\n"; \
-	$(RM) -rf libsbp/c/build
+	$(RM) -rf $(LIBSBP_BUILDDIR)
 	@printf "CLEAN   libswiftnav\n"; \
-	$(RM) -rf libswiftnav/build
+	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
 	$(Q)for i in tests/*; do \
 		if [ -d $$i ]; then \
 			printf "CLEAN   $$i\n"; \
@@ -88,17 +94,19 @@ hitl_setup: firmware
 	# `make hitl TEST_PLAN=merge` will run the "merge" test plan (10 capture jobs)
 	#
 	# First, this script will pull or clone the hitl_tools repo.
-	if cd build/hitl_tools; then \
+	if cd $(BUILDFOLDER)/hitl_tools; then \
 		git pull; \
 	else \
-		git clone git@github.com:swift-nav/hitl_tools.git build/hitl_tools --depth 1; \
+		git clone git@github.com:swift-nav/hitl_tools.git $(BUILDFOLDER)/hitl_tools --depth 1; \
 	fi
 
 hitl: hitl_setup
-	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=$(TEST_CONFIG) bash build/hitl_tools/make_hitl.sh
+	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=$(TEST_CONFIG) \
+	BUILDFOLDER=$(BUILDFOLDER) bash $(BUILDFOLDER)/hitl_tools/make_hitl.sh
 
 
 hitlv3: hitl_setup
-	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=v3_config bash build/hitl_tools/make_hitl.sh
+	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=v3_config \
+	BUILDFOLDER=$(BUILDFOLDER) bash $(BUILDFOLDER)/hitl_tools/make_hitl.sh
 
 .FORCE:

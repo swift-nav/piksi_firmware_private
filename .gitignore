@@ -19,7 +19,7 @@ docs/html
 *.swp
 scripts/pyinstaller/build
 scripts/pyinstaller/dist
-build/
+build*/
 testing_crap/
 scripts/RELEASE-VERSION
 
