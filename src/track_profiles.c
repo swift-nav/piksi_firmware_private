@@ -46,10 +46,12 @@
  * - One plus N (TP_USE_ONE_PLUS_N_MODE)
  * - 1 millisecond integrations (TP_USE_SPLIT_MODE)
  * - 5 millisecond integrations (TP_USE_5MS_SPLIT_MODE)
+ * - 10 millisecond integrations (TP_USE_10MS_SPLIT_MODE)
  */
 //#define TP_USE_SPLIT_MODE
 #define TP_USE_ONE_PLUS_N_MODE
 //#define TP_USE_5MS_SPLIT_MODE
+//#define TP_USE_10MS_SPLIT_MODE
 
 #if defined(TP_USE_SPLIT_MODE)
 #define TP_TM_5MS_MODE  TP_TM_SPLIT
@@ -59,6 +61,10 @@
 #define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N5
 #define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N5
 #define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N5
+#elif defined(TP_USE_10MS_SPLIT_MODE)
+#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
+#define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N10
+#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N10
 #elif defined(TP_USE_ONE_PLUS_N_MODE)
 #define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
 #define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N
@@ -598,7 +604,7 @@ static void get_profile_params(tp_profile_internal_t *profile,
    * bit-aligned integration accumulator with equal intervals.
    */
 
-  if (config->loop_params.mode != TP_TM_INITIAL &&
+  if (config->loop_params.mode == TP_TM_ONE_PLUS_N10 &&
       (config->loop_params.ctrl == TP_CTRL_PLL2 ||
        config->loop_params.ctrl == TP_CTRL_PLL3))
     config->use_alias_detection = true;
@@ -709,6 +715,7 @@ static const char *get_mode_str(tp_tm_e v)
   case TP_TM_SPLIT: str = "SPL"; break;
   case TP_TM_ONE_PLUS_N: str = "1+N"; break;
   case TP_TM_ONE_PLUS_N5: str = "1+5N"; break;
+  case TP_TM_ONE_PLUS_N10: str = "1+10N"; break;
   case TP_TM_ONE_PLUS_N20: str = "1+20N"; break;
   default: assert(false);
   }
@@ -1093,6 +1100,7 @@ static float compute_cn0_profile_offset(u8 profile_i, u8 profile_d)
     switch (lp->mode) {
     case TP_TM_ONE_PLUS_N:
     case TP_TM_ONE_PLUS_N20:
+    case TP_TM_ONE_PLUS_N10:
     case TP_TM_ONE_PLUS_N5:
     case TP_TM_SPLIT:
       /* Very unfortunate, but the integrator handles N-1 milliseconds */

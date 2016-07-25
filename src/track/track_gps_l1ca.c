@@ -185,6 +185,7 @@ static u8 get_cn0_ms(const gps_l1ca_tracker_data_t *data)
     break;
 
   case TP_TM_ONE_PLUS_N5:
+  case TP_TM_ONE_PLUS_N10:
     cn0_ms = data->int_ms;
     // cn0_ms = 5;
     break;
@@ -249,6 +250,10 @@ static void tracker_gps_l1ca_update_parameters(
     data->cycle_no = data->int_ms / 20;
     break;
 
+  case TP_TM_ONE_PLUS_N10:
+    data->cycle_no = data->int_ms / 10;
+    break;
+
   case TP_TM_ONE_PLUS_N5:
     data->cycle_no = data->int_ms / 5;
     break;
@@ -272,6 +277,8 @@ static void tracker_gps_l1ca_update_parameters(
     ld_int_ms = 1;
   } else if (data->tracking_mode == TP_TM_ONE_PLUS_N5) {
     ld_int_ms = 5;
+  } else if (data->tracking_mode == TP_TM_ONE_PLUS_N10) {
+    ld_int_ms = 10;
   } else if (data->tracking_mode == TP_TM_ONE_PLUS_N20) {
     /* 20+ms coherent interval split is used. */
     // ld_int_ms = 20;
@@ -468,6 +475,7 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
     case TP_TM_SPLIT:
     case TP_TM_ONE_PLUS_N:
     case TP_TM_ONE_PLUS_N5:
+    case TP_TM_ONE_PLUS_N10:
     case TP_TM_ONE_PLUS_N20:
       rollover_count = 0;
       break;
@@ -510,6 +518,21 @@ static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
       }
       break;
 
+    case TP_TM_ONE_PLUS_N10:
+      {
+        u8 n_bits = data->int_ms / 10;
+        if (data->cycle_no == n_bits - 1) {
+          /* First interval is 1ms */
+          rollover_count = 0;
+        } else if (data->cycle_no == n_bits) {
+          /* Second interval is 9ms */
+          rollover_count = 8;
+        } else {
+          /* Other intervals are 10ms */
+          rollover_count = 9;
+        }
+      }
+      break;
     case TP_TM_ONE_PLUS_N20:
       {
         u8 n_bits = data->int_ms / 20;
@@ -549,6 +572,7 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
 
   /* Compute time of the currently integrated period */
   u8 next_ms = 0;
+  u8 cycle_cnt = 0;
   switch (data->tracking_mode)
   {
   case TP_TM_SPLIT:
@@ -560,16 +584,25 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
     break;
 
   case TP_TM_ONE_PLUS_N5:
-    if (data->cycle_no == 1) {
-      next_ms = 0;
+    if (data->cycle_no == data->int_ms / 5) {
+      next_ms = 1;
     } else {
       next_ms = 5;
     }
     break;
 
+  case TP_TM_ONE_PLUS_N10:
+    cycle_cnt = data->int_ms / 10 + 1;
+    if (data->cycle_no == cycle_cnt - 1) {
+      next_ms = 1;
+    } else {
+      next_ms = 10;
+    }
+    break;
+
   case TP_TM_ONE_PLUS_N20:
     if (data->cycle_no == 1) {
-      next_ms = 0;
+      next_ms = 1;
     } else {
       next_ms = 20;
     }
@@ -667,6 +700,13 @@ static void update_cycle_counter(gps_l1ca_tracker_data_t *data)
     cycle_cnt = data->int_ms / 5 + 1;
     break;
 
+  case TP_TM_ONE_PLUS_N10:
+    /* One plus N 10ms integrations.
+     * Each cycle has two integrations in the first bit, and one extra
+     * integration per additional bit. */
+    cycle_cnt = data->int_ms / 10 + 1;
+    break;
+
   case TP_TM_ONE_PLUS_N20:
     /* One plus N long integrations.
      * Each cycle has two integrations in the first bit, and one extra
@@ -697,6 +737,77 @@ enum
   SUM_UP_FLIP
 };
 
+static void process_alias_error(const tracker_channel_info_t *channel_info,
+                                tracker_common_data_t *common_data,
+                                gps_l1ca_tracker_data_t *data,
+                                float I, float Q)
+{
+  u8 alias_ms = data->int_ms;
+  switch (data->tracking_mode)
+  {
+  case TP_TM_ONE_PLUS_N:
+    break;
+
+  case TP_TM_ONE_PLUS_N5:
+    alias_ms = 5;
+    break;
+
+  case TP_TM_ONE_PLUS_N10:
+    alias_ms = 10;
+    break;
+
+  case TP_TM_SPLIT:
+    alias_ms = 1;
+    break;
+
+  default:
+    break;
+  }
+
+  I -= data->alias_detect.first_I;
+  Q -= data->alias_detect.first_Q;
+
+  float err = alias_detect_second(&data->alias_detect, I, Q);
+  // err = 0;
+
+  // log_info_sid(channel_info->sid, "Err: %f", err);
+  if (fabs(err) > (125 / alias_ms)) {
+
+    if (data->lock_detect.outp) {
+      log_warn_sid(channel_info->sid, "False phase lock detected: %f", err);
+    } else {
+      log_warn_sid(channel_info->sid, "False optimistic lock detected: %f", err);
+    }
+
+    s32 c = (labs((s32)(err - 12)) / 50) * 50 + 25;
+    err = err > 0 ? c : -c;
+
+    tracker_ambiguity_unknown(channel_info->context);
+    /* Indicate that a mode change has occurred. */
+    common_data->mode_change_count = common_data->update_count;
+
+    switch (data->tracking_ctrl) {
+    case TP_CTRL_PLL2:
+      tl_pll2_adjust(&data->pll2_state, err);
+      break;
+    case TP_CTRL_PLL3:
+      tl_pll3_adjust(&data->pll3_state, err);
+      break;
+    case TP_CTRL_FLL1:
+      tl_fll1_adjust(&data->fll1_state, err);
+      break;
+    case TP_CTRL_FLL2:
+      tl_fll2_adjust(&data->fll2_state, err);
+      break;
+    default:
+      assert(false);
+    }
+  } else if (fabs(err) > 10) {
+    log_info_sid(channel_info->sid, "Uncorrected false lock: %f, %d", err, alias_ms);
+
+  }
+}
+
 static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
@@ -706,9 +817,13 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   u8 int_ms; /* Integration time for the currently reported value */
   u8 update_count_ms; /* Update counter. */
   u8 use_controller = true;
-  u8 use_cn0 = true;
   u8 sum_up = SUM_UP_NONE;
   float ld_int_ms = data->int_ms;
+
+  /* Prompt correlations for C/N0 estimator */
+  corr_t cs_now[3]; /**< Correlations from FPGA */
+  corr_t cs_bit[3]; /**< Sub-bit sum */
+  const corr_t *cn0_cs = NULL;
 
   /* Determine, if the tracking channel EPL data shall be added or not. */
   switch (data->tracking_mode)
@@ -718,12 +833,15 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     sum_up = data->cycle_no > 1 ? SUM_UP_ONE : SUM_UP_NONE;
     ld_int_ms = 1;
     update_count_ms = data->int_ms;
+    cn0_cs = &cs_now[1];
     break;
 
   case TP_TM_ONE_PLUS_N:
     int_ms = data->cycle_no == 0 ? 1 : data->int_ms - 1;
     sum_up = data->cycle_no != 0 ? SUM_UP_ONE : SUM_UP_NONE;
     update_count_ms = data->int_ms;
+    if (data->cycle_no)
+      cn0_cs = &data->cs[1];
     break;
 
   case TP_TM_ONE_PLUS_N5:
@@ -739,11 +857,33 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       int_ms = 5;
       sum_up = SUM_UP_ONE;
     }
-    if (data->cycle_no == data->int_ms / 5)
-      use_controller = use_cn0 = true;
-    else
-      use_controller = use_cn0 = false;
+    if (data->cycle_no == data->int_ms / 5) {
+      use_controller = true;
+      cn0_cs  = &data->cs[1];
+    } else
+      use_controller = false;
     update_count_ms = 5;
+    break;
+
+  case TP_TM_ONE_PLUS_N10:
+    use_controller = false;
+
+    if (data->cycle_no == 0) {
+      int_ms = 1;
+      sum_up = SUM_UP_NONE;
+    } else if (data->cycle_no == 1) {
+      int_ms = 9;
+      sum_up = SUM_UP_ONE;
+    } else {
+      int_ms = 10;
+      sum_up = SUM_UP_ONE;
+    }
+    if (data->cycle_no == data->int_ms / 10) {
+      use_controller = true;
+      cn0_cs  = &data->cs[1];
+    } else
+      use_controller = false;
+    update_count_ms = 10;
     break;
 
   case TP_TM_ONE_PLUS_N20:
@@ -758,10 +898,10 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       int_ms = 20;
       sum_up = SUM_UP_FLIP;
     }
-    if (data->cycle_no == data->int_ms / 20)
+    if (data->cycle_no == data->int_ms / 20) {
       use_controller = true;
-    else
-      use_cn0 = false;
+      cn0_cs = &data->cs[1];
+    }
     update_count_ms = 20;
     break;
 
@@ -770,14 +910,12 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   case TP_TM_PIPELINING:
     int_ms = data->int_ms;
     update_count_ms = data->int_ms;
+    cn0_cs = &data->cs[1];
     break;
 
   default:
     assert(false);
   }
-  /* Prompt correlations for C/N0 estimator */
-  corr_t cs_now[3]; /**< Correlations from FPGA */
-  corr_t cs_bit[3]; /**< Sub-bit sum */
 
   /* Read early ([0]), prompt ([1]) and late ([2]) correlations. */
   tracker_correlations_read(channel_info->context, cs_now,
@@ -835,6 +973,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
   if ((data->tracking_mode == TP_TM_ONE_PLUS_N && data->cycle_no == 0) ||
       (data->tracking_mode == TP_TM_ONE_PLUS_N5 && data->cycle_no == 0) ||
+      (data->tracking_mode == TP_TM_ONE_PLUS_N10 && data->cycle_no == 0) ||
       (data->tracking_mode == TP_TM_ONE_PLUS_N20 && data->cycle_no == 0) ||
       (data->tracking_mode == TP_TM_SPLIT && data->cycle_no < data->int_ms - 1)) {
     /* If we're doing long integrations, alternate between short and long
@@ -851,8 +990,23 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       lock_detect_update(&data->lock_detect, cs_now[1].I, cs_now[1].Q, 1);
     }
 
-    if (data->use_alias_detection)
-      alias_detect_first(&data->alias_detect, cs_now[1].I, cs_now[1].Q);
+    if (data->use_alias_detection) {
+      bool detect_second = false;
+      switch (data->tracking_mode) {
+      case TP_TM_ONE_PLUS_N5:
+      case TP_TM_ONE_PLUS_N10:
+        // detect_second = true;
+        break;
+      default: ;
+      }
+
+      if (detect_second) {
+        float I = cs_bit[1].I;
+        float Q = cs_bit[1].Q;
+
+        process_alias_error(channel_info, common_data, data, I, Q);
+      }
+    }
 
     /* We may change the integration time here, but only if the next long
      * integration period reaches bit boundary */
@@ -918,7 +1072,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   /* Correlations should already be in chan->cs thanks to
    * tracking_channel_get_corrs. */
   const corr_t* cs = data->cs;
-  if (use_cn0) {
+
+  if (cn0_cs) {
     tp_cn0_params_t cn0_params;
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
@@ -938,7 +1093,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     common_data->cn0 = track_cn0_update(data->cn0_est_type,
                                         data->int_ms,
                                         &data->cn0_est,
-                                        cs_now[1].I, cs_now[1].Q);
+                                        cn0_cs->I, cn0_cs->Q);
 
     if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
         (data->tracking_ctrl == TP_CTRL_PLL2 && data->lock_detect.outp) ||
@@ -986,10 +1141,10 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       common_data->ld_pess_unlocked_count = common_data->update_count;
     /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
     if (last_outp && !outp) {
-      log_info_sid(channel_info->sid, "PLL stress");
+      //log_info_sid(channel_info->sid, "PLL stress");
       tracker_ambiguity_unknown(channel_info->context);
     } else if (last_outp != outp) {
-      log_info_sid(channel_info->sid, "PLL pessimistic lock");
+      //log_info_sid(channel_info->sid, "PLL pessimistic lock");
     }
 
     /* TODO: Make this more elegant. */
@@ -1132,77 +1287,6 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       }
     }
 
-    /* Attempt alias detection if we have pessimistic phase lock detect, OR
-       (optimistic phase lock detect AND are in second-stage tracking) */
-    if (data->use_alias_detection &&
-        (data->tracking_mode != TP_TM_INITIAL && data->lock_detect.outo)) {
-
-      /* Last period integration time */
-      u8 alias_ms = update_count_ms;
-      bool alias_first = false;
-      bool alias_second = false;
-
-      switch (data->tracking_mode)
-      {
-      case TP_TM_ONE_PLUS_N:
-        if (data->int_ms == 10 || data->int_ms == 5) {
-          alias_first = true;
-          alias_second = true;
-          if (data->cycle_no == 1)
-            alias_ms--;
-        }
-        break;
-
-      case TP_TM_ONE_PLUS_N5:
-        alias_first = true;
-        alias_second = true;
-        if (data->cycle_no == 1)
-          alias_ms--;
-
-        break;
-
-      default:
-        break;
-      }
-
-      if (alias_second) {
-        float I = (cs_now[1].I - data->alias_detect.first_I) / alias_ms;
-        float Q = (cs_now[1].Q - data->alias_detect.first_Q) / alias_ms;
-        float err = alias_detect_second(&data->alias_detect, I, Q);
-        if (fabs(err) > (250 / alias_ms)) {
-          if (data->lock_detect.outp) {
-            log_warn_sid(channel_info->sid, "False phase lock detected: %f, %d", err, alias_ms);
-          } else {
-            log_warn_sid(channel_info->sid, "False optimistic lock detected: %f, %d", err, alias_ms);
-          }
-
-          tracker_ambiguity_unknown(channel_info->context);
-          /* Indicate that a mode change has occurred. */
-          common_data->mode_change_count = common_data->update_count;
-
-          switch (data->tracking_ctrl) {
-          case TP_CTRL_PLL2:
-            tl_pll2_adjust(&data->pll2_state, err);
-            break;
-          case TP_CTRL_PLL3:
-            tl_pll3_adjust(&data->pll3_state, err);
-            break;
-          case TP_CTRL_FLL1:
-            tl_fll1_adjust(&data->fll1_state, err);
-            break;
-          case TP_CTRL_FLL2:
-            tl_fll2_adjust(&data->fll2_state, err);
-            break;
-          default:
-            assert(false);
-          }
-        }
-
-        if (alias_first)
-          alias_detect_first(&data->alias_detect, cs_now[1].I, cs_now[1].Q);
-      }
-    }
-
 
     {
       /* Do tracking report to manager */
@@ -1222,6 +1306,59 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
       tp_report_data(channel_info->sid, &report);
     }
+  }
+
+  /* Attempt alias detection if we have pessimistic phase lock detect, OR
+     (optimistic phase lock detect AND are in second-stage tracking) */
+  if (data->use_alias_detection &&
+      (data->tracking_mode != TP_TM_INITIAL && data->lock_detect.outo)) {
+
+    /* Last period integration time */
+    u8 alias_ms = update_count_ms;
+    bool alias_first = false;
+    bool alias_second = false;
+
+    switch (data->tracking_mode)
+    {
+    case TP_TM_ONE_PLUS_N:
+      if (data->int_ms == 10 || data->int_ms == 5) {
+        alias_first = true;
+        alias_second = true;
+        if (data->cycle_no == 1)
+          alias_ms--;
+      }
+      break;
+
+    case TP_TM_ONE_PLUS_N5:
+      alias_first = true;
+      alias_second = true;
+      if (data->cycle_no == 1)
+        alias_ms--;
+
+      break;
+
+    case TP_TM_ONE_PLUS_N10:
+      alias_first = alias_second = false;
+      if (data->cycle_no == 2)
+        alias_second = true;
+      else if (data->cycle_no == 1)
+        alias_first = true;
+
+      break;
+
+    default:
+      break;
+    }
+
+    if (alias_second) {
+      float I = cs_bit[1].I;
+      float Q = cs_bit[1].Q;
+
+      process_alias_error(channel_info, common_data, data, I, Q);
+
+    }
+    if (alias_first)
+      alias_detect_first(&data->alias_detect, cs_bit[1].I, cs_bit[1].Q);
   }
 
   mode_change_complete(channel_info, common_data, data);
