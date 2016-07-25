@@ -24,6 +24,7 @@
 u32 nap_conf_rd_version(void);
 u8 nap_conf_rd_version_string(char version_string[]);
 void nap_rd_dna(u8 dna[]);
+bool nap_locked(void);
 void nap_unlock(const u8 key[]);
 
 #endif /* SWIFTNAV_NAP_CONF_H */

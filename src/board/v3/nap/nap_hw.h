@@ -70,6 +70,9 @@ typedef struct {
 } nap_t;
 
 /* Bitfields */
+#define NAP_STATUS_AUTH_LOCKED_Pos (0U)
+#define NAP_STATUS_AUTH_LOCKED_Msk (0x1U << NAP_STATUS_AUTH_LOCKED_Pos)
+
 #define NAP_STATUS_TRACKING_CH_Pos (1U)
 #define NAP_STATUS_TRACKING_CH_Msk (0x3FU << NAP_STATUS_TRACKING_CH_Pos)
 
