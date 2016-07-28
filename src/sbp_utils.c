@@ -290,7 +290,7 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
   e->kepler.toc.tow   = msg->toc_tow;
   e->kepler.toc.wn    = msg->toe_wn;
   e->valid            = msg->valid;
-  e->healthy          = msg->healthy;
+  e->health_bits      = msg->healthy;
   e->sid              = sid_from_sbp(msg->sid);
   e->kepler.iode      = msg->iode;
   e->kepler.iodc      = msg->iodc;
@@ -326,7 +326,7 @@ void pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
   msg->toc_tow        = toc.tow;
   msg->toc_wn         = toc.wn;
   msg->valid          = e->valid;
-  msg->healthy        = e->healthy;
+  msg->healthy        = e->health_bits;
   msg->sid            = sid_to_sbp(e->sid);
   msg->iode           = e->kepler.iode;
   msg->iodc           = e->kepler.iodc;

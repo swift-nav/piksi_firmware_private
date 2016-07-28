@@ -34,7 +34,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -59,7 +59,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -84,7 +84,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -109,7 +109,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -134,7 +134,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -159,7 +159,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -184,7 +184,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -209,7 +209,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -234,7 +234,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -259,7 +259,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -284,7 +284,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -309,7 +309,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -334,7 +334,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -359,7 +359,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -384,7 +384,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -409,7 +409,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -434,7 +434,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -459,7 +459,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -484,7 +484,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -509,7 +509,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -534,7 +534,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -559,7 +559,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -584,7 +584,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -609,7 +609,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -634,7 +634,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -659,7 +659,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -684,7 +684,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -709,7 +709,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -734,7 +734,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 0,
+  .health_bits = 0x3F,
   .valid     = 1,
 },
 { 
@@ -759,7 +759,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 { 
@@ -784,7 +784,7 @@ const almanac_t simulation_almanacs[31] = {
   },
   .ura = 900.000000,
   .fit_interval = 518400,
-  .healthy   = 1,
+  .health_bits = 0,
   .valid     = 1,
 },
 };
