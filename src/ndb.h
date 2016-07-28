@@ -16,6 +16,7 @@
 #include <ndb/ndb_ephemeris.h>
 #include <ndb/ndb_almanac.h>
 #include <ndb/ndb_l2c_capb.h>
+#include <ndb/ndb_iono.h>
 
 void ndb_setup();
 void ndb_sbp_updates();

@@ -35,7 +35,6 @@
 #include "base_obs.h"
 #include "ephemeris.h"
 #include "signal.h"
-#include "iono.h"
 #include "ndb.h"
 
 extern bool disable_raim;
@@ -156,7 +155,7 @@ static void update_obss(obss_t *new_obss)
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
-      if(!gps_iono_params_read(p_i_params)) {
+      if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
       calc_iono_tropo(base_obss.n, base_obss.nm, base_obss.pos_ecef, llh,
