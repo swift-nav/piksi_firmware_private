@@ -77,6 +77,8 @@ u32 obs_output_divisor = 2;
 double known_baseline[3] = {0, 0, 0};
 u16 msg_obs_max_size = 102;
 
+static last_good_fix_t lgf;
+
 static u16 lock_counters[PLATFORM_SIGNAL_COUNT];
 
 bool disable_raim = false;
@@ -229,7 +231,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   default:
   case FILTER_FIXED:
     chMtxLock(&amb_state_lock);
-    ret = dgnss_baseline(num_sdiffs, sdiffs, position_solution.pos_ecef,
+    ret = dgnss_baseline(num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                          &amb_state, &num_used, b,
                          disable_raim, DEFAULT_RAIM_THRESHOLD);
     chMtxUnlock(&amb_state_lock);
@@ -245,7 +247,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   case FILTER_FLOAT:
     flags = 0;
     chMtxLock(&amb_state_lock);
-    ret = baseline(num_sdiffs, sdiffs, position_solution.pos_ecef,
+    ret = baseline(num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                    &amb_state.float_ambs, &num_used, b,
                    disable_raim, DEFAULT_RAIM_THRESHOLD);
     chMtxUnlock(&amb_state_lock);
@@ -258,7 +260,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
     break;
   }
 
-  solution_send_baseline(t, num_used, b, position_solution.pos_ecef, flags, hdop, diff_time, base_id);
+  solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef, flags, hdop, diff_time, base_id);
 }
 
 static void send_observations(u8 n, const navigation_measurement_t *m,
@@ -446,6 +448,8 @@ static void solution_thread(void *arg)
 
   bool clock_jump = FALSE;
 
+  ndb_lgf_read(&lgf);
+
   while (TRUE) {
 
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
@@ -558,8 +562,8 @@ static void solution_thread(void *arg)
         p_i_params = NULL;
       }
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
-                      position_solution.pos_ecef,
-                      position_solution.pos_llh,
+                      lgf.position_solution.pos_ecef,
+                      lgf.position_solution.pos_llh,
                       p_i_params);
     }
 
@@ -567,7 +571,8 @@ static void solution_thread(void *arg)
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim,
-                          &position_solution, &dops);
+                          &lgf.position_solution, &dops);
+
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
       /* TODO: Make this based on time since last error instead of a simple
@@ -599,32 +604,32 @@ static void solution_thread(void *arg)
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(rec_tc, position_solution.time);
+      set_time_fine(rec_tc, lgf.position_solution.time);
       continue;
     }
 
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
-    double rx_err = gpsdifftime(&rec_time, &position_solution.time);
+    double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
     log_debug("RX clock error = %f", rx_err);
     clock_jump = FALSE;
     if (fabs(rx_err) >= 1e-3) {
     log_info("RX clock error %f > 1ms, resetting!", rx_err);
-      set_time_fine(rec_tc, position_solution.time);
+      set_time_fine(rec_tc, lgf.position_solution.time);
       clock_jump = TRUE;
     }
 
     /* Update global position solution state. */
-    position_updated();
+    ndb_lgf_store(&lgf);
 
     /* Save elevation angles every so often */
     DO_EVERY((u32)soln_freq,
              update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
-                                   position_solution.pos_ecef));
+                                   lgf.position_solution.pos_ecef));
 
     if (!simulation_enabled()) {
       /* Output solution. */
-      solution_send_sbp(&position_solution, &dops, clock_jump);
-      solution_send_nmea(&position_solution, &dops,
+      solution_send_sbp(&lgf.position_solution, &dops, clock_jump);
+      solution_send_nmea(&lgf.position_solution, &dops,
                          n_ready_tdcp, nav_meas_tdcp,
                          NMEA_GGA_FIX_GPS, clock_jump);
     }
@@ -660,7 +665,7 @@ static void solution_thread(void *arg)
      *  exact same observations.
      */
     for (u8 i = 0; i < n_ready_tdcp; i++) {
-      double pr_err = GPS_C * gpsdifftime(&position_solution.time, &rec_time);
+      double pr_err = GPS_C * gpsdifftime(&lgf.position_solution.time, &rec_time);
       nav_meas_tdcp[i].raw_pseudorange += pr_err;
       nav_meas_tdcp[i].pseudorange += pr_err;
     }
@@ -673,9 +678,9 @@ static void solution_thread(void *arg)
 
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
-    double expected_tow = round(position_solution.time.tow * soln_freq)
+    double expected_tow = round(lgf.position_solution.time.tow * soln_freq)
                           / soln_freq;
-    double t_err = expected_tow - position_solution.time.tow;
+    double t_err = expected_tow - lgf.position_solution.time.tow;
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -683,7 +688,7 @@ static void solution_thread(void *arg)
 
       /* Update observation time. */
       gps_time_t new_obs_time;
-      new_obs_time.wn = position_solution.time.wn;
+      new_obs_time.wn = lgf.position_solution.time.wn;
       new_obs_time.tow = expected_tow;
 
       /* Propagate observations to desired time. */
@@ -778,7 +783,7 @@ static void solution_thread(void *arg)
     }
 
     /* Calculate time till the next desired solution epoch. */
-    double dt = expected_tow - position_solution.time.tow;
+    double dt = expected_tow - lgf.position_solution.time.tow;
 
     /* Limit dt to 1 second maximum to prevent hang if dt calculated
      * incorrectly. */
@@ -803,9 +808,9 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
       /* Calculate ambiguities from known baseline. */
       log_info("Initializing using known baseline");
       double known_baseline_ecef[3];
-      wgsned2ecef(known_baseline, position_solution.pos_ecef,
+      wgsned2ecef(known_baseline, lgf.position_solution.pos_ecef,
                   known_baseline_ecef);
-      dgnss_init_known_baseline(n_sds, sds, position_solution.pos_ecef,
+      dgnss_init_known_baseline(n_sds, sds, lgf.position_solution.pos_ecef,
                                 known_baseline_ecef);
       init_known_base = false;
     } else {
@@ -816,7 +821,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
     if (n_sds > 4) {
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
-      dgnss_init(n_sds, sds, position_solution.pos_ecef);
+      dgnss_init(n_sds, sds, lgf.position_solution.pos_ecef);
       /* Initialize ambiguity states. */
       ambiguities_init(&amb_state.fixed_ambs);
       ambiguities_init(&amb_state.float_ambs);
@@ -828,7 +833,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
       reset_iar = false;
     }
     /* Update filters. */
-    dgnss_update(n_sds, sds, position_solution.pos_ecef,
+    dgnss_update(n_sds, sds, lgf.position_solution.pos_ecef,
                  disable_raim, DEFAULT_RAIM_THRESHOLD);
     /* Update ambiguity states. */
     chMtxLock(&amb_state_lock);

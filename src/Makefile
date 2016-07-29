@@ -132,6 +132,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_ephemeris.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_almanac.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_iono.o \
+        $(SWIFTNAV_ROOT)/src/ndb/ndb_lgf.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb.o \
         $(BOARDDIR)/ndb_fs_access.o \
         main.c

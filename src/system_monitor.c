@@ -33,6 +33,7 @@
 #include "system_monitor.h"
 #include "position.h"
 #include "base_obs.h"
+#include "ndb.h"
 
 #define WATCHDOG_THREAD_PERIOD_MS 15000
 extern const WDGConfig board_wdg_config;
@@ -165,20 +166,24 @@ static void system_monitor_thread(void *arg)
     sbp_send_msg(SBP_MSG_HEARTBEAT, sizeof(status_flags), (u8 *)&status_flags);
 
     /* If we are in base station mode then broadcast our known location. */
-    if (broadcast_surveyed_position && position_quality == POSITION_FIX) {
-      double tmp[3];
-      double base_ecef[3];
-      double base_distance;
+    if (broadcast_surveyed_position) {
+      last_good_fix_t lgf;
+      if (ndb_lgf_read(&lgf) == NDB_ERR_NONE &&
+         lgf.position_quality == POSITION_FIX) {
+        double tmp[3];
+        double base_ecef[3];
+        double base_distance;
 
-      llhdeg2rad(base_llh, tmp);
-      wgsllh2ecef(tmp, base_ecef);
+        llhdeg2rad(base_llh, tmp);
+        wgsllh2ecef(tmp, base_ecef);
 
-      base_distance = vector_distance(3, base_ecef, position_solution.pos_ecef);
+        base_distance = vector_distance(3, base_ecef, lgf.position_solution.pos_ecef);
 
-      if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
-        log_warn("Invalid surveyed position coordinates. No base position message will be sent.");
-      } else {
-        sbp_send_msg(SBP_MSG_BASE_POS_ECEF, sizeof(msg_base_pos_ecef_t), (u8 *)&base_ecef);
+        if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+          log_warn("Invalid surveyed position coordinates. No base position message will be sent.");
+        } else {
+          sbp_send_msg(SBP_MSG_BASE_POS_ECEF, sizeof(msg_base_pos_ecef_t), (u8 *)&base_ecef);
+        }
       }
     }
 

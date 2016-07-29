@@ -241,9 +241,11 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
     /* Do we have any idea where/when we are?  If not, no score. */
     /* TODO: Stricter requirement on time and position uncertainty?
        We ought to keep track of a quantitative uncertainty estimate. */
-    if (time_quality < TIME_GUESS &&
-        position_quality < POSITION_GUESS)
-      return SCORE_COLDSTART;
+  last_good_fix_t lgf;
+  if(ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
+      lgf.position_quality < POSITION_GUESS ||
+      time_quality < TIME_GUESS)
+    return SCORE_COLDSTART;
 
     float el = 0;
     double _, dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
@@ -262,17 +264,17 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
     }
 
     if (eph_valid && (ss_ret == 0)) {
-      wgsecef2azel(sat_pos, position_solution.pos_ecef, &_, &el_d);
+      wgsecef2azel(sat_pos, lgf.position_solution.pos_ecef, &_, &el_d);
       el = (float)(el_d) * R2D;
       if (el < elevation_mask)
         return SCORE_BELOWMASK;
-      vector_subtract(3, sat_pos, position_solution.pos_ecef, sat_pos);
+      vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
       vector_normalize(3, sat_pos);
       /* sat_pos now holds unit vector from us to satellite */
-      vector_subtract(3, sat_vel, position_solution.vel_ecef, sat_vel);
+      vector_subtract(3, sat_vel, lgf.position_solution.vel_ecef, sat_vel);
       /* sat_vel now holds velocity of sat relative to us */
       dopp_hint = -GPS_L1_HZ * (vector_dot(3, sat_pos, sat_vel) / GPS_C
-                                + position_solution.clock_bias);
+                                + lgf.position_solution.clock_bias);
       /* TODO: Check sign of receiver frequency offset correction */
       if (time_quality >= TIME_FINE)
         dopp_uncertainty = DOPP_UNCERT_EPHEM;
@@ -282,12 +284,12 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
     if(!ready) {
       ndb_almanac_read(sid, &orbit.a);
       if (orbit.a.valid &&
-          calc_sat_az_el_almanac(&orbit.a, t, position_solution.pos_ecef,
+          calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                  &_, &el_d) == 0) {
           el = (float)(el_d) * R2D;
           if (el < elevation_mask)
             return SCORE_BELOWMASK;
-          if (calc_sat_doppler_almanac(&orbit.a, t, position_solution.pos_ecef,
+          if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                        &dopp_hint) != 0) {
             return SCORE_COLDSTART;
           }
