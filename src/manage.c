@@ -572,7 +572,7 @@ static void manage_track()
     /* Is ephemeris or alert flag marked unhealthy?*/
     const ephemeris_t *e = ephemeris_get(sid);
     /* TODO: check alert flag */
-    if (e->valid && !satellite_healthy(e)) {
+    if (e->valid && !signal_healthy(e, sid.code)) {
       log_info_sid(sid, "unhealthy, dropping");
       drop_channel(i);
       acq->state = ACQ_PRN_UNHEALTHY;
@@ -642,8 +642,9 @@ s8 use_tracking_channel(u8 i)
       .wn = WN_UNKNOWN,
       .tow = 1e-3 * tracking_channel_tow_ms_get(i)
     };
-    ephemeris_t *e = ephemeris_get(tracking_channel_sid_get(i));
-    return ephemeris_valid(e, &t) && satellite_healthy(e);
+    gnss_signal_t sid = tracking_channel_sid_get(i);
+    ephemeris_t *e = ephemeris_get(sid);
+    return ephemeris_valid(e, &t) && signal_healthy(e, sid.code);
   } else return 0;
 }
 
