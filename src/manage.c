@@ -572,8 +572,7 @@ static void manage_track()
     /* Is ephemeris or alert flag marked unhealthy?*/
     const ephemeris_t *e = ephemeris_get(sid);
     /* TODO: check alert flag */
-    if (e->valid &&
-        !signal_healthy(e->valid, e->health_bits, e->ura, sid.code)) {
+    if (!signal_healthy(e->valid, e->health_bits, e->ura, sid.code)) {
       log_info_sid(sid, "unhealthy, dropping");
       drop_channel(i);
       acq->state = ACQ_PRN_UNHEALTHY;
