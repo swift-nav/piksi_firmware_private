@@ -22,8 +22,9 @@
  */
 MEMORY
 {
-    flash : org = 0x1e000000, len = 0x00100000
-    ram0  : org = 0x1e100000, len = 0x00f00000
+    flash : org = 0x1e000000, len = 0x00800000
+    vring : org = 0x1e800000, len = 0x00800000
+    ram0  : org = 0x1f000000, len = 0x01000000
     ram1  : org = 0x00000000, len = 0
     ram2  : org = 0x00000000, len = 0
     ram3  : org = 0x00000000, len = 0
@@ -43,23 +44,44 @@ REGION_ALIAS("DATA_RAM", ram0);
 /* RAM region to be used for BSS segment.*/
 REGION_ALIAS("BSS_RAM", ram0);
 
-INCLUDE rules.ld
-
 SECTIONS {
+    /* Duplicated here so that vectors remain at the start of flash */
+    startup : ALIGN(16) SUBALIGN(16)
+    {
+        KEEP(*(.vectors))
+    } > flash
+
     .mmu_tbl : ALIGN(16k)
     {
         PROVIDE(__mmu_tbl_start = .);
-        *(.mmu_tbl)
+        KEEP(*(.mmu_tbl))
         PROVIDE(__mmu_tbl_end = .);
     } > flash
 
     .resource_table :
     {
-        __rtable_start = .;
+        PROVIDE(__rtable_start = .);
         KEEP(*(.resource_table))
-        __rtable_end = .;
+        PROVIDE(__rtable_end = .);
     } > flash
+
+    .cached_text_align : {. = ALIGN(16);} > flash
+    PROVIDE(__cached_text_flash = .);
+
+    .cached_text : ALIGN(16) SUBALIGN(16)
+    {
+        . = ALIGN(4);
+        PROVIDE(__cached_text_start = .);
+        *(EXCLUDE_FILE(*crt0.o *crt1.o *cpu_init.o) .text)
+        *(EXCLUDE_FILE(*crt0.o *crt1.o *cpu_init.o) .text.*)
+        *(.rodata)
+        *(.rodata.*)
+        . = ALIGN(4);
+        PROVIDE(__cached_text_end = .);
+    } > ram0 AT > flash
 }
 
 __main_thread_stack_base__ = __stacks_base__;
 _ecoffee_fs_area = _coffee_fs_area + 524288;
+
+INCLUDE rules.ld

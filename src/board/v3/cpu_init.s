@@ -26,10 +26,10 @@ __early_init:
 #endif
 
     /* Invalidate caches and TLBs */
-    mov r0, #0                      /* r0 = 0  */
+    mov r0, #0                      /* r0 = 0 */
     mcr p15, 0, r0, c8, c7, 0       /* invalidate TLBs */
     mcr p15, 0, r0, c7, c5, 0       /* invalidate icache */
-    mcr p15, 0, r0, c7, c5, 6       /* Invalidate branch predictor array */
+    mcr p15, 0, r0, c7, c5, 6       /* invalidate branch predictor array */
     b invalidate_dcache             /* invalidate dcache */
 
 invalidate_dcache_ret:
@@ -39,29 +39,63 @@ invalidate_dcache_ret:
     bic r0, r0, #0x1                /* clear M bit */
     mcr p15, 0, r0, c1, c0, 0       /* write SCTLR */
 
+    /* Done */
+#if defined(THUMB_NO_INTERWORKING)
+    add r0, pc, #1
+    bx r0
+    .code   16
+    bx lr
+    .code   32
+#else
+    bx lr
+#endif
+
+    .global __late_init
+__late_init:
+
+#if defined(THUMB_NO_INTERWORKING)
+    .code   16
+    mov r0, pc
+    bx  r0
+    .code   32
+#endif
+
+    /*
+     * Cached text initialization.
+     * NOTE: It assumes that the size is a multiple of 4.
+     */
+    ldr     r1, =__cached_text_flash
+    ldr     r2, =__cached_text_start
+    ldr     r3, =__cached_text_end
+cached_text_loop:
+    cmp     r2, r3
+    ldrlo   r0, [r1], #4
+    strlo   r0, [r2], #4
+    blo     cached_text_loop
+
     /* Set MMU TTB0 base */
-    ldr r0, =MMUTable               /* Load MMU translation table base */
-    orr r0, r0, #0x5B               /* Outer-cacheable, WB */
+    ldr r0, =MMUTable               /* load MMU translation table base */
+    orr r0, r0, #0x2                /* shareable, non-cacheable */
     mcr p15, 0, r0, c2, c0, 0       /* write TTB0 */
 
     /* Configure MMU domains */
     mov r0, #0xffffffff             /* all ones = manager, permissions ignored */
     mcr p15, 0, r0, c3, c0, 0       /* write DACR */
 
-    /* Enable mmu, icahce and dcache */
+    /* Enable mmu, icache and dcache */
     mrc p15, 0, r0, c1, c0, 0       /* read SCTLR */
     orr r0, r0, #(0x1 << 12)        /* set I bit */
     orr r0, r0, #(0x1 << 2)         /* set C bit */
     orr r0, r0, #(0x1 << 0)         /* set M bit */
     mcr p15, 0, r0, c1, c0, 0       /* write SCTLR */
-    dsb                             /* dsb allow the MMU to start up */
-    isb                             /* isb flush prefetch buffer */
+    dsb                             /* allow the MMU to start up */
+    isb                             /* flush prefetch buffer */
 
-    /* Write to ACTLR */
-    mrc p15, 0, r0, c1, c0, 1       /* Read ACTLR */
+    /* Set SMP and FW bits */
+    mrc p15, 0, r0, c1, c0, 1       /* read ACTLR */
     orr r0, r0, #(0x1 << 6)         /* set SMP bit */
     orr r0, r0, #(0x1 << 0)         /* set FW bit */
-    mcr p15, 0, r0, c1, c0, 1       /* Write ACTLR */
+    mcr p15, 0, r0, c1, c0, 1       /* write ACTLR */
 
     /* Allow full access to coprocessors */
     mrc p15, 0, r0, c1, c0, 2       /* read CPACR  */
