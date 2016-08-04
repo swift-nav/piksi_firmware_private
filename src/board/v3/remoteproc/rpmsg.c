@@ -92,6 +92,8 @@ void rpmsg_setup(void)
 
   chThdCreateStatic(wa_rpmsg_thread, sizeof(wa_rpmsg_thread),
                     RPMSG_THD_PRIO, rpmsg_thread, NULL);
+
+  remoteproc_env_irq_kick();
 }
 
 u32 rpmsg_rx_fifo_length(rpmsg_endpoint_t rpmsg_endpoint)
