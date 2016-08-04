@@ -21,6 +21,7 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/ionosphere.h>
 
 typedef struct {
   union {
@@ -76,7 +77,19 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
 
 msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
 
-void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*));
+void sbp_ephe_reg_cbks(sbp_msg_callback_t ephemeris_msg_callback);
+
+void unpack_iono(const msg_iono_t *msg, ionosphere_t *e);
+
+void pack_iono(const ionosphere_t *e, msg_iono_t *msg);
+
+void unpack_sv_conf_gps(const msg_sv_configuration_gps_t *msg, u32 *l2c_cap);
+
+void pack_sv_conf_gps(u32 l2c_cap, msg_sv_configuration_gps_t *msg);
+
+void unpack_group_delay(const msg_group_delay_t *m, cnav_msg_t *cnav);
+
+void pack_group_delay(const cnav_msg_t *cnav, msg_group_delay_t *m);
 
 /** Value specifying the size of the SBP framing */
 #define SBP_FRAMING_SIZE_BYTES 8

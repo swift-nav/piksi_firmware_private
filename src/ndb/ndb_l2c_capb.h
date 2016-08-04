@@ -23,4 +23,7 @@ enum ndb_op_code ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) NDB_WEAK;
 enum ndb_op_code ndb_gps_l2cm_l2c_cap_store(u32 *l2c_cap,
                                             enum ndb_data_source src) NDB_WEAK;
 
+void ndb_sbp_sv_config_reg_cbk();
+void ndb_sbp_group_delay_reg_cbk();
+
 #endif /* SRC_NDB_L2C_CAPB_H_ */

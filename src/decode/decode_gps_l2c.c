@@ -27,6 +27,7 @@
 #include "signal.h"
 #include "cnav_msg_storage.h"
 #include "shm.h"
+#include "ndb.h"
 
 typedef struct {
   cnav_msg_t cnav_msg;
@@ -74,6 +75,8 @@ static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
   gps_l2c_decoder_data_t *data = decoder_data;
   memset(data, 0, sizeof(gps_l2c_decoder_data_t));
   cnav_msg_decoder_init(&data->cnav_msg_decoder);
+
+  ndb_sbp_group_delay_reg_cbk();
 }
 
 static void decoder_gps_l2c_disable(const decoder_channel_info_t *channel_info,
@@ -130,7 +133,12 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
                     data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
                     data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
                     data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
+
+      /* Store and send data */
       cnav_msg_put(&data->cnav_msg);
+      msg_group_delay_t msg;
+      pack_group_delay(&data->cnav_msg, &msg);
+      sbp_send_msg(SBP_MSG_GROUP_DELAY, sizeof(msg_group_delay_t), (u8 *)&msg);
     }
 
     tow_ms = data->cnav_msg.tow * GPS_CNAV_MSG_LENGTH * GPS_L2C_SYMBOL_LENGTH;

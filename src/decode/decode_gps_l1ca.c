@@ -69,6 +69,9 @@ static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
   (void)channel_info;
   gps_l1ca_decoder_data_t *data = decoder_data;
   nav_msg_init(&data->nav_msg);
+
+  ndb_sbp_iono_reg_cbk();
+  ndb_sbp_sv_config_reg_cbk();
 }
 
 static void decoder_gps_l1ca_disable(const decoder_channel_info_t *channel_info,
@@ -122,12 +125,20 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     log_debug_sid(channel_info->sid, "L2C capabilities received: 0x%x",
                   dd.gps_l2c_sv_capability);
     ndb_gps_l2cm_l2c_cap_store(&dd.gps_l2c_sv_capability, NDB_DS_RECEIVER);
+    msg_sv_configuration_gps_t msg;
+    pack_sv_conf_gps(dd.gps_l2c_sv_capability, &msg);
+    sbp_send_msg(SBP_MSG_SV_CONFIGURATION_GPS,
+                 sizeof(msg_sv_configuration_gps_t),
+                 (u8 *)&msg);
   }
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
     log_debug_sid(channel_info->sid, "Iono parameters received");
     ndb_iono_corr_store(&dd.iono, NDB_DS_RECEIVER);
+    msg_iono_t msg;
+    pack_iono(&dd.iono, &msg);
+    sbp_send_msg(SBP_MSG_IONO, sizeof(msg_iono_t), (u8 *)&msg);
   }
 
   if(dd.ephemeris_upd_flag) {
