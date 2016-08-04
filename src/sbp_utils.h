@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2014 Swift Navigation Inc.
+ * Copyright (C) 2014, 2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -20,6 +21,19 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
+
+typedef struct {
+  union {
+    msg_ephemeris_gps_t   gps;
+    msg_ephemeris_sbas_t  sbas;
+    msg_ephemeris_glo_t   glo;
+  };
+} msg_ephemeris_t;
+
+typedef struct {
+  u16 msg_id;
+  u16 size;
+} msg_ephemeris_info_t;
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flags);
@@ -60,7 +74,9 @@ s8 pack_obs_content(double P, double L, double snr, u16 lock_counter,
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
 
-void pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
+msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
+
+void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*));
 
 /** Value specifying the size of the SBP framing */
 #define SBP_FRAMING_SIZE_BYTES 8

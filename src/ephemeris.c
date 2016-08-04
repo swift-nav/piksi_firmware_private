@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2011-2015 Swift Navigation Inc.
+ * Copyright (C) 2011-2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *          Gareth McMullin <gareth@swiftnav.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -52,8 +53,8 @@ static void ephemeris_thread(void *arg)
         /* Now that we are locked, reverify validity and transmit */
         if (ephemeris_valid(e, &t)) {
           msg_ephemeris_t msg;
-          pack_ephemeris(e, &msg);
-          sbp_send_msg(SBP_MSG_EPHEMERIS, sizeof(msg_ephemeris_t), (u8 *)&msg);
+          msg_ephemeris_info_t info = pack_ephemeris(e, &msg);
+          sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
           success = true;
         }
         ephemeris_unlock();
@@ -126,12 +127,7 @@ void ephemeris_setup(void)
     es[i].sid = sid_from_global_index(i);
   }
 
-  static sbp_msg_callbacks_node_t ephemeris_msg_node;
-  sbp_register_cbk(
-    SBP_MSG_EPHEMERIS,
-    &ephemeris_msg_callback,
-    &ephemeris_msg_node
-  );
+  sbp_ephe_reg_cbks(&ephemeris_msg_callback);
 
   chThdCreateStatic(wa_ephemeris_thread, sizeof(wa_ephemeris_thread),
                     NORMALPRIO-10, ephemeris_thread, NULL);

@@ -11,6 +11,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -19,6 +20,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 
+#include "sbp.h"
 #include "sbp_utils.h"
 
 /** \addtogroup sbp
@@ -264,8 +266,34 @@ s8 pack_obs_content(double P, double L, double snr, u16 lock_counter,
   return 0;
 }
 
-void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
+static void unpack_ephemeris_common(const ephemeris_common_content_t *common,
+                                    ephemeris_t *e)
 {
+  e->toe.tow          = common->toe.tow;
+  e->toe.wn           = common->toe.wn;
+  e->valid            = common->valid;
+  e->health_bits      = common->health_bits;
+  e->sid              = sid_from_sbp(common->sid);
+  e->fit_interval     = common->fit_interval;
+  e->ura              = common->ura;
+}
+
+static void pack_ephemeris_common(const ephemeris_t *e,
+                                  ephemeris_common_content_t *common)
+{
+  common->toe.tow      = e->toe.tow;
+  common->toe.wn       = e->toe.wn;
+  common->valid        = e->valid;
+  common->health_bits  = e->health_bits;
+  common->sid          = sid_to_sbp(e->sid);
+  common->fit_interval = e->fit_interval;
+  common->ura          = e->ura;
+}
+
+static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e)
+{
+  const msg_ephemeris_gps_t *msg = &m->gps;
+  unpack_ephemeris_common(&msg->common, e);
   e->kepler.tgd       = msg->tgd;
   e->kepler.crs       = msg->c_rs;
   e->kepler.crc       = msg->c_rc;
@@ -285,23 +313,16 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
   e->kepler.af0       = msg->af0;
   e->kepler.af1       = msg->af1;
   e->kepler.af2       = msg->af2;
-  e->toe.tow          = msg->toe_tow;
-  e->toe.wn           = msg->toe_wn;
-  e->kepler.toc.tow   = msg->toc_tow;
-  e->kepler.toc.wn    = msg->toe_wn;
-  e->valid            = msg->valid;
-  e->health_bits      = msg->healthy;
-  e->sid              = sid_from_sbp(msg->sid);
+  e->kepler.toc.tow   = msg->toc.tow;
+  e->kepler.toc.wn    = msg->toc.wn;
   e->kepler.iode      = msg->iode;
   e->kepler.iodc      = msg->iodc;
-  e->fit_interval     = 4 * 60 * 60; /* TODO: this is a work around until SBP updated */
-  e->ura              = 2.0f; /* TODO: this is a work around until SBP updated*/
 }
 
-void pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
+static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m)
 {
-  gps_time_t toe      = e->toe;
-  gps_time_t toc      = e->kepler.toc;
+  msg_ephemeris_gps_t *msg = &m->gps;
+  pack_ephemeris_common(e, &msg->common);
   msg->tgd            = e->kepler.tgd;
   msg->c_rs           = e->kepler.crs;
   msg->c_rc           = e->kepler.crc;
@@ -321,15 +342,110 @@ void pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
   msg->af0            = e->kepler.af0;
   msg->af1            = e->kepler.af1;
   msg->af2            = e->kepler.af2;
-  msg->toe_tow        = toe.tow;
-  msg->toe_wn         = toe.wn;
-  msg->toc_tow        = toc.tow;
-  msg->toc_wn         = toc.wn;
-  msg->valid          = e->valid;
-  msg->healthy        = e->health_bits;
-  msg->sid            = sid_to_sbp(e->sid);
+  msg->toc.tow        = e->kepler.toc.tow;
+  msg->toc.wn         = e->kepler.toc.wn;
   msg->iode           = e->kepler.iode;
   msg->iodc           = e->kepler.iodc;
+}
+
+static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e)
+{
+  const msg_ephemeris_sbas_t *msg = &m->sbas;
+  unpack_ephemeris_common(&msg->common, e);
+  memcpy(e->xyz.pos, msg->pos, sizeof(e->xyz.pos));
+  memcpy(e->xyz.vel, msg->vel, sizeof(e->xyz.vel));
+  memcpy(e->xyz.acc, msg->acc, sizeof(e->xyz.acc));
+  e->xyz.a_gf0        = msg->a_gf0;
+  e->xyz.a_gf1        = msg->a_gf1;
+}
+
+static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m)
+{
+  msg_ephemeris_sbas_t *msg = &m->sbas;
+  pack_ephemeris_common(e, &msg->common);
+  memcpy(msg->pos, e->xyz.pos, sizeof(e->xyz.pos));
+  memcpy(msg->vel, e->xyz.vel, sizeof(e->xyz.vel));
+  memcpy(msg->acc, e->xyz.acc, sizeof(e->xyz.acc));
+  msg->a_gf0          = e->xyz.a_gf0;
+  msg->a_gf1          = e->xyz.a_gf1;
+}
+
+static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e)
+{
+  const msg_ephemeris_glo_t *msg = &m->glo;
+  unpack_ephemeris_common(&msg->common, e);
+  memcpy(e->glo.pos, msg->pos, sizeof(e->glo.pos));
+  memcpy(e->glo.vel, msg->vel, sizeof(e->glo.vel));
+  memcpy(e->glo.acc, msg->acc, sizeof(e->glo.acc));
+  e->glo.gamma        = msg->gamma;
+  e->glo.tau          = msg->tau;
+}
+
+static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
+{
+  msg_ephemeris_glo_t *msg = &m->glo;
+  pack_ephemeris_common(e, &msg->common);
+  memcpy(msg->pos, e->glo.pos, sizeof(msg->pos));
+  memcpy(msg->vel, e->glo.vel, sizeof(msg->vel));
+  memcpy(msg->acc, e->glo.acc, sizeof(msg->acc));
+  msg->gamma          = e->glo.gamma;
+  msg->tau            = e->glo.tau;
+}
+
+typedef void (*pack_ephe_func)(const ephemeris_t *, msg_ephemeris_t *);
+typedef void (*unpack_ephe_func)(const msg_ephemeris_t *, ephemeris_t *);
+
+#define EPHE_TYPE_COUNT 3
+
+typedef struct {
+  const msg_ephemeris_info_t msg_info;
+  const pack_ephe_func pack;
+  const unpack_ephe_func unpack;
+  sbp_msg_callbacks_node_t cbk_node;
+} ephe_type_table_element_t;
+static ephe_type_table_element_t ephe_type_table[EPHE_TYPE_COUNT] = {
+  {{SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},
+   pack_ephemeris_gps, unpack_ephemeris_gps, {0}},
+  {{SBP_MSG_EPHEMERIS_SBAS, sizeof(msg_ephemeris_sbas_t)},
+   pack_ephemeris_sbas, unpack_ephemeris_sbas, {0}},
+  {{SBP_MSG_EPHEMERIS_GLO, sizeof(msg_ephemeris_glo_t)},
+   pack_ephemeris_glo, unpack_ephemeris_glo, {0}}
+};
+
+void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
+{
+  constellation_t c = sid_to_constellation(e->sid);
+
+  assert(c < EPHE_TYPE_COUNT);
+  assert(NULL != ephe_type_table[c].unpack);
+
+  ephe_type_table[c].unpack(msg, e);
+}
+
+msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
+{
+  constellation_t c = sid_to_constellation(e->sid);
+
+  assert(c < EPHE_TYPE_COUNT);
+  assert(NULL != ephe_type_table[c].pack);
+
+  ephe_type_table[c].pack(e, msg);
+
+  return ephe_type_table[c].msg_info;
+}
+
+void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*))
+{
+  if (EPHE_TYPE_COUNT != CONSTELLATION_COUNT)
+    log_warn("EPHE_TYPE_COUNT != CONSTELLATION_COUNT");
+
+  for (u8 i = 0; i < EPHE_TYPE_COUNT; i++) {
+    sbp_register_cbk(
+      ephe_type_table[i].msg_info.msg_id,
+      ephemeris_msg_callback,
+      &ephe_type_table[i].cbk_node
+    );
+  }
 }
 
 /** \} */
