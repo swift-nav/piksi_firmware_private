@@ -74,6 +74,16 @@ void remoteproc_env_irq_process(void)
   }
 }
 
+void remoteproc_env_irq_kick(void)
+{
+  for (int i=0; i<IRQ_STATUS_COUNT; i++) {
+    irq_status_t *s = &irq_status[i];
+    if (s->allocated) {
+      hil_isr(s->vring_hw);
+    }
+  }
+}
+
 int env_init()
 {
   if (env_initialized) {

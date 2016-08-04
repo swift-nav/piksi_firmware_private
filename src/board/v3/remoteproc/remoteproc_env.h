@@ -17,5 +17,6 @@ typedef void (*remoteproc_env_irq_callback_t)(void);
 
 void remoteproc_env_irq_callback_set(remoteproc_env_irq_callback_t callback);
 void remoteproc_env_irq_process(void);
+void remoteproc_env_irq_kick(void);
 
 #endif /* SWIFTNAV_REMOTEPROC_ENV_H */
