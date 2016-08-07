@@ -76,7 +76,12 @@ void send_thread_states()
     u16 cpu = 1000.0f * tp->p_ctime / (float)g_ctime;
     tp_state.cpu = cpu;
     tp_state.stack_free = check_stack_free(tp);
-    strncpy(tp_state.name, chRegGetThreadNameX(tp), sizeof(tp_state.name));
+    const char *name = chRegGetThreadNameX(tp);
+    if (name != NULL) {
+      strncpy(tp_state.name, name, sizeof(tp_state.name));
+    } else {
+      memset(tp_state.name, 0, sizeof(tp_state.name));
+    }
     sbp_send_msg(SBP_MSG_THREAD_STATE, sizeof(tp_state), (u8 *)&tp_state);
 
     tp->p_ctime = 0;  /* Reset thread CPU cycle count */
