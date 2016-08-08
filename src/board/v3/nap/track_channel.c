@@ -50,6 +50,10 @@
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
 #define SPACING_HALF_CHIP ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 2)
+/* spacing for very early and very late for noise estimation
+ * should be far enough from correlation peak, use max value
+ * need to me adjusted */
+#define SPACING_FOR_NOISE_EST (0xffff)
 
 static struct nap_ch_state {
   u32 code_phase;   /**< Fractional part of code phase. */
@@ -145,7 +149,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   t->CODE_INIT_G1 = sid_to_init_g1(sid);
   t->CODE_INIT_G2 = 0x3ff;
 
-  t->SPACING = (SPACING_HALF_CHIP << NAP_TRK_SPACING_OUTER_Pos) |
+  t->SPACING = (SPACING_FOR_NOISE_EST << NAP_TRK_SPACING_OUTER_Pos) |
                (SPACING_HALF_CHIP << NAP_TRK_SPACING_INNER_Pos);
 
   double cp_rate = (1.0 + carrier_freq / code_to_carr_freq(sid.code)) *
@@ -227,7 +231,7 @@ void nap_track_read_results(u8 channel,
     lc[i].I = t->CORR[i].I >> 8;
     lc[i].Q = t->CORR[i].Q >> 8;
   }
-  memcpy(corrs, &lc[1], sizeof(corr_t)*3);
+  memcpy(corrs, &lc[0], sizeof(corr_t)*5);
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) |
                              t->CODE_PHASE_FRAC;
