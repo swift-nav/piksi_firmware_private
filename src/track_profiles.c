@@ -12,6 +12,7 @@
 
 #include <platform_signal.h>
 #include "track_profiles.h"
+#include "track_profile_utils.h"
 #include "chconf_board.h"
 
 #include <libswiftnav/constants.h>
@@ -1053,69 +1054,76 @@ static float compute_cn0_profile_offset(u8 profile_i, u8 profile_d)
     17.7815f, /* 60ms */
   };
 
-  if (lp->coherent_ms > 1) {
-    /* Denormalize C/N0.
-     *
-     * When integration time is higher, the tracking loop can keep tracking at
-     * a much lower C/N0 values.
-     *
-     * TODO convert C/N0 to SNR to avoid confusion.
-     */
+  u8 cn0_ms = tp_get_cn0_ms(lp->mode, lp->coherent_ms);
 
-    size_t cn0_offset_index = 0;
+  /* Denormalize C/N0.
+   *
+   * When integration time is higher, the tracking loop can keep tracking at
+   * a much lower C/N0 values.
+   *
+   * TODO convert C/N0 to SNR to avoid confusion.
+   */
 
-    switch (lp->coherent_ms) {
-    case 2:
-      cn0_offset_index = 1;
-      break;
+  size_t cn0_offset_index = 0;
 
-    case 4:
-      cn0_offset_index = 3;
-      break;
+  switch (cn0_ms) {
+  case 1:
+    cn0_offset_index = 0;
+    break;
 
-    case 5:
-      cn0_offset_index = 4;
-      break;
+  case 2:
+    cn0_offset_index = 1;
+    break;
 
-    case 10:
-      cn0_offset_index = 6;
-      break;
+  case 3:
+    cn0_offset_index = 2;
+    break;
 
-    case 20:
-      cn0_offset_index = 8;
-      break;
+  case 4:
+    cn0_offset_index = 3;
+    break;
 
-    case 40:
-      cn0_offset_index = 10;
-      break;
+  case 5:
+    cn0_offset_index = 4;
+    break;
 
-    case 60:
-      cn0_offset_index = 12;
-      break;
+  case 9:
+    cn0_offset_index = 5;
+    break;
 
-    default:
-      assert(false);
-    }
+  case 10:
+    cn0_offset_index = 6;
+    break;
 
-    switch (lp->mode) {
-    case TP_TM_ONE_PLUS_N:
-    case TP_TM_ONE_PLUS_N20:
-    case TP_TM_ONE_PLUS_N10:
-    case TP_TM_ONE_PLUS_N5:
-    case TP_TM_SPLIT:
-      /* Very unfortunate, but the integrator handles N-1 milliseconds */
-      cn0_offset_index--;
-      break;
-    case TP_TM_INITIAL:
-    case TP_TM_PIPELINING:
-    case TP_TM_IMMEDIATE:
-      break;
-    default:
-      assert(false);
-    }
+  case 19:
+    cn0_offset_index = 7;
+    break;
 
-    cn0_offset = cn0_offsets[cn0_offset_index];
+  case 20:
+    cn0_offset_index = 8;
+    break;
+
+  case 39:
+    cn0_offset_index = 9;
+    break;
+
+  case 40:
+    cn0_offset_index = 10;
+    break;
+
+  case 59:
+    cn0_offset_index = 11;
+    break;
+
+  case 60:
+    cn0_offset_index = 12;
+    break;
+
+  default:
+    assert(false);
   }
+
+  cn0_offset = cn0_offsets[cn0_offset_index];
 
   return cn0_offset;
 }
