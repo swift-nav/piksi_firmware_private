@@ -45,6 +45,12 @@ void nap_setup(void)
                           NAP_STATUS_TRACKING_CH_Pos;
   nap_track_n_channels = MIN(nap_track_n_channels, NAP_MAX_N_TRACK_CHANNELS);
 
+  /* Configure ACP AXI attributes to match page table. */
+  NAP->ACQ_AXI_ATTRIBUTES = ( 0b1111 << NAP_ACQ_AXI_ATTRIBUTES_ARCACHE_Pos) |
+                            ( 0b1111 << NAP_ACQ_AXI_ATTRIBUTES_AWCACHE_Pos) |
+                            (0b11111 << NAP_ACQ_AXI_ATTRIBUTES_ARUSER_Pos)  |
+                            (0b11111 << NAP_ACQ_AXI_ATTRIBUTES_AWUSER_Pos);
+
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
