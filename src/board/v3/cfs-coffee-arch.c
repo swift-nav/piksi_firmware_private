@@ -15,7 +15,7 @@
 
 #include "cfs-coffee-arch.h"
 
-u8 _coffee_fs_area[51200];
+u8 _coffee_fs_area[524288];
 
 /** \addtogroup cfs
  * \{
