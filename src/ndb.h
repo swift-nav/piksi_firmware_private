@@ -10,12 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SRC_L2C_CAPB_H_
-#define SRC_L2C_CAPB_H_
+#ifndef SWIFTNAV_NDB_H
+#define SWIFTNAV_NDB_H
 
-#include "libswiftnav/common.h"
+#include <ndb/ndb_ephemeris.h>
+#include <ndb/ndb_almanac.h>
+#include <ndb/ndb_l2c_capb.h>
 
-void gps_l2cm_l2c_cap_store(u32 l2c_capb);
-u32 gps_l2cm_l2c_cap_read();
+void ndb_setup();
+void ndb_sbp_updates();
 
-#endif /* SRC_L2C_CAPB_H_ */
+#endif /* SWIFTNAV_NDB_H */

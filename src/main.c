@@ -39,6 +39,7 @@
 #include "decode.h"
 #include "signal.h"
 #include "version.h"
+#include "ndb.h"
 
 extern void ext_setup(void);
 
@@ -65,6 +66,8 @@ int main(void)
   init();
   settings_setup();
   signal_init();
+
+  ndb_setup();
   ephemeris_setup();
 
   static char hw_revision_string[64] = {0};

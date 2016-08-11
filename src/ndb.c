@@ -9,18 +9,18 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "ndb.h"
+#include "ndb/ndb_internal.h"
 
-#include "l2c_capb.h"
-
-/* Initial value matches the status of GPS constellation on 2016-05-17 */
-static u32 gps_l2cm_l2c_capabilities = 0xf7814bfd;
-
-void gps_l2cm_l2c_cap_store(u32 l2c_capb)
+/** Set up the NDB module. */
+void ndb_setup(void)
 {
-  gps_l2cm_l2c_capabilities = l2c_capb;
+  ndb_init();
+  platform_ndb_init();
+  ndb_start();
 }
 
-u32 gps_l2cm_l2c_cap_read()
+void ndb_sbp_updates()
 {
-  return gps_l2cm_l2c_capabilities;
+  platform_ndb_sbp_updates();
 }
