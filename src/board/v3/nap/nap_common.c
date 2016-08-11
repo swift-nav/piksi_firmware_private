@@ -38,9 +38,6 @@ u8 nap_track_n_channels = 0;
 
 void nap_setup(void)
 {
-  nap_rd_dna(nap_dna);
-  /* TODO: Call nap_unlock with valid key */
-
   nap_track_n_channels = (NAP->STATUS & NAP_STATUS_TRACKING_CH_Msk) >>
                           NAP_STATUS_TRACKING_CH_Pos;
   nap_track_n_channels = MIN(nap_track_n_channels, NAP_MAX_N_TRACK_CHANNELS);
@@ -142,8 +139,10 @@ static void nap_rd_dna_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   sbp_send_msg(SBP_MSG_NAP_DEVICE_DNA_RESP, NAP_DNA_LENGTH, nap_dna);
 }
 
-void nap_callbacks_setup(void)
+void nap_dna_callback_register(void)
 {
+  nap_rd_dna(nap_dna);
+
   static sbp_msg_callbacks_node_t nap_dna_node;
 
   sbp_register_cbk(SBP_MSG_NAP_DEVICE_DNA_REQ, &nap_rd_dna_callback,
