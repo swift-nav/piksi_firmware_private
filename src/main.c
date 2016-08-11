@@ -54,7 +54,6 @@ int main(void)
   /* Piksi hardware initialization. */
   pre_init();
 
-  usarts_setup();
   static s32 serial_number;
   serial_number = serial_number_get();
   if (serial_number < 0) {
@@ -62,9 +61,10 @@ int main(void)
     serial_number = 0x2222;
   }
   sbp_setup(serial_number);
+  settings_setup();
+  usarts_setup();
 
   init();
-  settings_setup();
   signal_init();
 
   ndb_setup();
