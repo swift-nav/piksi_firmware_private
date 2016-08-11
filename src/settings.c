@@ -21,6 +21,8 @@
 
 #define SETTINGS_FILE "config"
 
+#define SETTINGS_REGISTER_TIMEOUT 5000
+#define SETTINGS_REGISTER_TRIES   5
 
 static struct setting *settings_head;
 
@@ -221,7 +223,11 @@ void settings_register(struct setting *setting, enum setting_types type)
   /* Register setting with daemon */
   char buf[256];
   u8 buflen = settings_format_setting(setting, buf, sizeof(buf));
-  sbp_send_msg(SBP_MSG_SETTINGS_REGISTER, buflen, (void*)buf);
+  u8 tries = 0;
+  do {
+    sbp_send_msg(SBP_MSG_SETTINGS_REGISTER, buflen, (void*)buf);
+  } while (!sbp_wait_msg(SBP_MSG_SETTINGS_WRITE, SETTINGS_REGISTER_TIMEOUT) &&
+           (++tries < SETTINGS_REGISTER_TRIES));
 }
 
 static struct setting *settings_lookup(const char *section, const char *setting)
