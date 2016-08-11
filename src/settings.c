@@ -332,7 +332,10 @@ static void settings_write_callback(u16 sender_id, u8 len, u8 msg[], void* conte
     log_error("Error in settings write message");
     return;
   }
-  s->dirty = true;
+
+  char buf[256];
+  u8 buflen = settings_format_setting(s, buf, sizeof(buf));
+  sbp_send_msg(SBP_MSG_SETTINGS_READ_RESP, buflen, (void*)buf);
   return;
 }
 
