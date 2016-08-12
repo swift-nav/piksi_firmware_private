@@ -10,16 +10,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_NDB_H
-#define SWIFTNAV_NDB_H
+#ifndef SRC_NDB_LGF_H_
+#define SRC_NDB_LGF_H_
 
-#include <ndb/ndb_ephemeris.h>
-#include <ndb/ndb_almanac.h>
-#include <ndb/ndb_l2c_capb.h>
-#include <ndb/ndb_iono.h>
-#include <ndb/ndb_lgf.h>
+#include <position.h>
+#include <ndb/ndb_common.h>
 
-void ndb_setup();
-void ndb_sbp_updates();
+void ndb_lgf_init();
+enum ndb_op_code ndb_lgf_read(last_good_fix_t *lgf) NDB_WEAK;
+enum ndb_op_code ndb_lgf_store(last_good_fix_t *lgf) NDB_WEAK;
 
-#endif /* SWIFTNAV_NDB_H */
+#endif /* SRC_NDB_LGF_H_ */

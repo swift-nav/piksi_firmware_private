@@ -28,11 +28,12 @@ typedef enum {
 
 /** \} */
 
-extern position_quality_t position_quality;
-extern gnss_solution position_solution;
+typedef struct {
+  gnss_solution       position_solution;
+  position_quality_t  position_quality;
+} last_good_fix_t;
 
 void position_setup(void);
-void position_updated(void);
 
 #endif  /* SWIFTNAV_POSITION_H */
 
