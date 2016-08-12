@@ -14,8 +14,8 @@
 
 #include <assert.h>
 
-
 #include <board.h>
+#include <platform_cn0.h>
 
 /* C/N0 estimator IIR averaging coefficient:
  * See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22
@@ -28,25 +28,6 @@
 /* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
 #define CN0_EST_LPF_CUTOFF_HZ (.1f)
-
-/* Noise bandwidth: GPS L1 1.023 * 2. Normalized with sample rate. The
- * approximate formula is:
- *
- * CN0_EST_BW_HZ = NBW / TRACK_SAMPLE_FREQ
- *
- * For V2 the ENBW is 4.88, for V3 it is 26.4.
- */
-#if defined(BOARD_PIKSI_V2)
-/* PIKSIv2 */
-/* #define CN0_EST_BW_HZ  (float)(2e6 / TRACK_SAMPLE_FREQ * 40) */
-#define CN0_EST_BW_HZ     (4.35f)
-#elif defined(BOARD_DIGILENT_UZED)
-/* PIKSIv3 */
-/* #define CN0_EST_BW_HZ  (float)(33e6 / TRACK_SAMPLE_FREQ  * 20) */
-#define CN0_EST_BW_HZ     (26.4f)
-#else
-#error Unsupported board
-#endif
 
 #define INTEG_PERIOD_1_MS  1
 #define INTEG_PERIOD_2_MS  2
@@ -79,7 +60,7 @@ void track_cn0_params_init(void)
   for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / integration_periods[i];
     cn0_est_compute_params(&cn0_est_pre_computed[i].est_params,
-                           CN0_EST_BW_HZ,
+                           PLATFORM_CN0_EST_BW_HZ,
                            CN0_EST_LPF_ALPHA,
                            loop_freq);
     cn0_est_pre_computed[i].est_params.t_int = integration_periods[i];
@@ -187,7 +168,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
 
   if (NULL == pparams) {
     float loop_freq = 1e3f / int_ms;
-    cn0_est_compute_params(&p->est_params, CN0_EST_BW_HZ, CN0_EST_LPF_ALPHA,
+    cn0_est_compute_params(&p->est_params, PLATFORM_CN0_EST_BW_HZ, CN0_EST_LPF_ALPHA,
                            loop_freq);
     p->est_params.t_int = int_ms;
 
@@ -243,6 +224,13 @@ float track_cn0_update(track_cn0_est_e t,
   return cn0;
 }
 
+/**
+ * Provides literal constant for C/N0 estimator type
+ *
+ * \param[in] t C/N0 estimator type
+ *
+ * \return Abbreviated estimator name.
+ */
 const char *track_cn0_str(track_cn0_est_e t)
 {
   const char *str = "?";

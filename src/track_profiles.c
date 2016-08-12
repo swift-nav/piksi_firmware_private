@@ -20,6 +20,7 @@
 
 #include <board.h>
 #include <platform_signal.h>
+#include <platform_cn0.h>
 #include <nap/nap_common.h>
 #include <nap/nap_hw.h>
 
@@ -88,25 +89,8 @@
 
 /** C/N0 threshold when we can't say if we are still tracking */
 #define TP_HARD_CN0_DROP_THRESHOLD (20.f)
-/** Fixed SNR offset for converting 1ms C/N0 to SNR */
-#define TP_NOISE_FIGURE (2.f)
-#define TP_SNR_OFFSET   (-174.f + TP_NOISE_FIGURE)
 
-#if defined(BOARD_PIKSI_V2)
-/* PIKSIv2 */
-#define PLATFORM_SWITCH_OFFSET 0
-#elif defined(BOARD_DIGILENT_UZED)
-/* PIKSIv3 */
-#define PLATFORM_SWITCH_OFFSET 10
-#else
-#error Unsupported board
-#endif
-
-// #define PLATFORM_SWITCH_OFFSET 6.f
-#define PCN0(x) ((float)(x)+PLATFORM_SWITCH_OFFSET)
-
-#define TP_CN0_SEC2PRI_THRESHOLD  PCN0(47.f)
-#define TP_CN0_PRI2SEC_THRESHOLD  (TP_CN0_SEC2PRI_THRESHOLD - 4.f)
+#define PCN0(x) TRACK_CN0_ADJUST(x)
 
 /** C/N0 threshold state lock counter */
 #define TP_SNR_STATE_COUNT_LOCK (/*31*/3)
@@ -400,39 +384,36 @@ typedef struct
  * second dimension is the dynamics profile.
  */
 static const tp_loop_params_row_t profile_matrix[] = {
-  {PCN0(40), PCN0(60), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_INI,  TP_LP_IDX_INI,  TP_LP_IDX_INI}},
+  {PCN0(38), PCN0(60), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_INI,  TP_LP_IDX_INI,  TP_LP_IDX_INI}},
 
 #ifdef TP_USE_1MS_PROFILES
-  {PCN0(40), PCN0(60), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_1MS_S,  TP_LP_IDX_1MS_N,  TP_LP_IDX_1MS_U}},
+  {PCN0(38), PCN0(60), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_1MS_S,  TP_LP_IDX_1MS_N,  TP_LP_IDX_1MS_U}},
 #endif
 
 #ifdef TP_USE_2MS_PROFILES
-  {PCN0(37), PCN0(45), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_2MS, TP_LP_IDX_2MS, TP_LP_IDX_2MS}},
+  {PCN0(35), PCN0(43), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_2MS, TP_LP_IDX_2MS, TP_LP_IDX_2MS}},
 #endif /* TP_USE_2MS_PROFILES */
 
 #ifdef TP_USE_5MS_PROFILES
-  {PCN0(39), PCN0(43), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_5MS_S, TP_LP_IDX_5MS_N, TP_LP_IDX_5MS_U}},
+  {PCN0(37), PCN0(41), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_5MS_S, TP_LP_IDX_5MS_N, TP_LP_IDX_5MS_U}},
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
-  {PCN0(32), PCN0(41), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_10MS, TP_LP_IDX_10MS, TP_LP_IDX_10MS}},
+  {PCN0(30), PCN0(39), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_10MS, TP_LP_IDX_10MS, TP_LP_IDX_10MS}},
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
-  {PCN0(27), PCN0(35), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
+  {PCN0(25), PCN0(33), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_20MS_S, TP_LP_IDX_20MS_N, TP_LP_IDX_20MS_U}},
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES_FLL
-  {PCN0(24), PCN0(31), TP_LD_PARAMS_EXTRAOPT, {TP_LP_IDX_20MS_FLL, TP_LP_IDX_20MS_FLL, TP_LP_IDX_20MS_FLL}},
+  {PCN0(20), PCN0(29), TP_LD_PARAMS_DISABLE, {TP_LP_IDX_20MS_FLL, TP_LP_IDX_20MS_FLL, TP_LP_IDX_20MS_FLL}},
 #endif /* TP_USE_20MS_PROFILES_FLL */
 
 #ifdef TP_USE_40MS_PROFILES
-  {PCN0(20), PCN0(29), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_40MS_S, TP_LP_IDX_40MS_N, TP_LP_IDX_40MS_U}},
-#endif /* TP_USE_20MS_PROFILES */
+  {PCN0(20), PCN0(27), TP_LD_PARAMS_NORMAL, {TP_LP_IDX_40MS_S, TP_LP_IDX_40MS_N, TP_LP_IDX_40MS_U}},
+#endif /* TP_USE_40MS_PROFILES */
 };
-
-static float compute_cn0_profile_offset(u8 profile_i, u8 profile_d);
-
 
 /**
  * Helper method for computing GNSS satellite speed from doppler.
@@ -777,7 +758,7 @@ static void print_stats(tp_profile_internal_t *profile)
                  "AVG: %dms %s %s CN0_%s=%.2f (%.2f) VA=%.3f/%.3f l=%.2f/%.2f",
                  (int)loop_params[lp_idx].coherent_ms, m1, c1,
                  cn0_est_str, profile->filt_val[3],
-                 profile->filt_val[3] + TP_SNR_OFFSET,
+                 TRACK_CN0_TO_SNR(profile->filt_val[3]),
                  profile->filt_val[0],
                  profile->filt_val[1],
                  profile->filt_val[2],
@@ -807,25 +788,22 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   const char *reason2             = "dynamics OK";
   float       cn0 = 0.;
   float       acc = 0.;
-  //float       loc = 0.;
 
   cn0 = profile->filt_val[3];
-//  profile->cn0_offset + TP_SNR_OFFSET;
   acc = profile->filt_val[1];
-  // loc = profile->filt_val[2];
 
 #if 1
 
   switch (profile->cn0_est) {
   case TRACK_CN0_EST_PRIMARY:
-    if (profile->filt_val[3] < TP_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset) {
+    if (profile->filt_val[3] < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset) {
       profile->cn0_est = TRACK_CN0_EST_SECONDARY;
       log_info_sid(profile->sid, "Changed C/N0 estimator to secondary");
     }
     break;
 
   case TRACK_CN0_EST_SECONDARY:
-    if (profile->filt_val[3] > TP_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset) {
+    if (profile->filt_val[3] > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset) {
       profile->cn0_est = TRACK_CN0_EST_PRIMARY;
       log_info_sid(profile->sid, "Changed C/N0 estimator to primary");
     }
@@ -1025,105 +1003,8 @@ static float compute_cn0_profile_offset(u8 profile_i, u8 profile_d)
   const tp_loop_params_t *lp = &loop_params[profile_idx];
   float cn0_offset = 0;
 
-  /** Pre-computed C/N0 offset for all possible integration times above 1ms:
-   * - 2 ms (2 ms TP_TM_PIPELINING)
-   * - 3 ms (4 ms TP_TM_ONE_PLUS_N/TP_TM_SPLIT)
-   * - 4 ms (4 ms TP_TM_PIPELINING, 5 ms TP_TM_ONE_PLUS_N/TP_TM_SPLIT)
-   * - 5 ms (5 ms TP_TM_PIPELINING)
-   * - 9 ms (10 ms TP_TM_ONE_PLUS_N/TP_TM_SPLIT)
-   * - 10 ms (10 ms TP_TM_PIPELINING)
-   * - 19 ms (20 ms TP_TM_ONE_PLUS_N/TP_TM_SPLIT)
-   * - 20 ms (20 ms TP_TM_PIPELINING)
-   * - 40 ms (40 ms TP_TM_ONE_PLUS_N2)
-   *
-   * The values match expressions: 10*log_10(coherent_ms)
-   */
-  static const float cn0_offsets[] = {
-    0.0000f,  /* 1ms */
-    3.0103f,  /* 2ms */
-    4.7712f,  /* 3ms */
-    6.0206f,  /* 4ms */
-    6.9897f,  /* 5ms */
-    9.5424f,  /* 9ms */
-    10.0000f, /* 10ms */
-    12.7875f, /* 19ms */
-    13.0103f, /* 20ms */
-    15.9106f, /* 39ms */
-    16.0206f, /* 40ms */
-    17.7085f, /* 59ms */
-    17.7815f, /* 60ms */
-  };
-
   u8 cn0_ms = tp_get_cn0_ms(lp->mode, lp->coherent_ms);
-
-  /* Denormalize C/N0.
-   *
-   * When integration time is higher, the tracking loop can keep tracking at
-   * a much lower C/N0 values.
-   *
-   * TODO convert C/N0 to SNR to avoid confusion.
-   */
-
-  size_t cn0_offset_index = 0;
-
-  switch (cn0_ms) {
-  case 1:
-    cn0_offset_index = 0;
-    break;
-
-  case 2:
-    cn0_offset_index = 1;
-    break;
-
-  case 3:
-    cn0_offset_index = 2;
-    break;
-
-  case 4:
-    cn0_offset_index = 3;
-    break;
-
-  case 5:
-    cn0_offset_index = 4;
-    break;
-
-  case 9:
-    cn0_offset_index = 5;
-    break;
-
-  case 10:
-    cn0_offset_index = 6;
-    break;
-
-  case 19:
-    cn0_offset_index = 7;
-    break;
-
-  case 20:
-    cn0_offset_index = 8;
-    break;
-
-  case 39:
-    cn0_offset_index = 9;
-    break;
-
-  case 40:
-    cn0_offset_index = 10;
-    break;
-
-  case 59:
-    cn0_offset_index = 11;
-    break;
-
-  case 60:
-    cn0_offset_index = 12;
-    break;
-
-  default:
-    assert(false);
-  }
-
-  cn0_offset = cn0_offsets[cn0_offset_index];
+  cn0_offset = 10.f * log10f(cn0_ms);
 
   return cn0_offset;
 }

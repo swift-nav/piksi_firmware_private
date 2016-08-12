@@ -16,6 +16,18 @@
 #include <libswiftnav/track.h>
 #include <nap/nap_constants.h>
 
+/** Fixed SNR offset for converting 1ms C/N0 to SNR */
+#define TRACK_CN0_SNR_OFFSET   (-174.f + PLATFORM_NOISE_FIGURE)
+/** Converts CN0 into SNR */
+#define TRACK_CN0_TO_SNR(x) ((x) + TRACK_CN0_SNR_OFFSET)
+/** Adjusts C/N0 according to noise figure */
+#define TRACK_CN0_ADJUST(x) ((float)(x) + 2.f - PLATFORM_NOISE_FIGURE)
+
+/** C/N0 level above which primary estimator shall be used */
+#define TRACK_CN0_SEC2PRI_THRESHOLD  TRACK_CN0_ADJUST(45.f)
+/** C/N0 level below which secondary estimator shall be used */
+#define TRACK_CN0_PRI2SEC_THRESHOLD  (TRACK_CN0_SEC2PRI_THRESHOLD - 4.f)
+
 /* Configure C/N0 value filter algorithm */
 #define cn0_filter_params_t       lp1_filter_params_t
 #define cn0_filter_compute_params lp1_filter_compute_params
