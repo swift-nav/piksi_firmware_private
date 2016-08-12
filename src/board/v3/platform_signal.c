@@ -37,6 +37,7 @@ void platform_ndb_init(void)
   ndb_ephemeris_init();
   ndb_almanac_init();
   ndb_l2c_capb_init();
+  ndb_iono_init();
 }
 
 void platform_ndb_sbp_updates(void)

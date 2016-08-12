@@ -22,7 +22,6 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "signal.h"
-#include "iono.h"
 #include "ndb.h"
 
 typedef struct {
@@ -120,7 +119,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
     log_debug_sid(channel_info->sid, "Iono parameters received");
-    gps_iono_params_store(&dd.iono);
+    ndb_iono_corr_store(&dd.iono, NDB_DS_RECEIVER);
   }
 
   if(dd.ephemeris_upd_flag) {
