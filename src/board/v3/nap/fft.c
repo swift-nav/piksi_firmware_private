@@ -15,6 +15,8 @@
 #include <assert.h>
 #include <ch.h>
 
+#include <libswiftnav/logging.h>
+
 #include "axi_dma.h"
 #include "nap_hw.h"
 #include "nap_constants.h"
@@ -250,6 +252,29 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
   bool result = dma_wait();
   *sample_count = sample_stream_snapshot_get();
   return result;
+}
+
+/** Get the results of an FFT operation.
+ *
+ * \param peak_index      Output index of the bin with max magnitude squared.
+ * \param peak_mag_sq     Output max magnitude squared.
+ * \param sum_mag_sq      Output sum magnitude squared over all bins.
+ */
+void fft_results_get(u32 *peak_index, u32 *peak_mag_sq, u32 *sum_mag_sq)
+{
+  u32 acq_status = NAP->ACQ_STATUS;
+
+  *peak_index = ((acq_status & NAP_ACQ_STATUS_PEAK_INDEX_Msk)
+                            >> NAP_ACQ_STATUS_PEAK_INDEX_Pos);
+  *peak_mag_sq = NAP->ACQ_PEAK_MAGSQ;
+  *sum_mag_sq = NAP->ACQ_SUM_MAGSQ;
+
+  if (acq_status & NAP_ACQ_STATUS_PEAK_MAGSQ_OVF_Msk) {
+    log_warn("Acquisition: Magnitude squared overflow.");
+  }
+  if (acq_status & NAP_ACQ_STATUS_SUM_MAGSQ_OVF_Msk) {
+    log_warn("Acquisition: Magnitude squared sum overflow.");
+  }
 }
 
 /** Retrieve a buffer of raw samples.

@@ -58,6 +58,8 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
                  u32 len_log2, fft_dir_t dir, u32 scale_schedule,
                  u32 *sample_count);
 
+void fft_results_get(u32 *peak_index, u32 *peak_mag_sq, u32 *sum_mag_sq);
+
 bool raw_samples_get(u8 *out, u32 len_samples, u32 *sample_count);
 
 #endif /* SWIFTNAV_FFT_H */
