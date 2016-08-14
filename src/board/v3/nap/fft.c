@@ -166,6 +166,10 @@ static void config_set(fft_dir_t dir, u32 scale_schedule)
  */
 static void dma_start(const u8 *in, u8 *out, u32 len_bytes)
 {
+  assert(!((u32)in & (FFT_BUFFER_ALIGN - 1)));
+  assert(!((u32)out & (FFT_BUFFER_ALIGN - 1)));
+  assert(!((u32)len_bytes & (FFT_LENGTH_ALIGN - 1)));
+
   if (in != 0) {
     /* Ensure that input accesses have completed */
     DATA_MEMORY_BARRIER();

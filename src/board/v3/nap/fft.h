@@ -21,6 +21,19 @@
 #define FFT_LEN_MIN (1 << FFT_LEN_LOG2_MIN)
 #define FFT_LEN_MAX (1 << FFT_LEN_LOG2_MAX)
 
+#define FFT_BUFFER_ALIGN 32
+#define FFT_LENGTH_ALIGN 32
+#define FFT_CEIL_DIV(a,b) (((a) + (b) - 1) / (b))
+
+#define FFT_BUFFER_LENGTH_BYTES(type, count)                                  \
+    (FFT_LENGTH_ALIGN * FFT_CEIL_DIV(count * sizeof(type), FFT_LENGTH_ALIGN))
+#define FFT_BUFFER_LENGTH_ELEMENTS(type, count)                               \
+    (FFT_CEIL_DIV(FFT_BUFFER_LENGTH_BYTES(type, count), sizeof(type)))
+
+#define FFT_BUFFER(name, type, count)                                         \
+    type name[FFT_BUFFER_LENGTH_ELEMENTS(type, count)]                        \
+              __attribute__((aligned(FFT_BUFFER_ALIGN)))
+
 typedef struct __attribute__((packed)) {
   s16 re;
   s16 im;

@@ -49,7 +49,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float chips_per_sample = CHIP_RATE / NAP_ACQ_SAMPLE_RATE_Hz;
 
   /* Generate, resample, and FFT code */
-  static fft_cplx_t code_fft[FFT_LEN_MAX];
+  static FFT_BUFFER(code_fft, fft_cplx_t, FFT_LEN_MAX);
   code_resample(sid, chips_per_sample, code_fft, fft_len);
   if (!fft(code_fft, code_fft, fft_len_log2,
            FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
@@ -58,7 +58,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
   /* FFT samples */
   u32 sample_count;
-  static fft_cplx_t sample_fft[FFT_LEN_MAX];
+  static FFT_BUFFER(sample_fft, fft_cplx_t, FFT_LEN_MAX);
   if(!fft_samples(FFT_SAMPLES_INPUT, sample_fft, fft_len_log2,
                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
     return false;
@@ -81,7 +81,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     float doppler = sample_offset * fft_bin_width;
 
     /* Multiply sample FFT by shifted conjugate code FFT */
-    static fft_cplx_t result_fft[FFT_LEN_MAX];
+    static FFT_BUFFER(result_fft, fft_cplx_t, FFT_LEN_MAX);
     for (u32 i=0; i<fft_len; i++) {
       const fft_cplx_t *a = &code_fft[i];
       const fft_cplx_t *b = &sample_fft[(i + sample_offset) & (fft_len - 1)];
