@@ -84,9 +84,9 @@ static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t * restrict a,
  * The method updates values of accumulators according to supplied operation
  * flags.
  *
- * \param[in] cycle_flags    Operation flags
- * \param[in] cs_now         Correlation readings
- * \param[in,out] corr_state Accumulator structure to update.
+ * \param[in]     cycle_flags Operation flags
+ * \param[in]     cs_now      Correlation readings
+ * \param[in,out] corr_state  Accumulator structure to update.
  *
  * \return None
  */
@@ -94,30 +94,46 @@ void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t *restrict cs_now,
                            tp_corr_state_t *restrict corr_state)
 {
-
+  /* C/N0 estimator accumulator updates */
   if (0 != (cycle_flags & TP_CFLAG_CN0_SET))
     corr_state->corr_cn0 = cs_now->prompt;
   else if (0 != (cycle_flags & TP_CFLAG_CN0_ADD))
     corr_state->corr_cn0 = corr_add(corr_state->corr_cn0, cs_now->prompt);
 
+  /* PLL/DLL accumulator updates */
   tp_epl_corr_t tmp_epl;
   if (0 != (cycle_flags & TP_CFLAG_EPL_SET))
     corr_state->corr_epl = *cs_now;
   else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD))
-    corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl);
+    corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl, cs_now,
+                                         &tmp_epl);
   else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD_INV))
-    corr_state->corr_epl = *corr_epl_inv(corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl), &tmp_epl);
+    /* Sum-up and normalize by bit value (for 20+ ms integrations) */
+    corr_state->corr_epl = *corr_epl_inv(corr_epl_add(&corr_state->corr_epl,
+                                                      cs_now, &tmp_epl),
+                                         &tmp_epl);
   else if (0 != (cycle_flags & TP_CFLAG_EPL_INV_ADD))
-    corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl, corr_epl_inv(cs_now, &tmp_epl), &tmp_epl);
+    /* Normalize by bit value and sum-up (for 20+ ms integrations) */
+    corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl,
+                                         corr_epl_inv(cs_now, &tmp_epl),
+                                         &tmp_epl);
 
+  /* False lock (alias) detector accumulator updates */
   if (0 != (cycle_flags & TP_CFLAG_ALIAS_SET))
     corr_state->corr_ad = cs_now->prompt;
   else if (0 != (cycle_flags & TP_CFLAG_ALIAS_ADD))
     corr_state->corr_ad = corr_add(corr_state->corr_ad, cs_now->prompt);
 
+  /* Lock detector accumulator updates */
   if (0 != (cycle_flags & TP_CFLAG_LD_SET))
     corr_state->corr_ld = cs_now->prompt;
   else if (0 != (cycle_flags & TP_CFLAG_LD_ADD))
     corr_state->corr_ld = corr_add(corr_state->corr_ld, cs_now->prompt);
+
+  /* FLL accumulator updates */
+  if (0 != (cycle_flags & TP_CFLAG_FLL_SET))
+    corr_state->corr_fll = cs_now->prompt;
+  else if (0 != (cycle_flags & TP_CFLAG_FLL_ADD))
+    corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_now->prompt);
 
 }

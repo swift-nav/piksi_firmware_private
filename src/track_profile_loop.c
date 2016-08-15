@@ -15,6 +15,28 @@
 #include <assert.h>
 #include <string.h>
 
+/**
+ * Initializes tracking filter.
+ *
+ * The method attempts initializes filter state with given parameters.
+ *
+ * \param[in,out] s            Tracker state to reconfigure.
+ * \param[in]     ctrl         Type of new controller.
+ * \param[in]     loop_freq    Loop frequency for DLL/PLL.
+ * \param[in]     code_freq    DLL initial output frequency (chips/s).
+ * \param[in]     code_bw      DLL filter one-sided bandwidth.
+ * \param[in]     code_zeta    DLL filter damping factor.
+ * \param[in]     code_k       DLL filter gain factor.
+ * \param[in]     carr_to_code Optional coefficient for using PLL/FLL output for
+ *                             DLL assistance.
+ * \param[in]     carr_freq    DLL(FLL) initial output frequency (Hz).
+ * \param[in]     carr_bw      PLL filter one-sided bandwidth.
+ * \param[in]     carr_zeta    PLL filter damping factor.
+ * \param[in]     carr_k       PLL filter gain factor.
+ * \param[in]     freq_k       FLL coefficient or noise bandwidth.
+ *
+ * \return None.
+ */
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
                 float loop_freq,
@@ -25,6 +47,11 @@ void tp_tl_init(tp_tl_state_t *s,
                 float carr_bw, float carr_zeta, float carr_k,
                 float carr_fll_aid_gain)
 {
+  /*
+   * TODO add logic to initialize internal filter states: velocity and
+   *      acceleration.
+   */
+
   memset(s, 0, sizeof(*s));
   s->ctrl = ctrl;
 
@@ -70,13 +97,34 @@ void tp_tl_init(tp_tl_state_t *s,
   }
 }
 
+/**
+ * Reconfigures tracker.
+ *
+ * The method attempts to reconfigure filter state with new parameters while
+ * keeping accumulated states.
+ *
+ * \param[in,out] s            Tracker state to reconfigure.
+ * \param[in]     ctrl         Type of new controller.
+ * \param[in]     loop_freq    Loop frequency for DLL/PLL.
+ * \param[in]     code_bw      DLL filter one-sided bandwidth.
+ * \param[in]     code_zeta    DLL filter damping factor.
+ * \param[in]     code_k       DLL filter gain factor.
+ * \param[in]     carr_to_code Optional coefficient for using PLL/FLL output for
+ *                             DLL assistance.
+ * \param[in]     carr_bw      PLL filter one-sided bandwidth.
+ * \param[in]     carr_zeta    PLL filter damping factor.
+ * \param[in]     carr_k       PLL filter gain factor.
+ * \param[in]     freq_k       FLL coefficient or noise bandwidth.
+ *
+ * \return None.
+ */
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
                   float loop_freq,
                   float code_bw, float code_zeta, float code_k,
                   float carr_to_code,
                   float carr_bw, float carr_zeta, float carr_k,
-                  float carr_fll_aid_gain)
+                  float freq_k)
 {
   if (ctrl == s->ctrl) {
     switch (ctrl) {
@@ -85,33 +133,41 @@ void tp_tl_retune(tp_tl_state_t *s,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     carr_fll_aid_gain);
+                     freq_k);
       break;
     case TP_CTRL_PLL3:
       tl_pll3_retune(&s->pll3, loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     carr_fll_aid_gain);
+                     freq_k);
       break;
     case TP_CTRL_FLL1:
       tl_fll1_retune(&s->fll1, loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     carr_fll_aid_gain);
+                     freq_k);
       break;
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     carr_fll_aid_gain);
+                     freq_k);
       break;
     default:
       assert(false);
     }
   } else {
+    /*
+     * When the controller type changes, the filter outputs must be preserved.
+     */
+    /*
+     * TODO add logic for preserving internal filter states: velocity and
+     *      acceleration.
+     */
+
     float code_freq, carr_freq;
     tp_tl_get_rates(s, &carr_freq, &code_freq);
     tp_tl_init(s, ctrl,
@@ -121,13 +177,23 @@ void tp_tl_retune(tp_tl_state_t *s,
                carr_to_code,
                carr_freq,
                carr_bw, carr_zeta, carr_k,
-               carr_fll_aid_gain);
+               freq_k);
   }
 
   s->ctrl = ctrl;
 
 }
 
+/**
+ * Adjusts tracker state.
+ *
+ * The method adjusts PLL/FLL output by the given frequency error.
+ *
+ * \param[in,out] s   Tracker state.
+ * \param[in]     err Correction in Hz.
+ *
+ * \return None
+ */
 void tp_tl_adjust(tp_tl_state_t *s, float err)
 {
   switch (s->ctrl) {
@@ -152,6 +218,15 @@ void tp_tl_adjust(tp_tl_state_t *s, float err)
   }
 }
 
+/**
+ * Returns filter output frequencies.
+ *
+ * \param[in]  s         Tracker state
+ * \param[out] carr_freq Carrier frequency in Hz (output of PLL or FLL).
+ * \param[out] code_freq Carrier frequency in Hz (output of DLL).
+ *
+ * \return None
+ */
 void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq)
 {
   switch (s->ctrl) {
@@ -180,6 +255,17 @@ void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq)
   }
 }
 
+/**
+ * Updates tracker filter.
+ *
+ * The method performs computation of DLL and PLL(FLL) corrections according
+ * to input data.
+ *
+ * \param[in, out] s  Tracker state.
+ * \param[in]      cs EPL correlator outputs.
+ *
+ * \return None
+ */
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
 {
   /* TODO: Make this more elegant. */
@@ -211,6 +297,13 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
   }
 }
 
+/**
+ * Return DLL error if available.
+ *
+ * \param[in] s Tracker state.
+ *
+ * \return Error in Hz between DLL and PLL/FLL filters.
+ */
 float tp_tl_get_dll_error(tp_tl_state_t *s)
 {
   float dll_error = 0.;
@@ -239,7 +332,15 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
   return dll_error;
 }
 
-bool tp_tl_is_pll(tp_tl_state_t *s)
+/**
+ * Test if the tracker is PLL.
+ *
+ * \param[in] s Tracker state.
+ *
+ * \retval true  FLL-only tracking is used.
+ * \retval false PLL or FLL-assisted PLL is used.
+ */
+bool tp_tl_is_pll(const tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
@@ -249,7 +350,16 @@ bool tp_tl_is_pll(tp_tl_state_t *s)
     return false;
   }
 }
-bool tp_tl_is_fll(tp_tl_state_t *s)
+
+/**
+ * Test if the tracker is FLL.
+ *
+ * \param[in] s Tracker state.
+ *
+ * \retval true  FLL-only tracking is used.
+ * \retval false PLL or FLL-assisted PLL is used.
+ */
+bool tp_tl_is_fll(const tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_FLL1:

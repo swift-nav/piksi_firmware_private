@@ -205,7 +205,7 @@ void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
-bool tp_tl_is_pll(tp_tl_state_t *s);
-bool tp_tl_is_fll(tp_tl_state_t *s);
+bool tp_tl_is_pll(const tp_tl_state_t *s);
+bool tp_tl_is_fll(const tp_tl_state_t *s);
 
 #endif /* SWIFTNAV_TRACK_PROFILE_UTILS_H_ */

@@ -37,7 +37,6 @@
 #define L1CA_FLOCK_INTERVAL_MS   (5000)
 #define L1CA_FLOCK_THRESHOLD_HZ  (20)
 #define L1CA_FLOCK_EF_ALPHA      (0.03f)
-#define L1CA_FLOCK_FSTEP         (50.f)
 
 /**
  * GPS L1 C/A tracker data
@@ -392,7 +391,6 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
 
   } else if (fabs(err) > 10) {
     log_info_sid(channel_info->sid, "Uncorrected false lock: %f, %d", err, alias_ms);
-
   }
 }
 
