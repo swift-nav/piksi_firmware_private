@@ -13,6 +13,7 @@
 #include "track_cn0.h"
 
 #include <assert.h>
+#include <math.h>
 
 #include <board.h>
 #include <platform_cn0.h>
@@ -28,6 +29,9 @@
 /* C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
 #define CN0_EST_LPF_CUTOFF_HZ (.1f)
+/* C/N0 LPF cutoff frequency computed from C/N0 ms to make C/N0 faster when
+ * signals are strong. */
+#define CN0_EST_LPF_IT_CUTOFF_HZ(ms) (CN0_EST_LPF_CUTOFF_HZ * expf((ms) / -20.f))
 
 #define INTEG_PERIOD_1_MS  1
 #define INTEG_PERIOD_2_MS  2
@@ -65,11 +69,21 @@ void track_cn0_params_init(void)
                            loop_freq);
     cn0_est_pre_computed[i].est_params.t_int = integration_periods[i];
     cn0_filter_compute_params(&cn0_est_pre_computed[i].filter_params,
-                              CN0_EST_LPF_CUTOFF_HZ,
+                              CN0_EST_LPF_IT_CUTOFF_HZ(integration_periods[i]),
                               loop_freq);
   }
 }
 
+/**
+ * Helper for estimator initialization
+ *
+ * \param[out] e     Estimator state.
+ * \param[in]  p     Estimator parameters.
+ * \param[in]  t     Estimator type.
+ * \param[in]  cn0_0 Initial C/N0 value.
+ *
+ * \return None
+ */
 static void init_estimator(cn0_est_state_t *e,
                            const cn0_est_params_t *p,
                            track_cn0_est_e t,
@@ -110,6 +124,17 @@ static void init_estimator(cn0_est_state_t *e,
 
 }
 
+/**
+ * Helper for estimator update
+ *
+ * \param[in,out] e Estimator state.
+ * \param[in]     p Estimator parameters.
+ * \param[in]     t Estimator type.
+ * \param[in]     I      In-phase component.
+ * \param[in]     Q      Quadrature component.
+ *
+ * \return Estimator update result (dB/Hz).
+ */
 static float update_estimator(cn0_est_state_t *e,
                               const cn0_est_params_t *p,
                               track_cn0_est_e t,
@@ -152,7 +177,16 @@ static float update_estimator(cn0_est_state_t *e,
   return cn0;
 }
 
-
+/**
+ * Helper for C/N0 estimator parameter lookup.
+ *
+ * \param[in]     int_ms Estimator update period.
+ * \param[in,out] p      Parameter buffer to use if precomputed parameters are
+ *                       not available.
+ *
+ * \return Precomputed parameter entry or \a p populated with appropriate
+ *         parameters if precomputed entry is not available.
+ */
 static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
                                                       track_cn0_params_t *p)
 {
@@ -168,12 +202,13 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
 
   if (NULL == pparams) {
     float loop_freq = 1e3f / int_ms;
-    cn0_est_compute_params(&p->est_params, PLATFORM_CN0_EST_BW_HZ, CN0_EST_LPF_ALPHA,
+    cn0_est_compute_params(&p->est_params, PLATFORM_CN0_EST_BW_HZ,
+                           CN0_EST_LPF_ALPHA,
                            loop_freq);
     p->est_params.t_int = int_ms;
 
     cn0_filter_compute_params(&p->filter_params,
-                              CN0_EST_LPF_CUTOFF_HZ,
+                              CN0_EST_LPF_IT_CUTOFF_HZ(int_ms),
                               loop_freq);
 
     pparams = p;
@@ -182,7 +217,15 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
   return pparams;
 }
 
-
+/**
+ * Initializes C/N0 estimator
+ *
+ * \param[in]  int_ms C/N0 estimator update period in ms.
+ * \param[out] e      C/N0 estimator state.
+ * \param[in]  cn0_0  Initial C/N0 value in dB/Hz.
+ *
+ * \return None
+ */
 void track_cn0_init(u8 int_ms,
                     track_cn0_state_t *e,
                     float cn0_0)
@@ -196,6 +239,17 @@ void track_cn0_init(u8 int_ms,
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 }
 
+/**
+ * Updates C/N0 estimator.
+ *
+ * \param[in]     t      Type of estimator value to use/return.
+ * \param[in]     int_ms C/N0 update period (for parameter lookup).
+ * \param[in,out] e      Estimator state.
+ * \param[in]     I      In-phase component.
+ * \param[in]     Q      Quadrature component.
+ *
+ * \return Filtered estimator value.
+ */
 float track_cn0_update(track_cn0_est_e t,
                        u8 int_ms,
                        track_cn0_state_t *e,
@@ -205,8 +259,10 @@ float track_cn0_update(track_cn0_est_e t,
   const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
   float cn0 = 0;
 
-  float cn0_pri = update_estimator(&e->primary, &pp->est_params, TRACK_CN0_EST_PRIMARY, I, Q);
-  float cn0_sec = update_estimator(&e->secondary, &pp->est_params, TRACK_CN0_EST_SECONDARY, I, Q);
+  float cn0_pri = update_estimator(&e->primary, &pp->est_params,
+                                   TRACK_CN0_EST_PRIMARY, I, Q);
+  float cn0_sec = update_estimator(&e->secondary, &pp->est_params,
+                                   TRACK_CN0_EST_SECONDARY, I, Q);
 
   switch (t) {
   case TRACK_CN0_EST_PRIMARY:
