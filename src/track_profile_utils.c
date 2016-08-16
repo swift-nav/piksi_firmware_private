@@ -16,7 +16,7 @@
 
 #define TP_FLAGS_SHORT_DEFAULT \
   (TP_CFLAG_SHORT_CYCLE | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_SET | \
-   TP_CFLAG_EPL_SET| TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET)
+   TP_CFLAG_EPL_SET| TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET)
 
 #define TP_FLAGS_LONG_DEFAULT_1PN \
   (TP_CFLAG_LONG_CYCLE | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | \
@@ -53,6 +53,7 @@ typedef struct {
   u8 cn0_ms;  /**< C/N0 estimator integration time */
   u8 ld_ms;   /**< Lock detector integration time */
   u8 fl_ms;   /**< Alias detector integration time */
+  u8 fll_ms;  /**< FLL discriminator integration time */
   u8 bit_ms;  /**< Data update period */
   u8 ent_cnt; /**< State entries count */
   const state_entry_t entries[]; /**< State entries */
@@ -66,6 +67,7 @@ static const state_table_t mode_1msINI = {
   .cn0_ms  = 1,
   .ld_ms   = 1,
   .fl_ms   = 1,
+  .fll_ms  = 1,
   .bit_ms  = 1,
   .ent_cnt = 1,
   .entries = {
@@ -84,6 +86,7 @@ static const state_table_t mode_5msSPLT = {
   .cn0_ms  = 5,
   .ld_ms   = 1,
   .fl_ms   = 1,
+  .fll_ms  = 1,
   .bit_ms  = 5,
   .ent_cnt = 5,
   .entries = {
@@ -103,6 +106,7 @@ static const state_table_t mode_10msSPLT = {
   .cn0_ms  = 5,
   .ld_ms   = 1,
   .fl_ms   = 1,
+  .fll_ms  = 1,
   .bit_ms  = 10,
   .ent_cnt = 10,
   .entries = {
@@ -127,6 +131,7 @@ static const state_table_t mode_5msPIP = {
   .cn0_ms  = 5,
   .ld_ms   = 5,
   .fl_ms   = 5,
+  .fll_ms  = 1,
   .bit_ms  = 5,
   .ent_cnt = 1,
   .entries = {
@@ -142,6 +147,7 @@ static const state_table_t mode_10msPIP = {
   .cn0_ms  = 10,
   .ld_ms   = 10,
   .fl_ms   = 10,
+  .fll_ms  = 1,
   .bit_ms  = 10,
   .ent_cnt = 1,
   .entries = {
@@ -157,6 +163,7 @@ static const state_table_t mode_20msPIP = {
   .cn0_ms  = 20,
   .ld_ms   = 20,
   .fl_ms   = 20,
+  .fll_ms  = 1,
   .bit_ms  = 20,
   .ent_cnt = 1,
   .entries = {
@@ -172,6 +179,7 @@ static const state_table_t mode_5ms1PN = {
   .cn0_ms  = 5,
   .ld_ms   = 5,
   .fl_ms   = 4,
+  .fll_ms  = 1,
   .bit_ms  = 5,
   .ent_cnt = 2,
   .entries = {
@@ -188,6 +196,7 @@ static const state_table_t mode_10ms1PN = {
   .cn0_ms  = 10,
   .ld_ms   = 10,
   .fl_ms   = 9,
+  .fll_ms  = 1,
   .bit_ms  = 10,
   .ent_cnt = 2,
   .entries = {
@@ -204,6 +213,7 @@ static const state_table_t mode_20ms1PN = {
   .cn0_ms  = 20,
   .ld_ms   = 20,
   .fl_ms   = 19,
+  .fll_ms  = 1,
   .bit_ms  = 20,
   .ent_cnt = 2,
   .entries = {
@@ -220,6 +230,7 @@ static const state_table_t mode_10ms1PN5 = {
   .cn0_ms  = 10,
   .ld_ms   = 5,
   .fl_ms   = 5,
+  .fll_ms  = 1,
   .bit_ms  = 5,
   .ent_cnt = 3,
   .entries = {
@@ -245,6 +256,7 @@ static const state_table_t mode_20ms1PN5 = {
   .cn0_ms  = 20,
   .ld_ms   = 5,
   .fl_ms   = 5,
+  .fll_ms  = 15,
   .bit_ms  = 5,
   .ent_cnt = 5,
   .entries = {
@@ -252,34 +264,36 @@ static const state_table_t mode_20ms1PN5 = {
     { 4,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
        TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
-       TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE)
+       TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
        TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
-       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE)
+       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
        TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
-       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE)
+       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
        TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
-       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE) | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE
+       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE |
+       TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE)
     },
   }
 };
 
 /**
- * 20 ms integrations; 1+N5 mode.
+ * 20 ms integrations; 1+N10 mode.
  */
 static const state_table_t mode_20ms1PN10 = {
   .int_ms  = 20,
   .cn0_ms  = 20,
   .ld_ms   = 10,
   .fl_ms   = 10,
+  .fll_ms  = 10,
   .bit_ms  = 20,
   .ent_cnt = 3,
   .entries = {
@@ -287,12 +301,13 @@ static const state_table_t mode_20ms1PN10 = {
     { 9,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
        TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
-       TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE)
+       TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
     },
     { 10,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
        TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
-       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE) | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE
+       TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE |
+       TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE)
     },
   }
 };
@@ -547,6 +562,24 @@ u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 int_ms)
 
   return tbl->fl_ms;
 }
+
+/**
+ * Get FLL discriminator update period in ms.
+ *
+ * \param[in] tracking_mode Tracking mode.
+ * \param[in] int_ms        Tracking sub-mode (integration period).
+ *
+ * \return FLL discriminator update period in ms.
+ */
+u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms)
+{
+  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+
+  assert(NULL != tbl);
+
+  return tbl->fll_ms;
+}
+
 
 /**
  * Get bit sync update period in ms.

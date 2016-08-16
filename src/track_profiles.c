@@ -51,8 +51,8 @@
  * - 10 millisecond integrations (TP_USE_10MS_SPLIT_MODE)
  */
 //#define TP_USE_SPLIT_MODE
-#define TP_USE_ONE_PLUS_N_MODE
-//#define TP_USE_5MS_SPLIT_MODE
+//#define TP_USE_ONE_PLUS_N_MODE
+#define TP_USE_5MS_SPLIT_MODE
 //#define TP_USE_10MS_SPLIT_MODE
 
 #if defined(TP_USE_SPLIT_MODE)
@@ -88,7 +88,7 @@
 #define TP_DEFAULT_CN0_DROP_THRESHOLD (31.f)
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD (20.f)
+#define TP_HARD_CN0_DROP_THRESHOLD (10.f)
 
 #define PCN0(x) TRACK_CN0_ADJUST(x)
 
@@ -311,7 +311,7 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_USE_20MS_PROFILES_FLL
   /* FLL-assisted PLL. K_c = 1.2 */
-  { .6, .7f, 1, 1540, 4, .7f, 1.f, 2, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_FLL*/
+  { .6, .7f, 1, 1540, 4, .7f, 1.f, 1, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1 }, /*TP_LP_IDX_20MS_FLL*/
 #endif
 
 #ifdef TP_USE_40MS_PROFILES

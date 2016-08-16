@@ -31,21 +31,23 @@
 #define TP_CFLAG_FLL_SET         ((u32)1 << 8)
 #define TP_CFLAG_FLL_ADD         ((u32)1 << 9)
 #define TP_CFLAG_FLL_USE         ((u32)1 << 10)
+#define TP_CFLAG_FLL_FIRST       ((u32)1 << 11)
+#define TP_CFLAG_FLL_SECOND      ((u32)1 << 12)
 
-#define TP_CFLAG_EPL_SET         ((u32)1 << 11)
-#define TP_CFLAG_EPL_ADD         ((u32)1 << 12)
-#define TP_CFLAG_EPL_ADD_INV     ((u32)1 << 13)
-#define TP_CFLAG_EPL_INV_ADD     ((u32)1 << 14)
-#define TP_CFLAG_EPL_USE         ((u32)1 << 15)
+#define TP_CFLAG_EPL_SET         ((u32)1 << 13)
+#define TP_CFLAG_EPL_ADD         ((u32)1 << 14)
+#define TP_CFLAG_EPL_ADD_INV     ((u32)1 << 15)
+#define TP_CFLAG_EPL_INV_ADD     ((u32)1 << 16)
+#define TP_CFLAG_EPL_USE         ((u32)1 << 17)
 
-#define TP_CFLAG_ALIAS_SET       ((u32)1 << 16)
-#define TP_CFLAG_ALIAS_ADD       ((u32)1 << 17)
+#define TP_CFLAG_ALIAS_SET       ((u32)1 << 18)
+#define TP_CFLAG_ALIAS_ADD       ((u32)1 << 19)
 
-#define TP_CFLAG_BIT_SYNC_UPDATE ((u32)1 << 18)
+#define TP_CFLAG_BIT_SYNC_UPDATE ((u32)1 << 20)
 
-#define TP_CFLAG_LD_SET          ((u32)1 << 19)
-#define TP_CFLAG_LD_ADD          ((u32)1 << 20)
-#define TP_CFLAG_LD_USE          ((u32)1 << 21)
+#define TP_CFLAG_LD_SET          ((u32)1 << 21)
+#define TP_CFLAG_LD_ADD          ((u32)1 << 22)
+#define TP_CFLAG_LD_USE          ((u32)1 << 23)
 
 #define TP_DLL_PLL_MEAS_DIM 3
 
@@ -91,18 +93,21 @@
 #define tl_fll1_state_t        aided_tl_state_fll1_t
 #define tl_fll1_init           aided_tl_fll1_init
 #define tl_fll1_retune         aided_tl_fll1_retune
-#define tl_fll1_update         aided_tl_fll1_update
+#define tl_fll1_update_fll     aided_tl_fll1_update_fll
+#define tl_fll1_update_dll     aided_tl_fll1_update_dll
 #define tl_fll1_adjust         aided_tl_fll1_adjust
 #define tl_fll1_get_dll_error  aided_tl_fll1_get_dll_error
+#define tl_fll1_discr_update   aided_tl_fll1_discr_update
 
 /* FLL-assisted DLL. FLL and DLL are both second order */
 #define tl_fll2_state_t        aided_tl_state_fll2_t
 #define tl_fll2_init           aided_tl_fll2_init
 #define tl_fll2_retune         aided_tl_fll2_retune
-#define tl_fll2_update         aided_tl_fll2_update
+#define tl_fll2_update_fll     aided_tl_fll2_update_fll
+#define tl_fll2_update_dll     aided_tl_fll2_update_dll
 #define tl_fll2_adjust         aided_tl_fll2_adjust
 #define tl_fll2_get_dll_error  aided_tl_fll2_get_dll_error
-
+#define tl_fll2_discr_update   aided_tl_fll2_discr_update
 
 /**
  * EPL accumulator structure.
@@ -176,6 +181,7 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 int_ms);
+u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms);
 
 
@@ -191,7 +197,7 @@ void tp_tl_init(tp_tl_state_t *s,
                 float carr_to_code,
                 float carr_freq,
                 float carr_bw, float carr_zeta, float carr_k,
-                float carr_fll_aid_gain);
+                float freq_bw, float fll_loop_freq);
 
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
@@ -199,7 +205,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                   float code_bw, float code_zeta, float code_k,
                   float carr_to_code,
                   float carr_bw, float carr_zeta, float carr_k,
-                  float carr_fll_aid_gain);
+                  float freq_bw, float fll_loop_freq);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq);
@@ -207,5 +213,8 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs);
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs);
+void tp_tl_fll_update(tp_tl_state_t *s);
 
 #endif /* SWIFTNAV_TRACK_PROFILE_UTILS_H_ */

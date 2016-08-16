@@ -45,7 +45,7 @@ void tp_tl_init(tp_tl_state_t *s,
                 float carr_to_code,
                 float carr_freq,
                 float carr_bw, float carr_zeta, float carr_k,
-                float carr_fll_aid_gain)
+                float freq_bw, float fll_loop_freq)
 {
   /*
    * TODO add logic to initialize internal filter states: velocity and
@@ -63,7 +63,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  carr_freq,
                  carr_bw, carr_zeta, carr_k,
-                 carr_fll_aid_gain);
+                 freq_bw);
     break;
   case TP_CTRL_PLL3:
     tl_pll3_init(&s->pll3, loop_freq,
@@ -72,25 +72,26 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  carr_freq,
                  carr_bw, carr_zeta, carr_k,
-                 carr_fll_aid_gain);
+                 freq_bw);
     break;
   case TP_CTRL_FLL1:
-    tl_fll1_init(&s->fll1, loop_freq,
+    tl_fll1_init(&s->fll1,
+                 loop_freq,
+                 fll_loop_freq,
                  code_freq,
+                 carr_freq,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
-                 carr_freq,
-                 carr_bw, carr_zeta, carr_k,
-                 carr_fll_aid_gain);
+                 freq_bw, carr_zeta, carr_k);
     break;
   case TP_CTRL_FLL2:
     tl_fll2_init(&s->fll2, loop_freq,
+                 fll_loop_freq,
                  code_freq,
+                 carr_freq,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
-                 carr_freq,
-                 carr_bw, carr_zeta, carr_k,
-                 carr_fll_aid_gain);
+                 freq_bw, carr_zeta, carr_k);
     break;
   default:
     assert(false);
@@ -124,7 +125,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                   float code_bw, float code_zeta, float code_k,
                   float carr_to_code,
                   float carr_bw, float carr_zeta, float carr_k,
-                  float freq_k)
+                  float freq_bw, float fll_loop_freq)
 {
   if (ctrl == s->ctrl) {
     switch (ctrl) {
@@ -133,28 +134,28 @@ void tp_tl_retune(tp_tl_state_t *s,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     freq_k);
+                     freq_bw);
       break;
     case TP_CTRL_PLL3:
       tl_pll3_retune(&s->pll3, loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     freq_k);
+                     freq_bw);
       break;
     case TP_CTRL_FLL1:
       tl_fll1_retune(&s->fll1, loop_freq,
+                     fll_loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
-                     carr_bw, carr_zeta, carr_k,
-                     freq_k);
+                     freq_bw, carr_zeta, carr_k);
       break;
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
+                     fll_loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
-                     carr_bw, carr_zeta, carr_k,
-                     freq_k);
+                     freq_bw, carr_zeta, carr_k);
       break;
     default:
       assert(false);
@@ -177,7 +178,8 @@ void tp_tl_retune(tp_tl_state_t *s,
                carr_to_code,
                carr_freq,
                carr_bw, carr_zeta, carr_k,
-               freq_k);
+               freq_bw,
+               fll_loop_freq);
   }
 
   s->ctrl = ctrl;
@@ -285,11 +287,11 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
     break;
 
   case TP_CTRL_FLL1:
-    tl_fll1_update(&s->fll1, cs2);
+    tl_fll1_update_dll(&s->fll1, cs2);
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll2_update(&s->fll2, cs2);
+    tl_fll2_update_dll(&s->fll2, cs2);
     break;
 
   default:
@@ -348,6 +350,78 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
     return true;
   default:
     return false;
+  }
+}
+
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
+{
+  switch (s->ctrl) {
+  case TP_CTRL_PLL2:
+
+    break;
+
+  case TP_CTRL_PLL3:
+
+    break;
+
+  case TP_CTRL_FLL1:
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+    break;
+
+  case TP_CTRL_FLL2:
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+    break;
+
+  default:
+    assert(false);
+  }
+}
+
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
+{
+  switch (s->ctrl) {
+  case TP_CTRL_PLL2:
+
+    break;
+
+  case TP_CTRL_PLL3:
+
+    break;
+
+  case TP_CTRL_FLL1:
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
+    break;
+
+  case TP_CTRL_FLL2:
+    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
+    break;
+
+  default:
+    assert(false);
+  }
+}
+
+void tp_tl_fll_update(tp_tl_state_t *s)
+{
+  switch (s->ctrl) {
+  case TP_CTRL_PLL2:
+
+    break;
+
+  case TP_CTRL_PLL3:
+
+    break;
+
+  case TP_CTRL_FLL1:
+    tl_fll1_update_fll(&s->fll1);
+    break;
+
+  case TP_CTRL_FLL2:
+    tl_fll2_update_fll(&s->fll2);
+    break;
+
+  default:
+    assert(false);
   }
 }
 

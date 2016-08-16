@@ -140,6 +140,7 @@ static void tracker_gps_l1ca_update_parameters(
   float loop_freq = 1000.f / data->int_ms; /**< Tracking loop frequency */
   u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);  /**< C/N0 integration time */
   u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode, data->int_ms);; /**< Lock detector integration time */
+  float fll_loop_freq = 1000.f / tp_get_fll_ms(data->tracking_mode, data->int_ms);
 
   if (init) {
     log_debug_sid(channel_info->sid, "Initializing TL");
@@ -152,7 +153,7 @@ static void tracker_gps_l1ca_update_parameters(
                l->carr_to_code,
                common_data->carrier_freq,
                l->carr_bw, l->carr_zeta, l->carr_k,
-               l->carr_fll_aid_gain);
+               l->carr_fll_aid_gain, fll_loop_freq);
 
     // log_info_sid(channel_info->sid, "LF=%f", common_data->carrier_freq);
 
@@ -172,7 +173,7 @@ static void tracker_gps_l1ca_update_parameters(
                  l->code_bw, l->code_zeta, l->code_k,
                  l->carr_to_code,
                  l->carr_bw, l->carr_zeta, l->carr_k,
-                 l->carr_fll_aid_gain);
+                 l->carr_fll_aid_gain, fll_loop_freq);
 
     if (prev_loop_freq != loop_freq) {
       /* When loop frequency changes, reset partially reset filter state. */
@@ -545,6 +546,13 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                              common_data->code_phase_early,
                              common_data->carrier_freq,
                              common_data->cn0);
+
+  if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND))
+    tp_tl_fll_update_second(&data->tl_state, data->corrs.corr_fll);
+  if (0 != (cycle_flags & TP_CFLAG_FLL_USE))
+    tp_tl_fll_update(&data->tl_state);
+  if (0 != (cycle_flags & TP_CFLAG_FLL_FIRST))
+    tp_tl_fll_update_first(&data->tl_state, data->corrs.corr_fll);
 
   if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
 
