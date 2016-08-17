@@ -80,7 +80,7 @@ typedef struct {
 } gps_l1ca_tracker_data_t;
 
 static float track_cn0_use_thres = 37.0; /* dBHz */
-static float track_cn0_drop_thres = 31.0;
+static float track_cn0_drop_thres = 15.0;
 
 static char loop_params_string[120] = LOOP_PARAMS_MED;
 static char lock_detect_params_string[24] = LD_PARAMS_DISABLE;
@@ -195,7 +195,9 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 {
   gps_l1ca_tracker_data_t *data = tracker_data;
 
-  /* Read early ([0]), prompt ([1]) and late ([2]) correlations. */
+  /* Read early ([0]), prompt ([1]) late ([2]), very early ([3]) and
+   * very late ([4]) correlations.
+   */
   if ((data->int_ms > 1) && !data->short_cycle) {
     /* If we just requested the short cycle, this is the long cycle's
      * correlations. */
