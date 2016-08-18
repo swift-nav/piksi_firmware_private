@@ -24,10 +24,13 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "chconf.h"
 #include "settings.h"
 #include "signal.h"
 #include "board.h"
 #include "platform_signal.h"
+#include "chconf_board.h"
+
 #include "track_profiles.h"
 #include "track_profile_utils.h"
 
@@ -47,18 +50,20 @@ typedef struct {
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t    alias_detect;           /**< Alias lock detector. */
   lock_detect_t     lock_detect;            /**< Phase-lock detector state. */
+#if USE_DLL_ERROR
   float             fll_lock_detect;        /**< FLL lock detector */
   u16               fll_lock_counter;       /**< False lock state duration counter */
-  u8                int_ms;                 /**< Current integration length. */
+#endif /* USE_DLL_ERROR */
+  u8                int_ms: 5;              /**< Current integration length. */
+  u8                tracking_mode: 3;       /**< Tracking mode */
   u8                cycle_no: 5;            /**< Number of cycle inside current
                                              *   integration mode. */
   u8                use_alias_detection: 1; /**< Flag for alias detection control */
-  u8                tracking_mode: 3;       /**< Tracking mode */
   u8                has_next_params: 1;     /**< Flag if stage transition is in
                                              *   progress */
 } gps_l1ca_tracker_data_t;
 
-static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS];
+static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS] _BCKP;
 static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[NUM_GPS_L1CA_TRACKERS];
 
 static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
@@ -198,12 +203,14 @@ static void tracker_gps_l1ca_update_parameters(
                    common_data->cn0); /* Initial C/N0 value */
   }
 
+#if USE_DLL_ERROR
   data->fll_lock_counter = 0;
   if (init || loop_freq != prev_loop_freq) {
     data->fll_lock_detect = 0;
   } else {
     data->fll_lock_detect = 0;
   }
+#endif /* USE_DLL_ERROR */
 
   if (data->use_alias_detection) {
     u8 alias_detect_ms = tp_get_alias_ms(data->tracking_mode, data->int_ms);
@@ -327,7 +334,7 @@ static void mode_change_complete(const tracker_channel_info_t *channel_info,
 
     /* If there is a stage transition in progress, update parameters for the
      * next iteration. */
-    log_info_sid(channel_info->sid,
+    log_debug_sid(channel_info->sid,
                   "Reconfiguring tracking profile: new mode=%d, ms=%d",
                   next_params.loop_params.mode,
                   (int)next_params.loop_params.coherent_ms);
@@ -394,7 +401,7 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
     log_info_sid(channel_info->sid, "Uncorrected false lock: %f, %d", err, alias_ms);
   }
 }
-
+#if USE_DLL_ERROR
 static void process_dll_error(const tracker_channel_info_t *channel_info,
                               gps_l1ca_tracker_data_t *data,
                               float dll_err)
@@ -429,8 +436,8 @@ static void process_dll_error(const tracker_channel_info_t *channel_info,
       tp_tl_adjust(&data->tl_state, err_hz);
     }
   }
-
 }
+#endif /* USE_DLL_ERROR */
 
 static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
@@ -524,7 +531,11 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   } else if (tp_tl_is_fll(&data->tl_state)) {
     /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
     outp = false;
+#if USE_DLL_ERROR
     outo = data->fll_lock_detect < 0.1;
+#else /* USE_DLL_ERROR */
+    outo = true;
+#endif /* USE_DLL_ERROR */
   }
 
   if (outo)
@@ -578,19 +589,20 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       }
     }
 
-    float dll_err = 0;
     float carr_freq = 0;
     float code_freq = 0;
 
     tp_tl_update(&data->tl_state, &data->corrs.corr_epl);
     tp_tl_get_rates(&data->tl_state, &carr_freq, &code_freq);
-    dll_err = tp_tl_get_dll_error(&data->tl_state);
 
     common_data->carrier_freq = carr_freq;
     common_data->code_phase_rate = code_freq + GPS_CA_CHIPPING_RATE;
 
+#if USE_DLL_ERROR
+    float dll_err = tp_tl_get_dll_error(&data->tl_state);
     /* Check DLL errors if available */
     process_dll_error(channel_info, data, dll_err);
+#endif /* USE_DLL_ERROR */
 
     {
       /* Do tracking report to manager */
@@ -604,7 +616,11 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       report.plock = data->lock_detect.outp;
       report.lock_i = data->lock_detect.lpfi.y;
       report.lock_q = data->lock_detect.lpfq.y;
+#if USE_DLL_ERROR
       report.lock_f = data->fll_lock_detect * 1540.f;
+#else /* USE_DLL_ERROR */
+      report.lock_f = -1;
+#endif /* USE_DLL_ERROR */
       report.sample_count = common_data->sample_count;
       report.time_ms = int_ms;
 

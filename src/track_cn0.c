@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include <chconf.h>
 #include <board.h>
 #include <platform_cn0.h>
 
@@ -34,16 +35,12 @@
 #define CN0_EST_LPF_IT_CUTOFF_HZ(ms) (CN0_EST_LPF_CUTOFF_HZ * expf((ms) / -20.f))
 
 #define INTEG_PERIOD_1_MS  1
-#define INTEG_PERIOD_2_MS  2
-#define INTEG_PERIOD_4_MS  4
 #define INTEG_PERIOD_5_MS  5
 #define INTEG_PERIOD_10_MS 10
 #define INTEG_PERIOD_20_MS 20
 
 static const u8 integration_periods[] = {
   INTEG_PERIOD_1_MS,
-  INTEG_PERIOD_2_MS,
-  INTEG_PERIOD_4_MS,
   INTEG_PERIOD_5_MS,
   INTEG_PERIOD_10_MS,
   INTEG_PERIOD_20_MS
@@ -53,7 +50,7 @@ static const u8 integration_periods[] = {
                            sizeof(integration_periods[0]))
 
 /** C/N0 estimator and filter parameters: one pair per integration time */
-static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM];
+static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM] _BCKP;
 
 /* Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
@@ -84,39 +81,42 @@ void track_cn0_params_init(void)
  *
  * \return None
  */
-static void init_estimator(cn0_est_state_t *e,
+static void init_estimator(track_cn0_state_t *e,
                            const cn0_est_params_t *p,
                            track_cn0_est_e t,
                            float cn0_0)
 {
   switch (t) {
-  case TRACK_CN0_EST_RSCN:
-    cn0_est_rscn_init(e, p, cn0_0);
-    break;
-
   case TRACK_CN0_EST_BL:
-    cn0_est_bl_init(e, p, cn0_0);
-    break;
-
-  case TRACK_CN0_EST_SNV:
-    cn0_est_rscn_init(e, p, cn0_0);
+    cn0_est_bl_init(&e->bl, p, cn0_0);
     break;
 
   case TRACK_CN0_EST_MM:
-    cn0_est_mm_init(e, p, cn0_0);
+    cn0_est_mm_init(&e->mm, p, cn0_0);
+    break;
+
+  /* Optional estimators for testing */
+#if 0
+  case TRACK_CN0_EST_RSCN:
+    cn0_est_rscn_init(&e->rscn, p, cn0_0);
+    break;
+
+  case TRACK_CN0_EST_SNV:
+    cn0_est_rscn_init(&e->snv, p, cn0_0);
     break;
 
   case TRACK_CN0_EST_NWPR:
-    cn0_est_nwpr_init(e, p, cn0_0);
+    cn0_est_nwpr_init(&e->nwpr, p, cn0_0);
     break;
 
   case TRACK_CN0_EST_SVR:
-    cn0_est_svr_init(e, p, cn0_0);
+    cn0_est_svr_init(&e->svr, p, cn0_0);
     break;
 
   case TRACK_CN0_EST_CH:
-    cn0_est_ch_init(e, p, cn0_0);
+    cn0_est_ch_init(&e->ch, p, cn0_0);
     break;
+#endif
 
   default:
     assert(false);
@@ -135,40 +135,44 @@ static void init_estimator(cn0_est_state_t *e,
  *
  * \return Estimator update result (dB/Hz).
  */
-static float update_estimator(cn0_est_state_t *e,
+static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               track_cn0_est_e t,
                               float I, float Q)
 {
   float cn0 = 0;
   switch (t) {
-  case TRACK_CN0_EST_RSCN:
-    cn0 = cn0_est_rscn_update(e, p, I, Q);
+  case TRACK_CN0_EST_BL:
+    cn0 = cn0_est_bl_update(&e->bl, p, I, Q);
     break;
 
-  case TRACK_CN0_EST_BL:
-    cn0 = cn0_est_bl_update(e, p, I, Q);
+
+  case TRACK_CN0_EST_MM:
+    cn0 = cn0_est_mm_update(&e->mm, p, I, Q);
+    break;
+
+  /* Optional estimators for testing */
+#if 0
+  case TRACK_CN0_EST_RSCN:
+    cn0 = cn0_est_rscn_update(&e->rscn, p, I, Q);
     break;
 
   case TRACK_CN0_EST_SNV:
-    cn0 = cn0_est_snv_update(e, p, I, Q);
-    break;
-
-  case TRACK_CN0_EST_MM:
-    cn0 = cn0_est_mm_update(e, p, I, Q);
+    cn0 = cn0_est_snv_update(&e->snv, p, I, Q);
     break;
 
   case TRACK_CN0_EST_NWPR:
-    cn0 = cn0_est_nwpr_update(e, p, I, Q);
+    cn0 = cn0_est_nwpr_update(&e->nwpr, p, I, Q);
     break;
 
   case TRACK_CN0_EST_SVR:
-    cn0 = cn0_est_svr_update(e, p, I, Q);
+    cn0 = cn0_est_svr_update(&e->svr, p, I, Q);
     break;
 
   case TRACK_CN0_EST_CH:
-    cn0 = cn0_est_ch_update(e, p, I, Q);
+    cn0 = cn0_est_ch_update(&e->ch, p, I, Q);
     break;
+#endif
 
   default:
     assert(false);
@@ -233,8 +237,8 @@ void track_cn0_init(u8 int_ms,
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
 
-  init_estimator(&e->primary, &pp->est_params, TRACK_CN0_EST_PRIMARY, cn0_0);
-  init_estimator(&e->secondary, &pp->est_params, TRACK_CN0_EST_SECONDARY, cn0_0);
+  e->type = TRACK_CN0_EST_PRIMARY;
+  init_estimator(e, &pp->est_params, TRACK_CN0_EST_PRIMARY, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 }
@@ -259,22 +263,11 @@ float track_cn0_update(track_cn0_est_e t,
   const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
   float cn0 = 0;
 
-  float cn0_pri = update_estimator(&e->primary, &pp->est_params,
-                                   TRACK_CN0_EST_PRIMARY, I, Q);
-  float cn0_sec = update_estimator(&e->secondary, &pp->est_params,
-                                   TRACK_CN0_EST_SECONDARY, I, Q);
-
-  switch (t) {
-  case TRACK_CN0_EST_PRIMARY:
-    cn0 = cn0_pri;
-    break;
-  case TRACK_CN0_EST_SECONDARY:
-    cn0 = cn0_sec;
-    break;
-  default:
-    assert(false);
+  if (e->type != t) {
+    e->type = t;
+    init_estimator(e, &pp->est_params, t, e->filter.yn);
   }
-
+  cn0 = update_estimator(e, &pp->est_params, t, I, Q);
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0);
 
   return cn0;
@@ -291,13 +284,13 @@ const char *track_cn0_str(track_cn0_est_e t)
 {
   const char *str = "?";
   switch (t) {
-  case TRACK_CN0_EST_RSCN: str = "RSCN"; break;
+//  case TRACK_CN0_EST_RSCN: str = "RSCN"; break;
   case TRACK_CN0_EST_BL: str = "BL"; break;
-  case TRACK_CN0_EST_SNV: str = "SNV"; break;
+//  case TRACK_CN0_EST_SNV: str = "SNV"; break;
   case TRACK_CN0_EST_MM: str = "MM"; break;
-  case TRACK_CN0_EST_NWPR: str = "NWPR"; break;
-  case TRACK_CN0_EST_SVR: str = "SVR"; break;
-  case TRACK_CN0_EST_CH: str = "CH"; break;
+//  case TRACK_CN0_EST_NWPR: str = "NWPR"; break;
+//  case TRACK_CN0_EST_SVR: str = "SVR"; break;
+//  case TRACK_CN0_EST_CH: str = "CH"; break;
   default: assert(false);
   }
   return str;

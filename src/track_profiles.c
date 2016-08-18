@@ -10,6 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef DEBUG
+#define DEBUG 1
+#endif
+
 #include <platform_signal.h>
 #include "track_profiles.h"
 #include "track_profile_utils.h"
@@ -40,42 +44,18 @@
 #define TP_USE_20MS_PROFILES_FLL
 // #define TP_USE_40MS_PROFILES
 
-// #define TP_USE_MEAN_VALUES
-
 /*
  * Configure default PLL mode for longer integration periods:
- * - Simple pipelining
- * - One plus N (TP_USE_ONE_PLUS_N_MODE)
- * - 1 millisecond integrations (TP_USE_SPLIT_MODE)
- * - 5 millisecond integrations (TP_USE_5MS_SPLIT_MODE)
- * - 10 millisecond integrations (TP_USE_10MS_SPLIT_MODE)
+ * - Simple pipelining (TP_TM_PIPELINING)
+ * - One plus N (TP_TM_ONE_PLUS_N)
+ * - 1 millisecond integrations (TP_TM_SPLIT)
+ * - 5 millisecond integrations (TP_TM_ONE_PLUS_N5)
+ * - 10 millisecond integrations (TP_TM_ONE_PLUS_N10)
  */
-//#define TP_USE_SPLIT_MODE
-//#define TP_USE_ONE_PLUS_N_MODE
-#define TP_USE_5MS_SPLIT_MODE
-//#define TP_USE_10MS_SPLIT_MODE
 
-#if defined(TP_USE_SPLIT_MODE)
-#define TP_TM_5MS_MODE  TP_TM_SPLIT
-#define TP_TM_10MS_MODE TP_TM_SPLIT
-#define TP_TM_20MS_MODE TP_TM_SPLIT
-#elif defined(TP_USE_5MS_SPLIT_MODE)
-#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N5
+#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
 #define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N5
 #define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N5
-#elif defined(TP_USE_10MS_SPLIT_MODE)
-#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
-#define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N10
-#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N10
-#elif defined(TP_USE_ONE_PLUS_N_MODE)
-#define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
-#define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N
-#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N
-#else
-#define TP_TM_5MS_MODE  TP_TM_PIPELINING
-#define TP_TM_10MS_MODE TP_TM_PIPELINING
-#define TP_TM_20MS_MODE TP_TM_PIPELINING
-#endif
 
 /** Maximum number of supported satellite vehicles */
 #define TP_MAX_SUPPORTED_SVS NUM_GPS_L1CA_TRACKERS
@@ -108,25 +88,15 @@
 /** Profile change evaluation interval duration in ms. */
 #define TP_CHANGE_LOCK_COUNTDOWN2_MS (500)
 
-enum {
-  TP_LP_FILTER_SPEED,
-  TP_LP_FILTER_LOCK,
-  TP_LP_FILTER_COUNT
-};
-
 #define LPF_CUTOFF_HZ 0.6f
 
 #define INTEG_PERIOD_1_MS  1
-#define INTEG_PERIOD_2_MS  2
-#define INTEG_PERIOD_4_MS  4
 #define INTEG_PERIOD_5_MS  5
 #define INTEG_PERIOD_10_MS 10
 #define INTEG_PERIOD_20_MS 20
 
 static const u8 integration_periods[] = {
   INTEG_PERIOD_1_MS,
-  INTEG_PERIOD_2_MS,
-  INTEG_PERIOD_4_MS,
   INTEG_PERIOD_5_MS,
   INTEG_PERIOD_10_MS,
   INTEG_PERIOD_20_MS
@@ -135,8 +105,13 @@ static const u8 integration_periods[] = {
 #define INTEG_PERIODS_NUM (sizeof(integration_periods) / \
                            sizeof(integration_periods[0]))
 
-/** C/N0 estimator and filter parameters: one pair per integration time */
-static lp1_filter_params_t lp1_filter_params[INTEG_PERIODS_NUM];
+/** LP filter parameters: one pair per integration time */
+static lp1_filter_params_t lp1_filter_params[INTEG_PERIODS_NUM] _BCKP = {
+  { +3.067484e-01, 6.533742e-01 }, /* INTEG_PERIOD_1_MS */
+  { -4.524422e-01, 2.737789e-01 }, /* INTEG_PERIOD_5_MS */
+  { -6.827997e-01, 1.586001e-01 }, /* INTEG_PERIOD_10_MS */
+  { -8.277396e-01, 8.613020e-02 }, /* INTEG_PERIOD_20_MS */
+};
 
 /**
  * Per-satellite entry.
@@ -147,39 +122,39 @@ static lp1_filter_params_t lp1_filter_params[INTEG_PERIODS_NUM];
  * TODO Make entry to support multiple bands.
  */
 typedef struct {
-  gnss_signal_t sid;               /**< Signal identifier. */
-  // tp_report_t   last_report;       /**< Last data from tracker */
+  /*
+   * Fields are ordered from larger to smaller for minimal memory footprint.
+   */
+
+  float         cn0_offset;        /**< C/N0 offset in dB to tune thresholds */
+  float         filt_cn0;          /**< C/N0 value for decision logic */
+  float         filt_accel;        /**< SV acceleration value for decision logic */
+  lp1_filter_t  filt_speed;        /**< Filter for speed */
+
   u32           used: 1;           /**< Flag if the profile entry is in use */
   u32           olock: 1;          /**< PLL optimistic lock flag */
   u32           plock: 1;          /**< PLL pessimistic lock flag */
   u32           bsync: 1;          /**< Bit sync flag */
   u32           profile_update:1;  /**< Flag if the profile update is required */
   u32           cur_profile_i:3;   /**< Index of the currently active profile (integration) */
-  u32           cur_profile_d:3;   /**< Index of the currently active profile (dynamics) */
+  u32           cur_profile_d:2;   /**< Index of the currently active profile (dynamics) */
   u32           next_profile_i:3;  /**< Index of the next selected profile (integration) */
-  u32           next_profile_d:3;  /**< Index of the next selected profile (dynamics)  */
+  u32           next_profile_d:2;  /**< Index of the next selected profile (dynamics)  */
   u32           low_cn0_count:5;   /**< State lock counter for C/N0 threshold */
   u32           high_cn0_count:5;  /**< State lock counter for C/N0 threshold */
   u32           accel_count:5;     /**< State lock counter for dynamics threshold */
   u32           accel_count_idx:2; /**< State lock value for dynamics threshold */
-  u32           lock_time_ms:16;   /**< Profile lock count down timer */
-  u32           cn0_est:3;
-  float         cn0_offset;        /**< C/N0 offset in dB to tune thresholds */
-  float         filt_val[5];       /**< Filtered counters: v,a,l,C/N0 */
-#if defined(TP_USE_MEAN_VALUES)
-  float         prev_val[4];       /**< Filtered counters: v,a,l,C/N0 */
-  float         mean_acc[4];       /**< Mean accumulators: v,a,l,C/N0 */
-  u32           mean_cnt;          /**< Mean value divider */
-#endif /* TP_USE_MEAN_VALUES */
-  lp1_filter_t  lp_filters[TP_LP_FILTER_COUNT]; /**< Moving average filters: v,l */
-  u32           time_ms;              /**< Tracking time */
-  u32           last_print_time;   /**< Last debug print time */
+  u16           lock_time_ms:12;   /**< Profile lock count down timer */
+  u16           cn0_est:2;
+
+  u16           sv_id;             /**< Satellite identifier */
+  u16           print_time;        /**< Last debug print time */
 } tp_profile_internal_t;
 
 /**
  * GPS satellite profiles.
  */
-static tp_profile_internal_t profiles_gps1[TP_MAX_SUPPORTED_SVS] _CCM;
+static tp_profile_internal_t profiles_gps1[TP_MAX_SUPPORTED_SVS] _BCKP;
 
 /**
  * C/N0 profile
@@ -188,6 +163,15 @@ static const tp_cn0_params_t cn0_params_default = {
   .track_cn0_drop_thres = TP_DEFAULT_CN0_DROP_THRESHOLD,
   .track_cn0_use_thres = TP_DEFAULT_CN0_USE_THRESHOLD
 };
+
+static gnss_signal_t sid_from_id(u16 sv_id)
+{
+  gnss_signal_t res = {
+    .sat = sv_id,
+    .code = CODE_GPS_L1CA
+  };
+  return res;
+}
 
 /**
  * Lock detector parameters
@@ -471,18 +455,14 @@ static const lp1_filter_params_t *get_lp1_params(u8 int_ms, lp1_filter_params_t 
  *
  * \param[in,out] profile Satellite profile
  */
-static void init_profile_filters(tp_profile_internal_t *profile)
+static void init_profile_filters(tp_profile_internal_t *profile, float speed0)
 {
   u8 idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
   const tp_loop_params_t *lp = &loop_params[idx];
 
   lp1_filter_params_t p;
   const lp1_filter_params_t *pp = get_lp1_params(lp->coherent_ms, &p);
-  for (size_t i = 0; i < TP_LP_FILTER_COUNT; ++i) {
-    lp1_filter_init(&profile->lp_filters[i],
-                    pp,
-                    profile->filt_val[i]);
-  }
+  lp1_filter_init(&profile->filt_speed, pp, speed0);
 }
 
 /**
@@ -512,7 +492,7 @@ static tp_profile_internal_t *allocate_profile(gnss_signal_t sid)
    * initialization */
   if (NULL != res) {
     res->used = true;
-    res->sid = sid;
+    res->sv_id = sid.sat;
   }
   return res;
 }
@@ -532,8 +512,7 @@ static tp_profile_internal_t *find_profile(gnss_signal_t sid)
 
   for (i = 0; i< TP_MAX_SUPPORTED_SVS; ++i) {
     if (profiles_gps1[i].used &&
-        profiles_gps1[i].sid.code == sid.code &&
-        profiles_gps1[i].sid.sat == sid.sat) {
+        profiles_gps1[i].sv_id == sid.sat) {
       res = &profiles_gps1[i];
       break;
     }
@@ -554,11 +533,10 @@ static tp_profile_internal_t *find_profile(gnss_signal_t sid)
 static void delete_profile(gnss_signal_t sid)
 {
   tp_profile_internal_t *profile = find_profile(sid);
-  if (NULL != profile) {
+  if (NULL != profile)
     /* Currently we support only one signal in profile, so simply mark the
      * profile as released. */
     memset(profile, 0, sizeof(*profile));
-  }
 }
 
 /**
@@ -582,18 +560,23 @@ static void get_profile_params(tp_profile_internal_t *profile,
   config->loop_params = loop_params[loop_profile_idx];
 
   /*
-   * TODO: alias detection is not working correctly as it requires independent
-   * bit-aligned integration accumulator with equal intervals.
+   * Alias detection is requires bit-aligned integration accumulator with equal
+   * intervals.
+   * The logic works with PLL in modes:
+   * - 1+N modes with 5 and 10 ms.
+   * - 1+N5 and 1+N10.
    */
-
-  if (config->loop_params.mode == TP_TM_ONE_PLUS_N10 &&
-      (config->loop_params.ctrl == TP_CTRL_PLL2 ||
-       config->loop_params.ctrl == TP_CTRL_PLL3))
+  const tp_tm_e mode = config->loop_params.mode;
+  const tp_ctrl_e ctrl = config->loop_params.ctrl;
+  const u8 int_ms = config->loop_params.coherent_ms;
+  if ((mode == TP_TM_ONE_PLUS_N5 || mode == TP_TM_ONE_PLUS_N10 ||
+       (mode == TP_TM_ONE_PLUS_N && (int_ms == 5 || int_ms == 10))) &&
+      (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3))
     config->use_alias_detection = true;
   else
     config->use_alias_detection = false;
 
-  tp_get_cn0_params(profile->sid, &config->cn0_params);
+  tp_get_cn0_params(sid_from_id(profile->sv_id), &config->cn0_params);
 }
 
 /**
@@ -608,70 +591,33 @@ static void update_stats(tp_profile_internal_t *profile,
                          const tp_report_t *data)
 {
   float loop_freq = 1000 / data->time_ms;
-  float speed, accel, cn0, lock;
+  float speed, accel, cn0;
 
-  profile->time_ms += data->time_ms;
   /* Profile lock time count down */
   if (profile->lock_time_ms > data->time_ms) {
     profile->lock_time_ms -= data->time_ms;
   } else {
     profile->lock_time_ms = 0;
   }
+  profile->print_time += data->time_ms;
 
   profile->olock = data->olock;
   profile->plock = data->plock;
   profile->bsync = data->bsync;
 
   /* Compute products */
-  speed = compute_speed(profile->sid, data);
-  /* Compute PLL lock */
-  if (data->lock_q != 0.f) {
-    lock = data->lock_i / data->lock_q;
-    if (lock > 100.f) {
-      lock = 100.f;
-    }
-  } else {
-    lock = 100.f;
-  }
-
-#if defined(TP_USE_MEAN_VALUES)
-  accel = (profile->prev_val[0] - speed) * loop_freq;
-  cn0 = data->cn0_raw;
-
-  /* Store new unfiltered values */
-  profile->prev_val[0] = speed;
-  profile->prev_val[1] = accel;
-  profile->prev_val[2] = lock;
-  profile->prev_val[3] = cn0;
-
-  /* Update RMS counters */
-  profile->mean_acc[0] += speed * speed;
-  profile->mean_acc[1] += accel * accel;
-  profile->mean_acc[2] += lock * lock;
-  profile->mean_acc[3] += cn0 * cn0;
-  profile->mean_cnt += 1;
-#endif /* TP_USE_MEAN_VALUES */
+  speed = compute_speed(sid_from_id(profile->sv_id), data);
 
   /* Update moving average counters */
   lp1_filter_params_t p;
   const lp1_filter_params_t *pp = get_lp1_params(data->time_ms, &p);
-  speed = lp1_filter_update(&profile->lp_filters[TP_LP_FILTER_SPEED], pp, speed);
-  accel = (profile->filt_val[0] - speed) * loop_freq;
+  float speed0 = profile->filt_speed.yn;
+  speed = lp1_filter_update(&profile->filt_speed, pp, speed);
+  accel = (speed0 - speed) * loop_freq;
   cn0   = data->cn0;
-  /* Currently we don't additionally filter acceleration and jitter:
-   *
-   * accel = lp1_filter_update(&profile->lp_filters[1], pp, accel);
-   * jitter = lp1_filter_update(&profile->lp_filters[2], pp, jitter);
-   * cn0 = lp1_filter_update(&profile->lp_filters[3], pp, data->cn0);
-   */
-  lock = lp1_filter_update(&profile->lp_filters[TP_LP_FILTER_LOCK], pp, lock);
 
-  profile->filt_val[0] = speed;
-  profile->filt_val[1] = accel;
-  profile->filt_val[2] = lock;
-  profile->filt_val[3] = cn0;
-
-  profile->filt_val[4] = data->lock_f;
+  profile->filt_accel = accel;
+  profile->filt_cn0 = cn0;
 }
 
 static const char *get_ctrl_str(tp_ctrl_e v)
@@ -704,6 +650,7 @@ static const char *get_mode_str(tp_tm_e v)
   return str;
 }
 
+
 /**
  * Helper method to dump tracking statistics into log.
  *
@@ -715,56 +662,30 @@ static const char *get_mode_str(tp_tm_e v)
  */
 static void print_stats(tp_profile_internal_t *profile)
 {
-  if (profile->time_ms - profile->last_print_time >= 20000) {
+  if (profile->print_time < 20000)
+    return;
 
-    profile->last_print_time = profile->time_ms;
+  profile->print_time = 0;
 
-    u8 lp_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
+  u8 lp_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
 
-#if defined(TP_USE_MEAN_VALUES)
-    float div = 1.f;
-    if (profile->mean_cnt > 0)
-      div = 1.f / profile->mean_cnt;
+  const char *cn0_est_str = track_cn0_str(profile->cn0_est);
+  const char *c1 = get_ctrl_str(loop_params[lp_idx].ctrl);
+  const char *m1 = get_mode_str(loop_params[lp_idx].mode);
 
-    float s = sqrtf(profile->mean_acc[0] * div);
-    float a = sqrtf(profile->mean_acc[1] * div);
-    float j = sqrtf(profile->mean_acc[2] * div);
-    float c = sqrtf(profile->mean_acc[3] * div);
-
-    profile->mean_acc[0] = profile->prev_val[0] * profile->prev_val[0];
-    profile->mean_acc[1] = profile->prev_val[1] * profile->prev_val[1];
-    profile->mean_acc[2] = profile->prev_val[2] * profile->prev_val[2];
-    profile->mean_acc[3] = profile->prev_val[3] * profile->prev_val[3];
-    profile->mean_cnt = 1;
-
-    log_info_sid(profile->sid,
-                 "MRS: %dms CN0=%.2f (%.2f) VA=%.3f/%.3f l=%.3f",
-                 (int)loop_params[lp_idx].coherent_ms,
-                 c, c + TP_SNR_OFFSET,
-                 s, a, j
-                );
-#endif
-    const char *cn0_est_str = track_cn0_str(profile->cn0_est);
-    const char *c1 = get_ctrl_str(loop_params[lp_idx].ctrl);
-    const char *m1 = get_mode_str(loop_params[lp_idx].mode);
-
-    /*
-     * PRINT: integration time, loop mode, controller mode,
-     *        C/N0 estimator, C/N0 value, SNR value (dBm),
-     *        PR rate, PR rate change,
-     *        PLL lock detector ratio, FLL/DLL error
-     */
-    log_info_sid(profile->sid,
-                 "AVG: %dms %s %s CN0_%s=%.2f (%.2f) VA=%.3f/%.3f l=%.2f/%.2f",
-                 (int)loop_params[lp_idx].coherent_ms, m1, c1,
-                 cn0_est_str, profile->filt_val[3],
-                 TRACK_CN0_TO_SNR(profile->filt_val[3]),
-                 profile->filt_val[0],
-                 profile->filt_val[1],
-                 profile->filt_val[2],
-                 profile->filt_val[4]
-                );
-  }
+  /*
+   * PRINT: integration time, loop mode, controller mode,
+   *        C/N0 estimator, C/N0 value, SNR value (dBm),
+   *        PR rate, PR rate change,
+   *        PLL lock detector ratio, FLL/DLL error
+   */
+  log_debug_sid(sid_from_id(profile->sv_id),
+                "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
+                (int)loop_params[lp_idx].coherent_ms, m1, c1,
+                cn0_est_str, profile->filt_cn0,
+                TRACK_CN0_TO_SNR(profile->filt_cn0),
+                profile->filt_accel
+               );
 }
 
 /**
@@ -772,8 +693,6 @@ static void print_stats(tp_profile_internal_t *profile)
  *
  * This method analyzes collected statistics and selects appropriate tracking
  * parameter changes.
- *
- * TODO This method shall be used in own thread.
  */
 static void check_for_profile_change(tp_profile_internal_t *profile)
 {
@@ -789,30 +708,42 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   float       cn0 = 0.;
   float       acc = 0.;
 
-  cn0 = profile->filt_val[3];
-  acc = profile->filt_val[1];
+  cn0 = profile->filt_cn0;
+  acc = profile->filt_accel;
 
-#if 1
+  /*
+   * Switching C/N0 estimator: C/N0 estimator is switched when the C/N0 value
+   * gets close to operation limit or the loop type is not compatible with
+   * the current estimator.
+   * Example: BL estimator requires high C/N0 values and PLL mode. MM estimator
+   * shows incorrect values when SNR is high, but good with low SNR and
+   * compatible with FLL mode.
+   */
+  u8 lp_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
+  tp_ctrl_e ctrl = loop_params[lp_idx].ctrl;
 
   switch (profile->cn0_est) {
   case TRACK_CN0_EST_PRIMARY:
-    if (profile->filt_val[3] < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset) {
+    if (cn0 < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset ||
+        ctrl == TP_CTRL_FLL1 || ctrl == TP_CTRL_FLL2) {
       profile->cn0_est = TRACK_CN0_EST_SECONDARY;
-      log_info_sid(profile->sid, "Changed C/N0 estimator to secondary");
+      log_debug_sid(sid_from_id(profile->sv_id),
+                    "Changed C/N0 estimator to secondary");
     }
     break;
 
   case TRACK_CN0_EST_SECONDARY:
-    if (profile->filt_val[3] > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset) {
+    if (cn0 > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset &&
+        ctrl != TP_CTRL_FLL1 && ctrl != TP_CTRL_FLL2) {
       profile->cn0_est = TRACK_CN0_EST_PRIMARY;
-      log_info_sid(profile->sid, "Changed C/N0 estimator to primary");
+      log_debug_sid(sid_from_id(profile->sv_id),
+                    "Changed C/N0 estimator to primary");
     }
     break;
 
   default:
     assert(false);
   }
-#endif
 
   /* When we have a lock, and lock ratio is good, do not change the mode */
   // must_keep_profile = profile->olock && profile->filt_val[2] > 4.f;
@@ -971,15 +902,14 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     const char *c2 = get_ctrl_str(loop_params[lp2_idx].ctrl);
     const char *m2 = get_mode_str(loop_params[lp2_idx].mode);
 
-    log_info_sid(profile->sid,
-                 "Profile change: %dms %s %s [%d][%d]->%dms %s %s [%d][%d] r=%s (%.2f)/%s (%.2f) l=%.2f/%.2f",
+    log_info_sid(sid_from_id(profile->sv_id),
+                 "Profile change: %dms %s %s [%d][%d]->%dms %s %s [%d][%d] r=%s (%.2f)/%s (%.2f)",
                  (int)loop_params[lp1_idx].coherent_ms, m1, c1,
                  profile->cur_profile_i, profile->cur_profile_d,
                  (int)loop_params[lp2_idx].coherent_ms, m2, c2,
                  profile->next_profile_i, profile->next_profile_d,
                  reason, cn0,
-                 reason2, acc,
-                 profile->filt_val[2], profile->filt_val[4]
+                 reason2, acc
                  );
   } else if (profile->lock_time_ms == 0) {
     // profile->lock_time_ms = TP_CHANGE_LOCK_COUNTDOWN2_MS;
@@ -1028,21 +958,18 @@ static float compute_cn0_offset(const tp_profile_internal_t *profile)
 /**
  * Initializes the subsystem.
  *
- * This method shall be invoked before any other methods from the sybsystem.
+ * This method shall be invoked before any other methods from the subsystem.
  *
  * \return 0  On success.
  * \return -1 On error.
  */
 tp_result_e tp_init()
 {
-  /** TODO refactor as needed */
   memset(profiles_gps1, 0, sizeof(profiles_gps1));
 
   for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / integration_periods[i];
-    lp1_filter_compute_params(&lp1_filter_params[i],
-                              0.6f,
-                              loop_freq);
+    lp1_filter_compute_params(&lp1_filter_params[i], LPF_CUTOFF_HZ, loop_freq);
   }
 
   return TP_RESULT_SUCCESS;
@@ -1074,26 +1001,16 @@ tp_result_e tp_tracking_start(gnss_signal_t sid,
     if (NULL != profile) {
       profile->cn0_est = TRACK_CN0_EST_PRIMARY;
 
-      profile->filt_val[0] = compute_speed(sid, data);
-      profile->filt_val[1] = 0.;
-      profile->filt_val[2] = 0.;
-      profile->filt_val[3] = data->cn0;
-
-
-#if defined(TP_USE_MEAN_VALUES)
-      profile->mean_acc[0] = 0;
-      profile->mean_acc[1] = 0;
-      profile->mean_acc[2] = 0;
-      profile->mean_acc[3] = 0;
-      profile->mean_cnt = 0;
-#endif /* TP_USE_MEAN_VALUES */
+      float speed0 = compute_speed(sid, data);
+      profile->filt_cn0 = data->cn0;
+      profile->filt_accel = 0;
 
       profile->cur_profile_i = TP_PROFILE_ROW_INI;
       profile->next_profile_i = TP_PROFILE_ROW_INI;
       profile->cur_profile_d = TP_PROFILE_DYN_INI;
       profile->next_profile_d = TP_PROFILE_DYN_INI;
 
-      init_profile_filters(profile);
+      init_profile_filters(profile, speed0);
 
       get_profile_params(profile, config);
 
@@ -1152,7 +1069,7 @@ tp_result_e tp_get_profile(gnss_signal_t sid, tp_config_t *config, bool commit)
         profile->cur_profile_i = profile->next_profile_i;
         profile->cur_profile_d = profile->next_profile_d;
         profile->cn0_offset = compute_cn0_offset(profile);
-        init_profile_filters(profile);
+        init_profile_filters(profile, profile->filt_speed.yn);
       }
 
       /* Return data */
@@ -1187,15 +1104,9 @@ tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params)
      * example, 20ms integration has threshold by 13 dB lower, than for 1ms
      * integration. */
     cn0_params->track_cn0_drop_thres -= profile->cn0_offset;
-    // cn0_params->track_cn0_use_thres -= profile->cn0_offset;
 
     cn0_params->est = (track_cn0_est_e)profile->cn0_est;
 
-    /* Currently, we don't have an algorithm that can differentiate tracked
-     * signal from noise at C/N0 in range [21..23). This corresponds to SNR
-     * of -145 dB/Hz and lower */
-    /* TODO add heuristics to estimate that signal is tracked with SNR below
-     * -145. */
     if (cn0_params->track_cn0_drop_thres < TP_HARD_CN0_DROP_THRESHOLD) {
       cn0_params->track_cn0_drop_thres = TP_HARD_CN0_DROP_THRESHOLD;
     }

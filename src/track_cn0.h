@@ -39,13 +39,17 @@
  * C/N0 estimator types
  */
 typedef enum {
-  TRACK_CN0_EST_RSCN, /**< Real Signal-Complex Noise method */
   TRACK_CN0_EST_BL,   /**< Beauliu's method */
-  TRACK_CN0_EST_SNV,  /**< Signal to noise variance method */
   TRACK_CN0_EST_MM,   /**< Moment method (M2M4) */
+
+  /* Optional estimators for testing */
+#if 0
+  TRACK_CN0_EST_RSCN, /**< Real Signal-Complex Noise method */
+  TRACK_CN0_EST_SNV,  /**< Signal to noise variance method */
   TRACK_CN0_EST_NWPR, /**< Narrowband-Wideband Power Ratio method */
-  TRACK_CN0_EST_SVR,  /**< ?? */
+  TRACK_CN0_EST_SVR,  /**< Support vector regression method */
   TRACK_CN0_EST_CH,   /**< ?? */
+#endif
   TRACK_CN0_EST_PRIMARY = TRACK_CN0_EST_BL,
   TRACK_CN0_EST_SECONDARY = TRACK_CN0_EST_MM
 } track_cn0_est_e;
@@ -64,9 +68,21 @@ typedef struct
  */
 typedef struct
 {
-  cn0_est_state_t primary;   /**< Estimator for high SNR values */
-  cn0_est_state_t secondary; /**< Estimator for low SNR values */
-  cn0_filter_t    filter;    /**< Additional C/N0 filter */
+  track_cn0_est_e type;        /**< Currently used estimator type */
+  union {
+    cn0_est_bl_state_t   bl;   /**< Estimator for high SNR values */
+    cn0_est_mm_state_t   mm;   /**< Estimator for low SNR values */
+
+    /* Optional estimators for testing */
+#if 0
+    cn0_est_ch_state_t   ch;
+    cn0_est_nwpr_state_t nwpr;
+    cn0_est_rscn_state_t rscn;
+    cn0_est_snv_state_t  snv;
+    cn0_est_svr_state_t  svr;
+#endif
+  };
+  cn0_filter_t    filter;      /**< Additional C/N0 filter */
 } track_cn0_state_t;
 
 #ifdef __cplusplus
