@@ -4,8 +4,12 @@ os:
   - linux
   - osx
 
+before-install:
+  - pip install --user --upgrade awscli
+
 install:
   - ANSIBLE_SUDO_OPTION="" bash setup.sh -x install
+  - pip install boto3
 
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
@@ -13,4 +17,7 @@ script:
   - make PIKSI_HW=v2
   - make clean
   - make PIKSI_HW=v3
+
+after_success:
+  - ./assemble_artifacts.py
 

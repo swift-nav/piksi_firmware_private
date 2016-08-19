@@ -1,0 +1,19 @@
+piksi_version: v3
+
+board_version: microzed
+
+firmware:
+  bucket: piksi-complete-builds
+  file: piksi_firmware.hex
+
+fpga:
+  bucket: s3://piksi-fgpa-unlocked
+  file: 'piksi_microzed_fpga_v3.5_unlocked.bit'
+
+sd_card:
+  bucket: s3://piksi-buildroot-images
+  files:
+    - boot.bin
+    - u-boot.img
+    - piksiv3.dtb
+    - zImiage
