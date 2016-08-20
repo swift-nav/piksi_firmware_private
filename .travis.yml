@@ -20,5 +20,5 @@ script:
   - make PIKSI_HW=v3
 
 after_success:
-  - ./assemble_artifacts.py
+  - ./upload_artifacts.py
 

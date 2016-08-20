@@ -1,0 +1,21 @@
+piksi_version: v3
+
+board_version: microzed
+
+firmware:
+  bucket: margaret-test
+  file: piksi_firmware.hex
+
+fpga:
+  bucket: piksi-fpga-unlocked
+  prefix: v3
+  file: 'piksi_microzed_fpga_v3.5_unlocked.bit'
+
+sd_card:
+  bucket: piksi-buildroot-images
+  prefix: v3/master/UTC2016-08-19-11:11:11_TRAVIS-35_COMMIT-a1b2c4d
+  files:
+    - boot.bin
+    - u-boot.img
+    - piksiv3.dtb
+    - zImiage
