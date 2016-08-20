@@ -3,7 +3,7 @@ piksi_version: v3
 board_version: microzed
 
 firmware:
-  bucket: margaret-test
+  bucket: $TEST_BUCKET
   file: piksi_firmware.hex
 
 fpga:

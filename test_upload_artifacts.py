@@ -14,6 +14,8 @@ from upload_artifacts import (
 
 )
 
+TEST_BUCKET=os.environ.get('TEST_BUCKET')
+
 
 class TestUploadArtifacts(unittest.TestCase):
   '''Just sanity tests. Note that test-build.yml uses the actual buckets
@@ -37,7 +39,7 @@ class TestUploadArtifacts(unittest.TestCase):
 
     upload_firmware(self.build_config, firmware_key, s3)
     
-    bucket = s3.Bucket('margaret-test')
+    bucket = s3.Bucket(TEST_BUCKET)
     results = bucket.objects.filter(Prefix='v3/master/' + build_name)
     self.assertEqual(len(list(results)), 1)
 
@@ -53,7 +55,7 @@ class TestUploadArtifacts(unittest.TestCase):
 
     cp_fpga_firmware(self.build_config, s3, firmware_key)
     
-    bucket = s3.Bucket('margaret-test')
+    bucket = s3.Bucket(TEST_BUCKET)
     results = bucket.objects.filter(Prefix='v3/master/' + build_name + '/piksi_microzed_fpga_v3.5_unlocked.bit')
     self.assertEqual(len(list(results)), 1)
     
@@ -70,7 +72,7 @@ class TestUploadArtifacts(unittest.TestCase):
 
     cp_buildroot_images(self.build_config, s3, firmware_key)
     
-    bucket = s3.Bucket('margaret-test')
+    bucket = s3.Bucket(TEST_BUCKET)
     results = bucket.objects.filter(Prefix='v3/master/' + build_name)
     for file in results:
       print file
