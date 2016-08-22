@@ -8,7 +8,7 @@ import boto3
 from botocore.handlers import disable_signing
 
 
-def type_of_build():
+def build_prefix():
   '''Figure out which folder to upload this build to based on how the travis build was triggered
   '''
   FOLDER = os.environ.get('TRAVIS_BRANCH')
@@ -18,10 +18,10 @@ def type_of_build():
 
 
 def build_dir_name():
-  timestamp = datetime.strftime(datetime.utcnow(),'UTC-%Y-%m-%dT%H:%M:%SZ')
+  timestamp = datetime.strftime(datetime.utcnow(),'%Y-%m-%dT%H:%M:%SZ')
   travis_build = os.environ.get('TRAVIS_BUILD_NUMBER')
   build_version = subprocess.check_output(['git', 'describe', '--tags', '--dirty', '--always']).strip()
-  BUILD_DIR = "UTC-{0}_{1}_{2}".format(timestamp, travis_build, build_version)
+  BUILD_DIR = "{0}_{1}_{2}".format(timestamp, travis_build, build_version)
   return BUILD_DIR
 
 
@@ -122,12 +122,13 @@ def copy_files(build_config, firmware_key_prefix):
 def collect_artifacts():
   with open('complete-build.yaml', 'r') as f:
     build_config = yaml.load(f)
-  build_type = type_of_build()
+  build_folder = build_prefix()
   build_name = build_dir_name()
   firmware_key_prefix = '{0}/{1}/{2}'.format(
     build_config['piksi_version'],
-    bulid_type,
-    build_name)
+    build_folder,
+    build_name
+  )
 
   s3 = boto3.resource('s3')
   s3.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
@@ -140,5 +141,5 @@ def collect_artifacts():
 
 if __name__ == "__main__":
   # script used in .travis.yml, conceptually similar to upload_artifacts.sh in the piksi_buildroot
-  # repo, but using Python to not have to deal with the horrors of parsing yaml in bash
+  # repo, but using Python to be able to use the pyyaml parser
   collect_artifacts()

@@ -18,4 +18,4 @@ sd_card:
     - boot.bin
     - u-boot.img
     - piksiv3.dtb
-    - zImiage
+    - zImage
