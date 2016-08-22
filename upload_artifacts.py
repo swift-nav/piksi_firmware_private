@@ -22,11 +22,10 @@ def type_of_build():
 
 
 def build_dir_name():
-  timestamp = datetime.strftime(datetime.utcnow(),'%Y-%m-%d-%T')
+  timestamp = datetime.strftime(datetime.utcnow(),'UTC-%Y-%m-%dT%H:%M:%SZ')
   travis_build = os.environ.get('TRAVIS_BUILD_NUMBER')
-  # short git commit hash
-  build_version = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
-  BUILD_DIR = "UTC-{0}_TRAVIS-{1}_COMMIT-{2}".format(timestamp, travis_build, BUILD_VERSION)
+  build_version = subprocess.check_output(['git', 'describe', '--tags', '--dirty', '--always']).strip()
+  BUILD_DIR = "UTC-{0}_{1}_{2}".format(timestamp, travis_build, build_version)
   return BUILD_DIR
 
 
