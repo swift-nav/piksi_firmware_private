@@ -68,8 +68,18 @@ void ndb_ephemeris_init()
 
 enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
-  u16 idx = sid_to_global_index(sid);
+  u16 idx;
+  /*
+   * Current architecture uses GPS L1 C/A ephemeris for GPS satellites.
+   */
+  if (sid_to_constellation(sid) == CONSTELLATION_GPS)
+    idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
+  else
+    idx = sid_to_global_index(sid);
+
   ndb_retrieve(e, &ndb_ephemeris[idx], sizeof(ephemeris_t));
+  /* Patch SID to be accurate for GPS L1/L2 */
+  e->sid = sid;
   return NDB_ERR_NONE;
 }
 
