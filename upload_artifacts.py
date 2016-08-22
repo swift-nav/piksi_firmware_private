@@ -7,6 +7,7 @@ from datetime import datetime
 import boto3
 from botocore.handlers import disable_signing
 
+TEST_BUCKET = os.environ.get('TEST_BUCKET')
 
 def build_prefix():
   '''Figure out which folder to upload this build to based on how the travis build was triggered
@@ -18,6 +19,8 @@ def build_prefix():
 
 
 def build_dir_name():
+  '''Construct a descriptive name for this build's directory using a timestamp, the travis build,
+  and the git tags.'''
   timestamp = datetime.strftime(datetime.utcnow(),'%Y-%m-%dT%H:%M:%SZ')
   travis_build = os.environ.get('TRAVIS_BUILD_NUMBER')
   build_version = subprocess.check_output(['git', 'describe', '--tags', '--dirty', '--always']).strip()
@@ -36,9 +39,9 @@ def upload_firmware(build_config, firmware_key_prefix, s3_resource):
   firmware_key_prefix : str
     prefix key for the 'folder' on S3 to store firmware in
   '''
-  firmware_key = firmware_key_prefix + '/' + build_config['firmware']['file']
+  firmware_key = firmware_key_prefix
   with open('./build/piksi_firmware.hex', 'r') as f:
-    s3_resource.Bucket(build_config['firmware']['bucket']).put_object(Key=firmware_key, Body=f)
+    s3_resource.Bucket(TEST_BUCKET).put_object(Key=firmware_key, Body=f)
 
 
 def cp_fpga_firmware(build_config, s3_resource, firmware_key_prefix):
@@ -64,7 +67,7 @@ def cp_fpga_firmware(build_config, s3_resource, firmware_key_prefix):
   # should be equivalent to:
   # aws s3 cp fpga_bucket/path/to/fpga_firmware firmware_bucket/path/to/this_firmware
   s3_resource.Object(
-    build_config['firmware']['bucket'],
+    TEST_BUCKET,
     firmware_key_prefix+'/'+build_config['fpga']['file']
   ).copy_from(
     CopySource=fpga_bucket+'/'+fpga_key
@@ -85,7 +88,7 @@ def cp_buildroot_images(build_config, s3_resource, firmware_key_prefix):
     prefix key for the 'folder' on S3 where all the files for this build are collected.
     Does not end with firmware filename.
     '''
-  firmware_bucket = build_config['firmware']['bucket']
+  firmware_bucket = TEST_BUCKET
   buildroot_bucket = build_config['sd_card']['bucket']
   buildroot_folder = build_config['sd_card']['prefix']
 
@@ -95,7 +98,7 @@ def cp_buildroot_images(build_config, s3_resource, firmware_key_prefix):
   )
   for file in build_config['sd_card']['files']:
     s3_resource.Object(
-      build_config['firmware']['bucket'],
+      TEST_BUCKET,
       firmware_key_prefix+'/'+file).copy_from(
       CopySource=buildroot_bucket+'/'+buildroot_folder+'/'+file
     )

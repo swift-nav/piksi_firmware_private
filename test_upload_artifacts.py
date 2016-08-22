@@ -25,59 +25,48 @@ class TestUploadArtifacts(unittest.TestCase):
   def setUp(self):
     with open('test-build.yml', 'r') as f:
       self.build_config = yaml.load(f)
+    timestamp = datetime.strftime(datetime.utcnow(),'%Y-%m-%dT%T')
+    self.build_name = timestamp + '_42_abcdefg'
+    self.firmware_key_prefix = '{0}/{1}/{2}'.format(
+      self.build_config['piksi_version'],
+      'master',
+      self.build_name
+    )
 
   def test_upload_firmware(self):
     s3 = boto3.resource('s3')
     s3.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
-    timestamp = 'UTC' + datetime.strftime(datetime.utcnow(),'%Y-%m-%d-%T')
-    build_name = timestamp + '_TRAVIS-1_COMMIT-a1b2c4d/piksi_firmware.hex'
-    firmware_key = '{0}/{1}/{2}'.format(
-      self.build_config['piksi_version'],
-      'master',
-      build_name
-    )
-
+    firmware_key = self.firmware_key_prefix + '/piksi_firmware.hex'
     upload_firmware(self.build_config, firmware_key, s3)
-    
+
     bucket = s3.Bucket(TEST_BUCKET)
-    results = bucket.objects.filter(Prefix='v3/master/' + build_name)
+    results = bucket.objects.filter(Prefix='v3/master/' + self.build_name)
     self.assertEqual(len(list(results)), 1)
 
   def test_cp_fgpa_firmware(self):
     s3 = boto3.resource('s3')
-    timestamp = 'UTC' + datetime.strftime(datetime.utcnow(),'%Y-%m-%d-%T')
-    build_name = timestamp + '_TRAVIS-1_COMMIT-a1b2c4d'
-    firmware_key = '{0}/{1}/{2}'.format(
-      self.build_config['piksi_version'],
-      'master',
-      build_name
-    )
 
-    cp_fpga_firmware(self.build_config, s3, firmware_key)
+    cp_fpga_firmware(self.build_config, s3, self.firmware_key_prefix)
     
     bucket = s3.Bucket(TEST_BUCKET)
-    results = bucket.objects.filter(Prefix='v3/master/' + build_name + '/piksi_microzed_fpga_v3.5_unlocked.bit')
+    results = bucket.objects.filter(Prefix='v3/master/' + self.build_name + '/piksi_microzed_fpga_v3.5_unlocked.bit')
     self.assertEqual(len(list(results)), 1)
     
 
   def test_cp_buildroot_images(self):
     s3 = boto3.resource('s3')
-    timestamp = 'UTC' + datetime.strftime(datetime.utcnow(),'%Y-%m-%d-%T')
-    build_name = timestamp + '_TRAVIS-1_COMMIT-a1b2c4d'
-    firmware_key = '{0}/{1}/{2}'.format(
-      self.build_config['piksi_version'],
-      'master',
-      build_name
-    )
 
-    cp_buildroot_images(self.build_config, s3, firmware_key)
+    cp_buildroot_images(self.build_config, s3, self.firmware_key_prefix)
     
     bucket = s3.Bucket(TEST_BUCKET)
-    results = bucket.objects.filter(Prefix='v3/master/' + build_name)
+    results = bucket.objects.filter(Prefix='v3/master/' + self.build_name)
     for file in results:
       print file
 
 
 if __name__ == "__main__":
   # install boto3 and yaml, probably in a virtualenv
+  if not TEST_BUCKET:
+    print "Environment variable TEST_BUCKET must be set"
+    sys.exit(-1)
   unittest.main()
