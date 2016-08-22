@@ -11,13 +11,9 @@ from botocore.handlers import disable_signing
 def type_of_build():
   '''Figure out which folder to upload this build to based on how the travis build was triggered
   '''
+  FOLDER = os.environ.get('TRAVIS_BRANCH')
   if os.environ.get('TRAVIS_PULL_REQUEST') == 'true':
-    FOLDER = 'pull_requests'
-  else:
-    if os.environ.get('TRAVIS_BRANCH') == 'master':
-      FOLDER = 'master'
-    else:
-      FOLDER = 'misc'
+    FOLDER = 'pull_requests/'+FOLDER
   return FOLDER
 
 
