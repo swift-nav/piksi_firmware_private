@@ -576,8 +576,8 @@ static void manage_track()
     float ura;
 
     ndb_ephemeris_info(sid, &valid, &health_bits, &toe, &fit_interval, &ura);
-    /* TODO: check alert flag */
-    if (!signal_healthy(valid, health_bits, ura, sid.code)) {
+    if (tracking_channel_is_alert_set(i) ||
+      !signal_healthy(valid, health_bits, ura, sid.code)) {
       log_info_sid(sid, "unhealthy, dropping");
       drop_channel(i);
       acq->state = ACQ_PRN_UNHEALTHY;
@@ -636,8 +636,9 @@ s8 use_tracking_channel(u8 i)
       /* Channel time of week has been decoded. */
       && (tracking_channel_tow_ms_get(i) != TOW_INVALID)
       /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
-      && tracking_channel_bit_polarity_resolved(i))
-      /* TODO: Alert flag is not set */
+      && tracking_channel_bit_polarity_resolved(i)
+      /* Alert flag is not set */
+      && !tracking_channel_is_alert_set(i))
       {
     /* Ephemeris must be valid, not stale. Satellite must be healthy.
        This also acts as a sanity check on the channel TOW.*/
