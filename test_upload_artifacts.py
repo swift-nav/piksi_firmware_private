@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import time
 from datetime import datetime
 
 import yaml
@@ -18,9 +19,9 @@ TEST_BUCKET=os.environ.get('TEST_BUCKET')
 
 
 class TestUploadArtifacts(unittest.TestCase):
-  '''Just sanity tests. Note that test-build.yml uses the actual buckets
+  '''Sanity tests. Note that test-build.yml uses the actual buckets
   for the fpga and sd card images. Should only be reading from these. 
-  Write bucket is margaret-test which has anonymous-write permissions.'''
+  Write bucket (firmware_key_prefix) should have anonymous write permissions.'''
 
   def setUp(self):
     with open('test-build.yml', 'r') as f:
@@ -32,36 +33,36 @@ class TestUploadArtifacts(unittest.TestCase):
       'master',
       self.build_name
     )
+    self.s3 = boto3.resource('s3')
 
   def test_upload_firmware(self):
-    s3 = boto3.resource('s3')
-    s3.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+    self.s3.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
     firmware_key = self.firmware_key_prefix + '/piksi_firmware.hex'
-    upload_firmware(self.build_config, firmware_key, s3)
+    # so the folders don't have the same timestamp
+    time.sleep(1)
+    
+    upload_firmware(self.build_config, firmware_key, self.s3)
 
-    bucket = s3.Bucket(TEST_BUCKET)
-    results = bucket.objects.filter(Prefix='v3/master/' + self.build_name)
+    bucket = self.s3.Bucket(TEST_BUCKET)
+    results = bucket.objects.filter(Prefix='v3/master/' + self.build_name + '/piksi_firmware.hex')
     self.assertEqual(len(list(results)), 1)
 
   def test_cp_fgpa_firmware(self):
-    s3 = boto3.resource('s3')
+    # so the folders don't have the same timestamp
+    time.sleep(1)
 
-    cp_fpga_firmware(self.build_config, s3, self.firmware_key_prefix)
+    cp_fpga_firmware(self.build_config, self.s3, self.firmware_key_prefix)
     
-    bucket = s3.Bucket(TEST_BUCKET)
+    bucket = self.s3.Bucket(TEST_BUCKET)
     results = bucket.objects.filter(Prefix='v3/master/' + self.build_name + '/piksi_microzed_fpga_v3.5_unlocked.bit')
     self.assertEqual(len(list(results)), 1)
-    
 
   def test_cp_buildroot_images(self):
-    s3 = boto3.resource('s3')
-
-    cp_buildroot_images(self.build_config, s3, self.firmware_key_prefix)
+    cp_buildroot_images(self.build_config, self.s3, self.firmware_key_prefix)
     
-    bucket = s3.Bucket(TEST_BUCKET)
+    bucket = self.s3.Bucket(TEST_BUCKET)
     results = bucket.objects.filter(Prefix='v3/master/' + self.build_name)
-    for file in results:
-      print file
+    self.assertEqual(len(list(results)), 4)
 
 
 if __name__ == "__main__":
