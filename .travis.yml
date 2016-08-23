@@ -5,7 +5,6 @@ os:
   - osx
 
 before-install:
-  - pip install --user --upgrade awscli
   - pip install boto3 pyyaml
 
 install:
