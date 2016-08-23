@@ -450,19 +450,13 @@ static const tp_loop_params_row_t profile_matrix[] = {
  */
 static double compute_speed(gnss_signal_t sid, const tp_report_t *data)
 {
-  double speed_mps = 0.;
-  double doppler_hz = data->carr_freq; /* Carrier frequency is actually a
-                                        * doppler frequency shift */
-
-  switch (sid.code) {
-  case CODE_GPS_L1CA:
-    speed_mps = -(double)GPS_L1_LAMBDA * doppler_hz;
-    break;
-  case CODE_GPS_L2CM:
-  default:
-    /* Do not support */
-    break;
-  }
+  /*
+   * The method assumes the carrier frequency is equivalent to doppler shift,
+   * however it is not so. For now, assume they are equivalent and can be
+   * used for LOS SV speed computation.
+   */
+  double doppler_hz = data->carr_freq;
+  double speed_mps = -code_to_lambda(sid.code) * doppler_hz;
 
   return speed_mps;
 }
