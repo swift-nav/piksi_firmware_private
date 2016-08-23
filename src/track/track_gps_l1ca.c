@@ -34,6 +34,12 @@
 #include "track_profiles.h"
 #include "track_profile_utils.h"
 
+/* DLL error-based lock detector: when FLL mode is used, DLL-based lock
+ * detector is the only reliable (but slow) way to identify the tracking is
+ * lost. However on V2 there is no enough memory to use it.
+ */
+/* #define USE_DLL_ERROR 1 */
+
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
 
@@ -111,14 +117,12 @@ static void tracker_gps_l1ca_update_parameters(
   const tp_loop_params_t *l = &next_params->loop_params;
   const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
 
-  float prev_loop_freq = 0;
   u8 prev_cn0_ms = 0;
   bool prev_use_alias_detection = 0;
 
   if (data->tracking_mode == TP_TM_INITIAL && next_params->loop_params.mode != TP_TM_INITIAL) {
     init = true;
   } else {
-    prev_loop_freq = 1000.f / data->int_ms;
     prev_cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
     prev_use_alias_detection = data->use_alias_detection;
   }
@@ -160,8 +164,6 @@ static void tracker_gps_l1ca_update_parameters(
                l->carr_bw, l->carr_zeta, l->carr_k,
                l->carr_fll_aid_gain, fll_loop_freq);
 
-    // log_info_sid(channel_info->sid, "LF=%f", common_data->carrier_freq);
-
     lock_detect_init(&data->lock_detect,
                      ld->k1 * ld_int_ms,
                      ld->k2,
@@ -179,12 +181,6 @@ static void tracker_gps_l1ca_update_parameters(
                  l->carr_to_code,
                  l->carr_bw, l->carr_zeta, l->carr_k,
                  l->carr_fll_aid_gain, fll_loop_freq);
-
-    if (prev_loop_freq != loop_freq) {
-      /* When loop frequency changes, reset partially reset filter state. */
-      // data->tl_state.carr_filt.prev_error = 0.f;
-      // data->tl_state.code_filt.prev_error = 0.f;
-    }
 
     lock_detect_reinit(&data->lock_detect,
                        ld->k1 * ld_int_ms,
@@ -377,9 +373,7 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
   Q -= data->alias_detect.first_Q;
 
   float err = alias_detect_second(&data->alias_detect, I, Q);
-  // err = 0;
 
-  // log_info_sid(channel_info->sid, "Err: %f", err);
   if (fabs(err) > (125 / alias_ms)) {
 
     if (data->lock_detect.outp) {
@@ -525,9 +519,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
     outo = data->lock_detect.outo;
     outp = data->lock_detect.outp;
-//      if (data->fll_lock_detect >= 0.10) {
-//        outo = outp = false;
-//      }
+
   } else if (tp_tl_is_fll(&data->tl_state)) {
     /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
     outp = false;
@@ -544,10 +536,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     common_data->ld_pess_unlocked_count = common_data->update_count;
   /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
   if (last_outp && !outp) {
-    //log_info_sid(channel_info->sid, "PLL stress");
+    log_info_sid(channel_info->sid, "PLL stress");
     tracker_ambiguity_unknown(channel_info->context);
-  } else if (last_outp != outp) {
-    //log_info_sid(channel_info->sid, "PLL pessimistic lock");
   }
 
   if (data->lock_detect.outp &&
@@ -580,8 +570,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       const tp_loop_params_t *lp = tp_get_next_loop_params(channel_info->sid);
       if (data->int_ms != lp->coherent_ms) {
         /* TODO utilize noise bandwidth and damping ratio */
-        float k1 = (float)data->int_ms / lp->coherent_ms;
-        float k2 = k1 * k1;
+        float k2 = (float)data->int_ms / lp->coherent_ms;
+        float k1 = sqrtf(k2);
         for (u32 i = 0; i < 3; i++) {
           data->corrs.corr_epl.epl[i].I *= k1;
           data->corrs.corr_epl.epl[i].Q *= k2;

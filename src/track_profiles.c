@@ -86,9 +86,11 @@
 /** Profile lock time duration in ms. */
 #define TP_CHANGE_LOCK_COUNTDOWN_MS (1250)
 /** Profile change evaluation interval duration in ms. */
-#define TP_CHANGE_LOCK_COUNTDOWN2_MS (500)
+#define TP_CHANGE_LOCK_COUNTDOWN2_MS (0)
 
 #define LPF_CUTOFF_HZ 0.6f
+
+#define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
 
 #define INTEG_PERIOD_1_MS  1
 #define INTEG_PERIOD_5_MS  5
@@ -627,12 +629,15 @@ static void update_stats(tp_profile_internal_t *profile,
   float speed, accel, cn0;
 
   /* Profile lock time count down */
-  if (profile->lock_time_ms > data->time_ms) {
+  if (profile->lock_time_ms > data->time_ms)
     profile->lock_time_ms -= data->time_ms;
-  } else {
+  else
     profile->lock_time_ms = 0;
-  }
-  profile->print_time += data->time_ms;
+
+  if (profile->print_time >= data->time_ms)
+    profile->print_time -= data->time_ms;
+  else
+    profile->print_time = 0;
 
   profile->olock = data->olock;
   profile->plock = data->plock;
@@ -695,10 +700,10 @@ static const char *get_mode_str(tp_tm_e v)
  */
 static void print_stats(tp_profile_internal_t *profile)
 {
-  if (profile->print_time < 20000)
+  if (profile->print_time > 0)
     return;
 
-  profile->print_time = 0;
+  profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
 
   u8 lp_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
 
@@ -777,9 +782,6 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   default:
     assert(false);
   }
-
-  /* When we have a lock, and lock ratio is good, do not change the mode */
-  // must_keep_profile = profile->olock && profile->filt_val[2] > 4.f;
 
   /* First, check if the profile change is required:
    * - There must be no scheduled profile change.
@@ -888,14 +890,10 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
               next_profile_d = dyn_idx;
           } else {
             /* Profile change due to dynamics state change only */
-            /* Good PLL lock protection: no switch if lock is high */
-            // if (loc < TP_LOCK_THRESHOLD)
-            {
-              next_profile_i = profile->cur_profile_i;
-              next_profile_d = dyn_idx;
-              must_change_profile = true;
-              profile->lock_time_ms = TP_CHANGE_LOCK_COUNTDOWN_MS;
-            }
+            next_profile_i = profile->cur_profile_i;
+            next_profile_d = dyn_idx;
+            must_change_profile = true;
+            profile->lock_time_ms = TP_CHANGE_LOCK_COUNTDOWN_MS;
           }
         }
       }
@@ -945,7 +943,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
                  reason2, acc
                  );
   } else if (profile->lock_time_ms == 0) {
-    // profile->lock_time_ms = TP_CHANGE_LOCK_COUNTDOWN2_MS;
+    profile->lock_time_ms = TP_CHANGE_LOCK_COUNTDOWN2_MS;
   }
 }
 
@@ -1042,6 +1040,8 @@ tp_result_e tp_tracking_start(gnss_signal_t sid,
       profile->next_profile_i = TP_PROFILE_ROW_INI;
       profile->cur_profile_d = TP_PROFILE_DYN_INI;
       profile->next_profile_d = TP_PROFILE_DYN_INI;
+
+      profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
 
       init_profile_filters(profile, speed0);
 

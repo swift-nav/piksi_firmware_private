@@ -41,15 +41,6 @@
 typedef enum {
   TRACK_CN0_EST_BL,   /**< Beauliu's method */
   TRACK_CN0_EST_MM,   /**< Moment method (M2M4) */
-
-  /* Optional estimators for testing */
-#if 0
-  TRACK_CN0_EST_RSCN, /**< Real Signal-Complex Noise method */
-  TRACK_CN0_EST_SNV,  /**< Signal to noise variance method */
-  TRACK_CN0_EST_NWPR, /**< Narrowband-Wideband Power Ratio method */
-  TRACK_CN0_EST_SVR,  /**< Support vector regression method */
-  TRACK_CN0_EST_CH,   /**< ?? */
-#endif
   TRACK_CN0_EST_PRIMARY = TRACK_CN0_EST_BL,
   TRACK_CN0_EST_SECONDARY = TRACK_CN0_EST_MM
 } track_cn0_est_e;

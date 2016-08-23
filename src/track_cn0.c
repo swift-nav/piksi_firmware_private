@@ -95,29 +95,6 @@ static void init_estimator(track_cn0_state_t *e,
     cn0_est_mm_init(&e->mm, p, cn0_0);
     break;
 
-  /* Optional estimators for testing */
-#if 0
-  case TRACK_CN0_EST_RSCN:
-    cn0_est_rscn_init(&e->rscn, p, cn0_0);
-    break;
-
-  case TRACK_CN0_EST_SNV:
-    cn0_est_rscn_init(&e->snv, p, cn0_0);
-    break;
-
-  case TRACK_CN0_EST_NWPR:
-    cn0_est_nwpr_init(&e->nwpr, p, cn0_0);
-    break;
-
-  case TRACK_CN0_EST_SVR:
-    cn0_est_svr_init(&e->svr, p, cn0_0);
-    break;
-
-  case TRACK_CN0_EST_CH:
-    cn0_est_ch_init(&e->ch, p, cn0_0);
-    break;
-#endif
-
   default:
     assert(false);
   }
@@ -151,29 +128,6 @@ static float update_estimator(track_cn0_state_t *e,
     cn0 = cn0_est_mm_update(&e->mm, p, I, Q);
     break;
 
-  /* Optional estimators for testing */
-#if 0
-  case TRACK_CN0_EST_RSCN:
-    cn0 = cn0_est_rscn_update(&e->rscn, p, I, Q);
-    break;
-
-  case TRACK_CN0_EST_SNV:
-    cn0 = cn0_est_snv_update(&e->snv, p, I, Q);
-    break;
-
-  case TRACK_CN0_EST_NWPR:
-    cn0 = cn0_est_nwpr_update(&e->nwpr, p, I, Q);
-    break;
-
-  case TRACK_CN0_EST_SVR:
-    cn0 = cn0_est_svr_update(&e->svr, p, I, Q);
-    break;
-
-  case TRACK_CN0_EST_CH:
-    cn0 = cn0_est_ch_update(&e->ch, p, I, Q);
-    break;
-#endif
-
   default:
     assert(false);
   }
@@ -198,7 +152,6 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
 
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     if (int_ms == integration_periods[i]) {
-      //cn0_est_pre_computed[i].est_params.t_int = int_ms;
       pparams = &cn0_est_pre_computed[i];
       break;
     }
@@ -284,13 +237,8 @@ const char *track_cn0_str(track_cn0_est_e t)
 {
   const char *str = "?";
   switch (t) {
-//  case TRACK_CN0_EST_RSCN: str = "RSCN"; break;
   case TRACK_CN0_EST_BL: str = "BL"; break;
-//  case TRACK_CN0_EST_SNV: str = "SNV"; break;
   case TRACK_CN0_EST_MM: str = "MM"; break;
-//  case TRACK_CN0_EST_NWPR: str = "NWPR"; break;
-//  case TRACK_CN0_EST_SVR: str = "SVR"; break;
-//  case TRACK_CN0_EST_CH: str = "CH"; break;
   default: assert(false);
   }
   return str;
