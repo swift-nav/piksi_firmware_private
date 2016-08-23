@@ -24,6 +24,8 @@
 #include "settings.h"
 #include "signal.h"
 
+#include <cn0_est.h>
+
 /*  code: nbw zeta k carr_to_code
  carrier:                    nbw  zeta k fll_aid */
 #define LOOP_PARAMS_SLOW \
@@ -49,29 +51,6 @@
 #define LD_PARAMS_EXTRAOPT "0.02, 0.8, 150, 50"
 #define LD_PARAMS_DISABLE  "0.02, 1e-6, 1, 1"
 
-#define CN0_EST_LPF_CUTOFF 0.1
-
-#define INTEG_PERIOD_1_MS  1
-#define INTEG_PERIOD_2_MS  2
-#define INTEG_PERIOD_4_MS  4
-#define INTEG_PERIOD_5_MS  5
-#define INTEG_PERIOD_10_MS 10
-#define INTEG_PERIOD_20_MS 20
-
-static const u8 integration_periods[] = {
-  INTEG_PERIOD_1_MS,
-  INTEG_PERIOD_2_MS,
-  INTEG_PERIOD_4_MS,
-  INTEG_PERIOD_5_MS,
-  INTEG_PERIOD_10_MS,
-  INTEG_PERIOD_20_MS
-};
-
-#define INTEG_PERIODS_NUM (sizeof(integration_periods) / \
-                           sizeof(integration_periods[0]))
-
-static cn0_est_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM];
-
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
 
@@ -86,17 +65,10 @@ static struct lock_detect_params {
   u16 lp, lo;
 } lock_detect_params;
 
-static float track_cn0_use_thres = 37.0; /* dBHz */
-static float track_cn0_drop_thres = 31.0;
-
-static char loop_params_string[120] = LOOP_PARAMS_MED;
-static char lock_detect_params_string[24] = LD_PARAMS_DISABLE;
-static bool use_alias_detection = true;
-
 typedef struct {
   aided_tl_state_t tl_state;   /**< Tracking loop filter state. */
-  corr_t cs[3];                /**< EPL correlation results in correlation period. */
-  cn0_est_state_t cn0_est;     /**< C/N0 Estimator. */
+  corr_t cs[5];                /**< EPL correlation results in correlation period. */
+  track_cn0_state_t cn0_est;     /**< C/N0 Estimator. */
   u8 int_ms;                   /**< Integration length. */
   bool short_cycle;            /**< Set to true when a short 1ms integration is requested. */
   u8 stage;                    /**< 0 = First-stage. 1 ms integration.
@@ -106,6 +78,13 @@ typedef struct {
   alias_detect_t alias_detect; /**< Alias lock detector. */
   lock_detect_t lock_detect;   /**< Phase-lock detector state. */
 } gps_l1ca_tracker_data_t;
+
+static float track_cn0_use_thres = 37.0; /* dBHz */
+static float track_cn0_drop_thres = 15.0;
+
+static char loop_params_string[120] = LOOP_PARAMS_MED;
+static char lock_detect_params_string[24] = LD_PARAMS_DISABLE;
+static bool use_alias_detection = true;
 
 static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS];
 static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[NUM_GPS_L1CA_TRACKERS];
@@ -122,7 +101,6 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
 static bool parse_loop_params(struct setting *s, const char *val);
 static bool parse_lock_detect_params(struct setting *s, const char *val);
-static void precompute_cn0_est_params(void);
 
 static const tracker_interface_t tracker_interface_gps_l1ca = {
   .code =         CODE_GPS_L1CA,
@@ -154,7 +132,7 @@ void track_gps_l1ca_register(void)
     gps_l1ca_trackers[i].data = &gps_l1ca_tracker_data[i];
   }
 
-  precompute_cn0_est_params();
+  cn0_est_precompute();
 
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }
@@ -188,7 +166,7 @@ static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
   data->short_cycle = true;
 
   /* Initialise C/N0 estimator */
-  cn0_est_init(&data->cn0_est, 1e3/data->int_ms, common_data->cn0);
+  cn0_init(&data->cn0_est, data->int_ms, common_data->cn0);
 
   lock_detect_init(&data->lock_detect,
                    lock_detect_params.k1, lock_detect_params.k2,
@@ -217,17 +195,19 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 {
   gps_l1ca_tracker_data_t *data = tracker_data;
 
-  /* Read early ([0]), prompt ([1]) and late ([2]) correlations. */
+  /* Read early ([0]), prompt ([1]) late ([2]), very early ([3]) and
+   * very late ([4]) correlations.
+   */
   if ((data->int_ms > 1) && !data->short_cycle) {
     /* If we just requested the short cycle, this is the long cycle's
      * correlations. */
-    corr_t cs[3];
+    corr_t cs[5];
     tracker_correlations_read(channel_info->context, cs,
                               &common_data->sample_count,
                               &common_data->code_phase_early,
                               &common_data->carrier_phase);
     /* accumulate short cycle correlations with long */
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 5; i++) {
       data->cs[i].I += cs[i].I;
       data->cs[i].Q += cs[i].Q;
     }
@@ -267,32 +247,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
-  {
-    cn0_est_params_t params;
-    const cn0_est_params_t *pparams = NULL;
-
-    /* TODO
-     * Store a pointer to the cn0_est_params_t in the gps_l1ca_tracker_data_t
-     * structure so we don't have to scan through the whole array each time
-     */
-    for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-      if(data->int_ms == integration_periods[i]) {
-        pparams = &cn0_est_pre_computed[i];
-        break;
-      }
-    }
-
-    if(NULL == pparams) {
-      cn0_est_compute_params(&params, 1e3f / data->int_ms, CN0_EST_LPF_CUTOFF,
-                             1e3f / data->int_ms);
-      pparams = &params;
-    }
-
-    common_data->cn0 = cn0_est(&data->cn0_est,
-                               pparams,
-                               (float) cs[1].I/data->int_ms,
-                               (float) cs[1].Q/data->int_ms);
-  }
+  common_data->cn0 = cn0_estimate(&data->cn0_est, cs, data->int_ms);
 
   if (common_data->cn0 > track_cn0_drop_thres)
     common_data->cn0_above_drop_thres_count = common_data->update_count;
@@ -374,7 +329,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                        tracker_bit_length_get(channel_info->context));
     data->short_cycle = true;
 
-    cn0_est_init(&data->cn0_est, 1e3 / data->int_ms, common_data->cn0);
+    cn0_init(&data->cn0_est, data->int_ms, common_data->cn0);
 
     /* Recalculate filter coefficients */
     aided_tl_retune(&data->tl_state, 1e3 / data->int_ms,
@@ -468,19 +423,4 @@ static bool parse_lock_detect_params(struct setting *s, const char *val)
   strncpy(s->addr, val, s->len);
   memcpy(&lock_detect_params, &p, sizeof(lock_detect_params));
   return true;
-}
-
-/* Pre-compute C/N0 estimator and filter parameters. The parameters are
- * computed using equivalent of cn0_est_compute_params() function for
- * integration periods of 1, 2, 4, 5, 10 and 20ms and cut-off frequency
- * of 0.1 Hz.
- */
-static void precompute_cn0_est_params(void)
-{
-  for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    cn0_est_compute_params(&cn0_est_pre_computed[i],
-                           1e3f / integration_periods[i],
-                           CN0_EST_LPF_CUTOFF,
-                           1e3f / integration_periods[i]);
-  }
 }

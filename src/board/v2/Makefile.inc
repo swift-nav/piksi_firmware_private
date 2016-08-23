@@ -43,6 +43,7 @@ BOARDSRC := \
         $(BOARDDIR)/max2769.o \
         $(BOARDDIR)/usart_support.o \
         $(BOARDDIR)/platform_signal.o \
+        $(BOARDDIR)/cn0_est.o \
         $(SWIFTNAV_ROOT)/src/peripherals/stm_flash.o \
         $(SWIFTNAV_ROOT)/src/peripherals/spi_wrapper.o \
         $(SWIFTNAV_ROOT)/src/peripherals/random.o \

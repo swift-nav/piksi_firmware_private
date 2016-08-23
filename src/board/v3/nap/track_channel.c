@@ -50,6 +50,9 @@
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
 #define SPACING_HALF_CHIP ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 2)
+/* spacing for very early and very late for noise estimation
+ * should be far enough from correlation peak, for now use 5 chips */
+#define SPACING_FOR_NOISE_EST ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) * 1)
 
 static struct nap_ch_state {
   u32 code_phase;   /**< Fractional part of code phase. */
@@ -145,7 +148,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   t->CODE_INIT_G1 = sid_to_init_g1(sid);
   t->CODE_INIT_G2 = 0x3ff;
 
-  t->SPACING = (SPACING_HALF_CHIP << NAP_TRK_SPACING_OUTER_Pos) |
+  t->SPACING = (SPACING_FOR_NOISE_EST << NAP_TRK_SPACING_OUTER_Pos) |
                (SPACING_HALF_CHIP << NAP_TRK_SPACING_INNER_Pos);
 
   double cp_rate = (1.0 + carrier_freq / code_to_carr_freq(sid.code)) *
@@ -222,12 +225,15 @@ void nap_track_read_results(u8 channel,
     log_warn("Track correlator overflow 0x%04X on channel %d", ovf, channel);
   }
 
-  corr_t lc[5];
-  for (u8 i = 0; i < 5; i++) {
-    lc[i].I = t->CORR[i].I >> 8;
-    lc[i].Q = t->CORR[i].Q >> 8;
-  }
-  memcpy(corrs, &lc[1], sizeof(corr_t)*3);
+  /* map corr registers by following way:
+   * VE: CORR[0] -> corrs[3], E: CORR[1] -> corrs[0], P: CORR[2] -> corrs[1],
+   * L: CORR[3] -> corrs[2], VL: CORR[4] -> corrs[4]
+   * This is needed to use track_gps_l1ca.c for both Piksi v2 and v3 */
+  corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8;
+  corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8;
+  corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8;
+  corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8;
+  corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8;
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) |
                              t->CODE_PHASE_FRAC;

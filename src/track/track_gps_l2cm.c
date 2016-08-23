@@ -31,6 +31,8 @@
 #include "settings.h"
 #include "signal.h"
 
+#include <cn0_est.h>
+
 /** L2C coherent integration time [ms] */
 #define L2C_COHERENT_INTEGRATION_TIME_MS 20
 
@@ -61,7 +63,7 @@
 /*                          k1,   k2,  lp,  lo */
 #define LD_PARAMS          "0.0247, 1.5, 50, 240"
 #define LD_PARAMS_DISABLE  "0.02, 1e-6, 1, 1"
-
+#if 0
 #define CN0_EST_LPF_CUTOFF 0.1f
 
 #define INTEG_PERIOD_20_MS 20
@@ -74,7 +76,7 @@ static const u8 integration_periods[] = {
                            sizeof(integration_periods[0]))
 
 static cn0_est_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM];
-
+#endif
 static struct loop_params {
   float code_bw, code_zeta, code_k, carr_to_code;
   float carr_bw, carr_zeta, carr_k, carr_fll_aid_gain;
@@ -95,8 +97,8 @@ static bool use_alias_detection = true;
 
 typedef struct {
   aided_tl_state_t tl_state;   /**< Tracking loop filter state. */
-  corr_t cs[3];                /**< EPL correlation results in correlation period. */
-  cn0_est_state_t cn0_est;     /**< C/N0 Estimator. */
+  corr_t cs[5];                /**< EPL correlation results in correlation period. */
+  track_cn0_state_t cn0_est;   /**< C/N0 Estimator. */
   u8 int_ms;                   /**< Integration length. */
   bool short_cycle;            /**< Set to true when a short 1ms integration is requested. */
   u8 startup;                  /**< An indicator of start-up phase. */
@@ -123,7 +125,6 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
 
 static bool parse_loop_params(struct setting *s, const char *val);
 static bool parse_lock_detect_params(struct setting *s, const char *val);
-static void precompute_cn0_est_params(void);
 
 static const tracker_interface_t tracker_interface_gps_l2cm = {
   .code =         CODE_GPS_L2CM,
@@ -167,7 +168,7 @@ void track_gps_l2cm_register(void)
     gps_l2cm_trackers[i].data = &gps_l2cm_tracker_data[i];
   }
 
-  precompute_cn0_est_params();
+  cn0_est_precompute();
 
   tracker_interface_register(&tracker_interface_list_element_gps_l2cm);
 }
@@ -275,7 +276,7 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->startup = 2;
 
   /* Initialise C/N0 estimator */
-  cn0_est_init(&data->cn0_est, 1e3 / data->int_ms, common_data->cn0);
+  cn0_init(&data->cn0_est, data->int_ms, common_data->cn0);
 
   /* Initialize lock detector */
   lock_detect_init(&data->lock_detect,
@@ -327,7 +328,7 @@ static void handle_tracker_startup(const tracker_channel_info_t *channel_info,
                                    tracker_common_data_t *common_data,
                                    gps_l2cm_tracker_data_t *data)
 {
-  corr_t cs[3];
+  corr_t cs[5];
 
   switch (data->startup) {
   case 2:
@@ -348,7 +349,7 @@ static void handle_tracker_startup(const tracker_channel_info_t *channel_info,
                               &common_data->code_phase_early,
                               &common_data->carrier_phase);
     /* Accumulate two short cycle correlations */
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 5; i++) {
       data->cs[i].I += cs[i].I;
       data->cs[i].Q += cs[i].Q;
     }
@@ -401,13 +402,13 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
     alias_detect_first(&data->alias_detect, data->cs[1].I, data->cs[1].Q);
   } else {
     /* This is the end of the long cycle's correlations. */
-    corr_t cs[3];
+    corr_t cs[5];
     tracker_correlations_read(channel_info->context, cs,
                               &common_data->sample_count,
                               &common_data->code_phase_early,
                               &common_data->carrier_phase);
     /* Accumulate short cycle correlations with long ones. */
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 5; i++) {
       data->cs[i].I += cs[i].I;
       data->cs[i].Q += cs[i].Q;
     }
@@ -441,32 +442,7 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
-  {
-    cn0_est_params_t params;
-    const cn0_est_params_t *pparams = NULL;
-
-    /* TODO
-     * Store a pointer to the cn0_est_params_t in the gps_l1ca_tracker_data_t
-     * structure so we don't have to scan through the whole array each time
-     */
-    for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-      if(data->int_ms == integration_periods[i]) {
-        pparams = &cn0_est_pre_computed[i];
-        break;
-      }
-    }
-
-    if(NULL == pparams) {
-      cn0_est_compute_params(&params, 1e3f / data->int_ms, CN0_EST_LPF_CUTOFF,
-                             1e3f / data->int_ms);
-      pparams = &params;
-    }
-
-    common_data->cn0 = cn0_est(&data->cn0_est,
-                               pparams,
-                               (float) cs[1].I/data->int_ms,
-                               (float) cs[1].Q/data->int_ms);
-  }
+  common_data->cn0 = cn0_estimate(&data->cn0_est, cs, data->int_ms);
 
   if (common_data->cn0 > track_cn0_drop_thres) {
     common_data->cn0_above_drop_thres_count = common_data->update_count;
@@ -610,7 +586,7 @@ static bool parse_lock_detect_params(struct setting *s, const char *val)
 
   return true;
 }
-
+#if 0
 /* Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
  * integration periods and cut-off frequency defined in this file.
@@ -624,3 +600,4 @@ static void precompute_cn0_est_params(void)
                            1e3f / integration_periods[i]);
   }
 }
+#endif
