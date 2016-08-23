@@ -114,6 +114,21 @@ static lp1_filter_params_t lp1_filter_params[INTEG_PERIODS_NUM] _BCKP = {
 };
 
 /**
+ * Compact SID
+ *
+ * Compact version of SID. Requires 4 times less memory than sid_t.
+ */
+typedef union
+{
+  struct {
+    s16 sat : 7;    /**< SV identifier [-128..+127] */
+    s16 code : 5;   /**< Code [-1..+31]*/
+    s16 _res : 4;   /**< Reserved */
+  };
+  s16 sv_id;        /**< Packed data for binary operations */
+} tp_csid_t;
+
+/**
  * Per-satellite entry.
  *
  * The system keeps some tracking information for all satellites. Generally
@@ -147,7 +162,7 @@ typedef struct {
   u16           lock_time_ms:12;   /**< Profile lock count down timer */
   u16           cn0_est:2;
 
-  u16           sv_id;             /**< Satellite identifier */
+  tp_csid_t     csid;              /**< Compact satellite identifier */
   u16           print_time;        /**< Last debug print time */
 } tp_profile_internal_t;
 
@@ -164,11 +179,34 @@ static const tp_cn0_params_t cn0_params_default = {
   .track_cn0_use_thres = TP_DEFAULT_CN0_USE_THRESHOLD
 };
 
-static gnss_signal_t sid_from_id(u16 sv_id)
+/**
+ * Converts compact SID into GNSS SID.
+ *
+ * \param[in] csid Compact SID
+ *
+ * \return GNSS SID
+ */
+static gnss_signal_t unpack_sid(tp_csid_t csid)
 {
   gnss_signal_t res = {
-    .sat = sv_id,
-    .code = CODE_GPS_L1CA
+    .sat = csid.sat,
+    .code = (code_t)csid.code
+  };
+  return res;
+}
+
+/**
+ * Converts GNSS SID into compact SID.
+ *
+ * \param[in] csid GNSS SID
+ *
+ * \return Compact SID
+ */
+static tp_csid_t pack_sid(gnss_signal_t sid)
+{
+  tp_csid_t res = {
+    .sat = (u16)sid.sat,
+    .code = (s16)sid.code
   };
   return res;
 }
@@ -492,7 +530,7 @@ static tp_profile_internal_t *allocate_profile(gnss_signal_t sid)
    * initialization */
   if (NULL != res) {
     res->used = true;
-    res->sv_id = sid.sat;
+    res->csid = pack_sid(sid);
   }
   return res;
 }
@@ -509,10 +547,11 @@ static tp_profile_internal_t *find_profile(gnss_signal_t sid)
 {
   size_t i;
   tp_profile_internal_t *res = NULL;
+  tp_csid_t csid = pack_sid(sid);
 
   for (i = 0; i< TP_MAX_SUPPORTED_SVS; ++i) {
     if (profiles_gps1[i].used &&
-        profiles_gps1[i].sv_id == sid.sat) {
+        profiles_gps1[i].csid.sv_id == csid.sv_id) {
       res = &profiles_gps1[i];
       break;
     }
@@ -576,7 +615,7 @@ static void get_profile_params(tp_profile_internal_t *profile,
   else
     config->use_alias_detection = false;
 
-  tp_get_cn0_params(sid_from_id(profile->sv_id), &config->cn0_params);
+  tp_get_cn0_params(unpack_sid(profile->csid), &config->cn0_params);
 }
 
 /**
@@ -606,7 +645,7 @@ static void update_stats(tp_profile_internal_t *profile,
   profile->bsync = data->bsync;
 
   /* Compute products */
-  speed = compute_speed(sid_from_id(profile->sv_id), data);
+  speed = compute_speed(unpack_sid(profile->csid), data);
 
   /* Update moving average counters */
   lp1_filter_params_t p;
@@ -679,7 +718,7 @@ static void print_stats(tp_profile_internal_t *profile)
    *        PR rate, PR rate change,
    *        PLL lock detector ratio, FLL/DLL error
    */
-  log_debug_sid(sid_from_id(profile->sv_id),
+  log_debug_sid(unpack_sid(profile->csid),
                 "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
                 (int)loop_params[lp_idx].coherent_ms, m1, c1,
                 cn0_est_str, profile->filt_cn0,
@@ -727,7 +766,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     if (cn0 < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset ||
         ctrl == TP_CTRL_FLL1 || ctrl == TP_CTRL_FLL2) {
       profile->cn0_est = TRACK_CN0_EST_SECONDARY;
-      log_debug_sid(sid_from_id(profile->sv_id),
+      log_debug_sid(unpack_sid(profile->csid),
                     "Changed C/N0 estimator to secondary");
     }
     break;
@@ -736,7 +775,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     if (cn0 > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset &&
         ctrl != TP_CTRL_FLL1 && ctrl != TP_CTRL_FLL2) {
       profile->cn0_est = TRACK_CN0_EST_PRIMARY;
-      log_debug_sid(sid_from_id(profile->sv_id),
+      log_debug_sid(unpack_sid(profile->csid),
                     "Changed C/N0 estimator to primary");
     }
     break;
@@ -902,7 +941,7 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     const char *c2 = get_ctrl_str(loop_params[lp2_idx].ctrl);
     const char *m2 = get_mode_str(loop_params[lp2_idx].mode);
 
-    log_info_sid(sid_from_id(profile->sv_id),
+    log_info_sid(unpack_sid(profile->csid),
                  "Profile change: %dms %s %s [%d][%d]->%dms %s %s [%d][%d] r=%s (%.2f)/%s (%.2f)",
                  (int)loop_params[lp1_idx].coherent_ms, m1, c1,
                  profile->cur_profile_i, profile->cur_profile_d,
