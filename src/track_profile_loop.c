@@ -65,6 +65,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_bw, carr_zeta, carr_k,
                  freq_bw);
     break;
+
   case TP_CTRL_PLL3:
     tl_pll3_init(&s->pll3, loop_freq,
                  code_freq,
@@ -74,6 +75,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_bw, carr_zeta, carr_k,
                  freq_bw);
     break;
+
   case TP_CTRL_FLL1:
     tl_fll1_init(&s->fll1,
                  loop_freq,
@@ -84,6 +86,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  freq_bw, carr_zeta, carr_k);
     break;
+
   case TP_CTRL_FLL2:
     tl_fll2_init(&s->fll2, loop_freq,
                  fll_loop_freq,
@@ -136,6 +139,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                      carr_bw, carr_zeta, carr_k,
                      freq_bw);
       break;
+
     case TP_CTRL_PLL3:
       tl_pll3_retune(&s->pll3, loop_freq,
                      code_bw, code_zeta, code_k,
@@ -143,6 +147,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                      carr_bw, carr_zeta, carr_k,
                      freq_bw);
       break;
+
     case TP_CTRL_FLL1:
       tl_fll1_retune(&s->fll1, loop_freq,
                      fll_loop_freq,
@@ -150,6 +155,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                      carr_to_code,
                      freq_bw, carr_zeta, carr_k);
       break;
+
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
                      fll_loop_freq,
@@ -157,6 +163,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                      carr_to_code,
                      freq_bw, carr_zeta, carr_k);
       break;
+
     default:
       assert(false);
     }
@@ -339,8 +346,8 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
  *
  * \param[in] s Tracker state.
  *
- * \retval true  FLL-only tracking is used.
- * \retval false PLL or FLL-assisted PLL is used.
+ * \retval true  PLL or FLL-assisted PLL is used.
+ * \retval false FLL-only tracking is used.
  */
 bool tp_tl_is_pll(const tp_tl_state_t *s)
 {
@@ -348,20 +355,35 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
   case TP_CTRL_PLL2:
   case TP_CTRL_PLL3:
     return true;
+
   default:
     return false;
   }
 }
 
+/**
+ * First-stage FLL update.
+ *
+ * First stage FLL update is used to remember correlator output after a
+ * potential bit change.
+ *
+ * \param[in,out] s  Tracker state.
+ * \param[in]     cs Correlator values.
+ *
+ * \return None
+ *
+ * \sa tp_tl_fll_update_second
+ * \sa tp_tl_fll_update
+ */
 void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-
+    /* TODO: add support for PLL2 */
     break;
 
   case TP_CTRL_PLL3:
-
+    /* TODO: add support for PLL3 */
     break;
 
   case TP_CTRL_FLL1:
@@ -377,15 +399,29 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
   }
 }
 
+/**
+ * Second-stage FLL update.
+ *
+ * Second stage FLL update is used to compute/update FLL discriminator with
+ * new correlations. The call must be within the same bit as previous update.
+ *
+ * \param[in,out] s  Tracker state.
+ * \param[in]     cs Correlator values.
+ *
+ * \return None
+ *
+ * \sa tp_tl_fll_update_first
+ * \sa tp_tl_fll_update
+ */
 void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-
+    /* TODO: add support for PLL2 */
     break;
 
   case TP_CTRL_PLL3:
-
+    /* TODO: add support for PLL3 */
     break;
 
   case TP_CTRL_FLL1:
@@ -401,15 +437,28 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
   }
 }
 
+/**
+ * Perform FLL adjustment in tracking loop filter.
+ *
+ * The method performs FLL adjustment according to accumulated discriminator
+ * values.
+ *
+ * \param[in,out] s Tracker state.
+ *
+ * \return None
+ *
+ * \sa tp_tl_fll_update_first
+ * \sa tp_tl_fll_update_second
+ */
 void tp_tl_fll_update(tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-
+    /* TODO: add support for PLL2 */
     break;
 
   case TP_CTRL_PLL3:
-
+    /* TODO: add support for PLL3 */
     break;
 
   case TP_CTRL_FLL1:
@@ -439,6 +488,7 @@ bool tp_tl_is_fll(const tp_tl_state_t *s)
   case TP_CTRL_FLL1:
   case TP_CTRL_FLL2:
     return true;
+
   default:
     return false;
   }
