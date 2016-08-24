@@ -40,7 +40,7 @@ MAKEFLAGS += BUILDFOLDER=$(BUILDFOLDER)
 LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
 
-.PHONY: all tests firmware docs hitl_setup hitl hitlv3 .FORCE
+.PHONY: all tests firmware docs hitl_setup hitl .FORCE
 
 all: firmware # tests
 	@printf "BUILDING For target $(PIKSI_HW)\n"
@@ -102,11 +102,6 @@ hitl_setup: firmware
 
 hitl: hitl_setup
 	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=$(TEST_CONFIG) \
-	BUILDFOLDER=$(BUILDFOLDER) bash $(BUILDFOLDER)/hitl_tools/make_hitl.sh
-
-
-hitlv3: hitl_setup
-	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=v3_config \
 	BUILDFOLDER=$(BUILDFOLDER) bash $(BUILDFOLDER)/hitl_tools/make_hitl.sh
 
 .FORCE:
