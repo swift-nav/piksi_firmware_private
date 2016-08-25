@@ -68,6 +68,7 @@ typedef struct {
   u8                use_alias_detection: 1; /**< Flag for alias detection control */
   u8                has_next_params: 1;     /**< Flag if stage transition is in
                                              *   progress */
+  u8                confirmed: 1;           /**< Flag if the tracking is confirmed */
 } gps_l1ca_tracker_data_t;
 
 static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS]
@@ -202,11 +203,23 @@ static void tracker_gps_l1ca_update_parameters(
     tp_cn0_params_t cn0_params;
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
+    float cn0_0;
+    if (data->confirmed)
+      cn0_0 = common_data->cn0;
+    else
+      cn0_0 = cn0_params.track_cn0_drop_thres - 1;
+
     /* Initialize C/N0 estimator and filter */
     track_cn0_init(channel_info->sid, /* Signal for logging */
                    cn0_ms,            /* C/N0 period in ms */
                    &data->cn0_est,    /* C/N0 estimator state */
-                   common_data->cn0); /* Initial C/N0 value */
+                   cn0_0,             /* Initial C/N0 value */
+                   0);                /* Flags */
+
+    if (!data->confirmed) {
+      data->cn0_est.cn0_0 = common_data->cn0;
+      common_data->cn0 = -1;
+    }
   }
 
 #if USE_DLL_ERROR
@@ -490,13 +503,13 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
     /* Update C/N0 estimate */
-    common_data->cn0 = track_cn0_update(channel_info->sid,
-                                        cn0_params.est,
-                                        &data->cn0_est,
-                                        data->corrs.corr_cn0.I,
-                                        data->corrs.corr_cn0.Q);
+    float cn0 = track_cn0_update(channel_info->sid,
+                                 cn0_params.est,
+                                 &data->cn0_est,
+                                 data->corrs.corr_cn0.I,
+                                 data->corrs.corr_cn0.Q);
 
-    if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
+    if (cn0 > cn0_params.track_cn0_drop_thres ||
         (tp_tl_is_pll(&data->tl_state) && data->lock_detect.outp)
         ) {
       /* When C/N0 is above a drop threshold or there is a pessimistic lock,
@@ -505,7 +518,21 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       common_data->cn0_above_drop_thres_count = common_data->update_count;
     }
 
-    if (common_data->cn0 < cn0_params.track_cn0_use_thres) {
+    if (cn0 > cn0_params.track_cn0_drop_thres && !data->confirmed) {
+      data->confirmed = 1;
+      /* Re-initialize C/N0 estimator and filter */
+      u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
+      track_cn0_init(channel_info->sid,
+                     cn0_ms,              /* C/N0 period in ms */
+                     &data->cn0_est,      /* C/N0 estimator state */
+                     data->cn0_est.cn0_0, /* Initial C/N0 value */
+                     0);                  /* Flags */
+    }
+
+    if (data->confirmed)
+      common_data->cn0 = cn0;
+
+    if (cn0 < cn0_params.track_cn0_use_thres) {
       /* SNR has dropped below threshold, indicate that the carrier phase
        * ambiguity is now unknown as cycle slips are likely. */
       tracker_ambiguity_unknown(channel_info->context);
@@ -550,7 +577,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     tracker_ambiguity_unknown(channel_info->context);
   }
 
-  if (data->lock_detect.outp &&
+  if (data->lock_detect.outp && data->confirmed &&
       tracker_bit_aligned(channel_info->context))
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,
@@ -611,7 +638,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       report.carr_freq = common_data->carrier_freq;
       report.code_phase_rate = common_data->code_phase_rate;
       report.cn0_raw = common_data->cn0;
-      report.cn0 = common_data->cn0;
+      report.cn0 = data->confirmed ? common_data->cn0 : data->cn0_est.cn0_0;
       report.olock = data->lock_detect.outo;
       report.plock = data->lock_detect.outp;
       report.lock_i = data->lock_detect.lpfi.y;

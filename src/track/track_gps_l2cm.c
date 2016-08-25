@@ -266,14 +266,15 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->startup = 2;
   data->stage = 0;
 
-  /* C/N0 is not reported until estimator shows value above drop threshold */
-  common_data->cn0 = -1;
-
   /* Initialize C/N0 estimator and filter */
   track_cn0_init(channel_info->sid,
-                 data->int_ms,              /* C/N0 period in ms */
-                 &data->cn0_est,            /* C/N0 estimator state */
-                 track_cn0_drop_thres - 1); /* Initial C/N0 value */
+                 data->int_ms,             /* C/N0 period in ms */
+                 &data->cn0_est,           /* C/N0 estimator state */
+                 track_cn0_drop_thres - 1, /* Initial C/N0 value */
+                 TRACK_CN0_FLAG_FAST_TYPE);  /* Fast type */
+  /* C/N0 is not reported until estimator shows value above drop threshold */
+  data->cn0_est.cn0_0 = common_data->cn0;
+  common_data->cn0 = -1;
 
   /* Initialize lock detector */
   lock_detect_init(&data->lock_detect,
@@ -446,7 +447,15 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
 
   if (cn0 > track_cn0_drop_thres) {
     common_data->cn0_above_drop_thres_count = common_data->update_count;
-    data->stage = 1; /* Enabled C/N0 reporting if not enabled before */
+    if (0 == data->stage) {
+      data->stage = 1; /* Enabled C/N0 reporting if not enabled before */
+      /* Reinitialize C/N0 estimator and filter */
+      track_cn0_init(channel_info->sid,         /* SV signal */
+                     data->int_ms,              /* C/N0 period in ms */
+                     &data->cn0_est,            /* C/N0 estimator state */
+                     cn0 = data->cn0_est.cn0_0, /* Initial C/N0 value */
+                     TRACK_CN0_FLAG_FAST_TYPE); /* Fast type */
+    }
   }
 
   /* Report C/N0 when stage is not initial */
