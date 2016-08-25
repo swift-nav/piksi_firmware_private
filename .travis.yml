@@ -1,8 +1,13 @@
 sudo: required
 
+language: c
+
 os:
   - linux
   - osx
+
+before_install:
+  - pip install --user --upgrade awscli
 
 install:
   - ANSIBLE_SUDO_OPTION="" bash setup.sh -x install
@@ -10,7 +15,20 @@ install:
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
   - export PATH=$PATH:~/gcc-arm-none-eabi/bin
+  - test $TRAVIS_PULL_REQUEST != "false" && export BUCKET=swiftnav-artifacts-pull-requests || true
+  - git fetch --tags --unshallow
   - make PIKSI_HW=v2
+  - test $TRAVIS_OS_NAME == "linux" && ./publish.sh v2 build_v2/piksi_firmware.{bin,dmp,elf,hex} || true
   - make clean
   - make PIKSI_HW=v3
+  - test $TRAVIS_OS_NAME == "linux" && ./publish.sh v3 build_v3/piksi_firmware.{bin,dmp,elf,hex} || true
 
+env:
+  global:
+    # Secure keys below are encrypted with travis encrypt gem
+    # Example encryption: travis encrypt AWS_SECRET_ACCESS_KEY=foo
+    # See https://docs.travis-ci.com/user/encryption-keys/
+    # AWS_ACCESS_KEY_ID
+    - secure: "LsFsFWJH7rXV0jThali9EjPA3OZFjhhan3f/yn2Ant2NHY/7m4CEzlu2yHx3mynR63Xw2gMC+xWFOATCjST0pf9bIGAHFZYFz/RM9IG1/YcFd54I5tEcde7stJ5Pq/bS+au8WxiXAE7ythf9iOeEPIBr9WD6r3qCyrlSvMmjRL05yZ/3xUCIghuqy0Cg+j+beViOl678BTBvvsCqwQGi4M0nYyhV+wAIPaRXpNgJ5YjqTope+D5v2jP65pZwxamT6cwQYvy+PNL5yI+tphAvXiAhjauzQUl1H5lpdtQCu2py1HLfaKIeM4Nqi2pnOw6cZN84x4oSJ+tuzn9TqoyRrYG5lxzO/ZROu59NcjsFMS5mDSM51Nxc87Gc1GW6xLu4otYw4nKreVcZLFwHK+bA5wnaxuAexI4jTenEHaFxqsGxbuL+XQuRhwfyoV5y7+yCGfOIVoByVIxfC9HLtU/c73EsMA/e80ohIzw8LjrTdgCTAW5Ktx/oSS3jKtpFhTKd9UL73AXkbcPLsECR/60vvqCS0Bc/WkBJxCwO6v6Nl6vzdHoPPnjtjwFI01WYS2rlBVSQqyRVUDaovboDXyCggj+AJLU2kzVWWaAV8FYQx42AKleUn3BvtVINvX32QcBHh0xVxNAW6SXfUntoHVLl4bqcgb4FW8CBcKTXrM+2ANE="
+    # AWS_SECRET_ACCESS_KEY
+    - secure: "ey7p4qkpniFlhfcFgPTFpJMlAqKdtcUbQ1H9dfV5FUh8u30aplv5d8MrHbqQF7e5D6CEya9kkXNmAA+1ayS7uSfSmpueAOtaCvYA9iu7LgHDaSmGkHRSIfgpXGIqsNj2QzN3dKNd+ckfru89v0VUli7LFWDs7ZZxPjJsKJbLCD2QfsKyR4gh/uirAC7xvw20LveTssfhWByC/i6EjggGcNPrKGTbYTaot7o/ueIai9iH9wOznN2PTk+OgMnGbgO+wNbPsDAIjuDIVrd8SgC8YPiBpn9FeMZ0r5YnL+KjiTwRMV0y2Wi7gMDBv/p7B6ugtSeTj9h8Bfnikxyoze1ZCSV44q4djHBC/nj+86Tkv+5n96LzY2wMFxG46iDxStx3NRKTSr0DXzmWkgrWuJewzSa/3Vq0xla4nIoOCRNCV/XdylcJW3OtP9nCJAVOSqK3kniCTlgajK/B+LqwAcDACWpeNfcHEIAf7ZtUdyvo3ogFAnK8SSe8urHq5hBdHHyykrxXtqG9weKvCr4yPi+J+3rSzlr9P3XI59J5lVdxuv32XRWwz3rFhqPmRQ+l/q2fziQF0QyIIavuGg+rlASlY+gLP+EVkuESMByeR+yEmMuw7rPbaPuJMgqzD8Gxc/eG+35eIsk4S0YYZ53Uqlq/25n6UkNtCIwA4qKDV0Ck4ls="

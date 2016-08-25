@@ -45,6 +45,6 @@ There are a few options:
 For additional details about the toolchain installation, please see
   http://docs.swift-nav.com/wiki/Piksi_Developer_Getting_Started_Guide .
 
-[1]: https://travis-ci.org/swift-nav/piksi_firmware.svg?branch=master
-[2]: https://travis-ci.org/swift-nav/piksi_firmware
+[1]: https://travis-ci.com/swift-nav/piksi_firmware_private.svg?token=qpdcpHVrbHsVtRxV2VHR&branch=master
+[2]: https://travis-ci.com/swift-nav/piksi_firmware_private
 
