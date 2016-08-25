@@ -15,7 +15,7 @@ install:
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
   - export PATH=$PATH:~/gcc-arm-none-eabi/bin
-  - test $TRAVIS_PULL_REQUEST != "false" && export BUCKET=swiftnav-artifacts-pull-requests || true
+  - test $TRAVIS_PULL_REQUEST != "false" && export BUCKET=swiftnav-artifacts-pull-requests && export ANONYMOUS=true || true
   - git fetch --tags --unshallow
   - make PIKSI_HW=v2
   - test $TRAVIS_OS_NAME == "linux" && ./publish.sh v2 build_v2/piksi_firmware.{bin,dmp,elf,hex} || true
