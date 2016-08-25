@@ -202,7 +202,7 @@ void tracking_send_state()
       }
       tracker_channel_unlock(tracker_channel);
 
-      if (!running) {
+      if (!running || cn0 < 0) {
         states[i].state = 0;
         states[i].sid.code = 0;
         states[i].sid.sat = 0;
