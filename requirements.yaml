@@ -1,0 +1,7 @@
+---
+-
+  name: complete
+  artifacts:
+    -
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/7d57672
