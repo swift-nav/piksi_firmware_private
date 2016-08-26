@@ -10,41 +10,62 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#define DEBUG 1
+
 #include <string.h>
 #include <libswiftnav/signal.h>
 #include <ch.h>
-
+#include <assert.h>
 #include "cnav_msg_storage.h"
 
-static MUTEX_DECL(type30_mutex);
-static cnav_msg_type_30_t type_30_store[NUM_SATS_GPS];
+static MUTEX_DECL(cnav_msg_mutex);
+static cnav_msg_storage_t cnav_msg_storage[NUM_SATS_GPS][CNAV_MSG_TYPE_NUM];
 
-void cnav_msg_type30_put(const cnav_msg_t *msg)
+cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t)
 {
-  if (CNAV_MSG_TYPE_30 != msg->msg_id)
-    return;
-
-  if (msg->prn > NUM_SATS_GPS)
-    return;
-
-  gnss_signal_t sid = construct_sid(CODE_GPS_L2CM, msg->prn);
-
-  u16 idx = sid_to_code_index(sid);
-  chMtxLock(&type30_mutex);
-  type_30_store[idx] = msg->data.type_30;
-  chMtxUnlock(&type30_mutex);
+  switch (t) {
+    case CNAV_MSG_TYPE_10: return CNAV_MSG_TYPE_IDX_10;
+    case CNAV_MSG_TYPE_30: return CNAV_MSG_TYPE_IDX_30;
+    default:
+      assert(!"Unsupported CNAV message type");
+  }
 }
 
-bool cnav_msg_type30_get(gnss_signal_t sid, cnav_msg_type_30_t *msg)
+void cnav_msg_put(const cnav_msg_t *msg)
+{
+  if (((CNAV_MSG_TYPE_30 == msg->msg_id) ||
+       (CNAV_MSG_TYPE_10 == msg->msg_id)) &&
+      (msg->prn <= NUM_SATS_GPS))
+  {
+    u8 msg_idx = cnav_msg_type_to_idx(msg->msg_id);
+    gnss_signal_t sid = construct_sid(CODE_GPS_L2CM, msg->prn);
+    u16 sat_idx = sid_to_code_index(sid);
+    chMtxLock(&cnav_msg_mutex);
+    cnav_msg_storage_t *storage_cell = &(cnav_msg_storage[sat_idx][msg_idx]);
+    storage_cell->msg = *msg;
+    storage_cell->msg_set = true;
+    chMtxUnlock(&cnav_msg_mutex);
+    log_debug_sid(sid, "CNAV message type %d saved", msg->msg_id);
+  }
+}
+
+bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg)
 {
   bool res = false;
 
-  if (sid_valid(sid) && sid_to_constellation(sid) == CONSTELLATION_GPS) {
-    u16 idx = sid_to_code_index(sid);
-    chMtxLock(&type30_mutex);
-    *msg = type_30_store[idx];
-    chMtxUnlock(&type30_mutex);
-    res = true;
+  if (((CNAV_MSG_TYPE_30 == type) ||
+       (CNAV_MSG_TYPE_10 == type)) &&
+      (sid_valid(sid) && sid_to_constellation(sid) == CONSTELLATION_GPS))
+  {
+    u16 sat_idx = sid_to_code_index(sid);
+    u8 msg_idx = cnav_msg_type_to_idx(type);
+    chMtxLock(&cnav_msg_mutex);
+    cnav_msg_storage_t *storage_cell = &(cnav_msg_storage[sat_idx][msg_idx]);
+    if (storage_cell->msg_set) {
+      *msg = storage_cell->msg;
+      res = true;
+    }
+    chMtxUnlock(&cnav_msg_mutex);
   }
 
   return res;
