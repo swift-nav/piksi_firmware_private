@@ -592,12 +592,19 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                              common_data->carrier_freq,
                              common_data->cn0);
 
+  bool use_coh_fll_discr = false;
+  if ( (data->tracking_mode == TP_TM_ONE_PLUS_N5) ||
+       (data->tracking_mode == TP_TM_ONE_PLUS_N10) )
+    use_coh_fll_discr = true;
+
   if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND))
-    tp_tl_fll_update_second(&data->tl_state, data->corrs.corr_fll);
+    tp_tl_fll_update_second(&data->tl_state, data->corrs.corr_fll,
+                            use_coh_fll_discr);
   if (0 != (cycle_flags & TP_CFLAG_FLL_USE))
     tp_tl_fll_update(&data->tl_state);
   if (0 != (cycle_flags & TP_CFLAG_FLL_FIRST))
-    tp_tl_fll_update_first(&data->tl_state, data->corrs.corr_fll);
+    tp_tl_fll_update_first(&data->tl_state, data->corrs.corr_fll,
+                           use_coh_fll_discr);
 
   if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
 

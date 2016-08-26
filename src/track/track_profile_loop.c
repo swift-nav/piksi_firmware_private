@@ -86,7 +86,17 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  freq_bw, carr_zeta, carr_k);
     break;
-
+  case TP_CTRL_FLL1_PLL2:
+    tl_fll1_pll2_init(&s->fll1_pll2,
+                      loop_freq,
+                      fll_loop_freq,
+                      code_freq,
+                      carr_freq,
+                      code_bw, code_zeta, code_k,
+                      carr_to_code,
+                      carr_bw, carr_zeta, carr_k,
+                      freq_bw);
+    break;
   case TP_CTRL_FLL2:
     tl_fll2_init(&s->fll2, loop_freq,
                  fll_loop_freq,
@@ -155,7 +165,14 @@ void tp_tl_retune(tp_tl_state_t *s,
                      carr_to_code,
                      freq_bw, carr_zeta, carr_k);
       break;
-
+    case TP_CTRL_FLL1_PLL2:
+      tl_fll1_pll2_retune(&s->fll1_pll2, loop_freq,
+                     fll_loop_freq,
+                     code_bw, code_zeta, code_k,
+                     carr_to_code,
+                     carr_bw, carr_zeta, carr_k,
+                     freq_bw);
+      break;
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
                      fll_loop_freq,
@@ -218,6 +235,10 @@ void tp_tl_adjust(tp_tl_state_t *s, float err)
     tl_fll1_adjust(&s->fll1, err);
     break;
 
+  case TP_CTRL_FLL1_PLL2:
+    tl_fll1_pll2_adjust(&s->fll1_pll2, err);
+    break;
+
   case TP_CTRL_FLL2:
     tl_fll2_adjust(&s->fll2, err);
     break;
@@ -252,6 +273,11 @@ void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq)
   case TP_CTRL_FLL1:
     *carr_freq = s->fll1.carr_freq;
     *code_freq = s->fll1.code_freq;
+    break;
+
+  case TP_CTRL_FLL1_PLL2:
+    *carr_freq = s->fll1_pll2.carr_freq;
+    *code_freq = s->fll1_pll2.code_freq;
     break;
 
   case TP_CTRL_FLL2:
@@ -297,6 +323,10 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
     tl_fll1_update_dll(&s->fll1, cs2);
     break;
 
+  case TP_CTRL_FLL1_PLL2:
+    tl_fll1_pll2_update_dll(&s->fll1_pll2, cs2);
+    break;
+
   case TP_CTRL_FLL2:
     tl_fll2_update_dll(&s->fll2, cs2);
     break;
@@ -330,6 +360,10 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
     dll_error = tl_fll1_get_dll_error(&s->fll1);
     break;
 
+  case TP_CTRL_FLL1_PLL2:
+    dll_error = tl_fll1_pll2_get_dll_error(&s->fll1_pll2);
+    break;
+
   case TP_CTRL_FLL2:
     dll_error = tl_fll2_get_dll_error(&s->fll2);
     break;
@@ -354,6 +388,7 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
   case TP_CTRL_PLL3:
+  case TP_CTRL_FLL1_PLL2:
     return true;
 
   default:
@@ -361,21 +396,8 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
   }
 }
 
-/**
- * First-stage FLL update.
- *
- * First stage FLL update is used to remember correlator output after a
- * potential bit change.
- *
- * \param[in,out] s  Tracker state.
- * \param[in]     cs Correlator values.
- *
- * \return None
- *
- * \sa tp_tl_fll_update_second
- * \sa tp_tl_fll_update
- */
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs,
+                            bool use_coh_fll_discr)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
@@ -387,11 +409,16 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
     break;
 
   case TP_CTRL_FLL1:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false, use_coh_fll_discr);
+    break;
+
+  case TP_CTRL_FLL1_PLL2:
+    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, false,
+                              use_coh_fll_discr);
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false, use_coh_fll_discr);
     break;
 
   default:
@@ -399,21 +426,8 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
   }
 }
 
-/**
- * Second-stage FLL update.
- *
- * Second stage FLL update is used to compute/update FLL discriminator with
- * new correlations. The call must be within the same bit as previous update.
- *
- * \param[in,out] s  Tracker state.
- * \param[in]     cs Correlator values.
- *
- * \return None
- *
- * \sa tp_tl_fll_update_first
- * \sa tp_tl_fll_update
- */
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs,
+                             bool use_coh_fll_discr)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
@@ -425,11 +439,16 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
     break;
 
   case TP_CTRL_FLL1:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true, use_coh_fll_discr);
+    break;
+
+  case TP_CTRL_FLL1_PLL2:
+    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, true,
+                              use_coh_fll_discr);
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
+    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true, use_coh_fll_discr);
     break;
 
   default:
@@ -463,6 +482,10 @@ void tp_tl_fll_update(tp_tl_state_t *s)
 
   case TP_CTRL_FLL1:
     tl_fll1_update_fll(&s->fll1);
+    break;
+
+  case TP_CTRL_FLL1_PLL2:
+    tl_fll1_pll2_update_fll(&s->fll1_pll2);
     break;
 
   case TP_CTRL_FLL2:
