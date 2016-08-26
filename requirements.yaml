@@ -5,3 +5,6 @@
     -
       bucket: swiftnav-artifacts
       prefix: piksi_buildroot/7d57672
+    -
+      bucket: piksi-fpga-unlocked
+      prefix: v3
