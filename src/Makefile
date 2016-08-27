@@ -132,7 +132,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/decode.o \
         $(SWIFTNAV_ROOT)/src/signal.o \
         $(SWIFTNAV_ROOT)/src/sid_set.o \
-        $(SWIFTNAV_ROOT)/src/cnav_msg_storage.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_internal.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_ephemeris.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_almanac.o \
@@ -140,6 +139,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_lgf.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb.o \
         $(BOARDDIR)/ndb_fs_access.o \
+        $(BOARDDIR)/cnav_msg_storage.o \
         main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
