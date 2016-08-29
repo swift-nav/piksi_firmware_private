@@ -25,8 +25,7 @@ endif
 MAKEFLAGS += PIKSI_HW=$(PIKSI_HW)
 
 ifeq ($(PIKSI_HW),v2)
-	CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-m4
-	CMAKEFLAGS += -DMAX_CHANNELS=11
+$(error PIKSI_HW=v2 is no longer supported.)
 endif
 
 ifeq ($(PIKSI_HW),v3)

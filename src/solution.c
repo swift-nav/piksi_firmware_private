@@ -61,8 +61,8 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
-dgnss_filter_t dgnss_filter = FILTER_FIXED;
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_TIME_MATCHED;
+dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 /** RTK integer ambiguity states. */
 ambiguity_state_t amb_state;
@@ -82,6 +82,7 @@ static last_good_fix_t lgf;
 static u16 lock_counters[PLATFORM_SIGNAL_COUNT];
 
 bool disable_raim = false;
+bool disable_velocity = false;
 bool send_heading = false;
 
 void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
@@ -247,9 +248,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   case FILTER_FLOAT:
     flags = 0;
     chMtxLock(&amb_state_lock);
-    ret = baseline(num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
-                   &amb_state.float_ambs, &num_used, b,
-                   disable_raim, DEFAULT_RAIM_THRESHOLD);
+    ret = get_baseline(b, &num_used, &flags);
     chMtxUnlock(&amb_state_lock);
     if (ret == 1)
       log_warn("output_baseline: Float baseline RAIM repair");
@@ -570,7 +569,7 @@ static void solution_thread(void *arg)
     dops_t dops;
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim,
+    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, disable_velocity,
                           &lgf.position_solution, &dops);
 
     if (pvt_ret < 0) {
@@ -821,7 +820,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
     if (n_sds > 4) {
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
-      dgnss_init(n_sds, sds, lgf.position_solution.pos_ecef);
+      dgnss_init_v3(n_sds, sds, lgf.position_solution.pos_ecef);
       /* Initialize ambiguity states. */
       ambiguities_init(&amb_state.fixed_ambs);
       ambiguities_init(&amb_state.float_ambs);
@@ -833,7 +832,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
       reset_iar = false;
     }
     /* Update filters. */
-    dgnss_update(n_sds, sds, lgf.position_solution.pos_ecef,
+    dgnss_update_v3(n_sds, sds, lgf.position_solution.pos_ecef,
                  disable_raim, DEFAULT_RAIM_THRESHOLD);
     /* Update ambiguity states. */
     chMtxLock(&amb_state_lock);
@@ -848,7 +847,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
   }
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 20000);
+static WORKING_AREA_CCM(wa_time_matched_obs_thread, 2000000);
 static void time_matched_obs_thread(void *arg)
 {
   (void)arg;
@@ -1005,6 +1004,7 @@ void solution_setup()
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
+  SETTING("solution", "disable_velocity", disable_velocity, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
 
   nmea_setup();

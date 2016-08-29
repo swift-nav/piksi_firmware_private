@@ -38,6 +38,7 @@
 #include "ndb.h"
 
 extern bool disable_raim;
+extern bool disable_velocity;
 
 /** \defgroup base_obs Base station observation handling
  * \{ */
@@ -164,7 +165,7 @@ static void update_obss(obss_t *new_obss)
 
     /* Calculate a position solution. */
     /* disable_raim controlled by external setting (see solution.c). */
-    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, &soln, &dops);
+    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, disable_velocity, &soln, &dops);
 
     if (ret >= 0 && soln.valid) {
       /* The position solution calculation was sucessful. Unfortunately the
@@ -421,7 +422,7 @@ void base_obs_setup()
     &deprecated_callback,
     &deprecated_node
   );
-  
+
   static sbp_msg_callbacks_node_t deprecated_node_2;
   sbp_register_cbk(
     SBP_MSG_OBS_DEP_B,

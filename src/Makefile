@@ -239,7 +239,7 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
 # List all default libraries here
 DLIBS = -lsbp-static -lswiftnav-static \
         -llapack -lcblas -lblas \
-        -lf2c -lm -lc -lnosys -lfec
+        -lf2c -lm -Wl,--start-group -lstdc++ -lc -lc -lnosys -Wl,--end-group -lfec
 
 #
 # End of default section
@@ -272,4 +272,3 @@ ULIBS =
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 
 include $(RULESPATH)/rules.mk
-
