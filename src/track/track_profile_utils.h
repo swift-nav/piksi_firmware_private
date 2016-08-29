@@ -183,6 +183,8 @@ u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms);
+u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms);
+u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 int_ms);
 
 
 void tp_update_correlators(u32 cycle_flags,

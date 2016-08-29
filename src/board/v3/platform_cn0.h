@@ -18,4 +18,13 @@
 /** Normalized platform noise bandwidth for C/N0 estimator. */
 #define PLATFORM_CN0_EST_BW_HZ  (1.5f)
 
+/* Memory segments for V3 in the order of preference:
+ * - empty -- Default data segment
+ * - _CCM  -- CCM segment
+ * - _BCKP -- Data backup segment
+ */
+
+/** Memory segment for non-constant data */
+#define PLATFORM_CN0_DATA
+
 #endif /* SWIFTNAV_PLATFORM_CN0_H */

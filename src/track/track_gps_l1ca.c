@@ -29,6 +29,7 @@
 #include "signal.h"
 #include "board.h"
 #include "platform_signal.h"
+#include "platform_track.h"
 #include "chconf_board.h"
 
 #include "track_profiles.h"
@@ -69,7 +70,8 @@ typedef struct {
                                              *   progress */
 } gps_l1ca_tracker_data_t;
 
-static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS] _BCKP;
+static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS]
+                                   PLATFORM_TRACK_DATA_TRACKER;
 static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[NUM_GPS_L1CA_TRACKERS];
 
 static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
@@ -119,12 +121,16 @@ static void tracker_gps_l1ca_update_parameters(
 
   u8 prev_cn0_ms = 0;
   bool prev_use_alias_detection = 0;
+#if USE_DLL_ERROR
+  float prev_loop_freq = 0;
+#endif
 
-  if (data->tracking_mode == TP_TM_INITIAL && next_params->loop_params.mode != TP_TM_INITIAL) {
-    init = true;
-  } else {
+  if (!init) {
     prev_cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
     prev_use_alias_detection = data->use_alias_detection;
+#if USE_DLL_ERROR
+    prev_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode, data->int_ms);
+#endif
   }
 
   data->tracking_mode = next_params->loop_params.mode;
@@ -146,9 +152,12 @@ static void tracker_gps_l1ca_update_parameters(
   u8 cycle_cnt = tp_get_cycle_count(l->mode, l->coherent_ms);
   data->cycle_no = cycle_cnt - 1;
 
-  float loop_freq = 1000.f / data->int_ms; /**< Tracking loop frequency */
-  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);  /**< C/N0 integration time */
-  u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode, data->int_ms);; /**< Lock detector integration time */
+  float loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode, data->int_ms);
+  /**< Tracking loop frequency */
+  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
+  /**< C/N0 integration time */
+  u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode, data->int_ms);
+  /**< Lock detector integration time */
   float fll_loop_freq = 1000.f / tp_get_fll_ms(data->tracking_mode, data->int_ms);
 
   if (init) {

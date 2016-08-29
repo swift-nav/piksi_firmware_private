@@ -597,3 +597,33 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms)
 
   return tbl->bit_ms;
 }
+
+/**
+ * Get PLL integration period in ms.
+ *
+ * \param[in] tracking_mode Tracking mode.
+ * \param[in] int_ms        Tracking sub-mode (integration period).
+ *
+ * \return PLL integration period in ms.
+ */
+u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms)
+{
+  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+
+  assert(NULL != tbl);
+
+  return tbl->int_ms;
+}
+
+/**
+ * Get DLL integration period in ms.
+ *
+ * \param[in] tracking_mode Tracking mode.
+ * \param[in] int_ms        Tracking sub-mode (integration period).
+ *
+ * \return DLL integration period in ms.
+ */
+u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 int_ms)
+{
+  return tp_get_pll_ms(tracking_mode, int_ms);
+}

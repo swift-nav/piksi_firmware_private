@@ -10,11 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef DEBUG
-#define DEBUG 1
-#endif
-
 #include <platform_signal.h>
+#include <platform_track.h>
 #include "track_profiles.h"
 #include "track_profile_utils.h"
 #include "chconf_board.h"
@@ -35,14 +32,16 @@
 
 /*
  * Configuration section: select which features are enabled here.
+ *
+ * Other possible configurations:
+ * - TP_USE_1MS_PROFILES
+ * - TP_USE_2MS_PROFILES
+ * - TP_USE_40MS_PROFILES
  */
-//#define TP_USE_1MS_PROFILES
-//#define TP_USE_2MS_PROFILES
 #define TP_USE_5MS_PROFILES
 #define TP_USE_10MS_PROFILES
 #define TP_USE_20MS_PROFILES
 #define TP_USE_20MS_PROFILES_FLL
-// #define TP_USE_40MS_PROFILES
 
 /*
  * Configure default PLL mode for longer integration periods:
@@ -70,6 +69,7 @@
 /** C/N0 threshold when we can't say if we are still tracking */
 #define TP_HARD_CN0_DROP_THRESHOLD (10.f)
 
+/** Normalized C/N0 value for state transitions */
 #define PCN0(x) TRACK_CN0_ADJUST(x)
 
 /** C/N0 threshold state lock counter */
@@ -108,7 +108,8 @@ static const u8 integration_periods[] = {
                            sizeof(integration_periods[0]))
 
 /** LP filter parameters: one pair per integration time */
-static lp1_filter_params_t lp1_filter_params[INTEG_PERIODS_NUM] _BCKP = {
+static lp1_filter_params_t lp1_filter_params[INTEG_PERIODS_NUM]
+                                             PLATFORM_TRACK_DATA_FILTERS = {
   { +3.067484e-01, 6.533742e-01 }, /* INTEG_PERIOD_1_MS */
   { -4.524422e-01, 2.737789e-01 }, /* INTEG_PERIOD_5_MS */
   { -6.827997e-01, 1.586001e-01 }, /* INTEG_PERIOD_10_MS */
@@ -171,7 +172,8 @@ typedef struct {
 /**
  * GPS satellite profiles.
  */
-static tp_profile_internal_t profiles_gps1[TP_MAX_SUPPORTED_SVS] _BCKP;
+static tp_profile_internal_t profiles_gps1[TP_MAX_SUPPORTED_SVS]
+                                           PLATFORM_TRACK_DATA_PROFILES;
 
 /**
  * C/N0 profile

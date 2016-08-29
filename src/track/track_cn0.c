@@ -50,7 +50,7 @@ static const u8 integration_periods[] = {
                            sizeof(integration_periods[0]))
 
 /** C/N0 estimator and filter parameters: one pair per integration time */
-static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM] _BCKP;
+static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM] PLATFORM_CN0_DATA;
 
 /* Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for

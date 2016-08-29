@@ -10,20 +10,23 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_PLATFORM_CN0_H
-#define SWIFTNAV_PLATFORM_CN0_H
+#ifndef SWIFTNAV_PLATFORM_TRACK_H
+#define SWIFTNAV_PLATFORM_TRACK_H
 
-/** Platform noise figure (estimated) for C/N0 to SNR conversion. */
-#define PLATFORM_NOISE_FIGURE   (2.2f)
-/** Normalized platform noise bandwidth for C/N0 estimator. */
-#define PLATFORM_CN0_EST_BW_HZ  (1.9f)
+/** Enable DLL error lock detector on V3 */
+#define USE_DLL_ERROR 1
 
-/* Memory segments for V2 in the order of preference:
+/* Memory segments for V3 in the order of preference:
  * - empty -- Default data segment
  * - _CCM  -- CCM segment
  * - _BCKP -- Data backup segment
  */
-/** Memory segment for non-constant data */
-#define PLATFORM_CN0_DATA _BCKP
+/** Tracker main data segment */
+#define PLATFORM_TRACK_DATA_TRACKER
+/** Tracker profiles data segment */
+#define PLATFORM_TRACK_DATA_PROFILES
+/** Tracker aux parameters data segment */
+#define PLATFORM_TRACK_DATA_FILTERS
 
-#endif /* SWIFTNAV_PLATFORM_CN0_H */
+#endif /* SWIFTNAV_PLATFORM_TRACK_H */
+
