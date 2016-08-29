@@ -18,16 +18,16 @@
 
 typedef enum {
   CNAV_MSG_TYPE_IDX_10,
+  CNAV_MSG_TYPE_IDX_11,
   CNAV_MSG_TYPE_IDX_30,
+  CNAV_MSG_TYPE_IDX_32,
+  CNAV_MSG_TYPE_IDX_33,
   CNAV_MSG_TYPE_NUM
 } cnav_msg_idx_t;
-
-cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t);
 
 typedef struct {
   bool msg_set;
   cnav_msg_t msg;
-  //TODO: add time stamp
 } cnav_msg_storage_t;
 
 void cnav_msg_put(const cnav_msg_t *msg);
