@@ -110,11 +110,11 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track.o \
         $(SWIFTNAV_ROOT)/src/track_internal.o \
         $(SWIFTNAV_ROOT)/src/track_api.o \
-        $(SWIFTNAV_ROOT)/src/track_cn0.o \
-        $(SWIFTNAV_ROOT)/src/track_profiles.o \
-        $(SWIFTNAV_ROOT)/src/track_profile_utils.o \
-        $(SWIFTNAV_ROOT)/src/track_profile_loop.o \
-        $(SWIFTNAV_ROOT)/src/track_profile_corrs.o \
+        $(SWIFTNAV_ROOT)/src/track/track_cn0.o \
+        $(SWIFTNAV_ROOT)/src/track/track_profiles.o \
+        $(SWIFTNAV_ROOT)/src/track/track_profile_utils.o \
+        $(SWIFTNAV_ROOT)/src/track/track_profile_loop.o \
+        $(SWIFTNAV_ROOT)/src/track/track_profile_corrs.o \
         $(SWIFTNAV_ROOT)/src/manage.o \
         $(SWIFTNAV_ROOT)/src/settings.o \
         $(SWIFTNAV_ROOT)/src/timing.o \

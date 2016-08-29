@@ -64,14 +64,13 @@ typedef struct
     cn0_est_bl_state_t   bl;   /**< Estimator for high SNR values */
     cn0_est_mm_state_t   mm;   /**< Estimator for low SNR values */
 
-    /* Optional estimators for testing */
-#if 0
-    cn0_est_ch_state_t   ch;
-    cn0_est_nwpr_state_t nwpr;
-    cn0_est_rscn_state_t rscn;
-    cn0_est_snv_state_t  snv;
-    cn0_est_svr_state_t  svr;
-#endif
+    /* Other supported estimators for testing:
+     * cn0_est_ch_state_t   ch;
+     * cn0_est_nwpr_state_t nwpr;
+     * cn0_est_rscn_state_t rscn;
+     * cn0_est_snv_state_t  snv;
+     * cn0_est_svr_state_t  svr;
+     */
   };
   cn0_filter_t    filter;      /**< Additional C/N0 filter */
 } track_cn0_state_t;
