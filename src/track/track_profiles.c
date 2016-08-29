@@ -54,7 +54,7 @@
 
 #define TP_TM_5MS_MODE  TP_TM_ONE_PLUS_N
 #define TP_TM_10MS_MODE TP_TM_ONE_PLUS_N5
-#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N10
+#define TP_TM_20MS_MODE TP_TM_ONE_PLUS_N5
 
 /** Maximum number of supported satellite vehicles */
 #define TP_MAX_SUPPORTED_SVS NUM_GPS_L1CA_TRACKERS

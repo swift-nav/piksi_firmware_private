@@ -236,10 +236,8 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs,
-                            bool use_coh_fll_discr);
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs,
-                             bool use_coh_fll_discr);
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs);
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
 s16 tp_tl_detect_alias(alias_detect_t *alias_detect, s32 I, s32 Q);

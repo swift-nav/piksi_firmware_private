@@ -167,11 +167,11 @@ void tp_tl_retune(tp_tl_state_t *s,
       break;
     case TP_CTRL_FLL1_PLL2:
       tl_fll1_pll2_retune(&s->fll1_pll2, loop_freq,
-                     fll_loop_freq,
-                     code_bw, code_zeta, code_k,
-                     carr_to_code,
-                     carr_bw, carr_zeta, carr_k,
-                     freq_bw);
+                          fll_loop_freq,
+                          code_bw, code_zeta, code_k,
+                          carr_to_code,
+                          carr_bw, carr_zeta, carr_k,
+                          freq_bw);
       break;
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
@@ -396,8 +396,18 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
   }
 }
 
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs,
-                            bool use_coh_fll_discr)
+/**
+ * First FLL discriminator update.
+ *
+ * Ignore updating discriminator (due to possible data bit change).
+ * Update I_prev & Q_prev only.
+ *
+ * \param[in, out] s  Tracker state.
+ * \param[in]      cs EPL correlator outputs.
+ *
+ * \return None
+ */
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
@@ -409,16 +419,15 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs,
     break;
 
   case TP_CTRL_FLL1:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false, use_coh_fll_discr);
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_FLL1_PLL2:
-    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, false,
-                              use_coh_fll_discr);
+    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false, use_coh_fll_discr);
+    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false);
     break;
 
   default:
@@ -426,8 +435,17 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs,
   }
 }
 
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs,
-                             bool use_coh_fll_discr)
+/**
+ * Second FLL discriminator update.
+ *
+ * Update discriminator, I_prev & Q_prev.
+ *
+ * \param[in, out] s  Tracker state.
+ * \param[in]      cs EPL correlator outputs.
+ *
+ * \return None
+ */
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
@@ -439,16 +457,15 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs,
     break;
 
   case TP_CTRL_FLL1:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true, use_coh_fll_discr);
+    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
     break;
 
   case TP_CTRL_FLL1_PLL2:
-    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, true,
-                              use_coh_fll_discr);
+    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, true);
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true, use_coh_fll_discr);
+    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
     break;
 
   default:
