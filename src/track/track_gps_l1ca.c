@@ -490,7 +490,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
     /* Update C/N0 estimate */
     common_data->cn0 = track_cn0_update(cn0_params.est,
-                                        data->int_ms,
+                                        tp_get_cn0_ms(data->tracking_mode,
+                                                      data->int_ms),
                                         &data->cn0_est,
                                         data->corrs.corr_cn0.I,
                                         data->corrs.corr_cn0.Q);
@@ -621,7 +622,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       report.lock_f = -1;
 #endif /* USE_DLL_ERROR */
       report.sample_count = common_data->sample_count;
-      report.time_ms = int_ms;
+      report.time_ms = tp_get_dll_ms(data->tracking_mode, data->int_ms);
 
       tp_report_data(channel_info->sid, &report);
     }
