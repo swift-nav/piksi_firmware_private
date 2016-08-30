@@ -1,10 +1,50 @@
 ---
 -
-  name: complete
+  name: all
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/7d57672
+      prefix: piksi_buildroot/7d57672/v3
+      files:
+        - boot.bin
+        - piksiv3.dtb
+        - u-boot.img
+        - zImage
     -
       bucket: piksi-fpga-unlocked
       prefix: v3
+      files:
+        - piksi_evt1_fpga_v3.5_unlocked.bit
+        - piksi_microzed_fpga_v3.5_unlocked.bit
+-
+  name: evt1
+  artifacts:
+    -
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/7d57672/v3
+      files:
+        - boot.bin
+        - piksiv3.dtb
+        - u-boot.img
+        - zImage
+    -
+      bucket: piksi-fpga-unlocked
+      prefix: v3
+      files:
+        - piksi_evt1_fpga_v3.5_unlocked.bit
+-
+  name: microzed
+  artifacts:
+    -
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/7d57672/v3
+      files:
+        - boot.bin
+        - piksiv3.dtb
+        - u-boot.img
+        - zImage
+    -
+      bucket: piksi-fpga-unlocked
+      prefix: v3
+      files:
+        - piksi_microzed_fpga_v3.5_unlocked.bit
