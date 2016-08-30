@@ -19,7 +19,7 @@ else
 endif
 
 ifeq ($(PIKSI_HW),)
-  PIKSI_HW=v2
+  PIKSI_HW=v3
 endif
 
 MAKEFLAGS += PIKSI_HW=$(PIKSI_HW)
