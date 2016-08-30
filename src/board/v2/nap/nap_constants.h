@@ -18,4 +18,10 @@
  */
 #define NAP_FRONTEND_SAMPLE_RATE_Hz                                (16368000)
 
+/**
+ * @brief   The tracking channel sample rate after decimation
+ * @note    This is the effective sampling rate of the tracking results
+ */
+#define TRACK_SAMPLE_FREQ NAP_FRONTEND_SAMPLE_RATE_Hz
+
 #endif /* SWIFTNAV_NAP_CONSTANTS_H */

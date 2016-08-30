@@ -28,7 +28,9 @@ scripts/RELEASE-VERSION
 
 .cproject
 .project
+.pydevproject
 .settings/
+.pydevproject
 
 src/version.h
 

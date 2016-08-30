@@ -13,6 +13,7 @@
 #include "track_gps_l1ca.h"
 #include "track_gps_l2cm.h" /* for L1C/A to L2 CM tracking handover */
 #include "track_api.h"
+#include "track_cn0.h"
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
@@ -20,94 +21,57 @@
 #include <libswiftnav/track.h>
 
 #include <string.h>
+#include <stdlib.h>
+#include <assert.h>
 
+#include "chconf.h"
 #include "settings.h"
 #include "signal.h"
+#include "board.h"
+#include "platform_signal.h"
+#include "platform_track.h"
+#include "chconf_board.h"
 
-/*  code: nbw zeta k carr_to_code
- carrier:                    nbw  zeta k fll_aid */
-#define LOOP_PARAMS_SLOW \
-  "(1 ms, (1, 0.7, 1, 1540), (10, 0.7, 1, 5))," \
- "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))"
+#include "track_profiles.h"
+#include "track_profile_utils.h"
 
-#define LOOP_PARAMS_MED \
-  "(1 ms, (1, 0.7, 1, 1540), (10, 0.7, 1, 5))," \
-  "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))"
-
-#define LOOP_PARAMS_FAST \
-  "(1 ms, (1, 0.7, 1, 1540), (40, 0.7, 1, 5))," \
-  "(4 ms, (1, 0.7, 1, 1540), (62, 0.7, 1, 0))"
-
-#define LOOP_PARAMS_EXTRAFAST \
-  "(1 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 5))," \
-  "(2 ms, (1, 0.7, 1, 1540), (100, 0.7, 1, 0))"
-
-/*                          k1,   k2,  lp,  lo */
-#define LD_PARAMS_PESS     "0.10, 1.4, 200, 50"
-#define LD_PARAMS_NORMAL   "0.05, 1.4, 150, 50"
-#define LD_PARAMS_OPT      "0.02, 1.1, 150, 50"
-#define LD_PARAMS_EXTRAOPT "0.02, 0.8, 150, 50"
-#define LD_PARAMS_DISABLE  "0.02, 1e-6, 1, 1"
-
-#define CN0_EST_LPF_CUTOFF 0.1
-
-#define INTEG_PERIOD_1_MS  1
-#define INTEG_PERIOD_2_MS  2
-#define INTEG_PERIOD_4_MS  4
-#define INTEG_PERIOD_5_MS  5
-#define INTEG_PERIOD_10_MS 10
-#define INTEG_PERIOD_20_MS 20
-
-static const u8 integration_periods[] = {
-  INTEG_PERIOD_1_MS,
-  INTEG_PERIOD_2_MS,
-  INTEG_PERIOD_4_MS,
-  INTEG_PERIOD_5_MS,
-  INTEG_PERIOD_10_MS,
-  INTEG_PERIOD_20_MS
-};
-
-#define INTEG_PERIODS_NUM (sizeof(integration_periods) / \
-                           sizeof(integration_periods[0]))
-
-static cn0_est_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM];
+/* DLL error-based lock detector: when FLL mode is used, DLL-based lock
+ * detector is the only reliable (but slow) way to identify the tracking is
+ * lost. However on V2 there is no enough memory to use it.
+ */
+/* #define USE_DLL_ERROR 1 */
 
 /* Convert milliseconds to L1C/A chips */
 #define L1CA_TRACK_MS_TO_CHIPS(ms) ((ms) * GPS_L1CA_CHIPS_NUM)
 
-static struct loop_params {
-  float code_bw, code_zeta, code_k, carr_to_code;
-  float carr_bw, carr_zeta, carr_k, carr_fll_aid_gain;
-  u8 coherent_ms;
-} loop_params_stage[2];
+#define L1CA_FLOCK_INTERVAL_MS   (5000)
+#define L1CA_FLOCK_THRESHOLD_HZ  (20)
+#define L1CA_FLOCK_EF_ALPHA      (0.03f)
 
-static struct lock_detect_params {
-  float k1, k2;
-  u16 lp, lo;
-} lock_detect_params;
-
-static float track_cn0_use_thres = 37.0; /* dBHz */
-static float track_cn0_drop_thres = 31.0;
-
-static char loop_params_string[120] = LOOP_PARAMS_MED;
-static char lock_detect_params_string[24] = LD_PARAMS_DISABLE;
-static bool use_alias_detection = true;
-
+/**
+ * GPS L1 C/A tracker data
+ */
 typedef struct {
-  aided_tl_state_t tl_state;   /**< Tracking loop filter state. */
-  corr_t cs[3];                /**< EPL correlation results in correlation period. */
-  cn0_est_state_t cn0_est;     /**< C/N0 Estimator. */
-  u8 int_ms;                   /**< Integration length. */
-  bool short_cycle;            /**< Set to true when a short 1ms integration is requested. */
-  u8 stage;                    /**< 0 = First-stage. 1 ms integration.
-                                    1 = Second-stage. After nav bit sync,
-                                    retune loop filters and typically (but
-                                    not necessarily) use longer integration. */
-  alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t lock_detect;   /**< Phase-lock detector state. */
+  tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
+  tp_corr_state_t   corrs;                  /**< Correlations */
+  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
+  alias_detect_t    alias_detect;           /**< Alias lock detector. */
+  lock_detect_t     lock_detect;            /**< Phase-lock detector state. */
+#if USE_DLL_ERROR
+  float             fll_lock_detect;        /**< FLL lock detector */
+  u16               fll_lock_counter;       /**< False lock state duration counter */
+#endif /* USE_DLL_ERROR */
+  u8                int_ms: 5;              /**< Current integration length. */
+  u8                tracking_mode: 3;       /**< Tracking mode */
+  u8                cycle_no: 5;            /**< Number of cycle inside current
+                                             *   integration mode. */
+  u8                use_alias_detection: 1; /**< Flag for alias detection control */
+  u8                has_next_params: 1;     /**< Flag if stage transition is in
+                                             *   progress */
 } gps_l1ca_tracker_data_t;
 
-static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS];
+static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS]
+                                   PLATFORM_TRACK_DATA_TRACKER;
 static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[NUM_GPS_L1CA_TRACKERS];
 
 static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
@@ -119,10 +83,6 @@ static void tracker_gps_l1ca_disable(const tracker_channel_info_t *channel_info,
 static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data);
-
-static bool parse_loop_params(struct setting *s, const char *val);
-static bool parse_lock_detect_params(struct setting *s, const char *val);
-static void precompute_cn0_est_params(void);
 
 static const tracker_interface_t tracker_interface_gps_l1ca = {
   .code =         CODE_GPS_L1CA,
@@ -141,22 +101,133 @@ tracker_interface_list_element_gps_l1ca = {
 
 void track_gps_l1ca_register(void)
 {
-  SETTING_NOTIFY("track", "loop_params", loop_params_string,
-                 TYPE_STRING, parse_loop_params);
-  SETTING_NOTIFY("track", "lock_detect_params", lock_detect_params_string,
-                 TYPE_STRING, parse_lock_detect_params);
-  SETTING("track", "cn0_use", track_cn0_use_thres, TYPE_FLOAT);
-  SETTING("track", "cn0_drop", track_cn0_drop_thres, TYPE_FLOAT);
-  SETTING("track", "alias_detect", use_alias_detection, TYPE_BOOL);
-
   for (u32 i=0; i<NUM_GPS_L1CA_TRACKERS; i++) {
     gps_l1ca_trackers[i].active = false;
     gps_l1ca_trackers[i].data = &gps_l1ca_tracker_data[i];
   }
 
-  precompute_cn0_est_params();
-
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
+}
+
+static void tracker_gps_l1ca_update_parameters(
+    const tracker_channel_info_t *channel_info,
+    tracker_common_data_t *common_data,
+    gps_l1ca_tracker_data_t *data,
+    const tp_config_t *next_params,
+    bool init)
+{
+  const tp_loop_params_t *l = &next_params->loop_params;
+  const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
+
+  u8 prev_cn0_ms = 0;
+  bool prev_use_alias_detection = 0;
+#if USE_DLL_ERROR
+  float prev_loop_freq = 0;
+#endif
+
+  if (!init) {
+    prev_cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
+    prev_use_alias_detection = data->use_alias_detection;
+#if USE_DLL_ERROR
+    prev_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode, data->int_ms);
+#endif
+  }
+
+  data->tracking_mode = next_params->loop_params.mode;
+  data->use_alias_detection = next_params->use_alias_detection;
+
+  /*
+   * Coherent integration is possible for intervals longer, than bit length,
+   * assuming that accumulated bit value error is sufficiently small to allow
+   * data wipe off.
+   *
+   * data->int_ms = MIN(l->coherent_ms,
+   *                    tracker_bit_length_get(channel_info->context));
+   */
+  data->int_ms = next_params->loop_params.coherent_ms;
+  data->has_next_params = false;
+
+  /* Set the step number for mode switch. Current step is one step behind bit
+   * edge */
+  u8 cycle_cnt = tp_get_cycle_count(l->mode, l->coherent_ms);
+  data->cycle_no = cycle_cnt - 1;
+
+  float loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode, data->int_ms);
+  /**< Tracking loop frequency */
+  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
+  /**< C/N0 integration time */
+  u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode, data->int_ms);
+  /**< Lock detector integration time */
+  float fll_loop_freq = 1000.f / tp_get_fll_ms(data->tracking_mode, data->int_ms);
+
+  if (init) {
+    log_debug_sid(channel_info->sid, "Initializing TL");
+
+    tp_tl_init(&data->tl_state,
+               next_params->loop_params.ctrl,
+               loop_freq,
+               common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
+               l->code_bw, l->code_zeta, l->code_k,
+               l->carr_to_code,
+               common_data->carrier_freq,
+               l->carr_bw, l->carr_zeta, l->carr_k,
+               l->carr_fll_aid_gain, fll_loop_freq);
+
+    lock_detect_init(&data->lock_detect,
+                     ld->k1 * ld_int_ms,
+                     ld->k2,
+                     ld->lp,
+                     ld->lo);
+
+  } else {
+    log_debug_sid(channel_info->sid, "Re-tuning TL");
+
+    /* Recalculate filter coefficients */
+    tp_tl_retune(&data->tl_state,
+                 next_params->loop_params.ctrl,
+                 loop_freq,
+                 l->code_bw, l->code_zeta, l->code_k,
+                 l->carr_to_code,
+                 l->carr_bw, l->carr_zeta, l->carr_k,
+                 l->carr_fll_aid_gain, fll_loop_freq);
+
+    lock_detect_reinit(&data->lock_detect,
+                       ld->k1 * ld_int_ms,
+                       ld->k2,
+                       ld->lp,
+                       ld->lo);
+  }
+
+  if (init || cn0_ms != prev_cn0_ms) {
+    tp_cn0_params_t cn0_params;
+    tp_get_cn0_params(channel_info->sid, &cn0_params);
+
+    /* Initialize C/N0 estimator and filter */
+    track_cn0_init(cn0_ms,            /* C/N0 period in ms */
+                   &data->cn0_est,    /* C/N0 estimator state */
+                   common_data->cn0); /* Initial C/N0 value */
+  }
+
+#if USE_DLL_ERROR
+  data->fll_lock_counter = 0;
+  if (init || loop_freq != prev_loop_freq) {
+    data->fll_lock_detect = 0;
+  } else {
+    data->fll_lock_detect = 0;
+  }
+#endif /* USE_DLL_ERROR */
+
+  if (data->use_alias_detection) {
+    u8 alias_detect_ms = tp_get_alias_ms(data->tracking_mode, data->int_ms);
+
+    if (prev_use_alias_detection)
+      alias_detect_reinit(&data->alias_detect, 500 / alias_detect_ms,
+                          alias_detect_ms * 1e-3f);
+    else
+      alias_detect_init(&data->alias_detect, 500 / alias_detect_ms,
+                        alias_detect_ms * 1e-3f);
+  }
+
 }
 
 static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
@@ -165,235 +236,321 @@ static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
 {
   (void)channel_info;
   gps_l1ca_tracker_data_t *data = tracker_data;
+  tp_config_t init_profile;
 
   memset(data, 0, sizeof(gps_l1ca_tracker_data_t));
   tracker_ambiguity_unknown(channel_info->context);
 
-  const struct loop_params *l = &loop_params_stage[0];
+  {
+    /* Do tracking report to manager */
+    tp_report_t report;
+    report.bsync = false;
+    report.carr_freq = common_data->carrier_freq;
+    report.code_phase_rate = common_data->code_phase_rate;
+    report.cn0 = report.cn0_raw = common_data->cn0;
+    report.olock = false;
+    report.plock = false;
+    report.sample_count = common_data->sample_count;
+    report.time_ms = 0;
 
-  /* Note: The only coherent integration interval currently supported
-     for first-stage tracking (i.e. loop_params_stage[0].coherent_ms)
-     is 1. */
-  data->int_ms = MIN(l->coherent_ms,
-                     tracker_bit_length_get(channel_info->context));
-
-  aided_tl_init(&(data->tl_state), 1e3 / data->int_ms,
-                common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
-                l->code_bw, l->code_zeta, l->code_k,
-                l->carr_to_code,
-                common_data->carrier_freq,
-                l->carr_bw, l->carr_zeta, l->carr_k,
-                l->carr_fll_aid_gain);
-
-  data->short_cycle = true;
-
-  /* Initialise C/N0 estimator */
-  cn0_est_init(&data->cn0_est, 1e3/data->int_ms, common_data->cn0);
-
-  lock_detect_init(&data->lock_detect,
-                   lock_detect_params.k1, lock_detect_params.k2,
-                   lock_detect_params.lp, lock_detect_params.lo);
-
-  /* TODO: Reconfigure alias detection between stages */
-  u8 alias_detect_ms = MIN(loop_params_stage[1].coherent_ms,
-                           tracker_bit_length_get(channel_info->context));
-  alias_detect_init(&data->alias_detect, 500/alias_detect_ms,
-                    (alias_detect_ms-1)*1e-3);
-
+    tp_tracking_start(channel_info->sid, &report, &init_profile);
+  }
+  tracker_gps_l1ca_update_parameters(channel_info,
+                                     common_data,
+                                     data,
+                                     &init_profile,
+                                     true);
 }
 
 static void tracker_gps_l1ca_disable(const tracker_channel_info_t *channel_info,
                                      tracker_common_data_t *common_data,
                                      tracker_data_t *tracker_data)
 {
-  (void)channel_info;
   (void)common_data;
   (void)tracker_data;
+  tp_tracking_stop(channel_info->sid);
 }
+
+static u32 compute_rollover_count(const tracker_channel_info_t *channel_info,
+                                  const gps_l1ca_tracker_data_t *data)
+{
+  u32 result_ms = 0;
+  if (data->has_next_params) {
+    tp_config_t next_params;
+    tp_get_profile(channel_info->sid, &next_params, false);
+    result_ms = tp_get_current_cycle_duration(
+        next_params.loop_params.mode, next_params.loop_params.coherent_ms, 0);
+  } else {
+    result_ms = tp_get_rollover_cycle_duration(data->tracking_mode,
+                                               data->int_ms, data->cycle_no);
+  }
+  return L1CA_TRACK_MS_TO_CHIPS(result_ms);
+}
+
+static void mode_change_init(const tracker_channel_info_t *channel_info,
+                             tracker_common_data_t *common_data,
+                             gps_l1ca_tracker_data_t *data)
+{
+  /* Unused parameters */
+  (void)common_data;
+
+  /* Compute time of the currently integrated period */
+  u8 cycle_cnt = tp_get_cycle_count(data->tracking_mode, data->int_ms);
+  u8 next_cycle = data->cycle_no + 1;
+  if (next_cycle >= cycle_cnt)
+    next_cycle = 0;
+  u8 next_ms = tp_get_current_cycle_duration(data->tracking_mode, data->int_ms, next_cycle);
+  u32 cycle_flags = tp_get_cycle_flags(data->tracking_mode, data->int_ms, next_cycle);
+
+  if (0 != (cycle_flags & TP_CFLAG_LONG_CYCLE))
+    next_ms += 1;
+
+  if (0 != next_ms &&
+      tracker_next_bit_aligned(channel_info->context, next_ms)) {
+
+    /* When the bit sync is available and the next integration interval is the
+     * last one in the bit, check if the profile switch is required. */
+    if (tp_has_new_profile(channel_info->sid)) {
+      /* Initiate profile change */
+      data->has_next_params = true;
+    }
+  }
+}
+
+/**
+ * Finish profile switching operation.
+ *
+ * Method fetches new profile parameters and reconfigures as necessary.
+ *
+ * \param[in]     hannel_info Tracker channel data
+ * \param[in,out] common_data Common data
+ * \param[in,out] data        L1 C/A data
+ *
+ * \return None
+ */
+static void mode_change_complete(const tracker_channel_info_t *channel_info,
+                                 tracker_common_data_t *common_data,
+                                 gps_l1ca_tracker_data_t *data)
+{
+  if (data->has_next_params) {
+    tp_config_t next_params;
+
+    tp_get_profile(channel_info->sid, &next_params, true);
+
+    /* If there is a stage transition in progress, update parameters for the
+     * next iteration. */
+    log_debug_sid(channel_info->sid,
+                  "Reconfiguring tracking profile: new mode=%d, ms=%d",
+                  next_params.loop_params.mode,
+                  (int)next_params.loop_params.coherent_ms);
+
+    tracker_gps_l1ca_update_parameters(channel_info,
+                                       common_data,
+                                       data,
+                                       &next_params,
+                                       false);
+    /* Indicate that a mode change has occurred. */
+    common_data->mode_change_count = common_data->update_count;
+  }
+}
+
+/**
+ * Controls TL operation steps.
+ *
+ * The method updates the TL step according to tracking mode.
+ *
+ * \param[in,out] data Tracker data
+ *
+ * \return None
+ */
+static void update_cycle_counter(gps_l1ca_tracker_data_t *data)
+{
+  data->cycle_no = tp_next_cycle_counter(data->tracking_mode,
+                                         data->int_ms,
+                                         data->cycle_no);
+}
+
+static void process_alias_error(const tracker_channel_info_t *channel_info,
+                                tracker_common_data_t *common_data,
+                                gps_l1ca_tracker_data_t *data)
+{
+  u8 alias_ms = tp_get_alias_ms(data->tracking_mode, data->int_ms);
+
+  float I = data->corrs.corr_ad.I;
+  float Q = data->corrs.corr_ad.Q;
+  I -= data->alias_detect.first_I;
+  Q -= data->alias_detect.first_Q;
+
+  float err = alias_detect_second(&data->alias_detect, I, Q);
+
+  if (fabs(err) > (125 / alias_ms)) {
+
+    if (data->lock_detect.outp) {
+      log_warn_sid(channel_info->sid, "False phase lock detected: %f", err);
+    } else {
+      log_warn_sid(channel_info->sid, "False optimistic lock detected: %f", err);
+    }
+
+    s32 c = (labs((s32)(err - 12)) / 50) * 50 + 25;
+    err = err > 0 ? c : -c;
+
+    tracker_ambiguity_unknown(channel_info->context);
+    /* Indicate that a mode change has occurred. */
+    common_data->mode_change_count = common_data->update_count;
+
+    tp_tl_adjust(&data->tl_state, err);
+
+  } else if (fabs(err) > 10) {
+    log_info_sid(channel_info->sid, "Uncorrected false lock: %f, %d", err, alias_ms);
+  }
+}
+#if USE_DLL_ERROR
+static void process_dll_error(const tracker_channel_info_t *channel_info,
+                              gps_l1ca_tracker_data_t *data,
+                              float dll_err)
+{
+  /* Exponential filter for DLL/FLL error */
+  data->fll_lock_detect += L1CA_FLOCK_EF_ALPHA * (dll_err - data->fll_lock_detect);
+
+  if (tp_tl_is_pll(&data->tl_state) &&
+      (data->int_ms == 5 || data->int_ms == 10 || data->int_ms == 20)) {
+    s32 err_hz = (s32)(data->fll_lock_detect * 1540.f + 0.5f);
+    s32 abs_err_hz = abs(err_hz);
+
+    /* FLL-assisted DLL implementation: when the error between FLL and DLL
+     * become too large, FLL frequency is adjusted. */
+    if (abs_err_hz > L1CA_FLOCK_THRESHOLD_HZ)
+      data->fll_lock_counter ++;
+    else
+      data->fll_lock_counter = 0;
+
+    if (data->fll_lock_counter == L1CA_FLOCK_INTERVAL_MS / data->int_ms)
+    {
+      err_hz = ((abs_err_hz - 20) / 50) * 50 + 25;
+      if (data->fll_lock_detect < 0)
+        err_hz = -err_hz;
+
+      /* Reset FLL/DLL error state */
+      data->fll_lock_counter = 0;
+      data->fll_lock_detect = 0;
+
+      log_info_sid(channel_info->sid, "False lock error %" PRId32, err_hz);
+
+      tp_tl_adjust(&data->tl_state, err_hz);
+    }
+  }
+}
+#endif /* USE_DLL_ERROR */
 
 static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
 {
   gps_l1ca_tracker_data_t *data = tracker_data;
+  tp_epl_corr_t cs_now; /**< Correlations from FPGA */
 
-  /* Read early ([0]), prompt ([1]) and late ([2]) correlations. */
-  if ((data->int_ms > 1) && !data->short_cycle) {
-    /* If we just requested the short cycle, this is the long cycle's
-     * correlations. */
-    corr_t cs[3];
-    tracker_correlations_read(channel_info->context, cs,
-                              &common_data->sample_count,
-                              &common_data->code_phase_early,
-                              &common_data->carrier_phase);
-    /* accumulate short cycle correlations with long */
-    for(int i = 0; i < 3; i++) {
-      data->cs[i].I += cs[i].I;
-      data->cs[i].Q += cs[i].Q;
-    }
-  } else {
-    tracker_correlations_read(channel_info->context, data->cs,
-                              &common_data->sample_count,
-                              &common_data->code_phase_early,
-                              &common_data->carrier_phase);
-    alias_detect_first(&data->alias_detect, data->cs[1].I, data->cs[1].Q);
-  }
+  /* Read correlations. */
+  tracker_correlations_read(channel_info->context, cs_now.epl,
+                            &common_data->sample_count,
+                            &common_data->code_phase_early,
+                            &common_data->carrier_phase);
+
+  /*
+   * State machine control: control is a combination of actions permitted by
+   * the tracker state and flags specific for current cycle.
+   */
+  u32 cycle_flags = tp_get_cycle_flags(data->tracking_mode,
+                                       data->int_ms,
+                                       data->cycle_no);
+
+  tp_update_correlators(cycle_flags, &cs_now, &data->corrs);
+
+  u8 int_ms = tp_get_current_cycle_duration(data->tracking_mode,
+                                            data->int_ms,
+                                            data->cycle_no);
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
-                                   common_data->TOW_ms,
-                                   data->short_cycle ? 1 : (data->int_ms-1));
+                                           common_data->TOW_ms,
+                                           int_ms);
 
-  if (data->int_ms > 1) {
-    /* If we're doing long integrations, alternate between short and long
-     * cycles.  This is because of FPGA pipelining and latency.  The
-     * loop parameters can only be updated at the end of the second
-     * integration interval and waiting a whole 20ms is too long.
-     */
-    data->short_cycle = !data->short_cycle;
+  if (0 != (cycle_flags & TP_CFLAG_BIT_SYNC_UPDATE)) {
+    /* Update counter. */
+    u8 update_count_ms = tp_get_bit_ms(data->tracking_mode, data->int_ms);
+    common_data->update_count += update_count_ms;
 
-    if (!data->short_cycle) {
-      tracker_retune(channel_info->context, common_data->carrier_freq,
-                     common_data->code_phase_rate,
-                     L1CA_TRACK_MS_TO_CHIPS(1));
-      return;
-    }
+    tracker_bit_sync_update(channel_info->context, update_count_ms,
+                            data->corrs.corr_epl.prompt.I);
   }
-
-  common_data->update_count += data->int_ms;
-
-  tracker_bit_sync_update(channel_info->context, data->int_ms, data->cs[1].I);
 
   /* Correlations should already be in chan->cs thanks to
    * tracking_channel_get_corrs. */
-  corr_t* cs = data->cs;
 
-  /* Update C/N0 estimate */
-  {
-    cn0_est_params_t params;
-    const cn0_est_params_t *pparams = NULL;
+  if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
+    tp_cn0_params_t cn0_params;
+    tp_get_cn0_params(channel_info->sid, &cn0_params);
 
-    /* TODO
-     * Store a pointer to the cn0_est_params_t in the gps_l1ca_tracker_data_t
-     * structure so we don't have to scan through the whole array each time
-     */
-    for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-      if(data->int_ms == integration_periods[i]) {
-        pparams = &cn0_est_pre_computed[i];
-        break;
-      }
+    /* Update C/N0 estimate */
+    common_data->cn0 = track_cn0_update(cn0_params.est,
+                                        tp_get_cn0_ms(data->tracking_mode,
+                                                      data->int_ms),
+                                        &data->cn0_est,
+                                        data->corrs.corr_cn0.I,
+                                        data->corrs.corr_cn0.Q);
+
+    if (common_data->cn0 > cn0_params.track_cn0_drop_thres ||
+        (tp_tl_is_pll(&data->tl_state) && data->lock_detect.outp)
+        ) {
+      /* When C/N0 is above a drop threshold or there is a pessimistic lock,
+       * tracking shall continue.
+       */
+      common_data->cn0_above_drop_thres_count = common_data->update_count;
     }
 
-    if(NULL == pparams) {
-      cn0_est_compute_params(&params, 1e3f / data->int_ms, CN0_EST_LPF_CUTOFF,
-                             1e3f / data->int_ms);
-      pparams = &params;
+    if (common_data->cn0 < cn0_params.track_cn0_use_thres) {
+      /* SNR has dropped below threshold, indicate that the carrier phase
+       * ambiguity is now unknown as cycle slips are likely. */
+      tracker_ambiguity_unknown(channel_info->context);
+      /* Update the latest time we were below the threshold. */
+      common_data->cn0_below_use_thres_count = common_data->update_count;
     }
-
-    common_data->cn0 = cn0_est(&data->cn0_est,
-                               pparams,
-                               (float) cs[1].I/data->int_ms,
-                               (float) cs[1].Q/data->int_ms);
-  }
-
-  if (common_data->cn0 > track_cn0_drop_thres)
-    common_data->cn0_above_drop_thres_count = common_data->update_count;
-
-  if (common_data->cn0 < track_cn0_use_thres) {
-    /* SNR has dropped below threshold, indicate that the carrier phase
-     * ambiguity is now unknown as cycle slips are likely. */
-    tracker_ambiguity_unknown(channel_info->context);
-    /* Update the latest time we were below the threshold. */
-    common_data->cn0_below_use_thres_count = common_data->update_count;
-  }
-
-  /* Update PLL lock detector */
-  bool last_outp = data->lock_detect.outp;
-  lock_detect_update(&data->lock_detect, cs[1].I, cs[1].Q, data->int_ms);
-  if (data->lock_detect.outo)
-    common_data->ld_opti_locked_count = common_data->update_count;
-  if (!data->lock_detect.outp)
-    common_data->ld_pess_unlocked_count = common_data->update_count;
-
-  /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
-  if (last_outp && !data->lock_detect.outp) {
-    if (data->stage > 0) {
-      log_info_sid(channel_info->sid, "PLL stress");
-    }
-    tracker_ambiguity_unknown(channel_info->context);
   }
 
   /* Run the loop filters. */
 
-  /* TODO: Make this more elegant. */
-  correlation_t cs2[3];
-  for (u32 i = 0; i < 3; i++) {
-    cs2[i].I = cs[2-i].I;
-    cs2[i].Q = cs[2-i].Q;
+  /* Update PLL/FLL lock detector */
+  bool last_outp = data->lock_detect.outp;
+  bool outo = false, outp = false;
+  if (tp_tl_is_pll(&data->tl_state)) {
+
+    if (0 != (cycle_flags & TP_CFLAG_LD_USE))
+      lock_detect_update(&data->lock_detect,
+                         data->corrs.corr_ld.I,
+                         data->corrs.corr_ld.Q,
+                         tp_get_ld_ms(data->tracking_mode, data->int_ms));
+
+    outo = data->lock_detect.outo;
+    outp = data->lock_detect.outp;
+
+  } else if (tp_tl_is_fll(&data->tl_state)) {
+    /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
+    outp = false;
+#if USE_DLL_ERROR
+    outo = data->fll_lock_detect < 0.1;
+#else /* USE_DLL_ERROR */
+    outo = true;
+#endif /* USE_DLL_ERROR */
   }
 
-  /* Output I/Q correlations using SBP if enabled for this channel */
-  if (data->int_ms > 1) {
-    tracker_correlations_send(channel_info->context, cs);
+  if (outo)
+    common_data->ld_opti_locked_count = common_data->update_count;
+  if (!outp)
+    common_data->ld_pess_unlocked_count = common_data->update_count;
+  /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
+  if (last_outp && !outp) {
+    log_info_sid(channel_info->sid, "PLL stress");
+    tracker_ambiguity_unknown(channel_info->context);
   }
 
-  aided_tl_update(&data->tl_state, cs2);
-  common_data->carrier_freq = data->tl_state.carr_freq;
-  common_data->code_phase_rate = data->tl_state.code_freq + GPS_CA_CHIPPING_RATE;
-
-  /* Attempt alias detection if we have pessimistic phase lock detect, OR
-     (optimistic phase lock detect AND are in second-stage tracking) */
-  if (use_alias_detection &&
-      (data->lock_detect.outp ||
-       (data->lock_detect.outo && data->stage > 0))) {
-    s32 I = (cs[1].I - data->alias_detect.first_I) / (data->int_ms - 1);
-    s32 Q = (cs[1].Q - data->alias_detect.first_Q) / (data->int_ms - 1);
-    float err = alias_detect_second(&data->alias_detect, I, Q);
-    if (fabs(err) > (250 / data->int_ms)) {
-      if (data->lock_detect.outp) {
-        log_warn_sid(channel_info->sid, "False phase lock detected");
-      }
-
-      tracker_ambiguity_unknown(channel_info->context);
-      /* Indicate that a mode change has occurred. */
-      common_data->mode_change_count = common_data->update_count;
-
-      data->tl_state.carr_freq += err;
-      data->tl_state.carr_filt.y = data->tl_state.carr_freq;
-    }
-  }
-
-  /* Consider moving from stage 0 (1 ms integration) to stage 1 (longer). */
-  if ((data->stage == 0) &&
-      /* Must have (at least optimistic) phase lock */
-      (data->lock_detect.outo) &&
-      /* Must have nav bit sync, and be correctly aligned */
-      tracker_bit_aligned(channel_info->context)) {
-    log_info_sid(channel_info->sid, "synced");
-    data->stage = 1;
-    const struct loop_params *l = &loop_params_stage[1];
-    data->int_ms = MIN(l->coherent_ms,
-                       tracker_bit_length_get(channel_info->context));
-    data->short_cycle = true;
-
-    cn0_est_init(&data->cn0_est, 1e3 / data->int_ms, common_data->cn0);
-
-    /* Recalculate filter coefficients */
-    aided_tl_retune(&data->tl_state, 1e3 / data->int_ms,
-                    l->code_bw, l->code_zeta, l->code_k,
-                    l->carr_to_code,
-                    l->carr_bw, l->carr_zeta, l->carr_k,
-                    l->carr_fll_aid_gain);
-
-    lock_detect_reinit(&data->lock_detect,
-                       lock_detect_params.k1 * data->int_ms,
-                       lock_detect_params.k2,
-                       /* TODO: Should also adjust lp and lo? */
-                       lock_detect_params.lp, lock_detect_params.lo);
-
-    /* Indicate that a mode change has occurred. */
-    common_data->mode_change_count = common_data->update_count;
-  }
-
-  if (data->lock_detect.outo &&
+  if (data->lock_detect.outp &&
       tracker_bit_aligned(channel_info->context))
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,
@@ -401,86 +558,94 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                              common_data->carrier_freq,
                              common_data->cn0);
 
-  u32 chips_to_correlate = (1 == data->int_ms) ?
-                           L1CA_TRACK_MS_TO_CHIPS(1) :
-                           L1CA_TRACK_MS_TO_CHIPS(data->int_ms - 1);
+  if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND))
+    tp_tl_fll_update_second(&data->tl_state, data->corrs.corr_fll);
+  if (0 != (cycle_flags & TP_CFLAG_FLL_USE))
+    tp_tl_fll_update(&data->tl_state);
+  if (0 != (cycle_flags & TP_CFLAG_FLL_FIRST))
+    tp_tl_fll_update_first(&data->tl_state, data->corrs.corr_fll);
+
+  if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
+
+    /* Output I/Q correlations using SBP if enabled for this channel */
+    if (data->tracking_mode != TP_TM_INITIAL) {
+      tracker_correlations_send(channel_info->context, data->corrs.corr_epl.epl);
+    }
+
+    if (data->has_next_params) {
+      /* Transitional state: when the next interval has a different integration
+       * period, the controller will give wrong correction. Due to that the
+       * input parameters are scaled to stabilize tracker.
+       */
+      const tp_loop_params_t *lp = tp_get_next_loop_params(channel_info->sid);
+      if (data->int_ms != lp->coherent_ms) {
+        /* TODO utilize noise bandwidth and damping ratio */
+        float k2 = (float)data->int_ms / lp->coherent_ms;
+        float k1 = sqrtf(k2);
+        for (u32 i = 0; i < 3; i++) {
+          data->corrs.corr_epl.epl[i].I *= k1;
+          data->corrs.corr_epl.epl[i].Q *= k2;
+        }
+      }
+    }
+
+    float carr_freq = 0;
+    float code_freq = 0;
+
+    tp_tl_update(&data->tl_state, &data->corrs.corr_epl);
+    tp_tl_get_rates(&data->tl_state, &carr_freq, &code_freq);
+
+    common_data->carrier_freq = carr_freq;
+    common_data->code_phase_rate = code_freq + GPS_CA_CHIPPING_RATE;
+
+#if USE_DLL_ERROR
+    float dll_err = tp_tl_get_dll_error(&data->tl_state);
+    /* Check DLL errors if available */
+    process_dll_error(channel_info, data, dll_err);
+#endif /* USE_DLL_ERROR */
+
+    {
+      /* Do tracking report to manager */
+      tp_report_t report;
+      report.bsync = tracker_has_bit_sync(channel_info->context);
+      report.carr_freq = common_data->carrier_freq;
+      report.code_phase_rate = common_data->code_phase_rate;
+      report.cn0_raw = common_data->cn0;
+      report.cn0 = common_data->cn0;
+      report.olock = data->lock_detect.outo;
+      report.plock = data->lock_detect.outp;
+      report.lock_i = data->lock_detect.lpfi.y;
+      report.lock_q = data->lock_detect.lpfq.y;
+#if USE_DLL_ERROR
+      report.lock_f = data->fll_lock_detect * 1540.f;
+#else /* USE_DLL_ERROR */
+      report.lock_f = -1;
+#endif /* USE_DLL_ERROR */
+      report.sample_count = common_data->sample_count;
+      report.time_ms = tp_get_dll_ms(data->tracking_mode, data->int_ms);
+
+      tp_report_data(channel_info->sid, &report);
+    }
+  }
+
+  /* Attempt alias detection if we have pessimistic phase lock detect, OR
+     (optimistic phase lock detect AND are in second-stage tracking) */
+  if (data->use_alias_detection && data->lock_detect.outo &&
+      0 != (cycle_flags & TP_CFLAG_ALIAS_SECOND))
+      process_alias_error(channel_info, common_data, data);
+
+  if (0 != (cycle_flags & TP_CFLAG_ALIAS_FIRST))
+    alias_detect_first(&data->alias_detect,
+                       data->corrs.corr_ad.I,
+                       data->corrs.corr_ad.Q);
+
+  mode_change_complete(channel_info, common_data, data);
+  mode_change_init(channel_info, common_data, data);
 
   tracker_retune(channel_info->context, common_data->carrier_freq,
-                 common_data->code_phase_rate, chips_to_correlate);
+                 common_data->code_phase_rate,
+                 compute_rollover_count(channel_info, data));
+
+  update_cycle_counter(data);
 }
 
-/** Parse a string describing the tracking loop filter parameters into
-    the loop_params_stage structs. */
-static bool parse_loop_params(struct setting *s, const char *val)
-{
-  /** The string contains loop parameters for either one or two
-      stages.  If the second is omitted, we'll use the same parameters
-      as the first stage.*/
-
-  struct loop_params loop_params_parse[2];
-
-  const char *str = val;
-  for (int stage = 0; stage < 2; stage++) {
-    struct loop_params *l = &loop_params_parse[stage];
-
-    int n_chars_read = 0;
-    unsigned int tmp; /* newlib's sscanf doesn't support hh size modifier */
-
-    if (sscanf(str, "( %u ms , ( %f , %f , %f , %f ) , ( %f , %f , %f , %f ) ) , %n",
-               &tmp,
-               &l->code_bw, &l->code_zeta, &l->code_k, &l->carr_to_code,
-               &l->carr_bw, &l->carr_zeta, &l->carr_k, &l->carr_fll_aid_gain,
-               &n_chars_read) < 9) {
-      log_error("Ill-formatted tracking loop param string.");
-      return false;
-    }
-    l->coherent_ms = tmp;
-    /* If string omits second-stage parameters, then after the first
-       stage has been parsed, n_chars_read == 0 because of missing
-       comma and we'll parse the string again into loop_params_parse[1]. */
-    str += n_chars_read;
-
-    if ((l->coherent_ms == 0)
-        || ((20 % l->coherent_ms) != 0) /* i.e. not 1, 2, 4, 5, 10 or 20 */
-        || (stage == 0 && l->coherent_ms != 1)) {
-      log_error("Invalid coherent integration length.");
-      return false;
-    }
-  }
-  /* Successfully parsed both stages.  Save to memory. */
-  strncpy(s->addr, val, s->len);
-  memcpy(loop_params_stage, loop_params_parse, sizeof(loop_params_stage));
-  return true;
-}
-
-/** Parse a string describing the tracking loop phase lock detector
-    parameters into the lock_detect_params structs. */
-static bool parse_lock_detect_params(struct setting *s, const char *val)
-{
-  struct lock_detect_params p;
-
-  if (sscanf(val, "%f , %f , %" SCNu16 " , %" SCNu16,
-             &p.k1, &p.k2, &p.lp, &p.lo) < 4) {
-      log_error("Ill-formatted lock detect param string.");
-      return false;
-  }
-  /* Successfully parsed.  Save to memory. */
-  strncpy(s->addr, val, s->len);
-  memcpy(&lock_detect_params, &p, sizeof(lock_detect_params));
-  return true;
-}
-
-/* Pre-compute C/N0 estimator and filter parameters. The parameters are
- * computed using equivalent of cn0_est_compute_params() function for
- * integration periods of 1, 2, 4, 5, 10 and 20ms and cut-off frequency
- * of 0.1 Hz.
- */
-static void precompute_cn0_est_params(void)
-{
-  for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    cn0_est_compute_params(&cn0_est_pre_computed[i],
-                           1e3f / integration_periods[i],
-                           CN0_EST_LPF_CUTOFF,
-                           1e3f / integration_periods[i]);
-  }
-}

@@ -27,6 +27,8 @@
 #include "track.h"
 #include "track_api.h"
 #include "track_internal.h"
+#include "track/track_cn0.h"
+#include "track/track_profiles.h"
 #include "simulator.h"
 #include "settings.h"
 #include "signal.h"
@@ -151,6 +153,9 @@ void track_setup(void)
     tracker_channels[i].tracker = 0;
     chMtxObjectInit(&tracker_channels[i].mutex);
   }
+
+  track_cn0_params_init();
+  tp_init();
 
   platform_track_setup();
 }
