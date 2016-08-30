@@ -209,8 +209,11 @@ static gnss_signal_t unpack_sid(tp_csid_t csid)
 static tp_csid_t pack_sid(gnss_signal_t sid)
 {
   tp_csid_t res = {
-    .sat = (u16)sid.sat,
-    .code = (s16)sid.code
+    {
+      .sat = (u16)sid.sat,
+      .code = (s16)sid.code,
+      ._res = 0
+    }
   };
   return res;
 }
