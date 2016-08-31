@@ -20,7 +20,7 @@ script:
   - test $TRAVIS_OS_NAME == "linux" && ./publish.sh requirements.yaml || true
   - make PIKSI_HW=v3
   - test $TRAVIS_OS_NAME == "linux" && PRODUCT_VERSION=v3 ./publish.sh build_v3/piksi_firmware.{bin,dmp,elf,hex} || true
-  - test $TRAVIS_PULL_REQUEST != "false" && ./comment.sh || true
+  - test $TRAVIS_PULL_REQUEST != "false" && test $TRAVIS_OS_NAME == "linux" && ./comment.sh || true
 
 env:
   global:
