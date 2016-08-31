@@ -15,11 +15,12 @@ install:
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
   - export PATH=$PATH:~/gcc-arm-none-eabi/bin
-  - test $TRAVIS_PULL_REQUEST != "false" && export BUCKET=swiftnav-artifacts-pull-requests && export ANONYMOUS=true || true
+  - test $TRAVIS_PULL_REQUEST != "false" && export BUCKET=swiftnav-artifacts-pull-requests && export PULL_REQUEST="$TRAVIS_PULL_REQUEST" || true
   - git fetch --tags --unshallow
   - test $TRAVIS_OS_NAME == "linux" && ./publish.sh requirements.yaml || true
   - make PIKSI_HW=v3
   - test $TRAVIS_OS_NAME == "linux" && PRODUCT_VERSION=v3 ./publish.sh build_v3/piksi_firmware.{bin,dmp,elf,hex} || true
+  - test $TRAVIS_PULL_REQUEST != "false" && ./comment.sh || true
 
 env:
   global:
@@ -30,3 +31,5 @@ env:
     - secure: "LsFsFWJH7rXV0jThali9EjPA3OZFjhhan3f/yn2Ant2NHY/7m4CEzlu2yHx3mynR63Xw2gMC+xWFOATCjST0pf9bIGAHFZYFz/RM9IG1/YcFd54I5tEcde7stJ5Pq/bS+au8WxiXAE7ythf9iOeEPIBr9WD6r3qCyrlSvMmjRL05yZ/3xUCIghuqy0Cg+j+beViOl678BTBvvsCqwQGi4M0nYyhV+wAIPaRXpNgJ5YjqTope+D5v2jP65pZwxamT6cwQYvy+PNL5yI+tphAvXiAhjauzQUl1H5lpdtQCu2py1HLfaKIeM4Nqi2pnOw6cZN84x4oSJ+tuzn9TqoyRrYG5lxzO/ZROu59NcjsFMS5mDSM51Nxc87Gc1GW6xLu4otYw4nKreVcZLFwHK+bA5wnaxuAexI4jTenEHaFxqsGxbuL+XQuRhwfyoV5y7+yCGfOIVoByVIxfC9HLtU/c73EsMA/e80ohIzw8LjrTdgCTAW5Ktx/oSS3jKtpFhTKd9UL73AXkbcPLsECR/60vvqCS0Bc/WkBJxCwO6v6Nl6vzdHoPPnjtjwFI01WYS2rlBVSQqyRVUDaovboDXyCggj+AJLU2kzVWWaAV8FYQx42AKleUn3BvtVINvX32QcBHh0xVxNAW6SXfUntoHVLl4bqcgb4FW8CBcKTXrM+2ANE="
     # AWS_SECRET_ACCESS_KEY
     - secure: "ey7p4qkpniFlhfcFgPTFpJMlAqKdtcUbQ1H9dfV5FUh8u30aplv5d8MrHbqQF7e5D6CEya9kkXNmAA+1ayS7uSfSmpueAOtaCvYA9iu7LgHDaSmGkHRSIfgpXGIqsNj2QzN3dKNd+ckfru89v0VUli7LFWDs7ZZxPjJsKJbLCD2QfsKyR4gh/uirAC7xvw20LveTssfhWByC/i6EjggGcNPrKGTbYTaot7o/ueIai9iH9wOznN2PTk+OgMnGbgO+wNbPsDAIjuDIVrd8SgC8YPiBpn9FeMZ0r5YnL+KjiTwRMV0y2Wi7gMDBv/p7B6ugtSeTj9h8Bfnikxyoze1ZCSV44q4djHBC/nj+86Tkv+5n96LzY2wMFxG46iDxStx3NRKTSr0DXzmWkgrWuJewzSa/3Vq0xla4nIoOCRNCV/XdylcJW3OtP9nCJAVOSqK3kniCTlgajK/B+LqwAcDACWpeNfcHEIAf7ZtUdyvo3ogFAnK8SSe8urHq5hBdHHyykrxXtqG9weKvCr4yPi+J+3rSzlr9P3XI59J5lVdxuv32XRWwz3rFhqPmRQ+l/q2fziQF0QyIIavuGg+rlASlY+gLP+EVkuESMByeR+yEmMuw7rPbaPuJMgqzD8Gxc/eG+35eIsk4S0YYZ53Uqlq/25n6UkNtCIwA4qKDV0Ck4ls="
+    # GITHUB_TOKEN
+    - secure: "Y13Z7DaG5ZkT19+u667KQmuWH0X4a+CXPLD7Xuz7V5L8sfj0fcYjWCsKkASh5X2kLnS0viov53/42Fln+WcKM97jKNoz/7nXMUER3azTOpbixayZ6mfXVwjkDlOLVaCme/V0asUjauaJwmJq7e8dOXRF/n7IKt7OdzhRlpjBjGvgm7Xw0bi9Vyzb5WUdyaTxzs5aKOJXgPS5EgOJKv3mAgO92YdRgT3UmXKAm/OdMAyjrKmwnAZP3VPAAez7FUqUVpN0bkvFu/FIHt0smYY/cbULNpQrVXR4TtU9xy4jh4FDpnyuP+ZVpwDh8anjZ1AOJnkKPitJi2rMWFWE1LTjsDF34UDkJcnqyeghmm0HZfjoqKEqmfP2JnOjbkahx+6ytszNiWPahBAX/wR3xH1Nj2nfpRKD+O++jYIEqp92yQozETQC9wdNxIc8nKBNJtmTVX4C3pqzJKMVebl3Lwmi+3ptXIy0nu3oCctVNOZEIIXLrNi3tKqFL2tW9j6ctFcswXgiLblyeAdXo8E7RLIlbiEHfvXlWHfQLkjuJ4o22VKLNnPWlcr+5JPv1XMDwg5TqfXoT01Fb2FczdtE9SvwAsrS4k6WvA7r9hXIMGCsJxLTj+5z4zJxbuISEIY0yGNFfbz/KuT4jUBT2GMfla1Lyalvo2CXkOtK0rgO4rymVIk="

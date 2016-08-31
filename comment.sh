@@ -19,19 +19,13 @@ BUCKET="${BUCKET:-swiftnav-artifacts}"
 
 BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
-if [[ ! -z "$PRODUCT_VERSION" ]]; then
-    BUILD_PATH="$BUILD_PATH/$PRODUCT_VERSION"
-fi
 
-echo "Uploading $@ to $BUILD_PATH"
+URL="https://api.github.com/repos/swift-nav/$REPO/issues/$PULL_REQUEST/comments"
+COMMENT="
+## $BUILD_VERSION
++ [s3://$BUCKET/$BUILD_PATH](https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=swiftnav-artifacts-pull-requests&prefix=$BUILD_PATH/)
++ [pull-requests/$BUILD_PATH](https://swiftnav-artifacts.herokuapp.com/pull-requests/$BUILD_PATH)
++ [pull-requests/$BUILD_PATH/requirements.yaml](https://swiftnav-artifacts.herokuapp.com/pull-requests/$BUILD_PATH/requirements.yaml)
+"
 
-for file in "$@"
-do
-    key="$BUILD_PATH/$(basename $file)"
-    object="s3://$BUCKET/$key"
-    if [[ -z "$PULL_REQUEST" ]]; then
-        aws s3 cp "$file" "$object"
-    else
-        aws s3api put-object --no-sign-request --bucket "$BUCKET" --key "$key" --body "$file" --acl public-read
-    fi
-done
+curl -u "$GITHUB_TOKEN:" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
