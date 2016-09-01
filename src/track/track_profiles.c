@@ -747,18 +747,19 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
    */
   u8 lp_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
   tp_ctrl_e ctrl = loop_params[lp_idx].ctrl;
+  tp_tm_e mode = loop_params[lp_idx].mode;
 
   if (TRACK_CN0_EST_PRIMARY != TRACK_CN0_EST_SECONDARY) {
     if (TRACK_CN0_EST_PRIMARY == profile->cn0_est) {
       if (cn0 < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset ||
-          ctrl == TP_CTRL_FLL1 || ctrl == TP_CTRL_FLL2) {
+          ctrl == TP_CTRL_FLL1 || ctrl == TP_CTRL_FLL2 || mode == TP_TM_INITIAL) {
         profile->cn0_est = TRACK_CN0_EST_SECONDARY;
         log_debug_sid(unpack_sid(profile->csid),
                       "Changed C/N0 estimator to secondary");
       }
     } else if (TRACK_CN0_EST_SECONDARY == profile->cn0_est) {
       if (cn0 > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset &&
-          ctrl != TP_CTRL_FLL1 && ctrl != TP_CTRL_FLL2) {
+          ctrl != TP_CTRL_FLL1 && ctrl != TP_CTRL_FLL2 && mode != TP_TM_INITIAL) {
         profile->cn0_est = TRACK_CN0_EST_PRIMARY;
         log_debug_sid(unpack_sid(profile->csid),
                       "Changed C/N0 estimator to primary");
@@ -1015,7 +1016,7 @@ tp_result_e tp_tracking_start(gnss_signal_t sid,
   if (NULL != config) {
     tp_profile_internal_t *profile = allocate_profile(sid);
     if (NULL != profile) {
-      profile->cn0_est = TRACK_CN0_EST_PRIMARY;
+      profile->cn0_est = TRACK_CN0_EST_SECONDARY;
 
       float speed0 = compute_speed(sid, data);
       profile->filt_cn0 = data->cn0;

@@ -40,6 +40,7 @@
 
 /** C/N0 estimator to use */
 #define L2C_CN0_ESTIMATOR TRACK_CN0_EST_BL
+#define L2C_CN0_INIT_ESTIMATOR TRACK_CN0_EST_MM
 
 /* Number of chips to integrate over in the short cycle interval [chips]
  * The value must be within [0..GPS_L2C_CHIPS_NUM].
@@ -440,8 +441,10 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
+  track_cn0_est_e estimator = 0 == data->stage ? L2C_CN0_INIT_ESTIMATOR :
+                                                 L2C_CN0_ESTIMATOR;
   float cn0 = track_cn0_update(channel_info->sid,
-                               L2C_CN0_ESTIMATOR,
+                               estimator,
                                &data->cn0_est,
                                cs[1].I, cs[1].Q);
 
