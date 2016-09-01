@@ -86,6 +86,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  freq_bw, carr_zeta, carr_k);
     break;
+
   case TP_CTRL_FLL1_PLL2:
     tl_fll1_pll2_init(&s->fll1_pll2,
                       loop_freq,
@@ -97,6 +98,7 @@ void tp_tl_init(tp_tl_state_t *s,
                       carr_bw, carr_zeta, carr_k,
                       freq_bw);
     break;
+
   case TP_CTRL_FLL2:
     tl_fll2_init(&s->fll2, loop_freq,
                  fll_loop_freq,
@@ -106,6 +108,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  freq_bw, carr_zeta, carr_k);
     break;
+
   default:
     assert(false);
   }
@@ -165,6 +168,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                      carr_to_code,
                      freq_bw, carr_zeta, carr_k);
       break;
+
     case TP_CTRL_FLL1_PLL2:
       tl_fll1_pll2_retune(&s->fll1_pll2, loop_freq,
                           fll_loop_freq,
@@ -173,6 +177,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                           carr_bw, carr_zeta, carr_k,
                           freq_bw);
       break;
+
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
                      fll_loop_freq,

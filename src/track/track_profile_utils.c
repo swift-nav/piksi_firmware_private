@@ -14,6 +14,11 @@
 
 #include <assert.h>
 
+#define TP_FLAGS_INIT_DEFAULT \
+  (TP_CFLAG_USE_CONTROLLER |TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | \
+   TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | TP_CFLAG_BIT_SYNC_UPDATE | \
+   TP_CFLAG_LD_SET | TP_CFLAG_LD_USE |TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
+
 #define TP_FLAGS_SHORT_DEFAULT \
   (TP_CFLAG_SHORT_CYCLE | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_SET | \
    TP_CFLAG_EPL_SET | TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET |\
@@ -55,9 +60,9 @@ static const state_table_t mode_1msINI = {
   .cn0_ms  = 1,
   .ld_ms   = 1,
   .fl_ms   = 1,
-  .fll_ms  = 1,
+  .fll_ms  = 20,
   .bit_ms  = 1,
-  .ent_cnt = 1,
+  .ent_cnt = 20,
   .entries = {
     {1, (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE |
          TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |
