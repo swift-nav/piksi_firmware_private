@@ -1,6 +1,12 @@
 ---
 -
   name: all
+  resources:
+    -
+      prefix: v3
+      files:
+        - piksi_firmware.elf
+        - piksi_firmware.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -18,6 +24,12 @@
         - piksi_microzed_fpga_v3.5_unlocked.bit
 -
   name: evt1
+  resources:
+    -
+      prefix: v3
+      files:
+        - piksi_firmware.elf
+        - piksi_firmware.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -34,6 +46,12 @@
         - piksi_evt1_fpga_v3.5_unlocked.bit
 -
   name: microzed
+  resources:
+    -
+      prefix: v3
+      files:
+        - piksi_firmware.elf
+        - piksi_firmware.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
