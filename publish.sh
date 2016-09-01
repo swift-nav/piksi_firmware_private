@@ -14,8 +14,13 @@
 
 set -e
 
+if [ "$TRAVIS_OS_NAME" != "linux" ]; then
+    exit
+fi
+
 REPO="${PWD##*/}"
 BUCKET="${BUCKET:-swiftnav-artifacts}"
+PRS_BUCKET="${PRS_BUCKET:-swiftnav-artifacts-pull-requests}"
 
 BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
@@ -28,10 +33,10 @@ echo "Uploading $@ to $BUILD_PATH"
 for file in "$@"
 do
     key="$BUILD_PATH/$(basename $file)"
-    object="s3://$BUCKET/$key"
-    if [[ -z "$PULL_REQUEST" ]]; then
-        aws s3 cp "$file" "$object"
+    if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+        OBJECT="s3://$BUCKET/$key"
+        aws s3 cp "$file" "$OBJECT"
     else
-        aws s3api put-object --no-sign-request --bucket "$BUCKET" --key "$key" --body "$file" --acl public-read
+        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$key" --body "$file" --acl public-read
     fi
 done
