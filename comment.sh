@@ -26,7 +26,7 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    COMMENT="$BUILD_VERSION
+    COMMENT="$BUILD_PATH
 https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=swiftnav-artifacts&prefix=$BUILD_PATH/
 https://swiftnav-artifacts.herokuapp.com/$BUILD_PATH/
 https://swiftnav-artifacts.herokuapp.com/$BUILD_PATH/requirements.yaml"
