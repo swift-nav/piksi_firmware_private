@@ -19,7 +19,7 @@ script:
   - ./publish.sh requirements.yaml
   - make PIKSI_HW=v3
   - PRODUCT_VERSION=v3 ./publish.sh build_v3/piksi_firmware.{bin,dmp,elf,hex}
-  - GITHUB_TOKEN=96fca5da87a01dfed440a40d3100ebfdc93ca807 SLACK_CHANNEL=github ./comment.sh
+  - GITHUB_TOKEN=96fca5da87a01dfed440a40d3100ebfdc93ca807 SLACK_CHANNEL=github ./comment.sh || true
 
 env:
   global:
