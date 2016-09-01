@@ -32,6 +32,6 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 else
     COMMENT="## $BUILD_VERSION\n+ [s3://$PRS_BUCKET/$BUILD_PATH](https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=swiftnav-artifacts-pull-requests&prefix=$BUILD_PATH/)\n+ [pull-requests/$BUILD_PATH](https://swiftnav-artifacts.herokuapp.com/pull-requests/$BUILD_PATH/)\n+ [pull-requests/$BUILD_PATH/requirements.yaml](https://swiftnav-artifacts.herokuapp.com/pull-requests/$BUILD_PATH/requirements.yaml)"
     URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
-    curl -u "$GITHUB_TOKEN" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
+    curl -u "$GITHUB_TOKEN:" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
 fi
 

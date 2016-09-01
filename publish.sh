@@ -32,11 +32,11 @@ echo "Uploading $@ to $BUILD_PATH"
 
 for file in "$@"
 do
-    key="$BUILD_PATH/$(basename $file)"
+    KEY="$BUILD_PATH/$(basename $file)"
     if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-        OBJECT="s3://$BUCKET/$key"
+        OBJECT="s3://$BUCKET/$KEY"
         aws s3 cp "$file" "$OBJECT"
     else
-        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$key" --body "$file" --acl public-read
+        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY" --body "$file" --acl public-read
     fi
 done
