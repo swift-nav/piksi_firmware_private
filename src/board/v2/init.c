@@ -106,15 +106,14 @@ void init(void)
 {
   fault_handling_setup();
   reset_callback_register();
+  stm_unique_id_callback_register();
 
   nap_version_check();
+  nap_dna_callback_register();
   nap_auth_check();
-  nap_callbacks_setup();
 
   rng_setup();
   srand(random_int());
-
-  stm_unique_id_callback_register();
 }
 
 static void nap_version_check(void)

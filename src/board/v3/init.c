@@ -36,6 +36,7 @@
 
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
+static void nap_auth_setup(void);
 static void nap_auth_check(void);
 
 /** Resets the device back into the bootloader. */
@@ -91,9 +92,10 @@ void init(void)
   reset_callback_register();
 
   nap_version_check();
-  nap_setup();
+  nap_dna_callback_register();
+  nap_auth_setup();
   nap_auth_check();
-  nap_callbacks_setup();
+  nap_setup();
 
   frontend_configure();
   random_init();
@@ -113,6 +115,13 @@ static void nap_version_check(void)
       chThdSleepSeconds(2);
     }
   }
+}
+
+static void nap_auth_setup(void)
+{
+  /* TODO: read from NVM */
+  const u8 nap_key[] = {0};
+  nap_unlock(nap_key);
 }
 
 /* Check NAP authentication status. Block and print error message

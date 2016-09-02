@@ -50,7 +50,7 @@ u8 nap_hash_status(void);
 
 void nap_rd_dna(u8 dna[]);
 
-void nap_callbacks_setup(void);
+void nap_dna_callback_register(void);
 
 u64 nap_timing_count(void);
 u32 nap_timing_count_latched(void);
