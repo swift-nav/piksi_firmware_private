@@ -23,6 +23,7 @@
 #include <libswiftnav/dgnss_management.h>
 #include <libswiftnav/baseline.h>
 #include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/track.h>
 #include <libswiftnav/troposphere.h>
 
 #define memory_pool_t MemoryPool
@@ -872,6 +873,8 @@ static void time_matched_obs_thread(void *arg)
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
         /* Times match! Process obs and base_obss */
         static sdiff_t sds[MAX_CHANNELS];
+        log_info("matching @ solution.c");
+        debug_nms(base_obss.n, base_obss.nm);
         u8 n_sds = single_diff(
             obss->n, obss->nm,
             base_obss.n, base_obss.nm,

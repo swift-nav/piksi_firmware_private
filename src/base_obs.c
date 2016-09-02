@@ -21,6 +21,7 @@
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/track.h>
 
 #include "peripherals/leds.h"
 #include "position.h"
@@ -219,7 +220,8 @@ static void update_obss(obss_t *new_obss)
                                                base_obss.pos_ecef);
     }
   }
-
+  log_info("logging nms.");
+  debug_nms(base_obss.n, base_obss.nm);
   /* Unlock base_obss mutex. */
   chMtxUnlock(&base_obs_lock);
 
@@ -278,7 +280,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   /* Decode the message header to get the time and how far through the sequence
    * we are. */
   unpack_obs_header((observation_header_t*)msg, &tor, &total, &count);
-
+  log_info("Unpacking.....");
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
   u32 obs_freq = soln_freq / obs_output_divisor;
@@ -317,10 +319,21 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Pull out the contents of the message. */
   packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+  if (obs->sid.code == CODE_GPS_L2CM) {
+    log_info("Found L2M?");
+  }
+  if (obs->sid.code == CODE_GPS_L2P) {
+    log_info("0 1 Code %d %d", obs->sid.code, CODE_GPS_L2CM);
+    obs->sid.code = CODE_GPS_L2CM;
+    log_info("2 Rewrote code %d %d", obs->sid.code, CODE_GPS_L2CM);
+  }
+  log_info("3 Code %d %d", obs->sid.code, CODE_GPS_L2CM);
   for (u8 i=0; i<obs_in_msg; i++) {
     gnss_signal_t sid = sid_from_sbp(obs[i].sid);
-    if (!sid_supported(sid))
+    if (!sid_supported(sid)) {
+      log_info("Dropped! code %d prn %d", sid.code, sid.sat);
       continue;
+    }
 
     /* Flag this as visible/viable to acquisition/search */
     manage_set_obs_hint(sid);
