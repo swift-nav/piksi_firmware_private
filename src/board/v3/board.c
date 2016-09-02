@@ -20,13 +20,11 @@
 
 #include <libswiftnav/logging.h>
 
-#define LED_GPIO_LINE PAL_LINE(GPIO1, 15)
-#define BUTTON_GPIO_LINE PAL_LINE(GPIO1, 19)
-
-#define SPI_MOSI_GPIO_LINE PAL_LINE(GPIO0, 10)
-#define SPI_MISO_GPIO_LINE PAL_LINE(GPIO0, 11)
-#define SPI_CLK_GPIO_LINE PAL_LINE(GPIO0, 12)
-#define SPI_SS_GPIO_LINE PAL_LINE(GPIO0, 13)
+#define CLK_SEL_GPIO_LINE PAL_LINE(GPIO2, 30)
+#define ANT_PWR_SEL_1_GPIO_LINE PAL_LINE(GPIO2, 13)
+#define ANT_PWR_SEL_2_GPIO_LINE PAL_LINE(GPIO2, 14)
+#define ANT_IN_SEL_0_GPIO_LINE PAL_LINE(GPIO2, 21)
+#define ANT_IN_SEL_1_GPIO_LINE PAL_LINE(GPIO2, 22)
 
 #define REBOOT_STATUS (*(volatile uint32_t *)0xF8000258)
 #define REBOOT_STATUS_POR (1 << 22)
@@ -62,43 +60,34 @@ void boardInit(void)
   /* Unlock SLCR */
   *(volatile uint32_t *)0xF8000008 = 0xDF0D;
 
-  /* Enable UART0 and UART1 clocks */
-  *(volatile uint32_t *)0xF800012C |= (1 << 20) | (1 << 21);
-
-  /* UART REFCLK = 1GHz / 20 = 50MHz */
-  *(volatile uint32_t *)0xF8000154 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000154 |= (20 << 8);
-  *(volatile uint32_t *)0xF8000154 |= (1 << 0) | (1 << 1);
-
-  /* Enable SPI0 and SPI1 clocks */
-  *(volatile uint32_t *)0xF800012C |= (1 << 14) | (1 << 15);
-
-  /* SPI REFCLK = 1GHz / 20 = 50MHz */
-  *(volatile uint32_t *)0xF8000158 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000158 |= (20 << 8);
-  *(volatile uint32_t *)0xF8000158 |= (1 << 0) | (1 << 1);
-
   /* Assert FPGA resets */
   *(volatile uint32_t *)0xF8000240 = 0xf;
-
-  /* FPGA_CLK0 = 1GHz / 10 = 100MHz */
-  *(volatile uint32_t *)0xF8000170 &= ~(0x3F << 20);
-  *(volatile uint32_t *)0xF8000170 |= (1 << 20);
-  *(volatile uint32_t *)0xF8000170 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000170 |= (10 << 8);
 
   /* Release FPGA resets */
   *(volatile uint32_t *)0xF8000240 = 0x0;
 
-  /* Configure button and LED pins */
-  palSetLineMode(BUTTON_GPIO_LINE, PAL_MODE_INPUT);
-  palSetLineMode(LED_GPIO_LINE, PAL_MODE_OUTPUT_PUSHPULL);
+  /* Lock SLCR */
+  *(volatile uint32_t *)0xF8000004 = 0x767B;
 
-  /* Configure frontend SPI pins */
-  palSetLineMode(SPI_MOSI_GPIO_LINE, PAL_MODE_CUSTOM(PAL_DIR_PERICTRL, PAL_PULL_NONE, PAL_SPEED_SLOW, PAL_PIN_FUNCTION(5 << 4)));
-  palSetLineMode(SPI_MISO_GPIO_LINE, PAL_MODE_CUSTOM(PAL_DIR_INPUT, PAL_PULL_NONE, PAL_SPEED_SLOW, PAL_PIN_FUNCTION(5 << 4)));
-  palSetLineMode(SPI_CLK_GPIO_LINE, PAL_MODE_CUSTOM(PAL_DIR_PERICTRL, PAL_PULL_NONE, PAL_SPEED_SLOW, PAL_PIN_FUNCTION(5 << 4)));
-  palSetLineMode(SPI_SS_GPIO_LINE, PAL_MODE_OUTPUT_PUSHPULL);
+
+  palSetLine(SPI_SS_FRONTEND_GPIO_LINE);
+  palSetLineMode(SPI_SS_FRONTEND_GPIO_LINE, PAL_MODE_OUTPUT);
+
+  palClearLine(CLK_SEL_GPIO_LINE);
+  palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
+
+  palSetLine(ANT_PWR_SEL_1_GPIO_LINE);
+  palSetLineMode(ANT_PWR_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
+
+  palSetLine(ANT_PWR_SEL_2_GPIO_LINE);
+  palSetLineMode(ANT_PWR_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
+
+  palSetLine(ANT_IN_SEL_0_GPIO_LINE);
+  palSetLineMode(ANT_IN_SEL_0_GPIO_LINE, PAL_MODE_OUTPUT);
+
+  palClearLine(ANT_IN_SEL_1_GPIO_LINE);
+  palSetLineMode(ANT_IN_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
+
 
   cycle_counter_init();
 }

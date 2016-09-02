@@ -16,10 +16,10 @@
 
 #include "frontend.h"
 
-#define FRONTEND_SPI SPID2
+#define FRONTEND_SPI SPID1
 
 const SPIConfig spi_config = {0, SPI_MODE_0,
-                              SPI_CLK_DIV_16, SPI_SS_GPIO_LINE};
+                              SPI_CLK_DIV_16, SPI_SS_FRONTEND_GPIO_LINE};
 
 static u8 spi_write(u8 reg, u8 data)
 {

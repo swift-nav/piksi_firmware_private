@@ -27,10 +27,10 @@
 
 #define ZYNQ7000_MCUCONF
 
-#define ZYNQ7000_CPU_6x4x_FREQUENCY_Hz              666600000U
-#define ZYNQ7000_CPU_3x2x_FREQUENCY_Hz              333300000U
-#define ZYNQ7000_CPU_2x_FREQUENCY_Hz                222200000U
-#define ZYNQ7000_CPU_1x_FREQUENCY_Hz                111100000U
+#define ZYNQ7000_CPU_6x4x_FREQUENCY_Hz              333333344U
+#define ZYNQ7000_CPU_3x2x_FREQUENCY_Hz              166666672U
+#define ZYNQ7000_CPU_2x_FREQUENCY_Hz                111111115U
+#define ZYNQ7000_CPU_1x_FREQUENCY_Hz                 55555557U
 
 /*
  * ST driver system settings.
@@ -81,7 +81,7 @@
 /*
  * SPI driver system settings.
  */
-#define ZYNQ7000_SPI_SPI_REFCLK_FREQUENCY_Hz        50000000U
+#define ZYNQ7000_SPI_SPI_REFCLK_FREQUENCY_Hz        100000000U
 #define ZYNQ7000_SPI_USE_SPI0                       TRUE
 #define ZYNQ7000_SPI_USE_SPI1                       TRUE
 #define ZYNQ7000_SPI_SPI0_IRQ_PRIORITY              4
