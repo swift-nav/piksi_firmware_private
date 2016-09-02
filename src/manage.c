@@ -45,6 +45,7 @@
 #include "settings.h"
 #include "signal.h"
 #include "ndb.h"
+#include "shm.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
@@ -451,6 +452,8 @@ static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf)
                (u8 *)&acq_result_msg);
 }
 
+static void drop_channel(u8 channel_id);
+
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.
@@ -464,6 +467,25 @@ static u8 manage_track_new_acq(gnss_signal_t sid)
     if (tracker_channel_available(i, sid) &&
         decoder_channel_available(i, sid)) {
       return i;
+    }
+  }
+
+  /* No free channel was found.
+   * Check if any channel is tracking satellite with state
+   * reported as CODE_NAV_STATE_INVALID by SHM. If it's the case then
+   * just drop it */
+
+  for (u8 i=0; i<nap_track_n_channels; i++) {
+    if (tracking_channel_running(i)) {
+      gnss_signal_t sid = tracking_channel_sid_get(i);
+      if (shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID) {
+        log_info_sid(sid, "unhealthy, dropping");
+        drop_channel(i);
+        u16 global_index = sid_to_global_index(sid);
+        acq_status_t *acq = &acq_status[global_index];
+        acq->state = ACQ_PRN_UNHEALTHY;
+        break;
+      }
     }
   }
 
@@ -568,6 +590,7 @@ static void manage_track()
       continue;
     }
 
+#ifdef NEVER_DEFINED
     /* Is ephemeris or alert flag marked unhealthy?*/
     u8 valid;
     u8 health_bits;
@@ -583,6 +606,7 @@ static void manage_track()
       acq->state = ACQ_PRN_UNHEALTHY;
       continue;
     }
+#endif
 
     /* Do we not have nav bit sync yet? */
     if (!tracking_channel_bit_sync_resolved(i)) {

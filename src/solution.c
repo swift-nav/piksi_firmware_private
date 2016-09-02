@@ -47,6 +47,7 @@
 #include "sid_set.h"
 #include "cnav_msg_storage.h"
 #include "ndb.h"
+#include "shm.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -467,7 +468,11 @@ static void solution_thread(void *arg)
       tracking_channel_lock(i);
       if (use_tracking_channel(i)) {
         tracking_channel_measurement_get(i, rec_tc, &meas[n_ready]);
-        n_ready++;
+        if(shm_navigation_suitable(meas[n_ready].sid))
+          n_ready++;
+        else
+          log_debug_sid(meas[n_ready].sid,
+                        "Satellite not suitable for navigation");
       }
       tracking_channel_unlock(i);
     }

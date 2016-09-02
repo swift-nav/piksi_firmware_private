@@ -28,6 +28,7 @@
 #include "sbp_utils.h"
 #include "signal.h"
 #include "cnav_msg_storage.h"
+#include "shm.h"
 
 typedef struct {
   cnav_msg_t cnav_msg;
@@ -109,6 +110,8 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     if (!decoded) {
       continue;
     }
+
+    shm_gps_set_shi6(channel_info->sid.sat, false == data->cnav_msg.alert);
 
     if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
       if (data->cnav_msg.data.type_30.tgd_valid)

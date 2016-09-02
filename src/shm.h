@@ -14,10 +14,11 @@ void shm_gps_set_shi4(u16 sat, bool new_value);
 void shm_gps_set_shi6(u16 sat, bool new_value);
 
 code_nav_state_t shm_get_sat_state(gnss_signal_t sid);
+void shm_log_sat_state(u16 sat);
 
 bool shm_gps_l1ca_tracking_allowed(u16 sat);
 bool shm_gps_l2cm_tracking_allowed(u16 sat);
-bool shm_gps_navigation_suitable(gnss_signal_t sid);
+bool shm_navigation_suitable(gnss_signal_t sid);
 
 
 

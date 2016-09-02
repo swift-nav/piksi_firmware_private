@@ -34,6 +34,7 @@
 
 #include "track_profiles.h"
 #include "track_profile_utils.h"
+#include "shm.h"
 
 /* DLL error-based lock detector: when FLL mode is used, DLL-based lock
  * detector is the only reliable (but slow) way to identify the tracking is
@@ -591,7 +592,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
   if (data->lock_detect.outp && data->confirmed &&
       0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context))
+      tracker_bit_aligned(channel_info->context) &&
+      shm_gps_l2cm_tracking_allowed(channel_info->sid.sat))
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,
                              common_data->code_phase_early,

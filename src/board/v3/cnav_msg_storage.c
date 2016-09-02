@@ -17,6 +17,7 @@
 #include <ch.h>
 #include <assert.h>
 #include "cnav_msg_storage.h"
+#include "shm.h"
 
 static MUTEX_DECL(cnav_msg_mutex);
 static cnav_msg_storage_t cnav_msg_storage[NUM_SATS_GPS][CNAV_MSG_TYPE_NUM];
@@ -61,6 +62,7 @@ void cnav_msg_put(const cnav_msg_t *msg)
     storage_cell->msg_set = true;
     chMtxUnlock(&cnav_msg_mutex);
     log_debug_sid(sid, "CNAV message type %d saved", msg->msg_id);
+    shm_log_sat_state(msg->prn);
   }
 }
 
