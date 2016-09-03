@@ -34,6 +34,10 @@
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
 
+#define DEV_CFG_INT_STS (*(volatile u32 *)0xf800700c)
+#define DEV_CFG_INT_STS_PCFG_DONE_Msk (1U << 2)
+
+static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
 static void nap_auth_setup(void);
@@ -91,6 +95,7 @@ void init(void)
   fault_handling_setup();
   reset_callback_register();
 
+  nap_conf_check();
   nap_version_check();
   nap_dna_callback_register();
   nap_auth_setup();
@@ -99,6 +104,14 @@ void init(void)
 
   frontend_configure();
   random_init();
+}
+
+static void nap_conf_check(void)
+{
+  while (!(DEV_CFG_INT_STS & DEV_CFG_INT_STS_PCFG_DONE_Msk)) {
+    log_error("Waiting for NAP");
+    chThdSleepSeconds(2);
+  }
 }
 
 static bool nap_version_ok(u32 version)
