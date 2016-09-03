@@ -57,6 +57,23 @@ static double base_llh[3];
 /* Global CPU time accumulator, used to measure thread CPU usage. */
 u64 g_ctime = 0;
 
+void send_device_monitor()
+{
+  double t = 0;
+  msg_device_monitor_t msg;
+
+  nt1065_get_temperature(500, &t);
+
+  /* TODO: Read VIN_MONITOR pin on Piksi v3 */
+  msg.dev_vin = -1;
+
+  msg.cpu_vint = (s16)(xadc_vccint_get() * 1000);
+  msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
+  msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
+  msg.fe_temperature = (s16)(t * 100);
+
+  sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
+}
 
 u32 check_stack_free(thread_t *tp)
 {
@@ -197,6 +214,10 @@ static void system_monitor_thread(void *arg)
 
     DO_EVERY(2,
      send_thread_states();
+    );
+
+    DO_EVERY(3,
+     send_device_monitor();
     );
 
     sleep_until(&time, MS2ST(heartbeat_period_milliseconds));
