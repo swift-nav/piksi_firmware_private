@@ -306,7 +306,7 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
                                        data->int_ms,
                                        next_cycle);
 
-  if (0 != (cycle_flags & TP_CFLAG_BIT_SYNC_UPDATE)) {
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
     /* The switch is possible only when bit sync counter is updated: get the
      * bit update interval in ms. */
     u8 bit_ms = tp_get_bit_ms(data->tracking_mode, data->int_ms);
@@ -475,17 +475,14 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                            common_data->TOW_ms,
                                            int_ms);
 
-  if (0 != (cycle_flags & TP_CFLAG_BIT_SYNC_UPDATE)) {
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
     /* Update counter. */
     u8 update_count_ms = tp_get_bit_ms(data->tracking_mode, data->int_ms);
     common_data->update_count += update_count_ms;
-
+    /* Bit sync advance / message decoding */
     tracker_bit_sync_update(channel_info->context, update_count_ms,
-                            data->corrs.corr_epl.prompt.I);
+                            data->corrs.corr_bit);
   }
-
-  /* Correlations should already be in chan->cs thanks to
-   * tracking_channel_get_corrs. */
 
   if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
     tp_cn0_params_t cn0_params;

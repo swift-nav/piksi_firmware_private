@@ -16,26 +16,28 @@
 
 #define TP_FLAGS_SHORT_DEFAULT \
   (TP_CFLAG_SHORT_CYCLE | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_SET | \
-   TP_CFLAG_EPL_SET| TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET)
+   TP_CFLAG_EPL_SET | TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET |\
+   TP_CFLAG_BSYNC_SET)
 
 #define TP_FLAGS_LONG_DEFAULT_1PN \
   (TP_CFLAG_LONG_CYCLE | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | \
    TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | \
-   TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE | \
+   TP_CFLAG_ALIAS_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | \
    TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE)
 
 #define TP_FLAGS_SPLIT_DEF \
     (TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD | TP_CFLAG_LD_ADD | \
-     TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND)
+     TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_BSYNC_ADD)
 
 #define TP_FLAGS_SPLIT_LAST \
     (TP_FLAGS_SPLIT_DEF | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | \
-         TP_CFLAG_EPL_USE | TP_CFLAG_BIT_SYNC_UPDATE )
+         TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE )
 
 #define TP_FLAGS_PIPELINING_DEFAULT \
   (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_SET | \
    TP_CFLAG_EPL_SET | TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | \
-   TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE | TP_CFLAG_BIT_SYNC_UPDATE )
+   TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_SET | \
+   TP_CFLAG_BSYNC_UPDATE )
 
 /**
  * State entry.
@@ -71,10 +73,10 @@ static const state_table_t mode_1msINI = {
   .bit_ms  = 1,
   .ent_cnt = 1,
   .entries = {
-    {1, (TP_CFLAG_USE_CONTROLLER |
-         TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE |
+    {1, (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE |
          TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |
-         TP_CFLAG_BIT_SYNC_UPDATE | TP_CFLAG_LD_SET | TP_CFLAG_LD_USE)}
+         TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
+         TP_CFLAG_LD_SET | TP_CFLAG_LD_USE)}
   }
 };
 
@@ -188,7 +190,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_CN0_SET |
           TP_CFLAG_EPL_SET|
           TP_CFLAG_LD_SET |
-          TP_CFLAG_FLL_SET)
+          TP_CFLAG_FLL_SET |
+          TP_CFLAG_BSYNC_SET)
     },
     { 4, (TP_CFLAG_LONG_CYCLE |
           TP_CFLAG_ALIAS_ADD |
@@ -197,7 +200,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_ALIAS_FIRST |
           TP_CFLAG_CN0_USE |
           TP_CFLAG_EPL_USE |
-          TP_CFLAG_BIT_SYNC_UPDATE |
+          TP_CFLAG_BSYNC_ADD |
+          TP_CFLAG_BSYNC_UPDATE |
           TP_CFLAG_LD_ADD |
           TP_CFLAG_LD_USE)
     },
@@ -206,7 +210,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_CN0_SET |
           TP_CFLAG_EPL_SET|
           TP_CFLAG_LD_SET |
-          TP_CFLAG_FLL_SET)
+          TP_CFLAG_FLL_SET |
+          TP_CFLAG_BSYNC_SET)
     },
     { 4, (TP_CFLAG_LONG_CYCLE |
           TP_CFLAG_ALIAS_ADD |
@@ -215,7 +220,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_ALIAS_SECOND |
           TP_CFLAG_CN0_USE |
           TP_CFLAG_EPL_USE |
-          TP_CFLAG_BIT_SYNC_UPDATE |
+          TP_CFLAG_BSYNC_ADD |
+          TP_CFLAG_BSYNC_UPDATE |
           TP_CFLAG_LD_ADD |
           TP_CFLAG_LD_USE)
     },
@@ -224,7 +230,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_CN0_SET |
           TP_CFLAG_EPL_SET|
           TP_CFLAG_LD_SET |
-          TP_CFLAG_FLL_SET)
+          TP_CFLAG_FLL_SET |
+          TP_CFLAG_BSYNC_SET)
     },
     { 4, (TP_CFLAG_LONG_CYCLE |
           TP_CFLAG_ALIAS_ADD |
@@ -233,7 +240,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_ALIAS_SECOND |
           TP_CFLAG_CN0_USE |
           TP_CFLAG_EPL_USE |
-          TP_CFLAG_BIT_SYNC_UPDATE |
+          TP_CFLAG_BSYNC_ADD |
+          TP_CFLAG_BSYNC_UPDATE |
           TP_CFLAG_LD_ADD |
           TP_CFLAG_LD_USE)
     },
@@ -242,7 +250,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_CN0_SET |
           TP_CFLAG_EPL_SET|
           TP_CFLAG_LD_SET |
-          TP_CFLAG_FLL_SET)
+          TP_CFLAG_FLL_SET |
+          TP_CFLAG_BSYNC_SET)
     },
     { 4, (TP_CFLAG_LONG_CYCLE |
           TP_CFLAG_ALIAS_ADD |
@@ -251,7 +260,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_ALIAS_SECOND |
           TP_CFLAG_CN0_USE |
           TP_CFLAG_EPL_USE |
-          TP_CFLAG_BIT_SYNC_UPDATE |
+          TP_CFLAG_BSYNC_ADD |
+          TP_CFLAG_BSYNC_UPDATE |
           TP_CFLAG_LD_ADD |
           TP_CFLAG_LD_USE)
     },
@@ -307,12 +317,14 @@ static const state_table_t mode_10ms1PN5 = {
     { 1, TP_FLAGS_SHORT_DEFAULT },
     { 4,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
-       TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
-       TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE) | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE
     },
   }
@@ -333,22 +345,26 @@ static const state_table_t mode_20ms1PN5 = {
     { 1, TP_FLAGS_SHORT_DEFAULT },
     { 4,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
-       TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
-       TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
-       TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
     },
     { 5,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
-       TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE |
        TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE)
     },
@@ -364,18 +380,20 @@ static const state_table_t mode_20ms1PN10 = {
   .ld_ms   = 10,
   .fl_ms   = 10,
   .fll_ms  = 10,
-  .bit_ms  = 20,
+  .bit_ms  = 10,
   .ent_cnt = 3,
   .entries = {
     { 1, TP_FLAGS_SHORT_DEFAULT },
     { 9,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
-       TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
     },
     { 10,
       (TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD |
-       TP_CFLAG_ALIAS_ADD | TP_CFLAG_BIT_SYNC_UPDATE |
+       TP_CFLAG_ALIAS_ADD |
+       TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE |
        TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE)
     },
@@ -696,4 +714,28 @@ u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms)
 u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 int_ms)
 {
   return tp_get_pll_ms(tracking_mode, int_ms);
+}
+
+/**
+ * Returns a literal for the given mode enumeration.
+ *
+ * @param[in] v Tracking mode
+ *
+ * @return Mode literal
+ */
+const char *tp_get_mode_str(tp_tm_e v)
+{
+  const char *str = "?";
+  switch (v) {
+  case TP_TM_INITIAL: str = "INI"; break;
+  case TP_TM_IMMEDIATE: str = "IMD"; break;
+  case TP_TM_PIPELINING: str = "PIP"; break;
+  case TP_TM_SPLIT: str = "SPL"; break;
+  case TP_TM_ONE_PLUS_N: str = "1+N"; break;
+  case TP_TM_ONE_PLUS_N5: str = "1+5N"; break;
+  case TP_TM_ONE_PLUS_N10: str = "1+10N"; break;
+  case TP_TM_ONE_PLUS_N20: str = "1+20N"; break;
+  default: assert(false);
+  }
+  return str;
 }
