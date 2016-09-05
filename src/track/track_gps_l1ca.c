@@ -294,26 +294,29 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
   /* Unused parameters */
   (void)common_data;
 
+  if (data->has_next_params)
+    /* If the mode switch has been initiated - do nothing */
+    return;
+
   /* Compute time of the currently integrated period */
-  u8 cycle_cnt = tp_get_cycle_count(data->tracking_mode, data->int_ms);
-  u8 next_cycle = data->cycle_no + 1;
-  if (next_cycle >= cycle_cnt)
-    next_cycle = 0;
-  u8 next_ms = tp_get_current_cycle_duration(data->tracking_mode, data->int_ms, next_cycle);
-  u32 cycle_flags = tp_get_cycle_flags(data->tracking_mode, data->int_ms, next_cycle);
+  u8 next_cycle = tp_next_cycle_counter(data->tracking_mode,
+                                        data->int_ms,
+                                        data->cycle_no);
+  u32 cycle_flags = tp_get_cycle_flags(data->tracking_mode,
+                                       data->int_ms,
+                                       next_cycle);
 
-  if (0 != (cycle_flags & TP_CFLAG_LONG_CYCLE))
-    next_ms += 1;
+  if (0 != (cycle_flags & TP_CFLAG_BIT_SYNC_UPDATE)) {
+    /* The switch is possible only when bit sync counter is updated: get the
+     * bit update interval in ms. */
+    u8 bit_ms = tp_get_bit_ms(data->tracking_mode, data->int_ms);
 
-  if (0 != next_ms &&
-      tracker_next_bit_aligned(channel_info->context, next_ms)) {
-
-    /* When the bit sync is available and the next integration interval is the
-     * last one in the bit, check if the profile switch is required. */
-    if (tp_has_new_profile(channel_info->sid)) {
-      /* Initiate profile change */
-      data->has_next_params = true;
-    }
+    if (tracker_next_bit_aligned(channel_info->context, bit_ms))
+      /* When the bit sync is available and the next integration interval is the
+       * last one in the bit, check if the profile switch is required. */
+      if (tp_has_new_profile(channel_info->sid))
+        /* Initiate profile change */
+        data->has_next_params = true;
   }
 }
 
