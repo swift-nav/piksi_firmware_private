@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define DEBUG 1
-
 #include <assert.h>
 #include <ch.h>
 #include <libswiftnav/ephemeris.h>

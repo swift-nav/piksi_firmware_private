@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define DEBUG 1
-
 #include <string.h>
 #include <libswiftnav/signal.h>
 #include <ch.h>
