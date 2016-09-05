@@ -97,6 +97,18 @@ void tp_tl_init(tp_tl_state_t *s,
                  freq_bw, carr_zeta, carr_k);
     break;
 
+  case TP_CTRL_FLL2_PLL3:
+    tl_fll2_pll3_init(&s->fll2_pll3,
+                      loop_freq,
+                      fll_loop_freq,
+                      code_freq,
+                      carr_freq,
+                      code_bw, code_zeta, code_k,
+                      carr_to_code,
+                      carr_bw, carr_zeta, carr_k,
+                      freq_bw);
+    break;
+
   case TP_CTRL_FLL2:
     tl_fll2_init(&s->fll2, loop_freq,
                  fll_loop_freq,
@@ -174,6 +186,15 @@ void tp_tl_retune(tp_tl_state_t *s,
                      freq_bw, carr_zeta, carr_k);
       break;
 
+    case TP_CTRL_FLL2_PLL3:
+      tl_fll2_pll3_retune(&s->fll2_pll3, loop_freq,
+                          fll_loop_freq,
+                          code_bw, code_zeta, code_k,
+                          carr_to_code,
+                          carr_bw, carr_zeta, carr_k,
+                          freq_bw);
+      break;
+
     case TP_CTRL_FLL2:
       tl_fll2_retune(&s->fll2, loop_freq,
                      fll_loop_freq,
@@ -234,6 +255,10 @@ void tp_tl_adjust(tp_tl_state_t *s, float err)
     tl_fll1_adjust(&s->fll1, err);
     break;
 
+  case TP_CTRL_FLL2_PLL3:
+    tl_fll2_pll3_adjust(&s->fll2_pll3, err);
+    break;
+
   case TP_CTRL_FLL2:
     tl_fll2_adjust(&s->fll2, err);
     break;
@@ -264,6 +289,11 @@ void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates)
 
   case TP_CTRL_FLL1:
     tl_fll1_get_rates(&s->fll1, rates);
+    break;
+
+  case TP_CTRL_FLL2_PLL3:
+    *carr_freq = s->fll2_pll3.carr_freq;
+    *code_freq = s->fll2_pll3.code_freq;
     break;
 
   case TP_CTRL_FLL2:
@@ -308,6 +338,10 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
     tl_fll1_update_dll(&s->fll1, cs2);
     break;
 
+  case TP_CTRL_FLL2_PLL3:
+    tl_fll2_pll3_update_dll(&s->fll2_pll3, cs2);
+    break;
+
   case TP_CTRL_FLL2:
     tl_fll2_update_dll(&s->fll2, cs2);
     break;
@@ -341,6 +375,10 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
     dll_error = tl_fll1_get_dll_error(&s->fll1);
     break;
 
+  case TP_CTRL_FLL2_PLL3:
+    dll_error = tl_fll2_pll3_get_dll_error(&s->fll2_pll3);
+    break;
+
   case TP_CTRL_FLL2:
     dll_error = tl_fll2_get_dll_error(&s->fll2);
     break;
@@ -364,7 +402,8 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-  case TP_CTRL_PLL3:
+  case TP_CTRL_PLL3
+  case TP_CTRL_FLL2_PLL3:
     return true;
 
   default:
@@ -399,6 +438,10 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
 
   case TP_CTRL_FLL1:
     tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+    break;
+
+  case TP_CTRL_FLL2_PLL3:
+    tl_fll2_pll3_discr_update(&s->fll2_pll3, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_FLL2:
@@ -438,6 +481,10 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
     tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
     break;
 
+  case TP_CTRL_FLL2_PLL3:
+    tl_fll2_pll3_discr_update(&s->fll2_pll3, cs.I, cs.Q, true);
+    break;
+
   case TP_CTRL_FLL2:
     tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
     break;
@@ -473,6 +520,10 @@ void tp_tl_fll_update(tp_tl_state_t *s)
 
   case TP_CTRL_FLL1:
     tl_fll1_update_fll(&s->fll1);
+    break;
+
+  case TP_CTRL_FLL2_PLL3:
+    tl_fll2_pll3_update_fll(&s->fll2_pll3);
     break;
 
   case TP_CTRL_FLL2:
