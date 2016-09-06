@@ -590,24 +590,6 @@ static void manage_track()
       continue;
     }
 
-#ifdef NEVER_DEFINED
-    /* Is ephemeris or alert flag marked unhealthy?*/
-    u8 valid;
-    u8 health_bits;
-    gps_time_t toe;
-    u32 fit_interval;
-    float ura;
-
-    ndb_ephemeris_info(sid, &valid, &health_bits, &toe, &fit_interval, &ura);
-    /* TODO: check alert flag */
-    if (!signal_healthy(valid, health_bits, ura, sid.code)) {
-      log_info_sid(sid, "unhealthy, dropping");
-      drop_channel(i);
-      acq->state = ACQ_PRN_UNHEALTHY;
-      continue;
-    }
-#endif
-
     /* Do we not have nav bit sync yet? */
     if (!tracking_channel_bit_sync_resolved(i)) {
       drop_channel(i);

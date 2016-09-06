@@ -468,7 +468,7 @@ static void solution_thread(void *arg)
       tracking_channel_lock(i);
       if (use_tracking_channel(i)) {
         tracking_channel_measurement_get(i, rec_tc, &meas[n_ready]);
-        if(shm_navigation_suitable(meas[n_ready].sid))
+        if (shm_navigation_suitable(meas[n_ready].sid))
           n_ready++;
         else
           log_debug_sid(meas[n_ready].sid,
@@ -481,7 +481,6 @@ static void solution_thread(void *arg)
     for (u8 i=0; i<n_ready; i++) {
       p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
                      &cnav_30[i].data.type_30 : NULL;
-
     }
 
     gnss_sid_set_t codes_in_track;
