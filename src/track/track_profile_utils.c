@@ -25,20 +25,6 @@
    TP_CFLAG_ALIAS_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | \
    TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE)
 
-#define TP_FLAGS_SPLIT_DEF \
-    (TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD | TP_CFLAG_LD_ADD | \
-     TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_BSYNC_ADD)
-
-#define TP_FLAGS_SPLIT_LAST \
-    (TP_FLAGS_SPLIT_DEF | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | \
-         TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE )
-
-#define TP_FLAGS_PIPELINING_DEFAULT \
-  (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_SET | \
-   TP_CFLAG_EPL_SET | TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | \
-   TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_SET | \
-   TP_CFLAG_BSYNC_UPDATE )
-
 /**
  * State entry.
  */
@@ -77,99 +63,6 @@ static const state_table_t mode_1msINI = {
          TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |
          TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
          TP_CFLAG_LD_SET | TP_CFLAG_LD_USE)}
-  }
-};
-
-/**
- * 5 ms integrations; split mode.
- */
-static const state_table_t mode_5msSPLT = {
-  .int_ms  = 5,
-  .cn0_ms  = 5,
-  .ld_ms   = 1,
-  .fl_ms   = 1,
-  .fll_ms  = 1,
-  .bit_ms  = 5,
-  .ent_cnt = 5,
-  .entries = {
-    { 1, TP_FLAGS_SHORT_DEFAULT },
-    { 1, TP_FLAGS_SPLIT_DEF | TP_CFLAG_LONG_CYCLE },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_LAST },
-  }
-};
-
-/**
- * 10 ms integrations; split mode.
- */
-static const state_table_t mode_10msSPLT = {
-  .int_ms  = 10,
-  .cn0_ms  = 5,
-  .ld_ms   = 1,
-  .fl_ms   = 1,
-  .fll_ms  = 1,
-  .bit_ms  = 10,
-  .ent_cnt = 10,
-  .entries = {
-    { 1, TP_FLAGS_SHORT_DEFAULT },
-    { 1, TP_FLAGS_SPLIT_DEF | TP_CFLAG_LONG_CYCLE },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_DEF | TP_CFLAG_CN0_USE },
-    { 1, TP_FLAGS_SPLIT_DEF | TP_CFLAG_CN0_SET },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_DEF },
-    { 1, TP_FLAGS_SPLIT_LAST },
-  }
-};
-
-/**
- * 5 ms integrations; pipelining mode.
- */
-static const state_table_t mode_5msPIP = {
-  .int_ms  = 5,
-  .cn0_ms  = 5,
-  .ld_ms   = 5,
-  .fl_ms   = 5,
-  .fll_ms  = 1,
-  .bit_ms  = 5,
-  .ent_cnt = 1,
-  .entries = {
-    { 5, TP_FLAGS_PIPELINING_DEFAULT },
-  }
-};
-
-/**
- * 10 ms integrations; pipelining mode.
- */
-static const state_table_t mode_10msPIP = {
-  .int_ms  = 10,
-  .cn0_ms  = 10,
-  .ld_ms   = 10,
-  .fl_ms   = 10,
-  .fll_ms  = 1,
-  .bit_ms  = 10,
-  .ent_cnt = 1,
-  .entries = {
-    { 10, TP_FLAGS_PIPELINING_DEFAULT },
-  }
-};
-
-/**
- * 20 ms integrations; pipelining mode.
- */
-static const state_table_t mode_20msPIP = {
-  .int_ms  = 20,
-  .cn0_ms  = 20,
-  .ld_ms   = 20,
-  .fl_ms   = 20,
-  .fll_ms  = 1,
-  .bit_ms  = 20,
-  .ent_cnt = 1,
-  .entries = {
-    { 20, TP_FLAGS_PIPELINING_DEFAULT },
   }
 };
 
@@ -443,24 +336,6 @@ static const state_table_t *select_table(tp_tm_e tracking_mode, u8 int_ms)
     }
     break;
 
-  case TP_TM_SPLIT:
-    switch (int_ms) {
-    case 5:  return &mode_5msSPLT;
-    case 10: return &mode_10msSPLT;
-//    case 20: return &mode_20ms1PN5;
-    default: break;
-    }
-    break;
-
-  case TP_TM_PIPELINING:
-    switch (int_ms) {
-    case 5:  return &mode_5msPIP;
-    case 10: return &mode_10msPIP;
-    case 20: return &mode_20msPIP;
-    default: break;
-    }
-    break;
-
   default:
     break;
   }
@@ -728,9 +603,6 @@ const char *tp_get_mode_str(tp_tm_e v)
   const char *str = "?";
   switch (v) {
   case TP_TM_INITIAL: str = "INI"; break;
-  case TP_TM_IMMEDIATE: str = "IMD"; break;
-  case TP_TM_PIPELINING: str = "PIP"; break;
-  case TP_TM_SPLIT: str = "SPL"; break;
   case TP_TM_ONE_PLUS_N: str = "1+N"; break;
   case TP_TM_ONE_PLUS_N5: str = "1+5N"; break;
   case TP_TM_ONE_PLUS_N10: str = "1+10N"; break;
