@@ -301,7 +301,7 @@ static const tp_loop_params_t loop_params[] = {
   * BW Zeta  K  C2C  BW   Zeta K  BW
   */
   /* "(1 ms, (1, 0.7, 1, 1540), (40, 0.7, 1, 5))" */
-  { 1, 0.7f, 1, 1540, 16, .7f, 1, 20, 1, TP_TM_INITIAL, TP_CTRL_PLL2 }, /*TP_LP_IDX_INI*/
+  { 2, 0.7f, 1, 1540, 40, .7f, 2, 20, 1, TP_TM_INITIAL, TP_CTRL_PLL2 }, /*TP_LP_IDX_INI*/
 
 #ifdef TP_USE_1MS_PROFILES
   { 1, 1.f, 1, 1540, 12, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL2 }, /*TP_LP_IDX_1MS_S*/
