@@ -48,6 +48,8 @@
 #define L1CA_FLOCK_THRESHOLD_HZ  (20)
 #define L1CA_FLOCK_EF_ALPHA      (0.03f)
 
+#define L1CA_TRACK_SETTING_SECTION "l1ca_track"
+
 /**
  * GPS L1 C/A tracker data
  */
@@ -71,6 +73,7 @@ typedef struct {
   u8                confirmed: 1;           /**< Flag if the tracking is confirmed */
 } gps_l1ca_tracker_data_t;
 
+static bool show_unconfirmed_trackers = false;
 static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS]
                                    PLATFORM_TRACK_DATA_TRACKER;
 static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[NUM_GPS_L1CA_TRACKERS];
@@ -102,6 +105,9 @@ tracker_interface_list_element_gps_l1ca = {
 
 void track_gps_l1ca_register(void)
 {
+  SETTING(L1CA_TRACK_SETTING_SECTION, "show_unconfirmed",
+          show_unconfirmed_trackers, TYPE_BOOL);
+
   for (u32 i=0; i<NUM_GPS_L1CA_TRACKERS; i++) {
     gps_l1ca_trackers[i].active = false;
     gps_l1ca_trackers[i].data = &gps_l1ca_tracker_data[i];
@@ -207,7 +213,7 @@ static void tracker_gps_l1ca_update_parameters(
     if (data->confirmed)
       cn0_0 = common_data->cn0;
     else
-      cn0_0 = cn0_params.track_cn0_drop_thres - 1;
+      cn0_0 = cn0_params.track_cn0_drop_thres - 2;
 
     /* Initialize C/N0 estimator and filter */
     track_cn0_init(channel_info->sid, /* Signal for logging */
@@ -269,6 +275,10 @@ static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
 
     tp_tracking_start(channel_info->sid, &report, &init_profile);
   }
+
+  if (show_unconfirmed_trackers)
+    data->confirmed = 1;
+
   tracker_gps_l1ca_update_parameters(channel_info,
                                      common_data,
                                      data,
@@ -308,7 +318,7 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
   /* Unused parameters */
   (void)common_data;
 
-  if (data->has_next_params)
+  if (data->has_next_params || !data->confirmed)
     /* If the mode switch has been initiated - do nothing */
     return;
 
@@ -518,14 +528,18 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       common_data->cn0_above_drop_thres_count = common_data->update_count;
     }
 
-    if (cn0 > cn0_params.track_cn0_drop_thres && !data->confirmed) {
+    if (cn0 > cn0_params.track_cn0_drop_thres && !data->confirmed &&
+        data->lock_detect.outo && tracker_has_bit_sync(channel_info->context)) {
       data->confirmed = 1;
+      log_info_sid(channel_info->sid, "CONFIRMED from %f to %d",
+                   cn0, data->cn0_est.cn0_0);
+
+      cn0 = data->cn0_est.cn0_0;
       /* Re-initialize C/N0 estimator and filter */
-      u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->int_ms);
-      track_cn0_init(channel_info->sid,
-                     cn0_ms,              /* C/N0 period in ms */
+      track_cn0_init(channel_info->sid,   /* SV signal */
+                     data->cn0_est.cn0_ms,/* C/N0 period in ms */
                      &data->cn0_est,      /* C/N0 estimator state */
-                     data->cn0_est.cn0_0, /* Initial C/N0 value */
+                     cn0,                 /* Initial C/N0 value */
                      0);                  /* Flags */
     }
 
@@ -573,7 +587,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     common_data->ld_pess_unlocked_count = common_data->update_count;
   /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
   if (last_outp && !outp) {
-    log_info_sid(channel_info->sid, "PLL stress");
+    if (data->tracking_mode != TP_TM_INITIAL)
+      log_info_sid(channel_info->sid, "PLL stress");
     tracker_ambiguity_unknown(channel_info->context);
   }
 
