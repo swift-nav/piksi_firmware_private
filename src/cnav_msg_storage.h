@@ -26,7 +26,7 @@ typedef enum {
 } cnav_msg_idx_t;
 
 typedef struct {
-  bool msg_set;
+  bool msg_valid;
   cnav_msg_t msg;
 } cnav_msg_storage_t;
 

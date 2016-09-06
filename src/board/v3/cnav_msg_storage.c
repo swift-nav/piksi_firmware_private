@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
  * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
+ *          Roman Gezikov  <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -57,7 +58,7 @@ void cnav_msg_put(const cnav_msg_t *msg)
     chMtxLock(&cnav_msg_mutex);
     cnav_msg_storage_t *storage_cell = &(cnav_msg_storage[sat_idx][msg_idx]);
     storage_cell->msg = *msg;
-    storage_cell->msg_set = true;
+    storage_cell->msg_valid = true;
     chMtxUnlock(&cnav_msg_mutex);
     log_debug_sid(sid, "CNAV message type %d saved", msg->msg_id);
     shm_log_sat_state(msg->prn);
@@ -75,7 +76,7 @@ bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg)
     u8 msg_idx = cnav_msg_type_to_idx(type);
     chMtxLock(&cnav_msg_mutex);
     cnav_msg_storage_t *storage_cell = &(cnav_msg_storage[sat_idx][msg_idx]);
-    if (storage_cell->msg_set) {
+    if (storage_cell->msg_valid) {
       *msg = storage_cell->msg;
       res = true;
     }
