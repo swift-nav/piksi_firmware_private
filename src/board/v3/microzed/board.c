@@ -41,6 +41,7 @@
 #define REBOOT_STATUS_AWDT0_RST (1 << 17)
 #define REBOOT_STATUS_SWDT_RST (1 << 16)
 #define REBOOT_STATUS_REASON (0x3F << 16)
+#define REBOOT_STATUS_CLEAR_MASK (0x7F << 16)
 
 const PALConfig pal_default_config;
 const WDGConfig board_wdg_config = {
@@ -126,8 +127,7 @@ void board_preinit_hook(void)
       log_info("Software reset detected.");
     log_info("Reset reason: %02X", s >> 16);
   }
-  REBOOT_STATUS &= 0xff000000;
-
+  REBOOT_STATUS &= ~REBOOT_STATUS_CLEAR_MASK;
 }
 
 void board_send_state(void)
