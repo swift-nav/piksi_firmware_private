@@ -53,6 +53,7 @@ typedef struct {
   u8 ld_ms;   /**< Lock detector integration time */
   u8 fl_ms;   /**< Alias detector integration time */
   u8 fll_ms;  /**< FLL discriminator integration time */
+  u8 flll_ms; /**< FLL loop integration time */
   u8 bit_ms;  /**< Data update period */
   u8 ent_cnt; /**< State entries count */
   const state_entry_t entries[]; /**< State entries */
@@ -67,6 +68,7 @@ static const state_table_t mode_1msINI = {
   .ld_ms   = 1,
   .fl_ms   = 1,
   .fll_ms  = 20,
+  .flll_ms = 20,
   .bit_ms  = 1,
   .ent_cnt = 20,
   .entries = {
@@ -102,6 +104,7 @@ static const state_table_t mode_5ms1PN = {
   .ld_ms   = 5,
   .fl_ms   = 5,
   .fll_ms  = 15,
+  .flll_ms = 20,
   .bit_ms  = 5,
   .ent_cnt = 8,
   .entries = {
@@ -202,7 +205,8 @@ static const state_table_t mode_10ms1PN = {
   .cn0_ms  = 10,
   .ld_ms   = 10,
   .fl_ms   = 9,
-  .fll_ms  = 10,
+  .fll_ms  = 20,
+  .flll_ms = 10,
   .bit_ms  = 10,
   .ent_cnt = 4,
   .entries = {
@@ -222,6 +226,7 @@ static const state_table_t mode_20ms1PN = {
   .ld_ms   = 20,
   .fl_ms   = 19,
   .fll_ms  = 20,
+  .flll_ms = 20,
   .bit_ms  = 20,
   .ent_cnt = 2,
   .entries = {
@@ -239,6 +244,7 @@ static const state_table_t mode_10ms1PN5 = {
   .ld_ms   = 5,
   .fl_ms   = 5,
   .fll_ms  = 15,
+  .flll_ms = 20,
   .bit_ms  = 5,
   .ent_cnt = 6,
   .entries = {
@@ -284,6 +290,7 @@ static const state_table_t mode_20ms1PN5 = {
   .ld_ms   = 5,
   .fl_ms   = 5,
   .fll_ms  = 15,
+  .flll_ms = 20,
   .bit_ms  = 5,
   .ent_cnt = 5,
   .entries = {
@@ -325,6 +332,7 @@ static const state_table_t mode_20ms1PN10 = {
   .ld_ms   = 10,
   .fl_ms   = 10,
   .fll_ms  = 10,
+  .flll_ms = 20,
   .bit_ms  = 10,
   .ent_cnt = 3,
   .entries = {
@@ -590,6 +598,23 @@ u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 mode_ms)
   assert(NULL != tbl);
 
   return tbl->fll_ms;
+}
+
+/**
+ * Get FLL loop update period in ms.
+ *
+ * \param[in] tracking_mode Tracking mode.
+ * \param[in] int_ms        Tracking sub-mode (integration period).
+ *
+ * \return FLL loop update period in ms.
+ */
+u8 tp_get_flll_ms(tp_tm_e tracking_mode, u8 int_ms)
+{
+  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+
+  assert(NULL != tbl);
+
+  return tbl->flll_ms;
 }
 
 

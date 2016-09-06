@@ -256,6 +256,7 @@ u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 mode_ms);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 mode_ms);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 mode_ms);
 u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_flll_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 mode_ms);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 mode_ms);
 u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 mode_ms);
@@ -274,7 +275,7 @@ void tp_tl_init(tp_tl_state_t *s,
                 float carr_freq,
                 float acceleration,
                 float carr_bw, float carr_zeta, float carr_k,
-                float freq_bw, float fll_loop_freq);
+                float freq_bw, float fll_loop_freq, float fll_discr_freq);
 
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
@@ -282,7 +283,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                   float code_bw, float code_zeta, float code_k,
                   float carr_to_code,
                   float carr_bw, float carr_zeta, float carr_k,
-                  float freq_bw, float fll_loop_freq);
+                  float freq_bw, float fll_loop_freq, float fll_discr_freq);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);
