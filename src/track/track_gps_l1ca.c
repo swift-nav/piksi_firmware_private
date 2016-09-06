@@ -203,7 +203,8 @@ static void tracker_gps_l1ca_update_parameters(
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(cn0_ms,            /* C/N0 period in ms */
+    track_cn0_init(channel_info->sid, /* Signal for logging */
+                   cn0_ms,            /* C/N0 period in ms */
                    &data->cn0_est,    /* C/N0 estimator state */
                    common_data->cn0); /* Initial C/N0 value */
   }
@@ -489,9 +490,8 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
     /* Update C/N0 estimate */
-    common_data->cn0 = track_cn0_update(cn0_params.est,
-                                        tp_get_cn0_ms(data->tracking_mode,
-                                                      data->int_ms),
+    common_data->cn0 = track_cn0_update(channel_info->sid,
+                                        cn0_params.est,
                                         &data->cn0_est,
                                         data->corrs.corr_cn0.I,
                                         data->corrs.corr_cn0.Q);

@@ -118,14 +118,19 @@ static float update_estimator(track_cn0_state_t *e,
                               float I, float Q)
 {
   float cn0 = 0;
+  float cn0_bl = 0;
+  float cn0_mm = 0;
+
+  cn0_bl = cn0_est_bl_update(&e->bl, p, I, Q);
+  cn0_mm = cn0_est_mm_update(&e->mm, p, I, Q);
+
   switch (t) {
   case TRACK_CN0_EST_BL:
-    cn0 = cn0_est_bl_update(&e->bl, p, I, Q);
+    cn0 = cn0_bl;
     break;
 
-
   case TRACK_CN0_EST_MM:
-    cn0 = cn0_est_mm_update(&e->mm, p, I, Q);
+    cn0 = cn0_mm;
     break;
 
   default:
@@ -177,49 +182,63 @@ static const track_cn0_params_t *track_cn0_get_params(u8 int_ms,
 /**
  * Initializes C/N0 estimator
  *
- * \param[in]  int_ms C/N0 estimator update period in ms.
+ * \param[in]  sid    Signal identifier for logging.
+ * \param[in]  cn0_ms C/N0 estimator update period in ms.
  * \param[out] e      C/N0 estimator state.
  * \param[in]  cn0_0  Initial C/N0 value in dB/Hz.
  *
  * \return None
  */
-void track_cn0_init(u8 int_ms,
+void track_cn0_init(gnss_signal_t sid,
+                    u8 cn0_ms,
                     track_cn0_state_t *e,
                     float cn0_0)
 {
   track_cn0_params_t p;
-  const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
+  const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
   e->type = TRACK_CN0_EST_PRIMARY;
+  e->cn0_ms = cn0_ms;
   init_estimator(e, &pp->est_params, TRACK_CN0_EST_PRIMARY, cn0_0);
+  init_estimator(e, &pp->est_params, TRACK_CN0_EST_SECONDARY, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
+
+  log_debug_sid(sid, "Initializing estimator %s (%f dB/Hz @ %u ms)",
+                track_cn0_str(e->type),
+                e->filter.yn,
+                (unsigned)e->cn0_ms);
 }
 
 /**
  * Updates C/N0 estimator.
  *
+ * \param[in]     sid    Signal identifier for logging.
  * \param[in]     t      Type of estimator value to use/return.
- * \param[in]     int_ms C/N0 update period (for parameter lookup).
  * \param[in,out] e      Estimator state.
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(track_cn0_est_e t,
-                       u8 int_ms,
+float track_cn0_update(gnss_signal_t sid,
+                       track_cn0_est_e t,
                        track_cn0_state_t *e,
                        float I, float Q)
 {
   track_cn0_params_t p;
-  const track_cn0_params_t *pp = track_cn0_get_params(int_ms, &p);
+  const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
   float cn0 = 0;
 
   if (e->type != t) {
+    log_debug_sid(sid, "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
+                  track_cn0_str(e->type),
+                  track_cn0_str(t),
+                  e->filter.yn,
+                  (unsigned)e->cn0_ms);
     e->type = t;
-    init_estimator(e, &pp->est_params, t, e->filter.yn);
   }
+
   cn0 = update_estimator(e, &pp->est_params, t, I, Q);
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0);
 

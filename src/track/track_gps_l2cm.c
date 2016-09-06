@@ -266,7 +266,8 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->startup = 2;
 
   /* Initialize C/N0 estimator and filter */
-  track_cn0_init(data->int_ms,      /* C/N0 period in ms */
+  track_cn0_init(channel_info->sid,
+                 data->int_ms,      /* C/N0 period in ms */
                  &data->cn0_est,    /* C/N0 estimator state */
                  common_data->cn0); /* Initial C/N0 value */
 
@@ -434,8 +435,8 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
-  common_data->cn0 = track_cn0_update(L2C_CN0_ESTIMATOR,
-                                      data->int_ms,
+  common_data->cn0 = track_cn0_update(channel_info->sid,
+                                      L2C_CN0_ESTIMATOR,
                                       &data->cn0_est,
                                       cs[1].I, cs[1].Q);
 
