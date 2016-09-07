@@ -128,7 +128,7 @@ static state_t tracker_channel_state_get(const tracker_channel_t *
                                          tracker_channel);
 static bool tracker_active(const tracker_t *tracker);
 static void interface_function(tracker_channel_t *tracker_channel,
-                               tracker_interface_function_t func);
+                               tracker_interface_function_t *func);
 static void event(tracker_channel_t *d, event_t event);
 static void common_data_init(tracker_common_data_t *common_data,
                              u32 sample_count, float carrier_freq,
@@ -947,7 +947,7 @@ static bool tracker_active(const tracker_t *tracker)
  * \param func              Interface function to execute.
  */
 static void interface_function(tracker_channel_t *tracker_channel,
-                               tracker_interface_function_t func)
+                               tracker_interface_function_t *func)
 {
   func(&tracker_channel->info, &tracker_channel->common_data,
        tracker_channel->tracker->data);

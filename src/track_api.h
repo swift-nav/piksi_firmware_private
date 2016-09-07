@@ -67,7 +67,7 @@ typedef struct {
 } tracker_channel_info_t;
 
 /** Tracker interface function template. */
-typedef void (*tracker_interface_function_t)(
+typedef void (tracker_interface_function_t)(
                  const tracker_channel_info_t *channel_info,
                  tracker_common_data_t *common_data,
                  tracker_data_t *tracker_data);
@@ -77,11 +77,11 @@ typedef struct {
   /** Code type for which the implementation may be used. */
   enum code code;
   /** Init function. Called to set up tracker instance when tracking begins. */
-  tracker_interface_function_t init;
+  tracker_interface_function_t *init;
   /** Disable function. Called when tracking stops. */
-  tracker_interface_function_t disable;
+  tracker_interface_function_t *disable;
   /** Update function. Called when new correlation outputs are available. */
-  tracker_interface_function_t update;
+  tracker_interface_function_t *update;
   /** Array of tracker instances used by this interface. */
   tracker_t *trackers;
   /** Number of tracker instances in trackers array. */
