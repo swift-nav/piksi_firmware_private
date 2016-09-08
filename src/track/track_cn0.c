@@ -163,6 +163,7 @@ static float update_estimator(track_cn0_state_t *e,
  * \param[in]     cn0_ms Estimator update period.
  * \param[in,out] p      Parameter buffer to use if precomputed parameters are
  *                       not available.
+ * \param[in]     flags  Tuning flags.
  *
  * \return Precomputed parameter entry or \a p populated with appropriate
  *         parameters if precomputed entry is not available.
