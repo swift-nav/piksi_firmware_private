@@ -186,10 +186,11 @@ antenna_type_t frontend_ant_setting(void)
   return EXTERNAL;
 }
 
-bool nt1065_get_temperature(uint32_t timeout_ms, double* temperature)
+bool nt1065_get_temperature(double* temperature)
 {
   int32_t temp_sensor = 0;
-  uint32_t i;
+  //temperature is valid after about 30 microseconds
+  const uint32_t TEMP_READ_WAIT_US = 50;
   
   frontend_open_spi();
 
@@ -197,15 +198,11 @@ bool nt1065_get_temperature(uint32_t timeout_ms, double* temperature)
   const u8 REG5 = 1;
   spi_write(5, REG5);
 
-  //wait for the measurement to finish with timeout
-  for(i=0; i <= timeout_ms; i++) {
-    if ((spi_read(5) & 1) == 0) {
-      break;
-    } else if (i == timeout_ms) {
-      frontend_close_spi();
-      return false;
-    }
-    chThdSleepMilliseconds(1);
+  chThdSleepMicroseconds(TEMP_READ_WAIT_US);
+  //check if temperature read completed
+  if ((spi_read(5) & 1) != 0) {
+    frontend_close_spi();
+    return false;
   }
 
   //lower 8 bits

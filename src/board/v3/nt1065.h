@@ -18,7 +18,7 @@
  *  @param temperature if succesful temperature is written here
  *  @return True if temperature is valid. False if timed out
  */
-bool nt1065_get_temperature(uint32_t timeout_ms, double* temperature);
+bool nt1065_get_temperature(double* temperature);
 
 uint8_t nt1065_read_reg(uint8_t reg_addr);
 
