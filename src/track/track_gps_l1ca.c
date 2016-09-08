@@ -203,7 +203,8 @@ static void tracker_gps_l1ca_update_parameters(
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(cn0_ms,            /* C/N0 period in ms */
+    track_cn0_init(channel_info->sid, /* Signal for logging */
+                   cn0_ms,            /* C/N0 period in ms */
                    &data->cn0_est,    /* C/N0 estimator state */
                    common_data->cn0); /* Initial C/N0 value */
   }
@@ -294,26 +295,29 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
   /* Unused parameters */
   (void)common_data;
 
+  if (data->has_next_params)
+    /* If the mode switch has been initiated - do nothing */
+    return;
+
   /* Compute time of the currently integrated period */
-  u8 cycle_cnt = tp_get_cycle_count(data->tracking_mode, data->int_ms);
-  u8 next_cycle = data->cycle_no + 1;
-  if (next_cycle >= cycle_cnt)
-    next_cycle = 0;
-  u8 next_ms = tp_get_current_cycle_duration(data->tracking_mode, data->int_ms, next_cycle);
-  u32 cycle_flags = tp_get_cycle_flags(data->tracking_mode, data->int_ms, next_cycle);
+  u8 next_cycle = tp_next_cycle_counter(data->tracking_mode,
+                                        data->int_ms,
+                                        data->cycle_no);
+  u32 cycle_flags = tp_get_cycle_flags(data->tracking_mode,
+                                       data->int_ms,
+                                       next_cycle);
 
-  if (0 != (cycle_flags & TP_CFLAG_LONG_CYCLE))
-    next_ms += 1;
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+    /* The switch is possible only when bit sync counter is updated: get the
+     * bit update interval in ms. */
+    u8 bit_ms = tp_get_bit_ms(data->tracking_mode, data->int_ms);
 
-  if (0 != next_ms &&
-      tracker_next_bit_aligned(channel_info->context, next_ms)) {
-
-    /* When the bit sync is available and the next integration interval is the
-     * last one in the bit, check if the profile switch is required. */
-    if (tp_has_new_profile(channel_info->sid)) {
-      /* Initiate profile change */
-      data->has_next_params = true;
-    }
+    if (tracker_next_bit_aligned(channel_info->context, bit_ms))
+      /* When the bit sync is available and the next integration interval is the
+       * last one in the bit, check if the profile switch is required. */
+      if (tp_has_new_profile(channel_info->sid))
+        /* Initiate profile change */
+        data->has_next_params = true;
   }
 }
 
@@ -472,26 +476,22 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                            common_data->TOW_ms,
                                            int_ms);
 
-  if (0 != (cycle_flags & TP_CFLAG_BIT_SYNC_UPDATE)) {
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
     /* Update counter. */
     u8 update_count_ms = tp_get_bit_ms(data->tracking_mode, data->int_ms);
     common_data->update_count += update_count_ms;
-
+    /* Bit sync advance / message decoding */
     tracker_bit_sync_update(channel_info->context, update_count_ms,
-                            data->corrs.corr_epl.prompt.I);
+                            data->corrs.corr_bit);
   }
-
-  /* Correlations should already be in chan->cs thanks to
-   * tracking_channel_get_corrs. */
 
   if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
     tp_cn0_params_t cn0_params;
     tp_get_cn0_params(channel_info->sid, &cn0_params);
 
     /* Update C/N0 estimate */
-    common_data->cn0 = track_cn0_update(cn0_params.est,
-                                        tp_get_cn0_ms(data->tracking_mode,
-                                                      data->int_ms),
+    common_data->cn0 = track_cn0_update(channel_info->sid,
+                                        cn0_params.est,
                                         &data->cn0_est,
                                         data->corrs.corr_cn0.I,
                                         data->corrs.corr_cn0.Q);

@@ -22,6 +22,8 @@
 #include "nap/nap_hw.h"
 #include "nap/fft.h"
 
+#include "platform_cn0.h"
+
 #define CHIP_RATE 1.023e6f
 #define CODE_LENGTH 1023
 #define CODE_MULT 16384
@@ -137,7 +139,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
   /* Compute C/N0 */
   float snr = best_mag_sq / (best_mag_sq_sum / fft_len);
-  float cn0 = 10.0f * log10f(snr)
+  float cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ)
             + 10.0f * log10f(fft_bin_width); /* Bandwidth */
 
   /* Set output */

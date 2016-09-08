@@ -18,36 +18,44 @@
 #include <nap/nap_common.h>
 #include <libswiftnav/track.h>
 
-#define TP_CFLAG_ALIAS_FIRST     ((u32)1 << 0)
-#define TP_CFLAG_ALIAS_SECOND    ((u32)1 << 1)
-#define TP_CFLAG_USE_CONTROLLER  ((u32)1 << 2)
-#define TP_CFLAG_SHORT_CYCLE     ((u32)1 << 3)
-#define TP_CFLAG_LONG_CYCLE      ((u32)1 << 4)
+/* Integration tweaks: short / long interval markings */
+#define TP_CFLAG_SHORT_CYCLE     ((u32)1 << 0)
+#define TP_CFLAG_LONG_CYCLE      ((u32)1 << 1)
 
+/* Bit synchronization and data decoding */
+#define TP_CFLAG_BSYNC_SET       ((u32)1 << 2)
+#define TP_CFLAG_BSYNC_ADD       ((u32)1 << 3)
+#define TP_CFLAG_BSYNC_UPDATE    ((u32)1 << 4)
+
+/* C/N0 estimator control */
 #define TP_CFLAG_CN0_SET         ((u32)1 << 5)
 #define TP_CFLAG_CN0_ADD         ((u32)1 << 6)
 #define TP_CFLAG_CN0_USE         ((u32)1 << 7)
 
+/* FLL control */
 #define TP_CFLAG_FLL_SET         ((u32)1 << 8)
 #define TP_CFLAG_FLL_ADD         ((u32)1 << 9)
 #define TP_CFLAG_FLL_USE         ((u32)1 << 10)
 #define TP_CFLAG_FLL_FIRST       ((u32)1 << 11)
 #define TP_CFLAG_FLL_SECOND      ((u32)1 << 12)
 
+/* DLL/PLL control */
 #define TP_CFLAG_EPL_SET         ((u32)1 << 13)
 #define TP_CFLAG_EPL_ADD         ((u32)1 << 14)
 #define TP_CFLAG_EPL_ADD_INV     ((u32)1 << 15)
 #define TP_CFLAG_EPL_INV_ADD     ((u32)1 << 16)
 #define TP_CFLAG_EPL_USE         ((u32)1 << 17)
 
+/* False lock detector control */
 #define TP_CFLAG_ALIAS_SET       ((u32)1 << 18)
 #define TP_CFLAG_ALIAS_ADD       ((u32)1 << 19)
+#define TP_CFLAG_ALIAS_FIRST     ((u32)1 << 20)
+#define TP_CFLAG_ALIAS_SECOND    ((u32)1 << 21)
 
-#define TP_CFLAG_BIT_SYNC_UPDATE ((u32)1 << 20)
-
-#define TP_CFLAG_LD_SET          ((u32)1 << 21)
-#define TP_CFLAG_LD_ADD          ((u32)1 << 22)
-#define TP_CFLAG_LD_USE          ((u32)1 << 23)
+/* Lock detector control */
+#define TP_CFLAG_LD_SET          ((u32)1 << 22)
+#define TP_CFLAG_LD_ADD          ((u32)1 << 23)
+#define TP_CFLAG_LD_USE          ((u32)1 << 24)
 
 #define TP_DLL_PLL_MEAS_DIM 3
 
@@ -133,6 +141,7 @@ typedef struct
  * - FLL tracker
  * - Alias (false lock) detector
  * - Lock detector
+ * - Bit synchronization and message decoding
  */
 typedef struct
 {
@@ -142,6 +151,7 @@ typedef struct
   corr_t           corr_fll; /**< FLL accumulator */
   corr_t           corr_ad;  /**< False lock (alias) detector accumulator */
   corr_t           corr_ld;  /**< Lock detector accumulator */
+  s32              corr_bit; /**< Bit sync accumulator */
 } tp_corr_state_t;
 
 /**
@@ -185,7 +195,7 @@ u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms);
 u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 int_ms);
-
+const char *tp_get_mode_str(tp_tm_e v);
 
 void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t * restrict cs_now,

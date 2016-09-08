@@ -59,19 +59,18 @@ typedef struct
  */
 typedef struct
 {
-  track_cn0_est_e type;        /**< Currently used estimator type */
-  union {
-    cn0_est_bl_state_t   bl;   /**< Estimator for high SNR values */
-    cn0_est_mm_state_t   mm;   /**< Estimator for low SNR values */
+  u8 type;                     /**< Currently used estimator type (track_cn0_est_e) */
+  u8 cn0_ms;                   /**< Estimator interval in ms */
+  cn0_est_bl_state_t   bl;     /**< Estimator for high SNR values */
+  cn0_est_mm_state_t   mm;     /**< Estimator for low SNR values */
 
-    /* Other supported estimators for testing:
-     * cn0_est_ch_state_t   ch;
-     * cn0_est_nwpr_state_t nwpr;
-     * cn0_est_rscn_state_t rscn;
-     * cn0_est_snv_state_t  snv;
-     * cn0_est_svr_state_t  svr;
-     */
-  };
+  /* Other supported estimators for testing:
+   * cn0_est_ch_state_t   ch;
+   * cn0_est_nwpr_state_t nwpr;
+   * cn0_est_rscn_state_t rscn;
+   * cn0_est_snv_state_t  snv;
+   * cn0_est_svr_state_t  svr;
+   */
   cn0_filter_t    filter;      /**< Additional C/N0 filter */
 } track_cn0_state_t;
 
@@ -80,8 +79,10 @@ extern "C" {
 #endif /* __cplusplus */
 
 void track_cn0_params_init(void);
-void track_cn0_init(u8 int_ms, track_cn0_state_t *e, float cn0_0);
-float track_cn0_update(track_cn0_est_e t, u8 int_ms, track_cn0_state_t *e,
+void track_cn0_init(gnss_signal_t sid, u8 cn0_ms,
+                    track_cn0_state_t *e, float cn0_0);
+float track_cn0_update(gnss_signal_t sid, track_cn0_est_e t,
+                       track_cn0_state_t *e,
                        float I, float Q);
 const char *track_cn0_str(track_cn0_est_e t);
 

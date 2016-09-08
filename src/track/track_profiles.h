@@ -31,13 +31,10 @@
 typedef enum
 {
   TP_TM_INITIAL,      /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_PIPELINING,   /**< Default tracking mode */
   TP_TM_ONE_PLUS_N,   /**< Integration period split: 1+N */
   TP_TM_ONE_PLUS_N5,  /**< Integration period split: 1+4+5N */
   TP_TM_ONE_PLUS_N10, /**< Integration period split: 1+9+10N */
   TP_TM_ONE_PLUS_N20, /**< Integration period split: 1+19+20N */
-  TP_TM_SPLIT,        /**< Split integration into 1ms with constant parameters */
-  TP_TM_IMMEDIATE     /**< Immediate feedback */
 } tp_tm_e;
 
 /**

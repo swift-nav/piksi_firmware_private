@@ -676,23 +676,6 @@ static const char *get_ctrl_str(tp_ctrl_e v)
   return str;
 }
 
-static const char *get_mode_str(tp_tm_e v)
-{
-  const char *str = "?";
-  switch (v) {
-  case TP_TM_INITIAL: str = "INI"; break;
-  case TP_TM_IMMEDIATE: str = "IMD"; break;
-  case TP_TM_PIPELINING: str = "PIP"; break;
-  case TP_TM_SPLIT: str = "SPL"; break;
-  case TP_TM_ONE_PLUS_N: str = "1+N"; break;
-  case TP_TM_ONE_PLUS_N5: str = "1+5N"; break;
-  case TP_TM_ONE_PLUS_N10: str = "1+10N"; break;
-  case TP_TM_ONE_PLUS_N20: str = "1+20N"; break;
-  default: assert(false);
-  }
-  return str;
-}
-
 
 /**
  * Helper method to dump tracking statistics into log.
@@ -714,7 +697,7 @@ static void print_stats(tp_profile_internal_t *profile)
 
   const char *cn0_est_str = track_cn0_str(profile->cn0_est);
   const char *c1 = get_ctrl_str(loop_params[lp_idx].ctrl);
-  const char *m1 = get_mode_str(loop_params[lp_idx].mode);
+  const char *m1 = tp_get_mode_str(loop_params[lp_idx].mode);
 
   /*
    * PRINT: integration time, loop mode, controller mode,
@@ -765,27 +748,24 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
   u8 lp_idx = profile_matrix[profile->cur_profile_i].loop_params[profile->cur_profile_d];
   tp_ctrl_e ctrl = loop_params[lp_idx].ctrl;
 
-  switch (profile->cn0_est) {
-  case TRACK_CN0_EST_PRIMARY:
-    if (cn0 < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset ||
-        ctrl == TP_CTRL_FLL1 || ctrl == TP_CTRL_FLL2) {
-      profile->cn0_est = TRACK_CN0_EST_SECONDARY;
-      log_debug_sid(unpack_sid(profile->csid),
-                    "Changed C/N0 estimator to secondary");
+  if (TRACK_CN0_EST_PRIMARY != TRACK_CN0_EST_SECONDARY) {
+    if (TRACK_CN0_EST_PRIMARY == profile->cn0_est) {
+      if (cn0 < TRACK_CN0_PRI2SEC_THRESHOLD - profile->cn0_offset ||
+          ctrl == TP_CTRL_FLL1 || ctrl == TP_CTRL_FLL2) {
+        profile->cn0_est = TRACK_CN0_EST_SECONDARY;
+        log_debug_sid(unpack_sid(profile->csid),
+                      "Changed C/N0 estimator to secondary");
+      }
+    } else if (TRACK_CN0_EST_SECONDARY == profile->cn0_est) {
+      if (cn0 > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset &&
+          ctrl != TP_CTRL_FLL1 && ctrl != TP_CTRL_FLL2) {
+        profile->cn0_est = TRACK_CN0_EST_PRIMARY;
+        log_debug_sid(unpack_sid(profile->csid),
+                      "Changed C/N0 estimator to primary");
+      }
+    } else {
+      assert(false);
     }
-    break;
-
-  case TRACK_CN0_EST_SECONDARY:
-    if (cn0 > TRACK_CN0_SEC2PRI_THRESHOLD - profile->cn0_offset &&
-        ctrl != TP_CTRL_FLL1 && ctrl != TP_CTRL_FLL2) {
-      profile->cn0_est = TRACK_CN0_EST_PRIMARY;
-      log_debug_sid(unpack_sid(profile->csid),
-                    "Changed C/N0 estimator to primary");
-    }
-    break;
-
-  default:
-    assert(false);
   }
 
   /* First, check if the profile change is required:
@@ -934,9 +914,9 @@ static void check_for_profile_change(tp_profile_internal_t *profile)
     }
 
     const char *c1 = get_ctrl_str(loop_params[lp1_idx].ctrl);
-    const char *m1 = get_mode_str(loop_params[lp1_idx].mode);
+    const char *m1 = tp_get_mode_str(loop_params[lp1_idx].mode);
     const char *c2 = get_ctrl_str(loop_params[lp2_idx].ctrl);
-    const char *m2 = get_mode_str(loop_params[lp2_idx].mode);
+    const char *m2 = tp_get_mode_str(loop_params[lp2_idx].mode);
 
     log_info_sid(unpack_sid(profile->csid),
                  "Profile change: %dms %s %s [%d][%d]->%dms %s %s [%d][%d] r=%s (%.2f)/%s (%.2f)",
