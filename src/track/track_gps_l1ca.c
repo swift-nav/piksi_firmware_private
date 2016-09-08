@@ -531,9 +531,6 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     if (cn0 > cn0_params.track_cn0_drop_thres && !data->confirmed &&
         data->lock_detect.outo && tracker_has_bit_sync(channel_info->context)) {
       data->confirmed = 1;
-      log_info_sid(channel_info->sid, "CONFIRMED from %f to %d",
-                   cn0, data->cn0_est.cn0_0);
-
       cn0 = data->cn0_est.cn0_0;
       /* Re-initialize C/N0 estimator and filter */
       track_cn0_init(channel_info->sid,   /* SV signal */
@@ -593,6 +590,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   }
 
   if (data->lock_detect.outp && data->confirmed &&
+      0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context))
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,

@@ -228,7 +228,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_info_sid(sid, "L2 CM handover done");
+      log_debug_sid(sid, "L2 CM handover done");
       break;
 
     case 1:
@@ -468,8 +468,6 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
     common_data->cn0_above_drop_thres_count = common_data->update_count;
     if (0 == data->confirmed && data->lock_detect.outo) {
       data->confirmed = 1; /* Enabled C/N0 reporting if not enabled before */
-      log_info_sid(channel_info->sid, "CONFIRMED from %f to %d",
-                   cn0, data->cn0_est.cn0_0);
       cn0 = data->cn0_est.cn0_0;
       /* Reinitialize C/N0 estimator and filter */
       track_cn0_init(channel_info->sid,         /* SV signal */
