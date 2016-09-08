@@ -40,6 +40,7 @@
 
 /** C/N0 estimator to use */
 #define L2C_CN0_ESTIMATOR TRACK_CN0_EST_BL
+#define L2C_CN0_INIT_ESTIMATOR TRACK_CN0_EST_BL
 
 /* Number of chips to integrate over in the short cycle interval [chips]
  * The value must be within [0..GPS_L2C_CHIPS_NUM].
@@ -86,6 +87,7 @@ static float track_cn0_drop_thres = 31.0; /* dBHz */
 static char loop_params_string[120] = LOOP_PARAMS_MED;
 static char lock_detect_params_string[24] = LD_PARAMS;
 static bool use_alias_detection = true;
+static bool show_unconfirmed_trackers = false;
 
 typedef struct {
   aided_tl_state_t tl_state;   /**< Tracking loop filter state. */
@@ -98,6 +100,7 @@ typedef struct {
                                     1 = Second-stage. After nav bit sync,
                                     retune loop filters and typically (but
                                     not necessarily) use longer integration. */
+  u8 confirmed;                /**< Confirmed tracking flag */
   alias_detect_t alias_detect; /**< Alias lock detector. */
   lock_detect_t lock_detect;   /**< Phase-lock detector state. */
 } gps_l2cm_tracker_data_t;
@@ -154,6 +157,9 @@ void track_gps_l2cm_register(void)
 
   SETTING(L2CM_TRACK_SETTING_SECTION, "alias_detect",
           use_alias_detection, TYPE_BOOL);
+
+  SETTING(L2CM_TRACK_SETTING_SECTION, "show_unconfirmed",
+          show_unconfirmed_trackers, TYPE_BOOL);
 
   for (u32 i = 0; i < NUM_GPS_L2CM_TRACKERS; i++) {
     gps_l2cm_trackers[i].active = false;
@@ -222,7 +228,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_info_sid(sid, "L2 CM handover done");
+      log_debug_sid(sid, "L2 CM handover done");
       break;
 
     case 1:
@@ -265,11 +271,27 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
   data->short_cycle = true;
   data->startup = 2;
 
+  float cn0 = 0;
+  if (show_unconfirmed_trackers) {
+    cn0 = common_data->cn0;
+    data->confirmed = 1;
+  } else {
+    cn0 = track_cn0_drop_thres - 2;
+    data->confirmed = 0;
+  }
+
   /* Initialize C/N0 estimator and filter */
   track_cn0_init(channel_info->sid,
-                 data->int_ms,      /* C/N0 period in ms */
-                 &data->cn0_est,    /* C/N0 estimator state */
-                 common_data->cn0); /* Initial C/N0 value */
+                 data->int_ms,              /* C/N0 period in ms */
+                 &data->cn0_est,            /* C/N0 estimator state */
+                 cn0,                       /* Initial C/N0 value */
+                 TRACK_CN0_FLAG_FAST_TYPE); /* Fast type */
+
+  if (!show_unconfirmed_trackers) {
+    /* C/N0 is not reported until estimator shows value above drop threshold */
+    data->cn0_est.cn0_0 = common_data->cn0;
+    common_data->cn0 = -1;
+  }
 
   /* Initialize lock detector */
   lock_detect_init(&data->lock_detect,
@@ -435,16 +457,32 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   corr_t* cs = data->cs;
 
   /* Update C/N0 estimate */
-  common_data->cn0 = track_cn0_update(channel_info->sid,
-                                      L2C_CN0_ESTIMATOR,
-                                      &data->cn0_est,
-                                      cs[1].I, cs[1].Q);
+  track_cn0_est_e estimator = 0 == data->confirmed ? L2C_CN0_INIT_ESTIMATOR :
+                                                 L2C_CN0_ESTIMATOR;
+  float cn0 = track_cn0_update(channel_info->sid,
+                               estimator,
+                               &data->cn0_est,
+                               cs[1].I, cs[1].Q);
 
-  if (common_data->cn0 > track_cn0_drop_thres) {
+  if (cn0 > track_cn0_drop_thres) {
     common_data->cn0_above_drop_thres_count = common_data->update_count;
+    if (0 == data->confirmed && data->lock_detect.outo) {
+      data->confirmed = 1; /* Enabled C/N0 reporting if not enabled before */
+      cn0 = data->cn0_est.cn0_0;
+      /* Reinitialize C/N0 estimator and filter */
+      track_cn0_init(channel_info->sid,         /* SV signal */
+                     data->cn0_est.cn0_ms,      /* C/N0 period in ms */
+                     &data->cn0_est,            /* C/N0 estimator state */
+                     cn0,                       /* Initial C/N0 value */
+                     TRACK_CN0_FLAG_FAST_TYPE); /* Fast type */
+    }
   }
 
-  if (common_data->cn0 < track_cn0_use_thres) {
+  /* Report C/N0 when stage is not initial */
+  if (data->confirmed)
+    common_data->cn0 = cn0;
+
+  if (cn0 < track_cn0_use_thres) {
     /* SNR has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(channel_info->context);

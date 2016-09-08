@@ -23,6 +23,8 @@
 /** Adjusts C/N0 according to noise figure */
 #define TRACK_CN0_ADJUST(x) ((float)(x) + 2.f - PLATFORM_NOISE_FIGURE)
 
+#define TRACK_CN0_FLAG_FAST_TYPE (0x80u)
+
 /** C/N0 level above which primary estimator shall be used */
 #define TRACK_CN0_SEC2PRI_THRESHOLD  TRACK_CN0_ADJUST(45.f)
 /** C/N0 level below which secondary estimator shall be used */
@@ -59,8 +61,11 @@ typedef struct
  */
 typedef struct
 {
-  u8 type;                     /**< Currently used estimator type (track_cn0_est_e) */
-  u8 cn0_ms;                   /**< Estimator interval in ms */
+  u32 cn0_0: 8;                /**< Initial C/N0 for bootstrap */
+  u32 flags: 8;                /**< Configuration flags */
+  u32 cn0_ms: 6;               /**< C/N0 filter interval in ms */
+  u32 type: 2;                 /**< Currently used estimator type */
+  u32 reserved: 8;             /**< Reserved flags */
   cn0_est_bl_state_t   bl;     /**< Estimator for high SNR values */
   cn0_est_mm_state_t   mm;     /**< Estimator for low SNR values */
 
@@ -80,7 +85,7 @@ extern "C" {
 
 void track_cn0_params_init(void);
 void track_cn0_init(gnss_signal_t sid, u8 cn0_ms,
-                    track_cn0_state_t *e, float cn0_0);
+                    track_cn0_state_t *e, float cn0_0, u8 flags);
 float track_cn0_update(gnss_signal_t sid, track_cn0_est_e t,
                        track_cn0_state_t *e,
                        float I, float Q);
