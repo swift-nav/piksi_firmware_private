@@ -20,6 +20,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/observation.h>
 #include <libswiftnav/signal.h>
 
 #include "peripherals/leds.h"
@@ -96,6 +97,10 @@ static void base_pos_ecef_callback(u16 sender_id, u8 len, u8 msg[], void* contex
   chMtxUnlock(&base_pos_lock);
 }
 
+static inline bool is_l2p_sid(const gnss_signal_t a) {
+  return a.code == CODE_GPS_L2P;
+}
+
 /** Update the #base_obss state given a new set of obss.
  * First sorts by PRN and computes the TDCP Doppler for the observation set. If
  * #base_pos_known is false then a single point position solution is also
@@ -111,7 +116,16 @@ static void update_obss(obss_t *new_obss)
   /* Ensure observations sorted by PRN. */
   qsort(new_obss->nm, new_obss->n,
         sizeof(navigation_measurement_t), nav_meas_cmp);
-
+  /** Precheck any base station observations and filter if needed. This is not a
+   *  permanent solution for actually correcting GPS L2 base station
+   *  observations that have mixed tracking modes in a signal epoch. For more
+   *  details, see:
+   *  https://github.com/swift-nav/estimation_team_planning/issues/215.
+   */
+  if (new_obss->n > 0 && has_mixed_l2_obs(new_obss->n, new_obss->nm)) {
+    log_warn("Base observations have mixed L2 tracking types. Discarding L2P!");
+    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, is_l2p_sid);
+  }
   /* Lock mutex before modifying base_obss.
    * NOTE: We didn't need to lock it before reading in THIS context as this
    * is the only thread that writes to base_obss. */
@@ -219,7 +233,6 @@ static void update_obss(obss_t *new_obss)
                                                base_obss.pos_ecef);
     }
   }
-
   /* Unlock base_obss mutex. */
   chMtxUnlock(&base_obs_lock);
 
@@ -278,7 +291,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   /* Decode the message header to get the time and how far through the sequence
    * we are. */
   unpack_obs_header((observation_header_t*)msg, &tor, &total, &count);
-
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
   u32 obs_freq = soln_freq / obs_output_divisor;
@@ -319,9 +331,9 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
   for (u8 i=0; i<obs_in_msg; i++) {
     gnss_signal_t sid = sid_from_sbp(obs[i].sid);
-    if (!sid_supported(sid))
+    if (!sid_supported(sid)) {
       continue;
-
+    }
     /* Flag this as visible/viable to acquisition/search */
     manage_set_obs_hint(sid);
 
