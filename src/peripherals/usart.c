@@ -36,8 +36,8 @@ usart_settings_t ftdi_usart = {
 
 usart_settings_t uarta_usart = {
   .mode               = SBP,
-  .baud_rate          = USART_DEFAULT_BAUD_RADIO,
-  .sbp_message_mask   = 0xC0,
+  .baud_rate          = USART_DEFAULT_BAUD_TTL,
+  .sbp_message_mask   = 0xFFFF,
   .configure_telemetry_radio_on_boot = 1,
   .sbp_fwd = 0,
 };
@@ -45,7 +45,7 @@ usart_settings_t uarta_usart = {
 usart_settings_t uartb_usart = {
   .mode             = SBP,
   .baud_rate        = USART_DEFAULT_BAUD_TTL,
-  .sbp_message_mask = 0xFF00,
+  .sbp_message_mask = 0xFFFF,
   .configure_telemetry_radio_on_boot = 1,
   .sbp_fwd = 0,
 };
@@ -76,12 +76,6 @@ void usarts_setup()
   radio_setup();
 
   int TYPE_PORTMODE = settings_type_register_enum(portmode_enum, &portmode);
-
-  SETTING("uart_ftdi", "mode", ftdi_usart.mode, TYPE_PORTMODE);
-  SETTING("uart_ftdi", "sbp_message_mask", ftdi_usart.sbp_message_mask, TYPE_INT);
-  SETTING("uart_ftdi", "fwd_msg", ftdi_usart.sbp_fwd, TYPE_INT);
-  SETTING_NOTIFY("uart_ftdi", "baudrate", ftdi_usart.baud_rate, TYPE_INT,
-                 baudrate_change_notify);
 
   SETTING("uart_uarta", "mode", uarta_usart.mode, TYPE_PORTMODE);
   SETTING("uart_uarta", "sbp_message_mask", uarta_usart.sbp_message_mask, TYPE_INT);
