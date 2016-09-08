@@ -12,9 +12,9 @@
 
 #include <stdint.h>
 
-/** @brief Attempts to read NT1065 temperature sensor
+/** @brief Attempts to read NT1065 temperature sensor.
+ *    Blocks 50 microseconds for read to complete
  *
- *  @param timeout_ms number of milliseconds to wait for read to complete
  *  @param temperature if succesful temperature is written here
  *  @return True if temperature is valid. False if timed out
  */
