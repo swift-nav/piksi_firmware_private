@@ -128,6 +128,9 @@ void sbp_setup(u16 sender_id)
   sbp_state_init(&uarta_sbp_state);
   sbp_state_init(&uartb_sbp_state);
   sbp_state_init(&ftdi_sbp_state);
+  sbp_state_set_io_context(&uarta_sbp_state, &uarta_state);
+  sbp_state_set_io_context(&uartb_sbp_state, &uartb_state);
+  sbp_state_set_io_context(&ftdi_sbp_state, &ftdi_state);
 
   /* Disable input and output buffering. */
   /*setvbuf(stdin, NULL, _IONBF, 0);*/
@@ -243,20 +246,9 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
   return ret;
 }
 
-u32 uarta_read(u8 *buff, u32 n, void *context)
+static u32 uart_read(u8 *buff, u32 n, void *context)
 {
-  (void)context;
-  return usart_read(&uarta_state, buff, n);
-}
-u32 uartb_read(u8 *buff, u32 n, void *context)
-{
-  (void)context;
-  return usart_read(&uartb_state, buff, n);
-}
-u32 ftdi_read(u8 *buff, u32 n, void *context)
-{
-  (void)context;
-  return usart_read(&ftdi_state, buff, n);
+  return usart_read(context, buff, n);
 }
 
 /** Process SBP messages received through the USARTs.
@@ -273,7 +265,7 @@ void sbp_process_messages()
 
   if (usart_claim(&uarta_state, SBP_MODULE)) {
     while (usart_n_read(&uarta_state) > 0) {
-      ret = sbp_process(&uarta_sbp_state, &uarta_read);
+      ret = sbp_process(&uarta_sbp_state, &uart_read);
       if (ret == SBP_CRC_ERROR)
         uart_state_msg.uart_a.crc_error_count++;
     }
@@ -286,7 +278,7 @@ void sbp_process_messages()
 
   if (usart_claim(&uartb_state, SBP_MODULE)) {
     while (usart_n_read(&uartb_state) > 0) {
-      ret = sbp_process(&uartb_sbp_state, &uartb_read);
+      ret = sbp_process(&uartb_sbp_state, &uart_read);
       if (ret == SBP_CRC_ERROR)
         uart_state_msg.uart_b.crc_error_count++;
     }
@@ -299,7 +291,7 @@ void sbp_process_messages()
 
   if (usart_claim(&ftdi_state, SBP_MODULE)) {
     while (usart_n_read(&ftdi_state) > 0) {
-      ret = sbp_process(&ftdi_sbp_state, &ftdi_read);
+      ret = sbp_process(&ftdi_sbp_state, &uart_read);
       if (ret == SBP_CRC_ERROR)
         uart_state_msg.uart_ftdi.crc_error_count++;
     }
@@ -405,6 +397,24 @@ void log_obs_latency_tick()
     uart_state_msg.obs_period.current = -1;
   }
 
+}
+
+static void sbp_wait_msg_cb(u16 sender_id, u8 len, u8 msg[], void* context)
+{
+  (void)sender_id;
+  (void)len;
+  (void)msg;
+  chBSemSignal(context);
+}
+
+bool sbp_wait_msg(u16 msg_type, systime_t timeout)
+{
+  BSEMAPHORE_DECL(wait_sem, TRUE);
+  sbp_msg_callbacks_node_t node;
+  sbp_register_callback(&uarta_sbp_state, msg_type, sbp_wait_msg_cb, &wait_sem, &node);
+  msg_t ret = chBSemWaitTimeout(&wait_sem, timeout);
+  sbp_remove_callback(&uarta_sbp_state, &node);
+  return ret == MSG_OK;
 }
 
 /** \} */

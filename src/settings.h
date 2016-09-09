@@ -39,7 +39,6 @@ struct setting {
   bool (*notify)(struct setting *setting, const char *val);
   struct setting *next;
   const struct setting_type *type;
-  bool dirty;
 };
 
 #define SETTING_NOTIFY(section, name, var, type, notify) do {         \

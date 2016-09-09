@@ -102,8 +102,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/peripherals/usart.o \
         $(SWIFTNAV_ROOT)/src/peripherals/usart_chat.o \
         $(SWIFTNAV_ROOT)/src/cfs/cfs-coffee.o \
-        $(SWIFTNAV_ROOT)/src/minIni/minIni.o \
-        $(SWIFTNAV_ROOT)/src/minIni/minGlue.o \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp_fileio.o \
