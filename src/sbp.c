@@ -159,8 +159,8 @@ static inline u32 use_usart(usart_settings_t *us, u16 msg_type, u16 sender_id)
   if (us->mode != SBP)
     /* This USART is not in SBP mode. */
     return 0;
-
-  if (!(us->sbp_message_mask & msg_type))
+  /* Message types with the MSB set are unmaskable*/
+  if (!((us->sbp_message_mask | 0x70) & msg_type))
     /* This message type is masked out on this USART. */
     return 0;
  
