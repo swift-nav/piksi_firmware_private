@@ -15,11 +15,26 @@
 #include <hal.h>
 
 #include "frontend.h"
+#include "nt1065.h"
 
 #define FRONTEND_SPI SPID2
+#define SPI_READ_MASK (1 << 7)
 
 const SPIConfig spi_config = {0, SPI_MODE_0,
                               SPI_CLK_DIV_16, SPI_SS_GPIO_LINE};
+
+static void frontend_open_spi(void)
+{
+  spiStart(&FRONTEND_SPI, &spi_config);
+  spiAcquireBus(&FRONTEND_SPI);
+  spiSelect(&FRONTEND_SPI);
+}
+
+static void frontend_close_spi(void)
+{
+  spiUnselect(&FRONTEND_SPI);
+  spiReleaseBus(&FRONTEND_SPI);
+}
 
 static u8 spi_write(u8 reg, u8 data)
 {
@@ -31,11 +46,20 @@ static u8 spi_write(u8 reg, u8 data)
   return recv_buf[1];
 }
 
+static u8 spi_read(u8 reg)
+{
+  const u8 dummy_data = 0x00;
+  const u8 send_buf[2] = {reg | SPI_READ_MASK, dummy_data};
+  u8 recv_buf[2];
+
+  spiExchange(&FRONTEND_SPI, sizeof(send_buf), send_buf, recv_buf);
+
+  return recv_buf[1];
+}
+
 void frontend_configure(void)
 {
-  spiStart(&FRONTEND_SPI, &spi_config);
-  spiAcquireBus(&FRONTEND_SPI);
-  spiSelect(&FRONTEND_SPI);
+  frontend_open_spi();
 
   for (u8 i = 0; i < 2; ++i) {
     spi_write(2, 0x03);
@@ -144,8 +168,7 @@ void frontend_configure(void)
   spi_write(29, 0x0B);
   spi_write(36, 0x0B);
 
-  spiUnselect(&FRONTEND_SPI);
-  spiReleaseBus(&FRONTEND_SPI);
+  frontend_close_spi();
 }
 
 void frontend_setup(void)
@@ -163,3 +186,49 @@ antenna_type_t frontend_ant_setting(void)
   return EXTERNAL;
 }
 
+bool nt1065_get_temperature(double* temperature)
+{
+  int32_t temp_sensor = 0;
+  //temperature is valid after about 30 milliseconds
+  const uint32_t TEMP_READ_WAIT_MS = 30;
+  
+  frontend_open_spi();
+
+  //start a single temp measurement
+  const u8 REG5 = 1;
+  spi_write(5, REG5);
+
+  chThdSleepMilliseconds(TEMP_READ_WAIT_MS);
+  //check if temperature read completed
+  if ((spi_read(5) & 1) != 0) {
+    frontend_close_spi();
+    return false;
+  }
+
+  //lower 8 bits
+  temp_sensor = spi_read(8);
+  //upper 2 bits are addr=7 bits 1-0
+  temp_sensor |= (spi_read(7) & 3) << 8;
+
+  frontend_close_spi();
+
+  *temperature = 27. - ((double)(temp_sensor - 551)) * 0.865;
+
+  return true;
+}
+
+uint8_t nt1065_read_reg(uint8_t reg_addr)
+{
+  uint8_t value;
+  frontend_open_spi();
+  value = spi_read(reg_addr);
+  frontend_close_spi();
+  return value;
+}
+
+void nt1065_write_reg(uint8_t reg_addr, uint8_t value)
+{
+  frontend_open_spi();
+  spi_write(reg_addr, value);
+  frontend_close_spi();
+}
