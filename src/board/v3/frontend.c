@@ -189,8 +189,8 @@ antenna_type_t frontend_ant_setting(void)
 bool nt1065_get_temperature(double* temperature)
 {
   int32_t temp_sensor = 0;
-  //temperature is valid after about 30 microseconds
-  const uint32_t TEMP_READ_WAIT_US = 50;
+  //temperature is valid after about 30 milliseconds
+  const uint32_t TEMP_READ_WAIT_MS = 30;
   
   frontend_open_spi();
 
@@ -198,7 +198,7 @@ bool nt1065_get_temperature(double* temperature)
   const u8 REG5 = 1;
   spi_write(5, REG5);
 
-  chThdSleepMicroseconds(TEMP_READ_WAIT_US);
+  chThdSleepMilliseconds(TEMP_READ_WAIT_MS);
   //check if temperature read completed
   if ((spi_read(5) & 1) != 0) {
     frontend_close_spi();
