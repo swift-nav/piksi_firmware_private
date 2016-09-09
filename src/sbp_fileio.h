@@ -13,7 +13,9 @@
 #ifndef SWIFTNAV_SBP_FILEIO_H
 #define SWIFTNAV_SBP_FILEIO_H
 
-void sbp_fileio_setup(void);
+void sbp_fileio_remove(const char *filename);
+ssize_t sbp_fileio_write(const char *filename, off_t offset, const void *buf, size_t size);
+ssize_t sbp_fileio_read(const char *filename, off_t offset, void *buf, size_t size);
 
 #endif
 

@@ -33,7 +33,6 @@
 #include "system_monitor.h"
 #include "simulator.h"
 #include "settings.h"
-#include "sbp_fileio.h"
 #include "ephemeris.h"
 #include "pps.h"
 #include "decode.h"
@@ -93,7 +92,6 @@ int main(void)
 
   simulator_setup();
 
-  sbp_fileio_setup();
   ext_setup();
   pps_setup();
 

@@ -140,13 +140,26 @@ void sbp_setup(u16 sender_id)
                     HIGHPRIO-22, sbp_thread, NULL);
 }
 
+void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
+                                   sbp_msg_callbacks_node_t *node,
+                                   void *context)
+{
+  sbp_register_callback(&uarta_sbp_state, msg_type, cb, context, node);
+  sbp_register_callback(&uartb_sbp_state, msg_type, cb, context, node);
+  sbp_register_callback(&ftdi_sbp_state , msg_type, cb, context, node);
+}
+
 void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb,
                       sbp_msg_callbacks_node_t *node)
 {
-  sbp_register_callback(&uarta_sbp_state, msg_type, cb, 0, node);
-  sbp_register_callback(&uartb_sbp_state, msg_type, cb, 0, node);
-  sbp_register_callback(&ftdi_sbp_state , msg_type, cb, 0, node);
+  sbp_register_cbk_with_closure(msg_type, cb, node, NULL);
+}
 
+void sbp_remove_cbk(sbp_msg_callbacks_node_t *node)
+{
+  sbp_remove_callback(&uarta_sbp_state, node);
+  sbp_remove_callback(&uartb_sbp_state, node);
+  sbp_remove_callback(&ftdi_sbp_state, node);
 }
 
 /** Disable the SBP interface.
@@ -411,9 +424,9 @@ bool sbp_wait_msg(u16 msg_type, systime_t timeout)
 {
   BSEMAPHORE_DECL(wait_sem, TRUE);
   sbp_msg_callbacks_node_t node;
-  sbp_register_callback(&uarta_sbp_state, msg_type, sbp_wait_msg_cb, &wait_sem, &node);
+  sbp_register_cbk_with_closure(msg_type, sbp_wait_msg_cb, &node, &wait_sem);
   msg_t ret = chBSemWaitTimeout(&wait_sem, timeout);
-  sbp_remove_callback(&uarta_sbp_state, &node);
+  sbp_remove_cbk(&node);
   return ret == MSG_OK;
 }
 
