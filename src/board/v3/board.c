@@ -81,6 +81,7 @@ void boardInit(void)
   /* PCAP CLK = 1GHz / 5 = 200MHz */
   *(volatile uint32_t *)0xF8000168 &= ~(0x3F << 8);
   *(volatile uint32_t *)0xF8000168 |= (5 << 8);
+  *(volatile uint32_t *)0xF8000168 |= (1 << 0);
 
   /* Assert FPGA resets */
   *(volatile uint32_t *)0xF8000240 = 0xf;

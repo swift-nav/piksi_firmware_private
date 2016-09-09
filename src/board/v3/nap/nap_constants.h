@@ -62,4 +62,7 @@
 #define NAP_DNA_OFFSET                                                   (56)
 #define NAP_DNA_LENGTH                                                    (8)
 
+#define NAP_XADC_VIN                                                     (13)
+#define NAP_XADC_VIN_SCALING                                             (11)
+
 #endif /* SWIFTNAV_NAP_CONSTANTS_H */

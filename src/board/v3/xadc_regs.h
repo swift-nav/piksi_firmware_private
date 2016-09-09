@@ -29,9 +29,14 @@
 #define XADC_ADDR_VCCPAUX                 (0x0EU)
 #define XADC_ADDR_VCCODDR                 (0x0FU)
 
+#define XADC_ADDR_VAUX0                   (0x10U)
+
 #define XADC_ADDR_CFG0                    (0x40U)
 #define XADC_ADDR_CFG1                    (0x41U)
 #define XADC_ADDR_CFG2                    (0x42U)
+
+#define XADC_ADDR_OC_SEQ                  (0x48U)
+#define XADC_ADDR_AUX_SEQ                 (0x49U)
 
 #define XADC_ADDR_ALARM_TEMP_UPPER        (0x50U)
 

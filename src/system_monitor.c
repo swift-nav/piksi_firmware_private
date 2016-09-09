@@ -25,6 +25,8 @@
 
 #include "board/nap/nap_common.h"
 #include "board/frontend.h"
+#include "board/v3/xadc.h"
+#include "board/v3/nt1065.h"
 #include "peripherals/leds.h"
 #include "main.h"
 #include "sbp.h"
@@ -59,18 +61,18 @@ u64 g_ctime = 0;
 
 void send_device_monitor()
 {
-  double t = 0;
   msg_device_monitor_t msg;
 
-  nt1065_get_temperature(500, &t);
+  double fe_temp = 0;
+  if (!nt1065_get_temperature(&fe_temp)) {
+    fe_temp = -999.99;
+  }
+  msg.fe_temperature = (s16)(fe_temp * 100);
 
-  /* TODO: Read VIN_MONITOR pin on Piksi v3 */
-  msg.dev_vin = -1;
-
+  msg.dev_vin = (s16)(xadc_vin_get() * 1000);
   msg.cpu_vint = (s16)(xadc_vccint_get() * 1000);
   msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
   msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
-  msg.fe_temperature = (s16)(t * 100);
 
   sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
 }

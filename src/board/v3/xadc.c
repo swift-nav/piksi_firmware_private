@@ -18,10 +18,12 @@
 #include "xadc_if_regs.h"
 #include "xadc_regs.h"
 
+#include "nap/nap_constants.h"
+
 #include "zynq7000.h"
 #include "gic.h"
 
-#define TEMP_CRIT_UPPER_C 115.0f
+#define TEMP_CRIT_UPPER_C 125.0f
 #define TEMP_CRIT_LOWER_C  90.0f
 
 #define TEMP_WARN_UPPER_C 100.0f
@@ -133,6 +135,7 @@ void xadc_init(void)
   xadc_write(XADC_ADDR_CFG0, 0x0000);
   xadc_write(XADC_ADDR_CFG1, 0x8000);
   xadc_write(XADC_ADDR_CFG2, 0x1E00);
+  xadc_write(XADC_ADDR_AUX_SEQ, 0x2000);
 
   /* Configure interrupts */
   XADC_IF->INT_MASK = ~(XADC_IF_INT_OT_Msk | XADC_IF_INT_ALM0_Msk);
@@ -142,6 +145,28 @@ void xadc_init(void)
   gic_irq_sensitivity_set(IRQ_ID_XACD, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_XACD, 4);
   gic_irq_enable(IRQ_ID_XACD);
+}
+
+/** Get the most recent VAUX13/VIN_MONITOR (V).
+ */
+float xadc_vin_get(void)
+{
+  return (float)xadc_read(XADC_ADDR_VAUX0 + NAP_XADC_VIN) *
+      NAP_XADC_VIN_SCALING / 65536;
+}
+
+/** Get the most recent VCCINT (V).
+ */
+float xadc_vccint_get(void)
+{
+  return (float)xadc_read(XADC_ADDR_VCCINT) * 3.0f / 65536;
+}
+
+/** Get the most recent VCCAUX (V).
+ */
+float xadc_vccaux_get(void)
+{
+  return (float)xadc_read(XADC_ADDR_VCCAUX) * 3.0f / 65536;
 }
 
 /** Get the most recent die temperature (C).

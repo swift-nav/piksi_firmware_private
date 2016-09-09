@@ -17,6 +17,10 @@
 
 void xadc_init(void);
 
+float xadc_vin_get(void);
+float xadc_vccint_get(void);
+float xadc_vccaux_get(void);
+
 float xadc_die_temp_get(void);
 bool xadc_die_temp_warning(void);
 bool xadc_die_temp_critical(void);
