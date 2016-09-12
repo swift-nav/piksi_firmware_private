@@ -866,6 +866,12 @@ static void time_matched_obs_thread(void *arg)
     while (chMBFetch(&obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE)
             == MSG_OK) {
 
+      if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
+        // Not doing any DGNSS.  Toss the obs away.
+        chPoolFree(&obs_buff_pool, obss);
+        continue;
+      }
+
       chMtxLock(&base_obs_lock);
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
@@ -970,6 +976,7 @@ void solution_setup()
   static const char const *dgnss_soln_mode_enum[] = {
     "Low Latency",
     "Time Matched",
+    "No DGNSS",
     NULL
   };
   static struct setting_type dgnss_soln_mode_setting;
