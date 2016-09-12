@@ -19,7 +19,6 @@
 #include <libswiftnav/logging.h>
 
 #include "nap/nap_constants.h"
-#include "nap/nap_hw.h"
 #include "nap/fft.h"
 
 #include "platform_cn0.h"
@@ -51,7 +50,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float chips_per_sample = CHIP_RATE / NAP_ACQ_SAMPLE_RATE_Hz;
 
   /* Generate, resample, and FFT code */
-  static fft_cplx_t code_fft[FFT_LEN_MAX];
+  static FFT_BUFFER(code_fft, fft_cplx_t, FFT_LEN_MAX);
   code_resample(sid, chips_per_sample, code_fft, fft_len);
   if (!fft(code_fft, code_fft, fft_len_log2,
            FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
@@ -60,7 +59,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
   /* FFT samples */
   u32 sample_count;
-  static fft_cplx_t sample_fft[FFT_LEN_MAX];
+  static FFT_BUFFER(sample_fft, fft_cplx_t, FFT_LEN_MAX);
   if(!fft_samples(FFT_SAMPLES_INPUT, sample_fft, fft_len_log2,
                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
     return false;
@@ -83,7 +82,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     float doppler = sample_offset * fft_bin_width;
 
     /* Multiply sample FFT by shifted conjugate code FFT */
-    static fft_cplx_t result_fft[FFT_LEN_MAX];
+    static FFT_BUFFER(result_fft, fft_cplx_t, FFT_LEN_MAX);
     for (u32 i=0; i<fft_len; i++) {
       const fft_cplx_t *a = &code_fft[i];
       const fft_cplx_t *b = &sample_fft[(i + sample_offset) & (fft_len - 1)];
@@ -105,21 +104,17 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     }
 
     /* Peak search */
-    u32 acq_status = NAP->ACQ_STATUS;
-    float mag_sq = (float)NAP->ACQ_PEAK_MAGSQ;
+    u32 peak_index;
+    u32 peak_mag_sq;
+    u32 sum_mag_sq;
+    fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
+
+    float mag_sq = (float)peak_mag_sq;
     if (mag_sq > best_mag_sq) {
       best_doppler = doppler;
       best_mag_sq = mag_sq;
-      best_mag_sq_sum = (float)NAP->ACQ_SUM_MAGSQ;
-      best_sample_offset = ((acq_status & NAP_ACQ_STATUS_PEAK_INDEX_Msk)
-          >> NAP_ACQ_STATUS_PEAK_INDEX_Pos);
-    }
-
-    if (acq_status & NAP_ACQ_STATUS_PEAK_MAGSQ_OVF_Msk) {
-      log_warn("Acquisition: Magnitude squared overflow.");
-    }
-    if (acq_status & NAP_ACQ_STATUS_SUM_MAGSQ_OVF_Msk) {
-      log_warn("Acquisition: Magnitude squared sum overflow.");
+      best_mag_sq_sum = (float)sum_mag_sq;
+      best_sample_offset = peak_index;
     }
   }
 

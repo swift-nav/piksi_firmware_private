@@ -77,15 +77,15 @@ void pre_init(void)
 
 static void random_init(void)
 {
-  u64 sample_data;
+  static FFT_BUFFER(sample_data, u64, 1);
   u32 seed = 0;
   u32 sample_count;
 
-  if (!raw_samples_get((void*)&sample_data, sizeof(sample_data), &sample_count))
+  if (!raw_samples_get((void*)sample_data, sizeof(sample_data), &sample_count))
     log_error("Failed to read sample buffer for RNG seed");
 
   for (int i = 0; i < 32; i++)
-    seed ^= sample_data >> i;
+    seed ^= *sample_data >> i;
 
   srand(seed);
 }
