@@ -401,34 +401,26 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
                                 tracker_common_data_t *common_data,
                                 gps_l1ca_tracker_data_t *data)
 {
-  u8 alias_ms = tp_get_alias_ms(data->tracking_mode, data->int_ms);
-
   float I = data->corrs.corr_ad.I;
   float Q = data->corrs.corr_ad.Q;
   I -= data->alias_detect.first_I;
   Q -= data->alias_detect.first_Q;
 
-  float err = alias_detect_second(&data->alias_detect, I, Q);
+  s16 err = tp_tl_detect_alias(&data->alias_detect, I, Q);
 
-  if (fabs(err) > (125 / alias_ms)) {
+  if (err != 0) {
 
     if (data->lock_detect.outp) {
-      log_warn_sid(channel_info->sid, "False phase lock detected: %f", err);
+      log_warn_sid(channel_info->sid, "False phase lock detected: %" PRId16, err);
     } else {
-      log_warn_sid(channel_info->sid, "False optimistic lock detected: %f", err);
+      log_warn_sid(channel_info->sid, "False optimistic lock detected: %" PRId16, err);
     }
-
-    s32 c = (labs((s32)(err - 12)) / 50) * 50 + 25;
-    err = err > 0 ? c : -c;
 
     tracker_ambiguity_unknown(channel_info->context);
     /* Indicate that a mode change has occurred. */
     common_data->mode_change_count = common_data->update_count;
 
     tp_tl_adjust(&data->tl_state, err);
-
-  } else if (fabs(err) > 10) {
-    log_info_sid(channel_info->sid, "Uncorrected false lock: %f, %d", err, alias_ms);
   }
 }
 #if USE_DLL_ERROR
