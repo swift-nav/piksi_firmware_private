@@ -151,8 +151,12 @@ void xadc_init(void)
  */
 float xadc_vin_get(void)
 {
-  return (float)xadc_read(XADC_ADDR_VAUX0 + NAP_XADC_VIN) *
-      NAP_XADC_VIN_SCALING / 65536;
+#ifdef XADC_VAUX_VIN
+  return (float)xadc_read(XADC_ADDR_VAUX0 + XADC_VAUX_VIN) *
+      XADC_VAUX_VIN_SCALING / 65536;
+#else
+  return -9.999;
+#endif
 }
 
 /** Get the most recent VCCINT (V).
