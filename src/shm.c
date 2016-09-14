@@ -58,45 +58,9 @@ static void cns_2_str(code_nav_state_t state, char** state_str)
       *state_str = CODE_NAV_STATE_VALID_STR;
       break;
     default:
-      assert(!"Unsupported value");
+      assert(!"Unsupported value in code_nav_state_t");
       break;
   }
-}
-
-/** Output current health state of the specified signal to the log.
- *
- * \param shi_name Name of the SHI that was changed last.
- * \param sat Satellite ID for which current state should be logged
- *
- */
-static void shm_log_sat_state_sid(const char* shi_name, u16 sat)
-{
-  code_nav_state_t s_l1 = shm_get_sat_state(construct_sid(CODE_GPS_L1CA, sat));
-  gnss_signal_t l2_sid = construct_sid(CODE_GPS_L2CM, sat);
-  code_nav_state_t s_l2 = shm_get_sat_state(l2_sid);
-  char* s_l1_str;
-  char* s_l2_str;
-  cns_2_str(s_l1, &s_l1_str);
-  cns_2_str(s_l2, &s_l2_str);
-  char shi1_str[4], shi4_str[2], shi6_str[2];
-  char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
-  chMtxLock(&shm_data_access);
-  gps_sat_health_indicators_t shis = gps_shis[sat - 1];
-  chMtxUnlock(&shm_data_access);
-  int_shi_2_str(shis.shi1_set, shis.shi1, shi1_str, sizeof(shi1_str));
-  bool_shi_2_str(shis.shi4_set, shis.shi4, shi4_str);
-  cnav_msg_t cnav_msg10;
-  bool shi5_set = cnav_msg_get(l2_sid, CNAV_MSG_TYPE_10, &cnav_msg10);
-  cnav_msg_type_10_t m10 = cnav_msg10.data.type_10;
-  bool_shi_2_str(shi5_set, m10.l1_health, shi5_l1_str);
-  bool_shi_2_str(shi5_set, m10.l2_health, shi5_l2_str);
-  bool_shi_2_str(shi5_set, m10.l5_health, shi5_l5_str);
-  bool_shi_2_str(shis.shi6_set, shis.shi6, shi6_str);
-  log_debug("GPS SV %02d %s update. State {L1:%s, L2:%s} "
-            "SHI[1:%s, 4:%s, 5:{%s,%s,%s}, 6:%s]",
-            sat, shi_name, s_l1_str, s_l2_str,
-            shi1_str, shi4_str, shi5_l1_str, shi5_l2_str, shi5_l5_str,
-            shi6_str);
 }
 
 /** Output current health state of GSP satellite to the log.
@@ -109,7 +73,32 @@ static void shm_log_sat_state_sid(const char* shi_name, u16 sat)
 void shm_log_sat_state(const char* shi_name, u16 sat)
 {
   if (DEBUG) {
-    shm_log_sat_state_sid(shi_name, sat);
+    code_nav_state_t s_l1 = shm_get_sat_state(construct_sid(CODE_GPS_L1CA, sat));
+    gnss_signal_t l2_sid = construct_sid(CODE_GPS_L2CM, sat);
+    code_nav_state_t s_l2 = shm_get_sat_state(l2_sid);
+    char* s_l1_str;
+    char* s_l2_str;
+    cns_2_str(s_l1, &s_l1_str);
+    cns_2_str(s_l2, &s_l2_str);
+    char shi1_str[4], shi4_str[2], shi6_str[2];
+    char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
+    chMtxLock(&shm_data_access);
+    gps_sat_health_indicators_t shis = gps_shis[sat - 1];
+    chMtxUnlock(&shm_data_access);
+    int_shi_2_str(shis.shi1_set, shis.shi1, shi1_str, sizeof(shi1_str));
+    bool_shi_2_str(shis.shi4_set, shis.shi4, shi4_str);
+    cnav_msg_t cnav_msg10;
+    bool shi5_set = cnav_msg_get(l2_sid, CNAV_MSG_TYPE_10, &cnav_msg10);
+    cnav_msg_type_10_t m10 = cnav_msg10.data.type_10;
+    bool_shi_2_str(shi5_set, m10.l1_health, shi5_l1_str);
+    bool_shi_2_str(shi5_set, m10.l2_health, shi5_l2_str);
+    bool_shi_2_str(shi5_set, m10.l5_health, shi5_l5_str);
+    bool_shi_2_str(shis.shi6_set, shis.shi6, shi6_str);
+    log_debug("GPS SV %02d %s update. State {L1:%s, L2:%s} "
+              "SHI[1:%s, 4:%s, 5:{%s,%s,%s}, 6:%s]",
+              sat, shi_name, s_l1_str, s_l2_str,
+              shi1_str, shi4_str, shi5_l1_str, shi5_l2_str, shi5_l5_str,
+              shi6_str);
   }
 }
 

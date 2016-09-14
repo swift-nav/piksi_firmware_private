@@ -116,6 +116,12 @@ static tracking_startup_fifo_t tracking_startup_fifo;
 
 static MUTEX_DECL(tracking_startup_mutex);
 
+/*
+ * This flag indicates that there were no free tracking channel in last
+ * acq results processing.
+ */
+static volatile bool no_free_tracking_channel = false;
+
 static float elevation_mask = 0.0; /* degrees */
 static bool sbas_enabled = false;
 
@@ -470,25 +476,6 @@ static u8 manage_track_new_acq(gnss_signal_t sid)
     }
   }
 
-  /* No free channel was found.
-   * Check if any channel is tracking satellite with state
-   * reported as CODE_NAV_STATE_INVALID by SHM. If it's the case then
-   * just drop it */
-
-  for (u8 i=0; i<nap_track_n_channels; i++) {
-    if (tracking_channel_running(i)) {
-      gnss_signal_t sid = tracking_channel_sid_get(i);
-      if (shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID) {
-        log_info_sid(sid, "unhealthy, dropping");
-        drop_channel(i);
-        u16 global_index = sid_to_global_index(sid);
-        acq_status_t *acq = &acq_status[global_index];
-        acq->state = ACQ_PRN_UNHEALTHY;
-        break;
-      }
-    }
-  }
-
   return MANAGE_NO_CHANNELS_FREE;
 }
 
@@ -590,6 +577,16 @@ static void manage_track()
       continue;
     }
 
+    /* If acq manager needed new channel and there were no free one available
+     * then consider health of this satellite and drop if it's unhealthy.*/
+    if (no_free_tracking_channel &&
+        shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID) {
+      log_info_sid(sid, "unhealthy, dropping");
+      drop_channel(i);
+      acq->state = ACQ_PRN_UNHEALTHY;
+      continue;
+    }
+
     /* Do we not have nav bit sync yet? */
     if (!tracking_channel_bit_sync_resolved(i)) {
       drop_channel(i);
@@ -620,6 +617,10 @@ static void manage_track()
       continue;
     }
   }
+  /* All unhealthy satellites were dropped if acquisition managing thread
+   * requested so, so clear this flag.
+   * */
+  no_free_tracking_channel = false;
 }
 
 s8 use_tracking_channel(u8 i)
@@ -772,6 +773,12 @@ static void manage_tracking_startup(void)
         acq->dopp_hint_low = startup_params.carrier_freq - ACQ_FULL_CF_STEP;
         acq->dopp_hint_high = startup_params.carrier_freq + ACQ_FULL_CF_STEP;
       }
+
+      /*
+       * Set flag so tracking managing thread can drop unhealthy satellites.
+       */
+      log_debug("No free tracking channel available.");
+      no_free_tracking_channel = true;
 
       continue;
     }

@@ -54,7 +54,8 @@ static bool cnav_msg_type_id_valid(u8 msg_id)
  */
 void cnav_msg_put(const cnav_msg_t *msg)
 {
-  if (cnav_msg_type_id_valid(msg->msg_id) && (msg->prn <= NUM_SATS_GPS)) {
+  if (cnav_msg_type_id_valid(msg->msg_id) &&
+      (sid_valid(construct_sid(CODE_GPS_L2CM, msg->prn)))) {
     u8 msg_idx = cnav_msg_type_to_idx(msg->msg_id);
     gnss_signal_t sid = construct_sid(CODE_GPS_L2CM, msg->prn);
     u16 sat_idx = sid_to_code_index(sid);
