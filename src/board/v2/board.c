@@ -94,3 +94,7 @@ void board_preinit_hook(void)
   RCC->CSR |= RCC_CSR_RMVF;
 }
 
+void board_send_state(void)
+{
+
+}

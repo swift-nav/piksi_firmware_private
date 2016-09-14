@@ -25,6 +25,7 @@
 
 #include "board/nap/nap_common.h"
 #include "board/frontend.h"
+#include "board.h"
 #include "peripherals/leds.h"
 #include "main.h"
 #include "sbp.h"
@@ -56,7 +57,6 @@ static double base_llh[3];
 
 /* Global CPU time accumulator, used to measure thread CPU usage. */
 u64 g_ctime = 0;
-
 
 u32 check_stack_free(thread_t *tp)
 {
@@ -197,6 +197,10 @@ static void system_monitor_thread(void *arg)
 
     DO_EVERY(2,
      send_thread_states();
+    );
+
+    DO_EVERY(3,
+     board_send_state();
     );
 
     sleep_until(&time, MS2ST(heartbeat_period_milliseconds));

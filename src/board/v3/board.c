@@ -20,6 +20,10 @@
 
 #include <libswiftnav/logging.h>
 
+#include "sbp.h"
+#include "board/v3/xadc.h"
+#include "board/v3/nt1065.h"
+
 #define LED_GPIO_LINE PAL_LINE(GPIO1, 15)
 #define BUTTON_GPIO_LINE PAL_LINE(GPIO1, 19)
 
@@ -78,6 +82,11 @@ void boardInit(void)
   *(volatile uint32_t *)0xF8000158 |= (20 << 8);
   *(volatile uint32_t *)0xF8000158 |= (1 << 0) | (1 << 1);
 
+  /* PCAP CLK = 1GHz / 5 = 200MHz */
+  *(volatile uint32_t *)0xF8000168 &= ~(0x3F << 8);
+  *(volatile uint32_t *)0xF8000168 |= (5 << 8);
+  *(volatile uint32_t *)0xF8000168 |= (1 << 0);
+
   /* Assert FPGA resets */
   *(volatile uint32_t *)0xF8000240 = 0xf;
 
@@ -116,5 +125,23 @@ void board_preinit_hook(void)
   }
   REBOOT_STATUS &= 0xff000000;
 
+}
+
+void board_send_state(void)
+{
+  msg_device_monitor_t msg;
+
+  double fe_temp = 0;
+  if (!nt1065_get_temperature(&fe_temp)) {
+    fe_temp = -99.99;
+  }
+  msg.fe_temperature = (s16)(fe_temp * 100);
+
+  msg.dev_vin = (s16)(xadc_vin_get() * 1000);
+  msg.cpu_vint = (s16)(xadc_vccint_get() * 1000);
+  msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
+  msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
+
+  sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
 }
 
