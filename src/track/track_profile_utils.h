@@ -229,4 +229,6 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs);
 void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
+s16 tp_tl_detect_alias(alias_detect_t *alias_detect, s32 I, s32 Q);
+
 #endif /* SWIFTNAV_TRACK_PROFILE_UTILS_H_ */

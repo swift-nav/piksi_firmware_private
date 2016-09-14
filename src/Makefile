@@ -115,6 +115,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_profile_utils.o \
         $(SWIFTNAV_ROOT)/src/track/track_profile_loop.o \
         $(SWIFTNAV_ROOT)/src/track/track_profile_corrs.o \
+        $(SWIFTNAV_ROOT)/src/track/track_common.o \
         $(SWIFTNAV_ROOT)/src/manage.o \
         $(SWIFTNAV_ROOT)/src/settings.o \
         $(SWIFTNAV_ROOT)/src/timing.o \
