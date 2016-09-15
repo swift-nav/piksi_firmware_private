@@ -57,15 +57,15 @@ void tp_tl_init(tp_tl_state_t *s,
 
   switch (ctrl) {
   case TP_CTRL_PLL2:
-    tl_fll1_pll2_init(&s->fll1_pll2,
-                      loop_freq,
-                      fll_loop_freq,
-                      code_freq,
-                      carr_freq,
-                      code_bw, code_zeta, code_k,
-                      carr_to_code,
-                      carr_bw, carr_zeta, carr_k,
-                      freq_bw);
+    tl_pll2_init(&s->pll2,
+                 loop_freq,
+                 fll_loop_freq,
+                 code_freq,
+                 carr_freq,
+                 code_bw, code_zeta, code_k,
+                 carr_to_code,
+                 carr_bw, carr_zeta, carr_k,
+                 freq_bw);
     break;
 
   case TP_CTRL_PLL3:
@@ -136,12 +136,12 @@ void tp_tl_retune(tp_tl_state_t *s,
   if (ctrl == s->ctrl) {
     switch (ctrl) {
     case TP_CTRL_PLL2:
-      tl_fll1_pll2_retune(&s->fll1_pll2, loop_freq,
-                          fll_loop_freq,
-                          code_bw, code_zeta, code_k,
-                          carr_to_code,
-                          carr_bw, carr_zeta, carr_k,
-                          freq_bw);
+      tl_pll2_retune(&s->pll2, loop_freq,
+                     fll_loop_freq,
+                     code_bw, code_zeta, code_k,
+                     carr_to_code,
+                     carr_bw, carr_zeta, carr_k,
+                     freq_bw);
       break;
 
     case TP_CTRL_PLL3:
@@ -211,7 +211,7 @@ void tp_tl_adjust(tp_tl_state_t *s, float err)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    tl_fll1_pll2_adjust(&s->fll1_pll2, err);
+    tl_pll2_adjust(&s->pll2, err);
     break;
 
   case TP_CTRL_PLL3:
@@ -244,8 +244,8 @@ void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    *carr_freq = s->fll1_pll2.carr_freq;
-    *code_freq = s->fll1_pll2.code_freq;
+    *carr_freq = s->pll2.carr_freq;
+    *code_freq = s->pll2.code_freq;
     break;
 
   case TP_CTRL_PLL3:
@@ -290,7 +290,7 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
 
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    tl_fll1_pll2_update_dll(&s->fll1_pll2, cs2);
+    tl_pll2_update_dll(&s->pll2, cs2);
     break;
 
   case TP_CTRL_PLL3:
@@ -323,7 +323,7 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
 
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    dll_error = tl_fll1_pll2_get_dll_error(&s->fll1_pll2);
+    dll_error = tl_pll2_get_dll_error(&s->pll2);
     break;
 
   case TP_CTRL_PLL3:
@@ -371,16 +371,19 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
  * Ignore updating discriminator (due to possible data bit change).
  * Update I_prev & Q_prev only.
  *
- * \param[in, out] s  Tracker state.
- * \param[in]      cs EPL correlator outputs.
+ * \param[in,out] s  Tracker state.
+ * \param[in]     cs EPL correlator outputs.
  *
  * \return None
+ *
+ * \sa tp_tl_fll_update_second
+ * \sa tp_tl_fll_update
  */
 void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, false);
+    tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_PLL3:
@@ -405,16 +408,19 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
  *
  * Update discriminator, I_prev & Q_prev.
  *
- * \param[in, out] s  Tracker state.
- * \param[in]      cs EPL correlator outputs.
+ * \param[in,out] s  Tracker state.
+ * \param[in]     cs EPL correlator outputs.
  *
  * \return None
+ *
+ * \sa tp_tl_fll_update_first
+ * \sa tp_tl_fll_update
  */
 void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    tl_fll1_pll2_discr_update(&s->fll1_pll2, cs.I, cs.Q, true);
+    tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true);
     break;
 
   case TP_CTRL_PLL3:
@@ -451,7 +457,7 @@ void tp_tl_fll_update(tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    tl_fll1_pll2_update_fll(&s->fll1_pll2);
+    tl_pll2_update_fll(&s->pll2);
     break;
 
   case TP_CTRL_PLL3:
