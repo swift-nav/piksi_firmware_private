@@ -41,6 +41,8 @@
 
 #define SPI_SS_GPIO_LINE PAL_LINE(GPIO0, 13)
 
+#define TCXO_FREQ_STAB  0.28f  /* Piksi V3 TCXO frequency stability [ppm] */
+
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
 extern "C" {
