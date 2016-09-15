@@ -57,11 +57,13 @@ void tp_tl_init(tp_tl_state_t *s,
 
   switch (ctrl) {
   case TP_CTRL_PLL2:
-    tl_pll2_init(&s->pll2, loop_freq,
+    tl_pll2_init(&s->pll2,
+                 loop_freq,
+                 fll_loop_freq,
                  code_freq,
+                 carr_freq,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
-                 carr_freq,
                  carr_bw, carr_zeta, carr_k,
                  freq_bw);
     break;
@@ -96,6 +98,7 @@ void tp_tl_init(tp_tl_state_t *s,
                  carr_to_code,
                  freq_bw, carr_zeta, carr_k);
     break;
+
   default:
     assert(false);
   }
@@ -134,6 +137,7 @@ void tp_tl_retune(tp_tl_state_t *s,
     switch (ctrl) {
     case TP_CTRL_PLL2:
       tl_pll2_retune(&s->pll2, loop_freq,
+                     fll_loop_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
@@ -286,7 +290,7 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
 
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    tl_pll2_update(&s->pll2, cs2);
+    tl_pll2_update_dll(&s->pll2, cs2);
     break;
 
   case TP_CTRL_PLL3:
@@ -362,13 +366,13 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
 }
 
 /**
- * First-stage FLL update.
+ * First FLL discriminator update.
  *
- * First stage FLL update is used to remember correlator output after a
- * potential bit change.
+ * Ignore updating discriminator (due to possible data bit change).
+ * Update I_prev & Q_prev only.
  *
  * \param[in,out] s  Tracker state.
- * \param[in]     cs Correlator values.
+ * \param[in]     cs EPL correlator outputs.
  *
  * \return None
  *
@@ -379,7 +383,7 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    /* TODO: add support for PLL2 */
+    tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_PLL3:
@@ -391,7 +395,7 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false);
     break;
 
   default:
@@ -400,13 +404,12 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
 }
 
 /**
- * Second-stage FLL update.
+ * Second FLL discriminator update.
  *
- * Second stage FLL update is used to compute/update FLL discriminator with
- * new correlations. The call must be within the same bit as previous update.
+ * Update discriminator, I_prev & Q_prev.
  *
  * \param[in,out] s  Tracker state.
- * \param[in]     cs Correlator values.
+ * \param[in]     cs EPL correlator outputs.
  *
  * \return None
  *
@@ -417,7 +420,7 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    /* TODO: add support for PLL2 */
+    tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true);
     break;
 
   case TP_CTRL_PLL3:
@@ -454,7 +457,7 @@ void tp_tl_fll_update(tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-    /* TODO: add support for PLL2 */
+    tl_pll2_update_fll(&s->pll2);
     break;
 
   case TP_CTRL_PLL3:

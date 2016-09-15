@@ -42,10 +42,10 @@ typedef enum
  */
 typedef enum
 {
-  TP_CTRL_PLL2, /**< Second order PLL. */
+  TP_CTRL_PLL2, /**< First order FLL, second order PLL */
   TP_CTRL_PLL3, /**< Third order PLL. */
-  TP_CTRL_FLL1, /**< First order PLL. */
-  TP_CTRL_FLL2, /**< Second order PLL. */
+  TP_CTRL_FLL1, /**< First order FLL. */
+  TP_CTRL_FLL2, /**< Second order FLL. */
 } tp_ctrl_e;
 
 /**

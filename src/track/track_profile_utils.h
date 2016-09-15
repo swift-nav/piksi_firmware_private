@@ -63,17 +63,15 @@
  * Main tracking: PLL loop selection
  */
 
-/*
- * Second order PLL:
- * - Optional first order FLL assist to PLL
- * - Optional PLL assist to DLL
- */
-#define tl_pll2_state_t        aided_tl_state_t
-#define tl_pll2_init           aided_tl_init
-#define tl_pll2_retune         aided_tl_retune
-#define tl_pll2_update         aided_tl_update
-#define tl_pll2_adjust         aided_tl_adjust
-#define tl_pll2_get_dll_error  aided_tl_get_dll_error
+/* FLL-assisted PLL. FLL is first order and PLL is second order */
+#define tl_pll2_state_t        aided_tl_state_fll1_pll2_t
+#define tl_pll2_init           aided_tl_fll1_pll2_init
+#define tl_pll2_retune         aided_tl_fll1_pll2_retune
+#define tl_pll2_update_fll     aided_tl_fll1_pll2_update_fll
+#define tl_pll2_update_dll     aided_tl_fll1_pll2_update_dll
+#define tl_pll2_adjust         aided_tl_fll1_pll2_adjust
+#define tl_pll2_get_dll_error  aided_tl_fll1_pll2_get_dll_error
+#define tl_pll2_discr_update   aided_tl_fll1_pll2_discr_update
 
 #if 0
 /* PLL-assisted DLL. FLL and DLL are second order, PLL is third order */
@@ -160,10 +158,10 @@ typedef struct
 typedef struct
 {
   union {
-    tl_pll2_state_t   pll2;          /**< Tracking loop filter state. */
-    tl_pll3_state_t   pll3;          /**< Tracking loop filter state. */
-    tl_fll1_state_t   fll1;          /**< Tracking loop filter state. */
-    tl_fll2_state_t   fll2;          /**< Tracking loop filter state. */
+    tl_pll2_state_t pll2; /**< Tracking loop filter state. */
+    tl_pll3_state_t pll3; /**< Tracking loop filter state. */
+    tl_fll1_state_t fll1; /**< Tracking loop filter state. */
+    tl_fll2_state_t fll2; /**< Tracking loop filter state. */
   };
   tp_ctrl_e ctrl;
 } tp_tl_state_t;
