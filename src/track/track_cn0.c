@@ -18,37 +18,135 @@
 #include <chconf.h>
 #include <board.h>
 #include <platform_cn0.h>
+#include <settings.h>
+
+/** Configuration section name */
+#define TRACK_CN0_EST_SETTING_SECTION "cn0_est"
 
 /** C/N0 estimator IIR averaging coefficient:
  * See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22
  * See http://dsp.stackexchange.com/questions/378/
  *
+ * For N=24 Alpha=0.05(3)
  * For N=72 Alpha=0.016(6)
  * For N=200 Alpha=0.0055(5)
- * For N=24 Alpha=0.05(3)
  */
 #define CN0_EST_LPF_ALPHA     (.05f)
 /** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
 #define CN0_EST_LPF_CUTOFF_HZ (.065f)
-
+/** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS  1
+/** Integration interval: 5ms */
 #define INTEG_PERIOD_5_MS  5
+/** Integration interval: 5ms */
 #define INTEG_PERIOD_10_MS 10
+/** Integration interval: 20ms */
 #define INTEG_PERIOD_20_MS 20
 
-static const u8 cn0_configs[] = {
+/** C/N0 offset for 1ms estimator interval [dB/Hz] */
+#define TRACK_CN0_OFFSET_1MS_DBHZ  0
+/** C/N0 offset for 5ms estimator interval [dB/Hz] */
+#define TRACK_CN0_OFFSET_5MS_DBHZ  7
+/** C/N0 offset for 10ms estimator interval [dB/Hz] */
+#define TRACK_CN0_OFFSET_10MS_DBHZ 10
+/** C/N0 offset for 20ms estimator interval [dB/Hz] */
+#define TRACK_CN0_OFFSET_20MS_DBHZ 13
+/** Total number of precomputed integration intervals */
+#define INTEG_PERIODS_NUM (sizeof(cn0_periods_ms) / sizeof(cn0_periods_ms[0]))
+
+/** Predefined integration periods for C/N0 estimators */
+static const u8 cn0_periods_ms[] = {
   INTEG_PERIOD_1_MS,
   INTEG_PERIOD_5_MS,
   INTEG_PERIOD_10_MS,
   INTEG_PERIOD_20_MS
 };
 
-#define INTEG_PERIODS_NUM (sizeof(cn0_configs) / \
-                           sizeof(cn0_configs[0]))
+/**
+ * Subsystem configuration type.
+ */
+typedef struct
+{
+  float alpha;             /**< Estimator alpha coefficient */
+  float nbw;               /**< Noise bandwidth for the platform */
+  float cutoff;            /**< C/N0 LP filter cutoff frequency [Hz] */
+  u8    update_count;      /**< Configuration update counter */
+  track_cn0_params_t params[INTEG_PERIODS_NUM]; /**< Estimator and filter
+                                                 *   parameters */
+  float pri2sec_threshold; /**< Threshold for switching primary to secondary
+                            *   estimator  (20ms) [dB/Hz].
+                            *
+                            * The value is specified for 20ms C/N0 estimator
+                            * period, and automatically adjusted for other
+                            * intervals.
+                            *
+                            * \sa track_cn0_get_pri2sec_threshold
+                            */
+  float sec2pri_threshold; /**< Threshold for switching secondary to primary
+                            *   estimator  (20ms) [dB/Hz].
+                            *
+                            * The value is specified for 20ms C/N0 estimator
+                            * period, and automatically adjusted for other
+                            * intervals.
+                            *
+                            * \sa track_cn0_get_sec2pri_threshold
+                            */
+} track_cn0_config_t;
 
-/** C/N0 estimator and filter parameters: one pair per integration time */
-static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM] PLATFORM_CN0_DATA;
+/**
+ * Subsystem configuration.
+ */
+static track_cn0_config_t cn0_config PLATFORM_CN0_DATA = {
+  .alpha = CN0_EST_LPF_ALPHA,
+  .nbw = PLATFORM_CN0_EST_BW_HZ,
+  .cutoff = CN0_EST_LPF_CUTOFF_HZ,
+  .update_count = 0,
+  .pri2sec_threshold = TRACK_CN0_PRI2SEC_THRESHOLD,
+  .sec2pri_threshold = TRACK_CN0_SEC2PRI_THRESHOLD,
+};
+
+/**
+ * Helper to recompute estimator parameters
+ */
+static void recompute_settings()
+{
+  for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
+    float loop_freq = 1e3f / cn0_periods_ms[i];
+
+    cn0_est_compute_params(&cn0_config.params[i].est_params,
+                           cn0_config.nbw,
+                           cn0_config.alpha,
+                           loop_freq);
+    cn0_config.params[i].est_params.t_int = cn0_periods_ms[i];
+    cn0_filter_compute_params(&cn0_config.params[i].filter_params,
+                              cn0_config.cutoff,
+                              loop_freq);
+  }
+}
+
+/**
+ * Updates C/N0 setting.
+ *
+ * The method updates C/N0 setting and recomputes active estimator parameters
+ * if required.
+ *
+ * \param[in] s   Setting definition
+ * \param[in] val Value literal
+ *
+ * \retval true if the setting has been changed.
+ */
+static bool settings_notify_proxy(struct setting *s, const char *val)
+{
+  bool res = settings_default_notify(s, val);
+
+  if (res) {
+    cn0_config.update_count ++;
+    recompute_settings();
+  }
+
+  return res;
+}
 
 /** Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
@@ -56,17 +154,35 @@ static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM] PLATFORM_CN0_D
  */
 void track_cn0_params_init(void)
 {
-  for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    float loop_freq = 1e3f / cn0_configs[i];
-    cn0_est_compute_params(&cn0_est_pre_computed[i].est_params,
+  for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
+    float loop_freq = 1e3f / cn0_periods_ms[i];
+    cn0_est_compute_params(&cn0_config.params[i].est_params,
                            PLATFORM_CN0_EST_BW_HZ,
                            CN0_EST_LPF_ALPHA,
                            loop_freq);
-    cn0_est_pre_computed[i].est_params.t_int = cn0_configs[i];
-    cn0_filter_compute_params(&cn0_est_pre_computed[i].filter_params,
-                              CN0_EST_LPF_CUTOFF_HZ,
+    cn0_config.params[i].est_params.t_int = cn0_periods_ms[i];
+    cn0_filter_compute_params(&cn0_config.params[i].filter_params,
+                              cn0_config.cutoff,
                               loop_freq);
   }
+  cn0_config.update_count = 1;
+  recompute_settings();
+
+  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "alpha",
+                 cn0_config.alpha,
+                 TYPE_FLOAT, settings_notify_proxy);
+  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "nbw",
+                 cn0_config.nbw,
+                 TYPE_FLOAT, settings_notify_proxy);
+  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "cutoff",
+                 cn0_config.cutoff,
+                 TYPE_FLOAT, settings_notify_proxy);
+  SETTING(TRACK_CN0_EST_SETTING_SECTION, "pri2sec_threshold",
+          cn0_config.pri2sec_threshold,
+          TYPE_FLOAT);
+  SETTING(TRACK_CN0_EST_SETTING_SECTION, "sec2pri_threshold",
+          cn0_config.sec2pri_threshold,
+          TYPE_FLOAT);
 }
 
 /**
@@ -155,8 +271,8 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
   u8 config_key = cn0_ms;
 
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    if (config_key == cn0_configs[i]) {
-      pparams = &cn0_est_pre_computed[i];
+    if (config_key == cn0_periods_ms[i]) {
+      pparams = &cn0_config.params[i];
       break;
     }
   }
@@ -212,6 +328,8 @@ void track_cn0_init(gnss_signal_t sid,
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 
+  e->ver = cn0_config.update_count;
+
   log_debug_sid(sid, "Initializing estimator %s (%f dB/Hz @ %u ms)",
                 track_cn0_str(e->type),
                 e->filter.yn,
@@ -237,6 +355,12 @@ float track_cn0_update(gnss_signal_t sid,
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
   float cn0 = 0;
+
+  if (e->ver != cn0_config.update_count) {
+    u8 cn0_0 = e->cn0_0;
+    track_cn0_init(sid, e->cn0_ms, e, e->filter.yn, e->flags);
+    e->cn0_0 = cn0_0;
+  }
 
   if (e->type != t) {
     log_debug_sid(sid, "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
@@ -266,7 +390,72 @@ const char *track_cn0_str(track_cn0_est_e t)
   switch (t) {
   case TRACK_CN0_EST_BL: str = "BL"; break;
   case TRACK_CN0_EST_MM: str = "MM"; break;
-  default: assert(false);
+  default: assert(!"Unknown estimator type");
   }
   return str;
+}
+
+/**
+ * Returns C/N0 offset according to C/N0 integration period.
+ *
+ * \param[in] cn0_ms Integration period of C/N0 estimator.
+ *
+ * \return Offset in dB/Hz that corresponds to C/N0 increase for the given input
+ */
+float track_cn0_get_offset(u8 cn0_ms)
+{
+  float cn0_offset = 0;
+
+  switch (cn0_ms) {
+  case INTEG_PERIOD_1_MS:
+    cn0_offset = TRACK_CN0_OFFSET_1MS_DBHZ;
+    break;
+
+  case INTEG_PERIOD_5_MS:
+    cn0_offset = TRACK_CN0_OFFSET_5MS_DBHZ;
+    break;
+
+  case INTEG_PERIOD_10_MS:
+    cn0_offset = TRACK_CN0_OFFSET_10MS_DBHZ;
+    break;
+
+  case INTEG_PERIOD_20_MS:
+    cn0_offset = TRACK_CN0_OFFSET_20MS_DBHZ;
+    break;
+
+  default:
+    cn0_offset = 10.f * log10f(cn0_ms);
+    break;
+  }
+  return cn0_offset;
+}
+
+/**
+ * Computes C/N0 threshold for enabling secondary estimator.
+ *
+ * \param[in] cn0_ms C/N0 estimator integration time [ms]
+ *
+ * \return C/N0 threshold in dB/Hz for enabling secondary estimator
+ *
+ * \sa track_cn0_get_sec2pri_threshold
+ */
+float track_cn0_get_pri2sec_threshold(u8 cn0_ms)
+{
+  float cn0_offset = track_cn0_get_offset(cn0_ms);
+  return cn0_config.pri2sec_threshold + TRACK_CN0_OFFSET_20MS_DBHZ - cn0_offset;
+}
+
+/**
+ * Computes C/N0 threshold for enabling primary estimator.
+ *
+ * \param[in] cn0_ms C/N0 estimator integration time [ms]
+ *
+ * \return C/N0 threshold in dB/Hz for enabling primary estimator
+ *
+ * \sa track_cn0_get_pri2sec_threshold
+ */
+float track_cn0_get_sec2pri_threshold(u8 cn0_ms)
+{
+  float cn0_offset = track_cn0_get_offset(cn0_ms);
+  return cn0_config.sec2pri_threshold + TRACK_CN0_OFFSET_20MS_DBHZ - cn0_offset;
 }

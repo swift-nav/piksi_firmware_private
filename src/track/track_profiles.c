@@ -29,7 +29,7 @@
 #include <assert.h>
 
 /** Maximum number of supported satellite vehicles */
-#define TP_MAX_SUPPORTED_SVS NUM_GPS_L1CA_TRACKERS
+#define TP_MAX_SUPPORTED_SVS NUM_TRACKER_CHANNELS
 
 /** Default C/N0 threshold in dB/Hz for keeping track */
 #define TP_DEFAULT_CN0_USE_THRESHOLD  (30.f)
@@ -623,16 +623,18 @@ static void check_for_cn0_estimator_change(tp_profile_internal_t *state)
 
   cn0 = state->filt_cn0;
   cur_profile = &state->profiles[state->cur_index];
+  u8 cn0_ms = tp_get_cn0_ms(cur_profile->profile.mode,
+                            cur_profile->profile.mode_ms);
 
   if (TRACK_CN0_EST_PRIMARY == state->cn0_est) {
-    if (cn0 < TRACK_CN0_PRI2SEC_THRESHOLD ||
+    if (cn0 < track_cn0_get_pri2sec_threshold(cn0_ms) ||
         TRACK_CN0_EST_SECONDARY == cur_profile->profile.cn0_est) {
       state->cn0_est = TRACK_CN0_EST_SECONDARY;
       log_debug_sid(unpack_sid(state->csid),
                     "Changed C/N0 estimator to secondary");
     }
   } else if (TRACK_CN0_EST_SECONDARY == state->cn0_est) {
-    if (cn0 > TRACK_CN0_SEC2PRI_THRESHOLD &&
+    if (cn0 > track_cn0_get_sec2pri_threshold(cn0_ms) &&
         TRACK_CN0_EST_PRIMARY == cur_profile->profile.cn0_est) {
       state->cn0_est = TRACK_CN0_EST_PRIMARY;
       log_debug_sid(unpack_sid(state->csid),
@@ -729,10 +731,9 @@ static float compute_cn0_offset(const tp_profile_internal_t *profile)
 {
   u8 mode_ms = profile->profiles[profile->cur_index].profile.mode_ms;
   tp_tm_e mode = profile->profiles[profile->cur_index].profile.mode;
-  float cn0_offset = 0;
 
   u8 cn0_ms = tp_get_cn0_ms(mode, mode_ms);
-  cn0_offset = 10.f * log10f(cn0_ms);
+  float cn0_offset = track_cn0_get_offset(cn0_ms);
 
   return cn0_offset;
 }
