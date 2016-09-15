@@ -23,6 +23,7 @@
 #include "sbp_utils.h"
 #include "signal.h"
 #include "ndb.h"
+#include "shm.h"
 
 typedef struct {
   nav_msg_t nav_msg;
@@ -108,6 +109,13 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (ret <= 0)
     return;
+
+  shm_gps_set_shi4(channel_info->sid.sat, false == data->nav_msg.alert);
+
+  if (dd.shi1_upd_flag) {
+    log_debug_sid(channel_info->sid, "SHI1: 0x%x", dd.shi1);
+    shm_gps_set_shi1(channel_info->sid.sat, dd.shi1);
+  }
 
   if (dd.gps_l2c_sv_capability_upd_flag) {
     /* store new L2C value into NDB */

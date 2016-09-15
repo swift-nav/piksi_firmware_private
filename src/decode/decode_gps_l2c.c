@@ -26,6 +26,7 @@
 #include "sbp_utils.h"
 #include "signal.h"
 #include "cnav_msg_storage.h"
+#include "shm.h"
 
 typedef struct {
   cnav_msg_t cnav_msg;
@@ -107,7 +108,10 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     if (!decoded) {
       continue;
     }
-    else if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
+
+    shm_gps_set_shi6(channel_info->sid.sat, false == data->cnav_msg.alert);
+
+    if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
       if (data->cnav_msg.data.type_30.tgd_valid)
         log_debug_sid(channel_info->sid, "TGD %d",
           data->cnav_msg.data.type_30.tgd);
@@ -118,8 +122,15 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
         log_debug_sid(channel_info->sid, "isc_l2c %d",
           data->cnav_msg.data.type_30.isc_l2c);
 
-      /* Store data */
-      cnav_msg_type30_put(&data->cnav_msg);
+      cnav_msg_put(&data->cnav_msg);
+    }
+    else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
+      log_debug_sid(channel_info->sid,
+                    "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
+                    data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
+                    data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
+                    data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
+      cnav_msg_put(&data->cnav_msg);
     }
 
     tow_ms = data->cnav_msg.tow * GPS_CNAV_MSG_LENGTH * GPS_L2C_SYMBOL_LENGTH;

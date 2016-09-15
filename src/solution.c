@@ -47,6 +47,7 @@
 #include "sid_set.h"
 #include "cnav_msg_storage.h"
 #include "ndb.h"
+#include "shm.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -462,20 +463,24 @@ static void solution_thread(void *arg)
     gps_time_t rec_time = rx2gpstime(rec_tc);
     u8 n_ready = 0;
     channel_measurement_t meas[MAX_CHANNELS];
-    cnav_msg_type_30_t cnav_30[MAX_CHANNELS];
+    cnav_msg_t cnav_30[MAX_CHANNELS];
     for (u8 i=0; i<nap_track_n_channels; i++) {
       tracking_channel_lock(i);
       if (use_tracking_channel(i)) {
         tracking_channel_measurement_get(i, rec_tc, &meas[n_ready]);
-        n_ready++;
+        if (shm_navigation_suitable(meas[n_ready].sid))
+          n_ready++;
+        else
+          log_debug_sid(meas[n_ready].sid,
+                        "Satellite not suitable for navigation");
       }
       tracking_channel_unlock(i);
     }
 
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
     for (u8 i=0; i<n_ready; i++) {
-      p_cnav_30[i] = cnav_msg_type30_get(meas[i].sid, &cnav_30[i]) ?
-                     &cnav_30[i] : NULL;
+      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
+                     &cnav_30[i].data.type_30 : NULL;
     }
 
     gnss_sid_set_t codes_in_track;
