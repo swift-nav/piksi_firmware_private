@@ -301,7 +301,7 @@ static const tp_loop_params_t loop_params[] = {
   * BW Zeta  K  C2C  BW   Zeta K  BW
   */
   /* "(1 ms, (1, 0.7, 1, 1540), (40, 0.7, 1, 5))" */
-  { 2, 0.7f, 1, 1540, 18, .7f, 1, 20, 1, TP_TM_INITIAL, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_INI*/
+  { 2, 0.7f, 1, 1540, 18, .7f, 1, 20, 1, TP_TM_INITIAL, TP_CTRL_PLL2 }, /*TP_LP_IDX_INI*/
 
 #ifdef TP_USE_1MS_PROFILES
   { 1, 1.f, 1, 1540, 12, 1.f, 1, 0, 1, TP_TM_PIPELINING, TP_CTRL_PLL2 }, /*TP_LP_IDX_1MS_S*/
@@ -317,29 +317,29 @@ static const tp_loop_params_t loop_params[] = {
 
 #ifdef TP_USE_5MS_PROFILES
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 18, .7f, 1, 4, 5, TP_TM_5MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_5MS_S*/
+  { 1, 0.7f, 1, 1540, 18, .7f, 1, 4, 5, TP_TM_5MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_S*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 18, .7f, 1, 12, 5, TP_TM_5MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_5MS_N*/
+  { 1, 0.7f, 1, 1540, 18, .7f, 1, 12, 5, TP_TM_5MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_N*/
   /* "(5 ms, (1, 0.7, 1, 1540), (50, 0.7, 1, 0))" */
-  { 1, 0.7f, 1, 1540, 18, .7f, 1, 18, 5, TP_TM_5MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_5MS_U*/
+  { 1, 0.7f, 1, 1540, 18, .7f, 1, 18, 5, TP_TM_5MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_5MS_U*/
 #endif /* TP_USE_5MS_PROFILES */
 
 #ifdef TP_USE_10MS_PROFILES
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 18, .7f, 1., 4, 10, TP_TM_10MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_10MS_S*/
+  { 1, .7f, 1, 1540, 18, .7f, 1., 4, 10, TP_TM_10MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_10MS_S*/
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 18, .7f, 1., 12, 10, TP_TM_10MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_10MS_N*/
+  { 1, .7f, 1, 1540, 18, .7f, 1., 12, 10, TP_TM_10MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_10MS_N*/
   /*  "(10 ms, (1, 0.7, 1, 1540), (30, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 18, .7f, 1., 18, 10, TP_TM_10MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_10MS_U*/
+  { 1, .7f, 1, 1540, 18, .7f, 1., 18, 10, TP_TM_10MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_10MS_U*/
 #endif /* TP_USE_10MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 18, .7f, 1.f, 4, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1_PLL2 }, /*TP_LP_IDX_20MS_S*/
+  { 1, .7f, 1, 1540, 18, .7f, 1.f, 4, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 }, /*TP_LP_IDX_20MS_S*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 18, .7f, 1.f, 12, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1_PLL2 },/*TP_LP_IDX_20MS_N*/
+  { 1, .7f, 1, 1540, 18, .7f, 1.f, 12, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_N*/
   /*  "(20 ms, (1, 0.7, 1, 1540), (12, 0.7, 1, 0))" */
-  { 1, .7f, 1, 1540, 18, .7f, 1.f, 18, 20, TP_TM_20MS_MODE, TP_CTRL_FLL1_PLL2 },/*TP_LP_IDX_20MS_U*/
+  { 1, .7f, 1, 1540, 18, .7f, 1.f, 18, 20, TP_TM_20MS_MODE, TP_CTRL_PLL2 },/*TP_LP_IDX_20MS_U*/
 #endif /* TP_USE_20MS_PROFILES */
 
 #ifdef TP_USE_20MS_PROFILES_FLL
@@ -617,7 +617,7 @@ static void get_profile_params(tp_profile_internal_t *profile,
   const u8 int_ms = config->loop_params.coherent_ms;
   if ((mode == TP_TM_ONE_PLUS_N5 || mode == TP_TM_ONE_PLUS_N10 ||
        (mode == TP_TM_ONE_PLUS_N && (int_ms == 5 || int_ms == 10))) &&
-      (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3 || ctrl == TP_CTRL_FLL1_PLL2))
+      (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3))
     config->use_alias_detection = true;
   else
     config->use_alias_detection = false;
@@ -676,7 +676,6 @@ static const char *get_ctrl_str(tp_ctrl_e v)
   case TP_CTRL_PLL2: str = "PLL2"; break;
   case TP_CTRL_PLL3: str = "PLL3"; break;
   case TP_CTRL_FLL1: str = "FLL1"; break;
-  case TP_CTRL_FLL1_PLL2: str = "FLL1_PLL2"; break;
   case TP_CTRL_FLL2: str = "FLL2"; break;
   default: assert(false);
   }
