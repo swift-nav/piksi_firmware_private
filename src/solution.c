@@ -509,6 +509,14 @@ static void solution_thread(void *arg)
       p_nav_meas[i] = &nav_meas[i];
       ndb_ephemeris_read(meas[i].sid, &e_meas[i]);
       p_e_meas[i] = &e_meas[i];
+      if (get_ephemeris_update_flag(meas[i].sid)) {
+        // this ephemeris has updated since the last use,
+        // mark the measurement to have a cycle slip to stop it being
+        // used for TDCP computation (quick'n'dirty, TODO better fix)
+        meas[i].lock_counter++;
+        clean_ephemeris_update_flag(meas[i].sid);
+        log_info_sid(meas[i].sid, "Ephemeris changed, advancing lock counter");
+      }
     }
 
     /* Create navigation measurements from the channel measurements */
