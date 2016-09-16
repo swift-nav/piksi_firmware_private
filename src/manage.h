@@ -183,4 +183,11 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);
 
+/** Checks if SV is tracked
+ *
+ * \param sid Signal ID to check.
+ * \retval true sid is tracked
+ * \retval false sid is not tracked
+ */
+bool is_sid_tracked(gnss_signal_t sid);
 #endif
