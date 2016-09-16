@@ -22,21 +22,21 @@
  *
  * \param[in,out] s              Tracker state to reconfigure.
  * \param[in]     ctrl           Type of new controller.
- * \param[in]     loop_freq      Loop frequency for DLL/PLL.
+ * \param[in]     loop_freq      Loop frequency for DLL/PLL (Hz).
  * \param[in]     code_freq      DLL initial output frequency (chips/s).
- * \param[in]     code_bw        DLL filter one-sided bandwidth.
- * \param[in]     code_zeta      DLL filter damping factor.
- * \param[in]     code_k         DLL filter gain factor.
- * \param[in]     carr_to_code   Optional coefficient for using PLL/FLL output for
- *                               DLL assistance.
+ * \param[in]     code_bw        DLL filter one-sided bandwidth (Hz).
+ * \param[in]     code_zeta      DLL filter damping factor (unitless).
+ * \param[in]     code_k         DLL filter gain factor (unitless).
+ * \param[in]     carr_to_code   Optional coefficient for using PLL/FLL output
+ *                               for DLL assistance.
  * \param[in]     carr_freq      DLL(FLL) initial output frequency (Hz).
  * \param[in]     acceleration   PLL(FLL) initial acceleration (Hz/s).
- * \param[in]     carr_bw        PLL filter one-sided bandwidth.
- * \param[in]     carr_zeta      PLL filter damping factor.
- * \param[in]     carr_k         PLL filter gain factor.
- * \param[in]     freq_bw        FLL coefficient or noise bandwidth.
- * \param[in]     fll_loop_freq  FLL loop update rate (Hz)
- * \param[in]     fll_discr_freq FLL discriminator update rate.
+ * \param[in]     carr_bw        PLL filter one-sided bandwidth (Hz).
+ * \param[in]     carr_zeta      PLL filter damping factor (unitless).
+ * \param[in]     carr_k         PLL filter gain factor (unitless).
+ * \param[in]     freq_bw        FLL noise bandwidth (Hz).
+ * \param[in]     fll_loop_freq  Loop frequency for FLL (Hz).
+ * \param[in]     fll_discr_freq FLL discriminator update rate (Hz).
  *
  * \return None.
  */
@@ -74,10 +74,11 @@ void tp_tl_init(tp_tl_state_t *s,
     break;
 
   case TP_CTRL_PLL3:
-    tl_pll3_init(&s->pll3, loop_freq,
+    tl_pll3_init(&s->pll3,
+                 loop_freq,
+                 fll_loop_freq,
+                 fll_discr_freq,
                  code_freq,
-                 fll_loop_freq,
-                 fll_loop_freq,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
                  carr_freq,
@@ -96,19 +97,6 @@ void tp_tl_init(tp_tl_state_t *s,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
                  freq_bw, carr_zeta, carr_k);
-    break;
-
-  case TP_CTRL_FLL2_PLL3:
-    tl_fll2_pll3_init(&s->fll2_pll3,
-                      loop_freq,
-                      fll_loop_freq,
-                      fll_discr_freq,
-                      code_freq,
-                      carr_freq,
-                      code_bw, code_zeta, code_k,
-                      carr_to_code,
-                      carr_bw, carr_zeta, carr_k,
-                      freq_bw);
     break;
 
   case TP_CTRL_FLL2:
@@ -136,18 +124,18 @@ void tp_tl_init(tp_tl_state_t *s,
  *
  * \param[in,out] s              Tracker state to reconfigure.
  * \param[in]     ctrl           Type of new controller.
- * \param[in]     loop_freq      Loop frequency for DLL/PLL.
- * \param[in]     code_bw        DLL filter one-sided bandwidth.
- * \param[in]     code_zeta      DLL filter damping factor.
- * \param[in]     code_k         DLL filter gain factor.
+ * \param[in]     loop_freq      Loop frequency for DLL/PLL (Hz).
+ * \param[in]     code_bw        DLL filter one-sided bandwidth (Hz).
+ * \param[in]     code_zeta      DLL filter damping factor (unitless).
+ * \param[in]     code_k         DLL filter gain factor (unitless).
  * \param[in]     carr_to_code   Optional coefficient for using PLL/FLL output
  *                               for DLL assistance.
- * \param[in]     carr_bw        PLL filter one-sided bandwidth.
- * \param[in]     carr_zeta      PLL filter damping factor.
- * \param[in]     carr_k         PLL filter gain factor.
- * \param[in]     freq_bw        FLL coefficient or noise bandwidth.
- * \param[in]     fll_loop_freq  Loop frequency for FLL.
- * \param[in]     fll_discr_freq FLL discriminator update rate.
+ * \param[in]     carr_bw        PLL filter one-sided bandwidth (Hz).
+ * \param[in]     carr_zeta      PLL filter damping factor (unitless).
+ * \param[in]     carr_k         PLL filter gain factor (unitless).
+ * \param[in]     freq_bw        FLL coefficient or noise bandwidth (Hz).
+ * \param[in]     fll_loop_freq  Loop frequency for FLL (Hz).
+ * \param[in]     fll_discr_freq FLL discriminator update rate (Hz).
  *
  * \return None.
  */
@@ -174,7 +162,7 @@ void tp_tl_retune(tp_tl_state_t *s,
     case TP_CTRL_PLL3:
       tl_pll3_retune(&s->pll3, loop_freq,
                      fll_loop_freq,
-                     fll_loop_freq,
+                     fll_discr_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
@@ -188,16 +176,6 @@ void tp_tl_retune(tp_tl_state_t *s,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      freq_bw, carr_zeta, carr_k);
-      break;
-
-    case TP_CTRL_FLL2_PLL3:
-      tl_fll2_pll3_retune(&s->fll2_pll3, loop_freq,
-                          fll_loop_freq,
-                          fll_discr_freq,
-                          code_bw, code_zeta, code_k,
-                          carr_to_code,
-                          carr_bw, carr_zeta, carr_k,
-                          freq_bw);
       break;
 
     case TP_CTRL_FLL2:
@@ -260,10 +238,6 @@ void tp_tl_adjust(tp_tl_state_t *s, float err)
     tl_fll1_adjust(&s->fll1, err);
     break;
 
-  case TP_CTRL_FLL2_PLL3:
-    tl_fll2_pll3_adjust(&s->fll2_pll3, err);
-    break;
-
   case TP_CTRL_FLL2:
     tl_fll2_adjust(&s->fll2, err);
     break;
@@ -294,11 +268,6 @@ void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates)
 
   case TP_CTRL_FLL1:
     tl_fll1_get_rates(&s->fll1, rates);
-    break;
-
-  case TP_CTRL_FLL2_PLL3:
-    *carr_freq = s->fll2_pll3.carr_freq;
-    *code_freq = s->fll2_pll3.code_freq;
     break;
 
   case TP_CTRL_FLL2:
@@ -336,15 +305,11 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
     break;
 
   case TP_CTRL_PLL3:
-    tl_pll3_update(&s->pll3, cs2);
+    tl_pll3_update_dll(&s->pll3, cs2);
     break;
 
   case TP_CTRL_FLL1:
     tl_fll1_update_dll(&s->fll1, cs2);
-    break;
-
-  case TP_CTRL_FLL2_PLL3:
-    tl_fll2_pll3_update_dll(&s->fll2_pll3, cs2);
     break;
 
   case TP_CTRL_FLL2:
@@ -380,10 +345,6 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
     dll_error = tl_fll1_get_dll_error(&s->fll1);
     break;
 
-  case TP_CTRL_FLL2_PLL3:
-    dll_error = tl_fll2_pll3_get_dll_error(&s->fll2_pll3);
-    break;
-
   case TP_CTRL_FLL2:
     dll_error = tl_fll2_get_dll_error(&s->fll2);
     break;
@@ -408,7 +369,6 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
   case TP_CTRL_PLL3:
-  case TP_CTRL_FLL2_PLL3:
     return true;
 
   default:
@@ -438,15 +398,11 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
     break;
 
   case TP_CTRL_PLL3:
-    /* TODO: add support for PLL3 */
+    tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_FLL1:
     tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
-    break;
-
-  case TP_CTRL_FLL2_PLL3:
-    tl_fll2_pll3_discr_update(&s->fll2_pll3, cs.I, cs.Q, false);
     break;
 
   case TP_CTRL_FLL2:
@@ -479,15 +435,11 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
     break;
 
   case TP_CTRL_PLL3:
-    /* TODO: add support for PLL3 */
+    tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true);
     break;
 
   case TP_CTRL_FLL1:
     tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
-    break;
-
-  case TP_CTRL_FLL2_PLL3:
-    tl_fll2_pll3_discr_update(&s->fll2_pll3, cs.I, cs.Q, true);
     break;
 
   case TP_CTRL_FLL2:
@@ -520,15 +472,11 @@ void tp_tl_fll_update(tp_tl_state_t *s)
     break;
 
   case TP_CTRL_PLL3:
-    /* TODO: add support for PLL3 */
+    tl_pll3_update_fll(&s->pll3);
     break;
 
   case TP_CTRL_FLL1:
     tl_fll1_update_fll(&s->fll1);
-    break;
-
-  case TP_CTRL_FLL2_PLL3:
-    tl_fll2_pll3_update_fll(&s->fll2_pll3);
     break;
 
   case TP_CTRL_FLL2:
