@@ -26,4 +26,8 @@ enum ndb_op_code ndb_ephemeris_cache_update(ephemeris_t *cached_e,
                                             ndb_update_counter_t *uc) NDB_WEAK;
 
 void ndb_ephemeris_sbp_update();
+
+bool get_ephemeris_update_flag(gnss_signal_t sid);
+void clean_ephemeris_update_flag(gnss_signal_t sid);
+
 #endif /* SRC_NDB_EPHEMERIS_H_ */
