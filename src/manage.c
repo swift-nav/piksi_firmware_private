@@ -46,11 +46,12 @@
 #include "signal.h"
 #include "ndb.h"
 #include "shm.h"
+#include "reacq/reacq_api.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
  * Manage how acquisition searches are performed, with data from almanac if
- * available. Transition from acquisition search to initializization of an
+ * available. Transition from acquisition search to initialization of an
  * available tracking channel when a satellite is successfully found. Disable
  * tracking channels that have lost lock on their satellites.
  * \{ */
@@ -182,6 +183,7 @@ static void manage_acq_thread(void *arg)
   chRegSetThreadName("manage acq");
   while (TRUE) {
     manage_acq();
+    manage_reacq();
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
   }

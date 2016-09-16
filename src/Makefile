@@ -140,6 +140,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_lgf.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb.o \
         $(SWIFTNAV_ROOT)/src/shm.o \
+        $(SWIFTNAV_ROOT)/src/reacq/reacq_manage.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c
