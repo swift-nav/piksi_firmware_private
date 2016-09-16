@@ -64,7 +64,7 @@ void tp_tl_init(tp_tl_state_t *s,
     tl_pll2_init(&s->pll2,
                  loop_freq,
                  fll_loop_freq,
-                 fll_loop_freq,
+                 fll_discr_freq,
                  code_freq,
                  carr_freq,
                  code_bw, code_zeta, code_k,
@@ -164,7 +164,7 @@ void tp_tl_retune(tp_tl_state_t *s,
     case TP_CTRL_PLL2:
       tl_pll2_retune(&s->pll2, loop_freq,
                      fll_loop_freq,
-                     fll_loop_freq,
+                     fll_discr_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
@@ -407,7 +407,7 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
 {
   switch (s->ctrl) {
   case TP_CTRL_PLL2:
-  case TP_CTRL_PLL3
+  case TP_CTRL_PLL3:
   case TP_CTRL_FLL2_PLL3:
     return true;
 
