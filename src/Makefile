@@ -104,6 +104,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/cfs/cfs-coffee.o \
         $(SWIFTNAV_ROOT)/src/minIni/minIni.o \
         $(SWIFTNAV_ROOT)/src/minIni/minGlue.o \
+        $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp_fileio.o \
         $(SWIFTNAV_ROOT)/src/sbp_utils.o \
