@@ -898,7 +898,7 @@ static void solution_thread(void *arg)
           doppler = nm->raw_measured_doppler;
         }
 
-        nm->raw_carrier_phase += t_err * doppler;
+        nm->raw_carrier_phase -= t_err * doppler;
         /* Note, the pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
         nm->raw_pseudorange -= t_err * doppler *

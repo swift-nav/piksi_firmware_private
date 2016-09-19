@@ -890,7 +890,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
         sid = pub_data->gen_info.sid;
-        carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
+        carrier_phase_offset += code_to_carr_freq(sid.code) * dt;
         misc_info->carrier_phase_offset = carrier_phase_offset;
         adjusted = true;
       }

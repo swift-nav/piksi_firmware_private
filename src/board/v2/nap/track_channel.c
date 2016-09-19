@@ -108,7 +108,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   /* Schedule the timing strobe for start_sample_count. */
   track_count -= NAP_FRONTEND_SAMPLE_RATE_Hz / (2 * GPS_CA_CHIPPING_RATE);
-  
+
   s->count_snapshot = track_count;
   s->carrier_phase = -s->carr_pinc;
   s->carr_pinc_prev = s->carr_pinc;
@@ -173,7 +173,7 @@ void nap_track_read_results(u8 channel,
   u32 sample_count;
 
   nap_track_corr_rd_blocking(channel, &sample_count, corrs);
-  
+
   s->count_snapshot += sample_count;
   s->code_phase += (u64)sample_count * s->code_pinc_prev;
   s->carrier_phase += (s64)sample_count * s->carr_pinc_prev;
@@ -182,8 +182,8 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = s->count_snapshot;
   *code_phase_early = (double)s->code_phase /
                           NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
-  *carrier_phase = (double)s->carrier_phase /
-                       NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+  *carrier_phase = (double)(-s->carrier_phase /
+                       NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE);
 }
 
 void nap_track_disable(u8 channel)
@@ -194,4 +194,3 @@ void nap_track_disable(u8 channel)
 /** \} */
 
 /** \} */
-
