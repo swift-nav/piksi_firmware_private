@@ -23,7 +23,6 @@ static ndb_element_metadata_t iono_corr_md _CCM;
 
 static ndb_file_t iono_corr_file = {
   .name = IONO_CORR_FILE_NAME,
-  .fh = -1,
   .expected_size =
         sizeof(iono_corr)
       + sizeof(ndb_element_metadata_nv_t)

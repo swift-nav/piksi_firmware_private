@@ -18,8 +18,6 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/signal.h>
 #include <ch.h>
-#include <cfs/cfs-coffee.h>
-#include <cfs/cfs.h>
 #include "signal.h"
 
 enum ndb_op_code

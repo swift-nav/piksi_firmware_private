@@ -27,7 +27,6 @@ static ndb_element_metadata_t last_good_fix_md _CCM;
 
 static ndb_file_t lgf_file = {
   .name = LGF_FILE_NAME,
-  .fh = -1,
   .expected_size =
         sizeof(last_good_fix)
       + sizeof(ndb_element_metadata_nv_t)

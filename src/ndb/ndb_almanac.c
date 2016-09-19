@@ -28,7 +28,6 @@ static ndb_element_metadata_t ndb_almanac_md[PLATFORM_SIGNAL_COUNT] _CCM;
 
 static ndb_file_t ndb_alma_file = {
     .name = NDB_ALMA_FILE_NAME,
-    .fh = -1,
     .expected_size =
           sizeof(almanac_t) * PLATFORM_SIGNAL_COUNT
         + sizeof(ndb_element_metadata_nv_t) * PLATFORM_SIGNAL_COUNT
