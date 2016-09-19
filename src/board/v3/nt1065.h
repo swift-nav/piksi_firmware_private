@@ -20,6 +20,23 @@
  */
 bool nt1065_get_temperature(double* temperature);
 
+/** @brief read nt1065 AOK status
+ *    Checks if error in 
+ *      LPF auto-calibration
+ *      PLL Lock
+ *      IC standby mode
+ *
+ *  @return True if AOK status indicates no errors
+ */
+bool nt1065_check_aok_status(void);
+
+/** @brief read PLL status
+ *    Logs any error in PLL A or B
+ *
+ *  @return True if PLLs report no errors
+ */
+bool nt1065_check_plls(void);
+
 uint8_t nt1065_read_reg(uint8_t reg_addr);
 
 void nt1065_write_reg(uint8_t reg_addr, uint8_t value);

@@ -35,6 +35,7 @@
 #include "position.h"
 #include "base_obs.h"
 #include "ndb.h"
+#include "nt1065.h"
 
 #define WATCHDOG_THREAD_PERIOD_MS 15000
 extern const WDGConfig board_wdg_config;
@@ -43,12 +44,15 @@ extern const WDGConfig board_wdg_config;
 #define WATCHDOG_NOTIFY_FLAG_ALL \
             ((WATCHDOG_NOTIFY_FLAG(WD_NOTIFY_NUM_THREADS)) - 1)
 
+#define FRONTEND_AOK_ERROR_FLAG 1
+
 /* Time between sending system monitor and heartbeat messages in milliseconds */
 static uint32_t heartbeat_period_milliseconds = 1000;
 /* Use watchdog timer or not */
 static bool use_wdt = true;
 
 static u32 watchdog_notify_flags = 0;
+static u32 frontend_notify_flags = 0;
 
 /* Base station mode settings. */
 /* TODO: Relocate to a different file? */
@@ -242,7 +246,15 @@ static void watchdog_thread(void *arg)
     chSysLock();
     u32 threads_dead = watchdog_notify_flags ^ WATCHDOG_NOTIFY_FLAG_ALL;
     watchdog_notify_flags = 0;
+    bool frontend_aok_error = (frontend_notify_flags & FRONTEND_AOK_ERROR_FLAG) != 0;
+    frontend_notify_flags = 0;
     chSysUnlock();
+
+    if (frontend_aok_error) {
+      if (nt1065_check_plls()) {
+        log_error("nt1065 AOK failed with unknown cause");
+      }
+    }
 
     if (threads_dead) {
       /* TODO: ChibiOS thread state dump */
@@ -299,6 +311,15 @@ void watchdog_notify(watchdog_notify_t thread_id)
 {
   chSysLock();
   watchdog_notify_flags |= WATCHDOG_NOTIFY_FLAG(thread_id);
+  chSysUnlock();
+}
+
+/** Called by ISR for frontend AOK signal to notify error occured
+ **/
+void frontend_error_notify()
+{
+  chSysLock();
+  frontend_notify_flags |= FRONTEND_AOK_ERROR_FLAG;
   chSysUnlock();
 }
 
