@@ -76,7 +76,8 @@ void frontend_configure(void)
     spi_write(3, 0x01);
     spi_write(4, 0x03);
     spi_write(5, 0x00);
-    spi_write(6, 0b11101); //Ignore AGC errors for AOK indicator
+    /* Ignore AGC errors for AOK indicator */
+    spi_write(6, 0b11101);
     spi_write(9, 0x00);
     spi_write(11, 0x08);
     spi_write(12, 0x1C);
