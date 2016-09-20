@@ -77,7 +77,7 @@ endif
 #
 
 # Define project name here
-PROJECT = piksi_firmware
+PROJECT = piksi_firmware_$(PIKSI_TARGET)
 
 # Imported source files and paths
 CHIBIOS = ../ChibiOS

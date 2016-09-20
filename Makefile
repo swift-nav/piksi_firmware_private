@@ -22,18 +22,30 @@ ifeq ($(PIKSI_HW),)
   PIKSI_HW=v3
 endif
 
-MAKEFLAGS += PIKSI_HW=$(PIKSI_HW)
-
 ifeq ($(PIKSI_HW),v2)
-$(error PIKSI_HW=v2 is no longer supported.)
+	$(error PIKSI_HW=v2 is no longer supported.)
 endif
 
 ifeq ($(PIKSI_HW),v3)
 	CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
 	CMAKEFLAGS += -DMAX_CHANNELS=31
+
+	ifeq ($(PIKSI_REV),)
+		PIKSI_REV=microzed
+	endif
 endif
 
-BUILDFOLDER = build_$(PIKSI_HW)
+ifeq ($(PIKSI_REV),)
+	PIKSI_TARGET=$(PIKSI_HW)
+else
+	PIKSI_TARGET=$(PIKSI_HW)_$(PIKSI_REV)
+endif
+
+MAKEFLAGS += PIKSI_HW=$(PIKSI_HW)
+MAKEFLAGS += PIKSI_REV=$(PIKSI_REV)
+MAKEFLAGS += PIKSI_TARGET=$(PIKSI_TARGET)
+
+BUILDFOLDER = build_$(PIKSI_TARGET)
 MAKEFLAGS += BUILDFOLDER=$(BUILDFOLDER)
 
 LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
@@ -42,10 +54,10 @@ LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
 .PHONY: all tests firmware docs hitl_setup hitl .FORCE
 
 all: firmware # tests
-	@printf "BUILDING For target $(PIKSI_HW)\n"
+	@printf "BUILDING For target $(PIKSI_TARGET)\n"
 
 firmware: $(LIBSBP_BUILDDIR)/src/libsbp-static.a $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
-	@printf "BUILD   src for target $(PIKSI_HW)\n"; \
+	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) -r -C src $(MAKEFLAGS)
 
 tests:
@@ -57,13 +69,13 @@ tests:
 	done
 
 $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
-	@printf "BUILD   libsbp for target $(PIKSI_HW)\n"; \
+	@printf "BUILD   libsbp for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSBP_BUILDDIR); cd $(LIBSBP_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
 $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a: .FORCE
-	@printf "BUILD   libswiftnav for target $(PIKSI_HW)\n"; \
+	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) $(MAKEFLAGS)
