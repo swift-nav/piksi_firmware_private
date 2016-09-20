@@ -22,7 +22,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 
-#define NDB_ALMA_FILE_NAME   "alma"
+#define NDB_ALMA_FILE_NAME   "persistent/almanac"
 static almanac_t ndb_almanac[PLATFORM_SIGNAL_COUNT] _CCM;
 static ndb_element_metadata_t ndb_almanac_md[PLATFORM_SIGNAL_COUNT] _CCM;
 

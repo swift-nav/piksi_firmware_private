@@ -17,7 +17,7 @@
 #include "ndb.h"
 #include "ndb_internal.h"
 
-#define IONO_CORR_FILE_NAME "iono"
+#define IONO_CORR_FILE_NAME "persistent/iono"
 static ionosphere_t iono_corr _CCM;
 static ndb_element_metadata_t iono_corr_md _CCM;
 
