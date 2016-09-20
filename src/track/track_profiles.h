@@ -60,7 +60,7 @@ typedef struct
   float   carr_bw;            /**< Carrier tracking loop noise bandwidth in Hz */
   float   carr_zeta;          /**< Carrier tracking loop damping ratio */
   float   carr_k;             /**< Carrier tracking loop gain coefficient */
-  float   carr_fll_aid_gain;  /**< FLL assistance coefficient */
+  float   fll_bw;             /**< FLL BW */
   u8      coherent_ms;        /**< Coherent integration period in ms */
   tp_tm_e mode;               /**< Operation mode */
   tp_ctrl_e ctrl;             /**< Operation mode */
@@ -109,6 +109,7 @@ typedef struct
 {
   double code_phase_rate; /**< Code frequency in Hz */
   double carr_freq;       /**< Carrier frequency in Hz */
+  float  acceleration;    /**< Acceleration in Hz/s */
   float  cn0;             /**< Computed C/N0 (filtered) in dB/Hz */
   float  cn0_raw;         /**< Computed C/N0 (raw) in dB/Hz */
   u32    plock:1;         /**< Pessimistic lock flag */
@@ -143,7 +144,7 @@ tp_result_e tp_tracking_stop(gnss_signal_t sid);
 tp_result_e tp_get_profile(gnss_signal_t sid, tp_config_t *config, bool commit);
 tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params);
 bool        tp_has_new_profile(gnss_signal_t sid);
-const tp_loop_params_t *tp_get_next_loop_params(gnss_signal_t sid);
+u8          tp_get_next_loop_params_ms(gnss_signal_t sid);
 tp_result_e tp_report_data(gnss_signal_t sid, const tp_report_t *data);
 
 #ifdef __cplusplus
