@@ -178,8 +178,9 @@ static void tracker_gps_l1ca_update_parameters(
                l->code_bw, l->code_zeta, l->code_k,
                l->carr_to_code,
                common_data->carrier_freq,
+               0,               /* acceleration */
                l->carr_bw, l->carr_zeta, l->carr_k,
-               l->carr_fll_aid_gain, fll_loop_freq);
+               l->fll_bw, fll_loop_freq);
 
     lock_detect_init(&data->lock_detect,
                      ld->k1 * ld_int_ms,
@@ -197,7 +198,7 @@ static void tracker_gps_l1ca_update_parameters(
                  l->code_bw, l->code_zeta, l->code_k,
                  l->carr_to_code,
                  l->carr_bw, l->carr_zeta, l->carr_k,
-                 l->carr_fll_aid_gain, fll_loop_freq);
+                 l->fll_bw, fll_loop_freq);
 
     lock_detect_reinit(&data->lock_detect,
                        ld->k1 * ld_int_ms,
@@ -205,6 +206,9 @@ static void tracker_gps_l1ca_update_parameters(
                        ld->lp,
                        ld->lo);
   }
+
+  if (tp_tl_is_fll(&data->tl_state))
+    data->lock_detect.outp = false;
 
   if (init || cn0_ms != prev_cn0_ms) {
     tp_cn0_params_t cn0_params;
@@ -606,31 +610,13 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       tracker_correlations_send(channel_info->context, data->corrs.corr_epl.epl);
     }
 
-    if (data->has_next_params) {
-      /* Transitional state: when the next interval has a different integration
-       * period, the controller will give wrong correction. Due to that the
-       * input parameters are scaled to stabilize tracker.
-       */
-      const tp_loop_params_t *lp = tp_get_next_loop_params(channel_info->sid);
-      if (data->int_ms != lp->coherent_ms) {
-        /* TODO utilize noise bandwidth and damping ratio */
-        float k2 = (float)data->int_ms / lp->coherent_ms;
-        float k1 = sqrtf(k2);
-        for (u32 i = 0; i < 3; i++) {
-          data->corrs.corr_epl.epl[i].I *= k1;
-          data->corrs.corr_epl.epl[i].Q *= k2;
-        }
-      }
-    }
-
-    float carr_freq = 0;
-    float code_freq = 0;
+    tl_rates_t rates = {0};
 
     tp_tl_update(&data->tl_state, &data->corrs.corr_epl);
-    tp_tl_get_rates(&data->tl_state, &carr_freq, &code_freq);
+    tp_tl_get_rates(&data->tl_state, &rates);
 
-    common_data->carrier_freq = carr_freq;
-    common_data->code_phase_rate = code_freq + GPS_CA_CHIPPING_RATE;
+    common_data->carrier_freq = rates.carr_freq;
+    common_data->code_phase_rate = rates.code_freq + GPS_CA_CHIPPING_RATE;
 
 #if USE_DLL_ERROR
     float dll_err = tp_tl_get_dll_error(&data->tl_state);
@@ -657,6 +643,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 #endif /* USE_DLL_ERROR */
       report.sample_count = common_data->sample_count;
       report.time_ms = tp_get_dll_ms(data->tracking_mode, data->int_ms);
+      report.acceleration = rates.acceleration;
 
       tp_report_data(channel_info->sid, &report);
     }

@@ -82,7 +82,7 @@ static const struct fsm_states fsm_states = {
 
 static struct loop_params {
   float code_bw, code_zeta, code_k, carr_to_code;
-  float carr_bw, carr_zeta, carr_k, carr_fll_aid_gain;
+  float carr_bw, carr_zeta, carr_k, fll_bw;
   u8 coherent_ms;
 } loop_params_stage;
 
@@ -271,7 +271,7 @@ static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
                 l->carr_to_code,
                 common_data->carrier_freq,
                 l->carr_bw, l->carr_zeta, l->carr_k,
-                l->carr_fll_aid_gain);
+                l->fll_bw);
 
   float cn0 = 0;
   if (show_unconfirmed_trackers) {
@@ -493,7 +493,7 @@ static bool parse_loop_params(struct setting *s, const char *val)
   if (sscanf(str, "( %u ms , ( %f , %f , %f , %f ) , ( %f , %f , %f , %f ) ) ",
              &tmp,
              &l->code_bw, &l->code_zeta, &l->code_k, &l->carr_to_code,
-             &l->carr_bw, &l->carr_zeta, &l->carr_k, &l->carr_fll_aid_gain
+             &l->carr_bw, &l->carr_zeta, &l->carr_k, &l->fll_bw
              ) < 9) {
     log_error("Ill-formatted tracking loop param string: %20s", str);
     return false;

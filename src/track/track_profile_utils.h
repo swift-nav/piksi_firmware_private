@@ -72,24 +72,27 @@
 #define tl_pll2_adjust         aided_tl_fll1_pll2_adjust
 #define tl_pll2_get_dll_error  aided_tl_fll1_pll2_get_dll_error
 #define tl_pll2_discr_update   aided_tl_fll1_pll2_discr_update
+#define tl_pll2_get_rates      aided_tl_fll1_pll2_get_rates
 
-#if 0
-/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order */
+/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+   Note:
+   if boxcar implementation is needed, then the names
+   get extra (b) at the end:
+   aided_tl_state3(b)_t
+   aided_tl_init3(b)
+   aided_tl_retune3(b)
+   aided_tl_update3(b)
+   aided_tl_adjust3(b)
+   aided_tl_get_dll_error3(b)
+   aided_tl_get_rates3(b)
+*/
 #define tl_pll3_state_t        aided_tl_state3_t
 #define tl_pll3_init           aided_tl_init3
 #define tl_pll3_retune         aided_tl_retune3
-#define tl_pll3_update         aided_tl_update3
+#define tl_pll3_update         aided_tl_update_dll3
 #define tl_pll3_adjust         aided_tl_adjust3
 #define tl_pll3_get_dll_error  aided_tl_get_dll_error3
-#elif 1
-/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order */
-#define tl_pll3_state_t        aided_tl_state3b_t
-#define tl_pll3_init           aided_tl_init3b
-#define tl_pll3_retune         aided_tl_retune3b
-#define tl_pll3_update         aided_tl_update3b
-#define tl_pll3_adjust         aided_tl_adjust3b
-#define tl_pll3_get_dll_error  aided_tl_get_dll_error3b
-#endif
+#define tl_pll3_get_rates      aided_tl_get_rates3
 
 /*
  * Main tracking: FLL loop selection
@@ -104,6 +107,7 @@
 #define tl_fll1_adjust         aided_tl_fll1_adjust
 #define tl_fll1_get_dll_error  aided_tl_fll1_get_dll_error
 #define tl_fll1_discr_update   aided_tl_fll1_discr_update
+#define tl_fll1_get_rates      aided_tl_fll1_get_rates
 
 /* FLL-assisted DLL. FLL and DLL are both second order */
 #define tl_fll2_state_t        aided_tl_state_fll2_t
@@ -114,6 +118,7 @@
 #define tl_fll2_adjust         aided_tl_fll2_adjust
 #define tl_fll2_get_dll_error  aided_tl_fll2_get_dll_error
 #define tl_fll2_discr_update   aided_tl_fll2_discr_update
+#define tl_fll2_get_rates      aided_tl_fll2_get_rates
 
 /**
  * EPL accumulator structure.
@@ -206,6 +211,7 @@ void tp_tl_init(tp_tl_state_t *s,
                 float code_bw, float code_zeta, float code_k,
                 float carr_to_code,
                 float carr_freq,
+                float acceleration,
                 float carr_bw, float carr_zeta, float carr_k,
                 float freq_bw, float fll_loop_freq);
 
@@ -218,7 +224,7 @@ void tp_tl_retune(tp_tl_state_t *s,
                   float freq_bw, float fll_loop_freq);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
-void tp_tl_get_rates(tp_tl_state_t *s, float *carr_freq, float *code_freq);
+void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
