@@ -28,6 +28,8 @@
 #include "error.h"
 #include "frontend.h"
 #include "xadc.h"
+#include "nt1065.h"
+#include "system_monitor.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03050000U)
@@ -104,6 +106,9 @@ void init(void)
   nap_setup();
 
   frontend_configure();
+  if (!nt1065_check_aok_status()) {
+    frontend_error_notify();
+  }
   random_init();
   xadc_init();
 }

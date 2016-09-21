@@ -13,9 +13,11 @@
 
 #include <ch.h>
 #include <hal.h>
+#include <libswiftnav/logging.h>
 
 #include "frontend.h"
 #include "nt1065.h"
+#include "system_monitor.h"
 
 #define FRONTEND_SPI SPID2
 #define SPI_READ_MASK (1 << 7)
@@ -57,6 +59,14 @@ static u8 spi_read(u8 reg)
   return recv_buf[1];
 }
 
+static void frontend_isr(void *context)
+{
+  (void)context;
+  chSysLockFromISR();
+  frontend_error_notify();
+  chSysUnlockFromISR();
+}
+
 void frontend_configure(void)
 {
   frontend_open_spi();
@@ -66,7 +76,8 @@ void frontend_configure(void)
     spi_write(3, 0x01);
     spi_write(4, 0x03);
     spi_write(5, 0x00);
-    spi_write(6, 0x1F);
+    /* Ignore AGC errors for AOK indicator */
+    spi_write(6, 0b11101);
     spi_write(9, 0x00);
     spi_write(11, 0x08);
     spi_write(12, 0x1C);
@@ -169,6 +180,11 @@ void frontend_configure(void)
   spi_write(36, 0x0B);
 
   frontend_close_spi();
+
+  gic_handler_register(IRQ_ID_FRONTEND_AOK, frontend_isr, NULL);
+  gic_irq_sensitivity_set(IRQ_ID_FRONTEND_AOK, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_PRIORITY);
+  gic_irq_enable(IRQ_ID_FRONTEND_AOK);
 }
 
 void frontend_setup(void)
@@ -215,6 +231,44 @@ bool nt1065_get_temperature(double* temperature)
   *temperature = 27. - ((double)(temp_sensor - 551)) * 0.865;
 
   return true;
+}
+
+bool nt1065_check_plls()
+{
+  frontend_open_spi();
+  u8 pll_a_status = spi_read(44) & 7;
+  u8 pll_b_status = spi_read(48) & 7;
+  frontend_close_spi();
+
+  if (pll_a_status != 1 && pll_b_status != 1) {
+    if ((pll_a_status & 1) == 0) {
+      log_error("nt1065: PLL A not locked");
+    }
+    if (pll_a_status & 2) {
+      log_error("nt1065: PLL A VCO voltage above max bound");
+    }
+    if (pll_a_status & 4) {
+      log_error("nt1065: PLL A VCO voltage below min bound");
+    }
+    if ((pll_b_status & 1) == 0) {
+      log_error("nt1065: PLL B not locked");
+    }
+    if (pll_b_status & 2) {
+      log_error("nt1065: PLL B VCO voltage above max bound");
+    }
+    if (pll_b_status & 4) {
+      log_error("nt1065: PLL B VCO voltage below min bound");
+    }
+    return false;
+  }
+  
+  return true;
+}
+
+bool nt1065_check_aok_status()
+{
+  u8 reg7 = nt1065_read_reg(7);
+  return (reg7 & 0x10) != 0;
 }
 
 uint8_t nt1065_read_reg(uint8_t reg_addr)
