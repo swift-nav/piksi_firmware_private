@@ -64,6 +64,8 @@ static const char SBP_MODULE[] = "sbp";
 static u8 sbp_buffer[264];
 static u32 sbp_buffer_length;
 
+static MUTEX_DECL(sbp_cb_mutex);
+
 static WORKING_AREA_CCM(wa_sbp_thread, 7168);
 static void sbp_thread(void *arg)
 {
@@ -144,9 +146,11 @@ void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
                                    sbp_msg_callbacks_node_t *node,
                                    void *context)
 {
+  chMtxLock(&sbp_cb_mutex);
   sbp_register_callback(&uarta_sbp_state, msg_type, cb, context, node);
   sbp_register_callback(&uartb_sbp_state, msg_type, cb, context, node);
   sbp_register_callback(&ftdi_sbp_state , msg_type, cb, context, node);
+  chMtxUnlock(&sbp_cb_mutex);
 }
 
 void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb,
@@ -157,9 +161,11 @@ void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb,
 
 void sbp_remove_cbk(sbp_msg_callbacks_node_t *node)
 {
+  chMtxLock(&sbp_cb_mutex);
   sbp_remove_callback(&uarta_sbp_state, node);
   sbp_remove_callback(&uartb_sbp_state, node);
   sbp_remove_callback(&ftdi_sbp_state, node);
+  chMtxUnlock(&sbp_cb_mutex);
 }
 
 /** Disable the SBP interface.
