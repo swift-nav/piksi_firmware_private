@@ -53,6 +53,7 @@ static bool use_wdt = true;
 
 static u32 watchdog_notify_flags = 0;
 static u32 frontend_notify_flags = 0;
+static bool frontend_errors = false;
 
 /* Base station mode settings. */
 /* TODO: Relocate to a different file? */
@@ -88,6 +89,24 @@ void send_thread_states()
     tp = chRegNextThread(tp);
   }
   g_ctime = 0;
+}
+
+static void check_frontend_errors()
+{
+    if (!frontend_errors) {
+      chSysLock();
+      frontend_errors = (frontend_notify_flags & FRONTEND_AOK_ERROR_FLAG) != 0;
+      frontend_notify_flags = 0;
+      chSysUnlock();
+    }
+    if (frontend_errors) {
+      if (nt1065_check_aok_status()) {
+        log_info("nt1065 AOK error flag cleared");
+        frontend_errors = false;
+      } else if (nt1065_check_plls()) {
+        log_error("nt1065 AOK failed with unknown cause");
+      }
+    }
 }
 
 static THD_WORKING_AREA(wa_track_status_thread, 768);
@@ -207,6 +226,9 @@ static void system_monitor_thread(void *arg)
      board_send_state();
     );
 
+    DO_EVERY(3,
+     check_frontend_errors();
+    );
     sleep_until(&time, MS2ST(heartbeat_period_milliseconds));
   }
 }
@@ -246,15 +268,7 @@ static void watchdog_thread(void *arg)
     chSysLock();
     u32 threads_dead = watchdog_notify_flags ^ WATCHDOG_NOTIFY_FLAG_ALL;
     watchdog_notify_flags = 0;
-    bool frontend_aok_error = (frontend_notify_flags & FRONTEND_AOK_ERROR_FLAG) != 0;
-    frontend_notify_flags = 0;
     chSysUnlock();
-
-    if (frontend_aok_error) {
-      if (nt1065_check_plls()) {
-        log_error("nt1065 AOK failed with unknown cause");
-      }
-    }
 
     if (threads_dead) {
       /* TODO: ChibiOS thread state dump */
