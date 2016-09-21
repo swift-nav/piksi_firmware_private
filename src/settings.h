@@ -43,7 +43,7 @@ struct setting {
 
 #define SETTING_NOTIFY(section, name, var, type, notify) do {         \
   static struct setting setting = \
-    {(section), (name), &(var), sizeof(var), (notify), NULL, NULL, false}; \
+    {(section), (name), &(var), sizeof(var), (notify), NULL, NULL}; \
   settings_register(&(setting), (type)); \
 } while(0)
 
