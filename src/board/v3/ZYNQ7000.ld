@@ -82,6 +82,5 @@ SECTIONS {
 }
 
 __main_thread_stack_base__ = __stacks_base__;
-_ecoffee_fs_area = _coffee_fs_area + 524288;
 
 INCLUDE rules.ld
