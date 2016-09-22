@@ -9,21 +9,10 @@
   sudo: True
   apt: update_cache=yes
 
-- name: Install ARM GCC toolchain (Trusty)
-  sudo: True
-  shell: apt-get install gcc-arm-none-eabi=4.9.3.2015q2-1trusty1
-  when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == '14.04'
-
-- name: Install ARM GCC toolchain (Utopic)
-  sudo: True
-  shell: apt-get install gcc-arm-none-eabi=4.9.3.2014q4-0utopic12
-  when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == '14.10'
-
-- name: Install ARM GCC toolchain (all other Ubuntu distributions)
+- name: Install ARM GCC toolchain (all Ubuntu distributions)
   apt: pkg={{ item }} state=latest
   sudo: True
   ignore_errors: True
-  when: not (ansible_distribution_version == '14.04' or ansible_distribution_version == '14.10')
   with_items:
     - gcc-arm-embedded
 
