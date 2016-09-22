@@ -49,7 +49,7 @@ static void sbp_fileio_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   struct sbp_fileio_closure *closure = context;
   (void)sender_id;
 
-  if (*(uint32_t*)msg == closure->seq) {
+  if (((msg_fileio_write_resp_t*)msg)->sequence == closure->seq) {
     memcpy(closure->msg, msg, len);
     closure->len = len;
     chBSemSignal(&closure->sem);

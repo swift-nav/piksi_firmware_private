@@ -418,24 +418,6 @@ void log_obs_latency_tick()
 
 }
 
-static void sbp_wait_msg_cb(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id;
-  (void)len;
-  (void)msg;
-  chBSemSignal(context);
-}
-
-bool sbp_wait_msg(u16 msg_type, systime_t timeout)
-{
-  BSEMAPHORE_DECL(wait_sem, TRUE);
-  sbp_msg_callbacks_node_t node;
-  sbp_register_cbk_with_closure(msg_type, sbp_wait_msg_cb, &node, &wait_sem);
-  msg_t ret = chBSemWaitTimeout(&wait_sem, timeout);
-  sbp_remove_cbk(&node);
-  return ret == MSG_OK;
-}
-
 /** \} */
 
 /** \} */

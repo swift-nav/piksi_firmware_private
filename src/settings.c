@@ -199,6 +199,23 @@ void settings_setup(void)
   );
 }
 
+struct sbp_settings_closure {
+  binary_semaphore_t sem;
+  const void *prefix;
+  u8 prefix_len;
+};
+
+static void setting_reg_write_cb(u16 sender_id, u8 len, u8 msg[], void* context)
+{
+  struct sbp_settings_closure *c = context;
+  (void)sender_id;
+
+  if ((len < c->prefix_len) || (memcmp(c->prefix, msg, c->prefix_len) != 0))
+    return;
+
+  chBSemSignal(&c->sem);
+}
+
 void settings_register(struct setting *setting, enum setting_types type)
 {
   struct setting *s;
@@ -224,10 +241,23 @@ void settings_register(struct setting *setting, enum setting_types type)
   char buf[256];
   u8 buflen = settings_format_setting(setting, buf, sizeof(buf));
   u8 tries = 0;
+
+  /* Set up closure and callback for response */
+  struct sbp_settings_closure c = {
+    .prefix = buf,
+    .prefix_len = strlen(setting->section) + strlen(setting->name) + 1,
+  };
+  chBSemObjectInit(&c.sem, true);
+  sbp_msg_callbacks_node_t node;
+  sbp_register_cbk_with_closure(SBP_MSG_SETTINGS_WRITE,
+                                setting_reg_write_cb, &node, &c);
+
   do {
     sbp_send_msg(SBP_MSG_SETTINGS_REGISTER, buflen, (void*)buf);
-  } while (!sbp_wait_msg(SBP_MSG_SETTINGS_WRITE, SETTINGS_REGISTER_TIMEOUT) &&
+  } while ((chBSemWaitTimeout(&c.sem, SETTINGS_REGISTER_TIMEOUT) != MSG_OK) &&
            (++tries < SETTINGS_REGISTER_TRIES));
+
+  sbp_remove_cbk(&node);
 }
 
 static struct setting *settings_lookup(const char *section, const char *setting)
