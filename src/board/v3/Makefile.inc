@@ -88,6 +88,7 @@ BOARDSRC := \
         $(BOARDDIR)/acq.o \
         $(BOARDDIR)/usart_support.o \
         $(BOARDDIR)/xadc.o \
+        $(BOARDDIR)/factory_data.o \
         $(BOARDDIR)/nap/axi_dma.o \
         $(BOARDDIR)/nap/fft.o \
         $(BOARDDIR)/nap/nap_common.o \
