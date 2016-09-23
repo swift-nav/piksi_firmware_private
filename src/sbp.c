@@ -278,6 +278,8 @@ void sbp_process_messages()
 {
   s8 ret;
 
+  chMtxLock(&sbp_cb_mutex);
+
   uart_state_msg.uart_a.rx_buffer_level =
     MAX(uart_state_msg.uart_a.rx_buffer_level,
       (255 * usart_n_read(&uarta_state)) / SERIAL_BUFFERS_SIZE);
@@ -316,6 +318,8 @@ void sbp_process_messages()
     }
     usart_release(&ftdi_state);
   }
+
+  chMtxUnlock(&sbp_cb_mutex);
 }
 
 /** Directs printf's output to the SBP interface */
