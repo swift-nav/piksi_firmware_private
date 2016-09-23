@@ -16,12 +16,13 @@
 #include <libswiftnav/logging.h>
 
 #include "peripherals/usart.h"
-#include "minIni/minIni.h"
 #include "sbp.h"
 #include "settings.h"
 
 #define SETTINGS_FILE "config"
 
+#define SETTINGS_REGISTER_TIMEOUT 5000
+#define SETTINGS_REGISTER_TRIES   5
 
 static struct setting *settings_head;
 
@@ -29,6 +30,8 @@ static const char const * bool_enum[] = {"False", "True", NULL};
 static struct setting_type bool_settings_type;
 /* Bool type identifier can't be a constant because its allocated on setup. */
 int TYPE_BOOL = 0;
+
+static int settings_format_setting(struct setting *s, char *buf, int len);
 
 static int float_to_string(const void *priv, char *str, int slen, const void *blob, int blen)
 {
@@ -160,10 +163,8 @@ static const struct setting_type type_int = {
   int_to_string, int_from_string, NULL, NULL, &type_float,
 };
 
-static void settings_save_callback(u16 sender_id, u8 len, u8 msg[], void* context);
 static void settings_write_callback(u16 sender_id, u8 len, u8 msg[], void* context);
 static void settings_read_callback(u16 sender_id, u8 len, u8 msg[], void* context);
-static void settings_read_by_index_callback(u16 sender_id, u8 len, u8 msg[], void* context);
 
 int settings_type_register_enum(const char * const enumnames[], struct setting_type *type)
 {
@@ -184,12 +185,6 @@ void settings_setup(void)
 {
   TYPE_BOOL = settings_type_register_enum(bool_enum, &bool_settings_type);
 
-  static sbp_msg_callbacks_node_t settings_save_node;
-  sbp_register_cbk(
-    SBP_MSG_SETTINGS_SAVE,
-    &settings_save_callback,
-    &settings_save_node
-  );
   static sbp_msg_callbacks_node_t settings_write_node;
   sbp_register_cbk(
     SBP_MSG_SETTINGS_WRITE,
@@ -202,12 +197,23 @@ void settings_setup(void)
     &settings_read_callback,
     &settings_read_node
   );
-  static sbp_msg_callbacks_node_t settings_read_by_index_node;
-  sbp_register_cbk(
-    SBP_MSG_SETTINGS_READ_BY_INDEX_REQ,
-    &settings_read_by_index_callback,
-    &settings_read_by_index_node
-  );
+}
+
+struct sbp_settings_closure {
+  binary_semaphore_t sem;
+  const void *prefix;
+  u8 prefix_len;
+};
+
+static void setting_reg_write_cb(u16 sender_id, u8 len, u8 msg[], void* context)
+{
+  struct sbp_settings_closure *c = context;
+  (void)sender_id;
+
+  if ((len < c->prefix_len) || (memcmp(c->prefix, msg, c->prefix_len) != 0))
+    return;
+
+  chBSemSignal(&c->sem);
 }
 
 void settings_register(struct setting *setting, enum setting_types type)
@@ -231,16 +237,27 @@ void settings_register(struct setting *setting, enum setting_types type)
     setting->next = s->next;
     s->next = setting;
   }
-  char buf[128];
-  ini_gets(setting->section, setting->name, "", buf, sizeof(buf), SETTINGS_FILE);
-  if (buf[0] == 0) {
-    setting->type->to_string(setting->type->priv, buf, sizeof(buf),
-                             setting->addr, setting->len);
-    setting->notify(setting, buf);
-  } else {
-    *strchr(buf, '\n') = '\0';
-    setting->dirty = setting->notify(setting, buf);
-  }
+  /* Register setting with daemon */
+  char buf[256];
+  u8 buflen = settings_format_setting(setting, buf, sizeof(buf));
+  u8 tries = 0;
+
+  /* Set up closure and callback for response */
+  struct sbp_settings_closure c = {
+    .prefix = buf,
+    .prefix_len = strlen(setting->section) + strlen(setting->name) + 1,
+  };
+  chBSemObjectInit(&c.sem, true);
+  sbp_msg_callbacks_node_t node;
+  sbp_register_cbk_with_closure(SBP_MSG_SETTINGS_WRITE,
+                                setting_reg_write_cb, &node, &c);
+
+  do {
+    sbp_send_msg(SBP_MSG_SETTINGS_REGISTER, buflen, (void*)buf);
+  } while ((chBSemWaitTimeout(&c.sem, SETTINGS_REGISTER_TIMEOUT) != MSG_OK) &&
+           (++tries < SETTINGS_REGISTER_TRIES));
+
+  sbp_remove_cbk(&node);
 }
 
 static struct setting *settings_lookup(const char *section, const char *setting)
@@ -345,7 +362,10 @@ static void settings_write_callback(u16 sender_id, u8 len, u8 msg[], void* conte
     log_error("Error in settings write message");
     return;
   }
-  s->dirty = true;
+
+  char buf[256];
+  u8 buflen = settings_format_setting(s, buf, sizeof(buf));
+  sbp_send_msg(SBP_MSG_SETTINGS_READ_RESP, buflen, (void*)buf);
   return;
 }
 
@@ -403,80 +423,5 @@ static void settings_read_callback(u16 sender_id, u8 len, u8 msg[], void* contex
   buflen = settings_format_setting(s, buf, sizeof(buf));
   sbp_send_msg(SBP_MSG_SETTINGS_READ_RESP, buflen, (void*)buf);
   return;
-}
-
-static void settings_read_by_index_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void) context;
-
-  if (sender_id != SBP_SENDER_ID) {
-    log_error("Invalid sender");
-    return;
-  }
-
-  struct setting *s = settings_head;
-  char buf[256];
-  u8 buflen = 0;
-
-  if (len != 2) {
-    log_error("Invalid length for settings read by index!");
-    return;
-  }
-  u16 index = (msg[1] << 8) | msg[0];
-
-  for (int i = 0; (i < index) && s; i++, s = s->next)
-    ;
-
-  if (s == NULL) {
-    sbp_send_msg(SBP_MSG_SETTINGS_READ_BY_INDEX_DONE, 0, NULL);
-    return;
-  }
-
-  /* build and send reply */
-  buf[buflen++] = msg[0];
-  buf[buflen++] = msg[1];
-  buflen += settings_format_setting(s, buf + buflen, sizeof(buf) - buflen);
-  sbp_send_msg(SBP_MSG_SETTINGS_READ_BY_INDEX_RESP, buflen, (void*)buf);
-}
-
-static void settings_save_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  int f = cfs_open(SETTINGS_FILE, CFS_WRITE);
-  const char *sec = NULL;
-  char buf[128];
-  int i;
-
-  (void)sender_id; (void) context; (void)len; (void)msg;
-
-  if (f == -1) {
-    log_error("Error opening config file!");
-    return;
-  }
-
-  for (struct setting *s = settings_head; s; s = s->next) {
-    /* Skip unchanged parameters */
-    if (!s->dirty)
-      continue;
-
-    if ((sec == NULL) || (strcmp(s->section, sec) != 0)) {
-      /* New section, write section header */
-      sec = s->section;
-      i = snprintf(buf, sizeof(buf), "[%s]\n", sec);
-      if (cfs_write(f, buf, i) != i) {
-        log_error("Error writing to config file!");
-      }
-    }
-
-    /* Write setting */
-    i = snprintf(buf, sizeof(buf), "%s=", s->name);
-    i += s->type->to_string(s->type->priv, &buf[i], sizeof(buf) - i - 1, s->addr, s->len);
-    buf[i++] = '\n';
-    if (cfs_write(f, buf, i) != i) {
-      log_error("Error writing to config file!");
-    }
-  }
-
-  cfs_close(f);
-  log_info("Wrote settings to config file.");
 }
 

@@ -39,8 +39,6 @@
 #include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "cfs/cfs.h"
-#include "cfs/cfs-coffee.h"
 #include "./system_monitor.h"
 #include "settings.h"
 #include "signal.h"

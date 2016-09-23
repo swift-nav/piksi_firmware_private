@@ -20,6 +20,8 @@
 #include "3drradio.h"
 #include "../settings.h"
 
+static const char RADIO_MODULE[] = __FILE__;
+
 #define WAIT_FOR_3DR_MS 1200
 #define WAIT_BETWEEN_COMMANDS 500
 #define WAIT_BETWEEN_BYTES 100
@@ -52,6 +54,9 @@ void radio_preconfigure_hook(enum uart u, u32 default_baud, char* uart_name)
   u8 baud_index = 0;
   u32 baud_rate = 0;
 
+  if (!usart_claim(uart_state(u), RADIO_MODULE))
+    return;
+  
   /* First we attempt to find a radio at all possible baudrates */
 
   while (!found_radio && baud_index < (sizeof(baud_rates)/sizeof(baud_rates[0]))) {
@@ -97,6 +102,7 @@ void radio_preconfigure_hook(enum uart u, u32 default_baud, char* uart_name)
   /* Reset the UART to the original baudrate. */
   usart_support_set_parameters(uart_state(u)->sd, default_baud);
 
+  usart_release(uart_state(u));
 }
 
 void radio_setup()
