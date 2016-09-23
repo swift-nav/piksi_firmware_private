@@ -19,11 +19,9 @@
 #include "nt1065.h"
 #include "system_monitor.h"
 
-#define FRONTEND_SPI SPID2
 #define SPI_READ_MASK (1 << 7)
 
-const SPIConfig spi_config = {0, SPI_MODE_0,
-                              SPI_CLK_DIV_16, SPI_SS_GPIO_LINE};
+static const SPIConfig spi_config = FRONTEND_SPI_CONFIG;
 
 static void frontend_open_spi(void)
 {

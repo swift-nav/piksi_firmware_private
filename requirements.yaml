@@ -5,8 +5,10 @@
     -
       prefix: v3
       files:
-        - piksi_firmware.elf
-        - piksi_firmware.hex
+        - piksi_firmware_v3_evt1.elf
+        - piksi_firmware_v3_evt1.hex
+        - piksi_firmware_v3_microzed.elf
+        - piksi_firmware_v3_microzed.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -28,8 +30,8 @@
     -
       prefix: v3
       files:
-        - piksi_firmware.elf
-        - piksi_firmware.hex
+        - piksi_firmware_v3_evt1.elf
+        - piksi_firmware_v3_evt1.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -50,8 +52,8 @@
     -
       prefix: v3
       files:
-        - piksi_firmware.elf
-        - piksi_firmware.hex
+        - piksi_firmware_v3_microzed.elf
+        - piksi_firmware_v3_microzed.hex
   artifacts:
     -
       bucket: swiftnav-artifacts

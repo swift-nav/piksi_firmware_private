@@ -1,4 +1,8 @@
 
+ifeq ($(PIKSI_REV),)
+  PIKSI_REV=microzed
+endif
+
 USE_OPT += -mfpu=neon -mfloat-abi=hard
 
 ##############################################################################
@@ -54,15 +58,17 @@ endif
 # Project, sources and paths
 #
 
+include $(SWIFTNAV_ROOT)/src/board/v3/$(PIKSI_REV)/Makefile.inc
+
 include $(CHIBIOS)/os/common/ports/ARM/compilers/GCC/mk/startup_zynq7000.mk
 include $(CHIBIOS)/os/hal/ports/ZYNQ7000/platform.mk
 include $(CHIBIOS)/os/rt/ports/ARM/compilers/GCC/mk/port_generic.mk
 
 BOARDDIR := $(SWIFTNAV_ROOT)/src/board/v3
-BOARDINC := $(BOARDDIR)
+BOARDINC := $(REVINC) $(BOARDDIR)
 
 BOARDSRC := \
-        $(BOARDDIR)/board.o \
+        $(REVSRC) \
         $(BOARDDIR)/cfs-coffee-arch.o \
         $(BOARDDIR)/error.o \
         $(BOARDDIR)/frontend.o \
@@ -84,6 +90,7 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_l2c_capb.o \
 
 BOARDASM := \
+        $(REVASM) \
         $(BOARDDIR)/cpu_init.s \
         $(BOARDDIR)/mmu_table.s \
         $(BOARDDIR)/error_asm.s \
