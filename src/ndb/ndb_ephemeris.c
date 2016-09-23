@@ -24,6 +24,9 @@
 
 #define NDB_EPHE_FILE_NAME   "ephe"
 
+static MUTEX_DECL(ephe_change_acc);
+static bool ndb_ephemeris_changed[PLATFORM_SIGNAL_COUNT];
+
 static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT] _CCM;
 static ndb_element_metadata_t ndb_ephemeris_md[PLATFORM_SIGNAL_COUNT];
 static ndb_file_t ndb_ephe_file = {
@@ -64,6 +67,8 @@ void ndb_ephemeris_init()
 
   ndb_load_data(&ndb_ephe_file, "ephemeris", ndb_ephemeris, ndb_ephemeris_md,
                 sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
+
+  memset(ndb_ephemeris_changed, 0, sizeof(ndb_ephemeris_changed));
 }
 
 enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
@@ -195,8 +200,13 @@ enum ndb_op_code ndb_ephemeris_store(ephemeris_t *e, enum ndb_data_source src)
         return NDB_ERR_NONE;
       case EPHE_NEW_TRUSTED:
       {
+        enum ndb_op_code r;
         u16 idx = sid_to_global_index(e->sid);
-        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+        chMtxLock(&ephe_change_acc);
+        ndb_ephemeris_changed[idx] = true;
+        r = ndb_update(e, src, &ndb_ephemeris_md[idx]);
+        chMtxUnlock(&ephe_change_acc);
+        return r;
       }
       case EPHE_NEW_CANDIDATE:
       case EPHE_CAND_MISMATCH:
@@ -280,4 +290,23 @@ void ndb_ephemeris_sbp_update()
   }
 
   count++;
+}
+
+
+bool get_ephemeris_update_flag(gnss_signal_t sid)
+{
+  bool r;
+  u16 idx = sid_to_global_index(sid);
+  chMtxLock(&ephe_change_acc);
+  r = ndb_ephemeris_changed[idx];
+  chMtxUnlock(&ephe_change_acc);
+  return r;
+}
+
+void clean_ephemeris_update_flag(gnss_signal_t sid)
+{
+  u16 idx = sid_to_global_index(sid);
+  chMtxLock(&ephe_change_acc);
+  ndb_ephemeris_changed[idx] = false;
+  chMtxUnlock(&ephe_change_acc);
 }
