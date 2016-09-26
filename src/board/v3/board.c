@@ -24,14 +24,6 @@
 #include "board/v3/xadc.h"
 #include "board/v3/nt1065.h"
 
-#define LED_GPIO_LINE PAL_LINE(GPIO1, 15)
-#define BUTTON_GPIO_LINE PAL_LINE(GPIO1, 19)
-
-#define SPI_MOSI_GPIO_LINE PAL_LINE(GPIO0, 10)
-#define SPI_MISO_GPIO_LINE PAL_LINE(GPIO0, 11)
-#define SPI_CLK_GPIO_LINE PAL_LINE(GPIO0, 12)
-#define SPI_SS_GPIO_LINE PAL_LINE(GPIO0, 13)
-
 #define REBOOT_STATUS (*(volatile uint32_t *)0xF8000258)
 #define REBOOT_STATUS_POR (1 << 22)
 #define REBOOT_STATUS_SRST (1 << 21)
@@ -63,52 +55,7 @@ static void cycle_counter_init(void)
  */
 void boardInit(void)
 {
-  /* Unlock SLCR */
-  *(volatile uint32_t *)0xF8000008 = 0xDF0D;
-
-  /* Enable UART0 and UART1 clocks */
-  *(volatile uint32_t *)0xF800012C |= (1 << 20) | (1 << 21);
-
-  /* UART REFCLK = 1GHz / 20 = 50MHz */
-  *(volatile uint32_t *)0xF8000154 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000154 |= (20 << 8);
-  *(volatile uint32_t *)0xF8000154 |= (1 << 0) | (1 << 1);
-
-  /* Enable SPI0 and SPI1 clocks */
-  *(volatile uint32_t *)0xF800012C |= (1 << 14) | (1 << 15);
-
-  /* SPI REFCLK = 1GHz / 20 = 50MHz */
-  *(volatile uint32_t *)0xF8000158 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000158 |= (20 << 8);
-  *(volatile uint32_t *)0xF8000158 |= (1 << 0) | (1 << 1);
-
-  /* PCAP CLK = 1GHz / 5 = 200MHz */
-  *(volatile uint32_t *)0xF8000168 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000168 |= (5 << 8);
-  *(volatile uint32_t *)0xF8000168 |= (1 << 0);
-
-  /* Assert FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0xf;
-
-  /* FPGA_CLK0 = 1GHz / 10 = 100MHz */
-  *(volatile uint32_t *)0xF8000170 &= ~(0x3F << 20);
-  *(volatile uint32_t *)0xF8000170 |= (1 << 20);
-  *(volatile uint32_t *)0xF8000170 &= ~(0x3F << 8);
-  *(volatile uint32_t *)0xF8000170 |= (10 << 8);
-
-  /* Release FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0x0;
-
-  /* Configure button and LED pins */
-  palSetLineMode(BUTTON_GPIO_LINE, PAL_MODE_INPUT);
-  palSetLineMode(LED_GPIO_LINE, PAL_MODE_OUTPUT_PUSHPULL);
-
-  /* Configure frontend SPI pins */
-  palSetLineMode(SPI_MOSI_GPIO_LINE, PAL_MODE_CUSTOM(PAL_DIR_PERICTRL, PAL_PULL_NONE, PAL_SPEED_SLOW, PAL_PIN_FUNCTION(5 << 4)));
-  palSetLineMode(SPI_MISO_GPIO_LINE, PAL_MODE_CUSTOM(PAL_DIR_INPUT, PAL_PULL_NONE, PAL_SPEED_SLOW, PAL_PIN_FUNCTION(5 << 4)));
-  palSetLineMode(SPI_CLK_GPIO_LINE, PAL_MODE_CUSTOM(PAL_DIR_PERICTRL, PAL_PULL_NONE, PAL_SPEED_SLOW, PAL_PIN_FUNCTION(5 << 4)));
-  palSetLineMode(SPI_SS_GPIO_LINE, PAL_MODE_OUTPUT_PUSHPULL);
-
+  boardRevInit();
   cycle_counter_init();
 }
 
@@ -124,7 +71,6 @@ void board_preinit_hook(void)
     log_info("Reset reason: %02X", s >> 16);
   }
   REBOOT_STATUS &= 0xff000000;
-
 }
 
 void board_send_state(void)
@@ -144,4 +90,3 @@ void board_send_state(void)
 
   sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
 }
-
