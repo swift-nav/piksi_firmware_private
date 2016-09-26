@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Swift Navigation Inc.
+ * Copyright (C) 2014-2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -488,15 +488,6 @@ static void solution_thread(void *arg)
     for (u8 i=0; i<n_ready; i++)
       sid_set_add(&codes_in_track, meas[i].sid);
 
-    if (sid_set_get_sat_count(&codes_in_track) < 4) {
-      /* Not enough sats, keep on looping. */
-      continue;
-    }
-
-    /* Got enough sats/ephemerides, do a solution. */
-    /* TODO: Instead of passing 32 LSBs of nap_timing_count do something
-     * more intelligent with the solution time.
-     */
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
     const channel_measurement_t *p_meas[n_ready];
     navigation_measurement_t *p_nav_meas[n_ready];
@@ -535,9 +526,35 @@ static void solution_thread(void *arg)
     static u8 n_ready_old = 0;
     static navigation_measurement_t nav_meas_old[MAX_CHANNELS];
     static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
-    u8 n_ready_tdcp = tdcp_doppler(n_ready, nav_meas, n_ready_old,
-                                   nav_meas_old, nav_meas_tdcp,
-                                   (double)(rec_tc - rec_tc_old) / NAP_FRONTEND_SAMPLE_RATE_Hz);
+
+    double rec_tc_delta = (double) (rec_tc - rec_tc_old)
+                                  / NAP_FRONTEND_SAMPLE_RATE_Hz;
+    u8 n_ready_tdcp;
+    if (!clock_jump
+        && time_quality == TIME_FINE
+        && rec_tc_delta < 2 / soln_freq) {
+
+      /* Form TDCP Dopplers only if the clock has not just been adjusted,
+       * and the old measurements are at most one solution cycle old. */
+      n_ready_tdcp = tdcp_doppler(n_ready, nav_meas, n_ready_old, nav_meas_old,
+          nav_meas_tdcp, rec_tc_delta);
+
+    } else {
+
+      /* Pass the nav_meas with the measured Dopplers as is */
+      memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
+      n_ready_tdcp = n_ready;
+
+      /* Log the reason */
+      if (clock_jump) {
+        log_warn(
+          "Clock jumped from last epoch, skipping TDCP computation");
+      } else if (rec_tc_delta >= 2 / soln_freq) {
+        log_warn(
+          "Time from last measurements %f seconds, skipping TDCP computation",
+          rec_tc_delta);
+      }
+    }
 
     /* Store current observations for next time for
      * TDCP Doppler calculation. */
@@ -609,17 +626,8 @@ static void solution_thread(void *arg)
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
       set_time_fine(rec_tc, lgf.position_solution.time);
-      continue;
-    }
-
-    /* Calculate the receiver clock error and if >1ms perform a clock jump */
-    double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
-    log_debug("RX clock error = %f", rx_err);
-    clock_jump = FALSE;
-    if (fabs(rx_err) >= 1e-3) {
-    log_info("RX clock error %f > 1ms, resetting!", rx_err);
-      set_time_fine(rec_tc, lgf.position_solution.time);
       clock_jump = TRUE;
+      continue;
     }
 
     /* Update global position solution state. */
@@ -749,6 +757,16 @@ static void solution_thread(void *arg)
         /* Send the observations. */
         send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
       }
+    }
+
+    /* Calculate the receiver clock error and if >1ms perform a clock jump */
+    double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
+    log_debug("RX clock error = %f", rx_err);
+    clock_jump = FALSE;
+    if (fabs(rx_err) >= 1e-3) {
+      log_info("RX clock error %f > 1ms, resetting!", rx_err);
+      set_time_fine(rec_tc, lgf.position_solution.time);
+      clock_jump = TRUE;
     }
 
     /* Calculate time till the next desired solution epoch. */
