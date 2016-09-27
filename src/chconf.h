@@ -28,6 +28,10 @@
 #ifndef _CHCONF_H_
 #define _CHCONF_H_
 
+#ifndef _FROM_ASM_
+#include "error.h"
+#endif
+
 /*===========================================================================*/
 /**
  * @name System timers settings
@@ -460,6 +464,7 @@
  */
 #define CH_CFG_SYSTEM_HALT_HOOK(reason) {                                   \
   /* System halt code here.*/                                               \
+  screaming_death(reason);                                                  \
 }
 
 /** @} */
