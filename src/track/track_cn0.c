@@ -25,33 +25,23 @@
  *
  * For N=72 Alpha=0.016(6)
  * For N=200 Alpha=0.0055(5)
+ * For N=24 Alpha=0.05(3)
  */
-#define CN0_EST_LPF_ALPHA     (.0167f)
+#define CN0_EST_LPF_ALPHA     (.05f)
 /** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
-#define CN0_EST_LPF_CUTOFF_HZ (.1f)
-/** C/N0 LPF cutoff frequency computed from C/N0 ms to make C/N0 faster when
- * signals are strong. */
-#define CN0_EST_LPF_IT_CUTOFF_HZ(ms) (CN0_EST_LPF_CUTOFF_HZ * expf((ms) / -20.f))
-/** C/N0 LPF cutoff frequency computed from C/N0 ms to make C/N0 faster when
- * signals are strong. This is fast alternative. */
-#define CN0_EST_LPF_IT_FAST_CUTOFF_HZ(ms) \
-  (CN0_EST_LPF_CUTOFF_HZ * expf((ms) / -20.f + 1.9f))
+#define CN0_EST_LPF_CUTOFF_HZ (.065f)
 
 #define INTEG_PERIOD_1_MS  1
 #define INTEG_PERIOD_5_MS  5
 #define INTEG_PERIOD_10_MS 10
 #define INTEG_PERIOD_20_MS 20
 
-/** Mask for faster filter */
-#define INTEG_PERIOD_FAST_MASK 0x80u
-
 static const u8 cn0_configs[] = {
   INTEG_PERIOD_1_MS,
   INTEG_PERIOD_5_MS,
   INTEG_PERIOD_10_MS,
-  INTEG_PERIOD_20_MS,
-  INTEG_PERIOD_20_MS | INTEG_PERIOD_FAST_MASK
+  INTEG_PERIOD_20_MS
 };
 
 #define INTEG_PERIODS_NUM (sizeof(cn0_configs) / \
@@ -67,23 +57,14 @@ static track_cn0_params_t cn0_est_pre_computed[INTEG_PERIODS_NUM] PLATFORM_CN0_D
 void track_cn0_params_init(void)
 {
   for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
-    bool fast_mask = (0 != (cn0_configs[i] & INTEG_PERIOD_FAST_MASK));
-    u8 actual_ms = cn0_configs[i] & ~INTEG_PERIOD_FAST_MASK;
-
-    float cutoff_freq = 1;
-    if (fast_mask)
-      cutoff_freq = CN0_EST_LPF_IT_FAST_CUTOFF_HZ(actual_ms);
-    else
-      cutoff_freq = CN0_EST_LPF_IT_CUTOFF_HZ(actual_ms);
-
-    float loop_freq = 1e3f / actual_ms;
+    float loop_freq = 1e3f / cn0_configs[i];
     cn0_est_compute_params(&cn0_est_pre_computed[i].est_params,
                            PLATFORM_CN0_EST_BW_HZ,
                            CN0_EST_LPF_ALPHA,
                            loop_freq);
     cn0_est_pre_computed[i].est_params.t_int = cn0_configs[i];
     cn0_filter_compute_params(&cn0_est_pre_computed[i].filter_params,
-                              cutoff_freq,
+                              CN0_EST_LPF_CUTOFF_HZ,
                               loop_freq);
   }
 }
@@ -163,20 +144,15 @@ static float update_estimator(track_cn0_state_t *e,
  * \param[in]     cn0_ms Estimator update period.
  * \param[in,out] p      Parameter buffer to use if precomputed parameters are
  *                       not available.
- * \param[in]     flags  Tuning flags.
  *
  * \return Precomputed parameter entry or \a p populated with appropriate
  *         parameters if precomputed entry is not available.
  */
 static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
-                                                      track_cn0_params_t *p,
-                                                      u8 flags)
+                                                      track_cn0_params_t *p)
 {
   const track_cn0_params_t *pparams = NULL;
   u8 config_key = cn0_ms;
-
-  if (0 != (flags & TRACK_CN0_FLAG_FAST_TYPE))
-    config_key |= INTEG_PERIOD_FAST_MASK;
 
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     if (config_key == cn0_configs[i]) {
@@ -193,10 +169,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
     p->est_params.t_int = cn0_ms;
 
     float cutoff_freq = 1;
-    if (0 != (flags & TRACK_CN0_FLAG_FAST_TYPE))
-      cutoff_freq = CN0_EST_LPF_IT_FAST_CUTOFF_HZ(cn0_ms);
-    else
-      cutoff_freq = CN0_EST_LPF_IT_CUTOFF_HZ(cn0_ms);
+    cutoff_freq = CN0_EST_LPF_CUTOFF_HZ;
 
     cn0_filter_compute_params(&p->filter_params,
                               cutoff_freq,
@@ -232,7 +205,7 @@ void track_cn0_init(gnss_signal_t sid,
   e->flags = flags;
   e->cn0_ms = cn0_ms;
 
-  const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p, e->flags);
+  const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
   init_estimator(e, &pp->est_params, TRACK_CN0_EST_PRIMARY, cn0_0);
   init_estimator(e, &pp->est_params, TRACK_CN0_EST_SECONDARY, cn0_0);
@@ -262,7 +235,7 @@ float track_cn0_update(gnss_signal_t sid,
                        float I, float Q)
 {
   track_cn0_params_t p;
-  const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p, e->flags);
+  const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
   float cn0 = 0;
 
   if (e->type != t) {

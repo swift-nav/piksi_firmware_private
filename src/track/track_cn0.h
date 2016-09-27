@@ -26,7 +26,7 @@
 #define TRACK_CN0_FLAG_FAST_TYPE (0x80u)
 
 /** C/N0 level above which primary estimator shall be used */
-#define TRACK_CN0_SEC2PRI_THRESHOLD  TRACK_CN0_ADJUST(45.f)
+#define TRACK_CN0_SEC2PRI_THRESHOLD  TRACK_CN0_ADJUST(32.f)
 /** C/N0 level below which secondary estimator shall be used */
 #define TRACK_CN0_PRI2SEC_THRESHOLD  (TRACK_CN0_SEC2PRI_THRESHOLD - 4.f)
 
