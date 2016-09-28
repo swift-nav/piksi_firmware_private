@@ -230,7 +230,7 @@ static const tp_loop_params_t loop_params_template = {
   /** Code tracking noise bandwidth in Hz */
   .code_bw           = TP_LOOP_PARAM_PLACE_HOLDER,
   .code_zeta         = 0.707f,  /**< Code tracking loop damping ratio */
-  .code_k            = 1,       /**< Code tracking loop gain coefficient */
+  .code_k            = .5,      /**< Code tracking loop gain coefficient */
   /** carrier frequency /  chip rate */
   .carr_to_code      = TP_LOOP_PARAM_PLACE_HOLDER,
   /** Carrier tracking loop noise bandwidth in Hz */
