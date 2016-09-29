@@ -74,7 +74,7 @@ static const struct fsm_states fsm_states = {
 
 /*                        code: nbw zeta  k  carr_to_code
                        carrier:                     nbw zeta  k  fll_aid */
-#define LOOP_PARAMS_MED "(20 ms, (1, 0.7, 1, 1200), (13, 0.7, 1, 5))"
+#define LOOP_PARAMS_MED "(20 ms, (.5, 0.7, 1, 1200), (13, 0.7, 1, 5))"
 
 /*                          k1,   k2,  lp,  lo */
 #define LD_PARAMS          "0.0247, 1.5, 50, 240"
