@@ -47,7 +47,7 @@ extern usart_settings_t uartb_usart;
 /** \addtogroup usart
  * \{ */
 
-#define USART_DEFAULT_BAUD_FTDI 1000000
+#define USART_DEFAULT_BAUD_FTDI 921600
 #define USART_DEFAULT_BAUD_TTL  115200
 #define USART_DEFAULT_BAUD_RADIO 57600
 
