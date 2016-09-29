@@ -14,38 +14,28 @@
     limitations under the License.
 */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
-
-#include <gic.h>
-
-#define IRQ_ID_NAP_TRACK IRQ_ID_FPGA3
-#define NAP_IRQ_PRIORITY 4
-#define IRQ_ID_FRONTEND_AOK IRQ_ID_FPGA9
-#define FRONTEND_AOK_PRIORITY 4
-
-#define SD_FTDI  (&SD2)
-#define SD_UARTA (&SD1)
-#define SD_UARTB NULL
+#ifndef _BOARD_REV_H_
+#define _BOARD_REV_H_
 
 /*
- * Setup for the Digilent uZed board.
+ * Setup for the Piksiv3 EVT1 board.
  */
 
 /*
  * Board identifier.
  */
-#define BOARD_DIGILENT_UZED
-#define BOARD_NAME "Digilent uZed"
+#define BOARD_PIKSIV3_EVT1
+#define BOARD_NAME "Piksiv3 EVT1"
 
-#define LINE_LED1 PAL_LINE(GPIO1, 15)
-#define LINE_LED2 PAL_LINE(GPIO1, 19)
+#define LINE_LED1 PAL_LINE(GPIO0, 0)
+#define LINE_LED2 PAL_LINE(GPIO0, 0)
 
-#define FRONTEND_SPI SPID2
+#define SPI_SS_IMU_GPIO_LINE PAL_LINE(GPIO2, 31)
+#define SPI_SS_FRONTEND_GPIO_LINE PAL_LINE(GPIO3, 0)
+
+#define FRONTEND_SPI SPID1
 #define FRONTEND_SPI_CONFIG {0, SPI_MODE_0, \
-                             SPI_CLK_DIV_16, SPI_SS_GPIO_LINE}
-
-#define SPI_SS_GPIO_LINE PAL_LINE(GPIO0, 13)
+                             SPI_CLK_DIV_16, SPI_SS_FRONTEND_GPIO_LINE}
 
 #define TCXO_FREQ_STAB  0.28f  /* Piksi V3 TCXO frequency stability [ppm] */
 
@@ -53,12 +43,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void boardInit(void);
-  void board_preinit_hook(void);
-  void board_send_state(void);
+  void boardRevInit(void);
 #ifdef __cplusplus
 }
 #endif
 #endif /* _FROM_ASM_ */
 
-#endif /* _BOARD_H_ */
+#endif /* _BOARD_REV_H_ */

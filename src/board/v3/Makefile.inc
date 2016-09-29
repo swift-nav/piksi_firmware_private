@@ -69,6 +69,7 @@ BOARDINC := $(REVINC) $(BOARDDIR)
 
 BOARDSRC := \
         $(REVSRC) \
+        $(BOARDDIR)/board.o \
         $(BOARDDIR)/cfs-coffee-arch.o \
         $(BOARDDIR)/error.o \
         $(BOARDDIR)/frontend.o \
