@@ -4,7 +4,11 @@
 #
 
 ifeq ($(PIKSI_HW),)
-  PIKSI_HW=v2
+  PIKSI_HW=v3
+endif
+
+ifeq ($(PIKSI_HW),v2)
+	$(error PIKSI_HW=v2 is no longer supported.)
 endif
 
 ifeq ($(SWIFTNAV_ROOT),)
@@ -234,8 +238,14 @@ DADEFS =
 DINCDIR =
 
 # List the default directory to look for the libraries here
-LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(BUILDFOLDER)
-LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(BUILDFOLDER)
+# NOTE: assumes libsbp and libswiftnav are not PIKSI_TARGET sensitive
+ifeq ($(LIBSBP_BUILDDIR),)
+  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/build_$(PIKSI_HW)
+endif
+
+ifeq ($(LIBSWIFTNAV_BUILDDIR),)
+  LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/build_$(PIKSI_HW)
+endif
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
