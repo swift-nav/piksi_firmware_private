@@ -610,7 +610,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       tracker_correlations_send(channel_info->context, data->corrs.corr_epl.epl);
     }
 
-    tl_rates_t rates = {0};
+    tl_rates_t rates = {0, 0, 0};
 
     tp_tl_update(&data->tl_state, &data->corrs.corr_epl);
     tp_tl_get_rates(&data->tl_state, &rates);
