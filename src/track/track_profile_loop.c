@@ -191,7 +191,7 @@ void tp_tl_retune(tp_tl_state_t *s,
      * When the controller type changes, the filter outputs must be preserved.
      */
 
-    tl_rates_t rates = {0};
+    tl_rates_t rates = {0, 0, 0};
     tp_tl_get_rates(s, &rates);
     tp_tl_init(s, ctrl,
                loop_freq,
