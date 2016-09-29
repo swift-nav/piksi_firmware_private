@@ -76,29 +76,38 @@
 #define tl_pll2_discr_update   aided_tl_fll1_pll2_discr_update
 #define tl_pll2_get_rates      aided_tl_fll1_pll2_get_rates
 
-/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order
-   Note:
-   if boxcar implementation is needed, then the names
-   get extra (b) at the end:
-   aided_tl_state3(b)_t
-   aided_tl_init3(b)
-   aided_tl_retune3(b)
-   aided_tl_update3(b)
-   aided_tl_adjust3(b)
-   aided_tl_get_dll_error3(b)
-   aided_tl_get_rates3(b)
-*/
 #if 1
+/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+ * Note: Bilinear transform integrator implementation
+ */
 #define tl_pll3_state_t        aided_tl_state3_t
 #define tl_pll3_init           aided_tl_init3
 #define tl_pll3_retune         aided_tl_retune3
-#define tl_pll3_update         aided_tl_update_dll3
+#define tl_pll3_update_fll     aided_tl_update_fll3
+#define tl_pll3_update_dll     aided_tl_update_dll3
 #define tl_pll3_adjust         aided_tl_adjust3
 #define tl_pll3_get_dll_error  aided_tl_get_dll_error3
+#define tl_pll3_discr_update   aided_tl_discr_update3
 #define tl_pll3_get_rates      aided_tl_get_rates3
 
+#elif 0
+/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+ * Note: Boxcar integrator implementation
+ */
+#define tl_pll3_state_t        aided_tl_state3b_t
+#define tl_pll3_init           aided_tl_init3b
+#define tl_pll3_retune         aided_tl_retune3b
+#define tl_pll3_update_fll     aided_tl_update_fll3b
+#define tl_pll3_update_dll     aided_tl_update_dll3b
+#define tl_pll3_adjust         aided_tl_adjust3b
+#define tl_pll3_get_dll_error  aided_tl_get_dll_error3b
+#define tl_pll3_discr_update   aided_tl_discr_update3b
+#define tl_pll3_get_rates      aided_tl_get_rates3b
+
 #else
-/* FLL-assisted PLL. FLL is second order and PLL is third order */
+/* FLL-assisted PLL. FLL is second order and PLL is third order
+ * Note: Bilinear transform integrator implementation
+ */
 #define tl_pll3_state_t        aided_tl_state_fll2_pll3_t
 #define tl_pll3_init           aided_tl_fll2_pll3_init
 #define tl_pll3_retune         aided_tl_fll2_pll3_retune
@@ -107,8 +116,8 @@
 #define tl_pll3_adjust         aided_tl_fll2_pll3_adjust
 #define tl_pll3_get_dll_error  aided_tl_fll2_pll3_get_dll_error
 #define tl_pll3_discr_update   aided_tl_fll2_pll3_discr_update
+#define tl_pll3_get_rates      aided_tl_fll2_pll3_get_rates
 #endif
-
 
 /*
  * Main tracking: FLL loop selection
@@ -271,22 +280,26 @@ void tp_update_correlators(u32 cycle_flags,
 
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
-                float loop_freq,
+                float dll_loop_freq,
+                float fll_loop_freq,
+                float fll_discr_freq,
                 float code_freq,
-                float code_bw, float code_zeta, float code_k,
-                float carr_to_code,
                 float carr_freq,
                 float acceleration,
+                float code_bw, float code_zeta, float code_k,
+                float carr_to_code,
                 float carr_bw, float carr_zeta, float carr_k,
-                float freq_bw, float fll_loop_freq, float fll_discr_freq);
+                float fll_bw);
 
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
-                  float loop_freq,
+                  float dll_loop_freq,
+                  float fll_loop_freq,
+                  float fll_discr_freq,
                   float code_bw, float code_zeta, float code_k,
                   float carr_to_code,
                   float carr_bw, float carr_zeta, float carr_k,
-                  float freq_bw, float fll_loop_freq, float fll_discr_freq);
+                  float fll_bw);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);

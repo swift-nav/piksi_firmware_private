@@ -22,34 +22,37 @@
  *
  * \param[in,out] s              Tracker state to reconfigure.
  * \param[in]     ctrl           Type of new controller.
- * \param[in]     loop_freq      Loop frequency for DLL/PLL (Hz).
+ * \param[in]     dll_loop_freq  Loop frequency for DLL/PLL (Hz).
+ * \param[in]     fll_loop_freq  Loop frequency for FLL (Hz).
+ * \param[in]     fll_discr_freq FLL discriminator update rate (Hz).
  * \param[in]     code_freq      DLL initial output frequency (chips/s).
+ * \param[in]     carr_freq      PLL(FLL) initial output frequency (Hz).
+ * \param[in]     acceleration   PLL(FLL) initial acceleration (Hz/s).
  * \param[in]     code_bw        DLL filter one-sided bandwidth (Hz).
  * \param[in]     code_zeta      DLL filter damping factor (unitless).
  * \param[in]     code_k         DLL filter gain factor (unitless).
  * \param[in]     carr_to_code   Optional coefficient for using PLL/FLL output
  *                               for DLL assistance.
- * \param[in]     carr_freq      DLL(FLL) initial output frequency (Hz).
- * \param[in]     acceleration   PLL(FLL) initial acceleration (Hz/s).
  * \param[in]     carr_bw        PLL filter one-sided bandwidth (Hz).
  * \param[in]     carr_zeta      PLL filter damping factor (unitless).
  * \param[in]     carr_k         PLL filter gain factor (unitless).
- * \param[in]     freq_bw        FLL noise bandwidth (Hz).
- * \param[in]     fll_loop_freq  Loop frequency for FLL (Hz).
- * \param[in]     fll_discr_freq FLL discriminator update rate (Hz).
+ * \param[in]     fll_bw         FLL noise bandwidth (Hz).
+
  *
  * \return None.
  */
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
-                float loop_freq,
+                float dll_loop_freq,
+                float fll_loop_freq,
+                float fll_discr_freq,
                 float code_freq,
-                float code_bw, float code_zeta, float code_k,
-                float carr_to_code,
                 float carr_freq,
                 float acceleration,
+                float code_bw, float code_zeta, float code_k,
+                float carr_to_code,
                 float carr_bw, float carr_zeta, float carr_k,
-                float freq_bw, float fll_loop_freq, float fll_discr_freq)
+                float fll_bw)
 {
   /*
    * TODO add logic to initialize internal filter states: velocity and
@@ -62,45 +65,35 @@ void tp_tl_init(tp_tl_state_t *s,
   switch (ctrl) {
   case TP_CTRL_PLL2:
     tl_pll2_init(&s->pll2,
-                 loop_freq,
+                 dll_loop_freq,
                  fll_loop_freq,
                  fll_discr_freq,
                  code_freq,
                  carr_freq,
+                 acceleration,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
                  carr_bw, carr_zeta, carr_k,
-                 freq_bw);
+                 fll_bw);
     break;
 
   case TP_CTRL_PLL3:
     tl_pll3_init(&s->pll3,
-                 loop_freq,
+                 dll_loop_freq,
                  fll_loop_freq,
                  fll_discr_freq,
                  code_freq,
-                 code_bw, code_zeta, code_k,
-                 carr_to_code,
                  carr_freq,
                  acceleration,
+                 code_bw, code_zeta, code_k,
+                 carr_to_code,
                  carr_bw, carr_zeta, carr_k,
-                 freq_bw);
+                 fll_bw);
     break;
 
   case TP_CTRL_FLL1:
     tl_fll1_init(&s->fll1,
-                 loop_freq,
-                 fll_loop_freq,
-                 fll_discr_freq,
-                 code_freq,
-                 carr_freq,
-                 code_bw, code_zeta, code_k,
-                 carr_to_code,
-                 freq_bw, carr_zeta, carr_k);
-    break;
-
-  case TP_CTRL_FLL2:
-    tl_fll2_init(&s->fll2, loop_freq,
+                 dll_loop_freq,
                  fll_loop_freq,
                  fll_discr_freq,
                  code_freq,
@@ -108,7 +101,20 @@ void tp_tl_init(tp_tl_state_t *s,
                  acceleration,
                  code_bw, code_zeta, code_k,
                  carr_to_code,
-                 freq_bw, carr_zeta, carr_k);
+                 fll_bw, carr_zeta, carr_k);
+    break;
+
+  case TP_CTRL_FLL2:
+    tl_fll2_init(&s->fll2,
+                 dll_loop_freq,
+                 fll_loop_freq,
+                 fll_discr_freq,
+                 code_freq,
+                 carr_freq,
+                 acceleration,
+                 code_bw, code_zeta, code_k,
+                 carr_to_code,
+                 fll_bw, carr_zeta, carr_k);
     break;
 
   default:
@@ -124,7 +130,9 @@ void tp_tl_init(tp_tl_state_t *s,
  *
  * \param[in,out] s              Tracker state to reconfigure.
  * \param[in]     ctrl           Type of new controller.
- * \param[in]     loop_freq      Loop frequency for DLL/PLL (Hz).
+ * \param[in]     dll_loop_freq  Loop frequency for DLL/PLL (Hz).
+ * \param[in]     fll_loop_freq  Loop frequency for FLL (Hz).
+ * \param[in]     fll_discr_freq FLL discriminator update rate (Hz).
  * \param[in]     code_bw        DLL filter one-sided bandwidth (Hz).
  * \param[in]     code_zeta      DLL filter damping factor (unitless).
  * \param[in]     code_k         DLL filter gain factor (unitless).
@@ -133,58 +141,63 @@ void tp_tl_init(tp_tl_state_t *s,
  * \param[in]     carr_bw        PLL filter one-sided bandwidth (Hz).
  * \param[in]     carr_zeta      PLL filter damping factor (unitless).
  * \param[in]     carr_k         PLL filter gain factor (unitless).
- * \param[in]     freq_bw        FLL coefficient or noise bandwidth (Hz).
- * \param[in]     fll_loop_freq  Loop frequency for FLL (Hz).
- * \param[in]     fll_discr_freq FLL discriminator update rate (Hz).
+ * \param[in]     fll_bw         FLL coefficient or noise bandwidth (Hz).
+
  *
  * \return None.
  */
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
-                  float loop_freq,
+                  float dll_loop_freq,
+                  float fll_loop_freq,
+                  float fll_discr_freq,
                   float code_bw, float code_zeta, float code_k,
                   float carr_to_code,
                   float carr_bw, float carr_zeta, float carr_k,
-                  float freq_bw, float fll_loop_freq, float fll_discr_freq)
+                  float fll_bw)
 {
   if (ctrl == s->ctrl) {
     switch (ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_retune(&s->pll2, loop_freq,
+      tl_pll2_retune(&s->pll2,
+                     dll_loop_freq,
                      fll_loop_freq,
                      fll_discr_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     freq_bw);
+                     fll_bw);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_retune(&s->pll3, loop_freq,
+      tl_pll3_retune(&s->pll3,
+                     dll_loop_freq,
                      fll_loop_freq,
                      fll_discr_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
                      carr_bw, carr_zeta, carr_k,
-                     freq_bw);
+                     fll_bw);
       break;
 
     case TP_CTRL_FLL1:
-      tl_fll1_retune(&s->fll1, loop_freq,
+      tl_fll1_retune(&s->fll1,
+                     dll_loop_freq,
                      fll_loop_freq,
                      fll_discr_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
-                     freq_bw, carr_zeta, carr_k);
+                     fll_bw, carr_zeta, carr_k);
       break;
 
     case TP_CTRL_FLL2:
-      tl_fll2_retune(&s->fll2, loop_freq,
+      tl_fll2_retune(&s->fll2,
+                     dll_loop_freq,
                      fll_loop_freq,
                      fll_discr_freq,
                      code_bw, code_zeta, code_k,
                      carr_to_code,
-                     freq_bw, carr_zeta, carr_k);
+                     fll_bw, carr_zeta, carr_k);
       break;
 
     default:
@@ -198,15 +211,16 @@ void tp_tl_retune(tp_tl_state_t *s,
     tl_rates_t rates = {0};
     tp_tl_get_rates(s, &rates);
     tp_tl_init(s, ctrl,
-               loop_freq,
+               dll_loop_freq,
+               fll_loop_freq,
+               fll_discr_freq,
                rates.code_freq,
-               code_bw, code_zeta, code_k,
-               carr_to_code,
                rates.carr_freq,
                rates.acceleration,
+               code_bw, code_zeta, code_k,
+               carr_to_code,
                carr_bw, carr_zeta, carr_k,
-               freq_bw,
-               fll_loop_freq, fll_discr_freq);
+               fll_bw);
   }
 
   s->ctrl = ctrl;
