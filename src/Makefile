@@ -235,8 +235,13 @@ DINCDIR =
 
 # List the default directory to look for the libraries here
 # NOTE: assumes libsbp and libswiftnav are not PIKSI_TARGET sensitive
-LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/build
-LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/build
+ifeq ($(LIBSBP_BUILDDIR),)
+  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/build
+endif
+
+ifeq ($(LIBSWIFTNAV_BUILDDIR),)
+  LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/build
+endif
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
