@@ -7,6 +7,10 @@
       files:
         - piksi_firmware_v3_microzed.elf
         - piksi_firmware_v3_microzed.hex
+        - piksi_firmware_v3_evt1.elf
+        - piksi_firmware_v3_evt1.hex
+        - piksi_firmware_v3_evt2.elf
+        - piksi_firmware_v3_evt2.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -20,8 +24,9 @@
       bucket: piksi-fpga-unlocked
       prefix: v3
       files:
-        - piksi_evt1_fpga_v3.5_unlocked.bit
         - piksi_microzed_fpga_v3.5_unlocked.bit
+        - piksi_evt1_fpga_v3.5_unlocked.bit
+        - piksi_evt2_fpga_v3.5_unlocked.bit
 -
   name: microzed
   resources:
@@ -44,3 +49,47 @@
       prefix: v3
       files:
         - piksi_microzed_fpga_v3.5_unlocked.bit
+-
+  name: evt1
+  resources:
+    -
+      prefix: v3
+      files:
+        - piksi_firmware_v3_evt1.elf
+        - piksi_firmware_v3_evt1.hex
+  artifacts:
+    -
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/7d57672/v3
+      files:
+        - boot.bin
+        - piksiv3.dtb
+        - u-boot.img
+        - zImage
+    -
+      bucket: piksi-fpga-unlocked
+      prefix: v3
+      files:
+        - piksi_evt1_fpga_v3.5_unlocked.bit
+-
+  name: evt2
+  resources:
+    -
+      prefix: v3
+      files:
+        - piksi_firmware_v3_evt2.elf
+        - piksi_firmware_v3_evt2.hex
+  artifacts:
+    -
+      bucket: swiftnav-artifacts
+      prefix: piksi_buildroot/7d57672/v3
+      files:
+        - boot.bin
+        - piksiv3.dtb
+        - u-boot.img
+        - zImage
+    -
+      bucket: piksi-fpga-unlocked
+      prefix: v3
+      files:
+        - piksi_evt2_fpga_v3.5_unlocked.bit
