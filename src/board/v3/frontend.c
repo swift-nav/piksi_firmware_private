@@ -63,9 +63,7 @@ static u8 spi_read(u8 reg)
 static void frontend_isr(void *context)
 {
   (void)context;
-  chSysLockFromISR();
-  frontend_error_notify();
-  chSysUnlockFromISR();
+  frontend_error_notify_isr();
 }
 
 void frontend_configure(void)

@@ -107,7 +107,7 @@ void init(void)
 
   frontend_configure();
   if (!nt1065_check_aok_status()) {
-    frontend_error_notify();
+    frontend_error_notify_sys();
   }
   random_init();
   xadc_init();

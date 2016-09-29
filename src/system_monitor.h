@@ -32,6 +32,7 @@ typedef enum {
 } watchdog_notify_t;
 
 void watchdog_notify(watchdog_notify_t thread_id);
-void frontend_error_notify(void);
+void frontend_error_notify_isr(void);
+void frontend_error_notify_sys(void);
 
 #endif
