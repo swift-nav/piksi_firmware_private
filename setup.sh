@@ -46,6 +46,14 @@ function build () {
     log_info "Initializing Git submodules for ChibiOS, libopencm3, libsbp and libswiftnav..."
     git submodule init
     git submodule update
+    if ! [[ -z $1 ]]
+    then
+       pushd libswiftnav
+       git remote update
+       git checkout $1
+       log_info "Checked out version '$1' of libswiftnav"
+       popd
+    fi
     log_info "Building piksi_firmware..."
     make clean
     make
@@ -184,7 +192,9 @@ function show_help() {
 
 set -e -u
 
-while getopts ":x:" opt; do
+LIBSWIFTNAV_COMMIT=""
+
+while getopts ":x:s:" opt; do
     case $opt in
         x)
             if [[ "$OPTARG" == "install" ]]; then
@@ -192,7 +202,7 @@ while getopts ":x:" opt; do
                 exit 0
             elif [[ "$OPTARG" == "build" ]]; then
                 log_info "build piksi_firmware."
-                build
+                build "$LIBSWIFTNAV_COMMIT"
                 exit 0
             elif [[ "$OPTARG" == "info" ]]; then
                 log_info "piksi_firmware development setup script.."
@@ -204,13 +214,18 @@ while getopts ":x:" opt; do
                 echo "Invalid option: -x $OPTARG" >&2
             fi
             ;;
+        s)
+            LIBSWIFTNAV_COMMIT="$OPTARG"
+            echo "Using libswiftnav commit '$LIBSWIFTNAV_COMMIT'" >&2
+            ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
+            exit 1
             ;;
         :)
             echo "Option -$OPTARG requires an argument." >&2
+            exit 1
             ;;
     esac
-    exit 1
 done
 show_help
