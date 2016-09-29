@@ -22,19 +22,31 @@ typedef struct {
   volatile uint32_t IRQ;
   volatile uint32_t IRQ_ERROR;
   volatile uint32_t ACQ_STATUS;
-  volatile uint32_t TRK_STATUS[4];
-  volatile uint32_t BB_PINC[4];
+  volatile uint32_t TRK_STATUS;
+  volatile uint32_t PINC[4];
 } nap_fe_t;
 
 /* Bitfields */
-#define NAP_FE_STATUS_CLOCK_LOCKED_Pos (0U)
-#define NAP_FE_STATUS_CLOCK_LOCKED_Msk (0x1U << NAP_FE_STATUS_CLOCK_LOCKED_Pos)
+#define NAP_FE_STATUS_CLOCK_MISSING_Pos (0U)
+#define NAP_FE_STATUS_CLOCK_MISSING_Msk (0x1U << NAP_FE_STATUS_CLOCK_MISSING_Pos)
 
 #define NAP_FE_STATUS_FRONTEND_CH_Pos (1U)
 #define NAP_FE_STATUS_FRONTEND_CH_Msk (0xFU << NAP_FE_STATUS_FRONTEND_CH_Pos)
 
 #define NAP_FE_CONTROL_VERSION_ADDR_Pos (0U)
 #define NAP_FE_CONTROL_VERSION_ADDR_Msk (0xFU << NAP_FE_CONTROL_VERSION_ADDR_Pos)
+
+#define NAP_FE_CONTROL_ENABLE_RF1_Pos (4U)
+#define NAP_FE_CONTROL_ENABLE_RF1_Msk (0x1U << NAP_FE_CONTROL_ENABLE_RF1_Pos)
+
+#define NAP_FE_CONTROL_ENABLE_RF2_Pos (5U)
+#define NAP_FE_CONTROL_ENABLE_RF2_Msk (0x1U << NAP_FE_CONTROL_ENABLE_RF2_Pos)
+
+#define NAP_FE_CONTROL_ENABLE_RF3_Pos (6U)
+#define NAP_FE_CONTROL_ENABLE_RF3_Msk (0x1U << NAP_FE_CONTROL_ENABLE_RF3_Pos)
+
+#define NAP_FE_CONTROL_ENABLE_RF4_Pos (7U)
+#define NAP_FE_CONTROL_ENABLE_RF4_Msk (0x1U << NAP_FE_CONTROL_ENABLE_RF4_Pos)
 
 /* Instances */
 #define NAP_FE ((nap_fe_t *)0x43C10000)

@@ -51,11 +51,15 @@ void nap_setup(void)
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  /* FE_BB0_PINC initialization for GPS L1C/A processing */
-  NAP_FE->BB_PINC[0] = NAP_FE_L1CA_BASEBAND_MIXER_PINC;
+  /* FE_PINC0 initialization for GPS L1C/A processing */
+  NAP_FE->PINC[0] = NAP_FE_L1CA_BASEBAND_MIXER_PINC;
 
-  /* FE_BB3_PINC initialization for GPS L2C processing */
-  NAP_FE->BB_PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+  /* FE_PINC3 initialization for GPS L2C processing */
+  NAP_FE->PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+
+  /* Enable frontend channel 0 (RF1) and frontend channel 3 (RF4) */
+  NAP_FE->CONTROL = (1 << NAP_FE_CONTROL_ENABLE_RF1_Pos) |
+                    (1 << NAP_FE_CONTROL_ENABLE_RF4_Pos);
 
   /* Enable NAP interrupt */
   chThdCreateStatic(wa_nap_exti, sizeof(wa_nap_exti), HIGHPRIO-1, nap_exti_thread, NULL);
