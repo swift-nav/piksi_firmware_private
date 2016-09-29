@@ -24,8 +24,9 @@
       bucket: piksi-fpga-unlocked
       prefix: v3
       files:
-        - piksi_evt1_fpga_v3.5_unlocked.bit
         - piksi_microzed_fpga_v3.5_unlocked.bit
+        - piksi_evt1_fpga_v3.5_unlocked.bit
+        - piksi_evt2_fpga_v3.5_unlocked.bit
 -
   name: microzed
   resources:
@@ -91,5 +92,4 @@
       bucket: piksi-fpga-unlocked
       prefix: v3
       files:
-        - piksi_evt1_fpga_v3.5_unlocked.bit
-
+        - piksi_evt2_fpga_v3.5_unlocked.bit
