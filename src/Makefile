@@ -240,11 +240,11 @@ DINCDIR =
 # List the default directory to look for the libraries here
 # NOTE: assumes libsbp and libswiftnav are not PIKSI_TARGET sensitive
 ifeq ($(LIBSBP_BUILDDIR),)
-  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/build
+  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/build_$(PIKSI_HW)
 endif
 
 ifeq ($(LIBSWIFTNAV_BUILDDIR),)
-  LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/build
+  LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/build_$(PIKSI_HW)
 endif
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
