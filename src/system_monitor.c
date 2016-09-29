@@ -330,7 +330,16 @@ void watchdog_notify(watchdog_notify_t thread_id)
 
 /** Called by ISR for frontend AOK signal to notify error occured
  **/
-void frontend_error_notify()
+void frontend_error_notify_isr()
+{
+  chSysLockFromISR();
+  frontend_notify_flags |= FRONTEND_AOK_ERROR_FLAG;
+  chSysUnlockFromISR();
+}
+
+/** Called during normal execution to notify frontend error occured
+ **/
+void frontend_error_notify_sys()
 {
   chSysLock();
   frontend_notify_flags |= FRONTEND_AOK_ERROR_FLAG;
