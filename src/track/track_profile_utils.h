@@ -280,29 +280,18 @@ void tp_update_correlators(u32 cycle_flags,
 
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
-                float dll_loop_freq,
-                float fll_loop_freq,
-                float fll_discr_freq,
-                float code_freq,
-                float carr_freq,
-                float acceleration,
-                float code_bw, float code_zeta, float code_k,
-                float carr_to_code,
-                float carr_bw, float carr_zeta, float carr_k,
-                float fll_bw);
+                tl_freq_t *freq,
+                tl_rates_t *rates,
+                tl_config_t *config);
 
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
-                  float dll_loop_freq,
-                  float fll_loop_freq,
-                  float fll_discr_freq,
-                  float code_bw, float code_zeta, float code_k,
-                  float carr_to_code,
-                  float carr_bw, float carr_zeta, float carr_k,
-                  float fll_bw);
+                  tl_freq_t *freq,
+                  tl_config_t *config);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);
+void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
