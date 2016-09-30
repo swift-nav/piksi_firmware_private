@@ -32,10 +32,14 @@
 
 #define SPI_SS_IMU_GPIO_LINE PAL_LINE(GPIO2, 31)
 #define SPI_SS_FRONTEND_GPIO_LINE PAL_LINE(GPIO3, 0)
+#define SPI_SS_CLK_DAC_GPIO_LINE PAL_LINE(GPIO3, 1)
 
 #define FRONTEND_SPI SPID1
 #define FRONTEND_SPI_CONFIG {0, SPI_MODE_0, \
                              SPI_CLK_DIV_16, SPI_SS_FRONTEND_GPIO_LINE}
+#define CLK_DAC_SPI SPID2
+#define CLK_DAC_SPI_CONFIG {0, SPI_MODE_1, \
+                             SPI_CLK_DIV_16, SPI_SS_CLK_DAC_GPIO_LINE}
 
 #define TCXO_FREQ_STAB  0.28f  /* Piksi V3 TCXO frequency stability [ppm] */
 

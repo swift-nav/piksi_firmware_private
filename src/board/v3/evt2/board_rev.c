@@ -43,6 +43,9 @@ void boardRevInit(void)
   palSetLineMode(SPI_SS_FRONTEND_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_FRONTEND_GPIO_LINE);
 
+  palSetLineMode(SPI_SS_CLK_DAC_GPIO_LINE, PAL_MODE_OUTPUT);
+  palSetLine(SPI_SS_CLK_DAC_GPIO_LINE);
+
   palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
   palClearLine(CLK_SEL_GPIO_LINE);
 
