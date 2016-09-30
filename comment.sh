@@ -43,12 +43,10 @@ pull-requests/$BUILD_PATH/requirements.yaml"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     if [ "$TRAVIS_BRANCH" == "master" ]; then
-        COMMENT="$BUILD_PATH
-${LINKS[0]}
-${LINKS[1]}
-${LINKS[2]}
-${LINKS[3]}
-${LINKS[4]}"
+        COMMENT="$(cat <<EOF
+$BUILD_PATH
+$LINKS
+EOF)"
         URL="https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=$SLACK_CHANNEL"
         DATA="text=$COMMENT"
         curl --data-urlencode "$DATA" "$URL"
