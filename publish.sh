@@ -32,6 +32,7 @@ echo "Uploading $@ to $BUILD_PATH"
 
 for file in "$@"
 do
+    sha256sum "$file"
     KEY="$BUILD_PATH/$(basename $file)"
     if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         if [ "$TRAVIS_BRANCH" == "master" ]; then
