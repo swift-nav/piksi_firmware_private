@@ -10,19 +10,17 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <platform_signal.h>
-#include <platform_track.h>
 #include "track_profiles.h"
 #include "track_profile_utils.h"
-#include "chconf_board.h"
-#include "signal.h"
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/track.h>
 
 #include <board.h>
-#include <platform_signal.h>
+#include <signal.h>
+#include <chconf_board.h>
 #include <platform_cn0.h>
+#include <platform_track.h>
 #include <nap/nap_common.h>
 #include <nap/nap_hw.h>
 
@@ -30,12 +28,8 @@
 #include <math.h>
 #include <assert.h>
 
-#include <nap/nap_hw.h>
-
 /** Maximum number of supported satellite vehicles */
 #define TP_MAX_SUPPORTED_SVS NUM_GPS_L1CA_TRACKERS
-/** Helper macro for array size computation */
-#define ARR_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 /** Default C/N0 threshold in dB/Hz for keeping track */
 #define TP_DEFAULT_CN0_USE_THRESHOLD  (30.f)
@@ -46,11 +40,11 @@
 #define TP_HARD_CN0_DROP_THRESHOLD (18.f)
 
 /** Acceleration is declared if it is more than this threshold [g] */
-#define TP_ACCELERATION_DETECTION_THRESHOLD_G 0.5f
+#define TP_ACCELERATION_DETECTION_THRESHOLD_G (0.5f)
 
 /** Revert acceleration flag, if last acceleration
    has been seen earlier than this time [ms] */
-#define TP_ACCELERATION_MAX_AGE_MS 2000
+#define TP_ACCELERATION_MAX_AGE_MS (2000)
 
 typedef enum {
   TP_HIGH_CN0   = (1 << 0), /**< Watch CN0 value */
@@ -63,6 +57,7 @@ typedef enum {
 /** Tracking loop parameter placeholder */
 #define TP_LOOP_PARAM_PLACE_HOLDER 0.f
 
+/** Time interval in ms for printing channel statistics (when DEBUG is enabled)*/
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
 
 /**
@@ -247,7 +242,7 @@ static const tp_loop_params_t loop_params_template = {
  * Each entry of the array is a set of initialization parameters of
  * tp_profile_entry_t struct.
  */
-static const tp_profile_entry_t gps_l1ca_profiles[] = {
+static const tp_profile_entry_t gps_profiles[] = {
 /*
   These are the short names of the numbers & parameters listed
   in the same order below.
@@ -257,23 +252,23 @@ static const tp_profile_entry_t gps_l1ca_profiles[] = {
 */
 
   /* recovery profiles */
-  { {  1, 40, 3,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_PRIMARY },
+  { {  1, 40, 3,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,    300,    1,   0,   0,   0,
     0 },                                 /* 0 */
 
-  { {  1, 40, 1,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_PRIMARY },
+  { {  1, 40, 1,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,    200,    2,   0,   0,   0,
     0 },                                 /* 1 */
 
-  { {  1, 40, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_PRIMARY },
+  { {  1, 40, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,     50,    3,   0,   0,  15,
     TP_NO_PLOCK },                       /* 2 */
 
-  { {  1, 35, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_PRIMARY },
+  { {  1, 35, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,     50,    4,   0,   0,  15,
     TP_NO_PLOCK },                       /* 3 */
 
-  { {  1, 30, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_PRIMARY },
+  { {  1, 30, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,     50,    5,   0,   4,  15,
     TP_NO_PLOCK | TP_WAIT_BSYNC | TP_DYNAMICS},        /* 4 */
 
@@ -336,12 +331,24 @@ static const tp_profile_entry_t gps_l1ca_profiles[] = {
  */
 static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
 {
-  if (CODE_GPS_L1CA == sid.code)
-    return gps_l1ca_profiles;
-  else
-    assert(!"Unsupported sid.code");
+  const tp_profile_entry_t *result = NULL;
 
-  return NULL;
+  /* GPS and SBAS constellations use similar signal encoding scheme and thus
+   * the tracker state machines are compatible.  */
+  /* GLONASS constellation require different state machine due to different
+   * data bit encoding and frame structure. */
+
+  switch (sid_to_constellation(sid)) {
+  case CONSTELLATION_GPS:
+  case CONSTELLATION_SBAS:
+    result = gps_profiles;
+    break;
+
+  default:
+    assert(!"Unsupported constellation");
+  }
+
+  return result;
 }
 
 /**
@@ -413,10 +420,11 @@ static tp_profile_internal_t *find_profile(gnss_signal_t sid)
 static void delete_profile(gnss_signal_t sid)
 {
   tp_profile_internal_t *profile = find_profile(sid);
-  if (NULL != profile)
+  if (NULL != profile) {
     /* Currently we support only one signal in profile, so simply mark the
      * profile as released. */
     memset(profile, 0, sizeof(*profile));
+  }
 }
 
 /**
@@ -444,7 +452,7 @@ static void get_profile_params(tp_profile_internal_t *profile,
   config->loop_params.code_bw = cur_profile->profile.dll_bw;
   config->loop_params.carr_bw = cur_profile->profile.pll_bw;
   config->loop_params.fll_bw = cur_profile->profile.fll_bw;
-  config->loop_params.coherent_ms = cur_profile->profile.mode_ms;
+  config->loop_params.mode_ms = cur_profile->profile.mode_ms;
   config->loop_params.mode = cur_profile->profile.mode;
   config->loop_params.ctrl = cur_profile->profile.controller_type;
 
@@ -457,13 +465,14 @@ static void get_profile_params(tp_profile_internal_t *profile,
    */
   const tp_tm_e mode = config->loop_params.mode;
   const tp_ctrl_e ctrl = config->loop_params.ctrl;
-  const u8 int_ms = config->loop_params.coherent_ms;
+  const u8 int_ms = config->loop_params.mode_ms;
   if ((mode == TP_TM_ONE_PLUS_N5 || mode == TP_TM_ONE_PLUS_N10 ||
        (mode == TP_TM_ONE_PLUS_N && (int_ms == 5 || int_ms == 10))) &&
-      (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3))
+      (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3)) {
     config->use_alias_detection = true;
-  else
+  } else {
     config->use_alias_detection = false;
+  }
 
   tp_get_cn0_params(unpack_sid(profile->csid), &config->cn0_params);
 }
@@ -482,20 +491,25 @@ static void update_stats(tp_profile_internal_t *profile,
   float cn0;
 
   /* Profile lock time count down */
-  if (profile->lock_time_ms > data->time_ms)
+  if (profile->lock_time_ms > data->time_ms) {
     profile->lock_time_ms -= data->time_ms;
-  else
+  } else {
     profile->lock_time_ms = 0;
+  }
 
-  if (profile->acceleration_ends_after_ms >= data->time_ms)
+  /* Acceleration state lock time count down */
+  if (profile->acceleration_ends_after_ms >= data->time_ms) {
     profile->acceleration_ends_after_ms -= data->time_ms;
-  else
+  } else {
     profile->acceleration_ends_after_ms = 0;
+  }
 
-  if (profile->print_time >= data->time_ms)
+  /* Debug print interval count down */
+  if (profile->print_time >= data->time_ms) {
     profile->print_time -= data->time_ms;
-  else
+  } else {
     profile->print_time = 0;
+  }
 
   profile->olock = data->olock;
   profile->plock = data->plock;
@@ -512,6 +526,13 @@ static void update_stats(tp_profile_internal_t *profile,
   profile->filt_accel = acceleration_g;
 }
 
+/**
+ * Internal helper for naming loop controller types.
+ *
+ * \param[in] v Loop controller type.
+ *
+ * \return Loop controller type literal.
+ */
 static const char *get_ctrl_str(tp_ctrl_e v)
 {
   const char *str = "?";
@@ -520,7 +541,7 @@ static const char *get_ctrl_str(tp_ctrl_e v)
   case TP_CTRL_PLL3: str = "PLL3"; break;
   case TP_CTRL_FLL1: str = "FLL1"; break;
   case TP_CTRL_FLL2: str = "FLL2"; break;
-  default: assert(false);
+  default: assert(!"Unknown loop controller type");
   }
   return str;
 }
@@ -537,8 +558,9 @@ static const char *get_ctrl_str(tp_ctrl_e v)
  */
 static void print_stats(tp_profile_internal_t *profile)
 {
-  if (profile->print_time > 0)
+  if (profile->print_time > 0) {
     return;
+  }
 
   profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
 
@@ -546,7 +568,7 @@ static void print_stats(tp_profile_internal_t *profile)
 
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
   tp_tm_e tracking_mode = cur_profile->profile.mode;
-  int mode_ms = tp_get_dll_ms(tracking_mode, cur_profile->profile.mode_ms);
+  int dll_ms = tp_get_dll_ms(tracking_mode, cur_profile->profile.mode_ms);
 
   const char *m1 = tp_get_mode_str(tracking_mode);
   const char *c1 = get_ctrl_str(cur_profile->profile.controller_type);
@@ -559,7 +581,7 @@ static void print_stats(tp_profile_internal_t *profile)
    */
   log_debug_sid(unpack_sid(profile->csid),
                 "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
-                mode_ms, m1, c1,
+                dll_ms, m1, c1,
                 cn0_est_str, profile->filt_cn0,
                 TRACK_CN0_TO_SNR(profile->filt_cn0),
                 profile->filt_accel
@@ -573,9 +595,7 @@ static void print_stats(tp_profile_internal_t *profile)
  */
 static void update_acceleration_status(tp_profile_internal_t *state)
 {
-  float fll_bw;
-
-  fll_bw = state->profiles[state->cur_index].profile.fll_bw;
+  float fll_bw = state->profiles[state->cur_index].profile.fll_bw;
 
   /* do not assess acceleration in FLL mode as the PLL phase
      acceleration indicator looks to be scrued, when FLL is in use */
@@ -597,8 +617,9 @@ static void check_for_cn0_estimator_change(tp_profile_internal_t *state)
   float cn0 = 0.f;
   const tp_profile_entry_t *cur_profile;
 
-  if (TRACK_CN0_EST_PRIMARY == TRACK_CN0_EST_SECONDARY)
+  if (TRACK_CN0_EST_PRIMARY == TRACK_CN0_EST_SECONDARY) {
     return;
+  }
 
   cn0 = state->filt_cn0;
   cur_profile = &state->profiles[state->cur_index];
@@ -653,8 +674,9 @@ static void check_for_profile_change(tp_profile_internal_t *state)
     }
   }
 
-  if (state->lock_time_ms > 0)
+  if (state->lock_time_ms > 0) {
     return; /* tracking loop has not settled yet */
+  }
 
   update_acceleration_status(state);
 
@@ -670,19 +692,21 @@ static void check_for_profile_change(tp_profile_internal_t *state)
     }
   }
 
-  if (!state->plock && (0 != (flags & TP_IGN_PLOCK)))
+  if (!state->plock && (0 != (flags & TP_IGN_PLOCK))) {
     return;
+  }
 
   next_index = state->cur_index;
 
-  if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky)
-    ; /* do nothing here as a switch to next profile requires the bit sync,
-         which we do not have yet */
-  else if ((0 != (flags & TP_DYNAMICS)) &&
-           (0 != state->acceleration_ends_after_ms))
+  if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
+    /* do nothing here as a switch to next profile requires the bit sync,
+       which we do not have yet */
+  } else if ((0 != (flags & TP_DYNAMICS)) &&
+             (0 != state->acceleration_ends_after_ms)) {
     next_index = cur_profile->next_dyn;
-  else
+  } else {
     next_index = cur_profile->next;
+  }
 
   if (next_index != state->cur_index) {
     state->lock_time_ms = state->profiles[next_index].lock_time_ms;

@@ -40,7 +40,7 @@
  * State entry.
  */
 typedef struct {
-  u8  int_ms;  /**< State integration time */
+  u8  mode_ms;  /**< State integration time */
   u32 flags;   /**< State operation flags */
 } state_entry_t;
 
@@ -349,21 +349,18 @@ static const state_table_t mode_20ms1PN10 = {
  * Helper for locating tracker state table.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return Table pointer or NULL on error.
  */
-static const state_table_t *select_table(tp_tm_e tracking_mode, u8 int_ms)
+static const state_table_t *select_table(tp_tm_e tracking_mode, u8 mode_ms)
 {
   switch (tracking_mode) {
   case TP_TM_INITIAL:
-    if (int_ms == 1)
-      return &mode_1msINI;
     return &mode_1msINI;
-    break;
 
   case TP_TM_ONE_PLUS_N:
-    switch (int_ms) {
+    switch (mode_ms) {
     case 5:  return &mode_5ms1PN;
     case 10: return &mode_10ms1PN;
     case 20: return &mode_20ms1PN;
@@ -372,7 +369,7 @@ static const state_table_t *select_table(tp_tm_e tracking_mode, u8 int_ms)
     break;
 
   case TP_TM_ONE_PLUS_N5:
-    switch (int_ms) {
+    switch (mode_ms) {
     case 5:  return &mode_5ms1PN;
     case 10: return &mode_10ms1PN5;
     case 20: return &mode_20ms1PN5;
@@ -381,7 +378,7 @@ static const state_table_t *select_table(tp_tm_e tracking_mode, u8 int_ms)
     break;
 
   case TP_TM_ONE_PLUS_N10:
-    switch (int_ms) {
+    switch (mode_ms) {
     case 10: return &mode_10ms1PN5;
     case 20: return &mode_20ms1PN10;
     default: break;
@@ -417,18 +414,18 @@ static const state_entry_t *select_entry(const state_table_t *table,
  * Returns next cycle number
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  * \param[in] cycle_no      Cycle number.
  *
  * \return Number of cycles in the given mode
  */
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
-                         u8 int_ms,
+                         u8 mode_ms,
                          u8 cycle_no)
 {
   u8 cycle_cnt; /**< Number of cycles in the current tracking mode */
 
-  cycle_cnt = tp_get_cycle_count(tracking_mode, int_ms);
+  cycle_cnt = tp_get_cycle_count(tracking_mode, mode_ms);
 
   if (cycle_cnt > 0) {
     if (++cycle_no >= cycle_cnt)
@@ -444,14 +441,14 @@ u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
  * Computes tracker flags.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  * \param[in] cycle_no      Cycle number.
  */
 u32 tp_get_cycle_flags(tp_tm_e tracking_mode,
-                       u8 int_ms,
+                       u8 mode_ms,
                        u8 cycle_no)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
   assert(NULL != ent);
@@ -463,13 +460,13 @@ u32 tp_get_cycle_flags(tp_tm_e tracking_mode,
  * Returns cycle count for the current integration mode.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return Number of cycles in the given mode
  */
-u8 tp_get_cycle_count(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_cycle_count(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -480,21 +477,21 @@ u8 tp_get_cycle_count(tp_tm_e tracking_mode, u8 int_ms)
  * Returns current cycle duration.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms        Tracking sub-mode (integration period).
  * \param[in] cycle_no      Current cycle number.
  *
  * \return Current cycle duration in ms.
  */
 u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode,
-                                 u8 int_ms,
+                                 u8 mode_ms,
                                  u8 cycle_no)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
   assert(NULL != ent);
 
-  return ent->int_ms;
+  return ent->mode_ms;
 }
 
 /**
@@ -503,16 +500,16 @@ u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode,
  * Rollover cycle number corresponds to current cycle number plus two.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  * \param[in] cycle_no      Current cycle number.
  *
  * \return Rollover cycle duration in ms.
  */
 u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
-                                   u8 int_ms,
+                                   u8 mode_ms,
                                    u8 cycle_no)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(tbl != NULL);
 
@@ -524,20 +521,20 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
 
   assert(ent != NULL);
 
-  return ent->int_ms;
+  return ent->mode_ms;
 }
 
 /**
  * Get C/N0 estimator update period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return C/N0 estimator update period in ms.
  */
-u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -548,13 +545,13 @@ u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 int_ms)
  * Get lock detector update period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms        Tracking sub-mode (integration period).
  *
  * \return lock detector update period in ms.
  */
-u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -565,13 +562,13 @@ u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 int_ms)
  * Get false lock (alias) detector update period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return false lock (alias) detector update period in ms.
  */
-u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -582,13 +579,13 @@ u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 int_ms)
  * Get FLL discriminator update period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return FLL discriminator update period in ms.
  */
-u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -600,13 +597,13 @@ u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms)
  * Get bit sync update period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return bit sync update period in ms.
  */
-u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -617,13 +614,13 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms)
  * Get PLL integration period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return PLL integration period in ms.
  */
-u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  const state_table_t *tbl = select_table(tracking_mode, int_ms);
+  const state_table_t *tbl = select_table(tracking_mode, mode_ms);
 
   assert(NULL != tbl);
 
@@ -634,13 +631,13 @@ u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms)
  * Get DLL integration period in ms.
  *
  * \param[in] tracking_mode Tracking mode.
- * \param[in] int_ms        Tracking sub-mode (integration period).
+ * \param[in] mode_ms       Tracking sub-mode (integration period).
  *
  * \return DLL integration period in ms.
  */
-u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 int_ms)
+u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 mode_ms)
 {
-  return tp_get_pll_ms(tracking_mode, int_ms);
+  return tp_get_pll_ms(tracking_mode, mode_ms);
 }
 
 /**

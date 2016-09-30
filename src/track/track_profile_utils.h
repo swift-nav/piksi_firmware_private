@@ -17,6 +17,8 @@
 
 #include <nap/nap_common.h>
 #include <libswiftnav/track.h>
+#include <track_api.h>
+#include <settings.h>
 
 /* Integration tweaks: short / long interval markings */
 #define TP_CFLAG_SHORT_CYCLE     ((u32)1 << 0)
@@ -171,33 +173,81 @@ typedef struct
   tp_ctrl_e ctrl;
 } tp_tl_state_t;
 
+/**
+ * Generic tracker data
+ */
+typedef struct {
+  tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
+  tp_corr_state_t   corrs;                  /**< Correlations */
+  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
+  alias_detect_t    alias_detect;           /**< Alias lock detector. */
+  lock_detect_t     lock_detect;            /**< Phase-lock detector state. */
+  float             fll_lock_detect;        /**< FLL lock detector */
+  u16               fll_lock_counter;       /**< False lock state duration counter */
+  u8                tracking_mode: 3;       /**< Tracking mode */
+  u8                mode_ms: 5;             /**< Mode time key [ms] */
+  u8                cycle_no: 5;            /**< Cycle index inside current
+                                             *   integration mode. */
+  u8                use_alias_detection: 1; /**< Flag for alias detection control */
+  u8                has_next_params: 1;     /**< Flag if stage transition is in
+                                             *   progress */
+  u8                confirmed: 1;           /**< Flag if the tracking is confirmed */
+} tp_tracker_data_t;
+
+/**
+ * Common tracker configuration container.
+ */
+typedef struct {
+  bool show_unconfirmed_trackers; /**< Flag to control reporting of unconfirmed
+                                   *   tracker channels */
+} tp_tracker_config_t;
+
+/**
+ * Macro for default tracker parameters initialization
+ */
+#define TP_TRACKER_DEFAULT_CONFIG {false}
+
+/**
+ * Registers common configuration parameters for a tracker section.
+ *
+ * \param[in]     section Configuration section name.
+ * \param[in,out] config  Tracker parameters container.
+ *
+ * \return None
+ */
+#define TP_TRACKER_REGISTER_CONFIG(section, config) \
+  do {\
+    SETTING((section), "show_unconfirmed", \
+            (config).show_unconfirmed_trackers, TYPE_BOOL); \
+  } while (0)
+
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
-                         u8 int_ms,
+                         u8 mode_ms,
                          u8 cycle_no);
 
 u32 tp_get_cycle_flags(tp_tm_e tracking_mode,
-                       u8 int_ms,
+                       u8 mode_ms,
                        u8 cycle_no);
 
 
 u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode,
-                                u8 int_ms,
+                                u8 mode_ms,
                                 u8 cycle_no);
 
-u8 tp_get_cycle_count(tp_tm_e tracking_mode, u8 int_ms);
+u8 tp_get_cycle_count(tp_tm_e tracking_mode, u8 mode_ms);
 u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode,
-                                 u8 int_ms,
+                                 u8 mode_ms,
                                  u8 cycle_no);
 u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
-                                   u8 int_ms,
+                                   u8 mode_ms,
                                    u8 cycle_no);
-u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 int_ms);
-u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 int_ms);
-u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 int_ms);
-u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 int_ms);
-u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 int_ms);
-u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 int_ms);
-u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 int_ms);
+u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_fll_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 mode_ms);
 const char *tp_get_mode_str(tp_tm_e v);
 
 void tp_update_correlators(u32 cycle_flags,
@@ -233,6 +283,52 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs);
 void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
-s16 tp_tl_detect_alias(alias_detect_t *alias_detect, s32 I, s32 Q);
+/* Generic tracker functions */
+void tp_tracker_register_parameters(const char *section,
+                                    tp_tracker_config_t *config);
+
+void tp_tracker_init(const tracker_channel_info_t *channel_info,
+                     tracker_common_data_t *common_data,
+                     tp_tracker_data_t *data,
+                     const tp_tracker_config_t *config);
+void tp_tracker_disable(const tracker_channel_info_t *channel_info);
+u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
+                      tracker_common_data_t *common_data,
+                      tp_tracker_data_t *data);
+void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
+                                  tracker_common_data_t *common_data,
+                                  tp_tracker_data_t *data,
+                                  const tp_config_t *next_params,
+                                  bool init);
+void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
+                                   tracker_common_data_t *common_data,
+                                   tp_tracker_data_t *data,
+                                   u32 cycle_flags);
+void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
+                             tp_tracker_data_t *data,
+                             u32 cycle_flags);
+void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
+                           tracker_common_data_t *common_data,
+                           tp_tracker_data_t *data,
+                           u32 cycle_flags);
+void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
+                             tracker_common_data_t *common_data,
+                             tp_tracker_data_t *data,
+                             u32 cycle_flags);
+void tp_tracker_update_fll(tp_tracker_data_t *data, u32 cycle_flags);
+void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               tp_tracker_data_t *data,
+                               u32 cycle_flags);
+void tp_tracker_update_alias(const tracker_channel_info_t *channel_info,
+                             tracker_common_data_t *common_data,
+                             tp_tracker_data_t *data,
+                             u32 cycle_flags);
+void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
+                            tracker_common_data_t *common_data,
+                            tp_tracker_data_t *data);
+u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
+                                      const tp_tracker_data_t *data);
+void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
 
 #endif /* SWIFTNAV_TRACK_PROFILE_UTILS_H_ */

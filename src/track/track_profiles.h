@@ -61,7 +61,7 @@ typedef struct
   float   carr_zeta;          /**< Carrier tracking loop damping ratio */
   float   carr_k;             /**< Carrier tracking loop gain coefficient */
   float   fll_bw;             /**< FLL BW */
-  u8      coherent_ms;        /**< Coherent integration period in ms */
+  u8      mode_ms;            /**< Mode time key [ms] */
   tp_tm_e mode;               /**< Operation mode */
   tp_ctrl_e ctrl;             /**< Operation mode */
 } tp_loop_params_t;
