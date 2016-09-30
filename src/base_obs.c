@@ -66,19 +66,24 @@ double base_pos_ecef[3];
  */
 static void base_pos_llh_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
-  (void) context; (void) len; (void) sender_id;
+  (void) context; (void) len;
+  // Skip forwarded sender_ids. See note in obs_callback about echo'ing
+  // sender_id.
+  if (sender_id == 0) {
+    return;
+  }
   /*TODO: keep track of sender_id to store multiple base positions?*/
   double llh_degrees[3];
   double llh[3];
   memcpy(llh_degrees, msg, 3*sizeof(double));
-
   llh[0] = llh_degrees[0] * D2R;
   llh[1] = llh_degrees[1] * D2R;
   llh[2] = llh_degrees[2];
-
   chMtxLock(&base_pos_lock);
   wgsllh2ecef(llh, base_pos_ecef);
   base_pos_known = true;
+  /* Relay base station position using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, 0);
   chMtxUnlock(&base_pos_lock);
 }
 
@@ -89,11 +94,17 @@ static void base_pos_llh_callback(u16 sender_id, u8 len, u8 msg[], void* context
  */
 static void base_pos_ecef_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
-  (void) context; (void) len; (void) sender_id;
-
+  (void) context; (void) len;
+  // Skip forwarded sender_ids. See note in obs_callback about echo'ing
+  // sender_id.
+  if (sender_id == 0) {
+    return;
+  }
   chMtxLock(&base_pos_lock);
   memcpy(base_pos_ecef, msg, 3*sizeof(double));
   base_pos_known = true;
+  /* Relay base station position using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, 0);
   chMtxUnlock(&base_pos_lock);
 }
 
