@@ -68,7 +68,7 @@ double lerp(double t, double u, double v, double x, double y);
 
 //Running the Simulation:
 void simulation_step(void);
-bool simulation_enabled();
+bool simulation_enabled(void);
 bool simulation_enabled_for(simulation_modes_t mode_mask);
 
 //Internals of the simulator
@@ -94,4 +94,3 @@ void simulator_setup(void);
 
 
 #endif  /* SWIFTNAV_SIMULATOR_H */
-

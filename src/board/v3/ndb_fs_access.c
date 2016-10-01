@@ -84,7 +84,7 @@ ssize_t ndb_fs_write(const char *fn, off_t offset, const void *buf, size_t size)
  */
 ssize_t ndb_fs_reserve(const char *name, size_t size)
 {
-  static const char zero[256];
+  static const u8 zero[256];
   off_t offset = 0;
   ssize_t res = 0;
   while (size > 0) {

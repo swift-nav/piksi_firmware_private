@@ -15,7 +15,7 @@
 #include <cfs/cfs-coffee.h>
 #include <cfs/cfs.h>
 
-bool ndb_fs_is_real()
+bool ndb_fs_is_real(void)
 {
   return false;
 }

@@ -31,10 +31,10 @@ static ndb_file_t gps_l2c_capb_file = {
   .n_elements = 1
 };
 
-void ndb_l2c_capb_init()
+void ndb_l2c_capb_init(void)
 {
   ndb_load_data(&gps_l2c_capb_file, "l2c capabilities",
-                &gps_l2c_capabilities, &gps_l2c_capabilities_md,
+                (u8 *)&gps_l2c_capabilities, &gps_l2c_capabilities_md,
                  sizeof(gps_l2c_capabilities), 1);
 
   if (0 == gps_l2c_capabilities) {

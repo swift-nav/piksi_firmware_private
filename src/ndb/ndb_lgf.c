@@ -35,11 +35,11 @@ static ndb_file_t lgf_file = {
   .n_elements = 1
 };
 
-void ndb_lgf_init()
+void ndb_lgf_init(void)
 {
   ndb_load_data(&lgf_file, "LGF",
-                &last_good_fix_saved, &last_good_fix_md,
-                 sizeof(last_good_fix), 1);
+                (u8 *)&last_good_fix_saved, &last_good_fix_md,
+                sizeof(last_good_fix), 1);
   memcpy(&last_good_fix, &last_good_fix_saved, sizeof(last_good_fix_t));
 }
 

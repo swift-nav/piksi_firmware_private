@@ -549,8 +549,15 @@ static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
     result = gps_profiles;
     break;
 
-  default:
+  case CONSTELLATION_GLO:
     assert(!"Unsupported constellation");
+    break;
+
+  case CONSTELLATION_INVALID:
+  case CONSTELLATION_COUNT:
+  default:
+    assert(!"Invalid constellation");
+    break;
   }
 
   return result;
@@ -1053,7 +1060,7 @@ static float compute_cn0_offset(const tp_profile_internal_t *profile)
  * \return 0  On success.
  * \return -1 On error.
  */
-tp_result_e tp_init()
+tp_result_e tp_init(void)
 {
   memset(profiles_gps1, 0, sizeof(profiles_gps1));
 

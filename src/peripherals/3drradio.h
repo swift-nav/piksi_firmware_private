@@ -18,6 +18,6 @@
 #include "usart_chat.h"
 
 void radio_preconfigure_hook(enum uart u, u32 default_baud, char* uart_name);
-void radio_setup();
+void radio_setup(void);
 
 #endif  /* _SWIFTNAV_3DRRADIO_H_ */

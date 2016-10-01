@@ -74,7 +74,7 @@ static bool baudrate_change_notify(struct setting *s, const char *val);
 /** Set up the USART peripherals, hook them into the settings subsystem
 *
 */
-void usarts_setup()
+void usarts_setup(void)
 {
   radio_setup();
 
@@ -303,4 +303,3 @@ u32 usart_write(usart_state* s, const u8 data[], u32 len)
 /** \} */
 
 /** \} */
-

@@ -63,4 +63,3 @@ void coffee_erase(u8 sector)
 /** \} */
 
 /** \} */
-

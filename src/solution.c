@@ -339,7 +339,7 @@ static void post_observations(u8 n, const navigation_measurement_t *m,
   }
 }
 
-static void solution_simulation()
+static void solution_simulation(void)
 {
   simulation_step();
 

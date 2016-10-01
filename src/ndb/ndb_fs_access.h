@@ -30,4 +30,3 @@ ssize_t ndb_fs_reserve(const char *name, size_t size);
 #endif /* __cplusplus */
 
 #endif
-

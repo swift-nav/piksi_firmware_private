@@ -231,7 +231,12 @@ static void decode_thread(void *arg)
       }
       break;
 
+      case DECODER_CHANNEL_STATE_DISABLED:
+        /* Do nothing */
+        break;
+
       default:
+        assert(!"Invalid state");
         break;
       }
     }
@@ -378,6 +383,10 @@ static void event(decoder_channel_t *d, event_t event)
     d->state = DECODER_CHANNEL_STATE_DISABLED;
   }
   break;
+
+  default:
+    assert(!"Invalid state");
+    break;
   }
 }
 

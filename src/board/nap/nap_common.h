@@ -68,4 +68,3 @@ void nap_pps_width(u32 falling_edge_count);
 #include "nap/nap_hw.h"
 
 #endif  /* SWIFTNAV_NAP_COMMON_H */
-

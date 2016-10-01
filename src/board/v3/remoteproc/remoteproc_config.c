@@ -10,8 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #include <openamp/open_amp.h>
-#include <openamp/hil.h>
+#pragma GCC diagnostic pop
 
 #include "remoteproc_config.h"
 #include "gic.h"

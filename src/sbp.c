@@ -188,9 +188,9 @@ static inline u32 use_usart(usart_settings_t *us, u16 msg_type, u16 sender_id)
   if (!(us->sbp_message_mask & msg_type))
     /* This message type is masked out on this USART. */
     return 0;
- 
+
   if(!us->sbp_fwd && sender_id == 0)
-    /* This USART is set up to not forward any messages (sender ID of 0).*/ 
+    /* This USART is set up to not forward any messages (sender ID of 0).*/
     return 0;
 
   return 1;
@@ -380,7 +380,7 @@ void log_obs_latency(float latency_ms)
   if (last_obs_msg_ticks != 0) {
     obs_period_ms = (now - last_obs_msg_ticks) / (double)CH_CFG_ST_FREQUENCY * 1000;
     }
-  
+
   last_obs_msg_ticks = now;
   latency_accum_ms += (double) latency_ms;
   period_accum_ms += (double) obs_period_ms;
@@ -414,7 +414,7 @@ void log_obs_latency(float latency_ms)
   }
 }
 
-void log_obs_latency_tick()
+void log_obs_latency_tick(void)
 {
   double elapsed = chVTTimeElapsedSinceX(last_obs_msg_ticks) / (double)CH_CFG_ST_FREQUENCY;
 
