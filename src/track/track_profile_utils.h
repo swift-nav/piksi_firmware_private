@@ -76,10 +76,33 @@
 #define tl_pll2_discr_update   aided_tl_fll1_pll2_discr_update
 #define tl_pll2_get_rates      aided_tl_fll1_pll2_get_rates
 
-#if 1
-/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+/*
+ * 3rd order PLL loop selection.
+ * The third order PLL loop selection is mutually exclusive from the three
+ * available implementations:
+ *
+ * TRACK_PLL_MODE3_BL
+ * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
  * Note: Bilinear transform integrator implementation
+ *
+ * TRACK_PLL_MODE3_BC
+ * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+ * Note: Boxcar integrator implementation
+ *
+ * TRACK_PLL_MODE3_FLL
+ * FLL-assisted PLL. FLL is second order and PLL is third order
+ * Note: Bilinear transform integrator implementation
+ *
  */
+#define TRACK_PLL_MODE3_BL  1
+#define TRACK_PLL_MODE3_BC  2
+#define TRACK_PLL_MODE3_FLL 3
+
+#ifndef TRACK_PLL_MODE3
+#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_BL
+#endif
+
+#if TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BL
 #define tl_pll3_state_t        aided_tl_state3_t
 #define tl_pll3_init           aided_tl_init3
 #define tl_pll3_retune         aided_tl_retune3
@@ -89,11 +112,7 @@
 #define tl_pll3_get_dll_error  aided_tl_get_dll_error3
 #define tl_pll3_discr_update   aided_tl_discr_update3
 #define tl_pll3_get_rates      aided_tl_get_rates3
-
-#elif 0
-/* PLL-assisted DLL. FLL and DLL are second order, PLL is third order
- * Note: Boxcar integrator implementation
- */
+#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BC
 #define tl_pll3_state_t        aided_tl_state3b_t
 #define tl_pll3_init           aided_tl_init3b
 #define tl_pll3_retune         aided_tl_retune3b
@@ -103,11 +122,7 @@
 #define tl_pll3_get_dll_error  aided_tl_get_dll_error3b
 #define tl_pll3_discr_update   aided_tl_discr_update3b
 #define tl_pll3_get_rates      aided_tl_get_rates3b
-
-#else
-/* FLL-assisted PLL. FLL is second order and PLL is third order
- * Note: Bilinear transform integrator implementation
- */
+#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_FLL
 #define tl_pll3_state_t        aided_tl_state_fll2_pll3_t
 #define tl_pll3_init           aided_tl_fll2_pll3_init
 #define tl_pll3_retune         aided_tl_fll2_pll3_retune
@@ -117,6 +132,8 @@
 #define tl_pll3_get_dll_error  aided_tl_fll2_pll3_get_dll_error
 #define tl_pll3_discr_update   aided_tl_fll2_pll3_discr_update
 #define tl_pll3_get_rates      aided_tl_fll2_pll3_get_rates
+#else
+#error Unsupported 3rd order PLL Mode
 #endif
 
 /*
@@ -280,14 +297,12 @@ void tp_update_correlators(u32 cycle_flags,
 
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
-                tl_freq_t *freq,
-                tl_rates_t *rates,
-                tl_config_t *config);
+                const tl_rates_t *rates,
+                const tl_config_t *config);
 
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
-                  tl_freq_t *freq,
-                  tl_config_t *config);
+                  const tl_config_t *config);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);

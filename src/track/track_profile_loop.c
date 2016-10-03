@@ -22,7 +22,6 @@
  *
  * \param[in,out] s      Tracker state to reconfigure.
  * \param[in]     ctrl   Type of new controller.
- * \param[in]     freq   Tracking loop frequency parameters
  * \param[in]     rates  Tracking loop rates
  * \param[in]     config Tracking loop configuration parameters
  *
@@ -30,9 +29,8 @@
  */
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
-                tl_freq_t *freq,
-                tl_rates_t *rates,
-                tl_config_t *config)
+                const tl_rates_t *rates,
+                const tl_config_t *config)
 {
   /*
    * TODO add logic to initialize internal filter states: velocity and
@@ -44,19 +42,19 @@ void tp_tl_init(tp_tl_state_t *s,
 
   switch (ctrl) {
   case TP_CTRL_PLL2:
-    tl_pll2_init(&s->pll2, freq, rates, config);
+    tl_pll2_init(&s->pll2, rates, config);
     break;
 
   case TP_CTRL_PLL3:
-    tl_pll3_init(&s->pll3, freq, rates, config);
+    tl_pll3_init(&s->pll3, rates, config);
     break;
 
   case TP_CTRL_FLL1:
-    tl_fll1_init(&s->fll1, freq, rates, config);
+    tl_fll1_init(&s->fll1, rates, config);
     break;
 
   case TP_CTRL_FLL2:
-    tl_fll2_init(&s->fll2, freq, rates, config);
+    tl_fll2_init(&s->fll2, rates, config);
     break;
 
   default:
@@ -72,32 +70,30 @@ void tp_tl_init(tp_tl_state_t *s,
  *
  * \param[in,out] s      Tracker state to reconfigure.
  * \param[in]     ctrl   Type of new controller.
- * \param[in]     freq   Tracking loop frequency parameters
  * \param[in]     config Tracking loop configuration parameters
  *
  * \return None.
  */
 void tp_tl_retune(tp_tl_state_t *s,
                   tp_ctrl_e ctrl,
-                  tl_freq_t *freq,
-                  tl_config_t *config)
+                  const tl_config_t *config)
 {
   if (ctrl == s->ctrl) {
     switch (ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_retune(&s->pll2, freq, config);
+      tl_pll2_retune(&s->pll2, config);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_retune(&s->pll3, freq, config);
+      tl_pll3_retune(&s->pll3, config);
       break;
 
     case TP_CTRL_FLL1:
-      tl_fll1_retune(&s->fll1, freq, config);
+      tl_fll1_retune(&s->fll1, config);
       break;
 
     case TP_CTRL_FLL2:
-      tl_fll2_retune(&s->fll2, freq, config);
+      tl_fll2_retune(&s->fll2, config);
       break;
 
     default:
@@ -111,7 +107,6 @@ void tp_tl_retune(tp_tl_state_t *s,
     tl_rates_t rates = {0};
     tp_tl_get_rates(s, &rates);
     tp_tl_init(s, ctrl,
-               freq,
                &rates,
                config);
   }

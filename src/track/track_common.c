@@ -105,15 +105,23 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
    * edge */
   u8 cycle_cnt = tp_get_cycle_count(l->mode, l->mode_ms);
   data->cycle_no = cycle_cnt - 1;
-  float carr_to_code = code_to_carr_to_code(channel_info->sid.code);
 
-  float loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode, data->mode_ms);
-  /**< Tracking loop frequency */
-  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->mode_ms);
   /**< C/N0 integration time */
-  u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode, data->mode_ms);
+  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode, data->mode_ms);
   /**< Lock detector integration time */
-  float fll_loop_freq = 1000.f / tp_get_fll_ms(data->tracking_mode, data->mode_ms);
+  u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode, data->mode_ms);
+  /**< Set initial rates */
+  tl_rates_t rates;
+  rates.code_freq = common_data->code_phase_rate - GPS_CA_CHIPPING_RATE;
+  rates.carr_freq = common_data->carrier_freq;
+  rates.acceleration = 0.0f;
+  /**< Set tracking loop configuration parameters */
+  tl_config_t config;
+  tp_tl_get_config(l, &config);
+  config.dll_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode, data->mode_ms);
+  config.fll_loop_freq = 1000.f / tp_get_flll_ms(data->tracking_mode, data->mode_ms);
+  config.fll_discr_freq = 1000.f / tp_get_flld_ms(data->tracking_mode, data->mode_ms);
+  config.carr_to_code = code_to_carr_to_code(channel_info->sid.code);
 
   if (init) {
     log_debug_sid(channel_info->sid, "Initializing TL");
@@ -121,14 +129,8 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
 
     tp_tl_init(&data->tl_state,
                next_params->loop_params.ctrl,
-               loop_freq,
-               common_data->code_phase_rate - GPS_CA_CHIPPING_RATE,
-               l->code_bw, l->code_zeta, l->code_k,
-               carr_to_code,
-               common_data->carrier_freq,
-               0, /* acceleration*/
-               l->carr_bw, l->carr_zeta, l->carr_k,
-               l->fll_bw, fll_loop_freq);
+               &rates,
+               &config);
 
     lock_detect_init(&data->lock_detect,
                      ld->k1 * ld_int_ms,
@@ -142,11 +144,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
     /* Recalculate filter coefficients */
     tp_tl_retune(&data->tl_state,
                  next_params->loop_params.ctrl,
-                 loop_freq,
-                 l->code_bw, l->code_zeta, l->code_k,
-                 carr_to_code,
-                 l->carr_bw, l->carr_zeta, l->carr_k,
-                 l->fll_bw, fll_loop_freq);
+                 &config);
 
     lock_detect_reinit(&data->lock_detect,
                        ld->k1 * ld_int_ms,
