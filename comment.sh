@@ -68,7 +68,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         curl --data-urlencode "$DATA" "$URL"
     fi
 elif [ ! -z "$GITHUB_TOKEN" ]; then
-    COMMENT="$(github_links)"
+    COMMENT="Note: the following links are for this Pull Request's ***merge*** commit$(github_links)"
     URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
     curl -u "$GITHUB_TOKEN:" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
 fi
