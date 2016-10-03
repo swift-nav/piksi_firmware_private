@@ -65,7 +65,7 @@ typedef struct
   u32 flags: 8;                /**< Configuration flags */
   u32 cn0_ms: 6;               /**< C/N0 filter interval in ms */
   u32 type: 2;                 /**< Currently used estimator type */
-  u32 reserved: 8;             /**< Reserved flags */
+  u32 ver: 8;                  /**< Configuration version */
   cn0_est_bl_state_t   bl;     /**< Estimator for high SNR values */
   cn0_est_mm_state_t   mm;     /**< Estimator for low SNR values */
 
@@ -90,6 +90,9 @@ float track_cn0_update(gnss_signal_t sid, track_cn0_est_e t,
                        track_cn0_state_t *e,
                        float I, float Q);
 const char *track_cn0_str(track_cn0_est_e t);
+float track_cn0_get_offset(u8 cn0_ms);
+float track_cn0_get_pri2sec_threshold(u8 cn0_ms);
+float track_cn0_get_sec2pri_threshold(u8 cn0_ms);
 
 #ifdef __cplusplus
 }
