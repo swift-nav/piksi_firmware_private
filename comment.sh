@@ -40,11 +40,11 @@ LINKS=\
 "https://swiftnav-artifacts.herokuapp.com/$ARTIFACTS_PATH/requirements.yaml")
 
 TITLES=\
-("sbp-log-analysis/passfail/$BUILD_PATH"
-"sbp-log-analysis/piksi-multi-PRD/$BUILD_PATH"
-"commits/$BUILD_PATH"
-"s3://$BUCKET/$BUILD_PATH"
-"pull-requests/$BUILD_PATH/requirements.yaml")
+("HITL Results - $BUILD_PATH - pass/fail checks"
+"HITL Results - $BUILD_PATH - performance metrics"
+"Commit Log - $BUILD_PATH"
+"Firmware Artifacts - $BUILD_PATH"
+"Piksi Multi Artifacts - $BUILD_PATH")
 
 slack_links(){
     echo -n $BUILD_PATH
