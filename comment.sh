@@ -33,8 +33,8 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 fi
 
 LINKS=\
-("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/scenario/y/metric/f/metric/p/passfail/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
-"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/scenario/y/metric/f/metric/p/piksi-multi-PRD/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
 "https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=$BUCKET&prefix=$BUILD_PATH/"
 "https://swiftnav-artifacts.herokuapp.com/$ARTIFACTS_PATH/requirements.yaml")
