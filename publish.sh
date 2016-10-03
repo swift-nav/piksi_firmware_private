@@ -32,14 +32,16 @@ echo "Uploading $@ to $BUILD_PATH"
 
 for file in "$@"
 do
-    sha256sum "$file"
+    sha256sum "$file" | tee "$file.sha256"
     KEY="$BUILD_PATH/$(basename $file)"
     if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         if [ "$TRAVIS_BRANCH" == "master" ]; then
             OBJECT="s3://$BUCKET/$KEY"
             aws s3 cp "$file" "$OBJECT"
+            aws s3 cp "$file.sha256" "$OBJECT.sha256"
         fi
     else
         aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY" --body "$file" --acl public-read
+        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY.sha256" --body "$file.sha256" --acl public-read
     fi
 done
