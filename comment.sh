@@ -19,28 +19,31 @@ if [ "$TRAVIS_OS_NAME" != "linux" ]; then
 fi
 
 REPO="${PWD##*/}"
-BUCKET="${BUCKET:-swiftnav-artifacts}"
-PRS_BUCKET="${PRS_BUCKET:-swiftnav-artifacts-pull-requests}"
+BUCKET="swiftnav-artifacts-pull-requests"
 
 BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
+ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
 RELEASES="piksi_firmware_v0.21.hex"
+
+if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+    BUCKET="swiftnav-artifacts"
+    ARTIFACTS_PATH="$BUILD_PATH"
+fi
 
 LINKS=\
 ("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/scenario/y/metric/f/metric/p/passfail/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/scenario/y/metric/f/metric/p/piksi-multi-PRD/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
-"https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=swiftnav-artifacts&prefix=$BUILD_PATH/"
-"https://swiftnav-artifacts.herokuapp.com/$BUILD_PATH/"
-"https://swiftnav-artifacts.herokuapp.com/$BUILD_PATH/requirements.yaml")
+"https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=$BUCKET&prefix=$BUILD_PATH/"
+"https://swiftnav-artifacts.herokuapp.com/$ARTIFACTS_PATH/requirements.yaml")
 
 TITLES=\
 ("sbp-log-analysis/passfail/$BUILD_PATH"
 "sbp-log-analysis/piksi-multi-PRD/$BUILD_PATH"
 "commits/$BUILD_PATH"
-"s3://$PRS_BUCKET/$BUILD_PATH"
-"pull-requests/$BUILD_PATH"
+"s3://$BUCKET/$BUILD_PATH"
 "pull-requests/$BUILD_PATH/requirements.yaml")
 
 slack_links(){
