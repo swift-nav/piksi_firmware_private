@@ -54,7 +54,8 @@ slack_links(){
 }
 
 github_links(){
-    echo -n "## $BUILD_VERSION"
+    echo "## $BUILD_VERSION"
+    echo -n "Note: the following links are for this Pull Request's ***merge*** commit"
     for index in ${!LINKS[@]}; do
         echo -n "\n+ "[${TITLES[$index]}]"("${LINKS[$index]}")"
     done
@@ -68,7 +69,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         curl --data-urlencode "$DATA" "$URL"
     fi
 elif [ ! -z "$GITHUB_TOKEN" ]; then
-    COMMENT="Note: the following links are for this Pull Request's ***merge*** commit$(github_links)"
+    COMMENT="$(github_links)"
     URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
     curl -u "$GITHUB_TOKEN:" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
 fi
