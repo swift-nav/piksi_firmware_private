@@ -30,11 +30,10 @@
  */
 typedef enum
 {
-  TP_TM_INITIAL,      /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_ONE_PLUS_N,   /**< Integration period split: 1+N */
-  TP_TM_ONE_PLUS_N5,  /**< Integration period split: 1+4+5N */
-  TP_TM_ONE_PLUS_N10, /**< Integration period split: 1+9+10N */
-  TP_TM_ONE_PLUS_N20, /**< Integration period split: 1+19+20N */
+  TP_TM_GPS_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_GPS_5MS,     /**< GPS 5 ms PLL/DLL */
+  TP_TM_GPS_10MS,    /**< GPS 10 ms PLL/DLL */
+  TP_TM_GPS_20MS,    /**< GPS 20 ms PLL/DLL */
 } tp_tm_e;
 
 /**
@@ -61,7 +60,6 @@ typedef struct
   float   carr_zeta;          /**< Carrier tracking loop damping ratio */
   float   carr_k;             /**< Carrier tracking loop gain coefficient */
   float   fll_bw;             /**< FLL BW */
-  u8      mode_ms;            /**< Mode time key [ms] */
   tp_tm_e mode;               /**< Operation mode */
   tp_ctrl_e ctrl;             /**< Operation mode */
 } tp_loop_params_t;

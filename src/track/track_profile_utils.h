@@ -225,7 +225,6 @@ typedef struct {
   float             fll_lock_detect;        /**< FLL lock detector */
   u16               fll_lock_counter;       /**< False lock state duration counter */
   u8                tracking_mode: 3;       /**< Tracking mode */
-  u8                mode_ms: 5;             /**< Mode time key [ms] */
   u8                cycle_no: 5;            /**< Cycle index inside current
                                              *   integration mode. */
   u8                use_alias_detection: 1; /**< Flag for alias detection control */
@@ -262,33 +261,28 @@ typedef struct {
   } while (0)
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
-                         u8 mode_ms,
                          u8 cycle_no);
 
 u32 tp_get_cycle_flags(tp_tm_e tracking_mode,
-                       u8 mode_ms,
                        u8 cycle_no);
 
 
 u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode,
-                                u8 mode_ms,
                                 u8 cycle_no);
 
-u8 tp_get_cycle_count(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_cycle_count(tp_tm_e tracking_mode);
 u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode,
-                                 u8 mode_ms,
                                  u8 cycle_no);
 u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
-                                   u8 mode_ms,
                                    u8 cycle_no);
-u8 tp_get_cn0_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_ld_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_alias_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_flld_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_flll_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_bit_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_pll_ms(tp_tm_e tracking_mode, u8 mode_ms);
-u8 tp_get_dll_ms(tp_tm_e tracking_mode, u8 mode_ms);
+u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
+u8 tp_get_ld_ms(tp_tm_e tracking_mode);
+u8 tp_get_alias_ms(tp_tm_e tracking_mode);
+u8 tp_get_flld_ms(tp_tm_e tracking_mode);
+u8 tp_get_flll_ms(tp_tm_e tracking_mode);
+u8 tp_get_bit_ms(tp_tm_e tracking_mode);
+u8 tp_get_pll_ms(tp_tm_e tracking_mode);
+u8 tp_get_dll_ms(tp_tm_e tracking_mode);
 const char *tp_get_mode_str(tp_tm_e v);
 
 void tp_update_correlators(u32 cycle_flags,
