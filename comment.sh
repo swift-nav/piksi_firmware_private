@@ -40,8 +40,8 @@ LINKS=\
 "https://swiftnav-artifacts.herokuapp.com/$ARTIFACTS_PATH/requirements.yaml")
 
 TITLES=\
-("HITL Results - $BUILD_PATH - pass/fail checks"
-"HITL Results - $BUILD_PATH - performance metrics"
+("HITL Results - pass/fail checks - $BUILD_PATH"
+"HITL Results - performance metrics - $BUILD_PATH"
 "Commit Log - $BUILD_PATH"
 "Firmware Artifacts - $BUILD_PATH"
 "Piksi Multi Artifacts - $BUILD_PATH")
