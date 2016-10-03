@@ -42,6 +42,6 @@ do
         fi
     else
         aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY" --body "$file" --acl public-read
-        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY" --body "$file.sha256" --acl public-read
+        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY.sha256" --body "$file.sha256" --acl public-read
     fi
 done
