@@ -79,17 +79,11 @@ void boardRevInit(void)
   *(volatile uint32_t *)0xF8000168 |= (5 << 8);
   *(volatile uint32_t *)0xF8000168 |= (1 << 0);
 
-  /* Assert FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0xf;
-
   /* FPGA_CLK0 = 1GHz / 10 = 100MHz */
   *(volatile uint32_t *)0xF8000170 &= ~(0x3F << 20);
   *(volatile uint32_t *)0xF8000170 |= (1 << 20);
   *(volatile uint32_t *)0xF8000170 &= ~(0x3F << 8);
   *(volatile uint32_t *)0xF8000170 |= (10 << 8);
-
-  /* Release FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0x0;
 
   /* Configure MIOs */
   mio_configure(LINE_TO_MIO(SPI_MOSI_GPIO_LINE), 5 << 4, false, false, false);

@@ -25,18 +25,6 @@
 
 void boardRevInit(void)
 {
-  /* Unlock SLCR */
-  *(volatile uint32_t *)0xF8000008 = 0xDF0D;
-
-  /* Assert FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0xf;
-
-  /* Release FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0x0;
-
-  /* Lock SLCR */
-  *(volatile uint32_t *)0xF8000004 = 0x767B;
-
   palSetLineMode(SPI_SS_IMU_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_IMU_GPIO_LINE);
 
