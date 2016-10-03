@@ -30,7 +30,7 @@ RELEASES="piksi_firmware_v0.21.hex"
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUCKET="swiftnav-artifacts"
     ARTIFACTS_PATH="$BUILD_PATH"
-else
+fi
 
 LINKS=\
 ("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/scenario/y/metric/f/metric/p/passfail/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
