@@ -33,7 +33,6 @@
 #include "settings.h"
 #include "signal.h"
 #include "timing.h"
-#include "manage.h"
 
 /** \defgroup tracking Tracking
  * Track satellites via interrupt driven updates to SwiftNAP tracking channels.
@@ -598,53 +597,15 @@ void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
   if ((time_quality == TIME_FINE)
       && (internal_data->carrier_phase_offset == 0.0)
       && (internal_data->bit_polarity != BIT_POLARITY_UNKNOWN)) {
-
-      /* compute the pseudorange for this signal */
-      static navigation_measurement_t nav_meas[1];
-      navigation_measurement_t *p_nav_meas[1];
-      p_nav_meas[0] = &nav_meas[0];
-      gps_time_t rec_time = rx2gpstime(ref_tc);
-      s8 nm_ret = calc_navigation_measurement(1,
-        (const channel_measurement_t **) &meas, p_nav_meas, &rec_time, 0);
-      if (nm_ret != 0) {
-        log_error_sid(meas->sid,
-          "calc_navigation_measurement() returned an error");
-        return;
-      }
-      /* initialize the carrier phase offset with the pseudorange measurement */
-      internal_data->carrier_phase_offset = round(
-        meas->carrier_phase
-        /* NOTE: CP sign flip - change the plus sign below */
-        + code_to_carr_freq(meas->sid.code) * nav_meas[0].raw_pseudorange / GPS_C
-        );
-      log_info_sid(meas->sid, "Initializing carrier phase offset to %f",
-        internal_data->carrier_phase_offset);
+      gps_time_t tor = rx2gpstime(ref_tc + meas->rec_time_delta);
+      gps_time_t tot;
+      tot.tow = 1e-3 * meas->time_of_week_ms;
+      tot.tow += meas->code_phase_chips / code_to_chip_rate(meas->sid.code);
+      gps_time_match_weeks(&tot, &tor);
+      internal_data->carrier_phase_offset = round(code_to_carr_freq(meas->sid.code)
+                                                  * gpsdifftime(&tor, &tot));
   }
   meas->carrier_phase -= internal_data->carrier_phase_offset;
-}
-
-/** Adjust all carrier phase offsets with a receiver clock correction.
- *
- * \param dt      Receiver clock change (s)
- */
-void tracking_channel_carrier_phase_offsets_adjust(double dt) {
-
-  for (u8 i=0; i<nap_track_n_channels; i++) {
-    if (use_tracking_channel(i)) {
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_lock(tracker_channel);
-      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-      /* touch only channels that have the initial offset set */
-      if (internal_data->carrier_phase_offset != 0.0) {
-        gnss_signal_t sid = tracker_channel->info.sid;
-        internal_data->carrier_phase_offset -=
-            code_to_carr_freq(sid.code) * dt;
-        log_info_sid(sid, "Adjusting carrier phase offset to %f",
-          internal_data->carrier_phase_offset);
-      }
-      tracker_channel_unlock(tracker_channel);
-    }
-  }
 }
 
 /** Set the elevation angle for a tracker channel by sid.

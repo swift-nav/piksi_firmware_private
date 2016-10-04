@@ -75,7 +75,6 @@ bool tracking_channel_bit_sync_resolved(tracker_channel_id_t id);
 bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id);
 void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
                                       channel_measurement_t *meas);
-void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 bool tracking_channel_evelation_degrees_set(gnss_signal_t sid, s8 elevation);
 s8 tracking_channel_evelation_degrees_get(tracker_channel_id_t id);
