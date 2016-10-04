@@ -525,9 +525,9 @@ static void solution_thread(void *arg)
                                             p_rec_time, p_e_meas);
 
     if (nm_ret != 0) {
-      log_error("calc_navigation_measurement() returned an error");
-      continue;
-    }
+       log_error("calc_navigation_measurement() returned an error");
+       continue;
+     }
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
@@ -617,16 +617,8 @@ static void solution_thread(void *arg)
     log_debug("RX clock error = %f", rx_err);
     clock_jump = FALSE;
     if (fabs(rx_err) >= 1e-3) {
-      log_info("RX clock error %f > 1ms, resetting!", rx_err);
-      /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * 1000.0) / 1000.0;
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
-      /* adjust all the carrier phase offsets */
-      /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
+    log_info("RX clock error %f > 1ms, resetting!", rx_err);
+      set_time_fine(rec_tc, lgf.position_solution.time);
       clock_jump = TRUE;
     }
 

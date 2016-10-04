@@ -159,16 +159,6 @@ void set_time_fine(u64 tc, gps_time_t t)
   time_quality = TIME_FINE;
 }
 
-/** Update GPS time estimate precisely referenced to the local receiver time.
- *
- * \param dt clock adjustment (s)
- */
-void adjust_time_fine(double dt)
-{
-  clock_state.t0_gps.tow -= dt;
-  normalize_gps_time(&clock_state.t0_gps);
-}
-
 /** Get current GPS time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality
