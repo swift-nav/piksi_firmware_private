@@ -62,7 +62,7 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_TIME_MATCHED;
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 /** RTK integer ambiguity states. */
@@ -226,24 +226,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   u8 num_used, flags;
   s8 ret;
 
-  switch (dgnss_filter) {
-  default:
-  case FILTER_FIXED:
-    chMtxLock(&amb_state_lock);
-    ret = dgnss_baseline(num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
-                         &amb_state, &num_used, b,
-                         disable_raim, DEFAULT_RAIM_THRESHOLD);
-    chMtxUnlock(&amb_state_lock);
-    if (ret > 0) {
-      /* ret is <0 on error, 2 if float, 1 if fixed */
-      flags = (ret == 1) ? 1 : 0;
-    } else {
-      log_warn("dgnss_baseline returned error: %d", ret);
-      return;
-    }
-    break;
-
-  case FILTER_FLOAT:
+  if(dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+    /* Filter is already updated so no need to update filter again just get the baseline*/
     flags = 0;
     chMtxLock(&amb_state_lock);
     ret = get_baseline(b, &num_used, &flags);
@@ -254,7 +238,19 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       log_warn("dgnss_float_baseline returned error: %d", ret);
       return;
     }
-    break;
+  } else {
+    /* Need to update filter with propogated obs before we can get the baseline */
+    dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef, diff_time);
+    flags = 0;
+    chMtxLock(&amb_state_lock);
+    ret = get_baseline(b, &num_used, &flags);
+    chMtxUnlock(&amb_state_lock);
+    if (ret == 1)
+      log_warn("output_baseline: Float baseline RAIM repair");
+    if (ret < 0) {
+      log_warn("dgnss_float_baseline returned error: %d", ret);
+      return;
+    }
   }
 
   solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef, flags, hdop, diff_time, base_id);
@@ -435,7 +431,7 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
 static THD_WORKING_AREA(wa_solution_thread, 8200);
 static void solution_thread(void *arg)
 {
-  /* The flag is true when we have a fix */
+  /* The flag is true when we have a solution */
   bool soln_flag = false;
 
   (void)arg;
@@ -733,8 +729,8 @@ static void solution_thread(void *arg)
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
-              output_baseline(num_sdiffs, sdiffs, &new_obs_time, pdt,
-                              dops.hdop, base_obss.sender_id);
+              output_baseline(num_sdiffs, sdiffs, &new_obs_time,
+                              dops.hdop, pdt, base_obss.sender_id);
             }
           }
         }
@@ -830,9 +826,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
       reset_iar = false;
     }
     /* Update filters. */
-    dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
-                    base_pos_known ? base_pos_ecef : NULL,
-                    disable_raim, DEFAULT_RAIM_THRESHOLD);
+    dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef, base_pos_known ? base_pos_ecef : NULL, 0.0);
     /* Update ambiguity states. */
     chMtxLock(&amb_state_lock);
     dgnss_update_ambiguity_state(&amb_state);
