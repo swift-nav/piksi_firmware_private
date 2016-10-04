@@ -80,8 +80,6 @@ u16 msg_obs_max_size = 102;
 
 static last_good_fix_t lgf;
 
-static u16 lock_counters[PLATFORM_SIGNAL_COUNT];
-
 bool disable_raim = false;
 bool send_heading = false;
 
