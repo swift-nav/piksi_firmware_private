@@ -21,4 +21,6 @@ enum ndb_op_code ndb_iono_corr_read(ionosphere_t *iono) NDB_WEAK;
 enum ndb_op_code ndb_iono_corr_store(ionosphere_t *iono,
                                             enum ndb_data_source src) NDB_WEAK;
 
+void ndb_sbp_iono_reg_cbk();
+
 #endif /* SRC_NDB_IONO_H_ */

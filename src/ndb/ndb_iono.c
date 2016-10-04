@@ -13,9 +13,15 @@
 #define NDB_WEAK
 
 #include <string.h>
+
 #include <libswiftnav/logging.h>
+#include <libsbp/observation.h>
+#include <libsbp/sbp.h>
+
 #include "ndb.h"
 #include "ndb_internal.h"
+#include "sbp.h"
+#include "sbp_utils.h"
 
 #define IONO_CORR_FILE_NAME "iono"
 static ionosphere_t iono_corr _CCM;
@@ -49,7 +55,31 @@ enum ndb_op_code ndb_iono_corr_read(ionosphere_t *iono)
 }
 
 enum ndb_op_code ndb_iono_corr_store(ionosphere_t *iono,
-                                            enum ndb_data_source src)
+                                     enum ndb_data_source src)
 {
   return ndb_update(iono, src, &iono_corr_md);
+}
+
+static void ndb_iono_msg_callback(u16 sender_id,
+                                  u8 len,
+                                  u8 msg[],
+                                  void* context)
+{
+  (void)sender_id; (void)context;
+
+  if (len != sizeof(msg_iono_t)) {
+    log_warn("Received bad iono from peer");
+    return;
+  }
+
+  ionosphere_t iono;
+  unpack_iono((msg_iono_t *)msg, &iono);
+
+  ndb_iono_corr_store(&iono, NDB_DS_SBP);
+}
+
+void ndb_sbp_iono_reg_cbk()
+{
+  static sbp_msg_callbacks_node_t cbk_node;
+  sbp_register_cbk(SBP_MSG_IONO, &ndb_iono_msg_callback, &cbk_node);
 }

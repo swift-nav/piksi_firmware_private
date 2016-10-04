@@ -17,6 +17,7 @@
 #include <limits.h>
 #include <math.h>
 
+#include <libswiftnav/bits.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 
@@ -434,7 +435,7 @@ msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
   return ephe_type_table[c].msg_info;
 }
 
-void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*))
+void sbp_ephe_reg_cbks(sbp_msg_callback_t ephemeris_msg_callback)
 {
   if (EPHE_TYPE_COUNT != CONSTELLATION_COUNT)
     log_warn("EPHE_TYPE_COUNT != CONSTELLATION_COUNT");
@@ -446,6 +447,66 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*))
       &ephe_type_table[i].cbk_node
     );
   }
+}
+
+void unpack_iono(const msg_iono_t *m, ionosphere_t *i)
+{
+  i->a0 = m->a0;
+  i->a1 = m->a1;
+  i->a2 = m->a2;
+  i->a3 = m->a3;
+  i->b0 = m->b0;
+  i->b1 = m->b1;
+  i->b2 = m->b2;
+  i->b3 = m->b3;
+}
+
+void pack_iono(const ionosphere_t *i, msg_iono_t *m)
+{
+  m->a0 = i->a0;
+  m->a1 = i->a1;
+  m->a2 = i->a2;
+  m->a3 = i->a3;
+  m->b0 = i->b0;
+  m->b1 = i->b1;
+  m->b2 = i->b2;
+  m->b3 = i->b3;
+}
+
+void unpack_sv_conf_gps(const msg_sv_configuration_gps_t *m, u32 *l2c_cap)
+{
+  *l2c_cap = m->l2c_mask;
+}
+
+void pack_sv_conf_gps(u32 l2c_cap, msg_sv_configuration_gps_t *m)
+{
+  m->l2c_mask = l2c_cap;
+}
+
+void unpack_group_delay(const msg_group_delay_t *m, cnav_msg_t *cnav)
+{
+  cnav->prn = m->prn;
+
+  cnav->data.type_30.tgd_valid = getbitu(&m->valid, 0, 1);
+  cnav->data.type_30.isc_l1ca_valid = getbitu(&m->valid, 1, 1);
+  cnav->data.type_30.isc_l2c_valid = getbitu(&m->valid, 2, 1);
+
+  cnav->data.type_30.tgd = m->tgd;
+  cnav->data.type_30.isc_l1ca = m->isc_l1ca;
+  cnav->data.type_30.isc_l2c = m->isc_l2c;
+}
+
+void pack_group_delay(const cnav_msg_t *cnav, msg_group_delay_t *m)
+{
+  m->prn = cnav->prn;
+
+  m->valid = cnav->data.type_30.tgd_valid ? 1 : 0;
+  m->valid |= (cnav->data.type_30.isc_l1ca_valid ? 1 : 0) << 1;
+  m->valid |= (cnav->data.type_30.isc_l2c_valid ? 1 : 0) << 2;
+
+  m->tgd = cnav->data.type_30.tgd;
+  m->isc_l1ca = cnav->data.type_30.isc_l1ca;
+  m->isc_l2c = cnav->data.type_30.isc_l2c;
 }
 
 /** \} */

@@ -14,8 +14,14 @@
 
 #include <string.h>
 #include <libswiftnav/logging.h>
+
+#include "cnav_msg_storage.h"
+
 #include "ndb.h"
 #include "ndb_internal.h"
+
+#include "sbp.h"
+#include "sbp_utils.h"
 
 #define GPS_L2C_CAPB_FILE_NAME "l2c_capb"
 static u32 gps_l2c_capabilities _CCM;
@@ -55,4 +61,56 @@ enum ndb_op_code ndb_gps_l2cm_l2c_cap_store(u32 *l2c_cap,
                                             enum ndb_data_source src)
 {
   return ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
+}
+
+static void ndb_sv_conf_msg_callback(u16 sender_id,
+                                     u8 len,
+                                     u8 msg[],
+                                     void* context)
+{
+  (void)sender_id; (void)context;
+
+  if (len != sizeof(msg_sv_configuration_gps_t)) {
+    log_warn("Received bad sv configuration from peer");
+    return;
+  }
+
+  u32 l2c_cap;
+  unpack_sv_conf_gps((msg_sv_configuration_gps_t *)msg, &l2c_cap);
+
+  ndb_gps_l2cm_l2c_cap_store(&l2c_cap, NDB_DS_SBP);
+}
+
+void ndb_sbp_sv_config_reg_cbk()
+{
+  static sbp_msg_callbacks_node_t cbk_node;
+  sbp_register_cbk(SBP_MSG_SV_CONFIGURATION_GPS,
+                   &ndb_sv_conf_msg_callback,
+                   &cbk_node);
+}
+
+static void ndb_group_delay_msg_callback(u16 sender_id,
+                                         u8 len,
+                                         u8 msg[],
+                                         void* context)
+{
+  (void)sender_id; (void)context;
+
+  if (len != sizeof(msg_iono_t)) {
+    log_warn("Received bad group delay from peer");
+    return;
+  }
+
+  cnav_msg_t cnav;
+  unpack_group_delay((msg_group_delay_t *)msg, &cnav);
+
+  cnav_msg_put(&cnav);
+}
+
+void ndb_sbp_group_delay_reg_cbk()
+{
+  static sbp_msg_callbacks_node_t cbk_node;
+  sbp_register_cbk(SBP_MSG_GROUP_DELAY,
+                   &ndb_group_delay_msg_callback,
+                   &cbk_node);
 }
