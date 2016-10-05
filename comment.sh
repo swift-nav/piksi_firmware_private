@@ -40,8 +40,8 @@ LINKS=\
 "https://swiftnav-artifacts.herokuapp.com/$ARTIFACTS_PATH/requirements.yaml")
 
 TITLES=\
-("HITL Results - pass/fail checks - $BUILD_PATH"
-"HITL Results - performance metrics - $BUILD_PATH"
+("HITL Results - $BUILD_PATH - pass/fail checks"
+"HITL Results - $BUILD_PATH - performance metrics"
 "Commit Log - $BUILD_PATH"
 "Firmware Artifacts - $BUILD_PATH"
 "Piksi Multi Artifacts - $BUILD_PATH")
@@ -54,8 +54,7 @@ slack_links(){
 }
 
 github_links(){
-    echo "## $BUILD_VERSION"
-    echo -n "Note: the following links are for this Pull Request's ***merge*** commit"
+    echo -n "## $BUILD_VERSION"
     for index in ${!LINKS[@]}; do
         echo -n "\n+ "[${TITLES[$index]}]"("${LINKS[$index]}")"
     done
