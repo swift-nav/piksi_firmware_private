@@ -16,8 +16,6 @@
 #define MAX_NDB_FILE_VERSION_LEN 64
 extern u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];
 
-/** NDB file handler */
-typedef int ndb_file_handle_t;
 /* Information element size */
 typedef u16 ndb_ie_size_t;
 /* Information element index in the array */
@@ -26,7 +24,6 @@ typedef u8 ndb_ie_index_t;
 /** NDB File */
 typedef struct __attribute__((packed)) {
   const char* name; /**< Name of the file */
-  ndb_file_handle_t fh; /**< File handle */
   const u32 expected_size; /**< Expected file size */
   const u16 data_size; /** Size of data element */
   const u16 n_elements; /** Number of data elements */
@@ -75,7 +72,6 @@ void ndb_load_data(ndb_file_t *f,
 enum ndb_op_code ndb_update(void* new, enum ndb_data_source src,
                             ndb_element_metadata_t *md);
 void ndb_retrieve(void* out, void* cached, size_t size);
-enum ndb_op_code ndb_write_file_data(ndb_file_t *f, cfs_offset_t o, void *b,
-                                     size_t l);
+enum ndb_op_code ndb_write_file_data(ndb_file_t *f, off_t o, void *b, size_t l);
 
 #endif

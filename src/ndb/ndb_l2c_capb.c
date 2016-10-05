@@ -17,13 +17,12 @@
 #include "ndb.h"
 #include "ndb_internal.h"
 
-#define GPS_L2C_CAPB_FILE_NAME "l2c_capb"
+#define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"
 static u32 gps_l2c_capabilities _CCM;
 static ndb_element_metadata_t gps_l2c_capabilities_md _CCM;
 
 static ndb_file_t gps_l2c_capb_file = {
   .name = GPS_L2C_CAPB_FILE_NAME,
-  .fh = -1,
   .expected_size =
         sizeof(gps_l2c_capabilities)
       + sizeof(ndb_element_metadata_nv_t)

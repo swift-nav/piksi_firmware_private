@@ -64,6 +64,8 @@ static const char SBP_MODULE[] = "sbp";
 static u8 sbp_buffer[264];
 static u32 sbp_buffer_length;
 
+static MUTEX_DECL(sbp_cb_mutex);
+
 static WORKING_AREA_CCM(wa_sbp_thread, 7168);
 static void sbp_thread(void *arg)
 {
@@ -128,6 +130,9 @@ void sbp_setup(u16 sender_id)
   sbp_state_init(&uarta_sbp_state);
   sbp_state_init(&uartb_sbp_state);
   sbp_state_init(&ftdi_sbp_state);
+  sbp_state_set_io_context(&uarta_sbp_state, &uarta_state);
+  sbp_state_set_io_context(&uartb_sbp_state, &uartb_state);
+  sbp_state_set_io_context(&ftdi_sbp_state, &ftdi_state);
 
   /* Disable input and output buffering. */
   /*setvbuf(stdin, NULL, _IONBF, 0);*/
@@ -137,13 +142,30 @@ void sbp_setup(u16 sender_id)
                     HIGHPRIO-22, sbp_thread, NULL);
 }
 
+void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
+                                   sbp_msg_callbacks_node_t *node,
+                                   void *context)
+{
+  chMtxLock(&sbp_cb_mutex);
+  sbp_register_callback(&uarta_sbp_state, msg_type, cb, context, node);
+  sbp_register_callback(&uartb_sbp_state, msg_type, cb, context, node);
+  sbp_register_callback(&ftdi_sbp_state , msg_type, cb, context, node);
+  chMtxUnlock(&sbp_cb_mutex);
+}
+
 void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb,
                       sbp_msg_callbacks_node_t *node)
 {
-  sbp_register_callback(&uarta_sbp_state, msg_type, cb, 0, node);
-  sbp_register_callback(&uartb_sbp_state, msg_type, cb, 0, node);
-  sbp_register_callback(&ftdi_sbp_state , msg_type, cb, 0, node);
+  sbp_register_cbk_with_closure(msg_type, cb, node, NULL);
+}
 
+void sbp_remove_cbk(sbp_msg_callbacks_node_t *node)
+{
+  chMtxLock(&sbp_cb_mutex);
+  sbp_remove_callback(&uarta_sbp_state, node);
+  sbp_remove_callback(&uartb_sbp_state, node);
+  sbp_remove_callback(&ftdi_sbp_state, node);
+  chMtxUnlock(&sbp_cb_mutex);
 }
 
 /** Disable the SBP interface.
@@ -243,20 +265,9 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
   return ret;
 }
 
-u32 uarta_read(u8 *buff, u32 n, void *context)
+static u32 uart_read(u8 *buff, u32 n, void *context)
 {
-  (void)context;
-  return usart_read(&uarta_state, buff, n);
-}
-u32 uartb_read(u8 *buff, u32 n, void *context)
-{
-  (void)context;
-  return usart_read(&uartb_state, buff, n);
-}
-u32 ftdi_read(u8 *buff, u32 n, void *context)
-{
-  (void)context;
-  return usart_read(&ftdi_state, buff, n);
+  return usart_read(context, buff, n);
 }
 
 /** Process SBP messages received through the USARTs.
@@ -267,13 +278,15 @@ void sbp_process_messages()
 {
   s8 ret;
 
+  chMtxLock(&sbp_cb_mutex);
+
   uart_state_msg.uart_a.rx_buffer_level =
     MAX(uart_state_msg.uart_a.rx_buffer_level,
       (255 * usart_n_read(&uarta_state)) / SERIAL_BUFFERS_SIZE);
 
   if (usart_claim(&uarta_state, SBP_MODULE)) {
     while (usart_n_read(&uarta_state) > 0) {
-      ret = sbp_process(&uarta_sbp_state, &uarta_read);
+      ret = sbp_process(&uarta_sbp_state, &uart_read);
       if (ret == SBP_CRC_ERROR)
         uart_state_msg.uart_a.crc_error_count++;
     }
@@ -286,7 +299,7 @@ void sbp_process_messages()
 
   if (usart_claim(&uartb_state, SBP_MODULE)) {
     while (usart_n_read(&uartb_state) > 0) {
-      ret = sbp_process(&uartb_sbp_state, &uartb_read);
+      ret = sbp_process(&uartb_sbp_state, &uart_read);
       if (ret == SBP_CRC_ERROR)
         uart_state_msg.uart_b.crc_error_count++;
     }
@@ -299,12 +312,14 @@ void sbp_process_messages()
 
   if (usart_claim(&ftdi_state, SBP_MODULE)) {
     while (usart_n_read(&ftdi_state) > 0) {
-      ret = sbp_process(&ftdi_sbp_state, &ftdi_read);
+      ret = sbp_process(&ftdi_sbp_state, &uart_read);
       if (ret == SBP_CRC_ERROR)
         uart_state_msg.uart_ftdi.crc_error_count++;
     }
     usart_release(&ftdi_state);
   }
+
+  chMtxUnlock(&sbp_cb_mutex);
 }
 
 /** Directs printf's output to the SBP interface */

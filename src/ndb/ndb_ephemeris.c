@@ -22,13 +22,12 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 
-#define NDB_EPHE_FILE_NAME   "ephe"
+#define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
 
 static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT] _CCM;
 static ndb_element_metadata_t ndb_ephemeris_md[PLATFORM_SIGNAL_COUNT];
 static ndb_file_t ndb_ephe_file = {
     .name = NDB_EPHE_FILE_NAME,
-    .fh = -1,
     .expected_size =
           sizeof(ephemeris_t) * PLATFORM_SIGNAL_COUNT
         + sizeof(ndb_element_metadata_nv_t) * PLATFORM_SIGNAL_COUNT

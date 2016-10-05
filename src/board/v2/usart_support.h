@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2012-2014 Swift Navigation Inc.
- * Contact: Fergus Noble <fergus@swift-nav.com>
+ * Copyright (C) 2016 Swift Navigation Inc.
+ * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -10,12 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_SBP_FILEIO_H
-#define SWIFTNAV_SBP_FILEIO_H
+#ifndef SWIFTNAV_PLATFORM_SIGNAL_H
+#define SWIFTNAV_PLATFORM_SIGNAL_H
 
-void sbp_fileio_remove(const char *filename);
-ssize_t sbp_fileio_write(const char *filename, off_t offset, const void *buf, size_t size);
-ssize_t sbp_fileio_read(const char *filename, off_t offset, void *buf, size_t size);
+extern struct usart_support_s SD1, SD3, SD6;
+#define SD_FTDI  (&SD6)
+#define SD_UARTA (&SD1)
+#define SD_UARTB (&SD3)
 
-#endif
-
+#endif /* SWIFTNAV_PLATFORM_SIGNAL_H */

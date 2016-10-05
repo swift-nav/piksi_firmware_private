@@ -54,7 +54,6 @@ extern usart_settings_t uartb_usart;
 /** USART DMA state structure. */
 typedef struct {
   void *sd;              /**< Pointer to board specific driver structure */
-  bool configured;
   /** USART RX stats structure. */
   struct usart_stats {
     u32 byte_counter;    /**< Counts the number of bytes received since

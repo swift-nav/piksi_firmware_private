@@ -50,6 +50,15 @@ ifeq ($(USE_FPU),)
   USE_FPU = hard
 endif
 
+# NOTE: this assumes libraries are not PIKSI_REV sensitive
+ifeq ($(LIB_BUILDFOLDER),)
+  LIB_BUILDFOLDER = build_$(PIKSI_HW)
+endif
+
+ifeq ($(OPENAMP_BUILDDIR),)
+  OPENAMP_BUILDDIR=$(SWIFTNAV_ROOT)/open-amp/$(LIB_BUILDFOLDER)
+endif
+
 #
 # Architecture or project specific options
 ##############################################################################
@@ -65,12 +74,13 @@ include $(CHIBIOS)/os/hal/ports/ZYNQ7000/platform.mk
 include $(CHIBIOS)/os/rt/ports/ARM/compilers/GCC/mk/port_generic.mk
 
 BOARDDIR := $(SWIFTNAV_ROOT)/src/board/v3
-BOARDINC := $(REVINC) $(BOARDDIR)
+BOARDINC := $(REVINC) \
+            $(BOARDDIR) \
+            $(SWIFTNAV_ROOT)/open-amp/lib/include
 
 BOARDSRC := \
         $(REVSRC) \
         $(BOARDDIR)/board.o \
-        $(BOARDDIR)/cfs-coffee-arch.o \
         $(BOARDDIR)/error.o \
         $(BOARDDIR)/frontend.o \
         $(BOARDDIR)/clk_dac.o \
@@ -85,6 +95,9 @@ BOARDSRC := \
         $(BOARDDIR)/nap/nap_dummy.o \
         $(BOARDDIR)/nap/track_channel.o \
         $(BOARDDIR)/platform_signal.o \
+        $(BOARDDIR)/remoteproc/remoteproc_config.o \
+        $(BOARDDIR)/remoteproc/remoteproc_env.o \
+        $(BOARDDIR)/remoteproc/rpmsg.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
@@ -96,6 +109,10 @@ BOARDASM := \
         $(BOARDDIR)/cpu_init.s \
         $(BOARDDIR)/mmu_table.s \
         $(BOARDDIR)/error_asm.s \
+
+BOARDLIBS := -lopen_amp
+
+BOARDLIBDIR := $(OPENAMP_BUILDDIR)/lib
 
 # Define linker script file here
 LDSCRIPT= $(BOARDDIR)/ZYNQ7000.ld

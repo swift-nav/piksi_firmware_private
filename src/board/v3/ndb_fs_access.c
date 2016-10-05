@@ -10,47 +10,35 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <assert.h>
-#include <string.h>
-#include <cfs/cfs-coffee.h>
-#include <cfs/cfs.h>
+#include <stdio.h>
+#include <stdbool.h>
+
+#include "ndb/ndb_fs_access.h"
+#include "sbp_fileio.h"
 
 bool ndb_fs_is_real()
 {
   return true;
 }
 
-int ndb_fs_open(const char *name, int flags)
-{
-  return cfs_open(name, flags);
-}
-
-void ndb_fs_close(int fd)
-{
-  cfs_close(fd);
-}
-
-cfs_offset_t ndb_fs_seek(int fd, cfs_offset_t offset, int whence)
-{
-  return cfs_seek(fd, offset, whence);
-}
-
 int ndb_fs_remove(const char *name)
 {
-  return cfs_remove(name);
+  sbp_fileio_remove(name);
+  return 0;
 }
 
-int ndb_fs_read(int fd, void *buf, unsigned size)
+ssize_t ndb_fs_read(const char *fn, off_t offset, void *buf, size_t size)
 {
-  return cfs_read(fd, buf, size);
+  return sbp_fileio_read(fn, offset, buf, size);
 }
 
-int ndb_fs_write(int fd, const void *buf, unsigned size)
+ssize_t ndb_fs_write(const char *fn, off_t offset, const void *buf, size_t size)
 {
-  return cfs_write(fd, buf, size);
+  return sbp_fileio_write(fn, offset, buf, size);
 }
 
-int ndb_fs_reserve(const char *name, cfs_offset_t size)
+int ndb_fs_reserve(const char *name, size_t size)
 {
-  return cfs_coffee_reserve(name, size);
+  (void)name;
+  return size;
 }
