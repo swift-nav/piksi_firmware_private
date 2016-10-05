@@ -467,7 +467,7 @@ static void get_profile_params(tp_profile_internal_t *profile,
   const tp_ctrl_e ctrl = config->loop_params.ctrl;
   const u8 int_ms = config->loop_params.mode_ms;
   if ((mode == TP_TM_ONE_PLUS_N5 || mode == TP_TM_ONE_PLUS_N10 ||
-       (mode == TP_TM_ONE_PLUS_N && (int_ms == 5 || int_ms == 10))) &&
+      (mode == TP_TM_ONE_PLUS_N && (int_ms == 5 || int_ms == 10))) &&
       (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3)) {
     config->use_alias_detection = true;
   } else {
