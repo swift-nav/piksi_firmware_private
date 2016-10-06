@@ -78,7 +78,6 @@ typedef union
 /** Describes single tracking profile */
 typedef struct {
   struct {
-    u16 mode_ms;     /**< coherent integration time [ms] */
     float pll_bw;    /**< PLL bandwidth [Hz] */
     float fll_bw;    /**< FLL bandwidth [Hz]  */
     float dll_bw;    /**< DLL bandwidth [Hz] */
@@ -252,73 +251,73 @@ static const tp_profile_entry_t gps_profiles[] = {
 */
 
   /* recovery profiles */
-  { {  1, 40, 3,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
+  { {  40, 3,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,    300,    1,   0,   0,   0,
     0 },                                 /* 0 */
 
-  { {  1, 40, 1,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
+  { {  40, 1,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,    200,    2,   0,   0,   0,
     0 },                                 /* 1 */
 
-  { {  1, 40, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
+  { {  40, 0,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,     50,    3,   0,   0,  15,
     TP_NO_PLOCK },                       /* 2 */
 
-  { {  1, 35, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
+  { {  35, 0,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,     50,    4,   0,   0,  15,
     TP_NO_PLOCK },                       /* 3 */
 
-  { {  1, 30, 0,  1, TP_CTRL_PLL3,     TP_TM_INITIAL, TRACK_CN0_EST_SECONDARY },
+  { {  30, 0,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
     0,     50,    5,   0,   4,  15,
     TP_NO_PLOCK | TP_WAIT_BSYNC | TP_DYNAMICS},        /* 4 */
 
-  { {  5, 30, 0,  1, TP_CTRL_PLL3,  TP_TM_ONE_PLUS_N, TRACK_CN0_EST_PRIMARY },
+  { {  30, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
     0,     50,    6,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },                       /* 5 */
 
-  { {  5, 25, 0,  1, TP_CTRL_PLL3,  TP_TM_ONE_PLUS_N, TRACK_CN0_EST_PRIMARY },
+  { {  25, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
     0,     50,    7,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },                       /* 6 */
 
-  { {  5, 20, 0,  1, TP_CTRL_PLL3,  TP_TM_ONE_PLUS_N, TRACK_CN0_EST_PRIMARY },
+  { {  20, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
     0,     50,    8,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },                       /* 7 */
 
-  { { 10, 20, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 20, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,    9,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },         /* 8 */
 
-  { { 10, 18, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 18, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,   10,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },        /* 9 */
 
-  { { 10, 15, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 15, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,   11,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },        /* 10 */
 
-  { { 10, 14, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 14, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,   12,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },        /* 11 */
 
-  { { 10, 12, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 12, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,   13,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },        /* 12 */
 
-  { { 10, 10, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 10, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,   14,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },        /* 13 */
 
-  { { 20, 10, 0,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 10, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_20MS, TRACK_CN0_EST_PRIMARY },
     0,     50,   14,   0,   4,  15,
     TP_NO_PLOCK | TP_DYNAMICS },        /* 14 */
 
   /* sensitivity profile */
-  { { 20,  4, 3,  1, TP_CTRL_FLL1, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_SECONDARY },
+  { {  4, 3,  1, TP_CTRL_FLL1, TP_TM_GPS_20MS, TRACK_CN0_EST_SECONDARY },
     30., 4000,   15,  16,   0,   0,
     TP_HIGH_CN0 },                      /* 15 */
 
   /* sensitivity to recovery transitional profile */
-  { { 10, 20, 1,  1, TP_CTRL_PLL3, TP_TM_ONE_PLUS_N5, TRACK_CN0_EST_PRIMARY },
+  { { 20, 1,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
     0,     50,    8,   0,   0,   0,
     0 },                                /* 16 */
 };
@@ -452,7 +451,6 @@ static void get_profile_params(tp_profile_internal_t *profile,
   config->loop_params.code_bw = cur_profile->profile.dll_bw;
   config->loop_params.carr_bw = cur_profile->profile.pll_bw;
   config->loop_params.fll_bw = cur_profile->profile.fll_bw;
-  config->loop_params.mode_ms = cur_profile->profile.mode_ms;
   config->loop_params.mode = cur_profile->profile.mode;
   config->loop_params.ctrl = cur_profile->profile.controller_type;
 
@@ -465,10 +463,8 @@ static void get_profile_params(tp_profile_internal_t *profile,
    */
   const tp_tm_e mode = config->loop_params.mode;
   const tp_ctrl_e ctrl = config->loop_params.ctrl;
-  const u8 int_ms = config->loop_params.mode_ms;
-  if ((mode == TP_TM_ONE_PLUS_N5 || mode == TP_TM_ONE_PLUS_N10 ||
-      (mode == TP_TM_ONE_PLUS_N && (int_ms == 5 || int_ms == 10))) &&
-      (ctrl == TP_CTRL_PLL2 || ctrl == TP_CTRL_PLL3)) {
+  if ((TP_TM_GPS_5MS == mode || TP_TM_GPS_10MS == mode || TP_TM_GPS_20MS == mode)
+      && (TP_CTRL_PLL2 == ctrl || TP_CTRL_PLL3 == ctrl)) {
     config->use_alias_detection = true;
   } else {
     config->use_alias_detection = false;
@@ -568,7 +564,7 @@ static void print_stats(tp_profile_internal_t *profile)
 
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
   tp_tm_e tracking_mode = cur_profile->profile.mode;
-  int dll_ms = tp_get_dll_ms(tracking_mode, cur_profile->profile.mode_ms);
+  int dll_ms = tp_get_dll_ms(tracking_mode);
 
   const char *m1 = tp_get_mode_str(tracking_mode);
   const char *c1 = get_ctrl_str(cur_profile->profile.controller_type);
@@ -623,8 +619,7 @@ static void check_for_cn0_estimator_change(tp_profile_internal_t *state)
 
   cn0 = state->filt_cn0;
   cur_profile = &state->profiles[state->cur_index];
-  u8 cn0_ms = tp_get_cn0_ms(cur_profile->profile.mode,
-                            cur_profile->profile.mode_ms);
+  u8 cn0_ms = tp_get_cn0_ms(cur_profile->profile.mode);
 
   if (TRACK_CN0_EST_PRIMARY == state->cn0_est) {
     if (cn0 < track_cn0_get_pri2sec_threshold(cn0_ms) ||
@@ -729,10 +724,9 @@ static void check_for_profile_change(tp_profile_internal_t *state)
  */
 static float compute_cn0_offset(const tp_profile_internal_t *profile)
 {
-  u8 mode_ms = profile->profiles[profile->cur_index].profile.mode_ms;
   tp_tm_e mode = profile->profiles[profile->cur_index].profile.mode;
 
-  u8 cn0_ms = tp_get_cn0_ms(mode, mode_ms);
+  u8 cn0_ms = tp_get_cn0_ms(mode);
   float cn0_offset = track_cn0_get_offset(cn0_ms);
 
   return cn0_offset;
@@ -930,8 +924,9 @@ u8 tp_get_next_loop_params_ms(gnss_signal_t sid)
   tp_profile_internal_t *profile = find_profile(sid);
   u8 ms = 1;
 
-  if (NULL != profile)
-    ms = profile->profiles[profile->next_index].profile.mode_ms;
+  if (NULL != profile) {
+    ms = tp_get_dll_ms(profile->profiles[profile->next_index].profile.mode);
+  }
 
   return ms;
 }
