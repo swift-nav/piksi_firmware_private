@@ -24,12 +24,13 @@
 #include <string.h>
 #include <assert.h>
 
-/** Exponential filter coefficient for FLL/DLL false lock detector. */
-#define TP_TRACKER_FLL_LOCK_ALPHA      (0.03f)
 /** False lock detector filter interval in ms. */
 #define TP_TRACKER_ALIAS_DURATION_MS   (1000)
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA   (2.f)
+
+/** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
+#define TP_FLL_DLL_ERR_THRESHOLD_HZ    0.1
 
 /**
  * Computes number of chips in the integration interval
@@ -68,6 +69,38 @@ static u32 tp_convert_ms_to_chips(gnss_signal_t sid, u8 ms)
 }
 
 /**
+ * (Re-)initialize lock detector parameters.
+ * \param[in,out] data        Generic tracker data.
+ * \param[in]     next_params Tracking configuration.
+ * \param[in]     init        Flag to indicate if the call to initialize or
+ *                            to update.
+ * \return None
+ */
+void tp_tracker_update_lock_detect_parameters(tp_tracker_data_t *data,
+                                              const tp_config_t *next_params,
+                                              bool init)
+{
+  const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
+  /* Lock detector integration time */
+  bool mode_switch = tp_is_fll_ctrl(data->tl_state.ctrl) !=
+                     tp_is_fll_ctrl(next_params->loop_params.ctrl);
+
+  if (init || mode_switch) {
+    lock_detect_init(&data->lock_detect,
+                     ld->k1,
+                     ld->k2,
+                     ld->lp,
+                     ld->lo);
+  } else {
+    lock_detect_reinit(&data->lock_detect,
+                       ld->k1,
+                       ld->k2,
+                       ld->lp,
+                       ld->lo);
+  }
+}
+
+/**
  * Update tracker parameters when initializing or changing tracking mode.
  *
  * \param[in]     channel_info Tracking channel information.
@@ -86,8 +119,6 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
                                   bool init)
 {
   const tp_loop_params_t *l = &next_params->loop_params;
-  const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
-
   u8 prev_cn0_ms = 0;
   bool prev_use_alias_detection = 0;
 
@@ -106,10 +137,8 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   u8 cycle_cnt = tp_get_cycle_count(l->mode);
   data->cycle_no = cycle_cnt - 1;
 
-  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode);
   /**< C/N0 integration time */
-  u8 ld_int_ms = tp_get_ld_ms(data->tracking_mode);
-  /**< Lock detector integration time */
+  u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode);
   /**< Set initial rates */
   tl_rates_t rates;
   rates.code_freq = common_data->code_phase_rate - GPS_CA_CHIPPING_RATE;
@@ -126,18 +155,10 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   if (init) {
     log_debug_sid(channel_info->sid, "Initializing TL");
 
-
     tp_tl_init(&data->tl_state,
                next_params->loop_params.ctrl,
                &rates,
                &config);
-
-    lock_detect_init(&data->lock_detect,
-                     ld->k1 * ld_int_ms,
-                     ld->k2,
-                     ld->lp,
-                     ld->lo);
-
   } else {
     log_debug_sid(channel_info->sid, "Re-tuning TL");
 
@@ -145,13 +166,8 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
     tp_tl_retune(&data->tl_state,
                  next_params->loop_params.ctrl,
                  &config);
-
-    lock_detect_reinit(&data->lock_detect,
-                       ld->k1 * ld_int_ms,
-                       ld->k2,
-                       ld->lp,
-                       ld->lo);
   }
+  tp_tracker_update_lock_detect_parameters(data, next_params, init);
 
   if (init || cn0_ms != prev_cn0_ms) {
     tp_cn0_params_t cn0_params;
@@ -185,9 +201,6 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
                   cn0_0,
                   cn0_t);
   }
-
-  data->fll_lock_counter = 0;
-  data->fll_lock_detect = 0;
 
   if (data->use_alias_detection) {
     u8 alias_detect_ms = tp_get_alias_ms(data->tracking_mode);
@@ -632,47 +645,62 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
                              tp_tracker_data_t *data,
                              u32 cycle_flags)
 {
+  bool fll = tp_tl_is_fll(&data->tl_state);
+  bool pll = tp_tl_is_pll(&data->tl_state);
+
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
     /* Update PLL/FLL lock detector */
     bool last_outp = data->lock_detect.outp;
-    bool outo = false, outp = false;
+    bool outp = false;
+
     if (tp_tl_is_pll(&data->tl_state)) {
       lock_detect_update(&data->lock_detect,
                          data->corrs.corr_ld.I,
                          data->corrs.corr_ld.Q,
                          tp_get_ld_ms(data->tracking_mode));
 
-      outo = data->lock_detect.outo;
       outp = data->lock_detect.outp;
-      data->fll_lock_detect = 0;
 
     } else if (tp_tl_is_fll(&data->tl_state)) {
       /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
 
       float dll_err = tp_tl_get_dll_error(&data->tl_state);
-      /* Exponential filter for DLL/FLL error */
-      data->fll_lock_detect += TP_TRACKER_FLL_LOCK_ALPHA *
-                               (dll_err - data->fll_lock_detect);
 
-      /* In FLL mode simulate optimistic lock only, no pessimistic lock. */
-      data->lock_detect.outp = outp = false;
-      data->lock_detect.outo = outo = data->fll_lock_detect < 0.1;
+      lock_detect_update(&data->lock_detect,
+                         TP_FLL_DLL_ERR_THRESHOLD_HZ,
+                         dll_err,
+                         tp_get_ld_ms(data->tracking_mode));
+
+      outp = data->lock_detect.outp;
     }
 
-    if (outo) {
-      common_data->ld_opti_locked_count = common_data->update_count;
-    }
-    if (!outp) {
-      common_data->ld_pess_unlocked_count = common_data->update_count;
+    if (outp != last_outp) {
+      common_data->ld_pess_change_count = common_data->update_count;
     }
 
-    if (last_outp && !outp && data->tracking_mode != TP_TM_GPS_INITIAL) {
-      log_info_sid(channel_info->sid, "PLL stress");
+    if (last_outp && !outp && (data->tracking_mode != TP_TM_GPS_INITIAL)) {
+      if (tp_tl_is_fll(&data->tl_state)) {
+        log_info_sid(channel_info->sid, "FLL stress");
+      } else if (tp_tl_is_pll(&data->tl_state)) {
+        log_info_sid(channel_info->sid, "PLL stress");
+      }
     }
     /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
-    if (!outp) {
+    if (!outp || fll) {
       tracker_ambiguity_unknown(channel_info->context);
     }
+  }
+
+  common_data->flags = 0;
+
+  if (pll) {
+    common_data->flags |= TRACK_CMN_FLAG_PLL_USE;
+    common_data->flags |= data->lock_detect.outp ? TRACK_CMN_FLAG_HAS_PLOCK : 0;
+  } else if (fll) {
+    common_data->flags |= TRACK_CMN_FLAG_FLL_USE;
+    common_data->flags |= data->lock_detect.outp ? TRACK_CMN_FLAG_HAS_FLOCK : 0;
+  } else {
+    assert(!"Unknown tracking loop configuration");
   }
 }
 
@@ -764,13 +792,11 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
     report.plock = data->lock_detect.outp;
     report.lock_i = data->lock_detect.lpfi.y;
     report.lock_q = data->lock_detect.lpfq.y;
-    float code_rate = code_to_carr_to_code(channel_info->sid.code);
-    report.lock_f = data->fll_lock_detect * code_rate;
     report.sample_count = common_data->sample_count;
     report.time_ms = tp_get_dll_ms(data->tracking_mode);
     report.acceleration = rates.acceleration;
 
-    tp_report_data(channel_info->sid, &report);
+    tp_report_data(channel_info->sid, common_data, &report);
   }
 }
 

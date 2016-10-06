@@ -20,6 +20,11 @@
    TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | \
    TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
 
+#define TP_FLAGS_DYNAMICS_DEFAULT \
+  (TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_SET | \
+   TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | \
+   TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
+
 #define TP_FLAGS_SHORT_DEFAULT \
   (TP_CFLAG_SHORT_CYCLE | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_SET | \
    TP_CFLAG_EPL_SET | TP_CFLAG_ALIAS_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET |\
@@ -92,6 +97,43 @@ static const state_table_t mode_1msINI = {
     {1, TP_FLAGS_INIT_DEFAULT},
     {1, TP_FLAGS_INIT_DEFAULT},
     {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_USE},
+  }
+};
+
+/**
+ * Dynamics tracking mode (bit sync, FLL-assisted PLL, 1 ms)
+ */
+static const state_table_t mode_1msDYN = {
+  .int_ms  = 1,
+  .cn0_ms  = 20,
+  .ld_ms   = 1,
+  .fl_ms   = 1,
+  .flld_ms = 20,
+  .flll_ms = 20,
+  .bit_ms  = 1,
+  .ent_cnt = 20,
+  .entries = {
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_SET},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
+    {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_FLL_USE |
+        TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE},
   }
 };
 
@@ -300,6 +342,9 @@ static const state_table_t *select_table(tp_tm_e tracking_mode)
 
   case TP_TM_GPS_5MS:
     return &mode_5ms1PN;
+
+  case TP_TM_GPS_DYN:
+    return &mode_1msDYN;
 
   case TP_TM_GPS_10MS:
     return &mode_10ms1PN5;
@@ -574,10 +619,63 @@ const char *tp_get_mode_str(tp_tm_e v)
   const char *str = "?";
   switch (v) {
   case TP_TM_GPS_INITIAL: str = "GPS_INI"; break;
+  case TP_TM_GPS_DYN:     str = "GPS_DYN"; break;
   case TP_TM_GPS_5MS:     str = "GPS_5"; break;
   case TP_TM_GPS_10MS:    str = "GPS_10"; break;
   case TP_TM_GPS_20MS:    str = "GPS_20"; break;
   default: assert(false);
   }
   return str;
+}
+
+/**
+ * Test if the tracker controller is PLL or FLL assisted PLL
+ *
+ * \param[in] ctrl Tracker controller type.
+ *
+ * \retval true  controller is PLL or FLL assisted FLL
+ * \retval false controller is not PLL
+ */
+bool tp_is_pll_ctrl(tp_ctrl_e ctrl)
+{
+  switch (ctrl) {
+  case TP_CTRL_PLL2:
+  case TP_CTRL_PLL3:
+    return true;
+
+  case TP_CTRL_FLL1:
+  case TP_CTRL_FLL2:
+    return false;
+
+  default:
+    assert(!"Unsupported controller type");
+    break;
+  }
+  return false;
+}
+
+/**
+ * Test if the tracker controller is FLL.
+ *
+ * \param[in] ctrl Tracker controller type.
+ *
+ * \retval true  controller is FLL
+ * \retval false controller is not FLL
+ */
+bool tp_is_fll_ctrl(tp_ctrl_e ctrl)
+{
+  switch (ctrl) {
+  case TP_CTRL_PLL2:
+  case TP_CTRL_PLL3:
+    return false;
+
+  case TP_CTRL_FLL1:
+  case TP_CTRL_FLL2:
+    return true;
+
+  default:
+    assert(!"Unsupported controller type");
+    break;
+  }
+  return false;
 }

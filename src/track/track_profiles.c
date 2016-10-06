@@ -39,19 +39,63 @@
 /** C/N0 threshold when we can't say if we are still tracking */
 #define TP_HARD_CN0_DROP_THRESHOLD (18.f)
 
-/** Acceleration is declared if it is more than this threshold [g] */
-#define TP_ACCELERATION_DETECTION_THRESHOLD_G (0.5f)
-
 /** Revert acceleration flag, if last acceleration
    has been seen earlier than this time [ms] */
 #define TP_ACCELERATION_MAX_AGE_MS (2000)
 
+/** Unknown delay indicator */
+#define TP_DELAY_UNKNOWN -1
+
+/** Helper macro for array size computation */
+#define ARR_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+
+/** Indices of specific entries in gps_profiles[] table below */
 typedef enum {
-  TP_HIGH_CN0   = (1 << 0), /**< Watch CN0 value */
-  TP_DYNAMICS   = (1 << 1), /**< Watch dynamics */
-  TP_NO_PLOCK   = (1 << 2), /**< Watch no pessimistic phase lock condition */
-  TP_WAIT_BSYNC = (1 << 3), /**< Wait for bit sync */
-  TP_IGN_PLOCK  = (1 << 4)  /**< Ignore missing phase lock condition */
+  /** Placeholder for an index. Indicated an unused index field. */
+  IDX_NONE         = -1,
+  /** Recovery profiles initial index */
+  IDX_RECOVERY     = 5,
+
+  /** High CN0 range profiles initial index */
+  IDX_HIGH_CN0     = 9,
+  /** Middle CN0 range profiles initial index */
+  IDX_MID_CN0      = 10,
+  /** Low CN0 range profiles initial index */
+  IDX_LOW_CN0_INI  = 11,
+  /** Low CN0 range profiles final index */
+  IDX_LOW_CN0_FIN  = 17,
+
+  /** Sensitivity profile index */
+  IDX_SENS         = 18,
+
+  /** Sensitivity to low range CN0 transitional profiles index */
+  IDX_TRAN_CN0     = 19,
+  /** Sensitivity to dynamics transitional profiles index */
+  IDX_TRAN_DYN     = 22,
+
+  /** Dynamics profile for low CN0 index */
+  IDX_LOW_CN0_DYN  = 24,
+  /** Dynamics profile for low CN0 index */
+  IDX_HIGH_CN0_DYN = 25
+} profile_indices_t;
+
+typedef enum {
+  TP_LOW_CN0    = (1 << 0), /**< Watch low CN0 value */
+  TP_HIGH_CN0   = (1 << 1), /**< Watch high CN0 value */
+  TP_LOW_DYN    = (1 << 2), /**< Watch low dynamics */
+  TP_HIGH_DYN   = (1 << 3), /**< Watch high dynamics */
+  TP_NO_PLOCK   = (1 << 4), /**< Watch no pessimistic lock condition */
+  TP_WAIT_BSYNC = (1 << 5), /**< Wait for bit sync */
+  TP_WAIT_PLOCK = (1 << 6), /**< Wait for pessimistic lock */
+  TP_WAIT_CN0   = (1 << 7), /**< Wait for CN0 to grow above a threshold */
+  TP_USE_NEXT   = (1 << 8), /**< Use next index to choose next profile */
+
+  /** Watch high CN0 value, once pessimistic lock is acquired and no dynamics */
+  TP_HIGH_CN0_WAIT_PLOCK_N0_DYN = (1 << 9),
+
+  /** Watch high dynamics, once pessimistic lock is acquired
+      and CN0 value is above a threshold */
+  TP_HIGH_DYN_WAIT_PLOCK_CN0 = (1 << 10)
 } tp_profile_flags_t;
 
 /** Tracking loop parameter placeholder */
@@ -85,21 +129,36 @@ typedef struct {
     tp_tm_e mode;                /**< Tracking mode */
     track_cn0_est_e cn0_est;     /**< CN0 estimator */
   } profile;
-  float cn0_threshold;    /**< CN0 threshold to start recovery */
-  u16 lock_time_ms;       /**< Profile stabilization time [ms] */
-  u8 next;     /**< Next profile to activate once lock_time_ms is over */
+
+  u8 ld_params;             /**< One of TP_LD_PARAMS_... constants */
+
+  u16 lock_time_ms;         /**< Profile stabilization time [ms] */
+  float cn0_low_threshold;  /**< Low CN0 threshold [dB-Hz] */
+  float cn0_high_threshold; /**< High CN0 threshold [dB-Hz] */
+  float acc_threshold;      /**< Acceleration threshold [g] */
+  float cn0_dyn_threshold;  /**< High CN0 dynamics threshold [dB-Hz] */
+
+  /** Next profile to activate once lock_time_ms is over */
+  profile_indices_t next;
+
+  /** Next profile to activate if TP_LOW_CN0 is set and CN0 is
+      lower than this value */
+  profile_indices_t next_cn0_low;
 
   /** Next profile to activate if TP_HIGH_CN0 is set and CN0 is
-      higher than cn0_threshold */
-  u8 next_cn0;
+      higher than this value */
+  profile_indices_t next_cn0_high;
 
-  /** Next profile to activate if TP_DYNAMICS is set and
-      dynamics was detected */
-  u8 next_dyn;
+  /** Next profile to activate if:
+      TP_HIGH_DYN is set and high dynamics was detected
+      OR
+      TP_LOW_DYN is set and low dynamics was detected */
+  profile_indices_t next_dyn;
 
   /** Next profile to activate if TP_NO_PLOCK is set and
-      phase lock was lost */
-  u8 next_lock;
+      pessimistic lock was lost */
+  profile_indices_t next_lock;
+
   u16 flags;              /**< Bit combination of tp_profile_flags_t */
 } tp_profile_entry_t;
 
@@ -138,6 +197,14 @@ typedef struct {
   /** There is an acceleration if this parameter is non-zero [ms] */
   u16           acceleration_ends_after_ms;
   u16           print_time;        /**< Last debug print time */
+
+  u32           time_snapshot_ms;  /**< Time snapshot [ms] */
+
+  /** Bit sync delay [ms] or TP_DELAY_UNKNOWN */
+  s16           bs_delay_ms;
+
+  /** Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
+  s16           plock_delay_ms;
 
   /** Profiles switching table. */
   const tp_profile_entry_t* profiles;
@@ -202,7 +269,10 @@ enum {
   TP_LD_PARAMS_EXTRAOPT,
   TP_LD_PARAMS_OPT,
   TP_LD_PARAMS_NORMAL,
-  TP_LD_PARAMS_PESS
+  TP_LD_PARAMS_PESS,
+  TP_LD_PARAMS_PLL_1MS,
+  TP_LD_PARAMS_PLL_5MS,
+  TP_LD_PARAMS_FLL_5MS
 };
 
 /**
@@ -211,11 +281,20 @@ enum {
 static const tp_lock_detect_params_t ld_params[] = {
   /*   k1,    k2,  lp,  lo */
   { 0.02f, 1e-6f,   1,   1,}, /* TP_LD_PARAMS_DISABLE */
-  { 0.02f,  0.8f,  50, 150,}, /* LD_PARAMS_EXTRAOPT */
-  { 0.02f,  1.1f,  50, 150,}, /* LD_PARAMS_OPT */
-  { 0.05f,  1.4f,  50, 150,}, /* LD_PARAMS_NORMAL */
-  { 0.10f,  1.4f,  50, 200,}  /* TP_LD_PARAMS_PESS */
+  { 0.02f,  0.8f,  50, 150,}, /* TP_LD_PARAMS_EXTRAOPT */
+  { 0.02f,  1.1f,  50, 150,}, /* TP_LD_PARAMS_OPT */
+  { 0.05f,  1.4f,  50, 150,}, /* TP_LD_PARAMS_NORMAL */
+  { 0.10f,  1.4f,  50, 200,}, /* TP_LD_PARAMS_PESS */
+  { 0.025f,  1.5f,  50, 150,}, /* TP_LD_PARAMS_PLL_1MS */
+  { 0.025f,  1.5f,  50, 150,}, /* TP_LD_PARAMS_PLL_5MS */
+  { 0.005f,  .6f,  50, 200,}  /* TP_LD_PARAMS_FLL_5MS */
 };
+
+/** Set this to 'true' to enable debugging of profile switching
+    logic. Another useful change is to limit the number of
+    tracking channels to 1 to avoid flooding the resulting log.
+    To do this, set NAP_MAX_N_TRACK_CHANNELS to 1 in nap_hw.h */
+static bool debug_profile_switching = false;
 
 /** Tracking loop parameters template
  * Filled out at the trackig loop parameters switch event.
@@ -224,7 +303,7 @@ static const tp_loop_params_t loop_params_template = {
   /** Code tracking noise bandwidth in Hz */
   .code_bw           = TP_LOOP_PARAM_PLACE_HOLDER,
   .code_zeta         = 0.707f,  /**< Code tracking loop damping ratio */
-  .code_k            = .5,      /**< Code tracking loop gain coefficient */
+  .code_k            = 1.,      /**< Code tracking loop gain coefficient */
   /** carrier frequency /  chip rate */
   .carr_to_code      = TP_LOOP_PARAM_PLACE_HOLDER,
   /** Carrier tracking loop noise bandwidth in Hz */
@@ -235,7 +314,35 @@ static const tp_loop_params_t loop_params_template = {
   .fll_bw            = TP_LOOP_PARAM_PLACE_HOLDER
 };
 
-/*
+/**
+ * The tracking profiles switching table.
+ *
+ * The table describes a set of different profiles and
+ * the logic controlling how different profiles are selected.
+ * One entry of the table is one distinct profile, which targets
+ * a specific condition. For example, low CN0, high acceleration,
+ * transitional profile activated for a short time, while transitioning
+ * to a target profile etc.
+ *
+ * Essentially, the table describes a finite state machine (FSM).
+ * Each tracking channel has its own instance of the FSM.
+ * Therefore, all tracking channels are independent and may have
+ * different profiles active at any moment of time.
+ * The actual profile switching is done in #check_for_profile_change()
+ * function.
+ *
+ * The transition within the table happens as a result of
+ * continous evaluation of four parameters:
+ *
+ * -# time
+ * -# CN0 level
+ * -# dynamics (acceleration)
+ * -# availability of pessimistic lock
+ *
+ * Each profile has the field tp_profile_entry_t::flags, which
+ * tells, which parameters affect the transition to a next profile.
+ * The flags are a bit combination of tp_profile_flags_t.
+ *
  * See more details at
  * https://swiftnav.hackpad.com/High-sensitivity-tracking-FLL-PLL-profile-switching-design-HDpuFC1BygA
  * Each entry of the array is a set of initialization parameters of
@@ -245,81 +352,180 @@ static const tp_profile_entry_t gps_profiles[] = {
 /*
   These are the short names of the numbers & parameters listed
   in the same order below.
-  { { ms, pll_bw, fll_bw, dll_bw, controller, mode, cn0_est },
-   cn0_thr, time, next, cn0, dyn, lock,
-   flags }
+  { { pll_bw,     fll_bw,        dll_bw,     controller,
+            tracking mode,                      cn0_est },
+      time,   cn0_low_thr, cn0_high_thr,        acc_thr,              ld_params,
+      next,       cn0_low,     cn0_high,            dyn,                   lock,
+     flags }
 */
 
+  /* initial profiles */
+  { {   40,             3,            1,   TP_CTRL_PLL3,
+        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
+        50,             0,            0,              0,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
+        0 },                                                             /* 0 */
+
+  { {   40,             1,            1,   TP_CTRL_PLL3,
+        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
+        50,             0,            0,              0,                      0,
+      IDX_NONE,  IDX_NONE,    IDX_NONE,       IDX_NONE,                IDX_NONE,
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK },                                   /* 1 */
+
+  { {   40,             0,            1,   TP_CTRL_PLL3,
+        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
+        50,             0,            0,              0,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_SENS,
+      TP_NO_PLOCK },                                                     /* 2 */
+
+  { {   35,             0,            1,   TP_CTRL_PLL3,
+        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
+        50,             0,            0,              0,                      0,
+       IDX_NONE, IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_SENS,
+      TP_NO_PLOCK },                                                     /* 3 */
+
+  { {   30,             0,            1,   TP_CTRL_PLL3,
+        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
+        50,             0,            0,              4,                      0,
+      IDX_RECOVERY, IDX_NONE,  IDX_NONE, IDX_HIGH_CN0_DYN,             IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN | TP_USE_NEXT },                         /* 4 */
+
   /* recovery profiles */
-  { {  40, 3,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
-    0,    300,    1,   0,   0,   0,
-    0 },                                 /* 0 */
+  { {   30,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,             2.,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_HIGH_CN0_DYN,             IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                       /* 5 */
 
-  { {  40, 1,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
-    0,    200,    2,   0,   0,   0,
-    0 },                                 /* 1 */
+  { {   25,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,             2.,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_HIGH_CN0_DYN,             IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                       /* 6 */
 
-  { {  40, 0,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
-    0,     50,    3,   0,   0,  15,
-    TP_NO_PLOCK },                       /* 2 */
+  { {   20,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,             2.,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_HIGH_CN0_DYN,             IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                       /* 7 */
 
-  { {  35, 0,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
-    0,     50,    4,   0,   0,  15,
-    TP_NO_PLOCK },                       /* 3 */
+  { {   20,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,             2.,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_HIGH_CN0_DYN,             IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                       /* 8 */
 
-  { {  30, 0,  1, TP_CTRL_PLL3,     TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
-    0,     50,    5,   0,   4,  15,
-    TP_NO_PLOCK | TP_WAIT_BSYNC | TP_DYNAMICS},        /* 4 */
+  /* high range CN0 profile */
+  { {   18,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,             2.,                      0,
+      IDX_NONE,  IDX_NONE,   IDX_NONE, IDX_HIGH_CN0_DYN,               IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                       /* 9 */
 
-  { {  30, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,    6,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },                       /* 5 */
+  /* middle range CN0 profile */
+  { {   18,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 10 */
 
-  { {  25, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,    7,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },                       /* 6 */
+  /* low range CN0 profiles */
+  { {   15,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 11 */
 
-  { {  20, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,    8,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },                       /* 7 */
+  { {   14,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 12 */
 
-  { { 20, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,    9,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },         /* 8 */
+  { {   12,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 13 */
 
-  { { 18, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,   10,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },        /* 9 */
+  { {   10,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 14 */
 
-  { { 15, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,   11,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },        /* 10 */
+  { {   10,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_20MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 15 */
 
-  { { 14, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,   12,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },        /* 11 */
+  { {    8,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_20MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_SENS,
+      TP_NO_PLOCK | TP_HIGH_DYN },                                      /* 16 */
 
-  { { 12, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,   13,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },        /* 12 */
+  { {    7,             0,           .5,   TP_CTRL_PLL3,
+           TP_TM_GPS_20MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+        50,             0,            0,            1.5,                      0,
+      IDX_LOW_CN0_FIN, IDX_NONE, IDX_NONE, IDX_LOW_CN0_DYN,            IDX_SENS,
+      TP_NO_PLOCK | TP_USE_NEXT | TP_HIGH_DYN },                        /* 17 */
 
-  { { 10, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,   14,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },        /* 13 */
+  /* sensitivity profiles */
+  { {    4,             3,            1,   TP_CTRL_FLL2,
+           TP_TM_GPS_20MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_FLL_5MS,
+      4000,             0,          32.,            1.5,                    32.,
+      IDX_SENS,  IDX_NONE, IDX_TRAN_CN0,   IDX_TRAN_DYN,               IDX_NONE,
+      TP_HIGH_CN0_WAIT_PLOCK_N0_DYN | TP_HIGH_DYN_WAIT_PLOCK_CN0 |
+      TP_WAIT_CN0 | TP_USE_NEXT },                                      /* 18 */
 
-  { { 10, 0,  1, TP_CTRL_PLL3, TP_TM_GPS_20MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,   14,   0,   4,  15,
-    TP_NO_PLOCK | TP_DYNAMICS },        /* 14 */
+  /* sensitivity to low range CN0 transitional profiles  */
+  { {   20,             1,            1,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+        50,           26.,            0,              0,                      0,
+      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
+      TP_LOW_CN0 | TP_WAIT_PLOCK },                                     /* 19 */
 
-  /* sensitivity profile */
-  { {  4, 3,  1, TP_CTRL_FLL1, TP_TM_GPS_20MS, TRACK_CN0_EST_SECONDARY },
-    30., 4000,   15,  16,   0,   0,
-    TP_HIGH_CN0 },                      /* 15 */
+  { {   20,             0,            1,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+        50,           26.,            0,            1.5,                      0,
+      IDX_NONE,  IDX_SENS,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_NONE,
+      TP_LOW_CN0 | TP_HIGH_DYN },                                       /* 20 */
 
-  /* sensitivity to recovery transitional profile */
-  { { 20, 1,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
-    0,     50,    8,   0,   0,   0,
-    0 },                                /* 16 */
+  { {   18,             0,            1,   TP_CTRL_PLL3,
+           TP_TM_GPS_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+        50,           26.,            0,            1.5,                      0,
+      IDX_LOW_CN0_INI, IDX_SENS, IDX_NONE, IDX_LOW_CN0_DYN,            IDX_NONE,
+      TP_LOW_CN0 | TP_HIGH_DYN | TP_USE_NEXT },                         /* 21 */
+
+  /* sensitivity to dynamics transitional profiles */
+  { {   30,             3,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+        50,           30.,            0,              0,                      0,
+    IDX_NONE,    IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
+      TP_LOW_CN0 | TP_WAIT_PLOCK },                                     /* 22 */
+
+  { {   30,             1,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
+        50,           30.,            0,              0,                      0,
+    IDX_LOW_CN0_DYN, IDX_SENS, IDX_NONE,       IDX_NONE,               IDX_NONE,
+      TP_LOW_CN0 | TP_USE_NEXT },                                       /* 23 */
+
+  /* dynamics profile for low CN0 */
+  { {   30,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_5MS,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
+        50,           30.,          41.,            1.0,                      0,
+   IDX_LOW_CN0_DYN, IDX_SENS, IDX_HIGH_CN0_DYN, IDX_RECOVERY,          IDX_SENS,
+      TP_NO_PLOCK | TP_LOW_CN0 | TP_HIGH_CN0 | TP_LOW_DYN |
+      TP_USE_NEXT },                                                    /* 24 */
+
+  /* dynamics profile for high CN0 */
+  { {   30,             0,            1,   TP_CTRL_PLL3,
+            TP_TM_GPS_DYN,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
+        50,             38,           0,              1,                      0,
+   IDX_HIGH_CN0_DYN, IDX_LOW_CN0_DYN, IDX_NONE, IDX_RECOVERY,          IDX_SENS,
+      TP_NO_PLOCK | TP_LOW_CN0 | TP_LOW_DYN | TP_USE_NEXT }             /* 25 */
 };
 
 /**
@@ -440,10 +646,9 @@ static void delete_profile(gnss_signal_t sid)
 static void get_profile_params(tp_profile_internal_t *profile,
                                tp_config_t           *config)
 {
-  config->lock_detect_params = ld_params[TP_LD_PARAMS_OPT];
-
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
   double carr_to_code = code_to_carr_to_code(profile->csid.code);
+  config->lock_detect_params = ld_params[cur_profile->ld_params];
 
   /* fill out the tracking loop parameters */
   config->loop_params = loop_params_template;
@@ -477,14 +682,17 @@ static void get_profile_params(tp_profile_internal_t *profile,
  * Helper method to incorporate tracking loop information into statistics.
  *
  * \param[in,out] profile Satellite profile.
+ * \param[in]     common_data Tracker common data
  * \param[in]     data    Data from tracking loop.
  *
  * \return None
  */
 static void update_stats(tp_profile_internal_t *profile,
+                         const tracker_common_data_t *common_data,
                          const tp_report_t *data)
 {
   float cn0;
+  u32 cur_time_ms = common_data->update_count;
 
   /* Profile lock time count down */
   if (profile->lock_time_ms > data->time_ms) {
@@ -505,6 +713,22 @@ static void update_stats(tp_profile_internal_t *profile,
     profile->print_time -= data->time_ms;
   } else {
     profile->print_time = 0;
+  }
+
+  if ((TP_DELAY_UNKNOWN == profile->bs_delay_ms) && data->bsync) {
+    /* just got bit sync */
+    profile->bs_delay_ms = cur_time_ms - profile->time_snapshot_ms;
+  }
+
+  if (TP_DELAY_UNKNOWN == profile->plock_delay_ms && data->plock) {
+    /* just got pessimistic lock */
+    profile->plock_delay_ms = cur_time_ms - profile->time_snapshot_ms;
+  }
+
+  if (TP_DELAY_UNKNOWN != profile->plock_delay_ms && !data->plock) {
+    /* just lost pessimistic lock */
+    profile->plock_delay_ms = TP_DELAY_UNKNOWN;
+    profile->time_snapshot_ms = cur_time_ms;
   }
 
   profile->olock = data->olock;
@@ -542,6 +766,44 @@ static const char *get_ctrl_str(tp_ctrl_e v)
   return str;
 }
 
+/**
+ * Used to debug the profile switching logic.
+ *
+ * Set 'debug_profile_switching' to true to enable the profile
+ * switching logging.
+ * \param[in] state tracking loop state
+ * \param[in] reason profile switching reason in a textual form
+ */
+static void log_switch(const tp_profile_internal_t *state, const char* reason)
+{
+  if (false == debug_profile_switching) {
+    return;
+  }
+
+  const tp_profile_entry_t* cur_profile = &state->profiles[state->cur_index];
+  const tp_profile_entry_t* next_profile = &state->profiles[state->next_index];
+
+  log_info_sid(unpack_sid(state->csid),
+    "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg \
+(mode,pll,fll,ctlr): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+    reason,
+
+    state->plock_delay_ms,
+    state->bs_delay_ms,
+
+    state->filt_cn0,
+    state->filt_accel,
+
+    tp_get_mode_str(cur_profile->profile.mode),
+    cur_profile->profile.pll_bw,
+    cur_profile->profile.fll_bw,
+    get_ctrl_str(cur_profile->profile.controller_type),
+
+    tp_get_mode_str(next_profile->profile.mode),
+    next_profile->profile.pll_bw,
+    next_profile->profile.fll_bw,
+    get_ctrl_str(next_profile->profile.controller_type));
+}
 
 /**
  * Helper method to dump tracking statistics into log.
@@ -575,6 +837,7 @@ static void print_stats(tp_profile_internal_t *profile)
    *        PR rate, PR rate change,
    *        PLL lock detector ratio, FLL/DLL error
    */
+
   log_debug_sid(unpack_sid(profile->csid),
                 "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
                 dll_ms, m1, c1,
@@ -591,15 +854,12 @@ static void print_stats(tp_profile_internal_t *profile)
  */
 static void update_acceleration_status(tp_profile_internal_t *state)
 {
-  float fll_bw = state->profiles[state->cur_index].profile.fll_bw;
+  const tp_profile_entry_t *cur_profile = &state->profiles[state->cur_index];
+  float acc_threshold_g = cur_profile->acc_threshold;
+  float acceleration_g = fabsf(state->filt_accel);
 
-  /* do not assess acceleration in FLL mode as the PLL phase
-     acceleration indicator looks to be scrued, when FLL is in use */
-  if (0 == fll_bw) {
-    /* FLL if off */
-    float acceleration_g = fabsf(state->filt_accel);
-    if (acceleration_g > TP_ACCELERATION_DETECTION_THRESHOLD_G)
-      state->acceleration_ends_after_ms = TP_ACCELERATION_MAX_AGE_MS;
+  if ((acc_threshold_g > 0) && (acceleration_g > acc_threshold_g)) {
+    state->acceleration_ends_after_ms = TP_ACCELERATION_MAX_AGE_MS;
   }
 }
 
@@ -641,6 +901,37 @@ static void check_for_cn0_estimator_change(tp_profile_internal_t *state)
 }
 
 /**
+ * Internal method for profile switch request.
+ *
+ * Sets the requested profile as the current one.
+ *
+ * \params[in/out] state tracking loop state
+ * \params[in] index Index of profile to activate
+ * \params[in] reason Textual reason of profile switch
+ * \retval true Profile switch requested
+ * \retval false No profile switch requested
+ */
+static bool profile_switch_requested(tp_profile_internal_t *state,
+                                     profile_indices_t index,
+                                     const char* reason)
+{
+  if (index == state->cur_index) {
+    return false;
+  }
+
+  assert(index != IDX_NONE);
+  assert((size_t)index < ARR_SIZE(gps_profiles));
+
+  state->lock_time_ms = state->profiles[index].lock_time_ms;
+  state->profile_update = true;
+  state->next_index = index;
+
+  log_switch(state, reason);
+
+  return true;
+}
+
+/**
  * Internal method for evaluating profile change conditions.
  *
  * This method analyzes collected statistics and selects appropriate tracking
@@ -652,7 +943,7 @@ static void check_for_profile_change(tp_profile_internal_t *state)
 {
   const tp_profile_entry_t *cur_profile;
   u16 flags;
-  u8 next_index;
+  bool acceleration_detected;
 
   cur_profile = &state->profiles[state->cur_index];
   flags = cur_profile->flags;
@@ -661,54 +952,76 @@ static void check_for_profile_change(tp_profile_internal_t *state)
 
   check_for_cn0_estimator_change(state);
 
-  if (!state->plock && (0 != (flags & TP_NO_PLOCK))) {
-    next_index = cur_profile->next_lock;
-    if (next_index != state->cur_index) {
-      state->lock_time_ms = state->profiles[next_index].lock_time_ms;
-      state->profile_update = true;
-      state->next_index = next_index;
-      return;
-    }
+  update_acceleration_status(state);
+  acceleration_detected = (0 != state->acceleration_ends_after_ms);
+
+  if ((0 != (flags & TP_LOW_CN0)) &&
+      (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
+      profile_switch_requested(state, cur_profile->next_cn0_low, "low cn0")) {
+    return;
+  }
+
+  if ((0 != (flags & TP_NO_PLOCK)) && !state->plock &&
+      profile_switch_requested(state, cur_profile->next_lock, "no plock")) {
+    return;
+  }
+
+  if ((0 != (flags & TP_HIGH_DYN)) &&
+       acceleration_detected &&
+       profile_switch_requested(state, cur_profile->next_dyn, "high dyn")) {
+    return;
+  }
+
+  if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
+    return;
+  }
+
+  if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
+    return;
+  }
+
+  if (0 != (flags & TP_WAIT_CN0) &&
+      (state->filt_cn0 <= cur_profile->cn0_high_threshold)) {
+    return;
   }
 
   if (state->lock_time_ms > 0) {
     return; /* tracking loop has not settled yet */
   }
 
-  update_acceleration_status(state);
-
-  if (!state->plock &&
-      state->filt_cn0 > cur_profile->cn0_threshold &&
-      (0 != (flags & TP_HIGH_CN0))) {
-    next_index = cur_profile->next_cn0;
-    if (next_index != state->cur_index) {
-      state->profile_update = true;
-      state->lock_time_ms = state->profiles[next_index].lock_time_ms;
-      state->next_index = next_index;
-      return;
-    }
-  }
-
-  if (!state->plock && (0 != (flags & TP_IGN_PLOCK))) {
+  if ((0 != (flags & TP_HIGH_DYN_WAIT_PLOCK_CN0)) &&
+       acceleration_detected &&
+       state->plock &&
+       (state->filt_cn0 > cur_profile->cn0_dyn_threshold) &&
+       profile_switch_requested(state, cur_profile->next_dyn, "high dyn")) {
     return;
   }
 
-  next_index = state->cur_index;
-
-  if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
-    /* do nothing here as a switch to next profile requires the bit sync,
-       which we do not have yet */
-  } else if ((0 != (flags & TP_DYNAMICS)) &&
-             (0 != state->acceleration_ends_after_ms)) {
-    next_index = cur_profile->next_dyn;
-  } else {
-    next_index = cur_profile->next;
+  if ((0 != (flags & TP_LOW_DYN)) &&
+      !acceleration_detected &&
+      profile_switch_requested(state, cur_profile->next_dyn, "low dyn")) {
+    return;
   }
 
-  if (next_index != state->cur_index) {
-    state->lock_time_ms = state->profiles[next_index].lock_time_ms;
-    state->profile_update = true;
-    state->next_index = next_index;
+  if ((0 != (flags & TP_HIGH_CN0)) &&
+      (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
+      profile_switch_requested(state, cur_profile->next_cn0_high, "high cno")) {
+    return;
+  }
+
+  if ((0 != (flags & TP_HIGH_CN0_WAIT_PLOCK_N0_DYN)) &&
+      state->plock &&
+      !acceleration_detected &&
+      (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
+      profile_switch_requested(state, cur_profile->next_cn0_high, "high cno")) {
+    return;
+  }
+
+  if (0 != (flags & TP_USE_NEXT)) {
+    assert(cur_profile->next != IDX_NONE);
+    profile_switch_requested(state, cur_profile->next, "next");
+  } else {
+    profile_switch_requested(state, state->cur_index + 1, "next");
   }
 }
 
@@ -787,6 +1100,11 @@ tp_result_e tp_tracking_start(gnss_signal_t sid,
       profile->profile_update = 0;
 
       profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
+
+      profile->time_snapshot_ms = 0;
+
+      profile->bs_delay_ms = TP_DELAY_UNKNOWN;
+      profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
       get_profile_params(profile, config);
 
@@ -961,24 +1279,27 @@ u8 tp_get_next_loop_params_ms(gnss_signal_t sid)
  *
  * \param[in] sid  GNSS signal identifier. This identifier must be registered
  *                 with a call to #tp_tracking_start().
+ * \param[in] common_data Tracker common data
  * \param[in] data Tracking loop report. This data is taken for analysis and
  *                 can be asynchronously.
  *
  * \retval TP_RESULT_SUCCESS on success.
  * \retval TP_RESULT_ERROR   on error.
  */
-tp_result_e tp_report_data(gnss_signal_t sid, const tp_report_t *data)
+tp_result_e tp_report_data(gnss_signal_t sid,
+                           const tracker_common_data_t *common_data,
+                           const tp_report_t *data)
 {
   tp_result_e res = TP_RESULT_ERROR;
   tp_profile_internal_t *profile = find_profile(sid);
-  if (NULL != data && NULL != profile) {
+  if (NULL != data && NULL != profile && NULL != common_data) {
     /* For now, we support only GPS L1 tracking data, and handle all data
      * synchronously.
      *
      * TODO schedule a message to own thread.
      */
 
-    update_stats(profile, data);
+    update_stats(profile, common_data, data);
     print_stats(profile);
 
     res = TP_RESULT_SUCCESS;

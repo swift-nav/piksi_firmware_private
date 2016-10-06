@@ -23,6 +23,30 @@
 
 typedef u32 update_count_t;
 
+/** Tracker flag: tracker is using PLL (possibly with FLL) */
+#define TRACK_CMN_FLAG_PLL_USE     (1 << 1)
+/** Tracker flag: tracker is using FLL (possibly with PLL) */
+#define TRACK_CMN_FLAG_FLL_USE     (1 << 2)
+/** Tracker flag: tracker is using PLL and has pessimistic phase lock */
+#define TRACK_CMN_FLAG_HAS_PLOCK   (1 << 3)
+/** Tracker flag: tracker is using FLL and has pessimistic frequency lock */
+#define TRACK_CMN_FLAG_HAS_FLOCK   (1 << 5)
+
+/**
+ * Common tracking feature flags.
+ *
+ * Flags is a combination of the following values:
+ * - #TRACK_CMN_FLAG_CONFIRMED
+ * - #TRACK_CMN_FLAG_PLL_USE
+ * - #TRACK_CMN_FLAG_FLL_USE
+ * - #TRACK_CMN_FLAG_HAS_PLOCK
+ * - #TRACK_CMN_FLAG_HAS_OLOCK
+ * - #TRACK_CMN_FLAG_HAS_FLOCK
+ *
+ * \sa tracker_common_data_t
+ */
+typedef u16 track_cmn_flags_t;
+
 typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   update_count_t mode_change_count;
@@ -33,12 +57,9 @@ typedef struct {
   update_count_t cn0_above_drop_thres_count;
                                /**< update_count value when C/N0 was
                                     last above the drop threshold. */
-  update_count_t ld_opti_locked_count;
-                               /**< update_count value when optimistic
-                                    phase detector last "locked". */
-  update_count_t ld_pess_unlocked_count;
+  update_count_t ld_pess_change_count;
                                /**< update_count value when pessimistic
-                                    phase detector last "unlocked". */
+                                    phase detector has changed last time. */
   s32 TOW_ms;                  /**< TOW in ms. */
   u32 sample_count;            /**< Total num samples channel has tracked for. */
   double code_phase_early;     /**< Early code phase in chips. */
@@ -46,6 +67,8 @@ typedef struct {
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
   float cn0;                   /**< Current estimate of C/N0. */
+
+  track_cmn_flags_t flags;     /**< Tracker flags */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
