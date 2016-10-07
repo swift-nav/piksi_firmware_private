@@ -12,9 +12,7 @@
 
 #include <string.h>
 
-#define memory_pool_t MemoryPool
 #include <ch.h>
-#undef memory_pool_t
 
 #include <libsbp/system.h>
 #include <libsbp/version.h>
@@ -219,14 +217,6 @@ static void system_monitor_thread(void *arg)
         }
       }
     }
-
-    msg_iar_state_t iar_state;
-    if (simulation_enabled_for(SIMULATION_MODE_RTK)) {
-      iar_state.num_hyps = 1;
-    } else {
-      iar_state.num_hyps = dgnss_iar_num_hyps();
-    }
-    sbp_send_msg(SBP_MSG_IAR_STATE, sizeof(msg_iar_state_t), (u8 *)&iar_state);
 
     DO_EVERY(2,
      send_thread_states();

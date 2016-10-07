@@ -85,11 +85,6 @@ mailbox_t obs_mailbox;
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
-/** RTK integer ambiguity states. */
-ambiguity_state_t amb_state;
-/** Mutex to control access to the ambiguity states. */
-MUTEX_DECL(amb_state_lock);
-
 /** Mutex to control access to the eigen filter. This is a very big mutex
  * that locks the entire eigen filter on access, a better method would be
  * to use mutexs as appropriate within the eigen filter code itself */
@@ -1056,8 +1051,7 @@ static void solution_thread(void *arg)
   }
 }
 
-static bool init_known_base = false;
-static bool reset_iar = false;
+static bool init_done = false;
 
 void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
 {
@@ -1182,19 +1176,9 @@ void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     log_info("Filter reset requested");
     init_done = false;
     break;
-  case 1:
-    log_info("IAR reset requested");
-    reset_iar = true;
-    break;
   default:
     break;
   }
-}
-
-void init_base_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void)msg; (void)context;
-  init_known_base = true;
 }
 
 void solution_setup()
@@ -1228,18 +1212,6 @@ void solution_setup()
   SETTING("solution", "dgnss_filter",
           dgnss_filter, TYPE_GNSS_FILTER);
 
-  SETTING("solution", "known_baseline_n", known_baseline[0], TYPE_FLOAT);
-  SETTING("solution", "known_baseline_e", known_baseline[1], TYPE_FLOAT);
-  SETTING("solution", "known_baseline_d", known_baseline[2], TYPE_FLOAT);
-
-  SETTING("iar", "phase_var", dgnss_settings.phase_var_test, TYPE_FLOAT);
-  SETTING("iar", "code_var", dgnss_settings.code_var_test, TYPE_FLOAT);
-
-  SETTING("float_kf", "phase_var", dgnss_settings.phase_var_kf, TYPE_FLOAT);
-  SETTING("float_kf", "code_var", dgnss_settings.code_var_kf, TYPE_FLOAT);
-  SETTING("float_kf", "amb_init_var", dgnss_settings.amb_init_var, TYPE_FLOAT);
-  SETTING("float_kf", "new_amb_var", dgnss_settings.new_int_var, TYPE_FLOAT);
-
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
@@ -1265,12 +1237,5 @@ void solution_setup()
     SBP_MSG_RESET_FILTERS,
     &reset_filters_callback,
     &reset_filters_node
-  );
-
-  static sbp_msg_callbacks_node_t init_base_node;
-  sbp_register_cbk(
-    SBP_MSG_INIT_BASE,
-    &init_base_callback,
-    &init_base_node
   );
 }
