@@ -80,8 +80,6 @@ u16 msg_obs_max_size = 102;
 
 static last_good_fix_t lgf;
 
-static u16 lock_counters[PLATFORM_SIGNAL_COUNT];
-
 bool disable_raim = false;
 bool send_heading = false;
 
@@ -862,21 +860,7 @@ static void time_matched_obs_thread(void *arg)
             sds
         );
         chMtxUnlock(&base_obs_lock);
-
-        u16 *sds_lock_counters[n_sds];
-        for (u32 i = 0; i < n_sds; i++) {
-          sds_lock_counters[i] = &lock_counters[sid_to_global_index(sds[i].sid)];
-        }
-
-        gnss_signal_t sats_to_drop[n_sds];
-        u8 num_sats_to_drop = check_lock_counters(n_sds, sds, sds_lock_counters,
-                                                  sats_to_drop);
-        if (num_sats_to_drop > 0) {
-          /* Copies all valid sdiffs back into sds, omitting each of sats_to_drop.
-           * Dropping an sdiff will cause dgnss_update to drop that sat from
-           * our filters. */
-          n_sds = filter_sdiffs(n_sds, sds, num_sats_to_drop, sats_to_drop);
-        }
+        
         process_matched_obs(n_sds, &obss->tor, sds, base_obss.sender_id);
         chPoolFree(&obs_buff_pool, obss);
         break;
