@@ -18,6 +18,7 @@
 #include "../settings.h"
 #include "usart.h"
 #include "3drradio.h"
+#include "usart_support.h"
 #include "version.h"
 
 /** \addtogroup io
@@ -61,9 +62,12 @@ bool all_uarts_enabled = false;
  * Functions to setup and use STM32F4 USART peripherals with DMA.
  * \{ */
 
-usart_state ftdi_state = {.sd = SD_FTDI};
-usart_state uarta_state = {.sd = SD_UARTA};
-usart_state uartb_state = {.sd = SD_UARTB};
+usart_state ftdi_state = {.sd = SD_FTDI,
+                          .claimed = _BSEMAPHORE_DATA(ftdi_state.claimed, FALSE)};
+usart_state uarta_state = {.sd = SD_UARTA,
+                          .claimed = _BSEMAPHORE_DATA(uarta_state.claimed, FALSE)};
+usart_state uartb_state = {.sd = SD_UARTB,
+                          .claimed = _BSEMAPHORE_DATA(uartb_state.claimed, FALSE)};
 
 static bool baudrate_change_notify(struct setting *s, const char *val);
 
@@ -72,7 +76,6 @@ static bool baudrate_change_notify(struct setting *s, const char *val);
 */
 void usarts_setup()
 {
-
   radio_setup();
 
   int TYPE_PORTMODE = settings_type_register_enum(portmode_enum, &portmode);
@@ -134,9 +137,6 @@ void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_precon
   usart_support_set_parameters(SD_UARTA, uarta_baud);
   usart_support_set_parameters(SD_UARTB, uartb_baud);
 
-  chBSemObjectInit(&ftdi_state.claimed, FALSE);
-  ftdi_state.configured = true;
-
   if (do_preconfigure_hooks) {
     board_preinit_hook();
 
@@ -152,14 +152,7 @@ void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_precon
     }
   }
 
-  chBSemObjectInit(&uarta_state.claimed, FALSE);
-  uarta_state.configured = true;
-
-  chBSemObjectInit(&uartb_state.claimed, FALSE);
-  uartb_state.configured = true;
-
   all_uarts_enabled = true;
-
 }
 
 /** Disable all USARTs. */
@@ -194,7 +187,7 @@ void usarts_disable()
 bool usart_claim(usart_state* s, const void *module)
 {
   chSysLock();
-  if (s->configured && (chBSemWaitTimeoutS(&s->claimed, 0) == MSG_OK)) {
+  if (chBSemWaitTimeoutS(&s->claimed, 0) == MSG_OK) {
     s->claimed_by = module;
     s->claim_nest = 0;
     chSysUnlock();

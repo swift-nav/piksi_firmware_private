@@ -8,7 +8,19 @@ ifeq ($(PIKSI_HW),)
 endif
 
 ifeq ($(PIKSI_HW),v2)
-	$(error PIKSI_HW=v2 is no longer supported.)
+  $(error PIKSI_HW=v2 is no longer supported.)
+endif
+
+ifeq ($(PIKSI_HW),v3)
+  ifeq ($(PIKSI_REV),)
+    PIKSI_REV=microzed
+  endif
+endif
+
+ifeq ($(PIKSI_REV),)
+  PIKSI_TARGET=$(PIKSI_HW)
+else
+  PIKSI_TARGET=$(PIKSI_HW)_$(PIKSI_REV)
 endif
 
 ifeq ($(SWIFTNAV_ROOT),)
@@ -65,11 +77,24 @@ ifeq ($(USE_VERBOSE_COMPILE),)
 endif
 
 ifeq ($(BUILDFOLDER),)
-  BUILDFOLDER = build
+  BUILDFOLDER = build_$(PIKSI_TARGET)
 endif
 
 ifeq ($(BUILDDIR),)
   BUILDDIR = $(SWIFTNAV_ROOT)/$(BUILDFOLDER)
+endif
+
+# NOTE: this assumes libraries are not PIKSI_REV sensitive
+ifeq ($(LIB_BUILDFOLDER),)
+  LIB_BUILDFOLDER = build_$(PIKSI_HW)
+endif
+
+ifeq ($(LIBSBP_BUILDDIR),)
+  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/$(LIB_BUILDFOLDER)
+endif
+
+ifeq ($(LIBSWIFTNAV_BUILDDIR),)
+  LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
 endif
 
 #
@@ -105,9 +130,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/peripherals/leds.o \
         $(SWIFTNAV_ROOT)/src/peripherals/usart.o \
         $(SWIFTNAV_ROOT)/src/peripherals/usart_chat.o \
-        $(SWIFTNAV_ROOT)/src/cfs/cfs-coffee.o \
-        $(SWIFTNAV_ROOT)/src/minIni/minIni.o \
-        $(SWIFTNAV_ROOT)/src/minIni/minGlue.o \
+        $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp_fileio.o \
@@ -239,14 +262,6 @@ DADEFS =
 DINCDIR =
 
 # List the default directory to look for the libraries here
-# NOTE: assumes libsbp and libswiftnav are not PIKSI_TARGET sensitive
-ifeq ($(LIBSBP_BUILDDIR),)
-  LIBSBP_BUILDDIR=$(SWIFTNAV_ROOT)/libsbp/c/build_$(PIKSI_HW)
-endif
-
-ifeq ($(LIBSWIFTNAV_BUILDDIR),)
-  LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/build_$(PIKSI_HW)
-endif
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
@@ -254,10 +269,11 @@ DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/BLAS/SRC \
           $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/SRC \
           $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/F2CLIBS/libf2c \
-          $(LIBSWIFTNAV_BUILDDIR)/libfec/src
+          $(LIBSWIFTNAV_BUILDDIR)/libfec/src \
+          $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = -lsbp-static -lswiftnav-static \
+DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav-static \
         -llapack -lcblas -lblas \
         -lf2c -lm -Wl,--start-group -lstdc++ -lc -lc -lnosys -Wl,--end-group -lfec
 

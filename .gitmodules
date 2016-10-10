@@ -7,3 +7,6 @@
 [submodule "libsbp"]
 	path = libsbp
 	url = ssh://git@github.com/swift-nav/libsbp.git
+[submodule "open-amp"]
+	path = open-amp
+	url = ssh://git@github.com/swift-nav/open-amp.git
