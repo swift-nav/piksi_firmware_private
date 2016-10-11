@@ -745,6 +745,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
     report.lock_f = data->fll_lock_detect * code_rate;
     report.sample_count = common_data->sample_count;
     report.time_ms = tp_get_dll_ms(data->tracking_mode);
+    report.acceleration = rates.acceleration;
 
     tp_report_data(channel_info->sid, &report);
   }
