@@ -66,7 +66,7 @@ ifeq ($(PIKSI_HW),v3)
   FW_DEPS += $(OPENAMP_BUILDDIR)/lib/libopen-amp.a
 endif
 
-.PHONY: all tests firmware docs hitl_setup hitl .FORCE
+.PHONY: all tests firmware docs .FORCE
 
 all: firmware # tests
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
@@ -127,22 +127,5 @@ clean:
 docs:
 	$(MAKE) -C docs/diagrams
 	doxygen docs/Doxyfile
-
-hitl_setup: firmware
-	# Usage:
-	# `make hitl` will run the default "quick" test plan (1 capture job)
-	# Optionally specify a desired test plan:
-	# `make hitl TEST_PLAN=merge` will run the "merge" test plan (10 capture jobs)
-	#
-	# First, this script will pull or clone the hitl_tools repo.
-	if cd $(BUILDFOLDER)/hitl_tools; then \
-		git pull; \
-	else \
-		git clone git@github.com:swift-nav/hitl_tools.git $(BUILDFOLDER)/hitl_tools --depth 1; \
-	fi
-
-hitl: hitl_setup
-	TEST_PLAN=$(TEST_PLAN) TEST_CONFIG=$(TEST_CONFIG) \
-	BUILDFOLDER=$(BUILDFOLDER) bash $(BUILDFOLDER)/hitl_tools/make_hitl.sh
 
 .FORCE:
