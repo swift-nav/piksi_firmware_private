@@ -246,12 +246,18 @@ enum ndb_op_code ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
   return NDB_ERR_NONE;
 }
 
-
+/** Determine next index of the ephemeris to be sent over SBP.
+ *  This function takes previous index (can be set to PLATFORM_SIGNAL_COUNT to
+ *  indicate no previous value available) and increments it by one making sure
+ *  that index is within codes that contain 'original' ephemerides. This is
+ *  necessary to prevent outputting the same ephemeris for different codes
+ *  of the same satellite.
+ *  */
 static u32 get_next_idx_to_send(gnss_signal_t *sid, u32 prev_idx)
 {
   u32 i = prev_idx != PLATFORM_SIGNAL_COUNT ? prev_idx + 1 : 0;
 
-  while(i < PLATFORM_SIGNAL_COUNT) {
+  while (i < PLATFORM_SIGNAL_COUNT) {
     *sid = sid_from_global_index(i);
     if (sid->code != CODE_GPS_L1CA &&
         sid->code != CODE_SBAS_L1CA &&
