@@ -282,4 +282,12 @@ void timing_setup(void)
   clock_est_init((clock_est_state_t*)&clock_state);
 }
 
+/** Get current HW time in milliseconds
+ *
+ * \return HW time in milliseconds
+ */
+u64 timing_getms(void)
+{
+  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
+}
 /** \} */
