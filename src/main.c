@@ -53,18 +53,20 @@ int main(void)
   /* Piksi hardware initialization. */
   pre_init();
 
+  sbp_setup();
+  settings_setup();
+  usarts_setup();
+
+  init();
+  signal_init();
+
   static s32 serial_number;
   serial_number = serial_number_get();
   if (serial_number < 0) {
     /* TODO: Handle this properly! */
     serial_number = 0x2222;
   }
-  sbp_setup(serial_number);
-  settings_setup();
-  usarts_setup();
-
-  init();
-  signal_init();
+  sbp_sender_id_set(serial_number);
 
   ndb_setup();
   ephemeris_setup();

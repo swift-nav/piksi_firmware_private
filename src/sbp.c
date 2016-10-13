@@ -123,10 +123,8 @@ static void sbp_thread(void *arg)
  * \param use_settings If 0 use default baud rate, else use baud rates in
  *                     flash settings
  */
-void sbp_setup(u16 sender_id)
+void sbp_setup(void)
 {
-  my_sender_id = sender_id;
-
   sbp_state_init(&uarta_sbp_state);
   sbp_state_init(&uartb_sbp_state);
   sbp_state_init(&ftdi_sbp_state);
@@ -140,6 +138,11 @@ void sbp_setup(u16 sender_id)
 
   chThdCreateStatic(wa_sbp_thread, sizeof(wa_sbp_thread),
                     HIGHPRIO-22, sbp_thread, NULL);
+}
+
+void sbp_sender_id_set(u16 sender_id)
+{
+  my_sender_id = sender_id;
 }
 
 void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
