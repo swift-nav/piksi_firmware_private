@@ -124,7 +124,7 @@ static volatile bool no_free_tracking_channel = false;
 static float elevation_mask = 0.0; /* degrees */
 static bool sbas_enabled = false;
 
-static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf);
+static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
 static void manage_acq(void);
@@ -440,16 +440,16 @@ static void manage_acq()
 /** Send results of an acquisition to the host.
  *
  * \param sid SID of the acquisition
- * \param snr Signal to noise ratio of best point from acquisition.
+ * \param cn0 Carrier to noise ratio of best point from acquisition.
  * \param cp  Code phase of best point.
  * \param cf  Carrier frequency of best point.
  */
-static void acq_result_send(gnss_signal_t sid, float snr, float cp, float cf)
+static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf)
 {
   msg_acq_result_t acq_result_msg;
 
   acq_result_msg.sid = sid_to_sbp(sid);
-  acq_result_msg.snr = snr;
+  acq_result_msg.snr = cn0; /* TODO(Leith): update SBP message field name */
   acq_result_msg.cp = cp;
   acq_result_msg.cf = cf;
 
@@ -630,8 +630,8 @@ s8 use_tracking_channel(u8 i)
   if (tracking_channel_running(i)
       /* Make sure no errors have occurred. */
       && !tracking_channel_error(i)
-      /* Check SNR has been above threshold for the minimum time. */
-      && (tracking_channel_cn0_useable_ms_get(i) > TRACK_SNR_THRES_COUNT)
+      /* Check C/N0 has been above threshold for the minimum time. */
+      && (tracking_channel_cn0_useable_ms_get(i) > TRACK_CN0_THRES_COUNT)
       /* Satellite elevation is above the mask. */
       && (tracking_channel_evelation_degrees_get(i) >= elevation_mask)
       /* Pessimistic phase lock detector = "locked". */

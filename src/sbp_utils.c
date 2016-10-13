@@ -207,11 +207,11 @@ void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header
 }
 
 void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
-                        double *snr, u16 *lock_counter, gnss_signal_t *sid)
+                        double *cn0, u16 *lock_counter, gnss_signal_t *sid)
 {
   *P   = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
   *L   = -(((double)msg->L.i) + (((double)msg->L.f) / MSG_OSB_LF_MULTIPLIER));
-  *snr = ((double)msg->cn0) / MSG_OBS_SNR_MULTIPLIER;
+  *cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
   *lock_counter = ((u16)msg->lock);
   *sid = sid_from_sbp(msg->sid);
 }
@@ -221,14 +221,14 @@ void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
  *
  * \param P Pseudorange in meters
  * \param L Carrier phase in cycles
- * \param snr Signal-to-noise ratio
+ * \param cn0 Signal-to-noise ratio
  * \param lock_counter Lock counter is an arbitrary integer that should change
  *                     if the carrier phase ambiguity is ever reset
  * \param sid Signal ID
  * \param msg Pointer to a `msg_obs_content_t` struct to fill out
  * \return `0` on success or `-1` on an overflow error
  */
-s8 pack_obs_content(double P, double L, double snr, u16 lock_counter,
+s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
                     gnss_signal_t sid, packed_obs_content_t *msg)
 {
 
@@ -251,13 +251,13 @@ s8 pack_obs_content(double P, double L, double snr, u16 lock_counter,
   msg->L.i = (s32) Li;
   msg->L.f = (u8) (Lf * MSG_OSB_LF_MULTIPLIER);
 
-  s32 snr_fp = lround(snr * MSG_OBS_SNR_MULTIPLIER);
-  if (snr < 0 || snr_fp > UINT8_MAX) {
-    log_error("observation message packing: SNR integer overflow (%f)", snr);
+  s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
+  if (cn0 < 0 || cn0_fp > UINT8_MAX) {
+    log_error("observation message packing: C/N0 integer overflow (%f)", cn0);
     return -1;
   }
 
-  msg->cn0 = (u8)snr_fp;
+  msg->cn0 = (u8)cn0_fp;
 
   msg->lock = lock_counter;
 

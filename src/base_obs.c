@@ -352,7 +352,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
     /* Unpack the observation into a navigation_measurement_t. */
     unpack_obs_content(&obs[i], &nm->raw_pseudorange, &nm->raw_carrier_phase,
-                       &nm->snr, &nm->lock_counter, &nm->sid);
+                       &nm->cn0, &nm->lock_counter, &nm->sid);
 
     /* Set the time */
     nm->tot = tor;
