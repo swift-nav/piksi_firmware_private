@@ -70,22 +70,7 @@ typedef struct {
     and scheduler */
 extern acq_jobs_state_t acq_all_jobs_state_data;
 
-/** Initialize SM module
- *
- * \param data pointer to job data
- *
- * \return none
- */
 void sm_init(acq_jobs_state_t *data);
-
-/** Run search manager
- *
- *  Decides when and which jobs need to be run
- *
- * \param jobs_data pointer to job data
- *
- * \return none
- */
 void sm_run(acq_jobs_state_t *jobs_data);
 
-#endif // SWIFTNAV_SEARCH_MANAGER_API_H
+#endif /* SWIFTNAV_SEARCH_MANAGER_API_H */
