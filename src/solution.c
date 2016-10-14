@@ -290,7 +290,7 @@ static void send_observations(u8 n, const navigation_measurement_t *m,
     for (u8 i = 0; i < curr_n; i++, obs_i++) {
       if (pack_obs_content(m[obs_i].raw_pseudorange,
             m[obs_i].raw_carrier_phase,
-            m[obs_i].snr,
+            m[obs_i].cn0,
             m[obs_i].lock_counter,
             m[obs_i].sid,
             &obs[i]) < 0) {
@@ -860,7 +860,7 @@ static void time_matched_obs_thread(void *arg)
             sds
         );
         chMtxUnlock(&base_obs_lock);
-        
+
         process_matched_obs(n_sds, &obss->tor, sds, base_obss.sender_id);
         chPoolFree(&obs_buff_pool, obss);
         break;

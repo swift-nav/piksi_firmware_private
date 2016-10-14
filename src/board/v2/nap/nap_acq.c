@@ -156,8 +156,8 @@ void acq_service_irq(void)
 }
 
 /** Get the results of the acquisition search last performed.
- * Get the code phase, carrier frequency, and SNR of the acquisition with the
- * highest SNR of set of acquisitions last performed.
+ * Get the code phase, carrier frequency, and CN0 of the acquisition with the
+ * highest CN0 of set of acquisitions last performed.
  *
  * \param cp  Code phase of the acquisition result
  * \param cf  Carrier frequency of the acquisition result
@@ -175,19 +175,18 @@ void acq_get_results(float* cp, float* cf, float* cn0)
    * output power could return zero. Potential failure modes:
    * 1. GPS Front End is misconfigured and returning zeros or has lifted pin
    * 2. PRN is incorrect or corrupted to zeros
-   * or if the FPGA has a critical failure 
+   * or if the FPGA has a critical failure
    * that causes it to not raise interrupts count could be zero.  Catch
    * this condition so we don't propagate NaN up through the stack */
   if ((acq_state.power_acc == 0) || (acq_state.count == 0)) {
-    log_error("acq: Power or frequency bin count is 0, causing SNR to be NaN. "
+    log_error("acq: Power or frequency bin count is 0, causing CN0 to be NaN. "
               "(best=%" PRIu64 ", acc=%f, count=%" PRIu32 ")",
               acq_state.best_power, acq_state.power_acc, acq_state.count);
     *cn0 = 0;
   } else {
-  *cn0 = 10 * log10(snr)
-       + 10 * log10(1.0 / NAP_ACQ_CARRIER_FREQ_UNITS_PER_HZ); /* Bandwidth */
+    *cn0 = 10 * log10(snr)
+         + 10 * log10(1.0 / NAP_ACQ_CARRIER_FREQ_UNITS_PER_HZ); /* Bandwidth */
   }
 }
 
 /** \} */
-

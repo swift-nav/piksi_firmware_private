@@ -262,7 +262,7 @@ void simulation_step_position_in_circle(double elapsed)
 * - This simulates the pseudorange as the true distance to the satellite + noise.
 * - This simulates the carrier phase as the true distance in wavelengths + bais + noise.
 * - The bias is an integer multiple of 10 for easy debugging.
-* - The satellite SNR/CN0 is proportional to the elevation of the satellite.
+* - The satellite C/N0 is proportional to the elevation of the satellite.
 *
 * USES:
 * - Pipe observations into internals for testing
@@ -327,7 +327,7 @@ void simulation_step_tracking_and_observations(double elapsed)
       };
       sim_state.tracking_channel[num_sats_selected].state = 1;
       sim_state.tracking_channel[num_sats_selected].sid = sid_to_sbp(sid);
-      sim_state.tracking_channel[num_sats_selected].cn0 = sim_state.nav_meas[num_sats_selected].snr;
+      sim_state.tracking_channel[num_sats_selected].cn0 = sim_state.nav_meas[num_sats_selected].cn0;
 
       num_sats_selected++;
     }
@@ -358,7 +358,7 @@ void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double e
   nav_meas->raw_carrier_phase +=   rand_gaussian(sim_settings.phase_sigma *
                                              sim_settings.phase_sigma);
 
-  nav_meas->snr             =  lerp(elevation, 0, M_PI/2, 35, 45) +
+  nav_meas->cn0             =  lerp(elevation, 0, M_PI/2, 35, 45) +
                                rand_gaussian(sim_settings.cn0_sigma *
                                              sim_settings.cn0_sigma);
 }

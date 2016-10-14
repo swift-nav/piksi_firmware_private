@@ -18,7 +18,7 @@
 
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
 #define TRACK_CN0_SNR_OFFSET   (-174.f + PLATFORM_NOISE_FIGURE)
-/** Converts CN0 into SNR */
+/** Converts C/N0 into SNR */
 #define TRACK_CN0_TO_SNR(x) ((x) + TRACK_CN0_SNR_OFFSET)
 /** Adjusts C/N0 according to noise figure */
 #define TRACK_CN0_ADJUST(x) ((float)(x) + 2.f - PLATFORM_NOISE_FIGURE)

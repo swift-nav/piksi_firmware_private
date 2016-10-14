@@ -262,7 +262,7 @@ void nmea_gpgsv(u8 n_used, const navigation_measurement_t *nav_meas,
           nav_meas[n].sid.sat,
           (u8)round(el * R2D),
           (u16)round(az * R2D),
-          (u8)round(nav_meas[n].snr)
+          (u8)round(nav_meas[n].cn0)
           );
       }
       n++;

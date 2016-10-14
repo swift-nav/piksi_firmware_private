@@ -28,10 +28,10 @@ typedef struct {
   update_count_t mode_change_count;
                                /**< update_count at last mode change. */
   update_count_t cn0_below_use_thres_count;
-                               /**< update_count value when SNR was
+                               /**< update_count value when C/N0 was
                                     last below the use threshold. */
   update_count_t cn0_above_drop_thres_count;
-                               /**< update_count value when SNR was
+                               /**< update_count value when C/N0 was
                                     last above the drop threshold. */
   update_count_t ld_opti_locked_count;
                                /**< update_count value when optimistic

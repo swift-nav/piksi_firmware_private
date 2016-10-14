@@ -24,7 +24,7 @@
 #define ACQ_THRESHOLD 37.0
 #define ACQ_RETRY_THRESHOLD 38.0
 
-#define TRACK_SNR_THRES_COUNT 2000
+#define TRACK_CN0_THRES_COUNT 2000
 
 /** How many ms to allow tracking channel to converge after
     initialization before we consider dropping it */

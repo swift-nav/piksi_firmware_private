@@ -587,7 +587,7 @@ void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
   meas->time_of_week_ms = common_data->TOW_ms;
   meas->rec_time_delta = (double)((s32)(common_data->sample_count - (u32)ref_tc))
                              / NAP_FRONTEND_SAMPLE_RATE_Hz;
-  meas->snr = common_data->cn0;
+  meas->cn0 = common_data->cn0;
   if (internal_data->bit_polarity == BIT_POLARITY_INVERTED) {
     meas->carrier_phase += 0.5;
   }

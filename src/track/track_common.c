@@ -583,7 +583,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
   }
 
   if (cn0 < cn0_params.track_cn0_use_thres) {
-    /* SNR has dropped below threshold, indicate that the carrier phase
+    /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(channel_info->context);
     /* Update the latest time we were below the threshold. */
