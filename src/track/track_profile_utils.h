@@ -222,13 +222,15 @@ typedef struct {
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t    alias_detect;           /**< Alias lock detector. */
   lock_detect_t     lock_detect;            /**< Lock detector state. */
-  u8                tracking_mode: 3;       /**< Tracking mode */
-  u8                cycle_no: 5;            /**< Cycle index inside current
+  u16               tracking_mode: 3;       /**< Tracking mode */
+  u16               cycle_no: 5;            /**< Cycle index inside current
                                              *   integration mode. */
-  u8                use_alias_detection: 1; /**< Flag for alias detection control */
-  u8                has_next_params: 1;     /**< Flag if stage transition is in
+  u16               use_alias_detection: 1; /**< Flag for alias detection control */
+  u16               has_next_params: 1;     /**< Flag if stage transition is in
                                              *   progress */
-  u8                confirmed: 1;           /**< Flag if the tracking is confirmed */
+  u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
+  u16               mode_pll: 1;            /**< PLL control flag */
+  u16               mode_fll: 1;            /**< FLL control flag */
 } tp_tracker_data_t;
 
 /**
@@ -362,5 +364,7 @@ void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
 u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
                                       const tp_tracker_data_t *data);
 void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
+void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
+                                    const tp_tracker_data_t *data);
 
 #endif /* SWIFTNAV_TRACK_PROFILE_UTILS_H_ */

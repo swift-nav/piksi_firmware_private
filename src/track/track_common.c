@@ -169,6 +169,18 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   }
   tp_tracker_update_lock_detect_parameters(data, next_params, init);
 
+  if (tp_tl_is_fll(&data->tl_state)) {
+    data->mode_pll = false;
+    data->mode_fll = true;
+  } else if (tp_tl_is_pll(&data->tl_state)) {
+    data->mode_pll = true;
+    data->mode_fll = next_params->loop_params.fll_bw > 0.f;
+  } else {
+    data->mode_pll = false;
+    data->mode_fll = false;
+    assert(!"Unexpected control mode");
+  }
+
   if (init || cn0_ms != prev_cn0_ms) {
     tp_cn0_params_t cn0_params;
     tp_get_cn0_params(channel_info->sid, &cn0_params);
@@ -194,7 +206,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
 
     if (!data->confirmed) {
       data->cn0_est.cn0_0 = cn0_t;
-      common_data->cn0 = -1;
+      common_data->cn0 = cn0_t;
     }
     log_debug_sid(channel_info->sid, "CN0 update: CD=%f EST=%f CN0_0=%f",
                   common_data->cn0,
@@ -256,7 +268,7 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
   if (TP_RESULT_SUCCESS != tp_tracking_start(channel_info->sid,
                                              &report,
                                              &init_profile)) {
-    assert(!"Tracker start error");
+    log_error_sid(channel_info->sid, "Tracker start error");
   }
 
   if (config->show_unconfirmed_trackers) {
@@ -414,6 +426,49 @@ void tp_tracker_update_cycle_counter(tp_tracker_data_t *data)
 {
   data->cycle_no = tp_next_cycle_counter(data->tracking_mode,
                                          data->cycle_no);
+}
+
+/**
+ * Updates common tracker flags.
+ *
+ * \param[in,out] common_data  Common tracking channel data.
+ * \param[in]     data         Generic tracker data.
+ *
+ * \return None
+ *
+ * \sa track_cmn_flags_t
+ */
+void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
+                                    const tp_tracker_data_t *data)
+{
+  track_cmn_flags_t flags = 0;
+
+  if (data->confirmed) {
+    flags |= TRACK_CMN_FLAG_CONFIRMED;
+  }
+
+  if (data->mode_pll) {
+    flags |= TRACK_CMN_FLAG_PLL_USE;
+    if (data->lock_detect.outo) {
+      /* PLL optimistic lock */
+      flags |= TRACK_CMN_FLAG_HAS_OLOCK;
+    }
+    if (data->lock_detect.outp) {
+      /* PLL pessimistic lock */
+      flags |= TRACK_CMN_FLAG_HAS_PLOCK;
+    }
+    if (data->mode_fll) {
+      flags |= TRACK_CMN_FLAG_FLL_USE;
+    }
+  } else if (data->mode_fll) {
+    flags |= TRACK_CMN_FLAG_FLL_USE;
+    if (data->lock_detect.outp) {
+      /* FLL lock criteria */
+      flags |= TRACK_CMN_FLAG_HAS_FLOCK;
+    }
+  }
+
+  common_data->flags = flags;
 }
 
 /**
@@ -645,15 +700,16 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
                              tp_tracker_data_t *data,
                              u32 cycle_flags)
 {
-  bool fll = tp_tl_is_fll(&data->tl_state);
-  bool pll = tp_tl_is_pll(&data->tl_state);
 
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
+    bool fll_loop = tp_tl_is_fll(&data->tl_state);
+    bool pll_loop = tp_tl_is_pll(&data->tl_state);
+
     /* Update PLL/FLL lock detector */
     bool last_outp = data->lock_detect.outp;
     bool outp = false;
 
-    if (tp_tl_is_pll(&data->tl_state)) {
+    if (pll_loop) {
       lock_detect_update(&data->lock_detect,
                          data->corrs.corr_ld.I,
                          data->corrs.corr_ld.Q,
@@ -661,7 +717,7 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
 
       outp = data->lock_detect.outp;
 
-    } else if (tp_tl_is_fll(&data->tl_state)) {
+    } else if (fll_loop) {
       /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
 
       float dll_err = tp_tl_get_dll_error(&data->tl_state);
@@ -679,28 +735,16 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
     }
 
     if (last_outp && !outp && (data->tracking_mode != TP_TM_GPS_INITIAL)) {
-      if (tp_tl_is_fll(&data->tl_state)) {
+      if (fll_loop) {
         log_info_sid(channel_info->sid, "FLL stress");
-      } else if (tp_tl_is_pll(&data->tl_state)) {
+      } else if (pll_loop) {
         log_info_sid(channel_info->sid, "PLL stress");
       }
     }
     /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
-    if (!outp || fll) {
+    if (!outp || fll_loop) {
       tracker_ambiguity_unknown(channel_info->context);
     }
-  }
-
-  common_data->flags = 0;
-
-  if (pll) {
-    common_data->flags |= TRACK_CMN_FLAG_PLL_USE;
-    common_data->flags |= data->lock_detect.outp ? TRACK_CMN_FLAG_HAS_PLOCK : 0;
-  } else if (fll) {
-    common_data->flags |= TRACK_CMN_FLAG_FLL_USE;
-    common_data->flags |= data->lock_detect.outp ? TRACK_CMN_FLAG_HAS_FLOCK : 0;
-  } else {
-    assert(!"Unknown tracking loop configuration");
   }
 }
 
@@ -886,6 +930,7 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
                  tp_tracker_compute_rollover_count(channel_info, data));
 
   tp_tracker_update_cycle_counter(data);
+  tp_tracker_update_common_flags(common_data, data);
 
   return cflags;
 }

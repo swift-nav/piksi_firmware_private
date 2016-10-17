@@ -45,7 +45,6 @@
 
 #define COMPILER_BARRIER() asm volatile ("" : : : "memory")
 
-#define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 #define CHANNEL_DISABLE_WAIT_TIME_ms 100
 /** Maximum SV elevation age in sample ticks: 2 minutes is about 1 degree */
 #define MAX_ELEVATION_AGE_TK (MINUTE_SECS * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz)
@@ -195,6 +194,7 @@ void tracking_send_state()
       const tracker_common_data_t *common_data = &tracker_channel->common_data;
 
       bool running;
+      bool confirmed;
       gnss_signal_t sid;
       float cn0;
 
@@ -204,10 +204,11 @@ void tracking_send_state()
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         sid = tracker_channel->info.sid;
         cn0 = common_data->cn0;
+        confirmed = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
       }
       tracker_channel_unlock(tracker_channel);
 
-      if (!running || cn0 < 0) {
+      if (!running || !confirmed) {
         states[i].state = 0;
         states[i].sid = (sbp_gnss_signal_t){
           .code = 0,
@@ -585,9 +586,9 @@ bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id)
 
 /** Retrieve a channel measurement for a tracker channel.
  *
- * \param id      ID of the tracker channel to use.
- * \param ref_tc  Reference timing count.
- * \param meas    Pointer to output channel_measurement_t.
+ * \param[in]  id       ID of the tracker channel to use.
+ * \param[in]  ref_tc   Reference timing count.
+ * \param[out] meas     Pointer to output channel_measurement_t.
  */
 void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
                                       channel_measurement_t *meas)
@@ -640,6 +641,7 @@ void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
         internal_data->carrier_phase_offset);
   }
   meas->carrier_phase -= internal_data->carrier_phase_offset;
+  meas->flags = 0;
 }
 
 /** Adjust all carrier phase offsets with a receiver clock correction.
@@ -648,20 +650,34 @@ void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
  */
 void tracking_channel_carrier_phase_offsets_adjust(double dt) {
 
-  for (u8 i=0; i<nap_track_n_channels; i++) {
-    if (use_tracking_channel(i)) {
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_lock(tracker_channel);
+  /* Carrier phase offsets are adjusted for all signals matching SPP criteria */
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    gnss_signal_t sid;
+    double        carrier_phase_offset = 0.;
+    bool          adjusted = false;
+
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+
+    tracker_channel_lock(tracker_channel);
+    /* Get only basic flags */
+    manage_track_flags_t flags = get_tracking_channel_flags(i);
+
+    if (MANAGE_TRACK_SPP_FLAGS_BASE == (flags & MANAGE_TRACK_SPP_FLAGS_BASE)) {
       tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
       /* touch only channels that have the initial offset set */
       if (internal_data->carrier_phase_offset != 0.0) {
-        gnss_signal_t sid = tracker_channel->info.sid;
-        internal_data->carrier_phase_offset -=
-            code_to_carr_freq(sid.code) * dt;
-        log_info_sid(sid, "Adjusting carrier phase offset to %f",
-          internal_data->carrier_phase_offset);
+        sid = tracker_channel->info.sid;
+        internal_data->carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
+
+        carrier_phase_offset = internal_data->carrier_phase_offset;
+        adjusted = true;
       }
-      tracker_channel_unlock(tracker_channel);
+    }
+    tracker_channel_unlock(tracker_channel);
+
+    if (adjusted) {
+      log_info_sid(sid, "Adjusting carrier phase offset to %f",
+                   carrier_phase_offset);
     }
   }
 }
@@ -749,7 +765,7 @@ bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
                                 s8 bit_polarity)
 {
   assert(TOW_ms >= 0);
-  assert(TOW_ms < GPS_WEEK_LENGTH_ms);
+  assert(TOW_ms < WEEK_MS);
   assert((bit_polarity == BIT_POLARITY_NORMAL) ||
          (bit_polarity == BIT_POLARITY_INVERTED));
 
@@ -1123,5 +1139,81 @@ static void error_flags_add(tracker_channel_t *tracker_channel,
 {
   tracker_channel->error_flags |= error_flag;
 }
+
+tracking_channel_flags_t tracking_channel_get_flags(tracker_channel_id_t id)
+{
+  tracking_channel_flags_t result = 0;
+
+  const tracker_channel_t *const tracker_channel = tracker_channel_get(id);
+  const tracker_common_data_t *const common_data = &tracker_channel->common_data;
+  const tracker_internal_data_t *const internal_data = &tracker_channel->internal_data;
+
+  if (STATE_ENABLED == tracker_channel_state_get(tracker_channel)) {
+    result |= TRACKING_CHANNEL_FLAG_ACTIVE;
+
+    if (ERROR_FLAG_NONE == tracker_channel->error_flags) {
+      /* Make sure no errors have occurred. */
+      result |= TRACKING_CHANNEL_FLAG_NO_ERROR;
+    }
+    /* Check if the tracking is in confirmed state. */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED)) {
+      result |= TRACKING_CHANNEL_FLAG_CONFIRMED;
+    }
+    /* Check C/N0 has been above threshold for a long time (RTK). */
+    u32 cn0_threshold_count_ms = (common_data->update_count -
+                                  common_data->cn0_below_use_thres_count);
+    if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_LONG) {
+      result |= TRACKING_CHANNEL_FLAG_CN0_LONG;
+    }
+    /* Check C/N0 has been above threshold for the minimum time (SPP). */
+    if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_SHORT) {
+      result |= TRACKING_CHANNEL_FLAG_CN0_SHORT;
+    }
+    /* Pessimistic phase lock detector = "locked". */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK) &&
+        (common_data->update_count -
+         common_data->ld_pess_change_count) > TRACK_USE_LOCKED_T) {
+      result |= TRACKING_CHANNEL_FLAG_CONFIRMED_LOCK;
+    }
+    /* Some time has elapsed since the last tracking channel mode
+     * change, to allow any transients to stabilize.
+     * TODO: is this still necessary? */
+    if ((common_data->update_count -
+         common_data->mode_change_count) > TRACK_STABILIZATION_T) {
+      result |= TRACKING_CHANNEL_FLAG_STABLE;
+    }
+
+    /* Channel time of week has been decoded. */
+    if (TOW_INVALID != common_data->TOW_ms) {
+      result |= TRACKING_CHANNEL_FLAG_TOW;
+    }
+    /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
+    if (BIT_POLARITY_UNKNOWN != internal_data->bit_polarity) {
+      result |= TRACKING_CHANNEL_FLAG_BIT_POLARITY;
+    }
+    /* Tracking mode */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_PLL_USE)) {
+      result |= TRACKING_CHANNEL_FLAG_PLL_USE;
+    }
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_FLL_USE)) {
+      result |= TRACKING_CHANNEL_FLAG_FLL_USE;
+    }
+    /* Tracking status: pessimistic PLL lock */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
+      result |= TRACKING_CHANNEL_FLAG_PLL_PLOCK;
+    }
+    /* Tracking status: optimistic PLL lock */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_OLOCK)) {
+      result |= TRACKING_CHANNEL_FLAG_PLL_OLOCK;
+    }
+    /* Tracking status: FLL lock */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
+      result |= TRACKING_CHANNEL_FLAG_FLL_LOCK;
+    }
+  }
+
+  return result;
+}
+
 
 /** \} */

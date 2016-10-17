@@ -16,6 +16,7 @@
 #include <ch.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/ephemeris.h>
 #include "board/acq.h"
 
 /** \addtogroup manage
@@ -24,7 +25,11 @@
 #define ACQ_THRESHOLD 37.0
 #define ACQ_RETRY_THRESHOLD 38.0
 
-#define TRACK_CN0_THRES_COUNT 2000
+/** C/N0 threshold long interval [ms] */
+#define TRACK_CN0_THRES_COUNT_LONG 2000
+
+/** C/N0 threshold short interval [ms] */
+#define TRACK_CN0_THRES_COUNT_SHORT 100
 
 /** How many ms to allow tracking channel to converge after
     initialization before we consider dropping it */
@@ -62,6 +67,108 @@
 #define MANAGE_TRACK_THREAD_PRIORITY (NORMALPRIO-2)
 #define MANAGE_TRACK_THREAD_STACK   1400
 
+/* Tracking channel state flags */
+/** Tracking channel flag: tracker is active  */
+#define MANAGE_TRACK_FLAG_ACTIVE         (1u << 0)
+/** Tracking channel flag: tracker doesn't have an error */
+#define MANAGE_TRACK_FLAG_NO_ERROR       (1u << 1)
+/** Tracking channel flag: tracker has confirmed flag */
+#define MANAGE_TRACK_FLAG_CONFIRMED      (1u << 2)
+/** Tracking channel flag: tracker has usable C/N0 for a shorter period (SPP) */
+#define MANAGE_TRACK_FLAG_CN0_SHORT      (1u << 3)
+/** Tracking channel flag: tracker has usable C/N0 for a longer period (RTK) */
+#define MANAGE_TRACK_FLAG_CN0_LONG       (1u << 4)
+/** Tracking channel flag: tracker has usable elevation */
+#define MANAGE_TRACK_FLAG_ELEVATION      (1u << 5)
+/** Tracking channel flag: tracker has confirmed PLL lock */
+#define MANAGE_TRACK_FLAG_CONFIRMED_LOCK (1u << 6)
+/** Tracking channel flag: tracker has not changed modes for some time */
+#define MANAGE_TRACK_FLAG_STABLE         (1u << 8)
+/** Tracking channel flag: tracker has ToW */
+#define MANAGE_TRACK_FLAG_TOW            (1u << 9)
+/** Tracking channel flag: tracker has bit polarity resolved */
+#define MANAGE_TRACK_FLAG_BIT_POLARITY   (1u << 10)
+/** Tracking channel flag: tracked SV has decoded ephemeris */
+#define MANAGE_TRACK_FLAG_HAS_EPHE       (1u << 11)
+/** Tracking channel flag: tracked SV has healthy status */
+#define MANAGE_TRACK_FLAG_HEALTHY        (1u << 12)
+/** Tracking channel flag: tracked SV is suitable for navigation */
+#define MANAGE_TRACK_FLAG_NAV_SUITABLE   (1u << 13)
+/** Tracking channel flag: is PLL in use. Can also be combined with FLL flag */
+#define MANAGE_TRACK_FLAG_PLL_USE        (1u << 14)
+/** Tracking channel flag: is FLL in use */
+#define MANAGE_TRACK_FLAG_FLL_USE        (1u << 15)
+/** Tracking channel flag: is PLL optimistic lock present */
+#define MANAGE_TRACK_FLAG_PLL_OLOCK      (1u << 16)
+/** Tracking channel flag: is PLL pessimistic lock present */
+#define MANAGE_TRACK_FLAG_PLL_PLOCK      (1u << 17)
+/** Tracking channel flag: is FLL lock present */
+#define MANAGE_TRACK_FLAG_FLL_LOCK       (1u << 18)
+
+
+/* Tracking channel state masks */
+/** Tracking channel mask for use with SPP.
+ *
+ * SPP flags include the following conditions:
+ * - Tracker is active
+ * - There is no error
+ * - Tracker is in confirmed state
+ * - C/N0 is above threshold for a shorter period of time
+ * - SV elevation is above threshold
+ * - ToW for SV is known
+ * - Ephemeris is present in the database
+ * - SV health status is OK
+ * - SV navigation health status is OK
+ *
+ * \sa MANAGE_TRACK_RTK_FLAGS
+ */
+#define MANAGE_TRACK_SPP_FLAGS \
+  (MANAGE_TRACK_SPP_FLAGS_BASE | MANAGE_TRACK_FLAG_HAS_EPHE | \
+   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE)
+
+/**
+ * SPP basic tracker flags subset.
+ *
+ * SPP basic flags include the following conditions:
+ * - Tracker is active
+ * - There is no error
+ * - Tracker is in confirmed state
+ * - C/N0 is above threshold for a shorter period of time
+ * - SV elevation is above threshold
+ * - ToW for SV is known
+ *
+ * \sa MANAGE_TRACK_SPP_FLAGS
+ */
+#define MANAGE_TRACK_SPP_FLAGS_BASE \
+  (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR | \
+   MANAGE_TRACK_FLAG_CONFIRMED | MANAGE_TRACK_FLAG_CN0_SHORT | \
+   MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_TOW )
+
+/** Tracking channel mask for use with RTK.
+ *
+ * RTK flags include all SPP flags. In addition, the following conditions apply:
+ * - PLL is in use and pessimistic lock is required.
+ * - Tracker must be stable for a period of time.
+ * - Data bit polarity is known.
+ * - C/N0 is above threshold for a longer period than in SPP flags.
+ *
+ * \note At the moment RTK flags require pessimistic PLL lock, but this can
+ *       be relaxed to have optimistic-only lock criteria.
+ *
+ * \sa MANAGE_TRACK_SPP_FLAGS
+ */
+#define MANAGE_TRACK_RTK_FLAGS \
+  (MANAGE_TRACK_SPP_FLAGS | MANAGE_TRACK_FLAG_CONFIRMED_LOCK | \
+   MANAGE_TRACK_FLAG_STABLE | MANAGE_TRACK_FLAG_BIT_POLARITY | \
+   MANAGE_TRACK_FLAG_CN0_LONG | MANAGE_TRACK_FLAG_PLL_USE | \
+   MANAGE_TRACK_FLAG_PLL_PLOCK)
+
+/** Tracking channel mask for use with reporting */
+#define MANAGE_TRACK_STATUS_FLAGS MANAGE_TRACK_SPP_FLAGS
+
+/** Tracking channel flags mask. */
+typedef u32 manage_track_flags_t;
+
 typedef struct {
   gnss_signal_t sid;      /**< Signal identifier. */
   u32 sample_count;       /**< Reference NAP sample count. */
@@ -79,12 +186,18 @@ void manage_acq_setup(void);
 void manage_set_obs_hint(gnss_signal_t sid);
 
 void manage_track_setup(void);
-s8 use_tracking_channel(u8 i);
-u8 tracking_channels_ready(void);
+
+manage_track_flags_t get_tracking_channel_flags(u8 i);
+manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
+                                                    s32 tow_ms,
+                                                    ephemeris_t *pephe);
+bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags);
+u8 tracking_channels_ready(manage_track_flags_t required_flags);
 
 bool tracking_startup_ready(gnss_signal_t sid);
 bool tracking_is_running(gnss_signal_t sid);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
+bool tracking_is_running(gnss_signal_t sid);
 
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);
