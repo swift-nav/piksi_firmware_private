@@ -72,8 +72,8 @@ MUTEX_DECL(amb_state_lock);
 
 systime_t last_dgnss;
 
-double soln_freq = 10.0;
-u32 obs_output_divisor = 2;
+double soln_freq = 2.0;
+u32 obs_output_divisor = 1;
 
 double known_baseline[3] = {0, 0, 0};
 u16 msg_obs_max_size = 102;
