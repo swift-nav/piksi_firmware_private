@@ -46,6 +46,16 @@ u64 nap_timing_count(void)
   return 0;
 }
 
+u64 nap_sample_time_to_count(u32 sample_count)
+{
+  return sample_count;
+}
+
+double nap_count_to_ms(u64 delta_time)
+{
+  return delta_time;
+}
+
 void nap_acq_code_wr_blocking(gnss_signal_t sid)
 {
   (void)sid;

@@ -86,6 +86,44 @@ u64 nap_timing_count(void)
   return total_count;
 }
 
+/**
+ * Utility to compute NAP time from a sample counter
+ *
+ * The function assumes the time after reading sample counter is short. The
+ * result is formed as a high half of the NAP counter combined with a sample
+ * counter. If sample counter is greater, than the low half of NAP counter, the
+ * result is adjusted.
+ *
+ * \param[ın] sample_count Readings of sample counter register
+ *
+ * \return Resulting time in ticks.
+ */
+u64 nap_sample_time_to_count(u32 sample_count)
+{
+  /* Converts sample time into NAP time using NAP rollover value */
+  u64 time_now = nap_timing_count();
+  u32 time_high = (u32)(time_now >> 32);
+  u32 time_low = (u32)time_now;
+  if (sample_count > time_low) {
+    /* NAP counter rollover has occurred before sample_count is read. */
+    time_high--;
+  }
+  return ((u64)time_high << 32) | sample_count;
+}
+
+/**
+ * Convert time in samples into time in milliseconds.
+ *
+ * \param[in] delta_time Time interval to convert [samples]
+ *
+ * \return Time interval in milliseconds.
+ */
+double nap_count_to_ms(u64 delta_time)
+{
+  double time_delta = (double)delta_time * (1000. / NAP_FRONTEND_SAMPLE_RATE_Hz);
+  return time_delta;
+}
+
 static void nap_isr(void *context)
 {
   (void)context;

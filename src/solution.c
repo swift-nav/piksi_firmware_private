@@ -466,11 +466,14 @@ static void solution_thread(void *arg)
       tracking_channel_lock(i);
       if (use_tracking_channel(i)) {
         tracking_channel_measurement_get(i, rec_tc, &meas[n_ready]);
-        if (shm_navigation_suitable(meas[n_ready].sid))
+        /* TODO Placeholder for flags computation */
+        meas[n_ready].flags = CHAN_MEAS_FLAG_SPP_OK | CHAN_MEAS_FLAG_RTK_OK;
+        if (shm_navigation_suitable(meas[n_ready].sid)) {
           n_ready++;
-        else
+        } else {
           log_debug_sid(meas[n_ready].sid,
                         "Satellite not suitable for navigation");
+        }
       }
       tracking_channel_unlock(i);
     }

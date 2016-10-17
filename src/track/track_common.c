@@ -13,6 +13,7 @@
 
 #include <libswiftnav/track.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/time.h>
 
 #include <track.h>
 
@@ -225,6 +226,9 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
   memset(data, 0, sizeof(*data));
   tracker_ambiguity_unknown(channel_info->context);
 
+  log_debug_sid(channel_info->sid, "[+%" PRIu32 "ms] Tracker start",
+                common_data->update_count);
+
   /* Do tracking report to manager */
   tp_report_t report;
   report.bsync = false;
@@ -236,10 +240,14 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
   report.sample_count = common_data->sample_count;
   report.time_ms = 0;
 
-  tp_tracking_start(channel_info->sid, &report, &init_profile);
+  if (TP_RESULT_SUCCESS != tp_tracking_start(channel_info->sid,
+                                             &report,
+                                             &init_profile)) {
+    assert(!"Tracker start error");
+  }
 
   if (config->show_unconfirmed_trackers) {
-    data->confirmed = 1;
+    data->confirmed = true;
   }
 
   tp_tracker_update_parameters(channel_info,
@@ -254,12 +262,19 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
  *
  * The method releases tracker state.
  *
- * \param[in]     channel_info Tracking channel information.
+ * \param[in] channel_info Tracking channel information.
+ * \param[in] common_data  Common tracking channel data.
  *
  * \return None
  */
-void tp_tracker_disable(const tracker_channel_info_t *channel_info)
+void tp_tracker_disable(const tracker_channel_info_t *channel_info,
+                        tracker_common_data_t *common_data)
 {
+  log_debug_sid(channel_info->sid,
+                "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
+                common_data->update_count,
+                common_data->TOW_ms);
+
   tp_tracking_stop(channel_info->sid);
 }
 
@@ -495,13 +510,17 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
    * While the tracker can run in fractions of milliseconds, the current
    * design doesn't permit ToW updates with sub-millisecond values.
    */
-
-  /* Channel run time. */
-  common_data->update_count += int_ms;
   /* ToW update counter. */
+  bool no_TOW = TOW_UNKNOWN == common_data->TOW_ms;
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
                                            int_ms);
+  if (no_TOW && TOW_UNKNOWN != common_data->TOW_ms) {
+    log_debug_sid(channel_info->sid, "[+%"PRIu32"ms] Decoded TOW %"PRId32,
+                  common_data->update_count, common_data->TOW_ms);
+  }
+  /* Channel run time. */
+  common_data->update_count += int_ms;
 }
 
 /**
@@ -523,6 +542,10 @@ void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
     /* Bit sync advance / message decoding */
     tracker_bit_sync_update(channel_info->context, update_count_ms,
                             data->corrs.corr_bit);
+
+    /* TODO Update BS from ToW when appropriate. */
+    /* TODO Add fast BS detection. */
+    /* TODO Add bad BS recovery. */
   }
 }
 
@@ -565,7 +588,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
   if (cn0 > cn0_params.track_cn0_drop_thres &&
       !data->confirmed &&
       data->lock_detect.outo && tracker_has_bit_sync(channel_info->context)) {
-    data->confirmed = 1;
+    data->confirmed = true;
     log_debug_sid(channel_info->sid, "CONFIRMED from %f to %d",
                   cn0, data->cn0_est.cn0_0);
 
@@ -840,3 +863,4 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
 
   return cflags;
 }
+
