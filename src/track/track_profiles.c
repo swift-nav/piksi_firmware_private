@@ -859,6 +859,28 @@ tp_result_e tp_get_profile(gnss_signal_t sid, tp_config_t *config, bool commit)
 }
 
 /**
+ * Retrieves current tracking profile if available.
+ *
+ * \param[in]  sid    GNSS signal identifier. This identifier must be registered
+ *                    with a call to #tp_tracking_start().
+ * \param[out] config Container for tracking parameters.
+ *
+ * \retval TP_RESULT_SUCCESS Profile data is returned.
+ * \retval TP_RESULT_ERROR   On error.
+ */
+tp_result_e tp_get_current_profile(gnss_signal_t sid, tp_config_t *config)
+{
+  tp_result_e res = TP_RESULT_ERROR;
+  tp_profile_internal_t *profile = find_profile(sid);
+  if (NULL != config && NULL != profile) {
+    /* Return data */
+    get_profile_params(profile, config);
+    res = TP_RESULT_SUCCESS;
+  }
+  return res;
+}
+
+/**
  * Method for obtaining current C/N0 thresholds.
  *
  * \param[in]  sid    GNSS signal identifier. This identifier must be registered

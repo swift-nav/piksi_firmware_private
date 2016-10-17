@@ -687,6 +687,21 @@ bool tracking_startup_ready(gnss_signal_t sid)
   return (acq->state == ACQ_PRN_ACQUIRING) && (!acq->masked);
 }
 
+/**
+ * Checks if the tracker is running.
+ *
+ * \param[in] sid GNSS signal ID to check.
+ *
+ * \retval true  Tracker for \a sid is in running state
+ * \retval false Tracker for \a sid is not in running state
+ */
+bool tracking_is_running(gnss_signal_t sid)
+{
+  u16 global_index = sid_to_global_index(sid);
+  acq_status_t *acq = &acq_status[global_index];
+  return (acq->state == ACQ_PRN_TRACKING);
+}
+
 /** Check if a startup request for an sid is present in a
  *  tracking startup FIFO.
  *

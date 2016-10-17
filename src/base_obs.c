@@ -353,6 +353,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     /* Unpack the observation into a navigation_measurement_t. */
     unpack_obs_content(&obs[i], &nm->raw_pseudorange, &nm->raw_carrier_phase,
                        &nm->cn0, &nm->lock_counter, &nm->sid);
+    /* TODO currently SBP doesn't transfer flags, so set them manually here*/
+    nm->flags = CHAN_MEAS_FLAG_SPP_OK | CHAN_MEAS_FLAG_RTK_OK;
 
     /* Set the time */
     nm->tot = tor;

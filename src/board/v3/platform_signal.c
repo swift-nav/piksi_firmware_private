@@ -14,6 +14,7 @@
 
 #include "track/track_gps_l1ca.h"
 #include "track/track_gps_l2cm.h"
+#include "track/track_sid_db.h"
 
 #include "decode/decode_gps_l1ca.h"
 #include "decode/decode_gps_l2c.h"
@@ -22,6 +23,7 @@
 
 void platform_track_setup(void)
 {
+  track_sid_db_init();
   track_gps_l1ca_register();
   track_gps_l2cm_register();
 }
