@@ -31,6 +31,8 @@
 #include "nt1065.h"
 #include "system_monitor.h"
 #include "remoteproc/rpmsg.h"
+#include "sbp_fileio.h"
+#include "factory_data.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03050000U)
@@ -41,12 +43,27 @@
 #define DEV_CFG_INT_STS (*(volatile u32 *)0xf800700c)
 #define DEV_CFG_INT_STS_PCFG_DONE_Msk (1U << 2)
 
+#define FACTORY_DATA_SIZE_MAX 255
+
+#define IMAGE_HARDWARE_INVALID    0xffffffff
+#define IMAGE_HARDWARE_UNKNOWN    0x00000000
+#define IMAGE_HARDWARE_MICROZED   0x00000001
+#define IMAGE_HARDWARE_EVT1       0x00000011
+#define IMAGE_HARDWARE_EVT2       0x00000012
+
+static struct {
+  uint32_t hardware;
+  uint32_t serial_number;
+  uint8_t nap_key[16];
+} factory_params;
+
 static void nap_conf_check(void);
 static void nap_reset(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
 static void nap_auth_setup(void);
 static void nap_auth_check(void);
+static bool factory_params_read(void);
 
 /** Resets the device back into the bootloader. */
 static void reset_callback(u16 sender_id, u8 len, u8 msg[], void* context)
@@ -100,6 +117,7 @@ void init(void)
 {
   fault_handling_setup();
   reset_callback_register();
+  factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
@@ -169,9 +187,7 @@ static void nap_version_check(void)
 
 static void nap_auth_setup(void)
 {
-  /* TODO: read from NVM */
-  const u8 nap_key[] = {0};
-  nap_unlock(nap_key);
+  nap_unlock(factory_params.nap_key);
 }
 
 /* Check NAP authentication status. Block and print error message
@@ -189,16 +205,88 @@ static void nap_auth_check(void)
   }
 }
 
+static bool factory_params_read(void)
+{
+  uint8_t factory_data_buff[FACTORY_DATA_SIZE_MAX];
+  factory_data_t *factory_data = (factory_data_t *)factory_data_buff;
+
+  /* read file */
+  ssize_t bytes_read = sbp_fileio_read("/factory/mtd", 0, factory_data_buff,
+                                       sizeof(factory_data_buff));
+  if (bytes_read < (ssize_t)sizeof(factory_data_t)) {
+    log_error("error reading factory data");
+    return false;
+  }
+
+  /* verify header */
+  if (factory_data_header_verify(factory_data) != 0) {
+    log_error("error verifying factory data header");
+    return false;
+  }
+
+  uint32_t factory_data_body_size = factory_data_body_size_get(factory_data);
+  uint32_t factory_data_size = sizeof(factory_data_t) +
+                               factory_data_body_size;
+
+  /* check header + body length */
+  if (bytes_read < (ssize_t)factory_data_size) {
+    log_error("error reading factory data");
+    return false;
+  }
+
+  /* verify body */
+  if (factory_data_body_verify(factory_data) != 0) {
+    log_error("error verifying factory data body");
+    return false;
+  }
+
+  /* read params */
+  if (factory_data_hardware_get(factory_data, &factory_params.hardware) != 0) {
+    log_error("error reading hardware parameter from factory data");
+    return false;
+  }
+
+  if (factory_data_serial_number_get(factory_data,
+                                     &factory_params.serial_number) != 0) {
+    log_error("error reading serial number from factory data");
+    return false;
+  }
+
+  if (factory_data_nap_key_get(factory_data, factory_params.nap_key) != 0) {
+    log_error("error reading NAP key from factory data");
+    return false;
+  }
+
+  return true;
+}
+
 s32 serial_number_get(void)
 {
-  /* TODO: read from NVM */
-  return -1;
+  return factory_params.serial_number;
 }
 
 u8 hw_revision_string_get(char *hw_revision_string)
 {
-  /* TODO: read from NVM */
-  const char *s = "alpha";
+  const char *s = NULL;
+
+  switch(factory_params.hardware) {
+  case IMAGE_HARDWARE_UNKNOWN:
+    s = "unknown";
+    break;
+  case IMAGE_HARDWARE_MICROZED:
+    s = "microzed";
+    break;
+  case IMAGE_HARDWARE_EVT1:
+    s = "evt1";
+    break;
+  case IMAGE_HARDWARE_EVT2:
+    s = "evt2";
+    break;
+  default:
+    s = "invalid";
+    break;
+  }
+
   strcpy(hw_revision_string, s);
   return strlen(hw_revision_string);
 }

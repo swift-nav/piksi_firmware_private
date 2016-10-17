@@ -27,7 +27,8 @@
 void log_obs_latency(float latency_ms);
 void log_obs_latency_tick();
 
-void sbp_setup(u16 sender_id);
+void sbp_setup(void);
+void sbp_sender_id_set(u16 sender_id);
 void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb, sbp_msg_callbacks_node_t *node);
 void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
                                    sbp_msg_callbacks_node_t *node,
