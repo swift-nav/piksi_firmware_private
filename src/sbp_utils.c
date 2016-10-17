@@ -35,6 +35,7 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
   sbp_gnss_signal_t sbp_sid = {
     .code = from.code,
     .sat = from.sat,
+    .reserved = 0,
   };
 
   /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other

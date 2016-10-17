@@ -177,8 +177,11 @@ void tracking_send_state()
     if (num_sats < nap_track_n_channels) {
       for (u8 i = num_sats; i < nap_track_n_channels; i++) {
         states[i].state = 0;
-        states[i].sid.code = 0;
-        states[i].sid.sat = 0;
+        states[i].sid = (sbp_gnss_signal_t){
+          .code = 0,
+          .sat = 0,
+          .reserved = 0
+        };
         states[i].cn0 = -1;
       }
     }
@@ -205,8 +208,11 @@ void tracking_send_state()
 
       if (!running || cn0 < 0) {
         states[i].state = 0;
-        states[i].sid.code = 0;
-        states[i].sid.sat = 0;
+        states[i].sid = (sbp_gnss_signal_t){
+          .code = 0,
+          .sat = 0,
+          .reserved = 0
+        };
         states[i].cn0 = -1;
       } else {
         states[i].state = 1;
