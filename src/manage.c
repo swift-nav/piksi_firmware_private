@@ -1206,7 +1206,7 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
  * \retval true sid is tracked
  * \retval false sid is not tracked
  */
-bool is_sid_tracked(gnss_signal_t sid)
+bool sid_is_tracked(gnss_signal_t sid)
 {
   /* This function is used in reacquisition which runs in
      the same thread as acquisition.
