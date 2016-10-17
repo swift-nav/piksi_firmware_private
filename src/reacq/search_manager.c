@@ -11,10 +11,9 @@
  */
 #include <string.h>
 #include "search_manager_api.h"
-#ifndef SM_UNIT_TEST
 #include <timing.h>
 #include <manage.h>
-#endif
+
 /* Search manager functions which call other modules */
 
 bool sm_is_healthy(gnss_signal_t sid);
