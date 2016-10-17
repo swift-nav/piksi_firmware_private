@@ -175,5 +175,5 @@ void l1ca_l2cm_handover_release(u8 sat);
  * \retval true sid is tracked
  * \retval false sid is not tracked
  */
-bool is_sid_tracked(gnss_signal_t sid);
+bool sid_is_tracked(gnss_signal_t sid);
 #endif
