@@ -23,11 +23,14 @@
 #include "timing.h"
 #include "pps.h"
 
+#define PPS_THREAD_INTERVAL_MS (250)
+#define PPS_WIDTH_MICROSECONDS (200000)
+
 /** \defgroup pps Pulse-per-second (PPS)
  * Generate a pulse-per-second in alignment with GPS time.
  * \{ */
 
-/** Number of microseconds the PPS will remain high (default: 200000). */
+/** Number of microseconds the PPS will remain active (default: 200000). */
 u32 pps_width_microseconds = PPS_WIDTH_MICROSECONDS;
 
 static THD_WORKING_AREA(wa_pps_thread, 256);
@@ -40,9 +43,8 @@ static void pps_thread(void *arg)
     if (time_quality == TIME_FINE) {
       gps_time_t t = get_current_time();
       t.tow = floor(t.tow) + 1;
-      u64 next = round(gps2rxtime(&t) * PPS_NAP_CLOCK_RATIO) +
-                       (PPS_NAP_CYCLES_OFFSET);
-      nap_pps(next);
+      u64 next = round(gps2rxtime(&t));
+      nap_pps((u32)next);
     }
     chThdSleepMilliseconds(PPS_THREAD_INTERVAL_MS);
   }
@@ -61,7 +63,7 @@ bool pps_width(u32 microseconds)
     return FALSE;
   }
 
-  nap_pps_width(ceil((double)microseconds / (RX_DT_NOMINAL * 1e6)) - 1);
+  nap_pps_config(microseconds, 0x01);
   return TRUE;
 }
 

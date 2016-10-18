@@ -13,6 +13,7 @@
 #include "board.h"
 #include "nap/nap_common.h"
 #include "../../sbp.h"
+#include "../../ext_events.h"
 
 #include "nap_hw.h"
 #include "nap_fe_hw.h"
@@ -28,10 +29,16 @@
 #define PROCESS_PERIOD_ms (1000)
 
 static void nap_isr(void *context);
+static void nap_track_isr(void *context);
 
-static BSEMAPHORE_DECL(nap_exti_sem, TRUE);
-static WORKING_AREA_CCM(wa_nap_exti, 32000);
-static void nap_exti_thread(void *arg);
+static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
+static BSEMAPHORE_DECL(nap_track_irq_sem, TRUE);
+
+static WORKING_AREA_CCM(wa_nap_irq, 32000);
+static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
+
+static void nap_irq_thread(void *arg);
+static void nap_track_irq_thread(void *arg);
 
 static u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
@@ -51,17 +58,31 @@ void nap_setup(void)
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  /* FE_BB0_PINC initialization for GPS L1C/A processing */
-  NAP_FE->BB_PINC[0] = NAP_FE_L1CA_BASEBAND_MIXER_PINC;
+  /* Set acquisiton decimation factor */
+  NAP_FE->ACQ_CONTROL = (NAP_ACQ_DECIMATION_RATE << NAP_FE_ACQ_CONTROL_DECIMATION_Pos);
 
-  /* FE_BB3_PINC initialization for GPS L2C processing */
-  NAP_FE->BB_PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+  /* FE_PINC0 initialization for GPS L1C/A processing */
+  NAP_FE->PINC[0] = NAP_FE_L1CA_BASEBAND_MIXER_PINC;
+
+  /* FE_PINC3 initialization for GPS L2C processing */
+  NAP_FE->PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+
+  /* Enable frontend channel 0 (RF1) and frontend channel 3 (RF4) */
+  NAP_FE->CONTROL = (1 << NAP_FE_CONTROL_ENABLE_RF1_Pos) |
+                    (1 << NAP_FE_CONTROL_ENABLE_RF4_Pos);
 
   /* Enable NAP interrupt */
-  chThdCreateStatic(wa_nap_exti, sizeof(wa_nap_exti), HIGHPRIO-1, nap_exti_thread, NULL);
-  gic_handler_register(IRQ_ID_NAP_TRACK, nap_isr, NULL);
+  chThdCreateStatic(wa_nap_irq, sizeof(wa_nap_irq), HIGHPRIO-2, nap_irq_thread, NULL);
+  gic_handler_register(IRQ_ID_NAP, nap_isr, NULL);
+  gic_irq_sensitivity_set(IRQ_ID_NAP, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(IRQ_ID_NAP, NAP_IRQ_PRIORITY);
+  gic_irq_enable(IRQ_ID_NAP);
+
+  /* Enable NAP tracking interrupt */
+  chThdCreateStatic(wa_nap_track_irq, sizeof(wa_nap_track_irq), HIGHPRIO-1, nap_track_irq_thread, NULL);
+  gic_handler_register(IRQ_ID_NAP_TRACK, nap_track_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_NAP_TRACK, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(IRQ_ID_NAP_TRACK, NAP_IRQ_PRIORITY);
+  gic_irq_priority_set(IRQ_ID_NAP_TRACK, NAP_TRACK_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_NAP_TRACK);
 }
 
@@ -143,12 +164,45 @@ static void nap_isr(void *context)
   chSysLockFromISR();
 
   /* Wake up processing thread */
-  chBSemSignalI(&nap_exti_sem);
+  chBSemSignalI(&nap_irq_sem);
 
   chSysUnlockFromISR();
 }
 
-static void handle_nap_exti(void)
+static void nap_track_isr(void *context)
+{
+  (void)context;
+  chSysLockFromISR();
+
+  /* Wake up processing thread */
+  chBSemSignalI(&nap_track_irq_sem);
+
+  chSysUnlockFromISR();
+}
+
+static void handle_nap_irq(void)
+{
+  u32 irq = NAP->IRQ;
+
+  while (irq) {
+    if (irq & NAP_IRQ_EXT_EVENT_Msk) {
+      ext_event_service();
+    }
+
+    NAP->IRQ = irq;
+
+    asm("dsb");
+    irq = NAP->IRQ;
+  }
+
+  u32 err = NAP->IRQ_ERROR;
+  if (err) {
+    NAP->IRQ_ERROR = err;
+    log_error("SwiftNAP Error: 0x%08X", (unsigned int)err);
+  }
+}
+
+static void handle_nap_track_irq(void)
 {
   u32 irq = NAP->TRK_IRQ;
 
@@ -163,23 +217,36 @@ static void handle_nap_exti(void)
   u32 err = NAP->TRK_IRQ_ERROR;
   if (err) {
     NAP->TRK_IRQ_ERROR = err;
-    log_error("SwiftNAP Error: 0x%08X", (unsigned int)err);
+    log_error("SwiftNAP Tracking Error: 0x%08X", (unsigned int)err);
     tracking_channels_missed_update_error(err);
   }
 
   watchdog_notify(WD_NOTIFY_NAP_ISR);
 }
 
-static void nap_exti_thread(void *arg)
+static void nap_irq_thread(void *arg)
 {
   (void)arg;
   chRegSetThreadName("NAP ISR");
 
   while (TRUE) {
     /* Waiting for the IRQ to happen.*/
-    chBSemWaitTimeout(&nap_exti_sem, MS2ST(PROCESS_PERIOD_ms));
+    chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_ms));
 
-    handle_nap_exti();
+    handle_nap_irq();
+  }
+}
+
+static void nap_track_irq_thread(void *arg)
+{
+  (void)arg;
+  chRegSetThreadName("NAP tracking ISR");
+
+  while (TRUE) {
+    /* Waiting for the IRQ to happen.*/
+    chBSemWaitTimeout(&nap_track_irq_sem, MS2ST(PROCESS_PERIOD_ms));
+
+    handle_nap_track_irq();
     tracking_channels_process();
   }
 }
@@ -199,3 +266,36 @@ void nap_dna_callback_register(void)
   sbp_register_cbk(SBP_MSG_NAP_DEVICE_DNA_REQ, &nap_rd_dna_callback,
       &nap_dna_node);
 }
+
+void nap_pps(u32 count)
+{
+  NAP->PPS_TIMING_COMPARE = count + NAP_PPS_TIMING_COUNT_OFFSET;
+}
+
+void nap_pps_config(u32 microseconds, u8 active)
+{
+  u32 width = ceil((double)microseconds / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6)) - 1;
+  NAP->PPS_CONTROL = (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
+}
+
+u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
+    ext_event_trigger_t next_trig)
+{
+  (void)event_pin;
+  (void)event_trig;
+  (void)next_trig;
+
+  if (event_pin) {
+    *event_pin = 0;
+  }
+
+  if (event_trig) {
+    *event_trig = (NAP->CONTROL & NAP_CONTROL_EXT_EVENT_EDGE_Msk) >>
+        NAP_CONTROL_EXT_EVENT_EDGE_Pos;
+  }
+
+  NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos);
+
+  return NAP->EVENT_TIMING_SNAPSHOT;
+}
+
