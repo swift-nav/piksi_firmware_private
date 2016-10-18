@@ -31,5 +31,6 @@ void shm_log_sat_state(const char* shi_name, u16 sat);
 
 bool shm_tracking_allowed(gnss_signal_t sid);
 bool shm_navigation_suitable(gnss_signal_t sid);
+bool shm_navigation_unusable(gnss_signal_t sid);
 
 #endif /* SWIFTNAV_SHM_H */

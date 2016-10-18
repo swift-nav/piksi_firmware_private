@@ -37,6 +37,7 @@
 #include "ephemeris.h"
 #include "signal.h"
 #include "ndb.h"
+#include "shm.h"
 
 extern bool disable_raim;
 
@@ -137,6 +138,12 @@ static void update_obss(obss_t *new_obss)
     log_warn("Base observations have mixed L2 tracking types. Discarding L2P!");
     new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, is_l2p_sid);
   }
+
+  /* Filter out any observation not marked healthy by the ndb. */
+  if (new_obss->n > 0) {
+    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, shm_navigation_unusable);
+  }
+
   /* Lock mutex before modifying base_obss.
    * NOTE: We didn't need to lock it before reading in THIS context as this
    * is the only thread that writes to base_obss. */
