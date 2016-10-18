@@ -124,18 +124,11 @@ void init(void)
 
   frontend_configure();
 
-  /* Wait for frontend clock to stabilize */
-  chThdSleepMilliseconds(1);
-
-  /* Reset after clock switch */
+  /* Reset after frontend clock switch */
   nap_reset();
 
   /* Wait for reset */
   chThdSleepMilliseconds(1);
-
-  if (!nt1065_check_aok_status()) {
-    frontend_error_notify_sys();
-  }
 
   nap_version_check();
   nap_dna_callback_register();

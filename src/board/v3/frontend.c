@@ -93,10 +93,26 @@ void frontend_configure(void)
 
   frontend_close_spi();
 
+  /* Wait for frontend clock to stabilize, AOK status */
+  u8 tries = 10;
+  do {
+    chThdSleepMilliseconds(1);
+  } while (!nt1065_check_aok_status() && (--tries > 0));
+
+  if (tries == 0) {
+    frontend_error_notify_sys();
+  }
+
+  /* Enable AOK interrupt */
   gic_handler_register(IRQ_ID_FRONTEND_AOK, frontend_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_FRONTEND_AOK, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_PRIORITY);
   gic_irq_enable(IRQ_ID_FRONTEND_AOK);
+
+  /* Make sure AOK interrupt edge was not missed */
+  if ((tries > 0) && !nt1065_check_aok_status()) {
+    frontend_error_notify_sys();
+  }
 }
 
 void frontend_setup(void)
