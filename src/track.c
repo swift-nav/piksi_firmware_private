@@ -611,7 +611,7 @@ void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
       p_nav_meas[0] = &nav_meas[0];
       gps_time_t rec_time = rx2gpstime(ref_tc);
       s8 nm_ret = calc_navigation_measurement(1,
-        (const channel_measurement_t **) &meas, p_nav_meas, &rec_time, 0);
+        (const channel_measurement_t **) &meas, p_nav_meas, &rec_time);
       if (nm_ret != 0) {
         log_error_sid(meas->sid,
           "calc_navigation_measurement() returned an error");
