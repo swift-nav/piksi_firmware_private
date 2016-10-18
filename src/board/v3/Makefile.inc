@@ -12,7 +12,7 @@ USE_OPT += -mfpu=neon -mfloat-abi=hard
 # Stack size to be allocated to the ARM System/User stack. This
 # stack is the stack used by the main() thread.
 ifeq ($(USE_SYSTEM_STACKSIZE),)
-  USE_SYSTEM_STACKSIZE = 0x800
+  USE_SYSTEM_STACKSIZE = 0x8000
 endif
 
 # Stack size to the allocated to the ARM IRQ stack. This
