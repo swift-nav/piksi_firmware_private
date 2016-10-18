@@ -62,6 +62,8 @@
 #define NAP_DNA_OFFSET                                                   (56)
 #define NAP_DNA_LENGTH                                                    (8)
 
+#define NAP_PPS_TIMING_COUNT_OFFSET                                       (0)
+
 /** Specifies the spacing between Early and Prompt correlators.
     Prompt and Late correlators have the same spacing.
     [cycles of TRACK_SAMPLE_FREQ] */
