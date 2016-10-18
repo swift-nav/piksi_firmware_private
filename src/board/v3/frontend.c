@@ -106,7 +106,7 @@ void frontend_configure(void)
   /* Enable AOK interrupt */
   gic_handler_register(IRQ_ID_FRONTEND_AOK, frontend_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_FRONTEND_AOK, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_PRIORITY);
+  gic_irq_priority_set(IRQ_ID_FRONTEND_AOK, FRONTEND_AOK_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_FRONTEND_AOK);
 
   /* Make sure AOK interrupt edge was not missed */
@@ -135,7 +135,7 @@ bool nt1065_get_temperature(double* temperature)
   int32_t temp_sensor = 0;
   //temperature is valid after about 30 milliseconds
   const uint32_t TEMP_READ_WAIT_MS = 30;
-  
+
   frontend_open_spi();
 
   //start a single temp measurement
@@ -189,7 +189,7 @@ bool nt1065_check_plls()
     }
     return false;
   }
-  
+
   return true;
 }
 

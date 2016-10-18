@@ -36,7 +36,7 @@
 #include "clk_dac.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL  (0x03050000U)
+#define REQUIRED_NAP_VERSION_VAL  (0x03060000U)
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
@@ -101,15 +101,11 @@ void pre_init(void)
 
 static void random_init(void)
 {
-  static FFT_BUFFER(sample_data, u64, 1);
   u32 seed = 0;
-  u32 sample_count;
-
-  if (!raw_samples_get((void*)sample_data, sizeof(sample_data), &sample_count))
-    log_error("Failed to read sample buffer for RNG seed");
+  u32 sample_data = nap_conf_rd_random();
 
   for (int i = 0; i < 32; i++)
-    seed ^= *sample_data >> i;
+    seed ^= sample_data >> i;
 
   srand(seed);
 }
