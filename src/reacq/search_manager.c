@@ -17,7 +17,7 @@
 /* Search manager functions which call other modules */
 
 bool sm_is_healthy(gnss_signal_t sid);
-u64 sm_lgf_stamp(void);
+bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 
 /** Global search job data */
@@ -40,8 +40,8 @@ void sm_init(acq_jobs_state_t *data)
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i;
     for (i = 0; i < NUM_SATS_GPS; i++) {
-      data->jobs[type][i].sid.code = CODE_GPS_L1CA;
-      data->jobs[type][i].sid.sat = GPS_FIRST_PRN + i;
+      data->jobs[type][i].sid = construct_sid(CODE_GPS_L1CA,
+					      GPS_FIRST_PRN + i);
       data->jobs[type][i].job_type = type;
     }
   }
@@ -65,9 +65,6 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     deep_job->needs_to_run = false;
 
     /* Check if jobs need to run */
-    if (!sm_is_healthy(sid)) {
-      continue;
-    }
     if (sid_is_tracked(sid)) {
       continue;
     }
@@ -89,6 +86,8 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
 /** Checks if fallback searches need to run
  *
  * \param jobs_data pointer to job data
+ * \param now_ms current time (ms)
+ * \param lgf_age_ms age of the last good fix (ms)
  *
  * \return none
  */
@@ -106,9 +105,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     fallback_job->needs_to_run = false;
 
     /* Check if jobs need to run */
-    if (!sm_is_healthy(sid)) {
-      continue;
-    }
     if (sid_is_tracked(sid)) {
       continue;
     }
@@ -145,8 +141,14 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
 void sm_run(acq_jobs_state_t *jobs_data)
 {
   u64 now_ms = timing_getms();
-  u64 lgf_age_ms = now_ms - sm_lgf_stamp();
-
+  u64 lgf_ms, lgf_age_ms;
+  if (sm_lgf_stamp(&lgf_ms)) {
+    lgf_age_ms = now_ms - lgf_ms;
+  } else {
+    lgf_age_ms = MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS,
+		     ACQ_LGF_TIMEOUT_INVIS_MS);
+  }
+  
   sm_deep_search_run(jobs_data);
   sm_fallback_search_run(jobs_data, now_ms, lgf_age_ms);
 }

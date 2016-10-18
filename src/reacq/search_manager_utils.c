@@ -19,8 +19,8 @@
 /* Search manager functions which call other modules */
 /** Get SV visibility flags
  *
- * \param sid SV identifier
- * \param [out] visible set if SV is visible
+ * \param [in] GNSS signal SV identifier
+ * \param [out] visible is set if SV is visible. Valid only if known is set
  * \param [out] known set if SV is known visible or known invisible
  */
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
@@ -53,9 +53,9 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
 
 /** Check if SV is healthy
  *
- * \param sid SV identifier
+ * \param sid GNSS signal identifier
  *
- * \return TRUE is SV is healthy, FALSE otherwise
+ * \return true is SV is healthy, false otherwise
  */
 bool sm_is_healthy(gnss_signal_t sid)
 {
@@ -64,20 +64,22 @@ bool sm_is_healthy(gnss_signal_t sid)
 
 /** Get HW time of the last good fix (LGF)
  *
- * \return HW time (ms) of the last good fix
+ * \param [out] lgf_stamp time of LGF (ms)
+ * \return true lgf_stamp is valid, false otherwise
  */
-u64 sm_lgf_stamp(void)
+bool sm_lgf_stamp(u64 *lgf_stamp)
 {
   last_good_fix_t lgf;
-  if (ndb_lgf_read(&lgf) == NDB_ERR_NONE &&
-      lgf.position_quality == POSITION_FIX) {
-
-    return (u64)(gps2rxtime(&lgf.position_solution.time)
-                 * (RX_DT_NOMINAL * 1000.0));
+  if (TIME_COARSE != time_quality && TIME_FINE != time_quality) {
+    return false;
   }
-  log_error("No LGF but in re-acquisition mode");
-  /* Return time stamp which would trigger any timeouts */
-  return timing_getms() - MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS,
-			      ACQ_LGF_TIMEOUT_INVIS_MS);
+  if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
+      lgf.position_quality != POSITION_FIX) {
+    return false;
+  }
+ 
+  *lgf_stamp = (u64)(gps2rxtime(&lgf.position_solution.time)
+		     * (RX_DT_NOMINAL * 1000.0));
+  return true;
 }
 
