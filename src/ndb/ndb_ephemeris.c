@@ -71,10 +71,14 @@ enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   /*
    * Current architecture uses GPS L1 C/A ephemeris for GPS satellites.
    */
-  if (sid_to_constellation(sid) == CONSTELLATION_GPS)
+  if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
-  else
+  } else {
     idx = sid_to_global_index(sid);
+    if (PLATFORM_SIGNAL_COUNT <= idx) {
+      return NDB_ERR_BAD_PARAM;
+    }
+  }
 
   ndb_retrieve(e, &ndb_ephemeris[idx], sizeof(ephemeris_t));
   /* Patch SID to be accurate for GPS L1/L2 */
@@ -242,37 +246,68 @@ enum ndb_op_code ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
   return NDB_ERR_NONE;
 }
 
+/** Determine next index of the ephemeris to be sent over SBP.
+ *  This function takes previous index (can be set to PLATFORM_SIGNAL_COUNT to
+ *  indicate no previous value available) and increments it by one making sure
+ *  that index is within codes that contain 'original' ephemerides. This is
+ *  necessary to prevent outputting the same ephemeris for different codes
+ *  of the same satellite.
+ *  */
+static u32 get_next_idx_to_send(gnss_signal_t *sid, u32 prev_idx)
+{
+  u32 i = prev_idx != PLATFORM_SIGNAL_COUNT ? prev_idx + 1 : 0;
+
+  while (i < PLATFORM_SIGNAL_COUNT) {
+    *sid = sid_from_global_index(i);
+    if (sid->code != CODE_GPS_L1CA &&
+        sid->code != CODE_SBAS_L1CA &&
+        sid->code != CODE_GLO_L1CA) {
+      i++;
+    } else {
+      break;
+    }
+  }
+
+  return i;
+}
+
 /** The function sends ephemeris if valid
  *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
 void ndb_ephemeris_sbp_update()
 {
   static u32 count = 0;
-  static u32 i = 0;
+  static u32 i = PLATFORM_SIGNAL_COUNT;
   static bool tx_en = true; /* initially enable SBP TX */
 
   if (tx_en) {
     if (!(count % EPHEMERIS_MESSAGE_SPACING_cycle)) {
       /* every 200 ms send eph of a SV */
       ephemeris_t e;
-      gps_time_t t = get_current_time();
-      gnss_signal_t sid = sid_from_global_index(i);
-      ndb_ephemeris_read(sid, &e);
-      if (ephemeris_valid(&e, &t)) {
-        msg_ephemeris_t msg;
-        msg_ephemeris_info_t info = pack_ephemeris(&e, &msg);
-        sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
-      }
-      i++;
-      if (i == PLATFORM_SIGNAL_COUNT) {
-        /* no eph to send */
-        i = 0;
-        tx_en = false;
-      }
+      gnss_signal_t sid;
+
+      do {
+        i = get_next_idx_to_send(&sid, i);
+        tx_en = (i != PLATFORM_SIGNAL_COUNT) ? true : false;
+
+        if (tx_en) {
+          enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);
+          if (NDB_ERR_NONE == oc) {
+            gps_time_t t = get_current_time();
+            if (ephemeris_valid(&e, &t)) {
+              msg_ephemeris_t msg;
+              msg_ephemeris_info_t info = pack_ephemeris(&e, &msg);
+              sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
+              break;
+            }
+          }
+        }
+      } while(tx_en);
     }
   } else {
     if (!(count % EPHEMERIS_TRANSMIT_EPOCH_SPACING_cycle)) {
       /* every 15 sec enable tx again */
       count = 0;
+      i = PLATFORM_SIGNAL_COUNT;
       tx_en = true;
       return;
     }
