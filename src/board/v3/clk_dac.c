@@ -37,7 +37,7 @@ void set_clk_dac(uint8_t val, uint8_t mode)
 
 #else
 
-void set_clk_dac(uint8_t val, uint8_t mode)
+void set_clk_dac(__attribute__((unused)) uint8_t val, __attribute__((unused)) uint8_t mode)
 {
 }
 
