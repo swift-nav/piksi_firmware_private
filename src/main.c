@@ -62,9 +62,9 @@ int main(void)
 
   static s32 serial_number;
   serial_number = serial_number_get();
-  if (serial_number < 0) {
+  if (serial_number == 0) {
     /* TODO: Handle this properly! */
-    serial_number = 0x2222;
+    serial_number = rand();
   }
   sbp_sender_id_set(serial_number);
 
