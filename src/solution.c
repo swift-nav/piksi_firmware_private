@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Swift Navigation Inc.
+ * Copyright (C) 2014-2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -311,7 +311,7 @@ static void post_observations(u8 n, const navigation_measurement_t *m,
                               const gps_time_t *t)
 {
   /* TODO: use a buffer from the pool from the start instead of
-   * allocating nav_meas_tdcp as well. Downside, if we don't end up
+   * allocating nav_meas as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
@@ -484,20 +484,6 @@ static void solution_thread(void *arg)
                      &cnav_30[i].data.type_30 : NULL;
     }
 
-    gnss_sid_set_t codes_in_track;
-    sid_set_init(&codes_in_track);
-    for (u8 i=0; i<n_ready; i++)
-      sid_set_add(&codes_in_track, meas[i].sid);
-
-    if (sid_set_get_sat_count(&codes_in_track) < 4) {
-      /* Not enough sats, keep on looping. */
-      continue;
-    }
-
-    /* Got enough sats/ephemerides, do a solution. */
-    /* TODO: Instead of passing 32 LSBs of nap_timing_count do something
-     * more intelligent with the solution time.
-     */
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
     const channel_measurement_t *p_meas[n_ready];
     navigation_measurement_t *p_nav_meas[n_ready];
@@ -523,36 +509,29 @@ static void solution_thread(void *arg)
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
 
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
-                                            p_rec_time, p_e_meas);
+                                            p_rec_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
       continue;
     }
 
+    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
+
+    if (sc_ret != 0) {
+       log_error("calc_sat_clock_correction() returned an error");
+       continue;
+     }
+
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
-    static u64 rec_tc_old = 0;
-    static u8 n_ready_old = 0;
-    static navigation_measurement_t nav_meas_old[MAX_CHANNELS];
-    static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
-    u8 n_ready_tdcp = tdcp_doppler(n_ready, nav_meas, n_ready_old,
-                                   nav_meas_old, nav_meas_tdcp,
-                                   (double)(rec_tc - rec_tc_old) / NAP_FRONTEND_SAMPLE_RATE_Hz);
-
-    /* Store current observations for next time for
-     * TDCP Doppler calculation. */
-    memcpy(nav_meas_old, nav_meas, sizeof(nav_meas));
-    n_ready_old = n_ready;
-    rec_tc_old = rec_tc;
-
-    gnss_sid_set_t codes_tdcp;
-    sid_set_init(&codes_tdcp);
-    for (u8 i=0; i<n_ready_tdcp; i++) {
-      sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
+    gnss_sid_set_t codes;
+    sid_set_init(&codes);
+    for (u8 i=0; i<n_ready; i++) {
+      sid_set_add(&codes, nav_meas[i].sid);
     }
 
-    if (sid_set_get_sat_count(&codes_tdcp) < 4) {
+    if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT */
       continue;
     }
@@ -565,7 +544,7 @@ static void solution_thread(void *arg)
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
+      calc_iono_tropo(n_ready, nav_meas,
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
                       p_i_params);
@@ -576,7 +555,7 @@ static void solution_thread(void *arg)
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
+    s8 pvt_ret = calc_PVT(n_ready, nav_meas, disable_raim, false,
                           &lgf.position_solution, &dops);
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
@@ -597,7 +576,7 @@ static void solution_thread(void *arg)
     soln_flag = true;
 
     if (pvt_ret == 1)
-	  log_warn("calc_PVT: RAIM repair");
+      log_warn("calc_PVT: RAIM repair");
 
     if (time_quality < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
@@ -613,37 +592,19 @@ static void solution_thread(void *arg)
       continue;
     }
 
-    /* Calculate the receiver clock error and if >1ms perform a clock jump */
-    double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
-    log_debug("RX clock error = %f", rx_err);
-    clock_jump = FALSE;
-    if (fabs(rx_err) >= 1e-3) {
-      log_info("RX clock error %f > 1ms, resetting!", rx_err);
-      /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * 1000.0) / 1000.0;
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
-      /* adjust all the carrier phase offsets */
-      /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
-      clock_jump = TRUE;
-    }
-
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
 
     /* Save elevation angles every so often */
     DO_EVERY((u32)soln_freq,
-             update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
+             update_sat_elevations(nav_meas, n_ready,
                                    lgf.position_solution.pos_ecef));
 
     if (!simulation_enabled()) {
       /* Output solution. */
       solution_send_sbp(&lgf.position_solution, &dops, clock_jump);
       solution_send_nmea(&lgf.position_solution, &dops,
-                         n_ready_tdcp, nav_meas_tdcp,
+                         n_ready, nav_meas,
                          NMEA_GGA_FIX_GPS, clock_jump);
     }
 
@@ -666,20 +627,20 @@ static void solution_thread(void *arg)
 
       /* Update observation time. */
       gps_time_t new_obs_time;
-      new_obs_time.wn = lgf.position_solution.time.wn;
       new_obs_time.tow = expected_tow;
+      gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
-      /* nav_meas_tdcp is updated in place, skipping elements if required. */
-      u8 n_ready_tdcp_new = 0;
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
+      /* nav_meas is updated in place, skipping elements if required. */
+      u8 n_ready_new = 0;
+      for (u8 i = 0; i < n_ready; i++) {
+        navigation_measurement_t *nm = &nav_meas[n_ready_new];
 
         /* Copy measurement to new index if a previous measurement
          * has been skipped. */
-        if (i != n_ready_tdcp_new) {
-          memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
+        if (i != n_ready_new) {
+          memcpy(nm, &nav_meas[i], sizeof(*nm));
         }
 
         nm->raw_carrier_phase += t_err * nm->raw_doppler;
@@ -710,11 +671,11 @@ static void solution_thread(void *arg)
           continue;
         }
 
-        n_ready_tdcp_new++;
+        n_ready_new++;
       }
 
-      /* Update n_ready_tdcp. */
-      n_ready_tdcp = n_ready_tdcp_new;
+      /* Update n_ready. */
+      n_ready = n_ready_new;
 
       /* If we have a recent set of observations from the base station, do a
        * differential solution. */
@@ -731,8 +692,8 @@ static void solution_thread(void *arg)
           if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
               base_obss.has_pos) {
 
-            sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
-            u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
+            sdiff_t sdiffs[MAX(base_obss.n, n_ready)];
+            u8 num_sdiffs = make_propagated_sdiffs(n_ready, nav_meas,
                                     base_obss.n, base_obss.nm,
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
@@ -754,10 +715,29 @@ static void solution_thread(void *arg)
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
         /* Post the observations to the mailbox. */
-        post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
+        post_observations(n_ready, nav_meas, &new_obs_time);
         /* Send the observations. */
-        send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
+        send_observations(n_ready, nav_meas, &new_obs_time);
       }
+    }
+
+    /* Calculate the receiver clock error and if >1ms perform a clock jump */
+    double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
+    log_debug("RX clock error = %f", rx_err);
+    clock_jump = FALSE;
+    if (fabs(rx_err) >= 1e-3) {
+      log_info("RX clock error %f > 1ms, resetting!", rx_err);
+      /* round the time adjustment to even milliseconds */
+      double dt = round(rx_err * 1000.0) / 1000.0;
+      /* adjust the RX to GPS time conversion */
+      adjust_time_fine(dt);
+      /* adjust all the carrier phase offsets */
+      /* note that the adjustment is always in even cycles because millisecond
+       * breaks up exactly into carrier cycles
+       * TODO: verify this holds for GLONASS as well */
+      tracking_channel_carrier_phase_offsets_adjust(dt);
+      clock_jump = TRUE;
+      continue;
     }
 
     /* Calculate time till the next desired solution epoch. */
@@ -771,7 +751,7 @@ static void solution_thread(void *arg)
 
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. */
-    deadline += dt * CH_CFG_ST_FREQUENCY;
+    deadline += round(dt * CH_CFG_ST_FREQUENCY);
   }
 }
 
