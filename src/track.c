@@ -29,6 +29,7 @@
 #include "track_internal.h"
 #include "track/track_cn0.h"
 #include "track/track_profiles.h"
+#include "track/track_sid_db.h"
 #include "simulator.h"
 #include "settings.h"
 #include "signal.h"
@@ -46,6 +47,8 @@
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 #define CHANNEL_DISABLE_WAIT_TIME_ms 100
+/** Maximum SV elevation age in sample ticks: 2 minutes is about 1 degree */
+#define MAX_ELEVATION_AGE_TK (MINUTE_SECS * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 typedef enum {
   STATE_DISABLED,
@@ -87,8 +90,6 @@ typedef struct {
   tracker_internal_data_t internal_data;
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
-  /** Elevation angle, degrees. TODO: find a better place for this. */
-  s8 elevation;
   /** Associated tracker interface. */
   const tracker_interface_t *interface;
   /** Associated tracker instance. */
@@ -319,14 +320,13 @@ double propagate_code_phase(double code_phase, double carrier_freq,
  * \param carrier_freq          Carrier frequency Doppler (Hz).
  * \param chips_to_correlate    Chips to correlate.
  * \param cn0_init              Initial C/N0 estimate (dBHz).
- * \param elevation             Elevation (deg).
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
 bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
                           u32 ref_sample_count, float code_phase,
                           float carrier_freq, u32 chips_to_correlate,
-                          float cn0_init, s8 elevation)
+                          float cn0_init)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
 
@@ -345,8 +345,6 @@ bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
     tracker_channel->info.nap_channel = id;
     tracker_channel->interface = tracker_interface;
     tracker_channel->tracker = tracker;
-
-    tracker_channel->elevation = elevation;
 
     common_data_init(&tracker_channel->common_data, ref_sample_count,
                      carrier_freq, cn0_init, sid.code);
@@ -653,44 +651,47 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   }
 }
 
-/** Set the elevation angle for a tracker channel by sid.
+/** Set the elevation angle for SV by sid.
  *
- * \param sid         Signal identifier for which the elevation should be set.
- * \param elevation   Elevation angle (deg).
+ * \param[in] sid       Signal identifier for which the elevation should be set.
+ * \param[in] elevation Elevation angle [degrees].
+ *
+ * \retval true  Elevation has been successfully updated.
+ * \retval false Elevation has not been updated because GNSS constellation is
+ *               not supported.
+ *
+ * \sa tracking_channel_elevation_degrees_get
  */
-bool tracking_channel_evelation_degrees_set(gnss_signal_t sid, s8 elevation)
+bool tracking_channel_elevation_degrees_set(gnss_signal_t sid, s8 elevation)
 {
-  bool result = false;
-  for (u32 i=0; i < NUM_TRACKER_CHANNELS; i++) {
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-
-    /* Check SID before locking. */
-    if (!sid_is_equal(tracker_channel->info.sid, sid)) {
-      continue;
-    }
-
-    /* Lock and update if SID matches. */
-    tracker_channel_lock(tracker_channel);
-    {
-      if (sid_is_equal(tracker_channel->info.sid, sid)) {
-        tracker_channel->elevation = elevation;
-        result = true;
-      }
-    }
-    tracker_channel_unlock(tracker_channel);
-    break;
-  }
-  return result;
+  tp_elevation_entry_t entry = {.elevation_d = elevation,
+                                .timestamp_tk = nap_timing_count()};
+  return track_sid_db_update_elevation(sid, &entry);
 }
 
 /** Return the elevation angle for a tracker channel.
  *
- * \param id      ID of the tracker channel to use.
+ * \param[in] sid Signal identifier for which the elevation should be returned.
+ *
+ * \return SV elevation in degrees, or #TRACKING_ELEVATION_UNKNOWN.
+ * \retval TRACKING_ELEVATION_UNKNOWN Elevation is not present in the cache,
+ *                                    cache entry is too old, or GNSS
+ *                                    constellation is not supported.
+ *
+ * \sa tracking_channel_elevation_degrees_set
  */
-s8 tracking_channel_evelation_degrees_get(tracker_channel_id_t id)
+s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid)
 {
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  return tracker_channel->elevation;
+  s8 result = TRACKING_ELEVATION_UNKNOWN;
+  tp_elevation_entry_t entry = {0};
+  if (track_sid_db_load_elevation(sid, &entry)) {
+    /* If elevation cache entry is loaded, do the entry age check */
+    if (TRACKING_ELEVATION_UNKNOWN != entry.elevation_d &&
+        nap_timing_count() - entry.timestamp_tk < MAX_ELEVATION_AGE_TK) {
+      result = entry.elevation_d;
+    }
+  }
+  return result;
 }
 
 /** Read the next pending nav bit for a tracker channel.

@@ -609,7 +609,7 @@ static void manage_track()
     }
 
     /* Is satellite below our elevation mask? */
-    if (tracking_channel_evelation_degrees_get(i) < elevation_mask) {
+    if (tracking_channel_elevation_degrees_get(sid) < elevation_mask) {
       log_info_sid(sid, "below elevation mask, dropping");
       drop_channel(i);
       /* Erase the tracking hint score, and any others it might have */
@@ -632,8 +632,6 @@ s8 use_tracking_channel(u8 i)
       && !tracking_channel_error(i)
       /* Check C/N0 has been above threshold for the minimum time. */
       && (tracking_channel_cn0_useable_ms_get(i) > TRACK_CN0_THRES_COUNT)
-      /* Satellite elevation is above the mask. */
-      && (tracking_channel_evelation_degrees_get(i) >= elevation_mask)
       /* Pessimistic phase lock detector = "locked". */
       && (tracking_channel_ld_pess_locked_ms_get(i) > TRACK_USE_LOCKED_T)
       /* Some time has elapsed since the last tracking channel mode
@@ -646,21 +644,26 @@ s8 use_tracking_channel(u8 i)
       && tracking_channel_bit_polarity_resolved(i))
       /* TODO: Alert flag is not set */
       {
-    /* Ephemeris must be valid, not stale. Satellite must be healthy.
-       This also acts as a sanity check on the channel TOW.*/
-    gps_time_t t = {
-      /* TODO: the following makes the week number part of the
-         TOW check tautological - see issue #475 */
-      .wn = WN_UNKNOWN,
-      .tow = 1e-3 * tracking_channel_tow_ms_get(i)
-    };
     gnss_signal_t sid = tracking_channel_sid_get(i);
-    ephemeris_t ephe;
 
-    ndb_ephemeris_read(sid, &ephe);
-    return ephemeris_valid(&ephe, &t) &&
-        signal_healthy(ephe.valid, ephe.health_bits, ephe.ura, sid.code);
-  } else return 0;
+    /* Satellite elevation is above the mask. */
+    if (tracking_channel_elevation_degrees_get(sid) >= elevation_mask) {
+
+      /* Ephemeris must be valid, not stale. Satellite must be healthy.
+         This also acts as a sanity check on the channel TOW.*/
+      gps_time_t t = {
+        .wn = WN_UNKNOWN,
+        .tow = 1e-3 * tracking_channel_tow_ms_get(i)
+      };
+      ephemeris_t ephe;
+
+      ndb_ephemeris_read(sid, &ephe);
+      return ephemeris_valid(&ephe, &t) &&
+          signal_healthy(ephe.valid, ephe.health_bits, ephe.ura, sid.code);
+    }
+  }
+
+  return 0;
 }
 
 u8 tracking_channels_ready()
@@ -804,8 +807,7 @@ static void manage_tracking_startup(void)
                              startup_params.code_phase,
                              startup_params.carrier_freq,
                              startup_params.chips_to_correlate,
-                             startup_params.cn0_init,
-                             TRACKING_ELEVATION_UNKNOWN)) {
+                             startup_params.cn0_init)) {
       log_error("tracker channel init failed");
     }
 
