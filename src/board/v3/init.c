@@ -33,6 +33,7 @@
 #include "remoteproc/rpmsg.h"
 #include "sbp_fileio.h"
 #include "factory_data.h"
+#include "clk_dac.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03050000U)
@@ -118,6 +119,9 @@ void init(void)
   fault_handling_setup();
   reset_callback_register();
   factory_params_read();
+
+  /* Start DAC off in high impedance mode if present */
+  set_clk_dac(0, CLK_DAC_MODE_3);
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
