@@ -11,6 +11,7 @@
  */
 #include "ndb.h"
 #include "ndb/ndb_internal.h"
+#include "signal.h"
 
 /** Set up the NDB module. */
 void ndb_setup(void)

@@ -17,10 +17,11 @@
 #include "ndb.h"
 #include "ndb_internal.h"
 #include <libswiftnav/constants.h>
-#include "libswiftnav/logging.h"
-#include "timing.h"
-#include "sbp.h"
-#include "sbp_utils.h"
+#include <libswiftnav/logging.h>
+#include <timing.h>
+#include <signal.h>
+#include <sbp.h>
+#include <sbp_utils.h>
 
 #define NDB_ALMA_FILE_NAME   "persistent/almanac"
 static almanac_t ndb_almanac[PLATFORM_SIGNAL_COUNT] _CCM;
