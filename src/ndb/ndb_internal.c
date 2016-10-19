@@ -334,11 +334,17 @@ enum ndb_op_code ndb_open_file(ndb_file_t *file)
 enum ndb_op_code ndb_write_file_data(ndb_file_t *f, cfs_offset_t o, void *b,
                                      size_t l)
 {
-  if (f->fh < 0)
+  if (f->fh < 0) {
+    log_error("NDB_ERR_FILE_IO, f->fh < 0");
     return NDB_ERR_FILE_IO;
+  }
 
   int offset = sizeof(ndb_file_version) + o;
   int written = ndb_write_pos(f->fh, b, l, offset);
+  if (0 > written) {
+    log_error("NDB_ERR_FILE_IO, %d", written);
+  }
+
   return (written == (int) l) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
 }
 

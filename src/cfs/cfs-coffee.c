@@ -1175,7 +1175,7 @@ cfs_write(int fd, const void *buf, unsigned size)
   while(size + fdp->offset + sizeof(struct file_header) >
      (file->max_pages * COFFEE_PAGE_SIZE)) {
     if(merge_log(file->page, 1) < 0) {
-      return -1;
+      return -2;
     }
     file = fdp->file;
     PRINTF("Extended the file at page %u\n", (unsigned)file->page);
@@ -1200,7 +1200,7 @@ cfs_write(int fd, const void *buf, unsigned size)
       if(i < 0) {
 	/* Return -1 if we wrote nothing because the log write failed. */
 	if(size == bytes_left) {
-	  return -1;
+	  return -3;
 	}
 	break;
       } else if(i == 0) {
@@ -1229,7 +1229,7 @@ cfs_write(int fd, const void *buf, unsigned size)
 #endif /* COFFEE_MICRO_LOGS */
 #if COFFEE_APPEND_ONLY
     if(fdp->offset < file->end) {
-      return -1;
+      return -4;
     }
 #endif /* COFFEE_APPEND_ONLY */
 
