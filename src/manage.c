@@ -735,26 +735,28 @@ manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
 
-  /* Ephemeris must be valid, not stale. Satellite must be healthy.
-     This also acts as a sanity check on the channel TOW.*/
-  gps_time_t t = {
-    .wn = WN_UNKNOWN,
-    .tow = 1e-3 * tow_ms
-  };
-  ephemeris_t ephe;
-  if (NULL == pephe) {
-    /* If no external storage for ephemeris is provided, use local one */
-    pephe = &ephe;
-  }
-  if (NDB_ERR_NONE == ndb_ephemeris_read(sid, pephe)) {
-    if (ephemeris_valid(pephe, &t)) {
-      result |= MANAGE_TRACK_FLAG_HAS_EPHE;
+  if (TOW_UNKNOWN != tow_ms) {
+    /* Ephemeris must be valid, not stale. Satellite must be healthy.
+       This also acts as a sanity check on the channel TOW.*/
+    gps_time_t t = {
+      .wn = WN_UNKNOWN,
+      .tow = 1e-3 * tow_ms
+    };
+    ephemeris_t ephe;
+    if (NULL == pephe) {
+      /* If no external storage for ephemeris is provided, use local one */
+      pephe = &ephe;
+    }
+    if (NDB_ERR_NONE == ndb_ephemeris_read(sid, pephe)) {
+      if (ephemeris_valid(pephe, &t)) {
+        result |= MANAGE_TRACK_FLAG_HAS_EPHE;
 
-      if (signal_healthy(pephe->valid,
-                         pephe->health_bits,
-                         pephe->ura,
-                         sid.code)) {
-        result |= MANAGE_TRACK_FLAG_HEALTHY;
+        if (signal_healthy(pephe->valid,
+                           pephe->health_bits,
+                           pephe->ura,
+                           sid.code)) {
+          result |= MANAGE_TRACK_FLAG_HEALTHY;
+        }
       }
     }
   }
@@ -763,6 +765,34 @@ manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
     result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
   }
   return result;
+}
+
+/**
+ * Legacy method for checking if the tracking channel measurements are OK.
+ *
+ * TODO Refactor client code to use appropriate tracker flags instead of legacy
+ *      criteria
+ *
+ * \param[in] i Channel index
+ *
+ * \retval 1 Channel meets MANAGE_TRACK_LEGACY_USE_FLAGS criteria and can be
+ *           used.
+ * \retval 0 Channel can't be used
+ *
+ * \sa MANAGE_TRACK_LEGACY_USE_FLAGS
+ *
+ * \deprecated
+ */
+s8 use_tracking_channel(u8 i)
+{
+  manage_track_flags_t flags = 0;
+  flags = get_tracking_channel_flags(i);
+  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE)) {
+    gnss_signal_t sid = tracking_channel_sid_get(i);
+    s32 tow_ms = tracking_channel_tow_ms_get(i);
+    flags |= get_tracking_channel_sid_flags(sid, tow_ms, NULL);
+  }
+  return MANAGE_TRACK_LEGACY_USE_FLAGS == (flags & MANAGE_TRACK_LEGACY_USE_FLAGS);
 }
 
 /**

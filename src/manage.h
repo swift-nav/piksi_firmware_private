@@ -107,9 +107,9 @@
 
 
 /* Tracking channel state masks */
-/** Tracking channel mask for use with SPP.
+/** Legacy tracking channel mask..
  *
- * SPP flags include the following conditions:
+ * Legacy flags include the following conditions:
  * - Tracker is active
  * - There is no error
  * - Tracker is in confirmed state
@@ -119,52 +119,18 @@
  * - Ephemeris is present in the database
  * - SV health status is OK
  * - SV navigation health status is OK
- *
- * \sa MANAGE_TRACK_RTK_FLAGS
+ * - Tracker is PLL mode, and has pessimistic lock for some time
  */
-#define MANAGE_TRACK_SPP_FLAGS \
-  (MANAGE_TRACK_SPP_FLAGS_BASE | MANAGE_TRACK_FLAG_HAS_EPHE | \
-   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE)
-
-/**
- * SPP basic tracker flags subset.
- *
- * SPP basic flags include the following conditions:
- * - Tracker is active
- * - There is no error
- * - Tracker is in confirmed state
- * - C/N0 is above threshold for a shorter period of time
- * - SV elevation is above threshold
- * - ToW for SV is known
- *
- * \sa MANAGE_TRACK_SPP_FLAGS
- */
-#define MANAGE_TRACK_SPP_FLAGS_BASE \
+#define MANAGE_TRACK_LEGACY_USE_FLAGS \
   (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR | \
    MANAGE_TRACK_FLAG_CONFIRMED | MANAGE_TRACK_FLAG_CN0_SHORT | \
-   MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_TOW )
-
-/** Tracking channel mask for use with RTK.
- *
- * RTK flags include all SPP flags. In addition, the following conditions apply:
- * - PLL is in use and pessimistic lock is required.
- * - Tracker must be stable for a period of time.
- * - Data bit polarity is known.
- * - C/N0 is above threshold for a longer period than in SPP flags.
- *
- * \note At the moment RTK flags require pessimistic PLL lock, but this can
- *       be relaxed to have optimistic-only lock criteria.
- *
- * \sa MANAGE_TRACK_SPP_FLAGS
- */
-#define MANAGE_TRACK_RTK_FLAGS \
-  (MANAGE_TRACK_SPP_FLAGS | MANAGE_TRACK_FLAG_CONFIRMED_LOCK | \
-   MANAGE_TRACK_FLAG_STABLE | MANAGE_TRACK_FLAG_BIT_POLARITY | \
-   MANAGE_TRACK_FLAG_CN0_LONG | MANAGE_TRACK_FLAG_PLL_USE | \
-   MANAGE_TRACK_FLAG_PLL_PLOCK)
+   MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_TOW | \
+   MANAGE_TRACK_FLAG_PLL_USE | MANAGE_TRACK_FLAG_PLL_PLOCK | \
+   MANAGE_TRACK_FLAG_CONFIRMED_LOCK | MANAGE_TRACK_FLAG_HAS_EPHE | \
+   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE)
 
 /** Tracking channel mask for use with reporting */
-#define MANAGE_TRACK_STATUS_FLAGS MANAGE_TRACK_SPP_FLAGS
+#define MANAGE_TRACK_STATUS_FLAGS MANAGE_TRACK_LEGACY_USE_FLAGS
 
 /** Tracking channel flags mask. */
 typedef u32 manage_track_flags_t;
@@ -191,6 +157,7 @@ manage_track_flags_t get_tracking_channel_flags(u8 i);
 manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
                                                     s32 tow_ms,
                                                     ephemeris_t *pephe);
+s8 use_tracking_channel(u8 i);
 bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags);
 u8 tracking_channels_ready(manage_track_flags_t required_flags);
 

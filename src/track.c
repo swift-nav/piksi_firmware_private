@@ -659,20 +659,17 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
 
     tracker_channel_lock(tracker_channel);
-    /* Get only basic flags */
-    manage_track_flags_t flags = get_tracking_channel_flags(i);
 
-    if (MANAGE_TRACK_SPP_FLAGS_BASE == (flags & MANAGE_TRACK_SPP_FLAGS_BASE)) {
-      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-      /* touch only channels that have the initial offset set */
-      if (internal_data->carrier_phase_offset != 0.0) {
-        sid = tracker_channel->info.sid;
-        internal_data->carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
+    tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
+    /* touch only channels that have the initial offset set */
+    if (internal_data->carrier_phase_offset != 0.0) {
+      sid = tracker_channel->info.sid;
+      internal_data->carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
 
-        carrier_phase_offset = internal_data->carrier_phase_offset;
-        adjusted = true;
-      }
+      carrier_phase_offset = internal_data->carrier_phase_offset;
+      adjusted = true;
     }
+
     tracker_channel_unlock(tracker_channel);
 
     if (adjusted) {
