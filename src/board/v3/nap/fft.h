@@ -15,8 +15,8 @@
 
 #include <libswiftnav/common.h>
 
-#define FFT_LEN_LOG2_MIN 15
-#define FFT_LEN_LOG2_MAX 15
+#define FFT_LEN_LOG2_MIN 13
+#define FFT_LEN_LOG2_MAX 13
 
 #define FFT_LEN_MIN (1 << FFT_LEN_LOG2_MIN)
 #define FFT_LEN_MAX (1 << FFT_LEN_LOG2_MAX)

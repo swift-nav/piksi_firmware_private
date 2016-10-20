@@ -81,7 +81,8 @@ static void control_set_dma(void)
       (0                             << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_DMA << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (NAP_ACQ_CONTROL_PEAK_SEARCH   << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
-      (0                             << NAP_ACQ_CONTROL_MIXER_Pos);
+      (0                             << NAP_ACQ_CONTROL_MIXER_Pos) |
+      (FFT_LEN_LOG2_MAX              << NAP_ACQ_CONTROL_NFFT_Pos);
 }
 
 /** Set the ACQ control register for frontend samples input.
@@ -98,7 +99,8 @@ static void control_set_frontend_samples(fft_samples_input_t samples_input,
       ((samples_input)                    << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_MIXER_Pos);
+      (0                                  << NAP_ACQ_CONTROL_MIXER_Pos) |
+      (FFT_LEN_LOG2_MAX                   << NAP_ACQ_CONTROL_NFFT_Pos);
 }
 
 /** Start streaming samples from the frontend.
@@ -198,8 +200,8 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
          fft_dir_t dir, u32 scale_schedule)
 {
   u32 len_bytes = length_points_get(len_log2) * sizeof(fft_cplx_t);
-  config_set(dir, scale_schedule);
   control_set_dma();
+  config_set(dir, scale_schedule);
   dma_start((const u8 *)in, (u8 *)out, len_bytes);
   return dma_wait();
 }
@@ -223,8 +225,8 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
 {
   u32 len_points = length_points_get(len_log2);
   u32 len_bytes = len_points * sizeof(fft_cplx_t);
-  config_set(dir, scale_schedule);
   control_set_frontend_samples(samples_input, len_points);
+  config_set(dir, scale_schedule);
   sample_stream_start();
   dma_start(0, (u8 *)out, len_bytes);
   bool result = dma_wait();

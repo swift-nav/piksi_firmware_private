@@ -61,4 +61,4 @@
       bucket: piksi-fpga-unlocked
       prefix: v3
       files:
-        - piksi_evt2_fpga_v3.5_unlocked.bit
+        - piksi_evt2_fpga_v3.5-acq-test_unlocked.bit
