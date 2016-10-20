@@ -31,7 +31,7 @@ void ephemeris_new(ephemeris_t *e)
   assert(sid_supported(e->sid));
 
   if (!e->valid) {
-    log_error_sid(e->sid, "invalid ephemeris");
+    log_warn_sid(e->sid, "invalid ephemeris");
     return;
   }
 
