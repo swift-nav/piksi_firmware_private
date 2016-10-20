@@ -471,30 +471,45 @@ u32 tracking_channel_cn0_drop_ms_get(tracker_channel_id_t id)
                            &common_data->cn0_above_drop_thres_count);
 }
 
-/** Return the time in ms for which the optimistic lock detector has reported
- * being unlocked for a tracker channel.
+/** Return the time in ms for which the PLL pessimistic lock detector
+ * has reported being locked for a tracker channel.
  *
  * \param id      ID of the tracker channel to use.
- */
-u32 tracking_channel_ld_opti_unlocked_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return update_count_diff(tracker_channel,
-                           &common_data->ld_opti_locked_count);
-}
-
-/** Return the time in ms for which the pessimistic lock detector has reported
- * being locked for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
+ * \return The time in [ms]
  */
 u32 tracking_channel_ld_pess_locked_ms_get(tracker_channel_id_t id)
 {
+  u32 ms = 0;
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
   const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return update_count_diff(tracker_channel,
-                           &common_data->ld_pess_unlocked_count);
+  bool plock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK));
+  if (plock) {
+    ms = update_count_diff(tracker_channel, &common_data->ld_pess_change_count);
+  }
+  return ms;
+}
+
+/** Return the time in ms for which the FLL/PLL pessimistic lock detector
+ * has reported being unlocked for a tracker channel.
+ *
+ * If tracker channel is run by FLL, then time of absense of FLL pessistic lock
+ * is reported.
+ * If tracker channel is run by PLL, then time of absense of PLL pessistic lock
+ * is reported.
+ *
+ * \param id      ID of the tracker channel to use.
+ * \return The time in [ms]
+ */
+u32 tracking_channel_ld_pess_unlocked_ms_get(tracker_channel_id_t id)
+{
+  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
+  const tracker_common_data_t *common_data = &tracker_channel->common_data;
+  bool plock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK));
+  bool flock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK));
+  if (plock || flock) {
+    return 0;
+  }
+  return update_count_diff(tracker_channel, &common_data->ld_pess_change_count);
 }
 
 /** Return the time in ms since the last mode change for a tracker channel.

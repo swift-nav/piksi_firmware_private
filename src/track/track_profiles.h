@@ -18,6 +18,7 @@
 #include <libswiftnav/track.h>
 
 #include "track_cn0.h"
+#include "track_api.h"
 
 /** \addtogroup track
  * \{ */
@@ -31,6 +32,7 @@
 typedef enum
 {
   TP_TM_GPS_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_GPS_DYN,     /**< Dynamics tracking mode */
   TP_TM_GPS_5MS,     /**< GPS 5 ms PLL/DLL */
   TP_TM_GPS_10MS,    /**< GPS 10 ms PLL/DLL */
   TP_TM_GPS_20MS,    /**< GPS 20 ms PLL/DLL */
@@ -117,7 +119,6 @@ typedef struct
   u32    sample_count;    /**< Channel sample count */
   float  lock_i;          /**< Filtered I value from the lock detector */
   float  lock_q;          /**< Filtered Q value from the lock detector */
-  float  lock_f;          /**< DLL/FLL lock detector */
 } tp_report_t;
 
 /**
@@ -144,7 +145,9 @@ tp_result_e tp_get_current_profile(gnss_signal_t sid, tp_config_t *config);
 tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params);
 bool        tp_has_new_profile(gnss_signal_t sid);
 u8          tp_get_next_loop_params_ms(gnss_signal_t sid);
-tp_result_e tp_report_data(gnss_signal_t sid, const tp_report_t *data);
+tp_result_e tp_report_data(gnss_signal_t sid,
+                           const tracker_common_data_t *common_data,
+                           const tp_report_t *data);
 
 #ifdef __cplusplus
 }

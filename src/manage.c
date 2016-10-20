@@ -593,10 +593,9 @@ static void manage_track()
       continue;
     }
 
-    /* Optimistic phase lock detector "unlocked" for a while? */
-    /* TODO: This isn't doing much.  Use the pessimistic detector instead? */
-    if (tracking_channel_ld_opti_unlocked_ms_get(i) > TRACK_DROP_UNLOCKED_T) {
-      log_info_sid(sid, "PLL unlocked too long, dropping");
+    /* PLL/FLL pessimistic lock detector "unlocked" for a while? */
+    if (tracking_channel_ld_pess_unlocked_ms_get(i) > TRACK_DROP_UNLOCKED_T) {
+      log_info_sid(sid, "No pessimistic lock for too long, dropping");
       drop_channel(i);
       continue;
     }

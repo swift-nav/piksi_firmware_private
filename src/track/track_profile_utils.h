@@ -221,9 +221,7 @@ typedef struct {
   tp_corr_state_t   corrs;                  /**< Correlations */
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t    alias_detect;           /**< Alias lock detector. */
-  lock_detect_t     lock_detect;            /**< Phase-lock detector state. */
-  float             fll_lock_detect;        /**< FLL lock detector */
-  u16               fll_lock_counter;       /**< False lock state duration counter */
+  lock_detect_t     lock_detect;            /**< Lock detector state. */
   u8                tracking_mode: 3;       /**< Tracking mode */
   u8                cycle_no: 5;            /**< Cycle index inside current
                                              *   integration mode. */
@@ -284,6 +282,8 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode);
 u8 tp_get_dll_ms(tp_tm_e tracking_mode);
 const char *tp_get_mode_str(tp_tm_e v);
+bool tp_is_pll_ctrl(tp_ctrl_e ctrl);
+bool tp_is_fll_ctrl(tp_ctrl_e ctrl);
 
 void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t * restrict cs_now,

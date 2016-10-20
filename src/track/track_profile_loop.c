@@ -422,12 +422,5 @@ void tp_tl_fll_update(tp_tl_state_t *s)
  */
 bool tp_tl_is_fll(const tp_tl_state_t *s)
 {
-  switch (s->ctrl) {
-  case TP_CTRL_FLL1:
-  case TP_CTRL_FLL2:
-    return true;
-
-  default:
-    return false;
-  }
+  return tp_is_fll_ctrl(s->ctrl);
 }
