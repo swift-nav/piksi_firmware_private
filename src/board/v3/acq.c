@@ -66,10 +66,10 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   }
 
   /* Search for results */
-  float best_mag_sq = 0.0f;
-  float best_mag_sq_sum = 0.0f;
   float best_doppler = 0.0f;
   u32 best_sample_offset = 0;
+  float snr = 0.0f;
+  float cn0 = 0.0f;
 
   /* Loop over Doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
@@ -109,12 +109,13 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     u32 sum_mag_sq;
     fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
 
-    float mag_sq = (float)peak_mag_sq;
-    if (mag_sq > best_mag_sq) {
+    /* Compute C/N0 */
+    snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
+    cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
+    if (cn0 > ACQ_THRESHOLD) {
       best_doppler = doppler;
-      best_mag_sq = mag_sq;
-      best_mag_sq_sum = (float)sum_mag_sq;
       best_sample_offset = peak_index;
+      break;
     }
   }
 
@@ -131,11 +132,6 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
   cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
-
-  /* Compute C/N0 */
-  float snr = best_mag_sq / (best_mag_sq_sum / fft_len);
-  float cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ)
-            + 10.0f * log10f(fft_bin_width); /* Bandwidth */
 
   /* Set output */
   acq_result->sample_count = sample_count;

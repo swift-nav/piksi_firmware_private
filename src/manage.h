@@ -23,9 +23,6 @@
 /** \addtogroup manage
  * \{ */
 
-#define ACQ_THRESHOLD 37.0
-#define ACQ_RETRY_THRESHOLD 38.0
-
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
 

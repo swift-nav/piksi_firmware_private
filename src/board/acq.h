@@ -16,6 +16,9 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
+#define ACQ_THRESHOLD 37.0
+#define ACQ_RETRY_THRESHOLD 38.0
+
 typedef struct {
   u32 sample_count;
   float cp;
