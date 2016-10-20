@@ -30,6 +30,10 @@ static u8 next_seq(void)
   static MUTEX_DECL(seq_mtx);
   static u8 seq;
   u8 ret;
+  
+  if (seq == 0) {
+    seq = rand();
+  }
 
   chMtxLock(&seq_mtx);
   ret = seq++;
