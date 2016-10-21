@@ -379,7 +379,7 @@ void log_obs_latency(float latency_ms)
   float obs_period_ms = 0;
   if (last_obs_msg_ticks != 0) {
     obs_period_ms = (now - last_obs_msg_ticks) / (double)CH_CFG_ST_FREQUENCY * 1000;
-    }
+  }
 
   last_obs_msg_ticks = now;
   latency_accum_ms += (double) latency_ms;
@@ -394,8 +394,8 @@ void log_obs_latency(float latency_ms)
 
   /* Don't change the min and max latencies if we appear to have a zero latency
    * speed. */
-  if (latency_ms <= 0 || obs_period_ms == 0) {
-    log_warn("Incoherent observation reception: latency:%f, period: %f", latency_ms, obs_period_ms);
+  if (latency_ms <= 0 || (last_obs_msg_ticks != 0 && obs_period_ms == 0)) {
+    log_warn("Incoherent observation reception: latency: %f, period: %f", latency_ms, obs_period_ms);
     return;
   }
   if (uart_state_msg.latency.lmin > latency_ms ||
