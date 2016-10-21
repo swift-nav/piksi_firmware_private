@@ -32,6 +32,38 @@
 
 typedef u8 tracker_channel_id_t;
 
+/** Tracking channel flag: tracker is active  */
+#define TRACKING_CHANNEL_FLAG_ACTIVE         (1u << 0)
+/** Tracking channel flag: tracker doesn't have an error */
+#define TRACKING_CHANNEL_FLAG_NO_ERROR       (1u << 1)
+/** Tracking channel flag: tracker has confirmed flag */
+#define TRACKING_CHANNEL_FLAG_CONFIRMED      (1u << 2)
+/** Tracking channel flag: tracker has usable C/N0 for a shorter period (SPP) */
+#define TRACKING_CHANNEL_FLAG_CN0_SHORT      (1u << 3)
+/** Tracking channel flag: tracker has usable C/N0 for a longer period (RTK) */
+#define TRACKING_CHANNEL_FLAG_CN0_LONG       (1u << 4)
+/** Tracking channel flag: tracker has confirmed PLL lock */
+#define TRACKING_CHANNEL_FLAG_CONFIRMED_LOCK (1u << 5)
+/** Tracking channel flag: tracker has not changed modes for some time */
+#define TRACKING_CHANNEL_FLAG_STABLE         (1u << 6)
+/** Tracking channel flag: tracker has ToW */
+#define TRACKING_CHANNEL_FLAG_TOW            (1u << 7)
+/** Tracking channel flag: tracker has bit polarity resolved */
+#define TRACKING_CHANNEL_FLAG_BIT_POLARITY   (1u << 8)
+/** Tracking channel flag: is PLL in use. Can also be combined with FLL flag */
+#define TRACKING_CHANNEL_FLAG_PLL_USE        (1u << 9)
+/** Tracking channel flag: is FLL in use */
+#define TRACKING_CHANNEL_FLAG_FLL_USE        (1u << 10)
+/** Tracking channel flag: is PLL optimistic lock present */
+#define TRACKING_CHANNEL_FLAG_PLL_OLOCK      (1u << 11)
+/** Tracking channel flag: is PLL pessimistic lock present */
+#define TRACKING_CHANNEL_FLAG_PLL_PLOCK      (1u << 12)
+/** Tracking channel flag: is FLL lock present */
+#define TRACKING_CHANNEL_FLAG_FLL_LOCK       (1u << 13)
+
+/** Bit mask of tracking channel flags */
+typedef u16 tracking_channel_flags_t;
+
 /** \} */
 
 void track_setup(void);
@@ -59,6 +91,7 @@ bool tracker_channel_disable(tracker_channel_id_t id);
 void tracking_channel_lock(tracker_channel_id_t id);
 void tracking_channel_unlock(tracker_channel_id_t id);
 
+tracking_channel_flags_t tracking_channel_get_flags(tracker_channel_id_t id);
 bool tracking_channel_running(tracker_channel_id_t id);
 bool tracking_channel_error(tracker_channel_id_t id);
 float tracking_channel_cn0_get(tracker_channel_id_t id);

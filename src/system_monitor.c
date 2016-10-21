@@ -125,7 +125,7 @@ static void track_status_thread(void *arg)
       chThdSleepMilliseconds(500);
     } else {
       chThdSleepMilliseconds(1000);
-      u8 n_ready = tracking_channels_ready();
+      u8 n_ready = tracking_channels_ready(MANAGE_TRACK_STATUS_FLAGS);
       if (n_ready == 0) {
         led_on(LED_GREEN);
         chThdSleepMilliseconds(1000);

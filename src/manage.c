@@ -490,9 +490,10 @@ static void check_clear_unhealthy(void)
 
   ticks = chVTGetSystemTime();
 
-  for (u32 i=0; i<PLATFORM_SIGNAL_COUNT; i++) {
-    if (acq_status[i].state == ACQ_PRN_UNHEALTHY)
+  for (u32 i = 0; i < PLATFORM_SIGNAL_COUNT; i++) {
+    if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
       acq_status[i].state = ACQ_PRN_ACQUIRING;
+    }
   }
 }
 
@@ -622,54 +623,231 @@ static void manage_track()
   no_free_tracking_channel = false;
 }
 
-s8 use_tracking_channel(u8 i)
+/**
+ * Provides a set of base channel flags
+ *
+ * The method queries tracking channel status and combines it as a set of flags.
+ * The method caller must own a tracking channel lock.
+ *
+ * \param[in]  i     Channel index.
+ *
+ * \return Tracker status flags combined in a single set.
+ *
+ * \sa get_tracking_channel_sid_flags
+ *
+ * \sa use_tracking_channel
+ * \sa tracking_channels_ready
+ * \sa tracking_channel_lock
+ * \sa tracking_channel_unlock
+ */
+manage_track_flags_t get_tracking_channel_flags(u8 i)
 {
-  /* To use a channel's measurements in an SPP or RTK solution, we
-     require the following conditions: */
-  if (tracking_channel_running(i)
-      /* Make sure no errors have occurred. */
-      && !tracking_channel_error(i)
-      /* Check C/N0 has been above threshold for the minimum time. */
-      && (tracking_channel_cn0_useable_ms_get(i) > TRACK_CN0_THRES_COUNT)
-      /* Pessimistic phase lock detector = "locked". */
-      && (tracking_channel_ld_pess_locked_ms_get(i) > TRACK_USE_LOCKED_T)
-      /* Some time has elapsed since the last tracking channel mode
-       * change, to allow any transients to stabilize.
-       * TODO: is this still necessary? */
-      && (tracking_channel_last_mode_change_ms_get(i) > TRACK_STABILIZATION_T)
-      /* Channel time of week has been decoded. */
-      && (tracking_channel_tow_ms_get(i) != TOW_INVALID)
-      /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
-      && tracking_channel_bit_polarity_resolved(i))
-      /* TODO: Alert flag is not set */
-      {
-    gnss_signal_t sid = tracking_channel_sid_get(i);
+  manage_track_flags_t result = 0;
+  tracking_channel_flags_t tc_flags = 0;
 
-    /* Satellite elevation is above the mask. */
-    if (tracking_channel_elevation_degrees_get(sid) >= elevation_mask) {
+  /* Convert 'tracking_channel_flags_t' flags into 'manage_track_flags_t' */
+  tc_flags = tracking_channel_get_flags(i);
+  if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
+    result |= MANAGE_TRACK_FLAG_ACTIVE;
 
-      /* Ephemeris must be valid, not stale. Satellite must be healthy.
-         This also acts as a sanity check on the channel TOW.*/
-      gps_time_t t = {
-        .wn = WN_UNKNOWN,
-        .tow = 1e-3 * tracking_channel_tow_ms_get(i)
-      };
-      ephemeris_t ephe;
+    /* Make sure no errors have occurred. */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_NO_ERROR)) {
+      result |= MANAGE_TRACK_FLAG_NO_ERROR;
+    }
+    /* Check if the tracking is in confirmed state. */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
+      result |= MANAGE_TRACK_FLAG_CONFIRMED;
+    }
+    /* Channel time of week has been decoded. */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_TOW)) {
+      result |= MANAGE_TRACK_FLAG_TOW;
+    }
+    /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_BIT_POLARITY)) {
+      result |= MANAGE_TRACK_FLAG_BIT_POLARITY;
+    }
+    /* PLL tracking with or without FLL assist */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_PLL_USE)) {
+      result |= MANAGE_TRACK_FLAG_PLL_USE;
+    }
+    /* FLL tracking or PLL with FLL assist */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_FLL_USE)) {
+      result |= MANAGE_TRACK_FLAG_FLL_USE;
+    }
+    /* Tracking status: pessimistic PLL lock */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_PLL_PLOCK)) {
+      result |= MANAGE_TRACK_FLAG_PLL_PLOCK;
+    }
+    /* Tracking status: optimistic PLL lock */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_PLL_OLOCK)) {
+      result |= MANAGE_TRACK_FLAG_PLL_OLOCK;
+    }
+    /* Tracking status: FLL lock */
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_FLL_LOCK)) {
+      result |= MANAGE_TRACK_FLAG_FLL_LOCK;
+    }
 
-      ndb_ephemeris_read(sid, &ephe);
-      return ephemeris_valid(&ephe, &t) &&
-          signal_healthy(ephe.valid, ephe.health_bits, ephe.ura, sid.code);
+    /* Check C/N0 has been above threshold for a long time (RTK). */
+    u32 cn0_threshold_count_ms = tracking_channel_cn0_useable_ms_get(i);
+    if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_LONG) {
+      result |= MANAGE_TRACK_FLAG_CN0_LONG;
+    }
+    /* Check C/N0 has been above threshold for the minimum time (SPP). */
+    if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_SHORT) {
+      result |= MANAGE_TRACK_FLAG_CN0_SHORT;
+    }
+    /* Pessimistic phase lock detector = "locked". */
+    if (tracking_channel_ld_pess_locked_ms_get(i) > TRACK_USE_LOCKED_T) {
+      result |= MANAGE_TRACK_FLAG_CONFIRMED_LOCK;
+    }
+    /* Some time has elapsed since the last tracking channel mode
+     * change, to allow any transients to stabilize.
+     * TODO: is this still necessary? */
+    if (tracking_channel_last_mode_change_ms_get(i) > TRACK_STABILIZATION_T) {
+      result |= MANAGE_TRACK_FLAG_STABLE;
     }
   }
 
-  return 0;
+  return result;
 }
 
-u8 tracking_channels_ready()
+/**
+ * Compute extended tracking flags for GNSS signal.
+ *
+ * The method computes additional channel flags by using non-tracking data
+ * sources. This is done to prevent potential dead-locking and reduce the
+ * size of tracking lock congestion.
+ *
+ * \param[in]  sid    GNSS signal identifier.
+ * \param[in]  tow_ms ToW in milliseconds. Can be #TOW_UNKNOWN
+ * \param[out] pephe  Optional destination for ephemeris when available.
+ *
+ * \return Flags, computed from ephemeris and other sources.
+ */
+manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
+                                                    s32 tow_ms,
+                                                    ephemeris_t *pephe)
+{
+  manage_track_flags_t result = 0;
+
+  /* Satellite elevation is above the mask. */
+  if (tracking_channel_elevation_degrees_get(sid) >= elevation_mask) {
+    result |= MANAGE_TRACK_FLAG_ELEVATION;
+  }
+
+  if (TOW_UNKNOWN != tow_ms) {
+    /* Ephemeris must be valid, not stale. Satellite must be healthy.
+       This also acts as a sanity check on the channel TOW.*/
+    gps_time_t t = {
+      .wn = WN_UNKNOWN,
+      .tow = 1e-3 * tow_ms
+    };
+    ephemeris_t ephe;
+    if (NULL == pephe) {
+      /* If no external storage for ephemeris is provided, use local one */
+      pephe = &ephe;
+    }
+    if (NDB_ERR_NONE == ndb_ephemeris_read(sid, pephe)) {
+      if (ephemeris_valid(pephe, &t)) {
+        result |= MANAGE_TRACK_FLAG_HAS_EPHE;
+
+        if (signal_healthy(pephe->valid,
+                           pephe->health_bits,
+                           pephe->ura,
+                           sid.code)) {
+          result |= MANAGE_TRACK_FLAG_HEALTHY;
+        }
+      }
+    }
+  }
+  /* Navigation suitable flag */
+  if (shm_navigation_suitable(sid)) {
+    result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
+  }
+  return result;
+}
+
+/**
+ * Legacy method for checking if the tracking channel measurements are OK.
+ *
+ * TODO Refactor client code to use appropriate tracker flags instead of legacy
+ *      criteria
+ *
+ * \param[in] i Channel index
+ *
+ * \retval 1 Channel meets MANAGE_TRACK_LEGACY_USE_FLAGS criteria and can be
+ *           used.
+ * \retval 0 Channel can't be used
+ *
+ * \sa MANAGE_TRACK_LEGACY_USE_FLAGS
+ *
+ * \deprecated
+ */
+s8 use_tracking_channel(u8 i)
+{
+  manage_track_flags_t flags = 0;
+  flags = get_tracking_channel_flags(i);
+  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE)) {
+    gnss_signal_t sid = tracking_channel_sid_get(i);
+    s32 tow_ms = tracking_channel_tow_ms_get(i);
+    flags |= get_tracking_channel_sid_flags(sid, tow_ms, NULL);
+  }
+  return MANAGE_TRACK_LEGACY_USE_FLAGS == (flags & MANAGE_TRACK_LEGACY_USE_FLAGS);
+}
+
+/**
+ * Helper method check if the channel state is usable.
+ *
+ * The method checks if the tracking channel state has \a required_flags
+ *
+ * \param[in] i              Tracking channel index.
+ * \param[in] required_flags Flags that are required to be present in channel
+ *                           state to be usable.
+ *
+ * \retval true  Tracking channel state has all \a required_flags.
+ * \retval false One or more flags are missing from the tracking channel state.
+ *
+ * \sa get_tracking_channel_flags
+ * \sa tracking_channels_ready
+ */
+bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags)
+{
+  manage_track_flags_t flags  = 0; /* Channel flags accumulator */
+  s32                  tow_ms = TOW_UNKNOWN;
+  gnss_signal_t        sid;   /* Signal identifier */
+
+  /* While locked, load base flags and ToW */
+  tracking_channel_lock(i);
+  flags |= get_tracking_channel_flags(i);
+  sid = tracking_channel_sid_get(i);
+  if (0 != (flags & MANAGE_TRACK_FLAG_TOW)) {
+    tow_ms = tracking_channel_tow_ms_get(i);
+  }
+  tracking_channel_unlock(i);
+
+  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE)) {
+    /* While unlocked, load ext flags and ephe. */
+    flags |= get_tracking_channel_sid_flags(sid, tow_ms, NULL);
+  }
+
+  return (flags & required_flags) == required_flags;
+}
+
+/**
+ * Counts a number of usable tracking channels.
+ *
+ * \param[in] required_flags Flags that are required to be present in channel
+ *                           state to be usable.
+ *
+ * \return Count of tracking channels that satisfy \a required_flags
+ *
+ * \sa tracking_channel_is_usable
+ */
+u8 tracking_channels_ready(manage_track_flags_t required_flags)
 {
   u8 n_ready = 0;
-  for (u8 i=0; i<nap_track_n_channels; i++) {
-    if (use_tracking_channel(i)) {
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    if (tracking_channel_is_usable(i, required_flags)) {
       n_ready++;
     }
   }

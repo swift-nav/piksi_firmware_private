@@ -21,15 +21,20 @@
 /** \addtogroup track_api
  * \{ */
 
+/** Counter type. Value changes every time tracking mode changes. */
 typedef u32 update_count_t;
 
+/** Tracker flag: tracker is in confirmed mode */
+#define TRACK_CMN_FLAG_CONFIRMED   (1 << 0)
 /** Tracker flag: tracker is using PLL (possibly with FLL) */
 #define TRACK_CMN_FLAG_PLL_USE     (1 << 1)
 /** Tracker flag: tracker is using FLL (possibly with PLL) */
 #define TRACK_CMN_FLAG_FLL_USE     (1 << 2)
 /** Tracker flag: tracker is using PLL and has pessimistic phase lock */
 #define TRACK_CMN_FLAG_HAS_PLOCK   (1 << 3)
-/** Tracker flag: tracker is using FLL and has pessimistic frequency lock */
+/** Tracker flag: tracker is using PLL and has optimistic phase lock */
+#define TRACK_CMN_FLAG_HAS_OLOCK   (1 << 4)
+/** Tracker flag: tracker is using FLL and has frequency lock */
 #define TRACK_CMN_FLAG_HAS_FLOCK   (1 << 5)
 
 /**
@@ -67,7 +72,6 @@ typedef struct {
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
   float cn0;                   /**< Current estimate of C/N0. */
-
   track_cmn_flags_t flags;     /**< Tracker flags */
 } tracker_common_data_t;
 
