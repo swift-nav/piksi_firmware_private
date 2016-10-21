@@ -615,9 +615,9 @@ void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
 
   /* Adjust carrier phase initial integer offset to be approximately equal to
      pseudorange. */
+  /* TODO: adjust carrier_phase_offset when bit_polarity changes */
   if ((time_quality == TIME_FINE)
-      && (internal_data->carrier_phase_offset == 0.0)
-      && (internal_data->bit_polarity != BIT_POLARITY_UNKNOWN)) {
+      && (internal_data->carrier_phase_offset == 0.0)) {
 
       /* compute the pseudorange for this signal */
       static navigation_measurement_t nav_meas[1];
