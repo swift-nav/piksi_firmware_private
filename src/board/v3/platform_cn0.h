@@ -17,6 +17,10 @@
 #define PLATFORM_NOISE_FIGURE   (2.0f)
 /** Normalized platform noise bandwidth for C/N0 estimator. */
 #define PLATFORM_CN0_EST_BW_HZ  (1.5f)
+/** Scale coefficient for C/No estimator */
+#define PLATFORM_CN0_EST_SCALE (1.025f)
+/** C/No shift for Basic C/No estimation */
+#define PLATFORM_CN0_EST_SHIFT (-4.f)
 
 /* Memory segments for V3 in the order of preference:
  * - empty -- Default data segment

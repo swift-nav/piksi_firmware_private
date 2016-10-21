@@ -678,7 +678,9 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
                            cn0_params.est,
                            &data->cn0_est,
                            data->corrs.corr_cn0.I,
-                           data->corrs.corr_cn0.Q);
+                           data->corrs.corr_cn0.Q,
+                           data->corrs.corr_epl.very_early.I,
+                           data->corrs.corr_epl.very_early.Q);
   }
 
   if (cn0 > cn0_params.track_cn0_drop_thres ||

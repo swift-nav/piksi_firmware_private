@@ -59,7 +59,7 @@
 #define TP_CFLAG_LD_ADD          ((u32)1 << 23)
 #define TP_CFLAG_LD_USE          ((u32)1 << 24)
 
-#define TP_DLL_PLL_MEAS_DIM 3
+#define TP_DLL_PLL_MEAS_DIM 5
 
 /*
  * Main tracking: PLL loop selection
@@ -168,11 +168,13 @@
 typedef struct
 {
   union {
-    corr_t epl[TP_DLL_PLL_MEAS_DIM]; /**< EPL accumulators as a vector */
+    corr_t epl[TP_DLL_PLL_MEAS_DIM]; /**< E|P|L|VE|VL accumulators as a vector */
     struct {
       corr_t early;                  /**< Early accumulator */
       corr_t prompt;                 /**< Prompt accumulator */
       corr_t late;                   /**< Late accumulator */
+      corr_t very_early;             /**< Very Early accumulator */
+      corr_t very_late;              /**< Very Late accumulator */
     };
   };
 } tp_epl_corr_t;

@@ -53,6 +53,12 @@ static struct nap_ch_state {
   u32 code_phase;   /**< Fractional part of code phase. */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
 
+/** Structure is used to define spacing between two correlators */
+typedef struct {
+  u16 ve_e_chips:3;   /**< how many chips between VE and E correlator (<=7) */
+  u16 ve_e_samples:6; /**< how many samples between VE and E correlator (<=23)*/
+} nap_spacing_t;
+
 /** Compute the correlation length in the units of sampling frequency samples.
  * \param chips_to_correlate The number of chips to correlate over.
  * \param cp_start_frac_units Initial code phase in NAP units.
@@ -159,10 +165,16 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   t->CODE_INIT_G1 = sid_to_init_g1(sid);
   t->CODE_INIT_G2 = 0x3ff;
 
-  t->SPACING = (NAP_SPACING << NAP_TRK_SPACING_OFFSET0_Pos) |
-               (NAP_SPACING << NAP_TRK_SPACING_OFFSET1_Pos) |
-               (NAP_SPACING << NAP_TRK_SPACING_OFFSET2_Pos) |
-               (NAP_SPACING << NAP_TRK_SPACING_OFFSET3_Pos);
+  const nap_spacing_t spacing = {7, 23};
+
+  /* set spacing for noise assess: 9 bits, 3MSB for chips, LSB for samples */
+  u16 noise_spacing = spacing.ve_e_chips << 6 | spacing.ve_e_samples;
+
+  /* set other spasing */
+  t->SPACING = (noise_spacing << NAP_TRK_SPACING_OFFSET0_Pos) |
+               (NAP_SPACING   << NAP_TRK_SPACING_OFFSET1_Pos) |
+               (NAP_SPACING   << NAP_TRK_SPACING_OFFSET2_Pos) |
+               (NAP_SPACING   << NAP_TRK_SPACING_OFFSET3_Pos);
 
   double cp_rate = (1.0 + carrier_freq / code_to_carr_freq(sid.code)) *
                    code_to_chip_rate(sid.code);
@@ -178,11 +190,23 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   COMPILER_BARRIER();
 
+  /* correct sample count when the SV was acquired with spacing between P and VE */
+  ref_timing_count -= spacing.ve_e_chips * NAP_SPACING_SAMPLES_PER_CHIP
+                      + spacing.ve_e_samples
+                      + NAP_SPACING;
+  if (CODE_GPS_L2CM == sid.code) {
+    /* for L2C also correct code_phase */
+    code_phase -= (float)spacing.ve_e_chips
+                   + ((float)spacing.ve_e_samples + NAP_SPACING)
+                   / NAP_SPACING_SAMPLES_PER_CHIP;
+  }
+
   /* Set up timing compare */
   u32 tc_req;
   while (1) {
     chSysLock();
     tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
+
     double cp = propagate_code_phase(code_phase, carrier_freq,
                                      tc_req - ref_timing_count, sid.code);
     /* Contrive for the timing strobe to occur at or close to a
@@ -237,13 +261,15 @@ void nap_track_read_results(u8 channel,
   if (ovf) {
     log_warn("Track correlator overflow 0x%04X on channel %d", ovf, channel);
   }
-
-  corr_t lc[5];
-  for (u8 i = 0; i < 5; i++) {
-    lc[i].I = t->CORR[i].I >> 8;
-    lc[i].Q = t->CORR[i].Q >> 8;
-  }
-  memcpy(corrs, &lc[1], sizeof(corr_t)*3);
+  /* map corr registers by following way:
+  * VE: CORR[0] -> corrs[3], E: CORR[1] -> corrs[0], P: CORR[2] -> corrs[1],
+  * L: CORR[3] -> corrs[2], VL: CORR[4] -> corrs[4]
+  * This is needed to use track_gps_l1ca.c for both Piksi v2 and v3 */
+  corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8;
+  corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8;
+  corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8;
+  corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8;
+  corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8;
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) |
                              t->CODE_PHASE_FRAC;
