@@ -98,20 +98,25 @@ void send_thread_states()
 
 static void check_frontend_errors()
 {
-    if (!frontend_errors) {
-      chSysLock();
-      frontend_errors = (frontend_notify_flags & FRONTEND_AOK_ERROR_FLAG) != 0;
-      frontend_notify_flags = 0;
-      chSysUnlock();
-    }
+  if (!frontend_errors) {
+    chSysLock();
+    frontend_errors = (frontend_notify_flags & FRONTEND_AOK_ERROR_FLAG) != 0;
+    frontend_notify_flags = 0;
+    chSysUnlock();
+
     if (frontend_errors) {
-      if (nt1065_check_aok_status()) {
-        log_info("nt1065 AOK error flag cleared");
-        frontend_errors = false;
-      } else if (nt1065_check_plls()) {
-        log_error("nt1065 AOK failed with unknown cause");
-      }
+      log_error("nt1065: AOK error flag set");
     }
+  }
+
+  if (frontend_errors) {
+    if (nt1065_check_aok_status()) {
+      log_info("nt1065: AOK error flag cleared");
+      frontend_errors = false;
+    } else if (nt1065_check_plls()) {
+      log_error("nt1065: AOK failed with unknown cause");
+    }
+  }
 }
 
 static THD_WORKING_AREA(wa_track_status_thread, 768);
