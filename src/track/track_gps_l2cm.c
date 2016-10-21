@@ -276,6 +276,11 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                       ToW_ms,
                       error_ms);
         common_data->TOW_ms = ToW_ms;
+        if (!tp_tow_is_sane(common_data->TOW_ms)) {
+          log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
+                        common_data->update_count, common_data->TOW_ms);
+          common_data->TOW_ms = TOW_UNKNOWN;
+        }
       }
     }
 

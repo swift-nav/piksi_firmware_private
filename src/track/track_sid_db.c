@@ -192,7 +192,8 @@ s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_tk, u8 ms_align, double *error_ms)
      * jump. */
     double delta_d = nap_count_to_ms(delta_tk);
 
-    if (delta_d <= MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {
+    /* Check interval sanity and validity */
+    if (delta_d >= 0 && delta_d <= MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {
       double tmp_ToW_ms = old_ToW_ms + delta_d;
       ToW_ms = (s32)round(tmp_ToW_ms);
 
@@ -213,8 +214,26 @@ s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_tk, u8 ms_align, double *error_ms)
 
       /* Fix up ToW */
       ToW_ms %= WEEK_MS;
+
+      if (!tp_tow_is_sane(ToW_ms)) {
+        ToW_ms = TOW_UNKNOWN;
+      }
     }
   }
 
   return ToW_ms;
 }
+
+/**
+ * Test ToW for validity.
+ *
+ * \param[in] tow_ms ToW value to check
+ *
+ * \retval true  ToW is in range of [0; WEEK_MS) or has a value of TOW_UNKNOWN.
+ * \retval false ToW is not valid.
+ */
+bool tp_tow_is_sane(s32 tow_ms)
+{
+  return tow_ms == TOW_UNKNOWN || (tow_ms >= 0 && tow_ms < WEEK_MS);
+}
+
