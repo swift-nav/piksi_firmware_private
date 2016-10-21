@@ -547,11 +547,9 @@ static void solution_thread(void *arg)
       memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
       n_ready_tdcp = n_ready;
 
-      /* Log the reason */
-      if (clock_jump) {
-        log_warn(
-          "Clock jumped from last epoch, skipping TDCP computation");
-      } else if (rec_tc_delta >= 2 / soln_freq) {
+      /* Log the reason (if unexpected)*/
+      if (!clock_jump && time_quality == TIME_FINE
+          && rec_tc_delta >= 2 / soln_freq) {
         log_warn(
           "Time from last measurements %f seconds, skipping TDCP computation",
           rec_tc_delta);
@@ -776,8 +774,11 @@ static void solution_thread(void *arg)
        * breaks up exactly into carrier cycles
        * TODO: verify this holds for GLONASS as well */
       tracking_channel_carrier_phase_offsets_adjust(dt);
-      clock_jump = TRUE;
-      continue;
+      /* adjust the stored CP measurements so that next TDCP is correct */
+      for (u8 i = 0; i < n_ready_old; i++) {
+        nav_meas_old[i].raw_carrier_phase += dt *
+            code_to_carr_freq(nav_meas_old[i].sid.code);
+      }
     }
 
     /* Calculate time till the next desired solution epoch. */
