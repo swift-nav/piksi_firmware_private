@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Roman Gezikov <rgezikov@exafore.com>
+ * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -18,20 +18,18 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/signal.h>
 #include <ch.h>
-#include "signal.h"
 
 enum ndb_op_code
 {
-  NDB_ERR_NONE = 0, /**< No error */
-  NDB_ERR_MISSING_IE, /**< DB doesn't contain value of this IE */
-  NDB_ERR_UNSUPPORTED,
-  NDB_ERR_FILE_IO,
-  NDB_ERR_INIT_DONE,
-  NDB_ERR_BAD_PARAM,
-  NDB_ERR_TIMEOUT,
-  NDB_ERR_UNRELIABLE_DATA,
-  NDB_ERR_ALGORITHM_ERROR,
-  NDB_ERR_BUSY,
+  NDB_ERR_NONE = 0,        /**< No error */
+  NDB_ERR_MISSING_IE,      /**< DB doesn't contain value of this IE */
+  NDB_ERR_UNSUPPORTED,     /**< Feature is not implemented */
+  NDB_ERR_FILE_IO,         /**< File I/O error */
+  NDB_ERR_INIT_DONE,       /**< New file created */
+  NDB_ERR_BAD_PARAM,       /**< Bad parameter */
+  NDB_ERR_UNRELIABLE_DATA, /**< Data can't be verified */
+  NDB_ERR_ALGORITHM_ERROR, /**< Error */
+  NDB_ERR_NO_DATA,         /**< No data to process */
 };
 
 enum ndb_data_source
@@ -45,8 +43,8 @@ enum ndb_data_source
 /** NDB IE update counter type */
 typedef u8 ndb_update_counter_t;
 
-/** NDB Timestamp */
-typedef systime_t ndb_timestamp_t;
+/** NDB Timestamp: TAI seconds since GPS epoch */
+typedef u32 ndb_timestamp_t;
 
 #ifndef NDB_WEAK
 #define NDB_WEAK __attribute__ ((weak, alias ("ndb_not_implemented")))

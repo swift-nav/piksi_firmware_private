@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Roman Gezikov <rgezikov@exafore.com>
+ * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -13,11 +13,13 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/edc.h>
 #include "libsbp/piksi.h"
 #include "version.h"
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "ndb_fs_access.h"
+#include <nap/nap_common.h>
 
 #define NDB_THREAD_PRIORITY (LOWPRIO)
 static WORKING_AREA_CCM(ndb_thread_wa, 2048);
@@ -31,58 +33,82 @@ static MUTEX_DECL(data_access);
 static ndb_element_metadata_t *wq_first = NULL;
 static ndb_element_metadata_t *wq_last = NULL;
 
-static enum ndb_op_code ndb_wq_put(ndb_element_metadata_t* md);
-static void ndb_wq_get(ndb_element_metadata_t** md);
+static void ndb_wq_put(ndb_element_metadata_t *md);
+static ndb_element_metadata_t *ndb_wq_get(void);
 
 static enum ndb_op_code ndb_open_file(ndb_file_t *file);
 static enum ndb_op_code ndb_read(ndb_file_t *f, off_t o,
-                                 void *first_element, size_t s);
+                                 void *dara, size_t s);
+static enum ndb_op_code ndb_wq_process(void);
 
-static void ndb_wq_process(bool *data_write_ok, bool *md_write_ok);
-static bool ndb_wq_empty();
-
-bool ndb_wq_empty()
+/**
+ * Schedules metadata block for write processing.
+ *
+ * When scheduled, the block is appropriately marked.
+ *
+ * The method does nothing if the metadata block is already scheduled for
+ * writing.
+ *
+ * \param[in] md Metadata block to schedule.
+ *
+ * \return None
+ *
+ * \sa ndb_wq_get
+ */
+static void ndb_wq_put(ndb_element_metadata_t *md)
 {
-  bool r = false;
-  ndb_lock();
-  r = NULL == wq_first;
-  if (r)
-    assert(NULL == wq_last);
-  else
-    assert(NULL != wq_last);
-  ndb_unlock();
-  return r;
-}
-
-enum ndb_op_code ndb_wq_put(ndb_element_metadata_t* md)
-{
-  if (NULL == wq_last) {
-    wq_first = wq_last = md;
-  } else {
-    wq_last->next = md;
-    wq_last = md;
+  /* Check if the element is already in the queue. */
+  if (0 == (md->nv_data.state & NDB_ENQUEUED)) {
+    if (NULL == wq_last) {
+      wq_first = wq_last = md;
+    } else {
+      wq_last->next = md;
+      wq_last = md;
+    }
+    md->next = NULL;
+    /* Mark element as enqueued */
+    md->nv_data.state |= NDB_ENQUEUED;
   }
-  md->next = NULL;
-  md->nv_data.state |= NDB_ENQUEUED;
-  return NDB_ERR_NONE;
 }
 
-void ndb_wq_get(ndb_element_metadata_t** md)
+/**
+ * Retrieves next metadata block scheduled for writing
+ *
+ * When retrieved, the block is appropriately marked.
+ *
+ * \return Next block pointer, or NULL if the queue is empty.
+ */
+static ndb_element_metadata_t *ndb_wq_get(void)
 {
-  *md = wq_first;
-  if (NULL != wq_first) {
-    wq_first = wq_first->next;
+  ndb_element_metadata_t *res = wq_first;
+  if (NULL != res) {
+    wq_first = res->next;
 
-    if (NULL == wq_first)
+    if (NULL == wq_first) {
       wq_last = NULL;
+    }
+
+    res->next = NULL;
   }
+  if (NULL != res) {
+    /* Reset queue flag to be symmetric with ndb_wq_put() */
+    res->nv_data.state &= ~NDB_ENQUEUED;
+  }
+  return res;
 }
 
-
+/**
+ * NDB subsystem initialization.
+ *
+ * The method initializes NDB variables and computes supported file version.
+ *
+ * \sa ndb_start
+ */
 void ndb_init()
 {
-  if (!ndb_fs_is_real())
+  if (!ndb_fs_is_real()) {
     log_info("NDB: configured not to save data to flash file system");
+  }
 
   u16 vlen = sizeof(GIT_VERSION);
   vlen = vlen > sizeof(ndb_file_version) ? sizeof(ndb_file_version) : vlen;
@@ -92,53 +118,106 @@ void ndb_init()
   }
 }
 
+/**
+ * Starts up NDB operation.
+ *
+ * \sa ndb_init
+ */
 void ndb_start()
 {
   chThdCreateStatic(ndb_thread_wa, sizeof(ndb_thread_wa),
                     NDB_THREAD_PRIORITY, ndb_service_thread, NULL);
 }
 
-void ndb_log_file_open(const enum ndb_op_code oc, const char* file_type,
-                       const __attribute__((unused)) ndb_file_t* file)
+/**
+ * Helper to log file open operation status.
+ *
+ * \param[in] oc        Operation result.
+ * \param[in] file_type File type.
+ *
+ * \return None
+ */
+static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
 {
   switch (oc) {
-    case NDB_ERR_NONE:
-      log_info("Opened %s file", file_type);
-      break;
-    case NDB_ERR_FILE_IO:
-      log_error("Cannot open %s file", file_type);
-      break;
-    case NDB_ERR_INIT_DONE:
-      log_info("No %s file present in flash, create an empty one", file_type);
-      break;
-    default:
-      assert(!"ndb_log_file_open()");
-      break;
+  case NDB_ERR_NONE:
+    log_info("Opened %s file", file_type);
+    break;
+  case NDB_ERR_FILE_IO:
+    log_error("Cannot open %s file", file_type);
+    break;
+  case NDB_ERR_INIT_DONE:
+    log_info("No %s file present in flash, create an empty one", file_type);
+    break;
+  default:
+    assert(!"ndb_log_file_open()");
+    break;
   }
 }
 
-void ndb_load_data(ndb_file_t *f,
-                   const char* ftype,
+/**
+ * Performs initial load of NDB file contents.
+ *
+ * The method batch load NDB file data and metadata elements. Prior to the
+ * load, the method checks the file existance and version match. If the file
+ * doesn't exist, or the version doesn't math, the new file is created.
+ *
+ * When loading individual data blocks, each of them is checked for CRC
+ * consistency, and blocks with wrong CRC are zeroed.
+ *
+ * \param[in]  file      NDB file
+ * \param[in]  ftype     File type
+ * \param[out] data      Block data destination. Must be of a \a el_size * \a
+ *                       el_number size.
+ * \param[out] metadata  Metadata table with \a el_size elements.
+ * \param[in]  el_size   Size of a single data block in bytes.
+ * \param[in]  el_number Block count
+ *
+ * \return None
+ */
+void ndb_load_data(ndb_file_t *file,
+                   const char *ftype,
                    void *data,
-                   ndb_element_metadata_t* metadata,
-                   const size_t el_size,
-                   const size_t el_number)
+                   ndb_element_metadata_t *metadata,
+                   size_t el_size,
+                   size_t el_number)
 {
   enum ndb_op_code r = NDB_ERR_FILE_IO;
   size_t ds = el_size * el_number;
   size_t mds = sizeof(ndb_element_metadata_nv_t) * el_number;
   ndb_element_metadata_nv_t md_nv[el_number];
 
-  if (ndb_open_file(f) == NDB_ERR_NONE) {
-    if (ndb_read(f, 0, data, ds) == NDB_ERR_NONE) {
-      if (ndb_read(f, ds, md_nv, mds) == NDB_ERR_NONE) {
-        u32 i;
-        for (i = 0; i < el_number; i++) {
-          metadata[i].nv_data = md_nv[i];
-        }
-        r = NDB_ERR_NONE;
+  if (ndb_open_file(file) == NDB_ERR_NONE &&
+      ndb_read(file, 0, data, ds) == NDB_ERR_NONE &&
+      ndb_read(file, ds, md_nv, mds) == NDB_ERR_NONE) {
+
+    void *ptr = data;
+    for (size_t i = 0; i < el_number; i++, ptr = (char*)ptr + el_size) {
+      metadata[i].nv_data = md_nv[i];
+
+      /* Check CRC: each block is protected with CRC24Q algorithm. The CRC
+       * protection includes both block data and metadata sections */
+      u32 old_crc = (u32)metadata[i].nv_data.crc[0] << 16;
+      old_crc |= (u32)metadata[i].nv_data.crc[1] << 8;
+      old_crc |= (u32)metadata[i].nv_data.crc[2] << 0;
+
+      u32 new_crc = crc24q((const u8*)&metadata[i].nv_data,
+                           sizeof(metadata[i].nv_data) -
+                           sizeof(metadata[i].nv_data.crc),
+                           crc24q(ptr, el_size, 0));
+
+      if (old_crc != new_crc) {
+        log_warn("NDB %s[%" PRIu32 "] entry dropped", ftype, (u32)i);
+
+        memset(ptr, 0, el_size);
+        memset(&metadata[i].nv_data, 0, sizeof(metadata[i].nv_data));
+
+        ndb_write_file_data(file, el_size * i + 0, ptr, el_size);
+        ndb_write_file_data(file, sizeof(metadata[i].nv_data) * i + ds,
+                            &metadata[i].nv_data, sizeof(metadata[i].nv_data));
       }
     }
+    r = NDB_ERR_NONE;
   }
 
   if (NDB_ERR_NONE != r) {
@@ -148,120 +227,168 @@ void ndb_load_data(ndb_file_t *f,
 
     /* And save to file */
     memset(md_nv, 0, mds);
-    if (ndb_write_file_data(f, 0, data, ds) == NDB_ERR_NONE) {
-      if (ndb_write_file_data(f, ds, md_nv, mds) == NDB_ERR_NONE) {
+    if (ndb_write_file_data(file, 0, data, ds) == NDB_ERR_NONE &&
+        ndb_write_file_data(file, ds, md_nv, mds) == NDB_ERR_NONE &&
         /* Write non zero byte to the end of file to work around coffee fs
          * feature of dropping zeros from the end of file. */
-        if (ndb_write_file_data(f, ds + mds,
-                                &ndb_file_end_mark, 1) == NDB_ERR_NONE) {
+        ndb_write_file_data(file, ds + mds, &ndb_file_end_mark, 1) == NDB_ERR_NONE) {
           /* Indicate to the level above that initialization was done */
-          r = NDB_ERR_INIT_DONE;
-        }
-      }
+      r = NDB_ERR_INIT_DONE;
     }
   }
 
-  ndb_log_file_open(r, ftype, f);
+  ndb_log_file_open(r, ftype);
 
   for (u32 i = 0; i < el_number; i++) {
     metadata[i].data = data + (i * el_size);
     metadata[i].index = i;
-    metadata[i].file = f;
+    metadata[i].file = file;
     metadata[i].next = NULL;
     metadata[i].update_c = 1;
   }
 }
 
+/**
+ * Returns TAI time if available.
+ *
+ * \return TAI time in seconds
+ */
 ndb_timestamp_t ndb_get_timestamp()
 {
-  return chVTGetSystemTime();
+  /* FIXME - this should be TAI time based on GPS time */
+  return nap_count_to_ms(nap_timing_count()) / 1000;
 }
 
-static void ndb_service_thread(void* p)
+/**
+ * NDB service thread worker.
+ *
+ * The worker checks for incoming write requests, execute them, and report
+ * results though SBP if appropriate.
+ *
+ * \param[in] p Thread parameter (unused)
+ *
+ * \return None
+ */
+static void ndb_service_thread(void *p)
 {
   (void) (p);
   chRegSetThreadName("ndb");
-  bool data_write_ok = false;
-  bool md_write_ok = false;
 
   chThdSleepMilliseconds(NV_WRITE_REQ_TIMEOUT);
   while (true) {
     chThdSleepMilliseconds(NV_WRITE_REQ_TIMEOUT);
-    while(!ndb_wq_empty()) {
-      ndb_wq_process(&data_write_ok, &md_write_ok);
-      log_debug("Saving to NVM: (%s, %s)", (data_write_ok ? "OK" : "failed"), (md_write_ok ? "OK" : "failed"));
-      if (!data_write_ok)
-        log_error("Error writing data to the NDB file");
-      if (!md_write_ok)
-        log_error("Error writing metadata to the NDB file");
+    while (true) {
+      enum ndb_op_code res = ndb_wq_process();
+      if (NDB_ERR_NO_DATA == res) {
+        break;
+      }
+      if (NDB_ERR_NONE != res) {
+        log_error("Error writing data to the NDB file: code=%d", (int)res);
+      }
     }
     ndb_sbp_updates();
   }
 }
 
-void ndb_wq_process(bool* data_write_ok, bool* md_write_ok)
+/**
+ * Method for handling block save operation.
+ *
+ * The method fetches block data from a queue, computes CRC for it and
+ * forwards the block data (optionally) and block metadata into persistence
+ * layer.
+ *
+ * \retval NDB_ERR_NONE     On success
+ * \retval NDB_ERR_NO_DATA  No more data to process
+ * \retval NDB_ERR_FILE_IO  On file I/O error
+ */
+static enum ndb_op_code ndb_wq_process(void)
 {
-  ndb_element_metadata_t* md;
+  ndb_element_metadata_t *md = NULL;
 
-  *data_write_ok = *md_write_ok = false;
-
+  /* Lock NDB and fetch block data and metadata to write along with flags */
   ndb_lock();
+  md = ndb_wq_get();
+  if (NULL == md) {
+    /* No data to process */
+    ndb_unlock();
+    return NDB_ERR_NO_DATA;
+  }
 
-  ndb_wq_get(&md);
-
-  assert(md != NULL);
-
-  ndb_element_metadata_t md_copy;
-
-  u16 element_size = md->file->data_size;
-  u8 buf[element_size];
+  /* Locally load information from the dequeued element */
+  u16                        block_size = md->file->data_size;
+  ndb_element_metadata_nv_t  nv_data;
+  u8                         buf[block_size];
+  bool                       write_buf = false;
+  ndb_file_t                *file =  md->file;
+  ndb_ie_index_t             index = md->index;
 
   assert((md->nv_data.state & (NDB_IE_DIRTY + NDB_MD_DIRTY)) != 0);
-  assert((md->nv_data.state & NDB_ENQUEUED) != 0);
+  assert((md->nv_data.state & NDB_ENQUEUED) == 0);
 
-  if(md->nv_data.state & NDB_IE_DIRTY)
-    memcpy(&buf, md->data, element_size);
-  memcpy(&md_copy, md, sizeof(ndb_element_metadata_t));
+  memcpy(buf, md->data, block_size);
+  write_buf = 0 != (md->nv_data.state & NDB_IE_DIRTY);
 
-  md->nv_data.state &= ~(NDB_IE_DIRTY + NDB_MD_DIRTY + NDB_ENQUEUED);
+  /* Mark as saved (optimistically) */
+  md->nv_data.state &= ~(NDB_IE_DIRTY + NDB_MD_DIRTY);
+  nv_data = md->nv_data;
 
   ndb_unlock();
 
-  enum ndb_op_code ret;
+  enum ndb_op_code ret = NDB_ERR_NONE;
 
-  if(md_copy.nv_data.state & NDB_IE_DIRTY)
-    ret = ndb_write_file_data(md->file, element_size * md->index, &buf,
-                              element_size);
-  else
-    ret = NDB_ERR_NONE;
+  if (write_buf) {
+    ret = ndb_write_file_data(file, block_size * index, buf, block_size);
+  }
+  if (NDB_ERR_NONE == ret) {
+    /* Compute CRC-24Q: the check sum includes data block + metadata block */
+    u32 crc = crc24q((const u8 *)&nv_data,
+                     sizeof(nv_data) - sizeof(nv_data.crc),
+                     crc24q(buf, block_size, 0));
+    nv_data.crc[0] = (u8)(crc >> 16);
+    nv_data.crc[1] = (u8)(crc >> 8);
+    nv_data.crc[2] = (u8)(crc);
 
-  *data_write_ok = NDB_ERR_NONE == ret;
+    log_debug("NDB store %s[%" PRIu32 "] crc=0x%06"PRIX32,
+              file->name, (u32)index, crc);
 
-  md_copy.nv_data.state &= ~(NDB_IE_DIRTY + NDB_MD_DIRTY + NDB_ENQUEUED);
-
-  u16 n_elements = md->file->n_elements;
-
-  off_t offset = element_size * n_elements
-      + sizeof(ndb_element_metadata_nv_t) * md->index;
-  ret = ndb_write_file_data(md->file, offset, &md_copy.nv_data,
-                            sizeof(ndb_element_metadata_nv_t));
-  *md_write_ok = NDB_ERR_NONE == ret;
+    off_t offset = (block_size * file->n_elements +
+                    sizeof(ndb_element_metadata_nv_t) * index);
+    ret = ndb_write_file_data(file, offset, &nv_data, sizeof(nv_data));
+  }
+  return ret;
 }
 
-bool ndb_file_verion_match(const char* version)
+/**
+ * Tests if the given version matches the supported one.
+ *
+ * At the moment the version must match the version generated during the build
+ * process. There is no cross-build version portability.
+ *
+ * \param[in] version Version to check
+ *
+ * \retval true  Version matches
+ * \retval false Version differs
+ */
+static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
 {
-  if (ndb_fs_is_real())
+  if (ndb_fs_is_real()) {
     return memcmp(version, ndb_file_version, sizeof(ndb_file_version)) == 0;
-  else
+  } else {
     return true;
+  }
 }
 
 /**
  * Opens NDB file that stores information elements of certain type.
  * This function checks if version of the file matches the passed one
  * and if it doesn't creates empty file automatically.
+ *
+ * \param[in] file NDB file
+ *
+ * \retval NDB_ERR_NONE    On success
+ * \retval NDB_ERR_FILE_IO On I/O error
  */
-enum ndb_op_code ndb_open_file(ndb_file_t *file)
+static enum ndb_op_code ndb_open_file(ndb_file_t *file)
 {
   char ver[MAX_NDB_FILE_VERSION_LEN];
   if ((ndb_fs_read(file->name, 0, ver, sizeof(ndb_file_version))
@@ -280,12 +407,27 @@ enum ndb_op_code ndb_open_file(ndb_file_t *file)
   return NDB_ERR_NONE;
 }
 
-enum ndb_op_code ndb_write_file_data(ndb_file_t *f, off_t o, void *b,
-                                     size_t l)
+/**
+ * Writes data block into NDB file.
+ *
+ * \param[in] file  NDB file
+ * \param[in] off   Block offset in bytes
+ * \param[in] src   Data write buffer
+ * \param[in] size  Size of the data block to read
+ *
+ * \retval NDB_ERR_NONE    On successful read.
+ * \retval NDB_ERR_FILE_IO On read error.
+ *
+ * \sa ndb_read
+ */
+enum ndb_op_code ndb_write_file_data(ndb_file_t *file,
+                                     off_t off,
+                                     const void *src,
+                                     size_t size)
 {
-  int offset = sizeof(ndb_file_version) + o;
-  int written = ndb_fs_write(f->name, offset, b, l);
-  return (written == (int) l) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
+  off_t   offset = sizeof(ndb_file_version) + off;
+  ssize_t written = ndb_fs_write(file->name, offset, src, size);
+  return (written >= 0 && (size_t)written == size) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
 }
 
 /**
@@ -293,59 +435,117 @@ enum ndb_op_code ndb_write_file_data(ndb_file_t *f, off_t o, void *b,
  * This function is to be called only during initialization of NDB.
  * It is intended to read all information elements collection from
  * file into memory.
+ *
+ * \param[in]  file  NDB file
+ * \param[in]  off   Block offset in bytes
+ * \param[out] dst   Buffer for data read
+ * \param[in]  size  Size of the data block to read
+ *
+ * \retval NDB_ERR_NONE    On successful read.
+ * \retval NDB_ERR_FILE_IO On read error.
+ *
+ * \sa ndb_write_file_data
  */
-enum ndb_op_code ndb_read(ndb_file_t *file, off_t o,
-                          void *first_element, size_t size)
+static enum ndb_op_code ndb_read(ndb_file_t *file,
+                                 off_t off,
+                                 void *dst,
+                                 size_t size)
 {
-  int offset = sizeof(ndb_file_version) + o;
-  int read =  ndb_fs_read(file->name, offset, first_element, size);
-  return (read == (int) size) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
+  off_t offset = sizeof(ndb_file_version) + off;
+  ssize_t read =  ndb_fs_read(file->name, offset, dst, size);
+  return (read >= 0 && (size_t)read == size) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
 }
 
+/**
+ * Locks NDB database state.
+ *
+ * \sa ndb_unlock
+ */
 void ndb_lock()
 {
   chMtxLock(&data_access);
 }
 
+/**
+ * Unlocks NDB database state.
+ *
+ * \sa ndb_unlock
+ */
 void ndb_unlock()
 {
   chMtxUnlock(&data_access);
 }
 
-void ndb_retrieve(void* out, void* cached, size_t size)
+/**
+ * Reads NDB data block.
+ *
+ * Method provides NDB data block contents.
+ *
+ * \param[out] out    Block data destination.
+ * \param[in]  cached Block data source.
+ * \param[in]  size   Block data size.
+ *
+ * \return None
+ *
+ * \sa ndb_update
+ */
+void ndb_retrieve(void *out, const void *cached, size_t size)
 {
+  /* TODO this method shall retrieve/check metadata flags to indicate the
+   *      data is valid. */
   ndb_lock();
   memcpy(out, cached, size);
   ndb_unlock();
 }
 
-enum ndb_op_code ndb_update(void* new, enum ndb_data_source src,
+/**
+ * Update NDB data block.
+ *
+ * The method updates NDB data block, marks it valid and updates block metadata.
+ * After an update, the block is scheduled for asynchronous write.
+ *
+ * \param[in]     data New block data.
+ * \param[in]     src  Block data source.
+ * \param[in,out] md   Block metadata.
+ *
+ * \retval NDB_ERR_NONE      On success
+ * \retval NDB_ERR_BAD_PARAM On parameter error
+ *
+ * \sa ndb_retrieve
+ */
+enum ndb_op_code ndb_update(const void *data,
+                            enum ndb_data_source src,
                             ndb_element_metadata_t *md)
 {
-  void* cached = md->data;
-  size_t size = md->file->data_size;
+  enum ndb_op_code res = NDB_ERR_ALGORITHM_ERROR;
 
-  ndb_lock();
+  if (NULL != data && NULL != md) {
+    size_t block_size = md->file->data_size;
 
-  md->nv_data.received_at = ndb_get_timestamp();
-  md->nv_data.state |= NDB_MD_DIRTY;
-  md->nv_data.source = src;
+    ndb_lock();
 
-  if (memcmp(new, cached, size) == 0) {
-    /* write metadata only */
+    /* Update metadata and mark it dirty */
+    md->nv_data.received_at = ndb_get_timestamp();
+    md->nv_data.state |= NDB_MD_DIRTY;
+    md->nv_data.source = src;
+
+    if (memcmp(data, md->data, block_size) != 0) {
+      /* Update data and mark it dirty also mark data valid */
+      memcpy(md->data, data, block_size);
+      if (++md->update_c == 0) {
+        md->update_c++; /* should never be 0 */
+      }
+      md->nv_data.state |= NDB_IE_VALID;
+      md->nv_data.state |= NDB_IE_DIRTY;
+    }
+
     ndb_wq_put(md);
     ndb_unlock();
-    return NDB_ERR_NONE;
+
+    res = NDB_ERR_NONE;
+  } else {
+    res = NDB_ERR_BAD_PARAM;
   }
 
-  memcpy(cached, new, size);
-  md->update_c++;
-  if (!md->update_c)
-    md->update_c++; /* should never be 0 */
-  md->nv_data.state |= NDB_IE_VALID;
-  md->nv_data.state |= NDB_IE_DIRTY;
-  ndb_wq_put(md);
-
-  ndb_unlock();
-  return NDB_ERR_NONE;
+  return res;
 }
