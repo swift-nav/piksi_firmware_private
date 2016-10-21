@@ -42,8 +42,9 @@ static int float_to_string(const void *priv, char *str, int slen, const void *bl
     return snprintf(str, slen, "%.12g", (double)*(float*)blob);
   case 8:
     return snprintf(str, slen, "%.12g", *(double*)blob);
+  default:
+    return -1;
   }
-  return -1;
 }
 
 static bool float_from_string(const void *priv, void *blob, int blen, const char *str)
@@ -55,8 +56,9 @@ static bool float_from_string(const void *priv, void *blob, int blen, const char
     return sscanf(str, "%g", (float*)blob) == 1;
   case 8:
     return sscanf(str, "%lg", (double*)blob) == 1;
+  default:
+    return false;
   }
-  return false;
 }
 
 static int int_to_string(const void *priv, char *str, int slen, const void *blob, int blen)
@@ -70,8 +72,9 @@ static int int_to_string(const void *priv, char *str, int slen, const void *blob
     return snprintf(str, slen, "%hd", *(s16*)blob);
   case 4:
     return snprintf(str, slen, "%ld", *(s32*)blob);
+  default:
+    return -1;
   }
-  return -1;
 }
 
 static bool int_from_string(const void *priv, void *blob, int blen, const char *str)
@@ -92,15 +95,17 @@ static bool int_from_string(const void *priv, void *blob, int blen, const char *
     return sscanf(str, "%hd", (s16*)blob) == 1;
   case 4:
     return sscanf(str, "%ld", (s32*)blob) == 1;
+  default:
+    return false;
   }
-  return false;
 }
 
 static int str_to_string(const void *priv, char *str, int slen, const void *blob, int blen)
 {
   (void)priv;
-  if (blen < slen)
+  if (blen < slen) {
     slen = blen;
+  }
   strncpy(str, blob, slen);
   return strnlen(str, slen);
 }
@@ -115,8 +120,9 @@ static bool str_from_string(const void *priv, void *blob, int blen, const char *
 static int enum_to_string(const void *priv, char *str, int slen, const void *blob, int blen)
 {
   const char * const *enumnames = priv;
-  if (blen != sizeof(u8))
+  if (blen != sizeof(u8)) {
     asm("bkpt");
+  }
   int index = *(u8*)blob;
   strncpy(str, enumnames[index], slen);
   return strlen(str);
@@ -127,14 +133,17 @@ static bool enum_from_string(const void *priv, void *blob, int blen, const char 
   const char * const *enumnames = priv;
   int i;
 
-  if (blen != sizeof(u8))
+  if (blen != sizeof(u8)) {
     asm("bkpt");
+  }
 
-  for (i = 0; enumnames[i] && (strcmp(str, enumnames[i]) != 0); i++)
-    ;
+  for (i = 0; enumnames[i] && (strcmp(str, enumnames[i]) != 0); i++) {
+    ; /* Do nothing */
+  }
 
-  if (!enumnames[i])
+  if (!enumnames[i]) {
     return false;
+  }
 
   *(u8*)blob = i;
 
@@ -145,8 +154,9 @@ int enum_format_type(const void *priv, char *str, int len)
 {
   int i = 5;
   strncpy(str, "enum:", len);
-  for (const char * const *enumnames = priv; *enumnames; enumnames++)
+  for (const char * const *enumnames = priv; *enumnames; enumnames++) {
     i = snprintf(str, len-i, "%s%s,", str, *enumnames);
+  }
   str[i-1] = '\0';
   return i;
 }
@@ -174,8 +184,9 @@ int settings_type_register_enum(const char * const enumnames[], struct setting_t
   type->from_string = enum_from_string;
   type->format_type = enum_format_type;
   type->priv = enumnames;
-  for (i = 0, t = (struct setting_type*)&type_int; t->next; t = t->next, i++)
-    ;
+  for (i = 0, t = (struct setting_type*)&type_int; t->next; t = t->next, i++) {
+    ; /* Do nothing */
+  }
   i++;
   t->next = type;
   return i;
@@ -210,8 +221,9 @@ static void setting_reg_write_cb(u16 sender_id, u8 len, u8 msg[], void* context)
   struct sbp_settings_closure *c = context;
   (void)sender_id;
 
-  if ((len < c->prefix_len) || (memcmp(c->prefix, msg, c->prefix_len) != 0))
+  if ((len < c->prefix_len) || (memcmp(c->prefix, msg, c->prefix_len) != 0)) {
     return;
+  }
 
   chBSemSignal(&c->sem);
 }
@@ -221,8 +233,9 @@ void settings_register(struct setting *setting, enum setting_types type)
   struct setting *s;
   const struct setting_type *t = &type_int;
 
-  for (int i = 0; t && (i < type); i++, t = t->next)
-    ;
+  for (int i = 0; t && (i < type); i++, t = t->next) {
+    ; /* Do nothing */
+  }
   /* FIXME Abort if type is NULL */
   setting->type = t;
 
@@ -262,10 +275,12 @@ void settings_register(struct setting *setting, enum setting_types type)
 
 static struct setting *settings_lookup(const char *section, const char *setting)
 {
-  for (struct setting *s = settings_head; s; s = s->next)
+  for (struct setting *s = settings_head; s; s = s->next) {
     if ((strcmp(s->section, section)  == 0) &&
-        (strcmp(s->name, setting) == 0))
+        (strcmp(s->name, setting) == 0)) {
       return s;
+    }
+  }
   return NULL;
 }
 
@@ -293,8 +308,9 @@ static int settings_format_setting(struct setting *s, char *buf, int len)
                                buf + buflen, len - buflen,
                                s->addr, s->len);
   buf[buflen++] = '\0';
-  if (s->type->format_type != NULL)
+  if (s->type->format_type != NULL) {
     buflen += s->type->format_type(s->type->priv, buf + buflen, len - buflen);
+  }
 
   return buflen;
 }
@@ -424,4 +440,3 @@ static void settings_read_callback(u16 sender_id, u8 len, u8 msg[], void* contex
   sbp_send_msg(SBP_MSG_SETTINGS_READ_RESP, buflen, (void*)buf);
   return;
 }
-

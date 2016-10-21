@@ -246,8 +246,17 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
       return CODE_NAV_STATE_UNKNOWN;
     }
 
-    default:
+    case CODE_SBAS_L1CA:
+    case CODE_GLO_L1CA:
+    case CODE_GLO_L2CA:
+    case CODE_GPS_L1P:
+    case CODE_GPS_L2P:
       assert(!"Unsupported code");
+
+    case CODE_INVALID:
+    case CODE_COUNT:
+    default:
+      assert(!"Invalid code");
     }
   }
 

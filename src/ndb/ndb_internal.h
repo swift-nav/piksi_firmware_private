@@ -70,15 +70,15 @@ extern "C" {
 
 extern u8 ndb_file_end_mark;
 
-void ndb_init();
-void ndb_start();
-void ndb_lock();
-void ndb_unlock();
+void ndb_init(void);
+void ndb_start(void);
+void ndb_lock(void);
+void ndb_unlock(void);
 
-ndb_timestamp_t ndb_get_timestamp();
+ndb_timestamp_t ndb_get_timestamp(void);
 void ndb_load_data(ndb_file_t *f,
                    const char *ftype,
-                   void *data,
+                   u8 *data,
                    ndb_element_metadata_t *metadata,
                    size_t el_size,
                    size_t el_number);
@@ -88,7 +88,7 @@ enum ndb_op_code ndb_update(const void *data,
 void ndb_retrieve(void *out, const void *cached, size_t size);
 enum ndb_op_code ndb_write_file_data(ndb_file_t *file,
                                      off_t off,
-                                     const void *src,
+                                     const u8 *src,
                                      size_t size);
 
 #ifdef __cplusplus

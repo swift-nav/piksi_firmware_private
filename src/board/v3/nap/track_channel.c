@@ -91,8 +91,16 @@ u8 sid_to_rf_frontend_channel(gnss_signal_t sid)
   case CODE_GPS_L2CM:
     ret = NAP_RF_FRONTEND_CHANNEL_4;
     break;
-  default:
+  case CODE_GLO_L1CA:
+  case CODE_GLO_L2CA:
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
     assert(!"Unsupported SID");
+    break;
+  case CODE_INVALID:
+  case CODE_COUNT:
+  default:
+    assert(!"Invalid code");
     break;
   }
   return ret;
@@ -113,8 +121,16 @@ u8 sid_to_nap_code(gnss_signal_t sid)
   case CODE_GPS_L2CM:
     ret = NAP_CODE_GPS_L2CM;
     break;
-  default:
+  case CODE_GLO_L1CA:
+  case CODE_GLO_L2CA:
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
     assert(!"Unsupported SID");
+    break;
+  case CODE_INVALID:
+  case CODE_COUNT:
+  default:
+    assert(!"Invalid code");
     break;
   }
   return ret;
@@ -250,4 +266,3 @@ void nap_track_disable(u8 channel)
 {
   NAP->TRK_CONTROL &= ~(1 << channel);
 }
-

@@ -37,9 +37,9 @@ static ndb_file_t ndb_alma_file = {
     .n_elements = PLATFORM_SIGNAL_COUNT,
 };
 
-void ndb_almanac_init()
+void ndb_almanac_init(void)
 {
-  ndb_load_data(&ndb_alma_file, "almanac", ndb_almanac, ndb_almanac_md,
+  ndb_load_data(&ndb_alma_file, "almanac", (u8 *)ndb_almanac, ndb_almanac_md,
                 sizeof(almanac_t), PLATFORM_SIGNAL_COUNT);
 }
 
@@ -80,6 +80,6 @@ enum ndb_op_code ndb_almanac_cache_update(almanac_t *cached_a,
 
 /** The function sends ephemeris if valid
  *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
-void ndb_almanac_sbp_update()
+void ndb_almanac_sbp_update(void)
 {
 }

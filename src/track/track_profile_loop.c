@@ -295,8 +295,12 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
   case TP_CTRL_PLL3:
     return true;
 
-  default:
+  case TP_CTRL_FLL1:
+  case TP_CTRL_FLL2:
     return false;
+
+  default:
+    assert(false);
   }
 }
 

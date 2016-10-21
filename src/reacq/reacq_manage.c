@@ -18,7 +18,7 @@
  *
  * \return None
  */
-void manage_reacq()
+void manage_reacq(void)
 {
   /* stub */
 }

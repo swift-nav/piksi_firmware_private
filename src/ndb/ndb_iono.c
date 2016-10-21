@@ -31,10 +31,10 @@ static ndb_file_t iono_corr_file = {
   .n_elements = 1
 };
 
-void ndb_iono_init()
+void ndb_iono_init(void)
 {
   ndb_load_data(&iono_corr_file, "iono corrections",
-                &iono_corr, &iono_corr_md,
+                (u8 *)&iono_corr, &iono_corr_md,
                  sizeof(iono_corr), 1);
 }
 

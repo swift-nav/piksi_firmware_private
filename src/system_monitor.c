@@ -74,7 +74,7 @@ u32 check_stack_free(thread_t *tp)
   return 4 * (i - 1);
 }
 
-void send_thread_states()
+void send_thread_states(void)
 {
   thread_t *tp = chRegFirstThread();
   while (tp) {
@@ -96,7 +96,7 @@ void send_thread_states()
   g_ctime = 0;
 }
 
-static void check_frontend_errors()
+static void check_frontend_errors(void)
 {
   if (!frontend_errors) {
     chSysLock();
@@ -243,7 +243,7 @@ static void system_monitor_thread(void *arg)
   }
 }
 
-static void debug_threads()
+static void debug_threads(void)
 {
   const char* state[] = {
     CH_STATE_NAMES

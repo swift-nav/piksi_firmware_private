@@ -136,7 +136,7 @@ extern "C"
 {
 #endif
 
-tp_result_e tp_init();
+tp_result_e tp_init(void);
 tp_result_e tp_tracking_start(gnss_signal_t sid, const tp_report_t *data,
                               tp_config_t *config);
 tp_result_e tp_tracking_stop(gnss_signal_t sid);

@@ -65,7 +65,7 @@ void sbp_fileio_remove(const char *fn)
   sbp_send_msg(SBP_MSG_FILEIO_REMOVE, strlen(fn), (u8*)fn);
 }
 
-ssize_t sbp_fileio_write(const char *filename, off_t offset, const void *buf, size_t size)
+ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size_t size)
 {
   size_t s = 0;
   u8 payload_offset = sizeof(msg_fileio_write_req_t) + strlen(filename) + 1;
@@ -101,7 +101,7 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const void *buf, si
   return s;
 }
 
-ssize_t sbp_fileio_read(const char *filename, off_t offset, void *buf, size_t size)
+ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size)
 {
   size_t s = 0;
   struct sbp_fileio_closure closure;
@@ -136,4 +136,3 @@ ssize_t sbp_fileio_read(const char *filename, off_t offset, void *buf, size_t si
 
   return s;
 }
-

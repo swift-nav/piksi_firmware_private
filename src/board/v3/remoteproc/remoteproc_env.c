@@ -10,8 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <openamp/env.h>
-#include <openamp/hil.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+#include <openamp/open_amp.h>
+#pragma GCC diagnostic pop
 
 #include <stdlib.h>
 #include <string.h>
@@ -84,7 +86,7 @@ void remoteproc_env_irq_kick(void)
   }
 }
 
-int env_init()
+int env_init(void)
 {
   if (env_initialized) {
     return 0;
@@ -106,7 +108,7 @@ int env_init()
   return 0;
 }
 
-int env_deinit()
+int env_deinit(void)
 {
   env_initialized = false;
   return 0;
@@ -159,17 +161,17 @@ void *env_map_patova(unsigned long address)
   return (void *)address;
 }
 
-void env_mb()
+void env_mb(void)
 {
   asm volatile("dsb" : : : "memory");
 }
 
-void env_rmb()
+void env_rmb(void)
 {
   asm volatile("dsb" : : : "memory");
 }
 
-void env_wmb()
+void env_wmb(void)
 {
   asm volatile("dsb" : : : "memory");
 }
@@ -243,12 +245,12 @@ void env_sleep_msec(int num_msec)
   chThdSleepMilliseconds(num_msec);
 }
 
-void env_disable_interrupts()
+void env_disable_interrupts(void)
 {
   assert(!"unsupported");
 }
 
-void env_restore_interrupts()
+void env_restore_interrupts(void)
 {
   assert(!"unsupported");
 }

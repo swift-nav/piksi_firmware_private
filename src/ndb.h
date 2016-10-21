@@ -19,7 +19,7 @@
 #include <ndb/ndb_iono.h>
 #include <ndb/ndb_lgf.h>
 
-void ndb_setup();
-void ndb_sbp_updates();
+void ndb_setup(void);
+void ndb_sbp_updates(void);
 
 #endif /* SWIFTNAV_NDB_H */

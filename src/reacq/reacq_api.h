@@ -15,7 +15,7 @@
 /** \addtogroup reacq Reacqusition Framework
  * \{ */
 
-void manage_reacq();
+void manage_reacq(void);
 
 /** \} */
 

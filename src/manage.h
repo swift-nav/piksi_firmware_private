@@ -164,7 +164,6 @@ u8 tracking_channels_ready(manage_track_flags_t required_flags);
 bool tracking_startup_ready(gnss_signal_t sid);
 bool tracking_is_running(gnss_signal_t sid);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
-bool tracking_is_running(gnss_signal_t sid);
 
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);

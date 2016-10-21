@@ -166,7 +166,10 @@ int fallback_sprintf(char *str, const char *fmt, ...)
   f._bf._size = f._w = INT_MAX;
   f._file = -1;  /* No file. */
   va_start (ap, fmt);
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wredundant-decls"
   extern int  __real__svfprintf_r(struct _reent *r, FILE *f, const char *fmt, va_list va);
+  #pragma GCC diagnostic pop
   ret = __real__svfprintf_r(_REENT, &f, fmt, ap);
   va_end (ap);
   *f._p = '\0'; /* terminate the string */

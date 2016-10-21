@@ -15,7 +15,7 @@
 
 #include <ndb/ndb_common.h>
 
-void ndb_ephemeris_init();
+void ndb_ephemeris_init(void);
 enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) NDB_WEAK;
 enum ndb_op_code ndb_ephemeris_store(ephemeris_t *e,
                                      enum ndb_data_source) NDB_WEAK;
@@ -25,5 +25,5 @@ enum ndb_op_code ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
 enum ndb_op_code ndb_ephemeris_cache_update(ephemeris_t *cached_e,
                                             ndb_update_counter_t *uc) NDB_WEAK;
 
-void ndb_ephemeris_sbp_update();
+void ndb_ephemeris_sbp_update(void);
 #endif /* SRC_NDB_EPHEMERIS_H_ */

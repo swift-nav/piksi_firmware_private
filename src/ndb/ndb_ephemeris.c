@@ -58,11 +58,11 @@ static MUTEX_DECL(cand_list_access);
 #define EPHEMERIS_MESSAGE_SPACING_cycle        (200 / NV_WRITE_REQ_TIMEOUT)
 #define EPHEMERIS_TRANSMIT_EPOCH_SPACING_cycle (15000 / NV_WRITE_REQ_TIMEOUT)
 
-void ndb_ephemeris_init()
+void ndb_ephemeris_init(void)
 {
   memset(ephe_candidates, 0, sizeof(ephe_candidates));
 
-  ndb_load_data(&ndb_ephe_file, "ephemeris", ndb_ephemeris, ndb_ephemeris_md,
+  ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
                 sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
 }
 
@@ -205,6 +205,8 @@ enum ndb_op_code ndb_ephemeris_store(ephemeris_t *e, enum ndb_data_source src)
       case EPHE_NEW_CANDIDATE:
       case EPHE_CAND_MISMATCH:
         return NDB_ERR_UNRELIABLE_DATA;
+      default:
+        assert(!"Invalid status");
     }
   } else if (NDB_DS_SBP == src) {
     u8 valid, health_bits;
@@ -274,7 +276,7 @@ static u32 get_next_idx_to_send(gnss_signal_t *sid, u32 prev_idx)
 
 /** The function sends ephemeris if valid
  *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
-void ndb_ephemeris_sbp_update()
+void ndb_ephemeris_sbp_update(void)
 {
   static u32 count = 0;
   static u32 i = PLATFORM_SIGNAL_COUNT;

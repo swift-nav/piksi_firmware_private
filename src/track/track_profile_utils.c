@@ -353,6 +353,7 @@ static const state_table_t *select_table(tp_tm_e tracking_mode)
     return &mode_20ms1PN5;
 
   default:
+    assert(!"Invalid mode");
     break;
   }
 

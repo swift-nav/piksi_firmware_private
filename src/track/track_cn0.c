@@ -109,7 +109,7 @@ static track_cn0_config_t cn0_config PLATFORM_CN0_DATA = {
 /**
  * Helper to recompute estimator parameters
  */
-static void recompute_settings()
+static void recompute_settings(void)
 {
   for(u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / cn0_periods_ms[i];

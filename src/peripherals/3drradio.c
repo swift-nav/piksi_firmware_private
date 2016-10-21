@@ -105,8 +105,7 @@ void radio_preconfigure_hook(enum uart u, u32 default_baud, char* uart_name)
   usart_release(uart_state(u));
 }
 
-void radio_setup()
+void radio_setup(void)
 {
   SETTING("telemetry_radio", "configuration_string", commandstr, TYPE_STRING);
 }
-

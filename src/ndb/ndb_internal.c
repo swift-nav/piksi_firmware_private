@@ -104,7 +104,7 @@ static ndb_element_metadata_t *ndb_wq_get(void)
  *
  * \sa ndb_start
  */
-void ndb_init()
+void ndb_init(void)
 {
   if (!ndb_fs_is_real()) {
     log_info("NDB: configured not to save data to flash file system");
@@ -123,7 +123,7 @@ void ndb_init()
  *
  * \sa ndb_init
  */
-void ndb_start()
+void ndb_start(void)
 {
   chThdCreateStatic(ndb_thread_wa, sizeof(ndb_thread_wa),
                     NDB_THREAD_PRIORITY, ndb_service_thread, NULL);
@@ -149,6 +149,12 @@ static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
   case NDB_ERR_INIT_DONE:
     log_info("No %s file present in flash, create an empty one", file_type);
     break;
+  case NDB_ERR_MISSING_IE:
+  case NDB_ERR_UNSUPPORTED:
+  case NDB_ERR_BAD_PARAM:
+  case NDB_ERR_UNRELIABLE_DATA:
+  case NDB_ERR_ALGORITHM_ERROR:
+  case NDB_ERR_NO_DATA:
   default:
     assert(!"ndb_log_file_open()");
     break;
@@ -177,7 +183,7 @@ static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
  */
 void ndb_load_data(ndb_file_t *file,
                    const char *ftype,
-                   void *data,
+                   u8 *data,
                    ndb_element_metadata_t *metadata,
                    size_t el_size,
                    size_t el_number)
@@ -191,8 +197,8 @@ void ndb_load_data(ndb_file_t *file,
       ndb_read(file, 0, data, ds) == NDB_ERR_NONE &&
       ndb_read(file, ds, md_nv, mds) == NDB_ERR_NONE) {
 
-    void *ptr = data;
-    for (size_t i = 0; i < el_number; i++, ptr = (char*)ptr + el_size) {
+    u8 *ptr = data;
+    for (size_t i = 0; i < el_number; i++, ptr = ptr + el_size) {
       metadata[i].nv_data = md_nv[i];
 
       /* Check CRC: each block is protected with CRC24Q algorithm. The CRC
@@ -214,7 +220,7 @@ void ndb_load_data(ndb_file_t *file,
 
         ndb_write_file_data(file, el_size * i + 0, ptr, el_size);
         ndb_write_file_data(file, sizeof(metadata[i].nv_data) * i + ds,
-                            &metadata[i].nv_data, sizeof(metadata[i].nv_data));
+                            (u8 *)&metadata[i].nv_data, sizeof(metadata[i].nv_data));
       }
     }
     r = NDB_ERR_NONE;
@@ -228,7 +234,7 @@ void ndb_load_data(ndb_file_t *file,
     /* And save to file */
     memset(md_nv, 0, mds);
     if (ndb_write_file_data(file, 0, data, ds) == NDB_ERR_NONE &&
-        ndb_write_file_data(file, ds, md_nv, mds) == NDB_ERR_NONE &&
+        ndb_write_file_data(file, ds, (u8 *)md_nv, mds) == NDB_ERR_NONE &&
         /* Write non zero byte to the end of file to work around coffee fs
          * feature of dropping zeros from the end of file. */
         ndb_write_file_data(file, ds + mds, &ndb_file_end_mark, 1) == NDB_ERR_NONE) {
@@ -253,7 +259,7 @@ void ndb_load_data(ndb_file_t *file,
  *
  * \return TAI time in seconds
  */
-ndb_timestamp_t ndb_get_timestamp()
+ndb_timestamp_t ndb_get_timestamp(void)
 {
   /* FIXME - this should be TAI time based on GPS time */
   return nap_count_to_ms(nap_timing_count()) / 1000;
@@ -353,7 +359,7 @@ static enum ndb_op_code ndb_wq_process(void)
 
     off_t offset = (block_size * file->n_elements +
                     sizeof(ndb_element_metadata_nv_t) * index);
-    ret = ndb_write_file_data(file, offset, &nv_data, sizeof(nv_data));
+    ret = ndb_write_file_data(file, offset, (u8 *)&nv_data, sizeof(nv_data));
   }
   return ret;
 }
@@ -422,7 +428,7 @@ static enum ndb_op_code ndb_open_file(ndb_file_t *file)
  */
 enum ndb_op_code ndb_write_file_data(ndb_file_t *file,
                                      off_t off,
-                                     const void *src,
+                                     const u8 *src,
                                      size_t size)
 {
   off_t   offset = sizeof(ndb_file_version) + off;

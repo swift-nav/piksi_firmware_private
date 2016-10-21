@@ -61,8 +61,10 @@ static u32 tp_convert_ms_to_chips(gnss_signal_t sid, u8 ms)
     chip_rate = GLO_CA_CHIPS_NUM;
     break;
 
+  case CONSTELLATION_INVALID:
+  case CONSTELLATION_COUNT:
   default:
-    assert(!"Unsupported constellation");
+    assert(!"Invalid constellation");
   }
 
   return ms * chip_rate;

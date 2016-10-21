@@ -21,8 +21,8 @@
 # define L2C_WEAK __attribute__ ((weak, alias ("l2c_not_implemented")))
 #endif  /* TRACK_GPS_L2CM_INTERNAL */
 
-int l2c_not_implemented() __attribute__ ((weak));
-inline int l2c_not_implemented() { return -1; }
+int l2c_not_implemented(void) __attribute__ ((weak));
+inline int l2c_not_implemented(void) { return -1; }
 
 /* not weak as it is used in L2C builds only */
 void track_gps_l2cm_register(void);

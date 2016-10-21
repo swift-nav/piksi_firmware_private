@@ -16,7 +16,7 @@
 #include <libswiftnav/ionosphere.h>
 #include <ndb/ndb_common.h>
 
-void ndb_iono_init();
+void ndb_iono_init(void);
 enum ndb_op_code ndb_iono_corr_read(ionosphere_t *iono) NDB_WEAK;
 enum ndb_op_code ndb_iono_corr_store(ionosphere_t *iono,
                                             enum ndb_data_source src) NDB_WEAK;

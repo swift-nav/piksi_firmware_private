@@ -43,6 +43,8 @@ static bool cnav_msg_type_id_valid(u8 msg_id)
   case CNAV_MSG_TYPE_32:
   case CNAV_MSG_TYPE_33:
     return true;
+  default:
+    assert(!"Unsupported CNAV message type");
   }
 
   return false;

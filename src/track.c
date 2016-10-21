@@ -1070,6 +1070,11 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
     tracker_channel->state = STATE_DISABLED;
   }
   break;
+
+  default: {
+    assert(!"Invalid event");
+  }
+  break;
   }
 }
 

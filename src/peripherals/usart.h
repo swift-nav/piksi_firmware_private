@@ -78,7 +78,7 @@ extern usart_state ftdi_state;
 extern usart_state uarta_state;
 extern usart_state uartb_state;
 
-void usarts_setup();
+void usarts_setup(void);
 
 void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_preconfigure_hooks);
 void usarts_disable(void);
@@ -105,4 +105,3 @@ u32 usart_support_read_timeout(void *sd, u8 data[], u32 len, u32 timeout);
 u32 usart_support_write(void *sd, const u8 data[], u32 len);
 
 #endif  /* SWIFTNAV_USART_H */
-
