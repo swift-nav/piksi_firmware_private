@@ -306,6 +306,19 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
       }
     }
 
+    if ((dopp_hint < ACQ_FULL_CF_MIN) || (dopp_hint > ACQ_FULL_CF_MAX)) {
+      log_error_sid(sid,
+                    "Acq: bogus dopp_hint (unc,hint,lgf_pos[0..2],bias) "
+                    "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1lf)",
+                    dopp_uncertainty,
+                    dopp_hint,
+                    lgf.position_solution.pos_ecef[0],
+                    lgf.position_solution.pos_ecef[1],
+                    lgf.position_solution.pos_ecef[2],
+                    lgf.position_solution.clock_bias);
+      return SCORE_COLDSTART;
+    }
+
     /* Return the doppler hints and a score proportional to elevation */
     *dopp_hint_low = dopp_hint - dopp_uncertainty;
     *dopp_hint_high = dopp_hint + dopp_uncertainty;
@@ -394,10 +407,12 @@ static void manage_acq()
   }
 
   /* Check for NaNs in dopp hints, or low > high */
-  if (!(acq->dopp_hint_low <= acq->dopp_hint_high)) {
-    log_error("Acq: caught bogus dopp_hints (%f, %f)",
-              acq->dopp_hint_low,
-              acq->dopp_hint_high);
+  if ((acq->dopp_hint_low > acq->dopp_hint_high) ||
+      (acq->dopp_hint_low < ACQ_FULL_CF_MIN) ||
+      (acq->dopp_hint_high > ACQ_FULL_CF_MAX)) {
+    log_error_sid(acq->sid, "Acq: caught bogus dopp_hints (%lf, %lf)",
+                  acq->dopp_hint_low,
+                  acq->dopp_hint_high);
     acq->dopp_hint_high = ACQ_FULL_CF_MAX;
     acq->dopp_hint_low = ACQ_FULL_CF_MIN;
   }
@@ -530,13 +545,23 @@ static void drop_channel(u8 channel_id) {
    * that the tracking channel is not restarted in the mean time.
    */
   gnss_signal_t sid = tracking_channel_sid_get(channel_id);
-  double carrier_freq = tracking_channel_carrier_freq_get(channel_id);
   acq_status_t *acq = &acq_status[sid_to_global_index(sid)];
-  if (tracking_channel_running_time_ms_get(channel_id) > TRACK_REACQ_T) {
-    /* FIXME other constellations/bands */
-    acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
-    acq->dopp_hint_low = carrier_freq - ACQ_FULL_CF_STEP;
-    acq->dopp_hint_high = carrier_freq + ACQ_FULL_CF_STEP;
+  bool had_locks = tracking_channel_had_locks(channel_id);
+  u32 time_in_track = tracking_channel_running_time_ms_get(channel_id);
+  bool long_in_track = time_in_track > TRACK_REACQ_T;
+  u32 unlocked_time = tracking_channel_ld_pess_unlocked_ms_get(channel_id);
+  bool long_unlocked = unlocked_time > TRACK_REACQ_T;
+
+  if (long_in_track && had_locks && !long_unlocked) {
+    double carrier_freq = tracking_channel_carrier_freq_at_lock_get(channel_id);
+    if ((carrier_freq < ACQ_FULL_CF_MIN) || (carrier_freq > ACQ_FULL_CF_MAX)) {
+      log_error_sid(sid, "Acq: bogus carr freq: %f. Rejected.", carrier_freq);
+    } else {
+      /* FIXME other constellations/bands */
+      acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
+      acq->dopp_hint_low = carrier_freq - ACQ_FULL_CF_STEP;
+      acq->dopp_hint_high = carrier_freq + ACQ_FULL_CF_STEP;
+    }
   }
   acq->state = ACQ_PRN_ACQUIRING;
 

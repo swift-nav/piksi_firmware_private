@@ -444,7 +444,7 @@ void tp_tracker_update_cycle_counter(tp_tracker_data_t *data)
 void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
                                     const tp_tracker_data_t *data)
 {
-  track_cmn_flags_t flags = 0;
+  track_cmn_flags_t flags = common_data->flags & TRACK_CMN_FLAG_STICKY_MASK;
 
   if (data->confirmed) {
     flags |= TRACK_CMN_FLAG_CONFIRMED;
@@ -459,6 +459,8 @@ void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
     if (data->lock_detect.outp) {
       /* PLL pessimistic lock */
       flags |= TRACK_CMN_FLAG_HAS_PLOCK;
+      flags |= TRACK_CMN_FLAG_HAD_PLOCK;
+      common_data->carrier_freq_at_lock = common_data->carrier_freq;
     }
     if (data->mode_fll) {
       flags |= TRACK_CMN_FLAG_FLL_USE;
@@ -468,7 +470,11 @@ void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
     if (data->lock_detect.outp) {
       /* FLL lock criteria */
       flags |= TRACK_CMN_FLAG_HAS_FLOCK;
+      flags |= TRACK_CMN_FLAG_HAD_FLOCK;
+      common_data->carrier_freq_at_lock = common_data->carrier_freq;
     }
+  } else {
+    assert(!"Unknown tracking loop configuration");
   }
 
   common_data->flags = flags;
