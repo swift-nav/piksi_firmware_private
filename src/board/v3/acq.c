@@ -74,9 +74,21 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Loop over Doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
   s32 doppler_bin_max = (s32)floorf(cf_max / cf_bin_width);
-  for (s32 doppler_bin = doppler_bin_min; doppler_bin <= doppler_bin_max;
-       doppler_bin++) {
-
+  s32 start_bin = 0;            /* Start search from center bin */
+  s32 doppler_bin = start_bin;
+  s32 ind1 = -1;                /* Used to flip between +1 and -1 */
+  s32 ind2 = 1;                 /* Used to compute bin index with (ind2 / 2)
+                                 * resulting in sequence 0,1,1,2,2,3,3,... */
+  s32 bin_index = doppler_bin_min;
+  while (bin_index <= doppler_bin_max) {
+    doppler_bin = start_bin + ind1 * (ind2 / 2);
+    ind1 *= -1;
+    ind2 += 1;
+    if (doppler_bin > doppler_bin_max || doppler_bin < doppler_bin_min) {
+      /* If frequency range reached, continue the other frequency side. */
+      continue;
+    }
+    bin_index += 1;
     s32 sample_offset = (s32)roundf(doppler_bin * cf_bin_width / fft_bin_width);
     /* Actual computed Doppler */
     float doppler = sample_offset * fft_bin_width;
