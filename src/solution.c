@@ -792,6 +792,7 @@ static void solution_thread(void *arg)
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
+     // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &lgf.position_solution, &dops);
     if (pvt_ret < 0) {
@@ -840,10 +841,13 @@ static void solution_thread(void *arg)
 
     if (!simulation_enabled()) {
       /* Output solution. */
-      solution_send_sbp(&lgf.position_solution, &dops, clock_jump);
+
+      bool disable_velocity = clock_jump ||
+                              (lgf.position_solution.velocity_valid == 0);
+      solution_send_sbp(&lgf.position_solution, &dops, disable_velocity);
       solution_send_nmea(&lgf.position_solution, &dops,
                          n_ready_tdcp, nav_meas_tdcp,
-                         NMEA_GGA_FIX_GPS, clock_jump);
+                         NMEA_GGA_FIX_GPS, disable_velocity);
     }
 
     /*
@@ -881,10 +885,15 @@ static void solution_thread(void *arg)
           memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
         }
 
-        nm->raw_carrier_phase += t_err * nm->raw_doppler;
+        double doppler = 0.0;
+        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+          doppler = nm->raw_measured_doppler;
+        }
+
+        nm->raw_carrier_phase += t_err * doppler;
         /* Note, the pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -= t_err * nm->raw_doppler *
+        nm->raw_pseudorange -= t_err * doppler *
                                code_to_lambda(nm->sid.code);
 
         /* Also apply the time correction to the time of transmission so the
