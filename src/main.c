@@ -52,6 +52,8 @@ int main(void)
 
   /* Piksi hardware initialization. */
   pre_init();
+  /* Initialize rollover counter */
+  nap_timing_count();
 
   sbp_setup();
   settings_setup();
