@@ -181,17 +181,20 @@ void sbp_disable()
 /** Checks if the message should be sent from a particular USART. */
 static inline u32 use_usart(usart_settings_t *us, u16 msg_type, u16 sender_id)
 {
-  if (us->mode != SBP)
+  if (us->mode != SBP) {
     /* This USART is not in SBP mode. */
     return 0;
+  }
 
-  if (!(us->sbp_message_mask & msg_type))
+  if (!(us->sbp_message_mask & msg_type)) {
     /* This message type is masked out on this USART. */
     return 0;
+  }
 
-  if(!us->sbp_fwd && sender_id == 0)
+  if(!us->sbp_fwd && sender_id == 0) {
     /* This USART is set up to not forward any messages (sender ID of 0).*/
     return 0;
+  }
 
   return 1;
 }
@@ -237,23 +240,23 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
 
   /* Don't relayed messages (sender_id 0) on the A and B UARTs. (Only FTDI USB) */
 
-    if (use_usart(&uarta_usart, msg_type, sender_id) && usart_claim(&uarta_state, SBP_MODULE)) {
-      usart_write(&uarta_state, sbp_buffer, sbp_buffer_length);
-      usart_release(&uarta_state);
-    }
+  if (use_usart(&uarta_usart, msg_type, sender_id) && usart_claim(&uarta_state, SBP_MODULE)) {
+    usart_write(&uarta_state, sbp_buffer, sbp_buffer_length);
+    usart_release(&uarta_state);
+  }
 
-    uart_state_msg.uart_a.tx_buffer_level =
-      MAX(uart_state_msg.uart_a.tx_buffer_level,
-        255 - (255 * usart_tx_n_free(&uarta_state)) / (SERIAL_BUFFERS_SIZE-1));
+  uart_state_msg.uart_a.tx_buffer_level =
+    MAX(uart_state_msg.uart_a.tx_buffer_level,
+      255 - (255 * usart_tx_n_free(&uarta_state)) / (SERIAL_BUFFERS_SIZE-1));
 
-    if (use_usart(&uartb_usart, msg_type, sender_id) && usart_claim(&uartb_state, SBP_MODULE)) {
-      usart_write(&uartb_state, sbp_buffer, sbp_buffer_length);
-      usart_release(&uartb_state);
-    }
+  if (use_usart(&uartb_usart, msg_type, sender_id) && usart_claim(&uartb_state, SBP_MODULE)) {
+    usart_write(&uartb_state, sbp_buffer, sbp_buffer_length);
+    usart_release(&uartb_state);
+  }
 
-    uart_state_msg.uart_b.tx_buffer_level =
-      MAX(uart_state_msg.uart_b.tx_buffer_level,
-        255 - (255 * usart_tx_n_free(&uartb_state)) / (SERIAL_BUFFERS_SIZE-1));
+  uart_state_msg.uart_b.tx_buffer_level =
+    MAX(uart_state_msg.uart_b.tx_buffer_level,
+      255 - (255 * usart_tx_n_free(&uartb_state)) / (SERIAL_BUFFERS_SIZE-1));
 
   if (use_usart(&ftdi_usart, msg_type, sender_id) && usart_claim(&ftdi_state, SBP_MODULE)) {
     usart_write(&ftdi_state, sbp_buffer, sbp_buffer_length);
@@ -290,8 +293,9 @@ void sbp_process_messages()
   if (usart_claim(&uarta_state, SBP_MODULE)) {
     while (usart_n_read(&uarta_state) > 0) {
       ret = sbp_process(&uarta_sbp_state, &uart_read);
-      if (ret == SBP_CRC_ERROR)
+      if (ret == SBP_CRC_ERROR) {
         uart_state_msg.uart_a.crc_error_count++;
+      }
     }
     usart_release(&uarta_state);
   }
@@ -303,8 +307,9 @@ void sbp_process_messages()
   if (usart_claim(&uartb_state, SBP_MODULE)) {
     while (usart_n_read(&uartb_state) > 0) {
       ret = sbp_process(&uartb_sbp_state, &uart_read);
-      if (ret == SBP_CRC_ERROR)
+      if (ret == SBP_CRC_ERROR) {
         uart_state_msg.uart_b.crc_error_count++;
+      }
     }
     usart_release(&uartb_state);
   }
@@ -316,8 +321,9 @@ void sbp_process_messages()
   if (usart_claim(&ftdi_state, SBP_MODULE)) {
     while (usart_n_read(&ftdi_state) > 0) {
       ret = sbp_process(&ftdi_sbp_state, &uart_read);
-      if (ret == SBP_CRC_ERROR)
+      if (ret == SBP_CRC_ERROR) {
         uart_state_msg.uart_ftdi.crc_error_count++;
+      }
     }
     usart_release(&ftdi_state);
   }
