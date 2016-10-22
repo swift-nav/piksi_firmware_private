@@ -44,7 +44,7 @@ static struct test_case_t test_cases[] = {
   {20, 0x0, 0x0, 0x0, 0xffffffff, 0,   0x0, 0x0},/* All unhealthy all tracked */
   {30, 0x1, 0x1, 0x1, 0x0, 0,   0xffffffff, 0x0},/* 1 healthy, not tracked, visible */
   {30, 0x1, 0x0, 0x1, 0x0, 0,   0xfffffffe, 0x0},/* 1 healthy, not tracked,
-						    invisible */
+                                                    invisible */
   {30, 0x1, 0x0, 0x0, 0x0, 0,   0xffffffff, 0x0},/* 1 healthy, not tracked, unknown */
   /* Timeouts */
   /* 1 healthy, not tracked, visible */
@@ -65,7 +65,7 @@ static struct test_case_t test_cases[] = {
  * \param[out] known set if SV is known visible or known invisible
  */
 void sm_get_visibility_flags(gnss_signal_t sid,
-			     bool *visible, bool *known)
+                             bool *visible, bool *known)
 {
   if (0 != (test_case->vis_mask & (1 << sid_to_code_index(sid)))) {
     *visible = true;

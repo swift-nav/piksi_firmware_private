@@ -174,6 +174,9 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/reacq/reacq_sbp_utility.o \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager.o \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager_utils.o \
+        $(SWIFTNAV_ROOT)/src/reacq/scheduler.o \
+        $(SWIFTNAV_ROOT)/src/reacq/scheduler_utils.o \
+        $(SWIFTNAV_ROOT)/src/reacq/task_generator.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c
