@@ -106,32 +106,15 @@
 /** Tracking channel flag: is FLL lock present */
 #define MANAGE_TRACK_FLAG_FLL_LOCK       (1u << 18)
 
-
 /* Tracking channel state masks */
-/** Legacy tracking channel mask..
- *
- * Legacy flags include the following conditions:
- * - Tracker is active
- * - There is no error
- * - Tracker is in confirmed state
- * - C/N0 is above threshold for a shorter period of time
- * - SV elevation is above threshold
- * - ToW for SV is known
- * - Ephemeris is present in the database
- * - SV health status is OK
- * - SV navigation health status is OK
- * - Tracker is PLL mode, and has pessimistic lock for some time
- */
-#define MANAGE_TRACK_LEGACY_USE_FLAGS \
+
+/** Tracking channel mask for use with reporting */
+#define MANAGE_TRACK_STATUS_FLAGS \
   (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR | \
    MANAGE_TRACK_FLAG_CONFIRMED | MANAGE_TRACK_FLAG_CN0_SHORT | \
    MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_TOW | \
-   MANAGE_TRACK_FLAG_PLL_USE | MANAGE_TRACK_FLAG_PLL_PLOCK | \
-   MANAGE_TRACK_FLAG_CONFIRMED_LOCK | MANAGE_TRACK_FLAG_HAS_EPHE | \
-   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE)
-
-/** Tracking channel mask for use with reporting */
-#define MANAGE_TRACK_STATUS_FLAGS MANAGE_TRACK_LEGACY_USE_FLAGS
+   MANAGE_TRACK_FLAG_HAS_EPHE | MANAGE_TRACK_FLAG_HEALTHY | \
+   MANAGE_TRACK_FLAG_NAV_SUITABLE)
 
 /** Tracking channel flags mask. */
 typedef u32 manage_track_flags_t;

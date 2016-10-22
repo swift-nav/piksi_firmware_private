@@ -11,6 +11,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include <libswiftnav/cnav_msg.h>
 #include <libsbp/sbp.h>
@@ -59,6 +60,24 @@
 #define DGNSS_TIMEOUT(soln_freq_hz) MS2ST((DGNSS_TIMEOUT_PERIODS * \
   1/((float) (soln_freq_hz)) * 1000))
 
+/** Flags for SBP */
+#define NAV_MEAS_FLAGS_SBP (NAV_MEAS_FLAG_CODE_VALID | \
+                            NAV_MEAS_FLAG_PHASE_VALID | \
+                            NAV_MEAS_FLAG_MEAS_DOPPLER_VALID | \
+                            NAV_MEAS_FLAG_HALF_CYCLE_KNOWN)
+/** Mandatory flags filter for measurements */
+#define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
+                                   MANAGE_TRACK_FLAG_NO_ERROR | \
+                                   MANAGE_TRACK_FLAG_CONFIRMED | \
+                                   MANAGE_TRACK_FLAG_CN0_SHORT | \
+                                   MANAGE_TRACK_FLAG_ELEVATION | \
+                                   MANAGE_TRACK_FLAG_HAS_EPHE | \
+                                   MANAGE_TRACK_FLAG_HEALTHY | \
+                                   MANAGE_TRACK_FLAG_NAV_SUITABLE | \
+                                   MANAGE_TRACK_FLAG_TOW )
+/** Minimum number of measurements to use with PVT */
+#define MINIMUM_MEAS_COUNT 4
+
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
@@ -82,7 +101,7 @@ u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
 double known_baseline[3] = {0, 0, 0};
-u16 msg_obs_max_size = 102;
+s16 msg_obs_max_size = 102;
 
 static last_good_fix_t lgf;
 
@@ -266,14 +285,14 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   }
 }
 
-static void send_observations(u8 n, const navigation_measurement_t *m,
+static void send_observations(u8 n, const navigation_measurement_t m[],
                               const gps_time_t *t)
 {
   static u8 buff[256];
 
   /* Upper limit set by SBP framing size, preventing underflow */
   u16 msg_payload_size = MAX(
-      MIN(msg_obs_max_size, SBP_FRAMING_MAX_PAYLOAD_SIZE),
+      MIN((u16)MAX(msg_obs_max_size, 0), SBP_FRAMING_MAX_PAYLOAD_SIZE),
       sizeof(observation_header_t)
     ) - sizeof(observation_header_t);
 
@@ -283,43 +302,64 @@ static void send_observations(u8 n, const navigation_measurement_t *m,
   /* Round down the number of observations per message */
   u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_t);
 
+  u8 n_rtk = 0;
+  for (u8 i = 0; i < n; ++i) {
+    if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP)) {
+      n_rtk++;
+    }
+  }
+  if (0 == n_rtk) {
+    /* Nothing to send */
+    return;
+  }
+
   /* Round up the number of messages */
-  u16 total = MIN((n + obs_in_msg - 1) / obs_in_msg, MSG_OBS_HEADER_MAX_SIZE);
+  u16 total = MIN((n_rtk + obs_in_msg - 1) / obs_in_msg,
+                  MSG_OBS_HEADER_MAX_SIZE);
 
   u8 obs_i = 0;
-  for (u8 count = 0; count < total; count++) {
-
-    u8 curr_n = MIN(n - obs_i, obs_in_msg);
+  for (u8 count = 0; count < total && obs_i < n_rtk; count++) {
+    u8 curr_n = MIN(n_rtk - obs_i, obs_in_msg);
     pack_obs_header(t, total, count, (observation_header_t*) buff);
     packed_obs_content_t *obs = (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
-    for (u8 i = 0; i < curr_n; i++, obs_i++) {
-      if (pack_obs_content(m[obs_i].raw_pseudorange,
-            m[obs_i].raw_carrier_phase,
-            m[obs_i].cn0,
-            m[obs_i].lock_counter,
-            m[obs_i].sid,
-            &obs[i]) < 0) {
-        /* Error packing this observation, skip it. */
-        i--;
-        curr_n--;
+    for (u8 i = 0; i < obs_in_msg && obs_i < n_rtk; i++) {
+      if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP) &&
+          pack_obs_content(m[obs_i].raw_pseudorange,
+                           m[obs_i].raw_carrier_phase,
+                           m[obs_i].cn0,
+                           m[obs_i].lock_counter,
+                           m[obs_i].sid,
+                           &obs[i]) >= 0) {
+        /* Packed. */
+        obs_i++;
       }
     }
 
     sbp_send_msg(SBP_MSG_OBS,
-      sizeof(observation_header_t) + curr_n*sizeof(packed_obs_content_t),
-      buff);
-
+          sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
+          buff);
   }
 }
 
-static void post_observations(u8 n, const navigation_measurement_t *m,
+static void post_observations(u8 n, const navigation_measurement_t m[],
                               const gps_time_t *t)
 {
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
+
+  u8 n_rtk = 0;
+  for (u8 i = 0; i < n; ++i) {
+    if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP)) {
+      n_rtk++;
+    }
+  }
+  if (0 == n_rtk) {
+    /* Nothing to send */
+    return;
+  }
 
   obss_t *obs = chPoolAlloc(&obs_buff_pool);
   msg_t ret;
@@ -331,17 +371,25 @@ static void post_observations(u8 n, const navigation_measurement_t *m,
       log_error("Pool full and mailbox empty!");
     }
   }
-  obs->tor = *t;
-  obs->n = n;
-  memcpy(obs->nm, m, obs->n * sizeof(obs->nm[0]));
-  ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
-  if (ret != MSG_OK) {
-    /* We could grab another item from the mailbox, discard it and then
-     * post our obs again but if the size of the mailbox and the pool
-     * are equal then we should have already handled the case where the
-     * mailbox is full when we handled the case that the pool was full.
-     * */
-    log_error("Mailbox should have space!");
+  if (NULL != obs) {
+    obs->tor = *t;
+    obs->n = n_rtk;
+    for (u8 i = 0, cnt = 0; i < n; ++i) {
+      if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP)) {
+        obs->nm[cnt++] = m[i];
+      }
+    }
+
+    ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+    if (ret != MSG_OK) {
+      /* We could grab another item from the mailbox, discard it and then
+       * post our obs again but if the size of the mailbox and the pool
+       * are equal then we should have already handled the case where the
+       * mailbox is full when we handled the case that the pool was full.
+       * */
+      log_error("Mailbox should have space!");
+      chPoolFree(&obs_buff_pool, obs);
+    }
   }
 }
 
@@ -438,6 +486,147 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
   chSysUnlock();
 }
 
+/**
+ * Counts SV with required flags.
+ *
+ * The method counts SV whose measurements contain required flags.
+ *
+ * \param[in] n_ready Total count of input entries.
+ * \param[in] meas    Channel measurements.
+ * \param[in] flags   Required flags.
+ *
+ * \return Number of SV whose measurements have flags.
+ */
+static u32 count_meas_with_accuracy(u8 n_ready,
+                                    const channel_measurement_t meas[],
+                                    chan_meas_flags_t flags)
+{
+  gnss_sid_set_t codes_in_track;
+
+  sid_set_init(&codes_in_track);
+  for (u8 i = 0; i < n_ready; i++) {
+    if (flags == (meas[i].flags & flags)) {
+      sid_set_add(&codes_in_track, meas[i].sid);
+    }
+  }
+
+  return sid_set_get_sat_count(&codes_in_track);
+}
+
+/**
+ * The method excludes measurements that might decrease accuracy.
+ *
+ * The method selects the lowest measurement accuracy requirement, for which
+ * at least 4 SVs are available.
+ *
+ * \param[in]     n_ready Number of available measurements.
+ * \param[in,out] meas    Measurements data vector.
+ *
+ * \return Number of available measurements.
+ */
+static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
+{
+  static const chan_meas_flags_t flags[] = {
+    /* High phase accuracy only (high code accuracy implied) */
+    CHAN_MEAS_FLAG_PHASE_VALID | CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN |
+    CHAN_MEAS_FLAG_CODE_VALID | CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
+    /* Some phase accuracy  (high code accuracy implied) */
+    CHAN_MEAS_FLAG_PHASE_VALID | CHAN_MEAS_FLAG_CODE_VALID |
+    CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
+    /* Any phase accuracy, high code accuracy */
+    CHAN_MEAS_FLAG_CODE_VALID | CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
+    /* Any phase accuracy, high or low code accuracy */
+    CHAN_MEAS_FLAG_CODE_VALID,
+  };
+
+  /* Go though criteria vector from the most strict till the least strict, and
+   * count the individual SVs that match the criteria.
+   *
+   * Matching for the upper criteria also means that lower criteria is met.
+   *
+   * As long as there is no measurement weighting in PVT, try to drop the least
+   * accurate measurements, as long as total number of SVs is above a threshold.
+   *
+   * TODO Instead of filtering out measurements, implement weight computation
+   *      and support in PVT.
+   */
+  u8 idx  = 0;
+  for (idx = 0;
+       idx < sizeof(flags) / sizeof(flags[0]) &&
+       count_meas_with_accuracy(n_ready,
+                                meas,
+                                flags[idx]) < MINIMUM_MEAS_COUNT;
+       ++idx) {
+    /* Noop */
+  }
+
+  if (idx == sizeof(flags) / sizeof(flags[0])) {
+    /* Not found */
+    n_ready = 0;
+  } else {
+    chan_meas_flags_t requred_flags = flags[idx];
+
+    /* Ignore measurements with insufficient accuracy for now
+     *
+     * TODO change the accuracy filtering into algorithm of processing
+     *      observation weights */
+    for (u8 i = 0; i < n_ready; ) {
+      if (requred_flags != (meas[i].flags & requred_flags)) {
+        /* This measurement can't be used */
+        meas[i] = meas[n_ready - 1];
+        --n_ready;
+      } else {
+        ++i;
+      }
+    }
+  }
+
+  return n_ready;
+}
+
+/**
+ * Collects channel measurements and auxilary data.
+ *
+ * \param[in]  rec_tc    Timestamp [samples]
+ * \param[out] meas      Destination measurement array.
+ * \param[out] pn_ready  Destination for measurement array size.
+ * \param[out] pn_total  Destination for total active trackers count.
+ *
+ * \return None
+ */
+static void collect_measurements(u64 rec_tc,
+                                 channel_measurement_t meas[MAX_CHANNELS],
+                                 u8 *pn_ready,
+                                 u8 *pn_total)
+{
+  u8 n_collected = 0;
+  u8 n_active = 0;
+
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    manage_track_flags_t flags      = 0; /* Channel flags accumulator */
+    flags = get_tracking_channel_meas(i, rec_tc, &meas[n_collected]);
+
+    if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
+        0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
+        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR))
+    {
+      n_active++;
+      if (0 != (flags & MANAGE_TRACK_FLAG_HEALTHY) &&
+          0 != (flags & MANAGE_TRACK_FLAG_NAV_SUITABLE) &&
+          0 != (flags & MANAGE_TRACK_FLAG_ELEVATION) &&
+          0 != (flags & MANAGE_TRACK_FLAG_TOW) &&
+          0 != (flags & MANAGE_TRACK_FLAG_HAS_EPHE) &&
+          0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) &&
+          0 != meas[n_collected].flags) {
+        n_collected++;
+      }
+    }
+  }
+
+  *pn_ready = n_collected;
+  *pn_total = n_active;
+}
+
 static THD_WORKING_AREA(wa_solution_thread, 2000000);
 static void solution_thread(void *arg)
 {
@@ -465,33 +654,37 @@ static void solution_thread(void *arg)
 
     u64 rec_tc = nap_timing_count();
     gps_time_t rec_time = rx2gpstime(rec_tc);
-    u8 n_ready = 0;
+    u8 n_collected = 0;
+    u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
-    cnav_msg_t cnav_30[MAX_CHANNELS];
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
-      manage_track_flags_t flags = 0;
 
-      flags = get_tracking_channel_meas(i, rec_tc, &meas[n_ready]);
+    /* Collect measurements from trackers */
+    collect_measurements(rec_tc, meas, &n_collected, &n_total);
 
-      if (MANAGE_TRACK_LEGACY_USE_FLAGS == (flags & MANAGE_TRACK_LEGACY_USE_FLAGS) &&
-        shm_navigation_suitable(meas[n_ready].sid)) {
-        n_ready++;
-      } else {
-        log_debug_sid(meas[n_ready].sid,
-                      "Satellite not suitable for navigation");
-      }
+    u8 n_ready = n_collected;
+    if (n_collected >= MINIMUM_MEAS_COUNT) {
+      /* Select best measurements. */
+      n_ready = filter_out_measurements(n_collected, meas);
     }
 
+    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
+              " (total=%" PRIu8 ")", n_ready, n_collected, n_total);
+
+    if (n_ready < MINIMUM_MEAS_COUNT) {
+      /* Not enough sats, keep on looping. */
+
+      /* TODO if there are not enough SVs to compute PVT, shouldn't caches
+       *      below be reset? I.e. nav_meas_old and nav_meas_tdcp? */
+
+      continue;
+    }
+
+    cnav_msg_t cnav_30[MAX_CHANNELS];
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
-    for (u8 i=0; i<n_ready; i++) {
+    for (u8 i=0; i < n_ready; i++) {
       p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
                      &cnav_30[i].data.type_30 : NULL;
     }
-
-    gnss_sid_set_t codes_in_track;
-    sid_set_init(&codes_in_track);
-    for (u8 i=0; i<n_ready; i++)
-      sid_set_add(&codes_in_track, meas[i].sid);
 
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
     const channel_measurement_t *p_meas[n_ready];
@@ -499,7 +692,11 @@ static void solution_thread(void *arg)
     static ephemeris_t e_meas[MAX_CHANNELS];
     const ephemeris_t *p_e_meas[n_ready];
 
-    /* Create arrays of pointers for use in calc_navigation_measurement */
+    /* Create arrays of pointers for use in calc_navigation_measurement
+     *
+     * TODO Ephemeris are already loaded once when extended flags are computed.
+     *      NDB access can be optimized out.
+     */
     for (u8 i = 0; i < n_ready; i++) {
       p_meas[i] = &meas[i];
       p_nav_meas[i] = &nav_meas[i];
