@@ -44,7 +44,7 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
     vis_cfg.lgf_time = lgf.position_solution.time;
     vis_cfg.user_velocity = ACQ_MAX_USER_VELOCITY_MPS;
     vis_cfg.time_delta = (u32)((nap_timing_count() -
-				gps2rxtime(&lgf.position_solution.time)) *
+                                gps2rxtime(&lgf.position_solution.time)) *
                                RX_DT_NOMINAL);
 
     sv_visibility_status_get(&vis_cfg, visible, known);
@@ -79,7 +79,7 @@ bool sm_lgf_stamp(u64 *lgf_stamp)
   }
  
   *lgf_stamp = (u64)(gps2rxtime(&lgf.position_solution.time)
-		     * (RX_DT_NOMINAL * 1000.0));
+                     * (RX_DT_NOMINAL * 1000.0));
   return true;
 }
 
