@@ -467,7 +467,8 @@ static void solution_thread(void *arg)
       if (use_tracking_channel(i)) {
         tracking_channel_measurement_get(i, rec_tc, &meas[n_ready]);
         /* TODO Placeholder for flags computation */
-        meas[n_ready].flags = CHAN_MEAS_FLAG_SPP_OK | CHAN_MEAS_FLAG_RTK_OK;
+        meas[n_ready].flags = (CHAN_MEAS_FLAG_CODE_ACC_HIGH |
+                               CHAN_MEAS_FLAG_PHASE_ACC_HIGH);
         if (shm_navigation_suitable(meas[n_ready].sid)) {
           n_ready++;
         } else {
