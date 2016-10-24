@@ -36,6 +36,13 @@ typedef u32 update_count_t;
 #define TRACK_CMN_FLAG_HAS_OLOCK   (1 << 4)
 /** Tracker flag: tracker is using FLL and has frequency lock */
 #define TRACK_CMN_FLAG_HAS_FLOCK   (1 << 5)
+/** Tracker flag: tracker has ever had PLL pessimistic lock */
+#define TRACK_CMN_FLAG_HAD_PLOCK   (1 << 6)
+/** Tracker flag: tracker has ever had FLL pessimistic lock */
+#define TRACK_CMN_FLAG_HAD_FLOCK   (1 << 7)
+/** Sticky flags mask */
+#define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
+                                    TRACK_CMN_FLAG_HAD_FLOCK)
 
 /**
  * Common tracking feature flags.
@@ -47,6 +54,8 @@ typedef u32 update_count_t;
  * - #TRACK_CMN_FLAG_HAS_PLOCK
  * - #TRACK_CMN_FLAG_HAS_OLOCK
  * - #TRACK_CMN_FLAG_HAS_FLOCK
+ * - #TRACK_CMN_FLAG_HAD_PLOCK
+ * - #TRACK_CMN_FLAG_HAD_FLOCK
  *
  * \sa tracker_common_data_t
  */
@@ -71,6 +80,8 @@ typedef struct {
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
+  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
+                                    of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   track_cmn_flags_t flags;     /**< Tracker flags */
 } tracker_common_data_t;

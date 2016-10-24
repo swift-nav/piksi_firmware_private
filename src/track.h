@@ -103,6 +103,7 @@ u32 tracking_channel_ld_pess_unlocked_ms_get(tracker_channel_id_t id);
 u32 tracking_channel_last_mode_change_ms_get(tracker_channel_id_t id);
 gnss_signal_t tracking_channel_sid_get(tracker_channel_id_t id);
 double tracking_channel_carrier_freq_get(tracker_channel_id_t id);
+double tracking_channel_carrier_freq_at_lock_get(tracker_channel_id_t id);
 s32 tracking_channel_tow_ms_get(tracker_channel_id_t id);
 bool tracking_channel_bit_sync_resolved(tracker_channel_id_t id);
 bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id);
@@ -112,6 +113,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 bool tracking_channel_elevation_degrees_set(gnss_signal_t sid, s8 elevation);
 s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid);
+bool tracking_channel_had_locks(tracker_channel_id_t id);
 
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit);

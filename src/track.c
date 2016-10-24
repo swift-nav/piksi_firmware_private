@@ -513,6 +513,25 @@ u32 tracking_channel_ld_pess_unlocked_ms_get(tracker_channel_id_t id)
   return update_count_diff(tracker_channel, &common_data->ld_pess_change_count);
 }
 
+/** Report if the tracking channel has ever been in PLL/FLL pessimistic lock
+ *  state.
+ *
+ * \param id      ID of the tracker channel to use.
+ * \retval false The tracking channel has never been in PLL/FLL pessimistic lock
+ * \retval true The tracking channel has been in PLL/FLL pessimistic lock
+ */
+bool tracking_channel_had_locks(tracker_channel_id_t id)
+{
+  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
+  const tracker_common_data_t *common_data = &tracker_channel->common_data;
+  bool had_plock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_PLOCK));
+  bool had_flock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_FLOCK));
+  if (had_plock || had_flock) {
+    return true;
+  }
+  return false;
+}
+
 /** Return the time in ms since the last mode change for a tracker channel.
  *
  * \param id      ID of the tracker channel to use.
@@ -541,12 +560,32 @@ gnss_signal_t tracking_channel_sid_get(tracker_channel_id_t id)
 /** Return the current carrier frequency for a tracker channel.
  *
  * \param id      ID of the tracker channel to use.
+ * \return Current carrier frequency [Hz]
  */
 double tracking_channel_carrier_freq_get(tracker_channel_id_t id)
 {
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
   const tracker_common_data_t *common_data = &tracker_channel->common_data;
   return common_data->carrier_freq;
+}
+
+/** Return the carrier frequency snapshot at the moment of latest
+ * PLL/FLL pessimistic lock condition for a tracker channel.
+ *
+ * The returned carrier frequency is not necessarily the latest reading of the
+ * carrier frequency. It is the latest carrier frequency snapshot, when
+ * the tracking channel was in PLL/FLL pessimistic lock state.
+ * To get the latest reading of carrier frequency use
+ * #tracking_channel_carrier_freq_get() function.
+ *
+ * \param id      ID of the tracker channel to use.
+ * \return Carrier frequency at latest PLL/FLL lock state [Hz]
+ */
+double tracking_channel_carrier_freq_at_lock_get(tracker_channel_id_t id)
+{
+  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
+  const tracker_common_data_t *common_data = &tracker_channel->common_data;
+  return common_data->carrier_freq_at_lock;
 }
 
 /** Return the current time of week for a tracker channel.
