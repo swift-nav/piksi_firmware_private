@@ -70,6 +70,10 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float best_mag_sq_sum = 0.0f;
   float best_doppler = 0.0f;
   u32 best_sample_offset = 0;
+  u32 peak_index = 0;
+  u32 peak_index_fw = 0;
+  float best_mag_sq_fw = 0.0f;
+  float best_mag_sq_sum_fw = 0.0f;
 
   /* Loop over Doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
@@ -104,10 +108,26 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     }
 
     /* Peak search */
-    u32 peak_index;
+    peak_index = 0;
     u32 peak_mag_sq;
     u32 sum_mag_sq;
     fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
+
+    u32 peak_mag_sq_fw;
+    u32 peak_mag_sq_sum_fw = 0;
+    bool max = false;
+    for (u32 i=0; i<fft_len; i++) {
+      peak_mag_sq_fw = result_fft[i].re*result_fft[i].re + result_fft[i].im*result_fft[i].im;
+      peak_mag_sq_sum_fw += peak_mag_sq_fw;
+      if (peak_mag_sq_fw > best_mag_sq_fw) {
+        max = true;
+        best_mag_sq_fw = peak_mag_sq_fw;
+        peak_index_fw = i;
+      }
+    }
+    if (max) {
+      best_mag_sq_sum_fw = peak_mag_sq_sum_fw;
+    }
 
     float mag_sq = (float)peak_mag_sq;
     if (mag_sq > best_mag_sq) {
@@ -136,7 +156,16 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float snr = best_mag_sq / (best_mag_sq_sum / fft_len);
   float cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ)
             + 10.0f * log10f(fft_bin_width); /* Bandwidth */
-
+  log_error_sid(sid,
+                "Acq: (cn0, mag_sq, mag_sq_fw, mag_sq_sum, mag_sq_sum_fw, best_sample_offset, peak_index_fw ) "
+                "(%.1f, %.1f, %.1f, %.1f, %.1f, %u, %u)",
+                cn0,
+                best_mag_sq,
+                best_mag_sq_fw,
+                best_mag_sq_sum,
+                best_mag_sq_sum_fw,
+                best_sample_offset,
+                peak_index_fw);
   /* Set output */
   acq_result->sample_count = sample_count;
   acq_result->cp = cp;
