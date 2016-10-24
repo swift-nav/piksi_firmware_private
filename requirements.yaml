@@ -59,6 +59,6 @@
         - uImage.piksiv3_evt2
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3
+      prefix: v3/acq-test
       files:
-        - piksi_evt2_fpga_v3.5-acq-test_unlocked.bit
+        - piksi_evt2_fpga_v3.5_unlocked.bit
