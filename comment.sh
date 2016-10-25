@@ -20,7 +20,7 @@ fi
 
 REPO="${PWD##*/}"
 BUCKET="swiftnav-artifacts-pull-requests"
-
+BUILD_SOURCE="pull-request"
 BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
@@ -30,21 +30,23 @@ RELEASES="piksi_firmware_v0.21.hex"
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUCKET="swiftnav-artifacts"
     ARTIFACTS_PATH="$BUILD_PATH"
+    BUILD_SOURCE="release"
 fi
 
 LINKS=\
 ("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
-"https://console.aws.amazon.com/s3/home?region=us-west-2&bucket=$BUCKET&prefix=$BUILD_PATH/"
-"https://swiftnav-artifacts.herokuapp.com/$ARTIFACTS_PATH/requirements.yaml")
+"http://hitl-dashboard.swiftnav.com/files/$BUCKET/$REPO/$BUILD_VERSION/"
+"http://hitl-dashboard.swiftnav.com/hitl/$BUILD_SOURCE/$BUILD_VERSION/"
+)
 
 TITLES=\
 ("HITL Results - pass/fail checks"
 "HITL Results - performance metrics"
 "Commit Log"
 "Firmware Artifacts"
-"Piksi Multi Artifacts")
+"Run a HITL test for this build")
 
 slack_links(){
     echo -n $BUILD_PATH
