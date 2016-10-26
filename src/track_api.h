@@ -24,6 +24,18 @@
 /** Counter type. Value changes every time tracking mode changes. */
 typedef u32 update_count_t;
 
+/** Controller parameters for error sigma computations */
+typedef struct {
+  float fll_bw;  /**< FLL controller NBW [Hz].
+                      Single sided noise bandwidth in case of
+                      FLL and FLL-assisted PLL tracking */
+  float pll_bw;  /**< PLL controller noise bandwidth [Hz].
+                      Single sided noise bandwidth in case of
+                      PLL and FLL-assisted PLL tracking */
+  float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
+  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+} track_ctrl_params_t;
+
 /** Tracker flag: tracker is in confirmed mode */
 #define TRACK_CMN_FLAG_CONFIRMED   (1 << 0)
 /** Tracker flag: tracker is using PLL (possibly with FLL) */
@@ -84,6 +96,7 @@ typedef struct {
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   track_cmn_flags_t flags;     /**< Tracker flags */
+  track_ctrl_params_t ctrl_params; /**< Controller parameters */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;

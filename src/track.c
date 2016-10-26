@@ -623,6 +623,21 @@ bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id)
   return (internal_data->bit_polarity != BIT_POLARITY_UNKNOWN);
 }
 
+/** Retrieve loop controller parameters.
+ *
+ * \param[in]  id       ID of the tracker channel to use.
+ * \param[out] params   Loop controller parameters.
+ *
+ * \return None
+ */
+void tracking_channel_ctrl_params_get(tracker_channel_id_t id,
+                                      track_ctrl_params_t *params)
+{
+  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
+  const tracker_common_data_t *common_data = &tracker_channel->common_data;
+  *params = common_data->ctrl_params;
+}
+
 /** Retrieve a channel measurement for a tracker channel.
  *
  * \param[in]  id       ID of the tracker channel to use.

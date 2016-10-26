@@ -145,6 +145,20 @@ typedef struct {
   s8 elevation;           /**< Elevation (deg). */
 } tracking_startup_params_t;
 
+/**
+ * Tracking controller parameters.
+ */
+typedef struct {
+  float fll_bw;  /**< FLL controller NBW [Hz].
+                      Single sided noise bandwidth in case of
+                      FLL and FLL-assisted PLL tracking */
+  float pll_bw;  /**< PLL controller noise bandwidth [Hz].
+                      Single sided noise bandwidth in case of
+                      PLL and FLL-assisted PLL tracking */
+  float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
+  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+} tracking_ctrl_params_t;
+
 /** \} */
 
 void manage_acq_setup(void);
@@ -154,6 +168,7 @@ void manage_set_obs_hint(gnss_signal_t sid);
 void manage_track_setup(void);
 
 manage_track_flags_t get_tracking_channel_flags(u8 i);
+void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
 manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
                                                     s32 tow_ms,
                                                     ephemeris_t *pephe);

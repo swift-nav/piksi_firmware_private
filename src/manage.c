@@ -737,6 +737,23 @@ manage_track_flags_t get_tracking_channel_flags(u8 i)
 }
 
 /**
+ * Retrieve tracking loop controller parameters for weights computation.
+ *
+ * \param[in]  i       Channel index.
+ * \param[out] pparams Loop controller parameters.
+ *
+ * \return None
+ */
+void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
+{
+  track_ctrl_params_t tmp;
+  tracking_channel_ctrl_params_get(i, &tmp);
+  pparams->pll_bw = tmp.pll_bw;
+  pparams->fll_bw = tmp.fll_bw;
+  pparams->dll_bw = tmp.dll_bw;
+  pparams->int_ms = tmp.int_ms;
+}
+/**
  * Compute extended tracking flags for GNSS signal.
  *
  * The method computes additional channel flags by using non-tracking data
