@@ -121,7 +121,7 @@ static MUTEX_DECL(tracking_startup_mutex);
  */
 static volatile bool no_free_tracking_channel = false;
 
-static float elevation_mask = 0.0; /* degrees */
+static float elevation_mask = 5.0; /* degrees */
 static bool sbas_enabled = false;
 
 static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
