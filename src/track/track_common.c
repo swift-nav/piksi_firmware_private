@@ -184,6 +184,14 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
     assert(!"Unexpected control mode");
   }
 
+  /* Export loop controller parameters */
+  common_data->ctrl_params.int_ms = tp_get_dll_ms(data->tracking_mode);
+  common_data->ctrl_params.dll_bw = next_params->loop_params.code_bw;
+  common_data->ctrl_params.pll_bw = data->mode_pll ?
+                                    next_params->loop_params.carr_bw : 0.f;
+  common_data->ctrl_params.fll_bw = data->mode_fll ?
+                                    next_params->loop_params.fll_bw : 0.f;
+
   if (init || cn0_ms != prev_cn0_ms) {
     tp_cn0_params_t cn0_params;
     tp_get_cn0_params(channel_info->sid, &cn0_params);

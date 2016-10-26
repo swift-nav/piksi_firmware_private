@@ -107,6 +107,8 @@ double tracking_channel_carrier_freq_at_lock_get(tracker_channel_id_t id);
 s32 tracking_channel_tow_ms_get(tracker_channel_id_t id);
 bool tracking_channel_bit_sync_resolved(tracker_channel_id_t id);
 bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id);
+void tracking_channel_ctrl_params_get(tracker_channel_id_t id,
+                                      track_ctrl_params_t *params);
 void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
                                       channel_measurement_t *meas);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
