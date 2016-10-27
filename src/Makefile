@@ -337,7 +337,7 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-.DEFAULT_GOAL = all
+.DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 
 include $(RULESPATH)/rules.mk
