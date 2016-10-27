@@ -511,7 +511,7 @@ static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf)
   msg_acq_result_t acq_result_msg;
 
   acq_result_msg.sid = sid_to_sbp(sid);
-  acq_result_msg.snr = cn0; /* TODO(Leith): update SBP message field name */
+  acq_result_msg.cn0 = cn0;
   acq_result_msg.cp = cp;
   acq_result_msg.cf = cf;
 
