@@ -422,14 +422,17 @@ static void manage_acq()
       acq->score[ACQ_HINT_PREV_ACQ] = 0;
       return;
     }
-
+    log_error_sid(acq->sid,
+                  "Acq: (cn0,) "
+                  "(%.1f)",
+                  acq_result.cn0);
     tracking_startup_params_t tracking_startup_params = {
       .sid = acq->sid,
       .sample_count = acq_result.sample_count,
       .carrier_freq = acq_result.cf,
       .code_phase = acq_result.cp,
       .chips_to_correlate = code_to_chip_count(acq->sid.code),
-      .cn0_init = acq_result.cn0,
+      .cn0_init = 37.0f,
       .elevation = TRACKING_ELEVATION_UNKNOWN
     };
 
