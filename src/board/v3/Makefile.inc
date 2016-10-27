@@ -104,6 +104,7 @@ BOARDSRC := \
         $(BOARDDIR)/peripherals/antenna.o \
         $(BOARDDIR)/peripherals/led_adp8866.o \
         $(BOARDDIR)/peripherals/bmi160.o \
+        $(BOARDDIR)/peripherals/rtc_m41t62.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \

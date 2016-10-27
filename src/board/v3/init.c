@@ -36,6 +36,7 @@
 #include "peripherals/antenna.h"
 #include "manage_led.h"
 #include "imu.h"
+#include "peripherals/rtc_m41t62.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03070000U)
@@ -123,6 +124,7 @@ void init(void)
   antenna_init();
   manage_led_setup();
   imu_init();
+  rtc_m41t62_init();
 }
 
 static void nap_conf_check(void)
