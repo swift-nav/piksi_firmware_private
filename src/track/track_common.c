@@ -478,8 +478,6 @@ void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
     if (data->lock_detect.outp) {
       /* FLL lock criteria */
       flags |= TRACK_CMN_FLAG_HAS_FLOCK;
-      flags |= TRACK_CMN_FLAG_HAD_FLOCK;
-      common_data->carrier_freq_at_lock = common_data->carrier_freq;
     }
   } else {
     assert(!"Unknown tracking loop configuration");
