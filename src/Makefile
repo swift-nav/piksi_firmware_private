@@ -281,7 +281,9 @@ CPPWARN = -Wall -Wextra -Werror -Weffc++ -std=gnu++11 \
 #
 
 GIT_VERSION := $(shell git describe --dirty)
-VERSION_H := $(shell echo "\#define GIT_VERSION \"$(GIT_VERSION)\"" > version.h)
+version.h: FORCE
+	@echo "Generating $@"
+	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $@
 
 # List all default C defines here, like -D_DEBUG=1
 DDEFS =
