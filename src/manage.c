@@ -54,6 +54,17 @@
  * tracking channels that have lost lock on their satellites.
  * \{ */
 
+/** Supported channel drop reasons */
+typedef enum {
+  CH_DROP_REASON_ERROR,         /**< Tracking channel error */
+  CH_DROP_REASON_MASKED,        /**< Tracking channel is disabled by mask */
+  CH_DROP_REASON_UNHEALTHY,     /**< SV is unhealthy */
+  CH_DROP_REASON_NO_BIT_SYNC,   /**< Bit sync timeout */
+  CH_DROP_REASON_NO_PLOCK,      /**< Pessimistic lock timeout */
+  CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
+  CH_DROP_REASON_LOW_ELEVATION, /**< SV elevation is too low */
+} ch_drop_reason_t;
+
 /** Different hints on satellite info to aid the acqusition */
 enum acq_hint {
   ACQ_HINT_WARMSTART,  /**< Information from almanac or ephemeris */
@@ -473,7 +484,7 @@ static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf)
                (u8 *)&acq_result_msg);
 }
 
-static void drop_channel(u8 channel_id);
+static void drop_channel(u8 channel_id, ch_drop_reason_t reason);
 
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
@@ -540,14 +551,68 @@ void manage_track_setup()
   );
 }
 
-static void drop_channel(u8 channel_id) {
+/**
+ * Helper to provide channel drop reason literal.
+ * \param[in] reason Channel drop reason.
+ *
+ * \return Literal for the given \a reason.
+ */
+static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
+{
+  const char *str = "";
+  switch (reason) {
+  case CH_DROP_REASON_ERROR: str = "error occurred, dropping"; break;
+  case CH_DROP_REASON_MASKED: str = "channel is masked, dropping"; break;
+  case CH_DROP_REASON_UNHEALTHY: str = "unhealthy, dropping"; break;
+  case CH_DROP_REASON_NO_BIT_SYNC: str = "no bit sync, dropping"; break;
+  case CH_DROP_REASON_NO_PLOCK: str = "No pessimistic lock for too long, dropping"; break;
+  case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
+  case CH_DROP_REASON_LOW_ELEVATION: str = "below elevation mask, dropping"; break;
+  default: assert(!"Unknown channel drop reason");
+  }
+  return str;
+}
+
+/**
+ * Processes channel drop operation.
+ *
+ * The method logs channel drop reason message, actually disables tracking
+ * channel components and updates ACQ hints for re-acqusition.
+ *
+ * \param[in] channel_id Channel number
+ * \param[in] reason     Channel drop reason
+ *
+ * \return None
+ */
+static void drop_channel(u8 channel_id, ch_drop_reason_t reason)
+{
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */
   gnss_signal_t sid = tracking_channel_sid_get(channel_id);
+  tracking_channel_flags_t flags = tracking_channel_get_flags(channel_id);
+  u32 time_in_track = tracking_channel_running_time_ms_get(channel_id);
+
+  /* Log message with appropriate priority. */
+  if (CH_DROP_REASON_ERROR == reason) {
+    /* Errors are always logged as errors */
+    log_error_sid(sid, "[+%" PRIu32 "ms] %s", time_in_track,
+                  get_ch_drop_reason_str(reason));
+  } else if (0 == (flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
+    /* Unconfirmed tracker messages are always logged at debug level */
+    log_debug_sid(sid, "[+%" PRIu32 "ms] %s", time_in_track,
+                  get_ch_drop_reason_str(reason));
+  } else {
+    /* Confirmed tracker messages are always logged at info level */
+    log_info_sid(sid, "[+%" PRIu32 "ms] %s", time_in_track,
+                 get_ch_drop_reason_str(reason));
+  }
+  /*
+   * TODO add generation of a tracker state change message
+   */
+
   acq_status_t *acq = &acq_status[sid_to_global_index(sid)];
   bool had_locks = tracking_channel_had_locks(channel_id);
-  u32 time_in_track = tracking_channel_running_time_ms_get(channel_id);
   bool long_in_track = time_in_track > TRACK_REACQ_T;
   u32 unlocked_time = tracking_channel_ld_pess_unlocked_ms_get(channel_id);
   bool long_unlocked = unlocked_time > TRACK_REACQ_T;
@@ -574,7 +639,7 @@ static void drop_channel(u8 channel_id) {
     flagged unhealthy in ephem or alert flag. */
 static void manage_track()
 {
-  for (u8 i=0; i<nap_track_n_channels; i++) {
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
 
     /* Skip channels that aren't in use */
     if (!tracking_channel_running(i)) {
@@ -587,14 +652,13 @@ static void manage_track()
 
     /* Has an error occurred? */
     if (tracking_channel_error(i)) {
-      log_warn_sid(sid, "error occurred, dropping");
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_ERROR);
       continue;
     }
 
     /* Is tracking masked? */
     if (track_mask[global_index]) {
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_MASKED);
       continue;
     }
 
@@ -607,36 +671,32 @@ static void manage_track()
      * then consider health of this satellite and drop if it's unhealthy.*/
     if (no_free_tracking_channel &&
         shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID) {
-      log_info_sid(sid, "unhealthy, dropping");
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_UNHEALTHY);
       acq->state = ACQ_PRN_UNHEALTHY;
       continue;
     }
 
     /* Do we not have nav bit sync yet? */
     if (!tracking_channel_bit_sync_resolved(i)) {
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_NO_BIT_SYNC);
       continue;
     }
 
     /* PLL/FLL pessimistic lock detector "unlocked" for a while? */
     if (tracking_channel_ld_pess_unlocked_ms_get(i) > TRACK_DROP_UNLOCKED_T) {
-      log_info_sid(sid, "No pessimistic lock for too long, dropping");
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_NO_PLOCK);
       continue;
     }
 
     /* CN0 below threshold for a while? */
     if (tracking_channel_cn0_drop_ms_get(i) > TRACK_DROP_CN0_T) {
-      log_info_sid(sid, "low CN0 too long, dropping");
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_LOW_CN0);
       continue;
     }
 
     /* Is satellite below our elevation mask? */
     if (tracking_channel_elevation_degrees_get(sid) < elevation_mask) {
-      log_info_sid(sid, "below elevation mask, dropping");
-      drop_channel(i);
+      drop_channel(i, CH_DROP_REASON_LOW_ELEVATION);
       /* Erase the tracking hint score, and any others it might have */
       memset(&acq->score, 0, sizeof(acq->score));
       continue;
