@@ -61,8 +61,8 @@ enum ndb_op_code ndb_lgf_store(last_good_fix_t *lgf)
   ndb_lock();
 
   /* Update cached LGF unconditionally */
-  memcpy(&last_good_fix.position_solution,
-         &lgf->position_solution,
+  memcpy(&last_good_fix,
+         lgf,
          sizeof(last_good_fix_t));
   last_good_fix.position_quality = POSITION_FIX;
 
