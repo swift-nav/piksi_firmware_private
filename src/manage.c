@@ -100,6 +100,16 @@ static bool track_mask[PLATFORM_SIGNAL_COUNT];
 #define SCORE_TRACK         200
 #define SCORE_OBS           200
 
+/** Minimum Doppler induced by GPS satellite motion [Hz] */
+#define GPS_DOPP_SAT_VEL_MIN_HZ   -4200.f
+/** Maximum Doppler induced by GPS satellite motion [Hz] */
+#define GPS_DOPP_SAT_VEL_MAX_HZ   4200.f
+
+/** Miminum Doppler induced by clock drift [Hz] */
+#define GPS_DOPP_CLOCK_MIN_HZ (ACQ_FULL_CF_MIN - GPS_DOPP_SAT_VEL_MIN_HZ)
+/** Maximum Doppler induced by clock drift [Hz] */
+#define GPS_DOPP_CLOCK_MAX_HZ (ACQ_FULL_CF_MAX - GPS_DOPP_SAT_VEL_MAX_HZ)
+
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM   500
 
@@ -282,8 +292,10 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
     }
 
     if (eph_valid && (ss_ret == 0)) {
+      double dopp_hint_sat_vel; /* Doppler hint induced by sat velocity */
+      double dopp_hint_clock;   /* Doppler hint induced by clock drift */
       wgsecef2azel(sat_pos, lgf.position_solution.pos_ecef, &_, &el_d);
-      el = (float)(el_d) * R2D;
+      el = (float)(el_d * R2D);
       if (el < elevation_mask)
         return SCORE_BELOWMASK;
       vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
@@ -291,12 +303,34 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
       /* sat_pos now holds unit vector from us to satellite */
       vector_subtract(3, sat_vel, lgf.position_solution.vel_ecef, sat_vel);
       /* sat_vel now holds velocity of sat relative to us */
-      dopp_hint = -GPS_L1_HZ * (vector_dot(3, sat_pos, sat_vel) / GPS_C
-                                + lgf.position_solution.clock_bias);
-      /* TODO: Check sign of receiver frequency offset correction */
+      dopp_hint_sat_vel = -GPS_L1_HZ * vector_dot(3, sat_pos, sat_vel) / GPS_C;
+      /* TODO: Check sign of receiver frequency offset correction.
+               There seems to be a sign flip somewhere in 'clock_bias'
+               computation that gets compensated here */
+      dopp_hint_clock = -GPS_L1_HZ * lgf.position_solution.clock_bias;
+      dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
       if (time_quality >= TIME_FINE)
         dopp_uncertainty = DOPP_UNCERT_EPHEM;
       ready = true;
+
+      if ((dopp_hint_sat_vel < GPS_DOPP_SAT_VEL_MIN_HZ) ||
+          (dopp_hint_sat_vel > GPS_DOPP_SAT_VEL_MAX_HZ) ||
+          (dopp_hint_clock < GPS_DOPP_CLOCK_MIN_HZ) ||
+          (dopp_hint_clock > GPS_DOPP_CLOCK_MAX_HZ)) {
+        log_error_sid(sid,
+                      "Acq: bogus ephe/clock dopp hints "
+                      "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
+                      "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
+                      dopp_uncertainty,
+                      dopp_hint_sat_vel,
+                      dopp_hint_clock,
+                      lgf.position_solution.pos_ecef[0],
+                      lgf.position_solution.pos_ecef[1],
+                      lgf.position_solution.pos_ecef[2],
+                      lgf.position_solution.clock_bias,
+                      el);
+        return SCORE_COLDSTART;
+      }
     }
 
     if(!ready) {
@@ -304,35 +338,37 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
       if (orbit.a.valid &&
           calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                  &_, &el_d) == 0) {
-          el = (float)(el_d) * R2D;
-          if (el < elevation_mask)
-            return SCORE_BELOWMASK;
-          if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
-                                       &dopp_hint) != 0) {
-            return SCORE_COLDSTART;
-          }
-          dopp_hint = -dopp_hint;
+        el = (float)(el_d * R2D);
+        if (el < elevation_mask)
+          return SCORE_BELOWMASK;
+        if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
+                                     &dopp_hint) != 0) {
+          return SCORE_COLDSTART;
+        }
+        dopp_hint = -dopp_hint;
+
+        if ((dopp_hint < GPS_DOPP_SAT_VEL_MIN_HZ) ||
+            (dopp_hint > GPS_DOPP_SAT_VEL_MAX_HZ)) {
+          log_error_sid(sid,
+                        "Acq: bogus alm dopp_hint "
+                        "(unc,sat_hint,lgf_pos[0..2],ele) "
+                        "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
+                        dopp_uncertainty,
+                        dopp_hint,
+                        lgf.position_solution.pos_ecef[0],
+                        lgf.position_solution.pos_ecef[1],
+                        lgf.position_solution.pos_ecef[2],
+                        el);
+          return SCORE_COLDSTART;
+        }
       } else {
         return SCORE_COLDSTART; /* Couldn't determine satellite state. */
       }
     }
 
-    if ((dopp_hint < ACQ_FULL_CF_MIN) || (dopp_hint > ACQ_FULL_CF_MAX)) {
-      log_error_sid(sid,
-                    "Acq: bogus dopp_hint (unc,hint,lgf_pos[0..2],bias) "
-                    "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1lf)",
-                    dopp_uncertainty,
-                    dopp_hint,
-                    lgf.position_solution.pos_ecef[0],
-                    lgf.position_solution.pos_ecef[1],
-                    lgf.position_solution.pos_ecef[2],
-                    lgf.position_solution.clock_bias);
-      return SCORE_COLDSTART;
-    }
-
     /* Return the doppler hints and a score proportional to elevation */
-    *dopp_hint_low = dopp_hint - dopp_uncertainty;
-    *dopp_hint_high = dopp_hint + dopp_uncertainty;
+    *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, ACQ_FULL_CF_MIN);
+    *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, ACQ_FULL_CF_MAX);
     return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
 }
 
@@ -624,8 +660,10 @@ static void drop_channel(u8 channel_id, ch_drop_reason_t reason)
     } else {
       /* FIXME other constellations/bands */
       acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
-      acq->dopp_hint_low = carrier_freq - ACQ_FULL_CF_STEP;
-      acq->dopp_hint_high = carrier_freq + ACQ_FULL_CF_STEP;
+      acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP,
+                               ACQ_FULL_CF_MIN);
+      acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP,
+                                ACQ_FULL_CF_MAX);
     }
   }
   acq->state = ACQ_PRN_ACQUIRING;
@@ -1067,8 +1105,10 @@ static void manage_tracking_startup(void)
       if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
         acq->score[ACQ_HINT_PREV_ACQ] =
             SCORE_ACQ + (startup_params.cn0_init - ACQ_THRESHOLD);
-        acq->dopp_hint_low = startup_params.carrier_freq - ACQ_FULL_CF_STEP;
-        acq->dopp_hint_high = startup_params.carrier_freq + ACQ_FULL_CF_STEP;
+        acq->dopp_hint_low = MAX(startup_params.carrier_freq - ACQ_FULL_CF_STEP,
+                                 ACQ_FULL_CF_MIN);
+        acq->dopp_hint_high = MIN(startup_params.carrier_freq + ACQ_FULL_CF_STEP,
+                                  ACQ_FULL_CF_MAX);
       }
 
       /*
