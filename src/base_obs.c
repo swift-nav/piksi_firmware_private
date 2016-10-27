@@ -354,8 +354,10 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     unpack_obs_content(&obs[i], &nm->raw_pseudorange, &nm->raw_carrier_phase,
                        &nm->cn0, &nm->lock_counter, &nm->sid);
     /* TODO currently SBP doesn't transfer flags, so set them manually here*/
-    nm->flags = (NAV_MEAS_FLAG_CODE_ACC_HIGH |
-                 NAV_MEAS_FLAG_PHASE_ACC_HIGH);
+    nm->flags = (CHAN_MEAS_FLAG_CODE_VALID |
+                 CHAN_MEAS_FLAG_PHASE_VALID |
+                 CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID |
+                 CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN);
 
     /* Set the time */
     nm->tot = tor;
