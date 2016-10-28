@@ -31,9 +31,12 @@
 
 /** Global time estimate quality state.
  * See \ref time_quality_t for possible values. */
-time_quality_t time_quality = TIME_UNKNOWN;
+volatile time_quality_t time_quality = TIME_UNKNOWN;
 
-clock_est_state_t clock_state;
+/** Clock state */
+static volatile clock_est_state_t clock_state;
+/** Mutex for guarding clock state access */
+static mutex_t clock_mutex;
 
 /** Update GPS time estimate.
  *
@@ -50,12 +53,20 @@ clock_est_state_t clock_state;
  */
 void set_time(time_quality_t quality, gps_time_t t)
 {
-  if (quality > time_quality) {
-    clock_state.t0_gps = t;
-    clock_state.t0_gps.tow -= nap_timing_count() * RX_DT_NOMINAL;
-    normalize_gps_time(&clock_state.t0_gps);
+  bool updated = false;
+  gps_time_t norm_time = t;
+  norm_time.tow -= nap_timing_count() * RX_DT_NOMINAL;
+  normalize_gps_time(&norm_time);
 
+  chMtxLock(&clock_mutex);
+  if (quality > time_quality) {
+    clock_state.t0_gps = norm_time;
     time_quality = quality;
+    updated = true;
+  }
+  chMtxUnlock(&clock_mutex);
+
+  if (updated) {
     time_t unix_t = gps2time(&t);
     log_info("Time set to: %s (quality=%d)", ctime(&unix_t), quality);
   }
@@ -63,6 +74,7 @@ void set_time(time_quality_t quality, gps_time_t t)
 
 void clock_est_init(clock_est_state_t *s)
 {
+  chMtxLock(&clock_mutex);
   s->t0_gps.wn = 0;
   s->t0_gps.tow = 0;
   s->clock_period = RX_DT_NOMINAL;
@@ -70,6 +82,7 @@ void clock_est_init(clock_est_state_t *s)
   s->P[0][1] = 0;
   s->P[1][0] = 0;
   s->P[1][1] = (double)RX_DT_NOMINAL * RX_DT_NOMINAL / 1e12; /* 1ppm. */
+  chMtxUnlock(&clock_mutex);
 }
 /*
     def update(self, est_gpsT, est_bias, localT, q, rT, rTdot):
@@ -101,6 +114,8 @@ void clock_est_update(clock_est_state_t *s, gps_time_t meas_gpst,
                       double meas_clock_period, double localt, double q,
                       double r_gpst, double r_clock_period)
 {
+  chMtxLock(&clock_mutex);
+
   double temp[2][2];
 
   double phi_t_0[2][2] = {{1, localt}, {0, 1}};
@@ -143,6 +158,7 @@ void clock_est_update(clock_est_state_t *s, gps_time_t meas_gpst,
   temp[1][0] = -temp[1][0];
   matrix_multiply(2, 2, 2, (const double *)temp, (const double *)P_, (double *)s->P);
 
+  chMtxUnlock(&clock_mutex);
 }
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
@@ -152,11 +168,17 @@ void clock_est_update(clock_est_state_t *s, gps_time_t meas_gpst,
  */
 void set_time_fine(u64 tc, gps_time_t t)
 {
-  clock_state.t0_gps = t;
-  clock_state.t0_gps.tow -= tc * RX_DT_NOMINAL;
-  normalize_gps_time(&clock_state.t0_gps);
+  gps_time_t norm_time = t;
+  norm_time.tow -= tc * RX_DT_NOMINAL;
+  normalize_gps_time(&norm_time);
 
+  chMtxLock(&clock_mutex);
+  clock_state.t0_gps = norm_time;
   time_quality = TIME_FINE;
+  chMtxUnlock(&clock_mutex);
+
+  time_t unix_t = gps2time(&t);
+  log_info("Time set to: %s (quality=%d)", ctime(&unix_t), TIME_FINE);
 }
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
@@ -165,8 +187,12 @@ void set_time_fine(u64 tc, gps_time_t t)
  */
 void adjust_time_fine(double dt)
 {
-  clock_state.t0_gps.tow -= dt;
-  normalize_gps_time(&clock_state.t0_gps);
+  chMtxLock(&clock_mutex);
+  gps_time_t gps_time = clock_state.t0_gps;
+  gps_time.tow -= dt;
+  normalize_gps_time(&gps_time);
+  clock_state.t0_gps = gps_time;
+  chMtxUnlock(&clock_mutex);
 }
 
 /** Get current GPS time.
@@ -202,9 +228,11 @@ gps_time_t get_current_time(void)
  */
 gps_time_t rx2gpstime(double tc)
 {
+  chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
-
   t.tow += tc * clock_state.clock_period;
+  chMtxUnlock(&clock_mutex);
+
   normalize_gps_time(&t);
   return t;
 }
@@ -220,7 +248,12 @@ gps_time_t rx2gpstime(double tc)
  */
 double gps2rxtime(gps_time_t* t)
 {
-  return gpsdifftime(t, &clock_state.t0_gps) / clock_state.clock_period;
+  chMtxLock(&clock_mutex);
+  gps_time_t gps_time = clock_state.t0_gps;
+  double clock_period = clock_state.clock_period;
+  chMtxUnlock(&clock_mutex);
+
+  return gpsdifftime(t, &gps_time) / clock_period;
 }
 
 /** Callback to set receiver GPS time estimate. */
@@ -242,9 +275,11 @@ void timing_setup(void)
    * periodically. */
   static sbp_msg_callbacks_node_t set_time_node;
 
+  chMtxObjectInit(&clock_mutex);
+
   sbp_register_cbk(SBP_MSG_SET_TIME, &set_time_callback, &set_time_node);
 
-  clock_est_init(&clock_state);
+  clock_est_init((clock_est_state_t*)&clock_state);
 }
 
 /** \} */
