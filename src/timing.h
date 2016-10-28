@@ -39,8 +39,7 @@ typedef struct {
 
 /** \} */
 
-extern time_quality_t time_quality;
-extern clock_est_state_t clock_state;
+extern volatile time_quality_t time_quality;
 
 #define RX_DT_NOMINAL (1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz)
 
