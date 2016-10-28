@@ -20,6 +20,7 @@
 #include "track_profiles.h"
 #include "track_profile_utils.h"
 #include "track_sid_db.h"
+#include "track_sbp.h"
 
 #include <math.h>
 #include <string.h>
@@ -601,10 +602,13 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
                                            int_ms);
-  if (!tp_tow_is_sane(common_data->TOW_ms)) {
+  if (tp_tow_is_sane(common_data->TOW_ms)) {
+    common_data->flags |= TRACK_CMN_FLAG_TOW_DECODED;
+  } else {
     log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
                   common_data->update_count, common_data->TOW_ms);
     common_data->TOW_ms = TOW_UNKNOWN;
+    common_data->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
   }
   if (no_TOW && TOW_UNKNOWN != common_data->TOW_ms) {
     log_debug_sid(channel_info->sid, "[+%"PRIu32"ms] Decoded TOW %"PRId32,
@@ -927,6 +931,35 @@ void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
   mode_change_init(channel_info, data);
 }
 
+/** Running statistics initializaiton
+ * \param p Running statistics state
+ */
+void running_stats_init(running_stats_t *p)
+{
+  p->n = 0;
+  p->sum = 0;
+  p->sum_of_squares = 0;
+  p->mean = 0;
+  p->variance = 0;
+}
+
+/** Running statistics update
+ * \param p Running statistics state
+ * \param v New value
+ */
+void running_stats_update(running_stats_t *p, double v)
+{
+  p->n++;
+  p->sum += 0;
+  p->sum_of_squares += v * v;
+  p->mean = p->sum / p->n;
+  if (1 == p->n) {
+    return;
+  }
+  p->variance = p->sum_of_squares / (p->n - 1) -
+                (p->sum * p->sum) / p->n / (p->n - 1);
+}
+
 /**
  * Default tracking loop.
  *
@@ -962,6 +995,15 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
 
   tp_tracker_update_cycle_counter(data);
   tp_tracker_update_common_flags(common_data, data);
+
+  bool sent = track_sbp_send_state(channel_info, common_data, data);
+
+  if (sent) {
+    running_stats_init(&common_data->carrier_freq_stat);
+  } else {
+    running_stats_update(&common_data->carrier_freq_stat,
+                         common_data->carrier_freq);
+  }
 
   return cflags;
 }

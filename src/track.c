@@ -1223,9 +1223,11 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->code_phase_rate = (1 + carrier_freq / code_to_carr_freq(code)) *
                                  GPS_CA_CHIPPING_RATE;
   common_data->carrier_freq = carrier_freq;
+  running_stats_init(&common_data->carrier_freq_stat);
 
   common_data->sample_count = sample_count;
   common_data->cn0 = cn0;
+  common_data->sbp_update_time_ms = 0;
 }
 
 /** Lock a tracker channel for exclusive access.

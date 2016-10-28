@@ -1052,6 +1052,22 @@ u8 tp_profile_get_next_loop_params_ms(const tp_profile_t *profile)
 }
 
 /**
+ * Helper to obtain acceleration value.
+ *
+ * \param[in] profile Tracking profile data
+ *
+ * \return acceleration [g]
+ */
+float tp_profile_get_acceleration(const tp_profile_t *profile)
+{
+  float ret = 0;
+  if (NULL != profile) {
+    ret = profile->filt_accel;
+  }
+  return ret;
+}
+
+/**
  * Updates track profile data with supplied information.
  *
  * The method takes tracking loop data and merges it with previously collected
