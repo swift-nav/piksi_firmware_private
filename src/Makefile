@@ -13,7 +13,7 @@ endif
 
 ifeq ($(PIKSI_HW),v3)
   ifeq ($(PIKSI_REV),)
-    PIKSI_REV=microzed
+    PIKSI_REV=evt2
   endif
 endif
 
