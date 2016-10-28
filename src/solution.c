@@ -822,7 +822,8 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
     if (n_sds > 4) {
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
-      dgnss_init_v3(t, n_sds, sds, lgf.position_solution.pos_ecef);
+      dgnss_init_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
+        base_pos_known ? base_pos_ecef : NULL);
       /* Initialize ambiguity states. */
       ambiguities_init(&amb_state.fixed_ambs);
       ambiguities_init(&amb_state.float_ambs);
@@ -835,7 +836,8 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
     }
     /* Update filters. */
     dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
-                 disable_raim, DEFAULT_RAIM_THRESHOLD);
+                    base_pos_known ? base_pos_ecef : NULL,
+                    disable_raim, DEFAULT_RAIM_THRESHOLD);
     /* Update ambiguity states. */
     chMtxLock(&amb_state_lock);
     dgnss_update_ambiguity_state(&amb_state);
