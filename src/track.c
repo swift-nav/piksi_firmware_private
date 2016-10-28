@@ -70,6 +70,27 @@ typedef enum {
   ERROR_FLAG_INTERRUPT_WHILE_DISABLED =     0x02,
 } error_flag_t;
 
+/**
+ * Public data segment.
+ *
+ * Public data segment belongs to a tracking channel and is locked only for
+ * a quick update or data fetch operations.
+ *
+ * The data is grouped according to functional blocks.
+ */
+typedef struct {
+  /** Mutex used to permit atomic updates of public channel data. */
+  mutex_t info_mutex;
+  /** Generic info for externals */
+  volatile tracking_channel_info_t      gen_info;
+  /** Timing info for externals */
+  volatile tracking_channel_time_info_t time_info;
+  /** Frequency info for externals */
+  volatile tracking_channel_freq_info_t freq_info;
+  /** Controller parameters */
+  volatile tracking_channel_ctrl_info_t ctrl_info;
+} tracker_channel_pub_data_t;
+
 /** Top-level generic tracker channel. */
 typedef struct {
   /** State of this channel. */
@@ -93,6 +114,8 @@ typedef struct {
   const tracker_interface_t *interface;
   /** Associated tracker instance. */
   tracker_t *tracker;
+  /** Publicly accessible data */
+  tracker_channel_pub_data_t pub_data;
 } tracker_channel_t;
 
 static tracker_channel_t tracker_channels[NUM_TRACKER_CHANNELS];
@@ -140,6 +163,25 @@ static void error_flags_clear(tracker_channel_t *tracker_channel);
 static void error_flags_add(tracker_channel_t *tracker_channel,
                             error_flag_t error_flag);
 
+static void tracking_channel_compute_values(
+                                 tracker_channel_t *tracker_channel,
+                                 tracking_channel_info_t *info,
+                                 tracking_channel_time_info_t *time_info,
+                                 tracking_channel_freq_info_t *freq_info,
+                                 tracking_channel_ctrl_info_t *ctrl_params,
+                                 bool *reset_cpo);
+
+static void tracking_channel_update_values(
+                                tracker_channel_pub_data_t *pub_data,
+                                const tracking_channel_info_t *info,
+                                const tracking_channel_time_info_t *time_info,
+                                const tracking_channel_freq_info_t *freq_info,
+                                const tracking_channel_ctrl_info_t *ctrl_params,
+                                bool reset_cpo);
+
+static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data);
+
+static tracking_channel_flags_t tracking_channel_get_flags(const tracker_channel_t *tracker_channel);
 
 /** Set up the tracking module. */
 void track_setup(void)
@@ -149,10 +191,11 @@ void track_setup(void)
 
   track_internal_setup();
 
-  for (u32 i=0; i<NUM_TRACKER_CHANNELS; i++) {
+  for (u32 i = 0; i < NUM_TRACKER_CHANNELS; i++) {
     tracker_channels[i].state = STATE_DISABLED;
     tracker_channels[i].tracker = 0;
     chMtxObjectInit(&tracker_channels[i].mutex);
+    chMtxObjectInit(&tracker_channels[i].pub_data.info_mutex);
   }
 
   track_cn0_params_init();
@@ -338,6 +381,12 @@ bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
     return false;
   }
 
+  /* Channel public data blocks */
+  tracking_channel_info_t info;
+  tracking_channel_time_info_t time_info;
+  tracking_channel_freq_info_t freq_info;
+  tracking_channel_ctrl_info_t ctrl_params;
+
   tracker_channel_lock(tracker_channel);
   {
     /* Set up channel */
@@ -358,11 +407,28 @@ bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
 
     /* Change the channel state to ENABLED. */
     event(tracker_channel, EVENT_ENABLE);
+
+    /* Load channel public data while in channel lock */
+    tracking_channel_compute_values(tracker_channel,
+                                    &info,
+                                    &time_info,
+                                    &freq_info,
+                                    &ctrl_params,
+                                    NULL);
+
   }
   tracker_channel_unlock(tracker_channel);
 
   nap_track_init(tracker_channel->info.nap_channel, sid, ref_sample_count,
                  carrier_freq, code_phase, chips_to_correlate);
+
+  /* Update channel public data outside of channel lock */
+  tracking_channel_update_values(&tracker_channel->pub_data,
+                                 &info,
+                                 &time_info,
+                                 &freq_info,
+                                 &ctrl_params,
+                                 true);
 
   return true;
 }
@@ -381,320 +447,297 @@ bool tracker_channel_disable(tracker_channel_id_t id)
   return true;
 }
 
-/** Lock a tracker channel for exclusive access.
+/**
+ * Computes tracking channel public information.
  *
- * \note Blocking or long-running operations should not be performed while
- *       holding the lock for a tracking channel.
+ * This function must be called from tracking channel lock scope.
  *
- * \param id      ID of the tracker channel to be locked.
- */
-void tracking_channel_lock(tracker_channel_id_t id)
-{
-  tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  tracker_channel_lock(tracker_channel);
-}
-
-/** Unlock a locked tracker channel.
- *
- * \param id      ID of the tracker channel to be unlocked.
- */
-void tracking_channel_unlock(tracker_channel_id_t id)
-{
-  tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  tracker_channel_unlock(tracker_channel);
-}
-
-/** Determine whether a tracker channel is currently running.
- *
- * \param id      ID of the tracker channel to use.
- */
-bool tracking_channel_running(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  return (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
-}
-
-/** Determine whether an error has occurred for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-bool tracking_channel_error(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  return (tracker_channel->error_flags != ERROR_FLAG_NONE);
-}
-
-/** Return the C/N0 estimate for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-float tracking_channel_cn0_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return common_data->cn0;
-}
-
-/** Return the time in ms for which a tracker channel has been running.
- *
- * \param id      ID of the tracker channel to use.
- */
-u32 tracking_channel_running_time_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return common_data->update_count;
-}
-
-/** Return the time in ms for which C/N0 has been above the use threshold for
- * a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-u32 tracking_channel_cn0_useable_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return update_count_diff(tracker_channel,
-                           &common_data->cn0_below_use_thres_count);
-}
-
-/** Return the time in ms for which C/N0 has been below the drop threshold for
- * a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-u32 tracking_channel_cn0_drop_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return update_count_diff(tracker_channel,
-                           &common_data->cn0_above_drop_thres_count);
-}
-
-/** Return the time in ms for which the PLL pessimistic lock detector
- * has reported being locked for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- * \return The time in [ms]
- */
-u32 tracking_channel_ld_pess_locked_ms_get(tracker_channel_id_t id)
-{
-  u32 ms = 0;
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  bool plock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK));
-  if (plock) {
-    ms = update_count_diff(tracker_channel, &common_data->ld_pess_change_count);
-  }
-  return ms;
-}
-
-/** Return the time in ms for which the FLL/PLL pessimistic lock detector
- * has reported being unlocked for a tracker channel.
- *
- * If tracker channel is run by FLL, then time of absense of FLL pessistic lock
- * is reported.
- * If tracker channel is run by PLL, then time of absense of PLL pessistic lock
- * is reported.
- *
- * \param id      ID of the tracker channel to use.
- * \return The time in [ms]
- */
-u32 tracking_channel_ld_pess_unlocked_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  bool plock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK));
-  bool flock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK));
-  if (plock || flock) {
-    return 0;
-  }
-  return update_count_diff(tracker_channel, &common_data->ld_pess_change_count);
-}
-
-/** Report if the tracking channel has ever been in PLL/FLL pessimistic lock
- *  state.
- *
- * \param id      ID of the tracker channel to use.
- * \retval false The tracking channel has never been in PLL/FLL pessimistic lock
- * \retval true The tracking channel has been in PLL/FLL pessimistic lock
- */
-bool tracking_channel_had_locks(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  bool had_plock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_PLOCK));
-  bool had_flock = (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_FLOCK));
-  if (had_plock || had_flock) {
-    return true;
-  }
-  return false;
-}
-
-/** Return the time in ms since the last mode change for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-u32 tracking_channel_last_mode_change_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return update_count_diff(tracker_channel,
-                           &common_data->mode_change_count);
-}
-
-/** Return the sid currently associated with a tracker channel.
- *
- * \note The returned sid is only guaranteed to be valid if the tracker
- *       channel is running.
- *
- * \param id      ID of the tracker channel to use.
- */
-gnss_signal_t tracking_channel_sid_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  return tracker_channel->info.sid;
-}
-
-/** Return the current carrier frequency for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- * \return Current carrier frequency [Hz]
- */
-double tracking_channel_carrier_freq_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return common_data->carrier_freq;
-}
-
-/** Return the carrier frequency snapshot at the moment of latest
- * PLL/FLL pessimistic lock condition for a tracker channel.
- *
- * The returned carrier frequency is not necessarily the latest reading of the
- * carrier frequency. It is the latest carrier frequency snapshot, when
- * the tracking channel was in PLL/FLL pessimistic lock state.
- * To get the latest reading of carrier frequency use
- * #tracking_channel_carrier_freq_get() function.
- *
- * \param id      ID of the tracker channel to use.
- * \return Carrier frequency at latest PLL/FLL lock state [Hz]
- */
-double tracking_channel_carrier_freq_at_lock_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return common_data->carrier_freq_at_lock;
-}
-
-/** Return the current time of week for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-s32 tracking_channel_tow_ms_get(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  return common_data->TOW_ms;
-}
-
-/** Return the bit sync status for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-bool tracking_channel_bit_sync_resolved(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_internal_data_t *internal_data =
-      &tracker_channel->internal_data;
-  return (internal_data->bit_sync.bit_phase_ref != BITSYNC_UNSYNCED);
-}
-
-/** Return the bit polarity resolution status for a tracker channel.
- *
- * \param id      ID of the tracker channel to use.
- */
-bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id)
-{
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_internal_data_t *internal_data =
-      &tracker_channel->internal_data;
-  return (internal_data->bit_polarity != BIT_POLARITY_UNKNOWN);
-}
-
-/** Retrieve loop controller parameters.
- *
- * \param[in]  id       ID of the tracker channel to use.
- * \param[out] params   Loop controller parameters.
+ * \param[in,out] tracker_channel  Tracking channel as a data source
+ * \param[out]    info             Optional destination for generic data block.
+ * \param[out]    time_info        Optional destination for timing data block.
+ * \param[out]    freq_info        Optional destination for frequency and phase
+ *                                 data block.
+ * \param[out]    ctrl_params      Optional destination for tracking loop
+ *                                 controller data block.
+ * \param[out]    reset_cpo        Optional destination for carrier phase
+ *                                 ambiguity reset flag.
  *
  * \return None
  */
-void tracking_channel_ctrl_params_get(tracker_channel_id_t id,
-                                      track_ctrl_params_t *params)
+
+static void tracking_channel_compute_values(
+                                      tracker_channel_t *tracker_channel,
+                                      tracking_channel_info_t *info,
+                                      tracking_channel_time_info_t *time_info,
+                                      tracking_channel_freq_info_t *freq_info,
+                                      tracking_channel_ctrl_info_t *ctrl_params,
+                                      bool *reset_cpo)
 {
-  const tracker_channel_t *tracker_channel = tracker_channel_get(id);
   const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  *params = common_data->ctrl_params;
+
+  if (NULL != info) {
+    /* Tracker identifier */
+    info->id = (tracker_channel_id_t)(tracker_channel - &tracker_channels[0]);
+    /* Translate/expand flags from tracker internal scope */
+    info->flags = tracking_channel_get_flags(tracker_channel);
+    /* Signal identifier */
+    info->sid = tracker_channel->info.sid;
+    /* Current C/N0 [dB/Hz] */
+    info->cn0 = common_data->cn0;
+    /* Current time of week for a tracker channel [ms] */
+    info->tow_ms = common_data->TOW_ms;
+    /* Tracking channel uptime [ms] */
+    info->uptime_ms = common_data->update_count;
+    /* Lock counter */
+    info->lock_counter = tracker_channel->internal_data.lock_counter;
+    /* Sample counter */
+    info->sample_count = common_data->sample_count;
+  }
+  if (NULL != time_info) {
+    time_info->cn0_drop_ms = update_count_diff(tracker_channel,
+                                               &common_data->cn0_above_drop_thres_count);
+    time_info->cn0_usable_ms = update_count_diff(tracker_channel,
+                                                 &common_data->cn0_below_use_thres_count);
+    time_info->last_mode_change_ms = update_count_diff(tracker_channel,
+                                                       &common_data->mode_change_count);
+
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
+      time_info->ld_pess_locked_ms = update_count_diff(tracker_channel,
+                                                       &common_data->ld_pess_change_count);
+    } else {
+      time_info->ld_pess_locked_ms = 0;
+    }
+
+    /* The time in ms for which the FLL/PLL pessimistic lock detector has reported
+     * being unlocked for a tracker channel.
+     *
+     * If tracker channel is run by FLL, then time of absence of FLL pessimistic
+     * lock is reported.
+     * If tracker channel is run by PLL, then time of absence of PLL pessimistic
+     * lock is reported.
+     */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK) ||
+        0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
+      time_info->ld_pess_unlocked_ms = 0;
+    } else {
+      time_info->ld_pess_unlocked_ms = update_count_diff(tracker_channel,
+                                                         &common_data->ld_pess_change_count);
+    }
+  }
+  if (NULL != freq_info) {
+    /* Current carrier frequency for a tracker channel. */
+    freq_info->carrier_freq = common_data->carrier_freq;
+    /* Carrier frequency snapshot at the moment of latest PLL/FLL pessimistic lock
+     * condition for a tracker channel.
+     *
+     * The returned carrier frequency is not necessarily the latest reading of the
+     * carrier frequency. It is the latest carrier frequency snapshot, when the
+     * tracking channel was in PLL/FLL pessimistic lock state.
+     */
+    freq_info->carrier_freq_at_lock = common_data->carrier_freq_at_lock;
+    /* Current carrier frequency for a tracker channel. */
+    freq_info->carrier_phase = common_data->carrier_phase;
+    /* Carrier phase offset is available here */
+    freq_info->carrier_phase_offset = 0;
+    /* Code phase in chips */
+    freq_info->code_phase_chips = common_data->code_phase_early;
+    /* Code phase rate in chips/s */
+    freq_info->code_phase_rate = common_data->code_phase_rate;
+  }
+  if (NULL != ctrl_params) {
+    /* Copy loop controller parameters */
+    ctrl_params->pll_bw = common_data->ctrl_params.pll_bw;
+    ctrl_params->fll_bw = common_data->ctrl_params.fll_bw;
+    ctrl_params->dll_bw = common_data->ctrl_params.dll_bw;
+    ctrl_params->int_ms = common_data->ctrl_params.int_ms;
+  }
+  if (NULL != reset_cpo) {
+    *reset_cpo = tracker_channel->internal_data.reset_cpo;
+    tracker_channel->internal_data.reset_cpo = false;
+  }
 }
 
-/** Retrieve a channel measurement for a tracker channel.
+/**
+ * Atomically cleans up all public data blocks.
  *
- * \param[in]  id       ID of the tracker channel to use.
- * \param[in]  ref_tc   Reference timing count.
- * \param[out] meas     Pointer to output channel_measurement_t.
+ * \param[in,out] pub_data Public data container.
+ *
+ * \return None.
  */
-void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
-                                      channel_measurement_t *meas)
+static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data)
+{
+  chMtxLock(&pub_data->info_mutex);
+  memset((void*)&pub_data->gen_info, 0, sizeof(pub_data->gen_info));
+  memset((void*)&pub_data->time_info, 0, sizeof(pub_data->time_info));
+  memset((void*)&pub_data->freq_info, 0, sizeof(pub_data->freq_info));
+  memset((void*)&pub_data->ctrl_info, 0, sizeof(pub_data->ctrl_info));
+  chMtxUnlock(&pub_data->info_mutex);
+}
+
+/**
+ * Method atomically updates tracking channel public informational block.
+ *
+ * The channel locks public informational block and updates it according to
+ * input parameters.
+ *
+ * \note Carrier phase offset can't be updated by this method. It can be only
+ *       reset to 0 if \a reset_cpo is set to \a true.
+ *
+ * \param[in,out] pub_data    Channel public data container.
+ * \param[in]     info        Generic information block (optional).
+ * \param[in]     time_info   Timing information block (optional).
+ * \param[in]     freq_info   Frequency and phase information block (optional).
+ * \param[in]     ctrl_params Control loop information block (optional).
+ * \param[in]     reset_cpo   Flag, if carrier phase offset shall be reset.
+ *
+ * \return None
+ *
+ * \sa tracking_channel_get_values
+ * \sa tracking_channel_set_carrier_phase_offset
+ * \sa tracking_channel_carrier_phase_offsets_adjust
+ */
+static void tracking_channel_update_values(
+                                tracker_channel_pub_data_t *pub_data,
+                                const tracking_channel_info_t *info,
+                                const tracking_channel_time_info_t *time_info,
+                                const tracking_channel_freq_info_t *freq_info,
+                                const tracking_channel_ctrl_info_t *ctrl_params,
+                                bool reset_cpo)
+{
+  chMtxLock(&pub_data->info_mutex);
+  if (NULL != info) {
+    pub_data->gen_info = *info;
+  }
+  if (NULL != time_info) {
+    pub_data->time_info = *time_info;
+  }
+  if (NULL != freq_info) {
+    /* This method doesn't update CPO, so it is preserved for recovery, however
+     * the value can be reset (see below) */
+    double old_cpo = pub_data->freq_info.carrier_phase_offset;
+    pub_data->freq_info = *freq_info;
+    /* Keep old CPO value */
+    pub_data->freq_info.carrier_phase_offset = old_cpo;
+  }
+  if (reset_cpo) {
+    /* Do CPO reset */
+    pub_data->freq_info.carrier_phase_offset = 0;
+  }
+  if (NULL != ctrl_params) {
+    pub_data->ctrl_info = *ctrl_params;
+  }
+  chMtxUnlock(&pub_data->info_mutex);
+}
+
+/**
+ * Atomically loads tracking channel public informational block.
+ *
+ * The channel locks public informational block and loads data from it into
+ * output parameters.
+ *
+ * \param[in]  id           Tracking channel identifier.
+ * \param[out] info         Optional destination for generic information.
+ * \param[out] time_info    Optional destination for timing information.
+ * \param[out] freq_info    Optional destination for frequency and phase
+ *                          information.
+ * \param[out] ctrl_params  Optional destination for loop controller information.
+ *
+ * \return None
+ *
+ * \sa tracking_channel_update_values
+ */
+void tracking_channel_get_values(tracker_channel_id_t id,
+                                 tracking_channel_info_t *info,
+                                 tracking_channel_time_info_t *time_info,
+                                 tracking_channel_freq_info_t *freq_info,
+                                 tracking_channel_ctrl_info_t *ctrl_params)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  tracker_internal_data_t *internal_data =
-      &tracker_channel->internal_data;
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
+  chMtxLock(&pub_data->info_mutex);
+  if (NULL != info) {
+    *info = pub_data->gen_info;
+  }
+  if (NULL != time_info) {
+    *time_info = pub_data->time_info;
+  }
+  if (NULL != freq_info) {
+    *freq_info = pub_data->freq_info;
+  }
+  if (NULL != ctrl_params) {
+    *ctrl_params = pub_data->ctrl_info;
+  }
+  chMtxUnlock(&pub_data->info_mutex);
+}
+
+/**
+ * Atomically updates carrier phase offset.
+ *
+ * The method locates tracking channel object, locks it, and updates the
+ * carrier phase offset only if the channel is still active, belongs to the
+ * same signal and has the same lock counter.
+ *
+ * \param[in] info                 Generic tracking channel information block
+ *                                 used for locating destination channel and
+ *                                 checking integrity.
+ * \param[in] carrier_phase_offset Carrier phase offset to set.
+ *
+ * \return None
+ */
+void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
+                                               double carrier_phase_offset)
+{
+  bool adjusted = false;
+  tracker_channel_t *tracker_channel = tracker_channel_get(info->id);
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&pub_data->info_mutex);
+  if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
+      sid_is_equal(info->sid, pub_data->gen_info.sid) &&
+      info->lock_counter == pub_data->gen_info.lock_counter) {
+    pub_data->freq_info.carrier_phase_offset = carrier_phase_offset;
+    adjusted = true;
+  }
+  chMtxUnlock(&pub_data->info_mutex);
+
+  if (adjusted) {
+    log_info_sid(info->sid, "Adjusting carrier phase offset to %lf",
+                 carrier_phase_offset);
+  }
+}
+
+
+/**
+ * Converts tracking channel data blocks into channel measurement structure.
+ *
+ * The method populates measurement fields according to provided values.
+ *
+ * \param[in]  ref_tc    Reference timing count.
+ * \param[in]  info      Generic tracking channel information block.
+ * \param[in]  freq_info Frequency and phase information block.
+ * \param[out] meas      Pointer to output channel_measurement_t.
+ *
+ * \return None
+ */
+void tracking_channel_measurement_get(u64 ref_tc,
+                                      const tracking_channel_info_t *info,
+                                      const tracking_channel_freq_info_t *freq_info,
+                                      channel_measurement_t *meas)
+{
   /* Update our channel measurement. */
-  meas->sid = tracker_channel->info.sid;
-  meas->code_phase_chips = common_data->code_phase_early;
-  meas->code_phase_rate = common_data->code_phase_rate;
-  meas->carrier_phase = common_data->carrier_phase;
-  meas->carrier_freq = common_data->carrier_freq;
-  meas->time_of_week_ms = common_data->TOW_ms;
-  meas->rec_time_delta = (double)((s32)(common_data->sample_count - (u32)ref_tc))
+  memset(meas, 0, sizeof(*meas));
+
+  meas->sid = info->sid;
+  meas->code_phase_chips = freq_info->code_phase_chips;
+  meas->code_phase_rate = freq_info->code_phase_rate;
+  meas->carrier_phase = freq_info->carrier_phase;
+  meas->carrier_freq = freq_info->carrier_freq;
+  meas->time_of_week_ms = info->tow_ms;
+  meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc))
                              / NAP_FRONTEND_SAMPLE_RATE_Hz;
-  meas->cn0 = common_data->cn0;
-  if (internal_data->bit_polarity == BIT_POLARITY_INVERTED) {
-    meas->carrier_phase += 0.5;
-  }
-  meas->lock_counter = internal_data->lock_counter;
-
-  /* Adjust carrier phase initial integer offset to be approximately equal to
-     pseudorange. */
-  /* TODO: adjust carrier_phase_offset when bit_polarity changes */
-  if ((time_quality == TIME_FINE)
-      && (internal_data->carrier_phase_offset == 0.0)) {
-
-      /* compute the pseudorange for this signal */
-      static navigation_measurement_t nav_meas[1];
-      navigation_measurement_t *p_nav_meas[1];
-      p_nav_meas[0] = &nav_meas[0];
-      gps_time_t rec_time = rx2gpstime(ref_tc);
-      s8 nm_ret = calc_navigation_measurement(1,
-        (const channel_measurement_t **) &meas, p_nav_meas, &rec_time, 0);
-      if (nm_ret != 0) {
-        log_error_sid(meas->sid,
-          "calc_navigation_measurement() returned an error");
-        return;
-      }
-      /* initialize the carrier phase offset with the pseudorange measurement */
-      internal_data->carrier_phase_offset = round(
-        meas->carrier_phase
-        /* NOTE: CP sign flip - change the plus sign below */
-        + code_to_carr_freq(meas->sid.code) * nav_meas[0].raw_pseudorange / GPS_C
-        );
-      log_info_sid(meas->sid, "Initializing carrier phase offset to %f",
-        internal_data->carrier_phase_offset);
-  }
-  meas->carrier_phase -= internal_data->carrier_phase_offset;
+  meas->cn0 = info->cn0;
+  meas->lock_counter = info->lock_counter;
   meas->flags = 0;
 }
 
@@ -711,20 +754,22 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     bool          adjusted = false;
 
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+    volatile tracking_channel_freq_info_t * freq_info = &pub_data->freq_info;
 
-    tracker_channel_lock(tracker_channel);
+    chMtxLock(&pub_data->info_mutex);
+    if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
+      carrier_phase_offset = freq_info->carrier_phase_offset;
 
-    tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-    /* touch only channels that have the initial offset set */
-    if (internal_data->carrier_phase_offset != 0.0) {
-      sid = tracker_channel->info.sid;
-      internal_data->carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
-
-      carrier_phase_offset = internal_data->carrier_phase_offset;
-      adjusted = true;
+      /* touch only channels that have the initial offset set */
+      if (carrier_phase_offset != 0.0) {
+        sid = pub_data->gen_info.sid;
+        carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
+        freq_info->carrier_phase_offset = carrier_phase_offset;
+        adjusted = true;
+      }
     }
-
-    tracker_channel_unlock(tracker_channel);
+    chMtxUnlock(&pub_data->info_mutex);
 
     if (adjusted) {
       log_info_sid(sid, "Adjusting carrier phase offset to %f",
@@ -857,12 +902,35 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
   switch (tracker_channel_state_get(tracker_channel)) {
   case STATE_ENABLED: {
     if (update_required) {
+      /* Channel public data blocks for transferring between locks */
+      tracking_channel_info_t info;
+      tracking_channel_time_info_t time_info;
+      tracking_channel_freq_info_t freq_info;
+      tracking_channel_ctrl_info_t ctrl_params;
+      bool reset_cpo;
+
       tracker_channel_lock(tracker_channel);
       {
         interface_function(tracker_channel,
                            tracker_channel->interface->update);
+
+        /* Read channel public data while in channel lock */
+        tracking_channel_compute_values(tracker_channel,
+                                        &info,
+                                        &time_info,
+                                        &freq_info,
+                                        &ctrl_params,
+                                        &reset_cpo);
       }
       tracker_channel_unlock(tracker_channel);
+
+      /* Update channel public data outside of channel lock */
+      tracking_channel_update_values(&tracker_channel->pub_data,
+                                     &info,
+                                     &time_info,
+                                     &freq_info,
+                                     &ctrl_params,
+                                     reset_cpo);
     }
   }
   break;
@@ -877,6 +945,8 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
       event(tracker_channel, EVENT_DISABLE);
     }
     tracker_channel_unlock(tracker_channel);
+    /* Clear channel public data to stop usage */
+    tracking_channel_cleanup_values(&tracker_channel->pub_data);
   }
   break;
 
@@ -1196,11 +1266,11 @@ static void error_flags_add(tracker_channel_t *tracker_channel,
   tracker_channel->error_flags |= error_flag;
 }
 
-tracking_channel_flags_t tracking_channel_get_flags(tracker_channel_id_t id)
+static tracking_channel_flags_t tracking_channel_get_flags(
+    const tracker_channel_t *tracker_channel)
 {
   tracking_channel_flags_t result = 0;
 
-  const tracker_channel_t *const tracker_channel = tracker_channel_get(id);
   const tracker_common_data_t *const common_data = &tracker_channel->common_data;
   const tracker_internal_data_t *const internal_data = &tracker_channel->internal_data;
 
@@ -1243,9 +1313,16 @@ tracking_channel_flags_t tracking_channel_get_flags(tracker_channel_id_t id)
     if (TOW_INVALID != common_data->TOW_ms) {
       result |= TRACKING_CHANNEL_FLAG_TOW;
     }
+    /* Bit sync has been reached. */
+    if (BITSYNC_UNSYNCED != internal_data->bit_sync.bit_phase_ref) {
+      result |= TRACKING_CHANNEL_FLAG_BIT_SYNC;
+    }
     /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
     if (BIT_POLARITY_UNKNOWN != internal_data->bit_polarity) {
       result |= TRACKING_CHANNEL_FLAG_BIT_POLARITY;
+    }
+    if (BIT_POLARITY_INVERTED == internal_data->bit_polarity) {
+      result |= TRACKING_CHANNEL_FLAG_BIT_INVERTED;
     }
     /* Tracking mode */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_PLL_USE)) {
@@ -1266,10 +1343,15 @@ tracking_channel_flags_t tracking_channel_get_flags(tracker_channel_id_t id)
     if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_FLL_LOCK;
     }
+    /* Tracking status: tracking channel has ever been in PLL/FLL pessimistic
+     * lock state. */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_PLOCK) ||
+        0 != (common_data->flags & TRACK_CMN_FLAG_HAD_FLOCK)) {
+      result |= TRACKING_CHANNEL_FLAG_HAD_LOCKS;
+    }
   }
 
   return result;
 }
-
 
 /** \} */

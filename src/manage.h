@@ -17,6 +17,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/track.h>
 #include "board/acq.h"
 
 /** \addtogroup manage
@@ -168,11 +169,13 @@ void manage_set_obs_hint(gnss_signal_t sid);
 void manage_track_setup(void);
 
 manage_track_flags_t get_tracking_channel_flags(u8 i);
+manage_track_flags_t get_tracking_channel_meas(u8 i,
+                                               u64 ref_tc,
+                                               channel_measurement_t *meas);
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
 manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
                                                     s32 tow_ms,
                                                     ephemeris_t *pephe);
-s8 use_tracking_channel(u8 i);
 bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags);
 u8 tracking_channels_ready(manage_track_flags_t required_flags);
 

@@ -64,8 +64,8 @@ typedef struct {
   u16 lock_counter;
   /** Set if this channel should output I/Q samples on SBP. */
   bool output_iq;
-  /** Carrier phase integer offset in cycles. */
-  double carrier_phase_offset;
+  /** Flags if carrier phase integer offset to be reset. */
+  bool reset_cpo;
 } tracker_internal_data_t;
 
 /** \} */
@@ -77,7 +77,6 @@ tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void);
 void tracker_internal_context_resolve(tracker_context_t *tracker_context,
                                       const tracker_channel_info_t **channel_info,
                                       tracker_internal_data_t **internal_data);
-
 void internal_data_init(tracker_internal_data_t *internal_data,
                         gnss_signal_t sid);
 

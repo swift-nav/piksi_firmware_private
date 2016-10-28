@@ -422,15 +422,20 @@ static void nmea_assemble_gpgsa(const dops_t *dops)
   /* Assemble list of currently tracked GPS PRNs */
   u8 prns[nap_track_n_channels];
   u8 num_prns = 0;
-  for (u32 i=0; i<nap_track_n_channels; i++) {
-    tracking_channel_lock(i);
-    if (tracking_channel_running(i)) {
-      gnss_signal_t sid = tracking_channel_sid_get(i);
+  for (u32 i = 0; i < nap_track_n_channels; i++) {
+    tracking_channel_info_t info;
+    tracking_channel_get_values(i,
+                                &info,  /* Generic info */
+                                NULL,   /* Timers */
+                                NULL,   /* Frequencies */
+                                NULL);  /* Loop controller values */
+
+    if (0 != (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
+      gnss_signal_t sid = info.sid;
       if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
         prns[num_prns++] = sid.sat;
       }
     }
-    tracking_channel_unlock(i);
   }
   /* Send GPGSA message */
   nmea_gpgsa(prns, num_prns, dops);

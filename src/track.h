@@ -23,7 +23,6 @@
 #include <ch.h>
 
 #include "board/nap/track_channel.h"
-#include "track_api.h"
 
 /** \addtogroup tracking
  * \{ */
@@ -60,9 +59,65 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_PLL_PLOCK      (1u << 12)
 /** Tracking channel flag: is FLL lock present */
 #define TRACKING_CHANNEL_FLAG_FLL_LOCK       (1u << 13)
+/** Tracking channel flag: tracker has bit sync resolved */
+#define TRACKING_CHANNEL_FLAG_BIT_SYNC       (1u << 14)
+/** Tracking channel flag: tracker has bit sync resolved */
+#define TRACKING_CHANNEL_FLAG_HAD_LOCKS      (1u << 15)
+/** Tracking channel flag: tracker has bit sync resolved */
+#define TRACKING_CHANNEL_FLAG_BIT_INVERTED   (1u << 16)
 
 /** Bit mask of tracking channel flags */
-typedef u16 tracking_channel_flags_t;
+typedef u32 tracking_channel_flags_t;
+
+/**
+ * Generic tracking channel information for external use.
+ */
+typedef struct {
+  tracker_channel_id_t     id;           /**< Channel identifier */
+  gnss_signal_t            sid;          /**< Signal identifier */
+  tracking_channel_flags_t flags;        /**< Channel flags */
+  s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
+  float                    cn0;          /**< C/N0 [dB/Hz] */
+  u32                      uptime_ms;    /**< Tracker uptime [ms] */
+  u32                      sample_count; /**< Last measurement sample counter */
+  u16                      lock_counter; /**< Lock state counter */
+} tracking_channel_info_t;
+
+/**
+ * Timing information from tracking channel for external use.
+ */
+typedef struct {
+  u32 cn0_usable_ms;       /**< Time with C/N0 above drop threshold [ms] */
+  u32 cn0_drop_ms;         /**< Time with C/N0 below drop threshold [ms] */
+  u32 ld_pess_locked_ms;   /**< Time in pessimistic lock [ms] */
+  u32 ld_pess_unlocked_ms; /**< Time without pessimistic lock [ms] */
+  u32 last_mode_change_ms; /**< Time since last mode change [ms] */
+} tracking_channel_time_info_t;
+
+/** Controller parameters for error sigma computations */
+typedef struct {
+  float fll_bw;  /**< FLL controller NBW [Hz].
+                      Single sided noise bandwidth in case of
+                      FLL and FLL-assisted PLL tracking */
+  float pll_bw;  /**< PLL controller noise bandwidth [Hz].
+                      Single sided noise bandwidth in case of
+                      PLL and FLL-assisted PLL tracking */
+  float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
+  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+} tracking_channel_ctrl_info_t;
+
+/**
+ * Phase and frequencies information
+ */
+typedef struct {
+  double code_phase_chips;     /**< The code-phase in chips at `receiver_time`. */
+  double code_phase_rate;      /**< Code phase rate in chips/s. */
+  double carrier_phase;        /**< Carrier phase in cycles. */
+  double carrier_freq;         /**< Carrier frequency in Hz. */
+  double carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
+  double carrier_phase_offset; /**< Carrier phase offset in cycles. */
+} tracking_channel_freq_info_t;
+
 
 /** \} */
 
@@ -86,36 +141,25 @@ bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
                           float cn0_init);
 bool tracker_channel_disable(tracker_channel_id_t id);
 
-/* Tracking parameters interface.
- * Lock should be acquired for atomicity. */
-void tracking_channel_lock(tracker_channel_id_t id);
-void tracking_channel_unlock(tracker_channel_id_t id);
+/* Tracking parameters interface. */
 
-tracking_channel_flags_t tracking_channel_get_flags(tracker_channel_id_t id);
-bool tracking_channel_running(tracker_channel_id_t id);
-bool tracking_channel_error(tracker_channel_id_t id);
-float tracking_channel_cn0_get(tracker_channel_id_t id);
-u32 tracking_channel_running_time_ms_get(tracker_channel_id_t id);
-u32 tracking_channel_cn0_useable_ms_get(tracker_channel_id_t id);
-u32 tracking_channel_cn0_drop_ms_get(tracker_channel_id_t id);
-u32 tracking_channel_ld_pess_locked_ms_get(tracker_channel_id_t id);
-u32 tracking_channel_ld_pess_unlocked_ms_get(tracker_channel_id_t id);
-u32 tracking_channel_last_mode_change_ms_get(tracker_channel_id_t id);
-gnss_signal_t tracking_channel_sid_get(tracker_channel_id_t id);
-double tracking_channel_carrier_freq_get(tracker_channel_id_t id);
-double tracking_channel_carrier_freq_at_lock_get(tracker_channel_id_t id);
-s32 tracking_channel_tow_ms_get(tracker_channel_id_t id);
-bool tracking_channel_bit_sync_resolved(tracker_channel_id_t id);
-bool tracking_channel_bit_polarity_resolved(tracker_channel_id_t id);
-void tracking_channel_ctrl_params_get(tracker_channel_id_t id,
-                                      track_ctrl_params_t *params);
-void tracking_channel_measurement_get(tracker_channel_id_t id, u64 ref_tc,
-                                      channel_measurement_t *meas);
+void tracking_channel_measurement_get(u64 ref_tc,
+                                 const tracking_channel_info_t *info,
+                                 const tracking_channel_freq_info_t *freq_info,
+                                 channel_measurement_t *meas);
+
+void tracking_channel_get_values(tracker_channel_id_t id,
+                                 tracking_channel_info_t *info,
+                                 tracking_channel_time_info_t *time_info,
+                                 tracking_channel_freq_info_t *freq_info,
+                                 tracking_channel_ctrl_info_t *ctrl_params);
+
+void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
+                                               double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 bool tracking_channel_elevation_degrees_set(gnss_signal_t sid, s8 elevation);
 s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid);
-bool tracking_channel_had_locks(tracker_channel_id_t id);
 
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit);

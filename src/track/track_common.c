@@ -764,10 +764,15 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
         log_info_sid(channel_info->sid, "PLL stress");
       }
     }
-    /* Reset carrier phase ambiguity if there's doubt as to our phase lock */
-    if (!outp || fll_loop) {
-      tracker_ambiguity_unknown(channel_info->context);
-    }
+  }
+  /*
+   * Reset carrier phase ambiguity if there's doubt as to our phase lock.
+   * Continue phase ambiguity reset until pessimistic PLL lock is reached. This
+   * is done always to prevent incorrect handling of partial integration
+   * intervals.
+   */
+  if (!data->mode_pll || !data->lock_detect.outp) {
+    tracker_ambiguity_unknown(channel_info->context);
   }
 }
 
