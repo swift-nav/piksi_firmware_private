@@ -204,6 +204,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
         log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                       common_data->update_count, common_data->TOW_ms);
         common_data->TOW_ms = TOW_UNKNOWN;
+        common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
       }
     }
   }
@@ -247,4 +248,3 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                              common_data->cn0);
   }
 }
-

@@ -36,7 +36,7 @@ static u8 get_sync_flags(const tracker_channel_info_t *channel_info)
   u8 flags = TRACK_SYNC_NONE;
   bool bit_sync = tracker_has_bit_sync(channel_info->context);
   if (bit_sync) {
-    flags |= TRACK_SYNC_BIT;
+    flags = TRACK_SYNC_BIT;
   }
   /* TODO: add subframe (L1C/A) and message sync states (L2C) */
 
@@ -51,9 +51,9 @@ static u8 get_tow_flags(const tracker_common_data_t *common_data)
 {
   u8 flags = TRACK_TOW_NONE;
   if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_DECODED)) {
-    flags |= TRACK_TOW_DECODED;
+    flags = TRACK_TOW_DECODED;
   } else if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_PROPAGATED)) {
-    flags |= TRACK_TOW_PROPAGATED;
+    flags = TRACK_TOW_PROPAGATED;
   }
 
   return flags;
@@ -61,25 +61,24 @@ static u8 get_tow_flags(const tracker_common_data_t *common_data)
 
 /** Get tracking loop status flags
  * \param[in] common_data tracking loop common data
- * \return Bit field of #track_loop_status_t flags
+ * \return Bit field of #track_loop_status_t,
+ *         #TRACK_LOOP_PLL and #TRACK_LOOP_FLL flags
  */
 static u8 get_track_flags(const tracker_common_data_t *common_data)
 {
-  u8 flags = 0;
+  u8 flags = TRACK_LOOP_NO_LOCK;
+  if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
+    flags = TRACK_LOOP_PLL_PESSIMISTIC_LOCK;
+  } else if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_OLOCK)) {
+    flags = TRACK_LOOP_PLL_OPTIMISTIC_LOCK;
+  } else if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
+    flags = TRACK_LOOP_FLL_LOCK;
+  }
   if (0 != (common_data->flags & TRACK_CMN_FLAG_PLL_USE)) {
     flags |= TRACK_LOOP_PLL;
   }
   if (0 != (common_data->flags & TRACK_CMN_FLAG_FLL_USE)) {
     flags |= TRACK_LOOP_FLL;
-  }
-  if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
-    flags |= TRACK_LOOP_PLL_PESSIMISTIC_LOCK;
-  } else if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_OLOCK)) {
-    flags |= TRACK_LOOP_PLL_OPTIMISTIC_LOCK;
-  } else if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
-    flags |= TRACK_LOOP_FLL_LOCK;
-  } else {
-    flags |= TRACK_LOOP_NO_LOCK;
   }
   return flags;
 }
@@ -92,18 +91,18 @@ static u8 get_track_flags(const tracker_common_data_t *common_data)
  */
 static u8 get_nav_data_status_flags(gnss_signal_t sid)
 {
-  u8 flags = 0;
+  u8 flags = TRACK_HEALTH_UNKNOWN;
   code_nav_state_t nav_state = shm_get_sat_state(sid);
 
   switch (nav_state) {
   case CODE_NAV_STATE_UNKNOWN:
-    flags |= TRACK_HEALTH_UNKNOWN;
+    flags = TRACK_HEALTH_UNKNOWN;
     break;
   case CODE_NAV_STATE_VALID:
-    flags |= TRACK_HEALTH_GOOD;
+    flags = TRACK_HEALTH_GOOD;
     break;
   case CODE_NAV_STATE_INVALID:
-    flags |= TRACK_HEALTH_BAD;
+    flags = TRACK_HEALTH_BAD;
     break;
   default:
     assert(!"Unknown nav state");
@@ -141,13 +140,13 @@ static u8 get_pset_flags(const tracker_common_data_t *common_data)
 {
   u8 flags = 0;
   if (1 /*[ms]*/ == common_data->ctrl_params.int_ms) {
-    flags |= TRACK_PARAM_SET_1MS;
+    flags = TRACK_PARAM_SET_1MS;
   } else if (5 /*[ms]*/ == common_data->ctrl_params.int_ms) {
-    flags |= TRACK_PARAM_SET_5MS;
+    flags = TRACK_PARAM_SET_5MS;
   } else if (10 /*[ms]*/ == common_data->ctrl_params.int_ms) {
-    flags |= TRACK_PARAM_SET_10MS;
+    flags = TRACK_PARAM_SET_10MS;
   } else if (20 /*[ms]*/ == common_data->ctrl_params.int_ms) {
-    flags |= TRACK_PARAM_SET_20MS;
+    flags = TRACK_PARAM_SET_20MS;
   } else {
     assert(!"Unsupported integration time.");
   }
@@ -156,19 +155,26 @@ static u8 get_pset_flags(const tracker_common_data_t *common_data)
 
 /** Get miscellaneous flags
  * \param[in] channel_info channel info
- * \return Bit field of #track_param_set_t flags
+ * \return Bit field of #track_channel_status_t,
+ *         #TRACK_ACCELERATION_VALID, TRACK_HALF_CYCLE_AMBIGUITY_RESOLVED
+ *         and #TRACK_PSEUDORANGE_VALID flags
  */
 static u8 get_misc_flags(const tracker_channel_info_t *channel_info)
 {
-  u8 flags = TRACK_ACCELERATION_VALID; /* acceleration is always valid */
+  /* TODO: set status correctly when re-acq support is added */
+  u8 flags = TRACK_STATUS_RUNNING;   /* no re-acq state support */
   tracker_internal_data_t *internal_data;
 
-  flags |= TRACK_STATUS_RUNNING;       /* no re-acq state support */
+  flags |= TRACK_ACCELERATION_VALID; /* acceleration is always valid */;
 
-  tracker_internal_context_resolve(channel_info->context, &channel_info, &internal_data);
+  tracker_internal_context_resolve(channel_info->context, &channel_info,
+    &internal_data);
   if (internal_data->bit_polarity != BIT_POLARITY_UNKNOWN) {
     flags |= TRACK_HALF_CYCLE_AMBIGUITY_RESOLVED;
   }
+
+  /* TODO: set pseudorange valid flag */
+
   return flags;
 }
 

@@ -950,12 +950,12 @@ void running_stats_init(running_stats_t *p)
 void running_stats_update(running_stats_t *p, double v)
 {
   p->n++;
-  p->sum += 0;
+  p->sum += v;
   p->sum_of_squares += v * v;
-  p->mean = p->sum / p->n;
-  if (1 == p->n) {
+  if (1 >= p->n) {
     return;
   }
+  p->mean = p->sum / p->n;
   p->variance = p->sum_of_squares / (p->n - 1) -
                 (p->sum * p->sum) / p->n / (p->n - 1);
 }
@@ -1007,4 +1007,3 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
 
   return cflags;
 }
-
