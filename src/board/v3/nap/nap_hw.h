@@ -19,9 +19,6 @@
 /** Max number of tracking channels NAP configuration will be built with. */
 #define NAP_MAX_N_TRACK_CHANNELS                             (MAX_CHANNELS + 1)
 
-/** NAP acquisition FFT length. */
-#define NAP_FFT_LENGTH                                                  (32768)
-
 typedef struct {
   volatile uint32_t STATUS;
   volatile uint32_t CONTROL;
@@ -153,22 +150,22 @@ typedef struct {
 #define NAP_TRK_CONTROL_FRONTEND_Msk (0x7U << NAP_TRK_CONTROL_FRONTEND_Pos)
 
 #define NAP_TRK_CONTROL_SAT_Pos (3U)
-#define NAP_TRK_CONTROL_SAT_Msk (0x1FU << NAP_TRK_CONTROL_SAT_Pos)
+#define NAP_TRK_CONTROL_SAT_Msk (0x3FU << NAP_TRK_CONTROL_SAT_Pos)
 
 #define NAP_TRK_CONTROL_CODE_Pos (9U)
 #define NAP_TRK_CONTROL_CODE_Msk (0x7U << NAP_TRK_CONTROL_CODE_Pos)
 
 #define NAP_TRK_SPACING_OFFSET0_Pos (0U)
-#define NAP_TRK_SPACING_OFFSET0_Msk (0xFFU << NAP_TRK_SPACING_OFFSET0_Pos)
+#define NAP_TRK_SPACING_OFFSET0_Msk (0x1FFU << NAP_TRK_SPACING_OFFSET0_Pos)
 
-#define NAP_TRK_SPACING_OFFSET1_Pos (8U)
-#define NAP_TRK_SPACING_OFFSET1_Msk (0xFFU << NAP_TRK_SPACING_OFFSET1_Pos)
+#define NAP_TRK_SPACING_OFFSET1_Pos (9U)
+#define NAP_TRK_SPACING_OFFSET1_Msk (0x3FU << NAP_TRK_SPACING_OFFSET1_Pos)
 
-#define NAP_TRK_SPACING_OFFSET2_Pos (16U)
-#define NAP_TRK_SPACING_OFFSET2_Msk (0xFFU << NAP_TRK_SPACING_OFFSET2_Pos)
+#define NAP_TRK_SPACING_OFFSET2_Pos (15U)
+#define NAP_TRK_SPACING_OFFSET2_Msk (0x3FU << NAP_TRK_SPACING_OFFSET2_Pos)
 
-#define NAP_TRK_SPACING_OFFSET3_Pos (24U)
-#define NAP_TRK_SPACING_OFFSET3_Msk (0xFFU << NAP_TRK_SPACING_OFFSET3_Pos)
+#define NAP_TRK_SPACING_OFFSET3_Pos (21U)
+#define NAP_TRK_SPACING_OFFSET3_Msk (0x1FFU << NAP_TRK_SPACING_OFFSET3_Pos)
 
 /* NAP RF fronend channel ID */
 enum {

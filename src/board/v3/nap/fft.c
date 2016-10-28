@@ -93,7 +93,7 @@ static void control_set_dma(void)
 static void control_set_frontend_samples(fft_samples_input_t samples_input,
                                          u32 len_points)
 {
-  assert(len_points == NAP_FFT_LENGTH);
+  (void)len_points;
 
   NAP->ACQ_CONTROL =
       ((samples_input)                    << NAP_ACQ_CONTROL_FRONTEND_Pos) |
