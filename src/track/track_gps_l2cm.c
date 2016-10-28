@@ -190,10 +190,9 @@ static void tracker_gps_l2cm_disable(const tracker_channel_info_t *channel_info,
                                      tracker_common_data_t *common_data,
                                      tracker_data_t *tracker_data)
 {
-  /* Unused parameter */
-  (void)tracker_data;
+  gps_l2cm_tracker_data_t *data = tracker_data;
 
-  tp_tracker_disable(channel_info, common_data);
+  tp_tracker_disable(channel_info, common_data, &data->data);
 }
 
 /**

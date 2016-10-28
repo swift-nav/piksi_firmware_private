@@ -26,6 +26,9 @@
 /** \addtogroup track_loop
  * \{ */
 
+/** Unknown delay indicator */
+#define TP_DELAY_UNKNOWN -1
+
 /**
  * Tracking mode enumeration.
  */
@@ -131,22 +134,68 @@ typedef enum
   TP_RESULT_NO_DATA = 1, /**< Profile has changed */
 } tp_result_e;
 
+/**
+ * Tracking profile controller data.
+ *
+ * The controller uses this container for managing profile switching logic.
+ */
+typedef struct {
+  /*
+   * Fields are ordered from larger to smaller for minimal memory footprint.
+   */
+
+  float cn0_offset;  /**< C/N0 offset in dB to tune thresholds */
+  float filt_cn0;    /**< C/N0 value for decision logic */
+  float filt_accel;  /**< SV acceleration value for decision logic [g] */
+
+  /* Packed fields: 24 bits */
+  u32   olock: 1;          /**< PLL optimistic lock flag */
+  u32   plock: 1;          /**< PLL pessimistic lock flag */
+  u32   bsync: 1;          /**< Bit sync flag */
+  u32   bsync_sticky: 1;   /**< Bit sync flag */
+  u32   profile_update: 1; /**< Flag if the profile update is required */
+  u32   low_cn0_count: 5;  /**< State lock counter for C/N0 threshold */
+  u32   high_cn0_count: 5; /**< State lock counter for C/N0 threshold */
+  u32   accel_count: 5;    /**< State lock counter for dynamics threshold */
+  u32   accel_count_idx: 2;/**< State lock value for dynamics threshold */
+  u32   cn0_est: 2;        /**< C/N0 estimator type */
+  u16   lock_time_ms;      /**< Profile lock count down timer */
+  u8    cur_index;         /**< Active profile index [0-25] */
+  u8    next_index;        /**< Next profile index [0-25] */
+  u16   acceleration_ends_after_ms; /**< There is an acceleration if this
+                                     *   parameter is non-zero [ms] */
+  u16   print_time;        /**< Time till next debug print [ms] */
+  u32   time_snapshot_ms;  /**< Time snapshot [ms] */
+  s16   bs_delay_ms;       /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
+  s16   plock_delay_ms;    /**< Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
+
+  const struct tp_profile_entry *profiles; /**< Profiles switching table. */
+} tp_profile_t;
+
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
 tp_result_e tp_init(void);
-tp_result_e tp_tracking_start(gnss_signal_t sid, const tp_report_t *data,
-                              tp_config_t *config);
-tp_result_e tp_tracking_stop(gnss_signal_t sid);
-tp_result_e tp_get_profile(gnss_signal_t sid, tp_config_t *config, bool commit);
-tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params);
-bool        tp_has_new_profile(gnss_signal_t sid);
-u8          tp_get_next_loop_params_ms(gnss_signal_t sid);
-tp_result_e tp_report_data(gnss_signal_t sid,
-                           const tracker_common_data_t *common_data,
-                           const tp_report_t *data);
+tp_result_e tp_profile_init(gnss_signal_t sid,
+                            tp_profile_t *profile,
+                            const tp_report_t *data,
+                            tp_config_t *config);
+tp_result_e tp_profile_get_config(gnss_signal_t sid,
+                                  tp_profile_t *profile,
+                                  tp_config_t *config,
+                                  bool commit);
+tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
+                                      tp_cn0_params_t *cn0_params);
+bool        tp_profile_has_new_profile(gnss_signal_t sid,
+                                       tp_profile_t *profile);
+u8          tp_profile_get_next_loop_params_ms(const tp_profile_t *profile);
+tp_result_e tp_profile_report_data(gnss_signal_t sid,
+                                   tp_profile_t *profile,
+                                   const tracker_common_data_t *common_data,
+                                   const tp_report_t *data);
 
 #ifdef __cplusplus
 }

@@ -217,6 +217,8 @@ typedef struct
  * Generic tracker data
  */
 typedef struct {
+  tp_profile_t      profile;                /**< Profile controller state. */
+
   tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
   tp_corr_state_t   corrs;                  /**< Correlations */
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
@@ -320,7 +322,8 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
                      tp_tracker_data_t *data,
                      const tp_tracker_config_t *config);
 void tp_tracker_disable(const tracker_channel_info_t *channel_info,
-                        tracker_common_data_t *common_data);
+                        tracker_common_data_t *common_data,
+                        tp_tracker_data_t *data);
 u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
                       tracker_common_data_t *common_data,
                       tp_tracker_data_t *data);
@@ -362,7 +365,7 @@ void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
                             tracker_common_data_t *common_data,
                             tp_tracker_data_t *data);
 u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      const tp_tracker_data_t *data);
+                                      tp_tracker_data_t *data);
 void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
 void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
                                     const tp_tracker_data_t *data);
