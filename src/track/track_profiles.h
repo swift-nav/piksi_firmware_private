@@ -144,6 +144,7 @@ tp_result_e tp_get_profile(gnss_signal_t sid, tp_config_t *config, bool commit);
 tp_result_e tp_get_cn0_params(gnss_signal_t sid, tp_cn0_params_t *cn0_params);
 bool        tp_has_new_profile(gnss_signal_t sid);
 u8          tp_get_next_loop_params_ms(gnss_signal_t sid);
+float       tp_get_acceleration(gnss_signal_t sid);
 tp_result_e tp_report_data(gnss_signal_t sid,
                            const tracker_common_data_t *common_data,
                            const tp_report_t *data);

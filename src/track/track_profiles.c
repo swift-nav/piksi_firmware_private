@@ -1257,6 +1257,23 @@ u8 tp_get_next_loop_params_ms(gnss_signal_t sid)
 }
 
 /**
+ * Helper to obtain acceleration value.
+ *
+ * \param[in] sid GNSS satellite id.
+ *
+ * \return acceleration [g]
+ */
+float tp_get_acceleration(gnss_signal_t sid)
+{
+  float ret = 0;
+  tp_profile_internal_t *profile = find_profile(sid);
+  if (NULL != profile) {
+    ret = profile->filt_accel;
+  }
+  return ret;
+}
+
+/**
  * Updates track profile data with supplied information.
  *
  * The method takes tracking loop data and merges it with previously collected
