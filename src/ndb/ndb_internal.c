@@ -20,6 +20,7 @@
 #include "ndb_internal.h"
 #include "ndb_fs_access.h"
 #include <nap/nap_common.h>
+#include "settings.h"
 
 #define NDB_THREAD_PRIORITY (LOWPRIO)
 static WORKING_AREA_CCM(ndb_thread_wa, 2048);
@@ -27,6 +28,7 @@ static void ndb_service_thread(void*);
 
 u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];
 u8 ndb_file_end_mark = 0xb6;
+bool ndb_erase_on_init = true;
 
 static MUTEX_DECL(data_access);
 
@@ -106,6 +108,8 @@ static ndb_element_metadata_t *ndb_wq_get(void)
  */
 void ndb_init(void)
 {
+  SETTING("ndb", "erase_on_init", ndb_erase_on_init, TYPE_BOOL);
+
   if (!ndb_fs_is_real()) {
     log_info("NDB: configured not to save data to flash file system");
   }
@@ -192,6 +196,10 @@ void ndb_load_data(ndb_file_t *file,
   size_t ds = el_size * el_number;
   size_t mds = sizeof(ndb_element_metadata_nv_t) * el_number;
   ndb_element_metadata_nv_t md_nv[el_number];
+
+  if (ndb_erase_on_init) {
+    ndb_fs_remove(file->name);
+  }
 
   if (ndb_open_file(file) == NDB_ERR_NONE &&
       ndb_read(file, 0, data, ds) == NDB_ERR_NONE &&
