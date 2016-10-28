@@ -73,6 +73,7 @@ MUTEX_DECL(amb_state_lock);
 systime_t last_dgnss;
 
 double soln_freq = 2.0;
+u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
 double known_baseline[3] = {0, 0, 0};
@@ -723,7 +724,7 @@ static void solution_thread(void *arg)
       chMtxLock(&base_obs_lock);
       if (base_obss.n > 0 && !simulation_enabled()) {
         if ((pdt = gpsdifftime(&new_obs_time, &base_obss.tor))
-              < MAX_AGE_OF_DIFFERENTIAL) {
+              < max_age_of_differential) {
 
           /* Propagate base station observations to the current time and
            * process a low-latency differential solution. */
@@ -961,6 +962,7 @@ void solution_setup()
   /* Set time of last differential solution in the past. */
   last_dgnss = chVTGetSystemTime() - DGNSS_TIMEOUT(soln_freq);
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
+  SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
 
   static const char const *dgnss_soln_mode_enum[] = {
