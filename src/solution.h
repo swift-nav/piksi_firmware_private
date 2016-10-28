@@ -34,13 +34,12 @@ typedef enum {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define MAX_AGE_OF_DIFFERENTIAL 1.0
-
-#define OBS_N_BUFF 5
+#define OBS_N_BUFF 20
 #define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
 
 extern double soln_freq;
 extern u32 obs_output_divisor;
+extern u32 max_age_of_differential;
 
 void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump);
 void solution_send_nmea(gnss_solution *soln, dops_t *dops,
