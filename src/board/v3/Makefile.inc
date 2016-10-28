@@ -91,6 +91,7 @@ BOARDSRC := \
         $(BOARDDIR)/factory_data.o \
         $(BOARDDIR)/manage_led.o \
         $(BOARDDIR)/imu.o \
+        $(BOARDDIR)/manage_rtc.o \
         $(BOARDDIR)/nap/axi_dma.o \
         $(BOARDDIR)/nap/fft.o \
         $(BOARDDIR)/nap/nap_common.o \
