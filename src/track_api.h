@@ -52,9 +52,19 @@ typedef struct {
 #define TRACK_CMN_FLAG_HAD_PLOCK   (1 << 6)
 /** Tracker flag: tracker has ever had FLL pessimistic lock */
 #define TRACK_CMN_FLAG_HAD_FLOCK   (1 << 7)
+/** Tracker flag: tracker has decoded TOW.
+    Overrides #TRACK_CMN_FLAG_TOW_PROPAGATED. */
+#define TRACK_CMN_FLAG_TOW_DECODED (1 << 8)
+/** Tracker flag: tracker has propagated TOW */
+#define TRACK_CMN_FLAG_TOW_PROPAGATED (1 << 9)
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
-                                    TRACK_CMN_FLAG_HAD_FLOCK)
+                                    TRACK_CMN_FLAG_HAD_FLOCK | \
+                                    TRACK_CMN_FLAG_TOW_DECODED | \
+                                    TRACK_CMN_FLAG_TOW_PROPAGATED)
+
+/** SBP_MSG_TRACKER_STATUS message sending period [ms] */
+#define TRACKER_STATE_UPDATE_PERIOD_MS 1000
 
 /**
  * Common tracking feature flags.
@@ -68,10 +78,21 @@ typedef struct {
  * - #TRACK_CMN_FLAG_HAS_FLOCK
  * - #TRACK_CMN_FLAG_HAD_PLOCK
  * - #TRACK_CMN_FLAG_HAD_FLOCK
+ * - #TRACK_CMN_FLAG_TOW_DECODED
+ * - #TRACK_CMN_FLAG_TOW_PROPAGATED
  *
  * \sa tracker_common_data_t
  */
 typedef u16 track_cmn_flags_t;
+
+/** Running statistics */
+typedef struct {
+  u64 n;                 /**< number of samples */
+  double sum;            /**< sum of samples */
+  double sum_of_squares; /**< sum of samples' squares */
+  double mean;           /**< mean value */
+  double variance;       /**< variance value */
+} running_stats_t;
 
 typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
@@ -92,11 +113,14 @@ typedef struct {
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
+  running_stats_t carrier_freq_stat; /**< Carrier frequency statistics */
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   track_cmn_flags_t flags;     /**< Tracker flags */
   track_ctrl_params_t ctrl_params; /**< Controller parameters */
+  u16 sbp_update_time_ms;      /**< Last time SBP_MSG_TRACKER_STATUS message
+                                    was sent for this tracker [ms] */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
@@ -146,6 +170,9 @@ typedef struct tracker_interface_list_element_t {
 } tracker_interface_list_element_t;
 
 /** \} */
+
+void running_stats_init(running_stats_t *p);
+void running_stats_update(running_stats_t *p, double v);
 
 void tracker_interface_register(tracker_interface_list_element_t *element);
 
