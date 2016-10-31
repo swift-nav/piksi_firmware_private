@@ -576,6 +576,7 @@ static void manage_track_thread(void *arg)
       watchdog_notify(WD_NOTIFY_TRACKING_MGMT);
     );
     tracking_send_state();
+    tracking_send_detailed_state();
   }
 }
 
@@ -697,7 +698,9 @@ static void manage_track()
                                 &info,      /* Generic info */
                                 &time_info, /* Timers */
                                 &freq_info, /* Frequencies */
-                                NULL);      /* Loop controller values */
+                                NULL,       /* Loop controller values */
+                                NULL,       /* Misc info */
+                                false);     /* Reset stats */
 
 
     /* Skip channels that aren't in use */
@@ -795,7 +798,8 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
                                         tracking_channel_info_t *info,
                                         tracking_channel_time_info_t *time_info,
                                         tracking_channel_freq_info_t *freq_info,
-                                        tracking_channel_ctrl_info_t *ctrl_info)
+                                        tracking_channel_ctrl_info_t *ctrl_info,
+                                        tracking_channel_misc_info_t *misc_info)
 {
   tracking_channel_info_t tmp_info;
   tracking_channel_time_info_t tmp_time_info;
@@ -814,7 +818,9 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
                               info,       /* Generic info */
                               time_info,  /* Timers */
                               freq_info,  /* Frequencies */
-                              ctrl_info); /* Loop controller values */
+                              ctrl_info,  /* Loop controller values */
+                              misc_info,  /* Misc info */
+                              false);     /* Reset stats */
 
   /* Convert 'tracking_channel_flags_t' flags into 'manage_track_flags_t' */
   tc_flags = info->flags;
@@ -886,7 +892,8 @@ manage_track_flags_t get_tracking_channel_flags(u8 i)
                                          NULL, /* Generic info */
                                          NULL, /* Time info */
                                          NULL, /* Frequencies/phases */
-                                         NULL);/* Controller info */
+                                         NULL, /* Controller info */
+                                         NULL);/* Misc info */
 }
 
 /**
@@ -1004,6 +1011,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
   tracking_channel_info_t      info;      /* Container for generic info */
   tracking_channel_freq_info_t freq_info; /* Container for measurements */
   tracking_channel_time_info_t time_info; /* Container for time info */
+  tracking_channel_misc_info_t misc_info; /* Container for measurements */
 
   memset(meas, 0, sizeof(*meas));
 
@@ -1012,7 +1020,8 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
                                            &info,       /* General */
                                            &time_info,  /* Time info */
                                            &freq_info,  /* Freq info */
-                                           NULL);       /* Ctrl info */
+                                           NULL,        /* Ctrl info */
+                                           &misc_info); /* Misc info */
 
   if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
       0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
@@ -1037,7 +1046,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
      * For now, compute pseudorange for all measurements even when phase is
      * not available.
      */
-    double carrier_phase_offset = freq_info.carrier_phase_offset;
+    double carrier_phase_offset = misc_info.carrier_phase_offset;
     bool cpo_ok = true;
     if (TIME_FINE <= time_quality &&
         0.0 == carrier_phase_offset &&
@@ -1073,7 +1082,9 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
                               NULL,   /* Generic info */
                               NULL,   /* Timers */
                               NULL,   /* Frequencies */
-                              &tmp);  /* Loop controller values */
+                              &tmp,   /* Loop controller values */
+                              NULL,   /* Misc info */
+                              false); /* Reset stats */
   pparams->pll_bw = tmp.pll_bw;
   pparams->fll_bw = tmp.fll_bw;
   pparams->dll_bw = tmp.dll_bw;
@@ -1161,7 +1172,9 @@ bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags)
                               &info,  /* Generic info */
                               NULL,   /* Timers */
                               NULL,   /* Frequencies */
-                              NULL);  /* Loop controller values */
+                              NULL,   /* Loop controller values */
+                              NULL,   /* Misc values */
+                              false); /* Reset stats */
 
   flags = info.flags;
   if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE)) {

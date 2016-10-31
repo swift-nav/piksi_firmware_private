@@ -63,9 +63,6 @@ typedef struct {
                                     TRACK_CMN_FLAG_TOW_DECODED | \
                                     TRACK_CMN_FLAG_TOW_PROPAGATED)
 
-/** SBP_MSG_TRACKER_STATUS message sending period [ms] */
-#define TRACKER_STATE_UPDATE_PERIOD_MS 1000
-
 /**
  * Common tracking feature flags.
  *
@@ -90,8 +87,6 @@ typedef struct {
   u64 n;                 /**< number of samples */
   double sum;            /**< sum of samples */
   double sum_of_squares; /**< sum of samples' squares */
-  double mean;           /**< mean value */
-  double variance;       /**< variance value */
 } running_stats_t;
 
 typedef struct {
@@ -119,8 +114,7 @@ typedef struct {
   float cn0;                   /**< Current estimate of C/N0. */
   track_cmn_flags_t flags;     /**< Tracker flags */
   track_ctrl_params_t ctrl_params; /**< Controller parameters */
-  u16 sbp_update_time_ms;      /**< Last time SBP_MSG_TRACKER_STATUS message
-                                    was sent for this tracker [ms] */
+  float acceleration;          /**< Acceleration [g] */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
@@ -171,9 +165,6 @@ typedef struct tracker_interface_list_element_t {
 
 /** \} */
 
-void running_stats_init(running_stats_t *p);
-void running_stats_update(running_stats_t *p, double v);
-
 void tracker_interface_register(tracker_interface_list_element_t *element);
 
 /* Tracker instance API functions. Must be called from within an
@@ -184,7 +175,7 @@ void tracker_correlations_read(tracker_context_t *context, corr_t *cs,
 void tracker_retune(tracker_context_t *context, double carrier_freq,
                     double code_phase_rate, u32 chips_to_correlate);
 s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
-                       u32 int_ms);
+                       u32 int_ms, bool *decoded_tow);
 void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
                              s32 corr_prompt_real);
@@ -194,5 +185,9 @@ bool tracker_has_bit_sync(tracker_context_t *context);
 bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
 void tracker_ambiguity_unknown(tracker_context_t *context);
 void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
+
+void running_stats_init(running_stats_t *p);
+void running_stats_update(running_stats_t *p, double v);
+void running_stats_get_products(running_stats_t *p, double *mean, double *std);
 
 #endif

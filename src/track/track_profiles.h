@@ -189,7 +189,6 @@ tp_result_e tp_profile_get_config(gnss_signal_t sid,
                                   bool commit);
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
-float       tp_profile_get_acceleration(const tp_profile_t *profile);
 bool        tp_profile_has_new_profile(gnss_signal_t sid,
                                        tp_profile_t *profile);
 u8          tp_profile_get_next_loop_params_ms(const tp_profile_t *profile);

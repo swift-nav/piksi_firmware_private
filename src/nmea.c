@@ -428,7 +428,9 @@ static void nmea_assemble_gpgsa(const dops_t *dops)
                                 &info,  /* Generic info */
                                 NULL,   /* Timers */
                                 NULL,   /* Frequencies */
-                                NULL);  /* Loop controller values */
+                                NULL,   /* Loop controller values */
+                                NULL,   /* Misc values */
+                                false); /* Reset stats */
 
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
       gnss_signal_t sid = info.sid;

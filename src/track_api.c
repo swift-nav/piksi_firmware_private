@@ -93,11 +93,12 @@ void tracker_retune(tracker_context_t *context, double carrier_freq,
  * \param context           Tracker context.
  * \param current_TOW_ms    Current TOW (ms).
  * \param int_ms            Integration period (ms).
+ * \param[out] decoded_tow  Decoded TOW indicator
  *
  * \return Updated TOW (ms).
  */
 s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
-                       u32 int_ms)
+                       u32 int_ms, bool *decoded_tow)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
@@ -125,7 +126,8 @@ s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
 
     /* Warn if updated TOW does not match the current value */
     if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
-      log_warn_sid(channel_info->sid, "TOW mismatch: %ld, %lu", current_TOW_ms, TOW_ms);
+      log_warn_sid(channel_info->sid, "TOW mismatch: %" PRId32 ", %" PRId32,
+                   current_TOW_ms, TOW_ms);
     }
     current_TOW_ms = TOW_ms;
     if (internal_data->bit_polarity != pending_bit_polarity) {
@@ -133,6 +135,11 @@ s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
       internal_data->reset_cpo = true;
       internal_data->bit_polarity = pending_bit_polarity;
     }
+    if (NULL != decoded_tow) {
+      *decoded_tow = TOW_ms >= 0;
+    }
+  } else if (NULL != decoded_tow) {
+    *decoded_tow = false;
   }
 
   internal_data->nav_bit_TOW_offset_ms += int_ms;
@@ -313,6 +320,54 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
     }
     sbp_send_msg(SBP_MSG_TRACKING_IQ, sizeof(msg), (u8*)&msg);
   }
+}
+
+/** Running statistics initializaiton
+ * \param p Running statistics state
+ */
+void running_stats_init(running_stats_t *p)
+{
+  p->n = 0;
+  p->sum = 0;
+  p->sum_of_squares = 0;
+}
+
+/** Running statistics update
+ * \param p Running statistics state
+ * \param v New value
+ */
+void running_stats_update(running_stats_t *p, double v)
+{
+  p->n++;
+  if (0 == p->n) {
+    running_stats_init(p);
+    p->n = 1;
+  }
+
+  p->sum += v;
+  p->sum_of_squares += v * v;
+}
+
+/** Running statistics update
+ * \param p Running statistics state
+ * \param[out] mean Mean value
+ * \param[out] std Standard deviation
+ */
+void running_stats_get_products(running_stats_t *p, double *mean, double *std)
+{
+  if (0 == p->n) {
+    *mean = 0;
+    *std = 0;
+    return;
+  }
+  *mean = p->sum / p->n;
+  if (1 >= p->n) {
+    *std = 0;
+    return;
+  }
+  double variance = p->sum_of_squares / (p->n - 1) -
+                (p->sum * p->sum) / p->n / (p->n - 1);
+  *std = sqrt(variance);
 }
 
 /** \} */
