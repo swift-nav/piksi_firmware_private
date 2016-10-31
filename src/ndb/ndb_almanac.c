@@ -22,6 +22,8 @@
 #include <signal.h>
 #include <sbp.h>
 #include <sbp_utils.h>
+#include "settings.h"
+#include "ndb_fs_access.h"
 
 #define NDB_ALMA_FILE_NAME   "persistent/almanac"
 static almanac_t ndb_almanac[PLATFORM_SIGNAL_COUNT] _CCM;
@@ -39,6 +41,12 @@ static ndb_file_t ndb_alma_file = {
 
 void ndb_almanac_init(void)
 {
+  static bool erase_almanac = true;
+  SETTING("ndb", "erase_almanac", erase_almanac, TYPE_BOOL);
+  if (erase_almanac) {
+    ndb_fs_remove(NDB_ALMA_FILE_NAME);
+  }
+
   ndb_load_data(&ndb_alma_file, "almanac", (u8 *)ndb_almanac, ndb_almanac_md,
                 sizeof(almanac_t), PLATFORM_SIGNAL_COUNT);
 }

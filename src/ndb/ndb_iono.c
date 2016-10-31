@@ -16,6 +16,8 @@
 #include <libswiftnav/logging.h>
 #include "ndb.h"
 #include "ndb_internal.h"
+#include "settings.h"
+#include "ndb_fs_access.h"
 
 #define IONO_CORR_FILE_NAME "persistent/iono"
 static ionosphere_t iono_corr _CCM;
@@ -33,6 +35,12 @@ static ndb_file_t iono_corr_file = {
 
 void ndb_iono_init(void)
 {
+  static bool erase_iono = true;
+  SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
+  if (erase_iono) {
+    ndb_fs_remove(IONO_CORR_FILE_NAME);
+  }
+
   ndb_load_data(&iono_corr_file, "iono corrections",
                 (u8 *)&iono_corr, &iono_corr_md,
                  sizeof(iono_corr), 1);

@@ -22,6 +22,8 @@
 #include <signal.h>
 #include <sbp.h>
 #include <sbp_utils.h>
+#include "settings.h"
+#include "ndb_fs_access.h"
 
 #define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
 
@@ -60,6 +62,12 @@ static MUTEX_DECL(cand_list_access);
 
 void ndb_ephemeris_init(void)
 {
+  static bool erase_ephemeris = true;
+  SETTING("ndb", "erase_ephemeris", erase_ephemeris, TYPE_BOOL);
+  if (erase_ephemeris) {
+    ndb_fs_remove(NDB_EPHE_FILE_NAME);
+  }
+
   memset(ephe_candidates, 0, sizeof(ephe_candidates));
 
   ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
