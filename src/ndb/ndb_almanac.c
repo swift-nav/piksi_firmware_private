@@ -57,27 +57,6 @@ enum ndb_op_code ndb_almanac_store(almanac_t *a, enum ndb_data_source src)
   return ndb_update(a, src, &ndb_almanac_md[idx]);
 }
 
-enum ndb_op_code ndb_almanac_cache_update(almanac_t *cached_a,
-                                          ndb_update_counter_t *uc)
-{
-  enum ndb_op_code r = NDB_ERR_NONE;
-
-  u16 idx = sid_to_global_index(cached_a->sid);
-  ndb_element_metadata_t *md = &ndb_almanac_md[idx];
-
-  ndb_lock();
-  if (md->update_c != *uc) {
-    r = ndb_almanac_read(cached_a->sid, cached_a);
-    if (NDB_ERR_NONE != r) {
-      ndb_unlock();
-      return r;
-    }
-    *uc = md->update_c;
-  }
-  ndb_unlock();
-  return r;
-}
-
 /** The function sends ephemeris if valid
  *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
 void ndb_almanac_sbp_update(void)

@@ -22,8 +22,6 @@ enum ndb_op_code ndb_ephemeris_store(ephemeris_t *e,
 enum ndb_op_code ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
                                     u8* health_bits, gps_time_t* toe,
                                     u32* fit_interval, float* ura) NDB_WEAK;
-enum ndb_op_code ndb_ephemeris_cache_update(ephemeris_t *cached_e,
-                                            ndb_update_counter_t *uc) NDB_WEAK;
 
 void ndb_ephemeris_sbp_update(void);
 #endif /* SRC_NDB_EPHEMERIS_H_ */

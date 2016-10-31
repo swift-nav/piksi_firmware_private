@@ -250,7 +250,6 @@ void ndb_load_data(ndb_file_t *file,
     metadata[i].index = i;
     metadata[i].file = file;
     metadata[i].next = NULL;
-    metadata[i].update_c = 1;
   }
 }
 
@@ -538,9 +537,6 @@ enum ndb_op_code ndb_update(const void *data,
     if (memcmp(data, md->data, block_size) != 0) {
       /* Update data and mark it dirty also mark data valid */
       memcpy(md->data, data, block_size);
-      if (++md->update_c == 0) {
-        md->update_c++; /* should never be 0 */
-      }
       md->nv_data.state |= NDB_IE_VALID;
       md->nv_data.state |= NDB_IE_DIRTY;
     }

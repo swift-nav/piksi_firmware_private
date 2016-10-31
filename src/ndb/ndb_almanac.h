@@ -18,7 +18,5 @@
 void ndb_almanac_init(void);
 enum ndb_op_code ndb_almanac_read(gnss_signal_t sid, almanac_t *a);
 enum ndb_op_code ndb_almanac_store(almanac_t *a, enum ndb_data_source);
-enum ndb_op_code ndb_almanac_cache_update(almanac_t *cached_a,
-                                          ndb_update_counter_t *uc);
 void ndb_almanac_sbp_update(void);
 #endif /* SRC_NDB_ALMANAC_H_ */

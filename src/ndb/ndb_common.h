@@ -40,9 +40,6 @@ enum ndb_data_source
   NDB_DS_SBP
 };
 
-/** NDB IE update counter type */
-typedef u8 ndb_update_counter_t;
-
 /** NDB Timestamp: TAI seconds since GPS epoch */
 typedef u32 ndb_timestamp_t;
 
