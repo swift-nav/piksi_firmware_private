@@ -19,6 +19,8 @@
 #include <libswiftnav/logging.h>
 #include "ndb.h"
 #include "ndb_internal.h"
+#include "settings.h"
+#include "ndb_fs_access.h"
 
 #define LGF_FILE_NAME "persistent/lgf"
 static last_good_fix_t last_good_fix _CCM;
@@ -37,6 +39,12 @@ static ndb_file_t lgf_file = {
 
 void ndb_lgf_init(void)
 {
+  static bool erase_lgf = true;
+  SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
+  if (erase_lgf) {
+    ndb_fs_remove(LGF_FILE_NAME);
+  }
+
   ndb_load_data(&lgf_file, "LGF",
                 (u8 *)&last_good_fix_saved, &last_good_fix_md,
                 sizeof(last_good_fix), 1);
