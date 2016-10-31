@@ -23,8 +23,6 @@
  */
 /** Tracker main data segment */
 #define PLATFORM_TRACK_DATA_TRACKER
-/** Tracker profiles data segment */
-#define PLATFORM_TRACK_DATA_PROFILES
 /** Tracker aux parameters data segment */
 #define PLATFORM_TRACK_DATA_FILTERS
 

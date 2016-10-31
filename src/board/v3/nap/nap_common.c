@@ -30,7 +30,7 @@
 static void nap_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_exti_sem, TRUE);
-static WORKING_AREA_CCM(wa_nap_exti, 20000);
+static WORKING_AREA_CCM(wa_nap_exti, 32000);
 static void nap_exti_thread(void *arg);
 
 static u8 nap_dna[NAP_DNA_LENGTH] = {0};

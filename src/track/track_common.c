@@ -194,7 +194,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
 
   if (init || cn0_ms != prev_cn0_ms) {
     tp_cn0_params_t cn0_params;
-    tp_get_cn0_params(channel_info->sid, &cn0_params);
+    tp_profile_get_cn0_params(&data->profile, &cn0_params);
 
     float cn0_t;
     float cn0_0;
@@ -276,9 +276,10 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
   report.sample_count = common_data->sample_count;
   report.time_ms = 0;
 
-  if (TP_RESULT_SUCCESS != tp_tracking_start(channel_info->sid,
-                                             &report,
-                                             &init_profile)) {
+  if (TP_RESULT_SUCCESS != tp_profile_init(channel_info->sid,
+                                           &data->profile,
+                                           &report,
+                                           &init_profile)) {
     log_error_sid(channel_info->sid, "Tracker start error");
   }
 
@@ -298,20 +299,22 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
  *
  * The method releases tracker state.
  *
- * \param[in] channel_info Tracking channel information.
- * \param[in] common_data  Common tracking channel data.
+ * \param[in]     channel_info Tracking channel information.
+ * \param[in]     common_data  Common tracking channel data.
+ * \param[in,out] data         Tracker private data.
  *
  * \return None
  */
 void tp_tracker_disable(const tracker_channel_info_t *channel_info,
-                        tracker_common_data_t *common_data)
+                        tracker_common_data_t *common_data,
+                        tp_tracker_data_t *data)
 {
   log_debug_sid(channel_info->sid,
                 "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
                 common_data->update_count,
                 common_data->TOW_ms);
 
-  tp_tracking_stop(channel_info->sid);
+  memset(data, 0, sizeof(*data));
 }
 
 /**
@@ -325,17 +328,17 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
  * are obtained and used for computation.
  *
  * \param[in]     channel_info Tracking channel information.
- * \param[in]     data         Generic tracker data.
+ * \param[in,out] data         Generic tracker data.
  *
  * \return Computed number of chips.
  */
 u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      const tp_tracker_data_t *data)
+                                      tp_tracker_data_t *data)
 {
   u32 result_ms = 0;
   if (data->has_next_params) {
     tp_config_t next_params;
-    tp_get_profile(channel_info->sid, &next_params, false);
+    tp_profile_get_config(channel_info->sid, &data->profile, &next_params, false);
     result_ms = tp_get_current_cycle_duration(next_params.loop_params.mode,
                                               0);
   } else {
@@ -380,7 +383,7 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
     if (tracker_next_bit_aligned(channel_info->context, bit_ms)) {
       /* When the bit sync is available and the next integration interval is the
        * last one in the bit, check if the profile switch is required. */
-      if (tp_has_new_profile(channel_info->sid)) {
+      if (tp_profile_has_new_profile(channel_info->sid, &data->profile)) {
         /* Initiate profile change */
         data->has_next_params = true;
       }
@@ -406,7 +409,7 @@ static void mode_change_complete(const tracker_channel_info_t *channel_info,
   if (data->has_next_params) {
     tp_config_t next_params;
 
-    tp_get_profile(channel_info->sid, &next_params, true);
+    tp_profile_get_config(channel_info->sid, &data->profile, &next_params, true);
 
     /* If there is a stage transition in progress, update parameters for the
      * next iteration. */
@@ -654,7 +657,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
 {
   float cn0 = data->cn0_est.filter.yn;
   tp_cn0_params_t cn0_params;
-  tp_get_cn0_params(channel_info->sid, &cn0_params);
+  tp_profile_get_cn0_params(&data->profile, &cn0_params);
 
   if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
     /* Update C/N0 estimate */
@@ -823,7 +826,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
        * period, the controller will give wrong correction. Due to that the
        * input parameters are scaled to stabilize tracker.
        */
-      u8 new_dll_ms = tp_get_next_loop_params_ms(channel_info->sid);
+      u8 new_dll_ms = tp_profile_get_next_loop_params_ms(&data->profile);
       u8 old_dll_ms = tp_get_dll_ms(data->tracking_mode);
 
       if (old_dll_ms != new_dll_ms) {
@@ -860,7 +863,10 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
     report.time_ms = tp_get_dll_ms(data->tracking_mode);
     report.acceleration = rates.acceleration;
 
-    tp_report_data(channel_info->sid, common_data, &report);
+    tp_profile_report_data(channel_info->sid,
+                           &data->profile,
+                           common_data,
+                           &report);
   }
 }
 
