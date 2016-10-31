@@ -16,8 +16,6 @@
 #include <libswiftnav/logging.h>
 #include "ndb.h"
 #include "ndb_internal.h"
-#include "settings.h"
-#include "ndb_fs_access.h"
 
 #define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"
 static u32 gps_l2c_capabilities _CCM;
@@ -35,12 +33,6 @@ static ndb_file_t gps_l2c_capb_file = {
 
 void ndb_l2c_capb_init(void)
 {
-  static bool erase_l2c_capb = true;
-  SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
-  if (erase_l2c_capb) {
-    ndb_fs_remove(GPS_L2C_CAPB_FILE_NAME);
-  }
-
   ndb_load_data(&gps_l2c_capb_file, "l2c capabilities",
                 (u8 *)&gps_l2c_capabilities, &gps_l2c_capabilities_md,
                  sizeof(gps_l2c_capabilities), 1);
