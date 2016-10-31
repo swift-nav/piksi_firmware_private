@@ -62,13 +62,18 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_TIME_MATCHED;
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 /** RTK integer ambiguity states. */
 ambiguity_state_t amb_state;
 /** Mutex to control access to the ambiguity states. */
 MUTEX_DECL(amb_state_lock);
+
+/** Mutex to control access to the eigen filter. This is a very big mutex
+ * that locks the entire eigen filter on access, a better method would be
+ * to use mutexs as appropriate within the eigen filter code itself */
+MUTEX_DECL(eigen_state_lock);
 
 systime_t last_dgnss;
 
@@ -219,45 +224,45 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   chMtxUnlock(&base_pos_lock);
 }
 
+static bool init_done = false;
+
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
-                            const gps_time_t *t, double hdop, double diff_time, u16 base_id)
-{
+                            const gps_time_t *t, double hdop, double diff_time, u16 base_id) {
   double b[3];
   u8 num_used, flags;
   s8 ret;
 
-  switch (dgnss_filter) {
-  default:
-  case FILTER_FIXED:
-    chMtxLock(&amb_state_lock);
-    ret = dgnss_baseline(num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
-                         &amb_state, &num_used, b,
-                         disable_raim, DEFAULT_RAIM_THRESHOLD);
-    chMtxUnlock(&amb_state_lock);
-    if (ret > 0) {
-      /* ret is <0 on error, 2 if float, 1 if fixed */
-      flags = (ret == 1) ? 1 : 0;
+  /* If not initialised we can't output a baseline */
+  log_info("output_baseline");
+  if (init_done) {
+    if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+      log_info("solution time matched");
+      /* Filter is already updated so no need to update filter again just get the baseline*/
+      flags = 0;
+      chMtxLock(&eigen_state_lock);
+      ret = get_baseline(b, &num_used, &flags);
+      chMtxUnlock(&eigen_state_lock);
+      if (ret != 0) {
+        log_warn("output_baseline: Time matched baseline calculation failed");
+      }
     } else {
-      log_warn("dgnss_baseline returned error: %d", ret);
-      return;
+      log_info("solution low latency");
+      /* Need to update filter with propogated obs before we can get the baseline */
+      chMtxLock(&eigen_state_lock);
+      dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
+                      base_pos_known ? base_pos_ecef : NULL, diff_time);
+      flags = 0;;
+      ret = get_baseline(b, &num_used, &flags);
+      chMtxUnlock(&eigen_state_lock);
+      if (ret != 0) {
+        log_warn("output_baseline: Low latency baseline calculation failed");
+      }
     }
-    break;
-
-  case FILTER_FLOAT:
-    flags = 0;
-    chMtxLock(&amb_state_lock);
-    ret = get_baseline(b, &num_used, &flags);
-    chMtxUnlock(&amb_state_lock);
-    if (ret == 1)
-      log_warn("output_baseline: Float baseline RAIM repair");
-    if (ret < 0) {
-      log_warn("dgnss_float_baseline returned error: %d", ret);
-      return;
-    }
-    break;
+    solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
+                           flags, hdop, diff_time, base_id);
+  } else {
+    log_info("DGNSS Filter not Initialized");
   }
-
-  solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef, flags, hdop, diff_time, base_id);
 }
 
 static void send_observations(u8 n, const navigation_measurement_t *m,
@@ -432,10 +437,10 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
   chSysUnlock();
 }
 
-static THD_WORKING_AREA(wa_solution_thread, 8200);
+static THD_WORKING_AREA(wa_solution_thread, 2000000);
 static void solution_thread(void *arg)
 {
-  /* The flag is true when we have a fix */
+  /* The flag is true when we have a solution */
   bool soln_flag = false;
 
   (void)arg;
@@ -733,8 +738,8 @@ static void solution_thread(void *arg)
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
-              output_baseline(num_sdiffs, sdiffs, &new_obs_time, pdt,
-                              dops.hdop, base_obss.sender_id);
+              output_baseline(num_sdiffs, sdiffs, &new_obs_time,
+                              dops.hdop, pdt, base_obss.sender_id);
             }
           }
         }
@@ -793,50 +798,28 @@ static void solution_thread(void *arg)
   }
 }
 
-static bool init_done = false;
 static bool init_known_base = false;
 static bool reset_iar = false;
 
 void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
 {
-  if (init_known_base) {
-    if (n_sds > 4) {
-      /* Calculate ambiguities from known baseline. */
-      log_info("Initializing using known baseline");
-      double known_baseline_ecef[3];
-      wgsned2ecef(known_baseline, lgf.position_solution.pos_ecef,
-                  known_baseline_ecef);
-      dgnss_init_known_baseline(n_sds, sds, lgf.position_solution.pos_ecef,
-                                known_baseline_ecef);
-      init_known_base = false;
-    } else {
-      log_warn("> 4 satellites required for known baseline init.");
-    }
-  }
   if (!init_done) {
     if (n_sds > 4) {
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
+      chMtxLock(&eigen_state_lock);
       dgnss_init_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
-        base_pos_known ? base_pos_ecef : NULL);
-      /* Initialize ambiguity states. */
-      ambiguities_init(&amb_state.fixed_ambs);
-      ambiguities_init(&amb_state.float_ambs);
+                    base_pos_known ? base_pos_ecef : NULL);
+      chMtxUnlock(&eigen_state_lock);
       init_done = 1;
     }
   } else {
-    if (reset_iar) {
-      dgnss_reset_iar();
-      reset_iar = false;
-    }
     /* Update filters. */
+    chMtxLock(&eigen_state_lock);
     dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
-                    base_pos_known ? base_pos_ecef : NULL,
-                    disable_raim, DEFAULT_RAIM_THRESHOLD);
-    /* Update ambiguity states. */
-    chMtxLock(&amb_state_lock);
-    dgnss_update_ambiguity_state(&amb_state);
-    chMtxUnlock(&amb_state_lock);
+                    base_pos_known ? base_pos_ecef : NULL, 0.0);
+    chMtxUnlock(&eigen_state_lock);
+
     /* If we are in time matched mode then calculate and output the baseline
      * for this observation. */
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&

@@ -34,7 +34,7 @@ typedef enum {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define MAX_AGE_OF_DIFFERENTIAL 1.0
+#define MAX_AGE_OF_DIFFERENTIAL 5.0
 
 #define OBS_N_BUFF 5
 #define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
