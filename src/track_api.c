@@ -128,7 +128,11 @@ s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
       log_warn_sid(channel_info->sid, "TOW mismatch: %ld, %lu", current_TOW_ms, TOW_ms);
     }
     current_TOW_ms = TOW_ms;
-    internal_data->bit_polarity = pending_bit_polarity;
+    if (internal_data->bit_polarity != pending_bit_polarity) {
+      /* Reset carrier phase offset on bit polarity change */
+      internal_data->reset_cpo = true;
+      internal_data->bit_polarity = pending_bit_polarity;
+    }
   }
 
   internal_data->nav_bit_TOW_offset_ms += int_ms;
@@ -283,7 +287,7 @@ void tracker_ambiguity_unknown(tracker_context_t *context)
   internal_data->bit_polarity = BIT_POLARITY_UNKNOWN;
   internal_data->lock_counter =
       tracking_lock_counter_increment(channel_info->sid);
-  internal_data->carrier_phase_offset = 0.0;
+  internal_data->reset_cpo = true;
 }
 
 /** Output a correlation data message for a tracker channel.

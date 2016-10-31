@@ -462,23 +462,18 @@ static void solution_thread(void *arg)
     u8 n_ready = 0;
     channel_measurement_t meas[MAX_CHANNELS];
     cnav_msg_t cnav_30[MAX_CHANNELS];
-    for (u8 i=0; i<nap_track_n_channels; i++) {
-      tracking_channel_lock(i);
-      if (use_tracking_channel(i)) {
-        tracking_channel_measurement_get(i, rec_tc, &meas[n_ready]);
-        /* TODO Placeholder for flags computation */
-        meas[n_ready].flags = (CHAN_MEAS_FLAG_CODE_VALID |
-                               CHAN_MEAS_FLAG_PHASE_VALID |
-                               CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID |
-                               CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN);
-        if (shm_navigation_suitable(meas[n_ready].sid)) {
-          n_ready++;
-        } else {
-          log_debug_sid(meas[n_ready].sid,
-                        "Satellite not suitable for navigation");
-        }
+    for (u8 i = 0; i < nap_track_n_channels; i++) {
+      manage_track_flags_t flags = 0;
+
+      flags = get_tracking_channel_meas(i, rec_tc, &meas[n_ready]);
+
+      if (MANAGE_TRACK_LEGACY_USE_FLAGS == (flags & MANAGE_TRACK_LEGACY_USE_FLAGS) &&
+        shm_navigation_suitable(meas[n_ready].sid)) {
+        n_ready++;
+      } else {
+        log_debug_sid(meas[n_ready].sid,
+                      "Satellite not suitable for navigation");
       }
-      tracking_channel_unlock(i);
     }
 
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
