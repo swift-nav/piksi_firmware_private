@@ -116,7 +116,7 @@ u64 timing_getms(void)
 
 /** Get HW time of the last good fix (LGF)
  *
- * \param [out] lgf_stamp time of LGF (ms)
+ * \param[out] lgf_stamp time of LGF (ms)
  * \return true lgf_stamp is valid, false otherwise
  */
 bool sm_lgf_stamp(u64 *lgf_stamp)
@@ -127,7 +127,8 @@ bool sm_lgf_stamp(u64 *lgf_stamp)
 
 /** Test program checking search manager operation
  *
- * \param none
+ * \param argc Unused
+ * \param argv Unused
  *
  * \return 1 on failure, 0 othersiwe
  */

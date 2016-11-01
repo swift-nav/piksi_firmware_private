@@ -19,9 +19,9 @@
 /* Search manager functions which call other modules */
 /** Get SV visibility flags
  *
- * \param [in] GNSS signal SV identifier
- * \param [out] visible is set if SV is visible. Valid only if known is set
- * \param [out] known set if SV is known visible or known invisible
+ * \param[in] sid GNSS signal SV identifier
+ * \param[out] visible is set if SV is visible. Valid only if known is set
+ * \param[out] known set if SV is known visible or known invisible
  */
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
 {
@@ -33,7 +33,7 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
 
   if (NDB_ERR_NONE == ndb_lgf_read(&lgf) &&
       POSITION_FIX == lgf.position_quality &&
-      NDB_ERR_NONE != ndb_ephemeris_read(sid, &ephe)) {
+      NDB_ERR_NONE == ndb_ephemeris_read(sid, &ephe)) {
 
     sv_vis_config_t vis_cfg;
 
@@ -64,7 +64,7 @@ bool sm_is_healthy(gnss_signal_t sid)
 
 /** Get HW time of the last good fix (LGF)
  *
- * \param [out] lgf_stamp time of LGF (ms)
+ * \param[out] lgf_stamp time of LGF (ms)
  * \return true lgf_stamp is valid, false otherwise
  */
 bool sm_lgf_stamp(u64 *lgf_stamp)
