@@ -487,6 +487,17 @@ void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
     assert(!"Unknown tracking loop configuration");
   }
 
+  /* Sanity checks */
+  if (common_data->TOW_ms == TOW_UNKNOWN) {
+    assert(0 == (flags & TRACK_CMN_FLAG_TOW_DECODED));
+    assert(0 == (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
+  } else {
+    assert(0 != (flags & TRACK_CMN_FLAG_TOW_DECODED) ||
+           0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
+    assert(!(0 != (flags & TRACK_CMN_FLAG_TOW_DECODED) &&
+           0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED)));
+  }
+
   common_data->flags = flags;
 }
 
@@ -965,9 +976,6 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
 
   tp_tracker_update_cycle_counter(data);
   tp_tracker_update_common_flags(common_data, data);
-
-  running_stats_update(&common_data->carrier_freq_stat,
-                       common_data->carrier_freq);
 
   return cflags;
 }

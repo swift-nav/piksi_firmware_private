@@ -108,7 +108,6 @@ typedef struct {
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
-  running_stats_t carrier_freq_stat; /**< Carrier frequency statistics */
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */

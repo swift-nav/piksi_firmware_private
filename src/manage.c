@@ -914,19 +914,12 @@ static bool compute_cpo(u64 ref_tc,
                         double *carrier_phase_offset)
 {
   /* compute the pseudorange for this signal */
-  navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
-  gps_time_t rec_time = rx2gpstime(ref_tc);
-  s8 nm_ret = calc_navigation_measurement(1,
-                                          &meas,
-                                          &p_nav_meas,
-                                          &rec_time);
-  if (nm_ret != 0) {
-    log_warn_sid(meas->sid,
-                 "calc_navigation_measurement() returned an error");
-    return false;
-  } else {
+  double raw_pseudorange;
+  bool ret = tracking_channel_calc_pseudorange(ref_tc, meas,
+                                               &raw_pseudorange);
+  if (ret) {
     double phase = (code_to_carr_freq(meas->sid.code) *
-                    nav_meas.raw_pseudorange / GPS_C);
+                    raw_pseudorange / GPS_C);
 
     /* initialize the carrier phase offset with the pseudorange measurement */
     /* NOTE: CP sign flip - change the plus sign below */
@@ -937,9 +930,8 @@ static bool compute_cpo(u64 ref_tc,
       /* Remember offset for the future use */
       tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
     }
-
-    return true;
   }
+  return ret;
 }
 
 /**

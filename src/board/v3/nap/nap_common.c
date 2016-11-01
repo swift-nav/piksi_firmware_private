@@ -125,11 +125,11 @@ double nap_count_to_ms(u64 delta_time)
 }
 
 /**
- * Convert time in samples into time in milliseconds.
+ * Convert time in samples into time in nanoseconds.
  *
  * \param[in] delta_time Time interval to convert [samples]
  *
- * \return Time interval in milliseconds.
+ * \return Time interval in nanoseconds.
  */
 double nap_count_to_ns(u64 delta_time)
 {

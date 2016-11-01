@@ -11,20 +11,23 @@
  */
 
 #include <assert.h>
-/* #include <math.h> */
 #include <libswiftnav/track.h>
 #include <libswiftnav/constants.h>
 #include <timing.h>
 #include "board/nap/track_channel.h"
 #include "board/v3/nap/nap_hw.h"
 #include "board/v3/nap/nap_constants.h"
-/* #include "track.h" */
 #include "track_sbp.h"
 #include "track_internal.h"
-/* #include "position.h" */
 #include "shm.h"
 #include <sbp.h>
 #include <sbp_utils.h>
+
+/** Convert track sample frequency cycles to [ns] */
+#define TRACK_SAMPLE_CYCLES_TO_NS (1e9 / TRACK_SAMPLE_FREQ)
+
+/** Used to convert meters to 2cm units */
+#define TRACK_SBP_METERS_TO_2CM_UNITS 50
 
 /** Get synchronization status flags
  * \param[in] channel_info channel info
@@ -198,10 +201,7 @@ void track_sbp_send_state(const tracking_channel_info_t *channel_info,
   /* receiver clock time of the measurements [ns] */
   state.recv_time = nap_count_to_ns(recv_time_ticks);
 
-  gps_time_t rec_time = rx2gpstime(recv_time_ticks);
   channel_measurement_t meas;
-  bool wn_valid = false;
-  bool clk_valid = false;
 
   tracking_channel_measurement_get(recv_time_ticks,
                                    channel_info,
@@ -209,23 +209,33 @@ void track_sbp_send_state(const tracking_channel_info_t *channel_info,
                                    &meas);
 
   s32 tow_ms = channel_info->tow_ms;
-  state.tot.tow = tow_ms > 0 ? tow_ms : 0;
+
+  /* TOW status flags */
+  state.tow_flags = get_tow_flags(channel_info);
 
   if (TOW_UNKNOWN == tow_ms) {
+    u8 tow_status = state.tow_flags & TRACK_SBP_TOW_STATUS_MASK;
+    bool tow_available = (tow_status != TRACK_SBP_TOW_NONE);
+
     state.tot.tow = 0;
+    assert(!tow_available);
   } else {
     state.tot.tow = tow_ms;
   }
 
-  if (WN_UNKNOWN == rec_time.wn) {
-    state.tot.wn = 0;
-  } else {
-    state.tot.wn = rec_time.wn;
-    wn_valid = true;
+  state.tot.wn = 0;
+  if (time_quality >= TIME_COARSE) {
+    gps_time_t rec_time = rx2gpstime(recv_time_ticks);
+
+    if (WN_UNKNOWN != rec_time.wn) {
+      state.tot.wn = rec_time.wn;
+      state.tow_flags |= TRACK_SBP_WN_VALID;
+    }
   }
 
-  state.P = misc_info->pseudorange;
-  state.P_std = misc_info->pseudorange_std;
+  state.P = (u32)misc_info->pseudorange * TRACK_SBP_METERS_TO_2CM_UNITS;
+  /* pseudorange standard deviation */
+  state.P_std = misc_info->pseudorange_std * TRACK_SBP_METERS_TO_2CM_UNITS;
 
   /* carrier phase coming from NAP (cycles) */
   state.L.i = (u32)freq_info->carrier_phase;
@@ -248,31 +258,28 @@ void track_sbp_send_state(const tracking_channel_info_t *channel_info,
                             TRACK_SBP_DOPPLER_SCALING_FACTOR);
 
   /* number of seconds of continuous tracking */
-  state.uptime = (u32)(channel_info->uptime_ms * 1e-3);
+  state.uptime = (u32)(channel_info->uptime_ms / 1000);
+
+  /* miscellaneous flags */
+  state.misc_flags = get_misc_flags(channel_info);
 
   if ((NULL != lgf) && (lgf->position_quality >= POSITION_GUESS)) {
-    state.clock_offset = (u16)(lgf->position_solution.clock_offset * 1e6);
-    state.clock_drift = (u16)(lgf->position_solution.clock_bias * 1e9);
-    clk_valid = true;
+    state.clock_offset = (s16)(lgf->position_solution.clock_offset * 1e6);
+    state.clock_drift = (s16)(lgf->position_solution.clock_bias * 1e12);
+    state.misc_flags |= TRACK_SBP_CLOCK_VALID;
   } else {
     state.clock_offset = 0;
     state.clock_drift = 0;
   }
 
   /* correlator spacing [ns] */
-  state.corr_spacing = (u16)(1e9 * NAP_SPACING / TRACK_SAMPLE_FREQ);
+  state.corr_spacing = (u16)(NAP_SPACING * TRACK_SAMPLE_CYCLES_TO_NS);
   /* acceleration [g] */
-  state.acceleration = (u8)(freq_info->acceleration *
+  state.acceleration = (s8)(freq_info->acceleration *
                             TRACK_SBP_ACCELERATION_SCALING_FACTOR);
 
   /* sync status flags */
   state.sync_flags = get_sync_flags(channel_info);
-
-  /* TOW status flags */
-  state.tow_flags = get_tow_flags(channel_info);
-  if (wn_valid) {
-    state.tow_flags |= TRACK_SBP_WN_VALID;
-  }
 
   /* track flags */
   state.track_flags = get_track_flags(channel_info);
@@ -282,12 +289,6 @@ void track_sbp_send_state(const tracking_channel_info_t *channel_info,
 
   /* parameters sets flags */
   state.pset_flags = get_pset_flags(ctrl_info);
-
-  /* miscellaneous flags */
-  state.misc_flags = get_misc_flags(channel_info);
-  if (clk_valid) {
-    state.misc_flags |= TRACK_SBP_CLOCK_VALID;
-  }
 
   sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(state), (u8*)&state);
 }

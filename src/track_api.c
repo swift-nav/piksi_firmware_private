@@ -340,6 +340,7 @@ void running_stats_update(running_stats_t *p, double v)
 {
   p->n++;
   if (0 == p->n) {
+    /* Overflow just happened. Reset statistics by intializing it. */
     running_stats_init(p);
     p->n = 1;
   }
@@ -355,19 +356,23 @@ void running_stats_update(running_stats_t *p, double v)
  */
 void running_stats_get_products(running_stats_t *p, double *mean, double *std)
 {
-  if (0 == p->n) {
-    *mean = 0;
-    *std = 0;
-    return;
+  if (NULL != mean) {
+    if (0 == p->n) {
+      *mean = 0;
+    } else {
+      *mean = p->sum / p->n;
+    }
   }
-  *mean = p->sum / p->n;
-  if (1 >= p->n) {
-    *std = 0;
-    return;
+
+  if (NULL != std) {
+    if (1 >= p->n) {
+      *std = 0;
+    } else {
+      double variance = p->sum_of_squares / (p->n - 1) -
+                        (p->sum * p->sum) / p->n / (p->n - 1);
+      *std = sqrt(variance);
+    }
   }
-  double variance = p->sum_of_squares / (p->n - 1) -
-                (p->sum * p->sum) / p->n / (p->n - 1);
-  *std = sqrt(variance);
 }
 
 /** \} */

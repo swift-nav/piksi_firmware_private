@@ -42,6 +42,9 @@ typedef enum {
   TRACK_SBP_TOW_PROPAGATED = 2  /**< propagated TOW is available */
 } track_sbp_tow_status_t;
 
+/** TOW status mask */
+#define TRACK_SBP_TOW_STATUS_MASK 0x3
+
 /** Week number validity flag */
 #define TRACK_SBP_WN_VALID (1 << 3)
 

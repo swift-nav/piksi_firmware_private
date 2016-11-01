@@ -95,9 +95,9 @@ typedef struct {
   /** Miscellaneous parameters */
   volatile tracking_channel_misc_info_t misc_info;
   /** Carrier frequency products */
-  running_stats_t                       carr_freq_std;
+  running_stats_t                       carr_freq_stats;
   /** Pseudorange products */
-  running_stats_t                       pseudorange_std;
+  running_stats_t                       pseudorange_stats;
 } tracker_channel_pub_data_t;
 
 /** Top-level generic tracker channel. */
@@ -302,8 +302,8 @@ void tracking_send_detailed_state(void)
                                 NULL, /* time info */
                                 &freq_info,
                                 &ctrl_info,
-                                NULL,  /* misc parameters */
-                                true); /* reset statistics */
+                                &misc_info, /* misc parameters */
+                                true);      /* reset statistics */
 
     if (0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) ||
         0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
@@ -620,8 +620,8 @@ static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data
   memset((void*)&pub_data->freq_info, 0, sizeof(pub_data->freq_info));
   memset((void*)&pub_data->ctrl_info, 0, sizeof(pub_data->ctrl_info));
   memset((void*)&pub_data->misc_info, 0, sizeof(pub_data->misc_info));
-  memset((void*)&pub_data->carr_freq_std, 0, sizeof(pub_data->carr_freq_std));
-  memset((void*)&pub_data->pseudorange_std, 0, sizeof(pub_data->pseudorange_std));
+  memset((void*)&pub_data->carr_freq_stats, 0, sizeof(pub_data->carr_freq_stats));
+  memset((void*)&pub_data->pseudorange_stats, 0, sizeof(pub_data->pseudorange_stats));
   chMtxUnlock(&pub_data->info_mutex);
 }
 
@@ -655,26 +655,18 @@ static void tracking_channel_update_values(
                                 const tracking_channel_ctrl_info_t *ctrl_params,
                                 bool reset_cpo)
 {
-  double pseudorange = 0;
+  double raw_pseudorange = 0;
 
   if (0 != (info->flags & TRACKING_CHANNEL_FLAG_TOW) &&
+      0 != (info->flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
+      0 != (info->flags & TRACKING_CHANNEL_FLAG_NO_ERROR) &&
       time_quality >= TIME_FINE) {
-    u64 recv_time_ticks = nap_sample_time_to_count(info->sample_count);
-    navigation_measurement_t nav_meas;
-    navigation_measurement_t *p_nav_meas = &nav_meas;
+    u64 ref_tc = nap_sample_time_to_count(info->sample_count);
+
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
-    gps_time_t rec_time = rx2gpstime(recv_time_ticks);
-    tracking_channel_measurement_get(recv_time_ticks, info, freq_info, &meas);
-    s8 nm_ret = calc_navigation_measurement(1,
-                                            &c_meas,
-                                            &p_nav_meas,
-                                            &rec_time,
-                                            NULL);
-
-    if (0 == nm_ret) {
-      pseudorange = nav_meas.raw_pseudorange;
-    }
+    tracking_channel_measurement_get(ref_tc, info, freq_info, &meas);
+    tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
   }
 
   chMtxLock(&pub_data->info_mutex);
@@ -686,7 +678,7 @@ static void tracking_channel_update_values(
   }
   if (NULL != freq_info) {
     pub_data->freq_info = *freq_info;
-    running_stats_update(&pub_data->carr_freq_std, freq_info->carrier_freq);
+    running_stats_update(&pub_data->carr_freq_stats, freq_info->carrier_freq);
   }
   if (reset_cpo) {
     /* Do CPO reset */
@@ -695,11 +687,11 @@ static void tracking_channel_update_values(
   if (NULL != ctrl_params) {
     pub_data->ctrl_info = *ctrl_params;
   }
-  if (pseudorange > 0) {
+  if (raw_pseudorange != 0) {
     pub_data->gen_info.flags |= TRACKING_CHANNEL_FLAG_PSEUDORANGE;
-    running_stats_update(&pub_data->pseudorange_std, pseudorange);
+    running_stats_update(&pub_data->pseudorange_stats, raw_pseudorange);
   }
-  pub_data->misc_info.pseudorange = pseudorange;
+  pub_data->misc_info.pseudorange = raw_pseudorange;
   chMtxUnlock(&pub_data->info_mutex);
 }
 
@@ -732,6 +724,8 @@ void tracking_channel_get_values(tracker_channel_id_t id,
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+  running_stats_t carr_freq_stats;
+  running_stats_t pseudorange_stats;
 
   chMtxLock(&pub_data->info_mutex);
   if (NULL != info) {
@@ -741,25 +735,32 @@ void tracking_channel_get_values(tracker_channel_id_t id,
     *time_info = pub_data->time_info;
   }
   if (NULL != freq_info) {
+    carr_freq_stats = pub_data->carr_freq_stats;
     *freq_info = pub_data->freq_info;
-    running_stats_get_products(&pub_data->carr_freq_std,
-                               NULL,
-                               &freq_info->carrier_freq_std);
   }
   if (NULL != ctrl_params) {
     *ctrl_params = pub_data->ctrl_info;
   }
   if (NULL != misc_params) {
+    pseudorange_stats = pub_data->pseudorange_stats;
     *misc_params = pub_data->misc_info;
-    running_stats_get_products(&pub_data->pseudorange_std,
+  }
+  if (reset_stats) {
+    running_stats_init(&pub_data->carr_freq_stats);
+    running_stats_init(&pub_data->pseudorange_stats);
+  }
+  chMtxUnlock(&pub_data->info_mutex);
+
+  if (NULL != freq_info) {
+    running_stats_get_products(&carr_freq_stats,
+                               NULL,
+                               &freq_info->carrier_freq_std);
+  }
+  if (NULL != misc_params) {
+    running_stats_get_products(&pseudorange_stats,
                                NULL,
                                &misc_params->pseudorange_std);
   }
-  if (reset_stats) {
-    running_stats_init(&pub_data->carr_freq_std);
-    running_stats_init(&pub_data->pseudorange_std);
-  }
-  chMtxUnlock(&pub_data->info_mutex);
 }
 
 /**
@@ -796,8 +797,8 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
     log_info_sid(info->sid, "Adjusting carrier phase offset to %lf",
                  carrier_phase_offset);
   }
-}
 
+}
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.
@@ -830,6 +831,37 @@ void tracking_channel_measurement_get(u64 ref_tc,
   meas->cn0 = info->cn0;
   meas->lock_counter = info->lock_counter;
   meas->flags = 0;
+}
+
+/**
+ * Computes raw pseudorange in [m]
+ *
+ * \param[in]  ref_tc Reference time
+ * \param[in]  meas   Pre-populated channel measurement
+ * \param[out] raw_pseudorange Computed pseudorange [m]
+ *
+ * \retval true Pseudorange is valid
+ * \retval false Error in computation.
+ */
+bool tracking_channel_calc_pseudorange(u64 ref_tc,
+                                       const channel_measurement_t *meas,
+                                       double *raw_pseudorange)
+{
+  navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
+  gps_time_t rec_time = rx2gpstime(ref_tc);
+  s8 nm_ret = calc_navigation_measurement(1,
+                                          &meas,
+                                          &p_nav_meas,
+                                          &rec_time,
+                                          NULL);
+  if (nm_ret != 0) {
+    log_warn_sid(meas->sid,
+                 "calc_navigation_measurement() returned an error: %" PRId8,
+                 nm_ret);
+    return false;
+  }
+  *raw_pseudorange = nav_meas.raw_pseudorange;
+  return true;
 }
 
 /** Adjust all carrier phase offsets with a receiver clock correction.
@@ -1314,7 +1346,6 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->code_phase_rate = (1 + carrier_freq / code_to_carr_freq(code)) *
                                  GPS_CA_CHIPPING_RATE;
   common_data->carrier_freq = carrier_freq;
-  running_stats_init(&common_data->carrier_freq_stat);
 
   common_data->sample_count = sample_count;
   common_data->cn0 = cn0;

@@ -169,6 +169,10 @@ void tracking_channel_measurement_get(u64 ref_tc,
                                  const tracking_channel_freq_info_t *freq_info,
                                  channel_measurement_t *meas);
 
+bool tracking_channel_calc_pseudorange(u64 ref_tc,
+                                       const channel_measurement_t *meas,
+                                       double *raw_pseudorange);
+
 void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_info_t *info,
                                  tracking_channel_time_info_t *time_info,
