@@ -174,7 +174,6 @@ static void update_obss(obss_t *new_obss)
   /* Copy over the time. */
   base_obss.tor = new_obss->tor;
 
-  u8 has_pos_old = base_obss.has_pos;
   if (base_obss.n >= 4) {
     gnss_solution soln;
     dops_t dops;
@@ -201,22 +200,7 @@ static void update_obss(obss_t *new_obss)
     s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true, &soln, &dops);
 
     if (ret >= 0 && soln.valid) {
-      /* The position solution calculation was sucessful. Unfortunately the
-       * single point position solution is very noisy so lets smooth it if we
-       * have the previous position available. */
-      if (has_pos_old) {
-        /* TODO Implement a real filter for base position (potentially in
-           observation space), so we can do away with this terrible excuse
-           for smoothing. */
-        base_obss.pos_ecef[0] = 0.99995 * base_obss.pos_ecef[0]
-                                  + 0.00005 * soln.pos_ecef[0];
-        base_obss.pos_ecef[1] = 0.99995 * base_obss.pos_ecef[1]
-                                  + 0.00005 * soln.pos_ecef[1];
-        base_obss.pos_ecef[2] = 0.99995 * base_obss.pos_ecef[2]
-                                  + 0.00005 * soln.pos_ecef[2];
-      } else {
-        memcpy(base_obss.pos_ecef, soln.pos_ecef, 3 * sizeof(double));
-      }
+      memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
       base_obss.has_pos = 1;
 
       if (base_pos_known) {
