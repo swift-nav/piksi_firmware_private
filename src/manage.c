@@ -890,6 +890,99 @@ manage_track_flags_t get_tracking_channel_flags(u8 i)
 }
 
 /**
+ * Computes carrier phase offset.
+ *
+ * \param[in]  ref_tc Reference time
+ * \param[in]  info   Generic tracker data for update
+ * \param[in]  meas   Pre-populated channel measurement
+ * \param[out] carrier_phase_offset Result
+ *
+ * \retval true Carrier phase offset is computed and \a carrier_phase_offset
+ *              updated
+ * \retval false Error in computation.
+ */
+static bool compute_cpo(u64 ref_tc,
+                        const tracking_channel_info_t *info,
+                        const channel_measurement_t *meas,
+                        double *carrier_phase_offset)
+{
+  /* compute the pseudorange for this signal */
+  navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
+  gps_time_t rec_time = rx2gpstime(ref_tc);
+  s8 nm_ret = calc_navigation_measurement(1,
+                                          &meas,
+                                          &p_nav_meas,
+                                          &rec_time,
+                                          NULL);
+  if (nm_ret != 0) {
+    log_warn_sid(meas->sid,
+                 "calc_navigation_measurement() returned an error");
+    return false;
+  } else {
+    double phase = (code_to_carr_freq(meas->sid.code) *
+                    nav_meas.raw_pseudorange / GPS_C);
+
+    /* initialize the carrier phase offset with the pseudorange measurement */
+    /* NOTE: CP sign flip - change the plus sign below */
+    *carrier_phase_offset = round(meas->carrier_phase + phase);
+
+    if (0 != (info->flags % TRACKING_CHANNEL_FLAG_PLL_PLOCK) &&
+        0 != (info->flags % TRACKING_CHANNEL_FLAG_CN0_SHORT)) {
+      /* Remember offset for the future use */
+      tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
+    }
+
+    return true;
+  }
+}
+
+/**
+ * Computes channel measurement flags from input.
+ *
+ * \param[in] flags Tracker manager flags
+ *
+ * \return Channel measurement flags
+ */
+static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
+                                            bool phase_offset_ok)
+{
+  chan_meas_flags_t meas_flags = 0;
+
+  if (0 != (flags & MANAGE_TRACK_FLAG_PLL_USE)) {
+    /* PLL is in use. */
+    if (phase_offset_ok) {
+      if (0 != (flags & MANAGE_TRACK_FLAG_BIT_POLARITY)) {
+        /* Bit polarity is known */
+        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
+      }
+      if (0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK) &&
+          0 != (flags & MANAGE_TRACK_FLAG_STABLE)) {
+        /* PLL has pessimistic lock and is stable (legacy) */
+        meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+      }
+      if (0 != (flags & MANAGE_TRACK_FLAG_PLL_OLOCK)) {
+        /* Optimistic PLL lock: very high noise may prevent phase usage */
+        /* meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID; */
+      }
+    }
+    /* In PLL mode code and doppler accuracy are assumed to be high */
+    meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
+    meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
+  } else if (0 != (flags & MANAGE_TRACK_FLAG_FLL_USE)) {
+    /* FLL is in use: no phase measurements; code is valid */
+    meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
+    if (0 != (flags & MANAGE_TRACK_FLAG_FLL_LOCK)) {
+      /* Doppler is valid only if there is FLL lock */
+      meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
+    }
+  } else {
+    assert(!"Unknown tracker mode");
+  }
+
+  return meas_flags;
+}
+
+/**
  * Loads measurement data.
  *
  * The method loads data from a tracker thread and populates result in \a meas
@@ -911,22 +1004,23 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
   manage_track_flags_t         flags = 0; /* Result */
   tracking_channel_info_t      info;      /* Container for generic info */
   tracking_channel_freq_info_t freq_info; /* Container for measurements */
+  tracking_channel_time_info_t time_info; /* Container for time info */
 
   memset(meas, 0, sizeof(*meas));
 
   /* Load information from tracker: info locks */
   flags =  get_tracking_channel_flags_info(i,           /* Channel index */
                                            &info,       /* General */
-                                           NULL,        /* Time info */
+                                           &time_info,  /* Time info */
                                            &freq_info,  /* Freq info */
                                            NULL);       /* Ctrl info */
 
-  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE)) {
+  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
+      0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
+      0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR)) {
     /* Load information from SID cache and NDB */
     flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, NULL);
-  }
 
-  if (MANAGE_TRACK_LEGACY_USE_FLAGS == (flags & MANAGE_TRACK_LEGACY_USE_FLAGS)) {
     tracking_channel_measurement_get(ref_tc, &info, &freq_info, meas);
 
     /* Adjust for half phase ambiguity */
@@ -935,46 +1029,30 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
     }
 
     /* Adjust carrier phase initial integer offset to be approximately equal to
-       pseudorange. */
+     * pseudorange.
+     *
+     * The initial integer offset shall be adjusted only when conditions that
+     * have caused initial offset reset are not longer present. See callers of
+     * tracker_ambiguity_unknown() for more details.
+     *
+     * For now, compute pseudorange for all measurements even when phase is
+     * not available.
+     */
     double carrier_phase_offset = freq_info.carrier_phase_offset;
-    if (TIME_FINE == time_quality &&
+    bool cpo_ok = true;
+    if (TIME_FINE <= time_quality &&
         0.0 == carrier_phase_offset &&
-        0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK)) {
-
-      /* compute the pseudorange for this signal */
-      navigation_measurement_t nav_meas;
-      navigation_measurement_t *p_nav_meas = &nav_meas;
-      const channel_measurement_t *c_meas = meas;
-      gps_time_t rec_time = rx2gpstime(ref_tc);
-      s8 nm_ret = calc_navigation_measurement(1,
-                                              &c_meas,
-                                              &p_nav_meas,
-                                              &rec_time,
-                                              NULL);
-      if (nm_ret != 0) {
-        log_error_sid(meas->sid,
-                      "calc_navigation_measurement() returned an error");
-      } else {
-
-        double phase = (code_to_carr_freq(meas->sid.code) *
-                        nav_meas.raw_pseudorange / GPS_C);
-
-        /* initialize the carrier phase offset with the pseudorange measurement */
-        /* NOTE: CP sign flip - change the plus sign below */
-        carrier_phase_offset = round(meas->carrier_phase + phase);
-
-        /* Remember offset for the future use */
-        tracking_channel_set_carrier_phase_offset(&info,
-                                                  carrier_phase_offset);
-      }
+        /* 0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) && */
+        0 != (flags & MANAGE_TRACK_FLAG_PLL_USE) &&
+        0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK) &&
+        0 != (flags & MANAGE_TRACK_FLAG_TOW)
+        /* 0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) */) {
+      cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
     }
     meas->carrier_phase -= carrier_phase_offset;
-
-    /* TODO Placeholder for flags computation */
-    meas->flags = (CHAN_MEAS_FLAG_CODE_VALID |
-                   CHAN_MEAS_FLAG_PHASE_VALID |
-                   CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID |
-                   CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN);
+    meas->flags = compute_meas_flags(flags, cpo_ok);
+  } else {
+    memset(meas, 0, sizeof(*meas));
   }
 
   return flags;
