@@ -22,6 +22,7 @@
 #define ANT_PWR_SEL_2_GPIO_LINE PAL_LINE(GPIO2, 14)
 #define ANT_IN_SEL_0_GPIO_LINE PAL_LINE(GPIO2, 21)
 #define ANT_IN_SEL_1_GPIO_LINE PAL_LINE(GPIO2, 22)
+#define LED_nRST_GPIO_LINE PAL_LINE(GPIO2, 18)
 
 void boardRevInit(void)
 {
@@ -57,4 +58,7 @@ void boardRevInit(void)
 
   palSetLineMode(ANT_IN_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
   palClearLine(ANT_IN_SEL_1_GPIO_LINE);
+
+  palSetLineMode(LED_nRST_GPIO_LINE, PAL_MODE_OUTPUT);
+  palSetLine(LED_nRST_GPIO_LINE);
 }
