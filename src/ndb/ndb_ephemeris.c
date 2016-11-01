@@ -95,27 +95,6 @@ enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   return NDB_ERR_NONE;
 }
 
-enum ndb_op_code ndb_ephemeris_cache_update(ephemeris_t *cached_e,
-                                            ndb_update_counter_t *uc)
-{
-  enum ndb_op_code r = NDB_ERR_NONE;
-
-  u16 idx = sid_to_global_index(cached_e->sid);
-  ndb_element_metadata_t *md = &ndb_ephemeris_md[idx];
-
-  ndb_lock();
-  if (md->update_c != *uc) {
-    r = ndb_ephemeris_read(cached_e->sid, cached_e);
-    if (NDB_ERR_NONE != r) {
-      ndb_unlock();
-      return r;
-    }
-    *uc = md->update_c;
-  }
-  ndb_unlock();
-  return r;
-}
-
 s16 ndb_ephe_find_candidate(const ephemeris_t *new)
 {
   int i;

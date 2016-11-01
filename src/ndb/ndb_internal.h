@@ -57,7 +57,6 @@ typedef struct __attribute__((packed)) ndb_element_metadata_nv
 typedef struct ndb_element_metadata
 {
   ndb_element_metadata_nv_t    nv_data; /**< Persistent block */
-  ndb_update_counter_t         update_c;/**< Update counter */
   void                        *data;    /**< Data block pointer */
   ndb_ie_index_t               index;   /**< Index inside file */
   ndb_file_t                  *file;    /**< NDB file object pointer */
