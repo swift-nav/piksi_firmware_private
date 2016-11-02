@@ -360,32 +360,17 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     ndb_ephemeris_read(nm->sid, &ephe);
     u8 eph_valid;
     s8 ss_ret;
-    double clock_err;
-    double clock_rate_err;
+    const ephemeris_t *ephe_p = &ephe;
 
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
     if (eph_valid) {
-      ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                              &clock_err, &clock_rate_err);
+      /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
+      ss_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
     }
 
     if (!eph_valid || (ss_ret != 0)) {
       continue;
     }
-
-    /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
-    /* TODO Make a function to apply some of these corrections.
-     *      They are used in a couple places. */
-    double carr_freq = code_to_carr_freq(nm->sid.code);
-    nm->pseudorange = nm->raw_pseudorange + clock_err * GPS_C;
-    nm->carrier_phase = nm->raw_carrier_phase - clock_err * carr_freq;
-
-    /* Used in tdcp_doppler */
-    nm->measured_doppler = clock_rate_err * carr_freq;
-
-    /* We also apply the clock correction to the time of transmit. */
-    nm->tot.tow -= clock_err;
-    normalize_gps_time(&nm->tot);
 
     base_obss_rx.n++;
   }
