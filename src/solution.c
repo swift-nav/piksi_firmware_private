@@ -847,17 +847,6 @@ static void solution_thread(void *arg)
              update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
                                    lgf.position_solution.pos_ecef));
 
-    if (!simulation_enabled()) {
-      /* Output solution. */
-
-      bool disable_velocity = clock_jump ||
-                              (lgf.position_solution.velocity_valid == 0);
-      solution_send_sbp(&lgf.position_solution, &dops, disable_velocity);
-      solution_send_nmea(&lgf.position_solution, &dops,
-                         n_ready_tdcp, nav_meas_tdcp,
-                         NMEA_GGA_FIX_GPS, disable_velocity);
-    }
-
     /*
      * We need to correct our pseudorange and create a new one that is valid for
      * a different time of arrival.  In particular we'd like to propagate all the
@@ -871,14 +860,14 @@ static void solution_thread(void *arg)
                           / soln_freq;
     double t_err = expected_tow - lgf.position_solution.time.tow;
 
+    /* Update observation time. */
+    gps_time_t new_obs_time;
+    new_obs_time.tow = expected_tow;
+    gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
+
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-
-      /* Update observation time. */
-      gps_time_t new_obs_time;
-      new_obs_time.tow = expected_tow;
-      gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
@@ -974,6 +963,20 @@ static void solution_thread(void *arg)
         /* Send the observations. */
         send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
       }
+    }
+
+    if (!simulation_enabled()) {
+      /* Output SPP solution. We use the algined TOW for the time stamp. */
+
+      gnss_solution spp_position = lgf.position_solution;
+      spp_position.time = new_obs_time;
+
+      bool disable_velocity = clock_jump ||
+                              (spp_position.velocity_valid == 0);
+      solution_send_sbp(&spp_position, &dops, disable_velocity);
+      solution_send_nmea(&spp_position, &dops,
+                         n_ready_tdcp, nav_meas_tdcp,
+                         NMEA_GGA_FIX_GPS, disable_velocity);
     }
 
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
