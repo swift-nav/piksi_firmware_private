@@ -66,7 +66,7 @@
 #define MANAGE_ACQ_THREAD_STACK    2314
 
 #define MANAGE_TRACK_THREAD_PRIORITY (NORMALPRIO-2)
-#define MANAGE_TRACK_THREAD_STACK   1400
+#define MANAGE_TRACK_THREAD_STACK   16384
 
 /* Tracking channel state flags */
 /** Tracking channel flag: tracker is active  */

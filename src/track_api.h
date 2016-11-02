@@ -52,9 +52,16 @@ typedef struct {
 #define TRACK_CMN_FLAG_HAD_PLOCK   (1 << 6)
 /** Tracker flag: tracker has ever had FLL pessimistic lock */
 #define TRACK_CMN_FLAG_HAD_FLOCK   (1 << 7)
+/** Tracker flag: tracker has decoded TOW.
+    Overrides #TRACK_CMN_FLAG_TOW_PROPAGATED. */
+#define TRACK_CMN_FLAG_TOW_DECODED (1 << 8)
+/** Tracker flag: tracker has propagated TOW */
+#define TRACK_CMN_FLAG_TOW_PROPAGATED (1 << 9)
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
-                                    TRACK_CMN_FLAG_HAD_FLOCK)
+                                    TRACK_CMN_FLAG_HAD_FLOCK | \
+                                    TRACK_CMN_FLAG_TOW_DECODED | \
+                                    TRACK_CMN_FLAG_TOW_PROPAGATED)
 
 /**
  * Common tracking feature flags.
@@ -68,6 +75,8 @@ typedef struct {
  * - #TRACK_CMN_FLAG_HAS_FLOCK
  * - #TRACK_CMN_FLAG_HAD_PLOCK
  * - #TRACK_CMN_FLAG_HAD_FLOCK
+ * - #TRACK_CMN_FLAG_TOW_DECODED
+ * - #TRACK_CMN_FLAG_TOW_PROPAGATED
  *
  * \sa tracker_common_data_t
  */
@@ -97,6 +106,7 @@ typedef struct {
   float cn0;                   /**< Current estimate of C/N0. */
   track_cmn_flags_t flags;     /**< Tracker flags */
   track_ctrl_params_t ctrl_params; /**< Controller parameters */
+  float acceleration;          /**< Acceleration [g] */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
@@ -157,7 +167,7 @@ void tracker_correlations_read(tracker_context_t *context, corr_t *cs,
 void tracker_retune(tracker_context_t *context, double carrier_freq,
                     double code_phase_rate, u32 chips_to_correlate);
 s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
-                       u32 int_ms);
+                       u32 int_ms, bool *decoded_tow);
 void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
                              s32 corr_prompt_real);

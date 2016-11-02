@@ -49,11 +49,6 @@
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP       \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
-/** Specifies the spacing between Early and Prompt correlators.
-    Prompt and Late correlators have the same spacing.
-    [cycles of TRACK_SAMPLE_FREQ] */
-#define NAP_SPACING ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 24)
-
 static struct nap_ch_state {
   u32 code_phase;   /**< Fractional part of code phase. */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];

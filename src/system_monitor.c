@@ -119,7 +119,7 @@ static void check_frontend_errors(void)
   }
 }
 
-static THD_WORKING_AREA(wa_track_status_thread, 768);
+static THD_WORKING_AREA(wa_track_status_thread, 1024);
 static void track_status_thread(void *arg)
 {
   (void)arg;

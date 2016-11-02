@@ -124,6 +124,19 @@ double nap_count_to_ms(u64 delta_time)
   return time_delta;
 }
 
+/**
+ * Convert time in samples into time in nanoseconds.
+ *
+ * \param[in] delta_time Time interval to convert [samples]
+ *
+ * \return Time interval in nanoseconds.
+ */
+double nap_count_to_ns(u64 delta_time)
+{
+  double time_delta = (double)delta_time * (1e9 / NAP_FRONTEND_SAMPLE_RATE_Hz);
+  return time_delta;
+}
+
 static void nap_isr(void *context)
 {
   (void)context;

@@ -65,6 +65,18 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_HAD_LOCKS      (1u << 15)
 /** Tracking channel flag: tracker has bit sync resolved */
 #define TRACKING_CHANNEL_FLAG_BIT_INVERTED   (1u << 16)
+/** Tracking channel flag: tracker has decoded TOW */
+#define TRACKING_CHANNEL_FLAG_TOW_DECODED    (1u << 17)
+/** Tracking channel flag: tracker has propagated TOW */
+#define TRACKING_CHANNEL_FLAG_TOW_PROPAGATED (1u << 18)
+/** Tracking channel flag: tracker has valid pseudorange */
+#define TRACKING_CHANNEL_FLAG_PSEUDORANGE    (1u << 19)
+/** Tracking channel flag: tracker has subframe sync (L1C/A) */
+#define TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC  (1u << 20)
+/** Tracking channel flag: tracker has message sync (L2C) */
+#define TRACKING_CHANNEL_FLAG_MESSAGE_SYNC    TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC
+/** Tracking channel flag: tracker has word sync (L1C/A) */
+#define TRACKING_CHANNEL_FLAG_WORD_SYNC      (1u << 21)
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;
@@ -106,6 +118,13 @@ typedef struct {
   u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
 } tracking_channel_ctrl_info_t;
 
+/** Tracking channel miscellaneous info */
+typedef struct {
+  double pseudorange;          /**< Pseudorange [m]  */
+  double pseudorange_std;      /**< Pseudorange standard deviation [m] */
+  double carrier_phase_offset; /**< Carrier phase offset in cycles. */
+} tracking_channel_misc_info_t;
+
 /**
  * Phase and frequencies information
  */
@@ -114,8 +133,9 @@ typedef struct {
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency in Hz. */
+  double carrier_freq_std;     /**< Carrier frequency std deviation in Hz. */
   double carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
-  double carrier_phase_offset; /**< Carrier phase offset in cycles. */
+  float  acceleration;         /**< Acceleration [g] */
 } tracking_channel_freq_info_t;
 
 
@@ -124,6 +144,7 @@ typedef struct {
 void track_setup(void);
 
 void tracking_send_state(void);
+void tracking_send_detailed_state(void);
 
 double propagate_code_phase(double code_phase, double carrier_freq,
                             u32 n_samples, code_t code);
@@ -148,11 +169,17 @@ void tracking_channel_measurement_get(u64 ref_tc,
                                  const tracking_channel_freq_info_t *freq_info,
                                  channel_measurement_t *meas);
 
+bool tracking_channel_calc_pseudorange(u64 ref_tc,
+                                       const channel_measurement_t *meas,
+                                       double *raw_pseudorange);
+
 void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_info_t *info,
                                  tracking_channel_time_info_t *time_info,
                                  tracking_channel_freq_info_t *freq_info,
-                                 tracking_channel_ctrl_info_t *ctrl_params);
+                                 tracking_channel_ctrl_info_t *ctrl_params,
+                                 tracking_channel_misc_info_t *misc_params,
+                                 bool reset_stats);
 
 void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
                                                double carrier_phase_offset);
