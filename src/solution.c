@@ -715,12 +715,19 @@ static void solution_thread(void *arg)
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
 
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
-                                            p_rec_time, p_e_meas);
+                                            p_rec_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
       continue;
     }
+
+    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
+
+    if (sc_ret != 0) {
+       log_error("calc_sat_clock_correction() returned an error");
+       continue;
+     }
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
@@ -813,8 +820,9 @@ static void solution_thread(void *arg)
 
     soln_flag = true;
 
-    if (pvt_ret == 1)
-	  log_warn("calc_PVT: RAIM repair");
+    if (pvt_ret == 1) {
+      log_warn("calc_PVT: RAIM repair");
+    }
 
     if (time_quality < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
@@ -869,8 +877,8 @@ static void solution_thread(void *arg)
 
       /* Update observation time. */
       gps_time_t new_obs_time;
-      new_obs_time.wn = lgf.position_solution.time.wn;
       new_obs_time.tow = expected_tow;
+      gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */

@@ -912,8 +912,7 @@ static bool compute_cpo(u64 ref_tc,
   s8 nm_ret = calc_navigation_measurement(1,
                                           &meas,
                                           &p_nav_meas,
-                                          &rec_time,
-                                          NULL);
+                                          &rec_time);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,
                  "calc_navigation_measurement() returned an error");
