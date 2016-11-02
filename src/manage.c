@@ -1400,4 +1400,22 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
   return false;
 }
 
+/** Checks if SV is tracked
+ *
+ * \param sid Signal ID to check.
+ * \retval true sid is tracked
+ * \retval false sid is not tracked
+ */
+bool sid_is_tracked(gnss_signal_t sid)
+{
+  /* This function is used in reacquisition which runs in
+     the same thread as acquisition.
+     Revisit this if there will be any better way to check
+     if SV is in track. */
+  u16 global_index = sid_to_global_index(sid);
+  acq_status_t *acq = &acq_status[global_index];
+  return acq->state == ACQ_PRN_TRACKING;
+}
+
+
 /** \} */
