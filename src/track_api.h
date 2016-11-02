@@ -82,13 +82,6 @@ typedef struct {
  */
 typedef u16 track_cmn_flags_t;
 
-/** Running statistics */
-typedef struct {
-  u64 n;                 /**< number of samples */
-  double sum;            /**< sum of samples */
-  double sum_of_squares; /**< sum of samples' squares */
-} running_stats_t;
-
 typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   update_count_t mode_change_count;
@@ -184,9 +177,5 @@ bool tracker_has_bit_sync(tracker_context_t *context);
 bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
 void tracker_ambiguity_unknown(tracker_context_t *context);
 void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
-
-void running_stats_init(running_stats_t *p);
-void running_stats_update(running_stats_t *p, double v);
-void running_stats_get_products(running_stats_t *p, double *mean, double *std);
 
 #endif
