@@ -787,6 +787,10 @@ static void solution_thread(void *arg)
       /* get iono parameters if available */
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
+      } else {
+        chMtxLock(&eigen_state_lock);
+        dgnss_update_iono_parameters(p_i_params);
+        chMtxUnlock(&eigen_state_lock);
       }
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
                       lgf.position_solution.pos_ecef,
