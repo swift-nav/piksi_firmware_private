@@ -160,7 +160,8 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
 {
   if(sid_to_constellation(sid) == CONSTELLATION_GPS) {
 
-    assert(CODE_GPS_L1CA == sid.code || CODE_GPS_L2CM == sid.code);
+    assert(CODE_GPS_L1CA == sid.code || CODE_GPS_L2CM == sid.code ||
+           CODE_GPS_L1P  == sid.code || CODE_GPS_L2P  == sid.code);
 
     /* Check GPS band specific SHIs.
      * SHI1. LNAV SV HEALTH (6 bits, subframe 1, word 3)
@@ -191,23 +192,27 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
       *
       * Otherwise return CODE_NAV_STATE_UNKNOWN
       */
-      if (shis.shi1_set && !gps_healthy(shis.shi1, sid.code))
+      if (shis.shi1_set && !gps_healthy(shis.shi1, sid.code)) {
         return CODE_NAV_STATE_INVALID;
+      }
 
-      if (shis.shi4_set && !shis.shi4)
+      if (shis.shi4_set && !shis.shi4) {
         return CODE_NAV_STATE_INVALID;
+      }
 
       cnav_msg_t cnav_msg10;
       bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
-      if (msg10_available && !cnav_msg10.data.type_10.l1_health)
+      if (msg10_available && !cnav_msg10.data.type_10.l1_health) {
         return CODE_NAV_STATE_INVALID;
+      }
 
       if ((shis.shi1_set && gps_healthy(shis.shi1, sid.code)) &&
           (shis.shi4_set && shis.shi4) &&
           ((!shis.shi6_set && !msg10_available) ||
            (msg10_available && cnav_msg10.data.type_10.l1_health))
-         )
+         ) {
         return CODE_NAV_STATE_VALID;
+      }
 
       return CODE_NAV_STATE_UNKNOWN;
     }
@@ -226,22 +231,108 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
        *
        * Otherwise return CODE_NAV_STATE_UNKNOWN
        */
-      if (shis.shi1_set && !gps_healthy(shis.shi1, sid.code))
+      if (shis.shi1_set && !gps_healthy(shis.shi1, sid.code)) {
         return CODE_NAV_STATE_INVALID;
+      }
 
-      if (shis.shi6_set && !shis.shi6)
+      if (shis.shi6_set && !shis.shi6) {
         return CODE_NAV_STATE_INVALID;
+      }
 
       cnav_msg_t cnav_msg10;
       bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
-      if (msg10_available && !cnav_msg10.data.type_10.l2_health)
+      if (msg10_available && !cnav_msg10.data.type_10.l2_health) {
         return CODE_NAV_STATE_INVALID;
+      }
 
       if ((shis.shi1_set && gps_healthy(shis.shi1, sid.code)) &&
           (msg10_available && cnav_msg10.data.type_10.l2_health) &&
           (shis.shi6_set && shis.shi6)
-         )
+         ) {
         return CODE_NAV_STATE_VALID;
+      }
+
+      return CODE_NAV_STATE_UNKNOWN;
+    }
+
+    case CODE_GPS_L1P: {
+      /*
+      * Return SV_NAV_STATE_INVALID if either of the following:
+      * - SHI1 is available and indicates L1P unhealthy
+      * - SHI4 is available and negative
+      * - SHI5 is available and indicates L1P unhealthy
+      *
+      * Return CODE_NAV_STATE_VALID all conditions below are true:
+      * - SHI1 is available and indicates L1P healthy
+      * - SHI4 is available and positive
+      * - One of the following:
+      *     - Both SHI5 and SHI6 are unavailable
+      *     - SHI5 is available and indicates L1P healthy
+      *
+      * Otherwise return CODE_NAV_STATE_UNKNOWN
+      */
+      if (shis.shi1_set && !gps_healthy(shis.shi1, sid.code)) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      if (shis.shi4_set && !shis.shi4) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      cnav_msg_t cnav_msg10;
+      bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
+      if (msg10_available && !cnav_msg10.data.type_10.l1_health) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      if ((shis.shi1_set && gps_healthy(shis.shi1, sid.code)) &&
+          (shis.shi4_set && shis.shi4) &&
+          ((!shis.shi6_set && !msg10_available) ||
+           (msg10_available && cnav_msg10.data.type_10.l1_health))
+         ) {
+        return CODE_NAV_STATE_VALID;
+      }
+
+      return CODE_NAV_STATE_UNKNOWN;
+    }
+
+    case CODE_GPS_L2P: {
+      /*
+      * Return SV_NAV_STATE_INVALID if either of the following:
+      * - SHI1 is available and indicates L2P unhealthy
+      * - SHI4 is available and negative
+      * - SHI5 is available and indicates L2P unhealthy
+      *
+      * Return CODE_NAV_STATE_VALID all conditions below are true:
+      * - SHI1 is available and indicates L2P healthy
+      * - SHI4 is available and positive
+      * - One of the following:
+      *     - Both SHI5 and SHI6 are unavailable
+      *     - SHI5 is available and indicates L2P healthy
+      *
+      * Otherwise return CODE_NAV_STATE_UNKNOWN
+      */
+      if (shis.shi1_set && !gps_healthy(shis.shi1, sid.code)) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      if (shis.shi4_set && !shis.shi4) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      cnav_msg_t cnav_msg10;
+      bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
+      if (msg10_available && !cnav_msg10.data.type_10.l2_health) {
+        return CODE_NAV_STATE_INVALID;
+      }
+
+      if ((shis.shi1_set && gps_healthy(shis.shi1, sid.code)) &&
+          (shis.shi4_set && shis.shi4) &&
+          ((!shis.shi6_set && !msg10_available) ||
+           (msg10_available && cnav_msg10.data.type_10.l2_health))
+         ) {
+        return CODE_NAV_STATE_VALID;
+      }
 
       return CODE_NAV_STATE_UNKNOWN;
     }
@@ -249,8 +340,6 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
     case CODE_SBAS_L1CA:
     case CODE_GLO_L1CA:
     case CODE_GLO_L2CA:
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
       assert(!"Unsupported code");
 
     case CODE_INVALID:
