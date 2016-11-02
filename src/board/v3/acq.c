@@ -66,6 +66,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   }
 
   /* Search for results */
+  float best_cn0 = 0.0f;
   float best_doppler = 0.0f;
   u32 best_sample_offset = 0;
   float snr = 0.0f;
@@ -74,13 +75,18 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Loop over Doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
   s32 doppler_bin_max = (s32)floorf(cf_max / cf_bin_width);
-  s32 start_bin = 0;            /* Start search from center bin */
+  s32 start_bin = 0;                /* Start search from center bin */
   s32 doppler_bin = start_bin;
-  s32 ind1 = -1;                /* Used to flip between +1 and -1 */
-  s32 ind2 = 1;                 /* Used to compute bin index with (ind2 / 2)
-                                 * resulting in sequence 0,1,1,2,2,3,3,... */
-  s32 bin_index = doppler_bin_min;
-  while (bin_index <= doppler_bin_max) {
+  s32 ind1 = 1;                     /* Used to flip between +1 and -1 */
+  s32 ind2 = 1;                     /* Used to compute bin index with (ind2 / 2)
+                                     * resulting in sequence
+                                     * 0,1,1,2,2,3,3,... */
+  bool peak_found = false;          /* Stop freq sweep when peak is found.
+                                     * Adjacent freq bins are still searched. */
+  s32 loop_index = doppler_bin_min; /* Make frequency searches from
+                                     * dopple_bin_min to doppler_bin_max */
+
+  while (loop_index <= doppler_bin_max) {
     doppler_bin = start_bin + ind1 * (ind2 / 2);
     ind1 *= -1;
     ind2 += 1;
@@ -88,7 +94,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
       /* If frequency range reached, continue the other frequency side. */
       continue;
     }
-    bin_index += 1;
+    loop_index += 1;
     s32 sample_offset = (s32)roundf(doppler_bin * cf_bin_width / fft_bin_width);
     /* Actual computed Doppler */
     float doppler = sample_offset * fft_bin_width;
@@ -125,9 +131,41 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
     cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
     if (cn0 > ACQ_THRESHOLD) {
+      /* Peak found - save results */
+      best_cn0 = cn0;
       best_doppler = doppler;
       best_sample_offset = peak_index;
-      break;
+
+      /* If peak was found on the starting bin,
+       * then need to check both sides of the starting bin */
+      if (doppler_bin == start_bin) {
+        loop_index = doppler_bin_max - 1; /* Make 2 more searches */
+        peak_found = true;                /* Mark peak as found */
+        continue;
+      }
+
+      /* IF no Peak has been found previously.
+       *    AND
+       *    (
+       *      (Peak is now found on positive side AND
+       *       there is one more bin to search on that side)
+       *      OR
+       *      (Peak is now found on negative side AND
+       *       there is one more bin to search on that side)
+       *    )
+       */
+      if (
+          (!peak_found)  &&
+          (((ind1 == -1) && (doppler_bin < doppler_bin_max)) ||
+           ((ind1 == 1)  && (doppler_bin > doppler_bin_min)))
+         ) {
+        loop_index = doppler_bin_max;  /* Make 1 more search */
+        peak_found = true;             /* Mark peak as found */
+        /* Adjust ind1 and ind2 so that same frequency side is searched */
+        ind1 *= -1;
+        ind2 += 1;
+        continue;
+      }
     }
   }
 
@@ -149,7 +187,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   acq_result->sample_count = sample_count;
   acq_result->cp = cp;
   acq_result->cf = best_doppler;
-  acq_result->cn0 = cn0;
+  acq_result->cn0 = best_cn0;
   return true;
 }
 
