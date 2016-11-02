@@ -279,6 +279,28 @@ void tracking_send_state()
   sbp_send_msg(SBP_MSG_TRACKING_STATE, sizeof(states), (u8*)states);
 }
 
+/** Send detailed tracking status message.
+ * The message combines info from several tracking channels to minimize
+ * the message header & footer overhead.
+ * \param[in] sbp Array of detailed tracking state for 1 or more channels
+ * \param[in] num Size of \p sbp array
+ * \reuturn None
+ */
+void send_tracking_detailed_state_sbp(const msg_tracking_state_detailed_t *sbp,
+                                      size_t num)
+{
+  size_t i;
+  u8 buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
+  u8 *ptr = buf;
+
+  assert(num * sizeof(*sbp) <= sizeof(buf));
+  for (i = 0; i < num; i++) {
+    memcpy(ptr, &sbp[i], sizeof(*sbp));
+    ptr += sizeof(*sbp);
+  }
+  sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(*sbp) * num, (u8*)&buf);
+}
+
 /** Send tracking detailed state SBP message.
  * Send information on each tracking channel to host.
  */
@@ -286,8 +308,12 @@ void tracking_send_detailed_state(void)
 {
   last_good_fix_t lgf;
   last_good_fix_t *plgf = &lgf;
+  static const int msgs_per_sbp = SBP_FRAMING_MAX_PAYLOAD_SIZE /
+                                  sizeof(msg_tracking_state_detailed_t);
+  msg_tracking_state_detailed_t sbp[msgs_per_sbp];
+  int cnt = 0;
 
-  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
+  if ((NDB_ERR_NONE != ndb_lgf_read(&lgf)) && lgf.position_solution.valid) {
     plgf = NULL;
   }
 
@@ -310,11 +336,20 @@ void tracking_send_detailed_state(void)
       continue;
     }
 
-    track_sbp_send_state(&channel_info,
-                         &freq_info,
-                         &ctrl_info,
-                         &misc_info,
-                         plgf);
+    track_sbp_get_detailed_state(&sbp[cnt],
+                                 &channel_info,
+                                 &freq_info,
+                                 &ctrl_info,
+                                 &misc_info,
+                                 plgf);
+    cnt++;
+    if (cnt == msgs_per_sbp) {
+      send_tracking_detailed_state_sbp(sbp, cnt);
+      cnt = 0;
+    }
+  }
+  if (0 != cnt) {
+    send_tracking_detailed_state_sbp(sbp, cnt);
   }
 }
 
@@ -852,8 +887,7 @@ bool tracking_channel_calc_pseudorange(u64 ref_tc,
   s8 nm_ret = calc_navigation_measurement(1,
                                           &meas,
                                           &p_nav_meas,
-                                          &rec_time,
-                                          NULL);
+                                          &rec_time);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,
                  "calc_navigation_measurement() returned an error: %" PRId8,

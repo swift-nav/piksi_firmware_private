@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <stdint.h>
 #include <assert.h>
 #include <libswiftnav/track.h>
 #include <libswiftnav/constants.h>
@@ -22,12 +23,6 @@
 #include "shm.h"
 #include <sbp.h>
 #include <sbp_utils.h>
-
-/** Convert track sample frequency cycles to [ns] */
-#define TRACK_SAMPLE_CYCLES_TO_NS (1e9 / TRACK_SAMPLE_FREQ)
-
-/** Used to convert meters to 2cm units */
-#define TRACK_SBP_METERS_TO_2CM_UNITS 50
 
 /** Get synchronization status flags
  * \param[in] channel_info channel info
@@ -181,7 +176,24 @@ static u8 get_misc_flags(const tracking_channel_info_t *channel_info)
   return flags;
 }
 
-/** Send tracker state over SBP protocol
+/** Limit the provided value by coercing it into the provided limits.
+ * \param[in] value The value to coerce
+ * \param[in] min Minimum value
+ * \param[in] max Maximum value
+ * \return The coerced value
+ */
+static double limit_value(double value, s64 min, s64 max)
+{
+  if (value > max) {
+    value = max;
+  } else if (value < min) {
+    value = min;
+  }
+  return value;
+}
+
+/** Get detailed tracker state
+ * \param[out] state Detailed tracker state
  * \param[in] channel_info Channel information
  * \param[in] freq_info Frequency information
  * \param[in] ctrl_info Controller parameters for error sigma computations
@@ -189,17 +201,16 @@ static u8 get_misc_flags(const tracking_channel_info_t *channel_info)
  * \param[in] lgf Last good fix
  * \return None
  */
-void track_sbp_send_state(const tracking_channel_info_t *channel_info,
-                          const tracking_channel_freq_info_t *freq_info,
-                          const tracking_channel_ctrl_info_t *ctrl_info,
-                          const tracking_channel_misc_info_t *misc_info,
-                          const last_good_fix_t *lgf)
+void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
+                                  const tracking_channel_info_t *channel_info,
+                                  const tracking_channel_freq_info_t *freq_info,
+                                  const tracking_channel_ctrl_info_t *ctrl_info,
+                                  const tracking_channel_misc_info_t *misc_info,
+                                  const last_good_fix_t *lgf)
 {
-  msg_tracking_state_detailed_t state;
-
   u64 recv_time_ticks = nap_sample_time_to_count(channel_info->sample_count);
   /* receiver clock time of the measurements [ns] */
-  state.recv_time = nap_count_to_ns(recv_time_ticks);
+  state->recv_time = nap_count_to_ns(recv_time_ticks);
 
   channel_measurement_t meas;
 
@@ -211,84 +222,96 @@ void track_sbp_send_state(const tracking_channel_info_t *channel_info,
   s32 tow_ms = channel_info->tow_ms;
 
   /* TOW status flags */
-  state.tow_flags = get_tow_flags(channel_info);
+  state->tow_flags = get_tow_flags(channel_info);
 
   if (TOW_UNKNOWN == tow_ms) {
-    u8 tow_status = state.tow_flags & TRACK_SBP_TOW_STATUS_MASK;
+    u8 tow_status = state->tow_flags & TRACK_SBP_TOW_STATUS_MASK;
     bool tow_available = (tow_status != TRACK_SBP_TOW_NONE);
 
-    state.tot.tow = 0;
+    state->tot.tow = 0;
     assert(!tow_available);
   } else {
-    state.tot.tow = tow_ms;
+    state->tot.tow = tow_ms;
   }
 
-  state.tot.wn = 0;
+  state->tot.wn = 0;
   if (time_quality >= TIME_COARSE) {
     gps_time_t rec_time = rx2gpstime(recv_time_ticks);
 
     if (WN_UNKNOWN != rec_time.wn) {
-      state.tot.wn = rec_time.wn;
-      state.tow_flags |= TRACK_SBP_WN_VALID;
+      state->tot.wn = rec_time.wn;
+      state->tow_flags |= TRACK_SBP_WN_VALID;
     }
   }
 
-  state.P = (u32)misc_info->pseudorange * TRACK_SBP_METERS_TO_2CM_UNITS;
+  double pseudorange = misc_info->pseudorange *
+                       TRACK_SBP_PSEUDORANGE_SCALING_FACTOR;
+  state->P = (u32)limit_value(pseudorange, 0, UINT32_MAX);
+
   /* pseudorange standard deviation */
-  state.P_std = misc_info->pseudorange_std * TRACK_SBP_METERS_TO_2CM_UNITS;
+  double pseudorange_std = misc_info->pseudorange_std *
+                           TRACK_SBP_PSEUDORANGE_SCALING_FACTOR;
+  state->P_std = (u16)limit_value(pseudorange_std, 0, UINT16_MAX);
 
   /* carrier phase coming from NAP (cycles) */
-  state.L.i = (u32)freq_info->carrier_phase;
-  state.L.f = (u8)((freq_info->carrier_phase - state.L.i) *
+  double carrier_phase = limit_value(freq_info->carrier_phase, 0, UINT32_MAX);
+  state->L.i = (u32)carrier_phase;
+  state->L.f = (u8)((carrier_phase - state->L.i) *
                    TRACK_SBP_CARR_PHASE_SCALING_FACTOR);
 
   gnss_signal_t sid = channel_info->sid;
 
-  state.cn0 = channel_info->cn0 * TRACK_SBP_CN0_SCALING_FACTOR;
-  state.lock = tracking_lock_counter_get(sid);
+  float cn0 = channel_info->cn0 * TRACK_SBP_CN0_SCALING_FACTOR;
+  state->cn0 = (u8)limit_value(cn0, 0, UINT8_MAX);
+  state->lock = tracking_lock_counter_get(sid);
 
-  state.sid = sid_to_sbp(sid);
+  state->sid = sid_to_sbp(sid);
 
-  state.doppler = (s32)(freq_info->carrier_freq *
-                        TRACK_SBP_DOPPLER_SCALING_FACTOR);
+  double carrier_freq = freq_info->carrier_freq *
+                        TRACK_SBP_DOPPLER_SCALING_FACTOR;
+  state->doppler = (s32)limit_value(carrier_freq, INT32_MIN, INT32_MAX);
 
   /* Doppler standard deviation [Hz] */
-  double doppler_std = freq_info->carrier_freq_std;
-  state.doppler_std = (u16)(doppler_std *
-                            TRACK_SBP_DOPPLER_SCALING_FACTOR);
+  double doppler_std = freq_info->carrier_freq_std *
+                       TRACK_SBP_DOPPLER_SCALING_FACTOR;
+  state->doppler_std = (u16)limit_value(doppler_std, 0, UINT16_MAX);
 
   /* number of seconds of continuous tracking */
-  state.uptime = (u32)(channel_info->uptime_ms / 1000);
+  state->uptime = (u32)(channel_info->uptime_ms / 1000);
 
   /* miscellaneous flags */
-  state.misc_flags = get_misc_flags(channel_info);
+  state->misc_flags = get_misc_flags(channel_info);
 
   if ((NULL != lgf) && (lgf->position_quality >= POSITION_GUESS)) {
-    state.clock_offset = (s16)(lgf->position_solution.clock_offset * 1e6);
-    state.clock_drift = (s16)(lgf->position_solution.clock_bias * 1e12);
-    state.misc_flags |= TRACK_SBP_CLOCK_VALID;
+    double clock_offset = lgf->position_solution.clock_offset *
+                          TRACK_SBP_CLOCK_OFFSET_SCALING_FACTOR;
+    double clock_drift = lgf->position_solution.clock_bias *
+                         TRACK_SBP_CLOCK_DRIFT_SCALING_FACTOR;
+    state->clock_offset = (s16)limit_value(clock_offset, INT16_MIN, INT16_MAX);
+    state->clock_drift = (s16)limit_value(clock_drift, INT16_MIN, INT16_MAX);
+    state->misc_flags |= TRACK_SBP_CLOCK_VALID;
   } else {
-    state.clock_offset = 0;
-    state.clock_drift = 0;
+    state->clock_offset = 0;
+    state->clock_drift = 0;
   }
 
   /* correlator spacing [ns] */
-  state.corr_spacing = (u16)(NAP_SPACING * TRACK_SAMPLE_CYCLES_TO_NS);
+  state->corr_spacing = (u16)(NAP_SPACING *
+                             TRACK_SBP_NAP_SPACING_SCALING_FACTOR);
   /* acceleration [g] */
-  state.acceleration = (s8)(freq_info->acceleration *
-                            TRACK_SBP_ACCELERATION_SCALING_FACTOR);
+  double acceleration = freq_info->acceleration *
+                        TRACK_SBP_ACCELERATION_SCALING_FACTOR;
+  state->acceleration = (s8)(limit_value(acceleration, INT8_MIN, INT8_MAX));
 
   /* sync status flags */
-  state.sync_flags = get_sync_flags(channel_info);
+  state->sync_flags = get_sync_flags(channel_info);
 
   /* track flags */
-  state.track_flags = get_track_flags(channel_info);
+  state->track_flags = get_track_flags(channel_info);
 
   /* navigation data status flags */
-  state.nav_flags = get_nav_data_status_flags(sid);
+  state->nav_flags = get_nav_data_status_flags(sid);
 
   /* parameters sets flags */
-  state.pset_flags = get_pset_flags(ctrl_info);
-
-  sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(state), (u8*)&state);
+  state->pset_flags = get_pset_flags(ctrl_info);
 }
