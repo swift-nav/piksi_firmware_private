@@ -20,6 +20,7 @@
 #include "track_profiles.h"
 #include "track_profile_utils.h"
 #include "track_sid_db.h"
+#include "track_sbp.h"
 
 #include <math.h>
 #include <string.h>
@@ -486,6 +487,17 @@ void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
     assert(!"Unknown tracking loop configuration");
   }
 
+  /* Sanity checks */
+  if (common_data->TOW_ms == TOW_UNKNOWN) {
+    assert(0 == (flags & TRACK_CMN_FLAG_TOW_DECODED));
+    assert(0 == (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
+  } else {
+    assert(0 != (flags & TRACK_CMN_FLAG_TOW_DECODED) ||
+           0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
+    assert(!(0 != (flags & TRACK_CMN_FLAG_TOW_DECODED) &&
+           0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED)));
+  }
+
   common_data->flags = flags;
 }
 
@@ -592,23 +604,24 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   /* ToW update:
    * ToW along with carrier and code phases and sample number shall be updated
    * in sync.
-   *
-   * While the tracker can run in fractions of milliseconds, the current
-   * design doesn't permit ToW updates with sub-millisecond values.
    */
-  /* ToW update counter. */
-  bool no_TOW = TOW_UNKNOWN == common_data->TOW_ms;
+  bool decoded_tow;
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
-                                           int_ms);
+                                           int_ms,
+                                           &decoded_tow);
   if (!tp_tow_is_sane(common_data->TOW_ms)) {
     log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
                   common_data->update_count, common_data->TOW_ms);
     common_data->TOW_ms = TOW_UNKNOWN;
+    common_data->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
+    common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
   }
-  if (no_TOW && TOW_UNKNOWN != common_data->TOW_ms) {
+  if (decoded_tow) {
     log_debug_sid(channel_info->sid, "[+%"PRIu32"ms] Decoded TOW %"PRId32,
                   common_data->update_count, common_data->TOW_ms);
+    common_data->flags |= TRACK_CMN_FLAG_TOW_DECODED;
+    common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
   }
   /* Channel run time. */
   common_data->update_count += int_ms;
@@ -852,6 +865,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
 
     common_data->carrier_freq = rates.carr_freq;
     common_data->code_phase_rate = rates.code_freq + GPS_CA_CHIPPING_RATE;
+    common_data->acceleration = rates.acceleration;
 
     /* Do tracking report to manager */
     tp_report_t report;
@@ -965,4 +979,3 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
 
   return cflags;
 }
-

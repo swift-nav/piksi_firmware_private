@@ -35,6 +35,9 @@
 #include "signal.h"
 #include "timing.h"
 #include "manage.h"
+#include "position.h"
+#include "ndb.h"
+#include "track/track_sbp.h"
 
 /** \defgroup tracking Tracking
  * Track satellites via interrupt driven updates to SwiftNAP tracking channels.
@@ -89,6 +92,12 @@ typedef struct {
   volatile tracking_channel_freq_info_t freq_info;
   /** Controller parameters */
   volatile tracking_channel_ctrl_info_t ctrl_info;
+  /** Miscellaneous parameters */
+  volatile tracking_channel_misc_info_t misc_info;
+  /** Carrier frequency products */
+  running_stats_t                       carr_freq_stats;
+  /** Pseudorange products */
+  running_stats_t                       pseudorange_stats;
 } tracker_channel_pub_data_t;
 
 /** Top-level generic tracker channel. */
@@ -268,6 +277,80 @@ void tracking_send_state()
   }
 
   sbp_send_msg(SBP_MSG_TRACKING_STATE, sizeof(states), (u8*)states);
+}
+
+/** Send detailed tracking status message.
+ * The message combines info from several tracking channels to minimize
+ * the message header & footer overhead.
+ * \param[in] sbp Array of detailed tracking state for 1 or more channels
+ * \param[in] num Size of \p sbp array
+ * \reuturn None
+ */
+void send_tracking_detailed_state_sbp(const msg_tracking_state_detailed_t *sbp,
+                                      size_t num)
+{
+  size_t i;
+  u8 buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
+  u8 *ptr = buf;
+
+  assert(num * sizeof(*sbp) <= sizeof(buf));
+  for (i = 0; i < num; i++) {
+    memcpy(ptr, &sbp[i], sizeof(*sbp));
+    ptr += sizeof(*sbp);
+  }
+  sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(*sbp) * num, (u8*)&buf);
+}
+
+/** Send tracking detailed state SBP message.
+ * Send information on each tracking channel to host.
+ */
+void tracking_send_detailed_state(void)
+{
+  last_good_fix_t lgf;
+  last_good_fix_t *plgf = &lgf;
+  static const int msgs_per_sbp = SBP_FRAMING_MAX_PAYLOAD_SIZE /
+                                  sizeof(msg_tracking_state_detailed_t);
+  msg_tracking_state_detailed_t sbp[msgs_per_sbp];
+  int cnt = 0;
+
+  if ((NDB_ERR_NONE != ndb_lgf_read(&lgf)) && lgf.position_solution.valid) {
+    plgf = NULL;
+  }
+
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    tracking_channel_info_t channel_info;
+    tracking_channel_freq_info_t freq_info;
+    tracking_channel_ctrl_info_t ctrl_info;
+    tracking_channel_misc_info_t misc_info;
+
+    tracking_channel_get_values(i,
+                                &channel_info,
+                                NULL, /* time info */
+                                &freq_info,
+                                &ctrl_info,
+                                &misc_info, /* misc parameters */
+                                true);      /* reset statistics */
+
+    if (0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) ||
+        0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
+      continue;
+    }
+
+    track_sbp_get_detailed_state(&sbp[cnt],
+                                 &channel_info,
+                                 &freq_info,
+                                 &ctrl_info,
+                                 &misc_info,
+                                 plgf);
+    cnt++;
+    if (cnt == msgs_per_sbp) {
+      send_tracking_detailed_state_sbp(sbp, cnt);
+      cnt = 0;
+    }
+  }
+  if (0 != cnt) {
+    send_tracking_detailed_state_sbp(sbp, cnt);
+  }
 }
 
 /** Handles pending IRQs for the specified tracking channels.
@@ -537,12 +620,12 @@ static void tracking_channel_compute_values(
     freq_info->carrier_freq_at_lock = common_data->carrier_freq_at_lock;
     /* Current carrier frequency for a tracker channel. */
     freq_info->carrier_phase = common_data->carrier_phase;
-    /* Carrier phase offset is available here */
-    freq_info->carrier_phase_offset = 0;
     /* Code phase in chips */
     freq_info->code_phase_chips = common_data->code_phase_early;
     /* Code phase rate in chips/s */
     freq_info->code_phase_rate = common_data->code_phase_rate;
+    /* Acceleration [g] */
+    freq_info->acceleration = common_data->acceleration;
   }
   if (NULL != ctrl_params) {
     /* Copy loop controller parameters */
@@ -571,6 +654,9 @@ static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data
   memset((void*)&pub_data->time_info, 0, sizeof(pub_data->time_info));
   memset((void*)&pub_data->freq_info, 0, sizeof(pub_data->freq_info));
   memset((void*)&pub_data->ctrl_info, 0, sizeof(pub_data->ctrl_info));
+  memset((void*)&pub_data->misc_info, 0, sizeof(pub_data->misc_info));
+  memset((void*)&pub_data->carr_freq_stats, 0, sizeof(pub_data->carr_freq_stats));
+  memset((void*)&pub_data->pseudorange_stats, 0, sizeof(pub_data->pseudorange_stats));
   chMtxUnlock(&pub_data->info_mutex);
 }
 
@@ -604,6 +690,20 @@ static void tracking_channel_update_values(
                                 const tracking_channel_ctrl_info_t *ctrl_params,
                                 bool reset_cpo)
 {
+  double raw_pseudorange = 0;
+
+  if (0 != (info->flags & TRACKING_CHANNEL_FLAG_TOW) &&
+      0 != (info->flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
+      0 != (info->flags & TRACKING_CHANNEL_FLAG_NO_ERROR) &&
+      time_quality >= TIME_FINE) {
+    u64 ref_tc = nap_sample_time_to_count(info->sample_count);
+
+    channel_measurement_t meas;
+    const channel_measurement_t *c_meas = &meas;
+    tracking_channel_measurement_get(ref_tc, info, freq_info, &meas);
+    tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
+  }
+
   chMtxLock(&pub_data->info_mutex);
   if (NULL != info) {
     pub_data->gen_info = *info;
@@ -612,20 +712,21 @@ static void tracking_channel_update_values(
     pub_data->time_info = *time_info;
   }
   if (NULL != freq_info) {
-    /* This method doesn't update CPO, so it is preserved for recovery, however
-     * the value can be reset (see below) */
-    double old_cpo = pub_data->freq_info.carrier_phase_offset;
     pub_data->freq_info = *freq_info;
-    /* Keep old CPO value */
-    pub_data->freq_info.carrier_phase_offset = old_cpo;
+    running_stats_update(&pub_data->carr_freq_stats, freq_info->carrier_freq);
   }
   if (reset_cpo) {
     /* Do CPO reset */
-    pub_data->freq_info.carrier_phase_offset = 0;
+    pub_data->misc_info.carrier_phase_offset = 0;
   }
   if (NULL != ctrl_params) {
     pub_data->ctrl_info = *ctrl_params;
   }
+  if (raw_pseudorange != 0) {
+    pub_data->gen_info.flags |= TRACKING_CHANNEL_FLAG_PSEUDORANGE;
+    running_stats_update(&pub_data->pseudorange_stats, raw_pseudorange);
+  }
+  pub_data->misc_info.pseudorange = raw_pseudorange;
   chMtxUnlock(&pub_data->info_mutex);
 }
 
@@ -641,6 +742,8 @@ static void tracking_channel_update_values(
  * \param[out] freq_info    Optional destination for frequency and phase
  *                          information.
  * \param[out] ctrl_params  Optional destination for loop controller information.
+ * \param[out] misc_params  Optional destination for misc information.
+ * \param[in] reset_stats   Reset channel statistics
  *
  * \return None
  *
@@ -650,10 +753,14 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_info_t *info,
                                  tracking_channel_time_info_t *time_info,
                                  tracking_channel_freq_info_t *freq_info,
-                                 tracking_channel_ctrl_info_t *ctrl_params)
+                                 tracking_channel_ctrl_info_t *ctrl_params,
+                                 tracking_channel_misc_info_t *misc_params,
+                                 bool reset_stats)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+  running_stats_t carr_freq_stats;
+  running_stats_t pseudorange_stats;
 
   chMtxLock(&pub_data->info_mutex);
   if (NULL != info) {
@@ -663,12 +770,32 @@ void tracking_channel_get_values(tracker_channel_id_t id,
     *time_info = pub_data->time_info;
   }
   if (NULL != freq_info) {
+    carr_freq_stats = pub_data->carr_freq_stats;
     *freq_info = pub_data->freq_info;
   }
   if (NULL != ctrl_params) {
     *ctrl_params = pub_data->ctrl_info;
   }
+  if (NULL != misc_params) {
+    pseudorange_stats = pub_data->pseudorange_stats;
+    *misc_params = pub_data->misc_info;
+  }
+  if (reset_stats) {
+    running_stats_init(&pub_data->carr_freq_stats);
+    running_stats_init(&pub_data->pseudorange_stats);
+  }
   chMtxUnlock(&pub_data->info_mutex);
+
+  if (NULL != freq_info) {
+    running_stats_get_products(&carr_freq_stats,
+                               NULL,
+                               &freq_info->carrier_freq_std);
+  }
+  if (NULL != misc_params) {
+    running_stats_get_products(&pseudorange_stats,
+                               NULL,
+                               &misc_params->pseudorange_std);
+  }
 }
 
 /**
@@ -696,7 +823,7 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
   if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
       sid_is_equal(info->sid, pub_data->gen_info.sid) &&
       info->lock_counter == pub_data->gen_info.lock_counter) {
-    pub_data->freq_info.carrier_phase_offset = carrier_phase_offset;
+    pub_data->misc_info.carrier_phase_offset = carrier_phase_offset;
     adjusted = true;
   }
   chMtxUnlock(&pub_data->info_mutex);
@@ -705,8 +832,8 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
     log_info_sid(info->sid, "Adjusting carrier phase offset to %lf",
                  carrier_phase_offset);
   }
-}
 
+}
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.
@@ -741,6 +868,36 @@ void tracking_channel_measurement_get(u64 ref_tc,
   meas->flags = 0;
 }
 
+/**
+ * Computes raw pseudorange in [m]
+ *
+ * \param[in]  ref_tc Reference time
+ * \param[in]  meas   Pre-populated channel measurement
+ * \param[out] raw_pseudorange Computed pseudorange [m]
+ *
+ * \retval true Pseudorange is valid
+ * \retval false Error in computation.
+ */
+bool tracking_channel_calc_pseudorange(u64 ref_tc,
+                                       const channel_measurement_t *meas,
+                                       double *raw_pseudorange)
+{
+  navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
+  gps_time_t rec_time = rx2gpstime(ref_tc);
+  s8 nm_ret = calc_navigation_measurement(1,
+                                          &meas,
+                                          &p_nav_meas,
+                                          &rec_time);
+  if (nm_ret != 0) {
+    log_warn_sid(meas->sid,
+                 "calc_navigation_measurement() returned an error: %" PRId8,
+                 nm_ret);
+    return false;
+  }
+  *raw_pseudorange = nav_meas.raw_pseudorange;
+  return true;
+}
+
 /** Adjust all carrier phase offsets with a receiver clock correction.
  *
  * \param dt      Receiver clock change (s)
@@ -755,17 +912,17 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
 
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-    volatile tracking_channel_freq_info_t * freq_info = &pub_data->freq_info;
+    volatile tracking_channel_misc_info_t * misc_info = &pub_data->misc_info;
 
     chMtxLock(&pub_data->info_mutex);
     if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
-      carrier_phase_offset = freq_info->carrier_phase_offset;
+      carrier_phase_offset = misc_info->carrier_phase_offset;
 
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
         sid = pub_data->gen_info.sid;
         carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
-        freq_info->carrier_phase_offset = carrier_phase_offset;
+        misc_info->carrier_phase_offset = carrier_phase_offset;
         adjusted = true;
       }
     }
@@ -1348,6 +1505,14 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     if (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_PLOCK) ||
         0 != (common_data->flags & TRACK_CMN_FLAG_HAD_FLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_HAD_LOCKS;
+    }
+    /* Tracking status: TOW propagation status */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_PROPAGATED)) {
+      result |= TRACKING_CHANNEL_FLAG_TOW_PROPAGATED;
+    }
+    /* Tracking status: TOW decoding status */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_DECODED)) {
+      result |= TRACKING_CHANNEL_FLAG_TOW_DECODED;
     }
   }
 

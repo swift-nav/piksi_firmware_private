@@ -58,6 +58,7 @@ void nap_timing_strobe(u32 falling_edge_count);
 bool nap_timing_strobe_wait(u32 timeout);
 u64 nap_sample_time_to_count(u32 sample_count);
 double nap_count_to_ms(u64 delta_time);
+double nap_count_to_ns(u64 delta_time);
 
 u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
 		     ext_event_trigger_t next_trig);
