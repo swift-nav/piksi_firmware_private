@@ -244,24 +244,24 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
     }
   }
 
-  double pseudorange = misc_info->pseudorange *
-                       TRACK_SBP_PSEUDORANGE_SCALING_FACTOR;
+  double pseudorange = misc_info->pseudorange * MSG_OBS_P_MULTIPLIER;
   state->P = (u32)limit_value(pseudorange, 0, UINT32_MAX);
 
   /* pseudorange standard deviation */
-  double pseudorange_std = misc_info->pseudorange_std *
-                           TRACK_SBP_PSEUDORANGE_SCALING_FACTOR;
+  double pseudorange_std = misc_info->pseudorange_std * MSG_OBS_P_MULTIPLIER;
   state->P_std = (u16)limit_value(pseudorange_std, 0, UINT16_MAX);
 
   /* carrier phase coming from NAP (cycles) */
-  double carrier_phase = limit_value(freq_info->carrier_phase, 0, UINT32_MAX);
-  state->L.i = (u32)carrier_phase;
-  state->L.f = (u8)((carrier_phase - state->L.i) *
-                   TRACK_SBP_CARR_PHASE_SCALING_FACTOR);
+  double L = freq_info->carrier_phase;
+  L = limit_value(L, INT32_MIN, INT32_MAX);
+  double Li = floor(-L);
+  double Lf = -L - Li;
+  state->L.i = (s32)Li;
+  state->L.f = (u8)(Lf * MSG_OSB_LF_MULTIPLIER);
 
   gnss_signal_t sid = channel_info->sid;
 
-  float cn0 = channel_info->cn0 * TRACK_SBP_CN0_SCALING_FACTOR;
+  float cn0 = channel_info->cn0 * MSG_OBS_CN0_MULTIPLIER;
   state->cn0 = (u8)limit_value(cn0, 0, UINT8_MAX);
   state->lock = tracking_lock_counter_get(sid);
 
