@@ -72,10 +72,14 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float snr = 0.0f;
   float cn0 = 0.0f;
 
-  /* Loop over Doppler bins */
+  /* Loop over doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
   s32 doppler_bin_max = (s32)floorf(cf_max / cf_bin_width);
-  s32 start_bin = 0;                /* Start search from center bin */
+  /* If odd number of bins, start from mid bin. [ ][x][ ]
+   * If even number of bins, start from (mid + 0.5) bin. [ ][ ][x][ ]
+   */
+  s32 start_bin = doppler_bin_min
+                + (doppler_bin_max - doppler_bin_min + 1) / 2;
   s32 doppler_bin = start_bin;
   s32 ind1 = 1;                     /* Used to flip between +1 and -1 */
   s32 ind2 = 1;                     /* Used to compute bin index with (ind2 / 2)
@@ -84,14 +88,16 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   bool peak_found = false;          /* Stop freq sweep when peak is found.
                                      * Adjacent freq bins are still searched. */
   s32 loop_index = doppler_bin_min; /* Make frequency searches from
-                                     * dopple_bin_min to doppler_bin_max */
+                                     * doppler_bin_min to doppler_bin_max */
 
   while (loop_index <= doppler_bin_max) {
     doppler_bin = start_bin + ind1 * (ind2 / 2);
     ind1 *= -1;
     ind2 += 1;
-    if (doppler_bin > doppler_bin_max || doppler_bin < doppler_bin_min) {
-      /* If frequency range reached, continue the other frequency side. */
+
+    /* If frequency range reached, continue the other frequency side. */
+    if (doppler_bin > doppler_bin_max ||
+        doppler_bin < doppler_bin_min) {
       continue;
     }
     loop_index += 1;
