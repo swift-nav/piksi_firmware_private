@@ -947,9 +947,11 @@ static void solution_thread(void *arg)
           if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
               base_obss.has_pos) {
 
+            /* Do base - rover to match gnss_analysis */
             sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
-            u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
+            u8 num_sdiffs = make_propagated_sdiffs(
                                     base_obss.n, base_obss.nm,
+                                    n_ready_tdcp, nav_meas_tdcp,
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
@@ -1074,10 +1076,11 @@ static void time_matched_obs_thread(void *arg)
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
         /* Times match! Process obs and base_obss */
+        /* Do base - rover to match gnss_analysis */
         static sdiff_t sds[MAX_CHANNELS];
         u8 n_sds = single_diff(
-            obss->n, obss->nm,
             base_obss.n, base_obss.nm,
+            obss->n, obss->nm,
             sds
         );
         chMtxUnlock(&base_obs_lock);
