@@ -253,7 +253,7 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = t->START_SNAPSHOT;
   *code_phase_early = (double)nap_code_phase /
                           NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
-  *carrier_phase = (double)-nap_carr_phase /
+  *carrier_phase = (double)nap_carr_phase /
                        NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
 }
 

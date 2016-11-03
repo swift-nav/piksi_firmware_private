@@ -211,7 +211,7 @@ void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
                         double *cn0, u16 *lock_counter, gnss_signal_t *sid)
 {
   *P   = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
-  *L   = -(((double)msg->L.i) + (((double)msg->L.f) / MSG_OSB_LF_MULTIPLIER));
+  *L   = ((double)msg->L.i) + (((double)msg->L.f) / MSG_OSB_LF_MULTIPLIER);
   *cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
   *lock_counter = ((u16)msg->lock);
   *sid = sid_from_sbp(msg->sid);
@@ -241,13 +241,13 @@ s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
 
   msg->P = (u32)P_fp;
 
-  double Li = floor(-L);
+  double Li = floor(L);
   if (Li < INT32_MIN || Li > INT32_MAX) {
     log_error("observation message packing: L integer overflow (%f)", L);
     return -1;
   }
 
-  double Lf = -L - Li;
+  double Lf = L - Li;
 
   msg->L.i = (s32) Li;
   msg->L.f = (u8) (Lf * MSG_OSB_LF_MULTIPLIER);

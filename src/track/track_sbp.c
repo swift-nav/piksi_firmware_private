@@ -254,8 +254,8 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   /* carrier phase coming from NAP (cycles) */
   double L = freq_info->carrier_phase;
   L = limit_value(L, INT32_MIN, INT32_MAX);
-  double Li = floor(-L);
-  double Lf = -L - Li;
+  double Li = floor(L);
+  double Lf = L - Li;
   state->L.i = (s32)Li;
   state->L.f = (u8)(Lf * MSG_OSB_LF_MULTIPLIER);
 
