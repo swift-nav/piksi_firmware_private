@@ -1092,10 +1092,6 @@ static void time_matched_obs_thread(void *arg)
     /* Wait for a new observation to arrive from the base station. */
     chBSemWait(&base_obs_received);
 
-    /* Blink red LED for 20ms. */
-    systime_t t_blink = chVTGetSystemTime() + MS2ST(50);
-    led_on(LED_RED);
-
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
@@ -1154,14 +1150,6 @@ static void time_matched_obs_thread(void *arg)
         }
       }
     }
-
-    chSysLock();
-    if (t_blink > chVTGetSystemTimeX()) {
-      chThdSleepS(t_blink - chVTGetSystemTimeX());
-    }
-    chSysUnlock();
-
-    led_off(LED_RED);
   }
 }
 

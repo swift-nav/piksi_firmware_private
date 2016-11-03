@@ -127,7 +127,6 @@ CSRC := $(STARTUPSRC) \
         $(PLATFORMSRC) \
         $(BOARDSRC) \
         $(SWIFTNAV_ROOT)/src/peripherals/3drradio.o \
-        $(SWIFTNAV_ROOT)/src/peripherals/leds.o \
         $(SWIFTNAV_ROOT)/src/peripherals/usart.o \
         $(SWIFTNAV_ROOT)/src/peripherals/usart_chat.o \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \

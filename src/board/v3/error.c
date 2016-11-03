@@ -73,7 +73,6 @@ void _screaming_death(const char *pos, const char *msg)
   /* Continuously send error message */
   #define APPROX_ONE_SEC 200000000
   while (1) {
-    led_toggle(LED_RED);
     for (u32 d = 0; d < APPROX_ONE_SEC; d++) {
       __asm__("nop");
     }

@@ -20,7 +20,6 @@
 #include <libswiftnav/logging.h>
 
 #include "main.h"
-#include "peripherals/leds.h"
 #include "board/nap/nap_common.h"
 #include "nap/nap_conf.h"
 #include "nap/fft.h"
@@ -95,7 +94,6 @@ static void reset_callback_register(void)
 
 void pre_init(void)
 {
-  led_setup();
   rpmsg_setup();
 }
 
