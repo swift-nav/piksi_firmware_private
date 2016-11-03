@@ -953,7 +953,7 @@ static void solution_thread(void *arg)
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
-              output_baseline(num_sdiffs, sdiffs, &new_obs_time,
+              output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
                               dops.hdop, pdt, base_obss.sender_id);
             }
           }
@@ -1039,6 +1039,9 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
      * for this observation. */
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
         !simulation_enabled() && n_sds >= 4) {
+      /* Note: in time match mode we send the physically incorrect time of the
+       * observation message (which can be receiver clock time, or rounded GPS
+       * time) instead of the true GPS time of the solution. */
       output_baseline(n_sds, sds, t, 0, 0, base_id);
     }
   }
