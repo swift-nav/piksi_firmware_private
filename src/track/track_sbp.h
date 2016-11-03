@@ -19,9 +19,6 @@
 /** Acceleration scaling factor. Original units [g]. */
 #define TRACK_SBP_ACCELERATION_SCALING_FACTOR 8
 
-/** Carrier phase scaling factor. Original units [cycles]. */
-#define TRACK_SBP_CARR_PHASE_SCALING_FACTOR 256
-
 /** Doppler frequency scaling factor. Original units [Hz]. */
 #define TRACK_SBP_DOPPLER_SCALING_FACTOR 16
 
@@ -30,12 +27,6 @@
 
 /** Clock offset scaling factor. Original units [s]. */
 #define TRACK_SBP_CLOCK_OFFSET_SCALING_FACTOR (1ul << 20)
-
-/** CN0 scaling factor. Original units [dB-Hz]. */
-#define TRACK_SBP_CN0_SCALING_FACTOR 4
-
-/** Pseudorange scaling factor. Original units [m]. */
-#define TRACK_SBP_PSEUDORANGE_SCALING_FACTOR 50
 
 /** NAP correlator spacing scaling factor. Original units [cycles]. */
 #define TRACK_SBP_NAP_SPACING_SCALING_FACTOR (1e9 / TRACK_SAMPLE_FREQ)
