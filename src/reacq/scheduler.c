@@ -9,6 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include <assert.h>
 #include "scheduler_api.h"
 #include "task_generator_api.h"
 #include <manage.h>
@@ -33,7 +34,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
  *  hint. Loops other runnable jobs to find minimum,
  *  maximum and average cost of other jobs.
  *
- * \param init_job job whose cost is initalized
+ * \param init_job job whose cost is initialized
  * \param all_jobs_data pointer to jobs data
  *
  * \return none
@@ -89,11 +90,55 @@ void sch_initialize_cost(acq_job_t *init_job,
     init_job->cost = max_cost + ACQ_COST_DELTA_MS;
     break;
   default:
-    log_error("Invalid cost hint %d", init_job->cost_hint);
+    assert(!"Invalid cost hin");
     init_job->cost = max_cost + ACQ_COST_DELTA_MS;
     break;
   }
   
+}
+
+/** Limit job cost
+ *
+ *  Avoid continously increasing job costs by subtracting
+ *  minimum of costs from all the job costs. Only the
+ *  difference between costs matters for scheduling,
+ *  not the absolute value.
+ *
+ * \param all_jobs_data pointer to jobs data
+ *
+ * \return none
+ */
+static void sch_limit_costs(acq_jobs_state_t *all_jobs_data)
+{
+  acq_job_types_e type;
+  u32 min_cost = 0;
+  bool min_found = false;
+  
+  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
+    int i;
+    for (i=0; i < ACQ_NUM_SVS; i++) {
+      const acq_job_t *job = &all_jobs_data->jobs[type][i];
+      if (job->state != ACQ_STATE_WAIT) {
+        continue; /* Select only jobs which can run */
+      }
+      if (!min_found || job->cost < min_cost) {
+        min_cost = job->cost;
+        min_found = true;
+      }
+    }
+  }
+  if (min_cost != 0) {
+    for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
+      int i;
+      for (i=0; i < ACQ_NUM_SVS; i++) {
+        acq_job_t *job = &all_jobs_data->jobs[type][i];
+        if (job->state != ACQ_STATE_WAIT) {
+          continue;
+        }
+        job->cost -= min_cost;
+      }
+    }
+  }
 }
 
 /** Select next job to run
@@ -121,18 +166,19 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
         job->state = ACQ_STATE_IDLE;
       }
       if (ACQ_STATE_WAIT == job->state && job->needs_restart) {
-        task->task_index = -1;
+        task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
       }
       if (ACQ_STATE_IDLE == job->state &&
           job->needs_to_run &&
           ACQ_COST_MAX_PLUS != job->cost_hint) {
         sch_initialize_cost(job, jobs_data);
         job->state = ACQ_STATE_WAIT;
-        task->task_index = -1;
+        task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
       }
     }
   }
-  /* Initialize the cost with max_plus cost hint as the last step since
+  /* Initialize the cost with max_plus cost hint only after jobs
+     with max, min, or avg cost hints are initalized since
      the intention of max_plus is to get high cost. 
      Select the job with minimum cost in the same loop. */
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
@@ -145,7 +191,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
           job->needs_to_run) {
         sch_initialize_cost(job, jobs_data);
         job->state = ACQ_STATE_WAIT;
-        task->task_index = -1;
+        task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
       }
       /* Find minimum cost */
       if (ACQ_STATE_WAIT == job->state) {
@@ -163,8 +209,17 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
 
 /** Run scheduler
  *
- *  Schedules search jobs to be run and runs the
- *  acquisition on hardware
+ *  Schedules search jobs to be run and runs the acquisition on HW.
+ *  Scheduling principle follows the Completely Fair Scheduler (CFS) 
+ *  but instead of having ordered tree as underlying data structure, the jobs
+ *  are stored simply in fixed array.
+ *
+ *  Scheduler maintains the amount of HW time (cost) provided to a given job,
+ *  and selects the job with minimum cost to run.
+ *
+ *  For CFS see e.g.:
+ *  http://www.ibm.com/developerworks/linux/library/l-completely-fair-scheduler/
+ *  https://en.wikipedia.org/wiki/Completely_Fair_Scheduler
  *
  * \param jobs_data pointer to job data
  *
@@ -173,85 +228,87 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
 void sch_run(acq_jobs_state_t *jobs_data)
 {
   acq_job_t *job = sch_select_job(jobs_data);
-
+  acq_task_t *task = &job->task_data;
+  acq_task_search_params_t *acq_param;
+  acq_result_t acq_result;
+  bool peak_found;
+  u64 search_time;
+    
   if (NULL == job) {
     chThdSleepMilliseconds(ACQ_SLEEP_TIMEOUT_MS);
     return;
-  } else {
-    acq_task_t *task = &job->task_data;
-    acq_task_search_params_t *acq_param;
-    acq_result_t acq_result;
-    bool peak_found;
-    u64 search_time;
-    task->task_index++;
-    if (0 == task->task_index) {
-      tg_fill_task(job);
-      job->start_time = timing_getms();
-    } else {
-      log_error("Expecting only task index 0 in Phase 1, got %d",
-                task->task_index);
-      task->task_index = 0;
-    }
-    /* Sanity check */
-    if (task->task_index > task->number_of_tasks ||
-        task->task_index > ACQ_MAX_NUM_TASKS) {
-      log_error("Too many tasks %d", task->task_index);
-      task->task_index = 0;
-    }
+  } 
     
-    acq_param = &task->task_array[task->task_index];
-    job->state = ACQ_STATE_RUN;
-    search_time = nap_timing_count();
-    peak_found = acq_search(job->sid,
-                            acq_param->doppler_min_hz,
-                            acq_param->doppler_max_hz,
-                            acq_param->freq_bin_size_hz,
-                            &acq_result);
-    search_time = (nap_timing_count() - search_time) *
-      (RX_DT_NOMINAL * 1000.0);
+  task->task_index++;
+  if (0 == task->task_index) {
+    tg_fill_task(job);
+    job->start_time = timing_getms();
+  } else {
+    assert(!"Expecting only task index 0 in Phase 1");
+    task->task_index = 0;
+  }
+  /* Sanity check */
+  if (task->task_index > task->number_of_tasks ||
+      task->task_index > ACQ_MAX_NUM_TASKS) {
+    assert(!"Too many tasks");
+    task->task_index = 0;
+  }
+    
+  acq_param = &task->task_array[task->task_index];
+  job->state = ACQ_STATE_RUN;
+  search_time = nap_timing_count();
+  peak_found = acq_search(job->sid,
+                          acq_param->doppler_min_hz,
+                          acq_param->doppler_max_hz,
+                          acq_param->freq_bin_size_hz,
+                          &acq_result);
+  search_time = (nap_timing_count() - search_time) *
+    (RX_DT_NOMINAL * 1000.0);
 
-    /* It is unclear should peak checks take place in acq module
-       or here. */
-    if (peak_found && acq_result.cn0 < acq_param->cn0_threshold_dbhz) {
-      peak_found = false;
-    }
+  /* It is unclear should peak checks take place in acq module
+     or here. */
+  if (peak_found && acq_result.cn0 < acq_param->cn0_threshold_dbhz) {
+    peak_found = false;
+  }
 
-    if (peak_found) { /* Send to track */
-      tracking_startup_params_t tracking_startup_params = {
-        .sid = job->sid,
-        .sample_count = acq_result.sample_count,
-        .carrier_freq = acq_result.cf,
-        .code_phase = acq_result.cp,
-        .chips_to_correlate = code_to_chip_count(job->sid.code),
-        .cn0_init = acq_result.cn0,
-        .elevation = TRACKING_ELEVATION_UNKNOWN
-      };
-      task->task_index = -1;
-      job->state = ACQ_STATE_IDLE;
+  if (peak_found) { /* Send to track */
+    tracking_startup_params_t tracking_startup_params = {
+      .sid = job->sid,
+      .sample_count = acq_result.sample_count,
+      .carrier_freq = acq_result.cf,
+      .code_phase = acq_result.cp,
+      .chips_to_correlate = code_to_chip_count(job->sid.code),
+      .cn0_init = acq_result.cn0,
+      .elevation = TRACKING_ELEVATION_UNKNOWN
+    };
+    task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
+    job->state = ACQ_STATE_IDLE;
+    job->stop_time = timing_getms();
+
+    tracking_startup_request(&tracking_startup_params);
+
+  } else { /* No peak */
+    /* Update cost with spent HW time. Limit with 1 ms minimum
+       since 0 update would stuck scheduling. */
+    job->cost += MAX(1, search_time);
+    if (task->task_index >= task->number_of_tasks-1) {
+      /* No more tasks to run */
+      task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
       job->stop_time = timing_getms();
-
-      tracking_startup_request(&tracking_startup_params);
-
-    } else { /* No peak */
-      /* Update cost with spent HW time. Limit with 1 ms minimum
-         since 0 update would stuck scheduling. */
-      job->cost += MAX(1, search_time);
-      if (task->task_index >= task->number_of_tasks-1) {
-        /* No more tasks to run */
-        task->task_index = -1;
-        job->stop_time = timing_getms();
-        if (job->oneshot) {
-          job->state = ACQ_STATE_IDLE;
-        } else {
-          job->state = ACQ_STATE_WAIT;
-        }
+      if (job->oneshot) {
+        job->state = ACQ_STATE_IDLE;
       } else {
-        /* Task index is incremented when task is run on HW */
         job->state = ACQ_STATE_WAIT;
       }
-    } /* No peak */
+    } else {
+      /* Task index is incremented when task is run on HW */
+      job->state = ACQ_STATE_WAIT;
+    }
+  } /* No peak */
     
-    sch_send_acq_profile_msg(job, &acq_result, peak_found);
-  } /* Has job to run */
+  sch_send_acq_profile_msg(job, &acq_result, peak_found);
+
+  sch_limit_costs(jobs_data);
+  
 }
 
