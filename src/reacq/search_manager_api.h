@@ -37,6 +37,8 @@
 /** Maximum number of tasks. 1 when there is no splitter for
     dividing jobs into smaller tasks */
 #define ACQ_MAX_NUM_TASKS 1
+/** Uninitialized task index */
+#define ACQ_MAX_UNITIALIZED_TASKS -1
 
 /** Search job types */
 typedef enum {

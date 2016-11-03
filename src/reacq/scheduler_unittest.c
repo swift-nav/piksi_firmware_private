@@ -15,13 +15,15 @@
 #include "scheduler_api.h"
 #include <timing.h>
 #include <manage.h>
+#include <ndb.h>
 
 /* Compile unit test in src/reacq directory with:
  gcc  -Wall -std=c99 scheduler_unittest.c scheduler.c task_generator.c \
  ../../libswiftnav/src/signal.c \
  -I../../libsbp/c/include -I../../libswiftnav/libfec/include \
  -I.. -I../../libswiftnav/include -I ../../src/board/v3 \
- -I../../ChibiOS/os/rt/include/ -I../../ChibiOS/os/rt/templates -o sch_unittest
+ -I../../libswiftnav/libfec/include -I../../ChibiOS/os/rt/include \
+ -I../../ChibiOS/os/rt/templates -o sch_unittest
 
 */
 
@@ -67,9 +69,9 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   if (i <= 15) {
     return false;
   } 
-  acq_result->cf = i*100;
+  acq_result->cf = i * 100;
   acq_result->cn0 = 30.0f + (float)i;
-  acq_result->cp = i*10;
+  acq_result->cp = i * 10;
   return true;
 }
 
@@ -82,8 +84,8 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
   return 0;
 }
 void sch_send_acq_profile_msg(const acq_job_t *job,
-			      const acq_result_t *acq_result,
-			      bool peak_found)
+                              const acq_result_t *acq_result,
+                              bool peak_found)
 {
   (void)job;
   (void)acq_result;
@@ -99,10 +101,29 @@ void sm_init(acq_jobs_state_t *data)
     u32 i;
     for (i = 0; i < NUM_SATS_GPS; i++) {
       data->jobs[type][i].sid = construct_sid(CODE_GPS_L1CA,
-					      GPS_FIRST_PRN + i);
+                                              GPS_FIRST_PRN + i);
       data->jobs[type][i].job_type = type;
     }
   }
+}
+gps_time_t get_current_time(void) {
+  gps_time_t t;
+  t.wn = 0;
+  t.tow = TOW_UNKNOWN;
+  return t;
+}
+
+s8 calc_sat_doppler_wndw(const ephemeris_t* e, const gps_time_t *t,
+                         const gnss_solution *lgf, u8 fails, float *radius,
+                         float *doppler_min, float *doppler_max) {
+  (void)e;
+  (void)t;
+  (void)lgf;
+  (void)fails;
+  (void)radius;
+  *doppler_min = 100;
+  *doppler_max = 200;
+  return 0;
 }
 
 /** Test cost initialization
@@ -152,7 +173,7 @@ static void sch_test_cost_init(void)
 
   init_job->cost_hint = ACQ_COST_AVG;
   sch_initialize_cost(init_job, data);
-  assert((70+100+110+101+120)/5 == init_job->cost);
+  assert((70 + 100 + 110 + 101 + 120) / 5 == init_job->cost);
 
   init_job->cost_hint = ACQ_COST_MAX_PLUS;
   sch_initialize_cost(init_job, data);
@@ -237,7 +258,7 @@ static void sch_test_job_select(void)
   /* There are two jobs with minimum cost */
   assert(sel == &data->jobs[1][2] || sel == &data->jobs[1][1]);
   assert(ACQ_STATE_WAIT == data->jobs[1][2].state);
-  assert(-1 == data->jobs[1][2].task_data.task_index);
+  assert(ACQ_MAX_UNITIALIZED_TASKS == data->jobs[1][2].task_data.task_index);
 }
 /** Run scheduler and check that HW ran expected code_index
  *

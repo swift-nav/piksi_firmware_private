@@ -11,13 +11,16 @@
  */
 #include <string.h>
 #include <assert.h>
+#include <timing.h>
+#include <ndb.h>
 #include "task_generator_api.h"
 
 /* Compile unit test in src/reacq directory with:
  gcc  -Wall -std=c99 task_generator.c task_generator_unittest.c \
  ../../libswiftnav/src/signal.c \
- -I.. -I../../libswiftnav/include -I ../../src/board/v3/ \
- -I../../ChibiOS/os/rt/include/ -I../../ChibiOS/os/rt/templates -o tg_unittest
+ -I.. -I../../libswiftnav/include -I ../../src/board/v3 \
+ -I../../libswiftnav/libfec/include \
+ -I../../ChibiOS/os/rt/include -I../../ChibiOS/os/rt/templates -o tg_unittest
 */
 
 /** Doppler bin size (Hz) */
@@ -31,6 +34,28 @@
 #define EXPECTED_DOPPLER_MAX_HZ 8500
 /** Default minimum Doppler (Hz) */
 #define EXPECTED_DOPPLER_MIN_HZ -8500
+
+/* Stub functions */
+gps_time_t get_current_time(void) {
+  gps_time_t t;
+  t.wn = 0;
+  t.tow = TOW_UNKNOWN;
+  return t;
+}
+
+s8 calc_sat_doppler_wndw(const ephemeris_t* e, const gps_time_t *t,
+                         const gnss_solution *lgf, u8 fails, float *radius,
+                         float *doppler_min, float *doppler_max) {
+  (void)e;
+  (void)t;
+  (void)lgf;
+  (void)fails;
+  (void)radius;
+  *doppler_min = 100;
+  *doppler_max = 200;
+  return 0;
+}
+
 
 /** Test program checking task generator operation
  *
@@ -54,8 +79,9 @@ int main(int argc, char **argv)
   assert(EXPECTED_DOPPLER_BIN_SIZE_HZ == acq_param->freq_bin_size_hz);
   assert(EXPECTED_INTEGRATION_TIME_4MS == acq_param->integration_time_ms);
   assert(EXPECTED_PEAK_CN0_THRESHOLD_DBHZ == acq_param->cn0_threshold_dbhz);
+  assert(EXPECTED_DOPPLER_MIN_HZ == acq_param->doppler_min_hz);
+  assert(EXPECTED_DOPPLER_MAX_HZ == acq_param->doppler_max_hz);
 
-  /* No uncertainty module yet */
   job.job_type = ACQ_JOB_DEEP_SEARCH;
   tg_fill_task(&job);  
 
@@ -63,6 +89,7 @@ int main(int argc, char **argv)
   assert(EXPECTED_DOPPLER_BIN_SIZE_HZ == acq_param->freq_bin_size_hz);
   assert(EXPECTED_INTEGRATION_TIME_4MS == acq_param->integration_time_ms);
   assert(EXPECTED_PEAK_CN0_THRESHOLD_DBHZ == acq_param->cn0_threshold_dbhz);
-
+  assert(EXPECTED_DOPPLER_MIN_HZ == acq_param->doppler_min_hz);
+  assert(EXPECTED_DOPPLER_MAX_HZ == acq_param->doppler_max_hz);
   return 0;
 }
