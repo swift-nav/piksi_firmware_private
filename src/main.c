@@ -147,6 +147,7 @@ int main(void)
   READ_ONLY_PARAMETER("system_info", "uuid", uuid_string,
                       TYPE_STRING);
 
+  log_debug("HITL TEST REFERENCE");
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;
   sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8 *)&startup_flags);
