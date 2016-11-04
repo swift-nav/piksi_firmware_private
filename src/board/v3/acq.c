@@ -72,9 +72,25 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float snr = 0.0f;
   float cn0 = 0.0f;
 
-  /* Loop over doppler bins */
+  /* Loop over Doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
   s32 doppler_bin_max = (s32)floorf(cf_max / cf_bin_width);
+
+  /* Check that bin_max >= bin_min. */
+  if (doppler_bin_min > doppler_bin_max) {
+    log_error_sid(sid, "Acq_search: caught bogus dopp_hints (%lf, %lf)",
+                  cf_min, cf_max);
+    return false;
+  }
+
+  /* Check that at least 3 doppler bins are provided,
+   * since minimum of 3 bins are searched.
+   * If less than 3, just add 2 more. */
+  if ((doppler_bin_max - doppler_bin_min + 1) < 3) {
+    doppler_bin_max += 1;
+    doppler_bin_min -= 1;
+  }
+
   /* If odd number of bins, start from mid bin. [ ][x][ ]
    * If even number of bins, start from (mid + 0.5) bin. [ ][ ][x][ ]
    */
@@ -132,6 +148,12 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     u32 peak_mag_sq;
     u32 sum_mag_sq;
     fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
+
+    if (sum_mag_sq == 0) {
+      log_error_sid(sid, "Acq_search: zero_noise (%u)",
+                    sum_mag_sq);
+      return false;
+    }
 
     /* Compute C/N0 */
     snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
