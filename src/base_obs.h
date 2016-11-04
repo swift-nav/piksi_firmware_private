@@ -63,4 +63,6 @@ extern double base_pos_ecef[3];
 
 void base_obs_setup(void);
 
+u32 base_obs_msg_counter_get(void);
+
 #endif
