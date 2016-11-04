@@ -105,13 +105,13 @@ void _fini(void)
 /** _exit(2) syscall handler.  Called by (at least) abort() and exit().
  * Calls screaming_death() to repeatedly print an ERROR until WDT reset.
  */
-void _exit(int status)
-{
-  (void)status;
+//void _exit(int status)
+//{
+//  (void)status;
   /* TODO: Perhaps print a backtrace; let's see if this ever actually
      occurs before implementing that. */
-  screaming_death("abort() or exit() was called");
-}
+//  screaming_death("abort() or exit() was called");
+//}
 
 /** Enable and/or register handlers for system faults (hard fault, bus
  * fault, memory protection, usage (i.e. divide-by-zero) */
