@@ -23,14 +23,14 @@
 
 #include "error.h"
 
-#define WRAP(rtype, proto, usage)     \
-  rtype __wrap_##proto                \
-  {                                   \
-    reent_lock();                     \
-    extern rtype __real_##proto;      \
-    rtype ret = __real_##usage;       \
-    reent_unlock();                   \
-    return ret;                       \
+#define WRAP(rtype, proto, usage)            \
+  __attribute__((used)) rtype __wrap_##proto \
+  {                                          \
+    reent_lock();                            \
+    extern rtype __real_##proto;             \
+    rtype ret = __real_##usage;              \
+    reent_unlock();                          \
+    return ret;                              \
   }
 
 typedef struct {
