@@ -271,8 +271,10 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       chMtxLock(&eigen_state_lock);
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
-      if(ret == 0) {
-        flags = 0;;
+      chMtxUnlock(&eigen_state_lock);
+      if (ret == 0) {
+        flags = 0;
+        chMtxLock(&eigen_state_lock);
         ret = get_baseline(b, &num_used, &flags);
         chMtxUnlock(&eigen_state_lock);
         if (ret != 0) {
@@ -789,7 +791,7 @@ static void solution_thread(void *arg)
       /* get iono parameters if available */
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
-      } else if(init_done){
+      } else if (init_done) {
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
         chMtxUnlock(&eigen_state_lock);
@@ -1035,7 +1037,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
     }
   }
 
-  if(init_done){
+  if (init_done) {
     /* Update filters. */
     s8 ret;
     chMtxLock(&eigen_state_lock);
