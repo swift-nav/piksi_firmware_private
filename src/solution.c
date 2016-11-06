@@ -269,13 +269,17 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       log_info("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
       chMtxLock(&eigen_state_lock);
-      dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
+      ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
-      flags = 0;;
-      ret = get_baseline(b, &num_used, &flags);
       chMtxUnlock(&eigen_state_lock);
-      if (ret != 0) {
-        log_warn("output_baseline: Low latency baseline calculation failed");
+      if (ret == 0) {
+        flags = 0;
+        chMtxLock(&eigen_state_lock);
+        ret = get_baseline(b, &num_used, &flags);
+        chMtxUnlock(&eigen_state_lock);
+        if (ret != 0) {
+          log_warn("output_baseline: Low latency baseline calculation failed");
+        }
       }
     }
     solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
@@ -787,7 +791,7 @@ static void solution_thread(void *arg)
       /* get iono parameters if available */
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
-      } else if(init_done){
+      } else if (init_done) {
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
         chMtxUnlock(&eigen_state_lock);
@@ -1027,22 +1031,24 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
       chMtxLock(&eigen_state_lock);
-      dgnss_init_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
-                    base_pos_known ? base_pos_ecef : NULL);
+      dgnss_init_v3();
       chMtxUnlock(&eigen_state_lock);
       init_done = 1;
     }
-  } else {
+  }
+
+  if (init_done) {
     /* Update filters. */
+    s8 ret;
     chMtxLock(&eigen_state_lock);
-    dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
+    ret = dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
                     base_pos_known ? base_pos_ecef : NULL, 0.0);
     chMtxUnlock(&eigen_state_lock);
 
     /* If we are in time matched mode then calculate and output the baseline
      * for this observation. */
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
-        !simulation_enabled() && n_sds >= 4) {
+        !simulation_enabled() && n_sds >= 4 && ret == 0) {
       /* Note: in time match mode we send the physically incorrect time of the
        * observation message (which can be receiver clock time, or rounded GPS
        * time) instead of the true GPS time of the solution. */
