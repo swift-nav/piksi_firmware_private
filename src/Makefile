@@ -154,8 +154,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/solution.o \
         $(SWIFTNAV_ROOT)/src/soln_output.o \
         $(SWIFTNAV_ROOT)/src/base_obs.o \
-        $(SWIFTNAV_ROOT)/src/simulator.o \
-        $(SWIFTNAV_ROOT)/src/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/syscalls.o \
         $(SWIFTNAV_ROOT)/src/nmea.o \
         $(SWIFTNAV_ROOT)/src/system_monitor.o \

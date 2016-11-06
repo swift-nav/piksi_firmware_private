@@ -10,11 +10,44 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_SOLUTION_H
-#define SWIFTNAV_SOLUTION_H
+#ifndef SWIFTNAV_SOLN_OUTPUT_H
+#define SWIFTNAV_SOLN_OUTPUT_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/pvt.h>
 
+/** Structure holding all inputs to send_solutions */
+typedef struct {
+  gps_time_t rec_time; /**< Receiver propagated GPS time */
+  bool rec_time_valid; /**< True if rec_time contains valid data */
 
+  /* TODO(Leith): in future add RTC chip time */
 
-#endif
+  gps_time_t spp_time; /**< SPP computed GPS time */
+  bool spp_time_valid; /**< True if spp_time contains valid data */
+
+  double spp_position[3]; /**< SPP computed ECEF position [m] */
+  bool spp_position_valid; /**< True if spp_position contains valid data */
+  // TODO also LLH?
+
+  double spp_velocity[3]; /**< SPP computed ECEF velocity [m/s] */
+  bool spp_velocity_valid; /**< True if spp_velocity contains valid data */
+  // TODO also NED?
+
+  dops_t spp_dops; /**< SPP dilution of precision values */
+  bool spp_dops_valid; /**< True if spp_dopscontains valid data */
+
+  double base_position[3]; /**< Base station ECEF position [m] */
+  bool base_position_valid; /**< True if base_position contains valid data */
+
+  double rtk_baseline[3]; /**< RTK baseline vector in ECEF frame [m] */
+  bool rtk_baseline_valid; /**< True if rtk_baseline contains valid data */
+
+  /* TODO(Leith): in future could add RTK velocity */
+
+  /* TODO(Leith): in future could add RTK DOPs */
+} send_solutions_t;
+
+void send_solutions(const send_solutions_t *in);
+
+#endif /* SWIFTNAV_SOLN_OUTPUT_H */

@@ -11,3 +11,7 @@
  */
 
 #include "soln_output.h"
+
+void send_solutions(const send_solutions_t *in __attribute__((__unused__))) {
+
+}

@@ -31,7 +31,6 @@
 #include "base_obs.h"
 #include "position.h"
 #include "system_monitor.h"
-#include "simulator.h"
 #include "settings.h"
 #include "ephemeris.h"
 #include "pps.h"
@@ -93,8 +92,6 @@ int main(void)
   system_monitor_setup();
   base_obs_setup();
   solution_setup();
-
-  simulator_setup();
 
   ext_setup();
   pps_setup();

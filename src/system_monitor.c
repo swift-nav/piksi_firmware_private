@@ -30,7 +30,6 @@
 #include "main.h"
 #include "sbp.h"
 #include "manage.h"
-#include "simulator.h"
 #include "system_monitor.h"
 #include "position.h"
 #include "base_obs.h"
@@ -124,26 +123,21 @@ static void track_status_thread(void *arg)
 {
   (void)arg;
   chRegSetThreadName("track status");
-  while (TRUE) {
-    if (simulation_enabled()) {
+  while (true) {
+    chThdSleepMilliseconds(1000);
+    u8 n_ready = tracking_channels_ready(MANAGE_TRACK_STATUS_FLAGS);
+    if (n_ready == 0) {
       led_on(LED_GREEN);
-      chThdSleepMilliseconds(500);
-    } else {
       chThdSleepMilliseconds(1000);
-      u8 n_ready = tracking_channels_ready(MANAGE_TRACK_STATUS_FLAGS);
-      if (n_ready == 0) {
+      led_off(LED_GREEN);
+    } else {
+      for (u8 i=0; i<n_ready; i++) {
         led_on(LED_GREEN);
-        chThdSleepMilliseconds(1000);
+        chThdSleepMilliseconds(250);
         led_off(LED_GREEN);
-      } else {
-        for (u8 i=0; i<n_ready; i++) {
-          led_on(LED_GREEN);
-          chThdSleepMilliseconds(250);
-          led_off(LED_GREEN);
-          chThdSleepMilliseconds(250);
-        }
-        chThdSleepMilliseconds(1000);
+        chThdSleepMilliseconds(250);
       }
+      chThdSleepMilliseconds(1000);
     }
   }
 }
@@ -221,11 +215,7 @@ static void system_monitor_thread(void *arg)
     }
 
     msg_iar_state_t iar_state;
-    if (simulation_enabled_for(SIMULATION_MODE_RTK)) {
-      iar_state.num_hyps = 1;
-    } else {
-      iar_state.num_hyps = dgnss_iar_num_hyps();
-    }
+    iar_state.num_hyps = dgnss_iar_num_hyps();
     sbp_send_msg(SBP_MSG_IAR_STATE, sizeof(msg_iar_state_t), (u8 *)&iar_state);
 
     DO_EVERY(2,

@@ -37,7 +37,6 @@
 #include "sbp_utils.h"
 #include "solution.h"
 #include "manage.h"
-#include "simulator.h"
 #include "settings.h"
 #include "timing.h"
 #include "base_obs.h"
@@ -49,6 +48,7 @@
 #include "cnav_msg_storage.h"
 #include "ndb.h"
 #include "shm.h"
+#include "soln_output.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -65,6 +65,7 @@
                             NAV_MEAS_FLAG_PHASE_VALID | \
                             NAV_MEAS_FLAG_MEAS_DOPPLER_VALID | \
                             NAV_MEAS_FLAG_HALF_CYCLE_KNOWN)
+
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
                                    MANAGE_TRACK_FLAG_NO_ERROR | \
@@ -108,7 +109,7 @@ static last_good_fix_t lgf;
 bool disable_raim = false;
 bool send_heading = false;
 
-void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
+void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool disable_velocity)
 {
   if (soln) {
     /* Send GPS_TIME message first. */
@@ -128,7 +129,7 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     }
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
-    if (!clock_jump) {
+    if (!disable_velocity) {
       msg_vel_ned_t vel_ned;
       sbp_make_vel_ned(&vel_ned, soln, 0);
       sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
@@ -150,13 +151,13 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 }
 void solution_send_nmea(gnss_solution *soln, dops_t *dops,
                         u8 n, navigation_measurement_t *nm,
-                        u8 fix_mode, bool clock_jump)
+                        u8 fix_mode, bool disable_velocity)
 {
   if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
     nmea_gpgga(soln->pos_llh, &soln->time, soln->n_used,
                fix_mode, dops->hdop, 0, 0);
   }
-  nmea_send_msgs(soln, n, nm, dops, clock_jump);
+  nmea_send_msgs(soln, n, nm, dops, disable_velocity);
 
 }
 
@@ -210,19 +211,11 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   }
 
   chMtxLock(&base_pos_lock);
-  if (base_pos_known || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-      simulation_enabled_for(SIMULATION_MODE_RTK))) {
+  if (base_pos_known) {
     last_dgnss = chVTGetSystemTime();
     double pseudo_absolute_ecef[3];
     double pseudo_absolute_llh[3];
-    /* if simulation use the simulator's base station position */
-    if ((simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-        simulation_enabled_for(SIMULATION_MODE_RTK))) {
-      base_station_pos = simulation_ref_ecef();
-    }
-    else { /* else use the global variable */
-      base_station_pos = base_pos_ecef;
-    }
+    base_station_pos = base_pos_ecef;
 
     vector_add(3, base_station_pos, b_ecef, pseudo_absolute_ecef);
     wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
@@ -247,8 +240,9 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
 static bool init_done = false;
 
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
-                            const gps_time_t *t, double hdop, double diff_time, u16 base_id) {
-  double b[3];
+                            const gps_time_t *t, double hdop, double diff_time,
+                            u16 base_id, send_solutions_t *solns) {
+  double baseline[3];
   u8 num_used, flags;
   s8 ret;
   bool send_baseline = false;
@@ -260,7 +254,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       /* Filter is already updated so no need to update filter again just get the baseline*/
       flags = 0;
       chMtxLock(&eigen_state_lock);
-      ret = get_baseline(b, &num_used, &flags);
+      ret = get_baseline(baseline, &num_used, &flags);
       chMtxUnlock(&eigen_state_lock);
       if (ret != 0) {
         log_warn("output_baseline: Time matched baseline calculation failed");
@@ -277,7 +271,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       if (ret == 0) {
         flags = 0;
         chMtxLock(&eigen_state_lock);
-        ret = get_baseline(b, &num_used, &flags);
+        ret = get_baseline(baseline, &num_used, &flags);
         chMtxUnlock(&eigen_state_lock);
         if (ret != 0) {
           log_warn("output_baseline: Low latency baseline calculation failed");
@@ -287,8 +281,10 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       }
     }
     if (send_baseline) {
-      solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
+      solution_send_baseline(t, num_used, baseline, lgf.position_solution.pos_ecef,
                              flags, hdop, diff_time, base_id);
+      memcpy(solns->rtk_baseline, baseline, sizeof(baseline));
+      solns->rtk_baseline_valid = true;
     }
   } else {
     log_debug("DGNSS Filter not Initialized");
@@ -399,47 +395,6 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
        * */
       log_error("Mailbox should have space!");
       chPoolFree(&obs_buff_pool, obs);
-    }
-  }
-}
-
-static void solution_simulation(void)
-{
-  simulation_step();
-
-  /* TODO: The simulator's handling of time is a bit crazy. This is a hack
-   * for now but the simulator should be refactored so that it can give the
-   * exact correct solution time output without this nonsense. */
-  gnss_solution *soln = simulation_current_gnss_solution();
-  double expected_tow = \
-    round(soln->time.tow * soln_freq) / soln_freq;
-  soln->time.tow = expected_tow;
-  normalize_gps_time(&soln->time);
-
-  if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    /* Then we send fake messages. */
-    solution_send_sbp(soln, simulation_current_dops_solution(), FALSE);
-    solution_send_nmea(soln, simulation_current_dops_solution(),
-                       simulation_current_num_sats(),
-                       simulation_current_navigation_measurements(),
-                       NMEA_GGA_FIX_GPS, FALSE);
-
-  }
-
-  if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-      simulation_enabled_for(SIMULATION_MODE_RTK)) {
-
-    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? 1 : 0;
-
-    solution_send_baseline(&(soln->time),
-      simulation_current_num_sats(),
-      simulation_current_baseline_ecef(),
-      simulation_ref_ecef(), flags, 1.5, 0.25, 1023);
-
-    double t_check = expected_tow * (soln_freq / obs_output_divisor);
-    if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-      send_observations(simulation_current_num_sats(),
-          simulation_current_navigation_measurements(), &(soln->time));
     }
   }
 }
@@ -640,30 +595,31 @@ static void collect_measurements(u64 rec_tc,
 static THD_WORKING_AREA(wa_solution_thread, 2000000);
 static void solution_thread(void *arg)
 {
-  /* The flag is true when we have a solution */
-  bool soln_flag = false;
-
   (void)arg;
   chRegSetThreadName("solution");
 
   systime_t deadline = chVTGetSystemTimeX();
 
-  bool clock_jump = FALSE;
-
   ndb_lgf_read(&lgf);
 
-  while (TRUE) {
+  while (true) {
 
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
     watchdog_notify(WD_NOTIFY_SOLUTION);
 
-    /* Here we do all the nice simulation-related stuff. */
-    if (simulation_enabled()) {
-      solution_simulation();
-    }
+    /* This struct collects the various solution outputs */
+    send_solutions_t solns;
+    /* Zero the struct to ensure all valid flags are false */
+    memset(&solns, 0, sizeof(solns));
 
     u64 rec_tc = nap_timing_count();
     gps_time_t rec_time = rx2gpstime(rec_tc);
+    /* If we have accurate estimate of current GPS time, store it */
+    if (time_quality == TIME_FINE) {
+      solns.rec_time = rec_time;
+      solns.rec_time_valid = true;
+    }
+
     u8 n_collected = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
@@ -749,8 +705,7 @@ static void solution_thread(void *arg)
     double rec_tc_delta = (double) (rec_tc - rec_tc_old)
                                   / NAP_FRONTEND_SAMPLE_RATE_Hz;
     u8 n_ready_tdcp;
-    if (!clock_jump
-        && time_quality == TIME_FINE
+    if (time_quality == TIME_FINE
         && rec_tc_delta < 2 / soln_freq) {
 
       /* Form TDCP Dopplers only if the clock has not just been adjusted,
@@ -765,7 +720,7 @@ static void solution_thread(void *arg)
       n_ready_tdcp = n_ready;
 
       /* Log the reason (if unexpected)*/
-      if (!clock_jump && time_quality == TIME_FINE
+      if (time_quality == TIME_FINE
           && rec_tc_delta >= 2 / soln_freq) {
         log_warn(
           "Time from last measurements %f seconds, skipping TDCP computation",
@@ -792,7 +747,8 @@ static void solution_thread(void *arg)
     }
 
     /* check if we have a solution, if yes calc iono and tropo correction */
-    if (soln_flag) {
+    if ((lgf.position_quality == POSITION_FIX) &&
+        (lgf.position_solution.valid > 0)) {
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
@@ -826,14 +782,33 @@ static void solution_thread(void *arg)
         log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
       );
 
-      soln_flag = false; /* TODO(Leith) use flag in solution struct */
-
       /* Send just the DOPs and exit the loop */
-      solution_send_sbp(0, &dops, clock_jump);
-      continue;
-    }
+      solution_send_sbp(0, &dops, true);
 
-    soln_flag = true;
+      /* Store the DOPs */
+      solns.spp_dops = dops;
+      solns.spp_dops_valid = true;
+
+      continue;
+    } else {
+      /* Store the position */
+      if (lgf.position_solution.valid > 0) {
+        memcpy(solns.spp_position, lgf.position_solution.pos_ecef,
+          sizeof(lgf.position_solution.pos_ecef));
+        solns.spp_position_valid = true;
+      }
+
+      /* Store the velocity */
+      if (lgf.position_solution.velocity_valid > 0) {
+        memcpy(solns.spp_velocity, lgf.position_solution.vel_ecef,
+          sizeof(lgf.position_solution.vel_ecef));
+        solns.spp_velocity_valid = true;
+      }
+
+      /* Store the DOPs */
+      solns.spp_dops = dops;
+      solns.spp_dops_valid = true;
+    }
 
     if (pvt_ret == 1) {
       log_warn("calc_PVT: RAIM repair");
@@ -850,28 +825,22 @@ static void solution_thread(void *arg)
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
       set_time_fine(rec_tc, lgf.position_solution.time);
-      clock_jump = TRUE;
       continue;
     }
 
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
 
-    /* Save elevation angles every so often */
-    DO_EVERY((u32)soln_freq,
-             update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
-                                   lgf.position_solution.pos_ecef));
+    /* Save elevation angles */
+    update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
+                          lgf.position_solution.pos_ecef);
 
-    if (!simulation_enabled()) {
-      /* Output solution. */
-
-      bool disable_velocity = clock_jump ||
-                              (lgf.position_solution.velocity_valid == 0);
-      solution_send_sbp(&lgf.position_solution, &dops, disable_velocity);
-      solution_send_nmea(&lgf.position_solution, &dops,
-                         n_ready_tdcp, nav_meas_tdcp,
-                         NMEA_GGA_FIX_GPS, disable_velocity);
-    }
+    /* Output solution. */
+    bool disable_velocity = lgf.position_solution.velocity_valid == 0;
+    solution_send_sbp(&lgf.position_solution, &dops, disable_velocity);
+    solution_send_nmea(&lgf.position_solution, &dops,
+                       n_ready_tdcp, nav_meas_tdcp,
+                       NMEA_GGA_FIX_GPS, disable_velocity);
 
     /*
      * We need to correct our pseudorange and create a new one that is valid for
@@ -951,7 +920,7 @@ static void solution_thread(void *arg)
        * differential solution. */
       double pdt;
       chMtxLock(&base_obs_lock);
-      if (base_obss.n > 0 && !simulation_enabled()) {
+      if (base_obss.n > 0) {
         if ((pdt = gpsdifftime(&new_obs_time, &base_obss.tor))
               < max_age_of_differential) {
 
@@ -969,7 +938,7 @@ static void solution_thread(void *arg)
                                     sdiffs);
             if (num_sdiffs >= 4) {
               output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
-                              dops.hdop, pdt, base_obss.sender_id);
+                              dops.hdop, pdt, base_obss.sender_id, &solns);
             }
           }
         }
@@ -981,8 +950,7 @@ static void solution_thread(void *arg)
       /* Also only output observations once our receiver clock is
        * correctly set. */
       double t_check = expected_tow * (soln_freq / obs_output_divisor);
-      if (!simulation_enabled() &&
-          time_quality == TIME_FINE &&
+      if (time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
@@ -991,10 +959,20 @@ static void solution_thread(void *arg)
       }
     }
 
+    /* Store the base position */
+    chMtxLock(&base_pos_lock);
+    if (base_pos_known) {
+      memcpy(solns.base_position, base_pos_ecef, sizeof(base_pos_ecef));
+      solns.base_position_valid = true;
+    }
+    chMtxUnlock(&base_pos_lock);
+
+    /* Send the solutions */
+    send_solutions(&solns);
+
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
     double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
     log_debug("RX clock error = %f", rx_err);
-    clock_jump = FALSE;
     if (fabs(rx_err) >= 1e-3) {
       log_info("RX clock error %f > 1ms, resetting!", rx_err);
       /* round the time adjustment to even milliseconds */
@@ -1055,11 +1033,15 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
     /* If we are in time matched mode then calculate and output the baseline
      * for this observation. */
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
-        !simulation_enabled() && n_sds >= 4 && ret == 0) {
+        n_sds >= 4 && ret == 0) {
+      send_solutions_t solns;
+      memset(&solns, 0, sizeof(solns));
+
       /* Note: in time match mode we send the physically incorrect time of the
        * observation message (which can be receiver clock time, or rounded GPS
        * time) instead of the true GPS time of the solution. */
-      output_baseline(n_sds, sds, t, 0, 0, base_id);
+      output_baseline(n_sds, sds, t, 0, 0, base_id, &solns);
+      send_solutions(&solns);
     }
   }
 }
