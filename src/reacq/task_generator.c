@@ -11,7 +11,7 @@
  */
 
 #include <assert.h>
-#include <libswiftnav/dopp_unc.h>
+#include <dum.h>
 #include <ndb.h>
 #include <timing.h>
 #include "task_generator_api.h"
@@ -48,27 +48,19 @@ void tg_fill_task(acq_job_t *job)
 
   switch(job->job_type) {
   case ACQ_JOB_DEEP_SEARCH:
-    {
-      ephemeris_t ephe;
-      last_good_fix_t lgf;
-      gps_time_t now = get_current_time();
+  {
+    last_good_fix_t lgf;
+    gps_time_t now = get_current_time();
 
-      /* TBD there is not yet state saving for these strangers */
-      u8 fails = 0;
-      float radius = 0.0f;
-      
-      if (TOW_UNKNOWN != now.tow &&
-          WN_UNKNOWN != now.wn &&
-          NDB_ERR_NONE == ndb_lgf_read(&lgf) &&
-          POSITION_FIX == lgf.position_quality &&
-          NDB_ERR_NONE == ndb_ephemeris_read(job->sid, &ephe) &&
-          0 == calc_sat_doppler_wndw(&ephe, &now, &lgf.position_solution,
-                                     fails, &radius,
-                                     &acq_param->doppler_min_hz,
-                                     &acq_param->doppler_max_hz)) {
-        break;
-      } /* else fall through */
-    }
+    if (TOW_UNKNOWN != now.tow &&
+	WN_UNKNOWN != now.wn &&
+	NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
+      dum_get_doppler_wndw(&job->sid, &now, &lgf,
+			   &acq_param->doppler_min_hz,
+			   &acq_param->doppler_max_hz);
+      break;
+    } /* else fall through */
+  }
   case ACQ_JOB_FALLBACK_SEARCH:
     acq_param->doppler_min_hz = ACQ_DOPPLER_MIN_HZ;
     acq_param->doppler_max_hz = ACQ_DOPPLER_MAX_HZ;

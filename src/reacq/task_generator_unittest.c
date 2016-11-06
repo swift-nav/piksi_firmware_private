@@ -43,17 +43,15 @@ gps_time_t get_current_time(void) {
   return t;
 }
 
-s8 calc_sat_doppler_wndw(const ephemeris_t* e, const gps_time_t *t,
-                         const gnss_solution *lgf, u8 fails, float *radius,
-                         float *doppler_min, float *doppler_max) {
-  (void)e;
+void dum_get_doppler_wndw(const gnss_signal_t *sid,
+                          const gps_time_t *t,
+                          const last_good_fix_t *lgf,
+                          float *doppler_min, float *doppler_max) {
+  (void)sid;
   (void)t;
   (void)lgf;
-  (void)fails;
-  (void)radius;
   *doppler_min = 100;
   *doppler_max = 200;
-  return 0;
 }
 
 

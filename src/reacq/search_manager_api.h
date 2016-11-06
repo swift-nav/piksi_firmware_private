@@ -38,7 +38,7 @@
     dividing jobs into smaller tasks */
 #define ACQ_MAX_NUM_TASKS 1
 /** Uninitialized task index */
-#define ACQ_MAX_UNITIALIZED_TASKS -1
+#define ACQ_UNINITIALIZED_TASKS -1
 
 /** Search job types */
 typedef enum {

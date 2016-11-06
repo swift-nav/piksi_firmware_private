@@ -17,6 +17,7 @@
 /* Compile unit test in src/reacq directory with:
  gcc  -Wall -std=c99 search_manager_unittest.c search_manager.c\
  ../../libswiftnav/src/signal.c \
+ -I../../libswiftnav/libfec/include \
  -I.. -I../../libswiftnav/include -I ../../src/board/v3/ \
  -I../../ChibiOS/os/rt/include/ -I../../ChibiOS/os/rt/templates -o sm_unittest
 */
