@@ -30,7 +30,6 @@
 #include "sbp_utils.h"
 #include "solution.h"
 #include "manage.h"
-#include "simulator.h"
 #include "settings.h"
 #include "timing.h"
 #include "base_obs.h"

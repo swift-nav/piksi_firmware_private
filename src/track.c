@@ -31,7 +31,6 @@
 #include "track/track_cn0.h"
 #include "track/track_profiles.h"
 #include "track/track_sid_db.h"
-#include "simulator.h"
 #include "settings.h"
 #include "signal.h"
 #include "timing.h"
@@ -221,59 +220,38 @@ void tracking_send_state()
 {
   tracking_channel_state_t states[nap_track_n_channels];
 
-  if (simulation_enabled_for(SIMULATION_MODE_TRACKING)) {
+  for (u8 i=0; i<nap_track_n_channels; i++) {
 
-    u8 num_sats = simulation_current_num_sats();
-    for (u8 i=0; i < num_sats; i++) {
-      states[i] = simulation_current_tracking_state(i);
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    const tracker_common_data_t *common_data = &tracker_channel->common_data;
+
+    bool running;
+    bool confirmed;
+    gnss_signal_t sid;
+    float cn0;
+
+    tracker_channel_lock(tracker_channel);
+    {
+      running =
+          (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
+      sid = tracker_channel->info.sid;
+      cn0 = common_data->cn0;
+      confirmed = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
     }
-    if (num_sats < nap_track_n_channels) {
-      for (u8 i = num_sats; i < nap_track_n_channels; i++) {
-        states[i].state = 0;
-        states[i].sid = (sbp_gnss_signal_t){
-          .code = 0,
-          .sat = 0,
-          .reserved = 0
-        };
-        states[i].cn0 = -1;
-      }
-    }
+    tracker_channel_unlock(tracker_channel);
 
-  } else {
-
-    for (u8 i=0; i<nap_track_n_channels; i++) {
-
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      const tracker_common_data_t *common_data = &tracker_channel->common_data;
-
-      bool running;
-      bool confirmed;
-      gnss_signal_t sid;
-      float cn0;
-
-      tracker_channel_lock(tracker_channel);
-      {
-        running =
-            (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
-        sid = tracker_channel->info.sid;
-        cn0 = common_data->cn0;
-        confirmed = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
-      }
-      tracker_channel_unlock(tracker_channel);
-
-      if (!running || !confirmed) {
-        states[i].state = 0;
-        states[i].sid = (sbp_gnss_signal_t){
-          .code = 0,
-          .sat = 0,
-          .reserved = 0
-        };
-        states[i].cn0 = -1;
-      } else {
-        states[i].state = 1;
-        states[i].sid = sid_to_sbp(sid);
-        states[i].cn0 = cn0;
-      }
+    if (!running || !confirmed) {
+      states[i].state = 0;
+      states[i].sid = (sbp_gnss_signal_t){
+        .code = 0,
+        .sat = 0,
+        .reserved = 0
+      };
+      states[i].cn0 = -1;
+    } else {
+      states[i].state = 1;
+      states[i].sid = sid_to_sbp(sid);
+      states[i].cn0 = cn0;
     }
   }
 
