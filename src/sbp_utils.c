@@ -73,21 +73,8 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
   t_out->flags = flags;
 }
 
-void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flags)
-{
-  pos_llh->tow = round(soln->time.tow * 1e3);
-  pos_llh->lat = soln->pos_llh[0] * R2D;
-  pos_llh->lon = soln->pos_llh[1] * R2D;
-  pos_llh->height = soln->pos_llh[2];
-  /* TODO: fill in accuracy fields. */
-  pos_llh->h_accuracy = 0;
-  pos_llh->v_accuracy = 0;
-  pos_llh->n_sats = soln->n_used;
-  pos_llh->flags = flags;
-}
-
-void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
-                           const gps_time_t *gps_t, u8 n_used, u8 flags)
+void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const double llh[3],
+                      const gps_time_t *gps_t, u8 n_used, u8 flags)
 {
   pos_llh->tow = round(gps_t->tow * 1e3);
   pos_llh->lat = llh[0] * R2D;
@@ -100,20 +87,8 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
   pos_llh->flags = flags;
 }
 
-void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 flags)
-{
-  pos_ecef->tow = round(soln->time.tow * 1e3);
-  pos_ecef->x = soln->pos_ecef[0];
-  pos_ecef->y = soln->pos_ecef[1];
-  pos_ecef->z = soln->pos_ecef[2];
-  /* TODO: fill in accuracy field. */
-  pos_ecef->accuracy = 0;
-  pos_ecef->n_sats = soln->n_used;
-  pos_ecef->flags = flags;
-}
-
-void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
-                            const gps_time_t *gps_t, u8 n_used, u8 flags)
+void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const double ecef[3],
+                       const gps_time_t *gps_t, u8 n_used, u8 flags)
 {
   pos_ecef->tow = round(gps_t->tow * 1e3);
   pos_ecef->x = ecef[0];
@@ -125,21 +100,8 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
   pos_ecef->flags = flags;
 }
 
-void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags)
-{
-  vel_ned->tow = round(soln->time.tow * 1e3);
-  vel_ned->n = round(soln->vel_ned[0] * 1e3);
-  vel_ned->e = round(soln->vel_ned[1] * 1e3);
-  vel_ned->d = round(soln->vel_ned[2] * 1e3);
-  /* TODO: fill in accuracy fields. */
-  vel_ned->h_accuracy = 0;
-  vel_ned->v_accuracy = 0;
-  vel_ned->n_sats = soln->n_used;
-  vel_ned->flags = flags;
-}
-
-void sbp_make_vel_ned_vect(msg_vel_ned_t *vel_ned, const double ned[3],
-                           const gps_time_t *gps_t, u8 n_used, u8 flags)
+void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const double ned[3],
+                      const gps_time_t *gps_t, u8 n_used, u8 flags)
 {
   vel_ned->tow = round(gps_t->tow * 1e3);
   vel_ned->n = round(ned[0] * 1e3);
@@ -152,20 +114,8 @@ void sbp_make_vel_ned_vect(msg_vel_ned_t *vel_ned, const double ned[3],
   vel_ned->flags = flags;
 }
 
-void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags)
-{
-  vel_ecef->tow = round(soln->time.tow * 1e3);
-  vel_ecef->x = round(soln->vel_ecef[0] * 1e3);
-  vel_ecef->y = round(soln->vel_ecef[1] * 1e3);
-  vel_ecef->z = round(soln->vel_ecef[2] * 1e3);
-  /* TODO: fill in accuracy field. */
-  vel_ecef->accuracy = 0;
-  vel_ecef->n_sats = soln->n_used;
-  vel_ecef->flags = flags;
-}
-
-void sbp_make_vel_ecef_vect(msg_vel_ecef_t *vel_ecef, const double ecef[3],
-                            const gps_time_t *gps_t, u8 n_used, u8 flags)
+void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const double ecef[3],
+                       const gps_time_t *gps_t, u8 n_used, u8 flags)
 {
   vel_ecef->tow = round(gps_t->tow * 1e3);
   vel_ecef->x = round(ecef[0] * 1e3);

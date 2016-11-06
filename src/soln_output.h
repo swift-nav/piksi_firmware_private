@@ -44,6 +44,8 @@ typedef struct {
   bool rtk_baseline_valid; /**< True if rtk_baseline contains valid data */
   bool rtk_baseline_fixed; /**< True if RTK solution is fixed, false if float */
   u8 rtk_baseline_num_sats; /**< Number of sats used in RTK baseline solution */
+  double rtk_base_age; /**< RTK base observations age [s] */
+  u16 rtk_base_id; /**< RTK base sender ID */
 
   /* TODO(Leith): in future could add RTK velocity */
 

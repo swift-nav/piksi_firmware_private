@@ -19,6 +19,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "main.h"
+#include "nmea.h"
 
 typedef enum {
   GPS_TIME_NONE,
@@ -51,16 +52,22 @@ void send_solutions(const send_solutions_t *in) {
     msg_gps_time_t gps_time;
     sbp_make_gps_time(&gps_time, &best_gps_time, 0);
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
+
+    DO_EVERY(gpzda_msg_rate,
+      nmea_gpzda(&best_gps_time);
+    );
   } else {
     /* Everything else needs a time stamp */
     return;
   }
 
   /* TODO(Leith): UTC conversion goes here */
+  /* should also use in NMEA in place of fixed GPS to UTC leap seconds */
 
   /* Choose position source */
   /* Prefers RTK pseudo-absolute over SPP */
   double best_pos_ecef[3];
+  double best_pos_llh[3];
   u8 best_pos_num_sats;
   position_source_t best_pos_src = POSITION_NONE;
   if (in->spp_position_valid) {
@@ -76,28 +83,48 @@ void send_solutions(const send_solutions_t *in) {
 
   /* Send position messages */
   if (best_pos_src != POSITION_NONE) {
-    double best_pos_llh[3];
     wgsecef2llh(best_pos_ecef, best_pos_llh);
 
     /* Encode the SBP flags value */
     u8 pos_flags = MSG_POS_SPP;
+    u8 nmea_fix_mode = NMEA_GGA_FIX_GPS;
+    u16 sender_id = 0;
+    double corrections_age = 0.0;
     if (POSITION_RTK) {
+      corrections_age = in->rtk_base_age;
+      sender_id = in->rtk_base_id;
       if (in->rtk_baseline_fixed) {
         pos_flags = MSG_POS_RTK_FIXED;
+        nmea_fix_mode = NMEA_GGA_FIX_RTK;
       } else {
         pos_flags = MSG_POS_RTK_FLOAT;
+        nmea_fix_mode = NMEA_GGA_FIX_FLOAT;
       }
     }
     /* TODO(Leith): implement the RAIM flags? */
 
     msg_pos_llh_t pos_llh;
-    sbp_make_pos_llh_vect(&pos_llh, best_pos_llh, &best_gps_time,
-                          best_pos_num_sats, pos_flags);
+    sbp_make_pos_llh(&pos_llh, best_pos_llh, &best_gps_time,
+                     best_pos_num_sats, pos_flags);
     sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
     msg_pos_ecef_t pos_ecef;
-    sbp_make_pos_ecef_vect(&pos_ecef, best_pos_ecef, &best_gps_time,
-                           best_pos_num_sats, pos_flags);
+    sbp_make_pos_ecef(&pos_ecef, best_pos_ecef, &best_gps_time,
+                      best_pos_num_sats, pos_flags);
     sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
+
+    /* TODO: Don't fake DOP!! */
+    if (in->spp_dops_valid) {
+      nmea_gpgga(best_pos_llh, &best_gps_time, best_pos_num_sats, nmea_fix_mode,
+                 in->spp_dops.hdop, corrections_age, sender_id);
+    }
+
+    DO_EVERY(gpgll_msg_rate,
+      nmea_gpgll(best_pos_llh, &best_gps_time);
+    );
+
+    DO_EVERY(gpgsv_msg_rate,
+      nmea_gpgsv(best_pos_ecef, &best_gps_time);
+    );
   }
 
   /* Send velocity messages */
@@ -107,14 +134,21 @@ void send_solutions(const send_solutions_t *in) {
       double v_ned[3];
       wgsecef2ned(in->spp_velocity, best_pos_ecef, v_ned);
       msg_vel_ned_t vel_ned;
-      sbp_make_vel_ned_vect(&vel_ned, v_ned, &best_gps_time,
-                            in->spp_velocity_num_sats, 0);
+      sbp_make_vel_ned(&vel_ned, v_ned, &best_gps_time,
+                       in->spp_velocity_num_sats, 0);
       sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
+
+      DO_EVERY(gprmc_msg_rate,
+        nmea_gprmc(best_pos_llh, v_ned, &best_gps_time);
+      );
+      DO_EVERY(gpvtg_msg_rate,
+        nmea_gpvtg(v_ned);
+      );
     }
 
     msg_vel_ecef_t vel_ecef;
-    sbp_make_vel_ecef_vect(&vel_ecef, in->spp_velocity, &best_gps_time,
-                           in->spp_velocity_num_sats, 0);
+    sbp_make_vel_ecef(&vel_ecef, in->spp_velocity, &best_gps_time,
+                      in->spp_velocity_num_sats, 0);
     sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
   }
 
@@ -160,7 +194,9 @@ void send_solutions(const send_solutions_t *in) {
       sbp_make_dops(&sbp_dops, &in->spp_dops, &best_gps_time);
       sbp_send_msg(SBP_MSG_DOPS, sizeof(msg_dops_t), (u8 *) &sbp_dops);
     );
-  }
 
-  // TODO: NMEA
+    DO_EVERY(gpgsa_msg_rate,
+      nmea_assemble_gpgsa(&in->spp_dops);
+    );
+  }
 }

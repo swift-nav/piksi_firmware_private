@@ -95,18 +95,6 @@ bool disable_raim = false;
 
 static bool dgnss_init_done = false;
 
-void solution_send_nmea(gnss_solution *soln, dops_t *dops,
-                        u8 n, navigation_measurement_t *nm,
-                        u8 fix_mode, bool disable_velocity)
-{
-  //if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
-    nmea_gpgga(soln->pos_llh, &soln->time, soln->n_used,
-               fix_mode, dops->hdop, 0, 0);
-  //}
-  nmea_send_msgs(soln, n, nm, dops, disable_velocity);
-
-}
-
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                             const gps_time_t *t, double hdop, double diff_time,
                             u16 base_id, send_solutions_t *solns) {
@@ -160,6 +148,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       solns->rtk_baseline_valid = true;
       solns->rtk_baseline_fixed = flags; /* flags: 0 = float, 1 = fixed */
       solns->rtk_baseline_num_sats = num_used; /* TODO(Leith): currently counts num signals, need to change to sats? */
+      solns->rtk_base_age = diff_time;
+      solns->rtk_base_id = base_id;
     }
   } else {
     log_debug("DGNSS Filter not Initialized");

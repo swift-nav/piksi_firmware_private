@@ -43,17 +43,13 @@ typedef struct {
 #define MSG_POS_RTK_FIXED 2
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
-void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flags);
-void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
-                           const gps_time_t *gps_t, u8 n_used, u8 flags);
-void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 flags);
-void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
-                            const gps_time_t *gps_t, u8 n_used, u8 flags);
-void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags);
-void sbp_make_vel_ned_vect(msg_vel_ned_t *vel_ned, const double ned[3],
-                           const gps_time_t *gps_t, u8 n_used, u8 flags);
-void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags);
-void sbp_make_vel_ecef_vect(msg_vel_ecef_t *vel_ecef, const double ecef[3],
+void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const double llh[3],
+                      const gps_time_t *gps_t, u8 n_used, u8 flags);
+void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const double ecef[3],
+                       const gps_time_t *gps_t, u8 n_used, u8 flags);
+void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const double ned[3],
+                      const gps_time_t *gps_t, u8 n_used, u8 flags);
+void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const double ecef[3],
                        const gps_time_t *gps_t, u8 n_used, u8 flags);
 void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t *t);
 void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t *t,
