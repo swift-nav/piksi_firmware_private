@@ -53,13 +53,6 @@
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
-/** number of solution periods before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_PERIODS 2
-
-/** number of OS ticks before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT(soln_freq_hz) MS2ST((DGNSS_TIMEOUT_PERIODS * \
-  1/((float) (soln_freq_hz)) * 1000))
-
 /** Flags for SBP */
 #define NAV_MEAS_FLAGS_SBP (NAV_MEAS_FLAG_CODE_VALID | \
                             NAV_MEAS_FLAG_PHASE_VALID | \
@@ -85,175 +78,57 @@ mailbox_t obs_mailbox;
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
-/** RTK integer ambiguity states. */
-ambiguity_state_t amb_state;
-/** Mutex to control access to the ambiguity states. */
-MUTEX_DECL(amb_state_lock);
-
 /** Mutex to control access to the eigen filter. This is a very big mutex
  * that locks the entire eigen filter on access, a better method would be
  * to use mutexs as appropriate within the eigen filter code itself */
 MUTEX_DECL(eigen_state_lock);
 
-systime_t last_dgnss;
-
 double soln_freq = 2.0;
 u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
-double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = 102;
 
 static last_good_fix_t lgf;
 
 bool disable_raim = false;
-bool send_heading = false;
 
-void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool disable_velocity)
-{
-  if (soln) {
-    /* Send GPS_TIME message first. */
-    msg_gps_time_t gps_time;
-    sbp_make_gps_time(&gps_time, &soln->time, 0);
-    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
-    if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
-      /* Position in LLH. */
-      msg_pos_llh_t pos_llh;
-      sbp_make_pos_llh(&pos_llh, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+static bool dgnss_init_done = false;
 
-      /* Position in ECEF. */
-      msg_pos_ecef_t pos_ecef;
-      sbp_make_pos_ecef(&pos_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
-    }
-    /* Velocity in NED. */
-    /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
-    if (!disable_velocity) {
-      msg_vel_ned_t vel_ned;
-      sbp_make_vel_ned(&vel_ned, soln, 0);
-      sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
-
-      /* Velocity in ECEF. */
-      msg_vel_ecef_t vel_ecef;
-      sbp_make_vel_ecef(&vel_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
-    }
-
-    if (dops) {
-      DO_EVERY(10,
-        msg_dops_t sbp_dops;
-        sbp_make_dops(&sbp_dops, dops, &(soln->time));
-        sbp_send_msg(SBP_MSG_DOPS, sizeof(msg_dops_t), (u8 *) &sbp_dops);
-      );
-    }
-  }
-}
 void solution_send_nmea(gnss_solution *soln, dops_t *dops,
                         u8 n, navigation_measurement_t *nm,
                         u8 fix_mode, bool disable_velocity)
 {
-  if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
+  //if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
     nmea_gpgga(soln->pos_llh, &soln->time, soln->n_used,
                fix_mode, dops->hdop, 0, 0);
-  }
+  //}
   nmea_send_msgs(soln, n, nm, dops, disable_velocity);
 
 }
 
-double calc_heading(const double b_ned[3])
-{
-  double heading = atan2(b_ned[1], b_ned[0]);
-  if (heading < 0) {
-    heading += 2 * M_PI;
-  }
-  return heading * R2D;
-}
-
-/** Creates and sends RTK solution.
- * If the base station position is known,
- * send the NMEA and SBP psuedo absolute msgs.
- *
- * \note this function relies upon the global base_pos_ecef and base_pos_known
- * for logic and base station position when sending psuedo absolutes.
- * If operating in simulation mode, it depends upon the simulation mode enabled
- * and the simulation base_ecef position (both available in the global struct
- * sim_settings and accessed via wrappers prototyped in simulator.h)
- *
- * \param t pointer to gps time struct representing gps time for solution
- * \param n_sats u8 representig the number of satellites
- * \param b_ecef size 3 vector of doubles representing ECEF position (meters)
- * \param ref_ecef size 3 vector of doubles representing reference position
- * for conversion from ECEF to local NED coordinates (meters)
- * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
- */
-void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
-                            double ref_ecef[3], u8 flags, double hdop,
-                            double corrections_age, u16 sender_id)
-{
-  double* base_station_pos;
-  msg_baseline_ecef_t sbp_ecef;
-  sbp_make_baseline_ecef(&sbp_ecef, t, n_sats, b_ecef, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
-
-  double b_ned[3];
-  wgsecef2ned(b_ecef, ref_ecef, b_ned);
-
-  msg_baseline_ned_t sbp_ned;
-  sbp_make_baseline_ned(&sbp_ned, t, n_sats, b_ned, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_ned), (u8 *)&sbp_ned);
-
-  if (send_heading) {
-    double heading = calc_heading(b_ned);
-    msg_baseline_heading_t sbp_heading;
-    sbp_make_heading(&sbp_heading, t, heading, n_sats, flags);
-    sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_heading), (u8 *)&sbp_heading);
-  }
-
-  chMtxLock(&base_pos_lock);
-  if (base_pos_known) {
-    last_dgnss = chVTGetSystemTime();
-    double pseudo_absolute_ecef[3];
-    double pseudo_absolute_llh[3];
-    base_station_pos = base_pos_ecef;
-
-    vector_add(3, base_station_pos, b_ecef, pseudo_absolute_ecef);
-    wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
-    u8 fix_mode = (flags & 1) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
-    /* TODO: Don't fake DOP!! */
-    nmea_gpgga(pseudo_absolute_llh, t, n_sats, fix_mode, hdop, corrections_age, sender_id);
-    /* now send pseudo absolute sbp message */
-    /* Flag in message is defined as follows :float->2, fixed->1 */
-    /* We defined the flags for the SBP protocol to be spp->0, fixed->1, float->2 */
-    /* TODO: Define these flags from the yaml and remove hardcoding */
-    u8 sbp_flags = (flags == 1) ? 1 : 2;
-    msg_pos_llh_t pos_llh;
-    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
-    msg_pos_ecef_t pos_ecef;
-    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
-  }
-  chMtxUnlock(&base_pos_lock);
-}
-
-static bool init_done = false;
-
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                             const gps_time_t *t, double hdop, double diff_time,
                             u16 base_id, send_solutions_t *solns) {
+  (void)hdop; // TODO
+  (void)base_id; // TODO
   double baseline[3];
   u8 num_used, flags;
   s8 ret;
   bool send_baseline = false;
 
   /* If not initialised we can't output a baseline */
-  if (init_done) {
+  if (dgnss_init_done) {
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
       flags = 0;
       chMtxLock(&eigen_state_lock);
+      /* TODO(Leith): fixes to get_baseline: */
+      /* Rename flags to bool is_fixed */
+      /* Check return codes of filter manager funcs */
+      /* Return covar array */
+      /* num_sats to num_signals */
       ret = get_baseline(baseline, &num_used, &flags);
       chMtxUnlock(&eigen_state_lock);
       if (ret != 0) {
@@ -281,10 +156,10 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       }
     }
     if (send_baseline) {
-      solution_send_baseline(t, num_used, baseline, lgf.position_solution.pos_ecef,
-                             flags, hdop, diff_time, base_id);
       memcpy(solns->rtk_baseline, baseline, sizeof(baseline));
       solns->rtk_baseline_valid = true;
+      solns->rtk_baseline_fixed = flags; /* flags: 0 = float, 1 = fixed */
+      solns->rtk_baseline_num_sats = num_used; /* TODO(Leith): currently counts num signals, need to change to sats? */
     }
   } else {
     log_debug("DGNSS Filter not Initialized");
@@ -641,6 +516,7 @@ static void solution_thread(void *arg)
 
       /* TODO if there are not enough SVs to compute PVT, shouldn't caches
        *      below be reset? I.e. nav_meas_old and nav_meas_tdcp? */
+      /* TODO(Leith): look into this */
 
       continue;
     }
@@ -754,7 +630,7 @@ static void solution_thread(void *arg)
       /* get iono parameters if available */
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
-      } else if (init_done) {
+      } else if (dgnss_init_done) {
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
         chMtxUnlock(&eigen_state_lock);
@@ -782,20 +658,24 @@ static void solution_thread(void *arg)
         log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
       );
 
-      /* Send just the DOPs and exit the loop */
-      solution_send_sbp(0, &dops, true);
-
       /* Store the DOPs */
       solns.spp_dops = dops;
       solns.spp_dops_valid = true;
 
       continue;
     } else {
+      /* Store the time */
+      if (lgf.position_solution.valid > 0) {
+        solns.spp_time = lgf.position_solution.time;
+        solns.spp_time_valid = true;
+      }
+
       /* Store the position */
       if (lgf.position_solution.valid > 0) {
         memcpy(solns.spp_position, lgf.position_solution.pos_ecef,
           sizeof(lgf.position_solution.pos_ecef));
         solns.spp_position_valid = true;
+        solns.spp_position_num_sats = lgf.position_solution.n_used;  /* TODO(Leith): currently counts num signals, need to change to sats? */
       }
 
       /* Store the velocity */
@@ -803,6 +683,8 @@ static void solution_thread(void *arg)
         memcpy(solns.spp_velocity, lgf.position_solution.vel_ecef,
           sizeof(lgf.position_solution.vel_ecef));
         solns.spp_velocity_valid = true;
+        solns.spp_velocity_num_sats = lgf.position_solution.n_used;  /* TODO(Leith): currently counts num signals, need to change to sats? */
+        /* TODO: also should only count how many used in vel soln, e.g. excluding cycle slips */
       }
 
       /* Store the DOPs */
@@ -834,13 +716,6 @@ static void solution_thread(void *arg)
     /* Save elevation angles */
     update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
                           lgf.position_solution.pos_ecef);
-
-    /* Output solution. */
-    bool disable_velocity = lgf.position_solution.velocity_valid == 0;
-    solution_send_sbp(&lgf.position_solution, &dops, disable_velocity);
-    solution_send_nmea(&lgf.position_solution, &dops,
-                       n_ready_tdcp, nav_meas_tdcp,
-                       NMEA_GGA_FIX_GPS, disable_velocity);
 
     /*
      * We need to correct our pseudorange and create a new one that is valid for
@@ -1006,23 +881,20 @@ static void solution_thread(void *arg)
   }
 }
 
-static bool init_known_base = false;
-static bool reset_iar = false;
-
 void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
 {
-  if (!init_done) {
+  if (!dgnss_init_done) {
     if (n_sds > 4) {
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
       chMtxLock(&eigen_state_lock);
       dgnss_init_v3();
       chMtxUnlock(&eigen_state_lock);
-      init_done = 1;
+      dgnss_init_done = 1;
     }
   }
 
-  if (init_done) {
+  if (dgnss_init_done) {
     /* Update filters. */
     s8 ret;
     chMtxLock(&eigen_state_lock);
@@ -1036,6 +908,13 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
         n_sds >= 4 && ret == 0) {
       send_solutions_t solns;
       memset(&solns, 0, sizeof(solns));
+
+      /* Store the time */
+      /* Use SPP time field for now, since observation time derived from it */
+      if (lgf.position_solution.valid > 0) {
+        solns.spp_time = *t;
+        solns.spp_time_valid = true;
+      }
 
       /* Note: in time match mode we send the physically incorrect time of the
        * observation message (which can be receiver clock time, or rounded GPS
@@ -1134,27 +1013,19 @@ void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   switch (msg[0]) {
   case 0:
     log_info("Filter reset requested");
-    init_done = false;
+    dgnss_init_done = false;
     break;
   case 1:
     log_info("IAR reset requested");
-    reset_iar = true;
+    /* TODO(Leith): remove from SBP */
     break;
   default:
     break;
   }
 }
 
-void init_base_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void)msg; (void)context;
-  init_known_base = true;
-}
-
 void solution_setup()
 {
-  /* Set time of last differential solution in the past. */
-  last_dgnss = chVTGetSystemTime() - DGNSS_TIMEOUT(soln_freq);
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
@@ -1182,22 +1053,9 @@ void solution_setup()
   SETTING("solution", "dgnss_filter",
           dgnss_filter, TYPE_GNSS_FILTER);
 
-  SETTING("solution", "known_baseline_n", known_baseline[0], TYPE_FLOAT);
-  SETTING("solution", "known_baseline_e", known_baseline[1], TYPE_FLOAT);
-  SETTING("solution", "known_baseline_d", known_baseline[2], TYPE_FLOAT);
-
-  SETTING("iar", "phase_var", dgnss_settings.phase_var_test, TYPE_FLOAT);
-  SETTING("iar", "code_var", dgnss_settings.code_var_test, TYPE_FLOAT);
-
-  SETTING("float_kf", "phase_var", dgnss_settings.phase_var_kf, TYPE_FLOAT);
-  SETTING("float_kf", "code_var", dgnss_settings.code_var_kf, TYPE_FLOAT);
-  SETTING("float_kf", "amb_init_var", dgnss_settings.amb_init_var, TYPE_FLOAT);
-  SETTING("float_kf", "new_amb_var", dgnss_settings.new_int_var, TYPE_FLOAT);
-
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
-  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
 
   nmea_setup();
 
@@ -1221,10 +1079,11 @@ void solution_setup()
     &reset_filters_node
   );
 
-  static sbp_msg_callbacks_node_t init_base_node;
+  /* TODO(Leith): remove from SBP */
+  /*static sbp_msg_callbacks_node_t init_base_node;
   sbp_register_cbk(
     SBP_MSG_INIT_BASE,
     &init_base_callback,
     &init_base_node
-  );
+  );*/
 }

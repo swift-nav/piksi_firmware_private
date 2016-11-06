@@ -35,6 +35,13 @@ typedef struct {
   u16 size;
 } msg_ephemeris_info_t;
 
+#define MSG_BASELINE_FLOAT 0
+#define MSG_BASELINE_FIXED 1
+
+#define MSG_POS_SPP 0
+#define MSG_POS_RTK_FLOAT 1
+#define MSG_POS_RTK_FIXED 2
+
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flags);
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
@@ -43,7 +50,11 @@ void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 f
 void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
                             const gps_time_t *gps_t, u8 n_used, u8 flags);
 void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags);
+void sbp_make_vel_ned_vect(msg_vel_ned_t *vel_ned, const double ned[3],
+                           const gps_time_t *gps_t, u8 n_used, u8 flags);
 void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags);
+void sbp_make_vel_ecef_vect(msg_vel_ecef_t *vel_ecef, const double ecef[3],
+                       const gps_time_t *gps_t, u8 n_used, u8 flags);
 void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t *t);
 void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t *t,
                             u8 n_sats, const double b_ecef[3], u8 flags);
@@ -51,6 +62,7 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
                            u8 n_sats, const double b_ned[3], u8 flags);
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_used, u8 flags);
+
 #define MSG_OBS_HEADER_SEQ_SHIFT 4u
 #define MSG_OBS_HEADER_SEQ_MASK ((1 << 4u) - 1)
 #define MSG_OBS_HEADER_MAX_SIZE MSG_OBS_HEADER_SEQ_MASK

@@ -28,11 +28,11 @@ typedef struct {
 
   double spp_position[3]; /**< SPP computed ECEF position [m] */
   bool spp_position_valid; /**< True if spp_position contains valid data */
-  // TODO also LLH?
+  u8 spp_position_num_sats; /**< Number of sats used in SPP position solution */
 
   double spp_velocity[3]; /**< SPP computed ECEF velocity [m/s] */
   bool spp_velocity_valid; /**< True if spp_velocity contains valid data */
-  // TODO also NED?
+  u8 spp_velocity_num_sats; /**< Number of sats used in SPP velocity solution */
 
   dops_t spp_dops; /**< SPP dilution of precision values */
   bool spp_dops_valid; /**< True if spp_dopscontains valid data */
@@ -42,6 +42,8 @@ typedef struct {
 
   double rtk_baseline[3]; /**< RTK baseline vector in ECEF frame [m] */
   bool rtk_baseline_valid; /**< True if rtk_baseline contains valid data */
+  bool rtk_baseline_fixed; /**< True if RTK solution is fixed, false if float */
+  u8 rtk_baseline_num_sats; /**< Number of sats used in RTK baseline solution */
 
   /* TODO(Leith): in future could add RTK velocity */
 
