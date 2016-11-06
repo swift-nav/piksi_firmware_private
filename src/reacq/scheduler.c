@@ -15,6 +15,7 @@
 #include <manage.h>
 #include <track.h>
 #include <timing.h>
+#include <dum.h>
 
 /* Scheduler utils funcions */
 void sch_send_acq_profile_msg(const acq_job_t *job,
@@ -52,7 +53,7 @@ void sch_initialize_cost(acq_job_t *init_job,
   
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     int i;
-    for (i=0; i < ACQ_NUM_SVS; i++) {
+    for (i = 0; i < ACQ_NUM_SVS; i++) {
       const acq_job_t *job = &all_jobs_data->jobs[type][i];
       if (job == init_job) {
         continue; /* Skip if it is the job that we are initializing */
@@ -69,6 +70,7 @@ void sch_initialize_cost(acq_job_t *init_job,
         min_found = true;
       }
       avg = avg + job->cost;
+      assert(avg >= job->cost);
       num_jobs++;
     }
   }
@@ -76,7 +78,7 @@ void sch_initialize_cost(acq_job_t *init_job,
     avg = avg / num_jobs;
   }
 
-  switch(init_job->cost_hint) {
+  switch (init_job->cost_hint) {
   case ACQ_COST_MIN:
     init_job->cost = min_cost;
     break;
@@ -90,7 +92,7 @@ void sch_initialize_cost(acq_job_t *init_job,
     init_job->cost = max_cost + ACQ_COST_DELTA_MS;
     break;
   default:
-    assert(!"Invalid cost hin");
+    assert(!"Invalid cost hint");
     init_job->cost = max_cost + ACQ_COST_DELTA_MS;
     break;
   }
@@ -116,7 +118,7 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data)
   
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     int i;
-    for (i=0; i < ACQ_NUM_SVS; i++) {
+    for (i = 0; i < ACQ_NUM_SVS; i++) {
       const acq_job_t *job = &all_jobs_data->jobs[type][i];
       if (job->state != ACQ_STATE_WAIT) {
         continue; /* Select only jobs which can run */
@@ -130,7 +132,7 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data)
   if (min_cost != 0) {
     for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
       int i;
-      for (i=0; i < ACQ_NUM_SVS; i++) {
+      for (i = 0; i < ACQ_NUM_SVS; i++) {
         acq_job_t *job = &all_jobs_data->jobs[type][i];
         if (job->state != ACQ_STATE_WAIT) {
           continue;
@@ -156,42 +158,43 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
   acq_job_types_e type;
   acq_job_t *job_to_run = NULL;
 
-  /* Update state and initalize first cost with max, min, avg cost hints */
+  /* Update state and initialize first cost with max, min, avg cost hints */
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     int i;
-    for (i=0; i < ACQ_NUM_SVS; i++) {
+    for (i = 0; i < ACQ_NUM_SVS; i++) {
       acq_job_t *job = &jobs_data->jobs[type][i];
       acq_task_t *task = &job->task_data;
       if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
         job->state = ACQ_STATE_IDLE;
       }
       if (ACQ_STATE_WAIT == job->state && job->needs_restart) {
-        task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
+        task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
       if (ACQ_STATE_IDLE == job->state &&
           job->needs_to_run &&
           ACQ_COST_MAX_PLUS != job->cost_hint) {
         sch_initialize_cost(job, jobs_data);
         job->state = ACQ_STATE_WAIT;
-        task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
+        task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
     }
   }
   /* Initialize the cost with max_plus cost hint only after jobs
-     with max, min, or avg cost hints are initalized since
+     with max, min, or avg cost hints are initialized since
      the intention of max_plus is to get high cost. 
      Select the job with minimum cost in the same loop. */
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     int i;
-    for (i=0; i < ACQ_NUM_SVS; i++) {
+    for (i = 0; i < ACQ_NUM_SVS; i++) {
       acq_job_t *job = &jobs_data->jobs[type][i];
       acq_task_t *task = &job->task_data;
       /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
       if (ACQ_STATE_IDLE == job->state &&
-          job->needs_to_run) {
+          job->needs_to_run &&
+          ACQ_COST_MAX_PLUS == job->cost_hint) {
         sch_initialize_cost(job, jobs_data);
         job->state = ACQ_STATE_WAIT;
-        task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
+        task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
       /* Find minimum cost */
       if (ACQ_STATE_WAIT == job->state) {
@@ -271,6 +274,8 @@ void sch_run(acq_jobs_state_t *jobs_data)
     peak_found = false;
   }
 
+  dum_report_reacq_result(&job->sid, peak_found);
+  
   if (peak_found) { /* Send to track */
     tracking_startup_params_t tracking_startup_params = {
       .sid = job->sid,
@@ -281,7 +286,7 @@ void sch_run(acq_jobs_state_t *jobs_data)
       .cn0_init = acq_result.cn0,
       .elevation = TRACKING_ELEVATION_UNKNOWN
     };
-    task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
+    task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
     job->stop_time = timing_getms();
 
@@ -291,9 +296,9 @@ void sch_run(acq_jobs_state_t *jobs_data)
     /* Update cost with spent HW time. Limit with 1 ms minimum
        since 0 update would stuck scheduling. */
     job->cost += MAX(1, search_time);
-    if (task->task_index >= task->number_of_tasks-1) {
+    if (task->task_index >= task->number_of_tasks - 1) {
       /* No more tasks to run */
-      task->task_index = ACQ_MAX_UNITIALIZED_TASKS;
+      task->task_index = ACQ_UNINITIALIZED_TASKS;
       job->stop_time = timing_getms();
       if (job->oneshot) {
         job->state = ACQ_STATE_IDLE;

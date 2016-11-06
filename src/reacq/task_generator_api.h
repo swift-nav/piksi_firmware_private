@@ -10,11 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #ifndef SWIFTNAV_TASK_GENERATOR_API_H
-#define SWIFTNAV_TAsK_GENERATOR_API_H
+#define SWIFTNAV_TASK_GENERATOR_API_H
 
 #include "search_manager_api.h"
 
 void tg_fill_task(acq_job_t *job);
 void tg_check_uncertainty_change(acq_job_t *job);
 
-#endif /* SWIFTNAV_TAsK_GENERATOR_API_H */
+#endif /* SWIFTNAV_TASK_GENERATOR_API_H */

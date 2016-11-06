@@ -113,17 +113,21 @@ gps_time_t get_current_time(void) {
   return t;
 }
 
-s8 calc_sat_doppler_wndw(const ephemeris_t* e, const gps_time_t *t,
-                         const gnss_solution *lgf, u8 fails, float *radius,
-                         float *doppler_min, float *doppler_max) {
-  (void)e;
+void dum_get_doppler_wndw(const gnss_signal_t *sid,
+                          const gps_time_t *t,
+                          const last_good_fix_t *lgf,
+                          float *doppler_min, float *doppler_max) {
+  (void)sid;
   (void)t;
   (void)lgf;
-  (void)fails;
-  (void)radius;
   *doppler_min = 100;
   *doppler_max = 200;
-  return 0;
+}
+
+void dum_report_reacq_result(const gnss_signal_t *sid, bool res)
+{
+  (void)sid;
+  (void)res;
 }
 
 /** Test cost initialization
@@ -179,7 +183,7 @@ static void sch_test_cost_init(void)
   sch_initialize_cost(init_job, data);
   assert(120 + EXPECTED_COST_DELTA_MS == init_job->cost);
 
-  /* Check that initalized job does not effect on itself */
+  /* Check that initialized job does not effect on itself */
   init_job->cost_hint = ACQ_COST_MIN;
   init_job->needs_to_run = true;
   init_job->cost = 5;
@@ -258,7 +262,7 @@ static void sch_test_job_select(void)
   /* There are two jobs with minimum cost */
   assert(sel == &data->jobs[1][2] || sel == &data->jobs[1][1]);
   assert(ACQ_STATE_WAIT == data->jobs[1][2].state);
-  assert(ACQ_MAX_UNITIALIZED_TASKS == data->jobs[1][2].task_data.task_index);
+  assert(ACQ_UNINITIALIZED_TASKS == data->jobs[1][2].task_data.task_index);
 }
 /** Run scheduler and check that HW ran expected code_index
  *
