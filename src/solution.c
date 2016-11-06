@@ -779,6 +779,7 @@ static void solution_thread(void *arg)
     n_ready_old = n_ready;
     rec_tc_old = rec_tc;
 
+    /* TODO(Leith): perform this check in calc_PVT */
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
     for (u8 i=0; i<n_ready_tdcp; i++) {
@@ -825,7 +826,7 @@ static void solution_thread(void *arg)
         log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
       );
 
-      soln_flag = false;
+      soln_flag = false; /* TODO(Leith) use flag in solution struct */
 
       /* Send just the DOPs and exit the loop */
       solution_send_sbp(0, &dops, clock_jump);
