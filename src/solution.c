@@ -251,12 +251,12 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   double b[3];
   u8 num_used, flags;
   s8 ret;
+  bool send_baseline = false;
 
   /* If not initialised we can't output a baseline */
-  log_info("output_baseline");
   if (init_done) {
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-      log_info("solution time matched");
+      log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
       flags = 0;
       chMtxLock(&eigen_state_lock);
@@ -264,9 +264,11 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       chMtxUnlock(&eigen_state_lock);
       if (ret != 0) {
         log_warn("output_baseline: Time matched baseline calculation failed");
+      } else {
+        send_baseline = true;
       }
     } else {
-      log_info("solution low latency");
+      log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
       chMtxLock(&eigen_state_lock);
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
@@ -279,13 +281,17 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
         chMtxUnlock(&eigen_state_lock);
         if (ret != 0) {
           log_warn("output_baseline: Low latency baseline calculation failed");
+        } else {
+          send_baseline = true;
         }
       }
     }
-    solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
-                           flags, hdop, diff_time, base_id);
+    if (send_baseline) {
+      solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
+                             flags, hdop, diff_time, base_id);
+    }
   } else {
-    log_info("DGNSS Filter not Initialized");
+    log_debug("DGNSS Filter not Initialized");
   }
 }
 
