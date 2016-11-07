@@ -19,7 +19,7 @@
 #include <libswiftnav/signal.h>
 #include <ch.h>
 
-enum ndb_op_code
+typedef enum ndb_op_code
 {
   NDB_ERR_NONE = 0,        /**< No error */
   NDB_ERR_MISSING_IE,      /**< DB doesn't contain value of this IE */
@@ -30,15 +30,15 @@ enum ndb_op_code
   NDB_ERR_UNRELIABLE_DATA, /**< Data can't be verified */
   NDB_ERR_ALGORITHM_ERROR, /**< Error */
   NDB_ERR_NO_DATA,         /**< No data to process */
-};
+} ndb_op_code_t;
 
-enum ndb_data_source
+typedef enum ndb_data_source
 {
   NDB_DS_UNDEFINED = 0,
   NDB_DS_INIT,
   NDB_DS_RECEIVER,
   NDB_DS_SBP
-};
+} ndb_data_source_t;
 
 /** NDB Timestamp: TAI seconds since GPS epoch */
 typedef u32 ndb_timestamp_t;

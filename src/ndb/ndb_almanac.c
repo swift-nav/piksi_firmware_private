@@ -26,8 +26,8 @@
 #include "ndb_fs_access.h"
 
 #define NDB_ALMA_FILE_NAME   "persistent/almanac"
-static almanac_t ndb_almanac[PLATFORM_SIGNAL_COUNT] _CCM;
-static ndb_element_metadata_t ndb_almanac_md[PLATFORM_SIGNAL_COUNT] _CCM;
+static almanac_t ndb_almanac[PLATFORM_SIGNAL_COUNT];
+static ndb_element_metadata_t ndb_almanac_md[PLATFORM_SIGNAL_COUNT];
 
 static ndb_file_t ndb_alma_file = {
     .name = NDB_ALMA_FILE_NAME,
@@ -49,17 +49,30 @@ void ndb_almanac_init(void)
 
   ndb_load_data(&ndb_alma_file, "almanac", (u8 *)ndb_almanac, ndb_almanac_md,
                 sizeof(almanac_t), PLATFORM_SIGNAL_COUNT);
+
+  u32 loaded = 0;
+  for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
+    if (0 != (ndb_almanac_md[i].nv_data.state & NDB_IE_VALID)) {
+      loaded++;
+    }
+  }
+  if (0 != loaded) {
+    if (erase_almanac) {
+      log_error("NDB almanacs erase is not working");
+    }
+
+    log_info("Loaded %" PRIu32 " almanac(s)", loaded);
+  }
+
 }
 
-enum ndb_op_code ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
+ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = sid_to_global_index(sid);
-  ndb_retrieve(a, &ndb_almanac[idx], sizeof(almanac_t));
-
-  return NDB_ERR_NONE;
+  return ndb_retrieve(a, &ndb_almanac_md[idx]);
 }
 
-enum ndb_op_code ndb_almanac_store(almanac_t *a, enum ndb_data_source src)
+ndb_op_code_t ndb_almanac_store(const almanac_t *a, ndb_data_source_t src)
 {
   u16 idx = sid_to_global_index(a->sid);
   return ndb_update(a, src, &ndb_almanac_md[idx]);

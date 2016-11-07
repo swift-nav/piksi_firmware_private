@@ -72,9 +72,22 @@ void ndb_ephemeris_init(void)
 
   ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
                 sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
+  u32 loaded = 0;
+  for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
+    if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
+      loaded++;
+    }
+  }
+  if (0 != loaded) {
+    if (erase_ephemeris) {
+      log_error("NDB ephemeris erase is not working");
+    }
+
+    log_info("Loaded %" PRIu32 " ephemeris", loaded);
+  }
 }
 
-enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
+ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
   u16 idx;
   /*
@@ -84,15 +97,16 @@ enum ndb_op_code ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
   } else {
     idx = sid_to_global_index(sid);
-    if (PLATFORM_SIGNAL_COUNT <= idx) {
-      return NDB_ERR_BAD_PARAM;
-    }
   }
 
-  ndb_retrieve(e, &ndb_ephemeris[idx], sizeof(ephemeris_t));
+  if (PLATFORM_SIGNAL_COUNT <= idx) {
+    return NDB_ERR_BAD_PARAM;
+  }
+
+  ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
   /* Patch SID to be accurate for GPS L1/L2 */
   e->sid = sid;
-  return NDB_ERR_NONE;
+  return res;
 }
 
 s16 ndb_ephe_find_candidate(const ephemeris_t *new)
@@ -174,7 +188,7 @@ ndb_ephemeris_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   return r;
 }
 
-enum ndb_op_code ndb_ephemeris_store(ephemeris_t *e, enum ndb_data_source src)
+ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
 {
   if (!e->valid) {
     return NDB_ERR_BAD_PARAM;
@@ -216,9 +230,9 @@ enum ndb_op_code ndb_ephemeris_store(ephemeris_t *e, enum ndb_data_source src)
   return NDB_ERR_ALGORITHM_ERROR;
 }
 
-enum ndb_op_code ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
-                                    u8* health_bits, gps_time_t* toe,
-                                    u32* fit_interval, float* ura)
+ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
+                                 u8* health_bits, gps_time_t* toe,
+                                 u32* fit_interval, float* ura)
 {
   assert(valid != NULL);
   assert(health_bits != NULL);

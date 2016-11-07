@@ -306,7 +306,7 @@ static void ndb_service_thread(void *p)
  * \retval NDB_ERR_NO_DATA  No more data to process
  * \retval NDB_ERR_FILE_IO  On file I/O error
  */
-static enum ndb_op_code ndb_wq_process(void)
+static ndb_op_code_t ndb_wq_process(void)
 {
   ndb_element_metadata_t *md = NULL;
 
@@ -393,7 +393,7 @@ static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
  * \retval NDB_ERR_NONE    On success
  * \retval NDB_ERR_FILE_IO On I/O error
  */
-static enum ndb_op_code ndb_open_file(ndb_file_t *file)
+static ndb_op_code_t ndb_open_file(ndb_file_t *file)
 {
   char ver[MAX_NDB_FILE_VERSION_LEN];
   if ((ndb_fs_read(file->name, 0, ver, sizeof(ndb_file_version))
@@ -425,10 +425,10 @@ static enum ndb_op_code ndb_open_file(ndb_file_t *file)
  *
  * \sa ndb_read
  */
-enum ndb_op_code ndb_write_file_data(ndb_file_t *file,
-                                     off_t off,
-                                     const u8 *src,
-                                     size_t size)
+ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
+                                  off_t off,
+                                  const u8 *src,
+                                  size_t size)
 {
   off_t   offset = sizeof(ndb_file_version) + off;
   ssize_t written = ndb_fs_write(file->name, offset, src, size);
@@ -451,10 +451,10 @@ enum ndb_op_code ndb_write_file_data(ndb_file_t *file,
  *
  * \sa ndb_write_file_data
  */
-static enum ndb_op_code ndb_read(ndb_file_t *file,
-                                 off_t off,
-                                 void *dst,
-                                 size_t size)
+static ndb_op_code_t ndb_read(ndb_file_t *file,
+                              off_t off,
+                              void *dst,
+                              size_t size)
 {
   off_t offset = sizeof(ndb_file_version) + off;
   ssize_t read =  ndb_fs_read(file->name, offset, dst, size);
@@ -486,22 +486,37 @@ void ndb_unlock()
  *
  * Method provides NDB data block contents.
  *
- * \param[out] out    Block data destination.
- * \param[in]  cached Block data source.
- * \param[in]  size   Block data size.
+ * \param[out] out Destination data buffer with a proper block size.
+ * \param[in]  md  Metadata element
  *
- * \return None
+ * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_BAD_PARAM  On parameter error
+ * \retval NDB_ERR_MISSING_IE No cached data block
  *
  * \sa ndb_update
  */
-void ndb_retrieve(void *out, const void *cached, size_t size)
+ndb_op_code_t ndb_retrieve(void *out, const ndb_element_metadata_t *md)
 {
-  /* TODO this method shall retrieve/check metadata flags to indicate the
-   *      data is valid. */
-  ndb_lock();
-  memcpy(out, cached, size);
-  ndb_unlock();
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  if (NULL != md && NULL != out) {
+    ndb_lock();
+    if (0 != (md->nv_data.state & NDB_IE_VALID)) {
+      memcpy(out, md->data, md->file->data_size);
+      res = NDB_ERR_NONE;
+    } else {
+      res = NDB_ERR_MISSING_IE;
+      /* Zero destination */
+      memset(out, 0, md->file->data_size);
+    }
+    ndb_unlock();
+  } else {
+    res = NDB_ERR_BAD_PARAM;
+  }
+
+  return res;
 }
+
 
 /**
  * Update NDB data block.
@@ -517,12 +532,13 @@ void ndb_retrieve(void *out, const void *cached, size_t size)
  * \retval NDB_ERR_BAD_PARAM On parameter error
  *
  * \sa ndb_retrieve
+ * \sa ndb_erase
  */
-enum ndb_op_code ndb_update(const void *data,
-                            enum ndb_data_source src,
-                            ndb_element_metadata_t *md)
+ndb_op_code_t ndb_update(const void *data,
+                         ndb_data_source_t src,
+                         ndb_element_metadata_t *md)
 {
-  enum ndb_op_code res = NDB_ERR_ALGORITHM_ERROR;
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != data && NULL != md) {
     size_t block_size = md->file->data_size;
@@ -538,6 +554,54 @@ enum ndb_op_code ndb_update(const void *data,
       /* Update data and mark it dirty also mark data valid */
       memcpy(md->data, data, block_size);
       md->nv_data.state |= NDB_IE_VALID;
+      md->nv_data.state |= NDB_IE_DIRTY;
+    }
+
+    ndb_wq_put(md);
+    ndb_unlock();
+
+    res = NDB_ERR_NONE;
+  } else {
+    res = NDB_ERR_BAD_PARAM;
+  }
+
+  return res;
+}
+
+/**
+ * Erase NDB data block.
+ *
+ * After erasing, NDB block is zeroed, data source is set to #NDB_DS_UNDEFINED
+ * and data validity flag is cleared.
+ *
+ * \param[in,out] md NDB data block metadata
+ *
+ * \retval NDB_ERR_NONE      On success
+ * \retval NDB_ERR_BAD_PARAM On parameter error
+ *
+ * \sa ndb_update
+ */
+ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
+{
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  if (NULL != md) {
+    size_t block_size = md->file->data_size;
+
+    ndb_lock();
+
+    if (0 != md->nv_data.received_at ||
+        NDB_DS_UNDEFINED != md->nv_data.source) {
+      /* Update metadata and mark it dirty */
+      md->nv_data.received_at = 0;
+      md->nv_data.state |= NDB_MD_DIRTY;
+      md->nv_data.source = NDB_DS_UNDEFINED;
+    }
+
+    if (0 != (md->nv_data.state & NDB_IE_VALID)) {
+      /* Update data and mark it dirty also mark data invalid */
+      memset(md->data, 0, block_size);
+      md->nv_data.state &= ~NDB_IE_VALID;
       md->nv_data.state |= NDB_IE_DIRTY;
     }
 

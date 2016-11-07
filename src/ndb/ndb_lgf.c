@@ -14,7 +14,7 @@
 #define NDB_WEAK
 
 #include <string.h>
-#include <libswiftnav/logging.h>
+#include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include "ndb.h"
@@ -22,18 +22,29 @@
 #include "settings.h"
 #include "ndb_fs_access.h"
 
+/** Default NDB LGF interval update threshold [s] */
+#define NDB_LGF_UPDATE_INTERVAL_S (30 * MINUTE_SECS)
+/** Default NDB LGF distance update threshold [m] */
+#define NDB_LGF_UPDATE_DISTANCE_M (10e3)
+
 #define LGF_FILE_NAME "persistent/lgf"
-static last_good_fix_t last_good_fix _CCM;
-static last_good_fix_t last_good_fix_saved _CCM;
-static ndb_element_metadata_t last_good_fix_md _CCM;
+static last_good_fix_t last_good_fix;       /**< Locally cached LGF */
+
+/** NDB LGF interval update threshold [s] */
+static s32             lgf_update_s = NDB_LGF_UPDATE_INTERVAL_S;
+/** NDB LGF distance update threshold [m] */
+static s32             lgf_update_m = NDB_LGF_UPDATE_DISTANCE_M;
+
+static last_good_fix_t        last_good_fix_saved; /**< NDB LGF data block */
+static ndb_element_metadata_t last_good_fix_md;    /**< NDB LGF metadata */
 
 static ndb_file_t lgf_file = {
   .name = LGF_FILE_NAME,
   .expected_size =
-        sizeof(last_good_fix)
-      + sizeof(ndb_element_metadata_nv_t)
+        sizeof(last_good_fix_t) * 1
+      + sizeof(ndb_element_metadata_nv_t) * 1
       + sizeof(ndb_file_end_mark),
-  .data_size = sizeof(last_good_fix),
+  .data_size = sizeof(last_good_fix_t),
   .n_elements = 1
 };
 
@@ -41,58 +52,131 @@ void ndb_lgf_init(void)
 {
   static bool erase_lgf = true;
   SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
+  SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
+  SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
+
   if (erase_lgf) {
     ndb_fs_remove(LGF_FILE_NAME);
   }
 
   ndb_load_data(&lgf_file, "LGF",
                 (u8 *)&last_good_fix_saved, &last_good_fix_md,
-                sizeof(last_good_fix), 1);
-  memcpy(&last_good_fix, &last_good_fix_saved, sizeof(last_good_fix_t));
-}
+                sizeof(last_good_fix_saved), 1);
 
-enum ndb_op_code ndb_lgf_read(last_good_fix_t *lgf)
-{
-  if(!NDB_IE_IS_VALID(&last_good_fix_md)) {
-    memset(lgf, 0, sizeof(last_good_fix_t));
-    return NDB_ERR_MISSING_IE;
-  }
-  ndb_retrieve(lgf, &last_good_fix, sizeof(last_good_fix));
-  return NDB_ERR_NONE;
-}
+  last_good_fix = last_good_fix_saved;
+  if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    if (erase_lgf) {
+      /* Log the error if the data is present after erase */
+      log_error("NDB LGF erase is not working");
+    }
 
-enum ndb_op_code ndb_lgf_store(last_good_fix_t *lgf)
-{
-  double temp[3];
-  double dt;
-
-  ndb_lock();
-
-  /* Update cached LGF unconditionally */
-  memcpy(&last_good_fix,
-         lgf,
-         sizeof(last_good_fix_t));
-  last_good_fix.position_quality = POSITION_FIX;
-
-  /* Compute difference in time and space between
-   * last saved position and the passed one */
-  vector_subtract(3, last_good_fix.position_solution.pos_ecef,
-                  last_good_fix_saved.position_solution.pos_ecef, temp);
-  dt = gpsdifftime(&last_good_fix.position_solution.time,
-                   &last_good_fix_saved.position_solution.time);
-
-  ndb_unlock();
-
-  double dx = vector_norm(3, temp);
-
-  if (dt > 30 * 60 || dx > 10e3) {
-    /* Last saved is either too old or too far or both - update it */
-    log_info("Position saved [%.4f, %.4f, %.1f]",
-             last_good_fix.position_solution.pos_llh[0] * (180 / M_PI),
-             last_good_fix.position_solution.pos_llh[1] * (180 / M_PI),
+    /* TODO check loaded LGF validity */
+    log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
+             last_good_fix.position_solution.pos_llh[0] * R2D,
+             last_good_fix.position_solution.pos_llh[1] * R2D,
              last_good_fix.position_solution.pos_llh[2]);
-    return ndb_update(&last_good_fix, NDB_DS_RECEIVER, &last_good_fix_md);
+  } else {
+    log_info("Position is not available");
+  }
+}
+
+/**
+ * Loads last good fix data from NDB
+ *
+ * NDB loads data that has been stored in NV memory.
+ *
+ * \param[out] lgf Destination container.
+ *
+ * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_BAD_PARAM  On parameter error
+ * \retval NDB_ERR_MISSING_IE No cached data block
+ *
+ * \sa ndb_lgf_store
+ */
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
+{
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  /* LGF is loaded only on boot, and then periodically saved to NV. Because of
+   * this, use of `ndb_retrieve` here is unnecessary. */
+
+  if (NULL != lgf) {
+    ndb_lock();
+    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+      *lgf = last_good_fix;
+      res = NDB_ERR_NONE;
+    } else {
+      memset(lgf, 0, sizeof(*lgf));
+      res = NDB_ERR_MISSING_IE;
+    }
+    ndb_unlock();
+  } else {
+    res = NDB_ERR_BAD_PARAM;
   }
 
-  return NDB_ERR_NONE;
+  return res;
+}
+
+/**
+ * Updates last good fix information.
+ *
+ * This method locally caches new information for later retrieval and also
+ * schedules it for persistence only when previous fix is too old or too far.
+ *
+ * \param[in] lgf Position and clock parameters to update.
+ *
+ * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_BAD_PARAM  On parameter error
+ *
+ * \sa ndb_lgf_read
+ */
+ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
+{
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  if (NULL != lgf) {
+    bool update_nv_data = true;
+
+    ndb_lock();
+
+    last_good_fix = *lgf;
+    last_good_fix.position_quality = POSITION_FIX;
+
+    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+      double dist_ecef[3] = {0}; /* Fix distance [ECEF] */
+      double dt = 0;             /* Fix time difference [s] */
+      double dx = 0;             /* Fix distance [m] */
+
+      /* Compute difference in time and space between
+       * last saved position and the passed one */
+      vector_subtract(3, last_good_fix.position_solution.pos_ecef,
+                      last_good_fix_saved.position_solution.pos_ecef, dist_ecef);
+      dx = vector_norm(3, dist_ecef);
+      dt = gpsdifftime(&last_good_fix.position_solution.time,
+                       &last_good_fix_saved.position_solution.time);
+
+      if (dt >= 0 && dt < lgf_update_s && dx <= lgf_update_m) {
+        /* Do not update, if the time interval is too small and distance is too
+         * short */
+        update_nv_data = false;
+      }
+    }
+
+    ndb_unlock();
+
+    if (update_nv_data) {
+      /* Last saved is either too old or too far or both - update it */
+      log_info("Position saved [%.4lf, %.4lf, %.1lf]",
+               lgf->position_solution.pos_llh[0] * R2D,
+               lgf->position_solution.pos_llh[1] * R2D,
+               lgf->position_solution.pos_llh[2]);
+      res = ndb_update(lgf, NDB_DS_RECEIVER, &last_good_fix_md);
+    } else {
+      res = NDB_ERR_NONE;
+    }
+  } else {
+    res = NDB_ERR_BAD_PARAM;
+  }
+
+  return res;
 }
