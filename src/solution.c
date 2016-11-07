@@ -249,7 +249,8 @@ static bool init_done = false;
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                             const gps_time_t *t, double hdop, double diff_time, u16 base_id) {
   double b[3];
-  u8 num_used, flags;
+  u8 num_used = 0;
+  u8 flags = 0;
   s8 ret;
   bool send_baseline = false;
 
@@ -258,7 +259,6 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
-      flags = 0;
       chMtxLock(&eigen_state_lock);
       ret = get_baseline(b, &num_used, &flags);
       chMtxUnlock(&eigen_state_lock);
@@ -275,7 +275,6 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
       if (ret == 0) {
-        flags = 0;
         chMtxLock(&eigen_state_lock);
         ret = get_baseline(b, &num_used, &flags);
         chMtxUnlock(&eigen_state_lock);
@@ -286,7 +285,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
         }
       }
     }
-    if (send_baseline) {
+    if (send_baseline && num_used >= 4) {
       solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
                              flags, hdop, diff_time, base_id);
     }
