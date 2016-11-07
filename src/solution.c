@@ -108,6 +108,24 @@ static last_good_fix_t lgf;
 bool disable_raim = false;
 bool send_heading = false;
 
+
+/** Determine if we have had a DGNSS timeout.
+ *
+ * \param _last_dgnss. Last time of DGNSS solution
+ * \param _soln_freq. The current solution rate (in hz) commanded for soln thread
+ * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
+ *
+ */
+bool dgnss_timeout(systime_t _last_dgnss, double _soln_freq_hz,
+                            dgnss_solution_mode_t _dgnss_soln_mode) {
+  double dgnss_timeout_sec = DGNSS_TIMEOUT(_soln_freq_hz);
+
+  if (_dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+    dgnss_timeout_sec *= 2;
+  }
+  return (chVTTimeElapsedSinceX(_last_dgnss) > dgnss_timeout_sec);
+}
+
 void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 {
   if (soln) {
@@ -115,7 +133,11 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     msg_gps_time_t gps_time;
     sbp_make_gps_time(&gps_time, &soln->time, 0);
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
-    if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
+
+    /* in pseudoabsolute mode, we wait to resend the SPP solution until a timeout has occured
+       the timeout depends on time_matched vs low latency mode.  It is doubled for low latency mode */
+
+    if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
       /* Position in LLH. */
       msg_pos_llh_t pos_llh;
       sbp_make_pos_llh(&pos_llh, soln, 0);
@@ -152,7 +174,7 @@ void solution_send_nmea(gnss_solution *soln, dops_t *dops,
                         u8 n, navigation_measurement_t *nm,
                         u8 fix_mode, bool clock_jump)
 {
-  if (chVTTimeElapsedSinceX(last_dgnss) > DGNSS_TIMEOUT(soln_freq)) {
+  if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
     nmea_gpgga(soln->pos_llh, &soln->time, soln->n_used,
                fix_mode, dops->hdop, 0, 0);
   }
