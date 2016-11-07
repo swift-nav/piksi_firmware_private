@@ -13,10 +13,12 @@
 #define DEBUG 0
 #define NDB_WEAK
 
+#include <math.h>
 #include <string.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/coord_system.h>
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "settings.h"
@@ -80,6 +82,118 @@ void ndb_lgf_init(void)
   }
 }
 
+static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
+  /* Check quality */
+  if (!((lgf->position_quality == POSITION_UNKNOWN) ||
+        (lgf->position_quality == POSITION_GUESS) ||
+        (lgf->position_quality == POSITION_STATIC) ||
+        (lgf->position_quality == POSITION_FIX))) {
+    return false;
+  }
+
+  /* Check position valid flag */
+  if (lgf->position_solution.valid != 1) {
+    return false;
+  }
+
+  /* Check that values are not NaN */
+  if (isnan(lgf->position_solution.pos_llh[0]) ||
+      isnan(lgf->position_solution.pos_llh[1]) ||
+      isnan(lgf->position_solution.pos_llh[2])) {
+    return false;
+  }
+  if (isnan(lgf->position_solution.pos_ecef[0]) ||
+      isnan(lgf->position_solution.pos_ecef[1]) ||
+      isnan(lgf->position_solution.pos_ecef[2])) {
+    return false;
+  }
+
+  /* Check that LLH is in valid range */
+  if ((lgf->position_solution.pos_llh[0] > 90.0) ||
+      (lgf->position_solution.pos_llh[0] < -90.0)) {
+    return false;
+  }
+  if ((lgf->position_solution.pos_llh[1] > 180.0) ||
+      (lgf->position_solution.pos_llh[1] < -180.0)) {
+    return false;
+  }
+  /* From limits in calc_PVT */
+  if ((lgf->position_solution.pos_llh[2] > 1e6) ||
+      (lgf->position_solution.pos_llh[2] < -1e3)) {
+    return false;
+  }
+
+  /* Check that ECEF and LLH is consistent within 1 mm */
+  double check_pos_ecef[3];
+  wgsllh2ecef(lgf->position_solution.pos_llh, check_pos_ecef);
+  if ((abs(lgf->position_solution.pos_ecef[0] - check_pos_ecef[0]) > 0.01) ||
+      (abs(lgf->position_solution.pos_ecef[1] - check_pos_ecef[1]) > 0.01) ||
+      (abs(lgf->position_solution.pos_ecef[2] - check_pos_ecef[2]) > 0.01)) {
+    return false;
+  }
+
+  /* Check velocity */
+  if (lgf->position_solution.velocity_valid) {
+    /* Check that values are not NaN */
+    if (isnan(lgf->position_solution.vel_ned[0]) ||
+        isnan(lgf->position_solution.vel_ned[1]) ||
+        isnan(lgf->position_solution.vel_ned[2])) {
+      return false;
+    }
+    if (isnan(lgf->position_solution.vel_ecef[0]) ||
+        isnan(lgf->position_solution.vel_ecef[1]) ||
+        isnan(lgf->position_solution.vel_ecef[2])) {
+      return false;
+    }
+
+    /* From limits in calc_PVT */
+    if (vector_norm(3, lgf->position_solution.vel_ned) >= 0.514444444 * 1000) {
+      return false;
+    }
+
+    /* Check that ECEF and NED is consistent within 1 mm/s*/
+    double check_vel_ecef[3];
+    wgsned2ecef(lgf->position_solution.vel_ned,
+                lgf->position_solution.pos_ecef, check_vel_ecef);
+    if ((abs(lgf->position_solution.vel_ecef[0] - check_vel_ecef[0]) > 0.01) ||
+        (abs(lgf->position_solution.vel_ecef[1] - check_vel_ecef[1]) > 0.01) ||
+        (abs(lgf->position_solution.vel_ecef[2] - check_vel_ecef[2]) > 0.01)) {
+      return false;
+    }
+  }
+
+  /* Check the error covariance */
+  if (isnan(lgf->position_solution.err_cov[0]) ||
+      isnan(lgf->position_solution.err_cov[1]) ||
+      isnan(lgf->position_solution.err_cov[2]) ||
+      isnan(lgf->position_solution.err_cov[3]) ||
+      isnan(lgf->position_solution.err_cov[4]) ||
+      isnan(lgf->position_solution.err_cov[5]) ||
+      isnan(lgf->position_solution.err_cov[6])) {
+    return false;
+  }
+
+  /* Check the clock parameters */
+  /* TODO(Leith): Not sure what reasonable ranges of values to check agaisnt */
+  if (isnan(lgf->position_solution.clock_offset) ||
+      isnan(lgf->position_solution.clock_bias)) {
+    return false;
+  }
+
+  /* Check time */
+  if (isnan(lgf->position_solution.time.tow) ||
+      !gps_current_time_valid(&lgf->position_solution.time)) {
+    return false;
+  }
+
+  /* Check for valid number of sats */
+  if (lgf->position_solution.n_used < 4) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Loads last good fix data from NDB
  *
@@ -136,6 +250,10 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
 
   if (NULL != lgf) {
     bool update_nv_data = true;
+
+    if (!ndb_lgf_validate(lgf)) {
+      return NDB_ERR_BAD_PARAM;
+    }
 
     ndb_lock();
 
