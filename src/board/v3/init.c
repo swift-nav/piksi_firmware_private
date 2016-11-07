@@ -33,6 +33,7 @@
 #include "sbp_fileio.h"
 #include "factory_data.h"
 #include "clk_dac.h"
+#include "peripherals/antenna.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03060000U)
@@ -139,6 +140,7 @@ void init(void)
 
   random_init();
   xadc_init();
+  antenna_init();
 }
 
 static void nap_conf_check(void)
