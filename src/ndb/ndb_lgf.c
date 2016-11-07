@@ -19,6 +19,7 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/constants.h>
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "settings.h"
@@ -220,6 +221,7 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
     if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
       *lgf = last_good_fix;
       if (!ndb_lgf_validate(lgf)) {
+        log_warn("NDB: Invalid LGF data retreived. Erasing.");
         /* TODO: erase the bad data */
         memset(lgf, 0, sizeof(*lgf));
         res = NDB_ERR_UNRELIABLE_DATA;
@@ -296,6 +298,7 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
       res = NDB_ERR_NONE;
     }
   } else {
+    log_warn("NDB: Invalid LGF was attempted to be stored.");
     res = NDB_ERR_BAD_PARAM;
   }
 
