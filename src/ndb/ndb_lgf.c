@@ -97,14 +97,14 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   }
 
   /* Check that values are not NaN */
-  if (isnan(lgf->position_solution.pos_llh[0]) ||
-      isnan(lgf->position_solution.pos_llh[1]) ||
-      isnan(lgf->position_solution.pos_llh[2])) {
+  if (!isfinite(lgf->position_solution.pos_llh[0]) ||
+      !isfinite(lgf->position_solution.pos_llh[1]) ||
+      !isfinite(lgf->position_solution.pos_llh[2])) {
     return false;
   }
-  if (isnan(lgf->position_solution.pos_ecef[0]) ||
-      isnan(lgf->position_solution.pos_ecef[1]) ||
-      isnan(lgf->position_solution.pos_ecef[2])) {
+  if (!isfinite(lgf->position_solution.pos_ecef[0]) ||
+      !isfinite(lgf->position_solution.pos_ecef[1]) ||
+      !isfinite(lgf->position_solution.pos_ecef[2])) {
     return false;
   }
 
@@ -135,14 +135,14 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   /* Check velocity */
   if (lgf->position_solution.velocity_valid) {
     /* Check that values are not NaN */
-    if (isnan(lgf->position_solution.vel_ned[0]) ||
-        isnan(lgf->position_solution.vel_ned[1]) ||
-        isnan(lgf->position_solution.vel_ned[2])) {
+    if (!isfinite(lgf->position_solution.vel_ned[0]) ||
+        !isfinite(lgf->position_solution.vel_ned[1]) ||
+        !isfinite(lgf->position_solution.vel_ned[2])) {
       return false;
     }
-    if (isnan(lgf->position_solution.vel_ecef[0]) ||
-        isnan(lgf->position_solution.vel_ecef[1]) ||
-        isnan(lgf->position_solution.vel_ecef[2])) {
+    if (!isfinite(lgf->position_solution.vel_ecef[0]) ||
+        !isfinite(lgf->position_solution.vel_ecef[1]) ||
+        !isfinite(lgf->position_solution.vel_ecef[2])) {
       return false;
     }
 
@@ -163,26 +163,26 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   }
 
   /* Check the error covariance */
-  if (isnan(lgf->position_solution.err_cov[0]) ||
-      isnan(lgf->position_solution.err_cov[1]) ||
-      isnan(lgf->position_solution.err_cov[2]) ||
-      isnan(lgf->position_solution.err_cov[3]) ||
-      isnan(lgf->position_solution.err_cov[4]) ||
-      isnan(lgf->position_solution.err_cov[5]) ||
-      isnan(lgf->position_solution.err_cov[6])) {
+  if (!isfinite(lgf->position_solution.err_cov[0]) ||
+      !isfinite(lgf->position_solution.err_cov[1]) ||
+      !isfinite(lgf->position_solution.err_cov[2]) ||
+      !isfinite(lgf->position_solution.err_cov[3]) ||
+      !isfinite(lgf->position_solution.err_cov[4]) ||
+      !isfinite(lgf->position_solution.err_cov[5]) ||
+      !isfinite(lgf->position_solution.err_cov[6])) {
     return false;
   }
 
   /* Check the clock parameters */
   /* TODO(Leith): Not sure what reasonable ranges of values to check agaisnt */
-  if (isnan(lgf->position_solution.clock_offset) ||
-      isnan(lgf->position_solution.clock_bias)) {
+  if (!isfinite(lgf->position_solution.clock_offset) ||
+      !isfinite(lgf->position_solution.clock_bias)) {
     return false;
   }
 
   /* Check time */
   /* TODO(Leith): do we want LGF to expire after a certain amount of time? */
-  if (isnan(lgf->position_solution.time.tow) ||
+  if (!isfinite(lgf->position_solution.time.tow) ||
       !gps_current_time_valid(&lgf->position_solution.time)) {
     return false;
   }
