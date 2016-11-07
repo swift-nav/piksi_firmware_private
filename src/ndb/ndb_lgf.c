@@ -109,12 +109,12 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   }
 
   /* Check that LLH is in valid range */
-  if ((lgf->position_solution.pos_llh[0] > 90.0) ||
-      (lgf->position_solution.pos_llh[0] < -90.0)) {
+  if ((lgf->position_solution.pos_llh[0] > 90.0 * D2R) ||
+      (lgf->position_solution.pos_llh[0] < -90.0 * D2R)) {
     return false;
   }
-  if ((lgf->position_solution.pos_llh[1] > 180.0) ||
-      (lgf->position_solution.pos_llh[1] < -180.0)) {
+  if ((lgf->position_solution.pos_llh[1] > 180.0 * D2R) ||
+      (lgf->position_solution.pos_llh[1] < -180.0 * D2R)) {
     return false;
   }
   /* From limits in calc_PVT */
