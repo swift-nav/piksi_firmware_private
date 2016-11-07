@@ -53,7 +53,7 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
 }
 
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const u32 *l2c_cap,
-                                         ndb_data_source_t src)=
+                                         ndb_data_source_t src)
 {
   if (NULL != l2c_cap) {
     log_info("Updating L2C capability 0x%08" PRIX32, *l2c_cap);

@@ -219,7 +219,13 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
     ndb_lock();
     if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
       *lgf = last_good_fix;
-      res = NDB_ERR_NONE;
+      if (!ndb_lgf_validate(lgf)) {
+        /* TODO: erase the bad data */
+        memset(lgf, 0, sizeof(*lgf));
+        res = NDB_ERR_UNRELIABLE_DATA;
+      } else {
+        res = NDB_ERR_NONE;
+      }
     } else {
       memset(lgf, 0, sizeof(*lgf));
       res = NDB_ERR_MISSING_IE;
@@ -249,12 +255,8 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  if (NULL != lgf) {
+  if (NULL != lgf && ndb_lgf_validate(lgf)) {
     bool update_nv_data = true;
-
-    if (!ndb_lgf_validate(lgf)) {
-      return NDB_ERR_BAD_PARAM;
-    }
 
     ndb_lock();
 
