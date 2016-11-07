@@ -181,6 +181,7 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   }
 
   /* Check time */
+  /* TODO(Leith): do we want LGF to expire after a certain amount of time? */
   if (isnan(lgf->position_solution.time.tow) ||
       !gps_current_time_valid(&lgf->position_solution.time)) {
     return false;
