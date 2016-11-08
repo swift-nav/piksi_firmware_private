@@ -30,7 +30,6 @@ typedef enum ndb_op_code
   NDB_ERR_UNRELIABLE_DATA, /**< Data can't be verified */
   NDB_ERR_ALGORITHM_ERROR, /**< Error */
   NDB_ERR_NO_DATA,         /**< No data to process */
-  NDB_ERR_NO_CHANGE,       /**< Data has not been updated */
 } ndb_op_code_t;
 
 typedef enum ndb_data_source
