@@ -22,6 +22,7 @@
 
 #include "sbp.h"
 #include "sbp_utils.h"
+#include "timing.h"
 
 /** \addtogroup sbp
  * \{ */
@@ -447,6 +448,85 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*))
       &ephe_type_table[i].cbk_node
     );
   }
+}
+
+/**
+ * This is helper function packs and sends iono parameters over SBP
+ * @param[in] iono pointer to Iono parameters
+ */
+void sbp_send_iono(const ionosphere_t *iono)
+{
+  msg_iono_t msg_iono = {
+    .t_nmct = {
+      /* TODO: set this as 0 for now, beccause functionality
+       * decodes tnmct is not available */
+      .tow = 0,
+      .wn = 0
+    },
+    .a0 = iono->a0,
+    .a1 = iono->a1,
+    .a2 = iono->a2,
+    .a3 = iono->a3,
+    .b0 = iono->b0,
+    .b1 = iono->b1,
+    .b2 = iono->b2,
+    .b3 = iono->b3
+  };
+
+  /* send data over sbp */
+  sbp_send_msg(SBP_MSG_IONO,
+               sizeof(msg_iono_t),
+               (u8 *)&msg_iono);
+}
+
+/**
+ * This is helper function packs and sends L2C capabilities over SBP
+ * @param[in] l2c_cap pointer to L2C capabilities mask
+ */
+void sbp_send_l2c_capabilities(const u32 *l2c_cap)
+{
+  msg_sv_configuration_gps_t msg_l2c = {
+    .t_nmct = {
+      /* TODO: set this as 0 for now, beccause functionality
+       * decodes tnmct is not available */
+      .tow = 0,
+      .wn = 0
+    },
+    .l2c_mask = *l2c_cap
+  };
+
+  /* send data over sbp */
+  sbp_send_msg(SBP_MSG_SV_CONFIGURATION_GPS,
+               sizeof(msg_sv_configuration_gps_t),
+               (u8 *)&msg_l2c);
+}
+
+/**
+ * This is helper function packs and sends Group delay over SBP
+ * @param[in] cnav pointer to GPS CNAV message structure
+ */
+void sbp_send_group_delay(const cnav_msg_t *cnav)
+{
+  gps_time_t t = get_current_time();
+  msg_group_delay_t msg_cnav = {
+    .t_op = {
+      /* Convert from 6 seconds unit */
+      .tow = (u32)(cnav->tow * 6),
+      .wn = t.wn
+    },
+    .prn = cnav->prn,
+    .valid = cnav->data.type_30.tgd_valid          |
+             cnav->data.type_30.isc_l2c_valid << 1 |
+             cnav->data.type_30.isc_l1ca_valid << 2,
+    .tgd = cnav->data.type_30.tgd,
+    .isc_l1ca = cnav->data.type_30.isc_l1ca,
+    .isc_l2c = cnav->data.type_30.isc_l2c
+  };
+
+  /* send data over sbp */
+  sbp_send_msg(SBP_MSG_GROUP_DELAY,
+               sizeof(msg_group_delay_t),
+               (u8 *)&msg_cnav);
 }
 
 /** \} */
