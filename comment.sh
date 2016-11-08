@@ -25,7 +25,7 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
-RELEASES="piksi_firmware_v0.21.hex"
+RELEASES="piksi_firmware_v0.21.hex%2Cpm_alpha_rc0-1-gef65f0a%2Cpm_alpha_rc1-3-ge561a3c%2Cpm_alpha_rc2-2-g2c49ba8"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUCKET="swiftnav-artifacts"
