@@ -294,7 +294,7 @@ u64 timing_getms(void)
 
 /* TODO doxygen */
 void steer_clock(double clock_offset, double clock_drift) {
-  log_info("clock_offset, %.10f, clock_drift %.10f", clock_offset, clock_drift);
+  log_info("clock_offset = %.10f s, clock_drift = %.10f s/s", clock_offset, clock_drift);
 
   // input offset is in seconds, and drift is in seconds / seconds
   // to convert s/s to Hz/s you multiply by the clock freq, 10MHz
@@ -303,16 +303,34 @@ void steer_clock(double clock_offset, double clock_drift) {
   // at 100Hz/s
   // so we want to ensure we never make a clock drift exceeding that
 
+  // TODO eventually put in the header as defines?
   const double tcxo_freq = 10e6; // MHz
-  const double max_drift = 10.0 / tcxo_freq;
+  const double max_drift = 10.0 / tcxo_freq; // s/s
+  const double min_drift = -10.0 / tcxo_freq; // s/s
 
+  // Proportional constant to derive target drift from the current offset
+  const double p_drift = 0.0001; // rough guess
 
+  // Target offset is zero, if <0 apply +ve drift, if >0 apply -ve drift
+  double target_drift = -p_drift * clock_offset; // s/s
+  if (target_drift > max_drift) {
+    target_drift = max_drift;
+  } else if (target_drift < min_drift) {
+    target_drift = min_drift;
+  }
 
+  // if target drift > current drift, reduce voltage,
+  // if target < current, inrease voltage
+  double drift_error = target_drift - clock_drift; // s/s
+  double drift_error_ppm = (drift_error * tcxo_freq) / (tcxo_freq / 1e6); // ppm @ tcxo_freq
 
+  const double txco_pulling = 20.0; // ppm @ 10 MHz from IQD datasheet, defined as freq change from min Vc to max Vc
+  const double Vc_midpoint = 1.5; // V from IQD datasheet
+  const double Vc_range = 1.0; // +/-V from IQD datasheet
 
+  double Vc = (drift_error_ppm / (txco_pulling / 2.0)) * (Vc_range) + Vc_midpoint;
 
-
-
+  log_info("target_drift = %.10f s/s, drift_error = %.10f s/s, Vc = %.5f", target_drift, drift_error, Vc);
 
   /* Max TCXO drift before PLL lock loss is +/- 10 Hz/s = +/- 1 ppm @ 10 MHz
    * For IQD 10 MHz TCXO and 8 bit DAC (0 - 3.3V) the output values are:
@@ -334,9 +352,10 @@ void steer_clock(double clock_offset, double clock_drift) {
    /* I verified that higher DAC 132 vs 128 increased clock_drift in +ve direction
     * Such a big change (128 at boot, to 132 after first loop)
     * caused tracking to stop, but it later recovered
-    * Going to try smaller step (128 -> 129) */
+    * Going to try smaller step (128 -> 129)
+    * That also caused loss of track, we are not sensitive enough */
 
-  set_clk_dac(129, CLK_DAC_MODE_0);
+  //set_clk_dac(129, CLK_DAC_MODE_0);
 }
 
 /** \} */
