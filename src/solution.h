@@ -30,6 +30,21 @@ typedef enum {
   FILTER_FIXED,
 } dgnss_filter_t;
 
+typedef struct {
+  u8 signals_tracked;
+  u8 signals_useable;
+} soln_stats_t;
+
+typedef struct {
+  systime_t systime;
+  u8 signals_used;
+} soln_pvt_stats_t;
+
+typedef struct {
+  systime_t systime;
+  dgnss_filter_t mode;
+} soln_dgnss_stats_t;
+
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
@@ -51,6 +66,9 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                             double covariance_ecef[9],
                             double ref_ecef[3], u8 flags, double hdop,
                             double corrections_age, u16 sender_id);
+soln_stats_t solution_last_stats_get(void);
+soln_pvt_stats_t solution_last_pvt_stats_get(void);
+soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void solution_setup(void);
 
 #endif

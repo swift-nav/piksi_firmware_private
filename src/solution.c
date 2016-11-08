@@ -103,6 +103,9 @@ static last_good_fix_t lgf;
 bool disable_raim = false;
 bool send_heading = false;
 
+static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
+static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
+static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
 
 /** Determine if we have had a DGNSS timeout.
  *
@@ -163,6 +166,10 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
         sbp_send_msg(SBP_MSG_DOPS, sizeof(msg_dops_t), (u8 *) &sbp_dops);
       );
     }
+
+    /* Update stats */
+    last_pvt_stats.systime = chVTGetSystemTime();
+    last_pvt_stats.signals_used = soln->n_used;
   }
 }
 void solution_send_nmea(gnss_solution *soln, dops_t *dops,
@@ -263,6 +270,10 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
     sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
   }
   chMtxUnlock(&base_pos_lock);
+
+  /* Update stats */
+  last_dgnss_stats.systime = chVTGetSystemTime();
+  last_dgnss_stats.mode = (flags == 1) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
 static bool init_done = false;
@@ -702,6 +713,16 @@ static void solution_thread(void *arg)
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
               " (total=%" PRIu8 ")", n_ready, n_collected, n_total);
+
+    /* Update stats */
+    if (simulation_enabled_for(SIMULATION_MODE_TRACKING)) {
+      u8 sim_sats = simulation_current_num_sats();
+      last_stats.signals_tracked = sim_sats;
+      last_stats.signals_useable = sim_sats;
+    } else {
+      last_stats.signals_tracked = n_total;
+      last_stats.signals_useable = n_collected;
+    }
 
     if (n_ready < MINIMUM_MEAS_COUNT) {
       /* Not enough sats, keep on looping. */
@@ -1164,6 +1185,21 @@ void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   default:
     break;
   }
+}
+
+soln_stats_t solution_last_stats_get(void)
+{
+  return last_stats;
+}
+
+soln_pvt_stats_t solution_last_pvt_stats_get(void)
+{
+  return last_pvt_stats;
+}
+
+soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
+{
+  return last_dgnss_stats;
 }
 
 void solution_setup()
