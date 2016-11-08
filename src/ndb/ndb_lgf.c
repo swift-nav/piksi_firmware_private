@@ -127,9 +127,9 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   /* Check that ECEF and LLH is consistent within 1 mm */
   double check_pos_ecef[3];
   wgsllh2ecef(lgf->position_solution.pos_llh, check_pos_ecef);
-  if ((abs(lgf->position_solution.pos_ecef[0] - check_pos_ecef[0]) > 0.01) ||
-      (abs(lgf->position_solution.pos_ecef[1] - check_pos_ecef[1]) > 0.01) ||
-      (abs(lgf->position_solution.pos_ecef[2] - check_pos_ecef[2]) > 0.01)) {
+  if ((abs(lgf->position_solution.pos_ecef[0] - check_pos_ecef[0]) > 0.001) ||
+      (abs(lgf->position_solution.pos_ecef[1] - check_pos_ecef[1]) > 0.001) ||
+      (abs(lgf->position_solution.pos_ecef[2] - check_pos_ecef[2]) > 0.001)) {
     return false;
   }
 
@@ -156,9 +156,9 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
     double check_vel_ecef[3];
     wgsned2ecef(lgf->position_solution.vel_ned,
                 lgf->position_solution.pos_ecef, check_vel_ecef);
-    if ((abs(lgf->position_solution.vel_ecef[0] - check_vel_ecef[0]) > 0.01) ||
-        (abs(lgf->position_solution.vel_ecef[1] - check_vel_ecef[1]) > 0.01) ||
-        (abs(lgf->position_solution.vel_ecef[2] - check_vel_ecef[2]) > 0.01)) {
+    if ((abs(lgf->position_solution.vel_ecef[0] - check_vel_ecef[0]) > 0.001) ||
+        (abs(lgf->position_solution.vel_ecef[1] - check_vel_ecef[1]) > 0.001) ||
+        (abs(lgf->position_solution.vel_ecef[2] - check_vel_ecef[2]) > 0.001)) {
       return false;
     }
   }
