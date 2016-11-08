@@ -28,6 +28,11 @@
  * Functions to get information about the SwiftNAP configuration.
  * \{ */
 
+u32 nap_conf_rd_random(void)
+{
+  return NAP->RANDOM;
+}
+
 u32 nap_conf_rd_version(void)
 {
   NAP->CONTROL = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));

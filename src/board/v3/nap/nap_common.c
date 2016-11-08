@@ -51,11 +51,18 @@ void nap_setup(void)
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  /* FE_BB0_PINC initialization for GPS L1C/A processing */
-  NAP_FE->BB_PINC[0] = NAP_FE_L1CA_BASEBAND_MIXER_PINC;
+  /* Set acquisiton decimation factor */
+  NAP_FE->ACQ_CONTROL = (NAP_ACQ_DECIMATION_RATE << NAP_FE_ACQ_CONTROL_DECIMATION_Pos);
 
-  /* FE_BB3_PINC initialization for GPS L2C processing */
-  NAP_FE->BB_PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+  /* FE_PINC0 initialization for GPS L1C/A processing */
+  NAP_FE->PINC[0] = NAP_FE_L1CA_BASEBAND_MIXER_PINC;
+
+  /* FE_PINC3 initialization for GPS L2C processing */
+  NAP_FE->PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+
+  /* Enable frontend channel 0 (RF1) and frontend channel 3 (RF4) */
+  NAP_FE->CONTROL = (1 << NAP_FE_CONTROL_ENABLE_RF1_Pos) |
+                    (1 << NAP_FE_CONTROL_ENABLE_RF4_Pos);
 
   /* Enable NAP interrupt */
   chThdCreateStatic(wa_nap_exti, sizeof(wa_nap_exti), HIGHPRIO-1, nap_exti_thread, NULL);
@@ -199,3 +206,15 @@ void nap_dna_callback_register(void)
   sbp_register_cbk(SBP_MSG_NAP_DEVICE_DNA_REQ, &nap_rd_dna_callback,
       &nap_dna_node);
 }
+
+void nap_pps(u32 count)
+{
+  NAP->PPS_TIMING_COMPARE = count + NAP_PPS_TIMING_COUNT_OFFSET;
+}
+
+void nap_pps_config(u32 microseconds, u8 active)
+{
+  u32 width = ceil((double)microseconds / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6)) - 1;
+  NAP->PPS_CONTROL = (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
+}
+
