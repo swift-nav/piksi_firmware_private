@@ -19,6 +19,7 @@
 #include <libswiftnav/linear_algebra.h>
 
 #include "board/nap/nap_common.h"
+#include "board/v3/clk_dac.h"
 #include "main.h"
 #include "sbp.h"
 #include "timing.h"
@@ -290,4 +291,13 @@ u64 timing_getms(void)
 {
   return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
 }
+
+/* TODO doxygen */
+void steer_clock(double clock_offset, double clock_drift) {
+  log_info("clock_offset, %.10f, clock_drift %.10f", clock_offset, clock_drift);
+
+  /* 8 bit DAC drives 0 - 3.3V, TCXO control midpoint is 1.5V */
+  set_clk_dac(116, CLK_DAC_MODE_0);
+}
+
 /** \} */

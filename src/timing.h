@@ -51,5 +51,6 @@ void adjust_time_fine(double dt);
 gps_time_t rx2gpstime(double tc);
 double gps2rxtime(gps_time_t* t);
 u64 timing_getms(void);
+void steer_clock(double clock_offset, double clock_drift);
 
 #endif
