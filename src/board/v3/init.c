@@ -121,7 +121,8 @@ void init(void)
   factory_params_read();
 
   /* Start DAC off in high impedance mode if present */
-  set_clk_dac(0, CLK_DAC_MODE_3);
+  //set_clk_dac(0, CLK_DAC_MODE_3);
+  set_clk_dac(128, CLK_DAC_MODE_0);
 
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();

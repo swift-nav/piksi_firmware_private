@@ -296,8 +296,23 @@ u64 timing_getms(void)
 void steer_clock(double clock_offset, double clock_drift) {
   log_info("clock_offset, %.10f, clock_drift %.10f", clock_offset, clock_drift);
 
+  /* Max TCXO drift before PLL lock loss is +/- 10 Hz/s = +/- 1 ppm @ 10 MHz
+   * For IQD 10 MHz TCXO and 8 bit DAC (0 - 3.3V) the output values are:
+   * DAC value    Control voltage    Clock drift
+   * 112          1.444 V            -1.125 ppm
+   * 113          1.457 V            -0.867 ppm
+   * 114          1.470 V            -0.609 ppm
+   * 115          1.482 V            -0.352 ppm
+   * 116          1.495 V            -0.094 ppm
+   * 117          1.508 V             0.164 ppm
+   * 118          1.521 V             0.422 ppm
+   * 119          1.534 V             0.680 ppm
+   * 120          1.547 V             0.938 ppm
+   * 121          1.560 V             1.195 ppm
+   */
+
   /* 8 bit DAC drives 0 - 3.3V, TCXO control midpoint is 1.5V */
-  set_clk_dac(116, CLK_DAC_MODE_0);
+  set_clk_dac(128, CLK_DAC_MODE_0);
 }
 
 /** \} */
