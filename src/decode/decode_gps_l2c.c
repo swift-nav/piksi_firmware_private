@@ -123,8 +123,6 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
           data->cnav_msg.data.type_30.isc_l2c);
 
       cnav_msg_put(&data->cnav_msg);
-
-      sbp_send_group_delay(&data->cnav_msg);
     }
     else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
       log_debug_sid(channel_info->sid,

@@ -86,8 +86,4 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*));
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from);
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
 
-void sbp_send_iono(const ionosphere_t *iono);
-void sbp_send_l2c_capabilities(const u32 *l2c_cap);
-void sbp_send_group_delay(const cnav_msg_t *cnav);
-
 #endif /* SWIFTNAV_SBP_UTILS_H */

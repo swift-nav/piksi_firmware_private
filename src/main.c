@@ -39,7 +39,6 @@
 #include "signal.h"
 #include "version.h"
 #include "ndb.h"
-#include "sbp_utils.h"
 
 extern void ext_setup(void);
 
@@ -115,20 +114,6 @@ int main(void)
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;
   sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8 *)&startup_flags);
-
-
-  /* send Iono correction, L2C capabilities if valid */
-  ionosphere_t iono;
-  if (!ndb_iono_corr_read(&iono))
-  {
-    sbp_send_iono(&iono);
-  }
-
-  u32 l2c_mask;
-  if (!ndb_gps_l2cm_l2c_cap_read(&l2c_mask))
-  {
-    sbp_send_l2c_capabilities(&l2c_mask);
-  }
 
   while (1) {
     chThdSleepSeconds(60);

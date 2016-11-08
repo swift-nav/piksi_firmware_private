@@ -16,6 +16,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h>
 #include <assert.h>
+#include <string.h>
 
 #include "ephemeris.h"
 #include "track.h"
@@ -24,6 +25,7 @@
 #include "signal.h"
 #include "ndb.h"
 #include "shm.h"
+#include "timing.h"
 
 typedef struct {
   nav_msg_t nav_msg;
@@ -121,19 +123,44 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     /* store new L2C value into NDB */
     log_debug_sid(channel_info->sid, "L2C capabilities received: 0x%x",
                   dd.gps_l2c_sv_capability);
-    if (ndb_gps_l2cm_l2c_cap_store(&dd.gps_l2c_sv_capability, NDB_DS_RECEIVER) ==
-        NDB_ERR_NONE) {
-      sbp_send_l2c_capabilities(&dd.gps_l2c_sv_capability);
-    }
+    ndb_gps_l2cm_l2c_cap_store(&dd.gps_l2c_sv_capability, NDB_DS_RECEIVER);
   }
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
     log_debug_sid(channel_info->sid, "Iono parameters received");
+    /* read iono parameters form NV RAM */
+    ionosphere_t tmp_iono;
+    memset(&tmp_iono, 0, sizeof(tmp_iono));
+    ndb_iono_corr_read(&tmp_iono);
 
-    if (ndb_iono_corr_store(&dd.iono, NDB_DS_RECEIVER) == NDB_ERR_NONE) {
-      sbp_send_iono(&dd.iono);
+    /* check if any iono parameters changed */
+    if (memcmp(&tmp_iono, &dd.iono, sizeof(tmp_iono)))
+    {
+      gps_time_t t = get_current_time();
+      msg_iono_t msg_iono = {
+        .t_nmct = {
+          .tow = (u32)t.tow,
+          .wn = t.wn
+        },
+        .a0 = dd.iono.a0,
+        .a1 = dd.iono.a1,
+        .a2 = dd.iono.a2,
+        .a3 = dd.iono.a3,
+        .b0 = dd.iono.b0,
+        .b1 = dd.iono.b1,
+        .b2 = dd.iono.b2,
+        .b3 = dd.iono.b3
+      };
+      log_debug_sid(channel_info->sid, "New Iono parameters about to send over SBP");
+
+      /* there are new values, send data over sbp */
+      sbp_send_msg(SBP_MSG_IONO,
+                   sizeof(msg_iono_t),
+                   (u8 *)&msg_iono);
     }
+
+    ndb_iono_corr_store(&dd.iono, NDB_DS_RECEIVER);
   }
 
   if(dd.ephemeris_upd_flag) {

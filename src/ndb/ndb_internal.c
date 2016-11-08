@@ -149,9 +149,6 @@ static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
   case NDB_ERR_INIT_DONE:
     log_info("No %s file present in flash, create an empty one", file_type);
     break;
-  case NDB_ERR_NO_CHANGE:
-    log_info("NDB data has not been changed");
-    break;
   case NDB_ERR_MISSING_IE:
   case NDB_ERR_UNSUPPORTED:
   case NDB_ERR_BAD_PARAM:
@@ -558,15 +555,12 @@ ndb_op_code_t ndb_update(const void *data,
       memcpy(md->data, data, block_size);
       md->nv_data.state |= NDB_IE_VALID;
       md->nv_data.state |= NDB_IE_DIRTY;
-      res = NDB_ERR_NONE;
-    } else {
-      /* data we try to write to NDB is the same as previously stored */
-      res = NDB_ERR_NO_CHANGE;
     }
 
     ndb_wq_put(md);
     ndb_unlock();
 
+    res = NDB_ERR_NONE;
   } else {
     res = NDB_ERR_BAD_PARAM;
   }
