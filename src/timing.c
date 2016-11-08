@@ -296,6 +296,24 @@ u64 timing_getms(void)
 void steer_clock(double clock_offset, double clock_drift) {
   log_info("clock_offset, %.10f, clock_drift %.10f", clock_offset, clock_drift);
 
+  // input offset is in seconds, and drift is in seconds / seconds
+  // to convert s/s to Hz/s you multiply by the clock freq, 10MHz
+
+  // according to @jas, testing has shown PLL lock stops at 10Hz/s, and FLL
+  // at 100Hz/s
+  // so we want to ensure we never make a clock drift exceeding that
+
+  const double tcxo_freq = 10e6; // MHz
+  const double max_drift = 10.0 / tcxo_freq;
+
+
+
+
+
+
+
+
+
   /* Max TCXO drift before PLL lock loss is +/- 10 Hz/s = +/- 1 ppm @ 10 MHz
    * For IQD 10 MHz TCXO and 8 bit DAC (0 - 3.3V) the output values are:
    * DAC value    Control voltage    Clock drift
@@ -310,9 +328,15 @@ void steer_clock(double clock_offset, double clock_drift) {
    * 120          1.547 V             0.938 ppm
    * 121          1.560 V             1.195 ppm
    */
+   /* TODO I am not sure of this any more, setting 116 midpoint value caused clock
+    * drift to change and tracking stopped, but later recovered. */
 
-  /* 8 bit DAC drives 0 - 3.3V, TCXO control midpoint is 1.5V */
-  set_clk_dac(128, CLK_DAC_MODE_0);
+   /* I verified that higher DAC 132 vs 128 increased clock_drift in +ve direction
+    * Such a big change (128 at boot, to 132 after first loop)
+    * caused tracking to stop, but it later recovered
+    * Going to try smaller step (128 -> 129) */
+
+  set_clk_dac(129, CLK_DAC_MODE_0);
 }
 
 /** \} */
