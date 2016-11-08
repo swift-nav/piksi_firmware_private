@@ -17,7 +17,7 @@
 #include <ndb/ndb_common.h>
 
 void ndb_lgf_init(void);
-enum ndb_op_code ndb_lgf_read(last_good_fix_t *lgf) NDB_WEAK;
-enum ndb_op_code ndb_lgf_store(last_good_fix_t *lgf) NDB_WEAK;
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) NDB_WEAK;
+ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) NDB_WEAK;
 
 #endif /* SRC_NDB_LGF_H_ */

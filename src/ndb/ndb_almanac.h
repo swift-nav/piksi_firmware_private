@@ -16,7 +16,7 @@
 #include <ndb/ndb_common.h>
 
 void ndb_almanac_init(void);
-enum ndb_op_code ndb_almanac_read(gnss_signal_t sid, almanac_t *a);
-enum ndb_op_code ndb_almanac_store(almanac_t *a, enum ndb_data_source);
+ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a);
+ndb_op_code_t ndb_almanac_store(const almanac_t *a, ndb_data_source_t src);
 void ndb_almanac_sbp_update(void);
 #endif /* SRC_NDB_ALMANAC_H_ */

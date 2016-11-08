@@ -19,8 +19,8 @@
  * L2CM specific
  */
 void ndb_l2c_capb_init(void);
-enum ndb_op_code ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) NDB_WEAK;
-enum ndb_op_code ndb_gps_l2cm_l2c_cap_store(u32 *l2c_cap,
-                                            enum ndb_data_source src) NDB_WEAK;
+ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) NDB_WEAK;
+ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const u32 *l2c_cap,
+                                         ndb_data_source_t src) NDB_WEAK;
 
 #endif /* SRC_NDB_L2C_CAPB_H_ */

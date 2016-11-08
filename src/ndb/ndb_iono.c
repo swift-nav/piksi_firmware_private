@@ -20,8 +20,8 @@
 #include "ndb_fs_access.h"
 
 #define IONO_CORR_FILE_NAME "persistent/iono"
-static ionosphere_t iono_corr _CCM;
-static ndb_element_metadata_t iono_corr_md _CCM;
+static ionosphere_t iono_corr;
+static ndb_element_metadata_t iono_corr_md;
 
 static ndb_file_t iono_corr_file = {
   .name = IONO_CORR_FILE_NAME,
@@ -44,19 +44,22 @@ void ndb_iono_init(void)
   ndb_load_data(&iono_corr_file, "iono corrections",
                 (u8 *)&iono_corr, &iono_corr_md,
                  sizeof(iono_corr), 1);
-}
 
-enum ndb_op_code ndb_iono_corr_read(ionosphere_t *iono)
-{
-  if(!NDB_IE_IS_VALID(&iono_corr_md)) {
-    return NDB_ERR_MISSING_IE;
+  if (0 != (iono_corr_md.nv_data.state & NDB_IE_VALID)) {
+    if (erase_iono) {
+      log_error("NDB iono erase is not working");
+    }
+
+    log_info("Loaded iono corrections");
   }
-  ndb_retrieve(iono, &iono_corr, sizeof(iono_corr));
-  return NDB_ERR_NONE;
 }
 
-enum ndb_op_code ndb_iono_corr_store(ionosphere_t *iono,
-                                            enum ndb_data_source src)
+ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
+{
+  return ndb_retrieve(iono, &iono_corr_md);
+}
+
+ndb_op_code_t ndb_iono_corr_store(const ionosphere_t *iono, ndb_data_source_t src)
 {
   return ndb_update(iono, src, &iono_corr_md);
 }

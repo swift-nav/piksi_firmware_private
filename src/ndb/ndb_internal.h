@@ -81,14 +81,15 @@ void ndb_load_data(ndb_file_t *f,
                    ndb_element_metadata_t *metadata,
                    size_t el_size,
                    size_t el_number);
-enum ndb_op_code ndb_update(const void *data,
-                            enum ndb_data_source src,
-                            ndb_element_metadata_t *md);
-void ndb_retrieve(void *out, const void *cached, size_t size);
-enum ndb_op_code ndb_write_file_data(ndb_file_t *file,
-                                     off_t off,
-                                     const u8 *src,
-                                     size_t size);
+ndb_op_code_t ndb_update(const void *data,
+                         ndb_data_source_t src,
+                         ndb_element_metadata_t *md);
+ndb_op_code_t ndb_erase(ndb_element_metadata_t *md);
+ndb_op_code_t ndb_retrieve(void *out, const ndb_element_metadata_t *md);
+ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
+                                  off_t off,
+                                  const u8 *src,
+                                  size_t size);
 
 #ifdef __cplusplus
 }
