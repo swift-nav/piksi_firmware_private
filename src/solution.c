@@ -853,7 +853,7 @@ static void solution_thread(void *arg)
       continue;
     }
 
-    log_info("clock_offset, %f, clock_bias %f", lgf.position_solution.clock_offset, lgf.position_solution.clock_bias);
+    log_info("clock_offset, %.10f, clock_bias %.10f", lgf.position_solution.clock_offset, lgf.position_solution.clock_bias);
 
     soln_flag = true;
 
