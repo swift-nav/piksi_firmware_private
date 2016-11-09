@@ -34,6 +34,12 @@
 /** Number of SVs whose search jobs are managed */
 #define ACQ_NUM_SVS (NUM_SATS_GPS)
 
+/** Maximum number of tasks. 1 when there is no splitter for
+    dividing jobs into smaller tasks */
+#define ACQ_MAX_NUM_TASKS 1
+/** Uninitialized task index */
+#define ACQ_UNINITIALIZED_TASKS -1
+
 /** Search job types */
 typedef enum {
   ACQ_JOB_DEEP_SEARCH,     /**< Deep job type */
@@ -57,11 +63,21 @@ typedef enum {
   ACQ_STATE_RUN,  /**< Job is running */
 } acq_job_scheduling_state_e;
 
+/** Acquisition parameters which are passed to hardware */
+typedef struct {
+  float doppler_min_hz; /**< Search window minimum frequency (Hz) */
+  float doppler_max_hz; /**< Search window maximum frequency (Hz) */
+  float freq_bin_size_hz; /**< Frequency bin size (Hz) */
+  float cn0_threshold_dbhz; /**< Peaks bellow this are disregarded (dBHz) */
+  u8 integration_time_ms; /**< Coherent integration time (ms) */
+ } acq_task_search_params_t;
+
 /** Search task defines smallest unit of search work which is passed
     to hardware */
 typedef struct {
-  u16 dummy; /**< Data will be needed when scheduler and task generator are
-		implemented */
+  u16 number_of_tasks;
+  s16 task_index;
+  acq_task_search_params_t task_array[ACQ_MAX_NUM_TASKS];
 } acq_task_t;
 
 /** Search jobs */
@@ -71,11 +87,11 @@ typedef struct {
   u64 start_time;            /**< HW millisecond when job started */
   u64 stop_time;             /**< HW millisecond when job finished */
   u32 cost;                  /**< Cost of job in terms of spent HW time 
-				(milliseconds) */
+                                (milliseconds) */
   acq_cost_hint_e cost_hint; /**< Tells how the cost is initialized */
   bool needs_to_run;         /**< Set when this job needs to run */
   bool oneshot;              /**< Oneshot jobs do not continue automatically 
-				when completed */
+                                when completed */
   acq_job_scheduling_state_e state; /**< Scheduling state */
   bool needs_restart;        /**< Set if this job needs to be restarted */
   acq_task_t task_data;      /**< Search area is divided into smaller tasks */
@@ -84,7 +100,7 @@ typedef struct {
 /** Container for all the jobs */
 typedef struct {
   acq_job_t jobs[ACQ_NUM_JOB_TYPES][ACQ_NUM_SVS]; /**< job for each SV for each
-						     job type */
+                                                     job type */
 } acq_jobs_state_t;
 
 /** Global data of all the jobs is shared between search manager

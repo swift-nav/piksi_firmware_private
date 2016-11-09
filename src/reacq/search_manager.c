@@ -41,7 +41,7 @@ void sm_init(acq_jobs_state_t *data)
     u32 i;
     for (i = 0; i < NUM_SATS_GPS; i++) {
       data->jobs[type][i].sid = construct_sid(CODE_GPS_L1CA,
-					      GPS_FIRST_PRN + i);
+                                              GPS_FIRST_PRN + i);
       data->jobs[type][i].job_type = type;
     }
   }
@@ -92,8 +92,8 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
  * \return none
  */
 static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
-				   u64 now_ms,
-				   u64 lgf_age_ms)
+                                   u64 now_ms,
+                                   u64 lgf_age_ms)
 {
   u32 i;
   for (i = 0; i < ACQ_NUM_SVS; i++) {
@@ -116,7 +116,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     if ((visible || !known) &&
         lgf_age_ms > ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
-	ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
@@ -146,7 +146,7 @@ void sm_run(acq_jobs_state_t *jobs_data)
     lgf_age_ms = now_ms - lgf_ms;
   } else {
     lgf_age_ms = MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS,
-		     ACQ_LGF_TIMEOUT_INVIS_MS);
+                     ACQ_LGF_TIMEOUT_INVIS_MS);
   }
   
   sm_deep_search_run(jobs_data);
