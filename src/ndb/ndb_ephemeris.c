@@ -228,7 +228,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.dn) ||
       (e->kepler.dn < -32768 * pow(2, -43)) ||
       (e->kepler.dn > 32767 * pow(2, -43))) {
-    log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid");
+    log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid = %f", e->kepler.dn);
     return false;
   }
 
@@ -369,7 +369,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
 
   if (!ndb_ephemeris_validate(e)) {
-    log_warn("NDB: Invalid ephemeris data retreived. Erasing.");
+    log_warn_sid(sid, "NDB: Invalid ephemeris data retreived. Erasing.");
     //ndb_erase(&ndb_ephemeris_md[idx]);
     return NDB_ERR_UNRELIABLE_DATA;
   }
