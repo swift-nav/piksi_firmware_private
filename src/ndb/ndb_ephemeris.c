@@ -336,7 +336,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 
   if (!ndb_ephemeris_validate(e)) {
     log_warn("NDB: Invalid ephemeris data retreived. Erasing.");
-    /* TODO: erase the bad data */
+    ndb_erase(&ndb_ephemeris_md[idx]);
     return NDB_ERR_UNRELIABLE_DATA;
   }
 
@@ -426,8 +426,6 @@ ndb_ephemeris_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
 
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
 {
-
-
   if (!ndb_ephemeris_validate(e)) {
     log_warn("NDB: Invalid ephemeris was attempted to be stored.");
     return NDB_ERR_BAD_PARAM;

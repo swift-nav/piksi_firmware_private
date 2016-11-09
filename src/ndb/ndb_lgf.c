@@ -222,7 +222,7 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
       *lgf = last_good_fix;
       if (!ndb_lgf_validate(lgf)) {
         log_warn("NDB: Invalid LGF data retreived. Erasing.");
-        /* TODO: erase the bad data */
+        ndb_erase(&last_good_fix_md);
         memset(lgf, 0, sizeof(*lgf));
         res = NDB_ERR_UNRELIABLE_DATA;
       } else {
