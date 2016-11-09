@@ -21,7 +21,7 @@ typedef struct {
   volatile uint32_t VERSION;
   volatile uint32_t IRQ;
   volatile uint32_t IRQ_ERROR;
-  volatile uint32_t ACQ_STATUS;
+  volatile uint32_t ACQ_CONTROL;
   volatile uint32_t TRK_STATUS[4];
   volatile uint32_t BB_PINC[4];
 } nap_fe_t;
@@ -35,6 +35,9 @@ typedef struct {
 
 #define NAP_FE_CONTROL_VERSION_ADDR_Pos (0U)
 #define NAP_FE_CONTROL_VERSION_ADDR_Msk (0xFU << NAP_FE_CONTROL_VERSION_ADDR_Pos)
+
+#define NAP_FE_ACQ_CONTROL_DECIMATION_Pos (0U)
+#define NAP_FE_ACQ_CONTROL_DECIMATION_Msk (0x3FU << NAP_FE_ACQ_CONTROL_DECIMATION_Pos)
 
 /* Instances */
 #define NAP_FE ((nap_fe_t *)0x43C10000)
