@@ -93,6 +93,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
     return false;
   }
 
+  /* TODO: check against tow limit in ephemeris, listed as 604,784 s in ephemeris */
   /* Check ToE is valid */
   if (!isfinite(e->toe.tow) ||
       !gps_current_time_valid(&e->toe)) {
