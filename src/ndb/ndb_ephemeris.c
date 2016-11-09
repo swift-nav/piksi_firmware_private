@@ -90,12 +90,14 @@ void ndb_ephemeris_init(void)
 static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check SID is valid */
   if (!sid_valid(e->sid)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: sid invalid");
     return false;
   }
 
   /* Check ToE is valid */
   if (!isfinite(e->toe.tow) ||
       !gps_current_time_valid(&e->toe)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: toe invalid");
     return false;
   }
 
@@ -107,6 +109,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
 
   /* Check ToE is valid */
   if (e->toe.tow > 604784.0) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: toe.tow invalid");
     return false;
   }
 
@@ -114,12 +117,14 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.toc.tow) ||
       e->kepler.toc.tow > 604784.0 ||
       !gps_current_time_valid(&e->kepler.toc)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: toc invalid");
     return false;
   }
 
   /* Check fit interval, 4 hours is min and 98 hours is max possible value */
   if ((e->fit_interval < 4 * HOUR_SECS) ||
       (e->fit_interval > 98 * HOUR_SECS)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: fit_interval invalid");
     return false;
   }
 
@@ -135,6 +140,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (time_quality >= TIME_COARSE) {
     gps_time_t t = get_current_time();
     if (ephemeris_valid(e, &t) == 0) {
+      log_info_sid(e->sid, "ndb_ephemeris_validate: not ephemeris_valid()");
       return false;
     }
   }
@@ -143,12 +149,14 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->ura) ||
       (e->ura < 2.0) ||
       (e->ura > 6144.0)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: ura invalid");
     return false;
   }
 
   /* Check health bits, it is 6 bit field, so anything larger is invalid */
   /* TODO(Leith): it seems these are no longer set? (Exafore looking at it) */
   if (e->health_bits > 0x3F) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: health_bits invalid");
     return false;
   }
 
@@ -157,6 +165,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.tgd) ||
       (e->kepler.tgd < -128 * pow(2, -31)) ||
       (e->kepler.tgd > 127 * pow(2, -31))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: tgd invalid");
     return false;
   }
 
@@ -165,6 +174,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.crc) ||
       (e->kepler.crc < -32768 * pow(2, -5)) ||
       (e->kepler.crc > 32767 * pow(2, -5))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: crc invalid");
     return false;
   }
 
@@ -173,6 +183,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.crs) ||
       (e->kepler.crs < -32768 * pow(2, -5)) ||
       (e->kepler.crs > 32767 * pow(2, -5))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: crs invalid");
     return false;
   }
 
@@ -181,6 +192,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.cuc) ||
       (e->kepler.cuc < -32768 * pow(2, -29)) ||
       (e->kepler.cuc > 32767 * pow(2, -29))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cuc invalid");
     return false;
   }
 
@@ -189,6 +201,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.cus) ||
       (e->kepler.cus < -32768 * pow(2, -29)) ||
       (e->kepler.cus > 32767 * pow(2, -29))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cus invalid");
     return false;
   }
 
@@ -197,6 +210,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.cic) ||
       (e->kepler.cic < -32768 * pow(2, -29)) ||
       (e->kepler.cic > 32767 * pow(2, -29))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cic invalid");
     return false;
   }
 
@@ -205,6 +219,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.cis) ||
       (e->kepler.cis < -32768 * pow(2, -29)) ||
       (e->kepler.cis > 32767 * pow(2, -29))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cis invalid");
     return false;
   }
 
@@ -213,6 +228,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.dn) ||
       (e->kepler.dn < -32768 * pow(2, -43)) ||
       (e->kepler.dn > 32767 * pow(2, -43))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid");
     return false;
   }
 
@@ -221,6 +237,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.m0) ||
       (e->kepler.m0 < -2147483648 * pow(2, -31)) ||
       (e->kepler.m0 > 2147483647 * pow(2, -31))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: m0 invalid");
     return false;
   }
 
@@ -229,6 +246,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.ecc) ||
       (e->kepler.ecc < 0.0) ||
       (e->kepler.ecc > 0.03)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: ecc invalid");
     return false;
   }
 
@@ -237,6 +255,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.sqrta) ||
       (e->kepler.sqrta < 4906.0) ||
       (e->kepler.sqrta > 5390.0)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: sqrta invalid");
     return false;
   }
 
@@ -245,6 +264,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.omega0) ||
       (e->kepler.omega0 < -2147483648 * pow(2, -31)) ||
       (e->kepler.omega0 > 2147483647 * pow(2, -31))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: omega0 invalid");
     return false;
   }
 
@@ -253,6 +273,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.omegadot) ||
       (e->kepler.omegadot < -5.20e-9 * pow(2, -31)) ||
       (e->kepler.omegadot > 0.0)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: omegadot invalid");
     return false;
   }
 
@@ -261,6 +282,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.w) ||
       (e->kepler.w < -2147483648 * pow(2, -31)) ||
       (e->kepler.w > 2147483647 * pow(2, -31))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: w invalid");
     return false;
   }
 
@@ -269,6 +291,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.inc) ||
       (e->kepler.inc < 0.237 * pow(2, -31)) ||
       (e->kepler.inc > 0.363 * pow(2, -31))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: inc invalid");
     return false;
   }
 
@@ -277,6 +300,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.inc_dot) ||
       (e->kepler.inc_dot < -8192 * pow(2, -43)) ||
       (e->kepler.inc_dot > 8191 * pow(2, -43))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: inc_dot invalid");
     return false;
   }
 
@@ -285,6 +309,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.af0) ||
       (e->kepler.af0 < -2097152 * pow(2, -31)) ||
       (e->kepler.af0 > 2097151 * pow(2, -31))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: af0 invalid");
     return false;
   }
 
@@ -293,6 +318,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.af1) ||
       (e->kepler.af1 < -32768 * pow(2, -43)) ||
       (e->kepler.af1 > 32767 * pow(2, -43))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: af1 invalid");
     return false;
   }
 
@@ -301,18 +327,21 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.af2) ||
       (e->kepler.af2 < -128 * pow(2, -55)) ||
       (e->kepler.af2 > 127 * pow(2, -55))) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: af2 invalid");
     return false;
   }
 
   /* Check IODC */
   /* Range is 0 to 1023 */
   if (e->kepler.iodc > 1023) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: iodc invalid");
     return false;
   }
 
   /* Check IODE */
   /* Must be equal to 8 LSBs of IODC */
   if (e->kepler.iode == (e->kepler.iodc & 0xFF)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: iode7 invalid");
     return false;
   }
 
@@ -341,7 +370,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 
   if (!ndb_ephemeris_validate(e)) {
     log_warn("NDB: Invalid ephemeris data retreived. Erasing.");
-    ndb_erase(&ndb_ephemeris_md[idx]);
+    //ndb_erase(&ndb_ephemeris_md[idx]);
     return NDB_ERR_UNRELIABLE_DATA;
   }
 
