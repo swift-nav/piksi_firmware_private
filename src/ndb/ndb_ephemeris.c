@@ -292,10 +292,10 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   }
 
   /* Check i_0 */
-  /* Range is 0.237 to 0.363 */
+  /* Range is 32bit * 2^-31 */
   if (!isfinite(e->kepler.inc) ||
-      (e->kepler.inc < 0.237 * GPS_LNAV_EPH_SF_I0 * GPS_PI) ||
-      (e->kepler.inc > 0.363 * GPS_LNAV_EPH_SF_I0 * GPS_PI)) {
+      (e->kepler.inc < INT32_MIN * GPS_LNAV_EPH_SF_I0 * GPS_PI) ||
+      (e->kepler.inc > INT32_MAX * GPS_LNAV_EPH_SF_I0 * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: inc invalid");
     return false;
   }
