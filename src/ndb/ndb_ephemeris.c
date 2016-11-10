@@ -27,16 +27,12 @@
 
 #define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
 
-static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT] _CCM;
+static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT];
 static ndb_element_metadata_t ndb_ephemeris_md[PLATFORM_SIGNAL_COUNT];
 static ndb_file_t ndb_ephe_file = {
     .name = NDB_EPHE_FILE_NAME,
-    .expected_size =
-          sizeof(ephemeris_t) * PLATFORM_SIGNAL_COUNT
-        + sizeof(ndb_element_metadata_nv_t) * PLATFORM_SIGNAL_COUNT
-        + sizeof(ndb_file_end_mark),
-    .data_size = sizeof(ephemeris_t),
-    .n_elements = PLATFORM_SIGNAL_COUNT,
+    .block_size = sizeof(ndb_ephemeris[0]),
+    .block_count = sizeof(ndb_ephemeris) / sizeof(ndb_ephemeris[0]),
 };
 
 typedef struct {
@@ -103,7 +99,8 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     return NDB_ERR_BAD_PARAM;
   }
 
-  ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
+  ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
+                                   NULL, NULL);
   /* Patch SID to be accurate for GPS L1/L2 */
   e->sid = sid;
   return res;

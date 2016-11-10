@@ -40,12 +40,8 @@ static ndb_element_metadata_t last_good_fix_md;    /**< NDB LGF metadata */
 
 static ndb_file_t lgf_file = {
   .name = LGF_FILE_NAME,
-  .expected_size =
-        sizeof(last_good_fix_t) * 1
-      + sizeof(ndb_element_metadata_nv_t) * 1
-      + sizeof(ndb_file_end_mark),
-  .data_size = sizeof(last_good_fix_t),
-  .n_elements = 1
+  .block_size = sizeof(last_good_fix_saved),
+  .block_count = 1
 };
 
 void ndb_lgf_init(void)

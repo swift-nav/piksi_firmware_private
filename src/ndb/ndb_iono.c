@@ -25,12 +25,8 @@ static ndb_element_metadata_t iono_corr_md;
 
 static ndb_file_t iono_corr_file = {
   .name = IONO_CORR_FILE_NAME,
-  .expected_size =
-        sizeof(iono_corr)
-      + sizeof(ndb_element_metadata_nv_t)
-      + sizeof(ndb_file_end_mark),
-  .data_size = sizeof(iono_corr),
-  .n_elements = 1
+  .block_size = sizeof(iono_corr),
+  .block_count = 1
 };
 
 void ndb_iono_init(void)
@@ -56,7 +52,7 @@ void ndb_iono_init(void)
 
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
 {
-  return ndb_retrieve(iono, &iono_corr_md);
+  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NULL);
 }
 
 ndb_op_code_t ndb_iono_corr_store(const ionosphere_t *iono, ndb_data_source_t src)
