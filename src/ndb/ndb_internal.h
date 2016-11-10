@@ -25,9 +25,12 @@ typedef u8 ndb_vflags_t;
 
 /** NDB File */
 typedef struct {
-  const char * const   name;        /**< Name of the file */
-  const ndb_ie_size_t  block_size;  /**< Size of data element */
-  const ndb_ie_index_t block_count; /**< Number of data elements */
+  const char                  * const name;        /**< Name of the file */
+  const char                  * const type;        /**< Type of the file */
+  u8                          * const block_data;  /**< IE data */
+  struct ndb_element_metadata * const block_md;    /**< Metadata */
+  const ndb_ie_size_t                 block_size;  /**< Size of data element */
+  const ndb_ie_index_t                block_count; /**< Number of data elements */
 } ndb_file_t;
 
 /** Maximum waiting time for write request, milliseconds */
@@ -77,12 +80,7 @@ void ndb_lock(void);
 void ndb_unlock(void);
 
 ndb_timestamp_t ndb_get_timestamp(void);
-void ndb_load_data(ndb_file_t *f,
-                   const char *ftype,
-                   u8 *data,
-                   ndb_element_metadata_t *metadata,
-                   size_t el_size,
-                   size_t el_number);
+void ndb_load_data(ndb_file_t *f);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
                          ndb_element_metadata_t *md);

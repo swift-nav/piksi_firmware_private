@@ -26,11 +26,15 @@
 #include "ndb_fs_access.h"
 
 #define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
+#define NDB_EPHE_FILE_TYPE   "ephemeris"
 
 static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT];
 static ndb_element_metadata_t ndb_ephemeris_md[PLATFORM_SIGNAL_COUNT];
 static ndb_file_t ndb_ephe_file = {
     .name = NDB_EPHE_FILE_NAME,
+    .type = NDB_EPHE_FILE_TYPE,
+    .block_data = (u8*)&ndb_ephemeris[0],
+    .block_md = &ndb_ephemeris_md[0],
     .block_size = sizeof(ndb_ephemeris[0]),
     .block_count = sizeof(ndb_ephemeris) / sizeof(ndb_ephemeris[0]),
 };
@@ -66,8 +70,7 @@ void ndb_ephemeris_init(void)
 
   memset(ephe_candidates, 0, sizeof(ephe_candidates));
 
-  ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
-                sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
+  ndb_load_data(&ndb_ephe_file);
   u32 loaded = 0;
   for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
     if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {

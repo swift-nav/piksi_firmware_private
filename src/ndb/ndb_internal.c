@@ -174,34 +174,28 @@ static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
  * When loading individual data blocks, each of them is checked for CRC
  * consistency, and blocks with wrong CRC are zeroed.
  *
- * \param[in]  file      NDB file
- * \param[in]  ftype     File type
- * \param[out] data      Block data destination. Must be of a \a el_size * \a
- *                       el_number size.
- * \param[out] metadata  Metadata table with \a el_size elements.
- * \param[in]  el_size   Size of a single data block in bytes.
- * \param[in]  el_number Block count
+ * \param[in,out]  file      NDB file to load
  *
  * \return None
  */
-void ndb_load_data(ndb_file_t *file,
-                   const char *ftype,
-                   u8 *data,
-                   ndb_element_metadata_t *metadata,
-                   size_t el_size,
-                   size_t el_number)
+void ndb_load_data(ndb_file_t *file)
 {
-  enum ndb_op_code r = NDB_ERR_FILE_IO;
-  size_t ds = el_size * el_number;
-  size_t mds = sizeof(ndb_element_metadata_nv_t) * el_number;
-  ndb_element_metadata_nv_t md_nv[el_number];
+  ndb_op_code_t r = NDB_ERR_FILE_IO;
+  size_t ds = (size_t)file->block_size * file->block_count;
+  size_t mds = sizeof(ndb_element_metadata_nv_t) * file->block_count;
+  ndb_element_metadata_nv_t md_nv[file->block_count];
+  u8 *data = file->block_data;
+  ndb_element_metadata_t *metadata = file->block_md;
 
-  if (ndb_open_file(file) == NDB_ERR_NONE &&
-      ndb_read(file, 0, data, ds) == NDB_ERR_NONE &&
-      ndb_read(file, ds, md_nv, mds) == NDB_ERR_NONE) {
+  r = ndb_open_file(file);
+
+  if (NDB_ERR_NONE == r &&
+      NDB_ERR_NONE == ndb_read(file, 0, data, ds) &&
+      NDB_ERR_NONE == ndb_read(file, ds, md_nv, mds)) {
 
     u8 *ptr = data;
-    for (size_t i = 0; i < el_number; i++, ptr = ptr + el_size) {
+    for (size_t i = 0; i < file->block_count;
+         i++, ptr = ptr + file->block_size) {
       metadata[i].nv_data = md_nv[i];
 
       /* Check CRC: each block is protected with CRC24Q algorithm. The CRC
@@ -213,26 +207,30 @@ void ndb_load_data(ndb_file_t *file,
       u32 new_crc = crc24q((const u8*)&metadata[i].nv_data,
                            sizeof(metadata[i].nv_data) -
                            sizeof(metadata[i].nv_data.crc),
-                           crc24q(ptr, el_size, 0));
+                           crc24q(ptr, file->block_size, 0));
 
       if (old_crc != new_crc) {
-        log_warn("NDB %s[%" PRIu32 "] entry dropped", ftype, (u32)i);
+        log_warn("NDB %s[%" PRIu32 "] entry dropped", file->type, (u32)i);
 
-        memset(ptr, 0, el_size);
+        memset(ptr, 0, file->block_size);
         memset(&metadata[i].nv_data, 0, sizeof(metadata[i].nv_data));
 
-        ndb_write_file_data(file, el_size * i + 0, ptr, el_size);
+        ndb_write_file_data(file, file->block_size * i + 0, ptr, file->block_size);
         ndb_write_file_data(file, sizeof(metadata[i].nv_data) * i + ds,
                             (u8 *)&metadata[i].nv_data, sizeof(metadata[i].nv_data));
       }
     }
     r = NDB_ERR_NONE;
+  } else if (NDB_ERR_NO_DATA == r) {
+    /* Failed to open, so new file created; no need to initialize data */
+    r = NDB_ERR_NONE;
   }
 
   if (NDB_ERR_NONE != r) {
-    /* Initialize data element and metadata to zeros */
+    /* Initialize data element and metadata to zeros; this is required as the
+     * data can be partially loaded. */
     memset(data, 0, ds);
-    memset(metadata, 0, sizeof(ndb_element_metadata_t) * el_number);
+    memset(metadata, 0, sizeof(ndb_element_metadata_t) * file->block_count);
 
     /* And save to file */
     memset(md_nv, 0, mds);
@@ -246,10 +244,11 @@ void ndb_load_data(ndb_file_t *file,
     }
   }
 
-  ndb_log_file_open(r, ftype);
+  ndb_log_file_open(r, file->type);
 
-  for (u32 i = 0; i < el_number; i++) {
-    metadata[i].data = data + (i * el_size);
+  /* Initialize volatile metadata blocks */
+  for (ndb_ie_index_t i = 0; i < file->block_count; i++) {
+    metadata[i].data = data + (size_t)i * file->block_size;
     metadata[i].index = i;
     metadata[i].file = file;
     metadata[i].next = NULL;
@@ -398,25 +397,47 @@ static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
  */
 static ndb_op_code_t ndb_open_file(ndb_file_t *file)
 {
+  size_t expected_size = sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
+                         ((size_t)file->block_size +
+                          sizeof(ndb_element_metadata_nv_t)) * file->block_count;
+
+  /* Check file version */
   char ver[MAX_NDB_FILE_VERSION_LEN];
-  if ((ndb_fs_read(file->name, 0, ver, sizeof(ndb_file_version))
-      == sizeof(ndb_file_version)) && ndb_file_verion_match(ver)) {
-    return NDB_ERR_NONE;
+  if (ndb_fs_read(file->name, 0, ver, sizeof(ver)) == sizeof(ver) &&
+      ndb_file_verion_match(ver)) {
+
+    /* Check end mark */
+    u8   em;
+    if (ndb_fs_read(file->name,
+                    expected_size - sizeof(em),
+                    &em, sizeof(em)) == sizeof(em) &&
+        em == ndb_file_end_mark) {
+
+      /* Both version end end marks are OK */
+      return NDB_ERR_NONE;
+    }
   }
 
+  /* Delete file if it exists */
   ndb_fs_remove(file->name);
-  size_t expected_size = sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
-                         ((u32)file->block_size + sizeof(ndb_element_metadata_nv_t))
-                         * file->block_count;
 
+  /* Create empty file (all zeros) */
   ndb_fs_reserve(file->name, expected_size);
 
+  /* Write file version */
   if (ndb_fs_write(file->name, 0, ndb_file_version, sizeof(ndb_file_version))
       != sizeof(ndb_file_version)) {
     return NDB_ERR_FILE_IO;
   }
+  /* Write file end mark */
+  if (ndb_fs_write(file->name,
+                   expected_size - sizeof(ndb_file_end_mark),
+                   &ndb_file_end_mark,
+                   sizeof(ndb_file_end_mark)) != sizeof(ndb_file_end_mark)) {
+    return NDB_ERR_FILE_IO;
+  }
 
-  return NDB_ERR_NONE;
+  return NDB_ERR_NO_DATA;
 }
 
 /**
