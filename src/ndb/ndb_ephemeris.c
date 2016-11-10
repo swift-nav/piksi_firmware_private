@@ -66,33 +66,6 @@ static MUTEX_DECL(cand_list_access);
 #define INT22_MIN -2097152
 #define INT22_MAX  2097151
 
-void ndb_ephemeris_init(void)
-{
-  static bool erase_ephemeris = true;
-  SETTING("ndb", "erase_ephemeris", erase_ephemeris, TYPE_BOOL);
-  if (erase_ephemeris) {
-    ndb_fs_remove(NDB_EPHE_FILE_NAME);
-  }
-
-  memset(ephe_candidates, 0, sizeof(ephe_candidates));
-
-  ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
-                sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
-  u32 loaded = 0;
-  for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
-    if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
-      loaded++;
-    }
-  }
-  if (0 != loaded) {
-    if (erase_ephemeris) {
-      log_error("NDB ephemeris erase is not working");
-    }
-
-    log_info("Loaded %" PRIu32 " ephemeris", loaded);
-  }
-}
-
 static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check SID is valid */
   if (!sid_valid(e->sid)) {
@@ -355,6 +328,39 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   return true;
 }
 
+void ndb_ephemeris_init(void)
+{
+  static bool erase_ephemeris = true;
+  SETTING("ndb", "erase_ephemeris", erase_ephemeris, TYPE_BOOL);
+  if (erase_ephemeris) {
+    ndb_fs_remove(NDB_EPHE_FILE_NAME);
+  }
+
+  memset(ephe_candidates, 0, sizeof(ephe_candidates));
+
+  ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
+                sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
+  u32 loaded = 0;
+  for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
+    if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
+        if (!ndb_ephemeris_validate(&ndb_ephemeris[i])) {
+          log_warn_sid(sid_from_global_index(i), "NDB: Invalid ephemeris data retreived. Erasing.");
+          ndb_erase(&ndb_ephemeris_md[i]);
+          memset(&ndb_ephemeris[i], 0, sizeof(ephemeris_t));
+        } else {
+          loaded++;
+        }
+    }
+  }
+  if (0 != loaded) {
+    if (erase_ephemeris) {
+      log_error("NDB ephemeris erase is not working");
+    }
+
+    log_info("Loaded %" PRIu32 " ephemeris", loaded);
+  }
+}
+
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
   u16 idx;
@@ -372,13 +378,6 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   }
 
   ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
-
-  if ((res == NDB_ERR_NONE) &&
-      !ndb_ephemeris_validate(e)) {
-    log_warn_sid(sid, "NDB: Invalid ephemeris data retreived. Erasing.");
-    //ndb_erase(&ndb_ephemeris_md[idx]);
-    return NDB_ERR_UNRELIABLE_DATA;
-  }
 
   /* Patch SID to be accurate for GPS L1/L2 */
   e->sid = sid;

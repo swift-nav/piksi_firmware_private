@@ -51,38 +51,6 @@ static ndb_file_t lgf_file = {
   .n_elements = 1
 };
 
-void ndb_lgf_init(void)
-{
-  static bool erase_lgf = true;
-  SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
-  SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
-  SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
-
-  if (erase_lgf) {
-    ndb_fs_remove(LGF_FILE_NAME);
-  }
-
-  ndb_load_data(&lgf_file, "LGF",
-                (u8 *)&last_good_fix_saved, &last_good_fix_md,
-                sizeof(last_good_fix_saved), 1);
-
-  last_good_fix = last_good_fix_saved;
-  if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
-    if (erase_lgf) {
-      /* Log the error if the data is present after erase */
-      log_error("NDB LGF erase is not working");
-    }
-
-    /* TODO check loaded LGF validity */
-    log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
-             last_good_fix.position_solution.pos_llh[0] * R2D,
-             last_good_fix.position_solution.pos_llh[1] * R2D,
-             last_good_fix.position_solution.pos_llh[2]);
-  } else {
-    log_info("Position is not available");
-  }
-}
-
 static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   /* Check quality */
   if (!((lgf->position_quality == POSITION_UNKNOWN) ||
@@ -196,6 +164,43 @@ static bool ndb_lgf_validate(const last_good_fix_t *lgf) {
   return true;
 }
 
+void ndb_lgf_init(void)
+{
+  static bool erase_lgf = true;
+  SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
+  SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
+  SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
+
+  if (erase_lgf) {
+    ndb_fs_remove(LGF_FILE_NAME);
+  }
+
+  ndb_load_data(&lgf_file, "LGF",
+                (u8 *)&last_good_fix_saved, &last_good_fix_md,
+                sizeof(last_good_fix_saved), 1);
+
+  last_good_fix = last_good_fix_saved;
+  if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    if (erase_lgf) {
+      /* Log the error if the data is present after erase */
+      log_error("NDB LGF erase is not working");
+    }
+
+    if (!ndb_lgf_validate(&last_good_fix)) {
+      log_warn("NDB: Invalid LGF data retreived. Erasing.");
+      ndb_erase(&last_good_fix_md);
+      memset(&last_good_fix, 0, sizeof(last_good_fix));
+    } else {
+      log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
+               last_good_fix.position_solution.pos_llh[0] * R2D,
+               last_good_fix.position_solution.pos_llh[1] * R2D,
+               last_good_fix.position_solution.pos_llh[2]);
+    }
+  } else {
+    log_info("Position is not available");
+  }
+}
+
 /**
  * Loads last good fix data from NDB
  *
@@ -226,13 +231,6 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
       res = NDB_ERR_MISSING_IE;
     }
     ndb_unlock();
-    if ((res == NDB_ERR_NONE) &&
-        !ndb_lgf_validate(lgf)) {
-      log_warn("NDB: Invalid LGF data retreived. Erasing.");
-      ndb_erase(&last_good_fix_md);
-      memset(lgf, 0, sizeof(*lgf));
-      res = NDB_ERR_UNRELIABLE_DATA;
-    }
   } else {
     res = NDB_ERR_BAD_PARAM;
   }
