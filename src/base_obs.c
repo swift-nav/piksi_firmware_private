@@ -289,7 +289,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   base_obss_rx.sender_id = sender_id;
 
   /* Relay observations using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_OBS_DEP_C, len, msg, 0);
+  sbp_send_msg_(SBP_MSG_OBS, len, msg, 0);
 
   /* GPS time of observation. */
   gps_time_t tor;
@@ -300,7 +300,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Decode the message header to get the time and how far through the sequence
    * we are. */
-  unpack_obs_header((observation_header_dep_t*)msg, &tor, &total, &count);
+  unpack_obs_header((observation_header_t*)msg, &tor, &total, &count);
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
   u32 obs_freq = soln_freq / obs_output_divisor;
@@ -328,7 +328,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Calculate the number of observations in this message by looking at the SBP
    * `len` field. */
-  u8 obs_in_msg = (len - sizeof(observation_header_dep_t)) / sizeof(packed_obs_content_dep_c_t);
+  u8 obs_in_msg = (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
 
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
@@ -338,9 +338,9 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   }
 
   /* Pull out the contents of the message. */
-  packed_obs_content_dep_c_t *obs = (packed_obs_content_dep_c_t *)(msg + sizeof(observation_header_dep_t));
+  packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
   for (u8 i=0; i<obs_in_msg; i++) {
-    gnss_signal_t sid = sid_from_sbp(obs[i].sid);
+    gnss_signal_t sid = sid_from_sbp16(obs[i].sid);
     if (!sid_supported(sid)) {
       continue;
     }
@@ -351,12 +351,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
     /* Unpack the observation into a navigation_measurement_t. */
     unpack_obs_content(&obs[i], &nm->raw_pseudorange, &nm->raw_carrier_phase,
-                       &nm->cn0, &nm->lock_counter, &nm->sid);
-    /* TODO currently SBP doesn't transfer flags, so set them manually here */
-    nm->flags = (NAV_MEAS_FLAG_CODE_VALID |
-                 NAV_MEAS_FLAG_PHASE_VALID |
-                 NAV_MEAS_FLAG_HALF_CYCLE_KNOWN |
-                 NAV_MEAS_FLAG_CN0_VALID);
+                       &nm->raw_measured_doppler, &nm->cn0, &nm->lock_time,
+                       &nm->flags, &nm->sid);
 
     /* Set the time */
     nm->tot = tor;
@@ -460,7 +456,7 @@ void base_obs_setup()
 
   static sbp_msg_callbacks_node_t obs_packed_node;
   sbp_register_cbk(
-    SBP_MSG_OBS_DEP_C,
+    SBP_MSG_OBS,
     &obs_callback,
     &obs_packed_node
   );
@@ -477,6 +473,13 @@ void base_obs_setup()
     SBP_MSG_OBS_DEP_B,
     &deprecated_callback,
     &deprecated_node_2
+  );
+
+  static sbp_msg_callbacks_node_t deprecated_node_3;
+  sbp_register_cbk(
+    SBP_MSG_OBS_DEP_C,
+    &deprecated_callback,
+    &deprecated_node_3
   );
 
   static sbp_msg_callbacks_node_t ics_node;

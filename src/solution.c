@@ -60,11 +60,6 @@
 #define DGNSS_TIMEOUT(soln_freq_hz) MS2ST((DGNSS_TIMEOUT_PERIODS * \
   1/((float) (soln_freq_hz)) * 1000))
 
-/** Flags for SBP */
-#define NAV_MEAS_FLAGS_SBP (NAV_MEAS_FLAG_CODE_VALID | \
-                            NAV_MEAS_FLAG_PHASE_VALID | \
-                            NAV_MEAS_FLAG_MEAS_DOPPLER_VALID | \
-                            NAV_MEAS_FLAG_HALF_CYCLE_KNOWN)
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
                                    MANAGE_TRACK_FLAG_NO_ERROR | \
@@ -335,42 +330,32 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
   /* Upper limit set by SBP framing size, preventing underflow */
   u16 msg_payload_size = MAX(
       MIN((u16)MAX(msg_obs_max_size, 0), SBP_FRAMING_MAX_PAYLOAD_SIZE),
-      sizeof(observation_header_dep_t)
-    ) - sizeof(observation_header_dep_t);
+      sizeof(observation_header_t)
+    ) - sizeof(observation_header_t);
 
   /* Lower limit set by sending at least 1 observation */
-  msg_payload_size = MAX(msg_payload_size, sizeof(packed_obs_content_dep_c_t));
+  msg_payload_size = MAX(msg_payload_size, sizeof(packed_obs_content_t));
 
   /* Round down the number of observations per message */
-  u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_dep_c_t);
-
-  u8 n_rtk = 0;
-  for (u8 i = 0; i < n; ++i) {
-    if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP)) {
-      n_rtk++;
-    }
-  }
-  if (0 == n_rtk) {
-    /* Nothing to send */
-    return;
-  }
+  u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_t);
 
   /* Round up the number of messages */
-  u16 total = MIN((n_rtk + obs_in_msg - 1) / obs_in_msg,
+  u16 total = MIN((n + obs_in_msg - 1) / obs_in_msg,
                   MSG_OBS_HEADER_MAX_SIZE);
 
   u8 obs_i = 0;
-  for (u8 count = 0; count < total && obs_i < n_rtk; count++) {
-    u8 curr_n = MIN(n_rtk - obs_i, obs_in_msg);
-    pack_obs_header(t, total, count, (observation_header_dep_t*) buff);
-    packed_obs_content_dep_c_t *obs = (packed_obs_content_dep_c_t *)&buff[sizeof(observation_header_dep_t)];
+  for (u8 count = 0; count < total && obs_i < n; count++) {
+    u8 curr_n = MIN(n - obs_i, obs_in_msg);
+    pack_obs_header(t, total, count, (observation_header_t*) buff);
+    packed_obs_content_t *obs = (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
-    for (u8 i = 0; i < obs_in_msg && obs_i < n_rtk; i++) {
-      if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP) &&
-          pack_obs_content(m[obs_i].raw_pseudorange,
+    for (u8 i = 0; i < obs_in_msg && obs_i < n; i++) {
+      if (pack_obs_content(m[obs_i].raw_pseudorange,
                            m[obs_i].raw_carrier_phase,
+                           m[obs_i].raw_measured_doppler,
                            m[obs_i].cn0,
-                           m[obs_i].lock_counter,
+                           m[obs_i].lock_time,
+                           m[obs_i].flags,
                            m[obs_i].sid,
                            &obs[i]) >= 0) {
         /* Packed. */
@@ -378,8 +363,8 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
       }
     }
 
-    sbp_send_msg(SBP_MSG_OBS_DEP_C,
-          sizeof(observation_header_dep_t) + curr_n * sizeof(packed_obs_content_dep_c_t),
+    sbp_send_msg(SBP_MSG_OBS,
+          sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
           buff);
   }
 }
@@ -391,17 +376,6 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
-
-  u8 n_rtk = 0;
-  for (u8 i = 0; i < n; ++i) {
-    if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP)) {
-      n_rtk++;
-    }
-  }
-  if (0 == n_rtk) {
-    /* Nothing to send */
-    return;
-  }
 
   obss_t *obs = chPoolAlloc(&obs_buff_pool);
   msg_t ret;
@@ -415,11 +389,9 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
   }
   if (NULL != obs) {
     obs->tor = *t;
-    obs->n = n_rtk;
+    obs->n = n;
     for (u8 i = 0, cnt = 0; i < n; ++i) {
-      if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP)) {
-        obs->nm[cnt++] = m[i];
-      }
+      obs->nm[cnt++] = m[i];
     }
 
     ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);

@@ -39,12 +39,6 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
     .reserved = 0,
   };
 
-  /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other
-   * constellations are "real" satellite identifiers.
-   */
-  if (sid_to_constellation(from) == CONSTELLATION_GPS)
-    sbp_sid.sat -= GPS_FIRST_PRN;
-
   return sbp_sid;
 }
 
@@ -55,13 +49,25 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from)
     .sat = from.sat,
   };
 
-  /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other
-   * constellations are "real" satellite identifiers.
-   */
-  if (code_valid(sid.code) &&
-     (code_to_constellation(sid.code) == CONSTELLATION_GPS)) {
-    sid.sat += GPS_FIRST_PRN;
-  }
+  return sid;
+}
+
+gnss_signal16_t sid_to_sbp16(const gnss_signal_t from)
+{
+  gnss_signal16_t sbp_sid = {
+    .code = from.code,
+    .sat = from.sat,
+  };
+
+  return sbp_sid;
+}
+
+gnss_signal_t sid_from_sbp16(const gnss_signal16_t from)
+{
+  gnss_signal_t sid = {
+    .code = from.code,
+    .sat = from.sat,
+  };
 
   return sid;
 }
@@ -75,7 +81,7 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
     t_out->wn++;
     t_out->tow -= WEEK_MS;
   }
-  t_out->ns = round((t_in->tow - t_out->tow*1e-3) * 1e9);
+  t_out->ns = round((t_in->tow - t_out->tow * 1e-3) * 1e9);
   t_out->flags = flags;
 }
 
@@ -197,35 +203,85 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_sats, u8 flags) {
     baseline_heading->tow = round_tow_ms(t->tow);
-    baseline_heading->heading = (u32)round(heading * 1e3);
+    baseline_heading->heading = round(heading * 1e3);
     baseline_heading->n_sats = n_sats;
     baseline_heading->flags = flags;
 }
 
-void unpack_obs_header(const observation_header_dep_t *msg, gps_time_t* t, u8* total, u8* count)
+void unpack_obs_header(const observation_header_t *msg, gps_time_t* t, u8* total, u8* count)
 {
-  t->tow = ((double)msg->t.tow) / MSG_OBS_TOW_MULTIPLIER;
   t->wn  = msg->t.wn;
+  t->tow = ((double)msg->t.tow) / MSG_OBS_TOW_MULTIPLIER +
+           ((double)msg->t.ns) / MSG_OBS_TOW_NS_MULTIPLIER;
   *total = (msg->n_obs >> MSG_OBS_HEADER_SEQ_SHIFT);
   *count = (msg->n_obs & MSG_OBS_HEADER_SEQ_MASK);
 }
 
-void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header_dep_t *msg)
+void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header_t *msg)
 {
-  msg->t.tow = (u32)round(t->tow * MSG_OBS_TOW_MULTIPLIER);
-  msg->t.wn  = t->wn;
+  msg->t.wn = t->wn;
+  msg->t.tow = round(t->tow * MSG_OBS_TOW_MULTIPLIER);
+  /* week roll-over */
+  if (msg->t.tow >= WEEK_MS) {
+    msg->t.wn++;
+    msg->t.tow -= WEEK_MS;
+  }
+  msg->t.ns = round((t->tow - msg->t.tow / MSG_OBS_TOW_MULTIPLIER) *
+              MSG_OBS_TOW_NS_MULTIPLIER);
   msg->n_obs = ((total << MSG_OBS_HEADER_SEQ_SHIFT) |
                  (count & MSG_OBS_HEADER_SEQ_MASK));
 }
 
-void unpack_obs_content(const packed_obs_content_dep_c_t *msg, double *P, double *L,
-                        double *cn0, u16 *lock_counter, gnss_signal_t *sid)
+u8 nm_flags_to_sbp(nav_meas_flags_t from)
+{
+  u8 to = 0;
+  if (0 != (from & NAV_MEAS_FLAG_CODE_VALID)) {
+    to |= MSG_OBS_FLAGS_CODE_VALID;
+  }
+  if (0 != (from & NAV_MEAS_FLAG_PHASE_VALID)) {
+    to |= MSG_OBS_FLAGS_PHASE_VALID;
+  }
+  if (0 != (from & NAV_MEAS_FLAG_HALF_CYCLE_KNOWN)) {
+    to |= MSG_OBS_FLAGS_HALF_CYCLE_KNOWN;
+  }
+  if (0 != (from & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+    to |= MSG_OBS_FLAGS_MEAS_DOPPLER_VALID;
+  }
+  return to;
+}
+
+nav_meas_flags_t nm_flags_from_sbp(u8 from)
+{
+  nav_meas_flags_t to = 0;
+  if (0 != (from & MSG_OBS_FLAGS_CODE_VALID)) {
+    to |= NAV_MEAS_FLAG_CODE_VALID;
+  }
+  if (0 != (from & MSG_OBS_FLAGS_PHASE_VALID)) {
+    to |= NAV_MEAS_FLAG_PHASE_VALID;
+  }
+  if (0 != (from & MSG_OBS_FLAGS_HALF_CYCLE_KNOWN)) {
+    to |= NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
+  }
+  if (0 != (from & MSG_OBS_FLAGS_MEAS_DOPPLER_VALID)) {
+    to |= MSG_OBS_FLAGS_MEAS_DOPPLER_VALID;
+  }
+  return to;
+}
+
+void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
+                        double *D, double *cn0, double *lock_time,
+                        nav_meas_flags_t *flags, gnss_signal_t *sid)
 {
   *P   = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
-  *L   = -(((double)msg->L.i) + (((double)msg->L.f) / MSG_OSB_LF_MULTIPLIER));
+  *L   = -(((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
+  *D   = (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
   *cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
-  *lock_counter = ((u16)msg->lock);
-  *sid = sid_from_sbp(msg->sid);
+  *lock_time = decode_lock_time(msg->lock);
+  *flags = nm_flags_from_sbp(msg->flags);
+  if (msg->cn0 != 0) {
+    *flags |= NAV_MEAS_FLAG_CN0_VALID;
+  }
+  *sid = sid_from_sbp16(msg->sid);
 }
 
 /** Pack GPS observables into a `msg_obs_content_t` struct.
@@ -233,24 +289,27 @@ void unpack_obs_content(const packed_obs_content_dep_c_t *msg, double *P, double
  *
  * \param P Pseudorange in meters
  * \param L Carrier phase in cycles
+ * \param D Measured doppler in Hz
  * \param cn0 Signal-to-noise ratio
- * \param lock_counter Lock counter is an arbitrary integer that should change
- *                     if the carrier phase ambiguity is ever reset
+ * \param lock_time Lock time gives an indication of the time
+                    for which a signal has maintained continuous phase lock in
+                    second
+ * \param flags Observation flags from nav_meas_flags_t
  * \param sid Signal ID
  * \param msg Pointer to a `msg_obs_content_t` struct to fill out
  * \return `0` on success or `-1` on an overflow error
  */
-s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
-                    gnss_signal_t sid, packed_obs_content_dep_c_t *msg)
+s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
+                    nav_meas_flags_t flags, gnss_signal_t sid,
+                    packed_obs_content_t *msg)
 {
-
   s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
   if (P < 0 || P_fp > UINT32_MAX) {
     log_error("observation message packing: P integer overflow (%f)", P);
     return -1;
   }
 
-  msg->P = (u32)P_fp;
+  msg->P = P_fp;
 
   double Li = floor(-L);
   if (Li < INT32_MIN || Li > INT32_MAX) {
@@ -260,20 +319,37 @@ s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
 
   double Lf = -L - Li;
 
-  msg->L.i = (s32) Li;
-  msg->L.f = (u8) (Lf * MSG_OSB_LF_MULTIPLIER);
+  msg->L.i = Li;
+  msg->L.f = Lf * MSG_OBS_LF_MULTIPLIER;
 
-  s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
-  if (cn0 < 0 || cn0_fp > UINT8_MAX) {
-    log_error("observation message packing: C/N0 integer overflow (%f)", cn0);
+  double Di = floor(D);
+  if (Di < INT16_MIN || Di > INT16_MAX) {
+    log_error("observation message packing: D integer overflow (%f)", D);
     return -1;
   }
 
-  msg->cn0 = (u8)cn0_fp;
+  double Df = D - Di;
 
-  msg->lock = lock_counter;
+  msg->D.i = Di;
+  msg->D.f = Df * MSG_OBS_DF_MULTIPLIER;
 
-  msg->sid = sid_to_sbp(sid);
+  if (0 != (flags & NAV_MEAS_FLAG_CN0_VALID)) {
+    s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
+    if (cn0 < 0 || cn0_fp > UINT8_MAX) {
+      log_error("observation message packing: C/N0 integer overflow (%f)", cn0);
+      return -1;
+    }
+
+    msg->cn0 = cn0_fp;
+  } else {
+    msg->cn0 = 0;
+  }
+
+  msg->lock = encode_lock_time(lock_time);
+
+  msg->flags = nm_flags_to_sbp(flags);
+
+  msg->sid = sid_to_sbp16(sid);
 
   return 0;
 }

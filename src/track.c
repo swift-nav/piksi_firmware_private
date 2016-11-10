@@ -295,6 +295,7 @@ void tracking_send_detailed_state(void)
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracking_channel_info_t channel_info;
     tracking_channel_freq_info_t freq_info;
+    tracking_channel_time_info_t time_info;
     tracking_channel_ctrl_info_t ctrl_info;
     tracking_channel_misc_info_t misc_info;
     msg_tracking_state_detailed_t sbp;
@@ -315,6 +316,7 @@ void tracking_send_detailed_state(void)
     track_sbp_get_detailed_state(&sbp,
                                  &channel_info,
                                  &freq_info,
+                                 &time_info,
                                  &ctrl_info,
                                  &misc_info,
                                  plgf);
@@ -669,7 +671,7 @@ static void tracking_channel_update_values(
 
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
-    tracking_channel_measurement_get(ref_tc, info, freq_info, &meas);
+    tracking_channel_measurement_get(ref_tc, info, freq_info, time_info, &meas);
     tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
   }
 
@@ -803,6 +805,28 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
   }
 
 }
+/**
+ * Computes the lock time from tracking channel time info.
+ *
+ * \param[in]  time_info Time information block.
+ *
+ * \return Lock time [s]
+ */
+static double tracking_channel_get_lock_time(const tracking_channel_time_info_t *time_info)
+{
+  /* Carrier phase flag is set only once it has been TRACK_STABILIZATION_T
+   * time since the last mode change */
+  u32 stable_ms = 0;
+  if (time_info->last_mode_change_ms > TRACK_STABILIZATION_T) {
+    stable_ms = time_info->last_mode_change_ms - TRACK_STABILIZATION_T;
+  }
+
+  u32 lock_time_ms = UINT32_MAX;
+  lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
+  lock_time_ms = MIN(lock_time_ms, stable_ms);
+
+  return (double) lock_time_ms / SECS_MS;
+}
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.
@@ -812,6 +836,7 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
  * \param[in]  ref_tc    Reference timing count.
  * \param[in]  info      Generic tracking channel information block.
  * \param[in]  freq_info Frequency and phase information block.
+ * \param[in]  time_info Time information block.
  * \param[out] meas      Pointer to output channel_measurement_t.
  *
  * \return None
@@ -819,6 +844,7 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
 void tracking_channel_measurement_get(u64 ref_tc,
                                       const tracking_channel_info_t *info,
                                       const tracking_channel_freq_info_t *freq_info,
+                                      const tracking_channel_time_info_t *time_info,
                                       channel_measurement_t *meas)
 {
   /* Update our channel measurement. */
@@ -833,7 +859,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
   meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc))
                              / NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->cn0 = info->cn0;
-  meas->lock_counter = info->lock_counter;
+  meas->lock_time = tracking_channel_get_lock_time(time_info);
   meas->flags = 0;
 }
 

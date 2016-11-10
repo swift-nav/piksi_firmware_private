@@ -58,23 +58,34 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
 #define MSG_OBS_HEADER_SEQ_SHIFT 4u
 #define MSG_OBS_HEADER_SEQ_MASK ((1 << 4u) - 1)
 #define MSG_OBS_HEADER_MAX_SIZE MSG_OBS_HEADER_SEQ_MASK
-#define MSG_OBS_TOW_MULTIPLIER ((double)1000.0)
+#define MSG_OBS_TOW_MULTIPLIER ((double)1e3)
+#define MSG_OBS_TOW_NS_MULTIPLIER ((double)1e9)
 
-#define MSG_OBS_P_MULTIPLIER ((double)5e1)
-#define MSG_OBS_CN0_MULTIPLIER ((float)4)
-#define MSG_OSB_LF_MULTIPLIER ((double) (1<<8))
+#define MSG_OBS_P_MULTIPLIER             ((double)5e1)
+#define MSG_OBS_CN0_MULTIPLIER           ((float)4)
+#define MSG_OBS_LF_MULTIPLIER            ((double) (1 << 8))
+#define MSG_OBS_DF_MULTIPLIER            ((double) (1 << 8))
+#define MSG_OBS_FLAGS_CODE_VALID         ((u8) (1 << 0))
+#define MSG_OBS_FLAGS_PHASE_VALID        ((u8) (1 << 1))
+#define MSG_OBS_FLAGS_HALF_CYCLE_KNOWN   ((u8) (1 << 2))
+#define MSG_OBS_FLAGS_MEAS_DOPPLER_VALID ((u8) (1 << 3))
 
-void unpack_obs_header(const observation_header_dep_t *msg, gps_time_t* t,
+void unpack_obs_header(const observation_header_t *msg, gps_time_t* t,
                        u8* total, u8* count);
 
 void pack_obs_header(const gps_time_t *t, u8 total, u8 count,
-                     observation_header_dep_t *msg);
+                     observation_header_t *msg);
 
-void unpack_obs_content(const packed_obs_content_dep_c_t *msg, double *P, double *L,
-                        double *cn0, u16 *lock_counter, gnss_signal_t *sid);
+u8 nm_flags_to_sbp(nav_meas_flags_t from);
+nav_meas_flags_t nm_flags_from_sbp(u8 from);
 
-s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
-                    gnss_signal_t sid, packed_obs_content_dep_c_t *msg);
+void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
+                        double *D, double *cn0, double *lock_time,
+                        nav_meas_flags_t *flags, gnss_signal_t *sid);
+
+s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
+                    nav_meas_flags_t flags, gnss_signal_t sid,
+                    packed_obs_content_t *msg);
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
 
@@ -89,6 +100,9 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*));
 
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from);
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
+
+gnss_signal_t sid_from_sbp16(const gnss_signal16_t from);
+gnss_signal16_t sid_to_sbp16(const gnss_signal_t from);
 
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_l2c_capabilities(const u32 *l2c_cap);

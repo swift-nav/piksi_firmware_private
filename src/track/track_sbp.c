@@ -204,6 +204,7 @@ static double limit_value(double value, s64 min, s64 max)
 void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
                                   const tracking_channel_info_t *channel_info,
                                   const tracking_channel_freq_info_t *freq_info,
+                                  const tracking_channel_time_info_t *time_info,
                                   const tracking_channel_ctrl_info_t *ctrl_info,
                                   const tracking_channel_misc_info_t *misc_info,
                                   const last_good_fix_t *lgf)
@@ -217,6 +218,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   tracking_channel_measurement_get(recv_time_ticks,
                                    channel_info,
                                    freq_info,
+                                   time_info,
                                    &meas);
 
   s32 tow_ms = channel_info->tow_ms;
@@ -257,7 +259,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   double Li = floor(-L);
   double Lf = -L - Li;
   state->L.i = (s32)Li;
-  state->L.f = (u8)(Lf * MSG_OSB_LF_MULTIPLIER);
+  state->L.f = (u8)(Lf * MSG_OBS_LF_MULTIPLIER);
 
   gnss_signal_t sid = channel_info->sid;
 
