@@ -228,7 +228,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   if (!isfinite(e->kepler.dn) ||
       (e->kepler.dn < -32768 * pow(2, -43)) ||
       (e->kepler.dn > 32767 * pow(2, -43))) {
-    log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid = %f", e->kepler.dn);
+    log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid = %.12e", e->kepler.dn);
     return false;
   }
 
