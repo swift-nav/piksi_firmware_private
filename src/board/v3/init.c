@@ -140,6 +140,9 @@ void init(void)
   nap_auth_check();
   nap_setup();
 
+  /* Initialize rollover counter */
+  nap_timing_count();
+
   random_init();
   xadc_init();
 }
