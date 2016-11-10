@@ -220,19 +220,19 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
     ndb_lock();
     if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
       *lgf = last_good_fix;
-      if (!ndb_lgf_validate(lgf)) {
-        log_warn("NDB: Invalid LGF data retreived. Erasing.");
-        ndb_erase(&last_good_fix_md);
-        memset(lgf, 0, sizeof(*lgf));
-        res = NDB_ERR_UNRELIABLE_DATA;
-      } else {
-        res = NDB_ERR_NONE;
-      }
+      res = NDB_ERR_NONE;
     } else {
       memset(lgf, 0, sizeof(*lgf));
       res = NDB_ERR_MISSING_IE;
     }
     ndb_unlock();
+    if ((res == NDB_ERR_NONE) &&
+        !ndb_lgf_validate(lgf)) {
+      log_warn("NDB: Invalid LGF data retreived. Erasing.");
+      ndb_erase(&last_good_fix_md);
+      memset(lgf, 0, sizeof(*lgf));
+      res = NDB_ERR_UNRELIABLE_DATA;
+    }
   } else {
     res = NDB_ERR_BAD_PARAM;
   }

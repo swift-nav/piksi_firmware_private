@@ -368,7 +368,8 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 
   ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
 
-  if (!ndb_ephemeris_validate(e)) {
+  if ((res == NDB_ERR_NONE) &&
+      !ndb_ephemeris_validate(e)) {
     log_warn_sid(sid, "NDB: Invalid ephemeris data retreived. Erasing.");
     //ndb_erase(&ndb_ephemeris_md[idx]);
     return NDB_ERR_UNRELIABLE_DATA;
