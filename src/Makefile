@@ -337,7 +337,12 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-.DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).elf
+%.stripped.elf: %.elf
+	@echo "Stripping $@"
+	@$(TRGT)strip -o $@ $<
+
+$(SWIFTNAV_ROOT)/src/peripherals/usart.c $(SWIFTNAV_ROOT)/src/main.c: version.h
+.DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).stripped.elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 
 include $(RULESPATH)/rules.mk
