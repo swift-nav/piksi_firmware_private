@@ -231,8 +231,8 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check delta-n */
   /* Range is signed 16bit * 2^-43 */
   if (!isfinite(e->kepler.dn) ||
-      (e->kepler.dn < INT16_MIN * GPS_LNAV_EPH_SF_DN) ||
-      (e->kepler.dn > INT16_MAX * GPS_LNAV_EPH_SF_DN)) {
+      (e->kepler.dn < INT16_MIN * GPS_LNAV_EPH_SF_DN * GPS_PI) ||
+      (e->kepler.dn > INT16_MAX * GPS_LNAV_EPH_SF_DN * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid = %.12e", e->kepler.dn);
     return false;
   }
@@ -240,8 +240,8 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check M_0 */
   /* Range is signed 32bit * 2^-31 */
   if (!isfinite(e->kepler.m0) ||
-      (e->kepler.m0 < INT32_MIN * GPS_LNAV_EPH_SF_M0) ||
-      (e->kepler.m0 > INT32_MAX * GPS_LNAV_EPH_SF_M0)) {
+      (e->kepler.m0 < INT32_MIN * GPS_LNAV_EPH_SF_M0 * GPS_PI) ||
+      (e->kepler.m0 > INT32_MAX * GPS_LNAV_EPH_SF_M0 * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: m0 invalid");
     return false;
   }
@@ -256,10 +256,10 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   }
 
   /* Check sqrt(A) */
-  /* Range is 4906 to 5390 */
+  /* Range is 2530 to 8192 */
   if (!isfinite(e->kepler.sqrta) ||
-      (e->kepler.sqrta < 4906.0) ||
-      (e->kepler.sqrta > 5390.0)) {
+      (e->kepler.sqrta < 2530.0) ||
+      (e->kepler.sqrta > 8192.0)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: sqrta invalid");
     return false;
   }
@@ -267,17 +267,17 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check omega_0 */
   /* Range is 32bit * 2^-31 */
   if (!isfinite(e->kepler.omega0) ||
-      (e->kepler.omega0 < INT32_MIN * GPS_LNAV_EPH_SF_OMEGA0) ||
-      (e->kepler.omega0 > INT32_MAX * GPS_LNAV_EPH_SF_OMEGA0)) {
+      (e->kepler.omega0 < INT32_MIN * GPS_LNAV_EPH_SF_OMEGA0 * GPS_PI) ||
+      (e->kepler.omega0 > INT32_MAX * GPS_LNAV_EPH_SF_OMEGA0 * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: omega0 invalid");
     return false;
   }
 
   /* Check omega-dot */
-  /* Range is -5.20E-09 to 0.0 */
+  /* Range is -6.33E-07 to 0.0 */
   if (!isfinite(e->kepler.omegadot) ||
-      (e->kepler.omegadot < -5.20e-9) ||
-      (e->kepler.omegadot > 0.0)) {
+      (e->kepler.omegadot < -6.33e-7 * GPS_PI) ||
+      (e->kepler.omegadot > 0.0 * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: omegadot invalid");
     return false;
   }
@@ -285,8 +285,8 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check w */
   /* Range is 32bit * 2^-31 */
   if (!isfinite(e->kepler.w) ||
-      (e->kepler.w < INT32_MIN * GPS_LNAV_EPH_SF_W) ||
-      (e->kepler.w > INT32_MAX * GPS_LNAV_EPH_SF_W)) {
+      (e->kepler.w < INT32_MIN * GPS_LNAV_EPH_SF_W * GPS_PI) ||
+      (e->kepler.w > INT32_MAX * GPS_LNAV_EPH_SF_W * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: w invalid");
     return false;
   }
@@ -294,8 +294,8 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check i_0 */
   /* Range is 0.237 to 0.363 */
   if (!isfinite(e->kepler.inc) ||
-      (e->kepler.inc < 0.237 * GPS_LNAV_EPH_SF_I0) ||
-      (e->kepler.inc > 0.363 * GPS_LNAV_EPH_SF_I0)) {
+      (e->kepler.inc < 0.237 * GPS_LNAV_EPH_SF_I0 * GPS_PI) ||
+      (e->kepler.inc > 0.363 * GPS_LNAV_EPH_SF_I0 * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: inc invalid");
     return false;
   }
@@ -303,8 +303,8 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check IDOT */
   /* Range is 14bit * 2^-43 */
   if (!isfinite(e->kepler.inc_dot) ||
-      (e->kepler.inc_dot < INT14_MIN * GPS_LNAV_EPH_SF_IDOT) ||
-      (e->kepler.inc_dot > INT14_MAX * GPS_LNAV_EPH_SF_IDOT)) {
+      (e->kepler.inc_dot < INT14_MIN * GPS_LNAV_EPH_SF_IDOT * GPS_PI) ||
+      (e->kepler.inc_dot > INT14_MAX * GPS_LNAV_EPH_SF_IDOT * GPS_PI)) {
     log_info_sid(e->sid, "ndb_ephemeris_validate: inc_dot invalid");
     return false;
   }
