@@ -84,6 +84,7 @@ gnss_solution*             simulation_current_gnss_solution(void);
 dops_t*                    simulation_current_dops_solution(void);
 double*                    simulation_ref_ecef(void);
 double*                    simulation_current_baseline_ecef(void);
+double*                    simulation_current_covariance_ecef(void);
 u8                         simulation_current_num_sats(void);
 tracking_channel_state_t   simulation_current_tracking_state(u8 channel);
 navigation_measurement_t*  simulation_current_navigation_measurements(void);

@@ -69,7 +69,7 @@ struct {
   float          angle;                   /**< Current simulation angle in radians */
   double         pos[3];                  /**< Current simulated position with no noise, in ECEF coordinates. */
   double         baseline[3];             /**< Current simulated baseline with no noise, in ECEF coordinates.*/
-
+  double         covariance[9];
   u8             num_sats_selected;
 
   tracking_channel_state_t  tracking_channel[MAX_CHANNELS];
@@ -92,7 +92,11 @@ struct {
     0.0,
     0.0
   },
-
+  .covariance = {
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0
+  },
   .num_sats_selected = 0,
 
   /* .tracking_channel left uninitialized */
@@ -409,6 +413,11 @@ inline double* simulation_ref_ecef(void)
 inline double* simulation_current_baseline_ecef(void)
 {
   return sim_state.baseline;
+}
+
+inline double* simulation_current_covariance_ecef(void)
+{
+  return sim_state.covariance;
 }
 
 /** Returns the number of satellites being simulated.

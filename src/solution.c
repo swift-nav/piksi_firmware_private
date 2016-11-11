@@ -21,6 +21,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/observation.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/dgnss_management.h>
 #include <libswiftnav/baseline.h>
 #include <libswiftnav/linear_algebra.h>
@@ -209,19 +210,23 @@ double calc_heading(const double b_ned[3])
  * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
  */
 void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
+                            double covariance_ecef[9],
                             double ref_ecef[3], u8 flags, double hdop,
                             double corrections_age, u16 sender_id)
 {
-  double* base_station_pos;
-  msg_baseline_ecef_t sbp_ecef;
-  sbp_make_baseline_ecef(&sbp_ecef, t, n_sats, b_ecef, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
-
   double b_ned[3];
   wgsecef2ned(b_ecef, ref_ecef, b_ned);
 
+  double accuracy, h_accuracy, v_accuracy;
+  convert_covariance(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
+
+  double* base_station_pos;
+  msg_baseline_ecef_t sbp_ecef;
+  sbp_make_baseline_ecef(&sbp_ecef, t, n_sats, b_ecef, accuracy, flags);
+  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
+
   msg_baseline_ned_t sbp_ned;
-  sbp_make_baseline_ned(&sbp_ned, t, n_sats, b_ned, flags);
+  sbp_make_baseline_ned(&sbp_ned, t, n_sats, b_ned, h_accuracy, v_accuracy, flags);
   sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_ned), (u8 *)&sbp_ned);
 
   if (send_heading) {
@@ -257,10 +262,10 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
     /* TODO: Define these flags from the yaml and remove hardcoding */
     u8 sbp_flags = (flags == 1) ? 1 : 2;
     msg_pos_llh_t pos_llh;
-    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, t, n_sats, sbp_flags);
+    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, sbp_flags);
     sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
     msg_pos_ecef_t pos_ecef;
-    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, t, n_sats, sbp_flags);
+    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, sbp_flags);
     sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
   }
   chMtxUnlock(&base_pos_lock);
@@ -270,7 +275,8 @@ static bool init_done = false;
 
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                             const gps_time_t *t, double hdop, double diff_time, u16 base_id) {
-  double b[3];
+  double baseline[3];
+  double covariance[9];
   u8 num_used = 0;
   u8 flags = 0;
   s8 ret;
@@ -282,7 +288,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
       chMtxLock(&eigen_state_lock);
-      ret = get_baseline(b, &num_used, &flags);
+      ret = get_baseline(baseline, covariance, &num_used, &flags);
       chMtxUnlock(&eigen_state_lock);
       if (ret != 0) {
         log_warn("output_baseline: Time matched baseline calculation failed");
@@ -298,7 +304,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       chMtxUnlock(&eigen_state_lock);
       if (ret == 0) {
         chMtxLock(&eigen_state_lock);
-        ret = get_baseline(b, &num_used, &flags);
+        ret = get_baseline(baseline, covariance, &num_used, &flags);
         chMtxUnlock(&eigen_state_lock);
         if (ret != 0) {
           log_warn("output_baseline: Low latency baseline calculation failed");
@@ -308,7 +314,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       }
     }
     if (send_baseline && num_used >= 4) {
-      solution_send_baseline(t, num_used, b, lgf.position_solution.pos_ecef,
+      solution_send_baseline(t, num_used, baseline, covariance,
+                             lgf.position_solution.pos_ecef,
                              flags, hdop, diff_time, base_id);
     }
   } else {
@@ -455,6 +462,7 @@ static void solution_simulation(void)
     solution_send_baseline(&(soln->time),
       simulation_current_num_sats(),
       simulation_current_baseline_ecef(),
+      simulation_current_covariance_ecef(),
       simulation_ref_ecef(), flags, 1.5, 0.25, 1023);
 
     double t_check = expected_tow * (soln_freq / obs_output_divisor);
