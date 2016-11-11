@@ -344,7 +344,7 @@ void ndb_ephemeris_init(void)
   for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
     if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
         if (!ndb_ephemeris_validate(&ndb_ephemeris[i])) {
-          log_warn_sid(sid_from_global_index(i), "NDB: Invalid ephemeris data retreived. Erasing.");
+          log_error_sid(sid_from_global_index(i), "NDB: Invalid ephemeris data retreived. Erasing.");
           ndb_erase(&ndb_ephemeris_md[i]);
           memset(&ndb_ephemeris[i], 0, sizeof(ephemeris_t));
         } else {

@@ -187,7 +187,7 @@ void ndb_lgf_init(void)
     }
 
     if (!ndb_lgf_validate(&last_good_fix)) {
-      log_warn("NDB: Invalid LGF data retreived. Erasing.");
+      log_error("NDB: Invalid LGF data retreived. Erasing.");
       ndb_erase(&last_good_fix_md);
       memset(&last_good_fix, 0, sizeof(last_good_fix));
     } else {
