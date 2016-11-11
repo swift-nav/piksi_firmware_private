@@ -281,7 +281,9 @@ CPPWARN = -Wall -Wextra -Werror -Weffc++ -std=gnu++11 \
 #
 
 GIT_VERSION := $(shell git describe --dirty)
-VERSION_H := $(shell echo "\#define GIT_VERSION \"$(GIT_VERSION)\"" > version.h)
+version.h: FORCE
+	@echo "Generating $@"
+	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $@
 
 # List all default C defines here, like -D_DEBUG=1
 DDEFS =
@@ -335,7 +337,12 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-.DEFAULT_GOAL = all
+%.stripped.elf: %.elf
+	@echo "Stripping $@"
+	@$(TRGT)strip -o $@ $<
+
+$(SWIFTNAV_ROOT)/src/peripherals/usart.c $(SWIFTNAV_ROOT)/src/main.c: version.h
+.DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).stripped.elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 
 include $(RULESPATH)/rules.mk

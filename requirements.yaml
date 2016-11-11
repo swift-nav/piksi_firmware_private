@@ -6,7 +6,6 @@
       prefix: v3
       files:
         - piksi_firmware_v3_microzed.elf
-        - piksi_firmware_v3_microzed.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -27,7 +26,6 @@
       prefix: v3
       files:
         - piksi_firmware_v3_evt1.elf
-        - piksi_firmware_v3_evt1.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -48,7 +46,6 @@
       prefix: v3
       files:
         - piksi_firmware_v3_evt2.elf
-        - piksi_firmware_v3_evt2.hex
   artifacts:
     -
       bucket: swiftnav-artifacts
