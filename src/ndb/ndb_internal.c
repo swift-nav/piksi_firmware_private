@@ -588,6 +588,7 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
   if (NULL != md) {
     size_t block_size = md->file->data_size;
 
+    bool md_modified = false;
     ndb_lock();
 
     if (0 != md->nv_data.received_at ||
@@ -596,6 +597,7 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
       md->nv_data.received_at = 0;
       md->nv_data.state |= NDB_MD_DIRTY;
       md->nv_data.source = NDB_DS_UNDEFINED;
+      md_modified = true;
     }
 
     if (0 != (md->nv_data.state & NDB_IE_VALID)) {
@@ -603,9 +605,12 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
       memset(md->data, 0, block_size);
       md->nv_data.state &= ~NDB_IE_VALID;
       md->nv_data.state |= NDB_IE_DIRTY;
+      md_modified = true;
     }
 
-    ndb_wq_put(md);
+    if (md_modified) {
+      ndb_wq_put(md);
+    }
     ndb_unlock();
 
     res = NDB_ERR_NONE;

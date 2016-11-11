@@ -60,6 +60,274 @@ static MUTEX_DECL(cand_list_access);
 #define EPHEMERIS_MESSAGE_SPACING_cycle        (200 / NV_WRITE_REQ_TIMEOUT)
 #define EPHEMERIS_TRANSMIT_EPOCH_SPACING_cycle (15000 / NV_WRITE_REQ_TIMEOUT)
 
+#define INT14_MIN -8192
+#define INT14_MAX  8191
+
+#define INT22_MIN -2097152
+#define INT22_MAX  2097151
+
+static bool ndb_ephemeris_validate(const ephemeris_t *e) {
+  /* Check SID is valid */
+  if (!sid_valid(e->sid)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: sid invalid");
+    return false;
+  }
+
+  /* Check ToE is valid */
+  if (!isfinite(e->toe.tow) ||
+      !gps_current_time_valid(&e->toe)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: toe invalid");
+    return false;
+  }
+
+  /* Currently we only support validating GPS ephemeris */
+  /* TODO(Leith): Expand to GLONASS and SBAS */
+  if (sid_to_constellation(e->sid) != CONSTELLATION_GPS) {
+    return true;
+  }
+
+  /* Check ToE is valid */
+  if (e->toe.tow > GPS_LNAV_EPH_TOE_MAX) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: toe.tow invalid");
+    return false;
+  }
+
+  /* Check ToC is valid */
+  if (!isfinite(e->kepler.toc.tow) ||
+      e->kepler.toc.tow > GPS_LNAV_EPH_TOC_MAX ||
+      !gps_current_time_valid(&e->kepler.toc)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: toc invalid");
+    return false;
+  }
+
+  /* Check fit interval, 4 hours is min and 98 hours is max possible value */
+  if ((e->fit_interval < 4 * HOUR_SECS) ||
+      (e->fit_interval > 98 * HOUR_SECS)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: fit_interval invalid");
+    return false;
+  }
+
+  /* Ensure that we are currently in the valid time range.
+   *
+   * NOTE: we specifically don't check the health status as we need to be able
+   * to save the unhealthy status to ensure we stop using it.
+   *
+   * We also ensure we have at least COARSE time to prevent issues during
+   * receiver start up when we don't know current time yet so just need to
+   * use ephemeris as is. After first SPP fix we will know time so we will
+   * throw out any out of date ephemeris before the second SPP fix. */
+  if (time_quality >= TIME_COARSE) {
+    gps_time_t t = get_current_time();
+    if (ephemeris_valid(e, &t) == 0) {
+      log_info_sid(e->sid, "ndb_ephemeris_validate: not ephemeris_valid()");
+      return false;
+    }
+  }
+
+  /* Check URA, min 2 m is max is 6144 m */
+  if (!isfinite(e->ura) ||
+      (e->ura < 2.0) ||
+      (e->ura > 6144.0)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: ura invalid");
+    return false;
+  }
+
+  /* Check health bits, it is 6 bit field, so anything larger is invalid */
+  if (e->health_bits > 0x3F) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: health_bits invalid");
+    return false;
+  }
+
+  /* Check TGD */
+  /* Range is signed 8bit * 2^-31 */
+  if (!isfinite(e->kepler.tgd) ||
+      (e->kepler.tgd < INT8_MIN * GPS_LNAV_EPH_SF_TGD) ||
+      (e->kepler.tgd > INT8_MAX * GPS_LNAV_EPH_SF_TGD)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: tgd invalid");
+    return false;
+  }
+
+  /* Check C_rc */
+  /* Range is signed 16bit * 2^-5 */
+  if (!isfinite(e->kepler.crc) ||
+      (e->kepler.crc < INT16_MIN * GPS_LNAV_EPH_SF_CRC) ||
+      (e->kepler.crc > INT16_MAX * GPS_LNAV_EPH_SF_CRC)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: crc invalid");
+    return false;
+  }
+
+  /* Check C_rs */
+  /* Range is signed 16bit * 2^-5 */
+  if (!isfinite(e->kepler.crs) ||
+      (e->kepler.crs < INT16_MIN * GPS_LNAV_EPH_SF_CRS) ||
+      (e->kepler.crs > INT16_MAX * GPS_LNAV_EPH_SF_CRS)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: crs invalid");
+    return false;
+  }
+
+  /* Check C_uc */
+  /* Range is signed 16bit * 2^-29 */
+  if (!isfinite(e->kepler.cuc) ||
+      (e->kepler.cuc < INT16_MIN * GPS_LNAV_EPH_SF_CUC) ||
+      (e->kepler.cuc > INT16_MAX * GPS_LNAV_EPH_SF_CUC)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cuc invalid");
+    return false;
+  }
+
+  /* Check C_us */
+  /* Range is signed 16bit * 2^-29 */
+  if (!isfinite(e->kepler.cus) ||
+      (e->kepler.cus < INT16_MIN * GPS_LNAV_EPH_SF_CUS) ||
+      (e->kepler.cus > INT16_MAX * GPS_LNAV_EPH_SF_CUS)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cus invalid");
+    return false;
+  }
+
+  /* Check C_ic */
+  /* Range is signed 16bit * 2^-29 */
+  if (!isfinite(e->kepler.cic) ||
+      (e->kepler.cic < INT16_MIN * GPS_LNAV_EPH_SF_CIC) ||
+      (e->kepler.cic > INT16_MAX * GPS_LNAV_EPH_SF_CIC)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cic invalid");
+    return false;
+  }
+
+  /* Check C_is */
+  /* Range is signed 16bit * 2^-29 */
+  if (!isfinite(e->kepler.cis) ||
+      (e->kepler.cis < INT16_MIN * GPS_LNAV_EPH_SF_CIS) ||
+      (e->kepler.cis > INT16_MAX * GPS_LNAV_EPH_SF_CIS)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: cis invalid");
+    return false;
+  }
+
+  /* Check delta-n */
+  /* Range is signed 16bit * 2^-43 */
+  if (!isfinite(e->kepler.dn) ||
+      (e->kepler.dn < INT16_MIN * GPS_LNAV_EPH_SF_DN * GPS_PI) ||
+      (e->kepler.dn > INT16_MAX * GPS_LNAV_EPH_SF_DN * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: dn invalid = %.12e", e->kepler.dn);
+    return false;
+  }
+
+  /* Check M_0 */
+  /* Range is signed 32bit * 2^-31 */
+  if (!isfinite(e->kepler.m0) ||
+      (e->kepler.m0 < INT32_MIN * GPS_LNAV_EPH_SF_M0 * GPS_PI) ||
+      (e->kepler.m0 > INT32_MAX * GPS_LNAV_EPH_SF_M0 * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: m0 invalid");
+    return false;
+  }
+
+  /* Check e */
+  /* Range is 0 to 0.03 */
+  if (!isfinite(e->kepler.ecc) ||
+      (e->kepler.ecc < 0.0) ||
+      (e->kepler.ecc > 0.03)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: ecc invalid");
+    return false;
+  }
+
+  /* Check sqrt(A) */
+  /* Range is 2530 to 8192 */
+  if (!isfinite(e->kepler.sqrta) ||
+      (e->kepler.sqrta < 2530.0) ||
+      (e->kepler.sqrta > 8192.0)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: sqrta invalid");
+    return false;
+  }
+
+  /* Check omega_0 */
+  /* Range is 32bit * 2^-31 */
+  if (!isfinite(e->kepler.omega0) ||
+      (e->kepler.omega0 < INT32_MIN * GPS_LNAV_EPH_SF_OMEGA0 * GPS_PI) ||
+      (e->kepler.omega0 > INT32_MAX * GPS_LNAV_EPH_SF_OMEGA0 * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: omega0 invalid");
+    return false;
+  }
+
+  /* Check omega-dot */
+  /* Range is -6.33E-07 to 0.0 */
+  if (!isfinite(e->kepler.omegadot) ||
+      (e->kepler.omegadot < -6.33e-7 * GPS_PI) ||
+      (e->kepler.omegadot > 0.0 * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: omegadot invalid");
+    return false;
+  }
+
+  /* Check w */
+  /* Range is 32bit * 2^-31 */
+  if (!isfinite(e->kepler.w) ||
+      (e->kepler.w < INT32_MIN * GPS_LNAV_EPH_SF_W * GPS_PI) ||
+      (e->kepler.w > INT32_MAX * GPS_LNAV_EPH_SF_W * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: w invalid");
+    return false;
+  }
+
+  /* Check i_0 */
+  /* Range is 32bit * 2^-31 */
+  if (!isfinite(e->kepler.inc) ||
+      (e->kepler.inc < INT32_MIN * GPS_LNAV_EPH_SF_I0 * GPS_PI) ||
+      (e->kepler.inc > INT32_MAX * GPS_LNAV_EPH_SF_I0 * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: inc invalid");
+    return false;
+  }
+
+  /* Check IDOT */
+  /* Range is 14bit * 2^-43 */
+  if (!isfinite(e->kepler.inc_dot) ||
+      (e->kepler.inc_dot < INT14_MIN * GPS_LNAV_EPH_SF_IDOT * GPS_PI) ||
+      (e->kepler.inc_dot > INT14_MAX * GPS_LNAV_EPH_SF_IDOT * GPS_PI)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: inc_dot invalid");
+    return false;
+  }
+
+  /* Check a_f0 */
+  /* Range is 22bit * 2^-31 */
+  if (!isfinite(e->kepler.af0) ||
+      (e->kepler.af0 < INT22_MIN * GPS_LNAV_EPH_SF_AF0) ||
+      (e->kepler.af0 > INT22_MAX * GPS_LNAV_EPH_SF_AF0)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: af0 invalid");
+    return false;
+  }
+
+  /* Check a_f1 */
+  /* Range is 16bit * 2^-43 */
+  if (!isfinite(e->kepler.af1) ||
+      (e->kepler.af1 < INT16_MIN * GPS_LNAV_EPH_SF_AF1) ||
+      (e->kepler.af1 > INT16_MAX * GPS_LNAV_EPH_SF_AF1)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: af1 invalid");
+    return false;
+  }
+
+  /* Check a_f2 */
+  /* Range is 8bit * 2^-55 */
+  if (!isfinite(e->kepler.af2) ||
+      (e->kepler.af2 < INT8_MIN * GPS_LNAV_EPH_SF_AF2) ||
+      (e->kepler.af2 > INT8_MAX * GPS_LNAV_EPH_SF_AF2)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: af2 invalid");
+    return false;
+  }
+
+  /* Check IODC */
+  /* Range is 0 to 1023 */
+  if (e->kepler.iodc > 1023) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: iodc invalid");
+    return false;
+  }
+
+  /* Check IODE */
+  /* Must be equal to 8 LSBs of IODC */
+  if (e->kepler.iode != (e->kepler.iodc & 0xFF)) {
+    log_info_sid(e->sid, "ndb_ephemeris_validate: iode invalid, iodc = %" PRIX16 " iode = %" PRIX8, e->kepler.iodc, e->kepler.iode);
+    return false;
+  }
+
+  /* TODO(Leith): Perform alamanac cross validation */
+
+  return true;
+}
+
 void ndb_ephemeris_init(void)
 {
   static bool erase_ephemeris = true;
@@ -75,7 +343,13 @@ void ndb_ephemeris_init(void)
   u32 loaded = 0;
   for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
     if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
-      loaded++;
+        if (!ndb_ephemeris_validate(&ndb_ephemeris[i])) {
+          log_error_sid(sid_from_global_index(i), "NDB: Invalid ephemeris data retreived. Erasing.");
+          ndb_erase(&ndb_ephemeris_md[i]);
+          memset(&ndb_ephemeris[i], 0, sizeof(ephemeris_t));
+        } else {
+          loaded++;
+        }
     }
   }
   if (0 != loaded) {
@@ -104,6 +378,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   }
 
   ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
+
   /* Patch SID to be accurate for GPS L1/L2 */
   e->sid = sid;
   return res;
@@ -190,11 +465,13 @@ ndb_ephemeris_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
 
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
 {
-  if (!e->valid) {
+  if (!ndb_ephemeris_validate(e)) {
+    log_warn("NDB: Invalid ephemeris was attempted to be stored.");
     return NDB_ERR_BAD_PARAM;
   }
 
   if (NDB_DS_RECEIVER == src) {
+    /* TODO(Leith): do we want to store ephemeris if elevation < 5 degrees? */
     switch (ndb_get_ephemeris_status(e)) {
       case EPHE_IDENTICAL:
         return NDB_ERR_NONE;

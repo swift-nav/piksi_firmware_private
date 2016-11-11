@@ -38,9 +38,9 @@ void ephemeris_new(ephemeris_t *e)
   enum ndb_op_code oc = ndb_ephemeris_store(e, NDB_DS_RECEIVER);
   if (NDB_ERR_NONE != oc) {
     if(NDB_ERR_UNRELIABLE_DATA == oc) {
-      log_info_sid(e->sid, "ephemeris is unreliable, not saved");
+      log_warn_sid(e->sid, "ephemeris is unreliable, not saved");
     } else {
-      log_info_sid(e->sid, "error storing ephemeris");
+      log_error_sid(e->sid, "error storing ephemeris");
     }
   } else {
     log_info_sid(e->sid, "ephemeris saved");
