@@ -319,7 +319,7 @@ static bool ndb_ephemeris_validate(const ephemeris_t *e) {
   /* Check IODE */
   /* Must be equal to 8 LSBs of IODC */
   if (e->kepler.iode == (e->kepler.iodc & 0xFF)) {
-    log_info_sid(e->sid, "ndb_ephemeris_validate: iode invalid, iodc = " PRIX16 " iode = " PRIX8);
+    log_info_sid(e->sid, "ndb_ephemeris_validate: iode invalid, iodc = %" PRIX16 " iode = %" PRIX8, e->kepler.iodc, e->kepler.iode);
     return false;
   }
 
