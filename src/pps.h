@@ -13,11 +13,6 @@
 #ifndef SWIFTNAV_PPS_H
 #define SWIFTNAV_PPS_H
 
-#define PPS_WIDTH_MICROSECONDS 200000
-#define PPS_NAP_CYCLES_OFFSET  -14
-#define PPS_NAP_CLOCK_RATIO    8
-#define PPS_THREAD_INTERVAL_MS 100
-
 void pps_setup(void);
 
 #endif

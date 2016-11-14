@@ -16,7 +16,7 @@
         - uImage.piksiv3_microzed
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3
+      prefix: v3/v3.6.0
       files:
         - piksi_microzed_fpga_v3.5_unlocked.bit
 -
@@ -36,7 +36,7 @@
         - uImage.piksiv3_evt1
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3
+      prefix: v3/v3.6.0
       files:
         - piksi_evt1_fpga_v3.5_unlocked.bit
 -
@@ -56,6 +56,6 @@
         - uImage.piksiv3_evt2
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3
+      prefix: v3/v3.6.0
       files:
         - piksi_evt2_fpga_v3.5_unlocked.bit

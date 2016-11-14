@@ -21,6 +21,7 @@
 
 /** \} */
 
+u32 nap_conf_rd_random(void);
 u32 nap_conf_rd_version(void);
 u8 nap_conf_rd_version_string(char version_string[]);
 bool nap_locked(void);
