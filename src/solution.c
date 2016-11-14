@@ -218,7 +218,7 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   wgsecef2ned(b_ecef, ref_ecef, b_ned);
 
   double accuracy, h_accuracy, v_accuracy;
-  convert_covariance(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
+  covariance_to_accuracy(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
 
   double* base_station_pos;
   msg_baseline_ecef_t sbp_ecef;
