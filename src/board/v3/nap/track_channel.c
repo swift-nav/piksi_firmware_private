@@ -159,8 +159,10 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   t->CODE_INIT_G1 = sid_to_init_g1(sid);
   t->CODE_INIT_G2 = 0x3ff;
 
-  t->SPACING = (NAP_SPACING << NAP_TRK_SPACING_OUTER_Pos) |
-               (NAP_SPACING << NAP_TRK_SPACING_INNER_Pos);
+  t->SPACING = (NAP_SPACING << NAP_TRK_SPACING_OFFSET0_Pos) |
+               (NAP_SPACING << NAP_TRK_SPACING_OFFSET1_Pos) |
+               (NAP_SPACING << NAP_TRK_SPACING_OFFSET2_Pos) |
+               (NAP_SPACING << NAP_TRK_SPACING_OFFSET3_Pos);
 
   double cp_rate = (1.0 + carrier_freq / code_to_carr_freq(sid.code)) *
                    code_to_chip_rate(sid.code);

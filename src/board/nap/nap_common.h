@@ -63,8 +63,8 @@ double nap_count_to_ns(u64 delta_time);
 u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
 		     ext_event_trigger_t next_trig);
 
-void nap_pps(u64 rising_edge_count_8x);
-void nap_pps_width(u32 falling_edge_count);
+void nap_pps(u32 count);
+void nap_pps_config(u32 microseconds, u8 active);
 
 #include "nap/nap_hw.h"
 

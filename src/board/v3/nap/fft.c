@@ -34,7 +34,6 @@ static u32 length_points_get(u32 len_log2);
 static void control_set_dma(void);
 static void control_set_frontend_samples(fft_samples_input_t samples_input,
                                          u32 len_points);
-static void control_set_raw_samples(u32 len_samples);
 static void sample_stream_start(void);
 static u32 sample_stream_snapshot_get(void);
 static void config_set(fft_dir_t dir, u32 scale_schedule);
@@ -79,11 +78,11 @@ static u32 length_points_get(u32 len_log2)
 static void control_set_dma(void)
 {
   NAP->ACQ_CONTROL =
-      (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
-      (NAP_ACQ_CONTROL_FFT_INPUT_DMA      << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_LENGTH_Pos) |
-      (NAP_ACQ_CONTROL_PEAK_SEARCH        << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
+      (0                             << NAP_ACQ_CONTROL_FRONTEND_Pos) |
+      (NAP_ACQ_CONTROL_FFT_INPUT_DMA << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
+      (NAP_ACQ_CONTROL_PEAK_SEARCH   << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
+      (0                             << NAP_ACQ_CONTROL_MIXER_Pos) |
+      (FFT_LEN_LOG2_MAX              << NAP_ACQ_CONTROL_NFFT_Pos);
 }
 
 /** Set the ACQ control register for frontend samples input.
@@ -94,36 +93,17 @@ static void control_set_dma(void)
 static void control_set_frontend_samples(fft_samples_input_t samples_input,
                                          u32 len_points)
 {
-  assert(!(len_points &
-           ~(NAP_ACQ_CONTROL_LENGTH_Msk >> NAP_ACQ_CONTROL_LENGTH_Pos)));
+  (void)len_points;
 
   NAP->ACQ_CONTROL =
-      (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
-      (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       ((samples_input)                    << NAP_ACQ_CONTROL_FRONTEND_Pos) |
-      (len_points                         << NAP_ACQ_CONTROL_LENGTH_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
+      (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
+      (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
+      (0                                  << NAP_ACQ_CONTROL_MIXER_Pos) |
+      (FFT_LEN_LOG2_MAX                   << NAP_ACQ_CONTROL_NFFT_Pos);
 }
 
-/** Set the ACQ control register for raw samples input.
- *
- * \param len_samples     Number of samples.
- */
-static void control_set_raw_samples(u32 len_samples)
-{
-  assert(!(len_samples &
-           ~(NAP_ACQ_CONTROL_LENGTH_Msk >> NAP_ACQ_CONTROL_LENGTH_Pos)));
-
-  NAP->ACQ_CONTROL =
-      (NAP_ACQ_CONTROL_DMA_INPUT_SAMPLE_GRABBER
-                                          << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
-      (len_samples                        << NAP_ACQ_CONTROL_LENGTH_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos);
-}
-
-/** Start streaming samples from the frontend or raw samples input.
+/** Start streaming samples from the frontend.
  */
 static void sample_stream_start(void)
 {
@@ -220,8 +200,8 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
          fft_dir_t dir, u32 scale_schedule)
 {
   u32 len_bytes = length_points_get(len_log2) * sizeof(fft_cplx_t);
-  config_set(dir, scale_schedule);
   control_set_dma();
+  config_set(dir, scale_schedule);
   dma_start((const u8 *)in, (u8 *)out, len_bytes);
   return dma_wait();
 }
@@ -245,8 +225,8 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
 {
   u32 len_points = length_points_get(len_log2);
   u32 len_bytes = len_points * sizeof(fft_cplx_t);
-  config_set(dir, scale_schedule);
   control_set_frontend_samples(samples_input, len_points);
+  config_set(dir, scale_schedule);
   sample_stream_start();
   dma_start(0, (u8 *)out, len_bytes);
   bool result = dma_wait();
@@ -275,22 +255,4 @@ void fft_results_get(u32 *peak_index, u32 *peak_mag_sq, u32 *sum_mag_sq)
   if (acq_status & NAP_ACQ_STATUS_SUM_MAGSQ_OVF_Msk) {
     log_warn("Acquisition: Magnitude squared sum overflow.");
   }
-}
-
-/** Retrieve a buffer of raw samples.
- *
- * \param out             Output buffer.
- * \param len_samples     Number of samples.
- * \param sample_count    Output sample count of the first sample.
- *
- * \return True if the samples were successfully retrieved, false otherwise.
- */
-bool raw_samples_get(u8 *out, u32 len_samples, u32 *sample_count)
-{
-  control_set_raw_samples(len_samples);
-  dma_start(0, out, len_samples);
-  sample_stream_start();
-  bool result = dma_wait();
-  *sample_count = sample_stream_snapshot_get();
-  return result;
 }

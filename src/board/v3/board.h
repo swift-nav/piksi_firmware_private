@@ -20,10 +20,14 @@
 #include <gic.h>
 #include "board_rev.h"
 
-#define IRQ_ID_NAP_TRACK IRQ_ID_FPGA3
+#define IRQ_ID_NAP IRQ_ID_FPGA2
 #define NAP_IRQ_PRIORITY 4
+
+#define IRQ_ID_NAP_TRACK IRQ_ID_FPGA3
+#define NAP_TRACK_IRQ_PRIORITY 4
+
 #define IRQ_ID_FRONTEND_AOK IRQ_ID_FPGA9
-#define FRONTEND_AOK_PRIORITY 4
+#define FRONTEND_AOK_IRQ_PRIORITY 4
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
