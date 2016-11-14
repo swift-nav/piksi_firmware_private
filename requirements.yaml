@@ -16,29 +16,9 @@
         - uImage.piksiv3_microzed
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3/v3.6.0
+      prefix: v3.6.0
       files:
-        - piksi_microzed_fpga_v3.5_unlocked.bit
--
-  name: evt1
-  resources:
-    -
-      prefix: v3
-      files:
-        - piksi_firmware_v3_evt1.elf
-  artifacts:
-    -
-      bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/b6a9b5e/v3/evt1/dev
-      files:
-        - boot.bin
-        - u-boot.img
-        - uImage.piksiv3_evt1
-    -
-      bucket: piksi-fpga-unlocked
-      prefix: v3/v3.6.0
-      files:
-        - piksi_evt1_fpga_v3.5_unlocked.bit
+        - piksi_microzed_fpga_unlocked.bit
 -
   name: evt2
   resources:
@@ -56,6 +36,6 @@
         - uImage.piksiv3_evt2
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3/v3.6.0
+      prefix: v3.6.0
       files:
-        - piksi_evt2_fpga_v3.5_unlocked.bit
+        - piksi_evt2_fpga_unlocked.bit
