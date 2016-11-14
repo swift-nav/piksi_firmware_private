@@ -59,7 +59,6 @@ static struct {
 } factory_params;
 
 static void nap_conf_check(void);
-static void nap_reset(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
 static void nap_auth_setup(void);
@@ -116,19 +115,8 @@ void init(void)
   reset_callback_register();
   factory_params_read();
 
-  /* Start DAC off in high impedance mode if present */
-  set_clk_dac(0, CLK_DAC_MODE_3);
-
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
-
-  frontend_configure();
-
-  /* Reset after frontend clock switch */
-  nap_reset();
-
-  /* Wait for reset */
-  chThdSleepMilliseconds(1);
 
   nap_version_check();
   nap_dna_callback_register();
@@ -136,11 +124,16 @@ void init(void)
   nap_auth_check();
   nap_setup();
 
+  frontend_configure();
+
   /* Initialize rollover counter */
   nap_timing_count();
 
   random_init();
   xadc_init();
+
+  /* Start DAC off in high impedance mode if present */
+  set_clk_dac(0, CLK_DAC_MODE_3);
 }
 
 static void nap_conf_check(void)
@@ -149,21 +142,6 @@ static void nap_conf_check(void)
     log_error("Waiting for NAP");
     chThdSleepSeconds(2);
   }
-}
-
-static void nap_reset(void)
-{
-  /* Unlock SLCR */
-  *(volatile uint32_t *)0xF8000008 = 0xDF0D;
-
-  /* Assert FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0xf;
-
-  /* Release FPGA resets */
-  *(volatile uint32_t *)0xF8000240 = 0x0;
-
-  /* Lock SLCR */
-  *(volatile uint32_t *)0xF8000004 = 0x767B;
 }
 
 static bool nap_version_ok(u32 version)
