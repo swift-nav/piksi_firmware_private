@@ -876,6 +876,7 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
+    set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
@@ -1042,11 +1043,12 @@ static void solution_thread(void *arg)
 
     /* Calculate time till the next desired solution epoch. */
     double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-
+    
     /* Limit dt to 1 second maximum to prevent hang if dt calculated
      * incorrectly. */
-    if (fabs(dt) > 1.0) {
-      dt = (dt > 0.0) ? 1.0 : -1.0;
+    double max_deadline = ((1.0/soln_freq)*2.0);
+    if (fabs(dt) > max_deadline) {
+      dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
     }
 
     /* Reset timer period with the count that we will estimate will being

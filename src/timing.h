@@ -34,6 +34,7 @@ typedef struct {
   gps_time_t t0_gps;   /**< Clock offset estimate. GPS time when local timer
                             value equals zero. */
   double clock_period; /**< Clock period estimate. */
+  double clock_offset; /**< offset to improve precision of GPS time */
   double P[2][2];      /**< State covariance matrix. */
 } clock_est_state_t;
 
@@ -47,6 +48,7 @@ void timing_setup(void);
 gps_time_t get_current_time(void);
 void set_time(time_quality_t quality, gps_time_t t);
 void set_time_fine(u64 tc, gps_time_t t);
+void set_gps_time_offset(u64 tc, gps_time_t t);
 void adjust_time_fine(double dt);
 gps_time_t rx2gpstime(double tc);
 double gps2rxtime(gps_time_t* t);

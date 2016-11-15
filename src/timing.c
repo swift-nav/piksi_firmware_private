@@ -78,86 +78,11 @@ void clock_est_init(clock_est_state_t *s)
   s->t0_gps.wn = 0;
   s->t0_gps.tow = 0;
   s->clock_period = RX_DT_NOMINAL;
+  s->clock_offset = 0.0;
   s->P[0][0] = 500e-3;
   s->P[0][1] = 0;
   s->P[1][0] = 0;
   s->P[1][1] = (double)RX_DT_NOMINAL * RX_DT_NOMINAL / 1e12; /* 1ppm. */
-  chMtxUnlock(&clock_mutex);
-}
-/*
-    def update(self, est_gpsT, est_bias, localT, q, rT, rTdot):
-        phi_t_0 = array([[1., localT], [0, 1]])
-        phi_0_t = array([[1., -localT], [0, 1]])
-
-        # Predict:
-        # No state update, static
-        x_ = self.x
-        # Predict covariance
-        P_ = self.P + array([[q, 0.], [0, 0]])
-
-        # Update:
-        # Calc. innovation
-        z = array([est_gpsT, est_bias])
-        y = z - phi_t_0.dot(x_)
-        # Calc. innovation covariance
-        S = phi_t_0.dot(P_).dot(phi_t_0.transpose()) + array([[rT, 0.], [0, rTdot]])
-        # Kalman gain
-        #K = phi_t_0.dot(P_).dot(phi_t_0.transpose()).dot(linalg.inv(S))
-        K = P_.dot(phi_t_0.transpose()).dot(linalg.inv(S))
-        # Update state estimate
-        self.x += K.dot(y)
-        # Update covariance
-        self.P = (array([[1., 0], [0, 1]]) - K.dot(phi_t_0)).dot(P_)
-  */
-
-void clock_est_update(clock_est_state_t *s, gps_time_t meas_gpst,
-                      double meas_clock_period, double localt, double q,
-                      double r_gpst, double r_clock_period)
-{
-  chMtxLock(&clock_mutex);
-
-  double temp[2][2];
-
-  double phi_t_0[2][2] = {{1, localt}, {0, 1}};
-  double phi_t_0_tr[2][2];
-  matrix_transpose(2, 2, (const double *)phi_t_0, (double *)phi_t_0_tr);
-
-  double P_[2][2];
-  memcpy(P_, s->P, sizeof(P_));
-  P_[0][0] += q;
-
-  double y[2];
-  gps_time_t pred_gpst = s->t0_gps;
-  pred_gpst.tow += localt * s->clock_period;
-  normalize_gps_time(&pred_gpst);
-  y[0] = gpsdifftime(&meas_gpst, &pred_gpst);
-  y[1] = meas_clock_period - s->clock_period;
-
-  double S[2][2];
-  matrix_multiply(2, 2, 2, (const double *)phi_t_0, (const double *)P_, (double *)temp);
-  matrix_multiply(2, 2, 2, (const double *)temp, (const double *)phi_t_0_tr, (double *)S);
-  S[0][0] += r_gpst;
-  S[1][1] += r_clock_period;
-  double Sinv[2][2];
-  matrix_inverse(2, (const double *)S, (double *)Sinv);
-
-  double K[2][2];
-  matrix_multiply(2, 2, 2, (const double *)P_, (const double *)phi_t_0_tr, (double *)temp);
-  matrix_multiply(2, 2, 2, (const double *)temp, (const double *)Sinv, (double *)K);
-
-  double dx[2];
-  matrix_multiply(2, 2, 1, (const double *)K, (const double *)y, (double *)dx);
-  s->t0_gps.tow += dx[0];
-  normalize_gps_time(&s->t0_gps);
-  s->clock_period += dx[1];
-
-  matrix_multiply(2, 2, 2, (const double *)K, (const double *)phi_t_0, (double *)temp);
-  temp[0][0] = 1 - temp[0][0];
-  temp[0][1] = -temp[0][1];
-  temp[1][1] = 1 - temp[1][1];
-  temp[1][0] = -temp[1][0];
-  matrix_multiply(2, 2, 2, (const double *)temp, (const double *)P_, (double *)s->P);
-
   chMtxUnlock(&clock_mutex);
 }
 
@@ -174,11 +99,27 @@ void set_time_fine(u64 tc, gps_time_t t)
 
   chMtxLock(&clock_mutex);
   clock_state.t0_gps = norm_time;
+  clock_state.clock_offset = 0.0;
   time_quality = TIME_FINE;
   chMtxUnlock(&clock_mutex);
 
   time_t unix_t = gps2time(&t);
   log_info("Time set to: %s (quality=%d)", ctime(&unix_t), TIME_FINE);
+}
+
+/** Update GPS time estimate precisely referenced to the local receiver time.
+ *
+ * \param tc SwiftNAP timing count.
+ * \param t GPS time estimate associated with timing count.
+ */
+void set_gps_time_offset(u64 tc, gps_time_t t)
+{
+  gps_time_t rcv_time = rx2gpstime(tc);
+  double time_diff = gpsdifftime(&rcv_time,&t);
+
+  chMtxLock(&clock_mutex);
+  clock_state.clock_offset += time_diff;
+  chMtxUnlock(&clock_mutex);
 }
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
@@ -192,6 +133,7 @@ void adjust_time_fine(double dt)
   gps_time.tow -= dt;
   normalize_gps_time(&gps_time);
   clock_state.t0_gps = gps_time;
+  clock_state.clock_offset -= dt;
   chMtxUnlock(&clock_mutex);
 }
 
@@ -230,7 +172,7 @@ gps_time_t rx2gpstime(double tc)
 {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
-  t.tow += tc * clock_state.clock_period;
+  t.tow += tc * clock_state.clock_period - clock_state.clock_offset;
   chMtxUnlock(&clock_mutex);
 
   normalize_gps_time(&t);
@@ -250,6 +192,7 @@ double gps2rxtime(gps_time_t* t)
 {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;
+  gps_time.tow -= clock_state.clock_offset;
   double clock_period = clock_state.clock_period;
   chMtxUnlock(&clock_mutex);
 
