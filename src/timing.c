@@ -184,14 +184,17 @@ void set_time_fine(u64 tc, gps_time_t t)
 /** Update GPS time estimate precisely referenced to the local receiver time.
  *
  * \param dt clock adjustment (s)
+ * \param offset clock rate adjustment (s/s)
  */
-void adjust_time_fine(double dt)
+void adjust_time_fine(double dt, double offset)
 {
   chMtxLock(&clock_mutex);
+
   gps_time_t gps_time = clock_state.t0_gps;
-  gps_time.tow -= dt;
+  gps_time.tow -= dt - offset * clock_state.clock_period * nap_timing_count();
   normalize_gps_time(&gps_time);
   clock_state.t0_gps = gps_time;
+  clock_state.clock_period *= (1 - offset);
   chMtxUnlock(&clock_mutex);
 }
 
