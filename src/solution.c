@@ -23,7 +23,6 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/dgnss_management.h>
-#include <libswiftnav/baseline.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/troposphere.h>
 
