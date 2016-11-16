@@ -1051,8 +1051,6 @@ static void solution_thread(void *arg)
   }
 }
 
-static bool init_done = false;
-
 void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
 {
   if (!init_done) {
