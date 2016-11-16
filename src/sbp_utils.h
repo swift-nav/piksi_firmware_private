@@ -93,5 +93,6 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_l2c_capabilities(const u32 *l2c_cap);
 void sbp_send_group_delay(const cnav_msg_t *cnav);
+u32 round_tow_ms(double tow);
 
 #endif /* SWIFTNAV_SBP_UTILS_H */

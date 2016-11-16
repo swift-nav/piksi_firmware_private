@@ -910,18 +910,17 @@ static void solution_thread(void *arg)
 
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
-    double expected_tow = round(lgf.position_solution.time.tow * soln_freq)
-                          / soln_freq;
-    double t_err = expected_tow - lgf.position_solution.time.tow;
+    gps_time_t new_obs_time;
+    new_obs_time.tow = round(lgf.position_solution.time.tow * soln_freq)
+                              / soln_freq;
+    normalize_gps_time(&new_obs_time);
+    gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
+
+    double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-
-      /* Update observation time. */
-      gps_time_t new_obs_time;
-      new_obs_time.tow = expected_tow;
-      gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
@@ -1008,7 +1007,7 @@ static void solution_thread(void *arg)
        * care to ensure that the observations are aligned. */
       /* Also only output observations once our receiver clock is
        * correctly set. */
-      double t_check = expected_tow * (soln_freq / obs_output_divisor);
+      double t_check = new_obs_time.tow * (soln_freq / obs_output_divisor);
       if (!simulation_enabled() &&
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
@@ -1042,7 +1041,7 @@ static void solution_thread(void *arg)
     }
 
     /* Calculate time till the next desired solution epoch. */
-    double dt = expected_tow - lgf.position_solution.time.tow;
+    double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
 
     /* Limit dt to 1 second maximum to prevent hang if dt calculated
      * incorrectly. */

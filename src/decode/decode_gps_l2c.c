@@ -137,6 +137,9 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
 
     tow_ms = data->cnav_msg.tow * GPS_CNAV_MSG_LENGTH * GPS_L2C_SYMBOL_LENGTH;
     tow_ms += delay * GPS_L2C_SYMBOL_LENGTH;
+    if (tow_ms >= WEEK_MS) {
+      tow_ms -= WEEK_MS;
+    }
 
     s8 bit_polarity = data->cnav_msg.bit_polarity;
 
