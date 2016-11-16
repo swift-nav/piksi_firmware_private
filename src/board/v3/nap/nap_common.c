@@ -198,7 +198,11 @@ static void handle_nap_irq(void)
   u32 err = NAP->IRQ_ERROR;
   if (err) {
     NAP->IRQ_ERROR = err;
-    log_error("SwiftNAP Error: 0x%08X", (unsigned int)err);
+    if (err & NAP_IRQ_EXT_EVENT_Msk) {
+      log_error("NAP Error: Too many external events.");
+    } else {
+      log_error("NAP Interrupt Error: 0x%08X", (unsigned int)err);
+    }
   }
 }
 
@@ -217,7 +221,7 @@ static void handle_nap_track_irq(void)
   u32 err = NAP->TRK_IRQ_ERROR;
   if (err) {
     NAP->TRK_IRQ_ERROR = err;
-    log_error("SwiftNAP Tracking Error: 0x%08X", (unsigned int)err);
+    log_error("NAP Tracking Interrupt Error: 0x%08X", (unsigned int)err);
     tracking_channels_missed_update_error(err);
   }
 
@@ -227,7 +231,7 @@ static void handle_nap_track_irq(void)
 static void nap_irq_thread(void *arg)
 {
   (void)arg;
-  chRegSetThreadName("NAP ISR");
+  chRegSetThreadName("NAP");
 
   while (TRUE) {
     /* Waiting for the IRQ to happen.*/
@@ -240,7 +244,7 @@ static void nap_irq_thread(void *arg)
 static void nap_track_irq_thread(void *arg)
 {
   (void)arg;
-  chRegSetThreadName("NAP tracking ISR");
+  chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
     /* Waiting for the IRQ to happen.*/
@@ -281,10 +285,6 @@ void nap_pps_config(u32 microseconds, u8 active)
 u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
     ext_event_trigger_t next_trig)
 {
-  (void)event_pin;
-  (void)event_trig;
-  (void)next_trig;
-
   if (event_pin) {
     *event_pin = 0;
   }
