@@ -593,6 +593,14 @@ void manage_track_setup()
 }
 
 /**
+ * Expose the elevation mask setting
+ */
+float get_elevation_mask()
+{
+  return elevation_mask;
+}
+
+/**
  * Helper to provide channel drop reason literal.
  * \param[in] reason Channel drop reason.
  *

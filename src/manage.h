@@ -151,6 +151,8 @@ void manage_set_obs_hint(gnss_signal_t sid);
 
 void manage_track_setup(void);
 
+float get_elevation_mask(void);
+
 manage_track_flags_t get_tracking_channel_flags(u8 i);
 manage_track_flags_t get_tracking_channel_meas(u8 i,
                                                u64 ref_tc,

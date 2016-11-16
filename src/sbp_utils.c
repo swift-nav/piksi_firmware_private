@@ -112,8 +112,10 @@ void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 f
   pos_ecef->x = soln->pos_ecef[0];
   pos_ecef->y = soln->pos_ecef[1];
   pos_ecef->z = soln->pos_ecef[2];
-  /* TODO: fill in accuracy field. */
-  pos_ecef->accuracy = 0;
+  /* this is the estimate of 3D position standard deviation assuming
+   * the pseudorange weighting model is correct */
+  pos_ecef->accuracy = round(1000.0 *
+                  sqrt(soln->err_cov[0] + soln->err_cov[3] + soln->err_cov[5]));
   pos_ecef->n_sats = soln->n_used;
   pos_ecef->flags = flags;
 }
