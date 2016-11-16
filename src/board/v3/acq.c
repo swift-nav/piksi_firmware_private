@@ -158,41 +158,42 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     /* Compute C/N0 */
     snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
     cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
-    if (cn0 > ACQ_THRESHOLD) {
-      /* Peak found - save results */
+
+    if (cn0 > best_cn0) {
+      /* New max peak found */
       best_cn0 = cn0;
       best_doppler = doppler;
       best_sample_offset = peak_index;
+    }
+
+    if (cn0 > ACQ_EARLY_THRESHOLD && !peak_found) {
+      /* Peak strong enough to trigger early exit */
 
       /* If peak was found on the starting bin,
        * then need to check both sides of the starting bin */
       if (doppler_bin == start_bin) {
         loop_index = doppler_bin_max - 1; /* Make 2 more searches */
         peak_found = true;                /* Mark peak as found */
-        continue;
       }
 
-      /* IF no Peak has been found previously.
-       *    AND
-       *    (
-       *      (Peak is now found on positive side AND
-       *       there is one more bin to search on that side)
-       *      OR
-       *      (Peak is now found on negative side AND
-       *       there is one more bin to search on that side)
-       *    )
+      /* If peak was found on other than starting bin.
+       *
+       *    (Peak is found on positive side AND
+       *     there is one more bin to search on that side)
+       *   OR
+       *    (Peak is found on negative side AND
+       *     there is one more bin to search on that side)
+       *
        */
-      if (
-          (!peak_found)  &&
-          (((ind1 == -1) && (doppler_bin < doppler_bin_max)) ||
-           ((ind1 == 1)  && (doppler_bin > doppler_bin_min)))
+      else if (
+          ((ind1 == -1) && (doppler_bin < doppler_bin_max)) ||
+           ((ind1 == 1)  && (doppler_bin > doppler_bin_min))
          ) {
         loop_index = doppler_bin_max;  /* Make 1 more search */
         peak_found = true;             /* Mark peak as found */
         /* Adjust ind1 and ind2 so that same frequency side is searched */
         ind1 *= -1;
         ind2 += 1;
-        continue;
       }
     }
   }
