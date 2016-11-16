@@ -24,6 +24,12 @@
 /* High Impedance */
 #define CLK_DAC_MODE_3            3
 
-void set_clk_dac(uint8_t val, uint8_t mode);
+/** @brief set the clk dac voltage
+ *    Sets the voltage and mode
+ *
+ *  @param val valid range 0 to (2^12-1) linearly sets voltage 0 to Vcc
+ *  @param mode dac mode. Only mode 0 is affected by val
+ */
+void set_clk_dac(uint16_t val, uint8_t mode);
 
 #endif
