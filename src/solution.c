@@ -844,6 +844,7 @@ static void solution_thread(void *arg)
      * just return the rough value from the tracking loop. */
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
+                          (double) get_elevation_mask(),
                           &lgf.position_solution, &dops);
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */

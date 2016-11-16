@@ -197,7 +197,8 @@ static void update_obss(obss_t *new_obss)
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
-    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true, &soln, &dops);
+    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true,
+                       get_elevation_mask(), &soln, &dops);
 
     if (ret >= 0 && soln.valid) {
       memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
