@@ -73,8 +73,8 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float cn0 = 0.0f;
 
   /* Loop over Doppler bins */
-  s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
-  s32 doppler_bin_max = (s32)floorf(cf_max / cf_bin_width);
+  s16 doppler_bin_min = (s16)floorf(cf_min / cf_bin_width);
+  s16 doppler_bin_max = (s16)floorf(cf_max / cf_bin_width);
 
   /* Check that bin_max >= bin_min. */
   if (doppler_bin_min > doppler_bin_max) {
@@ -94,16 +94,16 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* If odd number of bins, start from mid bin. [ ][x][ ]
    * If even number of bins, start from (mid + 0.5) bin. [ ][ ][x][ ]
    */
-  s32 start_bin = doppler_bin_min
+  s16 start_bin = doppler_bin_min
                 + (doppler_bin_max - doppler_bin_min + 1) / 2;
-  s32 doppler_bin = start_bin;
-  s32 ind1 = 1;                     /* Used to flip between +1 and -1 */
-  s32 ind2 = 1;                     /* Used to compute bin index with (ind2 / 2)
+  s16 doppler_bin = start_bin;
+  s8  ind1 = 1;                     /* Used to flip between +1 and -1 */
+  s16 ind2 = 1;                     /* Used to compute bin index with (ind2 / 2)
                                      * resulting in sequence
                                      * 0,1,1,2,2,3,3,... */
   bool peak_found = false;          /* Stop freq sweep when peak is found.
                                      * Adjacent freq bins are still searched. */
-  s32 loop_index = doppler_bin_min; /* Make frequency searches from
+  s16 loop_index = doppler_bin_min; /* Make frequency searches from
                                      * doppler_bin_min to doppler_bin_max */
 
   while (loop_index <= doppler_bin_max) {
@@ -169,28 +169,21 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     if (cn0 > ACQ_EARLY_THRESHOLD && !peak_found) {
       /* Peak strong enough to trigger early exit */
 
-      /* If peak was found on the starting bin,
-       * then need to check both sides of the starting bin */
+      peak_found = true; /* Mark peak as found */
+
+      /* IF peak was found on the starting bin,
+       * then need to check both sides of the starting bin. */
       if (doppler_bin == start_bin) {
         loop_index = doppler_bin_max - 1; /* Make 2 more searches */
-        peak_found = true;                /* Mark peak as found */
       }
-
-      /* If peak was found on other than starting bin.
-       *
-       *    (Peak is found on positive side AND
-       *     there is one more bin to search on that side)
-       *   OR
-       *    (Peak is found on negative side AND
-       *     there is one more bin to search on that side)
-       *
-       */
-      else if (
-          ((ind1 == -1) && (doppler_bin < doppler_bin_max)) ||
-           ((ind1 == 1)  && (doppler_bin > doppler_bin_min))
-         ) {
-        loop_index = doppler_bin_max;  /* Make 1 more search */
-        peak_found = true;             /* Mark peak as found */
+      /* ELSE peak was found on other than starting bin ,
+       * then need to check one more bin from the same side. */
+      else {
+        /* Extend bin boundaries to handle situation
+         * where peak is found on last positive or negative bin. */
+        doppler_bin_max += 1;
+        doppler_bin_min -= 1;
+        loop_index = doppler_bin_max; /* Make 1 more search */
         /* Adjust ind1 and ind2 so that same frequency side is searched */
         ind1 *= -1;
         ind2 += 1;

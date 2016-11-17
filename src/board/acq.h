@@ -16,8 +16,16 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
+/** Acquisition CN0 threshold to determine if
+  * handover to tracking should be initiated. */
 #define ACQ_THRESHOLD 37.0        /* dBHz */
+
+/** Acquisition CN0 threshold to determine if a strong peak has been found.
+  * High CN0 triggers early exit from acquisition frequency sweep */
 #define ACQ_EARLY_THRESHOLD 38.0  /* dBHz */
+
+/** If handover to tracking fails,
+ *  satellite with a high CN0 should be prioritized */
 #define ACQ_RETRY_THRESHOLD 38.0  /* dBHz */
 
 typedef struct {
