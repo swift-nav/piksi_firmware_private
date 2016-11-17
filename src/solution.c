@@ -1015,10 +1015,10 @@ static void solution_thread(void *arg)
 
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
     double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
-    log_debug("RX clock error = %f", rx_err);
+    log_debug("RX clock offset = %f", rx_err);
     clock_jump = FALSE;
     if (fabs(rx_err) >= 1e-3) {
-      log_info("RX clock error %f > 1ms, resetting!", rx_err);
+      log_info("Receiver clock offset larger than 1 ms, applying millisecond jump");
       /* round the time adjustment to even milliseconds */
       double dt = round(rx_err * 1000.0) / 1000.0;
       /* adjust the RX to GPS time conversion */
