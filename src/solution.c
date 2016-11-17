@@ -91,7 +91,7 @@ MUTEX_DECL(eigen_state_lock);
 
 systime_t last_dgnss;
 
-double soln_freq = 2.0;
+double soln_freq = 1.0;
 u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
@@ -855,7 +855,7 @@ static void solution_thread(void *arg)
       solution_send_sbp(0, &dops, clock_jump);
       continue;
     }
-
+    log_info("clock_offset, %.10f, clock_bias %.10f", lgf.position_solution.clock_offset, lgf.position_solution.clock_bias);
     soln_flag = true;
 
     if (pvt_ret == 1) {
@@ -921,6 +921,7 @@ static void solution_thread(void *arg)
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
       /* nav_meas_tdcp is updated in place, skipping elements if required. */
       u8 n_ready_tdcp_new = 0;
+      log_error("rover ToR: %.15f", new_obs_time.tow);
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
 
@@ -953,6 +954,7 @@ static void solution_thread(void *arg)
         double clock_err;
         double clock_rate_err;
 
+        log_error_sid(nm->sid, "rover ToT: %.15f", nm->tot.tow);
         eph_valid = ephemeris_valid(&ephe, &nm->tot);
         if (eph_valid) {
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,

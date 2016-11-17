@@ -332,6 +332,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Pull out the contents of the message. */
   packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+  log_error("base ToR: %.15f", tor.tow);
   for (u8 i=0; i<obs_in_msg; i++) {
     gnss_signal_t sid = sid_from_sbp(obs[i].sid);
     if (!sid_supported(sid)) {
@@ -362,12 +363,18 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     u8 eph_valid;
     s8 ss_ret;
     const ephemeris_t *ephe_p = &ephe;
+    double clock_err;
+    double clock_rate_err;
 
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
+    log_error_sid(nm->sid, "base ToT before corr: %.15f", nm->tot.tow);
     if (eph_valid) {
-      /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
+      /* Apply corrections to the pseudorange, carrier phase and Doppler. */
       ss_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
+      ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
+                              &clock_err, &clock_rate_err);
     }
+    log_error_sid(nm->sid, "base ToT after corr: %.15f", nm->tot.tow);
 
     if (!eph_valid || (ss_ret != 0)) {
       continue;
