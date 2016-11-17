@@ -39,6 +39,9 @@
 #include "ndb.h"
 #include "shm.h"
 
+#define SAT_TO_PRINT 18
+
+
 extern bool disable_raim;
 
 /** \defgroup base_obs Base station observation handling
@@ -303,6 +306,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     log_warn("Unaligned observation from base station ignored, "
              "tow = %.3f, dt = %.3f", tor.tow, dt);
     return;
+  } else {
+    // log_error("dt: %.15f", dt);
   }
 
   /* Verify sequence integrity */
@@ -355,7 +360,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     /* Set the time */
     nm->tot = tor;
     nm->tot.tow -= nm->raw_pseudorange / GPS_C;
-    // log_error_sid(nm->sid, "base ToT: %.15f", nm->tot.tow);
     normalize_gps_time(&nm->tot);
 
     /* Calculate satellite parameters using the ephemeris. */
@@ -368,14 +372,17 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     double clock_rate_err;
 
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
-    log_error_sid(nm->sid, "base ToT before corr: %.15f", nm->tot.tow);
     if (eph_valid) {
       /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
+      double tot_before = nm->tot.tow;
       ss_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
+      if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+        log_error_sid(nm->sid, "base ToT before sat clock correction: %.15f", tot_before);
+        log_error_sid(nm->sid, "base ToT after sat clock correction: %.15f", nm->tot.tow);
+      }
       ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                               &clock_err, &clock_rate_err);
     }
-    log_error_sid(nm->sid, "base ToT after corr: %.15f", nm->tot.tow);
 
     if (!eph_valid || (ss_ret != 0)) {
       continue;

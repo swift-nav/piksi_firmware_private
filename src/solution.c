@@ -50,6 +50,8 @@
 #include "ndb.h"
 #include "shm.h"
 
+#define SAT_TO_PRINT 18
+
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
@@ -750,12 +752,34 @@ static void solution_thread(void *arg)
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
                                             p_rec_time);
 
+  //   if (p_rec_time != NULL) {
+  //   for (u8 i = 0; i < n_ready; i++) {
+  //     if (p_nav_meas[i]->sid.code == 0 && p_nav_meas[i]->sid.sat == SAT_TO_PRINT) {
+  //       log_error("rover ToR: %.15f", rec_time.tow);
+  //       log_error_sid(p_nav_meas[i]->sid, "rover ToT initial: %.15f", p_nav_meas[i]->tot.tow);
+  //       log_error_sid(p_nav_meas[i]->sid, "rover ToT initial from PR: %.15f",
+  //       p_rec_time->tow - p_nav_meas[i]->raw_pseudorange / GPS_C);
+  //     }
+  //   }
+  // }
+
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
       continue;
     }
 
     s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
+
+    // if (p_rec_time != NULL) {
+    //   for (u8 i = 0; i < n_ready; i++) {
+    //     if (p_nav_meas[i]->sid.code == 0 && p_nav_meas[i]->sid.sat == SAT_TO_PRINT) {
+    //       log_error("rover ToR: %.15f", rec_time.tow);
+    //       log_error_sid(p_nav_meas[i]->sid, "rover ToT after corr: %.15f", p_nav_meas[i]->tot.tow);
+    //       log_error_sid(p_nav_meas[i]->sid, "rover ToT after corr from PR: %.15f",
+    //       p_rec_time->tow - p_nav_meas[i]->raw_pseudorange / GPS_C);
+    //     }
+    //   }
+    // }
 
     if (sc_ret != 0) {
        log_error("calc_sat_clock_correction() returned an error");
@@ -936,11 +960,9 @@ static void solution_thread(void *arg)
           doppler = nm->raw_measured_doppler;
         }
 
-        // gps_time_t pr_time;
-        // pr_time = new_obs_time;
-        // pr_time.tow -= nm->raw_pseudorange / GPS_C;
-        // log_error_sid(nm->sid, "rover before, ToT from pr: %.15f", pr_time.tow);
-
+        if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+          log_error_sid(nm->sid, "rover ToT before epoch align: %.15f", nm->tot.tow);
+        }
 
         nm->raw_carrier_phase += t_err * doppler;
         /* Note, the pseudorange correction has opposite sign because Doppler
@@ -950,13 +972,7 @@ static void solution_thread(void *arg)
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
-        // log_error_sid(nm->sid, "rover ToT before correction: %.15f", nm->tot.tow);
         nm->tot.tow += t_err;
-        // log_error_sid(nm->sid, "rover ToT: %.15f", nm->tot.tow);
-        // gps_time_t pr_time
-        // pr_time = new_obs_time;
-        // pr_time.tow -= nm->raw_pseudorange / GPS_C;
-        // log_error_sid(nm->sid, "rover ToT from pseudorange: %.15f", pr_time.tow);
 
         normalize_gps_time(&nm->tot);
 
@@ -967,14 +983,16 @@ static void solution_thread(void *arg)
         double clock_err;
         double clock_rate_err;
 
-        log_error_sid(nm->sid, "rover ToT: %.15f", nm->tot.tow);
+        if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+          log_error_sid(nm->sid, "rover ToT before calc_sat_state: %.15f", nm->tot.tow);
+        }
         eph_valid = ephemeris_valid(&ephe, &nm->tot);
         if (eph_valid) {
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                                   &clock_err, &clock_rate_err);
         }
-      // log_error_sid(nm->sid, "rover ToT calc sat state: %.15f", nm->tot.tow);
-
+        nm->raw_pseudorange = GPS_C * (gpsdifftime(&new_obs_time,
+                                                            &nm->tot) - clock_err);
 
         if (!eph_valid || (ss_ret != 0)) {
           continue;
