@@ -26,6 +26,7 @@ BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
 RELEASES="piksi_firmware_v0.21.hex%2Cpm_alpha_rc0-1-gef65f0a%2Cpm_alpha_rc1-3-ge561a3c%2Cpm_alpha_rc2-2-g2c49ba8"
+SCENARIOS="live-roof-1543-mission%2Clive-roof-1800"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUCKET="swiftnav-artifacts"
@@ -33,9 +34,10 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUILD_SOURCE="release"
 fi
 
+http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/high-level/f/firmware/p/master_trend/
 LINKS=\
-("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
-"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
 "http://hitl-dashboard.swiftnav.com/files/$BUCKET/$REPO/$BUILD_VERSION/"
 "http://hitl-dashboard.swiftnav.com/hitl/$BUILD_SOURCE/$BUILD_VERSION/"
