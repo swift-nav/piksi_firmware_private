@@ -91,7 +91,7 @@ MUTEX_DECL(eigen_state_lock);
 
 systime_t last_dgnss;
 
-double soln_freq = 2.0;
+double soln_freq = 1.0;
 u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
@@ -855,7 +855,7 @@ static void solution_thread(void *arg)
       solution_send_sbp(0, &dops, clock_jump);
       continue;
     }
-
+    log_info("clock_offset, %.10f, clock_bias %.10f", lgf.position_solution.clock_offset, lgf.position_solution.clock_bias);
     soln_flag = true;
 
     if (pvt_ret == 1) {
@@ -921,6 +921,7 @@ static void solution_thread(void *arg)
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
       /* nav_meas_tdcp is updated in place, skipping elements if required. */
       u8 n_ready_tdcp_new = 0;
+      log_error("rover ToR: %.15f", new_obs_time.tow);
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
 
@@ -935,6 +936,12 @@ static void solution_thread(void *arg)
           doppler = nm->raw_measured_doppler;
         }
 
+        // gps_time_t pr_time;
+        // pr_time = new_obs_time;
+        // pr_time.tow -= nm->raw_pseudorange / GPS_C;
+        // log_error_sid(nm->sid, "rover before, ToT from pr: %.15f", pr_time.tow);
+
+
         nm->raw_carrier_phase += t_err * doppler;
         /* Note, the pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
@@ -943,7 +950,14 @@ static void solution_thread(void *arg)
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
+        // log_error_sid(nm->sid, "rover ToT before correction: %.15f", nm->tot.tow);
         nm->tot.tow += t_err;
+        // log_error_sid(nm->sid, "rover ToT: %.15f", nm->tot.tow);
+        // gps_time_t pr_time
+        // pr_time = new_obs_time;
+        // pr_time.tow -= nm->raw_pseudorange / GPS_C;
+        // log_error_sid(nm->sid, "rover ToT from pseudorange: %.15f", pr_time.tow);
+
         normalize_gps_time(&nm->tot);
 
         ephemeris_t ephe;
@@ -953,11 +967,14 @@ static void solution_thread(void *arg)
         double clock_err;
         double clock_rate_err;
 
+        log_error_sid(nm->sid, "rover ToT: %.15f", nm->tot.tow);
         eph_valid = ephemeris_valid(&ephe, &nm->tot);
         if (eph_valid) {
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                                   &clock_err, &clock_rate_err);
         }
+      // log_error_sid(nm->sid, "rover ToT calc sat state: %.15f", nm->tot.tow);
+
 
         if (!eph_valid || (ss_ret != 0)) {
           continue;
