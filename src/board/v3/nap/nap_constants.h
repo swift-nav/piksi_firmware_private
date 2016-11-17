@@ -63,6 +63,7 @@
 #define NAP_DNA_LENGTH                                                    (8)
 
 #define NAP_PPS_TIMING_COUNT_OFFSET                                       (0)
+#define NAP_EXT_TIMING_COUNT_OFFSET                                      (-4)
 
 #define NAP_FRONTEND_SAMPLE_RATE_Hz      (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz \
                                                   / NAP_TRACK_DECIMATION_RATE)
