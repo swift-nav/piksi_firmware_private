@@ -296,6 +296,6 @@ u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
 
   NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos);
 
-  return NAP->EVENT_TIMING_SNAPSHOT;
+  return NAP->EVENT_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
 }
 
