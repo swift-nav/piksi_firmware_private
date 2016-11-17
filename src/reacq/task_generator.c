@@ -15,19 +15,13 @@
 #include <ndb.h>
 #include <timing.h>
 #include "task_generator_api.h"
+#include "manage.h"
+#include "search_manager_api.h"
 
-
-/** Doppler bin size (Hz) */
-#define ACQ_DOPPLER_BIN_SIZE_HZ 168
 /** Integration time. */
-#define ACQ_INTEGRATION_TIME_4MS 4 
+#define ACQ_INTEGRATION_TIME_4MS 4
 /** CN0 threshold (dB-Hz) for accepted peak */
 #define ACQ_PEAK_CN0_THRESHOLD_DBHZ 37.0f
-/** Default maximum Doppler (Hz) */
-#define ACQ_DOPPLER_MAX_HZ 8500
-/** Default minimum Doppler (Hz) */
-#define ACQ_DOPPLER_MIN_HZ -8500
-
 
 /** Fills job task(s) with acquisition parameters
  *
@@ -42,9 +36,14 @@ void tg_fill_task(acq_job_t *job)
   s16 task_index = 0; /* Single task in Phase 1 */
   job->task_data.number_of_tasks = 1;
   acq_param = &job->task_data.task_array[task_index];
-  acq_param->freq_bin_size_hz = ACQ_DOPPLER_BIN_SIZE_HZ;
+  acq_param->freq_bin_size_hz = ACQ_FULL_CF_STEP;
   acq_param->integration_time_ms = ACQ_INTEGRATION_TIME_4MS;
   acq_param->cn0_threshold_dbhz = ACQ_PEAK_CN0_THRESHOLD_DBHZ;
+
+  float default_doppler_min = code_to_sv_doppler_min(job->sid.code) +
+                              code_to_tcxo_doppler_min(job->sid.code);
+  float default_doppler_max = code_to_sv_doppler_max(job->sid.code) +
+                              code_to_tcxo_doppler_max(job->sid.code);
 
   switch(job->job_type) {
   case ACQ_JOB_DEEP_SEARCH:
@@ -56,20 +55,21 @@ void tg_fill_task(acq_job_t *job)
 	WN_UNKNOWN != now.wn &&
 	NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
       dum_get_doppler_wndw(&job->sid, &now, &lgf,
+               ACQ_MAX_USER_VELOCITY_MPS,
 			   &acq_param->doppler_min_hz,
 			   &acq_param->doppler_max_hz);
       break;
     } /* else fall through */
   }
   case ACQ_JOB_FALLBACK_SEARCH:
-    acq_param->doppler_min_hz = ACQ_DOPPLER_MIN_HZ;
-    acq_param->doppler_max_hz = ACQ_DOPPLER_MAX_HZ;
+    acq_param->doppler_min_hz = default_doppler_min;
+    acq_param->doppler_max_hz = default_doppler_max;
     break;
   case ACQ_NUM_JOB_TYPES:
   default:
     assert(!"Invalid jobtype");
-    acq_param->doppler_min_hz = ACQ_DOPPLER_MIN_HZ;
-    acq_param->doppler_max_hz = ACQ_DOPPLER_MAX_HZ;
+    acq_param->doppler_min_hz = default_doppler_min;
+    acq_param->doppler_max_hz = default_doppler_max;
     break;
   }
 }

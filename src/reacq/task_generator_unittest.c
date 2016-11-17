@@ -25,15 +25,11 @@
 
 /** Doppler bin size (Hz) */
 #define EXPECTED_DOPPLER_BIN_SIZE_HZ 168
-/** Integration time. 
+/** Integration time.
     Exact value is 3.957e-3, should it be 4 or 3.957e-3? */
-#define EXPECTED_INTEGRATION_TIME_4MS 4 
+#define EXPECTED_INTEGRATION_TIME_4MS 4
 /** CN0 threshold for accepted peak */
 #define EXPECTED_PEAK_CN0_THRESHOLD_DBHZ 37.0f
-/** Default maximum Doppler (Hz) */
-#define EXPECTED_DOPPLER_MAX_HZ 8500
-/** Default minimum Doppler (Hz) */
-#define EXPECTED_DOPPLER_MIN_HZ -8500
 
 /* Stub functions */
 gps_time_t get_current_time(void) {
@@ -68,26 +64,31 @@ int main(int argc, char **argv)
   /* There is not much to check in Phase 1 */
   acq_job_t job;
   acq_task_search_params_t *acq_param =  &job.task_data.task_array[0];
+  float doppler_min = code_to_sv_doppler_min(CODE_GPS_L1CA) +
+                      code_to_tcxo_doppler_min(CODE_GPS_L1CA);
+  float doppler_max = code_to_sv_doppler_max(CODE_GPS_L1CA) +
+                      code_to_tcxo_doppler_max(CODE_GPS_L1CA);
+
   memset(&job, 0, sizeof(job));
 
   job.job_type = ACQ_JOB_FALLBACK_SEARCH;
   tg_fill_task(&job);
-  
+
   assert(job.task_data.number_of_tasks == 1);
   assert(EXPECTED_DOPPLER_BIN_SIZE_HZ == acq_param->freq_bin_size_hz);
   assert(EXPECTED_INTEGRATION_TIME_4MS == acq_param->integration_time_ms);
   assert(EXPECTED_PEAK_CN0_THRESHOLD_DBHZ == acq_param->cn0_threshold_dbhz);
-  assert(EXPECTED_DOPPLER_MIN_HZ == acq_param->doppler_min_hz);
-  assert(EXPECTED_DOPPLER_MAX_HZ == acq_param->doppler_max_hz);
+  assert(doppler_min == acq_param->doppler_min_hz);
+  assert(doppler_max == acq_param->doppler_max_hz);
 
   job.job_type = ACQ_JOB_DEEP_SEARCH;
-  tg_fill_task(&job);  
+  tg_fill_task(&job);
 
   assert(job.task_data.number_of_tasks == 1);
   assert(EXPECTED_DOPPLER_BIN_SIZE_HZ == acq_param->freq_bin_size_hz);
   assert(EXPECTED_INTEGRATION_TIME_4MS == acq_param->integration_time_ms);
   assert(EXPECTED_PEAK_CN0_THRESHOLD_DBHZ == acq_param->cn0_threshold_dbhz);
-  assert(EXPECTED_DOPPLER_MIN_HZ == acq_param->doppler_min_hz);
-  assert(EXPECTED_DOPPLER_MAX_HZ == acq_param->doppler_max_hz);
+  assert(doppler_min == acq_param->doppler_min_hz);
+  assert(doppler_max == acq_param->doppler_max_hz);
   return 0;
 }
