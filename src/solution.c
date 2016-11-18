@@ -1007,10 +1007,10 @@ static void solution_thread(void *arg)
                    vector_distance(3, sat_pos_before, base_obss.pos_ecef) +
                     - clock_err_now * GPS_C + clock_err_before * GPS_C;
 
-        if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-          log_error_sid(nm->sid, "base ToR: %.15f", time_before.tow);
-          log_error_sid(nm->sid, "rover ToR: %.15f", time_now.tow);
-        }
+        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+        //   log_error_sid(nm->sid, "base ToR: %.15f", time_before.tow);
+        //   log_error_sid(nm->sid, "rover ToR: %.15f", time_now.tow);
+        // }
 
         if (!eph_valid || (ss_ret != 0)) {
           continue;
