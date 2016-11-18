@@ -124,6 +124,9 @@ void init(void)
   nap_auth_check();
   nap_setup();
 
+  /* Start DAC off at it's midpoint if present */
+  set_clk_dac(2048, CLK_DAC_MODE_0);
+
   frontend_configure();
 
   /* Initialize rollover counter */
@@ -131,9 +134,6 @@ void init(void)
 
   random_init();
   xadc_init();
-
-  /* Start DAC off in high impedance mode if present */
-  set_clk_dac(0, CLK_DAC_MODE_3);
 }
 
 static void nap_conf_check(void)
