@@ -40,19 +40,8 @@ void ndb_iono_init(void)
 {
   static bool erase_iono = true;
   SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
-  if (erase_iono) {
-    ndb_fs_remove(IONO_CORR_FILE_NAME);
-  }
 
-  ndb_load_data(&iono_corr_file);
-
-  if (0 != (iono_corr_md.nv_data.state & NDB_IE_VALID)) {
-    if (erase_iono) {
-      log_error("NDB iono erase is not working");
-    }
-
-    log_info("Loaded iono corrections");
-  }
+  ndb_load_data(&iono_corr_file, erase_iono);
 }
 
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)

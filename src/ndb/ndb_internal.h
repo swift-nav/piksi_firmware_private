@@ -80,7 +80,7 @@ void ndb_lock(void);
 void ndb_unlock(void);
 
 ndb_timestamp_t ndb_get_timestamp(void);
-void ndb_load_data(ndb_file_t *f);
+void ndb_load_data(ndb_file_t *f, bool erase);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
                          ndb_element_metadata_t *md);

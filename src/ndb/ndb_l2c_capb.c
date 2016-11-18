@@ -36,7 +36,7 @@ static ndb_file_t gps_l2c_capb_file = {
 
 void ndb_l2c_capb_init(void)
 {
-  ndb_load_data(&gps_l2c_capb_file);
+  ndb_load_data(&gps_l2c_capb_file, false);
 
   if (0 == (gps_l2c_capabilities_md.nv_data.state & NDB_IE_VALID) ||
       0 == gps_l2c_capabilities) {
