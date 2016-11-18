@@ -35,6 +35,12 @@ typedef struct {
   float cn0;
 } acq_result_t;
 
+typedef struct {
+  float cn0;
+  float doppler;
+  u32 sample_offset;
+} acq_peak_search_t;
+
 float acq_bin_width(void);
 
 bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
