@@ -80,8 +80,7 @@ static int get_doppler(const gnss_signal_t *sid,
     return -1;
   }
 
-  if (0 != calc_sat_doppler_wndw(sid,
-                                 &e,
+  if (0 != calc_sat_doppler_wndw(&e,
                                  t,
                                  &lgf->position_solution,
                                  radius,
