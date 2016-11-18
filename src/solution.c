@@ -856,6 +856,9 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    /* Perform clock steering */
+    steer_clock(lgf.position_solution.clock_offset, lgf.position_solution.clock_bias);
+
     soln_flag = true;
 
     if (pvt_ret == 1) {
