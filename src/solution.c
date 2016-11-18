@@ -50,7 +50,7 @@
 #include "ndb.h"
 #include "shm.h"
 
-#define SAT_TO_PRINT 18
+#define SAT_TO_PRINT -1
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -945,7 +945,8 @@ static void solution_thread(void *arg)
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
       /* nav_meas_tdcp is updated in place, skipping elements if required. */
       u8 n_ready_tdcp_new = 0;
-      log_error("rover ToR: %.15f", new_obs_time.tow);
+      // log_error("rover ToR: %.15f", new_obs_time.tow);
+      chMtxLock(&base_obs_lock);
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
 
@@ -960,9 +961,9 @@ static void solution_thread(void *arg)
           doppler = nm->raw_measured_doppler;
         }
 
-        if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-          log_error_sid(nm->sid, "rover ToT before epoch align: %.15f", nm->tot.tow);
-        }
+        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+        //   log_error_sid(nm->sid, "rover ToT before epoch align: %.15f", nm->tot.tow);
+        // }
 
         nm->raw_carrier_phase += t_err * doppler;
         /* Note, the pseudorange correction has opposite sign because Doppler
@@ -979,20 +980,37 @@ static void solution_thread(void *arg)
         ephemeris_t ephe;
         ndb_ephemeris_read(nm->sid, &ephe);
         u8 eph_valid;
-        s8 ss_ret;
+        s8 ss_ret = 0;
         double clock_err;
         double clock_rate_err;
 
-        if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-          log_error_sid(nm->sid, "rover ToT before calc_sat_state: %.15f", nm->tot.tow);
-        }
         eph_valid = ephemeris_valid(&ephe, &nm->tot);
         if (eph_valid) {
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                                   &clock_err, &clock_rate_err);
         }
-        nm->raw_pseudorange = GPS_C * (gpsdifftime(&new_obs_time,
-                                                            &nm->tot) - clock_err);
+        // nm->raw_pseudorange = GPS_C * (gpsdifftime(&new_obs_time,
+        //                                                     &nm->tot) - clock_err);
+
+        double sat_pos_now[3], sat_pos_before[3], sat_vel[3], clock_err_now, clock_err_before;
+        gps_time_t time_now = new_obs_time;
+        time_now.tow -= 0.070;
+        calc_sat_state(&ephe, &time_now, sat_pos_now, sat_vel,
+                                &clock_err_now, &clock_rate_err);
+
+        gps_time_t time_before = base_obss.tor;
+        time_before.tow -= 0.070;
+        calc_sat_state(&ephe, &time_before, sat_pos_before, sat_vel,
+                       &clock_err_before, &clock_rate_err);
+
+        nm->dist = vector_distance(3, sat_pos_now, base_obss.pos_ecef) -
+                   vector_distance(3, sat_pos_before, base_obss.pos_ecef) +
+                    - clock_err_now * GPS_C + clock_err_before * GPS_C;
+
+        if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+          log_error_sid(nm->sid, "base ToR: %.15f", time_before.tow);
+          log_error_sid(nm->sid, "rover ToR: %.15f", time_now.tow);
+        }
 
         if (!eph_valid || (ss_ret != 0)) {
           continue;
@@ -1007,7 +1025,6 @@ static void solution_thread(void *arg)
       /* If we have a recent set of observations from the base station, do a
        * differential solution. */
       double pdt;
-      chMtxLock(&base_obs_lock);
       if (base_obss.n > 0 && !simulation_enabled()) {
         if ((pdt = gpsdifftime(&new_obs_time, &base_obss.tor))
               < max_age_of_differential) {

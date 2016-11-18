@@ -337,7 +337,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Pull out the contents of the message. */
   packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
-  log_error("base ToR: %.15f", tor.tow);
+  // log_error("base ToR: %.15f", tor.tow);
   for (u8 i=0; i<obs_in_msg; i++) {
     gnss_signal_t sid = sid_from_sbp(obs[i].sid);
     if (!sid_supported(sid)) {
@@ -374,12 +374,12 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
     if (eph_valid) {
       /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
-      double tot_before = nm->tot.tow;
+      // double tot_before = nm->tot.tow;
       ss_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
-      if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        log_error_sid(nm->sid, "base ToT before sat clock correction: %.15f", tot_before);
-        log_error_sid(nm->sid, "base ToT after sat clock correction: %.15f", nm->tot.tow);
-      }
+      // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
+      //   log_error_sid(nm->sid, "base ToT before sat clock correction: %.15f", tot_before);
+      //   log_error_sid(nm->sid, "base ToT after sat clock correction: %.15f", nm->tot.tow);
+      // }
       ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                               &clock_err, &clock_rate_err);
     }
