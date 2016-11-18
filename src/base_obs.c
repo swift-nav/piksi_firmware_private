@@ -39,8 +39,6 @@
 #include "ndb.h"
 #include "shm.h"
 
-#define SAT_TO_PRINT 14
-
 extern bool disable_raim;
 
 /** \defgroup base_obs Base station observation handling
@@ -370,9 +368,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     if (eph_valid) {
       /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
       ss_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
-      // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-      //   log_error_sid(nm->sid, "base ToT: %.15f", nm->tot.tow);
-      // }
       ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                                     &clock_err, &clock_rate_err);
     }

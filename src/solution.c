@@ -50,8 +50,6 @@
 #include "ndb.h"
 #include "shm.h"
 
-#define SAT_TO_PRINT 14
-
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
@@ -93,7 +91,7 @@ MUTEX_DECL(eigen_state_lock);
 
 systime_t last_dgnss;
 
-double soln_freq = 1.0;
+double soln_freq = 2.0;
 u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
@@ -914,9 +912,6 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-    // log_error("t_err: %.15f", t_err);
-    // log_error("clock_offset: %.15f", lgf.position_solution.clock_offset);
-
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -940,39 +935,14 @@ static void solution_thread(void *arg)
           doppler = nm->raw_measured_doppler;
         }
 
-        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        //   log_error_sid(nm->sid, "rover raw_pseudorange before doppler corr: %.15f", nm->raw_pseudorange);
-        // }
-
         nm->raw_carrier_phase += t_err * doppler;
         /* Note, the pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
         nm->raw_pseudorange -= t_err * doppler *
                                code_to_lambda(nm->sid.code);
 
-      //  if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-      //    log_error_sid(nm->sid, "rover raw_pseudorange after doppler corr: %.15f", nm->raw_pseudorange);
-      //  }
-
-        // nm->raw_carrier_phase += t_err * GPS_C;
         nm->carrier_phase += lgf.position_solution.clock_offset * GPS_C;
         nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
-
-        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        //   log_error_sid(nm->sid, "rover raw_pseudorange after + GPS_C * t_err: %.15f", nm->raw_pseudorange + t_err * GPS_C);
-        // }
-        //
-        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        //   log_error_sid(nm->sid, "rover raw_pseudorange after - GPS_C * t_err: %.15f", nm->raw_pseudorange - t_err * GPS_C);
-        // }
-        //
-        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        //   log_error_sid(nm->sid, "rover raw_pseudorange after + GPS_C * clock_offset: %.15f", nm->raw_pseudorange + lgf.position_solution.clock_offset * GPS_C);
-        // }
-        //
-        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        //   log_error_sid(nm->sid, "rover raw_pseudorange after - GPS_C * clock_offset: %.15f", nm->raw_pseudorange - lgf.position_solution.clock_offset * GPS_C);
-        // }
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -982,7 +952,7 @@ static void solution_thread(void *arg)
         ephemeris_t ephe;
         ndb_ephemeris_read(nm->sid, &ephe);
         u8 eph_valid;
-        s8 ss_ret = 0;
+        s8 ss_ret;
         double clock_err;
         double clock_rate_err;
 
@@ -991,12 +961,6 @@ static void solution_thread(void *arg)
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
                                   &clock_err, &clock_rate_err);
         }
-        // nm->raw_pseudorange = GPS_C * (gpsdifftime(&new_obs_time,
-        //                                                     &nm->tot) - clock_err);
-        // if (nm->sid.code == 0 && nm->sid.sat == SAT_TO_PRINT) {
-        //   log_error_sid(nm->sid, "rover raw_pseudorange from ToF: %.15f",
-        //    GPS_C * (gpsdifftime(&new_obs_time, &nm->tot) - clock_err));
-        // }
 
         if (!eph_valid || (ss_ret != 0)) {
           continue;
