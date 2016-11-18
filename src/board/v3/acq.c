@@ -70,6 +70,26 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float best_mag_sq_sum = 0.0f;
   float best_doppler = 0.0f;
   u32 best_sample_offset = 0;
+  u32 peak_index = 0;
+  u32 index_local_fw1 = 0;
+  u32 index_local_fw2 = 0;
+  u32 index_local_fw3 = 0;
+  u32 index_local_fw4 = 0;
+  u32 index_global_fw1 = 0;
+  u32 index_global_fw2 = 0;
+  u32 index_global_fw3 = 0;
+  u32 index_global_fw4 = 0;
+  float peak_local_fw1 = 0.0f;
+  float peak_local_fw2 = 0.0f;
+  float peak_local_fw3 = 0.0f;
+  float peak_local_fw4 = 0.0f;
+//  float peak_global_fw1 = 0.0f;
+//  float peak_global_fw2 = 0.0f;
+//  float peak_global_fw3 = 0.0f;
+  float peak_global_fw4 = 0.0f;
+//  float noise_local_fw = 0.0f;
+//  float noise_global_fw = 0.0f;
+
 
   /* Loop over Doppler bins */
   s32 doppler_bin_min = (s32)floorf(cf_min / cf_bin_width);
@@ -104,10 +124,80 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     }
 
     /* Peak search */
-    u32 peak_index;
+    peak_index = 0;
     u32 peak_mag_sq;
     u32 sum_mag_sq;
     fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
+
+    float peak_fw;
+    float peak_tmp_fw = -1.0f;
+    float noise_fw = 0;
+//    bool max = false;
+    bool rising = false;
+    float tmp = 0.0f;
+    float tmp2 = 0.0f;
+    peak_local_fw1 = 0.0f;
+    peak_local_fw2 = 1.0f;
+    peak_local_fw3 = 2.0f;
+    peak_local_fw4 = 3.0f;
+
+    for (u32 i=0; i<fft_len; i++) {
+      peak_fw = result_fft[i].re*result_fft[i].re + result_fft[i].im*result_fft[i].im;
+      noise_fw += peak_fw;
+      if (peak_fw > peak_tmp_fw) {
+        rising = true;
+        peak_tmp_fw = peak_fw;
+        continue;
+      }
+
+      if ((peak_tmp_fw > peak_local_fw1) &&
+          (rising) ) {
+        rising = false;
+        peak_local_fw1 = peak_tmp_fw;
+        index_local_fw1 = i-1;
+        if (peak_local_fw1 > peak_local_fw2) {
+          tmp = peak_local_fw2;
+          tmp2 = index_local_fw2;
+          peak_local_fw2 = peak_local_fw1;
+          index_local_fw2 = index_local_fw1;
+          peak_local_fw1 = tmp;
+          index_local_fw1 = tmp2;
+        }
+        if (peak_local_fw2 > peak_local_fw3) {
+          tmp = peak_local_fw3;
+          tmp2 = index_local_fw3;
+          peak_local_fw3 = peak_local_fw2;
+          index_local_fw3 = index_local_fw2;
+          peak_local_fw2 = tmp;
+          index_local_fw2 = tmp2;
+        }
+        if (peak_local_fw3 > peak_local_fw4) {
+//          max = true;
+          tmp = peak_local_fw4;
+          tmp2 = index_local_fw4;
+          peak_local_fw4 = peak_local_fw3;
+          index_local_fw4 = index_local_fw3;
+          peak_local_fw3 = tmp;
+          index_local_fw3 = tmp2;
+        }
+      }
+      peak_tmp_fw = peak_fw;
+    }
+//    if (max) {
+//      noise_local_fw = noise_fw / fft_len;
+//    }
+
+    if (peak_local_fw4 > peak_global_fw4) {
+//      peak_global_fw1 = peak_local_fw1;
+//      peak_global_fw2 = peak_local_fw2;
+//      peak_global_fw3 = peak_local_fw3;
+      peak_global_fw4 = peak_local_fw4;
+      index_global_fw1 = index_local_fw1;
+      index_global_fw2 = index_local_fw2;
+      index_global_fw3 = index_local_fw3;
+      index_global_fw4 = index_local_fw4;
+//      noise_global_fw = noise_local_fw;
+    }
 
     float mag_sq = (float)peak_mag_sq;
     if (mag_sq > best_mag_sq) {
@@ -134,9 +224,24 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
   /* Compute C/N0 */
   float snr = best_mag_sq / (best_mag_sq_sum / fft_len);
+//  float snr_fw = 10.0f * log10f(snr);
   float cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ)
             + 10.0f * log10f(fft_bin_width); /* Bandwidth */
+//  float snr_fw = (fabsf(best_mag_sq_fw) / tmp) * (fabsf(best_mag_sq_fw) / tmp);
 
+//  float cn0_fw = 10.0f * log10f(snr_fw * PLATFORM_CN0_EST_BW_HZ)
+//            + 10.0f * log10f(fft_bin_width); /* Bandwidth */
+  log_error_sid(sid,
+                "Acq: "
+                "(%.1f,  %.1f,  %.1f, %.u,  %u, %.u,  %u, %.u )",
+                cn0,
+                best_mag_sq,
+                peak_global_fw4,
+                index_global_fw1,
+                index_global_fw2,
+                index_global_fw3,
+                index_global_fw4,
+                best_sample_offset);
   /* Set output */
   acq_result->sample_count = sample_count;
   acq_result->cp = cp;
