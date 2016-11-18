@@ -23,14 +23,15 @@ void set_clk_dac(uint16_t val, uint8_t mode)
 {
   assert(mode <= 3);
   assert(val < 4096);
-  uint16_t out = ((val & 0xFF) << 8) | (val >> 8);
-  out |= mode << 4;
-  uint16_t in;
+  uint8_t out[2];
+  out[0] = (mode << 4) | (val >> 8);
+  out[1] = val & 0xFF;
+  uint8_t in[2];
   spiStart(&CLK_DAC_SPI, &spi_config);
   spiAcquireBus(&CLK_DAC_SPI);
 
   spiSelect(&CLK_DAC_SPI);
-  spiExchange(&CLK_DAC_SPI, 2, &out, &in);
+  spiExchange(&CLK_DAC_SPI, 2, out, in);
   spiUnselect(&CLK_DAC_SPI);
 
   spiReleaseBus(&CLK_DAC_SPI);
