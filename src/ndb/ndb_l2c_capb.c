@@ -17,25 +17,26 @@
 #include "ndb.h"
 #include "ndb_internal.h"
 
+/** L2C capabilities file name */
 #define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"
+/** L2C capabilities file type */
+#define GPS_L2C_CAPB_FILE_TYPE "l2c capabilities"
+
 static u32 gps_l2c_capabilities;
 static ndb_element_metadata_t gps_l2c_capabilities_md;
 
 static ndb_file_t gps_l2c_capb_file = {
   .name = GPS_L2C_CAPB_FILE_NAME,
-  .expected_size =
-        sizeof(gps_l2c_capabilities)
-      + sizeof(ndb_element_metadata_nv_t)
-      + sizeof(ndb_file_end_mark),
-  .data_size = sizeof(gps_l2c_capabilities),
-  .n_elements = 1
+  .type = GPS_L2C_CAPB_FILE_TYPE,
+  .block_data = (u8*)&gps_l2c_capabilities,
+  .block_md = &gps_l2c_capabilities_md,
+  .block_size = sizeof(gps_l2c_capabilities),
+  .block_count = 1
 };
 
 void ndb_l2c_capb_init(void)
 {
-  ndb_load_data(&gps_l2c_capb_file, "l2c capabilities",
-                (u8 *)&gps_l2c_capabilities, &gps_l2c_capabilities_md,
-                 sizeof(gps_l2c_capabilities), 1);
+  ndb_load_data(&gps_l2c_capb_file);
 
   if (0 == (gps_l2c_capabilities_md.nv_data.state & NDB_IE_VALID) ||
       0 == gps_l2c_capabilities) {
@@ -49,7 +50,8 @@ void ndb_l2c_capb_init(void)
 
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
 {
-  return ndb_retrieve(l2c_cap, &gps_l2c_capabilities_md);
+  return ndb_retrieve(&gps_l2c_capabilities_md, l2c_cap, sizeof(*l2c_cap),
+                      NULL, NULL);
 }
 
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const u32 *l2c_cap,

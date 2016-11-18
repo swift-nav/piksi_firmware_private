@@ -16,31 +16,35 @@
 #define MAX_NDB_FILE_VERSION_LEN 64
 extern u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];
 
-/* Information element size */
+/** Information element size */
 typedef u16 ndb_ie_size_t;
-/* Information element index in the array */
+/** Information element index in the array */
 typedef u8 ndb_ie_index_t;
+/** Information element volatile flags */
+typedef u8 ndb_vflags_t;
 
 /** NDB File */
-typedef struct __attribute__((packed)) {
-  const char *name;        /**< Name of the file */
-  const u32 expected_size; /**< Expected file size */
-  const u16 data_size;     /**< Size of data element */
-  const u16 n_elements;    /**< Number of data elements */
+typedef struct {
+  const char                  * const name;        /**< Name of the file */
+  const char                  * const type;        /**< Type of the file */
+  u8                          * const block_data;  /**< IE data */
+  struct ndb_element_metadata * const block_md;    /**< Metadata */
+  const ndb_ie_size_t                 block_size;  /**< Size of data element */
+  const ndb_ie_index_t                block_count; /**< Number of data elements */
 } ndb_file_t;
 
 /** Maximum waiting time for write request, milliseconds */
 #define NV_WRITE_REQ_TIMEOUT 100
 
-/* TODO separate persistent and non-persistent NDB flags */
-/** IE needs to be written to NVM */
-#define NDB_IE_DIRTY (1 << 0)
-/** Value has been set */
-#define NDB_IE_VALID (1 << 1)
-/** Metadata needs to be written to NVM */
-#define NDB_MD_DIRTY (1 << 2)
-/** Data block is in write queue */
-#define NDB_ENQUEUED (1 << 3)
+/** Volatile flag: IE needs to be written to NVM */
+#define NDB_VFLAG_IE_DIRTY (1 << 0)
+/** Volatile flag: Metadata needs to be written to NVM */
+#define NDB_VFLAG_MD_DIRTY (1 << 1)
+/** Volatile flag: Data block is in write queue */
+#define NDB_VFLAG_ENQUEUED (1 << 2)
+
+/** Non-volatile flag: value has been set */
+#define NDB_IE_VALID (1 << 0)
 /** Metadata has valid data */
 #define NDB_IE_IS_VALID(md_ptr) (0 != ((md_ptr)->nv_data.state & NDB_IE_VALID))
 
@@ -59,6 +63,7 @@ typedef struct ndb_element_metadata
   ndb_element_metadata_nv_t    nv_data; /**< Persistent block */
   void                        *data;    /**< Data block pointer */
   ndb_ie_index_t               index;   /**< Index inside file */
+  ndb_vflags_t                 vflags;  /**< Non-persistent flags */
   ndb_file_t                  *file;    /**< NDB file object pointer */
   struct ndb_element_metadata *next;    /**< Next element for operation queue */
 } ndb_element_metadata_t;
@@ -75,17 +80,16 @@ void ndb_lock(void);
 void ndb_unlock(void);
 
 ndb_timestamp_t ndb_get_timestamp(void);
-void ndb_load_data(ndb_file_t *f,
-                   const char *ftype,
-                   u8 *data,
-                   ndb_element_metadata_t *metadata,
-                   size_t el_size,
-                   size_t el_number);
+void ndb_load_data(ndb_file_t *f);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
                          ndb_element_metadata_t *md);
 ndb_op_code_t ndb_erase(ndb_element_metadata_t *md);
-ndb_op_code_t ndb_retrieve(void *out, const ndb_element_metadata_t *md);
+ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
+                           void *out,
+                           size_t out_size,
+                           ndb_data_source_t *src,
+                           ndb_timestamp_t *ts);
 ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,

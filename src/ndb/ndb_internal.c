@@ -58,7 +58,7 @@ static enum ndb_op_code ndb_wq_process(void);
 static void ndb_wq_put(ndb_element_metadata_t *md)
 {
   /* Check if the element is already in the queue. */
-  if (0 == (md->nv_data.state & NDB_ENQUEUED)) {
+  if (0 == (md->vflags & NDB_VFLAG_ENQUEUED)) {
     if (NULL == wq_last) {
       wq_first = wq_last = md;
     } else {
@@ -67,7 +67,7 @@ static void ndb_wq_put(ndb_element_metadata_t *md)
     }
     md->next = NULL;
     /* Mark element as enqueued */
-    md->nv_data.state |= NDB_ENQUEUED;
+    md->vflags |= NDB_VFLAG_ENQUEUED;
   }
 }
 
@@ -92,7 +92,7 @@ static ndb_element_metadata_t *ndb_wq_get(void)
   }
   if (NULL != res) {
     /* Reset queue flag to be symmetric with ndb_wq_put() */
-    res->nv_data.state &= ~NDB_ENQUEUED;
+    res->vflags &= ~NDB_VFLAG_ENQUEUED;
   }
   return res;
 }
@@ -174,34 +174,28 @@ static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
  * When loading individual data blocks, each of them is checked for CRC
  * consistency, and blocks with wrong CRC are zeroed.
  *
- * \param[in]  file      NDB file
- * \param[in]  ftype     File type
- * \param[out] data      Block data destination. Must be of a \a el_size * \a
- *                       el_number size.
- * \param[out] metadata  Metadata table with \a el_size elements.
- * \param[in]  el_size   Size of a single data block in bytes.
- * \param[in]  el_number Block count
+ * \param[in,out]  file      NDB file to load
  *
  * \return None
  */
-void ndb_load_data(ndb_file_t *file,
-                   const char *ftype,
-                   u8 *data,
-                   ndb_element_metadata_t *metadata,
-                   size_t el_size,
-                   size_t el_number)
+void ndb_load_data(ndb_file_t *file)
 {
-  enum ndb_op_code r = NDB_ERR_FILE_IO;
-  size_t ds = el_size * el_number;
-  size_t mds = sizeof(ndb_element_metadata_nv_t) * el_number;
-  ndb_element_metadata_nv_t md_nv[el_number];
+  ndb_op_code_t r = NDB_ERR_FILE_IO;
+  size_t ds = (size_t)file->block_size * file->block_count;
+  size_t mds = sizeof(ndb_element_metadata_nv_t) * file->block_count;
+  ndb_element_metadata_nv_t md_nv[file->block_count];
+  u8 *data = file->block_data;
+  ndb_element_metadata_t *metadata = file->block_md;
 
-  if (ndb_open_file(file) == NDB_ERR_NONE &&
-      ndb_read(file, 0, data, ds) == NDB_ERR_NONE &&
-      ndb_read(file, ds, md_nv, mds) == NDB_ERR_NONE) {
+  r = ndb_open_file(file);
+
+  if (NDB_ERR_NONE == r &&
+      NDB_ERR_NONE == ndb_read(file, 0, data, ds) &&
+      NDB_ERR_NONE == ndb_read(file, ds, md_nv, mds)) {
 
     u8 *ptr = data;
-    for (size_t i = 0; i < el_number; i++, ptr = ptr + el_size) {
+    for (size_t i = 0; i < file->block_count;
+         i++, ptr = ptr + file->block_size) {
       metadata[i].nv_data = md_nv[i];
 
       /* Check CRC: each block is protected with CRC24Q algorithm. The CRC
@@ -213,26 +207,30 @@ void ndb_load_data(ndb_file_t *file,
       u32 new_crc = crc24q((const u8*)&metadata[i].nv_data,
                            sizeof(metadata[i].nv_data) -
                            sizeof(metadata[i].nv_data.crc),
-                           crc24q(ptr, el_size, 0));
+                           crc24q(ptr, file->block_size, 0));
 
       if (old_crc != new_crc) {
-        log_warn("NDB %s[%" PRIu32 "] entry dropped", ftype, (u32)i);
+        log_warn("NDB %s[%" PRIu32 "] entry dropped", file->type, (u32)i);
 
-        memset(ptr, 0, el_size);
+        memset(ptr, 0, file->block_size);
         memset(&metadata[i].nv_data, 0, sizeof(metadata[i].nv_data));
 
-        ndb_write_file_data(file, el_size * i + 0, ptr, el_size);
+        ndb_write_file_data(file, file->block_size * i + 0, ptr, file->block_size);
         ndb_write_file_data(file, sizeof(metadata[i].nv_data) * i + ds,
                             (u8 *)&metadata[i].nv_data, sizeof(metadata[i].nv_data));
       }
     }
     r = NDB_ERR_NONE;
+  } else if (NDB_ERR_NO_DATA == r) {
+    /* Failed to open, so new file created; no need to initialize data */
+    r = NDB_ERR_NONE;
   }
 
   if (NDB_ERR_NONE != r) {
-    /* Initialize data element and metadata to zeros */
+    /* Initialize data element and metadata to zeros; this is required as the
+     * data can be partially loaded. */
     memset(data, 0, ds);
-    memset(metadata, 0, sizeof(ndb_element_metadata_t) * el_number);
+    memset(metadata, 0, sizeof(ndb_element_metadata_t) * file->block_count);
 
     /* And save to file */
     memset(md_nv, 0, mds);
@@ -246,10 +244,11 @@ void ndb_load_data(ndb_file_t *file,
     }
   }
 
-  ndb_log_file_open(r, ftype);
+  ndb_log_file_open(r, file->type);
 
-  for (u32 i = 0; i < el_number; i++) {
-    metadata[i].data = data + (i * el_size);
+  /* Initialize volatile metadata blocks */
+  for (ndb_ie_index_t i = 0; i < file->block_count; i++) {
+    metadata[i].data = data + (size_t)i * file->block_size;
     metadata[i].index = i;
     metadata[i].file = file;
     metadata[i].next = NULL;
@@ -323,21 +322,21 @@ static ndb_op_code_t ndb_wq_process(void)
   }
 
   /* Locally load information from the dequeued element */
-  u16                        block_size = md->file->data_size;
+  ndb_ie_size_t              block_size = md->file->block_size;
   ndb_element_metadata_nv_t  nv_data;
   u8                         buf[block_size];
   bool                       write_buf = false;
   ndb_file_t                *file =  md->file;
   ndb_ie_index_t             index = md->index;
 
-  assert((md->nv_data.state & (NDB_IE_DIRTY + NDB_MD_DIRTY)) != 0);
-  assert((md->nv_data.state & NDB_ENQUEUED) == 0);
+  assert((md->vflags & (NDB_VFLAG_IE_DIRTY + NDB_VFLAG_MD_DIRTY)) != 0);
+  assert((md->vflags & NDB_VFLAG_ENQUEUED) == 0);
 
   memcpy(buf, md->data, block_size);
-  write_buf = 0 != (md->nv_data.state & NDB_IE_DIRTY);
+  write_buf = 0 != (md->vflags & NDB_VFLAG_IE_DIRTY);
 
   /* Mark as saved (optimistically) */
-  md->nv_data.state &= ~(NDB_IE_DIRTY + NDB_MD_DIRTY);
+  md->vflags &= ~(NDB_VFLAG_IE_DIRTY + NDB_VFLAG_MD_DIRTY);
   nv_data = md->nv_data;
 
   ndb_unlock();
@@ -345,7 +344,7 @@ static ndb_op_code_t ndb_wq_process(void)
   enum ndb_op_code ret = NDB_ERR_NONE;
 
   if (write_buf) {
-    ret = ndb_write_file_data(file, block_size * index, buf, block_size);
+    ret = ndb_write_file_data(file, (u32)block_size * index, buf, block_size);
   }
   if (NDB_ERR_NONE == ret) {
     /* Compute CRC-24Q: the check sum includes data block + metadata block */
@@ -359,7 +358,7 @@ static ndb_op_code_t ndb_wq_process(void)
     log_debug("NDB store %s[%" PRIu32 "] crc=0x%06"PRIX32,
               file->name, (u32)index, crc);
 
-    off_t offset = (block_size * file->n_elements +
+    off_t offset = ((u32)block_size * file->block_count +
                     sizeof(ndb_element_metadata_nv_t) * index);
     ret = ndb_write_file_data(file, offset, (u8 *)&nv_data, sizeof(nv_data));
   }
@@ -398,21 +397,47 @@ static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
  */
 static ndb_op_code_t ndb_open_file(ndb_file_t *file)
 {
+  size_t expected_size = sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
+                         ((size_t)file->block_size +
+                          sizeof(ndb_element_metadata_nv_t)) * file->block_count;
+
+  /* Check file version */
   char ver[MAX_NDB_FILE_VERSION_LEN];
-  if ((ndb_fs_read(file->name, 0, ver, sizeof(ndb_file_version))
-      == sizeof(ndb_file_version)) && ndb_file_verion_match(ver)) {
-    return NDB_ERR_NONE;
+  if (ndb_fs_read(file->name, 0, ver, sizeof(ver)) == sizeof(ver) &&
+      ndb_file_verion_match(ver)) {
+
+    /* Check end mark */
+    u8   em;
+    if (ndb_fs_read(file->name,
+                    expected_size - sizeof(em),
+                    &em, sizeof(em)) == sizeof(em) &&
+        em == ndb_file_end_mark) {
+
+      /* Both version end end marks are OK */
+      return NDB_ERR_NONE;
+    }
   }
 
+  /* Delete file if it exists */
   ndb_fs_remove(file->name);
-  ndb_fs_reserve(file->name, file->expected_size + sizeof(ndb_file_version));
 
+  /* Create empty file (all zeros) */
+  ndb_fs_reserve(file->name, expected_size);
+
+  /* Write file version */
   if (ndb_fs_write(file->name, 0, ndb_file_version, sizeof(ndb_file_version))
       != sizeof(ndb_file_version)) {
     return NDB_ERR_FILE_IO;
   }
+  /* Write file end mark */
+  if (ndb_fs_write(file->name,
+                   expected_size - sizeof(ndb_file_end_mark),
+                   &ndb_file_end_mark,
+                   sizeof(ndb_file_end_mark)) != sizeof(ndb_file_end_mark)) {
+    return NDB_ERR_FILE_IO;
+  }
 
-  return NDB_ERR_NONE;
+  return NDB_ERR_NO_DATA;
 }
 
 /**
@@ -489,8 +514,12 @@ void ndb_unlock()
  *
  * Method provides NDB data block contents.
  *
- * \param[out] out Destination data buffer with a proper block size.
- * \param[in]  md  Metadata element
+ * \param[in]  md       Metadata element
+ * \param[out] out      Destination data buffer with a proper block size.
+ * \param[in]  out_size Destination buffer size. Must match block size defined
+ *                      in file metadata section.
+ * \param[out] ds       Optional destination for NDB data source.
+ * \param[out] ts       Optional destination for NDB timestamp.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -498,19 +527,39 @@ void ndb_unlock()
  *
  * \sa ndb_update
  */
-ndb_op_code_t ndb_retrieve(void *out, const ndb_element_metadata_t *md)
+ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
+                           void *out,
+                           size_t out_size,
+                           ndb_data_source_t *ds,
+                           ndb_timestamp_t *ts)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  if (NULL != md && NULL != out) {
+  if (NULL != md && NULL != out &&
+      NULL != md->file && out_size == md->file->block_size) {
+
     ndb_lock();
     if (0 != (md->nv_data.state & NDB_IE_VALID)) {
-      memcpy(out, md->data, md->file->data_size);
+      memcpy(out, md->data, md->file->block_size);
+
+      if (NULL != ds) {
+        *ds = md->nv_data.source;
+      }
+      if (NULL != ts) {
+        *ts = md->nv_data.received_at;
+      }
+
       res = NDB_ERR_NONE;
     } else {
       res = NDB_ERR_MISSING_IE;
       /* Zero destination */
-      memset(out, 0, md->file->data_size);
+      memset(out, 0, md->file->block_size);
+      if (NULL != ds) {
+        *ds = NDB_DS_UNDEFINED;
+      }
+      if (NULL != ts) {
+        *ts = 0;
+      }
     }
     ndb_unlock();
   } else {
@@ -544,20 +593,20 @@ ndb_op_code_t ndb_update(const void *data,
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != data && NULL != md) {
-    size_t block_size = md->file->data_size;
+    ndb_ie_size_t block_size = md->file->block_size;
 
     ndb_lock();
 
     /* Update metadata and mark it dirty */
     md->nv_data.received_at = ndb_get_timestamp();
-    md->nv_data.state |= NDB_MD_DIRTY;
+    md->vflags |= NDB_VFLAG_MD_DIRTY;
     md->nv_data.source = src;
 
     if (memcmp(data, md->data, block_size) != 0) {
       /* Update data and mark it dirty also mark data valid */
       memcpy(md->data, data, block_size);
       md->nv_data.state |= NDB_IE_VALID;
-      md->nv_data.state |= NDB_IE_DIRTY;
+      md->vflags |= NDB_VFLAG_IE_DIRTY;
       res = NDB_ERR_NONE;
     } else {
       /* data we try to write to NDB is the same as previously stored */
@@ -592,26 +641,31 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != md) {
-    size_t block_size = md->file->data_size;
+    ndb_ie_size_t block_size = md->file->block_size;
 
     ndb_lock();
 
+    bool md_modified = false;
     if (0 != md->nv_data.received_at ||
         NDB_DS_UNDEFINED != md->nv_data.source) {
       /* Update metadata and mark it dirty */
       md->nv_data.received_at = 0;
-      md->nv_data.state |= NDB_MD_DIRTY;
       md->nv_data.source = NDB_DS_UNDEFINED;
+      md->vflags |= NDB_VFLAG_MD_DIRTY;
+      md_modified = true;
     }
 
     if (0 != (md->nv_data.state & NDB_IE_VALID)) {
       /* Update data and mark it dirty also mark data invalid */
       memset(md->data, 0, block_size);
       md->nv_data.state &= ~NDB_IE_VALID;
-      md->nv_data.state |= NDB_IE_DIRTY;
+      md->vflags |= NDB_VFLAG_IE_DIRTY;
+      md_modified = true;
     }
 
-    ndb_wq_put(md);
+    if (md_modified) {
+      ndb_wq_put(md);
+    }
     ndb_unlock();
 
     res = NDB_ERR_NONE;

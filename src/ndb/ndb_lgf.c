@@ -28,6 +28,8 @@
 #define NDB_LGF_UPDATE_DISTANCE_M (10e3)
 
 #define LGF_FILE_NAME "persistent/lgf"
+#define LGF_FILE_TYPE "LGF"
+
 static last_good_fix_t last_good_fix;       /**< Locally cached LGF */
 
 /** NDB LGF interval update threshold [s] */
@@ -40,12 +42,11 @@ static ndb_element_metadata_t last_good_fix_md;    /**< NDB LGF metadata */
 
 static ndb_file_t lgf_file = {
   .name = LGF_FILE_NAME,
-  .expected_size =
-        sizeof(last_good_fix_t) * 1
-      + sizeof(ndb_element_metadata_nv_t) * 1
-      + sizeof(ndb_file_end_mark),
-  .data_size = sizeof(last_good_fix_t),
-  .n_elements = 1
+  .type = LGF_FILE_TYPE,
+  .block_data = (u8*)&last_good_fix_saved,
+  .block_md = &last_good_fix_md,
+  .block_size = sizeof(last_good_fix_saved),
+  .block_count = 1
 };
 
 void ndb_lgf_init(void)
@@ -59,9 +60,7 @@ void ndb_lgf_init(void)
     ndb_fs_remove(LGF_FILE_NAME);
   }
 
-  ndb_load_data(&lgf_file, "LGF",
-                (u8 *)&last_good_fix_saved, &last_good_fix_md,
-                sizeof(last_good_fix_saved), 1);
+  ndb_load_data(&lgf_file);
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {

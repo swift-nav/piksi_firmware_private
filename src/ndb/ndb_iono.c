@@ -19,18 +19,21 @@
 #include "settings.h"
 #include "ndb_fs_access.h"
 
+/** Ionospheric corrections file name */
 #define IONO_CORR_FILE_NAME "persistent/iono"
+/** Ionospheric corrections file type */
+#define IONO_CORR_FILE_TYPE "iono corrections"
+
 static ionosphere_t iono_corr;
 static ndb_element_metadata_t iono_corr_md;
 
 static ndb_file_t iono_corr_file = {
   .name = IONO_CORR_FILE_NAME,
-  .expected_size =
-        sizeof(iono_corr)
-      + sizeof(ndb_element_metadata_nv_t)
-      + sizeof(ndb_file_end_mark),
-  .data_size = sizeof(iono_corr),
-  .n_elements = 1
+  .type = IONO_CORR_FILE_TYPE,
+  .block_data = (u8*)&iono_corr,
+  .block_md = &iono_corr_md,
+  .block_size = sizeof(iono_corr),
+  .block_count = 1
 };
 
 void ndb_iono_init(void)
@@ -41,9 +44,7 @@ void ndb_iono_init(void)
     ndb_fs_remove(IONO_CORR_FILE_NAME);
   }
 
-  ndb_load_data(&iono_corr_file, "iono corrections",
-                (u8 *)&iono_corr, &iono_corr_md,
-                 sizeof(iono_corr), 1);
+  ndb_load_data(&iono_corr_file);
 
   if (0 != (iono_corr_md.nv_data.state & NDB_IE_VALID)) {
     if (erase_iono) {
@@ -56,7 +57,7 @@ void ndb_iono_init(void)
 
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
 {
-  return ndb_retrieve(iono, &iono_corr_md);
+  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NULL);
 }
 
 ndb_op_code_t ndb_iono_corr_store(const ionosphere_t *iono, ndb_data_source_t src)

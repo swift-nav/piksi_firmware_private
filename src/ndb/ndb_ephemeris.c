@@ -26,17 +26,17 @@
 #include "ndb_fs_access.h"
 
 #define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
+#define NDB_EPHE_FILE_TYPE   "ephemeris"
 
-static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT] _CCM;
+static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT];
 static ndb_element_metadata_t ndb_ephemeris_md[PLATFORM_SIGNAL_COUNT];
 static ndb_file_t ndb_ephe_file = {
     .name = NDB_EPHE_FILE_NAME,
-    .expected_size =
-          sizeof(ephemeris_t) * PLATFORM_SIGNAL_COUNT
-        + sizeof(ndb_element_metadata_nv_t) * PLATFORM_SIGNAL_COUNT
-        + sizeof(ndb_file_end_mark),
-    .data_size = sizeof(ephemeris_t),
-    .n_elements = PLATFORM_SIGNAL_COUNT,
+    .type = NDB_EPHE_FILE_TYPE,
+    .block_data = (u8*)&ndb_ephemeris[0],
+    .block_md = &ndb_ephemeris_md[0],
+    .block_size = sizeof(ndb_ephemeris[0]),
+    .block_count = sizeof(ndb_ephemeris) / sizeof(ndb_ephemeris[0]),
 };
 
 typedef struct {
@@ -70,8 +70,7 @@ void ndb_ephemeris_init(void)
 
   memset(ephe_candidates, 0, sizeof(ephe_candidates));
 
-  ndb_load_data(&ndb_ephe_file, "ephemeris", (u8 *)ndb_ephemeris, ndb_ephemeris_md,
-                sizeof(ephemeris_t), PLATFORM_SIGNAL_COUNT);
+  ndb_load_data(&ndb_ephe_file);
   u32 loaded = 0;
   for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
     if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
@@ -103,7 +102,8 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     return NDB_ERR_BAD_PARAM;
   }
 
-  ndb_op_code_t res = ndb_retrieve(e, &ndb_ephemeris_md[idx]);
+  ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
+                                   NULL, NULL);
   /* Patch SID to be accurate for GPS L1/L2 */
   e->sid = sid;
   return res;

@@ -25,18 +25,21 @@
 #include "settings.h"
 #include "ndb_fs_access.h"
 
+/** Almanac file name */
 #define NDB_ALMA_FILE_NAME   "persistent/almanac"
+/** Almanac file type */
+#define NDB_ALMA_FILE_TYPE   "almanac"
+
 static almanac_t ndb_almanac[PLATFORM_SIGNAL_COUNT];
 static ndb_element_metadata_t ndb_almanac_md[PLATFORM_SIGNAL_COUNT];
 
 static ndb_file_t ndb_alma_file = {
     .name = NDB_ALMA_FILE_NAME,
-    .expected_size =
-          sizeof(almanac_t) * PLATFORM_SIGNAL_COUNT
-        + sizeof(ndb_element_metadata_nv_t) * PLATFORM_SIGNAL_COUNT
-        + sizeof(ndb_file_end_mark),
-    .data_size = sizeof(almanac_t),
-    .n_elements = PLATFORM_SIGNAL_COUNT,
+    .type = NDB_ALMA_FILE_TYPE,
+    .block_data = (u8*)&ndb_almanac[0],
+    .block_md = &ndb_almanac_md[0],
+    .block_size = sizeof(ndb_almanac[0]),
+    .block_count = sizeof(ndb_almanac) / sizeof(ndb_almanac[0]),
 };
 
 void ndb_almanac_init(void)
@@ -47,8 +50,7 @@ void ndb_almanac_init(void)
     ndb_fs_remove(NDB_ALMA_FILE_NAME);
   }
 
-  ndb_load_data(&ndb_alma_file, "almanac", (u8 *)ndb_almanac, ndb_almanac_md,
-                sizeof(almanac_t), PLATFORM_SIGNAL_COUNT);
+  ndb_load_data(&ndb_alma_file);
 
   u32 loaded = 0;
   for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
@@ -69,7 +71,7 @@ void ndb_almanac_init(void)
 ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = sid_to_global_index(sid);
-  return ndb_retrieve(a, &ndb_almanac_md[idx]);
+  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL, NULL);
 }
 
 ndb_op_code_t ndb_almanac_store(const almanac_t *a, ndb_data_source_t src)
