@@ -941,6 +941,7 @@ static void solution_thread(void *arg)
         nm->raw_pseudorange -= t_err * doppler *
                                code_to_lambda(nm->sid.code);
 
+        /* Correct the observations for the receiver clock error. */
         nm->carrier_phase += lgf.position_solution.clock_offset * GPS_C;
         nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
 
