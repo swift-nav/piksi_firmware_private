@@ -943,7 +943,7 @@ static void solution_thread(void *arg)
 
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += lgf.position_solution.clock_offset *
-          GPS_C / code_to_lambda(nm->sid.code);
+                                      GPS_C / code_to_lambda(nm->sid.code);
         nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
 
         /* Also apply the time correction to the time of transmission so the
