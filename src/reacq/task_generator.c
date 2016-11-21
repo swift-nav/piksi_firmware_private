@@ -20,8 +20,6 @@
 
 /** Integration time. */
 #define ACQ_INTEGRATION_TIME_4MS 4
-/** CN0 threshold (dB-Hz) for accepted peak */
-#define ACQ_PEAK_CN0_THRESHOLD_DBHZ 37.0f
 
 /** Fills job task(s) with acquisition parameters
  *
@@ -38,7 +36,7 @@ void tg_fill_task(acq_job_t *job)
   acq_param = &job->task_data.task_array[task_index];
   acq_param->freq_bin_size_hz = ACQ_FULL_CF_STEP;
   acq_param->integration_time_ms = ACQ_INTEGRATION_TIME_4MS;
-  acq_param->cn0_threshold_dbhz = ACQ_PEAK_CN0_THRESHOLD_DBHZ;
+  acq_param->cn0_threshold_dbhz = ACQ_THRESHOLD;
 
   float default_doppler_min = code_to_sv_doppler_min(job->sid.code) +
                               code_to_tcxo_doppler_min(job->sid.code);
@@ -55,9 +53,9 @@ void tg_fill_task(acq_job_t *job)
 	WN_UNKNOWN != now.wn &&
 	NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
       dum_get_doppler_wndw(&job->sid, &now, &lgf,
-               ACQ_MAX_USER_VELOCITY_MPS,
-			   &acq_param->doppler_min_hz,
-			   &acq_param->doppler_max_hz);
+                           ACQ_MAX_USER_VELOCITY_MPS,
+			               &acq_param->doppler_min_hz,
+			               &acq_param->doppler_max_hz);
       break;
     } /* else fall through */
   }

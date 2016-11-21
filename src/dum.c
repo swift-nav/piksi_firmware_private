@@ -24,12 +24,21 @@
 
 #include <assert.h>
 
+/**
+  The user position uncertainty is modeled as a sphere expanding its
+  radius. The center of the sphere is LGF. Then each meter of the radius contributes
+  to the final Doppler uncertainty at a fixed scaling factor of
+  #DUM_DIST_UNC_FACTOR Hz/m.
+  Then the user's most probable location for the purpose of
+  acquisition is considered to be within this sphere. [m]
+*/
+
 /* how old ephemerides are considered valid, two weeks, [s] */
 #define DUM_FIT_INTERVAL_VALID  (WEEK_SECS * 2)
 
-/** The radius of a circle with LGF being a center.
-    User's most probable location for the purpose of
-    acquisition. [m] */
+/** Signals search will be done in the assumption, that user most probable
+    location is a sphere with LFG in the center and the radius of this size.
+    Measured in [m]. */
 #define DUM_LGF_VICINITY_RADIUS_M (100.f * 1000.f)
 
 /** Doppler estimation methods */
