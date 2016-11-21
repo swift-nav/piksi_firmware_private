@@ -360,16 +360,22 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     ephemeris_t ephe;
     ndb_ephemeris_read(nm->sid, &ephe);
     u8 eph_valid;
-    s8 ss_ret;
+    s8 cscc_ret, css_ret;
+    double clock_err, clock_rate_err;
     const ephemeris_t *ephe_p = &ephe;
 
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
     if (eph_valid) {
-      /* Apply corrections to the raw pseudorange, carrier phase and Doppler. */
-      ss_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
+      /* Apply corrections to the pseudorange, carrier phase and Doppler. */
+      cscc_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
+
+      /* After correcting the time of transmission for the satellite clock error,
+         recalculate the satellite position. */
+      css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
+                               &clock_err, &clock_rate_err);
     }
 
-    if (!eph_valid || (ss_ret != 0)) {
+    if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
       continue;
     }
 
