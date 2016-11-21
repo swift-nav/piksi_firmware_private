@@ -235,7 +235,8 @@ static void update_obss(obss_t *new_obss)
 
     for (u8 i=0; i < base_obss.n; i++) {
       base_obss.sat_dists[i] = vector_distance(3, base_obss.nm[i].sat_pos,
-                                               base_obss.pos_ecef);
+                                               base_obss.pos_ecef) -
+                               base_obss.nm[i].sat_clock_err * GPS_C;
     }
   }
   /* Unlock base_obss mutex. */
@@ -363,7 +364,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     ndb_ephemeris_read(nm->sid, &ephe);
     u8 eph_valid;
     s8 cscc_ret, css_ret;
-    double clock_err, clock_rate_err;
+    double clock_rate_err;
     const ephemeris_t *ephe_p = &ephe;
 
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
@@ -374,7 +375,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
       /* After correcting the time of transmission for the satellite clock error,
          recalculate the satellite position. */
       css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                               &clock_err, &clock_rate_err);
+                               &nm->sat_clock_err, &clock_rate_err);
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {

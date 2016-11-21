@@ -977,13 +977,12 @@ static void solution_thread(void *arg)
         ndb_ephemeris_read(nm->sid, &ephe);
         u8 eph_valid;
         s8 ss_ret;
-        double clock_err;
         double clock_rate_err;
 
         eph_valid = ephemeris_valid(&ephe, &nm->tot);
         if (eph_valid) {
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                  &clock_err, &clock_rate_err);
+                                  &nm->sat_clock_err, &clock_rate_err);
         }
 
         if (!eph_valid || (ss_ret != 0)) {
