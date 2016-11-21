@@ -46,26 +46,8 @@ void ndb_almanac_init(void)
 {
   static bool erase_almanac = true;
   SETTING("ndb", "erase_almanac", erase_almanac, TYPE_BOOL);
-  if (erase_almanac) {
-    ndb_fs_remove(NDB_ALMA_FILE_NAME);
-  }
 
-  ndb_load_data(&ndb_alma_file);
-
-  u32 loaded = 0;
-  for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
-    if (0 != (ndb_almanac_md[i].nv_data.state & NDB_IE_VALID)) {
-      loaded++;
-    }
-  }
-  if (0 != loaded) {
-    if (erase_almanac) {
-      log_error("NDB almanacs erase is not working");
-    }
-
-    log_info("Loaded %" PRIu32 " almanac(s)", loaded);
-  }
-
+  ndb_load_data(&ndb_alma_file, erase_almanac);
 }
 
 ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)

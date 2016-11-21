@@ -115,6 +115,7 @@ ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size
   while (s < size) {
     msg->sequence = closure.seq = next_seq();
     msg->offset = offset + s;
+    msg->chunk_size = MIN(255, size - s);
     strcpy(msg->filename, filename);
     sbp_send_msg(SBP_MSG_FILEIO_READ_REQ,
                  sizeof(msg_fileio_read_req_t) + strlen(filename),

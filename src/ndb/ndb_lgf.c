@@ -56,19 +56,10 @@ void ndb_lgf_init(void)
   SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
   SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
 
-  if (erase_lgf) {
-    ndb_fs_remove(LGF_FILE_NAME);
-  }
-
-  ndb_load_data(&lgf_file);
+  ndb_load_data(&lgf_file, erase_lgf);
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
-    if (erase_lgf) {
-      /* Log the error if the data is present after erase */
-      log_error("NDB LGF erase is not working");
-    }
-
     /* TODO check loaded LGF validity */
     log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
              last_good_fix.position_solution.pos_llh[0] * R2D,

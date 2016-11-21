@@ -64,26 +64,8 @@ void ndb_ephemeris_init(void)
 {
   static bool erase_ephemeris = true;
   SETTING("ndb", "erase_ephemeris", erase_ephemeris, TYPE_BOOL);
-  if (erase_ephemeris) {
-    ndb_fs_remove(NDB_EPHE_FILE_NAME);
-  }
 
-  memset(ephe_candidates, 0, sizeof(ephe_candidates));
-
-  ndb_load_data(&ndb_ephe_file);
-  u32 loaded = 0;
-  for (size_t i = 0; i < PLATFORM_SIGNAL_COUNT; ++i) {
-    if (0 != (ndb_ephemeris_md[i].nv_data.state & NDB_IE_VALID)) {
-      loaded++;
-    }
-  }
-  if (0 != loaded) {
-    if (erase_ephemeris) {
-      log_error("NDB ephemeris erase is not working");
-    }
-
-    log_info("Loaded %" PRIu32 " ephemeris", loaded);
-  }
+  ndb_load_data(&ndb_ephe_file, erase_ephemeris);
 }
 
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)

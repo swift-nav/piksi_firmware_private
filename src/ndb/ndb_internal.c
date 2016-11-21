@@ -36,10 +36,11 @@ static ndb_element_metadata_t *wq_last = NULL;
 static void ndb_wq_put(ndb_element_metadata_t *md);
 static ndb_element_metadata_t *ndb_wq_get(void);
 
-static enum ndb_op_code ndb_open_file(ndb_file_t *file);
-static enum ndb_op_code ndb_read(ndb_file_t *f, off_t o,
-                                 void *dara, size_t s);
-static enum ndb_op_code ndb_wq_process(void);
+static ndb_op_code_t ndb_create_file(const ndb_file_t *file);
+static ndb_op_code_t ndb_open_file(const ndb_file_t *file);
+static ndb_op_code_t ndb_read(const ndb_file_t *f, off_t o,
+                              void *data, size_t s);
+static ndb_op_code_t ndb_wq_process(void);
 
 /**
  * Schedules metadata block for write processing.
@@ -134,23 +135,30 @@ void ndb_start(void)
  *
  * \param[in] oc        Operation result.
  * \param[in] file_type File type.
+ * \param[in] loaded    Total number of entries with contents.
+ * \param[in] errors    Total number of error entries.
  *
  * \return None
  */
-static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
+static void ndb_log_file_open(ndb_op_code_t oc,
+                              const char *file_type,
+                              u32 loaded,
+                              u32 errors)
 {
   switch (oc) {
   case NDB_ERR_NONE:
-    log_info("Opened %s file", file_type);
+    log_info("NDB %s: File opened; loaded: %" PRIu32
+             " entries, errors: %" PRIu32,
+             file_type, loaded, errors);
     break;
   case NDB_ERR_FILE_IO:
-    log_error("Cannot open %s file", file_type);
+    log_error("NDB %s: Can't open file", file_type);
     break;
   case NDB_ERR_INIT_DONE:
-    log_info("No %s file present in flash, create an empty one", file_type);
+    log_info("NDB %s: Created empty file", file_type);
     break;
   case NDB_ERR_NO_CHANGE:
-    log_info("NDB data has not been changed");
+    log_info("NDB %s: Data has not been changed", file_type);
     break;
   case NDB_ERR_MISSING_IE:
   case NDB_ERR_UNSUPPORTED:
@@ -168,17 +176,18 @@ static void ndb_log_file_open(enum ndb_op_code oc, const char *file_type)
  * Performs initial load of NDB file contents.
  *
  * The method batch load NDB file data and metadata elements. Prior to the
- * load, the method checks the file existance and version match. If the file
+ * load, the method checks the file existence and version match. If the file
  * doesn't exist, or the version doesn't math, the new file is created.
  *
  * When loading individual data blocks, each of them is checked for CRC
  * consistency, and blocks with wrong CRC are zeroed.
  *
  * \param[in,out]  file      NDB file to load
+ * \param[in]      erase     When set to true, the data will be erased
  *
  * \return None
  */
-void ndb_load_data(ndb_file_t *file)
+void ndb_load_data(ndb_file_t *file, bool erase)
 {
   ndb_op_code_t r = NDB_ERR_FILE_IO;
   size_t ds = (size_t)file->block_size * file->block_count;
@@ -186,17 +195,48 @@ void ndb_load_data(ndb_file_t *file)
   ndb_element_metadata_nv_t md_nv[file->block_count];
   u8 *data = file->block_data;
   ndb_element_metadata_t *metadata = file->block_md;
+  u32 loaded = 0, errors = 0;
 
-  r = ndb_open_file(file);
+  if (!erase) {
+    /* Try to load data */
+    r = ndb_open_file(file);
+    if (NDB_ERR_NONE != r) {
+      /* On error - request new file construction */
+      erase = true;
+    }
+  }
+  if (erase) {
+    /* Create new file */
+    r = ndb_create_file(file);
+    if (NDB_ERR_NONE != r) {
+      log_error("NDB %s: error %d while creating new file",
+                file->type, (int)r);
+    }
+  }
 
-  if (NDB_ERR_NONE == r &&
-      NDB_ERR_NONE == ndb_read(file, 0, data, ds) &&
-      NDB_ERR_NONE == ndb_read(file, ds, md_nv, mds)) {
+  if (!erase && NDB_ERR_NONE == r) {
+    r = ndb_read(file, 0, data, ds);
+    if (NDB_ERR_NONE != r) {
+      log_error("NDB %s: error %d while loading data",
+                file->type, (int)r);
+    } else {
+      r = ndb_read(file, ds, md_nv, mds);
+      if (NDB_ERR_NONE != r) {
+        log_error("NDB %s: error %d while loading metadata",
+                  file->type, (int)r);
+      }
+    }
+  }
 
+  if (!erase && NDB_ERR_NONE == r) {
     u8 *ptr = data;
     for (size_t i = 0; i < file->block_count;
          i++, ptr = ptr + file->block_size) {
       metadata[i].nv_data = md_nv[i];
+
+      if (0 != (metadata[i].nv_data.state & NDB_IE_VALID)) {
+        loaded++;
+      }
 
       /* Check CRC: each block is protected with CRC24Q algorithm. The CRC
        * protection includes both block data and metadata sections */
@@ -210,7 +250,9 @@ void ndb_load_data(ndb_file_t *file)
                            crc24q(ptr, file->block_size, 0));
 
       if (old_crc != new_crc) {
-        log_warn("NDB %s[%" PRIu32 "] entry dropped", file->type, (u32)i);
+        errors ++;
+
+        log_warn("NDB %s: entry #%" PRIu32 " dropped", file->type, (u32)i);
 
         memset(ptr, 0, file->block_size);
         memset(&metadata[i].nv_data, 0, sizeof(metadata[i].nv_data));
@@ -220,9 +262,7 @@ void ndb_load_data(ndb_file_t *file)
                             (u8 *)&metadata[i].nv_data, sizeof(metadata[i].nv_data));
       }
     }
-    r = NDB_ERR_NONE;
-  } else if (NDB_ERR_NO_DATA == r) {
-    /* Failed to open, so new file created; no need to initialize data */
+
     r = NDB_ERR_NONE;
   }
 
@@ -232,19 +272,13 @@ void ndb_load_data(ndb_file_t *file)
     memset(data, 0, ds);
     memset(metadata, 0, sizeof(ndb_element_metadata_t) * file->block_count);
 
-    /* And save to file */
-    memset(md_nv, 0, mds);
-    if (ndb_write_file_data(file, 0, data, ds) == NDB_ERR_NONE &&
-        ndb_write_file_data(file, ds, (u8 *)md_nv, mds) == NDB_ERR_NONE &&
-        /* Write non zero byte to the end of file to work around coffee fs
-         * feature of dropping zeros from the end of file. */
-        ndb_write_file_data(file, ds + mds, &ndb_file_end_mark, 1) == NDB_ERR_NONE) {
-          /* Indicate to the level above that initialization was done */
+    r = ndb_create_file(file);
+    if (NDB_ERR_NONE == r) {
       r = NDB_ERR_INIT_DONE;
     }
   }
 
-  ndb_log_file_open(r, file->type);
+  ndb_log_file_open(r, file->type, loaded, errors);
 
   /* Initialize volatile metadata blocks */
   for (ndb_ie_index_t i = 0; i < file->block_count; i++) {
@@ -290,7 +324,7 @@ static void ndb_service_thread(void *p)
         break;
       }
       if (NDB_ERR_NONE != res) {
-        log_error("Error writing data to the NDB file: code=%d", (int)res);
+        log_error("NDB Error writing data to the NDB file: code=%d", (int)res);
       }
     }
     ndb_sbp_updates();
@@ -386,43 +420,52 @@ static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
 }
 
 /**
- * Opens NDB file that stores information elements of certain type.
- * This function checks if version of the file matches the passed one
- * and if it doesn't creates empty file automatically.
+ * Computes NDB file size in bytes.
+ *
+ * NDB file contains:
+ * - NDB file version (prefix)
+ * - NDB `file->block_count` elements of `file->block_size` size
+ * - NDB `file->block_count` `ndb_element_metadata_nv_t` elements
+ * - NDB file end mark (suffix)
+ *
+ * \param[in] file NDB file descriptor
+ *
+ * \return NDB file size in bytes
+ */
+static inline size_t ndb_compute_size(const ndb_file_t *file)
+{
+  return sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
+         ((size_t)file->block_size + sizeof(ndb_element_metadata_nv_t)) *
+         file->block_count;
+}
+
+/**
+ * Creates new empty file.
  *
  * \param[in] file NDB file
  *
  * \retval NDB_ERR_NONE    On success
  * \retval NDB_ERR_FILE_IO On I/O error
+ *
+ * \sa ndb_open_file
  */
-static ndb_op_code_t ndb_open_file(ndb_file_t *file)
+static ndb_op_code_t ndb_create_file(const ndb_file_t *file)
 {
-  size_t expected_size = sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
-                         ((size_t)file->block_size +
-                          sizeof(ndb_element_metadata_nv_t)) * file->block_count;
+  size_t file_size = ndb_compute_size(file);
 
-  /* Check file version */
-  char ver[MAX_NDB_FILE_VERSION_LEN];
-  if (ndb_fs_read(file->name, 0, ver, sizeof(ver)) == sizeof(ver) &&
-      ndb_file_verion_match(ver)) {
-
-    /* Check end mark */
-    u8   em;
-    if (ndb_fs_read(file->name,
-                    expected_size - sizeof(em),
-                    &em, sizeof(em)) == sizeof(em) &&
-        em == ndb_file_end_mark) {
-
-      /* Both version end end marks are OK */
-      return NDB_ERR_NONE;
-    }
-  }
+  log_info("NDB %s: creating new empty file; size=%" PRIu32,
+           file->type, (u32)file_size);
 
   /* Delete file if it exists */
   ndb_fs_remove(file->name);
+  char ver[MAX_NDB_FILE_VERSION_LEN];
+  ssize_t read_res = ndb_fs_read(file->name, 0, ver, sizeof(ver));
+  if (read_res > 0) {
+    log_warn("NDB %s: failed to remove file", file->type);
+  }
 
   /* Create empty file (all zeros) */
-  ndb_fs_reserve(file->name, expected_size);
+  ndb_fs_reserve(file->name, file_size);
 
   /* Write file version */
   if (ndb_fs_write(file->name, 0, ndb_file_version, sizeof(ndb_file_version))
@@ -431,13 +474,72 @@ static ndb_op_code_t ndb_open_file(ndb_file_t *file)
   }
   /* Write file end mark */
   if (ndb_fs_write(file->name,
-                   expected_size - sizeof(ndb_file_end_mark),
+                   file_size - sizeof(ndb_file_end_mark),
                    &ndb_file_end_mark,
                    sizeof(ndb_file_end_mark)) != sizeof(ndb_file_end_mark)) {
     return NDB_ERR_FILE_IO;
   }
 
-  return NDB_ERR_NO_DATA;
+  return ndb_open_file(file);
+}
+
+
+/**
+ * Opens NDB file that stores information elements of certain type.
+ * This function checks if version of the file matches the passed one
+ * and if it doesn't creates empty file automatically.
+ *
+ * \param[in] file  NDB file
+ *
+ * \retval NDB_ERR_NONE    On success
+ * \retval NDB_ERR_NO_DATA If the file is missing
+ * \retval NDB_ERR_FILE_IO On I/O error
+ *
+ * \sa ndb_create_file
+ */
+static ndb_op_code_t ndb_open_file(const ndb_file_t *file)
+{
+  size_t expected_size = sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
+                         ((size_t)file->block_size +
+                          sizeof(ndb_element_metadata_nv_t)) * file->block_count;
+
+  /* Check file version */
+  char ver[MAX_NDB_FILE_VERSION_LEN];
+  ssize_t read_res = ndb_fs_read(file->name, 0, ver, sizeof(ver));
+  if (read_res < 0) {
+    log_warn("NDB %s: failed to read header", file->type);
+  } else if (0 == read_res) {
+    /* EOF - file is not present */
+    return NDB_ERR_NO_DATA;
+  } else if (sizeof(ver) == read_res) {
+    if (ndb_file_verion_match(ver)) {
+      /* Check end mark */
+      u8   em;
+      read_res = ndb_fs_read(file->name,
+                             expected_size - sizeof(em),
+                             &em, sizeof(em));
+      if (read_res < 0) {
+        log_warn("NDB %s: failed to read end mark", file->type);
+      } else if (read_res == sizeof(em)) {
+        if (em == ndb_file_end_mark) {
+          /* Both version end end marks are OK */
+          return NDB_ERR_NONE;
+        } else {
+          log_warn("NDB %s: end mark is incorrect", file->type);
+        }
+      } else {
+        log_warn("NDB %s: end mark length is incorrect", file->type);
+      }
+    } else {
+      log_info("NDB %s: file version mismatch; new file is created", file->type);
+    }
+  } else {
+    log_warn("NDB %s: version length is incorrect; "
+             "expected=%" PRId32 " read=%" PRId32,
+             file->type, (s32)sizeof(ver), (s32)read_res);
+  }
+
+  return NDB_ERR_FILE_IO;
 }
 
 /**
@@ -458,9 +560,23 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   const u8 *src,
                                   size_t size)
 {
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
   off_t   offset = sizeof(ndb_file_version) + off;
   ssize_t written = ndb_fs_write(file->name, offset, src, size);
-  return (written >= 0 && (size_t)written == size) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
+  if (written < 0) {
+    log_warn("NDB %s: write error", file->type);
+    res = NDB_ERR_FILE_IO;
+  } else if ((size_t)written != size) {
+    log_warn("NDB %s: incorrect write result; expected=%" PRId32
+             " actual=%" PRId32,
+             file->type, (s32)size, (s32)written);
+    res = NDB_ERR_FILE_IO;
+  } else {
+    res = NDB_ERR_NONE;
+  }
+
+  return res;
 }
 
 /**
@@ -479,14 +595,28 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
  *
  * \sa ndb_write_file_data
  */
-static ndb_op_code_t ndb_read(ndb_file_t *file,
+static ndb_op_code_t ndb_read(const ndb_file_t *file,
                               off_t off,
                               void *dst,
                               size_t size)
 {
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
   off_t offset = sizeof(ndb_file_version) + off;
   ssize_t read =  ndb_fs_read(file->name, offset, dst, size);
-  return (read >= 0 && (size_t)read == size) ? NDB_ERR_NONE : NDB_ERR_FILE_IO;
+
+  if (read < 0) {
+    log_warn("NDB %s: read error", file->type);
+    res = NDB_ERR_FILE_IO;
+  } else if ((size_t)read != size) {
+    log_warn("NDB %s: incorrect read result; expected=%" PRId32
+             " actual=%" PRId32,
+             file->type, (s32)size, (s32)read);
+    res = NDB_ERR_FILE_IO;
+  } else {
+    res = NDB_ERR_NONE;
+  }
+
+  return res;
 }
 
 /**
