@@ -21,7 +21,7 @@
 /**
  * @brief   The sample rate decimation used by acquisition
  */
-#define NAP_ACQ_DECIMATION_RATE                                          (48)
+#define NAP_ACQ_DECIMATION_RATE                                          (12)
 /**
  * @brief   The acquisition sample rate after decimation
  * @note    This is the effective sampling rate of the acquisition results
