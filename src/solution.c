@@ -81,7 +81,7 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_TIME_MATCHED;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 /** Mutex to control access to the eigen filter. This is a very big mutex
@@ -91,7 +91,7 @@ MUTEX_DECL(eigen_state_lock);
 
 systime_t last_dgnss;
 
-double soln_freq = 2.0;
+double soln_freq = 1.0;
 u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
@@ -1017,6 +1017,9 @@ static void solution_thread(void *arg)
         send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
       }
     }
+    else {
+      log_error("RX clock error %f to large, unable to propegate observations to desired epoch.", t_err);
+    }
 
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
     double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
@@ -1046,6 +1049,7 @@ static void solution_thread(void *arg)
     /* Limit dt to 1 second maximum to prevent hang if dt calculated
      * incorrectly. */
     if (fabs(dt) > 1.0) {
+      log_error("Our calculated dt until next solution epoch %f is larger than 1 second", dt);
       dt = (dt > 0.0) ? 1.0 : -1.0;
     }
 
