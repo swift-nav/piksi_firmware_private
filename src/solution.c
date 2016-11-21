@@ -1044,9 +1044,8 @@ static void solution_thread(void *arg)
     /* Calculate time till the next desired solution epoch. */
     double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
     
-    /* Limit dt to 1 second maximum to prevent hang if dt calculated
-     * incorrectly. */
-    double max_deadline = ((1.0/soln_freq)*2.0);
+    /* Limit dt to twice the max soln rate */
+    double max_deadline = ((1.0 / soln_freq) * 2.0);
     if (fabs(dt) > max_deadline) {
       dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
     }

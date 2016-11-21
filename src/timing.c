@@ -115,14 +115,14 @@ void set_time_fine(u64 tc, gps_time_t t)
 void set_gps_time_offset(u64 tc, gps_time_t t)
 {
   gps_time_t rcv_time = rx2gpstime(tc);
-  double time_diff = gpsdifftime(&rcv_time,&t);
+  double time_diff = gpsdifftime(&rcv_time, &t);
 
   chMtxLock(&clock_mutex);
   clock_state.clock_offset += time_diff;
   chMtxUnlock(&clock_mutex);
 }
 
-/** Update GPS time estimate precisely referenced to the local receiver time.
+/** Update receiver time referenced to GPS time
  *
  * \param dt clock adjustment (s)
  */
