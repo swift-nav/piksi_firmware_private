@@ -53,7 +53,7 @@
 /** C/N0 offset for 20ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_20MS_DBHZ 13
 /** Total number of precomputed integration intervals */
-#define INTEG_PERIODS_NUM (sizeof(cn0_periods_ms) / sizeof(cn0_periods_ms[0]))
+#define INTEG_PERIODS_NUM (ARRAY_SIZE(cn0_periods_ms))
 
 /** Predefined integration periods for C/N0 estimators */
 static const u8 cn0_periods_ms[] = {

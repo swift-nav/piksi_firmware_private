@@ -28,13 +28,14 @@
 #include "cnav_msg_storage.h"
 #include "shm.h"
 
+/** GPS L2 C decoder data */
 typedef struct {
   cnav_msg_t cnav_msg;
   cnav_msg_decoder_t cnav_msg_decoder;
 } gps_l2c_decoder_data_t;
 
 static decoder_t gps_l2c_decoders[NUM_GPS_L2CM_DECODERS];
-static gps_l2c_decoder_data_t gps_l2c_decoder_data[NUM_GPS_L2CM_DECODERS];
+static gps_l2c_decoder_data_t gps_l2c_decoder_data[ARRAY_SIZE(gps_l2c_decoders)];
 
 static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
                                  decoder_data_t *decoder_data);
@@ -49,7 +50,7 @@ static const decoder_interface_t decoder_interface_gps_l2c = {
   .disable =      decoder_gps_l2c_disable,
   .process =      decoder_gps_l2c_process,
   .decoders =     gps_l2c_decoders,
-  .num_decoders = NUM_GPS_L2CM_DECODERS
+  .num_decoders = ARRAY_SIZE(gps_l2c_decoders)
 };
 
 static decoder_interface_list_element_t list_element_gps_l2c = {
@@ -59,7 +60,7 @@ static decoder_interface_list_element_t list_element_gps_l2c = {
 
 void decode_gps_l2c_register(void)
 {
-  for (u32 i=0; i<NUM_GPS_L2CM_DECODERS; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(gps_l2c_decoders); i++) {
     gps_l2c_decoders[i].active = false;
     gps_l2c_decoders[i].data = &gps_l2c_decoder_data[i];
   }
