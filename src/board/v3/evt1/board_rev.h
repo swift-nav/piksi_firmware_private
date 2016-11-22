@@ -57,7 +57,7 @@
 /* TCXO offset to Hz conversion factor.
    With TCXO frequency set to 10MHz the IF is computed like this:
    1575.42e6 - 10e6 * 159 = 14.58e6 [Hz] */
-#define GPS_L1CA_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
+#define GPS_L1_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

@@ -10,17 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "board.h"
 #include "dum.h"
 #include "ndb.h"
 #include "timing.h"
 #include "manage.h"
-#include <board/nap/nap_common.h>
+#include "signal.h"
 
 #include <libswiftnav/dopp_unc.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/time.h>
 
 #include <assert.h>
 
@@ -219,40 +215,4 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
     *doppler_min = MAX(*doppler_min, default_doppler_min - ACQ_FULL_CF_STEP);
     *doppler_max = MIN(*doppler_max, default_doppler_max + ACQ_FULL_CF_STEP);
   }
-}
-
-/** Return the minimum Doppler value for a code_t induced by TCXO error.
- *
- * \param code  code_t to use.
- * \return doppler_hz Signal Doppler [Hz]
- * \return Minimum Doppler value [Hz]
- */
-float code_to_tcxo_doppler_min(code_t code)
-{
-  float doppler;
-
-  assert(code_valid(code));
-  assert(CODE_GPS_L1CA == code);
-
-  doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1CA_TCXO_PPM_TO_HZ;
-
-  return doppler;
-}
-
-/** Return the maximum Doppler value for a code_t induced by TCXO error.
- *
- * \param code  code_t to use.
- * \return doppler_hz Signal Doppler [Hz]
- * \return Maximum Doppler value [Hz]
- */
-float code_to_tcxo_doppler_max(code_t code)
-{
-  float doppler;
-
-  assert(code_valid(code));
-  assert(CODE_GPS_L1CA == code);
-
-  doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1CA_TCXO_PPM_TO_HZ;
-
-  return doppler;
 }

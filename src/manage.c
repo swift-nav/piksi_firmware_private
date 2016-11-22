@@ -202,7 +202,7 @@ static void manage_acq_thread(void *arg)
     have_fix = (ndb_lgf_read(&lgf) == NDB_ERR_NONE) &&
                lgf.position_solution.valid &&
                (POSITION_FIX == lgf.position_quality) &&
-               ((TIME_COARSE == time_quality) || (TIME_FINE == time_quality));
+               ((TIME_COARSE <= time_quality));
     if (have_fix && !had_fix) {
       had_fix = true;
       log_info("Switching to re-acq mode");

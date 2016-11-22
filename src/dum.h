@@ -25,7 +25,4 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           float *doppler_min,
                           float *doppler_max);
 
-float code_to_tcxo_doppler_min(code_t code);
-float code_to_tcxo_doppler_max(code_t code);
-
 #endif /* SWIFTNAV_DUM_H */
