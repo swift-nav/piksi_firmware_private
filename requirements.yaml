@@ -6,6 +6,7 @@
       prefix: v3
       files:
         - piksi_firmware_v3_microzed.elf
+        - piksi_firmware_v3_microzed.stripped.elf
   artifacts:
     -
       bucket: swiftnav-artifacts
@@ -26,6 +27,7 @@
       prefix: v3
       files:
         - piksi_firmware_v3_evt2.elf
+        - piksi_firmware_v3_evt2.stripped.elf
   artifacts:
     -
       bucket: swiftnav-artifacts
