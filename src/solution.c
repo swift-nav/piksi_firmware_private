@@ -877,6 +877,8 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    set_gps_time_offset(rec_tc, lgf.position_solution.time);
+
     /* NOTE: calc_PVT does not give entirely satisfying time solution,
      * it is affected by measurement noise in pseudorange[0].
      * Solved time is, by definition, the observation time corrected by solved
@@ -884,8 +886,6 @@ static void solution_thread(void *arg)
      */
     lgf.position_solution.time.tow = rec_time.tow - lgf.position_solution.clock_bias;
     normalize_gps_time(&lgf.position_solution.time);
-
-    set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
