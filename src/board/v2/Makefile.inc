@@ -47,6 +47,7 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/peripherals/spi_wrapper.o \
         $(SWIFTNAV_ROOT)/src/peripherals/random.o \
         $(SWIFTNAV_ROOT)/src/peripherals/watchdog.o \
+        $(SWIFTNAV_ROOT)/src/peripherals/leds.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
 

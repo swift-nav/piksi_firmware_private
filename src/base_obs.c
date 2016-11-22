@@ -60,6 +60,8 @@ bool base_pos_known = false;
  * the BASE_POS message.  */
 double base_pos_ecef[3];
 
+static u32 base_obs_msg_counter = 0;
+
 /** SBP callback for when the base station sends us a message containing its
  * known location in LLH coordinates.
  * Stores the base station position in the global #base_pos_ecef variable and
@@ -386,12 +388,14 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
    * obss. */
   if (count == total - 1) {
     update_obss(&base_obss_rx);
-  /* Calculate packet latency. */
+    /* Calculate packet latency. */
     if (time_quality >= TIME_COARSE) {
       gps_time_t now = get_current_time();
       float latency_ms = (float) ((now.tow - tor.tow) * 1000.0);
       log_obs_latency(latency_ms);
     }
+    /* Update message counter */
+    base_obs_msg_counter++;
   }
 }
 
@@ -442,6 +446,12 @@ void base_obs_setup()
     &deprecated_callback,
     &deprecated_node_2
   );
+}
+
+/** Get a rolling count of received base observations. */
+u32 base_obs_msg_counter_get(void)
+{
+  return base_obs_msg_counter;
 }
 
 /* \} */

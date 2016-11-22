@@ -20,7 +20,6 @@
 #include <libswiftnav/logging.h>
 
 #include "main.h"
-#include "peripherals/leds.h"
 #include "board/nap/nap_common.h"
 #include "nap/nap_conf.h"
 #include "nap/fft.h"
@@ -34,6 +33,8 @@
 #include "sbp_fileio.h"
 #include "factory_data.h"
 #include "clk_dac.h"
+#include "peripherals/antenna.h"
+#include "manage_led.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03060000U)
@@ -94,7 +95,6 @@ static void reset_callback_register(void)
 
 void pre_init(void)
 {
-  led_setup();
   rpmsg_setup();
 }
 
@@ -134,6 +134,8 @@ void init(void)
 
   random_init();
   xadc_init();
+  antenna_init();
+  manage_led_setup();
 }
 
 static void nap_conf_check(void)

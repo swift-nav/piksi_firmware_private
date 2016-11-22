@@ -89,6 +89,7 @@ BOARDSRC := \
         $(BOARDDIR)/usart_support.o \
         $(BOARDDIR)/xadc.o \
         $(BOARDDIR)/factory_data.o \
+        $(BOARDDIR)/manage_led.o \
         $(BOARDDIR)/nap/axi_dma.o \
         $(BOARDDIR)/nap/fft.o \
         $(BOARDDIR)/nap/nap_common.o \
@@ -99,6 +100,8 @@ BOARDSRC := \
         $(BOARDDIR)/remoteproc/remoteproc_config.o \
         $(BOARDDIR)/remoteproc/remoteproc_env.o \
         $(BOARDDIR)/remoteproc/rpmsg.o \
+        $(BOARDDIR)/peripherals/antenna.o \
+        $(BOARDDIR)/peripherals/led_adp8866.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \

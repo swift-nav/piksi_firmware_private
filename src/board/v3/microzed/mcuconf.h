@@ -90,6 +90,15 @@
 #define ZYNQ7000_SPI_SPI1_IRQ_PRIORITY              4
 
 /*
+ * I2C driver system settings.
+ */
+#define ZYNQ7000_I2C_USE_I2C0                       TRUE
+#define ZYNQ7000_I2C_USE_I2C1                       TRUE
+#define ZYNQ7000_I2C_I2C0_IRQ_PRIORITY              4
+#define ZYNQ7000_I2C_I2C1_IRQ_PRIORITY              4
+#define ZYNQ7000_I2C_BUSY_TIMEOUT_ms                10
+
+/*
  * EXT driver system settings.
  */
 #define ZYNQ7000_EXT_GPIO_IRQ_PRIORITY              4

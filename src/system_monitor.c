@@ -24,7 +24,6 @@
 #include "board/nap/nap_common.h"
 #include "board/frontend.h"
 #include "board.h"
-#include "peripherals/leds.h"
 #include "main.h"
 #include "sbp.h"
 #include "manage.h"
@@ -113,35 +112,6 @@ static void check_frontend_errors(void)
       frontend_errors = false;
     } else if (nt1065_check_plls()) {
       log_error("nt1065: AOK failed with unknown cause");
-    }
-  }
-}
-
-static THD_WORKING_AREA(wa_track_status_thread, 1024);
-static void track_status_thread(void *arg)
-{
-  (void)arg;
-  chRegSetThreadName("track status");
-  while (TRUE) {
-    if (simulation_enabled()) {
-      led_on(LED_GREEN);
-      chThdSleepMilliseconds(500);
-    } else {
-      chThdSleepMilliseconds(1000);
-      u8 n_ready = tracking_channels_ready(MANAGE_TRACK_STATUS_FLAGS);
-      if (n_ready == 0) {
-        led_on(LED_GREEN);
-        chThdSleepMilliseconds(1000);
-        led_off(LED_GREEN);
-      } else {
-        for (u8 i=0; i<n_ready; i++) {
-          led_on(LED_GREEN);
-          chThdSleepMilliseconds(250);
-          led_off(LED_GREEN);
-          chThdSleepMilliseconds(250);
-        }
-        chThdSleepMilliseconds(1000);
-      }
     }
   }
 }
@@ -301,12 +271,6 @@ void system_monitor_setup()
       sizeof(wa_system_monitor_thread),
       LOWPRIO+10,
       system_monitor_thread, NULL
-  );
-  chThdCreateStatic(
-      wa_track_status_thread,
-      sizeof(wa_track_status_thread),
-      LOWPRIO+9,
-      track_status_thread, NULL
   );
   chThdCreateStatic(
       wa_watchdog_thread,
