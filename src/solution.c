@@ -876,6 +876,15 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
+
+    /* NOTE: calc_PVT does not give entirely satisfying time solution,
+     * it is affected by measurement noise in pseudorange[0].
+     * Solved time is, by definition, the observation time corrected by solved
+     * clock bias
+     */
+    lgf.position_solution.time.tow = rec_time.tow - lgf.position_solution.clock_bias;
+    normalize_gps_time(&lgf.position_solution.time);
+
     set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
