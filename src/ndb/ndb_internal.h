@@ -13,6 +13,8 @@
 #ifndef SRC_NDB_INTERNAL_H_
 #define SRC_NDB_INTERNAL_H_
 
+#include <libswiftnav/common.h>
+
 #define MAX_NDB_FILE_VERSION_LEN 64
 extern u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];
 
@@ -68,9 +70,22 @@ typedef struct ndb_element_metadata
   struct ndb_element_metadata *next;    /**< Next element for operation queue */
 } ndb_element_metadata_t;
 
+/** Candidate update status */
+typedef enum {
+  NDB_CAND_IDENTICAL,     /**< No update, as the same data is already present */
+  NDB_CAND_OLDER,         /**< No update, as newer data is already present */
+  NDB_CAND_NEW_CANDIDATE, /**< New candidate accepted */
+  NDB_CAND_NEW_TRUSTED,   /**< Previous candidate confirmed */
+  NDB_CAND_MISMATCH,      /**< Candidate data mismatch */
+} ndb_cand_status_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+typedef bool ndb_entry_match_fn(const void *data,
+                                const ndb_element_metadata_t *md,
+                                void *cookie);
 
 extern u8 ndb_file_end_mark;
 
@@ -90,10 +105,18 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            size_t out_size,
                            ndb_data_source_t *src,
                            ndb_timestamp_t *ts);
+ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
+                                ndb_entry_match_fn match_fn,
+                                void *cookie,
+                                void *out,
+                                size_t out_size,
+                                ndb_data_source_t *src,
+                                ndb_timestamp_t *ts);
 ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,
                                   size_t size);
+void ndb_wq_put(ndb_element_metadata_t *md);
 
 #ifdef __cplusplus
 }

@@ -45,20 +45,27 @@ typedef struct {
   ndb_timestamp_t received_at;
 } ephemeris_candidate_t;
 
-typedef enum {
-  EPHE_IDENTICAL,
-  EPHE_NEW_CANDIDATE,
-  EPHE_NEW_TRUSTED,
-  EPHE_CAND_MISMATCH,
-} ndb_ephemeris_status_t;
-
 #define EPHE_CAND_LIST_LEN (MAX_CHANNELS)
 #define MAX_EPHE_CANDIDATE_AGE 92 /* seconds */
-static ephemeris_candidate_t ephe_candidates[EPHE_CAND_LIST_LEN] _CCM;
+static ephemeris_candidate_t ephe_candidates[EPHE_CAND_LIST_LEN];
 static MUTEX_DECL(cand_list_access);
 
 #define EPHEMERIS_MESSAGE_SPACING_cycle        (200 / NV_WRITE_REQ_TIMEOUT)
 #define EPHEMERIS_TRANSMIT_EPOCH_SPACING_cycle (15000 / NV_WRITE_REQ_TIMEOUT)
+
+static u16 map_sid_to_index(gnss_signal_t sid)
+{
+  u16 idx = PLATFORM_SIGNAL_COUNT;
+  /*
+   * Current architecture uses GPS L1 C/A ephemeris for GPS satellites.
+   */
+  if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
+    idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
+  } else {
+    idx = sid_to_global_index(sid);
+  }
+  return idx;
+}
 
 void ndb_ephemeris_init(void)
 {
@@ -70,15 +77,7 @@ void ndb_ephemeris_init(void)
 
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
-  u16 idx;
-  /*
-   * Current architecture uses GPS L1 C/A ephemeris for GPS satellites.
-   */
-  if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
-    idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
-  } else {
-    idx = sid_to_global_index(sid);
-  }
+  u16 idx = map_sid_to_index(sid);
 
   if (PLATFORM_SIGNAL_COUNT <= idx) {
     return NDB_ERR_BAD_PARAM;
@@ -91,18 +90,18 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   return res;
 }
 
-s16 ndb_ephe_find_candidate(const ephemeris_t *new)
+static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
 {
   int i;
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     if (ephe_candidates[i].used &&
-        sid_is_equal(ephe_candidates[i].ephe.sid, new->sid))
+        sid_is_equal(ephe_candidates[i].ephe.sid, sid))
       return i;
   }
   return -1;
 }
 
-void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
+static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
 {
   int i;
   u32 candidate_age;
@@ -123,16 +122,16 @@ void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
   }
 }
 
-void ndb_ephe_release_candidate(s16 cand_index)
+static void ndb_ephe_release_candidate(s16 cand_index)
 {
   if((cand_index < 0) || (cand_index >= EPHE_CAND_LIST_LEN))
     return;
   ephe_candidates[cand_index].used = false;
 }
 
-ndb_ephemeris_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
+static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
 {
-  ndb_ephemeris_status_t r = EPHE_CAND_MISMATCH;
+  ndb_cand_status_t r = NDB_CAND_MISMATCH;
   ephemeris_t existing;
   ndb_ephemeris_read(new->sid, &existing);
 
@@ -140,10 +139,10 @@ ndb_ephemeris_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
 
   if (!existing.valid) {
     chMtxUnlock(&cand_list_access);
-    return EPHE_NEW_TRUSTED;
+    return NDB_CAND_NEW_TRUSTED;
   }
 
-  s16 cand_idx = ndb_ephe_find_candidate(new);
+  s16 cand_idx = ndb_ephe_find_candidate(new->sid);
 
   /* Ephemeris for this SV was stored to the database already */
   if (memcmp(&existing, new, sizeof(ephemeris_t)) == 0) {
@@ -151,19 +150,19 @@ ndb_ephemeris_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     if (cand_idx != -1)
       ndb_ephe_release_candidate(cand_idx);
     chMtxUnlock(&cand_list_access);
-    return EPHE_IDENTICAL;
+    return NDB_CAND_IDENTICAL;
   }
 
   if (cand_idx != -1) {
     /* Candidate was added already */
     r = memcmp(&ephe_candidates[cand_idx].ephe, new, sizeof(ephemeris_t)) == 0 ?
-        EPHE_NEW_TRUSTED : EPHE_CAND_MISMATCH;
+        NDB_CAND_NEW_TRUSTED : NDB_CAND_MISMATCH;
     ndb_ephe_release_candidate(cand_idx);
   } else {
     /* New one is not in candidate list yet, try to put it
      * to an empty slot */
     ndb_ephe_try_adding_candidate(new);
-    r = EPHE_NEW_CANDIDATE;
+    r = NDB_CAND_NEW_CANDIDATE;
   }
 
   chMtxUnlock(&cand_list_access);
@@ -178,18 +177,20 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
 
   if (NDB_DS_RECEIVER == src) {
     switch (ndb_get_ephemeris_status(e)) {
-      case EPHE_IDENTICAL:
-        return NDB_ERR_NONE;
-      case EPHE_NEW_TRUSTED:
-      {
-        u16 idx = sid_to_global_index(e->sid);
-        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
-      }
-      case EPHE_NEW_CANDIDATE:
-      case EPHE_CAND_MISMATCH:
-        return NDB_ERR_UNRELIABLE_DATA;
-      default:
-        assert(!"Invalid status");
+    case NDB_CAND_IDENTICAL:
+      return NDB_ERR_NO_CHANGE;
+    case NDB_CAND_OLDER:
+      return NDB_ERR_OLDER_DATA;
+    case NDB_CAND_NEW_TRUSTED:
+    {
+      u16 idx = sid_to_global_index(e->sid);
+      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+    }
+    case NDB_CAND_NEW_CANDIDATE:
+    case NDB_CAND_MISMATCH:
+      return NDB_ERR_UNRELIABLE_DATA;
+    default:
+      assert(!"Invalid status");
     }
   } else if (NDB_DS_SBP == src) {
     u8 valid, health_bits;
@@ -210,6 +211,35 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
   }
   assert(!"ndb_ephemeris_store()");
   return NDB_ERR_ALGORITHM_ERROR;
+}
+
+/**
+ * Erase ephemeris data for a given satellite
+ *
+ * \param[in] sid SV signal identifier
+ *
+ * \retval NDB_ERR_NONE      Successful operation.
+ * \retval NDB_ERR_NO_DATA   No data to erase.
+ * \retval NDB_ERR_BAD_PARAM Bad parameter.
+ */
+ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid)
+{
+  u16 idx = map_sid_to_index(sid);
+
+  if (PLATFORM_SIGNAL_COUNT <= idx) {
+    return NDB_ERR_BAD_PARAM;
+  }
+
+  ndb_op_code_t res = ndb_erase(&ndb_ephemeris_md[idx]);
+
+  chMtxLock(&cand_list_access);
+  s16 cand_idx = ndb_ephe_find_candidate(sid);
+  if (cand_idx >= 0) {
+    ndb_ephe_release_candidate(cand_idx);
+  }
+  chMtxUnlock(&cand_list_access);
+
+  return res;
 }
 
 ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
