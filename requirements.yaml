@@ -10,7 +10,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/8a17138/v3/microzed/dev
+      prefix: piksi_buildroot/573bddb/v3/microzed/dev
       files:
         - boot.bin
         - u-boot.img
@@ -31,7 +31,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/8a17138/v3/evt2/dev
+      prefix: piksi_buildroot/573bddb/v3/evt2/dev
       files:
         - boot.bin
         - u-boot.img
