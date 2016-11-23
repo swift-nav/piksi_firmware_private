@@ -91,7 +91,7 @@ MUTEX_DECL(eigen_state_lock);
 
 systime_t last_dgnss;
 
-double soln_freq = 2.0;
+double soln_freq = 5.0;
 u32 max_age_of_differential = 5;
 u32 obs_output_divisor = 1;
 
