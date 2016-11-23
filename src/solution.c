@@ -141,14 +141,18 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 
     if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
       /* Position in LLH. */
-      msg_pos_llh_dep_a_t pos_llh;
-      sbp_make_pos_llh(&pos_llh, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_LLH_DEP_A, sizeof(pos_llh), (u8 *) &pos_llh);
+      msg_pos_llh_t pos_llh;
+      /* Single Point Position Fix Mode .*/
+      flags = 4;
+      sbp_make_pos_llh(&pos_llh, soln, flags);
+      sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
 
       /* Position in ECEF. */
-      msg_pos_ecef_dep_a_t pos_ecef;
-      sbp_make_pos_ecef(&pos_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_ECEF_DEP_A, sizeof(pos_ecef), (u8 *) &pos_ecef);
+      msg_pos_ecef_t pos_ecef;
+      /* Single Point Position Fix Mode .*/
+      flags = 4;
+      sbp_make_pos_ecef(&pos_ecef, soln, flags);
+      sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
     }
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
@@ -169,7 +173,7 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
         /* Single Point Position Fix Mode .*/
         flags = 4;
         sbp_make_dops(&sbp_dops, dops, &(soln->time), flags);
-        sbp_send_msg(SBP_MSG_DOPS_DEP_A, sizeof(sbp_dops), (u8 *) &sbp_dops);
+        sbp_send_msg(SBP_MSG_DOPS, sizeof(sbp_dops), (u8 *) &sbp_dops);
       );
     }
 
@@ -265,15 +269,15 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
     nmea_gpgga(pseudo_absolute_llh, t, n_sats, fix_mode, hdop, corrections_age, sender_id);
     /* now send pseudo absolute sbp message */
     /* Flag in message is defined as follows :float->2, fixed->1 */
-    /* We defined the flags for the SBP protocol to be spp->0, fixed->1, float->2 */
+    /* We defined the flags for the SBP protocol to be spp->4, fixed->2, float->1 */
     /* TODO: Define these flags from the yaml and remove hardcoding */
-    u8 sbp_flags = (flags == 1) ? 1 : 2;
-    msg_pos_llh_dep_a_t pos_llh;
+    u8 sbp_flags = (flags == 1) ? 2 : 1;
+    msg_pos_llh_t pos_llh;
     sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_LLH_DEP_A, sizeof(pos_llh), (u8 *) &pos_llh);
-    msg_pos_ecef_dep_a_t pos_ecef;
+    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+    msg_pos_ecef_t pos_ecef;
     sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_ECEF_DEP_A, sizeof(pos_ecef), (u8 *) &pos_ecef);
+    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
   }
   chMtxUnlock(&base_pos_lock);
 
