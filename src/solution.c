@@ -132,7 +132,7 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     /* Send GPS_TIME message first. */
     msg_gps_time_t gps_time;
     /* Time source from GNSS solution */
-    flags = 1; 
+    flags = 1;
     sbp_make_gps_time(&gps_time, &soln->time, flags);
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
 
@@ -165,8 +165,10 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 
     if (dops) {
       DO_EVERY(10,
-        msg_dops_dep_a_t sbp_dops;
-        sbp_make_dops(&sbp_dops, dops, &(soln->time));
+        msg_dops_t sbp_dops;
+        /* Single Point Position Fix Mode .*/
+        flags = 4;
+        sbp_make_dops(&sbp_dops, dops, &(soln->time), flags);
         sbp_send_msg(SBP_MSG_DOPS_DEP_A, sizeof(sbp_dops), (u8 *) &sbp_dops);
       );
     }
