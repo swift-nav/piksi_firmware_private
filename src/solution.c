@@ -128,23 +128,23 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 {
   if (soln) {
     /* Send GPS_TIME message first. */
-    msg_gps_time_t gps_time;
+    msg_gps_time_dep_a_t gps_time;
     sbp_make_gps_time(&gps_time, &soln->time, 0);
-    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
+    sbp_send_msg(SBP_MSG_GPS_TIME_DEP_A, sizeof(gps_time), (u8 *) &gps_time);
 
     /* in pseudoabsolute mode, we wait to resend the SPP solution until a timeout has occured
        the timeout depends on time_matched vs low latency mode.  It is doubled for low latency mode */
 
     if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
       /* Position in LLH. */
-      msg_pos_llh_t pos_llh;
+      msg_pos_llh_dep_a_t pos_llh;
       sbp_make_pos_llh(&pos_llh, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+      sbp_send_msg(SBP_MSG_POS_LLH_DEP_A, sizeof(pos_llh), (u8 *) &pos_llh);
 
       /* Position in ECEF. */
-      msg_pos_ecef_t pos_ecef;
+      msg_pos_ecef_dep_a_t pos_ecef;
       sbp_make_pos_ecef(&pos_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
+      sbp_send_msg(SBP_MSG_POS_ECEF_DEP_A, sizeof(pos_ecef), (u8 *) &pos_ecef);
     }
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
@@ -154,16 +154,16 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
       sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
 
       /* Velocity in ECEF. */
-      msg_vel_ecef_t vel_ecef;
+      msg_vel_ecef_dep_a_t vel_ecef;
       sbp_make_vel_ecef(&vel_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
+      sbp_send_msg(SBP_MSG_VEL_ECEF_DEP_A, sizeof(vel_ecef), (u8 *) &vel_ecef);
     }
 
     if (dops) {
       DO_EVERY(10,
-        msg_dops_t sbp_dops;
+        msg_dops_dep_a_t sbp_dops;
         sbp_make_dops(&sbp_dops, dops, &(soln->time));
-        sbp_send_msg(SBP_MSG_DOPS, sizeof(msg_dops_t), (u8 *) &sbp_dops);
+        sbp_send_msg(SBP_MSG_DOPS_DEP_A, sizeof(sbp_dops), (u8 *) &sbp_dops);
       );
     }
 
@@ -222,19 +222,19 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   covariance_to_accuracy(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
 
   double* base_station_pos;
-  msg_baseline_ecef_t sbp_ecef;
+  msg_baseline_ecef_dep_a_t sbp_ecef;
   sbp_make_baseline_ecef(&sbp_ecef, t, n_sats, b_ecef, accuracy, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
+  sbp_send_msg(SBP_MSG_BASELINE_ECEF_DEP_A, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
 
-  msg_baseline_ned_t sbp_ned;
+  msg_baseline_ned_dep_a_t sbp_ned;
   sbp_make_baseline_ned(&sbp_ned, t, n_sats, b_ned, h_accuracy, v_accuracy, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_ned), (u8 *)&sbp_ned);
+  sbp_send_msg(SBP_MSG_BASELINE_NED_DEP_A, sizeof(sbp_ned), (u8 *)&sbp_ned);
 
   if (send_heading) {
     double heading = calc_heading(b_ned);
-    msg_baseline_heading_t sbp_heading;
+    msg_baseline_heading_dep_a_t sbp_heading;
     sbp_make_heading(&sbp_heading, t, heading, n_sats, flags);
-    sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_heading), (u8 *)&sbp_heading);
+    sbp_send_msg(SBP_MSG_BASELINE_HEADING_DEP_A, sizeof(sbp_heading), (u8 *)&sbp_heading);
   }
 
   chMtxLock(&base_pos_lock);
@@ -262,12 +262,12 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
     /* We defined the flags for the SBP protocol to be spp->0, fixed->1, float->2 */
     /* TODO: Define these flags from the yaml and remove hardcoding */
     u8 sbp_flags = (flags == 1) ? 1 : 2;
-    msg_pos_llh_t pos_llh;
+    msg_pos_llh_dep_a_t pos_llh;
     sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
-    msg_pos_ecef_t pos_ecef;
+    sbp_send_msg(SBP_MSG_POS_LLH_DEP_A, sizeof(pos_llh), (u8 *) &pos_llh);
+    msg_pos_ecef_dep_a_t pos_ecef;
     sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
+    sbp_send_msg(SBP_MSG_POS_ECEF_DEP_A, sizeof(pos_ecef), (u8 *) &pos_ecef);
   }
   chMtxUnlock(&base_pos_lock);
 
@@ -336,14 +336,14 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
   /* Upper limit set by SBP framing size, preventing underflow */
   u16 msg_payload_size = MAX(
       MIN((u16)MAX(msg_obs_max_size, 0), SBP_FRAMING_MAX_PAYLOAD_SIZE),
-      sizeof(observation_header_t)
-    ) - sizeof(observation_header_t);
+      sizeof(observation_header_dep_t)
+    ) - sizeof(observation_header_dep_t);
 
   /* Lower limit set by sending at least 1 observation */
-  msg_payload_size = MAX(msg_payload_size, sizeof(packed_obs_content_t));
+  msg_payload_size = MAX(msg_payload_size, sizeof(packed_obs_content_dep_c_t));
 
   /* Round down the number of observations per message */
-  u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_t);
+  u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_dep_c_t);
 
   u8 n_rtk = 0;
   for (u8 i = 0; i < n; ++i) {
@@ -363,8 +363,8 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
   u8 obs_i = 0;
   for (u8 count = 0; count < total && obs_i < n_rtk; count++) {
     u8 curr_n = MIN(n_rtk - obs_i, obs_in_msg);
-    pack_obs_header(t, total, count, (observation_header_t*) buff);
-    packed_obs_content_t *obs = (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
+    pack_obs_header(t, total, count, (observation_header_dep_t*) buff);
+    packed_obs_content_dep_c_t *obs = (packed_obs_content_dep_c_t *)&buff[sizeof(observation_header_dep_t)];
 
     for (u8 i = 0; i < obs_in_msg && obs_i < n_rtk; i++) {
       if (NAV_MEAS_FLAGS_SBP == (m[i].flags & NAV_MEAS_FLAGS_SBP) &&
@@ -379,8 +379,8 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
       }
     }
 
-    sbp_send_msg(SBP_MSG_OBS,
-          sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
+    sbp_send_msg(SBP_MSG_OBS_DEP_C,
+          sizeof(observation_header_dep_t) + curr_n * sizeof(packed_obs_content_dep_c_t),
           buff);
   }
 }

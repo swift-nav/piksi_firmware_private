@@ -66,7 +66,7 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from)
   return sid;
 }
 
-void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
+void sbp_make_gps_time(msg_gps_time_dep_a_t *t_out, const gps_time_t *t_in, u8 flags)
 {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
@@ -79,7 +79,7 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
   t_out->flags = flags;
 }
 
-void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flags)
+void sbp_make_pos_llh(msg_pos_llh_dep_a_t *pos_llh, const gnss_solution *soln, u8 flags)
 {
   pos_llh->tow = round_tow_ms(soln->time.tow);
   pos_llh->lat = soln->pos_llh[0] * R2D;
@@ -92,7 +92,7 @@ void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flag
   pos_llh->flags = flags;
 }
 
-void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
+void sbp_make_pos_llh_vect(msg_pos_llh_dep_a_t *pos_llh, const double llh[3],
                            double h_accuracy, double v_accuracy,
                            const gps_time_t *gps_t, u8 n_used, u8 flags)
 {
@@ -106,7 +106,7 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
   pos_llh->flags = flags;
 }
 
-void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 flags)
+void sbp_make_pos_ecef(msg_pos_ecef_dep_a_t *pos_ecef, const gnss_solution *soln, u8 flags)
 {
   pos_ecef->tow = round_tow_ms(soln->time.tow);
   pos_ecef->x = soln->pos_ecef[0];
@@ -120,7 +120,7 @@ void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 f
   pos_ecef->flags = flags;
 }
 
-void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
+void sbp_make_pos_ecef_vect(msg_pos_ecef_dep_a_t *pos_ecef, const double ecef[3],
                             double accuracy, const gps_time_t *gps_t, u8 n_used,
                             u8 flags)
 {
@@ -146,7 +146,7 @@ void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flag
   vel_ned->flags = flags;
 }
 
-void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags)
+void sbp_make_vel_ecef(msg_vel_ecef_dep_a_t *vel_ecef, const gnss_solution *soln, u8 flags)
 {
   vel_ecef->tow = round_tow_ms(soln->time.tow);
   vel_ecef->x = round(soln->vel_ecef[0] * 1e3);
@@ -158,7 +158,7 @@ void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 f
   vel_ecef->flags = flags;
 }
 
-void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t *t)
+void sbp_make_dops(msg_dops_dep_a_t *dops_out, const dops_t *dops_in, const gps_time_t *t)
 {
   dops_out->tow = round_tow_ms(t->tow);
   dops_out->pdop = round(dops_in->pdop * 100);
@@ -168,7 +168,7 @@ void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t
   dops_out->vdop = round(dops_in->vdop * 100);
 }
 
-void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t *t,
+void sbp_make_baseline_ecef(msg_baseline_ecef_dep_a_t *baseline_ecef, const gps_time_t *t,
                             u8 n_sats, const double b_ecef[3], double accuracy,
                             u8 flags) {
   baseline_ecef->tow = round_tow_ms(t->tow);
@@ -180,7 +180,7 @@ void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t
   baseline_ecef->flags = flags;
 }
 
-void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t,
+void sbp_make_baseline_ned(msg_baseline_ned_dep_a_t *baseline_ned, const gps_time_t *t,
                            u8 n_sats, const double b_ned[3], double h_accuracy,
                            double v_accuracy, u8 flags) {
   baseline_ned->tow = round_tow_ms(t->tow);
@@ -193,7 +193,7 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
   baseline_ned->flags = flags;
 }
 
-void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
+void sbp_make_heading(msg_baseline_heading_dep_a_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_sats, u8 flags) {
     baseline_heading->tow = round_tow_ms(t->tow);
     baseline_heading->heading = (u32)round(heading * 1e3);
@@ -201,7 +201,7 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
     baseline_heading->flags = flags;
 }
 
-void unpack_obs_header(const observation_header_t *msg, gps_time_t* t, u8* total, u8* count)
+void unpack_obs_header(const observation_header_dep_t *msg, gps_time_t* t, u8* total, u8* count)
 {
   t->tow = ((double)msg->t.tow) / MSG_OBS_TOW_MULTIPLIER;
   t->wn  = msg->t.wn;
@@ -209,7 +209,7 @@ void unpack_obs_header(const observation_header_t *msg, gps_time_t* t, u8* total
   *count = (msg->n_obs & MSG_OBS_HEADER_SEQ_MASK);
 }
 
-void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header_t *msg)
+void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header_dep_t *msg)
 {
   msg->t.tow = (u32)round(t->tow * MSG_OBS_TOW_MULTIPLIER);
   msg->t.wn  = t->wn;
@@ -217,7 +217,7 @@ void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header
                  (count & MSG_OBS_HEADER_SEQ_MASK));
 }
 
-void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
+void unpack_obs_content(const packed_obs_content_dep_c_t *msg, double *P, double *L,
                         double *cn0, u16 *lock_counter, gnss_signal_t *sid)
 {
   *P   = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
@@ -240,7 +240,7 @@ void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
  * \return `0` on success or `-1` on an overflow error
  */
 s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
-                    gnss_signal_t sid, packed_obs_content_t *msg)
+                    gnss_signal_t sid, packed_obs_content_dep_c_t *msg)
 {
 
   s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
