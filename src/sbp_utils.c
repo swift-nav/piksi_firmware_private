@@ -133,7 +133,7 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_dep_a_t *pos_ecef, const double ecef[3]
   pos_ecef->flags = flags;
 }
 
-void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags)
+void sbp_make_vel_ned(msg_vel_ned_dep_a_t *vel_ned, const gnss_solution *soln, u8 flags)
 {
   vel_ned->tow = round_tow_ms(soln->time.tow);
   vel_ned->n = round(soln->vel_ned[0] * 1e3);

@@ -149,9 +149,9 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
     if (!clock_jump) {
-      msg_vel_ned_t vel_ned;
+      msg_vel_ned_dep_a_t vel_ned;
       sbp_make_vel_ned(&vel_ned, soln, 0);
-      sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
+      sbp_send_msg(SBP_MSG_VEL_NED_DEP_A, sizeof(vel_ned), (u8 *) &vel_ned);
 
       /* Velocity in ECEF. */
       msg_vel_ecef_dep_a_t vel_ecef;
