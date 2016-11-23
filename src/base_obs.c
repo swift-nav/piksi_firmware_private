@@ -284,7 +284,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   base_obss_rx.sender_id = sender_id;
 
   /* Relay observations using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_OBS, len, msg, 0);
+  sbp_send_msg_(SBP_MSG_OBS_DEP_C, len, msg, 0);
 
   /* GPS time of observation. */
   gps_time_t tor;
@@ -295,7 +295,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Decode the message header to get the time and how far through the sequence
    * we are. */
-  unpack_obs_header((observation_header_t*)msg, &tor, &total, &count);
+  unpack_obs_header((observation_header_dep_t*)msg, &tor, &total, &count);
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
   u32 obs_freq = soln_freq / obs_output_divisor;
@@ -323,7 +323,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Calculate the number of observations in this message by looking at the SBP
    * `len` field. */
-  u8 obs_in_msg = (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
+  u8 obs_in_msg = (len - sizeof(observation_header_dep_t)) / sizeof(packed_obs_content_dep_c_t);
 
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
@@ -333,7 +333,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   }
 
   /* Pull out the contents of the message. */
-  packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+  packed_obs_content_dep_c_t *obs = (packed_obs_content_dep_c_t *)(msg + sizeof(observation_header_dep_t));
   for (u8 i=0; i<obs_in_msg; i++) {
     gnss_signal_t sid = sid_from_sbp(obs[i].sid);
     if (!sid_supported(sid)) {
@@ -428,7 +428,7 @@ void base_obs_setup()
 
   static sbp_msg_callbacks_node_t obs_packed_node;
   sbp_register_cbk(
-    SBP_MSG_OBS,
+    SBP_MSG_OBS_DEP_C,
     &obs_callback,
     &obs_packed_node
   );

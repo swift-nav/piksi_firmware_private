@@ -35,25 +35,25 @@ typedef struct {
   u16 size;
 } msg_ephemeris_info_t;
 
-void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
-void sbp_make_pos_llh(msg_pos_llh_t *pos_llh, const gnss_solution *soln, u8 flags);
-void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
+void sbp_make_gps_time(msg_gps_time_dep_a_t *t_out, const gps_time_t *t_in, u8 flags);
+void sbp_make_pos_llh(msg_pos_llh_dep_a_t *pos_llh, const gnss_solution *soln, u8 flags);
+void sbp_make_pos_llh_vect(msg_pos_llh_dep_a_t *pos_llh, const double llh[3],
                            double h_accuracy, double v_accuracy,
                            const gps_time_t *gps_t, u8 n_used, u8 flags);
-void sbp_make_pos_ecef(msg_pos_ecef_t *pos_ecef, const gnss_solution *soln, u8 flags);
-void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
+void sbp_make_pos_ecef(msg_pos_ecef_dep_a_t *pos_ecef, const gnss_solution *soln, u8 flags);
+void sbp_make_pos_ecef_vect(msg_pos_ecef_dep_a_t *pos_ecef, const double ecef[3],
                             double accuracy, const gps_time_t *gps_t, u8 n_used,
                             u8 flags);
-void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags);
-void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags);
-void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t *t);
-void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t *t,
+void sbp_make_vel_ned(msg_vel_ned_dep_a_t *vel_ned, const gnss_solution *soln, u8 flags);
+void sbp_make_vel_ecef(msg_vel_ecef_dep_a_t *vel_ecef, const gnss_solution *soln, u8 flags);
+void sbp_make_dops(msg_dops_dep_a_t *dops_out, const dops_t *dops_in, const gps_time_t *t);
+void sbp_make_baseline_ecef(msg_baseline_ecef_dep_a_t *baseline_ecef, const gps_time_t *t,
                             u8 n_sats, const double b_ecef[3], double accuracy,
                             u8 flags);
-void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t,
+void sbp_make_baseline_ned(msg_baseline_ned_dep_a_t *baseline_ned, const gps_time_t *t,
                            u8 n_sats, const double b_ned[3], double h_accuracy,
                            double v_accuracy, u8 flags);
-void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
+void sbp_make_heading(msg_baseline_heading_dep_a_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_used, u8 flags);
 #define MSG_OBS_HEADER_SEQ_SHIFT 4u
 #define MSG_OBS_HEADER_SEQ_MASK ((1 << 4u) - 1)
@@ -64,17 +64,17 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
 #define MSG_OBS_CN0_MULTIPLIER ((float)4)
 #define MSG_OSB_LF_MULTIPLIER ((double) (1<<8))
 
-void unpack_obs_header(const observation_header_t *msg, gps_time_t* t,
+void unpack_obs_header(const observation_header_dep_t *msg, gps_time_t* t,
                        u8* total, u8* count);
 
 void pack_obs_header(const gps_time_t *t, u8 total, u8 count,
-                     observation_header_t *msg);
+                     observation_header_dep_t *msg);
 
-void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
+void unpack_obs_content(const packed_obs_content_dep_c_t *msg, double *P, double *L,
                         double *cn0, u16 *lock_counter, gnss_signal_t *sid);
 
 s8 pack_obs_content(double P, double L, double cn0, u16 lock_counter,
-                    gnss_signal_t sid, packed_obs_content_t *msg);
+                    gnss_signal_t sid, packed_obs_content_dep_c_t *msg);
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
 
