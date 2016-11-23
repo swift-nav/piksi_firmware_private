@@ -126,11 +126,15 @@ bool dgnss_timeout(systime_t _last_dgnss, double _soln_freq_hz,
 
 void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 {
+  u8 flags = 0;
+
   if (soln) {
     /* Send GPS_TIME message first. */
-    msg_gps_time_dep_a_t gps_time;
-    sbp_make_gps_time(&gps_time, &soln->time, 0);
-    sbp_send_msg(SBP_MSG_GPS_TIME_DEP_A, sizeof(gps_time), (u8 *) &gps_time);
+    msg_gps_time_t gps_time;
+    /* Time source from GNSS solution */
+    flags = 1; 
+    sbp_make_gps_time(&gps_time, &soln->time, flags);
+    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
 
     /* in pseudoabsolute mode, we wait to resend the SPP solution until a timeout has occured
        the timeout depends on time_matched vs low latency mode.  It is doubled for low latency mode */
