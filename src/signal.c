@@ -11,6 +11,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <board.h>
 #include "signal.h"
 
 #include <assert.h>
@@ -182,6 +183,42 @@ bool code_supported(enum code code)
     return false;
 
   return true;
+}
+
+/** Return the minimum Doppler value for a code_t induced by TCXO error.
+ *
+ * \param code  code_t to use.
+ * \return doppler_hz Signal Doppler [Hz]
+ * \return Minimum Doppler value [Hz]
+ */
+float code_to_tcxo_doppler_min(code_t code)
+{
+  float doppler;
+
+  assert(code_valid(code));
+  assert(CODE_GPS_L1CA == code);
+
+  doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
+
+  return doppler;
+}
+
+/** Return the maximum Doppler value for a code_t induced by TCXO error.
+ *
+ * \param code  code_t to use.
+ * \return doppler_hz Signal Doppler [Hz]
+ * \return Maximum Doppler value [Hz]
+ */
+float code_to_tcxo_doppler_max(code_t code)
+{
+  float doppler;
+
+  assert(code_valid(code));
+  assert(CODE_GPS_L1CA == code);
+
+  doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
+
+  return doppler;
 }
 
 /* \} */

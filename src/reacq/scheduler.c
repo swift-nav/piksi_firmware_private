@@ -164,6 +164,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
     for (i = 0; i < ACQ_NUM_SVS; i++) {
       acq_job_t *job = &jobs_data->jobs[type][i];
       acq_task_t *task = &job->task_data;
+      assert(job->job_type < ACQ_NUM_JOB_TYPES);
       if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
         job->state = ACQ_STATE_IDLE;
       }
@@ -188,6 +189,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
     for (i = 0; i < ACQ_NUM_SVS; i++) {
       acq_job_t *job = &jobs_data->jobs[type][i];
       acq_task_t *task = &job->task_data;
+      assert(job->job_type < ACQ_NUM_JOB_TYPES);
       /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
       if (ACQ_STATE_IDLE == job->state &&
           job->needs_to_run &&
@@ -260,6 +262,9 @@ void sch_run(acq_jobs_state_t *jobs_data)
   acq_param = &task->task_array[task->task_index];
   job->state = ACQ_STATE_RUN;
   search_time = nap_timing_count();
+
+  assert(sid_valid(job->sid));
+
   peak_found = acq_search(job->sid,
                           acq_param->doppler_min_hz,
                           acq_param->doppler_max_hz,
@@ -268,14 +273,14 @@ void sch_run(acq_jobs_state_t *jobs_data)
   search_time = (nap_timing_count() - search_time) *
     (RX_DT_NOMINAL * 1000.0);
 
+  job->stop_time = timing_getms();
+
   /* It is unclear should peak checks take place in acq module
      or here. */
   if (peak_found && acq_result.cn0 < acq_param->cn0_threshold_dbhz) {
     peak_found = false;
   }
 
-  dum_report_reacq_result(&job->sid, peak_found);
-  
   if (peak_found) { /* Send to track */
     tracking_startup_params_t tracking_startup_params = {
       .sid = job->sid,
@@ -288,7 +293,6 @@ void sch_run(acq_jobs_state_t *jobs_data)
     };
     task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
-    job->stop_time = timing_getms();
 
     tracking_startup_request(&tracking_startup_params);
 
@@ -310,10 +314,12 @@ void sch_run(acq_jobs_state_t *jobs_data)
       job->state = ACQ_STATE_WAIT;
     }
   } /* No peak */
-    
+
   sch_send_acq_profile_msg(job, &acq_result, peak_found);
 
+  /* Send result of an acquisition to the host. */
+  acq_result_send(job->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
+
   sch_limit_costs(jobs_data);
-  
 }
 

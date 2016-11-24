@@ -19,11 +19,10 @@
 #include <libswiftnav/time.h>
 
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
-                          const gps_time_t *time_cur,
+                          const gps_time_t *t,
                           const last_good_fix_t *lgf,
+                          float speed,
                           float *doppler_min,
                           float *doppler_max);
-
-void dum_report_reacq_result(const gnss_signal_t *sid, bool res);
 
 #endif /* SWIFTNAV_DUM_H */

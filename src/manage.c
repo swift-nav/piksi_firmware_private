@@ -44,6 +44,7 @@
 #include "signal.h"
 #include "ndb.h"
 #include "shm.h"
+#include "dum.h"
 #include "reacq/reacq_api.h"
 
 /** \defgroup manage Manage
@@ -100,16 +101,6 @@ static bool track_mask[PLATFORM_SIGNAL_COUNT];
 #define SCORE_TRACK         200
 #define SCORE_OBS           200
 
-/** Minimum Doppler induced by GPS satellite motion [Hz] */
-#define GPS_DOPP_SAT_VEL_MIN_HZ   -4200.f
-/** Maximum Doppler induced by GPS satellite motion [Hz] */
-#define GPS_DOPP_SAT_VEL_MAX_HZ   4200.f
-
-/** Miminum Doppler induced by clock drift [Hz] */
-#define GPS_DOPP_CLOCK_MIN_HZ (ACQ_FULL_CF_MIN - GPS_DOPP_SAT_VEL_MIN_HZ)
-/** Maximum Doppler induced by clock drift [Hz] */
-#define GPS_DOPP_CLOCK_MAX_HZ (ACQ_FULL_CF_MAX - GPS_DOPP_SAT_VEL_MAX_HZ)
-
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM   500
 
@@ -144,8 +135,6 @@ static volatile bool no_free_tracking_channel = false;
 
 static float elevation_mask = 5.0; /* degrees */
 static bool sbas_enabled = false;
-
-static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
 static void manage_acq(void);
@@ -198,11 +187,33 @@ static void manage_acq_thread(void *arg)
 {
   /* TODO: This should be trigged by a semaphore from the acq ISR code, not
    * just ran periodically. */
+
+  bool had_fix = false;
+
   (void)arg;
   chRegSetThreadName("manage acq");
+
+  init_reacq();
+
   while (TRUE) {
-    manage_acq();
-    manage_reacq();
+    last_good_fix_t lgf;
+    bool have_fix;
+
+    have_fix = (ndb_lgf_read(&lgf) == NDB_ERR_NONE) &&
+               lgf.position_solution.valid &&
+               (POSITION_FIX == lgf.position_quality) &&
+               ((TIME_COARSE <= time_quality));
+    if (have_fix && !had_fix) {
+      had_fix = true;
+      log_info("Switching to re-acq mode");
+    }
+
+    if (had_fix) {
+      manage_reacq();
+    } else {
+      manage_acq();
+    }
+
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
   }
@@ -215,17 +226,22 @@ void manage_acq_setup()
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
   for (u32 i=0; i<PLATFORM_SIGNAL_COUNT; i++) {
+    gnss_signal_t sid = sid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
     acq_status[i].masked = false;
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
-    acq_status[i].dopp_hint_low = ACQ_FULL_CF_MIN;
-    acq_status[i].dopp_hint_high = ACQ_FULL_CF_MAX;
-    acq_status[i].sid = sid_from_global_index(i);
+
+    if (code_requires_direct_acq(sid.code)) {
+      acq_status[i].dopp_hint_low = code_to_sv_doppler_min(sid.code) +
+                                    code_to_tcxo_doppler_min(sid.code);
+      acq_status[i].dopp_hint_high = code_to_sv_doppler_max(sid.code) +
+                                     code_to_tcxo_doppler_max(sid.code);
+    }
+    acq_status[i].sid = sid;
 
     track_mask[i] = false;
 
-    if (!sbas_enabled &&
-        (sid_to_constellation(acq_status[i].sid) == CONSTELLATION_SBAS)) {
+    if (!sbas_enabled && (sid_to_constellation(sid) == CONSTELLATION_SBAS)) {
       acq_status[i].masked = true;
       track_mask[i] = true;
     }
@@ -313,10 +329,10 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
         dopp_uncertainty = DOPP_UNCERT_EPHEM;
       ready = true;
 
-      if ((dopp_hint_sat_vel < GPS_DOPP_SAT_VEL_MIN_HZ) ||
-          (dopp_hint_sat_vel > GPS_DOPP_SAT_VEL_MAX_HZ) ||
-          (dopp_hint_clock < GPS_DOPP_CLOCK_MIN_HZ) ||
-          (dopp_hint_clock > GPS_DOPP_CLOCK_MAX_HZ)) {
+      if ((dopp_hint_sat_vel < code_to_sv_doppler_min(sid.code)) ||
+          (dopp_hint_sat_vel > code_to_sv_doppler_max(sid.code)) ||
+          (dopp_hint_clock < code_to_tcxo_doppler_min(sid.code)) ||
+          (dopp_hint_clock > code_to_tcxo_doppler_max(sid.code))) {
         log_error_sid(sid,
                       "Acq: bogus ephe/clock dopp hints "
                       "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
@@ -333,6 +349,11 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
       }
     }
 
+    float doppler_min = code_to_sv_doppler_min(sid.code) +
+                        code_to_tcxo_doppler_min(sid.code);
+    float doppler_max = code_to_sv_doppler_max(sid.code) +
+                        code_to_tcxo_doppler_max(sid.code);
+
     if(!ready) {
       ndb_almanac_read(sid, &orbit.a);
       if (orbit.a.valid &&
@@ -347,8 +368,7 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
         }
         dopp_hint = -dopp_hint;
 
-        if ((dopp_hint < GPS_DOPP_SAT_VEL_MIN_HZ) ||
-            (dopp_hint > GPS_DOPP_SAT_VEL_MAX_HZ)) {
+        if ((dopp_hint < doppler_min) || (dopp_hint > doppler_max)) {
           log_error_sid(sid,
                         "Acq: bogus alm dopp_hint "
                         "(unc,sat_hint,lgf_pos[0..2],ele) "
@@ -367,8 +387,8 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
     }
 
     /* Return the doppler hints and a score proportional to elevation */
-    *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, ACQ_FULL_CF_MIN);
-    *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, ACQ_FULL_CF_MAX);
+    *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, doppler_min);
+    *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, doppler_max);
     return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
 }
 
@@ -453,15 +473,23 @@ static void manage_acq()
     return;
   }
 
+  /* Only GPS L1CA acquistion is supported. */
+  assert(CODE_GPS_L1CA == acq->sid.code);
+
+  float doppler_min = code_to_sv_doppler_min(acq->sid.code) +
+                      code_to_tcxo_doppler_min(acq->sid.code);
+  float doppler_max = code_to_sv_doppler_max(acq->sid.code) +
+                      code_to_tcxo_doppler_max(acq->sid.code);
+
   /* Check for NaNs in dopp hints, or low > high */
   if ((acq->dopp_hint_low > acq->dopp_hint_high) ||
-      (acq->dopp_hint_low < ACQ_FULL_CF_MIN) ||
-      (acq->dopp_hint_high > ACQ_FULL_CF_MAX)) {
+      (acq->dopp_hint_low < doppler_min) ||
+      (acq->dopp_hint_high > doppler_max)) {
     log_error_sid(acq->sid, "Acq: caught bogus dopp_hints (%lf, %lf)",
                   acq->dopp_hint_low,
                   acq->dopp_hint_high);
-    acq->dopp_hint_high = ACQ_FULL_CF_MAX;
-    acq->dopp_hint_low = ACQ_FULL_CF_MIN;
+    acq->dopp_hint_high = doppler_max;
+    acq->dopp_hint_low = doppler_min;
   }
 
   acq_result_t acq_result;
@@ -475,8 +503,8 @@ static void manage_acq()
       /* Didn't find the satellite :( */
       /* Double the size of the doppler search space for next time. */
       float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
-      acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, ACQ_FULL_CF_MAX);
-      acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, ACQ_FULL_CF_MIN);
+      acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, doppler_max);
+      acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, doppler_min);
       /* Decay hint scores */
       for (u8 i = 0; i < ACQ_HINT_NUM; i++)
         acq->score[i] = (acq->score[i] * 3) / 4;
@@ -506,7 +534,7 @@ static void manage_acq()
  * \param cp  Code phase of best point.
  * \param cf  Carrier frequency of best point.
  */
-static void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf)
+void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf)
 {
   msg_acq_result_t acq_result_msg;
 
@@ -668,22 +696,26 @@ static void drop_channel(u8 channel_id,
    */
 
   acq_status_t *acq = &acq_status[sid_to_global_index(sid)];
-  bool had_locks = 0 != (info->flags & TRACKING_CHANNEL_FLAG_HAD_LOCKS);
-  bool long_in_track = time_in_track > TRACK_REACQ_T;
-  u32 unlocked_time = time_info->ld_pess_unlocked_ms;
-  bool long_unlocked = unlocked_time > TRACK_REACQ_T;
+  if (code_requires_direct_acq(sid.code)) {
+    bool had_locks = 0 != (info->flags & TRACKING_CHANNEL_FLAG_HAD_LOCKS);
+    bool long_in_track = time_in_track > TRACK_REACQ_T;
+    u32 unlocked_time = time_info->ld_pess_unlocked_ms;
+    bool long_unlocked = unlocked_time > TRACK_REACQ_T;
 
-  if (long_in_track && had_locks && !long_unlocked) {
-    double carrier_freq = freq_info->carrier_freq_at_lock;
-    if ((carrier_freq < ACQ_FULL_CF_MIN) || (carrier_freq > ACQ_FULL_CF_MAX)) {
-      log_error_sid(sid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
-    } else {
-      /* FIXME other constellations/bands */
-      acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
-      acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP,
-                               ACQ_FULL_CF_MIN);
-      acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP,
-                                ACQ_FULL_CF_MAX);
+    if (long_in_track && had_locks && !long_unlocked) {
+      double carrier_freq = freq_info->carrier_freq_at_lock;
+      float doppler_min = code_to_sv_doppler_min(sid.code) +
+                          code_to_tcxo_doppler_min(sid.code);
+      float doppler_max = code_to_sv_doppler_max(sid.code) +
+                          code_to_tcxo_doppler_max(sid.code);
+      if ((carrier_freq < doppler_min) || (carrier_freq > doppler_max)) {
+        log_error_sid(sid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
+      } else {
+        /* FIXME other constellations/bands */
+        acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
+        acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP, doppler_min);
+        acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
+      }
     }
   }
   acq->state = ACQ_PRN_ACQUIRING;
@@ -1310,17 +1342,24 @@ static void manage_tracking_startup(void)
     u8 chan = manage_track_new_acq(startup_params.sid);
     if (chan == MANAGE_NO_CHANNELS_FREE) {
 
-      /* No channels are free to accept our new satellite :( */
-      /* TODO: Perhaps we can try to warm start this one
-       * later using another fine acq.
-       */
-      if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
-        acq->score[ACQ_HINT_PREV_ACQ] =
-            SCORE_ACQ + (startup_params.cn0_init - ACQ_THRESHOLD);
-        acq->dopp_hint_low = MAX(startup_params.carrier_freq - ACQ_FULL_CF_STEP,
-                                 ACQ_FULL_CF_MIN);
-        acq->dopp_hint_high = MIN(startup_params.carrier_freq + ACQ_FULL_CF_STEP,
-                                  ACQ_FULL_CF_MAX);
+      if (code_requires_direct_acq(acq->sid.code)) {
+        float doppler_min = code_to_sv_doppler_min(acq->sid.code) +
+                            code_to_tcxo_doppler_min(acq->sid.code);
+        float doppler_max = code_to_sv_doppler_max(acq->sid.code) +
+                            code_to_tcxo_doppler_max(acq->sid.code);
+
+        /* No channels are free to accept our new satellite :( */
+        /* TODO: Perhaps we can try to warm start this one
+         * later using another fine acq.
+         */
+        if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
+          acq->score[ACQ_HINT_PREV_ACQ] =
+              SCORE_ACQ + (startup_params.cn0_init - ACQ_THRESHOLD);
+          acq->dopp_hint_low = MAX(startup_params.carrier_freq - ACQ_FULL_CF_STEP,
+                                   doppler_min);
+          acq->dopp_hint_high = MIN(startup_params.carrier_freq + ACQ_FULL_CF_STEP,
+                                    doppler_max);
+        }
       }
 
       /*

@@ -24,10 +24,10 @@
 #define ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS 16000
 /** Starts fallback searches when last good fix (LGF) is
     older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS 30000
+#define ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS 1
 /** Starts fallback searches of invisible SVs when last good fix (LGF) is
     older than timeout (ms) */
-#define ACQ_LGF_TIMEOUT_INVIS_MS 60000
+#define ACQ_LGF_TIMEOUT_INVIS_MS 1
 /** Max user velocity for visibility calculation (m/s) */
 #define ACQ_MAX_USER_VELOCITY_MPS 30.0f
 

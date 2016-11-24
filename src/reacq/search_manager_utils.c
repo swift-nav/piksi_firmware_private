@@ -16,6 +16,9 @@
 #include <board/nap/nap_common.h>
 #include <libswiftnav/sv_visibility.h>
 
+/* how old ephemerides are considered valid [s] */
+#define SM_FIT_INTERVAL_VALID  (WEEK_SECS * 2)
+
 /* Search manager functions which call other modules */
 /** Get SV visibility flags
  *
@@ -31,24 +34,34 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
   *visible = false;
   *known = false;
 
-  if (NDB_ERR_NONE == ndb_lgf_read(&lgf) &&
-      POSITION_FIX == lgf.position_quality &&
-      NDB_ERR_NONE == ndb_ephemeris_read(sid, &ephe)) {
-
-    sv_vis_config_t vis_cfg;
-
-    vis_cfg.e = &ephe;
-    vis_cfg.lgf_ecef[0] = lgf.position_solution.pos_ecef[0];
-    vis_cfg.lgf_ecef[1] = lgf.position_solution.pos_ecef[1];
-    vis_cfg.lgf_ecef[2] = lgf.position_solution.pos_ecef[2];
-    vis_cfg.lgf_time = lgf.position_solution.time;
-    vis_cfg.user_velocity = ACQ_MAX_USER_VELOCITY_MPS;
-    vis_cfg.time_delta = (u32)((nap_timing_count() -
-                                gps2rxtime(&lgf.position_solution.time)) *
-                               RX_DT_NOMINAL);
-
-    sv_visibility_status_get(&vis_cfg, visible, known);
+  if (NDB_ERR_NONE != ndb_lgf_read(&lgf) ||
+      POSITION_FIX != lgf.position_quality ||
+      NDB_ERR_NONE != ndb_ephemeris_read(sid, &ephe)) {
+    return;
   }
+
+  gps_time_t t = get_current_time();
+
+  if (!ephemeris_params_valid(ephe.valid,
+                              SM_FIT_INTERVAL_VALID,
+                              &ephe.toe,
+                              &t)) {
+    return;
+  }
+
+  sv_vis_config_t vis_cfg;
+
+  vis_cfg.e = &ephe;
+  vis_cfg.lgf_ecef[0] = lgf.position_solution.pos_ecef[0];
+  vis_cfg.lgf_ecef[1] = lgf.position_solution.pos_ecef[1];
+  vis_cfg.lgf_ecef[2] = lgf.position_solution.pos_ecef[2];
+  vis_cfg.lgf_time = lgf.position_solution.time;
+  vis_cfg.user_velocity = ACQ_MAX_USER_VELOCITY_MPS;
+  vis_cfg.time_delta = (u32)((nap_timing_count() -
+                              gps2rxtime(&lgf.position_solution.time)) *
+                             RX_DT_NOMINAL);
+
+  sv_visibility_status_get(&vis_cfg, visible, known);
 }
 
 /** Check if SV is healthy

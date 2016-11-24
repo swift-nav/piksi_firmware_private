@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <string.h>
+#include <assert.h>
 #include "search_manager_api.h"
 #include <timing.h>
 #include <manage.h>
@@ -61,6 +62,10 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     gnss_signal_t sid = deep_job->sid;
     bool visible, known;
 
+    assert(sid_valid(sid));
+
+    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
+
     /* Initialize jobs to not run */
     deep_job->needs_to_run = false;
 
@@ -101,6 +106,10 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     gnss_signal_t sid = fallback_job->sid;
     bool visible, invisible, known;
 
+    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
+
+    assert(sid_valid(sid));
+
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
 
@@ -114,14 +123,14 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     invisible = !visible && known;
 
     if ((visible || !known) &&
-        lgf_age_ms > ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+        lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
         ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
     } else if (invisible &&
-               lgf_age_ms > ACQ_LGF_TIMEOUT_INVIS_MS &&
+               lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
@@ -143,6 +152,7 @@ void sm_run(acq_jobs_state_t *jobs_data)
   u64 now_ms = timing_getms();
   u64 lgf_ms, lgf_age_ms;
   if (sm_lgf_stamp(&lgf_ms)) {
+    assert(now_ms >= lgf_ms);
     lgf_age_ms = now_ms - lgf_ms;
   } else {
     lgf_age_ms = MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS,

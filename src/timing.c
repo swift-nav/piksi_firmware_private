@@ -188,7 +188,7 @@ gps_time_t rx2gpstime(double tc)
  * \param t gps_time_t to convert.
  * \return Timing count in units of RX_DT_NOMINAL.
  */
-double gps2rxtime(gps_time_t* t)
+double gps2rxtime(const gps_time_t* t)
 {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;

@@ -53,14 +53,12 @@
  * stabilize after any mode change before using obs. */
 #define TRACK_STABILIZATION_T 1000
 
-#define ACQ_FULL_CF_MIN  -8500
-#define ACQ_FULL_CF_MAX   8500
 #define ACQ_FULL_CF_STEP  acq_bin_width()
 
 #define MANAGE_NO_CHANNELS_FREE 255
 
 #define MANAGE_ACQ_THREAD_PRIORITY (NORMALPRIO-3)
-#define MANAGE_ACQ_THREAD_STACK    2314
+#define MANAGE_ACQ_THREAD_STACK    16384
 
 #define MANAGE_TRACK_THREAD_PRIORITY (NORMALPRIO-2)
 #define MANAGE_TRACK_THREAD_STACK   16384
@@ -149,6 +147,7 @@ void manage_set_obs_hint(gnss_signal_t sid);
 void manage_track_setup(void);
 
 float get_elevation_mask(void);
+void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
 
 manage_track_flags_t get_tracking_channel_flags(u8 i);
 manage_track_flags_t get_tracking_channel_meas(u8 i,

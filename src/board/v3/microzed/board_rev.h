@@ -47,7 +47,18 @@
 #define LED_I2C I2CD2
 #define LED_I2C_CONFIG {.clk = 200000}
 
-#define TCXO_FREQ_STAB  0.28f  /* Piksi V3 TCXO frequency stability [ppm] */
+#define TCXO_FREQ_HZ 10e6          /* TCXO nominal frequency [Hz] */
+
+/* Piksi V3 TCXO nominal temperature frequency stability [ppm] */
+#define TCXO_FREQ_STAB_PPM  0.28f
+/* Maximum TCXO offset. Includes TCXO nominal temperature frequency stability,
+   aging and soldering [ppm] */
+#define TCXO_FREQ_OFFSET_MAX_PPM (TCXO_FREQ_STAB_PPM + 2.42)
+
+/* TCXO offset to Hz conversion factor.
+   With TCXO frequency set to 10MHz the IF is computed like this:
+   1575.42e6 - 10e6 * 159 = 14.58e6 [Hz] */
+#define GPS_L1_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
