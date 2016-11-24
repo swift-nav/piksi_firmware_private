@@ -33,7 +33,6 @@ static MUTEX_DECL(data_access);
 static ndb_element_metadata_t *wq_first = NULL;
 static ndb_element_metadata_t *wq_last = NULL;
 
-static void ndb_wq_put(ndb_element_metadata_t *md);
 static ndb_element_metadata_t *ndb_wq_get(void);
 
 static ndb_op_code_t ndb_create_file(const ndb_file_t *file);
@@ -56,8 +55,10 @@ static ndb_op_code_t ndb_wq_process(void);
  *
  * \sa ndb_wq_get
  */
-static void ndb_wq_put(ndb_element_metadata_t *md)
+void ndb_wq_put(ndb_element_metadata_t *md)
 {
+  assert(0 != (md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)));
+
   /* Check if the element is already in the queue. */
   if (0 == (md->vflags & NDB_VFLAG_ENQUEUED)) {
     if (NULL == wq_last) {
@@ -166,6 +167,7 @@ static void ndb_log_file_open(ndb_op_code_t oc,
   case NDB_ERR_UNRELIABLE_DATA:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
+  case NDB_ERR_OLDER_DATA:
   default:
     assert(!"ndb_log_file_open()");
     break;
@@ -363,19 +365,19 @@ static ndb_op_code_t ndb_wq_process(void)
   ndb_file_t                *file =  md->file;
   ndb_ie_index_t             index = md->index;
 
-  assert((md->vflags & (NDB_VFLAG_IE_DIRTY + NDB_VFLAG_MD_DIRTY)) != 0);
+  assert((md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)) != 0);
   assert((md->vflags & NDB_VFLAG_ENQUEUED) == 0);
 
   memcpy(buf, md->data, block_size);
   write_buf = 0 != (md->vflags & NDB_VFLAG_IE_DIRTY);
 
   /* Mark as saved (optimistically) */
-  md->vflags &= ~(NDB_VFLAG_IE_DIRTY + NDB_VFLAG_MD_DIRTY);
+  md->vflags &= ~(NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY);
   nv_data = md->nv_data;
 
   ndb_unlock();
 
-  enum ndb_op_code ret = NDB_ERR_NONE;
+  ndb_op_code_t ret = NDB_ERR_NONE;
 
   if (write_buf) {
     ret = ndb_write_file_data(file, (u32)block_size * index, buf, block_size);
@@ -442,7 +444,8 @@ static inline size_t ndb_compute_size(const ndb_file_t *file)
 /**
  * Creates new empty file.
  *
- * \param[in] file NDB file
+ * \param[in] file   NDB file
+ * \param[in] create Flag, if NDB data has to be erased
  *
  * \retval NDB_ERR_NONE    On success
  * \retval NDB_ERR_FILE_IO On I/O error
@@ -640,6 +643,111 @@ void ndb_unlock()
 }
 
 /**
+ * Internal data retrieval function
+ *
+ * \param[in]  file     NDB file object
+ * \param[in]  idx      NDB informational element index
+ * \param[out] out      Destination data buffer with a proper block size.
+ * \param[out] ds       Optional destination for NDB data source.
+ * \param[out] ts       Optional destination for NDB timestamp.
+ *
+ * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_BAD_PARAM  On parameter error
+ * \retval NDB_ERR_MISSING_IE No cached data block
+ *
+ * \internal
+ */
+static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
+                                      ndb_ie_index_t idx,
+                                      void *out,
+                                      ndb_data_source_t *ds,
+                                      ndb_timestamp_t *ts)
+{
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  assert(idx < file->block_count);
+
+  const ndb_element_metadata_t *md = &file->block_md[idx];
+
+  if (0 != (md->nv_data.state & NDB_IE_VALID)) {
+    memcpy(out, md->data, md->file->block_size);
+
+    if (NULL != ds) {
+      *ds = md->nv_data.source;
+    }
+    if (NULL != ts) {
+      *ts = md->nv_data.received_at;
+    }
+
+    res = NDB_ERR_NONE;
+  } else {
+    res = NDB_ERR_MISSING_IE;
+    /* Zero destination */
+    memset(out, 0, md->file->block_size);
+    if (NULL != ds) {
+      *ds = NDB_DS_UNDEFINED;
+    }
+    if (NULL != ts) {
+      *ts = 0;
+    }
+
+  }
+  return res;
+}
+
+/**
+ * Reads NDB data block if found.
+ *
+ * Method provides NDB data block contents that is located using match function.
+ *
+ * \param[in]  file     NDB file object
+ * \param[in]  match_fn NDB informational element match function
+ * \param[in]  cookie   Parameter for \a match_fn
+ * \param[out] out      Destination data buffer with a proper block size.
+ * \param[in]  out_size Destination buffer size. Must match block size defined
+ *                      in file metadata section.
+ * \param[out] ds       Optional destination for NDB data source.
+ * \param[out] ts       Optional destination for NDB timestamp.
+ *
+ * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_BAD_PARAM  On parameter error
+ * \retval NDB_ERR_MISSING_IE No cached data block
+ *
+ * \sa ndb_update
+ * \sa ndb_retrieve
+ */
+ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
+                                ndb_entry_match_fn match_fn,
+                                void *cookie,
+                                void *out,
+                                size_t out_size,
+                                ndb_data_source_t *ds,
+                                ndb_timestamp_t *ts)
+{
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  if (NULL != file && NULL != out && NULL != match_fn &&
+      out_size == file->block_size) {
+
+    ndb_lock();
+    res = NDB_ERR_MISSING_IE;
+    u8 *data_ptr = file->block_data;
+    for (ndb_ie_index_t idx = 0; idx < file->block_count;
+         ++idx, data_ptr += file->block_size) {
+      if (match_fn(data_ptr, &file->block_md[idx], cookie)) {
+        res = ndb_retrieve_int(file, idx, out, ds, ts);
+        break;
+      }
+    }
+    ndb_unlock();
+  } else {
+    res = NDB_ERR_BAD_PARAM;
+  }
+
+  return res;
+}
+
+/**
  * Reads NDB data block.
  *
  * Method provides NDB data block contents.
@@ -656,6 +764,7 @@ void ndb_unlock()
  * \retval NDB_ERR_MISSING_IE No cached data block
  *
  * \sa ndb_update
+ * \sa ndb_file_retrieve
  */
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
@@ -665,32 +774,9 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  if (NULL != md && NULL != out &&
-      NULL != md->file && out_size == md->file->block_size) {
-
+  if (NULL != md && NULL != md->file && out_size == md->file->block_size) {
     ndb_lock();
-    if (0 != (md->nv_data.state & NDB_IE_VALID)) {
-      memcpy(out, md->data, md->file->block_size);
-
-      if (NULL != ds) {
-        *ds = md->nv_data.source;
-      }
-      if (NULL != ts) {
-        *ts = md->nv_data.received_at;
-      }
-
-      res = NDB_ERR_NONE;
-    } else {
-      res = NDB_ERR_MISSING_IE;
-      /* Zero destination */
-      memset(out, 0, md->file->block_size);
-      if (NULL != ds) {
-        *ds = NDB_DS_UNDEFINED;
-      }
-      if (NULL != ts) {
-        *ts = 0;
-      }
-    }
+    res = ndb_retrieve_int(md->file, md->index, out, ds, ts);
     ndb_unlock();
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -698,7 +784,6 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
 
   return res;
 }
-
 
 /**
  * Update NDB data block.
@@ -762,6 +847,7 @@ ndb_op_code_t ndb_update(const void *data,
  * \param[in,out] md NDB data block metadata
  *
  * \retval NDB_ERR_NONE      On success
+ * \retval NDB_ERR_NO_CHANGE On success, but no data has been present.
  * \retval NDB_ERR_BAD_PARAM On parameter error
  *
  * \sa ndb_update
@@ -789,16 +875,18 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
       /* Update data and mark it dirty also mark data invalid */
       memset(md->data, 0, block_size);
       md->nv_data.state &= ~NDB_IE_VALID;
-      md->vflags |= NDB_VFLAG_IE_DIRTY;
+      md->vflags |= NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY;
       md_modified = true;
     }
 
     if (md_modified) {
       ndb_wq_put(md);
+      res = NDB_ERR_NONE;
+    } else {
+      res = NDB_ERR_NO_CHANGE;
     }
     ndb_unlock();
 
-    res = NDB_ERR_NONE;
   } else {
     res = NDB_ERR_BAD_PARAM;
   }

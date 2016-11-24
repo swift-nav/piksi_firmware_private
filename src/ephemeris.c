@@ -35,15 +35,30 @@ void ephemeris_new(ephemeris_t *e)
     return;
   }
 
-  enum ndb_op_code oc = ndb_ephemeris_store(e, NDB_DS_RECEIVER);
-  if (NDB_ERR_NONE != oc) {
-    if(NDB_ERR_UNRELIABLE_DATA == oc) {
-      log_info_sid(e->sid, "ephemeris is unreliable, not saved");
-    } else {
-      log_info_sid(e->sid, "error storing ephemeris");
-    }
-  } else {
+  ndb_op_code_t oc = ndb_ephemeris_store(e, NDB_DS_RECEIVER);
+  switch (oc) {
+  case NDB_ERR_NONE:
     log_info_sid(e->sid, "ephemeris saved");
+    break;
+  case NDB_ERR_NO_CHANGE:
+    log_info_sid(e->sid, "ephemeris is already present");
+    break;
+  case NDB_ERR_UNRELIABLE_DATA:
+    log_info_sid(e->sid, "ephemeris is unreliable, not saved");
+    break;
+  case NDB_ERR_OLDER_DATA:
+    log_info_sid(e->sid, "ephemeris is older than one in DB, not saved");
+    break;
+  case NDB_ERR_MISSING_IE:
+  case NDB_ERR_UNSUPPORTED:
+  case NDB_ERR_FILE_IO:
+  case NDB_ERR_INIT_DONE:
+  case NDB_ERR_BAD_PARAM:
+  case NDB_ERR_ALGORITHM_ERROR:
+  case NDB_ERR_NO_DATA:
+  default:
+    log_info_sid(e->sid, "error %d storing ephemeris", (int)oc);
+    break;
   }
 }
 

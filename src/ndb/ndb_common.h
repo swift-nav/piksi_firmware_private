@@ -31,6 +31,7 @@ typedef enum ndb_op_code
   NDB_ERR_ALGORITHM_ERROR, /**< Error */
   NDB_ERR_NO_DATA,         /**< No data to process */
   NDB_ERR_NO_CHANGE,       /**< Data has not been updated */
+  NDB_ERR_OLDER_DATA,      /**< Data is older than existing */
 } ndb_op_code_t;
 
 typedef enum ndb_data_source
