@@ -895,7 +895,7 @@ ndb_op_code_t ndb_almanac_wn_store(u32 toa, u16 wn, ndb_data_source_t ds)
  * \param[in] sid SV signal identifier
  *
  * \retval NDB_ERR_NONE      Successful operation.
- * \retval NDB_ERR_NO_DATA   No data to erase.
+ * \retval NDB_ERR_NO_CHANGE No data to erase.
  * \retval NDB_ERR_BAD_PARAM Bad parameter.
  */
 ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid)
