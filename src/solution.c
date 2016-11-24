@@ -138,12 +138,12 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
       /* Position in LLH. */
       msg_pos_llh_t pos_llh;
-      sbp_make_pos_llh(&pos_llh, soln, 1);
+      sbp_make_pos_llh(&pos_llh, soln, SPP_POSITION);
       sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
 
       /* Position in ECEF. */
       msg_pos_ecef_t pos_ecef;
-      sbp_make_pos_ecef(&pos_ecef, soln, 1);
+      sbp_make_pos_ecef(&pos_ecef, soln, SPP_POSITION);
       sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
     }
     /* Velocity in NED. */
@@ -254,7 +254,7 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
 
     vector_add(3, base_station_pos, b_ecef, pseudo_absolute_ecef);
     wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
-    u8 fix_mode = (flags == 4) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
+    u8 fix_mode = (flags == FIXED_POSITION) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
     /* TODO: Don't fake DOP!! */
     nmea_gpgga(pseudo_absolute_llh, t, n_sats, fix_mode, hdop, corrections_age, sender_id);
 
@@ -269,7 +269,7 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
 
   /* Update stats */
   last_dgnss_stats.systime = chVTGetSystemTime();
-  last_dgnss_stats.mode = (flags == 1) ? FILTER_FIXED : FILTER_FLOAT;
+  last_dgnss_stats.mode = (flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
 static bool init_done = false;
@@ -459,7 +459,7 @@ static void solution_simulation(void)
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK)) {
 
-    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? 1 : 0;
+    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION : FLOAT_POSITION;
 
     solution_send_baseline(&(soln->time),
       simulation_current_num_sats(),

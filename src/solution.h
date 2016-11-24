@@ -18,6 +18,7 @@
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/track.h>
 #include <libswiftnav/time.h>
+#include <libswiftnav/observation.h>
 
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
