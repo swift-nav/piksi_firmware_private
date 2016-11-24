@@ -161,7 +161,7 @@ static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx)
  */
 static void ndb_alma_candidate_add(const almanac_t *alma)
 {
-  ndb_timestamp_t now  = ndb_get_timestamp();
+  ndb_timestamp_t now = ndb_get_timestamp();
   ndb_timestamp_t max_age = 0;
   ndb_ie_index_t  max_age_idx = ARRAY_SIZE(alma_candidates);
   ndb_ie_index_t  idx;
@@ -285,6 +285,18 @@ static ndb_cand_status_t ndb_alma_candidate_update(const almanac_t *alma)
 
         /* Compute, which almanac is newer */
         existing_is_newer = tai_existing > tai_alma;
+      } else if (WN_UNKNOWN == existing.toa.wn && WN_UNKNOWN == alma->toa.wn) {
+        /* Both candidate and persisted ones don't have WN. Assume the same
+         * or possible week number wrap. Make a wild guess the time difference
+         * is less than half a week */
+        s32 delta_time = (s32)existing.toa.tow - (s32)alma->toa.tow;
+        if (delta_time > 0) {
+          /* The difference is OK, if the delta is less, than half a week */
+          existing_is_newer = delta_time < WEEK_SECS / 2;
+        } else {
+          /* The difference is OK, if the delta is less, than half a week */
+          existing_is_newer = delta_time < -WEEK_SECS / 2;
+        }
       }
     } else {
       /* New one is identical to the one in DB */
