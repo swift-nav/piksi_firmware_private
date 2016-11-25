@@ -40,9 +40,6 @@
    has been seen earlier than this time [ms] */
 #define TP_ACCELERATION_MAX_AGE_MS (2000)
 
-/** Helper macro for array size computation */
-#define ARR_SIZE(x) (sizeof(x)/sizeof((x)[0]))
-
 /** Indices of specific entries in gps_profiles[] table below */
 typedef enum {
   /** Placeholder for an index. Indicates an unused index field. */
@@ -775,7 +772,7 @@ static bool profile_switch_requested(gnss_signal_t sid,
   }
 
   assert(index != IDX_NONE);
-  assert((size_t)index < ARR_SIZE(gps_profiles));
+  assert((size_t)index < ARRAY_SIZE(gps_profiles));
 
   state->lock_time_ms = state->profiles[index].lock_time_ms;
   state->profile_update = true;

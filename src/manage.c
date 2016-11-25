@@ -90,9 +90,9 @@ typedef struct {
   float dopp_hint_high;    /**< High bound of doppler search hint. */
   gnss_signal_t sid;       /**< Signal identifier. */
 } acq_status_t;
-static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
 
-static bool track_mask[PLATFORM_SIGNAL_COUNT];
+static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
+static bool track_mask[ARRAY_SIZE(acq_status)];
 
 #define SCORE_COLDSTART     100
 #define SCORE_WARMSTART     200
@@ -135,6 +135,8 @@ static volatile bool no_free_tracking_channel = false;
 
 static float elevation_mask = 5.0; /* degrees */
 static bool sbas_enabled = false;
+/** Flag if almanacs can be used in acq */
+static bool almanacs_enabled = false;
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
 static void manage_acq(void);
@@ -222,10 +224,11 @@ static void manage_acq_thread(void *arg)
 void manage_acq_setup()
 {
   SETTING("acquisition", "sbas enabled", sbas_enabled, TYPE_BOOL);
+  SETTING("acquisition", "almanacs enabled", almanacs_enabled, TYPE_BOOL);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
-  for (u32 i=0; i<PLATFORM_SIGNAL_COUNT; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     gnss_signal_t sid = sid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
     acq_status[i].masked = false;
@@ -355,8 +358,9 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
                         code_to_tcxo_doppler_max(sid.code);
 
     if(!ready) {
-      ndb_almanac_read(sid, &orbit.a);
-      if (orbit.a.valid &&
+      if (almanacs_enabled &&
+          NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a) &&
+          almanac_valid(&orbit.a, t) &&
           calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                  &_, &el_d) == 0) {
         el = (float)(el_d * R2D);
@@ -397,7 +401,7 @@ static acq_status_t * choose_acq_sat(void)
   u32 total_score = 0;
   gps_time_t t = get_current_time();
 
-  for (u32 i=0; i<PLATFORM_SIGNAL_COUNT; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (!code_requires_direct_acq(acq_status[i].sid.code)) {
       continue;
     }
@@ -423,7 +427,7 @@ static acq_status_t * choose_acq_sat(void)
 
   u32 pick = rand() % total_score;
 
-  for (u32 i=0; i<PLATFORM_SIGNAL_COUNT; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (!code_requires_direct_acq(acq_status[i].sid.code)) {
       continue;
     }
@@ -584,7 +588,7 @@ static void check_clear_unhealthy(void)
 
   ticks = chVTGetSystemTime();
 
-  for (u32 i = 0; i < PLATFORM_SIGNAL_COUNT; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
       acq_status[i].state = ACQ_PRN_ACQUIRING;
     }
