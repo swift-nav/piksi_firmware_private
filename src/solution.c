@@ -169,7 +169,7 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 
     /* Update stats */
     last_pvt_stats.systime = chVTGetSystemTime();
-    last_pvt_stats.signals_used = soln->n_used;
+    last_pvt_stats.signals_used = soln->n_sigs_used;
   }
 }
 void solution_send_nmea(gnss_solution *soln, dops_t *dops,
@@ -177,7 +177,7 @@ void solution_send_nmea(gnss_solution *soln, dops_t *dops,
                         u8 fix_mode, bool clock_jump)
 {
   if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
-    nmea_gpgga(soln->pos_llh, &soln->time, soln->n_used,
+    nmea_gpgga(soln->pos_llh, &soln->time, soln->n_sats_used,
                fix_mode, dops->hdop, 0, 0);
   }
   nmea_send_msgs(soln, n, nm, dops, clock_jump);

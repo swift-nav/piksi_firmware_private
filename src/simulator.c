@@ -337,8 +337,8 @@ void simulation_step_tracking_and_observations(double elapsed)
     }
   }
 
-  sim_state.noisy_solution.n_used = num_sats_selected;
-
+  sim_state.noisy_solution.n_sats_used = num_sats_selected;
+  sim_state.noisy_solution.n_sigs_used = num_sats_selected;
 }
 
 /** Populate a navigation_measurement_t structure with simulated data for
@@ -424,7 +424,7 @@ inline double* simulation_current_covariance_ecef(void)
 */
 u8 simulation_current_num_sats(void)
 {
-  return sim_state.noisy_solution.n_used;
+  return sim_state.noisy_solution.n_sats_used;
 }
 
 /** Returns the current simulated tracking loops state simulated.
