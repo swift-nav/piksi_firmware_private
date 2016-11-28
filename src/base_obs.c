@@ -234,9 +234,12 @@ static void update_obss(obss_t *new_obss)
      */
 
     for (u8 i=0; i < base_obss.n; i++) {
+      /* The nominal initial "sat_dist" contains the distance
+         from the base position to the satellite position as well as the
+         satellite clock error. */
       base_obss.sat_dists[i] = vector_distance(3, base_obss.nm[i].sat_pos,
-                                               base_obss.pos_ecef) -
-                               base_obss.nm[i].sat_clock_err * GPS_C;
+                                               base_obss.pos_ecef)
+                                               - base_obss.nm[i].sat_clock_err * GPS_C;
     }
   }
   /* Unlock base_obss mutex. */
