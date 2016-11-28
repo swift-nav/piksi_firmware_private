@@ -55,7 +55,7 @@
 
 static struct {
   uint32_t hardware;
-  uint32_t serial_number;
+  uint8_t uuid[16];
   uint8_t nap_key[16];
 } factory_params;
 
@@ -223,9 +223,9 @@ static bool factory_params_read(void)
     return false;
   }
 
-  if (factory_data_serial_number_get(factory_data,
-                                     &factory_params.serial_number) != 0) {
-    log_error("error reading serial number from factory data");
+  if (factory_data_uuid_get(factory_data,
+                                     factory_params.uuid) != 0) {
+    log_error("error reading uuid from factory data");
     return false;
   }
 
@@ -237,9 +237,13 @@ static bool factory_params_read(void)
   return true;
 }
 
-s32 serial_number_get(void)
+u32 serial_number_get(void)
 {
-  return factory_params.serial_number;
+  u32 serial_int = factory_params.uuid[0] +
+                   (factory_params.uuid[1] << 8) +
+                   (factory_params.uuid[2] << 16) +
+                   (factory_params.uuid[3] << 24);
+  return serial_int;
 }
 
 u8 hw_revision_string_get(char *hw_revision_string)
