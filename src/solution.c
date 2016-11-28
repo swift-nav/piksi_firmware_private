@@ -92,7 +92,7 @@ MUTEX_DECL(eigen_state_lock);
 systime_t last_dgnss;
 
 double soln_freq = 5.0;
-u32 max_age_of_differential = 5;
+u32 max_age_of_differential = 30;
 u32 obs_output_divisor = 1;
 
 double known_baseline[3] = {0, 0, 0};
@@ -1063,7 +1063,7 @@ static void solution_thread(void *arg)
 
     /* Calculate time till the next desired solution epoch. */
     double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-    
+
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
     if (fabs(dt) > max_deadline) {
