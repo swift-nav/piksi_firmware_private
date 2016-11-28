@@ -88,13 +88,13 @@ void sbp_make_pos_llh(msg_pos_llh_dep_a_t *pos_llh, const gnss_solution *soln, u
   /* TODO: fill in accuracy fields. */
   pos_llh->h_accuracy = 0;
   pos_llh->v_accuracy = 0;
-  pos_llh->n_sats = soln->n_used;
+  pos_llh->n_sats = soln->n_sats_used;
   pos_llh->flags = flags;
 }
 
 void sbp_make_pos_llh_vect(msg_pos_llh_dep_a_t *pos_llh, const double llh[3],
                            double h_accuracy, double v_accuracy,
-                           const gps_time_t *gps_t, u8 n_used, u8 flags)
+                           const gps_time_t *gps_t, u8 n_sats_used, u8 flags)
 {
   pos_llh->tow = round_tow_ms(gps_t->tow);
   pos_llh->lat = llh[0] * R2D;
@@ -102,7 +102,7 @@ void sbp_make_pos_llh_vect(msg_pos_llh_dep_a_t *pos_llh, const double llh[3],
   pos_llh->height = llh[2];
   pos_llh->h_accuracy = round(1e3 * h_accuracy);
   pos_llh->v_accuracy = round(1e3 * v_accuracy);
-  pos_llh->n_sats = n_used;
+  pos_llh->n_sats = n_sats_used;
   pos_llh->flags = flags;
 }
 
@@ -116,12 +116,12 @@ void sbp_make_pos_ecef(msg_pos_ecef_dep_a_t *pos_ecef, const gnss_solution *soln
    * the pseudorange weighting model is correct */
   pos_ecef->accuracy = round(1000.0 *
                   sqrt(soln->err_cov[0] + soln->err_cov[3] + soln->err_cov[5]));
-  pos_ecef->n_sats = soln->n_used;
+  pos_ecef->n_sats = soln->n_sats_used;
   pos_ecef->flags = flags;
 }
 
 void sbp_make_pos_ecef_vect(msg_pos_ecef_dep_a_t *pos_ecef, const double ecef[3],
-                            double accuracy, const gps_time_t *gps_t, u8 n_used,
+                            double accuracy, const gps_time_t *gps_t, u8 n_sats_used,
                             u8 flags)
 {
   pos_ecef->tow = round_tow_ms(gps_t->tow);
@@ -129,7 +129,7 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_dep_a_t *pos_ecef, const double ecef[3]
   pos_ecef->y = ecef[1];
   pos_ecef->z = ecef[2];
   pos_ecef->accuracy = round(1e3 * accuracy);
-  pos_ecef->n_sats = n_used;
+  pos_ecef->n_sats = n_sats_used;
   pos_ecef->flags = flags;
 }
 
@@ -142,7 +142,7 @@ void sbp_make_vel_ned(msg_vel_ned_dep_a_t *vel_ned, const gnss_solution *soln, u
   /* TODO: fill in accuracy fields. */
   vel_ned->h_accuracy = 0;
   vel_ned->v_accuracy = 0;
-  vel_ned->n_sats = soln->n_used;
+  vel_ned->n_sats = soln->n_sats_used;
   vel_ned->flags = flags;
 }
 
@@ -154,7 +154,7 @@ void sbp_make_vel_ecef(msg_vel_ecef_dep_a_t *vel_ecef, const gnss_solution *soln
   vel_ecef->z = round(soln->vel_ecef[2] * 1e3);
   /* TODO: fill in accuracy field. */
   vel_ecef->accuracy = 0;
-  vel_ecef->n_sats = soln->n_used;
+  vel_ecef->n_sats = soln->n_sats_used;
   vel_ecef->flags = flags;
 }
 
