@@ -172,6 +172,11 @@ static blink_mode_t mode_blink_mode_get(void)
 {
   soln_dgnss_stats_t last_dgnss_stats = solution_last_dgnss_stats_get();
 
+  /* Off if no antenna present */
+  if (!antenna_present()) {
+    return BLINK_OFF;
+  }
+
   /* Off if no DGNSS */
   if ((last_dgnss_stats.systime == TIME_INFINITE) ||
       (chVTTimeElapsedSinceX(last_dgnss_stats.systime) >= LED_MODE_TIMEOUT)) {
