@@ -179,6 +179,25 @@ gps_time_t rx2gpstime(double tc)
   return t;
 }
 
+/** Convert receiver time to receiver time in GPS time frame.
+ *
+ * \note The GPS time may only be a guess or completely unknown. Rcv time
+ *  should be continuous with ms jumps
+ *
+ * \param tc Timing count in units of RX_DT_NOMINAL.
+ * \return Rcv time in GPS time frame corresponding to Timing count.
+ */
+gps_time_t rx2rcvtime(double tc)
+{
+  chMtxLock(&clock_mutex);
+  gps_time_t t = clock_state.t0_gps;
+  t.tow += tc * clock_state.clock_period;
+  chMtxUnlock(&clock_mutex);
+
+  normalize_gps_time(&t);
+  return t;
+}
+
 /** Convert GPS time to receiver time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality
