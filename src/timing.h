@@ -51,6 +51,7 @@ void set_time_fine(u64 tc, gps_time_t t);
 void set_gps_time_offset(u64 tc, gps_time_t t);
 void adjust_time_fine(double dt);
 gps_time_t rx2gpstime(double tc);
+gps_time_t rx2rcvtime(double tc);
 double gps2rxtime(const gps_time_t* t);
 u64 timing_getms(void);
 

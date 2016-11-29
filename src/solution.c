@@ -680,7 +680,8 @@ static void solution_thread(void *arg)
     }
 
     u64 rec_tc = nap_timing_count();
-    gps_time_t rec_time = rx2gpstime(rec_tc);
+    gps_time_t rec_time = rx2rcvtime(rec_tc);
+
     u8 n_collected = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
