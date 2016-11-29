@@ -161,7 +161,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/pps.o \
         $(SWIFTNAV_ROOT)/src/decode.o \
         $(SWIFTNAV_ROOT)/src/signal.o \
-        $(SWIFTNAV_ROOT)/src/sid_set.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_internal.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_ephemeris.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_almanac.o \

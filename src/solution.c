@@ -25,6 +25,7 @@
 #include <libswiftnav/dgnss_management.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/troposphere.h>
+#include <libswiftnav/sid_set.h>
 
 #define memory_pool_t MemoryPool
 #include <ch.h>
@@ -45,7 +46,6 @@
 #include "signal.h"
 #include "system_monitor.h"
 #include "main.h"
-#include "sid_set.h"
 #include "cnav_msg_storage.h"
 #include "ndb.h"
 #include "shm.h"
@@ -278,7 +278,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                             const gps_time_t *t, double hdop, double diff_time, u16 base_id) {
   double baseline[3];
   double covariance[9];
-  u8 num_used = 0;
+  u8 num_sats_used = 0;
+  u8 num_sigs_used = 0;
   u8 flags = 0;
   s8 ret;
   bool send_baseline = false;
@@ -289,7 +290,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
       chMtxLock(&eigen_state_lock);
-      ret = get_baseline(baseline, covariance, &num_used, &flags);
+      ret = get_baseline(baseline, covariance, &num_sats_used, &num_sigs_used, &flags);
       chMtxUnlock(&eigen_state_lock);
       if (ret != 0) {
         log_warn("output_baseline: Time matched baseline calculation failed");
@@ -305,7 +306,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       chMtxUnlock(&eigen_state_lock);
       if (ret == 0) {
         chMtxLock(&eigen_state_lock);
-        ret = get_baseline(baseline, covariance, &num_used, &flags);
+        ret = get_baseline(baseline, covariance, &num_sats_used, &num_sigs_used, &flags);
         chMtxUnlock(&eigen_state_lock);
         if (ret != 0) {
           log_warn("output_baseline: Low latency baseline calculation failed");
@@ -314,9 +315,10 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
         }
       }
     }
-    if (send_baseline )
+
+    if (send_baseline)
     {
-      solution_send_baseline(t, num_used, baseline, covariance,
+      solution_send_baseline(t, num_sats_used, baseline, covariance,
                              lgf.position_solution.pos_ecef,
                              flags, hdop, diff_time, base_id);
     }
