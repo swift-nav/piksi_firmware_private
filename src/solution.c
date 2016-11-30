@@ -679,8 +679,33 @@ static void solution_thread(void *arg)
       solution_simulation();
     }
 
-    u64 rec_tc = nap_timing_count();
+    // Take the current nap count initiall
+    u64 current_tc = nap_timing_count();
+    u64 rec_tc = current_tc;
+
+    // Work out the expected receiver time in GPS time frame for the current nap count
     gps_time_t rec_time = rx2rcvtime(rec_tc);
+    gps_time_t expected_time;
+
+    // If we've previously had a solution, we can work out our expected obs time
+    if(time_quality == TIME_FINE){
+      // Take the last calculated position time
+      expected_time = rx2gpstime(rec_tc);
+
+      // Round this time to the nearest GPS solution time
+      expected_time.tow = round(expected_time.tow * soln_freq)
+                                 / soln_freq;
+      normalize_gps_time(&expected_time);
+
+      // This time, taken back to nap count, is the nap count we want the observations at
+      rec_tc = (u64)(round(gps2rxtime(&expected_time)));
+    }
+    // The difference between the current nap count and the nap count we want the observations at
+    // is the amount we want to adjust our deadline by at the end of the solution
+    double delta_tc = -((double)current_tc - (double)rec_tc);
+
+    // Get the expected nap count in receiver time (gps time frame)
+    rec_time = rx2rcvtime(rec_tc);
 
     u8 n_collected = 0;
     u8 n_total = 0;
@@ -883,6 +908,9 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
+    log_warn("GPS time of solution %f",lgf.position_solution.time.tow);
+    // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
+    // so we need to store this error in the GPS time (GPS time frame)
     set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
@@ -920,6 +948,7 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    //log_warn("GPS calculated error %f",t_err);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -1002,6 +1031,8 @@ static void solution_thread(void *arg)
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
+              u64 last_tc = nap_timing_count();
+              log_info("PVT Latency %f", (current_tc - last_tc)*RX_DT_NOMINAL);
               output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
                               dops.hdop, pdt, base_obss.sender_id);
             }
@@ -1047,8 +1078,9 @@ static void solution_thread(void *arg)
       }
     }
 
-    /* Calculate time till the next desired solution epoch. */
-    double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    /* Calculate the correction to the current deadline by converting nap count
+     * difference to seconds, we convert to ms to adjust deadline later */
+    double dt = delta_tc * RX_DT_NOMINAL;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
@@ -1059,6 +1091,7 @@ static void solution_thread(void *arg)
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. */
     deadline += round(dt * CH_CFG_ST_FREQUENCY);
+    log_warn("new deadline %u", deadline);
   }
 }
 
