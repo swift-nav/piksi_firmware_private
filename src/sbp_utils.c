@@ -133,7 +133,7 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
   pos_ecef->flags = flags;
 }
 
-void sbp_make_vel_ned(msg_vel_ned_dep_a_t *vel_ned, const gnss_solution *soln, u8 flags)
+void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags)
 {
   vel_ned->tow = round_tow_ms(soln->time.tow);
   vel_ned->n = round(soln->vel_ned[0] * 1e3);
@@ -146,7 +146,7 @@ void sbp_make_vel_ned(msg_vel_ned_dep_a_t *vel_ned, const gnss_solution *soln, u
   vel_ned->flags = flags;
 }
 
-void sbp_make_vel_ecef(msg_vel_ecef_dep_a_t *vel_ecef, const gnss_solution *soln, u8 flags)
+void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags)
 {
   vel_ecef->tow = round_tow_ms(soln->time.tow);
   vel_ecef->x = round(soln->vel_ecef[0] * 1e3);
@@ -158,7 +158,7 @@ void sbp_make_vel_ecef(msg_vel_ecef_dep_a_t *vel_ecef, const gnss_solution *soln
   vel_ecef->flags = flags;
 }
 
-void sbp_make_dops(msg_dops_dep_a_t *dops_out, const dops_t *dops_in, const gps_time_t *t)
+void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t *t, u8 flags)
 {
   dops_out->tow = round_tow_ms(t->tow);
   dops_out->pdop = round(dops_in->pdop * 100);
@@ -166,6 +166,7 @@ void sbp_make_dops(msg_dops_dep_a_t *dops_out, const dops_t *dops_in, const gps_
   dops_out->tdop = round(dops_in->tdop * 100);
   dops_out->hdop = round(dops_in->hdop * 100);
   dops_out->vdop = round(dops_in->vdop * 100);
+  dops_out->flags = flags;
 }
 
 void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t *t,

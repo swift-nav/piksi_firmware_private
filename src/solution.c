@@ -149,21 +149,21 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
     if (!clock_jump) {
-      msg_vel_ned_dep_a_t vel_ned;
-      sbp_make_vel_ned(&vel_ned, soln, 0);
-      sbp_send_msg(SBP_MSG_VEL_NED_DEP_A, sizeof(vel_ned), (u8 *) &vel_ned);
+      msg_vel_ned_t vel_ned;
+      sbp_make_vel_ned(&vel_ned, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
+      sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
 
       /* Velocity in ECEF. */
-      msg_vel_ecef_dep_a_t vel_ecef;
-      sbp_make_vel_ecef(&vel_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_VEL_ECEF_DEP_A, sizeof(vel_ecef), (u8 *) &vel_ecef);
+      msg_vel_ecef_t vel_ecef;
+      sbp_make_vel_ecef(&vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
+      sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
     }
 
     if (dops) {
       DO_EVERY(10,
-        msg_dops_dep_a_t sbp_dops;
-        sbp_make_dops(&sbp_dops, dops, &(soln->time));
-        sbp_send_msg(SBP_MSG_DOPS_DEP_A, sizeof(sbp_dops), (u8 *) &sbp_dops);
+        msg_dops_t sbp_dops;
+        sbp_make_dops(&sbp_dops, dops, &(soln->time), SPP_POSITION);
+        sbp_send_msg(SBP_MSG_DOPS, sizeof(sbp_dops), (u8 *) &sbp_dops);
       );
     }
 
