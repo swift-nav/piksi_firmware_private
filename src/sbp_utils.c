@@ -66,7 +66,7 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from)
   return sid;
 }
 
-void sbp_make_gps_time(msg_gps_time_dep_a_t *t_out, const gps_time_t *t_in, u8 flags)
+void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
 {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
