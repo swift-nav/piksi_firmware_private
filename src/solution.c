@@ -129,7 +129,7 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
   if (soln) {
     /* Send GPS_TIME message first. */
     msg_gps_time_t gps_time;
-    sbp_make_gps_time(&gps_time, &soln->time, SPP_POSITION);
+    sbp_make_gps_time(&gps_time, &soln->time, SPP_POSITION); /* TODO replace with a GNSS Solution Flag #define */
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
 
     /* in pseudoabsolute mode, we wait to resend the SPP solution until a timeout has occured
