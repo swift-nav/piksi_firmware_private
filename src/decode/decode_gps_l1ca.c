@@ -294,6 +294,20 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
+  if (dd.invalid_control_or_data) {
+    log_info_sid(channel_info->sid, "Invalid control or data element");
+
+    ndb_op_code_t c = ndb_ephemeris_erase(channel_info->sid);
+
+    if (NDB_ERR_NONE == c) {
+      log_info_sid(channel_info->sid, "ephemeris deleted (1/0)");
+    } else if (NDB_ERR_NO_CHANGE != c){
+      log_warn_sid(channel_info->sid, "error %d deleting ephemeris (1/0)",
+                   (int)c);
+    }
+    return;
+  }
+
   shm_gps_set_shi4(channel_info->sid.sat, false == data->nav_msg.alert);
 
   if (dd.shi1_upd_flag) {

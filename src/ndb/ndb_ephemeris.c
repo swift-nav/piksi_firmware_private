@@ -219,7 +219,7 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
  * \param[in] sid SV signal identifier
  *
  * \retval NDB_ERR_NONE      Successful operation.
- * \retval NDB_ERR_NO_DATA   No data to erase.
+ * \retval NDB_ERR_NO_CHANGE No data to erase.
  * \retval NDB_ERR_BAD_PARAM Bad parameter.
  */
 ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid)
