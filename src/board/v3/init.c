@@ -52,6 +52,8 @@
 #define IMAGE_HARDWARE_MICROZED   0x00000001
 #define IMAGE_HARDWARE_EVT1       0x00000011
 #define IMAGE_HARDWARE_EVT2       0x00000012
+#define IMAGE_HARDWARE_DVT1       0x00000013
+
 
 static struct {
   uint32_t hardware;
@@ -223,8 +225,7 @@ static bool factory_params_read(void)
     return false;
   }
 
-  if (factory_data_uuid_get(factory_data,
-                                     factory_params.uuid) != 0) {
+  if (factory_data_uuid_get(factory_data, factory_params.uuid) != 0) {
     log_error("error reading uuid from factory data");
     return false;
   }
@@ -237,7 +238,7 @@ static bool factory_params_read(void)
   return true;
 }
 
-u32 serial_number_get(void)
+s32 serial_number_get(void)
 {
   u32 serial_int = factory_params.uuid[0] +
                    (factory_params.uuid[1] << 8) +
@@ -262,6 +263,9 @@ u8 hw_revision_string_get(char *hw_revision_string)
     break;
   case IMAGE_HARDWARE_EVT2:
     s = "evt2";
+    break;
+  case IMAGE_HARDWARE_DVT1:
+    s = "dvt1";
     break;
   default:
     s = "invalid";
