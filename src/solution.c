@@ -137,14 +137,14 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
 
     if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
       /* Position in LLH. */
-      msg_pos_llh_dep_a_t pos_llh;
-      sbp_make_pos_llh(&pos_llh, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_LLH_DEP_A, sizeof(pos_llh), (u8 *) &pos_llh);
+      msg_pos_llh_t pos_llh;
+      sbp_make_pos_llh(&pos_llh, soln, SPP_POSITION);
+      sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
 
       /* Position in ECEF. */
-      msg_pos_ecef_dep_a_t pos_ecef;
-      sbp_make_pos_ecef(&pos_ecef, soln, 0);
-      sbp_send_msg(SBP_MSG_POS_ECEF_DEP_A, sizeof(pos_ecef), (u8 *) &pos_ecef);
+      msg_pos_ecef_t pos_ecef;
+      sbp_make_pos_ecef(&pos_ecef, soln, SPP_POSITION);
+      sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
     }
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
@@ -222,19 +222,19 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   covariance_to_accuracy(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
 
   double* base_station_pos;
-  msg_baseline_ecef_dep_a_t sbp_ecef;
+  msg_baseline_ecef_t sbp_ecef;
   sbp_make_baseline_ecef(&sbp_ecef, t, n_sats, b_ecef, accuracy, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_ECEF_DEP_A, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
+  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
 
-  msg_baseline_ned_dep_a_t sbp_ned;
+  msg_baseline_ned_t sbp_ned;
   sbp_make_baseline_ned(&sbp_ned, t, n_sats, b_ned, h_accuracy, v_accuracy, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_NED_DEP_A, sizeof(sbp_ned), (u8 *)&sbp_ned);
+  sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_ned), (u8 *)&sbp_ned);
 
   if (send_heading) {
     double heading = calc_heading(b_ned);
-    msg_baseline_heading_dep_a_t sbp_heading;
+    msg_baseline_heading_t sbp_heading;
     sbp_make_heading(&sbp_heading, t, heading, n_sats, flags);
-    sbp_send_msg(SBP_MSG_BASELINE_HEADING_DEP_A, sizeof(sbp_heading), (u8 *)&sbp_heading);
+    sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_heading), (u8 *)&sbp_heading);
   }
 
   chMtxLock(&base_pos_lock);
@@ -254,26 +254,22 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
 
     vector_add(3, base_station_pos, b_ecef, pseudo_absolute_ecef);
     wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
-    u8 fix_mode = (flags & 1) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
+    u8 fix_mode = (flags == FIXED_POSITION) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
     /* TODO: Don't fake DOP!! */
     nmea_gpgga(pseudo_absolute_llh, t, n_sats, fix_mode, hdop, corrections_age, sender_id);
-    /* now send pseudo absolute sbp message */
-    /* Flag in message is defined as follows :float->2, fixed->1 */
-    /* We defined the flags for the SBP protocol to be spp->0, fixed->1, float->2 */
-    /* TODO: Define these flags from the yaml and remove hardcoding */
-    u8 sbp_flags = (flags == 1) ? 1 : 2;
-    msg_pos_llh_dep_a_t pos_llh;
-    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_LLH_DEP_A, sizeof(pos_llh), (u8 *) &pos_llh);
-    msg_pos_ecef_dep_a_t pos_ecef;
-    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, sbp_flags);
-    sbp_send_msg(SBP_MSG_POS_ECEF_DEP_A, sizeof(pos_ecef), (u8 *) &pos_ecef);
+
+    msg_pos_llh_t pos_llh;
+    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
+    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+    msg_pos_ecef_t pos_ecef;
+    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
+    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
   }
   chMtxUnlock(&base_pos_lock);
 
   /* Update stats */
   last_dgnss_stats.systime = chVTGetSystemTime();
-  last_dgnss_stats.mode = (flags == 1) ? FILTER_FIXED : FILTER_FLOAT;
+  last_dgnss_stats.mode = (flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
 static bool init_done = false;
@@ -318,7 +314,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
         }
       }
     }
-    if (send_baseline && num_used >= 4) {
+    if (send_baseline )
+    {
       solution_send_baseline(t, num_used, baseline, covariance,
                              lgf.position_solution.pos_ecef,
                              flags, hdop, diff_time, base_id);
@@ -462,7 +459,7 @@ static void solution_simulation(void)
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK)) {
 
-    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? 1 : 0;
+    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION : FLOAT_POSITION;
 
     solution_send_baseline(&(soln->time),
       simulation_current_num_sats(),
