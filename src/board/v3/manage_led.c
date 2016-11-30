@@ -113,6 +113,36 @@ static bool blinker_update(blinker_state_t *b)
   return (b->counter >= (b->period / 2));
 }
 
+static blink_mode_t pv_blink_mode_get(void)
+{
+  /* Off if no antenna present */
+  if (!antenna_present()) {
+    return BLINK_OFF;
+  }
+
+  /* On if PVT available */
+  systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
+  if ((last_pvt_systime != TIME_INFINITE) &&
+      (chVTTimeElapsedSinceX(last_pvt_systime) < LED_MODE_TIMEOUT)) {
+    return BLINK_ON;
+  }
+
+  /* Off otherwise */
+  return BLINK_OFF;
+}
+
+static void handle_pv(counter_t c, bool *s)
+{
+  static blinker_state_t blinker_state;
+
+  /* Reset when global counter rolls over */
+  if (c == 0) {
+    blinker_reset(&blinker_state, pv_blink_mode_get());
+  }
+
+  *s = blinker_update(&blinker_state);
+}
+
 static blink_mode_t pos_blink_mode_get(void)
 {
   /* Off if no antenna present */
@@ -172,6 +202,11 @@ static blink_mode_t mode_blink_mode_get(void)
 {
   soln_dgnss_stats_t last_dgnss_stats = solution_last_dgnss_stats_get();
 
+  /* Off if no antenna present */
+  if (!antenna_present()) {
+    return BLINK_OFF;
+  }
+
   /* Off if no DGNSS */
   if ((last_dgnss_stats.systime == TIME_INFINITE) ||
       (chVTTimeElapsedSinceX(last_dgnss_stats.systime) >= LED_MODE_TIMEOUT)) {
@@ -200,6 +235,9 @@ static void manage_led_thread(void *arg)
   (void)arg;
   chRegSetThreadName("manage LED");
 
+  palSetLineMode(POS_VALID_GPIO_LINE, PAL_MODE_OUTPUT);
+  palClearLine(POS_VALID_GPIO_LINE);
+
   led_adp8866_init();
 
   while (TRUE) {
@@ -226,6 +264,10 @@ static void manage_led_thread(void *arg)
       { .led = LED_MODE_B,  .brightness = mode_state.b }
     };
     led_adp8866_leds_set(led_states, sizeof(led_states)/sizeof(led_states[0]));
+
+    bool pv_state;
+    handle_pv(counter, &pv_state);
+    palWriteLine(POS_VALID_GPIO_LINE, pv_state ? PAL_HIGH : PAL_LOW);
 
     if (++counter >= INTERVAL_COUNTS) {
       counter = 0;
