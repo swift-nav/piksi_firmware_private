@@ -114,11 +114,11 @@ void set_time_fine(u64 tc, gps_time_t t)
  */
 void set_gps_time_offset(u64 tc, gps_time_t t)
 {
-  gps_time_t rcv_time = rx2gpstime(tc);
+  gps_time_t rcv_time = rx2rcvtime(tc);
   double time_diff = gpsdifftime(&rcv_time, &t);
 
   chMtxLock(&clock_mutex);
-  clock_state.clock_offset += time_diff;
+  clock_state.clock_offset = time_diff;
   chMtxUnlock(&clock_mutex);
 }
 
@@ -137,9 +137,9 @@ void adjust_time_fine(double dt)
   chMtxUnlock(&clock_mutex);
 }
 
-/** Get current GPS time.
+/** Get current RCV time.
  *
- * \note The GPS time may only be a guess or completely unknown. time_quality
+ * \note The RCV time may only be a guess or completely unknown. time_quality
  *       should be checked first to determine the quality of the GPS time
  *       estimate.
  *
@@ -150,6 +150,24 @@ void adjust_time_fine(double dt)
  * \return Current GPS time.
  */
 gps_time_t get_current_time(void)
+{
+  /* TODO: Return invalid when TIME_UNKNOWN. */
+  /* TODO: Think about what happens when nap_timing_count overflows. */
+  u64 tc = nap_timing_count();
+  gps_time_t t = rx2rcvtime(tc);
+
+  return t;
+}
+
+/** Get current GPS time.
+ *
+ * \note The GPS time may only be a guess or completely unknown. time_quality
+ *       should be checked first to determine the quality of the GPS time
+ *       estimate.
+ *
+ * \return Current GPS time.
+ */
+gps_time_t get_current_gps_time(void)
 {
   /* TODO: Return invalid when TIME_UNKNOWN. */
   /* TODO: Think about what happens when nap_timing_count overflows. */
@@ -212,6 +230,23 @@ double gps2rxtime(const gps_time_t* t)
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;
   gps_time.tow -= clock_state.clock_offset;
+  double clock_period = clock_state.clock_period;
+  chMtxUnlock(&clock_mutex);
+
+  return gpsdifftime(t, &gps_time) / clock_period;
+}
+
+/** Convert Rcv time to rx time.
+ *
+ * \note The RCV time may only be a guess or completely unknown.
+ *
+ * \param t gps_time_t to convert.
+ * \return Timing count in units of RX_DT_NOMINAL.
+ */
+double rcv2rxtime(const gps_time_t* t)
+{
+  chMtxLock(&clock_mutex);
+  gps_time_t gps_time = clock_state.t0_gps;
   double clock_period = clock_state.clock_period;
   chMtxUnlock(&clock_mutex);
 
