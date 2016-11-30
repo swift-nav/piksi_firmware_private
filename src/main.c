@@ -117,13 +117,13 @@ int main(void)
 
   /* send Iono correction, L2C capabilities if valid */
   ionosphere_t iono;
-  if (!ndb_iono_corr_read(&iono))
+  if (ndb_iono_corr_read(&iono) == NDB_ERR_NONE)
   {
     sbp_send_iono(&iono);
   }
 
   u32 l2c_mask;
-  if (!ndb_gps_l2cm_l2c_cap_read(&l2c_mask))
+  if (ndb_gps_l2cm_l2c_cap_read(&l2c_mask) == NDB_ERR_NONE)
   {
     sbp_send_l2c_capabilities(&l2c_mask);
   }

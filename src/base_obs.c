@@ -38,6 +38,7 @@
 #include "signal.h"
 #include "ndb.h"
 #include "shm.h"
+#include "cnav_msg_storage.h"
 
 extern bool disable_raim;
 
@@ -411,6 +412,33 @@ static void deprecated_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   log_warn("Received a deprecated obs msg. Verify firmware version on remote Piksi.");
 }
 
+/** SBP callback for Group delay message
+ */
+static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
+{
+  (void)sender_id; (void)len; (void) context;
+
+  log_info("Group delay received from peer");
+
+  cnav_msg_t cnav;
+  memset(&cnav, 0, sizeof(cnav));
+
+  /* unpack received message */
+  cnav.data.type_30.isc_l1ca = ((msg_group_delay_t*)msg)->isc_l1ca;
+  cnav.data.type_30.tgd = ((msg_group_delay_t*)msg)->tgd;
+  cnav.prn = ((msg_group_delay_t*)msg)->prn;
+  cnav.data.type_30.isc_l1ca_valid = (((msg_group_delay_t*)msg)->valid >> 2) & 0x1;
+  cnav.data.type_30.isc_l2c_valid = (((msg_group_delay_t*)msg)->valid >> 1) & 0x1;
+  cnav.data.type_30.tgd_valid = (((msg_group_delay_t*)msg)->valid) & 0x1;
+  cnav.tow = ((msg_group_delay_t*)msg)->t_op.tow;
+  cnav.alert = 0;
+  cnav.bit_polarity = 0;
+  cnav.msg_id = CNAV_MSG_TYPE_30;
+
+  /* store received CNAV message */
+  cnav_msg_put(&cnav);
+}
+
 /** Setup the base station observation handling subsystem. */
 void base_obs_setup()
 {
@@ -449,6 +477,13 @@ void base_obs_setup()
     SBP_MSG_OBS_DEP_B,
     &deprecated_callback,
     &deprecated_node_2
+  );
+
+  static sbp_msg_callbacks_node_t ics_node;
+  sbp_register_cbk(
+    SBP_MSG_GROUP_DELAY,
+    &ics_msg_callback,
+    &ics_node
   );
 }
 
