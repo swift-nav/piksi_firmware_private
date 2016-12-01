@@ -47,13 +47,12 @@
 
 #define FACTORY_DATA_SIZE_MAX 255
 
-#define IMAGE_HARDWARE_INVALID    0xffffffff
-#define IMAGE_HARDWARE_UNKNOWN    0x00000000
-#define IMAGE_HARDWARE_MICROZED   0x00000001
-#define IMAGE_HARDWARE_EVT1       0x00000011
-#define IMAGE_HARDWARE_EVT2       0x00000012
-#define IMAGE_HARDWARE_DVT1       0x00000013
-
+#define IMAGE_HARDWARE_INVALID      0xffffffff
+#define IMAGE_HARDWARE_UNKNOWN      0x00000000
+#define IMAGE_HARDWARE_V3_MICROZED  0x00000001
+#define IMAGE_HARDWARE_V3_EVT1      0x00000011
+#define IMAGE_HARDWARE_V3_EVT2      0x00000012
+#define IMAGE_HARDWARE_V3_PROD      0x00000013
 
 static struct {
   uint32_t hardware;
@@ -253,22 +252,22 @@ u8 hw_revision_string_get(char *hw_revision_string)
 
   switch(factory_params.hardware) {
   case IMAGE_HARDWARE_UNKNOWN:
-    s = "unknown";
+    s = "Unknown";
     break;
-  case IMAGE_HARDWARE_MICROZED:
-    s = "microzed";
+  case IMAGE_HARDWARE_V3_MICROZED:
+    s = "Piksi Multi MicroZed";
     break;
-  case IMAGE_HARDWARE_EVT1:
-    s = "evt1";
+  case IMAGE_HARDWARE_V3_EVT1:
+    s = "Piksi Multi EVT1";
     break;
-  case IMAGE_HARDWARE_EVT2:
-    s = "evt2";
+  case IMAGE_HARDWARE_V3_EVT2:
+    s = "Piksi Multi EVT2";
     break;
-  case IMAGE_HARDWARE_DVT1:
-    s = "dvt1";
+  case IMAGE_HARDWARE_V3_PROD:
+    s = "Piksi Multi";
     break;
   default:
-    s = "invalid";
+    s = "Invalid";
     break;
   }
 
