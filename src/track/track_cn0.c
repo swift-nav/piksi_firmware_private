@@ -9,7 +9,6 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 #include "track_cn0.h"
 
 #include <assert.h>
@@ -31,10 +30,10 @@
  * For N=72 Alpha=0.016(6)
  * For N=200 Alpha=0.0055(5)
  */
-#define CN0_EST_LPF_ALPHA     (.05f)
+#define CN0_EST_LPF_ALPHA     (.005f)
 /** C/N0 LPF cutoff frequency. The lower it is, the more stable CN0 looks like
  * and the slower is the response. */
-#define CN0_EST_LPF_CUTOFF_HZ (.065f)
+#define CN0_EST_LPF_CUTOFF_HZ (.25f)
 /** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS  1
 /** Integration interval: 5ms */
@@ -70,6 +69,8 @@ typedef struct
 {
   float alpha;             /**< Estimator alpha coefficient */
   float nbw;               /**< Noise bandwidth for the platform */
+  float scale;             /**< Scale factor for C/N0 estimator */
+  float cn0_shift;         /**< Shift for C/N0 estimator */
   float cutoff;            /**< C/N0 LP filter cutoff frequency [Hz] */
   u8    update_count;      /**< Configuration update counter */
   track_cn0_params_t params[INTEG_PERIODS_NUM]; /**< Estimator and filter
@@ -100,11 +101,15 @@ typedef struct
 static track_cn0_config_t cn0_config PLATFORM_CN0_DATA = {
   .alpha = CN0_EST_LPF_ALPHA,
   .nbw = PLATFORM_CN0_EST_BW_HZ,
+  .scale = PLATFORM_CN0_EST_SCALE,
+  .cn0_shift = PLATFORM_CN0_EST_SHIFT,
   .cutoff = CN0_EST_LPF_CUTOFF_HZ,
   .update_count = 0,
   .pri2sec_threshold = TRACK_CN0_PRI2SEC_THRESHOLD,
   .sec2pri_threshold = TRACK_CN0_SEC2PRI_THRESHOLD,
 };
+
+static float q_avg = 8.f; /* initial value for noise level */
 
 /**
  * Helper to recompute estimator parameters
@@ -117,7 +122,9 @@ static void recompute_settings(void)
     cn0_est_compute_params(&cn0_config.params[i].est_params,
                            cn0_config.nbw,
                            cn0_config.alpha,
-                           loop_freq);
+                           loop_freq,
+                           cn0_config.scale,
+                           cn0_config.cn0_shift);
     cn0_config.params[i].est_params.t_int = cn0_periods_ms[i];
     cn0_filter_compute_params(&cn0_config.params[i].filter_params,
                               cn0_config.cutoff,
@@ -157,9 +164,11 @@ void track_cn0_params_init(void)
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / cn0_periods_ms[i];
     cn0_est_compute_params(&cn0_config.params[i].est_params,
-                           PLATFORM_CN0_EST_BW_HZ,
-                           CN0_EST_LPF_ALPHA,
-                           loop_freq);
+                           cn0_config.nbw,
+                           cn0_config.alpha,
+                           loop_freq,
+                           cn0_config.scale,
+                           cn0_config.cn0_shift);
     cn0_config.params[i].est_params.t_int = cn0_periods_ms[i];
     cn0_filter_compute_params(&cn0_config.params[i].filter_params,
                               cn0_config.cutoff,
@@ -173,6 +182,12 @@ void track_cn0_params_init(void)
                  TYPE_FLOAT, settings_notify_proxy);
   SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "nbw",
                  cn0_config.nbw,
+                 TYPE_FLOAT, settings_notify_proxy);
+  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "scale",
+                 cn0_config.scale,
+                 TYPE_FLOAT, settings_notify_proxy);
+  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "cn0 shift",
+                 cn0_config.cn0_shift,
                  TYPE_FLOAT, settings_notify_proxy);
   SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "cutoff",
                  cn0_config.cutoff,
@@ -201,18 +216,13 @@ static void init_estimator(track_cn0_state_t *e,
                            float cn0_0)
 {
   switch (t) {
-  case TRACK_CN0_EST_BL:
-    cn0_est_bl_init(&e->bl, p, cn0_0);
-    break;
-
-  case TRACK_CN0_EST_MM:
-    cn0_est_mm_init(&e->mm, p, cn0_0);
+  case TRACK_CN0_EST_BASIC:
+    cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
     break;
 
   default:
     assert(false);
   }
-
 }
 
 /**
@@ -223,28 +233,24 @@ static void init_estimator(track_cn0_state_t *e,
  * \param[in]     t Estimator type.
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
+ * \param[in]     ve_I   Very early in-phase accumulator
+ * \param[in]     ve_Q   Very early quadrature accumulator
  *
  * \return Estimator update result (dB/Hz).
  */
 static float update_estimator(track_cn0_state_t *e,
                               const cn0_est_params_t *p,
                               track_cn0_est_e t,
-                              float I, float Q)
+                              float I, float Q,
+                              float ve_I, float ve_Q)
 {
   float cn0 = 0;
-  float cn0_bl = 0;
-  float cn0_mm = 0;
-
-  cn0_bl = cn0_est_bl_update(&e->bl, p, I, Q);
-  cn0_mm = cn0_est_mm_update(&e->mm, p, I, Q);
+  float cn0_basic = cn0_est_basic_update(&e->basic, p, I, Q, ve_I, ve_Q);
 
   switch (t) {
-  case TRACK_CN0_EST_BL:
-    cn0 = cn0_bl;
-    break;
-
-  case TRACK_CN0_EST_MM:
-    cn0 = cn0_mm;
+  case TRACK_CN0_EST_BASIC:
+    q_avg = q_avg * (1 - p->alpha) + p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
+    cn0 = cn0_basic;
     break;
 
   default:
@@ -279,9 +285,12 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
 
   if (NULL == pparams) {
     float loop_freq = 1e3f / cn0_ms;
-    cn0_est_compute_params(&p->est_params, PLATFORM_CN0_EST_BW_HZ,
-                           CN0_EST_LPF_ALPHA,
-                           loop_freq);
+    cn0_est_compute_params(&p->est_params,
+                           cn0_config.nbw,
+                           cn0_config.alpha,
+                           loop_freq,
+                           cn0_config.scale,
+                           cn0_config.cn0_shift);
     p->est_params.t_int = cn0_ms;
 
     float cutoff_freq = 1;
@@ -344,13 +353,16 @@ void track_cn0_init(gnss_signal_t sid,
  * \param[in,out] e      Estimator state.
  * \param[in]     I      In-phase component.
  * \param[in]     Q      Quadrature component.
+ * \param[in]     ve_I   Very early in-phase accumulator
+ * \param[in]     ve_Q   Very early quadrature accumulator
  *
  * \return Filtered estimator value.
  */
 float track_cn0_update(gnss_signal_t sid,
                        track_cn0_est_e t,
                        track_cn0_state_t *e,
-                       float I, float Q)
+                       float I, float Q,
+                       float ve_I, float ve_Q)
 {
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
@@ -371,7 +383,7 @@ float track_cn0_update(gnss_signal_t sid,
     e->type = t;
   }
 
-  cn0 = update_estimator(e, &pp->est_params, t, I, Q);
+  cn0 = update_estimator(e, &pp->est_params, t, I, Q, ve_I, ve_Q);
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0);
 
   return cn0;
@@ -388,8 +400,7 @@ const char *track_cn0_str(track_cn0_est_e t)
 {
   const char *str = "?";
   switch (t) {
-  case TRACK_CN0_EST_BL: str = "BL"; break;
-  case TRACK_CN0_EST_MM: str = "MM"; break;
+  case TRACK_CN0_EST_BASIC: str = "BASIC"; break;
   default: assert(!"Unknown estimator type");
   }
   return str;

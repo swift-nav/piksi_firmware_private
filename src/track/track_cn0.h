@@ -41,10 +41,9 @@
  * C/N0 estimator types
  */
 typedef enum {
-  TRACK_CN0_EST_BL,   /**< Beauliu's method */
-  TRACK_CN0_EST_MM,   /**< Moment method (M2M4) */
-  TRACK_CN0_EST_PRIMARY = TRACK_CN0_EST_BL,
-  TRACK_CN0_EST_SECONDARY = TRACK_CN0_EST_MM
+  TRACK_CN0_EST_BASIC, /**< Basic estimator */
+  TRACK_CN0_EST_PRIMARY = TRACK_CN0_EST_BASIC,
+  TRACK_CN0_EST_SECONDARY = TRACK_CN0_EST_BASIC
 } track_cn0_est_e;
 
 /**
@@ -66,8 +65,7 @@ typedef struct
   u32 cn0_ms: 6;               /**< C/N0 filter interval in ms */
   u32 type: 2;                 /**< Currently used estimator type */
   u32 ver: 8;                  /**< Configuration version */
-  cn0_est_bl_state_t   bl;     /**< Estimator for high SNR values */
-  cn0_est_mm_state_t   mm;     /**< Estimator for low SNR values */
+  cn0_est_basic_state_t basic; /**< Basic estimator for Very Early tap in use */
 
   /* Other supported estimators for testing:
    * cn0_est_ch_state_t   ch;
@@ -88,7 +86,8 @@ void track_cn0_init(gnss_signal_t sid, u8 cn0_ms,
                     track_cn0_state_t *e, float cn0_0, u8 flags);
 float track_cn0_update(gnss_signal_t sid, track_cn0_est_e t,
                        track_cn0_state_t *e,
-                       float I, float Q);
+                       float I, float Q,
+                       float ve_I, float ve_Q);
 const char *track_cn0_str(track_cn0_est_e t);
 float track_cn0_get_offset(u8 cn0_ms);
 float track_cn0_get_pri2sec_threshold(u8 cn0_ms);
