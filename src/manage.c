@@ -926,6 +926,9 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
     if (time_info->last_mode_change_ms > TRACK_STABILIZATION_T) {
       result |= MANAGE_TRACK_FLAG_STABLE;
     }
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_XCORR)) {
+      result |= MANAGE_TRACK_FLAG_XCORR;
+    }
   }
 
   return result;
@@ -1061,7 +1064,8 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
 
   if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
       0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
-      0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR)) {
+      0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
+      0 == (flags & MANAGE_TRACK_FLAG_XCORR)) {
     /* Load information from SID cache and NDB */
     flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, NULL);
 

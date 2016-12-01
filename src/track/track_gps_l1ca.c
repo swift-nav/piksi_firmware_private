@@ -38,21 +38,25 @@
 
 /** GPS L1 C/A parameter section name */
 #define L1CA_TRACK_SETTING_SECTION "l1ca_track"
+/** GPS L1 C/A cross-correlation frequency step [hz] */
+#define L1CA_XCORR_FREQ_STEP 1000.f
 
 /**
  * GPS L1 C/A tracker data container type.
  */
 typedef struct {
-  tp_tracker_data_t data;  /**< Tracker data */
+  tp_tracker_data_t data;         /**< Tracker data */
+  u16 xcorr_counts[NUM_SATS_GPS]; /**< Cross-correlation interval counters */
+  u8  xcorr_flag: 1;              /**< Cross-correlation flag */
+  u8  reserved: 7;                /**< Unused (reserved) flags */
 } gps_l1ca_tracker_data_t;
 
 /** GPS L1 C/A configuration container */
 static tp_tracker_config_t gps_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 /** GPS L1 C/A tracker table */
-static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS]
-                                   PLATFORM_TRACK_DATA_TRACKER;
+static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS];
 /** GPS L1 C/A tracker data */
-static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[NUM_GPS_L1CA_TRACKERS];
+static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[ARRAY_SIZE(gps_l1ca_trackers)];
 
 /* Forward declarations of interface methods for GPS L1 C/A */
 static tracker_interface_function_t tracker_gps_l1ca_init;
@@ -66,7 +70,7 @@ static const tracker_interface_t tracker_interface_gps_l1ca = {
   .disable =      tracker_gps_l1ca_disable,
   .update =       tracker_gps_l1ca_update,
   .trackers =     gps_l1ca_trackers,
-  .num_trackers = NUM_GPS_L1CA_TRACKERS
+  .num_trackers = ARRAY_SIZE(gps_l1ca_trackers)
 };
 
 /** GPS L1 C/A tracker interface list element */
@@ -76,14 +80,40 @@ tracker_interface_list_element_gps_l1ca = {
   .next = 0
 };
 
+/**
+ * Function for updating configuration on parameter change
+ *
+ * \param[in] s   Setting descriptor
+ * \param[in] val New parameter value
+ *
+ * \return Update status
+ */
+static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
+{
+  bool res = settings_default_notify(s, val);
+
+  if (res) {
+    lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
+                              gps_l1ca_config.xcorr_cof,
+                              SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
+  }
+
+  return res;
+}
+
 /** Register GPS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
 void track_gps_l1ca_register(void)
 {
-  TP_TRACKER_REGISTER_CONFIG(L1CA_TRACK_SETTING_SECTION, gps_l1ca_config);
+  TP_TRACKER_REGISTER_CONFIG(L1CA_TRACK_SETTING_SECTION,
+                             gps_l1ca_config,
+                             settings_pov_speed_cof_proxy);
+  lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
+                            gps_l1ca_config.xcorr_cof,
+                            SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
 
-  for (u32 i = 0; i < NUM_GPS_L1CA_TRACKERS; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(gps_l1ca_trackers); i++) {
     gps_l1ca_trackers[i].active = false;
     gps_l1ca_trackers[i].data = &gps_l1ca_tracker_data[i];
   }
@@ -222,6 +252,101 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
   }
 }
 
+/**
+ * Updates cross-correlation state.
+ *
+ * TODO the code is incomplete
+ *
+ * This function checks if any of the channels have a `matching` frequency for
+ * a pre-configured period of time. The match condition is described by:
+ * \f[
+ * \left|{\operatorname{Mod}{\left (
+ *          \operatorname{LPF}{\left \{doppler_{ch0} \right \} },
+ *        1000 \right )} -\
+ *        \operatorname{Mod}{\left (
+ *          \operatorname{LPF}{\left \{doppler_{ch1} \right \}},
+ *        1000 \right )}}\right| < \delta
+ * \f]
+ *
+ * \param[in]     channel_info   Channel information.
+ * \param[in,out] common_data    Channel data with ToW, sample number and other
+ *                               runtime values.
+ * \param[in]     data           Common tracker data.
+ * \param[in]     cycle_flags    Current cycle flags.
+ *
+ * \return None
+ */
+static void update_xcorr(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               gps_l1ca_tracker_data_t *data,
+                               u32 cycle_flags)
+{
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context)) {
+
+    float freq_mod = fmodf(common_data->xcorr_freq, L1CA_XCORR_FREQ_STEP);
+    s32 max_time_cnt = (s32)(gps_l1ca_config.xcorr_time *
+                             (SECS_MS / GPS_L1CA_BIT_LENGTH_MS));
+
+    tracking_channel_cc_data_t cc_data;
+    u16 cnt = tracking_channel_load_cc_data(&cc_data);
+
+    bool xcorr_flags[NUM_SATS_GPS] = {false};
+    for (u16 idx = 0; idx < cnt; ++idx) {
+      const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
+      if (CODE_GPS_L1CA != entry->sid.code) {
+        /* Ignore for now */
+        continue;
+      }
+      if (sid_is_equal(entry->sid, channel_info->sid)) {
+        /* Ignore self */
+        continue;
+      }
+
+      float entry_freq_mod = fmodf(entry->freq, L1CA_XCORR_FREQ_STEP);
+      float error = fabsf(entry_freq_mod - freq_mod);
+      if (error <= gps_l1ca_config.xcorr_delta) {
+        xcorr_flags[entry->sid.sat - 1] = true;
+      }
+    }
+
+    u32 xcorr_mask = 0;
+    for (u16 idx = 0; idx < ARRAY_SIZE(xcorr_flags); ++idx) {
+      if (idx + 1 == channel_info->sid.sat) {
+        /* Exclude itself */
+        continue;
+      }
+      if (xcorr_flags[idx]) {
+        if (data->xcorr_counts[idx] < max_time_cnt) {
+          ++data->xcorr_counts[idx];
+        } else {
+          /* Cross-correlation with different SV */
+          xcorr_mask = UINT32_C(1) << idx;
+        }
+      } else {
+        /* Reset CC lock counter */
+        data->xcorr_counts[idx] = 0;
+      }
+    }
+    bool cc_flag = 0 != xcorr_mask;
+    if (data->xcorr_flag != cc_flag) {
+      if (cc_flag) {
+        log_info_sid(channel_info->sid,
+                     "setting cross-correlation flag; mask=0x%08",
+                     xcorr_mask);
+      } else {
+        log_info_sid(channel_info->sid, "clearing cross-correlation flag");
+      }
+      data->xcorr_flag = cc_flag;
+      common_data->xcorr_change_count = common_data->update_count;
+    }
+  }
+
+  if (data->xcorr_flag) {
+    common_data->flags |= TRACK_CMN_FLAG_XCORR;
+  }
+}
+
 static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
@@ -229,10 +354,14 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   gps_l1ca_tracker_data_t *l1ca_data = tracker_data;
   tp_tracker_data_t *data = &l1ca_data->data;
 
-  u32 cflags = tp_tracker_update(channel_info, common_data, data);
+  u32 cflags = tp_tracker_update(channel_info, common_data, data,
+                                 &gps_l1ca_config);
 
   /* GPS L1 C/A-specific ToW manipulation */
   update_tow_gps_l1ca(channel_info, common_data, data, cflags);
+
+  /* GPS L1 C/A-specific cross-correlation operations */
+  update_xcorr(channel_info, common_data, l1ca_data, cflags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&

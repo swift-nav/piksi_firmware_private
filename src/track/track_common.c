@@ -925,6 +925,44 @@ void tp_tracker_update_alias(const tracker_channel_info_t *channel_info,
 }
 
 /**
+ * Computes filtered SV speed for cross-correlation and other uses.
+ *
+ * The method updates POV speed value on bit edges. The speed is not taken from
+ * controller, but is a LP product of controller output.
+ *
+ * \param[in]     channel_info Tracking channel information.
+ * \param[in,out] common_data  Common tracking channel data.
+ * \param[in,out] data         Generic tracker data.
+ * \param[in]     cycle_flags  Current cycle flags.
+ * \param[in]     config       Generic tracker configuration.
+ *
+ * \return None
+ */
+void tp_tracker_update_xcorr(const tracker_channel_info_t *channel_info,
+                             tracker_common_data_t *common_data,
+                             tp_tracker_data_t *data,
+                             u32 cycle_flags,
+                             const tp_tracker_config_t *config)
+{
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context)) {
+
+    float xcorr_freq = common_data->carrier_freq;
+
+    if (!data->xcorr_flag) {
+      lp1_filter_init(&data->xcorr_filter, &config->xcorr_f_params, xcorr_freq);
+      data->xcorr_flag = true;
+    } else {
+      xcorr_freq = lp1_filter_update(&data->xcorr_filter,
+                                     &config->xcorr_f_params,
+                                     xcorr_freq);
+    }
+
+    common_data->xcorr_freq = xcorr_freq;
+  }
+}
+
+/**
  * Mode switching control.
  *
  * \param[in]     channel_info Tracking channel information.
@@ -947,12 +985,14 @@ void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
  * \param[in]     channel_info Tracking channel information.
  * \param[in,out] common_data  Common tracking channel data.
  * \param[in,out] data         Generic tracker data.
+ * \param[in]     config       Generic tracker configuration.
  *
  * \return Flags, used in the current tracking cycle.
  */
 u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
                       tracker_common_data_t *common_data,
-                      tp_tracker_data_t *data)
+                      tp_tracker_data_t *data,
+                      const tp_tracker_config_t *config)
 {
   /*
    * State machine control: control is a combination of actions permitted by
@@ -968,6 +1008,7 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
   tp_tracker_update_fll(data, cflags);
   tp_tracker_update_pll_dll(channel_info, common_data, data, cflags);
   tp_tracker_update_alias(channel_info, common_data, data, cflags);
+  tp_tracker_update_xcorr(channel_info, common_data, data, cflags, config);
   tp_tracker_update_mode(channel_info, common_data, data);
 
   tracker_retune(channel_info->context, common_data->carrier_freq,
