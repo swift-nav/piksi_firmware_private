@@ -2,7 +2,7 @@
 # Project, sources and paths
 #
 
-REVDIR := $(SWIFTNAV_ROOT)/src/board/v3/evt2
+REVDIR := $(SWIFTNAV_ROOT)/src/board/v3/prod
 
 REVINC := $(REVDIR)
 

@@ -18,14 +18,14 @@
 #define _BOARD_REV_H_
 
 /*
- * Setup for the Piksiv3 EVT2 board.
+ * Setup for the Piksiv3 PROD board.
  */
 
 /*
  * Board identifier.
  */
-#define BOARD_PIKSIV3_EVT2
-#define BOARD_NAME "Piksiv3 EVT2"
+#define BOARD_PIKSIV3_PROD
+#define BOARD_NAME "Piksi Multi"
 
 #define SPI_SS_IMU_GPIO_LINE PAL_LINE(GPIO2, 31)
 #define SPI_SS_FRONTEND_GPIO_LINE PAL_LINE(GPIO3, 0)

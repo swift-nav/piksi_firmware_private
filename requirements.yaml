@@ -21,13 +21,13 @@
       files:
         - piksi_microzed_fpga_unlocked.bit
 -
-  name: evt2
+  name: prod
   resources:
     -
       prefix: v3
       files:
-        - piksi_firmware_v3_evt2.elf
-        - piksi_firmware_v3_evt2.stripped.elf
+        - piksi_firmware_v3_prod.elf
+        - piksi_firmware_v3_prod.stripped.elf
   artifacts:
     -
       bucket: swiftnav-artifacts
