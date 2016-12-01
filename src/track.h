@@ -23,6 +23,7 @@
 #include <ch.h>
 
 #include "board/nap/track_channel.h"
+#include <platform_signal.h>
 
 /** \addtogroup tracking
  * \{ */
@@ -77,6 +78,8 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_MESSAGE_SYNC    TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC
 /** Tracking channel flag: tracker has word sync (L1C/A) */
 #define TRACKING_CHANNEL_FLAG_WORD_SYNC      (1u << 21)
+/** Tracking channel flag: tracker is a cross-correlation suspect */
+#define TRACKING_CHANNEL_FLAG_XCORR          (1u << 22)
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;
@@ -93,6 +96,7 @@ typedef struct {
   u32                      uptime_ms;    /**< Tracker uptime [ms] */
   u32                      sample_count; /**< Last measurement sample counter */
   u16                      lock_counter; /**< Lock state counter */
+  float                    xcorr_freq;   /**< Cross-correlation doppler [hz] */
 } tracking_channel_info_t;
 
 /**
@@ -141,6 +145,26 @@ typedef struct {
   float  acceleration;         /**< Acceleration [g] */
 } tracking_channel_freq_info_t;
 
+/**
+ * Input entry for cross-correlation processing
+ *
+ * \sa tracking_chennel_cc_data_t
+ */
+typedef struct {
+  tracker_channel_id_t     id;    /**< Tracking channel id */
+  tracking_channel_flags_t flags; /**< Tracking channel flags */
+  gnss_signal_t            sid;   /**< Tracked GNSS signal identifier */
+  float                    freq;  /**< Doppler frequency for cross-correlation [hz] */
+  float                    cn0;   /**< C/N0 level [dB/Hz] */
+} tracking_channel_cc_entry_t;
+
+/**
+ * Data container for cross-correlation processing
+ */
+typedef struct {
+  /** Entries with data for cross-correlation  */
+  tracking_channel_cc_entry_t entries[NUM_TRACKER_CHANNELS];
+} tracking_channel_cc_data_t;
 
 /** \} */
 
@@ -185,6 +209,7 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_ctrl_info_t *ctrl_params,
                                  tracking_channel_misc_info_t *misc_params,
                                  bool reset_stats);
+u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
 
 void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
                                                double carrier_phase_offset);

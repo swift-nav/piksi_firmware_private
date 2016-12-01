@@ -57,6 +57,8 @@ typedef struct {
 #define TRACK_CMN_FLAG_TOW_DECODED (1 << 8)
 /** Tracker flag: tracker has propagated TOW */
 #define TRACK_CMN_FLAG_TOW_PROPAGATED (1 << 9)
+/** Tracker flag: tracker is a cross-correlate suspect */
+#define TRACK_CMN_FLAG_XCORR          (1 << 10)
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
                                     TRACK_CMN_FLAG_HAD_FLOCK | \
@@ -95,6 +97,9 @@ typedef struct {
   update_count_t ld_pess_change_count;
                                /**< update_count value when pessimistic
                                     phase detector has changed last time. */
+  update_count_t xcorr_change_count;
+                               /**< update count value when cross-correlation
+                                    flag has changed last time */
   s32 TOW_ms;                  /**< TOW in ms. */
   u32 sample_count;            /**< Total num samples channel has tracked for. */
   double code_phase_early;     /**< Early code phase in chips. */
@@ -107,6 +112,7 @@ typedef struct {
   track_cmn_flags_t flags;     /**< Tracker flags */
   track_ctrl_params_t ctrl_params; /**< Controller parameters */
   float acceleration;          /**< Acceleration [g] */
+  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
