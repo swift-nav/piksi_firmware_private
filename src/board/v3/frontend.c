@@ -94,7 +94,7 @@ void frontend_configure(void)
   frontend_close_spi();
 
   /* Wait for frontend clock to stabilize, AOK status */
-  u8 tries = 10;
+  u8 tries = 100;
   do {
     chThdSleepMilliseconds(1);
   } while (!nt1065_check_aok_status() && (--tries > 0));
