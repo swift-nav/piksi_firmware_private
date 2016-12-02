@@ -10,7 +10,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/ad149ca/v3/microzed/dev
+      prefix: piksi_buildroot/e5a0e29/v3/microzed/dev
       files:
         - boot.bin
         - u-boot.img
@@ -31,11 +31,11 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/ad149ca/v3/evt2/dev
+      prefix: piksi_buildroot/e5a0e29/v3/prod/dev
       files:
         - boot.bin
         - u-boot.img
-        - uImage.piksiv3_evt2
+        - uImage.piksiv3_prod
     -
       bucket: piksi-fpga-unlocked
       prefix: v3.6.0
