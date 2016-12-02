@@ -18,17 +18,18 @@
 #define _BOARD_REV_H_
 
 /*
- * Setup for the Piksiv3 EVT1 board.
+ * Setup for the Piksiv3 PROD board.
  */
 
 /*
  * Board identifier.
  */
-#define BOARD_PIKSIV3_EVT1
-#define BOARD_NAME "Piksiv3 EVT1"
+#define BOARD_PIKSIV3_PROD
+#define BOARD_NAME "Piksi Multi"
 
 #define SPI_SS_IMU_GPIO_LINE PAL_LINE(GPIO2, 31)
 #define SPI_SS_FRONTEND_GPIO_LINE PAL_LINE(GPIO3, 0)
+#define SPI_SS_CLK_DAC_GPIO_LINE PAL_LINE(GPIO3, 1)
 
 #define ANT_PWR_SEL_1_GPIO_LINE PAL_LINE(GPIO2, 13)
 #define ANT_PWR_SEL_2_GPIO_LINE PAL_LINE(GPIO2, 14)
@@ -44,6 +45,9 @@
 #define FRONTEND_SPI SPID1
 #define FRONTEND_SPI_CONFIG {0, SPI_MODE_0, \
                              SPI_CLK_DIV_16, SPI_SS_FRONTEND_GPIO_LINE}
+#define CLK_DAC_SPI SPID2
+#define CLK_DAC_SPI_CONFIG {0, SPI_MODE_1, \
+                             SPI_CLK_DIV_16, SPI_SS_CLK_DAC_GPIO_LINE}
 
 #define LED_I2C I2CD2
 #define LED_I2C_CONFIG {.clk = 200000}
