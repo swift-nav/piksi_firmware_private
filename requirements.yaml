@@ -40,4 +40,4 @@
       bucket: piksi-fpga-unlocked
       prefix: v3.6.0
       files:
-        - piksi_evt2_fpga_unlocked.bit
+        - piksi_prod_fpga_unlocked.bit
