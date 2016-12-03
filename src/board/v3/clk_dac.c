@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <hal.h>
 
-#if defined(BOARD_PIKSIV3_EVT2)
+#if defined(BOARD_PIKSIV3_PROD)
 
 static const SPIConfig spi_config = CLK_DAC_SPI_CONFIG;
 
