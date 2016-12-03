@@ -37,7 +37,7 @@
         - u-boot.img
         - uImage.piksiv3_prod
     -
-      bucket: piksi-fpga-unlocked
-      prefix: v3.6.0
+      bucket: swiftnav-artifacts
+      prefix: piksi_fpga/v3.6.0-9-ga1d9f25
       files:
         - piksi_prod_fpga.bit
