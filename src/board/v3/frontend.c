@@ -28,8 +28,8 @@ static void configure_v2(void);
 
 static void frontend_open_spi(void)
 {
-  spiStart(&FRONTEND_SPI, &spi_config);
   spiAcquireBus(&FRONTEND_SPI);
+  spiStart(&FRONTEND_SPI, &spi_config);
   spiSelect(&FRONTEND_SPI);
 }
 
