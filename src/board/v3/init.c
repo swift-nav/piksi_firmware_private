@@ -35,6 +35,7 @@
 #include "clk_dac.h"
 #include "peripherals/antenna.h"
 #include "manage_led.h"
+#include "imu.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL  (0x03060000U)
@@ -137,6 +138,7 @@ void init(void)
   xadc_init();
   antenna_init();
   manage_led_setup();
+  imu_init();
 }
 
 static void nap_conf_check(void)
