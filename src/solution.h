@@ -58,16 +58,13 @@ extern double soln_freq;
 extern u32 obs_output_divisor;
 extern u32 max_age_of_differential;
 
-void solution_send_sbp(void);
+void solution_send_sbp(double propagation_time, u8 sender_id,
+                       const navigation_measurement_t *nav_meas);
 void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump);
-void solution_send_nmea(gnss_solution *soln, dops_t *dops,
-                        u8 n, navigation_measurement_t *nm,
-                        u8 fix_type, bool clock_jump);
 double calc_heading(const double b_ned[3]);
 void solution_make_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                             double covariance_ecef[9],
-                            double ref_ecef[3], u8 flags, double hdop,
-                            double corrections_age, u16 sender_id);
+                            double ref_ecef[3], u8 flags, dops_t *dops);
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);

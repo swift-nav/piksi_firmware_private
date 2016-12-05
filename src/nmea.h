@@ -16,6 +16,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/time.h>
+#include <libsbp/navigation.h>
 
 #include "track.h"
 
@@ -35,32 +36,21 @@
 #define MS2KNOTTS(x,y,z)     sqrt((x)*(x) + (y)*(y) + (z)*(z)) * 1.94385
 #define MS2KMHR(x,y,z)       sqrt((x)*(x)+(y)*(y)+(z)*(z)) * (3600.0/1000.0)
 
-typedef struct {
-  double llh[3];
-  gps_time_t time;
-  u8 num_sats;
-  u8 fix_mode;
-  double hdop;
-  double corrections_age;
-  u16 sender_id;
-} msg_nmea_gga;
-
 void nmea_setup(void);
-void nmea_gpgga(const msg_nmea_gga *nmea_gga_msg);
-void nmea_gpgsa(const u8 *prns, u8 num_prns, const dops_t *dops);
-void nmea_gpgsv(u8 n_used, const navigation_measurement_t *nav_meas,
-                const gnss_solution *soln);
-void nmea_gprmc(const gnss_solution *soln, const gps_time_t *gps_t);
-void nmea_gpvtg(const gnss_solution *soln);
-void nmea_gpgll(const gnss_solution *soln, const gps_time_t *gps_t);
-void nmea_gpzda(const gps_time_t *gps_t);
-void nmea_send_msgs(msg_nmea_gga *nmea_gga, gnss_solution *soln, u8 n,
-                    navigation_measurement_t *nm,
-                    const dops_t *dops,
-                    bool skip_velocity);
-void nmea_make_gga(msg_nmea_gga* nmea_gga_msg, const double llh[3], const gps_time_t *gps_t,
-                   u8 num_sats, u8 fix_type, double hdop, double correction_age, u16 station_id);
-
+void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_gps_time,
+                const msg_dops_t *sbp_dops, double propagation_time, u8 station_id);
+void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_dops_t *sbp_dops);
+void nmea_gpgsv(const navigation_measurement_t *nav_meas,
+                const msg_pos_ecef_t *sbp_pos_ecef);
+void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_ned,
+                const msg_gps_time_t *sbp_gps_time);
+void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned);
+void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_time);
+void nmea_gpzda(const msg_gps_time_t *sbp_msg_time);
+void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_pos_ecef,
+                    const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
+                    const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas,
+                    u8 sender_id, double propagation_time);
 
 /** Register a new dispatcher for NMEA messages
  *
