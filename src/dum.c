@@ -29,7 +29,7 @@
   acquisition is considered to be within this sphere. [m]
 */
 
-/* how old ephemerides are considered valid, two weeks, [s] */
+/* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
 #define DUM_FIT_INTERVAL_VALID  (WEEK_SECS * 2)
 
 /** Signals search will be done in the assumption, that user most probable
@@ -79,9 +79,12 @@ static int get_doppler(const gnss_signal_t *sid,
   }
 
   ephemeris_t e;
-  ndb_ephemeris_read(*sid, &e);
+  if (NDB_ERR_NONE != ndb_ephemeris_read(*sid, &e)) {
+    return -1;
+  }
 
-  if (!ephemeris_params_valid(e.valid, DUM_FIT_INTERVAL_VALID, &(e.toe), t)) {
+  e.fit_interval = DUM_FIT_INTERVAL_VALID;
+  if (!ephemeris_params_valid(e.valid, e.fit_interval, &(e.toe), t)) {
     return -1;
   }
 

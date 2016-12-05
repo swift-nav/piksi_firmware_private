@@ -16,7 +16,7 @@
 #include <board/nap/nap_common.h>
 #include <libswiftnav/sv_visibility.h>
 
-/* how old ephemerides are considered valid [s] */
+/* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
 #define SM_FIT_INTERVAL_VALID  (WEEK_SECS * 2)
 
 /* Search manager functions which call other modules */
@@ -42,10 +42,8 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
 
   gps_time_t t = get_current_time();
 
-  if (!ephemeris_params_valid(ephe.valid,
-                              SM_FIT_INTERVAL_VALID,
-                              &ephe.toe,
-                              &t)) {
+  ephe.fit_interval = SM_FIT_INTERVAL_VALID;
+  if (!ephemeris_params_valid(ephe.valid, ephe.fit_interval, &ephe.toe, &t)) {
     return;
   }
 
