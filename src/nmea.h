@@ -35,10 +35,18 @@
 #define MS2KNOTTS(x,y,z)     sqrt((x)*(x) + (y)*(y) + (z)*(z)) * 1.94385
 #define MS2KMHR(x,y,z)       sqrt((x)*(x)+(y)*(y)+(z)*(z)) * (3600.0/1000.0)
 
+typedef struct {
+  double llh[3];
+  gps_time_t time;
+  u8 num_sats;
+  u8 fix_mode;
+  double hdop;
+  double corrections_age;
+  u16 sender_id;
+} msg_nmea_gga;
 
 void nmea_setup(void);
-void nmea_gpgga(const double pos_llh[3], const gps_time_t *gps_t, u8 n_used,
-                u8 fix_type, double hdop, double diff_age, u16 station_id);
+void nmea_gpgga(const msg_nmea_gga *nmea_gga_msg);
 void nmea_gpgsa(const u8 *prns, u8 num_prns, const dops_t *dops);
 void nmea_gpgsv(u8 n_used, const navigation_measurement_t *nav_meas,
                 const gnss_solution *soln);
@@ -46,10 +54,13 @@ void nmea_gprmc(const gnss_solution *soln, const gps_time_t *gps_t);
 void nmea_gpvtg(const gnss_solution *soln);
 void nmea_gpgll(const gnss_solution *soln, const gps_time_t *gps_t);
 void nmea_gpzda(const gps_time_t *gps_t);
-void nmea_send_msgs(gnss_solution *soln, u8 n,
+void nmea_send_msgs(msg_nmea_gga *nmea_gga, gnss_solution *soln, u8 n,
                     navigation_measurement_t *nm,
                     const dops_t *dops,
                     bool skip_velocity);
+void nmea_make_gga(msg_nmea_gga* nmea_gga_msg, const double llh[3], const gps_time_t *gps_t,
+                   u8 num_sats, u8 fix_type, double hdop, double correction_age, u16 station_id);
+
 
 /** Register a new dispatcher for NMEA messages
  *

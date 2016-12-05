@@ -114,6 +114,18 @@ void reset_rtk_filter(void) {
   chMtxUnlock(&rtk_init_done_lock);
 }
 
+// Declare all SBP messages
+msg_gps_time_t gps_time;
+msg_pos_llh_t pos_llh;
+msg_pos_ecef_t pos_ecef;
+msg_vel_ned_t vel_ned;
+msg_vel_ecef_t vel_ecef;
+dops_t epoch_dops;
+msg_baseline_ecef_t sbp_ecef;
+msg_baseline_ned_t sbp_ned;
+msg_baseline_heading_t sbp_heading;
+msg_nmea_gga nmea_gga;
+
 /** Determine if we have had a DGNSS timeout.
  *
  * \param _last_dgnss. Last time of DGNSS solution
@@ -131,47 +143,28 @@ bool dgnss_timeout(systime_t _last_dgnss, double _soln_freq_hz,
   return (chVTTimeElapsedSinceX(_last_dgnss) > dgnss_timeout_sec);
 }
 
-void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
-{
+void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump) {
   if (soln) {
     /* Send GPS_TIME message first. */
-    msg_gps_time_t gps_time;
-    sbp_make_gps_time(&gps_time, &soln->time, SPP_POSITION); /* TODO replace with a GNSS Solution Flag #define */
-    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
+    sbp_make_gps_time(&gps_time, &soln->time, 0);
 
-    /* in pseudoabsolute mode, we wait to resend the SPP solution until a timeout has occured
-       the timeout depends on time_matched vs low latency mode.  It is doubled for low latency mode */
+    sbp_make_pos_llh(&pos_llh, soln, 0);
 
-    if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
-      /* Position in LLH. */
-      msg_pos_llh_t pos_llh;
-      sbp_make_pos_llh(&pos_llh, soln, SPP_POSITION);
-      sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+    /* Position in ECEF. */
+    sbp_make_pos_ecef(&pos_ecef, soln, 0);
 
-      /* Position in ECEF. */
-      msg_pos_ecef_t pos_ecef;
-      sbp_make_pos_ecef(&pos_ecef, soln, SPP_POSITION);
-      sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
-    }
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
     if (!clock_jump) {
-      msg_vel_ned_t vel_ned;
-      sbp_make_vel_ned(&vel_ned, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
-      sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
+      sbp_make_vel_ned(&vel_ned, soln, 0);
 
       /* Velocity in ECEF. */
-      msg_vel_ecef_t vel_ecef;
-      sbp_make_vel_ecef(&vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
-      sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
+      sbp_make_vel_ecef(&vel_ecef, soln, 0);
     }
 
+    // DOP message can be sent even if solution fails to compute
     if (dops) {
-      DO_EVERY(10,
-        msg_dops_t sbp_dops;
-        sbp_make_dops(&sbp_dops, dops, &(soln->time), SPP_POSITION);
-        sbp_send_msg(SBP_MSG_DOPS, sizeof(sbp_dops), (u8 *) &sbp_dops);
-      );
+      epoch_dops = *dops;
     }
 
     /* Update stats */
@@ -179,16 +172,39 @@ void solution_send_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump)
     last_pvt_stats.signals_used = soln->n_sigs_used;
   }
 }
-void solution_send_nmea(gnss_solution *soln, dops_t *dops,
-                        u8 n, navigation_measurement_t *nm,
-                        u8 fix_mode, bool clock_jump)
-{
-  if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode)) {
-    nmea_gpgga(soln->pos_llh, &soln->time, soln->n_sats_used,
-               fix_mode, dops->hdop, 0, 0);
-  }
-  nmea_send_msgs(soln, n, nm, dops, clock_jump);
 
+void solution_send_sbp(void) {
+  sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
+  sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+  sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
+  sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
+  sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
+
+
+  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
+  sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_ned), (u8 *)&sbp_ned);
+  sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_heading), (u8 *)&sbp_heading);
+  sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
+  sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
+
+  msg_dops_t sbp_dops;
+  sbp_make_dops(&sbp_dops,&epoch_dops,pos_ecef.tow, pos_llh.flags);
+  sbp_send_msg(SBP_MSG_DOPS, sizeof(sbp_dops), (u8 *) &sbp_dops);
+
+  // To send nmea, we want to reconstruct the gnss_solution_t from the best
+  // positions calculated
+  
+
+  u8 fix_mode = (pos_llh.flags & 1) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
+  /* TODO: Don't fake DOP!! */
+  solution_send_nmea(&nmea_gga, soln, epoch_dops, num_sats, nav_meas, true);
+
+}
+
+void solution_send_nmea(msg_nmea_gga *nmea_gga, gnss_solution *soln, dops_t *dops,
+                        u8 n, navigation_measurement_t *nm, bool velocity_valid)
+{
+  nmea_send_msgs(nmea_gga, soln, n, nm, dops, velocity_valid);
 }
 
 double calc_heading(const double b_ned[3])
@@ -217,7 +233,7 @@ double calc_heading(const double b_ned[3])
  * for conversion from ECEF to local NED coordinates (meters)
  * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
  */
-void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
+void solution_make_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                             double covariance_ecef[9],
                             double ref_ecef[3], u8 flags, double hdop,
                             double corrections_age, u16 sender_id)
@@ -229,19 +245,13 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   covariance_to_accuracy(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
 
   double* base_station_pos;
-  msg_baseline_ecef_t sbp_ecef;
   sbp_make_baseline_ecef(&sbp_ecef, t, n_sats, b_ecef, accuracy, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_ecef), (u8 *)&sbp_ecef);
 
-  msg_baseline_ned_t sbp_ned;
   sbp_make_baseline_ned(&sbp_ned, t, n_sats, b_ned, h_accuracy, v_accuracy, flags);
-  sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_ned), (u8 *)&sbp_ned);
 
   if (send_heading) {
     double heading = calc_heading(b_ned);
-    msg_baseline_heading_t sbp_heading;
     sbp_make_heading(&sbp_heading, t, heading, n_sats, flags);
-    sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_heading), (u8 *)&sbp_heading);
   }
 
   chMtxLock(&base_pos_lock);
@@ -262,15 +272,15 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
     vector_add(3, base_station_pos, b_ecef, pseudo_absolute_ecef);
     wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
     u8 fix_mode = (flags == FIXED_POSITION) ? NMEA_GGA_FIX_RTK : NMEA_GGA_FIX_FLOAT;
-    /* TODO: Don't fake DOP!! */
-    nmea_gpgga(pseudo_absolute_llh, t, n_sats, fix_mode, hdop, corrections_age, sender_id);
+    nmea_make_gpgga(&nmea_gga, pseudo_absolute_llh, t, n_sats, fix_mode, hdop, corrections_age, sender_id);
 
-    msg_pos_llh_t pos_llh;
-    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
-    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
-    msg_pos_ecef_t pos_ecef;
-    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
-    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
+    /* now send pseudo absolute sbp message */
+    /* Flag in message is defined as follows :float->2, fixed->1 */
+    /* We defined the flags for the SBP protocol to be spp->0, fixed->1, float->2 */
+    /* TODO: Define these flags from the yaml and remove hardcoding */
+    u8 sbp_flags = (flags == 1) ? 1 : 2;
+    sbp_make_pos_llh_vect(&pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, sbp_flags);
+    sbp_make_pos_ecef_vect(&pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, sbp_flags);
   }
   chMtxUnlock(&base_pos_lock);
 
@@ -324,7 +334,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
 
     if (send_baseline)
     {
-      solution_send_baseline(t, num_sats_used, baseline, covariance,
+      solution_make_baseline(t, num_sats_used, baseline, covariance,
                              lgf.position_solution.pos_ecef,
                              flags, hdop, diff_time, base_id);
     }
@@ -434,7 +444,7 @@ static void solution_simulation(void)
 
   if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
     /* Then we send fake messages. */
-    solution_send_sbp(soln, simulation_current_dops_solution(), FALSE);
+    solution_make_sbp(soln, simulation_current_dops_solution(), FALSE);
     solution_send_nmea(soln, simulation_current_dops_solution(),
                        simulation_current_num_sats(),
                        simulation_current_navigation_measurements(),
@@ -464,14 +474,14 @@ static void solution_simulation(void)
 /** Update the tracking channel states with satellite elevation angles
  * \param nav_meas Navigation measurements with .sat_pos populated
  * \param n_meas Number of navigation measurements
- * \param pos_ecef Receiver position
+ * \param rcv_pos_ecef Receiver position
  */
 static void update_sat_elevations(const navigation_measurement_t nav_meas[],
-                                  u8 n_meas, const double pos_ecef[3])
+                                  u8 n_meas, const double rcv_pos_ecef[3])
 {
   double _, el;
   for (int i = 0; i < n_meas; i++) {
-    wgsecef2azel(nav_meas[i].sat_pos, pos_ecef, &_, &el);
+    wgsecef2azel(nav_meas[i].sat_pos, rcv_pos_ecef, &_, &el);
     tracking_channel_elevation_degrees_set(nav_meas[i].sid, (float)el * R2D);
   }
 }
@@ -674,6 +684,21 @@ static void solution_thread(void *arg)
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
     watchdog_notify(WD_NOTIFY_SOLUTION);
 
+    // Init the messages we want to send
+    memset(&gps_time, 0, sizeof(msg_gps_time_t));
+    memset(&pos_llh, 0, sizeof(msg_pos_llh_t));
+    memset(&pos_ecef, 0, sizeof(msg_pos_ecef_t));
+    memset(&vel_ned, 0, sizeof(msg_vel_ned_t));
+    memset(&vel_ecef, 0, sizeof(msg_vel_ecef_t));
+    memset(&epoch_dops, 0, sizeof(dops_t));
+    memset(&sbp_ecef, 0, sizeof(msg_baseline_ecef_t));
+    memset(&sbp_ned, 0, sizeof(msg_baseline_ned_t));
+    memset(&sbp_heading, 0, sizeof(msg_baseline_heading_t));
+    memset(&pos_llh, 0, sizeof(msg_pos_llh_t));
+    memset(&pos_ecef, 0, sizeof(msg_pos_ecef_t));
+    memset(&nmea_gga, 0, sizeof(msg_nmea_gga));q
+
+
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
       solution_simulation();
@@ -848,17 +873,13 @@ static void solution_thread(void *arg)
                           &lgf.position_solution, &dops);
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
-      /* TODO: Make this based on time since last error instead of a simple
-       * count. */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
-      DO_EVERY((u32)soln_freq,
-        log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
-      );
+      log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
 
       soln_flag = false;
 
-      /* Send just the DOPs and exit the loop */
-      solution_send_sbp(0, &dops, clock_jump);
+      // If we can't compute a SPP position, something is wrong and no point
+      // continuing to process this epoch
       continue;
     }
 
@@ -888,16 +909,15 @@ static void solution_thread(void *arg)
     ndb_lgf_store(&lgf);
 
     /* Save elevation angles every so often */
-    DO_EVERY((u32)soln_freq,
-             update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
-                                   lgf.position_solution.pos_ecef));
+    update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
+                          lgf.position_solution.pos_ecef);
 
     if (!simulation_enabled()) {
       /* Output solution. */
 
       bool disable_velocity = clock_jump ||
                               (lgf.position_solution.velocity_valid == 0);
-      solution_send_sbp(&lgf.position_solution, &dops, disable_velocity);
+      solution_make_sbp(&lgf.position_solution, &dops, disable_velocity);
       solution_send_nmea(&lgf.position_solution, &dops,
                          n_ready_tdcp, nav_meas_tdcp,
                          NMEA_GGA_FIX_GPS, disable_velocity);

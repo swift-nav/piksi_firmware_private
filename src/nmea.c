@@ -330,12 +330,12 @@ void nmea_gprmc(const gnss_solution *soln, const gps_time_t *gps_t)
  *
  * \param soln Pointer to gnss_solution struct.
  */
-void nmea_gpvtg(const gnss_solution *soln)
+void nmea_gpvtg(const double vel_ned[3])
 {
   float x,y,z;
-  x = soln->vel_ned[0];
-  y = soln->vel_ned[1];
-  z = soln->vel_ned[2];
+  x = vel_ned[0];
+  y = vel_ned[1];
+  z = vel_ned[2];
   float course = R2D * atan2(y,x);
   if (course < 0.0) {
     course += 360.0;
@@ -455,11 +455,13 @@ static void nmea_assemble_gpgsa(const dops_t *dops)
  * \param nav_meas      Array of n navigation_measurement structs.
  * \param skip_velocity If TRUE then don't output any messages with velocity.
  */
-void nmea_send_msgs(gnss_solution *soln, u8 n,
+void nmea_send_msgs(msg_nmea_gga *nmea_gga, const gnss_solution_t *soln, u8 n,
                     navigation_measurement_t *nm,
                     const dops_t *dops,
                     bool skip_velocity)
 {
+  nmea_send_gpgga(nmea_gga);
+
   if (!skip_velocity) {
     DO_EVERY(gprmc_msg_rate,
       nmea_gprmc(soln, &soln->time);
