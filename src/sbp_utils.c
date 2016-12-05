@@ -180,9 +180,9 @@ void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 f
   vel_ecef->flags = flags;
 }
 
-void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const gps_time_t *t, u8 flags)
+void sbp_make_dops(msg_dops_t *dops_out, const dops_t *dops_in, const u32 tow, u8 flags)
 {
-  dops_out->tow = round_tow_ms(t->tow);
+  dops_out->tow = tow;
   dops_out->pdop = round(dops_in->pdop * 100);
   dops_out->gdop = round(dops_in->gdop * 100);
   dops_out->tdop = round(dops_in->tdop * 100);

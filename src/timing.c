@@ -67,7 +67,9 @@ void set_time(time_quality_t quality, gps_time_t t)
   chMtxUnlock(&clock_mutex);
 
   if (updated) {
+    log_warn("test1 set time");
     time_t unix_t = gps2time(&t);
+    log_warn("test1 set time passed");
     log_info("Time set to: %s (quality=%d)", ctime(&unix_t), quality);
   }
 }

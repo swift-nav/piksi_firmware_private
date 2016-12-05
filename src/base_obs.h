@@ -33,6 +33,11 @@ typedef struct {
   double pos_ecef[3];
   /** Is the `pos_ecef` field valid? */
   u8 has_pos;
+  /** Approximate base station velocity.
+  * This is the velocity obtained from a SPP solve */
+  double vel_ecef[3];
+  /** Is the 'vel_ecef' field valid */
+  u8 has_vel;
   /** Number of observations in the set. */
   u8 n;
   u8 sender_id;
