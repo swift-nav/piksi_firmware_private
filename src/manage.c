@@ -998,8 +998,8 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
         meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
       }
       if (0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK) &&
-          0 != (flags & MANAGE_TRACK_FLAG_STABLE)) {
-        /* PLL has pessimistic lock and is stable (legacy) */
+          0 != (flags & MANAGE_TRACK_FLAG_STABLE) &&
+          0 != (flags & MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET)) {
         meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
       }
       if (0 != (flags & MANAGE_TRACK_FLAG_PLL_OLOCK)) {
@@ -1093,7 +1093,10 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
         /* 0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) */) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
     }
-    meas->carrier_phase -= carrier_phase_offset;
+    if (0.0 != carrier_phase_offset) {
+      flags |= MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET;
+      meas->carrier_phase -= carrier_phase_offset;
+    }
     meas->flags = compute_meas_flags(flags, cpo_ok);
   } else {
     memset(meas, 0, sizeof(*meas));
