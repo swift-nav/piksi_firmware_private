@@ -39,6 +39,13 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
     .reserved = 0,
   };
 
+  /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other
+   * constellations are "real" satellite identifiers.
+   */
+  if (sid_to_constellation(from) == CONSTELLATION_GPS) {
+    sbp_sid.sat -= GPS_FIRST_PRN;
+  }
+
   return sbp_sid;
 }
 
@@ -48,6 +55,14 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from)
     .code = from.code,
     .sat = from.sat,
   };
+
+  /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other
+   * constellations are "real" satellite identifiers.
+   */
+  if (code_valid(sid.code) &&
+     (code_to_constellation(sid.code) == CONSTELLATION_GPS)) {
+    sid.sat += GPS_FIRST_PRN;
+  }
 
   return sid;
 }
