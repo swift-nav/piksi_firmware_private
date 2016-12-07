@@ -969,8 +969,8 @@ static bool compute_cpo(u64 ref_tc,
     /* NOTE: CP sign flip - change the plus sign below */
     *carrier_phase_offset = round(meas->carrier_phase + phase);
 
-    if (0 != (info->flags % TRACKING_CHANNEL_FLAG_PLL_PLOCK) &&
-        0 != (info->flags % TRACKING_CHANNEL_FLAG_CN0_SHORT)) {
+    if (0 != (info->flags & TRACKING_CHANNEL_FLAG_PLL_PLOCK) &&
+        0 != (info->flags & TRACKING_CHANNEL_FLAG_CN0_SHORT)) {
       /* Remember offset for the future use */
       tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
     }
