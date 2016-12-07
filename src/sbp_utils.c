@@ -31,6 +31,9 @@
  * Convert to and from SBP message types and other useful functions.
  * \{ */
 
+u32 round_tow_ms(double tow);
+void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out);
+
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
 {
   sbp_gnss_signal_t sbp_sid = {
@@ -89,14 +92,12 @@ gnss_signal_t sid_from_sbp16(const gnss_signal16_t from)
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
 {
-  t_out->wn = t_in->wn;
-  t_out->tow = round(t_in->tow * 1e3);
-  /* week roll-over */
-  if (t_out->tow >= WEEK_MS) {
-    t_out->wn++;
-    t_out->tow -= WEEK_MS;
-  }
-  t_out->ns = round((t_in->tow - t_out->tow * 1e-3) * 1e9);
+  /* TODO(Leith): SBP message should reuse the GPSTimeNano struct */
+  gps_time_nano_t t_nano;
+  round_time_nano(t_in, &t_nano);
+  t_out->wn = t_nano.wn;
+  t_out->tow = t_nano.tow;
+  t_out->ns = t_nano.ns;
   t_out->flags = flags;
 }
 
@@ -226,23 +227,16 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
 void unpack_obs_header(const observation_header_t *msg, gps_time_t* t, u8* total, u8* count)
 {
   t->wn  = msg->t.wn;
-  t->tow = ((double)msg->t.tow) / MSG_OBS_TOW_MULTIPLIER +
-           ((double)msg->t.ns) / MSG_OBS_TOW_NS_MULTIPLIER;
+  t->tow = ((double)msg->t.tow) / 1e3 +
+           ((double)msg->t.ns) / 1e9;
+  normalize_gps_time(t);
   *total = (msg->n_obs >> MSG_OBS_HEADER_SEQ_SHIFT);
   *count = (msg->n_obs & MSG_OBS_HEADER_SEQ_MASK);
 }
 
 void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header_t *msg)
 {
-  msg->t.wn = t->wn;
-  msg->t.tow = round(t->tow * MSG_OBS_TOW_MULTIPLIER);
-  /* week roll-over */
-  if (msg->t.tow >= WEEK_MS) {
-    msg->t.wn++;
-    msg->t.tow -= WEEK_MS;
-  }
-  msg->t.ns = round((t->tow - msg->t.tow / MSG_OBS_TOW_MULTIPLIER) *
-              MSG_OBS_TOW_NS_MULTIPLIER);
+  round_time_nano(t, &msg->t);
   msg->n_obs = ((total << MSG_OBS_HEADER_SEQ_SHIFT) |
                  (count & MSG_OBS_HEADER_SEQ_MASK));
 }
@@ -634,7 +628,7 @@ void sbp_send_group_delay(const cnav_msg_t *cnav)
  * Helper function for rounding tow to integer milliseconds, taking care of
  * week roll-over
  * @param[in] tow Time-of-week in seconds
- * @param[out] tow_ms Time-of-week in milliseconds
+ * @return Time-of-week in milliseconds
 */
 u32 round_tow_ms(double tow) {
   /* week roll-over */
@@ -643,6 +637,24 @@ u32 round_tow_ms(double tow) {
     tow_ms -= WEEK_MS;
   }
   return tow_ms;
+}
+
+/**
+ * Helper function for converting GPS tiem to integer milliseconds with
+ * nanosecond remainder, taking care of week roll-over
+ * @param[in] t_in GPS time
+ * @param[out] t_out SBP time
+*/
+void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
+  t_out->wn = t_in->wn;
+  t_out->tow = round(t_in->tow * 1e3);
+  t_out->ns = round((t_in->tow - t_out->tow / 1e3) *
+              1e9);
+  /* week roll-over */
+  if (t_out->tow >= WEEK_MS) {
+    t_out->wn++;
+    t_out->tow -= WEEK_MS;
+  }
 }
 
 /** \} */

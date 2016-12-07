@@ -58,8 +58,6 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
 #define MSG_OBS_HEADER_SEQ_SHIFT 4u
 #define MSG_OBS_HEADER_SEQ_MASK ((1 << 4u) - 1)
 #define MSG_OBS_HEADER_MAX_SIZE MSG_OBS_HEADER_SEQ_MASK
-#define MSG_OBS_TOW_MULTIPLIER ((double)1e3)
-#define MSG_OBS_TOW_NS_MULTIPLIER ((double)1e9)
 
 #define MSG_OBS_P_MULTIPLIER             ((double)5e1)
 #define MSG_OBS_CN0_MULTIPLIER           ((float)4)
@@ -107,6 +105,5 @@ gnss_signal16_t sid_to_sbp16(const gnss_signal_t from);
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_l2c_capabilities(const u32 *l2c_cap);
 void sbp_send_group_delay(const cnav_msg_t *cnav);
-u32 round_tow_ms(double tow);
 
 #endif /* SWIFTNAV_SBP_UTILS_H */
