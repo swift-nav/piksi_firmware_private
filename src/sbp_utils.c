@@ -278,7 +278,7 @@ nav_meas_flags_t nm_flags_from_sbp(u8 from)
     to |= NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
   }
   if (0 != (from & MSG_OBS_FLAGS_MEAS_DOPPLER_VALID)) {
-    to |= MSG_OBS_FLAGS_MEAS_DOPPLER_VALID;
+    to |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
   }
   return to;
 }
