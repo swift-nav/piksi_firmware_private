@@ -1025,7 +1025,7 @@ static void solution_thread(void *arg)
       chMtxUnlock(&base_obs_lock);
 
       u64 last_tc = nap_timing_count();
-      log_info("PVT Latency %f", (current_tc - last_tc)*RX_DT_NOMINAL);
+      log_info("PVT Latency %f", ((double)current_tc - (double)last_tc)*RX_DT_NOMINAL);
 
       /* Output observations only every obs_output_divisor times, taking
        * care to ensure that the observations are aligned. */
