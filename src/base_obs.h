@@ -51,11 +51,6 @@ typedef struct {
  */
 #define BASE_STATION_DISTANCE_THRESHOLD 50.0
 
-/* Maximum distance between successive base station SPP positions allowed
- * before an RTK filter reset is triggered. In metres.
- */
-#define BASE_STATION_MOVEMENT_THRESHOLD 1000.0
-
 /* \} */
 
 extern mutex_t base_obs_lock;

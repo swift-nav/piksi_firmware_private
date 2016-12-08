@@ -1123,19 +1123,6 @@ static void time_matched_obs_thread(void *arg)
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
-        /* Check if the base position has moved a lot from the surveyed position
-         * and reset the RTK filter if it has.
-         */
-        if (base_pos_known && base_obss.has_pos) {
-          double move_distance = vector_distance(3, base_obss.pos_ecef,
-                                                 base_pos_ecef);
-          if (move_distance > BASE_STATION_MOVEMENT_THRESHOLD) {
-            log_warn("Base station position has moved %f m from surveyed"
-                     " position. Resetting RTK filter.", move_distance);
-            reset_rtk_filter();
-          }
-        }
-
         /* Check if the base sender ID has changed and reset the RTK filter if
          * it has.
          */
