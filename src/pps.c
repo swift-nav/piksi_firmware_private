@@ -33,7 +33,7 @@
 /** Number of microseconds the PPS will remain active (default: 200000). */
 u32 pps_width_microseconds = PPS_WIDTH_MICROSECONDS;
 
-static THD_WORKING_AREA(wa_pps_thread, 20000);
+static THD_WORKING_AREA(wa_pps_thread, 256);
 static void pps_thread(void *arg)
 {
   (void)arg;
@@ -43,7 +43,6 @@ static void pps_thread(void *arg)
     if (time_quality == TIME_FINE) {
       gps_time_t t = get_current_gps_time();
       t.tow = floor(t.tow) + 1;
-      log_warn("PPS GPS Target %f", t.tow);
       u64 next = round(gps2rxtime(&t));
       nap_pps((u32)next);
     }

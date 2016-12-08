@@ -894,7 +894,6 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
-    log_warn("GPS time of solution %f",lgf.position_solution.time.tow);
     // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
     // so we need to store this error in the GPS time (GPS time frame)
     set_gps_time_offset(rec_tc, lgf.position_solution.time);
@@ -1017,8 +1016,6 @@ static void solution_thread(void *arg)
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
-              u64 last_tc = nap_timing_count();
-              log_info("PVT Latency %f", (current_tc - last_tc)*RX_DT_NOMINAL);
               output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
                               dops.hdop, pdt, base_obss.sender_id);
             }
@@ -1026,6 +1023,9 @@ static void solution_thread(void *arg)
         }
       }
       chMtxUnlock(&base_obs_lock);
+
+      u64 last_tc = nap_timing_count();
+      log_info("PVT Latency %f", (current_tc - last_tc)*RX_DT_NOMINAL);
 
       /* Output observations only every obs_output_divisor times, taking
        * care to ensure that the observations are aligned. */
