@@ -180,15 +180,15 @@ void solution_send_sbp(double propagation_time, u8 sender_id,
   sbp_send_msg(SBP_MSG_VEL_NED, sizeof(vel_ned), (u8 *) &vel_ned);
   sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(vel_ecef), (u8 *) &vel_ecef);
 
-  if( sbp_baseline_ecef.flags != 0 ) {
+  if ( sbp_baseline_ecef.flags != 0 ) {
     sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_baseline_ecef), (u8 * ) & sbp_baseline_ecef);
   }
 
-  if( sbp_baseline_ned.flags != 0 ) {
+  if ( sbp_baseline_ned.flags != 0 ) {
     sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_baseline_ned), (u8 * ) & sbp_baseline_ned);
   }
 
-  if( sbp_baseline_heading.flags != 0 ) {
+  if ( sbp_baseline_heading.flags != 0 ) {
     sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_baseline_heading), (u8 * ) & sbp_baseline_heading);
   }
 
@@ -196,8 +196,10 @@ void solution_send_sbp(double propagation_time, u8 sender_id,
 
   // To send nmea, we want to reconstruct the gnss_solution_t from the best
   // positions calculated
-  nmea_send_msgs(&pos_llh, &pos_ecef, &vel_ned, &sbp_dops, &gps_time,
-                 nav_meas, propagation_time, sender_id);
+  if (pos_llh->flags != 0) {
+    nmea_send_msgs(&pos_llh, &pos_ecef, &vel_ned, &sbp_dops, &gps_time,
+                   nav_meas, propagation_time, sender_id);
+  }
 }
 
 //void solution_send_nmea(msg_nmea_gga *nmea_gga, gnss_solution *soln, dops_t *dops,
