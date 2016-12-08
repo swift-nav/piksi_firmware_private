@@ -98,9 +98,21 @@ static last_good_fix_t lgf;
 bool disable_raim = false;
 bool send_heading = false;
 
+/** Mutex to control access to the RTK filter init flag. */
+MUTEX_DECL(rtk_init_done_lock);
+static bool rtk_init_done = false;
+
+static u8 old_base_sender_id = 0;
+
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
+
+void reset_rtk_filter(void) {
+  chMtxLock(&rtk_init_done_lock);
+  rtk_init_done = false;
+  chMtxUnlock(&rtk_init_done_lock);
+}
 
 /** Determine if we have had a DGNSS timeout.
  *
@@ -267,8 +279,6 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
   last_dgnss_stats.mode = (flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
-static bool init_done = false;
-
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                             const gps_time_t *t, double hdop, double diff_time, u16 base_id) {
   double baseline[3];
@@ -280,7 +290,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   bool send_baseline = false;
 
   /* If not initialised we can't output a baseline */
-  if (init_done) {
+  chMtxLock(&rtk_init_done_lock);
+  if (rtk_init_done) {
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
@@ -320,6 +331,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   } else {
     log_debug("DGNSS Filter not Initialized");
   }
+  chMtxUnlock(&rtk_init_done_lock);
 }
 
 static void send_observations(u8 n, const navigation_measurement_t m[],
@@ -810,13 +822,15 @@ static void solution_thread(void *arg)
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
+      chMtxLock(&rtk_init_done_lock);
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
-      } else if (init_done) {
+      } else if (rtk_init_done) {
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
         chMtxUnlock(&eigen_state_lock);
       }
+      chMtxUnlock(&rtk_init_done_lock);
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
@@ -1049,18 +1063,21 @@ static void solution_thread(void *arg)
 
 void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
 {
-  if (!init_done) {
+  chMtxLock(&rtk_init_done_lock);
+  if (!rtk_init_done) {
     if (n_sds > 4) {
       /* Initialize filters. */
       log_info("Initializing DGNSS filters");
       chMtxLock(&eigen_state_lock);
       dgnss_init_v3();
       chMtxUnlock(&eigen_state_lock);
-      init_done = 1;
+      rtk_init_done = true;
     }
   }
+  chMtxUnlock(&rtk_init_done_lock);
 
-  if (init_done) {
+  chMtxLock(&rtk_init_done_lock);
+  if (rtk_init_done) {
     /* Update filters. */
     s8 ret;
     chMtxLock(&eigen_state_lock);
@@ -1078,6 +1095,7 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
       output_baseline(n_sds, sds, t, 0, 0, base_id);
     }
   }
+  chMtxUnlock(&rtk_init_done_lock);
 }
 
 static WORKING_AREA_CCM(wa_time_matched_obs_thread, 2000000);
@@ -1105,6 +1123,30 @@ static void time_matched_obs_thread(void *arg)
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
+        /* Check if the base position has moved a lot from the surveyed position
+         * and reset the RTK filter if it has.
+         */
+        if (base_pos_known && base_obss.has_pos) {
+          double move_distance = vector_distance(3, base_obss.pos_ecef,
+                                                 base_pos_ecef);
+          if (move_distance > BASE_STATION_MOVEMENT_THRESHOLD) {
+            log_warn("Base station position has moved %f m from surveyed"
+                     " position. Resetting RTK filter.", move_distance);
+            reset_rtk_filter();
+          }
+        }
+
+        /* Check if the base sender ID has changed and reset the RTK filter if
+         * it has.
+         */
+        if ((old_base_sender_id != 0) &&
+            (old_base_sender_id != base_obss.sender_id)) {
+          log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
+                   " filter.", old_base_sender_id, base_obss.sender_id);
+          reset_rtk_filter();
+        }
+        old_base_sender_id = base_obss.sender_id;
+
         /* Times match! Process obs and base_obss */
         static sdiff_t sds[MAX_CHANNELS];
         u8 n_sds = single_diff(
@@ -1156,7 +1198,7 @@ void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   switch (msg[0]) {
   case 0:
     log_info("Filter reset requested");
-    init_done = false;
+    reset_rtk_filter();
     break;
   default:
     break;
