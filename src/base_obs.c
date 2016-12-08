@@ -23,6 +23,7 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/sid_set.h>
+#include <libswiftnav/pvt_engine/propagate.h>
 
 #include "peripherals/leds.h"
 #include "position.h"
@@ -304,15 +305,18 @@ static void update_obss(obss_t *new_obss)
      the satellite ranges. Otherwise, use the SPP. This calculation will be
      used later by the propagation functions. */
   if (base_obss.has_pos) {
+    double *base_pos = base_obss.has_known_pos_ecef ? base_obss.known_pos_ecef : base_obss.pos_ecef;
     for (u8 i=0; i < base_obss.n; i++) {
       /* The nominal initial "sat_dist" contains the distance
          from the base position to the satellite position as well as the
          satellite clock error. */
-      base_obss.sat_dists[i] = vector_distance(3, base_obss.nm[i].sat_pos,
-                                               base_obss.has_known_pos_ecef ?
-                                               base_obss.known_pos_ecef :
-                                               base_obss.pos_ecef)
-                                               - base_obss.nm[i].sat_clock_err * GPS_C;
+      base_obss.sat_dists[i] = nominal_pseudorange(base_obss.nm[i].sat_pos,
+                                                   base_pos,
+                                                   base_obss.nm[i].sat_clock_err);
+      base_obss.sat_dists_dot[i] = nominal_doppler(base_obss.nm[i].sat_vel,
+                                                   base_obss.nm[i].sat_pos,
+                                                   base_pos,
+                                                   base_obss.nm[i].sat_clock_err_rate);
     }
   }
   /* Unlock base_obss mutex. */
@@ -438,7 +442,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     ndb_ephemeris_read(nm->sid, &ephe);
     u8 eph_valid;
     s8 cscc_ret, css_ret;
-    double clock_rate_err;
     const ephemeris_t *ephe_p = &ephe;
 
     eph_valid = ephemeris_valid(&ephe, &nm->tot);
@@ -449,7 +452,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
       /* After correcting the time of transmission for the satellite clock error,
          recalculate the satellite position. */
       css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                               &nm->sat_clock_err, &clock_rate_err);
+                               &nm->sat_clock_err, &nm->sat_clock_err_rate);
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
