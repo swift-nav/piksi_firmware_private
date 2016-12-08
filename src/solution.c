@@ -196,7 +196,7 @@ void solution_send_sbp(double propagation_time, u8 sender_id,
 
   // To send nmea, we want to reconstruct the gnss_solution_t from the best
   // positions calculated
-  if (pos_llh->flags != 0) {
+  if (pos_llh.flags != 0) {
     nmea_send_msgs(&pos_llh, &pos_ecef, &vel_ned, &sbp_dops, &gps_time,
                    nav_meas, propagation_time, sender_id);
   }
