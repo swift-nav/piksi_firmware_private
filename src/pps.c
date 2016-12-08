@@ -43,7 +43,7 @@ static void pps_thread(void *arg)
     if (time_quality == TIME_FINE) {
       gps_time_t t = get_current_gps_time();
       t.tow = floor(t.tow) + 1;
-      u64 next = round(gps2rxtime(&t));
+      u64 next = round(gpstime2napcount(&t));
       nap_pps((u32)next);
     }
     chThdSleepMilliseconds(PPS_THREAD_INTERVAL_MS);

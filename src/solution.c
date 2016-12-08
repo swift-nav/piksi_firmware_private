@@ -672,13 +672,13 @@ static void solution_thread(void *arg)
     u64 rec_tc = current_tc;
 
     // Work out the expected receiver time in GPS time frame for the current nap count
-    gps_time_t rec_time = rx2rcvtime(rec_tc);
+    gps_time_t rec_time = napcount2rcvtime(rec_tc);
     gps_time_t expected_time;
 
     // If we've previously had a solution, we can work out our expected obs time
     if(time_quality == TIME_FINE){
       // Take the last calculated position time
-      expected_time = rx2gpstime(rec_tc);
+      expected_time = napcount2gpstime(rec_tc);
 
       // Round this time to the nearest GPS solution time
       expected_time.tow = round(expected_time.tow * soln_freq)
@@ -686,14 +686,14 @@ static void solution_thread(void *arg)
       normalize_gps_time(&expected_time);
 
       // This time, taken back to nap count, is the nap count we want the observations at
-      rec_tc = (u64)(round(gps2rxtime(&expected_time)));
+      rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
     }
     // The difference between the current nap count and the nap count we want the observations at
     // is the amount we want to adjust our deadline by at the end of the solution
     double delta_tc = -((double)current_tc - (double)rec_tc);
 
     // Get the expected nap count in receiver time (gps time frame)
-    rec_time = rx2rcvtime(rec_tc);
+    rec_time = napcount2rcvtime(rec_tc);
 
     u8 n_collected = 0;
     u8 n_total = 0;
