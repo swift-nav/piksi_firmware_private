@@ -1077,7 +1077,6 @@ static void solution_thread(void *arg)
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. */
     deadline += round(dt * CH_CFG_ST_FREQUENCY);
-    log_warn("new deadline %u", deadline);
   }
 }
 
