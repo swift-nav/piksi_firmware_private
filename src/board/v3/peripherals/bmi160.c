@@ -81,7 +81,7 @@ static void bmi160_wait_cmd_complete(void)
 {
   //TODO: the check for the command to complete doesnt seem to work,
   //adding forced sleep to avoid dropping commands. Is there a better way?
-  chThdSleepMilliseconds(100);
+  chThdSleepMilliseconds(10);
   while(bmi160_read_reg(BMI160_REG_CMD) != 0);
 }
 
@@ -127,12 +127,12 @@ void bmi160_init(void)
   bmi160_open_spi();
   bmi160_close_spi();
 
+  /* Perform a soft reset of the BMI160 */
+  bmi160_write_reg(BMI160_REG_CMD, 0xB6);
+  bmi160_wait_cmd_complete();
+
   if (!bmi160_check_id()) {
     log_error("BIST imu: IMU ID didn't match expected value");
-    return;
-  }
-  if (!bmm150_check_id()) {
-    log_error("BIST imu: mag ID didn't match expected value");
     return;
   }
 
@@ -141,10 +141,16 @@ void bmi160_init(void)
   //enable mag IF interface (for BMM150)
   bmi160_write_reg(BMI160_REG_IF_CONF, 0b00100000);
 
+  if (!bmm150_check_id()) {
+    log_error("BIST imu: mag ID didn't match expected value");
+    //return;
+  }
+
   //lower mag read rate to 25/2 Hz
   //this just sets polling rate, the actual updated rate is configured on the BMM150
   bmi160_write_reg(BMI160_REG_MAG_CONF,0b00000101);
 
+  /*
   //put sensors in normal mode
   //0b (PMU) 0001 (accel) 00 (normal) 01
   bmi160_write_reg(BMI160_REG_CMD, 0b00010001);
@@ -155,6 +161,7 @@ void bmi160_init(void)
   //0b (PMU) 0001 (mag) 10 (normal) 01
   bmi160_write_reg(BMI160_REG_CMD, 0b00011001);
   bmi160_wait_cmd_complete();
+  */
 
   //put into mag into setup mode
   bmi160_write_reg(BMI160_REG_MAG_IF + 1, 0x80);
@@ -183,6 +190,30 @@ void bmi160_set_imu_rate(imu_rate_t rate)
   u8 rate_val = BMI160_IMU_RATE_25HZ + (0xF & (u8)rate);
   bmi160_write_reg(BMI160_REG_ACC_CONF, 0b00100000 | rate_val);
   bmi160_write_reg(BMI160_REG_GYR_CONF, 0b00100000 | rate_val);
+}
+
+void bmi160_imu_set_enabled(bool enabled)
+{
+  /* Set sensor mode to Normal or Suspended depending on the enabled value. */
+  u8 mode = enabled ? 1 : 0;
+
+  /* 0b (PMU) 0001 (accel) 00 (mode) 0? */
+  bmi160_write_reg(BMI160_REG_CMD, 0b00010000 | mode);
+  bmi160_wait_cmd_complete();
+
+  /* 0b (PMU) 0001 (gyro) 01 (mode) 0? */
+  bmi160_write_reg(BMI160_REG_CMD, 0b00010100 | mode);
+  bmi160_wait_cmd_complete();
+}
+
+void bmi160_set_acc_range(bmi160_acc_range_t range)
+{
+  bmi160_write_reg(BMI160_REG_ACC_RANGE, 0xF & (u8)range);
+}
+
+void bmi160_set_gyr_range(bmi160_gyr_range_t range)
+{
+  bmi160_write_reg(BMI160_REG_GYR_RANGE, 0x7 & (u8)range);
 }
 
 void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag)

@@ -36,7 +36,12 @@ static BSEMAPHORE_DECL(imu_irq_sem, TRUE);
  * interrupt. */
 static u32 nap_tc;
 
-static imu_rate_t imu_rate = IMU_RATE_100HZ;
+/* Settings */
+
+static imu_rate_t imu_rate = IMU_RATE_50HZ;
+bool raw_imu_output = false;
+u8 acc_range = 0;
+bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
@@ -76,37 +81,49 @@ static void imu_thread(void *arg)
     bool new_acc, new_gyro, new_mag;
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
 
-    /* Read out the IMU data and fill out the SBP message. */
-    bmi160_get_data(acc, gyro, mag, &sensor_time);
-    imu_raw.acc_x = acc[0];
-    imu_raw.acc_y = acc[1];
-    imu_raw.acc_z = acc[2];
-    imu_raw.gyr_x = gyro[0];
-    imu_raw.gyr_y = gyro[1];
-    imu_raw.gyr_z = gyro[2];
-
-    /* Recover the full 64 bit timing count from the 32 LSBs
-     * captured in the ISR. */
-    u64 tc = nap_sample_time_to_count(nap_tc);
-
-    /* Calculate the GPS time of the observation, if possible. */
-    if (time_quality >= TIME_FINE) {
-      /* We know the GPS time to high accuracy, this allows us to convert a
-       * timing count value into a GPS time. */
-      gps_time_t t = rx2gpstime(tc);
-
-      /* Format the time of week as a fixed point value for the SBP message. */
-      double tow_ms = t.tow * 1000;
-      imu_raw.tow = (u32)tow_ms;
-      imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow)*256);
-    } else {
-      /* Time is unknown, make it as invalid in the SBP message. */
-      imu_raw.tow = (1 << 31);
-      imu_raw.tow_f = 0;
+    if (new_acc != new_gyro) {
+      log_debug("Accelerometer and Gyro not both ready %u %u\n",
+                new_acc, new_gyro);
+      continue;
     }
 
-    /* Send out IMU_RAW SBP message. */
-    sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8*)&imu_raw);
+    if (new_acc && new_gyro) {
+
+      /* Read out the IMU data and fill out the SBP message. */
+      bmi160_get_data(acc, gyro, mag, &sensor_time);
+      imu_raw.acc_x = acc[0];
+      imu_raw.acc_y = acc[1];
+      imu_raw.acc_z = acc[2];
+      imu_raw.gyr_x = gyro[0];
+      imu_raw.gyr_y = gyro[1];
+      imu_raw.gyr_z = gyro[2];
+
+      /* Recover the full 64 bit timing count from the 32 LSBs
+       * captured in the ISR. */
+      u64 tc = nap_sample_time_to_count(nap_tc);
+
+      /* Calculate the GPS time of the observation, if possible. */
+      if (time_quality >= TIME_FINE) {
+        /* We know the GPS time to high accuracy, this allows us to convert a
+         * timing count value into a GPS time. */
+        gps_time_t t = rx2gpstime(tc);
+
+        /* Format the time of week as a fixed point value for the SBP message. */
+        double tow_ms = t.tow * 1000;
+        imu_raw.tow = (u32)tow_ms;
+        imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow)*256);
+      } else {
+        /* Time is unknown, make it as invalid in the SBP message. */
+        imu_raw.tow = (1 << 31);
+        imu_raw.tow_f = 0;
+      }
+
+      /* Send out IMU_RAW SBP message. */
+      sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8*)&imu_raw);
+
+    } else if (new_mag) {
+      /* TODO: Magnetometer */
+    }
   }
 }
 
@@ -120,15 +137,88 @@ static bool imu_rate_changed(struct setting *s, const char *val)
   return false;
 }
 
+static bool raw_imu_output_changed(struct setting *s, const char *val)
+{
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val))
+  {
+    bmi160_imu_set_enabled(raw_imu_output);
+    return true;
+  }
+  return false;
+}
+
+static bool acc_range_changed(struct setting *s, const char *val)
+{
+  if (!s->type->from_string(s->type->priv, s->addr, s->len, val))
+  {
+    return false;
+  }
+
+  /* Convert between the setting value, which is an integer corresponding to
+   * the index of the selected setting in the list of strings, and the relevant
+   * enum values */
+  switch (acc_range)
+  {
+  case 0: /* 2g */
+    bmi160_set_acc_range(BMI160_ACC_2G);
+    break;
+  case 1: /* 4g */
+    bmi160_set_acc_range(BMI160_ACC_4G);
+    break;
+  case 2: /* 8g */
+    bmi160_set_acc_range(BMI160_ACC_8G);
+    break;
+  case 3: /* 16g */
+    bmi160_set_acc_range(BMI160_ACC_16G);
+    break;
+  default:
+    log_error("Unexpected accelerometer range setting: %u", acc_range);
+    break;
+  }
+
+  return true;
+}
+
+static bool gyr_range_changed(struct setting *s, const char *val)
+{
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val))
+  {
+    /* The settings values and the enum values correspond numerically so no
+     * need to convert between them. */
+    bmi160_set_gyr_range(gyr_range);
+    return true;
+  }
+  return false;
+}
+
 void imu_init(void)
 {
   bmi160_init();
 
+  SETTING_NOTIFY("imu", "imu_raw_output", raw_imu_output, TYPE_BOOL,
+                 raw_imu_output_changed);
+
   static const char const *rate_enum[] =
-    {"25 Hz", "50 Hz", "100 Hz", "200 Hz", "400 Hz", NULL};
+    {"25", "50", "100", "200", "400", NULL};
   static struct setting_type rate_setting;
   int TYPE_RATE = settings_type_register_enum(rate_enum, &rate_setting);
-  SETTING_NOTIFY("imu", "rate", imu_rate, TYPE_RATE, imu_rate_changed);
+  SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_RATE, imu_rate_changed);
+
+  static const char const *acc_range_enum[] =
+    {"2g", "4g", "8g", "16g", NULL};
+  static struct setting_type acc_range_setting;
+  int TYPE_ACC_RANGE = settings_type_register_enum(acc_range_enum,
+                                                   &acc_range_setting);
+  SETTING_NOTIFY("imu", "acc_range", acc_range, TYPE_ACC_RANGE,
+                 acc_range_changed);
+
+  static const char const *gyr_range_enum[] =
+    {"2000", "1000", "500", "250", "125", NULL};
+  static struct setting_type gyr_range_setting;
+  int TYPE_GYR_RANGE = settings_type_register_enum(gyr_range_enum,
+                                                   &gyr_range_setting);
+  SETTING_NOTIFY("imu", "gyro_range", gyr_range, TYPE_GYR_RANGE,
+                 gyr_range_changed);
 
   chThdCreateStatic(wa_imu_thread, sizeof(wa_imu_thread),
                     IMU_THREAD_PRIO, imu_thread, NULL);
