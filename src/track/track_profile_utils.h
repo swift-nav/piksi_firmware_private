@@ -254,7 +254,7 @@ typedef struct {
 /**
  * Macro for default tracker parameters initialization
  */
-#define TP_TRACKER_DEFAULT_CONFIG {false, 1.f, 0.1f, 3.f, {0, 0}}
+#define TP_TRACKER_DEFAULT_CONFIG {false, 10.f, 0.1f, 1.f, {0, 0}}
 
 /**
  * Registers common configuration parameters for a tracker section.

@@ -57,13 +57,17 @@ typedef struct {
 #define TRACK_CMN_FLAG_TOW_DECODED (1 << 8)
 /** Tracker flag: tracker has propagated TOW */
 #define TRACK_CMN_FLAG_TOW_PROPAGATED (1 << 9)
+/** Tracker flag: tracker is a cross-correlate confirmed */
+#define TRACK_CMN_FLAG_XCORR_CONFIRMED (1 << 10)
 /** Tracker flag: tracker is a cross-correlate suspect */
-#define TRACK_CMN_FLAG_XCORR          (1 << 10)
+#define TRACK_CMN_FLAG_XCORR_SUSPECT (1 << 11)
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
                                     TRACK_CMN_FLAG_HAD_FLOCK | \
                                     TRACK_CMN_FLAG_TOW_DECODED | \
-                                    TRACK_CMN_FLAG_TOW_PROPAGATED)
+                                    TRACK_CMN_FLAG_TOW_PROPAGATED | \
+                                    TRACK_CMN_FLAG_XCORR_CONFIRMED | \
+                                    TRACK_CMN_FLAG_XCORR_SUSPECT)
 
 /**
  * Common tracking feature flags.
@@ -79,6 +83,8 @@ typedef struct {
  * - #TRACK_CMN_FLAG_HAD_FLOCK
  * - #TRACK_CMN_FLAG_TOW_DECODED
  * - #TRACK_CMN_FLAG_TOW_PROPAGATED
+ * - #TRACK_CMN_FLAG_XCORR_CONFIRMED
+ * - #TRACK_CMN_FLAG_XCORR_SUSPECT
  *
  * \sa tracker_common_data_t
  */

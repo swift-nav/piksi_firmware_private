@@ -45,10 +45,11 @@
  * GPS L1 C/A tracker data container type.
  */
 typedef struct {
-  tp_tracker_data_t data;         /**< Tracker data */
-  u16 xcorr_counts[NUM_SATS_GPS]; /**< Cross-correlation interval counters */
-  u8  xcorr_flag: 1;              /**< Cross-correlation flag */
-  u8  reserved: 7;                /**< Unused (reserved) flags */
+  tp_tracker_data_t data;            /**< Tracker data */
+  u16 xcorr_counts[NUM_SATS_GPS];    /**< Cross-correlation interval counters */
+  u8  xcorr_whitelist[NUM_SATS_GPS]; /**< Cross-correlation whitelist SV pairs */
+  u8  xcorr_flag: 1;                 /**< Cross-correlation flag */
+  u8  reserved: 7;                   /**< Unused (reserved) flags */
 } gps_l1ca_tracker_data_t;
 
 /** GPS L1 C/A configuration container */
@@ -255,8 +256,6 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
 /**
  * Updates cross-correlation state.
  *
- * TODO the code is incomplete
- *
  * This function checks if any of the channels have a `matching` frequency for
  * a pre-configured period of time. The match condition is described by:
  * \f[
@@ -284,7 +283,10 @@ static void update_xcorr(const tracker_channel_info_t *channel_info,
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context)) {
 
+    gps_l1ca_tracker_data_t *mode = data;
+
     float freq_mod = fmodf(common_data->xcorr_freq, L1CA_XCORR_FREQ_STEP);
+    float cn0 = common_data->cn0;
     s32 max_time_cnt = (s32)(gps_l1ca_config.xcorr_time *
                              (SECS_MS / GPS_L1CA_BIT_LENGTH_MS));
 
@@ -292,6 +294,7 @@ static void update_xcorr(const tracker_channel_info_t *channel_info,
     u16 cnt = tracking_channel_load_cc_data(&cc_data);
 
     bool xcorr_flags[NUM_SATS_GPS] = {false};
+    float xcorr_cn0_diffs[NUM_SATS_GPS] = {0.0f};
     for (u16 idx = 0; idx < cnt; ++idx) {
       const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
       if (CODE_GPS_L1CA != entry->sid.code) {
@@ -303,47 +306,73 @@ static void update_xcorr(const tracker_channel_info_t *channel_info,
         continue;
       }
 
+      float entry_cn0 = entry->cn0;
       float entry_freq_mod = fmodf(entry->freq, L1CA_XCORR_FREQ_STEP);
       float error = fabsf(entry_freq_mod - freq_mod);
       if (error <= gps_l1ca_config.xcorr_delta) {
         xcorr_flags[entry->sid.sat - 1] = true;
+        xcorr_cn0_diffs[entry->sid.sat - 1] = cn0 - entry_cn0;
+      }
+      else if (error >= 10.0f * gps_l1ca_config.xcorr_delta &&
+               common_data->xcorr_freq != 0.0f &&
+               entry->freq != 0.0f) {
+        data->xcorr_whitelist[entry->sid.sat - 1] = true;
       }
     }
 
+    if (tp_tl_is_fll(&mode->data.tl_state)) {
+      for (u16 idx = 0; idx < ARRAY_SIZE(xcorr_flags); ++idx) {
+        data->xcorr_whitelist[idx] = false;
+      }
+    }
+
+    if (cn0 >= 40.0f) {
+      return;
+    }
+
+    bool xcorr_confirmed = false;
+    bool xcorr_suspect = false;
     u32 xcorr_mask = 0;
     for (u16 idx = 0; idx < ARRAY_SIZE(xcorr_flags); ++idx) {
       if (idx + 1 == channel_info->sid.sat) {
         /* Exclude itself */
         continue;
       }
-      if (xcorr_flags[idx]) {
+      if (xcorr_flags[idx] && !data->xcorr_whitelist[idx]) {
         if (data->xcorr_counts[idx] < max_time_cnt) {
           ++data->xcorr_counts[idx];
         } else {
-          /* Cross-correlation with different SV */
-          xcorr_mask = UINT32_C(1) << idx;
+          if (xcorr_cn0_diffs[idx] < -15.0f && xcorr_cn0_diffs[idx] > -20.0f) {
+            xcorr_suspect = true;
+            /* Cross-correlation suspect with different SV */
+            xcorr_mask |= UINT32_C(1) << idx;
+          }
+          else if (xcorr_cn0_diffs[idx] <= -20.0f) {
+            xcorr_confirmed = true;
+          }
         }
       } else {
         /* Reset CC lock counter */
         data->xcorr_counts[idx] = 0;
       }
     }
-    bool cc_flag = 0 != xcorr_mask;
-    if (data->xcorr_flag != cc_flag) {
-      if (cc_flag) {
+
+    if (data->xcorr_flag != xcorr_suspect) {
+      if (xcorr_suspect) {
+        common_data->flags ^= TRACK_CMN_FLAG_XCORR_SUSPECT;
         log_info_sid(channel_info->sid,
-                     "setting cross-correlation flag; mask=0x%08",
+                     "setting cross-correlation flag; mask=%08x",
                      xcorr_mask);
       } else {
+        common_data->flags ^= TRACK_CMN_FLAG_XCORR_SUSPECT;
         log_info_sid(channel_info->sid, "clearing cross-correlation flag");
       }
-      data->xcorr_flag = cc_flag;
+      data->xcorr_flag = xcorr_suspect;
       common_data->xcorr_change_count = common_data->update_count;
     }
-  }
-
-  if (data->xcorr_flag) {
-    common_data->flags |= TRACK_CMN_FLAG_XCORR;
+    if (xcorr_confirmed) {
+      common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+    }
   }
 }
 

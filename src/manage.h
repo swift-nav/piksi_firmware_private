@@ -103,7 +103,9 @@
 /** Tracking channel flag: carrier phase offset was estimated */
 #define MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET (1u << 19)
 /** Tracking channel flag: is cross-correlated */
-#define MANAGE_TRACK_FLAG_XCORR          (1u << 20)
+#define MANAGE_TRACK_FLAG_XCORR_CONFIRMED (1u << 20)
+/** Tracking channel flag: is cross-correlation suspect */
+#define MANAGE_TRACK_FLAG_XCORR_SUSPECT (1u << 21)
 
 /* Tracking channel state masks */
 

@@ -1563,8 +1563,12 @@ static tracking_channel_flags_t tracking_channel_get_flags(
       result |= TRACKING_CHANNEL_FLAG_TOW_DECODED;
     }
     /* Tracking status: cross-correlation status */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR)) {
-      result |= TRACKING_CHANNEL_FLAG_XCORR;
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_CONFIRMED)) {
+      result |= TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED;
+    }
+    /* Tracking status: cross-correlation suspect */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_SUSPECT)) {
+      result |= TRACKING_CHANNEL_FLAG_XCORR_SUSPECT;
     }
   }
 

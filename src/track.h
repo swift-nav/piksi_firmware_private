@@ -78,8 +78,10 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_MESSAGE_SYNC    TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC
 /** Tracking channel flag: tracker has word sync (L1C/A) */
 #define TRACKING_CHANNEL_FLAG_WORD_SYNC      (1u << 21)
+/** Tracking channel flag: tracker is a cross-correlation confirmed */
+#define TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED (1u << 22)
 /** Tracking channel flag: tracker is a cross-correlation suspect */
-#define TRACKING_CHANNEL_FLAG_XCORR          (1u << 22)
+#define TRACKING_CHANNEL_FLAG_XCORR_SUSPECT (1u << 23)
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;
@@ -148,7 +150,7 @@ typedef struct {
 /**
  * Input entry for cross-correlation processing
  *
- * \sa tracking_chennel_cc_data_t
+ * \sa tracking_channel_cc_data_t
  */
 typedef struct {
   tracker_channel_id_t     id;    /**< Tracking channel id */

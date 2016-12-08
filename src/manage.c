@@ -64,6 +64,7 @@ typedef enum {
   CH_DROP_REASON_NO_PLOCK,      /**< Pessimistic lock timeout */
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_LOW_ELEVATION, /**< SV elevation is too low */
+  CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -649,6 +650,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_NO_PLOCK: str = "No pessimistic lock for too long, dropping"; break;
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_LOW_ELEVATION: str = "below elevation mask, dropping"; break;
+  case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -807,6 +809,12 @@ static void manage_track()
       memset(&acq->score, 0, sizeof(acq->score));
       continue;
     }
+
+    /* Do we have confirmed cross-correlation? */
+    if (0 != (info.flags & TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED)) {
+      drop_channel(i, CH_DROP_REASON_XCORR, &info, &time_info, &freq_info);
+      continue;
+    }
   }
   /* All unhealthy satellites were dropped if acquisition managing thread
    * requested so, so clear this flag.
@@ -926,8 +934,11 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
     if (time_info->last_mode_change_ms > TRACK_STABILIZATION_T) {
       result |= MANAGE_TRACK_FLAG_STABLE;
     }
-    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_XCORR)) {
-      result |= MANAGE_TRACK_FLAG_XCORR;
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED)) {
+      result |= MANAGE_TRACK_FLAG_XCORR_CONFIRMED;
+    }
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_XCORR_SUSPECT)) {
+      result |= MANAGE_TRACK_FLAG_XCORR_SUSPECT;
     }
   }
 
@@ -1065,7 +1076,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
   if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
       0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
       0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
-      0 == (flags & MANAGE_TRACK_FLAG_XCORR)) {
+      0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
     /* Load information from SID cache and NDB */
     flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, NULL);
 
