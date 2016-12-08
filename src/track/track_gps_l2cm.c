@@ -54,7 +54,7 @@ static tp_tracker_config_t gps_l2cm_config = TP_TRACKER_DEFAULT_CONFIG;
 /** GPS L2C tracker table */
 static tracker_t gps_l2cm_trackers[NUM_GPS_L2CM_TRACKERS];
 /** GPS L2C tracker data */
-static gps_l2cm_tracker_data_t gps_l2cm_tracker_data[NUM_GPS_L2CM_TRACKERS];
+static gps_l2cm_tracker_data_t gps_l2cm_tracker_data[ARRAY_SIZE(gps_l2cm_trackers)];
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2cm_init;
@@ -68,7 +68,7 @@ static const tracker_interface_t tracker_interface_gps_l2cm = {
   .disable =      tracker_gps_l2cm_disable,
   .update =       tracker_gps_l2cm_update,
   .trackers =     gps_l2cm_trackers,
-  .num_trackers = NUM_GPS_L2CM_TRACKERS
+  .num_trackers = ARRAY_SIZE(gps_l2cm_trackers)
 };
 
 /** GPS L2C tracker interface list element */
@@ -78,14 +78,40 @@ static tracker_interface_list_element_t
     .next = 0
   };
 
+/**
+ * Function for updating configuration on parameter change
+ *
+ * \param[in] s   Setting descriptor
+ * \param[in] val New parameter value
+ *
+ * \return Update status
+ */
+static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
+{
+  bool res = settings_default_notify(s, val);
+
+  if (res) {
+    lp1_filter_compute_params(&gps_l2cm_config.xcorr_f_params,
+                              gps_l2cm_config.xcorr_cof,
+                              SECS_MS / GPS_L2C_SYMBOL_LENGTH);
+  }
+
+  return res;
+}
+
 /** Register L2 CM tracker into the the tracker interface & settings
  *  framework.
  */
 void track_gps_l2cm_register(void)
 {
-  TP_TRACKER_REGISTER_CONFIG(L2CM_TRACK_SETTING_SECTION, gps_l2cm_config);
+  TP_TRACKER_REGISTER_CONFIG(L2CM_TRACK_SETTING_SECTION,
+                             gps_l2cm_config,
+                             settings_pov_speed_cof_proxy);
+  lp1_filter_compute_params(&gps_l2cm_config.xcorr_f_params,
+                            gps_l2cm_config.xcorr_cof,
+                            SECS_MS / GPS_L2C_SYMBOL_LENGTH);
 
-  for (u32 i = 0; i < NUM_GPS_L2CM_TRACKERS; i++) {
+  for (u32 i = 0; i < ARRAY_SIZE(gps_l2cm_trackers); i++) {
     gps_l2cm_trackers[i].active = false;
     gps_l2cm_trackers[i].data = &gps_l2cm_tracker_data[i];
   }
@@ -310,7 +336,8 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   gps_l2cm_tracker_data_t *l2c_data = tracker_data;
   tp_tracker_data_t *data = &l2c_data->data;
 
-  u32 cflags = tp_tracker_update(channel_info, common_data, data);
+  u32 cflags = tp_tracker_update(channel_info, common_data, data,
+                                 &gps_l2cm_config);
 
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(channel_info, common_data, data, cflags);

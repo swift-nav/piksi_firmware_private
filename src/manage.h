@@ -100,6 +100,8 @@
 #define MANAGE_TRACK_FLAG_PLL_PLOCK      (1u << 17)
 /** Tracking channel flag: is FLL lock present */
 #define MANAGE_TRACK_FLAG_FLL_LOCK       (1u << 18)
+/** Tracking channel flag: is cross-correlated */
+#define MANAGE_TRACK_FLAG_XCORR          (1u << 19)
 
 /* Tracking channel state masks */
 
