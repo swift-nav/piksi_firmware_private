@@ -208,10 +208,17 @@ static void update_obss(obss_t *new_obss)
       memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
       base_obss.has_pos = 1;
 
+      chMtxLock(&base_pos_lock);
       if (base_pos_known) {
         double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
 
         if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+          log_warn("Received base observation with SPP position %f m from the"
+                  " surveyed position. Check the base station position setting.",
+                  base_distance);
+        }
+
+        if (base_distance > BASE_STATION_RESET_THRESHOLD) {
           log_warn("Received base observation with SPP position %f m from the"
                   " surveyed position. Ignoring the observation.",
                   base_distance);
@@ -219,6 +226,7 @@ static void update_obss(obss_t *new_obss)
           have_obs = false;
         }
       }
+      chMtxUnlock(&base_pos_lock);
     } else {
       base_obss.has_pos = 0;
       /* TODO(dsk) check for repair failure */

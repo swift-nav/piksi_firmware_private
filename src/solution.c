@@ -1131,6 +1131,10 @@ static void time_matched_obs_thread(void *arg)
           log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
                    " filter.", old_base_sender_id, base_obss.sender_id);
           reset_rtk_filter();
+          chMtxLock(&base_pos_lock);
+          base_pos_known = false;
+          memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+          chMtxUnlock(&base_pos_lock);
         }
         old_base_sender_id = base_obss.sender_id;
 
