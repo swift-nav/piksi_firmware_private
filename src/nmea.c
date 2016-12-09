@@ -485,6 +485,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
                     const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas,
                     u8 sender_id, double propagation_time)
 {
+
   nmea_gpgga(sbp_pos_llh, sbp_msg_time, sbp_dops, propagation_time, sender_id);
 
   bool skip_velocity = sbp_vel_ned->flags == 0;
@@ -508,9 +509,11 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
   DO_EVERY(gpgsa_msg_rate,
     nmea_assemble_gpgsa(sbp_dops);
   );
-  DO_EVERY(gpgsv_msg_rate,
-    nmea_gpgsv(nav_meas, sbp_pos_ecef);
-  );
+  if(nav_meas) {
+    DO_EVERY(gpgsv_msg_rate,
+             nmea_gpgsv(nav_meas, sbp_pos_ecef);
+    );
+  };
 }
 
 /** \cond */

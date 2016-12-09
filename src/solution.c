@@ -174,6 +174,7 @@ void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump) {
 void solution_send_sbp(double propagation_time, u8 sender_id,
                        const navigation_measurement_t *nav_meas) {
 
+  if (dgnss_timeout(last_dgnss, soln_freq, dgnss_soln_mode))
   sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(gps_time), (u8 *) &gps_time);
   sbp_send_msg(SBP_MSG_POS_LLH, sizeof(pos_llh), (u8 *) &pos_llh);
   sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(pos_ecef), (u8 *) &pos_ecef);
@@ -194,19 +195,12 @@ void solution_send_sbp(double propagation_time, u8 sender_id,
 
   sbp_send_msg(SBP_MSG_DOPS, sizeof(sbp_dops), (u8 *) &sbp_dops);
 
-  // To send nmea, we want to reconstruct the gnss_solution_t from the best
-  // positions calculated
+  // Send NMEA if we have a valid solution calculated
   if (pos_llh.flags != 0) {
     nmea_send_msgs(&pos_llh, &pos_ecef, &vel_ned, &sbp_dops, &gps_time,
                    nav_meas, propagation_time, sender_id);
   }
 }
-
-//void solution_send_nmea(msg_nmea_gga *nmea_gga, gnss_solution *soln, dops_t *dops,
-//                        u8 n, navigation_measurement_t *nm, bool velocity_valid)
-//{
-//  nmea_send_msgs(nmea_gga, soln, n, nm, dops, velocity_valid);
-//}
 
 double calc_heading(const double b_ned[3])
 {
@@ -1165,6 +1159,8 @@ static void time_matched_obs_thread(void *arg)
 
         process_matched_obs(n_sds, &obss->tor, sds);
         chPoolFree(&obs_buff_pool, obss);
+        solution_send_sbp(0.0, base_obss.sender_id, NULL);
+
         break;
       } else {
         chMtxUnlock(&base_obs_lock);
