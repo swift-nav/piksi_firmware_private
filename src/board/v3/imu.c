@@ -21,11 +21,15 @@
 #include <board/nap/nap_common.h>
 #include <board/v3/peripherals/bmi160.h>
 
-#define IMU_THREAD_PRIO    (HIGHPRIO - 1)
-#define IMU_THREAD_STACK   2000
+#define IMU_THREAD_PRIO        (HIGHPRIO - 1)
+#define IMU_THREAD_STACK       2000
+#define IMU_AUX_THREAD_PRIO    (LOWPRIO + 10)
+#define IMU_AUX_THREAD_STACK   2000
 
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
+/** Working area for the IMU auxiliary data processing thread. */
+static THD_WORKING_AREA(wa_imu_aux_thread, IMU_AUX_THREAD_STACK);
 
 /** IMU interrupt request semaphore. Signals to the IMU data processing thread
  * that an IMU interrupt has occured. */
@@ -61,6 +65,29 @@ static void imu_isr(void *context)
   chSysUnlockFromISR();
 }
 
+/** IMU auxiliary data processing thread. */
+static void imu_aux_thread(void *arg)
+{
+  (void)arg;
+  chRegSetThreadName("IMU aux");
+
+  msg_imu_aux_t imu_aux;
+  (void)imu_aux;
+
+  while (TRUE) {
+    if (raw_imu_output) {
+      imu_aux.imu_type = 0; /* Bosch BMI160 */
+      imu_aux.temp = bmi160_read_temp();
+      imu_aux.imu_conf = (gyr_range << 4) | acc_range;
+
+      /* Send out IMU_AUX SBP message. */
+      sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8*)&imu_aux);
+    }
+
+    chThdSleepMilliseconds(1000);
+  }
+}
+
 /** IMU data processing thread. */
 static void imu_thread(void *arg)
 {
@@ -81,6 +108,12 @@ static void imu_thread(void *arg)
     bool new_acc, new_gyro, new_mag;
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
 
+    bmi160_get_data(acc, gyro, mag, &sensor_time);
+
+    if (new_mag) {
+      /* TODO: Magnetometer */
+    }
+
     if (new_acc != new_gyro) {
       log_debug("Accelerometer and Gyro not both ready %u %u\n",
                 new_acc, new_gyro);
@@ -90,7 +123,6 @@ static void imu_thread(void *arg)
     if (new_acc && new_gyro) {
 
       /* Read out the IMU data and fill out the SBP message. */
-      bmi160_get_data(acc, gyro, mag, &sensor_time);
       imu_raw.acc_x = acc[0];
       imu_raw.acc_y = acc[1];
       imu_raw.acc_z = acc[2];
@@ -120,9 +152,6 @@ static void imu_thread(void *arg)
 
       /* Send out IMU_RAW SBP message. */
       sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8*)&imu_raw);
-
-    } else if (new_mag) {
-      /* TODO: Magnetometer */
     }
   }
 }
@@ -222,6 +251,8 @@ void imu_init(void)
 
   chThdCreateStatic(wa_imu_thread, sizeof(wa_imu_thread),
                     IMU_THREAD_PRIO, imu_thread, NULL);
+  chThdCreateStatic(wa_imu_aux_thread, sizeof(wa_imu_aux_thread),
+                    IMU_AUX_THREAD_PRIO, imu_aux_thread, NULL);
 
   /* Enable IMU INT1 interrupt */
   gic_handler_register(IRQ_ID_IMU_INT1, imu_isr, NULL);

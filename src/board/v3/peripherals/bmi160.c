@@ -20,28 +20,7 @@ static const SPIConfig spi_config = IMU_SPI_CONFIG;
 
 #define SPI_READ_MASK (1 << 7)
 
-#define BMI160_STATUS_ACC_RDY_Msk 0x80
-#define BMI160_STATUS_GYRO_RDY_Msk 0x40
-#define BMI160_STATUS_MAG_RDY_Msk 0x20
-#define BMI160_STATUS_I2C_OP_Msk 0x04
-
-#define BMI160_DATA_MAG_OFFSET 0
-#define BMI160_DATA_GYRO_OFFSET 8
-#define BMI160_DATA_ACC_OFFSET 14
-#define BMI160_DATA_TIME_OFFSET 20
-#define BMI160_DATA_SIZE 23
-
-//ID of device in BMI160_REG_CHIP_ID
-#define BMI160_MFDVID 0b11010001
-
-#define BMM150_I2C_SLV_ADDR 0x13
-#define BMM150_REG_MFDVID 0x32
-
-#define BMM150_REG_ID 0x40
-#define BMM150_REG_MODE1 0x4B
-#define BMM150_REG_MODE2 0x4C
-#define BMM150_REG_DATA 0x42
-
+/** Open and lock the SPI but that the BMI160 is on. */
 static void bmi160_open_spi(void)
 {
   spiAcquireBus(&IMU_SPI);
@@ -51,12 +30,14 @@ static void bmi160_open_spi(void)
   chThdSleepMilliseconds(1);
 }
 
+/** Close and release the SPI but that the BMI160 is on. */
 static void bmi160_close_spi(void)
 {
   spiUnselect(&IMU_SPI);
   spiReleaseBus(&IMU_SPI);
 }
 
+/** Write a register value to the BMI160. */
 static void bmi160_write_reg(u8 reg, u8 data)
 {
   const u8 send_buf[2] = {reg, data};
@@ -66,6 +47,7 @@ static void bmi160_write_reg(u8 reg, u8 data)
   bmi160_close_spi();
 }
 
+/** Read a register value from the BMI160. */
 static u8 bmi160_read_reg(u8 reg)
 {
   const u8 dummy_data = 0x00;
@@ -77,35 +59,39 @@ static u8 bmi160_read_reg(u8 reg)
   return recv_buf[1];
 }
 
+/** Wait for a command to complete on the BMI160. */
 static void bmi160_wait_cmd_complete(void)
 {
-  //TODO: the check for the command to complete doesnt seem to work,
-  //adding forced sleep to avoid dropping commands. Is there a better way?
+  /* TODO: the check for the command to complete doesnt seem to work,
+   * adding forced sleep to avoid dropping commands. Is there a better way? */
   chThdSleepMilliseconds(10);
   while(bmi160_read_reg(BMI160_REG_CMD) != 0);
 }
 
+/** Wait for a command to complete on the BMM150. */
 static void bmm150_wait_cmd_complete(void)
 {
   while(bmi160_read_reg(BMI160_REG_STATUS) & BMI160_STATUS_I2C_OP_Msk);
 }
 
+/** Check if the ID of the BMI160 is as expected. */
 static bool bmi160_check_id(void)
 {
   return bmi160_read_reg(BMI160_REG_CHIP_ID) == BMI160_MFDVID;
 }
 
+/** Check if the ID of the BMM150 is as expected. */
 static bool bmm150_check_id(void)
 {
-  //put mag into setup mode
+  /* Put BMM150 into setup mode */
   bmi160_write_reg(BMI160_REG_MAG_IF+1, 0x80);
 
-  //Read chip ID
+  /* Read chip ID */
   bmi160_write_reg(BMI160_REG_MAG_IF+2, BMM150_REG_ID);
   bmm150_wait_cmd_complete();
   u8 id = bmi160_read_reg(BMI160_REG_DATA + BMI160_DATA_MAG_OFFSET);
 
-  //put mag out of setup mode into data mode
+  /* Put mag out of setup mode into data mode. */
   bmi160_write_reg(BMI160_REG_MAG_IF+2, BMM150_REG_DATA);
   bmm150_wait_cmd_complete();
   bmi160_write_reg(BMI160_REG_MAG_IF+1, 3);
@@ -185,6 +171,8 @@ void bmi160_init(void)
 
 }
 
+/* Set the IMU (Accels and Gyros) data rate.
+ * Doesn't affect the operation of the magnetometer. */
 void bmi160_set_imu_rate(imu_rate_t rate)
 {
   u8 rate_val = BMI160_IMU_RATE_25HZ + (0xF & (u8)rate);
@@ -192,6 +180,8 @@ void bmi160_set_imu_rate(imu_rate_t rate)
   bmi160_write_reg(BMI160_REG_GYR_CONF, 0b00100000 | rate_val);
 }
 
+/** Enable or disable the IMU (Accels and Gyros) in the BMI160.
+ * Doesn't affect the operation of the magnetometer. */
 void bmi160_imu_set_enabled(bool enabled)
 {
   /* Set sensor mode to Normal or Suspended depending on the enabled value. */
@@ -206,16 +196,19 @@ void bmi160_imu_set_enabled(bool enabled)
   bmi160_wait_cmd_complete();
 }
 
+/** Set the full scale range of the accelerometer. */
 void bmi160_set_acc_range(bmi160_acc_range_t range)
 {
   bmi160_write_reg(BMI160_REG_ACC_RANGE, 0xF & (u8)range);
 }
 
+/** Set the full scale range of the gyroscope. */
 void bmi160_set_gyr_range(bmi160_gyr_range_t range)
 {
   bmi160_write_reg(BMI160_REG_GYR_RANGE, 0x7 & (u8)range);
 }
 
+/** Check if any new data is available from the sensors. */
 void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag)
 {
   u8 status = bmi160_read_reg(BMI160_REG_STATUS);
@@ -224,15 +217,18 @@ void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag)
   *new_mag = status & BMI160_STATUS_MAG_RDY_Msk;
 }
 
-void bmi160_get_data(s16 acc[static 3], s16 gyro[static 3], s16 mag[static 3], u32* sensor_time)
+/** Read the sensor data from the BMI160 and BMM150. */
+void bmi160_get_data(s16 acc[static 3], s16 gyro[static 3], s16 mag[static 3],
+                     u32* sensor_time)
 {
-  //first byte is for register address
+  /* First byte is for register address. All sensors are read together. */
   u8 buf[BMI160_DATA_SIZE + 1];
   buf[0] = BMI160_REG_DATA | SPI_READ_MASK;
   bmi160_open_spi();
   spiExchange(&IMU_SPI, sizeof(buf), buf, buf);
   bmi160_close_spi();
 
+  /* Extract data from data buffer */
   memcpy(mag, &buf[1 + BMI160_DATA_MAG_OFFSET], 2 * 3);
   memcpy(gyro, &buf[1 + BMI160_DATA_GYRO_OFFSET], 2 * 3);
   memcpy(acc, &buf[1 + BMI160_DATA_ACC_OFFSET], 2 * 3);
@@ -240,12 +236,22 @@ void bmi160_get_data(s16 acc[static 3], s16 gyro[static 3], s16 mag[static 3], u
   memcpy(sensor_time, &buf[1 + BMI160_DATA_TIME_OFFSET], 3);
 }
 
+/* Read the temperature from the BMI160.
+ * Note that the gyro must be operational for the temperature sensor to work
+ * correctly. */
+s16 bmi160_read_temp(void)
+{
+  return bmi160_read_reg(BMI160_REG_TEMPERATURE_0) |
+         (bmi160_read_reg(BMI160_REG_TEMPERATURE_1) << 8);
+}
 
+/** Read status register from BMI160. */
 u8 bmi160_read_status(void)
 {
   return bmi160_read_reg(BMI160_REG_STATUS);
 }
 
+/** Read the error register from the BMI160. */
 u8 bmi160_read_error(void)
 {
   return bmi160_read_reg(BMI160_REG_ERR_REG);
