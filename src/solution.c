@@ -948,67 +948,66 @@ static void solution_thread(void *arg)
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
     log_warn("GPS calculated error %.20g",t_err);
-//
-//    /* Only send observations that are closely aligned with the desired
-//     * solution epochs to ensure they haven't been propagated too far. */
-//    log_warn("Time Error calc %f",t_err);
+
+    /* Only send observations that are closely aligned with the desired
+     * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-//
-//      /* Propagate observations to desired time. */
-//      /* We have to use the tdcp_doppler result to account for TCXO drift. */
-//      /* nav_meas_tdcp is updated in place, skipping elements if required. */
-//      u8 n_ready_tdcp_new = 0;
-//      for (u8 i = 0; i < n_ready_tdcp; i++) {
-//        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
-//
-//        /* Copy measurement to new index if a previous measurement
-//         * has been skipped. */
-//        if (i != n_ready_tdcp_new) {
-//          memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
-//        }
-//
-//        double doppler = 0.0;
-//        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-//          doppler = nm->raw_measured_doppler;
-//        }
-//
-//        nm->raw_carrier_phase += t_err * doppler;
-//        /* Note, the pseudorange correction has opposite sign because Doppler
-//         * has the opposite sign compared to the pseudorange rate. */
-//        nm->raw_pseudorange -= t_err * doppler *
-//                               code_to_lambda(nm->sid.code);
-//
-//        /* Correct the observations for the receiver clock error. */
-//        nm->raw_carrier_phase += lgf.position_solution.clock_offset *
-//                                      GPS_C / code_to_lambda(nm->sid.code);
-//        nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
-//
-//        /* Also apply the time correction to the time of transmission so the
-//         * satellite positions can be calculated for the correct time. */
-//        nm->tot.tow += t_err;
-//        normalize_gps_time(&nm->tot);
-//
-//        ephemeris_t ephe;
-//        ndb_ephemeris_read(nm->sid, &ephe);
-//        u8 eph_valid;
-//        s8 ss_ret;
-//        double clock_rate_err;
-//
-//        eph_valid = ephemeris_valid(&ephe, &nm->tot);
-//        if (eph_valid) {
-//          ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-//                                  &nm->sat_clock_err, &clock_rate_err);
-//        }
-//
-//        if (!eph_valid || (ss_ret != 0)) {
-//          continue;
-//        }
-//
-//        n_ready_tdcp_new++;
-//      }
+
+      /* Propagate observations to desired time. */
+      /* We have to use the tdcp_doppler result to account for TCXO drift. */
+      /* nav_meas_tdcp is updated in place, skipping elements if required. */
+      u8 n_ready_tdcp_new = 0;
+      for (u8 i = 0; i < n_ready_tdcp; i++) {
+        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
+
+        /* Copy measurement to new index if a previous measurement
+         * has been skipped. */
+        if (i != n_ready_tdcp_new) {
+          memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
+        }
+
+        double doppler = 0.0;
+        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+          doppler = nm->raw_measured_doppler;
+        }
+
+        nm->raw_carrier_phase += t_err * doppler;
+        /* Note, the pseudorange correction has opposite sign because Doppler
+         * has the opposite sign compared to the pseudorange rate. */
+        nm->raw_pseudorange -= t_err * doppler *
+                               code_to_lambda(nm->sid.code);
+
+        /* Correct the observations for the receiver clock error. */
+        nm->raw_carrier_phase += lgf.position_solution.clock_offset *
+                                      GPS_C / code_to_lambda(nm->sid.code);
+        nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
+
+        /* Also apply the time correction to the time of transmission so the
+         * satellite positions can be calculated for the correct time. */
+        nm->tot.tow += t_err;
+        normalize_gps_time(&nm->tot);
+
+        ephemeris_t ephe;
+        ndb_ephemeris_read(nm->sid, &ephe);
+        u8 eph_valid;
+        s8 ss_ret;
+        double clock_rate_err;
+
+        eph_valid = ephemeris_valid(&ephe, &nm->tot);
+        if (eph_valid) {
+          ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
+                                  &nm->sat_clock_err, &clock_rate_err);
+        }
+
+        if (!eph_valid || (ss_ret != 0)) {
+          continue;
+        }
+
+        n_ready_tdcp_new++;
+      }
 
       /* Update n_ready_tdcp. */
- //     n_ready_tdcp = n_ready_tdcp_new;
+      n_ready_tdcp = n_ready_tdcp_new;
 
       /* If we have a recent set of observations from the base station, do a
        * differential solution. */
