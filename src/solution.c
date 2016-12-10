@@ -906,6 +906,7 @@ static void solution_thread(void *arg)
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
     log_warn("GPS Time Error %.20g",t_err);
+    log_warn("Solution Clock Error %.20g",lgf.position_solution.clock_offset);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
