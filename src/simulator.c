@@ -365,8 +365,9 @@ void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double e
   nav_meas->cn0             =  lerp(elevation, 0, M_PI/2, 35, 45) +
                                rand_gaussian(sim_settings.cn0_sigma *
                                              sim_settings.cn0_sigma);
-  nav_meas->flags=0xffff
-  nav_meas->lock_time = nav_meas->lock_time+=0.2
+  nav_meas->flags=0xffff;
+  if (nav_meas->lock_time <= 0) nav_meas->lock_time = 0.2;
+  nav_meas->lock_time += 0.2;
 }
 
 /** Returns true if the simulation is at all enabled

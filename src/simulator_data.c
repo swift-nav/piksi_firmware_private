@@ -3,15 +3,15 @@
 
 u16 simulation_week_number = 1787;
 
-double simulation_sats_pos[31][3];
+double simulation_sats_pos[33][3];
 
-double simulation_sats_vel[31][3];
+double simulation_sats_vel[33][3];
 
-u32 simulation_fake_carrier_bias[31];
+u32 simulation_fake_carrier_bias[33];
 
-u8 simulation_num_almanacs = 31;
+u8 simulation_num_almanacs = 33;
 
-const almanac_t simulation_almanacs[31] = {
+const almanac_t simulation_almanacs[33] = {
 { 
   .kepler = { 
     .ecc       = 0.002888,
@@ -89,6 +89,31 @@ const almanac_t simulation_almanacs[31] = {
 },
 { 
   .kepler = { 
+    .ecc       = 0.016847,
+    .inc       = 0.937600,
+    .omegadot  = -0.000000,
+    .sqrta     = 5153.723633,
+    .omega0    = -2.021208,
+    .w         = 1.373169,
+    .m0        = 2.664127,
+    .af0       = 0.000349,
+    .af1       = 0.000000,
+  },
+  .sid = { 
+    .code = 1,
+    .sat = 3
+  },
+  .toa = {
+    .wn = 1787,
+    .tow = 233472.000000
+  },
+  .ura = 900.000000,
+  .fit_interval = 518400,
+  .health_bits = 0,
+  .valid     = 1,
+},
+{ 
+  .kepler = { 
     .ecc       = 0.010565,
     .inc       = 0.938349,
     .omegadot  = -0.000000,
@@ -151,6 +176,31 @@ const almanac_t simulation_almanacs[31] = {
   },
   .sid = { 
     .code = 0,
+    .sat = 7
+  },
+  .toa = {
+    .wn = 1787,
+    .tow = 233472.000000
+  },
+  .ura = 900.000000,
+  .fit_interval = 518400,
+  .health_bits = 0,
+  .valid     = 1,
+},
+{
+  .kepler = { 
+    .ecc       = 0.007160,
+    .inc       = 0.973727,
+    .omegadot  = -0.000000,
+    .sqrta     = 5153.596191,
+    .omega0    = 2.342325,
+    .w         = -2.840829,
+    .m0        = 1.241122,
+    .af0       = 0.000333,
+    .af1       = 0.000000,
+  },
+  .sid = { 
+    .code = 1,
     .sat = 7
   },
   .toa = {
