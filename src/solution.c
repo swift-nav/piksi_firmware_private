@@ -868,7 +868,7 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
-    set_gps_time_offset(rec_tc, lgf.position_solution.time);
+    //set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
