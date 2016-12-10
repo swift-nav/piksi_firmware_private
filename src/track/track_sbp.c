@@ -219,6 +219,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
                                    channel_info,
                                    freq_info,
                                    time_info,
+                                   misc_info,
                                    &meas);
 
   s32 tow_ms = channel_info->tow_ms;
