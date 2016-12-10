@@ -59,12 +59,22 @@ extern u32 obs_output_divisor;
 extern u32 max_age_of_differential;
 
 void solution_send_sbp(double propagation_time, u8 sender_id,
-                       const navigation_measurement_t *nav_meas);
-void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump);
+                       const navigation_measurement_t *nav_meas, const msg_gps_time_t *gps_time,
+                       const msg_pos_llh_t *pos_llh, const msg_pos_ecef_t *pos_ecef,
+                       const msg_vel_ned_t *vel_ned, const msg_vel_ecef_t * vel_ecef,
+                       const msg_dops_t *sbp_dops, const msg_baseline_ned_t *baseline_ned,
+                       const msg_baseline_ecef_t *baseline_ecef, const msg_baseline_heading_t *baseline_heading);
+void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump, msg_gps_time_t *gps_time,
+                       msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
+                       msg_vel_ned_t *vel_ned, msg_vel_ecef_t *vel_ecef,
+                       msg_dops_t *sbp_dops);
 double calc_heading(const double b_ned[3]);
 void solution_make_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                             double covariance_ecef[9],
-                            double ref_ecef[3], u8 flags, dops_t *dops);
+                            double ref_ecef[3], u8 flags, dops_t *dops,
+                            msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
+                            msg_baseline_ned_t *baseline_ned, msg_baseline_ecef_t *baseline_ecef,
+                            msg_baseline_heading_t *baseline_heading, msg_dops_t *sbp_dops);
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);

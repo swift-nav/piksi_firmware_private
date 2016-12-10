@@ -490,26 +490,31 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
 
   bool skip_velocity = sbp_vel_ned->flags == 0;
 
-  if (!skip_velocity) {
+  if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time && !skip_velocity) {
     DO_EVERY(gprmc_msg_rate,
       nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time);
     );
   }
-  DO_EVERY(gpgll_msg_rate,
-    nmea_gpgll(sbp_pos_llh, sbp_msg_time);
-  );
-  if (!skip_velocity) {
+  if(sbp_pos_llh && sbp_msg_time) {
+    DO_EVERY(gpgll_msg_rate,
+             nmea_gpgll(sbp_pos_llh, sbp_msg_time););
+  }
+  if (sbp_vel_ned && !skip_velocity) {
     DO_EVERY(gpvtg_msg_rate,
       nmea_gpvtg(sbp_vel_ned);
     );
   }
-  DO_EVERY(gpzda_msg_rate,
-    nmea_gpzda(sbp_msg_time);
-  );
-  DO_EVERY(gpgsa_msg_rate,
-    nmea_assemble_gpgsa(sbp_dops);
-  );
-  if(nav_meas) {
+  if (sbp_msg_time) {
+    DO_EVERY(gpzda_msg_rate,
+             nmea_gpzda(sbp_msg_time);
+    );
+  }
+  if (sbp_dops) {
+    DO_EVERY(gpgsa_msg_rate,
+             nmea_assemble_gpgsa(sbp_dops);
+    );
+  }
+  if(nav_meas && sbp_pos_ecef) {
     DO_EVERY(gpgsv_msg_rate,
              nmea_gpgsv(nav_meas, sbp_pos_ecef);
     );
