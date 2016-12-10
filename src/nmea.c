@@ -482,12 +482,8 @@ static void nmea_assemble_gpgsa(const msg_dops_t *sbp_dops)
  */
 void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_pos_ecef,
                     const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
-                    const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas,
-                    u8 sender_id, double propagation_time)
+                    const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas)
 {
-
-  nmea_gpgga(sbp_pos_llh, sbp_msg_time, sbp_dops, propagation_time, sender_id);
-
   bool skip_velocity = sbp_vel_ned->flags == 0;
 
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time && !skip_velocity) {
