@@ -379,6 +379,29 @@ void log_(u8 level, const char *msg, ...)
   sbp_send_msg(SBP_MSG_LOG, n+sizeof(msg_log_t), (u8 *)buf);
 }
 
+void detailed_log_(u8 level, const char *file_path, const int line_number,
+                   const char *msg, ...)
+{
+  msg_log_t *log;
+  va_list ap;
+  char buf[SBP_FRAMING_MAX_PAYLOAD_SIZE];
+
+  log = (msg_log_t *)buf;
+  log->level = level;
+
+  int n = 0;
+  snprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n, "(%s:%d) ", file_path, line_number);
+
+  va_start(ap, msg);
+  n += vsnprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n, msg, ap);
+  va_end(ap);
+
+  if (n < 0)
+    return;
+
+  sbp_send_msg(SBP_MSG_LOG, n + sizeof(msg_log_t), (u8 *)buf);
+}
+
 void log_obs_latency(float latency_ms)
 {
   systime_t now = chVTGetSystemTime();
