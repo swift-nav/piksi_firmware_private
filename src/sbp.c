@@ -390,7 +390,8 @@ void detailed_log_(u8 level, const char *file_path, const int line_number,
   log->level = level;
 
   int n = 0;
-  snprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n, "(%s:%d) ", file_path, line_number);
+  n += snprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n,
+                "(%s:%d) ", file_path, line_number);
 
   va_start(ap, msg);
   n += vsnprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n, msg, ap);
