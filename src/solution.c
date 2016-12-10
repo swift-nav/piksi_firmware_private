@@ -934,6 +934,7 @@ static void solution_thread(void *arg)
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
     log_warn("GPS calculated error %.20g",t_err);
+    log_warn("RCV CLK error %.20g",lgf.position_solution.clock_offset);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -966,6 +967,8 @@ static void solution_thread(void *arg)
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += lgf.position_solution.clock_offset *
                                       GPS_C / code_to_lambda(nm->sid.code);
+        nm->raw_measured_doppler += lgf.position_solution.clock_bias *
+                                    GPS_C / code_to_lambda(nm->sid.code);
         nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
 
         /* Also apply the time correction to the time of transmission so the
