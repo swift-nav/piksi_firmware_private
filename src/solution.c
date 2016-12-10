@@ -933,8 +933,8 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-    log_warn("GPS calculated error %.20g",t_err);
-    log_warn("RCV CLK error %.20g",lgf.position_solution.clock_offset);
+    //log_warn("GPS calculated error %.20g",t_err);
+    //log_warn("RCV CLK error %.20g",lgf.position_solution.clock_offset);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
