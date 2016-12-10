@@ -947,7 +947,6 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-    log_warn("GPS calculated error %.20g",t_err);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -980,6 +979,8 @@ static void solution_thread(void *arg)
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += lgf.position_solution.clock_offset *
                                       GPS_C / code_to_lambda(nm->sid.code);
+        nm->raw_measured_doppler += lgf.position_solution.clock_bias *
+                                    GPS_C / code_to_lambda(nm->sid.code);
         nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
 
         /* Also apply the time correction to the time of transmission so the
@@ -1077,7 +1078,7 @@ static void solution_thread(void *arg)
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL;
+    double dt = delta_tc * RX_DT_NOMINAL + lgf.position_solution.clock_offset / soln_freq;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
