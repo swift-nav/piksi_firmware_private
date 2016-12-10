@@ -945,7 +945,7 @@ static void solution_thread(void *arg)
       /* nav_meas_tdcp is updated in place, skipping elements if required. */
       //u8 n_ready_tdcp_new = 0;
       for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
+        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp];
 
         /* Copy measurement to new index if a previous measurement
          * has been skipped. */
