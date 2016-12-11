@@ -177,19 +177,21 @@ void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump, msg_g
  * @param baseline_ecef sbp ecef baseline message
  * @param baseline_heading sbp baseline heading message
  */
-void solution_output_messages(double propagation_time, u8 sender_id,
-                              const navigation_measurement_t *nav_meas, bool wait_for_timeout,
-                              const msg_gps_time_t *gps_time, const msg_pos_llh_t *pos_llh,
-                              const msg_pos_ecef_t *pos_ecef, const msg_vel_ned_t *vel_ned,
-                              const msg_vel_ecef_t * vel_ecef, const msg_dops_t *sbp_dops,
-                              const msg_baseline_ned_t *baseline_ned, const msg_baseline_ecef_t *baseline_ecef,
-                              const msg_baseline_heading_t *baseline_heading) {
+void solution_send_pos_messages(double propagation_time, u8 sender_id,
+                                const navigation_measurement_t *nav_meas, bool wait_for_timeout,
+                                const msg_gps_time_t *gps_time, const msg_pos_llh_t *pos_llh,
+                                const msg_pos_ecef_t *pos_ecef, const msg_vel_ned_t *vel_ned,
+                                const msg_vel_ecef_t * vel_ecef, const msg_dops_t *sbp_dops,
+                                const msg_baseline_ned_t *baseline_ned, const msg_baseline_ecef_t *baseline_ecef,
+                                const msg_baseline_heading_t *baseline_heading) {
 
   if (gps_time) {
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(&gps_time), (u8 *) gps_time);
   }
 
+  log_warn("address of pos_llh message %u", pos_llh);
   if (pos_llh && !wait_for_timeout) {
+    log_warn("Sending pos_llh message");
     sbp_send_msg(SBP_MSG_POS_LLH, sizeof(&pos_llh), (u8 *) pos_llh);
   }
 
@@ -1105,9 +1107,9 @@ static void solution_thread(void *arg)
       wait_for_timeout = true;
     }
 
-    solution_output_messages(propagation_time, base_obss.sender_id, nav_meas_tdcp, wait_for_timeout,
-                             &gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
-                             &baseline_ecef, &baseline_heading);
+    solution_send_pos_messages(propagation_time, base_obss.sender_id, nav_meas_tdcp, wait_for_timeout,
+                               &gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
+                               &baseline_ecef, &baseline_heading);
 
     /* Calculate time till the next desired solution epoch. */
     double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
@@ -1241,8 +1243,8 @@ static void time_matched_obs_thread(void *arg)
         process_matched_obs(n_sds, &obss->tor, sds, &pos_llh, &pos_ecef, &sbp_dops,
                             &baseline_ned, &baseline_ecef, &baseline_heading);
         chPoolFree(&obs_buff_pool, obss);
-        solution_output_messages(0.0, base_obss.sender_id, NULL, false, NULL, &pos_llh, &pos_ecef, NULL,
-                                 NULL, &sbp_dops, &baseline_ned, &baseline_ecef, &baseline_heading);
+        solution_send_pos_messages(0.0, base_obss.sender_id, NULL, false, NULL, &pos_llh, &pos_ecef, NULL,
+                                   NULL, &sbp_dops, &baseline_ned, &baseline_ecef, &baseline_heading);
 
         break;
       } else {
