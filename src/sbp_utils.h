@@ -22,6 +22,72 @@
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
 
+
+/** Header for sdiff message.
+ *
+* Header of a GNSS sdiff message.
+ */
+typedef struct __attribute__((packed)) {
+  gps_time_nano_t t;                   /**< GNSS time of this observation */
+  u8 n_obs;               /**< Total number of observations. First nibble is the size
+of the sequence (n), second nibble is the zero-indexed
+counter (ith packet of n)
+ */
+  double rover_pos_x;
+  double rover_pos_y;
+  double rover_pos_z;
+  double base_pos_x;
+  double base_pos_y;
+  double base_pos_z;
+  double propagation_time;
+} sdiff_header_t;
+
+
+/** GNSS sdiffs for a particular satellite signal.
+ *
+ * Sdiffs before updating the filter itself.
+ */
+typedef struct __attribute__((packed)) {
+  u32 P;            /**< Pseudorange observation [2 cm] */
+  carrier_phase_t L;            /**< Carrier phase observation with typical sign convention. [cycles] */
+  doppler_t MD;           /**< Doppler observation with typical sign convention. [Hz] */
+  doppler_t CD;           /**< Doppler observation with typical sign convention. [Hz] */
+  u8 cn0;          /**< Carrier-to-Noise density.  Zero implies invalid cn0. [dB Hz / 4] */
+  u8 lock;         /**< Lock timer. This value gives an indication of the time
+for which a signal has maintained continuous phase lock.
+Whenever a signal has lost and regained lock, this
+value is reset to zero. It is encoded according to DF402 from
+the RTCM 10403.2 Amendment 2 specification.  Valid values range
+from 0 to 15 and the most significant nibble is reserved for future use.
+ */
+  u8 flags;        /**< Measurement status flags. A bit field of flags providing the
+status of this observation.  If this field is 0 it means only the Cn0
+estimate for the signal is valid.
+ */
+  gnss_signal16_t sid;          /**< GNSS signal identifier (16 bit) */
+  double sat_pos_x;
+  double sat_pos_y;
+  double sat_pos_z;
+  double sat_vel_x;
+  double sat_vel_y;
+  double sat_vel_z;
+} packed_sdiff_content_t;
+
+
+/** GPS satellite sdiffs
+ *
+ * The GPS sdiffs message reports all the raw sdiff pseudorange and
+ * sdiff carrier phase observations for the satellites being tracked by
+ * the device.
+ */
+#define SBP_MSG_SDIFFS               0x0110
+typedef struct __attribute__((packed)) {
+  observation_header_t header;    /**< Header of a GPS observation message */
+  packed_obs_content_t obs[0];    /**< Pseudorange and carrier phase observation for a
+satellite being tracked.
+ */
+} msg_sdiffs_t;
+
 typedef struct {
   union {
     msg_ephemeris_gps_t   gps;
