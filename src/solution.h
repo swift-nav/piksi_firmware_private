@@ -67,6 +67,9 @@ void solution_send_baseline(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                             double covariance_ecef[9],
                             double ref_ecef[3], u8 flags, double hdop,
                             double corrections_age, u16 sender_id);
+void solution_send_sdiffs(const gps_time_t *sdiff_time, u8 num_sdiffs,
+                          const sdiff_t *sdiffs, const double receiver_ecef[3],
+                          const double base_ecef[3], double propagation_time);
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);

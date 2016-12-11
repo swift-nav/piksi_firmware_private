@@ -75,6 +75,8 @@ void unpack_obs_header(const observation_header_t *msg, gps_time_t* t,
 
 void pack_obs_header(const gps_time_t *t, u8 total, u8 count,
                      observation_header_t *msg);
+void pack_sdiff_header(const gps_time_t *t, u8 total, u8 count, const double rcv_pos[3], const double base_pos[3], const double prop_time,
+                       sdiff_header_t *msg);
 
 u8 nm_flags_to_sbp(nav_meas_flags_t from);
 nav_meas_flags_t nm_flags_from_sbp(u8 from);
@@ -86,6 +88,10 @@ void unpack_obs_content(const packed_obs_content_t *msg, double *P, double *L,
 s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
                     nav_meas_flags_t flags, gnss_signal_t sid,
                     packed_obs_content_t *msg);
+s8 pack_sdiff_content(double P, double L, double MD, double CD, const double sat_pos[3],
+                      const double sat_vel[3], double cn0, double lock_time,
+                      nav_meas_flags_t flags, gnss_signal_t sid,
+                      packed_sdiff_content_t *msg);
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
 

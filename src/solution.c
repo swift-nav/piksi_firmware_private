@@ -179,6 +179,57 @@ void solution_send_nmea(gnss_solution *soln, dops_t *dops,
 
 }
 
+void solution_send_sdiffs(const gps_time_t *sdiff_time, u8 num_sdiffs,
+                          const sdiff_t *sdiffs, const double receiver_ecef[3],
+                          const double base_ecef[3], double propagation_time){
+  static u8 buff[256];
+
+  /* Upper limit set by SBP framing size, preventing underflow */
+  u16 msg_payload_size = MAX(
+    MIN((u16)MAX(msg_obs_max_size, 0), SBP_FRAMING_MAX_PAYLOAD_SIZE),
+    sizeof(observation_header_t)
+  ) - sizeof(observation_header_t);
+
+  /* Lower limit set by sending at least 1 observation */
+  msg_payload_size = MAX(msg_payload_size, sizeof(packed_sdiff_content_t));
+
+  /* Round down the number of observations per message */
+  u16 obs_in_msg = msg_payload_size / sizeof(packed_sdiff_content_t);
+
+  /* Round up the number of messages */
+  u16 total = MIN((num_sdiffs + obs_in_msg - 1) / obs_in_msg,
+                  MSG_OBS_HEADER_MAX_SIZE);
+
+  u8 obs_i = 0;
+  for (u8 count = 0; count < total && obs_i < num_sdiffs; count++) {
+    u8 curr_n = MIN(num_sdiffs - obs_i, obs_in_msg);
+    pack_sdiff_header(sdiff_time, total, count, receiver_ecef, base_ecef, propagation_time, (sdiff_header_t*) buff);
+    packed_sdiff_content_t *sdiff = (packed_sdiff_content_t *)&buff[sizeof(sdiff_header_t)];
+
+    for (u8 i = 0; i < obs_in_msg && obs_i < num_sdiffs; i++) {
+      if (pack_sdiff_content(sdiffs[obs_i].pseudorange,
+                             sdiffs[obs_i].carrier_phase,
+                             sdiffs[obs_i].measured_doppler,
+                             sdiffs[obs_i].computed_doppler,
+                             sdiffs[obs_i].sat_pos,
+                             sdiffs[obs_i].sat_vel,
+                             sdiffs[obs_i].cn0,
+                             sdiffs[obs_i].lock_time,
+                             sdiffs[obs_i].flags,
+                             sdiffs[obs_i].sid,
+                             &sdiff[i]) >= 0) {
+        /* Packed. */
+        obs_i++;
+      }
+    }
+
+    sbp_send_msg(SBP_MSG_SDIFFS,
+                 sizeof(sdiff_header_t) + curr_n * sizeof(packed_sdiff_content_t),
+                 buff);
+  }
+}
+
+
 double calc_heading(const double b_ned[3])
 {
   double heading = atan2(b_ned[1], b_ned[0]);
@@ -296,6 +347,8 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
       log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
       chMtxLock(&eigen_state_lock);
+      solution_send_sdiffs(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
+                           base_pos_known ? base_pos_ecef : NULL, diff_time);
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
