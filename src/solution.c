@@ -709,7 +709,7 @@ static void solution_thread(void *arg)
   msg_baseline_ned_t baseline_ned;
   msg_baseline_heading_t baseline_heading;
 
-  systime_t deadline = chVTGetSystemTimeX();
+  systime_t deadline = chVTGetSystemTime();
 
   bool clock_jump = FALSE;
 
@@ -1120,7 +1120,7 @@ static void solution_thread(void *arg)
 
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. */
-    deadline += round(dt * CH_CFG_ST_FREQUENCY);
+    deadline += round(S2ST(dt));
   }
 }
 

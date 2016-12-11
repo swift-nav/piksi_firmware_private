@@ -14,6 +14,7 @@
 #define SWIFTNAV_SOLUTION_H
 
 #include <ch.h>
+#include <libsbp/navigation.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/track.h>
