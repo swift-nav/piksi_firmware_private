@@ -301,7 +301,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   }
 
   /* correlator spacing [ns] */
-  state->corr_spacing = (u16)(NAP_SPACING *
+  state->corr_spacing = (u16)(NAP_SPACING_SAMPLES *
                              TRACK_SBP_NAP_SPACING_SCALING_FACTOR);
   /* acceleration [g] */
   double acceleration = freq_info->acceleration *

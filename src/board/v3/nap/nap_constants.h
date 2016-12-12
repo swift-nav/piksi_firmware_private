@@ -22,37 +22,51 @@
  * @brief   The sample rate decimation used by acquisition
  */
 #define NAP_ACQ_DECIMATION_RATE                                          (12)
+
 /**
  * @brief   The acquisition sample rate after decimation
  * @note    This is the effective sampling rate of the acquisition results
  */
-#define NAP_ACQ_SAMPLE_RATE_Hz         (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz  \
-		                                               / NAP_ACQ_DECIMATION_RATE)
+#define NAP_ACQ_SAMPLE_RATE_Hz             (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz \
+                                                   / NAP_ACQ_DECIMATION_RATE)
 
 /**
  * @brief   The sample rate decimation used by tracking channels
  */
 #define NAP_TRACK_DECIMATION_RATE                                         (4)
+
 /**
  * @brief   The tracking channel sample rate after decimation
  * @note    This is the effective sampling rate of the tracking results
  */
-#define TRACK_SAMPLE_FREQ               (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz \
+#define NAP_TRACK_SAMPLE_RATE_Hz           (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz \
                                                  / NAP_TRACK_DECIMATION_RATE)
 
 /**
- * @brief   The phase increment used to mix the frontend samples to baseband
- * @note    4294967296 is 2^32 and the .5 is for rounding
+ * @brief   The sample rate used by the sample count for timing
+ * @note    The sample count currently uses tracking samples
  */
-#define NAP_FE_L1CA_BASEBAND_MIXER_PINC   (u32)(14.58e6 * 4294967296.0 \
-                                      / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
+#define NAP_FRONTEND_SAMPLE_RATE_Hz                (NAP_TRACK_SAMPLE_RATE_Hz)
 
 /**
  * @brief   The phase increment used to mix the frontend samples to baseband
  * @note    4294967296 is 2^32 and the .5 is for rounding
  */
-#define NAP_FE_L2C_BASEBAND_MIXER_PINC    (u32)(7.4e6 * 4294967296.0 \
-                                      / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
+#define NAP_FE_L1CA_BASEBAND_MIXER_PINC        (u32)(14.58e6 * 4294967296.0 \
+                                     / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
+
+/**
+ * @brief   The phase increment used to mix the frontend samples to baseband
+ * @note    4294967296 is 2^32 and the .5 is for rounding
+ */
+#define NAP_FE_L2C_BASEBAND_MIXER_PINC           (u32)(7.4e6 * 4294967296.0 \
+                                     / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
+
+#define NAP_SPACING_CHIPS                                                 (0)
+#define NAP_SPACING_SAMPLES                                               (1)
+
+#define NAP_VE_E_SPACING_CHIPS                                            (7)
+#define NAP_VE_E_SPACING_SAMPLES                                         (23)
 
 #define NAP_KEY_LENGTH                                                   (16)
 
@@ -62,18 +76,7 @@
 #define NAP_DNA_OFFSET                                                   (52)
 #define NAP_DNA_LENGTH                                                    (8)
 
-#define NAP_PPS_TIMING_COUNT_OFFSET                                       (0)
-#define NAP_EXT_TIMING_COUNT_OFFSET                                      (-4)
-
-#define NAP_FRONTEND_SAMPLE_RATE_Hz      (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz \
-                                                  / NAP_TRACK_DECIMATION_RATE)
-
-/** Specifies the spacing between Early and Prompt correlators.
-    Prompt and Late correlators have the same spacing.
-    [cycles of TRACK_SAMPLE_FREQ] */
-#define NAP_SPACING ((u16)(TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE) / 24)
-
-/* Samples per chip */
-#define NAP_SPACING_SAMPLES_PER_CHIP (TRACK_SAMPLE_FREQ / GPS_CA_CHIPPING_RATE)
+#define NAP_PPS_TIMING_COUNT_OFFSET                                     (-15)
+#define NAP_EXT_TIMING_COUNT_OFFSET                                       (8)
 
 #endif /* SWIFTNAV_NAP_CONSTANTS_H */

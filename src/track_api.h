@@ -111,7 +111,7 @@ typedef struct {
                                     flag has changed last time */
   s32 TOW_ms;                  /**< TOW in ms. */
   u32 sample_count;            /**< Total num samples channel has tracked for. */
-  double code_phase_early;     /**< Early code phase in chips. */
+  double code_phase_prompt;    /**< Prompt code phase in chips. */
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */

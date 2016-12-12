@@ -585,14 +585,14 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
 {
   tp_epl_corr_t cs_now;    /**< Correlations from FPGA */
   u32    sample_count;     /**< Sample count from FPGA */
-  double code_phase_early; /**< Code phase from FPGA */
+  double code_phase_prompt; /**< Code phase from FPGA */
   double carrier_phase;    /**< Carrier phase from FPGA */
   u8     int_ms = 0;       /**< Current cycle duration in ms */
 
   /* Read correlations. */
   tracker_correlations_read(channel_info->context, cs_now.epl,
                             &sample_count,
-                            &code_phase_early,
+                            &code_phase_prompt,
                             &carrier_phase);
 
   tp_update_correlators(cycle_flags, &cs_now, &data->corrs);
@@ -602,7 +602,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
                                          data->cycle_no);
 
   common_data->sample_count = sample_count;
-  common_data->code_phase_early = code_phase_early;
+  common_data->code_phase_prompt = code_phase_prompt;
   common_data->carrier_phase = carrier_phase;
 
   /* ToW update:

@@ -29,7 +29,7 @@
 #define TRACK_SBP_CLOCK_OFFSET_SCALING_FACTOR (1ul << 20)
 
 /** NAP correlator spacing scaling factor. Original units [cycles]. */
-#define TRACK_SBP_NAP_SPACING_SCALING_FACTOR (1e9 / TRACK_SAMPLE_FREQ)
+#define TRACK_SBP_NAP_SPACING_SCALING_FACTOR (1e9 / NAP_TRACK_SAMPLE_RATE_Hz)
 
 /** Synchronization status */
 typedef enum {

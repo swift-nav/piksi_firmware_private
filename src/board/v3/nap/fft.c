@@ -113,7 +113,7 @@ static void sample_stream_start(void)
     u32 tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
     NAP->ACQ_TIMING_COMPARE = tc_req;
     chSysUnlock();
-    if (tc_req - NAP->ACQ_TIMING_SNAPSHOT <= (u32)TIMING_COMPARE_DELTA) {
+    if (tc_req - NAP->ACQ_COMPARE_SNAPSHOT <= (u32)TIMING_COMPARE_DELTA) {
       break;
     }
   }
@@ -124,7 +124,7 @@ static void sample_stream_start(void)
  */
 static u32 sample_stream_snapshot_get(void)
 {
-  return NAP->ACQ_START_SNAPSHOT;
+  return NAP->ACQ_TIMING_SNAPSHOT;
 }
 
 /** Set the FFT config register.
