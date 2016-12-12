@@ -17,7 +17,6 @@
 
 #include "../settings.h"
 #include "usart.h"
-#include "3drradio.h"
 #include "usart_support.h"
 #include "version.h"
 
@@ -31,7 +30,6 @@ usart_settings_t ftdi_usart = {
   .mode               = SBP,
   .baud_rate          = USART_DEFAULT_BAUD_FTDI,
   .sbp_message_mask   = 0xFFFF,
-  .configure_telemetry_radio_on_boot = 0,
   .sbp_fwd = 1,
 };
 
@@ -39,7 +37,6 @@ usart_settings_t uarta_usart = {
   .mode               = SBP,
   .baud_rate          = USART_DEFAULT_BAUD_TTL,
   .sbp_message_mask   = 0xC0,
-  .configure_telemetry_radio_on_boot = 1,
   .sbp_fwd = 0,
 };
 
@@ -47,7 +44,6 @@ usart_settings_t uartb_usart = {
   .mode             = SBP,
   .baud_rate        = USART_DEFAULT_BAUD_TTL,
   .sbp_message_mask = 0xFF00,
-  .configure_telemetry_radio_on_boot = 1,
   .sbp_fwd = 0,
 };
 
@@ -76,8 +72,6 @@ static bool baudrate_change_notify(struct setting *s, const char *val);
 */
 void usarts_setup(void)
 {
-  radio_setup();
-
   int TYPE_PORTMODE = settings_type_register_enum(portmode_enum, &portmode);
 
   SETTING("uart_ftdi", "mode", ftdi_usart.mode, TYPE_PORTMODE);
@@ -88,16 +82,12 @@ void usarts_setup(void)
 
   SETTING("uart_uarta", "mode", uarta_usart.mode, TYPE_PORTMODE);
   SETTING("uart_uarta", "sbp_message_mask", uarta_usart.sbp_message_mask, TYPE_INT);
-  SETTING("uart_uarta", "configure_telemetry_radio_on_boot",
-          uarta_usart.configure_telemetry_radio_on_boot, TYPE_BOOL);
   SETTING("uart_uarta", "fwd_msg", uarta_usart.sbp_fwd, TYPE_INT);
   SETTING_NOTIFY("uart_uarta", "baudrate", uarta_usart.baud_rate, TYPE_INT,
           baudrate_change_notify);
 
   SETTING("uart_uartb", "mode", uartb_usart.mode, TYPE_PORTMODE);
   SETTING("uart_uartb", "sbp_message_mask", uartb_usart.sbp_message_mask, TYPE_INT);
-  SETTING("uart_uartb", "configure_telemetry_radio_on_boot",
-          uartb_usart.configure_telemetry_radio_on_boot, TYPE_BOOL);
   SETTING("uart_uartb", "fwd_msg", uartb_usart.sbp_fwd, TYPE_INT);
   SETTING_NOTIFY("uart_uartb", "baudrate", uartb_usart.baud_rate, TYPE_INT,
           baudrate_change_notify);
@@ -143,13 +133,6 @@ void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_precon
     log_info("Piksi Starting...");
     log_info("Firmware Version: " GIT_VERSION "");
     log_info("Built: " __DATE__ " " __TIME__ "");
-
-    if (uarta_usart.configure_telemetry_radio_on_boot) {
-      radio_preconfigure_hook(UARTA, uarta_baud, "UARTA");
-    }
-    if (uartb_usart.configure_telemetry_radio_on_boot) {
-      radio_preconfigure_hook(UARTB, uartb_baud, "UARTB");
-    }
   }
 
   all_uarts_enabled = true;
