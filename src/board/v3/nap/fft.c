@@ -203,7 +203,13 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
   control_set_dma();
   config_set(dir, scale_schedule);
   dma_start((const u8 *)in, (u8 *)out, len_bytes);
-  return dma_wait();
+  bool result = dma_wait();
+
+  if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
+    log_warn("Acquisition: FFT overflow.");
+  }
+
+  return result;
 }
 
 /** Compute the FFT of a buffer of samples.
@@ -231,6 +237,11 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
   dma_start(0, (u8 *)out, len_bytes);
   bool result = dma_wait();
   *sample_count = sample_stream_snapshot_get();
+
+  if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
+    log_warn("Acquisition: FFT overflow.");
+  }
+
   return result;
 }
 
