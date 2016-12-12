@@ -206,9 +206,12 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
   bool result = dma_wait();
 
   if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
-    log_warn("Acquisition: FFT overflow.");
+    if (FFT_DIR_FORWARD == dir) {
+      log_warn("Acquisition: FFT overflow.");
+    } else {
+      log_warn("Acquisition: IFFT overflow.");
+    }
   }
-
   return result;
 }
 
@@ -239,9 +242,12 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
   *sample_count = sample_stream_snapshot_get();
 
   if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
-    log_warn("Acquisition: FFT overflow.");
+    if (FFT_DIR_FORWARD == dir) {
+      log_warn("Acquisition: RF sample FFT overflow.");
+    } else {
+      log_warn("Acquisition: RF sample IFFT overflow.");
+    }
   }
-
   return result;
 }
 
