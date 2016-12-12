@@ -101,11 +101,11 @@ static bool bmm150_check_id(void)
 
 void bmi160_init(void)
 {
-  //TODO: Put this somewhere better?
-  #if defined(BOARD_PIKSIV3_EVT2)
-  palSetLine(LINE_IMU_EN);
+  /* Delay required to prevent IMU initialization conflicting with the
+   * front-end configuration, resulting in no signals being acquired or
+   * tracked. */
+  /* TODO: Investigate why this delay is required. */
   chThdSleepMilliseconds(1);
-  #endif
 
   //pulse SS to trigger BMI160 to use SPI
   bmi160_open_spi();
@@ -171,7 +171,7 @@ void bmi160_init(void)
 
 }
 
-/* Set the IMU (Accels and Gyros) data rate.
+/** Set the IMU (Accels and Gyros) data rate.
  * Doesn't affect the operation of the magnetometer. */
 void bmi160_set_imu_rate(imu_rate_t rate)
 {
