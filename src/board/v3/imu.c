@@ -143,7 +143,7 @@ static void imu_thread(void *arg)
         /* Format the time of week as a fixed point value for the SBP message. */
         double tow_ms = t.tow * 1000;
         imu_raw.tow = (u32)tow_ms;
-        imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow)*256);
+        imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow)*255);
       } else {
         /* Time is unknown, make it as invalid in the SBP message. */
         imu_raw.tow = (1 << 31);
