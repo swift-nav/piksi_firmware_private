@@ -866,6 +866,9 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data)
     entry.flags = pub_data->gen_info.flags;
     entry.freq = pub_data->gen_info.xcorr_freq;
     entry.cn0 = pub_data->gen_info.cn0;
+    entry.count = pub_data->gen_info.xcorr_count;
+    entry.wl = pub_data->gen_info.xcorr_wl;
+
     chMtxUnlock(&pub_data->info_mutex);
 
     if (0 != (entry.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&

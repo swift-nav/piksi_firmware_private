@@ -29,6 +29,8 @@
  * \{ */
 
 #define TRACKING_ELEVATION_UNKNOWN 100 /* Ensure it will be above elev. mask */
+/** GPS L1 C/A cross-correlation frequency step [hz] */
+#define L1CA_XCORR_FREQ_STEP 1000.f
 
 typedef u8 tracker_channel_id_t;
 
@@ -99,6 +101,8 @@ typedef struct {
   u32                      sample_count; /**< Last measurement sample counter */
   u16                      lock_counter; /**< Lock state counter */
   float                    xcorr_freq;   /**< Cross-correlation doppler [hz] */
+  u16                      xcorr_count;  /**< Cross-correlation counter */
+  bool                     xcorr_wl;     /**< Cross-correlation status */
 } tracking_channel_info_t;
 
 /**
@@ -158,6 +162,8 @@ typedef struct {
   gnss_signal_t            sid;   /**< Tracked GNSS signal identifier */
   float                    freq;  /**< Doppler frequency for cross-correlation [hz] */
   float                    cn0;   /**< C/N0 level [dB/Hz] */
+  u16                      count; /**< Cross-correlation counter */
+  bool                     wl;    /**< Cross-correlation status */
 } tracking_channel_cc_entry_t;
 
 /**
