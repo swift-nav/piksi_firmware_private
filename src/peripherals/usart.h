@@ -79,7 +79,7 @@ extern usart_state uartb_state;
 
 void usarts_setup(void);
 
-void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_preconfigure_hooks);
+void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud);
 void usarts_disable(void);
 
 bool usart_claim(usart_state* s, const void *module);

@@ -47,8 +47,6 @@ usart_settings_t uartb_usart = {
   .sbp_fwd = 0,
 };
 
-bool all_uarts_enabled = false;
-
 /** \} */
 
 /** \addtogroup peripherals
@@ -92,7 +90,7 @@ void usarts_setup(void)
   SETTING_NOTIFY("uart_uartb", "baudrate", uartb_usart.baud_rate, TYPE_INT,
           baudrate_change_notify);
 
-  usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate, true);
+  usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate);
 
 }
 
@@ -103,7 +101,7 @@ static bool baudrate_change_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     usarts_disable();
-    usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate, false);
+    usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate);
     return true;
   }
   return false;
@@ -114,28 +112,13 @@ static bool baudrate_change_notify(struct setting *s, const char *val)
  * USART 6, 1 and 3 peripherals are configured
  * (connected to the FTDI, UARTA and UARTB ports on the Piksi respectively).
  */
-void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_preconfigure_hooks)
+void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud)
 {
-
-  /* Ensure that the first time around, we do the preconfigure hooks */
-  if (!all_uarts_enabled && !do_preconfigure_hooks)
-    return;
-
   usart_support_init();
 
   usart_support_set_parameters(SD_FTDI, ftdi_baud);
   usart_support_set_parameters(SD_UARTA, uarta_baud);
   usart_support_set_parameters(SD_UARTB, uartb_baud);
-
-  if (do_preconfigure_hooks) {
-    board_preinit_hook();
-
-    log_info("Piksi Starting...");
-    log_info("Firmware Version: " GIT_VERSION "");
-    log_info("Built: " __DATE__ " " __TIME__ "");
-  }
-
-  all_uarts_enabled = true;
 }
 
 /** Disable all USARTs. */
@@ -143,10 +126,6 @@ void usarts_disable()
 {
   /* Disable DMA channels. */
   /* Disable all USARTs. */
-
-  if (!all_uarts_enabled)
-    return;
-
   usart_support_disable(SD_FTDI);
   usart_support_disable(SD_UARTA);
   usart_support_disable(SD_UARTB);

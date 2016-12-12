@@ -58,6 +58,12 @@ int main(void)
   settings_setup();
   usarts_setup();
 
+  board_preinit_hook();
+
+  log_info("Piksi Starting...");
+  log_info("Firmware Version: " GIT_VERSION "");
+  log_info("Built: " __DATE__ " " __TIME__ "");
+
   init();
   signal_init();
 
