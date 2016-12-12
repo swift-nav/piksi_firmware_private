@@ -134,25 +134,25 @@ void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump, msg_g
                        msg_dops_t *sbp_dops) {
   if (soln) {
     /* Send GPS_TIME message first. */
-    sbp_make_gps_time(gps_time, &soln->time, 0);
+    sbp_make_gps_time(gps_time, &soln->time, SPP_POSITION);
 
-    sbp_make_pos_llh(pos_llh, soln, 0);
+    sbp_make_pos_llh(pos_llh, soln, SPP_POSITION);
 
     /* Position in ECEF. */
-    sbp_make_pos_ecef(pos_ecef, soln, 0);
+    sbp_make_pos_ecef(pos_ecef, soln, SPP_POSITION);
 
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
     if (!clock_jump) {
-      sbp_make_vel_ned(vel_ned, soln, 0);
+      sbp_make_vel_ned(vel_ned, soln, 1);
 
       /* Velocity in ECEF. */
-      sbp_make_vel_ecef(vel_ecef, soln, 0);
+      sbp_make_vel_ecef(vel_ecef, soln, 1);
     }
 
     // DOP message can be sent even if solution fails to compute
     if (dops) {
-      sbp_make_dops(sbp_dops,dops,pos_llh->tow, pos_llh->flags);
+      sbp_make_dops(sbp_dops,dops,pos_llh->tow, SPP_POSITION);
     }
 
     /* Update stats */
@@ -951,6 +951,7 @@ static void solution_thread(void *arg)
 
       bool disable_velocity = clock_jump ||
                               (lgf.position_solution.velocity_valid == 0);
+      log_warn(" Making SPP position messages");
       solution_make_sbp(&lgf.position_solution, &dops, disable_velocity, &gps_time, &pos_llh,
                         &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops);
     }
