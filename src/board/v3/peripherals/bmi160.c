@@ -68,37 +68,6 @@ static void bmi160_wait_cmd_complete(void)
   while(bmi160_read_reg(BMI160_REG_CMD) != 0);
 }
 
-/** Wait for a command to complete on the BMM150. */
-static void bmm150_wait_cmd_complete(void)
-{
-  while(bmi160_read_reg(BMI160_REG_STATUS) & BMI160_STATUS_I2C_OP_Msk);
-}
-
-/** Check if the ID of the BMI160 is as expected. */
-static bool bmi160_check_id(void)
-{
-  return bmi160_read_reg(BMI160_REG_CHIP_ID) == BMI160_MFDVID;
-}
-
-/** Check if the ID of the BMM150 is as expected. */
-static bool bmm150_check_id(void)
-{
-  /* Put BMM150 into setup mode */
-  bmi160_write_reg(BMI160_REG_MAG_IF+1, 0x80);
-
-  /* Read chip ID */
-  bmi160_write_reg(BMI160_REG_MAG_IF+2, BMM150_REG_ID);
-  bmm150_wait_cmd_complete();
-  u8 id = bmi160_read_reg(BMI160_REG_DATA + BMI160_DATA_MAG_OFFSET);
-
-  /* Put mag out of setup mode into data mode. */
-  bmi160_write_reg(BMI160_REG_MAG_IF+2, BMM150_REG_DATA);
-  bmm150_wait_cmd_complete();
-  bmi160_write_reg(BMI160_REG_MAG_IF+1, 3);
-
-  return id == BMM150_REG_MFDVID;
-}
-
 void bmi160_init(void)
 {
   /* Delay required to prevent IMU initialization conflicting with the
@@ -107,7 +76,7 @@ void bmi160_init(void)
   /* TODO: Investigate why this delay is required. */
   chThdSleepMilliseconds(1);
 
-  //pulse SS to trigger BMI160 to use SPI
+  /* Pulse SS to trigger BMI160 to use SPI */
   bmi160_open_spi();
   bmi160_close_spi();
   bmi160_open_spi();
@@ -117,58 +86,17 @@ void bmi160_init(void)
   bmi160_write_reg(BMI160_REG_CMD, 0xB6);
   bmi160_wait_cmd_complete();
 
-  if (!bmi160_check_id()) {
-    log_error("BIST imu: IMU ID didn't match expected value");
+  /* Check if the ID of the BMI160 is as expected. */
+  u8 id = bmi160_read_reg(BMI160_REG_CHIP_ID);
+  if (id != BMI160_MFDVID) {
+    log_error("IMU: BMI160 ID didn't match expected value (%u)", id);
     return;
   }
 
-  //set I2C slv addr of mag
-  bmi160_write_reg(BMI160_REG_MAG_IF, BMM150_I2C_SLV_ADDR<<1);
-  //enable mag IF interface (for BMM150)
-  bmi160_write_reg(BMI160_REG_IF_CONF, 0b00100000);
-
-  if (!bmm150_check_id()) {
-    log_error("BIST imu: mag ID didn't match expected value");
-    //return;
-  }
-
-  //lower mag read rate to 25/2 Hz
-  //this just sets polling rate, the actual updated rate is configured on the BMM150
-  bmi160_write_reg(BMI160_REG_MAG_CONF,0b00000101);
-
-  /*
-  //put sensors in normal mode
-  //0b (PMU) 0001 (accel) 00 (normal) 01
-  bmi160_write_reg(BMI160_REG_CMD, 0b00010001);
-  bmi160_wait_cmd_complete();
-  //0b (PMU) 0001 (gyro) 01 (normal) 01
-  bmi160_write_reg(BMI160_REG_CMD, 0b00010101);
-  bmi160_wait_cmd_complete();
-  //0b (PMU) 0001 (mag) 10 (normal) 01
-  bmi160_write_reg(BMI160_REG_CMD, 0b00011001);
-  bmi160_wait_cmd_complete();
-  */
-
-  //put into mag into setup mode
-  bmi160_write_reg(BMI160_REG_MAG_IF + 1, 0x80);
-
-  //put mag into normal mode
-  bmi160_write_reg(BMI160_REG_MAG_IF + 4, 0x01);
-  bmi160_write_reg(BMI160_REG_MAG_IF + 3, BMM150_REG_MODE1);
-  bmm150_wait_cmd_complete();
-  bmi160_write_reg(BMI160_REG_MAG_IF + 4, 0x00);
-  bmi160_write_reg(BMI160_REG_MAG_IF + 3, BMM150_REG_MODE2);
-  bmm150_wait_cmd_complete();
-
-  //put mag out of setup mode into data mode
-  bmi160_write_reg(BMI160_REG_MAG_IF + 2, BMM150_REG_DATA);
-  bmm150_wait_cmd_complete();
-  bmi160_write_reg(BMI160_REG_MAG_IF + 1, 3);
-
+  /* Configure IMU_INT1, interrupt on data ready */
   bmi160_write_reg(BMI160_REG_INT_OUT_CTRL, 0b00001011);
   bmi160_write_reg(BMI160_REG_INT_MAP_1, 0b10000000);
   bmi160_write_reg(BMI160_REG_INT_EN_1, 0b00010000);
-
 }
 
 /** Set the IMU (Accels and Gyros) data rate.

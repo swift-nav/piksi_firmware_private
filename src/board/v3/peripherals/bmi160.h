@@ -90,14 +90,6 @@ typedef enum {
 /* ID of device in BMI160_REG_CHIP_ID */
 #define BMI160_MFDVID 0b11010001
 
-#define BMM150_I2C_SLV_ADDR 0x13
-#define BMM150_REG_MFDVID 0x32
-
-#define BMM150_REG_ID 0x40
-#define BMM150_REG_MODE1 0x4B
-#define BMM150_REG_MODE2 0x4C
-#define BMM150_REG_DATA 0x42
-
 void bmi160_init(void);
 void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag);
 void bmi160_get_data(s16 acc[static 3], s16 gyro[static 3], s16 mag[static 3],
