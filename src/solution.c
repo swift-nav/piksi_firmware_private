@@ -987,6 +987,7 @@ static void solution_thread(void *arg)
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
             if (num_sdiffs >= 4) {
+              log_info("propagation time %f",pdt);
               output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
                               dops.hdop, pdt, base_obss.sender_id);
             }
