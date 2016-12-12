@@ -56,10 +56,6 @@ MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
         $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
 
-ifeq ($(PIKSI_HW),v2)
-  $(error PIKSI_HW=v2 is no longer supported.)
-endif
-
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
   CMAKEFLAGS += -DMAX_CHANNELS=31
