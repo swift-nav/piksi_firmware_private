@@ -228,7 +228,7 @@ void imu_init(void)
                  raw_imu_output_changed);
 
   static const char const *rate_enum[] =
-    {"25", "50", "100", "200", "400", NULL};
+    {"25", "50", "100", "200", /* "400",*/ NULL};
   static struct setting_type rate_setting;
   int TYPE_RATE = settings_type_register_enum(rate_enum, &rate_setting);
   SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_RATE, imu_rate_changed);
