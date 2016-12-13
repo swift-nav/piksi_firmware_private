@@ -894,9 +894,6 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
-    // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
-    // so we need to store this error in the GPS time (GPS time frame)
-    set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
@@ -933,8 +930,6 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-    log_warn("GPS calculated error %.20g",t_err);
-    log_warn("RCV CLK error %.20g",lgf.position_solution.clock_offset);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -963,13 +958,6 @@ static void solution_thread(void *arg)
          * has the opposite sign compared to the pseudorange rate. */
         nm->raw_pseudorange -= t_err * doppler *
                                code_to_lambda(nm->sid.code);
-
-        /* Correct the observations for the receiver clock error. */
-        nm->raw_carrier_phase += lgf.position_solution.clock_offset *
-                                      GPS_C / code_to_lambda(nm->sid.code);
-        nm->raw_measured_doppler += lgf.position_solution.clock_bias *
-                                    GPS_C / code_to_lambda(nm->sid.code);
-        nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -1046,8 +1034,8 @@ static void solution_thread(void *arg)
     double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
     log_debug("RX clock offset = %f", rx_err);
     clock_jump = FALSE;
-    if (fabs(rx_err) >= 1e-3) {
-      log_info("Receiver clock offset larger than 1 ms, applying millisecond jump");
+    if (fabs(rx_err) >= 0.51e-3) {
+      log_info("Receiver clock offset larger than 0.5 ms, applying millisecond jump");
       /* round the time adjustment to even milliseconds */
       double dt = round(rx_err * 1000.0) / 1000.0;
       /* adjust the RX to GPS time conversion */
@@ -1062,11 +1050,16 @@ static void solution_thread(void *arg)
         nav_meas_old[i].raw_carrier_phase += dt *
             code_to_carr_freq(nav_meas_old[i].sid.code);
       }
+      clock_jump = TRUE;
     }
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL;
+    double dt = delta_tc * RX_DT_NOMINAL + lgf.position_solution.clock_offset / soln_freq;
+
+    /* Calculate time till the next desired solution epoch. */
+    //double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time)
+    //    + lgf.position_solution.clock_offset / soln_freq;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
