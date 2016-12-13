@@ -43,9 +43,9 @@ u8 sim_enabled;
 
 simulation_settings_t sim_settings = {
   .base_ecef = {
-    -2700303.10144031,
-    -4292474.39651309,
-    3855434.34087421
+   -2706098.845,
+   -4261216.475,
+   3885597.912 
   },
   .speed = 4.0,
   .radius = 100.0,
@@ -306,22 +306,23 @@ void simulation_step_tracking_and_observations(double elapsed)
       /* Generate a code measurement which is just the pseudorange: */
       double points_to_sat[3];
       double base_points_to_sat[3];
-
       vector_subtract(3, simulation_sats_pos[i], sim_state.pos, points_to_sat);
       vector_subtract(3, simulation_sats_pos[i], sim_settings.base_ecef, base_points_to_sat);
 
       double distance_to_sat = vector_norm(3, points_to_sat);
+      /* reuse points_to_sat to store a unit vector for dot product */
+      vector_normalize(3, points_to_sat);
       double base_distance_to_sat = vector_norm(3, base_points_to_sat);
-
+      double sat_vel_mag = vector_dot(3, points_to_sat, simulation_sats_vel[i]);
       /* Fill out the observation details into the NAV_MEAS structure for this satellite, */
       /* We simulate the pseudorange as a noisy range measurement, and */
       /* the carrier phase as a noisy range in wavelengths + an integer offset. */
 
       populate_nav_meas(&sim_state.nav_meas[num_sats_selected],
-        distance_to_sat, el, i);
+        distance_to_sat, el, sat_vel_mag, i);
 
       populate_nav_meas(&sim_state.base_nav_meas[num_sats_selected],
-        base_distance_to_sat, el, i);
+        base_distance_to_sat, el, sat_vel_mag, i);
 
       /* As for tracking, we just set each sat consecutively in each channel. */
       /* This will cause weird jumps when a satellite rises or sets. */
@@ -345,7 +346,7 @@ void simulation_step_tracking_and_observations(double elapsed)
 * the almanac_i satellite, currently dist away from simulated point at given elevation.
 *
 */
-void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double elevation, int almanac_i)
+void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double elevation, double vel, int almanac_i)
 {
   nav_meas->sid = (gnss_signal_t) {
     .code = simulation_almanacs[almanac_i].sid.code,
@@ -362,6 +363,7 @@ void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double e
   nav_meas->raw_carrier_phase +=   rand_gaussian(sim_settings.phase_sigma *
                                              sim_settings.phase_sigma);
 
+  nav_meas->raw_measured_doppler = vel * code_to_carr_freq(simulation_almanacs[almanac_i].sid.code) / GPS_C;
   nav_meas->cn0             =  lerp(elevation, 0, M_PI/2, 35, 45) +
                                rand_gaussian(sim_settings.cn0_sigma *
                                              sim_settings.cn0_sigma);
