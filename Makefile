@@ -12,12 +12,6 @@ ifneq (,$(findstring W32,$(shell uname)))
   CMAKEFLAGS += -G "MSYS Makefiles"
 endif
 
-ifndef PRN
-  MAKEFLAGS += $(warning PRN not defined, using default PRN (22) for tests, specify the PRN with 'make PRN=22')PRN=22
-else
-  MAKEFLAGS += PRN=$(PRN)
-endif
-
 ifeq ($(PIKSI_HW),)
   PIKSI_HW=v3
 endif
