@@ -210,8 +210,10 @@ static void update_obss(obss_t *new_obss)
       if (base_pos_known) {
        double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
 
+       log_info("Base position difference = %f", base_distance);
+
        if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
-         log_warn("Received base station position %f m from PVT position.",
+         log_error("Received base station position %f m from PVT position.",
                   base_distance);
        }
       }
