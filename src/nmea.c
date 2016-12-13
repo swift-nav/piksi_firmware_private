@@ -172,7 +172,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_gps_
 
   gps_time_t current_time;
   current_time.wn = sbp_gps_time->wn;
-  current_time.tow = sbp_gps_time->tow;
+  current_time.tow = sbp_gps_time->tow * 1e-3;
 
   log_info("Sending GGA message");
   unix_t = gps2time(&current_time);
