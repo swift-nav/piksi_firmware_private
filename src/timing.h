@@ -46,12 +46,15 @@ extern volatile time_quality_t time_quality;
 
 void timing_setup(void);
 gps_time_t get_current_time(void);
+gps_time_t get_current_gps_time(void);
 void set_time(time_quality_t quality, gps_time_t t);
 void set_time_fine(u64 tc, gps_time_t t);
 void set_gps_time_offset(u64 tc, gps_time_t t);
 void adjust_time_fine(double dt);
-gps_time_t rx2gpstime(double tc);
-double gps2rxtime(const gps_time_t* t);
+gps_time_t napcount2gpstime(double tc);
+gps_time_t napcount2rcvtime(double tc);
+double gpstime2napcount(const gps_time_t* t);
+double rcvtime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
 
 #endif

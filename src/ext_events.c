@@ -92,7 +92,7 @@ void ext_event_service(void)
   msg.pin = event_pin;
 
   /* Convert to the SBP convention of rounded ms + signed ns residual */
-  gps_time_t gpst = rx2gpstime(tc.full);
+  gps_time_t gpst = napcount2gpstime(tc.full);
   msg_gps_time_t mgt;
   sbp_make_gps_time(&mgt, &gpst, 0);
   msg.wn = mgt.wn;
