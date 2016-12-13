@@ -144,10 +144,10 @@ void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump, msg_g
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
     if (!clock_jump) {
-      sbp_make_vel_ned(vel_ned, soln, 1);
+      sbp_make_vel_ned(vel_ned, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
 
       /* Velocity in ECEF. */
-      sbp_make_vel_ecef(vel_ecef, soln, 1);
+      sbp_make_vel_ecef(vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
     }
 
     // DOP message can be sent even if solution fails to compute
@@ -158,6 +158,9 @@ void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump, msg_g
     /* Update stats */
     last_pvt_stats.systime = chVTGetSystemTime();
     last_pvt_stats.signals_used = soln->n_sigs_used;
+  } else {
+    gps_time_t time_guess = get_current_time();
+    sbp_make_gps_time(gps_time, &time_guess, 0);
   }
 }
 
@@ -189,9 +192,7 @@ void solution_send_pos_messages(double propagation_time, u8 sender_id,
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(&gps_time), (u8 *) gps_time);
   }
 
-  log_warn("address of pos_llh message %u", pos_llh);
   if (pos_llh && !wait_for_timeout) {
-    log_warn("Sending pos_llh message");
     sbp_send_msg(SBP_MSG_POS_LLH, sizeof(&pos_llh), (u8 *) pos_llh);
   }
 
@@ -701,7 +702,7 @@ static void solution_thread(void *arg)
   chRegSetThreadName("solution");
 
   // Declare all SBP messages
-  msg_gps_time_t gps_time;
+  msg_gps_time_t sbp_gps_time;
   msg_pos_llh_t pos_llh;
   msg_pos_ecef_t pos_ecef;
   msg_vel_ned_t vel_ned;
@@ -722,8 +723,11 @@ static void solution_thread(void *arg)
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
     watchdog_notify(WD_NOTIFY_SOLUTION);
 
+    if(time_quality == TIME_FINE) {
+      log_warn("Here of course maybe");
+    }
     // Init the messages we want to send
-    memset(&gps_time, 0, sizeof(msg_gps_time_t));
+    memset(&sbp_gps_time, 0, sizeof(msg_gps_time_t));
     memset(&pos_llh, 0, sizeof(msg_pos_llh_t));
     memset(&pos_ecef, 0, sizeof(msg_pos_ecef_t));
     memset(&vel_ned, 0, sizeof(msg_vel_ned_t));
@@ -733,9 +737,13 @@ static void solution_thread(void *arg)
     memset(&baseline_ned, 0, sizeof(msg_baseline_ned_t));
     memset(&baseline_heading, 0, sizeof(msg_baseline_heading_t));
 
+
+    if(time_quality == TIME_FINE) {
+      log_warn("Got Here 1");
+    }
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
-      solution_simulation(&gps_time,&pos_llh,&pos_ecef,&vel_ned,&vel_ecef,&sbp_dops,&baseline_ned,&baseline_ecef,&baseline_heading);
+      solution_simulation(&sbp_gps_time,&pos_llh,&pos_ecef,&vel_ned,&vel_ecef,&sbp_dops,&baseline_ned,&baseline_ecef,&baseline_heading);
     }
 
     u64 rec_tc = nap_timing_count();
@@ -766,6 +774,10 @@ static void solution_thread(void *arg)
       last_stats.signals_useable = n_collected;
     }
 
+    if(time_quality == TIME_FINE) {
+      log_warn("Got Here 2");
+    }
+
     if (n_ready < MINIMUM_MEAS_COUNT) {
       /* Not enough sats, keep on looping. */
 
@@ -775,6 +787,9 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    if(time_quality == TIME_FINE) {
+      log_warn("Got Here 3");
+    }
     cnav_msg_t cnav_30[MAX_CHANNELS];
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
     for (u8 i=0; i < n_ready; i++) {
@@ -800,6 +815,9 @@ static void solution_thread(void *arg)
       p_e_meas[i] = &e_meas[i];
     }
 
+    if(time_quality == TIME_FINE) {
+      log_warn("Got Here 4");
+    }
     /* Create navigation measurements from the channel measurements */
     /* If we have timing then we can calculate the relationship between
      * receiver time and GPS time and hence provide the pseudorange
@@ -820,6 +838,9 @@ static void solution_thread(void *arg)
 
     s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
 
+    if(time_quality == TIME_FINE) {
+      log_warn("Got Here 5");
+    }
     if (sc_ret != 0) {
        log_error("calc_sat_clock_correction() returned an error");
        continue;
@@ -841,9 +862,14 @@ static void solution_thread(void *arg)
 
       /* Form TDCP Dopplers only if the clock has not just been adjusted,
        * and the old measurements are at most one solution cycle old. */
+      if(time_quality == TIME_FINE) {
+        log_warn("Got Here 6");
+      }
       n_ready_tdcp = tdcp_doppler(n_ready, nav_meas, n_ready_old, nav_meas_old,
           nav_meas_tdcp, rec_tc_delta);
-
+      if(time_quality == TIME_FINE) {
+        log_warn("Got Here 7");
+      }
     } else {
 
       /* Pass the nav_meas with the measured Dopplers as is */
@@ -951,8 +977,8 @@ static void solution_thread(void *arg)
 
       bool disable_velocity = clock_jump ||
                               (lgf.position_solution.velocity_valid == 0);
-      log_warn(" Making SPP position messages");
-      solution_make_sbp(&lgf.position_solution, &dops, disable_velocity, &gps_time, &pos_llh,
+      log_warn("Making SPP position messages");
+      solution_make_sbp(&lgf.position_solution, &dops, disable_velocity, &sbp_gps_time, &pos_llh,
                         &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops);
     }
 
@@ -1109,7 +1135,7 @@ static void solution_thread(void *arg)
     }
 
     solution_send_pos_messages(propagation_time, base_obss.sender_id, nav_meas_tdcp, wait_for_timeout,
-                               &gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
+                               &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                &baseline_ecef, &baseline_heading);
 
     /* Calculate time till the next desired solution epoch. */
@@ -1176,11 +1202,8 @@ static void time_matched_obs_thread(void *arg)
   chRegSetThreadName("time matched obs");
 
   // Declare all SBP messages
-  msg_gps_time_t gps_time;
   msg_pos_llh_t pos_llh;
   msg_pos_ecef_t pos_ecef;
-  msg_vel_ned_t vel_ned;
-  msg_vel_ecef_t vel_ecef;
   msg_dops_t sbp_dops;
   msg_baseline_ecef_t baseline_ecef;
   msg_baseline_ned_t baseline_ned;
@@ -1191,11 +1214,8 @@ static void time_matched_obs_thread(void *arg)
     chBSemWait(&base_obs_received);
 
     // Init the messages we want to send
-    memset(&gps_time, 0, sizeof(msg_gps_time_t));
     memset(&pos_llh, 0, sizeof(msg_pos_llh_t));
     memset(&pos_ecef, 0, sizeof(msg_pos_ecef_t));
-    memset(&vel_ned, 0, sizeof(msg_vel_ned_t));
-    memset(&vel_ecef, 0, sizeof(msg_vel_ecef_t));
     memset(&sbp_dops, 0, sizeof(msg_dops_t));
     memset(&baseline_ecef, 0, sizeof(msg_baseline_ecef_t));
     memset(&baseline_ned, 0, sizeof(msg_baseline_ned_t));

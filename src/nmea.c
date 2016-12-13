@@ -174,6 +174,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_gps_
   current_time.wn = sbp_gps_time->wn;
   current_time.tow = sbp_gps_time->tow;
 
+  log_info("Sending GGA message");
   unix_t = gps2time(&current_time);
   gmtime_r(&unix_t, &t);
 
@@ -297,7 +298,9 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
 
   gps_time_t solution_time;
   solution_time.wn = sbp_msg_time->wn;
-  solution_time.tow = sbp_msg_time->tow;
+  solution_time.tow = sbp_msg_time->tow * 1e-3; // SBP time struct has time in MS
+  normalize_gps_time(&solution_time);
+  log_info("Sending GGA message");
   unix_t = gps2time(&solution_time);
   gmtime_r(&unix_t, &t);
 
@@ -382,7 +385,8 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
 
   gps_time_t solution_time;
   solution_time.wn = sbp_msg_time->wn;
-  solution_time.tow = sbp_msg_time->tow;
+  solution_time.tow = sbp_msg_time->tow * 1e-3; // SBP time struct has time in MS;
+  normalize_gps_time(&solution_time);
   unix_t = gps2time(&solution_time);
   gmtime_r(&unix_t, &t);
 
@@ -418,13 +422,14 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time)
   time_t unix_t;
   struct tm t;
 
-  gps_time_t sbp_time;
-  sbp_time.wn = sbp_msg_time->wn;
-  sbp_time.tow = sbp_msg_time->tow;
+  gps_time_t solution_time;
+  solution_time.wn = sbp_msg_time->wn;
+  solution_time.tow = sbp_msg_time->tow * 1e-3; // SBP time struct has time in MS;
 
-  unix_t = gps2time(&sbp_time);
+  normalize_gps_time(&solution_time);
+  unix_t = gps2time(&solution_time);
   gmtime_r(&unix_t, &t);
-  double frac_s = fmod(sbp_time.tow, 1.0);
+  double frac_s = fmod(solution_time.tow, 1.0);
 
   NMEA_SENTENCE_START(40);
   NMEA_SENTENCE_PRINTF(
@@ -484,33 +489,35 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
                     const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
                     const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas)
 {
-  bool skip_velocity = sbp_vel_ned->flags == 0;
 
-  if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time && !skip_velocity) {
+  if (sbp_vel_ned && sbp_vel_ned->flags != 0
+      && sbp_pos_llh && sbp_pos_llh->flags != 0
+      && sbp_msg_time && sbp_msg_time->flags != 0) {
     DO_EVERY(gprmc_msg_rate,
       nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time);
     );
   }
-  if(sbp_pos_llh && sbp_msg_time) {
+  if(sbp_pos_llh && sbp_pos_llh->flags != 0
+     && sbp_msg_time && sbp_msg_time->flags != 0) {
     DO_EVERY(gpgll_msg_rate,
              nmea_gpgll(sbp_pos_llh, sbp_msg_time););
   }
-  if (sbp_vel_ned && !skip_velocity) {
+  if (sbp_vel_ned && sbp_vel_ned != 0) {
     DO_EVERY(gpvtg_msg_rate,
       nmea_gpvtg(sbp_vel_ned);
     );
   }
-  if (sbp_msg_time) {
+  if (sbp_msg_time && sbp_msg_time->flags != 0) {
     DO_EVERY(gpzda_msg_rate,
              nmea_gpzda(sbp_msg_time);
     );
   }
-  if (sbp_dops) {
+  if (sbp_dops && sbp_dops->flags != 0) {
     DO_EVERY(gpgsa_msg_rate,
              nmea_assemble_gpgsa(sbp_dops);
     );
   }
-  if(nav_meas && sbp_pos_ecef) {
+  if(nav_meas && sbp_pos_ecef && sbp_pos_ecef->flags != 0) {
     DO_EVERY(gpgsv_msg_rate,
              nmea_gpgsv(nav_meas, sbp_pos_ecef);
     );
