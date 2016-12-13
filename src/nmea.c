@@ -487,8 +487,14 @@ static void nmea_assemble_gpgsa(const msg_dops_t *sbp_dops)
  */
 void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_pos_ecef,
                     const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
-                    const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas)
+                    const msg_gps_time_t *sbp_msg_time, const navigation_measurement_t *nav_meas,
+                    double propagation_time, u8 sender_id)
 {
+  if (sbp_pos_llh && sbp_pos_llh->flags != 0 &&
+      sbp_msg_time && sbp_msg_time->flags != 0 &&
+      sbp_dops && sbp_dops->flags != 0) {
+    nmea_gpgga(sbp_pos_llh, sbp_msg_time, sbp_dops, propagation_time, sender_id);
+  }
 
   if (sbp_vel_ned && sbp_vel_ned->flags != 0
       && sbp_pos_llh && sbp_pos_llh->flags != 0
@@ -498,7 +504,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
     );
   }
   if(sbp_pos_llh && sbp_pos_llh->flags != 0
-     && sbp_msg_time && sbp_msg_time->flags != 0) {
+     && sbp_msg_time && sbp_msg_time->flags != 0 ) {
     DO_EVERY(gpgll_msg_rate,
              nmea_gpgll(sbp_pos_llh, sbp_msg_time););
   }

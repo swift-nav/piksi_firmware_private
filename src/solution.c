@@ -225,12 +225,13 @@ void solution_send_pos_messages(double propagation_time, u8 sender_id,
   }
 
   // Send NMEA if we have a valid solution calculated
-  if (pos_llh && pos_llh->flags != 0) {
-    nmea_send_msgs(pos_llh, pos_ecef, vel_ned, sbp_dops, gps_time, nav_meas);
-  }
-
-  if (pos_llh && gps_time && sbp_dops && pos_llh->flags != 0 && !wait_for_timeout) {
-    nmea_gpgga(pos_llh, gps_time, sbp_dops, propagation_time, sender_id);
+  // Current behavior is to send the NMEA from the solution thread only
+  // (checked by checking the flag of the gps_time message, this is never set
+  // valid from the time matched thread). This measn in time matched mode,
+  // we will only ever send NMEA messages based on our SPP solution. The validity of all other
+  // messages are checked before the relevant NMEA is encoded
+  if (gps_time && gps_time->flags != 0) {
+    nmea_send_msgs(pos_llh, pos_ecef, vel_ned, sbp_dops, gps_time, nav_meas, propagation_time, sender_id);
   }
 }
 
