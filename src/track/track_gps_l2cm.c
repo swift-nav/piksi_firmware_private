@@ -339,6 +339,9 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
  *
  * This function checks if L2 and L1 have a `mismatching` frequency for
  * a pre-configured period of time. The mismatch condition is described by:
+ *
+ * |mod(doppler1,1000) - mod(doppler2,1000)|
+ *
  * \f[
  * \left|{\operatorname{Mod}{\left (
  *          \operatorname{LPF}{\left \{doppler_{ch0} \right \} },
@@ -390,14 +393,16 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
       float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
       float error = fabsf(entry_freq_mod - freq_mod);
 
+      if (common_data->xcorr_freq == 0.0f || entry_freq == 0.0f) {
+        /* Check that tracker is reporting non-zero dopplers */
+        continue;
+      }
+
       if (error <= gps_l2cm_config.xcorr_delta) {
         /* Signal pairs with matching doppler are NOT xcorr flagged */
         xcorr_flag = false;
       }
-      /* Check that input doppler values are non-zeros */
-      else if (error >= 10.0f * gps_l2cm_config.xcorr_delta &&
-               common_data->xcorr_freq != 0.0f &&
-               entry_freq != 0.0f) {
+      else if (error >= 10.0f * gps_l2cm_config.xcorr_delta) {
         /* Signal pairs with mismatching doppler are xcorr flagged */
         xcorr_flag = true;
       }

@@ -102,7 +102,7 @@ typedef struct {
   u16                      lock_counter; /**< Lock state counter */
   float                    xcorr_freq;   /**< Cross-correlation doppler [hz] */
   u16                      xcorr_count;  /**< Cross-correlation counter */
-  bool                     xcorr_wl;     /**< Cross-correlation status */
+  bool                     xcorr_wl;     /**< Is signal xcorr whitelisted? */
 } tracking_channel_info_t;
 
 /**
@@ -163,7 +163,7 @@ typedef struct {
   float                    freq;  /**< Doppler frequency for cross-correlation [hz] */
   float                    cn0;   /**< C/N0 level [dB/Hz] */
   u16                      count; /**< Cross-correlation counter */
-  bool                     wl;    /**< Cross-correlation status */
+  bool                     wl;    /**< Is signal xcorr whitelisted? */
 } tracking_channel_cc_entry_t;
 
 /**

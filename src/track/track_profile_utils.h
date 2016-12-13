@@ -377,11 +377,11 @@ void tp_tracker_update_alias(const tracker_channel_info_t *channel_info,
                              tracker_common_data_t *common_data,
                              tp_tracker_data_t *data,
                              u32 cycle_flags);
-void tp_tracker_update_xcorr(const tracker_channel_info_t *channel_info,
-                             tracker_common_data_t *common_data,
-                             tp_tracker_data_t *data,
-                             u32 cycle_flags,
-                             const tp_tracker_config_t *config);
+void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               tp_tracker_data_t *data,
+                               u32 cycle_flags,
+                               const tp_tracker_config_t *config);
 void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
                             tracker_common_data_t *common_data,
                             tp_tracker_data_t *data);

@@ -707,8 +707,9 @@ static void drop_channel(u8 channel_id,
     bool long_in_track = time_in_track > TRACK_REACQ_T;
     u32 unlocked_time = time_info->ld_pess_unlocked_ms;
     bool long_unlocked = unlocked_time > TRACK_REACQ_T;
+    bool was_xcorr = (info->flags & TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED);
 
-    if (long_in_track && had_locks && !long_unlocked) {
+    if (long_in_track && had_locks && !long_unlocked && !was_xcorr) {
       double carrier_freq = freq_info->carrier_freq_at_lock;
       float doppler_min = code_to_sv_doppler_min(sid.code) +
                           code_to_tcxo_doppler_min(sid.code);

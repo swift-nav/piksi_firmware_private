@@ -44,9 +44,9 @@
  */
 typedef struct {
   tp_tracker_data_t data;             /**< Tracker data */
-  u16 xcorr_counts[NUM_SATS_GPS];     /**< Cross-correlation interval counters */
+  u16 xcorr_counts[NUM_SATS_GPS];     /**< L1 Cross-correlation interval counters */
   u16 xcorr_count_l2;                 /**< L2 Cross-correlation interval counter */
-  bool xcorr_whitelist[NUM_SATS_GPS]; /**< Cross-correlation whitelist status */
+  bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status */
   bool xcorr_whitelist_l2;            /**< L2 Cross-correlation whitelist status */
   u8  xcorr_flag: 1;                  /**< Cross-correlation flag */
   u8  reserved: 7;                    /**< Unused (reserved) flags */
@@ -258,6 +258,9 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
  *
  * This function checks if any of the L1 channels have a `matching` frequency
  * for a pre-configured period of time. The match condition is described by:
+ *
+ * |mod(doppler1,1000) - mod(doppler2,1000)|
+ *
  * \f[
  * \left|{\operatorname{Mod}{\left (
  *          \operatorname{LPF}{\left \{doppler_{ch0} \right \} },
@@ -302,8 +305,7 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
         continue;
       }
 
-      if (CODE_GPS_L1CA == entry->sid.code &&
-          sid_is_equal(entry->sid, channel_info->sid)) {
+      if (sid_is_equal(entry->sid, channel_info->sid)) {
         if (cn0 >= 40.0f) {
           /* Whitelist high CN0 signal */
           data->xcorr_whitelist[channel_info->sid.sat - 1] = true;
@@ -317,22 +319,24 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
       float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
       float error = fabsf(entry_freq_mod - freq_mod);
 
+      if (common_data->xcorr_freq == 0.0f || entry_freq == 0.0f) {
+        /* Check that tracker is reporting non-zero dopplers */
+        continue;
+      }
+
       if (error <= gps_l1ca_config.xcorr_delta) {
         /* Signal pairs with matching doppler are xcorr flagged */
         xcorr_flags[entry->sid.sat - 1] = true;
         xcorr_cn0_diffs[entry->sid.sat - 1] = cn0 - entry_cn0;
       }
-      /* Check that input doppler values are non-zeros */
-      else if (error >= 10.0f * gps_l1ca_config.xcorr_delta &&
-               common_data->xcorr_freq != 0.0f &&
-               entry_freq != 0.0f) {
+      else if (error >= 10.0f * gps_l1ca_config.xcorr_delta) {
         /* Signal pair with significant doppler difference is whitelisted */
         data->xcorr_whitelist[entry->sid.sat - 1] = true;
       }
     }
     /* If signal is in sensitivity mode, all whitelistings are cleared */
     if (tp_tl_is_fll(&mode->data.tl_state)) {
-      for (u16 idx = 0; idx < ARRAY_SIZE(xcorr_flags); ++idx) {
+      for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
         data->xcorr_whitelist[idx] = false;
       }
     }
@@ -391,6 +395,9 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
  *
  * This function checks if L1 and L2 have a `mismatching` frequency for
  * a pre-configured period of time. The mismatch condition is described by:
+ *
+ * |mod(doppler1,1000) - mod(doppler2,1000)|
+ *
  * \f[
  * \left|{\operatorname{Mod}{\left (
  *          \operatorname{LPF}{\left \{doppler_{ch0} \right \} },
@@ -441,14 +448,16 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
       float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
       float error = fabsf(entry_freq_mod - freq_mod);
 
+      if (common_data->xcorr_freq == 0.0f || entry_freq == 0.0f) {
+        /* Check that tracker is reporting non-zero dopplers */
+        continue;
+      }
+
       if (error <= gps_l1ca_config.xcorr_delta) {
         /* Signal pairs with matching doppler are NOT xcorr flagged */
         xcorr_flag = false;
       }
-      /* Check that input doppler values are non-zeros */
-      else if (error >= 10.0f * gps_l1ca_config.xcorr_delta &&
-               common_data->xcorr_freq != 0.0f &&
-               entry_freq != 0.0f) {
+      else if (error >= 10.0f * gps_l1ca_config.xcorr_delta) {
         /* Signal pairs with mismatching doppler are xcorr flagged */
         xcorr_flag = true;
       }
