@@ -150,6 +150,7 @@ static void update_obss(obss_t *new_obss)
   /* Lock mutex before modifying base_obss.
    * NOTE: We didn't need to lock it before reading in THIS context as this
    * is the only thread that writes to base_obss. */
+  bool have_obs = true;
   chMtxLock(&base_obs_lock);
 
   /* Create a set of navigation measurements to store the previous
@@ -207,14 +208,25 @@ static void update_obss(obss_t *new_obss)
       memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
       base_obss.has_pos = 1;
 
+      chMtxLock(&base_pos_lock);
       if (base_pos_known) {
-       double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
+        double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
 
-       if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
-         log_warn("Received base station position %f m from PVT position.",
+        if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+          log_warn("Received base observation with SPP position %f m from the"
+                  " surveyed position. Check the base station position setting.",
                   base_distance);
-       }
+        }
+
+        if (base_distance > BASE_STATION_RESET_THRESHOLD) {
+          log_warn("Received base observation with SPP position %f m from the"
+                  " surveyed position. Ignoring the observation.",
+                  base_distance);
+          memset(&base_obss, 0, sizeof(base_obss));
+          have_obs = false;
+        }
       }
+      chMtxUnlock(&base_pos_lock);
     } else {
       base_obss.has_pos = 0;
       /* TODO(dsk) check for repair failure */
@@ -247,7 +259,9 @@ static void update_obss(obss_t *new_obss)
   chMtxUnlock(&base_obs_lock);
 
   /* Signal that a complete base observation has been received. */
-  chBSemSignal(&base_obs_received);
+  if (have_obs) {
+    chBSemSignal(&base_obs_received);
+  }
 }
 
 /** SBP callback for observation messages.
