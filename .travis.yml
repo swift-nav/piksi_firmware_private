@@ -29,6 +29,7 @@ install:
 
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
+  - ./yolo.sh
   - export PATH=$PATH:~/gcc-arm-none-eabi/bin
   - make PIKSI_HW=v3 PIKSI_REV=microzed
   - make PIKSI_HW=v3 PIKSI_REV=prod
