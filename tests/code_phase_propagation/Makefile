@@ -8,5 +8,5 @@ endif
 
 SWIFTNAV_ROOT = ../..
 
-include ../../ext/Makefile.include
+include ../Makefile.include
 

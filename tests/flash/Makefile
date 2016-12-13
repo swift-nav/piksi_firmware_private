@@ -4,5 +4,5 @@ OBJS = flash_test.o
 
 SWIFTNAV_ROOT = ../..
 
-include ../../ext/Makefile.include
+include ../Makefile.include
 

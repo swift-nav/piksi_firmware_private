@@ -4,5 +4,5 @@ OBJS = nap_test_regs_test.o
 
 SWIFTNAV_ROOT = ../..
 
-include ../../ext/Makefile.include
+include ../Makefile.include
 

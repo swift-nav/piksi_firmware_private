@@ -4,5 +4,6 @@ OBJS = sbp_tx_stress_test.o
 
 SWIFTNAV_ROOT = ../..
 
-include ../../ext/Makefile.include
+include ../Makefile.include
+
 

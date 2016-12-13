@@ -6,5 +6,5 @@ CFLAGS += -I../../src/
 
 SWIFTNAV_ROOT ?= ../..
 
-include ../../ext/Makefile.include
+include ../Makefile.include
 
