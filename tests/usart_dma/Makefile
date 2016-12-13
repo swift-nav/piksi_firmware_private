@@ -4,5 +4,5 @@ OBJS = usart_dma_test.o
 
 SWIFTNAV_ROOT = ../..
 
-include ../../stm32/Makefile.include
+include ../../ext/Makefile.include
 
