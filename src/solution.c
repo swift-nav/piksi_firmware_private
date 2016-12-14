@@ -85,7 +85,7 @@ systime_t last_spp;
 
 double soln_freq = 5.0;
 u32 max_age_of_differential = 30;
-u32 obs_output_divisor = 1;
+u32 obs_output_divisor = 5;
 
 double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = 102;
