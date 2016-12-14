@@ -246,6 +246,27 @@ void solution_send_pos_messages(double propagation_time, u8 sender_id, u8 n_used
 
 }
 
+void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 n_used,
+                                      const navigation_measurement_t *nav_meas,
+                                      const msg_gps_time_t *gps_time, const msg_pos_llh_t *pos_llh,
+                                      const msg_pos_ecef_t *pos_ecef, const msg_vel_ned_t *vel_ned,
+                                      const msg_vel_ecef_t * vel_ecef, const msg_dops_t *sbp_dops,
+                                      const msg_baseline_ned_t *baseline_ned, const msg_baseline_ecef_t *baseline_ecef,
+                                      const msg_baseline_heading_t *baseline_heading) {
+  // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
+  bool wait_for_timeout = false;
+  if (!(dgnss_timeout(last_dgnss, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+    wait_for_timeout = true;
+  }
+
+  if (!wait_for_timeout) {
+    solution_send_pos_messages(propagation_time, sender_id, n_used, nav_meas,
+                               gps_time, pos_llh, pos_ecef, vel_ned, vel_ecef, sbp_dops, baseline_ned,
+                               baseline_ecef, baseline_heading);
+  }
+  last_spp = chVTGetSystemTime();
+}
+
 double calc_heading(const double b_ned[3])
 {
   double heading = atan2(b_ned[1], b_ned[0]);
@@ -936,12 +957,17 @@ static void solution_thread(void *arg)
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
-      log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
+      DO_EVERY((u32)soln_freq,
+         log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
+      );
 
       soln_flag = false;
 
       // If we can't compute a SPP position, something is wrong and no point
-      // continuing to process this epoch
+      // continuing to process this epoch - send out solution failed messages
+      solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
+                                       &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
+                                       &baseline_ecef, &baseline_heading);
       continue;
     }
 
@@ -971,8 +997,9 @@ static void solution_thread(void *arg)
     ndb_lgf_store(&lgf);
 
     /* Save elevation angles every so often */
-    update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
-                          lgf.position_solution.pos_ecef);
+    DO_EVERY((u32)soln_freq,
+              update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
+                                    lgf.position_solution.pos_ecef));
 
     if (!simulation_enabled()) {
       /* Output solution. */
@@ -1005,7 +1032,9 @@ static void solution_thread(void *arg)
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
+    log_warn("About to enter prop limit %f %f",t_err,lgf.position_solution.time.tow);
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
+      log_warn("Entered prop limit");
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
@@ -1104,6 +1133,7 @@ static void solution_thread(void *arg)
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &lgf.position_solution);
         /* Send the observations. */
+        log_warn("Sending Observations");
         send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
       }
     }
@@ -1130,17 +1160,10 @@ static void solution_thread(void *arg)
       }
     }
 
-    // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
-    bool wait_for_timeout = false;
-    if ( !(dgnss_timeout(last_dgnss, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED ) {
-      wait_for_timeout = true;
-    }
-
-    if(!wait_for_timeout) {
-      solution_send_pos_messages(propagation_time, base_obss.sender_id, n_ready_tdcp, nav_meas_tdcp,
-                                 &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
-                                 &baseline_ecef, &baseline_heading);
-    }
+    // Send out messages if needed
+    solution_send_low_latency_output(propagation_time, base_obss.sender_id, n_ready_tdcp, nav_meas_tdcp,
+                                     &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
+                                     &baseline_ecef, &baseline_heading);
     last_spp = chVTGetSystemTime();
 
     /* Calculate time till the next desired solution epoch. */
