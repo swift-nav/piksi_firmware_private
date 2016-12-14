@@ -105,9 +105,7 @@ void set_time_fine(u64 tc, gps_time_t t)
   time_quality = TIME_FINE;
   chMtxUnlock(&clock_mutex);
 
-  log_warn("test set time fine");
   time_t unix_t = gps2time(&t);
-  log_warn("test set time fine passed");
   log_info("Time set to: %s (quality=%d)", ctime(&unix_t), TIME_FINE);
 }
 
