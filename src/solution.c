@@ -145,7 +145,7 @@ bool spp_timeout(systime_t _last_spp, systime_t _last_dgnss, dgnss_solution_mode
   return (_last_spp < _last_dgnss);
 }
 
-void solution_make_sbp(gnss_solution *soln, dops_t *dops, bool clock_jump, msg_gps_time_t *gps_time,
+void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, msg_gps_time_t *gps_time,
                        msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
                        msg_vel_ned_t *vel_ned, msg_vel_ecef_t *vel_ecef,
                        msg_dops_t *sbp_dops) {
@@ -206,38 +206,52 @@ void solution_send_pos_messages(double propagation_time, u8 sender_id, u8 n_used
                                 const msg_baseline_heading_t *baseline_heading) {
 
   if (gps_time) {
+    log_warn("Sending TIME");
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(&gps_time), (u8 *) gps_time);
   }
 
   if (pos_llh) {
-    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(&pos_llh), (u8 *) pos_llh);
+    log_warn("Sending POS LLH");
+    log_warn("Pos Message tow %u",pos_llh->tow);
+    log_warn("Pos Message lat %f",pos_llh->lat);
+    log_warn("Pos Message lon %f",pos_llh->lon);
+    log_warn("Pos Message hgt %f",pos_llh->height);
+    log_warn("Pos Message sat %u",pos_llh->n_sats);
+    log_warn("Pos Message fla %u",pos_llh->flags);
   }
 
   if (pos_ecef) {
+    log_warn("Sending POS ECEF");
     sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(&pos_ecef), (u8 *) pos_ecef);
   }
 
   if (vel_ned) {
+    log_warn("Sending VEC NED");
     sbp_send_msg(SBP_MSG_VEL_NED, sizeof(&vel_ned), (u8 *) vel_ned);
   }
 
   if (vel_ecef) {
+    log_warn("Sending VEL ECEF");
     sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(&vel_ecef), (u8 *) vel_ecef);
   }
 
-  if (baseline_ecef) {
+  if (baseline_ecef && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    log_warn("Sending BASE ECEF");
     sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(*baseline_ecef), (u8 * ) baseline_ecef);
   }
 
-  if (baseline_ned) {
+  if (baseline_ned && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    log_warn("Sending BASE NED");
     sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(*baseline_ned), (u8 * ) baseline_ned);
   }
 
-  if (baseline_heading && send_heading) {
+  if (baseline_heading && send_heading && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    log_warn("Sending BASE HEAD");
     sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(*baseline_heading), (u8 * ) baseline_heading);
   }
 
   if (sbp_dops) {
+    log_warn("Sending DOPS");
     sbp_send_msg(SBP_MSG_DOPS, sizeof(*sbp_dops), (u8 *) sbp_dops);
   }
 
@@ -260,6 +274,7 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
   }
 
   if (!wait_for_timeout) {
+    log_warn("Sending POS messages");
     solution_send_pos_messages(propagation_time, sender_id, n_used, nav_meas,
                                gps_time, pos_llh, pos_ecef, vel_ned, vel_ecef, sbp_dops, baseline_ned,
                                baseline_ecef, baseline_heading);
@@ -750,6 +765,8 @@ static void solution_thread(void *arg)
   (void)arg;
   chRegSetThreadName("solution");
 
+  systime_t deadline = chVTGetSystemTime();
+
   // Declare all SBP messages
   msg_gps_time_t sbp_gps_time;
   msg_pos_llh_t pos_llh;
@@ -760,8 +777,6 @@ static void solution_thread(void *arg)
   msg_baseline_ecef_t baseline_ecef;
   msg_baseline_ned_t baseline_ned;
   msg_baseline_heading_t baseline_heading;
-
-  systime_t deadline = chVTGetSystemTime();
 
   bool clock_jump = FALSE;
 
@@ -964,10 +979,15 @@ static void solution_thread(void *arg)
       soln_flag = false;
 
       // If we can't compute a SPP position, something is wrong and no point
-      // continuing to process this epoch - send out solution failed messages
-      solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
-                                       &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
-                                       &baseline_ecef, &baseline_heading);
+      // continuing to process this epoch - send out solution and observation
+      // failed messages if not in time matched mode
+      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
+                                         &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
+                                         &baseline_ned,
+                                         &baseline_ecef, &baseline_heading);
+        send_observations(n_ready_tdcp, nav_meas_tdcp, &rec_time);
+      }
       continue;
     }
 
@@ -989,6 +1009,13 @@ static void solution_thread(void *arg)
        */
       set_time_fine(rec_tc, lgf.position_solution.time);
       clock_jump = TRUE;
+      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
+                                         &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
+                                         &baseline_ned,
+                                         &baseline_ecef, &baseline_heading);
+        send_observations(n_ready_tdcp, nav_meas_tdcp, &rec_time);
+      }
       continue;
     }
     set_gps_time_offset(rec_tc, lgf.position_solution.time);
@@ -1019,28 +1046,19 @@ static void solution_thread(void *arg)
 
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
-    log_warn("lgf 1 time before %f",lgf.position_solution.time.tow);
     gps_time_t new_obs_time;
     new_obs_time.tow = round(lgf.position_solution.time.tow * soln_freq)
                               / soln_freq;
     normalize_gps_time(&new_obs_time);
-    log_warn("new obs 2 time before %f",new_obs_time.tow);
-    log_warn("lgf 2 time before %f",lgf.position_solution.time.tow);
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
-    log_warn("new obs 3 time before %f",new_obs_time.tow);
-    log_warn("lgf 3 time before %f",lgf.position_solution.time.tow);
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
-    log_warn("new obs 3 time before %f",new_obs_time.tow);
-    log_warn("lgf 3 time before %f",lgf.position_solution.time.tow);
 
     // Time the base obs are propagated to the rover obs
     double propagation_time = 0.0;
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
-    log_warn("About to enter prop limit %f %f",t_err,lgf.position_solution.time.tow);
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_warn("Entered prop limit");
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
@@ -1139,7 +1157,6 @@ static void solution_thread(void *arg)
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &lgf.position_solution);
         /* Send the observations. */
-        log_warn("Sending Observations");
         send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
       }
     }
@@ -1183,7 +1200,7 @@ static void solution_thread(void *arg)
 
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. */
-    deadline += round(S2ST(dt));
+    deadline += round(dt * CH_CFG_ST_FREQUENCY);
   }
 }
 
