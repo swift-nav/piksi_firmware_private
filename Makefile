@@ -58,7 +58,7 @@ endif
 
 .PHONY: all tests firmware docs .FORCE
 
-all: firmware # tests
+all: firmware tests
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
 
 firmware: $(FW_DEPS)
