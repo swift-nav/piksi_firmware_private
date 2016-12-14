@@ -59,8 +59,8 @@ extern double soln_freq;
 extern u32 obs_output_divisor;
 extern u32 max_age_of_differential;
 
-void solution_send_pos_messages(double propagation_time, u8 sender_id,
-                                const navigation_measurement_t *nav_meas, bool wait_for_timeout,
+void solution_send_pos_messages(double propagation_time, u8 sender_id, u8 n_used,
+                                const navigation_measurement_t *nav_meas,
                                 const msg_gps_time_t *gps_time, const msg_pos_llh_t *pos_llh,
                                 const msg_pos_ecef_t *pos_ecef, const msg_vel_ned_t *vel_ned,
                                 const msg_vel_ecef_t * vel_ecef, const msg_dops_t *sbp_dops,
