@@ -206,52 +206,38 @@ void solution_send_pos_messages(double propagation_time, u8 sender_id, u8 n_used
                                 const msg_baseline_heading_t *baseline_heading) {
 
   if (gps_time) {
-    log_warn("Sending TIME");
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(&gps_time), (u8 *) gps_time);
   }
 
   if (pos_llh) {
-    log_warn("Sending POS LLH");
-    log_warn("Pos Message tow %u",pos_llh->tow);
-    log_warn("Pos Message lat %f",pos_llh->lat);
-    log_warn("Pos Message lon %f",pos_llh->lon);
-    log_warn("Pos Message hgt %f",pos_llh->height);
-    log_warn("Pos Message sat %u",pos_llh->n_sats);
-    log_warn("Pos Message fla %u",pos_llh->flags);
+    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(*pos_llh), (u8 *) pos_llh);
   }
 
   if (pos_ecef) {
-    log_warn("Sending POS ECEF");
-    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(&pos_ecef), (u8 *) pos_ecef);
+    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(*pos_ecef), (u8 *) pos_ecef);
   }
 
   if (vel_ned) {
-    log_warn("Sending VEC NED");
-    sbp_send_msg(SBP_MSG_VEL_NED, sizeof(&vel_ned), (u8 *) vel_ned);
+    sbp_send_msg(SBP_MSG_VEL_NED, sizeof(*vel_ned), (u8 *) vel_ned);
   }
 
   if (vel_ecef) {
-    log_warn("Sending VEL ECEF");
-    sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(&vel_ecef), (u8 *) vel_ecef);
+    sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(*vel_ecef), (u8 *) vel_ecef);
   }
 
   if (baseline_ecef && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-    log_warn("Sending BASE ECEF");
     sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(*baseline_ecef), (u8 * ) baseline_ecef);
   }
 
   if (baseline_ned && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-    log_warn("Sending BASE NED");
     sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(*baseline_ned), (u8 * ) baseline_ned);
   }
 
   if (baseline_heading && send_heading && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-    log_warn("Sending BASE HEAD");
     sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(*baseline_heading), (u8 * ) baseline_heading);
   }
 
   if (sbp_dops) {
-    log_warn("Sending DOPS");
     sbp_send_msg(SBP_MSG_DOPS, sizeof(*sbp_dops), (u8 *) sbp_dops);
   }
 
@@ -274,7 +260,6 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
   }
 
   if (!wait_for_timeout) {
-    log_warn("Sending POS messages");
     solution_send_pos_messages(propagation_time, sender_id, n_used, nav_meas,
                                gps_time, pos_llh, pos_ecef, vel_ned, vel_ecef, sbp_dops, baseline_ned,
                                baseline_ecef, baseline_heading);
