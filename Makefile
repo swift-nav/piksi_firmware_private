@@ -12,12 +12,6 @@ ifneq (,$(findstring W32,$(shell uname)))
   CMAKEFLAGS += -G "MSYS Makefiles"
 endif
 
-ifndef PRN
-  MAKEFLAGS += $(warning PRN not defined, using default PRN (22) for tests, specify the PRN with 'make PRN=22')PRN=22
-else
-  MAKEFLAGS += PRN=$(PRN)
-endif
-
 ifeq ($(PIKSI_HW),)
   PIKSI_HW=v3
 endif
@@ -56,10 +50,6 @@ MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
         $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
 
-ifeq ($(PIKSI_HW),v2)
-  $(error PIKSI_HW=v2 is no longer supported.)
-endif
-
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
   CMAKEFLAGS += -DMAX_CHANNELS=31
@@ -68,7 +58,7 @@ endif
 
 .PHONY: all tests firmware docs .FORCE
 
-all: firmware # tests
+all: firmware tests
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
 
 firmware: $(FW_DEPS)

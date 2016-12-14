@@ -7,10 +7,6 @@ ifeq ($(PIKSI_HW),)
   PIKSI_HW=v3
 endif
 
-ifeq ($(PIKSI_HW),v2)
-  $(error PIKSI_HW=v2 is no longer supported.)
-endif
-
 ifeq ($(PIKSI_HW),v3)
   ifeq ($(PIKSI_REV),)
     PIKSI_REV=prod

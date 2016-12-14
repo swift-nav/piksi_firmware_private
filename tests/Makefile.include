@@ -1,0 +1,8 @@
+CHIBIOS = $(SWIFTNAV_ROOT)/ChibiOS
+
+include $(SWIFTNAV_ROOT)/src/board/$(PIKSI_HW)/Makefile.inc
+
+include $(SWIFTNAV_ROOT)/ext/Makefile.include
+
+include $(RULESPATH)/rules.mk
+
