@@ -872,7 +872,8 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data)
     chMtxUnlock(&pub_data->info_mutex);
 
     if (0 != (entry.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
-        0 != (entry.flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
+        0 != (entry.flags & TRACKING_CHANNEL_FLAG_CONFIRMED) &&
+        0 != (entry.flags & TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE)) {
       cc_data->entries[cnt++] = entry;
     }
   }
@@ -1572,6 +1573,10 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: cross-correlation suspect */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_SUSPECT)) {
       result |= TRACKING_CHANNEL_FLAG_XCORR_SUSPECT;
+    }
+    /* Tracking status: cross-correlation doppler filter active */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)) {
+      result |= TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE;
     }
   }
 

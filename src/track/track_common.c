@@ -487,6 +487,10 @@ void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
     assert(!"Unknown tracking loop configuration");
   }
 
+  if (data->xcorr_flag) {
+    flags |= TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE;
+  }
+
   /* Sanity checks */
   if (common_data->TOW_ms == TOW_UNKNOWN) {
     assert(0 == (flags & TRACK_CMN_FLAG_TOW_DECODED));

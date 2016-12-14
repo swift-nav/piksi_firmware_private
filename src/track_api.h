@@ -61,13 +61,16 @@ typedef struct {
 #define TRACK_CMN_FLAG_XCORR_CONFIRMED (1 << 10)
 /** Tracker flag: tracker is a cross-correlate suspect */
 #define TRACK_CMN_FLAG_XCORR_SUSPECT (1 << 11)
+/** Tracker flag: tracker xcorr doppler filter is active */
+#define TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
                                     TRACK_CMN_FLAG_HAD_FLOCK | \
                                     TRACK_CMN_FLAG_TOW_DECODED | \
                                     TRACK_CMN_FLAG_TOW_PROPAGATED | \
                                     TRACK_CMN_FLAG_XCORR_CONFIRMED | \
-                                    TRACK_CMN_FLAG_XCORR_SUSPECT)
+                                    TRACK_CMN_FLAG_XCORR_SUSPECT | \
+                                    TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)
 
 /**
  * Common tracking feature flags.

@@ -31,6 +31,14 @@
 #define TRACKING_ELEVATION_UNKNOWN 100 /* Ensure it will be above elev. mask */
 /** GPS L1 C/A cross-correlation frequency step [hz] */
 #define L1CA_XCORR_FREQ_STEP 1000.f
+/** GPS L1 C/A CN0 threshold for whitelisting [dB-Hz] */
+#define L1CA_XCORR_WHITELIST_THRESHOLD 40.f
+/** GPS L2 CM CN0 threshold for whitelisting [dB-Hz] */
+#define L2CM_XCORR_WHITELIST_THRESHOLD 27.f
+/** GPS L1 C/A CN0 threshold for suspected xcorr [dB-Hz] */
+#define XCORR_SUSPECT_THRESHOLD -15.f
+/** GPS L1 C/A CN0 threshold for confirmed xcorr [dB-Hz] */
+#define XCORR_CONFIRM_THRESHOLD -20.f
 
 typedef u8 tracker_channel_id_t;
 
@@ -84,6 +92,8 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED (1u << 22)
 /** Tracking channel flag: tracker is a cross-correlation suspect */
 #define TRACKING_CHANNEL_FLAG_XCORR_SUSPECT (1u << 23)
+/** Tracking channel flag: tracker xcorr doppler filter is active */
+#define TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE (1u << 24)
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;
