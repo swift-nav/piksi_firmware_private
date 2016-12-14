@@ -206,7 +206,7 @@ void solution_send_pos_messages(double propagation_time, u8 sender_id, u8 n_used
                                 const msg_baseline_heading_t *baseline_heading) {
 
   if (gps_time) {
-    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(&gps_time), (u8 *) gps_time);
+    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(*gps_time), (u8 *) gps_time);
   }
 
   if (pos_llh) {
