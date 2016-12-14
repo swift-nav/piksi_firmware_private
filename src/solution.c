@@ -882,7 +882,7 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
-    set_gps_time_offset(rec_tc, lgf.position_solution.time);
+    //set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
     ndb_lgf_store(&lgf);
@@ -919,6 +919,8 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    log_warn("GPS Time Error %.20g",t_err);
+    log_warn("Solution Clock Error %.20g",lgf.position_solution.clock_offset);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
