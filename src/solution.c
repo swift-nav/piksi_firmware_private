@@ -1019,13 +1019,19 @@ static void solution_thread(void *arg)
 
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
+    log_warn("lgf 1 time before %f",lgf.position_solution.time.tow);
     gps_time_t new_obs_time;
     new_obs_time.tow = round(lgf.position_solution.time.tow * soln_freq)
                               / soln_freq;
     normalize_gps_time(&new_obs_time);
+    log_warn("new obs 2 time before %f",new_obs_time.tow);
+    log_warn("lgf 2 time before %f",lgf.position_solution.time.tow);
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
-
+    log_warn("new obs 3 time before %f",new_obs_time.tow);
+    log_warn("lgf 3 time before %f",lgf.position_solution.time.tow);
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    log_warn("new obs 3 time before %f",new_obs_time.tow);
+    log_warn("lgf 3 time before %f",lgf.position_solution.time.tow);
 
     // Time the base obs are propagated to the rover obs
     double propagation_time = 0.0;
