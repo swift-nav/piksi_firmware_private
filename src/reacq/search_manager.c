@@ -151,8 +151,7 @@ void sm_run(acq_jobs_state_t *jobs_data)
 {
   u64 now_ms = timing_getms();
   u64 lgf_ms, lgf_age_ms;
-  if (sm_lgf_stamp(&lgf_ms)) {
-    assert(now_ms >= lgf_ms);
+  if (sm_lgf_stamp(&lgf_ms) && (now_ms >= lgf_ms)) {
     lgf_age_ms = now_ms - lgf_ms;
   } else {
     lgf_age_ms = MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS,
