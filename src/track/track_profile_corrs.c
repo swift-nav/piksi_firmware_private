@@ -94,14 +94,15 @@ void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t *restrict cs_now,
                            tp_corr_state_t *restrict corr_state)
 {
-  /* C/N0 estimator accumulator updates */
+  tp_epl_corr_t tmp_epl;
+  /* C/N0 estimator accumulators updates */
   if (0 != (cycle_flags & TP_CFLAG_CN0_SET))
-    corr_state->corr_cn0 = cs_now->prompt;
+    corr_state->corr_cn0 = *cs_now;
   else if (0 != (cycle_flags & TP_CFLAG_CN0_ADD))
-    corr_state->corr_cn0 = corr_add(corr_state->corr_cn0, cs_now->prompt);
+    corr_state->corr_cn0 = *corr_epl_add(&corr_state->corr_cn0, cs_now,
+                                        &tmp_epl);
 
   /* PLL/DLL accumulator updates */
-  tp_epl_corr_t tmp_epl;
   if (0 != (cycle_flags & TP_CFLAG_EPL_SET))
     corr_state->corr_epl = *cs_now;
   else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD))
