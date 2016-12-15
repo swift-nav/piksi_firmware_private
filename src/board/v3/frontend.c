@@ -28,8 +28,8 @@ static void configure_v2(void);
 
 static void frontend_open_spi(void)
 {
-  spiStart(&FRONTEND_SPI, &spi_config);
   spiAcquireBus(&FRONTEND_SPI);
+  spiStart(&FRONTEND_SPI, &spi_config);
   spiSelect(&FRONTEND_SPI);
 }
 
@@ -136,13 +136,15 @@ bool nt1065_get_temperature(double* temperature)
   //temperature is valid after about 30 milliseconds
   const uint32_t TEMP_READ_WAIT_MS = 30;
 
-  frontend_open_spi();
-
   //start a single temp measurement
   const u8 REG5 = 1;
+  frontend_open_spi();
   spi_write(5, REG5);
+  frontend_close_spi();
 
   chThdSleepMilliseconds(TEMP_READ_WAIT_MS);
+
+  frontend_open_spi();
   //check if temperature read completed
   if ((spi_read(5) & 1) != 0) {
     frontend_close_spi();

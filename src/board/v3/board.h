@@ -29,6 +29,12 @@
 #define IRQ_ID_FRONTEND_AOK IRQ_ID_FPGA9
 #define FRONTEND_AOK_IRQ_PRIORITY 4
 
+#define IRQ_ID_IMU_INT1 IRQ_ID_FPGA5
+#define IMU_INT1_IRQ_PRIORITY 4
+
+#define IRQ_ID_IMU_INT2 IRQ_ID_FPGA6
+#define IMU_INT2_IRQ_PRIORITY 4
+
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
 extern "C" {

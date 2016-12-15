@@ -25,8 +25,8 @@ void set_clk_dac(uint16_t val, uint8_t mode)
   out[0] = (mode << 4) | (val >> 8);
   out[1] = val & 0xFF;
   uint8_t in[2];
-  spiStart(&CLK_DAC_SPI, &spi_config);
   spiAcquireBus(&CLK_DAC_SPI);
+  spiStart(&CLK_DAC_SPI, &spi_config);
 
   spiSelect(&CLK_DAC_SPI);
   spiExchange(&CLK_DAC_SPI, 2, out, in);
