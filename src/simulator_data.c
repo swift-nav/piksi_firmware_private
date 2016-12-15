@@ -1,7 +1,7 @@
 #include "simulator_data.h"
 /* AUTO-GENERATED FROM simulator_almanac_generator.py and data/week763.alm*/
 
-u16 simulation_week_number = 1787;
+u16 simulation_week_number = 1877;
 
 double simulation_sats_pos[33][3];
 

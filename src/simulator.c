@@ -346,7 +346,8 @@ void simulation_step_tracking_and_observations(double elapsed)
 * the almanac_i satellite, currently dist away from simulated point at given elevation.
 *
 */
-void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double elevation, double vel, int almanac_i)
+void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, 
+                       double elevation, double vel, int almanac_i)
 {
   nav_meas->sid = (gnss_signal_t) {
     .code = simulation_almanacs[almanac_i].sid.code,
@@ -363,12 +364,16 @@ void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, double e
   nav_meas->raw_carrier_phase +=   rand_gaussian(sim_settings.phase_sigma *
                                              sim_settings.phase_sigma);
 
-  nav_meas->raw_measured_doppler = vel * code_to_carr_freq(simulation_almanacs[almanac_i].sid.code) / GPS_C;
+  nav_meas->raw_measured_doppler = vel / GPS_C *
+            code_to_carr_freq(simulation_almanacs[almanac_i].sid.code);
   nav_meas->cn0             =  lerp(elevation, 0, M_PI/2, 35, 45) +
                                rand_gaussian(sim_settings.cn0_sigma *
                                              sim_settings.cn0_sigma);
-  nav_meas->flags=0xffff;
-  if (nav_meas->lock_time <= 0) nav_meas->lock_time = 0.2;
+  nav_meas->flags = 0xffff;
+  /* Assume 5hz solution rate for sim mode */
+  if (nav_meas->lock_time <= 0) {
+    nav_meas->lock_time = 0.2;
+  }
   nav_meas->lock_time += 0.2;
 }
 
