@@ -888,7 +888,7 @@ bool tracking_channel_calc_pseudorange(u64 ref_tc,
                                        double *raw_pseudorange)
 {
   navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
-  gps_time_t rec_time = rx2gpstime(ref_tc);
+  gps_time_t rec_time = napcount2gpstime(ref_tc);
   s8 nm_ret = calc_navigation_measurement(1,
                                           &meas,
                                           &p_nav_meas,

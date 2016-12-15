@@ -239,7 +239,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
 
   state->tot.wn = 0;
   if (time_quality >= TIME_COARSE) {
-    gps_time_t rec_time = rx2gpstime(recv_time_ticks);
+    gps_time_t rec_time = napcount2gpstime(recv_time_ticks);
 
     if (WN_UNKNOWN != rec_time.wn) {
       state->tot.wn = rec_time.wn;

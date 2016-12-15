@@ -679,8 +679,34 @@ static void solution_thread(void *arg)
       solution_simulation();
     }
 
-    u64 rec_tc = nap_timing_count();
-    gps_time_t rec_time = rx2gpstime(rec_tc);
+    // Take the current nap count initiall
+    u64 current_tc = nap_timing_count();
+    u64 rec_tc = current_tc;
+
+    // Work out the expected receiver time in GPS time frame for the current nap count
+    gps_time_t rec_time = napcount2rcvtime(rec_tc);
+    gps_time_t expected_time;
+
+    // If we've previously had a solution, we can work out our expected obs time
+    if(time_quality == TIME_FINE){
+      // Take the last calculated position time
+      expected_time = napcount2gpstime(rec_tc);
+
+      // Round this time to the nearest GPS solution time
+      expected_time.tow = round(expected_time.tow * soln_freq)
+                                 / soln_freq;
+      normalize_gps_time(&expected_time);
+
+      // This time, taken back to nap count, is the nap count we want the observations at
+      rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
+    }
+    // The difference between the current nap count and the nap count we want the observations at
+    // is the amount we want to adjust our deadline by at the end of the solution
+    double delta_tc = -((double)current_tc - (double)rec_tc);
+
+    // Get the expected nap count in receiver time (gps time frame)
+    rec_time = napcount2rcvtime(rec_tc);
+
     u8 n_collected = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
@@ -882,6 +908,8 @@ static void solution_thread(void *arg)
       clock_jump = TRUE;
       continue;
     }
+    // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
+    // so we need to store this error in the GPS time (GPS time frame)
     set_gps_time_offset(rec_tc, lgf.position_solution.time);
 
     /* Update global position solution state. */
@@ -919,6 +947,8 @@ static void solution_thread(void *arg)
     gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
 
     double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    //log_warn("GPS calculated error %.20g",t_err);
+    //log_warn("RCV CLK error %.20g",lgf.position_solution.clock_offset);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -951,6 +981,8 @@ static void solution_thread(void *arg)
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += lgf.position_solution.clock_offset *
                                       GPS_C / code_to_lambda(nm->sid.code);
+        nm->raw_measured_doppler += lgf.position_solution.clock_bias *
+                                    GPS_C / code_to_lambda(nm->sid.code);
         nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
 
         /* Also apply the time correction to the time of transmission so the
@@ -1046,8 +1078,9 @@ static void solution_thread(void *arg)
       }
     }
 
-    /* Calculate time till the next desired solution epoch. */
-    double dt = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    /* Calculate the correction to the current deadline by converting nap count
+     * difference to seconds, we convert to ms to adjust deadline later */
+    double dt = delta_tc * RX_DT_NOMINAL;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
