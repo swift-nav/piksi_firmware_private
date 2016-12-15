@@ -39,6 +39,8 @@
 #define XCORR_SUSPECT_THRESHOLD -15.f
 /** GPS L1 C/A CN0 threshold for confirmed xcorr [dB-Hz] */
 #define XCORR_CONFIRM_THRESHOLD -20.f
+/** cross-correlation update rate [Hz] */
+#define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
 
 typedef u8 tracker_channel_id_t;
 

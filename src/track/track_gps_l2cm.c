@@ -345,7 +345,7 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
  * \param[in]     entry           xcorr data to be checked against.
  * \param[out]    xcorr_flag      Flag indicating satellite to be investigated.
  *
- * \return false if entry was not own L1C/A, true if it was.
+ * \return false if entry was not L1C/A from same SV, true if it was.
  */
 static bool check_L1_entries(const tracker_channel_info_t *channel_info,
                              tracker_common_data_t *common_data,
@@ -355,7 +355,7 @@ static bool check_L1_entries(const tracker_channel_info_t *channel_info,
 {
   if (CODE_GPS_L1CA != entry->sid.code ||
       entry->sid.sat != channel_info->sid.sat) {
-    /* Ignore other than own L1C/A */
+    /* Ignore other than L1C/A from same SV */
     return false;
   }
 
@@ -372,8 +372,7 @@ static bool check_L1_entries(const tracker_channel_info_t *channel_info,
   if (error <= gps_l2cm_config.xcorr_delta) {
     /* Signal pairs with matching doppler are NOT xcorr flagged */
     *xcorr_flag = false;
-  }
-  else if (error >= 10.0f * gps_l2cm_config.xcorr_delta) {
+  } else if (error >= 10.0f * gps_l2cm_config.xcorr_delta) {
     /* Signal pairs with mismatching doppler are xcorr flagged */
     *xcorr_flag = true;
   }
@@ -381,13 +380,19 @@ static bool check_L1_entries(const tracker_channel_info_t *channel_info,
   if (entry_cn0 >= L1CA_XCORR_WHITELIST_THRESHOLD)
   {
     data->xcorr_whitelist_l1 = true;
+  } else {
+    data->xcorr_whitelist_l1 = false;
   }
-  if (common_data->cn0 >= L2CM_XCORR_WHITELIST_THRESHOLD && !*xcorr_flag) {
+
+  if (common_data->cn0 >= L2CM_XCORR_WHITELIST_THRESHOLD) {
     /* If L2 signal is tracked with decent CN0 and
      * signals are not xcorr flagged,
      * then whitelist the signal */
     data->xcorr_whitelist = true;
+  } else {
+    data->xcorr_whitelist = false;
   }
+
   return true;
 }
 
@@ -410,8 +415,7 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
-  s32 max_time_cnt = (s32)(gps_l2cm_config.xcorr_time *
-                           (SECS_MS / GPS_L1CA_BIT_LENGTH_MS));
+  s32 max_time_cnt = (s32)(gps_l2cm_config.xcorr_time * XCORR_UPDATE_RATE);
 
   if (xcorr_flag) {
     if (data->xcorr_count_l1 < max_time_cnt) {
@@ -421,14 +425,12 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
           data->xcorr_whitelist_l1) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
         common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
-      }
-      else if (!data->xcorr_whitelist &&
-               !data->xcorr_whitelist_l1) {
+      } else if (!data->xcorr_whitelist &&
+                 !data->xcorr_whitelist_l1) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
-      }
-      else if (!data->xcorr_whitelist) {
-        /* Otherwise if L1 signal is not whitelisted, mark as confirmed xcorr */
+      } else if (!data->xcorr_whitelist) {
+        /* Otherwise if L2 signal is not whitelisted, mark as confirmed xcorr */
         common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
       }
     }
@@ -454,22 +456,23 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
 static void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
                                    tracker_common_data_t *common_data,
                                    gps_l2cm_tracker_data_t *data,
-                                   bool xcorr_suspect) {
-  if (data->xcorr_flag != xcorr_suspect) {
-    if (xcorr_suspect) {
-      common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
-      log_info_sid(channel_info->sid,
-                   "setting L2 cross-correlation suspect flag");
-    } else {
-      common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
-      log_info_sid(channel_info->sid,
-                   "clearing L2 cross-correlation suspect flag");
-    }
-    data->xcorr_flag = xcorr_suspect;
-    common_data->xcorr_change_count = common_data->update_count;
+                                   bool xcorr_suspect)
+{
+  if (data->xcorr_flag == xcorr_suspect) {
+    /* No change in xcorr suspect status */
+    return;
   }
-}
 
+  if (xcorr_suspect) {
+    common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
+    log_info_sid(channel_info->sid, "setting cross-correlation suspect flag");
+  } else {
+    common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
+    log_info_sid(channel_info->sid, "clearing cross-correlation suspect flag");
+  }
+  data->xcorr_flag = xcorr_suspect;
+  common_data->xcorr_change_count = common_data->update_count;
+}
 
 /**
  * Updates L2 cross-correlation state from L1.
@@ -501,35 +504,36 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
                                     gps_l2cm_tracker_data_t *data,
                                     u32 cycle_flags)
 {
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
-
-    gps_l2cm_tracker_data_t *mode = data;
-
-    tracking_channel_cc_data_t cc_data;
-    u16 cnt = tracking_channel_load_cc_data(&cc_data);
-
-    bool xcorr_flag = false;
-    for (u16 idx = 0; idx < cnt; ++idx) {
-      const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
-
-      if (check_L1_entries(channel_info, common_data, data,
-                           entry, &xcorr_flag)) {
-        break;
-      }
-    }
-
-    if (tp_tl_is_fll(&mode->data.tl_state)) {
-      /* If signal is in sensitivity mode, its whitelisting is cleared */
-      data->xcorr_whitelist = false;
-    }
-
-    bool xcorr_suspect = false;
-    /* Increment counter or Make decision if L1 is xcorr flagged */
-    check_L1_xcorr_flag(common_data, data, xcorr_flag, &xcorr_suspect);
-
-    set_xcorr_suspect_flag(channel_info, common_data, data, xcorr_suspect);
+  if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
+      !tracker_bit_aligned(channel_info->context)) {
+    return;
   }
+
+  gps_l2cm_tracker_data_t *mode = data;
+
+  tracking_channel_cc_data_t cc_data;
+  u16 cnt = tracking_channel_load_cc_data(&cc_data);
+
+  bool xcorr_flag = false;
+  for (u16 idx = 0; idx < cnt; ++idx) {
+    const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
+
+    if (check_L1_entries(channel_info, common_data, data,
+                         entry, &xcorr_flag)) {
+      break;
+    }
+  }
+
+  if (tp_tl_is_fll(&mode->data.tl_state)) {
+    /* If signal is in sensitivity mode, its whitelisting is cleared */
+    data->xcorr_whitelist = false;
+  }
+
+  bool xcorr_suspect = false;
+  /* Increment counter or Make decision if L1 is xcorr flagged */
+  check_L1_xcorr_flag(common_data, data, xcorr_flag, &xcorr_suspect);
+
+  set_xcorr_suspect_flag(channel_info, common_data, data, xcorr_suspect);
 }
 
 static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
