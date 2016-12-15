@@ -122,7 +122,10 @@ typedef struct {
 typedef struct {
   double pseudorange;          /**< Pseudorange [m]  */
   double pseudorange_std;      /**< Pseudorange standard deviation [m] */
-  double carrier_phase_offset; /**< Carrier phase offset in cycles. */
+  struct {
+    double value;              /**< Carrier phase offset value [cycles]. */
+    u64 timestamp_ms;          /**< Carrier phase offset timestamp [ms] */
+  } carrier_phase_offset;      /**< Carrier phase offset */
 } tracking_channel_misc_info_t;
 
 /**
@@ -168,6 +171,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
                                  const tracking_channel_info_t *info,
                                  const tracking_channel_freq_info_t *freq_info,
                                  const tracking_channel_time_info_t *time_info,
+                                 const tracking_channel_misc_info_t *misc_info,
                                  channel_measurement_t *meas);
 
 bool tracking_channel_calc_pseudorange(u64 ref_tc,

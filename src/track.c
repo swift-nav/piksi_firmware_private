@@ -641,10 +641,10 @@ static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data
  *       reset to 0 if \a reset_cpo is set to \a true.
  *
  * \param[in,out] pub_data    Channel public data container.
- * \param[in]     info        Generic information block (optional).
- * \param[in]     time_info   Timing information block (optional).
- * \param[in]     freq_info   Frequency and phase information block (optional).
- * \param[in]     ctrl_params Control loop information block (optional).
+ * \param[in]     info        Generic information block.
+ * \param[in]     time_info   Timing information block.
+ * \param[in]     freq_info   Frequency and phase information block.
+ * \param[in]     ctrl_params Control loop information block.
  * \param[in]     reset_cpo   Flag, if carrier phase offset shall be reset.
  *
  * \return None
@@ -671,28 +671,23 @@ static void tracking_channel_update_values(
 
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
-    tracking_channel_measurement_get(ref_tc, info, freq_info, time_info, &meas);
+    tracking_channel_measurement_get(ref_tc, info, freq_info, time_info,
+             (tracking_channel_misc_info_t*)&pub_data->misc_info, &meas);
     tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
   }
 
   chMtxLock(&pub_data->info_mutex);
-  if (NULL != info) {
-    pub_data->gen_info = *info;
-  }
-  if (NULL != time_info) {
-    pub_data->time_info = *time_info;
-  }
-  if (NULL != freq_info) {
-    pub_data->freq_info = *freq_info;
-    running_stats_update(&pub_data->carr_freq_stats, freq_info->carrier_freq);
-  }
+  pub_data->gen_info = *info;
+  pub_data->time_info = *time_info;
+  pub_data->freq_info = *freq_info;
+  running_stats_update(&pub_data->carr_freq_stats, freq_info->carrier_freq);
   if (reset_cpo) {
     /* Do CPO reset */
-    pub_data->misc_info.carrier_phase_offset = 0;
+    /* no need to update timestamp for zero offset as it keeps count
+       time on this channel at zero anyways */
+    pub_data->misc_info.carrier_phase_offset.value = 0;
   }
-  if (NULL != ctrl_params) {
-    pub_data->ctrl_info = *ctrl_params;
-  }
+  pub_data->ctrl_info = *ctrl_params;
   if (raw_pseudorange != 0) {
     pub_data->gen_info.flags |= TRACKING_CHANNEL_FLAG_PSEUDORANGE;
     running_stats_update(&pub_data->pseudorange_stats, raw_pseudorange);
@@ -794,7 +789,8 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
   if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
       sid_is_equal(info->sid, pub_data->gen_info.sid) &&
       info->lock_counter == pub_data->gen_info.lock_counter) {
-    pub_data->misc_info.carrier_phase_offset = carrier_phase_offset;
+    pub_data->misc_info.carrier_phase_offset.value = carrier_phase_offset;
+    pub_data->misc_info.carrier_phase_offset.timestamp_ms = timing_getms();
     adjusted = true;
   }
   chMtxUnlock(&pub_data->info_mutex);
@@ -809,21 +805,33 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
  * Computes the lock time from tracking channel time info.
  *
  * \param[in]  time_info Time information block.
+ * \param[in]  misc_info Miscellaneous information block.
  *
  * \return Lock time [s]
  */
-static double tracking_channel_get_lock_time(const tracking_channel_time_info_t *time_info)
+static double tracking_channel_get_lock_time(
+  const tracking_channel_time_info_t *time_info,
+  const tracking_channel_misc_info_t *misc_info)
 {
   /* Carrier phase flag is set only once it has been TRACK_STABILIZATION_T
    * time since the last mode change */
-  u32 stable_ms = 0;
+  u64 stable_ms = 0;
   if (time_info->last_mode_change_ms > TRACK_STABILIZATION_T) {
     stable_ms = time_info->last_mode_change_ms - TRACK_STABILIZATION_T;
   }
 
-  u32 lock_time_ms = UINT32_MAX;
+  u64 cpo_age_ms = 0;
+  if (0 != misc_info->carrier_phase_offset.value) {
+    u64 now_ms = timing_getms();
+    assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
+    cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
+  }
+
+  u64 lock_time_ms = UINT64_MAX;
+
   lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
   lock_time_ms = MIN(lock_time_ms, stable_ms);
+  lock_time_ms = MIN(lock_time_ms, cpo_age_ms);
 
   return (double) lock_time_ms / SECS_MS;
 }
@@ -837,6 +845,7 @@ static double tracking_channel_get_lock_time(const tracking_channel_time_info_t 
  * \param[in]  info      Generic tracking channel information block.
  * \param[in]  freq_info Frequency and phase information block.
  * \param[in]  time_info Time information block.
+ * \param[in]  misc_info Miscellaneous information block.
  * \param[out] meas      Pointer to output channel_measurement_t.
  *
  * \return None
@@ -845,6 +854,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
                                       const tracking_channel_info_t *info,
                                       const tracking_channel_freq_info_t *freq_info,
                                       const tracking_channel_time_info_t *time_info,
+                                      const tracking_channel_misc_info_t *misc_info,
                                       channel_measurement_t *meas)
 {
   /* Update our channel measurement. */
@@ -859,7 +869,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
   meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc))
                              / NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->cn0 = info->cn0;
-  meas->lock_time = tracking_channel_get_lock_time(time_info);
+  meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
   meas->flags = 0;
 }
 
@@ -911,13 +921,14 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
 
     chMtxLock(&pub_data->info_mutex);
     if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
-      carrier_phase_offset = misc_info->carrier_phase_offset;
+      carrier_phase_offset = misc_info->carrier_phase_offset.value;
 
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
         sid = pub_data->gen_info.sid;
         carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
-        misc_info->carrier_phase_offset = carrier_phase_offset;
+        misc_info->carrier_phase_offset.value = carrier_phase_offset;
+        misc_info->carrier_phase_offset.timestamp_ms = timing_getms();
         adjusted = true;
       }
     }

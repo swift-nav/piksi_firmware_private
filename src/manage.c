@@ -1065,7 +1065,8 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
     /* Load information from SID cache and NDB */
     flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, NULL);
 
-    tracking_channel_measurement_get(ref_tc, &info, &freq_info, &time_info, meas);
+    tracking_channel_measurement_get(ref_tc, &info,
+                                     &freq_info, &time_info, &misc_info, meas);
 
     /* Adjust for half phase ambiguity */
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_BIT_INVERTED)) {
@@ -1082,7 +1083,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
      * For now, compute pseudorange for all measurements even when phase is
      * not available.
      */
-    double carrier_phase_offset = misc_info.carrier_phase_offset;
+    double carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
     if (TIME_FINE <= time_quality &&
         0.0 == carrier_phase_offset &&
