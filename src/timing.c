@@ -126,7 +126,7 @@ void set_gps_time_offset(u64 tc, gps_time_t t)
  *
  * \param dt clock adjustment (s)
  */
-void adjust_time_fine(double dt)
+void adjust_time_fine(const double dt)
 {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;
@@ -186,7 +186,7 @@ gps_time_t get_current_gps_time(void)
  * \param tc Timing count in units of RX_DT_NOMINAL.
  * \return GPS time corresponding to Timing count.
  */
-gps_time_t napcount2gpstime(double tc)
+gps_time_t napcount2gpstime(const double tc)
 {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
@@ -205,7 +205,7 @@ gps_time_t napcount2gpstime(double tc)
  * \param tc Timing count in units of RX_DT_NOMINAL.
  * \return Rcv time in GPS time frame corresponding to Timing count.
  */
-gps_time_t napcount2rcvtime(double tc)
+gps_time_t napcount2rcvtime(const double tc)
 {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;

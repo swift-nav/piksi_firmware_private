@@ -679,7 +679,7 @@ static void solution_thread(void *arg)
       solution_simulation();
     }
 
-    // Take the current nap count initiall
+    // Take the current nap count
     u64 current_tc = nap_timing_count();
     u64 rec_tc = current_tc;
 
@@ -688,8 +688,8 @@ static void solution_thread(void *arg)
     gps_time_t expected_time;
 
     // If we've previously had a solution, we can work out our expected obs time
-    if(time_quality == TIME_FINE){
-      // Take the last calculated position time
+    if (time_quality == TIME_FINE) {
+      // Work out the time of the current nap count
       expected_time = napcount2gpstime(rec_tc);
 
       // Round this time to the nearest GPS solution time
