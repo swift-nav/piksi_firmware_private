@@ -1077,25 +1077,25 @@ void process_matched_obs(u8 n_sds, gps_time_t *t, sdiff_t *sds, u16 base_id)
   chMtxUnlock(&rtk_init_done_lock);
 
   chMtxLock(&rtk_init_done_lock);
+  s8 ret = -1;
   if (rtk_init_done) {
     /* Update filters. */
-    s8 ret;
     chMtxLock(&eigen_state_lock);
     ret = dgnss_update_v3(t, n_sds, sds, lgf.position_solution.pos_ecef,
                     base_pos_known ? base_pos_ecef : NULL, 0.0);
     chMtxUnlock(&eigen_state_lock);
-
-    /* If we are in time matched mode then calculate and output the baseline
-     * for this observation. */
-    if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
-        !simulation_enabled() && n_sds >= 4 && ret == 0) {
-      /* Note: in time match mode we send the physically incorrect time of the
-       * observation message (which can be receiver clock time, or rounded GPS
-       * time) instead of the true GPS time of the solution. */
-      output_baseline(n_sds, sds, t, 0, 0, base_id);
-    }
   }
   chMtxUnlock(&rtk_init_done_lock);
+
+  /* If we are in time matched mode then calculate and output the baseline
+   * for this observation. */
+  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
+      !simulation_enabled() && n_sds >= 4 && ret == 0) {
+    /* Note: in time match mode we send the physically incorrect time of the
+     * observation message (which can be receiver clock time, or rounded GPS
+     * time) instead of the true GPS time of the solution. */
+    output_baseline(n_sds, sds, t, 0, 0, base_id);
+  }
 }
 
 static WORKING_AREA_CCM(wa_time_matched_obs_thread, 2000000);
