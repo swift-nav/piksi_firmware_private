@@ -138,7 +138,7 @@ static void imu_thread(void *arg)
       if (time_quality >= TIME_FINE) {
         /* We know the GPS time to high accuracy, this allows us to convert a
          * timing count value into a GPS time. */
-        gps_time_t t = rx2gpstime(tc);
+        gps_time_t t = napcount2gpstime(tc);
 
         /* Format the time of week as a fixed point value for the SBP message. */
         double tow_ms = t.tow * 1000;
