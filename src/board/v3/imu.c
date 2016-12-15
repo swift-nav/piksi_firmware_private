@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
- * Contact: Jonathan Diamond <jonathan@swiftnav.com>
+ * Copyright (C) 2016 Swift Navigation Inc.
+ * Contact: Fergus Noble <fergus@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -43,9 +43,9 @@ static u32 nap_tc;
 /* Settings */
 
 static imu_rate_t imu_rate = IMU_RATE_50HZ;
-bool raw_imu_output = false;
-u8 acc_range = 0;
-bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
+static bool raw_imu_output = false;
+static u8 acc_range = 0;
+static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
@@ -94,10 +94,10 @@ static void imu_thread(void *arg)
   (void)arg;
   chRegSetThreadName("IMU");
 
-	s16 acc[3];
-	s16 gyro[3];
+  s16 acc[3];
+  s16 gyro[3];
   s16 mag[3];
-	u32 sensor_time;
+  u32 sensor_time;
   msg_imu_raw_t imu_raw;
 
   while (TRUE) {
@@ -158,8 +158,7 @@ static void imu_thread(void *arg)
 
 static bool imu_rate_changed(struct setting *s, const char *val)
 {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val))
-  {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_set_imu_rate(imu_rate);
     return true;
   }
@@ -168,8 +167,7 @@ static bool imu_rate_changed(struct setting *s, const char *val)
 
 static bool raw_imu_output_changed(struct setting *s, const char *val)
 {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val))
-  {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_imu_set_enabled(raw_imu_output);
     return true;
   }
@@ -178,16 +176,14 @@ static bool raw_imu_output_changed(struct setting *s, const char *val)
 
 static bool acc_range_changed(struct setting *s, const char *val)
 {
-  if (!s->type->from_string(s->type->priv, s->addr, s->len, val))
-  {
+  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return false;
   }
 
   /* Convert between the setting value, which is an integer corresponding to
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
-  switch (acc_range)
-  {
+  switch (acc_range) {
   case 0: /* 2g */
     bmi160_set_acc_range(BMI160_ACC_2G);
     break;
@@ -210,8 +206,7 @@ static bool acc_range_changed(struct setting *s, const char *val)
 
 static bool gyr_range_changed(struct setting *s, const char *val)
 {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val))
-  {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     /* The settings values and the enum values correspond numerically so no
      * need to convert between them. */
     bmi160_set_gyr_range(gyr_range);
@@ -228,6 +223,8 @@ void imu_init(void)
                  raw_imu_output_changed);
 
   static const char const *rate_enum[] =
+    /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
+     * issue resulting in messages with duplicate timestamps. */
     {"25", "50", "100", "200", /* "400",*/ NULL};
   static struct setting_type rate_setting;
   int TYPE_RATE = settings_type_register_enum(rate_enum, &rate_setting);
