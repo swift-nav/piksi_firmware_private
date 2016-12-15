@@ -241,6 +241,34 @@ void pack_obs_header(const gps_time_t *t, u8 total, u8 count, observation_header
                  (count & MSG_OBS_HEADER_SEQ_MASK));
 }
 
+void pack_sdiff_header(const gps_time_t *t, u8 total, u8 count, const double rcv_pos[3], const double base_pos[3], const double prop_time,
+                       sdiff_header_t *msg)
+{
+  msg->t.wn = t->wn;
+  msg->t.tow = round(t->tow * MSG_OBS_TOW_MULTIPLIER);
+  /* week roll-over */
+  if (msg->t.tow >= WEEK_MS) {
+    msg->t.wn++;
+    msg->t.tow -= WEEK_MS;
+  }
+  msg->t.ns = round((t->tow - msg->t.tow / MSG_OBS_TOW_MULTIPLIER) *
+                    MSG_OBS_TOW_NS_MULTIPLIER);
+  msg->n_obs = ((total << MSG_OBS_HEADER_SEQ_SHIFT) |
+                (count & MSG_OBS_HEADER_SEQ_MASK));
+
+  msg->rover_pos_x = rcv_pos[0];
+  msg->rover_pos_y = rcv_pos[1];
+  msg->rover_pos_z = rcv_pos[2];
+
+  if(base_pos) {
+    msg->base_pos_x = base_pos[0];
+    msg->base_pos_y = base_pos[1];
+    msg->base_pos_z = base_pos[2];
+  }
+
+  msg->propagation_time = prop_time;
+}
+
 u8 nm_flags_to_sbp(nav_meas_flags_t from)
 {
   u8 to = 0;
@@ -353,6 +381,81 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
   } else {
     msg->cn0 = 0;
   }
+
+  msg->lock = encode_lock_time(lock_time);
+
+  msg->flags = nm_flags_to_sbp(flags);
+
+  msg->sid = sid_to_sbp16(sid);
+
+  return 0;
+}
+
+s8 pack_sdiff_content(double P, double L, double MD, double CD, const double sat_pos[3],
+                      const double sat_vel[3], double cn0, double lock_time,
+                    nav_meas_flags_t flags, gnss_signal_t sid,
+                    packed_sdiff_content_t *msg)
+{
+  s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
+  if (P < 0 || P_fp > UINT32_MAX) {
+    log_error("sdiff message packing: P integer overflow (%f)", P);
+    return -1;
+  }
+
+  msg->P = P_fp;
+
+  double Li = floor(-L);
+  if (Li < INT32_MIN || Li > INT32_MAX) {
+    log_error("sdiff message packing: L integer overflow (%f)", L);
+    return -1;
+  }
+
+  double Lf = -L - Li;
+
+  msg->L.i = Li;
+  msg->L.f = Lf * MSG_OBS_LF_MULTIPLIER;
+
+  double MDi = floor(MD);
+  if (MDi < INT16_MIN || MDi > INT16_MAX) {
+    log_error("sdiff message packing: D integer overflow (%f)", MD);
+    return -1;
+  }
+
+  double MDf = MD - MDi;
+
+  msg->MD.i = MDi;
+  msg->MD.f = MDf * MSG_OBS_DF_MULTIPLIER;
+
+  double CDi = floor(CD);
+  if (CDi < INT16_MIN || CDi > INT16_MAX) {
+    log_error("sdiff message packing: D integer overflow (%f)", CD);
+    return -1;
+  }
+
+  double CDf = CD - CDi;
+
+  msg->CD.i = CDi;
+  msg->CD.f = CDf * MSG_OBS_DF_MULTIPLIER;
+
+  if (0 != (flags & NAV_MEAS_FLAG_CN0_VALID)) {
+    s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
+    if (cn0 < 0 || cn0_fp > UINT8_MAX) {
+      log_error("sdiff message packing: C/N0 integer overflow (%f)", cn0);
+      return -1;
+    }
+
+    msg->cn0 = cn0_fp;
+  } else {
+    msg->cn0 = 0;
+  }
+
+  msg->sat_pos_x = sat_pos[0];
+  msg->sat_pos_y = sat_pos[1];
+  msg->sat_pos_z = sat_pos[2];
+
+  msg->sat_vel_x = sat_vel[0];
+  msg->sat_vel_y = sat_vel[1];
+  msg->sat_vel_z = sat_vel[2];
 
   msg->lock = encode_lock_time(lock_time);
 
