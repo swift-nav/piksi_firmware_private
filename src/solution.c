@@ -1152,12 +1152,10 @@ static void solution_thread(void *arg)
                                     base_obss.n, base_obss.nm,
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
-            if (num_sdiffs >= 4) {
-              output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
-                              &dops, propagation_time, lgf.position_solution.pos_ecef,
-                              &pos_llh, &pos_ecef, &sbp_dops, &baseline_ned, &baseline_ecef,
-                              &baseline_heading);
-            }
+            output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
+                            &dops, propagation_time, lgf.position_solution.pos_ecef,
+                            &pos_llh, &pos_ecef, &sbp_dops, &baseline_ned, &baseline_ecef,
+                            &baseline_heading);
           }
         }
       }
@@ -1253,17 +1251,16 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
   }
   chMtxUnlock(&rtk_init_done_lock);
 
-    /* If we are in time matched mode then calculate and output the baseline
-     * for this observation. */
-    if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
-        !simulation_enabled() && n_sds >= 4 && ret == 0) {
-      /* Note: in time match mode we send the physically incorrect time of the
-       * observation message (which can be receiver clock time, or rounded GPS
-       * time) instead of the true GPS time of the solution. */
-      dops_t RTK_dops;
-      output_baseline(n_sds, sds, &obss->tor, &RTK_dops, 0, obss->pos_ecef, pos_llh, pos_ecef, sbp_dops,
-                      baseline_ned, baseline_ecef, baseline_heading);
-    }
+  /* If we are in time matched mode then calculate and output the baseline
+  * for this observation. */
+  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
+      !simulation_enabled() && n_sds >= 4 && ret == 0) {
+    /* Note: in time match mode we send the physically incorrect time of the
+     * observation message (which can be receiver clock time, or rounded GPS
+     * time) instead of the true GPS time of the solution. */
+    dops_t RTK_dops;
+    output_baseline(n_sds, sds, &obss->tor, &RTK_dops, 0, obss->pos_ecef, pos_llh, pos_ecef, sbp_dops,
+                    baseline_ned, baseline_ecef, baseline_heading);
   }
 }
 
