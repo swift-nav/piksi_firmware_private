@@ -30,7 +30,6 @@ typedef struct {
   } mode; /**< Communication mode : Swift Binary Protocol or NMEA */
   u32 baud_rate;
   u32 sbp_message_mask;
-  u8  configure_telemetry_radio_on_boot;
   u8  sbp_fwd;
 } usart_settings_t;
 
@@ -80,7 +79,7 @@ extern usart_state uartb_state;
 
 void usarts_setup(void);
 
-void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_preconfigure_hooks);
+void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud);
 void usarts_disable(void);
 
 bool usart_claim(usart_state* s, const void *module);

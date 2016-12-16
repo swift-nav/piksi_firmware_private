@@ -122,9 +122,7 @@ CSRC := $(STARTUPSRC) \
         $(OSALSRC) \
         $(PLATFORMSRC) \
         $(BOARDSRC) \
-        $(SWIFTNAV_ROOT)/src/peripherals/3drradio.o \
         $(SWIFTNAV_ROOT)/src/peripherals/usart.o \
-        $(SWIFTNAV_ROOT)/src/peripherals/usart_chat.o \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \

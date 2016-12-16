@@ -17,7 +17,6 @@
 
 #include "../settings.h"
 #include "usart.h"
-#include "3drradio.h"
 #include "usart_support.h"
 #include "version.h"
 
@@ -31,7 +30,6 @@ usart_settings_t ftdi_usart = {
   .mode               = SBP,
   .baud_rate          = USART_DEFAULT_BAUD_FTDI,
   .sbp_message_mask   = 0xFFFF,
-  .configure_telemetry_radio_on_boot = 0,
   .sbp_fwd = 1,
 };
 
@@ -39,7 +37,6 @@ usart_settings_t uarta_usart = {
   .mode               = SBP,
   .baud_rate          = USART_DEFAULT_BAUD_TTL,
   .sbp_message_mask   = 0xC0,
-  .configure_telemetry_radio_on_boot = 1,
   .sbp_fwd = 0,
 };
 
@@ -47,11 +44,8 @@ usart_settings_t uartb_usart = {
   .mode             = SBP,
   .baud_rate        = USART_DEFAULT_BAUD_TTL,
   .sbp_message_mask = 0xFF00,
-  .configure_telemetry_radio_on_boot = 1,
   .sbp_fwd = 0,
 };
-
-bool all_uarts_enabled = false;
 
 /** \} */
 
@@ -76,8 +70,6 @@ static bool baudrate_change_notify(struct setting *s, const char *val);
 */
 void usarts_setup(void)
 {
-  radio_setup();
-
   int TYPE_PORTMODE = settings_type_register_enum(portmode_enum, &portmode);
 
   SETTING("uart_ftdi", "mode", ftdi_usart.mode, TYPE_PORTMODE);
@@ -88,21 +80,17 @@ void usarts_setup(void)
 
   SETTING("uart_uarta", "mode", uarta_usart.mode, TYPE_PORTMODE);
   SETTING("uart_uarta", "sbp_message_mask", uarta_usart.sbp_message_mask, TYPE_INT);
-  SETTING("uart_uarta", "configure_telemetry_radio_on_boot",
-          uarta_usart.configure_telemetry_radio_on_boot, TYPE_BOOL);
   SETTING("uart_uarta", "fwd_msg", uarta_usart.sbp_fwd, TYPE_INT);
   SETTING_NOTIFY("uart_uarta", "baudrate", uarta_usart.baud_rate, TYPE_INT,
           baudrate_change_notify);
 
   SETTING("uart_uartb", "mode", uartb_usart.mode, TYPE_PORTMODE);
   SETTING("uart_uartb", "sbp_message_mask", uartb_usart.sbp_message_mask, TYPE_INT);
-  SETTING("uart_uartb", "configure_telemetry_radio_on_boot",
-          uartb_usart.configure_telemetry_radio_on_boot, TYPE_BOOL);
   SETTING("uart_uartb", "fwd_msg", uartb_usart.sbp_fwd, TYPE_INT);
   SETTING_NOTIFY("uart_uartb", "baudrate", uartb_usart.baud_rate, TYPE_INT,
           baudrate_change_notify);
 
-  usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate, true);
+  usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate);
 
 }
 
@@ -113,7 +101,7 @@ static bool baudrate_change_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     usarts_disable();
-    usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate, false);
+    usarts_enable(ftdi_usart.baud_rate, uarta_usart.baud_rate, uartb_usart.baud_rate);
     return true;
   }
   return false;
@@ -124,35 +112,13 @@ static bool baudrate_change_notify(struct setting *s, const char *val)
  * USART 6, 1 and 3 peripherals are configured
  * (connected to the FTDI, UARTA and UARTB ports on the Piksi respectively).
  */
-void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud, bool do_preconfigure_hooks)
+void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud)
 {
-
-  /* Ensure that the first time around, we do the preconfigure hooks */
-  if (!all_uarts_enabled && !do_preconfigure_hooks)
-    return;
-
   usart_support_init();
 
   usart_support_set_parameters(SD_FTDI, ftdi_baud);
   usart_support_set_parameters(SD_UARTA, uarta_baud);
   usart_support_set_parameters(SD_UARTB, uartb_baud);
-
-  if (do_preconfigure_hooks) {
-    board_preinit_hook();
-
-    log_info("Piksi Starting...");
-    log_info("Firmware Version: " GIT_VERSION "");
-    log_info("Built: " __DATE__ " " __TIME__ "");
-
-    if (uarta_usart.configure_telemetry_radio_on_boot) {
-      radio_preconfigure_hook(UARTA, uarta_baud, "UARTA");
-    }
-    if (uartb_usart.configure_telemetry_radio_on_boot) {
-      radio_preconfigure_hook(UARTB, uartb_baud, "UARTB");
-    }
-  }
-
-  all_uarts_enabled = true;
 }
 
 /** Disable all USARTs. */
@@ -160,10 +126,6 @@ void usarts_disable()
 {
   /* Disable DMA channels. */
   /* Disable all USARTs. */
-
-  if (!all_uarts_enabled)
-    return;
-
   usart_support_disable(SD_FTDI);
   usart_support_disable(SD_UARTA);
   usart_support_disable(SD_UARTB);
