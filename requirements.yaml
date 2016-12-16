@@ -5,15 +5,12 @@
     -
       prefix: v3
       files:
-        - piksi_firmware_v3_microzed.elf
         - piksi_firmware_v3_microzed.stripped.elf
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v0.1-14-gc7ba6ac/v3/microzed/dev
+      prefix: piksi_buildroot/v0.1-24-g2645cf0/v3/microzed
       files:
-        - boot.bin
-        - u-boot.img
         - uImage.piksiv3_microzed
     -
       bucket: piksi-fpga-unlocked
@@ -26,15 +23,12 @@
     -
       prefix: v3
       files:
-        - piksi_firmware_v3_prod.elf
         - piksi_firmware_v3_prod.stripped.elf
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v0.1-14-gc7ba6ac/v3/prod/dev
+      prefix: piksi_buildroot/v0.1-24-g2645cf0/v3/prod
       files:
-        - boot.bin
-        - u-boot.img
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
