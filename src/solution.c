@@ -1230,7 +1230,7 @@ static void solution_thread(void *arg)
       u64 tc_latency = final_tc - current_tc;
       gps_time_t final_gps_time = napcount2gpstime(final_tc);
       double GPS_latency = gpsdifftime(&final_gps_time,&lgf.position_solution.time);
-      log_warn("Tick Count Latency %u, GPS Latency %f", ST2US(tc_latency),GPS_latency);
+      log_warn("TOW: %u, Tick Count Latency %u, GPS Latency %f", pos_llh.tow, ST2US(tc_latency),GPS_latency);
     }
 
     last_spp = chVTGetSystemTime();
