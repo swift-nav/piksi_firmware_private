@@ -456,7 +456,8 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
 static void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
                                    tracker_common_data_t *common_data,
                                    gps_l2cm_tracker_data_t *data,
-                                   bool xcorr_suspect)
+                                   bool xcorr_suspect,
+                                   bool sensitivity_mode)
 {
   if (data->xcorr_flag == xcorr_suspect) {
     /* No change in xcorr suspect status */
@@ -465,10 +466,16 @@ static void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
 
   if (xcorr_suspect) {
     common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
-    log_info_sid(channel_info->sid, "setting cross-correlation suspect flag");
+    if (!sensitivity_mode) {
+      log_info_sid(channel_info->sid,
+                   "setting cross-correlation suspect flag");
+    }
   } else {
     common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
-    log_info_sid(channel_info->sid, "clearing cross-correlation suspect flag");
+    if (!sensitivity_mode) {
+      log_info_sid(channel_info->sid,
+                   "clearing cross-correlation suspect flag");
+    }
   }
   data->xcorr_flag = xcorr_suspect;
   common_data->xcorr_change_count = common_data->update_count;
@@ -524,7 +531,8 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
     }
   }
 
-  if (tp_tl_is_fll(&mode->data.tl_state)) {
+  bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
+  if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
   }
@@ -533,7 +541,8 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
   /* Increment counter or Make decision if L1 is xcorr flagged */
   check_L1_xcorr_flag(common_data, data, xcorr_flag, &xcorr_suspect);
 
-  set_xcorr_suspect_flag(channel_info, common_data, data, xcorr_suspect);
+  set_xcorr_suspect_flag(channel_info, common_data, data,
+                         xcorr_suspect, sensitivity_mode);
 }
 
 static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,

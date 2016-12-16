@@ -492,7 +492,8 @@ static void check_L2_xcorr_flag(const tracker_channel_info_t *channel_info,
 static void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
                                    tracker_common_data_t *common_data,
                                    gps_l1ca_tracker_data_t *data,
-                                   bool xcorr_suspect)
+                                   bool xcorr_suspect,
+                                   bool sensitivity_mode)
 {
   if (data->xcorr_flag == xcorr_suspect) {
     return;
@@ -500,12 +501,16 @@ static void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
 
   if (xcorr_suspect) {
     common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
-    log_info_sid(channel_info->sid,
-                 "setting cross-correlation suspect flag");
+    if (!sensitivity_mode) {
+      log_info_sid(channel_info->sid,
+                   "setting cross-correlation suspect flag");
+    }
   } else {
     common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
-    log_info_sid(channel_info->sid,
-                 "clearing cross-correlation suspect flag");
+    if (!sensitivity_mode) {
+      log_info_sid(channel_info->sid,
+                   "clearing cross-correlation suspect flag");
+    }
   }
   data->xcorr_flag = xcorr_suspect;
   common_data->xcorr_change_count = common_data->update_count;
@@ -571,8 +576,9 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
     }
   }
 
+  bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
   /* If signal is in sensitivity mode, all whitelistings are cleared */
-  if (tp_tl_is_fll(&mode->data.tl_state)) {
+  if (sensitivity_mode) {
     for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
       data->xcorr_whitelist[idx] = false;
     }
@@ -585,7 +591,8 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
                          xcorr_flags, xcorr_cn0_diffs, &xcorr_suspect);
   }
 
-  set_xcorr_suspect_flag(channel_info, common_data, data, xcorr_suspect);
+  set_xcorr_suspect_flag(channel_info, common_data, data,
+                         xcorr_suspect, sensitivity_mode);
 }
 
 /**
@@ -638,7 +645,8 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
     }
   }
 
-  if (tp_tl_is_fll(&mode->data.tl_state)) {
+  bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
+  if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist[channel_info->sid.sat - 1] = false;
   }
@@ -648,7 +656,8 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
   check_L2_xcorr_flag(channel_info, common_data, data,
                       xcorr_flag, &xcorr_suspect);
 
-  set_xcorr_suspect_flag(channel_info, common_data, data, xcorr_suspect);
+  set_xcorr_suspect_flag(channel_info, common_data, data,
+                         xcorr_suspect, sensitivity_mode);
 }
 
 static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
