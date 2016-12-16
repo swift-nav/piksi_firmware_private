@@ -375,6 +375,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
       log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
       chMtxLock(&eigen_state_lock);
+      process_low_latency();
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
@@ -1266,6 +1267,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
   if (rtk_init_done) {
     /* Update filters. */
     chMtxLock(&eigen_state_lock);
+    process_time_matched();
     ret = dgnss_update_v3(&obss->tor, n_sds, sds, obss->has_pos ? obss->pos_ecef : NULL,
                     base_pos_known ? base_pos_ecef : NULL, 0.0);
     chMtxUnlock(&eigen_state_lock);
