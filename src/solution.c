@@ -847,7 +847,12 @@ static void solution_thread(void *arg)
 
       /* TODO if there are not enough SVs to compute PVT, shouldn't caches
        *      below be reset? I.e. nav_meas_old and nav_meas_tdcp? */
-
+      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0.0, 0, 0, NULL,
+                                         &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
+                                         &baseline_ned,
+                                         &baseline_ecef, &baseline_heading);
+      }
       continue;
     }
 
@@ -891,6 +896,12 @@ static void solution_thread(void *arg)
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
+      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0.0, 0, n_ready, nav_meas,
+                                         &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
+                                         &baseline_ned,
+                                         &baseline_ecef, &baseline_heading);
+      }
       continue;
     }
 
@@ -898,6 +909,12 @@ static void solution_thread(void *arg)
 
     if (sc_ret != 0) {
        log_error("calc_sat_clock_correction() returned an error");
+      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0.0, 0, n_ready, nav_meas,
+                                         &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
+                                         &baseline_ned,
+                                         &baseline_ecef, &baseline_heading);
+      }
        continue;
      }
 
