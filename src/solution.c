@@ -997,7 +997,6 @@ static void solution_thread(void *arg)
                                          &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
                                          &baseline_ned,
                                          &baseline_ecef, &baseline_heading);
-        send_observations(n_ready_tdcp, nav_meas_tdcp, &rec_time);
       }
       last_spp = chVTGetSystemTime();
       continue;
@@ -1026,7 +1025,6 @@ static void solution_thread(void *arg)
                                          &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
                                          &baseline_ned,
                                          &baseline_ecef, &baseline_heading);
-        send_observations(n_ready_tdcp, nav_meas_tdcp, &rec_time);
       }
       last_spp = chVTGetSystemTime();
       continue;
@@ -1172,6 +1170,8 @@ static void solution_thread(void *arg)
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &lgf.position_solution);
 
+        /* Send the observations. */
+        send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
       }
     }
 
@@ -1201,8 +1201,6 @@ static void solution_thread(void *arg)
     solution_send_low_latency_output(propagation_time, base_obss.sender_id, n_ready_tdcp, nav_meas_tdcp,
                                      &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                      &baseline_ecef, &baseline_heading);
-    /* Send the observations. */
-    send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
 
     last_spp = chVTGetSystemTime();
 
