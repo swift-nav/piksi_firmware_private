@@ -948,6 +948,12 @@ static void solution_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
+      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
+                                         &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
+                                         &baseline_ned,
+                                         &baseline_ecef, &baseline_heading);
+      }
       continue;
     }
 
