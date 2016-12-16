@@ -287,7 +287,6 @@ void simulation_step_tracking_and_observations(double elapsed)
                                   simulation_sats_pos[i],
                                   simulation_sats_vel[i],
                                   &clock_err, &clock_rate_err);
-    log_error("simulation: calc_sat_state_almanac returned: %i", r);
     assert(r == 0);
   }
 
@@ -300,7 +299,6 @@ void simulation_step_tracking_and_observations(double elapsed)
                                   sim_state.pos, &az, &el);
 
     assert(r == 0);
-    log_error("simulation: calc_sat_az_el_almanac returned: %i", r);
     if (el > 0 &&
         num_sats_selected < sim_settings.num_sats &&
         num_sats_selected < MAX_CHANNELS) {
