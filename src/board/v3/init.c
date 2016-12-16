@@ -67,33 +67,6 @@ static void nap_auth_setup(void);
 static void nap_auth_check(void);
 static bool factory_params_read(void);
 
-/** Resets the device back into the bootloader. */
-static void reset_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void)msg; (void) context;
-
-  /* Ensure all outstanding memory accesses including buffered writes are
-   * completed before reset.
-   */
-  __asm__("DSB;");
-  SLCR_PSS_RST_CTRL = SLCR_PSS_RST_CTRL_SOFT_RST;
-  __asm__("DSB;");
-  /* Wait until reset. */
-  while(1);
-}
-
-/** Register the reset_callback. */
-static void reset_callback_register(void)
-{
-  static sbp_msg_callbacks_node_t reset_node;
-
-  sbp_register_cbk(
-    SBP_MSG_RESET,
-    &reset_callback,
-    &reset_node
-  );
-}
-
 void pre_init(void)
 {
   rpmsg_setup();
@@ -113,7 +86,6 @@ static void random_init(void)
 void init(void)
 {
   fault_handling_setup();
-  reset_callback_register();
   factory_params_read();
 
   /* Make sure FPGA is configured - required for EMIO usage */
