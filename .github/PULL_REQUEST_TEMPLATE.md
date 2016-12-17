@@ -1,17 +1,14 @@
-*The following is a template for Pull Requests. Please fill the following sections out when you submit a PR.*
+*The following is a template for Pull Requests. Please fill out the following sections out when you submit a PR.*
 
-# Background for this PR
-Detail what bug was fixed, feature implemented, link to design doc.
+*See Travis comment that will appear shortly in this PR for HITL testing links.
+To see testing results in these links, HITL runs for this PR must be manually
+triggered through the link in the Travis comment.*
+
+![If you see a rainbow doge here, it means you haven't correctly filled out your Pull Request comment. All italicized text should be deleted. The Design Notes and Testing sections should be filled in.](http://images6.fanpop.com/image/photos/37200000/Rainbow-Doge-random-37222355-212-212.gif)
+
+# Design Notes
+*Detail what bug was fixed, feature implemented, link to design doc.*
 
 # Testing
-What testing has been done on this PR? Post pictures, graphs, logs, etc here.
-
-## Testing Checklist
-See Travis comment that will appear in this PR for HITL results links. To see testing results in these links, HITL runs for this PR must be triggered manually.
-- Most PR's:
-  - [ ] HITL tested, passed all passfail checks
-  - [ ] HITL tested, no regression in performance metrics
-- Measurement Engine PR's:
-  - [ ] Tested in Peregrine
-- Filter PR's:
-  - [ ] Passed gnss_analysis test suite
+- [ ] This PR has been HITL tested, and has passed all passfail checks.
+- [ ] *Detail the other testing you have performed here. You have performed other testing, right? ...*
