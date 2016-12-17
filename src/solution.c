@@ -1360,7 +1360,7 @@ static void time_matched_obs_thread(void *arg)
         process_matched_obs(n_sds, obss, sds, &pos_llh, &pos_ecef, &sbp_dops,
                             &baseline_ned, &baseline_ecef, &baseline_heading);
         chPoolFree(&obs_buff_pool, obss);
-        if(spp_timeout(last_spp, last_dgnss, SOLN_MODE_TIME_MATCHED)) {
+        if(spp_timeout(last_spp, last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss.sender_id, obss->n, obss->nm, &sbp_msg_time, &pos_llh, &pos_ecef,
                                      &vel_ned,
                                      &vel_ecef, &sbp_dops, &baseline_ned, &baseline_ecef, &baseline_heading);
