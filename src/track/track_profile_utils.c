@@ -680,3 +680,55 @@ bool tp_is_fll_ctrl(tp_ctrl_e ctrl)
   }
   return false;
 }
+
+/**
+ * Sets and clears the L1 & L2 xcorr_suspect flag.
+ *
+ * This function checks if the xcorr_suspect status has changed for the signal,
+ * and sets / clears the flag respectively.
+ *
+ * \param[in]     channel_info      Channel information.
+ * \param[in,out] common_data       Channel data.
+ * \param[in,out] input             Common L1 or L2 tracker data.
+ * \param[in]     xcorr_suspect     Flag indicating if signal is xcorr suspect.
+ * \param[in]     sensitivity_mode  Flag indicating sensitivity mode.
+ *
+ * \return None
+ */
+void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
+                            tracker_common_data_t *common_data,
+                            void *input,
+                            bool xcorr_suspect,
+                            bool sensitivity_mode)
+{
+  if (CODE_GPS_L1CA == channel_info->sid.code) {
+    gps_l1ca_tracker_data_t *data;
+    data = (gps_l1ca_tracker_data_t*) input;
+    if ((data->xcorr_flag) == xcorr_suspect) {
+      return;
+    }
+    data->xcorr_flag = xcorr_suspect;
+  } else {
+    gps_l2cm_tracker_data_t *data;
+    data = (gps_l2cm_tracker_data_t*) input;
+    if ((data->xcorr_flag) == xcorr_suspect) {
+      return;
+    }
+    data->xcorr_flag = xcorr_suspect;
+  }
+
+  if (xcorr_suspect) {
+    common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
+    if (!sensitivity_mode) {
+      log_info_sid(channel_info->sid,
+                   "setting cross-correlation suspect flag");
+    }
+  } else {
+    common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
+    if (!sensitivity_mode) {
+      log_info_sid(channel_info->sid,
+                   "clearing cross-correlation suspect flag");
+    }
+  }
+  common_data->xcorr_change_count = common_data->update_count;
+}

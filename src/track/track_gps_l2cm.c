@@ -42,17 +42,6 @@
 /** GPS L2 C configuration section name */
 #define L2CM_TRACK_SETTING_SECTION "l2cm_track"
 
-/**
- * GPS L2C tracker data container type.
- */
-typedef struct {
-  tp_tracker_data_t data;  /**< Common tracker parameters */
-  u16 xcorr_count_l1;      /**< L1 Cross-correlation interval count */
-  bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
-  bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
-  u8  xcorr_flag: 1;       /**< Cross-correlation flag */
-  u8  reserved: 7;         /**< Unused (reserved) flags */
-} gps_l2cm_tracker_data_t;
 
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2cm_config = TP_TRACKER_DEFAULT_CONFIG;
@@ -438,47 +427,6 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
     /* Reset CC lock counter */
     data->xcorr_count_l1 = 0;
   }
-}
-
-/**
- * Sets and clears the L2 xcorr_suspect flag.
- *
- * This function checks if the xcorr_suspect status has changed for the signal,
- * and sets / clears the flag respectively.
- *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data.
- * \param[in,out] data           Common L2 tracker data.
- * \param[in]     xcorr_suspect  Flag indicating if signal is xcorr_suspect.
- *
- * \return None
- */
-static void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
-                                   tracker_common_data_t *common_data,
-                                   gps_l2cm_tracker_data_t *data,
-                                   bool xcorr_suspect,
-                                   bool sensitivity_mode)
-{
-  if (data->xcorr_flag == xcorr_suspect) {
-    /* No change in xcorr suspect status */
-    return;
-  }
-
-  if (xcorr_suspect) {
-    common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
-    if (!sensitivity_mode) {
-      log_info_sid(channel_info->sid,
-                   "setting cross-correlation suspect flag");
-    }
-  } else {
-    common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
-    if (!sensitivity_mode) {
-      log_info_sid(channel_info->sid,
-                   "clearing cross-correlation suspect flag");
-    }
-  }
-  data->xcorr_flag = xcorr_suspect;
-  common_data->xcorr_change_count = common_data->update_count;
 }
 
 /**
