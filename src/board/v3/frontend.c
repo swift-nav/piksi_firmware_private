@@ -120,16 +120,6 @@ void frontend_setup(void)
   /* Register any setting... */
 }
 
-bool frontend_ant_status(void)
-{
-  return true;
-}
-
-antenna_type_t frontend_ant_setting(void)
-{
-  return EXTERNAL;
-}
-
 bool nt1065_get_temperature(double* temperature)
 {
   int32_t temp_sensor = 0;
