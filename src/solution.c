@@ -375,7 +375,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
       log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
       chMtxLock(&eigen_state_lock);
-      ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
+      ret = dgnss_update_v3(t, num_sdiffs, sdiffs, rover_pos,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
       if (ret == 0) {
@@ -744,9 +744,6 @@ static void collect_measurements(u64 rec_tc,
 static THD_WORKING_AREA(wa_solution_thread, 2000000);
 static void solution_thread(void *arg)
 {
-  /* The flag is true when we have a solution */
-  bool soln_flag = false;
-
   (void)arg;
   chRegSetThreadName("solution");
 
@@ -764,6 +761,8 @@ static void solution_thread(void *arg)
   msg_baseline_heading_t baseline_heading;
 
   bool clock_jump = FALSE;
+
+  gnss_solution current_fix;
 
   ndb_lgf_read(&lgf);
 
@@ -975,7 +974,7 @@ static void solution_thread(void *arg)
     }
 
     /* check if we have a solution, if yes calc iono and tropo correction */
-    if (soln_flag) {
+    if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
@@ -1002,7 +1001,7 @@ static void solution_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           (double) get_elevation_mask(),
-                          &lgf.position_solution, &dops);
+                          &current_fix, &dops);
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
@@ -1010,11 +1009,10 @@ static void solution_thread(void *arg)
          log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
       );
 
-      soln_flag = false;
-
-      // If we can't compute a SPP position, something is wrong and no point
-      // continuing to process this epoch - send out solution and observation
-      // failed messages if not in time matched mode
+      /* If we can't compute a SPP position, something is wrong and no point
+       * continuing to process this epoch - send out solution and observation
+       * failed messages if not in time matched mode
+       */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
         solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
                                          &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops,
@@ -1022,10 +1020,9 @@ static void solution_thread(void *arg)
                                          &baseline_ecef, &baseline_heading);
       }
       last_spp = chVTGetSystemTime();
+      lgf.position_quality = POSITION_STATIC;
       continue;
     }
-
-    soln_flag = true;
 
     if (pvt_ret == 1) {
       log_warn("calc_PVT: RAIM repair");
@@ -1041,7 +1038,7 @@ static void solution_thread(void *arg)
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(rec_tc, lgf.position_solution.time);
+      set_time_fine(rec_tc, current_fix.time);
       clock_jump = TRUE;
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
         solution_send_low_latency_output(0.0, 0, n_ready_tdcp, nav_meas_tdcp,
@@ -1054,9 +1051,11 @@ static void solution_thread(void *arg)
     }
     // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
     // so we need to store this error in the GPS time (GPS time frame)
-    set_gps_time_offset(rec_tc, lgf.position_solution.time);
+    set_gps_time_offset(rec_tc, current_fix.time);
 
     /* Update global position solution state. */
+    lgf.position_solution = current_fix;
+    lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
     /* Save elevation angles every so often */
@@ -1068,8 +1067,8 @@ static void solution_thread(void *arg)
       /* Output solution. */
 
       bool disable_velocity = clock_jump ||
-                              (lgf.position_solution.velocity_valid == 0);
-      solution_make_sbp(&lgf.position_solution, &dops, disable_velocity, &sbp_gps_time, &pos_llh,
+                              (current_fix.velocity_valid == 0);
+      solution_make_sbp(&current_fix, &dops, disable_velocity, &sbp_gps_time, &pos_llh,
                         &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops);
     }
 
@@ -1083,11 +1082,11 @@ static void solution_thread(void *arg)
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
     gps_time_t new_obs_time;
-    new_obs_time.tow = round(lgf.position_solution.time.tow * soln_freq)
+    new_obs_time.tow = round(current_fix.time.tow * soln_freq)
                               / soln_freq;
     normalize_gps_time(&new_obs_time);
-    gps_time_match_weeks(&new_obs_time, &lgf.position_solution.time);
-    double t_err = gpsdifftime(&new_obs_time, &lgf.position_solution.time);
+    gps_time_match_weeks(&new_obs_time, &current_fix.time);
+    double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
 
     // Time the base obs are propagated to the rover obs
     double propagation_time = 0.0;
@@ -1121,11 +1120,11 @@ static void solution_thread(void *arg)
                                code_to_lambda(nm->sid.code);
 
         /* Correct the observations for the receiver clock error. */
-        nm->raw_carrier_phase += lgf.position_solution.clock_offset *
+        nm->raw_carrier_phase += current_fix.clock_offset *
                                       GPS_C / code_to_lambda(nm->sid.code);
-        nm->raw_measured_doppler += lgf.position_solution.clock_bias *
+        nm->raw_measured_doppler += current_fix.clock_bias *
                                     GPS_C / code_to_lambda(nm->sid.code);
-        nm->raw_pseudorange -= lgf.position_solution.clock_offset * GPS_C;
+        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -1173,8 +1172,8 @@ static void solution_thread(void *arg)
                                     base_obss.n, base_obss.nm,
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
-            output_baseline(num_sdiffs, sdiffs, &lgf.position_solution.time,
-                            &dops, propagation_time, lgf.position_solution.pos_ecef,
+            output_baseline(num_sdiffs, sdiffs, &current_fix.time,
+                            &dops, propagation_time, current_fix.pos_ecef,
                             &pos_llh, &pos_ecef, &sbp_dops, &baseline_ned, &baseline_ecef,
                             &baseline_heading);
           }
@@ -1191,7 +1190,7 @@ static void solution_thread(void *arg)
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
         /* Post the observations to the mailbox. */
-        post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &lgf.position_solution);
+        post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
 
         /* Send the observations. */
         send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
@@ -1199,7 +1198,7 @@ static void solution_thread(void *arg)
     }
 
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
-    double rx_err = gpsdifftime(&rec_time, &lgf.position_solution.time);
+    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
     log_debug("RX clock offset = %f", rx_err);
     clock_jump = FALSE;
     if (fabs(rx_err) >= 1e-3) {
@@ -1229,7 +1228,7 @@ static void solution_thread(void *arg)
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL + lgf.position_solution.clock_offset / soln_freq;
+    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
