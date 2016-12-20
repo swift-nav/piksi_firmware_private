@@ -226,6 +226,7 @@ typedef struct {
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t    alias_detect;           /**< Alias lock detector. */
   lock_detect_t     lock_detect;            /**< Lock detector state. */
+  lp1_filter_t      xcorr_filter;           /**< Low-pass SV POV doppler filter */
   u16               tracking_mode: 3;       /**< Tracking mode */
   u16               cycle_no: 5;            /**< Cycle index inside current
                                              *   integration mode. */
@@ -235,7 +236,34 @@ typedef struct {
   u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
   u16               mode_pll: 1;            /**< PLL control flag */
   u16               mode_fll: 1;            /**< FLL control flag */
+  u16               xcorr_flag: 1;          /**< Cross-correlation filter is in use */
 } tp_tracker_data_t;
+
+/**
+ * GPS L1 C/A tracker data container type.
+ */
+typedef struct {
+  tp_tracker_data_t data;             /**< Tracker data */
+  u16 xcorr_counts[NUM_SATS_GPS];     /**< L1 Cross-correlation interval counters */
+  u16 xcorr_count_l2;                 /**< L2 Cross-correlation interval counter */
+  u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval counters */
+  bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status */
+  bool xcorr_whitelist_l2;            /**< L2 Cross-correlation whitelist status */
+  u8  xcorr_flag: 1;                  /**< Cross-correlation flag */
+  u8  reserved: 7;                    /**< Unused (reserved) flags */
+} gps_l1ca_tracker_data_t;
+
+/**
+ * GPS L2C tracker data container type.
+ */
+typedef struct {
+  tp_tracker_data_t data;  /**< Common tracker parameters */
+  u16 xcorr_count_l1;      /**< L1 Cross-correlation interval count */
+  bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
+  bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
+  u8  xcorr_flag: 1;       /**< Cross-correlation flag */
+  u8  reserved: 7;         /**< Unused (reserved) flags */
+} gps_l2cm_tracker_data_t;
 
 /**
  * Common tracker configuration container.
@@ -243,25 +271,36 @@ typedef struct {
 typedef struct {
   bool show_unconfirmed_trackers; /**< Flag to control reporting of unconfirmed
                                    *   tracker channels */
+  float xcorr_delta;              /**< Frequency delta error for cross-correlation [hz] */
+  float xcorr_cof;                /**< LPF cut-off frequency for cross-correlation filter [hz] */
+  float xcorr_time;               /**< Cross-correlation time threshold [s] */
+  lp1_filter_params_t xcorr_f_params; /**< Cross-correlation filter parameters */
 } tp_tracker_config_t;
 
 /**
  * Macro for default tracker parameters initialization
  */
-#define TP_TRACKER_DEFAULT_CONFIG {false}
+#define TP_TRACKER_DEFAULT_CONFIG {false, 10.f, 0.1f, 1.f, {0, 0}}
 
 /**
  * Registers common configuration parameters for a tracker section.
  *
  * \param[in]     section Configuration section name.
  * \param[in,out] config  Tracker parameters container.
+ * \param[in]     proxy   Function pointer for handling parameter updates.
  *
  * \return None
  */
-#define TP_TRACKER_REGISTER_CONFIG(section, config) \
+#define TP_TRACKER_REGISTER_CONFIG(section, config, proxy) \
   do {\
     SETTING((section), "show_unconfirmed", \
             (config).show_unconfirmed_trackers, TYPE_BOOL); \
+    SETTING_NOTIFY((section), "xcorr_cof", \
+                   (config).xcorr_cof, TYPE_FLOAT, (proxy)); \
+    SETTING((section), "xcorr_delta", \
+            (config).xcorr_delta, TYPE_FLOAT); \
+    SETTING((section), "xcorr_time", \
+            (config).xcorr_time, TYPE_FLOAT); \
   } while (0)
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
@@ -328,7 +367,8 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
                         tp_tracker_data_t *data);
 u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
                       tracker_common_data_t *common_data,
-                      tp_tracker_data_t *data);
+                      tp_tracker_data_t *data,
+                      const tp_tracker_config_t *config);
 void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
                                   tracker_common_data_t *common_data,
                                   tp_tracker_data_t *data,
@@ -363,6 +403,11 @@ void tp_tracker_update_alias(const tracker_channel_info_t *channel_info,
                              tracker_common_data_t *common_data,
                              tp_tracker_data_t *data,
                              u32 cycle_flags);
+void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               tp_tracker_data_t *data,
+                               u32 cycle_flags,
+                               const tp_tracker_config_t *config);
 void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
                             tracker_common_data_t *common_data,
                             tp_tracker_data_t *data);
@@ -371,5 +416,10 @@ u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info
 void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
 void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
                                     const tp_tracker_data_t *data);
+void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
+                            tracker_common_data_t *common_data,
+                            void *input,
+                            bool xcorr_suspect,
+                            bool sensitivity_mode);
 
 #endif /* SWIFTNAV_TRACK_PROFILE_UTILS_H_ */

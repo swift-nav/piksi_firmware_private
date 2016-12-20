@@ -546,6 +546,8 @@ static void tracking_channel_compute_values(
     info->lock_counter = tracker_channel->internal_data.lock_counter;
     /* Sample counter */
     info->sample_count = common_data->sample_count;
+    /* Cross-correlation doppler frequency [hz] */
+    info->xcorr_freq = common_data->xcorr_freq;
   }
   if (NULL != time_info) {
     time_info->cn0_drop_ms = update_count_diff(tracker_channel,
@@ -835,6 +837,50 @@ static double tracking_channel_get_lock_time(
 
   return (double) lock_time_ms / SECS_MS;
 }
+
+/**
+ * Loads data relevant to cross-correlation processing
+ *
+ * The method loads information from all trackers for cross-correlation
+ * algorithm.
+ *
+ * \param[out] cc_data Destination container
+ *
+ * \return Number of entries loaded
+ *
+ * \sa tracking_channel_cc_data_t
+ */
+u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data)
+{
+  u16 cnt = 0;
+
+  for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+    tracker_channel_t *tracker_channel = tracker_channel_get(id);
+    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+    tracking_channel_cc_entry_t entry;
+
+    entry.id = id;
+    chMtxLock(&pub_data->info_mutex);
+    entry.sid = pub_data->gen_info.sid;
+    entry.flags = pub_data->gen_info.flags;
+    entry.freq = pub_data->gen_info.xcorr_freq;
+    entry.cn0 = pub_data->gen_info.cn0;
+    entry.count = pub_data->gen_info.xcorr_count;
+    entry.wl = pub_data->gen_info.xcorr_wl;
+
+    chMtxUnlock(&pub_data->info_mutex);
+
+    if (0 != (entry.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
+        0 != (entry.flags & TRACKING_CHANNEL_FLAG_CONFIRMED) &&
+        0 != (entry.flags & TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE)) {
+      cc_data->entries[cnt++] = entry;
+    }
+  }
+
+  return cnt;
+}
+
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.
@@ -1519,6 +1565,18 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: TOW decoding status */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_DECODED)) {
       result |= TRACKING_CHANNEL_FLAG_TOW_DECODED;
+    }
+    /* Tracking status: cross-correlation status */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_CONFIRMED)) {
+      result |= TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED;
+    }
+    /* Tracking status: cross-correlation suspect */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_SUSPECT)) {
+      result |= TRACKING_CHANNEL_FLAG_XCORR_SUSPECT;
+    }
+    /* Tracking status: cross-correlation doppler filter active */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)) {
+      result |= TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE;
     }
   }
 
