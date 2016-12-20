@@ -90,8 +90,6 @@ u32 obs_output_divisor = 5;
 double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = 102;
 
-static last_good_fix_t lgf;
-
 bool disable_raim = false;
 bool send_heading = false;
 
@@ -761,8 +759,7 @@ static void solution_thread(void *arg)
   msg_baseline_heading_t baseline_heading;
 
   bool clock_jump = FALSE;
-
-  gnss_solution current_fix;
+  last_good_fix_t lgf;
 
   ndb_lgf_read(&lgf);
 
@@ -994,6 +991,8 @@ static void solution_thread(void *arg)
     }
 
     dops_t dops;
+    gnss_solution current_fix;
+
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
