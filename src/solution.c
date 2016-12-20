@@ -1225,6 +1225,13 @@ static void solution_thread(void *arg)
     solution_send_low_latency_output(propagation_time, base_obss.sender_id, n_ready_tdcp, nav_meas_tdcp,
                                      &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                      &baseline_ecef, &baseline_heading);
+    if(pos_llh.flags != 0){
+      u64 final_tc = nap_timing_count();
+      u64 tc_latency = final_tc - current_tc;
+      gps_time_t final_gps_time = napcount2gpstime(final_tc);
+      double GPS_latency = gpsdifftime(&final_gps_time,&lgf.position_solution.time);
+      log_warn("TOW: ,%u,  GPS Latency ,%f, Tick Count Latency ,%u,%f, Processing Time ,%f,%f", pos_llh.tow, GPS_latency, tc_latency, (double)tc_latency * RX_DT_NOMINAL, delta_tc, (double)delta_tc * RX_DT_NOMINAL);
+    }
 
     last_spp = chVTGetSystemTime();
 
