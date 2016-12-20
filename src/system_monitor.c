@@ -22,7 +22,7 @@
 #include <libswiftnav/coord_system.h>
 
 #include "board/nap/nap_common.h"
-#include "board/frontend.h"
+#include "peripherals/antenna.h"
 #include "board.h"
 #include "main.h"
 #include "sbp.h"
@@ -150,20 +150,9 @@ static void system_monitor_thread(void *arg)
 
   systime_t time = chVTGetSystemTime();
 
-  bool ant_status = 0;
-
   while (TRUE) {
 
-    if (ant_status != frontend_ant_status()) {
-      ant_status = frontend_ant_status();
-      if (ant_status && frontend_ant_setting() == AUTO) {
-        log_info("Now using external antenna.");
-      }
-      else if (frontend_ant_setting() == AUTO) {
-        log_info("Now using patch antenna.");
-      }
-    }
-    u32 status_flags = ant_status << 31 | SBP_MAJOR_VERSION << 16 | SBP_MINOR_VERSION << 8;
+    u32 status_flags = antenna_present() << 31 | SBP_MAJOR_VERSION << 16 | SBP_MINOR_VERSION << 8;
     sbp_send_msg(SBP_MSG_HEARTBEAT, sizeof(status_flags), (u8 *)&status_flags);
 
     /* If we are in base station mode then broadcast our known location. */

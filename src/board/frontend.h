@@ -15,17 +15,8 @@
 
 #include <libswiftnav/common.h>
 
-typedef enum {
-  AUTO,
-  PATCH,
-  EXTERNAL,
-  EXTERNAL_AC
-} antenna_type_t;
-
 void frontend_configure(void);
 void frontend_setup(void);
-bool frontend_ant_status(void);
-antenna_type_t frontend_ant_setting(void);
 
 #endif
 
