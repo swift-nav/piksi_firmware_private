@@ -140,7 +140,6 @@ bool spp_timeout(systime_t _last_spp, systime_t _last_dgnss, dgnss_solution_mode
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
   }
-
   // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
   return (_last_spp < _last_dgnss);
 }
@@ -255,7 +254,7 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
                                       const msg_baseline_heading_t *baseline_heading) {
   // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
   bool wait_for_timeout = false;
-  if (!(dgnss_timeout(last_dgnss, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+  if (dgnss_timeout(last_dgnss, dgnss_soln_mode) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     wait_for_timeout = true;
   }
 
@@ -375,6 +374,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
       log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
       chMtxLock(&eigen_state_lock);
+      process_low_latency();
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, lgf.position_solution.pos_ecef,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
@@ -1224,6 +1224,13 @@ static void solution_thread(void *arg)
     solution_send_low_latency_output(propagation_time, base_obss.sender_id, n_ready_tdcp, nav_meas_tdcp,
                                      &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                      &baseline_ecef, &baseline_heading);
+    if(pos_llh.flags != 0){
+      u64 final_tc = nap_timing_count();
+      u64 tc_latency = final_tc - current_tc;
+      gps_time_t final_gps_time = napcount2gpstime(final_tc);
+      double GPS_latency = gpsdifftime(&final_gps_time,&lgf.position_solution.time);
+      log_warn("TOW: ,%u,  GPS Latency ,%f, Tick Count Latency ,%u,%f, Processing Time ,%f,%f", pos_llh.tow, GPS_latency, tc_latency, (double)tc_latency * RX_DT_NOMINAL, delta_tc, (double)delta_tc * RX_DT_NOMINAL);
+    }
 
     last_spp = chVTGetSystemTime();
 
@@ -1266,6 +1273,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
   if (rtk_init_done) {
     /* Update filters. */
     chMtxLock(&eigen_state_lock);
+    process_time_matched();
     ret = dgnss_update_v3(&obss->tor, n_sds, sds, obss->has_pos ? obss->pos_ecef : NULL,
                     base_pos_known ? base_pos_ecef : NULL, 0.0);
     chMtxUnlock(&eigen_state_lock);
