@@ -16,7 +16,7 @@
 void pre_init(void);
 void init(void);
 
-s32 serial_number_get(void);
+u32 serial_number_get(void);
 u8 hw_revision_string_get(char *hw_revision_string);
 u8 nap_version_string_get(char *nap_version_string);
 

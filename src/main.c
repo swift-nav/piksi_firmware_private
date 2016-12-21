@@ -67,13 +67,15 @@ int main(void)
   init();
   signal_init();
 
-  static s32 serial_number;
+  static u32 serial_number;
   serial_number = serial_number_get();
   if (serial_number == 0) {
     /* TODO: Handle this properly! */
-    serial_number = rand();
+    serial_number = (u32) rand();
   }
-  sbp_sender_id_set(serial_number);
+  /* We only need 16 bits for sender ID for sbp */
+  
+  sbp_sender_id_set((u16) serial_number&0xFFFF);
 
   ndb_setup();
   ephemeris_setup();

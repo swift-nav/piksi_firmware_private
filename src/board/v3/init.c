@@ -211,7 +211,7 @@ static bool factory_params_read(void)
   return true;
 }
 
-s32 serial_number_get(void)
+u32 serial_number_get(void)
 {
   u32 serial_int = factory_params.uuid[0] +
                    (factory_params.uuid[1] << 8) +
