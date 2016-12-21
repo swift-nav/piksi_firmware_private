@@ -32,19 +32,35 @@ static const char * const antenna_mode_strings[] = {
 };
 
 static antenna_mode_t antenna_mode = ANTENNA_MODE_PRIMARY;
+static bool antenna_bias = true;
 
-static void antenna_mode_configure(antenna_mode_t mode)
+static void antenna_configure(antenna_mode_t mode, bool bias)
 {
+  /* SEL is active low, so "clear" is on and "set" is off. PWR is active high. */
   switch (mode) {
   case ANTENNA_MODE_PRIMARY: {
-    palClearLine(ANT_IN_SEL_0_GPIO_LINE);
-    palSetLine(ANT_IN_SEL_1_GPIO_LINE);
+    palSetLine(ANT_IN_SEL_2_GPIO_LINE);
+    palClearLine(ANT_PWR_SEL_2_GPIO_LINE);
+
+    palClearLine(ANT_IN_SEL_1_GPIO_LINE);
+    if (bias) {
+      palSetLine(ANT_PWR_SEL_1_GPIO_LINE);
+    } else {
+      palClearLine(ANT_PWR_SEL_1_GPIO_LINE);
+    }
   }
   break;
 
   case ANTENNA_MODE_SECONDARY: {
-    palClearLine(ANT_IN_SEL_1_GPIO_LINE);
-    palSetLine(ANT_IN_SEL_0_GPIO_LINE);
+    palSetLine(ANT_IN_SEL_1_GPIO_LINE);
+    palClearLine(ANT_PWR_SEL_1_GPIO_LINE);
+
+    palClearLine(ANT_IN_SEL_2_GPIO_LINE);
+    if (bias) {
+      palSetLine(ANT_PWR_SEL_2_GPIO_LINE);
+    } else {
+      palClearLine(ANT_PWR_SEL_2_GPIO_LINE);
+    }
   }
   break;
 
@@ -55,30 +71,31 @@ static void antenna_mode_configure(antenna_mode_t mode)
   }
 }
 
-static bool antenna_mode_notify(struct setting *s, const char *val)
+static bool antenna_config_notify(struct setting *s, const char *val)
 {
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val))
   {
     return false;
   }
 
-  antenna_mode_configure(antenna_mode);
+  antenna_configure(antenna_mode, antenna_bias);
   return true;
 }
 
 void antenna_init(void)
 {
+  /* SEL is active low, so "clear" is on and "set" is off. PWR is active high. */
   palSetLineMode(ANT_PWR_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
-  palSetLine(ANT_PWR_SEL_1_GPIO_LINE);
+  palClearLine(ANT_PWR_SEL_1_GPIO_LINE);
 
   palSetLineMode(ANT_PWR_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
-  palSetLine(ANT_PWR_SEL_2_GPIO_LINE);
-
-  palSetLineMode(ANT_IN_SEL_0_GPIO_LINE, PAL_MODE_OUTPUT);
-  palClearLine(ANT_IN_SEL_0_GPIO_LINE);
+  palClearLine(ANT_PWR_SEL_2_GPIO_LINE);
 
   palSetLineMode(ANT_IN_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
-  palClearLine(ANT_IN_SEL_1_GPIO_LINE);
+  palSetLine(ANT_IN_SEL_1_GPIO_LINE);
+
+  palSetLineMode(ANT_IN_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
+  palSetLine(ANT_IN_SEL_2_GPIO_LINE);
 
   palSetLineMode(ANT_PRESENT_1_GPIO_LINE, PAL_MODE_INPUT);
   palSetLineMode(ANT_PRESENT_2_GPIO_LINE, PAL_MODE_INPUT);
@@ -89,9 +106,12 @@ void antenna_init(void)
   int TYPE_ANTENNA_MODE = settings_type_register_enum(antenna_mode_strings,
                                                       &antenna_mode_setting);
   SETTING_NOTIFY("frontend", "antenna_selection",
-                 antenna_mode, TYPE_ANTENNA_MODE, antenna_mode_notify);
+                 antenna_mode, TYPE_ANTENNA_MODE, antenna_config_notify);
 
-  antenna_mode_configure(antenna_mode);
+  SETTING_NOTIFY("frontend", "antenna_bias",
+                 antenna_bias, TYPE_BOOL, antenna_config_notify);
+
+  antenna_configure(antenna_mode, antenna_bias);
 }
 
 bool antenna_present(void)
