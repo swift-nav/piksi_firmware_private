@@ -161,6 +161,7 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
   if(sid_to_constellation(sid) == CONSTELLATION_GPS) {
 
     assert(CODE_GPS_L1CA == sid.code || CODE_GPS_L2CM == sid.code ||
+           CODE_GPS_L2CL == sid.code ||
            CODE_GPS_L1P  == sid.code || CODE_GPS_L2P  == sid.code);
 
     /* Check GPS band specific SHIs.
@@ -337,6 +338,8 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
       return CODE_NAV_STATE_UNKNOWN;
     }
 
+    case CODE_GPS_L2CL:
+      return CODE_NAV_STATE_UNKNOWN;
     case CODE_SBAS_L1CA:
     case CODE_GLO_L1CA:
     case CODE_GLO_L2CA:

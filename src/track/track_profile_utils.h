@@ -266,6 +266,14 @@ typedef struct {
 } gps_l2cm_tracker_data_t;
 
 /**
+ * GPS L2CL tracker data container type.
+ */
+typedef struct {
+  tp_tracker_data_t data;  /**< Common tracker parameters */
+  u8  reserved: 7;         /**< Unused (reserved) flags */
+} gps_l2cl_tracker_data_t;
+
+/**
  * Common tracker configuration container.
  */
 typedef struct {

@@ -13,6 +13,7 @@
 /* Local headers */
 #include "track_gps_l1ca.h"
 #include "track_gps_l2cm.h" /* for L1C/A to L2 CM tracking handover */
+#include "track_gps_l2cl.h" /* for L1C/A to L2 CL tracking handover */
 #include "track_cn0.h"
 #include "track_profile_utils.h"
 #include "track_profiles.h"
@@ -636,12 +637,20 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(channel_info->context) &&
+      TOW_UNKNOWN != common_data->TOW_ms &&  /* TOW must be known to start L2CL */
+      (common_data->TOW_ms % 1500) == 0) {   /* L2CL starts every 1.5 second boundary */
 
-    /* Start L2 C tracker if not running */
+    /* Start L2 CM tracker if not running */
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,
                              common_data->code_phase_prompt,
+                             common_data->carrier_freq,
+                             common_data->cn0);
+    /* Start L2 CL tracker if not running */
+    do_l1ca_to_l2cl_handover(common_data->sample_count,
+                             channel_info->sid.sat,
+                             common_data->code_phase_early,
                              common_data->carrier_freq,
                              common_data->cn0);
   }

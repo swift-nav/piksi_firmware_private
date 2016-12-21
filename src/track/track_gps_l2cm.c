@@ -151,7 +151,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   }
 
   if (code_phase > (GPS_L1CA_CHIPS_NUM - 0.5)) {
-    code_phase = GPS_L2C_CHIPS_NUM - (GPS_L1CA_CHIPS_NUM - code_phase);
+    code_phase = GPS_L2CM_CHIPS_NUM - (GPS_L1CA_CHIPS_NUM - code_phase);
   }
 
   /* The best elevation estimation could be retrieved by calling

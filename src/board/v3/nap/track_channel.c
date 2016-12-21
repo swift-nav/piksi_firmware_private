@@ -94,6 +94,7 @@ u8 sid_to_rf_frontend_channel(gnss_signal_t sid)
     ret = NAP_RF_FRONTEND_CHANNEL_1;
     break;
   case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
     ret = NAP_RF_FRONTEND_CHANNEL_4;
     break;
   case CODE_GLO_L1CA:
@@ -113,7 +114,7 @@ u8 sid_to_rf_frontend_channel(gnss_signal_t sid)
 
 /** Looks-up NAP constellation and band code for the given signal ID.
  * \param sid Signal ID.
- * \return NAP constallation and band code.
+ * \return NAP constellation and band code.
  */
 u8 sid_to_nap_code(gnss_signal_t sid)
 {
@@ -125,6 +126,9 @@ u8 sid_to_nap_code(gnss_signal_t sid)
     break;
   case CODE_GPS_L2CM:
     ret = NAP_CODE_GPS_L2CM;
+    break;
+  case CODE_GPS_L2CL:
+    ret = NAP_CODE_GPS_L2CL;
     break;
   case CODE_GLO_L1CA:
   case CODE_GLO_L2CA:
@@ -165,7 +169,8 @@ static double calc_samples_per_chip(double code_phase_rate)
 void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
                    float carrier_freq, float code_phase, u32 chips_to_correlate)
 {
-  assert((sid.code == CODE_GPS_L1CA) || (sid.code == CODE_GPS_L2CM));
+  assert((sid.code == CODE_GPS_L1CA) || (sid.code == CODE_GPS_L2CM) ||
+         (sid.code == CODE_GPS_L2CL));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
