@@ -295,106 +295,106 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
       time_quality < TIME_GUESS)
     return SCORE_COLDSTART;
 
-    float el = 0;
-    double _, dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
-    bool ready = false;
-    /* Do we have a suitable ephemeris for this sat?  If so, use
-       that in preference to the almanac. */
-    union { ephemeris_t e; almanac_t a; } orbit;
-    ndb_ephemeris_read(sid, &orbit.e);
-    u8 eph_valid;
-    s8 ss_ret;
-    double sat_pos[3], sat_vel[3], el_d;
+  float el = 0;
+  double _, dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
+  bool ready = false;
+  /* Do we have a suitable ephemeris for this sat?  If so, use
+     that in preference to the almanac. */
+  union { ephemeris_t e; almanac_t a; } orbit;
+  ndb_ephemeris_read(sid, &orbit.e);
+  u8 eph_valid;
+  s8 ss_ret;
+  double sat_pos[3], sat_vel[3], el_d;
 
-    eph_valid = ephemeris_valid(&orbit.e, t);
-    if (eph_valid) {
-      ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel, &_, &_);
+  eph_valid = ephemeris_valid(&orbit.e, t);
+  if (eph_valid) {
+    ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel, &_, &_);
+  }
+
+  if (eph_valid && (ss_ret == 0)) {
+    double dopp_hint_sat_vel; /* Doppler hint induced by sat velocity */
+    double dopp_hint_clock;   /* Doppler hint induced by clock drift */
+    wgsecef2azel(sat_pos, lgf.position_solution.pos_ecef, &_, &el_d);
+    el = (float)(el_d * R2D);
+    if (el < elevation_mask)
+      return SCORE_BELOWMASK;
+    vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
+    vector_normalize(3, sat_pos);
+    /* sat_pos now holds unit vector from us to satellite */
+    vector_subtract(3, sat_vel, lgf.position_solution.vel_ecef, sat_vel);
+    /* sat_vel now holds velocity of sat relative to us */
+    dopp_hint_sat_vel = -GPS_L1_HZ * vector_dot(3, sat_pos, sat_vel) / GPS_C;
+    /* TODO: Check sign of receiver frequency offset correction.
+             There seems to be a sign flip somewhere in 'clock_bias'
+             computation that gets compensated here */
+    dopp_hint_clock = -GPS_L1_HZ * lgf.position_solution.clock_bias;
+    dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
+    if (time_quality >= TIME_FINE)
+      dopp_uncertainty = DOPP_UNCERT_EPHEM;
+    ready = true;
+
+    if ((dopp_hint_sat_vel < code_to_sv_doppler_min(sid.code)) ||
+        (dopp_hint_sat_vel > code_to_sv_doppler_max(sid.code)) ||
+        (dopp_hint_clock < code_to_tcxo_doppler_min(sid.code)) ||
+        (dopp_hint_clock > code_to_tcxo_doppler_max(sid.code))) {
+      log_error_sid(sid,
+                    "Acq: bogus ephe/clock dopp hints "
+                    "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
+                    "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
+                    dopp_uncertainty,
+                    dopp_hint_sat_vel,
+                    dopp_hint_clock,
+                    lgf.position_solution.pos_ecef[0],
+                    lgf.position_solution.pos_ecef[1],
+                    lgf.position_solution.pos_ecef[2],
+                    lgf.position_solution.clock_bias,
+                    el);
+      return SCORE_COLDSTART;
     }
+  }
 
-    if (eph_valid && (ss_ret == 0)) {
-      double dopp_hint_sat_vel; /* Doppler hint induced by sat velocity */
-      double dopp_hint_clock;   /* Doppler hint induced by clock drift */
-      wgsecef2azel(sat_pos, lgf.position_solution.pos_ecef, &_, &el_d);
+  float doppler_min = code_to_sv_doppler_min(sid.code) +
+                      code_to_tcxo_doppler_min(sid.code);
+  float doppler_max = code_to_sv_doppler_max(sid.code) +
+                      code_to_tcxo_doppler_max(sid.code);
+
+  if(!ready) {
+    if (almanacs_enabled &&
+        NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a) &&
+        almanac_valid(&orbit.a, t) &&
+        calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
+                               &_, &el_d) == 0) {
       el = (float)(el_d * R2D);
       if (el < elevation_mask)
         return SCORE_BELOWMASK;
-      vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
-      vector_normalize(3, sat_pos);
-      /* sat_pos now holds unit vector from us to satellite */
-      vector_subtract(3, sat_vel, lgf.position_solution.vel_ecef, sat_vel);
-      /* sat_vel now holds velocity of sat relative to us */
-      dopp_hint_sat_vel = -GPS_L1_HZ * vector_dot(3, sat_pos, sat_vel) / GPS_C;
-      /* TODO: Check sign of receiver frequency offset correction.
-               There seems to be a sign flip somewhere in 'clock_bias'
-               computation that gets compensated here */
-      dopp_hint_clock = -GPS_L1_HZ * lgf.position_solution.clock_bias;
-      dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
-      if (time_quality >= TIME_FINE)
-        dopp_uncertainty = DOPP_UNCERT_EPHEM;
-      ready = true;
+      if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
+                                   &dopp_hint) != 0) {
+        return SCORE_COLDSTART;
+      }
+      dopp_hint = -dopp_hint;
 
-      if ((dopp_hint_sat_vel < code_to_sv_doppler_min(sid.code)) ||
-          (dopp_hint_sat_vel > code_to_sv_doppler_max(sid.code)) ||
-          (dopp_hint_clock < code_to_tcxo_doppler_min(sid.code)) ||
-          (dopp_hint_clock > code_to_tcxo_doppler_max(sid.code))) {
+      if ((dopp_hint < doppler_min) || (dopp_hint > doppler_max)) {
         log_error_sid(sid,
-                      "Acq: bogus ephe/clock dopp hints "
-                      "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
-                      "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
+                      "Acq: bogus alm dopp_hint "
+                      "(unc,sat_hint,lgf_pos[0..2],ele) "
+                      "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
                       dopp_uncertainty,
-                      dopp_hint_sat_vel,
-                      dopp_hint_clock,
+                      dopp_hint,
                       lgf.position_solution.pos_ecef[0],
                       lgf.position_solution.pos_ecef[1],
                       lgf.position_solution.pos_ecef[2],
-                      lgf.position_solution.clock_bias,
                       el);
         return SCORE_COLDSTART;
       }
+    } else {
+      return SCORE_COLDSTART; /* Couldn't determine satellite state. */
     }
+  }
 
-    float doppler_min = code_to_sv_doppler_min(sid.code) +
-                        code_to_tcxo_doppler_min(sid.code);
-    float doppler_max = code_to_sv_doppler_max(sid.code) +
-                        code_to_tcxo_doppler_max(sid.code);
-
-    if(!ready) {
-      if (almanacs_enabled &&
-          NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a) &&
-          almanac_valid(&orbit.a, t) &&
-          calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
-                                 &_, &el_d) == 0) {
-        el = (float)(el_d * R2D);
-        if (el < elevation_mask)
-          return SCORE_BELOWMASK;
-        if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
-                                     &dopp_hint) != 0) {
-          return SCORE_COLDSTART;
-        }
-        dopp_hint = -dopp_hint;
-
-        if ((dopp_hint < doppler_min) || (dopp_hint > doppler_max)) {
-          log_error_sid(sid,
-                        "Acq: bogus alm dopp_hint "
-                        "(unc,sat_hint,lgf_pos[0..2],ele) "
-                        "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
-                        dopp_uncertainty,
-                        dopp_hint,
-                        lgf.position_solution.pos_ecef[0],
-                        lgf.position_solution.pos_ecef[1],
-                        lgf.position_solution.pos_ecef[2],
-                        el);
-          return SCORE_COLDSTART;
-        }
-      } else {
-        return SCORE_COLDSTART; /* Couldn't determine satellite state. */
-      }
-    }
-
-    /* Return the doppler hints and a score proportional to elevation */
-    *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, doppler_min);
-    *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, doppler_max);
-    return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
+  /* Return the doppler hints and a score proportional to elevation */
+  *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, doppler_min);
+  *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, doppler_max);
+  return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
 }
 
 static acq_status_t * choose_acq_sat(void)
