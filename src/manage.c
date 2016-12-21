@@ -991,7 +991,7 @@ static bool compute_cpo(u64 ref_tc,
     double rcv_clk_error =  gpstimediff(&gps_time,&receiver_time);
 
     double phase = (code_to_carr_freq(meas->sid.code) *
-      (raw_pseudorange - rcv_clk_error) / GPS_C);
+      ( raw_pseudorange / GPS_C - rcv_clk_error ));
 
     /* initialize the carrier phase offset with the pseudorange measurement */
     /* NOTE: CP sign flip - change the plus sign below */
