@@ -299,7 +299,10 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
       time_quality < TIME_GUESS)
     return SCORE_COLDSTART;
 
-  float el = 0;
+  float el = sv_elevation_degrees_get(sid);
+  if (el < tracking_elevation_mask)
+    return SCORE_BELOWMASK;
+
   double _, dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
   bool ready = false;
   /* Do we have a suitable ephemeris for this sat?  If so, use
@@ -318,10 +321,6 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
   if (eph_valid && (ss_ret == 0)) {
     double dopp_hint_sat_vel; /* Doppler hint induced by sat velocity */
     double dopp_hint_clock;   /* Doppler hint induced by clock drift */
-    wgsecef2azel(sat_pos, lgf.position_solution.pos_ecef, &_, &el_d);
-    el = (float)(el_d * R2D);
-    if (el < tracking_elevation_mask)
-      return SCORE_BELOWMASK;
     vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
     vector_normalize(3, sat_pos);
     /* sat_pos now holds unit vector from us to satellite */
@@ -809,7 +808,7 @@ static void manage_track()
     }
 
     /* Is satellite below our elevation mask? */
-    if (tracking_channel_elevation_degrees_get(sid) < tracking_elevation_mask) {
+    if (sv_elevation_degrees_get(sid) < tracking_elevation_mask) {
       drop_channel(i, CH_DROP_REASON_LOW_ELEVATION, &info, &time_info, &freq_info);
       /* Erase the tracking hint score, and any others it might have */
       memset(&acq->score, 0, sizeof(acq->score));
@@ -1179,7 +1178,7 @@ manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
   manage_track_flags_t result = 0;
 
   /* Satellite elevation is above the solution mask. */
-  if (tracking_channel_elevation_degrees_get(sid) >= solution_elevation_mask) {
+  if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
 
