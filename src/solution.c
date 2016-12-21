@@ -140,7 +140,6 @@ bool spp_timeout(systime_t _last_spp, systime_t _last_dgnss, dgnss_solution_mode
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
   }
-
   // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
   return (_last_spp < _last_dgnss);
 }
@@ -255,7 +254,7 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
                                       const msg_baseline_heading_t *baseline_heading) {
   // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
   bool wait_for_timeout = false;
-  if (!(dgnss_timeout(last_dgnss, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+  if (dgnss_timeout(last_dgnss, dgnss_soln_mode) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     wait_for_timeout = true;
   }
 
