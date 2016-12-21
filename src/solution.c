@@ -1356,14 +1356,11 @@ static void time_matched_obs_thread(void *arg)
          */
         chMtxLock(&base_pos_lock);
         if (have_old_base_position && base_pos_known &&
-            ((old_base_position[0] != base_pos_ecef[0]) ||
-             (old_base_position[1] != base_pos_ecef[1]) ||
-             (old_base_position[2] != base_pos_ecef[2]))) {
-          log_warn("Base station position changed. Resetting RTK"
-                   " filter.");
+            (((old_base_position[0] - base_pos_ecef[0]) > 1e-4) ||
+             ((old_base_position[1] - base_pos_ecef[1]) > 1e-4) ||
+             ((old_base_position[2] - base_pos_ecef[2]) > 1e-4))) {
+          log_warn("Base station position changed. Resetting RTK filter.");
           reset_rtk_filter();
-          base_pos_known = false;
-          memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
         }
         memcpy(old_base_position, base_pos_ecef, sizeof(old_base_position));
         have_old_base_position = base_pos_known;
