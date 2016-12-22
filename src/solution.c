@@ -1241,7 +1241,17 @@ static void solution_thread(void *arg)
                                      &baseline_ecef, &baseline_heading);
     if(pos_llh.flags != 0){
       u64 final_tc = nap_timing_count();
-      log_warn("TOW: %u,%u,%u,%u,%u,%u,%u,%u,%u", pos_llh.tow, current_tc, before_calc_pvt, before_lgf_store, before_obs_propagation, before_base_lock, before_output_baseline, before_rtk_init, before_eigen, final_tc );
+      log_warn("TOW: %u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
+               pos_llh.tow,
+               current_tc,
+               before_calc_pvt,
+               before_lgf_store,
+               before_obs_propagation,
+               before_base_lock,
+               before_output_baseline,
+               before_rtk_init,
+               before_eigen,
+               final_tc );
     }
 
     last_spp = chVTGetSystemTime();
