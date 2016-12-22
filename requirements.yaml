@@ -27,7 +27,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v0.1-24-g2645cf0/v3/prod
+      prefix: piksi_buildroot/v0.1-32-g625bef0/v3/prod
       files:
         - uImage.piksiv3_prod
     -
