@@ -80,5 +80,6 @@ soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void solution_setup(void);
+void reset_rtk_filter(void);
 
 #endif

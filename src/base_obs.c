@@ -212,18 +212,17 @@ static void update_obss(obss_t *new_obss)
       if (base_pos_known) {
         double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
 
-        if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
-          log_warn("Received base observation with SPP position %f m from the"
-                  " surveyed position. Check the base station position setting.",
-                  base_distance);
-        }
-
         if (base_distance > BASE_STATION_RESET_THRESHOLD) {
           log_warn("Received base observation with SPP position %f m from the"
-                  " surveyed position. Ignoring the observation.",
-                  base_distance);
-          memset(&base_obss, 0, sizeof(base_obss));
-          have_obs = false;
+                   " surveyed position. Resetting RTK filter.",
+                   base_distance);
+         reset_rtk_filter();
+         base_pos_known = false;
+         memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+        } else if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+          log_warn("Received base observation with SPP position %f m from the"
+                   " surveyed position. Check the base station position setting.",
+                   base_distance);
         }
       }
       chMtxUnlock(&base_pos_lock);
