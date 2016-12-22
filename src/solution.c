@@ -1196,6 +1196,7 @@ static void solution_thread(void *arg)
           }
         }
       }
+      chMtxUnlock(&base_obs_lock);
 
       /* Output observations only every obs_output_divisor times, taking
        * care to ensure that the observations are aligned. */
