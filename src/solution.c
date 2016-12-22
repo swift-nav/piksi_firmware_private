@@ -103,6 +103,14 @@ static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
 
+u64 before_calc_pvt = 0;
+u64 before_lgf_store = 0;
+u64 before_obs_propagation = 0;
+u64 before_base_lock = 0;
+u64 before_output_baseline = 0;
+u64 before_rtk_init = 0;
+u64 before_eigen = 0;
+
 void reset_rtk_filter(void) {
   chMtxLock(&rtk_init_done_lock);
   rtk_init_done = false;
@@ -356,11 +364,13 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
   bool send_baseline = false;
 
   /* If not initialised we can't output a baseline */
+  before_rtk_init = nap_timing_count();
   chMtxLock(&rtk_init_done_lock);
   if (rtk_init_done) {
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
+      before_eigen = nap_timing_count();
       chMtxLock(&eigen_state_lock);
       ret = get_baseline(baseline, covariance, &num_sats_used, &num_sigs_used, &flags);
       chMtxUnlock(&eigen_state_lock);
@@ -998,6 +1008,7 @@ static void solution_thread(void *arg)
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
      // TODO(Leith) check velocity_valid
+    before_calc_pvt = nap_timing_count();
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           (double) get_elevation_mask(),
                           &current_fix, &dops);
@@ -1056,6 +1067,7 @@ static void solution_thread(void *arg)
     set_gps_time_offset(rec_tc, current_fix.time);
 
     /* Update global position solution state. */
+    before_lgf_store = nap_timing_count();
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
@@ -1065,6 +1077,7 @@ static void solution_thread(void *arg)
               update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
                                     lgf.position_solution.pos_ecef));
 
+    before_obs_propagation = nap_timing_count();;
     if (!simulation_enabled()) {
       /* Output solution. */
 
@@ -1157,6 +1170,7 @@ static void solution_thread(void *arg)
 
       /* If we have a recent set of observations from the base station, do a
        * differential solution. */
+      before_base_lock = nap_timing_count();
       chMtxLock(&base_obs_lock);
       if (base_obss.n > 0 && !simulation_enabled()) {
         if ((propagation_time = gpsdifftime(&new_obs_time, &base_obss.tor))
@@ -1174,6 +1188,7 @@ static void solution_thread(void *arg)
                                     base_obss.n, base_obss.nm,
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
+			before_output_baseline = nap_timing_count();
             output_baseline(num_sdiffs, sdiffs, &current_fix.time,
                             &dops, propagation_time, current_fix.pos_ecef,
                             &pos_llh, &pos_ecef, &sbp_dops, &baseline_ned, &baseline_ecef,
@@ -1181,7 +1196,6 @@ static void solution_thread(void *arg)
           }
         }
       }
-      chMtxUnlock(&base_obs_lock);
 
       /* Output observations only every obs_output_divisor times, taking
        * care to ensure that the observations are aligned. */
@@ -1227,10 +1241,7 @@ static void solution_thread(void *arg)
                                      &baseline_ecef, &baseline_heading);
     if(pos_llh.flags != 0){
       u64 final_tc = nap_timing_count();
-      u64 tc_latency = final_tc - current_tc;
-      gps_time_t final_gps_time = napcount2gpstime(final_tc);
-      double GPS_latency = gpsdifftime(&final_gps_time,&lgf.position_solution.time);
-      log_warn("TOW: %u,  GPS Latency %f, Tick Count Latency %u %f, Processing Time %f %f", pos_llh.tow, GPS_latency, tc_latency, (double)tc_latency * RX_DT_NOMINAL, delta_tc, (double)delta_tc * RX_DT_NOMINAL);
+      log_warn("TOW: %u,%u,%u,%u,%u,%u,%u,%u,%u", pos_llh.tow, current_tc, before_calc_pvt, before_lgf_store, before_obs_propagation, before_base_lock, before_output_baseline, before_rtk_init, before_eigen, final_tc );
     }
 
     last_spp = chVTGetSystemTime();
