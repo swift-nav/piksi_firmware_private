@@ -104,6 +104,10 @@ static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
 
 u64 first_tick = 0;
+u64 before_collect_meas = 0;
+u64 before_calc_nav_meas = 0;
+u64 before_calc_eph = 0;
+u64 before_calc_tdcp = 0;
 u64 before_calc_pvt = 0;
 u64 before_lgf_store = 0;
 u64 before_obs_propagation = 0;
@@ -834,6 +838,7 @@ static void solution_thread(void *arg)
     channel_measurement_t meas[MAX_CHANNELS];
 
     /* Collect measurements from trackers */
+    before_collect_meas = nap_timing_count();
     collect_measurements(rec_tc, meas, &n_collected, &n_total);
 
     u8 n_ready = n_collected;
@@ -904,6 +909,7 @@ static void solution_thread(void *arg)
      * observations after doing a PVT solution. */
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
 
+    before_calc_nav_meas = nap_timing_count();
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
                                             p_rec_time);
 
@@ -918,6 +924,7 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    before_calc_eph = nap_timing_count();
     s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
 
     if (sc_ret != 0) {
@@ -940,6 +947,7 @@ static void solution_thread(void *arg)
 
     double rec_tc_delta = (double) (rec_tc - rec_tc_old)
                                   / NAP_FRONTEND_SAMPLE_RATE_Hz;
+    before_calc_tdcp = nap_timing_count();
     u8 n_ready_tdcp;
     if (!clock_jump
         && time_quality == TIME_FINE
@@ -1249,19 +1257,23 @@ static void solution_thread(void *arg)
                                      &baseline_ecef, &baseline_heading);
     if(pos_llh.flags != 0){
       final_tick = nap_timing_count();
-      log_warn("TOW: %u,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
+      log_warn("TOW: %u,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
                pos_llh.tow,
                first_tick,
-               before_calc_pvt,
-               before_lgf_store,
-               before_obs_propagation,
-               before_base_lock,
-               before_output_baseline,
-               before_rtk_init,
-               before_eigen,
-               before_get_baseline,
-               after_eigen,
-               final_tick );
+               before_collect_meas - first_tick,
+               before_calc_nav_meas - before_collect_meas,
+               before_calc_eph - before_calc_nav_meas,
+               before_calc_tdcp - before_calc_eph,
+               before_calc_pvt - before_calc_tdcp,
+               before_lgf_store - before_calc_pvt,
+               before_obs_propagation - before_lgf_store,
+               before_base_lock - before_obs_propagation,
+               before_output_baseline - before_base_lock,
+               before_rtk_init - before_output_baseline,
+               before_eigen - before_rtk_init,
+               before_get_baseline - before_eigen,
+               after_eigen - before_get_baseline,
+               final_tick - after_eigen );
     }
 
     last_spp = chVTGetSystemTime();
