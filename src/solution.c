@@ -108,6 +108,9 @@ u64 before_collect_meas = 0;
 u64 before_calc_nav_meas = 0;
 u64 before_calc_eph = 0;
 u64 before_calc_tdcp = 0;
+u64 before_obs_store = 0;
+u64 before_set_sid = 0;
+u64 before_iono_tropo_calc = 0;
 u64 before_calc_pvt = 0;
 u64 before_lgf_store = 0;
 u64 before_obs_propagation = 0;
@@ -972,12 +975,14 @@ static void solution_thread(void *arg)
       }
     }
 
+    before_obs_store = nap_timing_count();
     /* Store current observations for next time for
      * TDCP Doppler calculation. */
     memcpy(nav_meas_old, nav_meas, sizeof(nav_meas));
     n_ready_old = n_ready;
     rec_tc_old = rec_tc;
 
+    before_set_sid = nap_timing_count();
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
     for (u8 i=0; i<n_ready_tdcp; i++) {
@@ -995,6 +1000,7 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    before_iono_tropo_calc = nap_timing_count();
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
@@ -1264,7 +1270,10 @@ static void solution_thread(void *arg)
                before_calc_nav_meas - before_collect_meas,
                before_calc_eph - before_calc_nav_meas,
                before_calc_tdcp - before_calc_eph,
-               before_calc_pvt - before_calc_tdcp,
+               before_obs_store - before_calc_tdcp,
+               before_set_sid - before_obs_store,
+               before_iono_tropo_calc - before_set_sid,
+               before_calc_pvt - before_iono_tropo_calc,
                before_lgf_store - before_calc_pvt,
                before_obs_propagation - before_lgf_store,
                before_base_lock - before_obs_propagation,
