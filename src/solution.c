@@ -103,6 +103,7 @@ static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
 
+u64 first_tick = 0;
 u64 before_calc_pvt = 0;
 u64 before_lgf_store = 0;
 u64 before_obs_propagation = 0;
@@ -110,6 +111,9 @@ u64 before_base_lock = 0;
 u64 before_output_baseline = 0;
 u64 before_rtk_init = 0;
 u64 before_eigen = 0;
+u64 before_get_baseline = 0;
+u64 after_eigen = 0;
+u64 final_tick = 0;
 
 void reset_rtk_filter(void) {
   chMtxLock(&rtk_init_done_lock);
@@ -370,7 +374,6 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
       log_debug("solution time matched");
       /* Filter is already updated so no need to update filter again just get the baseline*/
-      before_eigen = nap_timing_count();
       chMtxLock(&eigen_state_lock);
       ret = get_baseline(baseline, covariance, &num_sats_used, &num_sigs_used, &flags);
       chMtxUnlock(&eigen_state_lock);
@@ -382,11 +385,13 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
     } else {
       log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
+      before_eigen = nap_timing_count();
       chMtxLock(&eigen_state_lock);
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, rover_pos,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
       if (ret == 0) {
+        before_get_baseline = nap_timing_count();
         chMtxLock(&eigen_state_lock);
         ret = get_baseline(baseline, covariance, &num_sats_used, &num_sigs_used, &flags);
         chMtxUnlock(&eigen_state_lock);
@@ -395,6 +400,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
         } else {
           send_baseline = true;
         }
+        after_eigen = nap_timing_count();
       }
     }
 
@@ -797,6 +803,7 @@ static void solution_thread(void *arg)
     // Take the current nap count
     u64 current_tc = nap_timing_count();
     u64 rec_tc = current_tc;
+    first_tick = current_tc;
 
     // Work out the expected receiver time in GPS time frame for the current nap count
     gps_time_t rec_time = napcount2rcvtime(rec_tc);
@@ -1241,10 +1248,10 @@ static void solution_thread(void *arg)
                                      &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                      &baseline_ecef, &baseline_heading);
     if(pos_llh.flags != 0){
-      u64 final_tc = nap_timing_count();
-      log_warn("TOW: %u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
+      final_tick = nap_timing_count();
+      log_warn("TOW: %u,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
                pos_llh.tow,
-               current_tc,
+               first_tick,
                before_calc_pvt,
                before_lgf_store,
                before_obs_propagation,
@@ -1252,7 +1259,9 @@ static void solution_thread(void *arg)
                before_output_baseline,
                before_rtk_init,
                before_eigen,
-               final_tc );
+               before_get_baseline,
+               after_eigen,
+               final_tick );
     }
 
     last_spp = chVTGetSystemTime();
