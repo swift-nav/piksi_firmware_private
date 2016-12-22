@@ -43,6 +43,10 @@
 
 extern void ext_setup(void);
 
+void* __dso_handle(void){
+  return (void*)0;
+};
+
 int main(void)
 {
   halInit();
