@@ -964,6 +964,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
     volatile tracking_channel_misc_info_t * misc_info = &pub_data->misc_info;
+    volatile tracking_channel_freq_info_t * freq_info = &pub_data->freq_info;
 
     chMtxLock(&pub_data->info_mutex);
     if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
@@ -971,8 +972,9 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
 
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
+        double freq = freq_info->carrier_freq + code_to_carr_freq(sid.code);
         sid = pub_data->gen_info.sid;
-        carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
+        carrier_phase_offset -= freq * dt;
         misc_info->carrier_phase_offset.value = carrier_phase_offset;
         misc_info->carrier_phase_offset.timestamp_ms = timing_getms();
         adjusted = true;
