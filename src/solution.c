@@ -110,7 +110,7 @@ u64 before_calc_eph = 0;
 u64 before_calc_tdcp = 0;
 u64 before_obs_store = 0;
 u64 before_set_sid = 0;
-u64 before_iono_tropo_calc = 0;
+u64 before_iono_update = 0;
 u64 after_iono_update = 0;
 u64 before_calc_pvt = 0;
 u64 before_lgf_store = 0;
@@ -1275,8 +1275,8 @@ static void solution_thread(void *arg)
                before_calc_tdcp - before_calc_eph,
                before_obs_store - before_calc_tdcp,
                before_set_sid - before_obs_store,
-               before_iono_tropo_calc - before_set_sid,
-               after_iono_update - before_iono_tropo_calc,
+               before_iono_update - before_set_sid,
+               after_iono_update - before_iono_update,
                before_calc_pvt - after_iono_update,
                before_lgf_store - before_calc_pvt,
                before_obs_propagation - before_lgf_store,
@@ -1370,6 +1370,8 @@ static void time_matched_obs_thread(void *arg)
     /* Wait for a new observation to arrive from the base station. */
     chBSemWait(&base_obs_received);
 
+    u64 time_matched_start = nap_timing_count();
+
     // Init the messages we want to send
     memset(&sbp_msg_time, 0, sizeof(msg_gps_time_t));
     memset(&pos_llh, 0, sizeof(msg_pos_llh_t));
@@ -1460,6 +1462,8 @@ static void time_matched_obs_thread(void *arg)
         }
       }
     }
+    u64 time_matched_end = nap_timing_count();
+    log_warn("time-match,%d,%llu,%llu",obss->tor.tow,time_matched_start,time_matched_end-time_matched_start);
   }
 }
 
