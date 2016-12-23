@@ -111,6 +111,7 @@ u64 before_calc_tdcp = 0;
 u64 before_obs_store = 0;
 u64 before_set_sid = 0;
 u64 before_iono_update = 0;
+u64 before_ndb_read = 0;
 u64 after_iono_update = 0;
 u64 before_calc_pvt = 0;
 u64 before_lgf_store = 0;
@@ -1007,6 +1008,7 @@ static void solution_thread(void *arg)
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
+      before_ndb_read = nap_timing_count();
       chMtxLock(&rtk_init_done_lock);
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
@@ -1275,7 +1277,8 @@ static void solution_thread(void *arg)
                before_calc_tdcp - before_calc_eph,
                before_obs_store - before_calc_tdcp,
                before_set_sid - before_obs_store,
-               before_iono_update - before_set_sid,
+               before_ndb_read - before_set_sid,
+               before_iono_update - before_ndb_read,
                after_iono_update - before_iono_update,
                before_calc_pvt - after_iono_update,
                before_lgf_store - before_calc_pvt,
