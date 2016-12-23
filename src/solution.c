@@ -111,6 +111,7 @@ u64 before_calc_tdcp = 0;
 u64 before_obs_store = 0;
 u64 before_set_sid = 0;
 u64 before_iono_tropo_calc = 0;
+u64 after_iono_update = 0;
 u64 before_calc_pvt = 0;
 u64 before_lgf_store = 0;
 u64 before_obs_propagation = 0;
@@ -1000,7 +1001,7 @@ static void solution_thread(void *arg)
       continue;
     }
 
-    before_iono_tropo_calc = nap_timing_count();
+
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
@@ -1010,9 +1011,11 @@ static void solution_thread(void *arg)
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       } else if (rtk_init_done) {
+        before_iono_update = nap_timing_count();
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
         chMtxUnlock(&eigen_state_lock);
+        after_iono_update = nap_timing_count();
       }
       chMtxUnlock(&rtk_init_done_lock);
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
@@ -1273,7 +1276,8 @@ static void solution_thread(void *arg)
                before_obs_store - before_calc_tdcp,
                before_set_sid - before_obs_store,
                before_iono_tropo_calc - before_set_sid,
-               before_calc_pvt - before_iono_tropo_calc,
+               after_iono_update - before_iono_tropo_calc,
+               before_calc_pvt - after_iono_update,
                before_lgf_store - before_calc_pvt,
                before_obs_propagation - before_lgf_store,
                before_base_lock - before_obs_propagation,
