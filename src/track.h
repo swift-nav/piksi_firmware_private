@@ -24,7 +24,6 @@
 
 #include "board/nap/track_channel.h"
 #include <platform_signal.h>
-#include "track_api.h"
 
 /** \addtogroup tracking
  * \{ */
@@ -243,7 +242,5 @@ s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid);
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit);
 bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
                                 s8 bit_polarity);
-void tracking_channel_set_prn_fail_flag(tracker_channel_id_t id, bool val);
-bool tracking_channel_check_prn_fail_flag(const tracker_channel_info_t *channel_info);
-
+void tracking_channel_set_prn_fail_flag(gnss_signal_t sid, bool val);
 #endif

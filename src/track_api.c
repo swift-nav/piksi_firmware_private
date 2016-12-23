@@ -322,4 +322,19 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
   }
 }
 
+/**
+ * The function checks if PRN fail (decoded prn from L2C data stream
+ * is not correspond to SVID) flag set or not.
+ * Called from Tracking task.
+ * \param[in] context Tracker context.
+ * \return    TRUE if PRN fail flag is set, otherwise FAIL
+ */
+bool tracker_check_prn_fail_flag(tracker_context_t *context)
+{
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  return internal_data->prn_check_fail;
+}
 /** \} */
