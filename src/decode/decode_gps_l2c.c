@@ -153,11 +153,11 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
 
     /* check PRN conformity */
     bool prn_fail = channel_info->sid.sat != (u16)data->cnav_msg.prn;
-    if(prn_fail) {
-      log_warn_sid(channel_info->sid, "Decoded PRN %u. X-corr suspect",
+    if (prn_fail) {
+      log_warn_sid(channel_info->sid, "Decoded PRN %" PRIu16 ". X-corr suspect",
                    data->cnav_msg.prn);
     }
-    /* set or clear prn_fail flag */
+    /* set or clear prn_fail flag for L2CM and parent L1CA */
     tracking_channel_set_prn_fail_flag(channel_info->tracking_channel, prn_fail);
   }
 }

@@ -509,13 +509,6 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(channel_info, common_data, data, cflags);
 
-  const tracker_channel_info_t *tmp_channel_info = channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(channel_info->context, &tmp_channel_info, &internal_data);
-
-  /* Update L2C and "parent" L1CA channel with needed x-corr info (PRN fail) */
-  tracking_channel_write_cc_data(channel_info, internal_data);
-
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
   update_l2_xcorr_from_l1(channel_info, common_data, l2c_data, cflags);
 }

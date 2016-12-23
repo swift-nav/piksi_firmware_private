@@ -25,7 +25,6 @@
 #include "board/nap/track_channel.h"
 #include <platform_signal.h>
 #include "track_api.h"
-#include "track_internal.h"
 
 /** \addtogroup tracking
  * \{ */
@@ -232,8 +231,6 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_misc_info_t *misc_params,
                                  bool reset_stats);
 u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
-void tracking_channel_write_cc_data(const tracker_channel_info_t *channel_info,
-                                    const tracker_internal_data_t *internal_data);
 
 void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
                                                double carrier_phase_offset);
