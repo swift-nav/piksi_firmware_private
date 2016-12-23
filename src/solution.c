@@ -110,6 +110,8 @@ u64 before_calc_eph = 0;
 u64 before_calc_tdcp = 0;
 u64 before_obs_store = 0;
 u64 before_set_sid = 0;
+u64 after_set_sid = 0;
+u64 after_nothing = 0;
 u64 before_iono_update = 0;
 u64 before_ndb_read = 0;
 u64 after_iono_update = 0;
@@ -990,6 +992,7 @@ static void solution_thread(void *arg)
     for (u8 i=0; i<n_ready_tdcp; i++) {
       sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
     }
+    after_set_sid = nap_timing_count();
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
@@ -1002,6 +1005,7 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    after_nothing = nap_timing_count();
 
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
@@ -1277,7 +1281,9 @@ static void solution_thread(void *arg)
                before_calc_tdcp - before_calc_eph,
                before_obs_store - before_calc_tdcp,
                before_set_sid - before_obs_store,
-               before_ndb_read - before_set_sid,
+               after_set_sid - before_set_sid,
+               after_nothing - after_set_sid,
+               before_ndb_read - after_nothing,
                before_iono_update - before_ndb_read,
                after_iono_update - before_iono_update,
                before_calc_pvt - after_iono_update,
