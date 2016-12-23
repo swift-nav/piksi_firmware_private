@@ -1019,10 +1019,7 @@ static void solution_thread(void *arg)
                                          &baseline_ecef, &baseline_heading);
       }
       last_spp = chVTGetSystemTime();
-      /* If we already had a good fix, degrade its quality to STATIC */
-      if (lgf.position_quality > POSITION_STATIC) {
-        lgf.position_quality = POSITION_STATIC;
-      }
+      lgf.position_quality = POSITION_STATIC;
       continue;
     }
 
