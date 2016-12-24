@@ -1415,18 +1415,18 @@ static void time_matched_obs_thread(void *arg)
         /* Check if the base sender ID has changed and reset the RTK filter if
          * it has.
          */
+        before_base_pos_lock = nap_timing_count();
         if ((old_base_sender_id != 0) &&
             (old_base_sender_id != base_obss.sender_id)) {
           log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
                    " filter.", old_base_sender_id, base_obss.sender_id);
           reset_rtk_filter();
-          before_base_pos_lock = nap_timing_count();
           chMtxLock(&base_pos_lock);
           base_pos_known = false;
           memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
           chMtxUnlock(&base_pos_lock);
-          after_base_pos_lock = nap_timing_count();
         }
+        after_base_pos_lock = nap_timing_count();
         old_base_sender_id = base_obss.sender_id;
 
         /* Times match! Process obs and base_obss */
