@@ -1380,6 +1380,11 @@ static void time_matched_obs_thread(void *arg)
     chBSemWait(&base_obs_received);
 
     u64 time_matched_start = nap_timing_count();
+    u64 before_base_obs_lock = 0;
+    u64 after_base_obs_lock = 0;
+    u64 before_base_pos_lock = 0;
+    u64 after_base_pos_lock = 0;
+    u64 after_process_matched_obs = 0;
 
     // Init the messages we want to send
     memset(&sbp_msg_time, 0, sizeof(msg_gps_time_t));
@@ -1397,13 +1402,12 @@ static void time_matched_obs_thread(void *arg)
      * looking for one that matches in time. */
     while (chMBFetch(&obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE)
             == MSG_OK) {
-
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
         // Not doing any DGNSS.  Toss the obs away.
         chPoolFree(&obs_buff_pool, obss);
         continue;
       }
-
+      before_base_obs_lock = nap_timing_count();
       chMtxLock(&base_obs_lock);
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
@@ -1416,10 +1420,12 @@ static void time_matched_obs_thread(void *arg)
           log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
                    " filter.", old_base_sender_id, base_obss.sender_id);
           reset_rtk_filter();
+          before_base_pos_lock = nap_timing_count();
           chMtxLock(&base_pos_lock);
           base_pos_known = false;
           memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
           chMtxUnlock(&base_pos_lock);
+          after_base_pos_lock = nap_timing_count();
         }
         old_base_sender_id = base_obss.sender_id;
 
@@ -1431,9 +1437,11 @@ static void time_matched_obs_thread(void *arg)
             sds
         );
         chMtxUnlock(&base_obs_lock);
+        after_base_obs_lock = nap_timing_count();
 
         process_matched_obs(n_sds, obss, sds, &pos_llh, &pos_ecef, &sbp_dops,
                             &baseline_ned, &baseline_ecef, &baseline_heading);
+        after_process_matched_obs = nap_timing_count();
         chPoolFree(&obs_buff_pool, obss);
         if(spp_timeout(last_spp, last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss.sender_id, obss->n, obss->nm, &sbp_msg_time, &pos_llh, &pos_ecef,
@@ -1472,7 +1480,15 @@ static void time_matched_obs_thread(void *arg)
       }
     }
     u64 time_matched_end = nap_timing_count();
-    log_warn("time-match,%d,%llu,%llu",obss->tor.tow,time_matched_start,time_matched_end-time_matched_start);
+    log_warn("time-match,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
+             obss->tor.tow,
+             time_matched_start,
+             before_base_obs_lock - time_matched_start,
+             before_base_pos_lock - before_base_obs_lock,
+             after_base_obs_lock - before_base_pos_lock,
+             after_base_pos_lock - after_base_obs_lock,
+             after_process_matched_obs - after_base_pos_lock,
+             time_matched_end - after_process_matched_obs);
   }
 }
 
