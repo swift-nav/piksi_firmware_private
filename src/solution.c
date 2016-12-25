@@ -1485,8 +1485,8 @@ static void time_matched_obs_thread(void *arg)
              time_matched_start,
              before_base_obs_lock - time_matched_start,
              before_base_pos_lock - before_base_obs_lock,
-             after_base_obs_lock - before_base_pos_lock,
-             after_base_pos_lock - after_base_obs_lock,
+             after_base_pos_lock - before_base_pos_lock,
+             after_base_obs_lock - after_base_pos_lock,
              after_process_matched_obs - after_base_pos_lock,
              time_matched_end - after_process_matched_obs);
   }
