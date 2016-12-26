@@ -1316,11 +1316,16 @@ static void solution_thread(void *arg)
   }
 }
 
+u64 before_tm1_rtk_init = 0;
+u64 after_tm1_rtk_init = 0;
+u64 after_tm2_rtk_init = 0;
+
 void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *pos_llh,
                          msg_pos_ecef_t *pos_ecef, msg_dops_t *sbp_dops,
                          msg_baseline_ned_t *baseline_ned, msg_baseline_ecef_t *baseline_ecef,
                          msg_baseline_heading_t *baseline_heading)
 {
+  before_tm1_rtk_init = nap_timing_count();
   chMtxLock(&rtk_init_done_lock);
   if (!rtk_init_done) {
     if (n_sds > 4) {
@@ -1333,6 +1338,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
     }
   }
   chMtxUnlock(&rtk_init_done_lock);
+  after_tm1_rtk_init = nap_timing_count();
 
   chMtxLock(&rtk_init_done_lock);
   s8 ret = -1;
@@ -1344,6 +1350,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
     chMtxUnlock(&eigen_state_lock);
   }
   chMtxUnlock(&rtk_init_done_lock);
+  after_tm2_rtk_init = nap_timing_count();
 
   /* If we are in time matched mode then calculate and output the baseline
   * for this observation. */
@@ -1487,7 +1494,10 @@ static void time_matched_obs_thread(void *arg)
              before_base_pos_lock - before_base_obs_lock,
              after_base_pos_lock - before_base_pos_lock,
              after_base_obs_lock - after_base_pos_lock,
-             after_process_matched_obs - after_base_pos_lock,
+             before_tm1_rtk_init - after_base_obs_lock,
+             after_tm1_rtk_init - before_tm1_rtk_init,
+             after_tm2_rtk_init - after_tm1_rtk_init,
+             after_process_matched_obs - after_tm2_rtk_init,
              time_matched_end - after_process_matched_obs);
   }
 }
