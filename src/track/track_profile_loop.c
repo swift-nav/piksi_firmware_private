@@ -214,7 +214,7 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config)
  *
  * \return None
  */
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
+void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas)
 {
   /* TODO: Make this more elegant. */
   correlation_t cs2[3];
@@ -229,7 +229,7 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs)
     break;
 
   case TP_CTRL_PLL3:
-    tl_pll3_update_dll(&s->pll3, cs2);
+    tl_pll3_update_dll(&s->pll3, cs2, costas);
     break;
 
   case TP_CTRL_FLL1:

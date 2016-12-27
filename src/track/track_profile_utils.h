@@ -354,7 +354,7 @@ void tp_tl_retune(tp_tl_state_t *s,
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);
 void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
+void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);

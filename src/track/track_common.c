@@ -880,7 +880,8 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
 
     tl_rates_t rates = {0};
 
-    tp_tl_update(&data->tl_state, &data->corrs.corr_epl);
+    bool costas = (channel_info->sid.code != CODE_GPS_L2CL);
+    tp_tl_update(&data->tl_state, &data->corrs.corr_epl, costas);
     tp_tl_get_rates(&data->tl_state, &rates);
 
     common_data->carrier_freq = rates.carr_freq;
