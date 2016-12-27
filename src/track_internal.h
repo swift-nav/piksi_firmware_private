@@ -66,6 +66,8 @@ typedef struct {
   bool output_iq;
   /** Flags if carrier phase integer offset to be reset. */
   bool reset_cpo;
+  /** Flags if PRN conformity check failed */
+  bool prn_check_fail;
 } tracker_internal_data_t;
 
 /** \} */

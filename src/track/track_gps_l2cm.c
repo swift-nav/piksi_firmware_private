@@ -20,6 +20,7 @@
 #include "track_profile_utils.h"
 #include "track_profiles.h"
 #include "track_sid_db.h"
+#include "track_internal.h"
 
 /* Non-local headers */
 #include <platform_track.h>
@@ -489,8 +490,10 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
   /* Increment counter or Make decision if L1 is xcorr flagged */
   check_L1_xcorr_flag(common_data, data, xcorr_flag, &xcorr_suspect);
 
+  bool prn_check_fail = tracker_check_prn_fail_flag(channel_info->context);
+
   set_xcorr_suspect_flag(channel_info, common_data, data,
-                         xcorr_suspect, sensitivity_mode);
+                         xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
 static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,

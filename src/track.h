@@ -242,5 +242,5 @@ s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid);
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit);
 bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
                                 s8 bit_polarity);
-
+void tracking_channel_set_prn_fail_flag(gnss_signal_t sid, bool val);
 #endif

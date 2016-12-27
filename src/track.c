@@ -502,6 +502,28 @@ bool tracker_channel_disable(tracker_channel_id_t id)
 }
 
 /**
+ * The function sets or clears PRN fail flag.
+ * Called from Decoder task.
+ * \param[in] sid  SV ID
+ * \param[in] val prn fail flag value. TRUE if decoded prn from L2C data stream
+ *            is not correspond to SVID, otherwise FALSE
+ */
+void tracking_channel_set_prn_fail_flag(gnss_signal_t sid, bool val)
+{
+  /* Find SV ID for L1CA and L2CM and set the flag  */
+  for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
+    tracker_channel_t *tracker_channel = tracker_channel_get(id);
+    tracker_channel_lock(tracker_channel);
+    if (sid_to_constellation(tracker_channel->info.sid) == CONSTELLATION_GPS
+        && tracker_channel->info.sid.sat == sid.sat) {
+      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
+      internal_data->prn_check_fail = val;
+    }
+    tracker_channel_unlock(tracker_channel);
+  }
+}
+
+/**
  * Computes tracking channel public information.
  *
  * This function must be called from tracking channel lock scope.
@@ -880,7 +902,6 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data)
 
   return cnt;
 }
-
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.
