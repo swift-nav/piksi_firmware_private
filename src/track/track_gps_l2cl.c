@@ -125,7 +125,7 @@ void track_gps_l2cl_register(void)
  */
 void do_l1ca_to_l2cl_handover(u32 sample_count,
                               u16 sat,
-                              float code_phase,
+                              double code_phase,
                               double carrier_freq,
                               float cn0_init)
 {

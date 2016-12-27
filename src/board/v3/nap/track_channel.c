@@ -167,7 +167,7 @@ static double calc_samples_per_chip(double code_phase_rate)
 }
 
 void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
-                   float carrier_freq, float code_phase, u32 chips_to_correlate)
+                   float carrier_freq, double code_phase, u32 chips_to_correlate)
 {
   assert((sid.code == CODE_GPS_L1CA) || (sid.code == CODE_GPS_L2CM) ||
          (sid.code == CODE_GPS_L2CL));

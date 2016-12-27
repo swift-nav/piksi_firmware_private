@@ -429,7 +429,7 @@ double propagate_code_phase(double code_phase, double carrier_freq,
  * \return true if the tracker channel was initialized, false otherwise.
  */
 bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
-                          u32 ref_sample_count, float code_phase,
+                          u32 ref_sample_count, double code_phase,
                           float carrier_freq, u32 chips_to_correlate,
                           float cn0_init)
 {

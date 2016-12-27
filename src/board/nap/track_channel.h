@@ -27,7 +27,7 @@ extern u8 nap_track_n_channels;
 /** \} */
 
 void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
-                    float carrier_freq, float code_phase, u32 chips_to_correlate);
+                    float carrier_freq, double code_phase, u32 chips_to_correlate);
 
 void nap_track_update(u8 channel, double carrier_freq,
                       double code_phase_rate, u32 chips_to_correlate,

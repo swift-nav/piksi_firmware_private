@@ -207,7 +207,7 @@ void tracking_channels_missed_update_error(u32 channels_mask);
 /* State management interface */
 bool tracker_channel_available(tracker_channel_id_t id, gnss_signal_t sid);
 bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
-                          u32 ref_sample_count, float code_phase,
+                          u32 ref_sample_count, double code_phase,
                           float carrier_freq, u32 chips_to_correlate,
                           float cn0_init);
 bool tracker_channel_disable(tracker_channel_id_t id);
