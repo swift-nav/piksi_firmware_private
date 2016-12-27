@@ -1488,7 +1488,7 @@ static void time_matched_obs_thread(void *arg)
       }
     }
     u64 time_matched_end = nap_timing_count();
-    log_warn("time-match,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
+    log_warn("time-match,%f,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
              obss->tor.tow,
              time_matched_start,
              before_base_obs_lock - time_matched_start,
