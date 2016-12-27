@@ -1017,6 +1017,7 @@ static void solution_thread(void *arg)
       before_iono_update = nap_timing_count();
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
+        after_iono_update = nap_timing_count();
       } else if (rtk_init_done) {
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
