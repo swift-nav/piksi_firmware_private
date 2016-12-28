@@ -83,9 +83,9 @@ MUTEX_DECL(eigen_state_lock);
 systime_t last_dgnss;
 systime_t last_spp;
 
-double soln_freq = 5.0;
+double soln_freq = 10.0;
 u32 max_age_of_differential = 30;
-u32 obs_output_divisor = 5;
+u32 obs_output_divisor = 10;
 
 double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = 102;
@@ -102,6 +102,29 @@ static u8 old_base_sender_id = 0;
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
+
+u64 first_tick = 0;
+u64 before_collect_meas = 0;
+u64 before_calc_nav_meas = 0;
+u64 before_calc_eph = 0;
+u64 before_calc_tdcp = 0;
+u64 before_obs_store = 0;
+u64 before_set_sid = 0;
+u64 after_set_sid = 0;
+u64 after_nothing = 0;
+u64 before_iono_update = 0;
+u64 before_ndb_read = 0;
+u64 after_iono_update = 0;
+u64 before_calc_pvt = 0;
+u64 before_lgf_store = 0;
+u64 before_obs_propagation = 0;
+u64 before_base_lock = 0;
+u64 before_output_baseline = 0;
+u64 before_rtk_init = 0;
+u64 before_eigen = 0;
+u64 before_get_baseline = 0;
+u64 after_eigen = 0;
+u64 final_tick = 0;
 
 void reset_rtk_filter(void) {
   chMtxLock(&rtk_init_done_lock);
@@ -356,6 +379,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
   bool send_baseline = false;
 
   /* If not initialised we can't output a baseline */
+  before_rtk_init = nap_timing_count();
   chMtxLock(&rtk_init_done_lock);
   if (rtk_init_done) {
     if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
@@ -372,11 +396,13 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
     } else {
       log_debug("solution low latency");
       /* Need to update filter with propogated obs before we can get the baseline */
+      before_eigen = nap_timing_count();
       chMtxLock(&eigen_state_lock);
       ret = dgnss_update_v3(t, num_sdiffs, sdiffs, rover_pos,
                       base_pos_known ? base_pos_ecef : NULL, diff_time);
       chMtxUnlock(&eigen_state_lock);
       if (ret == 0) {
+        before_get_baseline = nap_timing_count();
         chMtxLock(&eigen_state_lock);
         ret = get_baseline(baseline, covariance, &num_sats_used, &num_sigs_used, &flags);
         chMtxUnlock(&eigen_state_lock);
@@ -385,6 +411,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
         } else {
           send_baseline = true;
         }
+        after_eigen = nap_timing_count();
       }
     }
 
@@ -787,6 +814,7 @@ static void solution_thread(void *arg)
     // Take the current nap count
     u64 current_tc = nap_timing_count();
     u64 rec_tc = current_tc;
+    first_tick = current_tc;
 
     // Work out the expected receiver time in GPS time frame for the current nap count
     gps_time_t rec_time = napcount2rcvtime(rec_tc);
@@ -817,6 +845,7 @@ static void solution_thread(void *arg)
     channel_measurement_t meas[MAX_CHANNELS];
 
     /* Collect measurements from trackers */
+    before_collect_meas = nap_timing_count();
     collect_measurements(rec_tc, meas, &n_collected, &n_total);
 
     u8 n_ready = n_collected;
@@ -887,6 +916,7 @@ static void solution_thread(void *arg)
      * observations after doing a PVT solution. */
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
 
+    before_calc_nav_meas = nap_timing_count();
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
                                             p_rec_time);
 
@@ -901,6 +931,7 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    before_calc_eph = nap_timing_count();
     s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
 
     if (sc_ret != 0) {
@@ -923,6 +954,7 @@ static void solution_thread(void *arg)
 
     double rec_tc_delta = (double) (rec_tc - rec_tc_old)
                                   / NAP_FRONTEND_SAMPLE_RATE_Hz;
+    before_calc_tdcp = nap_timing_count();
     u8 n_ready_tdcp;
     if (!clock_jump
         && time_quality == TIME_FINE
@@ -947,17 +979,20 @@ static void solution_thread(void *arg)
       }
     }
 
+    before_obs_store = nap_timing_count();
     /* Store current observations for next time for
      * TDCP Doppler calculation. */
     memcpy(nav_meas_old, nav_meas, sizeof(nav_meas));
     n_ready_old = n_ready;
     rec_tc_old = rec_tc;
 
+    before_set_sid = nap_timing_count();
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
     for (u8 i=0; i<n_ready_tdcp; i++) {
       sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
     }
+    after_set_sid = nap_timing_count();
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
@@ -970,18 +1005,24 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    after_nothing = nap_timing_count();
+
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
+      before_ndb_read = nap_timing_count();
       chMtxLock(&rtk_init_done_lock);
+      before_iono_update = nap_timing_count();
       if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
+        after_iono_update = nap_timing_count();
       } else if (rtk_init_done) {
         chMtxLock(&eigen_state_lock);
         dgnss_update_iono_parameters(p_i_params);
         chMtxUnlock(&eigen_state_lock);
+        after_iono_update = nap_timing_count();
       }
       chMtxUnlock(&rtk_init_done_lock);
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
@@ -998,6 +1039,7 @@ static void solution_thread(void *arg)
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
      // TODO(Leith) check velocity_valid
+    before_calc_pvt = nap_timing_count();
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           (double) get_solution_elevation_mask(),
                           &current_fix, &dops);
@@ -1056,6 +1098,7 @@ static void solution_thread(void *arg)
     set_gps_time_offset(rec_tc, current_fix.time);
 
     /* Update global position solution state. */
+    before_lgf_store = nap_timing_count();
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
@@ -1065,6 +1108,7 @@ static void solution_thread(void *arg)
               update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
                                     lgf.position_solution.pos_ecef));
 
+    before_obs_propagation = nap_timing_count();;
     if (!simulation_enabled()) {
       /* Output solution. */
 
@@ -1157,6 +1201,7 @@ static void solution_thread(void *arg)
 
       /* If we have a recent set of observations from the base station, do a
        * differential solution. */
+      before_base_lock = nap_timing_count();
       chMtxLock(&base_obs_lock);
       if (base_obss.n > 0 && !simulation_enabled()) {
         if ((propagation_time = gpsdifftime(&new_obs_time, &base_obss.tor))
@@ -1174,6 +1219,7 @@ static void solution_thread(void *arg)
                                     base_obss.n, base_obss.nm,
                                     base_obss.sat_dists, base_obss.pos_ecef,
                                     sdiffs);
+			before_output_baseline = nap_timing_count();
             output_baseline(num_sdiffs, sdiffs, &current_fix.time,
                             &dops, propagation_time, current_fix.pos_ecef,
                             &pos_llh, &pos_ecef, &sbp_dops, &baseline_ned, &baseline_ecef,
@@ -1225,6 +1271,33 @@ static void solution_thread(void *arg)
     solution_send_low_latency_output(propagation_time, base_obss.sender_id, n_ready_tdcp, nav_meas_tdcp,
                                      &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                      &baseline_ecef, &baseline_heading);
+    if(pos_llh.flags != 0){
+      final_tick = nap_timing_count();
+      log_warn("TOW: %u,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
+               pos_llh.tow,
+               first_tick,
+               before_collect_meas - first_tick,
+               before_calc_nav_meas - before_collect_meas,
+               before_calc_eph - before_calc_nav_meas,
+               before_calc_tdcp - before_calc_eph,
+               before_obs_store - before_calc_tdcp,
+               before_set_sid - before_obs_store,
+               after_set_sid - before_set_sid,
+               after_nothing - after_set_sid,
+               before_ndb_read - after_nothing,
+               before_iono_update - before_ndb_read,
+               after_iono_update - before_iono_update,
+               before_calc_pvt - after_iono_update,
+               before_lgf_store - before_calc_pvt,
+               before_obs_propagation - before_lgf_store,
+               before_base_lock - before_obs_propagation,
+               before_output_baseline - before_base_lock,
+               before_rtk_init - before_output_baseline,
+               before_eigen - before_rtk_init,
+               before_get_baseline - before_eigen,
+               after_eigen - before_get_baseline,
+               final_tick - after_eigen );
+    }
 
     last_spp = chVTGetSystemTime();
 
@@ -1244,11 +1317,16 @@ static void solution_thread(void *arg)
   }
 }
 
+u64 before_tm1_rtk_init = 0;
+u64 after_tm1_rtk_init = 0;
+u64 after_tm2_rtk_init = 0;
+
 void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *pos_llh,
                          msg_pos_ecef_t *pos_ecef, msg_dops_t *sbp_dops,
                          msg_baseline_ned_t *baseline_ned, msg_baseline_ecef_t *baseline_ecef,
                          msg_baseline_heading_t *baseline_heading)
 {
+  before_tm1_rtk_init = nap_timing_count();
   chMtxLock(&rtk_init_done_lock);
   if (!rtk_init_done) {
     if (n_sds > 4) {
@@ -1261,6 +1339,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
     }
   }
   chMtxUnlock(&rtk_init_done_lock);
+  after_tm1_rtk_init = nap_timing_count();
 
   chMtxLock(&rtk_init_done_lock);
   s8 ret = -1;
@@ -1272,6 +1351,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
     chMtxUnlock(&eigen_state_lock);
   }
   chMtxUnlock(&rtk_init_done_lock);
+  after_tm2_rtk_init = nap_timing_count();
 
   /* If we are in time matched mode then calculate and output the baseline
   * for this observation. */
@@ -1307,6 +1387,13 @@ static void time_matched_obs_thread(void *arg)
     /* Wait for a new observation to arrive from the base station. */
     chBSemWait(&base_obs_received);
 
+    u64 time_matched_start = nap_timing_count();
+    u64 before_base_obs_lock = 0;
+    u64 after_base_obs_lock = 0;
+    u64 before_base_pos_lock = 0;
+    u64 after_base_pos_lock = 0;
+    u64 after_process_matched_obs = 0;
+
     // Init the messages we want to send
     memset(&sbp_msg_time, 0, sizeof(msg_gps_time_t));
     memset(&pos_llh, 0, sizeof(msg_pos_llh_t));
@@ -1323,13 +1410,12 @@ static void time_matched_obs_thread(void *arg)
      * looking for one that matches in time. */
     while (chMBFetch(&obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE)
             == MSG_OK) {
-
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
         // Not doing any DGNSS.  Toss the obs away.
         chPoolFree(&obs_buff_pool, obss);
         continue;
       }
-
+      before_base_obs_lock = nap_timing_count();
       chMtxLock(&base_obs_lock);
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
@@ -1337,6 +1423,7 @@ static void time_matched_obs_thread(void *arg)
         /* Check if the base sender ID has changed and reset the RTK filter if
          * it has.
          */
+        before_base_pos_lock = nap_timing_count();
         if ((old_base_sender_id != 0) &&
             (old_base_sender_id != base_obss.sender_id)) {
           log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
@@ -1347,6 +1434,7 @@ static void time_matched_obs_thread(void *arg)
           memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
           chMtxUnlock(&base_pos_lock);
         }
+        after_base_pos_lock = nap_timing_count();
         old_base_sender_id = base_obss.sender_id;
 
         /* Times match! Process obs and base_obss */
@@ -1357,9 +1445,11 @@ static void time_matched_obs_thread(void *arg)
             sds
         );
         chMtxUnlock(&base_obs_lock);
+        after_base_obs_lock = nap_timing_count();
 
         process_matched_obs(n_sds, obss, sds, &pos_llh, &pos_ecef, &sbp_dops,
                             &baseline_ned, &baseline_ecef, &baseline_heading);
+        after_process_matched_obs = nap_timing_count();
         chPoolFree(&obs_buff_pool, obss);
         if(spp_timeout(last_spp, last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss.sender_id, obss->n, obss->nm, &sbp_msg_time, &pos_llh, &pos_ecef,
@@ -1397,6 +1487,19 @@ static void time_matched_obs_thread(void *arg)
         }
       }
     }
+    u64 time_matched_end = nap_timing_count();
+    log_warn("time-match,%f,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
+             obss->tor.tow,
+             time_matched_start,
+             before_base_obs_lock - time_matched_start,
+             before_base_pos_lock - before_base_obs_lock,
+             after_base_pos_lock - before_base_pos_lock,
+             after_base_obs_lock - after_base_pos_lock,
+             before_tm1_rtk_init - after_base_obs_lock,
+             after_tm1_rtk_init - before_tm1_rtk_init,
+             after_tm2_rtk_init - after_tm1_rtk_init,
+             after_process_matched_obs - after_tm2_rtk_init,
+             time_matched_end - after_process_matched_obs);
   }
 }
 
