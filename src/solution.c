@@ -1579,7 +1579,7 @@ void solution_setup()
   chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),
                     HIGHPRIO-2, solution_thread, NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread), LOWPRIO,
+                    sizeof(wa_time_matched_obs_thread), HIGHPRIO-2,
                     time_matched_obs_thread, NULL);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
