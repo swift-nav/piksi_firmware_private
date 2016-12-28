@@ -152,7 +152,7 @@ void manage_set_obs_hint(gnss_signal_t sid);
 
 void manage_track_setup(void);
 
-float get_elevation_mask(void);
+float get_solution_elevation_mask(void);
 void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
 
 manage_track_flags_t get_tracking_channel_flags(u8 i);

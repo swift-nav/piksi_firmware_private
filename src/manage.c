@@ -134,7 +134,11 @@ static MUTEX_DECL(tracking_startup_mutex);
  */
 static volatile bool no_free_tracking_channel = false;
 
-static float elevation_mask = 5.0; /* degrees */
+/* Elevation mask for tracking, degrees */
+static float tracking_elevation_mask = 0.0;
+/* Elevation mask for solution, degrees */
+static float solution_elevation_mask = 10.0;
+
 static bool sbas_enabled = false;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
@@ -316,7 +320,7 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
     double dopp_hint_clock;   /* Doppler hint induced by clock drift */
     wgsecef2azel(sat_pos, lgf.position_solution.pos_ecef, &_, &el_d);
     el = (float)(el_d * R2D);
-    if (el < elevation_mask)
+    if (el < tracking_elevation_mask)
       return SCORE_BELOWMASK;
     vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
     vector_normalize(3, sat_pos);
@@ -365,7 +369,7 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
         calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                &_, &el_d) == 0) {
       el = (float)(el_d * R2D);
-      if (el < elevation_mask)
+      if (el < tracking_elevation_mask)
         return SCORE_BELOWMASK;
       if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                    &dopp_hint) != 0) {
@@ -615,7 +619,8 @@ static void manage_track_thread(void *arg)
 
 void manage_track_setup()
 {
-  SETTING("solution", "elevation_mask", elevation_mask, TYPE_FLOAT);
+  SETTING("track", "elevation_mask", tracking_elevation_mask, TYPE_FLOAT);
+  SETTING("solution", "elevation_mask", solution_elevation_mask, TYPE_FLOAT);
 
   chThdCreateStatic(
       wa_manage_track_thread,
@@ -628,9 +633,9 @@ void manage_track_setup()
 /**
  * Expose the elevation mask setting
  */
-float get_elevation_mask()
+float get_solution_elevation_mask()
 {
-  return elevation_mask;
+  return solution_elevation_mask;
 }
 
 /**
@@ -804,7 +809,7 @@ static void manage_track()
     }
 
     /* Is satellite below our elevation mask? */
-    if (tracking_channel_elevation_degrees_get(sid) < elevation_mask) {
+    if (tracking_channel_elevation_degrees_get(sid) < tracking_elevation_mask) {
       drop_channel(i, CH_DROP_REASON_LOW_ELEVATION, &info, &time_info, &freq_info);
       /* Erase the tracking hint score, and any others it might have */
       memset(&acq->score, 0, sizeof(acq->score));
@@ -1165,8 +1170,8 @@ manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
 {
   manage_track_flags_t result = 0;
 
-  /* Satellite elevation is above the mask. */
-  if (tracking_channel_elevation_degrees_get(sid) >= elevation_mask) {
+  /* Satellite elevation is above the solution mask. */
+  if (tracking_channel_elevation_degrees_get(sid) >= solution_elevation_mask) {
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
 
