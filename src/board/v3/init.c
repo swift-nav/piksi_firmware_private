@@ -295,7 +295,7 @@ u8 uuid_string_get(char *uuid_string)
 
 u8 mac_address_string_get(char *mac_string)
 {
-  sprintf(mac_string, "%02x-%02X-%02X-%02X-%02X-%02X",
+  sprintf(mac_string, "%02X-%02X-%02X-%02X-%02X-%02X",
           factory_params.mac_address[5],
           factory_params.mac_address[4],
           factory_params.mac_address[3],
