@@ -212,4 +212,5 @@ bool tracker_ambiguity_status(tracker_context_t *context);
 void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
 void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
 bool tracker_check_prn_fail_flag(tracker_context_t *context);
+bool tracker_check_xcorr_flag(tracker_context_t *context);
 #endif

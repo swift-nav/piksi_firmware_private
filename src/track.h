@@ -335,4 +335,5 @@ bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
                                 s8 bit_polarity);
 void tracking_channel_set_prn_fail_flag(gnss_signal_t sid, bool val);
 tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
+void tracking_channel_set_xcorr_flag(gnss_signal_t sid);
 #endif

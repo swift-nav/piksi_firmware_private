@@ -459,6 +459,29 @@ void tracking_channel_set_prn_fail_flag(gnss_signal_t sid, bool val)
 }
 
 /**
+ * Sets cross-correlation flag to a channel with a given signal identifier
+ *
+ * \param[in] sid GNSS signal identifier for channel to set cross-correlation
+ *                flag.
+ *
+ * \return None
+ */
+void tracking_channel_set_xcorr_flag(gnss_signal_t sid)
+{
+  for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+    /* Find matching tracker and set the flag  */
+    tracker_channel_t *tracker_channel = tracker_channel_get(id);
+    tracker_channel_lock(tracker_channel);
+    if (sid_is_equal(tracker_channel->info.sid, sid)) {
+      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
+      internal_data->xcorr_flag = true;
+    }
+    tracker_channel_unlock(tracker_channel);
+  }
+}
+
+
+/**
  * Computes tracking channel public information.
  *
  * This function must be called from tracking channel lock scope.
