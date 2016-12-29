@@ -36,16 +36,21 @@
 #define FACTORY_STAGE_RETURN         0x00000003
 #define FACTORY_STAGE_DEV            0x00000004
 
+#define MFG_ID_LEN 17
+#define UUID_LEN 16
+#define NAP_KEY_LEN 16
+#define MAC_LEN 6
+
 /* Warning: factory data structures use unspecified endianness.
  * Do not access fields directly. Use API functions only. */
 typedef struct {
   uint32_t _hardware;
-  uint8_t _mfg_id[17];
+  uint8_t _mfg_id[MFG_ID_LEN];
   uint8_t  _reserved0[3];
-  uint8_t _uuid[16];
+  uint8_t _uuid[UUID_LEN];
   uint32_t _timestamp;
-  uint8_t  _nap_key[16];
-  uint8_t  _mac_address[6];
+  uint8_t  _nap_key[NAP_KEY_LEN];
+  uint8_t  _mac_address[MAC_LEN];
   uint8_t  _reserved1[2];
   uint32_t _factory_stage;
 } factory_data_body_t;
@@ -61,11 +66,11 @@ typedef struct {
 
 typedef struct {
   uint32_t hardware;
-  uint8_t mfg_id[17];
-  uint8_t uuid[16];
+  uint8_t mfg_id[MFG_ID_LEN];
+  uint8_t uuid[UUID_LEN];
   uint32_t timestamp;
-  uint8_t nap_key[16];
-  uint8_t mac_address[6];
+  uint8_t nap_key[NAP_KEY_LEN];
+  uint8_t mac_address[MAC_LEN];
   uint32_t factory_stage;
 } factory_data_params_t;
 
