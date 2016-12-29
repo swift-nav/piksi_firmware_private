@@ -14,6 +14,7 @@
 #define SWIFTNAV_TRACK_SID_DB_H_
 
 #include <libswiftnav/signal.h>
+#include <ephemeris.h>
 
 /** Minimum value for C/N0 to update ToW cache [dB/Hz] */
 #define CN0_TOW_CACHE_THRESHOLD (30.f)
@@ -43,5 +44,9 @@ bool track_sid_db_load_elevation(gnss_signal_t sid,
                                  tp_elevation_entry_t *elevation_entry);
 bool track_sid_db_update_elevation(gnss_signal_t sid,
                                    const tp_elevation_entry_t *elevation_entry);
+bool track_sid_db_load_positions(gnss_signal_t sid,
+                                 xcorr_positions_t *position_entry);
+bool track_sid_db_update_positions(gnss_signal_t sid,
+                                   const xcorr_positions_t *position_entry);
 
 #endif /* SWIFTNAV_TRACK_SID_DB_H_ */

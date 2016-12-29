@@ -337,4 +337,24 @@ bool tracker_check_prn_fail_flag(tracker_context_t *context)
 
   return internal_data->prn_check_fail;
 }
+
+/**
+ * Checks if the tracker has cross-correlation flag set.
+ *
+ * Tracker can use this method to check if a cross-correlation flag is set by
+ * external thread.
+ *
+ * \param[in] context Tracker context.
+ *
+ * \return Cross-correlation flag value-
+ */
+bool tracker_check_xcorr_flag(tracker_context_t *context)
+{
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  return internal_data->xcorr_flag;
+}
+
 /** \} */
