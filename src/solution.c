@@ -739,7 +739,7 @@ static void collect_measurements(u64 rec_tc,
   *pn_total = n_active;
 }
 
-static THD_WORKING_AREA(wa_solution_thread, 2500000);
+static THD_WORKING_AREA(wa_solution_thread, 2000000);
 static void solution_thread(void *arg)
 {
   (void)arg;
@@ -1286,7 +1286,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds, msg_pos_llh_t *po
   }
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 2500000);
+static WORKING_AREA_CCM(wa_time_matched_obs_thread, 2000000);
 static void time_matched_obs_thread(void *arg)
 {
   (void)arg;
