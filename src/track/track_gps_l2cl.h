@@ -27,10 +27,11 @@ inline int l2cl_not_implemented(void) { return -1; }
 /* not weak as it is used in L2C builds only */
 void track_gps_l2cl_register(void);
 
-void do_l1ca_to_l2cl_handover(u32 sample_count,
+void do_l2cm_to_l2cl_handover(u32 sample_count,
                               u16 sat,
                               double code_phase,
                               double carrier_freq,
-                              float cn0_init) L2CL_WEAK;
+                              float cn0_init,
+                              s32 TOW_ms) L2CL_WEAK;
 
 #endif /* SWIFTNAV_TRACK_GPS_L2CL_H */

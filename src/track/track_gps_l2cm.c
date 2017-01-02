@@ -16,6 +16,7 @@
 
 /* Local headers */
 #include "track_gps_l2cm.h"
+#include "track_gps_l2cl.h" /* for L2CM to L2CL tracking handover */
 #include "track_cn0.h"
 #include "track_profile_utils.h"
 #include "track_profiles.h"
@@ -511,4 +512,20 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
 
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
   update_l2_xcorr_from_l1(channel_info, common_data, l2c_data, cflags);
+
+  if (data->lock_detect.outp &&
+      data->confirmed &&
+      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context) &&
+      /* TOW must be known to start L2CL */
+      TOW_UNKNOWN != common_data->TOW_ms) {
+
+    /* Start L2 CL tracker if not running */
+    do_l2cm_to_l2cl_handover(common_data->sample_count,
+                             channel_info->sid.sat,
+                             common_data->code_phase_early,
+                             common_data->carrier_freq,
+                             common_data->cn0,
+                             common_data->TOW_ms);
+  }
 }

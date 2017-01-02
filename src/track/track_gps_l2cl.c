@@ -113,21 +113,24 @@ void track_gps_l2cl_register(void)
   tracker_interface_register(&tracker_interface_list_element_gps_l2cl);
 }
 
-/** Do L1C/A to L2 CL handover.
+/** Do L2 CM to L2 CL handover.
  *
- * The condition for the handover is the availability of bitsync on L1 C/A
+ * The condition for the handover is the availability of bitsync on L2 CM,
+ * and TOW must be known.
  *
- * \param sample_count NAP sample count
- * \param sat L1C/A Satellite ID
- * \param code_phase L1CA code phase [chips]
- * \param carrier_freq The current Doppler frequency for the L1 C/A channel
- * \param cn0 CN0 estimate for the L1 C/A channel
+ * \param[in] sample_count NAP sample count
+ * \param[in] sat          Satellite ID
+ * \param[in] code_phase   code phase [chips]
+ * \param[in] carrier_freq Doppler [Hz]
+ * \param[in] cn0          CN0 estimate [dB-Hz]
+ * \param[in] TOW_ms       Latest decoded TOW [ms]
  */
-void do_l1ca_to_l2cl_handover(u32 sample_count,
+void do_l2cm_to_l2cl_handover(u32 sample_count,
                               u16 sat,
                               double code_phase,
                               double carrier_freq,
-                              float cn0_init)
+                              float cn0_init,
+                              s32 TOW_ms)
 {
   /* compose SID: same SV, but code is L2 CL */
   gnss_signal_t sid = construct_sid(CODE_GPS_L2CL, sat);
@@ -136,21 +139,24 @@ void do_l1ca_to_l2cl_handover(u32 sample_count,
     return; /* L2CL signal from the SV is already in track */
   }
 
-  u32 capb;
-  ndb_gps_l2cm_l2c_cap_read(&capb);
-  if (0 == (capb & ((u32)1 << (sat - 1)))) {
-    return;
-  }
-
   if ((code_phase < 0) ||
-      ((code_phase > 0.5) && (code_phase < (GPS_L1CA_CHIPS_NUM - 0.5)))) {
-    log_warn_sid(sid, "Unexpected L1C/A to L2CL handover code phase: %f",
+      ((code_phase > 0.5) && (code_phase < (GPS_L2CM_CHIPS_NUM - 0.5)))) {
+    log_warn_sid(sid, "Unexpected L2CM to L2CL handover code phase: %f",
                  code_phase);
     return;
   }
 
-  if (code_phase > (GPS_L1CA_CHIPS_NUM - 0.5)) {
-    code_phase = GPS_L2CL_CHIPS_NUM - (GPS_L1CA_CHIPS_NUM - code_phase);
+  s32 offset = (TOW_ms % 1500); /* L2CL code starts every 1.5 seconds.
+                                   Offset must be taken into account. */
+
+  if (code_phase > (GPS_L2CM_CHIPS_NUM - 0.5)) {
+    if (offset == 0) {
+      code_phase = GPS_L2CL_CHIPS_NUM - (GPS_L2CM_CHIPS_NUM - code_phase);
+    } else {
+      code_phase = offset * 1023 - (GPS_L2CM_CHIPS_NUM - code_phase);
+    }
+  } else {
+      code_phase += offset * 1023;
   }
 
   /* The best elevation estimation could be retrieved by calling
@@ -161,12 +167,11 @@ void do_l1ca_to_l2cl_handover(u32 sample_count,
   tracking_startup_params_t startup_params = {
     .sid                = sid,
     .sample_count       = sample_count,
-    /* recalculate doppler freq for L2 from L1*/
-    .carrier_freq       = carrier_freq * GPS_L2_HZ / GPS_L1_HZ,
+    .carrier_freq       = carrier_freq,
     /* adjust code phase by 1 chip to accommodate zero in the L2CM slot */
     .code_phase         = code_phase - 1.0f,
     .chips_to_correlate = 1023,
-    /* get initial cn0 from parent L1 channel */
+    /* get initial cn0 from parent L2CM channel */
     .cn0_init           = cn0_init,
     .elevation          = TRACKING_ELEVATION_UNKNOWN
   };
