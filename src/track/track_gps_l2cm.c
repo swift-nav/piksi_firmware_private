@@ -518,7 +518,9 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context) &&
       /* TOW must be known to start L2CL */
-      TOW_UNKNOWN != common_data->TOW_ms) {
+      TOW_UNKNOWN != common_data->TOW_ms &&
+      /* L2CM half-cycle ambiguity must be unknown */
+      !tracker_ambiguity_status(channel_info->context)) {
 
     /* Start L2 CL tracker if not running */
     do_l2cm_to_l2cl_handover(common_data->sample_count,

@@ -195,6 +195,7 @@ bool tracker_bit_aligned(tracker_context_t *context);
 bool tracker_has_bit_sync(tracker_context_t *context);
 bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
 void tracker_ambiguity_unknown(tracker_context_t *context);
+bool tracker_ambiguity_status(tracker_context_t *context);
 void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
 bool tracker_check_prn_fail_flag(tracker_context_t *context);
 #endif

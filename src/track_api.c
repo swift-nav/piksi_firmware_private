@@ -299,6 +299,21 @@ void tracker_ambiguity_unknown(tracker_context_t *context)
   internal_data->reset_cpo = true;
 }
 
+/** Checks channel's carrier phase ambiguity status.
+ *
+ * \param context Tracker context.
+ *
+ * \return false if ambiguity unknown, true if it is known.
+ */
+bool tracker_ambiguity_status(tracker_context_t *context)
+{
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  return internal_data->bit_polarity != BIT_POLARITY_UNKNOWN;
+}
+
 /** Output a correlation data message for a tracker channel.
  *
  * \param context     Tracker context.
