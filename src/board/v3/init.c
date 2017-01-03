@@ -58,10 +58,10 @@
 static struct {
   uint32_t hardware;
   uint32_t timestamp;
-  uint8_t uuid[UUID_LEN];
-  uint8_t nap_key[NAP_KEY_LEN];
-  uint8_t mac_address[MAC_LEN];
-  uint8_t mfg_id[MFG_ID_LEN];
+  uint8_t uuid[16];
+  uint8_t nap_key[16];
+  uint8_t mac_address[6];
+  uint8_t mfg_id[17];
 } factory_params;
 
 struct uuid {
@@ -222,17 +222,17 @@ static bool factory_params_read(void)
 
 
   if (factory_data_timestamp_get(factory_data, &factory_params.timestamp) != 0) {
-    log_error("error reading NAP key from factory data");
+    log_error("error reading timestamp from factory data");
     return false;
   }
 
    if (factory_data_mac_address_get(factory_data, factory_params.mac_address) != 0) {
-    log_error("error reading NAP key from factory data");
+    log_error("error reading mac address from factory data");
     return false;
   }
 
    if (factory_data_mfg_id_get(factory_data, factory_params.mfg_id) != 0) {
-    log_error("error reading NAP key from factory data");
+    log_error("error reading mfg id from factory data");
     return false;
   }
 
