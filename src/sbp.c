@@ -31,6 +31,7 @@
 #include "main.h"
 #include "timing.h"
 #include "error.h"
+#include "peripherals/usart.h"
 
 /** \defgroup io Input/Output
  * Communications to and from host.

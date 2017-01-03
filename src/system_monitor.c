@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include <ch.h>
+#include <hal.h>
 
 #include <libsbp/system.h>
 #include <libsbp/version.h>
@@ -28,6 +29,7 @@
 #include "sbp.h"
 #include "manage.h"
 #include "simulator.h"
+#include "settings.h"
 #include "system_monitor.h"
 #include "position.h"
 #include "base_obs.h"

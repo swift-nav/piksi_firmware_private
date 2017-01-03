@@ -20,6 +20,7 @@
 #include <ch.h>
 
 #include "peripherals/leds.h"
+#include "peripherals/usart.h"
 #include "board/frontend.h"
 #include "sbp.h"
 #include "init.h"

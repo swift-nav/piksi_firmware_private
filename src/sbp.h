@@ -22,8 +22,6 @@
 #include <libsbp/sbp.h>
 #include <libsbp/tracking.h>
 
-#include "peripherals/usart.h"
-
 void log_obs_latency(float latency_ms);
 void log_obs_latency_tick(void);
 
