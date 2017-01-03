@@ -31,6 +31,7 @@
 #include "main.h"
 #include "timing.h"
 #include "error.h"
+#include "usart_support.h"
 #include "peripherals/usart.h"
 
 /** \defgroup io Input/Output
@@ -43,7 +44,8 @@
 
 u16 my_sender_id;
 
-msg_uart_state_t uart_state_msg;
+/* TODO: Make new message type containing only latency and obs period */
+msg_uart_state_t corr_stats;
 
 #define LATENCY_SMOOTHING 0.5
 #define PERIOD_SMOOTHING 0.5
@@ -56,9 +58,7 @@ double period_accum_ms;
 
 systime_t last_obs_msg_ticks = 0;
 
-sbp_state_t uarta_sbp_state;
-sbp_state_t uartb_sbp_state;
-sbp_state_t ftdi_sbp_state;
+sbp_state_t sbp_state;
 
 static const char SBP_MODULE[] = "sbp";
 
@@ -73,44 +73,27 @@ static void sbp_thread(void *arg)
   (void)arg;
   chRegSetThreadName("SBP");
 
-  uart_state_msg.latency.avg = -1;
-  uart_state_msg.latency.lmin = 0;
-  uart_state_msg.latency.lmax = 0;
-  uart_state_msg.latency.current = -1;
-  uart_state_msg.obs_period.avg = -1;
-  uart_state_msg.obs_period.pmin = 0;
-  uart_state_msg.obs_period.pmax = 0;
-  uart_state_msg.obs_period.current = -1;
+  corr_stats.latency.avg = -1;
+  corr_stats.latency.lmin = 0;
+  corr_stats.latency.lmax = 0;
+  corr_stats.latency.current = -1;
+  corr_stats.obs_period.avg = -1;
+  corr_stats.obs_period.pmin = 0;
+  corr_stats.obs_period.pmax = 0;
+  corr_stats.obs_period.current = -1;
 
   while (TRUE) {
     chThdSleepMilliseconds(10);
     sbp_process_messages();
 
     DO_EVERY(100,
-      uart_state_msg.uart_a.tx_throughput = usart_throughput(&uarta_state.tx);
-      uart_state_msg.uart_a.rx_throughput = usart_throughput(&uarta_state.rx);
-      uart_state_msg.uart_a.io_error_count = uarta_state.rx.errors + uarta_state.tx.errors;
-      uart_state_msg.uart_b.tx_throughput = usart_throughput(&uartb_state.tx);
-      uart_state_msg.uart_b.rx_throughput = usart_throughput(&uartb_state.rx);
-      uart_state_msg.uart_b.io_error_count = uartb_state.rx.errors + uartb_state.tx.errors;
-      uart_state_msg.uart_ftdi.tx_throughput = usart_throughput(&ftdi_state.tx);
-      uart_state_msg.uart_ftdi.rx_throughput = usart_throughput(&ftdi_state.rx);
-      uart_state_msg.uart_ftdi.io_error_count = ftdi_state.rx.errors + ftdi_state.tx.errors;
-
       if (latency_count > 0) {
-        uart_state_msg.latency.avg = (s32) (latency_accum_ms / latency_count);
-        uart_state_msg.obs_period.avg = (s32) (period_accum_ms / latency_count);
+        corr_stats.latency.avg = (s32) (latency_accum_ms / latency_count);
+        corr_stats.obs_period.avg = (s32) (period_accum_ms / latency_count);
       }
 
       sbp_send_msg(SBP_MSG_UART_STATE, sizeof(msg_uart_state_t),
-                   (u8*)&uart_state_msg);
-
-      uart_state_msg.uart_a.tx_buffer_level = 0;
-      uart_state_msg.uart_a.rx_buffer_level = 0;
-      uart_state_msg.uart_b.tx_buffer_level = 0;
-      uart_state_msg.uart_b.rx_buffer_level = 0;
-      uart_state_msg.uart_ftdi.tx_buffer_level = 0;
-      uart_state_msg.uart_ftdi.rx_buffer_level = 0;
+                   (u8*)&corr_stats);
 
       log_obs_latency_tick();
     );
@@ -118,7 +101,7 @@ static void sbp_thread(void *arg)
 }
 
 /** Setup the SBP interface.
- * Configures USARTs and IO buffering. Starts the SBP message processing
+ * Initializes state and starts the SBP message processing
  * thread.
  *
  * \param use_settings If 0 use default baud rate, else use baud rates in
@@ -126,16 +109,7 @@ static void sbp_thread(void *arg)
  */
 void sbp_setup(void)
 {
-  sbp_state_init(&uarta_sbp_state);
-  sbp_state_init(&uartb_sbp_state);
-  sbp_state_init(&ftdi_sbp_state);
-  sbp_state_set_io_context(&uarta_sbp_state, &uarta_state);
-  sbp_state_set_io_context(&uartb_sbp_state, &uartb_state);
-  sbp_state_set_io_context(&ftdi_sbp_state, &ftdi_state);
-
-  /* Disable input and output buffering. */
-  /*setvbuf(stdin, NULL, _IONBF, 0);*/
-  /*setvbuf(stdout, NULL, _IONBF, 0);*/
+  sbp_state_init(&sbp_state);
 
   chThdCreateStatic(wa_sbp_thread, sizeof(wa_sbp_thread),
                     HIGHPRIO-22, sbp_thread, NULL);
@@ -151,9 +125,7 @@ void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
                                    void *context)
 {
   chMtxLock(&sbp_cb_mutex);
-  sbp_register_callback(&uarta_sbp_state, msg_type, cb, context, node);
-  sbp_register_callback(&uartb_sbp_state, msg_type, cb, context, node);
-  sbp_register_callback(&ftdi_sbp_state , msg_type, cb, context, node);
+  sbp_register_callback(&sbp_state , msg_type, cb, context, node);
   chMtxUnlock(&sbp_cb_mutex);
 }
 
@@ -166,9 +138,7 @@ void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb,
 void sbp_remove_cbk(sbp_msg_callbacks_node_t *node)
 {
   chMtxLock(&sbp_cb_mutex);
-  sbp_remove_callback(&uarta_sbp_state, node);
-  sbp_remove_callback(&uartb_sbp_state, node);
-  sbp_remove_callback(&ftdi_sbp_state, node);
+  sbp_remove_callback(&sbp_state, node);
   chMtxUnlock(&sbp_cb_mutex);
 }
 
@@ -236,45 +206,22 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
 
   /* Write message into buffer */
   sbp_buffer_reset();
-  ret |= sbp_send_message(&uarta_sbp_state, msg_type, sender_id,
+  ret |= sbp_send_message(&sbp_state, msg_type, sender_id,
                           len, buff, &sbp_buffer_write);
 
-  /* Don't relayed messages (sender_id 0) on the A and B UARTs. (Only FTDI USB) */
-
-  if (use_usart(&uarta_usart, msg_type, sender_id) && usart_claim(&uarta_state, SBP_MODULE)) {
-    usart_write(&uarta_state, sbp_buffer, sbp_buffer_length);
-    usart_release(&uarta_state);
-  }
-
-  uart_state_msg.uart_a.tx_buffer_level =
-    MAX(uart_state_msg.uart_a.tx_buffer_level,
-      255 - (255 * usart_tx_n_free(&uarta_state)) / (SERIAL_BUFFERS_SIZE-1));
-
-  if (use_usart(&uartb_usart, msg_type, sender_id) && usart_claim(&uartb_state, SBP_MODULE)) {
-    usart_write(&uartb_state, sbp_buffer, sbp_buffer_length);
-    usart_release(&uartb_state);
-  }
-
-  uart_state_msg.uart_b.tx_buffer_level =
-    MAX(uart_state_msg.uart_b.tx_buffer_level,
-      255 - (255 * usart_tx_n_free(&uartb_state)) / (SERIAL_BUFFERS_SIZE-1));
-
   if (use_usart(&ftdi_usart, msg_type, sender_id) && usart_claim(&ftdi_state, SBP_MODULE)) {
-    usart_write(&ftdi_state, sbp_buffer, sbp_buffer_length);
+    usart_support_write(SD_FTDI, sbp_buffer, sbp_buffer_length);
     usart_release(&ftdi_state);
   }
-
-  uart_state_msg.uart_ftdi.tx_buffer_level =
-    MAX(uart_state_msg.uart_ftdi.tx_buffer_level,
-      255 - (255 * usart_tx_n_free(&ftdi_state)) / (SERIAL_BUFFERS_SIZE-1));
 
   chMtxUnlock(&send_mutex);
   return ret;
 }
 
-static u32 uart_read(u8 *buff, u32 n, void *context)
+static u32 sbp_read(u8 *buff, u32 n, void *context)
 {
-  return usart_read(context, buff, n);
+  (void)context;
+  return usart_support_read_timeout(SD_FTDI, buff, n, TIME_IMMEDIATE);
 }
 
 /** Process SBP messages received through the USARTs.
@@ -287,43 +234,11 @@ void sbp_process_messages()
 
   chMtxLock(&sbp_cb_mutex);
 
-  uart_state_msg.uart_a.rx_buffer_level =
-    MAX(uart_state_msg.uart_a.rx_buffer_level,
-      (255 * usart_n_read(&uarta_state)) / SERIAL_BUFFERS_SIZE);
-
-  if (usart_claim(&uarta_state, SBP_MODULE)) {
-    while (usart_n_read(&uarta_state) > 0) {
-      ret = sbp_process(&uarta_sbp_state, &uart_read);
-      if (ret == SBP_CRC_ERROR) {
-        uart_state_msg.uart_a.crc_error_count++;
-      }
-    }
-    usart_release(&uarta_state);
-  }
-
-  uart_state_msg.uart_b.rx_buffer_level =
-    MAX(uart_state_msg.uart_b.rx_buffer_level,
-      (255 * usart_n_read(&uartb_state)) / SERIAL_BUFFERS_SIZE);
-
-  if (usart_claim(&uartb_state, SBP_MODULE)) {
-    while (usart_n_read(&uartb_state) > 0) {
-      ret = sbp_process(&uartb_sbp_state, &uart_read);
-      if (ret == SBP_CRC_ERROR) {
-        uart_state_msg.uart_b.crc_error_count++;
-      }
-    }
-    usart_release(&uartb_state);
-  }
-
-  uart_state_msg.uart_ftdi.rx_buffer_level =
-    MAX(uart_state_msg.uart_ftdi.rx_buffer_level,
-      (255 * usart_n_read(&ftdi_state)) / SERIAL_BUFFERS_SIZE);
-
   if (usart_claim(&ftdi_state, SBP_MODULE)) {
-    while (usart_n_read(&ftdi_state) > 0) {
-      ret = sbp_process(&ftdi_sbp_state, &uart_read);
+    while (usart_support_n_read(SD_FTDI) > 0) {
+      ret = sbp_process(&sbp_state, &sbp_read);
       if (ret == SBP_CRC_ERROR) {
-        uart_state_msg.uart_ftdi.crc_error_count++;
+        /* TODO: Expose this somehow */
       }
     }
     usart_release(&ftdi_state);
@@ -341,17 +256,6 @@ int _write(int file, char *ptr, int len)
   case 2:
     if (len > 255) len = 255;   /* Send maximum of 255 chars at a time */
     sbp_send_msg(SBP_MSG_PRINT_DEP, len, (u8 *)ptr);
-    return len;
-
-  case 22:
-    /* File descriptor 22: Raw UART output.
-
-       TODO: This isn't currently used, so it could be removed, but
-       maybe some users would like a file-descriptorish raw UART
-       output function for one of the other (non-USB) UARTs.
-    */
-    if (len > 255) len = 255;   /* Send maximum of 255 chars at a time */
-    usart_write(&ftdi_state, (u8 *)ptr, len);
     return len;
 
   default:
@@ -417,11 +321,11 @@ void log_obs_latency(float latency_ms)
   period_accum_ms += (double) obs_period_ms;
   latency_count += 1;
 
-  uart_state_msg.latency.current = (s32) ((LATENCY_SMOOTHING * ((float)latency_ms)) +
-    ((1 - LATENCY_SMOOTHING) * (float) (uart_state_msg.latency.current)));
+  corr_stats.latency.current = (s32) ((LATENCY_SMOOTHING * ((float)latency_ms)) +
+    ((1 - LATENCY_SMOOTHING) * (float) (corr_stats.latency.current)));
 
-  uart_state_msg.obs_period.current = (s32) ((PERIOD_SMOOTHING * ((float) (obs_period_ms)) +
-    (1 - PERIOD_SMOOTHING) * (float) (uart_state_msg.obs_period.current)));
+  corr_stats.obs_period.current = (s32) ((PERIOD_SMOOTHING * ((float) (obs_period_ms)) +
+    (1 - PERIOD_SMOOTHING) * (float) (corr_stats.obs_period.current)));
 
   /* Don't change the min and max latencies if we appear to have a zero latency
    * speed. */
@@ -429,19 +333,19 @@ void log_obs_latency(float latency_ms)
     log_warn("Incoherent observation reception: latency: %f, period: %f", latency_ms, obs_period_ms);
     return;
   }
-  if (uart_state_msg.latency.lmin > latency_ms ||
-      uart_state_msg.latency.lmin == 0) {
-    uart_state_msg.latency.lmin = latency_ms;
+  if (corr_stats.latency.lmin > latency_ms ||
+      corr_stats.latency.lmin == 0) {
+    corr_stats.latency.lmin = latency_ms;
   }
-  if (uart_state_msg.latency.lmax < latency_ms) {
-    uart_state_msg.latency.lmax = latency_ms;
+  if (corr_stats.latency.lmax < latency_ms) {
+    corr_stats.latency.lmax = latency_ms;
   }
-  if (uart_state_msg.obs_period.pmin > obs_period_ms ||
-      uart_state_msg.obs_period.pmin == 0) {
-    uart_state_msg.obs_period.pmin = obs_period_ms;
+  if (corr_stats.obs_period.pmin > obs_period_ms ||
+      corr_stats.obs_period.pmin == 0) {
+    corr_stats.obs_period.pmin = obs_period_ms;
   }
-  if (obs_period_ms > uart_state_msg.obs_period.pmax) {
-    uart_state_msg.obs_period.pmax = obs_period_ms;
+  if (obs_period_ms > corr_stats.obs_period.pmax) {
+    corr_stats.obs_period.pmax = obs_period_ms;
   }
 }
 
@@ -450,8 +354,8 @@ void log_obs_latency_tick(void)
   double elapsed = chVTTimeElapsedSinceX(last_obs_msg_ticks) / (double)CH_CFG_ST_FREQUENCY;
 
   if (last_obs_msg_ticks == 0 || elapsed > LOG_OBS_WINDOW_DURATION) {
-    uart_state_msg.latency.current = -1;
-    uart_state_msg.obs_period.current = -1;
+    corr_stats.latency.current = -1;
+    corr_stats.obs_period.current = -1;
   }
 
 }
