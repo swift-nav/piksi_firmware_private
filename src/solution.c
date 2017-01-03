@@ -567,8 +567,8 @@ static void update_sat_elevations(const double rcv_pos[3], const gps_time_t t)
           && calc_sat_state(&ephemeris, &t,
                        sat_pos, sat_vel, &clock_err, &clock_rate_err) >= 0) {
 
-        double _, el;
-        wgsecef2azel(sat_pos, rcv_pos, &_, &el);
+        double az, el;
+        wgsecef2azel(sat_pos, rcv_pos, &az, &el);
         /* update the elevation with the timestamp of the used position */
         sv_elevation_degrees_set(sid, (float)el * R2D, nap_count);
         log_debug_sid(sid, "Updated elevation %.1f", el * R2D);

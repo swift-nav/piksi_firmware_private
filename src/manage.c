@@ -296,12 +296,14 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
   last_good_fix_t lgf;
   if(ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
       lgf.position_quality < POSITION_GUESS ||
-      time_quality < TIME_GUESS)
+      time_quality < TIME_GUESS) {
     return SCORE_COLDSTART;
+  }
 
   float el = sv_elevation_degrees_get(sid);
-  if (el < tracking_elevation_mask)
+  if (el < tracking_elevation_mask) {
     return SCORE_BELOWMASK;
+  }
 
   double _, dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
   bool ready = false;
@@ -332,8 +334,9 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
              computation that gets compensated here */
     dopp_hint_clock = -GPS_L1_HZ * lgf.position_solution.clock_bias;
     dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
-    if (time_quality >= TIME_FINE)
+    if (time_quality >= TIME_FINE) {
       dopp_uncertainty = DOPP_UNCERT_EPHEM;
+    }
     ready = true;
 
     if ((dopp_hint_sat_vel < code_to_sv_doppler_min(sid.code)) ||
@@ -368,8 +371,9 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
         calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                &_, &el_d) == 0) {
       el = (float)(el_d * R2D);
-      if (el < tracking_elevation_mask)
+      if (el < tracking_elevation_mask) {
         return SCORE_BELOWMASK;
+      }
       if (calc_sat_doppler_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                    &dopp_hint) != 0) {
         return SCORE_COLDSTART;
