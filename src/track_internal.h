@@ -68,6 +68,8 @@ typedef struct {
   bool reset_cpo;
   /** Flags if PRN conformity check failed */
   bool prn_check_fail;
+  /** Flags if tracker is cross-correlated */
+  bool xcorr_flag;
 } tracker_internal_data_t;
 
 /** \} */

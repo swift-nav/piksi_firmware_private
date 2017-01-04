@@ -465,6 +465,12 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
     return;
   }
 
+  if (tracker_check_xcorr_flag(channel_info->context)) {
+    /* Cross-correlation is set by external thread */
+    common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+    return;
+  }
+
   gps_l2cm_tracker_data_t *mode = data;
 
   tracking_channel_cc_data_t cc_data;
