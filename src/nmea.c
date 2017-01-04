@@ -27,8 +27,7 @@
 #include "settings.h"
 #include "main.h"
 #include "timing.h"
-
-const char NMEA_MODULE[] = "nmea";
+#include "io_support.h"
 
 static u32 gpgsv_msg_rate = 10;
 static u32 gprmc_msg_rate = 10;
@@ -81,7 +80,7 @@ static struct nmea_dispatcher *nmea_dispatchers_head;
     nmea_output(sentence_buf, sentence_bufp - sentence_buf + NMEA_SUFFIX_LEN-1); \
   } while (0)
 
-/** Output NMEA sentence to all USARTs configured in NMEA mode.
+/** Output NMEA sentence.
  * The message is also sent to all dispatchers registered with
  * ::nmea_dispatcher_register.
 
@@ -93,22 +92,7 @@ static void nmea_output(char *s, size_t size)
   static MUTEX_DECL(send_mutex);
   chMtxLock(&send_mutex);
 
-  /*
-  if ((ftdi_usart.mode == NMEA) && usart_claim(&ftdi_state, NMEA_MODULE)) {
-    usart_write(&ftdi_state, (u8 *)s, size);
-    usart_release(&ftdi_state);
-  }
-
-  if ((uarta_usart.mode == NMEA) && usart_claim(&uarta_state, NMEA_MODULE)) {
-    usart_write(&uarta_state, (u8 *)s, size);
-    usart_release(&uarta_state);
-  }
-
-  if ((uartb_usart.mode == NMEA) && usart_claim(&uartb_state, NMEA_MODULE)) {
-    usart_write(&uartb_state, (u8 *)s, size);
-    usart_release(&uartb_state);
-  }
-  */
+  io_support_write(SD_NMEA, (u8 *)s, size);
 
   chMtxUnlock(&send_mutex);
 

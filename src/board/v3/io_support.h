@@ -19,11 +19,9 @@
 #define SD_TO_RPMSG_EPT(sd) ((rpmsg_endpoint_t)((int)(sd) - 1))
 
 #define SD_SBP        RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_A)
-#define SD_UARTA      NULL
-#define SD_UARTB      NULL
+#define SD_NMEA       RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_B)
 
-#define SD_SETTINGS   RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_B)
-#define SD_FLASH      RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
+#define SD_SPARE      RPMSG_EPT_TO_SD(RPMSG_ENDPOINT_C)
 
 void io_support_init(void);
 void io_support_set_parameters(void *sd, u32 baud);
