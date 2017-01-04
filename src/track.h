@@ -235,8 +235,8 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
                                                double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
-bool tracking_channel_elevation_degrees_set(gnss_signal_t sid, s8 elevation);
-s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid);
+bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp);
+s8 sv_elevation_degrees_get(gnss_signal_t sid);
 
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit);

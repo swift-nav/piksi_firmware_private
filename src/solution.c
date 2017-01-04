@@ -546,18 +546,35 @@ static void solution_simulation(msg_gps_time_t *gps_time, msg_pos_llh_t *pos_llh
   }
 }
 
-/** Update the tracking channel states with satellite elevation angles
- * \param nav_meas Navigation measurements with .sat_pos populated
- * \param n_meas Number of navigation measurements
- * \param rcv_pos_ecef Receiver position
+/** Update the satellite elevation database with current angles
+ * \param rcv_pos Approximate receiver position
+ * \param t Approximate time
  */
-static void update_sat_elevations(const navigation_measurement_t nav_meas[],
-                                  u8 n_meas, const double rcv_pos_ecef[3])
+static void update_sat_elevations(const double rcv_pos[3], const gps_time_t t)
 {
-  double _, el;
-  for (int i = 0; i < n_meas; i++) {
-    wgsecef2azel(nav_meas[i].sat_pos, rcv_pos_ecef, &_, &el);
-    tracking_channel_elevation_degrees_set(nav_meas[i].sid, (float)el * R2D);
+  ephemeris_t ephemeris;
+  double sat_pos[3];
+  double sat_vel[3];
+  double clock_err;
+  double clock_rate_err;
+  u64 nap_count = gpstime2napcount(&t);
+
+  /* compute elevation for any valid ephemeris we can pull from NDB */
+  for (u16 idx = 0; idx < PLATFORM_SIGNAL_COUNT; idx++) {
+    gnss_signal_t sid = sid_from_global_index(idx);
+    if (ndb_ephemeris_read(sid, &ephemeris) == NDB_ERR_NONE) {
+      if (ephemeris_valid(&ephemeris, &t)
+          && calc_sat_state(&ephemeris, &t,
+                       sat_pos, sat_vel, &clock_err, &clock_rate_err) >= 0) {
+
+        double az, el;
+        wgsecef2azel(sat_pos, rcv_pos, &az, &el);
+        /* update the elevation with the timestamp of the used position */
+        sv_elevation_degrees_set(sid, (float)el * R2D, nap_count);
+        log_debug_sid(sid, "Updated elevation %.1f", el * R2D);
+      }
+    }
+    /* TODO: use almanac if there is no valid ephemeris */
   }
 }
 
@@ -812,6 +829,15 @@ static void solution_thread(void *arg)
     // Get the expected nap count in receiver time (gps time frame)
     rec_time = napcount2rcvtime(rec_tc);
 
+    if (time_quality >= TIME_COARSE
+        && lgf.position_solution.valid
+        && lgf.position_quality >= POSITION_GUESS) {
+      /* Update the satellite elevation angles once per second */
+      DO_EVERY((u32)soln_freq,
+               update_sat_elevations(lgf.position_solution.pos_ecef,
+                                     lgf.position_solution.time));
+    }
+
     u8 n_collected = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
@@ -1059,11 +1085,6 @@ static void solution_thread(void *arg)
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
-
-    /* Save elevation angles every so often */
-    DO_EVERY((u32)soln_freq,
-              update_sat_elevations(nav_meas_tdcp, n_ready_tdcp,
-                                    lgf.position_solution.pos_ecef));
 
     if (!simulation_enabled()) {
       /* Output solution. */

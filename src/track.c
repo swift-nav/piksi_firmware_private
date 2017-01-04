@@ -1017,16 +1017,16 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
  * \retval false Elevation has not been updated because GNSS constellation is
  *               not supported.
  *
- * \sa tracking_channel_elevation_degrees_get
+ * \sa sv_elevation_degrees_get
  */
-bool tracking_channel_elevation_degrees_set(gnss_signal_t sid, s8 elevation)
+bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp)
 {
   tp_elevation_entry_t entry = {.elevation_d = elevation,
-                                .timestamp_tk = nap_timing_count()};
+                                .timestamp_tk = timestamp};
   return track_sid_db_update_elevation(sid, &entry);
 }
 
-/** Return the elevation angle for a tracker channel.
+/** Return the elevation angle for a satellite.
  *
  * \param[in] sid Signal identifier for which the elevation should be returned.
  *
@@ -1035,9 +1035,9 @@ bool tracking_channel_elevation_degrees_set(gnss_signal_t sid, s8 elevation)
  *                                    cache entry is too old, or GNSS
  *                                    constellation is not supported.
  *
- * \sa tracking_channel_elevation_degrees_set
+ * \sa sv_elevation_degrees_set
  */
-s8 tracking_channel_elevation_degrees_get(gnss_signal_t sid)
+s8 sv_elevation_degrees_get(gnss_signal_t sid)
 {
   s8 result = TRACKING_ELEVATION_UNKNOWN;
   tp_elevation_entry_t entry = {0};
