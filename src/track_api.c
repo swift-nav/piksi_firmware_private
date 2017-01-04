@@ -314,6 +314,25 @@ bool tracker_ambiguity_status(tracker_context_t *context)
   return internal_data->bit_polarity != BIT_POLARITY_UNKNOWN;
 }
 
+/** Set channel's carrier phase ambiguity status.
+ *
+ * \param context  Tracker context.
+ * \param polarity Polarity of the half-cycle ambiguity
+ *
+ * \return None
+ */
+void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
+{
+  if (polarity == BIT_POLARITY_UNKNOWN) {
+    return;
+  }
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  internal_data->bit_polarity = polarity;
+}
+
 /** Output a correlation data message for a tracker channel.
  *
  * \param context     Tracker context.

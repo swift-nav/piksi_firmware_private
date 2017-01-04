@@ -516,6 +516,24 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context)) {
+
+    if (tp_tl_is_fll(&data->tl_state)) {
+      tracking_channel_drop_l2cl(channel_info->sid);
+    }
+
+    tracking_channel_cp_sync_update(channel_info->sid,
+                                    common_data->carrier_phase,
+                                    common_data->TOW_ms);
+    if (!tracker_ambiguity_status(channel_info->context)) {
+      s8 public = tracking_channel_read_ambiguity_status(channel_info->sid);
+      tracker_ambiguity_set(channel_info->context, public);
+    }
+  }
+
+  if (data->lock_detect.outp &&
+      data->confirmed &&
+      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context) &&
       /* TOW must be known to start L2CL */
       TOW_UNKNOWN != common_data->TOW_ms &&

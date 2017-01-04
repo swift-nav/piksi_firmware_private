@@ -63,7 +63,9 @@ typedef enum {
   CH_DROP_REASON_NO_PLOCK,      /**< Pessimistic lock timeout */
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
-  CH_DROP_REASON_NO_UPDATES     /**< No tracker updates for too long */
+  CH_DROP_REASON_NO_UPDATES,    /**< No tracker updates for too long */
+  CH_DROP_REASON_L2CL_SYNC      /**< Drop L2CL after half-cycle ambiguity
+                                     has been resolved */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -651,6 +653,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
   case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
+  case CH_DROP_REASON_L2CL_SYNC: str = "half-cycle ambiguity resolved, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -742,6 +745,7 @@ static void manage_track()
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
+  tracking_channel_misc_info_t misc_info;
   u64 now;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
@@ -750,7 +754,7 @@ static void manage_track()
                                 &time_info, /* Timers */
                                 &freq_info, /* Frequencies */
                                 NULL,       /* Loop controller values */
-                                NULL,       /* Misc info */
+                                &misc_info, /* Misc info */
                                 false);     /* Reset stats */
 
     now = timing_getms();
@@ -806,6 +810,12 @@ static void manage_track()
     /* Do we have confirmed cross-correlation? */
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED)) {
       drop_channel(i, CH_DROP_REASON_XCORR, &info, &time_info, &freq_info);
+      continue;
+    }
+
+    /* Drop L2CL if the half-cycle ambiguity has been resolved. */
+    if (misc_info.cp_sync.drop) {
+      drop_channel(i, CH_DROP_REASON_L2CL_SYNC, &info, &time_info, &freq_info);
       continue;
     }
   }

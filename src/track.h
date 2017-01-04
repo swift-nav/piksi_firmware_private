@@ -41,6 +41,10 @@
 #define XCORR_CONFIRM_THRESHOLD -20.f
 /** cross-correlation update rate [Hz] */
 #define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
+/** carrier phases within tolerance are declared equal [cycles] */
+#define CARRIER_PHASE_TOLERANCE 0.05f
+/** counter for half-cycle ambiguity resolution */
+#define CARRIER_PHASE_AMBIGUITY_COUNTER 20
 
 typedef u8 tracker_channel_id_t;
 
@@ -143,6 +147,18 @@ typedef struct {
   u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
 } tracking_channel_ctrl_info_t;
 
+/** Parameters for half-cycle ambiguity resolution */
+typedef struct {
+  double cp;   /**< Current carrier phase [cycles]. */
+  double cp_p; /**< Previous carrier phase [cycles]. */
+  s32 TOW;     /**< Current Time of Week tag [ms]. */
+  s32 TOW_p;   /**< Previous Time of Week tag [ms]. */
+  u8 counter;  /**< Counter for matching carrier phases */
+  s8 polarity; /**< Polarity of the matching carrier phases */
+  bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
+  bool drop;   /**< Flag for dropping the tracking channel */
+} cp_sync_t;
+
 /** Tracking channel miscellaneous info */
 typedef struct {
   double pseudorange;          /**< Pseudorange [m]  */
@@ -151,6 +167,7 @@ typedef struct {
     double value;              /**< Carrier phase offset value [cycles]. */
     u64 timestamp_ms;          /**< Carrier phase offset timestamp [ms] */
   } carrier_phase_offset;      /**< Carrier phase offset */
+  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
 } tracking_channel_misc_info_t;
 
 /**
@@ -239,6 +256,28 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
 void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
                                                double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
+void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW);
+bool tracking_channel_load_data(gnss_signal_t sid,
+                                float *own_cp, float *parent_cp,
+                                float *own_cp_p, float *parent_cp_p,
+                                s32 *own_TOW, s32 *parent_TOW,
+                                s32 *own_TOW_p, s32 *parent_TOW_p,
+                                u8 *count);
+bool tracking_channel_find_matching_tow(gnss_signal_t sid,
+                                        float own_cp, float parent_cp,
+                                        float own_cp_p, float parent_cp_p,
+                                        s32 own_TOW, s32 parent_TOW,
+                                        s32 own_TOW_p, s32 parent_TOW_p,
+                                        float *own_cp_test,
+                                        float *parent_cp_test);
+bool tracking_channel_compare_cp(gnss_signal_t sid,
+                                 float own_cp_test, float parent_cp_test,
+                                 s8 *polarity);
+void tracking_channel_increment_cp_counter(gnss_signal_t sid,
+                                           u8 count, s8 polarity);
+void tracking_channel_drop_l2cl(gnss_signal_t sid);
+s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid);
+void tracking_channel_cp_sync_match(gnss_signal_t sid, bool fll_mode);
 
 bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp);
 s8 sv_elevation_degrees_get(gnss_signal_t sid);
