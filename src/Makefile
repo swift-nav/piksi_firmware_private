@@ -122,7 +122,6 @@ CSRC := $(STARTUPSRC) \
         $(OSALSRC) \
         $(PLATFORMSRC) \
         $(BOARDSRC) \
-        $(SWIFTNAV_ROOT)/src/peripherals/usart.o \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
@@ -333,7 +332,7 @@ ULIBS =
 	@echo "Stripping $@"
 	@$(TRGT)strip -o $@ $<
 
-$(SWIFTNAV_ROOT)/src/peripherals/usart.c $(SWIFTNAV_ROOT)/src/main.c: version.h
+$(SWIFTNAV_ROOT)/src/main.c: version.h
 .DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).stripped.elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 

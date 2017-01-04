@@ -21,7 +21,6 @@
 #include <libswiftnav/logging.h>
 
 #include "peripherals/leds.h"
-#include "peripherals/usart.h"
 
 #include "error.h"
 #include "sbp.h"

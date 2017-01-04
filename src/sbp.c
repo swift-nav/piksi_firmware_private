@@ -31,7 +31,6 @@
 #include "timing.h"
 #include "error.h"
 #include "io_support.h"
-#include "peripherals/usart.h"
 
 /** \defgroup io Input/Output
  * Communications to and from host.
@@ -58,8 +57,6 @@ double period_accum_ms;
 systime_t last_obs_msg_ticks = 0;
 
 sbp_state_t sbp_state;
-
-static const char SBP_MODULE[] = "sbp";
 
 static u8 sbp_buffer[264];
 static u32 sbp_buffer_length;
@@ -155,7 +152,7 @@ static u32 sbp_buffer_write(u8 *buff, u32 n, void *context)
   return len;
 }
 
-/** Send a SBP message out over all applicable USARTs
+/** Send an SBP message
  *
  * \param msg_type Message ID
  * \param len      Length of message data
@@ -181,10 +178,7 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
                           len, buff, &sbp_buffer_write);
 
   /* TODO: Put back check for sender_id == 0 somewhere */
-  if (usart_claim(&ftdi_state, SBP_MODULE)) {
-    io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
-    usart_release(&ftdi_state);
-  }
+  io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
 
   chMtxUnlock(&send_mutex);
   return ret;
@@ -196,9 +190,8 @@ static u32 sbp_read(u8 *buff, u32 n, void *context)
   return io_support_read_timeout(SD_SBP, buff, n, TIME_IMMEDIATE);
 }
 
-/** Process SBP messages received through the USARTs.
- * This function should be called periodically to clear the USART DMA RX
- * buffers and handle the SBP callbacks in them.
+/** Process SBP messages received.
+ * This function should be called periodically.
  */
 void sbp_process_messages()
 {
@@ -206,14 +199,11 @@ void sbp_process_messages()
 
   chMtxLock(&sbp_cb_mutex);
 
-  if (usart_claim(&ftdi_state, SBP_MODULE)) {
-    while (io_support_n_read(SD_SBP) > 0) {
-      ret = sbp_process(&sbp_state, &sbp_read);
-      if (ret == SBP_CRC_ERROR) {
-        /* TODO: Expose this somehow */
-      }
+  while (io_support_n_read(SD_SBP) > 0) {
+    ret = sbp_process(&sbp_state, &sbp_read);
+    if (ret == SBP_CRC_ERROR) {
+      /* TODO: Expose this somehow */
     }
-    usart_release(&ftdi_state);
   }
 
   chMtxUnlock(&sbp_cb_mutex);

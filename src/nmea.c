@@ -23,7 +23,6 @@
 #include "board/nap/track_channel.h"
 #include "track.h"
 #include "nmea.h"
-#include "peripherals/usart.h"
 #include "sbp.h"
 #include "settings.h"
 #include "main.h"
@@ -94,6 +93,7 @@ static void nmea_output(char *s, size_t size)
   static MUTEX_DECL(send_mutex);
   chMtxLock(&send_mutex);
 
+  /*
   if ((ftdi_usart.mode == NMEA) && usart_claim(&ftdi_state, NMEA_MODULE)) {
     usart_write(&ftdi_state, (u8 *)s, size);
     usart_release(&ftdi_state);
@@ -108,6 +108,7 @@ static void nmea_output(char *s, size_t size)
     usart_write(&uartb_state, (u8 *)s, size);
     usart_release(&uartb_state);
   }
+  */
 
   chMtxUnlock(&send_mutex);
 

@@ -12,10 +12,11 @@
 
 #include <string.h>
 
+#include <ch.h>
+
 #include <libsbp/settings.h>
 #include <libswiftnav/logging.h>
 
-#include "peripherals/usart.h"
 #include "sbp.h"
 #include "settings.h"
 
