@@ -94,13 +94,4 @@ u32 usart_read_timeout(usart_state* s, u8 data[], u32 len, u32 timeout);
 
 float usart_throughput(struct usart_stats* s);
 
-/* Support functions to be provided by the board specific implementation */
-void usart_support_init(void);
-void usart_support_set_parameters(void *sd, u32 baud);
-void usart_support_disable(void *sd);
-u32 usart_support_n_read(void *sd);
-u32 usart_support_tx_n_free(void *sd);
-u32 usart_support_read_timeout(void *sd, u8 data[], u32 len, u32 timeout);
-u32 usart_support_write(void *sd, const u8 data[], u32 len);
-
 #endif  /* SWIFTNAV_USART_H */

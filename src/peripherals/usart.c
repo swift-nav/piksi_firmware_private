@@ -17,7 +17,7 @@
 
 #include "../settings.h"
 #include "usart.h"
-#include "usart_support.h"
+#include "io_support.h"
 #include "version.h"
 
 /** \addtogroup io
@@ -56,7 +56,7 @@ usart_settings_t uartb_usart = {
  * Functions to setup and use STM32F4 USART peripherals with DMA.
  * \{ */
 
-usart_state ftdi_state = {.sd = SD_FTDI,
+usart_state ftdi_state = {.sd = SD_SBP,
                           .claimed = _BSEMAPHORE_DATA(ftdi_state.claimed, FALSE)};
 usart_state uarta_state = {.sd = SD_UARTA,
                           .claimed = _BSEMAPHORE_DATA(uarta_state.claimed, FALSE)};
@@ -114,11 +114,11 @@ static bool baudrate_change_notify(struct setting *s, const char *val)
  */
 void usarts_enable(u32 ftdi_baud, u32 uarta_baud, u32 uartb_baud)
 {
-  usart_support_init();
+  io_support_init();
 
-  usart_support_set_parameters(SD_FTDI, ftdi_baud);
-  usart_support_set_parameters(SD_UARTA, uarta_baud);
-  usart_support_set_parameters(SD_UARTB, uartb_baud);
+  io_support_set_parameters(SD_SBP, ftdi_baud);
+  io_support_set_parameters(SD_UARTA, uarta_baud);
+  io_support_set_parameters(SD_UARTB, uartb_baud);
 }
 
 /** Disable all USARTs. */
@@ -126,9 +126,9 @@ void usarts_disable()
 {
   /* Disable DMA channels. */
   /* Disable all USARTs. */
-  usart_support_disable(SD_FTDI);
-  usart_support_disable(SD_UARTA);
-  usart_support_disable(SD_UARTB);
+  io_support_disable(SD_SBP);
+  io_support_disable(SD_UARTA);
+  io_support_disable(SD_UARTB);
 }
 
 /** Claim this USART for exclusive use by the calling module.
@@ -183,7 +183,7 @@ u32 usart_n_read(usart_state* s)
   if (s->sd == NULL)
     return 0;
 
-  return usart_support_n_read(s->sd);
+  return io_support_n_read(s->sd);
 }
 
 /** Calculate the space left in the USART DMA transmit buffer.
@@ -195,7 +195,7 @@ u32 usart_tx_n_free(usart_state* s)
   if (s->sd == NULL)
     return 0;
 
-  return usart_support_tx_n_free(s->sd);
+  return io_support_tx_n_free(s->sd);
 }
 
 /** Read bytes from the USART RX buffer.
@@ -211,7 +211,7 @@ u32 usart_read_timeout(usart_state* s, u8 data[], u32 len, u32 timeout)
   if ((s->sd == NULL) || (len == 0))
     return 0;
 
-  u32 n = usart_support_read_timeout(s->sd, data, len, timeout);
+  u32 n = io_support_read_timeout(s->sd, data, len, timeout);
   s->rx.byte_counter += n;
   return n;
 }
@@ -257,7 +257,7 @@ u32 usart_write(usart_state* s, const u8 data[], u32 len)
 {
   if (s->sd == NULL)
     return len;
-  u32 n = usart_support_write(s->sd, data, len);
+  u32 n = io_support_write(s->sd, data, len);
   s->tx.byte_counter += n;
   return n;
 }

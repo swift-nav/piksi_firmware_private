@@ -24,14 +24,13 @@
 
 #include "peripherals/leds.h"
 #include "error.h"
-#include "peripherals/usart.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
 #include "main.h"
 #include "timing.h"
 #include "error.h"
-#include "usart_support.h"
+#include "io_support.h"
 #include "peripherals/usart.h"
 
 /** \defgroup io Input/Output
@@ -142,34 +141,6 @@ void sbp_remove_cbk(sbp_msg_callbacks_node_t *node)
   chMtxUnlock(&sbp_cb_mutex);
 }
 
-/** Disable the SBP interface.
- * Disables the USART peripherals and DMA streams enabled by sbp_setup(). */
-void sbp_disable()
-{
-  usarts_disable();
-}
-
-/** Checks if the message should be sent from a particular USART. */
-static inline u32 use_usart(usart_settings_t *us, u16 msg_type, u16 sender_id)
-{
-  if (us->mode != SBP) {
-    /* This USART is not in SBP mode. */
-    return 0;
-  }
-
-  if (!(us->sbp_message_mask & msg_type)) {
-    /* This message type is masked out on this USART. */
-    return 0;
-  }
-
-  if(!us->sbp_fwd && sender_id == 0) {
-    /* This USART is set up to not forward any messages (sender ID of 0).*/
-    return 0;
-  }
-
-  return 1;
-}
-
 static void sbp_buffer_reset(void)
 {
   sbp_buffer_length = 0;
@@ -209,8 +180,9 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
   ret |= sbp_send_message(&sbp_state, msg_type, sender_id,
                           len, buff, &sbp_buffer_write);
 
-  if (use_usart(&ftdi_usart, msg_type, sender_id) && usart_claim(&ftdi_state, SBP_MODULE)) {
-    usart_support_write(SD_FTDI, sbp_buffer, sbp_buffer_length);
+  /* TODO: Put back check for sender_id == 0 somewhere */
+  if (usart_claim(&ftdi_state, SBP_MODULE)) {
+    io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
     usart_release(&ftdi_state);
   }
 
@@ -221,7 +193,7 @@ u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
 static u32 sbp_read(u8 *buff, u32 n, void *context)
 {
   (void)context;
-  return usart_support_read_timeout(SD_FTDI, buff, n, TIME_IMMEDIATE);
+  return io_support_read_timeout(SD_SBP, buff, n, TIME_IMMEDIATE);
 }
 
 /** Process SBP messages received through the USARTs.
@@ -235,7 +207,7 @@ void sbp_process_messages()
   chMtxLock(&sbp_cb_mutex);
 
   if (usart_claim(&ftdi_state, SBP_MODULE)) {
-    while (usart_support_n_read(SD_FTDI) > 0) {
+    while (io_support_n_read(SD_SBP) > 0) {
       ret = sbp_process(&sbp_state, &sbp_read);
       if (ret == SBP_CRC_ERROR) {
         /* TODO: Expose this somehow */
