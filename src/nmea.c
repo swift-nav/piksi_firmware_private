@@ -36,7 +36,6 @@ static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
 
-static struct nmea_dispatcher *nmea_dispatchers_head;
 /** \addtogroup io
  * \{ */
 
@@ -81,8 +80,6 @@ static struct nmea_dispatcher *nmea_dispatchers_head;
   } while (0)
 
 /** Output NMEA sentence.
- * The message is also sent to all dispatchers registered with
- * ::nmea_dispatcher_register.
 
  * \param s The NMEA sentence to output.
  * \param size This is the C-string size, not including the null character
@@ -95,9 +92,6 @@ static void nmea_output(char *s, size_t size)
   io_support_write(SD_NMEA, (u8 *)s, size);
 
   chMtxUnlock(&send_mutex);
-
-  for (struct nmea_dispatcher *d = nmea_dispatchers_head; d; d = d->next)
-    d->send(s, size);
 }
 
 void nmea_setup(void)
@@ -547,14 +541,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
     );
   };
 }
-
-/** \cond */
-void _nmea_dispatcher_register(struct nmea_dispatcher *d)
-{
-  d->next = nmea_dispatchers_head;
-  nmea_dispatchers_head = d;
-}
-/** \endcond */
 
 /** \} */
 
