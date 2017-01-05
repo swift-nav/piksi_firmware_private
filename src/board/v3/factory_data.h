@@ -36,11 +36,6 @@
 #define FACTORY_STAGE_RETURN         0x00000003
 #define FACTORY_STAGE_DEV            0x00000004
 
-#define MFG_ID_LEN 17
-#define UUID_LEN 16
-#define NAP_KEY_LEN 16
-#define MAC_LEN 6
-
 /* Warning: factory data structures use unspecified endianness.
  * Do not access fields directly. Use API functions only. */
 typedef struct {
