@@ -65,10 +65,10 @@ static struct {
 } factory_params;
 
 struct uuid {
-  uint32_t  time_low;
-  uint16_t  time_mid;
-  uint16_t  time_hi_and_version;
-  uint16_t  clock_seq;
+  uint32_t time_low;
+  uint16_t time_mid;
+  uint16_t time_hi_and_version;
+  uint16_t clock_seq;
   uint8_t node[6];
 };
 
@@ -249,12 +249,12 @@ u16 sender_id_get(void)
 
 u8 mfg_id_string_get(char* mfg_id_string)
 {
- strncpy(mfg_id_string, (char *) factory_params.mfg_id, MFG_ID_LEN);
- return strnlen(mfg_id_string, MFG_ID_LEN);
+ memcpy(mfg_id_string, factory_params.mfg_id, 17);
+ return strnlen(mfg_id_string, 17);
 }
 
 /*lifted from libuuid*/ 
-void uuid_unpack(uint8_t* in, struct uuid *uu)
+static void uuid_unpack(uint8_t* in, struct uuid *uu)
 {
   const uint8_t *ptr = in;
   uint32_t    tmp;
