@@ -332,7 +332,7 @@ ULIBS =
 	@echo "Stripping $@"
 	@$(TRGT)strip -o $@ $<
 
-$(SWIFTNAV_ROOT)/src/main.c: version.h
+$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main.c: version.h
 .DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).stripped.elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 
