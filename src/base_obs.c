@@ -217,14 +217,6 @@ static void update_obss(obss_t *new_obss)
                   " surveyed position. Check the base station position setting.",
                   base_distance);
         }
-
-        if (base_distance > BASE_STATION_RESET_THRESHOLD) {
-          log_warn("Received base observation with SPP position %f m from the"
-                  " surveyed position. Ignoring the observation.",
-                  base_distance);
-          memset(&base_obss, 0, sizeof(base_obss));
-          have_obs = false;
-        }
       }
       chMtxUnlock(&base_pos_lock);
     } else {
