@@ -187,7 +187,7 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
       * - SHI1 is available and indicates L1CA healthy
       * - SHI4 is available and positive
       * - One of the following:
-      *     - Both SHI5 and SHI6 are unavailable
+      *     - SHI5 is unavailable
       *     - SHI5 is available and indicates L1CA healthy
       *
       * Otherwise return CODE_NAV_STATE_UNKNOWN
@@ -208,7 +208,7 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
 
       if ((shis.shi1_set && gps_healthy(shis.shi1, sid.code)) &&
           (shis.shi4_set && shis.shi4) &&
-          ((!shis.shi6_set && !msg10_available) ||
+          ((!msg10_available) ||
            (msg10_available && cnav_msg10.data.type_10.l1_health))
          ) {
         return CODE_NAV_STATE_VALID;
