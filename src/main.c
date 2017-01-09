@@ -71,16 +71,22 @@ int main(void)
   init();
   signal_init();
 
-  static s32 serial_number;
-  serial_number = serial_number_get();
-  if (serial_number == 0) {
+  static u16 sender_id;
+  sender_id = sender_id_get();
+
+  if (sender_id == 0) {
     /* TODO: Handle this properly! */
-    serial_number = rand();
+    sender_id = (u16) rand();
   }
-  sbp_sender_id_set(serial_number);
+  /* We only need 16 bits for sender ID for sbp */
+  
+  sbp_sender_id_set(sender_id);
 
   ndb_setup();
   ephemeris_setup();
+
+  static char sender_id_str[5];
+  sprintf(sender_id_str, "%04X", sender_id);
 
   static char hw_revision_string[64] = {0};
   hw_revision_string_get(hw_revision_string);
@@ -89,6 +95,16 @@ int main(void)
   static char nap_version_string[64] = {0};
   nap_version_string_get(nap_version_string);
   log_info("NAP firmware version: %s", nap_version_string);
+
+  static char mfg_id_string[18] = {0};
+  mfg_id_string_get(mfg_id_string);
+  log_info("Mfg serial number: %s", mfg_id_string);
+
+  static char mac_address_string[18] = {0};
+  mac_address_string_get(mac_address_string);
+  
+  static char uuid_string[37] = {0};
+  uuid_string_get(uuid_string);
 
   frontend_setup();
   timing_setup();
@@ -108,7 +124,9 @@ int main(void)
   ext_setup();
   pps_setup();
 
-  READ_ONLY_PARAMETER("system_info", "serial_number", serial_number, TYPE_INT);
+  READ_ONLY_PARAMETER("system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "serial_number", mfg_id_string,
+                      TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "firmware_version", GIT_VERSION,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "firmware_built", __DATE__ " " __TIME__,
@@ -119,6 +137,11 @@ int main(void)
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "nap_channels", nap_track_n_channels,
                       TYPE_INT);
+
+  READ_ONLY_PARAMETER("system_info", "mac_address", mac_address_string,
+                      TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "uuid", uuid_string,
+                      TYPE_STRING);
 
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;

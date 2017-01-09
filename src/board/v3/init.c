@@ -57,9 +57,20 @@
 
 static struct {
   uint32_t hardware;
+  uint32_t timestamp;
   uint8_t uuid[16];
   uint8_t nap_key[16];
+  uint8_t mac_address[6];
+  uint8_t mfg_id[17];
 } factory_params;
+
+struct uuid {
+  uint32_t time_low;
+  uint16_t time_mid;
+  uint16_t time_hi_and_version;
+  uint16_t clock_seq;
+  uint8_t node[6];
+};
 
 static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
@@ -67,6 +78,7 @@ static void nap_version_check(void);
 static void nap_auth_setup(void);
 static void nap_auth_check(void);
 static bool factory_params_read(void);
+static void uuid_unpack(uint8_t* in, struct uuid *uu);
 
 void pre_init(void)
 {
@@ -208,16 +220,90 @@ static bool factory_params_read(void)
     return false;
   }
 
+  if (factory_data_timestamp_get(factory_data, &factory_params.timestamp) != 0) {
+    log_error("error reading timestamp from factory data");
+    return false;
+  }
+
+   if (factory_data_mac_address_get(factory_data, factory_params.mac_address) != 0) {
+    log_error("error reading mac address from factory data");
+    return false;
+  }
+
+   if (factory_data_mfg_id_get(factory_data, factory_params.mfg_id) != 0) {
+    log_error("error reading mfg id from factory data");
+    return false;
+  }
+
   return true;
 }
 
-s32 serial_number_get(void)
+u16 sender_id_get(void)
 {
-  u32 serial_int = factory_params.uuid[0] +
-                   (factory_params.uuid[1] << 8) +
-                   (factory_params.uuid[2] << 16) +
-                   (factory_params.uuid[3] << 24);
-  return serial_int;
+  struct uuid my_uuid;
+  uuid_unpack(factory_params.uuid, &my_uuid);
+  u16 sender_id = (u16) (my_uuid.node[4] << 8) + my_uuid.node[5];
+  return sender_id;
+}
+
+u8 mfg_id_string_get(char* mfg_id_string)
+{
+ memcpy(mfg_id_string, factory_params.mfg_id, sizeof(factory_params.mfg_id));
+ mfg_id_string[sizeof(factory_params.mfg_id)] = 0;
+ return strlen(mfg_id_string);
+}
+
+/*lifted from libuuid*/ 
+static void uuid_unpack(const uint8_t* in, struct uuid *uu)
+{
+  const uint8_t *ptr = in;
+  uint32_t    tmp;
+
+  tmp = *ptr++;
+  tmp = (tmp << 8) | *ptr++;
+  tmp = (tmp << 8) | *ptr++;
+  tmp = (tmp << 8) | *ptr++;
+  uu->time_low = tmp;
+
+  tmp = *ptr++;
+  tmp = (tmp << 8) | *ptr++;
+  uu->time_mid = tmp;
+
+  tmp = *ptr++;
+  tmp = (tmp << 8) | *ptr++;
+  uu->time_hi_and_version = tmp;
+
+  tmp = *ptr++;
+  tmp = (tmp << 8) | *ptr++;
+  uu->clock_seq = tmp;
+
+  memcpy(uu->node, ptr, 6);
+}
+
+
+u8 uuid_string_get(char *uuid_string)
+{
+  struct uuid temp_uuid;
+  uuid_unpack(factory_params.uuid, &temp_uuid);
+  sprintf(uuid_string, "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+    temp_uuid.time_low, temp_uuid.time_mid, temp_uuid.time_hi_and_version,
+    temp_uuid.clock_seq >> 8, temp_uuid.clock_seq & 0xFF,
+    temp_uuid.node[0], temp_uuid.node[1], temp_uuid.node[2],
+    temp_uuid.node[3], temp_uuid.node[4], temp_uuid.node[5]);
+  return strlen(uuid_string);
+}
+
+u8 mac_address_string_get(char *mac_string)
+{
+  sprintf(mac_string, "%02X-%02X-%02X-%02X-%02X-%02X",
+          factory_params.mac_address[5],
+          factory_params.mac_address[4],
+          factory_params.mac_address[3],
+          factory_params.mac_address[2],
+          factory_params.mac_address[1],
+          factory_params.mac_address[0]
+          );
+  return strlen(mac_string);
 }
 
 u8 hw_revision_string_get(char *hw_revision_string)

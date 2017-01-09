@@ -16,9 +16,12 @@
 void pre_init(void);
 void init(void);
 
-s32 serial_number_get(void);
+u16 sender_id_get(void);
 u8 hw_revision_string_get(char *hw_revision_string);
 u8 nap_version_string_get(char *nap_version_string);
+u8 uuid_string_get(char *uuid_string);
+u8 mfg_id_string_get(char *mfg_id_string);
+u8 mac_address_string_get(char *mac_string); 
 
 #endif
 
