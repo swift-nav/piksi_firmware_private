@@ -1062,7 +1062,7 @@ static void solution_thread(void *arg)
     if (time_quality < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
        * known. We should only use this PVT solution to update our time
-       * estimate and then skip all other processing.
+       * estimate and send out the first fix and then skip all other processing.
        *
        * Note that the lack of knowledge of the receiver clock bias does NOT
        * degrade the quality of the position solution but the rapid change in
@@ -1078,6 +1078,11 @@ static void solution_thread(void *arg)
                                          &baseline_ecef, &baseline_heading);
       }
       last_spp = chVTGetSystemTime();
+
+      /* send out the first solution */
+      bool disable_velocity = true;
+      solution_make_sbp(&current_fix, &dops, disable_velocity, &sbp_gps_time,
+                        &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops);
       continue;
     }
     // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
