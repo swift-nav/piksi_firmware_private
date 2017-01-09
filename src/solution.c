@@ -664,8 +664,7 @@ static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
     CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
     /* Any phase accuracy, high code accuracy */
     CHAN_MEAS_FLAG_CODE_VALID | CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
-    /* Any phase accuracy, high or low code accuracy */
-    CHAN_MEAS_FLAG_CODE_VALID,
+    /* Note: do not use measurements that do not have valid Doppler */
   };
 
   /* Go though criteria vector from the most strict till the least strict, and
