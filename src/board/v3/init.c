@@ -78,7 +78,7 @@ static void nap_version_check(void);
 static void nap_auth_setup(void);
 static void nap_auth_check(void);
 static bool factory_params_read(void);
-static void uuid_unpack(uint8_t* in, struct uuid *uu);
+static void uuid_unpack(const uint8_t* in, struct uuid *uu);
 
 void pre_init(void)
 {
