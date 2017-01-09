@@ -220,7 +220,6 @@ static bool factory_params_read(void)
     return false;
   }
 
-
   if (factory_data_timestamp_get(factory_data, &factory_params.timestamp) != 0) {
     log_error("error reading timestamp from factory data");
     return false;
@@ -249,12 +248,13 @@ u16 sender_id_get(void)
 
 u8 mfg_id_string_get(char* mfg_id_string)
 {
- memcpy(mfg_id_string, factory_params.mfg_id, 17);
- return strnlen(mfg_id_string, 17);
+ memcpy(mfg_id_string, factory_params.mfg_id, sizeof(factory_params.mfg_id));
+ mfg_id_string[sizeof(factory_params.mfg_id)] = 0;
+ return strlen(mfg_id_string);
 }
 
 /*lifted from libuuid*/ 
-static void uuid_unpack(uint8_t* in, struct uuid *uu)
+static void uuid_unpack(const uint8_t* in, struct uuid *uu)
 {
   const uint8_t *ptr = in;
   uint32_t    tmp;
