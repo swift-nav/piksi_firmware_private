@@ -1023,8 +1023,11 @@ static void solution_thread(void *arg)
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
+    /* Force RAIM off until the first fix */
      // TODO(Leith) check velocity_valid
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
+    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp,
+                          disable_raim || (time_quality < TIME_FINE),
+                          false,
                           (double) get_solution_elevation_mask(),
                           &current_fix, &dops);
     if (pvt_ret < 0) {
