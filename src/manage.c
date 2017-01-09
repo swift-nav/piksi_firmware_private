@@ -653,7 +653,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
   case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
-  case CH_DROP_REASON_L2CL_SYNC: str = "half-cycle ambiguity resolved, dropping"; break;
+  case CH_DROP_REASON_L2CL_SYNC: str = "L2CM half-cycle ambiguity resolved, dropping L2CL"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;

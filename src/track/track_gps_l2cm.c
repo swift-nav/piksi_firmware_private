@@ -145,13 +145,14 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   }
 
   if ((code_phase < 0) ||
-      ((code_phase > 0.5) && (code_phase < (GPS_L1CA_CHIPS_NUM - 0.5)))) {
+      ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
+       (code_phase < (GPS_L1CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
     log_warn_sid(sid, "Unexpected L1C/A to L2C handover code phase: %f",
                  code_phase);
     return;
   }
 
-  if (code_phase > (GPS_L1CA_CHIPS_NUM - 0.5)) {
+  if (code_phase > (GPS_L1CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)) {
     code_phase = GPS_L2CM_CHIPS_NUM - (GPS_L1CA_CHIPS_NUM - code_phase);
   }
 
@@ -543,7 +544,7 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
     /* Start L2 CL tracker if not running */
     do_l2cm_to_l2cl_handover(common_data->sample_count,
                              channel_info->sid.sat,
-                             common_data->code_phase_early,
+                             common_data->code_phase_prompt,
                              common_data->carrier_freq,
                              common_data->cn0,
                              common_data->TOW_ms);

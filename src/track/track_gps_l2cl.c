@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Adel Mamin <adel.mamin@exafore.com>
- *          Pasi Miettinen <pasi.miettinen@exafore.com>
+ * Copyright (C) 2017 Swift Navigation Inc.
+ * Contact: Tommi Paakki <tommi.paakki@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -140,23 +139,26 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
   }
 
   if ((code_phase < 0) ||
-      ((code_phase > 0.5) && (code_phase < (GPS_L2CM_CHIPS_NUM - 0.5)))) {
+      ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
+       (code_phase < (GPS_L2CM_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
     log_warn_sid(sid, "Unexpected L2CM to L2CL handover code phase: %f",
                  code_phase);
     return;
   }
 
-  s32 offset = (TOW_ms % 1500); /* L2CL code starts every 1.5 seconds.
-                                   Offset must be taken into account. */
+  /* L2CL code starts every 1.5 seconds. Offset must be taken into account. */
+  s32 offset_ms = (TOW_ms % GPS_L2CL_PRN_PERIOD);
+  u32 code_length = code_to_chip_count(sid.code);
+  u32 chips_in_ms = code_length / GPS_L2CL_PRN_PERIOD;
 
-  if (code_phase > (GPS_L2CM_CHIPS_NUM - 0.5)) {
-    if (offset == 0) {
+  if (code_phase > (GPS_L2CM_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)) {
+    if (offset_ms == 0) {
       code_phase = GPS_L2CL_CHIPS_NUM - (GPS_L2CM_CHIPS_NUM - code_phase);
     } else {
-      code_phase = offset * 1023 - (GPS_L2CM_CHIPS_NUM - code_phase);
+      code_phase = offset_ms * chips_in_ms - (GPS_L2CM_CHIPS_NUM - code_phase);
     }
   } else {
-      code_phase += offset * 1023;
+    code_phase += offset_ms * chips_in_ms;
   }
 
   /* The best elevation estimation could be retrieved by calling

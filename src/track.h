@@ -41,10 +41,15 @@
 #define XCORR_CONFIRM_THRESHOLD -20.f
 /** cross-correlation update rate [Hz] */
 #define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
-/** carrier phases within tolerance are declared equal [cycles] */
+/** Carrier phases within tolerance are declared equal. [cycles]
+ *  Stable PLL remains within 15 degree from correct phase.
+ *  360 * 0.05 = 18 degrees
+*/
 #define CARRIER_PHASE_TOLERANCE 0.05f
 /** counter for half-cycle ambiguity resolution */
 #define CARRIER_PHASE_AMBIGUITY_COUNTER 20
+/** handover should occur when code phase is near zero [chips] */
+#define HANDOVER_CODE_PHASE_THRESHOLD 0.5
 
 typedef u8 tracker_channel_id_t;
 

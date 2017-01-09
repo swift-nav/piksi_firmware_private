@@ -1071,7 +1071,7 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
  *
  * \return True if parent L2CM data was found
  *  and did not have half-cycle ambiguity resolved.
- *  False, otherwise.
+ *  False, otherwise. Drop L2CL in case of False.
  */
 bool tracking_channel_load_data(gnss_signal_t sid,
                                 float *own_cp, float *parent_cp,
@@ -1367,7 +1367,7 @@ s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid)
 }
 
 /** Main function for comparing phase information between L2CM and L2CL trackers.
- *  This function is called from the L2CM tracker.
+ *  This function is called from the L2CL tracker.
  *
  * \param[in] sid      GNSS signal identifier.
  * \param[in] fll_mode Flag indicating if the tracker is in FLL mode.
