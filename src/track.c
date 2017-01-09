@@ -302,7 +302,7 @@ void tracking_send_detailed_state(void)
 
     tracking_channel_get_values(i,
                                 &channel_info,
-                                NULL, /* time info */
+                                &time_info, /* time info */
                                 &freq_info,
                                 &ctrl_info,
                                 &misc_info, /* misc parameters */
@@ -833,7 +833,7 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
  *
  * \return Lock time [s]
  */
-static double tracking_channel_get_lock_time(
+double tracking_channel_get_lock_time(
   const tracking_channel_time_info_t *time_info,
   const tracking_channel_misc_info_t *misc_info)
 {

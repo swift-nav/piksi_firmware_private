@@ -229,6 +229,8 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_ctrl_info_t *ctrl_params,
                                  tracking_channel_misc_info_t *misc_params,
                                  bool reset_stats);
+double tracking_channel_get_lock_time(const tracking_channel_time_info_t *time_info,
+                                      const tracking_channel_misc_info_t *misc_info);
 u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
 
 void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
