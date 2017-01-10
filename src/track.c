@@ -616,7 +616,7 @@ static void tracking_channel_compute_values(
     /* Current carrier frequency for a tracker channel. */
     freq_info->carrier_phase = common_data->carrier_phase;
     /* Code phase in chips */
-    freq_info->code_phase_chips = common_data->code_phase_early;
+    freq_info->code_phase_chips = common_data->code_phase_prompt;
     /* Code phase rate in chips/s */
     freq_info->code_phase_rate = common_data->code_phase_rate;
     /* Acceleration [g] */
@@ -1450,8 +1450,8 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->TOW_ms = TOW_INVALID;
 
   /* Calculate code phase rate with carrier aiding. */
-  common_data->code_phase_rate = (1 + carrier_freq / code_to_carr_freq(code)) *
-                                 GPS_CA_CHIPPING_RATE;
+  common_data->code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(code)) *
+                                 code_to_chip_rate(code);
   common_data->carrier_freq = carrier_freq;
 
   common_data->sample_count = sample_count;

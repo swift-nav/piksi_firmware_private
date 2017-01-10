@@ -34,7 +34,7 @@ void nap_track_update(u8 channel, double carrier_freq,
                       u8 corr_spacing);
 void nap_track_read_results(u8 channel,
                             u32* count_snapshot, corr_t corrs[],
-                            double *code_phase_early,
+                            double *code_phase_prompt,
                             double *carrier_phase);
 
 void nap_track_disable(u8 channel);

@@ -22,7 +22,7 @@
 typedef struct {
   volatile uint32_t STATUS;
   volatile uint32_t CONTROL;
-  const volatile uint32_t START_SNAPSHOT;
+  const volatile uint32_t TIMING_SNAPSHOT;
   volatile uint32_t LENGTH;
   volatile uint32_t SPACING;
   volatile uint32_t CODE_INIT_INT;
@@ -54,8 +54,8 @@ typedef struct {
   volatile uint32_t ACQ_CONTROL;
   volatile uint32_t ACQ_AXI_ATTRIBUTES;
   volatile uint32_t ACQ_TIMING_COMPARE;
+  volatile uint32_t ACQ_COMPARE_SNAPSHOT;
   volatile uint32_t ACQ_TIMING_SNAPSHOT;
-  volatile uint32_t ACQ_START_SNAPSHOT;
   volatile uint32_t ACQ_FFT_CONFIG;
   volatile int32_t  ACQ_PINC;
   volatile uint32_t ACQ_PEAK_MAGSQ;
@@ -65,7 +65,7 @@ typedef struct {
   volatile uint32_t TRK_IRQ;
   volatile uint32_t TRK_IRQ_ERROR;
   volatile uint32_t TRK_TIMING_COMPARE;
-  volatile uint32_t TRK_TIMING_SNAPSHOT;
+  volatile uint32_t TRK_COMPARE_SNAPSHOT;
   volatile uint32_t PPS_CONTROL;
   volatile uint32_t PPS_TIMING_COMPARE;
   volatile uint32_t EVENT_TIMING_SNAPSHOT;
@@ -169,6 +169,12 @@ typedef struct {
 
 #define NAP_TRK_SPACING_OFFSET3_Pos (21U)
 #define NAP_TRK_SPACING_OFFSET3_Msk (0x1FFU << NAP_TRK_SPACING_OFFSET3_Pos)
+
+#define NAP_TRK_SPACING_CHIPS_Pos (6U)
+#define NAP_TRK_SPACING_CHIPS_Msk (0x7U)
+
+#define NAP_TRK_SPACING_SAMPLES_Pos (0U)
+#define NAP_TRK_SPACING_SAMPLES_Msk (0x3FU)
 
 #define NAP_IRQ_ACQ_TIMING_Pos (0U)
 #define NAP_IRQ_ACQ_TIMING_Msk (0x1U << NAP_IRQ_ACQ_TIMING_Pos)

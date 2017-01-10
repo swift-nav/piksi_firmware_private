@@ -638,7 +638,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
     /* Start L2 C tracker if not running */
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,
-                             common_data->code_phase_early,
+                             common_data->code_phase_prompt,
                              common_data->carrier_freq,
                              common_data->cn0);
   }

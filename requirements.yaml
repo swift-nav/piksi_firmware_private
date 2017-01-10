@@ -14,7 +14,7 @@
         - uImage.piksiv3_microzed
     -
       bucket: piksi-fpga-unlocked
-      prefix: v3.6.0
+      prefix: v3.7.1
       files:
         - piksi_microzed_fpga_unlocked.bit
 -
@@ -32,6 +32,6 @@
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v3.6.2
+      prefix: piksi_fpga/v3.7.1
       files:
         - piksi_prod_fpga.bit
