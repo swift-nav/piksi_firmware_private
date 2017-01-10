@@ -23,13 +23,11 @@
 #include "board/nap/track_channel.h"
 #include "track.h"
 #include "nmea.h"
-#include "peripherals/usart.h"
 #include "sbp.h"
 #include "settings.h"
 #include "main.h"
 #include "timing.h"
-
-const char NMEA_MODULE[] = "nmea";
+#include "io_support.h"
 
 static u32 gpgsv_msg_rate = 10;
 static u32 gprmc_msg_rate = 10;
@@ -38,7 +36,6 @@ static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
 
-static struct nmea_dispatcher *nmea_dispatchers_head;
 /** \addtogroup io
  * \{ */
 
@@ -82,9 +79,7 @@ static struct nmea_dispatcher *nmea_dispatchers_head;
     nmea_output(sentence_buf, sentence_bufp - sentence_buf + NMEA_SUFFIX_LEN-1); \
   } while (0)
 
-/** Output NMEA sentence to all USARTs configured in NMEA mode.
- * The message is also sent to all dispatchers registered with
- * ::nmea_dispatcher_register.
+/** Output NMEA sentence.
 
  * \param s The NMEA sentence to output.
  * \param size This is the C-string size, not including the null character
@@ -94,25 +89,9 @@ static void nmea_output(char *s, size_t size)
   static MUTEX_DECL(send_mutex);
   chMtxLock(&send_mutex);
 
-  if ((ftdi_usart.mode == NMEA) && usart_claim(&ftdi_state, NMEA_MODULE)) {
-    usart_write(&ftdi_state, (u8 *)s, size);
-    usart_release(&ftdi_state);
-  }
-
-  if ((uarta_usart.mode == NMEA) && usart_claim(&uarta_state, NMEA_MODULE)) {
-    usart_write(&uarta_state, (u8 *)s, size);
-    usart_release(&uarta_state);
-  }
-
-  if ((uartb_usart.mode == NMEA) && usart_claim(&uartb_state, NMEA_MODULE)) {
-    usart_write(&uartb_state, (u8 *)s, size);
-    usart_release(&uartb_state);
-  }
+  io_support_write(SD_NMEA, (u8 *)s, size);
 
   chMtxUnlock(&send_mutex);
-
-  for (struct nmea_dispatcher *d = nmea_dispatchers_head; d; d = d->next)
-    d->send(s, size);
 }
 
 void nmea_setup(void)
@@ -562,14 +541,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
     );
   };
 }
-
-/** \cond */
-void _nmea_dispatcher_register(struct nmea_dispatcher *d)
-{
-  d->next = nmea_dispatchers_head;
-  nmea_dispatchers_head = d;
-}
-/** \endcond */
 
 /** \} */
 

@@ -20,6 +20,7 @@
 #include <ch.h>
 
 #include "peripherals/leds.h"
+#include "io_support.h"
 #include "board/frontend.h"
 #include "sbp.h"
 #include "init.h"
@@ -58,9 +59,9 @@ int main(void)
   /* Piksi hardware initialization. */
   pre_init();
 
+  io_support_init();
   sbp_setup();
   settings_setup();
-  usarts_setup();
 
   board_preinit_hook();
 

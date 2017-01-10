@@ -20,9 +20,6 @@
 
 #include "track.h"
 
-/** \addtogroup nmea
- * \{ */
-
 #define NMEA_GGA_FIX_INVALID 0
 #define NMEA_GGA_FIX_GPS     1
 #define NMEA_GGA_FIX_DGPS    2
@@ -51,26 +48,5 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
                     const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
                     const msg_gps_time_t *sbp_msg_time, u8 n_used, const navigation_measurement_t *nav_meas,
                     double propagation_time, u8 sender_id);
-
-/** Register a new dispatcher for NMEA messages
- *
- * \param send_func Pointer to dispatcher function.
- */
-#define nmea_dispatcher_register(send_func) do {         \
-  static struct nmea_dispatcher dispatcher = \
-    { .send = send_func }; \
-  _nmea_dispatcher_register(&dispatcher); \
-} while(0)
-
-/** \cond */
-struct nmea_dispatcher {
-  void (*send)(const char *msg, size_t msg_size);
-  struct nmea_dispatcher *next;
-};
-
-void _nmea_dispatcher_register(struct nmea_dispatcher *);
-/** \endcond */
-
-/** \} */
 
 #endif  /* SWIFTNAV_NMEA_H */

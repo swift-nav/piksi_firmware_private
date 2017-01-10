@@ -11,8 +11,10 @@
  */
 
 #include "imu.h"
+#include <settings.h>
 #include <math.h>
 #include <ch.h>
+#include <hal.h>
 #include <sbp.h>
 #include <timing.h>
 #include <libswiftnav/time.h>

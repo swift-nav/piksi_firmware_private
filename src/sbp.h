@@ -22,8 +22,6 @@
 #include <libsbp/sbp.h>
 #include <libsbp/tracking.h>
 
-#include "peripherals/usart.h"
-
 void log_obs_latency(float latency_ms);
 void log_obs_latency_tick(void);
 
@@ -34,7 +32,6 @@ void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
                                    sbp_msg_callbacks_node_t *node,
                                    void *context);
 void sbp_remove_cbk(sbp_msg_callbacks_node_t *node);
-void sbp_disable(void);
 u32 sbp_send_msg(u16 msg_type, u8 len, u8 buff[]);
 u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id);
 void sbp_process_messages(void);
