@@ -66,8 +66,8 @@ int main(void)
   board_preinit_hook();
 
   log_info("Piksi Starting...");
-  log_info("gnss version: " GIT_VERSION "");
-  log_info("gnss build date: " __DATE__ " " __TIME__ "");
+  log_info("pfwp_build_id: " GIT_VERSION "");
+  log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
   init();
   signal_init();
@@ -95,7 +95,7 @@ int main(void)
 
   static char nap_version_string[64] = {0};
   nap_version_string_get(nap_version_string);
-  log_info("NAP firmware version: %s", nap_version_string);
+  log_info("NAP build id: %s", nap_version_string);
 
   static char mfg_id_string[18] = {0};
   mfg_id_string_get(mfg_id_string);

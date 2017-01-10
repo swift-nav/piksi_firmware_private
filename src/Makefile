@@ -271,7 +271,7 @@ CPPWARN = -Wall -Wextra -Werror -Weffc++ -std=gnu++11 \
 # Start of default section
 #
 
-GIT_VERSION := $(shell git describe --dirty)
+GIT_VERSION := $(shell git describe --tags --dirty --always --long)
 version.h: FORCE
 	@echo "Generating $@"
 	@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $@
