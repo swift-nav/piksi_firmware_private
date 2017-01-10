@@ -154,10 +154,6 @@ typedef struct {
   u32   bsync: 1;          /**< Bit sync flag */
   u32   bsync_sticky: 1;   /**< Bit sync flag */
   u32   profile_update: 1; /**< Flag if the profile update is required */
-  u32   low_cn0_count: 5;  /**< State lock counter for C/N0 threshold */
-  u32   high_cn0_count: 5; /**< State lock counter for C/N0 threshold */
-  u32   accel_count: 5;    /**< State lock counter for dynamics threshold */
-  u32   accel_count_idx: 2;/**< State lock value for dynamics threshold */
   u32   cn0_est: 2;        /**< C/N0 estimator type */
   u16   lock_time_ms;      /**< Profile lock count down timer */
   u8    cur_index;         /**< Active profile index [0-25] */

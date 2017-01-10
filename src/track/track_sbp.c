@@ -266,7 +266,9 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
 
   float cn0 = channel_info->cn0 * MSG_OBS_CN0_MULTIPLIER;
   state->cn0 = (u8)limit_value(cn0, 0, UINT8_MAX);
-  state->lock = tracking_lock_counter_get(sid);
+
+  double lock_time = tracking_channel_get_lock_time(time_info, misc_info);
+  state->lock = encode_lock_time(lock_time);
 
   state->sid = sid_to_sbp(sid);
 
