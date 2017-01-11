@@ -254,30 +254,35 @@ u8 mfg_id_string_get(char* mfg_id_string)
 }
 
 /*lifted from libuuid*/ 
-static void uuid_unpack(const uint8_t* in, struct uuid *uu)
+static void uuid_unpack(const uint8_t in[], struct uuid *uu)
 {
-  const uint8_t *ptr = in;
+  const uint8_t *ptr = &in[15];
   uint32_t    tmp;
 
-  tmp = *ptr++;
-  tmp = (tmp << 8) | *ptr++;
-  tmp = (tmp << 8) | *ptr++;
-  tmp = (tmp << 8) | *ptr++;
+  tmp = *ptr--;
+  tmp = (tmp << 8) | *ptr--;
+  tmp = (tmp << 8) | *ptr--;
+  tmp = (tmp << 8) | *ptr--;
   uu->time_low = tmp;
 
-  tmp = *ptr++;
-  tmp = (tmp << 8) | *ptr++;
+  tmp = *ptr--;
+  tmp = (tmp << 8) | *ptr--;
   uu->time_mid = tmp;
 
-  tmp = *ptr++;
-  tmp = (tmp << 8) | *ptr++;
+  tmp = *ptr--;
+  tmp = (tmp << 8) | *ptr--;
   uu->time_hi_and_version = tmp;
 
-  tmp = *ptr++;
-  tmp = (tmp << 8) | *ptr++;
+  tmp = *ptr--;
+  tmp = (tmp << 8) | *ptr--;
   uu->clock_seq = tmp;
-
-  memcpy(uu->node, ptr, 6);
+  
+  uu->node[0] = *ptr--;
+  uu->node[1] = *ptr--;
+  uu->node[2] = *ptr--;
+  uu->node[3] = *ptr--;
+  uu->node[4] = *ptr--;
+  uu->node[5] = *ptr--;
 }
 
 
