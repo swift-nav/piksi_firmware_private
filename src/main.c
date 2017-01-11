@@ -91,15 +91,15 @@ int main(void)
 
   static char hw_revision_string[64] = {0};
   hw_revision_string_get(hw_revision_string);
-  log_info("HW revision: %s", hw_revision_string);
+  log_info("hw_revision: %s", hw_revision_string);
 
   static char nap_version_string[64] = {0};
   nap_version_string_get(nap_version_string);
-  log_info("NAP build id: %s", nap_version_string);
+  log_info("nap_build_id: %s", nap_version_string);
 
   static char mfg_id_string[18] = {0};
   mfg_id_string_get(mfg_id_string);
-  log_info("Mfg serial number: %s", mfg_id_string);
+  log_info("mfg_serial_ number: %s", mfg_id_string);
 
   static char mac_address_string[18] = {0};
   mac_address_string_get(mac_address_string);
