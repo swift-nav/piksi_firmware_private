@@ -66,8 +66,8 @@ int main(void)
   board_preinit_hook();
 
   log_info("Piksi Starting...");
-  log_info("Firmware Version: " GIT_VERSION "");
-  log_info("Built: " __DATE__ " " __TIME__ "");
+  log_info("pfwp_build_id: " GIT_VERSION "");
+  log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
   init();
   signal_init();
@@ -91,15 +91,15 @@ int main(void)
 
   static char hw_revision_string[64] = {0};
   hw_revision_string_get(hw_revision_string);
-  log_info("HW revision: %s", hw_revision_string);
+  log_info("hw_revision: %s", hw_revision_string);
 
   static char nap_version_string[64] = {0};
   nap_version_string_get(nap_version_string);
-  log_info("NAP firmware version: %s", nap_version_string);
+  log_info("nap_build_id: %s", nap_version_string);
 
   static char mfg_id_string[18] = {0};
   mfg_id_string_get(mfg_id_string);
-  log_info("Mfg serial number: %s", mfg_id_string);
+  log_info("mfg_serial_number: %s", mfg_id_string);
 
   static char mac_address_string[18] = {0};
   mac_address_string_get(mac_address_string);
@@ -128,13 +128,13 @@ int main(void)
   READ_ONLY_PARAMETER("system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "serial_number", mfg_id_string,
                       TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "firmware_version", GIT_VERSION,
+  READ_ONLY_PARAMETER("system_info", "pfwp_build_id", GIT_VERSION,
                       TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "firmware_built", __DATE__ " " __TIME__,
+  READ_ONLY_PARAMETER("system_info", "pfwp_build_date", __DATE__ " " __TIME__,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "hw_revision", hw_revision_string,
                       TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "nap_version", nap_version_string,
+  READ_ONLY_PARAMETER("system_info", "nap_build_id", nap_version_string,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "nap_channels", nap_track_n_channels,
                       TYPE_INT);
