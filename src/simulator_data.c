@@ -1,17 +1,17 @@
 #include "simulator_data.h"
 /* AUTO-GENERATED FROM simulator_almanac_generator.py and data/week763.alm*/
 
-u16 simulation_week_number = 1787;
+u16 simulation_week_number = 1878;
 
-double simulation_sats_pos[31][3];
+double simulation_sats_pos[33][3];
 
-double simulation_sats_vel[31][3];
+double simulation_sats_vel[33][3];
 
-u32 simulation_fake_carrier_bias[31];
+u32 simulation_fake_carrier_bias[33];
 
-u8 simulation_num_almanacs = 31;
+u8 simulation_num_almanacs = 33;
 
-const almanac_t simulation_almanacs[31] = {
+const almanac_t simulation_almanacs[33] = {
 { 
   .kepler = { 
     .ecc       = 0.002888,
@@ -29,7 +29,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 1
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -54,7 +54,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 2
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -79,7 +79,32 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 3
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
+    .tow = 233472.000000
+  },
+  .ura = 900.000000,
+  .fit_interval = 518400,
+  .health_bits = 0,
+  .valid     = 1,
+},
+{ 
+  .kepler = { 
+    .ecc       = 0.016847,
+    .inc       = 0.937600,
+    .omegadot  = -0.000000,
+    .sqrta     = 5153.723633,
+    .omega0    = -2.021208,
+    .w         = 1.373169,
+    .m0        = 2.664127,
+    .af0       = 0.000349,
+    .af1       = 0.000000,
+  },
+  .sid = { 
+    .code = 1,
+    .sat = 3
+  },
+  .toa = {
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -104,7 +129,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 4
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -129,7 +154,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 5
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -154,7 +179,32 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 7
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
+    .tow = 233472.000000
+  },
+  .ura = 900.000000,
+  .fit_interval = 518400,
+  .health_bits = 0,
+  .valid     = 1,
+},
+{
+  .kepler = { 
+    .ecc       = 0.007160,
+    .inc       = 0.973727,
+    .omegadot  = -0.000000,
+    .sqrta     = 5153.596191,
+    .omega0    = 2.342325,
+    .w         = -2.840829,
+    .m0        = 1.241122,
+    .af0       = 0.000333,
+    .af1       = 0.000000,
+  },
+  .sid = { 
+    .code = 1,
+    .sat = 7
+  },
+  .toa = {
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -179,7 +229,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 8
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -204,7 +254,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 9
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -229,7 +279,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 10
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -254,7 +304,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 11
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -279,7 +329,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 12
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -304,7 +354,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 13
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -329,7 +379,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 14
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -354,7 +404,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 15
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -379,7 +429,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 16
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -404,7 +454,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 17
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -429,7 +479,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 18
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -454,7 +504,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 19
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -479,7 +529,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 20
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -504,7 +554,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 21
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -529,7 +579,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 22
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -554,7 +604,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 23
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -579,7 +629,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 24
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -604,7 +654,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 25
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -629,7 +679,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 26
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -654,7 +704,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 27
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -679,7 +729,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 28
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -704,7 +754,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 29
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -729,7 +779,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 30
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -754,7 +804,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 31
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,
@@ -779,7 +829,7 @@ const almanac_t simulation_almanacs[31] = {
     .sat = 32
   },
   .toa = {
-    .wn = 1787,
+    .wn = 1878,
     .tow = 233472.000000
   },
   .ura = 900.000000,

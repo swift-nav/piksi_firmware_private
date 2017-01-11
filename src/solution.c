@@ -522,7 +522,9 @@ static void solution_simulation(msg_gps_time_t *gps_time, msg_pos_llh_t *pos_llh
   soln->time.tow = expected_tow;
   normalize_gps_time(&soln->time);
 
-  if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
+  if (simulation_enabled_for(SIMULATION_MODE_PVT) && 
+     !(simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
+       simulation_enabled_for(SIMULATION_MODE_RTK) )) {
     /* Then we send fake messages. */
     solution_make_sbp(soln, simulation_current_dops_solution(), FALSE, gps_time, pos_llh, pos_ecef,
                       vel_ned, vel_ecef, sbp_dops);

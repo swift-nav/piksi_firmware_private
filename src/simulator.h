@@ -74,7 +74,8 @@ bool simulation_enabled_for(simulation_modes_t mode_mask);
 //Internals of the simulator
 void simulation_step_position_in_circle(double);
 void simulation_step_tracking_and_observations(double);
-void populate_nav_meas(navigation_measurement_t *, double, double, int);
+void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, 
+                       double elevation, double vel, int almanac_i);
 
 //Sending simulation settings to the outside world
 void sbp_send_simulation_enabled(void);
