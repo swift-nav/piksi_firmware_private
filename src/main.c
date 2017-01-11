@@ -99,7 +99,7 @@ int main(void)
 
   static char mfg_id_string[18] = {0};
   mfg_id_string_get(mfg_id_string);
-  log_info("mfg_serial_ number: %s", mfg_id_string);
+  log_info("mfg_serial_number: %s", mfg_id_string);
 
   static char mac_address_string[18] = {0};
   mac_address_string_get(mac_address_string);
