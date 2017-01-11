@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 Swift Navigation Inc.
+ * Copyright (C) 2014-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -151,10 +151,24 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(gps_time, &soln->time, SPP_POSITION);
 
-    sbp_make_pos_llh(pos_llh, soln, SPP_POSITION);
+    /* Extract full covariance matrix from upper triangular in soln->err_cov */
+    double full_covariance[9];
+    extract_covariance(full_covariance, soln);
+
+    /* Compute the accuracy figures from the covariance matrix */
+    double accuracy, h_accuracy, v_accuracy;
+    covariance_to_accuracy(full_covariance, soln->pos_ecef,
+                           &accuracy, &h_accuracy, &v_accuracy);
+
+    const gps_time_t soln_time = soln->time;
+
+    /* Position in LLH. */
+    sbp_make_pos_llh_vect(pos_llh, soln->pos_llh, h_accuracy, v_accuracy,
+                          &soln_time, soln->n_sats_used, SPP_POSITION);
 
     /* Position in ECEF. */
-    sbp_make_pos_ecef(pos_ecef, soln, SPP_POSITION);
+    sbp_make_pos_ecef_vect(pos_ecef, soln->pos_ecef, accuracy,
+                          &soln_time, soln->n_sats_used, SPP_POSITION);
 
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
@@ -165,7 +179,7 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
       sbp_make_vel_ecef(vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
     }
 
-    // DOP message can be sent even if solution fails to compute
+    /* DOP message can be sent even if solution fails to compute */
     if (dops) {
       sbp_make_dops(sbp_dops,dops,pos_llh->tow, SPP_POSITION);
     }
@@ -177,6 +191,30 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     gps_time_t time_guess = get_current_time();
     sbp_make_gps_time(gps_time, &time_guess, 0);
   }
+}
+
+/** Extract the full covariance matrix from soln struct */
+void extract_covariance(double full_covariance[9], const gnss_solution *soln) {
+
+  assert(soln != NULL);
+  assert(full_covariance != NULL);
+
+/* soln->cov_err has the covariance in upper triangle covariance form, so
+ * copy from
+ *
+ *    0  1  2       0  1  2
+ *    _  3  4   to  3  4  5
+ *    _  _  5       6  7  8  */
+
+  full_covariance[0] = soln->err_cov[0];
+  full_covariance[1] = soln->err_cov[1];
+  full_covariance[2] = soln->err_cov[2];
+  full_covariance[3] = soln->err_cov[1];
+  full_covariance[4] = soln->err_cov[3];
+  full_covariance[5] = soln->err_cov[4];
+  full_covariance[6] = soln->err_cov[2];
+  full_covariance[7] = soln->err_cov[4];
+  full_covariance[8] = soln->err_cov[5];
 }
 
 /**

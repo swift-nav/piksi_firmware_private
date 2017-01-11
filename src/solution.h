@@ -70,6 +70,7 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
                        msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
                        msg_vel_ned_t *vel_ned, msg_vel_ecef_t *vel_ecef,
                        msg_dops_t *sbp_dops);
+void extract_covariance(double full_covariance[9], const gnss_solution *soln);
 double calc_heading(const double b_ned[3]);
 void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                                 double covariance_ecef[9], double ref_ecef[3], u8 flags, dops_t *dops,
