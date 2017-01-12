@@ -1,23 +1,5 @@
 ---
 -
-  name: microzed
-  resources:
-    -
-      prefix: v3
-      files:
-        - piksi_firmware_v3_microzed.stripped.elf
-  artifacts:
-    -
-      bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/M4_BUILDROOT_VERSION/v3/microzed
-      files:
-        - uImage.piksiv3_microzed
-    -
-      bucket: piksi-fpga-unlocked
-      prefix: v3.6.0
-      files:
-        - piksi_microzed_fpga_unlocked.bit
--
   name: prod
   resources:
     -
