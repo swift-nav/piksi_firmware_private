@@ -13,10 +13,10 @@
       files:
         - uImage.piksiv3_microzed
     -
-      bucket: piksi-fpga-unlocked
-      prefix: v3.6.0
+      bucket: swiftnav-artifacts
+      prefix: piksi_fpga/M4_FPGA_VERSION
       files:
-        - piksi_microzed_fpga_unlocked.bit
+        - piksi_microzed_nt1065_fpga.bit
 -
   name: prod
   resources:
