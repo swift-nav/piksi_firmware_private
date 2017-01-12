@@ -30,13 +30,13 @@ install:
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
   - export PATH=$PATH:~/gcc-arm-none-eabi/bin
-# - make PIKSI_HW=v3 PIKSI_REV=microzed
+  - make PIKSI_HW=v3 PIKSI_REV=microzed
   - make PIKSI_HW=v3 PIKSI_REV=prod
 
 after_success:
   - git fetch --tags --unshallow
   - ./publish.sh requirements.yaml
-# - PRODUCT_VERSION=v3 ./publish.sh build_v3_microzed/piksi_firmware_v3_microzed*.elf
+  - PRODUCT_VERSION=v3 ./publish.sh build_v3_microzed/piksi_firmware_v3_microzed*.elf
   - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf
   - GITHUB_TOKEN=80dc06f751124612b2643403ae96d90097a61a47 SLACK_CHANNEL=github ./comment.sh
 
