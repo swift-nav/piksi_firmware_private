@@ -269,12 +269,12 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   /* Sleep until compare match */
   s32 tc_delta;
   while ((tc_delta = tc_req - NAP->TIMING_COUNT) >= 0) {
-    systime_t sleep_time = ceil(CH_CFG_ST_FREQUENCY * tc_delta /
+    systime_t sleep_time = floor(CH_CFG_ST_FREQUENCY * tc_delta /
         NAP_TRACK_SAMPLE_RATE_Hz);
 
     /* The next system tick will always occur less than the nominal tick period
      * in the future, so sleep for an extra tick. */
-    chThdSleep(1 + sleep_time);
+    chThdSleep(1 + sleep_time / 2);
   }
 
   /* Revert length adjustment for future integrations after channel started */
