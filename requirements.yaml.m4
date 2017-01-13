@@ -16,7 +16,7 @@
       bucket: swiftnav-artifacts
       prefix: piksi_fpga/M4_FPGA_VERSION
       files:
-      - piksi_microzed_nt1065_fpga.bit
+        - piksi_microzed_nt1065_fpga.bit
 -
   name: prod
   resources:
