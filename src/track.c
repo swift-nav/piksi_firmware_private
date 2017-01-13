@@ -971,6 +971,9 @@ bool tracking_channel_calc_pseudorange(u64 ref_tc,
 }
 
 /** Adjust all carrier phase offsets with a receiver clock correction.
+ * Note that as this change to carrier is equal to the change caused to
+ * pseudoranges by the clock correction, the code-carrier difference does
+ * not change and thus we do not reset the lock counter.
  *
  * \param dt      Receiver clock change (s)
  */
@@ -995,7 +998,8 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
         sid = pub_data->gen_info.sid;
         carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
         misc_info->carrier_phase_offset.value = carrier_phase_offset;
-        misc_info->carrier_phase_offset.timestamp_ms = timing_getms();
+        /* Note that because code-carrier difference does not change here,
+         * we do not reset the lock time carrier_phase_offset.timestamp_ms */
         adjusted = true;
       }
     }
