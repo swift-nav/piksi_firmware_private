@@ -370,7 +370,6 @@ static void settings_write_callback(u16 sender_id, u8 len, u8 msg[], void* conte
 
   s = settings_lookup(section, setting);
   if (s == NULL) {
-    log_error("Error in settings write message");
     return;
   }
 
@@ -433,7 +432,6 @@ static void settings_read_callback(u16 sender_id, u8 len, u8 msg[], void* contex
 
   s = settings_lookup(section, setting);
   if (s == NULL) {
-    log_error("Error in settings read message");
     return;
   }
 
