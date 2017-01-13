@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Adel Mamin <adel.mamin@exafore.com>
+ * Copyright (C) 2017 Swift Navigation Inc.
+ * Contact: Tommi Paakki <tommi.paakki@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -13,25 +13,14 @@
 #include "decode_gps_l2cl.h"
 #include "decode.h"
 
-#include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg.h> /* For BIT_POLARITY_... constants */
-#include <libswiftnav/cnav_msg.h>
 #include <assert.h>
 #include <string.h>
 
-#include "ephemeris.h"
 #include "track.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "signal.h"
-#include "cnav_msg_storage.h"
-#include "shm.h"
 
 /** GPS L2 CL decoder data */
 typedef struct {
-  cnav_msg_t cnav_msg;
-  cnav_msg_decoder_t cnav_msg_decoder;
 } gps_l2cl_decoder_data_t;
 
 static decoder_t gps_l2cl_decoders[NUM_GPS_L2CL_DECODERS];
@@ -72,9 +61,7 @@ static void decoder_gps_l2cl_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data)
 {
   (void)channel_info;
-  gps_l2cl_decoder_data_t *data = decoder_data;
-  memset(data, 0, sizeof(gps_l2cl_decoder_data_t));
-  cnav_msg_decoder_init(&data->cnav_msg_decoder);
+  (void)decoder_data;
 }
 
 static void decoder_gps_l2cl_disable(const decoder_channel_info_t *channel_info,
@@ -87,68 +74,12 @@ static void decoder_gps_l2cl_disable(const decoder_channel_info_t *channel_info,
 static void decoder_gps_l2cl_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data)
 {
-  gps_l2cl_decoder_data_t *data = decoder_data;
+  (void)decoder_data;
 
   /* Process incoming nav bits */
   s8 soft_bit;
+  bool sensitivity_mode = true;
   while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
-                                      &soft_bit)) {
-    /* Update TOW */
-    u8 symbol_probability;
-    u32 delay;
-    s32 tow_ms;
-
-    /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    symbol_probability = soft_bit + 128;
-
-    bool decoded = cnav_msg_decoder_add_symbol(&data->cnav_msg_decoder,
-                                               symbol_probability,
-                                               &data->cnav_msg,
-                                               &delay);
-
-    if (!decoded) {
-      continue;
-    }
-
-    shm_gps_set_shi6(channel_info->sid.sat, false == data->cnav_msg.alert);
-
-    if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
-      if (data->cnav_msg.data.type_30.tgd_valid)
-        log_debug_sid(channel_info->sid, "TGD %d",
-          data->cnav_msg.data.type_30.tgd);
-      if (data->cnav_msg.data.type_30.isc_l1ca_valid)
-        log_debug_sid(channel_info->sid, "isc_l1ca %d",
-          data->cnav_msg.data.type_30.isc_l1ca);
-      if (data->cnav_msg.data.type_30.isc_l2c_valid)
-        log_debug_sid(channel_info->sid, "isc_l2c %d",
-          data->cnav_msg.data.type_30.isc_l2c);
-
-      cnav_msg_put(&data->cnav_msg);
-
-      sbp_send_group_delay(&data->cnav_msg);
-    }
-    else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
-      log_debug_sid(channel_info->sid,
-                    "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
-                    data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
-                    data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
-                    data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
-      cnav_msg_put(&data->cnav_msg);
-    }
-
-    tow_ms = data->cnav_msg.tow * GPS_CNAV_MSG_LENGTH * GPS_L2C_SYMBOL_LENGTH;
-    tow_ms += delay * GPS_L2C_SYMBOL_LENGTH;
-    if (tow_ms >= WEEK_MS) {
-      tow_ms -= WEEK_MS;
-    }
-
-    s8 bit_polarity = data->cnav_msg.bit_polarity;
-
-    if ((tow_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
-      if (!tracking_channel_time_sync(channel_info->tracking_channel, tow_ms,
-                                      bit_polarity)) {
-        log_warn_sid(channel_info->sid, "TOW set failed");
-      }
-    }
+                                      &soft_bit, &sensitivity_mode)) {
   }
 }
