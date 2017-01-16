@@ -645,11 +645,12 @@ void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
                              u32 cycle_flags)
 {
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+    bool sensitivity_mode = tp_tl_is_fll(&data->tl_state);
     /* Bit sync / data decoding update counter. */
     u8 update_count_ms = tp_get_bit_ms(data->tracking_mode);
     /* Bit sync advance / message decoding */
     tracker_bit_sync_update(channel_info->context, update_count_ms,
-                            data->corrs.corr_bit);
+                            data->corrs.corr_bit, sensitivity_mode);
 
     /* TODO Update BS from ToW when appropriate. */
     /* TODO Add fast BS detection. */

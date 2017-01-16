@@ -177,7 +177,7 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
  * \param corr_prompt_real  Real part of the prompt correlation.
  */
 void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
-                             s32 corr_prompt_real)
+                             s32 corr_prompt_real, bool sensitivity_mode)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
@@ -191,7 +191,8 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
     s8 soft_bit = nav_bit_quantize(bit_integrate);
 
     /* write to FIFO */
-    nav_bit_fifo_element_t element = { .soft_bit = soft_bit };
+    nav_bit_fifo_element_t element = { .soft_bit = soft_bit,
+                                       .sensitivity_mode = sensitivity_mode };
     if (nav_bit_fifo_write(&internal_data->nav_bit_fifo, &element)) {
 
       /* warn if the FIFO has become full */

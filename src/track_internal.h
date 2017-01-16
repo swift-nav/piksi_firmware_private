@@ -31,6 +31,7 @@
 
 typedef struct {
   s8 soft_bit;
+  bool sensitivity_mode;
 } nav_bit_fifo_element_t;
 
 typedef u8 nav_bit_fifo_index_t;
