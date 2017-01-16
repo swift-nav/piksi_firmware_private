@@ -1065,7 +1065,8 @@ s8 sv_elevation_degrees_get(gnss_signal_t sid)
  *
  * \return true if *soft_bit is valid, false otherwise.
  */
-bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit)
+bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
+                                  bool *sensitivity_mode)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
@@ -1073,6 +1074,7 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit)
   nav_bit_fifo_element_t element;
   if (nav_bit_fifo_read(&internal_data->nav_bit_fifo, &element)) {
     *soft_bit = element.soft_bit;
+    *sensitivity_mode = element.sensitivity_mode;
     return true;
   }
   return false;
