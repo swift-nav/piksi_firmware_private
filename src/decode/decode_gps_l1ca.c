@@ -71,18 +71,18 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   sid_to_string(src_sid_str, sizeof(src_sid_str), sid);
   switch (oc) {
   case NDB_ERR_NONE:
-    log_info_sid(alma->sid, "almanac from %s saved", src_sid_str);
+    log_debug_sid(alma->sid, "almanac from %s saved", src_sid_str);
     break;
   case NDB_ERR_NO_CHANGE:
-    log_info_sid(alma->sid, "almanac from %s is already present",
+    log_debug_sid(alma->sid, "almanac from %s is already present",
                  src_sid_str);
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_info_sid(alma->sid, "almanac from %s is unreliable, not saved",
+    log_debug_sid(alma->sid, "almanac from %s is unreliable, not saved",
                  src_sid_str);
     break;
   case NDB_ERR_OLDER_DATA:
-    log_info_sid(alma->sid,
+    log_debug_sid(alma->sid,
                  "almanac from %s is older than one in DB, not saved",
                  src_sid_str);
     break;
@@ -94,7 +94,7 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   default:
-    log_error_sid(alma->sid, "error %d storing almanac from %s",
+    log_debug_sid(alma->sid, "error %d storing almanac from %s",
                   (int)oc,
                   src_sid_str);
     break;
@@ -118,19 +118,19 @@ static void decode_almanac_time_new(gnss_signal_t sid,
 
   switch (r) {
   case NDB_ERR_NONE:
-    log_info_sid(sid,
+    log_debug_sid(sid,
                  "almanac time info saved (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
     break;
   case NDB_ERR_NO_CHANGE:
-    log_info_sid(sid,
+    log_debug_sid(sid,
                  "almanac time info is already present (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_info_sid(sid,
+    log_debug_sid(sid,
                  "almanac time info is unreliable (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
@@ -181,12 +181,12 @@ void decode_almanac_health_new(gnss_signal_t sid,
       if (0 != (health_bits & 1 << 5)) {
         /* Error in almanac */
         if (NDB_ERR_NONE == ndb_almanac_erase(target_sid)) {
-          log_info_sid(target_sid,
+          log_debug_sid(target_sid,
                        "almanac deleted (health flags from %s)",
                        hf_sid_str);
         }
         if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
-          log_info_sid(target_sid,
+          log_debug_sid(target_sid,
                        "ephemeris deleted (health flags from %s)",
                        hf_sid_str);
         }
@@ -196,17 +196,17 @@ void decode_almanac_health_new(gnss_signal_t sid,
 
         switch (r) {
         case NDB_ERR_NONE:
-          log_info_sid(target_sid,
+          log_debug_sid(target_sid,
                        "almanac health bits updated (0x%02" PRIX8 ")",
                        health_bits);
           break;
         case NDB_ERR_NO_CHANGE:
-          log_info_sid(target_sid,
+          log_debug_sid(target_sid,
                        "almanac health bits up to date (0x%02" PRIX8 ")",
                        health_bits);
           break;
         case NDB_ERR_UNRELIABLE_DATA:
-          log_info_sid(target_sid,
+          log_debug_sid(target_sid,
                        "almanac health bits are unreliable (0x%02" PRIX8 ")",
                        health_bits);
           break;
