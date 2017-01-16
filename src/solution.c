@@ -1052,7 +1052,7 @@ static void solution_thread(void *arg)
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
-                      p_i_params);
+                      NULL);
     }
 
     dops_t dops;
