@@ -8,8 +8,8 @@
         - piksi_firmware_v3_microzed.stripped.elf
   artifacts:
     -
-      bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.0.1/v3/microzed
+      bucket: swiftnav-artifacts-pull-requests
+      prefix: piksi_buildroot/v1.0.0-branch-9-g3da33c9/v3/microzed
       files:
         - uImage.piksiv3_microzed
     -
@@ -26,8 +26,8 @@
         - piksi_firmware_v3_prod.stripped.elf
   artifacts:
     -
-      bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.0.1/v3/prod
+      bucket: swiftnav-artifacts-pull-requests
+      prefix: piksi_buildroot/v1.0.0-branch-9-g3da33c9/v3/prod
       files:
         - uImage.piksiv3_prod
     -
