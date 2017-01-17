@@ -66,8 +66,8 @@
                                    MANAGE_TRACK_FLAG_HEALTHY | \
                                    MANAGE_TRACK_FLAG_NAV_SUITABLE | \
                                    MANAGE_TRACK_FLAG_TOW )
-/** Minimum number of measurements to use with PVT */
-#define MINIMUM_MEAS_COUNT 4
+/** Minimum number of satellites to use with PVT */
+#define MINIMUM_SV_COUNT 5
 
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
@@ -666,7 +666,7 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
  *
  * \return Number of SV whose measurements have flags.
  */
-static u32 count_meas_with_accuracy(u8 n_ready,
+static u32 count_sv_with_accuracy(u8 n_ready,
                                     const channel_measurement_t meas[],
                                     chan_meas_flags_t flags)
 {
@@ -721,9 +721,9 @@ static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
   u8 idx  = 0;
   for (idx = 0;
        idx < sizeof(flags) / sizeof(flags[0]) &&
-       count_meas_with_accuracy(n_ready,
+       count_sv_with_accuracy(n_ready,
                                 meas,
-                                flags[idx]) < MINIMUM_MEAS_COUNT;
+                                flags[idx]) < MINIMUM_SV_COUNT;
        ++idx) {
     /* Noop */
   }
@@ -885,8 +885,10 @@ static void solution_thread(void *arg)
     collect_measurements(rec_tc, meas, &n_collected, &n_total);
 
     u8 n_ready = n_collected;
-    if (n_collected >= MINIMUM_MEAS_COUNT) {
-      /* Select best measurements. */
+    if (n_collected > MINIMUM_SV_COUNT) {
+      /* There are enough measurements for a RAIM solution. Check if there
+       * are enough measurements to drop out the lowest quality ones.
+       */
       n_ready = filter_out_measurements(n_collected, meas);
     }
 
@@ -903,7 +905,7 @@ static void solution_thread(void *arg)
       last_stats.signals_useable = n_collected;
     }
 
-    if (n_ready < MINIMUM_MEAS_COUNT) {
+    if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
 
       /* TODO if there are not enough SVs to compute PVT, shouldn't caches
