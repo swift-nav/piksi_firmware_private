@@ -560,7 +560,7 @@ static void solution_simulation(msg_gps_time_t *gps_time, msg_pos_llh_t *pos_llh
   soln->time.tow = expected_tow;
   normalize_gps_time(&soln->time);
 
-  if (simulation_enabled_for(SIMULATION_MODE_PVT) && 
+  if (simulation_enabled_for(SIMULATION_MODE_PVT) &&
      !(simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
        simulation_enabled_for(SIMULATION_MODE_RTK) )) {
     /* Then we send fake messages. */
@@ -653,103 +653,6 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
     }
   }
   chSysUnlock();
-}
-
-/**
- * Counts SV with required flags.
- *
- * The method counts SV whose measurements contain required flags.
- *
- * \param[in] n_ready Total count of input entries.
- * \param[in] meas    Channel measurements.
- * \param[in] flags   Required flags.
- *
- * \return Number of SV whose measurements have flags.
- */
-static u32 count_meas_with_accuracy(u8 n_ready,
-                                    const channel_measurement_t meas[],
-                                    chan_meas_flags_t flags)
-{
-  gnss_sid_set_t codes_in_track;
-
-  sid_set_init(&codes_in_track);
-  for (u8 i = 0; i < n_ready; i++) {
-    if (flags == (meas[i].flags & flags)) {
-      sid_set_add(&codes_in_track, meas[i].sid);
-    }
-  }
-
-  return sid_set_get_sat_count(&codes_in_track);
-}
-
-/**
- * The method excludes measurements that might decrease accuracy.
- *
- * The method selects the lowest measurement accuracy requirement, for which
- * at least 4 SVs are available.
- *
- * \param[in]     n_ready Number of available measurements.
- * \param[in,out] meas    Measurements data vector.
- *
- * \return Number of available measurements.
- */
-static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
-{
-  static const chan_meas_flags_t flags[] = {
-    /* High phase accuracy only (high code accuracy implied) */
-    CHAN_MEAS_FLAG_PHASE_VALID | CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN |
-    CHAN_MEAS_FLAG_CODE_VALID | CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
-    /* Some phase accuracy  (high code accuracy implied) */
-    CHAN_MEAS_FLAG_PHASE_VALID | CHAN_MEAS_FLAG_CODE_VALID |
-    CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
-    /* Any phase accuracy, high code accuracy */
-    CHAN_MEAS_FLAG_CODE_VALID | CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID,
-    /* Note: do not use measurements that do not have valid Doppler */
-  };
-
-  /* Go though criteria vector from the most strict till the least strict, and
-   * count the individual SVs that match the criteria.
-   *
-   * Matching for the upper criteria also means that lower criteria is met.
-   *
-   * As long as there is no measurement weighting in PVT, try to drop the least
-   * accurate measurements, as long as total number of SVs is above a threshold.
-   *
-   * TODO Instead of filtering out measurements, implement weight computation
-   *      and support in PVT.
-   */
-  u8 idx  = 0;
-  for (idx = 0;
-       idx < sizeof(flags) / sizeof(flags[0]) &&
-       count_meas_with_accuracy(n_ready,
-                                meas,
-                                flags[idx]) < MINIMUM_MEAS_COUNT;
-       ++idx) {
-    /* Noop */
-  }
-
-  if (idx == sizeof(flags) / sizeof(flags[0])) {
-    /* Not found */
-    n_ready = 0;
-  } else {
-    chan_meas_flags_t requred_flags = flags[idx];
-
-    /* Ignore measurements with insufficient accuracy for now
-     *
-     * TODO change the accuracy filtering into algorithm of processing
-     *      observation weights */
-    for (u8 i = 0; i < n_ready; ) {
-      if (requred_flags != (meas[i].flags & requred_flags)) {
-        /* This measurement can't be used */
-        meas[i] = meas[n_ready - 1];
-        --n_ready;
-      } else {
-        ++i;
-      }
-    }
-  }
-
-  return n_ready;
 }
 
 /**
@@ -887,7 +790,7 @@ static void solution_thread(void *arg)
     u8 n_ready = n_collected;
     if (n_collected >= MINIMUM_MEAS_COUNT) {
       /* Select best measurements. */
-      n_ready = filter_out_measurements(n_collected, meas);
+      //n_ready = filter_out_measurements(n_collected, meas);
     }
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
