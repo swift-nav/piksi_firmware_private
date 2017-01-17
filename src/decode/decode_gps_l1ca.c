@@ -94,7 +94,7 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   default:
-    log_debug_sid(alma->sid, "error %d storing almanac from %s",
+    log_info_sid(alma->sid, "error %d storing almanac from %s",
                   (int)oc,
                   src_sid_str);
     break;
@@ -181,12 +181,12 @@ void decode_almanac_health_new(gnss_signal_t sid,
       if (0 != (health_bits & 1 << 5)) {
         /* Error in almanac */
         if (NDB_ERR_NONE == ndb_almanac_erase(target_sid)) {
-          log_debug_sid(target_sid,
+          log_info_sid(target_sid,
                        "almanac deleted (health flags from %s)",
                        hf_sid_str);
         }
         if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
-          log_debug_sid(target_sid,
+          log_info_sid(target_sid,
                        "ephemeris deleted (health flags from %s)",
                        hf_sid_str);
         }

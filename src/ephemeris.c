@@ -57,7 +57,7 @@ void ephemeris_new(ephemeris_t *e)
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   default:
-    log_debug_sid(e->sid, "error %d storing ephemeris", (int)oc);
+    log_info_sid(e->sid, "error %d storing ephemeris", (int)oc);
     break;
   }
 }
