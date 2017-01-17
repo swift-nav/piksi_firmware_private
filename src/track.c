@@ -143,7 +143,7 @@ static u16 iq_output_mask = 0;
 static bool send_trk_detailed = 0;
 /** send_trk_detailed setting is a stop gap to suppress this 
   * bandwidth intensive msg until a more complete "debug"
-  * strategy is designed and implemented> */
+  * strategy is designed and implemented. */
 
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                      bool update_required);
