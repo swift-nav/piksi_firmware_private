@@ -9,7 +9,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.0.1-23-g3c9f3bc/v3/microzed
+      prefix: piksi_buildroot/v1.0.1-28-g9da6de3/v3/microzed
       files:
         - uImage.piksiv3_microzed
     -
@@ -27,7 +27,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.0.1-23-g3c9f3bc/v3/prod
+      prefix: piksi_buildroot/v1.0.1-28-g9da6de3/v3/prod
       files:
         - uImage.piksiv3_prod
     -
