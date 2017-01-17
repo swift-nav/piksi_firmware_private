@@ -185,7 +185,7 @@ s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
                        u32 int_ms, bool *decoded_tow);
 void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
-                             s32 corr_prompt_real);
+                             s32 corr_prompt_real, bool sensitivity_mode);
 u8 tracker_bit_length_get(tracker_context_t *context);
 bool tracker_bit_aligned(tracker_context_t *context);
 bool tracker_has_bit_sync(tracker_context_t *context);
