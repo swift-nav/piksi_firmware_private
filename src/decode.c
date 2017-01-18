@@ -181,7 +181,9 @@ bool decoder_channel_init(u8 tracking_channel, gnss_signal_t sid)
 
   /* Empty the nav bit FIFO */
   s8 soft_bit;
-  while (tracking_channel_nav_bit_get(d->info.tracking_channel, &soft_bit)) {
+  bool sensitivity_mode;
+  while (tracking_channel_nav_bit_get(d->info.tracking_channel, &soft_bit,
+                                      &sensitivity_mode)) {
     ;
   }
 
