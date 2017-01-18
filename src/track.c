@@ -827,7 +827,7 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
   chMtxUnlock(&pub_data->info_mutex);
 
   if (adjusted) {
-    log_info_sid(info->sid, "Adjusting carrier phase offset to %lf",
+    log_debug_sid(info->sid, "Adjusting carrier phase offset to %lf",
                  carrier_phase_offset);
   }
 
@@ -1013,7 +1013,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     chMtxUnlock(&pub_data->info_mutex);
 
     if (adjusted) {
-      log_info_sid(sid, "Adjusting carrier phase offset to %f",
+      log_debug_sid(sid, "Adjusting carrier phase offset to %f",
                    carrier_phase_offset);
     }
   }
