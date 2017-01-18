@@ -39,11 +39,11 @@
 
 /** If C/N0 is below track_cn0_threshold for >= TRACK_DROP_CN0_T ms,
     drop the channel. */
-#define TRACK_DROP_CN0_T 5000
+#define TRACK_DROP_CN0_T 500
 
 /** If optimistic phase lock detector shows "unlocked" for >=
     TRACK_DROP_UNLOCKED_T ms, drop the channel. */
-#define TRACK_DROP_UNLOCKED_T 5000
+#define TRACK_DROP_UNLOCKED_T 1500
 
 /** If pessimistic phase lock detector shows "locked" for >=
     TRACK_USE_LOCKED_T ms, use the channel. */
