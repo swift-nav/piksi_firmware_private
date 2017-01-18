@@ -98,6 +98,8 @@ MUTEX_DECL(rtk_init_done_lock);
 static bool rtk_init_done = false;
 
 static u8 old_base_sender_id = 0;
+static bool have_old_base_position = false;
+static double old_base_position[3];
 
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
@@ -1410,6 +1412,21 @@ static void time_matched_obs_thread(void *arg)
           chMtxUnlock(&base_pos_lock);
         }
         old_base_sender_id = base_obss.sender_id;
+
+        /* Check if the base position has changed and reset the RTK filter if
+         * it has.
+         */
+        chMtxLock(&base_pos_lock);
+        if (have_old_base_position && base_pos_known &&
+            (((old_base_position[0] - base_pos_ecef[0]) > 1e-4) ||
+             ((old_base_position[1] - base_pos_ecef[1]) > 1e-4) ||
+             ((old_base_position[2] - base_pos_ecef[2]) > 1e-4))) {
+          log_warn("Base station position changed. Resetting RTK filter.");
+          reset_rtk_filter();
+        }
+        memcpy(old_base_position, base_pos_ecef, sizeof(old_base_position));
+        have_old_base_position = base_pos_known;
+        chMtxUnlock(&base_pos_lock);
 
         /* Times match! Process obs and base_obss */
         static sdiff_t sds[MAX_CHANNELS];
