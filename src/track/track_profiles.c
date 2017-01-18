@@ -48,7 +48,7 @@ typedef enum {
   IDX_NONAME_1,
   IDX_NONAME_2,
   IDX_NONAME_3,
-  IDX_NONAME_4,
+  IDX_DLL_RECOVERY2,
   IDX_NONAME_23,
   IDX_NONAME_24,
   IDX_DLL_RECOVERY,
@@ -297,7 +297,7 @@ static const tp_profile_entry_t gps_profiles[] = {
        IDX_NONE, IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_SENS,
       TP_NO_PLOCK },
 
-  [IDX_NONAME_4] =
+  [IDX_DLL_RECOVERY2] =
   { {   30,             0,           10,   TP_CTRL_PLL3,
         TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
         60,             0,            0,              0,                      0,
@@ -534,7 +534,7 @@ static const tp_profile_entry_t gps_profiles[] = {
   { {   30,             0,            1,   TP_CTRL_PLL3,
             TP_TM_GPS_5MS,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
         50,           30.,          41.,            1.0,                      0,
-   IDX_LOW_CN0_DYN, IDX_SENS, IDX_HIGH_CN0_DYN, IDX_RECOVERY,          IDX_SENS,
+   IDX_LOW_CN0_DYN, IDX_SENS, IDX_HIGH_CN0_DYN, IDX_DLL_RECOVERY2,     IDX_SENS,
       TP_NO_PLOCK | TP_LOW_CN0 | TP_HIGH_CN0 | TP_LOW_DYN |
       TP_USE_NEXT },
 
@@ -543,7 +543,7 @@ static const tp_profile_entry_t gps_profiles[] = {
   { {   30,             0,            1,   TP_CTRL_PLL3,
             TP_TM_GPS_DYN,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
         50,             38,           0,              1,                      0,
-   IDX_HIGH_CN0_DYN, IDX_LOW_CN0_DYN, IDX_NONE, IDX_RECOVERY,          IDX_SENS,
+   IDX_HIGH_CN0_DYN, IDX_LOW_CN0_DYN, IDX_NONE, IDX_DLL_RECOVERY2,     IDX_SENS,
       TP_NO_PLOCK | TP_LOW_CN0 | TP_LOW_DYN | TP_USE_NEXT }
 };
 
