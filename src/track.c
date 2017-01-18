@@ -140,6 +140,10 @@ static const tracker_interface_t tracker_interface_default = {
 };
 
 static u16 iq_output_mask = 0;
+static bool send_trk_detailed = 0;
+/** send_trk_detailed setting is a stop gap to suppress this 
+  * bandwidth intensive msg until a more complete "debug"
+  * strategy is designed and implemented. */
 
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                      bool update_required);
@@ -198,6 +202,7 @@ void track_setup(void)
 {
   SETTING_NOTIFY("track", "iq_output_mask", iq_output_mask, TYPE_INT,
                  track_iq_output_notify);
+  SETTING("track", "send_trk_detailed", send_trk_detailed, TYPE_BOOL);
 
   track_internal_setup();
 
@@ -320,7 +325,9 @@ void tracking_send_detailed_state(void)
                                  &ctrl_info,
                                  &misc_info,
                                  plgf);
-    sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8*)&sbp);
+    if (send_trk_detailed) {
+      sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8*)&sbp);
+    }
   }
 }
 
