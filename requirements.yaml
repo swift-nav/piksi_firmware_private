@@ -14,7 +14,7 @@
         - uImage.piksiv3_microzed
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v1.0.1
+      prefix: piksi_fpga/SwiftNAP-v3.7.2-5-g6b697af
       files:
         - piksi_microzed_nt1065_fpga.bit
 -
@@ -32,6 +32,6 @@
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v1.0.1
+      prefix: piksi_fpga/SwiftNAP-v3.7.2-5-g6b697af
       files:
         - piksi_prod_fpga.bit
