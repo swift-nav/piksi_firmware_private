@@ -44,10 +44,10 @@ void ephemeris_new(ephemeris_t *e)
     log_debug_sid(e->sid, "ephemeris is already present");
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_debug_sid(e->sid, "ephemeris is unreliable, not saved");
+    log_warn_sid(e->sid, "ephemeris is unreliable, not saved");
     break;
   case NDB_ERR_OLDER_DATA:
-    log_debug_sid(e->sid, "ephemeris is older than one in DB, not saved");
+    log_warn_sid(e->sid, "ephemeris is older than one in DB, not saved");
     break;
   case NDB_ERR_MISSING_IE:
   case NDB_ERR_UNSUPPORTED:
@@ -57,7 +57,7 @@ void ephemeris_new(ephemeris_t *e)
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   default:
-    log_info_sid(e->sid, "error %d storing ephemeris", (int)oc);
+    log_warn_sid(e->sid, "error %d storing ephemeris", (int)oc);
     break;
   }
 }

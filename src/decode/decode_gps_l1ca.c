@@ -78,11 +78,11 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
                  src_sid_str);
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_debug_sid(alma->sid, "almanac from %s is unreliable, not saved",
+    log_warn_sid(alma->sid, "almanac from %s is unreliable, not saved",
                  src_sid_str);
     break;
   case NDB_ERR_OLDER_DATA:
-    log_debug_sid(alma->sid,
+    log_warn_sid(alma->sid,
                  "almanac from %s is older than one in DB, not saved",
                  src_sid_str);
     break;
@@ -94,7 +94,7 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   default:
-    log_info_sid(alma->sid, "error %d storing almanac from %s",
+    log_warn_sid(alma->sid, "error %d storing almanac from %s",
                   (int)oc,
                   src_sid_str);
     break;
