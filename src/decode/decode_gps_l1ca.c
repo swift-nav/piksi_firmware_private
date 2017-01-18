@@ -130,7 +130,7 @@ static void decode_almanac_time_new(gnss_signal_t sid,
                  (s32)alma_time->tow);
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_debug_sid(sid,
+    log_warn_sid(sid,
                  "almanac time info is unreliable (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
@@ -206,12 +206,12 @@ void decode_almanac_health_new(gnss_signal_t sid,
                        health_bits);
           break;
         case NDB_ERR_UNRELIABLE_DATA:
-          log_debug_sid(target_sid,
+          log_warn_sid(target_sid,
                        "almanac health bits are unreliable (0x%02" PRIX8 ")",
                        health_bits);
           break;
         case NDB_ERR_NO_DATA:
-          log_debug_sid(target_sid,
+          log_warn_sid(target_sid,
                         "almanac health bits are ignored (0x%02" PRIX8 ")",
                         health_bits);
           break;
