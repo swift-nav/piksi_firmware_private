@@ -18,7 +18,6 @@
 #include <libsbp/system.h>
 #include <libsbp/version.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/dgnss_management.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/coord_system.h>
 
