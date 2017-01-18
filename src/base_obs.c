@@ -61,7 +61,28 @@ bool base_pos_known = false;
  * the BASE_POS message.  */
 double base_pos_ecef[3];
 
+static bool old_base_pos_known = false;
+static double old_base_pos_ecef[3] = {0, 0, 0};
+
 static u32 base_obs_msg_counter = 0;
+
+void check_base_position_change(void)
+{
+  /* Check if the base position has changed and reset the RTK filter if
+   * it has.
+   */
+  if (old_base_pos_known &&
+     ((fabs(old_base_pos_ecef[0] - base_pos_ecef[0]) > 1e-3) ||
+      (fabs(old_base_pos_ecef[1] - base_pos_ecef[1]) > 1e-3) ||
+      (fabs(old_base_pos_ecef[2] - base_pos_ecef[2]) > 1e-3))) {
+    log_warn("Base station position changed. Resetting RTK filter.");
+    reset_rtk_filter();
+    base_pos_known = false;
+    memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+  }
+  old_base_pos_known = base_pos_known;
+  memcpy(&old_base_pos_ecef, &base_pos_ecef, sizeof(base_pos_ecef));
+}
 
 /** SBP callback for when the base station sends us a message containing its
  * known location in LLH coordinates.
@@ -79,13 +100,14 @@ static void base_pos_llh_callback(u16 sender_id, u8 len, u8 msg[], void* context
   /*TODO: keep track of sender_id to store multiple base positions?*/
   double llh_degrees[3];
   double llh[3];
-  memcpy(llh_degrees, msg, 3*sizeof(double));
+  memcpy(llh_degrees, msg, 3 * sizeof(double));
   llh[0] = llh_degrees[0] * D2R;
   llh[1] = llh_degrees[1] * D2R;
   llh[2] = llh_degrees[2];
   chMtxLock(&base_pos_lock);
   wgsllh2ecef(llh, base_pos_ecef);
   base_pos_known = true;
+  check_base_position_change();
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, 0);
   chMtxUnlock(&base_pos_lock);
@@ -105,8 +127,9 @@ static void base_pos_ecef_callback(u16 sender_id, u8 len, u8 msg[], void* contex
     return;
   }
   chMtxLock(&base_pos_lock);
-  memcpy(base_pos_ecef, msg, 3*sizeof(double));
+  memcpy(base_pos_ecef, msg, 3 * sizeof(double));
   base_pos_known = true;
+  check_base_position_change();
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, 0);
   chMtxUnlock(&base_pos_lock);
