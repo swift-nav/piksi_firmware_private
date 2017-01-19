@@ -115,11 +115,6 @@ static bool blinker_update(blinker_state_t *b)
 
 static blink_mode_t pv_blink_mode_get(void)
 {
-  /* Off if no antenna present */
-  if (!antenna_present()) {
-    return BLINK_OFF;
-  }
-
   /* On if PVT available */
   systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
   if ((last_pvt_systime != TIME_INFINITE) &&
@@ -145,21 +140,23 @@ static void handle_pv(counter_t c, bool *s)
 
 static blink_mode_t pos_blink_mode_get(void)
 {
-  /* Off if no antenna present */
-  if (!antenna_present()) {
-    return BLINK_OFF;
-  }
-
-  /* On if PVT available */
+  u8 signals_tracked = solution_last_stats_get().signals_tracked;
   systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
+  /* On if PVT available */
   if ((last_pvt_systime != TIME_INFINITE) &&
       (chVTTimeElapsedSinceX(last_pvt_systime) < LED_MODE_TIMEOUT)) {
     return BLINK_ON;
   }
-
   /* Blink according to signals tracked */
-  u8 signals_tracked = solution_last_stats_get().signals_tracked;
-  return (signals_tracked > 0) ? BLINK_FAST : BLINK_SLOW;
+  if (signals_tracked >= 4)  {
+    return BLINK_FAST;
+  }
+  if ((signals_tracked < 4 && signals_tracked > 0) || antenna_present()) {
+    return BLINK_SLOW;
+  }
+  else {
+    return BLINK_OFF;
+  }
 }
 
 static void handle_pos(counter_t c, rgb_led_state_t *s)
@@ -201,11 +198,6 @@ static void handle_link(counter_t c, rgb_led_state_t *s)
 static blink_mode_t mode_blink_mode_get(void)
 {
   soln_dgnss_stats_t last_dgnss_stats = solution_last_dgnss_stats_get();
-
-  /* Off if no antenna present */
-  if (!antenna_present()) {
-    return BLINK_OFF;
-  }
 
   /* Off if no DGNSS */
   if ((last_dgnss_stats.systime == TIME_INFINITE) ||
