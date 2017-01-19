@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2016 Swift Navigation Inc.
+ * Copyright (C) 2013-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -30,8 +30,9 @@
 #define NMEA_GGA_FIX_MANUAL  7
 #define NMEA_GGA_FIX_SIM     8
 
-#define MS2KNOTTS(x,y,z)     sqrt((x)*(x) + (y)*(y) + (z)*(z)) * 1.94385
-#define MS2KMHR(x,y,z)       sqrt((x)*(x)+(y)*(y)+(z)*(z)) * (3600.0/1000.0)
+#define MS2KNOTS(x, y, z) (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * 1.94385)
+#define MS2KMHR(x, y, z)  (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * \
+                          (3600.0 / 1000.0))
 
 void nmea_setup(void);
 void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_time,
@@ -48,5 +49,8 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
                     const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
                     const msg_gps_time_t *sbp_msg_time, u8 n_used, const navigation_measurement_t *nav_meas,
                     double propagation_time, u8 sender_id);
+char get_nmea_status(u8 flags);
+char get_nmea_vel_mode_indicator(u8 flags);
+char get_nmea_mode_indicator(u8 flags);
 
 #endif  /* SWIFTNAV_NMEA_H */
