@@ -165,6 +165,9 @@ static void update_obss(obss_t *new_obss)
                              n_old, nm_old, base_obss.nm,
                              gpsdifftime(&new_obss->tor, &tor_old));
 
+  /* Assume that we don't know the known, surveyed base position for now. */
+  base_obss.has_known_pos_ecef = false;
+
   /* Copy over sender ID. */
   base_obss.sender_id = new_obss->sender_id;
 
@@ -219,11 +222,22 @@ static void update_obss(obss_t *new_obss)
          reset_rtk_filter();
          base_pos_known = false;
          memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
-        } else if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
-          log_warn("Received base observation with SPP position %f m from the"
-                   " surveyed position. Check the base station position setting.",
-                   base_distance);
+        } else {
+          /* If our known base position is consistent with our calculated base
+             SPP, save the known base position. This will be used for
+             calculating the pseudo-absolute position later. However, if the
+             difference between the two positions is larger than expected, log
+             a warning, but still use the known base position. */
+          if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+            log_warn("Received base observation with SPP position %f m from the"
+                     " surveyed position. Check the base station position setting.",
+                     base_distance);
+          }
+          memcpy(base_obss.known_pos_ecef, base_pos_ecef, sizeof(base_pos_ecef));
+          base_obss.has_known_pos_ecef = true;
         }
+      } else {
+        base_obss.has_known_pos_ecef = false;
       }
       chMtxUnlock(&base_pos_lock);
     } else {
@@ -236,20 +250,17 @@ static void update_obss(obss_t *new_obss)
     base_obss.has_pos = 0;
   }
 
-  /* If the base station position is known then calculate the satellite ranges.
-   * This calculation will be used later by the propagation functions. */
+  /* If the surveyed base station position is known then use it to calculate
+     the satellite ranges. Otherwise, use the SPP. This calculation will be
+     used later by the propagation functions. */
   if (base_obss.has_pos) {
-    /* Check if the base station has sent us its position explicitly via a
-     * BASE_POS SBP message (as indicated by #base_pos_known).
-     * No need to lock before reading here as base_pos_* is only written
-     * from this thread (SBP).
-     */
-
     for (u8 i=0; i < base_obss.n; i++) {
       /* The nominal initial "sat_dist" contains the distance
          from the base position to the satellite position as well as the
          satellite clock error. */
       base_obss.sat_dists[i] = vector_distance(3, base_obss.nm[i].sat_pos,
+                                               base_obss.has_known_pos_ecef ?
+                                               base_obss.known_pos_ecef :
                                                base_obss.pos_ecef)
                                                - base_obss.nm[i].sat_clock_err * GPS_C;
     }
