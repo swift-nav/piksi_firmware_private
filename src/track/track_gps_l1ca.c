@@ -279,11 +279,9 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
   /* Mark active SVs. Later clear the whitelist status of inactive SVs */
   sat_active[entry->sid.sat - 1] = true;
   float cn0 = common_data->cn0;
-  float freq_mod = fmodf(common_data->xcorr_freq, L1CA_XCORR_FREQ_STEP);
   float entry_cn0 = entry->cn0;
-  float entry_freq = entry->freq;
-  float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
-  float error = fabsf(entry_freq_mod - freq_mod);
+  float error = fabsf(remainder(entry->freq - common_data->xcorr_freq,
+                      L1CA_XCORR_FREQ_STEP));
 
   s32 max_time_cnt = (s32)(10.0f * gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
 
@@ -303,6 +301,7 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
   }
   if (0 != (entry->flags & TRACKING_CHANNEL_FLAG_FLL_USE)) {
     data->xcorr_whitelist[entry->sid.sat - 1] = false;
+    data->xcorr_whitelist_counts[entry->sid.sat - 1] = 0;
   }
 }
 
@@ -383,12 +382,11 @@ static bool check_L2_entries(const tracker_channel_info_t *channel_info,
     return false;
   }
 
-  float freq_mod = fmodf(common_data->xcorr_freq, L1CA_XCORR_FREQ_STEP);
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   /* Convert L2 doppler to L1 */
   float entry_freq = entry->freq * L2_to_L1_freq;
-  float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
-  float error = fabsf(entry_freq_mod - freq_mod);
+  float error = fabsf(remainderf(entry_freq - common_data->xcorr_freq,
+                      L1CA_XCORR_FREQ_STEP));
 
   if (error <= gps_l1ca_config.xcorr_delta) {
     /* Signal pairs with matching doppler are NOT xcorr flagged */
@@ -528,6 +526,7 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
   if (sensitivity_mode) {
     for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
       data->xcorr_whitelist[idx] = false;
+      data->xcorr_whitelist_counts[idx] = 0;
     }
   }
 
