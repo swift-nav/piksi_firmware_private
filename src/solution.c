@@ -621,7 +621,14 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
   while (1) {
     /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
      * execution time is limited to SOLN_THD_CPU_MAX. */
-    bool skip = (missed_deadline % 60) == 0;
+    bool skip = false;
+    if((missed_deadline % 60) == 0){
+      skip = true;
+      log_warn("%d skip deadline true",missed_deadline);
+    } else {
+      skip = false;
+      log_warn("%d skip deadline false",missed_deadline);
+    }
     systime_t systime = chVTGetSystemTimeX();
     systime_t delta = *deadline - systime;
     systime_t sleep_min = (systime_t)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval);
