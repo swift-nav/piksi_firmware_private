@@ -281,11 +281,12 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
   float freq_mod = fmodf(common_data->xcorr_freq, L1CA_XCORR_FREQ_STEP);
   float entry_freq = entry->freq;
   float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
-  float error = fabsf(entry_freq_mod - freq_mod);
+  float error = fmodf(fabsf(entry_freq_mod - freq_mod), L1CA_XCORR_FREQ_STEP);
 
   s32 max_time_cnt = (s32)(10.0f * gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
 
-  if (error <= gps_l1ca_config.xcorr_delta) {
+  if (error <= gps_l1ca_config.xcorr_delta ||
+      error >= L1CA_XCORR_FREQ_STEP - gps_l1ca_config.xcorr_delta) {
     /* Signal pairs with matching doppler are xcorr flagged */
     xcorr_flags[entry->sid.sat - 1] = true;
     xcorr_entry_cn0[entry->sid.sat - 1] = entry->cn0;
@@ -301,6 +302,7 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
   }
   if (0 != (entry->flags & TRACKING_CHANNEL_FLAG_FLL_USE)) {
     data->xcorr_whitelist[entry->sid.sat - 1] = false;
+    data->xcorr_whitelist_counts[entry->sid.sat - 1] = 0;
   }
 }
 
@@ -392,9 +394,10 @@ static bool check_L2_entries(const tracker_channel_info_t *channel_info,
   /* Convert L2 doppler to L1 */
   float entry_freq = entry->freq * L2_to_L1_freq;
   float entry_freq_mod = fmodf(entry_freq, L1CA_XCORR_FREQ_STEP);
-  float error = fabsf(entry_freq_mod - freq_mod);
+  float error = fmodf(fabsf(entry_freq_mod - freq_mod), L1CA_XCORR_FREQ_STEP);
 
-  if (error <= gps_l1ca_config.xcorr_delta) {
+  if (error <= gps_l1ca_config.xcorr_delta ||
+      error >= L1CA_XCORR_FREQ_STEP - gps_l1ca_config.xcorr_delta) {
     /* Signal pairs with matching doppler are NOT xcorr flagged */
     *xcorr_flag = false;
   } else if (error >= 10.0f * gps_l1ca_config.xcorr_delta) {
@@ -532,6 +535,7 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
   if (sensitivity_mode) {
     for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
       data->xcorr_whitelist[idx] = false;
+      data->xcorr_whitelist_counts[idx] = 0;
     }
   }
 
