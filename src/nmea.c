@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/constants.h>
@@ -166,19 +167,33 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
 
   double frac_s = fmod(current_time.tow, 1.0);
 
-  double lat = fabs(sbp_pos_llh->lat);
-  double lon = fabs(sbp_pos_llh->lon);
+  /* GGA sentence is formed by splitting latitude and longitude
+     into degrees and minutes parts and then printing them separately
+     using printf. Before doing the split we want to take care of
+     the proper rounding. Doing it after the split would lead to the need
+     of handling the case of minutes part overflow separately. Otherwise,
+     printf would do the rounding of the minutes part, which could result
+     in printing 60 minutes value.
+     E.g. doing this way lat = 15.9999999996 would be printed as
+     $GPGGA,hhmmss.ss,1600.000000,...
+     and NOT
+     $GPGGA,hhmmss.ss,1560.000000,...
+   */
+  double lat = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
+  double lon = fabs(round(sbp_pos_llh->lon * 1e8) / 1e8);
 
   char lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
-  u16 lat_deg = (u16) lat;
+  assert(lat <= UINT16_MAX);
+  u16 lat_deg = (u16) lat; /* truncation towards zero */
   double lat_min = (lat - (double) lat_deg) * 60.0;
 
   char lon_dir = sbp_pos_llh->lon < 0.0 ? 'W' : 'E';
-  u16 lon_deg = (u16) lon;
+  assert(lon <= UINT16_MAX);
+  u16 lon_deg = (u16) lon; /* truncation towards zero */
   double lon_min = (lon - (double) lon_deg) * 60.0;
 
   u8 fix_type = 0;
-  switch(sbp_pos_llh->flags){
+  switch (sbp_pos_llh->flags) {
     case 0: fix_type = NMEA_GGA_FIX_INVALID; break;
     case 1: fix_type = NMEA_GGA_FIX_GPS; break;
     case 2: fix_type = NMEA_GGA_FIX_DGPS; break;
@@ -313,15 +328,19 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
 
   double frac_s  = fmod(current_time.tow, 1.0);
 
-  double lat     = fabs(sbp_pos_llh->lat);
-  double lon     = fabs(sbp_pos_llh->lon);
+  /* See the relevant comment for the similar code in nmea_gpgga() function
+     for the reasoning behind (... * 1e8 / 1e8) trick */
+  double lat     = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
+  double lon     = fabs(round(sbp_pos_llh->lon * 1e8) / 1e8);
 
   char   lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
-  u16    lat_deg = (u16)lat;
+  assert(lat <= UINT16_MAX);
+  u16    lat_deg = (u16)lat; /* truncation towards zero */
   double lat_min = (lat - (double)lat_deg) * 60.0;
 
   char   lon_dir = sbp_pos_llh->lon < 0.0 ? 'W' : 'E';
-  u16    lon_deg = (u16)lon;
+  assert(lon <= UINT16_MAX);
+  u16    lon_deg = (u16)lon; /* truncation towards zero */
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
   char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
@@ -411,15 +430,19 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
 
   double frac_s  = fmod(current_time.tow, 1.0);
 
-  double lat     = fabs(sbp_pos_llh->lat);
-  double lon     = fabs(sbp_pos_llh->lon);
+  /* See the relevant comment for the similar code in nmea_gpgga() function
+     for the reasoning behind (... * 1e8 / 1e8) trick */
+  double lat     = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
+  double lon     = fabs(round(sbp_pos_llh->lon * 1e8) / 1e8);
 
   char   lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
-  u16    lat_deg = (u16)lat;
+  assert(lat <= UINT16_MAX);
+  u16    lat_deg = (u16)lat; /* truncation towards zero */
   double lat_min = (lat - (double)lat_deg) * 60.0;
 
   char   lon_dir = sbp_pos_llh->lon < 0.0 ? 'W' : 'E';
-  u16    lon_deg = (u16)lon;
+  assert(lon <= UINT16_MAX);
+  u16    lon_deg = (u16)lon; /* truncation towards zero */
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
   char status = get_nmea_status(sbp_pos_llh->flags);
@@ -556,20 +579,20 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
-char get_nmea_status(u8 flags) {
-
-switch(flags){
-    case 0:
-      return('V');
-    case 1:
-      /* autonomous mode */
-      return('A');
-    case 2: /* DGPS */
-      return('D');
-    case 3: /* float */
-    case 4: /* fixed */
-    default:
-      return('V');
+char get_nmea_status(u8 flags)
+{
+  switch (flags) {
+  case 0:
+    return 'V';
+  case 1:
+    /* autonomous mode */
+    return 'A';
+  case 2: /* DGPS */
+    return 'D';
+  case 3: /* float */
+  case 4: /* fixed */
+  default:
+    return 'V';
   }
 }
 
@@ -578,21 +601,22 @@ switch(flags){
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
-char get_nmea_mode_indicator(u8 flags) {
-  switch(flags){
-    case 0:
-      return('N');
-    case 1:
-      /* autonomous mode */
-      return('A');
-    case 2: /* DGPS */
-      return('D');
-    case 3: /* float */
-      return('F');
-    case 4: /* fixed */
-      return('R');
-    default:
-      return('N');
+char get_nmea_mode_indicator(u8 flags)
+{
+  switch (flags) {
+  case 0:
+    return 'N';
+  case 1:
+    /* autonomous mode */
+    return 'A';
+  case 2: /* DGPS */
+    return 'D';
+  case 3: /* float */
+    return 'F';
+  case 4: /* fixed */
+    return 'R';
+  default:
+    return 'N';
   }
 }
 
@@ -601,16 +625,17 @@ char get_nmea_mode_indicator(u8 flags) {
  *
  * \param flags        u8 sbp_ned_vel->flags
  */
-char get_nmea_vel_mode_indicator(u8 flags) {
-  switch(flags){
-    case 0: /* Invalid velocity */
-      return('N');
-    case 1: /* Measured Doppler */
-    case 2: /* Computed Doppler */
-      /* autonomous mode */
-      return('A');
-    default:
-      return('N');
+char get_nmea_vel_mode_indicator(u8 flags)
+{
+  switch (flags) {
+  case 0: /* Invalid velocity */
+    return 'N';
+  case 1: /* Measured Doppler */
+  case 2: /* Computed Doppler */
+    /* autonomous mode */
+    return 'A';
+  default:
+    return 'N';
   }
 }
 
@@ -620,18 +645,19 @@ char get_nmea_vel_mode_indicator(u8 flags) {
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
-char get_nmea_navigational_status(u8 flags) {
-  switch(flags){
-    case 0:
-      return('V');
-    case 1: /* SPP */
-    case 2: /* DGPS */
-    case 3: /* float */
-    case 4: /* fixed */
-      /* Default to "Caution - when integrity is not available" */
-      return('C');
-    default:
-      return('V');
+char get_nmea_navigational_status(u8 flags)
+{
+  switch (flags) {
+  case 0:
+    return 'V';
+  case 1: /* SPP */
+  case 2: /* DGPS */
+  case 3: /* float */
+  case 4: /* fixed */
+    /* Default to "Caution - when integrity is not available" */
+    return 'C';
+  default:
+    return 'V';
   }
 }
 /** \} */
