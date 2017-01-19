@@ -228,8 +228,8 @@ static void manage_acq_thread(void *arg)
 
 void manage_acq_setup()
 {
-  SETTING("acquisition", "sbas enabled", sbas_enabled, TYPE_BOOL);
-  SETTING("acquisition", "almanacs enabled", almanacs_enabled, TYPE_BOOL);
+  SETTING("acquisition", "sbas_enabled", sbas_enabled, TYPE_BOOL);
+  SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
