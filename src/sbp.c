@@ -63,7 +63,7 @@ static u32 sbp_buffer_length;
 
 static MUTEX_DECL(sbp_cb_mutex);
 
-static WORKING_AREA_CCM(wa_sbp_thread, 7168);
+static WORKING_AREA_CCM(wa_sbp_thread, 5000000);
 static void sbp_thread(void *arg)
 {
   (void)arg;
