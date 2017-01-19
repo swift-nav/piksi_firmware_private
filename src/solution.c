@@ -606,6 +606,8 @@ static void update_sat_elevations(const double rcv_pos[3], const gps_time_t t)
   }
 }
 
+s32 missed_deadline = 1;
+
 /** Sleep until the next solution deadline.
  *
  * \param deadline    Pointer to the current deadline, updated by this function.
@@ -614,8 +616,6 @@ static void update_sat_elevations(const double rcv_pos[3], const gps_time_t t)
 static void sol_thd_sleep(systime_t *deadline, systime_t interval)
 {
   *deadline += interval;
-
-  s32 missed_deadline = 1;
 
   chSysLock();
   while (1) {
