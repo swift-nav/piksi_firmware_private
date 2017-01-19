@@ -30,8 +30,9 @@
 #define NMEA_GGA_FIX_MANUAL  7
 #define NMEA_GGA_FIX_SIM     8
 
-#define MS2KNOTS(x,y,z)     sqrt((x)*(x) + (y)*(y) + (z)*(z)) * 1.94385
-#define MS2KMHR(x,y,z)       sqrt((x)*(x)+(y)*(y)+(z)*(z)) * (3600.0/1000.0)
+#define MS2KNOTS(x, y, z) (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * 1.94385)
+#define MS2KMHR(x, y, z)  (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * \
+                          (3600.0 / 1000.0))
 
 void nmea_setup(void);
 void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_time,
