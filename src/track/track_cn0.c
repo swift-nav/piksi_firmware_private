@@ -186,7 +186,7 @@ void track_cn0_params_init(void)
   SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "scale",
                  cn0_config.scale,
                  TYPE_FLOAT, settings_notify_proxy);
-  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "cn0 shift",
+  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "cn0_shift",
                  cn0_config.cn0_shift,
                  TYPE_FLOAT, settings_notify_proxy);
   SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION, "cutoff",
