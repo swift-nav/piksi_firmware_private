@@ -175,6 +175,7 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
  * \param context           Tracker context.
  * \param int_ms            Integration period (ms).
  * \param corr_prompt_real  Real part of the prompt correlation.
+ * \param sensitivity_mode  Flag indicating tracking channel sensitivity mode.
  */
 void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
                              s32 corr_prompt_real, bool sensitivity_mode)
