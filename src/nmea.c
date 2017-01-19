@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2016 Swift Navigation Inc.
+ * Copyright (C) 2013-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -121,8 +121,9 @@ static void nmea_append_checksum(char *s, size_t size)
   char *p = s;
 
   /* '$' header not included in checksum calculation */
-  if (*p == '$')
+  if (*p == '$') {
     p++;
+  }
 
   /* '*'  not included in checksum calculation */
   while (*p != '*' &&
@@ -154,7 +155,8 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
 
   if(sbp_msg_time->flags > 0) {
     current_time.wn = sbp_msg_time->wn;
-    current_time.tow = sbp_msg_time->tow * 1e-3; // SBP msg is time in MS
+    /* SBP msg time is in milliseconds */
+    current_time.tow = sbp_msg_time->tow * 1e-3;
   } else {
     current_time = get_current_time();
   }
@@ -164,8 +166,8 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
 
   double frac_s = fmod(current_time.tow, 1.0);
 
-  double lat = fabs(round(R2D * sbp_pos_llh->lat * 1e8) / 1e8);
-  double lon = fabs(round(R2D * sbp_pos_llh->lon * 1e8) / 1e8);
+  double lat = fabs(sbp_pos_llh->lat);
+  double lon = fabs(sbp_pos_llh->lon);
 
   char lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
   u16 lat_deg = (u16) lat;
@@ -191,7 +193,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
                        "%01d,%02d,%.1f,%.2f,M,0.0,M,",
                        t.tm_hour, t.tm_min, t.tm_sec + frac_s,
                        lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir,
-                       fix_type, sbp_pos_llh->n_sats, sbp_dops->hdop * 0.001, sbp_pos_llh->height
+                       fix_type, sbp_pos_llh->n_sats, sbp_dops->hdop * 0.01, sbp_pos_llh->height
                        );
 
   if (fix_type > 1) {
@@ -216,17 +218,21 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_dops_t *sbp_dops)
   NMEA_SENTENCE_PRINTF("$GPGSA,A,3,");
 
   for (u8 i = 0; i < 12; i++) {
-    if (i < num_prns)
+    if (i < num_prns) {
       NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
-    else
+    } else {
       NMEA_SENTENCE_PRINTF(",");
+    }
   }
 
-  if (sbp_dops)
-    NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f", sbp_dops->pdop * 0.001,
-                         sbp_dops->hdop * 0.001, sbp_dops->vdop * 0.001);
-  else
+  if (sbp_dops) {
+    NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f", sbp_dops->pdop * 0.01,
+                         sbp_dops->hdop * 0.01, sbp_dops->vdop * 0.01);
+  } else {
     NMEA_SENTENCE_PRINTF(",,");
+  }
+  /* GPS System ID */
+  NMEA_SENTENCE_PRINTF(",1");
 
   NMEA_SENTENCE_DONE();
 }
@@ -241,8 +247,12 @@ void nmea_gpgsv(u8 n_used,
                 const navigation_measurement_t *nav_meas,
                 const msg_pos_ecef_t *sbp_pos_ecef)
 {
-  if (n_used == 0)
+  if (n_used == 0) {
     return;
+  }
+
+  /* TODO: group measurements by band and append proper Signal ID after
+   * each message. see NMAE 4.1 p. 96 */
 
   u8 n_messages = (n_used + 3) / 4;
 
@@ -292,7 +302,8 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
   gps_time_t current_time;
   if(sbp_msg_time->flags > 0) {
     current_time.wn = sbp_msg_time->wn;
-    current_time.tow = sbp_msg_time->tow * 1e-3; // SBP msg is time in MS
+    /* SBP msg time is in milliseconds */
+    current_time.tow = sbp_msg_time->tow * 1e-3;
   } else {
     current_time = get_current_time();
   }
@@ -302,8 +313,8 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
 
   double frac_s  = fmod(current_time.tow, 1.0);
 
-  double lat     = fabs(round(R2D * sbp_pos_llh->lat * 1e8) / 1e8);
-  double lon     = fabs(round(R2D * sbp_pos_llh->lon * 1e8) / 1e8);
+  double lat     = fabs(sbp_pos_llh->lat);
+  double lon     = fabs(sbp_pos_llh->lon);
 
   char   lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
   u16    lat_deg = (u16)lat;
@@ -313,33 +324,34 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
   u16    lon_deg = (u16)lon;
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
-  char validity = 'A';
-  if(sbp_pos_llh->flags == 0){
-    validity = 'N';
-  }
+  char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
+  char status = get_nmea_status(sbp_pos_llh->flags);
+  char navigational_status = get_nmea_navigational_status(sbp_pos_llh->flags);
 
-  float x,y,z;
-  x = sbp_vel_ned->n;
-  y = sbp_vel_ned->e;
-  z = sbp_vel_ned->d;
-  float course = R2D * atan2(y,x);
+  double x,y,z;
+  x = sbp_vel_ned->n / 1000.0;
+  y = sbp_vel_ned->e / 1000.0;
+  z = sbp_vel_ned->d / 1000.0;
+  double course = R2D * atan2(y,x);
   if (course < 0.0) {
     course += 360.0;
   }
   /* Conversion to magnitue knots */
-  float vknots = MS2KNOTTS(x,y,z);
+  double vknots = MS2KNOTS(x,y,z);
 
   NMEA_SENTENCE_START(140);
   NMEA_SENTENCE_PRINTF(
-                "$GPRMC,%02d%02d%06.3f,A,"       /* Command, Time (UTC), Valid */
+                "$GPRMC,%02d%02d%06.3f,%c,"      /* Command, Time (UTC), Status*/
                 "%02u%010.7f,%c,%03u%010.7f,%c," /* Lat/Lon */
                 "%.2f,%05.1f,"                   /* Speed, Course */
-                "%02d%02d%02d,%c"                /* Date Stamp */
-                ",",                             /* Magnetic Variation, Validity */
-                t.tm_hour, t.tm_min, t.tm_sec + frac_s,
+                "%02d%02d%02d,"                  /* Date Stamp */
+                ",,"                             /* Magnetic Variation */
+                "%c,%c",                         /* Mode, Navigational Status */
+                t.tm_hour, t.tm_min, t.tm_sec + frac_s, status,
                 lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir,
                 vknots, course,
-                t.tm_mday, t.tm_mon + 1, t.tm_year % 100, validity);
+                t.tm_mday, t.tm_mon + 1, t.tm_year % 100, mode,
+                navigational_status);
   NMEA_SENTENCE_DONE();
 }
 
@@ -350,31 +362,28 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
  */
 void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned)
 {
-  float x,y,z;
-  x = sbp_vel_ned->n;
-  y = sbp_vel_ned->e;
-  z = sbp_vel_ned->d;
-  float course = R2D * atan2(y,x);
+  double x,y,z;
+  x = sbp_vel_ned->n / 1000.0;
+  y = sbp_vel_ned->e / 1000.0;
+  z = sbp_vel_ned->d / 1000.0;
+  double course = R2D * atan2(y,x);
   if (course < 0.0) {
     course += 360.0;
   }
-  /* Conversion to magnitue knots */
-  float vknots = MS2KNOTTS(x,y,z);
-  /* Conversion to magnitue km/hr */
-  float vkmhr = MS2KMHR(x,y,z);
+  /* Conversion to magnitude knots */
+  double vknots = MS2KNOTS(x,y,z);
+  /* Conversion to magnitude km/hr */
+  double vkmhr = MS2KMHR(x,y,z);
 
-  char validity = 'A';
-  if(sbp_vel_ned->flags == 0){
-    validity = 'N';
-  }
+  char mode = get_nmea_vel_mode_indicator(sbp_vel_ned->flags);
 
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF(
                   "$GPVTG,%05.1f,T," /* Command, course, */
                   ",M,"              /* Magnetic Course (omitted) */
-                  "%.2f,N,%.2f,K,%c",/* Speed (knots, km/hr), validity */
+                  "%.2f,N,%.2f,K,%c",/* Speed (knots, km/hr), Mode */
                   course,
-                  vknots, vkmhr, validity);
+                  vknots, vkmhr, mode);
   NMEA_SENTENCE_DONE();
 }
 
@@ -392,7 +401,8 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
   gps_time_t current_time;
   if(sbp_msg_time->flags > 0) {
     current_time.wn = sbp_msg_time->wn;
-    current_time.tow = sbp_msg_time->tow * 1e-3; // SBP msg is time in MS
+    /* SBP msg time is in milliseconds */
+    current_time.tow = sbp_msg_time->tow * 1e-3;
   } else {
     current_time = get_current_time();
   }
@@ -401,8 +411,8 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
 
   double frac_s  = fmod(current_time.tow, 1.0);
 
-  double lat     = fabs(round(R2D * sbp_pos_llh->lat * 1e8) / 1e8);
-  double lon     = fabs(round(R2D * sbp_pos_llh->lon * 1e8) / 1e8);
+  double lat     = fabs(sbp_pos_llh->lat);
+  double lon     = fabs(sbp_pos_llh->lon);
 
   char   lat_dir = sbp_pos_llh->lat < 0.0 ? 'S' : 'N';
   u16    lat_deg = (u16)lat;
@@ -412,17 +422,15 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
   u16    lon_deg = (u16)lon;
   double lon_min = (lon - (double)lon_deg) * 60.0;
 
-  char validity = 'A';
-  if(sbp_pos_llh->flags == 0){
-    validity = 'N';
-  }
+  char status = get_nmea_status(sbp_pos_llh->flags);
+  char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
 
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF("$GPGLL,"
                 "%02u%010.7f,%c,%03u%010.7f,%c," /* Lat/Lon */
-                "%02d%02d%06.3f,%c",             /* Time (UTC), Valid */
+                "%02d%02d%06.3f,%c,%c",          /* Time (UTC), Status, Mode */
                 lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir,
-                t.tm_hour, t.tm_min, t.tm_sec + frac_s, validity);
+                t.tm_hour, t.tm_min, t.tm_sec + frac_s, status, mode);
   NMEA_SENTENCE_DONE();
 }
 
@@ -439,7 +447,8 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time)
   gps_time_t current_time;
   if(sbp_msg_time->flags > 0) {
     current_time.wn = sbp_msg_time->wn;
-    current_time.tow = sbp_msg_time->tow * 1e-3; // SBP msg is time in MS
+    /* SBP msg time is in milliseconds */
+    current_time.tow = sbp_msg_time->tow * 1e-3;
   } else {
     current_time = get_current_time();
   }
@@ -457,7 +466,7 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time)
                 t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year);
   NMEA_SENTENCE_DONE();
 
-} // nmea_gpzda()
+} /* nmea_gpzda() */
 
 
 static void nmea_assemble_gpgsa(const msg_dops_t *sbp_dops)
@@ -542,6 +551,89 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
   };
 }
 
+/** Convert the sbp status flag into NMEA Status field.
+ * Ref: NMEA-0183-Release-Version-4.10 p.114
+ *
+ * \param flags        u8 sbp_pos_llh->flags
+ */
+char get_nmea_status(u8 flags) {
+
+switch(flags){
+    case 0:
+      return('V');
+    case 1:
+      /* autonomous mode */
+      return('A');
+    case 2: /* DGPS */
+      return('D');
+    case 3: /* float */
+    case 4: /* fixed */
+    default:
+      return('V');
+  }
+}
+
+/** Convert the sbp status flag into NMEA Mode Indicator field:
+ * Ref: NMEA-0183-Release-Version-4.10 p.113
+ *
+ * \param flags        u8 sbp_pos_llh->flags
+ */
+char get_nmea_mode_indicator(u8 flags) {
+  switch(flags){
+    case 0:
+      return('N');
+    case 1:
+      /* autonomous mode */
+      return('A');
+    case 2: /* DGPS */
+      return('D');
+    case 3: /* float */
+      return('F');
+    case 4: /* fixed */
+      return('R');
+    default:
+      return('N');
+  }
+}
+
+/** Convert the sbp status flag into NMEA Mode Indicator field:
+ * Ref: NMEA-0183-Release-Version-4.10 p.113
+ *
+ * \param flags        u8 sbp_ned_vel->flags
+ */
+char get_nmea_vel_mode_indicator(u8 flags) {
+  switch(flags){
+    case 0: /* Invalid velocity */
+      return('N');
+    case 1: /* Measured Doppler */
+    case 2: /* Computed Doppler */
+      /* autonomous mode */
+      return('A');
+    default:
+      return('N');
+  }
+}
+
+
+/** Convert the sbp status flag into NMEA Navigational Status field:
+ * Ref: NMEA-0183-Release-Version-4.10 p.114
+ *
+ * \param flags        u8 sbp_pos_llh->flags
+ */
+char get_nmea_navigational_status(u8 flags) {
+  switch(flags){
+    case 0:
+      return('V');
+    case 1: /* SPP */
+    case 2: /* DGPS */
+    case 3: /* float */
+    case 4: /* fixed */
+      /* Default to "Caution - when integrity is not available" */
+      return('C');
+    default:
+      return('V');
+  }
+}
 /** \} */
 
 /** \} */
