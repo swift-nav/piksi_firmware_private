@@ -511,7 +511,7 @@ static void nmea_assemble_gpgsa(const msg_dops_t *sbp_dops)
 
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
       gnss_signal_t sid = info.sid;
-      if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
+      if (sid.code == CODE_GPS_L1CA ) {
         prns[num_prns++] = sid.sat;
       }
     }
