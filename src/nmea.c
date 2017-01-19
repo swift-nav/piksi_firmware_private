@@ -378,7 +378,7 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
  *
  * \param sbp_vel_ned Pointer to sbp vel ned struct.
  */
-void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned)
+void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned, const msg_pos_llh_t *sbp_pos_llh)
 {
   double x,y,z;
   x = sbp_vel_ned->n / 1000.0;
@@ -392,9 +392,12 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned)
   double vknots = MS2KNOTS(x,y,z);
   /* Conversion to magnitude km/hr */
   double vkmhr = MS2KMHR(x,y,z);
-
-  char mode = get_nmea_vel_mode_indicator(sbp_vel_ned->flags);
-
+  /* Position indicator is used based upon spec 
+     "Positioning system mode indicator" means we should
+     see the same mode for pos and velocity messages
+     in a particular epoch */
+   
+  char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF(
                   "$GPVTG,%05.1f,T," /* Command, course, */
@@ -553,7 +556,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
   }
   if (sbp_vel_ned) {
     DO_EVERY(gpvtg_msg_rate,
-      nmea_gpvtg(sbp_vel_ned);
+      nmea_gpvtg(sbp_vel_ned, sbp_pos_llh);
     );
   }
   if (sbp_msg_time) {
@@ -605,33 +608,11 @@ char get_nmea_mode_indicator(u8 flags)
   case 0:
     return 'N';
   case SPP_POSITION: /* autonomous mode */
-  case FLOAT_POSITION:
-  case FIXED_POSITION:
     return 'A';
   case DGNSS_POSITION: /* differential mode */
-    return 'D';
-  default:
-    assert(!"Unsupported position type indicator");
-    return 'N';
-  }
-}
-
-/** Convert the sbp status flag into NMEA Mode Indicator field:
- * Ref: NMEA-0183 version 2.30 pp.49
- *
- * \param flags        u8 sbp_ned_vel->flags
- */
-char get_nmea_vel_mode_indicator(u8 flags)
-{
-  switch (flags) {
-  case 0: /* Invalid velocity */
-    return 'N';
-  case DGNSS_POSITION: /* Computed Doppler */
-    return 'D';
-  case SPP_POSITION: /* Measured Doppler */
   case FLOAT_POSITION:
   case FIXED_POSITION:
-    return 'A';
+    return 'D';
   default:
     assert(!"Unsupported position type indicator");
     return 'N';
