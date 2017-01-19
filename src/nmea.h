@@ -50,7 +50,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
                     const msg_gps_time_t *sbp_msg_time, u8 n_used, const navigation_measurement_t *nav_meas,
                     double propagation_time, u8 sender_id);
 char get_nmea_status(u8 flags);
-char get_nmea_navigational_status(u8 flags);
 char get_nmea_vel_mode_indicator(u8 flags);
 char get_nmea_mode_indicator(u8 flags);
 
