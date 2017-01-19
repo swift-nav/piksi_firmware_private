@@ -20,6 +20,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/time.h>
+#include <libswiftnav/observation.h>
 
 #include "board/nap/track_channel.h"
 #include "track.h"
@@ -345,7 +346,6 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
 
   char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
   char status = get_nmea_status(sbp_pos_llh->flags);
-  char navigational_status = get_nmea_navigational_status(sbp_pos_llh->flags);
 
   double x,y,z;
   x = sbp_vel_ned->n / 1000.0;
@@ -365,12 +365,11 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
                 "%.2f,%05.1f,"                   /* Speed, Course */
                 "%02d%02d%02d,"                  /* Date Stamp */
                 ",,"                             /* Magnetic Variation */
-                "%c,%c",                         /* Mode, Navigational Status */
+                "%c",                            /* Mode Indicator */
                 t.tm_hour, t.tm_min, t.tm_sec + frac_s, status,
                 lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir,
                 vknots, course,
-                t.tm_mday, t.tm_mon + 1, t.tm_year % 100, mode,
-                navigational_status);
+                t.tm_mday, t.tm_mon + 1, t.tm_year % 100, mode);
   NMEA_SENTENCE_DONE();
 }
 
@@ -575,7 +574,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
 }
 
 /** Convert the sbp status flag into NMEA Status field.
- * Ref: NMEA-0183-Release-Version-4.10 p.114
+ * Ref: NMEA-0183 version 2.30 pp.42,43
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
@@ -584,20 +583,19 @@ char get_nmea_status(u8 flags)
   switch (flags) {
   case 0:
     return 'V';
-  case 1:
-    /* autonomous mode */
+  case SPP_POSITION: /* autonomous mode */
+  case DGNSS_POSITION:
+  case FLOAT_POSITION:
+  case FIXED_POSITION:
     return 'A';
-  case 2: /* DGPS */
-    return 'D';
-  case 3: /* float */
-  case 4: /* fixed */
   default:
+    assert(!"Unsupported position type indicator");
     return 'V';
   }
 }
 
 /** Convert the sbp status flag into NMEA Mode Indicator field:
- * Ref: NMEA-0183-Release-Version-4.10 p.113
+ * Ref: NMEA-0183 version 2.30 pp.42,43
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
@@ -606,22 +604,20 @@ char get_nmea_mode_indicator(u8 flags)
   switch (flags) {
   case 0:
     return 'N';
-  case 1:
-    /* autonomous mode */
+  case SPP_POSITION: /* autonomous mode */
+  case FLOAT_POSITION:
+  case FIXED_POSITION:
     return 'A';
-  case 2: /* DGPS */
+  case DGNSS_POSITION: /* differential mode */
     return 'D';
-  case 3: /* float */
-    return 'F';
-  case 4: /* fixed */
-    return 'R';
   default:
+    assert(!"Unsupported position type indicator");
     return 'N';
   }
 }
 
 /** Convert the sbp status flag into NMEA Mode Indicator field:
- * Ref: NMEA-0183-Release-Version-4.10 p.113
+ * Ref: NMEA-0183 version 2.30 pp.49
  *
  * \param flags        u8 sbp_ned_vel->flags
  */
@@ -630,36 +626,18 @@ char get_nmea_vel_mode_indicator(u8 flags)
   switch (flags) {
   case 0: /* Invalid velocity */
     return 'N';
-  case 1: /* Measured Doppler */
-  case 2: /* Computed Doppler */
-    /* autonomous mode */
+  case DGNSS_POSITION: /* Computed Doppler */
+    return 'D';
+  case SPP_POSITION: /* Measured Doppler */
+  case FLOAT_POSITION:
+  case FIXED_POSITION:
     return 'A';
   default:
+    assert(!"Unsupported position type indicator");
     return 'N';
   }
 }
 
-
-/** Convert the sbp status flag into NMEA Navigational Status field:
- * Ref: NMEA-0183-Release-Version-4.10 p.114
- *
- * \param flags        u8 sbp_pos_llh->flags
- */
-char get_nmea_navigational_status(u8 flags)
-{
-  switch (flags) {
-  case 0:
-    return 'V';
-  case 1: /* SPP */
-  case 2: /* DGPS */
-  case 3: /* float */
-  case 4: /* fixed */
-    /* Default to "Caution - when integrity is not available" */
-    return 'C';
-  default:
-    return 'V';
-  }
-}
 /** \} */
 
 /** \} */
