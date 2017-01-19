@@ -33,6 +33,10 @@ typedef struct {
   double pos_ecef[3];
   /** Is the `pos_ecef` field valid? */
   u8 has_pos;
+  /** The known, surveyed base position. */
+  double known_pos_ecef[3];
+  /** Do we have the known, surveyed position? */
+  bool has_known_pos_ecef;
   /** Approximate base station velocity.
   * This is the velocity obtained from a SPP solve */
   double vel_ecef[3];
