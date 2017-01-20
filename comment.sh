@@ -65,7 +65,7 @@ github_links(){
 }
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    if [ "$TRAVIS_BRANCH" == "master" ]; then
+    if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_BRANCH" == v*-release ]]; then
         COMMENT="$(slack_links)"
         URL="https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=$SLACK_CHANNEL"
         DATA="text=$COMMENT"
