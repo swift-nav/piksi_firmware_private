@@ -142,6 +142,11 @@ static void update_obss(obss_t *new_obss)
     new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, is_l2p_sid);
   }
 
+  /* Filter out any observation without a valid pseudorange observation. */
+  if (new_obss->n > 0) {
+    new_obss->n = filter_nav_meas_flags(new_obss->n, new_obss->nm, has_invalid_pseudorange);
+  }
+
   /* Filter out any observation not marked healthy by the ndb. */
   if (new_obss->n > 0) {
     new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, shm_navigation_unusable);
@@ -205,7 +210,7 @@ static void update_obss(obss_t *new_obss)
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
     s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true,
-                       get_solution_elevation_mask(), &soln, &dops);
+                       get_solution_elevation_mask(), &soln, &dops, NULL);
 
     if (ret >= 0 && soln.valid) {
       memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
