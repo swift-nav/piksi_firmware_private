@@ -37,7 +37,7 @@
 void nmea_setup(void);
 void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_time,
                 const msg_dops_t *sbp_dops, double propagation_time, u8 station_id);
-void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_dops_t *sbp_dops);
+void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, const msg_dops_t *sbp_dops);
 void nmea_gpgsv(u8 n_used, const navigation_measurement_t *nav_meas,
                 const msg_pos_ecef_t *sbp_pos_ecef);
 void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_ned,

@@ -228,10 +228,11 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
  * \param num_prns  Number of valid PRNs in array.
  * \param sbp_dops  Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
  */
-void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_dops_t *sbp_dops)
+void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, const msg_dops_t *sbp_dops)
 {
   NMEA_SENTENCE_START(120);
-  NMEA_SENTENCE_PRINTF("$GPGSA,A,3,");
+  char fix_mode = (sbp_pos_llh->flags == 0) ? '1' : '3'; /*Our fix is allways 3D*/
+  NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode);
 
   for (u8 i = 0; i < 12; i++) {
     if (i < num_prns) {
@@ -279,8 +280,8 @@ void nmea_gpgsv(u8 n_used,
     NMEA_SENTENCE_START(120);
     NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_used);
 
-    for (u8 j = 0; j < 4; j++) {
-      if (n < n_used) {
+    for (u8 j = 0; j < 4 && n < n_used; n++) {
+      if (nav_meas[n].sid.code == CODE_GPS_L1CA) {
         double pos_ecef[3];
         pos_ecef[0] = sbp_pos_ecef->x;
         pos_ecef[1] = sbp_pos_ecef->y;
@@ -293,10 +294,9 @@ void nmea_gpgsv(u8 n_used,
           (u16)round(az * R2D),
           (u8)round(nav_meas[n].cn0)
           );
-      }
-      n++;
+        j++; /* 4 sats per message no matter what */
+        }
     }
-
     NMEA_SENTENCE_DONE();
   }
 
@@ -494,7 +494,7 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time)
 } /* nmea_gpzda() */
 
 
-static void nmea_assemble_gpgsa(const msg_dops_t *sbp_dops)
+static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh, const msg_dops_t *sbp_dops)
 {
   /* Assemble list of currently tracked GPS PRNs */
   u8 prns[nap_track_n_channels];
@@ -517,7 +517,7 @@ static void nmea_assemble_gpgsa(const msg_dops_t *sbp_dops)
     }
   }
   /* Send GPGSA message */
-  nmea_gpgsa(prns, num_prns, sbp_dops);
+  nmea_gpgsa(prns, num_prns, sbp_pos_llh, sbp_dops);
 }
 
 
@@ -554,7 +554,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
     DO_EVERY(gpgll_msg_rate,
              nmea_gpgll(sbp_pos_llh, sbp_msg_time););
   }
-  if (sbp_vel_ned) {
+  if (sbp_vel_ned && sbp_pos_llh) {
     DO_EVERY(gpvtg_msg_rate,
       nmea_gpvtg(sbp_vel_ned, sbp_pos_llh);
     );
@@ -564,9 +564,9 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
              nmea_gpzda(sbp_msg_time);
     );
   }
-  if (sbp_dops) {
+  if (sbp_dops && sbp_pos_llh) {
     DO_EVERY(gpgsa_msg_rate,
-             nmea_assemble_gpgsa(sbp_dops);
+             nmea_assemble_gpgsa(sbp_pos_llh, sbp_dops);
     );
   }
   if(nav_meas && sbp_pos_ecef) {
