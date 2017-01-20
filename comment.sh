@@ -39,7 +39,7 @@ LINKS=\
 "http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
 "http://hitl-dashboard.swiftnav.com/files/$BUCKET/$REPO/$BUILD_VERSION/"
-"http://hitl-dashboard.swiftnav.com/hitl/$BUILD_SOURCE/$BUILD_VERSION/"
+"http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION"
 )
 
 TITLES=\
