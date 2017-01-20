@@ -1047,8 +1047,21 @@ static void solution_thread(void *arg)
                       p_i_params);
     }
 
+//     gnss_signal_t signal_to_bias;
+// signal_to_bias`.code = CODE_GPS_L1CA;
+// signal_to_bias.sat = 23;
+// double bias = 200000.0;
+// for (u8 i = 0; i < n_ready_tdcp; ++i) {
+//   if (sid_is_equal(nav_meas_tdcp[i].sid, signal_to_bias)) {
+//     nav_meas_tdcp[i].pseudorange += bias;
+//     nav_meas_tdcp[i].raw_pseudorange += bias;
+//     log_warn_sid(signal_to_bias, "Adding a bias of %f", bias);
+//   }
+// }
+
     dops_t dops;
     gnss_solution current_fix;
+    gnss_signal_t raim_removed_sid;
 
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
@@ -1057,7 +1070,7 @@ static void solution_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           (double) get_solution_elevation_mask(),
-                          &current_fix, &dops);
+                          &current_fix, &dops, &raim_removed_sid);
     if (pvt_ret < 0) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
@@ -1083,8 +1096,15 @@ static void solution_thread(void *arg)
       continue;
     }
 
-    if (pvt_ret == 1) {
-      log_warn("calc_PVT: RAIM repair");
+    /* If we have a success RAIM repair, mark the removed observation as
+       invalid. In practice, this means setting only the CN0 flag valid. */
+    if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
+      for (u8 i = 0; i < n_ready_tdcp; i++) {
+        if (sid_is_equal(nav_meas_tdcp[i].sid, raim_removed_sid)) {
+          log_warn_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
+          nav_meas_tdcp[i].flags = NAV_MEAS_FLAG_CN0_VALID;
+        }
+      }
     }
 
     if (time_quality < TIME_FINE) {
