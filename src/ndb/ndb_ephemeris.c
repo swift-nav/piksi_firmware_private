@@ -155,103 +155,103 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const almanac_t   *existing_a,
                                       const ephemeris_t *candidate)
 {
-  bool res = false;
 
   if (NULL != candidate && 0 == memcmp(new, candidate, sizeof(*new))) {
     /* Exact match */
-    res = true;
     log_debug_sid(new->sid, "[EPH] candidate match");
+    return true;
   } else if (NULL != existing_e && 0 == memcmp(new, existing_e, sizeof(*new))) {
     /* Exact match with stored */
-    res = true;
     log_debug_sid(new->sid, "[EPH] NDB match");
-  } else {
+    return true;
+  }
 
-    /* First check point: start of the position test interval */
-    gps_time_t t_start = new->toe;
-    t_start.tow += -MINUTE_SECS * 30;
-    normalize_gps_time(&t_start);
+  bool res = false;
 
-    /* Last check point: end of the position test interval */
-    gps_time_t t_end = t_start;
-    t_end.tow += MINUTE_SECS * 30 * 2;
-    normalize_gps_time(&t_end);
+  /* First check point: start of the position test interval */
+  gps_time_t t_start = new->toe;
+  t_start.tow += -MINUTE_SECS * 30;
+  normalize_gps_time(&t_start);
 
-    if (NULL != existing_a &&
-        almanac_valid(existing_a, &t_start) &&
-        almanac_valid(existing_a, &t_end) &&
-        ephemeris_valid(new, &t_start) &&
-        ephemeris_valid(new, &t_end)) {
+  /* Last check point: end of the position test interval */
+  gps_time_t t_end = t_start;
+  t_end.tow += MINUTE_SECS * 30 * 2;
+  normalize_gps_time(&t_end);
 
-      /* Almanac position verification */
+  if (NULL != existing_a &&
+      almanac_valid(existing_a, &t_start) &&
+      almanac_valid(existing_a, &t_end) &&
+      ephemeris_valid(new, &t_start) &&
+      ephemeris_valid(new, &t_end)) {
 
-      bool ok = true;
-      gps_time_t t = t_start;
+    /* Almanac position verification */
 
-      for (u8 i = 0; i < 3 && ok;
-          ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
+    bool ok = true;
+    gps_time_t t = t_start;
 
-        double _[3];
-        double alm_sat_pos[3];
-        double eph_sat_pos[3];
+    for (u8 i = 0; i < 3 && ok;
+        ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
 
-        ok = false;
+      double _[3];
+      double alm_sat_pos[3];
+      double eph_sat_pos[3];
 
-        if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
-            0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _)) {
+      ok = false;
 
-          /* Compute distance [m] */
-          double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
+      if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
+          0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _)) {
 
-          ok = (d <= ndb_ephe_config.valid_alm_accuracy);
-          log_debug_sid(new->sid,
-                       "[EPH] almanac position error %lf T=%" PRId16 ",%" PRId32,
-                       d, t.wn, (s32)t.tow);
-        }
-      }
+        /* Compute distance [m] */
+        double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
 
-      res = ok;
-      if (res) {
-        log_debug_sid(new->sid, "[EPH] verified against almanac");
+        ok = (d <= ndb_ephe_config.valid_alm_accuracy);
+        log_debug_sid(new->sid,
+                     "[EPH] almanac position error %lf T=%" PRId16 ",%" PRId32,
+                     d, t.wn, (s32)t.tow);
       }
     }
 
-    if (!res &&
-        NULL != existing_e &&
-        ephemeris_valid(existing_e, &t_start) &&
-        ephemeris_valid(existing_e, &t_end)) {
-      /* Previous ephemeris, but still valid */
-
-      bool ok = true;
-      gps_time_t t = t_start;
-
-      for (u8 i = 0; i < 3 && ok;
-          ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
-
-        double _[3];
-        double old_sat_pos[3];
-        double new_sat_pos[3];
-
-        ok = false;
-
-        if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, _, _, _) &&
-            0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _)) {
-
-          /* Compute distance [m] */
-          double d = vector_distance(3, old_sat_pos, new_sat_pos);
-
-          ok = (d <= ndb_ephe_config.valid_eph_accuracy);
-          log_debug_sid(new->sid, "[EPH] ephemeris position error %lf", d);
-        }
-      }
-
-      res = ok;
-      if (res) {
-        log_debug_sid(new->sid, "[EPH] verified against NDB ephemeris");
-      }
-    }  else if (!res) {
-      log_debug_sid(new->sid, "[EPH] can't verify");
+    res = ok;
+    if (res) {
+      log_debug_sid(new->sid, "[EPH] verified against almanac");
     }
+  }
+
+  if (!res &&
+      NULL != existing_e &&
+      ephemeris_valid(existing_e, &t_start) &&
+      ephemeris_valid(existing_e, &t_end)) {
+    /* Previous ephemeris, but still valid */
+
+    bool ok = true;
+    gps_time_t t = t_start;
+
+    for (u8 i = 0; i < 3 && ok;
+        ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
+
+      double _[3];
+      double old_sat_pos[3];
+      double new_sat_pos[3];
+
+      ok = false;
+
+      if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, _, _, _) &&
+          0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _)) {
+
+        /* Compute distance [m] */
+        double d = vector_distance(3, old_sat_pos, new_sat_pos);
+
+        ok = (d <= ndb_ephe_config.valid_eph_accuracy);
+        log_debug_sid(new->sid, "[EPH] ephemeris position error %lf", d);
+      }
+    }
+
+    res = ok;
+    if (res) {
+      log_debug_sid(new->sid, "[EPH] verified against NDB ephemeris");
+    }
+  } else if (!res) {
+    log_debug_sid(new->sid, "[EPH] can't verify");
   }
 
   return res;
@@ -282,6 +282,13 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   chMtxLock(&cand_list_access);
+
+  /* TTFF improvement: trust the candidate if there is no existing almanac or
+   * ephemeris to compare to (happens only during first fix situation)  */
+  if (!existing_e.valid && !existing_a.valid) {
+    chMtxUnlock(&cand_list_access);
+    return NDB_CAND_NEW_TRUSTED;
+  }
 
   s16 cand_idx = ndb_ephe_find_candidate(new->sid);
   if (-1 != cand_idx) {
