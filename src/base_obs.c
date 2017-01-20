@@ -112,8 +112,12 @@ static void base_pos_ecef_callback(u16 sender_id, u8 len, u8 msg[], void* contex
   chMtxUnlock(&base_pos_lock);
 }
 
-static inline bool is_l2p_sid(const gnss_signal_t a) {
-  return a.code == CODE_GPS_L2P;
+static inline bool not_l2p_sid(navigation_measurement_t a) {
+  return a.sid.code != CODE_GPS_L2P;
+}
+
+static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
+  return shm_navigation_suitable(meas.sid);
 }
 
 /** Update the #base_obss state given a new set of obss.
@@ -139,12 +143,18 @@ static void update_obss(obss_t *new_obss)
    */
   if (new_obss->n > 0 && has_mixed_l2_obs(new_obss->n, new_obss->nm)) {
     log_warn("Base observations have mixed L2 tracking types. Discarding L2P!");
-    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, is_l2p_sid);
+    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, not_l2p_sid);
+  }
+
+  /* Filter out any observation without a valid pseudorange observation. */
+  if (new_obss->n > 0) {
+    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, pseudorange_valid);
   }
 
   /* Filter out any observation not marked healthy by the ndb. */
   if (new_obss->n > 0) {
-    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, shm_navigation_unusable);
+    new_obss->n =
+        filter_nav_meas(new_obss->n, new_obss->nm, shm_suitable_wrapper);
   }
 
   /* Lock mutex before modifying base_obss.
@@ -205,7 +215,7 @@ static void update_obss(obss_t *new_obss)
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
     s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true,
-                       get_solution_elevation_mask(), &soln, &dops);
+                       get_solution_elevation_mask(), &soln, &dops, NULL);
 
     if (ret >= 0 && soln.valid) {
       memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
