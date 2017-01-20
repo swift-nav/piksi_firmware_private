@@ -267,18 +267,25 @@ void nmea_gpgsv(u8 n_used,
   if (n_used == 0) {
     return;
   }
+  
+  u8 n_l1_used = 0;
+  for(u8 i = 0; i < n_used; i++) {
+    if (nav_meas[i].sid.code == CODE_GPS_L1CA) {
+      n_l1_used++;
+      }
+    }
 
   /* TODO: group measurements by band and append proper Signal ID after
    * each message. see NMAE 4.1 p. 96 */
-
-  u8 n_messages = (n_used + 3) / 4;
+  
+  u8 n_messages = (n_l1_used + 3) / 4;
 
   u8 n = 0;
   double az, el;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_used);
+    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_l1_used);
 
     for (u8 j = 0; j < 4 && n < n_used; n++) {
       if (nav_meas[n].sid.code == CODE_GPS_L1CA) {
