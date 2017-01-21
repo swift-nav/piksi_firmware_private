@@ -142,6 +142,7 @@ bool spp_timeout(const gps_time_t *_last_spp, const gps_time_t *_last_dgnss, dgn
   chMtxLock(&last_sbp_lock);
   double time_diff = gpsdifftime(_last_spp,_last_dgnss);
   chMtxUnlock(&last_sbp_lock);
+  log_warn("spp timeout time diff %f",time_diff);
 
   // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
   return (time_diff > 0.0);
@@ -151,40 +152,51 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
                        msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
                        msg_vel_ned_t *vel_ned, msg_vel_ecef_t *vel_ecef,
                        msg_dops_t *sbp_dops) {
-  if (soln) {
+  log_warn("make sbp");
+  if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
+    log_warn("make gps time");
     sbp_make_gps_time(gps_time, &soln->time, SPP_POSITION);
 
     /* Extract full covariance matrix from upper triangular in soln->err_cov */
     double full_covariance[9];
+    log_warn("extract cov");
     extract_covariance(full_covariance, soln);
 
     /* Compute the accuracy figures from the covariance matrix */
     double accuracy, h_accuracy, v_accuracy;
+    log_warn("cov %f %f %f %f %f %f %f %f %f",full_covariance[0],full_covariance[1],full_covariance[2],full_covariance[3],full_covariance[4],full_covariance[5],full_covariance[6],full_covariance[7],full_covariance[8]);
+    log_warn("pos %f %f %f",soln->pos_ecef[0],soln->pos_ecef[1],soln->pos_ecef[2]);
     covariance_to_accuracy(full_covariance, soln->pos_ecef,
                            &accuracy, &h_accuracy, &v_accuracy);
 
+    log_warn("after cov to acc");
     const gps_time_t soln_time = soln->time;
 
     /* Position in LLH. */
+    log_warn("make pos llh");
     sbp_make_pos_llh_vect(pos_llh, soln->pos_llh, h_accuracy, v_accuracy,
                           &soln_time, soln->n_sats_used, SPP_POSITION);
 
     /* Position in ECEF. */
+    log_warn("make pos ecef");
     sbp_make_pos_ecef_vect(pos_ecef, soln->pos_ecef, accuracy,
                           &soln_time, soln->n_sats_used, SPP_POSITION);
 
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
-    if (!clock_jump) {
+    if (!clock_jump && soln->velocity_valid) {
+      log_warn("make vel ned");
       sbp_make_vel_ned(vel_ned, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
 
       /* Velocity in ECEF. */
+      log_warn("make vel ecef");
       sbp_make_vel_ecef(vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
     }
 
     /* DOP message can be sent even if solution fails to compute */
     if (dops) {
+      log_warn("make dops");
       sbp_make_dops(sbp_dops,dops,pos_llh->tow, SPP_POSITION);
     }
 
@@ -195,6 +207,7 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     gps_time_t time_guess = get_current_time();
     sbp_make_gps_time(gps_time, &time_guess, 0);
   }
+  log_warn("finish sbp make");
 }
 
 /** Extract the full covariance matrix from soln struct */
@@ -303,10 +316,13 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
     solution_send_pos_messages(propagation_time, sender_id, n_used, nav_meas,
                                gps_time, pos_llh, pos_ecef, vel_ned, vel_ecef, sbp_dops, baseline_ned,
                                baseline_ecef, baseline_heading);
+    log_warn("set last_spp");
     chMtxLock(&last_sbp_lock);
     last_spp.wn = gps_time->wn;
     last_spp.tow = gps_time->tow * 0.001;
+    log_warn("set last_spp %f",last_spp.tow);
     chMtxUnlock(&last_sbp_lock);
+
   }
 }
 
@@ -357,9 +373,12 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK))) {
-    chMtxLock(&last_sbp_lock);
-    last_dgnss = *t;
-    chMtxUnlock(&last_sbp_lock);
+    if(t) {
+      chMtxLock(&last_sbp_lock);
+      last_dgnss = *t;
+      chMtxUnlock(&last_sbp_lock);
+      log_warn("set last_dgnss %f",last_dgnss.tow);
+    }
     double pseudo_absolute_ecef[3];
     double pseudo_absolute_llh[3];
 
@@ -518,7 +537,15 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
       obs->has_pos = false;
     }
 
-    obs->soln = *soln;
+    log_warn("copy soln");
+    if(soln){
+      log_warn("soln copied");
+      obs->soln = *soln;
+    } else {
+      log_warn("soln invalid");
+      obs->soln.valid = 0;
+      obs->soln.velocity_valid = 0;
+    }
 
     ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
@@ -1264,6 +1291,7 @@ static void solution_thread(void *arg)
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
         /* Post the observations to the mailbox. */
+        log_warn("Post Observations");
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
 
         /* Send the observations. */
@@ -1365,7 +1393,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
   chMtxUnlock(&time_matched_filter_manager_lock);
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 5000000);
+static WORKING_AREA_CCM(wa_time_matched_obs_thread, 6000000);
 static void time_matched_obs_thread(void *arg)
 {
   (void)arg;
@@ -1452,8 +1480,10 @@ static void time_matched_obs_thread(void *arg)
         // We need to form the SBP messages derived from the SPP at this solution time before we
         // do the differential solution so that the various messages can be overwritten as appropriate,
         // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
+        log_warn("make spp sbp from time matched");
         solution_make_sbp(&obss->soln,NULL,obss->soln.velocity_valid, &sbp_msg_time, &pos_llh, &pos_ecef,
                           &vel_ned, &vel_ecef, &sbp_dops);
+        log_warn("made sbp");
         process_matched_obs(n_sds, obss, sds,
                             has_known_base_pos_ecef, known_base_pos,
                             &pos_llh, &pos_ecef, &sbp_dops,
