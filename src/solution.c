@@ -84,8 +84,9 @@ MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
-systime_t last_dgnss;
-systime_t last_spp;
+MUTEX_DECL(last_sbp_lock);
+gps_time_t last_dgnss;
+gps_time_t last_spp;
 
 double soln_freq = 10.0;
 u32 max_age_of_differential = 30;
@@ -132,15 +133,18 @@ bool dgnss_timeout(systime_t _last_dgnss, dgnss_solution_mode_t _dgnss_soln_mode
  * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
  *
  */
-bool spp_timeout(systime_t _last_spp, systime_t _last_dgnss, dgnss_solution_mode_t _dgnss_soln_mode) {
+bool spp_timeout(const gps_time_t *_last_spp, const gps_time_t *_last_dgnss, dgnss_solution_mode_t _dgnss_soln_mode) {
 
   // No timeout needed in low latency mode;
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
   }
+  chMtxLock(&last_sbp_lock);
+  double time_diff = gpsdifftime(_last_spp,_last_dgnss);
+  chMtxUnlock(&last_sbp_lock);
 
   // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
-  return (_last_spp < _last_dgnss);
+  return (time_diff > 0.0);
 }
 
 void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, msg_gps_time_t *gps_time,
@@ -291,7 +295,7 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
                                       const msg_baseline_heading_t *baseline_heading) {
   // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
   bool wait_for_timeout = false;
-  if (!(dgnss_timeout(last_dgnss, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+  if (!(dgnss_timeout(last_dgnss_stats.systime, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     wait_for_timeout = true;
   }
 
@@ -299,8 +303,11 @@ void solution_send_low_latency_output(double propagation_time, u8 sender_id, u8 
     solution_send_pos_messages(propagation_time, sender_id, n_used, nav_meas,
                                gps_time, pos_llh, pos_ecef, vel_ned, vel_ecef, sbp_dops, baseline_ned,
                                baseline_ecef, baseline_heading);
+    chMtxLock(&last_sbp_lock);
+    last_spp.wn = gps_time->wn;
+    last_spp.tow = gps_time->tow * 0.001;
+    chMtxUnlock(&last_sbp_lock);
   }
-  last_spp = chVTGetSystemTime();
 }
 
 double calc_heading(const double b_ned[3])
@@ -350,7 +357,9 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK))) {
-    last_dgnss = chVTGetSystemTime();
+    chMtxLock(&last_sbp_lock);
+    last_dgnss = *t;
+    chMtxUnlock(&last_sbp_lock);
     double pseudo_absolute_ecef[3];
     double pseudo_absolute_llh[3];
 
@@ -508,15 +517,8 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
     } else {
       obs->has_pos = false;
     }
-    if(soln->velocity_valid > 0) {
-      obs->vel_ecef[0] = soln->vel_ecef[0];
-      obs->vel_ecef[1] = soln->vel_ecef[1];
-      obs->vel_ecef[2] = soln->vel_ecef[2];
-      obs->has_vel = true;
-    } else {
-      obs->has_vel = false;
-    }
 
+    obs->soln = *soln;
 
     ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
@@ -1076,7 +1078,7 @@ static void solution_thread(void *arg)
                                          &baseline_ned,
                                          &baseline_ecef, &baseline_heading);
       }
-      last_spp = chVTGetSystemTime();
+
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
         lgf.position_quality = POSITION_STATIC;
@@ -1296,7 +1298,6 @@ static void solution_thread(void *arg)
                                      &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned,
                                      &baseline_ecef, &baseline_heading);
 
-    last_spp = chVTGetSystemTime();
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
@@ -1448,16 +1449,19 @@ static void time_matched_obs_thread(void *arg)
           memcpy(known_base_pos, base_obss.known_pos_ecef, sizeof(base_obss.known_pos_ecef));
         }
         chMtxUnlock(&base_obs_lock);
-
+        // We need to form the SBP messages derived from the SPP at this solution time before we
+        // do the differential solution so that the various messages can be overwritten as appropriate,
+        // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
+        solution_make_sbp(&obss->soln,NULL,obss->soln.velocity_valid, &sbp_msg_time, &pos_llh, &pos_ecef,
+                          &vel_ned, &vel_ecef, &sbp_dops);
         process_matched_obs(n_sds, obss, sds,
                             has_known_base_pos_ecef, known_base_pos,
                             &pos_llh, &pos_ecef, &sbp_dops,
                             &baseline_ned, &baseline_ecef, &baseline_heading);
         chPoolFree(&obs_buff_pool, obss);
-        if(spp_timeout(last_spp, last_dgnss, dgnss_soln_mode)) {
+        if(spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss.sender_id, obss->n, obss->nm, &sbp_msg_time, &pos_llh, &pos_ecef,
-                                     &vel_ned,
-                                     &vel_ecef, &sbp_dops, &baseline_ned, &baseline_ecef, &baseline_heading);
+                                     &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned, &baseline_ecef, &baseline_heading);
         }
         break;
       } else {
@@ -1524,7 +1528,6 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
 void solution_setup()
 {
   /* Set time of last differential solution in the past. */
-  last_dgnss = chVTGetSystemTime() - MS2ST(DGNSS_TIMEOUT_MS);
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
