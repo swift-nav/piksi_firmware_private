@@ -161,6 +161,12 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     code_phase += offset_ms * chips_in_ms;
   }
 
+  /* Adjust code phase by 1 chip to accommodate zero in the L2CM slot */
+  code_phase -= 1.0f;
+  if (code_phase < 0.0f) {
+    code_phase += GPS_L2CL_CHIPS_NUM;
+  }
+
   /* The best elevation estimation could be retrieved by calling
      tracking_channel_evelation_degrees_get(nap_channel) here.
      However, we assume it is done where tracker_channel_init()
@@ -170,8 +176,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     .sid                = sid,
     .sample_count       = sample_count,
     .carrier_freq       = carrier_freq,
-    /* adjust code phase by 1 chip to accommodate zero in the L2CM slot */
-    .code_phase         = code_phase - 1.0f,
+    .code_phase         = code_phase,
     .chips_to_correlate = 1023,
     /* get initial cn0 from parent L2CM channel */
     .cn0_init           = cn0_init,
