@@ -253,20 +253,21 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
  */
 void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, const msg_dops_t *sbp_dops)
 {
-  NMEA_SENTENCE_START(120);
   char fix_mode =
     (sbp_pos_llh->flags == 0) ? '1' : '3';           /* Our fix is allways 3D */
-  NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode);
+
+  NMEA_SENTENCE_START(120);
+  NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode);    /* Always automatic mode */
 
   for (u8 i = 0; i < 12; i++) {
-    if (i < num_prns) {
+    if ((sbp_pos_llh->flags > 0) && (i < num_prns)) {
       NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
     } else {
       NMEA_SENTENCE_PRINTF(",");
     }
   }
 
-  if (sbp_dops) {
+  if ((sbp_pos_llh->flags > 0) && sbp_dops) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
                          sbp_dops->pdop * 0.01,
                          sbp_dops->hdop * 0.01,
