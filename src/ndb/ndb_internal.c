@@ -165,7 +165,7 @@ static void ndb_log_file_open(ndb_op_code_t oc,
   case NDB_ERR_MISSING_IE:
   case NDB_ERR_UNSUPPORTED:
   case NDB_ERR_BAD_PARAM:
-  case NDB_ERR_UNRELIABLE_DATA:
+  case NDB_ERR_UNCONFIRMED_DATA:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   case NDB_ERR_OLDER_DATA:

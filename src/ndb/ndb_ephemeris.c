@@ -338,16 +338,16 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
  * The method looks for an appropriate ephemeris in persistent database, if the
  * entry is found, it is returned with #NDB_ERR_NONE. If there is no entry,
  * an attempt to look in a candidate table is made, and, if candidate entry is
- * found, it is returned with #NDB_ERR_UNRELIABLE_DATA.
+ * found, it is returned with #NDB_ERR_UNCONFIRMED_DATA.
  *
  * \param[in]  sid Signal identifier
  * \param[out] e   Destination for ephemeris data
  *
  * \return Operation result
- * \retval NDB_ERR_NONE            On success
- * \retval NDB_ERR_BAD_PARAM       On parameter error
- * \retval NDB_ERR_MISSING_IE      No cached data block
- * \retval NDB_ERR_UNRELIABLE_DATA Unconfirmed data block
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_BAD_PARAM        On parameter error
+ * \retval NDB_ERR_MISSING_IE       No cached data block
+ * \retval NDB_ERR_UNCONFIRMED_DATA Unconfirmed data block
  */
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
@@ -366,7 +366,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     if (cand_idx >= 0) {
       /* Return unconfirmed candidate data with an appropriate error code */
       *e = ephe_candidates[cand_idx].ephe;
-      res = NDB_ERR_UNRELIABLE_DATA;
+      res = NDB_ERR_UNCONFIRMED_DATA;
     }
     chMtxUnlock(&cand_list_access);
   }
@@ -396,7 +396,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     }
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
-      return NDB_ERR_UNRELIABLE_DATA;
+      return NDB_ERR_UNCONFIRMED_DATA;
     default:
       assert(!"Invalid status");
     }
@@ -429,10 +429,10 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
  * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
  *                        set to NDB_EVENT_SENDER_ID_VOID.
  *
- * \retval NDB_ERR_NONE            On success. Ephemeris is persisted.
- * \retval NDB_ERR_NO_CHANGE       On success. The entry is already persisted.
- * \retval NDB_ERR_BAD_PARAM       Parameter errors.
- * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
+ * \retval NDB_ERR_NONE             On success. Ephemeris is persisted.
+ * \retval NDB_ERR_NO_CHANGE        On success. The entry is already persisted.
+ * \retval NDB_ERR_BAD_PARAM        Parameter errors.
+ * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
  */
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                                   ndb_data_source_t src,

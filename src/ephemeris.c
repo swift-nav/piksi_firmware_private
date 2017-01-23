@@ -262,7 +262,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
   case NDB_ERR_NO_CHANGE:
     log_debug_sid(e->sid, "ephemeris is already present");
     break;
-  case NDB_ERR_UNRELIABLE_DATA:
+  case NDB_ERR_UNCONFIRMED_DATA:
     log_debug_sid(e->sid, "ephemeris is unconfirmed, not saved");
     break;
   case NDB_ERR_OLDER_DATA:

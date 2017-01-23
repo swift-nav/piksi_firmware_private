@@ -760,10 +760,10 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
  * \param[in] sender_id Sender ID if data source is NDB_DS_SBP. In other cases
  *                      set to NDB_EVENT_SENDER_ID_VOID.
  *
- * \retval NDB_ERR_NONE            On success. Almanac is already persisted.
- * \retval NDB_ERR_NO_CHANGE       On success. The entry is already persisted.
- * \retval NDB_ERR_BAD_PARAM       Parameter errors.
- * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
+ * \retval NDB_ERR_NONE             On success. Almanac is already persisted.
+ * \retval NDB_ERR_NO_CHANGE        On success. The entry is already persisted.
+ * \retval NDB_ERR_BAD_PARAM        Parameter errors.
+ * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
  */
 ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
                                 const almanac_t *a,
@@ -797,7 +797,7 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
       break;
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
-      res = NDB_ERR_UNRELIABLE_DATA;
+      res = NDB_ERR_UNCONFIRMED_DATA;
       break;
     default:
       assert(!"Invalid status");
@@ -877,9 +877,9 @@ ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn)
  * \param[in] sender_id Sender ID if data source is NDB_DS_SBP. In other cases
  *                      set to NDB_EVENT_SENDER_ID_VOID.
  *
- * \retval NDB_ERR_NONE            On success. Entry has been persisted.
- * \retval NDB_ERR_NO_CHANGE       On success. The entry is already persisted.
- * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
+ * \retval NDB_ERR_NONE             On success. Entry has been persisted.
+ * \retval NDB_ERR_NO_CHANGE        On success. The entry is already persisted.
+ * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
  */
 ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 toa, u16 wn,
                                    ndb_data_source_t ds, u16 sender_id)
@@ -894,7 +894,7 @@ ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 toa, u16 wn,
     break;
   case NDB_CAND_NEW_CANDIDATE:
   case NDB_CAND_MISMATCH:
-    res = NDB_ERR_UNRELIABLE_DATA;
+    res = NDB_ERR_UNCONFIRMED_DATA;
     break;
   case NDB_CAND_NEW_TRUSTED:
     /* Perform NDB database update inside NDB lock section */
@@ -966,11 +966,11 @@ ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid)
  * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
  *                        set to NDB_EVENT_SENDER_ID_VOID.
  *
- * \retval NDB_ERR_NONE            On success. Health data is updated.
- * \retval NDB_ERR_NO_CHANGE       On success. Health data is unchanged.
- * \retval NDB_ERR_BAD_PARAM       Parameter errors.
- * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
- * \retval NDB_ERR_NO_DATA         No data entry to update.
+ * \retval NDB_ERR_NONE             On success. Health data is updated.
+ * \retval NDB_ERR_NO_CHANGE        On success. Health data is unchanged.
+ * \retval NDB_ERR_BAD_PARAM        Parameter errors.
+ * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
+ * \retval NDB_ERR_NO_DATA          No data entry to update.
  */
 ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
                                     u8 health_bits,
