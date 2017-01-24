@@ -1055,8 +1055,11 @@ static void solution_thread(void *arg)
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
+    /* Force RAIM off until the first fix */
      // TODO(Leith) check velocity_valid
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
+    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp,
+                          disable_raim || (time_quality < TIME_FINE),
+                          false,
                           (double) get_solution_elevation_mask(),
                           &current_fix, &dops, &raim_removed_sid);
     if (pvt_ret < 0) {
@@ -1098,7 +1101,7 @@ static void solution_thread(void *arg)
     if (time_quality < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
        * known. We should only use this PVT solution to update our time
-       * estimate and then skip all other processing.
+       * estimate and send out the first fix and then skip all other processing.
        *
        * Note that the lack of knowledge of the receiver clock bias does NOT
        * degrade the quality of the position solution but the rapid change in
@@ -1120,6 +1123,11 @@ static void solution_thread(void *arg)
       ndb_lgf_store(&lgf);
 
       last_spp = chVTGetSystemTime();
+
+      /* send out the first solution */
+      bool disable_velocity = true;
+      solution_make_sbp(&current_fix, &dops, disable_velocity, &sbp_gps_time,
+                        &pos_llh, &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops);
       continue;
     }
     // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count

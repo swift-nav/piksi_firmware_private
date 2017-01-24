@@ -137,7 +137,7 @@ static volatile bool no_free_tracking_channel = false;
 /* Elevation mask for tracking, degrees */
 static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
-static float solution_elevation_mask = 10.0;
+static float solution_elevation_mask = 5.0;
 
 static bool sbas_enabled = false;
 /** Flag if almanacs can be used in acq */
