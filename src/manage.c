@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014,2016 Swift Navigation Inc.
+ * Copyright (C) 2011-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -59,11 +59,9 @@
 typedef enum {
   CH_DROP_REASON_ERROR,         /**< Tracking channel error */
   CH_DROP_REASON_MASKED,        /**< Tracking channel is disabled by mask */
-  CH_DROP_REASON_UNHEALTHY,     /**< SV is unhealthy */
   CH_DROP_REASON_NO_BIT_SYNC,   /**< Bit sync timeout */
   CH_DROP_REASON_NO_PLOCK,      /**< Pessimistic lock timeout */
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
-  CH_DROP_REASON_LOW_ELEVATION, /**< SV elevation is too low */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
 } ch_drop_reason_t;
 
@@ -127,12 +125,6 @@ typedef struct {
 static tracking_startup_fifo_t tracking_startup_fifo;
 
 static MUTEX_DECL(tracking_startup_mutex);
-
-/*
- * This flag indicates that there were no free tracking channel in last
- * acq results processing.
- */
-static volatile bool no_free_tracking_channel = false;
 
 /* Elevation mask for tracking, degrees */
 static float tracking_elevation_mask = 0.0;
@@ -653,11 +645,9 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   switch (reason) {
   case CH_DROP_REASON_ERROR: str = "error occurred, dropping"; break;
   case CH_DROP_REASON_MASKED: str = "channel is masked, dropping"; break;
-  case CH_DROP_REASON_UNHEALTHY: str = "unhealthy, dropping"; break;
   case CH_DROP_REASON_NO_BIT_SYNC: str = "no bit sync, dropping"; break;
   case CH_DROP_REASON_NO_PLOCK: str = "No pessimistic lock for too long, dropping"; break;
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
-  case CH_DROP_REASON_LOW_ELEVATION: str = "below elevation mask, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
@@ -740,8 +730,10 @@ static void drop_channel(u8 channel_id,
   tracker_channel_disable(channel_id);
 }
 
-/** Disable any tracking channel that has lost phase lock or is
-    flagged unhealthy in ephem or alert flag. */
+/** Disable any tracking channel that has errored, too weak, lost phase lock
+ * or bit sync, or is flagged as cross-correlation, etc.
+ * Keep tracking unhealthy and low-elevation satellites for cross-correlation
+ * purposes. */
 static void manage_track()
 {
   tracking_channel_info_t info;
@@ -765,7 +757,6 @@ static void manage_track()
 
     gnss_signal_t sid = info.sid;
     u16 global_index = sid_to_global_index(sid);
-    acq_status_t *acq = &acq_status[global_index];
 
     /* Has an error occurred? */
     if (0 == (info.flags & TRACKING_CHANNEL_FLAG_NO_ERROR)) {
@@ -781,15 +772,6 @@ static void manage_track()
 
     /* Give newly-initialized channels a chance to converge */
     if (info.uptime_ms < TRACK_INIT_T) {
-      continue;
-    }
-
-    /* If acq manager needed new channel and there were no free one available
-     * then consider health of this satellite and drop if it's unhealthy.*/
-    if (no_free_tracking_channel &&
-        shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID) {
-      drop_channel(i, CH_DROP_REASON_UNHEALTHY, &info, &time_info, &freq_info);
-      acq->state = ACQ_PRN_UNHEALTHY;
       continue;
     }
 
@@ -811,24 +793,12 @@ static void manage_track()
       continue;
     }
 
-    /* Is satellite below our elevation mask? */
-    if (sv_elevation_degrees_get(sid) < tracking_elevation_mask) {
-      drop_channel(i, CH_DROP_REASON_LOW_ELEVATION, &info, &time_info, &freq_info);
-      /* Erase the tracking hint score, and any others it might have */
-      memset(&acq->score, 0, sizeof(acq->score));
-      continue;
-    }
-
     /* Do we have confirmed cross-correlation? */
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED)) {
       drop_channel(i, CH_DROP_REASON_XCORR, &info, &time_info, &freq_info);
       continue;
     }
   }
-  /* All unhealthy satellites were dropped if acquisition managing thread
-   * requested so, so clear this flag.
-   * */
-  no_free_tracking_channel = false;
 }
 
 /**
@@ -1415,13 +1385,7 @@ static void manage_tracking_startup(void)
                                     doppler_max);
         }
       }
-
-      /*
-       * Set flag so tracking managing thread can drop unhealthy satellites.
-       */
       log_debug("No free tracking channel available.");
-      no_free_tracking_channel = true;
-
       continue;
     }
 
