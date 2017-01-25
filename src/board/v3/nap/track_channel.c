@@ -58,7 +58,7 @@ typedef struct {
 /** Internal tracking channel state */
 static struct nap_ch_state {
   bool init;                   /**< Initializing channel. */
-  code_t code;                 /**< GNSS code identifier. */
+  gnss_signal_t sid;           /**< GNSS signal identifier. */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
@@ -220,7 +220,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
       code_to_chip_rate(sid.code);
 
   s->init = true;
-  s->code = sid.code;
+  s->sid = sid;
   s->code_phase_rate[0] = code_phase_rate;
   s->code_phase_rate[1] = code_phase_rate;
 
@@ -319,7 +319,8 @@ void nap_track_read_results(u8 channel,
 
   u32 ovf = (t->STATUS & NAP_TRK_STATUS_OVF_Msk) >> NAP_TRK_STATUS_OVF_Pos;
   if (ovf) {
-    log_warn("Track correlator overflow 0x%04X on channel %d", ovf, channel);
+    log_warn_sid(s->sid, "Track correlator overflow 0x%04X on channel %d",
+                 ovf, channel);
   }
 
   /* map corr registers by following way:
@@ -350,7 +351,7 @@ void nap_track_read_results(u8 channel,
       NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP - prompt_offset;
 
   if (*code_phase_prompt < 0) {
-    *code_phase_prompt += code_to_chip_count(s->code);
+    *code_phase_prompt += code_to_chip_count(s->sid.code);
   }
 }
 
