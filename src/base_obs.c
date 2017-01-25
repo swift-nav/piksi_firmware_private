@@ -155,6 +155,15 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  */
 static void update_obss(obss_t *new_obss)
 {
+  static gps_time_t tor_old = {.wn = 0, .tow = 0};
+
+  /* We don't want to allow observations that have the same or earlier time
+ * stamp than the last received */
+  if ( gpsdifftime(&tor_old,&new_obss->tor)>=0) {
+    log_info("Observation received with equal or earlier time stamp, ignoring");
+    return;
+  }
+
   /* Ensure observations sorted by PRN. */
   qsort(new_obss->nm, new_obss->n,
         sizeof(navigation_measurement_t), nav_meas_cmp);
@@ -189,7 +198,6 @@ static void update_obss(obss_t *new_obss)
   /* Create a set of navigation measurements to store the previous
    * observations. */
   static u8 n_old = 0;
-  static gps_time_t tor_old = {.wn = 0, .tow = 0};
   static navigation_measurement_t nm_old[MAX_CHANNELS];
 
   /* Fill in the navigation measurements in base_obss, using TDCP method to
