@@ -71,7 +71,7 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_TIME_MATCHED;
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 static FilterManager *time_matched_filter_manager;
@@ -513,7 +513,7 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
     for (u8 i = 0, cnt = 0; i < n; ++i) {
       obs->nm[cnt++] = m[i];
     }
-    if(soln->valid > 0) {
+    if (soln->valid > 0) {
       obs->pos_ecef[0] = soln->pos_ecef[0];
       obs->pos_ecef[1] = soln->pos_ecef[1];
       obs->pos_ecef[2] = soln->pos_ecef[2];
@@ -522,7 +522,7 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
       obs->has_pos = false;
     }
 
-    if(soln){
+    if (soln){
       obs->soln = *soln;
     } else {
       obs->soln.valid = 0;
@@ -1470,7 +1470,7 @@ static void time_matched_obs_thread(void *arg)
                             &pos_llh, &pos_ecef, &sbp_dops,
                             &baseline_ned, &baseline_ecef, &baseline_heading);
         chPoolFree(&obs_buff_pool, obss);
-        if(spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
+        if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss.sender_id, obss->n, obss->nm, &sbp_msg_time, &pos_llh, &pos_ecef,
                                      &vel_ned, &vel_ecef, &sbp_dops, &baseline_ned, &baseline_ecef, &baseline_heading);
         }
