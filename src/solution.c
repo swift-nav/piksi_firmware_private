@@ -1129,8 +1129,6 @@ static void solution_thread(void *arg)
       lgf.position_solution = current_fix;
       lgf.position_quality = POSITION_GUESS;
       ndb_lgf_store(&lgf);
-
-      last_spp = chVTGetSystemTime();
       continue;
     }
     // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
