@@ -158,8 +158,8 @@ static void update_obss(obss_t *new_obss)
   static gps_time_t tor_old = {.wn = 0, .tow = 0};
 
   /* We don't want to allow observations that have the same or earlier time
- * stamp than the last received */
-  if ( gpsdifftime(&tor_old,&new_obss->tor)>=0) {
+   * stamp than the last received */
+  if ( gpsdifftime(&new_obss->tor, &tor_old) <= 0) {
     log_info("Observation received with equal or earlier time stamp, ignoring");
     return;
   }
