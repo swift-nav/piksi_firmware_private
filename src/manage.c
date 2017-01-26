@@ -1013,6 +1013,8 @@ static bool compute_cpo(u64 ref_tc,
  * Computes channel measurement flags from input.
  *
  * \param[in] flags Tracker manager flags
+ * \param[in] phase_offset_ok Phase offset flag
+ * \param[in] sid SID
  *
  * \return Channel measurement flags
  */
@@ -1038,9 +1040,9 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
       }
 
       /* sanity check */
-      if ((flags & (MANAGE_TRACK_FLAG_BIT_POLARITY | MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET))
-           && ((flags & (MANAGE_TRACK_FLAG_PLL_PLOCK | MANAGE_TRACK_FLAG_STABLE)) == 0)) {
-        /* Somehow we managed to decode TOW when phase lock lost. this should not be happen,
+      if ((flags & MANAGE_TRACK_FLAG_BIT_POLARITY)
+           && !(flags & MANAGE_TRACK_FLAG_PLL_PLOCK)) {
+        /* Somehow we managed to decode TOW when phase lock lost. this should not happen,
          * so print out warning */
         log_warn_sid(sid, "Half cycle known, but no phase lock!");
       }
