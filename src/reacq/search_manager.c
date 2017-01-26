@@ -79,10 +79,12 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
 
     if (visible) {
       deep_job->cost_hint = ACQ_COST_MIN;
+      deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
     } else if (!known) {
       deep_job->cost_hint = ACQ_COST_AVG;
+      deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
     }
@@ -122,11 +124,20 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     visible = visible && known;
     invisible = !visible && known;
 
-    if ((visible || !known) &&
+    if (visible &&
+        lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+        now_ms - fallback_job->stop_time >
+        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+      fallback_job->cost_hint = ACQ_COST_AVG;
+      fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
+      fallback_job->needs_to_run = true;
+      fallback_job->oneshot = true;
+    } else if (!known &&
         lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
         ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
+      fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
     } else if (invisible &&
@@ -134,6 +145,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
                now_ms - fallback_job->stop_time >
                ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
+      fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
     }
