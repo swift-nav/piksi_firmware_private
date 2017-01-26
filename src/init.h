@@ -21,7 +21,10 @@ u8 hw_revision_string_get(char *hw_revision_string);
 u8 nap_version_string_get(char *nap_version_string);
 u8 uuid_string_get(char *uuid_string);
 u8 mfg_id_string_get(char *mfg_id_string);
-u8 mac_address_string_get(char *mac_string); 
+u8 mac_address_string_get(char *mac_string);
+
+void nap_auth_setup(void);
+void nap_auth_check(void);
 
 #endif
 
