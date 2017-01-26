@@ -143,13 +143,17 @@ bool spp_timeout(systime_t _last_spp, systime_t _last_dgnss, dgnss_solution_mode
   return (_last_spp < _last_dgnss);
 }
 
-void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, msg_gps_time_t *gps_time,
+void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool raim_repair,
+                       bool velocity_valid, msg_gps_time_t *gps_time,
                        msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
                        msg_vel_ned_t *vel_ned, msg_vel_ecef_t *vel_ecef,
                        msg_dops_t *sbp_dops) {
   if (soln) {
+    u8 time_flags = soln->valid == 0 ?
+      NO_TIME : GNSS_TIME;
+
     /* Send GPS_TIME message first. */
-    sbp_make_gps_time(gps_time, &soln->time, SPP_POSITION);
+    sbp_make_gps_time(gps_time, &soln->time, time_flags);
 
     /* Extract full covariance matrix from upper triangular in soln->err_cov */
     double full_covariance[9];
@@ -162,34 +166,43 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
 
     const gps_time_t soln_time = soln->time;
 
+    u8 position_flags = soln->valid == 0 ?
+      NO_TIME : SPP_POSITION;
+    if (raim_repair) {
+      position_flags |= RAIM_REPAIR_FLAG;
+    }
+
     /* Position in LLH. */
-    sbp_make_pos_llh_vect(pos_llh, soln->pos_llh, h_accuracy, v_accuracy,
-                          &soln_time, soln->n_sats_used, SPP_POSITION);
+    sbp_make_pos_llh(pos_llh, soln->pos_llh, h_accuracy, v_accuracy,
+                     &soln_time, soln->n_sats_used, position_flags);
 
     /* Position in ECEF. */
-    sbp_make_pos_ecef_vect(pos_ecef, soln->pos_ecef, accuracy,
-                          &soln_time, soln->n_sats_used, SPP_POSITION);
+    sbp_make_pos_ecef(pos_ecef, soln->pos_ecef, accuracy,
+                      &soln_time, soln->n_sats_used, position_flags);
+
+    /* TODO: do we still need to skip on clock jump? */
+    u8 velocity_flags = velocity_valid ?
+      COMPUTED_DOPPLER_VELOCITY : NO_VELOCITY;
 
     /* Velocity in NED. */
-    /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
-    if (!clock_jump) {
-      sbp_make_vel_ned(vel_ned, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
+    sbp_make_vel_ned(vel_ned, soln->vel_ned,
+                     &soln_time, soln->n_sats_used, velocity_flags); /* TODO Leith: detect measured doppler soln? */
 
-      /* Velocity in ECEF. */
-      sbp_make_vel_ecef(vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
-    }
+    /* Velocity in ECEF. */
+    sbp_make_vel_ecef(vel_ecef, soln->vel_ecef,
+                     &soln_time, soln->n_sats_used, velocity_flags); /* TODO Leith: detect measured doppler soln? */
 
     /* DOP message can be sent even if solution fails to compute */
     if (dops) {
-      sbp_make_dops(sbp_dops,dops,pos_llh->tow, SPP_POSITION);
+      sbp_make_dops(sbp_dops,dops,pos_llh->tow, position_flags);
     }
 
     /* Update stats */
     last_pvt_stats.systime = chVTGetSystemTime();
     last_pvt_stats.signals_used = soln->n_sigs_used;
   } else {
-    gps_time_t time_guess = get_current_time();
-    sbp_make_gps_time(gps_time, &time_guess, 0);
+    gps_time_t time_guess = get_current_time(); /* TODO Leith: this is not accurate, should be rounded. */
+    sbp_make_gps_time(gps_time, &time_guess, NO_TIME); /* TODO Leith: we should add a flag */
   }
 }
 
@@ -217,11 +230,11 @@ void extract_covariance(double full_covariance[9], const gnss_solution *soln) {
   full_covariance[8] = soln->err_cov[5];
 }
 
-/**
+/** Send SBP position messages.
  *
  * @param propagation_time time sdiffs were propagated for
  * @param sender_id sender id of base obs
- * @param n_used number of measuremendt in nav_meas
+ * @param n_used number of measurement in nav_meas
  * @param nav_meas observations
  * @param gps_time sbp gps time message
  * @param pos_llh sbp position llh message
@@ -323,9 +336,20 @@ double calc_heading(const double b_ned[3])
  * \param t pointer to gps time struct representing gps time for solution
  * \param n_sats u8 representig the number of satellites
  * \param b_ecef size 3 vector of doubles representing ECEF position (meters)
+ * \param covariance_ecef size 9 vector of doubles of the covariance matrix
  * \param ref_ecef size 3 vector of doubles representing reference position
  * for conversion from ECEF to local NED coordinates (meters)
- * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
+ * \param has_known_base_pos_ecef if known_base_pos contains valid values
+ * \param known_base_pos size 3 vector of doubles of the known base station
+ * ECEF position  (meters)
+ * \param flags u8 RTK solution flags per SBP definition
+ * \param dops the DoP values
+ * \param pos_llh SBP structure to fill out
+ * \param pos_ecef SBP structure to fill out
+ * \param baseline_ned SBP structure to fill out
+ * \param baseline_ecef SBP structure to fill out
+ * \param baseline_heading SBP structure to fill out
+ * \param sbp_dops SBP structure to fill out
  */
 void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                                 double covariance_ecef[9], double ref_ecef[3],
@@ -358,22 +382,25 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
     wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
 
     /* now send pseudo absolute sbp message */
-    sbp_make_pos_llh_vect(pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
-    sbp_make_pos_ecef_vect(pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
+    sbp_make_pos_llh(pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
+    sbp_make_pos_ecef(pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
 
     sbp_make_dops(sbp_dops, dops, pos_llh->tow, flags);
   }
 
   /* Update stats */
   last_dgnss_stats.systime = chVTGetSystemTime();
-  last_dgnss_stats.mode = (flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
+  last_dgnss_stats.mode = ((flags & POSITION_MODE_MASK) == FIXED_POSITION) ?
+    FILTER_FIXED : FILTER_FLOAT;
 }
 
 static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time_t *t,
                             dops_t *dops, double diff_time, double rover_pos[3],
                             bool has_known_base_pos_ecef, double known_base_pos[3],
-                            msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef, msg_dops_t *sbp_dops,
-                            msg_baseline_ned_t *baseline_ned, msg_baseline_ecef_t *baseline_ecef,
+                            bool raim_repair, msg_pos_llh_t *pos_llh,
+                            msg_pos_ecef_t *pos_ecef, msg_dops_t *sbp_dops,
+                            msg_baseline_ned_t *baseline_ned,
+                            msg_baseline_ecef_t *baseline_ecef,
                             msg_baseline_heading_t *baseline_heading) {
   double baseline[3];
   double covariance[9];
@@ -418,6 +445,10 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
       log_info("Low latency filter not initialized.");
     }
     chMtxUnlock(&low_latency_filter_manager_lock);
+  }
+
+  if (raim_repair) {
+    flags |= RAIM_REPAIR_FLAG;
   }
 
   if (send_baseline) {
@@ -551,8 +582,8 @@ static void solution_simulation(msg_gps_time_t *gps_time, msg_pos_llh_t *pos_llh
      !(simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
        simulation_enabled_for(SIMULATION_MODE_RTK) )) {
     /* Then we send fake messages. */
-    solution_make_sbp(soln, simulation_current_dops_solution(), FALSE, gps_time, pos_llh, pos_ecef,
-                      vel_ned, vel_ecef, sbp_dops);
+    solution_make_sbp(soln, simulation_current_dops_solution(), false, false,
+                      gps_time, pos_llh, pos_ecef, vel_ned, vel_ecef, sbp_dops);
   }
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -1131,13 +1162,15 @@ static void solution_thread(void *arg)
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
+    bool raim_repair = pvt_ret == PVT_CONVERGED_RAIM_REPAIR;
     if (!simulation_enabled()) {
       /* Output solution. */
 
-      bool disable_velocity = clock_jump ||
+      bool velocity_valid = clock_jump ||
                               (current_fix.velocity_valid == 0);
-      solution_make_sbp(&current_fix, &dops, disable_velocity, &sbp_gps_time, &pos_llh,
-                        &pos_ecef, &vel_ned, &vel_ecef, &sbp_dops);
+      solution_make_sbp(&current_fix, &dops, raim_repair, velocity_valid,
+                        &sbp_gps_time, &pos_llh, &pos_ecef, &vel_ned,
+                        &vel_ecef, &sbp_dops);
     }
 
     /*
@@ -1246,8 +1279,8 @@ static void solution_thread(void *arg)
             output_baseline(num_sdiffs, sdiffs, &current_fix.time,
                             &dops, propagation_time, current_fix.pos_ecef,
                             base_obss.has_known_pos_ecef, base_obss.known_pos_ecef,
-                            &pos_llh, &pos_ecef, &sbp_dops, &baseline_ned,
-                            &baseline_ecef, &baseline_heading);
+                            raim_repair, &pos_llh, &pos_ecef, &sbp_dops,
+                            &baseline_ned, &baseline_ecef, &baseline_heading);
           }
         }
       }
@@ -1316,9 +1349,9 @@ static void solution_thread(void *arg)
 
 void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
                          bool has_known_base_pos_ecef, double known_base_pos[3],
-                         msg_pos_llh_t *pos_llh,
-                         msg_pos_ecef_t *pos_ecef, msg_dops_t *sbp_dops,
-                         msg_baseline_ned_t *baseline_ned, msg_baseline_ecef_t *baseline_ecef,
+                         msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
+                         msg_dops_t *sbp_dops, msg_baseline_ned_t *baseline_ned,
+                         msg_baseline_ecef_t *baseline_ecef,
                          msg_baseline_heading_t *baseline_heading)
 {
   chMtxLock(&time_matched_filter_manager_lock);
@@ -1355,10 +1388,10 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */
-    dops_t RTK_dops;
-    output_baseline(n_sds, sds, &obss->tor, &RTK_dops, 0, obss->pos_ecef,
+    dops_t rtk_dops;
+    output_baseline(n_sds, sds, &obss->tor, &rtk_dops, 0.0, obss->pos_ecef,
                     has_known_base_pos_ecef, known_base_pos,
-                    pos_llh, pos_ecef, sbp_dops,
+                    false, pos_llh, pos_ecef, sbp_dops,
                     baseline_ned, baseline_ecef, baseline_heading);
   }
   chMtxUnlock(&time_matched_filter_manager_lock);
