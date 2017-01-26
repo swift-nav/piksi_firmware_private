@@ -1518,6 +1518,7 @@ static tracking_channel_flags_t tracking_channel_get_flags(
   const tracker_internal_data_t *const internal_data = &tracker_channel->internal_data;
 
   if (STATE_ENABLED == tracker_channel_state_get(tracker_channel)) {
+
     result |= TRACKING_CHANNEL_FLAG_ACTIVE;
 
     if (ERROR_FLAG_NONE == tracker_channel->error_flags) {
@@ -1560,8 +1561,12 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     if (BITSYNC_UNSYNCED != internal_data->bit_sync.bit_phase_ref) {
       result |= TRACKING_CHANNEL_FLAG_BIT_SYNC;
     }
-    /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
-    if (BIT_POLARITY_UNKNOWN != internal_data->bit_polarity) {
+    /* Nav bit polarity is known, i.e. half-cycles have been resolved.
+     * bit polarity known flag is set only when phase lock to prevent the
+     * situation when channel loses an SV, but decoder just finished TOW decoding
+     * which cause bit polarity know flag set */
+    if (BIT_POLARITY_UNKNOWN != internal_data->bit_polarity
+        && (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_BIT_POLARITY;
     }
     if (BIT_POLARITY_INVERTED == internal_data->bit_polarity) {
