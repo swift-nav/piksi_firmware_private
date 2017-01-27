@@ -57,6 +57,7 @@ int main(void)
   chSysInit();
 
   /* Piksi hardware initialization. */
+  system_monitor_pre_init();
   pre_init();
 
   io_support_init();
