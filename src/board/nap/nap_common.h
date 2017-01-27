@@ -19,6 +19,8 @@
 #include <libswiftnav/common.h>
 #include "../../ext_events.h"
 
+#include "nap/nap_constants.h"
+
 /** \addtogroup nap
  * \{ */
 
@@ -39,6 +41,7 @@ typedef struct {
 } acc_t;
 
 extern binary_semaphore_t timing_strobe_sem;
+extern u8 nap_dna[NAP_DNA_LENGTH];
 
 /** \} */
 
