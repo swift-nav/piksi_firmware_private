@@ -44,7 +44,7 @@
 #define ACQ_COST_DELTA_VISIBLE_MS 30
 
 /** Job cost delta used to avoid clustering of job with equal priority. */
-#define ACQ_COST_DELTA_UNKNOWN_MS 10
+#define ACQ_COST_DELTA_UNKNOWN_MS 50
 
 /** Job cost delta used to avoid clustering of job with equal priority. */
 #define ACQ_COST_DELTA_INVISIBLE_MS 100

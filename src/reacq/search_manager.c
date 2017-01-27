@@ -82,11 +82,6 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
-    } else if (!known) {
-      deep_job->cost_hint = ACQ_COST_AVG;
-      deep_job->cost_delta = 0;
-      deep_job->needs_to_run = true;
-      deep_job->oneshot = false;
     }
   } /* loop SVs */
 }
