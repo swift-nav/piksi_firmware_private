@@ -40,6 +40,21 @@
 /** Uninitialized task index */
 #define ACQ_UNINITIALIZED_TASKS -1
 
+/** Job cost delta used to avoid clustering of job with equal priority. */
+#define ACQ_COST_DELTA_VISIBLE_MS 30
+
+/** Job cost delta used to avoid clustering of job with equal priority. */
+#define ACQ_COST_DELTA_UNKNOWN_MS 50
+
+/** Job cost delta used to avoid clustering of job with equal priority. */
+#define ACQ_COST_DELTA_INVISIBLE_MS 100
+
+/** This job cost delta is added to the minimum cost computed across all jobs.
+    The resulting cost is assigned to the job, which has the hint ACQ_COST_MIN.
+    It lets other minimum cost jobs have chance to run as they will have
+    marginally smaller cost. */
+#define ACQ_COST_DELTA_MIN_MS 1
+
 /** Search job types */
 typedef enum {
   ACQ_JOB_DEEP_SEARCH,     /**< Deep job type */
@@ -89,6 +104,7 @@ typedef struct {
   u32 cost;                  /**< Cost of job in terms of spent HW time 
                                 (milliseconds) */
   acq_cost_hint_e cost_hint; /**< Tells how the cost is initialized */
+  u32 cost_delta;            /**< Cost delta */
   bool needs_to_run;         /**< Set when this job needs to run */
   bool oneshot;              /**< Oneshot jobs do not continue automatically 
                                 when completed */
