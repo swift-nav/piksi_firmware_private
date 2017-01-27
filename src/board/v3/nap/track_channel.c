@@ -319,7 +319,7 @@ void nap_track_read_results(u8 channel,
 
   u32 ovf = (t->STATUS & NAP_TRK_STATUS_OVF_Msk) >> NAP_TRK_STATUS_OVF_Pos;
   if (ovf) {
-    log_warn_sid(s->sid, "Track correlator overflow 0x%04X on channel %d",
+    log_error_sid(s->sid, "Track correlator overflow 0x%04X on channel %d",
                  ovf, channel);
   }
 
