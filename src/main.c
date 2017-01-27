@@ -80,7 +80,7 @@ int main(void)
     sender_id = (u16) rand();
   }
   /* We only need 16 bits for sender ID for sbp */
-  
+
   sbp_sender_id_set(sender_id);
 
   ndb_setup();
@@ -103,9 +103,12 @@ int main(void)
 
   static char mac_address_string[18] = {0};
   mac_address_string_get(mac_address_string);
-  
+
   static char uuid_string[37] = {0};
   uuid_string_get(uuid_string);
+
+  nap_auth_setup();
+  nap_auth_check();
 
   frontend_setup();
   timing_setup();

@@ -75,8 +75,6 @@ struct uuid {
 static void nap_conf_check(void);
 static bool nap_version_ok(u32 version);
 static void nap_version_check(void);
-static void nap_auth_setup(void);
-static void nap_auth_check(void);
 static bool factory_params_read(void);
 static void uuid_unpack(const uint8_t* in, struct uuid *uu);
 
@@ -106,8 +104,6 @@ void init(void)
 
   nap_version_check();
   nap_dna_callback_register();
-  nap_auth_setup();
-  nap_auth_check();
   nap_setup();
 
   /* Start DAC off at it's midpoint if present */
@@ -149,7 +145,7 @@ static void nap_version_check(void)
   }
 }
 
-static void nap_auth_setup(void)
+void nap_auth_setup(void)
 {
   nap_unlock(factory_params.nap_key);
 }
@@ -159,7 +155,7 @@ static void nap_auth_setup(void)
  * USARTs, and SBP subsystems are set up, so that SBP messages and
  * be sent and received (it can't go in init() or nap_setup()).
  */
-static void nap_auth_check(void)
+void nap_auth_check(void)
 {
   if (nap_locked()) {
     while (1) {
@@ -253,7 +249,7 @@ u8 mfg_id_string_get(char* mfg_id_string)
  return strlen(mfg_id_string);
 }
 
-/*lifted from libuuid*/ 
+/*lifted from libuuid*/
 static void uuid_unpack(const uint8_t in[], struct uuid *uu)
 {
   const uint8_t *ptr = &in[15];
@@ -276,7 +272,7 @@ static void uuid_unpack(const uint8_t in[], struct uuid *uu)
   tmp = *ptr--;
   tmp = (tmp << 8) | *ptr--;
   uu->clock_seq = tmp;
-  
+
   uu->node[0] = *ptr--;
   uu->node[1] = *ptr--;
   uu->node[2] = *ptr--;
