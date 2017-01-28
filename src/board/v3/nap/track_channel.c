@@ -303,8 +303,14 @@ void nap_track_update(u8 channel, double carrier_freq,
       NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
 
   t->CODE_PINC = cp_rate_units;
-  t->LENGTH = calc_length_samples(chips_to_correlate, code_phase_frac,
+  u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
       cp_rate_units);
+
+  if (length < 24000) {
+    log_error("[DBG] %u %u", channel, length);
+  }
+
+  t->LENGTH = length;
 
   t->CARR_PINC = round(-carrier_freq * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
 }
