@@ -140,7 +140,7 @@ static const tracker_interface_t tracker_interface_default = {
 };
 
 static u16 iq_output_mask = 0;
-static bool send_trk_detailed = 0;
+static bool send_trk_detailed = true;
 /** send_trk_detailed setting is a stop gap to suppress this 
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
@@ -330,8 +330,7 @@ void tracking_send_detailed_state(void)
                                 &misc_info, /* misc parameters */
                                 true);      /* reset statistics */
 
-    if (0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) ||
-        0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
+    if (0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
       continue;
     }
 
