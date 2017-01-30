@@ -1013,26 +1013,40 @@ static bool compute_cpo(u64 ref_tc,
  * Computes channel measurement flags from input.
  *
  * \param[in] flags Tracker manager flags
+ * \param[in] phase_offset_ok Phase offset flag
+ * \param[in] sid SID
  *
  * \return Channel measurement flags
  */
 static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
-                                            bool phase_offset_ok)
+                                            bool phase_offset_ok,
+                                            gnss_signal_t sid)
 {
   chan_meas_flags_t meas_flags = 0;
 
   if (0 != (flags & MANAGE_TRACK_FLAG_PLL_USE)) {
     /* PLL is in use. */
     if (phase_offset_ok) {
-      if (0 != (flags & MANAGE_TRACK_FLAG_BIT_POLARITY)) {
-        /* Bit polarity is known */
-        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
-      }
       if (0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK) &&
           0 != (flags & MANAGE_TRACK_FLAG_STABLE) &&
           0 != (flags & MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET)) {
         meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+
+        /* Make sense to set half cycle known flag when carrier phase is valid */
+        if (0 != (flags & MANAGE_TRACK_FLAG_BIT_POLARITY)) {
+          /* Bit polarity is known */
+          meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
+        }
       }
+
+      /* sanity check */
+      if ((flags & MANAGE_TRACK_FLAG_BIT_POLARITY)
+           && !(flags & MANAGE_TRACK_FLAG_PLL_PLOCK)) {
+        /* Somehow we managed to decode TOW when phase lock lost. this should not happen,
+         * so print out warning */
+        log_warn_sid(sid, "Half cycle known, but no phase lock!");
+      }
+
       if (0 != (flags & MANAGE_TRACK_FLAG_PLL_OLOCK)) {
         /* Optimistic PLL lock: very high noise may prevent phase usage */
         /* meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID; */
@@ -1130,7 +1144,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
       flags |= MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET;
       meas->carrier_phase -= carrier_phase_offset;
     }
-    meas->flags = compute_meas_flags(flags, cpo_ok);
+    meas->flags = compute_meas_flags(flags, cpo_ok, info.sid);
   } else {
     memset(meas, 0, sizeof(*meas));
   }
