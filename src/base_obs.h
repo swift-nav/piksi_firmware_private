@@ -19,6 +19,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/track.h>
 #include <libswiftnav/time.h>
+#include <libswiftnav/pvt.h>
 
 /** \addtogroup base_obs Base station observation handling
  * \{ */
@@ -37,11 +38,9 @@ typedef struct {
   double known_pos_ecef[3];
   /** Do we have the known, surveyed position? */
   bool has_known_pos_ecef;
-  /** Approximate base station velocity.
-  * This is the velocity obtained from a SPP solve */
-  double vel_ecef[3];
-  /** Is the 'vel_ecef' field valid */
-  u8 has_vel;
+  /** Observation Solution */
+  gnss_solution soln;
+
   /** Number of observations in the set. */
   u8 n;
   u8 sender_id;
