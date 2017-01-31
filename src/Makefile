@@ -289,17 +289,12 @@ DINCDIR =
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
-          $(LIBSWIFTNAV_BUILDDIR)/CBLAS/src \
-          $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/BLAS/SRC \
-          $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/SRC \
-          $(LIBSWIFTNAV_BUILDDIR)/clapack-3.2.1-CMAKE/F2CLIBS/libf2c \
           $(LIBSWIFTNAV_BUILDDIR)/libfec/src \
           $(BOARDLIBDIR)
 
 # List all default libraries here
 DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav-static \
-        -llapack -lcblas -lblas \
-        -lf2c -lm -Wl,--start-group -lstdc++ -lc -lc -lnosys -Wl,--end-group -lfec
+        -lm -Wl,--start-group -lstdc++ -lc -lnosys -Wl,--end-group -lfec
 
 #
 # End of default section
