@@ -601,13 +601,17 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   int_ms = tp_get_current_cycle_duration(data->tracking_mode,
                                          data->cycle_no);
 
-  u32 sample_count_diff = sample_count - common_data->sample_count;
-  if ((sample_count_diff < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
-      (sample_count_diff > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    /* log_warn_sid(channel_info->sid, */
-    /*              "Unexpected tracking channel update rate: %lf ms", */
-    /*              NAP_SAMPLES_2_MS(sample_count_diff)); */
+  if (common_data->read_correlators_once) {
+    u32 sample_count_diff = sample_count - common_data->sample_count;
+    if ((sample_count_diff < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
+       (sample_count_diff > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+      log_warn_sid(channel_info->sid,
+                   "Unexpected tracking channel update rate: %lf ms",
+                   NAP_SAMPLES_2_MS(sample_count_diff));
+    }
   }
+  common_data->read_correlators_once = true;
+
   common_data->sample_count = sample_count;
   common_data->code_phase_prompt = code_phase_prompt;
   common_data->carrier_phase = carrier_phase;
