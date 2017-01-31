@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2016 Swift Navigation Inc.
+ * Copyright (C) 2014, 2016 - 2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
@@ -18,6 +18,7 @@
 #include <libsbp/navigation.h>
 #include <libsbp/observation.h>
 #include <libsbp/gnss.h>
+#include <libsbp/ndb.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
@@ -34,6 +35,25 @@ typedef struct {
   u16 msg_id;
   u16 size;
 } msg_ephemeris_info_t;
+
+typedef enum {
+  NDB_EVENT_UNKNOWN = 0,
+  NDB_EVENT_STORE = 1,
+  NDB_EVENT_FETCH = 2,
+  NDB_EVENT_ERASE = 3,
+} ndb_event_t;
+
+typedef enum {
+  NDB_EVENT_OTYPE_UNKNOWN = 0,
+  NDB_EVENT_OTYPE_EPHEMERIS = 1,
+  NDB_EVENT_OTYPE_ALMANAC = 2,
+  NDB_EVENT_OTYPE_ALMANAC_WN = 3,
+  NDB_EVENT_OTYPE_IONO = 4,
+  NDB_EVENT_OTYPE_L2C_CAP = 5,
+  NDB_EVENT_OTYPE_LGF = 6,
+} ndb_event_obj_type_t;
+
+#define NDB_EVENT_SENDER_ID_VOID 0
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
@@ -53,6 +73,14 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
                            double v_accuracy, u8 flags);
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_sats_used, u8 flags);
+void sbp_send_ndb_event(u8 event,
+                        u8 obj_type,
+                        u8 result,
+                        u8 data_source,
+                        const gnss_signal_t *object_sid,
+                        const gnss_signal_t *src_sid,
+                        u16 sender);
+
 #define MSG_OBS_HEADER_SEQ_SHIFT 4u
 #define MSG_OBS_HEADER_SEQ_MASK ((1 << 4u) - 1)
 #define MSG_OBS_HEADER_MAX_SIZE MSG_OBS_HEADER_SEQ_MASK

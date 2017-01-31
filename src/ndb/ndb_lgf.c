@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -21,6 +21,7 @@
 #include "ndb_internal.h"
 #include "settings.h"
 #include "ndb_fs_access.h"
+#include "sbp_utils.h"
 
 /** Default NDB LGF interval update threshold [s] */
 #define NDB_LGF_UPDATE_INTERVAL_S (30 * MINUTE_SECS)
@@ -116,6 +117,7 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
  * \param[in] lgf Position and clock parameters to update.
  *
  * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_NO_CHANGE  New lgf is within thresholds
  * \retval NDB_ERR_BAD_PARAM  On parameter error
  *
  * \sa ndb_lgf_read
@@ -162,10 +164,21 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
                lgf->position_solution.pos_llh[2]);
       res = ndb_update(lgf, NDB_DS_RECEIVER, &last_good_fix_md);
     } else {
-      res = NDB_ERR_NONE;
+      res = NDB_ERR_NO_CHANGE;
     }
   } else {
     res = NDB_ERR_BAD_PARAM;
+  }
+
+  /* Save bandwidth and don't send the default result */
+  if (res != NDB_ERR_NO_CHANGE) {
+    sbp_send_ndb_event(NDB_EVENT_STORE,
+                       NDB_EVENT_OTYPE_LGF,
+                       res,
+                       NDB_DS_RECEIVER,
+                       NULL,
+                       NULL,
+                       NDB_EVENT_SENDER_ID_VOID);
   }
 
   return res;

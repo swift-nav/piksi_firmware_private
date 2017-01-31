@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011 - 2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *          Gareth McMullin <gareth@swiftnav.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
@@ -30,12 +30,9 @@ void ephemeris_new(ephemeris_t *e)
 {
   assert(sid_supported(e->sid));
 
-  if (!e->valid) {
-    log_warn_sid(e->sid, "invalid ephemeris");
-    return;
-  }
-
-  ndb_op_code_t oc = ndb_ephemeris_store(e, NDB_DS_RECEIVER);
+  ndb_op_code_t oc = ndb_ephemeris_store(e,
+                                         NDB_DS_RECEIVER,
+                                         NDB_EVENT_SENDER_ID_VOID);
   switch (oc) {
   case NDB_ERR_NONE:
     log_debug_sid(e->sid, "ephemeris saved");
@@ -63,9 +60,9 @@ void ephemeris_new(ephemeris_t *e)
 }
 
 static void ephemeris_msg_callback(u16 sender_id, u8 len, u8 msg[],
-                                       void* context)
+                                   void* context)
 {
-  (void)sender_id; (void)context;
+  (void)context;
 
   if (len != sizeof(msg_ephemeris_t)) {
     log_warn("Received bad ephemeris from peer");
@@ -80,7 +77,7 @@ static void ephemeris_msg_callback(u16 sender_id, u8 len, u8 msg[],
     return;
   }
 
-  ndb_ephemeris_store(&e, NDB_DS_SBP);
+  ndb_ephemeris_store(&e, NDB_DS_SBP, sender_id);
 }
 
 void ephemeris_setup(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -20,7 +20,9 @@
  */
 void ndb_l2c_capb_init(void);
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) NDB_WEAK;
-ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const u32 *l2c_cap,
-                                         ndb_data_source_t src) NDB_WEAK;
+ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
+                                         const u32 *l2c_cap,
+                                         ndb_data_source_t src,
+                                         u16 sender_id) NDB_WEAK;
 
 #endif /* SRC_NDB_L2C_CAPB_H_ */

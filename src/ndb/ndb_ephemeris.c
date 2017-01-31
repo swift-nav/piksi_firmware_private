@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -169,7 +169,8 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   return r;
 }
 
-ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
+static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
+                                            ndb_data_source_t src)
 {
   if (!e->valid) {
     return NDB_ERR_BAD_PARAM;
@@ -214,6 +215,36 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e, ndb_data_source_t src)
 }
 
 /**
+ * Store ephemeris
+ *
+ * \param[in] e           Ephemeris
+ * \param[in] src         Data source
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
+ *                        set to NDB_EVENT_SENDER_ID_VOID.
+ *
+ * \retval NDB_ERR_NONE            On success. Ephemeris is persisted.
+ * \retval NDB_ERR_NO_CHANGE       On success. The entry is already persisted.
+ * \retval NDB_ERR_BAD_PARAM       Parameter errors.
+ * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
+ */
+ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
+                                  ndb_data_source_t src,
+                                  u16 sender_id)
+{
+  ndb_op_code_t res = ndb_ephemeris_store_do(e, src);
+
+  sbp_send_ndb_event(NDB_EVENT_STORE,
+                     NDB_EVENT_OTYPE_EPHEMERIS,
+                     res,
+                     src,
+                     &e->sid,
+                     NULL,
+                     sender_id);
+
+  return res;
+}
+
+/**
  * Erase ephemeris data for a given satellite
  *
  * \param[in] sid SV signal identifier
@@ -238,6 +269,14 @@ ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid)
     ndb_ephe_release_candidate(cand_idx);
   }
   chMtxUnlock(&cand_list_access);
+
+  sbp_send_ndb_event(NDB_EVENT_ERASE,
+                     NDB_EVENT_OTYPE_EPHEMERIS,
+                     res,
+                     NDB_DS_UNDEFINED,
+                     &sid,
+                     NULL,
+                     NDB_EVENT_SENDER_ID_VOID);
 
   return res;
 }

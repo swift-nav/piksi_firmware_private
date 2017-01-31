@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -66,7 +66,10 @@ static decoder_interface_list_element_t list_element_gps_l1ca = {
  */
 static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
 {
-  ndb_op_code_t oc = ndb_almanac_store(alma, NDB_DS_RECEIVER);
+  ndb_op_code_t oc = ndb_almanac_store(&sid,
+                                       alma,
+                                       NDB_DS_RECEIVER,
+                                       NDB_EVENT_SENDER_ID_VOID);
   char src_sid_str[SID_STR_LEN_MAX];
   sid_to_string(src_sid_str, sizeof(src_sid_str), sid);
   switch (oc) {
@@ -112,9 +115,11 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
 static void decode_almanac_time_new(gnss_signal_t sid,
                                     const gps_time_t *alma_time)
 {
-  ndb_op_code_t r = ndb_almanac_wn_store(alma_time->tow,
+  ndb_op_code_t r = ndb_almanac_wn_store(sid,
+                                         alma_time->tow,
                                          alma_time->wn,
-                                         NDB_DS_RECEIVER);
+                                         NDB_DS_RECEIVER,
+                                         NDB_EVENT_SENDER_ID_VOID);
 
   switch (r) {
   case NDB_ERR_NONE:
@@ -157,14 +162,14 @@ static void decode_almanac_time_new(gnss_signal_t sid,
  * Deletes almanacs/ephemeris for SVs with error bit set and updates almanacs
  * otherwise.
  *
- * \param[in] sid
+ * \param[in] src_sid    Health bits source SV
  * \param[in] hlags_mask Mask where new bits are set for valid entries in \a
  *                       hflags.
  * \param[in] hflags     Mask array for GPS satellites, where index is `PRN - 1`
  *
  * \return None
  */
-void decode_almanac_health_new(gnss_signal_t sid,
+void decode_almanac_health_new(gnss_signal_t src_sid,
                                u32 hlags_mask,
                                const u8 hflags[32])
 {
@@ -174,7 +179,7 @@ void decode_almanac_health_new(gnss_signal_t sid,
 
       gnss_signal_t target_sid = construct_sid(CODE_GPS_L1CA, sv_idx + 1);
       char hf_sid_str[SID_STR_LEN_MAX];
-      sid_to_string(hf_sid_str, sizeof(hf_sid_str), sid);
+      sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
 
       u8 health_bits = hflags[sv_idx];
 
@@ -191,8 +196,11 @@ void decode_almanac_health_new(gnss_signal_t sid,
                        hf_sid_str);
         }
       } else {
-        ndb_op_code_t r = ndb_almanac_hb_update(target_sid, health_bits,
-                                                NDB_DS_RECEIVER);
+        ndb_op_code_t r = ndb_almanac_hb_update(target_sid,
+                                                health_bits,
+                                                NDB_DS_RECEIVER,
+                                                &src_sid,
+                                                NDB_EVENT_SENDER_ID_VOID);
 
         switch (r) {
         case NDB_ERR_NONE:
@@ -324,7 +332,10 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     /* store new L2C value into NDB */
     log_debug_sid(channel_info->sid, "L2C capabilities received: 0x%08"PRIx32,
                   dd.gps_l2c_sv_capability);
-    if (ndb_gps_l2cm_l2c_cap_store(&dd.gps_l2c_sv_capability, NDB_DS_RECEIVER) ==
+    if (ndb_gps_l2cm_l2c_cap_store(&channel_info->sid,
+                                   &dd.gps_l2c_sv_capability,
+                                   NDB_DS_RECEIVER,
+                                   NDB_EVENT_SENDER_ID_VOID) ==
         NDB_ERR_NONE) {
       sbp_send_l2c_capabilities(&dd.gps_l2c_sv_capability);
     }
@@ -334,7 +345,11 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     /* store new iono parameters */
     log_debug_sid(channel_info->sid, "Iono parameters received");
 
-    if (ndb_iono_corr_store(&dd.iono, NDB_DS_RECEIVER) == NDB_ERR_NONE) {
+    if (ndb_iono_corr_store(&channel_info->sid,
+                            &dd.iono,
+                            NDB_DS_RECEIVER,
+                            NDB_EVENT_SENDER_ID_VOID) ==
+        NDB_ERR_NONE) {
       sbp_send_iono(&dd.iono);
     }
   }

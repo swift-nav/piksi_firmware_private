@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -21,12 +21,19 @@ extern "C" {
 
 void ndb_almanac_init(void);
 ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a);
-ndb_op_code_t ndb_almanac_store(const almanac_t *a, ndb_data_source_t ds);
+ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
+                                const almanac_t *a,
+                                ndb_data_source_t ds,
+                                u16 sender_id);
 ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid);
 ndb_op_code_t ndb_almanac_wn_read(u32 tow, u16 *wn);
-ndb_op_code_t ndb_almanac_wn_store(u32 tow, u16 wn, ndb_data_source_t ds);
-ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t sid, u8 health_flags,
-                                    ndb_data_source_t ds);
+ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 tow, u16 wn,
+                                   ndb_data_source_t ds, u16 sender_id);
+ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
+                                    u8 health_bits,
+                                    ndb_data_source_t ds,
+                                    const gnss_signal_t *src_sid,
+                                    u16 sender_id);
 void ndb_almanac_sbp_update(void);
 
 #ifdef __cplusplus

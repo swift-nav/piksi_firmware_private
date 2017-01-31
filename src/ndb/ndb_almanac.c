@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Valeri Atamaniouk <valeri.atamanouk@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -747,15 +747,21 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 /**
  * Updates NDB with the new almanac's data.
  *
+ * \param[in] src_sid Almanac source in case of data source is NDB_DS_RECEIVER
  * \param[in] a  Almanac's data. Can be with or without WN.
  * \param[in] ds Data source
+ * \param[in] sender_id Sender ID if data source is NDB_DS_SBP. In other cases
+ *                      set to NDB_EVENT_SENDER_ID_VOID.
  *
  * \retval NDB_ERR_NONE            On success. Almanac is already persisted.
  * \retval NDB_ERR_NO_CHANGE       On success. The entry is already persisted.
  * \retval NDB_ERR_BAD_PARAM       Parameter errors.
  * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
  */
-ndb_op_code_t ndb_almanac_store(const almanac_t *a, ndb_data_source_t ds)
+ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
+                                const almanac_t *a,
+                                ndb_data_source_t ds,
+                                u16 sender_id)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -792,6 +798,14 @@ ndb_op_code_t ndb_almanac_store(const almanac_t *a, ndb_data_source_t ds)
   } else {
     res = NDB_ERR_BAD_PARAM;
   }
+
+  sbp_send_ndb_event(NDB_EVENT_STORE,
+                     NDB_EVENT_OTYPE_ALMANAC,
+                     res,
+                     ds,
+                     &a->sid,
+                     src_sid,
+                     sender_id);
 
   return res;
 }
@@ -849,15 +863,19 @@ ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn)
  * and all almanacs in NDB database with matching TOA and without WN are
  * updated.
  *
+ * \param[in] sid  Time source
  * \param[in] tow  Almanac's week time [s]
  * \param[in] wn   Almanac's week number
  * \param[in] ds   Data source
+ * \param[in] sender_id Sender ID if data source is NDB_DS_SBP. In other cases
+ *                      set to NDB_EVENT_SENDER_ID_VOID.
  *
  * \retval NDB_ERR_NONE            On success. Entry has been persisted.
  * \retval NDB_ERR_NO_CHANGE       On success. The entry is already persisted.
  * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
  */
-ndb_op_code_t ndb_almanac_wn_store(u32 toa, u16 wn, ndb_data_source_t ds)
+ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 toa, u16 wn,
+                                   ndb_data_source_t ds, u16 sender_id)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -886,6 +904,14 @@ ndb_op_code_t ndb_almanac_wn_store(u32 toa, u16 wn, ndb_data_source_t ds)
     assert(!"Unexpected almanac's TOA/WN candidate status");
   }
 
+  sbp_send_ndb_event(NDB_EVENT_STORE,
+                     NDB_EVENT_OTYPE_ALMANAC_WN,
+                     res,
+                     ds,
+                     NULL,
+                     &sid,
+                     sender_id);
+
   return res;
 }
 
@@ -912,15 +938,26 @@ ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid)
   }
   chMtxUnlock(&cand_list_access);
 
+  sbp_send_ndb_event(NDB_EVENT_ERASE,
+                     NDB_EVENT_OTYPE_ALMANAC,
+                     res,
+                     NDB_DS_UNDEFINED,
+                     &sid,
+                     NULL,
+                     NDB_EVENT_SENDER_ID_VOID);
+
   return res;
 }
 
 /**
  * Updates health flags of existing almanac.
  *
- * \param[in] sid         GNSS signal identifier
+ * \param[in] target_sid  GNSS signal identifier to update
  * \param[in] health_bits Health bits (5 LSB)
  * \param[in] ds          Data source
+ * \param[in] src_sid     hb source in case of data source being NDB_DS_RECEIVER
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
+ *                        set to NDB_EVENT_SENDER_ID_VOID.
  *
  * \retval NDB_ERR_NONE            On success. Health data is updated.
  * \retval NDB_ERR_NO_CHANGE       On success. Health data is unchanged.
@@ -928,17 +965,20 @@ ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid)
  * \retval NDB_ERR_UNRELIABLE_DATA New entry, but confirmation is required.
  * \retval NDB_ERR_NO_DATA         No data entry to update.
  */
-ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t sid, u8 health_bits,
-                                    ndb_data_source_t ds)
+ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
+                                    u8 health_bits,
+                                    ndb_data_source_t ds,
+                                    const gnss_signal_t *src_sid,
+                                    u16 sender_id)
 {
   health_bits &= 0x1F;
 
   almanac_t tmp;
-  if (NDB_ERR_NONE == ndb_almanac_read(sid, &tmp) &&
+  if (NDB_ERR_NONE == ndb_almanac_read(target_sid, &tmp) &&
       (tmp.health_bits & 0x1F) != health_bits) {
     tmp.health_bits &= 0xE0;
     tmp.health_bits |= health_bits;
-    return ndb_almanac_store(&tmp, ds);
+    return ndb_almanac_store(src_sid, &tmp, ds, sender_id);
   }
 
   return NDB_ERR_NO_DATA;
