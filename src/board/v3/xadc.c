@@ -15,6 +15,8 @@
 #include <assert.h>
 #include <math.h>
 
+#include "board.h"
+
 #include "xadc_if_regs.h"
 #include "xadc_regs.h"
 
@@ -135,7 +137,7 @@ void xadc_init(void)
   xadc_write(XADC_ADDR_CFG0, 0x0000);
   xadc_write(XADC_ADDR_CFG1, 0x8000);
   xadc_write(XADC_ADDR_CFG2, 0x1E00);
-  xadc_write(XADC_ADDR_AUX_SEQ, 0x2000);
+  xadc_write(XADC_ADDR_OC_SEQ, 0x800);
 
   /* Configure interrupts */
   XADC_IF->INT_MASK = ~(XADC_IF_INT_OT_Msk | XADC_IF_INT_ALM0_Msk);
@@ -147,13 +149,12 @@ void xadc_init(void)
   gic_irq_enable(IRQ_ID_XACD);
 }
 
-/** Get the most recent VAUX13/VIN_MONITOR (V).
+/** Get the most recent VPVN/VIN_MONITOR (V).
  */
 float xadc_vin_get(void)
 {
-#ifdef XADC_VAUX_VIN
-  return (float)xadc_read(XADC_ADDR_VAUX0 + XADC_VAUX_VIN) *
-      XADC_VAUX_VIN_SCALING / 65536;
+#ifdef XADC_VIN_SCALING
+  return (float)xadc_read(XADC_ADDR_VPVN) * XADC_VIN_SCALING / 65536;
 #else
   return -9.999;
 #endif
