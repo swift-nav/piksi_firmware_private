@@ -126,6 +126,10 @@ typedef struct {
   tracker_t *tracker;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
+
+  /** How many times a stale tracker_common_data_t:: update_count
+      was reported */
+  u32 stale_reported;
 } tracker_channel_t;
 
 static tracker_channel_t tracker_channels[NUM_TRACKER_CHANNELS];
@@ -570,7 +574,13 @@ static void tracking_channel_compute_values(
     /* Current time of week for a tracker channel [ms] */
     info->tow_ms = common_data->TOW_ms;
     /* Tracking channel uptime [ms] */
-    info->uptime_ms = common_data->update_count;
+    info->uptime_ms = (u32)(timing_getms() - common_data->init_timestamp_ms);
+    if ((info->uptime_ms >= TRACK_INIT_T) &&
+        ((info->uptime_ms / 2) > common_data->update_count) &&
+        !tracker_channel->stale_reported) {
+      log_warn_sid(info->sid, "Stale update counter detected");
+      tracker_channel->stale_reported++;
+    }
     /* Lock counter */
     info->lock_counter = tracker_channel->internal_data.lock_counter;
     /* Sample counter */
@@ -1469,6 +1479,7 @@ static void common_data_init(tracker_common_data_t *common_data,
 
   common_data->sample_count = sample_count;
   common_data->cn0 = cn0;
+  common_data->init_timestamp_ms = timing_getms();
 }
 
 /** Lock a tracker channel for exclusive access.
