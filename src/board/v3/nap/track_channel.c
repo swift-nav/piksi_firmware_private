@@ -58,6 +58,7 @@ typedef struct {
 /** Internal tracking channel state */
 static struct nap_ch_state {
   bool init;                   /**< Initializing channel. */
+  gnss_signal_t sid;           /**< Channel sid */
   code_t code;                 /**< GNSS code identifier. */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
@@ -170,6 +171,8 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
 
+  s->sid = sid;
+
   /* Correlator spacing: VE -> E */
   s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                   .samples = NAP_VE_E_SPACING_SAMPLES};
@@ -227,6 +230,16 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   nap_track_update(channel, carrier_freq, code_phase_rate,
       chips_to_correlate, 0);
 
+  u32 length = t->LENGTH;
+
+  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
+      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+    log_warn_sid(s->sid,
+                 "Wrong NAP init correlation length: "
+                 "(%" PRIu32 ", %f, %lf %" PRIu32 ")",
+                 length, carrier_freq, code_phase_rate, chips_to_correlate);
+  }
+
   /* Spacing between VE and P correlators */
   u16 prompt_offset = s->spacing[0].samples + s->spacing[1].samples +
       round((s->spacing[0].chips + s->spacing[1].chips) *
@@ -234,7 +247,8 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   /* Adjust first integration length due to correlator spacing
    * (+ first period is one sample short) */
-  t->LENGTH += prompt_offset + 1;
+  length += prompt_offset + 1;
+  t->LENGTH = length;
 
   /* Set to start on the timing strobe */
   NAP->TRK_CONTROL |= (1 << channel);
@@ -278,7 +292,9 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   }
 
   /* Revert length adjustment for future integrations after channel started */
+  length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
+  assert(t->LENGTH < length);   /* check for overflow */
   s->init = false;
 }
 
@@ -303,8 +319,16 @@ void nap_track_update(u8 channel, double carrier_freq,
       NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
 
   t->CODE_PINC = cp_rate_units;
-  t->LENGTH = calc_length_samples(chips_to_correlate, code_phase_frac,
-      cp_rate_units);
+  u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
+                                   cp_rate_units);
+  t->LENGTH = length;
+  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
+      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+    log_warn_sid(s->sid, "Wrong NAP correlation length: "
+          "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
+          (int)s->init, chips_to_correlate, code_phase_frac, cp_rate_units,
+          length, code_phase_rate);
+  }
 
   t->CARR_PINC = round(-carrier_freq * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
 }
@@ -319,7 +343,9 @@ void nap_track_read_results(u8 channel,
 
   u32 ovf = (t->STATUS & NAP_TRK_STATUS_OVF_Msk) >> NAP_TRK_STATUS_OVF_Pos;
   if (ovf) {
-    log_warn("Track correlator overflow 0x%04X on channel %d", ovf, channel);
+    log_warn_sid(s->sid,
+                 "Track correlator overflow 0x%04X on channel %d",
+                 ovf, channel);
   }
 
   /* map corr registers by following way:
