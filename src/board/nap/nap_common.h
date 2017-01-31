@@ -48,6 +48,7 @@ extern binary_semaphore_t timing_strobe_sem;
 /** Convert milliseconds to NAP samples */
 #define NAP_MS_2_SAMPLES(ms) (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_Hz)
 
+/** Convert NAP samples to milliseconds */
 #define NAP_SAMPLES_2_MS(samples) (((samples) * 1000.) / NAP_TRACK_SAMPLE_RATE_Hz)
 
 /** \} */

@@ -127,7 +127,7 @@ typedef struct {
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
 
-  /** How many times a stale tracker_common_data_t:: update_count
+  /** How many times a stale tracker_common_data_t::update_count
       was reported */
   u32 stale_reported;
 } tracker_channel_t;

@@ -237,7 +237,14 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   /* Adjust first integration length due to correlator spacing
    * (+ first period is one sample short) */
-  t->LENGTH += prompt_offset + 1;
+  u32 length = t->LENGTH + prompt_offset + 1;
+  t->LENGTH = length;
+
+  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
+      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+    log_warn_sid(s->sid, "Wrong NAP init correlation length: (%d)",
+                 prompt_offset);
+  }
 
   /* Set to start on the timing strobe */
   NAP->TRK_CONTROL |= (1 << channel);
@@ -281,7 +288,9 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   }
 
   /* Revert length adjustment for future integrations after channel started */
+  length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
+  assert(t->LENGTH < length);   /* check for overflow */
   s->init = false;
 }
 
