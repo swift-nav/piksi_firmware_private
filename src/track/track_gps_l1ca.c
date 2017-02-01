@@ -277,7 +277,8 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
   }
 
   /* Mark active SVs. Later clear the whitelist status of inactive SVs */
-  sat_active[entry->sid.sat - 1] = true;
+  u16 index = sid_to_code_index(entry->sid);
+  sat_active[index] = true;
   float cn0 = common_data->cn0;
   float entry_cn0 = entry->cn0;
   float error = fabsf(remainder(entry->freq - common_data->xcorr_freq,
@@ -287,21 +288,21 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
 
   if (error <= gps_l1ca_config.xcorr_delta) {
     /* Signal pairs with matching doppler are xcorr flagged */
-    xcorr_flags[entry->sid.sat - 1] = true;
-    xcorr_cn0_diffs[entry->sid.sat - 1] = cn0 - entry_cn0;
-    data->xcorr_whitelist_counts[entry->sid.sat - 1] = 0;
+    xcorr_flags[index] = true;
+    xcorr_cn0_diffs[index] = cn0 - entry_cn0;
+    data->xcorr_whitelist_counts[index] = 0;
   } else if (error >= 5.0f * gps_l1ca_config.xcorr_delta) {
-    if (data->xcorr_whitelist_counts[entry->sid.sat - 1] < max_time_cnt) {
-      ++data->xcorr_whitelist_counts[entry->sid.sat - 1];
+    if (data->xcorr_whitelist_counts[index] < max_time_cnt) {
+      ++data->xcorr_whitelist_counts[index];
     } else {
       /* Signal pair with significant doppler difference is whitelisted
        * after max_time_cnt delay */
-      data->xcorr_whitelist[entry->sid.sat - 1] = true;
+      data->xcorr_whitelist[index] = true;
     }
   }
   if (0 != (entry->flags & TRACKING_CHANNEL_FLAG_FLL_USE)) {
-    data->xcorr_whitelist[entry->sid.sat - 1] = false;
-    data->xcorr_whitelist_counts[entry->sid.sat - 1] = 0;
+    data->xcorr_whitelist[index] = false;
+    data->xcorr_whitelist_counts[index] = 0;
   }
 }
 
@@ -382,6 +383,7 @@ static bool check_L2_entries(const tracker_channel_info_t *channel_info,
     return false;
   }
 
+  u16 index = sid_to_code_index(channel_info->sid);
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   /* Convert L2 doppler to L1 */
   float entry_freq = entry->freq * L2_to_L1_freq;
@@ -398,9 +400,9 @@ static bool check_L2_entries(const tracker_channel_info_t *channel_info,
 
   if (common_data->cn0 >= L1CA_XCORR_WHITELIST_THRESHOLD) {
     /* Whitelist high CN0 signal */
-    data->xcorr_whitelist[channel_info->sid.sat - 1] = true;
+    data->xcorr_whitelist[index] = true;
   } else {
-    data->xcorr_whitelist[channel_info->sid.sat - 1] = false;
+    data->xcorr_whitelist[index] = false;
   }
 
   if (entry->cn0 >= L2CM_XCORR_WHITELIST_THRESHOLD) {
@@ -436,21 +438,22 @@ static void check_L2_xcorr_flag(const tracker_channel_info_t *channel_info,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
+  u16 index = sid_to_code_index(channel_info->sid);
   s32 max_time_cnt = (s32)(gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
 
   if (xcorr_flag) {
     if (data->xcorr_count_l2 < max_time_cnt) {
       ++data->xcorr_count_l2;
     } else {
-      if (data->xcorr_whitelist[channel_info->sid.sat - 1] &&
+      if (data->xcorr_whitelist[index] &&
           data->xcorr_whitelist_l2) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
         common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
-      } else if (!data->xcorr_whitelist[channel_info->sid.sat - 1] &&
+      } else if (!data->xcorr_whitelist[index] &&
                  !data->xcorr_whitelist_l2) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
-      } else if (!data->xcorr_whitelist[channel_info->sid.sat - 1]) {
+      } else if (!data->xcorr_whitelist[index]) {
         /* Otherwise if L1 signal is not whitelisted, mark as confirmed xcorr */
         common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
       }
@@ -593,10 +596,11 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
     }
   }
 
+  u16 index = sid_to_code_index(channel_info->sid);
   bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
-    data->xcorr_whitelist[channel_info->sid.sat - 1] = false;
+    data->xcorr_whitelist[index] = false;
   }
 
   bool xcorr_suspect = false;
