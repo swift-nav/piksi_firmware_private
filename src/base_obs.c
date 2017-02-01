@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Swift Navigation Inc.
+ * Copyright (C) 2014-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -22,6 +22,7 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/sid_set.h>
 
 #include "peripherals/leds.h"
 #include "position.h"
@@ -222,7 +223,15 @@ static void update_obss(obss_t *new_obss)
   /* Copy over the time. */
   base_obss.tor = new_obss->tor;
 
-  if (base_obss.n >= 4) {
+  /* Count distinct satellites */
+  gnss_sid_set_t codes;
+  sid_set_init(&codes);
+  for (u8 i = 0; i < base_obss.n; i++) {
+    sid_set_add(&codes, base_obss.nm[i].sid);
+  }
+
+  /* Require at least 5 signals from at least 4 distinct satellites */
+  if (base_obss.n >= 5 && sid_set_get_sat_count(&codes) >= 4) {
     gnss_solution soln;
     dops_t dops;
 
