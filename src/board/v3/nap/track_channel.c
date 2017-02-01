@@ -242,8 +242,8 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_sid(s->sid, "Wrong NAP init correlation length: (%d)",
-                 prompt_offset);
+    log_warn_sid(s->sid, "Wrong NAP init correlation length: (%d, %d)",
+                 length, prompt_offset);
   }
 
   /* Set to start on the timing strobe */
