@@ -689,7 +689,8 @@ static void drop_channel(u8 channel_id,
    */
   gnss_signal_t sid = info->sid;
   tracking_channel_flags_t flags = info->flags;
-  u32 time_in_track = info->uptime_ms;
+  u64 now = timing_getms();
+  u32 time_in_track = (u32)(now - info->init_timestamp_ms);
 
   /* Log message with appropriate priority. */
   if (CH_DROP_REASON_ERROR == reason) {
@@ -747,6 +748,7 @@ static void manage_track()
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
+  u64 now = timing_getms();
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracking_channel_get_values(i,
@@ -780,7 +782,7 @@ static void manage_track()
     }
 
     /* Give newly-initialized channels a chance to converge */
-    if (info.uptime_ms < TRACK_INIT_T) {
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T) {
       continue;
     }
 

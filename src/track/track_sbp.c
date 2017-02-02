@@ -282,7 +282,8 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   state->doppler_std = (u16)limit_value(doppler_std, 0, UINT16_MAX);
 
   /* number of seconds of continuous tracking */
-  state->uptime = (u32)(channel_info->uptime_ms / 1000);
+  u64 now = timing_getms();
+  state->uptime = (u32)((now - channel_info->init_timestamp_ms) / 1000);
 
   /* miscellaneous flags */
   state->misc_flags = get_misc_flags(channel_info);

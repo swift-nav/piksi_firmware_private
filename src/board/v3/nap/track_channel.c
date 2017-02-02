@@ -321,8 +321,9 @@ void nap_track_update(u8 channel, double carrier_freq,
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_warn_sid(s->sid, "Wrong NAP correlation length: "
-          "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 ")", (int)s->init,
-          chips_to_correlate, code_phase_frac, cp_rate_units, length);
+          "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
+          (int)s->init, chips_to_correlate, code_phase_frac, cp_rate_units,
+          length, code_phase_rate);
   }
 
   t->CARR_PINC = round(-carrier_freq * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
