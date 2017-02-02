@@ -65,6 +65,7 @@ typedef enum {
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_LOW_ELEVATION, /**< SV elevation is too low */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
+  CH_DROP_REASON_NO_UPDATES     /**< No tracker updates for too long */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -659,6 +660,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_LOW_ELEVATION: str = "below elevation mask, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
+  case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -792,6 +794,12 @@ static void manage_track()
         shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID) {
       drop_channel(i, CH_DROP_REASON_UNHEALTHY, &info, &time_info, &freq_info);
       acq->state = ACQ_PRN_UNHEALTHY;
+    }
+
+    /* Do we have regular tracking channel updates? */
+    if (info.updated_once &&
+       ((now - info.update_timestamp_ms) > NAP_CORR_LENGTH_MAX_MS)) {
+      drop_channel(i, CH_DROP_REASON_NO_UPDATES, &info, &time_info, &freq_info);
       continue;
     }
 

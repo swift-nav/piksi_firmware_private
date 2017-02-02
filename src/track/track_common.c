@@ -21,6 +21,7 @@
 #include "track_profile_utils.h"
 #include "track_sid_db.h"
 #include "track_sbp.h"
+#include "timing.h"
 
 #include <math.h>
 #include <string.h>
@@ -601,16 +602,17 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   int_ms = tp_get_current_cycle_duration(data->tracking_mode,
                                          data->cycle_no);
 
-  if (common_data->read_correlators_once) {
-    u32 sample_count_diff = sample_count - common_data->sample_count;
-    if ((sample_count_diff < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
-       (sample_count_diff > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+  u64 now = timing_getms();
+  if (common_data->updated_once) {
+    u64 time_diff_ms = now - common_data->update_timestamp_ms;
+    if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
       log_warn_sid(channel_info->sid,
-                   "Unexpected tracking channel update rate: %lf ms",
-                   NAP_SAMPLES_2_MS(sample_count_diff));
+                   "Unexpected tracking channel update rate: %" PRIu64 " ms",
+                   time_diff_ms);
     }
   }
-  common_data->read_correlators_once = true;
+  common_data->updated_once = true;
+  common_data->update_timestamp_ms = now;
 
   common_data->sample_count = sample_count;
   common_data->code_phase_prompt = code_phase_prompt;

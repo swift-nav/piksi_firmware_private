@@ -111,6 +111,9 @@ typedef struct {
   float                    cn0;          /**< C/N0 [dB/Hz] */
   u64                      init_timestamp_ms; /**< Tracking channel init
                                                    timestamp [ms] */
+  u64                      update_timestamp_ms; /**< Tracking channel last
+                                                   update timestamp [ms] */
+  bool                     updated_once; /**< Tracking channel updated once */
   u32                      sample_count; /**< Last measurement sample counter */
   u16                      lock_counter; /**< Lock state counter */
   float                    xcorr_freq;   /**< Cross-correlation doppler [hz] */

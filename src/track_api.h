@@ -123,7 +123,9 @@ typedef struct {
   float acceleration;          /**< Acceleration [g] */
   float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
   u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
-  bool read_correlators_once;  /**< Read correlators at least once flag. */
+  u64 update_timestamp_ms;     /**< Tracking channel last update
+                                    timestamp [ms] */
+  bool updated_once;           /**< Tracker was updated at least once flag. */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;

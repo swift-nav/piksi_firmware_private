@@ -230,6 +230,16 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   nap_track_update(channel, carrier_freq, code_phase_rate,
       chips_to_correlate, 0);
 
+  u32 length = t->LENGTH;
+
+  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
+      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+    log_warn_sid(s->sid,
+                 "Wrong NAP init correlation length: "
+                 "(%" PRIu32 ", %f, %lf %" PRIu32 ")",
+                 length, carrier_freq, code_phase_rate, chips_to_correlate);
+  }
+
   /* Spacing between VE and P correlators */
   u16 prompt_offset = s->spacing[0].samples + s->spacing[1].samples +
       round((s->spacing[0].chips + s->spacing[1].chips) *
@@ -237,14 +247,8 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   /* Adjust first integration length due to correlator spacing
    * (+ first period is one sample short) */
-  u32 length = t->LENGTH + prompt_offset + 1;
+  length += prompt_offset + 1;
   t->LENGTH = length;
-
-  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
-      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_sid(s->sid, "Wrong NAP init correlation length: (%d, %d)",
-                 length, prompt_offset);
-  }
 
   /* Set to start on the timing strobe */
   NAP->TRK_CONTROL |= (1 << channel);

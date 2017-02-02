@@ -571,6 +571,10 @@ static void tracking_channel_compute_values(
     info->tow_ms = common_data->TOW_ms;
     /* Tracking channel init time [ms] */
     info->init_timestamp_ms = common_data->init_timestamp_ms;
+    /* Tracking channel update time [ms] */
+    info->update_timestamp_ms = common_data->update_timestamp_ms;
+    /* Tracking channel updated once */
+    info->updated_once = common_data->updated_once;
     /* Lock counter */
     info->lock_counter = tracker_channel->internal_data.lock_counter;
     /* Sample counter */
@@ -1469,7 +1473,10 @@ static void common_data_init(tracker_common_data_t *common_data,
 
   common_data->sample_count = sample_count;
   common_data->cn0 = cn0;
-  common_data->init_timestamp_ms = timing_getms();
+  u32 now = timing_getms();
+  common_data->init_timestamp_ms = now;
+  common_data->update_timestamp_ms = now;
+  common_data->updated_once = false;
 }
 
 /** Lock a tracker channel for exclusive access.
