@@ -20,6 +20,8 @@
 
 #include "track.h"
 
+/* The "QI" stands for "Quality Indicator" which is the terminology used
+   for this field in the NMEA specification. */
 #define NMEA_GGA_QI_INVALID 0
 #define NMEA_GGA_QI_GPS     1
 #define NMEA_GGA_QI_DGPS    2
