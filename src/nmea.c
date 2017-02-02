@@ -31,7 +31,8 @@
 #include "timing.h"
 #include "io_support.h"
 
-static u32 gpgga_msg_rate = 10;
+static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
+                                  solution rate. */
 static u32 gpgsv_msg_rate = 10;
 static u32 gprmc_msg_rate = 10;
 static u32 gpvtg_msg_rate =  1;
