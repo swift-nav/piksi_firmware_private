@@ -41,7 +41,7 @@ typedef struct {
 extern binary_semaphore_t timing_strobe_sem;
 
 /** The maximum expected correlation length for sanity checks [ms] */
-#define NAP_CORR_LENGTH_MAX_MS 30
+#define NAP_CORR_LENGTH_MAX_MS 100
 /** The minimum expected correlation length for sanity checks [ms] */
 #define NAP_CORR_LENGTH_MIN_MS 0.5
 
