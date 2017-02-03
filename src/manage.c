@@ -798,7 +798,7 @@ static void manage_track()
 
     /* Do we have regular tracking channel updates? */
     if (info.updated_once &&
-       ((now - info.update_timestamp_ms) > NAP_CORR_LENGTH_MAX_MS)) {
+       (abs((int)(now - info.update_timestamp_ms)) > NAP_CORR_LENGTH_MAX_MS)) {
       drop_channel(i, CH_DROP_REASON_NO_UPDATES, &info, &time_info, &freq_info);
       continue;
     }
