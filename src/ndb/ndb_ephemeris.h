@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -22,7 +22,8 @@ extern "C" {
 void ndb_ephemeris_init(void);
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) NDB_WEAK;
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
-                                  enum ndb_data_source) NDB_WEAK;
+                                  enum ndb_data_source,
+                                  u16 sender_id) NDB_WEAK;
 ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
                                  u8* health_bits, gps_time_t* toe,
                                  u32* fit_interval, float* ura) NDB_WEAK;

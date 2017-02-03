@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2016 Swift Navigation Inc.
+ * Copyright (C) 2014, 2016 - 2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
@@ -195,6 +195,35 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
     baseline_heading->heading = round(heading * 1e3);
     baseline_heading->n_sats = n_sats;
     baseline_heading->flags = flags;
+}
+
+void sbp_send_ndb_event(u8 event,
+                        u8 obj_type,
+                        u8 result,
+                        u8 data_source,
+                        const gnss_signal_t *object_sid,
+                        const gnss_signal_t *src_sid,
+                        u16 sender) {
+  msg_ndb_event_t msg;
+  memset(&msg, 0, sizeof(msg));
+
+  msg.recv_time = timing_getms();
+  msg.event = event;
+  msg.object_type = obj_type;
+  msg.result = result;
+  msg.data_source = data_source;
+
+  if (NULL != object_sid) {
+    msg.object_sid = sid_to_sbp16(*object_sid);
+  }
+
+  if (NULL != src_sid) {
+    msg.src_sid = sid_to_sbp16(*src_sid);
+  }
+
+  msg.original_sender = sender;
+
+  sbp_send_msg(SBP_MSG_NDB_EVENT, sizeof(msg), (u8 *)&msg);
 }
 
 void unpack_obs_header(const observation_header_t *msg, gps_time_t* t, u8* total, u8* count)

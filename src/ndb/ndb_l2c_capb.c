@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -18,6 +18,7 @@
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "sbp.h"
+#include "sbp_utils.h"
 
 /** L2C capabilities file name */
 #define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"
@@ -67,18 +68,46 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
                       NULL, NULL);
 }
 
-ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const u32 *l2c_cap,
-                                         ndb_data_source_t src)
+/**
+ * Store L2C capability information
+ *
+ * \param[in] sid         GNSS signal identifier for the source of iono data in
+ *                        case of data source being NDB_DS_RECEIVER, NULL for
+ *                        other cases.
+ * \param[in] l2c_cap     L2C capability mask
+ * \param[in] src         Data source
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
+ *                        set to NDB_EVENT_SENDER_ID_VOID.
+ *
+ * \retval NDB_ERR_NONE            On success. Iono data is updated.
+ * \retval NDB_ERR_NO_CHANGE       On success. Iono data is unchanged.
+ * \retval NDB_ERR_BAD_PARAM       Parameter errors.
+ */
+ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
+                                         const u32 *l2c_cap,
+                                         ndb_data_source_t src,
+                                         u16 sender_id)
 {
   if (NULL != l2c_cap && GPS_L2C_CAPAB_DEFAULT != *l2c_cap) {
     log_info("Updating L2C capability 0x%08" PRIX32, *l2c_cap);
   }
-  return ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
+
+  ndb_op_code_t res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
+
+  sbp_send_ndb_event(NDB_EVENT_STORE,
+                     NDB_EVENT_OTYPE_L2C_CAP,
+                     res,
+                     src,
+                     NULL,
+                     sid,
+                     sender_id);
+
+  return res;
 }
 
 static void l2c_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
-  (void)sender_id; (void)len; (void) context;
+  (void)len; (void) context;
 
   log_info("L2C capabilities received from peer");
 
@@ -86,5 +115,5 @@ static void l2c_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   u32 l2c_mask = ((msg_sv_configuration_gps_t*)msg)->l2c_mask;
 
   /* store message in NDB */
-  ndb_gps_l2cm_l2c_cap_store(&l2c_mask, NDB_DS_SBP);
+  ndb_gps_l2cm_l2c_cap_store(NULL, &l2c_mask, NDB_DS_SBP, sender_id);
 }
