@@ -227,7 +227,13 @@ static void manage_led_thread(void *arg)
   (void)arg;
   chRegSetThreadName("manage LED");
 
-  palSetLineMode(POS_VALID_GPIO_LINE, PAL_MODE_OUTPUT);
+  /* Configure GPIO */
+  chSysLock();
+  {
+    palSetLineMode(POS_VALID_GPIO_LINE, PAL_MODE_OUTPUT);
+  }
+  chSysUnlock();
+
   palClearLine(POS_VALID_GPIO_LINE);
 
   led_adp8866_init();

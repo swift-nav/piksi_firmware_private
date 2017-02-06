@@ -84,23 +84,25 @@ static bool antenna_config_notify(struct setting *s, const char *val)
 
 void antenna_init(void)
 {
+  /* Configure GPIO */
+  chSysLock();
+  {
+    palSetLineMode(ANT_PWR_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(ANT_PWR_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(ANT_IN_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(ANT_IN_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
+    palSetLineMode(ANT_PRESENT_1_GPIO_LINE, PAL_MODE_INPUT);
+    palSetLineMode(ANT_PRESENT_2_GPIO_LINE, PAL_MODE_INPUT);
+    palSetLineMode(ANT_NFAULT_1_GPIO_LINE, PAL_MODE_INPUT);
+    palSetLineMode(ANT_NFAULT_2_GPIO_LINE, PAL_MODE_INPUT);
+  }
+  chSysUnlock();
+
   /* SEL is active low, so "clear" is on and "set" is off. PWR is active high. */
-  palSetLineMode(ANT_PWR_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
   palClearLine(ANT_PWR_SEL_1_GPIO_LINE);
-
-  palSetLineMode(ANT_PWR_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
   palClearLine(ANT_PWR_SEL_2_GPIO_LINE);
-
-  palSetLineMode(ANT_IN_SEL_1_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(ANT_IN_SEL_1_GPIO_LINE);
-
-  palSetLineMode(ANT_IN_SEL_2_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(ANT_IN_SEL_2_GPIO_LINE);
-
-  palSetLineMode(ANT_PRESENT_1_GPIO_LINE, PAL_MODE_INPUT);
-  palSetLineMode(ANT_PRESENT_2_GPIO_LINE, PAL_MODE_INPUT);
-  palSetLineMode(ANT_NFAULT_1_GPIO_LINE, PAL_MODE_INPUT);
-  palSetLineMode(ANT_NFAULT_2_GPIO_LINE, PAL_MODE_INPUT);
 
   static struct setting_type antenna_mode_setting;
   int TYPE_ANTENNA_MODE = settings_type_register_enum(antenna_mode_strings,
