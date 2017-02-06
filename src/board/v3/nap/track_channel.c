@@ -59,7 +59,6 @@ typedef struct {
 static struct nap_ch_state {
   bool init;                   /**< Initializing channel. */
   gnss_signal_t sid;           /**< Channel sid */
-  code_t code;                 /**< GNSS code identifier. */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
@@ -223,7 +222,6 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
       code_to_chip_rate(sid.code);
 
   s->init = true;
-  s->code = sid.code;
   s->code_phase_rate[0] = code_phase_rate;
   s->code_phase_rate[1] = code_phase_rate;
 
@@ -376,7 +374,7 @@ void nap_track_read_results(u8 channel,
       NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP - prompt_offset;
 
   if (*code_phase_prompt < 0) {
-    *code_phase_prompt += code_to_chip_count(s->code);
+    *code_phase_prompt += code_to_chip_count(s->sid.code);
   }
 }
 
