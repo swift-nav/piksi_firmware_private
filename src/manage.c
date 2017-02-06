@@ -217,7 +217,7 @@ static void manage_acq_thread(void *arg)
 //        sids[sid.sat] = sid;
       }
     }
-    log_warn("XXXXX_: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
+    log_info("XXXXX_: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
         acqs[0],acqs[1],acqs[2],acqs[3],acqs[4],acqs[5],acqs[6],acqs[7],acqs[8],acqs[9],acqs[10],acqs[11],acqs[12],acqs[13],acqs[14],acqs[15],acqs[16],acqs[17],acqs[18],acqs[19],acqs[20],acqs[21],acqs[22],acqs[23],acqs[24],acqs[25],acqs[26],acqs[27],acqs[28],acqs[29],acqs[30],acqs[31],acqs[32]);
 //    for (u32 i = 0; i < 33; i++) {
 //      if (acqs[i]) {
