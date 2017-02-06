@@ -378,6 +378,11 @@ void nap_track_read_results(u8 channel,
   if (*code_phase_prompt < 0) {
     *code_phase_prompt += code_to_chip_count(s->sid.code);
   }
+
+  if (s->init) {
+    log_info("nap_read_results: %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32,
+             corrs[0].I, corrs[0].Q, corrs[1].I, corrs[1].Q, corrs[2].I, corrs[2].Q);
+  }
 }
 
 void nap_track_disable(u8 channel)
