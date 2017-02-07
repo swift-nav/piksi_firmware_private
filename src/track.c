@@ -1024,6 +1024,36 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   }
 }
 
+/** Resets cp_sync counter and sets bit polarity to unknown.
+ *  This function is called when L2CM data does not match with L2CL data.
+ *
+ * \param[in] sid GNSS signal identifier.
+ *
+ * \return None
+ */
+void tracking_channel_reset_cp_data(gnss_signal_t sid)
+{
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+    bool found = false;
+
+    chMtxLock(&pub_data->info_mutex);
+    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+      found = true;
+      pub_data->misc_info.cp_sync.counter = 0;
+      pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+    }
+    chMtxUnlock(&pub_data->info_mutex);
+
+    if (found) {
+      break;
+    }
+  }
+}
+
 /** Update carrier phase and TOW tag.
  *  Previous reading is saved to ensure one matching pair between
  *  L2CM and L2CL trackers.
@@ -1042,8 +1072,11 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
+    bool found = false;
+
     chMtxLock(&pub_data->info_mutex);
     if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+      found = true;
       /* Save previous information */
       pub_data->gen_info.tow_ms_prev = pub_data->gen_info.tow_ms;
       pub_data->freq_info.carrier_phase_prev = pub_data->freq_info.carrier_phase;
@@ -1052,6 +1085,10 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
       pub_data->freq_info.carrier_phase = cp;
     }
     chMtxUnlock(&pub_data->info_mutex);
+
+    if (found) {
+      break;
+    }
   }
 }
 
@@ -1166,18 +1203,7 @@ bool tracking_channel_find_matching_tow(gnss_signal_t sid,
 
   if (!TOW_match) {
     /* If no TOW was matching, reset the counter to zero. */
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-      chMtxLock(&pub_data->info_mutex);
-      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-        pub_data->misc_info.cp_sync.counter = 0;
-        pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-      }
-      chMtxUnlock(&pub_data->info_mutex);
-    }
+    tracking_channel_reset_cp_data(sid);
   }
   return TOW_match;
 }
@@ -1246,18 +1272,7 @@ bool tracking_channel_compare_cp(gnss_signal_t sid,
 
   if (!match) {
     /* If carrier phases were not matching, reset the counter to zero. */
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-      chMtxLock(&pub_data->info_mutex);
-      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-        pub_data->misc_info.cp_sync.counter = 0;
-        pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-      }
-      chMtxUnlock(&pub_data->info_mutex);
-    }
+    tracking_channel_reset_cp_data(sid);
   }
   return match;
 }
@@ -1284,11 +1299,18 @@ void tracking_channel_increment_cp_counter(gnss_signal_t sid,
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
       tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
+      bool found = false;
+
       chMtxLock(&pub_data->info_mutex);
       if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+        found = true;
         pub_data->misc_info.cp_sync.counter += 1;
       }
       chMtxUnlock(&pub_data->info_mutex);
+
+      if (found) {
+        break;
+      }
     }
   } else {
     /* If counter reached maximum. */
@@ -1326,12 +1348,19 @@ void tracking_channel_drop_l2cl(gnss_signal_t sid)
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
+    bool found = false;
+
     chMtxLock(&pub_data->info_mutex);
     if (pub_data->gen_info.sid.code == CODE_GPS_L2CL &&
         pub_data->gen_info.sid.sat == sid.sat) {
+      found = true;
       pub_data->misc_info.cp_sync.drop = true;
     }
     chMtxUnlock(&pub_data->info_mutex);
+
+    if (found) {
+      break;
+    }
   }
 }
 
@@ -1351,8 +1380,11 @@ s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid)
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
+    bool found = false;
+
     chMtxLock(&pub_data->info_mutex);
     if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+      found = true;
       /* If the half-cycle ambiguity has been resolved,
        * return polarity, and reset polarity and sync status. */
       if (pub_data->misc_info.cp_sync.synced) {
@@ -1362,6 +1394,10 @@ s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid)
       }
     }
     chMtxUnlock(&pub_data->info_mutex);
+
+    if (found) {
+      break;
+    }
   }
   return retval;
 }

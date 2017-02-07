@@ -259,6 +259,7 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
 void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *info,
                                                double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
+void tracking_channel_reset_cp_data(gnss_signal_t sid);
 void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW);
 bool tracking_channel_load_data(gnss_signal_t sid,
                                 float *own_cp, float *parent_cp,
