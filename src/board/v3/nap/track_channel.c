@@ -380,8 +380,8 @@ void nap_track_read_results(u8 channel,
   }
 
   if (s->init) {
-    log_info("nap_read_results: %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32,
-             corrs[0].I, corrs[0].Q, corrs[1].I, corrs[1].Q, corrs[2].I, corrs[2].Q);
+    log_info_sid(s->sid, "nap_read_results: %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32,
+                 corrs[0].I, corrs[0].Q, corrs[1].I, corrs[1].Q, corrs[2].I, corrs[2].Q);
   }
 }
 
