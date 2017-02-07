@@ -109,7 +109,10 @@ typedef struct {
   tracking_channel_flags_t flags;        /**< Channel flags */
   s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
   float                    cn0;          /**< C/N0 [dB/Hz] */
-  u32                      uptime_ms;    /**< Tracker uptime [ms] */
+  u64                      init_timestamp_ms; /**< Tracking channel init
+                                                   timestamp [ms] */
+  u64                      update_timestamp_ms; /**< Tracking channel last
+                                                   update timestamp [ms] */
   u32                      sample_count; /**< Last measurement sample counter */
   u16                      lock_counter; /**< Lock state counter */
   float                    xcorr_freq;   /**< Cross-correlation doppler [hz] */

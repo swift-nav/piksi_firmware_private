@@ -122,6 +122,10 @@ typedef struct {
   track_ctrl_params_t ctrl_params; /**< Controller parameters */
   float acceleration;          /**< Acceleration [g] */
   float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
+  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;     /**< Tracking channel last update
+                                    timestamp [ms] */
+  bool updated_once;           /**< Tracker was updated at least once flag. */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
