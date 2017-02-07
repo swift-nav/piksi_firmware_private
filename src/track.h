@@ -117,6 +117,7 @@ typedef struct {
   gnss_signal_t            sid;          /**< Signal identifier */
   tracking_channel_flags_t flags;        /**< Channel flags */
   s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
+  s32                      tow_ms_prev;  /**< Previous ToW [ms] or TOW_UNKNOWN */
   float                    cn0;          /**< C/N0 [dB/Hz] */
   u64                      init_timestamp_ms; /**< Tracking channel init
                                                    timestamp [ms] */
@@ -154,10 +155,6 @@ typedef struct {
 
 /** Parameters for half-cycle ambiguity resolution */
 typedef struct {
-  double cp;   /**< Current carrier phase [cycles]. */
-  double cp_p; /**< Previous carrier phase [cycles]. */
-  s32 TOW;     /**< Current Time of Week tag [ms]. */
-  s32 TOW_p;   /**< Previous Time of Week tag [ms]. */
   u8 counter;  /**< Counter for matching carrier phases */
   s8 polarity; /**< Polarity of the matching carrier phases */
   bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
@@ -182,6 +179,7 @@ typedef struct {
   double code_phase_chips;     /**< The code-phase in chips at `receiver_time`. */
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
+  double carrier_phase_prev;   /**< Previous carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency in Hz. */
   double carrier_freq_std;     /**< Carrier frequency std deviation in Hz. */
   double carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */

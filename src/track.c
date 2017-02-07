@@ -1045,11 +1045,11 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
     chMtxLock(&pub_data->info_mutex);
     if (sid_is_equal(pub_data->gen_info.sid, sid)) {
       /* Save previous information */
-      pub_data->misc_info.cp_sync.TOW_p = pub_data->misc_info.cp_sync.TOW;
-      pub_data->misc_info.cp_sync.cp_p = pub_data->misc_info.cp_sync.cp;
+      pub_data->gen_info.tow_ms_prev = pub_data->gen_info.tow_ms;
+      pub_data->freq_info.carrier_phase_prev = pub_data->freq_info.carrier_phase;
       /* Save new values */
-      pub_data->misc_info.cp_sync.TOW = TOW;
-      pub_data->misc_info.cp_sync.cp = cp;
+      pub_data->gen_info.tow_ms = TOW;
+      pub_data->freq_info.carrier_phase = cp;
     }
     chMtxUnlock(&pub_data->info_mutex);
   }
@@ -1092,18 +1092,18 @@ bool tracking_channel_load_data(gnss_signal_t sid,
     chMtxLock(&pub_data->info_mutex);
     if (sid_is_equal(pub_data->gen_info.sid, sid)) {
       /* Load own information */
-      *own_TOW = pub_data->misc_info.cp_sync.TOW;
-      *own_cp = fmod(pub_data->misc_info.cp_sync.cp, 1.0f);
-      *own_TOW_p = pub_data->misc_info.cp_sync.TOW_p;
-      *own_cp_p = fmod(pub_data->misc_info.cp_sync.cp_p, 1.0f);
+      *own_TOW = pub_data->gen_info.tow_ms;
+      *own_cp = fmod(pub_data->freq_info.carrier_phase, 1.0f);
+      *own_TOW_p = pub_data->gen_info.tow_ms_prev;
+      *own_cp_p = fmod(pub_data->freq_info.carrier_phase_prev, 1.0f);
       *count = pub_data->misc_info.cp_sync.counter;
     } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
                pub_data->gen_info.sid.sat == sid.sat) {
       /* Load L2CM parent information */
-      *parent_TOW = pub_data->misc_info.cp_sync.TOW;
-      *parent_cp = fmod(pub_data->misc_info.cp_sync.cp, 1.0f);
-      *parent_TOW_p = pub_data->misc_info.cp_sync.TOW;
-      *parent_cp_p = fmod(pub_data->misc_info.cp_sync.cp, 1.0f);
+      *parent_TOW = pub_data->gen_info.tow_ms;
+      *parent_cp = fmod(pub_data->freq_info.carrier_phase, 1.0f);
+      *parent_TOW_p = pub_data->gen_info.tow_ms_prev;
+      *parent_cp_p = fmod(pub_data->freq_info.carrier_phase_prev, 1.0f);
       parent_synced = pub_data->misc_info.cp_sync.synced;
       parent_found = true;
     }
@@ -1908,11 +1908,7 @@ static void common_data_init(tracker_common_data_t *common_data,
  */
 static void public_data_init(tracker_channel_pub_data_t *pub_data)
 {
-  pub_data->misc_info.cp_sync.TOW = TOW_INVALID;
-  pub_data->misc_info.cp_sync.TOW_p = TOW_INVALID;
   pub_data->misc_info.cp_sync.counter = 0;
-  pub_data->misc_info.cp_sync.cp = 0.0f;
-  pub_data->misc_info.cp_sync.cp_p = 0.0f;
   pub_data->misc_info.cp_sync.drop = false;
   pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
   pub_data->misc_info.cp_sync.synced = false;
