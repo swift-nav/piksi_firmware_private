@@ -759,7 +759,7 @@ static void manage_track()
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
-  u64 now = timing_getms();
+  u64 now;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracking_channel_get_values(i,
@@ -770,6 +770,7 @@ static void manage_track()
                                 NULL,       /* Misc info */
                                 false);     /* Reset stats */
 
+    now = timing_getms();
 
     /* Skip channels that aren't in use */
     if (0 == (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
@@ -796,8 +797,7 @@ static void manage_track()
       continue;
     }
 
-    if (info.updated_once &&
-       (abs((int)(now - info.update_timestamp_ms)) > NAP_CORR_LENGTH_MAX_MS)) {
+    if ((now - info.update_timestamp_ms) > NAP_CORR_LENGTH_MAX_MS) {
       drop_channel(i, CH_DROP_REASON_NO_UPDATES, &info, &time_info, &freq_info);
       continue;
     }

@@ -589,8 +589,6 @@ static void tracking_channel_compute_values(
     info->init_timestamp_ms = common_data->init_timestamp_ms;
     /* Tracking channel update time [ms] */
     info->update_timestamp_ms = common_data->update_timestamp_ms;
-    /* Tracking channel updated once */
-    info->updated_once = common_data->updated_once;
     /* Lock counter */
     info->lock_counter = tracker_channel->internal_data.lock_counter;
     /* Sample counter */
