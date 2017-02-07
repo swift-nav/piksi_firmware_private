@@ -63,6 +63,7 @@ typedef enum {
   CH_DROP_REASON_NO_PLOCK,      /**< Pessimistic lock timeout */
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
+  CH_DROP_REASON_NO_UPDATES     /**< No tracker updates for too long */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -206,6 +207,23 @@ static void manage_acq_thread(void *arg)
       had_fix = true;
       log_info("Switching to re-acq mode");
     }
+
+    bool acqs[33] = {false};
+//    gnss_signal_t sids[33] = {0};
+    for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+      gnss_signal_t sid = sid_from_global_index(i);
+      if (sid.code == CODE_GPS_L1CA) {
+        acqs[sid.sat] = (acq_status[i].state == ACQ_PRN_TRACKING);
+//        sids[sid.sat] = sid;
+      }
+    }
+    log_info("XXXXX_: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
+        acqs[0],acqs[1],acqs[2],acqs[3],acqs[4],acqs[5],acqs[6],acqs[7],acqs[8],acqs[9],acqs[10],acqs[11],acqs[12],acqs[13],acqs[14],acqs[15],acqs[16],acqs[17],acqs[18],acqs[19],acqs[20],acqs[21],acqs[22],acqs[23],acqs[24],acqs[25],acqs[26],acqs[27],acqs[28],acqs[29],acqs[30],acqs[31],acqs[32]);
+//    for (u32 i = 0; i < 33; i++) {
+//      if (acqs[i]) {
+//        log_warn_sid(sids[i], "Acq: tracked %"PRIu16"", sids[i].sat);
+//      }
+//    }
 
     if (had_fix) {
       manage_reacq();
@@ -649,6 +667,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_NO_PLOCK: str = "No pessimistic lock for too long, dropping"; break;
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
+  case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -679,7 +698,8 @@ static void drop_channel(u8 channel_id,
    */
   gnss_signal_t sid = info->sid;
   tracking_channel_flags_t flags = info->flags;
-  u32 time_in_track = info->uptime_ms;
+  u64 now = timing_getms();
+  u32 time_in_track = (u32)(now - info->init_timestamp_ms);
 
   /* Log message with appropriate priority. */
   if (CH_DROP_REASON_ERROR == reason) {
@@ -739,6 +759,7 @@ static void manage_track()
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
+  u64 now = timing_getms();
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracking_channel_get_values(i,
@@ -771,7 +792,13 @@ static void manage_track()
     }
 
     /* Give newly-initialized channels a chance to converge */
-    if (info.uptime_ms < TRACK_INIT_T) {
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T) {
+      continue;
+    }
+
+    if (info.updated_once &&
+       (abs((int)(now - info.update_timestamp_ms)) > NAP_CORR_LENGTH_MAX_MS)) {
+      drop_channel(i, CH_DROP_REASON_NO_UPDATES, &info, &time_info, &freq_info);
       continue;
     }
 

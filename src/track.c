@@ -140,7 +140,7 @@ static const tracker_interface_t tracker_interface_default = {
 };
 
 static u16 iq_output_mask = 0;
-static bool send_trk_detailed = 0;
+static bool send_trk_detailed = true;
 /** send_trk_detailed setting is a stop gap to suppress this 
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
@@ -245,7 +245,10 @@ void tracking_send_state()
     }
 
   } else {
-
+    bool enab[33] = {false};
+    bool disr[33] = {false};
+    bool disw[33] = {false};
+    bool conf[33] = {false};
     for (u8 i=0; i<nap_track_n_channels; i++) {
 
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
@@ -261,6 +264,12 @@ void tracking_send_state()
         running =
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         sid = tracker_channel->info.sid;
+        if (sid.code == CODE_GPS_L1CA) {
+          enab[sid.sat] = (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
+          disr[sid.sat] = (tracker_channel_state_get(tracker_channel) == STATE_DISABLE_REQUESTED);
+          disw[sid.sat] = (tracker_channel_state_get(tracker_channel) == STATE_DISABLE_WAIT);
+          conf[sid.sat] = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
+        }
         cn0 = common_data->cn0;
         confirmed = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
       }
@@ -280,6 +289,14 @@ void tracking_send_state()
         states[i].cn0 = cn0;
       }
     }
+    log_info("X_XXXX: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
+        enab[0],enab[1],enab[2],enab[3],enab[4],enab[5],enab[6],enab[7],enab[8],enab[9],enab[10],enab[11],enab[12],enab[13],enab[14],enab[15],enab[16],enab[17],enab[18],enab[19],enab[20],enab[21],enab[22],enab[23],enab[24],enab[25],enab[26],enab[27],enab[28],enab[29],enab[30],enab[31],enab[32]);
+    log_info("XX_XXX: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
+        disr[0],disr[1],disr[2],disr[3],disr[4],disr[5],disr[6],disr[7],disr[8],disr[9],disr[10],disr[11],disr[12],disr[13],disr[14],disr[15],disr[16],disr[17],disr[18],disr[19],disr[20],disr[21],disr[22],disr[23],disr[24],disr[25],disr[26],disr[27],disr[28],disr[29],disr[30],disr[31],disr[32]);
+    log_info("XXX_XX: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
+           disw[0],disw[1],disw[2],disw[3],disw[4],disw[5],disw[6],disw[7],disw[8],disw[9],disw[10],disw[11],disw[12],disw[13],disw[14],disw[15],disw[16],disw[17],disw[18],disw[19],disw[20],disw[21],disw[22],disw[23],disw[24],disw[25],disw[26],disw[27],disw[28],disw[29],disw[30],disw[31],disw[32]);
+    log_info("XXXX_X: %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8" %"PRIu8"",
+           conf[0],conf[1],conf[2],conf[3],conf[4],conf[5],conf[6],conf[7],conf[8],conf[9],conf[10],conf[11],conf[12],conf[13],conf[14],conf[15],conf[16],conf[17],conf[18],conf[19],conf[20],conf[21],conf[22],conf[23],conf[24],conf[25],conf[26],conf[27],conf[28],conf[29],conf[30],conf[31],conf[32]);
   }
 
   sbp_send_msg(SBP_MSG_TRACKING_STATE, sizeof(states), (u8*)states);
@@ -313,8 +330,7 @@ void tracking_send_detailed_state(void)
                                 &misc_info, /* misc parameters */
                                 true);      /* reset statistics */
 
-    if (0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) ||
-        0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
+    if (0 == (channel_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
       continue;
     }
 
@@ -569,8 +585,12 @@ static void tracking_channel_compute_values(
     info->cn0 = common_data->cn0;
     /* Current time of week for a tracker channel [ms] */
     info->tow_ms = common_data->TOW_ms;
-    /* Tracking channel uptime [ms] */
-    info->uptime_ms = common_data->update_count;
+    /* Tracking channel init time [ms] */
+    info->init_timestamp_ms = common_data->init_timestamp_ms;
+    /* Tracking channel update time [ms] */
+    info->update_timestamp_ms = common_data->update_timestamp_ms;
+    /* Tracking channel updated once */
+    info->updated_once = common_data->updated_once;
     /* Lock counter */
     info->lock_counter = tracker_channel->internal_data.lock_counter;
     /* Sample counter */
@@ -1470,6 +1490,10 @@ static void common_data_init(tracker_common_data_t *common_data,
 
   common_data->sample_count = sample_count;
   common_data->cn0 = cn0;
+  u32 now = timing_getms();
+  common_data->init_timestamp_ms = now;
+  common_data->update_timestamp_ms = now;
+  common_data->updated_once = false;
 }
 
 /** Lock a tracker channel for exclusive access.
