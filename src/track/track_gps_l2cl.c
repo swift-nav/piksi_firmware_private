@@ -177,7 +177,9 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     .sample_count       = sample_count,
     .carrier_freq       = carrier_freq,
     .code_phase         = code_phase,
-    .chips_to_correlate = 1023,
+    /* initial correlation length is 1 chip shorter,
+     * since first L2CM zero is skipped */
+    .chips_to_correlate = 1022,
     /* get initial cn0 from parent L2CM channel */
     .cn0_init           = cn0_init,
     .elevation          = TRACKING_ELEVATION_UNKNOWN

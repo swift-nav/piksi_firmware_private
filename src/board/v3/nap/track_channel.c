@@ -207,12 +207,6 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   t->CONTROL = control;
 
-  /* We always start at zero code phase */
-  t->CODE_INIT_INT = 0;
-  t->CODE_INIT_FRAC = 0;
-  t->CODE_INIT_G1 = sid_to_init_g1(sid);
-  t->CODE_INIT_G2 = 0x3ff;
-
   /* Set correlator spacing */
   t->SPACING = (spacing_to_nap_offset(s->spacing[0]) <<
       NAP_TRK_SPACING_OFFSET0_Pos) |
@@ -266,11 +260,25 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
     double cp = propagate_code_phase(code_phase, carrier_freq,
                                      tc_req - ref_timing_count, sid.code);
-
-    /* Contrive for the timing strobe to occur at or close to a PRN edge
-     * (code phase = 0) */
-    tc_req += round((code_to_chip_count(sid.code) - cp) *
-        calc_samples_per_chip(code_phase_rate));
+    u8 index = 0;
+    /* Contrive for the timing strobe to occur at
+     * or close to next PRN start point */
+    if (sid.code == CODE_GPS_L2CL) {
+      u32 code_length = code_to_chip_count(sid.code);
+      u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL / GPS_L2CL_PRN_PERIOD;
+      u8 cp_start = ceil(cp / chips);
+      index = (cp_start == GPS_L2CL_PRN_START_POINTS) ? 0 : cp_start;
+      tc_req += round((cp_start * chips - cp)
+              * calc_samples_per_chip(code_phase_rate));
+      t->CODE_INIT_INT = index * chips;
+    } else {
+      tc_req += round((code_to_chip_count(sid.code) - cp)
+              * calc_samples_per_chip(code_phase_rate));
+      t->CODE_INIT_INT = 0;
+    }
+    t->CODE_INIT_FRAC = 0;
+    t->CODE_INIT_G1 = sid_to_init_g1(sid, index);
+    t->CODE_INIT_G2 = 0x3ff;
 
     /* Correct timing count for correlator spacing */
     tc_req -= prompt_offset;
@@ -298,6 +306,10 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
   assert(t->LENGTH < length);   /* check for overflow */
+  /* Future integrations for L2CL are 1 chip longer */
+  if (sid.code == CODE_GPS_L2CL) {
+    t->LENGTH += calc_samples_per_chip(code_phase_rate);
+  }
   s->init = false;
 }
 
