@@ -357,7 +357,12 @@ static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
                                     common_data->carrier_phase,
                                     common_data->TOW_ms);
     bool fll_mode = tp_tl_is_fll(&data->tl_state);
-    tracking_channel_cp_sync_match(channel_info->sid, fll_mode);
+    /* Drop L2CL tracker if it is FLL mode */
+    if (fll_mode) {
+      tracking_channel_drop_l2cl(channel_info->sid);
+    } else {
+      tracking_channel_cp_sync_match(channel_info->sid);
+    }
   }
   (void) cflags;
 }

@@ -280,7 +280,7 @@ void tracking_channel_increment_cp_counter(gnss_signal_t sid,
                                            u8 count, s8 polarity);
 void tracking_channel_drop_l2cl(gnss_signal_t sid);
 s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid);
-void tracking_channel_cp_sync_match(gnss_signal_t sid, bool fll_mode);
+void tracking_channel_cp_sync_match(gnss_signal_t sid);
 
 bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp);
 s8 sv_elevation_degrees_get(gnss_signal_t sid);

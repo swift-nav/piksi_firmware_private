@@ -1370,11 +1370,10 @@ s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid)
  *  This function is called from the L2CL tracker.
  *
  * \param[in] sid      GNSS signal identifier.
- * \param[in] fll_mode Flag indicating if the tracker is in FLL mode.
  *
  * \return None
  */
-void tracking_channel_cp_sync_match(gnss_signal_t sid, bool fll_mode)
+void tracking_channel_cp_sync_match(gnss_signal_t sid)
 {
   float own_cp = 0.0f;
   float parent_cp = 0.0f;
@@ -1386,12 +1385,6 @@ void tracking_channel_cp_sync_match(gnss_signal_t sid, bool fll_mode)
   s32 parent_TOW_p = 0;
   u8 count = 0;
   bool data_valid = false;
-
-  /* Drop L2CL tracker if it is FLL mode */
-  if (fll_mode) {
-    tracking_channel_drop_l2cl(sid);
-    return;
-  }
 
   /* Check availability of valid L2CM and L2CL data */
   data_valid = tracking_channel_load_data(sid,
