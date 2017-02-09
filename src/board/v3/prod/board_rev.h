@@ -55,6 +55,8 @@
 #define LED_I2C I2CD2
 #define LED_I2C_CONFIG {.clk = 200000}
 
+#define XADC_VIN_SCALING (11)
+
 #define TCXO_FREQ_HZ 10e6          /* TCXO nominal frequency [Hz] */
 
 /* Piksi V3 TCXO nominal temperature frequency stability [ppm] */
