@@ -55,9 +55,30 @@ typedef struct {
   u8 samples:6; /**< Correlator spacing in samples (<= 23)*/
 } nap_spacing_t;
 
+enum steps {
+  STEP0 = 1 << 0,
+  STEP1 = 1 << 1,
+  STEP2 = 1 << 2,
+  STEP3 = 1 << 3,
+  STEP4 = 1 << 4,
+  STEP5 = 1 << 5,
+  STEP6 = 1 << 6,
+  STEP7 = 1 << 7,
+  STEP8 = 1 << 8,
+  STEP9 = 1 << 9,
+  STEP10 = 1 << 10,
+  STEP11 = 1 << 11,
+  STEP12 = 1 << 12,
+  STEP13 = 1 << 13,
+  STEP14 = 1 << 14,
+  STEP15 = 1 << 15
+};
+
 /** Internal tracking channel state */
 static struct nap_ch_state {
   bool init;                   /**< Initializing channel. */
+  bool first_interrupt;         /**< The first interrup flag */
+  u16 steps;
   gnss_signal_t sid;           /**< Channel sid */
   code_t code;                 /**< GNSS code identifier. */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
@@ -171,6 +192,9 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
 
+  s->first_interrupt = true;
+  s->steps = STEP0;
+
   s->sid = sid;
 
   /* Correlator spacing: VE -> E */
@@ -250,15 +274,22 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   length += prompt_offset + 1;
   t->LENGTH = length;
 
+  s->steps |= STEP1;
+
   /* Set to start on the timing strobe */
   NAP->TRK_CONTROL |= (1 << channel);
 
+  s->steps |= STEP2;
+
   COMPILER_BARRIER();
+
+  s->steps |= STEP3;
 
   /* Set up timing compare */
   u32 tc_req;
   while (1) {
     chSysLock();
+    s->steps |= STEP4;
     tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
 
     double cp = propagate_code_phase(code_phase, carrier_freq,
@@ -272,13 +303,22 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     /* Correct timing count for correlator spacing */
     tc_req -= prompt_offset;
 
+    s->steps |= STEP5;
     NAP->TRK_TIMING_COMPARE = tc_req;
+    s->steps |= STEP6;
     chSysUnlock();
 
+    s->steps |= STEP7;
+
     if (tc_req - NAP->TRK_COMPARE_SNAPSHOT <= (u32)TIMING_COMPARE_DELTA_MAX) {
+      s->steps |= STEP8;
       break;
+    } else {
+      s->steps |= STEP9;
     }
   }
+
+  s->steps |= STEP10;
 
   /* Sleep until compare match */
   s32 tc_delta;
@@ -286,16 +326,22 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     systime_t sleep_time = floor(CH_CFG_ST_FREQUENCY * tc_delta /
         NAP_TRACK_SAMPLE_RATE_Hz);
 
+    s->steps |= STEP11;
     /* The next system tick will always occur less than the nominal tick period
      * in the future, so sleep for an extra tick. */
     chThdSleep(1 + sleep_time / 2);
+    s->steps |= STEP12;
   }
+
+  s->steps |= STEP13;
 
   /* Revert length adjustment for future integrations after channel started */
   length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
+  s->steps |= STEP14;
   assert(t->LENGTH < length);   /* check for overflow */
   s->init = false;
+  s->steps |= STEP15;
 }
 
 void nap_track_update(u8 channel, double carrier_freq,
@@ -379,10 +425,13 @@ void nap_track_read_results(u8 channel,
     *code_phase_prompt += code_to_chip_count(s->sid.code);
   }
 
-  if (s->init) {
-    log_info_sid(s->sid, "nap_read_results: %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32,
-                 corrs[0].I, corrs[0].Q, corrs[1].I, corrs[1].Q, corrs[2].I, corrs[2].Q);
+  if (0 == corrs[1].I && 0 == corrs[1].Q) {
+    log_info_sid(s->sid,
+                 "ZeroIQ:%d %d %" PRIx16 " %" PRIx32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
+                 (int)s->init, (int)s->first_interrupt, s->steps, NAP->TRK_CONTROL, t->LENGTH,
+                 NAP->TRK_TIMING_COMPARE, NAP->TRK_COMPARE_SNAPSHOT, NAP->TIMING_COUNT);
   }
+  s->first_interrupt = false;
 }
 
 void nap_track_disable(u8 channel)
