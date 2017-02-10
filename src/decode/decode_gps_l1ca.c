@@ -268,7 +268,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   s8 soft_bit;
-  bool sensitivity_mode;
+  bool sensitivity_mode = true;
   while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
                                       &soft_bit, &sensitivity_mode)) {
     /* Don't trust polarity information while in sensitivity mode. */
