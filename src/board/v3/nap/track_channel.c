@@ -83,6 +83,12 @@ static struct nap_ch_state {
   code_t code;                 /**< GNSS code identifier. */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
+
+  u8 channel;
+  u32 ref_timing_count;
+  float carrier_freq;
+  float code_phase;
+  u32 chips_to_correlate;
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
@@ -191,6 +197,12 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
+
+  s->channel = channel;
+  s->ref_timing_count = ref_timing_count;
+  s->carrier_freq = carrier_freq;
+  s->code_phase = code_phase;
+  s->chips_to_correlate = chips_to_correlate;
 
   s->first_interrupt = true;
   s->steps = STEP0;
@@ -427,9 +439,13 @@ void nap_track_read_results(u8 channel,
 
   if (0 == corrs[1].I && 0 == corrs[1].Q) {
     log_info_sid(s->sid,
-                 "ZeroIQ:%d %d %" PRIx16 " %" PRIx32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
+                 "ZeroIQ:%d %d %" PRIx16 " %" PRIx32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
                  (int)s->init, (int)s->first_interrupt, s->steps, NAP->TRK_CONTROL, t->LENGTH,
-                 NAP->TRK_TIMING_COMPARE, NAP->TRK_COMPARE_SNAPSHOT, NAP->TIMING_COUNT);
+                 NAP->TRK_TIMING_COMPARE, NAP->TRK_COMPARE_SNAPSHOT, NAP->TIMING_COUNT, t->TIMING_SNAPSHOT);
+    log_info_sid(s->sid,
+                 "ZeroIQ2:%d %d %" PRIu32 " %f %f %" PRIu32,
+                 (int)channel, (int)s->channel, s->ref_timing_count,
+                 s->carrier_freq, s->code_phase, s->chips_to_correlate);
   }
   s->first_interrupt = false;
 }
