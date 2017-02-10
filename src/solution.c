@@ -1113,6 +1113,12 @@ static void solution_thread(void *arg)
                                          &baseline_ned,
                                          &baseline_ecef, &baseline_heading);
       }
+      /* store this fix as a guess so the satellite elevations and iono/tropo
+       * corrections can be computed for the first actual fix */
+      lgf.position_solution = current_fix;
+      lgf.position_quality = POSITION_GUESS;
+      ndb_lgf_store(&lgf);
+
       last_spp = chVTGetSystemTime();
       continue;
     }
