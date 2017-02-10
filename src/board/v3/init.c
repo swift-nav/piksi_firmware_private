@@ -157,11 +157,12 @@ void nap_auth_setup(void)
  */
 void nap_auth_check(void)
 {
-  if (nap_locked()) {
-    while (1) {
-      log_error("NAP Verification Failed");
-      chThdSleepSeconds(2);
-    }
+  while (nap_locked()) {
+    log_error("NAP Verification Failed: DNA=%016X, Key=%032X",
+        nap_dna, factory_params.nap_key);
+    chThdSleepSeconds(1);
+    nap_unlock(factory_params.nap_key);
+    chThdSleepSeconds(1);
   }
 }
 

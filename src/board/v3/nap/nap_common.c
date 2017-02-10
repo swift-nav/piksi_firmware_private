@@ -40,7 +40,7 @@ static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
 static void nap_irq_thread(void *arg);
 static void nap_track_irq_thread(void *arg);
 
-static u8 nap_dna[NAP_DNA_LENGTH] = {0};
+u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
 
 void nap_setup(void)
