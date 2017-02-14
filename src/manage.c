@@ -779,8 +779,17 @@ static void manage_track()
       continue;
     }
 
-    /* Give newly-initialized channels a chance to converge */
-    if ((now - info.init_timestamp_ms) < TRACK_INIT_T) {
+    /* Give newly-initialized channels a chance to converge.
+     * Signals other than GPS L2CL are given longer time. */
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T &&
+        sid.code != CODE_GPS_L2CL) {
+      continue;
+    }
+
+    /* Give newly-initialized L2CL channels a chance to converge.
+     * GPS L2CL signals are expected to stabilize fast. */
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T_L2CL &&
+        sid.code == CODE_GPS_L2CL) {
       continue;
     }
 

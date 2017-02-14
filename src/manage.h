@@ -30,8 +30,13 @@
 #define TRACK_CN0_THRES_COUNT_SHORT 100
 
 /** How many ms to allow tracking channel to converge after
-    initialization before we consider dropping it */
+    initialization before we consider dropping it.
+    Applied to all signals other than GPS L2CL */
 #define TRACK_INIT_T 2500
+
+/** How many ms to allow L2CL tracking channel to converge after
+    initialization before we consider dropping it */
+#define TRACK_INIT_T_L2CL 500
 
 /** If a channel is dropped but was running successfully for at least
     this long, mark it for prioritized reacquisition. */
