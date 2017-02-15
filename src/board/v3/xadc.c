@@ -30,7 +30,7 @@
 #define TEMP_WARN_LOWER_C  90.0f
 
 #define TEMP_VAL(temp) \
-            (((u32)roundf(((temp) + 273.15f) * 4096 / 509.375f) << 4) | 0b0011)
+            (((u32)roundf(((temp) + 273.15f) * 4096 / 503.975f) << 4) | 0b0011)
 
 static u16 xadc_cmd(u8 op, u8 addr, u16 data);
 static u16 xadc_read(u8 addr);
