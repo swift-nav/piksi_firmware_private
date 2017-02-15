@@ -660,26 +660,21 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds)
 static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn)
 {
   /* Update all almanac entries with the same ToW and empty WN */
-  ephemeris_t * const data = (ephemeris_t *)ndb_alma_file.block_data;
+  almanac_t * const data = (almanac_t *)ndb_alma_file.block_data;
   ndb_element_metadata_t * const md = ndb_alma_file.block_md;
 
   for (ndb_ie_index_t idx = 0; idx < ndb_alma_file.block_count; ++idx) {
     if (0 != (md[idx].nv_data.state & NDB_IE_VALID) &&
-        data[idx].toe.tow == toa &&
-        data[idx].toe.wn != wn) {
-      if (data[idx].toe.wn == WN_UNKNOWN) {
-        log_info_sid(ndb_almanac[idx].sid,
-                     "NDB: updating almanac time (%" PRIu16 ", % " PRIu32 ")",
-                     ndb_almanac[idx].toa.wn,
-                     (u32)ndb_almanac[idx].toa.tow);
+        toa == (u32) data[idx].toa.tow &&
+        WN_UNKNOWN == data[idx].toa.wn) {
+      log_debug_sid(ndb_almanac[idx].sid,
+                   "NDB: updating almanac time (%" PRIu16 ", % " PRIu32 ")",
+                   wn, toa);
 
-        /* Week number has not been known before - set it */
-        data[idx].toe.wn = wn;
-        md[idx].vflags |= NDB_VFLAG_IE_DIRTY; /* Metadata is not updated */
-        ndb_wq_put(&md[idx]);
-      } else {
-        /* Week number has been known before, but doesn't match - ignore */
-      }
+      /* Week number has not been known before - set it */
+      data[idx].toa.wn = (s16) wn;
+      md[idx].vflags |= NDB_VFLAG_IE_DIRTY; /* Metadata is not updated */
+      ndb_wq_put(&md[idx]);
     }
   }
 }
