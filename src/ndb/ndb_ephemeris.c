@@ -109,6 +109,9 @@ static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
   return -1;
 }
 
+/* Find an empty slot (unused or outdated ephemeris) in the candidate list
+ * and add the given candidate. Log a warning if no empty slot found.
+ */
 static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
 {
   int i;
@@ -128,6 +131,8 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
       return;
     }
   }
+  log_warn_sid(new->sid, "Could not add ephemeris candidate (%d slots full)",
+      EPHE_CAND_LIST_LEN);
 }
 
 static void ndb_ephe_release_candidate(s16 cand_index)
@@ -257,6 +262,20 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
   return res;
 }
 
+/**
+ * Check the status of a new ephemeris candidate against NDB
+ *
+ * \param[in] new        New ephemeris data
+ *
+ * \retval NDB_CAND_NEW_CANDIDATE New candidate, cannot be confirmed yet
+ * \retval NDB_CAND_NEW_TRUSTED   Candidate is confirmed, either by matching
+ *                                to previous candidate, previous ephemeris or
+ *                                almanac
+ * \retval NDB_CAND_IDENTICAL     Candidate is identical to current ephemeris
+ * \retval NDB_CAND_MISMATCH      Candidate differs from current ephemeris and
+ *                                cannot be confirmed yet
+ * \retval NDB_ERR_BAD_PARAM      Bad SID
+ */
 static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
 {
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
@@ -266,6 +285,8 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   ephemeris_t *ce = NULL; /* Candidate ephemeris data pointer if valid */
   almanac_t existing_a;   /* Existing almanac data */
   almanac_t *pa = NULL;   /* Existing almanac data pointer if valid */
+
+  last_good_fix_t lgf;
 
   u16 idx = map_sid_to_index(new->sid);
   if (ARRAY_SIZE(ndb_ephemeris) <= idx) {
@@ -282,13 +303,6 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   chMtxLock(&cand_list_access);
-
-  /* TTFF improvement: trust the candidate if there is no existing almanac or
-   * ephemeris to compare to (happens only during first fix situation)  */
-  if (!existing_e.valid && !existing_a.valid) {
-    chMtxUnlock(&cand_list_access);
-    return NDB_CAND_NEW_TRUSTED;
-  }
 
   s16 cand_idx = ndb_ephe_find_candidate(new->sid);
   if (-1 != cand_idx) {
@@ -316,9 +330,16 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
       log_debug_sid(new->sid, "[EPH] mismatch");
     }
   } else if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
-    /* TTFF improvement: first candidate, but verified from an older ephemeris
+    /* first candidate, but can be verified from an older ephemeris
      * or almanac */
     log_debug_sid(new->sid, "[EPH] new trusted");
+    r = NDB_CAND_NEW_TRUSTED;
+  } else if (pe == NULL && pa == NULL
+             && (NDB_ERR_NONE != ndb_lgf_read(&lgf)
+                 || lgf.position_quality <= POSITION_GUESS)) {
+    /* TTFF improvement: trust the candidate if there is no existing almanac or
+     * ephemeris to compare to, and we do not yet have a fix  */
+    log_debug_sid(new->sid, "[EPH] new trusted (TTFF shortcut)");
     r = NDB_CAND_NEW_TRUSTED;
   } else {
     /* New one is not in candidate list yet, try to put it

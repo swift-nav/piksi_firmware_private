@@ -57,8 +57,17 @@ static decoder_interface_list_element_t list_element_gps_l1ca = {
 };
 
 /**
- * For a newly saved almanac check if it correlates with any of the tracked
- * satellite ephemeris.
+ * Check that an almanac matches with the ephemeris of that satellite but not
+ * with any other.
+ *
+ * An almanac and ephemeris are considered to match if the satellite positions
+ * computed at three points (TOE and both end points of ephemeris fit interval)
+ * match within 40 kilometers.
+ *
+ * If the new almanac does not match with the corresponding ephemeris, the
+ * ephemeris is deleted. If the new almanac matches the ephemeris of some other
+ * satellite, the ephemeris is deleted and that channel flagged for
+ * cross-correlation.
  *
  * \param[in] sid GNSS signal identifier for which almanac has been updated
  *
@@ -71,43 +80,51 @@ static void check_almanac_xcorr(gnss_signal_t sid)
 
   for (u8 sv_idx = 0; sv_idx < NUM_SATS_GPS; ++sv_idx) {
     gnss_signal_t sid1 = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
-
     ephemeris_t e;
-    if (NDB_ERR_NONE == ndb_ephemeris_read(sid1, &e) && e.toe.wn > 0) {
-      u32 time_s = (u32)e.toe.wn * WEEK_SECS + (s32)e.toe.tow;
-      u32 interval_s = e.fit_interval / 2;
-      if (alm_pos.time_s != time_s || alm_pos.interval_s != interval_s) {
-        /* If ephemeris time differs from last computed almanac time, or the
-         * first one, compute the almanac positions for the new time */
-        if (!xcorr_calc_alm_positions(sid, time_s, interval_s, &alm_pos)) {
-          log_debug_sid(sid1, "Failed to compute almanac's positions");
-          continue;
-        }
-      }
+    if (NDB_ERR_NONE != ndb_ephemeris_read(sid1, &e) || e.toe.wn <= 0) {
+      continue;
+    }
 
-      xcorr_positions_t eph_pos;
-      if (!xcorr_calc_eph_positions(&e, time_s, &eph_pos)) {
-        log_debug_sid(sid1, "Failed to compute ephemeris positions");
+    u32 time_s = (u32) e.toe.wn * WEEK_SECS + (s32) e.toe.tow;
+    u32 interval_s = e.fit_interval / 2;
+    if (alm_pos.time_s != time_s || alm_pos.interval_s != interval_s) {
+      /* If ephemeris time differs from last computed almanac time, or the
+       * first one, compute the almanac positions for the new time */
+      if (!xcorr_calc_alm_positions(sid, time_s, interval_s, &alm_pos)) {
+        /* this happens when the almanac does not have WN yet */
+        log_debug_sid(sid1,
+                     "Failed to compute almanac positions (wn:%u, toe:%f)",
+                     e.toe.wn, e.toe.tow);
+        continue;
+      }
+    }
+
+    xcorr_positions_t eph_pos;
+    if (!xcorr_calc_eph_positions(&e, time_s, &eph_pos)) {
+      /* this should not happen with a valid ephemeris */
+      log_warn_sid(sid1,
+                   "Failed to compute ephemeris positions (wn:%u, toe:%f)",
+                   e.toe.wn, e.toe.tow);
+      continue;
+    }
+
+    bool match = xcorr_match_positions(sid, sid1, &eph_pos, &alm_pos);
+
+    if (sid1.sat == sid.sat) {
+      if (match) {
+        /* OK */
       } else {
-        bool match = xcorr_match_positions(sid, sid1, &eph_pos, &alm_pos);
-
-        if (sid1.sat == sid.sat) {
-          if (match) {
-            /* OK */
-          } else {
-            log_warn_sid(sid1, "Position mismatch with own almanac");
-            ndb_ephemeris_erase(sid1);
-          }
-        } else if (match) {
-          /* Cross-correlation */
-          char sid_str_[SID_STR_LEN_MAX];
-          sid_to_string(sid_str_, sizeof(sid_str_), sid);
-
-          log_warn_sid(sid1, "Cross-correlation detected with %s", sid_str_);
-          ndb_ephemeris_erase(sid1);
-          tracking_channel_set_xcorr_flag(sid1);
-        }
+        log_warn_sid(sid1, "Ephemeris does not match with almanac, dropping");
+        ndb_ephemeris_erase(sid1);
       }
+    } else if (match) {
+      /* Cross-correlation */
+      char sid_str_[SID_STR_LEN_MAX];
+      sid_to_string(sid_str_, sizeof(sid_str_), sid);
+
+      log_warn_sid(sid1, "Almanac-ephemeris cross-correlation with %s", sid_str_);
+      ndb_ephemeris_erase(sid1);
+      tracking_channel_set_xcorr_flag(sid1);
     }
   }
 }
@@ -439,7 +456,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.ephemeris_upd_flag) {
-    /* Store new ephemeris to NDB*/
+    /* Store new ephemeris to NDB */
     log_debug_sid(channel_info->sid, "New ephemeris received [%" PRId16 ", %lf]",
                   dd.ephemeris.toe.wn, dd.ephemeris.toe.tow);
     eph_new_status_t r = ephemeris_new(&dd.ephemeris);

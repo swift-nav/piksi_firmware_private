@@ -3,7 +3,6 @@
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *          Gareth McMullin <gareth@swiftnav.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
- *          Roman Gezikov <rgezikov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -30,7 +29,7 @@
 #include <track/track_sid_db.h>
 
 /** Maximum distance for ephemeris-almanac cross-correlation tests [m] */
-#define XCORR_MAX_EA_DISTANCE_M 40000.
+#define XCORR_MAX_EA_DISTANCE_M 50000.0f
 
 /**
  * Computes cross-correlation positions from NDB almanac
@@ -48,26 +47,27 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 interval_s,
                               xcorr_positions_t *pos)
 {
-  bool res = false;
   almanac_t a;
-  if (NDB_ERR_NONE == ndb_almanac_read(sid, &a) &&
-      WN_UNKNOWN != a.toa.wn) {
-    gps_time_t t0 = make_gps_time(time_s - interval_s);
-    gps_time_t t1 = make_gps_time(time_s);
-    gps_time_t t2 = make_gps_time(time_s + interval_s);
 
-    if (almanac_valid(&a, &t0) &&
-        almanac_valid(&a, &t2)) {
-      double _[3];
-      calc_sat_state_almanac(&a, &t0, pos->early.xyz, _, _, _);
-      calc_sat_state_almanac(&a, &t1, pos->prompt.xyz, _, _, _);
-      calc_sat_state_almanac(&a, &t2, pos->late.xyz, _, _, _);
-      pos->time_s = time_s;
-      pos->interval_s = interval_s;
-      res = true;
-    }
+  if (NDB_ERR_NONE != ndb_almanac_read(sid, &a) || a.toa.wn <= 0) {
+    return false;
   }
-  return res;
+
+  gps_time_t t0 = make_gps_time(time_s - interval_s);
+  gps_time_t t1 = make_gps_time(time_s);
+  gps_time_t t2 = make_gps_time(time_s + interval_s);
+
+  if (!almanac_valid(&a, &t0) || !almanac_valid(&a, &t2)) {
+    return false;
+  }
+
+  double _[3];
+  calc_sat_state_almanac(&a, &t0, pos->early.xyz, _, _, _);
+  calc_sat_state_almanac(&a, &t1, pos->prompt.xyz, _, _, _);
+  calc_sat_state_almanac(&a, &t2, pos->late.xyz, _, _, _);
+  pos->time_s = time_s;
+  pos->interval_s = interval_s;
+  return true;
 }
 
 /**
@@ -78,7 +78,7 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
  * \param[out] pos    Resulting ECEF position
  *
  * \retval true  Positions computed
- * \retval false No suitable almanac or algorithm error
+ * \retval false No suitable ephemeris or algorithm error
  */
 bool xcorr_calc_eph_positions(const ephemeris_t *e,
                               u32 time_s,
@@ -88,20 +88,18 @@ bool xcorr_calc_eph_positions(const ephemeris_t *e,
   gps_time_t t0 = make_gps_time(time_s - interval_s);
   gps_time_t t1 = make_gps_time(time_s);
   gps_time_t t2 = make_gps_time(time_s + interval_s);
-  bool res = false;
 
-  if (ephemeris_valid(e, &t0) &&
-      ephemeris_valid(e, &t2)) {
-    double _[3];
-    calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _);
-    calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _);
-    calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _);
-    pos->time_s = time_s;
-    pos->interval_s = interval_s;
-    res = true;
+  if (!ephemeris_valid(e, &t0) || !ephemeris_valid(e, &t2)) {
+    return false;
   }
 
-  return res;
+  double _[3];
+  calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _);
+  calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _);
+  calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _);
+  pos->time_s = time_s;
+  pos->interval_s = interval_s;
+  return true;
 }
 
 
@@ -122,17 +120,17 @@ bool xcorr_get_alm_positions(gnss_signal_t sid,
                              u32 interval_s,
                              xcorr_positions_t *pos)
 {
-  bool res = false;
+  if (!track_sid_db_load_positions(sid, pos)) {
+    return false;
+  }
 
-  if (track_sid_db_load_positions(sid, pos)) {
-    if (pos->time_s != time_s || pos->interval_s != interval_s) {
-      res = xcorr_calc_alm_positions(sid, time_s, interval_s, pos);
-      if (res) {
-        track_sid_db_update_positions(sid, pos);
-      }
-    } else {
-      res = true;
-    }
+  if (pos->time_s == time_s && pos->interval_s == interval_s) {
+    return true;
+  }
+
+  bool res = xcorr_calc_alm_positions(sid, time_s, interval_s, pos);
+  if (res) {
+     track_sid_db_update_positions(sid, pos);
   }
 
   return res;
@@ -176,8 +174,8 @@ bool xcorr_match_positions(gnss_signal_t sid0,
  * \param[in] pos Position to compare against
  *
  * \return Comparison result
- * \retval XCORR_MATCH_RES_NO_ALMANAC No almanac or algorithm error
  * \retval XCORR_MATCH_RES_OK         Position match detected
+ * \retval XCORR_MATCH_RES_NO_ALMANAC No almanac or algorithm error
  * \retval XCORR_MATCH_RES_NO_MATCH   Positions do not match
  *
  * \sa xcorr_match_positions
@@ -187,17 +185,29 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
                                            gnss_signal_t sid,
                                            const xcorr_positions_t *pos)
 {
-  xcorr_match_res_t res = XCORR_MATCH_RES_NO_ALMANAC;
-
   xcorr_positions_t alm_pos;
-  if (xcorr_get_alm_positions(sid, pos->time_s, pos->interval_s, &alm_pos)) {
-    bool ok = xcorr_match_positions(sid, sid0, &alm_pos, pos);
-    res = ok ? XCORR_MATCH_RES_OK : XCORR_MATCH_RES_NO_MATCH;
+  if (!xcorr_get_alm_positions(sid, pos->time_s, pos->interval_s, &alm_pos)) {
+    return XCORR_MATCH_RES_NO_ALMANAC;
   }
-
-  return res;
+  if (xcorr_match_positions(sid, sid0, &alm_pos, pos)) {
+    return XCORR_MATCH_RES_OK;
+  } else {
+    return XCORR_MATCH_RES_NO_MATCH;
+  }
 }
 
+/**
+ * Checks that new GPS ephemeris matches its own almanac and none of the other
+ * satellites, and if so, pass to it to NDB.
+ *
+ * \param[in] e New ephemeris structure
+ *
+ * \return Store result
+ * \retval EPH_NEW_OK    New ephemeris passed to NDB
+ * \retval EPH_NEW_ERR   Ephemeris invalid or failed to check against almanac
+ * \retval EPH_NEW_XCORR Ephemeris matches some other satellite's almanac
+ *
+ */
 eph_new_status_t ephemeris_new(const ephemeris_t *e)
 {
   assert(sid_supported(e->sid));
@@ -211,35 +221,22 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
   xcorr_positions_t eph_pos;
   s32 time_s = e->toe.wn * WEEK_SECS + (s32)e->toe.tow;
 
+  /* Compute three test positions over the ephemeris's time of validity */
   if (!xcorr_calc_eph_positions(e, time_s, &eph_pos)) {
     log_warn_sid(e->sid, "Failed to compute reference ECEFs");
     return EPH_NEW_ERR;
   }
 
-  xcorr_match_res_t mr0 = xcorr_match_alm_position(e->sid, e->sid, &eph_pos);
-  switch (mr0) {
-  case XCORR_MATCH_RES_OK:
-    /* Ephemeris is OK */
-    break;
-  case XCORR_MATCH_RES_NO_ALMANAC: /* Unknown state */
-    break;
-  case XCORR_MATCH_RES_NO_MATCH: /* Bad data, cross correlation etc */
-    /* Own almanac check has failed */
-    log_warn_sid(e->sid, "Failed check against own almanac");
-    break;
-  default:
-    assert(!"Invalid match result");
-  }
-
+  /* Compare against other almanacs */
   for (u32 sv_idx = 0; sv_idx < NUM_SATS_GPS; sv_idx++) {
     gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
     if (sid.sat == e->sid.sat) {
       /* Skip self */
       continue;
     }
-    if (xcorr_get_alm_positions(sid, time_s, e->fit_interval / 2, &alm_pos)) {
-      bool m = xcorr_match_positions(e->sid, sid, &eph_pos, &alm_pos);
-      if (m) {
+    if (xcorr_get_alm_positions(sid, eph_pos.time_s, eph_pos.interval_s,
+                                &alm_pos)) {
+      if (xcorr_match_positions(e->sid, sid, &eph_pos, &alm_pos)) {
         /* Matched different almanac - cross correlation detected */
         return EPH_NEW_XCORR;
       }
@@ -247,9 +244,23 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
     /* OK: no data or distance mismatch; continue with another SV */
   }
 
-  if (XCORR_MATCH_RES_NO_MATCH == mr0) {
-    /* Do not store */
+  /* Compare against own almanac */
+  switch (xcorr_match_alm_position(e->sid, e->sid, &eph_pos)) {
+  case XCORR_MATCH_RES_OK:
+    /* OK, ephemeris matches almanac */
+    break;
+  case XCORR_MATCH_RES_NO_ALMANAC:
+    /* No valid almanac to compare to, should happen only during the
+     * first 13 minutes or so after a cold start */
+    break;
+  case XCORR_MATCH_RES_NO_MATCH:
+    /* Own almanac check has failed due to bad data, cross-correlation etc. */
+    log_warn_sid(e->sid, "Ephemeris does not match with almanac, discarding");
+
     return EPH_NEW_ERR;
+    break;
+  default:
+    assert(!"Invalid match result");
   }
 
   ndb_op_code_t oc = ndb_ephemeris_store(e,
