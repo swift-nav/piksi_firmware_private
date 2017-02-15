@@ -20,15 +20,17 @@
 
 #include "track.h"
 
-#define NMEA_GGA_FIX_INVALID 0
-#define NMEA_GGA_FIX_GPS     1
-#define NMEA_GGA_FIX_DGPS    2
-#define NMEA_GGA_FIX_PPS     3
-#define NMEA_GGA_FIX_RTK     4
-#define NMEA_GGA_FIX_FLOAT   5
-#define NMEA_GGA_FIX_EST     6
-#define NMEA_GGA_FIX_MANUAL  7
-#define NMEA_GGA_FIX_SIM     8
+/* The "QI" stands for "Quality Indicator" which is the terminology used
+   for this field in the NMEA specification. */
+#define NMEA_GGA_QI_INVALID 0
+#define NMEA_GGA_QI_GPS     1
+#define NMEA_GGA_QI_DGPS    2
+#define NMEA_GGA_QI_PPS     3
+#define NMEA_GGA_QI_RTK     4
+#define NMEA_GGA_QI_FLOAT   5
+#define NMEA_GGA_QI_EST     6
+#define NMEA_GGA_QI_MANUAL  7
+#define NMEA_GGA_QI_SIM     8
 
 #define MS2KNOTS(x, y, z) (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * 1.94385)
 #define MS2KMHR(x, y, z)  (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * \
@@ -51,5 +53,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
                     double propagation_time, u8 sender_id);
 char get_nmea_status(u8 flags);
 char get_nmea_mode_indicator(u8 flags);
+u8 get_nmea_quality_indicator(u8 flags);
 
 #endif  /* SWIFTNAV_NMEA_H */
