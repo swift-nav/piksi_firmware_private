@@ -24,6 +24,7 @@
 #include "sbp_utils.h"
 
 #define SBP_FILEIO_TIMEOUT 5000
+#define SBP_FILEIO_TRIES   5
 
 static u8 next_seq(void)
 {
@@ -87,9 +88,19 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
     chunksize = MIN(chunksize, (ssize_t)(size - s));
     memcpy((u8*)msg + payload_offset,
            (u8*)buf + s, chunksize);
-    sbp_send_msg(SBP_MSG_FILEIO_WRITE_REQ, payload_offset + chunksize,
-                 (u8*)msg);
-    if (chBSemWaitTimeout(&closure.sem, SBP_FILEIO_TIMEOUT) != MSG_OK) {
+
+    u8 tries = 0;
+    bool success = false;
+    do {
+      sbp_send_msg(SBP_MSG_FILEIO_WRITE_REQ, payload_offset + chunksize,
+                   (u8*)msg);
+      if (chBSemWaitTimeout(&closure.sem, SBP_FILEIO_TIMEOUT) == MSG_OK) {
+        success = true;
+        break;
+      }
+    } while (++tries < SBP_FILEIO_TRIES);
+
+    if (!success) {
       s = -1;
       break;
     }
@@ -117,10 +128,20 @@ ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size
     msg->offset = offset + s;
     msg->chunk_size = MIN(255, size - s);
     strcpy(msg->filename, filename);
-    sbp_send_msg(SBP_MSG_FILEIO_READ_REQ,
-                 sizeof(msg_fileio_read_req_t) + strlen(filename),
-                 (u8*)msg);
-    if (chBSemWaitTimeout(&closure.sem, SBP_FILEIO_TIMEOUT) != MSG_OK) {
+
+    u8 tries = 0;
+    bool success = false;
+    do {
+      sbp_send_msg(SBP_MSG_FILEIO_READ_REQ,
+                   sizeof(msg_fileio_read_req_t) + strlen(filename),
+                   (u8*)msg);
+      if (chBSemWaitTimeout(&closure.sem, SBP_FILEIO_TIMEOUT) == MSG_OK) {
+        success = true;
+        break;
+      }
+    } while (++tries < SBP_FILEIO_TRIES);
+
+    if (!success) {
       s = -1;
       break;
     }
