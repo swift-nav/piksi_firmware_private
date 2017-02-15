@@ -161,6 +161,21 @@ typedef struct {
   bool drop;   /**< Flag for dropping the tracking channel */
 } cp_sync_t;
 
+/** Parameters for carrier phase comparison */
+typedef struct {
+  float c_L2CL_cp; /**< Current L2CL carrier phase [cycles] */
+  float p_L2CL_cp; /**< Previous L2CL carrier phase [cycles] */
+  float t_L2CL_cp; /**< L2CL carrier phase to be tested [cycles] */
+  float c_L2CM_cp; /**< Current L2CM carrier phase [cycles] */
+  float p_L2CM_cp; /**< Previous L2CM carrier phase [cycles] */
+  float t_L2CM_cp; /**< L2CM carrier phase to be tested [cycles] */
+  s32 c_L2CL_TOW;  /**< Current L2CL TOW [ms] */
+  s32 p_L2CL_TOW;  /**< Previous L2CL TOW [ms] */
+  s32 c_L2CM_TOW;  /**< Current L2CM TOW [ms] */
+  s32 p_L2CM_TOW;  /**< Previous L2CM TOW [ms] */
+  u8 count;        /**< Count of matching carrier phase measurements */
+} cp_comp_t;
+
 /** Tracking channel miscellaneous info */
 typedef struct {
   double pseudorange;          /**< Pseudorange [m]  */
@@ -261,24 +276,12 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 void tracking_channel_reset_cp_data(gnss_signal_t sid);
 void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW);
-bool tracking_channel_load_data(gnss_signal_t sid,
-                                float *own_cp, float *parent_cp,
-                                float *own_cp_p, float *parent_cp_p,
-                                s32 *own_TOW, s32 *parent_TOW,
-                                s32 *own_TOW_p, s32 *parent_TOW_p,
-                                u8 *count);
-bool tracking_channel_find_matching_tow(gnss_signal_t sid,
-                                        float own_cp, float parent_cp,
-                                        float own_cp_p, float parent_cp_p,
-                                        s32 own_TOW, s32 parent_TOW,
-                                        s32 own_TOW_p, s32 parent_TOW_p,
-                                        float *own_cp_test,
-                                        float *parent_cp_test);
-bool tracking_channel_compare_cp(gnss_signal_t sid,
-                                 float own_cp_test, float parent_cp_test,
+bool tracking_channel_load_data(gnss_signal_t sid, cp_comp_t *cp_comp);
+bool tracking_channel_find_matching_tow(gnss_signal_t sid, cp_comp_t *cp_comp);
+bool tracking_channel_compare_cp(gnss_signal_t sid, cp_comp_t *cp_comp,
                                  s8 *polarity);
 void tracking_channel_increment_cp_counter(gnss_signal_t sid,
-                                           u8 count, s8 polarity);
+                                           cp_comp_t *cp_comp, s8 polarity);
 void tracking_channel_drop_l2cl(gnss_signal_t sid);
 s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid);
 void tracking_channel_cp_sync_match(gnss_signal_t sid);
