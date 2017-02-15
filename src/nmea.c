@@ -273,7 +273,7 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, c
     }
   }
 
-  if (((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION) && sbp_dops) {
+  if (sbp_dops && ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION)) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
                          sbp_dops->pdop * 0.01,
                          sbp_dops->hdop * 0.01,
@@ -602,10 +602,8 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time)
       t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year
     );
   } else {
-    NMEA_SENTENCE_PRINTF(
-      ","                                  /* Time (UTC) */
-      ",,,"                                /* Date Stamp */
-    );
+    NMEA_SENTENCE_PRINTF("," ",,,");       /* Time (UTC), Date Stamp */
+
   }
 
   NMEA_SENTENCE_PRINTF(",");               /* Time zone */
