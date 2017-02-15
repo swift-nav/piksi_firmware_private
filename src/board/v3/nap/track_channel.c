@@ -437,7 +437,7 @@ void nap_track_read_results(u8 channel,
     *code_phase_prompt += code_to_chip_count(s->sid.code);
   }
 
-  if (0 == corrs[1].I && 0 == corrs[1].Q) {
+  if (0 == corrs[1].I && 0 == corrs[1].Q && s->first_interrupt) {
     log_info_sid(s->sid,
                  "ZeroIQ:%d %d %" PRIx16 " %" PRIx32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
                  (int)s->init, (int)s->first_interrupt, s->steps, NAP->TRK_CONTROL, t->LENGTH,
