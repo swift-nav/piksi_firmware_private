@@ -50,7 +50,10 @@
                              SPI_CLK_DIV_16, SPI_SS_IMU_GPIO_LINE}
 #define CLK_DAC_SPI SPID2
 #define CLK_DAC_SPI_CONFIG {0, SPI_MODE_1, \
-                             SPI_CLK_DIV_16, SPI_SS_CLK_DAC_GPIO_LINE}
+                            SPI_CLK_DIV_16, SPI_SS_CLK_DAC_GPIO_LINE}
+
+#define RTC_I2C I2CD2
+#define RTC_I2C_CONFIG {.clk = 200000}
 
 #define LED_I2C I2CD2
 #define LED_I2C_CONFIG {.clk = 200000}
