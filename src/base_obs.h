@@ -49,6 +49,7 @@ typedef struct {
   /** Distances to each satellite based on `pos_ecef` and `nm`.
    * Used for observation propagation. */
   double sat_dists[MAX_CHANNELS];
+  double sat_dists_dot[MAX_CHANNELS];
 } obss_t;
 
 /** Maximum difference between observation times to consider them matched. */

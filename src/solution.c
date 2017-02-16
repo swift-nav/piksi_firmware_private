@@ -982,6 +982,7 @@ static void solution_thread(void *arg)
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
+    static double clock_offset_previous = 0;
     static u64 rec_tc_old = 0;
     static u8 n_ready_old = 0;
     static navigation_measurement_t nav_meas_old[MAX_CHANNELS];
@@ -1095,6 +1096,12 @@ static void solution_thread(void *arg)
       continue;
     }
 
+    /* Determine the time differenced clock offset which is used to remove
+       receiver clock bias from the computed doppler. */
+    double computed_clock_rate =
+            (current_fix.clock_offset - clock_offset_previous) / rec_tc_delta;
+    clock_offset_previous = current_fix.clock_offset;
+
     /* If we have a success RAIM repair, mark the removed observation as
        invalid. In practice, this means setting only the CN0 flag valid. */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
@@ -1202,6 +1209,8 @@ static void solution_thread(void *arg)
         nm->raw_measured_doppler += current_fix.clock_bias *
                                     GPS_C / code_to_lambda(nm->sid.code);
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
+        nm->raw_computed_doppler += computed_clock_rate *
+                                      GPS_C / code_to_lambda(nm->sid.code);
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -1212,12 +1221,11 @@ static void solution_thread(void *arg)
         ndb_ephemeris_read(nm->sid, &ephe);
         u8 eph_valid;
         s8 ss_ret;
-        double clock_rate_err;
 
         eph_valid = ephemeris_valid(&ephe, &nm->tot);
         if (eph_valid) {
           ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                  &nm->sat_clock_err, &clock_rate_err);
+                                  &nm->sat_clock_err, &nm->sat_clock_err_rate);
         }
 
         if (!eph_valid || (ss_ret != 0)) {
@@ -1248,6 +1256,7 @@ static void solution_thread(void *arg)
             u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
                                     base_obss.n, base_obss.nm,
                                     base_obss.sat_dists,
+                                    base_obss.sat_dists_dot,
                                     base_obss.has_known_pos_ecef ?
                                     base_obss.known_pos_ecef :
                                     base_obss.pos_ecef,
@@ -1298,6 +1307,7 @@ static void solution_thread(void *arg)
         nav_meas_old[i].raw_carrier_phase += dt *
             code_to_carr_freq(nav_meas_old[i].sid.code);
       }
+      clock_offset_previous -= dt;
     }
 
     // Send out messages if needed
