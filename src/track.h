@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *

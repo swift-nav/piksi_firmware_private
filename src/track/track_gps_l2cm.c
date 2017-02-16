@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Adel Mamin <adel.mamin@exafore.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
