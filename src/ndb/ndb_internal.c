@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
+ * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -20,6 +20,7 @@
 #include "ndb_internal.h"
 #include "ndb_fs_access.h"
 #include <nap/nap_common.h>
+#include <signal.h>
 
 #define NDB_THREAD_PRIORITY (LOWPRIO)
 static WORKING_AREA_CCM(ndb_thread_wa, 2048);
@@ -893,3 +894,68 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
 
   return res;
 }
+
+/** Determine next signal index data to be sent over SBP.
+ *  This function takes previous index (set to NDB_SBP_UPDATE_SIG_IDX_INIT to
+ *  indicate no previous value available) and increments it by one making sure
+ *  that index is within codes that contain 'original' ephemerides. This is
+ *  necessary to prevent outputting the same ephemeris for different codes
+ *  of the same satellite.
+ *  */
+static u32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx)
+{
+  u32 i = prev_idx != NDB_SBP_UPDATE_SIG_IDX_INIT ? prev_idx + 1 : 0;
+
+  while (i < PLATFORM_SIGNAL_COUNT) {
+    *sid = sid_from_global_index(i);
+    if (sid->code != CODE_GPS_L1CA &&
+        sid->code != CODE_SBAS_L1CA &&
+        sid->code != CODE_GLO_L1CA) {
+      i++;
+    } else {
+      break;
+    }
+  }
+
+  return i;
+}
+
+void ndb_sbp_update(ndb_sbp_update_info_t *info)
+{
+  /* increment call counter */
+  info->count++;
+
+  /* check epoch cycle and if all signals are handled */
+  bool epoch_cycle_full = (info->count >= info->epoch_spacing &&
+                           info->sig_idx == PLATFORM_SIGNAL_COUNT);
+
+  if (epoch_cycle_full) {
+    /* reinit values */
+    info->count = NDB_SBP_UPDATE_CYCLE_COUNT_INIT;
+    info->sig_idx = NDB_SBP_UPDATE_SIG_IDX_INIT;
+    /* return to make sure msg spacing is cycled */
+    return;
+  }
+
+  /* check if all valid signals are already sent for this epoch */
+  bool tx_enabled = (info->sig_idx != PLATFORM_SIGNAL_COUNT);
+
+  if (tx_enabled) {
+    /* is it time to send next msg */
+    bool cycle_full = (0 == info->count % info->msg_spacing);
+    if (cycle_full) {
+      gnss_signal_t sid;
+      info->sig_idx = get_next_idx_to_send(&sid, info->sig_idx);
+
+      /* do until valid data is sent or we reach the end of signal array */
+      while (info->sig_idx < PLATFORM_SIGNAL_COUNT) {
+        if (info->tx_func(sid)) {
+          /* msg sent */
+          return;
+        }
+        info->sig_idx = get_next_idx_to_send(&sid, info->sig_idx);
+      }
+    }
+  }
+}
+

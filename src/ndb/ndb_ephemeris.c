@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 - 2017 Swift Navigation Inc.
- * Contact: Roman Gezikov <rgezikov@exafore.com>
+ * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -50,8 +50,12 @@ typedef struct {
 static ephemeris_candidate_t ephe_candidates[EPHE_CAND_LIST_LEN];
 static MUTEX_DECL(cand_list_access);
 
-#define EPHEMERIS_MESSAGE_SPACING_cycle        (200 / NV_WRITE_REQ_TIMEOUT)
-#define EPHEMERIS_TRANSMIT_EPOCH_SPACING_cycle (15000 / NV_WRITE_REQ_TIMEOUT)
+/** Minimum interval between two ephemeris transmission inside one transmission
+    epoch [cycles] */
+#define NDB_EPHE_MESSAGE_SPACING        (150 / NV_WRITE_REQ_TIMEOUT)
+/** Minimum interval between ephemeris transmit epoch starts, can be longer
+    if the amount of sent messages makes epoch longer [cycles] */
+#define NDB_EPHE_TRANSMIT_EPOCH_SPACING (30000 / NV_WRITE_REQ_TIMEOUT)
 
 static u16 map_sid_to_index(gnss_signal_t sid)
 {
@@ -301,72 +305,40 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
   return NDB_ERR_NONE;
 }
 
-/** Determine next index of the ephemeris to be sent over SBP.
- *  This function takes previous index (can be set to PLATFORM_SIGNAL_COUNT to
- *  indicate no previous value available) and increments it by one making sure
- *  that index is within codes that contain 'original' ephemerides. This is
- *  necessary to prevent outputting the same ephemeris for different codes
- *  of the same satellite.
- *  */
-static u32 get_next_idx_to_send(gnss_signal_t *sid, u32 prev_idx)
+/**
+ * Sends out MsgEphemeris
+ *
+ * \param[in] sid  GNSS signal identifier to indicate which ephe to send
+ *
+ * \retval TRUE    Ephe found, valid and sent
+ * \retval FALSE   Ephe not sent
+ */
+bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid)
 {
-  u32 i = prev_idx != PLATFORM_SIGNAL_COUNT ? prev_idx + 1 : 0;
-
-  while (i < PLATFORM_SIGNAL_COUNT) {
-    *sid = sid_from_global_index(i);
-    if (sid->code != CODE_GPS_L1CA &&
-        sid->code != CODE_SBAS_L1CA &&
-        sid->code != CODE_GLO_L1CA) {
-      i++;
-    } else {
-      break;
-    }
+  ephemeris_t e;
+  gps_time_t t = get_current_time();
+  enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);
+  if (NDB_ERR_NONE == oc && ephemeris_valid(&e, &t)) {
+    msg_ephemeris_t msg;
+    msg_info_t info = pack_ephemeris(&e, &msg);
+    sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
+    return TRUE;
   }
 
-  return i;
+  return FALSE;
 }
+
+static ndb_sbp_update_info_t ephe_update_info = {
+  NDB_SBP_UPDATE_CYCLE_COUNT_INIT,
+  NDB_SBP_UPDATE_SIG_IDX_INIT,
+  NDB_EPHE_TRANSMIT_EPOCH_SPACING,
+  NDB_EPHE_MESSAGE_SPACING,
+  &ndb_ephemeris_sbp_update_tx
+};
 
 /** The function sends ephemeris if valid
  *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
 void ndb_ephemeris_sbp_update(void)
 {
-  static u32 count = 0;
-  static u32 i = PLATFORM_SIGNAL_COUNT;
-  static bool tx_en = true; /* initially enable SBP TX */
-
-  if (tx_en) {
-    if (!(count % EPHEMERIS_MESSAGE_SPACING_cycle)) {
-      /* every 200 ms send eph of a SV */
-      ephemeris_t e;
-      gnss_signal_t sid;
-
-      do {
-        i = get_next_idx_to_send(&sid, i);
-        tx_en = (i != PLATFORM_SIGNAL_COUNT) ? true : false;
-
-        if (tx_en) {
-          enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);
-          if (NDB_ERR_NONE == oc) {
-            gps_time_t t = get_current_time();
-            if (ephemeris_valid(&e, &t)) {
-              msg_ephemeris_t msg;
-              msg_ephemeris_info_t info = pack_ephemeris(&e, &msg);
-              sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
-              break;
-            }
-          }
-        }
-      } while(tx_en);
-    }
-  } else {
-    if (!(count % EPHEMERIS_TRANSMIT_EPOCH_SPACING_cycle)) {
-      /* every 15 sec enable tx again */
-      count = 0;
-      i = PLATFORM_SIGNAL_COUNT;
-      tx_en = true;
-      return;
-    }
-  }
-
-  count++;
+  ndb_sbp_update(&ephe_update_info);
 }

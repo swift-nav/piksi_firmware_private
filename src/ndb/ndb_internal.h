@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
+ * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -79,6 +79,20 @@ typedef enum {
   NDB_CAND_MISMATCH,      /**< Candidate data mismatch */
 } ndb_cand_status_t;
 
+#define NDB_SBP_UPDATE_SIG_IDX_INIT -1
+#define NDB_SBP_UPDATE_CYCLE_COUNT_INIT 0
+
+typedef bool (*tx_func_type)(gnss_signal_t);
+
+/**< SBP update information block */
+typedef struct {
+  u32 count;                  /**< Update function call counter */
+  s32 sig_idx;                /**< Previously sent signal data index */
+  const u32 epoch_spacing;    /**< How often data set is sent */
+  const u32 msg_spacing;      /**< Spacing between single messages */
+  const tx_func_type tx_func; /**< Sending function */
+} ndb_sbp_update_info_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -117,6 +131,8 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   const u8 *src,
                                   size_t size);
 void ndb_wq_put(ndb_element_metadata_t *md);
+
+void ndb_sbp_update(ndb_sbp_update_info_t *info);
 
 #ifdef __cplusplus
 }
