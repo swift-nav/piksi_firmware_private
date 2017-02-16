@@ -561,6 +561,16 @@ static void drop_channel(u8 channel_id,
                          const tracking_channel_time_info_t *time_info,
                          const tracking_channel_freq_info_t *freq_info);
 
+/** Check if given signal needs a data decoder.
+ *  Currently only GPS L2CL does not need a decoder.
+ *
+ * \return True if data decoder is needed.
+ */
+static bool check_decoder_need(gnss_signal_t sid)
+{
+    return (CODE_GPS_L2CL != sid.code);
+}
+
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.
@@ -570,9 +580,14 @@ static u8 manage_track_new_acq(gnss_signal_t sid)
   /* Decide which (if any) tracking channel to put
    * a newly acquired satellite into.
    */
-  for (u8 i=0; i<nap_track_n_channels; i++) {
-    if (tracker_channel_available(i, sid) &&
+  bool decoder_need = check_decoder_need(sid);
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    if (decoder_need &&
+        tracker_channel_available(i, sid) &&
         decoder_channel_available(i, sid)) {
+      return i;
+    } else if (!decoder_need &&
+               tracker_channel_available(i, sid)) {
       return i;
     }
   }
@@ -1430,8 +1445,9 @@ static void manage_tracking_startup(void)
 
     /* TODO: Initialize elevation from ephemeris if we know it precisely */
 
-    /* Start the decoder channel */
-    if (!decoder_channel_init(chan, startup_params.sid)) {
+    /* Start the decoder channel if needed */
+    bool decoder_needed = check_decoder_need(startup_params.sid);
+    if (decoder_needed && !decoder_channel_init(chan, startup_params.sid)) {
       log_error("decoder channel init failed");
     }
 

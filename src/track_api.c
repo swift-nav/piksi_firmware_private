@@ -188,7 +188,10 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
   s32 bit_integrate;
   if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
                       &bit_integrate)) {
-
+    /* No need to write L2CL bits to FIFO */
+    if (channel_info->sid.code == CODE_GPS_L2CL) {
+      return;
+    }
     s8 soft_bit = nav_bit_quantize(bit_integrate);
 
     /* write to FIFO */
