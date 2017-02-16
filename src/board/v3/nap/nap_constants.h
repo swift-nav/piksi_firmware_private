@@ -43,11 +43,18 @@
 #define IF_2_MIXER_PINC(freq)                (s32)((freq) * ((u64)1 << 32)  \
                                      / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
 
-
 #define NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC          IF_2_MIXER_PINC(14.58e6)
 #define NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-12.00e6)
 #define NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-11.00e6)
 #define NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC             IF_2_MIXER_PINC(7.4e6)
+
+#define NAP_FE_RF1_NCO_RESET                                           (6625)
+#define NAP_FE_RF2_NCO_RESET                                            (265)
+#define NAP_FE_RF3_NCO_RESET                                            (795)
+#define NAP_FE_RF4_NCO_RESET                                           (3975)
+
+#define NAP_PPS_TIMING_COUNT_OFFSET                                     (-20)
+#define NAP_EXT_TIMING_COUNT_OFFSET                                       (8)
 
 #define NAP_SPACING_CHIPS                                                 (0)
 #define NAP_SPACING_SAMPLES                                               (1)
@@ -58,13 +65,17 @@
 
 #define NAP_KEY_LENGTH                                                   (16)
 
-#define NAP_VERSION_STRING_OFFSET                                         (8)
-#define NAP_VERSION_STRING_LENGTH                                        (44)
+#define NAP_VERSION_OFFSET                                                (0)
+
+#define NAP_BUILD_TIME_OFFSET                                             (1)
+#define NAP_BUILD_DATE_OFFSET                                             (2)
+
+#define NAP_VERSION_STRING_OFFSET                                        (12)
+#define NAP_VERSION_STRING_LENGTH                                        (36)
+
+#define NAP_RANDOM_OFFSET                                                (48)
 
 #define NAP_DNA_OFFSET                                                   (52)
 #define NAP_DNA_LENGTH                                                    (8)
-
-#define NAP_PPS_TIMING_COUNT_OFFSET                                     (-20)
-#define NAP_EXT_TIMING_COUNT_OFFSET                                       (8)
 
 #endif /* SWIFTNAV_NAP_CONSTANTS_H */

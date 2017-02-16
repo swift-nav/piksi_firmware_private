@@ -1028,7 +1028,7 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
                             u32 n_samples);
 
 /* Update interface */
-void tracking_channels_update(u32 channels_mask);
+void tracking_channels_update(u64 channels_mask);
 void tracking_channels_process(void);
 void tracking_channels_missed_update_error(u32 channels_mask);
 

@@ -260,7 +260,7 @@ void tracking_send_detailed_state(void)
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
  */
-void tracking_channels_update(u32 channels_mask)
+void tracking_channels_update(u64 channels_mask)
 {
   /* For each tracking channel, call tracking_channel_process(). Indicate
    * that an update is required if the corresponding bit is set in
@@ -314,6 +314,11 @@ bool tracker_channel_available(tracker_channel_id_t id,
 {
   (void)mesid; /* will be taken in use once NAP adds signal specific channels */
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
+
+  if (!nap_track_supports(id, mesid)) {
+    return false;
+  }
+
   return tracker_channel_runnable(tracker_channel);
 }
 

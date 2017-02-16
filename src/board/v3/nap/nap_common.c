@@ -12,11 +12,11 @@
 
 #include "board.h"
 #include "nap/nap_common.h"
+#include "nap/track_channel.h"
 #include "../../sbp.h"
 #include "../../ext_events.h"
 
 #include "nap_hw.h"
-#include "nap_fe_hw.h"
 #include "nap_constants.h"
 #include "axi_dma.h"
 
@@ -45,39 +45,44 @@ u8 nap_track_n_channels = 0;
 
 void nap_setup(void)
 {
-  nap_track_n_channels = (NAP->STATUS & NAP_STATUS_TRACKING_CH_Msk) >>
-                          NAP_STATUS_TRACKING_CH_Pos;
-  nap_track_n_channels = MIN(nap_track_n_channels, NAP_MAX_N_TRACK_CHANNELS);
+  nap_track_n_channels = GET_NAP_STATUS_NUM_TRACKING_CH(NAP->STATUS);
+  nap_track_n_channels = MIN(nap_track_n_channels, MAX_CHANNELS);
 
-  /* Configure ACP AXI attributes to match page table. */
-  NAP->ACQ_AXI_ATTRIBUTES = ( 0b1111 << NAP_ACQ_AXI_ATTRIBUTES_ARCACHE_Pos) |
-                            ( 0b1111 << NAP_ACQ_AXI_ATTRIBUTES_AWCACHE_Pos) |
-                            (0b11111 << NAP_ACQ_AXI_ATTRIBUTES_ARUSER_Pos)  |
-                            (0b11111 << NAP_ACQ_AXI_ATTRIBUTES_AWUSER_Pos);
+  nap_scan_channels();
 
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  /* FE_PINC0 initialization for GPS L1C/A processing */
-  NAP_FE->PINC[0] = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
+  /* Set acquisiton decimation factor */
+  NAP_FE->ACQ_CONTROL = SET_FE_ACQ_CONTROL_DECIMATION(NAP_FE->ACQ_CONTROL, 0xF);
 
-  /* FE_PINC1 initialization for GLO L1C/A processing */
-  NAP_FE->PINC[1] = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
+  /* Phase increment initialization for GPS L1C/A processing */
+  NAP_FE->RF1_PINC = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
 
-  /* FE_PINC2 initialization for GLO L2C/A processing */
-  NAP_FE->PINC[2] = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
+  /* Phase increment initialization for GLO L1C/A processing */
+  NAP_FE->RF2_PINC = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
 
-  /* FE_PINC3 initialization for GPS L2C processing */
-  NAP_FE->PINC[3] = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
+  /* Phase increment initialization for GLO L2C/A processing */
+  NAP_FE->RF3_PINC = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
 
-  /* Enable frontend channel 0 (RF1 - GPS L1),
-   *        frontend channel 1 (RF2 - GLO L1),
-   *        frontend channel 2 (RF3 - GLO L2),
-   *        frontend channel 3 (RF4 - GPS L2) */
-  NAP_FE->CONTROL = (1 << NAP_FE_CONTROL_ENABLE_RF1_Pos) |
-                    (1 << NAP_FE_CONTROL_ENABLE_RF2_Pos) |
-                    (1 << NAP_FE_CONTROL_ENABLE_RF3_Pos) |
-                    (1 << NAP_FE_CONTROL_ENABLE_RF4_Pos);
+  /* Phase increment initialization for GPS L2C processing */
+  NAP_FE->RF4_PINC = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
+
+  /* Reset frontend NCOs after number of samples */
+  NAP_FE->NCO_RESET0 = ((NAP_FE_RF1_NCO_RESET-1) << FE_NCO_RESET0_RF1_Pos) |
+                       ((NAP_FE_RF2_NCO_RESET-1) << FE_NCO_RESET0_RF2_Pos);
+  NAP_FE->NCO_RESET1 = ((NAP_FE_RF3_NCO_RESET-1) << FE_NCO_RESET1_RF3_Pos) |
+                       ((NAP_FE_RF4_NCO_RESET-1) << FE_NCO_RESET1_RF4_Pos);
+
+  /* Enable frontend channels and their respective NCO resets */
+  NAP_FE->CONTROL = (1 << FE_CONTROL_ENABLE_RF1_Pos) |
+                    (1 << FE_CONTROL_RESET_RF1_NCO_Pos) |
+                    (1 << FE_CONTROL_ENABLE_RF2_Pos) |
+                    (1 << FE_CONTROL_RESET_RF2_NCO_Pos) |
+                    (1 << FE_CONTROL_ENABLE_RF3_Pos) |
+                    (1 << FE_CONTROL_RESET_RF3_NCO_Pos) |
+                    (1 << FE_CONTROL_ENABLE_RF4_Pos) |
+                    (1 << FE_CONTROL_RESET_RF4_NCO_Pos);
 
   /* Enable NAP interrupt */
   chThdCreateStatic(wa_nap_irq, sizeof(wa_nap_irq), HIGHPRIO-2, nap_irq_thread, NULL);
@@ -190,41 +195,49 @@ static void nap_track_isr(void *context)
 
 static void handle_nap_irq(void)
 {
-  u32 irq = NAP->IRQ;
+  u32 irq = NAP->IRQS;
 
   while (irq) {
-    if (irq & NAP_IRQ_EXT_EVENT_Msk) {
+    if (irq & NAP_IRQS_EXT_EVENT_Msk) {
       ext_event_service();
     }
 
-    NAP->IRQ = irq;
+    NAP->IRQS = irq;
 
     asm("dsb");
-    irq = NAP->IRQ;
+    irq = NAP->IRQS;
   }
 
-  u32 err = NAP->IRQ_ERROR;
+  u32 err = NAP->IRQ_ERRORS;
   if (err) {
-    NAP->IRQ_ERROR = err;
+    NAP->IRQ_ERRORS = err;
     log_warn("Too many NAP interrupts: 0x%08X", (unsigned int)err);
   }
 }
 
 static void handle_nap_track_irq(void)
 {
-  u32 irq = NAP->TRK_IRQ;
+  u32 irq0 = NAP->TRK_IRQS0;
+  u32 irq1 = NAP->TRK_IRQS1;
+  u64 irq = ((u64)irq1 << 32) | irq0;
 
   while (irq) {
     tracking_channels_update(irq);
-    NAP->TRK_IRQ = irq;
+    NAP->TRK_IRQS0 = irq0;
+    NAP->TRK_IRQS1 = irq1;
 
     asm("dsb");
-    irq = NAP->TRK_IRQ;
+    irq0 = NAP->TRK_IRQS0;
+    irq1 = NAP->TRK_IRQS1;
+    irq = ((u64)irq1 << 32) | irq0;
   }
 
-  u32 err = NAP->TRK_IRQ_ERROR;
+  u32 err0 = NAP->TRK_IRQ_ERRORS0;
+  u32 err1 = NAP->TRK_IRQ_ERRORS1;
+  u64 err = ((u64)err1 << 32) | err0;
   if (err) {
-    NAP->TRK_IRQ_ERROR = err;
+    NAP->TRK_IRQ_ERRORS0 = err0;
+    NAP->TRK_IRQ_ERRORS1 = err1;
     log_warn("Too many NAP tracking interrupts: 0x%08X", (unsigned int)err);
     tracking_channels_missed_update_error(err);
   }
@@ -288,7 +301,7 @@ void nap_pps_config(u32 microseconds, u8 active)
 
 bool nap_pps_armed(void)
 {
-  return (NAP->STATUS & NAP_STATUS_PPS_ARMED_Msk) >> NAP_STATUS_PPS_ARMED_Pos;
+  return GET_NAP_STATUS_PPS_TIMING_ARMED(NAP->STATUS);
 }
 
 u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
@@ -299,19 +312,18 @@ u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
   }
 
   if (event_trig) {
-    *event_trig = (NAP->STATUS & NAP_STATUS_EXT_EVENT_EDGE_Msk) >>
-        NAP_STATUS_EXT_EVENT_EDGE_Pos;
+    *event_trig = GET_NAP_STATUS_EXT_EVENT_EDGE(NAP->STATUS);
   }
 
   if (timeout > 0) {
-    u32 gap = ceil((double)timeout /
+    NAP->EVENT_TIMEOUT = ceil((double)timeout /
         ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
-    NAP->EVENT_TIMEOUT = gap;
 
-    NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos) |
-                   (1 << NAP_CONTROL_EXT_EVENT_TIMEOUT_Pos);
+    u32 ctrl = NAP-> CONTROL;
+    NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE(ctrl, next_trig) |
+                   SET_NAP_CONTROL_EXT_EVENT_TIMEOUT(ctrl, 1);
   } else {
-    NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos);
+    NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE(NAP->CONTROL, next_trig);
   }
 
   return NAP->EVENT_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
