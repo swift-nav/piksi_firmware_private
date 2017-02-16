@@ -1098,16 +1098,15 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
  * \param[in]     sid      GNSS signal identifier.
  * \param[in,out] cp_comp  Data for carrier phase comparison.
  *
- * \return True if parent L2CM data was found
+ * \return True if L2CM data was found
  *  and did not have half-cycle ambiguity resolved.
- *  False, otherwise. Drop L2CL in case of False.
+ *  False, otherwise. L2CL will be dropped if False.
  */
 bool tracking_channel_load_data(gnss_signal_t sid,
                                 cp_comp_t *cp_comp)
 {
-
-  bool parent_synced = false;
-  bool parent_found = false;
+  bool L2CM_synced = false;
+  bool L2CM_found = false;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
 
@@ -1124,25 +1123,20 @@ bool tracking_channel_load_data(gnss_signal_t sid,
       cp_comp->count = pub_data->misc_info.cp_sync.counter;
     } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
                pub_data->gen_info.sid.sat == sid.sat) {
-      /* Load L2CM parent information */
+      /* Load L2CM information */
       cp_comp->c_L2CM_cp = pub_data->freq_info.carrier_phase;
       cp_comp->p_L2CM_cp = pub_data->freq_info.carrier_phase_prev;
       cp_comp->c_L2CM_TOW = pub_data->gen_info.tow_ms;
       cp_comp->p_L2CM_TOW = pub_data->gen_info.tow_ms_prev;
-      parent_synced = pub_data->misc_info.cp_sync.synced;
-      parent_found = true;
+      L2CM_synced = pub_data->misc_info.cp_sync.synced;
+      L2CM_found = true;
     }
     chMtxUnlock(&pub_data->info_mutex);
   }
 
-  if (!parent_found || parent_synced) {
-    /* If L2CM parent was not found or
-     * parent has half-cycle ambiguity resolved, then return false. */
-    return false;
-  } else {
-    /* Otherwise data is ok. */
-    return true;
-  }
+  /* If L2CM was found and
+   * L2CM did not have half-cycle ambiguity resolved, then return true. */
+  return (L2CM_found && !L2CM_synced);
 }
 
 /** Compare carrier phase information and find ones with matching TOW.

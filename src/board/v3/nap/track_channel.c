@@ -169,13 +169,24 @@ static double calc_samples_per_chip(double code_phase_rate)
 void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
                    float carrier_freq, double code_phase, u32 chips_to_correlate)
 {
-  assert((sid.code == CODE_GPS_L1CA) || (sid.code == CODE_GPS_L2CM) ||
+  assert((sid.code == CODE_GPS_L1CA) ||
+         (sid.code == CODE_GPS_L2CM) ||
          (sid.code == CODE_GPS_L2CL));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
 
   s->sid = sid;
+  /* Delay L2CL code phase by 1 chip to accommodate zero in the L2CM slot */
+  /* Initial correlation length for L2CL is thus 1 chip shorter,
+   * since first L2CM chip is skipped */
+  if (sid.code == CODE_GPS_L2CL) {
+    code_phase -= 1.0f;
+    if (code_phase < 0.0f) {
+      code_phase += GPS_L2CL_CHIPS_NUM;
+    }
+    chips_to_correlate -= 1;
+  }
 
   /* Correlator spacing: VE -> E */
   s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
@@ -266,7 +277,11 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     if (sid.code == CODE_GPS_L2CL) {
       u32 code_length = code_to_chip_count(sid.code);
       u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL / GPS_L2CL_PRN_PERIOD;
-      u8 cp_start = ceil(cp / chips);
+      u8 cp_start = 0;
+      double tmp = ceil(cp / chips);
+      if (tmp >= 0 && tmp < GPS_L2CL_PRN_START_POINTS) {
+        cp_start = tmp;
+      }
       index = (cp_start == GPS_L2CL_PRN_START_POINTS) ? 0 : cp_start;
       tc_req += round((cp_start * chips - cp)
               * calc_samples_per_chip(code_phase_rate));

@@ -323,7 +323,7 @@ bool tracker_ambiguity_status(tracker_context_t *context)
  */
 void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
 {
-  if (polarity == BIT_POLARITY_UNKNOWN) {
+  if (BIT_POLARITY_UNKNOWN == polarity) {
     return;
   }
   const tracker_channel_info_t *channel_info;

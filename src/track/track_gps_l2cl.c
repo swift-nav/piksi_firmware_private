@@ -161,12 +161,6 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     code_phase += offset_ms * chips_in_ms;
   }
 
-  /* Adjust code phase by 1 chip to accommodate zero in the L2CM slot */
-  code_phase -= 1.0f;
-  if (code_phase < 0.0f) {
-    code_phase += GPS_L2CL_CHIPS_NUM;
-  }
-
   /* The best elevation estimation could be retrieved by calling
      tracking_channel_evelation_degrees_get(nap_channel) here.
      However, we assume it is done where tracker_channel_init()
@@ -177,9 +171,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     .sample_count       = sample_count,
     .carrier_freq       = carrier_freq,
     .code_phase         = code_phase,
-    /* initial correlation length is 1 chip shorter,
-     * since first L2CM zero is skipped */
-    .chips_to_correlate = 1022,
+    .chips_to_correlate = 1023,
     /* get initial cn0 from parent L2CM channel */
     .cn0_init           = cn0_init,
     .elevation          = TRACKING_ELEVATION_UNKNOWN
@@ -205,27 +197,21 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
 }
 
 /**
- * Performs ToW caching and propagation.
+ * Updates L2CL ToW from cache and propagates it on bit edges.
  *
- * GPS L1 C/A and L2 C use shared structure for ToW caching. When GPS L1 C/A
- * tracker is running, it is responsible for cache updates. Otherwise GPS L2 C
- * tracker updates the cache. The time difference between signals is ignored
- * as small.
- *
- * GPS L2 C tracker performs ToW update/propagation only on bit edge. This makes
- * it more robust to propagation errors.
+ * When GPS L1 C/A tracker is running, it is responsible for cache updates.
+ * Otherwise GPS L2 CM tracker updates the cache.
+ * GPS L2 CL only reads ToW from cache and propagates it on bit edge.
  *
  * \param[in]     channel_info   Channel information.
  * \param[in,out] common_data    Channel data with ToW, sample number and other
  *                               runtime values.
- * \param[in]     data           Common tracker data.
  * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
 static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                                tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
                                u32 cycle_flags)
 {
   tp_tow_entry_t tow_entry;
@@ -293,22 +279,6 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
         }
       }
     }
-
-    if (TOW_UNKNOWN != common_data->TOW_ms &&
-        common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
-        data->confirmed &&
-        !tracking_is_running(construct_sid(CODE_GPS_L1CA,
-                                           channel_info->sid.sat))) {
-      /* Update ToW cache:
-       * - bit edge is reached
-       * - CN0 is OK
-       * - Tracker is confirmed
-       * - There is no GPS L1 C/A tracker for the same SV.
-       */
-      tow_entry.TOW_ms = common_data->TOW_ms;
-      tow_entry.sample_time_tk = sample_time_tk;
-      track_sid_db_update_tow(channel_info->sid, &tow_entry);
-    }
   }
 }
 
@@ -322,10 +292,11 @@ static void tracker_gps_l2cl_init(const tracker_channel_info_t *channel_info,
 
   tp_tracker_init(channel_info, common_data, &data->data, &gps_l2cl_config);
 
-  /* L2C bit sync is known once we start tracking it since
-     the L2C ranging code length matches the bit length (20ms).
-     This is the end of 20ms integration period and the edge
-     of a data bit. */
+  /* L2CL does not contain data bits.
+     L2CL bit sync refers to alignment with L2CM data bits.
+     Bit sync is known once we start tracking L2CL, since
+     handover from L2CM is done at the end of 20ms integration period,
+     i.e. at the edge of a L2CM data bit. */
   tracker_bit_sync_set(channel_info->context, 0);
 }
 
@@ -349,7 +320,7 @@ static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
                                  &gps_l2cl_config);
 
   /* GPS L2 C-specific ToW manipulation */
-  update_tow_gps_l2c(channel_info, common_data, data, cflags);
+  update_tow_gps_l2c(channel_info, common_data, cflags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&
@@ -366,5 +337,4 @@ static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
       tracking_channel_cp_sync_match(channel_info->sid);
     }
   }
-  (void) cflags;
 }

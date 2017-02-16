@@ -160,9 +160,11 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
 {
   if(sid_to_constellation(sid) == CONSTELLATION_GPS) {
 
-    assert(CODE_GPS_L1CA == sid.code || CODE_GPS_L2CM == sid.code ||
+    assert(CODE_GPS_L1CA == sid.code ||
+           CODE_GPS_L2CM == sid.code ||
            CODE_GPS_L2CL == sid.code ||
-           CODE_GPS_L1P  == sid.code || CODE_GPS_L2P  == sid.code);
+           CODE_GPS_L1P  == sid.code ||
+           CODE_GPS_L2P  == sid.code);
 
     /* Check GPS band specific SHIs.
      * SHI1. LNAV SV HEALTH (6 bits, subframe 1, word 3)

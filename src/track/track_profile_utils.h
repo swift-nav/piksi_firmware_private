@@ -250,7 +250,6 @@ typedef struct {
   bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status */
   bool xcorr_whitelist_l2;            /**< L2 Cross-correlation whitelist status */
   u8  xcorr_flag: 1;                  /**< Cross-correlation flag */
-  u8  reserved: 7;                    /**< Unused (reserved) flags */
 } gps_l1ca_tracker_data_t;
 
 /**
@@ -262,7 +261,6 @@ typedef struct {
   bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
   bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
   u8  xcorr_flag: 1;       /**< Cross-correlation flag */
-  u8  reserved: 7;         /**< Unused (reserved) flags */
 } gps_l2cm_tracker_data_t;
 
 /**
@@ -270,7 +268,6 @@ typedef struct {
  */
 typedef struct {
   tp_tracker_data_t data;  /**< Common tracker parameters */
-  u8  reserved: 7;         /**< Unused (reserved) flags */
 } gps_l2cl_tracker_data_t;
 
 /**
