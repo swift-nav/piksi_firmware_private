@@ -133,6 +133,18 @@ void decoder_interface_register(decoder_interface_list_element_t *element)
   *p_next = element;
 }
 
+/** Check if given signal needs a data decoder.
+ *  Currently only GPS L2CL does not need a decoder.
+ *
+ * \param sid  Signal to be decoded.
+ *
+ * \return true if data decoder is needed, false otherwise.
+ */
+bool check_decoder_need(gnss_signal_t sid)
+{
+    return (CODE_GPS_L2CL != sid.code);
+}
+
 /** Determine if a decoder channel is available for the specified tracking
  * channel and sid.
  *

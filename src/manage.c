@@ -561,16 +561,6 @@ static void drop_channel(u8 channel_id,
                          const tracking_channel_time_info_t *time_info,
                          const tracking_channel_freq_info_t *freq_info);
 
-/** Check if given signal needs a data decoder.
- *  Currently only GPS L2CL does not need a decoder.
- *
- * \return True if data decoder is needed.
- */
-static bool check_decoder_need(gnss_signal_t sid)
-{
-    return (CODE_GPS_L2CL != sid.code);
-}
-
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.
