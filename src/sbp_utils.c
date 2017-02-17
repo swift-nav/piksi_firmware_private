@@ -109,8 +109,8 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
   pos_llh->lat = llh[0] * R2D;
   pos_llh->lon = llh[1] * R2D;
   pos_llh->height = llh[2];
-  pos_llh->h_accuracy = round(1e3 * h_accuracy);
-  pos_llh->v_accuracy = round(1e3 * v_accuracy);
+  pos_llh->h_accuracy = MIN(round(1e3 * h_accuracy), UINT16_MAX);
+  pos_llh->v_accuracy = MIN(round(1e3 * v_accuracy), UINT16_MAX);
   pos_llh->n_sats = n_sats_used;
   pos_llh->flags = flags;
 }
@@ -123,7 +123,7 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
   pos_ecef->x = ecef[0];
   pos_ecef->y = ecef[1];
   pos_ecef->z = ecef[2];
-  pos_ecef->accuracy = round(1e3 * accuracy);
+  pos_ecef->accuracy = MIN(round(1e3 * accuracy), UINT16_MAX);
   pos_ecef->n_sats = n_sats_used;
   pos_ecef->flags = flags;
 }
@@ -171,7 +171,7 @@ void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, const gps_time_t
   baseline_ecef->x = round(1e3 * b_ecef[0]);
   baseline_ecef->y = round(1e3 * b_ecef[1]);
   baseline_ecef->z = round(1e3 * b_ecef[2]);
-  baseline_ecef->accuracy = round(1e3 * accuracy);
+  baseline_ecef->accuracy = MIN(round(1e3 * accuracy), UINT16_MAX);
   baseline_ecef->n_sats = n_sats;
   baseline_ecef->flags = flags;
 }
@@ -183,8 +183,8 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
   baseline_ned->n = round(1e3 * b_ned[0]);
   baseline_ned->e = round(1e3 * b_ned[1]);
   baseline_ned->d = round(1e3 * b_ned[2]);
-  baseline_ned->h_accuracy = round(1e3 * h_accuracy);
-  baseline_ned->v_accuracy = round(1e3 * v_accuracy);
+  baseline_ned->h_accuracy = MIN(round(1e3 * h_accuracy), UINT16_MAX);
+  baseline_ned->v_accuracy = MIN(round(1e3 * v_accuracy), UINT16_MAX);
   baseline_ned->n_sats = n_sats;
   baseline_ned->flags = flags;
 }
