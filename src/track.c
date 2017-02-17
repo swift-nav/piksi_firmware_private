@@ -99,7 +99,6 @@ static void event(tracker_channel_t *d, event_t event);
 static void common_data_init(tracker_common_data_t *common_data,
                              u32 sample_count, float carrier_freq,
                              float cn0, code_t code);
-static void public_data_init(tracker_channel_pub_data_t *pub_data);
 static void tracker_channel_lock(tracker_channel_t *tracker_channel);
 static void tracker_channel_unlock(tracker_channel_t *tracker_channel);
 static void error_flags_clear(tracker_channel_t *tracker_channel);
@@ -388,8 +387,6 @@ bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
 
     common_data_init(&tracker_channel->common_data, ref_sample_count,
                      carrier_freq, cn0_init, sid.code);
-
-    public_data_init(&tracker_channel->pub_data);
 
     internal_data_init(&tracker_channel->internal_data, sid);
     interface_function(tracker_channel, tracker_interface->init);
@@ -960,56 +957,16 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
  */
 tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid)
 {
-  tracker_channel_t *channel = NULL;
   for (u8 i = 0; i < nap_track_n_channels; i++) {
 
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+    tracker_channel_info_t *info = &tracker_channel->info;
 
-    bool found = false;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      found = true;
-      channel = tracker_channel;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      return channel;
+    if (sid_is_equal(info->sid, sid)) {
+      return tracker_channel;
     }
   }
-  return channel;
-}
-
-/** Update carrier phase and TOW tag.
- *  Previous reading is saved to ensure one matching pair between
- *  L2CM and L2CL trackers.
- *  This function is called from both L2CM and L2CL trackers.
- *
- * \param[in] sid GNSS signal identifier.
- * \param[in] cp  Carrier phase [cycles].
- * \param[in] TOW Time of Week tag [ms].
- *
- * \return None
- */
-void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
-{
-
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid);
-  if (tracker_channel == NULL) {
-    return;
-  }
-  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-  chMtxLock(&pub_data->info_mutex);
-  /* Save previous values */
-  pub_data->gen_info.tow_ms_prev = pub_data->gen_info.tow_ms;
-  pub_data->freq_info.carrier_phase_prev = pub_data->freq_info.carrier_phase;
-  /* Save new values */
-  pub_data->gen_info.tow_ms = TOW;
-  pub_data->freq_info.carrier_phase = cp;
-  chMtxUnlock(&pub_data->info_mutex);
+  return NULL;
 }
 
 /** Drop the L2CL tracker when it is no longer needed.
@@ -1021,16 +978,13 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
  */
 void tracking_channel_drop_l2cl(gnss_signal_t sid)
 {
-  gnss_signal_t sid_to_drop = construct_sid(CODE_GPS_L2CL, sid.sat);
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid_to_drop);
+  gnss_signal_t sid_L2CL = construct_sid(CODE_GPS_L2CL, sid.sat);
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid_L2CL);
   if (tracker_channel == NULL) {
     return;
   }
-  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-  chMtxLock(&pub_data->info_mutex);
-  pub_data->misc_info.cp_sync.drop = true;
-  chMtxUnlock(&pub_data->info_mutex);
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
 /** Set the elevation angle for SV by sid.
@@ -1476,6 +1430,7 @@ static void common_data_init(tracker_common_data_t *common_data,
   memset(common_data, 0, sizeof(tracker_common_data_t));
 
   common_data->TOW_ms = TOW_INVALID;
+  common_data->TOW_ms_prev = TOW_INVALID;
 
   /* Calculate code phase rate with carrier aiding. */
   common_data->code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(code)) *
@@ -1488,20 +1443,9 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->init_timestamp_ms = now;
   common_data->update_timestamp_ms = now;
   common_data->updated_once = false;
-}
-
-/** Initialize a tracker public data structure.
- *
- * \param pub_data Tracker public data structure.
- *
- * \return None
- */
-static void public_data_init(tracker_channel_pub_data_t *pub_data)
-{
-  pub_data->misc_info.cp_sync.counter = 0;
-  pub_data->misc_info.cp_sync.drop = false;
-  pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-  pub_data->misc_info.cp_sync.synced = false;
+  common_data->cp_sync.counter = 0;
+  common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+  common_data->cp_sync.synced = false;
 }
 
 /** Lock a tracker channel for exclusive access.
@@ -1649,6 +1593,10 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: cross-correlation doppler filter active */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)) {
       result |= TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE;
+    }
+    /* Tracking status: L2CL half-cycle ambiguity status */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_L2CL_AMBIGUITY)) {
+      result |= TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED;
     }
   }
 

@@ -616,6 +616,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
 
   common_data->sample_count = sample_count;
   common_data->code_phase_prompt = code_phase_prompt;
+  common_data->carrier_phase_prev = common_data->carrier_phase;
   common_data->carrier_phase = carrier_phase;
 
   /* ToW update:
@@ -623,6 +624,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
    * in sync.
    */
   bool decoded_tow;
+  common_data->TOW_ms_prev = common_data->TOW_ms;
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
                                            int_ms,

@@ -111,6 +111,8 @@
 #define MANAGE_TRACK_FLAG_XCORR_CONFIRMED (1u << 20)
 /** Tracking channel flag: is cross-correlation suspect */
 #define MANAGE_TRACK_FLAG_XCORR_SUSPECT (1u << 21)
+/** Tracking channel flag: L2CL has half-cycle ambiguity resolved */
+#define MANAGE_TRACK_FLAG_L2CL_AMBIGUITY (1u << 22)
 
 /* Tracking channel state masks */
 

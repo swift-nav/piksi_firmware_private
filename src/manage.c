@@ -828,7 +828,7 @@ static void manage_track()
     }
 
     /* Drop L2CL if the half-cycle ambiguity has been resolved. */
-    if (misc_info.cp_sync.drop) {
+    if (0 != (info.flags & TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED)) {
       drop_channel(i, CH_DROP_REASON_L2CL_SYNC, &info, &time_info, &freq_info);
       continue;
     }
@@ -952,6 +952,9 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
     }
     if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_XCORR_SUSPECT)) {
       result |= MANAGE_TRACK_FLAG_XCORR_SUSPECT;
+    }
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED)) {
+      result |= MANAGE_TRACK_FLAG_L2CL_AMBIGUITY;
     }
   }
 

@@ -500,27 +500,19 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
 
 /** Read the half-cycle ambiguity status.
  *
- * \param[in] sid GNSS signal identifier.
+ * \param[in,out] common_data Channel data.
  *
  * \return Polarity of the half-cycle ambiguity.
  */
-static s8 read_ambiguity_status(gnss_signal_t sid)
+static s8 read_ambiguity_status(tracker_common_data_t *common_data)
 {
   s8 retval = BIT_POLARITY_UNKNOWN;
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid);
-  if (tracker_channel == NULL) {
-    return retval;
-  }
-  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
   /* If the half-cycle ambiguity has been resolved,
    * return polarity, and reset polarity and sync status. */
-  if (pub_data->misc_info.cp_sync.synced) {
-    chMtxLock(&pub_data->info_mutex);
-    retval = pub_data->misc_info.cp_sync.polarity;
-    pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-    pub_data->misc_info.cp_sync.synced = false;
-    chMtxUnlock(&pub_data->info_mutex);
+  if (common_data->cp_sync.synced) {
+    retval = common_data->cp_sync.polarity;
+    common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+    common_data->cp_sync.synced = false;
   }
   return retval;
 }
@@ -550,11 +542,8 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
       tracking_channel_drop_l2cl(channel_info->sid);
     }
 
-    tracking_channel_cp_sync_update(channel_info->sid,
-                                    common_data->carrier_phase,
-                                    common_data->TOW_ms);
     if (!tracker_ambiguity_status(channel_info->context)) {
-      s8 public = read_ambiguity_status(channel_info->sid);
+      s8 public = read_ambiguity_status(common_data);
       tracker_ambiguity_set(channel_info->context, public);
     }
   }

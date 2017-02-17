@@ -63,6 +63,8 @@ typedef struct {
 #define TRACK_CMN_FLAG_XCORR_SUSPECT (1 << 11)
 /** Tracker flag: tracker xcorr doppler filter is active */
 #define TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
+/** Tracker flag: L2CL tracker has resolved half-cycle ambiguity */
+#define TRACK_CMN_FLAG_L2CL_AMBIGUITY (1 << 13)
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
                                     TRACK_CMN_FLAG_HAD_FLOCK | \
@@ -70,7 +72,8 @@ typedef struct {
                                     TRACK_CMN_FLAG_TOW_PROPAGATED | \
                                     TRACK_CMN_FLAG_XCORR_CONFIRMED | \
                                     TRACK_CMN_FLAG_XCORR_SUSPECT | \
-                                    TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)
+                                    TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE | \
+                                    TRACK_CMN_FLAG_L2CL_AMBIGUITY)
 
 /**
  * Common tracking feature flags.
@@ -93,6 +96,13 @@ typedef struct {
  */
 typedef u16 track_cmn_flags_t;
 
+/** Parameters for half-cycle ambiguity resolution */
+typedef struct {
+  u8 counter;  /**< Counter for matching carrier phases */
+  s8 polarity; /**< Polarity of the matching carrier phases */
+  bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
+} cp_sync_t;
+
 typedef struct {
   update_count_t update_count; /**< Number of ms channel has been running */
   update_count_t mode_change_count;
@@ -110,10 +120,12 @@ typedef struct {
                                /**< update count value when cross-correlation
                                     flag has changed last time */
   s32 TOW_ms;                  /**< TOW in ms. */
+  s32 TOW_ms_prev;             /**< previous TOW in ms. */
   u32 sample_count;            /**< Total num samples channel has tracked for. */
   double code_phase_prompt;    /**< Prompt code phase in chips. */
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
+  double carrier_phase_prev;   /**< Previous carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency Hz. */
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
@@ -126,6 +138,7 @@ typedef struct {
   u64 update_timestamp_ms;     /**< Tracking channel last update
                                     timestamp [ms] */
   bool updated_once;           /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;

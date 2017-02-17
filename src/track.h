@@ -108,6 +108,8 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_XCORR_SUSPECT (1u << 23)
 /** Tracking channel flag: tracker xcorr doppler filter is active */
 #define TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE (1u << 24)
+/** Tracking channel flag: L2CL tracker has resolved half-cycle ambiguity */
+#define TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED (1u << 25)
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;
@@ -134,7 +136,6 @@ typedef struct {
   gnss_signal_t            sid;          /**< Signal identifier */
   tracking_channel_flags_t flags;        /**< Channel flags */
   s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
-  s32                      tow_ms_prev;  /**< Previous ToW [ms] or TOW_UNKNOWN */
   float                    cn0;          /**< C/N0 [dB/Hz] */
   u64                      init_timestamp_ms; /**< Tracking channel init
                                                    timestamp [ms] */
@@ -170,14 +171,6 @@ typedef struct {
   u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
 } tracking_channel_ctrl_info_t;
 
-/** Parameters for half-cycle ambiguity resolution */
-typedef struct {
-  u8 counter;  /**< Counter for matching carrier phases */
-  s8 polarity; /**< Polarity of the matching carrier phases */
-  bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
-  bool drop;   /**< Flag for dropping the tracking channel */
-} cp_sync_t;
-
 /** Tracking channel miscellaneous info */
 typedef struct {
   double pseudorange;          /**< Pseudorange [m]  */
@@ -186,7 +179,6 @@ typedef struct {
     double value;              /**< Carrier phase offset value [cycles]. */
     u64 timestamp_ms;          /**< Carrier phase offset timestamp [ms] */
   } carrier_phase_offset;      /**< Carrier phase offset */
-  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
 } tracking_channel_misc_info_t;
 
 /**
@@ -196,7 +188,6 @@ typedef struct {
   double code_phase_chips;     /**< The code-phase in chips at `receiver_time`. */
   double code_phase_rate;      /**< Code phase rate in chips/s. */
   double carrier_phase;        /**< Carrier phase in cycles. */
-  double carrier_phase_prev;   /**< Previous carrier phase in cycles. */
   double carrier_freq;         /**< Carrier frequency in Hz. */
   double carrier_freq_std;     /**< Carrier frequency std deviation in Hz. */
   double carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
@@ -332,7 +323,6 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid);
-void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW);
 void tracking_channel_drop_l2cl(gnss_signal_t sid);
 
 bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp);
