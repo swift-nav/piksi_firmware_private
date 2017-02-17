@@ -41,6 +41,20 @@
 /** GPS L2 C configuration section name */
 #define L2CL_TRACK_SETTING_SECTION "l2cl_track"
 
+/** Parameters for carrier phase comparison */
+typedef struct {
+  float c_L2CL_cp; /**< Current L2CL carrier phase [cycles] */
+  float p_L2CL_cp; /**< Previous L2CL carrier phase [cycles] */
+  float t_L2CL_cp; /**< L2CL carrier phase to be tested [cycles] */
+  float c_L2CM_cp; /**< Current L2CM carrier phase [cycles] */
+  float p_L2CM_cp; /**< Previous L2CM carrier phase [cycles] */
+  float t_L2CM_cp; /**< L2CM carrier phase to be tested [cycles] */
+  s32 c_L2CL_TOW;  /**< Current L2CL TOW [ms] */
+  s32 p_L2CL_TOW;  /**< Previous L2CL TOW [ms] */
+  s32 c_L2CM_TOW;  /**< Current L2CM TOW [ms] */
+  s32 p_L2CM_TOW;  /**< Previous L2CM TOW [ms] */
+  u8 count;        /**< Count of matching carrier phase measurements */
+} cp_comp_t;
 
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2cl_config = TP_TRACKER_DEFAULT_CONFIG;
@@ -309,6 +323,252 @@ static void tracker_gps_l2cl_disable(const tracker_channel_info_t *channel_info,
   tp_tracker_disable(channel_info, common_data, &data->data);
 }
 
+/** Resets cp_sync counter and sets bit polarity to unknown.
+ *  This function is called when L2CL data does not match with L2CM data.
+ *
+ * \param[in] sid GNSS signal identifier.
+ *
+ * \return None
+ */
+static void reset_cp_data(gnss_signal_t sid)
+{
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+    bool found = false;
+
+    chMtxLock(&pub_data->info_mutex);
+    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+      found = true;
+      pub_data->misc_info.cp_sync.counter = 0;
+      pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+    }
+    chMtxUnlock(&pub_data->info_mutex);
+
+    if (found) {
+      break;
+    }
+  }
+}
+
+/** Load carrier phase and TOW tags for comparison.
+ *
+ * \param[in]     sid      GNSS signal identifier.
+ * \param[in,out] cp_comp  Data for carrier phase comparison.
+ *
+ * \return True if L2CM data was found,
+ *  and did not have half-cycle ambiguity resolved.
+ *  False, otherwise. L2CL will be dropped if False.
+ */
+static bool load_cp_data(gnss_signal_t sid, cp_comp_t *cp_comp)
+{
+  bool L2CM_synced = false;
+  bool L2CM_found = false;
+
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+    chMtxLock(&pub_data->info_mutex);
+    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+      /* Load L2CL information */
+      cp_comp->c_L2CL_cp = pub_data->freq_info.carrier_phase;
+      cp_comp->p_L2CL_cp = pub_data->freq_info.carrier_phase_prev;
+      cp_comp->c_L2CL_TOW = pub_data->gen_info.tow_ms;
+      cp_comp->p_L2CL_TOW = pub_data->gen_info.tow_ms_prev;
+      cp_comp->count = pub_data->misc_info.cp_sync.counter;
+    } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
+               pub_data->gen_info.sid.sat == sid.sat) {
+      /* Load L2CM information */
+      cp_comp->c_L2CM_cp = pub_data->freq_info.carrier_phase;
+      cp_comp->p_L2CM_cp = pub_data->freq_info.carrier_phase_prev;
+      cp_comp->c_L2CM_TOW = pub_data->gen_info.tow_ms;
+      cp_comp->p_L2CM_TOW = pub_data->gen_info.tow_ms_prev;
+      L2CM_synced = pub_data->misc_info.cp_sync.synced;
+      L2CM_found = true;
+    }
+    chMtxUnlock(&pub_data->info_mutex);
+  }
+
+  /* If L2CM was found and
+   * L2CM did not have half-cycle ambiguity resolved, then return true. */
+  return (L2CM_found && !L2CM_synced);
+}
+
+/** Compare carrier phase information and find one with matching TOW.
+ *
+ * \param[in]     sid      GNSS signal identifier.
+ * \param[in,out] cp_comp  Data for carrier phase comparison.
+ *
+ * \return True if matching data was found, False otherwise.
+ */
+static bool matching_cp_tow(gnss_signal_t sid, cp_comp_t *cp_comp)
+{
+  /* Find matching TOW and save the carrier phase information. */
+  bool TOW_match = true;
+  if (cp_comp->c_L2CL_TOW == cp_comp->c_L2CM_TOW) {
+    cp_comp->t_L2CL_cp = cp_comp->c_L2CL_cp;
+    cp_comp->t_L2CM_cp = cp_comp->c_L2CM_cp;
+  } else if (cp_comp->c_L2CL_TOW == cp_comp->p_L2CM_TOW) {
+    cp_comp->t_L2CL_cp = cp_comp->c_L2CL_cp;
+    cp_comp->t_L2CM_cp = cp_comp->p_L2CM_cp;
+  } else if (cp_comp->p_L2CL_TOW == cp_comp->c_L2CM_TOW) {
+    cp_comp->t_L2CL_cp = cp_comp->p_L2CL_cp;
+    cp_comp->t_L2CM_cp = cp_comp->c_L2CM_cp;
+  } else if (cp_comp->p_L2CL_TOW == cp_comp->p_L2CM_TOW) {
+    cp_comp->t_L2CL_cp = cp_comp->p_L2CL_cp;
+    cp_comp->t_L2CM_cp = cp_comp->p_L2CM_cp;
+  } else {
+    /* No TOW was matching. */
+    TOW_match = false;
+  }
+
+  if (!TOW_match) {
+    /* If no TOW was matching, reset the counter to zero. */
+    reset_cp_data(sid);
+  }
+  return TOW_match;
+}
+
+/** Compare carrier phase information and find ones with
+ *  close to zero, or 0.5 cycle difference.
+ *
+ * \param[in]     sid      GNSS signal identifier.
+ * \param[in]     cp_comp  Data for carrier phase comparison.
+ * \param[in,out] polarity Polarity of the carrier phase match.
+ *
+ * \return True if matching data was found, False otherwise.
+ */
+static bool compare_cp_data(gnss_signal_t sid, cp_comp_t *cp_comp,
+                            s8 *polarity)
+{
+  *polarity = BIT_POLARITY_UNKNOWN;
+  bool match = false;
+  float test_metric = fabsf(remainder(cp_comp->t_L2CL_cp
+                                    - cp_comp->t_L2CM_cp, 1.0f));
+
+  /* When the carrier phases match, the test_metric is
+   * either close to 0.0, or close to 0.5 [cycles]. */
+  if (test_metric < CARRIER_PHASE_TOLERANCE) {
+    match = true;
+    *polarity = BIT_POLARITY_INVERTED;
+  } else if (test_metric > 0.5f - CARRIER_PHASE_TOLERANCE) {
+    match = true;
+    *polarity = BIT_POLARITY_NORMAL;
+  }
+
+  if (!match) {
+    /* If carrier phases were not matching, reset the counter to zero. */
+    reset_cp_data(sid);
+  }
+  return match;
+}
+
+/** Increment counter when matching carrier phase has been found.
+ *  If counter reaches maximum, declare phase sync, save polarity
+ *  and drop L2CL tracker.
+ *
+ * \param[in] sid      GNSS signal identifier.
+ * \param[in] cp_comp  Data for carrier phase comparison.
+ * \param[in] polarity Polarity of the carrier phase match.
+ *
+ * \return None
+ */
+static void increment_cp_counter(gnss_signal_t sid, cp_comp_t *cp_comp,
+                                 s8 polarity)
+
+{
+  if (cp_comp->count < CARRIER_PHASE_AMBIGUITY_COUNTER) {
+    /* If counter is below maximum, only increment it. */
+    for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+      tracker_channel_t *tracker_channel = tracker_channel_get(i);
+      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+      bool found = false;
+
+      chMtxLock(&pub_data->info_mutex);
+      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+        found = true;
+        pub_data->misc_info.cp_sync.counter += 1;
+      }
+      chMtxUnlock(&pub_data->info_mutex);
+
+      if (found) {
+        break;
+      }
+    }
+  } else {
+    /* If counter reached maximum. */
+    for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+      tracker_channel_t *tracker_channel = tracker_channel_get(i);
+      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+      chMtxLock(&pub_data->info_mutex);
+      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+        /* Drop L2CL tracker. */
+        pub_data->misc_info.cp_sync.drop = true;
+      } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
+                 pub_data->gen_info.sid.sat == sid.sat) {
+        /* Update L2CM polarity and sync. */
+        pub_data->misc_info.cp_sync.polarity = polarity;
+        pub_data->misc_info.cp_sync.synced = true;
+      }
+      chMtxUnlock(&pub_data->info_mutex);
+    }
+  }
+}
+
+/** Main function for comparing carrier phase information
+ *  between L2CM and L2CL trackers.
+ *
+ * \param[in] sid      GNSS signal identifier.
+ *
+ * \return None
+ */
+static void process_cp_data(gnss_signal_t sid)
+{
+  cp_comp_t cp_comp = {0};
+  bool data_valid = false;
+
+  /* Check availability of valid L2CM and L2CL data */
+  data_valid = load_cp_data(sid, &cp_comp);
+
+  /* Drop L2CL tracker if no valid data is available */
+  if (!data_valid) {
+    tracking_channel_drop_l2cl(sid);
+    return;
+  }
+
+  bool TOW_match = true;
+
+  /* Pick phase measurements with matching TOW tag */
+  TOW_match =  matching_cp_tow(sid, &cp_comp);
+
+  /* If no TOW tag matched, skip the round */
+  if (!TOW_match) {
+    return;
+  }
+
+  s8 polarity = BIT_POLARITY_UNKNOWN;
+  /* Compare the TOW matched carrier phases */
+  bool match = compare_cp_data(sid, &cp_comp, &polarity);
+
+  /* If carrier phases do not match skip the round */
+  if (!match) {
+    return;
+  }
+
+  /* If carrier phases match, increment counter and
+   * declare half-cycle ambiguity resolved when counter
+   * reaches maximum value. */
+  increment_cp_counter(sid, &cp_comp, polarity);
+}
+
 static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
@@ -334,7 +594,7 @@ static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
     if (fll_mode) {
       tracking_channel_drop_l2cl(channel_info->sid);
     } else {
-      tracking_channel_cp_sync_match(channel_info->sid);
+      process_cp_data(channel_info->sid);
     }
   }
 }

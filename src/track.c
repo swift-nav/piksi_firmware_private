@@ -19,15 +19,12 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/run_stats.h>
 
 #include "board/nap/track_channel.h"
 #include "nap/nap_constants.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "track.h"
-#include "track_api.h"
-#include "track_internal.h"
 #include "track/track_cn0.h"
 #include "track/track_profiles.h"
 #include "track/track_sid_db.h"
@@ -54,79 +51,11 @@
 #define MAX_ELEVATION_AGE_TK (MINUTE_SECS * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 typedef enum {
-  STATE_DISABLED,
-  STATE_ENABLED,
-  STATE_DISABLE_REQUESTED,
-  STATE_DISABLE_WAIT
-} state_t;
-
-typedef enum {
   EVENT_ENABLE,
   EVENT_DISABLE_REQUEST,
   EVENT_DISABLE,
   EVENT_DISABLE_WAIT_COMPLETE
 } event_t;
-
-/* Bitfield */
-typedef enum {
-  ERROR_FLAG_NONE =                         0x00,
-  ERROR_FLAG_MISSED_UPDATE =                0x01,
-  ERROR_FLAG_INTERRUPT_WHILE_DISABLED =     0x02,
-} error_flag_t;
-
-/**
- * Public data segment.
- *
- * Public data segment belongs to a tracking channel and is locked only for
- * a quick update or data fetch operations.
- *
- * The data is grouped according to functional blocks.
- */
-typedef struct {
-  /** Mutex used to permit atomic updates of public channel data. */
-  mutex_t info_mutex;
-  /** Generic info for externals */
-  volatile tracking_channel_info_t      gen_info;
-  /** Timing info for externals */
-  volatile tracking_channel_time_info_t time_info;
-  /** Frequency info for externals */
-  volatile tracking_channel_freq_info_t freq_info;
-  /** Controller parameters */
-  volatile tracking_channel_ctrl_info_t ctrl_info;
-  /** Miscellaneous parameters */
-  volatile tracking_channel_misc_info_t misc_info;
-  /** Carrier frequency products */
-  running_stats_t                       carr_freq_stats;
-  /** Pseudorange products */
-  running_stats_t                       pseudorange_stats;
-} tracker_channel_pub_data_t;
-
-/** Top-level generic tracker channel. */
-typedef struct {
-  /** State of this channel. */
-  state_t state;
-  /** Time at which the channel was disabled. */
-  systime_t disable_time;
-  /** Error flags. May be set at any time by the tracking thread. */
-  volatile error_flag_t error_flags;
-  /** Info associated with this channel. */
-  tracker_channel_info_t info;
-  /** Data common to all tracker implementations. RW from channel interface
-   * functions. RO from functions in this module. */
-  tracker_common_data_t common_data;
-  /** Data used by the API for all tracker implementations. RW from API
-   * functions called within channel interface functions. RO from functions
-   * in this module. */
-  tracker_internal_data_t internal_data;
-  /** Mutex used to permit atomic reads of channel data. */
-  mutex_t mutex;
-  /** Associated tracker interface. */
-  const tracker_interface_t *interface;
-  /** Associated tracker instance. */
-  tracker_t *tracker;
-  /** Publicly accessible data */
-  tracker_channel_pub_data_t pub_data;
-} tracker_channel_t;
 
 static tracker_channel_t tracker_channels[NUM_TRACKER_CHANNELS];
 
@@ -154,7 +83,6 @@ static update_count_t update_count_diff(const tracker_channel_t *
 static bool track_iq_output_notify(struct setting *s, const char *val);
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
-static tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
 static const tracker_interface_t * tracker_interface_lookup(gnss_signal_t sid);
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
                                      gnss_signal_t sid, tracker_t **tracker,
@@ -1024,36 +952,6 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   }
 }
 
-/** Resets cp_sync counter and sets bit polarity to unknown.
- *  This function is called when L2CM data does not match with L2CL data.
- *
- * \param[in] sid GNSS signal identifier.
- *
- * \return None
- */
-void tracking_channel_reset_cp_data(gnss_signal_t sid)
-{
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    bool found = false;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      found = true;
-      pub_data->misc_info.cp_sync.counter = 0;
-      pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      break;
-    }
-  }
-}
-
 /** Update carrier phase and TOW tag.
  *  Previous reading is saved to ensure one matching pair between
  *  L2CM and L2CL trackers.
@@ -1092,183 +990,6 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
   }
 }
 
-/** Load carrier phase and TOW tags for comparison.
- *  This function is called from the L2CL tracker.
- *
- * \param[in]     sid      GNSS signal identifier.
- * \param[in,out] cp_comp  Data for carrier phase comparison.
- *
- * \return True if L2CM data was found
- *  and did not have half-cycle ambiguity resolved.
- *  False, otherwise. L2CL will be dropped if False.
- */
-bool tracking_channel_load_data(gnss_signal_t sid,
-                                cp_comp_t *cp_comp)
-{
-  bool L2CM_synced = false;
-  bool L2CM_found = false;
-
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      /* Load L2CL information */
-      cp_comp->c_L2CL_cp = pub_data->freq_info.carrier_phase;
-      cp_comp->p_L2CL_cp = pub_data->freq_info.carrier_phase_prev;
-      cp_comp->c_L2CL_TOW = pub_data->gen_info.tow_ms;
-      cp_comp->p_L2CL_TOW = pub_data->gen_info.tow_ms_prev;
-      cp_comp->count = pub_data->misc_info.cp_sync.counter;
-    } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
-               pub_data->gen_info.sid.sat == sid.sat) {
-      /* Load L2CM information */
-      cp_comp->c_L2CM_cp = pub_data->freq_info.carrier_phase;
-      cp_comp->p_L2CM_cp = pub_data->freq_info.carrier_phase_prev;
-      cp_comp->c_L2CM_TOW = pub_data->gen_info.tow_ms;
-      cp_comp->p_L2CM_TOW = pub_data->gen_info.tow_ms_prev;
-      L2CM_synced = pub_data->misc_info.cp_sync.synced;
-      L2CM_found = true;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-  }
-
-  /* If L2CM was found and
-   * L2CM did not have half-cycle ambiguity resolved, then return true. */
-  return (L2CM_found && !L2CM_synced);
-}
-
-/** Compare carrier phase information and find ones with matching TOW.
- *  This function is called from the L2CL tracker.
- *
- * \param[in]     sid      GNSS signal identifier.
- * \param[in,out] cp_comp  Data for carrier phase comparison.
- *
- * \return True if matching data was found, False otherwise.
- */
-bool tracking_channel_find_matching_tow(gnss_signal_t sid,
-                                        cp_comp_t *cp_comp)
-{
-  /* Find matching TOW and save the carrier phase information. */
-  bool TOW_match = true;
-  if (cp_comp->c_L2CL_TOW == cp_comp->c_L2CM_TOW) {
-    cp_comp->t_L2CL_cp = cp_comp->c_L2CL_cp;
-    cp_comp->t_L2CM_cp = cp_comp->c_L2CM_cp;
-  } else if (cp_comp->c_L2CL_TOW == cp_comp->p_L2CM_TOW) {
-    cp_comp->t_L2CL_cp = cp_comp->c_L2CL_cp;
-    cp_comp->t_L2CM_cp = cp_comp->p_L2CM_cp;
-  } else if (cp_comp->p_L2CL_TOW == cp_comp->c_L2CM_TOW) {
-    cp_comp->t_L2CL_cp = cp_comp->p_L2CL_cp;
-    cp_comp->t_L2CM_cp = cp_comp->c_L2CM_cp;
-  } else if (cp_comp->p_L2CL_TOW == cp_comp->p_L2CM_TOW) {
-    cp_comp->t_L2CL_cp = cp_comp->p_L2CL_cp;
-    cp_comp->t_L2CM_cp = cp_comp->p_L2CM_cp;
-  } else {
-    /* No TOW was matching. */
-    TOW_match = false;
-  }
-
-  if (!TOW_match) {
-    /* If no TOW was matching, reset the counter to zero. */
-    tracking_channel_reset_cp_data(sid);
-  }
-  return TOW_match;
-}
-
-/** Compare carrier phase information
- *  and find ones with close to zero, or 0.5 cycle difference.
- *  This function is called from the L2CL tracker.
- *
- * \param[in]     sid      GNSS signal identifier.
- * \param[in]     cp_comp  Data for carrier phase comparison.
- * \param[in,out] polarity Polarity of the carrier phase match.
- *
- * \return True if matching data was found, False otherwise.
- */
-bool tracking_channel_compare_cp(gnss_signal_t sid, cp_comp_t *cp_comp,
-                                 s8 *polarity)
-{
-  *polarity = BIT_POLARITY_UNKNOWN;
-  bool match = false;
-  float test_metric = fabsf(remainder(cp_comp->t_L2CL_cp
-                                    - cp_comp->t_L2CM_cp, 1.0f));
-
-  /* When the carrier phases match, the test_metric is
-   * either close to 0.0, or close to 0.5 [cycles]. */
-
-  if (test_metric < CARRIER_PHASE_TOLERANCE) {
-    match = true;
-    *polarity = BIT_POLARITY_INVERTED;
-  } else if (test_metric > 0.5f - CARRIER_PHASE_TOLERANCE) {
-    match = true;
-    *polarity = BIT_POLARITY_NORMAL;
-  }
-
-  if (!match) {
-    /* If carrier phases were not matching, reset the counter to zero. */
-    tracking_channel_reset_cp_data(sid);
-  }
-  return match;
-}
-
-/** Increment counter when matching carrier phase has been found.
- *  If counter reaches maximum, declare phase sync, save polarity
- *  and drop L2CL tracker.
- *  This function is called from the L2CL tracker.
- *
- * \param[in] sid      GNSS signal identifier.
- * \param[in] cp_comp  Data for carrier phase comparison.
- * \param[in] polarity Polarity of the carrier phase match.
- *
- * \return None
- */
-void tracking_channel_increment_cp_counter(gnss_signal_t sid,
-                                           cp_comp_t *cp_comp, s8 polarity)
-
-{
-  if (cp_comp->count < CARRIER_PHASE_AMBIGUITY_COUNTER) {
-    /* If counter is below maximum, only increment it. */
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-      bool found = false;
-
-      chMtxLock(&pub_data->info_mutex);
-      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-        found = true;
-        pub_data->misc_info.cp_sync.counter += 1;
-      }
-      chMtxUnlock(&pub_data->info_mutex);
-
-      if (found) {
-        break;
-      }
-    }
-  } else {
-    /* If counter reached maximum. */
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-      chMtxLock(&pub_data->info_mutex);
-      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-        /* Drop L2CL tracker. */
-        pub_data->misc_info.cp_sync.drop = true;
-      } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
-                 pub_data->gen_info.sid.sat == sid.sat) {
-        /* Update L2CM polarity and sync. */
-        pub_data->misc_info.cp_sync.polarity = polarity;
-        pub_data->misc_info.cp_sync.synced = true;
-      }
-      chMtxUnlock(&pub_data->info_mutex);
-    }
-  }
-}
-
 /** Drop the L2CL tracker when it is no longer needed.
  *  This function can be called from both L2CM and L2CL trackers.
  *
@@ -1297,92 +1018,6 @@ void tracking_channel_drop_l2cl(gnss_signal_t sid)
       break;
     }
   }
-}
-
-/** Read the half-cycle ambiguity status.
- *  This function is called from the L2CM tracker.
- *
- * \param[in] sid GNSS signal identifier.
- *
- * \return Polarity of the half-cycle ambiguity.
- */
-s8 tracking_channel_read_ambiguity_status(gnss_signal_t sid)
-{
-  s8 retval = BIT_POLARITY_UNKNOWN;
-
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    bool found = false;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      found = true;
-      /* If the half-cycle ambiguity has been resolved,
-       * return polarity, and reset polarity and sync status. */
-      if (pub_data->misc_info.cp_sync.synced) {
-        retval = pub_data->misc_info.cp_sync.polarity;
-        pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-        pub_data->misc_info.cp_sync.synced = false;
-      }
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      break;
-    }
-  }
-  return retval;
-}
-
-/** Main function for comparing phase information between L2CM and L2CL trackers.
- *  This function is called from the L2CL tracker.
- *
- * \param[in] sid      GNSS signal identifier.
- *
- * \return None
- */
-void tracking_channel_cp_sync_match(gnss_signal_t sid)
-{
-  cp_comp_t cp_comp = {0};
-  bool data_valid = false;
-
-  /* Check availability of valid L2CM and L2CL data */
-  data_valid = tracking_channel_load_data(sid, &cp_comp);
-
-  /* Drop L2CL tracker if no valid data is available */
-  if (!data_valid) {
-    tracking_channel_drop_l2cl(sid);
-    return;
-  }
-
-  bool TOW_match = true;
-
-  /* Pick phase measurements with matching TOW tag */
-  TOW_match =  tracking_channel_find_matching_tow(sid, &cp_comp);
-
-  /* If no TOW tag matched, skip the round */
-  if (!TOW_match) {
-    return;
-  }
-
-  s8 polarity = BIT_POLARITY_UNKNOWN;
-  /* Compare the TOW matched carrier phases */
-  bool match = tracking_channel_compare_cp(sid,
-                                           &cp_comp,
-                                           &polarity);
-
-  /* If carrier phases do not match skip the round */
-  if (!match) {
-    return;
-  }
-
-  /* If carrier phases match, increment counter and
-   * declare half-cycle ambiguity resolved when counter
-   * reaches maximum value. */
-  tracking_channel_increment_cp_counter(sid, &cp_comp, polarity);
 }
 
 /** Set the elevation angle for SV by sid.
@@ -1643,7 +1278,7 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel)
  *
  * \return Associated tracker channel.
  */
-static tracker_channel_t * tracker_channel_get(tracker_channel_id_t id)
+tracker_channel_t * tracker_channel_get(tracker_channel_id_t id)
 {
   assert(id < NUM_TRACKER_CHANNELS);
   return &tracker_channels[id];
