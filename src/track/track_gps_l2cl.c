@@ -332,25 +332,16 @@ static void tracker_gps_l2cl_disable(const tracker_channel_info_t *channel_info,
  */
 static void reset_cp_data(gnss_signal_t sid)
 {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    bool found = false;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      found = true;
-      pub_data->misc_info.cp_sync.counter = 0;
-      pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      break;
-    }
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid);
+  if (tracker_channel == NULL) {
+    return;
   }
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&pub_data->info_mutex);
+  pub_data->misc_info.cp_sync.counter = 0;
+  pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+  chMtxUnlock(&pub_data->info_mutex);
 }
 
 /** Load carrier phase and TOW tags for comparison.
@@ -367,31 +358,33 @@ static bool load_cp_data(gnss_signal_t sid, cp_comp_t *cp_comp)
   bool L2CM_synced = false;
   bool L2CM_found = false;
 
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      /* Load L2CL information */
-      cp_comp->c_L2CL_cp = pub_data->freq_info.carrier_phase;
-      cp_comp->p_L2CL_cp = pub_data->freq_info.carrier_phase_prev;
-      cp_comp->c_L2CL_TOW = pub_data->gen_info.tow_ms;
-      cp_comp->p_L2CL_TOW = pub_data->gen_info.tow_ms_prev;
-      cp_comp->count = pub_data->misc_info.cp_sync.counter;
-    } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
-               pub_data->gen_info.sid.sat == sid.sat) {
-      /* Load L2CM information */
-      cp_comp->c_L2CM_cp = pub_data->freq_info.carrier_phase;
-      cp_comp->p_L2CM_cp = pub_data->freq_info.carrier_phase_prev;
-      cp_comp->c_L2CM_TOW = pub_data->gen_info.tow_ms;
-      cp_comp->p_L2CM_TOW = pub_data->gen_info.tow_ms_prev;
-      L2CM_synced = pub_data->misc_info.cp_sync.synced;
-      L2CM_found = true;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
+  /* Load L2CL information */
+  tracker_channel_t *tracker_channel_L2CL = tracker_channel_get_by_sid(sid);
+  if (tracker_channel_L2CL == NULL) {
+    return false;
   }
+  tracker_channel_pub_data_t *pub_data_L2CL = &tracker_channel_L2CL->pub_data;
+
+  cp_comp->c_L2CL_cp = pub_data_L2CL->freq_info.carrier_phase;
+  cp_comp->p_L2CL_cp = pub_data_L2CL->freq_info.carrier_phase_prev;
+  cp_comp->c_L2CL_TOW = pub_data_L2CL->gen_info.tow_ms;
+  cp_comp->p_L2CL_TOW = pub_data_L2CL->gen_info.tow_ms_prev;
+  cp_comp->count = pub_data_L2CL->misc_info.cp_sync.counter;
+
+  /* Load L2CM information */
+  gnss_signal_t sid_L2CM = construct_sid(CODE_GPS_L2CM, sid.sat);
+  tracker_channel_t *tracker_channel_L2CM = tracker_channel_get_by_sid(sid_L2CM);
+  if (tracker_channel_L2CM == NULL) {
+    return false;
+  }
+  tracker_channel_pub_data_t *pub_data_L2CM = &tracker_channel_L2CM->pub_data;
+
+  cp_comp->c_L2CM_cp = pub_data_L2CM->freq_info.carrier_phase;
+  cp_comp->p_L2CM_cp = pub_data_L2CM->freq_info.carrier_phase_prev;
+  cp_comp->c_L2CM_TOW = pub_data_L2CM->gen_info.tow_ms;
+  cp_comp->p_L2CM_TOW = pub_data_L2CM->gen_info.tow_ms_prev;
+  L2CM_synced = pub_data_L2CM->misc_info.cp_sync.synced;
+  L2CM_found = true;
 
   /* If L2CM was found and
    * L2CM did not have half-cycle ambiguity resolved, then return true. */
@@ -483,43 +476,46 @@ static void increment_cp_counter(gnss_signal_t sid, cp_comp_t *cp_comp,
 {
   if (cp_comp->count < CARRIER_PHASE_AMBIGUITY_COUNTER) {
     /* If counter is below maximum, only increment it. */
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
 
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-      bool found = false;
-
-      chMtxLock(&pub_data->info_mutex);
-      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-        found = true;
-        pub_data->misc_info.cp_sync.counter += 1;
-      }
-      chMtxUnlock(&pub_data->info_mutex);
-
-      if (found) {
-        break;
-      }
+    /* Load L2CL information */
+    tracker_channel_t *tracker_channel_L2CL = tracker_channel_get_by_sid(sid);
+    if (tracker_channel_L2CL == NULL) {
+      return;
     }
+    tracker_channel_pub_data_t *pub_data_L2CL = &tracker_channel_L2CL->pub_data;
+
+    chMtxLock(&pub_data_L2CL->info_mutex);
+    pub_data_L2CL->misc_info.cp_sync.counter += 1;
+    chMtxUnlock(&pub_data_L2CL->info_mutex);
+
   } else {
     /* If counter reached maximum. */
-    for (u8 i = 0; i < nap_track_n_channels; i++) {
 
-      tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-      chMtxLock(&pub_data->info_mutex);
-      if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-        /* Drop L2CL tracker. */
-        pub_data->misc_info.cp_sync.drop = true;
-      } else if (pub_data->gen_info.sid.code == CODE_GPS_L2CM &&
-                 pub_data->gen_info.sid.sat == sid.sat) {
-        /* Update L2CM polarity and sync. */
-        pub_data->misc_info.cp_sync.polarity = polarity;
-        pub_data->misc_info.cp_sync.synced = true;
-      }
-      chMtxUnlock(&pub_data->info_mutex);
+    /* Load L2CL information */
+    tracker_channel_t *tracker_channel_L2CL = tracker_channel_get_by_sid(sid);
+    if (tracker_channel_L2CL == NULL) {
+      return;
     }
+    tracker_channel_pub_data_t *pub_data_L2CL = &tracker_channel_L2CL->pub_data;
+
+    /* Drop L2CL tracker. */
+    chMtxLock(&pub_data_L2CL->info_mutex);
+    pub_data_L2CL->misc_info.cp_sync.drop = true;
+    chMtxUnlock(&pub_data_L2CL->info_mutex);
+
+    /* Load L2CM information */
+    gnss_signal_t sid_L2CM = construct_sid(CODE_GPS_L2CM, sid.sat);
+    tracker_channel_t *tracker_channel_L2CM = tracker_channel_get_by_sid(sid_L2CM);
+    if (tracker_channel_L2CM == NULL) {
+      return;
+    }
+    tracker_channel_pub_data_t *pub_data_L2CM = &tracker_channel_L2CM->pub_data;
+
+    /* Update L2CM polarity and sync. */
+    chMtxLock(&pub_data_L2CM->info_mutex);
+    pub_data_L2CM->misc_info.cp_sync.polarity = polarity;
+    pub_data_L2CM->misc_info.cp_sync.synced = true;
+    chMtxUnlock(&pub_data_L2CM->info_mutex);
   }
 }
 

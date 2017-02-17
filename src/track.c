@@ -952,6 +952,36 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   }
 }
 
+/** Utility function to find tracking channel allocated to the given sid.
+ *
+ * \param[in] sid GNSS signal identifier.
+ *
+ * \return tracker channel container for the requested sid.
+ */
+tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid)
+{
+  tracker_channel_t *channel = NULL;
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+    bool found = false;
+
+    chMtxLock(&pub_data->info_mutex);
+    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
+      found = true;
+      channel = tracker_channel;
+    }
+    chMtxUnlock(&pub_data->info_mutex);
+
+    if (found) {
+      return channel;
+    }
+  }
+  return channel;
+}
+
 /** Update carrier phase and TOW tag.
  *  Previous reading is saved to ensure one matching pair between
  *  L2CM and L2CL trackers.
@@ -965,29 +995,21 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
  */
 void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
 {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
 
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    bool found = false;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      found = true;
-      /* Save previous information */
-      pub_data->gen_info.tow_ms_prev = pub_data->gen_info.tow_ms;
-      pub_data->freq_info.carrier_phase_prev = pub_data->freq_info.carrier_phase;
-      /* Save new values */
-      pub_data->gen_info.tow_ms = TOW;
-      pub_data->freq_info.carrier_phase = cp;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      break;
-    }
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid);
+  if (tracker_channel == NULL) {
+    return;
   }
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&pub_data->info_mutex);
+  /* Save previous values */
+  pub_data->gen_info.tow_ms_prev = pub_data->gen_info.tow_ms;
+  pub_data->freq_info.carrier_phase_prev = pub_data->freq_info.carrier_phase;
+  /* Save new values */
+  pub_data->gen_info.tow_ms = TOW;
+  pub_data->freq_info.carrier_phase = cp;
+  chMtxUnlock(&pub_data->info_mutex);
 }
 
 /** Drop the L2CL tracker when it is no longer needed.
@@ -999,25 +1021,16 @@ void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW)
  */
 void tracking_channel_drop_l2cl(gnss_signal_t sid)
 {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    bool found = false;
-
-    chMtxLock(&pub_data->info_mutex);
-    if (pub_data->gen_info.sid.code == CODE_GPS_L2CL &&
-        pub_data->gen_info.sid.sat == sid.sat) {
-      found = true;
-      pub_data->misc_info.cp_sync.drop = true;
-    }
-    chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      break;
-    }
+  gnss_signal_t sid_to_drop = construct_sid(CODE_GPS_L2CL, sid.sat);
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid_to_drop);
+  if (tracker_channel == NULL) {
+    return;
   }
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&pub_data->info_mutex);
+  pub_data->misc_info.cp_sync.drop = true;
+  chMtxUnlock(&pub_data->info_mutex);
 }
 
 /** Set the elevation angle for SV by sid.

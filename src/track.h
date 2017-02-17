@@ -331,6 +331,7 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
                                                double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
+tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid);
 void tracking_channel_cp_sync_update(gnss_signal_t sid, double cp, s32 TOW);
 void tracking_channel_drop_l2cl(gnss_signal_t sid);
 

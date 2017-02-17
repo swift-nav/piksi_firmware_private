@@ -507,30 +507,20 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
 static s8 read_ambiguity_status(gnss_signal_t sid)
 {
   s8 retval = BIT_POLARITY_UNKNOWN;
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid);
+  if (tracker_channel == NULL) {
+    return retval;
+  }
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-    bool found = false;
-
+  /* If the half-cycle ambiguity has been resolved,
+   * return polarity, and reset polarity and sync status. */
+  if (pub_data->misc_info.cp_sync.synced) {
     chMtxLock(&pub_data->info_mutex);
-    if (sid_is_equal(pub_data->gen_info.sid, sid)) {
-      found = true;
-      /* If the half-cycle ambiguity has been resolved,
-       * return polarity, and reset polarity and sync status. */
-      if (pub_data->misc_info.cp_sync.synced) {
-        retval = pub_data->misc_info.cp_sync.polarity;
-        pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-        pub_data->misc_info.cp_sync.synced = false;
-      }
-    }
+    retval = pub_data->misc_info.cp_sync.polarity;
+    pub_data->misc_info.cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+    pub_data->misc_info.cp_sync.synced = false;
     chMtxUnlock(&pub_data->info_mutex);
-
-    if (found) {
-      break;
-    }
   }
   return retval;
 }
