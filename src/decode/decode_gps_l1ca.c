@@ -81,11 +81,11 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
                  src_sid_str);
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_warn_sid(alma->sid, "almanac from %s is unreliable, not saved",
+    log_debug_sid(alma->sid, "almanac from %s is unconfirmed, not saved",
                  src_sid_str);
     break;
   case NDB_ERR_OLDER_DATA:
-    log_warn_sid(alma->sid,
+    log_debug_sid(alma->sid,
                  "almanac from %s is older than one in DB, not saved",
                  src_sid_str);
     break;
@@ -135,8 +135,8 @@ static void decode_almanac_time_new(gnss_signal_t sid,
                  (s32)alma_time->tow);
     break;
   case NDB_ERR_UNRELIABLE_DATA:
-    log_warn_sid(sid,
-                 "almanac time info is unreliable (%" PRId16 ", %" PRId32 ")",
+    log_debug_sid(sid,
+                 "almanac time info is unconfirmed (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
     break;
@@ -214,12 +214,12 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
                        health_bits);
           break;
         case NDB_ERR_UNRELIABLE_DATA:
-          log_warn_sid(target_sid,
-                       "almanac health bits are unreliable (0x%02" PRIX8 ")",
+          log_debug_sid(target_sid,
+                       "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
                        health_bits);
           break;
         case NDB_ERR_NO_DATA:
-          log_warn_sid(target_sid,
+          log_debug_sid(target_sid,
                         "almanac health bits are ignored (0x%02" PRIX8 ")",
                         health_bits);
           break;
