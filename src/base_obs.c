@@ -332,7 +332,7 @@ static void update_obss(obss_t *new_obss)
     if (!any_measured_doppler) {
       for (u8 i = 0; i < base_obss.n; i++) {
         base_obss.nm[i].raw_measured_doppler =
-              nominal_doppler(base_obss.nm[i].sat_vel,
+              -nominal_doppler(base_obss.nm[i].sat_vel,
                               base_obss.nm[i].sat_pos,
                               base_pos,
                               base_obss.nm[i].sat_clock_err_rate) /
