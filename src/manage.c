@@ -1218,7 +1218,10 @@ manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
       /* If no external storage for ephemeris is provided, use local one */
       pephe = &ephe;
     }
-    if (NDB_ERR_NONE == ndb_ephemeris_read(sid, pephe)) {
+    ndb_op_code_t res = ndb_ephemeris_read(sid, pephe);
+    /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
+     * is no confirmed candidate */
+    if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) {
       if (ephemeris_valid(pephe, &t)) {
         result |= MANAGE_TRACK_FLAG_HAS_EPHE;
 

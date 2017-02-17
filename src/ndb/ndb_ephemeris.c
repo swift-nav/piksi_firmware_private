@@ -286,8 +286,6 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   almanac_t existing_a;   /* Existing almanac data */
   almanac_t *pa = NULL;   /* Existing almanac data pointer if valid */
 
-  last_good_fix_t lgf;
-
   u16 idx = map_sid_to_index(new->sid);
   if (ARRAY_SIZE(ndb_ephemeris) <= idx) {
     return NDB_ERR_BAD_PARAM;
@@ -333,13 +331,6 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     /* first candidate, but can be verified from an older ephemeris
      * or almanac */
     log_debug_sid(new->sid, "[EPH] new trusted");
-    r = NDB_CAND_NEW_TRUSTED;
-  } else if (pe == NULL && pa == NULL
-             && (NDB_ERR_NONE != ndb_lgf_read(&lgf)
-                 || lgf.position_quality <= POSITION_GUESS)) {
-    /* TTFF improvement: trust the candidate if there is no existing almanac or
-     * ephemeris to compare to, and we do not yet have a fix  */
-    log_debug_sid(new->sid, "[EPH] new trusted (TTFF shortcut)");
     r = NDB_CAND_NEW_TRUSTED;
   } else {
     /* New one is not in candidate list yet, try to put it

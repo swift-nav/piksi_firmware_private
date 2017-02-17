@@ -601,7 +601,9 @@ static void update_sat_elevations(const double rcv_pos[3], const gps_time_t t)
   /* compute elevation for any valid ephemeris we can pull from NDB */
   for (u16 idx = 0; idx < PLATFORM_SIGNAL_COUNT; idx++) {
     gnss_signal_t sid = sid_from_global_index(idx);
-    if (ndb_ephemeris_read(sid, &ephemeris) == NDB_ERR_NONE) {
+    ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
+    /* compute elevation also from unconfirmed ephemeris candidates */
+    if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res ) {
       if (ephemeris_valid(&ephemeris, &t)
           && calc_sat_state(&ephemeris, &t,
                        sat_pos, sat_vel, &clock_err, &clock_rate_err) >= 0) {
