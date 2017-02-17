@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016-2017 Swift Navigation Inc.
  * Contact: Valeri Atamaniouk <valeri@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -53,8 +53,9 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t * restrict a,
                                           const tp_epl_corr_t * restrict b,
                                           tp_epl_corr_t * restrict res)
 {
-  for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
+  for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i) {
     res->epl[i] = corr_add(a->epl[i], b->epl[i]);
+  }
 
   return res;
 }
@@ -69,11 +70,13 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t * restrict a,
 static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t * restrict a,
                                           tp_epl_corr_t * restrict res)
 {
-  if (a->prompt.I > 0)
+  if (a->prompt.I > 0) {
     *res = *a;
-  else
-    for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
+  } else {
+    for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i) {
       res->epl[i] = corr_inv(a->epl[i]);
+    }
+  }
 
   return res;
 }
@@ -96,50 +99,56 @@ void tp_update_correlators(u32 cycle_flags,
 {
   tp_epl_corr_t tmp_epl;
   /* C/N0 estimator accumulators updates */
-  if (0 != (cycle_flags & TP_CFLAG_CN0_SET))
+  if (0 != (cycle_flags & TP_CFLAG_CN0_SET)) {
     corr_state->corr_cn0 = *cs_now;
-  else if (0 != (cycle_flags & TP_CFLAG_CN0_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_CN0_ADD)) {
     corr_state->corr_cn0 = *corr_epl_add(&corr_state->corr_cn0, cs_now,
                                         &tmp_epl);
+  }
 
   /* PLL/DLL accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_EPL_SET))
+  if (0 != (cycle_flags & TP_CFLAG_EPL_SET)) {
     corr_state->corr_epl = *cs_now;
-  else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD)) {
     corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl, cs_now,
                                          &tmp_epl);
-  else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD_INV))
+  } else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD_INV)) {
     /* Sum-up and normalize by bit value (for 20+ ms integrations) */
     corr_state->corr_epl = *corr_epl_inv(corr_epl_add(&corr_state->corr_epl,
                                                       cs_now, &tmp_epl),
                                          &tmp_epl);
-  else if (0 != (cycle_flags & TP_CFLAG_EPL_INV_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_EPL_INV_ADD)) {
     /* Normalize by bit value and sum-up (for 20+ ms integrations) */
     corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl,
                                          corr_epl_inv(cs_now, &tmp_epl),
                                          &tmp_epl);
+  }
 
   /* False lock (alias) detector accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_ALIAS_SET))
+  if (0 != (cycle_flags & TP_CFLAG_ALIAS_SET)) {
     corr_state->corr_ad = cs_now->prompt;
-  else if (0 != (cycle_flags & TP_CFLAG_ALIAS_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_ALIAS_ADD)) {
     corr_state->corr_ad = corr_add(corr_state->corr_ad, cs_now->prompt);
+  }
 
   /* Lock detector accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_LD_SET))
+  if (0 != (cycle_flags & TP_CFLAG_LD_SET)) {
     corr_state->corr_ld = cs_now->prompt;
-  else if (0 != (cycle_flags & TP_CFLAG_LD_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_LD_ADD)) {
     corr_state->corr_ld = corr_add(corr_state->corr_ld, cs_now->prompt);
+  }
 
   /* FLL accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_FLL_SET))
+  if (0 != (cycle_flags & TP_CFLAG_FLL_SET)) {
     corr_state->corr_fll = cs_now->prompt;
-  else if (0 != (cycle_flags & TP_CFLAG_FLL_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_FLL_ADD)) {
     corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_now->prompt);
+  }
 
   /* Message payload / bit sync accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_SET))
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_SET)) {
     corr_state->corr_bit = cs_now->prompt.I;
-  else if (0 != (cycle_flags & TP_CFLAG_BSYNC_ADD))
+  } else if (0 != (cycle_flags & TP_CFLAG_BSYNC_ADD)) {
     corr_state->corr_bit += cs_now->prompt.I;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016-2017 Swift Navigation Inc.
  * Contact: Valeri Atamaniouk <valeri@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -133,7 +133,7 @@ static const state_table_t mode_1msDYN = {
     {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
     {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_CN0_ADD},
     {1, TP_FLAGS_DYNAMICS_DEFAULT | TP_CFLAG_FLL_USE |
-        TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE},
+        TP_CFLAG_HALFCP_USE | TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE},
   }
 };
 
@@ -234,7 +234,8 @@ static const state_table_t mode_5ms1PN = {
           TP_CFLAG_LD_USE|
           TP_CFLAG_FLL_ADD |
           TP_CFLAG_FLL_SECOND |
-          TP_CFLAG_FLL_USE)
+          TP_CFLAG_FLL_USE |
+          TP_CFLAG_HALFCP_USE)
     },
   }
 };
@@ -252,7 +253,7 @@ static const state_table_t mode_10ms1PN5 = {
   .bit_ms  = 5,
   .ent_cnt = 6,
   .entries = {
-    { 1, TP_FLAGS_SHORT_DEFAULT },
+    { 1, TP_FLAGS_SHORT_DEFAULT},
     { 4,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
        TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD |
@@ -280,7 +281,8 @@ static const state_table_t mode_10ms1PN5 = {
        TP_CFLAG_ALIAS_ADD |
        TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE |
-       TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE)
+       TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE |
+       TP_CFLAG_HALFCP_USE )
     },
   }
 };
@@ -298,7 +300,7 @@ static const state_table_t mode_20ms1PN5 = {
   .bit_ms  = 5,
   .ent_cnt = 5,
   .entries = {
-    { 1, TP_FLAGS_SHORT_DEFAULT },
+    { 1, TP_FLAGS_SHORT_DEFAULT},
     { 4,
       (TP_CFLAG_ALIAS_FIRST | TP_CFLAG_LONG_CYCLE | TP_CFLAG_CN0_ADD |
        TP_CFLAG_EPL_ADD | TP_CFLAG_ALIAS_ADD |
@@ -322,7 +324,8 @@ static const state_table_t mode_20ms1PN5 = {
        TP_CFLAG_ALIAS_ADD |
        TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
        TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE |
-       TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE)
+       TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE |
+       TP_CFLAG_HALFCP_USE)
     },
   }
 };

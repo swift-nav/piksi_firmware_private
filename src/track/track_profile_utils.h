@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 - 2017 Swift Navigation Inc.
+ * Copyright (C) 2016-2017 Swift Navigation Inc.
  * Contact: Valeri Atamaniouk <valeri@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -58,6 +58,9 @@
 #define TP_CFLAG_LD_SET          ((u32)1 << 22)
 #define TP_CFLAG_LD_ADD          ((u32)1 << 23)
 #define TP_CFLAG_LD_USE          ((u32)1 << 24)
+
+/* Carrier phase half cycle detector control */
+#define TP_CFLAG_HALFCP_USE      ((u32)1 << 25)
 
 #define TP_DLL_PLL_MEAS_DIM 5
 
@@ -216,6 +219,18 @@ typedef struct
 } tp_tl_state_t;
 
 /**
+ * Carrier phase half cycle detector state
+ */
+typedef struct
+{
+  double carrier_phase_est;         /**< Estimated phase [cycles] */
+  double carr_phase_prev;           /**< Previous carrier phase [cycles] */
+  double carr_freq_prev;            /**< Previous Doppler frequency [Hz] */
+  update_count_t sample_count_prev; /**< Previous sample counter value */
+  bool init_done;                   /**< Init done flag */
+} tp_cycle_slip_det_state_t;
+
+/**
  * Generic tracker data
  */
 typedef struct {
@@ -223,6 +238,8 @@ typedef struct {
 
   tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
   tp_corr_state_t   corrs;                  /**< Correlations */
+  tp_cycle_slip_det_state_t  cycle_slip_detect;   /**< Carrier phase cycle slip
+                                                       detector state */
   track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
   alias_detect_t    alias_detect;           /**< Alias lock detector. */
   lock_detect_t     lock_detect;            /**< Lock detector state. */
@@ -374,53 +391,11 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
                       tracker_common_data_t *common_data,
                       tp_tracker_data_t *data,
                       const tp_tracker_config_t *config);
-void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tp_tracker_data_t *data,
-                                  const tp_config_t *next_params,
-                                  bool init);
-void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
-                                   tracker_common_data_t *common_data,
-                                   tp_tracker_data_t *data,
-                                   u32 cycle_flags);
-void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
-                             tp_tracker_data_t *data,
-                             u32 cycle_flags);
 void tp_tracker_update_tow(const tracker_channel_info_t *channel_info,
                            tracker_common_data_t *common_data,
                            tp_tracker_data_t *data,
                            u32 cycle_flags,
                            u64 sample_time_tk);
-void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
-                           tracker_common_data_t *common_data,
-                           tp_tracker_data_t *data,
-                           u32 cycle_flags);
-void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
-                             tracker_common_data_t *common_data,
-                             tp_tracker_data_t *data,
-                             u32 cycle_flags);
-void tp_tracker_update_fll(tp_tracker_data_t *data, u32 cycle_flags);
-void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
-                               u32 cycle_flags);
-void tp_tracker_update_alias(const tracker_channel_info_t *channel_info,
-                             tracker_common_data_t *common_data,
-                             tp_tracker_data_t *data,
-                             u32 cycle_flags);
-void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
-                               u32 cycle_flags,
-                               const tp_tracker_config_t *config);
-void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            tp_tracker_data_t *data);
-u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      tp_tracker_data_t *data);
-void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
-void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
-                                    const tp_tracker_data_t *data);
 void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
                             tracker_common_data_t *common_data,
                             void *input,
