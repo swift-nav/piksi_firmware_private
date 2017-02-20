@@ -190,7 +190,7 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
   if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
                       &bit_integrate)) {
     /* No need to write L2CL bits to FIFO */
-    if (!check_decoder_need(channel_info->sid)) {
+    if (!code_requires_decoder(channel_info->sid.code)) {
       return;
     }
     s8 soft_bit = nav_bit_quantize(bit_integrate);

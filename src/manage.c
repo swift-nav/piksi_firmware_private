@@ -570,13 +570,12 @@ static u8 manage_track_new_acq(gnss_signal_t sid)
   /* Decide which (if any) tracking channel to put
    * a newly acquired satellite into.
    */
-  bool decoder_need = check_decoder_need(sid);
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    if (decoder_need &&
+    if (code_requires_decoder(sid.code) &&
         tracker_channel_available(i, sid) &&
         decoder_channel_available(i, sid)) {
       return i;
-    } else if (!decoder_need &&
+    } else if (!code_requires_decoder(sid.code)  &&
                tracker_channel_available(i, sid)) {
       return i;
     }
@@ -1439,8 +1438,8 @@ static void manage_tracking_startup(void)
     /* TODO: Initialize elevation from ephemeris if we know it precisely */
 
     /* Start the decoder channel if needed */
-    bool decoder_needed = check_decoder_need(startup_params.sid);
-    if (decoder_needed && !decoder_channel_init(chan, startup_params.sid)) {
+    if (code_requires_decoder(startup_params.sid.code) &&
+        !decoder_channel_init(chan, startup_params.sid)) {
       log_error("decoder channel init failed");
     }
 
