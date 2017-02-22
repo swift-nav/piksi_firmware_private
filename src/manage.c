@@ -65,6 +65,7 @@ typedef enum {
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_LOW_ELEVATION, /**< SV elevation is too low */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
+  CH_DROP_REASON_NO_UPDATES     /**< No tracker updates for too long */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -659,6 +660,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_LOW_ELEVATION: str = "below elevation mask, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
+  case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -689,7 +691,8 @@ static void drop_channel(u8 channel_id,
    */
   gnss_signal_t sid = info->sid;
   tracking_channel_flags_t flags = info->flags;
-  u32 time_in_track = info->uptime_ms;
+  u64 now = timing_getms();
+  u32 time_in_track = (u32)(now - info->init_timestamp_ms);
 
   /* Log message with appropriate priority. */
   if (CH_DROP_REASON_ERROR == reason) {
@@ -747,6 +750,7 @@ static void manage_track()
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
+  u64 now;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     tracking_channel_get_values(i,
@@ -757,6 +761,7 @@ static void manage_track()
                                 NULL,       /* Misc info */
                                 false);     /* Reset stats */
 
+    now = timing_getms();
 
     /* Skip channels that aren't in use */
     if (0 == (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
@@ -780,7 +785,12 @@ static void manage_track()
     }
 
     /* Give newly-initialized channels a chance to converge */
-    if (info.uptime_ms < TRACK_INIT_T) {
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T) {
+      continue;
+    }
+
+    if ((now - info.update_timestamp_ms) > NAP_CORR_LENGTH_MAX_MS) {
+      drop_channel(i, CH_DROP_REASON_NO_UPDATES, &info, &time_info, &freq_info);
       continue;
     }
 
