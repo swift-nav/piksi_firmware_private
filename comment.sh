@@ -35,19 +35,20 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 fi
 
 LINKS=\
-("http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION"
+"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
 "http://hitl-dashboard.swiftnav.com/files/$BUCKET/$REPO/$BUILD_VERSION/"
-"http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION"
 )
 
 TITLES=\
-("HITL Results - pass/fail checks"
+("Run a HITL test for this build"
+"HITL Results - pass/fail checks"
 "HITL Results - performance metrics"
 "Commit Log"
 "Firmware Artifacts"
-"Run a HITL test for this build")
+)
 
 slack_links(){
     echo -n $BUILD_PATH
@@ -58,6 +59,7 @@ slack_links(){
 
 github_links(){
     echo -n "## $BUILD_VERSION"
+    echo -n "\nYou must manually submit the form in the link for 'Run a HITL test for this build' in order to get data for the 'HITL Results' links."
     echo -n "\nNote: the following links are for this Pull Request's ***merge*** commit"
     for index in ${!LINKS[@]}; do
         echo -n "\n+ "[${TITLES[$index]}]"("${LINKS[$index]}")"
