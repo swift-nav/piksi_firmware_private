@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
@@ -19,15 +19,12 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/run_stats.h>
 
 #include "board/nap/track_channel.h"
 #include "nap/nap_constants.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "track.h"
-#include "track_api.h"
-#include "track_internal.h"
 #include "track/track_cn0.h"
 #include "track/track_profiles.h"
 #include "track/track_sid_db.h"
@@ -54,79 +51,11 @@
 #define MAX_ELEVATION_AGE_TK (MINUTE_SECS * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 typedef enum {
-  STATE_DISABLED,
-  STATE_ENABLED,
-  STATE_DISABLE_REQUESTED,
-  STATE_DISABLE_WAIT
-} state_t;
-
-typedef enum {
   EVENT_ENABLE,
   EVENT_DISABLE_REQUEST,
   EVENT_DISABLE,
   EVENT_DISABLE_WAIT_COMPLETE
 } event_t;
-
-/* Bitfield */
-typedef enum {
-  ERROR_FLAG_NONE =                         0x00,
-  ERROR_FLAG_MISSED_UPDATE =                0x01,
-  ERROR_FLAG_INTERRUPT_WHILE_DISABLED =     0x02,
-} error_flag_t;
-
-/**
- * Public data segment.
- *
- * Public data segment belongs to a tracking channel and is locked only for
- * a quick update or data fetch operations.
- *
- * The data is grouped according to functional blocks.
- */
-typedef struct {
-  /** Mutex used to permit atomic updates of public channel data. */
-  mutex_t info_mutex;
-  /** Generic info for externals */
-  volatile tracking_channel_info_t      gen_info;
-  /** Timing info for externals */
-  volatile tracking_channel_time_info_t time_info;
-  /** Frequency info for externals */
-  volatile tracking_channel_freq_info_t freq_info;
-  /** Controller parameters */
-  volatile tracking_channel_ctrl_info_t ctrl_info;
-  /** Miscellaneous parameters */
-  volatile tracking_channel_misc_info_t misc_info;
-  /** Carrier frequency products */
-  running_stats_t                       carr_freq_stats;
-  /** Pseudorange products */
-  running_stats_t                       pseudorange_stats;
-} tracker_channel_pub_data_t;
-
-/** Top-level generic tracker channel. */
-typedef struct {
-  /** State of this channel. */
-  state_t state;
-  /** Time at which the channel was disabled. */
-  systime_t disable_time;
-  /** Error flags. May be set at any time by the tracking thread. */
-  volatile error_flag_t error_flags;
-  /** Info associated with this channel. */
-  tracker_channel_info_t info;
-  /** Data common to all tracker implementations. RW from channel interface
-   * functions. RO from functions in this module. */
-  tracker_common_data_t common_data;
-  /** Data used by the API for all tracker implementations. RW from API
-   * functions called within channel interface functions. RO from functions
-   * in this module. */
-  tracker_internal_data_t internal_data;
-  /** Mutex used to permit atomic reads of channel data. */
-  mutex_t mutex;
-  /** Associated tracker interface. */
-  const tracker_interface_t *interface;
-  /** Associated tracker instance. */
-  tracker_t *tracker;
-  /** Publicly accessible data */
-  tracker_channel_pub_data_t pub_data;
-} tracker_channel_t;
 
 static tracker_channel_t tracker_channels[NUM_TRACKER_CHANNELS];
 
@@ -154,7 +83,6 @@ static update_count_t update_count_diff(const tracker_channel_t *
 static bool track_iq_output_notify(struct setting *s, const char *val);
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
-static tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
 static const tracker_interface_t * tracker_interface_lookup(gnss_signal_t sid);
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
                                      gnss_signal_t sid, tracker_t **tracker,
@@ -429,7 +357,7 @@ double propagate_code_phase(double code_phase, double carrier_freq,
  * \return true if the tracker channel was initialized, false otherwise.
  */
 bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
-                          u32 ref_sample_count, float code_phase,
+                          u32 ref_sample_count, double code_phase,
                           float carrier_freq, u32 chips_to_correlate,
                           float cn0_init)
 {
@@ -1021,6 +949,44 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   }
 }
 
+/** Utility function to find tracking channel allocated to the given sid.
+ *
+ * \param[in] sid GNSS signal identifier.
+ *
+ * \return tracker channel container for the requested sid.
+ */
+tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid)
+{
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_info_t *info = &tracker_channel->info;
+
+    if (sid_is_equal(info->sid, sid)) {
+      return tracker_channel;
+    }
+  }
+  return NULL;
+}
+
+/** Drop the L2CL tracker when it is no longer needed.
+ *  This function can be called from both L2CM and L2CL trackers.
+ *
+ * \param[in] sid GNSS signal identifier.
+ *
+ * \return None
+ */
+void tracking_channel_drop_l2cl(gnss_signal_t sid)
+{
+  gnss_signal_t sid_L2CL = construct_sid(CODE_GPS_L2CL, sid.sat);
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid_L2CL);
+  if (tracker_channel == NULL) {
+    return;
+  }
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
+}
+
 /** Set the elevation angle for SV by sid.
  *
  * \param[in] sid       Signal identifier for which the elevation should be set.
@@ -1279,7 +1245,7 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel)
  *
  * \return Associated tracker channel.
  */
-static tracker_channel_t * tracker_channel_get(tracker_channel_id_t id)
+tracker_channel_t * tracker_channel_get(tracker_channel_id_t id)
 {
   assert(id < NUM_TRACKER_CHANNELS);
   return &tracker_channels[id];
@@ -1464,6 +1430,7 @@ static void common_data_init(tracker_common_data_t *common_data,
   memset(common_data, 0, sizeof(tracker_common_data_t));
 
   common_data->TOW_ms = TOW_INVALID;
+  common_data->TOW_ms_prev = TOW_INVALID;
 
   /* Calculate code phase rate with carrier aiding. */
   common_data->code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(code)) *
@@ -1476,6 +1443,9 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->init_timestamp_ms = now;
   common_data->update_timestamp_ms = now;
   common_data->updated_once = false;
+  common_data->cp_sync.counter = 0;
+  common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+  common_data->cp_sync.synced = false;
 }
 
 /** Lock a tracker channel for exclusive access.
@@ -1623,6 +1593,10 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: cross-correlation doppler filter active */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)) {
       result |= TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE;
+    }
+    /* Tracking status: L2CL half-cycle ambiguity status */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_L2CL_AMBIGUITY)) {
+      result |= TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED;
     }
   }
 

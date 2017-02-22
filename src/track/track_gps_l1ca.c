@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -638,7 +638,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context)) {
 
-    /* Start L2 C tracker if not running */
+    /* Start L2 CM tracker if not running */
     do_l1ca_to_l2cm_handover(common_data->sample_count,
                              channel_info->sid.sat,
                              common_data->code_phase_prompt,

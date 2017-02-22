@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011-2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
@@ -19,9 +19,12 @@
 #include <libswiftnav/nav_msg.h>
 #include <libswiftnav/track.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/run_stats.h>
 
 #include <ch.h>
 
+#include "track_api.h"
+#include "track_internal.h"
 #include "board/nap/track_channel.h"
 #include <platform_signal.h>
 
@@ -41,6 +44,15 @@
 #define XCORR_CONFIRM_THRESHOLD -20.f
 /** cross-correlation update rate [Hz] */
 #define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
+/** Carrier phases within tolerance are declared equal. [cycles]
+ *  Stable PLL remains within 15 degree from correct phase.
+ *  360 * 0.05 = 18 degrees
+*/
+#define CARRIER_PHASE_TOLERANCE 0.05f
+/** counter for half-cycle ambiguity resolution */
+#define CARRIER_PHASE_AMBIGUITY_COUNTER 20
+/** handover should occur when code phase is near zero [chips] */
+#define HANDOVER_CODE_PHASE_THRESHOLD 0.5
 
 typedef u8 tracker_channel_id_t;
 
@@ -96,9 +108,25 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_XCORR_SUSPECT (1u << 23)
 /** Tracking channel flag: tracker xcorr doppler filter is active */
 #define TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE (1u << 24)
+/** Tracking channel flag: L2CL tracker has resolved half-cycle ambiguity */
+#define TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED (1u << 25)
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;
+
+typedef enum {
+  STATE_DISABLED,
+  STATE_ENABLED,
+  STATE_DISABLE_REQUESTED,
+  STATE_DISABLE_WAIT
+} state_t;
+
+/* Bitfield */
+typedef enum {
+  ERROR_FLAG_NONE =                         0x00,
+  ERROR_FLAG_MISSED_UPDATE =                0x01,
+  ERROR_FLAG_INTERRUPT_WHILE_DISABLED =     0x02,
+} error_flag_t;
 
 /**
  * Generic tracking channel information for external use.
@@ -167,6 +195,60 @@ typedef struct {
 } tracking_channel_freq_info_t;
 
 /**
+ * Public data segment.
+ *
+ * Public data segment belongs to a tracking channel and is locked only for
+ * a quick update or data fetch operations.
+ *
+ * The data is grouped according to functional blocks.
+ */
+typedef struct {
+  /** Mutex used to permit atomic updates of public channel data. */
+  mutex_t info_mutex;
+  /** Generic info for externals */
+  volatile tracking_channel_info_t      gen_info;
+  /** Timing info for externals */
+  volatile tracking_channel_time_info_t time_info;
+  /** Frequency info for externals */
+  volatile tracking_channel_freq_info_t freq_info;
+  /** Controller parameters */
+  volatile tracking_channel_ctrl_info_t ctrl_info;
+  /** Miscellaneous parameters */
+  volatile tracking_channel_misc_info_t misc_info;
+  /** Carrier frequency products */
+  running_stats_t                       carr_freq_stats;
+  /** Pseudorange products */
+  running_stats_t                       pseudorange_stats;
+} tracker_channel_pub_data_t;
+
+/** Top-level generic tracker channel. */
+typedef struct {
+  /** State of this channel. */
+  state_t state;
+  /** Time at which the channel was disabled. */
+  systime_t disable_time;
+  /** Error flags. May be set at any time by the tracking thread. */
+  volatile error_flag_t error_flags;
+  /** Info associated with this channel. */
+  tracker_channel_info_t info;
+  /** Data common to all tracker implementations. RW from channel interface
+   * functions. RO from functions in this module. */
+  tracker_common_data_t common_data;
+  /** Data used by the API for all tracker implementations. RW from API
+   * functions called within channel interface functions. RO from functions
+   * in this module. */
+  tracker_internal_data_t internal_data;
+  /** Mutex used to permit atomic reads of channel data. */
+  mutex_t mutex;
+  /** Associated tracker interface. */
+  const tracker_interface_t *interface;
+  /** Associated tracker instance. */
+  tracker_t *tracker;
+  /** Publicly accessible data */
+  tracker_channel_pub_data_t pub_data;
+} tracker_channel_t;
+
+/**
  * Input entry for cross-correlation processing
  *
  * \sa tracking_channel_cc_data_t
@@ -207,7 +289,7 @@ void tracking_channels_missed_update_error(u32 channels_mask);
 /* State management interface */
 bool tracker_channel_available(tracker_channel_id_t id, gnss_signal_t sid);
 bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
-                          u32 ref_sample_count, float code_phase,
+                          u32 ref_sample_count, double code_phase,
                           float carrier_freq, u32 chips_to_correlate,
                           float cn0_init);
 bool tracker_channel_disable(tracker_channel_id_t id);
@@ -240,6 +322,9 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
                                                double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
+tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid);
+void tracking_channel_drop_l2cl(gnss_signal_t sid);
+
 bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp);
 s8 sv_elevation_degrees_get(gnss_signal_t sid);
 
@@ -249,4 +334,5 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
 bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
                                 s8 bit_polarity);
 void tracking_channel_set_prn_fail_flag(gnss_signal_t sid, bool val);
+tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
 #endif

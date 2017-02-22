@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Valeri Atamaniouk <valeri@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -250,7 +250,6 @@ typedef struct {
   bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status */
   bool xcorr_whitelist_l2;            /**< L2 Cross-correlation whitelist status */
   u8  xcorr_flag: 1;                  /**< Cross-correlation flag */
-  u8  reserved: 7;                    /**< Unused (reserved) flags */
 } gps_l1ca_tracker_data_t;
 
 /**
@@ -262,8 +261,14 @@ typedef struct {
   bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
   bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
   u8  xcorr_flag: 1;       /**< Cross-correlation flag */
-  u8  reserved: 7;         /**< Unused (reserved) flags */
 } gps_l2cm_tracker_data_t;
+
+/**
+ * GPS L2CL tracker data container type.
+ */
+typedef struct {
+  tp_tracker_data_t data;  /**< Common tracker parameters */
+} gps_l2cl_tracker_data_t;
 
 /**
  * Common tracker configuration container.
@@ -346,7 +351,7 @@ void tp_tl_retune(tp_tl_state_t *s,
 void tp_tl_adjust(tp_tl_state_t *s, float err);
 void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);
 void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs);
+void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);

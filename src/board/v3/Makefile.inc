@@ -108,6 +108,7 @@ BOARDSRC := \
         $(BOARDDIR)/peripherals/rtc_m41t62.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
+        $(SWIFTNAV_ROOT)/src/track/track_gps_l2cl.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l2c.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_l2c_capb.o \

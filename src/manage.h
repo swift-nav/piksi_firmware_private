@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014,2016 Swift Navigation Inc.
+ * Copyright (C) 2011 - 2017 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -30,8 +30,13 @@
 #define TRACK_CN0_THRES_COUNT_SHORT 100
 
 /** How many ms to allow tracking channel to converge after
-    initialization before we consider dropping it */
+    initialization before we consider dropping it.
+    Applied to all signals other than GPS L2CL */
 #define TRACK_INIT_T 2500
+
+/** How many ms to allow L2CL tracking channel to converge after
+    initialization before we consider dropping it */
+#define TRACK_INIT_T_L2CL 500
 
 /** If a channel is dropped but was running successfully for at least
     this long, mark it for prioritized reacquisition. */
@@ -106,6 +111,8 @@
 #define MANAGE_TRACK_FLAG_XCORR_CONFIRMED (1u << 20)
 /** Tracking channel flag: is cross-correlation suspect */
 #define MANAGE_TRACK_FLAG_XCORR_SUSPECT (1u << 21)
+/** Tracking channel flag: L2CL has half-cycle ambiguity resolved */
+#define MANAGE_TRACK_FLAG_L2CL_AMBIGUITY (1u << 22)
 
 /* Tracking channel state masks */
 
@@ -124,7 +131,7 @@ typedef struct {
   gnss_signal_t sid;      /**< Signal identifier. */
   u32 sample_count;       /**< Reference NAP sample count. */
   float carrier_freq;     /**< Carrier frequency Doppler (Hz). */
-  float code_phase;       /**< Code phase (chips). */
+  double code_phase;      /**< Code phase (chips). */
   u32 chips_to_correlate; /**< Chips to integrate over. */
   float cn0_init;         /**< C/N0 estimate (dBHz). */
   s8 elevation;           /**< Elevation (deg). */

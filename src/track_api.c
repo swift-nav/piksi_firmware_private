@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -23,6 +23,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "signal.h"
+#include "decode.h"
 
 /** \defgroup track_api Tracking API
  * API functions used by tracking channel implementations.
@@ -188,7 +189,10 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
   s32 bit_integrate;
   if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
                       &bit_integrate)) {
-
+    /* No need to write L2CL bits to FIFO */
+    if (!code_requires_decoder(channel_info->sid.code)) {
+      return;
+    }
     s8 soft_bit = nav_bit_quantize(bit_integrate);
 
     /* write to FIFO */
@@ -297,6 +301,40 @@ void tracker_ambiguity_unknown(tracker_context_t *context)
   internal_data->lock_counter =
       tracking_lock_counter_increment(channel_info->sid);
   internal_data->reset_cpo = true;
+}
+
+/** Checks channel's carrier phase ambiguity status.
+ *
+ * \param context Tracker context.
+ *
+ * \return false if ambiguity unknown, true if it is known.
+ */
+bool tracker_ambiguity_status(tracker_context_t *context)
+{
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  return internal_data->bit_polarity != BIT_POLARITY_UNKNOWN;
+}
+
+/** Set channel's carrier phase ambiguity status.
+ *
+ * \param context  Tracker context.
+ * \param polarity Polarity of the half-cycle ambiguity
+ *
+ * \return None
+ */
+void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
+{
+  if (BIT_POLARITY_UNKNOWN == polarity) {
+    return;
+  }
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  internal_data->bit_polarity = polarity;
 }
 
 /** Output a correlation data message for a tracker channel.

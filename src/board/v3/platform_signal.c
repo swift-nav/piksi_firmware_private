@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -14,6 +14,7 @@
 
 #include "track/track_gps_l1ca.h"
 #include "track/track_gps_l2cm.h"
+#include "track/track_gps_l2cl.h"
 #include "track/track_sid_db.h"
 
 #include "decode/decode_gps_l1ca.h"
@@ -26,6 +27,7 @@ void platform_track_setup(void)
   track_sid_db_init();
   track_gps_l1ca_register();
   track_gps_l2cm_register();
+  track_gps_l2cl_register();
 }
 
 void platform_decode_setup(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Adel Mamin <adel.mamin@exafore.com>
  * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
  *
@@ -616,6 +616,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
 
   common_data->sample_count = sample_count;
   common_data->code_phase_prompt = code_phase_prompt;
+  common_data->carrier_phase_prev = common_data->carrier_phase;
   common_data->carrier_phase = carrier_phase;
 
   /* ToW update:
@@ -623,6 +624,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
    * in sync.
    */
   bool decoded_tow;
+  common_data->TOW_ms_prev = common_data->TOW_ms;
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
                                            int_ms,
@@ -880,7 +882,8 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
 
     tl_rates_t rates = {0};
 
-    tp_tl_update(&data->tl_state, &data->corrs.corr_epl);
+    bool costas = (channel_info->sid.code != CODE_GPS_L2CL);
+    tp_tl_update(&data->tl_state, &data->corrs.corr_epl, costas);
     tp_tl_get_rates(&data->tl_state, &rates);
 
     common_data->carrier_freq = rates.carr_freq;

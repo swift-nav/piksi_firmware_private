@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -196,7 +196,8 @@ enum {
 /* The values of NAP_TRKx_CONTROL::CODE field */
 enum {
   NAP_CODE_GPS_L1CA_SBAS_L1CA = 0, /* GPS L1C/A, SBAS L1CA */
-  NAP_CODE_GPS_L2CM                /* GPS L2CM */
+  NAP_CODE_GPS_L2CM,               /* GPS L2CM */
+  NAP_CODE_GPS_L2CL                /* GPS L2CL */
 };
 
 /* Instances */

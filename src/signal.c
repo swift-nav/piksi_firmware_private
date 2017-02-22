@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011-2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
@@ -33,6 +33,7 @@ static code_table_element_t code_table[CODE_COUNT];
 static const u16 code_signal_counts[CODE_COUNT] = {
   [CODE_GPS_L1CA]  = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
   [CODE_GPS_L2CM]  = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
+  [CODE_GPS_L2CL]  = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
   [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
   [CODE_GLO_L1CA]  = PLATFORM_SIGNAL_COUNT_GLO_L1CA,
   [CODE_GLO_L2CA]  = PLATFORM_SIGNAL_COUNT_GLO_L2CA,

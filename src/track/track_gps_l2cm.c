@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Adel Mamin <adel.mamin@exafore.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
@@ -16,6 +16,7 @@
 
 /* Local headers */
 #include "track_gps_l2cm.h"
+#include "track_gps_l2cl.h" /* for L2CM to L2CL tracking handover */
 #include "track_cn0.h"
 #include "track_profile_utils.h"
 #include "track_profiles.h"
@@ -144,14 +145,15 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   }
 
   if ((code_phase < 0) ||
-      ((code_phase > 0.5) && (code_phase < (GPS_L1CA_CHIPS_NUM - 0.5)))) {
+      ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
+       (code_phase < (GPS_L1CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
     log_warn_sid(sid, "Unexpected L1C/A to L2C handover code phase: %f",
                  code_phase);
     return;
   }
 
-  if (code_phase > (GPS_L1CA_CHIPS_NUM - 0.5)) {
-    code_phase = GPS_L2C_CHIPS_NUM - (GPS_L1CA_CHIPS_NUM - code_phase);
+  if (code_phase > (GPS_L1CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)) {
+    code_phase = GPS_L2CM_CHIPS_NUM - (GPS_L1CA_CHIPS_NUM - code_phase);
   }
 
   /* The best elevation estimation could be retrieved by calling
@@ -496,6 +498,25 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
+/** Read the half-cycle ambiguity status.
+ *
+ * \param[in,out] common_data Channel data.
+ *
+ * \return Polarity of the half-cycle ambiguity.
+ */
+static s8 read_ambiguity_status(tracker_common_data_t *common_data)
+{
+  s8 retval = BIT_POLARITY_UNKNOWN;
+  /* If the half-cycle ambiguity has been resolved,
+   * return polarity, and reset polarity and sync status. */
+  if (common_data->cp_sync.synced) {
+    retval = common_data->cp_sync.polarity;
+    common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+    common_data->cp_sync.synced = false;
+  }
+  return retval;
+}
+
 static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
@@ -511,4 +532,37 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
 
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
   update_l2_xcorr_from_l1(channel_info, common_data, l2c_data, cflags);
+
+  if (data->lock_detect.outp &&
+      data->confirmed &&
+      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context)) {
+
+    if (tp_tl_is_fll(&data->tl_state)) {
+      tracking_channel_drop_l2cl(channel_info->sid);
+    }
+
+    if (!tracker_ambiguity_status(channel_info->context)) {
+      s8 public = read_ambiguity_status(common_data);
+      tracker_ambiguity_set(channel_info->context, public);
+    }
+  }
+
+  if (data->lock_detect.outp &&
+      data->confirmed &&
+      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context) &&
+      /* TOW must be known to start L2CL */
+      TOW_UNKNOWN != common_data->TOW_ms &&
+      /* L2CM half-cycle ambiguity must be unknown */
+      !tracker_ambiguity_status(channel_info->context)) {
+
+    /* Start L2 CL tracker if not running */
+    do_l2cm_to_l2cl_handover(common_data->sample_count,
+                             channel_info->sid.sat,
+                             common_data->code_phase_prompt,
+                             common_data->carrier_freq,
+                             common_data->cn0,
+                             common_data->TOW_ms);
+  }
 }

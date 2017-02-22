@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Gareth McMullin <gareth@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -94,6 +94,7 @@ u8 sid_to_rf_frontend_channel(gnss_signal_t sid)
     ret = NAP_RF_FRONTEND_CHANNEL_1;
     break;
   case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
     ret = NAP_RF_FRONTEND_CHANNEL_4;
     break;
   case CODE_GLO_L1CA:
@@ -113,7 +114,7 @@ u8 sid_to_rf_frontend_channel(gnss_signal_t sid)
 
 /** Looks-up NAP constellation and band code for the given signal ID.
  * \param sid Signal ID.
- * \return NAP constallation and band code.
+ * \return NAP constellation and band code.
  */
 u8 sid_to_nap_code(gnss_signal_t sid)
 {
@@ -125,6 +126,9 @@ u8 sid_to_nap_code(gnss_signal_t sid)
     break;
   case CODE_GPS_L2CM:
     ret = NAP_CODE_GPS_L2CM;
+    break;
+  case CODE_GPS_L2CL:
+    ret = NAP_CODE_GPS_L2CL;
     break;
   case CODE_GLO_L1CA:
   case CODE_GLO_L2CA:
@@ -163,14 +167,26 @@ static double calc_samples_per_chip(double code_phase_rate)
 }
 
 void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
-                   float carrier_freq, float code_phase, u32 chips_to_correlate)
+                   float carrier_freq, double code_phase, u32 chips_to_correlate)
 {
-  assert((sid.code == CODE_GPS_L1CA) || (sid.code == CODE_GPS_L2CM));
+  assert((sid.code == CODE_GPS_L1CA) ||
+         (sid.code == CODE_GPS_L2CM) ||
+         (sid.code == CODE_GPS_L2CL));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
 
   s->sid = sid;
+  /* Delay L2CL code phase by 1 chip to accommodate zero in the L2CM slot */
+  /* Initial correlation length for L2CL is thus 1 chip shorter,
+   * since first L2CM chip is skipped */
+  if (sid.code == CODE_GPS_L2CL) {
+    code_phase -= 1.0f;
+    if (code_phase < 0.0f) {
+      code_phase += GPS_L2CL_CHIPS_NUM;
+    }
+    chips_to_correlate -= 1;
+  }
 
   /* Correlator spacing: VE -> E */
   s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
@@ -201,12 +217,6 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
              NAP_TRK_CONTROL_CODE_Msk;
 
   t->CONTROL = control;
-
-  /* We always start at zero code phase */
-  t->CODE_INIT_INT = 0;
-  t->CODE_INIT_FRAC = 0;
-  t->CODE_INIT_G1 = sid_to_init_g1(sid);
-  t->CODE_INIT_G2 = 0x3ff;
 
   /* Set correlator spacing */
   t->SPACING = (spacing_to_nap_offset(s->spacing[0]) <<
@@ -261,11 +271,29 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
     double cp = propagate_code_phase(code_phase, carrier_freq,
                                      tc_req - ref_timing_count, sid.code);
-
-    /* Contrive for the timing strobe to occur at or close to a PRN edge
-     * (code phase = 0) */
-    tc_req += round((code_to_chip_count(sid.code) - cp) *
-        calc_samples_per_chip(code_phase_rate));
+    u8 index = 0;
+    /* Contrive for the timing strobe to occur at
+     * or close to next PRN start point */
+    if (sid.code == CODE_GPS_L2CL) {
+      u32 code_length = code_to_chip_count(sid.code);
+      u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL / GPS_L2CL_PRN_PERIOD;
+      u8 cp_start = 0;
+      double tmp = ceil(cp / chips);
+      if (tmp >= 0 && tmp < GPS_L2CL_PRN_START_POINTS) {
+        cp_start = tmp;
+      }
+      index = (cp_start == GPS_L2CL_PRN_START_POINTS) ? 0 : cp_start;
+      tc_req += round((cp_start * chips - cp)
+              * calc_samples_per_chip(code_phase_rate));
+      t->CODE_INIT_INT = index * chips;
+    } else {
+      tc_req += round((code_to_chip_count(sid.code) - cp)
+              * calc_samples_per_chip(code_phase_rate));
+      t->CODE_INIT_INT = 0;
+    }
+    t->CODE_INIT_FRAC = 0;
+    t->CODE_INIT_G1 = sid_to_init_g1(sid, index);
+    t->CODE_INIT_G2 = 0x3ff;
 
     /* Correct timing count for correlator spacing */
     tc_req -= prompt_offset;
@@ -293,6 +321,10 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
   assert(t->LENGTH < length);   /* check for overflow */
+  /* Future integrations for L2CL are 1 chip longer */
+  if (sid.code == CODE_GPS_L2CL) {
+    t->LENGTH += calc_samples_per_chip(code_phase_rate);
+  }
   s->init = false;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Swift Navigation Inc.
+ * Copyright (C) 2011-2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
@@ -28,6 +28,8 @@
                                              NUM_SIGNALS_GPS_L1CA : 0)
 #define PLATFORM_SIGNAL_COUNT_GPS_L2CM      (CODE_GPS_L2CM_SUPPORT ?          \
                                              NUM_SIGNALS_GPS_L2CM : 0)
+#define PLATFORM_SIGNAL_COUNT_GPS_L2CL      (CODE_GPS_L2CL_SUPPORT ?          \
+                                             NUM_SIGNALS_GPS_L2CL : 0)
 #define PLATFORM_SIGNAL_COUNT_SBAS_L1CA     (CODE_SBAS_L1CA_SUPPORT ?         \
                                              NUM_SIGNALS_SBAS_L1CA : 0)
 #define PLATFORM_SIGNAL_COUNT_GLO_L1CA      (CODE_GLO_L1CA_SUPPORT ?          \
@@ -43,6 +45,7 @@
  * on the current hardware platform. */
 #define PLATFORM_SIGNAL_COUNT_GPS     (PLATFORM_SIGNAL_COUNT_GPS_L1CA +       \
                                        PLATFORM_SIGNAL_COUNT_GPS_L2CM +       \
+                                       PLATFORM_SIGNAL_COUNT_GPS_L2CL +       \
                                        PLATFORM_SIGNAL_COUNT_GPS_L1P  +       \
                                        PLATFORM_SIGNAL_COUNT_GPS_L2P)
 #define PLATFORM_SIGNAL_COUNT_SBAS    (PLATFORM_SIGNAL_COUNT_SBAS_L1CA)

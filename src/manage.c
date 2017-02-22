@@ -63,7 +63,9 @@ typedef enum {
   CH_DROP_REASON_NO_PLOCK,      /**< Pessimistic lock timeout */
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
-  CH_DROP_REASON_NO_UPDATES     /**< No tracker updates for too long */
+  CH_DROP_REASON_NO_UPDATES,    /**< No tracker updates for too long */
+  CH_DROP_REASON_L2CL_SYNC      /**< Drop L2CL after half-cycle ambiguity
+                                     has been resolved */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -568,9 +570,13 @@ static u8 manage_track_new_acq(gnss_signal_t sid)
   /* Decide which (if any) tracking channel to put
    * a newly acquired satellite into.
    */
-  for (u8 i=0; i<nap_track_n_channels; i++) {
-    if (tracker_channel_available(i, sid) &&
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    if (code_requires_decoder(sid.code) &&
+        tracker_channel_available(i, sid) &&
         decoder_channel_available(i, sid)) {
+      return i;
+    } else if (!code_requires_decoder(sid.code)  &&
+               tracker_channel_available(i, sid)) {
       return i;
     }
   }
@@ -651,6 +657,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_LOW_CN0: str = "low CN0 too long, dropping"; break;
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
   case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
+  case CH_DROP_REASON_L2CL_SYNC: str = "L2CM half-cycle ambiguity resolved, dropping L2CL"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -742,6 +749,7 @@ static void manage_track()
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
+  tracking_channel_misc_info_t misc_info;
   u64 now;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
@@ -750,7 +758,7 @@ static void manage_track()
                                 &time_info, /* Timers */
                                 &freq_info, /* Frequencies */
                                 NULL,       /* Loop controller values */
-                                NULL,       /* Misc info */
+                                &misc_info, /* Misc info */
                                 false);     /* Reset stats */
 
     now = timing_getms();
@@ -775,8 +783,17 @@ static void manage_track()
       continue;
     }
 
-    /* Give newly-initialized channels a chance to converge */
-    if ((now - info.init_timestamp_ms) < TRACK_INIT_T) {
+    /* Give newly-initialized channels a chance to converge.
+     * Signals other than GPS L2CL are given longer time. */
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T &&
+        sid.code != CODE_GPS_L2CL) {
+      continue;
+    }
+
+    /* Give newly-initialized L2CL channels a chance to converge.
+     * GPS L2CL signals are expected to stabilize fast. */
+    if ((now - info.init_timestamp_ms) < TRACK_INIT_T_L2CL &&
+        sid.code == CODE_GPS_L2CL) {
       continue;
     }
 
@@ -806,6 +823,12 @@ static void manage_track()
     /* Do we have confirmed cross-correlation? */
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED)) {
       drop_channel(i, CH_DROP_REASON_XCORR, &info, &time_info, &freq_info);
+      continue;
+    }
+
+    /* Drop L2CL if the half-cycle ambiguity has been resolved. */
+    if (0 != (info.flags & TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED)) {
+      drop_channel(i, CH_DROP_REASON_L2CL_SYNC, &info, &time_info, &freq_info);
       continue;
     }
   }
@@ -928,6 +951,9 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
     }
     if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_XCORR_SUSPECT)) {
       result |= MANAGE_TRACK_FLAG_XCORR_SUSPECT;
+    }
+    if (0 != (tc_flags & TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED)) {
+      result |= MANAGE_TRACK_FLAG_L2CL_AMBIGUITY;
     }
   }
 
@@ -1411,8 +1437,9 @@ static void manage_tracking_startup(void)
 
     /* TODO: Initialize elevation from ephemeris if we know it precisely */
 
-    /* Start the decoder channel */
-    if (!decoder_channel_init(chan, startup_params.sid)) {
+    /* Start the decoder channel if needed */
+    if (code_requires_decoder(startup_params.sid.code) &&
+        !decoder_channel_init(chan, startup_params.sid)) {
       log_error("decoder channel init failed");
     }
 
