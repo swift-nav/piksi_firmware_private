@@ -17,6 +17,7 @@
 #include <libswiftnav/logging.h>
 #include "ndb.h"
 #include "ndb_internal.h"
+#include "settings.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 
@@ -43,7 +44,11 @@ static ndb_file_t gps_l2c_capb_file = {
 
 void ndb_l2c_capb_init(void)
 {
-  ndb_load_data(&gps_l2c_capb_file, false);
+
+  static bool erase_l2c_capb = true;
+  SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
+
+  ndb_load_data(&gps_l2c_capb_file, erase_l2c_capb);
 
   if (0 == (gps_l2c_capabilities_md.nv_data.state & NDB_IE_VALID) ||
       0 == gps_l2c_capabilities) {
@@ -88,11 +93,11 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
                                          ndb_data_source_t src,
                                          u16 sender_id)
 {
-  if (NULL != l2c_cap && GPS_L2C_CAPAB_DEFAULT != *l2c_cap) {
+  ndb_op_code_t res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
+
+  if (NULL != l2c_cap && NDB_ERR_NONE == res) {
     log_info("Updating L2C capability 0x%08" PRIX32, *l2c_cap);
   }
-
-  ndb_op_code_t res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
                      NDB_EVENT_OTYPE_L2C_CAP,
