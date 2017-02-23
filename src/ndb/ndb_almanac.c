@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 - 2017 Swift Navigation Inc.
- * Contact: Valeri Atamaniouk <valeri.atamanouk@exafore.com>
+ * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -53,8 +53,9 @@
 #define NDB_ALMA_IE_WN_COUNT (NUM_SATS_GPS * 2)
 /** Interval between two almanac transmission [cycles] */
 #define NDB_ALMA_MESSAGE_SPACING        (200 / NV_WRITE_REQ_TIMEOUT)
-/** Interval between last and first almanac transmit [cycles] */
-#define NDB_ALMA_TRANSMIT_EPOCH_SPACING (15000 / NV_WRITE_REQ_TIMEOUT)
+/** Minimum interval between almanac transmit epoch starts, can be longer
+    if the amount of sent messages makes epoch longer [cycles] */
+#define NDB_ALMA_TRANSMIT_EPOCH_SPACING (60000 / NV_WRITE_REQ_TIMEOUT)
 
 /** Almanac candidate entry */
 typedef struct {
@@ -115,10 +116,16 @@ static ndb_file_t ndb_alma_wn_file = {
 
 static u16 map_sid_to_index(gnss_signal_t sid)
 {
-  assert(sid_is_valid(sid));
-  assert(sid_to_constellation(sid) == CONSTELLATION_GPS);
-
-  return sid.sat - GPS_FIRST_PRN;
+  u16 idx = PLATFORM_SIGNAL_COUNT;
+  /*
+   * Current architecture uses GPS L1 C/A almanac for GPS satellites.
+   */
+  if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
+    idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
+  } else {
+    idx = sid_to_global_index(sid);
+  }
+  return idx;
 }
 
 /**
@@ -985,6 +992,37 @@ ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
 }
 
 /**
+ * Sends out MsgAlmanac
+ *
+ * \param[in] sid  GNSS signal identifier to indicate which alma to send
+ *
+ * \retval TRUE    Alma found, valid and sent
+ * \retval FALSE   Alma not sent
+ */
+bool ndb_almanac_sbp_update_tx(gnss_signal_t sid)
+{
+  almanac_t a;
+  gps_time_t t = get_current_time();
+  enum ndb_op_code oc = ndb_almanac_read(sid, &a);
+  if (NDB_ERR_NONE == oc && almanac_valid(&a, &t)) {
+    msg_almanac_t msg;
+    msg_info_t info = pack_almanac(&a, &msg);
+    sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static ndb_sbp_update_info_t alma_update_info = {
+  NDB_SBP_UPDATE_CYCLE_COUNT_INIT,
+  NDB_SBP_UPDATE_SIG_IDX_INIT,
+  NDB_ALMA_TRANSMIT_EPOCH_SPACING,
+  NDB_ALMA_MESSAGE_SPACING,
+  &ndb_almanac_sbp_update_tx
+};
+
+/**
  * The function sends almanac if valid.
  *
  * Function is supposed to be called every NV_WRITE_REQ_TIMEOUT ms from
@@ -992,5 +1030,6 @@ ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
  */
 void ndb_almanac_sbp_update(void)
 {
-  /* TODO */
+  ndb_sbp_update(&alma_update_info);
 }
+

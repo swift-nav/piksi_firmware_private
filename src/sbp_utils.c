@@ -491,22 +491,29 @@ static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
   msg->tau            = e->glo.tau;
 }
 
+#define TYPE_TABLE_INVALID_MSG_ID 0
+
 typedef void (*pack_ephe_func)(const ephemeris_t *, msg_ephemeris_t *);
 typedef void (*unpack_ephe_func)(const msg_ephemeris_t *, ephemeris_t *);
 
-#define EPHE_TYPE_COUNT 3
-
 typedef struct {
-  const msg_ephemeris_info_t msg_info;
+  const msg_info_t msg_info;
   const pack_ephe_func pack;
   const unpack_ephe_func unpack;
   sbp_msg_callbacks_node_t cbk_node;
 } ephe_type_table_element_t;
-static ephe_type_table_element_t ephe_type_table[EPHE_TYPE_COUNT] = {
+
+static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
+
+  /* GPS */
   {{SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},
    pack_ephemeris_gps, unpack_ephemeris_gps, {0}},
+
+  /* SBAS */
   {{SBP_MSG_EPHEMERIS_SBAS, sizeof(msg_ephemeris_sbas_t)},
    pack_ephemeris_sbas, unpack_ephemeris_sbas, {0}},
+
+  /* GLO */
   {{SBP_MSG_EPHEMERIS_GLO, sizeof(msg_ephemeris_glo_t)},
    pack_ephemeris_glo, unpack_ephemeris_glo, {0}}
 };
@@ -515,17 +522,15 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
 {
   constellation_t c = sid_to_constellation(e->sid);
 
-  assert(c < EPHE_TYPE_COUNT);
   assert(NULL != ephe_type_table[c].unpack);
 
   ephe_type_table[c].unpack(msg, e);
 }
 
-msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
+msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
 {
   constellation_t c = sid_to_constellation(e->sid);
 
-  assert(c < EPHE_TYPE_COUNT);
   assert(NULL != ephe_type_table[c].pack);
 
   ephe_type_table[c].pack(e, msg);
@@ -535,10 +540,14 @@ msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
 
 void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*))
 {
-  if (EPHE_TYPE_COUNT != CONSTELLATION_COUNT)
-    log_warn("EPHE_TYPE_COUNT != CONSTELLATION_COUNT");
+  assert(ARRAY_SIZE(ephe_type_table) == CONSTELLATION_COUNT);
 
-  for (u8 i = 0; i < EPHE_TYPE_COUNT; i++) {
+  for (u8 i = 0; i < ARRAY_SIZE(ephe_type_table); i++) {
+    /* check if type is valid */
+    if (TYPE_TABLE_INVALID_MSG_ID != ephe_type_table[i].msg_info.msg_id) {
+      continue;
+    }
+
     sbp_register_cbk(
       ephe_type_table[i].msg_info.msg_id,
       ephemeris_msg_callback,
@@ -656,6 +665,109 @@ void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
   if (t_out->tow >= WEEK_MS) {
     t_out->wn++;
     t_out->tow -= WEEK_MS;
+  }
+}
+
+static void pack_almanac_common(const almanac_t *a,
+                                almanac_common_content_t *common)
+{
+  common->toa.tow      = a->toa.tow;
+  common->toa.wn       = a->toa.wn;
+  common->valid        = a->valid;
+  common->health_bits  = a->health_bits;
+  common->sid          = sid_to_sbp(a->sid);
+  common->fit_interval = a->fit_interval;
+  common->ura          = a->ura;
+}
+
+static void pack_almanac_gps(const almanac_t *a, msg_almanac_t *m)
+{
+  msg_almanac_gps_t *msg = &m->gps;
+  pack_almanac_common(a, &msg->common);
+  msg->m0             = a->kepler.m0;
+  msg->ecc            = a->kepler.ecc;
+  msg->sqrta          = a->kepler.sqrta;
+  msg->omega0         = a->kepler.omega0;
+  msg->omegadot       = a->kepler.omegadot;
+  msg->w              = a->kepler.w;
+  msg->inc            = a->kepler.inc;
+  msg->af0            = a->kepler.af0;
+  msg->af1            = a->kepler.af1;
+}
+
+static void pack_almanac_glo(const almanac_t *a, msg_almanac_t *m)
+{
+  msg_almanac_glo_t *msg = &m->glo;
+  pack_almanac_common(a, &msg->common);
+  msg->lambda_na      = a->glo.lambda;
+  msg->t_lambda_na    = a->glo.t_lambda;
+  msg->i              = a->glo.i;
+  msg->t              = a->glo.t;
+  msg->t_dot          = a->glo.t_dot;
+  msg->epsilon        = a->glo.epsilon;
+  msg->omega          = a->glo.omega;
+}
+
+typedef void (*pack_alma_func)(const almanac_t *, msg_almanac_t *);
+typedef void (*unpack_alma_func)(const msg_almanac_t *, almanac_t *);
+
+typedef struct {
+  const msg_info_t msg_info;
+  const pack_alma_func pack;
+  const unpack_alma_func unpack;
+  sbp_msg_callbacks_node_t cbk_node;
+} alma_type_table_element_t;
+
+/* TODO: almanac unpacking functions*/
+static alma_type_table_element_t alma_type_table[CONSTELLATION_COUNT] = {
+
+  /* GPS */
+  {{SBP_MSG_ALMANAC_GPS, sizeof(msg_almanac_gps_t)},
+   pack_almanac_gps, NULL, {0}},
+
+  /* SBAS almanac not supported at the moment */
+  {{TYPE_TABLE_INVALID_MSG_ID, 0}, NULL, NULL, {0}},
+
+  /* GLO */
+  {{SBP_MSG_ALMANAC_GLO, sizeof(msg_almanac_glo_t)},
+   pack_almanac_glo, NULL, {0}}
+};
+
+void unpack_almanac(const msg_almanac_t *msg, almanac_t *a)
+{
+  constellation_t c = sid_to_constellation(a->sid);
+
+  assert(NULL != alma_type_table[c].unpack);
+
+  alma_type_table[c].unpack(msg, a);
+}
+
+msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg)
+{
+  constellation_t c = sid_to_constellation(a->sid);
+
+  assert(NULL != alma_type_table[c].pack);
+
+  alma_type_table[c].pack(a, msg);
+
+  return alma_type_table[c].msg_info;
+}
+
+void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8*, void*))
+{
+  assert(ARRAY_SIZE(alma_type_table) == CONSTELLATION_COUNT);
+
+  for (u8 i = 0; i < ARRAY_SIZE(alma_type_table); i++) {
+    /* check if type is valid */
+    if (TYPE_TABLE_INVALID_MSG_ID != alma_type_table[i].msg_info.msg_id) {
+      continue;
+    }
+
+    sbp_register_cbk(
+      alma_type_table[i].msg_info.msg_id,
+      almanac_msg_callback,
+      &alma_type_table[i].cbk_node
+    );
   }
 }
 

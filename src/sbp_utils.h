@@ -22,6 +22,8 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/almanac.h>
+#include <libswiftnav/ephemeris.h>
 
 typedef struct {
   union {
@@ -34,7 +36,12 @@ typedef struct {
 typedef struct {
   u16 msg_id;
   u16 size;
-} msg_ephemeris_info_t;
+} msg_info_t;
+
+typedef union {
+  msg_almanac_gps_t   gps;
+  msg_almanac_glo_t   glo;
+} msg_almanac_t;
 
 typedef enum {
   NDB_EVENT_UNKNOWN = 0,
@@ -113,9 +120,11 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e);
 
-msg_ephemeris_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
+msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg);
 
 void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*));
+
+msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg);
 
 /** Value specifying the size of the SBP framing */
 #define SBP_FRAMING_SIZE_BYTES 8
