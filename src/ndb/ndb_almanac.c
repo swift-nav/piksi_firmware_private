@@ -168,7 +168,7 @@ static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx)
  */
 static void ndb_alma_candidate_add(const almanac_t *alma)
 {
-  ndb_timestamp_t now = ndb_get_timestamp();
+  ndb_timestamp_t now = ndb_get_NAP_timestamp();
   ndb_timestamp_t max_age = 0;
   ndb_ie_index_t  max_age_idx = ARRAY_SIZE(alma_candidates);
   ndb_ie_index_t  idx;
@@ -229,7 +229,7 @@ static void ndb_alma_candidate_release(s16 cand_index)
  */
 static void ndb_alma_candidate_cleanup(void)
 {
-  ndb_timestamp_t time = ndb_get_timestamp();
+  ndb_timestamp_t time = ndb_get_NAP_timestamp();
   if (time < NDB_MAX_ALMA_CANDIDATE_AGE) {
     time = 0;
   } else {
@@ -433,7 +433,7 @@ static void ndb_alma_wn_update_alma_candidates(u32 toa, u16 wn)
  */
 static void ndb_alma_wn_candidate_cleanup(void)
 {
-  ndb_timestamp_t time = ndb_get_timestamp();
+  ndb_timestamp_t time = ndb_get_NAP_timestamp();
   if (time < NDB_MAX_ALMA_WN_CANDIDATE_AGE) {
     time = 0;
   } else {
@@ -562,7 +562,7 @@ static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn)
     }
     assert(idx < ARRAY_SIZE(alma_wn_candidates));
 
-    alma_wn_candidates[idx].received_at = ndb_get_timestamp();
+    alma_wn_candidates[idx].received_at = ndb_get_NAP_timestamp();
     alma_wn_candidates[idx].used = true;
     alma_wn_candidates[idx].alma_wn.gps_wn = wn;
     alma_wn_candidates[idx].alma_wn.gps_toa = toa;
@@ -637,7 +637,8 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds)
   wn_data[idx].gps_toa = toa;
   wn_data[idx].gps_wn = wn;
   wn_md[idx].nv_data.source = ds;
-  wn_md[idx].nv_data.received_at = ndb_get_timestamp();
+  wn_md[idx].nv_data.received_at_NAP = ndb_get_NAP_timestamp();
+  wn_md[idx].nv_data.received_at_TAI = ndb_get_TAI_timestamp();
   wn_md[idx].nv_data.state |= NDB_IE_VALID;
   wn_md[idx].vflags |= NDB_VFLAG_MD_DIRTY | NDB_VFLAG_IE_DIRTY;
 

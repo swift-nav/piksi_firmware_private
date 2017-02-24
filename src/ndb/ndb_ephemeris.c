@@ -116,7 +116,7 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
 {
   int i;
   u32 candidate_age;
-  ndb_timestamp_t now  = ndb_get_timestamp();
+  ndb_timestamp_t now  = ndb_get_NAP_timestamp();
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     bool empty = true;
     if(ephe_candidates[i].used) {
@@ -126,7 +126,7 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
 
     if (empty) {
       memcpy(&ephe_candidates[i].ephe, new, sizeof(ephemeris_t));
-      ephe_candidates[i].received_at = ndb_get_timestamp();
+      ephe_candidates[i].received_at = ndb_get_NAP_timestamp();
       ephe_candidates[i].used = true;
       return;
     }

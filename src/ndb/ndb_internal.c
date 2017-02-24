@@ -16,6 +16,7 @@
 #include <libswiftnav/edc.h>
 #include "libsbp/piksi.h"
 #include "version.h"
+#include "timing.h"
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "ndb_fs_access.h"
@@ -293,14 +294,24 @@ void ndb_load_data(ndb_file_t *file, bool erase)
 }
 
 /**
+ * Returns NAP time.
+ *
+ * \return NAP time in seconds
+ */
+ndb_timestamp_t ndb_get_NAP_timestamp(void)
+{
+  return nap_count_to_ms(nap_timing_count()) / 1000;
+}
+
+/**
  * Returns TAI time if available.
  *
  * \return TAI time in seconds
  */
-ndb_timestamp_t ndb_get_timestamp(void)
+gps_time_t ndb_get_TAI_timestamp(void)
 {
-  /* FIXME - this should be TAI time based on GPS time */
-  return nap_count_to_ms(nap_timing_count()) / 1000;
+  return (TIME_FINE == time_quality) ? napcount2rcvtime(nap_timing_count())
+                                     : GPS_TIME_UNKNOWN;
 }
 
 /**
@@ -677,7 +688,7 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
       *ds = md->nv_data.source;
     }
     if (NULL != ts) {
-      *ts = md->nv_data.received_at;
+      *ts = md->nv_data.received_at_NAP;
     }
 
     res = NDB_ERR_NONE;
@@ -814,7 +825,8 @@ ndb_op_code_t ndb_update(const void *data,
     ndb_lock();
 
     /* Update metadata and mark it dirty */
-    md->nv_data.received_at = ndb_get_timestamp();
+    md->nv_data.received_at_NAP = ndb_get_NAP_timestamp();
+    md->nv_data.received_at_TAI = ndb_get_TAI_timestamp();
     md->vflags |= NDB_VFLAG_MD_DIRTY;
     md->nv_data.source = src;
 
@@ -863,10 +875,11 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
     ndb_lock();
 
     bool md_modified = false;
-    if (0 != md->nv_data.received_at ||
+    if (0 != md->nv_data.received_at_NAP ||
         NDB_DS_UNDEFINED != md->nv_data.source) {
       /* Update metadata and mark it dirty */
-      md->nv_data.received_at = 0;
+      md->nv_data.received_at_NAP = 0;
+      md->nv_data.received_at_TAI = GPS_TIME_UNKNOWN;
       md->nv_data.source = NDB_DS_UNDEFINED;
       md->vflags |= NDB_VFLAG_MD_DIRTY;
       md_modified = true;
