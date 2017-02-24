@@ -608,14 +608,19 @@ static void manage_track_thread(void *arg)
   (void)arg;
   chRegSetThreadName("manage track");
   while (TRUE) {
-    chThdSleepMilliseconds(500);
-    DO_EVERY(2,
+    chThdSleepMilliseconds(100);
+
+    DO_EVERY(10,
       check_clear_unhealthy();
-      manage_track();
       watchdog_notify(WD_NOTIFY_TRACKING_MGMT);
     );
-    tracking_send_state();
-    tracking_send_detailed_state();
+
+    manage_track();
+
+    DO_EVERY(5,
+      tracking_send_state();
+      tracking_send_detailed_state();
+    );
   }
 }
 
