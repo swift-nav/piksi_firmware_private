@@ -439,12 +439,15 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
     /* Calculate satellite parameters using the ephemeris. */
     ephemeris_t ephe;
-    ndb_ephemeris_read(nm->sid, &ephe);
-    u8 eph_valid;
+    ndb_op_code_t res = ndb_ephemeris_read(nm->sid, &ephe);
     s8 cscc_ret, css_ret;
     const ephemeris_t *ephe_p = &ephe;
 
-    eph_valid = ephemeris_valid(&ephe, &nm->tot);
+    /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
+     * is no confirmed candidate */
+    bool eph_valid = (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
+        && ephemeris_valid(&ephe, &nm->tot);
+
     if (eph_valid) {
       /* Apply corrections to the pseudorange, carrier phase and Doppler. */
       cscc_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);

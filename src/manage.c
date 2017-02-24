@@ -305,12 +305,12 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
   /* Do we have a suitable ephemeris for this sat?  If so, use
      that in preference to the almanac. */
   union { ephemeris_t e; almanac_t a; } orbit;
-  ndb_ephemeris_read(sid, &orbit.e);
+  ndb_op_code_t ndb_ret = ndb_ephemeris_read(sid, &orbit.e);
   u8 eph_valid;
   s8 ss_ret;
   double sat_pos[3], sat_vel[3], el_d;
 
-  eph_valid = ephemeris_valid(&orbit.e, t);
+  eph_valid = NDB_ERR_NONE == ndb_ret && ephemeris_valid(&orbit.e, t);
   if (eph_valid) {
     ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel, &_, &_);
   }
@@ -1079,7 +1079,7 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
  * Loads measurement data.
  *
  * The method loads data from a tracker thread and populates result in \a meas
- * container.
+ * container, and the ephemeris from NDB if it is available.
  *
  * Additionally, the method computes initial carrier phase offset if it has
  * not been yet available and feeds it back to tracker.
@@ -1087,12 +1087,14 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
  * \param[in]  i      Tracking channel number.
  * \param[in]  ref_tc Reference time [ticks]
  * \param[out] meas   Container for measurement data.
+ * \param[out] ephe   Container for ephemeris
  *
  * \return Flags
  */
 manage_track_flags_t get_tracking_channel_meas(u8 i,
                                                u64 ref_tc,
-                                               channel_measurement_t *meas)
+                                               channel_measurement_t *meas,
+                                               ephemeris_t *ephe)
 {
   manage_track_flags_t         flags = 0; /* Result */
   tracking_channel_info_t      info;      /* Container for generic info */
@@ -1114,8 +1116,17 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
       0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
       0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
       0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
-    /* Load information from SID cache and NDB */
-    flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, NULL);
+
+    /* Try to load ephemeris */
+    ndb_op_code_t res = ndb_ephemeris_read(info.sid, ephe);
+    /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
+     * is no confirmed candidate */
+    if (NDB_ERR_NONE != res && NDB_ERR_UNCONFIRMED_DATA != res) {
+      ephe = NULL;
+    }
+
+    /* Load information from SID cache */
+    flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, ephe);
 
     tracking_channel_measurement_get(ref_tc, &info,
                                      &freq_info, &time_info, &misc_info, meas);
@@ -1191,13 +1202,13 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
  *
  * \param[in]  sid    GNSS signal identifier.
  * \param[in]  tow_ms ToW in milliseconds. Can be #TOW_UNKNOWN
- * \param[out] pephe  Optional destination for ephemeris when available.
+ * \param[in]  pephe  Pointer to ephemeris, or NULL if not available
  *
  * \return Flags, computed from ephemeris and other sources.
  */
 manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
                                                     s32 tow_ms,
-                                                    ephemeris_t *pephe)
+                                                    const ephemeris_t *pephe)
 {
   manage_track_flags_t result = 0;
 
@@ -1206,99 +1217,28 @@ manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
 
-  if (TOW_UNKNOWN != tow_ms) {
-    /* Ephemeris must be valid, not stale. Satellite must be healthy.
-       This also acts as a sanity check on the channel TOW.*/
-    gps_time_t t = {
-      .wn = WN_UNKNOWN,
-      .tow = 1e-3 * tow_ms
-    };
-    ephemeris_t ephe;
-    if (NULL == pephe) {
-      /* If no external storage for ephemeris is provided, use local one */
-      pephe = &ephe;
-    }
-    ndb_op_code_t res = ndb_ephemeris_read(sid, pephe);
-    /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
-     * is no confirmed candidate */
-    if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) {
-      if (ephemeris_valid(pephe, &t)) {
-        result |= MANAGE_TRACK_FLAG_HAS_EPHE;
+  gps_time_t t = {
+    .wn = WN_UNKNOWN,
+    .tow = 1e-3 * tow_ms
+  };
 
-        if (signal_healthy(pephe->valid,
-                           pephe->health_bits,
-                           pephe->ura,
-                           sid.code)) {
-          result |= MANAGE_TRACK_FLAG_HEALTHY;
-        }
-      }
+  /* Ephemeris must be valid, not stale. Satellite must be healthy.
+     This also acts as a sanity check on the channel TOW.*/
+  if (NULL != pephe && TOW_UNKNOWN != tow_ms && ephemeris_valid(pephe, &t)) {
+
+    result |= MANAGE_TRACK_FLAG_HAS_EPHE;
+
+    if (signal_healthy(pephe->valid, pephe->health_bits, pephe->ura, sid.code)) {
+      result |= MANAGE_TRACK_FLAG_HEALTHY;
     }
   }
+
   /* Navigation suitable flag */
   if (shm_navigation_suitable(sid)) {
     result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
   }
+
   return result;
-}
-
-/**
- * Helper method check if the channel state is usable.
- *
- * The method checks if the tracking channel state has \a required_flags
- *
- * \param[in] i              Tracking channel index.
- * \param[in] required_flags Flags that are required to be present in channel
- *                           state to be usable.
- *
- * \retval true  Tracking channel state has all \a required_flags.
- * \retval false One or more flags are missing from the tracking channel state.
- *
- * \sa get_tracking_channel_flags
- * \sa tracking_channels_ready
- */
-bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags)
-{
-  manage_track_flags_t flags = 0; /* Channel flags accumulator */
-
-  /* While locked, load base flags and ToW */
-
-  tracking_channel_info_t info;
-  tracking_channel_get_values(i,
-                              &info,  /* Generic info */
-                              NULL,   /* Timers */
-                              NULL,   /* Frequencies */
-                              NULL,   /* Loop controller values */
-                              NULL,   /* Misc values */
-                              false); /* Reset stats */
-
-  flags = info.flags;
-  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE)) {
-    /* While unlocked, load ext flags and ephe. */
-    flags |= get_tracking_channel_sid_flags(info.sid, info.tow_ms, NULL);
-  }
-
-  return (flags & required_flags) == required_flags;
-}
-
-/**
- * Counts a number of usable tracking channels.
- *
- * \param[in] required_flags Flags that are required to be present in channel
- *                           state to be usable.
- *
- * \return Count of tracking channels that satisfy \a required_flags
- *
- * \sa tracking_channel_is_usable
- */
-u8 tracking_channels_ready(manage_track_flags_t required_flags)
-{
-  u8 n_ready = 0;
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    if (tracking_channel_is_usable(i, required_flags)) {
-      n_ready++;
-    }
-  }
-  return n_ready;
 }
 
 /** Checks if tracking can be started for a given sid.

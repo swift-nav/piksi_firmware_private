@@ -165,12 +165,12 @@ void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
 manage_track_flags_t get_tracking_channel_flags(u8 i);
 manage_track_flags_t get_tracking_channel_meas(u8 i,
                                                u64 ref_tc,
-                                               channel_measurement_t *meas);
+                                               channel_measurement_t *meas,
+                                               ephemeris_t *ephe);
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
 manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
                                                     s32 tow_ms,
-                                                    ephemeris_t *pephe);
-bool tracking_channel_is_usable(u8 i, manage_track_flags_t required_flags);
+                                                    const ephemeris_t *pephe);
 u8 tracking_channels_ready(manage_track_flags_t required_flags);
 
 bool tracking_startup_ready(gnss_signal_t sid);
