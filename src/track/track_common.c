@@ -790,7 +790,7 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
 
       lock_detect_update(&data->lock_detect,
                          TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                         fabs(dll_err),
+                         fabsf(dll_err),
                          tp_get_ld_ms(data->tracking_mode));
 
       outp = data->lock_detect.outp;

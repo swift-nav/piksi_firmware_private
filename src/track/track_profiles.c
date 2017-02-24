@@ -85,7 +85,6 @@ typedef enum {
   /** Sensitivity to low range CN0 transitional profiles index */
   IDX_TRAN_CN0_0,
   IDX_TRAN_CN0_1,
-
   IDX_TRAN_CN0_2,
   IDX_TRAN_CN0_3,
   IDX_TRAN_CN0_4,
