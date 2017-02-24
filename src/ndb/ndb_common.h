@@ -27,7 +27,7 @@ typedef enum ndb_op_code
   NDB_ERR_FILE_IO,         /**< File I/O error */
   NDB_ERR_INIT_DONE,       /**< New file created */
   NDB_ERR_BAD_PARAM,       /**< Bad parameter */
-  NDB_ERR_UNRELIABLE_DATA, /**< Data can't be verified */
+  NDB_ERR_UNCONFIRMED_DATA,/**< Data can't be verified */
   NDB_ERR_ALGORITHM_ERROR, /**< Error */
   NDB_ERR_NO_DATA,         /**< No data to process */
   NDB_ERR_NO_CHANGE,       /**< Data has not been updated */

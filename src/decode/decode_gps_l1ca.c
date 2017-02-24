@@ -57,6 +57,105 @@ static decoder_interface_list_element_t list_element_gps_l1ca = {
 };
 
 /**
+ * Check that an almanac matches with the ephemeris of that satellite but not
+ * with any other.
+ *
+ * An almanac and ephemeris are considered to match if the satellite positions
+ * computed at three points (TOE and both end points of ephemeris fit interval)
+ * match within 40 kilometers.
+ *
+ * If the new almanac does not match with the corresponding ephemeris, the
+ * ephemeris is deleted. If the new almanac matches the ephemeris of some other
+ * satellite, the ephemeris is deleted and that channel flagged for
+ * cross-correlation.
+ *
+ * \param[in] sid GNSS signal identifier for which almanac has been updated
+ *
+ * \return None
+ */
+static void check_almanac_xcorr(gnss_signal_t sid)
+{
+  xcorr_positions_t alm_pos; /* Almanac's positions for sid */
+  alm_pos.time_s = 0;
+
+  for (u8 sv_idx = 0; sv_idx < NUM_SATS_GPS; ++sv_idx) {
+    gnss_signal_t sid1 = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
+    ephemeris_t e;
+    if (NDB_ERR_NONE != ndb_ephemeris_read(sid1, &e) || e.toe.wn <= 0) {
+      continue;
+    }
+
+    u32 time_s = (u32) e.toe.wn * WEEK_SECS + (s32) e.toe.tow;
+    u32 interval_s = e.fit_interval / 2;
+    if (alm_pos.time_s != time_s || alm_pos.interval_s != interval_s) {
+      /* If ephemeris time differs from last computed almanac time, or the
+       * first one, compute the almanac positions for the new time */
+      if (!xcorr_calc_alm_positions(sid, time_s, interval_s, &alm_pos)) {
+        /* this happens when the almanac does not have WN yet */
+        log_debug_sid(sid1,
+                     "Failed to compute almanac positions (wn:%u, toe:%f)",
+                     e.toe.wn, e.toe.tow);
+        continue;
+      }
+    }
+
+    xcorr_positions_t eph_pos;
+    if (!xcorr_calc_eph_positions(&e, time_s, &eph_pos)) {
+      /* this should not happen with a valid ephemeris */
+      log_warn_sid(sid1,
+                   "Failed to compute ephemeris positions (wn:%u, toe:%f)",
+                   e.toe.wn, e.toe.tow);
+      continue;
+    }
+
+    bool match = xcorr_match_positions(sid, sid1, &eph_pos, &alm_pos);
+
+    if (sid1.sat == sid.sat) {
+      if (match) {
+        /* OK */
+      } else {
+        log_warn_sid(sid1, "Ephemeris does not match with almanac, dropping");
+        ndb_ephemeris_erase(sid1);
+      }
+    } else if (match) {
+      /* Cross-correlation */
+      char sid_str_[SID_STR_LEN_MAX];
+      sid_to_string(sid_str_, sizeof(sid_str_), sid);
+
+      log_warn_sid(sid1, "Almanac-ephemeris cross-correlation with %s", sid_str_);
+      ndb_ephemeris_erase(sid1);
+      tracking_channel_set_xcorr_flag(sid1);
+    }
+  }
+}
+
+/**
+ * Checks cross-correlations for all almanacs that have given WN/TOA
+ *
+ * The method is called after new WN/TOA pair has been decoded and accepted for
+ * NDB storage. As this implies update of NDB almanacs with matching TOA, the
+ * system executes a cross-correlation checks for all of those.
+ *
+ * \param[in] wn  Almanac's week number
+ * \param[in] toa Almanac's TOA
+ *
+ * \return None
+ *
+ * \sa check_almanac_xcorr
+ */
+static void check_almanac_wn_xcorr(s16 wn, s32 toa)
+{
+  for (u8 sv_idx = 0; sv_idx < NUM_SATS_GPS; ++sv_idx) {
+    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
+    almanac_t a;
+    if (NDB_ERR_NONE == ndb_almanac_read(sid, &a) &&
+        a.toa.wn == wn && (s32)a.toa.tow == toa) {
+      check_almanac_xcorr(sid);
+    }
+  }
+}
+
+/**
  * Stores new almanac data to NDB.
  *
  * \param sid   Almanac source
@@ -75,17 +174,18 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   switch (oc) {
   case NDB_ERR_NONE:
     log_debug_sid(alma->sid, "almanac from %s saved", src_sid_str);
+    check_almanac_xcorr(alma->sid);
     break;
   case NDB_ERR_NO_CHANGE:
     log_debug_sid(alma->sid, "almanac from %s is already present",
                  src_sid_str);
     break;
-  case NDB_ERR_UNRELIABLE_DATA:
-    log_warn_sid(alma->sid, "almanac from %s is unreliable, not saved",
+  case NDB_ERR_UNCONFIRMED_DATA:
+    log_debug_sid(alma->sid, "almanac from %s is unconfirmed, not saved",
                  src_sid_str);
     break;
   case NDB_ERR_OLDER_DATA:
-    log_warn_sid(alma->sid,
+    log_debug_sid(alma->sid,
                  "almanac from %s is older than one in DB, not saved",
                  src_sid_str);
     break;
@@ -127,6 +227,7 @@ static void decode_almanac_time_new(gnss_signal_t sid,
                  "almanac time info saved (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
+    check_almanac_wn_xcorr(alma_time->wn, (s32)alma_time->tow);
     break;
   case NDB_ERR_NO_CHANGE:
     log_debug_sid(sid,
@@ -134,9 +235,9 @@ static void decode_almanac_time_new(gnss_signal_t sid,
                  alma_time->wn,
                  (s32)alma_time->tow);
     break;
-  case NDB_ERR_UNRELIABLE_DATA:
-    log_warn_sid(sid,
-                 "almanac time info is unreliable (%" PRId16 ", %" PRId32 ")",
+  case NDB_ERR_UNCONFIRMED_DATA:
+    log_debug_sid(sid,
+                 "almanac time info is unconfirmed (%" PRId16 ", %" PRId32 ")",
                  alma_time->wn,
                  (s32)alma_time->tow);
     break;
@@ -213,13 +314,13 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
                        "almanac health bits up to date (0x%02" PRIX8 ")",
                        health_bits);
           break;
-        case NDB_ERR_UNRELIABLE_DATA:
-          log_warn_sid(target_sid,
-                       "almanac health bits are unreliable (0x%02" PRIX8 ")",
+        case NDB_ERR_UNCONFIRMED_DATA:
+          log_debug_sid(target_sid,
+                       "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
                        health_bits);
           break;
         case NDB_ERR_NO_DATA:
-          log_warn_sid(target_sid,
+          log_debug_sid(target_sid,
                         "almanac health bits are ignored (0x%02" PRIX8 ")",
                         health_bits);
           break;
@@ -355,10 +456,23 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.ephemeris_upd_flag) {
-    /* Store new ephemeris to NDB*/
+    /* Store new ephemeris to NDB */
     log_debug_sid(channel_info->sid, "New ephemeris received [%" PRId16 ", %lf]",
                   dd.ephemeris.toe.wn, dd.ephemeris.toe.tow);
-    ephemeris_new(&dd.ephemeris);
+    eph_new_status_t r = ephemeris_new(&dd.ephemeris);
+    switch (r) {
+    case EPH_NEW_OK:
+    case EPH_NEW_ERR:
+      break;
+    case EPH_NEW_XCORR:
+      log_info_sid(channel_info->sid,
+                   "Channel cross-correlation detected (ephe/alm check)");
+      /* Ephemeris cross-correlates with almanac of another SV */
+      tracking_channel_set_xcorr_flag(channel_info->sid);
+      break;
+    default:
+      break;
+    }
   }
 
   if (dd.almanac_upd_flag) {
