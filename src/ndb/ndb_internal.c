@@ -170,6 +170,7 @@ static void ndb_log_file_open(ndb_op_code_t oc,
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   case NDB_ERR_OLDER_DATA:
+  case NDB_ERR_TIME_UNKNOWN:
   default:
     assert(!"ndb_log_file_open()");
     break;
@@ -807,7 +808,8 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
  * \param[in]     src  Block data source.
  * \param[in,out] md   Block metadata.
  *
- * \retval NDB_ERR_NONE      On success
+ * \retval NDB_ERR_NONE      On success. Data is updated.
+ * \retval NDB_ERR_NO_CHANGE On success. Data is unchanged.
  * \retval NDB_ERR_BAD_PARAM On parameter error
  *
  * \sa ndb_retrieve

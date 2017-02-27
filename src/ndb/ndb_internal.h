@@ -53,8 +53,8 @@ typedef struct {
 /** Persistent NDB metadata block */
 typedef struct __attribute__((packed)) ndb_element_metadata_nv
 {
-  ndb_timestamp_t received_at_NAP;  /**< NAP timestamp [s] */
   gps_time_t      received_at_TAI;  /**< TAI timestamp [s] */
+  ndb_timestamp_t received_at_NAP;  /**< NAP timestamp [s] */
   u8                    source: 4;  /**< Data source */
   u8                     state: 4;  /**< State flags */
   u8                       crc[3];  /**< CRC-24Q */

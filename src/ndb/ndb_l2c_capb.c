@@ -76,16 +76,16 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
 /**
  * Store L2C capability information
  *
- * \param[in] sid         GNSS signal identifier for the source of iono data in
- *                        case of data source being NDB_DS_RECEIVER, NULL for
- *                        other cases.
+ * \param[in] sid         GNSS signal identifier for the source of L2C
+ *                        capability data in case of data source being
+ *                        NDB_DS_RECEIVER, NULL for other cases.
  * \param[in] l2c_cap     L2C capability mask
  * \param[in] src         Data source
- * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
- *                        set to NDB_EVENT_SENDER_ID_VOID.
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP.
+ *                        In other cases set to NDB_EVENT_SENDER_ID_VOID.
  *
- * \retval NDB_ERR_NONE            On success. Iono data is updated.
- * \retval NDB_ERR_NO_CHANGE       On success. Iono data is unchanged.
+ * \retval NDB_ERR_NONE            On success. L2C capability is updated.
+ * \retval NDB_ERR_NO_CHANGE       On success. L2C capability is unchanged.
  * \retval NDB_ERR_BAD_PARAM       Parameter errors.
  */
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,

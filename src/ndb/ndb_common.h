@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -32,6 +32,7 @@ typedef enum ndb_op_code
   NDB_ERR_NO_DATA,         /**< No data to process */
   NDB_ERR_NO_CHANGE,       /**< Data has not been updated */
   NDB_ERR_OLDER_DATA,      /**< Data is older than existing */
+  NDB_ERR_TIME_UNKNOWN,    /**< TAI time is not available */
 } ndb_op_code_t;
 
 typedef enum ndb_data_source
@@ -42,7 +43,7 @@ typedef enum ndb_data_source
   NDB_DS_SBP
 } ndb_data_source_t;
 
-/** NDB Timestamp: TAI seconds since GPS epoch */
+/** NDB Timestamp: NAP time [s] */
 typedef u32 ndb_timestamp_t;
 
 #ifndef NDB_WEAK

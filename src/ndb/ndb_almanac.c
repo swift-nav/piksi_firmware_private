@@ -388,8 +388,8 @@ static ndb_entry_match_fn ndb_alma_wn_match;
  * \internal
  */
 static bool ndb_alma_wn_match(const void *data,
-                                 const ndb_element_metadata_t *md,
-                                 void *cookie)
+                              const ndb_element_metadata_t *md,
+                              void *cookie)
 {
   (void)md; /* Unused */
 
@@ -789,7 +789,13 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
       res = NDB_ERR_OLDER_DATA;
       break;
     case NDB_CAND_NEW_TRUSTED:
-      res = ndb_update(a, ds, &ndb_almanac_md[map_sid_to_index(a->sid)]);
+      if (TIME_FINE == time_quality) {
+        /* If GPS time is known, save almanac to NDB */
+        res = ndb_update(a, ds, &ndb_almanac_md[map_sid_to_index(a->sid)]);
+      } else {
+        /* If GPS time is unknown, no updates to NDB */
+        res = NDB_ERR_TIME_UNKNOWN;
+      }
       break;
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
@@ -893,14 +899,20 @@ ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 toa, u16 wn,
     res = NDB_ERR_UNCONFIRMED_DATA;
     break;
   case NDB_CAND_NEW_TRUSTED:
-    /* Perform NDB database update inside NDB lock section */
-    ndb_lock();
-    /* Create persistent TAI/WN pair entry */
-    ndb_alma_wn_update_wn_file(toa, wn, ds);
-    /* Update persistent almanac entries with matching TAI */
-    ndb_alma_wn_update_alma_file(toa, wn);
-    ndb_unlock();
-    res = NDB_ERR_NONE;
+    if (TIME_FINE == time_quality) {
+      /* If GPS time is known, save almanac wn to NDB. */
+      /* Perform NDB database update inside NDB lock section */
+      ndb_lock();
+      /* Create persistent TAI/WN pair entry */
+      ndb_alma_wn_update_wn_file(toa, wn, ds);
+      /* Update persistent almanac entries with matching TAI */
+      ndb_alma_wn_update_alma_file(toa, wn);
+      ndb_unlock();
+      res = NDB_ERR_NONE;
+    } else {
+      /* If GPS time is unknown, no updates to NDB */
+      return NDB_ERR_TIME_UNKNOWN;
+    }
     break;
   case NDB_CAND_OLDER:
   default:

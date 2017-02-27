@@ -151,7 +151,7 @@ static void ndb_ephe_release_candidate(s16 cand_index)
  * \param[in] existing_a Optional almanac from NDB
  * \param[in] candidate  Optional ephemeris candidate
  *
- * \retval true The ephemeris can be directly stored to NDB
+ * \retval true  The ephemeris can be directly stored to NDB
  * \retval false The ephemeris data can't be verified and shall be stored as
  *               a new candidate.
  */
@@ -402,10 +402,14 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     case NDB_CAND_OLDER:
       return NDB_ERR_OLDER_DATA;
     case NDB_CAND_NEW_TRUSTED:
-    {
-      u16 idx = sid_to_global_index(e->sid);
-      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
-    }
+      if (TIME_FINE == time_quality) {
+        /* If GPS time is known, save ephemeris to NDB. */
+        u16 idx = sid_to_global_index(e->sid);
+        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      } else {
+        /* If GPS time is unknown, no updates to NDB */
+        return NDB_ERR_TIME_UNKNOWN;
+      }
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
       return NDB_ERR_UNCONFIRMED_DATA;
