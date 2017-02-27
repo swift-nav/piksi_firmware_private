@@ -17,7 +17,6 @@
 #include "hal.h"
 #include "zynq7000.h"
 
-#define CLK_SEL_GPIO_LINE PAL_LINE(GPIO2, 30)
 #define LED_nRST_GPIO_LINE PAL_LINE(GPIO2, 18)
 #define MODEM_PWR_EN_LINE PAL_LINE(GPIO2, 28)
 #define IMU_EN_GPIO_LINE PAL_LINE(GPIO2, 24)
@@ -37,9 +36,6 @@ void boardRevInit(void) {
 
   palSetLineMode(SPI_SS_CLK_DAC_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_CLK_DAC_GPIO_LINE);
-
-  palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
-  palClearLine(CLK_SEL_GPIO_LINE);
 
   palSetLineMode(LED_nRST_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(LED_nRST_GPIO_LINE);
