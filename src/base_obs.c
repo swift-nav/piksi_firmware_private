@@ -338,6 +338,7 @@ static void update_obss(obss_t *new_obss)
                               base_obss.nm[i].sat_clock_err_rate) /
                                 code_to_lambda(base_obss.nm[i].sid.code);
         base_obss.nm[i].flags |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
+        log_error_sid(base_obss.nm[i].sid, "measured doppler: %f, computed_doppler: %f", base_obss.nm[i].raw_measured_doppler, base_obss.nm[i].computed_doppler);
       }
     }
   }
