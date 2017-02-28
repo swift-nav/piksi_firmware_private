@@ -691,10 +691,12 @@ static u32 count_sv_with_accuracy(u8 n_ready,
  *
  * \param[in]     n_ready Number of available measurements.
  * \param[in,out] meas    Measurements data vector.
+ * \param[in,out] ephe    Ephemeris array
  *
  * \return Number of available measurements.
  */
-static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
+static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[],
+                                  ephemeris_t ephe[])
 {
   static const chan_meas_flags_t flags[] = {
     /* High phase accuracy only (high code accuracy implied) */
@@ -743,6 +745,7 @@ static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
       if (requred_flags != (meas[i].flags & requred_flags)) {
         /* This measurement can't be used */
         meas[i] = meas[n_ready - 1];
+        ephe[i] = ephe[n_ready - 1];
         --n_ready;
       } else {
         ++i;
@@ -754,10 +757,11 @@ static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
 }
 
 /**
- * Collects channel measurements and auxilary data.
+ * Collects channel measurements, ephemerides and auxiliary data.
  *
  * \param[in]  rec_tc    Timestamp [samples]
  * \param[out] meas      Destination measurement array.
+ * \param[out] ephe      Destination ephemeris array
  * \param[out] pn_ready  Destination for measurement array size.
  * \param[out] pn_total  Destination for total active trackers count.
  *
@@ -765,6 +769,7 @@ static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[])
  */
 static void collect_measurements(u64 rec_tc,
                                  channel_measurement_t meas[MAX_CHANNELS],
+                                 ephemeris_t ephe[MAX_CHANNELS],
                                  u8 *pn_ready,
                                  u8 *pn_total)
 {
@@ -773,7 +778,10 @@ static void collect_measurements(u64 rec_tc,
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     manage_track_flags_t flags      = 0; /* Channel flags accumulator */
-    flags = get_tracking_channel_meas(i, rec_tc, &meas[n_collected]);
+    /* Load measurements from the trackin channel and ephemeris from NDB */
+    flags = get_tracking_channel_meas(i, rec_tc,
+                                      &meas[n_collected],
+                                      &ephe[n_collected]);
 
     if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
         0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
@@ -881,16 +889,20 @@ static void solution_thread(void *arg)
     u8 n_collected = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
+    static ephemeris_t e_meas[MAX_CHANNELS];
 
-    /* Collect measurements from trackers */
-    collect_measurements(rec_tc, meas, &n_collected, &n_total);
+    /* TODO: package meas, nav_meas and ephemeris into e.g. an union to
+     * keep them from being separated? */
+
+    /* Collect measurements from trackers, load ephemerides and compute flags */
+    collect_measurements(rec_tc, meas, e_meas, &n_collected, &n_total);
 
     u8 n_ready = n_collected;
     if (n_collected > MINIMUM_SV_COUNT) {
       /* There are enough measurements for a RAIM solution. Check if there
        * are enough measurements to drop out the lowest quality ones.
        */
-      n_ready = filter_out_measurements(n_collected, meas);
+      n_ready = filter_out_measurements(n_collected, meas, e_meas);
     }
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
@@ -930,18 +942,12 @@ static void solution_thread(void *arg)
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
     const channel_measurement_t *p_meas[n_ready];
     navigation_measurement_t *p_nav_meas[n_ready];
-    static ephemeris_t e_meas[MAX_CHANNELS];
     const ephemeris_t *p_e_meas[n_ready];
 
-    /* Create arrays of pointers for use in calc_navigation_measurement
-     *
-     * TODO Ephemeris are already loaded once when extended flags are computed.
-     *      NDB access can be optimized out.
-     */
+    /* Create arrays of pointers for use in calc_navigation_measurement */
     for (u8 i = 0; i < n_ready; i++) {
       p_meas[i] = &meas[i];
       p_nav_meas[i] = &nav_meas[i];
-      ndb_ephemeris_read(meas[i].sid, &e_meas[i]);
       p_e_meas[i] = &e_meas[i];
     }
 
@@ -1219,18 +1225,25 @@ static void solution_thread(void *arg)
         nm->tot.tow += t_err;
         normalize_gps_time(&nm->tot);
 
-        ephemeris_t ephe;
-        ndb_ephemeris_read(nm->sid, &ephe);
-        u8 eph_valid;
-        s8 ss_ret;
+        ephemeris_t *e = NULL;
 
-        eph_valid = ephemeris_valid(&ephe, &nm->tot);
-        if (eph_valid) {
-          ss_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                  &nm->sat_clock_err, &nm->sat_clock_err_rate);
+        /* Find the original index of this measurement in order to point to
+         * the correct ephemeris. (Do not load it again from NDB because it may
+         * have changed meanwhile.) */
+        for (u8 j = 0; j < n_ready; j++) {
+          if (sid_is_equal(nm->sid, meas[j].sid)) {
+            e = &e_meas[j];
+            break;
+          }
         }
 
-        if (!eph_valid || (ss_ret != 0)) {
+        if (e == NULL || 1 != ephemeris_valid(e, &nm->tot)) {
+          continue;
+        }
+
+        /* Recompute satellite position, velocity and clock errors */
+        if (0 != calc_sat_state(e, &nm->tot, nm->sat_pos, nm->sat_vel,
+                                &nm->sat_clock_err, &nm->sat_clock_err_rate)) {
           continue;
         }
 
