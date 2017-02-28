@@ -42,12 +42,29 @@ static ndb_file_t iono_corr_file = {
   .block_count = 1
 };
 
+/**
+ * Initializes the data source to NV for
+ * non-volatile ionosphere correction entry.
+ * Applied at receiver start up.
+ *
+ */
+void ndb_iono_init_ds(void)
+{
+  ionosphere_t iono;
+  ndb_op_code_t res = ndb_iono_corr_read(&iono);
+  if (NDB_ERR_NONE == res) {
+    ndb_update_init_ds(&iono, NDB_DS_NV, &iono_corr_md);
+  }
+}
+
 void ndb_iono_init(void)
 {
   static bool erase_iono = true;
   SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
 
   ndb_load_data(&iono_corr_file, erase_iono);
+
+  ndb_iono_init_ds();
 
   /* register Iono SBP callback */
   sbp_register_cbk(
@@ -59,7 +76,7 @@ void ndb_iono_init(void)
 
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
 {
-  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NULL);
+  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NULL, NULL);
 }
 
 /**

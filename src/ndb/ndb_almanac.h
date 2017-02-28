@@ -19,6 +19,7 @@
 extern "C" {
 #endif
 
+void ndb_almanac_init_ds(void);
 void ndb_almanac_init(void);
 ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a);
 ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,

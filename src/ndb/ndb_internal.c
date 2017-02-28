@@ -674,7 +674,8 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       ndb_ie_index_t idx,
                                       void *out,
                                       ndb_data_source_t *ds,
-                                      ndb_timestamp_t *ts)
+                                      ndb_timestamp_t *ts,
+                                      gps_time_t *gps_time)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -690,6 +691,9 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
     }
     if (NULL != ts) {
       *ts = md->nv_data.received_at_NAP;
+    }
+    if (NULL != gps_time) {
+      *gps_time = md->nv_data.received_at_TAI;
     }
 
     res = NDB_ERR_NONE;
@@ -748,7 +752,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
     for (ndb_ie_index_t idx = 0; idx < file->block_count;
          ++idx, data_ptr += file->block_size) {
       if (match_fn(data_ptr, &file->block_md[idx], cookie)) {
-        res = ndb_retrieve_int(file, idx, out, ds, ts);
+        res = ndb_retrieve_int(file, idx, out, ds, ts, NULL);
         break;
       }
     }
@@ -783,14 +787,70 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *ds,
-                           ndb_timestamp_t *ts)
+                           ndb_timestamp_t *ts,
+                           gps_time_t *gps_time)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != md && NULL != md->file && out_size == md->file->block_size) {
     ndb_lock();
-    res = ndb_retrieve_int(md->file, md->index, out, ds, ts);
+    res = ndb_retrieve_int(md->file, md->index, out, ds, ts, gps_time);
     ndb_unlock();
+  } else {
+    res = NDB_ERR_BAD_PARAM;
+  }
+
+  return res;
+}
+
+/**
+ * Update data source of an NDB entry.
+ * Applied at receiver start up.
+ *
+ * The method updates NDB data block data source,
+ * marks it valid and updates block metadata.
+ * After an update, the block is scheduled for asynchronous write.
+ *
+ * \param[in]     data Block data.
+ * \param[in]     src  New block data source.
+ * \param[in,out] md   Block metadata.
+ *
+ * \retval NDB_ERR_NONE      On success. Data is updated.
+ * \retval NDB_ERR_NO_CHANGE On success. Data is unchanged.
+ * \retval NDB_ERR_BAD_PARAM On parameter error
+ *
+ * \sa ndb_retrieve
+ * \sa ndb_erase
+ */
+ndb_op_code_t ndb_update_init_ds(const void *data,
+                                 ndb_data_source_t src,
+                                 ndb_element_metadata_t *md)
+{
+  ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
+
+  if (NULL != data && NULL != md) {
+    ndb_ie_size_t block_size = md->file->block_size;
+
+    ndb_lock();
+
+    /* Update metadata and mark it dirty */
+    md->vflags |= NDB_VFLAG_MD_DIRTY;
+    md->nv_data.source = src;
+
+    if (memcmp(data, md->data, block_size) != 0) {
+      /* Update data and mark it dirty also mark data valid */
+      memcpy(md->data, data, block_size);
+      md->nv_data.state |= NDB_IE_VALID;
+      md->vflags |= NDB_VFLAG_IE_DIRTY;
+      res = NDB_ERR_NONE;
+    } else {
+      /* data we try to write to NDB is the same as previously stored */
+      res = NDB_ERR_NO_CHANGE;
+    }
+
+    ndb_wq_put(md);
+    ndb_unlock();
+
   } else {
     res = NDB_ERR_BAD_PARAM;
   }

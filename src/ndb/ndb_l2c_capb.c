@@ -43,6 +43,21 @@ static ndb_file_t gps_l2c_capb_file = {
   .block_count = 1
 };
 
+/**
+ * Initializes the data source to NV for
+ * non-volatile GPS L2C capability entry.
+ * Applied at receiver start up.
+ *
+ */
+void ndb_l2c_capb_init_ds(void)
+{
+  u32 l2c_cap;
+  ndb_op_code_t res = ndb_gps_l2cm_l2c_cap_read(&l2c_cap);
+  if (NDB_ERR_NONE == res) {
+    ndb_update_init_ds(&l2c_cap, NDB_DS_NV, &gps_l2c_capabilities_md);
+  }
+}
+
 void ndb_l2c_capb_init(void)
 {
 
@@ -50,6 +65,8 @@ void ndb_l2c_capb_init(void)
   SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
 
   ndb_load_data(&gps_l2c_capb_file, erase_l2c_capb);
+
+  ndb_l2c_capb_init_ds();
 
   if (0 == (gps_l2c_capabilities_md.nv_data.state & NDB_IE_VALID) ||
       0 == gps_l2c_capabilities) {
@@ -71,7 +88,7 @@ void ndb_l2c_capb_init(void)
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
 {
   return ndb_retrieve(&gps_l2c_capabilities_md, l2c_cap, sizeof(*l2c_cap),
-                      NULL, NULL);
+                      NULL, NULL, NULL);
 }
 
 /**

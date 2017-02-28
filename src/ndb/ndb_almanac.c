@@ -681,6 +681,26 @@ static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn)
 }
 
 /**
+ * Initializes the data source to NV for all
+ * non-volatile almanac data entries.
+ * Applied at receiver start up.
+ *
+ * \note GPS only!
+ */
+void ndb_almanac_init_ds(void)
+{
+  almanac_t alma;
+  for (u32 sv_idx = 0; sv_idx < NUM_SATS_GPS; sv_idx++) {
+    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
+    ndb_op_code_t res = ndb_almanac_read(sid, &alma);
+    if (NDB_ERR_NONE == res) {
+      ndb_update_init_ds(&alma, NDB_DS_NV,
+                         &ndb_almanac_md[map_sid_to_index(alma.sid)]);
+    }
+  }
+}
+
+/**
  * Initializes NDB support for almanacs.
  *
  * NDB support for almanacs include separate storages for almanac data and
@@ -703,6 +723,8 @@ void ndb_almanac_init(void)
 
   ndb_load_data(&ndb_alma_file, erase_almanac);
   ndb_load_data(&ndb_alma_wn_file, erase_almanac_wn);
+
+  ndb_almanac_init_ds();
 
   /* After startup check if there are any matching WN entries not yet updated
    * in almanac file. Then do cleanup for duplicate entries */
@@ -744,7 +766,7 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = map_sid_to_index(sid);
 
-  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL, NULL);
+  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL, NULL, NULL);
 }
 
 /**

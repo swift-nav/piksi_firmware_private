@@ -18,6 +18,7 @@
 /**
  * L2CM specific
  */
+void ndb_l2c_capb_init_ds(void);
 void ndb_l2c_capb_init(void);
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) NDB_WEAK;
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,

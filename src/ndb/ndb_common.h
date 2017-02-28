@@ -37,10 +37,11 @@ typedef enum ndb_op_code
 
 typedef enum ndb_data_source
 {
-  NDB_DS_UNDEFINED = 0,
-  NDB_DS_INIT,
-  NDB_DS_RECEIVER,
-  NDB_DS_SBP
+  NDB_DS_UNDEFINED = 0, /**< Undefined data source */
+  NDB_DS_INIT,          /**< Initial hard-coded value */
+  NDB_DS_RECEIVER,      /**< Data received from satellites */
+  NDB_DS_SBP,           /**< Data received over SBP */
+  NDB_DS_NV             /**< Data loaded from non-volatile memory */
 } ndb_data_source_t;
 
 /** NDB Timestamp: NAP time [s] */

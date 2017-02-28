@@ -112,6 +112,9 @@ void ndb_unlock(void);
 ndb_timestamp_t ndb_get_NAP_timestamp(void);
 gps_time_t ndb_get_TAI_timestamp(void);
 void ndb_load_data(ndb_file_t *f, bool erase);
+ndb_op_code_t ndb_update_init_ds(const void *data,
+                                 ndb_data_source_t src,
+                                 ndb_element_metadata_t *md);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
                          ndb_element_metadata_t *md);
@@ -120,7 +123,8 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *src,
-                           ndb_timestamp_t *ts);
+                           ndb_timestamp_t *ts,
+                           gps_time_t *gps_time);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,
