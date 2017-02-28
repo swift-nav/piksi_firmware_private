@@ -979,6 +979,7 @@ ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid)
  * \retval NDB_ERR_BAD_PARAM        Parameter errors.
  * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
  * \retval NDB_ERR_NO_DATA          No data entry to update.
+ * \retval NDB_ERR_TIME_UNKNOWN     GPS time unknown. No updates.
  */
 ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
                                     u8 health_bits,
@@ -986,17 +987,21 @@ ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
                                     const gnss_signal_t *src_sid,
                                     u16 sender_id)
 {
-  health_bits &= 0x1F;
+  if (TIME_FINE == time_quality) {
+    health_bits &= 0x1F;
 
-  almanac_t tmp;
-  if (NDB_ERR_NONE == ndb_almanac_read(target_sid, &tmp) &&
-      (tmp.health_bits & 0x1F) != health_bits) {
-    tmp.health_bits &= 0xE0;
-    tmp.health_bits |= health_bits;
-    return ndb_almanac_store(src_sid, &tmp, ds, sender_id);
+    almanac_t tmp;
+    if (NDB_ERR_NONE == ndb_almanac_read(target_sid, &tmp) &&
+        (tmp.health_bits & 0x1F) != health_bits) {
+      tmp.health_bits &= 0xE0;
+      tmp.health_bits |= health_bits;
+      return ndb_almanac_store(src_sid, &tmp, ds, sender_id);
+    }
+
+    return NDB_ERR_NO_DATA;
+  } else {
+    return NDB_ERR_TIME_UNKNOWN;
   }
-
-  return NDB_ERR_NO_DATA;
 }
 
 /**

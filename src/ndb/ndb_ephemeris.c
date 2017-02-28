@@ -423,13 +423,20 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     float ura;
     ndb_ephemeris_info(e->sid, &valid, &health_bits, &toe, &fit_interval, &ura);
     if (!valid || gpsdifftime(&e->toe, &toe) > 0) {
-    /* If local ephemeris is not valid or received one is newer then
-     * save the received one. */
-      log_debug_sid(e->sid,
-                    "Saving ephemeris received over SBP v:%d [%d,%d] vs [%d,%d]",
-                    (int)valid, toe.wn, toe.tow, e->toe.wn, e->toe.tow);
-      u16 idx = sid_to_global_index(e->sid);
-      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      /* If local ephemeris is not valid or received one is newer then
+       * save the received one. */
+      if (TIME_FINE == time_quality) {
+        /* If GPS time is known, save ephemeris to NDB. */
+        log_debug_sid(e->sid,
+                      "Saving ephemeris received over SBP "
+                      "v:%d [%d,%d] vs [%d,%d]",
+                      (int)valid, toe.wn, toe.tow, e->toe.wn, e->toe.tow);
+        u16 idx = sid_to_global_index(e->sid);
+        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      } else {
+        /* If GPS time is unknown, no updates to NDB */
+        return NDB_ERR_TIME_UNKNOWN;
+      }
     }
     return NDB_ERR_NONE;
   }

@@ -21,6 +21,7 @@
 #include "ndb_fs_access.h"
 #include "sbp.h"
 #include "sbp_utils.h"
+#include "timing.h"
 
 /** Ionospheric corrections file name */
 #define IONO_CORR_FILE_NAME "persistent/iono"
@@ -81,7 +82,14 @@ ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
                                   ndb_data_source_t src,
                                   u16 sender_id)
 {
-  ndb_op_code_t res = ndb_update(iono, src, &iono_corr_md);
+  ndb_op_code_t res = NDB_ERR_NONE;
+  if (TIME_FINE == time_quality) {
+    /* If GPS time is known, save iono parameters to NDB. */
+    res = ndb_update(iono, src, &iono_corr_md);
+  } else {
+    /* If GPS time is unknown, no updates to NDB */
+    res = NDB_ERR_TIME_UNKNOWN;
+  }
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
                      NDB_EVENT_OTYPE_IONO,
@@ -92,6 +100,44 @@ ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
                      sender_id);
 
   return res;
+}
+
+/**
+ * Store pending iono parameters
+ *
+ * \param[in] sid         GNSS signal identifier for the source of iono data in
+ *                        case of data source being NDB_DS_RECEIVER, NULL for
+ *                        other cases.
+ * \param[in] iono        Ionospheric parameters
+ * \param[in] src         Data source
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
+ *                        set to NDB_EVENT_SENDER_ID_VOID.
+ *
+ * \retval    r           Flag indicating successful update.
+ *
+ */
+bool ndb_iono_corr_pending(const gnss_signal_t *sid,
+                           const ionosphere_t *iono,
+                           ndb_data_source_t src,
+                           u16 sender_id)
+{
+  bool r = false;
+  if (TIME_FINE == time_quality) {
+    /* If GPS time is known, save pending iono parameters to NDB. */
+    ndb_op_code_t res = ndb_update(iono, src, &iono_corr_md);
+
+    if (NULL != iono && NDB_ERR_NONE == res) {
+      sbp_send_ndb_event(NDB_EVENT_STORE,
+                         NDB_EVENT_OTYPE_IONO,
+                         res,
+                         src,
+                         NULL,
+                         sid,
+                         sender_id);
+      r = true;
+    }
+  }
+  return r;
 }
 
 static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)

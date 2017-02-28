@@ -23,7 +23,6 @@
 #include "signal.h"
 #include "ndb.h"
 #include "shm.h"
-#include "timing.h"
 
 #include <assert.h>
 #include <string.h>
@@ -318,18 +317,11 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
                        hf_sid_str);
         }
       } else {
-        ndb_op_code_t r = NDB_ERR_NO_DATA;
-        if (TIME_FINE == time_quality) {
-          /* If GPS time is known, update health bits */
-          r = ndb_almanac_hb_update(target_sid,
-                                    health_bits,
-                                    NDB_DS_RECEIVER,
-                                    &src_sid,
-                                    NDB_EVENT_SENDER_ID_VOID);
-        } else {
-          /* If GPS time is unknown, no updates to NDB */
-          r = NDB_ERR_TIME_UNKNOWN;
-        }
+        ndb_op_code_t r = ndb_almanac_hb_update(target_sid,
+                                                health_bits,
+                                                NDB_DS_RECEIVER,
+                                                &src_sid,
+                                                NDB_EVENT_SENDER_ID_VOID);
 
         switch (r) {
         case NDB_ERR_NONE:
@@ -353,8 +345,8 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
                         health_bits);
           break;
         case NDB_ERR_TIME_UNKNOWN:
-          log_debug_sid(target_sid, "almanac health bits reception time"
-                                    " missing, not saved");
+          log_debug_sid(target_sid, "almanac health bits reception time "
+                                    "missing, not saved");
           break;
         case NDB_ERR_OLDER_DATA:
         case NDB_ERR_MISSING_IE:
@@ -463,19 +455,17 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.gps_l2c_sv_capability_upd_flag) {
-    if (TIME_FINE == time_quality) {
-      /* If GPS time is known, store new L2C value into NDB */
-      log_debug_sid(channel_info->sid, "L2C capabilities received: 0x%08"PRIx32,
-                    dd.gps_l2c_sv_capability);
-      if (ndb_gps_l2cm_l2c_cap_store(&channel_info->sid,
-                                     &dd.gps_l2c_sv_capability,
-                                     NDB_DS_RECEIVER,
-                                     NDB_EVENT_SENDER_ID_VOID) ==
-                                     NDB_ERR_NONE) {
-        sbp_send_l2c_capabilities(&dd.gps_l2c_sv_capability);
-        gps_l2c_cap.pending = false;
-      }
-    } else {
+    /* store new L2C value into NDB */
+    log_debug_sid(channel_info->sid, "L2C capabilities received: 0x%08"PRIx32,
+                  dd.gps_l2c_sv_capability);
+    ndb_op_code_t r = ndb_gps_l2cm_l2c_cap_store(&channel_info->sid,
+                                                 &dd.gps_l2c_sv_capability,
+                                                 NDB_DS_RECEIVER,
+                                                 NDB_EVENT_SENDER_ID_VOID);
+    if (NDB_ERR_NONE == r) {
+      sbp_send_l2c_capabilities(&dd.gps_l2c_sv_capability);
+      gps_l2c_cap.pending = false;
+    } else if (NDB_ERR_TIME_UNKNOWN == r) {
       /* If GPS time is unknown, store new L2C value into pending value.
        * Write the pending value to NDB once GPS time is known. */
       gps_l2c_cap.gps_l2c_cap = dd.gps_l2c_sv_capability;
@@ -483,34 +473,28 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
   }
 
-  if (TIME_FINE == time_quality && gps_l2c_cap.pending) {
-    /* Once GPS time is known, store pending L2C value into NDB */
-    log_debug_sid(channel_info->sid, "L2C capabilities received: 0x%08"PRIx32,
-                  gps_l2c_cap.gps_l2c_cap);
-    if (ndb_gps_l2cm_l2c_cap_store(&channel_info->sid,
-                                   &gps_l2c_cap.gps_l2c_cap,
-                                   NDB_DS_RECEIVER,
-                                   NDB_EVENT_SENDER_ID_VOID) ==
-                                   NDB_ERR_NONE) {
+  if (gps_l2c_cap.pending) {
+    if (ndb_gps_l2cm_l2c_cap_pending(&channel_info->sid,
+                                     &gps_l2c_cap.gps_l2c_cap,
+                                     NDB_DS_RECEIVER,
+                                     NDB_EVENT_SENDER_ID_VOID)) {
       sbp_send_l2c_capabilities(&gps_l2c_cap.gps_l2c_cap);
       gps_l2c_cap.pending = false;
     }
   }
 
   if (dd.iono_corr_upd_flag) {
-    if (TIME_FINE == time_quality) {
-      /* If GPS time is known, store new iono parameters into NDB. */
-      log_debug_sid(channel_info->sid, "Iono parameters received");
+    /* store new iono parameters */
+    log_debug_sid(channel_info->sid, "Iono parameters received");
 
-      if (ndb_iono_corr_store(&channel_info->sid,
-                              &dd.iono,
-                              NDB_DS_RECEIVER,
-                              NDB_EVENT_SENDER_ID_VOID) ==
-                              NDB_ERR_NONE) {
-        sbp_send_iono(&dd.iono);
-        gps_iono.pending = false;
-      }
-    } else {
+    ndb_op_code_t r = ndb_iono_corr_store(&channel_info->sid,
+                                          &dd.iono,
+                                          NDB_DS_RECEIVER,
+                                          NDB_EVENT_SENDER_ID_VOID);
+    if (NDB_ERR_NONE == r) {
+      sbp_send_iono(&dd.iono);
+      gps_iono.pending = false;
+    } else if (NDB_ERR_TIME_UNKNOWN == r) {
       /* If GPS time is unknown, store new iono values into pending values.
        * Write the pending values to NDB once GPS time is known. */
       gps_iono.iono = dd.iono;
@@ -518,14 +502,11 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
   }
 
-  if (TIME_FINE == time_quality && gps_iono.pending) {
-    /* Once GPS time is known, store pending iono values into NDB */
-    log_debug_sid(channel_info->sid, "Iono parameters received");
-    if (ndb_iono_corr_store(&channel_info->sid,
-                            &gps_iono.iono,
-                            NDB_DS_RECEIVER,
-                            NDB_EVENT_SENDER_ID_VOID) ==
-                            NDB_ERR_NONE) {
+  if (gps_iono.pending) {
+    if (ndb_iono_corr_pending(&channel_info->sid,
+                              &gps_iono.iono,
+                              NDB_DS_RECEIVER,
+                              NDB_EVENT_SENDER_ID_VOID)) {
       sbp_send_iono(&gps_iono.iono);
       gps_iono.pending = false;
     }

@@ -24,5 +24,9 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
                                          const u32 *l2c_cap,
                                          ndb_data_source_t src,
                                          u16 sender_id) NDB_WEAK;
+bool ndb_gps_l2cm_l2c_cap_pending(const gnss_signal_t *sid,
+                                  const u32 *l2c_cap,
+                                  ndb_data_source_t src,
+                                  u16 sender_id) NDB_WEAK;
 
 #endif /* SRC_NDB_L2C_CAPB_H_ */
