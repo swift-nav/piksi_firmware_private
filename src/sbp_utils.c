@@ -544,7 +544,7 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8*, void*))
 
   for (u8 i = 0; i < ARRAY_SIZE(ephe_type_table); i++) {
     /* check if type is valid */
-    if (TYPE_TABLE_INVALID_MSG_ID != ephe_type_table[i].msg_info.msg_id) {
+    if (TYPE_TABLE_INVALID_MSG_ID == ephe_type_table[i].msg_info.msg_id) {
       continue;
     }
 
@@ -759,7 +759,7 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8*, void*))
 
   for (u8 i = 0; i < ARRAY_SIZE(alma_type_table); i++) {
     /* check if type is valid */
-    if (TYPE_TABLE_INVALID_MSG_ID != alma_type_table[i].msg_info.msg_id) {
+    if (TYPE_TABLE_INVALID_MSG_ID == alma_type_table[i].msg_info.msg_id) {
       continue;
     }
 
