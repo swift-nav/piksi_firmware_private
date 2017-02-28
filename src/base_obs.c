@@ -319,10 +319,11 @@ static void update_obss(obss_t *new_obss)
                                                    base_obss.nm[i].sat_clock_err_rate);
     }
 
-    /* Add a nominal measured doppler "measurement" to the base
-      station's observations (if they don't already exist). GPS receivers that
-      aren't Piksi (CORS stations, etc) typically don't transmit their measured
-      doppler. */
+    /* If we want to use measured doppler in our filter, we might need to
+      add a nominal measured doppler "measurement" to the base
+      station's observations (if they don't already exist) because GPS receivers
+      that aren't Piksi (CORS stations, etc) typically don't transmit their
+      measured doppler. */
     bool any_measured_doppler = false;
     for (u8 i = 0; i < base_obss.n; i++) {
       any_measured_doppler |=
