@@ -143,10 +143,10 @@ void xadc_init(void)
   XADC_IF->INT_MASK = ~(XADC_IF_INT_OT_Msk | XADC_IF_INT_ALM0_Msk);
   XADC_IF->INT_STAT = ~0;
 
-  gic_handler_register(IRQ_ID_XACD, xadc_irq_handler, 0);
-  gic_irq_sensitivity_set(IRQ_ID_XACD, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(IRQ_ID_XACD, 4);
-  gic_irq_enable(IRQ_ID_XACD);
+  gic_handler_register(IRQ_ID_XADC, xadc_irq_handler, 0);
+  gic_irq_sensitivity_set(IRQ_ID_XADC, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(IRQ_ID_XADC, 4);
+  gic_irq_enable(IRQ_ID_XADC);
 }
 
 /** Get the most recent VPVN/VIN_MONITOR (V).
