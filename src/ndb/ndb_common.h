@@ -42,7 +42,7 @@ typedef enum ndb_data_source
   NDB_DS_SBP
 } ndb_data_source_t;
 
-/** NDB Timestamp: TAI seconds since GPS epoch */
+/** NDB Timestamp: NAP time in seconds */
 typedef u32 ndb_timestamp_t;
 
 #ifndef NDB_WEAK

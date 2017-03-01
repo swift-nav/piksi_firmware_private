@@ -293,13 +293,12 @@ void ndb_load_data(ndb_file_t *file, bool erase)
 }
 
 /**
- * Returns TAI time if available.
+ * Returns NAP time.
  *
- * \return TAI time in seconds
+ * \return NAP time in seconds
  */
 ndb_timestamp_t ndb_get_timestamp(void)
 {
-  /* FIXME - this should be TAI time based on GPS time */
   return nap_count_to_ms(nap_timing_count()) / 1000;
 }
 

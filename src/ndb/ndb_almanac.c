@@ -287,11 +287,11 @@ static ndb_cand_status_t ndb_alma_candidate_update(const almanac_t *alma)
     if (memcmp(&existing, alma, sizeof(*alma)) != 0) {
       /* We already have different almanac in DB, it might be newer than given */
       if (WN_UNKNOWN != existing.toa.wn && WN_UNKNOWN != alma->toa.wn) {
-        u32 tai_existing = (u32)existing.toa.wn * WEEK_SECS + (s32)existing.toa.tow;
-        u32 tai_alma = (u32)alma->toa.wn * WEEK_SECS + (s32)alma->toa.tow;
+        u32 age_existing = (u32)existing.toa.wn * WEEK_SECS + (s32)existing.toa.tow;
+        u32 age_alma = (u32)alma->toa.wn * WEEK_SECS + (s32)alma->toa.tow;
 
         /* Compute, which almanac is newer */
-        existing_is_newer = tai_existing > tai_alma;
+        existing_is_newer = age_existing > age_alma;
       } else if (WN_UNKNOWN == existing.toa.wn && WN_UNKNOWN == alma->toa.wn) {
         /* Both candidate and persisted ones don't have WN. Assume the same
          * or possible week number wrap. Make a wild guess the time difference
@@ -503,7 +503,7 @@ static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn)
   ndb_ie_index_t idx         = 0;
   ndb_ie_index_t empty_idx   = ARRAY_SIZE(alma_wn_candidates);
   ndb_ie_index_t oldest_idx  = ARRAY_SIZE(alma_wn_candidates);
-  u32            oldest_tai  = 0;
+  u32            oldest_age  = 0;
   ndb_ie_index_t oldest_idx2 = ARRAY_SIZE(alma_wn_candidates);
 
   chMtxLock(&cand_list_access);
@@ -528,18 +528,18 @@ static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn)
         break;
       }
       /* ToW doesn't match */
-      u32 new_tai = (u32)alma_wn_candidates[idx].alma_wn.gps_wn * WEEK_SECS +
+      u32 new_age = (u32)alma_wn_candidates[idx].alma_wn.gps_wn * WEEK_SECS +
                     alma_wn_candidates[idx].alma_wn.gps_toa;
       if (ARRAY_SIZE(alma_wn_candidates) == oldest_idx ||
-          oldest_tai > new_tai) {
-        /* Either first non-matching TAI, or have older TAI */
+          oldest_age > new_age) {
+        /* Either first non-matching age, or have older age */
         oldest_idx = idx;
-        oldest_tai = new_tai;
+        oldest_age = new_age;
       }
       if (ARRAY_SIZE(alma_wn_candidates) == oldest_idx2 ||
           alma_wn_candidates[oldest_idx2].received_at <
           alma_wn_candidates[idx].received_at) {
-        /* Entry with the oldest update timestamp */
+        /* Entry with the oldest update NAP timestamp */
         oldest_idx2 = idx;
       }
     } else if (ARRAY_SIZE(alma_wn_candidates) == empty_idx) {
@@ -582,7 +582,7 @@ static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn)
  * Creates a persistent entry for almanac's TOA/WN pair in NDB
  *
  * The method tries to locate an empty entry in the file and update it. If
- * entry entry is not available, an entry with oldest TAI time is discarded.
+ * entry is not available, an entry with oldest age is discarded.
  *
  * \param[in] toa Almanac's time
  * \param[in] wn  Almanac's week number
@@ -597,7 +597,7 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds)
   ndb_ie_index_t idx = 0;
   ndb_ie_index_t empty_idx  = ndb_alma_wn_file.block_count;
   ndb_ie_index_t oldest_idx = ndb_alma_wn_file.block_count;
-  u32            oldest_tai = 0;
+  u32            oldest_age = 0;
 
   ndb_alma_wn_t * const wn_data = (ndb_alma_wn_t *)ndb_alma_wn_file.block_data;
   ndb_element_metadata_t * const wn_md = ndb_alma_wn_file.block_md;
@@ -609,13 +609,13 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds)
         /* Found a matching entry with the same ToW */
         break;
       }
-      /* Non-matching entry, compute TAI */
-      u32 tai_new = (u32)wn_data[idx].gps_wn * WEEK_SECS + wn_data[idx].gps_toa;
+      /* Non-matching entry, compute age */
+      u32 age_new = (u32)wn_data[idx].gps_wn * WEEK_SECS + wn_data[idx].gps_toa;
       if (oldest_idx == ndb_alma_wn_file.block_count ||
-          tai_new < oldest_tai) {
-        /* Block is the first used, or TAI is older*/
+          age_new < oldest_age) {
+        /* Block is the first used, or age is older*/
         oldest_idx = idx;
-        oldest_tai = tai_new;
+        oldest_age = age_new;
       }
     } else if (empty_idx == ndb_alma_wn_file.block_count) {
       /* First empty entry */
@@ -857,7 +857,7 @@ ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn)
  *
  * If the cache doesn't contain same TOA, an attempt to add a new cache entry
  * is made. If the cache is full, the entry with earliest time is dropped. The
- * time is TAI computed by formula: `WN * WEEK_SECS + TOA`.
+ * age is computed by formula: `WN * WEEK_SECS + TOA`.
  *
  * Whenever the WN entry is confirmed, it is removed from the candidate cache,
  * and all almanacs in NDB database with matching TOA and without WN are
@@ -892,9 +892,9 @@ ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 toa, u16 wn,
   case NDB_CAND_NEW_TRUSTED:
     /* Perform NDB database update inside NDB lock section */
     ndb_lock();
-    /* Create persistent TAI/WN pair entry */
+    /* Create persistent age/WN pair entry */
     ndb_alma_wn_update_wn_file(toa, wn, ds);
-    /* Update persistent almanac entries with matching TAI */
+    /* Update persistent almanac entries with matching age */
     ndb_alma_wn_update_alma_file(toa, wn);
     ndb_unlock();
     res = NDB_ERR_NONE;
