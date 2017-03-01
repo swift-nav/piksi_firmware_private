@@ -650,7 +650,6 @@ void ndb_unlock()
  * \param[in]  idx      NDB informational element index
  * \param[out] out      Destination data buffer with a proper block size.
  * \param[out] ds       Optional destination for NDB data source.
- * \param[out] ts       Optional destination for NDB timestamp.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -661,8 +660,7 @@ void ndb_unlock()
 static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       ndb_ie_index_t idx,
                                       void *out,
-                                      ndb_data_source_t *ds,
-                                      ndb_timestamp_t *ts)
+                                      ndb_data_source_t *ds)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -676,9 +674,6 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
     if (NULL != ds) {
       *ds = md->nv_data.source;
     }
-    if (NULL != ts) {
-      *ts = md->nv_data.received_at;
-    }
 
     res = NDB_ERR_NONE;
   } else {
@@ -688,10 +683,6 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
     if (NULL != ds) {
       *ds = NDB_DS_UNDEFINED;
     }
-    if (NULL != ts) {
-      *ts = 0;
-    }
-
   }
   return res;
 }
@@ -708,7 +699,6 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
  * \param[in]  out_size Destination buffer size. Must match block size defined
  *                      in file metadata section.
  * \param[out] ds       Optional destination for NDB data source.
- * \param[out] ts       Optional destination for NDB timestamp.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -722,8 +712,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 void *cookie,
                                 void *out,
                                 size_t out_size,
-                                ndb_data_source_t *ds,
-                                ndb_timestamp_t *ts)
+                                ndb_data_source_t *ds)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -736,7 +725,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
     for (ndb_ie_index_t idx = 0; idx < file->block_count;
          ++idx, data_ptr += file->block_size) {
       if (match_fn(data_ptr, &file->block_md[idx], cookie)) {
-        res = ndb_retrieve_int(file, idx, out, ds, ts);
+        res = ndb_retrieve_int(file, idx, out, ds);
         break;
       }
     }
@@ -758,7 +747,6 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
  * \param[in]  out_size Destination buffer size. Must match block size defined
  *                      in file metadata section.
  * \param[out] ds       Optional destination for NDB data source.
- * \param[out] ts       Optional destination for NDB timestamp.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -770,14 +758,13 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
-                           ndb_data_source_t *ds,
-                           ndb_timestamp_t *ts)
+                           ndb_data_source_t *ds)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != md && NULL != md->file && out_size == md->file->block_size) {
     ndb_lock();
-    res = ndb_retrieve_int(md->file, md->index, out, ds, ts);
+    res = ndb_retrieve_int(md->file, md->index, out, ds);
     ndb_unlock();
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -814,7 +801,6 @@ ndb_op_code_t ndb_update(const void *data,
     ndb_lock();
 
     /* Update metadata and mark it dirty */
-    md->nv_data.received_at = ndb_get_timestamp();
     md->vflags |= NDB_VFLAG_MD_DIRTY;
     md->nv_data.source = src;
 
@@ -863,10 +849,8 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
     ndb_lock();
 
     bool md_modified = false;
-    if (0 != md->nv_data.received_at ||
-        NDB_DS_UNDEFINED != md->nv_data.source) {
+    if (NDB_DS_UNDEFINED != md->nv_data.source) {
       /* Update metadata and mark it dirty */
-      md->nv_data.received_at = 0;
       md->nv_data.source = NDB_DS_UNDEFINED;
       md->vflags |= NDB_VFLAG_MD_DIRTY;
       md_modified = true;

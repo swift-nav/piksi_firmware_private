@@ -53,7 +53,6 @@ typedef struct {
 /** Persistent NDB metadata block */
 typedef struct __attribute__((packed)) ndb_element_metadata_nv
 {
-  ndb_timestamp_t received_at;  /**< TAI timestamp [s] */
   u8              source: 4;    /**< Data source */
   u8              state: 4;     /**< State flags */
   u8              crc[3];       /**< CRC-24Q */
@@ -117,15 +116,13 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md);
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
-                           ndb_data_source_t *src,
-                           ndb_timestamp_t *ts);
+                           ndb_data_source_t *src);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,
                                 void *out,
                                 size_t out_size,
-                                ndb_data_source_t *src,
-                                ndb_timestamp_t *ts);
+                                ndb_data_source_t *src);
 ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,

@@ -637,7 +637,6 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds)
   wn_data[idx].gps_toa = toa;
   wn_data[idx].gps_wn = wn;
   wn_md[idx].nv_data.source = ds;
-  wn_md[idx].nv_data.received_at = ndb_get_timestamp();
   wn_md[idx].nv_data.state |= NDB_IE_VALID;
   wn_md[idx].vflags |= NDB_VFLAG_MD_DIRTY | NDB_VFLAG_IE_DIRTY;
 
@@ -743,7 +742,7 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = map_sid_to_index(sid);
 
-  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL, NULL);
+  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL);
 }
 
 /**
@@ -834,7 +833,6 @@ ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn)
                             &toa,
                             &alma_wn,
                             sizeof(alma_wn),
-                            NULL,
                             NULL);
 
     *wn = alma_wn.gps_wn;

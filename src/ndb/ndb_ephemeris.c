@@ -292,7 +292,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx], &existing_e,
-                                   sizeof(existing_e), NULL, NULL)) {
+                                   sizeof(existing_e), NULL)) {
     pe = &existing_e;
   }
   if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a)) {
@@ -370,7 +370,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   }
 
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
-                                   NULL, NULL);
+                                   NULL);
   if (NDB_ERR_NONE != res) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);

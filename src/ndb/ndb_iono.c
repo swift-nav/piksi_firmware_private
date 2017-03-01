@@ -58,7 +58,7 @@ void ndb_iono_init(void)
 
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
 {
-  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NULL);
+  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL);
 }
 
 /**
