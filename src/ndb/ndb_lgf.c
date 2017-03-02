@@ -61,6 +61,9 @@ void ndb_lgf_init(void)
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    /* Degrade position quality if it was loaded from NV */
+    last_good_fix_saved.position_quality = POSITION_GUESS;
+    last_good_fix.position_quality = POSITION_GUESS;
     /* TODO check loaded LGF validity */
     log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
              last_good_fix.position_solution.pos_llh[0] * R2D,
