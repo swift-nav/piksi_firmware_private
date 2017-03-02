@@ -38,6 +38,13 @@ typedef struct {
 /** Maximum waiting time for write request, milliseconds */
 #define NV_WRITE_REQ_TIMEOUT 100
 
+/** Flags to enable NV usage on individual data elements */
+#define NDB_USE_NV_IONO      0
+#define NDB_USE_NV_L2C_CAP   0
+#define NDB_USE_NV_LGF       0
+#define NDB_USE_NV_ALMANAC   0
+#define NDB_USE_NV_EPHEMERIS 0
+
 /** Volatile flag: IE needs to be written to NVM */
 #define NDB_VFLAG_IE_DIRTY (1 << 0)
 /** Volatile flag: Metadata needs to be written to NVM */
@@ -118,7 +125,8 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md);
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
-                           ndb_data_source_t *src);
+                           ndb_data_source_t *src,
+                           bool use_nv);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,

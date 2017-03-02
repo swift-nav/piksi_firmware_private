@@ -744,7 +744,8 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = map_sid_to_index(sid);
 
-  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL);
+  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL,
+                      NDB_USE_NV_ALMANAC);
 }
 
 /**

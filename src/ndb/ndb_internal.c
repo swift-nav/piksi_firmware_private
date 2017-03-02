@@ -748,6 +748,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
  * \param[in]  out_size Destination buffer size. Must match block size defined
  *                      in file metadata section.
  * \param[out] ds       Optional destination for NDB data source.
+ * \param[in]  use_nv   Flag indicating if data loaded from NV should be used.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -759,11 +760,20 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
 ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
-                           ndb_data_source_t *ds)
+                           ndb_data_source_t *ds,
+                           bool use_nv)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  if (NULL != md && NULL != md->file && out_size == md->file->block_size) {
+  bool use_valid = true;
+  /* If data has been load from NV and data from NV should not be used,
+   * then mark use_valid false. */
+  if (!use_nv && (md->vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
+    use_valid = false;
+  }
+
+  if (NULL != md && NULL != md->file && out_size == md->file->block_size
+      && use_valid) {
     ndb_lock();
     res = ndb_retrieve_int(md->file, md->index, out, ds);
     ndb_unlock();

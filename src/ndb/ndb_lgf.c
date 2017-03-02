@@ -91,9 +91,17 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
   /* LGF is loaded only on boot, and then periodically saved to NV. Because of
    * this, use of `ndb_retrieve` here is unnecessary. */
 
+  bool use_valid = true;
+  /* If data has been load from NV and data from NV should not be used,
+   * then mark use_valid false. */
+  if (!NDB_USE_NV_LGF &&
+      (last_good_fix_md.vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
+    use_valid = false;
+  }
+
   if (NULL != lgf) {
     ndb_lock();
-    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID) && use_valid) {
       *lgf = last_good_fix;
       res = NDB_ERR_NONE;
     } else {
