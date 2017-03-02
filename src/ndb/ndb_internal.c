@@ -238,6 +238,8 @@ void ndb_load_data(ndb_file_t *file, bool erase)
       metadata[i].nv_data = md_nv[i];
 
       if (0 != (metadata[i].nv_data.state & NDB_IE_VALID)) {
+        /* Set the flag indicating that the data is loaded from NV. */
+        metadata[i].vflags |= NDB_VFLAG_DATA_FROM_NV;
         loaded++;
       }
 
@@ -803,7 +805,11 @@ ndb_op_code_t ndb_update(const void *data,
     md->vflags |= NDB_VFLAG_MD_DIRTY;
     md->nv_data.source = src;
 
-    if (memcmp(data, md->data, block_size) != 0) {
+    if (memcmp(data, md->data, block_size) != 0 ||
+        (md->vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
+      /* If data has been originally loaded from NV
+       * then clear the flag here. */
+      md->vflags &= ~NDB_VFLAG_DATA_FROM_NV;
       /* Update data and mark it dirty also mark data valid */
       memcpy(md->data, data, block_size);
       md->nv_data.state |= NDB_IE_VALID;

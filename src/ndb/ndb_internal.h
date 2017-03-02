@@ -44,6 +44,8 @@ typedef struct {
 #define NDB_VFLAG_MD_DIRTY (1 << 1)
 /** Volatile flag: Data block is in write queue */
 #define NDB_VFLAG_ENQUEUED (1 << 2)
+/** Volatile flag: Data is read from NV */
+#define NDB_VFLAG_DATA_FROM_NV (1 << 3)
 
 /** Non-volatile flag: value has been set */
 #define NDB_IE_VALID (1 << 0)

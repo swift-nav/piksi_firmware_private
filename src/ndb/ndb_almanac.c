@@ -283,8 +283,10 @@ static ndb_cand_status_t ndb_alma_candidate_update(const almanac_t *alma)
   if (NDB_ERR_NONE == ndb_almanac_read(alma->sid, &existing)) {
     bool existing_is_newer = false;
     bool existing_is_same = false;
+    u16 idx = map_sid_to_index(alma->sid);
 
-    if (memcmp(&existing, alma, sizeof(*alma)) != 0) {
+    if (memcmp(&existing, alma, sizeof(*alma)) != 0 &&
+        0 == (ndb_almanac_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
       /* We already have different almanac in DB, it might be newer than given */
       if (WN_UNKNOWN != existing.toa.wn && WN_UNKNOWN != alma->toa.wn) {
         u32 age_existing = (u32)existing.toa.wn * WEEK_SECS + (s32)existing.toa.tow;
