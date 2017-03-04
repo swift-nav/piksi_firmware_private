@@ -32,6 +32,9 @@
 #define FFT_SCALE_SCHED_INV 0x15550000
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
+volatile u8 sample_buffer[0xFFFE0];
+volatile bool sample_buffer_valid = false;
+
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
 static bool get_bin_min_max(gnss_signal_t sid, float cf_min, float cf_max,
@@ -53,6 +56,14 @@ float acq_bin_width(void)
 bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
                 float cf_bin_width, acq_result_t *acq_result)
 {
+  u32 sc;
+  sample_buffer_valid = false;
+  sample_buffer_valid = raw_samples_get((u8 *)sample_buffer,
+                                        sizeof(sample_buffer), &sc);
+  chThdSleepMilliseconds(100);
+  return false;
+
+
   /* Configuration */
   u32 fft_len_log2 = FFT_LEN_LOG2_MAX;
   u32 fft_len = 1 << fft_len_log2;
