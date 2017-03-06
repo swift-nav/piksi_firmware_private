@@ -59,13 +59,6 @@ extern double soln_freq;
 extern u32 obs_output_divisor;
 extern u32 max_age_of_differential;
 
-void solution_send_pos_messages(double propagation_time, u8 sender_id, u8 n_used,
-                                const navigation_measurement_t *nav_meas,
-                                const msg_gps_time_t *gps_time, const msg_pos_llh_t *pos_llh,
-                                const msg_pos_ecef_t *pos_ecef, const msg_vel_ned_t *vel_ned,
-                                const msg_vel_ecef_t * vel_ecef, const msg_dops_t *sbp_dops,
-                                const msg_baseline_ned_t *baseline_ned, const msg_baseline_ecef_t *baseline_ecef,
-                                const msg_baseline_heading_t *baseline_heading);
 void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, msg_gps_time_t *gps_time,
                        msg_pos_llh_t *pos_llh, msg_pos_ecef_t *pos_ecef,
                        msg_vel_ned_t *vel_ned, msg_vel_ecef_t *vel_ecef,

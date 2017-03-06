@@ -36,7 +36,7 @@
 typedef struct
 {
   tp_tow_entry_t       tow;        /**< ToW cache entry */
-  tp_elevation_entry_t elevation;  /**< SV elevation cache entry */
+  tp_azel_entry_t      azel;       /**< SV azimuth & elevation cache entry */
   xcorr_positions_t    positions;  /**< SV cross-correlation positions cache entry */
 } volatile sid_db_cache_entry_t;
 
@@ -65,7 +65,8 @@ void track_sid_db_init(void)
   for (size_t i = 0; i < NUM_SIGNALS_GPS_L1CA; ++i) {
     volatile sid_db_cache_entry_t *entry = &sid_db_cache.gps_entries[i];
     entry->tow.TOW_ms = TOW_UNKNOWN;
-    entry->elevation.elevation_d = TRACKING_ELEVATION_UNKNOWN;
+    entry->azel.azimuth_d = TRACKING_AZIMUTH_UNKNOWN;
+    entry->azel.elevation_d = TRACKING_ELEVATION_UNKNOWN;
   }
 }
 
@@ -128,15 +129,15 @@ bool track_sid_db_update_tow(gnss_signal_t sid, const tp_tow_entry_t *tow_entry)
  * \retval false If elevation entry is not present.
  */
 bool track_sid_db_load_elevation(gnss_signal_t sid,
-                                 tp_elevation_entry_t *elevation_entry)
+                                 tp_azel_entry_t *azel_entry)
 {
   bool result = false;
 
-  if (NULL != elevation_entry &&
+  if (NULL != azel_entry &&
       CONSTELLATION_GPS == sid_to_constellation(sid)) {
     u8 sv_index = sid_to_code_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    *elevation_entry = sid_db_cache.gps_entries[sv_index].elevation;
+    *azel_entry = sid_db_cache.gps_entries[sv_index].azel;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
@@ -153,16 +154,16 @@ bool track_sid_db_load_elevation(gnss_signal_t sid,
  * \retval true  If elevation entry has been updated.
  * \retval false If elevation entry is not present.
  */
-bool track_sid_db_update_elevation(gnss_signal_t sid,
-                                   const tp_elevation_entry_t *elevation_entry)
+bool track_sid_db_update_azel(gnss_signal_t sid,
+                              const tp_azel_entry_t *azel_entry)
 {
   bool result = false;
 
-  if (NULL != elevation_entry &&
+  if (NULL != azel_entry &&
       CONSTELLATION_GPS == sid_to_constellation(sid)) {
     u8 sv_index = sid_to_code_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.gps_entries[sv_index].elevation = *elevation_entry;
+    sid_db_cache.gps_entries[sv_index].azel = *azel_entry;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }

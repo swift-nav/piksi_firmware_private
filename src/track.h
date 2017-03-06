@@ -31,6 +31,7 @@
 /** \addtogroup tracking
  * \{ */
 
+#define TRACKING_AZIMUTH_UNKNOWN 400
 #define TRACKING_ELEVATION_UNKNOWN 100 /* Ensure it will be above elev. mask */
 /** GPS L1 C/A cross-correlation frequency step [hz] */
 #define L1CA_XCORR_FREQ_STEP 1000.f
@@ -325,7 +326,9 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt);
 tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid);
 void tracking_channel_drop_l2cl(gnss_signal_t sid);
 
-bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp);
+bool sv_azel_degrees_set(gnss_signal_t sid, u16 azimuth,
+                         s8 elevation, u64 timestamp);
+u16 sv_azimuth_degrees_get(gnss_signal_t sid);
 s8 sv_elevation_degrees_get(gnss_signal_t sid);
 
 /* Decoder interface */
