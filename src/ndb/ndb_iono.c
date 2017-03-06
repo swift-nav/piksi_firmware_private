@@ -111,6 +111,8 @@ static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   memset(&iono, 0, sizeof(iono));
 
   /* unpack received message */
+  iono.toa.tow = ((msg_iono_t*)msg)->t_nmct.tow;
+  iono.toa.wn = ((msg_iono_t*)msg)->t_nmct.wn;
   iono.a0 = ((msg_iono_t*)msg)->a0;
   iono.a1 = ((msg_iono_t*)msg)->a1;
   iono.a2 = ((msg_iono_t*)msg)->a2;

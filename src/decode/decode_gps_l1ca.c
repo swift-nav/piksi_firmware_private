@@ -156,6 +156,57 @@ static void check_almanac_wn_xcorr(s16 wn, s32 toa)
 }
 
 /**
+ * For decoded ionosphere data, check if the time of almanac (toa) is newer
+ * than the one currently stored in NDB.
+ *
+ * \param sid   GNSS signal identifier for which to check almanac toa
+ * \param iono  Decoded ionosphere data
+ *
+ * return True if toa is valid and newer than the one in NDB.
+ *             Also return true is toa is valid, and NBD
+ *             does not contain previously stored value.
+ *        False otherwise
+ */
+static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono)
+{
+  bool alma_valid = false;   /* Valid toa is available for given sid */
+  bool iono_valid = false;   /* Valid toa is available in NDB */
+  bool iono_missing = false; /* Valid iono parameters are available in NDB */
+  almanac_t existing_a;      /* Existing almanac data */
+  ionosphere_t existing_i;   /* Existing ionosphere data */
+
+  /* Check if valid almanac toa is present for given sid.
+   * If available, copy toa timestamp to iono parameters. */
+  ndb_op_code_t res = ndb_almanac_read(sid, &existing_a);
+  if (NDB_ERR_NONE == res && gps_time_valid(&existing_a.toa)) {
+    alma_valid = true;
+    iono->toa = existing_a.toa;
+  }
+
+  /* Check if previously stored ionosphere data is available in NDB.
+   * Also check that timestamp is valid. */
+  res = ndb_iono_corr_read(&existing_i);
+  if ((NDB_ERR_NONE == res && gps_time_valid(&existing_i.toa))) {
+    iono_valid = true;
+  } else if (NDB_ERR_MISSING_IE == res) {
+    iono_missing = true;
+  }
+
+  double age = 0.0f;
+  if (alma_valid && iono_valid) {
+    /* Check if decoded data is newer that the one stored in NDB. */
+    age = gpsdifftime(&existing_a.toa, &existing_i.toa);
+    return (age > 0.0f) ? true : false;
+  } else if (alma_valid && iono_missing) {
+    /* If NDB does not contain previously saved data. */
+    return true;
+  } else {
+    /* Otherwise no updates. */
+    return false;
+  }
+}
+
+/**
  * Stores new almanac data to NDB.
  *
  * \param sid   Almanac source
@@ -444,12 +495,14 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
-    if (ndb_iono_corr_store(&channel_info->sid,
-                            &dd.iono,
-                            NDB_DS_RECEIVER,
-                            NDB_EVENT_SENDER_ID_VOID) ==
-        NDB_ERR_NONE) {
-      sbp_send_iono(&dd.iono);
+    if (check_iono_timestamp(channel_info->sid, &dd.iono)) {
+      if (ndb_iono_corr_store(&channel_info->sid,
+                              &dd.iono,
+                              NDB_DS_RECEIVER,
+                              NDB_EVENT_SENDER_ID_VOID) ==
+          NDB_ERR_NONE) {
+        sbp_send_iono(&dd.iono);
+      }
     }
   }
 
