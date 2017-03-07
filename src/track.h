@@ -194,17 +194,16 @@ typedef struct {
   float  acceleration;         /**< Acceleration [g] */
 } tracking_channel_freq_info_t;
 
+/** Tracking channel measurements FIFO size. Must be a power of two. */
+#define TRACK_MEAS_FIFO_SIZE 8
+
+/** For how long measurements are delayed before being reported upstream [ms] */
+#define TRACK_MEAS_DELAY_MS 100
+
 /**
- * Public data segment.
- *
- * Public data segment belongs to a tracking channel and is locked only for
- * a quick update or data fetch operations.
- *
- * The data is grouped according to functional blocks.
+ * Tracker channel measurement data.
  */
-typedef struct {
-  /** Mutex used to permit atomic updates of public channel data. */
-  mutex_t info_mutex;
+struct tracker_channel_meas_data_t {
   /** Generic info for externals */
   volatile tracking_channel_info_t      gen_info;
   /** Timing info for externals */
@@ -219,7 +218,29 @@ typedef struct {
   running_stats_t                       carr_freq_stats;
   /** Pseudorange products */
   running_stats_t                       pseudorange_stats;
+};
+
+/**
+ * Public data segment.
+ *
+ * Public data segment belongs to a tracking channel and is locked only for
+ * a quick update or data fetch operations.
+ *
+ * The data is grouped according to functional blocks.
+ */
+typedef struct {
+  /** Mutex used to permit atomic updates of public channel data. */
+  mutex_t info_mutex;
+  struct tracker_channel_meas_data_t data;
 } tracker_channel_pub_data_t;
+
+/** Measurements FIFO */
+struct trkch_meas_fifo_t {
+  /** FIFO slots */
+  struct tracker_channel_meas_data_t meas[TRACK_MEAS_FIFO_SIZE];
+  size_t read_index;            /**< Read index */
+  size_t write_index;           /**< Write index */
+};
 
 /** Top-level generic tracker channel. */
 typedef struct {
@@ -246,6 +267,11 @@ typedef struct {
   tracker_t *tracker;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
+
+  /** Measurement data FIFO */
+  struct trkch_meas_fifo_t fifo_meas;
+
+  u32 meas_delay_ms;  /**< How much delay is introduced by fifo [ms] */
 } tracker_channel_t;
 
 /**
