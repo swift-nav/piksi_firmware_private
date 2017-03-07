@@ -279,6 +279,9 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
   case NDB_ERR_OLDER_DATA:
     log_warn_sid(e->sid, "ephemeris is older than one in DB, not saved");
     break;
+  case NDB_ERR_GPS_TIME_MISSING:
+    log_debug_sid(e->sid, "GPS time unknown, ephemeris in DB not saved");
+    break;
   case NDB_ERR_MISSING_IE:
   case NDB_ERR_UNSUPPORTED:
   case NDB_ERR_FILE_IO:
@@ -286,6 +289,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
   case NDB_ERR_BAD_PARAM:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
   default:
     log_warn_sid(e->sid, "error %d storing ephemeris", (int)oc);
     return EPH_NEW_ERR;

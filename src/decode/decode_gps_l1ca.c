@@ -247,6 +247,8 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   case NDB_ERR_BAD_PARAM:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
   default:
     log_warn_sid(alma->sid, "error %d storing almanac from %s",
                   (int)oc,
@@ -300,6 +302,8 @@ static void decode_almanac_time_new(gnss_signal_t sid,
   case NDB_ERR_BAD_PARAM:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
   default:
     log_error_sid(sid,
                   "error %d updating almanac time (%" PRId16 ", %" PRId32 ")",
@@ -382,6 +386,8 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
         case NDB_ERR_INIT_DONE:
         case NDB_ERR_BAD_PARAM:
         case NDB_ERR_ALGORITHM_ERROR:
+        case NDB_ERR_AGED_DATA:
+        case NDB_ERR_GPS_TIME_MISSING:
         default:
           log_error_sid(target_sid,
                         "error %d updating almanac health bits (0x%02" PRIX8 ")",

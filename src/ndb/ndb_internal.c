@@ -16,6 +16,7 @@
 #include <libswiftnav/edc.h>
 #include "libsbp/piksi.h"
 #include "version.h"
+#include "timing.h"
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "ndb_fs_access.h"
@@ -169,6 +170,8 @@ static void ndb_log_file_open(ndb_op_code_t oc,
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   case NDB_ERR_OLDER_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
   default:
     assert(!"ndb_log_file_open()");
     break;
@@ -302,6 +305,17 @@ void ndb_load_data(ndb_file_t *file, bool erase)
 ndb_timestamp_t ndb_get_timestamp(void)
 {
   return nap_count_to_ms(nap_timing_count()) / 1000;
+}
+
+/**
+ * Returns GPS time if available.
+ *
+ * \return GPS time in seconds
+ */
+gps_time_t ndb_get_GPS_timestamp(void)
+{
+  return (TIME_FINE == time_quality) ? napcount2rcvtime(nap_timing_count())
+                                     : GPS_TIME_UNKNOWN;
 }
 
 /**

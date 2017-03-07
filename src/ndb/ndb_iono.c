@@ -56,10 +56,41 @@ void ndb_iono_init(void)
   );
 }
 
+static ndb_op_code_t ndb_check_iono_age(const ionosphere_t *iono)
+{
+  gps_time_t now = ndb_get_GPS_timestamp();
+  if (gps_time_valid(&now) && gps_time_valid(&iono->toa)) {
+    double age = gpsdifftime(&now, &iono->toa);
+    if (age > NDB_NV_IONO_AGE) {
+      return NDB_ERR_AGED_DATA;
+    }
+    return NDB_ERR_NONE;
+  }
+  return NDB_ERR_GPS_TIME_MISSING;
+}
+
+/**
+ * Loads iono parameters from NDB
+ *
+ * \param[out] iono Destination container.
+ *
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_BAD_PARAM        On parameter error
+ * \retval NDB_ERR_MISSING_IE       No cached data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
+ *
+ * \sa ndb_iono_corr_store
+ */
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
 {
-  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL,
-                      NDB_USE_NV_IONO);
+  ndb_op_code_t ret = ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL,
+                                   NDB_USE_NV_IONO);
+  if (NDB_ERR_NONE == ret) {
+    /* If NDB read was successful, check that data has not aged out */
+    ret = ndb_check_iono_age(iono);
+  }
+  return ret;
 }
 
 /**

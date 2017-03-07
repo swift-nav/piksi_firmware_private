@@ -45,6 +45,12 @@ typedef struct {
 #define NDB_USE_NV_ALMANAC   0
 #define NDB_USE_NV_EPHEMERIS 0
 
+/** Maximum age of NV data elements in seconds */
+#define NDB_NV_IONO_AGE      WEEK_SECS
+#define NDB_NV_LGF_AGE       (4 * HOUR_SECS)
+#define NDB_NV_ALMANAC_AGE   WEEK_SECS
+#define NDB_NV_EPHEMERIS_AGE (2 * HOUR_SECS)
+
 /** Volatile flag: IE needs to be written to NVM */
 #define NDB_VFLAG_IE_DIRTY (1 << 0)
 /** Volatile flag: Metadata needs to be written to NVM */
@@ -85,6 +91,7 @@ typedef enum {
   NDB_CAND_NEW_CANDIDATE, /**< New candidate accepted */
   NDB_CAND_NEW_TRUSTED,   /**< Previous candidate confirmed */
   NDB_CAND_MISMATCH,      /**< Candidate data mismatch */
+  NDB_CAND_GPS_TIME_MISSING, /**< GPS time missing, can't update NDB */
 } ndb_cand_status_t;
 
 #define NDB_SBP_UPDATE_SIG_IDX_INIT -1
@@ -117,6 +124,7 @@ void ndb_lock(void);
 void ndb_unlock(void);
 
 ndb_timestamp_t ndb_get_timestamp(void);
+gps_time_t ndb_get_GPS_timestamp(void);
 void ndb_load_data(ndb_file_t *f, bool erase);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,

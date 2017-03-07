@@ -98,6 +98,19 @@ void ndb_ephemeris_init(void)
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
+static ndb_op_code_t ndb_check_ephemeris_age(const ephemeris_t *ephe)
+{
+  gps_time_t now = ndb_get_GPS_timestamp();
+  if (gps_time_valid(&now) && gps_time_valid(&ephe->toe)) {
+    double age = gpsdifftime(&now, &ephe->toe);
+    if (age > NDB_NV_EPHEMERIS_AGE) {
+      return NDB_ERR_AGED_DATA;
+    }
+    return NDB_ERR_NONE;
+  }
+  return NDB_ERR_GPS_TIME_MISSING;
+}
+
 static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
 {
   int i;
@@ -307,40 +320,46 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     ce = &ephe_candidates[cand_idx].ephe;
   }
 
-  if (NULL != pe && 0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
-      0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
-    /* If new ephemeris is identical to the one in NDB,
-     * and the NDB data is not initially loaded from NV,
-     * then no need to do anything */
+  if (TIME_FINE != time_quality) {
     ndb_ephe_release_candidate(cand_idx);
-    r = NDB_CAND_IDENTICAL;
-
-    log_debug_sid(new->sid, "[EPH] identical");
-  } else if (NULL != ce) {
-    /* Candidate was added already */
-    if (ndb_can_confirm_ephemeris(new, pe, pa, ce)) {
-      /* New ephemeris matches candidate - confirm it */
-      ndb_ephe_release_candidate(cand_idx);
-      r = NDB_CAND_NEW_TRUSTED;
-      log_debug_sid(new->sid, "[EPH] confirmed");
-    } else {
-      /* New ephemeris doesn't match new candidate - check for validity */
-      r = NDB_CAND_MISMATCH;
-      ndb_ephe_release_candidate(cand_idx);
-      ndb_ephe_try_adding_candidate(new);
-      log_debug_sid(new->sid, "[EPH] mismatch");
-    }
-  } else if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
-    /* first candidate, but can be verified from an older ephemeris
-     * or almanac */
-    log_debug_sid(new->sid, "[EPH] new trusted");
-    r = NDB_CAND_NEW_TRUSTED;
-  } else {
-    /* New one is not in candidate list yet, try to put it
-     * to an empty slot */
     ndb_ephe_try_adding_candidate(new);
-    r = NDB_CAND_NEW_CANDIDATE;
-    log_debug_sid(new->sid, "[EPH] untrusted");
+    r = NDB_CAND_GPS_TIME_MISSING;
+  } else {
+    if (NULL != pe && 0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
+        0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
+      /* If new ephemeris is identical to the one in NDB,
+       * and the NDB data is not initially loaded from NV,
+       * then no need to do anything */
+      ndb_ephe_release_candidate(cand_idx);
+      r = NDB_CAND_IDENTICAL;
+
+      log_debug_sid(new->sid, "[EPH] identical");
+    } else if (NULL != ce) {
+      /* Candidate was added already */
+      if (ndb_can_confirm_ephemeris(new, pe, pa, ce)) {
+        /* New ephemeris matches candidate - confirm it */
+        ndb_ephe_release_candidate(cand_idx);
+        r = NDB_CAND_NEW_TRUSTED;
+        log_debug_sid(new->sid, "[EPH] confirmed");
+      } else {
+        /* New ephemeris doesn't match new candidate - check for validity */
+        r = NDB_CAND_MISMATCH;
+        ndb_ephe_release_candidate(cand_idx);
+        ndb_ephe_try_adding_candidate(new);
+        log_debug_sid(new->sid, "[EPH] mismatch");
+      }
+    } else if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
+      /* first candidate, but can be verified from an older ephemeris
+       * or almanac */
+      log_debug_sid(new->sid, "[EPH] new trusted");
+      r = NDB_CAND_NEW_TRUSTED;
+    } else {
+      /* New one is not in candidate list yet, try to put it
+       * to an empty slot */
+      ndb_ephe_try_adding_candidate(new);
+      r = NDB_CAND_NEW_CANDIDATE;
+      log_debug_sid(new->sid, "[EPH] untrusted");
+    }
   }
 
   chMtxUnlock(&cand_list_access);
@@ -363,6 +382,8 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
  * \retval NDB_ERR_BAD_PARAM        On parameter error
  * \retval NDB_ERR_MISSING_IE       No cached data block
  * \retval NDB_ERR_UNCONFIRMED_DATA Unconfirmed data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  */
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
@@ -374,6 +395,12 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
                                    NULL, NDB_USE_NV_EPHEMERIS);
+
+  if (NDB_ERR_NONE == res) {
+    /* If NDB read was successful, check that data has not aged out */
+    res = ndb_check_ephemeris_age(e);
+  }
+
   if (NDB_ERR_NONE != res) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);
@@ -412,6 +439,8 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
       return NDB_ERR_UNCONFIRMED_DATA;
+    case NDB_CAND_GPS_TIME_MISSING:
+      return NDB_ERR_GPS_TIME_MISSING;
     default:
       assert(!"Invalid status");
     }

@@ -721,6 +721,19 @@ void ndb_almanac_init(void)
   ndb_unlock();
 }
 
+static ndb_op_code_t ndb_check_almanac_age(const almanac_t *alma)
+{
+  gps_time_t now = ndb_get_GPS_timestamp();
+  if (gps_time_valid(&now) && gps_time_valid(&alma->toa)) {
+    double age = gpsdifftime(&now, &alma->toa);
+    if (age > NDB_NV_ALMANAC_AGE) {
+      return NDB_ERR_AGED_DATA;
+    }
+    return NDB_ERR_NONE;
+  }
+  return NDB_ERR_GPS_TIME_MISSING;
+}
+
 /**
  * Reads almanac's data from NDB
  *
@@ -733,9 +746,11 @@ void ndb_almanac_init(void)
  * \param[out] a   Almanac data destination. May have WN field set to
  *                 #WN_UNKNOWN if NDB doesn't have matching TOA/WN pair.
  *
- * \retval NDB_ERR_NONE       On success
- * \retval NDB_ERR_BAD_PARAM  On parameter error
- * \retval NDB_ERR_MISSING_IE No cached data block
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_BAD_PARAM        On parameter error
+ * \retval NDB_ERR_MISSING_IE       No cached data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  *
  * \sa ndb_almanac_store
  * \sa ndb_almanac_wn_store
@@ -744,8 +759,14 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = map_sid_to_index(sid);
 
-  return ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL,
-                      NDB_USE_NV_ALMANAC);
+  ndb_op_code_t ret = ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL,
+                                   NDB_USE_NV_ALMANAC);
+
+  if (NDB_ERR_NONE == ret) {
+    /* If NDB read was successful, check that data has not aged out */
+    ret = ndb_check_almanac_age(a);
+  }
+  return ret;
 }
 
 /**
@@ -795,6 +816,9 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
       res = NDB_ERR_UNCONFIRMED_DATA;
+      break;
+    case NDB_CAND_GPS_TIME_MISSING:
+      res =  NDB_ERR_GPS_TIME_MISSING;
       break;
     default:
       assert(!"Invalid status");
@@ -903,6 +927,9 @@ ndb_op_code_t ndb_almanac_wn_store(gnss_signal_t sid, u32 toa, u16 wn,
     res = NDB_ERR_NONE;
     break;
   case NDB_CAND_OLDER:
+  case NDB_CAND_GPS_TIME_MISSING:
+    res =  NDB_ERR_GPS_TIME_MISSING;
+    break;
   default:
     assert(!"Unexpected almanac's TOA/WN candidate status");
   }

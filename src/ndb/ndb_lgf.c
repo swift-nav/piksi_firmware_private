@@ -74,6 +74,19 @@ void ndb_lgf_init(void)
   }
 }
 
+static ndb_op_code_t ndb_check_lgf_age(const last_good_fix_t *lgf)
+{
+  gps_time_t now = ndb_get_GPS_timestamp();
+  if (gps_time_valid(&now) && gps_time_valid(&lgf->position_solution.time)) {
+    double age = gpsdifftime(&now, &lgf->position_solution.time);
+    if (age > NDB_NV_LGF_AGE) {
+      return NDB_ERR_AGED_DATA;
+    }
+    return NDB_ERR_NONE;
+  }
+  return NDB_ERR_GPS_TIME_MISSING;
+}
+
 /**
  * Loads last good fix data from NDB
  *
@@ -81,9 +94,11 @@ void ndb_lgf_init(void)
  *
  * \param[out] lgf Destination container.
  *
- * \retval NDB_ERR_NONE       On success
- * \retval NDB_ERR_BAD_PARAM  On parameter error
- * \retval NDB_ERR_MISSING_IE No cached data block
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_BAD_PARAM        On parameter error
+ * \retval NDB_ERR_MISSING_IE       No cached data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  *
  * \sa ndb_lgf_store
  */
@@ -114,6 +129,11 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
     ndb_unlock();
   } else {
     res = NDB_ERR_BAD_PARAM;
+  }
+
+  if (NDB_ERR_NONE == res) {
+    /* If NDB read was successful, check that data has not aged out */
+    res = ndb_check_lgf_age(lgf);
   }
 
   return res;
