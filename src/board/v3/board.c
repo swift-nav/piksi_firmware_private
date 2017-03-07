@@ -24,17 +24,6 @@
 #include "board/v3/xadc.h"
 #include "board/v3/nt1065.h"
 
-#define REBOOT_STATUS (*(volatile uint32_t *)0xF8000258)
-#define REBOOT_STATUS_POR (1 << 22)
-#define REBOOT_STATUS_SRST (1 << 21)
-#define REBOOT_STATUS_DBG_RST (1 << 20)
-#define REBOOT_STATUS_SLC_RST (1 << 19)
-#define REBOOT_STATUS_AWDT1_RST (1 << 18)
-#define REBOOT_STATUS_AWDT0_RST (1 << 17)
-#define REBOOT_STATUS_SWDT_RST (1 << 16)
-#define REBOOT_STATUS_REASON (0x3F << 16)
-#define REBOOT_STATUS_CLEAR_MASK (0x7F << 16)
-
 const PALConfig pal_default_config;
 const WDGConfig board_wdg_config = {
   .period_ms = 30000,
@@ -58,21 +47,6 @@ void boardInit(void)
 {
   boardRevInit();
   cycle_counter_init();
-}
-
-void board_preinit_hook(void)
-{
-  uint32_t s = REBOOT_STATUS;
-  if (s & REBOOT_STATUS_REASON) {
-    if (s & (REBOOT_STATUS_SWDT_RST | REBOOT_STATUS_AWDT1_RST |
-                  REBOOT_STATUS_AWDT0_RST))
-      log_error("Piksi has reset due to a watchdog timeout.");
-    if (s & REBOOT_STATUS_SLC_RST)
-      log_info("Software reset detected.");
-    log_info("Reset reason: %02X", s >> 16);
-  }
-
-  REBOOT_STATUS &= ~REBOOT_STATUS_CLEAR_MASK;
 }
 
 void board_send_state(void)
