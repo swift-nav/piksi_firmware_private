@@ -197,6 +197,11 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
     baseline_heading->flags = flags;
 }
 
+void sbp_make_age_corrections(msg_age_corrections_t *age_corrections, const gps_time_t *t, double propagation_time){
+  age_corrections->tow = round_tow_ms(t->tow);
+  age_corrections->age = MIN(round(1e-1 * propagation_time), UINT16_MAX);
+}
+
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,

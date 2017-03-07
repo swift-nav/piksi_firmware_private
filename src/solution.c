@@ -312,7 +312,7 @@ double calc_heading(const double b_ned[3])
 void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                                 double covariance_ecef[9], double ref_ecef[3],
                                 bool has_known_base_pos_ecef, double known_base_pos[3],
-                                u8 flags, dops_t *dops,
+                                u8 flags, dops_t *dops, double propagation_time,
                                 sbp_messages_t *sbp_messages)
 {
   double b_ned[3];
@@ -324,6 +324,8 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
   sbp_make_baseline_ecef(&sbp_messages->baseline_ecef, t, n_sats, b_ecef, accuracy, flags);
 
   sbp_make_baseline_ned(&sbp_messages->baseline_ned, t, n_sats, b_ned, h_accuracy, v_accuracy, flags);
+
+  sbp_make_age_corrections(&sbp_messages->age_corrections, t, propagation_time);
 
   double heading = calc_heading(b_ned);
   sbp_make_heading(&sbp_messages->baseline_heading, t, heading, n_sats, flags);
@@ -408,7 +410,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
   if (send_baseline) {
     solution_make_baseline_sbp(t, num_sats_used, baseline, covariance,
                                rover_pos, has_known_base_pos_ecef, known_base_pos,
-                               flags, dops, sbp_messages);
+                               flags, dops, diff_time, sbp_messages);
   }
 }
 
@@ -540,7 +542,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
     solution_make_baseline_sbp(&(soln->time), simulation_current_num_sats(), simulation_current_baseline_ecef(),
                                simulation_current_covariance_ecef(), simulation_ref_ecef(),
                                true, simulation_ref_ecef(), flags,
-                               simulation_current_dops_solution(), sbp_messages);
+                               simulation_current_dops_solution(), 0.0, sbp_messages);
 
     double t_check = expected_tow * (soln_freq / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
@@ -790,6 +792,7 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   memset(&(sbp_messages->vel_ned), 0, sizeof(msg_vel_ned_t));
   memset(&(sbp_messages->vel_ecef), 0, sizeof(msg_vel_ecef_t));
   memset(&(sbp_messages->sbp_dops), 0, sizeof(msg_dops_t));
+  memset(&(sbp_messages->age_corrections), 0, sizeof(msg_age_corrections_t));
   memset(&(sbp_messages->baseline_ecef), 0, sizeof(msg_baseline_ecef_t));
   memset(&(sbp_messages->baseline_ned), 0, sizeof(msg_baseline_ned_t));
   memset(&(sbp_messages->baseline_heading), 0, sizeof(msg_baseline_heading_t));

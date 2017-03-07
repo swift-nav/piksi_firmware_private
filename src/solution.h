@@ -54,6 +54,7 @@ typedef struct {
   msg_vel_ned_t vel_ned;
   msg_vel_ecef_t vel_ecef;
   msg_dops_t sbp_dops;
+  msg_age_corrections_t age_corrections;
   msg_baseline_ecef_t baseline_ecef;
   msg_baseline_ned_t baseline_ned;
   msg_baseline_heading_t baseline_heading;
@@ -77,7 +78,8 @@ double calc_heading(const double b_ned[3]);
 void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3],
                                 double covariance_ecef[9], double ref_ecef[3],
                                 bool has_known_base_pos_ecef, double known_base_pos[3],
-                                u8 flags, dops_t *dops, sbp_messages_t *sbp_messages);
+                                u8 flags, dops_t *dops, double propagation_time,
+                                sbp_messages_t *sbp_messages);
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);

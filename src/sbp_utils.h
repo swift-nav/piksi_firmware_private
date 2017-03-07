@@ -80,6 +80,7 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
                            double v_accuracy, u8 flags);
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_sats_used, u8 flags);
+void sbp_make_age_corrections(msg_age_corrections_t *age_corrections, const gps_time_t *t, double propagation_time);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
