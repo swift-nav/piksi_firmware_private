@@ -134,7 +134,6 @@ static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
-static bool sbas_enabled = false;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 
@@ -223,7 +222,6 @@ static void manage_acq_thread(void *arg)
 
 void manage_acq_setup()
 {
-  SETTING("acquisition", "sbas_enabled", sbas_enabled, TYPE_BOOL);
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
@@ -243,11 +241,6 @@ void manage_acq_setup()
     acq_status[i].sid = sid;
 
     track_mask[i] = false;
-
-    if (!sbas_enabled && (sid_to_constellation(sid) == CONSTELLATION_SBAS)) {
-      acq_status[i].masked = true;
-      track_mask[i] = true;
-    }
   }
 
   sbp_register_cbk(
