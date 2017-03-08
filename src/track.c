@@ -1163,8 +1163,7 @@ static bool trkch_data_available(tracker_channel_t *tracker_channel)
   if (tracker_channel->meas_delay_ms >= TRACK_MEAS_DELAY_MS) {
     return true;
   }
-  //return false;
-  return true;
+  return false;
 }
 
 /** Check the state of a tracker channel and generate events as required.
