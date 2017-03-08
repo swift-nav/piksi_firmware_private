@@ -324,42 +324,41 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     ndb_ephe_release_candidate(cand_idx);
     ndb_ephe_try_adding_candidate(new);
     r = NDB_CAND_GPS_TIME_MISSING;
-  } else {
-    if (NULL != pe && 0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
-        0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
-      /* If new ephemeris is identical to the one in NDB,
-       * and the NDB data is not initially loaded from NV,
-       * then no need to do anything */
-      ndb_ephe_release_candidate(cand_idx);
-      r = NDB_CAND_IDENTICAL;
+  } else if (NULL != pe &&
+             0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
+             0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
+    /* If new ephemeris is identical to the one in NDB,
+     * and the NDB data is not initially loaded from NV,
+     * then no need to do anything */
+    ndb_ephe_release_candidate(cand_idx);
+    r = NDB_CAND_IDENTICAL;
 
-      log_debug_sid(new->sid, "[EPH] identical");
-    } else if (NULL != ce) {
-      /* Candidate was added already */
-      if (ndb_can_confirm_ephemeris(new, pe, pa, ce)) {
-        /* New ephemeris matches candidate - confirm it */
-        ndb_ephe_release_candidate(cand_idx);
-        r = NDB_CAND_NEW_TRUSTED;
-        log_debug_sid(new->sid, "[EPH] confirmed");
-      } else {
-        /* New ephemeris doesn't match new candidate - check for validity */
-        r = NDB_CAND_MISMATCH;
-        ndb_ephe_release_candidate(cand_idx);
-        ndb_ephe_try_adding_candidate(new);
-        log_debug_sid(new->sid, "[EPH] mismatch");
-      }
-    } else if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
-      /* first candidate, but can be verified from an older ephemeris
-       * or almanac */
-      log_debug_sid(new->sid, "[EPH] new trusted");
+    log_debug_sid(new->sid, "[EPH] identical");
+  } else if (NULL != ce) {
+    /* Candidate was added already */
+    if (ndb_can_confirm_ephemeris(new, pe, pa, ce)) {
+      /* New ephemeris matches candidate - confirm it */
+      ndb_ephe_release_candidate(cand_idx);
       r = NDB_CAND_NEW_TRUSTED;
+      log_debug_sid(new->sid, "[EPH] confirmed");
     } else {
-      /* New one is not in candidate list yet, try to put it
-       * to an empty slot */
+      /* New ephemeris doesn't match new candidate - check for validity */
+      r = NDB_CAND_MISMATCH;
+      ndb_ephe_release_candidate(cand_idx);
       ndb_ephe_try_adding_candidate(new);
-      r = NDB_CAND_NEW_CANDIDATE;
-      log_debug_sid(new->sid, "[EPH] untrusted");
+      log_debug_sid(new->sid, "[EPH] mismatch");
     }
+  } else if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
+    /* first candidate, but can be verified from an older ephemeris
+     * or almanac */
+    log_debug_sid(new->sid, "[EPH] new trusted");
+    r = NDB_CAND_NEW_TRUSTED;
+  } else {
+    /* New one is not in candidate list yet, try to put it
+     * to an empty slot */
+    ndb_ephe_try_adding_candidate(new);
+    r = NDB_CAND_NEW_CANDIDATE;
+    log_debug_sid(new->sid, "[EPH] untrusted");
   }
 
   chMtxUnlock(&cand_list_access);

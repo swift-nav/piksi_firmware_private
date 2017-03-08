@@ -775,19 +775,18 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *ds,
-                           bool use_nv)
+                           bool use_nv_data)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  bool use_valid = true;
-  /* If data has been load from NV and data from NV should not be used,
-   * then mark use_valid false. */
-  if (!use_nv && (md->vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
-    use_valid = false;
+  bool retrieve_data = false;
+  /* Check if NV data should be retrieved */
+  if (use_nv_data || (0 == (md->vflags & NDB_VFLAG_DATA_FROM_NV))) {
+    retrieve_data = true;
   }
 
   if (NULL != md && NULL != md->file && out_size == md->file->block_size
-      && use_valid) {
+      && retrieve_data) {
     ndb_lock();
     res = ndb_retrieve_int(md->file, md->index, out, ds);
     ndb_unlock();
