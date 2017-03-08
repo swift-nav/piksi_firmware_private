@@ -105,3 +105,7 @@ void nap_pps_width(u32 falling_edge_count)
   (void)falling_edge_count;
 }
 
+bool nap_pps_armed(void)
+{
+}
+

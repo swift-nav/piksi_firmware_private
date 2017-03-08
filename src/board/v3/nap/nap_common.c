@@ -282,6 +282,11 @@ void nap_pps_config(u32 microseconds, u8 active)
   NAP->PPS_CONTROL = (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
 }
 
+bool nap_pps_armed(void)
+{
+  return (NAP->STATUS & NAP_STATUS_PPS_ARMED_Msk) >> NAP_STATUS_PPS_ARMED_Pos;
+}
+
 u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
     ext_event_trigger_t next_trig)
 {
