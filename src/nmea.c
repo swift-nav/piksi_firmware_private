@@ -662,7 +662,8 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
   
   if (!start_output) {
     /* Check if this solution is on a second boundary by truncating to nearest 0.05s */
-    if (fabs(sbp_msg_time->tow - 1000*round(sbp_msg_time->tow/1000.0)) <= 20) {
+    if (((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME )
+       && (fabs(sbp_msg_time->tow - 1000*round(sbp_msg_time->tow/1000.0)) <= 20)) {
       start_output = true;
     } else {
       return;
