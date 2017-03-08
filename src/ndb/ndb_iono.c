@@ -43,7 +43,7 @@ static ndb_file_t iono_corr_file = {
 
 void ndb_iono_init(void)
 {
-  static bool erase_iono = true;
+  static bool erase_iono = false;
   SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
 
   ndb_load_data(&iono_corr_file, erase_iono);
