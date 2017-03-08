@@ -900,6 +900,8 @@ void tracking_channel_measurement_get(u64 ref_tc,
                              / NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
+  meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
+  meas->elevation = TRACKING_ELEVATION_UNKNOWN;
   meas->flags = 0;
 }
 

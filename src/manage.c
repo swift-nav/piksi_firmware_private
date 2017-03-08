@@ -1155,6 +1155,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
       meas->carrier_phase -= carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.sid);
+    meas->elevation = (double) sv_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));
   }
