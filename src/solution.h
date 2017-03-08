@@ -49,6 +49,7 @@ typedef struct {
 
 typedef struct {
   msg_gps_time_t gps_time;
+  msg_utc_time_t utc_time;
   msg_pos_llh_t pos_llh;
   msg_pos_ecef_t pos_ecef;
   msg_vel_ned_t vel_ned;

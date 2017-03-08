@@ -101,6 +101,12 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
   t_out->flags = flags;
 }
 
+void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags)
+{
+  gps_time_nano_t t_nano;
+  round_time_nano(t_in, &t_nano);
+}
+
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
                            double h_accuracy, double v_accuracy,
                            const gps_time_t *gps_t, u8 n_sats_used, u8 flags)

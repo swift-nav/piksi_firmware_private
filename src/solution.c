@@ -152,6 +152,8 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
 
+    sbp_make_utc_time(&sbp_messages->utc_time, )
+
     /* Extract full covariance matrix from upper triangular in soln->err_cov */
     double full_covariance[9];
     extract_covariance(full_covariance, soln);
