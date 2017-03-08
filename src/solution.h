@@ -15,6 +15,7 @@
 
 #include <ch.h>
 #include <libsbp/navigation.h>
+#include <libsbp/system.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/track.h>
@@ -56,6 +57,7 @@ typedef struct {
   msg_vel_ecef_t vel_ecef;
   msg_dops_t sbp_dops;
   msg_age_corrections_t age_corrections;
+  msg_dgnss_status_t dgnss_status;
   msg_baseline_ecef_t baseline_ecef;
   msg_baseline_ned_t baseline_ned;
   msg_baseline_heading_t baseline_heading;

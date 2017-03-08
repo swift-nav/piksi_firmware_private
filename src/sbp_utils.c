@@ -19,6 +19,7 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/observation.h>
 
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -103,8 +104,32 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
 
 void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags)
 {
-  gps_time_nano_t t_nano;
-  round_time_nano(t_in, &t_nano);
+  time_t unix_t;
+  struct tm utc_time;
+
+  unix_t = gps2time(t_in);
+  gmtime_r(&unix_t, &utc_time);
+
+  t_out->tow = round_tow_ms(t_in->tow);
+  t_out->year = utc_time.tm_year;
+  t_out->month = utc_time.tm_mon;
+  t_out->day = utc_time.tm_mday;
+  t_out->hours = utc_time.tm_hour;
+  t_out->minutes = utc_time.tm_min;
+  t_out->seconds = utc_time.tm_sec;
+  t_out->ns = round((t_in->tow - t_out->tow)*1e9);
+  t_out->flags = flags;
+}
+
+void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status, u8 num_sats, double obs_latency, u8 flags){
+
+  if( flags > DGNSS_POSITION) {
+    dgnss_status->flags = 2;
+  } else {
+    dgnss_status->flags = 1;
+  }
+  dgnss_status->latency = MIN(round(10 * obs_latency), UINT16_MAX);
+  dgnss_status->num_signals = num_sats;
 }
 
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
@@ -205,7 +230,7 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
 
 void sbp_make_age_corrections(msg_age_corrections_t *age_corrections, const gps_time_t *t, double propagation_time){
   age_corrections->tow = round_tow_ms(t->tow);
-  age_corrections->age = MIN(round(1e-1 * propagation_time), UINT16_MAX);
+  age_corrections->age = MIN(round(10 * propagation_time), UINT16_MAX);
 }
 
 void sbp_send_ndb_event(u8 event,
