@@ -45,7 +45,7 @@ static ndb_file_t gps_l2c_capb_file = {
 void ndb_l2c_capb_init(void)
 {
 
-  static bool erase_l2c_capb = true;
+  static bool erase_l2c_capb = false;
   SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
 
   ndb_load_data(&gps_l2c_capb_file, erase_l2c_capb);
