@@ -1565,12 +1565,9 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
 static bool soln_freq_changed(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    if (soln_freq_check > MAX_SOLN_FREQ) {
-      log_error("Invalid soln_freq setting of %l, max is %l", soln_freq_check,
-                MAX_SOLN_FREQ);
-      return false;
-    } else if (soln_freq_check <= 0) {
-      log_error("Invalid soln_freq setting of %l, min is 0", soln_freq_check);
+    if ((soln_freq_check > MAX_SOLN_FREQ) || (soln_freq_check <= 0)) {
+      log_error("Invalid soln_freq setting of %l, max is %l, min is 0, leaving soln_freq at %l",
+                soln_freq_check, MAX_SOLN_FREQ, soln_freq);
       return false;
     } else {
       soln_freq = soln_freq_check;
