@@ -171,7 +171,7 @@ static void check_almanac_wn_xcorr(s16 wn, s32 toa)
 static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono)
 {
   bool alma_valid = false;   /* Valid toa is available for given sid */
-  bool iono_valid = false;   /* Valid toa is available in NDB */
+  bool iono_valid = false;   /* Valid iono is available in NDB */
   almanac_t existing_a;      /* Existing almanac data */
   ionosphere_t existing_i;   /* Existing ionosphere data */
 
@@ -182,25 +182,28 @@ static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono)
   alma_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc) &&
                gps_time_valid(&existing_a.toa);
 
+  if (!alma_valid) {
+    return false;
+  }
+
+  /* If almanac toa was available, copy it for iono parameters. */
+  iono->toa = existing_a.toa;
+
   /* Check if previously stored ionosphere data is available in NDB. */
   oc = ndb_iono_corr_read(&existing_i);
   /* Here we do not care if GPS time is unknown
    * since iono toa is compared against almanac toa. */
   iono_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
 
-  double age = 0.0f;
-  if (alma_valid) {
-    /* If almanac toa was available, copy it for iono parameters. */
-    iono->toa = existing_a.toa;
-    if (iono_valid) {
-      /* Check if decoded data is newer that the one stored in NDB. */
-      age = gpsdifftime(&existing_a.toa, &existing_i.toa);
-      return age > 0.0f;
-    } else {
-      /* If NDB has no previously saved data, or contains aged data */
-      return true;
-    }
+  if (iono_valid) {
+    /* Check if decoded data is newer that the one stored in NDB. */
+    double age = gpsdifftime(&existing_a.toa, &existing_i.toa);
+    return age > 0.0f;
+  } else {
+    /* If NDB has no previously saved data, or contains aged data */
+    return true;
   }
+
   /* Otherwise no updates. */
   return false;
 }
