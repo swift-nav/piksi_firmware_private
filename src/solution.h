@@ -55,6 +55,9 @@ typedef struct {
 
 #define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
 
+/* Maximum PVT solution rate in hz */
+#define MAX_SOLN_FREQ 50.0
+
 extern double soln_freq;
 extern u32 obs_output_divisor;
 extern u32 max_age_of_differential;

@@ -89,6 +89,7 @@ gps_time_t last_dgnss;
 gps_time_t last_spp;
 
 double soln_freq = 10.0;
+double soln_freq_check = 10.0;
 u32 max_age_of_differential = 30;
 u32 obs_output_divisor = 10;
 
@@ -1559,13 +1560,34 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
   return last_dgnss_stats;
 }
 
+
+
+static bool soln_freq_changed(struct setting *s, const char *val)
+{
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    if (soln_freq_check > MAX_SOLN_FREQ) {
+      log_error("Invalid soln_freq setting of %l, max is %l", soln_freq_check,
+                MAX_SOLN_FREQ);
+      return false;
+    } else if (soln_freq_check <= 0) {
+      log_error("Invalid soln_freq setting of %l, min is 0", soln_freq_check);
+      return false;
+    } else {
+      soln_freq = soln_freq_check;
+      return true;  
+    }
+  }
+  return false;
+}
+
 void solution_setup()
 {
   /* Set time of last differential solution in the past. */
   last_dgnss.wn = 0;
   last_dgnss.tow = 0;
 
-  SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
+  SETTING_NOTIFY("solution", "soln_freq", soln_freq_check, TYPE_FLOAT,
+                 soln_freq_changed);
   SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
 
