@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/constants.h>
@@ -44,8 +45,19 @@ static u32 gpgsa_msg_rate = 10;
  * \{ */
 
 /** \defgroup nmea NMEA
- * Send messages in NMEA format.
+ * Send messages in NMEA 2.30 format.
  * \{ */
+
+#define NMEA_UTC_TLS_DFLT       0
+#define NMEA_UTC_S_CEILING      60.0f
+
+/* If you change these values, remember to update UTC format! */
+#define NMEA_UTC_S_DECIMALS     2
+#define NMEA_UTC_S_FRAC_DIVISOR pow(10, NMEA_UTC_S_DECIMALS)
+
+/* Adequate until end of year 999999.
+   Worst case: "%02d%02d%05.2f,%02d,%02d,%lu" */
+#define NMEA_TS_MAX_LEN         (21 + NMEA_UTC_S_DECIMALS)
 
 #define NMEA_SUFFIX_LEN 6  /* How much room to leave for the NMEA
                               checksum, CRLF + null termination,
@@ -141,6 +153,117 @@ static void nmea_append_checksum(char *s, size_t size)
   sprintf(p, "*%02X\r\n", sum);
 }
 
+/** Wrapper function for vsnprintf to accommodate return value handling. Updates
+ *  buf_ptr accordingly if there's no encoding error. If buffer is full, sets
+ *  buf_ptr to buf_end.
+ */
+static void vsnprintf_wrap(char **buf_ptr,
+                           char *buf_end,
+                           const char * format,
+                           ...)
+{
+  va_list args;
+  va_start(args, format);
+
+  int res = vsnprintf(*buf_ptr, buf_end - *buf_ptr, format, args);
+
+  va_end(args);
+
+  if (res < 0) {
+    log_warn("Error %d in vsnprintf_wrap()", res);
+    return;
+  }
+
+  *buf_ptr += res;
+
+  if (*buf_ptr >= buf_end) {
+    log_warn("Buffer overflow in vsnprintf_wrap()");
+    *buf_ptr = buf_end;
+  }
+}
+
+/** Generate UTC date time string. Time field is before date field.
+ *
+ * \param[in] sbp_msg_time Time and date to create the str from.
+ * \param[in] time Time field is to be added.
+ * \param[in] date Date field is to be added.
+ * \param[in] trunc_date Truncate date field. No effect if param date is false.
+ * \param[in] leap_seconds Leap second event is on-going, value of delta_t_ls.
+ * \param[out] utc_str Created date time string.
+ * \param[in] size utc_str size.
+ *
+ */
+static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
+                                bool time,
+                                bool date,
+                                bool trunc_date,
+                                s8 leap_seconds,
+                                char *utc_str,
+                                u8 size)
+{
+  time_t unix_t;
+  struct tm t;
+  char *buf_end = utc_str + size;
+
+  gps_time_t current_time;
+
+  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) == NO_TIME) {
+
+    if (time) {
+      vsnprintf_wrap(&utc_str, buf_end, ",");   /* Time (UTC) */
+    }
+
+    if (date) {
+      vsnprintf_wrap(&utc_str,
+                     buf_end,
+                     trunc_date ? "," : ",,,"); /* Date Stamp */
+    }
+
+    return;
+  }
+
+  current_time.wn = sbp_msg_time->wn;
+  /* SBP msg time is in milliseconds */
+  current_time.tow = sbp_msg_time->tow / (double)SECS_MS;
+
+  unix_t = gps2time(&current_time);
+  gmtime_r(&unix_t, &t);
+
+  double utc_s = t.tm_sec + fmod(current_time.tow, 1.0);
+  utc_s = roundf(utc_s * NMEA_UTC_S_FRAC_DIVISOR) / NMEA_UTC_S_FRAC_DIVISOR;
+
+  /* Check if seconds round to next minute */
+  if (NMEA_UTC_S_CEILING + leap_seconds <= utc_s) {
+    utc_s = 0;
+    t.tm_min += 1;
+    mktime(&t);      /* normalize */
+  }
+
+  assert(NMEA_UTC_S_CEILING + leap_seconds > utc_s);
+
+  if (time) {
+    /* Time (UTC) */
+    vsnprintf_wrap(&utc_str, buf_end,
+                   "%02d%02d%05.2f,",
+                   t.tm_hour, t.tm_min, utc_s);
+  }
+
+  if (date) {
+    /* Date Stamp */
+    u32 year = 1900 + t.tm_year; /* tm_year: years since 1900 */
+
+    if (trunc_date) {
+      vsnprintf_wrap(&utc_str, buf_end,
+                     "%02d%02d%02d,",
+                     t.tm_mday, t.tm_mon + 1, (u8)(year % 100));
+    } else {
+      vsnprintf_wrap(&utc_str, buf_end,
+                     "%02d,%02d,%" PRIu32 ",", 
+                     t.tm_mday, t.tm_mon + 1, year);
+    }
+  }
+}
+
 /* General note: the NMEA functions below mask the time source, position and
    velocity modes to ensure prevention of accidental bugs in the future.
 
@@ -165,22 +288,6 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_dops_t *sbp_dops, double propagation_time,
                 u8 station_id)
 {
-  time_t unix_t;
-  struct tm t;
-
-  gps_time_t current_time;
-
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    current_time.wn = sbp_msg_time->wn;
-    /* SBP msg time is in milliseconds */
-    current_time.tow = sbp_msg_time->tow * 1e-3;
-
-    unix_t = gps2time(&current_time);
-    gmtime_r(&unix_t, &t);
-  }
-
-  double frac_s = fmod(current_time.tow, 1.0);
-
   /* GGA sentence is formed by splitting latitude and longitude
      into degrees and minutes parts and then printing them separately
      using printf. Before doing the split we want to take care of
@@ -211,12 +318,10 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF("$GPGGA,");
 
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    NMEA_SENTENCE_PRINTF("%02d%02d%06.3f,",
-                         t.tm_hour, t.tm_min, t.tm_sec + frac_s);
-  } else {
-    NMEA_SENTENCE_PRINTF(",");
-  }
+  char utc[NMEA_TS_MAX_LEN];
+  get_utc_time_string(sbp_msg_time, true, false, false,
+                      NMEA_UTC_TLS_DFLT, utc, NMEA_TS_MAX_LEN);
+  NMEA_SENTENCE_PRINTF("%s", utc);
 
   if (fix_type != NMEA_GGA_QI_INVALID) {
     NMEA_SENTENCE_PRINTF("%02u%010.7f,%c,%03u%010.7f,%c,",
@@ -346,21 +451,6 @@ void nmea_gpgsv(u8 n_used,
 void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_ned,
                 const msg_gps_time_t *sbp_msg_time)
 {
-  time_t unix_t;
-  struct tm t;
-
-  gps_time_t current_time;
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    current_time.wn = sbp_msg_time->wn;
-    /* SBP msg time is in milliseconds */
-    current_time.tow = sbp_msg_time->tow * 1e-3;
-
-    unix_t = gps2time(&current_time);
-    gmtime_r(&unix_t, &t);
-  }
-
-  double frac_s  = fmod(current_time.tow, 1.0);
-
   /* See the relevant comment for the similar code in nmea_gpgga() function
      for the reasoning behind (... * 1e8 / 1e8) trick */
   double lat     = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
@@ -393,14 +483,10 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
   NMEA_SENTENCE_START(140);
   NMEA_SENTENCE_PRINTF("$GPRMC,");             /* Command */
 
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    NMEA_SENTENCE_PRINTF(
-      "%02d%02d%06.3f,",                       /* Time (UTC) */
-      t.tm_hour, t.tm_min, t.tm_sec + frac_s
-    );
-  } else {
-    NMEA_SENTENCE_PRINTF(",");                 /* Time (UTC) */
-  }
+  char utc[NMEA_TS_MAX_LEN];
+  get_utc_time_string(sbp_msg_time, true, false, false,
+                      NMEA_UTC_TLS_DFLT, utc, NMEA_TS_MAX_LEN);
+  NMEA_SENTENCE_PRINTF("%s", utc);
 
   NMEA_SENTENCE_PRINTF(
     "%c,",                                     /* Status */
@@ -425,14 +511,10 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
     NMEA_SENTENCE_PRINTF(",,");                /* Speed, Course */
   }
 
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    NMEA_SENTENCE_PRINTF(
-      "%02d%02d%02d,",                         /* Date Stamp */
-      t.tm_mday, t.tm_mon + 1, t.tm_year % 100
-    );
-  } else {
-    NMEA_SENTENCE_PRINTF(",");                 /* Date Stamp */
-  }
+  char date[NMEA_TS_MAX_LEN];
+  get_utc_time_string(sbp_msg_time, false, true, true,
+                      NMEA_UTC_TLS_DFLT, date, NMEA_TS_MAX_LEN);
+  NMEA_SENTENCE_PRINTF("%s", date);
 
   NMEA_SENTENCE_PRINTF(
     ",,"                                       /* Magnetic Variation */
@@ -509,21 +591,6 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned, const msg_pos_llh_t *sbp_pos_l
  */
 void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_time)
 {
-  time_t unix_t;
-  struct tm t;
-
-  gps_time_t current_time;
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    current_time.wn = sbp_msg_time->wn;
-    /* SBP msg time is in milliseconds */
-    current_time.tow = sbp_msg_time->tow * 1e-3;
-
-    unix_t = gps2time(&current_time);
-    gmtime_r(&unix_t, &t);
-  }
-
-  double frac_s  = fmod(current_time.tow, 1.0);
-
   /* See the relevant comment for the similar code in nmea_gpgga() function
      for the reasoning behind (... * 1e8 / 1e8) trick */
   double lat     = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
@@ -554,14 +621,11 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
     NMEA_SENTENCE_PRINTF(",,,,");                 /* Lat/Lon */
   }
 
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    NMEA_SENTENCE_PRINTF(
-      "%02d%02d%06.3f,",                          /* Time (UTC) */
-      t.tm_hour, t.tm_min, t.tm_sec + frac_s
-    );
-  } else {
-    NMEA_SENTENCE_PRINTF(",");                    /* Time (UTC) */
-  }
+  char utc[NMEA_TS_MAX_LEN];
+  get_utc_time_string(sbp_msg_time, true, false, false,
+                      NMEA_UTC_TLS_DFLT, utc, NMEA_TS_MAX_LEN);
+  NMEA_SENTENCE_PRINTF("%s", utc);
+
   NMEA_SENTENCE_PRINTF(
     "%c,%c",                                      /* Status, Mode */
     status, mode
@@ -576,35 +640,13 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh, const msg_gps_time_t *sbp_msg_
  */
 void nmea_gpzda(const msg_gps_time_t *sbp_msg_time)
 {
-  time_t unix_t;
-  struct tm t;
-
-  gps_time_t current_time;
-  if((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    current_time.wn = sbp_msg_time->wn;
-    /* SBP msg time is in milliseconds */
-    current_time.tow = sbp_msg_time->tow * 1e-3;
-
-    unix_t = gps2time(&current_time);
-    gmtime_r(&unix_t, &t);
-  }
-
-  double frac_s = fmod(current_time.tow, 1.0);
-
   NMEA_SENTENCE_START(40);
   NMEA_SENTENCE_PRINTF("$GPZDA,");         /* Command */
 
-  if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
-    NMEA_SENTENCE_PRINTF(
-      "%02d%02d%06.3f,"                    /* Time (UTC) */
-      "%02d,%02d,%d,",                     /* Date Stamp */
-      t.tm_hour, t.tm_min, t.tm_sec + frac_s,
-      t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year
-    );
-  } else {
-    NMEA_SENTENCE_PRINTF("," ",,,");       /* Time (UTC), Date Stamp */
-
-  }
+  char utc[NMEA_TS_MAX_LEN];
+  get_utc_time_string(sbp_msg_time, true, true, false,
+                      NMEA_UTC_TLS_DFLT, utc, NMEA_TS_MAX_LEN);
+  NMEA_SENTENCE_PRINTF("%s", utc);
 
   NMEA_SENTENCE_PRINTF(",");               /* Time zone */
   NMEA_SENTENCE_DONE();
