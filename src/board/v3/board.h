@@ -43,7 +43,6 @@
 extern "C" {
 #endif
   void boardInit(void);
-  void board_preinit_hook(void);
   void board_send_state(void);
 #ifdef __cplusplus
 }
