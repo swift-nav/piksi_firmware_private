@@ -74,6 +74,9 @@ static ndb_ephe_config_t ndb_ephe_config = {
   .alm_fit_interval = 6,
 };
 
+/** Flag if almanacs can be used in ephemeris candidate validation */
+static bool almanacs_enabled = false;
+
 static u16 map_sid_to_index(gnss_signal_t sid)
 {
   u16 idx = PLATFORM_SIGNAL_COUNT;
@@ -305,10 +308,12 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx], &existing_e,
-                                   sizeof(existing_e), NULL, true)) {
+                                   sizeof(existing_e), NULL,
+                                   NDB_USE_NV_EPHEMERIS)) {
     pe = &existing_e;
   }
-  if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a)) {
+  if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a) &&
+      almanacs_enabled) {
     pa = &existing_a;
     existing_a.fit_interval = ndb_ephe_config.alm_fit_interval * DAY_SECS;
   }
