@@ -31,9 +31,10 @@ typedef struct {
  * SV elevation cache entry.
  */
 typedef struct {
+  u16 azimuth_d;     /**< SV azimuth [degrees] */
   s8  elevation_d;   /**< SV elevation [degrees] */
-  u64 timestamp_tk;  /**< Elevation value time [ticks] */
-} tp_elevation_entry_t;
+  u64 timestamp_tk;  /**< Azimuth and elevation evaluation time [ticks] */
+} tp_azel_entry_t;
 
 void track_sid_db_init(void);
 s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_tk, u8 ms_align, double *error_ms);
@@ -41,9 +42,9 @@ bool tp_tow_is_sane(s32 tow_ms);
 bool track_sid_db_load_tow(gnss_signal_t sid, tp_tow_entry_t *tow_entry);
 bool track_sid_db_update_tow(gnss_signal_t sid, const tp_tow_entry_t *tow_entry);
 bool track_sid_db_load_elevation(gnss_signal_t sid,
-                                 tp_elevation_entry_t *elevation_entry);
-bool track_sid_db_update_elevation(gnss_signal_t sid,
-                                   const tp_elevation_entry_t *elevation_entry);
+                                 tp_azel_entry_t *azel_entry);
+bool track_sid_db_update_azel(gnss_signal_t sid,
+                              const tp_azel_entry_t *azel_entry);
 bool track_sid_db_load_positions(gnss_signal_t sid,
                                  xcorr_positions_t *position_entry);
 bool track_sid_db_update_positions(gnss_signal_t sid,

@@ -50,6 +50,9 @@
 /** Maximum SV elevation age in sample ticks: 2 minutes is about 1 degree */
 #define MAX_ELEVATION_AGE_TK (MINUTE_SECS * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz)
 
+/** Maximum SV azimuth age in sample ticks */
+#define MAX_AZIMUTH_AGE_TK (MINUTE_SECS * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz)
+
 typedef enum {
   EVENT_ENABLE,
   EVENT_DISABLE_REQUEST,
@@ -1010,10 +1013,12 @@ void tracking_channel_drop_l2cl(gnss_signal_t sid)
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
-/** Set the elevation angle for SV by sid.
+/** Set the azimuth and elevation angles for SV by sid.
  *
  * \param[in] sid       Signal identifier for which the elevation should be set.
+ * \param[in] azimuth   Azimuth angle [degrees].
  * \param[in] elevation Elevation angle [degrees].
+ * \param[in] timestamp Azimuth and elevation evaluation time [ticks].
  *
  * \retval true  Elevation has been successfully updated.
  * \retval false Elevation has not been updated because GNSS constellation is
@@ -1021,11 +1026,38 @@ void tracking_channel_drop_l2cl(gnss_signal_t sid)
  *
  * \sa sv_elevation_degrees_get
  */
-bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp)
+bool sv_azel_degrees_set(gnss_signal_t sid, u16 azimuth,
+                         s8 elevation, u64 timestamp)
 {
-  tp_elevation_entry_t entry = {.elevation_d = elevation,
-                                .timestamp_tk = timestamp};
-  return track_sid_db_update_elevation(sid, &entry);
+  tp_azel_entry_t entry = {.azimuth_d = azimuth,
+                           .elevation_d = elevation,
+                           .timestamp_tk = timestamp};
+  return track_sid_db_update_azel(sid, &entry);
+}
+
+/** Return the azimuth angle for a satellite.
+ *
+ * \param[in] sid Signal identifier for which the azimuth should be returned.
+ *
+ * \return SV elevation in degrees, or #TRACKING_AZIMUTH_UNKNOWN.
+ * \retval TRACKING_AZIMUTH_UNKNOWN Azimuth is not present in the cache,
+ *                                  cache entry is too old, or GNSS
+ *                                  constellation is not supported.
+ *
+ * \sa sv_azimuth_degrees_set
+ */
+u16 sv_azimuth_degrees_get(gnss_signal_t sid)
+{
+  u16 result = TRACKING_AZIMUTH_UNKNOWN;
+  tp_azel_entry_t entry = {0};
+  if (track_sid_db_load_elevation(sid, &entry)) {
+    /* If azimuth cache entry is loaded, do the entry age check */
+    if (TRACKING_AZIMUTH_UNKNOWN != entry.azimuth_d &&
+        nap_timing_count() - entry.timestamp_tk < MAX_AZIMUTH_AGE_TK) {
+      result = entry.azimuth_d;
+    }
+  }
+  return result;
 }
 
 /** Return the elevation angle for a satellite.
@@ -1042,7 +1074,7 @@ bool sv_elevation_degrees_set(gnss_signal_t sid, s8 elevation, u64 timestamp)
 s8 sv_elevation_degrees_get(gnss_signal_t sid)
 {
   s8 result = TRACKING_ELEVATION_UNKNOWN;
-  tp_elevation_entry_t entry = {0};
+  tp_azel_entry_t entry = {0};
   if (track_sid_db_load_elevation(sid, &entry)) {
     /* If elevation cache entry is loaded, do the entry age check */
     if (TRACKING_ELEVATION_UNKNOWN != entry.elevation_d &&

@@ -390,51 +390,99 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, c
   NMEA_SENTENCE_DONE();
 }
 
-/** Assemble a NMEA GPGSV message and send it out NMEA USARTs.
- * NMEA GPGSV message contains GNSS Satellites In View.
+/** Helper function for nmea_gpgsv for comparing sids. Function assumes
+ *  parameter sids have same constellation.
  *
- * \param nav_meas     Array of navigation_measurement structs.
- * \param sbp_pos_ecef Pointer to sbp pos ecef struct.
+ * \param[in] a     ptr to left side sid
+ * \param[in] b     ptr to right side sid
+ *
+ * Return values:
+ *   <0	The element pointed to by a goes before the element pointed to by b
+ *   0	The element pointed to by a is equivalent to the element pointed to by b
+ *   >0	The element pointed to by a goes after the element pointed to by b
  */
-void nmea_gpgsv(u8 n_used,
-                const navigation_measurement_t *nav_meas,
-                const msg_pos_ecef_t *sbp_pos_ecef)
+int compare_ch_meas(const void *a, const void *b)
 {
-  if (n_used == 0) {
-    return;
+  const channel_measurement_t **ca = (const channel_measurement_t **)a;
+  const channel_measurement_t **cb = (const channel_measurement_t **)b;
+
+  assert(sid_to_constellation((*ca)->sid) == sid_to_constellation((*cb)->sid));
+
+  return (*ca)->sid.sat - (*cb)->sid.sat;
+}
+
+/** Assemble a NMEA GPGSV message and send it out NMEA USARTs.
+ * NMEA GPGSV message contains GNSS Satellites In View (in this case tracked).
+ *
+ * \param[in] n_used      size of ch_meas
+ * \param[in] ch_meas     array of ch_measurement structs from SVs in track
+ */
+void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
+{
+  const channel_measurement_t *ch_meas_gps[n_used];
+
+  if (NULL == ch_meas) {
+    n_used = 0;
   }
 
-  u8 n_l1_used = 0;
+  u8 n_gps_used = 0;
   for (u8 i = 0; i < n_used; i++) {
-    if (nav_meas[i].sid.code == CODE_GPS_L1CA) {
-      n_l1_used++;
+    if (CONSTELLATION_GPS != sid_to_constellation(ch_meas[i].sid)) {
+      continue;
+    }
+
+    /* check if sat is already picked up from another GPS code */
+    bool in_array = false;
+    for (u8 j = 0; j < n_gps_used; j++) {
+      if (ch_meas_gps[j]->sid.sat == ch_meas[i].sid.sat) {
+        in_array = true;
+        break;
+      }
+    }
+
+    if (!in_array) {
+      ch_meas_gps[n_gps_used++] = &ch_meas[i];
     }
   }
 
-  u8 n_messages = (n_l1_used + 3) / 4;
+  if (0 == n_gps_used) {
+    NMEA_SENTENCE_START(120);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,%02u", n_gps_used);
+    NMEA_SENTENCE_DONE();
+    return;
+  }
+
+  qsort(ch_meas_gps, n_gps_used, sizeof(channel_measurement_t*), compare_ch_meas);
+
+  u8 n_messages = (n_gps_used + 3) / 4;
 
   u8 n = 0;
-  double az, el;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_l1_used);
+    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_gps_used);
 
-    for (u8 j = 0; j < 4 && n < n_used; n++) {
-      if (nav_meas[n].sid.code == CODE_GPS_L1CA) {
-        double pos_ecef[3];
-        pos_ecef[0] = sbp_pos_ecef->x;
-        pos_ecef[1] = sbp_pos_ecef->y;
-        pos_ecef[2] = sbp_pos_ecef->z;
-        wgsecef2azel(nav_meas[n].sat_pos, pos_ecef, &az, &el);
-        NMEA_SENTENCE_PRINTF(",%02u,%02u,%03u,%02u",
-          nav_meas[n].sid.sat,
-          (u8)round(el * R2D),
-          (u16)round(az * R2D),
-          (u8)round(nav_meas[n].cn0)
-          );
-        j++; /* 4 sats per message no matter what */
+    for (u8 j = 0; j < 4 && n < n_gps_used; n++) {
+      u8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
+      u16 azi = sv_azimuth_degrees_get(ch_meas_gps[n]->sid);
+
+      NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gps[n]->sid.sat);
+
+      if (TRACKING_ELEVATION_UNKNOWN == ele) {
+        NMEA_SENTENCE_PRINTF(",");
+      } else {
+        NMEA_SENTENCE_PRINTF(",%02u", ele);
       }
+
+      if (TRACKING_AZIMUTH_UNKNOWN == azi) {
+        NMEA_SENTENCE_PRINTF(",");
+      } else {
+        NMEA_SENTENCE_PRINTF(",%03u", azi);
+      }
+
+      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gps[n]->cn0));
+      
+      j++; /* 4 sats per message no matter what */
     }
     NMEA_SENTENCE_DONE();
   }
@@ -680,23 +728,34 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh, const msg_dops
   nmea_gpgsa(prns, num_prns, sbp_pos_llh, sbp_dops);
 }
 
-/** Generate and send periodic NMEA GPRMC, GPGLL, GPVTG, GPZDA, GPGSA and GPGSV.
+/** Generate and send periodic GPGSV.
+ *
+ * \param[in] n_used      size of ch_meas
+ * \param[in] ch_meas     array of channel_measurement structs from tracked SVs
+ */
+void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas)
+{
+  DO_EVERY(gpgsv_msg_rate,
+           nmea_gpgsv(n_used, ch_meas);
+  );
+}
+
+/** Generate and send periodic NMEA GPRMC, GPGLL, GPVTG, GPZDA and GPGSA.
  * (but not GPGGA) messages.
  *
  * Called from solution thread.
  *
  * \param sbp_pos_llh  Pointer to sbp pos llh struct.
- * \param sbp_pos_ecef Pointer to sbp pos ecef.
  * \param sbp_vel_ned  Pointer to sbp vel ned.
  * \param sbp_dops     Pointer to sbp dops.
  * \param sbp_msg_time Pointer to sbp msg time.
- * \param nav_meas     Array of n navigation_measurement structs.
- * \param sender_id    NMEA sender id
  * \param propagation_time time of base observation propagation
+ * \param sender_id    NMEA sender id
  */
-void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_pos_ecef,
-                    const msg_vel_ned_t *sbp_vel_ned, const msg_dops_t *sbp_dops,
-                    const msg_gps_time_t *sbp_msg_time, u8 n_used, const navigation_measurement_t *nav_meas,
+void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
+                    const msg_vel_ned_t *sbp_vel_ned,
+                    const msg_dops_t *sbp_dops,
+                    const msg_gps_time_t *sbp_msg_time,
                     double propagation_time, u8 sender_id)
 {
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
@@ -728,11 +787,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh, const msg_pos_ecef_t *sbp_
              nmea_assemble_gpgsa(sbp_pos_llh, sbp_dops);
     );
   }
-  if(nav_meas && sbp_pos_ecef) {
-    DO_EVERY(gpgsv_msg_rate,
-             nmea_gpgsv(n_used, nav_meas, sbp_pos_ecef);
-    );
-  };
 }
 
 /** Convert the SBP status flag into NMEA Status field.
