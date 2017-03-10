@@ -390,12 +390,25 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, c
   NMEA_SENTENCE_DONE();
 }
 
+/** Helper function for nmea_gpgsv for comparing sids. Function assumes
+ *  parameter sids have same constellation.
+ *
+ * \param[in] a     ptr to left side sid
+ * \param[in] b     ptr to right side sid
+ *
+ * Return values:
+ *   <0	The element pointed to by a goes before the element pointed to by b
+ *   0	The element pointed to by a is equivalent to the element pointed to by b
+ *   >0	The element pointed to by a goes after the element pointed to by b
+ */
 int compare_ch_meas(const void *a, const void *b)
 {
   const channel_measurement_t **ca = (const channel_measurement_t **)a;
   const channel_measurement_t **cb = (const channel_measurement_t **)b;
 
-  return sid_compare((*ca)->sid, (*cb)->sid);
+  assert(sid_to_constellation((*ca)->sid) == sid_to_constellation((*cb)->sid));
+
+  return (*ca)->sid.sat - (*cb)->sid.sat;
 }
 
 /** Assemble a NMEA GPGSV message and send it out NMEA USARTs.
@@ -406,41 +419,54 @@ int compare_ch_meas(const void *a, const void *b)
  */
 void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
 {
-  const channel_measurement_t *ch_meas_l1[n_used];
+  const channel_measurement_t *ch_meas_gps[n_used];
 
   if (NULL == ch_meas) {
     n_used = 0;
   }
 
-  u8 n_l1_used = 0;
+  u8 n_gps_used = 0;
   for (u8 i = 0; i < n_used; i++) {
-    if (ch_meas[i].sid.code == CODE_GPS_L1CA) {
-      ch_meas_l1[n_l1_used++] = &ch_meas[i];
+    if (CONSTELLATION_GPS != sid_to_constellation(ch_meas[i].sid)) {
+      continue;
+    }
+
+    /* check if sat is already picked up from another GPS code */
+    bool in_array = false;
+    for (u8 j = 0; j < n_gps_used; j++) {
+      if (ch_meas_gps[j]->sid.sat == ch_meas[i].sid.sat) {
+        in_array = true;
+        break;
+      }
+    }
+
+    if (!in_array) {
+      ch_meas_gps[n_gps_used++] = &ch_meas[i];
     }
   }
 
-  if (0 == n_l1_used) {
+  if (0 == n_gps_used) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,%02u", n_l1_used);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,%02u", n_gps_used);
     NMEA_SENTENCE_DONE();
     return;
   }
 
-  qsort(ch_meas_l1, n_l1_used, sizeof(channel_measurement_t*), compare_ch_meas);
+  qsort(ch_meas_gps, n_gps_used, sizeof(channel_measurement_t*), compare_ch_meas);
 
-  u8 n_messages = (n_l1_used + 3) / 4;
+  u8 n_messages = (n_gps_used + 3) / 4;
 
   u8 n = 0;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_l1_used);
+    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_gps_used);
 
-    for (u8 j = 0; j < 4 && n < n_l1_used; n++) {
-      u8 ele = sv_elevation_degrees_get(ch_meas_l1[n]->sid);
-      u16 azi = sv_azimuth_degrees_get(ch_meas_l1[n]->sid);
+    for (u8 j = 0; j < 4 && n < n_gps_used; n++) {
+      u8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
+      u16 azi = sv_azimuth_degrees_get(ch_meas_gps[n]->sid);
 
-      NMEA_SENTENCE_PRINTF(",%02u", ch_meas_l1[n]->sid.sat);
+      NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gps[n]->sid.sat);
 
       if (TRACKING_ELEVATION_UNKNOWN == ele) {
         NMEA_SENTENCE_PRINTF(",");
@@ -454,7 +480,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
         NMEA_SENTENCE_PRINTF(",%03u", azi);
       }
 
-      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_l1[n]->cn0));
+      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gps[n]->cn0));
       
       j++; /* 4 sats per message no matter what */
     }
