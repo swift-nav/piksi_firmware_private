@@ -79,6 +79,7 @@ u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
 
 void nap_pps(u32 count);
 void nap_pps_config(u32 microseconds, u8 active);
+bool nap_pps_armed(void);
 
 #include "nap/nap_hw.h"
 

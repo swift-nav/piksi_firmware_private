@@ -76,7 +76,7 @@
 #define NAP_DNA_OFFSET                                                   (52)
 #define NAP_DNA_LENGTH                                                    (8)
 
-#define NAP_PPS_TIMING_COUNT_OFFSET                                     (-15)
+#define NAP_PPS_TIMING_COUNT_OFFSET                                     (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET                                       (8)
 
 #endif /* SWIFTNAV_NAP_CONSTANTS_H */
