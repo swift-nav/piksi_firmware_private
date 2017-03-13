@@ -781,11 +781,12 @@ static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[],
 /**
  * Collects channel measurements, ephemerides and auxiliary data.
  *
- * \param[in]  rec_tc    Timestamp [samples]
+ * \param[in]  rec_tc    Timestamp [samples].
  * \param[out] meas      Destination measurement array.
  * \param[out] in_view   Destination in_view array.
- * \param[out] ephe      Destination ephemeris array
+ * \param[out] ephe      Destination ephemeris array.
  * \param[out] pn_ready  Destination for measurement array size.
+ * \param[out] pn_ready  Destination for in-view array size.
  * \param[out] pn_total  Destination for total active trackers count.
  *
  * \return None
@@ -795,14 +796,16 @@ static void collect_measurements(u64 rec_tc,
                                  channel_measurement_t in_view[MAX_CHANNELS],
                                  ephemeris_t ephe[MAX_CHANNELS],
                                  u8 *pn_ready,
+                                 u8 *pn_inview,
                                  u8 *pn_total)
 {
   u8 n_collected = 0;
+  u8 n_inview = 0;
   u8 n_active = 0;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     manage_track_flags_t flags      = 0; /* Channel flags accumulator */
-    /* Load measurements from the trackin channel and ephemeris from NDB */
+    /* Load measurements from the tracking channel and ephemeris from NDB */
     flags = get_tracking_channel_meas(i, rec_tc,
                                       &meas[n_collected],
                                       &ephe[n_collected]);
@@ -811,7 +814,14 @@ static void collect_measurements(u64 rec_tc,
         0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
         0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR))
     {
-      in_view[n_active++] = meas[n_collected];
+      /* Tracking channel is active */
+      n_active++;
+
+      if (0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
+        /* Tracking channel is not XCORR suspect so it's an actual SV in view */
+        in_view[n_inview++] = meas[n_collected];
+      }
+
       if (0 != (flags & MANAGE_TRACK_FLAG_HEALTHY) &&
           0 != (flags & MANAGE_TRACK_FLAG_NAV_SUITABLE) &&
           0 != (flags & MANAGE_TRACK_FLAG_ELEVATION) &&
@@ -819,12 +829,14 @@ static void collect_measurements(u64 rec_tc,
           0 != (flags & MANAGE_TRACK_FLAG_HAS_EPHE) &&
           0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) &&
           0 != meas[n_collected].flags) {
+        /* Tracking channel is suitable for solution calculation */
         n_collected++;
       }
     }
   }
 
   *pn_ready = n_collected;
+  *pn_inview = n_inview;
   *pn_total = n_active;
 }
 
@@ -911,6 +923,7 @@ static void solution_thread(void *arg)
     }
 
     u8 n_collected = 0;
+    u8 n_inview = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
     channel_measurement_t in_view[MAX_CHANNELS];
@@ -920,7 +933,13 @@ static void solution_thread(void *arg)
      * keep them from being separated? */
 
     /* Collect measurements from trackers, load ephemerides and compute flags */
-    collect_measurements(rec_tc, meas, in_view, e_meas, &n_collected, &n_total);
+    collect_measurements(rec_tc,
+                         meas,
+                         in_view,
+                         e_meas,
+                         &n_collected,
+                         &n_inview,
+                         &n_total);
 
     nmea_send_gsv(n_total, in_view);
 
