@@ -450,6 +450,12 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
       }
     }
 
+    /* for extra security */
+    if (!sid_valid(ch_meas[i].sid)) {
+      log_debug_sid(ch_meas[i].sid, "Invalid SV in nmea_gpgsv()");
+      continue;
+    }
+
     if (!in_array) {
       ch_meas_gps[n_gps_used++] = &ch_meas[i];
     }
@@ -462,7 +468,10 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
     return;
   }
 
-  qsort(ch_meas_gps, n_gps_used, sizeof(channel_measurement_t*), compare_ch_meas);
+  qsort(ch_meas_gps,
+        n_gps_used,
+        sizeof(channel_measurement_t*),
+        compare_ch_meas);
 
   u8 n_messages = (n_gps_used + 3) / 4;
 
