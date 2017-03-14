@@ -59,6 +59,16 @@ static u32 gpgsa_msg_rate = 10;
    Worst case: "%02d%02d%05.2f,%02d,%02d,%lu" */
 #define NMEA_TS_MAX_LEN         (21 + NMEA_UTC_S_DECIMALS)
 
+/* Accuracy of Course Over Ground */
+#define NMEA_COG_DECIMALS           1
+#define NMEA_COG_FRAC_DIVISOR       pow(10, NMEA_COG_DECIMALS)
+
+/* Based on testing calculated Course Over Ground starts deviating noticeably
+ * below this limit. */
+#define NMEA_COG_STATIC_LIMIT_MS    0.1f
+#define NMEA_COG_STATIC_LIMIT_KNOTS MS2KNOTS(NMEA_COG_STATIC_LIMIT_MS, 0, 0)
+#define NMEA_COG_STATIC_LIMIT_KPH   MS2KMHR(NMEA_COG_STATIC_LIMIT_MS, 0, 0)
+
 #define NMEA_SUFFIX_LEN 6  /* How much room to leave for the NMEA
                               checksum, CRLF + null termination,
                               i.e. "*%02X\r\n\0" */
@@ -489,6 +499,40 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
 
 }
 
+/** Calculate Course and Speed Over Ground values.
+ *
+ * \param[in]  sbp_vel_ned  pointer to sbp vel ned struct
+ * \param[out] cog          true course over ground [deg]
+ * \param[out] sog_knots    speed over ground [knots]
+ * \param[out] sog_kph      speed over ground [kph]
+ */
+static void calc_cog_sog(const msg_vel_ned_t *sbp_vel_ned,
+                         double *cog,
+                         double *sog_knots,
+                         double *sog_kph)
+{
+  double vel_north_ms = MM2M(sbp_vel_ned->n);
+  double vel_east_ms = MM2M(sbp_vel_ned->e);
+
+  *cog = R2D * atan2(vel_east_ms, vel_north_ms);
+
+  /* Convert negative values to positive */
+  if (*cog < 0.0) {
+    *cog += FULL_CIRCLE_DEG;
+  }
+
+  /* Rounding to specified accuracy */
+  *cog = roundf(*cog * NMEA_COG_FRAC_DIVISOR) / NMEA_COG_FRAC_DIVISOR;
+
+  /* Avoid having duplicate values for same point (0 and 360) */
+  if (fabs(FULL_CIRCLE_DEG - *cog) < 1 / NMEA_COG_FRAC_DIVISOR) {
+    *cog = 0;
+  }
+
+  *sog_knots = MS2KNOTS(vel_north_ms, vel_east_ms, 0);
+  *sog_kph = MS2KMHR(vel_north_ms, vel_east_ms, 0);
+}
+
 /** Assemble an NMEA GPRMC message and send it out NMEA USARTs.
  * NMEA RMC contains Recommended Minimum Specific GNSS Data.
  *
@@ -496,7 +540,8 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
  * \param sbp_vel_ned  pointer to sbp vel ned struct
  * \param sbp_msg_time Pointer to sbp gps time struct
  */
-void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_ned,
+void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
+                const msg_vel_ned_t *sbp_vel_ned,
                 const msg_gps_time_t *sbp_msg_time)
 {
   /* See the relevant comment for the similar code in nmea_gpgga() function
@@ -517,16 +562,8 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
   char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
   char status = get_nmea_status(sbp_pos_llh->flags);
 
-  double x,y,z;
-  x = sbp_vel_ned->n / 1000.0;
-  y = sbp_vel_ned->e / 1000.0;
-  z = sbp_vel_ned->d / 1000.0;
-  double course = R2D * atan2(y,x);
-  if (course < 0.0) {
-    course += 360.0;
-  }
-  /* Conversion to magnitue knots */
-  double vknots = MS2KNOTS(x,y,z);
+  double cog, sog_knots, sog_kph;
+  calc_cog_sog(sbp_vel_ned, &cog, &sog_knots, &sog_kph);
 
   NMEA_SENTENCE_START(140);
   NMEA_SENTENCE_PRINTF("$GPRMC,");             /* Command */
@@ -551,10 +588,12 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
   }
 
   if ((sbp_pos_llh->flags & VELOCITY_MODE_MASK) != NO_VELOCITY) {
-    NMEA_SENTENCE_PRINTF(
-      "%.2f,%05.1f,",                          /* Speed, Course */
-      vknots, course
-    );
+    NMEA_SENTENCE_PRINTF("%.2f,", sog_knots);  /* Speed */
+    if (NMEA_COG_STATIC_LIMIT_KNOTS < sog_knots) {
+      NMEA_SENTENCE_PRINTF("%.*f,", NMEA_COG_DECIMALS, cog);  /* Course */
+    } else {
+      NMEA_SENTENCE_PRINTF(",");               /* Course */
+    }
   } else {
     NMEA_SENTENCE_PRINTF(",,");                /* Speed, Course */
   }
@@ -579,20 +618,9 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh, const msg_vel_ned_t *sbp_vel_n
  */
 void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned, const msg_pos_llh_t *sbp_pos_llh)
 {
-  double x,y,z;
-  x = sbp_vel_ned->n / 1000.0;
-  y = sbp_vel_ned->e / 1000.0;
-  z = sbp_vel_ned->d / 1000.0;
+  double cog, sog_knots, sog_kph;
+  calc_cog_sog(sbp_vel_ned, &cog, &sog_knots, &sog_kph);
 
-  double course = R2D * atan2(y,x);
-  if (course < 0.0) {
-    course += 360.0;
-  }
-
-  /* Conversion to magnitude knots */
-  double vknots = MS2KNOTS(x,y,z);
-  /* Conversion to magnitude km/hr */
-  double vkmhr = MS2KMHR(x,y,z);
   /* Position indicator is used based upon spec
      "Positioning system mode indicator" means we should
      see the same mode for pos and velocity messages
@@ -601,33 +629,28 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned, const msg_pos_llh_t *sbp_pos_l
   char mode = get_nmea_mode_indicator(sbp_pos_llh->flags);
 
   NMEA_SENTENCE_START(120);
-  NMEA_SENTENCE_PRINTF("$GPVTG,");      /* Command */
+  NMEA_SENTENCE_PRINTF("$GPVTG,");        /* Command */
 
-  if ((sbp_pos_llh->flags & VELOCITY_MODE_MASK) != NO_VELOCITY) {
-    NMEA_SENTENCE_PRINTF(
-      "%05.1f,T,",                      /* Course */
-      course
-    );
+  bool is_moving = (sbp_pos_llh->flags & VELOCITY_MODE_MASK) != NO_VELOCITY;
+
+  if (is_moving && NMEA_COG_STATIC_LIMIT_KNOTS < sog_knots) {
+    NMEA_SENTENCE_PRINTF("%.*f,T,", NMEA_COG_DECIMALS, cog);  /* Course */
   } else {
-    NMEA_SENTENCE_PRINTF(",T,");        /* Course */
+    NMEA_SENTENCE_PRINTF(",T,");          /* Course */
   }
 
-  NMEA_SENTENCE_PRINTF(",M,");          /* Magnetic Course (omitted) */
+  NMEA_SENTENCE_PRINTF(",M,");            /* Magnetic Course (omitted) */
 
-  if ((sbp_pos_llh->flags & VELOCITY_MODE_MASK) != NO_VELOCITY) {
-    NMEA_SENTENCE_PRINTF(
-      "%.2f,N,%.2f,K,",                 /* Speed (knots, km/hr) */
-      vknots, vkmhr
-    );
+  if (is_moving) {
+    /* Speed (knots, km/hr) */
+    NMEA_SENTENCE_PRINTF("%.2f,N,%.2f,K,", sog_knots, sog_kph);
   } else {
-    NMEA_SENTENCE_PRINTF(",N,,K,");     /* Speed (knots, km/hr) */
+    /* Speed (knots, km/hr) */
+    NMEA_SENTENCE_PRINTF(",N,,K,");
   }
 
-  NMEA_SENTENCE_PRINTF(
-    "%c",                               /* Mode (note this position mode not
-                                                 velocity mode)*/
-    mode
-  );
+  /* Mode (note this is position mode not velocity mode)*/
+  NMEA_SENTENCE_PRINTF("%c", mode);
   NMEA_SENTENCE_DONE();
 }
 
