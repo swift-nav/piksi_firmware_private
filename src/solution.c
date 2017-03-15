@@ -941,7 +941,7 @@ static void solution_thread(void *arg)
                          &n_inview,
                          &n_total);
 
-    nmea_send_gsv(n_total, in_view);
+    nmea_send_gsv(n_inview, in_view);
 
     u8 n_ready = n_collected;
     if (n_collected > MINIMUM_SV_COUNT) {
