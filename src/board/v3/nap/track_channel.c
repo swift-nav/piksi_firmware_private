@@ -94,15 +94,15 @@ static u8 mesid_to_rf_frontend_channel(me_gnss_signal_t mesid)
   case CODE_SBAS_L1CA:
     ret = NAP_RF_FRONTEND_CHANNEL_1;
     break;
-  case CODE_GPS_L2CM:
-  case CODE_GPS_L2CL:
-    ret = NAP_RF_FRONTEND_CHANNEL_4;
-    break;
   case CODE_GLO_L1CA:
     ret = NAP_RF_FRONTEND_CHANNEL_2;
     break;
   case CODE_GLO_L2CA:
     ret = NAP_RF_FRONTEND_CHANNEL_3;
+    break;
+  case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
+    ret = NAP_RF_FRONTEND_CHANNEL_4;
     break;
   case CODE_GPS_L1P:
   case CODE_GPS_L2P:

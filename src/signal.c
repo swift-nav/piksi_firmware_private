@@ -249,7 +249,8 @@ float code_to_tcxo_doppler_min(code_t code)
   float doppler;
 
   assert(code_valid(code));
-  assert(CODE_GPS_L1CA == code);
+  assert((CODE_GPS_L1CA == code) ||
+         (CODE_GLO_L1CA == code));
 
   doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
 
@@ -267,7 +268,8 @@ float code_to_tcxo_doppler_max(code_t code)
   float doppler;
 
   assert(code_valid(code));
-  assert(CODE_GPS_L1CA == code);
+  assert((CODE_GPS_L1CA == code) ||
+         (CODE_GLO_L1CA == code));
 
   doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
 

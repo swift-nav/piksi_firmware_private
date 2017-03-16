@@ -32,7 +32,7 @@ static void axi_dma_tx_callback(bool success);
 static void axi_dma_rx_callback(bool success);
 static u32 length_points_get(u32 len_log2);
 static void control_set_dma(void);
-static void control_set_frontend_samples(fft_samples_input_t samples_input,
+static void control_set_frontend_samples(gnss_signal_t sid,
                                          u32 len_points);
 static void control_set_raw_samples(u32 len_words);
 static void sample_stream_start(void);
@@ -92,16 +92,32 @@ static void control_set_dma(void)
  * \param samples_input   Frontend sample input to use.
  * \param len_points      Number of points.
  */
-static void control_set_frontend_samples(fft_samples_input_t samples_input,
+static void control_set_frontend_samples(gnss_signal_t sid,
                                          u32 len_points)
 {
+  constellation_t gnss = sid_to_constellation(sid);
+  assert(CONSTELLATION_GPS == gnss || CONSTELLATION_GLO == gnss);
   (void)len_points;
 
+  fft_samples_input_t fft_samples_input = FFT_SAMPLES_INPUT_RF1;
+  u32 mixer = 0;
+  s32 freq = 0;
+  if (CONSTELLATION_GLO == gnss) {
+    fft_samples_input = FFT_SAMPLES_INPUT_RF2;
+    mixer = 1;
+    /* Map sid.sat [1 - 14] -> glo_channel [-7 - +6] */
+    s32 glo_channel = sid.sat - 8;
+    freq =  (s32)((glo_channel * GLO_L1_DELTA_HZ) * 4294967296.0
+                   / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5);
+  }
+
+  NAP->ACQ_PINC = freq;
+
   NAP->ACQ_CONTROL =
-      ((samples_input)                    << NAP_ACQ_CONTROL_FRONTEND_Pos) |
+      ((fft_samples_input)                << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_MIXER_Pos) |
+      ((mixer)                            << NAP_ACQ_CONTROL_MIXER_Pos) |
       (FFT_LEN_LOG2_MAX                   << NAP_ACQ_CONTROL_NFFT_Pos) |
       (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos);
 }
@@ -240,7 +256,7 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
 
 /** Compute the FFT of a buffer of samples.
  *
- * \param samples_input   Frontend sample input to use.
+ * \param mesid           ME SID for front-end sample input selection.
  * \param out             Output buffer.
  * \param len_log2        Log2 number of points.
  * \param dir             FFT direction.
@@ -251,13 +267,13 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
  *
  * \return True if the FFT was successfully computed, false otherwise.
  */
-bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
+bool fft_samples(me_gnss_signal_t mesid, fft_cplx_t *out,
                  u32 len_log2, fft_dir_t dir, u32 scale_schedule,
                  u32 *sample_count)
 {
   u32 len_points = length_points_get(len_log2);
   u32 len_bytes = len_points * sizeof(fft_cplx_t);
-  control_set_frontend_samples(samples_input, len_points);
+  control_set_frontend_samples(mesid2sid(mesid), len_points);
   config_set(dir, scale_schedule);
   sample_stream_start();
   dma_start(0, (u8 *)out, len_bytes);

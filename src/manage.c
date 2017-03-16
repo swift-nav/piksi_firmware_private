@@ -517,8 +517,9 @@ static void manage_acq()
     return;
   }
 
-  /* Only GPS L1CA acquistion is supported. */
-  assert(CODE_GPS_L1CA == acq->mesid.code);
+  /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
+  assert((CODE_GPS_L1CA == acq->mesid.code) ||
+         (CODE_GLO_L1CA == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
