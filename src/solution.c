@@ -344,9 +344,8 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
     sbp_make_pos_llh_vect(&sbp_messages->pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
 
-    sbp_make_dops(&sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, flags);
   }
-  sbp_make_dops(sbp_dops, dops, pos_llh->tow, flags);
+  sbp_make_dops(&sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, flags);
 
   if(t) {
     chMtxLock(&last_sbp_lock);
