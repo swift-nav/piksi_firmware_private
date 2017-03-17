@@ -470,6 +470,7 @@ static void increment_cp_counter(gnss_signal_t sid, cp_comp_t *cp_comp,
     /* If counter reached maximum. */
     /* Drop L2CL tracker. */
     common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
+    common_data->cp_sync.synced = true;
 
     /* Load L2CM information */
     gnss_signal_t sid_L2CM = construct_sid(CODE_GPS_L2CM, sid.sat);
@@ -554,7 +555,8 @@ static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
     /* Drop L2CL tracker if it is FLL mode */
     if (fll_mode) {
       tracking_channel_drop_l2cl(channel_info->sid);
-    } else {
+    } else if (!common_data->cp_sync.synced) {
+      /* Try resolving half-cycle ambiguity if it hasn't been resolved. */
       process_cp_data(channel_info->sid, common_data);
     }
   }
