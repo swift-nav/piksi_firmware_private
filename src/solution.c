@@ -380,12 +380,6 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK))) {
-    if(t) {
-      chMtxLock(&last_sbp_lock);
-      last_dgnss.wn = t->wn;
-      last_dgnss.tow = t->tow;
-      chMtxUnlock(&last_sbp_lock);
-    }
     double pseudo_absolute_ecef[3];
     double pseudo_absolute_llh[3];
 
@@ -396,7 +390,14 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
     sbp_make_pos_llh_vect(pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
     sbp_make_pos_ecef_vect(pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
 
-    sbp_make_dops(sbp_dops, dops, pos_llh->tow, flags);
+  }
+  sbp_make_dops(sbp_dops, dops, pos_llh->tow, flags);
+
+  if(t) {
+    chMtxLock(&last_sbp_lock);
+    last_dgnss.wn = t->wn;
+    last_dgnss.tow = t->tow;
+    chMtxUnlock(&last_sbp_lock);
   }
 
   /* Update stats */
