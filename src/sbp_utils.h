@@ -19,6 +19,7 @@
 #include <libsbp/observation.h>
 #include <libsbp/gnss.h>
 #include <libsbp/ndb.h>
+#include <libsbp/system.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
@@ -80,6 +81,9 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
                            double v_accuracy, u8 flags);
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_sats_used, u8 flags);
+void sbp_make_age_corrections(msg_age_corrections_t *age_corrections, const gps_time_t *t, double propagation_time);
+void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status, u8 num_sats, double obs_latency, u8 flags);
+void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
