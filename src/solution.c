@@ -418,11 +418,13 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
   s8 ret = -1;
   bool send_baseline = false;
 
+  bool has_pos;
+  double known_pos[3];
+
   if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     /* In time matched mode filter is already updated so no need to update
        filter again. Just get the baseline. */
-    ret = get_baseline(time_matched_filter_manager, baseline, covariance,
-                       &num_sats_used, &num_sigs_used, &flags);
+    ret = get_time_matched_baseline(time_matched_filter_manager, baseline, covariance, &num_sats_used, &num_sigs_used, &flags, &has_pos, known_pos);
     if (ret < 0) {
       log_warn("output_baseline: Time matched baseline calculation failed");
     } else if (ret == 0) {
@@ -431,15 +433,12 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
     }
   } else if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     /* Need to update filter with propagated obs before we can get the baseline. */
-    chMtxLock(&low_latency_filter_manager_lock);
+    // chMtxLock(&low_latency_filter_manager_lock);
     if (filter_manager_is_initialized(low_latency_filter_manager)) {
-      ret = filter_manager_update(low_latency_filter_manager, t,
-                                  sdiffs, num_sdiffs, rover_pos,
-                                  has_known_base_pos_ecef ? known_base_pos : NULL,
-                                  diff_time);
+      ret = filter_manager_update(low_latency_filter_manager);
       if (ret == 0) {
-        ret = get_baseline(low_latency_filter_manager, baseline, covariance,
-                           &num_sats_used, &num_sigs_used, &flags);
+        ret = get_low_latency_baseline(low_latency_filter_manager, baseline, covariance,
+                                       &num_sats_used, &num_sigs_used, &flags, &has_pos, known_pos);
         if (ret < 0) {
           log_warn("output_baseline: Low latency baseline calculation failed");
         } else if (ret == 0) {
@@ -452,7 +451,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
     } else {
       log_info("Low latency filter not initialized.");
     }
-    chMtxUnlock(&low_latency_filter_manager_lock);
+    // chMtxUnlock(&low_latency_filter_manager_lock);
   }
 
   if (send_baseline) {
@@ -1219,16 +1218,17 @@ static void solution_thread(void *arg)
             sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
             u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
                                     base_obss.n, base_obss.nm,
-                                    base_obss.sat_dists,
-                                    base_obss.sat_dists_dot,
                                     base_obss.has_known_pos_ecef ?
                                     base_obss.known_pos_ecef :
                                     base_obss.pos_ecef,
                                     sdiffs);
+            chMtxLock(&low_latency_filter_manager_lock);
+            filter_manager_update_rov_obs(low_latency_filter_manager,&current_fix.time, n_ready_tdcp, nav_meas_tdcp);
             output_baseline(num_sdiffs, sdiffs, &current_fix.time,
                             &dops, propagation_time, current_fix.pos_ecef,
                             base_obss.has_known_pos_ecef, base_obss.known_pos_ecef,
                             &sbp_messages);
+            chMtxUnlock(&low_latency_filter_manager_lock);
           }
         }
       }
@@ -1309,10 +1309,10 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
                                             &time_matched_iono_params, disable_klobuchar);
     }
     chMtxUnlock(&time_matched_iono_params_lock);
-    ret = filter_manager_update(time_matched_filter_manager,
-                                &obss->tor, sds, n_sds,
-                                obss->has_pos ? obss->pos_ecef : NULL,
-                                has_known_base_pos_ecef ? known_base_pos : NULL, 0.0);
+    systime_t start_time = chVTGetSystemTimeX();
+    ret = filter_manager_update(time_matched_filter_manager);
+    systime_t time_matched_update = chVTGetSystemTimeX();
+    detailed_log_warn("TM: update time: %lu", time_matched_update - start_time);
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
       /* If we're in low latency mode we need to copy/update the low latency
@@ -1392,13 +1392,18 @@ static void time_matched_obs_thread(void *arg)
           chMtxUnlock(&base_pos_lock);
         }
         old_base_sender_id = base_obss.sender_id;
-
+        if (!filter_manager_is_initialized(time_matched_filter_manager)) {
+          filter_manager_init(time_matched_filter_manager);
+        }
+        filter_manager_update_rov_obs(time_matched_filter_manager, &obss->tor, obss->n, obss->nm);
+        filter_manager_update_ref_obs(time_matched_filter_manager, &base_obss.tor, base_obss.n, base_obss.nm, base_obss.pos_ecef, base_obss.has_known_pos_ecef ? base_obss.known_pos_ecef: NULL);
         /* Times match! Process obs and base_obss */
         static sdiff_t sds[MAX_CHANNELS];
         u8 n_sds = single_diff(
             obss->n, obss->nm,
             base_obss.n, base_obss.nm,
             sds
+
         );
         bool has_known_base_pos_ecef = base_obss.has_known_pos_ecef;
         double known_base_pos[3];
