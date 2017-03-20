@@ -241,6 +241,7 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
 
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(sbp_messages->gps_time), (u8 * ) &sbp_messages->gps_time);
+    sbp_send_msg(SBP_MSG_UTC_TIME, sizeof(sbp_messages->utc_time), (u8 * ) &sbp_messages->utc_time);
     sbp_send_msg(SBP_MSG_POS_LLH, sizeof(sbp_messages->pos_llh), (u8 * ) &sbp_messages->pos_llh);
     sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(sbp_messages->pos_ecef), (u8 * ) &sbp_messages->pos_ecef);
     sbp_send_msg(SBP_MSG_VEL_NED, sizeof(sbp_messages->vel_ned), (u8 * ) &sbp_messages->vel_ned);
@@ -253,6 +254,14 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
 
     if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_messages->baseline_ned), (u8 * ) &sbp_messages->baseline_ned);
+    }
+
+    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_AGE_CORRECTIONS, sizeof(sbp_messages->age_corrections), (u8 * ) &sbp_messages->age_corrections);
+    }
+
+    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_DGNSS_STATUS, sizeof(sbp_messages->dgnss_status), (u8 * ) &sbp_messages->dgnss_status);
     }
 
     if (send_heading && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
