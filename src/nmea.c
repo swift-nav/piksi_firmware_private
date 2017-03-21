@@ -41,6 +41,7 @@ static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
 
+
 /** \addtogroup io
  * \{ */
 
@@ -793,6 +794,19 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_gps_time_t *sbp_msg_time,
                     double propagation_time, u8 sender_id)
 {
+  static bool start_output = false;
+  
+  if (!start_output) {
+    /* Check if this solution is on a second boundary by truncating to nearest 0.05s */
+    if (((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME )
+       && (fabs(sbp_msg_time->tow - 1000*round(sbp_msg_time->tow/1000.0)) <= 20)) {
+      start_output = true;
+    } else {
+      return;
+    }
+  }
+
+
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
     DO_EVERY(gpgga_msg_rate,
       nmea_gpgga(sbp_pos_llh, sbp_msg_time, sbp_dops, propagation_time, sender_id);
