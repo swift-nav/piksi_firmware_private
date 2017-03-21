@@ -163,6 +163,17 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     covariance_to_accuracy(full_covariance, soln->pos_ecef,
                            &accuracy, &h_accuracy, &v_accuracy);
 
+    /* Estimate ballpark velocity accuracy from the position accuracy.
+     * Since velocity uses the same system matrix as SPP position solution, the
+     * accuracy estimate is just a scaled version of that.
+     * TODO: implement proper computation of vel_err_cov matrix in LSNP */
+
+    double vel_accuracy_multiplier = sqrt(DOPPLER_CN0_COEFFICIENT / CODE_CN0_COEFFICIENT)
+                                     * code_to_lambda(CODE_GPS_L1CA);
+    double vel_accuracy = vel_accuracy_multiplier * accuracy;
+    double vel_h_accuracy = vel_accuracy_multiplier * h_accuracy;
+    double vel_v_accuracy = vel_accuracy_multiplier * v_accuracy;
+
     const gps_time_t soln_time = soln->time;
 
     /* Position in LLH. */
@@ -176,10 +187,16 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     /* Velocity in NED. */
     /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
     if (!clock_jump && soln->velocity_valid) {
-      sbp_make_vel_ned(&sbp_messages->vel_ned, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
+      sbp_make_vel_ned(&sbp_messages->vel_ned,
+                       soln,
+                       vel_h_accuracy, vel_v_accuracy,
+                       SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
 
       /* Velocity in ECEF. */
-      sbp_make_vel_ecef(&sbp_messages->vel_ecef, soln, SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
+      sbp_make_vel_ecef(&sbp_messages->vel_ecef,
+                        soln,
+                        vel_accuracy,
+                        SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
     }
 
     /* DOP message can be sent even if solution fails to compute */
