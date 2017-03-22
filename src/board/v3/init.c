@@ -39,7 +39,7 @@
 #include "manage_rtc.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL  (0x03070000U)
+#define REQUIRED_NAP_VERSION_VAL  (0x0307000bU)
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
@@ -133,15 +133,28 @@ static void nap_conf_check(void)
 
 static bool nap_version_ok(u32 version)
 {
-  return ((version & REQUIRED_NAP_VERSION_MASK) == REQUIRED_NAP_VERSION_VAL);
+  /* Upper two bytes need to match for register map compatibility,
+   * lower two bytes have to be greater or equal to enforce features. */
+  return ((version & REQUIRED_NAP_VERSION_MASK) ==
+      (REQUIRED_NAP_VERSION_VAL & REQUIRED_NAP_VERSION_MASK) &&
+      (version & ~REQUIRED_NAP_VERSION_MASK) >=
+      (REQUIRED_NAP_VERSION_VAL & ~REQUIRED_NAP_VERSION_MASK));
 }
 
 static void nap_version_check(void)
 {
+  /* NOTE: The NAP ROM contains the Vivado IP version corresponding to the
+   * register map and a version string filled with the output of
+   * `git describe`. We need to check against the IP version to ensure
+   * compatibility, but the user should only ever see the version string. */
+
+  char nap_version_string[64] = {0};
+  nap_conf_rd_version_string(nap_version_string);
+
   u32 nap_version = nap_conf_rd_version();
   if (!nap_version_ok(nap_version)) {
     while (1) {
-      log_error("Unsupported NAP version: 0x%08x", nap_version);
+      log_error("Unsupported NAP version: %s", nap_version_string);
       chThdSleepSeconds(2);
     }
   }
