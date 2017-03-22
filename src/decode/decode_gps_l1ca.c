@@ -438,9 +438,10 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   bool sensitivity_mode = true;
   while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
                                       &soft_bit, &sensitivity_mode)) {
-    /* Don't trust polarity information while in sensitivity mode. */
+    /* Don't decode data while in sensitivity mode. */
     if (sensitivity_mode) {
-      data->nav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
+      nav_msg_init(&data->nav_msg);
+      continue;
     }
     /* Update TOW */
     bool bit_val = soft_bit >= 0;
