@@ -98,6 +98,8 @@ s16 msg_obs_max_size = 102;
 bool disable_raim = false;
 bool send_heading = false;
 
+bool disable_klobuchar = false;
+
 static u8 old_base_sender_id = 0;
 
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
@@ -1276,7 +1278,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
     chMtxLock(&time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
-                                            &time_matched_iono_params);
+                                            &time_matched_iono_params, disable_klobuchar);
     }
     chMtxUnlock(&time_matched_iono_params_lock);
     ret = filter_manager_update(time_matched_filter_manager,
@@ -1486,6 +1488,8 @@ void solution_setup()
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
+
+    SETTING("solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
 
   nmea_setup();
 
