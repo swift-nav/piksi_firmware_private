@@ -523,6 +523,59 @@ static s8 read_ambiguity_status(tracker_common_data_t *common_data)
   return retval;
 }
 
+/**
+ * Performs the handling of L2CL tracker for half-cycle ambiguity resolution.
+ *
+ * If L2CM tracker is in FLL mode, the L2CL tracker is dropped and
+ * ambiguity is marked as unknown.
+ *
+ * Otherwise reads half-cycle ambiguity info from L2CL tracker.
+ * When ambiguity is resolved, the L2CL tracker is dropped.
+ *
+ * Also handles the initialization of L2CL tracker when needed.
+ *
+ * \param[in]     channel_info   Channel information.
+ * \param[in,out] common_data    Channel data with ToW, sample number and other
+ *                               runtime values.
+ * \param[in]     data           Common tracker data.
+ * \param[in]     cycle_flags    Current cycle flags.
+ *
+ * \return None
+ */
+static void update_l2cl_status(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               tp_tracker_data_t *data,
+                               u32 cycle_flags)
+{
+  if (tp_tl_is_fll(&data->tl_state)) {
+    tracking_channel_drop_l2cl(channel_info->sid);
+    tracker_ambiguity_unknown(channel_info->context);
+  } else if (data->lock_detect.outp &&
+             data->confirmed &&
+             0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+             tracker_bit_aligned(channel_info->context)) {
+
+    /* If needed, read half-cycle ambiguity status from L2CL tracker */
+    if (!tracker_ambiguity_status(channel_info->context)) {
+      s8 polarity = read_ambiguity_status(common_data);
+      tracker_ambiguity_set(channel_info->context, polarity);
+    }
+
+    /* If half-cycle ambiguity is not resolved, try to start L2CL tracker.
+     * TOW must be known before trying to start L2CL tracker. */
+    if (!tracker_ambiguity_status(channel_info->context) &&
+        TOW_UNKNOWN != common_data->TOW_ms) {
+      /* Start L2 CL tracker if not running already */
+      do_l2cm_to_l2cl_handover(common_data->sample_count,
+                               channel_info->sid.sat,
+                               common_data->code_phase_prompt,
+                               common_data->carrier_freq,
+                               common_data->cn0,
+                               common_data->TOW_ms);
+    }
+  }
+}
+
 static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
@@ -539,36 +592,6 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
   update_l2_xcorr_from_l1(channel_info, common_data, l2c_data, cflags);
 
-  if (data->lock_detect.outp &&
-      data->confirmed &&
-      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
-
-    if (tp_tl_is_fll(&data->tl_state)) {
-      tracking_channel_drop_l2cl(channel_info->sid);
-    }
-
-    if (!tracker_ambiguity_status(channel_info->context)) {
-      s8 public = read_ambiguity_status(common_data);
-      tracker_ambiguity_set(channel_info->context, public);
-    }
-  }
-
-  if (data->lock_detect.outp &&
-      data->confirmed &&
-      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context) &&
-      /* TOW must be known to start L2CL */
-      TOW_UNKNOWN != common_data->TOW_ms &&
-      /* L2CM half-cycle ambiguity must be unknown */
-      !tracker_ambiguity_status(channel_info->context)) {
-
-    /* Start L2 CL tracker if not running */
-    do_l2cm_to_l2cl_handover(common_data->sample_count,
-                             channel_info->sid.sat,
-                             common_data->code_phase_prompt,
-                             common_data->carrier_freq,
-                             common_data->cn0,
-                             common_data->TOW_ms);
-  }
+  /* GPS L2CL-specific tracking channel operations */
+  update_l2cl_status(channel_info, common_data, data, cflags);
 }
