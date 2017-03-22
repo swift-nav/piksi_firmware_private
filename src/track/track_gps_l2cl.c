@@ -43,17 +43,17 @@
 
 /** Parameters for carrier phase comparison */
 typedef struct {
-  float c_L2CL_cp; /**< Current L2CL carrier phase [cycles] */
-  float p_L2CL_cp; /**< Previous L2CL carrier phase [cycles] */
-  float t_L2CL_cp; /**< L2CL carrier phase to be tested [cycles] */
-  float c_L2CM_cp; /**< Current L2CM carrier phase [cycles] */
-  float p_L2CM_cp; /**< Previous L2CM carrier phase [cycles] */
-  float t_L2CM_cp; /**< L2CM carrier phase to be tested [cycles] */
-  s32 c_L2CL_TOW;  /**< Current L2CL TOW [ms] */
-  s32 p_L2CL_TOW;  /**< Previous L2CL TOW [ms] */
-  s32 c_L2CM_TOW;  /**< Current L2CM TOW [ms] */
-  s32 p_L2CM_TOW;  /**< Previous L2CM TOW [ms] */
-  u8 count;        /**< Count of matching carrier phase measurements */
+  double c_L2CL_cp; /**< Current L2CL carrier phase [cycles] */
+  double p_L2CL_cp; /**< Previous L2CL carrier phase [cycles] */
+  double t_L2CL_cp; /**< L2CL carrier phase to be tested [cycles] */
+  double c_L2CM_cp; /**< Current L2CM carrier phase [cycles] */
+  double p_L2CM_cp; /**< Previous L2CM carrier phase [cycles] */
+  double t_L2CM_cp; /**< L2CM carrier phase to be tested [cycles] */
+  s32 c_L2CL_TOW;   /**< Current L2CL TOW [ms] */
+  s32 p_L2CL_TOW;   /**< Previous L2CL TOW [ms] */
+  s32 c_L2CM_TOW;   /**< Current L2CM TOW [ms] */
+  s32 p_L2CM_TOW;   /**< Previous L2CM TOW [ms] */
+  u8 count;         /**< Count of matching carrier phase measurements */
 } cp_comp_t;
 
 /** GPS L2C configuration container */
@@ -427,7 +427,7 @@ static bool compare_cp_data(cp_comp_t *cp_comp, s8 *polarity,
 {
   *polarity = BIT_POLARITY_UNKNOWN;
   bool match = false;
-  float test_metric = fabsf(remainder(cp_comp->t_L2CL_cp
+  double test_metric = fabs(remainder(cp_comp->t_L2CL_cp
                                     - cp_comp->t_L2CM_cp, 1.0f));
 
   /* When the carrier phases match, the test_metric is
