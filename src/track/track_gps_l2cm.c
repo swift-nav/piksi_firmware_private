@@ -508,9 +508,9 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
  *
  * \param[in,out] common_data Channel data.
  *
- * \return Polarity of the half-cycle ambiguity.
+ * \return Polarity of the data.
  */
-static s8 read_ambiguity_status(tracker_common_data_t *common_data)
+static s8 read_data_polarity(tracker_common_data_t *common_data)
 {
   s8 retval = BIT_POLARITY_UNKNOWN;
   /* If the half-cycle ambiguity has been resolved,
@@ -544,7 +544,7 @@ static s8 read_ambiguity_status(tracker_common_data_t *common_data)
  */
 static void update_l2cl_status(const tracker_channel_info_t *channel_info,
                                tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
+                               const tp_tracker_data_t *data,
                                u32 cycle_flags)
 {
   if (tp_tl_is_fll(&data->tl_state)) {
@@ -556,14 +556,16 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
              tracker_bit_aligned(channel_info->context)) {
 
     /* If needed, read half-cycle ambiguity status from L2CL tracker */
-    if (!tracker_ambiguity_status(channel_info->context)) {
-      s8 polarity = read_ambiguity_status(common_data);
+    if (tracker_ambiguity_resolved(channel_info->context)) {
+      tracking_channel_drop_l2cl(channel_info->sid);
+    } else {
+      s8 polarity = read_data_polarity(common_data);
       tracker_ambiguity_set(channel_info->context, polarity);
     }
 
     /* If half-cycle ambiguity is not resolved, try to start L2CL tracker.
      * TOW must be known before trying to start L2CL tracker. */
-    if (!tracker_ambiguity_status(channel_info->context) &&
+    if (!tracker_ambiguity_resolved(channel_info->context) &&
         TOW_UNKNOWN != common_data->TOW_ms) {
       /* Start L2 CL tracker if not running already */
       do_l2cm_to_l2cl_handover(common_data->sample_count,
