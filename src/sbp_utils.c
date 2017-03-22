@@ -116,8 +116,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags)
   t_out->day = utc_time.tm_mday;
   t_out->hours = utc_time.tm_hour;
   t_out->minutes = utc_time.tm_min;
-  t_out->seconds = utc_time.tm_sec;
-  t_out->ns = round((t_in->tow - t_out->tow)*1e9);
+  t_out->seconds = floor(utc_time.tm_sec);
+  t_out->ns = (u32) round((utc_time.tm_sec - t_out->seconds)*1e9);
   t_out->flags = flags;
 }
 
