@@ -1489,7 +1489,7 @@ void solution_setup()
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
 
-    SETTING("solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
+  SETTING("solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
 
   nmea_setup();
 
