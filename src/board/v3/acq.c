@@ -23,14 +23,11 @@
 
 #include "platform_cn0.h"
 
-#define CHIP_RATE 1.023e6f
-#define CODE_LENGTH 1023
 #define CODE_MULT 16384
 #define RESULT_DIV 32
 #define FFT_SCALE_SCHED_CODE 0x15555555
 #define FFT_SCALE_SCHED_SAMPLES 0x15555555
 #define FFT_SCALE_SCHED_INV 0x15550000
-#define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
@@ -57,7 +54,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   u32 fft_len_log2 = FFT_LEN_LOG2_MAX;
   u32 fft_len = 1 << fft_len_log2;
   float fft_bin_width = NAP_ACQ_SAMPLE_RATE_Hz / fft_len;
-  float chips_per_sample = CHIP_RATE / NAP_ACQ_SAMPLE_RATE_Hz;
+  float chips_per_sample = code_to_chip_rate(sid.code) / NAP_ACQ_SAMPLE_RATE_Hz;
 
   /* Generate, resample, and FFT code */
   static FFT_BUFFER(code_fft, fft_cplx_t, FFT_LEN_MAX);
@@ -70,8 +67,8 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* FFT samples */
   u32 sample_count;
   static FFT_BUFFER(sample_fft, fft_cplx_t, FFT_LEN_MAX);
-  if(!fft_samples(FFT_SAMPLES_INPUT, sample_fft, fft_len_log2,
-                  FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
+  if (!fft_samples(sid, sample_fft, fft_len_log2,
+                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
     return false;
   }
 
@@ -163,7 +160,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
-  cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
+  cp -= code_to_chip_count(sid.code) * floorf(cp / code_to_chip_count(sid.code));
 
   /* Set output */
   acq_result->sample_count = sample_count;
@@ -177,10 +174,10 @@ static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length)
 {
   const u8 *code = ca_code(sid);
-  u32 code_length = CODE_LENGTH;
+  u32 code_length = code_to_chip_count(sid.code);
 
   float chip_offset = 0.0f;
-  for (u32 i=0; i<resampled_length; i++) {
+  for (u32 i = 0; i < resampled_length; i++) {
     u32 code_index = (u32)floorf(chip_offset);
     resampled[i] = (fft_cplx_t) {
       .re = CODE_MULT * get_chip((u8 *)code, code_index % code_length),

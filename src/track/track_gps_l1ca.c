@@ -639,16 +639,17 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
   /* GPS L1 C/A-specific L2C cross-correlation operations */
   update_l1_xcorr_from_l2(channel_info, common_data, l1ca_data, cflags);
 
-  if (data->lock_detect.outp &&
-      data->confirmed &&
-      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
-
-    /* Start L2 CM tracker if not running */
-    do_l1ca_to_l2cm_handover(common_data->sample_count,
-                             channel_info->sid.sat,
-                             common_data->code_phase_prompt,
-                             common_data->carrier_freq,
-                             common_data->cn0);
-  }
+  /* DEBUG: Prevent GPS L2CM handover to save Piksi channels for Glonass */
+//  if (data->lock_detect.outp &&
+//      data->confirmed &&
+//      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
+//      tracker_bit_aligned(channel_info->context)) {
+//
+//    /* Start L2 CM tracker if not running */
+//    do_l1ca_to_l2cm_handover(common_data->sample_count,
+//                             channel_info->sid.sat,
+//                             common_data->code_phase_prompt,
+//                             common_data->carrier_freq,
+//                             common_data->cn0);
+//  }
 }

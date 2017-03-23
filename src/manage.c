@@ -403,8 +403,9 @@ static acq_status_t * choose_acq_sat(void)
     }
 
     if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked)
+        acq_status[i].masked) {
       continue;
+    }
 
     acq_status[i].score[ACQ_HINT_WARMSTART] =
       manage_warm_start(acq_status[i].sid, &t,
@@ -429,8 +430,9 @@ static acq_status_t * choose_acq_sat(void)
     }
 
     if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked)
+        acq_status[i].masked) {
       continue;
+    }
 
     u32 sat_score = 0;
     for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++)
@@ -473,8 +475,9 @@ static void manage_acq()
     return;
   }
 
-  /* Only GPS L1CA acquistion is supported. */
-  assert(CODE_GPS_L1CA == acq->sid.code);
+  /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
+  assert((CODE_GPS_L1CA == acq->sid.code) ||
+         (CODE_GLO_L1CA == acq->sid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->sid.code) +
                       code_to_tcxo_doppler_min(acq->sid.code);
@@ -496,10 +499,16 @@ static void manage_acq()
   if (acq_search(acq->sid, acq->dopp_hint_low, acq->dopp_hint_high,
                  ACQ_FULL_CF_STEP, &acq_result)) {
 
+    /* DEBUG: Print results of successful GLO acquisitions. */
+    if (CODE_GLO_L1CA == acq->sid.code && acq_result.cn0 > 39.0f) {
+      log_error_sid(acq->sid, "%lf %lf", acq_result.cn0, acq_result.cf);
+    }
     /* Send result of an acquisition to the host. */
     acq_result_send(acq->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
 
-    if (acq_result.cn0 < ACQ_THRESHOLD) {
+    /* DEBUG: Prevent GPS satellites from tracking handover.
+     * We don't want position fix, since that would switch to re-acq mode. */
+    if (acq_result.cn0 < ACQ_THRESHOLD + 20) {
       /* Didn't find the satellite :( */
       /* Double the size of the doppler search space for next time. */
       float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
