@@ -35,5 +35,6 @@ void sbp_remove_cbk(sbp_msg_callbacks_node_t *node);
 u32 sbp_send_msg(u16 msg_type, u8 len, u8 buff[]);
 u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id);
 void sbp_process_messages(void);
+char *truncate_path_(char *path);
 
 #endif

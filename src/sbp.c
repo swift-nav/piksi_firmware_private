@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -246,6 +247,20 @@ void log_(u8 level, const char *msg, ...)
   sbp_send_msg(SBP_MSG_LOG, n+sizeof(msg_log_t), (u8 *)buf);
 }
 
+char *truncate_path_(char *path)
+{
+  assert(NULL != path);
+  int i;
+
+  if (path[0] == '\0')
+    return "";
+  for (i = strlen(path) - 1; i >= 0 && path[i] == '/'; i--);
+  if (i == -1)
+    return "/";
+  for (path[i + 1] = '\0'; i >= 0 && path[i] != '/'; i--);
+  return &path[i + 1];
+}
+
 void detailed_log_(u8 level, const char *file_path, const int line_number,
                    const char *msg, ...)
 {
@@ -257,8 +272,10 @@ void detailed_log_(u8 level, const char *file_path, const int line_number,
   log->level = level;
 
   int n = 0;
+  char base_name[SBP_FRAMING_MAX_PAYLOAD_SIZE];
+  strncpy(base_name, file_path, sizeof(base_name) - 1);
   n += snprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n,
-                "(%s:%d) ", file_path, line_number);
+                "(%s:%d) ", truncate_path_(base_name), line_number);
 
   va_start(ap, msg);
   n += vsnprintf(&log->text[n], SBP_FRAMING_MAX_PAYLOAD_SIZE-sizeof(msg_log_t)-n, msg, ap);
