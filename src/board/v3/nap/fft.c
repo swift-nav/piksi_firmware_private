@@ -26,6 +26,8 @@
 #define FFT_TIMEOUT_ms (100)
 #define TIMING_COMPARE_DELTA (NAP_FRONTEND_SAMPLE_RATE_Hz * 1e-3) /* 1ms */
 
+#undef _ACQ_VERIFY_SCALING_
+
 static BSEMAPHORE_DECL(axi_dma_rx_bsem, 0);
 
 static void axi_dma_tx_callback(bool success);
@@ -208,8 +210,13 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
   if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
     if (FFT_DIR_FORWARD == dir) {
       log_warn("Acquisition: code FFT overflow.");
+      /* ^ this is called in FW 1.0.11 by the code FFT and
+       * should never fail as codes don't change
+       * */
     } else {
       log_warn("Acquisition: IFFT overflow.");
+      /* ^ this must be checked as might lead to missed acquisitions
+       * */
     }
   }
   return result;
@@ -243,9 +250,16 @@ bool fft_samples(fft_samples_input_t samples_input, fft_cplx_t *out,
 
   if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
     if (FFT_DIR_FORWARD == dir) {
+#ifdef _ACQ_VERIFY_SCALING_
       log_warn("Acquisition: RF sample FFT overflow.");
+      /* ^ this should not be a problem if it happens with cable
+       * disconnected or in presence of interference
+       * */
+#endif /* _ACQ_VERIFY_SCALING_ */
+
     } else {
       log_warn("Acquisition: RF sample IFFT overflow.");
+      /* ^ this is never being called in FW 1.0.11 */
     }
   }
   return result;

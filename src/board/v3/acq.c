@@ -27,10 +27,12 @@
 #define CODE_LENGTH 1023
 #define CODE_MULT               (   1024)
 #define RESULT_DIV              ( 4*1024)
-#define FFT_SCALE_SCHED_CODE    (0x01111111)
-#define FFT_SCALE_SCHED_SAMPLES (0x04444440)
-#define FFT_SCALE_SCHED_INV     (0x04444444)
+#define FFT_SCALE_SCHED_CODE    (0x11111111)
+#define FFT_SCALE_SCHED_SAMPLES (0x04444444)
+#define FFT_SCALE_SCHED_INV     (0x00111111)
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
+#define ACQ_MIN_SIGNAL_THRES    (512)
+#define ACQ_MIN_THRESSQ         (ACQ_MIN_SIGNAL_THRES*ACQ_MIN_SIGNAL_THRES)
 
 #define CODE_SPMS     (NAP_ACQ_SAMPLE_RATE_Hz/1000)
 #undef _ACQ_VERIFY_SCALING_
@@ -128,7 +130,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
 #if defined _ACQ_VERIFY_SCALING_
   GetMaxes(code_fft, CODE_SPMS, puMaxIdx, puMaxVal, puSumVal);
-  if (puMaxVal[0]<1e7 && puMaxVal[1]<1e7 && puMaxVal[2]<1e7 && puMaxVal[3]<1e7) {
+  if (puMaxVal[0]<ACQ_MIN_THRESSQ && puMaxVal[1]<ACQ_MIN_THRESSQ && puMaxVal[2]<ACQ_MIN_THRESSQ && puMaxVal[3]<ACQ_MIN_THRESSQ) {
     log_warn_sid(sid, "code_fft magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
       puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
@@ -145,7 +147,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
 #if defined _ACQ_VERIFY_SCALING_
   GetMaxes(sample_fft, CODE_SPMS, puMaxIdx, puMaxVal, puSumVal);
-  if (puMaxVal[0]<1e7 && puMaxVal[1]<1e7 && puMaxVal[2]<1e7 && puMaxVal[3]<1e7) {
+  if (puMaxVal[0]<ACQ_MIN_THRESSQ && puMaxVal[1]<ACQ_MIN_THRESSQ && puMaxVal[2]<ACQ_MIN_THRESSQ && puMaxVal[3]<ACQ_MIN_THRESSQ) {
     log_warn_sid(sid, "signal_fft magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
       puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
@@ -342,7 +344,7 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
 
 #if defined _ACQ_VERIFY_SCALING_
   GetMaxes(result_fft, CODE_SPMS, puMaxIdx, puMaxVal, puSumVal);
-  if (puMaxVal[0]<1e6 && puMaxVal[1]<1e6 && puMaxVal[2]<1e6 && puMaxVal[3]<1e6) {
+  if (puMaxVal[0]<ACQ_MIN_THRESSQ && puMaxVal[1]<ACQ_MIN_THRESSQ && puMaxVal[2]<ACQ_MIN_THRESSQ && puMaxVal[3]<ACQ_MIN_THRESSQ) {
     log_warn("signal*code magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
       puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
@@ -383,7 +385,7 @@ static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
   sum_mag_sq = puSumVal[(k+2)%4];
 
 #if defined _ACQ_VERIFY_SCALING_
-  if (puMaxVal[0]<1e5 && puMaxVal[1]<1e5 && puMaxVal[2]<1e5 && puMaxVal[3]<1e5) {
+  if (puMaxVal[0]<1e4 && puMaxVal[1]<1e4 && puMaxVal[2]<1e4 && puMaxVal[3]<1e4) {
     log_warn_sid(sid, "result_fft doppler %+7.1f magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       doppler,
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
