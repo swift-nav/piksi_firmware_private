@@ -33,7 +33,7 @@
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 #define CODE_SPMS     (NAP_ACQ_SAMPLE_RATE_Hz/1000)
-#define _ACQ_VERIFY_SCALING_
+#undef _ACQ_VERIFY_SCALING_
 
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
