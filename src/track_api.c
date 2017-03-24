@@ -309,7 +309,7 @@ void tracker_ambiguity_unknown(tracker_context_t *context)
  *
  * \return false if ambiguity unknown, true if it is known.
  */
-bool tracker_ambiguity_status(tracker_context_t *context)
+bool tracker_ambiguity_resolved(tracker_context_t *context)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
