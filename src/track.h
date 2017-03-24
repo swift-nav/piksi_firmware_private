@@ -46,12 +46,12 @@
 /** cross-correlation update rate [Hz] */
 #define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
 /** Carrier phases within tolerance are declared equal. [cycles]
- *  Stable PLL remains within 15 degree from correct phase.
- *  360 * 0.05 = 18 degrees
+ *  Stable PLL remains within +-15 degree from correct phase.
+ *  360 * 0.08 ~= 30 degrees
 */
-#define CARRIER_PHASE_TOLERANCE 0.05f
+#define CARRIER_PHASE_TOLERANCE 0.08f
 /** counter for half-cycle ambiguity resolution */
-#define CARRIER_PHASE_AMBIGUITY_COUNTER 20
+#define CARRIER_PHASE_AMBIGUITY_COUNTER 50
 /** handover should occur when code phase is near zero [chips] */
 #define HANDOVER_CODE_PHASE_THRESHOLD 0.5
 

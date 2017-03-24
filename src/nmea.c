@@ -323,7 +323,10 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   u16 lon_deg = (u16) lon; /* truncation towards zero */
   double lon_min = (lon - (double) lon_deg) * 60.0;
 
-  u8 fix_type = get_nmea_quality_indicator(sbp_msg_time->flags);
+  u8 fix_type = NMEA_GGA_QI_INVALID;
+  if ((sbp_msg_time->flags & POSITION_MODE_MASK) != NO_POSITION) {
+    fix_type = get_nmea_quality_indicator(sbp_pos_llh->flags);
+  }
 
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF("$GPGGA,");
