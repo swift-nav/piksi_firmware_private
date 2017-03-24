@@ -1352,10 +1352,15 @@ static void manage_tracking_startup(void)
         if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
           acq->score[ACQ_HINT_PREV_ACQ] =
               SCORE_ACQ + (startup_params.cn0_init - ACQ_THRESHOLD);
-          acq->dopp_hint_low = MAX(startup_params.carrier_freq - ACQ_FULL_CF_STEP,
-                                   doppler_min);
-          acq->dopp_hint_high = MIN(startup_params.carrier_freq + ACQ_FULL_CF_STEP,
-                                    doppler_max);
+          /* Check that reported carrier frequency is within Doppler bounds */
+          float freq = startup_params.carrier_freq;
+          if (freq < doppler_min) {
+            freq = doppler_min;
+          } else if (freq > doppler_max) {
+            freq = doppler_max;
+          }
+          acq->dopp_hint_low = MAX(freq - ACQ_FULL_CF_STEP, doppler_min);
+          acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
       log_debug("No free tracking channel available.");
