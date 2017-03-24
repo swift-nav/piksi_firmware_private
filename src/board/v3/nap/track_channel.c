@@ -320,7 +320,12 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   /* Revert length adjustment for future integrations after channel started */
   length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
-  assert(t->LENGTH < length);   /* check for overflow */
+  if (t->LENGTH < length) {
+    /* check for overflow and log an error with values */
+    log_error("t->LENGTH: %u, length: %u, prompt_offset: %hu",
+              t->LENGTH, length, prompt_offset)
+    assert(!"t->LENGTH < length");   
+  }
   /* Future integrations for L2CL are 1 chip longer */
   if (sid.code == CODE_GPS_L2CL) {
     t->LENGTH += calc_samples_per_chip(code_phase_rate);
