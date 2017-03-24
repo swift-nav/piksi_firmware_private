@@ -98,7 +98,7 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
   round_time_nano(t_in, &t_nano);
   t_out->wn = t_nano.wn;
   t_out->tow = t_nano.tow;
-  t_out->ns = t_nano.ns;
+  t_out->ns_residual = t_nano.ns_residual;
   t_out->flags = flags;
 }
 
@@ -266,7 +266,7 @@ void unpack_obs_header(const observation_header_t *msg, gps_time_t* t, u8* total
 {
   t->wn  = msg->t.wn;
   t->tow = ((double)msg->t.tow) / 1e3 +
-           ((double)msg->t.ns) / 1e9;
+           ((double)msg->t.ns_residual) / 1e9;
   normalize_gps_time(t);
   *total = (msg->n_obs >> MSG_OBS_HEADER_SEQ_SHIFT);
   *count = (msg->n_obs & MSG_OBS_HEADER_SEQ_MASK);
@@ -695,7 +695,7 @@ u32 round_tow_ms(double tow) {
 void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
-  t_out->ns = round((t_in->tow - t_out->tow / 1e3) *
+  t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) *
               1e9);
   /* week roll-over */
   if (t_out->tow >= WEEK_MS) {
