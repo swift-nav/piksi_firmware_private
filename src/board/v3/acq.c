@@ -23,19 +23,17 @@
 
 #include "platform_cn0.h"
 
-#define CHIP_RATE       1.023e6f
-#define CODE_LENGTH     1023
-#define CODE_MULT      (  1024)
-#define RESULT_DIV     (1*1024)
-#define FFT_SCALE_SCHED_CODE    (0x11111111)
-#define FFT_SCALE_SCHED_SAMPLES (0x11111111)
+#define CHIP_RATE 1.023e6f
+#define CODE_LENGTH 1023
+#define CODE_MULT               (   1024)
+#define RESULT_DIV              ( 4*1024)
+#define FFT_SCALE_SCHED_CODE    (0x01111111)
+#define FFT_SCALE_SCHED_SAMPLES (0x04444440)
 #define FFT_SCALE_SCHED_INV     (0x04444444)
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
-
 #define CODE_SPMS     (NAP_ACQ_SAMPLE_RATE_Hz/1000)
-#undef _ACQ_VERIFY_SCALING_
-
+#define _ACQ_VERIFY_SCALING_
 
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
@@ -49,7 +47,6 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
                             u32 fft_len_log2, float *doppler);
 static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak);
-
 
 
 static FFT_BUFFER(code_fft,   fft_cplx_t, FFT_LEN_MAX);
@@ -107,6 +104,7 @@ static void GetMaxes(fft_cplx_t *_pcVec, u32 _uSize, u32 _puIdx[4], u32 _puVal[4
   }
 }
 
+
 float acq_bin_width(void)
 {
   return NAP_ACQ_SAMPLE_RATE_Hz / (1 << FFT_LEN_LOG2_MAX);
@@ -127,9 +125,10 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
            FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
     return false;
   }
+
 #if defined _ACQ_VERIFY_SCALING_
   GetMaxes(code_fft, CODE_SPMS, puMaxIdx, puMaxVal, puSumVal);
-  if (puMaxVal[0]<1e6 && puMaxVal[1]<1e6 && puMaxVal[2]<1e6 && puMaxVal[3]<1e6) {
+  if (puMaxVal[0]<1e7 && puMaxVal[1]<1e7 && puMaxVal[2]<1e7 && puMaxVal[3]<1e7) {
     log_warn_sid(sid, "code_fft magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
       puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
@@ -143,10 +142,11 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
     return false;
   }
+
 #if defined _ACQ_VERIFY_SCALING_
   GetMaxes(sample_fft, CODE_SPMS, puMaxIdx, puMaxVal, puSumVal);
-  if (puMaxVal[0]<1e6 && puMaxVal[1]<1e6 && puMaxVal[2]<1e6 && puMaxVal[3]<1e6) {
-    log_warn_sid(sid, "sample_fft magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
+  if (puMaxVal[0]<1e7 && puMaxVal[1]<1e7 && puMaxVal[2]<1e7 && puMaxVal[3]<1e7) {
+    log_warn_sid(sid, "signal_fft magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
       puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
   }
@@ -233,28 +233,20 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
    * have NOT wrapped, so assume a positive shift.
    * If correlation peak is in the second half of the buffer, most samples
    * HAVE wrapped, so assume a negative shift. */
-  //~ s32 corrected_sample_offset = (peak.sample_offset < fft_len/2) ?
-                                //~ (s32)peak.sample_offset :
-                                //~ (s32)peak.sample_offset - (s32)fft_len;
+  s32 corrected_sample_offset = (peak.sample_offset < fft_len/2) ?
+                                (s32)peak.sample_offset :
+                                (s32)peak.sample_offset - (s32)fft_len;
 
   /* Compute code phase */
-  //~ float cp = chips_per_sample * corrected_sample_offset;
-  float cp = chips_per_sample * peak.sample_offset;
+  float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
   cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
-
-  //~ if ((cp<1.0) || (cp>1022.0)) return false;
 
   /* Set output */
   acq_result->sample_count = sample_count;
   acq_result->cp = cp;
   acq_result->cf = peak.doppler;
   acq_result->cn0 = peak.cn0;
-
-  if ( peak.cn0 > 38 ) {
-    log_info_sid(sid, "acq_result [cf %+7.1f]  [cn0 %.1f]",
-      peak.doppler, peak.cn0);
-  }
   return true;
 }
 
@@ -336,7 +328,7 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
   /* Multiply sample FFT by shifted conjugate code FFT */
   for (u32 i = 0; i < fft_len; i++) {
     const fft_cplx_t *a = &_pcCodeFft[i];
-    const fft_cplx_t *b = &_pcSignFft[(fft_len +i +sample_offset) & (fft_len - 1)];
+    const fft_cplx_t *b = &_pcSignFft[(fft_len + i + sample_offset) & (fft_len - 1)];
     fft_cplx_t *r = &result_fft[i];
 
     s32 a_re = (s32)a->re;
@@ -350,7 +342,7 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
 
 #if defined _ACQ_VERIFY_SCALING_
   GetMaxes(result_fft, CODE_SPMS, puMaxIdx, puMaxVal, puSumVal);
-if (puMaxVal[0]<1e6 && puMaxVal[1]<1e6 && puMaxVal[2]<1e6 && puMaxVal[3]<1e6) {
+  if (puMaxVal[0]<1e6 && puMaxVal[1]<1e6 && puMaxVal[2]<1e6 && puMaxVal[3]<1e6) {
     log_warn("signal*code magsq [%u , %u , %u , %u] @ [%u , %u , %u , %u]\n",
       puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
       puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
@@ -362,20 +354,10 @@ if (puMaxVal[0]<1e6 && puMaxVal[1]<1e6 && puMaxVal[2]<1e6 && puMaxVal[3]<1e6) {
            FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV)) {
     return false;
   }
-
   return true;
 }
 
-/** Read IFFT results from NAP and compute cn0 of highest peak.
- *  If cn0 is new maximum cn0, save cn0, doppler and sample_offset.
- * \param[in]     sid           Signal id pointer
- * \param[in]     doppler       Actual doppler of current frequency bin [Hz]
- * \param[in]     fft_len       FFT length
- * \param[in]     fft_bin_width Doppler bin width [Hz]
- * \param[in,out] peak          Max peak parameters
- * \retval true  Success
- * \retval false Failure
- */
+
 static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak)
 {

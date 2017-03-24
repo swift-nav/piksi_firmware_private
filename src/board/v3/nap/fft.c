@@ -207,7 +207,7 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
 
   if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_OVF_Msk) {
     if (FFT_DIR_FORWARD == dir) {
-      log_warn("Acquisition: FFT overflow.");
+      log_warn("Acquisition: code FFT overflow.");
     } else {
       log_warn("Acquisition: IFFT overflow.");
     }
