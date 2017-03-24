@@ -136,6 +136,9 @@ static float solution_elevation_mask = 10.0;
 
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
+/** Flag if GLONASS enabled */
+static bool glo_enabled = CODE_GLO_L1CA_SUPPORT;
+
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
 static void manage_acq(void);
@@ -223,6 +226,7 @@ static void manage_acq_thread(void *arg)
 void manage_acq_setup()
 {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
+  SETTING("acquisition", "GLONASS_enabled", glo_enabled, TYPE_BOOL);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
@@ -403,8 +407,14 @@ static acq_status_t * choose_acq_sat(void)
     }
 
     if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked)
+        acq_status[i].masked) {
       continue;
+    }
+
+    if (is_glo_sid(acq_status[i].sid) && !glo_enabled) {
+      /* don't acquire GLONASS signal if not enabled */
+      continue;
+    }
 
     acq_status[i].score[ACQ_HINT_WARMSTART] =
       manage_warm_start(acq_status[i].sid, &t,
@@ -429,8 +439,15 @@ static acq_status_t * choose_acq_sat(void)
     }
 
     if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked)
+        acq_status[i].masked) {
       continue;
+
+    }
+
+    if (is_glo_sid(acq_status[i].sid) && !glo_enabled) {
+      /* don't acquire GLONASS signal if not enabled */
+      continue;
+    }
 
     u32 sat_score = 0;
     for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++)
