@@ -15,6 +15,7 @@
 #include "nap/nap_common.h"
 #include "nap/track_channel.h"
 #include "track.h"
+#include "timing.h"
 #include "main.h"
 
 #include <ch.h>
@@ -258,6 +259,8 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   length += prompt_offset + 1;
   t->LENGTH = length;
 
+  u64 profiling_begin = nap_timing_count();
+
   /* Set to start on the timing strobe */
   NAP->TRK_CONTROL |= (1 << channel);
 
@@ -320,7 +323,17 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   /* Revert length adjustment for future integrations after channel started */
   length = t->LENGTH;
   t->LENGTH -= prompt_offset + 1;
-  assert(t->LENGTH < length);   /* check for overflow */
+  u32 length_reg_val = t->LENGTH;
+  /* check for underflow */
+  if (length <= length_reg_val) {
+    u64 profiling_end = nap_timing_count();
+    log_error_sid(sid,
+                  "LENGTH: %" PRIu32 " length: %" PRIu32
+                  " prompt_offset: %" PRIu16
+                  " delay_us: %.3lf",
+                  length_reg_val, length, prompt_offset,
+                  (profiling_end - profiling_begin) * RX_DT_NOMINAL * 1e6);
+  }
   /* Future integrations for L2CL are 1 chip longer */
   if (sid.code == CODE_GPS_L2CL) {
     t->LENGTH += calc_samples_per_chip(code_phase_rate);
@@ -354,7 +367,7 @@ void nap_track_update(u8 channel, double carrier_freq,
   t->LENGTH = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_sid(s->sid, "Wrong NAP correlation length: "
+    log_error_sid(s->sid, "Wrong NAP correlation length: "
           "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
           (int)s->init, chips_to_correlate, code_phase_frac, cp_rate_units,
           length, code_phase_rate);
