@@ -159,27 +159,27 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef, const double ecef[3],
   pos_ecef->flags = flags;
 }
 
-void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln, u8 flags)
+void sbp_make_vel_ned(msg_vel_ned_t *vel_ned, const gnss_solution *soln,
+                      double h_accuracy, double v_accuracy, u8 flags)
 {
   vel_ned->tow = round_tow_ms(soln->time.tow);
   vel_ned->n = round(soln->vel_ned[0] * 1e3);
   vel_ned->e = round(soln->vel_ned[1] * 1e3);
   vel_ned->d = round(soln->vel_ned[2] * 1e3);
-  /* TODO: fill in accuracy fields. */
-  vel_ned->h_accuracy = 0;
-  vel_ned->v_accuracy = 0;
+  vel_ned->h_accuracy = MIN(round(1e3 * h_accuracy), UINT16_MAX);
+  vel_ned->v_accuracy = MIN(round(1e3 * v_accuracy), UINT16_MAX);
   vel_ned->n_sats = soln->n_sats_used;
   vel_ned->flags = flags;
 }
 
-void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln, u8 flags)
+void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef, const gnss_solution *soln,
+                       double accuracy, u8 flags)
 {
   vel_ecef->tow = round_tow_ms(soln->time.tow);
   vel_ecef->x = round(soln->vel_ecef[0] * 1e3);
   vel_ecef->y = round(soln->vel_ecef[1] * 1e3);
   vel_ecef->z = round(soln->vel_ecef[2] * 1e3);
-  /* TODO: fill in accuracy field. */
-  vel_ecef->accuracy = 0;
+  vel_ecef->accuracy = MIN(round(1e3 * accuracy), UINT16_MAX);
   vel_ecef->n_sats = soln->n_sats_used;
   vel_ecef->flags = flags;
 }
