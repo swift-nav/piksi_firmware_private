@@ -26,7 +26,7 @@
 #define FFT_TIMEOUT_ms (100)
 #define TIMING_COMPARE_DELTA (NAP_FRONTEND_SAMPLE_RATE_Hz * 1e-3) /* 1ms */
 
-#undef _ACQ_VERIFY_SCALING_
+#define _ACQ_VERIFY_SCALING_
 
 static BSEMAPHORE_DECL(axi_dma_rx_bsem, 0);
 
