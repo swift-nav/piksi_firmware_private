@@ -39,7 +39,8 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
-                            u32 fft_len_log2, float *doppler);
+                            u32 fft_len_log2, float *doppler,
+                            me_gnss_signal_t mesid);
 static bool acq_peak_search(const me_gnss_signal_t mesid,
                             float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak);
@@ -116,7 +117,7 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
 
     /* Multiply and do IFFT */
     if (!ifft_operations(doppler_bin, cf_bin_width, fft_len, fft_bin_width,
-                         code_fft, sample_fft, fft_len_log2, &doppler)) {
+                         code_fft, sample_fft, fft_len_log2, &doppler, mesid)) {
       return false;
     }
 
@@ -164,7 +165,6 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
   /* Modulus code length */
   cp -= code_to_chip_count(mesid.code)
         * floorf(cp / code_to_chip_count(mesid.code));
-
 
   /* False acquisition code phase hack (Michele). The vast majority of our
    * false acquisitions return a code phase within 0.5 chip of 0. Not allowing
@@ -267,11 +267,19 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
-                            u32 fft_len_log2, float *doppler)
+                            u32 fft_len_log2, float *doppler,
+                            me_gnss_signal_t mesid)
 {
-  s32 sample_offset = (s32)roundf(doppler_bin * cf_bin_width / fft_bin_width);
+  float freq = 0.0f;
+  if (is_glo_sid(mesid)) {
+    /* GLO FCN is removed here.
+     * Map mesid.sat [1 - 14] -> glo_channel [-7 - +6]. */
+    s16 glo_channel = mesid.sat - 8;
+    freq = glo_channel * GLO_L1_DELTA_HZ;
+  }
+  s32 sample_offset = (s32)round((freq + (doppler_bin * cf_bin_width)) / fft_bin_width);
   /* Actual computed Doppler */
-  *doppler = sample_offset * fft_bin_width;
+  *doppler = doppler_bin * cf_bin_width;
 
   /* Multiply sample FFT by shifted conjugate code FFT */
   static FFT_BUFFER(result_fft, fft_cplx_t, FFT_LEN_MAX);

@@ -56,7 +56,7 @@ typedef enum {
 bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
          fft_dir_t dir, u32 scale_schedule);
 
-bool fft_samples(me_gnss_signal_t mesid, fft_cplx_t *out,
+bool fft_samples(const me_gnss_signal_t mesid, fft_cplx_t *out,
                  u32 len_log2, fft_dir_t dir, u32 scale_schedule,
                  u32 *sample_count);
 
