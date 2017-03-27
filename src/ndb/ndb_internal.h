@@ -145,6 +145,8 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,
                                   size_t size);
+ndb_op_code_t ndb_check_age(const gps_time_t *t,
+                            double age_limit);
 void ndb_wq_put(ndb_element_metadata_t *md);
 
 void ndb_sbp_update(ndb_sbp_update_info_t *info);

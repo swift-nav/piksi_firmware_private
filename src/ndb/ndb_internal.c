@@ -907,6 +907,30 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
   return res;
 }
 
+/**
+ * Check age of a NDB element.
+ *
+ * \param[in] t         GPS time of the NDB element
+ * \param[in] age_limit max age of the NDB element
+ *
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_GPS_TIME_MISSING GPS time is unknown,
+ *                                  cannot determine age of data
+ * \retval NDB_ERR_AGED_DATA        NDB element has aged out
+ */
+ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit)
+{
+  gps_time_t now = ndb_get_GPS_timestamp();
+  if (gps_time_valid(&now) && gps_time_valid(t)) {
+    double age = gpsdifftime(&now, t);
+    if (age > age_limit) {
+      return NDB_ERR_AGED_DATA;
+    }
+    return NDB_ERR_NONE;
+  }
+  return NDB_ERR_GPS_TIME_MISSING;
+}
+
 /** Determine next signal index data to be sent over SBP.
  *  This function takes previous index (set to NDB_SBP_UPDATE_SIG_IDX_INIT to
  *  indicate no previous value available) and increments it by one making sure

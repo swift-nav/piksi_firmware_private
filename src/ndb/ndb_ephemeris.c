@@ -101,19 +101,6 @@ void ndb_ephemeris_init(void)
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
-static ndb_op_code_t ndb_check_ephemeris_age(const ephemeris_t *ephe)
-{
-  gps_time_t now = ndb_get_GPS_timestamp();
-  if (gps_time_valid(&now) && gps_time_valid(&ephe->toe)) {
-    double age = gpsdifftime(&now, &ephe->toe);
-    if (age > NDB_NV_EPHEMERIS_AGE) {
-      return NDB_ERR_AGED_DATA;
-    }
-    return NDB_ERR_NONE;
-  }
-  return NDB_ERR_GPS_TIME_MISSING;
-}
-
 static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
 {
   int i;
@@ -402,7 +389,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */
-    res = ndb_check_ephemeris_age(e);
+    res = ndb_check_age(&e->toe, NDB_NV_EPHEMERIS_AGE);
   }
 
   if (NDB_ERR_NONE != res) {

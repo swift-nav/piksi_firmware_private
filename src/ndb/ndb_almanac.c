@@ -721,19 +721,6 @@ void ndb_almanac_init(void)
   ndb_unlock();
 }
 
-static ndb_op_code_t ndb_check_almanac_age(const almanac_t *alma)
-{
-  gps_time_t now = ndb_get_GPS_timestamp();
-  if (gps_time_valid(&now) && gps_time_valid(&alma->toa)) {
-    double age = gpsdifftime(&now, &alma->toa);
-    if (age > NDB_NV_ALMANAC_AGE) {
-      return NDB_ERR_AGED_DATA;
-    }
-    return NDB_ERR_NONE;
-  }
-  return NDB_ERR_GPS_TIME_MISSING;
-}
-
 /**
  * Reads almanac's data from NDB
  *
@@ -764,7 +751,7 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */
-    ret = ndb_check_almanac_age(a);
+    ret = ndb_check_age(&a->toa, NDB_NV_ALMANAC_AGE);
   }
   return ret;
 }

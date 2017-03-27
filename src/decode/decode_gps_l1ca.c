@@ -203,9 +203,6 @@ static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono)
     /* If NDB has no previously saved data, or contains aged data */
     return true;
   }
-
-  /* Otherwise no updates. */
-  return false;
 }
 
 /**
@@ -503,14 +500,12 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
-    if (check_iono_timestamp(channel_info->sid, &dd.iono)) {
-      if (ndb_iono_corr_store(&channel_info->sid,
-                              &dd.iono,
-                              NDB_DS_RECEIVER,
-                              NDB_EVENT_SENDER_ID_VOID) ==
-          NDB_ERR_NONE) {
+    if (check_iono_timestamp(channel_info->sid, &dd.iono) &&
+        (ndb_iono_corr_store(&channel_info->sid,
+                             &dd.iono,
+                             NDB_DS_RECEIVER,
+                             NDB_EVENT_SENDER_ID_VOID) ==  NDB_ERR_NONE)) {
         sbp_send_iono(&dd.iono);
-      }
     }
   }
 

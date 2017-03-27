@@ -56,19 +56,6 @@ void ndb_iono_init(void)
   );
 }
 
-static ndb_op_code_t ndb_check_iono_age(const ionosphere_t *iono)
-{
-  gps_time_t now = ndb_get_GPS_timestamp();
-  if (gps_time_valid(&now) && gps_time_valid(&iono->toa)) {
-    double age = gpsdifftime(&now, &iono->toa);
-    if (age > NDB_NV_IONO_AGE) {
-      return NDB_ERR_AGED_DATA;
-    }
-    return NDB_ERR_NONE;
-  }
-  return NDB_ERR_GPS_TIME_MISSING;
-}
-
 /**
  * Loads iono parameters from NDB
  *
@@ -88,7 +75,7 @@ ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
                                    NDB_USE_NV_IONO);
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */
-    ret = ndb_check_iono_age(iono);
+    ret = ndb_check_age(&iono->toa, NDB_NV_IONO_AGE);
   }
   return ret;
 }
