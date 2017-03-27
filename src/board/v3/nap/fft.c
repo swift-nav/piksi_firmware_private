@@ -107,7 +107,7 @@ static void control_set_frontend_samples(gnss_signal_t sid,
     mixer = 1;
     /* Map sid.sat [1 - 14] -> glo_channel [-7 - +6] */
     s32 glo_channel = sid.sat - 8;
-    freq =  (s32)((glo_channel * GLO_L1_DELTA_HZ) * 4294967296.0
+    freq =  (s32)((-glo_channel * GLO_L1_DELTA_HZ) * 4294967296.0
                    / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5);
   }
 
