@@ -354,111 +354,96 @@ double calc_heading(const double b_ned[3])
  * for conversion from ECEF to local NED coordinates (meters)
  * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
  */
-void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3],
-                                double covariance_ecef[9], double ref_ecef[3],
-                                bool has_known_base_pos_ecef, double known_base_pos[3],
-                                u8 flags, dops_t *dops, double propagation_time,
-                                sbp_messages_t *sbp_messages)
-{
+void solution_make_baseline_sbp(const rtk_baseline_result_t *result,
+                                const double rover_ecef[3], const dops_t *dops,
+                                sbp_messages_t *sbp_messages) {
   double b_ned[3];
-  wgsecef2ned(b_ecef, ref_ecef, b_ned);
+  wgsecef2ned(result->baseline, rover_ecef, b_ned);
 
   double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(covariance_ecef, ref_ecef, &accuracy, &h_accuracy, &v_accuracy);
+  covariance_to_accuracy(result->covariance, rover_ecef, &accuracy, &h_accuracy,
+                         &v_accuracy);
 
-  sbp_make_baseline_ecef(&sbp_messages->baseline_ecef, t, n_sats, b_ecef, accuracy, flags);
+  sbp_make_baseline_ecef(&sbp_messages->baseline_ecef, &result->result_time,
+                         result->num_sats_used, result->baseline, accuracy,
+                         result->flags);
 
-  sbp_make_baseline_ned(&sbp_messages->baseline_ned, t, n_sats, b_ned, h_accuracy, v_accuracy, flags);
+  sbp_make_baseline_ned(&sbp_messages->baseline_ned, &result->result_time,
+                        result->num_sats_used, b_ned, h_accuracy, v_accuracy,
+                        result->flags);
 
-  sbp_make_age_corrections(&sbp_messages->age_corrections, t, propagation_time);
+  sbp_make_age_corrections(&sbp_messages->age_corrections, &result->result_time,
+                           result->propagation_time);
 
-  sbp_make_dgnss_status(&sbp_messages->dgnss_status, n_sats, propagation_time, flags);
+  sbp_make_dgnss_status(&sbp_messages->dgnss_status, result->num_sats_used,
+                        result->propagation_time, result->flags);
 
   if(flags == FIXED_POSITION && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
-    sbp_make_heading(&sbp_messages->baseline_heading, t, heading + heading_offset, n_sats, flags);
+    sbp_make_heading(&sbp_messages->baseline_heading, &result->result_time,
+                     heading + heading_offset, result->num_sats_used,
+                     result->flags);
   }
 
-  if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-      simulation_enabled_for(SIMULATION_MODE_RTK))) {
+  if (result->has_known_reference_pos ||
+      (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
+       simulation_enabled_for(SIMULATION_MODE_RTK))) {
     double pseudo_absolute_ecef[3];
     double pseudo_absolute_llh[3];
 
-    vector_add(3, known_base_pos, b_ecef, pseudo_absolute_ecef);
+    vector_add(3, result->known_reference_pos, result->baseline,
+               pseudo_absolute_ecef);
     wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
 
     /* now send pseudo absolute sbp message */
-    sbp_make_pos_llh_vect(&sbp_messages->pos_llh, pseudo_absolute_llh, h_accuracy, v_accuracy, t, n_sats, flags);
-    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef, pseudo_absolute_ecef, accuracy, t, n_sats, flags);
-
+    sbp_make_pos_llh_vect(&sbp_messages->pos_llh, pseudo_absolute_llh,
+                          h_accuracy, v_accuracy, &result->result_time,
+                          result->num_sats_used, result->flags);
+    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef, pseudo_absolute_ecef,
+                           accuracy, &result->result_time,
+                           result->num_sats_used, result->flags);
   }
-  sbp_make_dops(&sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, flags);
+  sbp_make_dops(&sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow,
+                result->flags);
 
-  if(t) {
-    chMtxLock(&last_sbp_lock);
-    last_dgnss.wn = t->wn;
-    last_dgnss.tow = t->tow;
-    chMtxUnlock(&last_sbp_lock);
-  }
+  chMtxLock(&last_sbp_lock);
+  last_dgnss.wn = result->result_time.wn;
+  last_dgnss.tow = result->result_time.tow;
+  chMtxUnlock(&last_sbp_lock);
 
   /* Update stats */
   last_dgnss_stats.systime = chVTGetSystemTime();
-  last_dgnss_stats.mode = (flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
+  last_dgnss_stats.mode =
+      (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
-static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time_t *t,
-                            dops_t *dops, double diff_time, double rover_pos[3],
-                            bool has_known_base_pos_ecef, double known_base_pos[3],
-                            sbp_messages_t *sbp_messages) {
-  double baseline[3];
-  double covariance[9];
-  u8 num_sats_used = 0;
-  u8 num_sigs_used = 0;
-  u8 flags = 0;
-  s8 ret = -1;
-  bool send_baseline = false;
-
-  bool has_pos;
-  double known_pos[3];
-
-  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-    /* In time matched mode filter is already updated so no need to update
-       filter again. Just get the baseline. */
-    ret = get_time_matched_baseline(time_matched_filter_manager, baseline, covariance, &num_sats_used, &num_sigs_used, &flags, &has_pos, known_pos);
-    if (ret < 0) {
-      log_warn("output_baseline: Time matched baseline calculation failed");
-    } else if (ret == 0) {
-      *dops = filter_manager_get_dop_values(time_matched_filter_manager);
-      send_baseline = true;
+static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
+  PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
+  if (filter_manager_is_initialized(filter_manager)) {
+    ret = filter_manager_update(filter_manager);
+    if (ret != PVT_ENGINE_SUCCESS) {
+      detailed_log_info("Skipping filter update with ret = %d", ret);
     }
-  } else if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
-    /* Need to update filter with propagated obs before we can get the baseline. */
-    // chMtxLock(&low_latency_filter_manager_lock);
-    if (filter_manager_is_initialized(low_latency_filter_manager)) {
-      ret = filter_manager_update(low_latency_filter_manager);
-      if (ret == 0) {
-        ret = get_low_latency_baseline(low_latency_filter_manager, baseline, covariance,
-                                       &num_sats_used, &num_sigs_used, &flags, &has_pos, known_pos);
-        if (ret < 0) {
-          log_warn("output_baseline: Low latency baseline calculation failed");
-        } else if (ret == 0) {
-          *dops = filter_manager_get_dop_values(low_latency_filter_manager);
-          send_baseline = true;
-        }
-      } else {
-        log_info("Skipping low latency filter update this epoch.");
-      }
-    } else {
-      log_info("Low latency filter not initialized.");
-    }
-    // chMtxUnlock(&low_latency_filter_manager_lock);
+  } else {
+    detailed_log_info("Filter not initialized.");
   }
+  return ret;
+}
 
-  if (send_baseline) {
-    solution_make_baseline_sbp(t, num_sats_used, baseline, covariance,
-                               rover_pos, has_known_base_pos_ecef, known_base_pos,
-                               flags, dops, diff_time, sbp_messages);
+static PVT_ENGINE_INTERFACE_RC get_baseline(
+    const FilterManager *filter_manager, const bool use_time_matched_baseline,
+    dops_t *dops, rtk_baseline_result_t *result) {
+  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+
+  get_baseline_ret = filter_manager_get_result(
+      filter_manager, use_time_matched_baseline, result);
+
+  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
+    *dops = filter_manager_get_dop_values(filter_manager);
+  } else {
+    detailed_log_warn("Baseline calculation failed");
   }
+  return get_baseline_ret;
 }
 
 static void send_observations(u8 n, const navigation_measurement_t m[],
@@ -586,10 +571,24 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
 
     u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION : FLOAT_POSITION;
 
-    solution_make_baseline_sbp(&(soln->time), simulation_current_num_sats(), simulation_current_baseline_ecef(),
-                               simulation_current_covariance_ecef(), simulation_ref_ecef(),
-                               true, simulation_ref_ecef(), flags,
-                               simulation_current_dops_solution(), 0.0, sbp_messages);
+    rtk_baseline_result_t result = {
+        .result_time = soln->time,
+        .num_sats_used = simulation_current_num_sats(),
+        .num_sigs_used = 0,
+        .flags = flags,
+        .has_known_reference_pos = true,
+        .propagation_time = 0.0,
+    };
+    memcpy(result.baseline, simulation_current_baseline_ecef(),
+           sizeof(result.baseline));
+    memcpy(result.covariance, simulation_current_covariance_ecef(),
+           sizeof(result.covariance));
+    memcpy(result.known_reference_pos, simulation_ref_ecef(),
+           sizeof(result.known_reference_pos));
+
+    solution_make_baseline_sbp(&result, simulation_ref_ecef(),
+                               simulation_current_dops_solution(),
+                               sbp_messages);
 
     double t_check = expected_tow * (soln_freq / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
@@ -1201,38 +1200,38 @@ static void solution_thread(void *arg)
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
 
-      /* If we have a recent set of observations from the base station, do a
-       * differential solution. */
-      chMtxLock(&base_obs_lock);
-      if (base_obss.n > 0 && !simulation_enabled()) {
-        if ((propagation_time = gpsdifftime(&new_obs_time, &base_obss.tor))
-              < max_age_of_differential) {
+      if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+        PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
+        PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+        rtk_baseline_result_t result;
 
-          /* Propagate base station observations to the current time and
-           * process a low-latency differential solution. */
+        chMtxLock(&low_latency_filter_manager_lock);
 
-          /* Hook in low-latency filter here. */
-          if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
-              base_obss.has_pos) {
+        bool is_initialized =
+            filter_manager_is_initialized(low_latency_filter_manager);
 
-            sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
-            u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
-                                    base_obss.n, base_obss.nm,
-                                    base_obss.has_known_pos_ecef ?
-                                    base_obss.known_pos_ecef :
-                                    base_obss.pos_ecef,
-                                    sdiffs);
-            chMtxLock(&low_latency_filter_manager_lock);
-            filter_manager_update_rov_obs(low_latency_filter_manager,&current_fix.time, n_ready_tdcp, nav_meas_tdcp);
-            output_baseline(num_sdiffs, sdiffs, &current_fix.time,
-                            &dops, propagation_time, current_fix.pos_ecef,
-                            base_obss.has_known_pos_ecef, base_obss.known_pos_ecef,
-                            &sbp_messages);
-            chMtxUnlock(&low_latency_filter_manager_lock);
-          }
+        if (is_initialized) {
+          filter_manager_update_rov_obs(low_latency_filter_manager,
+                                        &current_fix.time, n_ready_tdcp,
+                                        nav_meas_tdcp);
+
+          update_filter_ret = update_filter(low_latency_filter_manager);
+        }
+
+        if (update_filter_ret == PVT_ENGINE_SUCCESS) {
+          result.result_time = current_fix.time;
+          result.propagation_time = propagation_time;
+          get_baseline_ret =
+              get_baseline(low_latency_filter_manager, false, &dops, &result);
+        }
+
+        chMtxUnlock(&low_latency_filter_manager_lock);
+
+        if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
+          solution_make_baseline_sbp(&result, current_fix.pos_ecef, &dops,
+                                     &sbp_messages);
         }
       }
-      chMtxUnlock(&base_obs_lock);
 
       /* Output observations only every obs_output_divisor times, taking
        * care to ensure that the observations are aligned. */
@@ -1292,50 +1291,67 @@ static void solution_thread(void *arg)
   }
 }
 
-void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
-                         bool has_known_base_pos_ecef, double known_base_pos[3],
-                         sbp_messages_t *sbp_messages)
-{
+void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
+                         sbp_messages_t *sbp_messages) {
+  PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+  dops_t RTK_dops;
+  rtk_baseline_result_t result;
+
   chMtxLock(&time_matched_filter_manager_lock);
-  if (!filter_manager_is_initialized(time_matched_filter_manager) && (n_sds > 4)) {
+
+  if (!filter_manager_is_initialized(time_matched_filter_manager)) {
     filter_manager_init(time_matched_filter_manager);
   }
 
-  s8 ret = -1;
   if (filter_manager_is_initialized(time_matched_filter_manager)) {
     chMtxLock(&time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
-                                            &time_matched_iono_params, disable_klobuchar);
+                                            &time_matched_iono_params,
+                                            disable_klobuchar);
     }
     chMtxUnlock(&time_matched_iono_params_lock);
-    systime_t start_time = chVTGetSystemTimeX();
-    ret = filter_manager_update(time_matched_filter_manager);
-    systime_t time_matched_update = chVTGetSystemTimeX();
-    detailed_log_warn("TM: update time: %lu", time_matched_update - start_time);
+
+    filter_manager_update_rov_obs(time_matched_filter_manager, &rover_obss->tor,
+                                  rover_obss->n, rover_obss->nm);
+    filter_manager_update_ref_obs(
+        time_matched_filter_manager, &reference_obss->tor, reference_obss->n,
+        reference_obss->nm, reference_obss->pos_ecef,
+        reference_obss->has_known_pos_ecef ? reference_obss->known_pos_ecef
+                                           : NULL);
+
+    update_filter_ret = update_filter(time_matched_filter_manager);
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
-      copy_filter_manager(low_latency_filter_manager, time_matched_filter_manager);
+      copy_filter_manager(low_latency_filter_manager,
+                          time_matched_filter_manager);
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
 
   /* If we are in time matched mode then calculate and output the baseline
   * for this observation. */
-  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
-      !simulation_enabled() && ret == 0) {
+  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !simulation_enabled() &&
+      update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */
-    dops_t RTK_dops;
-    output_baseline(n_sds, sds, &obss->tor, &RTK_dops, 0, obss->pos_ecef,
-                    has_known_base_pos_ecef, known_base_pos,
-                    sbp_messages);
+    result.result_time = rover_obss->tor;
+    result.propagation_time = 0;
+    get_baseline_ret =
+        get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
   }
+
   chMtxUnlock(&time_matched_filter_manager_lock);
+
+  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
+    solution_make_baseline_sbp(&result, rover_obss->pos_ecef, &RTK_dops,
+                               sbp_messages);
+  }
 }
 
 static WORKING_AREA_CCM(wa_time_matched_obs_thread, 5000000);
@@ -1392,32 +1408,16 @@ static void time_matched_obs_thread(void *arg)
           chMtxUnlock(&base_pos_lock);
         }
         old_base_sender_id = base_obss.sender_id;
-        if (!filter_manager_is_initialized(time_matched_filter_manager)) {
-          filter_manager_init(time_matched_filter_manager);
-        }
-        filter_manager_update_rov_obs(time_matched_filter_manager, &obss->tor, obss->n, obss->nm);
-        filter_manager_update_ref_obs(time_matched_filter_manager, &base_obss.tor, base_obss.n, base_obss.nm, base_obss.pos_ecef, base_obss.has_known_pos_ecef ? base_obss.known_pos_ecef: NULL);
-        /* Times match! Process obs and base_obss */
-        static sdiff_t sds[MAX_CHANNELS];
-        u8 n_sds = single_diff(
-            obss->n, obss->nm,
-            base_obss.n, base_obss.nm,
-            sds
-
-        );
-        bool has_known_base_pos_ecef = base_obss.has_known_pos_ecef;
-        double known_base_pos[3];
-        if (has_known_base_pos_ecef) {
-          memcpy(known_base_pos, base_obss.known_pos_ecef, sizeof(base_obss.known_pos_ecef));
-        }
+        obss_t base_obss_copy = base_obss;
         chMtxUnlock(&base_obs_lock);
         // We need to form the SBP messages derived from the SPP at this solution time before we
         // do the differential solution so that the various messages can be overwritten as appropriate,
         // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
         gnss_solution soln_copy = obss->soln;
-        solution_make_sbp(&soln_copy,NULL,false, &sbp_messages);
+        solution_make_sbp(&soln_copy, NULL, false, &sbp_messages);
 
-        process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
+        process_matched_obs(obss, &base_obss_copy, &sbp_messages);
+
         chPoolFree(&obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss.sender_id, &sbp_messages);
