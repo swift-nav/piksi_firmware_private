@@ -228,10 +228,9 @@ static void manage_acq_thread(void *arg)
 static bool glo_enable_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_debug("GLONASS enabled: %u",glo_enabled);
+    log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
     for (int i = 0; i < PLATFORM_SIGNAL_COUNT; i++) {
-      if (CODE_GLO_L1CA == acq_status[i].sid.code ||
-          CODE_GLO_L2CA == acq_status[i].sid.code) {
+      if (is_glo_sid(acq_status[i].sid)) {
         acq_status[i].masked = !glo_enabled;
       }
     }
@@ -251,7 +250,11 @@ void manage_acq_setup()
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     gnss_signal_t sid = sid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
-    acq_status[i].masked = false;
+    if (is_glo_sid(sid) && !glo_enabled) {
+      acq_status[i].masked = true;
+    } else {
+      acq_status[i].masked = false;
+    }
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
 
     if (code_requires_direct_acq(sid.code)) {
