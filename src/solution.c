@@ -306,7 +306,8 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
   /* Send NMEA alongside the sbp */
   nmea_send_msgs(&sbp_messages->pos_llh, &sbp_messages->vel_ned,
                  &sbp_messages->sbp_dops, &sbp_messages->gps_time,
-                 propagation_time, sender_id, &utc_params);
+                 propagation_time, sender_id, &utc_params,
+                 &sbp_messages->baseline_heading);
 
 }
 
