@@ -117,7 +117,7 @@ static void tracking_channel_compute_values(
                                  bool *reset_cpo);
 
 static void tracking_channel_update_values(
-                                tracker_channel_pub_data_t *pub_data,
+                                struct tracker_channel_meas_data_t *data,
                                 const tracking_channel_info_t *info,
                                 const tracking_channel_time_info_t *time_info,
                                 const tracking_channel_freq_info_t *freq_info,
@@ -414,13 +414,29 @@ bool tracker_channel_init(tracker_channel_id_t id, gnss_signal_t sid,
   nap_track_init(tracker_channel->info.nap_channel, sid, ref_sample_count,
                  carrier_freq, code_phase, chips_to_correlate);
 
+  tracker_channel->fifo_meas.read_index = 0;
+  tracker_channel->fifo_meas.write_index = 0;
+
+  tracker_channel->meas_delay_ms = 0;
+
   /* Update channel public data outside of channel lock */
-  tracking_channel_update_values(&tracker_channel->pub_data,
+  struct tracker_channel_meas_data_t data;
+  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&pub_data->info_mutex);
+  data = pub_data->data;
+  chMtxUnlock(&pub_data->info_mutex);
+
+  tracking_channel_update_values(&data,
                                  &info,
                                  &time_info,
                                  &freq_info,
                                  &ctrl_params,
                                  true);
+
+  chMtxLock(&pub_data->info_mutex);
+  pub_data->data = data;
+  chMtxUnlock(&pub_data->info_mutex);
 
   return true;
 }
@@ -608,13 +624,14 @@ static void tracking_channel_compute_values(
 static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data)
 {
   chMtxLock(&pub_data->info_mutex);
-  memset((void*)&pub_data->gen_info, 0, sizeof(pub_data->gen_info));
-  memset((void*)&pub_data->time_info, 0, sizeof(pub_data->time_info));
-  memset((void*)&pub_data->freq_info, 0, sizeof(pub_data->freq_info));
-  memset((void*)&pub_data->ctrl_info, 0, sizeof(pub_data->ctrl_info));
-  memset((void*)&pub_data->misc_info, 0, sizeof(pub_data->misc_info));
-  memset((void*)&pub_data->carr_freq_stats, 0, sizeof(pub_data->carr_freq_stats));
-  memset((void*)&pub_data->pseudorange_stats, 0, sizeof(pub_data->pseudorange_stats));
+  struct tracker_channel_meas_data_t *data = &pub_data->data;
+  memset((void*)&data->gen_info, 0, sizeof(data->gen_info));
+  memset((void*)&data->time_info, 0, sizeof(data->time_info));
+  memset((void*)&data->freq_info, 0, sizeof(data->freq_info));
+  memset((void*)&data->ctrl_info, 0, sizeof(data->ctrl_info));
+  memset((void*)&data->misc_info, 0, sizeof(data->misc_info));
+  memset((void*)&data->carr_freq_stats, 0, sizeof(data->carr_freq_stats));
+  memset((void*)&data->pseudorange_stats, 0, sizeof(data->pseudorange_stats));
   chMtxUnlock(&pub_data->info_mutex);
 }
 
@@ -627,7 +644,7 @@ static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data
  * \note Carrier phase offset can't be updated by this method. It can be only
  *       reset to 0 if \a reset_cpo is set to \a true.
  *
- * \param[in,out] pub_data    Channel public data container.
+ * \param[in,out] data        Channel measurement data container.
  * \param[in]     info        Generic information block.
  * \param[in]     time_info   Timing information block.
  * \param[in]     freq_info   Frequency and phase information block.
@@ -641,7 +658,7 @@ static void tracking_channel_cleanup_values(tracker_channel_pub_data_t *pub_data
  * \sa tracking_channel_carrier_phase_offsets_adjust
  */
 static void tracking_channel_update_values(
-                                tracker_channel_pub_data_t *pub_data,
+                                struct tracker_channel_meas_data_t *data,
                                 const tracking_channel_info_t *info,
                                 const tracking_channel_time_info_t *time_info,
                                 const tracking_channel_freq_info_t *freq_info,
@@ -659,28 +676,26 @@ static void tracking_channel_update_values(
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
     tracking_channel_measurement_get(ref_tc, info, freq_info, time_info,
-             (tracking_channel_misc_info_t*)&pub_data->misc_info, &meas);
+             (tracking_channel_misc_info_t*)&data->misc_info, &meas);
     tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
   }
 
-  chMtxLock(&pub_data->info_mutex);
-  pub_data->gen_info = *info;
-  pub_data->time_info = *time_info;
-  pub_data->freq_info = *freq_info;
-  running_stats_update(&pub_data->carr_freq_stats, freq_info->carrier_freq);
+  data->gen_info = *info;
+  data->time_info = *time_info;
+  data->freq_info = *freq_info;
+  running_stats_update(&data->carr_freq_stats, freq_info->carrier_freq);
   if (reset_cpo) {
     /* Do CPO reset */
     /* no need to update timestamp for zero offset as it keeps count
        time on this channel at zero anyways */
-    pub_data->misc_info.carrier_phase_offset.value = 0;
+    data->misc_info.carrier_phase_offset.value = 0;
   }
-  pub_data->ctrl_info = *ctrl_params;
+  data->ctrl_info = *ctrl_params;
   if (raw_pseudorange != 0) {
-    pub_data->gen_info.flags |= TRACKING_CHANNEL_FLAG_PSEUDORANGE;
-    running_stats_update(&pub_data->pseudorange_stats, raw_pseudorange);
+    data->gen_info.flags |= TRACKING_CHANNEL_FLAG_PSEUDORANGE;
+    running_stats_update(&data->pseudorange_stats, raw_pseudorange);
   }
-  pub_data->misc_info.pseudorange = raw_pseudorange;
-  chMtxUnlock(&pub_data->info_mutex);
+  data->misc_info.pseudorange = raw_pseudorange;
 }
 
 /**
@@ -715,27 +730,29 @@ void tracking_channel_get_values(tracker_channel_id_t id,
   running_stats_t carr_freq_stats;
   running_stats_t pseudorange_stats;
 
+  struct tracker_channel_meas_data_t *data = &pub_data->data;
+
   chMtxLock(&pub_data->info_mutex);
   if (NULL != info) {
-    *info = pub_data->gen_info;
+    *info = data->gen_info;
   }
   if (NULL != time_info) {
-    *time_info = pub_data->time_info;
+    *time_info = data->time_info;
   }
   if (NULL != freq_info) {
-    carr_freq_stats = pub_data->carr_freq_stats;
-    *freq_info = pub_data->freq_info;
+    carr_freq_stats = data->carr_freq_stats;
+    *freq_info = data->freq_info;
   }
   if (NULL != ctrl_params) {
-    *ctrl_params = pub_data->ctrl_info;
+    *ctrl_params = data->ctrl_info;
   }
   if (NULL != misc_params) {
-    pseudorange_stats = pub_data->pseudorange_stats;
-    *misc_params = pub_data->misc_info;
+    pseudorange_stats = data->pseudorange_stats;
+    *misc_params = data->misc_info;
   }
   if (reset_stats) {
-    running_stats_init(&pub_data->carr_freq_stats);
-    running_stats_init(&pub_data->pseudorange_stats);
+    running_stats_init(&data->carr_freq_stats);
+    running_stats_init(&data->pseudorange_stats);
   }
   chMtxUnlock(&pub_data->info_mutex);
 
@@ -771,13 +788,14 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
   bool adjusted = false;
   tracker_channel_t *tracker_channel = tracker_channel_get(info->id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+  struct tracker_channel_meas_data_t *data = &pub_data->data;
 
   chMtxLock(&pub_data->info_mutex);
-  if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
-      sid_is_equal(info->sid, pub_data->gen_info.sid) &&
-      info->lock_counter == pub_data->gen_info.lock_counter) {
-    pub_data->misc_info.carrier_phase_offset.value = carrier_phase_offset;
-    pub_data->misc_info.carrier_phase_offset.timestamp_ms = timing_getms();
+  if (0 != (data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
+      sid_is_equal(info->sid, data->gen_info.sid) &&
+      info->lock_counter == data->gen_info.lock_counter) {
+    data->misc_info.carrier_phase_offset.value = carrier_phase_offset;
+    data->misc_info.carrier_phase_offset.timestamp_ms = timing_getms();
     adjusted = true;
   }
   chMtxUnlock(&pub_data->info_mutex);
@@ -845,14 +863,16 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data)
 
     tracking_channel_cc_entry_t entry;
 
+    struct tracker_channel_meas_data_t *data = &pub_data->data;
+
     entry.id = id;
     chMtxLock(&pub_data->info_mutex);
-    entry.sid = pub_data->gen_info.sid;
-    entry.flags = pub_data->gen_info.flags;
-    entry.freq = pub_data->gen_info.xcorr_freq;
-    entry.cn0 = pub_data->gen_info.cn0;
-    entry.count = pub_data->gen_info.xcorr_count;
-    entry.wl = pub_data->gen_info.xcorr_wl;
+    entry.sid = data->gen_info.sid;
+    entry.flags = data->gen_info.flags;
+    entry.freq = data->gen_info.xcorr_freq;
+    entry.cn0 = data->gen_info.cn0;
+    entry.count = data->gen_info.xcorr_count;
+    entry.wl = data->gen_info.xcorr_wl;
 
     chMtxUnlock(&pub_data->info_mutex);
 
@@ -952,15 +972,15 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
 
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-    volatile tracking_channel_misc_info_t * misc_info = &pub_data->misc_info;
+    volatile tracking_channel_misc_info_t * misc_info = &pub_data->data.misc_info;
 
     chMtxLock(&pub_data->info_mutex);
-    if (0 != (pub_data->gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
+    if (0 != (pub_data->data.gen_info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
       carrier_phase_offset = misc_info->carrier_phase_offset.value;
 
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
-        sid = pub_data->gen_info.sid;
+        sid = pub_data->data.gen_info.sid;
         carrier_phase_offset -= code_to_carr_freq(sid.code) * dt;
         misc_info->carrier_phase_offset.value = carrier_phase_offset;
         /* Note that because code-carrier difference does not change here,
@@ -1160,6 +1180,26 @@ void tracker_internal_context_resolve(tracker_context_t *tracker_context,
   *internal_data = &tracker_channel->internal_data;
 }
 
+/** Check if there are measurement data available
+ * \param tracker_channel Tracker channel data
+ * \retval true The measurement data is available
+ * \retval false The measurement data is not available
+ */
+static bool trkch_data_available(tracker_channel_t *tracker_channel)
+{
+  /* if FIFO is full, then fetch the measurements */
+  size_t size = tracker_channel->fifo_meas.write_index -
+                tracker_channel->fifo_meas.read_index;
+  if (TRACK_MEAS_FIFO_SIZE == size) {
+    return true;
+  }
+  /* otherwise, check if the delay is satisfied */
+  if (tracker_channel->meas_delay_ms >= TRACK_MEAS_DELAY_MS) {
+    return true;
+  }
+  return false;
+}
+
 /** Check the state of a tracker channel and generate events as required.
  * \param tracker_channel   Tracker channel to use.
  * \param update_required   True when correlations are pending for the
@@ -1193,13 +1233,48 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
       }
       tracker_channel_unlock(tracker_channel);
 
+      struct tracker_channel_meas_data_t meas;
+      struct trkch_meas_fifo_t *fifo_meas = &tracker_channel->fifo_meas;
+      tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+      chMtxLock(&pub_data->info_mutex);
+      meas = pub_data->data;
+      chMtxUnlock(&pub_data->info_mutex);
+
       /* Update channel public data outside of channel lock */
-      tracking_channel_update_values(&tracker_channel->pub_data,
+      tracking_channel_update_values(&meas,
                                      &info,
                                      &time_info,
                                      &freq_info,
                                      &ctrl_params,
                                      reset_cpo);
+
+      size_t write_index = fifo_meas->write_index & (TRACK_MEAS_FIFO_SIZE - 1);
+
+      fifo_meas->meas[write_index] = meas;
+      fifo_meas->write_index++;
+      tracker_channel->meas_delay_ms += ctrl_params.int_ms;
+
+      if (trkch_data_available(tracker_channel)) {
+        size_t read_index = fifo_meas->read_index & (TRACK_MEAS_FIFO_SIZE - 1);
+        meas = fifo_meas->meas[read_index];
+        fifo_meas->read_index++;
+
+        /* If we do not have the bit polarity resolved in
+           the latest measurements, then clear it for all
+           measurements in FIFO. */
+        if (0 == (info.flags & TRACKING_CHANNEL_FLAG_BIT_POLARITY)) {
+          meas.gen_info.flags &= ~TRACKING_CHANNEL_FLAG_BIT_POLARITY;
+        }
+
+        chMtxLock(&pub_data->info_mutex);
+        pub_data->data = meas;
+        chMtxUnlock(&pub_data->info_mutex);
+
+        u8 int_ms = pub_data->data.ctrl_info.int_ms;
+        assert(tracker_channel->meas_delay_ms >= int_ms);
+        tracker_channel->meas_delay_ms -= int_ms;
+      }
     }
   }
   break;
