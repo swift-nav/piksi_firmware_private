@@ -98,7 +98,6 @@ struct {
     0.0, 0.0, 0.0
   },
   .num_sats_selected = 0,
-
   /* .tracking_channel left uninitialized */
   /* .nav_meas left uninitialized */
   /* .base_nav_meas left uninitialized */
@@ -482,6 +481,8 @@ void simulator_setup(void)
 {
   sim_state.noisy_solution.time.wn = simulation_week_number;
   sim_state.noisy_solution.time.tow = 0;
+  sim_state.noisy_solution.valid = 1;
+  sim_state.noisy_solution.velocity_valid=1;
 
   simulator_setup_almanacs();
 
