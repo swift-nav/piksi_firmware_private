@@ -279,6 +279,9 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
   case NDB_ERR_OLDER_DATA:
     log_warn_sid(e->sid, "ephemeris is older than one in DB, not saved");
     break;
+  case NDB_ERR_TIME_UNKNOWN:
+    log_debug_sid(e->sid, "ephemeris reception time missing, not saved");
+    break;
   case NDB_ERR_MISSING_IE:
   case NDB_ERR_UNSUPPORTED:
   case NDB_ERR_FILE_IO:

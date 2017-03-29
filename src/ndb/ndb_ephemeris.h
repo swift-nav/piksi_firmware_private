@@ -19,6 +19,7 @@
 extern "C" {
 #endif
 
+void ndb_ephemeris_init_ds(void);
 void ndb_ephemeris_init(void);
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) NDB_WEAK;
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,

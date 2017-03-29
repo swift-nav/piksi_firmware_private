@@ -88,6 +88,26 @@ static u16 map_sid_to_index(gnss_signal_t sid)
   return idx;
 }
 
+/**
+ * Initializes the data source to NV for all
+ * non-volatile ephemeris data entries.
+ * Applied at receiver start up.
+ *
+ * \note GPS only!
+ */
+void ndb_ephemeris_init_ds(void)
+{
+  ephemeris_t ephe;
+  for (u32 sv_idx = 0; sv_idx < NUM_SATS_GPS; sv_idx++) {
+    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
+    ndb_op_code_t res = ndb_ephemeris_read(sid, &ephe);
+    if (NDB_ERR_NONE == res) {
+      ndb_update_init_ds(&ephe, NDB_DS_NV,
+                         &ndb_ephemeris_md[map_sid_to_index(ephe.sid)]);
+    }
+  }
+}
+
 void ndb_ephemeris_init(void)
 {
   SETTING("ndb", "erase_ephemeris", ndb_ephe_config.erase_ephemeris, TYPE_BOOL);
@@ -96,6 +116,8 @@ void ndb_ephemeris_init(void)
   SETTING("ndb", "valid_alm_days", ndb_ephe_config.alm_fit_interval, TYPE_INT);
 
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
+
+  ndb_ephemeris_init_ds();
 }
 
 static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
@@ -116,7 +138,7 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
 {
   int i;
   u32 candidate_age;
-  ndb_timestamp_t now  = ndb_get_timestamp();
+  ndb_timestamp_t now  = ndb_get_NAP_timestamp();
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     bool empty = true;
     if(ephe_candidates[i].used) {
@@ -126,7 +148,7 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
 
     if (empty) {
       memcpy(&ephe_candidates[i].ephe, new, sizeof(ephemeris_t));
-      ephe_candidates[i].received_at = ndb_get_timestamp();
+      ephe_candidates[i].received_at = ndb_get_NAP_timestamp();
       ephe_candidates[i].used = true;
       return;
     }
@@ -151,7 +173,7 @@ static void ndb_ephe_release_candidate(s16 cand_index)
  * \param[in] existing_a Optional almanac from NDB
  * \param[in] candidate  Optional ephemeris candidate
  *
- * \retval true The ephemeris can be directly stored to NDB
+ * \retval true  The ephemeris can be directly stored to NDB
  * \retval false The ephemeris data can't be verified and shall be stored as
  *               a new candidate.
  */
@@ -292,7 +314,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx], &existing_e,
-                                   sizeof(existing_e), NULL, NULL)) {
+                                   sizeof(existing_e), NULL, NULL, NULL)) {
     pe = &existing_e;
   }
   if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a)) {
@@ -370,7 +392,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   }
 
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
-                                   NULL, NULL);
+                                   NULL, NULL, NULL);
   if (NDB_ERR_NONE != res) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);
@@ -402,10 +424,14 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     case NDB_CAND_OLDER:
       return NDB_ERR_OLDER_DATA;
     case NDB_CAND_NEW_TRUSTED:
-    {
-      u16 idx = sid_to_global_index(e->sid);
-      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
-    }
+      if (TIME_FINE == time_quality) {
+        /* If GPS time is known, save ephemeris to NDB. */
+        u16 idx = sid_to_global_index(e->sid);
+        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      } else {
+        /* If GPS time is unknown, no updates to NDB */
+        return NDB_ERR_TIME_UNKNOWN;
+      }
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
       return NDB_ERR_UNCONFIRMED_DATA;
@@ -419,13 +445,20 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     float ura;
     ndb_ephemeris_info(e->sid, &valid, &health_bits, &toe, &fit_interval, &ura);
     if (!valid || gpsdifftime(&e->toe, &toe) > 0) {
-    /* If local ephemeris is not valid or received one is newer then
-     * save the received one. */
-      log_debug_sid(e->sid,
-                    "Saving ephemeris received over SBP v:%d [%d,%d] vs [%d,%d]",
-                    (int)valid, toe.wn, toe.tow, e->toe.wn, e->toe.tow);
-      u16 idx = sid_to_global_index(e->sid);
-      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      /* If local ephemeris is not valid or received one is newer then
+       * save the received one. */
+      if (TIME_FINE == time_quality) {
+        /* If GPS time is known, save ephemeris to NDB. */
+        log_debug_sid(e->sid,
+                      "Saving ephemeris received over SBP "
+                      "v:%d [%d,%d] vs [%d,%d]",
+                      (int)valid, toe.wn, toe.tow, e->toe.wn, e->toe.tow);
+        u16 idx = sid_to_global_index(e->sid);
+        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      } else {
+        /* If GPS time is unknown, no updates to NDB */
+        return NDB_ERR_TIME_UNKNOWN;
+      }
     }
     return NDB_ERR_NONE;
   }

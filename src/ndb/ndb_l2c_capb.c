@@ -20,6 +20,7 @@
 #include "settings.h"
 #include "sbp.h"
 #include "sbp_utils.h"
+#include "timing.h"
 
 /** L2C capabilities file name */
 #define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"
@@ -42,6 +43,21 @@ static ndb_file_t gps_l2c_capb_file = {
   .block_count = 1
 };
 
+/**
+ * Initializes the data source to NV for
+ * non-volatile GPS L2C capability entry.
+ * Applied at receiver start up.
+ *
+ */
+void ndb_l2c_capb_init_ds(void)
+{
+  u32 l2c_cap;
+  ndb_op_code_t res = ndb_gps_l2cm_l2c_cap_read(&l2c_cap);
+  if (NDB_ERR_NONE == res) {
+    ndb_update_init_ds(&l2c_cap, NDB_DS_NV, &gps_l2c_capabilities_md);
+  }
+}
+
 void ndb_l2c_capb_init(void)
 {
 
@@ -49,6 +65,8 @@ void ndb_l2c_capb_init(void)
   SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
 
   ndb_load_data(&gps_l2c_capb_file, erase_l2c_capb);
+
+  ndb_l2c_capb_init_ds();
 
   if (0 == (gps_l2c_capabilities_md.nv_data.state & NDB_IE_VALID) ||
       0 == gps_l2c_capabilities) {
@@ -70,22 +88,22 @@ void ndb_l2c_capb_init(void)
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
 {
   return ndb_retrieve(&gps_l2c_capabilities_md, l2c_cap, sizeof(*l2c_cap),
-                      NULL, NULL);
+                      NULL, NULL, NULL);
 }
 
 /**
  * Store L2C capability information
  *
- * \param[in] sid         GNSS signal identifier for the source of iono data in
- *                        case of data source being NDB_DS_RECEIVER, NULL for
- *                        other cases.
+ * \param[in] sid         GNSS signal identifier for the source of L2C
+ *                        capability data in case of data source being
+ *                        NDB_DS_RECEIVER, NULL for other cases.
  * \param[in] l2c_cap     L2C capability mask
  * \param[in] src         Data source
- * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP. In other cases
- *                        set to NDB_EVENT_SENDER_ID_VOID.
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP.
+ *                        In other cases set to NDB_EVENT_SENDER_ID_VOID.
  *
- * \retval NDB_ERR_NONE            On success. Iono data is updated.
- * \retval NDB_ERR_NO_CHANGE       On success. Iono data is unchanged.
+ * \retval NDB_ERR_NONE            On success. L2C capability is updated.
+ * \retval NDB_ERR_NO_CHANGE       On success. L2C capability is unchanged.
  * \retval NDB_ERR_BAD_PARAM       Parameter errors.
  */
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
@@ -93,10 +111,17 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
                                          ndb_data_source_t src,
                                          u16 sender_id)
 {
-  ndb_op_code_t res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
+  ndb_op_code_t res = NDB_ERR_NONE;
+  if (TIME_FINE == time_quality) {
+    /* If GPS time is known, save l2c capabilities to NDB. */
+    res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
 
-  if (NULL != l2c_cap && NDB_ERR_NONE == res) {
-    log_info("Updating L2C capability 0x%08" PRIX32, *l2c_cap);
+    if (NULL != l2c_cap && NDB_ERR_NONE == res) {
+      log_info("Updating L2C capability 0x%08" PRIX32, *l2c_cap);
+    }
+  } else {
+    /* If GPS time is unknown, no updates to NDB */
+    res = NDB_ERR_TIME_UNKNOWN;
   }
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
@@ -108,6 +133,45 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
                      sender_id);
 
   return res;
+}
+
+/**
+ * Store pending L2C capability information
+ *
+ * \param[in] sid         GNSS signal identifier for the source of L2C
+ *                        capability data in case of data source being
+ *                        NDB_DS_RECEIVER, NULL for other cases.
+ * \param[in] l2c_cap     L2C capability mask
+ * \param[in] src         Data source
+ * \param[in] sender_id   Sender ID if data source is NDB_DS_SBP.
+ *                        In other cases set to NDB_EVENT_SENDER_ID_VOID.
+ *
+ * \retval    r           Flag indicating successful update.
+ *
+ */
+bool ndb_gps_l2cm_l2c_cap_pending(const gnss_signal_t *sid,
+                                  const u32 *l2c_cap,
+                                  ndb_data_source_t src,
+                                  u16 sender_id)
+{
+  bool r = false;
+  if (TIME_FINE == time_quality) {
+    /* If GPS time is known, save pending l2c capabilities to NDB. */
+    ndb_op_code_t res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
+
+    if (NULL != l2c_cap && NDB_ERR_NONE == res) {
+      log_info("Updating L2C capability 0x%08" PRIX32, *l2c_cap);
+      sbp_send_ndb_event(NDB_EVENT_STORE,
+                         NDB_EVENT_OTYPE_L2C_CAP,
+                         res,
+                         src,
+                         NULL,
+                         sid,
+                         sender_id);
+      r = true;
+    }
+  }
+  return r;
 }
 
 static void l2c_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)

@@ -50,6 +50,21 @@ static ndb_file_t lgf_file = {
   .block_count = 1
 };
 
+/**
+ * Initializes the data source to NV for
+ * non-volatile last good fix entry.
+ * Applied at receiver start up.
+ *
+ */
+void ndb_lgf_init_ds(void)
+{
+  last_good_fix_t lgf;
+  ndb_op_code_t res = ndb_lgf_read(&lgf);
+  if (NDB_ERR_NONE == res) {
+    ndb_update_init_ds(&lgf, NDB_DS_NV, &last_good_fix_md);
+  }
+}
+
 void ndb_lgf_init(void)
 {
   static bool erase_lgf = true;
@@ -58,6 +73,8 @@ void ndb_lgf_init(void)
   SETTING("ndb", "lgf_update_m", lgf_update_m, TYPE_INT);
 
   ndb_load_data(&lgf_file, erase_lgf);
+
+  ndb_lgf_init_ds();
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {

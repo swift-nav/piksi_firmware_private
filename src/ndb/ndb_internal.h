@@ -53,10 +53,11 @@ typedef struct {
 /** Persistent NDB metadata block */
 typedef struct __attribute__((packed)) ndb_element_metadata_nv
 {
-  ndb_timestamp_t received_at;  /**< TAI timestamp [s] */
-  u8              source: 4;    /**< Data source */
-  u8              state: 4;     /**< State flags */
-  u8              crc[3];       /**< CRC-24Q */
+  gps_time_t      received_at_TAI;  /**< TAI timestamp [s] */
+  ndb_timestamp_t received_at_NAP;  /**< NAP timestamp [s] */
+  u8                    source: 4;  /**< Data source */
+  u8                     state: 4;  /**< State flags */
+  u8                       crc[3];  /**< CRC-24Q */
 } ndb_element_metadata_nv_t;
 
 /** Non-persistent NDB metadata block */
@@ -108,8 +109,12 @@ void ndb_start(void);
 void ndb_lock(void);
 void ndb_unlock(void);
 
-ndb_timestamp_t ndb_get_timestamp(void);
+ndb_timestamp_t ndb_get_NAP_timestamp(void);
+gps_time_t ndb_get_TAI_timestamp(void);
 void ndb_load_data(ndb_file_t *f, bool erase);
+ndb_op_code_t ndb_update_init_ds(const void *data,
+                                 ndb_data_source_t src,
+                                 ndb_element_metadata_t *md);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
                          ndb_element_metadata_t *md);
@@ -118,7 +123,8 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *src,
-                           ndb_timestamp_t *ts);
+                           ndb_timestamp_t *ts,
+                           gps_time_t *gps_time);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,
