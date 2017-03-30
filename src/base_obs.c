@@ -317,24 +317,8 @@ static void update_obss(obss_t *new_obss)
     base_obss.has_pos = 0;
   }
 
-  /* If the surveyed base station position is known then use it to calculate
-     the satellite ranges. Otherwise, use the SPP. This calculation will be
-     used later by the propagation functions. */
   if (base_obss.has_pos) {
     double *base_pos = base_obss.has_known_pos_ecef ? base_obss.known_pos_ecef : base_obss.pos_ecef;
-    for (u8 i=0; i < base_obss.n; i++) {
-      /* The nominal initial "sat_dist" contains the distance
-         from the base position to the satellite position as well as the
-         satellite clock error. */
-      base_obss.sat_dists[i] = nominal_pseudorange(base_obss.nm[i].sat_pos,
-                                                   base_pos,
-                                                   base_obss.nm[i].sat_clock_err);
-      base_obss.sat_dists_dot[i] = nominal_doppler(base_obss.nm[i].sat_vel,
-                                                   base_obss.nm[i].sat_pos,
-                                                   base_pos,
-                                                   base_obss.nm[i].sat_clock_err_rate);
-    }
-
     /* If we want to use measured doppler in our filter, we might need to
       add a nominal measured doppler "measurement" to the base
       station's observations (if they don't already exist) because GPS receivers
