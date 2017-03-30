@@ -55,7 +55,7 @@ typedef struct {
 static dum_info_t dum_info = {0};
 
 /** Compute Doppler uncertainty using LGF, time and ephemeris.
- * \param[in] sid Signal id pointer
+ * \param[in] mesid ME signal id pointer
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[in] radius The radius of user location uncertainty [m]
@@ -64,7 +64,7 @@ static dum_info_t dum_info = {0};
  * \retval 0 Success
  * \retval -1 Failure
  */
-static int get_doppler(const gnss_signal_t *sid,
+static int get_doppler(const me_gnss_signal_t *mesid,
                        const gps_time_t *t,
                        const last_good_fix_t *lgf,
                        float radius,
@@ -79,7 +79,8 @@ static int get_doppler(const gnss_signal_t *sid,
   }
 
   ephemeris_t e;
-  if (NDB_ERR_NONE != ndb_ephemeris_read(*sid, &e)) {
+  gnss_signal_t sid = mesid2sid(*mesid);
+  if (NDB_ERR_NONE != ndb_ephemeris_read(sid, &e)) {
     return -1;
   }
 
@@ -102,7 +103,7 @@ static int get_doppler(const gnss_signal_t *sid,
 /** Compute Doppler uncertainty using LGF, time and ephemeris.
  * The Doppler uncertainty is computed by expanding the user
  * location uncertainty using a predicted user speed.
- * \param[in] sid Signal id pointer
+ * \param[in] mesid Me signal id pointer
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[in] speed The predicted user speed [m/s]
@@ -111,7 +112,7 @@ static int get_doppler(const gnss_signal_t *sid,
  * \retval 0 Success
  * \retval -1 Failure
  */
-static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
+static int get_doppler_by_lgf_propagation(const me_gnss_signal_t *mesid,
                                           const gps_time_t *t,
                                           const last_good_fix_t *lgf,
                                           float speed,
@@ -121,13 +122,13 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
   double diff_s = gpsdifftime(t, &lgf->position_solution.time);
   float radius = diff_s * speed;
 
-  return get_doppler(sid, t, lgf, radius, doppler_min, doppler_max);
+  return get_doppler(mesid, t, lgf, radius, doppler_min, doppler_max);
 }
 
 /** Compute Doppler uncertainty using LGF and ephemeris.
  * The Doppler uncertainty is computed by using a fixed user
  * location uncertainty.
- * \param[in] sid Signal id pointer
+ * \param[in] mesid ME signal id pointer
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[out] doppler_min Output Doppler window floor [Hz]
@@ -135,7 +136,7 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
  * \retval 0 Success
  * \retval -1 Failure
  */
-static int get_doppler_by_lgf(const gnss_signal_t *sid,
+static int get_doppler_by_lgf(const me_gnss_signal_t *mesid,
                               const gps_time_t *t,
                               const last_good_fix_t *lgf,
                               float *doppler_min,
@@ -143,7 +144,7 @@ static int get_doppler_by_lgf(const gnss_signal_t *sid,
 {
   float radius = DUM_LGF_VICINITY_RADIUS_M;
 
-  return get_doppler(sid, t, lgf, radius, doppler_min, doppler_max);
+  return get_doppler(mesid, t, lgf, radius, doppler_min, doppler_max);
 }
 
 /** Estimate a satellite specific Doppler search window center and width based
@@ -153,49 +154,49 @@ static int get_doppler_by_lgf(const gnss_signal_t *sid,
  *  Doppler value. Function will widen the search window based on the count of
  *  earlier failed acquisition tries.
  *
- * \param[in] sid Signal id pointer
+ * \param[in] mesid ME signal id pointer
  * \param[in] t Current time estimate
  * \param[in] lgf Last Good Fix
  * \param[in] speed The predicted user speed [m/s]
  * \param[out] doppler_min Output window floor [Hz]
  * \param[out] doppler_max Output window ceiling [Hz]
  */
-void dum_get_doppler_wndw(const gnss_signal_t *sid,
+void dum_get_doppler_wndw(const me_gnss_signal_t *mesid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float speed,
                           float *doppler_min,
                           float *doppler_max)
 {
-  if ((NULL == sid) || !sid_valid(*sid)) {
+  if ((NULL == mesid) || !sid_valid(mesid2sid(*mesid))) {
     assert(!"Unexpected input for Doppler estimation");
     return;
   }
 
-  if ((CONSTELLATION_GPS != sid_to_constellation(*sid)) ||
-      (CODE_GPS_L1CA != sid->code)) {
+  if ((CONSTELLATION_GPS != sid_to_constellation(mesid2sid(*mesid))) ||
+      (CODE_GPS_L1CA != mesid->code)) {
     assert(!"Unsupported signal for Doppler estimation");
     return;
   }
 
-  float default_doppler_min = code_to_sv_doppler_min(sid->code) +
-                              code_to_tcxo_doppler_min(sid->code);
-  float default_doppler_max = code_to_sv_doppler_max(sid->code) +
-                              code_to_tcxo_doppler_max(sid->code);
+  float default_doppler_min = code_to_sv_doppler_min(mesid->code) +
+                              code_to_tcxo_doppler_min(mesid->code);
+  float default_doppler_max = code_to_sv_doppler_max(mesid->code) +
+                              code_to_tcxo_doppler_max(mesid->code);
   int ret = -1;
   dum_method_e method;
-  u32 i = sid->sat - GPS_FIRST_PRN;
+  u32 i = mesid->sat - GPS_FIRST_PRN;
   u32 j;
 
   method = dum_info.svs[i].next_method;
   for (j = 0; j < DUM_METHOD_NUM && (ret != 0); j++) {
     switch (method) {
     case DUM_LGF:
-      ret = get_doppler_by_lgf(sid, t, lgf, doppler_min, doppler_max);
+      ret = get_doppler_by_lgf(mesid, t, lgf, doppler_min, doppler_max);
       break;
 
     case DUM_LGF_PROPAGATION:
-      ret = get_doppler_by_lgf_propagation(sid, t, lgf, speed,
+      ret = get_doppler_by_lgf_propagation(mesid, t, lgf, speed,
                                            doppler_min,
                                            doppler_max);
       break;

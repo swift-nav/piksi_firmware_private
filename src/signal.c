@@ -85,6 +85,30 @@ gnss_signal_t sid_from_global_index(u16 global_index)
   return construct_sid(CODE_INVALID, 0);
 }
 
+/** Convert a global signal index to a me_gnss_signal_t.
+ *
+ * \note This function only accounts for codes supported on the current
+ *       hardware platform.
+ *
+ * \param global_index    Global signal index in [0, PLATFORM_SIGNAL_COUNT).
+ *
+ * \return gnss_signal_t corresponding to global_index.
+ */
+me_gnss_signal_t mesid_from_global_index(u16 global_index)
+{
+  /* TODO: Handle GLO signals properly. */
+  for (enum code code = 0; code < CODE_COUNT; code++) {
+    if (global_index < code_table[code].global_start_index +
+        code_signal_counts[code]) {
+      return sid2mesid(sid_from_code_index(code, global_index -
+                       code_table[code].global_start_index));
+    }
+  }
+
+  assert(!"Invalid global index");
+  return sid2mesid(construct_sid(CODE_INVALID, 0));
+}
+
 /** Convert a constellation-specific signal index to a gnss_signal_t.
  *
  * \note This function only accounts for codes supported on the current
@@ -127,6 +151,23 @@ u16 sid_to_global_index(gnss_signal_t sid)
   assert(code_supported(sid.code));
   return code_table[sid.code].global_start_index +
       sid_to_code_index(sid);
+}
+
+/** Return the global signal index for a me_gnss_signal_t.
+ *
+ * \note This function only accounts for codes supported on the current
+ *       hardware platform.
+ *
+ * \param mesid   me_gnss_signal_t to use.
+ *
+ * \return Global signal index in [0, PLATFORM_SIGNAL_COUNT).
+ */
+u16 mesid_to_global_index(me_gnss_signal_t mesid)
+{
+  /* TODO: Handle GLO signals properly. */
+  assert(code_supported(mesid.code));
+  return code_table[mesid.code].global_start_index +
+      mesid_to_code_index(mesid);
 }
 
 /** Return the constellation-specific signal index for a gnss_signal_t.

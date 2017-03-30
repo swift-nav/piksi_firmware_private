@@ -128,7 +128,7 @@
 typedef u32 manage_track_flags_t;
 
 typedef struct {
-  gnss_signal_t sid;      /**< Signal identifier. */
+  me_gnss_signal_t mesid; /**< ME signal identifier. */
   u32 sample_count;       /**< Reference NAP sample count. */
   float carrier_freq;     /**< Carrier frequency Doppler (Hz). */
   double code_phase;      /**< Code phase (chips). */
@@ -160,7 +160,7 @@ void manage_set_obs_hint(gnss_signal_t sid);
 void manage_track_setup(void);
 
 float get_solution_elevation_mask(void);
-void acq_result_send(gnss_signal_t sid, float cn0, float cp, float cf);
+void acq_result_send(me_gnss_signal_t mesid, float cn0, float cp, float cf);
 
 manage_track_flags_t get_tracking_channel_flags(u8 i);
 manage_track_flags_t get_tracking_channel_meas(u8 i,
@@ -168,16 +168,16 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
                                                channel_measurement_t *meas,
                                                ephemeris_t *ephe);
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
-manage_track_flags_t get_tracking_channel_sid_flags(gnss_signal_t sid,
+manage_track_flags_t get_tracking_channel_sid_flags(me_gnss_signal_t mesid,
                                                     s32 tow_ms,
                                                     const ephemeris_t *pephe);
 u8 tracking_channels_ready(manage_track_flags_t required_flags);
 
-bool tracking_startup_ready(gnss_signal_t sid);
-bool tracking_is_running(gnss_signal_t sid);
+bool tracking_startup_ready(me_gnss_signal_t mesid);
+bool tracking_is_running(me_gnss_signal_t mesid);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);
-bool sid_is_tracked(gnss_signal_t sid);
+bool mesid_is_tracked(me_gnss_signal_t mesid);
 #endif

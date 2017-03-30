@@ -758,7 +758,7 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh, const msg_dops
                                 false); /* Reset stats */
 
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
-      gnss_signal_t sid = info.sid;
+      gnss_signal_t sid = mesid2sid(info.mesid);
       if (sid.code == CODE_GPS_L1CA ) {
         prns[num_prns++] = sid.sat;
       }

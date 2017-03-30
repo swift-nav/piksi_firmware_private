@@ -97,7 +97,7 @@ typedef struct {
 
 /** Search jobs */
 typedef struct {
-  gnss_signal_t sid;         /**< SV identifier */
+  me_gnss_signal_t mesid;    /**< ME SV identifier */
   acq_job_types_e job_type;  /**< Job type */
   u64 start_time;            /**< HW millisecond when job started */
   u64 stop_time;             /**< HW millisecond when job finished */

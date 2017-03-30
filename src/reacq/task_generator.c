@@ -38,10 +38,10 @@ void tg_fill_task(acq_job_t *job)
   acq_param->integration_time_ms = ACQ_INTEGRATION_TIME_4MS;
   acq_param->cn0_threshold_dbhz = ACQ_THRESHOLD;
 
-  float default_doppler_min = code_to_sv_doppler_min(job->sid.code) +
-                              code_to_tcxo_doppler_min(job->sid.code);
-  float default_doppler_max = code_to_sv_doppler_max(job->sid.code) +
-                              code_to_tcxo_doppler_max(job->sid.code);
+  float default_doppler_min = code_to_sv_doppler_min(job->mesid.code) +
+                              code_to_tcxo_doppler_min(job->mesid.code);
+  float default_doppler_max = code_to_sv_doppler_max(job->mesid.code) +
+                              code_to_tcxo_doppler_max(job->mesid.code);
 
   switch(job->job_type) {
   case ACQ_JOB_DEEP_SEARCH:
@@ -52,7 +52,7 @@ void tg_fill_task(acq_job_t *job)
     if (TOW_UNKNOWN != now.tow &&
 	WN_UNKNOWN != now.wn &&
 	NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
-      dum_get_doppler_wndw(&job->sid, &now, &lgf,
+      dum_get_doppler_wndw(&job->mesid, &now, &lgf,
                            ACQ_MAX_USER_VELOCITY_MPS,
 			               &acq_param->doppler_min_hz,
 			               &acq_param->doppler_max_hz);

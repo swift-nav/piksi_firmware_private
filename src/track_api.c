@@ -127,7 +127,8 @@ s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
 
     /* Warn if updated TOW does not match the current value */
     if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
-      log_warn_sid(channel_info->sid, "TOW mismatch: %" PRId32 ", %" PRId32,
+      log_warn_sid(mesid2sid(channel_info->mesid),
+                   "TOW mismatch: %" PRId32 ", %" PRId32,
                    current_TOW_ms, TOW_ms);
     }
     current_TOW_ms = TOW_ms;
@@ -190,7 +191,7 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
   if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
                       &bit_integrate)) {
     /* No need to write L2CL bits to FIFO */
-    if (!code_requires_decoder(channel_info->sid.code)) {
+    if (!code_requires_decoder(channel_info->mesid.code)) {
       return;
     }
     s8 soft_bit = nav_bit_quantize(bit_integrate);
@@ -202,7 +203,7 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
 
       /* warn if the FIFO has become full */
       if (nav_bit_fifo_full(&internal_data->nav_bit_fifo)) {
-        log_warn_sid(channel_info->sid, "nav bit FIFO full");
+        log_warn_sid(mesid2sid(channel_info->mesid), "nav bit FIFO full");
       }
     }
 
@@ -299,7 +300,7 @@ void tracker_ambiguity_unknown(tracker_context_t *context)
 
   internal_data->bit_polarity = BIT_POLARITY_UNKNOWN;
   internal_data->lock_counter =
-      tracking_lock_counter_increment(channel_info->sid);
+      tracking_lock_counter_increment(channel_info->mesid);
   internal_data->reset_cpo = true;
 }
 
@@ -353,7 +354,7 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
     msg_tracking_iq_t msg = {
       .channel = channel_info->nap_channel,
     };
-    msg.sid = sid_to_sbp(channel_info->sid);
+    msg.sid = sid_to_sbp(mesid2sid(channel_info->mesid));
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;
       msg.corrs[i].Q = cs[i].Q;

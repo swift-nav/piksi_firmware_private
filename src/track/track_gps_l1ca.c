@@ -157,7 +157,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
 {
   tp_tow_entry_t tow_entry;
 
-  if (!track_sid_db_load_tow(channel_info->sid, &tow_entry)) {
+  if (!track_sid_db_load_tow(mesid2sid(channel_info->mesid), &tow_entry)) {
     /* Error */
     return;
   }
@@ -184,7 +184,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
       s8 error_ms = tail < (GPS_L1CA_BIT_LENGTH_MS >> 1) ?
                     -tail : GPS_L1CA_BIT_LENGTH_MS - tail;
 
-      log_info_sid(channel_info->sid,
+      log_info_sid(mesid2sid(channel_info->mesid),
                    "[+%" PRIu32 "ms] Adjusting ToW: "
                    "adjustment=%" PRId8 "ms old_tow=%" PRId32,
                    common_data->update_count,
@@ -208,7 +208,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
                             &error_ms);
 
     if (TOW_UNKNOWN != ToW_ms) {
-      log_debug_sid(channel_info->sid,
+      log_debug_sid(mesid2sid(channel_info->mesid),
                     "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8 "ms]"
                     " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
                     common_data->update_count,
@@ -220,7 +220,8 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
       if (tp_tow_is_sane(common_data->TOW_ms)) {
         common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
       } else {
-        log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
+        log_error_sid(mesid2sid(channel_info->mesid),
+                      "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                       common_data->update_count, common_data->TOW_ms);
         common_data->TOW_ms = TOW_UNKNOWN;
       }
@@ -237,7 +238,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
      */
     tow_entry.TOW_ms = common_data->TOW_ms;
     tow_entry.sample_time_tk = sample_time_tk;
-    track_sid_db_update_tow(channel_info->sid, &tow_entry);
+    track_sid_db_update_tow(mesid2sid(channel_info->mesid), &tow_entry);
   }
 }
 
@@ -266,18 +267,18 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
                            bool sat_active[],
                            float xcorr_cn0_diffs[])
 {
-  if (CODE_GPS_L1CA != entry->sid.code) {
+  if (CODE_GPS_L1CA != entry->mesid.code) {
     /* Ignore other than GPS L1CA for now */
     return;
   }
 
-  if (sid_is_equal(entry->sid, channel_info->sid)) {
+  if (mesid_is_equal(entry->mesid, channel_info->mesid)) {
     /* Ignore self */
     return;
   }
 
   /* Mark active SVs. Later clear the whitelist status of inactive SVs */
-  u16 index = sid_to_code_index(entry->sid);
+  u16 index = mesid_to_code_index(entry->mesid);
   sat_active[index] = true;
   float cn0 = common_data->cn0;
   float entry_cn0 = entry->cn0;
@@ -331,7 +332,7 @@ static void check_L1_xcorr_flags(const tracker_channel_info_t *channel_info,
                                  float xcorr_cn0_diffs[],
                                  bool *xcorr_suspect)
 {
-  if (idx + 1 == channel_info->sid.sat) {
+  if (idx + 1 == channel_info->mesid.sat) {
     /* Exclude self */
     return;
   }
@@ -377,13 +378,13 @@ static bool check_L2_entries(const tracker_channel_info_t *channel_info,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
-  if (CODE_GPS_L2CM != entry->sid.code ||
-      entry->sid.sat != channel_info->sid.sat) {
+  if (CODE_GPS_L2CM != entry->mesid.code ||
+      entry->mesid.sat != channel_info->mesid.sat) {
     /* Ignore other than L2CM from same SV */
     return false;
   }
 
-  u16 index = sid_to_code_index(channel_info->sid);
+  u16 index = mesid_to_code_index(channel_info->mesid);
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   /* Convert L2 doppler to L1 */
   float entry_freq = entry->freq * L2_to_L1_freq;
@@ -438,7 +439,7 @@ static void check_L2_xcorr_flag(const tracker_channel_info_t *channel_info,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
-  u16 index = sid_to_code_index(channel_info->sid);
+  u16 index = mesid_to_code_index(channel_info->mesid);
   s32 max_time_cnt = (s32)(gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
 
   if (xcorr_flag) {
@@ -602,7 +603,7 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
     }
   }
 
-  u16 index = sid_to_code_index(channel_info->sid);
+  u16 index = mesid_to_code_index(channel_info->mesid);
   bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
@@ -646,7 +647,7 @@ static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
 
     /* Start L2 CM tracker if not running */
     do_l1ca_to_l2cm_handover(common_data->sample_count,
-                             channel_info->sid.sat,
+                             channel_info->mesid.sat,
                              common_data->code_phase_prompt,
                              common_data->carrier_freq,
                              common_data->cn0);

@@ -118,17 +118,17 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       continue;
     }
 
-    shm_gps_set_shi6(channel_info->sid.sat, false == data->cnav_msg.alert);
+    shm_gps_set_shi6(channel_info->mesid.sat, false == data->cnav_msg.alert);
 
     if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
       if (data->cnav_msg.data.type_30.tgd_valid)
-        log_debug_sid(channel_info->sid, "TGD %d",
+        log_debug_sid(mesid2sid(channel_info->mesid), "TGD %d",
           data->cnav_msg.data.type_30.tgd);
       if (data->cnav_msg.data.type_30.isc_l1ca_valid)
-        log_debug_sid(channel_info->sid, "isc_l1ca %d",
+        log_debug_sid(mesid2sid(channel_info->mesid), "isc_l1ca %d",
           data->cnav_msg.data.type_30.isc_l1ca);
       if (data->cnav_msg.data.type_30.isc_l2c_valid)
-        log_debug_sid(channel_info->sid, "isc_l2c %d",
+        log_debug_sid(mesid2sid(channel_info->mesid), "isc_l2c %d",
           data->cnav_msg.data.type_30.isc_l2c);
 
       cnav_msg_put(&data->cnav_msg);
@@ -136,7 +136,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       sbp_send_group_delay(&data->cnav_msg);
     }
     else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
-      log_debug_sid(channel_info->sid,
+      log_debug_sid(mesid2sid(channel_info->mesid),
                     "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
                     data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
                     data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
@@ -155,17 +155,18 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     if ((tow_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
       if (!tracking_channel_time_sync(channel_info->tracking_channel, tow_ms,
                                       bit_polarity)) {
-        log_warn_sid(channel_info->sid, "TOW set failed");
+        log_warn_sid(mesid2sid(channel_info->mesid), "TOW set failed");
       }
     }
 
     /* check PRN conformity */
-    bool prn_fail = channel_info->sid.sat != (u16)data->cnav_msg.prn;
+    bool prn_fail = channel_info->mesid.sat != (u16)data->cnav_msg.prn;
     if (prn_fail) {
-      log_warn_sid(channel_info->sid, "Decoded PRN %" PRIu16 ". X-corr suspect",
+      log_warn_sid(mesid2sid(channel_info->mesid),
+                   "Decoded PRN %" PRIu16 ". X-corr suspect",
                    data->cnav_msg.prn);
     }
     /* set or clear prn_fail flag for L2CM and parent L1CA */
-    tracking_channel_set_prn_fail_flag(channel_info->sid, prn_fail);
+    tracking_channel_set_prn_fail_flag(channel_info->mesid, prn_fail);
   }
 }

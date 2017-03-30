@@ -132,9 +132,9 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
                               float cn0_init)
 {
   /* compose SID: same SV, but code is L2 CM */
-  gnss_signal_t sid = construct_sid(CODE_GPS_L2CM, sat);
+  me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L2CM, sat);
 
-  if (!tracking_startup_ready(sid)) {
+  if (!tracking_startup_ready(mesid)) {
     return; /* L2C signal from the SV is already in track */
   }
 
@@ -147,7 +147,8 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   if ((code_phase < 0) ||
       ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
        (code_phase < (GPS_L1CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
-    log_warn_sid(sid, "Unexpected L1C/A to L2C handover code phase: %f",
+    log_warn_sid(mesid2sid(mesid),
+                 "Unexpected L1C/A to L2C handover code phase: %f",
                  code_phase);
     return;
   }
@@ -162,7 +163,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
      is called. */
 
   tracking_startup_params_t startup_params = {
-    .sid                = sid,
+    .mesid              = mesid,
     .sample_count       = sample_count,
     /* recalculate doppler freq for L2 from L1*/
     .carrier_freq       = carrier_freq * GPS_L2_HZ / GPS_L1_HZ,
@@ -175,7 +176,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
   case 0:
-    log_debug_sid(sid, "L2 CM handover done");
+    log_debug_sid(mesid2sid(mesid), "L2 CM handover done");
     break;
 
   case 1:
@@ -183,7 +184,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
     break;
 
   case 2:
-    log_warn_sid(sid, "Failed to start L2C tracking");
+    log_warn_sid(mesid2sid(mesid), "Failed to start L2C tracking");
     break;
 
   default:
@@ -243,7 +244,7 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                                u32 cycle_flags)
 {
   tp_tow_entry_t tow_entry;
-  if (!track_sid_db_load_tow(channel_info->sid, &tow_entry)) {
+  if (!track_sid_db_load_tow(mesid2sid(channel_info->mesid), &tow_entry)) {
     /* Error */
     return;
   }
@@ -265,7 +266,7 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
         s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH >> 1) ?
                       -tail : GPS_L2C_SYMBOL_LENGTH - tail;
 
-        log_info_sid(channel_info->sid,
+        log_info_sid(mesid2sid(channel_info->mesid),
                      "[+%" PRIu32 "ms] Adjusting ToW:"
                      " adjustment=%" PRId8 "ms old_tow=%" PRId32,
                      common_data->update_count,
@@ -288,7 +289,7 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                               &error_ms);
 
       if (TOW_UNKNOWN != ToW_ms) {
-        log_debug_sid(channel_info->sid,
+        log_debug_sid(mesid2sid(channel_info->mesid),
                       "[+%" PRIu32 "ms]"
                       " Initializing TOW from cache [%" PRIu8 "ms] "
                       "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
@@ -301,7 +302,8 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
         if (tp_tow_is_sane(common_data->TOW_ms)) {
           common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
         } else {
-          log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
+          log_error_sid(mesid2sid(channel_info->mesid),
+                        "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                         common_data->update_count, common_data->TOW_ms);
           common_data->TOW_ms = TOW_UNKNOWN;
         }
@@ -311,8 +313,8 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
     if (TOW_UNKNOWN != common_data->TOW_ms &&
         common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
         data->confirmed &&
-        !tracking_is_running(construct_sid(CODE_GPS_L1CA,
-                                           channel_info->sid.sat))) {
+        !tracking_is_running(construct_mesid(CODE_GPS_L1CA,
+                                             channel_info->mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
        * - CN0 is OK
@@ -321,7 +323,7 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
        */
       tow_entry.TOW_ms = common_data->TOW_ms;
       tow_entry.sample_time_tk = sample_time_tk;
-      track_sid_db_update_tow(channel_info->sid, &tow_entry);
+      track_sid_db_update_tow(mesid2sid(channel_info->mesid), &tow_entry);
     }
   }
 }
@@ -345,8 +347,8 @@ static bool check_L1_entries(const tracker_channel_info_t *channel_info,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
-  if (CODE_GPS_L1CA != entry->sid.code ||
-      entry->sid.sat != channel_info->sid.sat) {
+  if (CODE_GPS_L1CA != entry->mesid.code ||
+      entry->mesid.sat != channel_info->mesid.sat) {
     /* Ignore other than L1C/A from same SV */
     return false;
   }
@@ -548,7 +550,7 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
                                u32 cycle_flags)
 {
   if (tp_tl_is_fll(&data->tl_state)) {
-    tracking_channel_drop_l2cl(channel_info->sid);
+    tracking_channel_drop_l2cl(channel_info->mesid);
     tracker_ambiguity_unknown(channel_info->context);
   } else if (data->lock_detect.outp &&
              data->confirmed &&
@@ -557,7 +559,7 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
 
     /* If needed, read half-cycle ambiguity status from L2CL tracker */
     if (tracker_ambiguity_resolved(channel_info->context)) {
-      tracking_channel_drop_l2cl(channel_info->sid);
+      tracking_channel_drop_l2cl(channel_info->mesid);
     } else {
       s8 polarity = read_data_polarity(common_data);
       tracker_ambiguity_set(channel_info->context, polarity);
@@ -569,7 +571,7 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
         TOW_UNKNOWN != common_data->TOW_ms) {
       /* Start L2 CL tracker if not running already */
       do_l2cm_to_l2cl_handover(common_data->sample_count,
-                               channel_info->sid.sat,
+                               channel_info->mesid.sat,
                                common_data->code_phase_prompt,
                                common_data->carrier_freq,
                                common_data->cn0,

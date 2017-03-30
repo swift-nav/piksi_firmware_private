@@ -52,10 +52,10 @@ tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void)
 /** Initialize a tracker internal data structure.
  *
  * \param tracker_channel   Tracker channel to use.
- * \param sid               Signal identifier to use.
+ * \param mesid             ME signal identifier to use.
  */
 void internal_data_init(tracker_internal_data_t *internal_data,
-                        gnss_signal_t sid)
+                        me_gnss_signal_t mesid)
 {
   /* Initialize all fields to 0 */
   memset(internal_data, 0, sizeof(tracker_internal_data_t));
@@ -64,7 +64,7 @@ void internal_data_init(tracker_internal_data_t *internal_data,
 
   nav_bit_fifo_init(&internal_data->nav_bit_fifo);
   nav_time_sync_init(&internal_data->nav_time_sync);
-  bit_sync_init(&internal_data->bit_sync, sid);
+  bit_sync_init(&internal_data->bit_sync, mesid);
 }
 
 /** Initialize a nav_bit_fifo_t struct.
@@ -219,13 +219,13 @@ s8 nav_bit_quantize(s32 bit_integrate)
     return ((bit_integrate + 1) / (1 << 24)) - 1;
 }
 
-/** Increment and return the tracking lock counter for the specified sid.
+/** Increment and return the tracking lock counter for the specified mesid.
  *
- * \param sid         Signal identifier to use.
+ * \param mesid ME identifier to use.
  */
-u16 tracking_lock_counter_increment(gnss_signal_t sid)
+u16 tracking_lock_counter_increment(me_gnss_signal_t mesid)
 {
-  return ++tracking_lock_counters[sid_to_global_index(sid)];
+  return ++tracking_lock_counters[mesid_to_global_index(mesid)];
 }
 
 /** Return the tracking lock counter for the specified sid.

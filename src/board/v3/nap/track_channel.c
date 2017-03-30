@@ -59,7 +59,7 @@ typedef struct {
 /** Internal tracking channel state */
 static struct nap_ch_state {
   bool init;                   /**< Initializing channel. */
-  gnss_signal_t sid;           /**< Channel sid */
+  me_gnss_signal_t mesid;      /**< Channel mesid */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
@@ -173,21 +173,21 @@ static double calc_samples_per_chip(double code_phase_rate)
   return (double)NAP_TRACK_SAMPLE_RATE_Hz / code_phase_rate;
 }
 
-void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
+void nap_track_init(u8 channel, me_gnss_signal_t mesid, u32 ref_timing_count,
                    float carrier_freq, double code_phase, u32 chips_to_correlate)
 {
-  assert((sid.code == CODE_GPS_L1CA) ||
-         (sid.code == CODE_GPS_L2CM) ||
-         (sid.code == CODE_GPS_L2CL));
+  assert((mesid.code == CODE_GPS_L1CA) ||
+         (mesid.code == CODE_GPS_L2CM) ||
+         (mesid.code == CODE_GPS_L2CL));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
 
-  s->sid = sid;
+  s->mesid = mesid;
   /* Delay L2CL code phase by 1 chip to accommodate zero in the L2CM slot */
   /* Initial correlation length for L2CL is thus 1 chip shorter,
    * since first L2CM chip is skipped */
-  if (sid.code == CODE_GPS_L2CL) {
+  if (mesid.code == CODE_GPS_L2CL) {
     code_phase -= 1.0f;
     if (code_phase < 0.0f) {
       code_phase += GPS_L2CL_CHIPS_NUM;
@@ -212,15 +212,15 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
                                   .samples = NAP_SPACING_SAMPLES};
 
   u16 control;
-  u8 prn = sid.sat - GPS_FIRST_PRN;
+  u8 prn = mesid.sat - GPS_FIRST_PRN;
 
   /* PRN code */
   control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
   /* RF frontend channel */
-  control |= (sid_to_rf_frontend_channel(sid) << NAP_TRK_CONTROL_FRONTEND_Pos) &
+  control |= (sid_to_rf_frontend_channel(mesid2sid(mesid)) << NAP_TRK_CONTROL_FRONTEND_Pos) &
              NAP_TRK_CONTROL_FRONTEND_Msk;
   /* Constellation and band for tracking */
-  control |= (sid_to_nap_code(sid) << NAP_TRK_CONTROL_CODE_Pos) &
+  control |= (sid_to_nap_code(mesid2sid(mesid)) << NAP_TRK_CONTROL_CODE_Pos) &
              NAP_TRK_CONTROL_CODE_Msk;
 
   t->CONTROL = control;
@@ -235,8 +235,8 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
       (spacing_to_nap_offset(s->spacing[3]) <<
       NAP_TRK_SPACING_OFFSET3_Pos);
 
-  double code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(sid.code)) *
-      code_to_chip_rate(sid.code);
+  double code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(mesid.code)) *
+      code_to_chip_rate(mesid.code);
 
   s->init = true;
   s->code_phase_rate[0] = code_phase_rate;
@@ -249,7 +249,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_sid(s->sid,
+    log_warn_sid(mesid2sid(s->mesid),
                  "Wrong NAP init correlation length: "
                  "(%" PRIu32 ", %f, %lf %" PRIu32 ")",
                  length, carrier_freq, code_phase_rate, chips_to_correlate);
@@ -279,12 +279,12 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
 
     double cp = propagate_code_phase(code_phase, carrier_freq,
-                                     tc_req - ref_timing_count, sid.code);
+                                     tc_req - ref_timing_count, mesid.code);
     u8 index = 0;
     /* Contrive for the timing strobe to occur at
      * or close to next PRN start point */
-    if (sid.code == CODE_GPS_L2CL) {
-      u32 code_length = code_to_chip_count(sid.code);
+    if (mesid.code == CODE_GPS_L2CL) {
+      u32 code_length = code_to_chip_count(mesid.code);
       u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL / GPS_L2CL_PRN_PERIOD;
       u8 cp_start = 0;
       double tmp = ceil(cp / chips);
@@ -296,12 +296,12 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
               * calc_samples_per_chip(code_phase_rate));
       t->CODE_INIT_INT = index * chips;
     } else {
-      tc_req += round((code_to_chip_count(sid.code) - cp)
+      tc_req += round((code_to_chip_count(mesid.code) - cp)
               * calc_samples_per_chip(code_phase_rate));
       t->CODE_INIT_INT = 0;
     }
     t->CODE_INIT_FRAC = 0;
-    t->CODE_INIT_G1 = sid_to_init_g1(sid, index);
+    t->CODE_INIT_G1 = sid_to_init_g1(mesid2sid(mesid), index);
     t->CODE_INIT_G2 = 0x3ff;
 
     /* Correct timing count for correlator spacing */
@@ -333,7 +333,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   /* check for underflow */
   if (length <= length_reg_val) {
     u64 profiling_end = nap_timing_count();
-    log_error_sid(sid,
+    log_error_sid(mesid2sid(mesid),
                   "LENGTH: %" PRIu32 " length: %" PRIu32
                   " prompt_offset: %" PRIu16
                   " delay_us: %.3lf",
@@ -341,7 +341,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
                   (profiling_end - profiling_begin) * RX_DT_NOMINAL * 1e6);
   }
   /* Future integrations for L2CL are 1 chip longer */
-  if (sid.code == CODE_GPS_L2CL) {
+  if (mesid.code == CODE_GPS_L2CL) {
     t->LENGTH += calc_samples_per_chip(code_phase_rate);
   }
   s->init = false;
@@ -373,7 +373,7 @@ void nap_track_update(u8 channel, double carrier_freq,
   t->LENGTH = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_error_sid(s->sid, "Wrong NAP correlation length: "
+    log_error_sid(mesid2sid(s->mesid), "Wrong NAP correlation length: "
           "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
           (int)s->init, chips_to_correlate, code_phase_frac, cp_rate_units,
           length, code_phase_rate);
@@ -392,7 +392,7 @@ void nap_track_read_results(u8 channel,
 
   u32 ovf = (t->STATUS & NAP_TRK_STATUS_OVF_Msk) >> NAP_TRK_STATUS_OVF_Pos;
   if (ovf) {
-    log_warn_sid(s->sid,
+    log_warn_sid(mesid2sid(s->mesid),
                  "Track correlator overflow 0x%04X on channel %d",
                  ovf, channel);
   }
@@ -425,7 +425,7 @@ void nap_track_read_results(u8 channel,
       NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP - prompt_offset;
 
   if (*code_phase_prompt < 0) {
-    *code_phase_prompt += code_to_chip_count(s->sid.code);
+    *code_phase_prompt += code_to_chip_count(s->mesid.code);
   }
 }
 

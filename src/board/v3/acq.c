@@ -32,9 +32,9 @@
 #define FFT_SCALE_SCHED_INV 0x15550000
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
-static void code_resample(gnss_signal_t sid, float chips_per_sample,
+static void code_resample(me_gnss_signal_t mesid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
-static bool get_bin_min_max(gnss_signal_t sid, float cf_min, float cf_max,
+static bool get_bin_min_max(me_gnss_signal_t mesid, float cf_min, float cf_max,
                             float cf_bin_width, s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
 static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
@@ -42,7 +42,7 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
                             u32 fft_len_log2, float *doppler);
-static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
+static bool acq_peak_search(me_gnss_signal_t mesid, float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak);
 
 float acq_bin_width(void)
@@ -50,7 +50,7 @@ float acq_bin_width(void)
   return NAP_ACQ_SAMPLE_RATE_Hz / (1 << FFT_LEN_LOG2_MAX);
 }
 
-bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
+bool acq_search(me_gnss_signal_t mesid, float cf_min, float cf_max,
                 float cf_bin_width, acq_result_t *acq_result)
 {
   /* Configuration */
@@ -61,7 +61,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
   /* Generate, resample, and FFT code */
   static FFT_BUFFER(code_fft, fft_cplx_t, FFT_LEN_MAX);
-  code_resample(sid, chips_per_sample, code_fft, fft_len);
+  code_resample(mesid, chips_per_sample, code_fft, fft_len);
   if (!fft(code_fft, code_fft, fft_len_log2,
            FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
     return false;
@@ -82,7 +82,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   float doppler = 0.0f;
 
   /* Find minimum and maximum doppler bin index */
-  if (!get_bin_min_max(sid, cf_min, cf_max, cf_bin_width,
+  if (!get_bin_min_max(mesid, cf_min, cf_max, cf_bin_width,
                        &doppler_bin_min, &doppler_bin_max)) {
     return false;
   }
@@ -122,7 +122,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
     }
 
     /* Find highest peak of the current doppler bin */
-    if (!acq_peak_search(sid, doppler, fft_len, fft_bin_width,  &peak)) {
+    if (!acq_peak_search(mesid, doppler, fft_len, fft_bin_width,  &peak)) {
       return false;
     }
 
@@ -181,10 +181,10 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   return true;
 }
 
-static void code_resample(gnss_signal_t sid, float chips_per_sample,
+static void code_resample(me_gnss_signal_t mesid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length)
 {
-  const u8 *code = ca_code(sid);
+  const u8 *code = ca_code(mesid);
   u32 code_length = CODE_LENGTH;
 
   float chip_offset = 0.0f;
@@ -209,7 +209,7 @@ static void code_resample(gnss_signal_t sid, float chips_per_sample,
  * \retval true  Success
  * \retval false Failure
  */
-static bool get_bin_min_max(gnss_signal_t sid, float cf_min, float cf_max,
+static bool get_bin_min_max(me_gnss_signal_t mesid, float cf_min, float cf_max,
                             float cf_bin_width, s16 *doppler_bin_min,
                             s16 *doppler_bin_max)
 {
@@ -219,7 +219,8 @@ static bool get_bin_min_max(gnss_signal_t sid, float cf_min, float cf_max,
 
   /* Check that bin_max >= bin_min. */
   if (*doppler_bin_min > *doppler_bin_max) {
-    log_error_sid(sid, "Acq_search: caught bogus dopp_hints (%lf, %lf)",
+    log_error_sid(mesid2sid(mesid),
+                  "Acq_search: caught bogus dopp_hints (%lf, %lf)",
                   cf_min, cf_max);
     return false;
   }
@@ -290,7 +291,7 @@ static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
  * \retval true  Success
  * \retval false Failure
  */
-static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
+static bool acq_peak_search(me_gnss_signal_t mesid, float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak)
 {
   u32 peak_index;
@@ -302,7 +303,7 @@ static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
   fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
 
   if (sum_mag_sq == 0) {
-    log_error_sid(sid, "Acq_search: zero_noise (%u)", sum_mag_sq);
+    log_error_sid(mesid2sid(mesid), "Acq_search: zero_noise (%u)", sum_mag_sq);
     return false;
   }
 
