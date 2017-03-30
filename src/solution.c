@@ -102,8 +102,6 @@ double heading_offset = 0.0;
 
 bool disable_klobuchar = false;
 
-static u8 old_base_sender_id = 0;
-
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
@@ -1394,20 +1392,7 @@ static void time_matched_obs_thread(void *arg)
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
-        /* Check if the base sender ID has changed and reset the RTK filter if
-         * it has.
-         */
-        if ((old_base_sender_id != 0) &&
-            (old_base_sender_id != base_obss.sender_id)) {
-          log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
-                   " filter.", old_base_sender_id, base_obss.sender_id);
-          reset_rtk_filter();
-          chMtxLock(&base_pos_lock);
-          base_pos_known = false;
-          memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
-          chMtxUnlock(&base_pos_lock);
-        }
-        old_base_sender_id = base_obss.sender_id;
+
         obss_t base_obss_copy = base_obss;
         chMtxUnlock(&base_obs_lock);
         // We need to form the SBP messages derived from the SPP at this solution time before we

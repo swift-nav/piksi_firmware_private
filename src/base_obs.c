@@ -67,6 +67,7 @@ static bool old_base_pos_known = false;
 static double old_base_pos_ecef[3] = {0, 0, 0};
 
 static u32 base_obs_msg_counter = 0;
+static u8 old_base_sender_id = 0;
 
 void check_base_position_change(void)
 {
@@ -213,6 +214,21 @@ static void update_obss(obss_t *new_obss)
 
   /* Copy over sender ID. */
   base_obss.sender_id = new_obss->sender_id;
+
+  /* Check if the base sender ID has changed and reset the RTK filter if
+   * it has.
+   */
+  if ((old_base_sender_id != 0) &&
+      (old_base_sender_id != base_obss.sender_id)) {
+    log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
+             " filter.", old_base_sender_id, base_obss.sender_id);
+    reset_rtk_filter();
+    chMtxLock(&base_pos_lock);
+    base_pos_known = false;
+    memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+    chMtxUnlock(&base_pos_lock);
+  }
+  old_base_sender_id = base_obss.sender_id;
 
   /* Copy the current observations over to nm_old so we can difference
    * against them next time around. */
