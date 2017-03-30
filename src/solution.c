@@ -1392,7 +1392,7 @@ static void time_matched_obs_thread(void *arg)
       double dt = gpsdifftime(&obss->tor, &base_obss.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD &&
-          (base_obss.has_pos || base_obss.has_known_pos_ecef)) {
+          (base_obss.has_pos == 1 || base_obss.has_known_pos_ecef)) {
         obss_t base_obss_copy = base_obss;
         chMtxUnlock(&base_obs_lock);
         // We need to form the SBP messages derived from the SPP at this solution time before we
