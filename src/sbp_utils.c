@@ -111,13 +111,13 @@ void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags)
   gmtime_r(&unix_t, &utc_time);
 
   t_out->tow = round_tow_ms(t_in->tow);
-  t_out->year = utc_time.tm_year;
+  t_out->year = utc_time.tm_year + 1900;
   t_out->month = utc_time.tm_mon;
   t_out->day = utc_time.tm_mday;
   t_out->hours = utc_time.tm_hour;
   t_out->minutes = utc_time.tm_min;
   t_out->seconds = utc_time.tm_sec;
-  t_out->ns = round((t_in->tow - t_out->tow)*1e9);
+  t_out->ns = (s32) round((t_in->tow - t_out->tow/1000.0)*1e9);
   t_out->flags = flags;
 }
 
