@@ -112,7 +112,7 @@ void ext_event_service(void)
   sbp_make_gps_time(&mgt, &gpst, 0);
   msg.wn = mgt.wn;
   msg.tow = mgt.tow;
-  msg.ns = mgt.ns;
+  msg.ns_residual = mgt.ns_residual;
 
   sbp_send_msg(SBP_MSG_EXT_EVENT, sizeof(msg), (u8 *)&msg);
 }
