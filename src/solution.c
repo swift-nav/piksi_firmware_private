@@ -1473,8 +1473,8 @@ static bool heading_offset_changed(struct setting *s, const char *val)
     return ret;
   }
 
-  if (abs(offset)>180.0) {
-    log_error("Invalid heading offset setting of %l, max is %l, min is -%l, leaving soln_freq at %l",
+  if (fabs(offset) > 180.0) {
+    log_error("Invalid heading offset setting of %l, max is %l, min is %l, leaving heading offset at %l",
               offset, 180.0, -180.0, heading_offset);
     ret = false;
   }
