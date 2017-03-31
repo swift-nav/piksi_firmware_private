@@ -1460,13 +1460,37 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
   return last_dgnss_stats;
 }
 
+
+/* Check that 0 < new soln_freq setting value <= MAX_SOLN_FREQ. */
+static bool soln_freq_changed(struct setting *s, const char *val)
+{
+  double freq;
+  bool ret = s->type->from_string(s->type->priv, &freq, s->len, val);
+  if (!ret) {
+    return false;
+  }
+
+  if ((freq > MAX_SOLN_FREQ) || (freq <= 0)) {
+    log_error("Invalid soln_freq setting of %l, max is %l, min is 0, leaving soln_freq at %l",
+              freq, MAX_SOLN_FREQ, soln_freq);
+    return false;
+  } else {
+    /* Update soln_freq. */
+    *(int*)s->addr = freq;
+    return true;  
+  }
+
+  return false;
+}
+
+
 void solution_setup()
 {
   /* Set time of last differential solution in the past. */
   last_dgnss.wn = 0;
   last_dgnss.tow = 0;
 
-  SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
+  SETTING_NOTIFY("solution", "soln_freq", soln_freq, TYPE_FLOAT, soln_freq_changed);
   SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
 

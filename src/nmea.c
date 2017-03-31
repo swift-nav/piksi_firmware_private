@@ -31,6 +31,7 @@
 #include "main.h"
 #include "timing.h"
 #include "io_support.h"
+#include "solution.h"
 
 static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
                                   solution rate. */
@@ -40,6 +41,7 @@ static u32 gpvtg_msg_rate =  1;
 static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
+
 
 /** \addtogroup io
  * \{ */
@@ -793,6 +795,21 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_gps_time_t *sbp_msg_time,
                     double propagation_time, u8 sender_id)
 {
+  static bool start_output = false;
+  
+  if (!start_output) {
+    /* Check if this solution is on a second boundary by truncating to nearest
+     * valid solution epoch (maximum of half of the minimum solution period). */
+    double max_epoch_difference_ms = 500.0/MAX_SOLN_FREQ;
+    if (((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME )
+       && (fabs(sbp_msg_time->tow - 1000*round(sbp_msg_time->tow/1000.0)) < max_epoch_difference_ms)) {
+      start_output = true;
+    } else {
+      return;
+    }
+  }
+
+
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
     DO_EVERY(gpgga_msg_rate,
       nmea_gpgga(sbp_pos_llh, sbp_msg_time, sbp_dops, propagation_time, sender_id);
