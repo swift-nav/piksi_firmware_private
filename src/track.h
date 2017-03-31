@@ -283,8 +283,10 @@ void track_setup(void);
 void tracking_send_state(void);
 void tracking_send_detailed_state(void);
 
-double propagate_code_phase(double code_phase, double carrier_freq,
-                            u32 n_samples, code_t code);
+double propagate_code_phase(const me_gnss_signal_t mesid,
+                            double code_phase,
+                            double carrier_freq,
+                            u32 n_samples);
 
 /* Update interface */
 void tracking_channels_update(u32 channels_mask);

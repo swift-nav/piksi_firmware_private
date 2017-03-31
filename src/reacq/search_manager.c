@@ -73,7 +73,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     if (mesid_is_tracked(mesid)) {
       continue;
     }
-    /* TODO GLO: Handle GLO signals properly. */
+    /* TODO GLO: Handle GLO orbit slot properly. */
     assert(!is_glo_sid(mesid));
     gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
     sm_get_visibility_flags(sid, &visible, &known);
@@ -116,7 +116,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     if (mesid_is_tracked(mesid)) {
       continue;
     }
-    /* TODO GLO: Handle GLO signals properly. */
+    /* TODO GLO: Handle GLO orbit slot properly. */
     assert(!is_glo_sid(mesid));
     gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
     sm_get_visibility_flags(sid, &visible, &known);

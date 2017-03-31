@@ -78,7 +78,7 @@ static int get_doppler(const me_gnss_signal_t *mesid,
     return -1;
   }
 
-  /* TODO GLO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO orbit slot properly. */
   assert(!is_glo_sid(*mesid));
   ephemeris_t e;
   gnss_signal_t sid = mesid2sid(*mesid, GLO_ORBIT_SLOT_UNKNOWN);

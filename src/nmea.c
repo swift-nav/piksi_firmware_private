@@ -745,7 +745,7 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time,
 static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh, const msg_dops_t *sbp_dops)
 {
   /* Assemble list of currently tracked GPS PRNs */
-  /* TODO GLO: Handle GLO signals properly. */
+  /* TODO GLO: Check GLO status. */
   u8 prns[nap_track_n_channels];
   u8 num_prns = 0;
   for (u32 i = 0; i < nap_track_n_channels; i++) {
@@ -759,9 +759,8 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh, const msg_dops
                                 false); /* Reset stats */
 
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
-      gnss_signal_t sid = mesid2sid(info.mesid, info.glo_slot_id);
-      if (sid.code == CODE_GPS_L1CA ) {
-        prns[num_prns++] = sid.sat;
+      if (CODE_GPS_L1CA == info.mesid.code) {
+        prns[num_prns++] = info.mesid.sat;
       }
     }
   }

@@ -205,8 +205,12 @@ void tracking_send_state()
         states[i].cn0 = -1;
       } else {
         states[i].state = 1;
-        /* TODO GLO: Handle GLO signals properly. */
-        states[i].sid = sid_to_sbp(mesid2sid(mesid, glo_slot_id));
+        /* TODO GLO: Handle GLO orbit slot properly. */
+        if (GLO_ORBIT_SLOT_UNKNOWN == glo_slot_id) {
+          glo_slot_id = mesid.sat;
+        }
+        gnss_signal_t sid = construct_sid(mesid.code, glo_slot_id);
+        states[i].sid = sid_to_sbp(sid);
         states[i].cn0 = cn0;
       }
     }
@@ -328,6 +332,7 @@ bool tracker_channel_available(tracker_channel_id_t id,
 /** Calculate the future code phase after N samples.
  * Calculate the expected code phase in N samples time with carrier aiding.
  *
+ * \param mesid        ME signal ID.
  * \param code_phase   Current code phase in chips.
  * \param carrier_freq Current carrier frequency (i.e. Doppler) in Hz used for
  *                     carrier aiding.
@@ -335,15 +340,17 @@ bool tracker_channel_available(tracker_channel_id_t id,
  *
  * \return The propagated code phase in chips.
  */
-double propagate_code_phase(double code_phase, double carrier_freq,
-                                   u32 n_samples, code_t code)
+double propagate_code_phase(const me_gnss_signal_t mesid,
+                            double code_phase,
+                            double carrier_freq,
+                            u32 n_samples)
 {
   /* Calculate the code phase rate with carrier aiding. */
-  double code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(code)) *
-                           code_to_chip_rate(code);
+  double code_phase_rate = (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
+                           code_to_chip_rate(mesid.code);
   code_phase += n_samples * code_phase_rate / NAP_FRONTEND_SAMPLE_RATE_Hz;
   u32 cp_int = floor(code_phase);
-  code_phase -= cp_int - (cp_int % code_to_chip_count(code));
+  code_phase -= cp_int - (cp_int % code_to_chip_count(mesid.code));
   return code_phase;
 }
 
@@ -899,8 +906,10 @@ void tracking_channel_measurement_get(u64 ref_tc,
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
 
-  /* TODO GLO: Handle GLO signals properly. */
-  assert(!is_glo_sid(info->mesid));
+  /* TODO GLO: Handle GLO orbit slot properly. */
+  if (is_glo_sid(info->mesid)) {
+    return;
+  }
   meas->sid = mesid2sid(info->mesid, info->glo_slot_id);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;

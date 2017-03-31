@@ -49,6 +49,13 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
    */
   if (sid_to_constellation(from) == CONSTELLATION_GPS) {
     sbp_sid.sat -= GPS_FIRST_PRN;
+  } else if (CODE_GLO_L1CA == from.code) { /* TODO GLO: remove this once Piksi
+                                              console supports GLO */
+    sbp_sid.code = CODE_GPS_L1CA;
+    sbp_sid.sat -= GLO_FIRST_PRN;
+  } else if (CODE_GLO_L2CA == from.code) {
+    sbp_sid.code = CODE_GPS_L2CM;
+    sbp_sid.sat -= GLO_FIRST_PRN;
   }
 
   return sbp_sid;

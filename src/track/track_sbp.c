@@ -262,9 +262,12 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   state->L.i = (s32)Li;
   state->L.f = (u8)(Lf * MSG_OBS_LF_MULTIPLIER);
 
-  /* TODO GLO: Handle GLO signals properly. */
-  gnss_signal_t sid = mesid2sid(channel_info->mesid,
-                                channel_info->glo_slot_id);
+  /* TODO GLO: Handle GLO orbit slot properly. */
+  u16 glo_orbit_slot = channel_info->glo_slot_id;
+  if (GLO_ORBIT_SLOT_UNKNOWN == glo_orbit_slot) {
+    glo_orbit_slot = channel_info->mesid.sat;
+  }
+  gnss_signal_t sid = mesid2sid(channel_info->mesid, glo_orbit_slot);
 
   float cn0 = channel_info->cn0 * MSG_OBS_CN0_MULTIPLIER;
   state->cn0 = (u8)limit_value(cn0, 0, UINT8_MAX);
