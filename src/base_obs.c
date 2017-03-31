@@ -317,31 +317,6 @@ static void update_obss(obss_t *new_obss)
     base_obss.has_pos = 0;
   }
 
-  if (base_obss.has_pos) {
-    double *base_pos = base_obss.has_known_pos_ecef ? base_obss.known_pos_ecef : base_obss.pos_ecef;
-    /* If we want to use measured doppler in our filter, we might need to
-      add a nominal measured doppler "measurement" to the base
-      station's observations (if they don't already exist) because GPS receivers
-      that aren't Piksi (CORS stations, etc) typically don't transmit their
-      measured doppler. */
-    bool any_measured_doppler = false;
-    for (u8 i = 0; i < base_obss.n; i++) {
-      any_measured_doppler |=
-        0 != (base_obss.nm[i].flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID);
-    }
-
-    if (!any_measured_doppler) {
-      for (u8 i = 0; i < base_obss.n; i++) {
-        base_obss.nm[i].raw_measured_doppler =
-              -nominal_doppler(base_obss.nm[i].sat_vel,
-                               base_obss.nm[i].sat_pos,
-                               base_pos,
-                               base_obss.nm[i].sat_clock_err_rate) /
-                                code_to_lambda(base_obss.nm[i].sid.code);
-        base_obss.nm[i].flags |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
-      }
-    }
-  }
   /* Unlock base_obss mutex. */
   chMtxUnlock(&base_obs_lock);
 
