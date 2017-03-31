@@ -18,6 +18,7 @@
 #include <ndb/ndb_l2c_capb.h>
 #include <ndb/ndb_iono.h>
 #include <ndb/ndb_lgf.h>
+#include <ndb/ndb_utc.h>
 
 void ndb_setup(void);
 void ndb_sbp_updates(void);

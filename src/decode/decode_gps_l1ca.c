@@ -444,14 +444,23 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
-    log_debug_sid(channel_info->sid, "Iono parameters received");
-
     if (ndb_iono_corr_store(&channel_info->sid,
                             &dd.iono,
                             NDB_DS_RECEIVER,
                             NDB_EVENT_SENDER_ID_VOID) ==
         NDB_ERR_NONE) {
       sbp_send_iono(&dd.iono);
+    }
+  }
+
+  if (dd.utc_params_upd_flag) {
+    /* store new utc parameters */
+    if (ndb_utc_params_store(&channel_info->sid,
+                            &dd.utc,
+                            NDB_DS_RECEIVER,
+                            NDB_EVENT_SENDER_ID_VOID) ==
+        NDB_ERR_NONE) {
+      /*TODO: sbp_send_utc_params(&dd.utc); */
     }
   }
 

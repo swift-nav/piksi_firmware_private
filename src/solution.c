@@ -154,7 +154,17 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
 
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, NVM_UTC);
+    u8 utc_flags = SPP_POSITION;
+    utc_params_t utc_params;
+    /* try to read UTC parameters from NDB */
+    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params)) {
+      /* TODO: flag NVM_UTC when the params come from NV */
+      utc_flags |= (DECODED_UTC << 2);
+    } else {
+      utc_flags |= (DEFAULT_UTC << 2);
+    }
+
+    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, utc_flags, &utc_params);
 
     /* Extract full covariance matrix from upper triangular in soln->err_cov */
     double full_covariance[9];
@@ -288,10 +298,15 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
                    (u8 * ) &sbp_messages->baseline_heading);
     }
   }
-  // Send NMEA alongside the sbp
+
+  utc_params_t utc_params;
+  /* read UTC parameters from NDB if they exist*/
+  ndb_utc_params_read(&utc_params);
+
+  /* Send NMEA alongside the sbp */
   nmea_send_msgs(&sbp_messages->pos_llh, &sbp_messages->vel_ned,
                  &sbp_messages->sbp_dops, &sbp_messages->gps_time,
-                 propagation_time, sender_id);
+                 propagation_time, sender_id, &utc_params);
 
 }
 
