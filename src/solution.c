@@ -359,7 +359,7 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   sbp_make_dgnss_status(&sbp_messages->dgnss_status, n_sats, propagation_time, flags);
 
-  if(flags == POSITION_FIX && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+  if(flags == FIXED_POSITION && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading, t, heading + heading_offset, n_sats, flags);
   }
@@ -1478,6 +1478,7 @@ static bool heading_offset_changed(struct setting *s, const char *val)
               offset, 180.0, -180.0, heading_offset);
     ret = false;
   }
+  *(double*)s->addr = offset;
   return ret;
 }
 
