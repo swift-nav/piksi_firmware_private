@@ -280,7 +280,7 @@ void tracking_send_state(void);
 void tracking_send_detailed_state(void);
 
 double propagate_code_phase(double code_phase, double carrier_freq,
-                            u32 n_samples, code_t code);
+                            u32 n_samples, gnss_signal_t sid);
 
 /* Update interface */
 void tracking_channels_update(u32 channels_mask);

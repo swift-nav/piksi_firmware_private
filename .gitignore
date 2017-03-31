@@ -33,4 +33,9 @@ scripts/RELEASE-VERSION
 .pydevproject
 
 src/version.h
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+
 

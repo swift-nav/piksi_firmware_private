@@ -85,7 +85,7 @@ void tracker_retune(tracker_context_t *context, double carrier_freq,
   tracker_internal_context_resolve(context, &channel_info, &internal_data);
 
   /* Write NAP UPDATE register. */
-  nap_track_update(channel_info->nap_channel,
+  nap_track_update(channel_info->nap_channel, channel_info->sid,
                    carrier_freq, code_phase_rate, chips_to_correlate, 0);
 }
 

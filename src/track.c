@@ -336,14 +336,14 @@ bool tracker_channel_available(tracker_channel_id_t id, gnss_signal_t sid)
  * \return The propagated code phase in chips.
  */
 double propagate_code_phase(double code_phase, double carrier_freq,
-                                   u32 n_samples, code_t code)
+                                   u32 n_samples, gnss_signal_t sid)
 {
   /* Calculate the code phase rate with carrier aiding. */
-  double code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(code)) *
-                           code_to_chip_rate(code);
+  double code_phase_rate = (1.0 + carrier_freq / sid_to_carr_freq(sid)) *
+                           code_to_chip_rate(sid.code);
   code_phase += n_samples * code_phase_rate / NAP_FRONTEND_SAMPLE_RATE_Hz;
   u32 cp_int = floor(code_phase);
-  code_phase -= cp_int - (cp_int % code_to_chip_count(code));
+  code_phase -= cp_int - (cp_int % code_to_chip_count(sid.code));
   return code_phase;
 }
 

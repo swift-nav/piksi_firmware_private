@@ -500,15 +500,15 @@ static void manage_acq()
                  ACQ_FULL_CF_STEP, &acq_result)) {
 
     /* DEBUG: Print results of successful GLO acquisitions. */
-    if (CODE_GLO_L1CA == acq->sid.code && acq_result.cn0 > 39.0f) {
-      log_error_sid(acq->sid, "%lf %lf", acq_result.cn0, acq_result.cf);
+    if (CODE_GLO_L1CA == acq->sid.code /* && acq_result.cn0 > 39.0f */) {
+      log_info_sid(acq->sid, "%lf %lf", acq_result.cn0, acq_result.cf);
+    } else {
+      return;
     }
     /* Send result of an acquisition to the host. */
     acq_result_send(acq->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
 
-    /* DEBUG: Prevent GPS satellites from tracking handover.
-     * We don't want position fix, since that would switch to re-acq mode. */
-    if (acq_result.cn0 < ACQ_THRESHOLD + 20) {
+    if (acq_result.cn0 < ACQ_THRESHOLD) {
       /* Didn't find the satellite :( */
       /* Double the size of the doppler search space for next time. */
       float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
@@ -805,10 +805,10 @@ static void manage_track()
     }
 
     /* Do we not have nav bit sync yet? */
-    if (0 == (info.flags & TRACKING_CHANNEL_FLAG_BIT_SYNC)) {
-      drop_channel(i, CH_DROP_REASON_NO_BIT_SYNC, &info, &time_info, &freq_info);
-      continue;
-    }
+    /* if (0 == (info.flags & TRACKING_CHANNEL_FLAG_BIT_SYNC)) { */
+    /*   drop_channel(i, CH_DROP_REASON_NO_BIT_SYNC, &info, &time_info, &freq_info); */
+    /*   continue; */
+    /* } */
 
     /* PLL/FLL pessimistic lock detector "unlocked" for a while? */
     if (time_info.ld_pess_unlocked_ms > TRACK_DROP_UNLOCKED_T) {
@@ -1371,13 +1371,24 @@ static void manage_tracking_startup(void)
       continue;
     }
 
+    log_info_sid(startup_params.sid,
+                 "Init tracker channel: "
+                 "carrier_freq = %f "
+                 "code_phase = %lf "
+                 "chips_to_correlate = %u "
+                 "cn0_init = %f",
+                 startup_params.carrier_freq,
+                 startup_params.code_phase,
+                 startup_params.chips_to_correlate,
+                 startup_params.cn0_init);
+
     /* Start the tracking channel */
-    if(!tracker_channel_init(chan, startup_params.sid,
-                             startup_params.sample_count,
-                             startup_params.code_phase,
-                             startup_params.carrier_freq,
-                             startup_params.chips_to_correlate,
-                             startup_params.cn0_init)) {
+    if (!tracker_channel_init(chan, startup_params.sid,
+                              startup_params.sample_count,
+                              startup_params.code_phase,
+                              startup_params.carrier_freq,
+                              startup_params.chips_to_correlate,
+                              startup_params.cn0_init)) {
       log_error("tracker channel init failed");
     }
 

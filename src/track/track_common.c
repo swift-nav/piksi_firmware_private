@@ -146,7 +146,8 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode);
   /**< Set initial rates */
   tl_rates_t rates;
-  rates.code_freq = common_data->code_phase_rate - GPS_CA_CHIPPING_RATE;
+  gnss_signal_t sid = channel_info->sid;
+  rates.code_freq = common_data->code_phase_rate - code_to_chip_rate(sid.code);
   rates.carr_freq = common_data->carrier_freq;
   rates.acceleration = 0.0f;
   /**< Set tracking loop configuration parameters */
@@ -155,17 +156,17 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   config.dll_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode);
   config.fll_loop_freq = 1000.f / tp_get_flll_ms(data->tracking_mode);
   config.fll_discr_freq = 1000.f / tp_get_flld_ms(data->tracking_mode);
-  config.carr_to_code = code_to_carr_to_code(channel_info->sid.code);
+  config.carr_to_code = code_to_carr_to_code(sid.code);
 
   if (init) {
-    log_debug_sid(channel_info->sid, "Initializing TL");
+    log_debug_sid(sid, "Initializing TL");
 
     tp_tl_init(&data->tl_state,
                next_params->loop_params.ctrl,
                &rates,
                &config);
   } else {
-    log_debug_sid(channel_info->sid, "Re-tuning TL");
+    log_debug_sid(sid, "Re-tuning TL");
 
     /* Recalculate filter coefficients */
     tp_tl_retune(&data->tl_state,
@@ -211,7 +212,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
     }
 
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(channel_info->sid, /* Signal for logging */
+    track_cn0_init(sid, /* Signal for logging */
                    cn0_ms,            /* C/N0 period in ms */
                    &data->cn0_est,    /* C/N0 estimator state */
                    cn0_0,             /* Initial C/N0 value */
@@ -221,7 +222,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
       data->cn0_est.cn0_0 = cn0_t;
       common_data->cn0 = cn0_t;
     }
-    log_debug_sid(channel_info->sid, "CN0 update: CD=%f EST=%f CN0_0=%f",
+    log_debug_sid(sid, "CN0 update: CD=%f EST=%f CN0_0=%f",
                   common_data->cn0,
                   cn0_0,
                   cn0_t);
@@ -792,7 +793,7 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
       common_data->ld_pess_change_count = common_data->update_count;
     }
 
-    if (last_outp && !outp && (data->tracking_mode != TP_TM_GPS_INITIAL)) {
+    if (last_outp && !outp && (data->tracking_mode != TP_TM_INITIAL)) {
       if (fll_loop) {
         log_info_sid(channel_info->sid, "FLL stress");
       } else if (pll_loop) {
@@ -855,9 +856,10 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
                                u32 cycle_flags)
 {
   if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
+    gnss_signal_t sid = channel_info->sid;
 
     /* Output I/Q correlations using SBP if enabled for this channel */
-    if (data->tracking_mode != TP_TM_GPS_INITIAL) {
+    if (data->tracking_mode != TP_TM_INITIAL) {
       tracker_correlations_send(channel_info->context, data->corrs.corr_epl.epl);
     }
 
@@ -866,7 +868,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
        * period, the controller will give wrong correction. Due to that the
        * input parameters are scaled to stabilize tracker.
        */
-      u8 new_dll_ms = tp_profile_get_next_loop_params_ms(&data->profile);
+      u8 new_dll_ms = tp_profile_get_next_loop_params_ms(sid, &data->profile);
       u8 old_dll_ms = tp_get_dll_ms(data->tracking_mode);
 
       if (old_dll_ms != new_dll_ms) {
@@ -882,12 +884,12 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
 
     tl_rates_t rates = {0};
 
-    bool costas = (channel_info->sid.code != CODE_GPS_L2CL);
+    bool costas = (sid.code != CODE_GPS_L2CL);
     tp_tl_update(&data->tl_state, &data->corrs.corr_epl, costas);
     tp_tl_get_rates(&data->tl_state, &rates);
 
     common_data->carrier_freq = rates.carr_freq;
-    common_data->code_phase_rate = rates.code_freq + GPS_CA_CHIPPING_RATE;
+    common_data->code_phase_rate = rates.code_freq + code_to_chip_rate(sid.code);
     common_data->acceleration = rates.acceleration;
 
     /* Do tracking report to manager */
@@ -905,10 +907,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
     report.time_ms = tp_get_dll_ms(data->tracking_mode);
     report.acceleration = rates.acceleration;
 
-    tp_profile_report_data(channel_info->sid,
-                           &data->profile,
-                           common_data,
-                           &report);
+    tp_profile_report_data(sid, &data->profile, common_data, &report);
   }
 }
 

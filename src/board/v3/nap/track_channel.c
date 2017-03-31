@@ -16,6 +16,7 @@
 #include "nap/track_channel.h"
 #include "track.h"
 #include "main.h"
+#include "timing.h"
 
 #include <ch.h>
 
@@ -171,11 +172,13 @@ static double calc_samples_per_chip(double code_phase_rate)
 }
 
 void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
-                   float carrier_freq, double code_phase, u32 chips_to_correlate)
+                   float doppler_freq_hz, double code_phase, u32 chips_to_correlate)
 {
   assert((sid.code == CODE_GPS_L1CA) ||
          (sid.code == CODE_GPS_L2CM) ||
-         (sid.code == CODE_GPS_L2CL));
+         (sid.code == CODE_GPS_L2CL) ||
+         (sid.code == CODE_GLO_L1CA) ||
+         (sid.code == CODE_GLO_L2CA));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
@@ -209,10 +212,14 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
                                   .samples = NAP_SPACING_SAMPLES};
 
   u16 control;
-  u8 prn = sid.sat - GPS_FIRST_PRN;
 
-  /* PRN code */
-  control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
+  if (CODE_GLO_L1CA == sid.code) {
+    /* NAP_TRK_CONTROL_SAT field is not used for GLONASS, so be it 0. */
+    control = 0;
+  } else {
+    u8 prn = sid.sat - GPS_FIRST_PRN;
+    control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
+  }
   /* RF frontend channel */
   control |= (sid_to_rf_frontend_channel(sid) << NAP_TRK_CONTROL_FRONTEND_Pos) &
              NAP_TRK_CONTROL_FRONTEND_Msk;
@@ -232,14 +239,15 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
       (spacing_to_nap_offset(s->spacing[3]) <<
       NAP_TRK_SPACING_OFFSET3_Pos);
 
-  double code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(sid.code)) *
+  double carrier_freq_hz = sid_to_carr_freq(sid);
+  double code_phase_rate = (1.0 + doppler_freq_hz / carrier_freq_hz) *
       code_to_chip_rate(sid.code);
 
   s->init = true;
   s->code_phase_rate[0] = code_phase_rate;
   s->code_phase_rate[1] = code_phase_rate;
 
-  nap_track_update(channel, carrier_freq, code_phase_rate,
+  nap_track_update(channel, sid, doppler_freq_hz, code_phase_rate,
       chips_to_correlate, 0);
 
   u32 length = t->LENGTH;
@@ -249,7 +257,7 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     log_warn_sid(s->sid,
                  "Wrong NAP init correlation length: "
                  "(%" PRIu32 ", %f, %lf %" PRIu32 ")",
-                 length, carrier_freq, code_phase_rate, chips_to_correlate);
+                 length, doppler_freq_hz, code_phase_rate, chips_to_correlate);
   }
 
   /* Spacing between VE and P correlators */
@@ -270,11 +278,14 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
   /* Set up timing compare */
   u32 tc_req;
   while (1) {
+    u32 diff;
     chSysLock();
-    tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
+    u32 timing_count = NAP->TIMING_COUNT;
+    tc_req = timing_count + TIMING_COMPARE_DELTA_MIN;
 
-    double cp = propagate_code_phase(code_phase, carrier_freq,
-                                     tc_req - ref_timing_count, sid.code);
+    diff = tc_req - ref_timing_count;
+    double cp = propagate_code_phase(code_phase, doppler_freq_hz,
+                                     tc_req - ref_timing_count, sid);
     u8 index = 0;
     /* Contrive for the timing strobe to occur at
      * or close to next PRN start point */
@@ -297,13 +308,18 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     }
     t->CODE_INIT_FRAC = 0;
     t->CODE_INIT_G1 = sid_to_init_g1(sid, index);
-    t->CODE_INIT_G2 = 0x3ff;
+    t->CODE_INIT_G2 = sid_to_init_g2(sid);
 
     /* Correct timing count for correlator spacing */
     tc_req -= prompt_offset;
 
     NAP->TRK_TIMING_COMPARE = tc_req;
     chSysUnlock();
+
+    log_info_sid(s->sid, "orig = %lf propagated = %lf tc_req - ref_timing_count = %lf doppler = %lf"
+                         " timing_count = %u, ref = %u",
+                         code_phase, cp, diff * RX_DT_NOMINAL * 1000, doppler_freq_hz,
+                         timing_count, ref_timing_count);
 
     if (tc_req - NAP->TRK_COMPARE_SNAPSHOT <= (u32)TIMING_COMPARE_DELTA_MAX) {
       break;
@@ -330,9 +346,15 @@ void nap_track_init(u8 channel, gnss_signal_t sid, u32 ref_timing_count,
     t->LENGTH += calc_samples_per_chip(code_phase_rate);
   }
   s->init = false;
+  log_info_sid(s->sid,
+               "INIT CODE_PINC=%u CARR_PINC=%d LENGTH=%u"
+               " CODE_INIT_G1=0x%X CODE_INIT_G2=0x%X CONTROL=0x%X",
+               t->CODE_PINC, t->CARR_PINC, t->LENGTH,
+               t->CODE_INIT_G1, t->CODE_INIT_G2, t->CONTROL);
 }
 
-void nap_track_update(u8 channel, double carrier_freq,
+void nap_track_update(u8 channel, gnss_signal_t sid,
+                      double doppler_freq_hz,
                       double code_phase_rate, u32 chips_to_correlate,
                       u8 corr_spacing)
 {
@@ -364,7 +386,19 @@ void nap_track_update(u8 channel, double carrier_freq,
           length, code_phase_rate);
   }
 
-  t->CARR_PINC = round(-carrier_freq * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  double carrier_freq_hz = 0;
+
+  if (CODE_GLO_L1CA == sid.code) {
+    carrier_freq_hz = (sid.sat - 8) * GLO_L1_DELTA_HZ;
+  } else if (CODE_GLO_L2CA == sid.code) {
+    carrier_freq_hz = (sid.sat - 8) * GLO_L2_DELTA_HZ;
+  }
+
+  carrier_freq_hz = carrier_freq_hz - doppler_freq_hz;
+
+  /* log_info_sid(sid, "sid.sat = %d sid_to_carr_freq(sid)=%lf, doppler_freq_hz = %lf carrier_freq_hz = %lf", */
+  /*                    sid.sat, sid_to_carr_freq(sid), doppler_freq_hz, carrier_freq_hz); */
+  t->CARR_PINC = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
 }
 
 void nap_track_read_results(u8 channel,
@@ -412,6 +446,7 @@ void nap_track_read_results(u8 channel,
   if (*code_phase_prompt < 0) {
     *code_phase_prompt += code_to_chip_count(s->sid.code);
   }
+  //log_info_sid(s->sid, "%d %d %u", corrs[1].I, corrs[1].Q, t->LENGTH);
 }
 
 void nap_track_disable(u8 channel)

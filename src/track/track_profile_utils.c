@@ -337,19 +337,19 @@ static const state_table_t mode_20ms1PN5 = {
 static const state_table_t *select_table(tp_tm_e tracking_mode)
 {
   switch (tracking_mode) {
-  case TP_TM_GPS_INITIAL:
+  case TP_TM_INITIAL:
     return &mode_1msINI;
 
-  case TP_TM_GPS_5MS:
+  case TP_TM_5MS:
     return &mode_5ms1PN;
 
-  case TP_TM_GPS_DYN:
+  case TP_TM_DYN:
     return &mode_1msDYN;
 
-  case TP_TM_GPS_10MS:
+  case TP_TM_10MS:
     return &mode_10ms1PN5;
 
-  case TP_TM_GPS_20MS:
+  case TP_TM_20MS:
     return &mode_20ms1PN5;
 
   default:
@@ -619,11 +619,11 @@ const char *tp_get_mode_str(tp_tm_e v)
 {
   const char *str = "?";
   switch (v) {
-  case TP_TM_GPS_INITIAL: str = "GPS_INI"; break;
-  case TP_TM_GPS_DYN:     str = "GPS_DYN"; break;
-  case TP_TM_GPS_5MS:     str = "GPS_5"; break;
-  case TP_TM_GPS_10MS:    str = "GPS_10"; break;
-  case TP_TM_GPS_20MS:    str = "GPS_20"; break;
+  case TP_TM_INITIAL: str = "TM_INI"; break;
+  case TP_TM_DYN:     str = "TM_DYN"; break;
+  case TP_TM_5MS:     str = "TM_5MS"; break;
+  case TP_TM_10MS:    str = "TM_10MS"; break;
+  case TP_TM_20MS:    str = "TM_20MS"; break;
   default: assert(false);
   }
   return str;
