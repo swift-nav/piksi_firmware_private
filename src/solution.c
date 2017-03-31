@@ -98,6 +98,8 @@ s16 msg_obs_max_size = 102;
 bool disable_raim = false;
 bool send_heading = false;
 
+double heading_offset = 0.0;
+
 bool disable_klobuchar = false;
 
 static u8 old_base_sender_id = 0;
@@ -372,8 +374,10 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   sbp_make_dgnss_status(&sbp_messages->dgnss_status, n_sats, propagation_time, flags);
 
-  double heading = calc_heading(b_ned);
-  sbp_make_heading(&sbp_messages->baseline_heading, t, heading, n_sats, flags);
+  if(flags == FIXED_POSITION && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+    double heading = calc_heading(b_ned);
+    sbp_make_heading(&sbp_messages->baseline_heading, t, heading + heading_offset, n_sats, flags);
+  }
 
   if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK))) {
@@ -1475,6 +1479,25 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
   return last_dgnss_stats;
 }
 
+/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
+static bool heading_offset_changed(struct setting *s, const char *val)
+{
+  double offset;
+  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+
+  if (fabs(offset) > 180.0) {
+    log_error("Invalid heading offset setting of %l, max is %l, min is %l, leaving heading offset at %l",
+              offset, 180.0, -180.0, heading_offset);
+    ret = false;
+  }
+  *(double*)s->addr = offset;
+  return ret;
+}
+
+
 void solution_setup()
 {
   /* Set time of last differential solution in the past. */
@@ -1512,6 +1535,7 @@ void solution_setup()
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
+  SETTING_NOTIFY("solution", "heading_offset", heading_offset, TYPE_FLOAT, heading_offset_changed);
 
   SETTING("solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
 
