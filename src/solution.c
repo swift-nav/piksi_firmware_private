@@ -359,8 +359,10 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   sbp_make_dgnss_status(&sbp_messages->dgnss_status, n_sats, propagation_time, flags);
 
-  double heading = calc_heading(b_ned);
-  sbp_make_heading(&sbp_messages->baseline_heading, t, heading + heading_offset, n_sats, flags);
+  if(flags == POSITION_FIX) {
+    double heading = calc_heading(b_ned);
+    sbp_make_heading(&sbp_messages->baseline_heading, t, heading + heading_offset, n_sats, flags);
+  }
 
   if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
       simulation_enabled_for(SIMULATION_MODE_RTK))) {
