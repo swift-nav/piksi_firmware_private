@@ -59,6 +59,7 @@ typedef enum {
   NDB_EVENT_OTYPE_IONO = 4,
   NDB_EVENT_OTYPE_L2C_CAP = 5,
   NDB_EVENT_OTYPE_LGF = 6,
+  NDB_EVENT_OTYPE_UTC_PARAMS = 7,
 } ndb_event_obj_type_t;
 
 #define NDB_EVENT_SENDER_ID_VOID 0
@@ -83,7 +84,8 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t
                       const double heading, u8 n_sats_used, u8 flags);
 void sbp_make_age_corrections(msg_age_corrections_t *age_corrections, const gps_time_t *t, double propagation_time);
 void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status, u8 num_sats, double obs_latency, u8 flags);
-void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags);
+void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags,
+                       const utc_params_t *utc_params);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,

@@ -12,7 +12,6 @@
 
 #include <math.h>
 #include <string.h>
-#include <time.h>
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/logging.h>

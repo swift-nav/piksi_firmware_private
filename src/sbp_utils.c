@@ -102,22 +102,24 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
   t_out->flags = flags;
 }
 
-void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags)
+void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags,
+                       const utc_params_t *utc_params)
 {
-  time_t unix_t;
-  struct tm utc_time;
-
-  unix_t = gps2time(t_in);
-  gmtime_r(&unix_t, &utc_time);
+  /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
+  utc_tm utc_time;
+  gps2utc(t_in, &utc_time, utc_params);
 
   t_out->tow = round_tow_ms(t_in->tow);
-  t_out->year = utc_time.tm_year + 1900;
-  t_out->month = utc_time.tm_mon;
-  t_out->day = utc_time.tm_mday;
-  t_out->hours = utc_time.tm_hour;
-  t_out->minutes = utc_time.tm_min;
-  t_out->seconds = utc_time.tm_sec;
-  t_out->ns = (s32) round((t_in->tow - t_out->tow/1000.0)*1e9);
+  t_out->year = utc_time.year;
+  t_out->month = utc_time.month;
+  t_out->day = utc_time.month_day;
+  t_out->hours = utc_time.hour;
+  t_out->minutes = utc_time.minute;
+  t_out->seconds = utc_time.second_int;
+  assert(utc_time.second_frac >= 0.0);
+  assert(utc_time.second_frac < 1.0);
+  /* round the nanosecond part down to stop it rounding up to the next second */
+  t_out->ns = floor(utc_time.second_frac * 1e9);
   t_out->flags = flags;
 }
 

@@ -83,6 +83,12 @@ ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
 {
   ndb_op_code_t res = ndb_update(iono, src, &iono_corr_md);
 
+  if (NULL != iono && NDB_ERR_NONE == res) {
+    log_info(
+        "Updating iono parameters: alpha = [%g %g %g %g], beta = [%g, %g, %g, %g]",
+        iono->a0, iono->a1, iono->a2, iono->a3,
+        iono->b0, iono->b1, iono->b2, iono->b3);
+  }
   sbp_send_ndb_event(NDB_EVENT_STORE,
                      NDB_EVENT_OTYPE_IONO,
                      res,
