@@ -159,9 +159,9 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     /* try to read UTC parameters from NDB */
     if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params)) {
       /* TODO: flag NVM_UTC when the params come from NV */
-      utc_flags |= (DECODED_UTC << 2);
+      utc_flags |= (DECODED_UTC << 3);
     } else {
-      utc_flags |= (DEFAULT_UTC << 2);
+      utc_flags |= (DEFAULT_UTC << 3);
     }
 
     sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, utc_flags, &utc_params);
