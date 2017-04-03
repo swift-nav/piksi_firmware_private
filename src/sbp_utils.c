@@ -667,7 +667,11 @@ void sbp_send_group_delay(const cnav_msg_t *cnav)
       .tow = (u32)(cnav->tow * 6),
       .wn = t.wn
     },
-    .prn = cnav->prn,
+    .sid = (sbp_gnss_signal_t){
+      .code = CODE_GPS_L2CM,
+      .sat = cnav->prn,
+      .reserved = 0
+    },
     .valid = cnav->data.type_30.tgd_valid          |
              cnav->data.type_30.isc_l2c_valid << 1 |
              cnav->data.type_30.isc_l1ca_valid << 2,
