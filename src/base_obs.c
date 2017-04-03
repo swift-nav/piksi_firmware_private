@@ -67,6 +67,7 @@ static bool old_base_pos_known = false;
 static double old_base_pos_ecef[3] = {0, 0, 0};
 
 static u32 base_obs_msg_counter = 0;
+static u8 old_base_sender_id = 0;
 
 void check_base_position_change(void)
 {
@@ -214,6 +215,21 @@ static void update_obss(obss_t *new_obss)
   /* Copy over sender ID. */
   base_obss.sender_id = new_obss->sender_id;
 
+  /* Check if the base sender ID has changed and reset the RTK filter if
+   * it has.
+   */
+  if ((old_base_sender_id != 0) &&
+      (old_base_sender_id != base_obss.sender_id)) {
+    log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
+             " filter.", old_base_sender_id, base_obss.sender_id);
+    reset_rtk_filter();
+    chMtxLock(&base_pos_lock);
+    base_pos_known = false;
+    memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+    chMtxUnlock(&base_pos_lock);
+  }
+  old_base_sender_id = base_obss.sender_id;
+
   /* Copy the current observations over to nm_old so we can difference
    * against them next time around. */
   memcpy(nm_old, new_obss->nm,
@@ -301,47 +317,6 @@ static void update_obss(obss_t *new_obss)
     base_obss.has_pos = 0;
   }
 
-  /* If the surveyed base station position is known then use it to calculate
-     the satellite ranges. Otherwise, use the SPP. This calculation will be
-     used later by the propagation functions. */
-  if (base_obss.has_pos) {
-    double *base_pos = base_obss.has_known_pos_ecef ? base_obss.known_pos_ecef : base_obss.pos_ecef;
-    for (u8 i=0; i < base_obss.n; i++) {
-      /* The nominal initial "sat_dist" contains the distance
-         from the base position to the satellite position as well as the
-         satellite clock error. */
-      base_obss.sat_dists[i] = nominal_pseudorange(base_obss.nm[i].sat_pos,
-                                                   base_pos,
-                                                   base_obss.nm[i].sat_clock_err);
-      base_obss.sat_dists_dot[i] = nominal_doppler(base_obss.nm[i].sat_vel,
-                                                   base_obss.nm[i].sat_pos,
-                                                   base_pos,
-                                                   base_obss.nm[i].sat_clock_err_rate);
-    }
-
-    /* If we want to use measured doppler in our filter, we might need to
-      add a nominal measured doppler "measurement" to the base
-      station's observations (if they don't already exist) because GPS receivers
-      that aren't Piksi (CORS stations, etc) typically don't transmit their
-      measured doppler. */
-    bool any_measured_doppler = false;
-    for (u8 i = 0; i < base_obss.n; i++) {
-      any_measured_doppler |=
-        0 != (base_obss.nm[i].flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID);
-    }
-
-    if (!any_measured_doppler) {
-      for (u8 i = 0; i < base_obss.n; i++) {
-        base_obss.nm[i].raw_measured_doppler =
-              -nominal_doppler(base_obss.nm[i].sat_vel,
-                               base_obss.nm[i].sat_pos,
-                               base_pos,
-                               base_obss.nm[i].sat_clock_err_rate) /
-                                code_to_lambda(base_obss.nm[i].sid.code);
-        base_obss.nm[i].flags |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
-      }
-    }
-  }
   /* Unlock base_obss mutex. */
   chMtxUnlock(&base_obs_lock);
 
