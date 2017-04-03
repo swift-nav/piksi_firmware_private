@@ -376,7 +376,8 @@ void solution_make_baseline_sbp(const rtk_baseline_result_t *result,
   sbp_make_dgnss_status(&sbp_messages->dgnss_status, result->num_sats_used,
                         result->propagation_time, result->flags);
 
-  if(flags == FIXED_POSITION && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+  if (result->flags == FIXED_POSITION &&
+      dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading, &result->result_time,
                      heading + heading_offset, result->num_sats_used,
