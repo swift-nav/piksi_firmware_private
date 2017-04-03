@@ -265,7 +265,7 @@ void sch_run(acq_jobs_state_t *jobs_data)
   acq_param = &task->task_array[task->task_index];
   job->state = ACQ_STATE_RUN;
 
-  assert(sid_valid(mesid2sid(job->mesid)));
+  assert(mesid_valid(job->mesid));
 
   job->start_time = timing_getms();
 

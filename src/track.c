@@ -86,9 +86,9 @@ static update_count_t update_count_diff(const tracker_channel_t *
 static bool track_iq_output_notify(struct setting *s, const char *val);
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
-static const tracker_interface_t * tracker_interface_lookup(me_gnss_signal_t mesid);
+static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal_t mesid);
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
-                                     me_gnss_signal_t mesid,
+                                     const me_gnss_signal_t mesid,
                                      tracker_t **tracker,
                                      const tracker_interface_t **
                                      tracker_interface);
@@ -102,7 +102,7 @@ static void interface_function(tracker_channel_t *tracker_channel,
 static void event(tracker_channel_t *d, event_t event);
 static void common_data_init(tracker_common_data_t *common_data,
                              u32 sample_count, float carrier_freq,
-                             float cn0, code_t code);
+                             float cn0, const code_t code);
 static void tracker_channel_lock(tracker_channel_t *tracker_channel);
 static void tracker_channel_unlock(tracker_channel_t *tracker_channel);
 static void error_flags_clear(tracker_channel_t *tracker_channel);
@@ -208,6 +208,7 @@ void tracking_send_state()
         states[i].cn0 = -1;
       } else {
         states[i].state = 1;
+        /* TODO GLO: Handle GLO signals properly. */
         states[i].sid = sid_to_sbp(mesid2sid(mesid));
         states[i].cn0 = cn0;
       }
@@ -317,7 +318,7 @@ void tracking_channels_missed_update_error(u32 channels_mask)
  * \return true if the tracker channel is available, false otherwise.
  */
 bool tracker_channel_available(tracker_channel_id_t id,
-                               me_gnss_signal_t mesid)
+                               const me_gnss_signal_t mesid)
 {
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
 
@@ -361,7 +362,7 @@ double propagate_code_phase(double code_phase, double carrier_freq,
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
-bool tracker_channel_init(tracker_channel_id_t id, me_gnss_signal_t mesid,
+bool tracker_channel_init(tracker_channel_id_t id, const me_gnss_signal_t mesid,
                           u32 ref_sample_count, double code_phase,
                           float carrier_freq, u32 chips_to_correlate,
                           float cn0_init)
@@ -448,14 +449,14 @@ bool tracker_channel_disable(tracker_channel_id_t id)
  * \param[in] val prn fail flag value. TRUE if decoded prn from L2C data stream
  *            is not correspond to SVID, otherwise FALSE
  */
-void tracking_channel_set_prn_fail_flag(me_gnss_signal_t mesid, bool val)
+void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val)
 {
   /* Find SV ID for L1CA and L2CM and set the flag  */
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(id);
     tracker_channel_lock(tracker_channel);
-    if (sid_to_constellation(mesid2sid(tracker_channel->info.mesid)) == CONSTELLATION_GPS
-        && tracker_channel->info.mesid.sat == mesid.sat) {
+    if (CONSTELLATION_GPS == mesid_to_constellation(tracker_channel->info.mesid) &&
+        tracker_channel->info.mesid.sat == mesid.sat) {
       tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
       internal_data->prn_check_fail = val;
     }
@@ -471,7 +472,7 @@ void tracking_channel_set_prn_fail_flag(me_gnss_signal_t mesid, bool val)
  *
  * \return None
  */
-void tracking_channel_set_xcorr_flag(me_gnss_signal_t mesid)
+void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid)
 {
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     /* Find matching tracker and set the flag  */
@@ -785,9 +786,9 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
   chMtxUnlock(&pub_data->info_mutex);
 
   if (adjusted) {
-    log_debug_sid(mesid2sid(info->mesid),
-                  "Adjusting carrier phase offset to %lf",
-                  carrier_phase_offset);
+    log_debug_mesid(info->mesid,
+                    "Adjusting carrier phase offset to %lf",
+                    carrier_phase_offset);
   }
 
 }
@@ -893,6 +894,8 @@ void tracking_channel_measurement_get(u64 ref_tc,
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
 
+  /* TODO GLO: Handle GLO signals properly. */
+  assert(!is_glo_sid(info->mesid));
   meas->sid = mesid2sid(info->mesid);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
@@ -974,9 +977,9 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     chMtxUnlock(&pub_data->info_mutex);
 
     if (adjusted) {
-      log_debug_sid(mesid2sid(mesid),
-                    "Adjusting carrier phase offset to %f",
-                    carrier_phase_offset);
+      log_debug_mesid(mesid,
+                      "Adjusting carrier phase offset to %f",
+                      carrier_phase_offset);
     }
   }
 }
@@ -987,7 +990,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
  *
  * \return tracker channel container for the requested mesid.
  */
-tracker_channel_t *tracker_channel_get_by_mesid(me_gnss_signal_t mesid)
+tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid)
 {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
 
@@ -1008,7 +1011,7 @@ tracker_channel_t *tracker_channel_get_by_mesid(me_gnss_signal_t mesid)
  *
  * \return None
  */
-void tracking_channel_drop_l2cl(me_gnss_signal_t mesid)
+void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
 {
   me_gnss_signal_t mesid_L2CL = construct_mesid(CODE_GPS_L2CL, mesid.sat);
   tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid_L2CL);
@@ -1319,7 +1322,7 @@ tracker_channel_t * tracker_channel_get(tracker_channel_id_t id)
  *
  * \return Associated tracker interface. May be the default interface.
  */
-static const tracker_interface_t * tracker_interface_lookup(me_gnss_signal_t mesid)
+static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal_t mesid)
 {
   const tracker_interface_list_element_t *e = *tracker_interface_list_ptr_get();
   while (e != 0) {
@@ -1343,7 +1346,7 @@ static const tracker_interface_t * tracker_interface_lookup(me_gnss_signal_t mes
  * \return true if the tracker channel is available, false otherwise.
  */
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
-                                     me_gnss_signal_t mesid,
+                                     const me_gnss_signal_t mesid,
                                      tracker_t **tracker,
                                      const tracker_interface_t **
                                      tracker_interface)
@@ -1487,7 +1490,7 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
  */
 static void common_data_init(tracker_common_data_t *common_data,
                              u32 sample_count, float carrier_freq,
-                             float cn0, code_t code)
+                             float cn0, const code_t code)
 {
   /* Initialize all fields to 0 */
   memset(common_data, 0, sizeof(tracker_common_data_t));

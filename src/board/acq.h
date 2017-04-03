@@ -43,7 +43,7 @@ typedef struct {
 
 float acq_bin_width(void);
 
-bool acq_search(me_gnss_signal_t sid, float cf_min, float cf_max,
+bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
                 float cf_bin_width, acq_result_t *acq_result);
 
 #endif /* SWIFTNAV_ACQ_H */

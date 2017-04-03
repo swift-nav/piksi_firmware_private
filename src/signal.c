@@ -92,21 +92,21 @@ gnss_signal_t sid_from_global_index(u16 global_index)
  *
  * \param global_index    Global signal index in [0, PLATFORM_SIGNAL_COUNT).
  *
- * \return gnss_signal_t corresponding to global_index.
+ * \return me_gnss_signal_t corresponding to global_index.
  */
 me_gnss_signal_t mesid_from_global_index(u16 global_index)
 {
-  /* TODO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO signals properly. */
   for (enum code code = 0; code < CODE_COUNT; code++) {
     if (global_index < code_table[code].global_start_index +
         code_signal_counts[code]) {
-      return sid2mesid(sid_from_code_index(code, global_index -
-                       code_table[code].global_start_index));
+      return mesid_from_code_index(code, global_index -
+                                   code_table[code].global_start_index);
     }
   }
 
   assert(!"Invalid global index");
-  return sid2mesid(construct_sid(CODE_INVALID, 0));
+  return construct_mesid(CODE_INVALID, 0);
 }
 
 /** Convert a constellation-specific signal index to a gnss_signal_t.
@@ -162,9 +162,9 @@ u16 sid_to_global_index(gnss_signal_t sid)
  *
  * \return Global signal index in [0, PLATFORM_SIGNAL_COUNT).
  */
-u16 mesid_to_global_index(me_gnss_signal_t mesid)
+u16 mesid_to_global_index(const me_gnss_signal_t mesid)
 {
-  /* TODO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO signals properly. */
   assert(code_supported(mesid.code));
   return code_table[mesid.code].global_start_index +
       mesid_to_code_index(mesid);

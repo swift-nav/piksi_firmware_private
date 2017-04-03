@@ -155,9 +155,9 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
   if ((code_phase < 0) ||
       ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
        (code_phase < (GPS_L2CM_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
-    log_warn_sid(mesid2sid(mesid),
-                 "Unexpected L2CM to L2CL hand-over code phase: %f",
-                 code_phase);
+    log_warn_mesid(mesid,
+                   "Unexpected L2CM to L2CL hand-over code phase: %f",
+                   code_phase);
     return;
   }
 
@@ -194,7 +194,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
   case 0:
-    log_debug_sid(mesid2sid(mesid), "L2 CL handover done");
+    log_debug_mesid(mesid, "L2 CL handover done");
     break;
 
   case 1:
@@ -202,7 +202,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     break;
 
   case 2:
-    log_warn_sid(mesid2sid(mesid), "Failed to start L2CL tracking");
+    log_warn_mesid(mesid, "Failed to start L2CL tracking");
     break;
 
   default:
@@ -252,12 +252,12 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
         s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH >> 1) ?
                       -tail : GPS_L2C_SYMBOL_LENGTH - tail;
 
-        log_info_sid(mesid2sid(channel_info->mesid),
-                     "[+%" PRIu32 "ms] Adjusting ToW:"
-                     " adjustment=%" PRId8 "ms old_tow=%" PRId32,
-                     common_data->update_count,
-                     error_ms,
-                     common_data->TOW_ms);
+        log_info_mesid(channel_info->mesid,
+                       "[+%" PRIu32 "ms] Adjusting ToW:"
+                       " adjustment=%" PRId8 "ms old_tow=%" PRId32,
+                       common_data->update_count,
+                       error_ms,
+                       common_data->TOW_ms);
 
         common_data->TOW_ms += error_ms;
       }
@@ -275,22 +275,22 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                               &error_ms);
 
       if (TOW_UNKNOWN != ToW_ms) {
-        log_debug_sid(mesid2sid(channel_info->mesid),
-                      "[+%" PRIu32 "ms]"
-                      " Initializing TOW from cache [%" PRIu8 "ms] "
-                      "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                      common_data->update_count,
-                      bit_length,
-                      nap_count_to_ms(time_delta_tk),
-                      ToW_ms,
-                      error_ms);
+        log_debug_mesid(channel_info->mesid,
+                        "[+%" PRIu32 "ms]"
+                        " Initializing TOW from cache [%" PRIu8 "ms] "
+                        "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                        common_data->update_count,
+                        bit_length,
+                        nap_count_to_ms(time_delta_tk),
+                        ToW_ms,
+                        error_ms);
         common_data->TOW_ms = ToW_ms;
         if (tp_tow_is_sane(common_data->TOW_ms)) {
           common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
         } else {
-          log_error_sid(mesid2sid(channel_info->mesid),
-                        "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
-                        common_data->update_count, common_data->TOW_ms);
+          log_error_mesid(channel_info->mesid,
+                          "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
+                          common_data->update_count, common_data->TOW_ms);
           common_data->TOW_ms = TOW_UNKNOWN;
         }
       }
@@ -348,7 +348,7 @@ static void reset_cp_data(tracker_common_data_t *common_data)
  *  and did not have half-cycle ambiguity resolved.
  *  False, otherwise. L2CL will be dropped if False.
  */
-static bool load_cp_data(me_gnss_signal_t mesid, cp_comp_t *cp_comp,
+static bool load_cp_data(const me_gnss_signal_t mesid, cp_comp_t *cp_comp,
                          tracker_common_data_t *common_data)
 {
   bool L2CM_synced = false;
@@ -460,7 +460,7 @@ static bool compare_cp_data(cp_comp_t *cp_comp, s8 *polarity,
  *
  * \return None
  */
-static void increment_cp_counter(me_gnss_signal_t mesid, cp_comp_t *cp_comp,
+static void increment_cp_counter(const me_gnss_signal_t mesid, cp_comp_t *cp_comp,
                                  s8 polarity,
                                  tracker_common_data_t *common_data)
 
@@ -496,7 +496,7 @@ static void increment_cp_counter(me_gnss_signal_t mesid, cp_comp_t *cp_comp,
  *
  * \return None
  */
-static void process_cp_data(me_gnss_signal_t mesid,
+static void process_cp_data(const me_gnss_signal_t mesid,
                             tracker_common_data_t *common_data)
 {
   cp_comp_t cp_comp = {0};

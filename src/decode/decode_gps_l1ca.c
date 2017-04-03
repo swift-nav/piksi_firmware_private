@@ -450,7 +450,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     if ((TOW_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
       if (!tracking_channel_time_sync(channel_info->tracking_channel, TOW_ms,
                                       bit_polarity)) {
-        log_warn_sid(mesid2sid(channel_info->mesid), "TOW set failed");
+        log_warn_mesid(channel_info->mesid, "TOW set failed");
       }
     }
   }
@@ -468,18 +468,18 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.invalid_control_or_data) {
-    log_info_sid(mesid2sid(channel_info->mesid),
-                 "Invalid control or data element");
+    log_info_mesid(channel_info->mesid,
+                   "Invalid control or data element");
 
     ndb_op_code_t c = ndb_ephemeris_erase(mesid2sid(channel_info->mesid));
 
     if (NDB_ERR_NONE == c) {
-      log_info_sid(mesid2sid(channel_info->mesid),
-                   "ephemeris deleted (1/0)");
+      log_info_mesid(channel_info->mesid,
+                     "ephemeris deleted (1/0)");
     } else if (NDB_ERR_NO_CHANGE != c){
-      log_warn_sid(mesid2sid(channel_info->mesid),
-                   "error %d deleting ephemeris (1/0)",
-                   (int)c);
+      log_warn_mesid(channel_info->mesid,
+                     "error %d deleting ephemeris (1/0)",
+                     (int)c);
     }
     return;
   }
@@ -488,15 +488,15 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   shm_gps_set_shi4(channel_info->mesid.sat, false == data->nav_msg.alert);
 
   if (dd.shi1_upd_flag) {
-    log_debug_sid(mesid2sid(channel_info->mesid), "SHI1: 0x%" PRIx8, dd.shi1);
+    log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi1);
     shm_gps_set_shi1(channel_info->mesid.sat, dd.shi1);
   }
 
   if (dd.gps_l2c_sv_capability_upd_flag) {
     /* store new L2C value into NDB */
-    log_debug_sid(mesid2sid(channel_info->mesid),
-                  "L2C capabilities received: 0x%08"PRIx32,
-                  dd.gps_l2c_sv_capability);
+    log_debug_mesid(channel_info->mesid,
+                    "L2C capabilities received: 0x%08"PRIx32,
+                    dd.gps_l2c_sv_capability);
 
     if (ndb_gps_l2cm_l2c_cap_store(&sid,
                                    &dd.gps_l2c_sv_capability,
@@ -531,17 +531,17 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.ephemeris_upd_flag) {
     /* Store new ephemeris to NDB */
-    log_debug_sid(mesid2sid(channel_info->mesid),
-                  "New ephemeris received [%" PRId16 ", %lf]",
-                  dd.ephemeris.toe.wn, dd.ephemeris.toe.tow);
+    log_debug_mesid(channel_info->mesid,
+                    "New ephemeris received [%" PRId16 ", %lf]",
+                    dd.ephemeris.toe.wn, dd.ephemeris.toe.tow);
     eph_new_status_t r = ephemeris_new(&dd.ephemeris);
     switch (r) {
     case EPH_NEW_OK:
     case EPH_NEW_ERR:
       break;
     case EPH_NEW_XCORR:
-      log_info_sid(mesid2sid(channel_info->mesid),
-                   "Channel cross-correlation detected (ephe/alm check)");
+      log_info_mesid(channel_info->mesid,
+                     "Channel cross-correlation detected (ephe/alm check)");
       /* Ephemeris cross-correlates with almanac of another SV */
       tracking_channel_set_xcorr_flag(channel_info->mesid);
       break;
@@ -552,27 +552,27 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.almanac_upd_flag) {
     /* Store new almanac to NDB*/
-    log_debug_sid(mesid2sid(channel_info->mesid),
-                  "New almanac received [%"  PRId16 ", %lf]",
-                  dd.almanac.toa.wn, dd.almanac.toa.tow);
+    log_debug_mesid(channel_info->mesid,
+                    "New almanac received [%"  PRId16 ", %lf]",
+                    dd.almanac.toa.wn, dd.almanac.toa.tow);
 
-    decode_almanac_new(mesid2sid(channel_info->mesid), &dd.almanac);
+    decode_almanac_new(sid, &dd.almanac);
   }
   if (dd.almanac_time_upd_flag) {
     /* Store new almanac time to NDB*/
-    log_debug_sid(mesid2sid(channel_info->mesid),
-                  "New almanac time received [%" PRId16 ", %" PRId32 "]",
-                  dd.almanac_time.wn, (s32)dd.almanac_time.tow);
+    log_debug_mesid(channel_info->mesid,
+                    "New almanac time received [%" PRId16 ", %" PRId32 "]",
+                    dd.almanac_time.wn, (s32)dd.almanac_time.tow);
 
-    decode_almanac_time_new(mesid2sid(channel_info->mesid), &dd.almanac_time);
+    decode_almanac_time_new(sid, &dd.almanac_time);
 
   }
   if (0 != dd.almanac_health_upd_flags) {
-    log_debug_sid(mesid2sid(channel_info->mesid),
-                  "New almanac health update received [0x08%" PRIX32 "]",
-                  dd.almanac_health_upd_flags);
+    log_debug_mesid(channel_info->mesid,
+                    "New almanac health update received [0x08%" PRIX32 "]",
+                    dd.almanac_health_upd_flags);
     /* Erase bad almanacs/ephemeris and update health flags for others */
-    decode_almanac_health_new(mesid2sid(channel_info->mesid),
+    decode_almanac_health_new(sid,
                               dd.almanac_health_upd_flags,
                               dd.almanac_health);
   }

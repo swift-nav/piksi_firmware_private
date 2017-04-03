@@ -184,12 +184,12 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
       s8 error_ms = tail < (GPS_L1CA_BIT_LENGTH_MS >> 1) ?
                     -tail : GPS_L1CA_BIT_LENGTH_MS - tail;
 
-      log_info_sid(mesid2sid(channel_info->mesid),
-                   "[+%" PRIu32 "ms] Adjusting ToW: "
-                   "adjustment=%" PRId8 "ms old_tow=%" PRId32,
-                   common_data->update_count,
-                   error_ms,
-                   common_data->TOW_ms);
+      log_info_mesid(channel_info->mesid,
+                     "[+%" PRIu32 "ms] Adjusting ToW: "
+                     "adjustment=%" PRId8 "ms old_tow=%" PRId32,
+                     common_data->update_count,
+                     error_ms,
+                     common_data->TOW_ms);
 
       common_data->TOW_ms += error_ms;
     }
@@ -208,21 +208,21 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
                             &error_ms);
 
     if (TOW_UNKNOWN != ToW_ms) {
-      log_debug_sid(mesid2sid(channel_info->mesid),
-                    "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8 "ms]"
-                    " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                    common_data->update_count,
-                    ms_align,
-                    nap_count_to_ms(time_delta_tk),
-                    ToW_ms,
-                    error_ms);
+      log_debug_mesid(channel_info->mesid,
+                      "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8 "ms]"
+                      " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                      common_data->update_count,
+                      ms_align,
+                      nap_count_to_ms(time_delta_tk),
+                      ToW_ms,
+                      error_ms);
       common_data->TOW_ms = ToW_ms;
       if (tp_tow_is_sane(common_data->TOW_ms)) {
         common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
       } else {
-        log_error_sid(mesid2sid(channel_info->mesid),
-                      "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
-                      common_data->update_count, common_data->TOW_ms);
+        log_error_mesid(channel_info->mesid,
+                        "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
+                        common_data->update_count, common_data->TOW_ms);
         common_data->TOW_ms = TOW_UNKNOWN;
       }
     }

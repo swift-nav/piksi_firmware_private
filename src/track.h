@@ -289,8 +289,8 @@ void tracking_channels_missed_update_error(u32 channels_mask);
 
 /* State management interface */
 bool tracker_channel_available(tracker_channel_id_t id,
-                               me_gnss_signal_t mesid);
-bool tracker_channel_init(tracker_channel_id_t id, me_gnss_signal_t mesid,
+                               const me_gnss_signal_t mesid);
+bool tracker_channel_init(tracker_channel_id_t id, const me_gnss_signal_t mesid,
                           u32 ref_sample_count, double code_phase,
                           float carrier_freq, u32 chips_to_correlate,
                           float cn0_init);
@@ -324,8 +324,8 @@ void tracking_channel_set_carrier_phase_offset(const tracking_channel_info_t *in
                                                double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
-tracker_channel_t *tracker_channel_get_by_mesid(me_gnss_signal_t mesid);
-void tracking_channel_drop_l2cl(me_gnss_signal_t mesid);
+tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
+void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid);
 
 bool sv_azel_degrees_set(gnss_signal_t sid, u16 azimuth,
                          s8 elevation, u64 timestamp);
@@ -337,7 +337,7 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
                                   bool *sensitivity_mode);
 bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
                                 s8 bit_polarity);
-void tracking_channel_set_prn_fail_flag(me_gnss_signal_t mesid, bool val);
+void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
-void tracking_channel_set_xcorr_flag(me_gnss_signal_t mesid);
+void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);
 #endif

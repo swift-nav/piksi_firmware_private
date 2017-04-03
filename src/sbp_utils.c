@@ -37,6 +37,7 @@ void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out);
 
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
 {
+  /* TODO GLO: Check GLO status */
   sbp_gnss_signal_t sbp_sid = {
     .code = from.code,
     .sat = from.sat,

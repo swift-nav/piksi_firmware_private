@@ -82,7 +82,7 @@ static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
 static THD_WORKING_AREA(wa_decode_thread, 3072);
 
 static void decode_thread(void *arg);
-static const decoder_interface_t * decoder_interface_get(me_gnss_signal_t mesid);
+static const decoder_interface_t * decoder_interface_get(const me_gnss_signal_t mesid);
 static decoder_channel_t * decoder_channel_get(u8 tracking_channel);
 static bool available_decoder_get(const decoder_interface_t *interface,
                                   decoder_t **decoder);
@@ -134,14 +134,15 @@ void decoder_interface_register(decoder_interface_list_element_t *element)
 }
 
 /** Determine if a decoder channel is available for the specified tracking
- * channel and mesid.
+ * channel and ME sid.
  *
  * \param tracking_channel  Tracking channel to use.
  * \param mesid             ME signal to be decoded.
  *
  * \return true if a decoder channel is available, false otherwise.
  */
-bool decoder_channel_available(u8 tracking_channel, me_gnss_signal_t mesid)
+bool decoder_channel_available(u8 tracking_channel,
+                               const me_gnss_signal_t mesid)
 {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED)
@@ -155,7 +156,7 @@ bool decoder_channel_available(u8 tracking_channel, me_gnss_signal_t mesid)
   return true;
 }
 
-/** Initialize a decoder channel to process telemetry for mesid from the
+/** Initialize a decoder channel to process telemetry for ME sid from the
  * specified tracking channel.
  *
  * \param tracking_channel  Tracking channel to use.
@@ -163,7 +164,7 @@ bool decoder_channel_available(u8 tracking_channel, me_gnss_signal_t mesid)
  *
  * \return true if a decoder channel was initialized, false otherwise.
  */
-bool decoder_channel_init(u8 tracking_channel, me_gnss_signal_t mesid)
+bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid)
 {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED)
@@ -253,7 +254,7 @@ static void decode_thread(void *arg)
  *
  * \return Associated decoder interface. May be the default interface.
  */
-static const decoder_interface_t * decoder_interface_get(me_gnss_signal_t mesid)
+static const decoder_interface_t * decoder_interface_get(const me_gnss_signal_t mesid)
 {
   const decoder_interface_list_element_t *e = decoder_interface_list;
   while (e != 0) {

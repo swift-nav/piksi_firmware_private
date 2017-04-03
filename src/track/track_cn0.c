@@ -317,7 +317,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
  *
  * \return None
  */
-void track_cn0_init(me_gnss_signal_t mesid,
+void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 cn0_ms,
                     track_cn0_state_t *e,
                     float cn0_0,
@@ -339,11 +339,11 @@ void track_cn0_init(me_gnss_signal_t mesid,
 
   e->ver = cn0_config.update_count;
 
-  log_debug_sid(mesid2sid(mesid),
-                "Initializing estimator %s (%f dB/Hz @ %u ms)",
-                track_cn0_str(e->type),
-                e->filter.yn,
-                (unsigned)e->cn0_ms);
+  log_debug_mesid(mesid,
+                  "Initializing estimator %s (%f dB/Hz @ %u ms)",
+                  track_cn0_str(e->type),
+                  e->filter.yn,
+                  (unsigned)e->cn0_ms);
 }
 
 /**
@@ -359,7 +359,7 @@ void track_cn0_init(me_gnss_signal_t mesid,
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(me_gnss_signal_t mesid,
+float track_cn0_update(const me_gnss_signal_t mesid,
                        track_cn0_est_e t,
                        track_cn0_state_t *e,
                        float I, float Q,
@@ -376,12 +376,12 @@ float track_cn0_update(me_gnss_signal_t mesid,
   }
 
   if (e->type != t) {
-    log_debug_sid(mesid2sid(mesid),
-                  "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
-                  track_cn0_str(e->type),
-                  track_cn0_str(t),
-                  e->filter.yn,
-                  (unsigned)e->cn0_ms);
+    log_debug_mesid(mesid,
+                    "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
+                    track_cn0_str(e->type),
+                    track_cn0_str(t),
+                    e->filter.yn,
+                    (unsigned)e->cn0_ms);
     e->type = t;
   }
 

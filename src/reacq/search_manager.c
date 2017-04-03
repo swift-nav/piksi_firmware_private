@@ -62,7 +62,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     me_gnss_signal_t mesid = deep_job->mesid;
     bool visible, known;
 
-    assert(sid_valid(mesid2sid(mesid)));
+    assert(mesid_valid(mesid));
 
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
@@ -73,7 +73,8 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     if (mesid_is_tracked(mesid)) {
       continue;
     }
-
+    /* TODO GLO: Handle GLO signals properly. */
+    assert(!is_glo_sid(mesid));
     sm_get_visibility_flags(mesid2sid(mesid), &visible, &known);
     visible = visible && known;
 
@@ -105,7 +106,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
 
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
-    assert(sid_valid(mesid2sid(mesid)));
+    assert(mesid_valid(mesid));
 
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
@@ -114,7 +115,8 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     if (mesid_is_tracked(mesid)) {
       continue;
     }
-
+    /* TODO GLO: Handle GLO signals properly. */
+    assert(!is_glo_sid(mesid));
     sm_get_visibility_flags(mesid2sid(mesid), &visible, &known);
     visible = visible && known;
     invisible = !visible && known;

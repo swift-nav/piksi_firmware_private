@@ -262,6 +262,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   state->L.i = (s32)Li;
   state->L.f = (u8)(Lf * MSG_OBS_LF_MULTIPLIER);
 
+  /* TODO GLO: Handle GLO signals properly. */
   gnss_signal_t sid = mesid2sid(channel_info->mesid);
 
   float cn0 = channel_info->cn0 * MSG_OBS_CN0_MULTIPLIER;

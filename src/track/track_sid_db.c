@@ -79,7 +79,7 @@ void track_sid_db_init(void)
  * \retval true  If ToW entry has been loaded.
  * \retval false If ToW entry is not present.
  */
-bool track_sid_db_load_tow(gnss_signal_t sid, tp_tow_entry_t *tow_entry)
+bool track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry)
 {
   bool result = false;
 
@@ -103,7 +103,7 @@ bool track_sid_db_load_tow(gnss_signal_t sid, tp_tow_entry_t *tow_entry)
  * \retval true  If ToW entry has been updated.
  * \retval false If ToW entry is not present.
  */
-bool track_sid_db_update_tow(gnss_signal_t sid, const tp_tow_entry_t *tow_entry)
+bool track_sid_db_update_tow(const gnss_signal_t sid, const tp_tow_entry_t *tow_entry)
 {
   bool result = false;
 
@@ -128,7 +128,7 @@ bool track_sid_db_update_tow(gnss_signal_t sid, const tp_tow_entry_t *tow_entry)
  * \retval true  If elevation entry has been loaded.
  * \retval false If elevation entry is not present.
  */
-bool track_sid_db_load_elevation(gnss_signal_t sid,
+bool track_sid_db_load_elevation(const gnss_signal_t sid,
                                  tp_azel_entry_t *azel_entry)
 {
   bool result = false;
@@ -154,7 +154,7 @@ bool track_sid_db_load_elevation(gnss_signal_t sid,
  * \retval true  If elevation entry has been updated.
  * \retval false If elevation entry is not present.
  */
-bool track_sid_db_update_azel(gnss_signal_t sid,
+bool track_sid_db_update_azel(const gnss_signal_t sid,
                               const tp_azel_entry_t *azel_entry)
 {
   bool result = false;
@@ -250,7 +250,7 @@ bool tp_tow_is_sane(s32 tow_ms)
  *
  * \sa track_sid_db_update_positions
  */
-bool track_sid_db_load_positions(gnss_signal_t sid,
+bool track_sid_db_load_positions(const gnss_signal_t sid,
                                  xcorr_positions_t *position_entry)
 {
   bool result = false;
@@ -278,7 +278,7 @@ bool track_sid_db_load_positions(gnss_signal_t sid,
  *
  * \sa track_sid_db_load_positions
  */
-bool track_sid_db_update_positions(gnss_signal_t sid,
+bool track_sid_db_update_positions(const gnss_signal_t sid,
                                    const xcorr_positions_t *position_entry)
 {
   bool result = false;

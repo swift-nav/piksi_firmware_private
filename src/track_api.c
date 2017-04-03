@@ -127,9 +127,9 @@ s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
 
     /* Warn if updated TOW does not match the current value */
     if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
-      log_warn_sid(mesid2sid(channel_info->mesid),
-                   "TOW mismatch: %" PRId32 ", %" PRId32,
-                   current_TOW_ms, TOW_ms);
+      log_warn_mesid(channel_info->mesid,
+                     "TOW mismatch: %" PRId32 ", %" PRId32,
+                     current_TOW_ms, TOW_ms);
     }
     current_TOW_ms = TOW_ms;
     if (internal_data->bit_polarity != pending_bit_polarity) {
@@ -203,7 +203,7 @@ void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
 
       /* warn if the FIFO has become full */
       if (nav_bit_fifo_full(&internal_data->nav_bit_fifo)) {
-        log_warn_sid(mesid2sid(channel_info->mesid), "nav bit FIFO full");
+        log_warn_mesid(channel_info->mesid, "nav bit FIFO full");
       }
     }
 
@@ -354,6 +354,7 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
     msg_tracking_iq_t msg = {
       .channel = channel_info->nap_channel,
     };
+    /* TODO GLO: Handle GLO signals properly. */
     msg.sid = sid_to_sbp(mesid2sid(channel_info->mesid));
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;

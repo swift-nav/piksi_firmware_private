@@ -50,12 +50,12 @@ void tg_fill_task(acq_job_t *job)
     gps_time_t now = get_current_time();
 
     if (TOW_UNKNOWN != now.tow &&
-	WN_UNKNOWN != now.wn &&
-	NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
+        WN_UNKNOWN != now.wn &&
+        NDB_ERR_NONE == ndb_lgf_read(&lgf)) {
       dum_get_doppler_wndw(&job->mesid, &now, &lgf,
                            ACQ_MAX_USER_VELOCITY_MPS,
-			               &acq_param->doppler_min_hz,
-			               &acq_param->doppler_max_hz);
+                           &acq_param->doppler_min_hz,
+                           &acq_param->doppler_max_hz);
       break;
     } /* else fall through */
   }

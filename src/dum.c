@@ -78,6 +78,8 @@ static int get_doppler(const me_gnss_signal_t *mesid,
     return -1;
   }
 
+  /* TODO GLO: Handle GLO signals properly. */
+  assert(!is_glo_sid(*mesid));
   ephemeris_t e;
   gnss_signal_t sid = mesid2sid(*mesid);
   if (NDB_ERR_NONE != ndb_ephemeris_read(sid, &e)) {
@@ -168,12 +170,12 @@ void dum_get_doppler_wndw(const me_gnss_signal_t *mesid,
                           float *doppler_min,
                           float *doppler_max)
 {
-  if ((NULL == mesid) || !sid_valid(mesid2sid(*mesid))) {
+  if ((NULL == mesid) || !mesid_valid(*mesid)) {
     assert(!"Unexpected input for Doppler estimation");
     return;
   }
 
-  if ((CONSTELLATION_GPS != sid_to_constellation(mesid2sid(*mesid))) ||
+  if ((CONSTELLATION_GPS != mesid_to_constellation(*mesid)) ||
       (CODE_GPS_L1CA != mesid->code)) {
     assert(!"Unsupported signal for Doppler estimation");
     return;

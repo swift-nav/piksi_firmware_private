@@ -55,7 +55,7 @@ tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void)
  * \param mesid             ME signal identifier to use.
  */
 void internal_data_init(tracker_internal_data_t *internal_data,
-                        me_gnss_signal_t mesid)
+                        const me_gnss_signal_t mesid)
 {
   /* Initialize all fields to 0 */
   memset(internal_data, 0, sizeof(tracker_internal_data_t));
@@ -223,7 +223,7 @@ s8 nav_bit_quantize(s32 bit_integrate)
  *
  * \param mesid ME identifier to use.
  */
-u16 tracking_lock_counter_increment(me_gnss_signal_t mesid)
+u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid)
 {
   return ++tracking_lock_counters[mesid_to_global_index(mesid)];
 }

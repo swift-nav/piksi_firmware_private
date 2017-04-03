@@ -745,6 +745,7 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time,
 static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh, const msg_dops_t *sbp_dops)
 {
   /* Assemble list of currently tracked GPS PRNs */
+  /* TODO GLO: Handle GLO signals properly. */
   u8 prns[nap_track_n_channels];
   u8 num_prns = 0;
   for (u32 i = 0; i < nap_track_n_channels; i++) {

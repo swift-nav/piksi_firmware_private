@@ -175,20 +175,20 @@ extern "C"
 #endif
 
 tp_result_e tp_init(void);
-tp_result_e tp_profile_init(me_gnss_signal_t mesid,
+tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
                             tp_profile_t *profile,
                             const tp_report_t *data,
                             tp_config_t *config);
-tp_result_e tp_profile_get_config(me_gnss_signal_t mesid,
+tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
                                   tp_profile_t *profile,
                                   tp_config_t *config,
                                   bool commit);
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
-bool        tp_profile_has_new_profile(me_gnss_signal_t mesid,
+bool        tp_profile_has_new_profile(const me_gnss_signal_t mesid,
                                        tp_profile_t *profile);
 u8          tp_profile_get_next_loop_params_ms(const tp_profile_t *profile);
-tp_result_e tp_profile_report_data(me_gnss_signal_t mesid,
+tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
                                    tp_profile_t *profile,
                                    const tracker_common_data_t *common_data,
                                    const tp_report_t *data);

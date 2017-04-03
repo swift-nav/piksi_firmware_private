@@ -78,7 +78,7 @@ enum acq_hint {
   ACQ_HINT_NUM
 };
 
-/** Status of acquisition for a particular ME_SID. */
+/** Status of acquisition for a particular ME SID. */
 typedef struct {
   enum {
     ACQ_PRN_SKIP = 0,
@@ -90,7 +90,7 @@ typedef struct {
   u16 score[ACQ_HINT_NUM]; /**< Acquisition preference of signal. */
   float dopp_hint_low;     /**< Low bound of doppler search hint. */
   float dopp_hint_high;    /**< High bound of doppler search hint. */
-  me_gnss_signal_t mesid;  /**< Signal identifier. */
+  me_gnss_signal_t mesid;  /**< ME signal identifier. */
 } acq_status_t;
 
 static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
@@ -140,7 +140,7 @@ static bool almanacs_enabled = false;
 static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
 
 
-static u8 manage_track_new_acq(me_gnss_signal_t mesid);
+static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
 static void manage_track(void);
 
@@ -160,7 +160,7 @@ static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
 static bool tracking_startup_fifo_mesid_present(
                                             const tracking_startup_fifo_t *fifo,
-                                            me_gnss_signal_t mesid);
+                                            const me_gnss_signal_t mesid);
 
 
 static sbp_msg_callbacks_node_t mask_sat_callback_node;
@@ -293,14 +293,15 @@ void manage_acq_setup()
  * whether a satellite is in view and the range of doppler frequencies
  * in which we expect to find it.
  *
- * \param prn 0-indexed PRN
- * \param t Time at which to evaluate ephemeris and almanac (typically system's
- *  estimate of current time)
+ * \param mesid ME signal id
+ * \param t     Time at which to evaluate ephemeris and almanac (typically system's
+ *              estimate of current time)
  * \param dopp_hint_low, dopp_hint_high Pointers to store doppler search range
  *  from ephemeris or almanac, if available and elevation > mask
  * \return Score (higher is better)
  */
-static u16 manage_warm_start(me_gnss_signal_t mesid, const gps_time_t* t,
+static u16 manage_warm_start(const me_gnss_signal_t mesid,
+                             const gps_time_t* t,
                              float *dopp_hint_low, float *dopp_hint_high)
 {
     /* Do we have any idea where/when we are?  If not, no score. */
@@ -313,11 +314,10 @@ static u16 manage_warm_start(me_gnss_signal_t mesid, const gps_time_t* t,
     return SCORE_COLDSTART;
   }
 
-  /* TODO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO signals properly. */
+  assert(!is_glo_sid(mesid));
   float el = TRACKING_ELEVATION_UNKNOWN;
-  if (!is_glo_sid(mesid)) {
-    el = sv_elevation_degrees_get(mesid2sid(mesid));
-  }
+  el = sv_elevation_degrees_get(mesid2sid(mesid));
   if (el < tracking_elevation_mask) {
     return SCORE_BELOWMASK;
   }
@@ -328,7 +328,7 @@ static u16 manage_warm_start(me_gnss_signal_t mesid, const gps_time_t* t,
      that in preference to the almanac. */
   union { ephemeris_t e; almanac_t a; } orbit;
 
-  /* TODO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO signals properly. */
   u8 eph_valid = 0;
   ndb_op_code_t ndb_ret = NDB_ERR_NO_DATA;
   if (!is_glo_sid(mesid)) {
@@ -366,18 +366,18 @@ static u16 manage_warm_start(me_gnss_signal_t mesid, const gps_time_t* t,
         (dopp_hint_sat_vel > code_to_sv_doppler_max(mesid.code)) ||
         (dopp_hint_clock < code_to_tcxo_doppler_min(mesid.code)) ||
         (dopp_hint_clock > code_to_tcxo_doppler_max(mesid.code))) {
-      log_error_sid(mesid2sid(mesid),
-                    "Acq: bogus ephe/clock dopp hints "
-                    "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
-                    "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
-                    dopp_uncertainty,
-                    dopp_hint_sat_vel,
-                    dopp_hint_clock,
-                    lgf.position_solution.pos_ecef[0],
-                    lgf.position_solution.pos_ecef[1],
-                    lgf.position_solution.pos_ecef[2],
-                    lgf.position_solution.clock_bias,
-                    el);
+      log_error_mesid(mesid,
+                      "Acq: bogus ephe/clock dopp hints "
+                      "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
+                      "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
+                      dopp_uncertainty,
+                      dopp_hint_sat_vel,
+                      dopp_hint_clock,
+                      lgf.position_solution.pos_ecef[0],
+                      lgf.position_solution.pos_ecef[1],
+                      lgf.position_solution.pos_ecef[2],
+                      lgf.position_solution.clock_bias,
+                      el);
       return SCORE_COLDSTART;
     }
   }
@@ -388,7 +388,7 @@ static u16 manage_warm_start(me_gnss_signal_t mesid, const gps_time_t* t,
                       code_to_tcxo_doppler_max(mesid.code);
 
   if(!ready) {
-    /* TODO: Handle GLO signals properly. */
+    /* TODO GLO: Handle GLO signals properly. */
     if (!is_glo_sid(mesid) &&
         almanacs_enabled &&
         NDB_ERR_NONE == ndb_almanac_read(mesid2sid(mesid), &orbit.a) &&
@@ -406,16 +406,16 @@ static u16 manage_warm_start(me_gnss_signal_t mesid, const gps_time_t* t,
       dopp_hint = -dopp_hint;
 
       if ((dopp_hint < doppler_min) || (dopp_hint > doppler_max)) {
-        log_error_sid(mesid2sid(mesid),
-                      "Acq: bogus alm dopp_hint "
-                      "(unc,sat_hint,lgf_pos[0..2],ele) "
-                      "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
-                      dopp_uncertainty,
-                      dopp_hint,
-                      lgf.position_solution.pos_ecef[0],
-                      lgf.position_solution.pos_ecef[1],
-                      lgf.position_solution.pos_ecef[2],
-                      el);
+        log_error_mesid(mesid,
+                        "Acq: bogus alm dopp_hint "
+                        "(unc,sat_hint,lgf_pos[0..2],ele) "
+                        "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
+                        dopp_uncertainty,
+                        dopp_hint,
+                        lgf.position_solution.pos_ecef[0],
+                        lgf.position_solution.pos_ecef[1],
+                        lgf.position_solution.pos_ecef[2],
+                        el);
         return SCORE_COLDSTART;
       }
     } else {
@@ -524,10 +524,10 @@ static void manage_acq()
   if ((acq->dopp_hint_low > acq->dopp_hint_high) ||
       (acq->dopp_hint_low < doppler_min) ||
       (acq->dopp_hint_high > doppler_max)) {
-    log_error_sid(mesid2sid(acq->mesid),
-                  "Acq: caught bogus dopp_hints (%lf, %lf)",
-                  acq->dopp_hint_low,
-                  acq->dopp_hint_high);
+    log_error_mesid(acq->mesid,
+                    "Acq: caught bogus dopp_hints (%lf, %lf)",
+                    acq->dopp_hint_low,
+                    acq->dopp_hint_high);
     acq->dopp_hint_high = doppler_max;
     acq->dopp_hint_low = doppler_min;
   }
@@ -574,10 +574,10 @@ static void manage_acq()
  * \param cp  Code phase of best point.
  * \param cf  Carrier frequency of best point.
  */
-void acq_result_send(me_gnss_signal_t mesid, float cn0, float cp, float cf)
+void acq_result_send(const me_gnss_signal_t mesid, float cn0, float cp, float cf)
 {
   msg_acq_result_t acq_result_msg;
-
+  /* TODO GLO: Handle GLO signals properly. */
   acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid));
   acq_result_msg.cn0 = cn0;
   acq_result_msg.cp = cp;
@@ -598,7 +598,7 @@ static void drop_channel(u8 channel_id,
  *
  * \return Index of first unused tracking channel.
  */
-static u8 manage_track_new_acq(me_gnss_signal_t mesid)
+static u8 manage_track_new_acq(const me_gnss_signal_t mesid)
 {
   /* Decide which (if any) tracking channel to put
    * a newly acquired satellite into.
@@ -726,19 +726,19 @@ static void drop_channel(u8 channel_id,
   /* Log message with appropriate priority. */
   if (CH_DROP_REASON_ERROR == reason) {
     /* Errors are always logged as errors */
-    log_error_sid(mesid2sid(info->mesid),
-                  "[+%" PRIu32 "ms] %s", time_in_track,
-                  get_ch_drop_reason_str(reason));
+    log_error_mesid(info->mesid,
+                    "[+%" PRIu32 "ms] %s", time_in_track,
+                    get_ch_drop_reason_str(reason));
   } else if (0 == (flags & TRACKING_CHANNEL_FLAG_CONFIRMED)) {
     /* Unconfirmed tracker messages are always logged at debug level */
-    log_debug_sid(mesid2sid(info->mesid),
-                  "[+%" PRIu32 "ms] %s", time_in_track,
-                  get_ch_drop_reason_str(reason));
+    log_debug_mesid(info->mesid,
+                    "[+%" PRIu32 "ms] %s", time_in_track,
+                    get_ch_drop_reason_str(reason));
   } else {
     /* Confirmed tracker messages are always logged at info level */
-    log_info_sid(mesid2sid(info->mesid),
-                 "[+%" PRIu32 "ms] %s", time_in_track,
-                 get_ch_drop_reason_str(reason));
+    log_info_mesid(info->mesid,
+                   "[+%" PRIu32 "ms] %s", time_in_track,
+                   get_ch_drop_reason_str(reason));
   }
   /*
    * TODO add generation of a tracker state change message
@@ -759,9 +759,9 @@ static void drop_channel(u8 channel_id,
       float doppler_max = code_to_sv_doppler_max(info->mesid.code) +
                           code_to_tcxo_doppler_max(info->mesid.code);
       if ((carrier_freq < doppler_min) || (carrier_freq > doppler_max)) {
-        log_error_sid(mesid2sid(info->mesid),
-                      "Acq: bogus carr freq: %lf. Rejected.",
-                      carrier_freq);
+        log_error_mesid(info->mesid,
+                        "Acq: bogus carr freq: %lf. Rejected.",
+                        carrier_freq);
       } else {
         /* FIXME other constellations/bands */
         acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
@@ -1062,7 +1062,7 @@ static bool compute_cpo(u64 ref_tc,
  */
 static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
                                             bool phase_offset_ok,
-                                            me_gnss_signal_t mesid)
+                                            const me_gnss_signal_t mesid)
 {
   chan_meas_flags_t meas_flags = 0;
 
@@ -1084,10 +1084,9 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
       /* sanity check */
       if ((flags & MANAGE_TRACK_FLAG_BIT_POLARITY)
            && !(flags & MANAGE_TRACK_FLAG_PLL_PLOCK)) {
-        /* Somehow we managed to decode TOW when phase lock lost. this should not happen,
-         * so print out warning */
-        log_warn_sid(mesid2sid(mesid),
-                     "Half cycle known, but no phase lock!");
+        /* Somehow we managed to decode TOW when phase lock lost.
+         * This should not happen, so print out warning. */
+        log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
       }
 
       if (0 != (flags & MANAGE_TRACK_FLAG_PLL_OLOCK)) {
@@ -1155,6 +1154,8 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
       0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
 
     /* Try to load ephemeris */
+    /* TODO GLO: Handle GLO signals properly. */
+    assert(!is_glo_sid(info.mesid));
     ndb_op_code_t res = ndb_ephemeris_read(mesid2sid(info.mesid), ephe);
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
@@ -1244,13 +1245,15 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
  *
  * \return Flags, computed from ephemeris and other sources.
  */
-manage_track_flags_t get_tracking_channel_sid_flags(me_gnss_signal_t mesid,
+manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid,
                                                     s32 tow_ms,
                                                     const ephemeris_t *pephe)
 {
   manage_track_flags_t result = 0;
 
   /* Satellite elevation is above the solution mask. */
+  /* TODO GLO: Handle GLO signals properly. */
+  assert(!is_glo_sid(mesid));
   if (sv_elevation_degrees_get(mesid2sid(mesid)) >= solution_elevation_mask) {
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
@@ -1273,6 +1276,7 @@ manage_track_flags_t get_tracking_channel_sid_flags(me_gnss_signal_t mesid,
   }
 
   /* Navigation suitable flag */
+  /* TODO GLO: Handle GLO signals properly. */
   if (shm_navigation_suitable(mesid2sid(mesid))) {
     result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
   }
@@ -1286,7 +1290,7 @@ manage_track_flags_t get_tracking_channel_sid_flags(me_gnss_signal_t mesid,
  * \retval true mesid tracking can be started.
  * \retval false mesid tracking cannot be started.
  */
-bool tracking_startup_ready(me_gnss_signal_t mesid)
+bool tracking_startup_ready(const me_gnss_signal_t mesid)
 {
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
@@ -1301,7 +1305,7 @@ bool tracking_startup_ready(me_gnss_signal_t mesid)
  * \retval true  Tracker for \a mesid is in running state
  * \retval false Tracker for \a mesid is not in running state
  */
-bool tracking_is_running(me_gnss_signal_t mesid)
+bool tracking_is_running(const me_gnss_signal_t mesid)
 {
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
@@ -1318,7 +1322,7 @@ bool tracking_is_running(me_gnss_signal_t mesid)
  */
 static bool tracking_startup_fifo_mesid_present(
                                             const tracking_startup_fifo_t *fifo,
-                                            me_gnss_signal_t mesid)
+                                            const me_gnss_signal_t mesid)
 {
   tracking_startup_fifo_index_t read_index = fifo->read_index;
   tracking_startup_fifo_index_t write_index = fifo->write_index;
@@ -1500,7 +1504,7 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
  * \retval true sid is tracked
  * \retval false sid is not tracked
  */
-bool mesid_is_tracked(me_gnss_signal_t mesid)
+bool mesid_is_tracked(const me_gnss_signal_t mesid)
 {
   /* This function is used in reacquisition which runs in
      the same thread as acquisition.

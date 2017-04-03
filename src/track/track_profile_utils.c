@@ -720,14 +720,14 @@ void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
   if (xcorr_suspect) {
     common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_sid(mesid2sid(channel_info->mesid),
-                   "setting cross-correlation suspect flag");
+      log_debug_mesid(channel_info->mesid,
+                      "setting cross-correlation suspect flag");
     }
   } else {
     common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_sid(mesid2sid(channel_info->mesid),
-                   "clearing cross-correlation suspect flag");
+      log_debug_mesid(channel_info->mesid,
+                      "clearing cross-correlation suspect flag");
     }
   }
   common_data->xcorr_change_count = common_data->update_count;
