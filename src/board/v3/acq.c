@@ -165,7 +165,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Modulus code length */
   cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
 
-  if ((cp<1.0) || (cp>1022.0)) return false;
+  if ((cp<=0.5) || (cp>=1022.5)) return false;
 
   /* Set output */
   acq_result->sample_count = sample_count;
