@@ -366,8 +366,16 @@ u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info
 static void mode_change_init(const tracker_channel_info_t *channel_info,
                              tp_tracker_data_t *data)
 {
-  if (data->has_next_params || !data->confirmed) {
+  if (data->has_next_params) {
     /* If the mode switch has been initiated - do nothing */
+    return;
+  }
+
+  if (!data->confirmed) {
+    if (tp_profile_has_new_profile(channel_info->sid, &data->profile)) {
+      /* Initiate profile change */
+      data->has_next_params = true;
+    }
     return;
   }
 
@@ -713,7 +721,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
 
   if (cn0 > cn0_params.track_cn0_drop_thres &&
       !data->confirmed &&
-      data->lock_detect.outo && tracker_has_bit_sync(channel_info->context)) {
+      data->lock_detect.outp && tracker_has_bit_sync(channel_info->context)) {
     data->confirmed = true;
     log_debug_sid(channel_info->sid, "CONFIRMED from %f to %d",
                   cn0, data->cn0_est.cn0_0);
@@ -782,7 +790,7 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
 
       lock_detect_update(&data->lock_detect,
                          TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                         dll_err,
+                         fabsf(dll_err),
                          tp_get_ld_ms(data->tracking_mode));
 
       outp = data->lock_detect.outp;
