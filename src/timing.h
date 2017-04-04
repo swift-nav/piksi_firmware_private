@@ -48,6 +48,7 @@ void timing_setup(void);
 gps_time_t get_current_time(void);
 gps_time_t get_current_gps_time(void);
 void set_time(time_quality_t quality, gps_time_t t);
+time_quality_t get_time_quality(void);
 void set_time_fine(u64 tc, gps_time_t t);
 void set_gps_time_offset(u64 tc, gps_time_t t);
 void adjust_time_fine(const double dt);

@@ -314,8 +314,9 @@ ndb_timestamp_t ndb_get_timestamp(void)
  */
 gps_time_t ndb_get_GPS_timestamp(void)
 {
-  return (TIME_FINE == time_quality) ? napcount2rcvtime(nap_timing_count())
-                                     : GPS_TIME_UNKNOWN;
+  return (TIME_FINE == get_time_quality()) ?
+                       napcount2rcvtime(nap_timing_count()) :
+                       GPS_TIME_UNKNOWN;
 }
 
 /**
@@ -785,8 +786,10 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
     retrieve_data = true;
   }
 
-  if (NULL != md && NULL != md->file && out_size == md->file->block_size
-      && retrieve_data) {
+  if ((NULL != md) &&
+      (NULL != md->file) &&
+      (out_size == md->file->block_size) &&
+      retrieve_data) {
     ndb_lock();
     res = ndb_retrieve_int(md->file, md->index, out, ds);
     ndb_unlock();

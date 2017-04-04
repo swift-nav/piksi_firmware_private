@@ -71,6 +71,17 @@ void set_time(time_quality_t quality, gps_time_t t)
   }
 }
 
+/** Retrieve GPS time estimate quality.
+ *
+ */
+time_quality_t get_time_quality(void)
+{
+  chMtxLock(&clock_mutex);
+  time_quality_t tq = time_quality;
+  chMtxUnlock(&clock_mutex);
+  return tq;
+}
+
 void clock_est_init(clock_est_state_t *s)
 {
   chMtxLock(&clock_mutex);

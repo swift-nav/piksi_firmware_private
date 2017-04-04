@@ -751,7 +751,7 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */
-    ret = ndb_check_age(&a->toa, NDB_NV_ALMANAC_AGE);
+    ret = ndb_check_age(&a->toa, NDB_NV_ALMANAC_AGE_SECS);
   }
   return ret;
 }

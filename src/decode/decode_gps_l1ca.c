@@ -152,7 +152,9 @@ static void check_almanac_wn_xcorr(s16 wn, s32 toa)
     /* Here we do not care if GPS time is unknown
      * since almanac toa is compared against ephemeris toe. */
     bool alma_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
-    if (alma_valid && a.toa.wn == wn && (s32)a.toa.tow == toa) {
+    if (alma_valid &&
+        (a.toa.wn == wn) &&
+        ((s32)a.toa.tow == toa)) {
       check_almanac_xcorr(sid);
     }
   }

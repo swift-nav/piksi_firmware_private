@@ -75,7 +75,7 @@ ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
                                    NDB_USE_NV_IONO);
   if (NDB_ERR_NONE == ret) {
     /* If NDB read was successful, check that data has not aged out */
-    ret = ndb_check_age(&iono->toa, NDB_NV_IONO_AGE);
+    ret = ndb_check_age(&iono->toa, NDB_NV_IONO_AGE_SECS);
   }
   return ret;
 }

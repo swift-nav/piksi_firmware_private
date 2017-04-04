@@ -120,7 +120,7 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
 
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */
-    res = ndb_check_age(&lgf->position_solution.time, NDB_NV_LGF_AGE);
+    res = ndb_check_age(&lgf->position_solution.time, NDB_NV_LGF_AGE_SECS);
   }
 
   return res;
