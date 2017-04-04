@@ -107,6 +107,8 @@ void sbp_send_ndb_event(u8 event,
 #define MSG_OBS_FLAGS_HALF_CYCLE_KNOWN   ((u8) (1 << 2))
 #define MSG_OBS_FLAGS_MEAS_DOPPLER_VALID ((u8) (1 << 3))
 
+#define MSG_HEADING_SCALE_FACTOR 1000.0
+
 void unpack_obs_header(const observation_header_t *msg, gps_time_t* t,
                        u8* total, u8* count);
 

@@ -27,6 +27,7 @@
 #include "track.h"
 #include "nmea.h"
 #include "sbp.h"
+#include "sbp_utils.h"
 #include "settings.h"
 #include "main.h"
 #include "timing.h"
@@ -37,6 +38,7 @@ static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
 static u32 gpgsv_msg_rate = 10;
 static u32 gprmc_msg_rate = 10;
 static u32 gpvtg_msg_rate =  1;
+static u32 gphdt_msg_rate =  1;
 static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
@@ -123,6 +125,7 @@ void nmea_setup(void)
   SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
   SETTING("nmea", "gprmc_msg_rate", gprmc_msg_rate, TYPE_INT);
   SETTING("nmea", "gpvtg_msg_rate", gpvtg_msg_rate, TYPE_INT);
+  SETTING("nmea", "gphdt_msg_rate", gphdt_msg_rate, TYPE_INT);
   SETTING("nmea", "gpgll_msg_rate", gpgll_msg_rate, TYPE_INT);
   SETTING("nmea", "gpzda_msg_rate", gpzda_msg_rate, TYPE_INT);
   SETTING("nmea", "gpgsa_msg_rate", gpgsa_msg_rate, TYPE_INT);
@@ -645,6 +648,24 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned, const msg_pos_llh_t *sbp_pos_l
   NMEA_SENTENCE_DONE();
 }
 
+
+/** Assemble an NMEA GPHDT message and send it out NMEA USARTs.
+ * NMEA HDT contains Heading.
+ *
+ */
+void nmea_gphdt(const msg_baseline_heading_t *sbp_baseline_heading)
+{
+  NMEA_SENTENCE_START(40);
+  NMEA_SENTENCE_PRINTF("$GPHDT,");        /* Command */
+  if ((POSITION_MODE_MASK & sbp_baseline_heading->flags) == FIXED_POSITION) {
+    NMEA_SENTENCE_PRINTF("%.1f,T", (float) sbp_baseline_heading->heading/MSG_HEADING_SCALE_FACTOR);  /* Heading only valid when fixed */
+  }
+  else {
+    NMEA_SENTENCE_PRINTF(",T");  /* Heading only valid when fixed */
+  }
+  NMEA_SENTENCE_DONE();
+}
+
 /** Assemble an NMEA GPGLL message and send it out NMEA USARTs.
  * NMEA GLL contains Geographic Position Latitude/Longitude.
  *
@@ -777,7 +798,8 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_dops_t *sbp_dops,
                     const msg_gps_time_t *sbp_msg_time,
                     double propagation_time, u8 sender_id,
-                    const utc_params_t *utc_params)
+                    const utc_params_t *utc_params,
+                    const msg_baseline_heading_t *sbp_baseline_heading)
 {
 
   utc_tm utc_time;
@@ -803,6 +825,11 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
     DO_EVERY(gpgga_msg_rate,
       nmea_gpgga(sbp_pos_llh, sbp_msg_time, &utc_time, sbp_dops, propagation_time, sender_id);
+    );
+  }
+  if (sbp_baseline_heading && send_heading) {
+    DO_EVERY(gphdt_msg_rate,
+      nmea_gphdt(sbp_baseline_heading);
     );
   }
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
