@@ -200,9 +200,9 @@ static const tp_lock_detect_params_t ld_params[] = {
   { 0.02f,  1.1f,  50, 150,}, /* TP_LD_PARAMS_OPT */
   { 0.05f,  1.4f,  50, 150,}, /* TP_LD_PARAMS_NORMAL */
   { 0.10f,  1.4f,  50, 200,}, /* TP_LD_PARAMS_PESS */
-  { 0.025f,  1.5f,  50, 150,}, /* TP_LD_PARAMS_PLL_1MS */
-  { 0.025f,  1.5f,  50, 150,}, /* TP_LD_PARAMS_PLL_5MS */
-  { 0.005f,  .6f,  50, 200,}  /* TP_LD_PARAMS_FLL_5MS */
+  { 0.025f, 1.5f,  50, 150,}, /* TP_LD_PARAMS_PLL_1MS */
+  { 0.025f, 1.5f,  50, 150,}, /* TP_LD_PARAMS_PLL_5MS */
+  { 0.005f,  .6f, 200, 200,}  /* TP_LD_PARAMS_FLL_5MS */
 };
 
 /** Tracking loop parameters template
