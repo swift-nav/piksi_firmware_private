@@ -58,9 +58,11 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_dops_t *sbp_dops,
                     const msg_gps_time_t *sbp_msg_time,
                     double propagation_time, u8 sender_id,
-                    const utc_params_t *utc_params);
+                    const utc_params_t *utc_params,
+                    const msg_baseline_heading_t *sbp_msg_heading);
 char get_nmea_status(u8 flags);
 char get_nmea_mode_indicator(u8 flags);
 u8 get_nmea_quality_indicator(u8 flags);
 
+extern bool send_heading;
 #endif  /* SWIFTNAV_NMEA_H */
