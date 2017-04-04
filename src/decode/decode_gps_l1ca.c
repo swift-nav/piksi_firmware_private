@@ -148,10 +148,62 @@ static void check_almanac_wn_xcorr(s16 wn, s32 toa)
   for (u8 sv_idx = 0; sv_idx < NUM_SATS_GPS; ++sv_idx) {
     gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
     almanac_t a;
-    if (NDB_ERR_NONE == ndb_almanac_read(sid, &a) &&
-        a.toa.wn == wn && (s32)a.toa.tow == toa) {
+    ndb_op_code_t oc = ndb_almanac_read(sid, &a);
+    /* Here we do not care if GPS time is unknown
+     * since almanac toa is compared against ephemeris toe. */
+    bool alma_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
+    if (alma_valid &&
+        (a.toa.wn == wn) &&
+        ((s32)a.toa.tow == toa)) {
       check_almanac_xcorr(sid);
     }
+  }
+}
+
+/**
+ * For decoded ionosphere data, check if the time of almanac (toa) is newer
+ * than the one currently stored in NDB.
+ *
+ * \param sid   GNSS signal identifier for which to check almanac toa
+ * \param iono  Decoded ionosphere data
+ *
+ * return True  if toa is valid and newer than the one in NDB.
+ *        False otherwise
+ */
+static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono)
+{
+  bool alma_valid = false;   /* Valid toa is available for given sid */
+  bool iono_valid = false;   /* Valid iono is available in NDB */
+  almanac_t existing_a;      /* Existing almanac data */
+  ionosphere_t existing_i;   /* Existing ionosphere data */
+
+  /* Check if valid almanac toa is present for given sid. */
+  ndb_op_code_t oc = ndb_almanac_read(sid, &existing_a);
+  /* Here we do not care if GPS time is unknown
+   * since alma toa is compared against iono toa. */
+  alma_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc) &&
+               gps_time_valid(&existing_a.toa);
+
+  if (!alma_valid) {
+    return false;
+  }
+
+  /* If almanac toa was available, copy it for iono parameters. */
+  iono->toa = existing_a.toa;
+
+  /* Check if previously stored ionosphere data is available in NDB. */
+  oc = ndb_iono_corr_read(&existing_i);
+  /* Here we do not care if GPS time is unknown
+   * since iono toa is compared against almanac toa. */
+  iono_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
+
+  if (iono_valid) {
+    /* Check if decoded data is newer that the one stored in NDB. */
+    double age = gpsdifftime(&existing_a.toa, &existing_i.toa);
+    return age > 0.0f;
+  } else {
+    /* If NDB has no previously saved data, or contains aged data */
+    return true;
   }
 }
 
@@ -196,6 +248,8 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
   case NDB_ERR_BAD_PARAM:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
   default:
     log_warn_sid(alma->sid, "error %d storing almanac from %s",
                   (int)oc,
@@ -249,6 +303,8 @@ static void decode_almanac_time_new(gnss_signal_t sid,
   case NDB_ERR_BAD_PARAM:
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
   default:
     log_error_sid(sid,
                   "error %d updating almanac time (%" PRId16 ", %" PRId32 ")",
@@ -331,6 +387,8 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
         case NDB_ERR_INIT_DONE:
         case NDB_ERR_BAD_PARAM:
         case NDB_ERR_ALGORITHM_ERROR:
+        case NDB_ERR_AGED_DATA:
+        case NDB_ERR_GPS_TIME_MISSING:
         default:
           log_error_sid(target_sid,
                         "error %d updating almanac health bits (0x%02" PRIX8 ")",
@@ -444,12 +502,12 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
-    if (ndb_iono_corr_store(&channel_info->sid,
-                            &dd.iono,
-                            NDB_DS_RECEIVER,
-                            NDB_EVENT_SENDER_ID_VOID) ==
-        NDB_ERR_NONE) {
-      sbp_send_iono(&dd.iono);
+    if (check_iono_timestamp(channel_info->sid, &dd.iono) &&
+        (ndb_iono_corr_store(&channel_info->sid,
+                             &dd.iono,
+                             NDB_DS_RECEIVER,
+                             NDB_EVENT_SENDER_ID_VOID) ==  NDB_ERR_NONE)) {
+        sbp_send_iono(&dd.iono);
     }
   }
 

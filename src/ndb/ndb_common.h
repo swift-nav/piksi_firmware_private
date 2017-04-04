@@ -32,6 +32,8 @@ typedef enum ndb_op_code
   NDB_ERR_NO_DATA,         /**< No data to process */
   NDB_ERR_NO_CHANGE,       /**< Data has not been updated */
   NDB_ERR_OLDER_DATA,      /**< Data is older than existing */
+  NDB_ERR_AGED_DATA,       /**< Data in NDB has aged out */
+  NDB_ERR_GPS_TIME_MISSING,/**< GPS time missing, can't use NDB data */
 } ndb_op_code_t;
 
 typedef enum ndb_data_source
@@ -42,7 +44,7 @@ typedef enum ndb_data_source
   NDB_DS_SBP
 } ndb_data_source_t;
 
-/** NDB Timestamp: TAI seconds since GPS epoch */
+/** NDB Timestamp: NAP time in seconds */
 typedef u32 ndb_timestamp_t;
 
 #ifndef NDB_WEAK

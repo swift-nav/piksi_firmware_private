@@ -43,7 +43,7 @@ static ndb_file_t iono_corr_file = {
 
 void ndb_iono_init(void)
 {
-  static bool erase_iono = true;
+  static bool erase_iono = false;
   SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
 
   ndb_load_data(&iono_corr_file, erase_iono);
@@ -56,9 +56,28 @@ void ndb_iono_init(void)
   );
 }
 
+/**
+ * Loads iono parameters from NDB
+ *
+ * \param[out] iono Destination container.
+ *
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_BAD_PARAM        On parameter error
+ * \retval NDB_ERR_MISSING_IE       No cached data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
+ *
+ * \sa ndb_iono_corr_store
+ */
 ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
 {
-  return ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NULL);
+  ndb_op_code_t ret = ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL,
+                                   NDB_USE_NV_IONO);
+  if (NDB_ERR_NONE == ret) {
+    /* If NDB read was successful, check that data has not aged out */
+    ret = ndb_check_age(&iono->toa, NDB_NV_IONO_AGE_SECS);
+  }
+  return ret;
 }
 
 /**
@@ -110,6 +129,8 @@ static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   memset(&iono, 0, sizeof(iono));
 
   /* unpack received message */
+  iono.toa.tow = ((msg_iono_t*)msg)->t_nmct.tow;
+  iono.toa.wn = ((msg_iono_t*)msg)->t_nmct.wn;
   iono.a0 = ((msg_iono_t*)msg)->a0;
   iono.a1 = ((msg_iono_t*)msg)->a1;
   iono.a2 = ((msg_iono_t*)msg)->a2;

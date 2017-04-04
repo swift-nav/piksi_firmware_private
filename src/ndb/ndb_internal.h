@@ -38,12 +38,27 @@ typedef struct {
 /** Maximum waiting time for write request, milliseconds */
 #define NV_WRITE_REQ_TIMEOUT 100
 
+/** Flags to enable NV usage on individual data elements */
+#define NDB_USE_NV_IONO      1
+#define NDB_USE_NV_L2C_CAP   1
+#define NDB_USE_NV_LGF       0
+#define NDB_USE_NV_ALMANAC   1
+#define NDB_USE_NV_EPHEMERIS 0
+
+/** Maximum age of NV data elements in seconds */
+#define NDB_NV_IONO_AGE_SECS      WEEK_SECS
+#define NDB_NV_LGF_AGE_SECS       (4 * HOUR_SECS)
+#define NDB_NV_ALMANAC_AGE_SECS   WEEK_SECS
+#define NDB_NV_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
+
 /** Volatile flag: IE needs to be written to NVM */
 #define NDB_VFLAG_IE_DIRTY (1 << 0)
 /** Volatile flag: Metadata needs to be written to NVM */
 #define NDB_VFLAG_MD_DIRTY (1 << 1)
 /** Volatile flag: Data block is in write queue */
 #define NDB_VFLAG_ENQUEUED (1 << 2)
+/** Volatile flag: Data is read from NV */
+#define NDB_VFLAG_DATA_FROM_NV (1 << 3)
 
 /** Non-volatile flag: value has been set */
 #define NDB_IE_VALID (1 << 0)
@@ -53,7 +68,6 @@ typedef struct {
 /** Persistent NDB metadata block */
 typedef struct __attribute__((packed)) ndb_element_metadata_nv
 {
-  ndb_timestamp_t received_at;  /**< TAI timestamp [s] */
   u8              source: 4;    /**< Data source */
   u8              state: 4;     /**< State flags */
   u8              crc[3];       /**< CRC-24Q */
@@ -77,6 +91,7 @@ typedef enum {
   NDB_CAND_NEW_CANDIDATE, /**< New candidate accepted */
   NDB_CAND_NEW_TRUSTED,   /**< Previous candidate confirmed */
   NDB_CAND_MISMATCH,      /**< Candidate data mismatch */
+  NDB_CAND_GPS_TIME_MISSING, /**< GPS time missing, can't update NDB */
 } ndb_cand_status_t;
 
 #define NDB_SBP_UPDATE_SIG_IDX_INIT -1
@@ -109,6 +124,7 @@ void ndb_lock(void);
 void ndb_unlock(void);
 
 ndb_timestamp_t ndb_get_timestamp(void);
+gps_time_t ndb_get_GPS_timestamp(void);
 void ndb_load_data(ndb_file_t *f, bool erase);
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
@@ -118,18 +134,19 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *src,
-                           ndb_timestamp_t *ts);
+                           bool use_nv_data);
 ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 ndb_entry_match_fn match_fn,
                                 void *cookie,
                                 void *out,
                                 size_t out_size,
-                                ndb_data_source_t *src,
-                                ndb_timestamp_t *ts);
+                                ndb_data_source_t *src);
 ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,
                                   size_t size);
+ndb_op_code_t ndb_check_age(const gps_time_t *t,
+                            double age_limit);
 void ndb_wq_put(ndb_element_metadata_t *md);
 
 void ndb_sbp_update(ndb_sbp_update_info_t *info);

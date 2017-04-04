@@ -74,6 +74,9 @@ static ndb_ephe_config_t ndb_ephe_config = {
   .alm_fit_interval = 6,
 };
 
+/** Flag if almanacs can be used in ephemeris candidate validation */
+static bool almanacs_enabled = false;
+
 static u16 map_sid_to_index(gnss_signal_t sid)
 {
   u16 idx = PLATFORM_SIGNAL_COUNT;
@@ -292,10 +295,12 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx], &existing_e,
-                                   sizeof(existing_e), NULL, NULL)) {
+                                   sizeof(existing_e), NULL,
+                                   NDB_USE_NV_EPHEMERIS)) {
     pe = &existing_e;
   }
-  if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a)) {
+  if (NDB_ERR_NONE == ndb_almanac_read(new->sid, &existing_a) &&
+      almanacs_enabled) {
     pa = &existing_a;
     existing_a.fit_interval = ndb_ephe_config.alm_fit_interval * DAY_SECS;
   }
@@ -307,8 +312,16 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     ce = &ephe_candidates[cand_idx].ephe;
   }
 
-  if (NULL != pe && 0 == memcmp(&existing_e, new, sizeof(ephemeris_t))) {
-    /* New one is identical to the one in DB, no need to do anything */
+  if (TIME_FINE != time_quality) {
+    ndb_ephe_release_candidate(cand_idx);
+    ndb_ephe_try_adding_candidate(new);
+    r = NDB_CAND_GPS_TIME_MISSING;
+  } else if (NULL != pe &&
+             0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
+             0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
+    /* If new ephemeris is identical to the one in NDB,
+     * and the NDB data is not initially loaded from NV,
+     * then no need to do anything */
     ndb_ephe_release_candidate(cand_idx);
     r = NDB_CAND_IDENTICAL;
 
@@ -360,6 +373,8 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
  * \retval NDB_ERR_BAD_PARAM        On parameter error
  * \retval NDB_ERR_MISSING_IE       No cached data block
  * \retval NDB_ERR_UNCONFIRMED_DATA Unconfirmed data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  */
 ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 {
@@ -370,7 +385,13 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   }
 
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
-                                   NULL, NULL);
+                                   NULL, NDB_USE_NV_EPHEMERIS);
+
+  if (NDB_ERR_NONE == res) {
+    /* If NDB read was successful, check that data has not aged out */
+    res = ndb_check_age(&e->toe, NDB_NV_EPHEMERIS_AGE_SECS);
+  }
+
   if (NDB_ERR_NONE != res) {
     /* If there is a data loading error, check for unconfirmed candidate */
     chMtxLock(&cand_list_access);
@@ -409,6 +430,8 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     case NDB_CAND_NEW_CANDIDATE:
     case NDB_CAND_MISMATCH:
       return NDB_ERR_UNCONFIRMED_DATA;
+    case NDB_CAND_GPS_TIME_MISSING:
+      return NDB_ERR_GPS_TIME_MISSING;
     default:
       assert(!"Invalid status");
     }
@@ -417,14 +440,16 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     gps_time_t toe;
     u32 fit_interval;
     float ura;
+    u16 idx = map_sid_to_index(e->sid);
     ndb_ephemeris_info(e->sid, &valid, &health_bits, &toe, &fit_interval, &ura);
-    if (!valid || gpsdifftime(&e->toe, &toe) > 0) {
-    /* If local ephemeris is not valid or received one is newer then
-     * save the received one. */
+    if (!valid || gpsdifftime(&e->toe, &toe) ||
+        0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
+    /* If local ephemeris is not valid or received one is newer or
+     * existing data is initially loaded from NDB,
+     * then save the received one. */
       log_debug_sid(e->sid,
                     "Saving ephemeris received over SBP v:%d [%d,%d] vs [%d,%d]",
                     (int)valid, toe.wn, toe.tow, e->toe.wn, e->toe.tow);
-      u16 idx = sid_to_global_index(e->sid);
       return ndb_update(e, src, &ndb_ephemeris_md[idx]);
     }
     return NDB_ERR_NONE;
