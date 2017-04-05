@@ -61,6 +61,9 @@ void ndb_lgf_init(void)
 
   last_good_fix = last_good_fix_saved;
   if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    /* Degrade position quality if it was loaded from NV */
+    last_good_fix_saved.position_quality = POSITION_GUESS;
+    last_good_fix.position_quality = POSITION_GUESS;
     /* TODO check loaded LGF validity */
     log_info("Position loaded [%.4lf, %.4lf, %.1lf]",
              last_good_fix.position_solution.pos_llh[0] * R2D,
@@ -78,9 +81,11 @@ void ndb_lgf_init(void)
  *
  * \param[out] lgf Destination container.
  *
- * \retval NDB_ERR_NONE       On success
- * \retval NDB_ERR_BAD_PARAM  On parameter error
- * \retval NDB_ERR_MISSING_IE No cached data block
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_BAD_PARAM        On parameter error
+ * \retval NDB_ERR_MISSING_IE       No cached data block
+ * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
+ * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  *
  * \sa ndb_lgf_store
  */
@@ -91,9 +96,17 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
   /* LGF is loaded only on boot, and then periodically saved to NV. Because of
    * this, use of `ndb_retrieve` here is unnecessary. */
 
+  bool use_valid = true;
+  /* If data has been load from NV and data from NV should not be used,
+   * then mark use_valid false. */
+  if (!NDB_USE_NV_LGF &&
+      (last_good_fix_md.vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
+    use_valid = false;
+  }
+
   if (NULL != lgf) {
     ndb_lock();
-    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID)) {
+    if (0 != (last_good_fix_md.nv_data.state & NDB_IE_VALID) && use_valid) {
       *lgf = last_good_fix;
       res = NDB_ERR_NONE;
     } else {
@@ -103,6 +116,11 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
     ndb_unlock();
   } else {
     res = NDB_ERR_BAD_PARAM;
+  }
+
+  if (NDB_ERR_NONE == res) {
+    /* If NDB read was successful, check that data has not aged out */
+    res = ndb_check_age(&lgf->position_solution.time, NDB_NV_LGF_AGE_SECS);
   }
 
   return res;

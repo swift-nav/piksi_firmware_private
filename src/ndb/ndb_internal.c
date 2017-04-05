@@ -16,6 +16,7 @@
 #include <libswiftnav/edc.h>
 #include "libsbp/piksi.h"
 #include "version.h"
+#include "timing.h"
 #include "ndb.h"
 #include "ndb_internal.h"
 #include "ndb_fs_access.h"
@@ -169,6 +170,8 @@ static void ndb_log_file_open(ndb_op_code_t oc,
   case NDB_ERR_ALGORITHM_ERROR:
   case NDB_ERR_NO_DATA:
   case NDB_ERR_OLDER_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
   default:
     assert(!"ndb_log_file_open()");
     break;
@@ -238,6 +241,8 @@ void ndb_load_data(ndb_file_t *file, bool erase)
       metadata[i].nv_data = md_nv[i];
 
       if (0 != (metadata[i].nv_data.state & NDB_IE_VALID)) {
+        /* Set the flag indicating that the data is loaded from NV. */
+        metadata[i].vflags |= NDB_VFLAG_DATA_FROM_NV;
         loaded++;
       }
 
@@ -293,14 +298,25 @@ void ndb_load_data(ndb_file_t *file, bool erase)
 }
 
 /**
- * Returns TAI time if available.
+ * Returns NAP time.
  *
- * \return TAI time in seconds
+ * \return NAP time in seconds
  */
 ndb_timestamp_t ndb_get_timestamp(void)
 {
-  /* FIXME - this should be TAI time based on GPS time */
   return nap_count_to_ms(nap_timing_count()) / 1000;
+}
+
+/**
+ * Returns GPS time if available.
+ *
+ * \return GPS time in seconds
+ */
+gps_time_t ndb_get_GPS_timestamp(void)
+{
+  return (TIME_FINE == get_time_quality()) ?
+                       napcount2rcvtime(nap_timing_count()) :
+                       GPS_TIME_UNKNOWN;
 }
 
 /**
@@ -650,7 +666,6 @@ void ndb_unlock()
  * \param[in]  idx      NDB informational element index
  * \param[out] out      Destination data buffer with a proper block size.
  * \param[out] ds       Optional destination for NDB data source.
- * \param[out] ts       Optional destination for NDB timestamp.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -661,8 +676,7 @@ void ndb_unlock()
 static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       ndb_ie_index_t idx,
                                       void *out,
-                                      ndb_data_source_t *ds,
-                                      ndb_timestamp_t *ts)
+                                      ndb_data_source_t *ds)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -676,9 +690,6 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
     if (NULL != ds) {
       *ds = md->nv_data.source;
     }
-    if (NULL != ts) {
-      *ts = md->nv_data.received_at;
-    }
 
     res = NDB_ERR_NONE;
   } else {
@@ -688,10 +699,6 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
     if (NULL != ds) {
       *ds = NDB_DS_UNDEFINED;
     }
-    if (NULL != ts) {
-      *ts = 0;
-    }
-
   }
   return res;
 }
@@ -708,7 +715,6 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
  * \param[in]  out_size Destination buffer size. Must match block size defined
  *                      in file metadata section.
  * \param[out] ds       Optional destination for NDB data source.
- * \param[out] ts       Optional destination for NDB timestamp.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -722,8 +728,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 void *cookie,
                                 void *out,
                                 size_t out_size,
-                                ndb_data_source_t *ds,
-                                ndb_timestamp_t *ts)
+                                ndb_data_source_t *ds)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -736,7 +741,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
     for (ndb_ie_index_t idx = 0; idx < file->block_count;
          ++idx, data_ptr += file->block_size) {
       if (match_fn(data_ptr, &file->block_md[idx], cookie)) {
-        res = ndb_retrieve_int(file, idx, out, ds, ts);
+        res = ndb_retrieve_int(file, idx, out, ds);
         break;
       }
     }
@@ -758,7 +763,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
  * \param[in]  out_size Destination buffer size. Must match block size defined
  *                      in file metadata section.
  * \param[out] ds       Optional destination for NDB data source.
- * \param[out] ts       Optional destination for NDB timestamp.
+ * \param[in]  use_nv   Flag indicating if data loaded from NV should be used.
  *
  * \retval NDB_ERR_NONE       On success
  * \retval NDB_ERR_BAD_PARAM  On parameter error
@@ -771,13 +776,22 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *ds,
-                           ndb_timestamp_t *ts)
+                           bool use_nv_data)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  if (NULL != md && NULL != md->file && out_size == md->file->block_size) {
+  bool retrieve_data = false;
+  /* Check if NV data should be retrieved */
+  if (use_nv_data || (0 == (md->vflags & NDB_VFLAG_DATA_FROM_NV))) {
+    retrieve_data = true;
+  }
+
+  if ((NULL != md) &&
+      (NULL != md->file) &&
+      (out_size == md->file->block_size) &&
+      retrieve_data) {
     ndb_lock();
-    res = ndb_retrieve_int(md->file, md->index, out, ds, ts);
+    res = ndb_retrieve_int(md->file, md->index, out, ds);
     ndb_unlock();
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -814,11 +828,14 @@ ndb_op_code_t ndb_update(const void *data,
     ndb_lock();
 
     /* Update metadata and mark it dirty */
-    md->nv_data.received_at = ndb_get_timestamp();
     md->vflags |= NDB_VFLAG_MD_DIRTY;
     md->nv_data.source = src;
 
-    if (memcmp(data, md->data, block_size) != 0) {
+    if (memcmp(data, md->data, block_size) != 0 ||
+        (md->vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
+      /* If data has been originally loaded from NV
+       * then clear the flag here. */
+      md->vflags &= ~NDB_VFLAG_DATA_FROM_NV;
       /* Update data and mark it dirty also mark data valid */
       memcpy(md->data, data, block_size);
       md->nv_data.state |= NDB_IE_VALID;
@@ -863,10 +880,8 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
     ndb_lock();
 
     bool md_modified = false;
-    if (0 != md->nv_data.received_at ||
-        NDB_DS_UNDEFINED != md->nv_data.source) {
+    if (NDB_DS_UNDEFINED != md->nv_data.source) {
       /* Update metadata and mark it dirty */
-      md->nv_data.received_at = 0;
       md->nv_data.source = NDB_DS_UNDEFINED;
       md->vflags |= NDB_VFLAG_MD_DIRTY;
       md_modified = true;
@@ -893,6 +908,30 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
   }
 
   return res;
+}
+
+/**
+ * Check age of a NDB element.
+ *
+ * \param[in] t         GPS time of the NDB element
+ * \param[in] age_limit max age of the NDB element
+ *
+ * \retval NDB_ERR_NONE             On success
+ * \retval NDB_ERR_GPS_TIME_MISSING GPS time is unknown,
+ *                                  cannot determine age of data
+ * \retval NDB_ERR_AGED_DATA        NDB element has aged out
+ */
+ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit)
+{
+  gps_time_t now = ndb_get_GPS_timestamp();
+  if (gps_time_valid(&now) && gps_time_valid(t)) {
+    double age = gpsdifftime(&now, t);
+    if (age > age_limit) {
+      return NDB_ERR_AGED_DATA;
+    }
+    return NDB_ERR_NONE;
+  }
+  return NDB_ERR_GPS_TIME_MISSING;
 }
 
 /** Determine next signal index data to be sent over SBP.
