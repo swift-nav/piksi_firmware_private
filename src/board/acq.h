@@ -46,4 +46,6 @@ float acq_bin_width(void);
 bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
                 float cf_bin_width, acq_result_t *acq_result);
 
+u8* grab_samples(u32 *length, u32 *sample_count);
+
 #endif /* SWIFTNAV_ACQ_H */

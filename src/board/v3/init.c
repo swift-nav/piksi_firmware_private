@@ -39,7 +39,7 @@
 #include "manage_rtc.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL  (0x0307000dU)
+#define REQUIRED_NAP_VERSION_VAL  (0x0307000fU)
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
