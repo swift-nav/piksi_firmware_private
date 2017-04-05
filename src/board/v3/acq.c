@@ -165,6 +165,12 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Modulus code length */
   cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
 
+
+  /* False acquisition code phase hack (Michele). The vast majority of our
+   * false acquisitions return a code phase within 0.5 chip of 0. Not allowing
+   * these code phases will reject a small number of true acquisitions but
+   * prevents nearly all the false acquisitions.
+   * TODO: Remove this once we move to soft FFT based acquisition. */
   if ((cp<=0.5) || (cp>=1022.5)) return false;
 
   /* Set output */
