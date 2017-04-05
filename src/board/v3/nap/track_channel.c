@@ -99,7 +99,11 @@ u8 sid_to_rf_frontend_channel(gnss_signal_t sid)
     ret = NAP_RF_FRONTEND_CHANNEL_4;
     break;
   case CODE_GLO_L1CA:
+    ret = NAP_RF_FRONTEND_CHANNEL_2;
+    break;
   case CODE_GLO_L2CA:
+    ret = NAP_RF_FRONTEND_CHANNEL_3;
+    break;
   case CODE_GPS_L1P:
   case CODE_GPS_L2P:
     assert(!"Unsupported SID");
@@ -133,6 +137,8 @@ u8 sid_to_nap_code(gnss_signal_t sid)
     break;
   case CODE_GLO_L1CA:
   case CODE_GLO_L2CA:
+    ret = NAP_CODE_GLO_L1CA_GLO_L2CA;
+    break;
   case CODE_GPS_L1P:
   case CODE_GPS_L2P:
     assert(!"Unsupported SID");

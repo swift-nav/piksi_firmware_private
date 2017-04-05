@@ -197,7 +197,8 @@ enum {
 enum {
   NAP_CODE_GPS_L1CA_SBAS_L1CA = 0, /* GPS L1C/A, SBAS L1CA */
   NAP_CODE_GPS_L2CM,               /* GPS L2CM */
-  NAP_CODE_GPS_L2CL                /* GPS L2CL */
+  NAP_CODE_GPS_L2CL,               /* GPS L2CL */
+  NAP_CODE_GLO_L1CA_GLO_L2CA       /* GLO L1/2CA */
 };
 
 /* Instances */
