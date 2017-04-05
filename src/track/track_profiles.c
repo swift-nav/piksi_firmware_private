@@ -28,13 +28,17 @@
 #include <math.h>
 #include <assert.h>
 
-/** Default C/N0 threshold in dB/Hz for keeping track */
-#define TP_DEFAULT_CN0_USE_THRESHOLD  (30.f)
-/** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD (31.f)
-
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD (18.f)
+#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
+
+/** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
+#define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ  (30.f)
+/** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
+#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (31.f)
+/** C/N0 threshold for measurements use */
+/** +1 to make it slightly higher than the CN0 drop threshold to avoid
+    any race condition */
+#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (TP_HARD_CN0_DROP_THRESHOLD_DBHZ + 1)
 
 /** Revert acceleration flag, if last acceleration
    has been seen earlier than this time [ms] */
@@ -172,8 +176,9 @@ typedef struct tp_profile_entry {
  * C/N0 profile
  */
 static const tp_cn0_params_t cn0_params_default = {
-  .track_cn0_drop_thres = TP_DEFAULT_CN0_DROP_THRESHOLD,
-  .track_cn0_use_thres = TP_DEFAULT_CN0_USE_THRESHOLD
+  .track_cn0_drop_thres_dbhz      = TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ,
+  .track_cn0_use_thres_dbhz       = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
+  .track_cn0_ambiguity_thres_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ
 };
 
 /**
@@ -1137,26 +1142,32 @@ tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params)
 {
-  tp_result_e res = TP_RESULT_ERROR;
-  if (NULL != cn0_params && NULL != profile) {
-    *cn0_params = cn0_params_default;
-
-    /* Correction: higher integration time lowers thresholds linearly. For
-     * example, 20ms integration has threshold by 13 dB lower, than for 1ms
-     * integration. */
-    cn0_params->track_cn0_drop_thres -= profile->cn0_offset;
-
-    cn0_params->est = (track_cn0_est_e)profile->cn0_est;
-
-    if (cn0_params->track_cn0_drop_thres < TP_HARD_CN0_DROP_THRESHOLD) {
-      cn0_params->track_cn0_drop_thres = TP_HARD_CN0_DROP_THRESHOLD;
-    }
-    if (cn0_params->track_cn0_use_thres < TP_HARD_CN0_DROP_THRESHOLD) {
-      cn0_params->track_cn0_use_thres = TP_HARD_CN0_DROP_THRESHOLD;
-    }
-    res = TP_RESULT_SUCCESS;
+  if ((NULL == cn0_params) || (NULL == profile)) {
+    return TP_RESULT_ERROR;
   }
-  return res;
+
+  *cn0_params = cn0_params_default;
+
+  /* Correction: higher integration time lowers thresholds linearly. For
+   * example, 20ms integration has threshold by 13 dB lower, than for 1ms
+   * integration. */
+  cn0_params->track_cn0_drop_thres_dbhz -= profile->cn0_offset;
+
+  cn0_params->est = (track_cn0_est_e)profile->cn0_est;
+
+  float threshold_dbhz = TP_HARD_CN0_DROP_THRESHOLD_DBHZ;
+
+  if (cn0_params->track_cn0_drop_thres_dbhz < threshold_dbhz) {
+    cn0_params->track_cn0_drop_thres_dbhz = threshold_dbhz;
+  }
+  if (cn0_params->track_cn0_use_thres_dbhz < threshold_dbhz) {
+    cn0_params->track_cn0_use_thres_dbhz = threshold_dbhz;
+  }
+  if (cn0_params->track_cn0_ambiguity_thres_dbhz < threshold_dbhz) {
+    cn0_params->track_cn0_ambiguity_thres_dbhz = threshold_dbhz;
+  }
+
+  return TP_RESULT_SUCCESS;
 }
 
 /**
