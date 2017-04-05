@@ -1208,8 +1208,9 @@ static void solution_thread(void *arg)
        * differential solution. */
       chMtxLock(&base_obs_lock);
       chMtxLock(&low_latency_filter_manager_lock);
-      if(low_latency_base_sender_id == base_obss.sender_id){
-        chMtxUnlock(&low_latency_filter_manager_lock);
+      bool sender_id_unchanged = low_latency_base_sender_id == base_obss.sender_id;
+      chMtxUnlock(&low_latency_filter_manager_lock);
+      if(sender_id_unchanged){
         if (base_obss.n > 0 && !simulation_enabled()) {
           if ((propagation_time = gpsdifftime(&new_obs_time, &base_obss.tor))
                 < max_age_of_differential) {
@@ -1236,9 +1237,6 @@ static void solution_thread(void *arg)
                               &sbp_messages);
             }
           }
-        }
-        else {
-          chMtxUnlock(&low_latency_filter_manager_lock);
         }
       }
       chMtxUnlock(&base_obs_lock);
