@@ -103,6 +103,7 @@ double heading_offset = 0.0;
 bool disable_klobuchar = false;
 
 static u8 old_base_sender_id = 0;
+static u8 low_latency_base_sender_id = 0;
 
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
@@ -1206,31 +1207,38 @@ static void solution_thread(void *arg)
       /* If we have a recent set of observations from the base station, do a
        * differential solution. */
       chMtxLock(&base_obs_lock);
-      if (base_obss.n > 0 && !simulation_enabled()) {
-        if ((propagation_time = gpsdifftime(&new_obs_time, &base_obss.tor))
-              < max_age_of_differential) {
+      chMtxLock(&low_latency_filter_manager_lock);
+      if(low_latency_base_sender_id == base_obss.sender_id){
+        chMtxUnlock(&low_latency_filter_manager_lock);
+        if (base_obss.n > 0 && !simulation_enabled()) {
+          if ((propagation_time = gpsdifftime(&new_obs_time, &base_obss.tor))
+                < max_age_of_differential) {
 
-          /* Propagate base station observations to the current time and
-           * process a low-latency differential solution. */
+            /* Propagate base station observations to the current time and
+             * process a low-latency differential solution. */
 
-          /* Hook in low-latency filter here. */
-          if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
-              base_obss.has_pos) {
+            /* Hook in low-latency filter here. */
+            if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+                base_obss.has_pos) {
 
-            sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
-            u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
-                                    base_obss.n, base_obss.nm,
-                                    base_obss.sat_dists,
-                                    base_obss.sat_dists_dot,
-                                    base_obss.has_known_pos_ecef ?
-                                    base_obss.known_pos_ecef :
-                                    base_obss.pos_ecef,
-                                    sdiffs);
-            output_baseline(num_sdiffs, sdiffs, &current_fix.time,
-                            &dops, propagation_time, current_fix.pos_ecef,
-                            base_obss.has_known_pos_ecef, base_obss.known_pos_ecef,
-                            &sbp_messages);
+              sdiff_t sdiffs[MAX(base_obss.n, n_ready_tdcp)];
+              u8 num_sdiffs = make_propagated_sdiffs(n_ready_tdcp, nav_meas_tdcp,
+                                      base_obss.n, base_obss.nm,
+                                      base_obss.sat_dists,
+                                      base_obss.sat_dists_dot,
+                                      base_obss.has_known_pos_ecef ?
+                                      base_obss.known_pos_ecef :
+                                      base_obss.pos_ecef,
+                                      sdiffs);
+              output_baseline(num_sdiffs, sdiffs, &current_fix.time,
+                              &dops, propagation_time, current_fix.pos_ecef,
+                              base_obss.has_known_pos_ecef, base_obss.known_pos_ecef,
+                              &sbp_messages);
+            }
           }
+        }
+        else {
+          chMtxUnlock(&low_latency_filter_manager_lock);
         }
       }
       chMtxUnlock(&base_obs_lock);
@@ -1320,6 +1328,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
       copy_filter_manager(low_latency_filter_manager, time_matched_filter_manager);
+      low_latency_base_sender_id = old_base_sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
