@@ -136,6 +136,9 @@ static float solution_elevation_mask = 10.0;
 
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
+/** Flag if GLONASS enabled */
+static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
+
 
 static u8 manage_track_new_acq(gnss_signal_t sid);
 static void manage_acq(void);
@@ -220,16 +223,38 @@ static void manage_acq_thread(void *arg)
   }
 }
 
+/* The function masks/unmasks all GLO satellite,
+ * NOTE: this function does not check if GLO SV is already masked or not */
+static bool glo_enable_notify(struct setting *s, const char *val)
+{
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
+    for (int i = 0; i < PLATFORM_SIGNAL_COUNT; i++) {
+      if (is_glo_sid(acq_status[i].sid)) {
+        acq_status[i].masked = !glo_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 void manage_acq_setup()
 {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
+  SETTING_NOTIFY("acquisition", "GLONASS_enabled", glo_enabled, TYPE_BOOL,
+                 glo_enable_notify);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     gnss_signal_t sid = sid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
-    acq_status[i].masked = false;
+    if (is_glo_sid(sid) && !glo_enabled) {
+      acq_status[i].masked = true;
+    } else {
+      acq_status[i].masked = false;
+    }
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
 
     if (code_requires_direct_acq(sid.code)) {
@@ -403,8 +428,9 @@ static acq_status_t * choose_acq_sat(void)
     }
 
     if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked)
+        acq_status[i].masked) {
       continue;
+    }
 
     acq_status[i].score[ACQ_HINT_WARMSTART] =
       manage_warm_start(acq_status[i].sid, &t,
@@ -429,8 +455,9 @@ static acq_status_t * choose_acq_sat(void)
     }
 
     if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked)
+        acq_status[i].masked) {
       continue;
+    }
 
     u32 sat_score = 0;
     for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++)
