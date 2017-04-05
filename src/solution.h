@@ -78,11 +78,6 @@ extern u32 max_age_of_differential;
 void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages);
 void extract_covariance(double full_covariance[9], const gnss_solution *soln);
 double calc_heading(const double b_ned[3]);
-void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3],
-                                double covariance_ecef[9], double ref_ecef[3],
-                                bool has_known_base_pos_ecef, double known_base_pos[3],
-                                u8 flags, dops_t *dops, double propagation_time,
-                                sbp_messages_t *sbp_messages);
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
