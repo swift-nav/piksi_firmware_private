@@ -111,7 +111,7 @@ static void check_frontend_errors(void)
     if (nt1065_check_aok_status()) {
       log_info("nt1065: AOK error flag cleared");
       frontend_errors = false;
-    } else if (nt1065_check_plls()) {
+    } else if (nt1065_check_plls() && nt1065_check_standby() && nt1065_check_calibration()) {
       log_error("nt1065: AOK failed with unknown cause");
     }
   }

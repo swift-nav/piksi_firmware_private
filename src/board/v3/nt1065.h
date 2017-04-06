@@ -37,6 +37,20 @@ bool nt1065_check_aok_status(void);
  */
 bool nt1065_check_plls(void);
 
+/** @brief read standby status
+ *    Logs if NT1065 is in standby mode
+ *
+ *  @return True if NT1065 is active
+ */
+bool nt1065_check_standby(void);
+
+/** @brief read auto calibration status
+ *    Logs auto calibration error
+ *
+ *  @return True if auto calibration reports no errors
+ */
+bool nt1065_check_calibration(void);
+
 uint8_t nt1065_read_reg(uint8_t reg_addr);
 
 void nt1065_write_reg(uint8_t reg_addr, uint8_t value);

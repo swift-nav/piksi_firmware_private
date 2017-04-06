@@ -68,40 +68,46 @@ static void frontend_isr(void *context)
 
 void frontend_configure(void)
 {
-  frontend_open_spi();
-
-  /* Read chip ID and release */
-  u16 id_release = ((u16)spi_read(0) << 8) | spi_read(1);
-  u16 id = (id_release >> 3) & 0x1fff;
-  u8 release = id_release & 0x7;
-
-  if (id != 1065) {
-    log_error("nt1065: invalid chip ID");
-  }
-
-  switch (release) {
-  case 1:
-    configure_v1();
-    break;
-  case 2:
-    configure_v2();
-    break;
-  default:
-    log_error("nt1065: unsupported chip release");
-    break;
-  }
-
-  frontend_close_spi();
-
-  /* Wait for frontend clock to stabilize, AOK status */
-  u8 tries = 100;
+  bool is_aok = true;
+  /* If the NT1065 doesn't become healthy within a timeout, retry config */
   do {
-    chThdSleepMilliseconds(1);
-  } while (!nt1065_check_aok_status() && (--tries > 0));
+    frontend_open_spi();
 
-  if (tries == 0) {
-    frontend_error_notify_sys();
-  }
+    /* Read chip ID and release */
+    u16 id_release = ((u16)spi_read(0) << 8) | spi_read(1);
+    u16 id = (id_release >> 3) & 0x1fff;
+    u8 release = id_release & 0x7;
+
+    if (id != 1065) {
+      log_error("nt1065: invalid chip ID");
+    }
+
+    switch (release) {
+    case 1:
+      configure_v1();
+      break;
+    case 2:
+      configure_v2();
+      break;
+    default:
+      log_error("nt1065: unsupported chip release");
+      break;
+    }
+
+    frontend_close_spi();
+
+    /* Wait for frontend clock to stabilize, AOK status */
+    u8 tries = 100;
+    do {
+      chThdSleepMilliseconds(1);
+    } while (!nt1065_check_aok_status() && (--tries > 0));
+
+    is_aok = tries != 0;
+    if (!is_aok) {
+      frontend_error_notify_sys();
+      log_error("nt1065: config failed, retrying");
+    }
+  } while (!is_aok);
 
   /* Enable AOK interrupt */
   gic_handler_register(IRQ_ID_FRONTEND_AOK, frontend_isr, NULL);
@@ -110,7 +116,7 @@ void frontend_configure(void)
   gic_irq_enable(IRQ_ID_FRONTEND_AOK);
 
   /* Make sure AOK interrupt edge was not missed */
-  if ((tries > 0) && !nt1065_check_aok_status()) {
+  if (!nt1065_check_aok_status()) {
     frontend_error_notify_sys();
   }
 }
@@ -182,6 +188,30 @@ bool nt1065_check_plls()
     return false;
   }
 
+  return true;
+}
+
+bool nt1065_check_standby()
+{
+  frontend_open_spi();
+  u8 ic_mode = spi_read(2) & 3;
+  frontend_close_spi();
+  if (ic_mode != 3) {
+    log_error("nt1065: Not in active mode");
+    return false;
+  } 
+  return true;
+}
+
+bool nt1065_check_calibration()
+{
+  frontend_open_spi();
+  u8 calibration_status = spi_read(4) & 2;
+  frontend_close_spi();
+  if (calibration_status != 2) {
+    log_error("nt1065: Auto-calibration error");
+    return false;
+  } 
   return true;
 }
 
