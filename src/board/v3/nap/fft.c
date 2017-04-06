@@ -232,6 +232,9 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
       log_warn("Acquisition: IFFT overflow.");
     }
   }
+  if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_FRAME_Msk) {
+    log_warn("Acquisition: FFT input data misaligned.");
+  }
   return result;
 }
 
