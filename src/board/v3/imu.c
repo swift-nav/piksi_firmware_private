@@ -107,6 +107,13 @@ static void imu_thread(void *arg)
     /* Wait until an IMU interrupt occurs. */
     systime_t timeout = TIME_INFINITE;
     if (raw_imu_output) {
+      /* If output is enabled and we're actually expecting interrupts, we
+       * set a timeout a little after the expected interrupt.
+       *
+       * This works out because of the numeric values of imu_rate_t:
+       * imu_rate = IMU_RATE_25HZ = 0 -> 40ms, so timeout is set to 45ms
+       * imu_rate = IMU_RATE_400HZ = 4 -> 2.5ms, so timeout is set to 9ms
+       */
       timeout = MS2ST(45) / (imu_rate+1);
     }
     msg_t status = chBSemWaitTimeout(&imu_irq_sem, timeout);
