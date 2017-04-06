@@ -332,7 +332,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   u8 eph_valid = 0;
   ndb_op_code_t ndb_ret = NDB_ERR_NO_DATA;
   if (!is_glo_sid(mesid)) {
-    ndb_ret =  ndb_ephemeris_read(mesid2sid(mesid), &orbit.e);
+    ndb_ret = ndb_ephemeris_read(mesid2sid(mesid), &orbit.e);
   }
 
   s8 ss_ret;
@@ -1417,13 +1417,13 @@ static void manage_tracking_startup(void)
     }
 
     /* Start the tracking channel */
-    if(!tracker_channel_init(chan,
-                             startup_params.mesid,
-                             startup_params.sample_count,
-                             startup_params.code_phase,
-                             startup_params.carrier_freq,
-                             startup_params.chips_to_correlate,
-                             startup_params.cn0_init)) {
+    if (!tracker_channel_init(chan,
+                              startup_params.mesid,
+                              startup_params.sample_count,
+                              startup_params.code_phase,
+                              startup_params.carrier_freq,
+                              startup_params.chips_to_correlate,
+                              startup_params.cn0_init)) {
       log_error("tracker channel init failed");
     }
 

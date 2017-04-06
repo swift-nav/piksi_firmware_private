@@ -371,8 +371,8 @@ bool tracker_channel_init(tracker_channel_id_t id, const me_gnss_signal_t mesid,
 
   const tracker_interface_t *tracker_interface;
   tracker_t *tracker;
-  if(!tracker_channel_runnable(tracker_channel, mesid, &tracker,
-                               &tracker_interface)) {
+  if (!tracker_channel_runnable(tracker_channel, mesid, &tracker,
+                                &tracker_interface)) {
     return false;
   }
 

@@ -474,9 +474,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     ndb_op_code_t c = ndb_ephemeris_erase(mesid2sid(channel_info->mesid));
 
     if (NDB_ERR_NONE == c) {
-      log_info_mesid(channel_info->mesid,
-                     "ephemeris deleted (1/0)");
-    } else if (NDB_ERR_NO_CHANGE != c){
+      log_info_mesid(channel_info->mesid, "ephemeris deleted (1/0)");
+    } else if (NDB_ERR_NO_CHANGE != c) {
       log_warn_mesid(channel_info->mesid,
                      "error %d deleting ephemeris (1/0)",
                      (int)c);
@@ -485,7 +484,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   gnss_signal_t sid = mesid2sid(channel_info->mesid);
-  shm_gps_set_shi4(channel_info->mesid.sat, false == data->nav_msg.alert);
+  shm_gps_set_shi4(channel_info->mesid.sat, !data->nav_msg.alert);
 
   if (dd.shi1_upd_flag) {
     log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi1);

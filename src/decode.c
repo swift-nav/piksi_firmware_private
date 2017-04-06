@@ -145,13 +145,15 @@ bool decoder_channel_available(u8 tracking_channel,
                                const me_gnss_signal_t mesid)
 {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
-  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED)
+  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
     return false;
+  }
 
   const decoder_interface_t *interface = decoder_interface_get(mesid);
   decoder_t *decoder;
-  if (!available_decoder_get(interface, &decoder))
+  if (!available_decoder_get(interface, &decoder)) {
     return false;
+  }
 
   return true;
 }
@@ -167,13 +169,15 @@ bool decoder_channel_available(u8 tracking_channel,
 bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid)
 {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
-  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED)
+  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
     return false;
+  }
 
   const decoder_interface_t *interface = decoder_interface_get(mesid);
   decoder_t *decoder;
-  if (!available_decoder_get(interface, &decoder))
+  if (!available_decoder_get(interface, &decoder)) {
     return false;
+  }
 
   /* Set up channel */
   d->info.tracking_channel = tracking_channel;
@@ -203,8 +207,9 @@ bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid)
 bool decoder_channel_disable(u8 tracking_channel)
 {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
-  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_ENABLED)
+  if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_ENABLED) {
     return false;
+  }
 
   /* Request disable */
   event(d, EVENT_DISABLE_REQUEST);

@@ -110,15 +110,15 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     symbol_probability = soft_bit + 128;
 
     bool decoded = cnav_msg_decoder_add_symbol(&data->cnav_msg_decoder,
-                                              symbol_probability,
-                                              &data->cnav_msg,
-                                              &delay);
+                                               symbol_probability,
+                                               &data->cnav_msg,
+                                               &delay);
 
     if (!decoded) {
       continue;
     }
 
-    shm_gps_set_shi6(channel_info->mesid.sat, false == data->cnav_msg.alert);
+    shm_gps_set_shi6(channel_info->mesid.sat, !data->cnav_msg.alert);
 
     if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
       if (data->cnav_msg.data.type_30.tgd_valid) {
@@ -137,8 +137,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       cnav_msg_put(&data->cnav_msg);
 
       sbp_send_group_delay(&data->cnav_msg);
-    }
-    else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
+    } else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
       log_debug_mesid(channel_info->mesid,
                       "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
                       data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
