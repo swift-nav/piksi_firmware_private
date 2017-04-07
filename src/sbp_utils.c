@@ -369,7 +369,7 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
   double Lf = -L - Li;
 
   msg->L.i = Li;
-  msg->L.f = Lf * MSG_OBS_LF_MULTIPLIER;
+  msg->L.f = round(Lf * MSG_OBS_LF_MULTIPLIER);
 
   double Di = floor(D);
   if (Di < INT16_MIN || Di > INT16_MAX) {
