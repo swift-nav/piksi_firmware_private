@@ -62,9 +62,11 @@
 
 void signal_init(void);
 gnss_signal_t sid_from_global_index(u16 global_index);
+me_gnss_signal_t mesid_from_global_index(u16 global_index);
 gnss_signal_t sid_from_constellation_index(enum constellation constellation,
                                            u16 constellation_index);
 u16 sid_to_global_index(gnss_signal_t sid);
+u16 mesid_to_global_index(const me_gnss_signal_t mesid);
 u16 sid_to_constellation_index(gnss_signal_t sid);
 bool sid_supported(gnss_signal_t sid);
 bool code_supported(enum code code);

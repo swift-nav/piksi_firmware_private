@@ -39,7 +39,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   prof.status = peak_found;
   prof.cn0 = (u16)(10 * acq_result->cn0);
   prof.int_time = acq_params->integration_time_ms;
-  prof.sid = sid_to_sbp(job->sid);
+  prof.sid = sid_to_sbp(mesid2sid(job->mesid));
   prof.bin_width = acq_params->freq_bin_size_hz;
   prof.timestamp = (u32)job->stop_time;
   prof.time_spent = (u32)1000*(job->stop_time - job->start_time);

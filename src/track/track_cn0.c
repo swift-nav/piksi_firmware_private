@@ -309,7 +309,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
 /**
  * Initializes C/N0 estimator
  *
- * \param[in]  sid    Signal identifier for logging.
+ * \param[in]  mesid  ME signal identifier for logging.
  * \param[in]  cn0_ms C/N0 estimator update period in ms.
  * \param[out] e      C/N0 estimator state.
  * \param[in]  cn0_0  Initial C/N0 value in dB/Hz.
@@ -317,7 +317,7 @@ static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
  *
  * \return None
  */
-void track_cn0_init(gnss_signal_t sid,
+void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 cn0_ms,
                     track_cn0_state_t *e,
                     float cn0_0,
@@ -339,16 +339,17 @@ void track_cn0_init(gnss_signal_t sid,
 
   e->ver = cn0_config.update_count;
 
-  log_debug_sid(sid, "Initializing estimator %s (%f dB/Hz @ %u ms)",
-                track_cn0_str(e->type),
-                e->filter.yn,
-                (unsigned)e->cn0_ms);
+  log_debug_mesid(mesid,
+                  "Initializing estimator %s (%f dB/Hz @ %u ms)",
+                  track_cn0_str(e->type),
+                  e->filter.yn,
+                  (unsigned)e->cn0_ms);
 }
 
 /**
  * Updates C/N0 estimator.
  *
- * \param[in]     sid    Signal identifier for logging.
+ * \param[in]     mesid  ME signal identifier for logging.
  * \param[in]     t      Type of estimator value to use/return.
  * \param[in,out] e      Estimator state.
  * \param[in]     I      In-phase component.
@@ -358,7 +359,7 @@ void track_cn0_init(gnss_signal_t sid,
  *
  * \return Filtered estimator value.
  */
-float track_cn0_update(gnss_signal_t sid,
+float track_cn0_update(const me_gnss_signal_t mesid,
                        track_cn0_est_e t,
                        track_cn0_state_t *e,
                        float I, float Q,
@@ -370,16 +371,17 @@ float track_cn0_update(gnss_signal_t sid,
 
   if (e->ver != cn0_config.update_count) {
     u8 cn0_0 = e->cn0_0;
-    track_cn0_init(sid, e->cn0_ms, e, e->filter.yn, e->flags);
+    track_cn0_init(mesid, e->cn0_ms, e, e->filter.yn, e->flags);
     e->cn0_0 = cn0_0;
   }
 
   if (e->type != t) {
-    log_debug_sid(sid, "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
-                  track_cn0_str(e->type),
-                  track_cn0_str(t),
-                  e->filter.yn,
-                  (unsigned)e->cn0_ms);
+    log_debug_mesid(mesid,
+                    "Changing estimator from %s to %s at (%f dB/Hz @ %u ms)",
+                    track_cn0_str(e->type),
+                    track_cn0_str(t),
+                    e->filter.yn,
+                    (unsigned)e->cn0_ms);
     e->type = t;
   }
 

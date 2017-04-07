@@ -82,9 +82,9 @@ extern "C" {
 #endif /* __cplusplus */
 
 void track_cn0_params_init(void);
-void track_cn0_init(gnss_signal_t sid, u8 cn0_ms,
+void track_cn0_init(const me_gnss_signal_t mesid, u8 cn0_ms,
                     track_cn0_state_t *e, float cn0_0, u8 flags);
-float track_cn0_update(gnss_signal_t sid, track_cn0_est_e t,
+float track_cn0_update(const me_gnss_signal_t mesid, track_cn0_est_e t,
                        track_cn0_state_t *e,
                        float I, float Q,
                        float ve_I, float ve_Q);

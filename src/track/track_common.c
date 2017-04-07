@@ -41,12 +41,12 @@
  * In most cases the number of chips is the result of multiplication of a
  * chip rate to interval duration.
  *
- * \param[in] sid         GNSS signal identifier.
+ * \param[in] mesid       ME signal identifier.
  * \param[in] ms          Interval duration in ms.
  *
  * \return Computed number of chips.
  */
-static u32 tp_convert_ms_to_chips(gnss_signal_t sid, u8 ms)
+static u32 tp_convert_ms_to_chips(const me_gnss_signal_t mesid, u8 ms)
 {
   u32 chip_rate = 0;
 
@@ -54,7 +54,7 @@ static u32 tp_convert_ms_to_chips(gnss_signal_t sid, u8 ms)
    * the expression:
    * chip_rate = (u32)code_to_chip_rate(sid.code) / 1000;
    */
-  switch (sid_to_constellation(sid)) {
+  switch (mesid_to_constellation(mesid)) {
   case CONSTELLATION_GPS:
   case CONSTELLATION_SBAS:
     chip_rate = GPS_L1CA_CHIPS_NUM;
@@ -155,17 +155,17 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   config.dll_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode);
   config.fll_loop_freq = 1000.f / tp_get_flll_ms(data->tracking_mode);
   config.fll_discr_freq = 1000.f / tp_get_flld_ms(data->tracking_mode);
-  config.carr_to_code = code_to_carr_to_code(channel_info->sid.code);
+  config.carr_to_code = code_to_carr_to_code(channel_info->mesid.code);
 
   if (init) {
-    log_debug_sid(channel_info->sid, "Initializing TL");
+    log_debug_mesid(channel_info->mesid, "Initializing TL");
 
     tp_tl_init(&data->tl_state,
                next_params->loop_params.ctrl,
                &rates,
                &config);
   } else {
-    log_debug_sid(channel_info->sid, "Re-tuning TL");
+    log_debug_mesid(channel_info->mesid, "Re-tuning TL");
 
     /* Recalculate filter coefficients */
     tp_tl_retune(&data->tl_state,
@@ -211,20 +211,21 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
     }
 
     /* Initialize C/N0 estimator and filter */
-    track_cn0_init(channel_info->sid, /* Signal for logging */
-                   cn0_ms,            /* C/N0 period in ms */
-                   &data->cn0_est,    /* C/N0 estimator state */
-                   cn0_0,             /* Initial C/N0 value */
-                   0);                /* Flags */
+    track_cn0_init(channel_info->mesid, /* Signal for logging */
+                   cn0_ms,              /* C/N0 period in ms */
+                   &data->cn0_est,      /* C/N0 estimator state */
+                   cn0_0,               /* Initial C/N0 value */
+                   0);                  /* Flags */
 
     if (!data->confirmed) {
       data->cn0_est.cn0_0 = cn0_t;
       common_data->cn0 = cn0_t;
     }
-    log_debug_sid(channel_info->sid, "CN0 update: CD=%f EST=%f CN0_0=%f",
-                  common_data->cn0,
-                  cn0_0,
-                  cn0_t);
+    log_debug_mesid(channel_info->mesid,
+                    "CN0 update: CD=%f EST=%f CN0_0=%f",
+                    common_data->cn0,
+                    cn0_0,
+                    cn0_t);
   }
 
   if (data->use_alias_detection) {
@@ -264,8 +265,9 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
   memset(data, 0, sizeof(*data));
   tracker_ambiguity_unknown(channel_info->context);
 
-  log_debug_sid(channel_info->sid, "[+%" PRIu32 "ms] Tracker start",
-                common_data->update_count);
+  log_debug_mesid(channel_info->mesid,
+                  "[+%" PRIu32 "ms] Tracker start",
+                  common_data->update_count);
 
   /* Do tracking report to manager */
   tp_report_t report;
@@ -278,11 +280,11 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
   report.sample_count = common_data->sample_count;
   report.time_ms = 0;
 
-  if (TP_RESULT_SUCCESS != tp_profile_init(channel_info->sid,
+  if (TP_RESULT_SUCCESS != tp_profile_init(channel_info->mesid,
                                            &data->profile,
                                            &report,
                                            &init_profile)) {
-    log_error_sid(channel_info->sid, "Tracker start error");
+    log_error_mesid(channel_info->mesid, "Tracker start error");
   }
 
   if (config->show_unconfirmed_trackers) {
@@ -311,10 +313,10 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
                         tracker_common_data_t *common_data,
                         tp_tracker_data_t *data)
 {
-  log_debug_sid(channel_info->sid,
-                "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
-                common_data->update_count,
-                common_data->TOW_ms);
+  log_debug_mesid(channel_info->mesid,
+                  "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
+                  common_data->update_count,
+                  common_data->TOW_ms);
 
   memset(data, 0, sizeof(*data));
 }
@@ -340,14 +342,15 @@ u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info
   u32 result_ms = 0;
   if (data->has_next_params) {
     tp_config_t next_params;
-    tp_profile_get_config(channel_info->sid, &data->profile, &next_params, false);
+    tp_profile_get_config(channel_info->mesid, &data->profile,
+                          &next_params, false);
     result_ms = tp_get_current_cycle_duration(next_params.loop_params.mode,
                                               0);
   } else {
     result_ms = tp_get_rollover_cycle_duration(data->tracking_mode,
                                                data->cycle_no);
   }
-  return tp_convert_ms_to_chips(channel_info->sid, result_ms);
+  return tp_convert_ms_to_chips(channel_info->mesid, result_ms);
 }
 
 /**
@@ -385,7 +388,7 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
     if (tracker_next_bit_aligned(channel_info->context, bit_ms)) {
       /* When the bit sync is available and the next integration interval is the
        * last one in the bit, check if the profile switch is required. */
-      if (tp_profile_has_new_profile(channel_info->sid, &data->profile)) {
+      if (tp_profile_has_new_profile(channel_info->mesid, &data->profile)) {
         /* Initiate profile change */
         data->has_next_params = true;
       }
@@ -411,13 +414,14 @@ static void mode_change_complete(const tracker_channel_info_t *channel_info,
   if (data->has_next_params) {
     tp_config_t next_params;
 
-    tp_profile_get_config(channel_info->sid, &data->profile, &next_params, true);
+    tp_profile_get_config(channel_info->mesid, &data->profile,
+                          &next_params, true);
 
     /* If there is a stage transition in progress, update parameters for the
      * next iteration. */
-    log_debug_sid(channel_info->sid,
-                  "Reconfiguring tracking profile: new mode=%s",
-                  tp_get_mode_str(next_params.loop_params.mode));
+    log_debug_mesid(channel_info->mesid,
+                    "Reconfiguring tracking profile: new mode=%s",
+                    tp_get_mode_str(next_params.loop_params.mode));
 
     tp_tracker_update_parameters(channel_info,
                                  common_data,
@@ -554,9 +558,11 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
   if (0 != err) {
 
     if (data->lock_detect.outp) {
-      log_warn_sid(channel_info->sid, "False phase lock detected: %f", err);
+      log_warn_mesid(channel_info->mesid,
+                     "False phase lock detected: %f", err);
     } else {
-      log_debug_sid(channel_info->sid, "False optimistic lock detected: %f", err);
+      log_debug_mesid(channel_info->mesid,
+                      "False optimistic lock detected: %f", err);
     }
 
     tracker_ambiguity_unknown(channel_info->context);
@@ -606,9 +612,9 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   if (common_data->updated_once) {
     u64 time_diff_ms = now - common_data->update_timestamp_ms;
     if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
-      log_warn_sid(channel_info->sid,
-                   "Unexpected tracking channel update rate: %" PRIu64 " ms",
-                   time_diff_ms);
+      log_warn_mesid(channel_info->mesid,
+                     "Unexpected tracking channel update rate: %" PRIu64 " ms",
+                     time_diff_ms);
     }
   }
   common_data->updated_once = true;
@@ -630,15 +636,17 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
                                            int_ms,
                                            &decoded_tow);
   if (!tp_tow_is_sane(common_data->TOW_ms)) {
-    log_error_sid(channel_info->sid, "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
-                  common_data->update_count, common_data->TOW_ms);
+    log_error_mesid(channel_info->mesid,
+                    "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
+                    common_data->update_count, common_data->TOW_ms);
     common_data->TOW_ms = TOW_UNKNOWN;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
   }
   if (decoded_tow) {
-    log_debug_sid(channel_info->sid, "[+%"PRIu32"ms] Decoded TOW %"PRId32,
-                  common_data->update_count, common_data->TOW_ms);
+    log_debug_mesid(channel_info->mesid,
+                    "[+%"PRIu32"ms] Decoded TOW %"PRId32,
+                    common_data->update_count, common_data->TOW_ms);
     common_data->flags |= TRACK_CMN_FLAG_TOW_DECODED;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
   }
@@ -694,7 +702,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
 
   if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
     /* Update C/N0 estimate */
-    cn0 = track_cn0_update(channel_info->sid,
+    cn0 = track_cn0_update(channel_info->mesid,
                            cn0_params.est,
                            &data->cn0_est,
                            data->corrs.corr_cn0.prompt.I,
@@ -713,14 +721,16 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
 
   if (cn0 > cn0_params.track_cn0_drop_thres &&
       !data->confirmed &&
-      data->lock_detect.outo && tracker_has_bit_sync(channel_info->context)) {
+      data->lock_detect.outo &&
+      tracker_has_bit_sync(channel_info->context)) {
     data->confirmed = true;
-    log_debug_sid(channel_info->sid, "CONFIRMED from %f to %d",
-                  cn0, data->cn0_est.cn0_0);
+    log_debug_mesid(channel_info->mesid,
+                    "CONFIRMED from %f to %d",
+                    cn0, data->cn0_est.cn0_0);
 
     cn0 = data->cn0_est.cn0_0;
     /* Re-initialize C/N0 estimator and filter */
-    track_cn0_init(channel_info->sid,   /* SV signal */
+    track_cn0_init(channel_info->mesid, /* ME signal */
                    data->cn0_est.cn0_ms,/* C/N0 period in ms */
                    &data->cn0_est,      /* C/N0 estimator state */
                    cn0,                 /* Initial C/N0 value */
@@ -794,9 +804,9 @@ void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
 
     if (last_outp && !outp && (data->tracking_mode != TP_TM_GPS_INITIAL)) {
       if (fll_loop) {
-        log_info_sid(channel_info->sid, "FLL stress");
+        log_info_mesid(channel_info->mesid, "FLL stress");
       } else if (pll_loop) {
-        log_info_sid(channel_info->sid, "PLL stress");
+        log_info_mesid(channel_info->mesid, "PLL stress");
       }
     }
   }
@@ -882,7 +892,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
 
     tl_rates_t rates = {0};
 
-    bool costas = (channel_info->sid.code != CODE_GPS_L2CL);
+    bool costas = (channel_info->mesid.code != CODE_GPS_L2CL);
     tp_tl_update(&data->tl_state, &data->corrs.corr_epl, costas);
     tp_tl_get_rates(&data->tl_state, &rates);
 
@@ -905,7 +915,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
     report.time_ms = tp_get_dll_ms(data->tracking_mode);
     report.acceleration = rates.acceleration;
 
-    tp_profile_report_data(channel_info->sid,
+    tp_profile_report_data(channel_info->mesid,
                            &data->profile,
                            common_data,
                            &report);

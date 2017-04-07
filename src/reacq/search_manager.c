@@ -41,8 +41,8 @@ void sm_init(acq_jobs_state_t *data)
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i;
     for (i = 0; i < NUM_SATS_GPS; i++) {
-      data->jobs[type][i].sid = construct_sid(CODE_GPS_L1CA,
-                                              GPS_FIRST_PRN + i);
+      data->jobs[type][i].mesid = construct_mesid(CODE_GPS_L1CA,
+                                                  GPS_FIRST_PRN + i);
       data->jobs[type][i].job_type = type;
     }
   }
@@ -59,10 +59,10 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
   u32 i;
   for (i = 0; i < ACQ_NUM_SVS; i++) {
     acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][i];
-    gnss_signal_t sid = deep_job->sid;
+    me_gnss_signal_t mesid = deep_job->mesid;
     bool visible, known;
 
-    assert(sid_valid(sid));
+    assert(mesid_valid(mesid));
 
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
@@ -70,11 +70,12 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     deep_job->needs_to_run = false;
 
     /* Check if jobs need to run */
-    if (sid_is_tracked(sid)) {
+    if (mesid_is_tracked(mesid)) {
       continue;
     }
-
-    sm_get_visibility_flags(sid, &visible, &known);
+    /* TODO GLO: Handle GLO signals properly. */
+    assert(!is_glo_sid(mesid));
+    sm_get_visibility_flags(mesid2sid(mesid), &visible, &known);
     visible = visible && known;
 
     if (visible) {
@@ -100,22 +101,23 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   u32 i;
   for (i = 0; i < ACQ_NUM_SVS; i++) {
     acq_job_t *fallback_job = &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][i];
-    gnss_signal_t sid = fallback_job->sid;
+    me_gnss_signal_t mesid = fallback_job->mesid;
     bool visible, invisible, known;
 
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
-    assert(sid_valid(sid));
+    assert(mesid_valid(mesid));
 
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
 
     /* Check if jobs need to run */
-    if (sid_is_tracked(sid)) {
+    if (mesid_is_tracked(mesid)) {
       continue;
     }
-
-    sm_get_visibility_flags(sid, &visible, &known);
+    /* TODO GLO: Handle GLO signals properly. */
+    assert(!is_glo_sid(mesid));
+    sm_get_visibility_flags(mesid2sid(mesid), &visible, &known);
     visible = visible && known;
     invisible = !visible && known;
 

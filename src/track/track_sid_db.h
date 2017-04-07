@@ -39,15 +39,15 @@ typedef struct {
 void track_sid_db_init(void);
 s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_tk, u8 ms_align, double *error_ms);
 bool tp_tow_is_sane(s32 tow_ms);
-bool track_sid_db_load_tow(gnss_signal_t sid, tp_tow_entry_t *tow_entry);
-bool track_sid_db_update_tow(gnss_signal_t sid, const tp_tow_entry_t *tow_entry);
-bool track_sid_db_load_elevation(gnss_signal_t sid,
+bool track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry);
+bool track_sid_db_update_tow(const gnss_signal_t sid, const tp_tow_entry_t *tow_entry);
+bool track_sid_db_load_elevation(const gnss_signal_t sid,
                                  tp_azel_entry_t *azel_entry);
-bool track_sid_db_update_azel(gnss_signal_t sid,
+bool track_sid_db_update_azel(const gnss_signal_t sid,
                               const tp_azel_entry_t *azel_entry);
-bool track_sid_db_load_positions(gnss_signal_t sid,
+bool track_sid_db_load_positions(const gnss_signal_t sid,
                                  xcorr_positions_t *position_entry);
-bool track_sid_db_update_positions(gnss_signal_t sid,
+bool track_sid_db_update_positions(const gnss_signal_t sid,
                                    const xcorr_positions_t *position_entry);
 
 #endif /* SWIFTNAV_TRACK_SID_DB_H_ */

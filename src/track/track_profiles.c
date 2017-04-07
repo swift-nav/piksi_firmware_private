@@ -553,7 +553,7 @@ static const tp_profile_entry_t gps_profiles[] = {
  * \param[in] sid SV identifier
  * \return tracking parameters structures array pointer
  */
-static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
+static const tp_profile_entry_t* tp_profiles_from_id(const me_gnss_signal_t mesid)
 {
   const tp_profile_entry_t *result = NULL;
 
@@ -562,7 +562,7 @@ static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
   /* GLONASS constellation require different state machine due to different
    * data bit encoding and frame structure. */
 
-  switch (sid_to_constellation(sid)) {
+  switch (mesid_to_constellation(mesid)) {
   case CONSTELLATION_GPS:
   case CONSTELLATION_SBAS:
     result = gps_profiles;
@@ -588,18 +588,18 @@ static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
  * The method generates tracking loop parameters according to selected
  * configuration.
  *
- * \param[in]  sid     GNSS signal identifier.
+ * \param[in]  mesid   ME signal identifier.
  * \param[in]  profile GNSS satellite profile.
  * \param[out] config  Container for computed configuration.
  *
  * \return None
  */
-static void get_profile_params(gnss_signal_t sid,
+static void get_profile_params(const me_gnss_signal_t mesid,
                                const tp_profile_t *profile,
                                tp_config_t  *config)
 {
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
-  double carr_to_code = code_to_carr_to_code(sid.code);
+  double carr_to_code = code_to_carr_to_code(mesid.code);
   config->lock_detect_params = ld_params[cur_profile->ld_params];
 
   /* fill out the tracking loop parameters */
@@ -633,14 +633,14 @@ static void get_profile_params(gnss_signal_t sid,
 /**
  * Helper method to incorporate tracking loop information into statistics.
  *
- * \param[in]     sid         GNSS signal identifier.
+ * \param[in]     mesid       ME signal identifier.
  * \param[in,out] profile     Satellite profile.
  * \param[in]     common_data Tracker common data
  * \param[in]     data        Data from tracking loop.
  *
  * \return None
  */
-static void update_stats(gnss_signal_t sid,
+static void update_stats(const me_gnss_signal_t mesid,
                          tp_profile_t *profile,
                          const tracker_common_data_t *common_data,
                          const tp_report_t *data)
@@ -693,7 +693,7 @@ static void update_stats(gnss_signal_t sid,
 
   profile->filt_cn0 = cn0;
 
-  float carr_freq = code_to_carr_freq(sid.code);
+  float carr_freq = code_to_carr_freq(mesid.code);
   float acceleration_g = data->acceleration *
               (float) (GPS_C / STD_GRAVITY_ACCELERATION) / carr_freq;
 
@@ -725,36 +725,37 @@ static const char *get_ctrl_str(tp_ctrl_e v)
  *
  * The function generate log output only when debug level logging is enabled.
  *
- * \param[in] sid    GNSS signal identifier.
+ * \param[in] mesid  ME signal identifier.
  * \param[in] state  Tracking loop state
  * \param[in] reason Profile switching reason in a textual form
  *
  * \return None
  */
-static void log_switch(gnss_signal_t sid,
+static void log_switch(const me_gnss_signal_t mesid,
                        const tp_profile_t *state,
                        const char *reason)
 {
   const tp_profile_entry_t* cur_profile = &state->profiles[state->cur_index];
   const tp_profile_entry_t* next_profile = &state->profiles[state->next_index];
 
-  log_debug_sid(sid, "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
-                "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                reason,
-                state->plock_delay_ms,
-                state->bs_delay_ms,
-                state->filt_cn0,
-                state->filt_accel,
-                /* old state */
-                tp_get_mode_str(cur_profile->profile.mode),
-                cur_profile->profile.pll_bw,
-                cur_profile->profile.fll_bw,
-                get_ctrl_str(cur_profile->profile.controller_type),
-                /* new state */
-                tp_get_mode_str(next_profile->profile.mode),
-                next_profile->profile.pll_bw,
-                next_profile->profile.fll_bw,
-                get_ctrl_str(next_profile->profile.controller_type));
+  log_debug_mesid(mesid,
+                  "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
+                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+                  reason,
+                  state->plock_delay_ms,
+                  state->bs_delay_ms,
+                  state->filt_cn0,
+                  state->filt_accel,
+                  /* old state */
+                  tp_get_mode_str(cur_profile->profile.mode),
+                  cur_profile->profile.pll_bw,
+                  cur_profile->profile.fll_bw,
+                  get_ctrl_str(cur_profile->profile.controller_type),
+                  /* new state */
+                  tp_get_mode_str(next_profile->profile.mode),
+                  next_profile->profile.pll_bw,
+                  next_profile->profile.fll_bw,
+                  get_ctrl_str(next_profile->profile.controller_type));
 }
 
 /**
@@ -762,12 +763,12 @@ static void log_switch(gnss_signal_t sid,
  *
  * The method logs average and RMS values for analyzes.
  *
- * \param[in]     sid     GNSS signal identifier.
+ * \param[in]     mesid   ME signal identifier.
  * \param[in,out] profile GNSS satellite profile.
  *
  * \return None
  */
-static void print_stats(gnss_signal_t sid, tp_profile_t *profile)
+static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile)
 {
   if (profile->print_time > 0) {
     return;
@@ -791,13 +792,12 @@ static void print_stats(gnss_signal_t sid, tp_profile_t *profile)
    *        PLL lock detector ratio, FLL/DLL error
    */
 
-  log_debug_sid(sid,
-                "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
-                dll_ms, m1, c1,
-                cn0_est_str, profile->filt_cn0,
-                TRACK_CN0_TO_SNR(profile->filt_cn0),
-                profile->filt_accel
-               );
+  log_debug_mesid(mesid,
+                  "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
+                  dll_ms, m1, c1,
+                  cn0_est_str, profile->filt_cn0,
+                  TRACK_CN0_TO_SNR(profile->filt_cn0),
+                  profile->filt_accel);
 }
 
 /**
@@ -819,10 +819,10 @@ static void update_acceleration_status(tp_profile_t *state)
 /**
  * Checks if CN0 estimator type needs to be changed
  *
- * \param[in]     sid   GNSS signal identifier.
+ * \param[in]     mesid ME signal identifier.
  * \param[in,out] state Tracking loop state
  */
-static void check_for_cn0_estimator_change(gnss_signal_t sid,
+static void check_for_cn0_estimator_change(const me_gnss_signal_t mesid,
                                            tp_profile_t *state)
 {
   float cn0 = 0.f;
@@ -840,13 +840,13 @@ static void check_for_cn0_estimator_change(gnss_signal_t sid,
     if (cn0 < track_cn0_get_pri2sec_threshold(cn0_ms) ||
         TRACK_CN0_EST_SECONDARY == cur_profile->profile.cn0_est) {
       state->cn0_est = TRACK_CN0_EST_SECONDARY;
-      log_debug_sid(sid, "Changed C/N0 estimator to secondary");
+      log_debug_mesid(mesid, "Changed C/N0 estimator to secondary");
     }
   } else if (TRACK_CN0_EST_SECONDARY == state->cn0_est) {
     if (cn0 > track_cn0_get_sec2pri_threshold(cn0_ms) &&
         TRACK_CN0_EST_PRIMARY == cur_profile->profile.cn0_est) {
       state->cn0_est = TRACK_CN0_EST_PRIMARY;
-      log_debug_sid(sid, "Changed C/N0 estimator to primary");
+      log_debug_mesid(mesid, "Changed C/N0 estimator to primary");
     }
   } else {
     assert(!"Unsupported CN0 estimator identifier");
@@ -858,7 +858,7 @@ static void check_for_cn0_estimator_change(gnss_signal_t sid,
  *
  * Sets the requested profile as the current one.
  *
- * \param[in]     sid    GNSS signal identifier.
+ * \param[in]     mesid  ME signal identifier.
  * \param[in,out] state  Tracking loop state
  * \param[in]     index  Index of profile to activate
  * \param[in]     reason Textual reason of profile switch
@@ -866,7 +866,7 @@ static void check_for_cn0_estimator_change(gnss_signal_t sid,
  * \retval true Profile switch requested
  * \retval false No profile switch requested
  */
-static bool profile_switch_requested(gnss_signal_t sid,
+static bool profile_switch_requested(const me_gnss_signal_t mesid,
                                      tp_profile_t *state,
                                      profile_indices_t index,
                                      const char* reason)
@@ -882,7 +882,7 @@ static bool profile_switch_requested(gnss_signal_t sid,
   state->profile_update = true;
   state->next_index = index;
 
-  log_switch(sid, state, reason);
+  log_switch(mesid, state, reason);
 
   return true;
 }
@@ -893,12 +893,13 @@ static bool profile_switch_requested(gnss_signal_t sid,
  * This method analyzes collected statistics and selects appropriate tracking
  * parameter changes.
  *
- * \param[in]     sid   GNSS signal identifier.
+ * \param[in]     mesid ME signal identifier.
  * \param[in,out] state Tracking loop state
  *
  * \return None
  */
-static void check_for_profile_change(gnss_signal_t sid, tp_profile_t *state)
+static void check_for_profile_change(const me_gnss_signal_t mesid,
+                                     tp_profile_t *state)
 {
   const tp_profile_entry_t *cur_profile;
   u16 flags;
@@ -909,25 +910,28 @@ static void check_for_profile_change(gnss_signal_t sid, tp_profile_t *state)
 
   state->profile_update = false;
 
-  check_for_cn0_estimator_change(sid, state);
+  check_for_cn0_estimator_change(mesid, state);
 
   update_acceleration_status(state);
   acceleration_detected = (0 != state->acceleration_ends_after_ms);
 
   if ((0 != (flags & TP_LOW_CN0)) &&
       (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
-      profile_switch_requested(sid, state, cur_profile->next_cn0_low, "low cn0")) {
+      profile_switch_requested(mesid, state,
+                               cur_profile->next_cn0_low, "low cn0")) {
     return;
   }
 
   if ((0 != (flags & TP_NO_PLOCK)) && !state->plock &&
-      profile_switch_requested(sid, state, cur_profile->next_lock, "no plock")) {
+      profile_switch_requested(mesid, state,
+                               cur_profile->next_lock, "no plock")) {
     return;
   }
 
   if ((0 != (flags & TP_HIGH_DYN)) &&
        acceleration_detected &&
-       profile_switch_requested(sid, state, cur_profile->next_dyn, "high dyn")) {
+       profile_switch_requested(mesid, state,
+                                cur_profile->next_dyn, "high dyn")) {
     return;
   }
 
@@ -952,19 +956,22 @@ static void check_for_profile_change(gnss_signal_t sid, tp_profile_t *state)
        acceleration_detected &&
        state->plock &&
        (state->filt_cn0 > cur_profile->cn0_dyn_threshold) &&
-       profile_switch_requested(sid, state, cur_profile->next_dyn, "high dyn")) {
+       profile_switch_requested(mesid, state,
+                                cur_profile->next_dyn, "high dyn")) {
     return;
   }
 
   if ((0 != (flags & TP_LOW_DYN)) &&
       !acceleration_detected &&
-      profile_switch_requested(sid, state, cur_profile->next_dyn, "low dyn")) {
+      profile_switch_requested(mesid, state,
+                               cur_profile->next_dyn, "low dyn")) {
     return;
   }
 
   if ((0 != (flags & TP_HIGH_CN0)) &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
-      profile_switch_requested(sid, state, cur_profile->next_cn0_high, "high cno")) {
+      profile_switch_requested(mesid, state,
+                               cur_profile->next_cn0_high, "high cno")) {
     return;
   }
 
@@ -972,15 +979,16 @@ static void check_for_profile_change(gnss_signal_t sid, tp_profile_t *state)
       state->plock &&
       !acceleration_detected &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
-      profile_switch_requested(sid, state, cur_profile->next_cn0_high, "high cno")) {
+      profile_switch_requested(mesid, state,
+                               cur_profile->next_cn0_high, "high cno")) {
     return;
   }
 
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
-    profile_switch_requested(sid, state, cur_profile->next, "next");
+    profile_switch_requested(mesid, state, cur_profile->next, "next");
   } else {
-    profile_switch_requested(sid, state, state->cur_index + 1, "next");
+    profile_switch_requested(mesid, state, state->cur_index + 1, "next");
   }
 }
 
@@ -1022,7 +1030,7 @@ tp_result_e tp_init(void)
  *
  * The method registers GNSS signal and returns initial tracking parameters.
  *
- * \param[in]  sid     GNSS signal identifier.
+ * \param[in]  mesid   ME signal identifier.
  * \param[out] profile Profile data to initialize.
  * \param[in]  data    Initial parameters.
  * \param[out] config  Container for initial tracking parameters.
@@ -1033,7 +1041,7 @@ tp_result_e tp_init(void)
  *
  * \sa tp_tracking_stop()
  */
-tp_result_e tp_profile_init(gnss_signal_t      sid,
+tp_result_e tp_profile_init(const me_gnss_signal_t  mesid,
                             tp_profile_t      *profile,
                             const tp_report_t *data,
                             tp_config_t       *config)
@@ -1047,7 +1055,7 @@ tp_result_e tp_profile_init(gnss_signal_t      sid,
     profile->filt_accel = 0;
 
     profile->cur_index = 0;
-    profile->profiles = tp_profiles_from_id(sid);
+    profile->profiles = tp_profiles_from_id(mesid);
     profile->bsync_sticky = 0;
 
     profile->cn0_est = profile->profiles[profile->cur_index].profile.cn0_est;
@@ -1065,7 +1073,7 @@ tp_result_e tp_profile_init(gnss_signal_t      sid,
     profile->bs_delay_ms = TP_DELAY_UNKNOWN;
     profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
-    get_profile_params(sid, profile, config);
+    get_profile_params(mesid, profile, config);
 
     res = TP_RESULT_SUCCESS;
   } else {
@@ -1077,7 +1085,7 @@ tp_result_e tp_profile_init(gnss_signal_t      sid,
 /**
  * Retrieves new tracking profile if available.
  *
- * \param[in]     sid      GNSS signal identifier.
+ * \param[in]     mesid    ME signal identifier.
  * \param[in,out] profile  Tracking profile data to read and update.
  * \param[out]    config   Container for new tracking parameters.
  * \param[in]     commit   Commit the mode change happened.
@@ -1089,7 +1097,7 @@ tp_result_e tp_profile_init(gnss_signal_t      sid,
  *                           actions are needed.
  * \retval TP_RESULT_ERROR   On error.
  */
-tp_result_e tp_profile_get_config(gnss_signal_t sid,
+tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
                                   tp_profile_t *profile,
                                   tp_config_t  *config,
                                   bool          commit)
@@ -1107,7 +1115,7 @@ tp_result_e tp_profile_get_config(gnss_signal_t sid,
       }
 
       /* Return data */
-      get_profile_params(sid, profile, config);
+      get_profile_params(mesid, profile, config);
 
       res = TP_RESULT_SUCCESS;
     } else {
@@ -1154,17 +1162,17 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
 /**
  * Method to check if there is a pending profile change.
  *
- * \param[in] sid     GNSS satellite id.
+ * \param[in] mesid   ME signal identifier.
  * \param[in] profile Tracking profile data to check
  *
  * \retval true  New profile is available.
  * \retval false No profile change is required.
  */
-bool tp_profile_has_new_profile(gnss_signal_t sid, tp_profile_t *profile)
+bool tp_profile_has_new_profile(const me_gnss_signal_t mesid, tp_profile_t *profile)
 {
   bool res = false;
   if (NULL != profile) {
-    check_for_profile_change(sid, profile);
+    check_for_profile_change(mesid, profile);
     res = profile->profile_update != 0;
   }
   return res;
@@ -1194,7 +1202,7 @@ u8 tp_profile_get_next_loop_params_ms(const tp_profile_t *profile)
  * The method takes tracking loop data and merges it with previously collected
  * information from other tracking loops.
  *
- * \param[in]     sid         GNSS signal identifier.
+ * \param[in]     mesid       ME signal identifier.
  * \param[in,out] profile     Tracking profile data to update
  * \param[in]     common_data Tracker common data
  * \param[in]     data        Tracking loop report.
@@ -1202,7 +1210,7 @@ u8 tp_profile_get_next_loop_params_ms(const tp_profile_t *profile)
  * \retval TP_RESULT_SUCCESS on success.
  * \retval TP_RESULT_ERROR   on error.
  */
-tp_result_e tp_profile_report_data(gnss_signal_t sid,
+tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
                                    tp_profile_t *profile,
                                    const tracker_common_data_t *common_data,
                                    const tp_report_t *data)
@@ -1215,8 +1223,8 @@ tp_result_e tp_profile_report_data(gnss_signal_t sid,
      * TODO schedule a message to own thread.
      */
 
-    update_stats(sid, profile, common_data, data);
-    print_stats(sid, profile);
+    update_stats(mesid, profile, common_data, data);
+    print_stats(mesid, profile);
 
     res = TP_RESULT_SUCCESS;
   }

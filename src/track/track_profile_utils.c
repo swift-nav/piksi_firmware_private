@@ -701,7 +701,7 @@ void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
                             bool xcorr_suspect,
                             bool sensitivity_mode)
 {
-  if (CODE_GPS_L1CA == channel_info->sid.code) {
+  if (CODE_GPS_L1CA == channel_info->mesid.code) {
     gps_l1ca_tracker_data_t *data;
     data = (gps_l1ca_tracker_data_t*) input;
     if ((data->xcorr_flag) == xcorr_suspect) {
@@ -720,14 +720,14 @@ void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
   if (xcorr_suspect) {
     common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_sid(channel_info->sid,
-                   "setting cross-correlation suspect flag");
+      log_debug_mesid(channel_info->mesid,
+                      "setting cross-correlation suspect flag");
     }
   } else {
     common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_sid(channel_info->sid,
-                   "clearing cross-correlation suspect flag");
+      log_debug_mesid(channel_info->mesid,
+                      "clearing cross-correlation suspect flag");
     }
   }
   common_data->xcorr_change_count = common_data->update_count;

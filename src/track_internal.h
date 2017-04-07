@@ -83,7 +83,7 @@ void tracker_internal_context_resolve(tracker_context_t *tracker_context,
                                       const tracker_channel_info_t **channel_info,
                                       tracker_internal_data_t **internal_data);
 void internal_data_init(tracker_internal_data_t *internal_data,
-                        gnss_signal_t sid);
+                        const me_gnss_signal_t mesid);
 
 void nav_bit_fifo_init(nav_bit_fifo_t *fifo);
 bool nav_bit_fifo_full(nav_bit_fifo_t *fifo);
@@ -98,7 +98,7 @@ bool nav_time_sync_get(nav_time_sync_t *sync, s32 *TOW_ms,
 
 s8 nav_bit_quantize(s32 bit_integrate);
 
-u16 tracking_lock_counter_increment(gnss_signal_t sid);
+u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
 u16 tracking_lock_counter_get(gnss_signal_t sid);
 
 #endif

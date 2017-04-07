@@ -265,11 +265,11 @@ void sch_run(acq_jobs_state_t *jobs_data)
   acq_param = &task->task_array[task->task_index];
   job->state = ACQ_STATE_RUN;
 
-  assert(sid_valid(job->sid));
+  assert(mesid_valid(job->mesid));
 
   job->start_time = timing_getms();
 
-  peak_found = acq_search(job->sid,
+  peak_found = acq_search(job->mesid,
                           acq_param->doppler_min_hz,
                           acq_param->doppler_max_hz,
                           acq_param->freq_bin_size_hz,
@@ -290,11 +290,11 @@ void sch_run(acq_jobs_state_t *jobs_data)
 
   if (peak_found) { /* Send to track */
     tracking_startup_params_t tracking_startup_params = {
-      .sid = job->sid,
+      .mesid = job->mesid,
       .sample_count = acq_result.sample_count,
       .carrier_freq = acq_result.cf,
       .code_phase = acq_result.cp,
-      .chips_to_correlate = code_to_chip_count(job->sid.code),
+      .chips_to_correlate = code_to_chip_count(job->mesid.code),
       .cn0_init = acq_result.cn0,
       .elevation = TRACKING_ELEVATION_UNKNOWN
     };
@@ -321,6 +321,6 @@ void sch_run(acq_jobs_state_t *jobs_data)
   sch_send_acq_profile_msg(job, &acq_result, peak_found);
 
   /* Send result of an acquisition to the host. */
-  acq_result_send(job->sid, acq_result.cn0, acq_result.cp, acq_result.cf);
+  acq_result_send(job->mesid, acq_result.cn0, acq_result.cp, acq_result.cf);
 }
 
