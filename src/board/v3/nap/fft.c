@@ -34,6 +34,7 @@ static u32 length_points_get(u32 len_log2);
 static void control_set_dma(void);
 static void control_set_frontend_samples(fft_samples_input_t samples_input,
                                          u32 len_points);
+static void control_set_raw_samples(u32 len_words);
 static void sample_stream_start(void);
 static u32 sample_stream_snapshot_get(void);
 static void config_set(fft_dir_t dir, u32 scale_schedule);
@@ -82,7 +83,8 @@ static void control_set_dma(void)
       (NAP_ACQ_CONTROL_FFT_INPUT_DMA << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (NAP_ACQ_CONTROL_PEAK_SEARCH   << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
       (0                             << NAP_ACQ_CONTROL_MIXER_Pos) |
-      (FFT_LEN_LOG2_MAX              << NAP_ACQ_CONTROL_NFFT_Pos);
+      (FFT_LEN_LOG2_MAX              << NAP_ACQ_CONTROL_NFFT_Pos) |
+      (NAP_ACQ_CONTROL_DMA_INPUT_FFT << NAP_ACQ_CONTROL_DMA_INPUT_Pos);
 }
 
 /** Set the ACQ control register for frontend samples input.
@@ -100,7 +102,25 @@ static void control_set_frontend_samples(fft_samples_input_t samples_input,
       (NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
       (0                                  << NAP_ACQ_CONTROL_MIXER_Pos) |
-      (FFT_LEN_LOG2_MAX                   << NAP_ACQ_CONTROL_NFFT_Pos);
+      (FFT_LEN_LOG2_MAX                   << NAP_ACQ_CONTROL_NFFT_Pos) |
+      (NAP_ACQ_CONTROL_DMA_INPUT_FFT      << NAP_ACQ_CONTROL_DMA_INPUT_Pos);
+}
+
+/** Set the ACQ control register for raw samples input.
+ *
+ * \param len_words      Number of words.
+ */
+static void control_set_raw_samples(u32 len_words)
+{
+  (void)len_words;
+
+  NAP->ACQ_CONTROL =
+      (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
+      (0                                  << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
+      (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
+      (0                                  << NAP_ACQ_CONTROL_MIXER_Pos) |
+      (FFT_LEN_LOG2_MAX                   << NAP_ACQ_CONTROL_NFFT_Pos) |
+      (NAP_ACQ_CONTROL_DMA_INPUT_FRONTEND << NAP_ACQ_CONTROL_DMA_INPUT_Pos);
 }
 
 /** Start streaming samples from the frontend.
@@ -212,6 +232,9 @@ bool fft(const fft_cplx_t *in, fft_cplx_t *out, u32 len_log2,
       log_warn("Acquisition: IFFT overflow.");
     }
   }
+  if (NAP->ACQ_STATUS & NAP_ACQ_STATUS_FFT_FRAME_Msk) {
+    log_warn("Acquisition: FFT input data misaligned.");
+  }
   return result;
 }
 
@@ -273,3 +296,23 @@ void fft_results_get(u32 *peak_index, u32 *peak_mag_sq, u32 *sum_mag_sq)
     log_warn("Acquisition: Magnitude squared sum overflow.");
   }
 }
+
+/** Retrieve a buffer of raw samples.
+ *
+ * \param out             Output buffer.
+ * \param len_words       Number of words.
+ * \param sample_count    Output sample count of the first sample used.
+ *
+ * \return True if the samples were successfully retrieved, false otherwise.
+ */
+bool raw_samples(u8 *out, u32 len_words, u32 *sample_count)
+{
+  u32 len_bytes = len_words * sizeof(u32);
+  control_set_raw_samples(len_words);
+  sample_stream_start();
+  dma_start(0, (u8 *)out, len_bytes);
+  bool result = dma_wait();
+  *sample_count = sample_stream_snapshot_get();
+  return result;
+}
+

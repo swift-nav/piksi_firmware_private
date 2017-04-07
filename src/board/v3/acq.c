@@ -330,3 +330,20 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
 
   return true;
 }
+
+/** Grab raw samples from NAP.
+ *
+ * \param[out]  length        Number of samples in the buffer.
+ * \param[out]  sample_count  Output sample count of the first sample used.
+ *
+ * \return Pointer to the beginning of the sample buffer.
+ */
+u8* grab_samples(u32 *length, u32 *sample_count)
+{
+  static FFT_BUFFER(samples, u32, FFT_LEN_MAX);
+  *length = FFT_LEN_MAX * sizeof(u32);
+  if (raw_samples((u8*)samples, FFT_LEN_MAX, sample_count)) {
+    return (u8*)samples;
+  }
+  return NULL;
+}
