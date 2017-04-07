@@ -386,7 +386,7 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
   double Lf = -L - Li;
 
   msg->L.i = Li;
-  msg->L.f = Lf * MSG_OBS_LF_MULTIPLIER;
+  msg->L.f = round(Lf * MSG_OBS_LF_MULTIPLIER);
 
   double Di = floor(D);
   if (Di < INT16_MIN || Di > INT16_MAX) {
@@ -397,7 +397,7 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
   double Df = D - Di;
 
   msg->D.i = Di;
-  msg->D.f = Df * MSG_OBS_DF_MULTIPLIER;
+  msg->D.f = round(Df * MSG_OBS_DF_MULTIPLIER);
 
   if (0 != (flags & NAV_MEAS_FLAG_CN0_VALID)) {
     s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
