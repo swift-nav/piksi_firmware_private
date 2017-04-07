@@ -25,11 +25,11 @@
 
 #define CHIP_RATE 1.023e6f
 #define CODE_LENGTH 1023
-#define CODE_MULT 16384
-#define RESULT_DIV 32
-#define FFT_SCALE_SCHED_CODE 0x15555555
-#define FFT_SCALE_SCHED_SAMPLES 0x15555555
-#define FFT_SCALE_SCHED_INV 0x15550000
+#define CODE_MULT               (   1024)
+#define RESULT_DIV              ( 4*1024)
+#define FFT_SCALE_SCHED_CODE    (0x11111111)
+#define FFT_SCALE_SCHED_SAMPLES (0x01111111)
+#define FFT_SCALE_SCHED_INV     (0x01111111)
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
