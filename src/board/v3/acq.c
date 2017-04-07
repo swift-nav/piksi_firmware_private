@@ -171,7 +171,7 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
    * these code phases will reject a small number of true acquisitions but
    * prevents nearly all the false acquisitions.
    * TODO: Remove this once we move to soft FFT based acquisition. */
-  if ((cp<=0.5) || (cp>=1022.5)) return false;
+  /* if ((cp<=0.5) || (cp>=1022.5)) return false; */
 
   /* Set output */
   acq_result->sample_count = sample_count;
