@@ -93,7 +93,7 @@ typedef struct {
   me_gnss_signal_t mesid;  /**< ME signal identifier. */
 } acq_status_t;
 
-static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
+static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
 
 #define SCORE_COLDSTART     100
@@ -229,7 +229,7 @@ static bool glo_enable_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-    for (int i = 0; i < PLATFORM_SIGNAL_COUNT; i++) {
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
       if (is_glo_sid(acq_status[i].mesid)) {
         acq_status[i].masked = !glo_enabled;
       }

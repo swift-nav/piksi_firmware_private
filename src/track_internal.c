@@ -33,12 +33,12 @@ static tracker_interface_list_element_t *tracker_interface_list = 0;
  * A map of signal to an initially random number that increments each time that
  * signal begins being tracked.
  */
-static u16 tracking_lock_counters[PLATFORM_SIGNAL_COUNT];
+static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
 
 /** Set up internal tracker data. */
 void track_internal_setup(void)
 {
-  for (u32 i=0; i < PLATFORM_SIGNAL_COUNT; i++) {
+  for (u32 i=0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
     tracking_lock_counters[i] = rand();
   }
 }
