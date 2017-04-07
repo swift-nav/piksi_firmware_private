@@ -308,7 +308,8 @@ static bool acq_peak_search(gnss_signal_t sid, float doppler, float fft_len,
 
   /* Compute C/N0 */
   snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
-  cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
+    /*cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);*/
+  cn0 = 10.0f * log10f(snr * 1.8f * fft_bin_width);
 
   if (cn0 > peak->cn0) {
     /* New max peak found */
