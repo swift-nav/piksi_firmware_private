@@ -807,7 +807,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   /* prepare utc_tm structure with time rounded to NMEA precision */
   if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
     gps_time_t t = {.wn = sbp_msg_time->wn,
-                    .tow = 1e-3*sbp_msg_time->tow + 1e-9*sbp_msg_time->ns};
+                    .tow = 1e-3*sbp_msg_time->tow + 1e-9*sbp_msg_time->ns_residual};
     gps2utc(&t, &utc_time, utc_params);
     u16 second_frac = roundf(utc_time.second_frac * NMEA_UTC_S_FRAC_DIVISOR);
     if (second_frac == NMEA_UTC_S_FRAC_DIVISOR) {
