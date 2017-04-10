@@ -105,7 +105,18 @@ static void imu_thread(void *arg)
   while (TRUE) {
 
     /* Wait until an IMU interrupt occurs. */
-    chBSemWait(&imu_irq_sem);
+    systime_t timeout = TIME_INFINITE;
+    if (raw_imu_output) {
+      /* If output is enabled and we're actually expecting interrupts, we
+       * set a timeout a little after the expected interrupt.
+       *
+       * This works out because of the numeric values of imu_rate_t:
+       * imu_rate = IMU_RATE_25HZ = 0 -> 40ms, so timeout is set to 45ms
+       * imu_rate = IMU_RATE_400HZ = 4 -> 2.5ms, so timeout is set to 9ms
+       */
+      timeout = MS2ST(45) / (imu_rate+1);
+    }
+    msg_t status = chBSemWaitTimeout(&imu_irq_sem, timeout);
 
     bool new_acc, new_gyro, new_mag;
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
@@ -137,7 +148,7 @@ static void imu_thread(void *arg)
       u64 tc = nap_sample_time_to_count(nap_tc);
 
       /* Calculate the GPS time of the observation, if possible. */
-      if (time_quality >= TIME_FINE) {
+      if ((status != MSG_TIMEOUT) && (time_quality >= TIME_FINE)) {
         /* We know the GPS time to high accuracy, this allows us to convert a
          * timing count value into a GPS time. */
         gps_time_t t = napcount2gpstime(tc);
