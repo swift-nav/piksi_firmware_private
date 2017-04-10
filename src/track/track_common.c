@@ -206,7 +206,8 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
     } else {
       /* When confirmation is required, set C/N0 below drop threshold and
        * check that is actually grows to correct range */
-      cn0_0 = cn0_params.track_cn0_drop_thres - TP_TRACKER_CN0_CONFIRM_DELTA;
+      cn0_0 = cn0_params.track_cn0_drop_thres_dbhz -
+              TP_TRACKER_CN0_CONFIRM_DELTA;
       cn0_t = init ? common_data->cn0 : data->cn0_est.cn0_0;
     }
 
@@ -711,7 +712,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
                            data->corrs.corr_cn0.very_early.Q);
   }
 
-  if (cn0 > cn0_params.track_cn0_drop_thres ||
+  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz ||
       (tp_tl_is_pll(&data->tl_state) && data->lock_detect.outp)) {
     /* When C/N0 is above a drop threshold or there is a pessimistic lock,
      * tracking shall continue.
@@ -719,7 +720,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
     common_data->cn0_above_drop_thres_count = common_data->update_count;
   }
 
-  if (cn0 > cn0_params.track_cn0_drop_thres &&
+  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz &&
       !data->confirmed &&
       data->lock_detect.outo &&
       tracker_has_bit_sync(channel_info->context)) {
@@ -741,10 +742,13 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
     common_data->cn0 = cn0;
   }
 
-  if (cn0 < cn0_params.track_cn0_use_thres) {
+  if (cn0 < cn0_params.track_cn0_ambiguity_thres_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
     tracker_ambiguity_unknown(channel_info->context);
+  }
+
+  if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
     /* Update the latest time we were below the threshold. */
     common_data->cn0_below_use_thres_count = common_data->update_count;
   }

@@ -85,8 +85,9 @@ typedef struct {
 typedef struct {
   track_cn0_est_e est;
 
-  float track_cn0_use_thres; /* dBHz */
-  float track_cn0_drop_thres;
+  float track_cn0_use_thres_dbhz;
+  float track_cn0_drop_thres_dbhz;
+  float track_cn0_ambiguity_thres_dbhz;
 } tp_cn0_params_t;
 
 /**
