@@ -24,7 +24,9 @@
  * indexed by code. */
 typedef struct {
   u16 constellation_start_index;
+  u16 me_constellation_start_index;
   u16 global_start_index;
+  u16 me_global_start_index;
 } code_table_element_t;
 static code_table_element_t code_table[CODE_COUNT];
 
@@ -52,24 +54,45 @@ static const u16 code_signal_counts[CODE_COUNT] = {
   [CODE_GPS_L2P]   = PLATFORM_SIGNAL_COUNT_GPS_L2P,
 };
 
+/** Number of ME signals for each code which are supported on
+ * the current hardware platform. */
+static const u16 me_code_signal_counts[CODE_COUNT] = {
+  [CODE_GPS_L1CA]  = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+  [CODE_GPS_L2CM]  = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
+  [CODE_GPS_L2CL]  = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
+  [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+  [CODE_GLO_L1CA]  = PLATFORM_FREQ_COUNT_GLO_L1CA,
+  [CODE_GLO_L2CA]  = PLATFORM_FREQ_COUNT_GLO_L2CA,
+  [CODE_GPS_L1P]   = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+  [CODE_GPS_L2P]   = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+};
+
 /** Initialize the signal module. */
 void signal_init(void)
 {
   /* Populate constellation start index */
   u16 constellation_start_indexes[CONSTELLATION_COUNT];
+  u16 me_constellation_start_indexes[CONSTELLATION_COUNT];
   memset(constellation_start_indexes, 0, sizeof(constellation_start_indexes));
+  memset(me_constellation_start_indexes, 0, sizeof(me_constellation_start_indexes));
   for (enum code code = 0; code < CODE_COUNT; code++) {
     enum constellation constellation = code_to_constellation(code);
     code_table[code].constellation_start_index =
         constellation_start_indexes[constellation];
+    code_table[code].me_constellation_start_index =
+        me_constellation_start_indexes[constellation];
     constellation_start_indexes[constellation] += code_signal_counts[code];
+    me_constellation_start_indexes[constellation] += me_code_signal_counts[code];
   }
 
   /* Populate global start index */
   u16 global_start_index = 0;
+  u16 me_global_start_index = 0;
   for (enum code code = 0; code < CODE_COUNT; code++) {
     code_table[code].global_start_index = global_start_index;
+    code_table[code].me_global_start_index = me_global_start_index;
     global_start_index += code_signal_counts[code];
+    me_global_start_index += me_code_signal_counts[code];
   }
 }
 
@@ -96,23 +119,22 @@ gnss_signal_t sid_from_global_index(u16 global_index)
   return construct_sid(CODE_INVALID, 0);
 }
 
-/** Convert a global signal index to a me_gnss_signal_t.
+/** Convert a global ME signal index to a me_gnss_signal_t.
  *
  * \note This function only accounts for codes supported on the current
  *       hardware platform.
  *
- * \param global_index    Global signal index in [0, PLATFORM_SIGNAL_COUNT).
+ * \param me_global_index    Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
  *
- * \return me_gnss_signal_t corresponding to global_index.
+ * \return me_gnss_signal_t corresponding to me_global_index.
  */
-me_gnss_signal_t mesid_from_global_index(u16 global_index)
+me_gnss_signal_t mesid_from_global_index(u16 me_global_index)
 {
-  /* TODO GLO: Handle GLO signals properly. */
   for (enum code code = 0; code < CODE_COUNT; code++) {
-    if (global_index < code_table[code].global_start_index +
-        code_signal_counts[code]) {
-      return mesid_from_code_index(code, global_index -
-                                   code_table[code].global_start_index);
+    if (me_global_index < code_table[code].me_global_start_index +
+        me_code_signal_counts[code]) {
+      return mesid_from_code_index(code, me_global_index -
+                                   code_table[code].me_global_start_index);
     }
   }
 
@@ -164,20 +186,19 @@ u16 sid_to_global_index(gnss_signal_t sid)
       sid_to_code_index(sid);
 }
 
-/** Return the global signal index for a me_gnss_signal_t.
+/** Return the global ME signal index for a me_gnss_signal_t.
  *
  * \note This function only accounts for codes supported on the current
  *       hardware platform.
  *
  * \param mesid   me_gnss_signal_t to use.
  *
- * \return Global signal index in [0, PLATFORM_SIGNAL_COUNT).
+ * \return Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
  */
 u16 mesid_to_global_index(const me_gnss_signal_t mesid)
 {
-  /* TODO GLO: Handle GLO signals properly. */
   assert(code_supported(mesid.code));
-  return code_table[mesid.code].global_start_index +
+  return code_table[mesid.code].me_global_start_index +
       mesid_to_code_index(mesid);
 }
 
