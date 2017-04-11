@@ -322,7 +322,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
     return SCORE_BELOWMASK;
   }
 
-  double _, dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
+  double dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
   bool ready = false;
   /* Do we have a suitable ephemeris for this sat?  If so, use
      that in preference to the almanac. */
@@ -340,7 +340,10 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
 
   eph_valid = NDB_ERR_NONE == ndb_ret && ephemeris_valid(&orbit.e, t);
   if (eph_valid) {
-    ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel, &_, &_);
+    double unused;
+    ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel,
+                            /* double *clock_err = */ &unused,
+                            /* double *clock_rate_err = */ &unused);
   }
 
   if (eph_valid && (ss_ret == 0)) {
@@ -388,13 +391,15 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
                       code_to_tcxo_doppler_max(mesid.code);
 
   if(!ready) {
+    double unused;
+
     /* TODO GLO: Handle GLO signals properly. */
     if (!is_glo_sid(mesid) &&
         almanacs_enabled &&
         NDB_ERR_NONE == ndb_almanac_read(mesid2sid(mesid), &orbit.a) &&
         almanac_valid(&orbit.a, t) &&
         calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
-                               &_, &el_d) == 0) {
+                               /* double *az = */ &unused, &el_d) == 0) {
       el = (float)(el_d * R2D);
       if (el < tracking_elevation_mask) {
         return SCORE_BELOWMASK;
