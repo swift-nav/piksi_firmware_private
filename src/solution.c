@@ -602,37 +602,29 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
  */
 static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 {
-
-  gps_time_t start_t = get_current_time();
-
   ephemeris_t ephemeris;
   almanac_t almanac;
+  double az, el;
   u64 nap_count = gpstime2napcount(&t);
-  u32 cnt = 0;
 
-  /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
+  /* compute elevation for any valid GPS ephemeris/almanac we can pull from NDB */
   /* TODO: add GLO support */
   for (u16 sv_index = 0; sv_index < NUM_SATS_GPS; sv_index++) {
     gnss_signal_t sid = sid_from_code_index(CODE_GPS_L1CA, sv_index);
     ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
-    double az, el;
+
     /* try to compute elevation from any valid ephemeris */
     if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
         && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, true) >= 0) {
-      sv_azel_degrees_set(sid, (float) az * R2D, (float) el * R2D, nap_count);
-      log_info_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
-      cnt++;
+      sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
+      log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
     /* else try to fetch almanac and use it if it is valid */
     } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)
                && calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
-      sv_azel_degrees_set(sid, (float)az * R2D, (float)el * R2D, nap_count);
-      log_info_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
-      cnt++;
+      sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
+      log_debug_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
     }
   }
-  gps_time_t end_t = get_current_time();
-  log_info("Sat elevation db for %d sats updated in %f milliseconds",
-      cnt, gpsdifftime(&end_t, &start_t)*1e3);
 }
 
 /** Sleep until the next solution deadline.
