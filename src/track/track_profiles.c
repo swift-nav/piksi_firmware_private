@@ -604,7 +604,7 @@ static void get_profile_params(const me_gnss_signal_t mesid,
                                tp_config_t  *config)
 {
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
-  double carr_to_code = code_to_carr_to_code(mesid.code);
+  double carr_to_code = mesid_to_carr_to_code(mesid);
   config->lock_detect_params = ld_params[cur_profile->ld_params];
 
   /* fill out the tracking loop parameters */

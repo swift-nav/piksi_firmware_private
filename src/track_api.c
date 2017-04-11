@@ -355,7 +355,9 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
       .channel = channel_info->nap_channel,
     };
     /* TODO GLO: Handle GLO signals properly. */
-    msg.sid = sid_to_sbp(mesid2sid(channel_info->mesid));
+    gnss_signal_t sid = mesid2sid(channel_info->mesid,
+                                  channel_info->glo_slot_id);
+    msg.sid = sid_to_sbp(sid);
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;
       msg.corrs[i].Q = cs[i].Q;

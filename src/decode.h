@@ -29,6 +29,7 @@ typedef struct {
 /** Info associated with a decoder channel. */
 typedef struct {
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
+  u16 glo_slot_id;        /**< GLO orbital slot. */
   u8 tracking_channel;    /**< Associated tracking channel. */
 } decoder_channel_info_t;
 
@@ -64,7 +65,9 @@ void decoder_interface_register(decoder_interface_list_element_t *element);
 
 bool decoder_channel_available(u8 tracking_channel,
                                const me_gnss_signal_t mesid);
-bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid);
+bool decoder_channel_init(u8 tracking_channel,
+                          const me_gnss_signal_t mesid,
+                          u16 glo_slot_id);
 bool decoder_channel_disable(u8 tracking_channel);
 
 #endif

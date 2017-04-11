@@ -157,7 +157,9 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
 {
   tp_tow_entry_t tow_entry;
 
-  if (!track_sid_db_load_tow(mesid2sid(channel_info->mesid), &tow_entry)) {
+  gnss_signal_t sid = mesid2sid(channel_info->mesid,
+                                channel_info->glo_slot_id);
+  if (!track_sid_db_load_tow(sid, &tow_entry)) {
     /* Error */
     return;
   }
@@ -238,7 +240,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
      */
     tow_entry.TOW_ms = common_data->TOW_ms;
     tow_entry.sample_time_tk = sample_time_tk;
-    track_sid_db_update_tow(mesid2sid(channel_info->mesid), &tow_entry);
+    track_sid_db_update_tow(sid, &tow_entry);
   }
 }
 

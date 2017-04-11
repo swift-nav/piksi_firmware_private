@@ -186,6 +186,7 @@ void tracking_send_state()
       bool running;
       bool confirmed;
       me_gnss_signal_t mesid;
+      u16 glo_slot_id;
       float cn0;
 
       tracker_channel_lock(tracker_channel);
@@ -193,6 +194,7 @@ void tracking_send_state()
         running =
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         mesid = tracker_channel->info.mesid;
+        glo_slot_id = tracker_channel->info.glo_slot_id;
         cn0 = common_data->cn0;
         confirmed = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
       }
@@ -209,7 +211,7 @@ void tracking_send_state()
       } else {
         states[i].state = 1;
         /* TODO GLO: Handle GLO signals properly. */
-        states[i].sid = sid_to_sbp(mesid2sid(mesid));
+        states[i].sid = sid_to_sbp(mesid2sid(mesid, glo_slot_id));
         states[i].cn0 = cn0;
       }
     }
@@ -354,6 +356,7 @@ double propagate_code_phase(double code_phase, double carrier_freq,
  *
  * \param id                    ID of the tracker channel to be initialized.
  * \param mesid                 ME signal to be tracked.
+ * \param glo_slot_id           GLO orbital slot.
  * \param ref_sample_count      NAP sample count at which code_phase was acquired.
  * \param code_phase            Code phase
  * \param carrier_freq          Carrier frequency Doppler (Hz).
@@ -362,9 +365,13 @@ double propagate_code_phase(double code_phase, double carrier_freq,
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
-bool tracker_channel_init(tracker_channel_id_t id, const me_gnss_signal_t mesid,
-                          u32 ref_sample_count, double code_phase,
-                          float carrier_freq, u32 chips_to_correlate,
+bool tracker_channel_init(tracker_channel_id_t id,
+                          const me_gnss_signal_t mesid,
+                          u16 glo_slot_id,
+                          u32 ref_sample_count,
+                          double code_phase,
+                          float carrier_freq,
+                          u32 chips_to_correlate,
                           float cn0_init)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
@@ -386,6 +393,7 @@ bool tracker_channel_init(tracker_channel_id_t id, const me_gnss_signal_t mesid,
   {
     /* Set up channel */
     tracker_channel->info.mesid = mesid;
+    tracker_channel->info.glo_slot_id = glo_slot_id;
     tracker_channel->info.context = tracker_channel;
     tracker_channel->info.nap_channel = id;
     tracker_channel->interface = tracker_interface;
@@ -522,6 +530,8 @@ static void tracking_channel_compute_values(
     info->flags = tracking_channel_get_flags(tracker_channel);
     /* Signal identifier */
     info->mesid = tracker_channel->info.mesid;
+    /* GLO slot ID */
+    info->glo_slot_id = tracker_channel->info.glo_slot_id;
     /* Current C/N0 [dB/Hz] */
     info->cn0 = common_data->cn0;
     /* Current time of week for a tracker channel [ms] */
@@ -896,7 +906,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
 
   /* TODO GLO: Handle GLO signals properly. */
   assert(!is_glo_sid(info->mesid));
-  meas->sid = mesid2sid(info->mesid);
+  meas->sid = mesid2sid(info->mesid, info->glo_slot_id);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
   meas->carrier_phase = freq_info->carrier_phase;

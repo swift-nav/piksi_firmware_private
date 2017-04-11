@@ -52,22 +52,13 @@
  * @brief   The phase increment used to mix the frontend samples to baseband
  * @note    4294967296 is 2^32 and the .5 is for rounding
  */
-#define NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC    (u32)(14.58e6 * 4294967296.0 \
+#define IF_2_MIXER_PINC(freq)                (s32)((freq) * ((u64)1 << 32)  \
                                      / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
 
-/**
- * @brief   The phase increment used to mix the frontend samples to baseband
- * @note    4294967296 is 2^32 and the .5 is for rounding
- */
-#define NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC    (s32)(-12.00e6 * 4294967296.0 \
-                                     / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
 
-/**
- * @brief   The phase increment used to mix the frontend samples to baseband
- * @note    4294967296 is 2^32 and the .5 is for rounding
- */
-#define NAP_FE_L2C_BASEBAND_MIXER_PINC           (u32)(7.4e6 * 4294967296.0 \
-                                     / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
+#define NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC          IF_2_MIXER_PINC(14.58e6)
+#define NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-12.00e6)
+#define NAP_FE_L2C_BASEBAND_MIXER_PINC                 IF_2_MIXER_PINC(7.4e6)
 
 #define NAP_SPACING_CHIPS                                                 (0)
 #define NAP_SPACING_SAMPLES                                               (1)

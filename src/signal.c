@@ -75,12 +75,14 @@ void signal_init(void)
   u16 me_constellation_start_indexes[CONSTELLATION_COUNT];
   memset(constellation_start_indexes, 0, sizeof(constellation_start_indexes));
   memset(me_constellation_start_indexes, 0, sizeof(me_constellation_start_indexes));
+
   for (enum code code = 0; code < CODE_COUNT; code++) {
     enum constellation constellation = code_to_constellation(code);
     code_table[code].constellation_start_index =
         constellation_start_indexes[constellation];
     code_table[code].me_constellation_start_index =
         me_constellation_start_indexes[constellation];
+
     constellation_start_indexes[constellation] += code_signal_counts[code];
     me_constellation_start_indexes[constellation] += me_code_signal_counts[code];
   }
@@ -88,9 +90,11 @@ void signal_init(void)
   /* Populate global start index */
   u16 global_start_index = 0;
   u16 me_global_start_index = 0;
+
   for (enum code code = 0; code < CODE_COUNT; code++) {
     code_table[code].global_start_index = global_start_index;
     code_table[code].me_global_start_index = me_global_start_index;
+
     global_start_index += code_signal_counts[code];
     me_global_start_index += me_code_signal_counts[code];
   }

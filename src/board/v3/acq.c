@@ -35,12 +35,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_min, float cf_max,
                             float cf_bin_width, s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
-static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
+static bool ifft_operations(const me_gnss_signal_t mesid,
+                            s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
-                            u32 fft_len_log2, float *doppler,
-                            me_gnss_signal_t mesid);
+                            u32 fft_len_log2, float *doppler);
 static bool acq_peak_search(const me_gnss_signal_t mesid,
                             float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak);
@@ -116,8 +116,9 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
     loop_index += 1;
 
     /* Multiply and do IFFT */
-    if (!ifft_operations(doppler_bin, cf_bin_width, fft_len, fft_bin_width,
-                         code_fft, sample_fft, fft_len_log2, &doppler, mesid)) {
+    if (!ifft_operations(mesid, doppler_bin, cf_bin_width, fft_len,
+                         fft_bin_width, code_fft, sample_fft,
+                         fft_len_log2, &doppler)) {
       return false;
     }
 
@@ -163,8 +164,8 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
-  cp -= code_to_chip_count(mesid.code)
-        * floorf(cp / code_to_chip_count(mesid.code));
+  cp -= code_to_chip_count(mesid.code) *
+        floorf(cp / code_to_chip_count(mesid.code));
 
   /* False acquisition code phase hack (Michele). The vast majority of our
    * false acquisitions return a code phase within 0.5 chip of 0. Not allowing
@@ -252,6 +253,7 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
 }
 
 /** Multiply sample FFT by shifted conjugate code FFT. Perform inverse FFT.
+ * \param[in]     mesid         ME signal id
  * \param[in]     doppler_bin   Current doppler bin
  * \param[in]     cf_bin_width  Doppler bin width [Hz]
  * \param[in]     fft_len       FFT length
@@ -263,12 +265,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
  * \retval true  Success
  * \retval false Failure
  */
-static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
+static bool ifft_operations(const me_gnss_signal_t mesid,
+                            s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
-                            u32 fft_len_log2, float *doppler,
-                            me_gnss_signal_t mesid)
+                            u32 fft_len_log2, float *doppler)
 {
   float freq = 0.0f;
   if (is_glo_sid(mesid)) {
