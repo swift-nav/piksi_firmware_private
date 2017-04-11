@@ -14,14 +14,10 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/time.h>
 
-#include <track.h>
-
-#include "track_profiles.h"
-#include "track_profile_utils.h"
+#include "signal.h"
+#include "track.h"
 #include "track_sid_db.h"
 
-#include <math.h>
-#include <string.h>
 #include <assert.h>
 
 /** Maximum interval for reusing cached ToW values [ms] */
@@ -31,6 +27,8 @@
  * Cache entry.
  *
  * Container for information, that is accessed by SID, not by tracker number.
+ * Note that data is saved per SV, and each SID originating from that SV
+ * accesses the same data.
  * The type is \a volatile to eliminate reordering.
  */
 typedef struct
@@ -50,8 +48,8 @@ typedef struct
  * delays. The difference is ignored.
  */
 typedef struct {
-  mutex_t              mutex;                     /**< DB mutex */
-  sid_db_cache_entry_t gps_entries[NUM_SATS_GPS]; /**< Cache entries for GPS */
+  mutex_t              mutex;             /**< DB mutex */
+  sid_db_cache_entry_t entries[NUM_SATS]; /**< Cache entries for all satellites */
 } sid_db_cache_t;
 
 static sid_db_cache_t sid_db_cache;
@@ -62,8 +60,8 @@ static sid_db_cache_t sid_db_cache;
 void track_sid_db_init(void)
 {
   chMtxObjectInit(&sid_db_cache.mutex);
-  for (size_t i = 0; i < NUM_SIGNALS_GPS_L1CA; ++i) {
-    volatile sid_db_cache_entry_t *entry = &sid_db_cache.gps_entries[i];
+  for (size_t i = 0; i < NUM_SATS; ++i) {
+    volatile sid_db_cache_entry_t *entry = &sid_db_cache.entries[i];
     entry->tow.TOW_ms = TOW_UNKNOWN;
     entry->azel.azimuth_d = TRACKING_AZIMUTH_UNKNOWN;
     entry->azel.elevation_d = TRACKING_ELEVATION_UNKNOWN;
@@ -83,10 +81,10 @@ bool track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry)
 {
   bool result = false;
 
-  if (NULL != tow_entry && CONSTELLATION_GPS == sid_to_constellation(sid)) {
-    u8 sv_index = sid_to_code_index(sid);
+  if (NULL != tow_entry) {
+    u16 sv_index = sid_to_sv_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    *tow_entry = sid_db_cache.gps_entries[sv_index].tow;
+    *tow_entry = sid_db_cache.entries[sv_index].tow;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
@@ -107,10 +105,10 @@ bool track_sid_db_update_tow(const gnss_signal_t sid, const tp_tow_entry_t *tow_
 {
   bool result = false;
 
-  if (NULL != tow_entry && CONSTELLATION_GPS == sid_to_constellation(sid)) {
-    u8 sv_index = sid_to_code_index(sid);
+  if (NULL != tow_entry) {
+    u16 sv_index = sid_to_sv_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.gps_entries[sv_index].tow = *tow_entry;
+    sid_db_cache.entries[sv_index].tow = *tow_entry;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
@@ -133,11 +131,10 @@ bool track_sid_db_load_elevation(const gnss_signal_t sid,
 {
   bool result = false;
 
-  if (NULL != azel_entry &&
-      CONSTELLATION_GPS == sid_to_constellation(sid)) {
-    u8 sv_index = sid_to_code_index(sid);
+  if (NULL != azel_entry) {
+    u16 sv_index = sid_to_sv_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    *azel_entry = sid_db_cache.gps_entries[sv_index].azel;
+    *azel_entry = sid_db_cache.entries[sv_index].azel;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
@@ -159,11 +156,10 @@ bool track_sid_db_update_azel(const gnss_signal_t sid,
 {
   bool result = false;
 
-  if (NULL != azel_entry &&
-      CONSTELLATION_GPS == sid_to_constellation(sid)) {
-    u8 sv_index = sid_to_code_index(sid);
+  if (NULL != azel_entry) {
+    u16 sv_index = sid_to_sv_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.gps_entries[sv_index].azel = *azel_entry;
+    sid_db_cache.entries[sv_index].azel = *azel_entry;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
@@ -255,11 +251,10 @@ bool track_sid_db_load_positions(const gnss_signal_t sid,
 {
   bool result = false;
 
-  if (NULL != position_entry &&
-      CONSTELLATION_GPS == sid_to_constellation(sid)) {
-    u8 sv_index = sid_to_code_index(sid);
+  if (NULL != position_entry) {
+    u16 sv_index = sid_to_sv_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    *position_entry = sid_db_cache.gps_entries[sv_index].positions;
+    *position_entry = sid_db_cache.entries[sv_index].positions;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
@@ -283,11 +278,10 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
 {
   bool result = false;
 
-  if (NULL != position_entry &&
-      CONSTELLATION_GPS == sid_to_constellation(sid)) {
-    u8 sv_index = sid_to_code_index(sid);
+  if (NULL != position_entry) {
+    u16 sv_index = sid_to_sv_index(sid);
     chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.gps_entries[sv_index].positions = *position_entry;
+    sid_db_cache.entries[sv_index].positions = *position_entry;
     chMtxUnlock(&sid_db_cache.mutex);
     result = true;
   }
