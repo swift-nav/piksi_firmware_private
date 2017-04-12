@@ -607,10 +607,14 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
   double az, el;
   u64 nap_count = gpstime2napcount(&t);
 
-  /* compute elevation for any valid GPS ephemeris/almanac we can pull from NDB */
-  /* TODO: add GLO support */
-  for (u16 sv_index = 0; sv_index < NUM_SATS_GPS; sv_index++) {
-    gnss_signal_t sid = sid_from_code_index(CODE_GPS_L1CA, sv_index);
+  /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
+  for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
+
+    /* form a SID with the first code for the constellation */
+    gnss_signal_t sid = sv_index_to_sid(sv_index);
+    if (!sid_valid(sid)) {
+      continue;
+    }
     ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
 
     /* try to compute elevation from any valid ephemeris */
@@ -618,6 +622,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
         && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, true) >= 0) {
       sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
       log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
+
     /* else try to fetch almanac and use it if it is valid */
     } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)
                && calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {

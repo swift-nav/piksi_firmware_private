@@ -301,22 +301,36 @@ float code_to_tcxo_doppler_max(code_t code)
   return doppler;
 }
 
-/** Convert a SV signal index to a gnss_signal_t with a given code.
+/** Convert a SV signal index to a gnss_signal_t.
  *
- * \param code          Code to use.
  * \param sv_index      SV signal index in [0, NUM_SATS)
  *
- * \return gnss_signal_t corresponding to code and sv_index.
+ * \return gnss_signal_t corresponding to sv_index with first valid code.
  */
-gnss_signal_t sv_index_to_sid(code_t code, u16 sv_index)
+gnss_signal_t sv_index_to_sid(u16 sv_index)
 {
-  assert(code_valid(code));
   assert(sv_index < NUM_SATS);
-  constellation_t cons = code_to_constellation(code);
-  gnss_signal_t sid =
-      construct_sid(code, sv_index - constellation_table[cons].start_index
-                    + constellation_table[cons].sat_start);
-  assert(sid_valid(sid));
+  assert(constellation_table[0].start_index == 0);
+
+  gnss_signal_t sid = {0, CODE_INVALID};
+
+  /* find the constellation for this sv index */
+  constellation_t cons = CONSTELLATION_COUNT - 1;
+  while (constellation_table[cons].start_index > sv_index) {
+    cons--;
+  }
+
+  /* find the first valid and supported code for this constellation */
+  for (enum code code = 0; code < CODE_COUNT; code++) {
+    if (code_supported(code) && code_to_constellation(code) == cons) {
+      sid = construct_sid(code, sv_index - constellation_table[cons].start_index
+                          + constellation_table[cons].sat_start);
+      assert(sid_valid(sid));
+      return sid;
+    }
+  }
+  log_debug("Could not generate SID for constellation %d, sv index %u",
+             cons, sv_index);
   return sid;
 }
 
