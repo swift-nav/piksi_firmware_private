@@ -28,6 +28,17 @@ typedef struct {
 } code_table_element_t;
 static code_table_element_t code_table[CODE_COUNT];
 
+/** Table of sv constellation indexes. */
+typedef struct {
+  u16 sat_start;
+  u16 start_index;
+} constellation_table_element_t;
+static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] = {
+    [CONSTELLATION_GPS] = {GPS_FIRST_PRN, 0},
+    [CONSTELLATION_SBAS] = {SBAS_FIRST_PRN, NUM_SATS_GPS},
+    [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
+};
+
 /** Number of signals for each code which are supported on
  * the current hardware platform. */
 static const u16 code_signal_counts[CODE_COUNT] = {
@@ -261,6 +272,41 @@ float code_to_tcxo_doppler_max(code_t code)
   doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
 
   return doppler;
+}
+
+/** Convert a SV signal index to a gnss_signal_t with a given code.
+ *
+ * \param code          Code to use.
+ * \param sv_index      SV signal index in [0, NUM_SATS)
+ *
+ * \return gnss_signal_t corresponding to code and sv_index.
+ */
+gnss_signal_t sv_index_to_sid(code_t code, u16 sv_index)
+{
+  assert(code_valid(code));
+  assert(sv_index < NUM_SATS);
+  constellation_t cons = code_to_constellation(code);
+  gnss_signal_t sid =
+      construct_sid(code, sv_index - constellation_table[cons].start_index
+                    + constellation_table[cons].sat_start);
+  assert(sid_valid(sid));
+  return sid;
+}
+
+/** Return the SV index for a gnss_signal_t.
+ *
+ * \param sid   gnss_signal_t to use.
+ *
+ * \return SV index in [0, NUM_SATS).
+ */
+u16 sid_to_sv_index(gnss_signal_t sid)
+{
+  assert(sid_valid(sid));
+  constellation_t cons = sid_to_constellation(sid);
+  u16 sv_index = constellation_table[cons].start_index +
+      sid.sat - constellation_table[cons].sat_start;
+  assert(sv_index < NUM_SATS);
+  return sv_index;
 }
 
 /* \} */
