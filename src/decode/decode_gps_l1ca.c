@@ -491,12 +491,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     shm_gps_set_shi1(channel_info->mesid.sat, dd.shi1);
   }
 
-  if (dd.gps_l2c_sv_capability_upd_flag) {
+  if (dd.gps_l2c_sv_capability_upd_flag && shm_navigation_suitable(sid)) {
     /* store new L2C value into NDB */
-    log_debug_mesid(channel_info->mesid,
-                    "L2C capabilities received: 0x%08"PRIx32,
-                    dd.gps_l2c_sv_capability);
-
     if (ndb_gps_l2cm_l2c_cap_store(&sid,
                                    &dd.gps_l2c_sv_capability,
                                    NDB_DS_RECEIVER,
@@ -506,7 +502,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
   }
 
-  if (dd.iono_corr_upd_flag) {
+  if (dd.iono_corr_upd_flag && shm_navigation_suitable(sid)) {
     /* store new iono parameters */
     if (check_iono_timestamp(sid, &dd.iono) &&
         (ndb_iono_corr_store(&sid,
@@ -517,7 +513,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
   }
 
-  if (dd.utc_params_upd_flag) {
+  if (dd.utc_params_upd_flag && shm_navigation_suitable(sid)) {
     /* store new utc parameters */
     if (ndb_utc_params_store(&sid,
                              &dd.utc,
