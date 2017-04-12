@@ -381,7 +381,7 @@ void solution_make_baseline_sbp(const rtk_baseline_result_t *result,
       dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading, &result->result_time,
-                     heading + heading_offset, result->num_sats_used,
+                     heading - heading_offset, result->num_sats_used,
                      result->flags);
   }
 
