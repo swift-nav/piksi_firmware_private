@@ -225,10 +225,10 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
 
 double constrain_angle(const double heading) {
   double constrained_heading = fmod(heading,360.0);
-  if (constrained_heading < 0)
+  if (constrained_heading < 0) {
     constrained_heading += 360.0;
+  }
   return constrained_heading;
-
 }
 
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
