@@ -381,7 +381,7 @@ void solution_make_baseline_sbp(const rtk_baseline_result_t *result,
       dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
     sbp_make_heading(&sbp_messages->baseline_heading, &result->result_time,
-                     heading + heading_offset, result->num_sats_used,
+                     heading - heading_offset, result->num_sats_used,
                      result->flags);
   }
 
@@ -1481,7 +1481,7 @@ static bool heading_offset_changed(struct setting *s, const char *val)
   }
 
   if (fabs(offset) > 180.0) {
-    log_error("Invalid heading offset setting of %l, max is %l, min is %l, leaving heading offset at %l",
+    log_error("Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, leaving heading offset at %3.1f",
               offset, 180.0, -180.0, heading_offset);
     ret = false;
   }
