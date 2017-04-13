@@ -75,7 +75,8 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data)
     }
     /* TODO GLO: Handle GLO signals properly. */
     assert(!is_glo_sid(mesid));
-    sm_get_visibility_flags(mesid2sid(mesid), &visible, &known);
+    gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+    sm_get_visibility_flags(sid, &visible, &known);
     visible = visible && known;
 
     if (visible) {
@@ -117,7 +118,8 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     }
     /* TODO GLO: Handle GLO signals properly. */
     assert(!is_glo_sid(mesid));
-    sm_get_visibility_flags(mesid2sid(mesid), &visible, &known);
+    gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+    sm_get_visibility_flags(sid, &visible, &known);
     visible = visible && known;
     invisible = !visible && known;
 

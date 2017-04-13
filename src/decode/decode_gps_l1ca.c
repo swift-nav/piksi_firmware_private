@@ -124,7 +124,7 @@ static void check_almanac_xcorr(gnss_signal_t sid)
 
       log_warn_sid(sid1, "Almanac-ephemeris cross-correlation with %s", sid_str_);
       ndb_ephemeris_erase(sid1);
-      tracking_channel_set_xcorr_flag(sid2mesid(sid1));
+      tracking_channel_set_xcorr_flag(construct_mesid(sid1.code, sid1.sat));
     }
   }
 }
@@ -467,11 +467,14 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
+  gnss_signal_t sid = mesid2sid(channel_info->mesid,
+                                channel_info->glo_slot_id);
+
   if (dd.invalid_control_or_data) {
     log_info_mesid(channel_info->mesid,
                    "Invalid control or data element");
 
-    ndb_op_code_t c = ndb_ephemeris_erase(mesid2sid(channel_info->mesid));
+    ndb_op_code_t c = ndb_ephemeris_erase(sid);
 
     if (NDB_ERR_NONE == c) {
       log_info_mesid(channel_info->mesid, "ephemeris deleted (1/0)");
@@ -483,12 +486,11 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
-  gnss_signal_t sid = mesid2sid(channel_info->mesid);
-  shm_gps_set_shi4(channel_info->mesid.sat, !data->nav_msg.alert);
+  shm_gps_set_shi4(sid.sat, !data->nav_msg.alert);
 
   if (dd.shi1_upd_flag) {
     log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi1);
-    shm_gps_set_shi1(channel_info->mesid.sat, dd.shi1);
+    shm_gps_set_shi1(sid.sat, dd.shi1);
   }
 
   if (dd.gps_l2c_sv_capability_upd_flag && shm_navigation_suitable(sid)) {

@@ -100,7 +100,7 @@ static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
   if (res) {
     lp1_filter_compute_params(&gps_l2cl_config.xcorr_f_params,
                               gps_l2cl_config.xcorr_cof,
-                              SECS_MS / GPS_L2C_SYMBOL_LENGTH);
+                              SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
   }
 
   return res;
@@ -116,7 +116,7 @@ void track_gps_l2cl_register(void)
                              settings_pov_speed_cof_proxy);
   lp1_filter_compute_params(&gps_l2cl_config.xcorr_f_params,
                             gps_l2cl_config.xcorr_cof,
-                            SECS_MS / GPS_L2C_SYMBOL_LENGTH);
+                            SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
 
   for (u32 i = 0; i < ARRAY_SIZE(gps_l2cl_trackers); i++) {
     gps_l2cl_trackers[i].active = false;
@@ -162,9 +162,9 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
   }
 
   /* L2CL code starts every 1.5 seconds. Offset must be taken into account. */
-  s32 offset_ms = (TOW_ms % GPS_L2CL_PRN_PERIOD);
+  s32 offset_ms = (TOW_ms % GPS_L2CL_PRN_PERIOD_MS);
   u32 code_length = code_to_chip_count(mesid.code);
-  u32 chips_in_ms = code_length / GPS_L2CL_PRN_PERIOD;
+  u32 chips_in_ms = code_length / GPS_L2CL_PRN_PERIOD_MS;
 
   if (code_phase > (GPS_L2CM_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)) {
     if (offset_ms == 0) {
@@ -230,7 +230,9 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                                u32 cycle_flags)
 {
   tp_tow_entry_t tow_entry;
-  if (!track_sid_db_load_tow(mesid2sid(channel_info->mesid), &tow_entry)) {
+  gnss_signal_t sid = mesid2sid(channel_info->mesid,
+                                channel_info->glo_slot_id);
+  if (!track_sid_db_load_tow(sid, &tow_entry)) {
     /* Error */
     return;
   }
@@ -247,10 +249,10 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
        * interval has closed a bit interval. ToW shall be aligned by bit
        * duration, which is 20ms for GPS L1 C/A / L2 C.
        */
-      u8 tail = common_data->TOW_ms % GPS_L2C_SYMBOL_LENGTH;
+      u8 tail = common_data->TOW_ms % GPS_L2C_SYMBOL_LENGTH_MS;
       if (0 != tail) {
-        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH >> 1) ?
-                      -tail : GPS_L2C_SYMBOL_LENGTH - tail;
+        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1) ?
+                      -tail : GPS_L2C_SYMBOL_LENGTH_MS - tail;
 
         log_info_mesid(channel_info->mesid,
                        "[+%" PRIu32 "ms] Adjusting ToW:"

@@ -46,6 +46,7 @@
 #include "shm.h"
 #include "dum.h"
 #include "reacq/reacq_api.h"
+#include "glo_map.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
@@ -93,7 +94,7 @@ typedef struct {
   me_gnss_signal_t mesid;  /**< ME signal identifier. */
 } acq_status_t;
 
-static acq_status_t acq_status[PLATFORM_SIGNAL_COUNT];
+static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
 
 #define SCORE_COLDSTART     100
@@ -176,10 +177,19 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   gnss_signal_t sid = sid_from_sbp(m->sid);
 
   if (sid_supported(sid)) {
-    u16 global_index = sid_to_global_index(sid);
-    acq_status_t *acq = &acq_status[global_index];
+    /* TODO GLO: Handle GLO signals properly. */
+    me_gnss_signal_t mesid;
+    constellation_t constellation = sid_to_constellation(sid);
+    if (CONSTELLATION_GLO == constellation) {
+      u16 fcn = glo_map_get_fcn(sid);
+      mesid = construct_mesid(sid.code, fcn);
+    } else {
+      mesid = construct_mesid(sid.code, sid.sat);
+    }
+    u16 me_global_index = mesid_to_global_index(mesid);
+    acq_status_t *acq = &acq_status[me_global_index];
     acq->masked = (m->mask & MASK_ACQUISITION) ? true : false;
-    track_mask[global_index] = (m->mask & MASK_TRACKING) ? true : false;
+    track_mask[me_global_index] = (m->mask & MASK_TRACKING) ? true : false;
     log_info_sid(sid, "Mask = 0x%02x", m->mask);
   } else {
     log_warn("Mask not set for invalid SID");
@@ -229,7 +239,7 @@ static bool glo_enable_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-    for (int i = 0; i < PLATFORM_SIGNAL_COUNT; i++) {
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
       if (is_glo_sid(acq_status[i].mesid)) {
         acq_status[i].masked = !glo_enabled;
       }
@@ -316,8 +326,9 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
 
   /* TODO GLO: Handle GLO signals properly. */
   assert(!is_glo_sid(mesid));
+  gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   float el = TRACKING_ELEVATION_UNKNOWN;
-  el = sv_elevation_degrees_get(mesid2sid(mesid));
+  el = sv_elevation_degrees_get(sid);
   if (el < tracking_elevation_mask) {
     return SCORE_BELOWMASK;
   }
@@ -328,12 +339,9 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
      that in preference to the almanac. */
   union { ephemeris_t e; almanac_t a; } orbit;
 
-  /* TODO GLO: Handle GLO signals properly. */
   u8 eph_valid = 0;
   ndb_op_code_t ndb_ret = NDB_ERR_NO_DATA;
-  if (!is_glo_sid(mesid)) {
-    ndb_ret = ndb_ephemeris_read(mesid2sid(mesid), &orbit.e);
-  }
+  ndb_ret = ndb_ephemeris_read(sid, &orbit.e);
 
   s8 ss_ret;
   double sat_pos[3], sat_vel[3], el_d;
@@ -393,10 +401,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   if(!ready) {
     double unused;
 
-    /* TODO GLO: Handle GLO signals properly. */
-    if (!is_glo_sid(mesid) &&
-        almanacs_enabled &&
-        NDB_ERR_NONE == ndb_almanac_read(mesid2sid(mesid), &orbit.a) &&
+    if (almanacs_enabled &&
+        NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a) &&
         almanac_valid(&orbit.a, t) &&
         calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                /* double *az = */ &unused, &el_d) == 0) {
@@ -504,8 +510,18 @@ void manage_set_obs_hint(gnss_signal_t sid)
 {
   bool valid = sid_supported(sid);
   assert(valid);
-  if (valid)
-    acq_status[sid_to_global_index(sid)].score[ACQ_HINT_REMOTE_OBS] = SCORE_OBS;
+  if (valid) {
+    /* TODO GLO: Handle GLO signals properly. */
+    me_gnss_signal_t mesid;
+    constellation_t constellation = sid_to_constellation(sid);
+    if (CONSTELLATION_GLO == constellation) {
+      u16 fcn = glo_map_get_fcn(sid);
+      mesid = construct_mesid(sid.code, fcn);
+    } else {
+      mesid = construct_mesid(sid.code, sid.sat);
+    }
+    acq_status[mesid_to_global_index(mesid)].score[ACQ_HINT_REMOTE_OBS] = SCORE_OBS;
+  }
 }
 
 /** Manages acquisition searches and starts tracking channels after successful acquisitions. */
@@ -517,8 +533,9 @@ static void manage_acq()
     return;
   }
 
-  /* Only GPS L1CA acquistion is supported. */
-  assert(CODE_GPS_L1CA == acq->mesid.code);
+  /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
+  assert((CODE_GPS_L1CA == acq->mesid.code) ||
+         (CODE_GLO_L1CA == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
@@ -560,6 +577,7 @@ static void manage_acq()
 
     tracking_startup_params_t tracking_startup_params = {
       .mesid              = acq->mesid,
+      .glo_slot_id        = GLO_ORBIT_SLOT_UNKNOWN,
       .sample_count       = acq_result.sample_count,
       .carrier_freq       = acq_result.cf,
       .code_phase         = acq_result.cp,
@@ -583,7 +601,7 @@ void acq_result_send(const me_gnss_signal_t mesid, float cn0, float cp, float cf
 {
   msg_acq_result_t acq_result_msg;
   /* TODO GLO: Handle GLO signals properly. */
-  acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid));
+  acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN));
   acq_result_msg.cn0 = cn0;
   acq_result_msg.cp = cp;
   acq_result_msg.cf = cf;
@@ -1161,7 +1179,8 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
     /* Try to load ephemeris */
     /* TODO GLO: Handle GLO signals properly. */
     assert(!is_glo_sid(info.mesid));
-    ndb_op_code_t res = ndb_ephemeris_read(mesid2sid(info.mesid), ephe);
+    gnss_signal_t sid = mesid2sid(info.mesid, info.glo_slot_id);
+    ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
     if (NDB_ERR_NONE != res && NDB_ERR_UNCONFIRMED_DATA != res) {
@@ -1259,7 +1278,8 @@ manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid
   /* Satellite elevation is above the solution mask. */
   /* TODO GLO: Handle GLO signals properly. */
   assert(!is_glo_sid(mesid));
-  if (sv_elevation_degrees_get(mesid2sid(mesid)) >= solution_elevation_mask) {
+  gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
 
@@ -1281,8 +1301,7 @@ manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid
   }
 
   /* Navigation suitable flag */
-  /* TODO GLO: Handle GLO signals properly. */
-  if (shm_navigation_suitable(mesid2sid(mesid))) {
+  if (shm_navigation_suitable(sid)) {
     result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
   }
 
@@ -1424,6 +1443,7 @@ static void manage_tracking_startup(void)
     /* Start the tracking channel */
     if (!tracker_channel_init(chan,
                               startup_params.mesid,
+                              startup_params.glo_slot_id,
                               startup_params.sample_count,
                               startup_params.code_phase,
                               startup_params.carrier_freq,
@@ -1436,7 +1456,9 @@ static void manage_tracking_startup(void)
 
     /* Start the decoder channel if needed */
     if (code_requires_decoder(startup_params.mesid.code) &&
-        !decoder_channel_init(chan, startup_params.mesid)) {
+        !decoder_channel_init(chan,
+                              startup_params.mesid,
+                              startup_params.glo_slot_id)) {
       log_error("decoder channel init failed");
     }
 

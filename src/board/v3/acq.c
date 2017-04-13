@@ -23,14 +23,11 @@
 
 #include "platform_cn0.h"
 
-#define CHIP_RATE 1.023e6f
-#define CODE_LENGTH 1023
 #define CODE_MULT 16384
 #define RESULT_DIV 32
 #define FFT_SCALE_SCHED_CODE 0x15555555
 #define FFT_SCALE_SCHED_SAMPLES 0x15555555
 #define FFT_SCALE_SCHED_INV 0x15550000
-#define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 static void code_resample(const me_gnss_signal_t mesid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);
@@ -38,7 +35,8 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_min, float cf_max,
                             float cf_bin_width, s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
-static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
+static bool ifft_operations(const me_gnss_signal_t mesid,
+                            s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
@@ -59,7 +57,7 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
   u32 fft_len_log2 = FFT_LEN_LOG2_MAX;
   u32 fft_len = 1 << fft_len_log2;
   float fft_bin_width = NAP_ACQ_SAMPLE_RATE_Hz / fft_len;
-  float chips_per_sample = CHIP_RATE / NAP_ACQ_SAMPLE_RATE_Hz;
+  float chips_per_sample = code_to_chip_rate(mesid.code) / NAP_ACQ_SAMPLE_RATE_Hz;
 
   /* Generate, resample, and FFT code */
   static FFT_BUFFER(code_fft, fft_cplx_t, FFT_LEN_MAX);
@@ -72,8 +70,8 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
   /* FFT samples */
   u32 sample_count;
   static FFT_BUFFER(sample_fft, fft_cplx_t, FFT_LEN_MAX);
-  if(!fft_samples(FFT_SAMPLES_INPUT, sample_fft, fft_len_log2,
-                  FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
+  if (!fft_samples(mesid, sample_fft, fft_len_log2,
+                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
     return false;
   }
 
@@ -118,8 +116,9 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
     loop_index += 1;
 
     /* Multiply and do IFFT */
-    if (!ifft_operations(doppler_bin, cf_bin_width, fft_len, fft_bin_width,
-                         code_fft, sample_fft, fft_len_log2, &doppler)) {
+    if (!ifft_operations(mesid, doppler_bin, cf_bin_width, fft_len,
+                         fft_bin_width, code_fft, sample_fft,
+                         fft_len_log2, &doppler)) {
       return false;
     }
 
@@ -165,15 +164,24 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
-  cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
-
+  cp -= code_to_chip_count(mesid.code) *
+        floorf(cp / code_to_chip_count(mesid.code));
 
   /* False acquisition code phase hack (Michele). The vast majority of our
    * false acquisitions return a code phase within 0.5 chip of 0. Not allowing
    * these code phases will reject a small number of true acquisitions but
    * prevents nearly all the false acquisitions.
    * TODO: Remove this once we move to soft FFT based acquisition. */
-  if ((cp<=0.5) || (cp>=1022.5)) return false;
+  constellation_t constellation = mesid_to_constellation(mesid);
+  if (CONSTELLATION_GPS == constellation) {
+    if ((cp <= 0.5) || (cp >= 1022.5)) {
+      return false;
+    }
+  } else if (CONSTELLATION_GLO == constellation) {
+    if ((cp <= 1.0) || (cp >= 510.0)) {
+      return false;
+    }
+  }
 
   /* Set output */
   acq_result->sample_count = sample_count;
@@ -193,7 +201,7 @@ static void code_resample(const me_gnss_signal_t mesid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length)
 {
   const u8 *code = ca_code(mesid);
-  u32 code_length = CODE_LENGTH;
+  u32 code_length = code_to_chip_count(mesid.code);
 
   float chip_offset = 0.0f;
   for (u32 i = 0; i < resampled_length; i++) {
@@ -245,6 +253,7 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
 }
 
 /** Multiply sample FFT by shifted conjugate code FFT. Perform inverse FFT.
+ * \param[in]     mesid         ME signal id
  * \param[in]     doppler_bin   Current doppler bin
  * \param[in]     cf_bin_width  Doppler bin width [Hz]
  * \param[in]     fft_len       FFT length
@@ -256,15 +265,23 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
  * \retval true  Success
  * \retval false Failure
  */
-static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
+static bool ifft_operations(const me_gnss_signal_t mesid,
+                            s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const fft_cplx_t *code_fft,
                             const fft_cplx_t *sample_fft,
                             u32 fft_len_log2, float *doppler)
 {
-  s32 sample_offset = (s32)roundf(doppler_bin * cf_bin_width / fft_bin_width);
+  float freq = 0.0f;
+  if (is_glo_sid(mesid)) {
+    /* GLO FCN is removed here.
+     * Map mesid.sat [1 - 14] -> glo_channel [-7 - +6]. */
+    s16 glo_channel = mesid.sat - 8;
+    freq = glo_channel * GLO_L1_DELTA_HZ;
+  }
+  s32 sample_offset = (s32)round((freq + (doppler_bin * cf_bin_width)) / fft_bin_width);
   /* Actual computed Doppler */
-  *doppler = sample_offset * fft_bin_width;
+  *doppler = doppler_bin * cf_bin_width;
 
   /* Multiply sample FFT by shifted conjugate code FFT */
   static FFT_BUFFER(result_fft, fft_cplx_t, FFT_LEN_MAX);

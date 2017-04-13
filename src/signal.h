@@ -41,6 +41,13 @@
 #define PLATFORM_SIGNAL_COUNT_GPS_L2P       (CODE_GPS_L2P_SUPPORT ?           \
                                              NUM_SIGNALS_GPS_L2P : 0)
 
+/* Number of GLO frequencies supported
+ * on the current hardware platform. */
+#define PLATFORM_FREQ_COUNT_GLO_L1CA      (CODE_GLO_L1CA_SUPPORT ?          \
+                                           NUM_FREQ_GLO_L1CA : 0)
+#define PLATFORM_FREQ_COUNT_GLO_L2CA      (CODE_GLO_L2CA_SUPPORT ?          \
+                                           NUM_FREQ_GLO_L2CA : 0)
+
 /* Number of signals on each constellation supported
  * on the current hardware platform. */
 #define PLATFORM_SIGNAL_COUNT_GPS     (PLATFORM_SIGNAL_COUNT_GPS_L1CA +       \
@@ -52,11 +59,22 @@
 #define PLATFORM_SIGNAL_COUNT_GLO     (PLATFORM_SIGNAL_COUNT_GLO_L1CA +       \
                                        PLATFORM_SIGNAL_COUNT_GLO_L2CA)
 
+/* Total number of GLO frequencies supported
+ * on the current hardware platform. */
+#define PLATFORM_FREQ_COUNT_GLO       (PLATFORM_FREQ_COUNT_GLO_L1CA +         \
+                                       PLATFORM_FREQ_COUNT_GLO_L2CA)
+
 /* Total number of signal supported
  * on the current hardware platform. */
 #define PLATFORM_SIGNAL_COUNT         (PLATFORM_SIGNAL_COUNT_GPS +            \
                                        PLATFORM_SIGNAL_COUNT_SBAS +           \
                                        PLATFORM_SIGNAL_COUNT_GLO)
+
+/* Total number of simultaneous acquisition / tracking resources supported
+ * on the current hardware platform. */
+#define PLATFORM_ACQ_TRACK_COUNT      (PLATFORM_SIGNAL_COUNT_GPS +            \
+                                       PLATFORM_SIGNAL_COUNT_SBAS +           \
+                                       PLATFORM_FREQ_COUNT_GLO)
 
 /* \} */
 

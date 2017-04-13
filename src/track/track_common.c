@@ -155,7 +155,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   config.dll_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode);
   config.fll_loop_freq = 1000.f / tp_get_flll_ms(data->tracking_mode);
   config.fll_discr_freq = 1000.f / tp_get_flld_ms(data->tracking_mode);
-  config.carr_to_code = code_to_carr_to_code(channel_info->mesid.code);
+  config.carr_to_code = mesid_to_carr_to_code(channel_info->mesid);
 
   if (init) {
     log_debug_mesid(channel_info->mesid, "Initializing TL");
