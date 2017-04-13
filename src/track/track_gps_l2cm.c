@@ -89,7 +89,7 @@ static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
   if (res) {
     lp1_filter_compute_params(&gps_l2cm_config.xcorr_f_params,
                               gps_l2cm_config.xcorr_cof,
-                              SECS_MS / GPS_L2C_SYMBOL_LENGTH);
+                              SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
   }
 
   return res;
@@ -105,7 +105,7 @@ void track_gps_l2cm_register(void)
                              settings_pov_speed_cof_proxy);
   lp1_filter_compute_params(&gps_l2cm_config.xcorr_f_params,
                             gps_l2cm_config.xcorr_cof,
-                            SECS_MS / GPS_L2C_SYMBOL_LENGTH);
+                            SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
 
   for (u32 i = 0; i < ARRAY_SIZE(gps_l2cm_trackers); i++) {
     gps_l2cm_trackers[i].active = false;
@@ -263,10 +263,10 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
        * interval has closed a bit interval. ToW shall be aligned by bit
        * duration, which is 20ms for GPS L1 C/A / L2 C.
        */
-      u8 tail = common_data->TOW_ms % GPS_L2C_SYMBOL_LENGTH;
+      u8 tail = common_data->TOW_ms % GPS_L2C_SYMBOL_LENGTH_MS;
       if (0 != tail) {
-        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH >> 1) ?
-                      -tail : GPS_L2C_SYMBOL_LENGTH - tail;
+        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1) ?
+                      -tail : GPS_L2C_SYMBOL_LENGTH_MS - tail;
 
         log_info_mesid(channel_info->mesid,
                        "[+%" PRIu32 "ms] Adjusting ToW:"

@@ -286,7 +286,8 @@ void nap_track_init(u8 channel, const me_gnss_signal_t mesid,
      * or close to next PRN start point */
     if (mesid.code == CODE_GPS_L2CL) {
       u32 code_length = code_to_chip_count(mesid.code);
-      u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL / GPS_L2CL_PRN_PERIOD;
+      u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL_MS
+                              / GPS_L2CL_PRN_PERIOD_MS;
       u8 cp_start = 0;
       double tmp = ceil(cp / chips);
       if (tmp >= 0 && tmp < GPS_L2CL_PRN_START_POINTS) {
