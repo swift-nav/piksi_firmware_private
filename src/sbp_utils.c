@@ -419,7 +419,7 @@ static void unpack_ephemeris_common(const ephemeris_common_content_t *common,
   e->toe.wn           = common->toe.wn;
   e->valid            = common->valid;
   e->health_bits      = common->health_bits;
-  e->sid              = sid_from_sbp(common->sid);
+  e->sid              = sid_from_sbp16(common->sid);
   e->fit_interval     = common->fit_interval;
   e->ura              = common->ura;
 }
@@ -431,7 +431,7 @@ static void pack_ephemeris_common(const ephemeris_t *e,
   common->toe.wn       = e->toe.wn;
   common->valid        = e->valid;
   common->health_bits  = e->health_bits;
-  common->sid          = sid_to_sbp(e->sid);
+  common->sid          = sid_to_sbp16(e->sid);
   common->fit_interval = e->fit_interval;
   common->ura          = e->ura;
 }
