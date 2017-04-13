@@ -222,10 +222,19 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned, const gps_time_t *t
   baseline_ned->flags = flags;
 }
 
+double constrain_angle(const double heading) {
+  double constrained_heading = fmod(heading,360.0);
+  if (constrained_heading < 0) {
+    constrained_heading += 360.0;
+  }
+  return constrained_heading;
+
+}
+
 void sbp_make_heading(msg_baseline_heading_t *baseline_heading, const gps_time_t *t,
                       const double heading, u8 n_sats, u8 flags) {
     baseline_heading->tow = round_tow_ms(t->tow);
-    baseline_heading->heading = round(heading * MSG_HEADING_SCALE_FACTOR);
+    baseline_heading->heading = round(constrain_angle(heading) * MSG_HEADING_SCALE_FACTOR);
     baseline_heading->n_sats = n_sats;
     baseline_heading->flags = flags;
 }

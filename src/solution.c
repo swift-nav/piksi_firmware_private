@@ -378,7 +378,7 @@ void solution_make_baseline_sbp(const gps_time_t *t, u8 n_sats, double b_ecef[3]
 
   if(flags == FIXED_POSITION && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
     double heading = calc_heading(b_ned);
-    sbp_make_heading(&sbp_messages->baseline_heading, t, heading + heading_offset, n_sats, flags);
+    sbp_make_heading(&sbp_messages->baseline_heading, t, heading - heading_offset, n_sats, flags);
   }
 
   if (has_known_base_pos_ecef || (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -1497,7 +1497,7 @@ static bool heading_offset_changed(struct setting *s, const char *val)
   }
 
   if (fabs(offset) > 180.0) {
-    log_error("Invalid heading offset setting of %l, max is %l, min is %l, leaving heading offset at %l",
+    log_error("Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, leaving heading offset at %3.1f",
               offset, 180.0, -180.0, heading_offset);
     ret = false;
   }
