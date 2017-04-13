@@ -500,7 +500,7 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   /* unpack received message */
   cnav.data.type_30.isc_l1ca = ((msg_group_delay_t*)msg)->isc_l1ca;
   cnav.data.type_30.tgd = ((msg_group_delay_t*)msg)->tgd;
-  cnav.prn = ((msg_group_delay_t*)msg)->prn;
+  cnav.prn = ((msg_group_delay_t*)msg)->sid.sat;
   cnav.data.type_30.isc_l1ca_valid = (((msg_group_delay_t*)msg)->valid >> 2) & 0x1;
   cnav.data.type_30.isc_l2c_valid = (((msg_group_delay_t*)msg)->valid >> 1) & 0x1;
   cnav.data.type_30.tgd_valid = (((msg_group_delay_t*)msg)->valid) & 0x1;
