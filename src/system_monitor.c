@@ -213,26 +213,17 @@ static void watchdog_thread(void *arg)
   (void)arg;
   chRegSetThreadName("Watchdog");
 
-  bool wdt_enabled = true;
+  /* Allow an extra period at startup since some of the other threads
+     take a little while to get going */
+  chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
+
+  if (use_wdt)
+    wdgStart(&WDGD1, &board_wdg_config);
 
   while (TRUE) {
     /* Wait for all threads to set a flag indicating they are still
        alive and performing their function */
     chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
-
-    /* Copy requested watchdog state */
-    bool wdt_enabled_req = use_wdt;
-    COMPILER_BARRIER();
-
-    if (wdt_enabled != wdt_enabled_req) {
-      if (wdt_enabled) {
-        wdgStop(&WDGD1);
-        wdt_enabled = false;
-      } else {
-        wdgStart(&WDGD1, &board_wdg_config);
-        wdt_enabled = true;
-      }
-    }
 
     chSysLock();
     u32 threads_dead = watchdog_notify_flags ^ WATCHDOG_NOTIFY_FLAG_ALL;
@@ -244,21 +235,17 @@ static void watchdog_thread(void *arg)
       log_error("One or more threads appear to be dead: 0x%08X. "
                 "Watchdog reset %s.",
                 (unsigned int)threads_dead,
-                wdt_enabled ? "imminent" : "disabled");
+                use_wdt ? "imminent" : "disabled");
       debug_threads();
     } else {
-      if (wdt_enabled)
+      if (use_wdt)
         wdgReset(&WDGD1);
     }
+
   }
 }
 
-void system_monitor_pre_init(void)
-{
-  wdgStart(&WDGD1, &board_wdg_config);
-}
-
-void system_monitor_setup(void)
+void system_monitor_setup()
 {
   SETTING("system_monitor", "heartbeat_period_milliseconds", heartbeat_period_milliseconds, TYPE_INT);
   SETTING("system_monitor", "watchdog", use_wdt, TYPE_BOOL);
