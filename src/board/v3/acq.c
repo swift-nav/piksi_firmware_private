@@ -25,11 +25,11 @@
 
 #define CHIP_RATE 1.023e6f
 #define CODE_LENGTH 1023
-#define CODE_MULT 16384
-#define RESULT_DIV 32
-#define FFT_SCALE_SCHED_CODE 0x15555555
-#define FFT_SCALE_SCHED_SAMPLES 0x15555555
-#define FFT_SCALE_SCHED_INV 0x15550000
+#define CODE_MULT               (   1024)
+#define RESULT_DIV              ( 4*1024)
+#define FFT_SCALE_SCHED_CODE    (0x11111111)
+#define FFT_SCALE_SCHED_SAMPLES (0x01111111)
+#define FFT_SCALE_SCHED_INV     (0x01111111)
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 static void code_resample(const me_gnss_signal_t mesid, float chips_per_sample,
@@ -173,7 +173,7 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
    * these code phases will reject a small number of true acquisitions but
    * prevents nearly all the false acquisitions.
    * TODO: Remove this once we move to soft FFT based acquisition. */
-  if ((cp<=0.5) || (cp>=1022.5)) return false;
+  /* if ((cp<=0.5) || (cp>=1022.5)) return false; */
 
   /* Set output */
   acq_result->sample_count = sample_count;
@@ -319,7 +319,8 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
 
   /* Compute C/N0 */
   snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
-  cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
+    /*cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);*/
+  cn0 = 10.0f * log10f(snr * 1.8f * fft_bin_width);
 
   if (cn0 > peak->cn0) {
     /* New max peak found */
