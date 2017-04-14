@@ -764,7 +764,10 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   memset(&(sbp_messages->vel_ned), 0, sizeof(msg_vel_ned_t));
   memset(&(sbp_messages->vel_ecef), 0, sizeof(msg_vel_ecef_t));
   memset(&(sbp_messages->sbp_dops), 0, sizeof(msg_dops_t));
+
   memset(&(sbp_messages->age_corrections), 0, sizeof(msg_age_corrections_t));
+  sbp_messages->age_corrections.age = 0xFFFF;
+
   memset(&(sbp_messages->dgnss_status), 0, sizeof(msg_dgnss_status_t));
   memset(&(sbp_messages->baseline_ecef), 0, sizeof(msg_baseline_ecef_t));
   memset(&(sbp_messages->baseline_ned), 0, sizeof(msg_baseline_ned_t));
