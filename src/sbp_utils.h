@@ -26,6 +26,8 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/ephemeris.h>
 
+#include "ndb.h"
+
 typedef struct {
   union {
     msg_ephemeris_gps_t   gps;
@@ -63,6 +65,19 @@ typedef enum {
 } ndb_event_obj_type_t;
 
 #define NDB_EVENT_SENDER_ID_VOID 0
+
+void sbp_init_gps_time(msg_gps_time_t *gps_time);
+void sbp_init_utc_time(msg_utc_time_t *utc_time);
+void sbp_init_pos_llh(msg_pos_llh_t *pos_llh);
+void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef);
+void sbp_init_vel_ned(msg_vel_ned_t *vel_ned);
+void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef);
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops);
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections);
+void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef);
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned);
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading);
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh, const double llh[3],
