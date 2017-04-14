@@ -572,15 +572,8 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
    * for now but the simulator should be refactored so that it can give the
    * exact correct solution time output without this nonsense. */
   gnss_solution *soln = simulation_current_gnss_solution();
-  double expected_tow = \
-    round(soln->time.tow * soln_freq) / soln_freq;
-  soln->time.tow = expected_tow;
-  normalize_gps_time(&soln->time);
 
-  if (simulation_enabled_for(SIMULATION_MODE_PVT) &&
-     !(simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-       simulation_enabled_for(SIMULATION_MODE_RTK) )) {
-    /* Then we send fake messages. */
+  if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
     solution_make_sbp(soln, simulation_current_dops_solution(), FALSE, sbp_messages);
   }
 
@@ -594,7 +587,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
                                true, simulation_ref_ecef(), flags,
                                simulation_current_dops_solution(), 0.0, sbp_messages);
 
-    double t_check = expected_tow * (soln_freq / obs_output_divisor);
+    double t_check = soln->time.tow * (soln_freq / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
       send_observations(simulation_current_num_sats(),
           simulation_current_navigation_measurements(), &(soln->time));
