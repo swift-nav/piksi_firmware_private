@@ -192,11 +192,14 @@ void simulation_step(void)
   //First we propagate the current fake PVT solution
   systime_t now_ticks = chVTGetSystemTime();
 
-  double elapsed = (now_ticks - sim_state.last_update_ticks)/(double)CH_CFG_ST_FREQUENCY;
+  double elapsed = sim_state.last_update_ticks == 0 ? 0 : (now_ticks - sim_state.last_update_ticks)/(double)CH_CFG_ST_FREQUENCY;
+  
   sim_state.last_update_ticks = now_ticks;
 
-  /* Update the time */
-  sim_state.noisy_solution.time.tow += elapsed;
+  /* Update the time, clamping it to the solution frequency and handling week-rollover. */
+  sim_state.noisy_solution.time.tow = 
+    round((sim_state.noisy_solution.time.tow + elapsed) * soln_freq) / soln_freq;
+  normalize_gps_time(&sim_state.noisy_solution.time);
 
   simulation_step_position_in_circle(elapsed);
   simulation_step_tracking_and_observations(elapsed);
@@ -479,8 +482,8 @@ void simulator_setup_almanacs(void)
 */
 void simulator_setup(void)
 {
-  sim_state.noisy_solution.time.wn = simulation_week_number;
-  sim_state.noisy_solution.time.tow = 0;
+  sim_state.noisy_solution.time.wn = simulation_week_number - 1;
+  sim_state.noisy_solution.time.tow = WEEK_SECS - 20;
   sim_state.noisy_solution.valid = 1;
   sim_state.noisy_solution.velocity_valid=1;
 
