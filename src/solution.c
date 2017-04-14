@@ -757,21 +757,18 @@ static void collect_measurements(u64 rec_tc,
 }
 
 void sbp_messages_init(sbp_messages_t *sbp_messages){
-  memset(&(sbp_messages->gps_time), 0, sizeof(msg_gps_time_t));
-  memset(&(sbp_messages->utc_time), 0, sizeof(msg_utc_time_t));
-  memset(&(sbp_messages->pos_llh), 0, sizeof(msg_pos_llh_t));
-  memset(&(sbp_messages->pos_ecef), 0, sizeof(msg_pos_ecef_t));
-  memset(&(sbp_messages->vel_ned), 0, sizeof(msg_vel_ned_t));
-  memset(&(sbp_messages->vel_ecef), 0, sizeof(msg_vel_ecef_t));
-  memset(&(sbp_messages->sbp_dops), 0, sizeof(msg_dops_t));
-
-  memset(&(sbp_messages->age_corrections), 0, sizeof(msg_age_corrections_t));
-  sbp_messages->age_corrections.age = 0xFFFF;
-
-  memset(&(sbp_messages->dgnss_status), 0, sizeof(msg_dgnss_status_t));
-  memset(&(sbp_messages->baseline_ecef), 0, sizeof(msg_baseline_ecef_t));
-  memset(&(sbp_messages->baseline_ned), 0, sizeof(msg_baseline_ned_t));
-  memset(&(sbp_messages->baseline_heading), 0, sizeof(msg_baseline_heading_t));
+  sbp_init_gps_time(&sbp_messages->gps_time);
+  sbp_init_utc_time(&sbp_messages->utc_time);
+  sbp_init_pos_llh(&sbp_messages->pos_llh);
+  sbp_init_pos_ecef(&sbp_messages->pos_ecef);
+  sbp_init_vel_ned(&sbp_messages->vel_ned);
+  sbp_init_vel_ecef(&sbp_messages->vel_ecef);
+  sbp_init_sbp_dops(&sbp_messages->sbp_dops);
+  sbp_init_age_corrections(&sbp_messages->age_corrections);
+  sbp_init_dgnss_status(&sbp_messages->dgnss_status);
+  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef);
+  sbp_init_baseline_ned(&sbp_messages->baseline_ned);
+  sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
 static THD_WORKING_AREA(wa_solution_thread, 5000000);
