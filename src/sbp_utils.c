@@ -818,5 +818,60 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8*, void*))
   }
 }
 
+void sbp_init_gps_time(msg_gps_time_t *gps_time){
+  memset(gps_time, 0, sizeof(msg_gps_time_t));
+  gps_time_t current_time = get_current_gps_time();
+  sbp_make_gps_time(gps_time, &current_time, NO_POSITION);
+}
+
+void sbp_init_utc_time(msg_utc_time_t *utc_time){
+  gps_time_t current_time = get_current_gps_time();
+  utc_params_t utc_params;
+  ndb_utc_params_read(&utc_params);
+  memset(utc_time, 0, sizeof(msg_utc_time_t));
+  sbp_make_utc_time(utc_time, &current_time, NO_POSITION, &utc_params);
+}
+
+void sbp_init_pos_llh(msg_pos_llh_t *pos_llh){
+  memset(pos_llh, 0, sizeof(msg_pos_llh_t));
+}
+
+void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef){
+  memset(pos_ecef, 0, sizeof(msg_pos_ecef_t));
+}
+
+void sbp_init_vel_ned(msg_vel_ned_t *vel_ned){
+  memset(vel_ned, 0, sizeof(msg_vel_ned_t));
+}
+
+void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef){
+  memset(vel_ecef, 0, sizeof(msg_vel_ecef_t));
+}
+
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops){
+  memset(sbp_dops, 0, sizeof(msg_dops_t));
+}
+
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections){
+  memset(age_corrections, 0, sizeof(msg_age_corrections_t));
+  age_corrections->age = 0xFFFF;
+}
+
+void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status){
+  memset(dgnss_status, 0, sizeof(msg_dgnss_status_t));
+}
+
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef){
+  memset(baseline_ecef, 0, sizeof(msg_baseline_ecef_t));
+}
+
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned){
+  memset(baseline_ned, 0, sizeof(msg_baseline_ned_t));
+}
+
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading){
+  memset(baseline_heading, 0, sizeof(msg_baseline_heading_t));
+}
+
 /** \} */
 /** \} */
