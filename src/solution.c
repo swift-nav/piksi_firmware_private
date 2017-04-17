@@ -775,14 +775,19 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-bool gate_covariance(position_quality_t current_quality, gnss_solution *current_fix) {
-  assert(current_fix != NULL);
-  if (current_quality >= POSITION_FIX ||
-      current_fix->err_cov[0] > 100000 ||
-      current_fix->err_cov[3] > 100000 ||
-      current_fix->err_cov[5] > 100000) {
+bool gate_covariance(gnss_solution *soln) {
+  assert(soln != NULL);
+  double full_covariance[9];
+  extract_covariance(full_covariance, soln);
+
+  double accuracy, h_accuracy, v_accuracy;
+  covariance_to_accuracy(full_covariance, soln->pos_ecef,
+                         &accuracy, &h_accuracy, &v_accuracy);
+  if (accuracy > 100.0) {
+    log_warn("SPP Position suppressed due to position confidence of %f exceeding 100.0m", accuracy);
     return true;
   }
+
   return false;
 }
 
@@ -1041,7 +1046,8 @@ static void solution_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sid);
-    if (pvt_ret < 0 || gate_covariance(lgf.position_quality,&current_fix)) {
+    if (pvt_ret < 0
+        || (lgf.position_quality = POSITION_FIX && gate_covariance(&current_fix))) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
       DO_EVERY((u32)soln_freq,
