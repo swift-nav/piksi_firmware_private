@@ -775,6 +775,17 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
+bool gate_covariance(position_quality_t current_quality, gnss_solution *current_fix) {
+  assert(current_fix != NULL);
+  if (current_quality >= POSITION_FIX ||
+      current_fix->err_cov[0] > 100000 ||
+      current_fix->err_cov[3] > 100000 ||
+      current_fix->err_cov[5] > 100000) {
+    return true;
+  }
+  return false;
+}
+
 static THD_WORKING_AREA(wa_solution_thread, 5000000);
 static void solution_thread(void *arg)
 {
@@ -1030,7 +1041,7 @@ static void solution_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sid);
-    if (pvt_ret < 0) {
+    if (pvt_ret < 0 || gate_covariance(lgf.position_quality,&current_fix)) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
       DO_EVERY((u32)soln_freq,
