@@ -319,6 +319,7 @@ gnss_signal_t sv_index_to_sid(u16 sv_index)
   while (constellation_table[cons].start_index > sv_index) {
     cons--;
   }
+  assert(constellation_valid(cons));
 
   /* find the first valid and supported code for this constellation */
   for (enum code code = 0; code < CODE_COUNT; code++) {

@@ -275,16 +275,19 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
     log_debug_sid(e->sid, "ephemeris saved");
     /* update azimuth and elevation into track database */
     last_good_fix_t lgf;
-    double az, el;
-    if (NDB_ERR_NONE == ndb_lgf_read(&lgf)
-        && calc_sat_az_el(e,
-                          &lgf.position_solution.time,
-                          lgf.position_solution.pos_ecef,
-                          &az, &el, true) >= 0) {
-      sv_azel_degrees_set(e->sid, round(az * R2D), round(el * R2D),
-                          nap_timing_count());
-      log_debug_sid(e->sid, "Updated elevation from new ephemeris %.1f", el * R2D);
+    if (ndb_lgf_read(&lgf) != NDB_ERR_NONE) {
+      break;
     }
+    double az, el;
+    gnss_solution *pos = &lgf.position_solution;
+    bool too_old_or_invalid = calc_sat_az_el(e, &pos->time, pos->pos_ecef,
+                                             &az, &el,
+                                            /*check_validity=*/ true) != 0;
+    if (too_old_or_invalid) {
+       break;
+    }
+    sv_azel_degrees_set(e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+    log_debug_sid(e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);
     break;
   case NDB_ERR_NO_CHANGE:
     log_debug_sid(e->sid, "ephemeris is already present");

@@ -112,11 +112,8 @@ typedef u8 tracker_channel_id_t;
 /** Tracking channel flag: L2CL tracker has resolved half-cycle ambiguity */
 #define TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED (1u << 25)
 
-/** Maximum SV elevation age in seconds: 1 minute is about 0.5 degrees */
-#define MAX_ELEVATION_AGE_SEC 60
-
-/** Maximum SV azimuth age in seconds */
-#define MAX_AZIMUTH_AGE_SEC 60
+/** Maximum SV azimuth/elevation age in seconds: 1 minute is about 0.5 degrees */
+#define MAX_AZ_EL_AGE_SEC 60
 
 /** Bit mask of tracking channel flags */
 typedef u32 tracking_channel_flags_t;

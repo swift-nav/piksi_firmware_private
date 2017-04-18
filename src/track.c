@@ -1067,8 +1067,7 @@ u16 sv_azimuth_degrees_get(gnss_signal_t sid)
   if (track_sid_db_load_elevation(sid, &entry)) {
     /* If azimuth cache entry is loaded, do the entry age check */
     if (TRACKING_AZIMUTH_UNKNOWN != entry.azimuth_d &&
-        nap_timing_count() - entry.timestamp_tk
-          < MAX_AZIMUTH_AGE_SEC * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz) {
+        nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
       result = entry.azimuth_d;
     }
   }
@@ -1094,8 +1093,7 @@ s8 sv_elevation_degrees_get(gnss_signal_t sid)
   if (track_sid_db_load_elevation(sid, &entry)) {
     /* If elevation cache entry is loaded, do the entry age check */
     if (TRACKING_ELEVATION_UNKNOWN != entry.elevation_d &&
-        nap_timing_count() - entry.timestamp_tk
-          < MAX_ELEVATION_AGE_SEC * (u64)NAP_FRONTEND_SAMPLE_RATE_Hz) {
+        nap_timing_count() - entry.timestamp_tk < SEC2TICK(MAX_AZ_EL_AGE_SEC)) {
       result = entry.elevation_d;
     }
   }
