@@ -296,7 +296,7 @@ static void update_obss(obss_t *new_obss)
              calculating the pseudo-absolute position later. However, if the
              difference between the two positions is larger than expected, log
              a warning, but still use the known base position. */
-          if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+          if (base_distance > SPP_BASE_STATION_DISTANCE_THRESHOLD) {
             log_warn("Received base observation with SPP position %f m from the"
                      " surveyed position. Check the base station position setting.",
                      base_distance);
