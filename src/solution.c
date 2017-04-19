@@ -603,30 +603,32 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
 static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 {
   ephemeris_t ephemeris;
-  double sat_pos[3];
-  double sat_vel[3];
-  double clock_err;
-  double clock_rate_err;
+  almanac_t almanac;
+  double az, el;
   u64 nap_count = gpstime2napcount(&t);
 
-  /* compute elevation for any valid ephemeris we can pull from NDB */
-  for (u16 idx = 0; idx < PLATFORM_SIGNAL_COUNT; idx++) {
-    gnss_signal_t sid = sid_from_global_index(idx);
-    ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
-    /* compute elevation also from unconfirmed ephemeris candidates */
-    if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res ) {
-      if (ephemeris_valid(&ephemeris, &t)
-          && calc_sat_state(&ephemeris, &t,
-                       sat_pos, sat_vel, &clock_err, &clock_rate_err) >= 0) {
+  /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
+  for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
 
-        double az, el;
-        wgsecef2azel(sat_pos, rcv_pos, &az, &el);
-        /* update the elevation with the timestamp of the used position */
-        sv_azel_degrees_set(sid, (float)az * R2D, (float)el * R2D, nap_count);
-        log_debug_sid(sid, "Updated elevation %.1f", el * R2D);
-      }
+    /* form a SID with the first code for the constellation */
+    gnss_signal_t sid = sv_index_to_sid(sv_index);
+    if (!sid_valid(sid)) {
+      continue;
     }
-    /* TODO: use almanac if there is no valid ephemeris */
+    ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
+
+    /* try to compute elevation from any valid ephemeris */
+    if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
+        && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, true) >= 0) {
+      sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
+      log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
+
+    /* else try to fetch almanac and use it if it is valid */
+    } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)
+               && calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
+      sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
+      log_debug_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
+    }
   }
 }
 
@@ -835,8 +837,9 @@ static void solution_thread(void *arg)
     if (time_quality >= TIME_COARSE
         && lgf.position_solution.valid
         && lgf.position_quality >= POSITION_GUESS) {
-      /* Update the satellite elevation angles once per second */
-      DO_EVERY((u32)soln_freq,
+      /* Update the satellite elevation angles so that they stay current
+       * (currently once every 30 seconds) */
+      DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC/2,
                update_sat_azel(lgf.position_solution.pos_ecef,
                                lgf.position_solution.time));
     }

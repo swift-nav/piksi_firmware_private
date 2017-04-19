@@ -43,6 +43,7 @@ typedef struct {
 extern volatile time_quality_t time_quality;
 
 #define RX_DT_NOMINAL (1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz)
+#define SEC2TICK(x) ((x) * NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 void timing_setup(void);
 gps_time_t get_current_time(void);
