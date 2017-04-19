@@ -46,7 +46,7 @@ static u32 nap_tc;
 
 static imu_rate_t imu_rate = IMU_RATE_50HZ;
 static bool raw_imu_output = false;
-static u8 acc_range = 0;
+static u8 acc_range = 2;
 static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
@@ -270,4 +270,3 @@ void imu_init(void)
   gic_irq_priority_set(IRQ_ID_IMU_INT1, IMU_INT1_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_IMU_INT1);
 }
-
