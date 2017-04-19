@@ -218,15 +218,10 @@ void nap_track_init(u8 channel,
   s->spacing[3] = (nap_spacing_t){.chips = NAP_SPACING_CHIPS,
                                   .samples = NAP_SPACING_SAMPLES};
 
-  u16 control;
+  /* NOTE: NAP_TRK_CONTROL_SAT field is ignored for GLO satellites. */
+  u8 prn = mesid.sat - GPS_FIRST_PRN;
+  u16 control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
 
-  if (CODE_GLO_L1CA == mesid.code) {
-    /* NAP_TRK_CONTROL_SAT field is not used for GLONASS, so be it 0. */
-    control = 0;
-  } else {
-    u8 prn = mesid.sat - GPS_FIRST_PRN;
-    control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
-  }
   /* RF frontend channel */
   control |= (mesid_to_rf_frontend_channel(mesid) << NAP_TRK_CONTROL_FRONTEND_Pos) &
              NAP_TRK_CONTROL_FRONTEND_Msk;
@@ -248,14 +243,18 @@ void nap_track_init(u8 channel,
 
   double carrier_freq_hz = code_to_carr_freq(mesid.code);
   double code_phase_rate = (1.0 + doppler_freq_hz / carrier_freq_hz) *
-      code_to_chip_rate(mesid.code);
+                           code_to_chip_rate(mesid.code);
 
   s->init = true;
   s->code_phase_rate[0] = code_phase_rate;
   s->code_phase_rate[1] = code_phase_rate;
 
-  nap_track_update(channel, mesid, doppler_freq_hz, code_phase_rate,
-      chips_to_correlate, 0);
+  nap_track_update(channel,
+                   mesid,
+                   doppler_freq_hz,
+                   code_phase_rate,
+                   chips_to_correlate,
+                   0);
 
   u32 length = t->LENGTH;
 
@@ -270,8 +269,8 @@ void nap_track_init(u8 channel,
 
   /* Spacing between VE and P correlators */
   u16 prompt_offset = s->spacing[0].samples + s->spacing[1].samples +
-      round((s->spacing[0].chips + s->spacing[1].chips) *
-      calc_samples_per_chip(code_phase_rate));
+                      round((s->spacing[0].chips + s->spacing[1].chips) *
+                      calc_samples_per_chip(code_phase_rate));
 
   /* Adjust first integration length due to correlator spacing
    * (+ first period is one sample short) */
