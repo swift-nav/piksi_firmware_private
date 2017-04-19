@@ -71,7 +71,7 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_TIME_MATCHED;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 static FilterManager *time_matched_filter_manager;
@@ -95,7 +95,7 @@ double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = 102;
 
 bool disable_raim = false;
-bool send_heading = false;
+bool send_heading = true;
 
 static u8 old_base_sender_id = 0;
 
