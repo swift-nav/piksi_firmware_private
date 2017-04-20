@@ -35,7 +35,7 @@
 typedef enum
 {
   TP_TM_GPS_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_GPS_DYN,     /**< Dynamics tracking mode */
+  TP_TM_GPS_1MS,     /**< GPS 1 ms PLL/DLL */
   TP_TM_GPS_5MS,     /**< GPS 5 ms PLL/DLL */
   TP_TM_GPS_10MS,    /**< GPS 10 ms PLL/DLL */
   TP_TM_GPS_20MS,    /**< GPS 20 ms PLL/DLL */
