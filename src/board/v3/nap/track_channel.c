@@ -17,7 +17,6 @@
 #include "track.h"
 #include "timing.h"
 #include "main.h"
-#include "timing.h"
 
 #include <ch.h>
 
@@ -218,7 +217,8 @@ void nap_track_init(u8 channel,
   s->spacing[3] = (nap_spacing_t){.chips = NAP_SPACING_CHIPS,
                                   .samples = NAP_SPACING_SAMPLES};
 
-  /* NOTE: NAP_TRK_CONTROL_SAT field is ignored for GLO satellites. */
+  /* NOTE: NAP_TRK_CONTROL_SAT field is ignored for GLO satellites.
+   * NAP does not need GLO prn as code is same for all GLO satellites. */
   u8 prn = mesid.sat - GPS_FIRST_PRN;
   u16 control = (prn << NAP_TRK_CONTROL_SAT_Pos) & NAP_TRK_CONTROL_SAT_Msk;
 
@@ -241,7 +241,7 @@ void nap_track_init(u8 channel,
       (spacing_to_nap_offset(s->spacing[3]) <<
       NAP_TRK_SPACING_OFFSET3_Pos);
 
-  double carrier_freq_hz = code_to_carr_freq(mesid.code);
+  double carrier_freq_hz = mesid_to_carr_freq(mesid);
   double code_phase_rate = (1.0 + doppler_freq_hz / carrier_freq_hz) *
                            code_to_chip_rate(mesid.code);
 
@@ -400,15 +400,19 @@ void nap_track_update(u8 channel,
                     cp_rate_units, length, code_phase_rate);
   }
 
-  double carrier_freq_hz = 0;
+  /* This is the frequency shift due do GLO FCNs.
+   * Note that it remains zero for GPS. */
+  double fcn_freq_hz = 0;
 
+  /* Map GLO mesid.sat [1 - 14] -> GLO FCN [-7 - +6] */
   if (CODE_GLO_L1CA == mesid.code) {
-    carrier_freq_hz = -(mesid.sat - 8) * GLO_L1_DELTA_HZ;
+    fcn_freq_hz = (mesid.sat - 8) * GLO_L1_DELTA_HZ;
   } else if (CODE_GLO_L2CA == mesid.code) {
-    carrier_freq_hz = -(mesid.sat - 8) * GLO_L2_DELTA_HZ;
+    fcn_freq_hz = (mesid.sat - 8) * GLO_L2_DELTA_HZ;
   }
 
-  carrier_freq_hz = carrier_freq_hz - doppler_freq_hz;
+  /* This is the total frequency shift due do GLO FCNs + Doppler. */
+  double carrier_freq_hz = -(fcn_freq_hz + doppler_freq_hz);
 
   t->CARR_PINC = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
 }
