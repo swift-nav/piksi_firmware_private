@@ -46,7 +46,7 @@ static u32 nap_tc;
 
 static imu_rate_t imu_rate = IMU_RATE_50HZ;
 static bool raw_imu_output = false;
-static u8 acc_range = 0;
+static u8 acc_range = 2;
 static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
@@ -67,23 +67,26 @@ static void imu_isr(void *context)
   chSysUnlockFromISR();
 }
 
+static void imu_aux_send(void)
+{
+  msg_imu_aux_t imu_aux;
+  imu_aux.imu_type = 0; /* Bosch BMI160 */
+  imu_aux.temp = bmi160_read_temp();
+  imu_aux.imu_conf = (gyr_range << 4) | acc_range;
+
+  /* Send out IMU_AUX SBP message. */
+  sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8*)&imu_aux);
+}
+
 /** IMU auxiliary data processing thread. */
 static void imu_aux_thread(void *arg)
 {
   (void)arg;
   chRegSetThreadName("IMU aux");
 
-  msg_imu_aux_t imu_aux;
-  (void)imu_aux;
-
   while (TRUE) {
     if (raw_imu_output) {
-      imu_aux.imu_type = 0; /* Bosch BMI160 */
-      imu_aux.temp = bmi160_read_temp();
-      imu_aux.imu_conf = (gyr_range << 4) | acc_range;
-
-      /* Send out IMU_AUX SBP message. */
-      sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8*)&imu_aux);
+      imu_aux_send();
     }
 
     chThdSleepMilliseconds(1000);
@@ -163,8 +166,10 @@ static void imu_thread(void *arg)
         imu_raw.tow_f = 0;
       }
 
-      /* Send out IMU_RAW SBP message. */
-      sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8*)&imu_raw);
+      if (raw_imu_output) {
+        /* Send out IMU_RAW SBP message. */
+        sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8*)&imu_raw);
+      }
     }
   }
 }
@@ -193,6 +198,9 @@ static bool acc_range_changed(struct setting *s, const char *val)
     return false;
   }
 
+  u8 output = raw_imu_output;
+  raw_imu_output = false;
+
   /* Convert between the setting value, which is an integer corresponding to
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
@@ -214,15 +222,29 @@ static bool acc_range_changed(struct setting *s, const char *val)
     break;
   }
 
+  if (output) {
+    imu_aux_send();
+    raw_imu_output = true;
+  }
+
   return true;
 }
 
 static bool gyr_range_changed(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    u8 output = raw_imu_output;
+    raw_imu_output = false;
+
     /* The settings values and the enum values correspond numerically so no
      * need to convert between them. */
     bmi160_set_gyr_range(gyr_range);
+
+    if (output) {
+      imu_aux_send();
+      raw_imu_output = true;
+    }
+
     return true;
   }
   return false;
@@ -270,4 +292,3 @@ void imu_init(void)
   gic_irq_priority_set(IRQ_ID_IMU_INT1, IMU_INT1_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_IMU_INT1);
 }
-
