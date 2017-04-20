@@ -18,6 +18,7 @@
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/observation.h>
@@ -74,14 +75,14 @@ void check_base_position_change(void)
   /* Check if the base position has changed and reset the RTK filter if
    * it has.
    */
-  if (old_base_pos_known &&
-     ((fabs(old_base_pos_ecef[0] - base_pos_ecef[0]) > 1e-3) ||
-      (fabs(old_base_pos_ecef[1] - base_pos_ecef[1]) > 1e-3) ||
-      (fabs(old_base_pos_ecef[2] - base_pos_ecef[2]) > 1e-3))) {
-    log_warn("Base station position changed. Resetting RTK filter.");
-    reset_rtk_filter();
-    base_pos_known = false;
-    memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+  if (old_base_pos_known ) {
+    double base_distance = vector_distance(3, old_base_pos_ecef, base_pos_ecef);
+    if( base_distance > SURVEYED_BASE_STATION_DISTANCE_THRESHOLD) {
+      log_warn("Base station position changed. Resetting RTK filter.");
+      reset_rtk_filter();
+      base_pos_known = false;
+      memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+    }
   }
   old_base_pos_known = base_pos_known;
   memcpy(&old_base_pos_ecef, &base_pos_ecef, sizeof(base_pos_ecef));
@@ -295,7 +296,7 @@ static void update_obss(obss_t *new_obss)
              calculating the pseudo-absolute position later. However, if the
              difference between the two positions is larger than expected, log
              a warning, but still use the known base position. */
-          if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+          if (base_distance > SPP_BASE_STATION_DISTANCE_THRESHOLD) {
             log_warn("Received base observation with SPP position %f m from the"
                      " surveyed position. Check the base station position setting.",
                      base_distance);

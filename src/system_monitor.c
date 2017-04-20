@@ -20,6 +20,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/constants.h>
 
 #include "board/nap/nap_common.h"
 #include "peripherals/antenna.h"
@@ -170,7 +171,7 @@ static void system_monitor_thread(void *arg)
 
         base_distance = vector_distance(3, base_ecef, lgf.position_solution.pos_ecef);
 
-        if (base_distance > BASE_STATION_DISTANCE_THRESHOLD) {
+        if (base_distance > SPP_BASE_STATION_DISTANCE_THRESHOLD) {
           log_warn("Invalid surveyed position coordinates. No base position message will be sent.");
         } else {
           sbp_send_msg(SBP_MSG_BASE_POS_ECEF, sizeof(msg_base_pos_ecef_t), (u8 *)&base_ecef);
