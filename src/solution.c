@@ -1377,6 +1377,10 @@ static void time_matched_obs_thread(void *arg)
     /* Wait for a new observation to arrive from the base station. */
     chBSemWait(&base_obs_received);
 
+    chMtxLock(&base_obs_lock);
+    obss_t base_obss_copy = base_obss;
+    chMtxUnlock(&base_obs_lock);
+
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);
 
@@ -1392,38 +1396,36 @@ static void time_matched_obs_thread(void *arg)
         continue;
       }
 
-      chMtxLock(&base_obs_lock);
-      double dt = gpsdifftime(&obss->tor, &base_obss.tor);
+      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
         /* Check if the base sender ID has changed and reset the RTK filter if
          * it has.
          */
         if ((old_base_sender_id != 0) &&
-            (old_base_sender_id != base_obss.sender_id)) {
+            (old_base_sender_id != base_obss_copy.sender_id)) {
           log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
-                   " filter.", old_base_sender_id, base_obss.sender_id);
+                   " filter.", old_base_sender_id, base_obss_copy.sender_id);
           reset_rtk_filter();
           chMtxLock(&base_pos_lock);
           base_pos_known = false;
           memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
           chMtxUnlock(&base_pos_lock);
         }
-        old_base_sender_id = base_obss.sender_id;
+        old_base_sender_id = base_obss_copy.sender_id;
 
-        /* Times match! Process obs and base_obss */
+        /* Times match! Process obs and base_obss_copy */
         static sdiff_t sds[MAX_CHANNELS];
         u8 n_sds = single_diff(
             obss->n, obss->nm,
-            base_obss.n, base_obss.nm,
+            base_obss_copy.n, base_obss_copy.nm,
             sds
         );
-        bool has_known_base_pos_ecef = base_obss.has_known_pos_ecef;
+        bool has_known_base_pos_ecef = base_obss_copy.has_known_pos_ecef;
         double known_base_pos[3];
         if (has_known_base_pos_ecef) {
-          memcpy(known_base_pos, base_obss.known_pos_ecef, sizeof(base_obss.known_pos_ecef));
+          memcpy(known_base_pos, base_obss_copy.known_pos_ecef, sizeof(base_obss_copy.known_pos_ecef));
         }
-        chMtxUnlock(&base_obs_lock);
         // We need to form the SBP messages derived from the SPP at this solution time before we
         // do the differential solution so that the various messages can be overwritten as appropriate,
         // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
@@ -1433,11 +1435,10 @@ static void time_matched_obs_thread(void *arg)
         process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
         chPoolFree(&obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(0.0, base_obss.sender_id, &sbp_messages);
+          solution_send_pos_messages(0.0, base_obss_copy.sender_id, &sbp_messages);
         }
         break;
       } else {
-        chMtxUnlock(&base_obs_lock);
         if (dt > 0) {
           /* Time of base obs before time of local obs, we must not have a local
            * observation matching this base observation, break and wait for a
@@ -1448,7 +1449,7 @@ static void time_matched_obs_thread(void *arg)
           log_warn("Obs Matching: t_base < t_rover "
                    "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})", dt,
                    obss->tor.wn, obss->tor.tow,
-                   base_obss.tor.wn, base_obss.tor.tow
+                   base_obss_copy.tor.wn, base_obss_copy.tor.tow
           );
           /* Return the buffer to the mailbox so we can try it again later. */
           msg_t ret = chMBPost(&obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
@@ -1569,7 +1570,7 @@ void solution_setup()
   chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),
                     HIGHPRIO-2, solution_thread, NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread), LOWPRIO,
+                    sizeof(wa_time_matched_obs_thread), NORMALPRIO - 3,
                     time_matched_obs_thread, NULL);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
