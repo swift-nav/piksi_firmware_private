@@ -203,8 +203,10 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
 
       ok = false;
 
+      u8 iode;
+      u16 iodc;
       if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
-          0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _)) {
+          0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _, &iode, &iodc)) {
 
         /* Compute distance [m] */
         double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
@@ -240,8 +242,10 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
 
       ok = false;
 
-      if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, _, _, _) &&
-          0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _)) {
+      u8 iode;
+      u16 iodc;
+      if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, _, _, _, &iode, &iodc) &&
+          0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _, &iode, &iodc)) {
 
         /* Compute distance [m] */
         double d = vector_distance(3, old_sat_pos, new_sat_pos);
