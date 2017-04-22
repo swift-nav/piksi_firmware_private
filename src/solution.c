@@ -1213,6 +1213,8 @@ static void solution_thread(void *arg)
         chMtxLock(&base_obs_lock);
         u8 base_index;
         for(base_index = 0; base_index < base_obss.n; base_index++) {
+          log_warn("Rov IODE %u IODC %u",nm->iode,nm->iodc);
+          log_warn("Ref IODE %u IODC %u",base_obss.nm[base_index].iode,base_obss.nm[base_index].iodc);
           if(sid_compare(nm->sid,base_obss.nm[base_index].sid) == 0
             && ( nm->iode != base_obss.nm[base_index].iode || nm->iodc != base_obss.nm[base_index].iodc )){
             /* Recompute satellite position, velocity and clock errors */
