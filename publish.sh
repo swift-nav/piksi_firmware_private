@@ -35,7 +35,7 @@ do
     sha256sum "$file" | tee "$file.sha256"
     KEY="$BUILD_PATH/$(basename $file)"
     if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-        if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_BRANCH" == v*-release ]]; then
+        if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_TAG" == v* ]]; then
             OBJECT="s3://$BUCKET/$KEY"
             aws s3 cp "$file" "$OBJECT"
             aws s3 cp "$file.sha256" "$OBJECT.sha256"
