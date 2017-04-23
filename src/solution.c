@@ -1215,15 +1215,15 @@ static void solution_thread(void *arg)
         for(base_index = 0; base_index < base_obss.n; base_index++) {
           log_warn("Rov IODE %u IODC %u",nm->iode,nm->iodc);
           log_warn("Ref IODE %u IODC %u",base_obss.nm[base_index].iode,base_obss.nm[base_index].iodc);
-          if(sid_compare(nm->sid,base_obss.nm[base_index].sid) == 0
-            && ( nm->iode != base_obss.nm[base_index].iode || nm->iodc != base_obss.nm[base_index].iodc )){
-            /* Recompute satellite position, velocity and clock errors */
-            if (0 != calc_sat_state(e, &base_obss.nm[base_index].tot, base_obss.nm[base_index].sat_pos, base_obss.nm[base_index].sat_vel,
-                                    &base_obss.nm[base_index].sat_clock_err, &base_obss.nm[base_index].sat_clock_err_rate,
-                                    &base_obss.nm[base_index].iode, &base_obss.nm[base_index].iodc)) {
-              continue;
-            }
-          }
+//          if(sid_compare(nm->sid,base_obss.nm[base_index].sid) == 0
+//            && ( nm->iode != base_obss.nm[base_index].iode || nm->iodc != base_obss.nm[base_index].iodc )){
+//            /* Recompute satellite position, velocity and clock errors */
+//            if (0 != calc_sat_state(e, &base_obss.nm[base_index].tot, base_obss.nm[base_index].sat_pos, base_obss.nm[base_index].sat_vel,
+//                                    &base_obss.nm[base_index].sat_clock_err, &base_obss.nm[base_index].sat_clock_err_rate,
+//                                    &base_obss.nm[base_index].iode, &base_obss.nm[base_index].iodc)) {
+//              continue;
+//            }
+//          }
         }
 
         n_ready_tdcp_new++;
