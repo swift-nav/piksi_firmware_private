@@ -1182,6 +1182,8 @@ static void solution_thread(void *arg)
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
         nm->raw_computed_doppler += computed_clock_rate *
                                       GPS_C / code_to_lambda(nm->sid.code);
+        nm->iode = 0;
+        nm->iodc = 0;
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -1205,24 +1207,34 @@ static void solution_thread(void *arg)
         }
 
         /* Recompute satellite position, velocity and clock errors */
+        u8 unused_iode = 0;
+        u16 unused_iodc = 0;
         if (0 != calc_sat_state(e, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                &nm->sat_clock_err, &nm->sat_clock_err_rate, &nm->iode, &nm->iodc)) {
+                                &nm->sat_clock_err, &nm->sat_clock_err_rate, &unused_iode, &unused_iodc)) {
           continue;
         }
+        nm->iode = unused_iode;
+        nm->iodc = unused_iodc;
+
         /* Now we need to check the base obs used the same ephemeris and update if not */
-        chMtxLock(&base_obs_lock);
-        u8 base_index;
-        for(base_index = 0; base_index < base_obss.n; base_index++) {
-          if(sid_compare(nm->sid,base_obss.nm[base_index].sid) == 0
-            && ( nm->iode != base_obss.nm[base_index].iode || nm->iodc != base_obss.nm[base_index].iodc )){
-            /* Recompute satellite position, velocity and clock errors */
-            if (0 != calc_sat_state(e, &base_obss.nm[base_index].tot, base_obss.nm[base_index].sat_pos, base_obss.nm[base_index].sat_vel,
-                                    &base_obss.nm[base_index].sat_clock_err, &base_obss.nm[base_index].sat_clock_err_rate,
-                                    &base_obss.nm[base_index].iode, &base_obss.nm[base_index].iodc)) {
-              continue;
-            }
-          }
-        }
+         chMtxLock(&base_obs_lock);
+         u8 base_index;
+         if (base_obss.n > 5) {
+           base_obss.nm[rand() % (base_obss.n - 1)].iode = 0;
+         }
+         for(base_index = 0; base_index < base_obss.n; base_index++) {
+           if(sid_compare(nm->sid,base_obss.nm[base_index].sid) == 0
+             && ( nm->iode != base_obss.nm[base_index].iode || nm->iodc != base_obss.nm[base_index].iodc )){
+             /* Recompute satellite position, velocity and clock errors */
+             if (0 != calc_sat_state(e, &base_obss.nm[base_index].tot, base_obss.nm[base_index].sat_pos, base_obss.nm[base_index].sat_vel,
+                                     &base_obss.nm[base_index].sat_clock_err, &base_obss.nm[base_index].sat_clock_err_rate,
+                                     &base_obss.nm[base_index].iode, &base_obss.nm[base_index].iodc)) {
+               detailed_log_warn("Unable to reconcile base and rover ephemerides");
+             }
+             detailed_log_error_sid(base_obss.nm[base_index].sid, " ephemeris differs in rover and base, updating base");
+           }
+         }
+         chMtxUnlock(&base_obs_lock);
 
         n_ready_tdcp_new++;
       }

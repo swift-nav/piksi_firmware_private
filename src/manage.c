@@ -307,7 +307,9 @@ static u16 manage_warm_start(gnss_signal_t sid, const gps_time_t* t,
   if (eph_valid) {
     u8 iode;
     u16 iodc;
-    ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel, &_, &_, &iode, &iodc);
+    double unused_clock_err;
+    double unused_clock_rate;
+    ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel, &unused_clock_err, &unused_clock_rate, &iode, &iodc);
   }
 
   if (eph_valid && (ss_ret == 0)) {

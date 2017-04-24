@@ -454,6 +454,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     unpack_obs_content(&obs[i], &nm->raw_pseudorange, &nm->raw_carrier_phase,
                        &nm->raw_measured_doppler, &nm->cn0, &nm->lock_time,
                        &nm->flags, &nm->sid);
+    nm->iode = 0;
+    nm->iodc = 0;
 
     /* Set the time */
     nm->tot = tor;
@@ -477,8 +479,9 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
       /* After correcting the time of transmission for the satellite clock error,
          recalculate the satellite position. */
-      css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                               &nm->sat_clock_err, &nm->sat_clock_err_rate, &nm->iode, &nm->iodc);
+       css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
+                               &nm->sat_clock_err, &nm->sat_clock_err_rate,
+                               &nm->iode, &nm->iodc);
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
