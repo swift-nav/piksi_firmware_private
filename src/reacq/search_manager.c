@@ -114,14 +114,23 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
     u16 glo_fcn = glo_map_get_fcn(sid);
+
     if (GLO_FCN_UNKNOWN == glo_fcn) {
-      /* GLO orbital slot and FCN not mapped, no need to bother of the SV,
-       * because we don't have ephemeris anyways */
-      continue;
+      /* if there is no any mapping go through all GLO FCN and pick one */
+      for (glo_fcn = GLO_MIN_FCN; glo_fcn <= GLO_MAX_FCN; glo_fcn++) {
+        if (mesid_is_tracked(construct_mesid(CODE_GLO_L1CA, glo_fcn))) {
+          continue;
+        } else {
+          deep_job->glo_blind_search = true;
+          break;
+        }
+      }
     }
+
     *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
 
-    bool visible, known;
+    bool visible = false;
+    bool known = false;
 
     assert(mesid_valid(*mesid));
     assert(sid_valid(sid));
@@ -132,15 +141,12 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     /* Initialize jobs to not run */
     deep_job->needs_to_run = false;
 
-    /* Check if jobs need to run */
-    if (mesid_is_tracked(*mesid)) {
-      continue;
+    if (!deep_job->glo_blind_search) {
+      sm_get_visibility_flags(sid, &visible, &known);
+      visible = visible && known;
     }
 
-    sm_get_visibility_flags(sid, &visible, &known);
-    visible = visible && known;
-
-    if (visible) {
+    if (visible || deep_job->glo_blind_search) {
       deep_job->cost_hint = ACQ_COST_MIN;
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
@@ -233,13 +239,22 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     gnss_signal_t sid = fallback_job->sid;
     u16 glo_fcn = glo_map_get_fcn(sid);
     if (GLO_FCN_UNKNOWN == glo_fcn) {
-      /* GLO orbital slot and FCN not mapped, no need to bother of the SV,
-       * because we don't have ephemeris anyways */
-      continue;
+      /* if there is no any mapping go through all GLO FCN and pick one */
+      for (glo_fcn = GLO_MIN_FCN; glo_fcn <= GLO_MAX_FCN; glo_fcn++) {
+        if (mesid_is_tracked(construct_mesid(CODE_GLO_L1CA, glo_fcn))) {
+          continue;
+        } else {
+          fallback_job->glo_blind_search = true;
+          break;
+        }
+      }
     }
+
     *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
 
-    bool visible, invisible, known;
+    bool visible = false;
+    bool invisible = false;
+    bool known = false;
 
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
@@ -250,14 +265,11 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
 
-    /* Check if jobs need to run */
-    if (mesid_is_tracked(*mesid)) {
-      continue;
+    if (!fallback_job->glo_blind_search) {
+      sm_get_visibility_flags(sid, &visible, &known);
+      visible = visible && known;
+      invisible = !visible && known;
     }
-
-    sm_get_visibility_flags(sid, &visible, &known);
-    visible = visible && known;
-    invisible = !visible && known;
 
     if (visible &&
         lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
@@ -267,7 +279,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if (!known &&
+    } else if ((!known || fallback_job->glo_blind_search) &&
         lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
         ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {

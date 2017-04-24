@@ -324,6 +324,10 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
   }
 
   if (peak_found) { /* Send to track */
+    u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+    if (!job->glo_blind_search && is_glo_sid(job->mesid)) {
+      glo_orbit_slot = job->sid.sat;
+    }
     tracking_startup_params_t tracking_startup_params = {
       .mesid = job->mesid,
       .sample_count = acq_result.sample_count,
@@ -331,7 +335,8 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
       .code_phase = acq_result.cp,
       .chips_to_correlate = code_to_chip_count(job->mesid.code),
       .cn0_init = acq_result.cn0,
-      .elevation = TRACKING_ELEVATION_UNKNOWN
+      .elevation = TRACKING_ELEVATION_UNKNOWN,
+      .glo_slot_id = glo_orbit_slot
     };
     task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
