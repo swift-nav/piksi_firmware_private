@@ -14,6 +14,7 @@
 #include "reacq_sbp_utility.h"
 #include <sbp_utils.h>
 #include <manage.h>
+#include <assert.h>
 
 /** Populate acq_sv_profile message and send it out
  *
@@ -39,6 +40,8 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   prof.status = peak_found;
   prof.cn0 = (u16)(10 * acq_result->cn0);
   prof.int_time = acq_params->integration_time_ms;
+  /* TODO GLO: Handle GLO orbit slot properly. */
+  assert(!is_glo_sid(job->mesid));
   prof.sid = sid_to_sbp(mesid2sid(job->mesid, GLO_ORBIT_SLOT_UNKNOWN));
   prof.bin_width = acq_params->freq_bin_size_hz;
   prof.timestamp = (u32)job->stop_time;

@@ -34,11 +34,11 @@
  */
 typedef enum
 {
-  TP_TM_GPS_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_GPS_DYN,     /**< Dynamics tracking mode */
-  TP_TM_GPS_5MS,     /**< GPS 5 ms PLL/DLL */
-  TP_TM_GPS_10MS,    /**< GPS 10 ms PLL/DLL */
-  TP_TM_GPS_20MS,    /**< GPS 20 ms PLL/DLL */
+  TP_TM_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_DYN,     /**< Dynamics tracking mode */
+  TP_TM_5MS,     /**< 5 ms PLL/DLL */
+  TP_TM_10MS,    /**< 10 ms PLL/DLL */
+  TP_TM_20MS,    /**< 20 ms PLL/DLL */
 } tp_tm_e;
 
 /**
@@ -188,7 +188,8 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
 bool        tp_profile_has_new_profile(const me_gnss_signal_t mesid,
                                        tp_profile_t *profile);
-u8          tp_profile_get_next_loop_params_ms(const tp_profile_t *profile);
+u8          tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
+                                               const tp_profile_t *profile);
 tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
                                    tp_profile_t *profile,
                                    const tracker_common_data_t *common_data,

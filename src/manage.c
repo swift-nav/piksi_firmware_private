@@ -324,7 +324,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
     return SCORE_COLDSTART;
   }
 
-  /* TODO GLO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO orbit slot properly. */
   assert(!is_glo_sid(mesid));
   gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   float el = TRACKING_ELEVATION_UNKNOWN;
@@ -600,7 +600,10 @@ static void manage_acq()
 void acq_result_send(const me_gnss_signal_t mesid, float cn0, float cp, float cf)
 {
   msg_acq_result_t acq_result_msg;
-  /* TODO GLO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO orbit slot properly. */
+  if (is_glo_sid(mesid)) {
+    return;
+  }
   acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN));
   acq_result_msg.cn0 = cn0;
   acq_result_msg.cp = cp;
@@ -1177,8 +1180,10 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
       0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
 
     /* Try to load ephemeris */
-    /* TODO GLO: Handle GLO signals properly. */
-    assert(!is_glo_sid(info.mesid));
+    /* TODO GLO: Handle GLO orbit slot properly. */
+    if (is_glo_sid(info.mesid)) {
+      return flags;
+    }
     gnss_signal_t sid = mesid2sid(info.mesid, info.glo_slot_id);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
@@ -1276,8 +1281,11 @@ manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid
   manage_track_flags_t result = 0;
 
   /* Satellite elevation is above the solution mask. */
-  /* TODO GLO: Handle GLO signals properly. */
+  /* TODO GLO: Handle GLO orbit slot properly. */
   assert(!is_glo_sid(mesid));
+  if (is_glo_sid(mesid)) {
+    return result;
+  }
   gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
     result |= MANAGE_TRACK_FLAG_ELEVATION;

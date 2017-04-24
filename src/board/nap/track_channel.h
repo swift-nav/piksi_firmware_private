@@ -26,15 +26,21 @@ extern u8 nap_track_n_channels;
 
 /** \} */
 
-void nap_track_init(u8 channel, const me_gnss_signal_t mesid,
-                    u32 ref_timing_count, float carrier_freq,
-                    double code_phase, u32 chips_to_correlate);
-
-void nap_track_update(u8 channel, double carrier_freq,
-                      double code_phase_rate, u32 chips_to_correlate,
+void nap_track_init(u8 channel,
+                    const me_gnss_signal_t mesid,
+                    u32 ref_timing_count,
+                    float doppler_freq_hz,
+                    double code_phase,
+                    u32 chips_to_correlate);
+void nap_track_update(u8 channel,
+                      const me_gnss_signal_t mesid,
+                      double doppler_freq_hz,
+                      double code_phase_rate,
+                      u32 chips_to_correlate,
                       u8 corr_spacing);
 void nap_track_read_results(u8 channel,
-                            u32* count_snapshot, corr_t corrs[],
+                            u32* count_snapshot,
+                            corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase);
 

@@ -57,8 +57,10 @@ void tracker_interface_register(tracker_interface_list_element_t *element)
  * \param code_phase      Output code phase (chips).
  * \param carrier_phase   Output carrier phase (cycles).
  */
-void tracker_correlations_read(tracker_context_t *context, corr_t *cs,
-                               u32 *sample_count, double *code_phase,
+void tracker_correlations_read(tracker_context_t *context,
+                               corr_t *cs,
+                               u32 *sample_count,
+                               double *code_phase,
                                double *carrier_phase)
 {
   const tracker_channel_info_t *channel_info;
@@ -66,19 +68,24 @@ void tracker_correlations_read(tracker_context_t *context, corr_t *cs,
   tracker_internal_context_resolve(context, &channel_info, &internal_data);
 
   /* Read NAP CORR register */
-  nap_track_read_results(channel_info->nap_channel, sample_count, cs,
-                         code_phase, carrier_phase);
+  nap_track_read_results(channel_info->nap_channel,
+                         sample_count,
+                         cs,
+                         code_phase,
+                         carrier_phase);
 }
 
 /** Write the NAP update register for a tracker channel.
  *
  * \param context             Tracker context.
- * \param carrier_freq        Carrier frequency (Hz).
+ * \param doppler_freq_hz     Doppler frequency (Hz).
  * \param code_phase_rate     Code phase rate (chips/s).
  * \param chips_to_correlate  Number of code chips to integrate over.
  */
-void tracker_retune(tracker_context_t *context, double carrier_freq,
-                    double code_phase_rate, u32 chips_to_correlate)
+void tracker_retune(tracker_context_t *context,
+                    double doppler_freq_hz,
+                    double code_phase_rate,
+                    u32 chips_to_correlate)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
@@ -86,7 +93,11 @@ void tracker_retune(tracker_context_t *context, double carrier_freq,
 
   /* Write NAP UPDATE register. */
   nap_track_update(channel_info->nap_channel,
-                   carrier_freq, code_phase_rate, chips_to_correlate, 0);
+                   channel_info->mesid,
+                   doppler_freq_hz,
+                   code_phase_rate,
+                   chips_to_correlate,
+                   0);
 }
 
 /** Update the TOW for a tracker channel.
@@ -98,8 +109,10 @@ void tracker_retune(tracker_context_t *context, double carrier_freq,
  *
  * \return Updated TOW (ms).
  */
-s32 tracker_tow_update(tracker_context_t *context, s32 current_TOW_ms,
-                       u32 int_ms, bool *decoded_tow)
+s32 tracker_tow_update(tracker_context_t *context,
+                       s32 current_TOW_ms,
+                       u32 int_ms,
+                       bool *decoded_tow)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
@@ -179,8 +192,10 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
  * \param corr_prompt_real  Real part of the prompt correlation.
  * \param sensitivity_mode  Flag indicating tracking channel sensitivity mode.
  */
-void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
-                             s32 corr_prompt_real, bool sensitivity_mode)
+void tracker_bit_sync_update(tracker_context_t *context,
+                             u32 int_ms,
+                             s32 corr_prompt_real,
+                             bool sensitivity_mode)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
@@ -354,7 +369,10 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
     msg_tracking_iq_t msg = {
       .channel = channel_info->nap_channel,
     };
-    /* TODO GLO: Handle GLO signals properly. */
+    /* TODO GLO: Handle GLO orbit slot properly. */
+    if (is_glo_sid(channel_info->mesid)) {
+      return;
+    }
     gnss_signal_t sid = mesid2sid(channel_info->mesid,
                                   channel_info->glo_slot_id);
     msg.sid = sid_to_sbp(sid);
