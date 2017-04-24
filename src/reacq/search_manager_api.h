@@ -98,6 +98,7 @@ typedef struct {
 /** Search jobs */
 typedef struct {
   me_gnss_signal_t mesid;    /**< ME SV identifier */
+  gnss_signal_t sid;         /**< SV identifier, used to fetch ephemeris */
   acq_job_types_e job_type;  /**< Job type */
   u64 start_time;            /**< HW millisecond when job started */
   u64 stop_time;             /**< HW millisecond when job finished */
@@ -115,8 +116,10 @@ typedef struct {
 
 /** Container for all the jobs */
 typedef struct {
-  acq_job_t jobs[ACQ_NUM_JOB_TYPES][ACQ_NUM_SVS]; /**< job for each SV for each
-                                                     job type */
+  acq_job_t jobs_gps[ACQ_NUM_JOB_TYPES][NUM_SATS_GPS]; /**< job for GPS SV for each
+                                                            job type */
+  acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES][NUM_SATS_GLO]; /**< job for GLO SV for each
+                                                            job type */
 } acq_jobs_state_t;
 
 /** Global data of all the jobs is shared between search manager

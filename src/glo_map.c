@@ -46,7 +46,7 @@ u16 glo_map_get_fcn(gnss_signal_t sid)
 {
   assert(is_glo_sid(construct_mesid(sid.code, sid.sat)));
   u16 fcn = (u16)glo_sv_id_fcn_map[sid.sat - 1];
-  assert(glo_fcn_is_valid(fcn) && "GLO SV ID and frequency slot were not mapped");
+  log_debug_sid(sid, "GLO SV ID and frequency slot were mapped");
 
   return fcn;
 }

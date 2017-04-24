@@ -181,4 +181,5 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);
 bool mesid_is_tracked(const me_gnss_signal_t mesid);
+bool is_glo_enabled(void);
 #endif
