@@ -188,6 +188,15 @@ typedef struct tracker_interface_list_element_t {
   struct tracker_interface_list_element_t *next;
 } tracker_interface_list_element_t;
 
+/** Bit sync input data */
+typedef struct bit_sync_input_t {
+  u32 bit_sync_update_ms;   /**< Bit sync/data decoder update [ms] */
+  bool pll_is_active;
+  bool fll_is_active;
+  bool in_pessimistic_lock; /**< Tracking loop is in pessimistic lock */
+  s32 corr_prompt_real;     /**< Real part of the prompt correlation. */
+} bit_sync_input_t;
+
 /** \} */
 
 void tracker_interface_register(tracker_interface_list_element_t *element);
@@ -209,9 +218,7 @@ s32 tracker_tow_update(tracker_context_t *context,
                        bool *decoded_tow);
 void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_context_t *context,
-                             u32 int_ms,
-                             s32 corr_prompt_real,
-                             bool sensitivity_mode);
+                             const bit_sync_input_t *bit_sync_input);
 u8 tracker_bit_length_get(tracker_context_t *context);
 bool tracker_bit_aligned(tracker_context_t *context);
 bool tracker_has_bit_sync(tracker_context_t *context);
