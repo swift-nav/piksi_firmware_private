@@ -28,8 +28,6 @@
 /** Starts fallback searches of invisible SVs when last good fix (LGF) is
     older than timeout (ms) */
 #define ACQ_LGF_TIMEOUT_INVIS_MS 1
-/** Max user velocity for visibility calculation (m/s) */
-#define ACQ_MAX_USER_VELOCITY_MPS 30.0f
 
 /** Number of SVs whose search jobs are managed */
 #define ACQ_NUM_SVS (NUM_SATS_GPS)

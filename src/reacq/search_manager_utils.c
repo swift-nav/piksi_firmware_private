@@ -54,7 +54,7 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
   vis_cfg.lgf_ecef[1] = lgf.position_solution.pos_ecef[1];
   vis_cfg.lgf_ecef[2] = lgf.position_solution.pos_ecef[2];
   vis_cfg.lgf_time = lgf.position_solution.time;
-  vis_cfg.user_velocity = ACQ_MAX_USER_VELOCITY_MPS;
+  vis_cfg.user_velocity = MAX_USER_VELOCITY_MPS;
   vis_cfg.time_delta = (u32)((nap_timing_count() -
                               gpstime2napcount(&lgf.position_solution.time)) *
                              RX_DT_NOMINAL);
