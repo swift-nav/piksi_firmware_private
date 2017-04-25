@@ -43,34 +43,51 @@
  *
  * \param[in] mesid       ME signal identifier.
  * \param[in] ms          Interval duration in ms.
+ * \param[in] code_phase  Current code phase in chips.
+ * \param[in] plock       Flag indicating pessimistic lock.
  *
  * \return Computed number of chips.
  */
-static u32 tp_convert_ms_to_chips(const me_gnss_signal_t mesid, u8 ms)
+static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
+                                  u8 ms,
+                                  double code_phase,
+                                  bool plock)
 {
-  u32 chip_rate = 0;
+  /* First, select the appropriate chip rate in chips/ms. */
+  u32 chip_rate = (u32)code_to_chip_rate(mesid.code) / 1000;
 
-  /* First, select the appropriate chip rate in chips/ms, integer equivalent of
-   * the expression:
-   * chip_rate = (u32)code_to_chip_rate(sid.code) / 1000;
-   */
-  switch (mesid_to_constellation(mesid)) {
-  case CONSTELLATION_GPS:
-  case CONSTELLATION_SBAS:
-    chip_rate = GPS_L1CA_CHIPS_NUM;
-    break;
+  /* Round the current code_phase towards nearest integer. */
+  u32 current_chip = round(code_phase);
 
-  case CONSTELLATION_GLO:
-    chip_rate = GLO_CA_CHIPS_NUM;
-    break;
+  /* Take modulo of the code phase. Nominally this should be close to zero,
+   * or close to chip_rate. */
+  current_chip %= chip_rate;
 
-  case CONSTELLATION_INVALID:
-  case CONSTELLATION_COUNT:
-  default:
-    assert(!"Invalid constellation");
+  /* L2CL code phase has been adjusted by 1,
+   * due to L2CM code chip occupying first slot. */
+  if (CODE_GPS_L2CL == mesid.code) {
+    current_chip += 1;
   }
 
-  return ms * chip_rate;
+  s32 offset = current_chip;
+  /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
+   * and thus next integration period should be longer than nominally. */
+  if (current_chip > chip_rate / 2) {
+    offset = current_chip - chip_rate;
+  }
+
+  /* No adjustment for signals that have no lock.
+   * These are mainly the unconfirmed signals. */
+  if (!plock) {
+    offset = 0;
+  }
+
+  /* Log warning if an offset is applied (and we have a pessimistic lock). */
+  if (0 != offset) {
+    log_warn_mesid(mesid, "Applying code phase offset: %"PRIi32"", offset);
+  }
+
+  return ms * chip_rate - offset;
 }
 
 /**
@@ -335,12 +352,15 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
  *
  * \param[in]     channel_info Tracking channel information.
  * \param[in,out] data         Generic tracker data.
+ * \param[in]     code_phase   Current code phase in chips.
  *
  * \return Computed number of chips.
  */
 u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      tp_tracker_data_t *data)
+                                      tp_tracker_data_t *data,
+                                      double code_phase)
 {
+  bool plock = data->lock_detect.outp;
   u32 result_ms = 0;
   if (data->has_next_params) {
     tp_config_t next_params;
@@ -352,7 +372,7 @@ u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info
     result_ms = tp_get_rollover_cycle_duration(data->tracking_mode,
                                                data->cycle_no);
   }
-  return tp_convert_ms_to_chips(channel_info->mesid, result_ms);
+  return tp_convert_ms_to_chips(channel_info->mesid, result_ms, code_phase, plock);
 }
 
 /**
@@ -1051,10 +1071,13 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
   tp_tracker_update_alias(channel_info, common_data, data, cflags);
   tp_tracker_filter_doppler(channel_info, common_data, data, cflags, config);
   tp_tracker_update_mode(channel_info, common_data, data);
+  u32 chips_to_correlate = tp_tracker_compute_rollover_count(channel_info,
+                                                             data,
+                                                             common_data->code_phase_prompt);
 
   tracker_retune(channel_info->context, common_data->carrier_freq,
                  common_data->code_phase_rate,
-                 tp_tracker_compute_rollover_count(channel_info, data));
+                 chips_to_correlate);
 
   tp_tracker_update_cycle_counter(data);
   tp_tracker_update_common_flags(common_data, data);
