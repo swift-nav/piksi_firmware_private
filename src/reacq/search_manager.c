@@ -127,6 +127,13 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
       }
     }
 
+    if (glo_fcn > GLO_MAX_FCN) {
+      /* all GLO frequency are tracked, 
+       * rare case when no any data decoded yet,
+       * so no need to continue */
+      return;
+    }
+
     *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
 
     bool visible = false;
@@ -248,6 +255,13 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
           break;
         }
       }
+    }
+
+    if (glo_fcn > GLO_MAX_FCN) {
+      /* all GLO frequency are tracked, 
+       * rare case when no any data decoded yet,
+       * so no need to continue */
+      return;
     }
 
     *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
