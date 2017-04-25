@@ -128,6 +128,7 @@ void sch_initialize_cost(acq_job_t *init_job,
  *
  * \param all_jobs_data pointer to jobs data
  * \param cost cumulative cost of just finished job
+ * \param gnss GNSS constellation
  *
  * \return none
  */
@@ -190,6 +191,7 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost,
  *  which should run next.
  *
  * \param jobs_data pointer to job data
+ * \param gnss GNSS constellation
  *
  * \return job to be run or NULL if there is no job to run
  */
@@ -268,7 +270,9 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss)
 
 /** Common part of scheduler for all constellations
  *
- * @param job pointer to job to run
+ * \param jobs_data pointer to job data
+ * \param job pointer to job to run
+ * \param gnss GNSS constellation
  */
 static void sch_run_common(acq_jobs_state_t *jobs_data,
                            acq_job_t *job, constellation_t gnss)

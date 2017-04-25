@@ -58,7 +58,7 @@ void sm_init(acq_jobs_state_t *data)
   }
 }
 
-/** Checks if deep searches need to run got GPS SV
+/** Checks if deep searches need to run for GPS SV
  *
  * \param jobs_data pointer to job data
  *
