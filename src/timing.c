@@ -74,8 +74,7 @@ void set_time(time_quality_t quality, gps_time_t t)
 void clock_est_init(clock_est_state_t *s)
 {
   chMtxLock(&clock_mutex);
-  s->t0_gps.wn = 0;
-  s->t0_gps.tow = 0;
+  s->t0_gps = GPS_TIME_UNKNOWN;
   s->clock_period = RX_DT_NOMINAL;
   s->clock_offset = 0.0;
   s->P[0][0] = 500e-3;
@@ -164,11 +163,10 @@ gps_time_t get_current_time(void)
  *       should be checked first to determine the quality of the GPS time
  *       estimate.
  *
- * \return Current GPS time.
+ * \return Current GPS time, or {WN_UNKNOWN, TOW_UNKNOWN} if no fix
  */
 gps_time_t get_current_gps_time(void)
 {
-  /* TODO: Return invalid when TIME_UNKNOWN. */
   /* TODO: Think about what happens when nap_timing_count overflows. */
   u64 tc = nap_timing_count();
   gps_time_t t = napcount2gpstime(tc);
@@ -189,10 +187,12 @@ gps_time_t napcount2gpstime(const double tc)
 {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
-  t.tow += tc * clock_state.clock_period - clock_state.clock_offset;
+  if (gps_time_valid(&t)) {
+    t.tow += tc * clock_state.clock_period - clock_state.clock_offset;
+    normalize_gps_time(&t);
+  }
   chMtxUnlock(&clock_mutex);
 
-  normalize_gps_time(&t);
   return t;
 }
 
@@ -208,10 +208,12 @@ gps_time_t napcount2rcvtime(const double tc)
 {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
-  t.tow += tc * clock_state.clock_period;
+  if (gps_time_valid(&t)) {
+    t.tow += tc * clock_state.clock_period;
+    normalize_gps_time(&t);
+  }
   chMtxUnlock(&clock_mutex);
 
-  normalize_gps_time(&t);
   return t;
 }
 
