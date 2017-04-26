@@ -18,7 +18,7 @@
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
 
-void dum_get_doppler_wndw(const me_gnss_signal_t *mesid,
+void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float speed,
