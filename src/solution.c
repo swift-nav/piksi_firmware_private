@@ -426,7 +426,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
     ret = get_baseline(time_matched_filter_manager, baseline, covariance,
                        &num_sats_used, &num_sigs_used, &flags);
     if (ret < 0) {
-      log_warn("output_baseline: Time matched baseline calculation failed");
+      log_debug("output_baseline: Time matched baseline calculation failed");
     } else if (ret == 0) {
       *dops = filter_manager_get_dop_values(time_matched_filter_manager);
       send_baseline = true;
@@ -443,7 +443,7 @@ static void output_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const gps_time
         ret = get_baseline(low_latency_filter_manager, baseline, covariance,
                            &num_sats_used, &num_sigs_used, &flags);
         if (ret < 0) {
-          log_warn("output_baseline: Low latency baseline calculation failed");
+          log_debug("output_baseline: Low latency baseline calculation failed");
         } else if (ret == 0) {
           *dops = filter_manager_get_dop_values(low_latency_filter_manager);
           send_baseline = true;
