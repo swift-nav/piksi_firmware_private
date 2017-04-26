@@ -157,11 +157,11 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  */
 static void update_obss(obss_t *new_obss)
 {
-  static gps_time_t tor_old = {.wn = 0, .tow = 0};
+  static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
   /* We don't want to allow observations that have the same or earlier time
    * stamp than the last received */
-  if ( gpsdifftime(&new_obss->tor, &tor_old) <= 0) {
+  if (gps_time_valid(&tor_old) && gpsdifftime(&new_obss->tor, &tor_old) <= 0) {
     log_info("Observation received with equal or earlier time stamp, ignoring");
     return;
   }
@@ -371,7 +371,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
    * so we can verify we haven't dropped a message. */
   static s16 prev_count = 0;
 
-  static gps_time_t prev_tor = {.tow = 0.0, .wn = 0};
+  static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
 
   /* As we receive observation messages we assemble them into a working
    * `obss_t` (`base_obss_rx`) so as not to disturb the global `base_obss`
@@ -393,7 +393,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   sbp_send_msg_(SBP_MSG_OBS, len, msg, 0);
 
   /* GPS time of observation. */
-  gps_time_t tor;
+  gps_time_t tor = GPS_TIME_UNKNOWN;
   /* Total number of messages in the observation set / sequence. */
   u8 total;
   /* The current message number in the sequence. */
