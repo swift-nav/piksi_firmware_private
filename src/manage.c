@@ -1045,20 +1045,25 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
          * so print out warning */
         log_warn_sid(sid, "Half cycle known, but no phase lock!");
       }
-
-      if (0 != (flags & MANAGE_TRACK_FLAG_PLL_OLOCK)) {
-        /* Optimistic PLL lock: very high noise may prevent phase usage */
-        /* meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID; */
-      }
     }
-    /* In PLL mode code and doppler accuracy are assumed to be high */
-    meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
-    meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
+    /* If PLL is not in pessimistic lock and the tracker
+       is not going to re-lock on a signal, then both code and
+       doppler measurements can go really wrong before tracker switches to
+       FLL mode. So we do not want to report them in such case. */
+    bool pll_in_lock = 0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK);
+    if (pll_in_lock) {
+      meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
+      meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
+    }
   } else if (0 != (flags & MANAGE_TRACK_FLAG_FLL_USE)) {
-    /* FLL is in use: no phase measurements; code is valid */
-    meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
-    if (0 != (flags & MANAGE_TRACK_FLAG_FLL_LOCK)) {
-      /* Doppler is valid only if there is FLL lock */
+    /* If FLL is not in pessimistic lock and the tracker
+       is not going to re-lock on a signal, then both code and
+       doppler measurements can go really wrong before tracker is terminated
+       by low CN0 or no lock for too long condition.
+       So we do not want to report them in such case. */
+    bool fll_in_lock = 0 != (flags & MANAGE_TRACK_FLAG_FLL_LOCK);
+    if (fll_in_lock) {
+      meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
       meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
     }
   } else {
