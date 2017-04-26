@@ -723,7 +723,7 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
 
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz &&
       !data->confirmed &&
-      data->lock_detect.outo &&
+      data->lock_detect.outp &&
       tracker_has_bit_sync(channel_info->context)) {
     data->confirmed = true;
     log_debug_mesid(channel_info->mesid,
