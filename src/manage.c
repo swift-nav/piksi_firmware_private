@@ -1550,5 +1550,13 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid)
   return acq->state == ACQ_PRN_TRACKING;
 }
 
+/** Checks if GLONASS enabled
+ *
+ * @return true if GLONASS enabled, otherwise false
+ */
+bool is_glo_enabled(void)
+{
+  return glo_enabled;
+}
 
 /** \} */

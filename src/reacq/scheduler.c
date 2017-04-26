@@ -34,11 +34,13 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
  *
  * \param init_job job whose cost is initialized
  * \param all_jobs_data pointer to jobs data
+ * \param gnss GNSS constellation
  *
  * \return none
  */
 void sch_initialize_cost(acq_job_t *init_job,
-                         const acq_jobs_state_t *all_jobs_data)
+                         const acq_jobs_state_t *all_jobs_data,
+                         constellation_t gnss)
 {
   acq_job_types_e type;
   u32 min_cost = 0;
@@ -48,10 +50,25 @@ void sch_initialize_cost(acq_job_t *init_job,
   u32 avg = 0;
   u32 num_jobs = 0;
   
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    int i;
-    for (i = 0; i < ACQ_NUM_SVS; i++) {
-      const acq_job_t *job = &all_jobs_data->jobs[type][i];
+  u8 num_sats = 0;
+  const acq_job_t *pjob = NULL;
+
+  switch ((s8)gnss) {
+  case CONSTELLATION_GPS:
+    num_sats = NUM_SATS_GPS;
+    pjob = all_jobs_data->jobs_gps[0];
+    break;
+  case CONSTELLATION_GLO:
+    num_sats = NUM_SATS_GLO;
+    pjob = all_jobs_data->jobs_glo[0];
+    break;
+  default:
+    assert(!"Incorrect constellation");
+  }
+
+  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, pjob += num_sats * type) {
+    const acq_job_t *job = pjob;
+    for (u8 i = 0; i < num_sats; i++, job++) {
       if (job->state != ACQ_STATE_WAIT) {
         continue; /* Check only jobs which can run */
       }
@@ -68,6 +85,7 @@ void sch_initialize_cost(acq_job_t *init_job,
       num_jobs++;
     }
   }
+
   if (0 != num_jobs) {
     avg = avg / num_jobs;
   }
@@ -110,18 +128,36 @@ void sch_initialize_cost(acq_job_t *init_job,
  *
  * \param all_jobs_data pointer to jobs data
  * \param cost cumulative cost of just finished job
+ * \param gnss GNSS constellation
  *
  * \return none
  */
-static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost)
+static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost,
+                            constellation_t gnss)
 {
   acq_job_types_e type;
   u32 min_cost = cost;
 
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    int i;
-    for (i = 0; i < ACQ_NUM_SVS; i++) {
-      const acq_job_t *job = &all_jobs_data->jobs[type][i];
+  u8 num_sats = 0;
+  acq_job_t *pjob = NULL;
+
+  switch ((s8)gnss) {
+  case CONSTELLATION_GPS:
+    num_sats = NUM_SATS_GPS;
+    pjob = all_jobs_data->jobs_gps[0];
+    break;
+  case CONSTELLATION_GLO:
+    num_sats = NUM_SATS_GLO;
+    pjob = all_jobs_data->jobs_glo[0];
+    break;
+  default:
+    assert(!"Incorrect constellation");
+  }
+
+  acq_job_t *tmp_pjob = pjob; /* this needed to store initial pointer */
+  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, tmp_pjob += num_sats * type) {
+    acq_job_t *job = tmp_pjob;
+    for (u8 i = 0; i < num_sats; i++, job++) {
       if (job->state != ACQ_STATE_WAIT) {
         continue; /* Select only jobs which can run */
       }
@@ -130,11 +166,11 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost)
       }
     }
   }
+  tmp_pjob = pjob; /* restore pointer */
   if (min_cost != 0) {
-    for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-      int i;
-      for (i = 0; i < ACQ_NUM_SVS; i++) {
-        acq_job_t *job = &all_jobs_data->jobs[type][i];
+    for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, tmp_pjob += num_sats * type) {
+      acq_job_t *job = tmp_pjob;
+      for (u8 i = 0; i < num_sats; i++, job++) {
         if (job->state != ACQ_STATE_WAIT) {
           continue; /* Select only jobs which can run */
         }
@@ -155,19 +191,36 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost)
  *  which should run next.
  *
  * \param jobs_data pointer to job data
+ * \param gnss GNSS constellation
  *
  * \return job to be run or NULL if there is no job to run
  */
-acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
+acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss)
 {
   acq_job_types_e type;
   acq_job_t *job_to_run = NULL;
 
+  u8 num_sats = 0;
+  acq_job_t *pjob = NULL;
+
+  switch ((s8)gnss) {
+  case CONSTELLATION_GPS:
+    num_sats = NUM_SATS_GPS;
+    pjob = jobs_data->jobs_gps[0];
+    break;
+  case CONSTELLATION_GLO:
+    num_sats = NUM_SATS_GLO;
+    pjob = jobs_data->jobs_glo[0];
+    break;
+  default:
+    assert(!"Incorrect constellation");
+  }
+
+  acq_job_t *tmp_pjob = pjob; /* this needed to store initial pointer */
   /* Update state and initialize first cost with max, min, avg cost hints */
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    int i;
-    for (i = 0; i < ACQ_NUM_SVS; i++) {
-      acq_job_t *job = &jobs_data->jobs[type][i];
+  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, tmp_pjob += num_sats * type) {
+    acq_job_t *job = tmp_pjob;
+    for (u8 i = 0; i < num_sats; i++, job++) {
       acq_task_t *task = &job->task_data;
       assert(job->job_type < ACQ_NUM_JOB_TYPES);
       if (ACQ_STATE_WAIT == job->state && !job->needs_to_run) {
@@ -180,26 +233,26 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
           job->needs_to_run &&
           ACQ_COST_MAX_PLUS != job->cost_hint) {
         job->state = ACQ_STATE_WAIT;
-        sch_initialize_cost(job, jobs_data);
+        sch_initialize_cost(job, jobs_data, gnss);
         task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
     }
   }
+  tmp_pjob = pjob; /* restore pointer */
   /* Initialize the cost with max_plus cost hint only after jobs
      with max, min, or avg cost hints are initialized since
      the intention of max_plus is to get high cost. 
      Select the job with minimum cost in the same loop. */
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    int i;
-    for (i = 0; i < ACQ_NUM_SVS; i++) {
-      acq_job_t *job = &jobs_data->jobs[type][i];
+  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, tmp_pjob += num_sats * type) {
+    acq_job_t *job = tmp_pjob;
+    for (u8 i = 0; i < num_sats; i++, job++) {
       acq_task_t *task = &job->task_data;
       assert(job->job_type < ACQ_NUM_JOB_TYPES);
       /* Triggers only on ACQ_COST_MAX_PLUS cost hint */
       if (ACQ_STATE_IDLE == job->state &&
           job->needs_to_run &&
           ACQ_COST_MAX_PLUS == job->cost_hint) {
-        sch_initialize_cost(job, jobs_data);
+        sch_initialize_cost(job, jobs_data, gnss);
         job->state = ACQ_STATE_WAIT;
         task->task_index = ACQ_UNINITIALIZED_TASKS;
       }
@@ -215,29 +268,15 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data)
   return job_to_run;
 }
 
-/* Search manager API functions */
-
-/** Run scheduler
- *
- *  Schedules search jobs to be run and runs the acquisition on HW.
- *  Scheduling principle follows the Completely Fair Scheduler (CFS) 
- *  but instead of having ordered tree as underlying data structure, the jobs
- *  are stored simply in fixed array.
- *
- *  Scheduler maintains the amount of HW time (cost) provided to a given job,
- *  and selects the job with minimum cost to run.
- *
- *  For CFS see e.g.:
- *  http://www.ibm.com/developerworks/linux/library/l-completely-fair-scheduler/
- *  https://en.wikipedia.org/wiki/Completely_Fair_Scheduler
+/** Common part of scheduler for all constellations
  *
  * \param jobs_data pointer to job data
- *
- * \return none
+ * \param job pointer to job to run
+ * \param gnss GNSS constellation
  */
-void sch_run(acq_jobs_state_t *jobs_data)
+static void sch_run_common(acq_jobs_state_t *jobs_data,
+                           acq_job_t *job, constellation_t gnss)
 {
-  acq_job_t *job = sch_select_job(jobs_data);
   acq_task_t *task = &job->task_data;
   acq_task_search_params_t *acq_param;
   acq_result_t acq_result;
@@ -246,8 +285,8 @@ void sch_run(acq_jobs_state_t *jobs_data)
   if (NULL == job) {
     chThdSleepMilliseconds(ACQ_SLEEP_TIMEOUT_MS);
     return;
-  } 
-    
+  }
+
   task->task_index++;
   if (0 == task->task_index) {
     tg_fill_task(job);
@@ -261,7 +300,7 @@ void sch_run(acq_jobs_state_t *jobs_data)
     assert(!"Too many tasks");
     task->task_index = 0;
   }
-    
+
   acq_param = &task->task_array[task->task_index];
   job->state = ACQ_STATE_RUN;
 
@@ -280,7 +319,7 @@ void sch_run(acq_jobs_state_t *jobs_data)
   /* Update cost with spent HW time. Limit with 1 ms minimum
      since 0 update would stuck scheduling. */
   job->cost += (u32)MAX(1, job->stop_time - job->start_time);
-  sch_limit_costs(jobs_data, job->cost);
+  sch_limit_costs(jobs_data, job->cost, gnss);
 
   /* It is unclear should peak checks take place in acq module
      or here. */
@@ -289,6 +328,10 @@ void sch_run(acq_jobs_state_t *jobs_data)
   }
 
   if (peak_found) { /* Send to track */
+    u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+    if (!job->glo_blind_search && is_glo_sid(job->mesid)) {
+      glo_orbit_slot = job->sid.sat;
+    }
     tracking_startup_params_t tracking_startup_params = {
       .mesid = job->mesid,
       .sample_count = acq_result.sample_count,
@@ -296,7 +339,8 @@ void sch_run(acq_jobs_state_t *jobs_data)
       .code_phase = acq_result.cp,
       .chips_to_correlate = code_to_chip_count(job->mesid.code),
       .cn0_init = acq_result.cn0,
-      .elevation = TRACKING_ELEVATION_UNKNOWN
+      .elevation = TRACKING_ELEVATION_UNKNOWN,
+      .glo_slot_id = glo_orbit_slot
     };
     task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
@@ -322,5 +366,39 @@ void sch_run(acq_jobs_state_t *jobs_data)
 
   /* Send result of an acquisition to the host. */
   acq_result_send(job->mesid, acq_result.cn0, acq_result.cp, acq_result.cf);
+}
+
+/* Search manager API functions */
+
+/** Run scheduler
+ *
+ *  Schedules search jobs to be run and runs the acquisition on HW.
+ *  Scheduling principle follows the Completely Fair Scheduler (CFS)
+ *  but instead of having ordered tree as underlying data structure, the jobs
+ *  are stored simply in fixed array.
+ *
+ *  Scheduler maintains the amount of HW time (cost) provided to a given job,
+ *  and selects the job with minimum cost to run.
+ *
+ *  For CFS see e.g.:
+ *  http://www.ibm.com/developerworks/linux/library/l-completely-fair-scheduler/
+ *  https://en.wikipedia.org/wiki/Completely_Fair_Scheduler
+ *
+ * \param jobs_data pointer to job data
+ *
+ * \return none
+ */
+void sch_run(acq_jobs_state_t *jobs_data)
+{
+
+  acq_job_t *job;
+  /* select and run job for GPS */
+  job = sch_select_job(jobs_data, CONSTELLATION_GPS);
+  sch_run_common(jobs_data, job, CONSTELLATION_GPS);
+  /* now same for GLO */
+  if (is_glo_enabled()) {
+    job = sch_select_job(jobs_data, CONSTELLATION_GLO);
+    sch_run_common(jobs_data, job, CONSTELLATION_GLO);
+  }
 }
 
