@@ -478,7 +478,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
       /* After correcting the time of transmission for the satellite clock error,
          recalculate the satellite position. */
       css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                               &nm->sat_clock_err, &nm->sat_clock_err_rate);
+                               &nm->sat_clock_err, &nm->sat_clock_err_rate, &nm->iode, &nm->iodc);
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {

@@ -606,6 +606,8 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
   double sat_vel[3];
   double clock_err;
   double clock_rate_err;
+  u8 iode;
+  u16 iodc;
   u64 nap_count = gpstime2napcount(&t);
 
   /* compute elevation for any valid ephemeris we can pull from NDB */
@@ -616,7 +618,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
     if (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res ) {
       if (ephemeris_valid(&ephemeris, &t)
           && calc_sat_state(&ephemeris, &t,
-                       sat_pos, sat_vel, &clock_err, &clock_rate_err) >= 0) {
+                       sat_pos, sat_vel, &clock_err, &clock_rate_err, &iode, &iodc) >= 0) {
 
         double az, el;
         wgsecef2azel(sat_pos, rcv_pos, &az, &el);
@@ -1204,8 +1206,24 @@ static void solution_thread(void *arg)
 
         /* Recompute satellite position, velocity and clock errors */
         if (0 != calc_sat_state(e, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                &nm->sat_clock_err, &nm->sat_clock_err_rate)) {
+                                &nm->sat_clock_err, &nm->sat_clock_err_rate, &nm->iode, &nm->iodc)) {
           continue;
+        }
+        /* Now we need to check the base obs used the same ephemeris and update if not */
+        chMtxLock(&base_obs_lock);
+        u8 base_index;
+        for(base_index = 0; base_index < base_obss.n; base_index++) {
+          log_warn("Rov IODE %u IODC %u",nm->iode,nm->iodc);
+          log_warn("Ref IODE %u IODC %u",base_obss.nm[base_index].iode,base_obss.nm[base_index].iodc);
+//          if(sid_compare(nm->sid,base_obss.nm[base_index].sid) == 0
+//            && ( nm->iode != base_obss.nm[base_index].iode || nm->iodc != base_obss.nm[base_index].iodc )){
+//            /* Recompute satellite position, velocity and clock errors */
+//            if (0 != calc_sat_state(e, &base_obss.nm[base_index].tot, base_obss.nm[base_index].sat_pos, base_obss.nm[base_index].sat_vel,
+//                                    &base_obss.nm[base_index].sat_clock_err, &base_obss.nm[base_index].sat_clock_err_rate,
+//                                    &base_obss.nm[base_index].iode, &base_obss.nm[base_index].iodc)) {
+//              continue;
+//            }
+//          }
         }
 
         n_ready_tdcp_new++;
