@@ -446,7 +446,7 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
     *dops = filter_manager_get_dop_values(filter_manager);
   } else {
-    detailed_log_warn("Baseline calculation failed");
+    detailed_log_info("Baseline calculation failed");
   }
   return get_baseline_ret;
 }
