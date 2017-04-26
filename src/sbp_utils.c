@@ -101,6 +101,10 @@ gnss_signal_t sid_from_sbp16(const gnss_signal16_t from)
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
 {
+  if (!gps_time_valid(t_in)) {
+    memset(t_out, 0, sizeof(msg_gps_time_t));
+    return;
+  }
   /* TODO(Leith): SBP message should reuse the GPSTimeNano struct */
   gps_time_nano_t t_nano;
   round_time_nano(t_in, &t_nano);
@@ -113,6 +117,10 @@ void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
 void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags,
                        const utc_params_t *utc_params)
 {
+  if (!gps_time_valid(t_in)) {
+    memset(t_out, 0, sizeof(msg_utc_time_t));
+    return;
+  }
   /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
   utc_tm utc_time;
   gps2utc(t_in, &utc_time, utc_params);

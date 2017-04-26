@@ -437,7 +437,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     }
   } else if (NDB_DS_SBP == src) {
     u8 valid, health_bits;
-    gps_time_t toe;
+    gps_time_t toe = GPS_TIME_UNKNOWN;
     u32 fit_interval;
     float ura;
     u16 idx = map_sid_to_index(e->sid);

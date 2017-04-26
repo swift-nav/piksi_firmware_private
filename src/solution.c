@@ -812,7 +812,7 @@ static void solution_thread(void *arg)
 
     // Work out the expected receiver time in GPS time frame for the current nap count
     gps_time_t rec_time = napcount2rcvtime(rec_tc);
-    gps_time_t expected_time;
+    gps_time_t expected_time = GPS_TIME_UNKNOWN;
 
     // If we've previously had a solution, we can work out our expected obs time
     if (time_quality == TIME_FINE) {
@@ -1121,7 +1121,7 @@ static void solution_thread(void *arg)
 
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
-    gps_time_t new_obs_time;
+    gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
     new_obs_time.tow = round(current_fix.time.tow * soln_freq)
                               / soln_freq;
     normalize_gps_time(&new_obs_time);
@@ -1494,8 +1494,8 @@ static bool heading_offset_changed(struct setting *s, const char *val)
 void solution_setup()
 {
   /* Set time of last differential solution in the past. */
-  last_dgnss.wn = 0;
-  last_dgnss.tow = 0;
+  last_dgnss = GPS_TIME_UNKNOWN;
+  last_spp = GPS_TIME_UNKNOWN;
 
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
