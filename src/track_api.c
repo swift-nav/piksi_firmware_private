@@ -174,20 +174,26 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
 /** Update bit sync and output navigation message bits for a tracker channel.
  *
  * \param context           Tracker context.
- * \param int_ms            Integration period (ms).
- * \param corr_prompt_real  Real part of the prompt correlation.
- * \param sensitivity_mode  Flag indicating tracking channel sensitivity mode.
+ * \param bit_sync_input    Bit sync input data.
  */
-void tracker_bit_sync_update(tracker_context_t *context, u32 int_ms,
-                             s32 corr_prompt_real, bool sensitivity_mode)
+void tracker_bit_sync_update(tracker_context_t *context,
+                             const bit_sync_input_t *bit_sync_input)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
   tracker_internal_context_resolve(context, &channel_info, &internal_data);
 
+  bool sensitivity_mode = bit_sync_input->fll_is_active &&
+                         !bit_sync_input->pll_is_active;
+  bool pll_is_locked = bit_sync_input->pll_is_active &&
+                       bit_sync_input->in_pessimistic_lock;
+
   /* Update bit sync */
   s32 bit_integrate;
-  if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
+  if (bit_sync_update(&internal_data->bit_sync,
+                      bit_sync_input->corr_prompt_real,
+                      bit_sync_input->bit_sync_update_ms,
+                      pll_is_locked,
                       &bit_integrate)) {
     /* No need to write L2CL bits to FIFO */
     if (!code_requires_decoder(channel_info->sid.code)) {
