@@ -147,8 +147,12 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   if ((code_phase < 0) ||
       ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
        (code_phase < (GPS_L1CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
-    log_warn_sid(sid, "Unexpected L1C/A to L2C handover code phase: %f",
-                 code_phase);
+    /** RELEASE ONLY!
+     * Removed this warning message to avoid clogging the console,
+     * a proper fix is being worked on
+     * */
+    /* log_warn_sid(sid, "Unexpected L1C/A to L2C handover code phase: %f",
+                 code_phase); */
     return;
   }
 
