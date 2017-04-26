@@ -112,6 +112,7 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/track/track_glo_l1ca.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l2c.o \
+        $(SWIFTNAV_ROOT)/src/decode/decode_glo_l1ca.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_l2c_capb.o \
 
 BOARDASM := \

@@ -20,6 +20,7 @@
 
 #include "decode/decode_gps_l1ca.h"
 #include "decode/decode_gps_l2c.h"
+#include "decode/decode_glo_l1ca.h"
 
 #include "ndb.h"
 
@@ -36,6 +37,7 @@ void platform_decode_setup(void)
 {
   decode_gps_l1ca_register();
   decode_gps_l2c_register();
+  decode_glo_l1ca_register();
 }
 
 void platform_ndb_init(void)

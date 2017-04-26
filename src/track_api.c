@@ -205,7 +205,7 @@ void tracker_bit_sync_update(tracker_context_t *context,
   s32 bit_integrate;
   if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
                       &bit_integrate)) {
-    /* No need to write L2CL bits to FIFO */
+    /* Skip FIFO writes for signals which do not require decoder. */
     if (!code_requires_decoder(channel_info->mesid.code)) {
       return;
     }
