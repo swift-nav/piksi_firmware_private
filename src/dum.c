@@ -168,20 +168,10 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           float *doppler_min,
                           float *doppler_max)
 {
-  if ((NULL == sid) || !sid_valid(*sid)) {
-    assert(!"Unexpected input for Doppler estimation");
-    return;
-  }
-
-  if (((CONSTELLATION_GPS != sid_to_constellation(*sid)) &&
-       (CONSTELLATION_GLO != sid_to_constellation(*sid)))
-      ||
-      ((CODE_GPS_L1CA != sid->code) &&
-       (CODE_GLO_L1CA != sid->code))) {
-    printf("SID: %d|%d, const: %d\n", sid->code, sid->sat, sid_to_constellation(*sid));
-    assert(!"Unsupported signal for Doppler estimation");
-    return;
-  }
+  assert(sid != NULL);
+  assert(sid_valid(*sid));
+  assert((CODE_GPS_L1CA == sid->code) ||
+         (CODE_GLO_L1CA == sid->code));
 
   float default_doppler_min = code_to_sv_doppler_min(sid->code) +
                               code_to_tcxo_doppler_min(sid->code);
