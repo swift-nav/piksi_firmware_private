@@ -239,6 +239,12 @@ static bool glo_enable_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
+    if (glo_enabled && !(CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT)) {
+      /* user tries enable GLONASS on the platform that does not support it */
+      log_error("The platform does not support GLONASS");
+      glo_enabled = false;
+      return false;
+    }
     for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
       if (is_glo_sid(acq_status[i].mesid)) {
         acq_status[i].masked = !glo_enabled;
