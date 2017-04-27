@@ -115,6 +115,8 @@ void sbp_send_ndb_event(u8 event,
 
 #define MSG_OBS_P_MULTIPLIER             ((double)5e1)
 #define MSG_OBS_CN0_MULTIPLIER           ((float)4)
+#define MSG_OBS_LF_OVERFLOW              (1 << 8)
+#define MSG_OBS_DF_OVERFLOW              (1 << 8)
 #define MSG_OBS_LF_MULTIPLIER            ((double) (1 << 8))
 #define MSG_OBS_DF_MULTIPLIER            ((double) (1 << 8))
 #define MSG_OBS_FLAGS_CODE_VALID         ((u8) (1 << 0))
