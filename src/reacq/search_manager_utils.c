@@ -113,14 +113,16 @@ bool sm_lgf_stamp(u64 *lgf_stamp)
  */
 void sm_calc_all_glo_visibility_flags(void)
 {
-  if (is_glo_enabled()) {
-    for (u16 glo_sat = 1; glo_sat <= NUM_SATS_GLO; glo_sat++) {
-      gnss_signal_t glo_sid = construct_sid(CODE_GLO_L1CA, glo_sat);
-      bool visible, known;
-      sm_get_visibility_flags(glo_sid, &visible, &known);
-      glo_sv_vis[glo_sat - 1].visible = visible;
-      glo_sv_vis[glo_sat - 1].known = known;
-    }
+  if (!is_glo_enabled()) {
+    return;
+  }
+
+  for (u16 glo_sat = 1; glo_sat <= NUM_SATS_GLO; glo_sat++) {
+    gnss_signal_t glo_sid = construct_sid(CODE_GLO_L1CA, glo_sat);
+    bool visible, known;
+    sm_get_visibility_flags(glo_sid, &visible, &known);
+    glo_sv_vis[glo_sat - 1].visible = visible;
+    glo_sv_vis[glo_sat - 1].known = known;
   }
 }
 
