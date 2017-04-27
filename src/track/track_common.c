@@ -719,7 +719,8 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
 
   if (cn0 > cn0_params.track_cn0_drop_thres &&
       !data->confirmed &&
-      data->lock_detect.outo && tracker_has_bit_sync(channel_info->context)) {
+      data->lock_detect.outp &&
+      tracker_has_bit_sync(channel_info->context)) {
     data->confirmed = true;
     log_debug_sid(channel_info->sid, "CONFIRMED from %f to %d",
                   cn0, data->cn0_est.cn0_0);
