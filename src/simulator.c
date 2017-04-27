@@ -45,7 +45,7 @@ simulation_settings_t sim_settings = {
   .base_ecef = {
    -2706098.845,
    -4261216.475,
-   3885597.912 
+   3885597.912
   },
   .speed = 4.0,
   .radius = 100.0,
@@ -245,6 +245,7 @@ void simulation_step_position_in_circle(double elapsed)
   pos_ecef[2] = sim_state.pos[2] + rand_gaussian(pos_variance);
 
   wgsecef2llh(sim_state.noisy_solution.pos_ecef, sim_state.noisy_solution.pos_llh);
+  sim_state.noisy_solution.valid = 1;
 
   /* Calculate Velocity vector tangent to the sphere */
   double noisy_speed = sim_settings.speed +
@@ -254,6 +255,7 @@ void simulation_step_position_in_circle(double elapsed)
   sim_state.noisy_solution.vel_ned[0] = noisy_speed * cos(sim_state.angle);
   sim_state.noisy_solution.vel_ned[1] = noisy_speed * -1.0 * sin(sim_state.angle);
   sim_state.noisy_solution.vel_ned[2] = 0.0;
+  sim_state.noisy_solution.velocity_valid = 1;
 
   wgsned2ecef(sim_state.noisy_solution.vel_ned,
     sim_state.noisy_solution.pos_ecef,
@@ -291,7 +293,6 @@ void simulation_step_tracking_and_observations(double elapsed)
                                   &clock_err, &clock_rate_err);
     assert(r == 0);
   }
-
 
   /* Calculate the first sim_settings.num_sats amount of visible sats */
   u8 num_sats_selected = 0;
@@ -348,7 +349,7 @@ void simulation_step_tracking_and_observations(double elapsed)
 * the almanac_i satellite, currently dist away from simulated point at given elevation.
 *
 */
-void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, 
+void populate_nav_meas(navigation_measurement_t *nav_meas, double dist,
                        double elevation, double vel, int almanac_i)
 {
   nav_meas->sid = (gnss_signal_t) {
