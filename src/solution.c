@@ -1379,6 +1379,10 @@ static void time_matched_obs_thread(void *arg)
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);
 
+    chMtxLock(&base_obs_lock);
+    obss_t base_obss_copy = base_obss;
+    chMtxUnlock(&base_obs_lock);
+
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
@@ -1391,13 +1395,10 @@ static void time_matched_obs_thread(void *arg)
         continue;
       }
 
-      chMtxLock(&base_obs_lock);
-      double dt = gpsdifftime(&obss->tor, &base_obss.tor);
+      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD &&
-          (base_obss.has_pos == 1 || base_obss.has_known_pos_ecef)) {
-        obss_t base_obss_copy = base_obss;
-        chMtxUnlock(&base_obs_lock);
+          (base_obss_copy.has_pos == 1 || base_obss_copy.has_known_pos_ecef)) {
         // We need to form the SBP messages derived from the SPP at this solution time before we
         // do the differential solution so that the various messages can be overwritten as appropriate,
         // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
@@ -1408,11 +1409,10 @@ static void time_matched_obs_thread(void *arg)
 
         chPoolFree(&obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(0.0, base_obss.sender_id, &sbp_messages);
+          solution_send_pos_messages(0.0, base_obss_copy.sender_id, &sbp_messages);
         }
         break;
       } else {
-        chMtxUnlock(&base_obs_lock);
         if (dt > 0) {
           /* Time of base obs before time of local obs, we must not have a local
            * observation matching this base observation, break and wait for a
@@ -1423,7 +1423,7 @@ static void time_matched_obs_thread(void *arg)
           log_warn("Obs Matching: t_base < t_rover "
                    "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})", dt,
                    obss->tor.wn, obss->tor.tow,
-                   base_obss.tor.wn, base_obss.tor.tow
+                   base_obss_copy.tor.wn, base_obss_copy.tor.tow
           );
           /* Return the buffer to the mailbox so we can try it again later. */
           msg_t ret = chMBPost(&obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
@@ -1544,7 +1544,7 @@ void solution_setup()
   chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),
                     HIGHPRIO-2, solution_thread, NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread), LOWPRIO,
+                    sizeof(wa_time_matched_obs_thread), NORMALPRIO-3,
                     time_matched_obs_thread, NULL);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
