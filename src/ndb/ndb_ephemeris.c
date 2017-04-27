@@ -160,12 +160,6 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const almanac_t   *existing_a,
                                       const ephemeris_t *candidate)
 {
-  double unused_vel[3];
-  double unused_clock_err;
-  double unused_clock_rate_err;
-  u8 unused_iode;
-  u16 unused_iodc;
-
   if (NULL != candidate && 0 == memcmp(new, candidate, sizeof(*new))) {
     /* Exact match */
     log_debug_sid(new->sid, "[EPH] candidate match");
@@ -202,16 +196,16 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
     for (u8 i = 0; i < 3 && ok;
         ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
 
+      double _[3];
       double alm_sat_pos[3];
       double eph_sat_pos[3];
+      u8 iode;
+      u16 iodc;
 
       ok = false;
 
-      if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, unused_vel,
-                                      &unused_clock_err, &unused_clock_rate_err)
-          && 0 == calc_sat_state_n(new, &t, eph_sat_pos, unused_vel,
-                                   &unused_clock_err, &unused_clock_rate_err,
-                                   &unused_iode, &unused_iodc)) {
+      if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
+          0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _, &iode, &iodc)) {
 
         /* Compute distance [m] */
         double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
@@ -241,17 +235,16 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
     for (u8 i = 0; i < 3 && ok;
         ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
 
+      double _[3];
       double old_sat_pos[3];
       double new_sat_pos[3];
+      u8 iode;
+      u16 iodc;
 
       ok = false;
 
-      if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, unused_vel,
-                                &unused_clock_err, &unused_clock_rate_err,
-                                &unused_iode, &unused_iodc)
-          && 0 == calc_sat_state_n(new, &t, new_sat_pos, unused_vel,
-                                   &unused_clock_err, &unused_clock_rate_err,
-                                   &unused_iode, &unused_iodc)) {
+      if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, _, _, _, &iode, &iodc)
+          && 0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _, &iode, &iodc)) {
 
         /* Compute distance [m] */
         double d = vector_distance(3, old_sat_pos, new_sat_pos);
