@@ -21,6 +21,8 @@
 bool sm_is_healthy(gnss_signal_t sid);
 bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
+void sm_calc_all_glo_visibility_flags(void);
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
 /** Global search job data */
 acq_jobs_state_t acq_all_jobs_state_data;
@@ -108,6 +110,10 @@ static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data)
  */
 static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
 {
+  if (!is_glo_enabled()) {
+    return;
+  }
+
   u32 i;
   for (i = 0; i < NUM_SATS_GLO; i++) {
     acq_job_t *deep_job = &jobs_data->jobs_glo[ACQ_JOB_DEEP_SEARCH][i];
@@ -128,7 +134,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     }
 
     if (glo_fcn > GLO_MAX_FCN) {
-      /* all GLO frequency are tracked, 
+      /* all GLO frequency are tracked,
        * rare case when no any data decoded yet,
        * so no need to continue */
       return;
@@ -149,7 +155,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     deep_job->needs_to_run = false;
 
     if (!deep_job->glo_blind_search) {
-      sm_get_visibility_flags(sid, &visible, &known);
+      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
       visible = visible && known;
     }
 
@@ -239,6 +245,10 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
                                        u64 now_ms,
                                        u64 lgf_age_ms)
 {
+  if (!is_glo_enabled()) {
+    return;
+  }
+
   u32 i;
   for (i = 0; i < NUM_SATS_GLO; i++) {
     acq_job_t *fallback_job = &jobs_data->jobs_glo[ACQ_JOB_FALLBACK_SEARCH][i];
@@ -258,7 +268,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     }
 
     if (glo_fcn > GLO_MAX_FCN) {
-      /* all GLO frequency are tracked, 
+      /* all GLO frequency are tracked,
        * rare case when no any data decoded yet,
        * so no need to continue */
       return;
@@ -280,7 +290,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     fallback_job->needs_to_run = false;
 
     if (!fallback_job->glo_blind_search) {
-      sm_get_visibility_flags(sid, &visible, &known);
+      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
       visible = visible && known;
       invisible = !visible && known;
     }
@@ -332,13 +342,11 @@ void sm_run(acq_jobs_state_t *jobs_data)
                      ACQ_LGF_TIMEOUT_INVIS_MS);
   }
   
+  sm_calc_all_glo_visibility_flags();
+
   sm_deep_search_run_gps(jobs_data);
-  if (is_glo_enabled()) {
-    sm_deep_search_run_glo(jobs_data);
-  }
+  sm_deep_search_run_glo(jobs_data);
   sm_fallback_search_run_gps(jobs_data, now_ms, lgf_age_ms);
-  if (is_glo_enabled()) {
-    sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
-  }
+  sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
 }
 
