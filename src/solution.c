@@ -1051,7 +1051,7 @@ static void solution_thread(void *arg)
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sid);
     if (pvt_ret < 0
-        || (lgf.position_quality = POSITION_FIX && gate_covariance(&current_fix))) {
+        || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
       DO_EVERY((u32)soln_freq,
