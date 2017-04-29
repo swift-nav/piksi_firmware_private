@@ -26,10 +26,10 @@
 #define CHIP_RATE 1.023e6f
 #define CODE_LENGTH 1023
 #define CODE_MULT 16384
-#define RESULT_DIV 4096
+#define RESULT_DIV 32
 #define FFT_SCALE_SCHED_CODE 0x15555555
-#define FFT_SCALE_SCHED_SAMPLES 0x11111111
-#define FFT_SCALE_SCHED_INV 0x11110000
+#define FFT_SCALE_SCHED_SAMPLES 0x15555555
+#define FFT_SCALE_SCHED_INV 0x15550000
 #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 static void code_resample(gnss_signal_t sid, float chips_per_sample,
@@ -165,11 +165,6 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
   /* Modulus code length */
   cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
 
-  /* Set output */
-  acq_result->sample_count = sample_count;
-  acq_result->cp = cp;
-  acq_result->cf = peak.doppler;
-  acq_result->cn0 = peak.cn0;
 
   /* False acquisition code phase hack (Michele). The vast majority of our
    * false acquisitions return a code phase within 0.5 chip of 0. Not allowing
@@ -178,6 +173,11 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
    * TODO: Remove this once we move to soft FFT based acquisition. */
   if ((cp<=0.5) || (cp>=1022.5)) return false;
 
+  /* Set output */
+  acq_result->sample_count = sample_count;
+  acq_result->cp = cp;
+  acq_result->cf = peak.doppler;
+  acq_result->cn0 = peak.cn0;
   return true;
 }
 
