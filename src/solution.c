@@ -55,6 +55,9 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
+/** Max accuracy we allow to output a SPP solution */
+#define MAX_SPP_ACCURACY 100.0
+
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
                                    MANAGE_TRACK_FLAG_NO_ERROR | \
@@ -786,7 +789,7 @@ bool gate_covariance(gnss_solution *soln) {
   double accuracy, h_accuracy, v_accuracy;
   covariance_to_accuracy(full_covariance, soln->pos_ecef,
                          &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > 100.0) {
+  if (accuracy > MAX_SPP_ACCURACY) {
     log_warn("SPP Position suppressed due to position confidence of %f exceeding 100.0m", accuracy);
     return true;
   }
