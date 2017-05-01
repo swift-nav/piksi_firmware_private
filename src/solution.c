@@ -72,7 +72,7 @@ MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
-dgnss_filter_t dgnss_filter = FILTER_FLOAT;
+dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
 static FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
