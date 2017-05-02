@@ -63,8 +63,8 @@
 #define NAP_SPACING_CHIPS                                                 (0)
 #define NAP_SPACING_SAMPLES                                               (1)
 
-#define NAP_VE_E_SPACING_CHIPS                                            (7)
-#define NAP_VE_E_SPACING_SAMPLES                                         (23)
+#define NAP_VE_E_SPACING_CHIPS                                            (2)
+#define NAP_VE_E_SPACING_SAMPLES                                          (9)
 
 #define NAP_KEY_LENGTH                                                   (16)
 
