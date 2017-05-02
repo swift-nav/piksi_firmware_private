@@ -328,7 +328,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   if (fix_type != NMEA_GGA_QI_INVALID) {
     NMEA_SENTENCE_PRINTF("%02d,%.1f,%.2f,M,0.0,M,",
                          sbp_pos_llh->n_sats,
-                         round(10 * sbp_dops->hdop * 0.01)/10,
+                         round(10 * sbp_dops->hdop * 0.01) / 10,
                          sbp_pos_llh->height);
   } else {
     NMEA_SENTENCE_PRINTF(",,,M,,M,");
