@@ -328,7 +328,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   if (fix_type != NMEA_GGA_QI_INVALID) {
     NMEA_SENTENCE_PRINTF("%02d,%.1f,%.2f,M,0.0,M,",
                          sbp_pos_llh->n_sats,
-                         sbp_dops->hdop * 0.01,
+                         round(10 * sbp_dops->hdop * 0.01)/10,
                          sbp_pos_llh->height);
   } else {
     NMEA_SENTENCE_PRINTF(",,,M,,M,");
@@ -373,9 +373,9 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, c
 
   if (sbp_dops && ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION)) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
-                         sbp_dops->pdop * 0.01,
-                         sbp_dops->hdop * 0.01,
-                         sbp_dops->vdop * 0.01);
+                         round(10 * sbp_dops->pdop * 0.01) / 10,
+                         round(10 * sbp_dops->hdop * 0.01) / 10,
+                         round(10 * sbp_dops->vdop * 0.01) / 10);
   } else {
     NMEA_SENTENCE_PRINTF(",,");
   }
