@@ -16,12 +16,12 @@
 /**
  * @brief   The sampling rate of the samples coming off the frontend
  */
-#define NAP_FRONTEND_RAW_SAMPLE_RATE_Hz                            (99.375e6)
+#define NAP_FRONTEND_RAW_SAMPLE_RATE_Hz                            (53.000e6)
 
 /**
  * @brief   The sample rate decimation used by acquisition
  */
-#define NAP_ACQ_DECIMATION_RATE                                          (12)
+#define NAP_ACQ_DECIMATION_RATE                                          (10)
 
 /**
  * @brief   The acquisition sample rate after decimation
@@ -33,7 +33,7 @@
 /**
  * @brief   The sample rate decimation used by tracking channels
  */
-#define NAP_TRACK_DECIMATION_RATE                                         (4)
+#define NAP_TRACK_DECIMATION_RATE                                         (5)
 
 /**
  * @brief   The tracking channel sample rate after decimation

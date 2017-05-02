@@ -23,11 +23,11 @@
 
 #include "platform_cn0.h"
 
-#define CODE_MULT 16384
-#define RESULT_DIV 32
-#define FFT_SCALE_SCHED_CODE 0x15555555
-#define FFT_SCALE_SCHED_SAMPLES 0x15555555
-#define FFT_SCALE_SCHED_INV 0x15550000
+#define CODE_MULT               16384
+#define RESULT_DIV              256
+#define FFT_SCALE_SCHED_CODE    0x05555555
+#define FFT_SCALE_SCHED_SAMPLES 0x01111111
+#define FFT_SCALE_SCHED_INV     0x01111111
 
 static void code_resample(const me_gnss_signal_t mesid, float chips_per_sample,
                           fft_cplx_t *resampled, u32 resampled_length);

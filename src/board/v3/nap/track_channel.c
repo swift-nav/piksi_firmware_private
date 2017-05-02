@@ -437,11 +437,18 @@ void nap_track_read_results(u8 channel,
   * VE: CORR[0] -> corrs[3], E: CORR[1] -> corrs[0], P: CORR[2] -> corrs[1],
   * L: CORR[3] -> corrs[2], VL: CORR[4] -> corrs[4]
   * This is needed to use track_gps_l1ca.c for both Piksi v2 and v3 */
-  corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8;
-  corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8;
-  corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8;
-  corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8;
-  corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8;
+  /* corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8; */
+  /* corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8; */
+  /* corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8; */
+  /* corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8; */
+  /* corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8; */
+  corr_t tmpCorrs[5];
+  memcpy(tmpCorrs, t->CORR, 5*sizeof(corr_t));
+  corrs[0] = tmpCorrs[1];
+  corrs[1] = tmpCorrs[2];
+  corrs[2] = tmpCorrs[3];
+  corrs[3] = tmpCorrs[0];
+  corrs[4] = tmpCorrs[4];
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
   s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
