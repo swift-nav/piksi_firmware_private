@@ -418,7 +418,7 @@ static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
   gps_l1ca_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  nav_msg_init(&data->nav_msg);
+  nav_msg_init(&data->nav_msg, channel_info->sid);
 }
 
 static void decoder_gps_l1ca_disable(const decoder_channel_info_t *channel_info,
