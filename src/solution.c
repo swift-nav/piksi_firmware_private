@@ -632,6 +632,8 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
   }
 }
 
+s32 missed_deadline = 1;
+
 /** Sleep until the next solution deadline.
  *
  * \param deadline    Pointer to the current deadline, updated by this function.
@@ -645,15 +647,23 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
   while (1) {
     /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
      * execution time is limited to SOLN_THD_CPU_MAX. */
+    bool skip = false;
+    if((missed_deadline % 60) == 0){
+      skip = true;
+      log_warn("%d skip deadline true",missed_deadline);
+    } else {
+      skip = false;
+      log_warn("%d skip deadline false",missed_deadline);
+    }
     systime_t systime = chVTGetSystemTimeX();
     systime_t delta = *deadline - systime;
     systime_t sleep_min = (systime_t)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval);
-    if ((systime_t)(delta - sleep_min) <= ((systime_t)-1) / 2) {
+    if ((systime_t)(delta - sleep_min) <= ((systime_t)-1) / 2 && !skip) {
       chThdSleepS(delta);
       break;
     } else {
       chSysUnlock();
-      if (delta <= ((systime_t)-1) / 2) {
+      if ((delta <= ((systime_t)-1) / 2) || skip) {
         /* Deadline is in the future. Skipping due to high CPU usage. */
         log_warn("Solution thread skipping deadline, "
                  "time = %lu, deadline = %lu", systime, *deadline);
@@ -665,6 +675,7 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
       *deadline += interval;
       chSysLock();
     }
+    missed_deadline++;
   }
   chSysUnlock();
 }
