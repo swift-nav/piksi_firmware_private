@@ -1218,31 +1218,31 @@ static void solution_thread(void *arg)
          for(u8 base_index = 0; base_index < base_obss.n; base_index++) {
            navigation_measurement_t *base_obss_nm = &base_obss.nm[base_index];
            if(sid_compare(nm->sid, base_obss_nm->sid) == 0
-              && (nm->iode != base_obss_nm->iode
-                  || nm->iodc != base_obss_nm->iodc)){
+              /*&& (nm->iode != base_obss_nm->iode
+                  || nm->iodc != base_obss_nm->iodc)*/){
              /* Recompute satellite position, velocity and clock errors */
-             if (0 != calc_sat_state(e, &base_obss_nm->tot,
+             if (0 == calc_sat_state(e, &base_obss_nm->tot,
                                      base_obss_nm->sat_pos,
                                      base_obss_nm->sat_vel,
                                      &base_obss_nm->sat_clock_err,
                                      &base_obss_nm->sat_clock_err_rate,
                                      &base_obss_nm->iode,
                                      &base_obss_nm->iodc)) {
-               detailed_log_warn_sid(base_obss_nm->sid, "ephemerides could not"
-                                     "be updated");
-               continue;
-             }
-             /* Also update sat range and range rate since they are used in
-              * sdiff propagation */
-             if (base_obss.has_pos) {
-               double *base_pos = base_obss.has_known_pos_ecef ?
-                                  base_obss.known_pos_ecef : base_obss.pos_ecef;
-               base_obss.sat_dists[base_index] =
+               /* Update sat range and range rate since they are what is needed for
+                  sdiff propagation */
+               if (base_obss.has_pos) {
+                 double *base_pos = base_obss.has_known_pos_ecef ?
+                                    base_obss.known_pos_ecef : base_obss.pos_ecef;
+                 base_obss.sat_dists[base_index] =
                    nominal_pseudorange(base_obss_nm->sat_pos, base_pos,
                                        base_obss_nm->sat_clock_err);
-               base_obss.sat_dists_dot[base_index] =
+                 base_obss.sat_dists_dot[base_index] =
                    nominal_doppler(base_obss_nm->sat_vel, base_obss_nm->sat_pos,
                                    base_pos, base_obss_nm->sat_clock_err_rate);
+               }
+             } else {
+               detailed_log_warn_sid(base_obss_nm->sid, "base ephemerides could not"
+                 " be updated");
              }
            }
          }
