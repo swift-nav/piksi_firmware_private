@@ -55,6 +55,9 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
+/** Max accuracy we allow to output a SPP solution */
+#define MAX_SPP_ACCURACY 100.0
+
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
                                    MANAGE_TRACK_FLAG_NO_ERROR | \
@@ -778,6 +781,21 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
+bool gate_covariance(gnss_solution *soln) {
+  assert(soln != NULL);
+  double full_covariance[9];
+  extract_covariance(full_covariance, soln);
+
+  double accuracy, h_accuracy, v_accuracy;
+  covariance_to_accuracy(full_covariance, soln->pos_ecef,
+                         &accuracy, &h_accuracy, &v_accuracy);
+  if (accuracy > MAX_SPP_ACCURACY) {
+    log_warn("SPP Position suppressed due to position confidence of %f exceeding 100.0m", accuracy);
+    return true;
+  }
+  return false;
+}
+
 static THD_WORKING_AREA(wa_solution_thread, 5000000);
 static void solution_thread(void *arg)
 {
@@ -1034,7 +1052,8 @@ static void solution_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sid);
-    if (pvt_ret < 0) {
+    if (pvt_ret < 0
+        || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
       DO_EVERY((u32)soln_freq,
