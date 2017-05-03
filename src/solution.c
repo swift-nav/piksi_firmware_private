@@ -184,9 +184,9 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
      * Since velocity uses the same system matrix as SPP position solution, the
      * accuracy estimate is just a scaled version of that.
      * TODO: implement proper computation of vel_err_cov matrix in LSNP */
-
+    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, GPS_FIRST_PRN);
     double vel_accuracy_multiplier = sqrt(DOPPLER_CN0_COEFFICIENT / CODE_CN0_COEFFICIENT)
-                                     * code_to_lambda(CODE_GPS_L1CA);
+                                     * sid_to_lambda(sid);
     double vel_accuracy = vel_accuracy_multiplier * accuracy;
     double vel_h_accuracy = vel_accuracy_multiplier * h_accuracy;
     double vel_v_accuracy = vel_accuracy_multiplier * v_accuracy;
@@ -1176,16 +1176,16 @@ static void solution_thread(void *arg)
         /* Note, the pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
         nm->raw_pseudorange -= t_err * doppler *
-                               code_to_lambda(nm->sid.code);
+                               sid_to_lambda(nm->sid);
 
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += current_fix.clock_offset *
-                                      GPS_C / code_to_lambda(nm->sid.code);
+                                      GPS_C / sid_to_lambda(nm->sid);
         nm->raw_measured_doppler += current_fix.clock_bias *
-                                    GPS_C / code_to_lambda(nm->sid.code);
+                                    GPS_C / sid_to_lambda(nm->sid);
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
         nm->raw_computed_doppler += computed_clock_rate *
-                                      GPS_C / code_to_lambda(nm->sid.code);
+                                      GPS_C / sid_to_lambda(nm->sid);
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -1287,7 +1287,7 @@ static void solution_thread(void *arg)
       /* adjust the stored CP measurements so that next TDCP is correct */
       for (u8 i = 0; i < n_ready_old; i++) {
         nav_meas_old[i].raw_carrier_phase += dt *
-            code_to_carr_freq(nav_meas_old[i].sid.code);
+            sid_to_carr_freq(nav_meas_old[i].sid);
       }
       clock_offset_previous -= dt;
     }
