@@ -73,7 +73,7 @@ static const tracker_interface_t tracker_interface_default = {
 
 static u16 iq_output_mask = 0;
 static bool send_trk_detailed = 0;
-/** send_trk_detailed setting is a stop gap to suppress this 
+/** send_trk_detailed setting is a stop gap to suppress this
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
 
@@ -1442,7 +1442,14 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
   break;
 
   case EVENT_DISABLE_REQUEST: {
-    assert(tracker_channel->state == STATE_ENABLED);
+    /* RELEASEHACK 3 May 2017: remove the assert below, added debug
+     *  minimal infrastructure in order to catch this but making it a
+     * simple warning */
+    /* assert(tracker_channel->state == STATE_ENABLED); */
+    if (tracker_channel->state != STATE_ENABLED) {
+      log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_DISABLE_REQUEST on channel %d: state %d",
+        __FUNCTION__, __LINE__, tracker_channel->info.nap_channel, tracker_channel->state);
+    }
     tracker_channel->state = STATE_DISABLE_REQUESTED;
   }
   break;
