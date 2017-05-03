@@ -443,6 +443,9 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   /* Return the doppler hints and a score proportional to elevation */
   *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, doppler_min);
   *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, doppler_max);
+  log_info("dopp_hints information: %lf, %lf, %lf, %lf, %lf, %lf",
+           *dopp_hint_low, *dopp_hint_high, dopp_hint, dopp_uncertainty,
+           doppler_min, doppler_max);
   return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
 }
 
