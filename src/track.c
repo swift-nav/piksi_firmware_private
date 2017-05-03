@@ -1432,16 +1432,16 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
 {
   switch (event) {
   case EVENT_ENABLE: {
-    /* assert(tracker_channel->state == STATE_DISABLED); */
     if (tracker_channel->state != STATE_DISABLED) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_ENABLE on channel %d: state %d",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel, tracker_channel->state);
     }
-    /* assert(tracker_channel->tracker->active == false); */
+    assert(tracker_channel->state == STATE_DISABLED);
     if (tracker_channel->tracker->active) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_ENABLE on channel %d: is active",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel);
     }
+    assert(tracker_channel->tracker->active == false);
     tracker_channel->tracker->active = true;
     /* Sequence point for enable is setting channel state = STATE_ENABLED */
     COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -1453,36 +1453,37 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
     /* RELEASEHACK 3 May 2017: remove the assert below, added debug
      *  minimal infrastructure in order to catch this but making it a
      * simple warning */
-    /* assert(tracker_channel->state == STATE_ENABLED); */
     if (tracker_channel->state != STATE_ENABLED) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_DISABLE_REQUEST on channel %d: state %d",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel, tracker_channel->state);
+    } else { /* let us not transition if the state is what we expected */
+      tracker_channel->state = STATE_DISABLE_REQUESTED;
     }
-    tracker_channel->state = STATE_DISABLE_REQUESTED;
+    /* assert(tracker_channel->state == STATE_ENABLED); */
   }
   break;
 
   case EVENT_DISABLE: {
-    /* assert(tracker_channel->state == STATE_DISABLE_REQUESTED); */
     if (tracker_channel->state != STATE_DISABLE_REQUESTED) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_DISABLE on channel %d: state %d",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel, tracker_channel->state);
     }
+    assert(tracker_channel->state == STATE_DISABLE_REQUESTED);
     tracker_channel->state = STATE_DISABLE_WAIT;
   }
   break;
 
   case EVENT_DISABLE_WAIT_COMPLETE: {
-    /* assert(tracker_channel->state == STATE_DISABLE_WAIT); */
     if (tracker_channel->state != STATE_DISABLE_WAIT) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_DISABLE_WAIT_COMPLETE on channel %d: state %d",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel, tracker_channel->state);
     }
-    /* assert(tracker_channel->tracker->active == true); */
+    assert(tracker_channel->state == STATE_DISABLE_WAIT);
     if (tracker_channel->tracker->active == false) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_DISABLE_WAIT_COMPLETE on channel %d: is not active",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel);
     }
+    assert(tracker_channel->tracker->active == true);
     /* Sequence point for disable is setting channel state = STATE_DISABLED
      * and/or tracker active = false (order of these two is irrelevant here) */
     COMPILER_BARRIER(); /* Prevent compiler reordering */
