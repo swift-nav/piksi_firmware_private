@@ -1219,7 +1219,8 @@ static void solution_thread(void *arg)
            navigation_measurement_t *base_obss_nm = &base_obss.nm[base_index];
            if(sid_compare(nm->sid, base_obss_nm->sid) == 0
               && (nm->iode != base_obss_nm->iode
-                  || nm->iodc != base_obss_nm->iodc)){
+                  || nm->iodc != base_obss_nm->iodc)
+              && gpsdifftime(&new_obs_time, &base_obss.tor) > max_age_of_differential ){
              /* Recompute satellite position, velocity and clock errors */
              if (0 == calc_sat_state(e, &base_obss_nm->tot,
                                      base_obss_nm->sat_pos,
@@ -1241,7 +1242,7 @@ static void solution_thread(void *arg)
                                    base_pos, base_obss_nm->sat_clock_err_rate);
                }
              } else {
-               detailed_log_warn_sid(base_obss_nm->sid, "base ephemerides could not"
+               detailed_log_info_sid(base_obss_nm->sid, "base ephemerides could not"
                  " be updated");
              }
            }
