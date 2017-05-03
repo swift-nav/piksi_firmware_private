@@ -88,9 +88,9 @@ MUTEX_DECL(last_sbp_lock);
 gps_time_t last_dgnss;
 gps_time_t last_spp;
 
-double soln_freq = 10.0;
+double soln_freq = 20.0;
 u32 max_age_of_differential = 30;
-u32 obs_output_divisor = 10;
+u32 obs_output_divisor = 20;
 
 double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = 102;
