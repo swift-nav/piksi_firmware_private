@@ -1220,7 +1220,7 @@ static void solution_thread(void *arg)
            if(sid_compare(nm->sid, base_obss_nm->sid) == 0
               && (nm->iode != base_obss_nm->iode
                   || nm->iodc != base_obss_nm->iodc)
-              && gpsdifftime(&new_obs_time, &base_obss.tor) > max_age_of_differential ){
+              && gpsdifftime(&new_obs_time, &base_obss.tor) < max_age_of_differential ){
              /* Recompute satellite position, velocity and clock errors */
              if (0 == calc_sat_state(e, &base_obss_nm->tot,
                                      base_obss_nm->sat_pos,
