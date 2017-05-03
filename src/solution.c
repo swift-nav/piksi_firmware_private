@@ -1242,8 +1242,8 @@ static void solution_thread(void *arg)
                                    base_pos, base_obss_nm->sat_clock_err_rate);
                }
              } else {
-               detailed_log_info_sid(base_obss_nm->sid, "base ephemerides could not"
-                 " be updated");
+               detailed_log_info_sid(base_obss_nm->sid, "Unable to recalculate"
+                 " base sat position - ephemeris invalid");
              }
            }
          }
