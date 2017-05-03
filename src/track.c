@@ -1456,7 +1456,7 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
     if (tracker_channel->state != STATE_ENABLED) {
       log_warn_sid(tracker_channel->info.sid, "%s@%d unexpected EVENT_DISABLE_REQUEST on channel %d: state %d",
         __FUNCTION__, __LINE__, tracker_channel->info.nap_channel, tracker_channel->state);
-    } else { /* let us not transition if the state is what we expected */
+    } else { /* let us transition only if the state is what we expected */
       tracker_channel->state = STATE_DISABLE_REQUESTED;
     }
     /* assert(tracker_channel->state == STATE_ENABLED); */
