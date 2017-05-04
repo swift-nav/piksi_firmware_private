@@ -98,22 +98,28 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
       nav_msg_init_glo(&data->nav_msg);
       continue;
     }
+
     /* Update GLO data decoder */
     bool bit_val = soft_bit >= 0;
-    if (nav_msg_update_glo(&data->nav_msg, bit_val) == 1) {
-      s8 retval = error_detection_glo(&data->nav_msg);
-      if (retval != 0) {
-        nav_msg_init_glo(&data->nav_msg);
-        continue;
-      }
+    nav_msg_status_t msg_status = nav_msg_update_glo(&data->nav_msg, bit_val);
+    if (GLO_STRING_READY != msg_status) {
+      continue;
+    }
 
-      retval = process_string_glo(&data->nav_msg);
-      if (1 == retval) {
-        /* TODO GLO: Save ephemeris to NDB */
-        /* TODO GLO: Pass decoded glo_orbit_slot to tracking channel */
-      } else if (retval < 0) {
-        nav_msg_init_glo(&data->nav_msg);
-      }
+    /* Check for bit errors in the collected string */
+    s8 bit_errors = error_detection_glo(&data->nav_msg);
+    if (bit_errors != 0) {
+      nav_msg_init_glo(&data->nav_msg);
+      continue;
+    }
+
+    /* Get GLO strings 1 - 5, and decode full ephemeris */
+    string_decode_status_t str_status = process_string_glo(&data->nav_msg);
+    if (GLO_STRING_DECODE_DONE == str_status) {
+      /* TODO GLO: Save ephemeris to NDB */
+      /* TODO GLO: Pass decoded glo_orbit_slot to tracking channel */
+    } else if (GLO_STRING_DECODE_ERROR == str_status) {
+      nav_msg_init_glo(&data->nav_msg);
     }
   }
   return;
