@@ -107,6 +107,8 @@ static bool rec_size_get(fifo_t *fifo, fifo_size_t fifo_length,
 static bool rec_size_set(fifo_t *fifo, fifo_size_t fifo_space,
                          rec_size_t rec_size)
 {
+  assert(rec_size > 0);
+
   /* Do not proceed if the full record will not fit */
   if (fifo_space < sizeof(rec_size_t) + rec_size) {
     return false;
@@ -301,6 +303,8 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length)
 fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
 {
   fifo_size_t write_length = fifo_poke(fifo, buffer, length);
+  if (write_length == 0)
+    return 0;
   write_length = fifo_add(fifo, write_length);
   return write_length;
 }
