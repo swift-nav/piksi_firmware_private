@@ -167,8 +167,7 @@ bool decoder_channel_available(u8 tracking_channel,
  * \return true if a decoder channel was initialized, false otherwise.
  */
 bool decoder_channel_init(u8 tracking_channel,
-                          const me_gnss_signal_t mesid,
-                          u16 glo_slot_id)
+                          const me_gnss_signal_t mesid)
 {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
@@ -184,7 +183,6 @@ bool decoder_channel_init(u8 tracking_channel,
   /* Set up channel */
   d->info.tracking_channel = tracking_channel;
   d->info.mesid = mesid;
-  d->info.glo_slot_id = glo_slot_id;
   d->decoder = decoder;
 
   /* Empty the nav bit FIFO */

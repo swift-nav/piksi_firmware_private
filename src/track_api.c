@@ -121,9 +121,13 @@ s32 tracker_tow_update(tracker_context_t *context,
   /* Latch TOW from nav message if pending */
   s32 pending_TOW_ms;
   s8 pending_bit_polarity;
+  u16 pending_glo_orbit_slot;
   nav_bit_fifo_index_t pending_TOW_read_index;
-  if (nav_time_sync_get(&internal_data->nav_time_sync, &pending_TOW_ms,
-                        &pending_bit_polarity, &pending_TOW_read_index)) {
+  if (nav_time_sync_get(&internal_data->nav_time_sync,
+                        &pending_TOW_ms,
+                        &pending_bit_polarity,
+                        &pending_glo_orbit_slot,
+                        &pending_TOW_read_index)) {
 
     /* Compute time since the pending data was read from the FIFO */
     nav_bit_fifo_index_t fifo_length =
@@ -150,6 +154,12 @@ s32 tracker_tow_update(tracker_context_t *context,
       internal_data->reset_cpo = true;
       internal_data->bit_polarity = pending_bit_polarity;
     }
+    if (GLO_ORBIT_SLOT_UNKNOWN != internal_data->glo_orbit_slot &&
+        internal_data->glo_orbit_slot != pending_glo_orbit_slot) {
+      log_warn_mesid(channel_info->mesid, "Unexpected GLO orbit slot change");
+    }
+    internal_data->glo_orbit_slot = pending_glo_orbit_slot;
+
     if (NULL != decoded_tow) {
       *decoded_tow = TOW_ms >= 0;
     }
@@ -374,7 +384,7 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
       return;
     }
     gnss_signal_t sid = mesid2sid(channel_info->mesid,
-                                  channel_info->glo_slot_id);
+                                  internal_data->glo_orbit_slot);
     msg.sid = sid_to_sbp(sid);
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;
