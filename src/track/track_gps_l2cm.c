@@ -244,8 +244,8 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                                u32 cycle_flags)
 {
   tp_tow_entry_t tow_entry;
-  gnss_signal_t sid = mesid2sid(channel_info->mesid,
-                                channel_info->glo_slot_id);
+  gnss_signal_t sid = construct_sid(channel_info->mesid.code,
+                                    channel_info->mesid.sat);
   if (!track_sid_db_load_tow(sid, &tow_entry)) {
     /* Error */
     return;

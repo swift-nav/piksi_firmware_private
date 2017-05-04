@@ -117,7 +117,13 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     string_decode_status_t str_status = process_string_glo(&data->nav_msg);
     if (GLO_STRING_DECODE_DONE == str_status) {
       /* TODO GLO: Save ephemeris to NDB */
-      /* TODO GLO: Pass decoded glo_orbit_slot to tracking channel */
+      /* TODO GLO: ToW handling */
+      if (!tracking_channel_time_sync(channel_info->tracking_channel,
+                                      1, /* TODO GLO: Proper ToW handling */
+                                      data->nav_msg.bit_polarity,
+                                      data->nav_msg.eph.sid.sat)) {
+        log_warn_mesid(channel_info->mesid, "TOW set failed");
+      }
     } else if (GLO_STRING_DECODE_ERROR == str_status) {
       nav_msg_init_glo(&data->nav_msg);
     }

@@ -155,8 +155,10 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     s8 bit_polarity = data->cnav_msg.bit_polarity;
 
     if ((tow_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
-      if (!tracking_channel_time_sync(channel_info->tracking_channel, tow_ms,
-                                      bit_polarity)) {
+      if (!tracking_channel_time_sync(channel_info->tracking_channel,
+                                      tow_ms,
+                                      bit_polarity,
+                                      GLO_ORBIT_SLOT_UNKNOWN)) {
         log_warn_mesid(channel_info->mesid, "TOW set failed");
       }
     }
