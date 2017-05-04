@@ -9,7 +9,7 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.1.0-branch-143-g79ec56b/v3/prod
+      prefix: piksi_buildroot/v1.1.0-branch-156-g5ef3465/v3/prod
       files:
         - uImage.piksiv3_prod
     -
