@@ -97,7 +97,7 @@ static void interface_function(tracker_channel_t *tracker_channel,
 static void event(tracker_channel_t *d, event_t event);
 static void common_data_init(tracker_common_data_t *common_data,
                              u32 sample_count, float carrier_freq,
-                             float cn0, const code_t code);
+                             float cn0, const me_gnss_signal_t mesid);
 static void tracker_channel_lock(tracker_channel_t *tracker_channel);
 static void tracker_channel_unlock(tracker_channel_t *tracker_channel);
 static void error_flags_clear(tracker_channel_t *tracker_channel);
@@ -402,7 +402,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->tracker = tracker;
 
     common_data_init(&tracker_channel->common_data, ref_sample_count,
-                     carrier_freq, cn0_init, mesid.code);
+                     carrier_freq, cn0_init, mesid);
 
     internal_data_init(&tracker_channel->internal_data, mesid);
     interface_function(tracker_channel, tracker_interface->init);
@@ -981,7 +981,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
         mesid = pub_data->gen_info.mesid;
-        carrier_phase_offset -= code_to_carr_freq(mesid.code) * dt;
+        carrier_phase_offset -= mesid_to_carr_freq(mesid) * dt;
         misc_info->carrier_phase_offset.value = carrier_phase_offset;
         /* Note that because code-carrier difference does not change here,
          * we do not reset the lock time carrier_phase_offset.timestamp_ms */
@@ -1500,11 +1500,11 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
  * \param sample_count      Sample count.
  * \param carrier_freq      Carrier frequency.
  * \param cn0               C/N0 estimate.
- * \param code              Code identifier.
+ * \param mesid             ME signal identifier
  */
 static void common_data_init(tracker_common_data_t *common_data,
                              u32 sample_count, float carrier_freq,
-                             float cn0, const code_t code)
+                             float cn0, const me_gnss_signal_t mesid)
 {
   /* Initialize all fields to 0 */
   memset(common_data, 0, sizeof(tracker_common_data_t));
@@ -1513,8 +1513,8 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->TOW_ms_prev = TOW_INVALID;
 
   /* Calculate code phase rate with carrier aiding. */
-  common_data->code_phase_rate = (1.0 + carrier_freq / code_to_carr_freq(code)) *
-                                 code_to_chip_rate(code);
+  common_data->code_phase_rate = (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
+                                 code_to_chip_rate(mesid.code);
   common_data->carrier_freq = carrier_freq;
 
   common_data->sample_count = sample_count;

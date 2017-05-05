@@ -55,6 +55,9 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
+/** Max accuracy we allow to output a SPP solution */
+#define MAX_SPP_ACCURACY 100.0
+
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
                                    MANAGE_TRACK_FLAG_NO_ERROR | \
@@ -181,9 +184,9 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
      * Since velocity uses the same system matrix as SPP position solution, the
      * accuracy estimate is just a scaled version of that.
      * TODO: implement proper computation of vel_err_cov matrix in LSNP */
-
+    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, GPS_FIRST_PRN);
     double vel_accuracy_multiplier = sqrt(DOPPLER_CN0_COEFFICIENT / CODE_CN0_COEFFICIENT)
-                                     * code_to_lambda(CODE_GPS_L1CA);
+                                     * sid_to_lambda(sid);
     double vel_accuracy = vel_accuracy_multiplier * accuracy;
     double vel_h_accuracy = vel_accuracy_multiplier * h_accuracy;
     double vel_v_accuracy = vel_accuracy_multiplier * v_accuracy;
@@ -778,6 +781,21 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
+bool gate_covariance(gnss_solution *soln) {
+  assert(soln != NULL);
+  double full_covariance[9];
+  extract_covariance(full_covariance, soln);
+
+  double accuracy, h_accuracy, v_accuracy;
+  covariance_to_accuracy(full_covariance, soln->pos_ecef,
+                         &accuracy, &h_accuracy, &v_accuracy);
+  if (accuracy > MAX_SPP_ACCURACY) {
+    log_warn("SPP Position suppressed due to position confidence of %f exceeding 100.0m", accuracy);
+    return true;
+  }
+  return false;
+}
+
 static THD_WORKING_AREA(wa_solution_thread, 5000000);
 static void solution_thread(void *arg)
 {
@@ -1034,7 +1052,8 @@ static void solution_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sid);
-    if (pvt_ret < 0) {
+    if (pvt_ret < 0
+        || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
       /* An error occurred with calc_PVT! */
       /* pvt_err_msg defined in libswiftnav/pvt.c */
       DO_EVERY((u32)soln_freq,
@@ -1157,16 +1176,16 @@ static void solution_thread(void *arg)
         /* Note, the pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
         nm->raw_pseudorange -= t_err * doppler *
-                               code_to_lambda(nm->sid.code);
+                               sid_to_lambda(nm->sid);
 
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += current_fix.clock_offset *
-                                      GPS_C / code_to_lambda(nm->sid.code);
+                                      GPS_C / sid_to_lambda(nm->sid);
         nm->raw_measured_doppler += current_fix.clock_bias *
-                                    GPS_C / code_to_lambda(nm->sid.code);
+                                    GPS_C / sid_to_lambda(nm->sid);
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
         nm->raw_computed_doppler += computed_clock_rate *
-                                      GPS_C / code_to_lambda(nm->sid.code);
+                                      GPS_C / sid_to_lambda(nm->sid);
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -1268,7 +1287,7 @@ static void solution_thread(void *arg)
       /* adjust the stored CP measurements so that next TDCP is correct */
       for (u8 i = 0; i < n_ready_old; i++) {
         nav_meas_old[i].raw_carrier_phase += dt *
-            code_to_carr_freq(nav_meas_old[i].sid.code);
+            sid_to_carr_freq(nav_meas_old[i].sid);
       }
       clock_offset_previous -= dt;
     }

@@ -328,7 +328,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   if (fix_type != NMEA_GGA_QI_INVALID) {
     NMEA_SENTENCE_PRINTF("%02d,%.1f,%.2f,M,0.0,M,",
                          sbp_pos_llh->n_sats,
-                         sbp_dops->hdop * 0.01,
+                         round(10 * sbp_dops->hdop * 0.01) / 10,
                          sbp_pos_llh->height);
   } else {
     NMEA_SENTENCE_PRINTF(",,,M,,M,");
@@ -373,9 +373,9 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, c
 
   if (sbp_dops && ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION)) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
-                         sbp_dops->pdop * 0.01,
-                         sbp_dops->hdop * 0.01,
-                         sbp_dops->vdop * 0.01);
+                         round(10 * sbp_dops->pdop * 0.01) / 10,
+                         round(10 * sbp_dops->hdop * 0.01) / 10,
+                         round(10 * sbp_dops->vdop * 0.01) / 10);
   } else {
     NMEA_SENTENCE_PRINTF(",,");
   }
@@ -465,7 +465,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
     NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_gps_used);
 
     for (u8 j = 0; j < 4 && n < n_gps_used; n++) {
-      u8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
+      s8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
       u16 azi = sv_azimuth_degrees_get(ch_meas_gps[n]->sid);
 
       NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gps[n]->sid.sat);
@@ -473,7 +473,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
       if (TRACKING_ELEVATION_UNKNOWN == ele) {
         NMEA_SENTENCE_PRINTF(",");
       } else {
-        NMEA_SENTENCE_PRINTF(",%02u", ele);
+        NMEA_SENTENCE_PRINTF(",%02d", ele);
       }
 
       if (TRACKING_AZIMUTH_UNKNOWN == azi) {
