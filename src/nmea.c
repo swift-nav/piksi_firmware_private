@@ -465,7 +465,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
     NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i+1, n_gps_used);
 
     for (u8 j = 0; j < 4 && n < n_gps_used; n++) {
-      u8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
+      s8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
       u16 azi = sv_azimuth_degrees_get(ch_meas_gps[n]->sid);
 
       NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gps[n]->sid.sat);
@@ -473,7 +473,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
       if (TRACKING_ELEVATION_UNKNOWN == ele) {
         NMEA_SENTENCE_PRINTF(",");
       } else {
-        NMEA_SENTENCE_PRINTF(",%02u", ele);
+        NMEA_SENTENCE_PRINTF(",%02d", ele);
       }
 
       if (TRACKING_AZIMUTH_UNKNOWN == azi) {
