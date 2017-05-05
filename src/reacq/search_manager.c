@@ -14,7 +14,7 @@
 #include "search_manager_api.h"
 #include <timing.h>
 #include <manage.h>
-#include "glo_map.h"
+#include <libswiftnav/glo_map.h>
 
 /* Search manager functions which call other modules */
 

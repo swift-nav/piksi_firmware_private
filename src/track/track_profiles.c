@@ -728,7 +728,7 @@ static void update_stats(const me_gnss_signal_t mesid,
 
   profile->filt_cn0 = cn0;
 
-  float carr_freq = code_to_carr_freq(mesid.code);
+  float carr_freq = mesid_to_carr_freq(mesid);
   float acceleration_g = data->acceleration *
               (float) (GPS_C / STD_GRAVITY_ACCELERATION) / carr_freq;
 

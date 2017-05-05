@@ -26,6 +26,7 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/glo_map.h>
 
 #include "main.h"
 #include "board/nap/track_channel.h"
@@ -46,7 +47,6 @@
 #include "shm.h"
 #include "dum.h"
 #include "reacq/reacq_api.h"
-#include "glo_map.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
@@ -1067,7 +1067,7 @@ static bool compute_cpo(u64 ref_tc,
 
     double rcv_clk_error =  gpsdifftime(&gps_time,&receiver_time);
 
-    double phase = (code_to_carr_freq(meas->sid.code) *
+    double phase = (sid_to_carr_freq(meas->sid) *
       ( raw_pseudorange / GPS_C - rcv_clk_error ));
 
     /* initialize the carrier phase offset with the pseudorange measurement */
