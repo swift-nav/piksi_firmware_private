@@ -363,6 +363,21 @@ void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
   internal_data->bit_polarity = polarity;
 }
 
+/** Get the channel's GLO orbital slot information.
+ *
+ * \param context  Tracker context.
+ *
+ * \return GLO orbital slot
+ */
+u16 tracker_glo_orbit_slot_get(tracker_context_t *context)
+{
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  return internal_data->glo_orbit_slot;
+}
+
 /** Output a correlation data message for a tracker channel.
  *
  * \param context     Tracker context.
