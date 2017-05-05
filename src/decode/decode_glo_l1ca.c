@@ -116,7 +116,15 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     /* Get GLO strings 1 - 5, and decode full ephemeris */
     string_decode_status_t str_status = process_string_glo(&data->nav_msg);
     if (GLO_STRING_DECODE_DONE == str_status) {
-      /* TODO GLO: Save ephemeris to NDB */
+      /* Store new ephemeris */
+      log_debug_mesid(channel_info->mesid,
+                      "New ephemeris received [%" PRId16 ", %lf]",
+                      data->nav_msg.eph.toe.wn, data->nav_msg.eph.toe.tow);
+      eph_new_status_t r = ephemeris_new(&data->nav_msg.eph);
+      if (EPH_NEW_OK != r) {
+        log_warn_mesid(channel_info->mesid,
+                       "Error in GLO ephemeris processing");
+      }
       /* TODO GLO: ToW handling */
       if (!tracking_channel_time_sync(channel_info->tracking_channel,
                                       1, /* TODO GLO: Proper ToW handling */

@@ -221,50 +221,55 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
     return EPH_NEW_ERR;
   }
 
-  xcorr_positions_t alm_pos;
-  xcorr_positions_t eph_pos;
-  s32 time_s = e->toe.wn * WEEK_SECS + (s32)e->toe.tow;
+  /* TODO GLO: Implement ephemeris - almanac cross-checking for GLO */
+  constellation_t constellation = code_to_constellation(e->sid.code);
+  if (CONSTELLATION_GPS == constellation) {
+    xcorr_positions_t alm_pos;
+    xcorr_positions_t eph_pos;
+    s32 time_s = e->toe.wn * WEEK_SECS + (s32)e->toe.tow;
 
-  /* Compute three test positions over the ephemeris's time of validity */
-  if (!xcorr_calc_eph_positions(e, time_s, &eph_pos)) {
-    log_warn_sid(e->sid, "Failed to compute reference ECEFs");
-    return EPH_NEW_ERR;
-  }
-
-  /* Compare against other almanacs */
-  for (u32 sv_idx = 0; sv_idx < NUM_SATS_GPS; sv_idx++) {
-    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
-    if (sid.sat == e->sid.sat) {
-      /* Skip self */
-      continue;
+    /* Compute three test positions over the ephemeris's time of validity */
+    if (!xcorr_calc_eph_positions(e, time_s, &eph_pos)) {
+      log_warn_sid(e->sid, "Failed to compute reference ECEFs");
+      return EPH_NEW_ERR;
     }
-    if (xcorr_get_alm_positions(sid, eph_pos.time_s, eph_pos.interval_s,
-                                &alm_pos)) {
-      if (xcorr_match_positions(e->sid, sid, &eph_pos, &alm_pos)) {
-        /* Matched different almanac - cross correlation detected */
-        return EPH_NEW_XCORR;
+
+    /* Compare against other almanacs */
+    for (u32 sv_idx = 0; sv_idx < NUM_SATS_GPS; sv_idx++) {
+      gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
+      if (sid.sat == e->sid.sat) {
+        /* Skip self */
+        continue;
       }
+      if (xcorr_get_alm_positions(sid, eph_pos.time_s, eph_pos.interval_s,
+                                  &alm_pos)) {
+        if (xcorr_match_positions(e->sid, sid, &eph_pos, &alm_pos)) {
+          /* Matched different almanac - cross correlation detected */
+          return EPH_NEW_XCORR;
+        }
+      }
+      /* OK: no data or distance mismatch; continue with another SV */
     }
-    /* OK: no data or distance mismatch; continue with another SV */
-  }
 
-  /* Compare against own almanac */
-  switch (xcorr_match_alm_position(e->sid, e->sid, &eph_pos)) {
-  case XCORR_MATCH_RES_OK:
-    /* OK, ephemeris matches almanac */
-    break;
-  case XCORR_MATCH_RES_NO_ALMANAC:
-    /* No valid almanac to compare to, should happen only during the
-     * first 13 minutes or so after a cold start */
-    break;
-  case XCORR_MATCH_RES_NO_MATCH:
-    /* Own almanac check has failed due to bad data, cross-correlation etc. */
-    log_warn_sid(e->sid, "Ephemeris does not match with almanac, discarding");
+    /* Compare against own almanac */
+    switch (xcorr_match_alm_position(e->sid, e->sid, &eph_pos)) {
+    case XCORR_MATCH_RES_OK:
+      /* OK, ephemeris matches almanac */
+      break;
+    case XCORR_MATCH_RES_NO_ALMANAC:
+      /* No valid almanac to compare to, should happen only during the
+       * first 13 minutes or so after a cold start */
+      break;
+    case XCORR_MATCH_RES_NO_MATCH:
+      /* Own almanac check has failed due to bad data, cross-correlation etc. */
+      log_warn_sid(e->sid,
+                   "Ephemeris does not match with almanac, discarding");
 
-    return EPH_NEW_ERR;
-    break;
-  default:
-    assert(!"Invalid match result");
+      return EPH_NEW_ERR;
+      break;
+    default:
+      assert(!"Invalid match result");
+    }
   }
 
   ndb_op_code_t oc = ndb_ephemeris_store(e,
