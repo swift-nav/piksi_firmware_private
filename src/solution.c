@@ -1043,7 +1043,7 @@ static void solution_thread(void *arg)
 
     dops_t dops;
     gnss_solution current_fix;
-    gnss_signal_t raim_removed_sid;
+    gnss_sid_set_t raim_removed_sids;
 
     /* Calculate the SPP position
      * disable_raim controlled by external setting. Defaults to false. */
@@ -1051,7 +1051,7 @@ static void solution_thread(void *arg)
      * just return the rough value from the tracking loop. */
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
-                          &current_fix, &dops, &raim_removed_sid);
+                          &current_fix, &dops, &raim_removed_sids);
     if (pvt_ret < 0
         || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
       /* An error occurred with calc_PVT! */
@@ -1085,7 +1085,7 @@ static void solution_thread(void *arg)
        invalid. In practice, this means setting only the CN0 flag valid. */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
       for (u8 i = 0; i < n_ready_tdcp; i++) {
-        if (sid_is_equal(nav_meas_tdcp[i].sid, raim_removed_sid)) {
+        if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
           log_warn_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
           nav_meas_tdcp[i].flags = NAV_MEAS_FLAG_CN0_VALID;
         }
