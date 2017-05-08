@@ -23,7 +23,7 @@
 #include <nap/nap_common.h>
 #include <signal.h>
 
-#define NDB_THREAD_PRIORITY (LOWPRIO)
+#define NDB_THREAD_PRIORITY (LOWPRIO+1)
 static WORKING_AREA_CCM(ndb_thread_wa, 2048);
 static void ndb_service_thread(void*);
 
