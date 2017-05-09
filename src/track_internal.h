@@ -48,14 +48,14 @@ typedef struct {
   u16 glo_orbit_slot;
   nav_bit_fifo_index_t read_index;
   bool valid;
-} nav_time_sync_t;
+} nav_data_sync_t;
 
 typedef struct {
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
   /** Used to sync time decoded from navigation message
    * back to tracking channel. */
-  nav_time_sync_t nav_time_sync;
+  nav_data_sync_t nav_data_sync;
   /** Time since last nav bit was appended to the nav bit FIFO. */
   u32 nav_bit_TOW_offset_ms;
   /** Bit sync state. */
@@ -94,17 +94,11 @@ bool nav_bit_fifo_full(nav_bit_fifo_t *fifo);
 bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
                         const nav_bit_fifo_element_t *element);
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element);
-void nav_time_sync_init(nav_time_sync_t *sync);
-bool nav_time_sync_set(nav_time_sync_t *sync,
-                       s32 TOW_ms,
-                       s8 bit_polarity,
-                       u16 glo_orbit_slot,
-                       nav_bit_fifo_index_t read_index);
-bool nav_time_sync_get(nav_time_sync_t *sync,
-                       s32 *TOW_ms,
-                       s8 *bit_polarity,
-                       u16 *glo_orbit_slot,
-                       nav_bit_fifo_index_t *read_index);
+void nav_data_sync_init(nav_data_sync_t *sync);
+bool nav_data_sync_set(nav_data_sync_t *to_tracker,
+                       const nav_data_sync_t *from_decoder);
+bool nav_data_sync_get(nav_data_sync_t *to_tracker,
+                       nav_data_sync_t *from_decoder);
 
 s8 nav_bit_quantize(s32 bit_integrate);
 

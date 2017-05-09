@@ -445,16 +445,12 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
     /* Update TOW */
     bool bit_val = soft_bit >= 0;
-    s32 TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
-    s8 bit_polarity = data->nav_msg.bit_polarity;
-    if ((TOW_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
-      if (!tracking_channel_time_sync(channel_info->tracking_channel,
-                                      TOW_ms,
-                                      bit_polarity,
-                                      GLO_ORBIT_SLOT_UNKNOWN)) {
-        log_warn_mesid(channel_info->mesid, "TOW set failed");
-      }
-    }
+    nav_data_sync_t from_decoder;
+    tracking_channel_data_sync_init(&from_decoder);
+    from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
+    from_decoder.bit_polarity = data->nav_msg.bit_polarity;
+    tracking_channel_gps_data_sync(channel_info->tracking_channel,
+                                   &from_decoder);
   }
 
   /* Check if there is a new nav msg subframe to process. */

@@ -345,10 +345,11 @@ s8 sv_elevation_degrees_get(gnss_signal_t sid);
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
                                   bool *sensitivity_mode);
-bool tracking_channel_time_sync(tracker_channel_id_t id,
-                                s32 TOW_ms,
-                                s8 bit_polarity,
-                                u16 glo_orbit_slot);
+void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
+void tracking_channel_gps_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder);
+void tracking_channel_glo_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder);
 void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
 void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);

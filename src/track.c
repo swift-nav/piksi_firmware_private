@@ -1136,38 +1136,85 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
   return false;
 }
 
-/** Propagate decoded time of week and bit polarity back to a tracker channel.
+/** Initializes the data structure used to sync data between decoder and tracker
+ *
+ * \param data_sync struct used for sync
+ */
+void tracking_channel_data_sync_init(nav_data_sync_t *data_sync)
+{
+  memset(data_sync, 0, sizeof(*data_sync));
+  data_sync->glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+}
+
+/** Propagate decoded time of week, bit polarity and optional glo orbit slot
+ *  back to a tracker channel.
  *
  * \note This function should be called from the same thread as
  * tracking_channel_nav_bit_get().
  * \note It is assumed that the specified data is synchronized with the most
  * recent nav bit read from the FIFO using tracking_channel_nav_bit_get().
  *
- * \param id             ID of the tracker channel to synchronize.
- * \param TOW_ms         Time of week in milliseconds.
- * \param bit_polarity   Bit polarity.
- * \param glo_orbit_slot GLO orbital slot.
- *
- * \return true if data was enqueued successfully, false otherwise.
+ * \param id           ID of the tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
  */
-bool tracking_channel_time_sync(tracker_channel_id_t id,
-                                s32 TOW_ms,
-                                s8 bit_polarity,
-                                u16 glo_orbit_slot)
+static void tracking_channel_data_sync(tracker_channel_id_t id,
+                                       nav_data_sync_t *from_decoder)
 {
-  assert(TOW_ms >= 0);
-  assert(TOW_ms < WEEK_MS);
-  assert((bit_polarity == BIT_POLARITY_NORMAL) ||
-         (bit_polarity == BIT_POLARITY_INVERTED));
+  assert(from_decoder);
+  assert(from_decoder->TOW_ms >= 0);
+  assert(from_decoder->TOW_ms < WEEK_MS);
+  assert((from_decoder->bit_polarity == BIT_POLARITY_NORMAL) ||
+         (from_decoder->bit_polarity == BIT_POLARITY_INVERTED));
 
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
+  tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-  nav_bit_fifo_index_t read_index = internal_data->nav_bit_fifo.read_index;
-  return nav_time_sync_set(&internal_data->nav_time_sync,
-                           TOW_ms,
-                           bit_polarity,
-                           glo_orbit_slot,
-                           read_index);
+  from_decoder->read_index = internal_data->nav_bit_fifo.read_index;
+  if (!nav_data_sync_set(&internal_data->nav_data_sync, from_decoder)) {
+    log_warn_mesid(channel_info->mesid, "Data sync failed");
+  }
+}
+
+/** Propagate decoded GPS time of week and bit polarity back to a tracker channel.
+ *
+ * \note This function should be called from the same thread as
+ * tracking_channel_nav_bit_get().
+ * \note It is assumed that the specified data is synchronized with the most
+ * recent nav bit read from the FIFO using tracking_channel_nav_bit_get().
+ *
+ * \param id           ID of the GPS tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
+ */
+void tracking_channel_gps_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder)
+{
+  assert(from_decoder);
+
+  if ((from_decoder->TOW_ms < 0) ||
+      (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity)) {
+    return;
+  }
+  tracking_channel_data_sync(id, from_decoder);
+}
+
+/** Propagate decoded GLO time of week, bit polarity and glo orbit slot
+ *  back to a tracker channel.
+ *
+ * \note This function should be called from the same thread as
+ * tracking_channel_nav_bit_get().
+ * \note It is assumed that the specified data is synchronized with the most
+ * recent nav bit read from the FIFO using tracking_channel_nav_bit_get().
+ *
+ * \param id           ID of the GLO tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
+ */
+void tracking_channel_glo_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder)
+{
+  assert(from_decoder);
+  assert(from_decoder->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN);
+
+  tracking_channel_data_sync(id, from_decoder);
 }
 
 /** Retrieve the channel info and internal data associated with a

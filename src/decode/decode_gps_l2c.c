@@ -152,16 +152,12 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       tow_ms -= WEEK_MS;
     }
 
-    s8 bit_polarity = data->cnav_msg.bit_polarity;
-
-    if ((tow_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
-      if (!tracking_channel_time_sync(channel_info->tracking_channel,
-                                      tow_ms,
-                                      bit_polarity,
-                                      GLO_ORBIT_SLOT_UNKNOWN)) {
-        log_warn_mesid(channel_info->mesid, "TOW set failed");
-      }
-    }
+    nav_data_sync_t from_decoder;
+    tracking_channel_data_sync_init(&from_decoder);
+    from_decoder.TOW_ms = tow_ms;
+    from_decoder.bit_polarity = data->cnav_msg.bit_polarity;
+    tracking_channel_gps_data_sync(channel_info->tracking_channel,
+                                   &from_decoder);
 
     /* check PRN conformity */
     bool prn_fail = channel_info->mesid.sat != (u16)data->cnav_msg.prn;
