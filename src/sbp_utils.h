@@ -123,6 +123,7 @@ void sbp_send_ndb_event(u8 event,
 #define MSG_OBS_FLAGS_PHASE_VALID        ((u8) (1 << 1))
 #define MSG_OBS_FLAGS_HALF_CYCLE_KNOWN   ((u8) (1 << 2))
 #define MSG_OBS_FLAGS_MEAS_DOPPLER_VALID ((u8) (1 << 3))
+#define MSG_OBS_FLAGS_RAIM_EXCLUSION     ((u8) (1 << 7))
 
 #define MSG_HEADING_SCALE_FACTOR 1000.0
 
