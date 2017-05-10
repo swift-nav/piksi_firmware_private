@@ -135,10 +135,12 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     }
 
     nav_data_sync_t from_decoder;
+    tracking_channel_data_sync_init(&from_decoder);
     /* TODO GLO: Proper ToW handling */
     from_decoder.TOW_ms = 1;
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     from_decoder.glo_orbit_slot = data->nav_msg.eph.sid.sat;
+    from_decoder.health = data->nav_msg.eph.health_bits;
     tracking_channel_glo_data_sync(channel_info->tracking_channel,
                                    &from_decoder);
   }
