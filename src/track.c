@@ -199,17 +199,12 @@ void tracking_send_state()
 
       if (!running || !confirmed) {
         states[i].state = 0;
-        states[i].sid = (sbp_gnss_signal_t){
-          .code = 0,
-          .sat = 0,
-          .reserved = 0
-        };
         states[i].cn0 = -1;
       } else {
         states[i].state = 1;
-        states[i].sid = sid_to_sbp(sid);
         states[i].cn0 = cn0;
       }
+      states[i].sid = sid_to_sbp(sid);
     }
   }
 
@@ -1489,6 +1484,7 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     tracker_channel->tracker->active = false;
     tracker_channel->state = STATE_DISABLED;
+    tracker_channel->info.sid.code = CODE_INVALID;
   }
   break;
 
