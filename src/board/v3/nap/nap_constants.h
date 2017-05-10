@@ -33,7 +33,7 @@
 /**
  * @brief   The sample rate decimation used by tracking channels
  */
-#define NAP_TRACK_DECIMATION_RATE                                         (5)
+#define NAP_TRACK_DECIMATION_RATE                                         (4)
 
 /**
  * @brief   The tracking channel sample rate after decimation
@@ -63,8 +63,8 @@
 #define NAP_SPACING_CHIPS                                                 (0)
 #define NAP_SPACING_SAMPLES                                               (1)
 
-#define NAP_VE_E_SPACING_CHIPS                                            (2)
-#define NAP_VE_E_SPACING_SAMPLES                                          (9)
+#define NAP_VE_E_SPACING_CHIPS                                            (7)
+#define NAP_VE_E_SPACING_SAMPLES                                         (12)
 
 #define NAP_KEY_LENGTH                                                   (16)
 
