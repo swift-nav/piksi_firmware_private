@@ -1006,6 +1006,9 @@ void tracking_channel_drop_l2cl(gnss_signal_t sid)
   if (tracker_channel == NULL) {
     return;
   }
+  if (STATE_ENABLED != (tracker_channel->state)) {
+    return;
+  }
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
@@ -1484,7 +1487,6 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     tracker_channel->tracker->active = false;
     tracker_channel->state = STATE_DISABLED;
-    tracker_channel->info.sid.code = CODE_INVALID;
   }
   break;
 
