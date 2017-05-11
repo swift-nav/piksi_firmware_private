@@ -263,7 +263,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   state->L.f = (u8)(Lf * MSG_OBS_LF_MULTIPLIER);
 
   /* TODO GLO: Handle GLO orbit slot properly. */
-  u16 glo_orbit_slot = channel_info->glo_slot_id;
+  u16 glo_orbit_slot = channel_info->glo_orbit_slot;
   if (GLO_ORBIT_SLOT_UNKNOWN == glo_orbit_slot) {
     glo_orbit_slot = channel_info->mesid.sat;
   }

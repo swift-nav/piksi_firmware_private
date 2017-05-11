@@ -1192,7 +1192,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
     if (is_glo_sid(info.mesid)) {
       return flags;
     }
-    gnss_signal_t sid = mesid2sid(info.mesid, info.glo_slot_id);
+    gnss_signal_t sid = mesid2sid(info.mesid, info.glo_orbit_slot);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
@@ -1472,9 +1472,7 @@ static void manage_tracking_startup(void)
 
     /* Start the decoder channel if needed */
     if (code_requires_decoder(startup_params.mesid.code) &&
-        !decoder_channel_init(chan,
-                              startup_params.mesid,
-                              startup_params.glo_slot_id)) {
+        !decoder_channel_init(chan, startup_params.mesid)) {
       log_error("decoder channel init failed");
     }
 

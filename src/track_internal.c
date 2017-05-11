@@ -53,14 +53,17 @@ tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void)
  *
  * \param tracker_channel   Tracker channel to use.
  * \param mesid             ME signal identifier to use.
+ * \param glo_orbit_slot    GLO orbital slot.
  */
 void internal_data_init(tracker_internal_data_t *internal_data,
-                        const me_gnss_signal_t mesid)
+                        const me_gnss_signal_t mesid,
+                        u16 glo_orbit_slot)
 {
   /* Initialize all fields to 0 */
   memset(internal_data, 0, sizeof(tracker_internal_data_t));
 
   internal_data->bit_polarity = BIT_POLARITY_UNKNOWN;
+  internal_data->glo_orbit_slot = glo_orbit_slot;
 
   nav_bit_fifo_init(&internal_data->nav_bit_fifo);
   nav_time_sync_init(&internal_data->nav_time_sync);
@@ -148,16 +151,20 @@ void nav_time_sync_init(nav_time_sync_t *sync)
  *
  * \note This function should only be called externally by the decoder thread.
  *
- * \param sync          nav_time_sync_t struct to use.
- * \param TOW_ms        TOW in ms.
- * \param bit_polarity  Bit polarity.
- * \param read_index    Nav bit FIFO read index to which the above values
- *                      are synchronized.
+ * \param sync           nav_time_sync_t struct to use.
+ * \param TOW_ms         TOW in ms.
+ * \param bit_polarity   Bit polarity.
+ * \param glo_orbit_slot GLO orbital slot.
+ * \param read_index     Nav bit FIFO read index to which the above values
+ *                       are synchronized.
  *
  * \return true if data was stored successfully, false otherwise.
  */
-bool nav_time_sync_set(nav_time_sync_t *sync, s32 TOW_ms,
-                       s8 bit_polarity, nav_bit_fifo_index_t read_index)
+bool nav_time_sync_set(nav_time_sync_t *sync,
+                       s32 TOW_ms,
+                       s8 bit_polarity,
+                       u16 glo_orbit_slot,
+                       nav_bit_fifo_index_t read_index)
 {
   bool result = false;
 
@@ -165,6 +172,7 @@ bool nav_time_sync_set(nav_time_sync_t *sync, s32 TOW_ms,
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     sync->TOW_ms = TOW_ms;
     sync->bit_polarity = bit_polarity;
+    sync->glo_orbit_slot = glo_orbit_slot;
     sync->read_index = read_index;
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     sync->valid = true;
@@ -178,16 +186,20 @@ bool nav_time_sync_set(nav_time_sync_t *sync, s32 TOW_ms,
  *
  * \note This function should only be called internally by the tracking thread.
  *
- * \param sync          nav_time_sync_t struct to use.
- * \param TOW_ms        TOW in ms.
- * \param bit_polarity  Bit polarity.
- * \param read_index    Nav bit FIFO read index to which the above values
- *                      are synchronized.
+ * \param sync           nav_time_sync_t struct to use.
+ * \param TOW_ms         TOW in ms.
+ * \param bit_polarity   Bit polarity.
+ * \param glo_orbit_slot GLO orbital slot.
+ * \param read_index     Nav bit FIFO read index to which the above values
+ *                       are synchronized.
  *
  * \return true if outputs are valid, false otherwise.
  */
-bool nav_time_sync_get(nav_time_sync_t *sync, s32 *TOW_ms,
-                       s8 *bit_polarity, nav_bit_fifo_index_t *read_index)
+bool nav_time_sync_get(nav_time_sync_t *sync,
+                       s32 *TOW_ms,
+                       s8 *bit_polarity,
+                       u16 *glo_orbit_slot,
+                       nav_bit_fifo_index_t *read_index)
 {
   bool result = false;
 
@@ -195,6 +207,7 @@ bool nav_time_sync_get(nav_time_sync_t *sync, s32 *TOW_ms,
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     *TOW_ms = sync->TOW_ms;
     *bit_polarity = sync->bit_polarity;
+    *glo_orbit_slot = sync->glo_orbit_slot;
     *read_index = sync->read_index;
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     sync->valid = false;

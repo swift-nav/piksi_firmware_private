@@ -448,8 +448,10 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     s32 TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
     s8 bit_polarity = data->nav_msg.bit_polarity;
     if ((TOW_ms >= 0) && (bit_polarity != BIT_POLARITY_UNKNOWN)) {
-      if (!tracking_channel_time_sync(channel_info->tracking_channel, TOW_ms,
-                                      bit_polarity)) {
+      if (!tracking_channel_time_sync(channel_info->tracking_channel,
+                                      TOW_ms,
+                                      bit_polarity,
+                                      GLO_ORBIT_SLOT_UNKNOWN)) {
         log_warn_mesid(channel_info->mesid, "TOW set failed");
       }
     }
@@ -467,8 +469,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
-  gnss_signal_t sid = mesid2sid(channel_info->mesid,
-                                channel_info->glo_slot_id);
+  gnss_signal_t sid = construct_sid(channel_info->mesid.code,
+                                    channel_info->mesid.sat);
 
   if (dd.invalid_control_or_data) {
     log_info_mesid(channel_info->mesid,
