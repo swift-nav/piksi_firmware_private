@@ -155,7 +155,9 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
   if ((code_phase < 0) ||
       ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
        (code_phase < (GPS_L2CM_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
-    log_warn_sid(sid, "Unexpected L2CM to L2CL handover code phase: %f",
+    /* RELEASEHACK 11 May 2017: degraded the warning to an info but
+     * it might still overflow the console.. fingers crossed */
+    log_info_sid(sid, "Unexpected L2CM to L2CL handover code phase: %f",
                  code_phase);
     return;
   }
