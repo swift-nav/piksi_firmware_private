@@ -9,12 +9,12 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.1.24/v3/microzed
+      prefix: piksi_buildroot/v1.1.25/v3/microzed
       files:
         - uImage.piksiv3_microzed
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v1.1.24
+      prefix: piksi_fpga/v1.1.25
       files:
         - piksi_microzed_nt1065_fpga.bit
 -
@@ -26,12 +26,12 @@
         - piksi_firmware_v3_prod.stripped.elf
   artifacts:
     -
-      bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.1.24/v3/prod
+      bucket: swiftnav-releases
+      prefix: piksi_buildroot/v1.1.25/v3/prod
       files:
         - uImage.piksiv3_prod
     -
-      bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v1.1.24
+      bucket: swiftnav-releases
+      prefix: piksi_fpga/v1.1.25
       files:
         - piksi_prod_fpga.bit
