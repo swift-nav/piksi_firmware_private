@@ -1473,7 +1473,12 @@ static void time_matched_obs_thread(void *arg)
         gnss_solution soln_copy = obss->soln;
         solution_make_sbp(&soln_copy,NULL,false, &sbp_messages);
 
-        process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
+        static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
+        double update_dt = gpsdifftime(&obss->tor, &last_update_time);
+        if (update_dt > 0.99 || dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+          process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
+          last_update_time = obss->tor;
+        }
         chPoolFree(&obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss_copy.sender_id, &sbp_messages);
