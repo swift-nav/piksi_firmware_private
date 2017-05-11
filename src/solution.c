@@ -1372,7 +1372,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
                                 obss->has_pos ? obss->pos_ecef : NULL,
                                 has_known_base_pos_ecef ? known_base_pos : NULL, 0.0);
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && ret == 0) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
