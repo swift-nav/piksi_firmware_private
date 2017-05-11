@@ -1007,14 +1007,17 @@ tracker_channel_t *tracker_channel_get_by_sid(gnss_signal_t sid)
 void tracking_channel_drop_l2cl(gnss_signal_t sid)
 {
   gnss_signal_t sid_L2CL = construct_sid(CODE_GPS_L2CL, sid.sat);
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_sid(sid_L2CL);
-  if (tracker_channel == NULL) {
+  tracker_channel_t *sTrackerChannel = tracker_channel_get_by_sid(sid_L2CL);
+  if (sTrackerChannel == NULL) {
     return;
   }
-  if (STATE_ENABLED != (tracker_channel->state)) {
+  /*! The barrier in manage_track() in manage.c should take care of
+   * this anyway
+   */
+  if (STATE_ENABLED != tracker_channel_state_get(sTrackerChannel)) {
     return;
   }
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tracker_common_data_t *common_data = &sTrackerChannel->common_data;
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
