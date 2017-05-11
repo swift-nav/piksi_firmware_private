@@ -68,7 +68,7 @@ static const tracker_interface_t tracker_interface_default = {
 
 static u16 iq_output_mask = 0;
 static bool send_trk_detailed = 0;
-/** send_trk_detailed setting is a stop gap to suppress this 
+/** send_trk_detailed setting is a stop gap to suppress this
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
 
@@ -1028,11 +1028,17 @@ tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid)
 void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
 {
   me_gnss_signal_t mesid_L2CL = construct_mesid(CODE_GPS_L2CL, mesid.sat);
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid_L2CL);
-  if (tracker_channel == NULL) {
+  tracker_channel_t *sTrackerChannel = tracker_channel_get_by_mesid(mesid_L2CL);
+  if (sTrackerChannel == NULL) {
     return;
   }
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  /*! The barrier in manage_track() in manage.c should take care of
+    * this anyway
+    */
+  if (STATE_ENABLED != tracker_channel_state_get(sTrackerChannel)) {
+    return;
+  }
+  tracker_common_data_t *common_data = &sTrackerChannel->common_data;
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
