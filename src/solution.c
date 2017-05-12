@@ -1397,6 +1397,21 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
   chMtxUnlock(&time_matched_filter_manager_lock);
 }
 
+bool update_time_matched(gps_time_t *last_update_time, gps_time_t *current_time, u8 num_obs){
+  double update_dt = gpsdifftime(current_time, last_update_time);
+
+  double update_rate_limit = 0.99;
+  if(num_obs > 16) {
+    update_rate_limit = 1.99;
+  }
+
+  if(update_dt < update_rate_limit) {
+    return false;
+  }
+
+  return true;
+}
+
 static WORKING_AREA_CCM(wa_time_matched_obs_thread, 5000000);
 static void time_matched_obs_thread(void *arg)
 {
@@ -1474,8 +1489,7 @@ static void time_matched_obs_thread(void *arg)
         solution_make_sbp(&soln_copy,NULL,false, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        double update_dt = gpsdifftime(&obss->tor, &last_update_time);
-        if (update_dt > 0.99 || dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+        if(update_time_matched(&last_update_time, &obss->tor, obss->n) || dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
           process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
           last_update_time = obss->tor;
         }
