@@ -119,9 +119,10 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
       nav_msg_init_glo(&data->nav_msg);
       continue;
     }
-    if (GLO_STRING_DECODE_DONE != str_status) {
+    if (GLO_STRING_DECODE_WAIT == str_status) {
       continue;
     }
+    assert(GLO_STRING_DECODE_DONE == str_status);
 
     /* Store new ephemeris */
     log_debug_mesid(channel_info->mesid,
