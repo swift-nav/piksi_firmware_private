@@ -151,7 +151,8 @@ gps_time_t get_current_time(void)
 {
   /* TODO: Return invalid when TIME_UNKNOWN. */
   /* TODO: Think about what happens when nap_timing_count overflows. */
-  u64 tc = nap_timing_count();
+  /* u64 tc = nap_timing_count(); */
+  double tc = 0.001 * ST2MS(chVTGetSystemTime()) * NAP_FRONTEND_SAMPLE_RATE_Hz;
   gps_time_t t = napcount2rcvtime(tc);
 
   return t;
@@ -286,6 +287,7 @@ void timing_setup(void)
  */
 u64 timing_getms(void)
 {
-  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
+  return ST2MS(chVTGetSystemTime());
+  /* return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0)); */
 }
 /** \} */
