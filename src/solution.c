@@ -1372,7 +1372,7 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
                                 obss->has_pos ? obss->pos_ecef : NULL,
                                 has_known_base_pos_ecef ? known_base_pos : NULL, 0.0);
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && ret == 0) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
@@ -1395,6 +1395,21 @@ void process_matched_obs(u8 n_sds, obss_t *obss, sdiff_t *sds,
                     sbp_messages);
   }
   chMtxUnlock(&time_matched_filter_manager_lock);
+}
+
+bool update_time_matched(gps_time_t *last_update_time, gps_time_t *current_time, u8 num_obs){
+  double update_dt = gpsdifftime(current_time, last_update_time);
+
+  double update_rate_limit = 0.99;
+  if(num_obs > 16) {
+    update_rate_limit = 1.99;
+  }
+
+  if(update_dt < update_rate_limit) {
+    return false;
+  }
+
+  return true;
 }
 
 static WORKING_AREA_CCM(wa_time_matched_obs_thread, 5000000);
@@ -1473,7 +1488,11 @@ static void time_matched_obs_thread(void *arg)
         gnss_solution soln_copy = obss->soln;
         solution_make_sbp(&soln_copy,NULL,false, &sbp_messages);
 
-        process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
+        static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
+        if(update_time_matched(&last_update_time, &obss->tor, obss->n) || dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+          process_matched_obs(n_sds, obss, sds, has_known_base_pos_ecef, known_base_pos, &sbp_messages);
+          last_update_time = obss->tor;
+        }
         chPoolFree(&obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(0.0, base_obss_copy.sender_id, &sbp_messages);
