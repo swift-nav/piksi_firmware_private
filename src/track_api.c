@@ -106,6 +106,32 @@ void tracker_retune(tracker_context_t *context,
                    0);
 }
 
+/** Adjust TOW for FIFO delay.
+ *
+ * \param to_tracker     nav_data_sync_t struct to use
+ * \param internal_data  tracker internal data.
+ *
+ * \return Updated TOW (ms).
+ */
+static s32 adjust_tow_by_bit_fifo_delay(const nav_data_sync_t to_tracker,
+                                        const tracker_internal_data_t *internal_data)
+{
+  s32 TOW_ms = TOW_INVALID;
+  /* Compute time since the pending data was read from the FIFO */
+  nav_bit_fifo_index_t fifo_length =
+    NAV_BIT_FIFO_INDEX_DIFF(internal_data->nav_bit_fifo.write_index,
+                            to_tracker.read_index);
+  u32 fifo_time_diff_ms = fifo_length * internal_data->bit_sync.bit_length;
+
+  /* Add full bit times + fractional bit time to the specified TOW */
+  TOW_ms = to_tracker.TOW_ms + fifo_time_diff_ms +
+           internal_data->nav_bit_TOW_offset_ms;
+
+  TOW_ms = normalize_tow(TOW_ms);
+
+  return TOW_ms;
+}
+
 /** Update the TOW for a tracker channel.
  *
  * \param context           Tracker context.
@@ -129,17 +155,7 @@ s32 tracker_tow_update(tracker_context_t *context,
   nav_data_sync_t to_tracker;
   if (nav_data_sync_get(&to_tracker, &internal_data->nav_data_sync)) {
 
-    /* Compute time since the pending data was read from the FIFO */
-    nav_bit_fifo_index_t fifo_length =
-      NAV_BIT_FIFO_INDEX_DIFF(internal_data->nav_bit_fifo.write_index,
-                              to_tracker.read_index);
-    u32 fifo_time_diff_ms = fifo_length * internal_data->bit_sync.bit_length;
-
-    /* Add full bit times + fractional bit time to the specified TOW */
-    TOW_ms = to_tracker.TOW_ms + fifo_time_diff_ms +
-             internal_data->nav_bit_TOW_offset_ms;
-
-    TOW_ms = normalize_tow(TOW_ms);
+    TOW_ms = adjust_tow_by_bit_fifo_delay(to_tracker, internal_data);
 
     /* Warn if updated TOW does not match the current value */
     if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
