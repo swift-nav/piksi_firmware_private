@@ -389,6 +389,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */
+    /* TODO GLO: GLO eph ages out sooner than the current setting */
     res = ndb_check_age(&e->toe, NDB_NV_EPHEMERIS_AGE_SECS);
   }
 

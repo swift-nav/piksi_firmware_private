@@ -138,7 +138,7 @@ typedef enum {
 typedef struct {
   tracker_channel_id_t     id;           /**< Channel identifier */
   me_gnss_signal_t         mesid;        /**< ME signal identifier */
-  u16                      glo_slot_id;  /**< GLO orbital slot */
+  u16                      glo_orbit_slot; /**< GLO orbital slot */
   tracking_channel_flags_t flags;        /**< Channel flags */
   s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
   float                    cn0;          /**< C/N0 [dB/Hz] */
@@ -298,7 +298,7 @@ bool tracker_channel_available(tracker_channel_id_t id,
                                const me_gnss_signal_t mesid);
 bool tracker_channel_init(tracker_channel_id_t id,
                           const me_gnss_signal_t mesid,
-                          u16 glo_slot_id,
+                          u16 glo_orbit_slot,
                           u32 ref_sample_count,
                           double code_phase,
                           float carrier_freq,
@@ -345,8 +345,11 @@ s8 sv_elevation_degrees_get(gnss_signal_t sid);
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
                                   bool *sensitivity_mode);
-bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
-                                s8 bit_polarity);
+void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
+void tracking_channel_gps_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder);
+void tracking_channel_glo_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder);
 void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
 void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);

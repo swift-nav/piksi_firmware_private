@@ -177,6 +177,8 @@ void tracking_send_state()
 
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
       const tracker_common_data_t *common_data = &tracker_channel->common_data;
+      const tracker_internal_data_t *internal_data =
+                                              &tracker_channel->internal_data;
 
       bool running;
       bool confirmed;
@@ -189,7 +191,7 @@ void tracking_send_state()
         running =
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         mesid = tracker_channel->info.mesid;
-        glo_slot_id = tracker_channel->info.glo_slot_id;
+        glo_slot_id = internal_data->glo_orbit_slot;
         cn0 = common_data->cn0;
         confirmed = 0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED);
       }
@@ -358,7 +360,7 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
  *
  * \param id                    ID of the tracker channel to be initialized.
  * \param mesid                 ME signal to be tracked.
- * \param glo_slot_id           GLO orbital slot.
+ * \param glo_orbit_slot        GLO orbital slot.
  * \param ref_sample_count      NAP sample count at which code_phase was acquired.
  * \param code_phase            Code phase
  * \param carrier_freq          Carrier frequency Doppler (Hz).
@@ -369,7 +371,7 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
  */
 bool tracker_channel_init(tracker_channel_id_t id,
                           const me_gnss_signal_t mesid,
-                          u16 glo_slot_id,
+                          u16 glo_orbit_slot,
                           u32 ref_sample_count,
                           double code_phase,
                           float carrier_freq,
@@ -395,7 +397,6 @@ bool tracker_channel_init(tracker_channel_id_t id,
   {
     /* Set up channel */
     tracker_channel->info.mesid = mesid;
-    tracker_channel->info.glo_slot_id = glo_slot_id;
     tracker_channel->info.context = tracker_channel;
     tracker_channel->info.nap_channel = id;
     tracker_channel->interface = tracker_interface;
@@ -404,7 +405,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
     common_data_init(&tracker_channel->common_data, ref_sample_count,
                      carrier_freq, cn0_init, mesid);
 
-    internal_data_init(&tracker_channel->internal_data, mesid);
+    internal_data_init(&tracker_channel->internal_data, mesid, glo_orbit_slot);
     interface_function(tracker_channel, tracker_interface->init);
 
     /* Clear error flags before starting NAP tracking channel */
@@ -533,7 +534,7 @@ static void tracking_channel_compute_values(
     /* Signal identifier */
     info->mesid = tracker_channel->info.mesid;
     /* GLO slot ID */
-    info->glo_slot_id = tracker_channel->info.glo_slot_id;
+    info->glo_orbit_slot = tracker_channel->internal_data.glo_orbit_slot;
     /* Current C/N0 [dB/Hz] */
     info->cn0 = common_data->cn0;
     /* Current time of week for a tracker channel [ms] */
@@ -910,7 +911,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
   if (is_glo_sid(info->mesid)) {
     return;
   }
-  meas->sid = mesid2sid(info->mesid, info->glo_slot_id);
+  meas->sid = mesid2sid(info->mesid, info->glo_orbit_slot);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
   meas->carrier_phase = freq_info->carrier_phase;
@@ -1135,32 +1136,85 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
   return false;
 }
 
-/** Propagate decoded time of week and bit polarity back to a tracker channel.
+/** Initializes the data structure used to sync data between decoder and tracker
+ *
+ * \param data_sync struct used for sync
+ */
+void tracking_channel_data_sync_init(nav_data_sync_t *data_sync)
+{
+  memset(data_sync, 0, sizeof(*data_sync));
+  data_sync->glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+}
+
+/** Propagate decoded time of week, bit polarity and optional glo orbit slot
+ *  back to a tracker channel.
  *
  * \note This function should be called from the same thread as
  * tracking_channel_nav_bit_get().
  * \note It is assumed that the specified data is synchronized with the most
  * recent nav bit read from the FIFO using tracking_channel_nav_bit_get().
  *
- * \param id            ID of the tracker channel to synchronize.
- * \param TOW_ms        Time of week in milliseconds.
- * \param bit_polarity  Bit polarity.
- *
- * \return true if data was enqueued successfully, false otherwise.
+ * \param id           ID of the tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
  */
-bool tracking_channel_time_sync(tracker_channel_id_t id, s32 TOW_ms,
-                                s8 bit_polarity)
+static void tracking_channel_data_sync(tracker_channel_id_t id,
+                                       nav_data_sync_t *from_decoder)
 {
-  assert(TOW_ms >= 0);
-  assert(TOW_ms < WEEK_MS);
-  assert((bit_polarity == BIT_POLARITY_NORMAL) ||
-         (bit_polarity == BIT_POLARITY_INVERTED));
+  assert(from_decoder);
+  assert(from_decoder->TOW_ms >= 0);
+  assert(from_decoder->TOW_ms < WEEK_MS);
+  assert((from_decoder->bit_polarity == BIT_POLARITY_NORMAL) ||
+         (from_decoder->bit_polarity == BIT_POLARITY_INVERTED));
 
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
+  tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-  nav_bit_fifo_index_t read_index = internal_data->nav_bit_fifo.read_index;
-  return nav_time_sync_set(&internal_data->nav_time_sync,
-                           TOW_ms, bit_polarity, read_index);
+  from_decoder->read_index = internal_data->nav_bit_fifo.read_index;
+  if (!nav_data_sync_set(&internal_data->nav_data_sync, from_decoder)) {
+    log_warn_mesid(channel_info->mesid, "Data sync failed");
+  }
+}
+
+/** Propagate decoded GPS time of week and bit polarity back to a tracker channel.
+ *
+ * \note This function should be called from the same thread as
+ * tracking_channel_nav_bit_get().
+ * \note It is assumed that the specified data is synchronized with the most
+ * recent nav bit read from the FIFO using tracking_channel_nav_bit_get().
+ *
+ * \param id           ID of the GPS tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
+ */
+void tracking_channel_gps_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder)
+{
+  assert(from_decoder);
+
+  if ((from_decoder->TOW_ms < 0) ||
+      (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity)) {
+    return;
+  }
+  tracking_channel_data_sync(id, from_decoder);
+}
+
+/** Propagate decoded GLO time of week, bit polarity and glo orbit slot
+ *  back to a tracker channel.
+ *
+ * \note This function should be called from the same thread as
+ * tracking_channel_nav_bit_get().
+ * \note It is assumed that the specified data is synchronized with the most
+ * recent nav bit read from the FIFO using tracking_channel_nav_bit_get().
+ *
+ * \param id           ID of the GLO tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
+ */
+void tracking_channel_glo_data_sync(tracker_channel_id_t id,
+                                    nav_data_sync_t *from_decoder)
+{
+  assert(from_decoder);
+  assert(from_decoder->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN);
+
+  tracking_channel_data_sync(id, from_decoder);
 }
 
 /** Retrieve the channel info and internal data associated with a

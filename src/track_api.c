@@ -31,6 +31,12 @@
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 
+static s32 normalize_tow(s32 tow)
+{
+  assert(tow >= 0);
+  return tow % GPS_WEEK_LENGTH_ms;
+}
+
 /** Register a tracker interface to enable tracking for a code type.
  *
  * \note element and all subordinate data must be statically allocated!
@@ -100,6 +106,32 @@ void tracker_retune(tracker_context_t *context,
                    0);
 }
 
+/** Adjust TOW for FIFO delay.
+ *
+ * \param to_tracker     nav_data_sync_t struct to use
+ * \param internal_data  tracker internal data.
+ *
+ * \return Updated TOW (ms).
+ */
+static s32 adjust_tow_by_bit_fifo_delay(const nav_data_sync_t to_tracker,
+                                        const tracker_internal_data_t *internal_data)
+{
+  s32 TOW_ms = TOW_INVALID;
+  /* Compute time since the pending data was read from the FIFO */
+  nav_bit_fifo_index_t fifo_length =
+    NAV_BIT_FIFO_INDEX_DIFF(internal_data->nav_bit_fifo.write_index,
+                            to_tracker.read_index);
+  u32 fifo_time_diff_ms = fifo_length * internal_data->bit_sync.bit_length;
+
+  /* Add full bit times + fractional bit time to the specified TOW */
+  TOW_ms = to_tracker.TOW_ms + fifo_time_diff_ms +
+           internal_data->nav_bit_TOW_offset_ms;
+
+  TOW_ms = normalize_tow(TOW_ms);
+
+  return TOW_ms;
+}
+
 /** Update the TOW for a tracker channel.
  *
  * \param context           Tracker context.
@@ -119,24 +151,11 @@ s32 tracker_tow_update(tracker_context_t *context,
   tracker_internal_context_resolve(context, &channel_info, &internal_data);
 
   /* Latch TOW from nav message if pending */
-  s32 pending_TOW_ms;
-  s8 pending_bit_polarity;
-  nav_bit_fifo_index_t pending_TOW_read_index;
-  if (nav_time_sync_get(&internal_data->nav_time_sync, &pending_TOW_ms,
-                        &pending_bit_polarity, &pending_TOW_read_index)) {
+  s32 TOW_ms = TOW_INVALID;
+  nav_data_sync_t to_tracker;
+  if (nav_data_sync_get(&to_tracker, &internal_data->nav_data_sync)) {
 
-    /* Compute time since the pending data was read from the FIFO */
-    nav_bit_fifo_index_t fifo_length =
-      NAV_BIT_FIFO_INDEX_DIFF(internal_data->nav_bit_fifo.write_index,
-                              pending_TOW_read_index);
-    u32 fifo_time_diff_ms = fifo_length * internal_data->bit_sync.bit_length;
-
-    /* Add full bit times + fractional bit time to the specified TOW */
-    s32 TOW_ms = pending_TOW_ms + fifo_time_diff_ms +
-                   internal_data->nav_bit_TOW_offset_ms;
-
-    if (TOW_ms >= GPS_WEEK_LENGTH_ms)
-      TOW_ms -= GPS_WEEK_LENGTH_ms;
+    TOW_ms = adjust_tow_by_bit_fifo_delay(to_tracker, internal_data);
 
     /* Warn if updated TOW does not match the current value */
     if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
@@ -145,16 +164,20 @@ s32 tracker_tow_update(tracker_context_t *context,
                      current_TOW_ms, TOW_ms);
     }
     current_TOW_ms = TOW_ms;
-    if (internal_data->bit_polarity != pending_bit_polarity) {
+    if (internal_data->bit_polarity != to_tracker.bit_polarity) {
       /* Reset carrier phase offset on bit polarity change */
       internal_data->reset_cpo = true;
-      internal_data->bit_polarity = pending_bit_polarity;
+      internal_data->bit_polarity = to_tracker.bit_polarity;
     }
-    if (NULL != decoded_tow) {
-      *decoded_tow = TOW_ms >= 0;
+    if ((GLO_ORBIT_SLOT_UNKNOWN != internal_data->glo_orbit_slot) &&
+        (internal_data->glo_orbit_slot != to_tracker.glo_orbit_slot)) {
+      log_warn_mesid(channel_info->mesid, "Unexpected GLO orbit slot change");
     }
-  } else if (NULL != decoded_tow) {
-    *decoded_tow = false;
+    internal_data->glo_orbit_slot = to_tracker.glo_orbit_slot;
+  }
+
+  if (NULL != decoded_tow) {
+    *decoded_tow = (TOW_ms != TOW_INVALID);
   }
 
   internal_data->nav_bit_TOW_offset_ms += int_ms;
@@ -162,8 +185,7 @@ s32 tracker_tow_update(tracker_context_t *context,
   if (current_TOW_ms != TOW_INVALID) {
     /* Have a valid time of week - increment it. */
     current_TOW_ms += int_ms;
-    if (current_TOW_ms >= GPS_WEEK_LENGTH_ms)
-      current_TOW_ms -= GPS_WEEK_LENGTH_ms;
+    current_TOW_ms = normalize_tow(current_TOW_ms);
     /* TODO: maybe keep track of week number in channel state, or
        derive it from system time */
   }
@@ -353,6 +375,21 @@ void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
   internal_data->bit_polarity = polarity;
 }
 
+/** Get the channel's GLO orbital slot information.
+ *
+ * \param context  Tracker context.
+ *
+ * \return GLO orbital slot
+ */
+u16 tracker_glo_orbit_slot_get(tracker_context_t *context)
+{
+  const tracker_channel_info_t *channel_info;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  return internal_data->glo_orbit_slot;
+}
+
 /** Output a correlation data message for a tracker channel.
  *
  * \param context     Tracker context.
@@ -374,7 +411,7 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
       return;
     }
     gnss_signal_t sid = mesid2sid(channel_info->mesid,
-                                  channel_info->glo_slot_id);
+                                  internal_data->glo_orbit_slot);
     msg.sid = sid_to_sbp(sid);
     for (u32 i = 0; i < 3; i++) {
       msg.corrs[i].I = cs[i].I;
