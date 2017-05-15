@@ -320,6 +320,9 @@ u8 nm_flags_to_sbp(nav_meas_flags_t from)
   if (0 != (from & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
     to |= MSG_OBS_FLAGS_MEAS_DOPPLER_VALID;
   }
+  if (0 != (from & NAV_MEAS_FLAG_RAIM_EXCLUSION)) {
+    to |= MSG_OBS_FLAGS_RAIM_EXCLUSION;
+  }
   return to;
 }
 
@@ -337,6 +340,9 @@ nav_meas_flags_t nm_flags_from_sbp(u8 from)
   }
   if (0 != (from & MSG_OBS_FLAGS_MEAS_DOPPLER_VALID)) {
     to |= NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
+  }
+  if (0 != (from & MSG_OBS_FLAGS_RAIM_EXCLUSION)) {
+    to |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
   }
   return to;
 }

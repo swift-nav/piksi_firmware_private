@@ -1087,7 +1087,7 @@ static void solution_thread(void *arg)
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
           log_warn_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
-          nav_meas_tdcp[i].flags = NAV_MEAS_FLAG_CN0_VALID;
+          nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         }
       }
     }
