@@ -648,8 +648,8 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   common_data->carrier_phase = carrier_phase;
 
   /* ToW update:
-   * ToW along with carrier and code phases and sample number shall be updated
-   * in sync.
+   * ToW along with carrier and code phases and sample number and health
+   * shall be updated in sync.
    */
   bool decoded_tow;
   common_data->TOW_ms_prev = common_data->TOW_ms;
@@ -664,6 +664,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
     common_data->TOW_ms = TOW_UNKNOWN;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
+    common_data->flags &= ~TRACK_CMN_FLAG_HEALTH_DECODED;
   }
   if (decoded_tow) {
     log_debug_mesid(channel_info->mesid,
@@ -671,7 +672,17 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
                     common_data->update_count, common_data->TOW_ms);
     common_data->flags |= TRACK_CMN_FLAG_TOW_DECODED;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
+
+    /* GLO health data is also decoded along with TOW */
+    if (is_glo_sid(channel_info->mesid)) {
+      common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
+      common_data->health = tracker_glo_sv_health_get(channel_info->context);
+      log_debug_mesid(channel_info->mesid,
+                      "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
+                      common_data->update_count, common_data->health);
+    }
   }
+
   /* Channel run time. */
   common_data->update_count += int_ms;
 }

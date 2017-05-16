@@ -47,6 +47,7 @@ typedef struct {
   s8 bit_polarity;
   u16 glo_orbit_slot;
   nav_bit_fifo_index_t read_index;
+  u8 health;
   bool valid;
 } nav_data_sync_t;
 
@@ -74,6 +75,8 @@ typedef struct {
   bool prn_check_fail;
   /** Flags if tracker is cross-correlated */
   bool xcorr_flag;
+  /** Health data: 0 - healthy, 1 - unhealthy */
+  u8 health;
 } tracker_internal_data_t;
 
 /** \} */
@@ -99,7 +102,6 @@ bool nav_data_sync_set(nav_data_sync_t *to_tracker,
                        const nav_data_sync_t *from_decoder);
 bool nav_data_sync_get(nav_data_sync_t *to_tracker,
                        nav_data_sync_t *from_decoder);
-
 s8 nav_bit_quantize(s32 bit_integrate);
 
 u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);

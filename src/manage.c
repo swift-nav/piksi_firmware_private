@@ -65,8 +65,9 @@ typedef enum {
   CH_DROP_REASON_LOW_CN0,       /**< Low C/N0 for too long */
   CH_DROP_REASON_XCORR,         /**< Confirmed cross-correlation */
   CH_DROP_REASON_NO_UPDATES,    /**< No tracker updates for too long */
-  CH_DROP_REASON_L2CL_SYNC      /**< Drop L2CL after half-cycle ambiguity
+  CH_DROP_REASON_L2CL_SYNC,     /**< Drop L2CL after half-cycle ambiguity
                                      has been resolved */
+  CH_DROP_REASON_SV_UNHEALTHY   /**< The SV is Unhealthy */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -117,6 +118,8 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 #define TRACKING_STARTUP_FIFO_LENGTH(p_fifo) \
           (TRACKING_STARTUP_FIFO_INDEX_DIFF((p_fifo)->write_index, \
                                             (p_fifo)->read_index))
+/* Refer also internal NDB definition NDB_NV_GLO_EPHEMERIS_AGE_SECS */
+#define ACQ_GLO_EPH_VALID_TIME_SEC (30 * MINUTE_SECS)
 
 typedef u8 tracking_startup_fifo_index_t;
 
@@ -140,6 +143,14 @@ static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
 static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
 
+typedef struct {
+  systime_t tick;       /**< Time when GLO SV was detected as unhealthy */
+  acq_status_t *status; /**< Pointer to acq status for the GLO SV */
+} glo_acq_state_t;
+
+/* The array keeps time when GLO SV was detected as unhealthy
+ * Number of elemnts is n+1 to avoid index adjusting */
+static glo_acq_state_t glo_acq_timer[NUM_SATS_GLO + 1] = { 0 };
 
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
@@ -657,14 +668,38 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid)
 static void check_clear_unhealthy(void)
 {
   static systime_t ticks;
-  if (chVTTimeElapsedSinceX(ticks) < S2ST(24*60*60))
+  if (chVTTimeElapsedSinceX(ticks) < S2ST(DAY_SECS)) {
     return;
+  }
 
   ticks = chVTGetSystemTime();
 
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
       acq_status[i].state = ACQ_PRN_ACQUIRING;
+    }
+  }
+}
+
+/** Check GLO unhealthy flags and clear after GLO ephemeris valid time
+ * This function blocks acquiring GLO SV for some time if the SV is unhealthy */
+static void check_clear_glo_unhealthy(void)
+{
+  if (!is_glo_enabled()) {
+    return;
+  }
+
+  for (u32 i = 1; i <= NUM_SATS_GLO; i++) {
+    if (glo_acq_timer[i].status &&
+        ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state) {
+      /* check if time since channel dropped due to SV unhealthy greater
+       * than GLO ephemeris valid time (30 min) */
+      if (chVTTimeElapsedSinceX(glo_acq_timer[i].tick) >
+          S2ST(ACQ_GLO_EPH_VALID_TIME_SEC)) {
+        /* enable GLO aqcuisition again */
+        glo_acq_timer[i].status->state = ACQ_PRN_ACQUIRING;
+        log_info_mesid(glo_acq_timer[i].status->mesid, "is back to aquisition");
+      }
     }
   }
 }
@@ -676,6 +711,7 @@ static void manage_track_thread(void *arg)
   chRegSetThreadName("manage track");
   while (TRUE) {
     chThdSleepMilliseconds(500);
+    check_clear_glo_unhealthy();
     DO_EVERY(2,
       check_clear_unhealthy();
       manage_track();
@@ -725,6 +761,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_XCORR: str = "cross-correlation confirmed, dropping"; break;
   case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
   case CH_DROP_REASON_L2CL_SYNC: str = "L2CM half-cycle ambiguity resolved, dropping L2CL"; break;
+  case CH_DROP_REASON_SV_UNHEALTHY: str = "SV is unhealthy, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -804,7 +841,20 @@ static void drop_channel(u8 channel_id,
       }
     }
   }
-  acq->state = ACQ_PRN_ACQUIRING;
+
+  bool glo_is_unhealthy = (0 == (info->flags & TRACKING_CHANNEL_FLAG_HEALTHY) &&
+                          (info->flags & TRACKING_CHANNEL_FLAG_HEALTH_DECODED) &&
+                           is_glo_sid(info->mesid));
+
+  if (glo_is_unhealthy) {
+    acq->state = ACQ_PRN_UNHEALTHY;
+    assert(glo_slot_id_is_valid(info->glo_orbit_slot));
+    glo_acq_timer[info->glo_orbit_slot].status = acq;
+    /* store system time when GLO channel dropped */
+    glo_acq_timer[info->glo_orbit_slot].tick = chVTGetSystemTime();
+  } else {
+    acq->state = ACQ_PRN_ACQUIRING;
+  }
 
   /* Finally disable the decoder and tracking channels */
   decoder_channel_disable(channel_id);
@@ -899,6 +949,15 @@ static void manage_track()
     /* Drop L2CL if the half-cycle ambiguity has been resolved. */
     if (0 != (info.flags & TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED)) {
       drop_channel(i, CH_DROP_REASON_L2CL_SYNC, &info, &time_info, &freq_info);
+      continue;
+    }
+
+    /* Drop GLO if the SV is unhealthy */
+    bool glo_is_unhealthy = (0 == (info.flags & TRACKING_CHANNEL_FLAG_HEALTHY) &&
+                            (info.flags & TRACKING_CHANNEL_FLAG_HEALTH_DECODED) &&
+                             is_glo_sid(info.mesid));
+    if (glo_is_unhealthy) {
+      drop_channel(i, CH_DROP_REASON_SV_UNHEALTHY, &info, &time_info, &freq_info);
       continue;
     }
   }

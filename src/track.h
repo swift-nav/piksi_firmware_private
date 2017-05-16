@@ -111,6 +111,10 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE (1u << 24)
 /** Tracking channel flag: L2CL tracker has resolved half-cycle ambiguity */
 #define TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED (1u << 25)
+/** Tracking channel flag: tracker has health info */
+#define TRACKING_CHANNEL_FLAG_HEALTH_DECODED (1u << 26)
+/** Tracking channel flag: healthy status -- 0 SV is unhealty, 1 SV is healthy */
+#define TRACKING_CHANNEL_FLAG_HEALTHY    (1u << 27)
 
 /** Maximum SV azimuth/elevation age in seconds: 1 minute is about 0.5 degrees */
 #define MAX_AZ_EL_AGE_SEC 60
@@ -345,6 +349,7 @@ s8 sv_elevation_degrees_get(gnss_signal_t sid);
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
                                   bool *sensitivity_mode);
+bool tracking_channel_health_sync(tracker_channel_id_t id, u8 health);
 void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
 void tracking_channel_gps_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder);

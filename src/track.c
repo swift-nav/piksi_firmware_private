@@ -1580,6 +1580,7 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->cp_sync.counter = 0;
   common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
   common_data->cp_sync.synced = false;
+  common_data->health = 0;
 }
 
 /** Lock a tracker channel for exclusive access.
@@ -1731,6 +1732,13 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: L2CL half-cycle ambiguity status */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_L2CL_AMBIGUITY)) {
       result |= TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED;
+    }
+    /* Tracking status: GLO healthy status */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_HEALTH_DECODED)) {
+      result |= TRACKING_CHANNEL_FLAG_HEALTH_DECODED;
+      if (!common_data->health) {
+        result |= TRACKING_CHANNEL_FLAG_HEALTHY;
+      }
     }
   }
 
