@@ -55,8 +55,10 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-/** Max accuracy we allow to output a SPP solution */
-#define MAX_SPP_ACCURACY 100.0
+/** Max position accuracy we allow to output a SPP solution */
+#define MAX_SPP_ACCURACY_M 100.0
+/** Max velocity accuracy we allow to output a SPP solution */
+#define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
 
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
@@ -171,25 +173,20 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
 
     sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, utc_flags, p_utc_params);
 
-    /* Extract full covariance matrix from upper triangular in soln->err_cov */
+    /* Extract full covariance matrices for position and velocity solutions
+     * from the upper triangular forms given in soln->err_cov and vel_cov */
     double full_covariance[9];
-    extract_covariance(full_covariance, soln);
+    double vel_covariance[9];
+    extract_covariance(full_covariance, vel_covariance, soln);
 
     /* Compute the accuracy figures from the covariance matrix */
     double accuracy, h_accuracy, v_accuracy;
     covariance_to_accuracy(full_covariance, soln->pos_ecef,
                            &accuracy, &h_accuracy, &v_accuracy);
 
-    /* Estimate ballpark velocity accuracy from the position accuracy.
-     * Since velocity uses the same system matrix as SPP position solution, the
-     * accuracy estimate is just a scaled version of that.
-     * TODO: implement proper computation of vel_err_cov matrix in LSNP */
-    gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, GPS_FIRST_PRN);
-    double vel_accuracy_multiplier = sqrt(DOPPLER_CN0_COEFFICIENT / CODE_CN0_COEFFICIENT)
-                                     * sid_to_lambda(sid);
-    double vel_accuracy = vel_accuracy_multiplier * accuracy;
-    double vel_h_accuracy = vel_accuracy_multiplier * h_accuracy;
-    double vel_v_accuracy = vel_accuracy_multiplier * v_accuracy;
+    double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
+    covariance_to_accuracy(vel_covariance, soln->pos_ecef,
+                           &vel_accuracy, &vel_h_accuracy, &vel_v_accuracy);
 
     const gps_time_t soln_time = soln->time;
 
@@ -230,11 +227,13 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
   }
 }
 
-/** Extract the full covariance matrix from soln struct */
-void extract_covariance(double full_covariance[9], const gnss_solution *soln) {
+/** Extract the full covariance matrices from soln struct */
+void extract_covariance(double full_covariance[9], double vel_covariance[9],
+                        const gnss_solution *soln) {
 
   assert(soln != NULL);
   assert(full_covariance != NULL);
+  assert(vel_covariance != NULL);
 
 /* soln->cov_err has the covariance in upper triangle covariance form, so
  * copy from
@@ -252,6 +251,17 @@ void extract_covariance(double full_covariance[9], const gnss_solution *soln) {
   full_covariance[6] = soln->err_cov[2];
   full_covariance[7] = soln->err_cov[4];
   full_covariance[8] = soln->err_cov[5];
+
+  vel_covariance[0] = soln->vel_cov[0];
+  vel_covariance[1] = soln->vel_cov[1];
+  vel_covariance[2] = soln->vel_cov[2];
+  vel_covariance[3] = soln->vel_cov[1];
+  vel_covariance[4] = soln->vel_cov[3];
+  vel_covariance[5] = soln->vel_cov[4];
+  vel_covariance[6] = soln->vel_cov[2];
+  vel_covariance[7] = soln->vel_cov[4];
+  vel_covariance[8] = soln->vel_cov[5];
+
 }
 
 /**
@@ -784,13 +794,22 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
 bool gate_covariance(gnss_solution *soln) {
   assert(soln != NULL);
   double full_covariance[9];
-  extract_covariance(full_covariance, soln);
+  double vel_covariance[9];
+  extract_covariance(full_covariance, vel_covariance, soln);
 
   double accuracy, h_accuracy, v_accuracy;
   covariance_to_accuracy(full_covariance, soln->pos_ecef,
                          &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_ACCURACY) {
-    log_warn("SPP Position suppressed due to position confidence of %f exceeding 100.0m", accuracy);
+  if (accuracy > MAX_SPP_ACCURACY_M) {
+    log_warn("SPP Position suppressed due to position confidence of %.1f exceeding %.0f m",
+             accuracy, MAX_SPP_ACCURACY_M);
+    return true;
+  }
+  covariance_to_accuracy(vel_covariance, soln->pos_ecef,
+                         &accuracy, &h_accuracy, &v_accuracy);
+  if (accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
+    log_warn("SPP Position suppressed due to velocity confidence of %.1f exceeding %.0f m/s",
+             accuracy, MAX_SPP_VEL_ACCURACY_M_PER_S);
     return true;
   }
   return false;
@@ -1054,13 +1073,16 @@ static void solution_thread(void *arg)
                           &current_fix, &dops, &raim_removed_sids);
     if (pvt_ret < 0
         || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
-      /* An error occurred with calc_PVT! */
-      /* pvt_err_msg defined in libswiftnav/pvt.c */
-      DO_EVERY((u32)soln_freq,
-         log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
-      );
 
-      /* If we can't compute a SPP position, something is wrong and no point
+      if (pvt_ret < 0) {
+        /* An error occurred with calc_PVT! */
+        /* pvt_err_msg defined in libswiftnav/pvt.c */
+        DO_EVERY((u32)soln_freq,
+                 log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
+        );
+      }
+
+      /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - send out solution and observation
        * failed messages if not in time matched mode
        */
