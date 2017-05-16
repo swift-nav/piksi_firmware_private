@@ -24,9 +24,11 @@
 #include "signal.h"
 #include "ndb.h"
 #include "shm.h"
+#include "timing.h"
 
 #include <assert.h>
 #include <string.h>
+#include "decode_common.h"
 
 /** GLO L1 C/A decoder data */
 typedef struct {
@@ -70,11 +72,10 @@ void decode_glo_l1ca_register(void)
 static void decoder_glo_l1ca_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data)
 {
-  (void)channel_info;
   glo_l1ca_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
-  nav_msg_init_glo(&data->nav_msg);
+  nav_msg_init_glo_with_cb(&data->nav_msg, channel_info->mesid);
 }
 
 static void decoder_glo_l1ca_disable(const decoder_channel_info_t *channel_info,
@@ -92,11 +93,13 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
   /* Process incoming nav bits */
   s8 soft_bit;
   bool sensitivity_mode = true;
+  me_gnss_signal_t mesid = channel_info->mesid;
+
   while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
                                       &soft_bit, &sensitivity_mode)) {
     /* Don't trust polarity information while in sensitivity mode. */
     if (sensitivity_mode) {
-      nav_msg_init_glo(&data->nav_msg);
+      nav_msg_init_glo_with_cb(&data->nav_msg, mesid);
       continue;
     }
 
@@ -110,14 +113,14 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     /* Check for bit errors in the collected string */
     s8 bit_errors = error_detection_glo(&data->nav_msg);
     if (bit_errors != 0) {
-      nav_msg_init_glo(&data->nav_msg);
+      nav_msg_init_glo_with_cb(&data->nav_msg, mesid);
       continue;
     }
 
     /* Get GLO strings 1 - 5, and decode full ephemeris */
     string_decode_status_t str_status = process_string_glo(&data->nav_msg);
     if (GLO_STRING_DECODE_ERROR == str_status) {
-      nav_msg_init_glo(&data->nav_msg);
+      nav_msg_init_glo_with_cb(&data->nav_msg, mesid);
       continue;
     }
     if (GLO_STRING_DECODE_WAIT == str_status) {
@@ -126,22 +129,22 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     assert(GLO_STRING_DECODE_DONE == str_status);
 
     /* Store new ephemeris */
-    log_debug_mesid(channel_info->mesid,
+    log_info_mesid(mesid,
                     "New ephemeris received [%" PRId16 ", %lf]",
                     data->nav_msg.eph.toe.wn, data->nav_msg.eph.toe.tow);
     eph_new_status_t r = ephemeris_new(&data->nav_msg.eph);
     if (EPH_NEW_OK != r) {
-      log_warn_mesid(channel_info->mesid,
-                     "Error in GLO ephemeris processing");
+      log_warn_mesid(mesid, "Error in GLO ephemeris processing");
     }
 
     u16 glo_slot_id = data->nav_msg.eph.sid.sat;
-    glo_map_set_slot_id(channel_info->mesid, glo_slot_id);
+    glo_map_set_slot_id(mesid, glo_slot_id);
 
     nav_data_sync_t from_decoder;
+
     tracking_channel_data_sync_init(&from_decoder);
-    /* TODO GLO: Proper ToW handling */
-    from_decoder.TOW_ms = 1;
+    from_decoder.TOW_ms = data->nav_msg.gps_time.tow * 1e3;
+    from_decoder.TOW_residual_ns = data->nav_msg.tau_gps_ns;
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     from_decoder.glo_orbit_slot = data->nav_msg.eph.sid.sat;
     from_decoder.health = data->nav_msg.eph.health_bits;

@@ -113,6 +113,8 @@
 #define MANAGE_TRACK_FLAG_XCORR_SUSPECT (1u << 21)
 /** Tracking channel flag: L2CL has half-cycle ambiguity resolved */
 #define MANAGE_TRACK_FLAG_L2CL_AMBIGUITY (1u << 22)
+/** Tracking channel flag: not to be used in solution */
+#define MANAGE_TRACK_FLAG_MASKED         (1u << 23)
 
 /* Tracking channel state masks */
 
@@ -169,7 +171,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
                                                channel_measurement_t *meas,
                                                ephemeris_t *ephe);
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
-manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid,
+manage_track_flags_t get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                                     s32 tow_ms,
                                                     const ephemeris_t *pephe);
 u8 tracking_channels_ready(manage_track_flags_t required_flags);

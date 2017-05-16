@@ -145,6 +145,7 @@ typedef struct {
   u16                      glo_orbit_slot; /**< GLO orbital slot */
   tracking_channel_flags_t flags;        /**< Channel flags */
   s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
+  s32                      tow_residual_ns;   /**< Residual to tow_ms [ns] */
   float                    cn0;          /**< C/N0 [dB/Hz] */
   u64                      init_timestamp_ms; /**< Tracking channel init
                                                    timestamp [ms] */

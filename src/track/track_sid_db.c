@@ -63,6 +63,7 @@ void track_sid_db_init(void)
   for (size_t i = 0; i < NUM_SATS; ++i) {
     volatile sid_db_cache_entry_t *entry = &sid_db_cache.entries[i];
     entry->tow.TOW_ms = TOW_UNKNOWN;
+    entry->tow.TOW_residual_ns = 0;
     entry->azel.azimuth_d = TRACKING_AZIMUTH_UNKNOWN;
     entry->azel.elevation_d = TRACKING_ELEVATION_UNKNOWN;
   }
@@ -73,23 +74,15 @@ void track_sid_db_init(void)
  *
  * \param[in]  sid       GNSS signal identifier.
  * \param[out] tow_entry ToW entry for the given signal.
- *
- * \retval true  If ToW entry has been loaded.
- * \retval false If ToW entry is not present.
  */
-bool track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry)
+void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry)
 {
-  bool result = false;
+  assert(tow_entry);
 
-  if (NULL != tow_entry) {
-    u16 sv_index = sid_to_sv_index(sid);
-    chMtxLock(&sid_db_cache.mutex);
-    *tow_entry = sid_db_cache.entries[sv_index].tow;
-    chMtxUnlock(&sid_db_cache.mutex);
-    result = true;
-  }
-
-  return result;
+  u16 sv_index = sid_to_sv_index(sid);
+  chMtxLock(&sid_db_cache.mutex);
+  *tow_entry = sid_db_cache.entries[sv_index].tow;
+  chMtxUnlock(&sid_db_cache.mutex);
 }
 
 /**
@@ -97,23 +90,15 @@ bool track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry)
  *
  * \param[in] sid       GNSS signal identifier.
  * \param[in] tow_entry ToW data.
- *
- * \retval true  If ToW entry has been updated.
- * \retval false If ToW entry is not present.
  */
-bool track_sid_db_update_tow(const gnss_signal_t sid, const tp_tow_entry_t *tow_entry)
+void track_sid_db_update_tow(const gnss_signal_t sid, const tp_tow_entry_t *tow_entry)
 {
-  bool result = false;
+  assert(tow_entry);
 
-  if (NULL != tow_entry) {
-    u16 sv_index = sid_to_sv_index(sid);
-    chMtxLock(&sid_db_cache.mutex);
-    sid_db_cache.entries[sv_index].tow = *tow_entry;
-    chMtxUnlock(&sid_db_cache.mutex);
-    result = true;
-  }
-
-  return result;
+  u16 sv_index = sid_to_sv_index(sid);
+  chMtxLock(&sid_db_cache.mutex);
+  sid_db_cache.entries[sv_index].tow = *tow_entry;
+  chMtxUnlock(&sid_db_cache.mutex);
 }
 
 

@@ -102,15 +102,175 @@ static void tracker_glo_l1ca_disable(const tracker_channel_info_t *channel_info,
   tp_tracker_disable(channel_info, common_data, &data->data);
 }
 
+s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
+                              tracker_common_data_t *common_data,
+                              u64 sample_time_tk,
+                              bool half_bit_aligned,
+                              s32 *TOW_residual_ns)
+{
+  assert(channel_info);
+  assert(TOW_residual_ns);
+
+  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(channel_info->context);
+  if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+    goto tow_unknown;
+  }
+
+  /* GLO slot ID is known */
+  gnss_signal_t sid = construct_sid(channel_info->mesid.code, glo_orbit_slot);
+  tp_tow_entry_t tow_entry = {
+    .TOW_ms = TOW_UNKNOWN,
+    .TOW_residual_ns = 0,
+    .sample_time_tk = 0
+  };
+
+  track_sid_db_load_tow(sid, &tow_entry);
+  if (TOW_UNKNOWN == tow_entry.TOW_ms) {
+    goto tow_unknown;
+  }
+
+  /* We have a cached GLO TOW */
+
+  double error_ms = 0;
+  u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
+  u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
+  u8 ms_align = half_bit_aligned ? half_bit : GLO_L1CA_PRN_PERIOD_MS;
+  s32 TOW_ms;
+
+  TOW_ms = tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, ms_align, &error_ms);
+  if (TOW_UNKNOWN == TOW_ms) {
+    goto tow_unknown;
+  }
+
+  log_debug_sid(sid,
+                "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8 "ms]"
+                " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                common_data->update_count,
+                ms_align,
+                nap_count_to_ms(time_delta_tk),
+                TOW_ms,
+                error_ms);
+
+  *TOW_residual_ns = tow_entry.TOW_residual_ns;
+  if (tp_tow_is_sane(TOW_ms)) {
+    common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
+  } else {
+    log_error_sid(sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
+                  common_data->update_count, TOW_ms);
+    TOW_ms = TOW_UNKNOWN;
+  }
+
+  return TOW_ms;
+
+tow_unknown:
+
+  *TOW_residual_ns = 0;
+  return TOW_UNKNOWN;
+}
+
+static void update_tow_in_sid_db(const tracker_common_data_t *common_data,
+                                 const tracker_channel_info_t *channel_info,
+                                 u64 sample_time_tk)
+{
+  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(channel_info->context);
+  if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+    return;
+  }
+
+  gnss_signal_t sid = construct_sid(channel_info->mesid.code, glo_orbit_slot);
+
+  /* Update ToW cache:
+   * - bit edge is reached
+   * - CN0 is OK
+   * - Tracker is confirmed
+   */
+  tp_tow_entry_t tow_entry = {
+    .TOW_ms = common_data->TOW_ms,
+    .TOW_residual_ns = common_data->TOW_residual_ns,
+    .sample_time_tk = sample_time_tk
+  };
+  track_sid_db_update_tow(sid, &tow_entry);
+}
+
+/**
+ * Performs ToW caching and propagation.
+ *
+ * GLO L1 and L2 use shared structure for ToW caching. When GLO L1
+ * tracker is running, it is responsible for cache updates. Otherwise GLO L2
+ * tracker updates the cache. The time difference between signals is ignored
+ * as small.
+ *
+ * \param[in]     channel_info   Channel information.
+ * \param[in,out] common_data    Channel data with ToW, sample number and other
+ *                               runtime values.
+ * \param[in]     data           Common tracker data.
+ * \param[in]     cycle_flags    Current cycle flags.
+ */
+static void update_tow_glo_l1ca(const tracker_channel_info_t *channel_info,
+                                tracker_common_data_t *common_data,
+                                tp_tracker_data_t *data,
+                                u32 cycle_flags)
+{
+  bool half_bit_aligned = false;
+
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(channel_info->context)) {
+    half_bit_aligned = true;
+  }
+
+  if (TOW_UNKNOWN != common_data->TOW_ms && half_bit_aligned) {
+    /*
+     * Verify ToW alignment
+     * Current block assumes the meander sync has been reached and current
+     * interval has closed a meander interval. ToW shall be aligned by meander
+     * duration (half bit), which is 10ms for GLO L1CA.
+     */
+    u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
+    u8 tail = common_data->TOW_ms % half_bit;
+    if (0 != tail) {
+      /* If this correction is needed, then there is something wrong
+         either with the TOW cache update or with the meander sync */
+      s8 error_ms = (tail < half_bit) ? -tail : (GLO_L1CA_BIT_LENGTH_MS - tail);
+
+      log_error_mesid(channel_info->mesid,
+                     "[+%" PRIu32 "ms] Adjusting ToW: "
+                     "adjustment=%" PRId8 "ms old_tow=%" PRId32,
+                     common_data->update_count,
+                     error_ms,
+                     common_data->TOW_ms);
+
+      common_data->TOW_ms += error_ms;
+    }
+  }
+
+  u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
+
+  if (TOW_UNKNOWN == common_data->TOW_ms) {
+    common_data->TOW_ms = propagate_tow_from_sid_db(channel_info,
+                                                 common_data,
+                                                 sample_time_tk,
+                                                 half_bit_aligned,
+                                                 &common_data->TOW_residual_ns);
+  }
+
+  if (half_bit_aligned &&
+      common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
+      data->confirmed) {
+    update_tow_in_sid_db(common_data, channel_info, sample_time_tk);
+  }
+}
+
 static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     tracker_data_t *tracker_data)
 {
-
   glo_l1ca_tracker_data_t *glo_l1ca_data = tracker_data;
   tp_tracker_data_t *data = &glo_l1ca_data->data;
   u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
                                         &glo_l1ca_config);
+
+  /* GPS L1 C/A-specific ToW manipulation */
+  update_tow_glo_l1ca(channel_info, common_data, data, tracker_flags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&

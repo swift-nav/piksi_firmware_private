@@ -21,6 +21,7 @@
 #include "main.h"
 #include "sbp.h"
 #include "timing.h"
+#include "ndb/ndb_utc.h"
 
 /** \defgroup timing Timing
  * Maintains the time state of the receiver and provides time related
@@ -299,4 +300,28 @@ u64 timing_getms(void)
 {
   return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
 }
+
+/** A convenience wrapper for glo2gps() API. Adds UTC params reading from NDB.
+ * \param mesid ME sid for debugging info
+ * \param glo_t GLO time
+ * \return The resulting GPS time
+ */
+gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
+                                   const glo_time_t *glo_t)
+{
+  gps_time_t gps_time;
+  utc_params_t utc_params;
+  ndb_op_code_t ndb_op_code;
+
+  ndb_op_code = ndb_utc_params_read(&utc_params, /* is_nv = */ NULL);
+
+  if (NDB_ERR_NONE == ndb_op_code) {
+    gps_time = glo2gps(glo_t, &utc_params);
+  } else {
+    log_info_mesid(mesid, "GLO->GPS time conversion w/o up-to-date UTC params");
+    gps_time = glo2gps(glo_t, /* utc_params = */ NULL);
+  }
+  return gps_time;
+}
+
 /** \} */

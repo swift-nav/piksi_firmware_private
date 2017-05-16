@@ -159,10 +159,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
 
   gnss_signal_t sid = construct_sid(channel_info->mesid.code,
                                     channel_info->mesid.sat);
-  if (!track_sid_db_load_tow(sid, &tow_entry)) {
-    /* Error */
-    return;
-  }
+  track_sid_db_load_tow(sid, &tow_entry);
 
   u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
 

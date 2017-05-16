@@ -656,6 +656,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   common_data->TOW_ms = tracker_tow_update(channel_info->context,
                                            common_data->TOW_ms,
                                            int_ms,
+                                           &common_data->TOW_residual_ns,
                                            &decoded_tow);
   if (!tp_tow_is_sane(common_data->TOW_ms)) {
     log_error_mesid(channel_info->mesid,
