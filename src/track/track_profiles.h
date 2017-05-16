@@ -157,8 +157,8 @@ typedef struct {
   u32   profile_update: 1; /**< Flag if the profile update is required */
   u32   cn0_est: 2;        /**< C/N0 estimator type */
   u16   lock_time_ms;      /**< Profile lock count down timer */
-  u8    cur_index;         /**< Active profile index [0-25] */
-  u8    next_index;        /**< Next profile index [0-25] */
+  u8    cur_index;         /**< Active profile index [0-37] */
+  u8    next_index;        /**< Next profile index [0-37] */
   u16   acceleration_ends_after_ms; /**< There is an acceleration if this
                                      *   parameter is non-zero [ms] */
   u16   print_time;        /**< Time till next debug print [ms] */
