@@ -35,10 +35,7 @@ typedef struct {
   const volatile uint32_t CARR_PHASE_FRAC;
   const volatile uint32_t CODE_PHASE_INT;
   const volatile uint32_t CODE_PHASE_FRAC;
-  struct {
-    const volatile int32_t I;
-    const volatile int32_t Q;
-  } CORR[5];
+  const volatile uint32_t CORR[5];
 } nap_trk_regs_t;
 
 /* Registers */

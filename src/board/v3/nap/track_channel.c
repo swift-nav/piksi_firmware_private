@@ -277,9 +277,8 @@ void nap_track_init(u8 channel,
                       round((s->spacing[0].chips + s->spacing[1].chips) *
                       calc_samples_per_chip(code_phase_rate));
 
-  /* Adjust first integration length due to correlator spacing
-   * (+ first period is one sample short) */
-  length += prompt_offset + 1;
+  /* Adjust first integration length due to correlator spacing */
+  length += prompt_offset;
   t->LENGTH = length;
 
   u64 profiling_begin = nap_timing_count();
@@ -351,7 +350,7 @@ void nap_track_init(u8 channel,
 
   /* Revert length adjustment for future integrations after channel started */
   length = t->LENGTH;
-  t->LENGTH -= prompt_offset + 1;
+  t->LENGTH -= prompt_offset;
   u32 length_reg_val = t->LENGTH;
   /* check for underflow */
   if (length <= length_reg_val) {
@@ -438,15 +437,31 @@ void nap_track_read_results(u8 channel,
                    ovf, channel);
   }
 
-  /* map corr registers by following way:
-  * VE: CORR[0] -> corrs[3], E: CORR[1] -> corrs[0], P: CORR[2] -> corrs[1],
-  * L: CORR[3] -> corrs[2], VL: CORR[4] -> corrs[4]
-  * This is needed to use track_gps_l1ca.c for both Piksi v2 and v3 */
-  corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8;
-  corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8;
-  corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8;
-  corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8;
-  corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8;
+  /* Read correlators */
+  u32 corr[5];
+  for (u8 i = 0; i < 5; ++i) {
+    corr[i] = t->CORR[i];
+  }
+
+  /* E correlator */
+  corrs[0].I = (s16)(corr[1] & 0xFFFF);
+  corrs[0].Q = (s16)((corr[1] >> 16) & 0xFFFF);
+
+  /* P correlator */
+  corrs[1].I = (s16)(corr[2] & 0xFFFF);
+  corrs[1].Q = (s16)((corr[2] >> 16) & 0xFFFF);
+
+  /* L correlator */
+  corrs[2].I = (s16)(corr[3] & 0xFFFF);
+  corrs[2].Q = (s16)((corr[3] >> 16) & 0xFFFF);
+
+  /* VE correlator */
+  corrs[3].I = (s16)(corr[0] & 0xFFFF);
+  corrs[3].Q = (s16)((corr[0] >> 16) & 0xFFFF);
+
+  /* VL correlator */
+  corrs[4].I = (s16)(corr[4] & 0xFFFF);
+  corrs[4].Q = (s16)((corr[4] >> 16) & 0xFFFF);
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
   s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
