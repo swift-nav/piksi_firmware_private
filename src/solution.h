@@ -76,7 +76,8 @@ extern u32 obs_output_divisor;
 extern u32 max_age_of_differential;
 
 void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages);
-void extract_covariance(double full_covariance[9], const gnss_solution *soln);
+void extract_covariance(double full_covariance[9], double vel_covariance[9],
+                        const gnss_solution *soln);
 double calc_heading(const double b_ned[3]);
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
