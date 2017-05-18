@@ -48,7 +48,7 @@
 /** Maximum almanac week number candidate age before expiration [s] */
 #define NDB_MAX_ALMA_WN_CANDIDATE_AGE (MINUTE_SECS * 14)
 /** Total number of almanacs entries to store */
-#define NDB_ALMA_IE_COUNT (NUM_SATS_GPS)
+#define NDB_ALMA_IE_COUNT (PLATFORM_SIGNAL_COUNT)
 /** Total number of almanac week numbers to store */
 #define NDB_ALMA_IE_WN_COUNT (NUM_SATS_GPS * 2)
 /** Interval between two almanac transmission [cycles] */
@@ -746,6 +746,7 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
 {
   u16 idx = map_sid_to_index(sid);
 
+  assert(idx < ARRAY_SIZE(ndb_almanac_md));
   ndb_op_code_t ret = ndb_retrieve(&ndb_almanac_md[idx], a, sizeof(*a), NULL,
                                    NDB_USE_NV_ALMANAC);
 

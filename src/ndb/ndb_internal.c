@@ -780,14 +780,15 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
+  assert(md);
+
   bool retrieve_data = false;
   /* Check if NV data should be retrieved */
   if (use_nv_data || (0 == (md->vflags & NDB_VFLAG_DATA_FROM_NV))) {
     retrieve_data = true;
   }
 
-  if ((NULL != md) &&
-      (NULL != md->file) &&
+  if ((NULL != md->file) &&
       (out_size == md->file->block_size) &&
       retrieve_data) {
     ndb_lock();
