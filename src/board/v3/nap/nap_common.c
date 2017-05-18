@@ -67,14 +67,19 @@ void nap_setup(void)
   /* FE_PINC1 initialization for GLO L1C/A processing */
   NAP_FE->PINC[1] = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
 
+  /* FE_PINC2 initialization for GLO L2C/A processing */
+  NAP_FE->PINC[2] = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
+
   /* FE_PINC3 initialization for GPS L2C processing */
-  NAP_FE->PINC[3] = NAP_FE_L2C_BASEBAND_MIXER_PINC;
+  NAP_FE->PINC[3] = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
 
   /* Enable frontend channel 0 (RF1 - GPS L1),
    *        frontend channel 1 (RF2 - GLO L1),
+   *        frontend channel 2 (RF3 - GLO L2),
    *        frontend channel 3 (RF4 - GPS L2) */
   NAP_FE->CONTROL = (1 << NAP_FE_CONTROL_ENABLE_RF1_Pos) |
                     (1 << NAP_FE_CONTROL_ENABLE_RF2_Pos) |
+                    (1 << NAP_FE_CONTROL_ENABLE_RF3_Pos) |
                     (1 << NAP_FE_CONTROL_ENABLE_RF4_Pos);
 
   /* Enable NAP interrupt */

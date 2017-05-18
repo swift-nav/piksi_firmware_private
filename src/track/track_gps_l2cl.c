@@ -145,7 +145,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
                               float cn0_init,
                               s32 TOW_ms)
 {
-  /* compose SID: same SV, but code is L2 CL */
+  /* compose L2CL MESID: same SV, but code is L2CL */
   me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L2CL, sat);
 
   if (!tracking_startup_ready(mesid)) {
@@ -186,7 +186,8 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     .sample_count       = sample_count,
     .carrier_freq       = carrier_freq,
     .code_phase         = code_phase,
-    .chips_to_correlate = 1023,
+    /* chips to correlate during first 1 ms of tracking */
+    .chips_to_correlate = GPS_CA_CHIPPING_RATE * 1e-3,
     /* get initial cn0 from parent L2CM channel */
     .cn0_init           = cn0_init,
     .elevation          = TRACKING_ELEVATION_UNKNOWN

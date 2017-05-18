@@ -278,6 +278,13 @@ typedef struct {
 } glo_l1ca_tracker_data_t;
 
 /**
+ * GLO L2CA tracker data container type.
+ */
+typedef struct {
+  tp_tracker_data_t data;
+} glo_l2ca_tracker_data_t;
+
+/**
  * Common tracker configuration container.
  */
 typedef struct {

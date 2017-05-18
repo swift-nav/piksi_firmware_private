@@ -58,7 +58,8 @@
 
 #define NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC          IF_2_MIXER_PINC(14.58e6)
 #define NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-12.00e6)
-#define NAP_FE_L2C_BASEBAND_MIXER_PINC                 IF_2_MIXER_PINC(7.4e6)
+#define NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-11.00e6)
+#define NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC             IF_2_MIXER_PINC(7.4e6)
 
 #define NAP_SPACING_CHIPS                                                 (0)
 #define NAP_SPACING_SAMPLES                                               (1)
