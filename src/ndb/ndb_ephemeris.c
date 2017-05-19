@@ -294,6 +294,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     return NDB_ERR_BAD_PARAM;
   }
 
+  assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
   if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx], &existing_e,
                                    sizeof(existing_e), NULL,
                                    NDB_USE_NV_EPHEMERIS)) {
@@ -384,6 +385,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     return NDB_ERR_BAD_PARAM;
   }
 
+  assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
                                    NULL, NDB_USE_NV_EPHEMERIS);
 
