@@ -15,7 +15,6 @@
 
 #include <libswiftnav/common.h>
 
-void system_monitor_pre_init(void);
 void system_monitor_setup(void);
 
 /* Notification flags: system_monitor_thread will only clear the
