@@ -48,7 +48,7 @@
 /** Maximum almanac week number candidate age before expiration [s] */
 #define NDB_MAX_ALMA_WN_CANDIDATE_AGE (MINUTE_SECS * 14)
 /** Total number of almanacs entries to store */
-#define NDB_ALMA_IE_COUNT (PLATFORM_SIGNAL_COUNT)
+#define NDB_ALMA_IE_COUNT (NUM_SATS)
 /** Total number of almanac week numbers to store */
 #define NDB_ALMA_IE_WN_COUNT (NUM_SATS_GPS * 2)
 /** Interval between two almanac transmission [cycles] */
@@ -116,15 +116,19 @@ static ndb_file_t ndb_alma_wn_file = {
 
 static u16 map_sid_to_index(gnss_signal_t sid)
 {
-  u16 idx = PLATFORM_SIGNAL_COUNT;
-  /*
-   * Current architecture uses GPS L1 C/A almanac for GPS satellites.
-   */
-  if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
-    idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
-  } else {
-    idx = sid_to_global_index(sid);
-  }
+  assert(sid_valid(sid));
+  u16 idx = sid_to_code_index(sid);
+  static const u8 constellation_to_alm_offset[CONSTELLATION_COUNT] = {
+    0,                            /* CONSTELLATION_GPS offset */
+    NUM_SATS_GPS,                 /* CONSTELLATION_SBAS offset */
+    NUM_SATS_GPS + NUM_SATS_SBAS  /* CONSTELLATION_GLO offset */
+  };
+  /* Current architecture uses one almanac per satellite. */
+  constellation_t constellation = sid_to_constellation(sid);
+  assert((u32)constellation < ARRAY_SIZE(constellation_to_alm_offset));
+  idx += constellation_to_alm_offset[constellation];
+  assert(idx < NDB_ALMA_IE_COUNT);
+
   return idx;
 }
 
