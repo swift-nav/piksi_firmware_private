@@ -1525,6 +1525,25 @@ static bool heading_offset_changed(struct setting *s, const char *val)
   return ret;
 }
 
+static bool enable_fix_mode(struct setting *s, const char *val)
+{
+  int value;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+
+  bool enable_fix = value == 0 ? false : true;
+  chMtxLock(&time_matched_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
+  chMtxUnlock(&time_matched_filter_manager_lock);
+  chMtxLock(&low_latency_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
+  chMtxUnlock(&low_latency_filter_manager_lock);
+  *(dgnss_filter_t*)s->addr = value;
+  return ret;
+}
+
 
 void solution_setup()
 {
@@ -1556,8 +1575,10 @@ void solution_setup()
   static struct setting_type dgnss_filter_setting;
   int TYPE_GNSS_FILTER = settings_type_register_enum(dgnss_filter_enum,
                                                      &dgnss_filter_setting);
-  SETTING("solution", "dgnss_filter",
-          dgnss_filter, TYPE_GNSS_FILTER);
+  //SETTING("solution", "dgnss_filter",
+  //        dgnss_filter, TYPE_GNSS_FILTER);
+  SETTING_NOTIFY("solution", "dgnss_filter", dgnss_filter, TYPE_GNSS_FILTER, enable_fix_mode);
+
 
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
