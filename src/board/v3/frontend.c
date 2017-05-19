@@ -358,7 +358,8 @@ static void configure_v2(void)
   spi_write(11, 0x08);
   spi_write(12, 0x1C);
   spi_write(13, 0x03);
-  spi_write(14, 0x4B);
+  //~ spi_write(14, 0x4B);
+  spi_write(14, 0x30);  // make the L1 filter "narrower" at roughly 22 MHz  
   spi_write(15, 0x0B);
   spi_write(16, 0x34);
   spi_write(17, 0xF1);
@@ -379,7 +380,8 @@ static void configure_v2(void)
   spi_write(32, 0xEA);
   spi_write(33, 0x0B);
   spi_write(34, 0x03);
-  spi_write(35, 0x70);
+  //~ spi_write(35, 0x70);
+  spi_write(35, 0x18);  // make the L2 filter "narrower" at 15.69 MHz
   spi_write(36, 0x0B);
   spi_write(37, 0x34);
   spi_write(38, 0xF1);
