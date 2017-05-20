@@ -1414,6 +1414,12 @@ static void time_matched_obs_thread(void *arg)
     obss_t base_obss_copy = base_obss;
     chMtxUnlock(&base_obs_lock);
 
+    // Check if the el mask has changed and update
+
+    chMtxLock(&time_matched_filter_manager_lock);
+    set_pvt_engine_elevation_mask(time_matched_filter_manager,get_solution_elevation_mask());
+    chMtxUnlock(&time_matched_filter_manager_lock);
+
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
@@ -1537,13 +1543,24 @@ static bool enable_fix_mode(struct setting *s, const char *val)
   chMtxLock(&time_matched_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
   chMtxUnlock(&time_matched_filter_manager_lock);
-  chMtxLock(&low_latency_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
-  chMtxUnlock(&low_latency_filter_manager_lock);
   *(dgnss_filter_t*)s->addr = value;
   return ret;
 }
 
+static bool set_max_age(struct setting *s, const char *val)
+{
+  int value;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+
+  chMtxLock(&time_matched_filter_manager_lock);
+  set_max_correction_age(time_matched_filter_manager, value);
+  chMtxUnlock(&time_matched_filter_manager_lock);
+  *(int*)s->addr = value;
+  return ret;
+}
 
 void solution_setup()
 {
@@ -1552,7 +1569,6 @@ void solution_setup()
   last_spp = GPS_TIME_UNKNOWN;
 
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
-  SETTING("solution", "correction_age_max", max_age_of_differential, TYPE_INT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
 
   static const char const *dgnss_soln_mode_enum[] = {
@@ -1575,9 +1591,6 @@ void solution_setup()
   static struct setting_type dgnss_filter_setting;
   int TYPE_GNSS_FILTER = settings_type_register_enum(dgnss_filter_enum,
                                                      &dgnss_filter_setting);
-  //SETTING("solution", "dgnss_filter",
-  //        dgnss_filter, TYPE_GNSS_FILTER);
-  SETTING_NOTIFY("solution", "dgnss_filter", dgnss_filter, TYPE_GNSS_FILTER, enable_fix_mode);
 
 
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
@@ -1602,6 +1615,9 @@ void solution_setup()
   chThdCreateStatic(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread), NORMALPRIO-3,
                     time_matched_obs_thread, NULL);
+
+  SETTING_NOTIFY("solution", "dgnss_filter", dgnss_filter, TYPE_GNSS_FILTER, enable_fix_mode);
+  SETTING_NOTIFY("solution", "correction_age_max", max_age_of_differential, TYPE_INT, set_max_age);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
