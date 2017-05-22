@@ -62,6 +62,16 @@ static struct nap_ch_state {
   me_gnss_signal_t mesid;      /**< Channel ME sid */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
+  /** Frequency channel (FCN) dependent carrier phase increment.
+      The carrier phase is changing this much each 1/Fs seconds
+      due to a constant frequency component.
+      Set to 0 for GPS and to an FCN dependent value for GLO. */
+  s32 carr_fcn_pinc;
+  /** Doppler induced carrier phase.
+      Does not include FCN induced carrier phase change. */
+  u64 reckoned_carr_phase;
+  u32 length[2];                /**< Correlation length in samples of Fs */
+  s32 carr_doppler_pinc[2];     /**< Carrier Doppler phase increment */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
@@ -152,6 +162,39 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid)
   return ret;
 }
 
+static s32 mesid_to_carr_fcn_pinc(const me_gnss_signal_t mesid)
+{
+  s32 carr_fcn_pinc;
+  switch (mesid.code) {
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+  case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
+    carr_fcn_pinc = 0;
+    break;
+  case CODE_GLO_L1CA:
+  {
+    double fcn_freq_hz = (mesid.sat - 8) * GLO_L1_DELTA_HZ;
+    carr_fcn_pinc = round(-fcn_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  } break;
+  case CODE_GLO_L2CA:
+  {
+    double fcn_freq_hz = (mesid.sat - 8) * GLO_L2_DELTA_HZ;
+    carr_fcn_pinc = round(-fcn_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  } break;
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
+    assert(!"Unsupported SID");
+    break;
+  case CODE_INVALID:
+  case CODE_COUNT:
+  default:
+    assert(!"Invalid code");
+    break;
+  }
+  return carr_fcn_pinc;
+}
+
 /** Convert spacing structure to NAP offset register value.
  * \param spacing Correlator spacing.
  * \return NAP offfset register value.
@@ -189,6 +232,8 @@ void nap_track_init(u8 channel,
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_state[channel];
 
+  memset(s, 0, sizeof(*s));
+  s->carr_fcn_pinc = mesid_to_carr_fcn_pinc(mesid);
   s->mesid = mesid;
   /* Delay L2CL code phase by 1 chip to accommodate zero in the L2CM slot */
   /* Initial correlation length for L2CL is thus 1 chip shorter,
@@ -366,6 +411,8 @@ void nap_track_init(u8 channel,
   if (mesid.code == CODE_GPS_L2CL) {
     t->LENGTH += calc_samples_per_chip(code_phase_rate);
   }
+  s->length[1] = s->length[0];
+  s->length[0] = t->LENGTH;
   s->init = false;
 }
 
@@ -395,7 +442,8 @@ void nap_track_update(u8 channel,
   t->CODE_PINC = cp_rate_units;
   u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
                                    cp_rate_units);
-  t->LENGTH = length;
+  s->length[1] = s->length[0];
+  t->LENGTH = s->length[0] = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_error_mesid(s->mesid, "Wrong NAP correlation length: "
@@ -404,7 +452,7 @@ void nap_track_update(u8 channel,
                     cp_rate_units, length, code_phase_rate);
   }
 
-  /* This is the frequency shift due do GLO FCNs.
+  /* This is the frequency shift due to GLO FCNs.
    * Note that it remains zero for GPS. */
   double fcn_freq_hz = 0;
 
@@ -415,10 +463,13 @@ void nap_track_update(u8 channel,
     fcn_freq_hz = (mesid.sat - 8) * GLO_L2_DELTA_HZ;
   }
 
-  /* This is the total frequency shift due do GLO FCNs + Doppler. */
+  /* This is the total frequency shift due to GLO FCNs + Doppler. */
   double carrier_freq_hz = -(fcn_freq_hz + doppler_freq_hz);
 
-  t->CARR_PINC = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  s32 carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  s->carr_doppler_pinc[1] = s->carr_doppler_pinc[0];
+  s->carr_doppler_pinc[0] = carr_pinc - s->carr_fcn_pinc;
+  t->CARR_PINC = carr_pinc;
 }
 
 void nap_track_read_results(u8 channel,
@@ -464,12 +515,12 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((corr[4] >> 16) & 0xFFFF);
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
-  s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
 
   *count_snapshot = t->TIMING_SNAPSHOT;
 
-  *carrier_phase = (double)-nap_carr_phase /
-      NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+  s->reckoned_carr_phase += ((s64)s->length[1] * s->carr_doppler_pinc[1]);
+  *carrier_phase = (double)-(s64)s->reckoned_carr_phase /
+                   NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
