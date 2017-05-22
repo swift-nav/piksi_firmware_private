@@ -39,17 +39,32 @@ static ndb_file_t utc_params_file = {
 void ndb_utc_params_init(void)
 {
 
-  static bool erase_utc_params = true;
+  static bool erase_utc_params = false;
   SETTING("ndb", "erase_utc_params", erase_utc_params, TYPE_BOOL);
 
   ndb_load_data(&utc_params_file, erase_utc_params);
 
 }
 
-ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p)
+/**
+ * Read the UTC parameters information
+ *
+ * \param[out] utc_params  Pointer to UTC parameters structure
+ * \param[out] is_nv       Pointer to NV flag, set to true if data was from NV
+ *
+ * \retval NDB_ERR_NONE       On success
+ * \retval NDB_ERR_BAD_PARAM  On parameter error
+ * \retval NDB_ERR_MISSING_IE No cached data block
+ */
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p,
+                                  bool *is_nv)
 {
+  if (is_nv != NULL) {
+    *is_nv = (0 != (utc_params_md.vflags & NDB_VFLAG_DATA_FROM_NV));
+  }
+
   return ndb_retrieve(&utc_params_md, utc_params_p, sizeof(*utc_params_p),
-                      NULL, NULL);
+                      NULL, NDB_USE_NV_UTC);
 }
 
 /**
@@ -76,10 +91,12 @@ ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
 
   ndb_op_code_t res;
   utc_params_t current;
+  bool is_nv;
 
-  if (NDB_ERR_NONE == ndb_utc_params_read(&current)
+  if (NDB_ERR_NONE == ndb_utc_params_read(&current, &is_nv)
+      && !is_nv
       && gpsdifftime(&utc_params_p->tot, &current.tot) <= 0) {
-
+    /* already have a newer parameter set decoded during this session */
     res = NDB_ERR_OLDER_DATA;
 
   } else {

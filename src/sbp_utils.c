@@ -862,7 +862,7 @@ void sbp_init_gps_time(msg_gps_time_t *gps_time){
 void sbp_init_utc_time(msg_utc_time_t *utc_time){
   gps_time_t current_time = get_current_gps_time();
   utc_params_t utc_params;
-  ndb_utc_params_read(&utc_params);
+  ndb_utc_params_read(&utc_params, NULL);
   memset(utc_time, 0, sizeof(msg_utc_time_t));
   sbp_make_utc_time(utc_time, &current_time, NO_POSITION, &utc_params);
 }

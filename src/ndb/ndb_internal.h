@@ -44,6 +44,7 @@ typedef struct {
 #define NDB_USE_NV_LGF       0
 #define NDB_USE_NV_ALMANAC   1
 #define NDB_USE_NV_EPHEMERIS 0
+#define NDB_USE_NV_UTC       1
 
 /** Maximum age of NV data elements in seconds */
 #define NDB_NV_IONO_AGE_SECS      WEEK_SECS

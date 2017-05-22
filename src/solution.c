@@ -162,10 +162,14 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     u8 utc_flags = SPP_POSITION;
     utc_params_t utc_params;
     utc_params_t *p_utc_params = &utc_params;
+    bool is_nv;
     /* try to read UTC parameters from NDB */
-    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params)) {
-      /* TODO: flag NVM_UTC when the params come from NV */
-      utc_flags |= (DECODED_UTC << 3);
+    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
+      if (is_nv) {
+        utc_flags |= (NVM_UTC << 3);
+      } else {
+        utc_flags |= (DECODED_UTC << 3);
+      }
     } else {
       p_utc_params = NULL;
       utc_flags |= (DEFAULT_UTC << 3);
@@ -317,7 +321,7 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
   utc_params_t utc_params;
   utc_params_t *p_utc_params = &utc_params;
   /* read UTC parameters from NDB if they exist*/
-  if(NDB_ERR_NONE != ndb_utc_params_read(&utc_params)) {
+  if (NDB_ERR_NONE != ndb_utc_params_read(&utc_params, NULL)) {
     p_utc_params = NULL;
   }
 
