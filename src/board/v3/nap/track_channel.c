@@ -202,8 +202,13 @@ void nap_track_init(u8 channel,
   }
 
   /* Correlator spacing: VE -> E */
-  s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                  .samples = NAP_VE_E_SPACING_SAMPLES};
+  if (is_glo_sid(mesid)) {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
+  } else {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+  }
 
   /* Correlator spacing: E -> P (samples only) */
   s->spacing[1] = (nap_spacing_t){.chips = 0,

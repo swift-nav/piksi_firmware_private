@@ -64,7 +64,8 @@
 #define NAP_SPACING_SAMPLES                                               (1)
 
 #define NAP_VE_E_SPACING_CHIPS                                            (7)
-#define NAP_VE_E_SPACING_SAMPLES                                         (23)
+#define NAP_VE_E_GPS_SPACING_SAMPLES                                     (23)
+#define NAP_VE_E_GLO_SPACING_SAMPLES                                     (47)
 
 #define NAP_KEY_LENGTH                                                   (16)
 

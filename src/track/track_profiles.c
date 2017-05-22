@@ -267,9 +267,9 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 /*
   These are the short names of the numbers & parameters listed
   in the same order below.
-  { { pll_bw,     fll_bw,        dll_bw,     controller,
-            tracking mode,                      cn0_est },
-      time,   cn0_low_thr, cn0_high_thr,        acc_thr,              ld_params,
+  { { pll_bw,     fll_bw,        dll_bw,     controller,      tracking_mode_gps,
+        tracking_mode_glo,                    cn0_est },              ld_params,
+   time_ms,   cn0_low_thr, cn0_high_thr,        acc_thr,            cn0_dyn_thr,
       next,       cn0_low,     cn0_high,            dyn,                   lock,
      flags }
 */
@@ -911,12 +911,6 @@ static bool profile_switch_requested(const me_gnss_signal_t mesid,
 {
   if (index == state->cur_index) {
     return false;
-  }
-
-  if (CODE_GLO_L1CA == mesid.code || CODE_GLO_L2CA == mesid.code) {
-    /* Do not change track profile for GLO. */
-    /* Remove this once GLO meander sync is added. */
-    return true;
   }
 
   assert(index != IDX_NONE);
