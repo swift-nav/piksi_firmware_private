@@ -1243,6 +1243,7 @@ static void solution_thread(void *arg)
       n_ready_tdcp = n_ready_tdcp_new;
 
       if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+        PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
         PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
         PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
         rtk_baseline_result_t result;
@@ -1253,10 +1254,14 @@ static void solution_thread(void *arg)
             filter_manager_is_initialized(low_latency_filter_manager);
 
         if (is_initialized) {
-          filter_manager_update_rov_obs(low_latency_filter_manager,
+          update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
                                         &current_fix.time, n_ready_tdcp,
                                         nav_meas_tdcp);
 
+
+        }
+
+        if (update_rov_obs == PVT_ENGINE_SUCCESS) {
           update_filter_ret = update_filter(low_latency_filter_manager);
         }
 
@@ -1335,6 +1340,8 @@ static void solution_thread(void *arg)
 
 void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
                          sbp_messages_t *sbp_messages) {
+  PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
   dops_t RTK_dops;
@@ -1355,15 +1362,18 @@ void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
     }
     chMtxUnlock(&time_matched_iono_params_lock);
 
-    filter_manager_update_rov_obs(time_matched_filter_manager, &rover_obss->tor,
+    update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager, &rover_obss->tor,
                                   rover_obss->n, rover_obss->nm);
-    filter_manager_update_ref_obs(
+    update_ref_obs = filter_manager_update_ref_obs(
         time_matched_filter_manager, &reference_obss->tor, reference_obss->n,
         reference_obss->nm, reference_obss->pos_ecef,
         reference_obss->has_known_pos_ecef ? reference_obss->known_pos_ecef
                                            : NULL);
 
-    update_filter_ret = update_filter(time_matched_filter_manager);
+    if ( update_rov_obs == PVT_ENGINE_SUCCESS &&
+        update_ref_obs == PVT_ENGINE_SUCCESS) {
+      update_filter_ret = update_filter(time_matched_filter_manager);
+    }
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
       /* If we're in low latency mode we need to copy/update the low latency
