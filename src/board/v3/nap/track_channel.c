@@ -50,6 +50,12 @@
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP       \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
+/* Correlation rounds to complete before starting doing
+    code and carrier phases reckoning.
+    Until that the phases are read from NAP. */
+#define CORR_ROUNDS_TO_START_PHASE_RECKONING 2
+
+
 /** Structure is used to define spacing between two correlators */
 typedef struct {
   u8 chips:3;   /**< Correlator spacing in chips (<= 7) */
@@ -62,7 +68,27 @@ static struct nap_ch_state {
   me_gnss_signal_t mesid;      /**< Channel ME sid */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
-} nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
+  /** Keeps track of the first #CORR_ROUNDS_TO_START_PHASE_RECKONING
+      correlation rounds.
+      Stop reading code and carrier phases from NAP
+      after the counter reaches #CORR_ROUNDS_TO_START_PHASE_RECKONING. */
+  u8       uCorrRounds;
+  /** Correlation length in cycles of NAP_TRACK_SAMPLE_RATE_Hz */
+  uint32_t uCorrLength;
+  /** Code frequency selection value for NCO [1/(Fs*M) s],
+      where Fs is NAP_TRACK_SAMPLE_RATE_Hz,
+      M is code_pinc */
+  uint32_t uCodeDelayInc;
+  int32_t  iCarrPhaseInc;
+  /** NAP code phase accumulator in units [1/(Fs*M) s],
+     where M is code_pinc */
+  u64      uNapCodeDelayAcc;
+  s64      iNapCarrPhaseAcc;
+  /** Chip count in NAP code phase units. */
+  u64      uNapChipCount;
+  /***/
+  bool     bReckonPhases;
+} sNapChState[NAP_MAX_N_TRACK_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
  * \param chips_to_correlate The number of chips to correlate over.
@@ -187,9 +213,15 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_GLO_L2CA));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct nap_ch_state *s = &sNapChState[channel];
+
+  /** reset the NAP channel state */
+  memset(s, 0, sizeof(struct nap_ch_state));
 
   s->mesid = mesid;
+
+  s->uNapChipCount = (u64) code_to_chip_count(mesid.code) * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
+
   /* Delay L2CL code phase by 1 chip to accommodate zero in the L2CM slot */
   /* Initial correlation length for L2CL is thus 1 chip shorter,
    * since first L2CM chip is skipped */
@@ -375,23 +407,28 @@ void nap_track_update(u8 channel,
   (void)corr_spacing; /* This is always written as 0, for now */
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct nap_ch_state *s = &sNapChState[channel];
 
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = code_phase_rate;
 
   u32 code_phase_frac = 0;
   if (!s->init) {
-    code_phase_frac = t->CODE_PHASE_FRAC + t->LENGTH * t->CODE_PINC;
+    if (s->bReckonPhases) {
+      /* Do phase reckoning to save 180ns per NAP register read. */
+      code_phase_frac = (u32)(s->uNapCodeDelayAcc % s->uNapChipCount);
+    } else {
+      code_phase_frac = t->CODE_PHASE_FRAC + t->LENGTH * t->CODE_PINC;
+    }
   }
 
   u32 cp_rate_units = round(code_phase_rate *
       NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
 
-  t->CODE_PINC = cp_rate_units;
+  t->CODE_PINC = s->uCodeDelayInc = cp_rate_units;
   u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
                                    cp_rate_units);
-  t->LENGTH = length;
+  t->LENGTH    = s->uCorrLength = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_error_mesid(s->mesid, "Wrong NAP correlation length: "
@@ -414,7 +451,7 @@ void nap_track_update(u8 channel,
   /* This is the total frequency shift due do GLO FCNs + Doppler. */
   double carrier_freq_hz = -(fcn_freq_hz + doppler_freq_hz);
 
-  t->CARR_PINC = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  t->CARR_PINC = s->iCarrPhaseInc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
 }
 
 void nap_track_read_results(u8 channel,
@@ -424,7 +461,7 @@ void nap_track_read_results(u8 channel,
                             double *carrier_phase)
 {
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct nap_ch_state *s = &sNapChState[channel];
 
   u32 ovf = (t->STATUS & NAP_TRK_STATUS_OVF_Msk) >> NAP_TRK_STATUS_OVF_Pos;
   if (ovf) {
@@ -437,24 +474,53 @@ void nap_track_read_results(u8 channel,
   * VE: CORR[0] -> corrs[3], E: CORR[1] -> corrs[0], P: CORR[2] -> corrs[1],
   * L: CORR[3] -> corrs[2], VL: CORR[4] -> corrs[4]
   * This is needed to use track_gps_l1ca.c for both Piksi v2 and v3 */
-  corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8;
-  corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8;
-  corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8;
-  corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8;
-  corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8;
-
-  u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
-  s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-
-  *count_snapshot = t->TIMING_SNAPSHOT;
-
-  *carrier_phase = (double)-nap_carr_phase /
-      NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+  /* corrs[0].I = t->CORR[1].I >> 8; corrs[0].Q = t->CORR[1].Q >> 8; */
+  /* corrs[1].I = t->CORR[2].I >> 8; corrs[1].Q = t->CORR[2].Q >> 8; */
+  /* corrs[2].I = t->CORR[3].I >> 8; corrs[2].Q = t->CORR[3].Q >> 8; */
+  /* corrs[3].I = t->CORR[0].I >> 8; corrs[3].Q = t->CORR[0].Q >> 8; */
+  /* corrs[4].I = t->CORR[4].I >> 8; corrs[4].Q = t->CORR[4].Q >> 8; */
+  corr_t tmpCorrs[4];
+  memcpy(tmpCorrs, t->CORR, 4*sizeof(corr_t));
+  corrs[0] = tmpCorrs[1];
+  corrs[1] = tmpCorrs[2];
+  corrs[2] = tmpCorrs[3];
+  corrs[3] = tmpCorrs[0];
+  /* corrs[4] = tmpCorrs[4]; */
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
       (s->spacing[0].samples + s->spacing[1].samples) /
       calc_samples_per_chip(s->code_phase_rate[1]);
+
+  *count_snapshot = t->TIMING_SNAPSHOT;
+
+  //~ u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
+  //~ s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+
+  if (s->uCorrRounds < CORR_ROUNDS_TO_START_PHASE_RECKONING) {
+    s->uCorrRounds++;
+  }
+  s->bReckonPhases = ((s->uCorrRounds) >= CORR_ROUNDS_TO_START_PHASE_RECKONING);
+
+
+
+  if (s->bReckonPhases) {
+    /* Do phase reckoning to save 180ns per NAP register read. */
+    s->uNapCodeDelayAcc += (u64) s->uCorrLength * s->uCodeDelayInc;
+    s->iNapCarrPhaseAcc += (s64) s->uCorrLength * s->iCarrPhaseInc;
+  } else {
+    s->uNapCodeDelayAcc = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
+    s->iNapCarrPhaseAcc = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+  }
+
+
+  s64 nap_carr_phase = s->iNapCarrPhaseAcc;
+
+  *carrier_phase = (double)-nap_carr_phase /
+      NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+
+  /* Correct code phase with spacing between VE and P correlators */
+  u64 nap_code_phase = s->uNapCodeDelayAcc % s->uNapChipCount;
 
   /* Correct code phase with spacing between VE and P correlators */
   *code_phase_prompt = (double)nap_code_phase /

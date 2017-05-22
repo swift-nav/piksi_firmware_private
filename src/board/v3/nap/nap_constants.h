@@ -16,12 +16,12 @@
 /**
  * @brief   The sampling rate of the samples coming off the frontend
  */
-#define NAP_FRONTEND_RAW_SAMPLE_RATE_Hz                            (99.375e6)
+#define NAP_FRONTEND_RAW_SAMPLE_RATE_Hz                            (53.000e6)
 
 /**
  * @brief   The sample rate decimation used by acquisition
  */
-#define NAP_ACQ_DECIMATION_RATE                                          (12)
+#define NAP_ACQ_DECIMATION_RATE                                          (10)
 
 /**
  * @brief   The acquisition sample rate after decimation
@@ -64,7 +64,7 @@
 #define NAP_SPACING_SAMPLES                                               (1)
 
 #define NAP_VE_E_SPACING_CHIPS                                            (7)
-#define NAP_VE_E_SPACING_SAMPLES                                         (23)
+#define NAP_VE_E_SPACING_SAMPLES                                         (12)
 
 #define NAP_KEY_LENGTH                                                   (16)
 
