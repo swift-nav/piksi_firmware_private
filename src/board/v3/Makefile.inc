@@ -85,7 +85,6 @@ BOARDSRC := \
         $(BOARDDIR)/frontend.o \
         $(BOARDDIR)/clk_dac.o \
         $(BOARDDIR)/init.o \
-        $(BOARDDIR)/acq.o \
         $(BOARDDIR)/io_support.o \
         $(BOARDDIR)/xadc.o \
         $(BOARDDIR)/factory_data.o \
@@ -93,7 +92,7 @@ BOARDSRC := \
         $(BOARDDIR)/imu.o \
         $(BOARDDIR)/manage_rtc.o \
         $(BOARDDIR)/nap/axi_dma.o \
-        $(BOARDDIR)/nap/fft.o \
+        $(BOARDDIR)/nap/grabber.o \
         $(BOARDDIR)/nap/nap_common.o \
         $(BOARDDIR)/nap/nap_conf.o \
         $(BOARDDIR)/nap/nap_dummy.o \

@@ -22,6 +22,7 @@
 #include "peripherals/leds.h"
 #include "io_support.h"
 #include "board/frontend.h"
+#include "specan/specan_main.h"
 #include "sbp.h"
 #include "init.h"
 #include "manage.h"
@@ -165,6 +166,8 @@ int main(void)
   {
     sbp_send_l2c_capabilities(&l2c_mask);
   }
+
+  SpecanStart();
 
   while (1) {
     chThdSleepSeconds(60);

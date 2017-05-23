@@ -10,27 +10,39 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "acq.h"
-
 #include <ch.h>
 #include <assert.h>
 #include <math.h>
+#include <string.h>
+#include <libswiftnav/constants.h>
 #include <libswiftnav/prns.h>
 #include <libswiftnav/logging.h>
 
-#include "nap/nap_constants.h"
-#include "nap/fft.h"
+#include "lib/fixed_fft_r2.h"
 
 #include "platform_cn0.h"
+#include "soft_macq_defines.h"
+#include "soft_macq_main.h"
 
-#define CODE_MULT 16384
-#define RESULT_DIV 32
-#define FFT_SCALE_SCHED_CODE 0x15555555
-#define FFT_SCALE_SCHED_SAMPLES 0x15555555
-#define FFT_SCALE_SCHED_INV 0x15550000
+
+
+#define CHIP_RATE                1.023e6f
+#define CODE_LENGTH              1023
+
+#define SOFTMACQ_FFTLEN_LOG2    (14)
+#define CODE_MULT               (16384)
+#define RESULT_DIV              (2048)
+#define FFT_SCALE_SCHED_CODE    (0x01555555)
+#define FFT_SCALE_SCHED_SAMPLES (0x01111111)
+#define FFT_SCALE_SCHED_INV     (0x01111111)
+
+//~ #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
+
+#define SOFTMACQ_SAMPLE_RATE_Hz     (SOFTMACQ_RAW_FS/SOFTMACQ_DECFACT_GPSL1CA)
+#define CODE_SMPS                   (SOFTMACQ_SAMPLE_RATE_Hz/1000)
 
 static void code_resample(const me_gnss_signal_t mesid, float chips_per_sample,
-                          fft_cplx_t *resampled, u32 resampled_length);
+                          sc16_t *resampled, u32 resampled_length);
 static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_min, float cf_max,
                             float cf_bin_width, s16 *doppler_bin_min,
@@ -38,42 +50,71 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
 static bool ifft_operations(const me_gnss_signal_t mesid,
                             s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
-                            const fft_cplx_t *code_fft,
-                            const fft_cplx_t *sample_fft,
+                            const sc16_t *code_fft,
+                            const sc16_t *sample_fft,
                             u32 fft_len_log2, float *doppler);
 static bool acq_peak_search(const me_gnss_signal_t mesid,
                             float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak);
 
-float acq_bin_width(void)
+static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize);
+
+static sc16_t code_fft  [INTFFT_MAXSIZE]  __attribute__ ((aligned (32)));;
+static sc16_t sample_fft[INTFFT_MAXSIZE]  __attribute__ ((aligned (32)));;
+static sc16_t result_fft[INTFFT_MAXSIZE]  __attribute__ ((aligned (32)));;
+intFFTr2_t sFftConfig;
+
+static u32 puMaxIdx[4];
+static u32 puMaxVal[4];
+static u32 puSumVal[4];
+
+float soft_acq_bin_width(void)
 {
-  return NAP_ACQ_SAMPLE_RATE_Hz / (1 << FFT_LEN_LOG2_MAX);
+  return SOFTMACQ_SAMPLE_RATE_Hz / (1 << SOFTMACQ_FFTLEN_LOG2);
 }
 
-bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
-                float cf_bin_width, acq_result_t *acq_result)
+bool soft_acq_search(const sc16_t *_cSignal,
+                    const me_gnss_signal_t mesid, float cf_min, float cf_max,
+                    float cf_bin_width, acq_result_t *acq_result)
 {
   /* Configuration */
-  u32 fft_len_log2 = FFT_LEN_LOG2_MAX;
+  u32 fft_len_log2 = SOFTMACQ_FFTLEN_LOG2;
   u32 fft_len = 1 << fft_len_log2;
-  float fft_bin_width = NAP_ACQ_SAMPLE_RATE_Hz / fft_len;
-  float chips_per_sample = code_to_chip_rate(mesid.code) / NAP_ACQ_SAMPLE_RATE_Hz;
+  assert(fft_len<=INTFFT_MAXSIZE);
+  //~ (void) _cSignal;
+
+  /** init soft FFT */
+  if (sFftConfig.N != fft_len) {
+    InitIntFFTr2(&sFftConfig, fft_len);
+    log_info("InitIntFFTr2()");
+  }
+
+  float fft_bin_width = SOFTMACQ_SAMPLE_RATE_Hz / fft_len;
+  float chips_per_sample = CHIP_RATE / SOFTMACQ_SAMPLE_RATE_Hz;
 
   /* Generate, resample, and FFT code */
-  static FFT_BUFFER(code_fft, fft_cplx_t, FFT_LEN_MAX);
   code_resample(mesid, chips_per_sample, code_fft, fft_len);
-  if (!fft(code_fft, code_fft, fft_len_log2,
-           FFT_DIR_FORWARD, FFT_SCALE_SCHED_CODE)) {
-    return false;
-  }
+  DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
+
+  //~ GetFourMaxes(code_fft, CODE_SMPS);
+  //~ log_info_mesid(mesid, "code_fft    magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
+    //~ puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
+    //~ puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
 
   /* FFT samples */
-  u32 sample_count;
-  static FFT_BUFFER(sample_fft, fft_cplx_t, FFT_LEN_MAX);
-  if (!fft_samples(mesid, sample_fft, fft_len_log2,
-                   FFT_DIR_FORWARD, FFT_SCALE_SCHED_SAMPLES, &sample_count)) {
-    return false;
-  }
+
+  //~ GetFourMaxes(_cSignal, fft_len);
+  //~ log_info_mesid(mesid, "_cSignal  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
+    //~ puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
+    //~ puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
+
+  memcpy(sample_fft, _cSignal, sizeof(sc16_t)*fft_len);
+  DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
+
+  //~ GetFourMaxes(sample_fft, CODE_SMPS);
+  //~ log_info_mesid(mesid, "sample_fft  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
+    //~ puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
+    //~ puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
 
   /* Search for peak */
   acq_peak_search_t peak = {0};
@@ -116,9 +157,8 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
     loop_index += 1;
 
     /* Multiply and do IFFT */
-    if (!ifft_operations(mesid, doppler_bin, cf_bin_width, fft_len,
-                         fft_bin_width, code_fft, sample_fft,
-                         fft_len_log2, &doppler)) {
+    if (!ifft_operations(mesid, doppler_bin, cf_bin_width, fft_len, fft_bin_width,
+                         code_fft, sample_fft, fft_len_log2, &doppler)) {
       return false;
     }
 
@@ -157,36 +197,36 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
    * have NOT wrapped, so assume a positive shift.
    * If correlation peak is in the second half of the buffer, most samples
    * HAVE wrapped, so assume a negative shift. */
-  s32 corrected_sample_offset = (peak.sample_offset < fft_len/2) ?
-                                (s32)peak.sample_offset :
-                                (s32)peak.sample_offset - (s32)fft_len;
+  //~ s32 corrected_sample_offset = (peak.sample_offset < fft_len/2) ?
+                                //~ (s32)peak.sample_offset :
+                                //~ (s32)peak.sample_offset - (s32)fft_len;
+  s32 corrected_sample_offset = peak.sample_offset;
 
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
   /* Modulus code length */
-  cp -= code_to_chip_count(mesid.code) *
-        floorf(cp / code_to_chip_count(mesid.code));
+  //~ cp -= CODE_LENGTH * floorf(cp / CODE_LENGTH);
 
   /* False acquisition code phase hack (Michele). The vast majority of our
    * false acquisitions return a code phase within 0.5 chip of 0. Not allowing
    * these code phases will reject a small number of true acquisitions but
    * prevents nearly all the false acquisitions.
    * TODO: Remove this once we move to soft FFT based acquisition. */
-  constellation_t constellation = mesid_to_constellation(mesid);
-  if (CONSTELLATION_GPS == constellation) {
-    if ((cp <= 0.5) || (cp >= 1022.5)) {
-      return false;
-    }
-  } else if (CONSTELLATION_GLO == constellation) {
-    if ((cp <= 1.0) || (cp >= 510.0)) {
-      return false;
-    }
-  }
+  //~ constellation_t constellation = mesid_to_constellation(mesid);
+  //~ if (CONSTELLATION_GPS == constellation) {
+    //~ if ((cp <= 0.5) || (cp >= 1022.5)) {
+      //~ return false;
+    //~ }
+  //~ } else if (CONSTELLATION_GLO == constellation) {
+    //~ if ((cp <= 1.0) || (cp >= 510.0)) {
+      //~ return false;
+    //~ }
+  //~ }
 
   /* Set output */
-  acq_result->sample_count = sample_count;
-  acq_result->cp = cp;
-  acq_result->cf = peak.doppler;
+  //~ acq_result->sample_count = sample_count;
+  acq_result->cp  = cp;
+  acq_result->cf  = peak.doppler;
   acq_result->cn0 = peak.cn0;
   return true;
 }
@@ -198,17 +238,17 @@ bool acq_search(const me_gnss_signal_t mesid, float cf_min, float cf_max,
  * \param[in] resampled_length Length of resampled code.
  */
 static void code_resample(const me_gnss_signal_t mesid, float chips_per_sample,
-                          fft_cplx_t *resampled, u32 resampled_length)
+                          sc16_t *resampled, u32 resampled_length)
 {
-  const u8 *code = ca_code(mesid);
+  const u8 *pCode = ca_code(mesid);
   u32 code_length = code_to_chip_count(mesid.code);
 
   float chip_offset = 0.0f;
   for (u32 i = 0; i < resampled_length; i++) {
     u32 code_index = (u32)floorf(chip_offset);
-    resampled[i] = (fft_cplx_t) {
-      .re = CODE_MULT * get_chip((u8 *)code, code_index % code_length),
-      .im = 0
+    resampled[i] = (sc16_t) {
+      .r = CODE_MULT * get_chip((u8 *)pCode, code_index % code_length),
+      .i = 0
     };
     chip_offset += chips_per_sample;
   }
@@ -258,8 +298,8 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
  * \param[in]     cf_bin_width  Doppler bin width [Hz]
  * \param[in]     fft_len       FFT length
  * \param[in]     fft_bin_width Doppler bin width [Hz]
- * \param[in]     code_fft      Conjugate code FFT samples
- * \param[in]     sample_fft    Sample FFT
+ * \param[in]     _pCodeFft      Conjugate code FFT samples
+ * \param[in]     _pSampleFft    Sample FFT
  * \param[in]     fft_len_log2  FFT length
  * \param[in,out] doppler       Actual doppler of current frequency bin [Hz]
  * \retval true  Success
@@ -268,10 +308,11 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
 static bool ifft_operations(const me_gnss_signal_t mesid,
                             s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
-                            const fft_cplx_t *code_fft,
-                            const fft_cplx_t *sample_fft,
+                            const sc16_t *_pCodeFft,
+                            const sc16_t *_pSampleFft,
                             u32 fft_len_log2, float *doppler)
 {
+  (void) fft_len_log2;
   float freq = 0.0f;
   if (is_glo_sid(mesid)) {
     /* GLO FCN is removed here.
@@ -284,26 +325,33 @@ static bool ifft_operations(const me_gnss_signal_t mesid,
   *doppler = doppler_bin * cf_bin_width;
 
   /* Multiply sample FFT by shifted conjugate code FFT */
-  static FFT_BUFFER(result_fft, fft_cplx_t, FFT_LEN_MAX);
   for (u32 i = 0; i < fft_len; i++) {
-    const fft_cplx_t *a = &code_fft[i];
-    const fft_cplx_t *b = &sample_fft[(i + sample_offset) & (fft_len - 1)];
-    fft_cplx_t *r = &result_fft[i];
+    const sc16_t *a = &_pCodeFft[i];
+    const sc16_t *b = &_pSampleFft[(i + sample_offset) & (fft_len - 1)];
+    sc16_t *r = &result_fft[i];
 
-    s32 a_re = (s32)a->re;
-    s32 a_im = (s32)a->im;
-    s32 b_re = (s32)b->re;
-    s32 b_im = (s32)b->im;
+    s32 a_re = (s32)a->r;
+    s32 a_im = (s32)a->i;
+    s32 b_re = (s32)b->r;
+    s32 b_im = (s32)b->i;
 
-    r->re = ((a_re * b_re) + (a_im * b_im)) / RESULT_DIV;
-    r->im = ((a_re * -b_im) + (a_im * b_re)) / RESULT_DIV;
+    r->r = ((a_re * b_re) + (a_im * b_im)) / RESULT_DIV;
+    r->i = ((a_re * -b_im) + (a_im * b_re)) / RESULT_DIV;
   }
+
+  //~ GetFourMaxes(result_fft, CODE_SMPS);
+  //~ log_info("freq_product magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
+    //~ puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
+    //~ puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
 
   /* Inverse FFT */
-  if (!fft(result_fft, result_fft, fft_len_log2,
-           FFT_DIR_BACKWARD, FFT_SCALE_SCHED_INV)) {
-    return false;
-  }
+  DoBwdIntFFTr2(&sFftConfig, result_fft, FFT_SCALE_SCHED_INV, 1);
+
+  //~ GetFourMaxes(result_fft, CODE_SMPS);
+  //~ log_info("result_fft  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
+    //~ puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
+    //~ puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
+
   return true;
 }
 
@@ -321,13 +369,27 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
                             float doppler, float fft_len,
                             float fft_bin_width, acq_peak_search_t *peak)
 {
+  uint32_t k=0, kmax=0;
   u32 peak_index;
   u32 peak_mag_sq;
   u32 sum_mag_sq;
   float snr = 0.0f;
   float cn0 = 0.0f;
 
-  fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
+  (void) fft_len;
+
+  //~ fft_results_get(&peak_index, &peak_mag_sq, &sum_mag_sq);
+  GetFourMaxes(result_fft, CODE_SMPS);
+  peak_mag_sq = 0;
+  peak_index  = 0;
+  for (k=0; k<4; k++) {
+    if (puMaxVal[k] > peak_mag_sq) {
+      peak_mag_sq = puMaxVal[k];
+      peak_index  = puMaxIdx[k];
+      kmax = k;
+    }
+  }
+  sum_mag_sq = puSumVal[(kmax+2)%4];
 
   if (sum_mag_sq == 0) {
     log_error_mesid(mesid, "Acq_search: zero_noise (%u)", sum_mag_sq);
@@ -335,10 +397,18 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   }
 
   /* Compute C/N0 */
-  snr = (float)peak_mag_sq / ((float)sum_mag_sq / fft_len);
+  snr = (float)peak_mag_sq / ((float)sum_mag_sq/(CODE_SMPS/4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
 
-  if (cn0 > peak->cn0) {
+  //~ log_info("result_fft  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
+    //~ puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
+    //~ puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
+
+  //~ if (cn0 > 38.0) {
+    //~ log_info_mesid(mesid, "result_fft doppler %+7.1f cn0 %+6.1f\n", doppler, cn0);
+  //~ }
+
+  if ((cn0 > peak->cn0)) {
     /* New max peak found */
     peak->cn0 = cn0;
     peak->doppler = doppler;
@@ -348,19 +418,49 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   return true;
 }
 
-/** Grab raw samples from NAP.
- *
- * \param[out]  length        Number of samples in the buffer.
- * \param[out]  sample_count  Output sample count of the first sample used.
- *
- * \return Pointer to the beginning of the sample buffer.
- */
-u8* grab_samples(u32 *length, u32 *sample_count)
-{
-  static FFT_BUFFER(samples, u32, FFT_LEN_MAX);
-  *length = FFT_LEN_MAX * sizeof(u32);
-  if (raw_samples((u8*)samples, FFT_LEN_MAX, sample_count)) {
-    return (u8*)samples;
+
+static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize) {
+  u32 k, uTmpMag, uSz4th;
+
+  if (NULL == _pcVec) return;
+  if (_uSize ==    0) return;
+
+  puMaxIdx[0] = 0; puMaxIdx[1] = 0; puMaxIdx[2] = 0; puMaxIdx[3] = 0;
+  puMaxVal[0] = 0; puMaxVal[1] = 0; puMaxVal[2] = 0; puMaxVal[3] = 0;
+  puSumVal[0] = 0; puSumVal[1] = 0; puSumVal[2] = 0; puSumVal[3] = 0;
+  uSz4th = _uSize/4;
+
+  for (k=0; k< 1*uSz4th; k++) {
+    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) + ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    puSumVal[0] += uTmpMag;
+    if (uTmpMag > puMaxVal[0]) {
+      puMaxVal[0] = uTmpMag;
+      puMaxIdx[0] = k;
+    }
   }
-  return NULL;
+  for (k=1*uSz4th; k< 2*uSz4th; k++) {
+    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) + ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    puSumVal[1] += uTmpMag;
+    if (uTmpMag > puMaxVal[1]) {
+      puMaxVal[1] = uTmpMag;
+      puMaxIdx[1] = k;
+    }
+  }
+  for (k=2*uSz4th; k< 3*uSz4th; k++) {
+    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) + ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    puSumVal[2] += uTmpMag;
+    if (uTmpMag > puMaxVal[2]) {
+      puMaxVal[2] = uTmpMag;
+      puMaxIdx[2] = k;
+    }
+  }
+  for (k=3*uSz4th; k<  _uSize; k++) {
+    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) + ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    puSumVal[3] += uTmpMag;
+    if (uTmpMag > puMaxVal[3]) {
+      puMaxVal[3] = uTmpMag;
+      puMaxIdx[3] = k;
+    }
+  }
 }
+

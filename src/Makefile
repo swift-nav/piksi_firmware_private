@@ -123,6 +123,7 @@ CSRC := $(STARTUPSRC) \
         $(PLATFORMSRC) \
         $(BOARDSRC) \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
+        $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp_fileio.o \
@@ -170,6 +171,11 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/reacq/scheduler.o \
         $(SWIFTNAV_ROOT)/src/reacq/scheduler_utils.o \
         $(SWIFTNAV_ROOT)/src/reacq/task_generator.o \
+        $(SWIFTNAV_ROOT)/src/specan/specan_main.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_mdbzp.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c

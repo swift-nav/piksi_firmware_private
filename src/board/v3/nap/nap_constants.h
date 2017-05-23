@@ -19,18 +19,6 @@
 #define NAP_FRONTEND_RAW_SAMPLE_RATE_Hz                            (99.375e6)
 
 /**
- * @brief   The sample rate decimation used by acquisition
- */
-#define NAP_ACQ_DECIMATION_RATE                                          (12)
-
-/**
- * @brief   The acquisition sample rate after decimation
- * @note    This is the effective sampling rate of the acquisition results
- */
-#define NAP_ACQ_SAMPLE_RATE_Hz             (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz \
-                                                   / NAP_ACQ_DECIMATION_RATE)
-
-/**
  * @brief   The sample rate decimation used by tracking channels
  */
 #define NAP_TRACK_DECIMATION_RATE                                         (5)

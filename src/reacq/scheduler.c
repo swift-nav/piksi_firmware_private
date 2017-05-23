@@ -17,6 +17,8 @@
 #include <timing.h>
 #include <dum.h>
 
+#include "soft_macq/soft_macq_main.h"
+
 /* Scheduler utils funcions */
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
@@ -49,7 +51,7 @@ void sch_initialize_cost(acq_job_t *init_job,
   bool max_found = false;
   u32 avg = 0;
   u32 num_jobs = 0;
-  
+
   u8 num_sats = 0;
   const acq_job_t *pjob = NULL;
 
@@ -116,7 +118,7 @@ void sch_initialize_cost(acq_job_t *init_job,
     init_job->cost = max_cost + init_job->cost_delta;
     break;
   }
-  
+
 }
 
 /** Limit job cost
@@ -187,7 +189,7 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost,
 /** Select next job to run
  *
  *  Loops jobs, updates their state if search manager
- *  has set them to run/not run and selects the job 
+ *  has set them to run/not run and selects the job
  *  which should run next.
  *
  * \param jobs_data pointer to job data
@@ -241,7 +243,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss)
   tmp_pjob = pjob; /* restore pointer */
   /* Initialize the cost with max_plus cost hint only after jobs
      with max, min, or avg cost hints are initialized since
-     the intention of max_plus is to get high cost. 
+     the intention of max_plus is to get high cost.
      Select the job with minimum cost in the same loop. */
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, tmp_pjob += num_sats * type) {
     acq_job_t *job = tmp_pjob;
@@ -264,7 +266,7 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss)
       }
     }
   }
-  
+
   return job_to_run;
 }
 
@@ -330,7 +332,13 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
 
   job->start_time = timing_getms();
 
-  peak_found = acq_search(job->mesid,
+  //~ peak_found = acq_search(job->mesid,
+                          //~ acq_param->doppler_min_hz,
+                          //~ acq_param->doppler_max_hz,
+                          //~ acq_param->freq_bin_size_hz,
+                          //~ &acq_result);
+
+  peak_found = soft_multi_acq_search(job->mesid,
                           acq_param->doppler_min_hz,
                           acq_param->doppler_max_hz,
                           acq_param->freq_bin_size_hz,
