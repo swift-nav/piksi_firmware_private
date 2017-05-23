@@ -152,9 +152,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     return; /* L2CL signal from the SV is already in track */
   }
 
-  if ((code_phase < 0) ||
-      ((code_phase > HANDOVER_CODE_PHASE_THRESHOLD) &&
-       (code_phase < (GPS_L2CM_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
+  if (!handover_valid(code_phase, GPS_L2CM_CHIPS_NUM)) {
     log_warn_mesid(mesid,
                    "Unexpected L2CM to L2CL hand-over code phase: %f",
                    code_phase);
@@ -187,7 +185,7 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
     .carrier_freq       = carrier_freq,
     .code_phase         = code_phase,
     /* chips to correlate during first 1 ms of tracking */
-    .chips_to_correlate = GPS_CA_CHIPPING_RATE * 1e-3,
+    .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
     /* get initial cn0 from parent L2CM channel */
     .cn0_init           = cn0_init,
     .elevation          = TRACKING_ELEVATION_UNKNOWN

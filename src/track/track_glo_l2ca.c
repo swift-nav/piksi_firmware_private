@@ -107,9 +107,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
     return; /* L2CA signal from the SV is already in track */
   }
 
-  if ((code_phase_chips < 0) ||
-      ((code_phase_chips > HANDOVER_CODE_PHASE_THRESHOLD) &&
-       (code_phase_chips < (GLO_CA_CHIPS_NUM - HANDOVER_CODE_PHASE_THRESHOLD)))) {
+  if (!handover_valid(code_phase_chips, GLO_CA_CHIPS_NUM)) {
     log_warn_mesid(L2_mesid,
                    "Unexpected L1CA to L2CA handover code phase: %f",
                    code_phase_chips);
@@ -132,7 +130,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
     .carrier_freq       = carrier_freq_hz * glo_freq_scale,
     .code_phase         = code_phase_chips,
     /* chips to correlate during first 1 ms of tracking */
-    .chips_to_correlate = GLO_CA_CHIPPING_RATE * 1e-3,
+    .chips_to_correlate = code_to_chip_rate(L2_mesid.code) * 1e-3,
     /* get initial cn0 from parent L1 channel */
     .cn0_init           = init_cn0_dbhz,
     .elevation          = TRACKING_ELEVATION_UNKNOWN
