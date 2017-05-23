@@ -13,7 +13,7 @@
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 
-static mutex_t glo_map_mutex;
+static MUTEX_DECL(glo_map_mutex);
 
 static void glo_map_lock(void)
 {
@@ -27,6 +27,5 @@ static void glo_map_unlock(void)
 
 void glo_map_setup(void)
 {
-  chMtxObjectInit(&glo_map_mutex);
   glo_map_init(glo_map_lock, glo_map_unlock);
 }
