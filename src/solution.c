@@ -1222,6 +1222,8 @@ static void solution_thread(void *arg)
             filter_manager_is_initialized(low_latency_filter_manager);
 
         if (is_initialized) {
+		  set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
+
           update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
                                         &current_fix.time, n_ready_tdcp,
                                         nav_meas_tdcp);
@@ -1415,7 +1417,6 @@ static void time_matched_obs_thread(void *arg)
     chMtxUnlock(&base_obs_lock);
 
     // Check if the el mask has changed and update
-
     chMtxLock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,get_solution_elevation_mask());
     chMtxUnlock(&time_matched_filter_manager_lock);
@@ -1543,6 +1544,9 @@ static bool enable_fix_mode(struct setting *s, const char *val)
   chMtxLock(&time_matched_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
   chMtxUnlock(&time_matched_filter_manager_lock);
+  chMtxLock(&low_latency_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
+  chMtxUnlock(&low_latency_filter_manager_lock);
   *(dgnss_filter_t*)s->addr = value;
   return ret;
 }
@@ -1555,9 +1559,9 @@ static bool set_max_age(struct setting *s, const char *val)
     return ret;
   }
 
-  chMtxLock(&time_matched_filter_manager_lock);
-  set_max_correction_age(time_matched_filter_manager, value);
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  chMtxLock(&low_latency_filter_manager_lock);
+  set_max_correction_age(low_latency_filter_manager, value);
+  chMtxUnlock(&low_latency_filter_manager_lock);
   *(int*)s->addr = value;
   return ret;
 }
