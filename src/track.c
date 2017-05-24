@@ -1037,6 +1037,30 @@ void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
+/**
+ * Check validity of handover code phase.
+ *
+ * The code phase is expected to be near zero at the moment of handover.
+ * If the code has rolled over just recently, then it is [0, TOLERANCE]
+ * If the code hasn't rolled over yet, then it is [MAX_CHIPS - TOL, MAX_CHIPS)
+ * Code phase should never be negative.
+ *
+ * \param[in] code_phase_chips code phase [chips].
+ * \param[in] max_chips        code length of the signal
+ *                             from where handover is done [chips].
+ *
+ * \return true if the code phase is valid, false otherwise.
+ */
+bool handover_valid(double code_phase_chips, double max_chips)
+{
+  if ((code_phase_chips < 0) ||
+      ((code_phase_chips > HANDOVER_CODE_PHASE_THRESHOLD) &&
+       (code_phase_chips < (max_chips - HANDOVER_CODE_PHASE_THRESHOLD)))) {
+    return false;
+  }
+  return true;
+}
+
 /** Set the azimuth and elevation angles for SV by sid.
  *
  * \param[in] sid       Signal identifier for which the elevation should be set.
