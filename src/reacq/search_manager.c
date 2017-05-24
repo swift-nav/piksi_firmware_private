@@ -119,46 +119,30 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     acq_job_t *deep_job = &jobs_data->jobs_glo[ACQ_JOB_DEEP_SEARCH][i];
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
-    u16 glo_fcn;
-
-    if (glo_map_valid(sid)) {
-      glo_fcn = glo_map_get_fcn(sid);
-    } else {
-      /* if there is no any mapping go through all GLO FCN and pick one */
-      for (glo_fcn = GLO_MIN_FCN; glo_fcn <= GLO_MAX_FCN; glo_fcn++) {
-        if (mesid_is_tracked(construct_mesid(CODE_GLO_L1CA, glo_fcn))) {
-          continue;
-        } else {
-          deep_job->glo_blind_search = true;
-          break;
-        }
-      }
-    }
-
-    if (glo_fcn > GLO_MAX_FCN) {
-      /* all GLO frequencies are tracked,
-       * rare case when no any data decoded yet,
-       * so no need to continue */
-      return;
-    }
-
-    *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
-
+    u16 glo_fcn = GLO_FCN_UNKNOWN;
     bool visible = false;
     bool known = false;
-
-    assert(mesid_valid(*mesid));
-    assert(sid_valid(sid));
-    assert(is_glo_sid(*mesid));
-
-    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
-
     /* Initialize jobs to not run */
     deep_job->needs_to_run = false;
 
-    if (!deep_job->glo_blind_search) {
-      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
-      visible = visible && known;
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+    }
+
+    if (GLO_FCN_UNKNOWN == glo_fcn) {
+      deep_job->glo_blind_search = true;
+    } else {
+      *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
+
+      assert(mesid_valid(*mesid));
+      assert(sid_valid(sid));
+      assert(is_glo_sid(*mesid));
+      assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
+
+      if (!deep_job->glo_blind_search) {
+        sm_get_glo_visibility_flags(sid.sat, &visible, &known);
+        visible = visible && known;
+      }
     }
 
     if (visible || deep_job->glo_blind_search) {
@@ -256,48 +240,30 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     acq_job_t *fallback_job = &jobs_data->jobs_glo[ACQ_JOB_FALLBACK_SEARCH][i];
     me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
-    u16 glo_fcn;
-
-    if (glo_map_valid(sid)) {
-      glo_fcn = glo_map_get_fcn(sid);
-    } else {
-      /* if there is no any mapping go through all GLO FCN and pick one */
-      for (glo_fcn = GLO_MIN_FCN; glo_fcn <= GLO_MAX_FCN; glo_fcn++) {
-        if (mesid_is_tracked(construct_mesid(CODE_GLO_L1CA, glo_fcn))) {
-          continue;
-        } else {
-          fallback_job->glo_blind_search = true;
-          break;
-        }
-      }
-    }
-
-    if (glo_fcn > GLO_MAX_FCN) {
-      /* all GLO frequencies are tracked,
-       * rare case when no any data decoded yet,
-       * so no need to continue */
-      return;
-    }
-
-    *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
-
+    u16 glo_fcn = GLO_FCN_UNKNOWN;
     bool visible = false;
     bool invisible = false;
     bool known = false;
 
-    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
-
-    assert(mesid_valid(*mesid));
-    assert(sid_valid(sid));
-    assert(is_glo_sid(*mesid));
-
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+    }
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
+    if (GLO_FCN_UNKNOWN == glo_fcn) {
+      fallback_job->glo_blind_search = true;
+    } else {
+      *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
+      assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
+      assert(mesid_valid(*mesid));
+      assert(sid_valid(sid));
+      assert(is_glo_sid(*mesid));
 
-    if (!fallback_job->glo_blind_search) {
-      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
-      visible = visible && known;
-      invisible = !visible && known;
+      if (!fallback_job->glo_blind_search) {
+        sm_get_glo_visibility_flags(sid.sat, &visible, &known);
+        visible = visible && known;
+        invisible = !visible && known;
+      }
     }
 
     if (visible &&
@@ -308,10 +274,11 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if ((!known || fallback_job->glo_blind_search) &&
+    } else if ((!known &&
         lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
-        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS)
+        || fallback_job->glo_blind_search) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;

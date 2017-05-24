@@ -268,6 +268,28 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss)
   return job_to_run;
 }
 
+/** GLO specific function.
+ * The function sets Frequency slot to search if we are in blind search mode
+ *
+ * \param job pointer to job to run
+ */
+static void sch_glo_fcn_set(acq_job_t *job)
+{
+  if (NULL == job) {
+    return;
+  }
+
+  if (job->glo_blind_search) {
+    /* FCN not mapped to GLO slot ID, so perform blind search, just pick next
+     * FCN */
+    job->mesid.sat++;
+    if (job->mesid.sat > GLO_MAX_FCN) {
+      job->mesid.sat = GLO_MIN_FCN;
+    }
+    job->mesid.code = job->sid.code;
+  }
+}
+
 /** Common part of scheduler for all constellations
  *
  * \param jobs_data pointer to job data
@@ -344,6 +366,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
     };
     task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
+    job->glo_blind_search = false;
 
     tracking_startup_request(&tracking_startup_params);
 
@@ -398,6 +421,7 @@ void sch_run(acq_jobs_state_t *jobs_data)
   /* now same for GLO */
   if (is_glo_enabled()) {
     job = sch_select_job(jobs_data, CONSTELLATION_GLO);
+    sch_glo_fcn_set(job);
     sch_run_common(jobs_data, job, CONSTELLATION_GLO);
   }
 }
