@@ -705,8 +705,11 @@ void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
     /* Bit sync / data decoding update counter. */
     u8 update_count_ms = tp_get_bit_ms(data->tracking_mode);
     /* Bit sync advance / message decoding */
-    tracker_bit_sync_update(channel_info->context, update_count_ms,
-                            data->corrs.corr_bit, sensitivity_mode);
+    tracker_bit_sync_update(channel_info->context,
+                            update_count_ms,
+                            data->corrs.corr_epl.prompt.I,
+                            data->corrs.corr_epl.prompt.Q,
+                            sensitivity_mode);
 
     /* TODO Update BS from ToW when appropriate. */
     /* TODO Add fast BS detection. */
