@@ -172,13 +172,11 @@ static s32 mesid_to_carr_fcn_pinc(const me_gnss_signal_t mesid)
   case CODE_GPS_L2CL:
     carr_fcn_pinc = 0;
     break;
-  case CODE_GLO_L1CA:
-  {
+  case CODE_GLO_L1CA: {
     double fcn_freq_hz = (mesid.sat - 8) * GLO_L1_DELTA_HZ;
     carr_fcn_pinc = round(-fcn_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   } break;
-  case CODE_GLO_L2CA:
-  {
+  case CODE_GLO_L2CA: {
     double fcn_freq_hz = (mesid.sat - 8) * GLO_L2_DELTA_HZ;
     carr_fcn_pinc = round(-fcn_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   } break;

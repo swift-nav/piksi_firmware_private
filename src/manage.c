@@ -1351,6 +1351,7 @@ manage_track_flags_t get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                                     const ephemeris_t *pephe)
 {
   manage_track_flags_t result = 0;
+  bool glo_sv_healthy = false;
 
   /* Satellite elevation is above the solution mask. */
   if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
@@ -1371,19 +1372,15 @@ manage_track_flags_t get_tracking_channel_sid_flags(const gnss_signal_t sid,
     if (signal_healthy(pephe->valid, pephe->health_bits,
                        pephe->ura, sid.code)) {
       result |= MANAGE_TRACK_FLAG_HEALTHY;
+      glo_sv_healthy = true;
     }
   }
 
   constellation_t constellation = sid_to_constellation(sid);
-  if (CONSTELLATION_GPS == constellation) {
-    /* Navigation suitable flag */
-    if (shm_navigation_suitable(sid)) {
-      result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
-    }
-  } else if (CONSTELLATION_GLO == constellation) {
-    if (MANAGE_TRACK_FLAG_HEALTHY == (result & MANAGE_TRACK_FLAG_HEALTHY)) {
-      result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
-    }
+  if ((CONSTELLATION_GPS == constellation) && shm_navigation_suitable(sid)) {
+    result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
+  } else if ((CONSTELLATION_GLO == constellation) && glo_sv_healthy) {
+    result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
   }
 
   return result;

@@ -134,7 +134,7 @@ s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
   double error_ms = 0;
   u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
   u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
-  u8 ms_align = half_bit_aligned ? half_bit : GLO_L1CA_PRN_PERIOD_MS;
+  u8 ms_align = half_bit_aligned ? half_bit : GLO_PRN_PERIOD_MS;
   s32 TOW_ms;
 
   TOW_ms = tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, ms_align, &error_ms);
@@ -269,7 +269,7 @@ static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
   u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
                                         &glo_l1ca_config);
 
-  /* GPS L1 C/A-specific ToW manipulation */
+  /* GLO L1 C/A-specific ToW manipulation */
   update_tow_glo_l1ca(channel_info, common_data, data, tracker_flags);
 
   if (data->lock_detect.outp &&

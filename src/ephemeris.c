@@ -47,7 +47,7 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 interval_s,
                               xcorr_positions_t *pos)
 {
-  enum constellation constellation = code_to_constellation(sid.code);
+  constellation_t constellation = code_to_constellation(sid.code);
   assert(CONSTELLATION_GPS == constellation);
 
   almanac_t a;
