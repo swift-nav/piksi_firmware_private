@@ -67,7 +67,9 @@ typedef enum {
   CH_DROP_REASON_NO_UPDATES,    /**< No tracker updates for too long */
   CH_DROP_REASON_L2CL_SYNC,     /**< Drop L2CL after half-cycle ambiguity
                                      has been resolved */
-  CH_DROP_REASON_SV_UNHEALTHY   /**< The SV is Unhealthy */
+  CH_DROP_REASON_SV_UNHEALTHY,  /**< The SV is Unhealthy */
+  CH_DROP_REASON_LEAP_SECOND    /**< Leap second event is imminent,
+                                     drop GLO satellites */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -645,6 +647,8 @@ static void drop_channel(u8 channel_id,
                          const tracking_channel_time_info_t *time_info,
                          const tracking_channel_freq_info_t *freq_info);
 
+static bool check_leap_second(void);
+
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.
@@ -768,6 +772,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_NO_UPDATES: str = "no updates, dropping"; break;
   case CH_DROP_REASON_L2CL_SYNC: str = "L2CM half-cycle ambiguity resolved, dropping L2CL"; break;
   case CH_DROP_REASON_SV_UNHEALTHY: str = "SV is unhealthy, dropping"; break;
+  case CH_DROP_REASON_LEAP_SECOND: str = "Leap second event, dropping GLO signal"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -867,6 +872,36 @@ static void drop_channel(u8 channel_id,
   tracker_channel_disable(channel_id);
 }
 
+/**
+ * Check if leap second event is imminent.
+ *
+ * In case of a leap second event
+ * all GLONASS satellites will be dropped from tracking.
+ * After the leap second event the satellites will be re-acquired,
+ * and new time will be decoded.
+ *
+ * \return true if leap second event is imminent, false otherwise.
+ */
+static bool check_leap_second()
+{
+  time_quality_t tq = get_time_quality();
+  gps_time_t gps_time;
+  utc_params_t utc_params;
+  bool leap_second_event = false;
+
+  /* Check if GPS time is known */
+  if (TIME_UNKNOWN != tq) {
+    gps_time = get_current_gps_time();
+    /* Check if utc parameters are available */
+    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, NULL)) {
+      leap_second_event = is_leap_second_event(&gps_time, &utc_params) ;
+    } else {
+      leap_second_event = is_leap_second_event(&gps_time, NULL);
+    }
+  }
+  return leap_second_event;
+}
+
 /** Disable any tracking channel that has errored, too weak, lost phase lock
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy and low-elevation satellites for cross-correlation
@@ -880,6 +915,8 @@ static void manage_track()
   tracking_channel_freq_info_t freq_info;
   tracking_channel_misc_info_t misc_info;
   u64 now;
+
+  bool leap_second_event = check_leap_second();
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
 
@@ -906,6 +943,13 @@ static void manage_track()
 
     /* Skip channels that aren't in use */
     if (0 == (info.flags & TRACKING_CHANNEL_FLAG_ACTIVE)) {
+      continue;
+    }
+
+    /* Is it leap second event? */
+    constellation_t constellation = mesid_to_constellation(info.mesid);
+    if (leap_second_event && CONSTELLATION_GLO == constellation) {
+      drop_channel(i, CH_DROP_REASON_LEAP_SECOND, &info, &time_info, &freq_info);
       continue;
     }
 
