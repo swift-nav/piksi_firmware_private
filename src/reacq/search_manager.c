@@ -119,7 +119,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     acq_job_t *deep_job = &jobs_data->jobs_glo[ACQ_JOB_DEEP_SEARCH][i];
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
-    u16 glo_fcn;
+    u16 glo_fcn = GLO_FCN_UNKNOWN;
     bool visible = false;
     bool known = false;
     /* Initialize jobs to not run */
@@ -240,7 +240,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     acq_job_t *fallback_job = &jobs_data->jobs_glo[ACQ_JOB_FALLBACK_SEARCH][i];
     me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
-    u16 glo_fcn;
+    u16 glo_fcn = GLO_FCN_UNKNOWN;
     bool visible = false;
     bool invisible = false;
     bool known = false;
