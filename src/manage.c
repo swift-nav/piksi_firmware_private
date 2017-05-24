@@ -192,6 +192,7 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     me_gnss_signal_t mesid;
     constellation_t constellation = sid_to_constellation(sid);
     if (CONSTELLATION_GLO == constellation) {
+      assert(glo_map_valid(sid));
       u16 fcn = glo_map_get_fcn(sid);
       mesid = construct_mesid(sid.code, fcn);
     } else {
@@ -534,6 +535,7 @@ void manage_set_obs_hint(gnss_signal_t sid)
     me_gnss_signal_t mesid;
     constellation_t constellation = sid_to_constellation(sid);
     if (CONSTELLATION_GLO == constellation) {
+      assert(glo_map_valid(sid));
       u16 fcn = glo_map_get_fcn(sid);
       mesid = construct_mesid(sid.code, fcn);
     } else {

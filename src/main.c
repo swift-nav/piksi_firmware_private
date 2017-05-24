@@ -41,6 +41,7 @@
 #include "version.h"
 #include "ndb.h"
 #include "sbp_utils.h"
+#include "glo_map_setup.h"
 
 extern void ext_setup(void);
 
@@ -113,6 +114,7 @@ int main(void)
   timing_setup();
   ext_event_setup();
   position_setup();
+  glo_map_setup();
   track_setup();
   decode_setup();
 

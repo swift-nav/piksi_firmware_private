@@ -119,9 +119,11 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     acq_job_t *deep_job = &jobs_data->jobs_glo[ACQ_JOB_DEEP_SEARCH][i];
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
-    u16 glo_fcn = glo_map_get_fcn(sid);
+    u16 glo_fcn;
 
-    if (GLO_FCN_UNKNOWN == glo_fcn) {
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+    } else {
       /* if there is no any mapping go through all GLO FCN and pick one */
       for (glo_fcn = GLO_MIN_FCN; glo_fcn <= GLO_MAX_FCN; glo_fcn++) {
         if (mesid_is_tracked(construct_mesid(CODE_GLO_L1CA, glo_fcn))) {
@@ -134,7 +136,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     }
 
     if (glo_fcn > GLO_MAX_FCN) {
-      /* all GLO frequency are tracked,
+      /* all GLO frequencies are tracked,
        * rare case when no any data decoded yet,
        * so no need to continue */
       return;
@@ -254,8 +256,11 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     acq_job_t *fallback_job = &jobs_data->jobs_glo[ACQ_JOB_FALLBACK_SEARCH][i];
     me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
-    u16 glo_fcn = glo_map_get_fcn(sid);
-    if (GLO_FCN_UNKNOWN == glo_fcn) {
+    u16 glo_fcn;
+
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+    } else {
       /* if there is no any mapping go through all GLO FCN and pick one */
       for (glo_fcn = GLO_MIN_FCN; glo_fcn <= GLO_MAX_FCN; glo_fcn++) {
         if (mesid_is_tracked(construct_mesid(CODE_GLO_L1CA, glo_fcn))) {
@@ -268,7 +273,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     }
 
     if (glo_fcn > GLO_MAX_FCN) {
-      /* all GLO frequency are tracked,
+      /* all GLO frequencies are tracked,
        * rare case when no any data decoded yet,
        * so no need to continue */
       return;

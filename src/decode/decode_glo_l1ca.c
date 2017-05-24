@@ -15,6 +15,7 @@
 
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg_glo.h>
+#include <libswiftnav/glo_map.h>
 
 #include "ephemeris.h"
 #include "track.h"
@@ -133,6 +134,9 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
       log_warn_mesid(channel_info->mesid,
                      "Error in GLO ephemeris processing");
     }
+
+    u16 glo_slot_id = data->nav_msg.eph.sid.sat;
+    glo_map_set_slot_id(channel_info->mesid, glo_slot_id);
 
     nav_data_sync_t from_decoder;
     tracking_channel_data_sync_init(&from_decoder);
