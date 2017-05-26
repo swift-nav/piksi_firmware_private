@@ -98,8 +98,8 @@ static void base_pos_llh_callback(u16 sender_id,
                                   void *context) {
   (void)context;
   (void)len;
-  // Skip forwarded sender_ids. See note in obs_callback about echo'ing
-  // sender_id.
+  /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
+   * sender_id. */
   if (sender_id == 0) {
     return;
   }
@@ -130,8 +130,8 @@ static void base_pos_ecef_callback(u16 sender_id,
                                    void *context) {
   (void)context;
   (void)len;
-  // Skip forwarded sender_ids. See note in obs_callback about echo'ing
-  // sender_id.
+  /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
+   * sender_id. */
   if (sender_id == 0) {
     return;
   }
@@ -516,7 +516,13 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   (void)len;
   (void)context;
 
-  log_info("Group delay received from peer");
+  /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
+   * sender_id. */
+  if (sender_id == 0) {
+    return;
+  }
+
+  log_debug("Group delay received from peer");
 
   cnav_msg_t cnav;
   memset(&cnav, 0, sizeof(cnav));
