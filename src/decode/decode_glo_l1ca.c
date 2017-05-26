@@ -143,8 +143,18 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     nav_data_sync_t from_decoder;
 
     tracking_channel_data_sync_init(&from_decoder);
-    from_decoder.TOW_ms = data->nav_msg.gps_time.tow * 1e3;
-    from_decoder.TOW_residual_ns = data->nav_msg.tau_gps_ns;
+
+    double TOW_ms = data->nav_msg.gps_time.tow * SECS_MS;
+    double rounded_TOW_ms = round(TOW_ms);
+    if ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < INT32_MIN)) {
+      log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
+      return;
+    }
+    from_decoder.TOW_ms = (s32)rounded_TOW_ms;
+
+    double delta_TOW_ns = (TOW_ms - rounded_TOW_ms) * 1e6;
+    from_decoder.TOW_residual_ns = data->nav_msg.tau_gps_ns + delta_TOW_ns;
+
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     from_decoder.glo_orbit_slot = data->nav_msg.eph.sid.sat;
     from_decoder.health = data->nav_msg.eph.health_bits;
