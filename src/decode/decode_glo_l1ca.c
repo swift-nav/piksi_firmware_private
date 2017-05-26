@@ -153,7 +153,7 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     from_decoder.TOW_ms = (s32)rounded_TOW_ms;
 
     double delta_TOW_ns = (TOW_ms - rounded_TOW_ms) * 1e6;
-    from_decoder.TOW_residual_ns = data->nav_msg.tau_gps_ns + delta_TOW_ns;
+    from_decoder.TOW_residual_ns = delta_TOW_ns;
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     from_decoder.glo_orbit_slot = data->nav_msg.eph.sid.sat;
