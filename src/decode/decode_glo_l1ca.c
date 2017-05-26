@@ -146,7 +146,7 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
 
     double TOW_ms = data->nav_msg.gps_time.tow * SECS_MS;
     double rounded_TOW_ms = round(TOW_ms);
-    if ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < INT32_MIN)) {
+    if ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0)) {
       log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
       return;
     }
