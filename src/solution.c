@@ -270,22 +270,10 @@ void extract_covariance(double full_covariance[9], double vel_covariance[9],
 
 /**
  *
- * @param propagation_time time sdiffs were propagated for
  * @param sender_id sender id of base obs
- * @param n_used number of measuremendt in nav_meas
- * @param nav_meas observations
- * @param gps_time sbp gps time message
- * @param pos_llh sbp position llh message
- * @param pos_ecef sbp ecef position message
- * @param vel_ned sbp ned velocity message
- * @param vel_ecef sbp ecef velcoity message
- * @param sbp_dops sbp DOP message
- * @param baseline_ned sbp ned baseline message
- * @param baseline_ecef sbp ecef baseline message
- * @param baseline_heading sbp baseline heading message
+ * @param sbp_messages struct of sbp messages
  */
-static void solution_send_pos_messages(double propagation_time, u8 sender_id,
-	                                   const sbp_messages_t *sbp_messages) {
+static void solution_send_pos_messages(u8 sender_id, const sbp_messages_t *sbp_messages) {
 
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(sbp_messages->gps_time), (u8 * ) &sbp_messages->gps_time);
@@ -326,6 +314,7 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
   }
 
   /* Send NMEA alongside the sbp */
+  double propagation_time = sbp_messages->age_corrections.age * 0.1;
   nmea_send_msgs(&sbp_messages->pos_llh, &sbp_messages->vel_ned,
                  &sbp_messages->sbp_dops, &sbp_messages->gps_time,
                  propagation_time, sender_id, p_utc_params,
@@ -333,8 +322,7 @@ static void solution_send_pos_messages(double propagation_time, u8 sender_id,
 
 }
 
-static void solution_send_low_latency_output(double propagation_time, u8 sender_id,
-                                      		 const sbp_messages_t *sbp_messages) {
+static void solution_send_low_latency_output(u8 sender_id, const sbp_messages_t *sbp_messages) {
   // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
   bool wait_for_timeout = false;
   if (!(dgnss_timeout(last_dgnss_stats.systime, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
@@ -342,7 +330,7 @@ static void solution_send_low_latency_output(double propagation_time, u8 sender_
   }
 
   if (!wait_for_timeout) {
-    solution_send_pos_messages(propagation_time, sender_id, sbp_messages);
+    solution_send_pos_messages(sender_id, sbp_messages);
     chMtxLock(&last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
@@ -897,7 +885,7 @@ static void solution_thread(void *arg)
       /* TODO if there are not enough SVs to compute PVT, shouldn't caches
        *      below be reset? I.e. nav_meas_old and nav_meas_tdcp? */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0.0, 0, &sbp_messages);
+        solution_send_low_latency_output(0, &sbp_messages);
       }
       continue;
     }
@@ -937,7 +925,7 @@ static void solution_thread(void *arg)
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0.0, 0, &sbp_messages);
+        solution_send_low_latency_output(0, &sbp_messages);
       }
       continue;
     }
@@ -947,7 +935,7 @@ static void solution_thread(void *arg)
     if (sc_ret != 0) {
        log_error("calc_sat_clock_correction() returned an error");
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0.0, 0, &sbp_messages);
+        solution_send_low_latency_output(0, &sbp_messages);
       }
        continue;
      }
@@ -1001,7 +989,7 @@ static void solution_thread(void *arg)
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0.0, 0, &sbp_messages);
+        solution_send_low_latency_output(0, &sbp_messages);
       }
       continue;
     }
@@ -1055,7 +1043,7 @@ static void solution_thread(void *arg)
        * failed messages if not in time matched mode
        */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0.0, 0, &sbp_messages);
+        solution_send_low_latency_output(0, &sbp_messages);
       }
 
       /* If we already had a good fix, degrade its quality to STATIC */
@@ -1095,7 +1083,7 @@ static void solution_thread(void *arg)
       set_time_fine(rec_tc, current_fix.time);
       clock_jump = TRUE;
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0.0, 0, &sbp_messages);
+        solution_send_low_latency_output(0, &sbp_messages);
       }
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
@@ -1136,9 +1124,6 @@ static void solution_thread(void *arg)
     normalize_gps_time(&new_obs_time);
     gps_time_match_weeks(&new_obs_time, &current_fix.time);
     double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
-
-    // Time the base obs are propagated to the rover obs
-    double propagation_time = 0.0;
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -1222,7 +1207,7 @@ static void solution_thread(void *arg)
             filter_manager_is_initialized(low_latency_filter_manager);
 
         if (is_initialized) {
-		  set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
+		      set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
 
           update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
                                         &current_fix.time, n_ready_tdcp,
@@ -1237,7 +1222,6 @@ static void solution_thread(void *arg)
 
         if (update_filter_ret == PVT_ENGINE_SUCCESS) {
           result.result_time = current_fix.time;
-          result.propagation_time = propagation_time;
           get_baseline_ret =
               get_baseline(low_latency_filter_manager, false, &dops, &result);
         }
@@ -1290,7 +1274,7 @@ static void solution_thread(void *arg)
     }
 
     // Send out messages if needed
-    solution_send_low_latency_output(propagation_time, base_obss.sender_id, &sbp_messages);
+    solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
@@ -1451,7 +1435,7 @@ static void time_matched_obs_thread(void *arg)
 
         chPoolFree(&obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(0.0, base_obss_copy.sender_id, &sbp_messages);
+          solution_send_pos_messages(base_obss_copy.sender_id, &sbp_messages);
         }
         break;
       } else {
