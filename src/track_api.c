@@ -218,6 +218,7 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
 void tracker_bit_sync_update(tracker_context_t *context,
                              u32 int_ms,
                              s32 corr_prompt_real,
+                             s32 corr_prompt_imag,
                              bool sensitivity_mode)
 {
   const tracker_channel_info_t *channel_info;
@@ -226,7 +227,10 @@ void tracker_bit_sync_update(tracker_context_t *context,
 
   /* Update bit sync */
   s32 bit_integrate;
-  if (bit_sync_update(&internal_data->bit_sync, corr_prompt_real, int_ms,
+  if (bit_sync_update(&internal_data->bit_sync,
+                      corr_prompt_real,
+                      corr_prompt_imag,
+                      int_ms,
                       &bit_integrate)) {
     /* Skip FIFO writes for signals which do not require decoder. */
     if (!code_requires_decoder(channel_info->mesid.code)) {

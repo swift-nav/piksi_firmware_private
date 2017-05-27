@@ -215,6 +215,7 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_context_t *context,
                              u32 int_ms,
                              s32 corr_prompt_real,
+                             s32 corr_prompt_imag,
                              bool sensitivity_mode);
 u8 tracker_bit_length_get(tracker_context_t *context);
 bool tracker_bit_aligned(tracker_context_t *context);
