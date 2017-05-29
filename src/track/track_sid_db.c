@@ -70,6 +70,18 @@ void track_sid_db_init(void)
 }
 
 /**
+ * Clears GLO ToW cache prior to leap second event.
+ */
+void track_sid_db_clear_glo_tow(void)
+{
+  tp_tow_entry_t tow_entry = { .TOW_ms = TOW_UNKNOWN, .sample_time_tk = 0 };
+  for (u8 i = 1; i <= NUM_SATS_GLO; ++i) {
+    gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, i);
+    track_sid_db_update_tow(sid, &tow_entry);
+  }
+}
+
+/**
  * Provides access to ToW cache entry.
  *
  * \param[in]  sid       GNSS signal identifier.

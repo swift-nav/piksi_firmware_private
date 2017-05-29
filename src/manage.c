@@ -47,6 +47,7 @@
 #include "shm.h"
 #include "dum.h"
 #include "reacq/reacq_api.h"
+#include "track/track_sid_db.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
@@ -918,6 +919,11 @@ static void manage_track()
 
   bool leap_second_event = check_leap_second();
 
+  /* Clear GLO satellites TOW cache if it is leap second event */
+  if (leap_second_event) {
+    track_sid_db_clear_glo_tow();
+  }
+
   for (u8 i = 0; i < nap_track_n_channels; i++) {
 
     /*! Addressing the problem where we try to disable a channel that is
@@ -946,7 +952,7 @@ static void manage_track()
       continue;
     }
 
-    /* Is it leap second event? */
+    /* Drop GLO satellites if it is leap second event */
     constellation_t constellation = mesid_to_constellation(info.mesid);
     if (leap_second_event && CONSTELLATION_GLO == constellation) {
       drop_channel(i, CH_DROP_REASON_LEAP_SECOND, &info, &time_info, &freq_info);
