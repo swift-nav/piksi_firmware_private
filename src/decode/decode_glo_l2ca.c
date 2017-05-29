@@ -127,12 +127,33 @@ static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
     }
     assert(GLO_STRING_DECODE_DONE == str_status);
 
-    /* TODO GLO: Store new ephemeris? */
+    /* Store new ephemeris */
+    log_debug_mesid(mesid,
+                    "New ephemeris received [%" PRId16 ", %lf]",
+                    data->nav_msg.eph.toe.wn, data->nav_msg.eph.toe.tow);
+    eph_new_status_t r = ephemeris_new(&data->nav_msg.eph);
+    if (EPH_NEW_OK != r) {
+      log_warn_mesid(mesid, "Error in GLO ephemeris processing");
+    }
+
+    u16 glo_slot_id = data->nav_msg.eph.sid.sat;
+    glo_map_set_slot_id(mesid, glo_slot_id);
 
     nav_data_sync_t from_decoder;
+
     tracking_channel_data_sync_init(&from_decoder);
-    /* TODO GLO: Proper ToW handling */
-    from_decoder.TOW_ms = 1;
+
+    double TOW_ms = data->nav_msg.gps_time.tow * SECS_MS;
+    double rounded_TOW_ms = round(TOW_ms);
+    if ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0)) {
+      log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
+      return;
+    }
+    from_decoder.TOW_ms = (s32)rounded_TOW_ms;
+
+    double delta_TOW_ns = (TOW_ms - rounded_TOW_ms) * 1e6;
+    from_decoder.TOW_residual_ns = delta_TOW_ns;
+
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     from_decoder.glo_orbit_slot = data->nav_msg.eph.sid.sat;
     from_decoder.health = data->nav_msg.eph.health_bits;
