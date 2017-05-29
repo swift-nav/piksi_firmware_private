@@ -1546,6 +1546,9 @@ static bool set_max_age(struct setting *s, const char *val)
   chMtxLock(&low_latency_filter_manager_lock);
   set_max_correction_age(low_latency_filter_manager, value);
   chMtxUnlock(&low_latency_filter_manager_lock);
+  chMtxLock(&time_matched_filter_manager_lock);
+  set_max_correction_age(time_matched_filter_manager, value);
+  chMtxUnlock(&time_matched_filter_manager_lock);
   *(int*)s->addr = value;
   return ret;
 }
