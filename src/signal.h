@@ -94,5 +94,6 @@ float code_to_tcxo_doppler_max(code_t code);
 
 gnss_signal_t sv_index_to_sid(u16 sv_index);
 u16 sid_to_sv_index(gnss_signal_t sid);
+double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid);
 
 #endif /* SWIFTNAV_SIGNAL_H */

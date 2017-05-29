@@ -110,10 +110,11 @@ s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
 {
   assert(channel_info);
   assert(TOW_residual_ns);
+  *TOW_residual_ns = 0;
 
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(channel_info->context);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
-    goto tow_unknown;
+    return TOW_UNKNOWN;
   }
 
   /* GLO slot ID is known */
@@ -126,7 +127,7 @@ s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
 
   track_sid_db_load_tow(sid, &tow_entry);
   if (TOW_UNKNOWN == tow_entry.TOW_ms) {
-    goto tow_unknown;
+    return TOW_UNKNOWN;
   }
 
   /* We have a cached GLO TOW */
@@ -139,7 +140,7 @@ s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
 
   TOW_ms = tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, ms_align, &error_ms);
   if (TOW_UNKNOWN == TOW_ms) {
-    goto tow_unknown;
+    return TOW_UNKNOWN;
   }
 
   log_debug_sid(sid,
@@ -161,11 +162,6 @@ s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
   }
 
   return TOW_ms;
-
-tow_unknown:
-
-  *TOW_residual_ns = 0;
-  return TOW_UNKNOWN;
 }
 
 static void update_tow_in_sid_db(const tracker_common_data_t *common_data,

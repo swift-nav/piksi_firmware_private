@@ -99,7 +99,6 @@ void tracker_retune(tracker_context_t *context,
 
   /* Write NAP UPDATE register. */
   nap_track_update(channel_info->nap_channel,
-                   channel_info->mesid,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
