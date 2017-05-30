@@ -874,7 +874,7 @@ static void drop_channel(u8 channel_id,
 }
 
 /**
- * Check if leap second event is imminent.
+ * Check if leap second event is taking place within the next two seconds.
  *
  * In case of a leap second event
  * all GLONASS satellites will be dropped from tracking.
@@ -893,6 +893,12 @@ static bool check_leap_second()
   /* Check if GPS time is known */
   if (TIME_UNKNOWN != tq) {
     gps_time = get_current_gps_time();
+    /* is_leap_second_event() returns true within 1 second of the event.
+     * Thus, add 1 second to current GPS time.
+     * This way the leap second event will be flagged 2 seconds beforehand,
+     * and GLO satellites will be dropped in time.
+     */
+    add_secs(&gps_time, 1.0);
     /* Check if utc parameters are available */
     if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, NULL)) {
       leap_second_event = is_leap_second_event(&gps_time, &utc_params) ;
