@@ -476,14 +476,20 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = t->TIMING_SNAPSHOT;
 
-  /* Add the contribution of both FCN and Doppler. With numerical errors indeed
-   * but those errors will be recovered by the PLL the next time around as
-   * they are exactly the same that NAP is also subject to */
-  s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
-                            NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-  s->reckoned_carr_phase += s->fcn_freq_hz *
-                            (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
-  *carrier_phase = -s->reckoned_carr_phase;
+  if (CONSTELLATION_GLO == mesid_to_constellation(s->mesid)) {
+    /* Add the contribution of both FCN and Doppler. With numerical errors indeed
+     * but those errors will be recovered by the PLL the next time around as
+     * they are exactly the same that NAP is also subject to */
+    s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
+                              NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    s->reckoned_carr_phase += s->fcn_freq_hz *
+                              (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
+    *carrier_phase = -s->reckoned_carr_phase;
+  } else {
+    s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    *carrier_phase = (double)-nap_carr_phase /
+                     NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+  }
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
