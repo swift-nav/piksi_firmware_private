@@ -687,38 +687,6 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
 }
 
 /**
- * The method excludes measurements that might decrease accuracy.
- *
- * \param[in]     n_ready Number of available measurements.
- * \param[in,out] meas    Measurements data vector.
- * \param[in,out] ephe    Ephemeris array
- *
- * \return Number of available measurements.
- */
-static u8 filter_out_measurements(u8 n_ready, channel_measurement_t meas[],
-                                  ephemeris_t ephe[])
-{
-  static const chan_meas_flags_t required_flags =
-    /* Any phase accuracy, high code accuracy */
-    CHAN_MEAS_FLAG_CODE_VALID | CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
-
-  /* Note: do not use measurements that do not have valid Doppler */
-
-  for (u8 i = 0; i < n_ready; ) {
-    if (required_flags != (meas[i].flags & required_flags)) {
-      /* This measurement can't be used */
-      meas[i] = meas[n_ready - 1];
-      ephe[i] = ephe[n_ready - 1];
-      --n_ready;
-    } else {
-      ++i;
-    }
-  }
-
-  return n_ready;
-}
-
-/**
  * Collects channel measurements, ephemerides and auxiliary data.
  *
  * \param[in]  rec_tc    Timestamp [samples].
@@ -752,9 +720,10 @@ static void collect_measurements(u64 rec_tc,
 
     if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
         0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
-        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR))
+        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
+        0 == (flags & MANAGE_TRACK_FLAG_MASKED))
     {
-      /* Tracking channel is active */
+      /* Tracking channel is active & not masked */
       n_active++;
 
       if (0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
@@ -762,13 +731,16 @@ static void collect_measurements(u64 rec_tc,
         in_view[n_inview++] = meas[n_collected];
       }
 
+      chan_meas_flags_t meas_flags = meas[n_collected].flags;
+
       if (0 != (flags & MANAGE_TRACK_FLAG_HEALTHY) &&
           0 != (flags & MANAGE_TRACK_FLAG_NAV_SUITABLE) &&
           0 != (flags & MANAGE_TRACK_FLAG_ELEVATION) &&
           0 != (flags & MANAGE_TRACK_FLAG_TOW) &&
           0 != (flags & MANAGE_TRACK_FLAG_HAS_EPHE) &&
           0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) &&
-          0 != meas[n_collected].flags) {
+          0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
+          0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
         n_collected++;
       }
@@ -885,7 +857,7 @@ static void solution_thread(void *arg)
                                lgf.position_solution.time));
     }
 
-    u8 n_collected = 0;
+    u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
@@ -900,22 +872,14 @@ static void solution_thread(void *arg)
                          meas,
                          in_view,
                          e_meas,
-                         &n_collected,
+                         &n_ready,
                          &n_inview,
                          &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
-    u8 n_ready = n_collected;
-    if (n_collected > MINIMUM_SV_COUNT) {
-      /* There are enough measurements for a RAIM solution. Check if there
-       * are enough measurements to drop out the lowest quality ones.
-       */
-      n_ready = filter_out_measurements(n_collected, meas, e_meas);
-    }
-
-    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
-              " (total=%" PRIu8 ")", n_ready, n_collected, n_total);
+    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8 " in view "
+              " (total=%" PRIu8 ")", n_ready, n_inview, n_total);
 
     /* Update stats */
     if (simulation_enabled_for(SIMULATION_MODE_TRACKING)) {
@@ -924,7 +888,7 @@ static void solution_thread(void *arg)
       last_stats.signals_useable = sim_sats;
     } else {
       last_stats.signals_tracked = n_total;
-      last_stats.signals_useable = n_collected;
+      last_stats.signals_useable = n_ready;
     }
 
     if (n_ready < MINIMUM_SV_COUNT) {

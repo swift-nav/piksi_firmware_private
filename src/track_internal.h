@@ -44,6 +44,7 @@ typedef struct {
 
 typedef struct {
   s32 TOW_ms;
+  s32 TOW_residual_ns; /**< Residual to TOW_ms [ns] */
   s8 bit_polarity;
   u16 glo_orbit_slot;
   nav_bit_fifo_index_t read_index;

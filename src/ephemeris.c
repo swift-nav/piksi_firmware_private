@@ -47,6 +47,9 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 interval_s,
                               xcorr_positions_t *pos)
 {
+  constellation_t constellation = code_to_constellation(sid.code);
+  assert(CONSTELLATION_GPS == constellation);
+
   almanac_t a;
   ndb_op_code_t oc = ndb_almanac_read(sid, &a);
   /* Here we do not care if GPS time is unknown

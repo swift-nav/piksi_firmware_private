@@ -33,7 +33,6 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate);
 void nap_track_update(u8 channel,
-                      const me_gnss_signal_t mesid,
                       double doppler_freq_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,

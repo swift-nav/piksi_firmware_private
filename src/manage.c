@@ -535,7 +535,11 @@ void manage_set_obs_hint(gnss_signal_t sid)
     me_gnss_signal_t mesid;
     constellation_t constellation = sid_to_constellation(sid);
     if (CONSTELLATION_GLO == constellation) {
-      assert(glo_map_valid(sid));
+      if (!glo_map_valid(sid)) {
+        /* no guarantee that we have FCN mapping for an observation
+         * received from peer */
+        return;
+      }
       u16 fcn = glo_map_get_fcn(sid);
       mesid = construct_mesid(sid.code, fcn);
     } else {
@@ -1243,18 +1247,21 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
                                            NULL,        /* Ctrl info */
                                            &misc_info); /* Misc info */
 
+  constellation_t constellation = code_to_constellation(info.mesid.code);
+  if ((CONSTELLATION_GLO == constellation) &&
+      !glo_slot_id_is_valid(info.glo_orbit_slot)) {
+    memset(meas, 0, sizeof(*meas));
+    return flags | MANAGE_TRACK_FLAG_MASKED;
+  }
+
   if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
       0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
       0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
       0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
 
-    /* Try to load ephemeris */
-    /* TODO GLO: Handle GLO orbit slot properly. */
-    if (is_glo_sid(info.mesid)) {
-      return flags;
-    }
     gnss_signal_t sid = mesid2sid(info.mesid, info.glo_orbit_slot);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
+
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
     if (NDB_ERR_NONE != res && NDB_ERR_UNCONFIRMED_DATA != res) {
@@ -1262,7 +1269,7 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
     }
 
     /* Load information from SID cache */
-    flags |= get_tracking_channel_sid_flags(info.mesid, info.tow_ms, ephe);
+    flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
 
     tracking_channel_measurement_get(ref_tc, &info,
                                      &freq_info, &time_info, &misc_info, meas);
@@ -1337,25 +1344,19 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
  * sources. This is done to prevent potential dead-locking and reduce the
  * size of tracking lock congestion.
  *
- * \param[in]  mesid  ME signal identifier.
+ * \param[in]  sid  Signal identifier.
  * \param[in]  tow_ms ToW in milliseconds. Can be #TOW_UNKNOWN
  * \param[in]  pephe  Pointer to ephemeris, or NULL if not available
  *
  * \return Flags, computed from ephemeris and other sources.
  */
-manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid,
+manage_track_flags_t get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                                     s32 tow_ms,
                                                     const ephemeris_t *pephe)
 {
   manage_track_flags_t result = 0;
 
   /* Satellite elevation is above the solution mask. */
-  /* TODO GLO: Handle GLO orbit slot properly. */
-  assert(!is_glo_sid(mesid));
-  if (is_glo_sid(mesid)) {
-    return result;
-  }
-  gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
     result |= MANAGE_TRACK_FLAG_ELEVATION;
   }
@@ -1372,13 +1373,16 @@ manage_track_flags_t get_tracking_channel_sid_flags(const me_gnss_signal_t mesid
     result |= MANAGE_TRACK_FLAG_HAS_EPHE;
 
     if (signal_healthy(pephe->valid, pephe->health_bits,
-                       pephe->ura, mesid.code)) {
+                       pephe->ura, sid.code)) {
       result |= MANAGE_TRACK_FLAG_HEALTHY;
     }
   }
 
-  /* Navigation suitable flag */
-  if (shm_navigation_suitable(sid)) {
+  constellation_t constellation = sid_to_constellation(sid);
+  if ((CONSTELLATION_GPS == constellation) && shm_navigation_suitable(sid)) {
+    result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
+  } else if ((CONSTELLATION_GLO == constellation) &&
+             (result & MANAGE_TRACK_FLAG_HEALTHY)) {
     result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
   }
 
