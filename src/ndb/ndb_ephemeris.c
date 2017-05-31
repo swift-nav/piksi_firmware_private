@@ -81,10 +81,13 @@ static u16 map_sid_to_index(gnss_signal_t sid)
 {
   u16 idx = PLATFORM_SIGNAL_COUNT;
   /*
-   * Current architecture uses GPS L1 C/A ephemeris for GPS satellites.
+   * Current architecture uses GPS L1 C/A ephemeris for all GPS signals,
+   * and GLO L1 C/A ephemeris for all GLO signals.
    */
   if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
+  } else if (sid_to_constellation(sid) == CONSTELLATION_GLO) {
+    idx = sid_to_global_index(construct_sid(CODE_GLO_L1CA, sid.sat));
   } else {
     idx = sid_to_global_index(sid);
   }
