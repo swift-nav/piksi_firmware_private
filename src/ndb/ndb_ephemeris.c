@@ -85,6 +85,8 @@ static u16 map_sid_to_index(gnss_signal_t sid)
    */
   if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
+  } else if (sid_to_constellation(sid) == CONSTELLATION_GLO) {
+    idx = sid_to_global_index(construct_sid(CODE_GLO_L1CA, sid.sat));
   } else {
     idx = sid_to_global_index(sid);
   }
@@ -164,11 +166,11 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *candidate)
 {
 
-  if (NULL != candidate && 0 == memcmp(new, candidate, sizeof(*new))) {
+  if (NULL != candidate && ephemeris_equal(new, candidate)) {
     /* Exact match */
     log_debug_sid(new->sid, "[EPH] candidate match");
     return true;
-  } else if (NULL != existing_e && 0 == memcmp(new, existing_e, sizeof(*new))) {
+  } else if (NULL != existing_e && ephemeris_equal(new, existing_e)) {
     /* Exact match with stored */
     log_debug_sid(new->sid, "[EPH] NDB match");
     return true;
@@ -313,12 +315,34 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     ce = &ephe_candidates[cand_idx].ephe;
   }
 
-  if (TIME_FINE != time_quality) {
+  /* Check that GLO L1CA and GLO L2CA always send same set of ephemeris. */
+  if (NULL != pe &&
+      !ephemeris_equal(pe, new) &&
+      (pe->toe.wn == new->toe.wn) &&
+      (pe->toe.tow == new->toe.tow)) {
+    log_warn_sid(new->sid,
+                 "Receiving new ephemeris with matching toe: "
+                 "%"PRIi16" %"PRIi16" %lf %lf",
+                 pe->toe.wn, new->toe.wn,
+                 pe->toe.tow, new->toe.tow);
+  } else if (NULL != ce &&
+             !ephemeris_equal(ce, new) &&
+             (ce->toe.wn == new->toe.wn) &&
+             (ce->toe.tow == new->toe.tow)) {
+    log_warn_sid(new->sid,
+                 "Receiving new ephemeris with matching candidate toe: "
+                 "%"PRIi16" %"PRIi16" %lf %lf",
+                 ce->toe.wn, new->toe.wn,
+                 ce->toe.tow, new->toe.tow);
+  }
+
+  time_quality_t tq = get_time_quality();
+  if (TIME_FINE != tq) {
     ndb_ephe_release_candidate(cand_idx);
     ndb_ephe_try_adding_candidate(new);
     r = NDB_CAND_GPS_TIME_MISSING;
   } else if (NULL != pe &&
-             0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
+             ephemeris_equal(pe, new) &&
              0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
     /* If new ephemeris is identical to the one in NDB,
      * and the NDB data is not initially loaded from NV,
@@ -410,6 +434,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     if (cand_idx >= 0) {
       /* Return unconfirmed candidate data with an appropriate error code */
       *e = ephe_candidates[cand_idx].ephe;
+      /* TODO: check the age of the candidate? */
       res = NDB_ERR_UNCONFIRMED_DATA;
     }
     chMtxUnlock(&cand_list_access);

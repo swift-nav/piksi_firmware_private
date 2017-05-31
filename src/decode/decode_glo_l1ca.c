@@ -22,7 +22,6 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "signal.h"
-#include "ndb.h"
 #include "shm.h"
 #include "timing.h"
 
@@ -30,7 +29,7 @@
 #include <string.h>
 #include "decode_common.h"
 
-/** GLO L1 C/A decoder data */
+/** GLO L1CA decoder data */
 typedef struct {
   nav_msg_glo_t nav_msg;
 } glo_l1ca_decoder_data_t;
