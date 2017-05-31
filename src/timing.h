@@ -14,6 +14,7 @@
 #define SWIFTNAV_TIME_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
 
 #include "nap/nap_constants.h"
@@ -58,5 +59,7 @@ gps_time_t napcount2rcvtime(const double tc);
 double gpstime2napcount(const gps_time_t* t);
 double rcvtime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
+gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
+                                   const glo_time_t *glo_t);
 
 #endif

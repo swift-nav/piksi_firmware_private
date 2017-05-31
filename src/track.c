@@ -254,6 +254,11 @@ void tracking_send_detailed_state(void)
       continue;
     }
 
+    /* TODO GLO: Handle GLO orbit slot properly. */
+    if (is_glo_sid(channel_info.mesid)) {
+      continue;
+    }
+
     track_sbp_get_detailed_state(&sbp,
                                  &channel_info,
                                  &freq_info,
@@ -539,6 +544,8 @@ static void tracking_channel_compute_values(
     info->cn0 = common_data->cn0;
     /* Current time of week for a tracker channel [ms] */
     info->tow_ms = common_data->TOW_ms;
+    /* Current time of week residual for tow_ms of the tracker channel [ns] */
+    info->tow_residual_ns = common_data->TOW_residual_ns;
     /* Tracking channel init time [ms] */
     info->init_timestamp_ms = common_data->init_timestamp_ms;
     /* Tracking channel update time [ms] */
@@ -907,16 +914,13 @@ void tracking_channel_measurement_get(u64 ref_tc,
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
 
-  /* TODO GLO: Handle GLO orbit slot properly. */
-  if (is_glo_sid(info->mesid)) {
-    return;
-  }
   meas->sid = mesid2sid(info->mesid, info->glo_orbit_slot);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
   meas->carrier_phase = freq_info->carrier_phase;
   meas->carrier_freq = freq_info->carrier_freq;
   meas->time_of_week_ms = info->tow_ms;
+  meas->tow_residual_ns = info->tow_residual_ns;
   meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc))
                              / NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->cn0 = info->cn0;

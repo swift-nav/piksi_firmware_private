@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <libswiftnav/constants.h>
+
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */
 
@@ -349,6 +351,23 @@ u16 sid_to_sv_index(gnss_signal_t sid)
       sid.sat - constellation_table[cons].sat_start;
   assert(sv_index < NUM_SATS);
   return sv_index;
+}
+
+/** Return carrier frequency channel for a me_gnss_signal_t
+ * \param mesid me_gnss_signal_t to use
+ * \return The frequency channel [Hz]
+ */
+double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid)
+{
+  assert(mesid_valid(mesid));
+
+  double carr_fcn_hz = 0;
+  if (CODE_GLO_L1CA == mesid.code) {
+    carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+  } else if (CODE_GLO_L2CA == mesid.code) {
+    carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+  }
+  return carr_fcn_hz;
 }
 
 /* \} */

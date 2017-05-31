@@ -99,7 +99,6 @@ void tracker_retune(tracker_context_t *context,
 
   /* Write NAP UPDATE register. */
   nap_track_update(channel_info->nap_channel,
-                   channel_info->mesid,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
@@ -137,6 +136,7 @@ static s32 adjust_tow_by_bit_fifo_delay(const nav_data_sync_t to_tracker,
  * \param context           Tracker context.
  * \param current_TOW_ms    Current TOW (ms).
  * \param int_ms            Integration period (ms).
+ * \param TOW_residual_ns   TOW residual [ns]
  * \param[out] decoded_tow  Decoded TOW indicator
  *
  * \return Updated TOW (ms).
@@ -144,8 +144,13 @@ static s32 adjust_tow_by_bit_fifo_delay(const nav_data_sync_t to_tracker,
 s32 tracker_tow_update(tracker_context_t *context,
                        s32 current_TOW_ms,
                        u32 int_ms,
+                       s32 *TOW_residual_ns,
                        bool *decoded_tow)
 {
+  assert(context);
+  assert(TOW_residual_ns);
+  assert(decoded_tow);
+
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
   tracker_internal_context_resolve(context, &channel_info, &internal_data);
@@ -175,10 +180,11 @@ s32 tracker_tow_update(tracker_context_t *context,
     }
     internal_data->glo_orbit_slot = to_tracker.glo_orbit_slot;
     internal_data->health = to_tracker.health;
-  }
 
-  if (NULL != decoded_tow) {
-    *decoded_tow = (TOW_ms != TOW_INVALID);
+    *decoded_tow = (TOW_ms >= 0);
+    *TOW_residual_ns = to_tracker.TOW_residual_ns;
+  } else {
+    *decoded_tow = false;
   }
 
   internal_data->nav_bit_TOW_offset_ms += int_ms;

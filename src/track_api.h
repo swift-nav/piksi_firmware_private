@@ -124,6 +124,7 @@ typedef struct {
                                     flag has changed last time */
   s32 TOW_ms;                  /**< TOW in ms. */
   s32 TOW_ms_prev;             /**< previous TOW in ms. */
+  s32 TOW_residual_ns;         /**< Residual to TOW_ms [ns] */
   u32 sample_count;            /**< Total num samples channel has tracked for. */
   double code_phase_prompt;    /**< Prompt code phase in chips. */
   double code_phase_rate;      /**< Code phase rate in chips/s. */
@@ -210,6 +211,7 @@ void tracker_retune(tracker_context_t *context,
 s32 tracker_tow_update(tracker_context_t *context,
                        s32 current_TOW_ms,
                        u32 int_ms,
+                       s32 *TOW_residual_ns,
                        bool *decoded_tow);
 void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_context_t *context,

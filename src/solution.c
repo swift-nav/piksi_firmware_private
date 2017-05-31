@@ -752,9 +752,10 @@ static void collect_measurements(u64 rec_tc,
 
     if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
         0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
-        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR))
+        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
+        0 == (flags & MANAGE_TRACK_FLAG_MASKED))
     {
-      /* Tracking channel is active */
+      /* Tracking channel is active & not masked */
       n_active++;
 
       if (0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
