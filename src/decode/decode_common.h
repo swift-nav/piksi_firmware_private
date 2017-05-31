@@ -14,5 +14,13 @@
 #define SWIFTNAV_DECODE_COMMON_H
 
 void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
+bool is_glo_decode_ready(nav_msg_glo_t *n,
+                         me_gnss_signal_t mesid,
+                         s8 soft_bit,
+                         bool sensitivity_mode);
+void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid);
+bool glo_data_sync(nav_msg_glo_t *n,
+                   me_gnss_signal_t mesid,
+                   u8 tracking_channel);
 
 #endif  /* #ifndef SWIFTNAV_DECODE_COMMON_H */
