@@ -76,7 +76,8 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
                  n->eph.toe.wn, n->eph.toe.tow);
   eph_new_status_t r = ephemeris_new(&n->eph);
   if (EPH_NEW_OK != r) {
-    log_warn_mesid(mesid, "Error in GLO ephemeris processing");
+    log_warn_mesid(mesid, "Error in GLO ephemeris processing. "
+                          "Eph status: %"PRIu8" ", r);
   }
 
   u16 glo_slot_id = n->eph.sid.sat;

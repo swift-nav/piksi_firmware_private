@@ -317,24 +317,19 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   /* Check that GLO L1CA and GLO L2CA always send same set of ephemeris. */
-  if (NULL != pe &&
-      !ephemeris_equal(pe, new) &&
-      (pe->toe.wn == new->toe.wn) &&
-      (pe->toe.tow == new->toe.tow)) {
+  ephemeris_t *ephep = pe;
+  if (!ephep) {
+    ephep = ce;
+  }
+  if (ephep &&
+      !ephemeris_equal(ephep, new) &&
+      (ephep->toe.wn == new->toe.wn) &&
+      (ephep->toe.tow == new->toe.tow)) {
     log_warn_sid(new->sid,
-                 "Receiving new ephemeris with matching toe: "
-                 "%"PRIi16" %"PRIi16" %lf %lf",
-                 pe->toe.wn, new->toe.wn,
-                 pe->toe.tow, new->toe.tow);
-  } else if (NULL != ce &&
-             !ephemeris_equal(ce, new) &&
-             (ce->toe.wn == new->toe.wn) &&
-             (ce->toe.tow == new->toe.tow)) {
-    log_warn_sid(new->sid,
-                 "Receiving new ephemeris with matching candidate toe: "
-                 "%"PRIi16" %"PRIi16" %lf %lf",
-                 ce->toe.wn, new->toe.wn,
-                 ce->toe.tow, new->toe.tow);
+                 "Ephemeris discrepancy detected: "
+                 "%"PRIi16" %"PRIi16" %lf %lf %p %p",
+                 ephep->toe.wn, new->toe.wn,
+                 ephep->toe.tow, new->toe.tow, ce, pe);
   }
 
   time_quality_t tq = get_time_quality();
