@@ -175,11 +175,7 @@ static void update_tow_in_sid_db(const tracker_common_data_t *common_data,
 
   gnss_signal_t sid = construct_sid(channel_info->mesid.code, glo_orbit_slot);
 
-  /* Update ToW cache:
-   * - bit edge is reached
-   * - CN0 is OK
-   * - Tracker is confirmed
-   */
+  /* Update ToW cache */
   tp_tow_entry_t tow_entry = {
     .TOW_ms = common_data->TOW_ms,
     .TOW_residual_ns = common_data->TOW_residual_ns,

@@ -129,7 +129,7 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     assert(GLO_STRING_DECODE_DONE == str_status);
 
     /* Store new ephemeris */
-    log_info_mesid(mesid,
+    log_debug_mesid(mesid,
                    "New ephemeris received [%" PRId16 ", %lf]",
                    data->nav_msg.eph.toe.wn, data->nav_msg.eph.toe.tow);
     eph_new_status_t r = ephemeris_new(&data->nav_msg.eph);
