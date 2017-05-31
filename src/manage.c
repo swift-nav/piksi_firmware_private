@@ -873,6 +873,8 @@ static void drop_channel(u8 channel_id,
  * purposes. */
 static void manage_track()
 {
+  tracker_channel_t *sTrackerChannel;
+  state_t state;
   tracking_channel_info_t info;
   tracking_channel_time_info_t time_info;
   tracking_channel_freq_info_t freq_info;
@@ -880,6 +882,18 @@ static void manage_track()
   u64 now;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
+
+    /*! Addressing the problem where we try to disable a channel that is
+     * not in `STATE_ENABLED` in the first place. It remains to check
+     * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
+     * */
+    sTrackerChannel = tracker_channel_get(i);
+    state = sTrackerChannel->state;
+    COMPILER_BARRIER();
+    if (STATE_ENABLED != state) {
+      continue;
+    }
+
     tracking_channel_get_values(i,
                                 &info,      /* Generic info */
                                 &time_info, /* Timers */
