@@ -335,6 +335,8 @@ void simulation_step_tracking_and_observations(double elapsed)
       };
       sim_state.tracking_channel[num_sats_selected].sid.sat  = sid.sat;
       sim_state.tracking_channel[num_sats_selected].sid.code = sid.code;
+      /* FIXME: do properly for Glonass, if needed */
+      sim_state.tracking_channel[num_sats_selected].fcn = 0;
       float fTmpCN0 = sim_state.nav_meas[num_sats_selected].cn0;
       fTmpCN0 = (fTmpCN0 <=     0)?  0   : fTmpCN0;
       fTmpCN0 = (fTmpCN0 >= 63.75)? 63.75: fTmpCN0;

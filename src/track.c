@@ -175,13 +175,13 @@ void tracking_send_state()
 
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
       const tracker_common_data_t *common_data = &tracker_channel->common_data;
-      /*const tracker_internal_data_t *internal_data =
-        &tracker_channel->internal_data;*/
+      const tracker_internal_data_t *internal_data =
+        &tracker_channel->internal_data;
 
       bool running;
       bool confirmed;
       me_gnss_signal_t mesid;
-      /* u16 glo_slot_id; */
+      u16 glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN;
       float cn0;
 
       tracker_channel_lock(tracker_channel);
@@ -189,7 +189,7 @@ void tracking_send_state()
         running =
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         mesid = tracker_channel->info.mesid;
-        /* glo_slot_id = internal_data->glo_orbit_slot; */
+        glo_slot_id = internal_data->glo_orbit_slot;
         cn0 = common_data->cn0;
         confirmed = (0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED));
       }
@@ -200,13 +200,19 @@ void tracking_send_state()
           .sat  = 0,
           .code = 0,
         };
+        states[i].fcn = 0;
         states[i].cn0 = 0;
       } else {
         /* TODO GLO: Handle GLO orbit slot properly. */
-        states[i].sid = (gnss_signal16_t){
-          .sat  = mesid.sat,
-          .code = mesid.code,
-        };
+        if (mesid_to_constellation(mesid)==CONSTELLATION_GLO) {
+          states[i].sid.sat  = glo_slot_id;
+          states[i].sid.code = mesid.code;
+          states[i].fcn      = mesid.sat;
+        } else {
+          states[i].sid.sat  = mesid.sat;
+          states[i].sid.code = mesid.code;
+          states[i].fcn      = 0;
+        }
         cn0 = (cn0 <=     0)?  0   : cn0;
         cn0 = (cn0 >= 63.75)? 63.75: cn0;
         states[i].cn0 = rintf(cn0*4.0);
