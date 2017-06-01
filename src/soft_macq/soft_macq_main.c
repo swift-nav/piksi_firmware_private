@@ -33,7 +33,7 @@ static uint8_t *puSampleBuf;
 static sc16_t pBaseBand[SOFTMACQ_BASEBAND_SIZE] __attribute__ ((aligned (32)));
 
 /**! here is where the code gets resampled */
-static int8_t pResampCode[SOFTMACQ_MAX_SPMS] __attribute__ ((aligned (32)));
+/* static int8_t pResampCode[SOFTMACQ_MAX_SPMS] __attribute__ ((aligned (32))); */
 
 /** the last grabber acquisition time tag */
 static uint64_t uLastTimeTag;
@@ -52,7 +52,7 @@ static bool bModuleInit;
 
 static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid);
 
-static bool SoftMacqMdbzp (const me_gnss_signal_t _sMeSid, acqResults_t *_sAcqResult);
+/* static bool SoftMacqMdbzp (const me_gnss_signal_t _sMeSid, acqResults_t *_sAcqResult); */
 
 static bool SoftMacqSerial(const me_gnss_signal_t _sMeSid,
   float _fCarrFreqMin, float _fCarrFreqMax, acq_result_t *_sAcqResult);
@@ -80,7 +80,7 @@ bool soft_multi_acq_search(
 {
   uint32_t uTag=0, uBuffLength=0;
   uint64_t uCurrTimeTag;
-  acqResults_t sLocalResult = {0};
+  /*acqResults_t sLocalResult = {0};*/
   /** sanity checking input parameters */
   assert(NULL != _psAcqResult);
 
@@ -108,7 +108,7 @@ bool soft_multi_acq_search(
   }
   /** regardless of the result, store here the time tag */
   _psAcqResult->sample_count = (uint32_t) uLastTimeTag;
-  sLocalResult.uFirstLocIdx = uLastTimeTag;
+  /*sLocalResult.uFirstLocIdx = uLastTimeTag;*/
 
   /** Perform signal conditioning (down-conversion, filtering and decimation):
    * - if we updated the signal snapshot or
@@ -130,9 +130,11 @@ bool soft_multi_acq_search(
    *
    * NOTE: right now this is just to have he compiler going down
    * this route, but eventually could swap serial search */
+  /*
   if ((_fCarrFreqMax - _fCarrFreqMin)>100e3) {
    return SoftMacqMdbzp(_sMeSid, &sLocalResult);
   }
+  */
 
   /** call serial-frequency search acquisition with current sensitivity parameters */
   return SoftMacqSerial(_sMeSid, _fCarrFreqMin, _fCarrFreqMax, _psAcqResult);
@@ -161,7 +163,7 @@ static bool SoftMacqSerial(
 
 
 /*************    MDBZP *****************/
-
+/*
 static bool SoftMacqMdbzp (
   const me_gnss_signal_t _sMeSid,
   acqResults_t *_psAcqResult)
@@ -171,7 +173,6 @@ static bool SoftMacqMdbzp (
   sFauParams_t sParams;
   const uint8_t *_pLocalCode = ca_code(_sMeSid);
 
-  /** sanity checks */
   assert(NULL != _psAcqResult);
   assert(mesid_valid(_sMeSid));
 
@@ -249,10 +250,10 @@ static bool SoftMacqMdbzp (
     break;
 
   }
-  /** call now MDBZP */
-  return sParams.iSecondaryLen; //mdbzp_static(pBaseBand, pResampCode, &sParams, _psAcqResult);
+  return sParams.iSecondaryLen;
+  mdbzp_static(pBaseBand, pResampCode, &sParams, _psAcqResult);
 }
-
+*/
 
 
 /*! \fn bool BbMixAndDecimate
