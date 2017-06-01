@@ -45,7 +45,7 @@ simulation_settings_t sim_settings = {
   .base_ecef = {
    -2706098.845,
    -4261216.475,
-   3885597.912 
+   3885597.912
   },
   .speed = 4.0,
   .radius = 100.0,
@@ -193,11 +193,11 @@ void simulation_step(void)
   systime_t now_ticks = chVTGetSystemTime();
 
   double elapsed = sim_state.last_update_ticks == 0 ? 0 : (now_ticks - sim_state.last_update_ticks)/(double)CH_CFG_ST_FREQUENCY;
-  
+
   sim_state.last_update_ticks = now_ticks;
 
   /* Update the time, clamping it to the solution frequency and handling week-rollover. */
-  sim_state.noisy_solution.time.tow = 
+  sim_state.noisy_solution.time.tow =
     round((sim_state.noisy_solution.time.tow + elapsed) * soln_freq) / soln_freq;
   normalize_gps_time(&sim_state.noisy_solution.time);
 
@@ -328,13 +328,17 @@ void simulation_step_tracking_and_observations(double elapsed)
 
       /* As for tracking, we just set each sat consecutively in each channel. */
       /* This will cause weird jumps when a satellite rises or sets. */
+      /** FIXME: do we really need the offset? */
       gnss_signal_t sid = {
         .code = simulation_almanacs[i].sid.code,
         .sat = simulation_almanacs[i].sid.sat + SIM_PRN_OFFSET
       };
-      sim_state.tracking_channel[num_sats_selected].state = 1;
-      sim_state.tracking_channel[num_sats_selected].sid = sid_to_sbp(sid);
-      sim_state.tracking_channel[num_sats_selected].cn0 = sim_state.nav_meas[num_sats_selected].cn0;
+      sim_state.tracking_channel[num_sats_selected].sid.sat  = sid.sat;
+      sim_state.tracking_channel[num_sats_selected].sid.code = sid.code;
+      float fTmpCN0 = sim_state.nav_meas[num_sats_selected].cn0;
+      fTmpCN0 = (fTmpCN0 <=     0)?  0   : fTmpCN0;
+      fTmpCN0 = (fTmpCN0 >= 63.75)? 63.75: fTmpCN0;
+      sim_state.tracking_channel[num_sats_selected].cn0 = rintf(fTmpCN0*4.0);
 
       num_sats_selected++;
     }
@@ -348,7 +352,7 @@ void simulation_step_tracking_and_observations(double elapsed)
 * the almanac_i satellite, currently dist away from simulated point at given elevation.
 *
 */
-void populate_nav_meas(navigation_measurement_t *nav_meas, double dist, 
+void populate_nav_meas(navigation_measurement_t *nav_meas, double dist,
                        double elevation, double vel, int almanac_i)
 {
   nav_meas->sid = (gnss_signal_t) {
