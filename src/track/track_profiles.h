@@ -35,7 +35,7 @@
 typedef enum
 {
   TP_TM_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_DYN,     /**< Dynamics tracking mode */
+  TP_TM_1MS,     /**< 1 ms PLL/DLL */
   TP_TM_5MS,     /**< 5 ms PLL/DLL */
   TP_TM_10MS,    /**< 10 ms PLL/DLL */
   TP_TM_20MS,    /**< 20 ms PLL/DLL */
