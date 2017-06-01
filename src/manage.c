@@ -648,7 +648,7 @@ static void drop_channel(u8 channel_id,
                          const tracking_channel_time_info_t *time_info,
                          const tracking_channel_freq_info_t *freq_info);
 
-static bool check_leap_second(void);
+static bool leap_second_is_imminent(void);
 
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
@@ -883,28 +883,31 @@ static void drop_channel(u8 channel_id,
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-static bool check_leap_second()
+static bool leap_second_is_imminent()
 {
+  /* Check if GPS time is known.
+   * If GPS time is not known,
+   * leap second event cannot be detected. */
   time_quality_t tq = get_time_quality();
-  gps_time_t gps_time;
-  utc_params_t utc_params;
-  bool leap_second_event = false;
-
-  /* Check if GPS time is known */
   if (TIME_UNKNOWN != tq) {
-    gps_time = get_current_gps_time();
-    /* is_leap_second_event() returns true within 1 second of the event.
-     * Thus, add 1 second to current GPS time.
-     * This way the leap second event will be flagged 2 seconds beforehand,
-     * and GLO satellites will be dropped in time.
-     */
-    add_secs(&gps_time, 1.0);
-    /* Check if utc parameters are available */
-    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, NULL)) {
-      leap_second_event = is_leap_second_event(&gps_time, &utc_params) ;
-    } else {
-      leap_second_event = is_leap_second_event(&gps_time, NULL);
-    }
+    return false;
+  }
+
+  bool leap_second_event = false;
+  utc_params_t utc_params;
+  gps_time_t gps_time = get_current_gps_time();
+
+  /* is_leap_second_event() returns true within 1 second of the event.
+   * Thus, add 1 second to current GPS time.
+   * This way the leap second event will be flagged 2 seconds beforehand,
+   * and GLO satellites will be dropped in time.
+   */
+  add_secs(&gps_time, 1.0);
+  /* Check if utc parameters are available */
+  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, NULL)) {
+    leap_second_event = is_leap_second_event(&gps_time, &utc_params) ;
+  } else {
+    leap_second_event = is_leap_second_event(&gps_time, NULL);
   }
   return leap_second_event;
 }
@@ -923,7 +926,7 @@ static void manage_track()
   tracking_channel_misc_info_t misc_info;
   u64 now;
 
-  bool leap_second_event = check_leap_second();
+  bool leap_second_event = leap_second_is_imminent();
 
   /* Clear GLO satellites TOW cache if it is leap second event */
   if (leap_second_event) {
@@ -960,7 +963,7 @@ static void manage_track()
 
     /* Drop GLO satellites if it is leap second event */
     constellation_t constellation = mesid_to_constellation(info.mesid);
-    if (leap_second_event && CONSTELLATION_GLO == constellation) {
+    if (leap_second_event && (CONSTELLATION_GLO == constellation)) {
       drop_channel(i, CH_DROP_REASON_LEAP_SECOND, &info, &time_info, &freq_info);
       continue;
     }
