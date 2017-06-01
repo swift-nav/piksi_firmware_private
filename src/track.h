@@ -341,6 +341,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
 void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid);
+void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid);
 
 bool handover_valid(double code_phase_chips, double max_chips);
 bool sv_azel_degrees_set(gnss_signal_t sid, u16 azimuth,

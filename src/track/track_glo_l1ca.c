@@ -264,6 +264,11 @@ static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
   /* GLO L1 C/A-specific ToW manipulation */
   update_tow_glo_l1ca(channel_info, common_data, data, tracker_flags);
 
+  /* If SV is unhealthy, drop L1 signal */
+  if (common_data->health) {
+    tracking_channel_drop_unhealthy_glo(channel_info->mesid);
+  }
+
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (tracker_flags & TP_CFLAG_BSYNC_UPDATE) &&

@@ -1031,7 +1031,7 @@ tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid)
 /** Drop the L2CL tracker when it is no longer needed.
  *  This function can be called from both L2CM and L2CL trackers.
  *
- * \param[in] sid GNSS signal identifier.
+ * \param[in] mesid ME signal identifier.
  *
  * \return None
  */
@@ -1050,6 +1050,38 @@ void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
   }
   tracker_common_data_t *common_data = &sTrackerChannel->common_data;
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
+}
+
+/** Drop unhealthy GLO satellite.
+ *  Both L1CA and L2CA decode the health information independently.
+ *  In case one channel does not contain valid data,
+ *  it cannot detect unhealthy status.
+ *  If the health information is decoded from one channel,
+ *  then drop the other channel which cannot decode the information.
+ *  This function is called from both GLO L1 and L2 trackers.
+ *
+ * \param[in] mesid ME signal identifier.
+ *
+ * \return None
+ */
+void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid)
+{
+  assert(is_glo_sid(mesid));
+  code_t code = (CODE_GLO_L1CA == mesid.code) ? CODE_GLO_L2CA : CODE_GLO_L1CA;
+  me_gnss_signal_t mesid_drop = construct_mesid(code, mesid.sat);
+  tracker_channel_t *sTrackerChannel = tracker_channel_get_by_mesid(mesid_drop);
+  if (sTrackerChannel == NULL) {
+    return;
+  }
+  /*! The barrier in manage_track() in manage.c should take care of
+    * this anyway
+    */
+  if (STATE_ENABLED != tracker_channel_state_get(sTrackerChannel)) {
+    return;
+  }
+  tracker_common_data_t *common_data = &sTrackerChannel->common_data;
+  common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
+  common_data->health = 1; /* 0 - healthy, 1 - unhealthy */
 }
 
 /**
