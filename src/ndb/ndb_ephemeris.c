@@ -167,11 +167,11 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *candidate)
 {
 
-  if (NULL != candidate && 0 == memcmp(new, candidate, sizeof(*new))) {
+  if (NULL != candidate && ephemeris_equal(new, candidate)) {
     /* Exact match */
     log_debug_sid(new->sid, "[EPH] candidate match");
     return true;
-  } else if (NULL != existing_e && 0 == memcmp(new, existing_e, sizeof(*new))) {
+  } else if (NULL != existing_e && ephemeris_equal(new, existing_e)) {
     /* Exact match with stored */
     log_debug_sid(new->sid, "[EPH] NDB match");
     return true;
@@ -316,12 +316,29 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     ce = &ephe_candidates[cand_idx].ephe;
   }
 
-  if (TIME_FINE != time_quality) {
+  /* Check that GLO L1CA and GLO L2CA always send same set of ephemeris. */
+  ephemeris_t *ephep = pe;
+  if (!ephep) {
+    ephep = ce;
+  }
+  if (ephep &&
+      !ephemeris_equal(ephep, new) &&
+      (ephep->toe.wn == new->toe.wn) &&
+      (ephep->toe.tow == new->toe.tow)) {
+    log_warn_sid(new->sid,
+                 "Ephemeris discrepancy detected: "
+                 "%"PRIi16" %"PRIi16" %lf %lf %p %p",
+                 ephep->toe.wn, new->toe.wn,
+                 ephep->toe.tow, new->toe.tow, ce, pe);
+  }
+
+  time_quality_t tq = get_time_quality();
+  if (TIME_FINE != tq) {
     ndb_ephe_release_candidate(cand_idx);
     ndb_ephe_try_adding_candidate(new);
     r = NDB_CAND_GPS_TIME_MISSING;
   } else if (NULL != pe &&
-             0 == memcmp(&existing_e, new, sizeof(ephemeris_t)) &&
+             ephemeris_equal(pe, new) &&
              0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
     /* If new ephemeris is identical to the one in NDB,
      * and the NDB data is not initially loaded from NV,

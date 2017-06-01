@@ -13,11 +13,9 @@
 #include "decode_glo_l2ca.h"
 #include "decode.h"
 
-#include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg_glo.h> /* For BIT_POLARITY_... constants */
-#include <assert.h>
-#include <string.h>
+#include <libswiftnav/nav_msg_glo.h>
+#include <libswiftnav/glo_map.h>
 
 #include "ephemeris.h"
 #include "track.h"
@@ -25,6 +23,10 @@
 #include "sbp_utils.h"
 #include "signal.h"
 #include "shm.h"
+#include "timing.h"
+
+#include <assert.h>
+#include <string.h>
 #include "decode_common.h"
 
 /** GLO L2CA decoder data */
@@ -69,7 +71,6 @@ void decode_glo_l2ca_register(void)
 static void decoder_glo_l2ca_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data)
 {
-  (void)channel_info;
   glo_l2ca_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
@@ -90,10 +91,28 @@ static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   s8 soft_bit;
-  bool sensitivity_mode;
-  while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
-                                      &soft_bit, &sensitivity_mode)) {
-    (void)data;
+  bool sensitivity_mode = true;
+  me_gnss_signal_t mesid = channel_info->mesid;
+  u8 channel = channel_info->tracking_channel;
+
+  while (tracking_channel_nav_bit_get(channel,
+                                      &soft_bit,
+                                      &sensitivity_mode)) {
+    /* Decode GLO ephemeris. */
+    if (!is_glo_decode_ready(&data->nav_msg,
+                             mesid,
+                             soft_bit,
+                             sensitivity_mode)) {
+      continue;
+    }
+
+    /* Store decoded ephemeris */
+    save_glo_eph(&data->nav_msg, mesid);
+
+    /* Sync tracker with decoder data */
+    if (!glo_data_sync(&data->nav_msg, mesid, channel)) {
+      return;
+    }
   }
   return;
 }
