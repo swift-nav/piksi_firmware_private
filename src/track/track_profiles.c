@@ -733,24 +733,24 @@ static void log_switch(const me_gnss_signal_t mesid,
   tp_tm_e cur_track_mode = track_mode_by_code(mesid.code, cur_profile);
   tp_tm_e next_track_mode = track_mode_by_code(mesid.code, next_profile);
 
-  log_info_mesid(mesid,
-                 "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
-                 "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                 reason,
-                 state->plock_delay_ms,
-                 state->bs_delay_ms,
-                 state->filt_cn0,
-                 state->filt_accel,
-                 /* old state */
-                 tp_get_mode_str(cur_track_mode),
-                 cur_profile->profile.pll_bw,
-                 cur_profile->profile.fll_bw,
-                 get_ctrl_str(cur_profile->profile.controller_type),
-                 /* new state */
-                 tp_get_mode_str(next_track_mode),
-                 next_profile->profile.pll_bw,
-                 next_profile->profile.fll_bw,
-                 get_ctrl_str(next_profile->profile.controller_type));
+  log_debug_mesid(mesid,
+                  "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
+                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+                  reason,
+                  state->plock_delay_ms,
+                  state->bs_delay_ms,
+                  state->filt_cn0,
+                  state->filt_accel,
+                  /* old state */
+                  tp_get_mode_str(cur_track_mode),
+                  cur_profile->profile.pll_bw,
+                  cur_profile->profile.fll_bw,
+                  get_ctrl_str(cur_profile->profile.controller_type),
+                  /* new state */
+                  tp_get_mode_str(next_track_mode),
+                  next_profile->profile.pll_bw,
+                  next_profile->profile.fll_bw,
+                  get_ctrl_str(next_profile->profile.controller_type));
 }
 
 /**
