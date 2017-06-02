@@ -209,11 +209,7 @@ static void handle_nap_irq(void)
   u32 err = NAP->IRQ_ERROR;
   if (err) {
     NAP->IRQ_ERROR = err;
-    if (err & NAP_IRQ_EXT_EVENT_Msk) {
-      log_error("NAP Error: Too many external events.");
-    } else {
-      log_error("NAP Interrupt Error: 0x%08X", (unsigned int)err);
-    }
+    log_warn("Too many NAP interrupts: 0x%08X", (unsigned int)err);
   }
 }
 
@@ -232,7 +228,7 @@ static void handle_nap_track_irq(void)
   u32 err = NAP->TRK_IRQ_ERROR;
   if (err) {
     NAP->TRK_IRQ_ERROR = err;
-    log_error("NAP Tracking Interrupt Error: 0x%08X", (unsigned int)err);
+    log_warn("Too many NAP tracking interrupts: 0x%08X", (unsigned int)err);
     tracking_channels_missed_update_error(err);
   }
 
@@ -299,19 +295,27 @@ bool nap_pps_armed(void)
 }
 
 u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
-    ext_event_trigger_t next_trig)
+    ext_event_trigger_t next_trig, u32 timeout)
 {
   if (event_pin) {
     *event_pin = 0;
   }
 
   if (event_trig) {
-    *event_trig = (NAP->CONTROL & NAP_CONTROL_EXT_EVENT_EDGE_Msk) >>
-        NAP_CONTROL_EXT_EVENT_EDGE_Pos;
+    *event_trig = (NAP->STATUS & NAP_STATUS_EXT_EVENT_EDGE_Msk) >>
+        NAP_STATUS_EXT_EVENT_EDGE_Pos;
   }
 
-  NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos);
+  if (timeout > 0) {
+    u32 gap = ceil((double)timeout /
+        ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
+    NAP->EVENT_TIMEOUT = gap;
+
+    NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos) |
+                   (1 << NAP_CONTROL_EXT_EVENT_TIMEOUT_Pos);
+  } else {
+    NAP->CONTROL = (next_trig << NAP_CONTROL_EXT_EVENT_EDGE_Pos);
+  }
 
   return NAP->EVENT_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
 }
-

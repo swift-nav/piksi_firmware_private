@@ -65,6 +65,7 @@ typedef struct {
   volatile uint32_t TRK_COMPARE_SNAPSHOT;
   volatile uint32_t PPS_CONTROL;
   volatile uint32_t PPS_TIMING_COMPARE;
+  volatile uint32_t EVENT_TIMEOUT;
   volatile uint32_t EVENT_TIMING_SNAPSHOT;
   nap_trk_regs_t TRK_CH[NAP_MAX_N_TRACK_CHANNELS];
 } nap_t;
@@ -79,11 +80,17 @@ typedef struct {
 #define NAP_STATUS_PPS_ARMED_Pos (17U)
 #define NAP_STATUS_PPS_ARMED_Msk (0x1U << NAP_STATUS_PPS_ARMED_Pos)
 
+#define NAP_STATUS_EXT_EVENT_EDGE_Pos (18U)
+#define NAP_STATUS_EXT_EVENT_EDGE_Msk (0x1U << NAP_STATUS_EXT_EVENT_EDGE_Pos)
+
 #define NAP_CONTROL_VERSION_ADDR_Pos (0U)
 #define NAP_CONTROL_VERSION_ADDR_Msk (0xFU << NAP_CONTROL_VERSION_ADDR_Pos)
 
 #define NAP_CONTROL_EXT_EVENT_EDGE_Pos (4U)
 #define NAP_CONTROL_EXT_EVENT_EDGE_Msk (0x3U << NAP_CONTROL_EXT_EVENT_EDGE_Pos)
+
+#define NAP_CONTROL_EXT_EVENT_TIMEOUT_Pos (6U)
+#define NAP_CONTROL_EXT_EVENT_TIMEOUT_Msk (0x1U << NAP_CONTROL_EXT_EVENT_TIMEOUT_Pos)
 
 #define NAP_CONTROL_KEY_ADDR_Pos (20U)
 #define NAP_CONTROL_KEY_ADDR_Msk (0xFU << NAP_CONTROL_KEY_ADDR_Pos)
@@ -181,13 +188,7 @@ typedef struct {
 #define NAP_TRK_SPACING_SAMPLES_Pos (0U)
 #define NAP_TRK_SPACING_SAMPLES_Msk (0x3FU)
 
-#define NAP_IRQ_ACQ_TIMING_Pos (0U)
-#define NAP_IRQ_ACQ_TIMING_Msk (0x1U << NAP_IRQ_ACQ_TIMING_Pos)
-
-#define NAP_IRQ_TRK_TIMING_Pos (1U)
-#define NAP_IRQ_TRK_TIMING_Msk (0x1U << NAP_IRQ_TRK_TIMING_Pos)
-
-#define NAP_IRQ_EXT_EVENT_Pos (2U)
+#define NAP_IRQ_EXT_EVENT_Pos (0U)
 #define NAP_IRQ_EXT_EVENT_Msk (0x1U << NAP_IRQ_EXT_EVENT_Pos)
 
 /* NAP RF fronend channel ID */
