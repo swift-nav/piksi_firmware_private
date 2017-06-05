@@ -69,6 +69,7 @@ static struct nap_ch_state {
   double reckoned_carr_phase;
   u32 length[2];               /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];            /**< Carrier phase increment */
+  bool reckon_init_done;       /**< First carrier phase was read from NAP */
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
@@ -287,7 +288,7 @@ void nap_track_init(u8 channel,
 
   /* Adjust first integration length due to correlator spacing */
   length += prompt_offset;
-  t->LENGTH = length;
+  t->LENGTH = s->length[0] = length;
 
   u64 profiling_begin = nap_timing_count();
 
@@ -376,6 +377,10 @@ void nap_track_init(u8 channel,
   }
   s->length[1] = s->length[0];
   s->length[0] = t->LENGTH;
+
+  /* The first and second integrations are always done with same carr_pinc */
+  s->carr_pinc[1] = s->carr_pinc[0];
+
   s->init = false;
 }
 
@@ -477,11 +482,22 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = t->TIMING_SNAPSHOT;
 
   if (CONSTELLATION_GLO == mesid_to_constellation(s->mesid)) {
-    /* Add the contribution of both FCN and Doppler. With numerical errors indeed
-     * but those errors will be recovered by the PLL the next time around as
-     * they are exactly the same that NAP is also subject to */
-    s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
-                              NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+
+    if (s->reckon_init_done) {
+      /* Add the contribution of both FCN and Doppler. With numerical errors indeed
+       * but those errors will be recovered by the PLL the next time around as
+       * they are exactly the same that NAP is also subject to */
+      s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
+                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    } else {
+      /** NAP does not always start counting carrier phase from zero.
+          To workaround it we read the initial carrier phase from NAP and
+          do the reckoning starting from the second integration. */
+      s->reckon_init_done = true;
+      s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+      s->reckoned_carr_phase = (double)nap_carr_phase /
+                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    }
     s->reckoned_carr_phase += s->fcn_freq_hz *
                               (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
     *carrier_phase = -s->reckoned_carr_phase;
