@@ -98,7 +98,7 @@ u32 max_age_of_differential = 30;
 u32 obs_output_divisor = 1;
 
 double known_baseline[3] = {0, 0, 0};
-s16 msg_obs_max_size = 102;
+s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
 bool disable_raim = false;
 bool send_heading = false;
@@ -1207,7 +1207,7 @@ static void solution_thread(void *arg)
             filter_manager_is_initialized(low_latency_filter_manager);
 
         if (is_initialized) {
-		      set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
+          set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
 
           update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
                                         &current_fix.time, n_ready_tdcp,
