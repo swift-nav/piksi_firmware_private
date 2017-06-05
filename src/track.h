@@ -115,6 +115,8 @@ typedef u8 tracker_channel_id_t;
 #define TRACKING_CHANNEL_FLAG_HEALTH_DECODED (1u << 26)
 /** Tracking channel flag: healthy status -- 0 SV is unhealty, 1 SV is healthy */
 #define TRACKING_CHANNEL_FLAG_HEALTHY    (1u << 27)
+/** Tracking channel flag: error, Doppler went out of bounds */
+#define TRACKING_CHANNEL_FLAG_DOPPLER_OUTLIER    (1u << 28)
 
 /** Maximum SV azimuth/elevation age in seconds: 1 minute is about 0.5 degrees */
 #define MAX_AZ_EL_AGE_SEC 60

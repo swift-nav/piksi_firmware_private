@@ -588,6 +588,12 @@ static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
   u32 cflags = tp_tracker_update(channel_info, common_data, data,
                                  &gps_l2cm_config);
 
+  /* remove channels with a large Doppler outlier */
+  if ((fabsf(common_data->carrier_freq) > 9e3)) {
+    (common_data->flags) |= TRACK_CMN_FLAG_DOPPLER_OUTLIER;
+    return;
+  }
+
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(channel_info, common_data, data, cflags);
 

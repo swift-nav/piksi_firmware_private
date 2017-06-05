@@ -69,8 +69,9 @@ typedef enum {
   CH_DROP_REASON_L2CL_SYNC,     /**< Drop L2CL after half-cycle ambiguity
                                      has been resolved */
   CH_DROP_REASON_SV_UNHEALTHY,  /**< The SV is Unhealthy */
-  CH_DROP_REASON_LEAP_SECOND    /**< Leap second event is imminent,
+  CH_DROP_REASON_LEAP_SECOND,   /**< Leap second event is imminent,
                                      drop GLO satellites */
+  CH_DROP_REASON_OUTLIER        /**< Doppler outlier */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -761,6 +762,7 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
   case CH_DROP_REASON_L2CL_SYNC: str = "L2CM half-cycle ambiguity resolved, dropping L2CL"; break;
   case CH_DROP_REASON_SV_UNHEALTHY: str = "SV is unhealthy, dropping"; break;
   case CH_DROP_REASON_LEAP_SECOND: str = "Leap second event, dropping GLO signal"; break;
+  case CH_DROP_REASON_OUTLIER: str = "SV measurement outlier, dropping"; break;
   default: assert(!"Unknown channel drop reason");
   }
   return str;
@@ -969,6 +971,12 @@ static void manage_track()
     /* Is tracking masked? */
     if (track_mask[global_index]) {
       drop_channel(i, CH_DROP_REASON_MASKED, &info, &time_info, &freq_info);
+      continue;
+    }
+
+    /* Do we have a large measurement outlier? */
+    if (info.flags & TRACKING_CHANNEL_FLAG_DOPPLER_OUTLIER) {
+      drop_channel(i, CH_DROP_REASON_OUTLIER, &info, &time_info, &freq_info);
       continue;
     }
 
