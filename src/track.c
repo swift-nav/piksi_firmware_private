@@ -172,8 +172,9 @@ void tracking_send_state()
     }
 
   } else {
-
-    for (u8 i=0; (i<nap_track_n_channels) && (i<(255/sizeof(tracking_channel_state_t))); i++) {
+    u8 uMaxObs =
+      (SBP_FRAMING_MAX_PAYLOAD_SIZE/sizeof(tracking_channel_state_t));
+    for (u8 i=0; (i<nap_track_n_channels) && (i<uMaxObs); i++) {
 
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
       const tracker_common_data_t *common_data = &tracker_channel->common_data;
