@@ -48,6 +48,8 @@
 
 #define CHANNEL_DISABLE_WAIT_TIME_ms 100
 
+#define MAX_VAL_CN0 (255.0 / 4.0)
+
 typedef enum {
   EVENT_ENABLE,
   EVENT_DISABLE_REQUEST,
@@ -171,7 +173,7 @@ void tracking_send_state()
 
   } else {
 
-    for (u8 i=0; (i<nap_track_n_channels) && (i<64); i++) {
+    for (u8 i=0; (i<nap_track_n_channels) && (i<(255/sizeof(tracking_channel_state_t))); i++) {
 
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
       const tracker_common_data_t *common_data = &tracker_channel->common_data;
@@ -213,8 +215,8 @@ void tracking_send_state()
           states[i].sid.code = mesid.code;
           states[i].fcn      = 0;
         }
-        cn0 = (cn0 <=     0)?  0   : cn0;
-        cn0 = (cn0 >= 63.75)? 63.75: cn0;
+        cn0 = (cn0 <=           0)?           0: cn0;
+        cn0 = (cn0 >= MAX_VAL_CN0)? MAX_VAL_CN0: cn0;
         states[i].cn0 = rintf(cn0*4.0);
       }
     }
