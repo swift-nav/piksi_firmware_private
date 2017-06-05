@@ -98,7 +98,7 @@ u32 max_age_of_differential = 30;
 u32 obs_output_divisor = 1;
 
 double known_baseline[3] = {0, 0, 0};
-s16 msg_obs_max_size = 249;
+s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
 bool disable_raim = false;
 bool send_heading = false;
