@@ -485,14 +485,14 @@ void nap_track_read_results(u8 channel,
 
     if (s->reckon_init_done) {
       /* Add the contribution of both FCN and Doppler. With numerical errors indeed
-       * but those errors will be recovered by the PLL the next time around as
-       * they are exactly the same that NAP is also subject to */
+         but those errors will be recovered by the PLL the next time around as
+         they are exactly the same that NAP is also subject to */
       s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
                                 NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
     } else {
-      /** NAP does not always start counting carrier phase from zero.
-          To workaround it we read the initial carrier phase from NAP and
-          do the reckoning starting from the second integration. */
+      /* NAP does not always start counting carrier phase from zero.
+         To workaround it we read the initial carrier phase from NAP and
+         do the reckoning starting from the second integration. */
       s->reckon_init_done = true;
       s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
       s->reckoned_carr_phase = (double)nap_carr_phase /
