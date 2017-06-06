@@ -143,7 +143,7 @@ typedef struct {
                                     timestamp [ms] */
   bool updated_once;           /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  u8 health;                   /**< GLO SV health info:
+  u8 signal_unhealthy;         /**< GLO SV health info:
                                     0 - healthy, 1 - unhealthy */
 } tracker_common_data_t;
 

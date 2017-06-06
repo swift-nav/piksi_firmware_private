@@ -264,9 +264,11 @@ static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
   /* GLO L1 C/A-specific ToW manipulation */
   update_tow_glo_l1ca(channel_info, common_data, data, tracker_flags);
 
-  /* If SV is unhealthy, drop L1 signal */
-  if (common_data->health) {
-    tracking_channel_drop_unhealthy_glo(channel_info->mesid);
+  /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
+  if (common_data->signal_unhealthy) {
+    me_gnss_signal_t mesid_drop;
+    mesid_drop = construct_mesid(CODE_GLO_L2CA, channel_info->mesid.sat);
+    tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 
   if (data->lock_detect.outp &&

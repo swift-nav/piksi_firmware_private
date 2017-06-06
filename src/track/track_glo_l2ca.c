@@ -186,8 +186,10 @@ static void tracker_glo_l2ca_update(const tracker_channel_info_t *channel_info,
                                         &glo_l2ca_config);
   (void)tracker_flags;
 
-  /* If SV is unhealthy, drop L2 signal */
-  if (common_data->health) {
-    tracking_channel_drop_unhealthy_glo(channel_info->mesid);
+  /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
+  if (common_data->signal_unhealthy) {
+    me_gnss_signal_t mesid_drop;
+    mesid_drop = construct_mesid(CODE_GLO_L1CA, channel_info->mesid.sat);
+    tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 }

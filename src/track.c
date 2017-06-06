@@ -1053,35 +1053,36 @@ void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
 }
 
 /** Drop unhealthy GLO satellite.
+ *
  *  Both L1CA and L2CA decode the health information independently.
  *  In case one channel does not contain valid data,
  *  it cannot detect unhealthy status.
- *  If the health information is decoded from one channel,
- *  then drop the other channel which cannot decode the information.
+ *
+ *  If one channel is marked unhealthy,
+ *  then also drop the other channel.
+ *
  *  This function is called from both GLO L1 and L2 trackers.
  *
- * \param[in] mesid ME signal identifier.
+ * \param[in] mesid ME signal to be dropped.
  *
  * \return None
  */
 void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid)
 {
   assert(is_glo_sid(mesid));
-  code_t code = (CODE_GLO_L1CA == mesid.code) ? CODE_GLO_L2CA : CODE_GLO_L1CA;
-  me_gnss_signal_t mesid_drop = construct_mesid(code, mesid.sat);
-  tracker_channel_t *sTrackerChannel = tracker_channel_get_by_mesid(mesid_drop);
-  if (sTrackerChannel == NULL) {
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid);
+  if (tracker_channel == NULL) {
     return;
   }
-  /*! The barrier in manage_track() in manage.c should take care of
-    * this anyway
-    */
-  if (STATE_ENABLED != tracker_channel_state_get(sTrackerChannel)) {
+  /* Double-check that channel is in enabled state.
+   * Similar check exists in manage_track() in manage.c
+   */
+  if (STATE_ENABLED != tracker_channel_state_get(tracker_channel)) {
     return;
   }
-  tracker_common_data_t *common_data = &sTrackerChannel->common_data;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
   common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
-  common_data->health = 1; /* 0 - healthy, 1 - unhealthy */
+  common_data->signal_unhealthy = 1;
 }
 
 /**
@@ -1651,7 +1652,7 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->cp_sync.counter = 0;
   common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
   common_data->cp_sync.synced = false;
-  common_data->health = 0;
+  common_data->signal_unhealthy = 0;
 }
 
 /** Lock a tracker channel for exclusive access.
@@ -1807,7 +1808,7 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: GLO healthy status */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_HEALTH_DECODED)) {
       result |= TRACKING_CHANNEL_FLAG_HEALTH_DECODED;
-      if (!common_data->health) {
+      if (!common_data->signal_unhealthy) {
         result |= TRACKING_CHANNEL_FLAG_HEALTHY;
       }
     }
