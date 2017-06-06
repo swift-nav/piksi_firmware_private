@@ -26,15 +26,14 @@
  * \{ */
 
 static ext_event_trigger_t trigger = TRIG_NONE;
-static u32 sensitivity_microseconds = 0;
-static u64 last_event_time = 0;
+static u32 timeout_microseconds = 0;
 
 /** Settings callback to inform NAP which trigger mode is desired */
 static bool trigger_changed(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val))
   {
-    nap_rw_ext_event(NULL, NULL, trigger);
+    nap_rw_ext_event(NULL, NULL, trigger, timeout_microseconds);
     return true;
   }
   return false;
@@ -53,13 +52,11 @@ void ext_event_setup(void)
   static struct setting_type trigger_setting;
   int TYPE_TRIGGER = settings_type_register_enum(trigger_enum,
       &trigger_setting);
+
   SETTING_NOTIFY("ext_events", "edge_trigger", trigger, TYPE_TRIGGER,
       trigger_changed);
-  /* trigger_changed() will be called at setup time (i.e. immediately) as well
-     as if user changes the setting later. */
-
-  SETTING_NOTIFY("ext_events", "sensitivity", sensitivity_microseconds,
-      TYPE_INT, settings_default_notify);
+  SETTING_NOTIFY("ext_events", "sensitivity", timeout_microseconds,
+      TYPE_INT, trigger_changed);
 }
 
 /** Service an external event interrupt
@@ -77,7 +74,8 @@ void ext_event_service(void)
   ext_event_trigger_t event_trig;
 
   /* Read the details, and also clear IRQ + set up for next time */
-  u32 event_nap_time = nap_rw_ext_event(&event_pin, &event_trig, trigger);
+  u32 event_nap_time = nap_rw_ext_event(&event_pin, &event_trig, trigger,
+      timeout_microseconds);
 
   /* We have to infer the most sig word (i.e. # of 262-second rollovers) */
   union {
@@ -88,16 +86,6 @@ void ext_event_service(void)
   if (tc.half[0] < event_nap_time)  /* Rollover occurred since event */
     tc.half[1]--;
   tc.half[0] = event_nap_time;
-
-  if (sensitivity_microseconds > 0) {
-    u32 gap = ceil((double)sensitivity_microseconds /
-        ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
-    if (tc.full < last_event_time + gap) {
-      return;
-    } else {
-      last_event_time = tc.full;
-    }
-  }
 
   /* Prepare the MSG_EXT_EVENT */
   msg_ext_event_t msg;
