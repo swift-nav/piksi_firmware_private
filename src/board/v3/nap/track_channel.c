@@ -403,6 +403,15 @@ void nap_track_update(u8 channel,
     code_phase_frac = t->CODE_PHASE_FRAC + t->LENGTH * t->CODE_PINC;
   }
 
+  /* static u64 cnt = 0; */
+  /* cnt++; */
+  /* if (cnt < 20 || (cnt % 5000 == 0)) { */
+  /*   if (cnt % 5000 == 0) { */
+  /*     cnt = 0; */
+  /*   } */
+  /*   log_info_mesid(s->mesid, "ADEL: %f %f %u", doppler_freq_hz, code_phase_rate, chips_to_correlate); */
+  /* } */
+
   u32 cp_rate_units = round(code_phase_rate *
       NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
 
