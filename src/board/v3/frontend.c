@@ -355,8 +355,8 @@ static void configure_v2(void) {
   spi_write(24, 0xF1);
   spi_write(25, 0xEA);
   spi_write(26, 0x0B);
-  spi_write(27, 0x01); /* channel 3 enabled and Upper/Lower side-band */
-  spi_write(28, 0x1D); /* LPF setting for channel 3 - Glonass G2 */
+  spi_write(27, 0x01); /* channel 3 Upper Side Band, enabled  */
+  spi_write(28, 0x50); /* LPF setting for channel 3 - about 29 MHz */
   spi_write(29, 0x0B);
   spi_write(30, 0x34);
   spi_write(31, 0xF1);
@@ -373,6 +373,6 @@ static void configure_v2(void) {
   spi_write(42, 0x4F); /* PLL A N[8..1] divider */
   spi_write(43, 0x89); /* PLL A N[0] and R divider */
   spi_write(45, 0x01); /* PLL B band and enable */
-  spi_write(46, 0x7B); /* PLL B N[8..1] divider */
-  spi_write(47, 0x91); /* PLL B N[0] and R divider */
+  spi_write(46, 0x3D); /* PLL B N[8..1] divider */
+  spi_write(47, 0x09); /* PLL B N[0] and R divider */
 }
