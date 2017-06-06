@@ -174,7 +174,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/specan/specan_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
-        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_mdbzp.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
