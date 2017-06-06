@@ -730,27 +730,32 @@ static void log_switch(const me_gnss_signal_t mesid,
 {
   const tp_profile_entry_t* cur_profile = &state->profiles[state->cur_index];
   const tp_profile_entry_t* next_profile = &state->profiles[state->next_index];
+
   tp_tm_e cur_track_mode = track_mode_by_code(mesid.code, cur_profile);
   tp_tm_e next_track_mode = track_mode_by_code(mesid.code, next_profile);
 
-  log_debug_mesid(mesid,
-                  "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
-                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                  reason,
-                  state->plock_delay_ms,
-                  state->bs_delay_ms,
-                  state->filt_cn0,
-                  state->filt_accel,
-                  /* old state */
-                  tp_get_mode_str(cur_track_mode),
-                  cur_profile->profile.pll_bw,
-                  cur_profile->profile.fll_bw,
-                  get_ctrl_str(cur_profile->profile.controller_type),
-                  /* new state */
-                  tp_get_mode_str(next_track_mode),
-                  next_profile->profile.pll_bw,
-                  next_profile->profile.fll_bw,
-                  get_ctrl_str(next_profile->profile.controller_type));
+  log_info_mesid(mesid, "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
+                "(mode,pll,fll,dll,ctrl): "
+                "(%s,%.1f,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%.1f,%s)",
+                reason,
+                state->plock_delay_ms,
+                state->bs_delay_ms,
+                state->filt_cn0,
+                state->filt_accel,
+
+                /* old state */
+                tp_get_mode_str(cur_track_mode),
+                cur_profile->profile.pll_bw,
+                cur_profile->profile.fll_bw,
+                cur_profile->profile.dll_bw,
+                get_ctrl_str(cur_profile->profile.controller_type),
+
+                /* new state */
+                tp_get_mode_str(next_track_mode),
+                next_profile->profile.pll_bw,
+                next_profile->profile.fll_bw,
+                next_profile->profile.dll_bw,
+                get_ctrl_str(next_profile->profile.controller_type));
 }
 
 /**
@@ -870,6 +875,10 @@ static bool profile_switch_requested(const me_gnss_signal_t mesid,
   if (index == state->cur_index) {
     return false;
   }
+
+  /* if (index == IDX_VERY_HIGH_CN0) { */
+  /*   return false; */
+  /* } */
 
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
@@ -1091,40 +1100,33 @@ tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
  * \param[in,out] profile  Tracking profile data to read and update.
  * \param[out]    config   Container for new tracking parameters.
  * \param[in]     commit   Commit the mode change happened.
- *
- * \retval TP_RESULT_SUCCESS New tracking profile has been retrieved. The
- *                           tracking loop shall reconfigure it's components
- *                           and, possibly, change the operation mode.
- * \retval TP_RESULT_NO_DATA New tracking profile is not available. No further
- *                           actions are needed.
- * \retval TP_RESULT_ERROR   On error.
  */
-tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
-                                  tp_profile_t *profile,
-                                  tp_config_t *config,
-                                  bool commit)
+void tp_profile_get_next_config(const me_gnss_signal_t mesid,
+                                const tp_profile_t *profile,
+                                tp_config_t  *config)
 {
-  tp_result_e res = TP_RESULT_ERROR;
-  if (NULL != config && NULL != profile) {
+  assert(config);
+  assert(profile && profile->profile_update);
 
-    if (profile->profile_update) {
-      /* Do transition of current profile */
-      if (commit) {
-        profile->profile_update = 0;
+  tp_profile_t next_profile = *profile;
+  next_profile.cur_index = profile->next_index;
+  next_profile.cn0_offset = compute_cn0_offset(mesid, &next_profile);
 
-        profile->cur_index = profile->next_index;
-        profile->cn0_offset = compute_cn0_offset(mesid, profile);
-      }
+  get_profile_params(mesid, &next_profile, config);
+}
 
-      /* Return data */
-      get_profile_params(mesid, profile, config);
+/**
+ * Changes to the new tracking profile.
+ *
+ * \param[in,out] profile  Tracking profile data to read and update.
+ */
+void tp_profile_change(const me_gnss_signal_t mesid, tp_profile_t *profile)
+{
+  assert(profile && profile->profile_update);
+  profile->profile_update = 0;
 
-      res = TP_RESULT_SUCCESS;
-    } else {
-      res = TP_RESULT_NO_DATA;
-    }
-  }
-  return res;
+  profile->cur_index = profile->next_index;
+  profile->cn0_offset = compute_cn0_offset(mesid, profile);
 }
 
 /**
@@ -1176,15 +1178,12 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
  * \retval true  New profile is available.
  * \retval false No profile change is required.
  */
-bool tp_profile_has_new_profile(const me_gnss_signal_t mesid,
+bool tp_profile_change_required(const me_gnss_signal_t mesid,
                                 tp_profile_t *profile)
 {
-  bool res = false;
-  if (NULL != profile) {
-    check_for_profile_change(mesid, profile);
-    res = profile->profile_update != 0;
-  }
-  return res;
+  assert(profile);
+  check_for_profile_change(mesid, profile);
+  return profile->profile_update != 0;
 }
 
 /**

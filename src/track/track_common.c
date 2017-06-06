@@ -36,61 +36,6 @@
 #define TP_FLL_DLL_ERR_THRESHOLD_HZ    0.1
 
 /**
- * Computes number of chips in the integration interval
- *
- * In most cases the number of chips is the result of multiplication of a
- * chip rate to interval duration.
- *
- * \param[in] mesid       ME signal identifier.
- * \param[in] ms          Interval duration in ms.
- * \param[in] code_phase  Current code phase in chips.
- * \param[in] plock       Flag indicating pessimistic lock.
- *
- * \return Computed number of chips.
- */
-static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
-                                  u8 ms,
-                                  double code_phase,
-                                  bool plock)
-{
-  /* First, select the appropriate chip rate in chips/ms. */
-  u32 chip_rate = (u32)code_to_chip_rate(mesid.code) / 1000;
-
-  /* Round the current code_phase towards nearest integer. */
-  u32 current_chip = round(code_phase);
-
-  /* Take modulo of the code phase. Nominally this should be close to zero,
-   * or close to chip_rate. */
-  current_chip %= chip_rate;
-
-  /* L2CL code phase has been adjusted by 1,
-   * due to L2CM code chip occupying first slot. */
-  if (CODE_GPS_L2CL == mesid.code) {
-    current_chip += 1;
-  }
-
-  s32 offset = current_chip;
-  /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
-   * and thus next integration period should be longer than nominally. */
-  if (current_chip > chip_rate / 2) {
-    offset = current_chip - chip_rate;
-  }
-
-  /* No adjustment for signals that have no lock.
-   * These are mainly the unconfirmed signals. */
-  if (!plock) {
-    offset = 0;
-  }
-
-  /* Log warning if an offset is applied (and we have a pessimistic lock). */
-  if (0 != offset) {
-    log_warn_mesid(mesid, "Applying code phase offset: %"PRIi32"", offset);
-  }
-
-  return ms * chip_rate - offset;
-}
-
-/**
  * (Re-)initialize lock detector parameters.
  * \param[in,out] data        Generic tracker data.
  * \param[in]     next_params Tracking configuration.
@@ -152,7 +97,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   data->tracking_mode = next_params->loop_params.mode;
   data->use_alias_detection = next_params->use_alias_detection;
 
-  data->has_next_params = false;
+  data->profile_change_required = false;
 
   /* Set the step number for mode switch. Current step is one step behind bit
    * edge */
@@ -279,6 +224,7 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
                      tp_tracker_data_t *data,
                      const tp_tracker_config_t *config)
 {
+  (void)config;
   tp_config_t init_profile;
 
   memset(data, 0, sizeof(*data));
@@ -341,14 +287,7 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
 }
 
 /**
- * Computes number of chips for the coming integration period.
- *
- * The method computes forthcoming interval duration and flags and uses them
- * to compute the number of chips in the interval.
- *
- * The method checks if the tracking mode is persisted. In this case the current
- * tracking mode parameters are used. Otherwise, the new tracking parameters
- * are obtained and used for computation.
+ * Computes number of chips for the coming correlation period.
  *
  * \param[in]     channel_info Tracking channel information.
  * \param[in,out] data         Generic tracker data.
@@ -356,23 +295,34 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
  *
  * \return Computed number of chips.
  */
-u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      tp_tracker_data_t *data,
-                                      double code_phase)
+static u32 compute_corr_length_chips(const tracker_channel_info_t *channel_info,
+                                     tp_tracker_data_t *data)
 {
-  bool plock = data->lock_detect.outp;
-  u32 result_ms = 0;
-  if (data->has_next_params) {
-    tp_config_t next_params;
-    tp_profile_get_config(channel_info->mesid, &data->profile,
-                          &next_params, false);
-    result_ms = tp_get_current_cycle_duration(next_params.loop_params.mode,
-                                              0);
+  u8 cycle_no;
+  tp_tm_e tracking_mode;
+
+  if (data->profile_change_required) {
+    tp_config_t next_config;
+    /* we are about to change the tracking profile once the current integration
+       cycle is over. So let's get the next integration length from the new
+       tracking profile without swithing to it yet */
+    tp_profile_get_next_config(channel_info->mesid, &data->profile, &next_config);
+    tracking_mode = next_config.loop_params.mode;
+    cycle_no = 0;
   } else {
-    result_ms = tp_get_rollover_cycle_duration(data->tracking_mode,
-                                               data->cycle_no);
+    tracking_mode = data->tracking_mode;
+    /* The current 'cycle_no' is the one, which has just finished.
+       'cycle_no + 1' is the one, which NAP is running at the moment.
+       Here we compute the duration of the cycle after the current one. */
+    u8 cycle_count = tp_get_cycle_count(tracking_mode);
+    cycle_no = (data->cycle_no + 2) % cycle_count;
   }
-  return tp_convert_ms_to_chips(channel_info->mesid, result_ms, code_phase, plock);
+
+  u16 duration_us = tp_get_cycle_duration_us(tracking_mode, cycle_no);
+  double duration_s = US2S((double)duration_us);
+  u32 length_chips = (u32)(duration_s * code_to_chip_rate(channel_info->mesid.code) + 0.5);
+
+  return length_chips;
 }
 
 /**
@@ -388,34 +338,27 @@ u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info
  *
  * \return None
  */
-static void mode_change_init(const tracker_channel_info_t *channel_info,
-                             tp_tracker_data_t *data)
+static void profile_change_init(const tracker_channel_info_t *channel_info,
+                                tp_tracker_data_t *data)
 {
-  if (data->has_next_params || !data->confirmed) {
-    /* If the mode switch has been initiated - do nothing */
+  if (data->profile_change_required || !data->confirmed) {
     return;
   }
 
-  /* Compute time of the currently integrated period */
-  u8 next_cycle = tp_next_cycle_counter(data->tracking_mode,
-                                        data->cycle_no);
-  u32 next_cycle_flags = tp_get_cycle_flags(data->tracking_mode,
-                                            next_cycle);
+  u8 next_cycle = tp_next_cycle_counter(data->tracking_mode, data->cycle_no);
+  u32 next_cycle_flags = tp_get_cycle_flags(data->tracking_mode, next_cycle);
 
-  if (0 != (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
-    /* The switch is possible only when bit sync counter is updated: get the
-     * bit update interval in ms. */
-    u8 bit_ms = tp_get_bit_ms(data->tracking_mode);
-
-    if (tracker_next_bit_aligned(channel_info->context, bit_ms)) {
-      /* When the bit sync is available and the next integration interval is the
-       * last one in the bit, check if the profile switch is required. */
-      if (tp_profile_has_new_profile(channel_info->mesid, &data->profile)) {
-        /* Initiate profile change */
-        data->has_next_params = true;
-      }
-    }
+  if (0 == (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+    return;
   }
+
+  u8 bit_ms = tp_get_bit_ms(data->tracking_mode);
+  if (!tracker_next_bit_aligned(channel_info->context, bit_ms)) {
+    return;
+  }
+
+  data->profile_change_required =
+    tp_profile_change_required(channel_info->mesid, &data->profile);
 }
 
 /**
@@ -429,30 +372,26 @@ static void mode_change_init(const tracker_channel_info_t *channel_info,
  *
  * \return None
  */
-static void mode_change_complete(const tracker_channel_info_t *channel_info,
-                                 tracker_common_data_t *common_data,
-                                 tp_tracker_data_t *data)
+static void profile_change_complete(const tracker_channel_info_t *channel_info,
+                                    tracker_common_data_t *common_data,
+                                    tp_tracker_data_t *data)
 {
-  if (data->has_next_params) {
-    tp_config_t next_params;
-
-    tp_profile_get_config(channel_info->mesid, &data->profile,
-                          &next_params, true);
-
-    /* If there is a stage transition in progress, update parameters for the
-     * next iteration. */
-    log_debug_mesid(channel_info->mesid,
-                    "Reconfiguring tracking profile: new mode=%s",
-                    tp_get_mode_str(next_params.loop_params.mode));
-
-    tp_tracker_update_parameters(channel_info,
-                                 common_data,
-                                 data,
-                                 &next_params,
-                                 false);
-    /* Indicate that a mode change has occurred. */
-    common_data->mode_change_count = common_data->update_count;
+  if (!data->profile_change_required) {
+    return;
   }
+
+  tp_config_t next_config;
+
+  tp_profile_get_next_config(channel_info->mesid, &data->profile, &next_config);
+  tp_profile_change(channel_info->mesid, &data->profile);
+
+  tp_tracker_update_parameters(channel_info,
+                               common_data,
+                               data,
+                               &next_config,
+                               /* init = */ false);
+  /* Indicate that a mode change has occurred. */
+  common_data->mode_change_count = common_data->update_count;
 }
 
 /**
@@ -616,9 +555,8 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   u32    sample_count;     /**< Sample count from FPGA */
   double code_phase_prompt; /**< Code phase from FPGA */
   double carrier_phase;    /**< Carrier phase from FPGA */
-  u8     int_ms = 0;       /**< Current cycle duration in ms */
+  u16    int_us = 0;       /**< Current cycle duration [us] */
 
-  /* Read correlations. */
   tracker_correlations_read(channel_info->context, cs_now.epl,
                             &sample_count,
                             &code_phase_prompt,
@@ -626,9 +564,16 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
 
   tp_update_correlators(cycle_flags, &cs_now, &data->corrs);
 
-  /* Current cycle duration */
-  int_ms = tp_get_current_cycle_duration(data->tracking_mode,
-                                         data->cycle_no);
+  int_us = tp_get_cycle_duration_us(data->tracking_mode, data->cycle_no);
+
+  common_data->corr_time_us += int_us;
+  assert(common_data->corr_time_us >= int_us);
+  if (common_data->corr_time_us < MS2US(1)) {
+    return;
+  }
+  assert(US_IS_FULL_MS(common_data->corr_time_us));
+  u16 int_ms = US2MS(common_data->corr_time_us);
+  common_data->corr_time_us = 0;
 
   u64 now = timing_getms();
   if (common_data->updated_once) {
@@ -913,7 +858,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
                                 data->corrs.corr_epl.epl);
     }
 
-    if (data->has_next_params) {
+    if (data->profile_change_required) {
       /* Transitional state: when the next interval has a different integration
        * period, the controller will give wrong correction. Due to that the
        * input parameters are scaled to stabilize tracker.
@@ -1040,7 +985,7 @@ void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
 }
 
 /**
- * Mode switching control.
+ * Tracking profile switching control.
  *
  * \param[in]     channel_info Tracking channel information.
  * \param[in,out] common_data  Common tracking channel data.
@@ -1048,12 +993,12 @@ void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
  *
  * \return None
  */
-void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            tp_tracker_data_t *data)
+void tp_tracker_update_profile(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               tp_tracker_data_t *data)
 {
-  mode_change_complete(channel_info, common_data, data);
-  mode_change_init(channel_info, data);
+  profile_change_complete(channel_info, common_data, data);
+  profile_change_init(channel_info, data);
 }
 
 /**
@@ -1086,14 +1031,11 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
   tp_tracker_update_pll_dll(channel_info, common_data, data, cflags);
   tp_tracker_update_alias(channel_info, common_data, data, cflags);
   tp_tracker_filter_doppler(channel_info, common_data, data, cflags, config);
-  tp_tracker_update_mode(channel_info, common_data, data);
-  u32 chips_to_correlate = tp_tracker_compute_rollover_count(channel_info,
-                                                             data,
-                                                             common_data->code_phase_prompt);
+  tp_tracker_update_profile(channel_info, common_data, data);
 
   tracker_retune(channel_info->context, common_data->carrier_freq,
                  common_data->code_phase_rate,
-                 chips_to_correlate);
+                 compute_corr_length_chips(channel_info, data));
 
   tp_tracker_update_cycle_counter(data);
   tp_tracker_update_common_flags(common_data, data);

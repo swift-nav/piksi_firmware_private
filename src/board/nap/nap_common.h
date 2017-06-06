@@ -46,7 +46,7 @@ extern u8 nap_dna[NAP_DNA_LENGTH];
 /** The maximum expected correlation length for sanity checks [ms] */
 #define NAP_CORR_LENGTH_MAX_MS 100
 /** The minimum expected correlation length for sanity checks [ms] */
-#define NAP_CORR_LENGTH_MIN_MS 0.5
+#define NAP_CORR_LENGTH_MIN_MS 0.1
 
 /** Convert milliseconds to NAP samples */
 #define NAP_MS_2_SAMPLES(ms) (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_Hz)
