@@ -409,17 +409,18 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
                                    NULL, NDB_USE_NV_EPHEMERIS);
 
+  double ndb_eph_age;
+  constellation_t constellation = code_to_constellation(sid.code);
+  if (CONSTELLATION_GPS == constellation) {
+    ndb_eph_age = NDB_NV_GPS_EPHEMERIS_AGE_SECS;
+  } else if (CONSTELLATION_GLO == constellation) {
+    ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
+  } else {
+    assert(!"Constellation is not supported");
+  }
+
   if (NDB_ERR_NONE == res) {
     /* If NDB read was successful, check that data has not aged out */
-    double ndb_eph_age;
-    constellation_t constellation = code_to_constellation(sid.code);
-    if (CONSTELLATION_GPS == constellation) {
-      ndb_eph_age = NDB_NV_GPS_EPHEMERIS_AGE_SECS;
-    } else if (CONSTELLATION_GLO == constellation) {
-      ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
-    } else {
-      assert(!"Constellation is not supported");
-    }
     res = ndb_check_age(&e->toe, ndb_eph_age);
   }
 
@@ -428,9 +429,13 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
     chMtxLock(&cand_list_access);
     s16 cand_idx = ndb_ephe_find_candidate(sid);
     if (cand_idx >= 0) {
-      /* Return unconfirmed candidate data with an appropriate error code */
       *e = ephe_candidates[cand_idx].ephe;
-      res = NDB_ERR_UNCONFIRMED_DATA;
+      res = ndb_check_age(&e->toe, ndb_eph_age);
+      if (NDB_ERR_AGED_DATA != res) {
+        /* Found unconfirmed candidate that is recent enough, return it
+         * with an appropriate error code */
+        res = NDB_ERR_UNCONFIRMED_DATA;
+      }
     }
     chMtxUnlock(&cand_list_access);
   }
