@@ -974,6 +974,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
  * Check if an unexpected measurement is done and if so, flags the
  * channel for disposal
  *
+ * \param[in]     channel_info Tracking channel information.
  * \param[in,out] common_data  Common tracking channel data.
  *
  * \return None

@@ -184,7 +184,6 @@ static void tracker_glo_l2ca_update(const tracker_channel_info_t *channel_info,
   tp_tracker_data_t *data = &glo_l2ca_data->data;
   u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
                                         &glo_l2ca_config);
-
   (void)tracker_flags;
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
