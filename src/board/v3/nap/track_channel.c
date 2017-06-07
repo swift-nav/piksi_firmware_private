@@ -70,6 +70,13 @@ static struct nap_ch_state {
   u32 length[2];               /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];            /**< Carrier phase increment */
   bool reckon_init_done;       /**< First carrier phase was read from NAP */
+  s64 iCarrPhase;
+  u64 uCodeSynch;
+  u32 uLength[2];
+  s32 iCarrPinc[2];
+  u32 uCodePinc[2];
+  u32 uIrqCount;
+  u32 chip_count;
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
 
 /** Compute the correlation length in the units of sampling frequency samples.
@@ -264,6 +271,9 @@ void nap_track_init(u8 channel,
   s->code_phase_rate[0] = code_phase_rate;
   s->code_phase_rate[1] = code_phase_rate;
 
+  /* save this for later */
+  s->chip_count = code_to_chip_count(mesid.code);
+
   nap_track_update(channel,
                    doppler_freq_hz,
                    code_phase_rate,
@@ -381,6 +391,9 @@ void nap_track_init(u8 channel,
   /* The first and second integrations are always done with same carr_pinc */
   s->carr_pinc[1] = s->carr_pinc[0];
 
+  /* init tracking cycle count */
+  (s->uIrqCount) = 0;
+
   s->init = false;
 }
 
@@ -406,11 +419,15 @@ void nap_track_update(u8 channel,
   u32 cp_rate_units = round(code_phase_rate *
       NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
 
-  t->CODE_PINC = cp_rate_units;
+  s->uCodePinc[1] = s->uCodePinc[0];
+  t->CODE_PINC = s->uCodePinc[0] = cp_rate_units;
   u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
                                    cp_rate_units);
   s->length[1] = s->length[0];
   t->LENGTH = s->length[0] = length;
+
+  s->uLength[1] = s->uLength[0];
+  t->LENGTH = s->uLength[0] = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_error_mesid(s->mesid, "Wrong NAP correlation length: "
@@ -435,7 +452,11 @@ void nap_track_update(u8 channel,
      in a 32-bit NCO, but that's OK as long as we carry this error with us
      in the measurement */
   t->CARR_PINC = carr_pinc;
+  s->iCarrPinc[1] =s->iCarrPinc[0];
+  t->CARR_PINC = s->iCarrPinc[0] = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
 }
+
+#define TWO_POW_M32 (2.3283064365387e-010)
 
 void nap_track_read_results(u8 channel,
                             u32* count_snapshot,
@@ -478,6 +499,26 @@ void nap_track_read_results(u8 channel,
   /* VL correlator */
   corrs[4].I = (s16)(corr[4] & 0xFFFF);
   corrs[4].Q = (s16)((corr[4] >> 16) & 0xFFFF);
+
+  if ((s->uIrqCount)<2) {
+    s->uCodeSynch = nap_code_phase;
+    s->iCarrPhase = nap_carr_phase;
+  } else {
+    s->uCodeSynch += (u64)(s->uCodePinc[1]) * (u64)(s->uLength[1]);
+    s->uCodeSynch  = ((((s->uCodeSynch)>>32)%(s->chip_count))<<32) | ((s->uCodeSynch)&0xFFFFFFFF);
+    s->iCarrPhase += (s64)(s->iCarrPinc[1]) * (u64)(s->uLength[1]);
+    if (nap_code_phase != s->uCodeSynch) {
+      log_info("G%02d L%d  cycle%12d CODE  NAP:%16.6lf  FW:%16.6lf",
+        s->mesid.sat, s->mesid.code, (s->uIrqCount),
+        TWO_POW_M32 * nap_code_phase, TWO_POW_M32 * s->uCodeSynch);
+    }
+    if (nap_carr_phase != s->iCarrPhase) {
+      log_info("G%02d L%d  cycle%12d CARR  NAP:%+16.6lf  FW:%+16.6lf",
+        s->mesid.sat, s->mesid.code, (s->uIrqCount),
+        TWO_POW_M32 * nap_carr_phase, TWO_POW_M32 * s->iCarrPhase);
+    }
+  }
+  (s->uIrqCount)++;
 
   *count_snapshot = t->TIMING_SNAPSHOT;
 

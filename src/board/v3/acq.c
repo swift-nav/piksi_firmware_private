@@ -360,6 +360,7 @@ u8* grab_samples(u32 *length, u32 *sample_count)
   static FFT_BUFFER(samples, u32, FFT_LEN_MAX);
   *length = FFT_LEN_MAX * sizeof(u32);
   if (raw_samples((u8*)samples, FFT_LEN_MAX, sample_count)) {
+    log_info("grabbed!");
     return (u8*)samples;
   }
   return NULL;
