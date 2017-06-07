@@ -29,8 +29,6 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
                                  u32* fit_interval, float* ura) NDB_WEAK;
 ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid);
 void ndb_ephemeris_sbp_update(void);
-void ndb_ephe_release_candidate(s16 cand_index);
-s16 ndb_ephe_find_candidate(gnss_signal_t sid);
 
 #ifdef __cplusplus
 }

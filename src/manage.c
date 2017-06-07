@@ -865,22 +865,6 @@ static void drop_channel(u8 channel_id,
   /* Finally disable the decoder and tracking channels */
   decoder_channel_disable(channel_id);
   tracker_channel_disable(channel_id);
-
-  /* release corresponding ephemeris candidate slot, this is needed to avoid
-   * situation when no available slots left for ephemeris candidate,
-   * which is may take place when RF off/on happens */
-  u16 sat;
-  if (is_glo_sid(info->mesid) &&
-      info->glo_orbit_slot == GLO_ORBIT_SLOT_UNKNOWN) {
-    /* no ephemeris was stored so nothing to release */
-    return;
-  } else if (is_glo_sid(info->mesid)) {
-    sat = info->glo_orbit_slot;
-  } else {
-    sat = info->mesid.sat;
-  }
-  gnss_signal_t sid = construct_sid(info->mesid.code, sat);
-  ndb_ephe_release_candidate(ndb_ephe_find_candidate(sid));
 }
 
 /** Disable any tracking channel that has errored, too weak, lost phase lock
