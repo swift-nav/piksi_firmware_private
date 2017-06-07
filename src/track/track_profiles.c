@@ -807,6 +807,9 @@ static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile)
  */
 static void update_acceleration_status(tp_profile_t *state)
 {
+  if (!state->plock) {
+    return;
+  }
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur_index];
   float acc_threshold_g = cur_profile->acc_threshold;
   float acceleration_g = fabsf(state->filt_accel);
@@ -875,10 +878,6 @@ static bool profile_switch_requested(const me_gnss_signal_t mesid,
   if (index == state->cur_index) {
     return false;
   }
-
-  /* if (index == IDX_VERY_HIGH_CN0) { */
-  /*   return false; */
-  /* } */
 
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
