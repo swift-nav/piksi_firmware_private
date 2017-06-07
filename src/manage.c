@@ -173,11 +173,6 @@ static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   (void)sender_id; (void)len; (void)context; (void)msg;
 }
 
-static bool tracking_startup_fifo_mesid_present(
-                                            const tracking_startup_fifo_t *fifo,
-                                            const me_gnss_signal_t mesid);
-
-
 static sbp_msg_callbacks_node_t mask_sat_callback_node;
 static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
@@ -642,14 +637,6 @@ void acq_result_send(const me_gnss_signal_t mesid, float cn0, float cp, float cf
                (u8 *)&acq_result_msg);
 }
 
-static void drop_channel(u8 channel_id,
-                         ch_drop_reason_t reason,
-                         const tracking_channel_info_t      *info,
-                         const tracking_channel_time_info_t *time_info,
-                         const tracking_channel_freq_info_t *freq_info);
-
-static bool leap_second_is_imminent(void);
-
 /** Find an available tracking channel to start tracking an acquired PRN with.
  *
  * \return Index of first unused tracking channel.
@@ -883,7 +870,7 @@ static void drop_channel(u8 channel_id,
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-static bool leap_second_is_imminent()
+static bool leap_second_is_imminent(void)
 {
   /* Check if GPS time is known.
    * If GPS time is not known,
