@@ -265,40 +265,44 @@ bool code_supported(enum code code)
   return true;
 }
 
-/** Return the minimum Doppler value for a code_t induced by TCXO error.
+/** Return the minimum Doppler value for a code induced by TCXO error.
  *
- * \param code  code_t to use.
- * \return doppler_hz Signal Doppler [Hz]
+ * \param code The code to use.
  * \return Minimum Doppler value [Hz]
  */
 float code_to_tcxo_doppler_min(code_t code)
 {
-  float doppler;
-
   assert(code_valid(code));
-  assert((CODE_GPS_L1CA == code) ||
-         (CODE_GLO_L1CA == code));
 
-  doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
+  float doppler;
+  if (CODE_GPS_L1CA == code) {
+    doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
+  } else if (CODE_GLO_L1CA == code) {
+    doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
+  } else {
+    assert(!"Unsupported code");
+  }
 
   return doppler;
 }
 
-/** Return the maximum Doppler value for a code_t induced by TCXO error.
+/** Return the maximum Doppler value for a code induced by TCXO error.
  *
- * \param code  code_t to use.
- * \return doppler_hz Signal Doppler [Hz]
+ * \param code The code to use.
  * \return Maximum Doppler value [Hz]
  */
 float code_to_tcxo_doppler_max(code_t code)
 {
-  float doppler;
-
   assert(code_valid(code));
-  assert((CODE_GPS_L1CA == code) ||
-         (CODE_GLO_L1CA == code));
 
-  doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
+  float doppler;
+  if (CODE_GPS_L1CA == code) {
+    doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
+  } else if (CODE_GLO_L1CA == code) {
+    doppler = TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
+  } else {
+    assert(!"Unsupported code");
+  }
 
   return doppler;
 }
