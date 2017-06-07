@@ -1790,9 +1790,9 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_DECODED)) {
       result |= TRACKING_CHANNEL_FLAG_TOW_DECODED;
     }
-    /* Tracking status: Doppler measurement out of bounds */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_DOPPLER_OUTLIER)) {
-      result |= TRACKING_CHANNEL_FLAG_DOPPLER_OUTLIER;
+    /* Tracking status: measurement out of bounds */
+    if (0 != (common_data->flags & TRACK_CMN_FLAG_OUTLIER)) {
+      result |= TRACKING_CHANNEL_FLAG_OUTLIER;
     }
     /* Tracking status: cross-correlation status */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_CONFIRMED)) {

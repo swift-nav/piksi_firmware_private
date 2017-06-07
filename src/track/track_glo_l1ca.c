@@ -261,12 +261,6 @@ static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
   u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
                                         &glo_l1ca_config);
 
-  /* remove channels with a large Doppler outlier */
-  if ((fabsf(common_data->carrier_freq) > 9e3)) {
-    (common_data->flags) |= TRACK_CMN_FLAG_DOPPLER_OUTLIER;
-    return;
-  }
-
   /* GLO L1 C/A-specific ToW manipulation */
   update_tow_glo_l1ca(channel_info, common_data, data, tracker_flags);
 

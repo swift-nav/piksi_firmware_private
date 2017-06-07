@@ -975,7 +975,7 @@ static void manage_track()
     }
 
     /* Do we have a large measurement outlier? */
-    if (info.flags & TRACKING_CHANNEL_FLAG_DOPPLER_OUTLIER) {
+    if (info.flags & TRACKING_CHANNEL_FLAG_OUTLIER) {
       drop_channel(i, CH_DROP_REASON_OUTLIER, &info, &time_info, &freq_info);
       continue;
     }

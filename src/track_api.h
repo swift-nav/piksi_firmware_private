@@ -69,7 +69,7 @@ typedef struct {
 /** Tracker flag: tracker has decoded health information */
 #define TRACK_CMN_FLAG_HEALTH_DECODED (1 << 14)
 /** Tracker flag: Doppler outlier */
-#define TRACK_CMN_FLAG_DOPPLER_OUTLIER (1 << 15)
+#define TRACK_CMN_FLAG_OUTLIER        (1 << 15)
 
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \

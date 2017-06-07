@@ -21,6 +21,7 @@
 #include "track_profile_utils.h"
 #include "track_sid_db.h"
 #include "track_sbp.h"
+#include "signal.h"
 #include "timing.h"
 
 #include <math.h>
@@ -966,6 +967,31 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
   }
 }
 
+
+/**
+ * Drops channels with measurement outliers.
+ *
+ * Check if an unexpected measurement is done and if so, flags the
+ * channel for disposal
+ *
+ * \param[in,out] common_data  Common tracking channel data.
+ *
+ * \return None
+ */
+static void tp_tracker_flag_outliers(const tracker_channel_info_t *channel_info,
+                                     tracker_common_data_t *common_data) {
+  float fMaxDoppler =
+    code_to_sv_doppler_max(channel_info->mesid.code) +
+    code_to_tcxo_doppler_max(channel_info->mesid.code);
+
+  /* remove channels with a large positive Doppler outlier */
+  if ( fabsf(common_data->carrier_freq) >  fMaxDoppler ) {
+    (common_data->flags) |= TRACK_CMN_FLAG_OUTLIER;
+    return;
+  }
+}
+
+
 /**
  * Runs false lock detection logic for PLL.
  *
@@ -1084,6 +1110,7 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
   tp_tracker_update_locks(channel_info, common_data, data, cflags);
   tp_tracker_update_fll(data, cflags);
   tp_tracker_update_pll_dll(channel_info, common_data, data, cflags);
+  tp_tracker_flag_outliers(channel_info, common_data);
   tp_tracker_update_alias(channel_info, common_data, data, cflags);
   tp_tracker_filter_doppler(channel_info, common_data, data, cflags, config);
   tp_tracker_update_mode(channel_info, common_data, data);
