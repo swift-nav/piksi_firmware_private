@@ -624,7 +624,8 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 
     /* try to compute elevation from any valid ephemeris */
     if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
-        && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, true) >= 0) {
+        && ephemeris_valid(&ephemeris, &t)
+        && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, false) >= 0) {
       sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
       log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
 
