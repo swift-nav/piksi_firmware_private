@@ -26,13 +26,13 @@ extern "C" {
 #endif
 
 
-int InitIntFFTr2(intFFTr2_t *pIntFFT, int _N);
+int InitIntFFTr2(intFFTr2_t *_pIntFFT, int _N);
 
-void FreeIntFFTr2(intFFTr2_t *pIntFFT);
+void FreeIntFFTr2(intFFTr2_t *_pIntFFT);
 
-void DoFwdIntFFTr2(intFFTr2_t *pIntFFT, sc16_t *_x, uint32_t _uScale, int _iShuf);
+void DoFwdIntFFTr2(intFFTr2_t *_pIntFFT, sc16_t *_x, uint32_t _uScale, int _iShuf);
 
-void DoBwdIntFFTr2(intFFTr2_t *pIntFFT, sc16_t *_x, uint32_t _uScale, int _iShuf);
+void DoBwdIntFFTr2(intFFTr2_t *_pIntFFT, sc16_t *_x, uint32_t _uScale, int _iShuf);
 
 
 #ifdef __cplusplus

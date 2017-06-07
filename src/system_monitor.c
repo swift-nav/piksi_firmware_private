@@ -144,7 +144,7 @@ void sleep_until(systime_t *previous, systime_t period)
   *previous = future;
 }
 
-#define SYSTEM_MONONITOR_THREAD_PIORITY (LOWPRIO+10)
+#define SYSTEM_MONITOR_THREAD_PIORITY (LOWPRIO+10)
 
 static WORKING_AREA_CCM(wa_system_monitor_thread, 2000);
 static void system_monitor_thread(void *arg)
@@ -275,7 +275,7 @@ void system_monitor_setup(void)
   chThdCreateStatic(
       wa_system_monitor_thread,
       sizeof(wa_system_monitor_thread),
-      SYSTEM_MONONITOR_THREAD_PIORITY,
+      SYSTEM_MONITOR_THREAD_PIORITY,
       system_monitor_thread, NULL
   );
   chThdCreateStatic(

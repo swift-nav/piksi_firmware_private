@@ -60,17 +60,17 @@
 #define SOFTMACQ_GALE1C_MODSCHEMA         BOC_1_1
 #define SOFTMACQ_GALE1C_SECCODECHIPS      (25)
 
-//~ #define GAL_INAV_SYNCLEN              (10)
-//~ #define GAL_INAV_PAGEPART_SYMBLEN     (240)
-//~ #define GAL_INAV_PAGEPART_TOTLEN      (GAL_INAV_SYNCLEN+GAL_INAV_PAGEPART_SYMBLEN)  /* 250 */
-//~ #define GAL_INAV_PAGEPART_PAYLOADBITS (114)
-//~ #define GAL_INAV_PAGEPART_TAILBITS    (6)
-//~ #define GAL_INAV_PAGEPART_TOTBITS     (GAL_INAV_PAGEPART_PAYLOADBITS+GAL_INAV_PAGEPART_TAILBITS)  /* 120 */
-//~ #define GAL_INAV_PAGE_EVE_SIZE        (112)
-//~ #define GAL_INAV_PAGE_ODD_SIZE        (16)
-//~ #define GAL_INAV_PAGE_SIZE            (GAL_INAV_PAGE_EVE_SIZE+GAL_INAV_PAGE_ODD_SIZE)
-//~ #define GAL_INAV_DEINT_COL            (8)
-//~ #define GAL_INAV_DEINT_ROW            (30)
+#define GAL_INAV_SYNCLEN              (10)
+#define GAL_INAV_PAGEPART_SYMBLEN     (240)
+#define GAL_INAV_PAGEPART_TOTLEN      (GAL_INAV_SYNCLEN+GAL_INAV_PAGEPART_SYMBLEN)  /* 250 */
+#define GAL_INAV_PAGEPART_PAYLOADBITS (114)
+#define GAL_INAV_PAGEPART_TAILBITS    (6)
+#define GAL_INAV_PAGEPART_TOTBITS     (GAL_INAV_PAGEPART_PAYLOADBITS+GAL_INAV_PAGEPART_TAILBITS)  /* 120 */
+#define GAL_INAV_PAGE_EVE_SIZE        (112)
+#define GAL_INAV_PAGE_ODD_SIZE        (16)
+#define GAL_INAV_PAGE_SIZE            (GAL_INAV_PAGE_EVE_SIZE+GAL_INAV_PAGE_ODD_SIZE)
+#define GAL_INAV_DEINT_COL            (8)
+#define GAL_INAV_DEINT_ROW            (30)
 
 #define PI (3.14159265358979)
 #define TWOPI    (2.0 * PI)
@@ -100,17 +100,17 @@
 #define POW_TWO_P16 (               65536.0 )
 #define POW_TWO_P32 (          4294967296.0 )
 
-//~ #define SEC_PER_MIN     (60)
-//~ #define SEC_PER_HOUR    (SEC_PER_MIN * 60)
-//~ #define SEC_PER_DAY     (SEC_PER_HOUR * 24)
-//~ #define SEC_PER_WEEK    (SEC_PER_DAY * 7)
-//~ #define UTC_SEC_AT_GPS  (315964800)        /* More or less twenty years */
-//~ #define JAN61980        (44244)
-//~ #define JAN11901        (15385)
+#define SEC_PER_MIN     (60)
+#define SEC_PER_HOUR    (SEC_PER_MIN * 60)
+#define SEC_PER_DAY     (SEC_PER_HOUR * 24)
+#define SEC_PER_WEEK    (SEC_PER_DAY * 7)
+#define UTC_SEC_AT_GPS  (315964800)        /* More or less twenty years */
+#define JAN61980        (44244)
+#define JAN11901        (15385)
 
-//~ #define RAD2DEG       (180.0 / PI)
-//~ #define DEG2RAD       (PI / 180.0)
-//~ #define LIGHT_SPEED   (2.99792458e+08)
+#define RAD2DEG       (180.0 / PI)
+#define DEG2RAD       (PI / 180.0)
+#define LIGHT_SPEED   (2.99792458e+08)
 
 #define GPS_PRN_MIN (0)
 #ifdef ENAGPS
@@ -175,8 +175,6 @@ typedef struct _sFauParams {
   int32_t iNcohAcc;         /* coherent integration time */
   int8_t  pSecondary[128];  /* hopefully no secondary codes longer than 128 bits? */
   int32_t iSecondaryLen;    /* secondary code length (assuming 1 secondary chip is 1 primary code long!) */
-  //~ char pSatIdentifier[16];
-  //~ float fDoppler;
 } sFauParams_t;
 
 
