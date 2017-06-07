@@ -17,6 +17,7 @@
 
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
+#include "shm.h"
 
 /** \addtogroup track_api
  * \{ */
@@ -143,8 +144,7 @@ typedef struct {
                                     timestamp [ms] */
   bool updated_once;           /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  u8 signal_unhealthy;         /**< GLO SV health info:
-                                    0 - healthy, 1 - unhealthy */
+  glo_health_t health;         /**< GLO SV health info */
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
@@ -227,7 +227,7 @@ void tracker_ambiguity_unknown(tracker_context_t *context);
 bool tracker_ambiguity_resolved(tracker_context_t *context);
 void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
 u16 tracker_glo_orbit_slot_get(tracker_context_t *context);
-u8 tracker_glo_sv_health_get(tracker_context_t *context);
+glo_health_t tracker_glo_sv_health_get(tracker_context_t *context);
 void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
 bool tracker_check_prn_fail_flag(tracker_context_t *context);
 bool tracker_check_xcorr_flag(tracker_context_t *context);

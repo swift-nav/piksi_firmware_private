@@ -179,7 +179,7 @@ s32 tracker_tow_update(tracker_context_t *context,
       log_warn_mesid(channel_info->mesid, "Unexpected GLO orbit slot change");
     }
     internal_data->glo_orbit_slot = to_tracker.glo_orbit_slot;
-    internal_data->health = to_tracker.health;
+    internal_data->health = to_tracker.glo_health;
 
     *decoded_tow = (TOW_ms >= 0);
     *TOW_residual_ns = to_tracker.TOW_residual_ns;
@@ -407,11 +407,12 @@ u16 tracker_glo_orbit_slot_get(tracker_context_t *context)
  *
  * \return GLO health information
  */
-u8 tracker_glo_sv_health_get(tracker_context_t *context)
+glo_health_t tracker_glo_sv_health_get(tracker_context_t *context)
 {
   const tracker_channel_info_t *channel_info;
   tracker_internal_data_t *internal_data;
   tracker_internal_context_resolve(context, &channel_info, &internal_data);
+  assert(is_glo_sid(channel_info->mesid));
 
   return internal_data->health;
 }

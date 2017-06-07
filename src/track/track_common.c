@@ -677,12 +677,11 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
     /* GLO health data is also decoded along with TOW */
     if (is_glo_sid(channel_info->mesid)) {
       common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
-      common_data->signal_unhealthy =
-          tracker_glo_sv_health_get(channel_info->context);
+      common_data->health = tracker_glo_sv_health_get(channel_info->context);
       log_debug_mesid(channel_info->mesid,
                       "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
                       common_data->update_count,
-                      common_data->signal_unhealthy);
+                      common_data->health);
     }
   }
 

@@ -1082,7 +1082,7 @@ void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid)
   }
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
-  common_data->signal_unhealthy = 1;
+  common_data->health = GLO_SV_UNHEALTHY;
 }
 
 /**
@@ -1216,6 +1216,7 @@ void tracking_channel_data_sync_init(nav_data_sync_t *data_sync)
 {
   memset(data_sync, 0, sizeof(*data_sync));
   data_sync->glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+  data_sync->glo_health = GLO_SV_UNHEALTHY;
 }
 
 /** Propagate decoded time of week, bit polarity and optional glo orbit slot
@@ -1652,7 +1653,7 @@ static void common_data_init(tracker_common_data_t *common_data,
   common_data->cp_sync.counter = 0;
   common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
   common_data->cp_sync.synced = false;
-  common_data->signal_unhealthy = 0;
+  common_data->health = GLO_SV_HEALTHY;
 }
 
 /** Lock a tracker channel for exclusive access.
@@ -1808,7 +1809,7 @@ static tracking_channel_flags_t tracking_channel_get_flags(
     /* Tracking status: GLO healthy status */
     if (0 != (common_data->flags & TRACK_CMN_FLAG_HEALTH_DECODED)) {
       result |= TRACKING_CHANNEL_FLAG_HEALTH_DECODED;
-      if (!common_data->signal_unhealthy) {
+      if (GLO_SV_HEALTHY == common_data->health) {
         result |= TRACKING_CHANNEL_FLAG_HEALTHY;
       }
     }
