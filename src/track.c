@@ -1052,7 +1052,7 @@ void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
   common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
-/** Drop unhealthy GLO satellite.
+/** Drop unhealthy GLO signal.
  *
  *  Both L1CA and L2CA decode the health information independently.
  *  In case one channel does not contain valid data,
