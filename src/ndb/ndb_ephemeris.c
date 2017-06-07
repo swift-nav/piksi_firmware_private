@@ -104,7 +104,7 @@ void ndb_ephemeris_init(void)
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
-static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
+s16 ndb_ephe_find_candidate(gnss_signal_t sid)
 {
   int i;
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
@@ -141,7 +141,7 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
       EPHE_CAND_LIST_LEN);
 }
 
-static void ndb_ephe_release_candidate(s16 cand_index)
+void ndb_ephe_release_candidate(s16 cand_index)
 {
   if ((cand_index < 0) || (cand_index >= EPHE_CAND_LIST_LEN)) {
     return;
