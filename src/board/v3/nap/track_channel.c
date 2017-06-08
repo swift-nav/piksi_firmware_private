@@ -57,7 +57,7 @@ typedef struct {
 } nap_spacing_t;
 
 /** Internal tracking channel state */
-static struct nap_ch_state {
+static struct s_nap_ch_state {
   bool init;                   /**< Initializing channel. */
   me_gnss_signal_t mesid;      /**< Channel ME sid */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
@@ -202,7 +202,7 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_GLO_L2CA));
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct s_nap_ch_state *s = &nap_ch_state[channel];
 
   memset(s, 0, sizeof(*s));
   s->fcn_freq_hz = mesid_to_carr_fcn_hz(mesid);
