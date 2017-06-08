@@ -278,10 +278,10 @@ static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
       tracker_bit_aligned(channel_info->context)) {
 
     /* Start GLO L2CA tracker if not running */
-    do_glo_l1ca_to_l2ca_handover(common_data->sample_count,
-                                 channel_info->mesid.sat,
-                                 common_data->code_phase_prompt,
-                                 common_data->carrier_freq,
-                                 common_data->cn0);
+    /* do_glo_l1ca_to_l2ca_handover(common_data->sample_count, */
+    /*                              channel_info->mesid.sat, */
+    /*                              common_data->code_phase_prompt, */
+    /*                              common_data->carrier_freq, */
+    /*                              common_data->cn0); */
   }
 }
