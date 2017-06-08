@@ -69,9 +69,14 @@
 #define TCXO_FREQ_OFFSET_MAX_PPM (TCXO_FREQ_STAB_PPM + 2.42)
 
 /* TCXO offset to Hz conversion factor.
-   With TCXO frequency set to 10MHz the IF is computed like this:
-   1575.42e6 - 10e6 * 159 = 14.58e6 [Hz] */
+   With TCXO frequency set to 10MHz the GPS L1 IF is computed like this:
+   GPS_L1_HZ - 10e6 * 159 = 1575.42e6 - 1590.0e6 = -14.58e6 [Hz] */
 #define GPS_L1_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
+
+/* TCXO offset to Hz conversion factor.
+   With TCXO frequency set to 10MHz the GLO L1 IF is computed like this:
+   GLO_L1_HZ - 10e6 * 159 = 1602.0e6 - 10e6 * 159 = 12.0e6 [Hz] */
+#define GLO_L1_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
