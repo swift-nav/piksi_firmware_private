@@ -164,6 +164,8 @@ typedef struct {
 /** Info associated with a tracker channel. */
 typedef struct {
   me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
+  u64 now_tk;                   /**< Current receiver HW time [ticks] */
+  u64 now_ms;                   /**< Current receiver HW time [ms] */
   u8 nap_channel;               /**< Associated NAP channel. */
   tracker_context_t *context;   /**< Current context for library functions. */
 } tracker_channel_info_t;

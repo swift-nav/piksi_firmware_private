@@ -233,7 +233,8 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
                                     channel_info->mesid.sat);
   track_sid_db_load_tow(sid, &tow_entry);
 
-  u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
+  u64 sample_time_tk = convert_sample_count_to_u64(common_data->sample_count,
+                                                   channel_info->now_tk);
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context)) {

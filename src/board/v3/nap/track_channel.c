@@ -484,9 +484,7 @@ void nap_track_read_results(u8 channel,
   corrs[3].I = (s16)(corr[0] & 0xFFFF);
   corrs[3].Q = (s16)((corr[0] >> 16) & 0xFFFF);
 
-  /* VL correlator */
-  corrs[4].I = (s16)(corr[4] & 0xFFFF);
-  corrs[4].Q = (s16)((corr[4] >> 16) & 0xFFFF);
+  /* VL correlator is not read as it is not used */
 
   *count_snapshot = t->TIMING_SNAPSHOT;
 

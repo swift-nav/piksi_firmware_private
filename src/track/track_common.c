@@ -575,9 +575,9 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
   u16 int_ms = US2MS(common_data->corr_time_us);
   common_data->corr_time_us = 0;
 
-  u64 now = timing_getms();
+  u64 now_ms = channel_info->now_ms;
   if (common_data->updated_once) {
-    u64 time_diff_ms = now - common_data->update_timestamp_ms;
+    u64 time_diff_ms = now_ms - common_data->update_timestamp_ms;
     if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
       log_warn_mesid(channel_info->mesid,
                      "Unexpected tracking channel update rate: %" PRIu64 " ms",
@@ -585,7 +585,7 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
     }
   }
   common_data->updated_once = true;
-  common_data->update_timestamp_ms = now;
+  common_data->update_timestamp_ms = now_ms;
 
   common_data->sample_count = sample_count;
   common_data->code_phase_prompt = code_phase_prompt;
@@ -679,20 +679,22 @@ void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
                            tp_tracker_data_t *data,
                            u32 cycle_flags)
 {
+  if (0 == (cycle_flags & TP_CFLAG_CN0_USE)) {
+    return;
+  }
+
   float cn0 = data->cn0_est.filter.yn;
   tp_cn0_params_t cn0_params;
   tp_profile_get_cn0_params(&data->profile, &cn0_params);
 
-  if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
-    /* Update C/N0 estimate */
-    cn0 = track_cn0_update(channel_info->mesid,
-                           cn0_params.est,
-                           &data->cn0_est,
-                           data->corrs.corr_cn0.prompt.I,
-                           data->corrs.corr_cn0.prompt.Q,
-                           data->corrs.corr_cn0.very_early.I,
-                           data->corrs.corr_cn0.very_early.Q);
-  }
+  /* Update C/N0 estimate */
+  cn0 = track_cn0_update(channel_info->mesid,
+                         cn0_params.est,
+                         &data->cn0_est,
+                         data->corrs.corr_cn0.prompt.I,
+                         data->corrs.corr_cn0.prompt.Q,
+                         data->corrs.corr_cn0.very_early.I,
+                         data->corrs.corr_cn0.very_early.Q);
 
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz ||
       (tp_tl_is_pll(&data->tl_state) && data->lock_detect.outp)) {

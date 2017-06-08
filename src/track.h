@@ -156,6 +156,7 @@ typedef struct {
   float                    xcorr_freq;   /**< Cross-correlation doppler [hz] */
   u16                      xcorr_count;  /**< Cross-correlation counter */
   bool                     xcorr_wl;     /**< Is signal xcorr whitelisted? */
+  u64                      now_tk;       /**< Current receiver HW time [ticks] */
 } tracking_channel_info_t;
 
 /**

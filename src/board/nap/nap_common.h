@@ -71,6 +71,7 @@ u32 nap_timing_count_latched(void);
 void nap_timing_strobe(u32 falling_edge_count);
 bool nap_timing_strobe_wait(u32 timeout);
 u64 nap_sample_time_to_count(u32 sample_count);
+u64 convert_sample_count_to_u64(u32 sample_count, u64 epoch_tk);
 double nap_count_to_ms(u64 delta_time);
 double nap_count_to_ns(u64 delta_time);
 

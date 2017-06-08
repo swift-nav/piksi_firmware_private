@@ -235,7 +235,8 @@ static void update_tow_glo_l1ca(const tracker_channel_info_t *channel_info,
     }
   }
 
-  u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
+  u64 sample_time_tk = convert_sample_count_to_u64(common_data->sample_count,
+                                                   channel_info->now_tk);
 
   if (TOW_UNKNOWN == common_data->TOW_ms) {
     common_data->TOW_ms = propagate_tow_from_sid_db(channel_info,

@@ -119,6 +119,31 @@ u64 nap_timing_count(void)
 }
 
 /**
+ * Utility to convert a sample counter to u64 format
+ *
+ * The function assumes the time after reading sample counter is short. The
+ * result is formed as a high half of the NAP counter combined with a sample
+ * counter. If sample counter is greater, than the low half of NAP counter, the
+ * result is adjusted.
+ *
+ * \param[ın] sample_count Readings of sample counter register
+ * \param[ın] epoch_tk Time epoch [ticks]
+ *
+ * \return Resulting time in ticks.
+ */
+u64 convert_sample_count_to_u64(u32 sample_count, u64 epoch_tk)
+{
+  /* Converts sample time into NAP time using NAP rollover value */
+  u32 time_high = (u32)(epoch_tk >> 32);
+  u32 time_low = (u32)epoch_tk;
+  if (sample_count > time_low) {
+    /* NAP counter rollover has occurred before sample_count is read. */
+    time_high--;
+  }
+  return ((u64)time_high << 32) | sample_count;
+}
+
+/**
  * Utility to compute NAP time from a sample counter
  *
  * The function assumes the time after reading sample counter is short. The
@@ -132,15 +157,8 @@ u64 nap_timing_count(void)
  */
 u64 nap_sample_time_to_count(u32 sample_count)
 {
-  /* Converts sample time into NAP time using NAP rollover value */
-  u64 time_now = nap_timing_count();
-  u32 time_high = (u32)(time_now >> 32);
-  u32 time_low = (u32)time_now;
-  if (sample_count > time_low) {
-    /* NAP counter rollover has occurred before sample_count is read. */
-    time_high--;
-  }
-  return ((u64)time_high << 32) | sample_count;
+  u64 time_tk = nap_timing_count();
+  return convert_sample_count_to_u64(sample_count, time_tk);
 }
 
 /**

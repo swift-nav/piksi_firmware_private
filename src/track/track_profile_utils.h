@@ -170,7 +170,7 @@ typedef struct
       corr_t prompt;                 /**< Prompt accumulator */
       corr_t late;                   /**< Late accumulator */
       corr_t very_early;             /**< Very Early accumulator */
-      corr_t very_late;              /**< Very Late accumulator */
+      /** Very Late accumulator is not used */
     };
   };
 } tp_epl_corr_t;

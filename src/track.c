@@ -75,7 +75,8 @@ static bool send_trk_detailed = 0;
   * strategy is designed and implemented. */
 
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
-                                     bool update_required);
+                                    u64 now_tk,
+                                    bool update_required);
 
 static update_count_t update_count_diff(const tracker_channel_t *
                                         tracker_channel,
@@ -283,6 +284,8 @@ void tracking_send_detailed_state(void)
  */
 void tracking_channels_update(u32 channels_mask)
 {
+  u64 now_tk = nap_timing_count();
+
   /* For each tracking channel, call tracking_channel_process(). Indicate
    * that an update is required if the corresponding bit is set in
    * channels_mask.
@@ -291,7 +294,8 @@ void tracking_channels_update(u32 channels_mask)
     tracker_channel_t *tracker_channel = tracker_channel_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
     if (update_required) {
-      tracker_channel_process(tracker_channel, true);
+      tracker_channel_process(tracker_channel,
+                              now_tk, /* update_required = */ true);
     }
     channels_mask >>= 1;
   }
@@ -303,7 +307,8 @@ void tracking_channels_process(void)
 {
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(channel);
-    tracker_channel_process(tracker_channel, false);
+    tracker_channel_process(tracker_channel, /* now_tk = */ 0,
+                            /* update_required = */ false);
   }
 }
 
@@ -682,7 +687,7 @@ static void tracking_channel_update_values(
       0 != (info->flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
       0 != (info->flags & TRACKING_CHANNEL_FLAG_NO_ERROR) &&
       time_quality >= TIME_FINE) {
-    u64 ref_tc = nap_sample_time_to_count(info->sample_count);
+    u64 ref_tc = convert_sample_count_to_u64(info->sample_count, info->now_tk);
 
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
@@ -1311,10 +1316,12 @@ void tracker_internal_context_resolve(tracker_context_t *tracker_context,
 
 /** Check the state of a tracker channel and generate events as required.
  * \param tracker_channel   Tracker channel to use.
+ * \param now_tk            Current receiver HW time [ticks]
  * \param update_required   True when correlations are pending for the
  *                          tracking channel.
  */
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
+                                    u64 now_tk,
                                     bool update_required)
 {
   switch (tracker_channel_state_get(tracker_channel)) {
@@ -1329,6 +1336,8 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
 
       tracker_channel_lock(tracker_channel);
       {
+        tracker_channel->info.now_tk = now_tk;
+        tracker_channel->info.now_ms = now_tk * (RX_DT_NOMINAL * SECS_MS);
         interface_function(tracker_channel,
                            tracker_channel->interface->update);
 
@@ -1339,6 +1348,7 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                         &freq_info,
                                         &ctrl_params,
                                         &reset_cpo);
+        info.now_tk = now_tk;
       }
       tracker_channel_unlock(tracker_channel);
 
