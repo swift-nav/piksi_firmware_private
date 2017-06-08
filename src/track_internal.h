@@ -48,7 +48,7 @@ typedef struct {
   s8 bit_polarity;
   u16 glo_orbit_slot;
   nav_bit_fifo_index_t read_index;
-  u8 health;
+  glo_health_t glo_health;
   bool valid;
 } nav_data_sync_t;
 
@@ -76,8 +76,8 @@ typedef struct {
   bool prn_check_fail;
   /** Flags if tracker is cross-correlated */
   bool xcorr_flag;
-  /** Health data: 0 - healthy, 1 - unhealthy */
-  u8 health;
+  /** GLO SV health info */
+  glo_health_t health;
 } tracker_internal_data_t;
 
 /** \} */

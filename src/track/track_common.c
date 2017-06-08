@@ -680,7 +680,8 @@ void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
       common_data->health = tracker_glo_sv_health_get(channel_info->context);
       log_debug_mesid(channel_info->mesid,
                       "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
-                      common_data->update_count, common_data->health);
+                      common_data->update_count,
+                      common_data->health);
     }
   }
 

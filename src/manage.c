@@ -845,7 +845,10 @@ static void drop_channel(u8 channel_id,
                           (info->flags & TRACKING_CHANNEL_FLAG_HEALTH_DECODED) &&
                            is_glo_sid(info->mesid));
 
-  if (glo_is_unhealthy) {
+  /* Only GLO L1 signal is marked unhealthy.
+   * Handover to L2 can only happen once health status of L1 has been cleared,
+   * and re-acquired. */
+  if (glo_is_unhealthy && (CODE_GLO_L1CA == info->mesid.code)) {
     acq->state = ACQ_PRN_UNHEALTHY;
     assert(glo_slot_id_is_valid(info->glo_orbit_slot));
     glo_acq_timer[info->glo_orbit_slot].status = acq;

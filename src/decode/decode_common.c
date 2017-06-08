@@ -105,7 +105,14 @@ bool glo_data_sync(nav_msg_glo_t *n,
 
   from_decoder.bit_polarity = n->bit_polarity;
   from_decoder.glo_orbit_slot = n->eph.sid.sat;
-  from_decoder.health = n->eph.health_bits;
+  if (signal_healthy(n->eph.valid,
+                     n->eph.health_bits,
+                     n->eph.ura,
+                     n->mesid.code)) {
+    from_decoder.glo_health = GLO_SV_HEALTHY;
+  } else {
+    from_decoder.glo_health = GLO_SV_UNHEALTHY;
+  }
   tracking_channel_glo_data_sync(tracking_channel, &from_decoder);
   return true;
 }
