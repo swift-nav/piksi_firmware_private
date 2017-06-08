@@ -20,10 +20,6 @@
 #include <track_api.h>
 #include <settings.h>
 
-/* Integration tweaks: short / long interval markings */
-#define TP_CFLAG_SHORT_CYCLE     ((u32)1 << 0)
-#define TP_CFLAG_LONG_CYCLE      ((u32)1 << 1)
-
 /* Bit synchronization and data decoding */
 #define TP_CFLAG_BSYNC_SET       ((u32)1 << 2)
 #define TP_CFLAG_BSYNC_ADD       ((u32)1 << 3)
@@ -231,8 +227,7 @@ typedef struct {
   u16               cycle_no: 5;            /**< Cycle index inside current
                                              *   integration mode. */
   u16               use_alias_detection: 1; /**< Flag for alias detection control */
-  u16               has_next_params: 1;     /**< Flag if stage transition is in
-                                             *   progress */
+  u16               profile_change_required: 1; /**< Profile change is needed */
   u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
   u16               mode_pll: 1;            /**< PLL control flag */
   u16               mode_fll: 1;            /**< FLL control flag */
@@ -333,18 +328,17 @@ u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode,
                                 u8 cycle_no);
 
 u8 tp_get_cycle_count(tp_tm_e tracking_mode);
-u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode,
-                                 u8 cycle_no);
-u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
-                                   u8 cycle_no);
+
+u16 tp_get_cycle_duration_us(tp_tm_e tracking_mode, u8 cycle_no);
+
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode);
 u8 tp_get_flld_ms(tp_tm_e tracking_mode);
 u8 tp_get_flll_ms(tp_tm_e tracking_mode);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode);
-u8 tp_get_pll_ms(tp_tm_e tracking_mode);
-u8 tp_get_dll_ms(tp_tm_e tracking_mode);
+u16 tp_get_pll_us(tp_tm_e tracking_mode);
+u16 tp_get_dll_us(tp_tm_e tracking_mode);
 const char *tp_get_mode_str(tp_tm_e v);
 bool tp_is_pll_ctrl(tp_ctrl_e ctrl);
 bool tp_is_fll_ctrl(tp_ctrl_e ctrl);
@@ -427,12 +421,10 @@ void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
                                tp_tracker_data_t *data,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config);
-void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            tp_tracker_data_t *data);
-u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      tp_tracker_data_t *data,
-                                      double code_phase);
+void tp_tracker_update_profile(const tracker_channel_info_t *channel_info,
+                               tracker_common_data_t *common_data,
+                               tp_tracker_data_t *data);
+
 void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
 void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
                                     const tp_tracker_data_t *data);

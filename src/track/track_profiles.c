@@ -730,27 +730,32 @@ static void log_switch(const me_gnss_signal_t mesid,
 {
   const tp_profile_entry_t* cur_profile = &state->profiles[state->cur_index];
   const tp_profile_entry_t* next_profile = &state->profiles[state->next_index];
+
   tp_tm_e cur_track_mode = track_mode_by_code(mesid.code, cur_profile);
   tp_tm_e next_track_mode = track_mode_by_code(mesid.code, next_profile);
 
-  log_debug_mesid(mesid,
-                  "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
-                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                  reason,
-                  state->plock_delay_ms,
-                  state->bs_delay_ms,
-                  state->filt_cn0,
-                  state->filt_accel,
-                  /* old state */
-                  tp_get_mode_str(cur_track_mode),
-                  cur_profile->profile.pll_bw,
-                  cur_profile->profile.fll_bw,
-                  get_ctrl_str(cur_profile->profile.controller_type),
-                  /* new state */
-                  tp_get_mode_str(next_track_mode),
-                  next_profile->profile.pll_bw,
-                  next_profile->profile.fll_bw,
-                  get_ctrl_str(next_profile->profile.controller_type));
+  log_info_mesid(mesid, "%s: plock=%" PRId16 " bs=%" PRId16 " cn0=%.1f acc=%.1fg "
+                "(mode,pll,fll,dll,ctrl): "
+                "(%s,%.1f,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%.1f,%s)",
+                reason,
+                state->plock_delay_ms,
+                state->bs_delay_ms,
+                state->filt_cn0,
+                state->filt_accel,
+
+                /* old state */
+                tp_get_mode_str(cur_track_mode),
+                cur_profile->profile.pll_bw,
+                cur_profile->profile.fll_bw,
+                cur_profile->profile.dll_bw,
+                get_ctrl_str(cur_profile->profile.controller_type),
+
+                /* new state */
+                tp_get_mode_str(next_track_mode),
+                next_profile->profile.pll_bw,
+                next_profile->profile.fll_bw,
+                next_profile->profile.dll_bw,
+                get_ctrl_str(next_profile->profile.controller_type));
 }
 
 /**
@@ -775,21 +780,21 @@ static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile)
 
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
   tp_tm_e tracking_mode = track_mode_by_code(mesid.code, cur_profile);
-  int dll_ms = tp_get_dll_ms(tracking_mode);
+  int dll_us = tp_get_dll_us(tracking_mode);
 
   const char *m1 = tp_get_mode_str(tracking_mode);
   const char *c1 = get_ctrl_str(cur_profile->profile.controller_type);
 
   /*
-   * PRINT: integration time, loop mode, controller mode,
+   * PRINT: integration time [us], loop mode, controller mode,
    *        C/N0 estimator, C/N0 value, SNR value (dBm),
    *        PR rate, PR rate change,
    *        PLL lock detector ratio, FLL/DLL error
    */
 
   log_debug_mesid(mesid,
-                  "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
-                  dll_ms, m1, c1,
+                  "AVG: %dus %s %s CN0_%s=%.2f (%.2f) A=%.3f",
+                  dll_us, m1, c1,
                   cn0_est_str, profile->filt_cn0,
                   TRACK_CN0_TO_SNR(profile->filt_cn0),
                   profile->filt_accel);
@@ -802,6 +807,9 @@ static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile)
  */
 static void update_acceleration_status(tp_profile_t *state)
 {
+  if (!state->plock) {
+    return;
+  }
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur_index];
   float acc_threshold_g = cur_profile->acc_threshold;
   float acceleration_g = fabsf(state->filt_accel);
@@ -1091,40 +1099,33 @@ tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
  * \param[in,out] profile  Tracking profile data to read and update.
  * \param[out]    config   Container for new tracking parameters.
  * \param[in]     commit   Commit the mode change happened.
- *
- * \retval TP_RESULT_SUCCESS New tracking profile has been retrieved. The
- *                           tracking loop shall reconfigure it's components
- *                           and, possibly, change the operation mode.
- * \retval TP_RESULT_NO_DATA New tracking profile is not available. No further
- *                           actions are needed.
- * \retval TP_RESULT_ERROR   On error.
  */
-tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
-                                  tp_profile_t *profile,
-                                  tp_config_t *config,
-                                  bool commit)
+void tp_profile_get_next_config(const me_gnss_signal_t mesid,
+                                const tp_profile_t *profile,
+                                tp_config_t  *config)
 {
-  tp_result_e res = TP_RESULT_ERROR;
-  if (NULL != config && NULL != profile) {
+  assert(config);
+  assert(profile && profile->profile_update);
 
-    if (profile->profile_update) {
-      /* Do transition of current profile */
-      if (commit) {
-        profile->profile_update = 0;
+  tp_profile_t next_profile = *profile;
+  next_profile.cur_index = profile->next_index;
+  next_profile.cn0_offset = compute_cn0_offset(mesid, &next_profile);
 
-        profile->cur_index = profile->next_index;
-        profile->cn0_offset = compute_cn0_offset(mesid, profile);
-      }
+  get_profile_params(mesid, &next_profile, config);
+}
 
-      /* Return data */
-      get_profile_params(mesid, profile, config);
+/**
+ * Changes to the new tracking profile.
+ *
+ * \param[in,out] profile  Tracking profile data to read and update.
+ */
+void tp_profile_change(const me_gnss_signal_t mesid, tp_profile_t *profile)
+{
+  assert(profile && profile->profile_update);
+  profile->profile_update = 0;
 
-      res = TP_RESULT_SUCCESS;
-    } else {
-      res = TP_RESULT_NO_DATA;
-    }
-  }
-  return res;
+  profile->cur_index = profile->next_index;
+  profile->cn0_offset = compute_cn0_offset(mesid, profile);
 }
 
 /**
@@ -1176,34 +1177,31 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
  * \retval true  New profile is available.
  * \retval false No profile change is required.
  */
-bool tp_profile_has_new_profile(const me_gnss_signal_t mesid,
+bool tp_profile_change_required(const me_gnss_signal_t mesid,
                                 tp_profile_t *profile)
 {
-  bool res = false;
-  if (NULL != profile) {
-    check_for_profile_change(mesid, profile);
-    res = profile->profile_update != 0;
-  }
-  return res;
+  assert(profile);
+  check_for_profile_change(mesid, profile);
+  return profile->profile_update != 0;
 }
 
 /**
- * Helper to obtain loop parameters for the next integration interval.
+ * Helper to obtain integration time for the next integration interval.
  *
  * \param[in] mesid   ME signal identifier.
  * \param[in] profile Tracking profile data to check
  *
- * \return Loop parameters for the next integration interval
+ * \return Integration time for the next integration interval [us]
  */
-u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
-                                      const tp_profile_t *profile)
+u16 tp_profile_get_next_int_us(const me_gnss_signal_t mesid,
+                               const tp_profile_t *profile)
 {
   assert(NULL != profile);
   const struct tp_profile_entry *next_profile;
   next_profile = &profile->profiles[profile->next_index];
   tp_tm_e track_mode = track_mode_by_code(mesid.code, next_profile);
 
-  return tp_get_dll_ms(track_mode);
+  return tp_get_dll_us(track_mode);
 }
 
 /**

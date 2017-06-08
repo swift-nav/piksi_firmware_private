@@ -34,7 +34,7 @@ typedef struct {
                       Single sided noise bandwidth in case of
                       PLL and FLL-assisted PLL tracking */
   float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
-  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+  u16   int_us;  /**< PLL/FLL controller integration time [us] */
 } track_ctrl_params_t;
 
 /** Tracker flag: tracker is in confirmed mode */
@@ -123,9 +123,12 @@ typedef struct {
   update_count_t xcorr_change_count;
                                /**< update count value when cross-correlation
                                     flag has changed last time */
-  s32 TOW_ms;                  /**< TOW in ms. */
-  s32 TOW_ms_prev;             /**< previous TOW in ms. */
+
+  s32 TOW_ms;                  /**< TOW [ms] */
+  s32 TOW_ms_prev;             /**< previous TOW [ms] */
+  u16 corr_time_us;            /**< correlation time accumulator [us] */
   s32 TOW_residual_ns;         /**< Residual to TOW_ms [ns] */
+
   u32 sample_count;            /**< Total num samples channel has tracked for. */
   double code_phase_prompt;    /**< Prompt code phase in chips. */
   double code_phase_rate;      /**< Code phase rate in chips/s. */
