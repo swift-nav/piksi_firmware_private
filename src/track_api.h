@@ -80,6 +80,7 @@ typedef struct {
                                     TRACK_CMN_FLAG_XCORR_SUSPECT | \
                                     TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE | \
                                     TRACK_CMN_FLAG_L2CL_AMBIGUITY | \
+                                    TRACK_CMN_FLAG_OUTLIER | \
                                     TRACK_CMN_FLAG_HEALTH_DECODED)
 
 /**
