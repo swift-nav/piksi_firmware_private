@@ -33,7 +33,7 @@ typedef struct {
                       Single sided noise bandwidth in case of
                       PLL and FLL-assisted PLL tracking */
   float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
-  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+  u16   int_us;  /**< PLL/FLL controller integration time [us] */
 } track_ctrl_params_t;
 
 /** Tracker flag: tracker is in confirmed mode */

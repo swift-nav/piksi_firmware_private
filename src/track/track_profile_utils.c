@@ -16,7 +16,7 @@
 #include <assert.h>
 
 /** Tracking loop corrections are taken in use in NAP with this delay */
-#define SHORT_CYCLE_US 300 /* [us] */
+#define SHORT_CYCLE_US 500 /* [us] */
 
 #define LONG_CYCLE_US(int_time_us) ((int_time_us) - SHORT_CYCLE_US) /* [us] */
 
@@ -149,7 +149,7 @@ typedef struct {
  * State table.
  */
 typedef struct {
-  u8 int_ms;  /**< General integration time */
+  u16 int_us;  /**< General integration time [us] */
   u8 cn0_ms;  /**< C/N0 estimator integration time */
   u8 ld_ms;   /**< Lock detector integration time */
   u8 fl_ms;   /**< Alias detector integration time */
@@ -164,7 +164,7 @@ typedef struct {
  * Initial tracking mode (no bit sync, FLL-assisted PLL, 1 ms)
  */
 static const state_table_t mode_1msINI = {
-  .int_ms  = 1,
+  .int_us  = 1000,
   .cn0_ms  = 1,
   .ld_ms   = 1,
   .fl_ms   = 1,
@@ -200,7 +200,7 @@ static const state_table_t mode_1msINI = {
  * Dynamics tracking mode (bit sync, FLL-assisted PLL, 1 ms)
  */
 static const state_table_t mode_1msDYN = {
-  .int_ms  = 1,
+  .int_us  = 1000,
   .cn0_ms  = 10,
   .ld_ms   = 1,
   .fl_ms   = 1,
@@ -276,7 +276,7 @@ static const state_table_t mode_1msDYN = {
  * 5 ms integrations; 1+N mode.
  */
 static const state_table_t mode_5ms1PN = {
-  .int_ms  = 5,
+  .int_us  = 5000,
   .cn0_ms  = 5,
   .ld_ms   = 5,
   .fl_ms   = 5,
@@ -304,7 +304,7 @@ static const state_table_t mode_5ms1PN = {
  * 10 ms integrations; 1+N5 mode.
  */
 static const state_table_t mode_10ms1PN5 = {
-  .int_ms  = 10,
+  .int_us  = 1000,
   .cn0_ms  = 5,
   .ld_ms   = 5,
   .fl_ms   = 5,
@@ -327,7 +327,7 @@ static const state_table_t mode_10ms1PN5 = {
  * 20 ms integrations; 1+N5 mode.
  */
 static const state_table_t mode_20ms1PN5 = {
-  .int_ms  = 20,
+  .int_us  = 20000,
   .cn0_ms  = 5,
   .ld_ms   = 5,
   .fl_ms   = 5,
@@ -598,29 +598,29 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode)
 }
 
 /**
- * Get PLL integration period in ms.
+ * Get PLL integration period in us.
  *
  * \param[in] tracking_mode Tracking mode.
  *
- * \return PLL integration period in ms.
+ * \return PLL integration period in us.
  */
-u8 tp_get_pll_ms(tp_tm_e tracking_mode)
+u16 tp_get_pll_us(tp_tm_e tracking_mode)
 {
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
 
-  return tbl->int_ms;
+  return tbl->int_us;
 }
 
 /**
- * Get DLL integration period in ms.
+ * Get DLL integration period in us.
  *
  * \param[in] tracking_mode Tracking mode.
  *
- * \return DLL integration period in ms.
+ * \return DLL integration period in us.
  */
-u8 tp_get_dll_ms(tp_tm_e tracking_mode)
+u16 tp_get_dll_us(tp_tm_e tracking_mode)
 {
   return tp_get_pll_ms(tracking_mode);
 }

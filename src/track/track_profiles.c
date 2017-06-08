@@ -780,21 +780,21 @@ static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile)
 
   const tp_profile_entry_t *cur_profile = &profile->profiles[profile->cur_index];
   tp_tm_e tracking_mode = track_mode_by_code(mesid.code, cur_profile);
-  int dll_ms = tp_get_dll_ms(tracking_mode);
+  int dll_us = tp_get_dll_us(tracking_mode);
 
   const char *m1 = tp_get_mode_str(tracking_mode);
   const char *c1 = get_ctrl_str(cur_profile->profile.controller_type);
 
   /*
-   * PRINT: integration time, loop mode, controller mode,
+   * PRINT: integration time [us], loop mode, controller mode,
    *        C/N0 estimator, C/N0 value, SNR value (dBm),
    *        PR rate, PR rate change,
    *        PLL lock detector ratio, FLL/DLL error
    */
 
   log_debug_mesid(mesid,
-                  "AVG: %dms %s %s CN0_%s=%.2f (%.2f) A=%.3f",
-                  dll_ms, m1, c1,
+                  "AVG: %dus %s %s CN0_%s=%.2f (%.2f) A=%.3f",
+                  dll_us, m1, c1,
                   cn0_est_str, profile->filt_cn0,
                   TRACK_CN0_TO_SNR(profile->filt_cn0),
                   profile->filt_accel);
@@ -1186,22 +1186,22 @@ bool tp_profile_change_required(const me_gnss_signal_t mesid,
 }
 
 /**
- * Helper to obtain loop parameters for the next integration interval.
+ * Helper to obtain integration time for the next integration interval.
  *
  * \param[in] mesid   ME signal identifier.
  * \param[in] profile Tracking profile data to check
  *
- * \return Loop parameters for the next integration interval
+ * \return Integration time for the next integration interval [us]
  */
-u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
-                                      const tp_profile_t *profile)
+u16 tp_profile_get_next_int_us(const me_gnss_signal_t mesid,
+                               const tp_profile_t *profile)
 {
   assert(NULL != profile);
   const struct tp_profile_entry *next_profile;
   next_profile = &profile->profiles[profile->next_index];
   tp_tm_e track_mode = track_mode_by_code(mesid.code, next_profile);
 
-  return tp_get_dll_ms(track_mode);
+  return tp_get_dll_us(track_mode);
 }
 
 /**

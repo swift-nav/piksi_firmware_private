@@ -115,7 +115,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
   tp_tl_get_config(l, &config);
-  config.dll_loop_freq = 1000.f / tp_get_dll_ms(data->tracking_mode);
+  config.dll_loop_freq = 1e6f / tp_get_dll_us(data->tracking_mode);
   config.fll_loop_freq = 1000.f / tp_get_flll_ms(data->tracking_mode);
   config.fll_discr_freq = 1000.f / tp_get_flld_ms(data->tracking_mode);
   config.carr_to_code = mesid_to_carr_to_code(channel_info->mesid);
@@ -150,7 +150,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
   }
 
   /* Export loop controller parameters */
-  common_data->ctrl_params.int_ms = tp_get_dll_ms(data->tracking_mode);
+  common_data->ctrl_params.int_us = tp_get_dll_us(data->tracking_mode);
   common_data->ctrl_params.dll_bw = next_params->loop_params.code_bw;
   common_data->ctrl_params.pll_bw = data->mode_pll ?
                                     next_params->loop_params.carr_bw : 0.f;
@@ -862,13 +862,13 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
        * period, the controller will give wrong correction. Due to that the
        * input parameters are scaled to stabilize tracker.
        */
-      u8 new_dll_ms = tp_profile_get_next_loop_params_ms(channel_info->mesid,
-                                                         &data->profile);
-      u8 old_dll_ms = tp_get_dll_ms(data->tracking_mode);
+      u16 new_dll_us = tp_profile_get_next_int_us(channel_info->mesid,
+                                                  &data->profile);
+      u16 old_dll_us = tp_get_dll_us(data->tracking_mode);
 
-      if (old_dll_ms != new_dll_ms) {
+      if (old_dll_us != new_dll_us) {
         /* TODO utilize noise bandwidth and damping ratio */
-        float k2 = (float)old_dll_ms / new_dll_ms;
+        float k2 = (float)old_dll_us / new_dll_us;
         float k1 = sqrtf(k2);
         for (u32 i = 0; i < 3; i++) {
           data->corrs.corr_epl.epl[i].I *= k1;
@@ -900,7 +900,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
     report.lock_i = data->lock_detect.lpfi.y;
     report.lock_q = data->lock_detect.lpfq.y;
     report.sample_count = common_data->sample_count;
-    report.time_ms = tp_get_dll_ms(data->tracking_mode);
+    report.time_us = tp_get_dll_us(data->tracking_mode);
     report.acceleration = rates.acceleration;
 
     tp_profile_report_data(channel_info->mesid,

@@ -119,7 +119,7 @@ typedef struct
   u32    plock:1;         /**< Pessimistic lock flag */
   u32    olock:1;         /**< Optimistic lock flag */
   u32    bsync:1;         /**< Bit sync flag */
-  u32    time_ms:8;       /**< Time in milliseconds */
+  u32    time_us:16;      /**< Time [us] */
   u32    sample_count;    /**< Channel sample count */
   float  lock_i;          /**< Filtered I value from the lock detector */
   float  lock_q;          /**< Filtered Q value from the lock detector */
@@ -189,8 +189,8 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
 bool        tp_profile_change_required(const me_gnss_signal_t sid,
                                        tp_profile_t *profile);
-u8          tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
-                                               const tp_profile_t *profile);
+u16         tp_profile_get_next_int_ms(const me_gnss_signal_t mesid,
+                                       const tp_profile_t *profile);
 tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
                                    tp_profile_t *profile,
                                    const tracker_common_data_t *common_data,
