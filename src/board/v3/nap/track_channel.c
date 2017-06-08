@@ -500,6 +500,48 @@ void nap_track_read_results(u8 channel,
   corrs[4].I = (s16)(corr[4] & 0xFFFF);
   corrs[4].Q = (s16)((corr[4] >> 16) & 0xFFFF);
 
+  *count_snapshot = t->TIMING_SNAPSHOT;
+
+  /* Spacing between VE and P correlators */
+  double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
+      (s->spacing[0].samples + s->spacing[1].samples) /
+      calc_samples_per_chip(s->code_phase_rate[1]);
+
+  u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
+  s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+
+  if (CONSTELLATION_GLO == mesid_to_constellation(s->mesid)) {
+
+    if (s->reckon_init_done) {
+      /* Add the contribution of both FCN and Doppler. With numerical errors indeed
+         but those errors will be recovered by the PLL the next time around as
+         they are exactly the same that NAP is also subject to */
+      s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
+                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    } else {
+      /* NAP does not always start counting carrier phase from zero.
+         To workaround it we read the initial carrier phase from NAP and
+         do the reckoning starting from the second integration. */
+      s->reckoned_carr_phase = (double)nap_carr_phase /
+                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+      s->reckon_init_done = true;
+    }
+    s->reckoned_carr_phase += s->fcn_freq_hz *
+                              (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
+    *carrier_phase = -s->reckoned_carr_phase;
+  } else {
+    *carrier_phase = (double)-nap_carr_phase /
+                     NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+  }
+
+  /* Correct code phase with spacing between VE and P correlators */
+  *code_phase_prompt = (double)nap_code_phase /
+      NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP - prompt_offset;
+
+  if (*code_phase_prompt < 0) {
+    *code_phase_prompt += code_to_chip_count(s->mesid.code);
+  }
+
   if ((s->uIrqCount)<2) {
     s->uCodeSynch = nap_code_phase;
     s->iCarrPhase = nap_carr_phase;
@@ -519,49 +561,6 @@ void nap_track_read_results(u8 channel,
     }
   }
   (s->uIrqCount)++;
-
-  *count_snapshot = t->TIMING_SNAPSHOT;
-
-  if (CONSTELLATION_GLO == mesid_to_constellation(s->mesid)) {
-
-    if (s->reckon_init_done) {
-      /* Add the contribution of both FCN and Doppler. With numerical errors indeed
-         but those errors will be recovered by the PLL the next time around as
-         they are exactly the same that NAP is also subject to */
-      s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
-                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    } else {
-      /* NAP does not always start counting carrier phase from zero.
-         To workaround it we read the initial carrier phase from NAP and
-         do the reckoning starting from the second integration. */
-      s->reckon_init_done = true;
-      s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-      s->reckoned_carr_phase = (double)nap_carr_phase /
-                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    }
-    s->reckoned_carr_phase += s->fcn_freq_hz *
-                              (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
-    *carrier_phase = -s->reckoned_carr_phase;
-  } else {
-    s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-    *carrier_phase = (double)-nap_carr_phase /
-                     NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-  }
-
-  /* Spacing between VE and P correlators */
-  double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
-      (s->spacing[0].samples + s->spacing[1].samples) /
-      calc_samples_per_chip(s->code_phase_rate[1]);
-
-  u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
-
-  /* Correct code phase with spacing between VE and P correlators */
-  *code_phase_prompt = (double)nap_code_phase /
-      NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP - prompt_offset;
-
-  if (*code_phase_prompt < 0) {
-    *code_phase_prompt += code_to_chip_count(s->mesid.code);
-  }
 }
 
 void nap_track_disable(u8 channel)
