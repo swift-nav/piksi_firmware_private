@@ -70,12 +70,12 @@ static struct s_nap_ch_state {
   u32 length[2];               /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];            /**< Carrier phase increment */
   bool reckon_init_done;       /**< First carrier phase was read from NAP */
+  u32 uIrqCount;
   s64 iCarrPhase;
   u64 uCodeSynch;
   u32 uLength[2];
   s32 iCarrPinc[2];
   u32 uCodePinc[2];
-  u32 uIrqCount;
   u32 chip_count;
 } nap_ch_state[NAP_MAX_N_TRACK_CHANNELS];
 
@@ -406,7 +406,7 @@ void nap_track_update(u8 channel,
   (void)corr_spacing; /* This is always written as 0, for now */
 
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct s_nap_ch_state *s = &nap_ch_state[channel];
 
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = code_phase_rate;
@@ -437,7 +437,7 @@ void nap_track_update(u8 channel,
   }
 
   /* This is a total frequency shift due to GLO FCNs + Doppler.
-     s->fcn_freq_hz is zero for GPS and could be a non-zero value for GLO. */
+   * s->fcn_freq_hz is zero for GPS and could be a non-zero value for GLO. */
   double carrier_freq_hz = -(s->fcn_freq_hz + doppler_freq_hz);
 
   s32 carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
@@ -448,9 +448,9 @@ void nap_track_update(u8 channel,
   s->carr_pinc[0] = carr_pinc;
 
   /* The NAP NCO has a constant, FCN-dependent component and a variable FLL
-     component. Such combination probably cannot be represented exactly
-     in a 32-bit NCO, but that's OK as long as we carry this error with us
-     in the measurement */
+   * component. Such combination probably cannot be represented exactly
+   * in a 32-bit NCO, but that's OK as long as we carry this error with us
+   * in the measurement */
   t->CARR_PINC = carr_pinc;
   s->iCarrPinc[1] =s->iCarrPinc[0];
   t->CARR_PINC = s->iCarrPinc[0] = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
@@ -465,7 +465,7 @@ void nap_track_read_results(u8 channel,
                             double *carrier_phase)
 {
   nap_trk_regs_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct s_nap_ch_state *s = &nap_ch_state[channel];
 
   u32 ovf = (t->STATUS & NAP_TRK_STATUS_OVF_Msk) >> NAP_TRK_STATUS_OVF_Pos;
   if (ovf) {
@@ -510,18 +510,37 @@ void nap_track_read_results(u8 channel,
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
   s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
 
+  if ((s->uIrqCount)<2) {
+    s->uCodeSynch = nap_code_phase;
+    s->iCarrPhase = nap_carr_phase;
+  } else {
+    s->uCodeSynch += (u64)(s->uCodePinc[1]) * (u64)(s->uLength[1]);
+    s->uCodeSynch  = ((((s->uCodeSynch)>>32)%(s->chip_count))<<32) | ((s->uCodeSynch)&0xFFFFFFFF);
+    s->iCarrPhase += (s64)(s->iCarrPinc[1]) * (u64)(s->uLength[1]);
+    if (nap_code_phase != s->uCodeSynch) {
+      log_info("G%02d L%d  cycle%12d CODE  NAP:%16.6lf  FW:%16.6lf",
+        s->mesid.sat, s->mesid.code, (s->uIrqCount),
+        TWO_POW_M32 * nap_code_phase, TWO_POW_M32 * s->uCodeSynch);
+    }
+    if (nap_carr_phase != s->iCarrPhase) {
+      log_info("G%02d L%d  cycle%12d CARR  NAP:%+16.6lf  FW:%+16.6lf",
+        s->mesid.sat, s->mesid.code, (s->uIrqCount),
+        TWO_POW_M32 * nap_carr_phase, TWO_POW_M32 * s->iCarrPhase);
+    }
+  }
+
   if (CONSTELLATION_GLO == mesid_to_constellation(s->mesid)) {
 
     if (s->reckon_init_done) {
       /* Add the contribution of both FCN and Doppler. With numerical errors indeed
-         but those errors will be recovered by the PLL the next time around as
-         they are exactly the same that NAP is also subject to */
+       * but those errors will be recovered by the PLL the next time around as
+       * they are exactly the same that NAP is also subject to */
       s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
                                 NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
     } else {
       /* NAP does not always start counting carrier phase from zero.
-         To workaround it we read the initial carrier phase from NAP and
-         do the reckoning starting from the second integration. */
+       * To workaround it we read the initial carrier phase from NAP and
+       * do the reckoning starting from the second integration. */
       s->reckoned_carr_phase = (double)nap_carr_phase /
                                 NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
       s->reckon_init_done = true;
@@ -542,24 +561,7 @@ void nap_track_read_results(u8 channel,
     *code_phase_prompt += code_to_chip_count(s->mesid.code);
   }
 
-  if ((s->uIrqCount)<2) {
-    s->uCodeSynch = nap_code_phase;
-    s->iCarrPhase = nap_carr_phase;
-  } else {
-    s->uCodeSynch += (u64)(s->uCodePinc[1]) * (u64)(s->uLength[1]);
-    s->uCodeSynch  = ((((s->uCodeSynch)>>32)%(s->chip_count))<<32) | ((s->uCodeSynch)&0xFFFFFFFF);
-    s->iCarrPhase += (s64)(s->iCarrPinc[1]) * (u64)(s->uLength[1]);
-    if (nap_code_phase != s->uCodeSynch) {
-      log_info("G%02d L%d  cycle%12d CODE  NAP:%16.6lf  FW:%16.6lf",
-        s->mesid.sat, s->mesid.code, (s->uIrqCount),
-        TWO_POW_M32 * nap_code_phase, TWO_POW_M32 * s->uCodeSynch);
-    }
-    if (nap_carr_phase != s->iCarrPhase) {
-      log_info("G%02d L%d  cycle%12d CARR  NAP:%+16.6lf  FW:%+16.6lf",
-        s->mesid.sat, s->mesid.code, (s->uIrqCount),
-        TWO_POW_M32 * nap_carr_phase, TWO_POW_M32 * s->iCarrPhase);
-    }
-  }
+
   (s->uIrqCount)++;
 }
 
