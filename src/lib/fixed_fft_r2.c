@@ -16,11 +16,6 @@
 #include <math.h>
 #include "fixed_fft_r2.h"
 
-#ifndef PI
-#define PI (3.14159265358979323846264338327)
-#endif
-
-
 static void InitW(intFFTr2_t *pIntFFT);
 static void InitBR(intFFTr2_t *pIntFFT);
 static void DoShuffle(intFFTr2_t *pIntFFT, sc16_t *_x);
@@ -202,7 +197,7 @@ static void InitW(intFFTr2_t *pIntFFT) {
     tW = &(pIntFFT->W[_bsize]);
 
     for(k = 0; k < _bsize; k++) {
-      phase = (-2*PI*k*nBlocks)/(pIntFFT->N);
+      phase = (-2.0*M_PI*k*nBlocks)/(pIntFFT->N);
       c = floorf(fScale*cosf(phase));
       s = floorf(fScale*sinf(phase));
 

@@ -42,14 +42,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_min, float cf_max,
                             float cf_bin_width, s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
-static bool ifft_operations(const me_gnss_signal_t mesid,
-                            s16 doppler_bin, float cf_bin_width,
+static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const sc16_t *code_fft,
                             const sc16_t *sample_fft,
-                            u32 fft_len_log2, float *doppler);
-static bool acq_peak_search(const me_gnss_signal_t mesid,
-                            float doppler, float fft_len,
+                            float *doppler);
+static bool acq_peak_search(const me_gnss_signal_t mesid, float doppler,
                             float fft_bin_width, acq_peak_search_t *peak);
 
 static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize);
@@ -90,31 +88,9 @@ bool soft_acq_search(const sc16_t *_cSignal,
   code_resample(mesid, chips_per_sample, code_fft, fft_len);
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
 
-  /*
-  GetFourMaxes(code_fft, CODE_SMPS);
-    log_info_mesid(mesid, "code_fft    magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
-    puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
-    puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
-  */
-
-
-  /*
-  GetFourMaxes(_cSignal, fft_len);
-  log_info_mesid(mesid, "_cSignal  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
-    puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
-    puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
-  */
-
   /** Perform the FFT samples without over-writing the input buffer */
   memcpy(sample_fft, _cSignal, sizeof(sc16_t)*fft_len);
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
-
-  /*
-  GetFourMaxes(sample_fft, CODE_SMPS);
-  log_info_mesid(mesid, "sample_fft  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
-    puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
-    puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
-  */
 
   /* Search for peak */
   acq_peak_search_t peak = {0};
@@ -157,13 +133,13 @@ bool soft_acq_search(const sc16_t *_cSignal,
     loop_index += 1;
 
     /* Multiply and do IFFT */
-    if (!ifft_operations(mesid, doppler_bin, cf_bin_width, fft_len, fft_bin_width,
-                         code_fft, sample_fft, fft_len_log2, &doppler)) {
+    if (!ifft_operations(doppler_bin, cf_bin_width, fft_len, fft_bin_width,
+                         code_fft, sample_fft, &doppler)) {
       return false;
     }
 
     /* Find highest peak of the current doppler bin */
-    if (!acq_peak_search(mesid, doppler, fft_len, fft_bin_width,  &peak)) {
+    if (!acq_peak_search(mesid, doppler, fft_bin_width,  &peak)) {
       return false;
     }
 
@@ -278,16 +254,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
  * \retval true  Success
  * \retval false Failure
  */
-static bool ifft_operations(const me_gnss_signal_t mesid,
-                            s16 doppler_bin, float cf_bin_width,
+static bool ifft_operations(s16 doppler_bin, float cf_bin_width,
                             u32 fft_len, float fft_bin_width,
                             const sc16_t *_pCodeFft,
                             const sc16_t *_pSampleFft,
-                            u32 fft_len_log2, float *doppler)
+                            float *doppler)
 {
-  (void) fft_len_log2;
-  (void) mesid;
-
   s32 sample_offset = (s32)round((doppler_bin * cf_bin_width) / fft_bin_width);
   /* Actual computed Doppler */
   *doppler = doppler_bin * cf_bin_width;
@@ -307,22 +279,8 @@ static bool ifft_operations(const me_gnss_signal_t mesid,
     r->i = ((a_re * -b_im) + (a_im * b_re)) / RESULT_DIV;
   }
 
-  /*
-  GetFourMaxes(result_fft, CODE_SMPS);
-  log_info("freq_product magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
-    puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
-    puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
-  */
-
   /* Inverse FFT */
   DoBwdIntFFTr2(&sFftConfig, result_fft, FFT_SCALE_SCHED_INV, 1);
-
-  /*
-  GetFourMaxes(result_fft, CODE_SMPS);
-  log_info("result_fft  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
-    puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
-    puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
-  */
 
   return true;
 }
@@ -337,8 +295,7 @@ static bool ifft_operations(const me_gnss_signal_t mesid,
  * \retval true  Success
  * \retval false Failure
  */
-static bool acq_peak_search(const me_gnss_signal_t mesid,
-                            float doppler, float fft_len,
+static bool acq_peak_search(const me_gnss_signal_t mesid, float doppler,
                             float fft_bin_width, acq_peak_search_t *peak)
 {
   uint32_t k=0, kmax=0;
@@ -347,8 +304,6 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   u32 sum_mag_sq;
   float snr = 0.0f;
   float cn0 = 0.0f;
-
-  (void) fft_len;
 
   GetFourMaxes(result_fft, CODE_SMPS);
   peak_mag_sq = 0;
@@ -370,18 +325,6 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   /* Compute C/N0 */
   snr = (float)peak_mag_sq / ((float)sum_mag_sq/(CODE_SMPS/4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
-
-  /*
-  log_info("result_fft  magsq [%9u, %9u, %9u, %9u] @ [%4u, %4u, %4u, %4u]\n",
-    puMaxVal[0], puMaxVal[1], puMaxVal[2], puMaxVal[3],
-    puMaxIdx[0], puMaxIdx[1], puMaxIdx[2], puMaxIdx[3]);
-  */
-
-  /*
-  if (cn0 > 38.0) {
-    log_info_mesid(mesid, "result_fft doppler %+7.1f cn0 %+6.1f\n", doppler, cn0);
-  }
-  */
 
   if (cn0 > peak->cn0) {
     /* New max peak found */

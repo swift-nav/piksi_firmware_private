@@ -2,15 +2,8 @@
 #define SOFT_MACQ_DEFINES_H_
 
 #include <stdint.h>
+#include <math.h>
 #include "lib/fixed_fft_r2.h"
-
-#define ENAGPS
-#undef  ENAGLO
-#undef  ENABEI
-#undef  ENASBS
-#undef  ENAGAL
-#undef  ENAIRN
-#undef  ENAQZS
 
 #define SOFTMACQ_DEF_F_REF                (1023000)
 
@@ -40,42 +33,9 @@
 #define SOFTMACQ_BEIB1_FREQ               (1561098000)
 #define SOFTMACQ_BEIB2_FREQ               (1207014000)
 
-#define SOFTMACQ_GAL_NUMSAT               (30)
-#define SOFTMACQ_GAL_SATBASE              (1)
-#define SOFTMACQ_GALE1B_FREQ_MULT         (1540)
-#define SOFTMACQ_GALE1B_FREQ              (GALE1B_FREQ_MULT*DEF_F_REF)
-#define SOFTMACQ_GALE1B_CR                (1.023e6)
-#define SOFTMACQ_GALE1B_CODE_TIMELEN      (0.004)
-#define SOFTMACQ_GALE1B_CODE_TIMELEN_MS   (4)
-#define SOFTMACQ_GALE1B_CODECHIPS         (4092)
-#define SOFTMACQ_GALE1B_CODECHIPS1MS      (1023)
-#define SOFTMACQ_GALE1B_MODSCHEMA         BOC_1_1
-
-#define SOFTMACQ_GALE1C_FREQ_MULT         (1540)
-#define SOFTMACQ_GALE1C_FREQ              (GALE1C_FREQ_MULT*DEF_F_REF)
-#define SOFTMACQ_GALE1C_CR                (1.023e6)
-#define SOFTMACQ_GALE1C_CODE_TIMELEN      (0.004)
-#define SOFTMACQ_GALE1C_CODE_MS           (4)
-#define SOFTMACQ_GALE1C_CODECHIPS         (4092)
-#define SOFTMACQ_GALE1C_MODSCHEMA         BOC_1_1
-#define SOFTMACQ_GALE1C_SECCODECHIPS      (25)
-
-#define GAL_INAV_SYNCLEN              (10)
-#define GAL_INAV_PAGEPART_SYMBLEN     (240)
-#define GAL_INAV_PAGEPART_TOTLEN      (GAL_INAV_SYNCLEN+GAL_INAV_PAGEPART_SYMBLEN)  /* 250 */
-#define GAL_INAV_PAGEPART_PAYLOADBITS (114)
-#define GAL_INAV_PAGEPART_TAILBITS    (6)
-#define GAL_INAV_PAGEPART_TOTBITS     (GAL_INAV_PAGEPART_PAYLOADBITS+GAL_INAV_PAGEPART_TAILBITS)  /* 120 */
-#define GAL_INAV_PAGE_EVE_SIZE        (112)
-#define GAL_INAV_PAGE_ODD_SIZE        (16)
-#define GAL_INAV_PAGE_SIZE            (GAL_INAV_PAGE_EVE_SIZE+GAL_INAV_PAGE_ODD_SIZE)
-#define GAL_INAV_DEINT_COL            (8)
-#define GAL_INAV_DEINT_ROW            (30)
-
-#define PI (3.14159265358979)
-#define TWOPI    (2.0 * PI)
-#define HALFPI   (PI / 2.0)
-#define FOURTHPI (PI / 4.0)
+#define TWOPI    (2.0 * M_PI)
+#define HALFPI   (M_PI / 2.0)
+#define FOURTHPI (M_PI / 4.0)
 #define POW_TWO_M05 ( 3.125000000000000e-02 )
 #define POW_TWO_M11 ( 4.882812500000000e-04 )
 #define POW_TWO_M12 ( 2.441406250000000e-04 )
@@ -108,63 +68,6 @@
 #define JAN61980        (44244)
 #define JAN11901        (15385)
 
-#define RAD2DEG       (180.0 / PI)
-#define DEG2RAD       (PI / 180.0)
-#define LIGHT_SPEED   (2.99792458e+08)
-
-#define GPS_PRN_MIN (0)
-#ifdef ENAGPS
-#define NUM_GPS_SVS (32)
-#else
-#define NUM_GPS_SVS (0)
-#endif
-
-#define SBS_PRN_MIN (GPS_PRN_MIN+NUM_GPS_SVS)
-#ifdef ENASBS
-#define NUM_SBS_SVS (19)
-#else
-#define NUM_SBS_SVS ( 0)
-#endif
-
-#define GLO_PRN_MIN (SBS_PRN_MIN+NUM_SBS_SVS)
-#ifdef ENAGLO
-#define NUM_GLO_SVS (28)
-#else
-#define NUM_GLO_SVS ( 0)
-#endif
-
-#define GAL_PRN_MIN (GLO_PRN_MIN+NUM_GLO_SVS)
-#ifdef ENAGAL
-#define NUM_GAL_SVS (30)
-#else
-#define NUM_GAL_SVS ( 0)
-#endif
-
-#define IRN_PRN_MIN (GAL_PRN_MIN+NUM_GAL_SVS)
-#ifdef ENAIRN
-#define NUM_IRN_SVS (19)
-#else
-#define NUM_IRN_SVS ( 0)
-#endif
-
-#define BEI_PRN_MIN (IRN_PRN_MIN+NUM_IRN_SVS)
-#ifdef ENABEI
-#define NUM_BEI_SVS (30)
-#else
-#define NUM_BEI_SVS ( 0)
-#endif
-
-#define QZS_PRN_MIN (BEI_PRN_MIN+NUM_BEI_SVS)
-#ifdef ENAQZS
-#define NUM_QZS_SVS (19)
-#else
-#define NUM_QZS_SVS ( 0)
-#endif
-
-#define MAX_NUMSVS (NUM_GPS_SVS+NUM_GAL_SVS+NUM_GLO_SVS+NUM_SBS_SVS+NUM_IRN_SVS+NUM_BEI_SVS)
-
-typedef struct _fc32 { float r;   float i;   } fc32_t;
-
 typedef struct _sFauParams {
   /** DBZP parameters */
   uint32_t iSampMs;
@@ -187,11 +90,6 @@ typedef struct _acqResults_t {
   uint64_t uFirstLocIdx;    //! The first location of the signal used to acquire
 } acqResults_t;
 
-
-typedef enum {
-  SOFTMACQ_INIT_GPSL1CA, SOFTMACQ_INIT_GALE1BC, SOFTMACQ_INIT_GLOG1, SOFTMACQ_INIT_BEIB1,
-  SOFTMACQ_INIT_GPSL2C,  SOFTMACQ_INIT_GALE6BC, SOFTMACQ_INIT_GLOG2, SOFTMACQ_INIT_BEIB2
-} eFauType_t;
 
 /* you be careful when touching these things below >:| */
 #define NT1035_VCO1_FREQ              (1590000000)
@@ -231,6 +129,5 @@ typedef enum {
 
 #define SOFTMACQ_MAX_SPMS             (SOFTMACQ_RAW_SPMS / SOFTMACQ_DECFACT_GPSL1CA)
 #define SOFTMACQ_MAX_MS               (1+(SOFTMACQ_GPSL1CA_COHE*SOFTMACQ_GPSL1CA_NONC))
-#define SOFTMACQ_FREQFFT_SIZE         (64)
 
 #endif /* SOFT_MACQ_DEFINES_H_ */

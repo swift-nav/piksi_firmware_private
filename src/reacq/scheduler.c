@@ -333,10 +333,9 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
   job->start_time = timing_getms();
 
   peak_found = soft_multi_acq_search(job->mesid,
-                          acq_param->doppler_min_hz,
-                          acq_param->doppler_max_hz,
-                          acq_param->freq_bin_size_hz,
-                          &acq_result);
+                                     acq_param->doppler_min_hz,
+                                     acq_param->doppler_max_hz,
+                                     &acq_result);
 
   job->stop_time = timing_getms();
 

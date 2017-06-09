@@ -38,7 +38,6 @@ bool soft_multi_acq_search(
   const me_gnss_signal_t _sMeSid,
   float _fCarrFreqMin,
   float _fCarrFreqMax,
-  float cf_bin_width,
   acq_result_t *_psAcqResult);
 
 float soft_multi_acq_bin_width(void);

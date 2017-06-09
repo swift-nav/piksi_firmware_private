@@ -123,7 +123,7 @@ void ThreadManageSpecan(void *arg) {
 
 int SpecanStart(void) {
   uint32_t k;
-  const float fTwoPI = 2.0*3.14145;
+  const float fTwoPI = 2.0*M_PI;
 
   for (k=0; k<SPECAN_FFT_SIZE; k++) {
     /* uCoeff[k] = MIN(MIN(k+1, SPECAN_FFT_SIZE-k), 32); */
@@ -151,6 +151,9 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
   uint32_t uFftScale = 0x0;
   uint32_t uFftStartPt, uTraceStart=0;
   float fStartFreq;
+  const float fFrontEndSpms = NAP_FRONTEND_RAW_SAMPLE_RATE_Hz*0.001;
+  const float fFreqNco1 = 1590.000;
+  const float fFreqNco2 = 1235.000;
 
   switch (_uWhichBand) {
   case 1:
@@ -159,7 +162,7 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
       pBaseBand[k].i = 0;
     }
     uTraceStart = SPECAN_FFT_SIZE/2;
-    fStartFreq = 1590.000 - 99.375 / 2;
+    fStartFreq = fFreqNco1 - fFrontEndSpms / 2;
     break;
   case 2:
     for (k=0; k<SPECAN_GRABBER_LENGTH; k++) {
@@ -167,7 +170,7 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
       pBaseBand[k].i = 0;
     }
     uTraceStart = 0;
-    fStartFreq = 1590.000;
+    fStartFreq = fFreqNco1;
     break;
   case 3:
     for (k=0; k<SPECAN_GRABBER_LENGTH; k++) {
@@ -175,7 +178,7 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
       pBaseBand[k].i = 0;
     }
     uTraceStart = 0;
-    fStartFreq = 1235.000;
+    fStartFreq = fFreqNco2;
     break;
   case 4:
     for (k=0; k<SPECAN_GRABBER_LENGTH; k++) {
@@ -183,14 +186,14 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
       pBaseBand[k].i = 0;
     }
     uTraceStart = SPECAN_FFT_SIZE/2;
-    fStartFreq = 1235.000 - 99.375 / 2;
+    fStartFreq = fFreqNco2 - fFrontEndSpms / 2;
     break;
   default:
     break;
   }
 
   sTraceData.fStartFreq = fStartFreq;
-  sTraceData.fFreqStep = 99.375 / SPECAN_FFT_SIZE;
+  sTraceData.fFreqStep = fFrontEndSpms / SPECAN_FFT_SIZE;
 
 
   /* add abs(FFT) */

@@ -38,10 +38,10 @@ static bool raw_samples(u8 *out, u32 len_words, u32 *sample_count);
  *
  * \return Pointer to the beginning of the sample buffer.
  */
-u8* grab_samples(u32 *puLength, u32 *puSampleCount)
+u8* grab_samples(u32 *length, u32 *sample_count)
 {
-  *puLength = FIXED_GRABBER_LENGTH;
-  if (raw_samples(pRawGrabberBuffer, FIXED_GRABBER_LENGTH, puSampleCount)) {
+  *length = FIXED_GRABBER_LENGTH;
+  if (raw_samples(pRawGrabberBuffer, FIXED_GRABBER_LENGTH, sample_count)) {
     return pRawGrabberBuffer;
   }
   return NULL;
@@ -53,8 +53,8 @@ u8* grab_samples(u32 *puLength, u32 *puSampleCount)
  *
  * \return Pointer to the beginning of the sample buffer.
  */
-u8* GrabberGetBufferPt(u32 *puLength){
-  *puLength = FIXED_GRABBER_LENGTH;
+u8* GrabberGetBufferPt(u32 *length){
+  *length = FIXED_GRABBER_LENGTH;
   return (u8*) pRawGrabberBuffer;
 }
 
@@ -85,10 +85,8 @@ static void axi_dma_rx_callback(bool success)
  *
  * \param len_words      Number of words.
  */
-static void control_set_raw_samples(u32 len_bytes)
+static void control_set_raw_samples( void )
 {
-  (void)len_bytes;
-
   NAP->ACQ_CONTROL =
       (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
       (0                                  << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
@@ -127,7 +125,7 @@ static void dma_start(const u8 *in, u8 *out, u32 len_bytes)
   assert(!((u32)out & (GRABBER_BUFFER_ALIGN - 1)));
   assert(!((u32)len_bytes & (GRABBER_LENGTH_ALIGN - 1)));
 
-  if (in != 0) {
+  if (in != NULL) {
     /* Ensure that input accesses have completed */
     DATA_MEMORY_BARRIER();
 
@@ -171,14 +169,14 @@ static u32 sample_stream_snapshot_get(void)
 /** Retrieve a buffer of raw samples.
  *
  * \param out             Output buffer.
- * \param len_words       Number of words.
+ * \param len_bytes       Number of bytes.
  * \param sample_count    Output sample count of the first sample used.
  *
  * \return True if the samples were successfully retrieved, false otherwise.
  */
 static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count)
 {
-  control_set_raw_samples(len_bytes);
+  control_set_raw_samples();
   sample_stream_start();
   dma_start(0, (u8 *)out, len_bytes);
   bool result = dma_wait();

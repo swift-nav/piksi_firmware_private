@@ -81,15 +81,12 @@ bool soft_multi_acq_search(
   const me_gnss_signal_t _sMeSid,
   float _fCarrFreqMin,
   float _fCarrFreqMax,
-  float cf_bin_width,
   acq_result_t *_psAcqResult)
 {
   uint32_t uTag=0, uBuffLength=0;
   uint64_t uCurrTimeTag;
   /** sanity checking input parameters */
   assert(NULL != _psAcqResult);
-
-  (void) cf_bin_width;
 
   if (!bModuleInit) {
     InitBBConvLut();
@@ -178,7 +175,6 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
     uDecFactor = SOFTMACQ_DECFACT_GPSL1CA;
     iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
     uNcoStep = CirclesToUint32((double) SOFTMACQ_FC_GPSL1 / (double) SOFTMACQ_RAW_FS);
-    /*log_info("BbMixAndDecimate() uDecFactor %u iSamplesMs %d uNcoStep %u", uDecFactor, iSamplesMs, uNcoStep);*/
 
     for (k=0, uNco=0; k<SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
       uSample = ((puSampleBuf[k] >> 0) & 0x3) << BBNCO_CARRPH_BITS;   /** two LSBs are Channel 1 */
@@ -197,7 +193,6 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
     uDecFactor = SOFTMACQ_DECFACT_GLOG1;
     iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
     uNcoStep = CirclesToUint32((double) (SOFTMACQ_FC_GLOG1+(_sMeSid.sat-8)*SOFTMACQ_GLOG1_FOFF) / (double) SOFTMACQ_RAW_FS);
-    /*log_info("FCN%02d uDecFactor %u iSamplesMs %d uNcoStep %u", _sMeSid.sat, uDecFactor, iSamplesMs, uNcoStep);*/
 
     for (k=0, h=0, uNco=0; k<SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
       uSample = ((puSampleBuf[k] >> 2) & 0x3) << BBNCO_CARRPH_BITS;   /** B3..2 are Channel 2 */
