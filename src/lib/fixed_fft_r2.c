@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2017 Swift Navigation Inc.
  * Contact: Michele Bavaro <michele@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -94,26 +94,20 @@ void DoFwdIntFFTr2(intFFTr2_t *pIntFFT, sc16_t *_x, uint32_t _uScale, int _iShuf
     if (_bsize > 2) {
       if ((_uScale>>(2*cnt))&0x3) {
         RankF2p(a, b, w, nBlocks, _bsize);
-        //fprintf(stderr, "RankF2p\n");
       } else {
         RankF2pN(a, b, w, nBlocks, _bsize);
-        //fprintf(stderr, "RankF2pN\n");
       }
     } else if (_bsize > 1) {
       if ((_uScale>>(2*cnt))&0x3) {
         RankF1(a, b, nBlocks);
-        //fprintf(stderr, "RankF1\n");
       } else {
         RankF1N(a, b, nBlocks);
-        //fprintf(stderr, "RankF1N\n");
       }
     } else {
       if ((_uScale>>(2*cnt))&0x3) {
         Rank0(a, b, nBlocks);
-        //fprintf(stderr, "Rank0\n");
       } else {
         Rank0N(a, b, nBlocks);
-        //fprintf(stderr, "Rank0N\n");
       }
     }
 
