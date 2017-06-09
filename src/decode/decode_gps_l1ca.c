@@ -454,8 +454,9 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   /* Check if there is a new nav msg subframe to process. */
-  if (!subframe_ready(&data->nav_msg))
+  if (!subframe_ready(&data->nav_msg)) {
     return;
+  }
 
   /* Decode nav data to temporary structure */
   gps_l1ca_decoded_data_t dd;
@@ -491,7 +492,12 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     shm_gps_set_shi1(sid.sat, dd.shi1);
   }
 
-  if (dd.gps_l2c_sv_capability_upd_flag && shm_navigation_suitable(sid)) {
+  /* Let's not use data from unhealthy satellite. */
+  if (shm_navigation_unusable(sid)) {
+    return;
+  }
+
+  if (dd.gps_l2c_sv_capability_upd_flag) {
     /* store new L2C value into NDB */
     if (ndb_gps_l2cm_l2c_cap_store(&sid,
                                    &dd.gps_l2c_sv_capability,
@@ -502,7 +508,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
   }
 
-  if (dd.iono_corr_upd_flag && shm_navigation_suitable(sid)) {
+  if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
     if (check_iono_timestamp(sid, &dd.iono) &&
         (ndb_iono_corr_store(&sid,
@@ -513,7 +519,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     }
   }
 
-  if (dd.utc_params_upd_flag && shm_navigation_suitable(sid)) {
+  if (dd.utc_params_upd_flag) {
     /* store new utc parameters */
     if (ndb_utc_params_store(&sid,
                              &dd.utc,
