@@ -82,8 +82,6 @@ static void axi_dma_rx_callback(bool success)
 }
 
 /** Set the ACQ control register for raw samples input.
- *
- * \param len_words      Number of words.
  */
 static void control_set_raw_samples( void )
 {
