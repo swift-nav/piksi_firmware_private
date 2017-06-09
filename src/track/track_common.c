@@ -982,6 +982,7 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
 static void tp_tracker_flag_outliers(const tracker_channel_info_t *channel_info,
                                      tracker_common_data_t *common_data) {
   const float fMaxDoppler = +10e3;
+  (void) channel_info;
   /* TODO: one day remove the comment below if you prefer that FW checks
    * for all possible values of 'code' in two functions rather than
    * for an immediate parameter like this */
