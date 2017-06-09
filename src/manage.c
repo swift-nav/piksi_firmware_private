@@ -580,7 +580,7 @@ static void manage_acq()
   acq_result_t acq_result;
   if (soft_multi_acq_search(acq->mesid,
                             acq->dopp_hint_low, acq->dopp_hint_high,
-                            ACQ_FULL_CF_STEP, &acq_result)) {
+                            &acq_result)) {
 
     /* Send result of an acquisition to the host. */
     acq_result_send(acq->mesid, acq_result.cn0, acq_result.cp, acq_result.cf);
