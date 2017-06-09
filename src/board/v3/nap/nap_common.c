@@ -47,7 +47,7 @@ void nap_setup(void)
 {
   nap_track_n_channels = (NAP->STATUS & NAP_STATUS_TRACKING_CH_Msk) >>
                           NAP_STATUS_TRACKING_CH_Pos;
-  nap_track_n_channels = MIN(nap_track_n_channels, NAP_MAX_N_TRACK_CHANNELS);
+  nap_track_n_channels = 1;//MIN(nap_track_n_channels, NAP_MAX_N_TRACK_CHANNELS);
 
   /* Configure ACP AXI attributes to match page table. */
   NAP->ACQ_AXI_ATTRIBUTES = ( 0b1111 << NAP_ACQ_AXI_ATTRIBUTES_ARCACHE_Pos) |

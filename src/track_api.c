@@ -329,7 +329,7 @@ bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms)
   s32 next_bit_phase = internal_data->bit_sync.bit_phase + int_ms;
   next_bit_phase %= internal_data->bit_sync.bit_length;
 
-  return (next_bit_phase == internal_data->bit_sync.bit_phase_ref);
+   return (next_bit_phase == internal_data->bit_sync.bit_phase_ref);
 }
 
 /** Sets a channel's carrier phase ambiguity to unknown.

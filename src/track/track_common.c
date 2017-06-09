@@ -26,6 +26,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#include <inttypes.h>
 
 /** False lock detector filter interval in ms. */
 #define TP_TRACKER_ALIAS_DURATION_MS   (1000)
@@ -348,6 +349,23 @@ static void profile_change_init(const tracker_channel_info_t *channel_info,
   u8 next_cycle = tp_next_cycle_counter(data->tracking_mode, data->cycle_no);
   u32 next_cycle_flags = tp_get_cycle_flags(data->tracking_mode, next_cycle);
 
+  if (40 == tp_get_cycle_count(data->tracking_mode)) {
+    static int cnt = 0;
+
+    if (cnt < 40) {
+  tracker_context_t *context = channel_info->context;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  s32 bit_phase = internal_data->bit_sync.bit_phase;
+  bit_phase %= internal_data->bit_sync.bit_length;
+
+  log_info("bit_phase = %d, next_cycle = %d", bit_phase, (int)next_cycle);
+  cnt++;
+  }
+
+  }
+
   if (0 == (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
     return;
   }
@@ -359,6 +377,27 @@ static void profile_change_init(const tracker_channel_info_t *channel_info,
 
   data->profile_change_required =
     tp_profile_change_required(channel_info->mesid, &data->profile);
+
+  if (data->profile_change_required) {
+
+
+{
+  tracker_context_t *context = channel_info->context;
+  u32 int_ms = bit_ms;
+
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  s32 next_bit_phase = internal_data->bit_sync.bit_phase + int_ms;
+  next_bit_phase %= internal_data->bit_sync.bit_length;
+
+  bool aligned = (next_bit_phase == internal_data->bit_sync.bit_phase_ref);
+  if (aligned)
+  log_info("next_bit_phase = %d, int_ms =%d, next_cycle = %d flags = 0x%X",
+           next_bit_phase, int_ms, (int)next_cycle, next_cycle_flags);
+}
+
+  }
 }
 
 /**
@@ -392,6 +431,14 @@ static void profile_change_complete(const tracker_channel_info_t *channel_info,
                                /* init = */ false);
   /* Indicate that a mode change has occurred. */
   common_data->mode_change_count = common_data->update_count;
+
+{
+  tracker_context_t *context = channel_info->context;
+  tracker_internal_data_t *internal_data;
+  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+
+  log_info("profile change complete: bit_phase = %d", internal_data->bit_sync.bit_phase);
+}
 }
 
 /**
@@ -520,10 +567,10 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
 
     if (data->lock_detect.outp) {
       log_warn_mesid(channel_info->mesid,
-                     "False phase lock detected: %f", err);
+                     "False phase lock detected: %" PRId32 " Hz", err);
     } else {
       log_debug_mesid(channel_info->mesid,
-                      "False optimistic lock detected: %f", err);
+                      "False optimistic lock detected: %" PRId32 " Hz", err);
     }
 
     tracker_ambiguity_unknown(channel_info->context);

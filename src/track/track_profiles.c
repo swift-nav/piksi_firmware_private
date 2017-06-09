@@ -380,7 +380,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
                  TP_TM_1MS,     TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,             43,           0,            1.5,                      0,
       IDX_VERY_HIGH_CN0, IDX_HIGH_CN0, IDX_NONE, IDX_HIGH_CN0_DYN,     IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT },
+      TP_LOW_CN0 /* | TP_USE_NEXT  */},
 
   /* high range CN0 profile */
   [IDX_HIGH_CN0] =
@@ -388,7 +388,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
                 TP_TM_5MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
         50,            38,           46,             2.,                      0,
       IDX_HIGH_CN0, IDX_MID_CN0, IDX_VERY_HIGH_CN0, IDX_HIGH_CN0_DYN,  IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
+      /* TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN |  */TP_USE_NEXT },
 
   /* middle range CN0 profile */
   [IDX_MID_CN0] =
