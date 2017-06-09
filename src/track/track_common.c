@@ -981,9 +981,14 @@ void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
  */
 static void tp_tracker_flag_outliers(const tracker_channel_info_t *channel_info,
                                      tracker_common_data_t *common_data) {
-  float fMaxDoppler =
+  const float fMaxDoppler = +10e3;
+  /* TODO: one day remove the comment below if you prefer that FW checks
+   * for all possible values of 'code' in two functions rather than
+   * for an immediate parameter like this */
+  /*
     code_to_sv_doppler_max(channel_info->mesid.code) +
     code_to_tcxo_doppler_max(channel_info->mesid.code);
+  */
 
   /* remove channels with a large positive Doppler outlier */
   if ( fabsf(common_data->carrier_freq) >  fMaxDoppler ) {
