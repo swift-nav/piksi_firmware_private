@@ -30,7 +30,6 @@
 
 #include "main.h"
 #include "board/nap/track_channel.h"
-#include "board/acq.h"
 #include "ephemeris.h"
 #include "track.h"
 #include "decode.h"
@@ -48,6 +47,7 @@
 #include "dum.h"
 #include "reacq/reacq_api.h"
 #include "track/track_sid_db.h"
+#include "soft_macq/soft_macq_main.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
@@ -578,8 +578,9 @@ static void manage_acq()
   }
 
   acq_result_t acq_result;
-  if (acq_search(acq->mesid, acq->dopp_hint_low, acq->dopp_hint_high,
-                 ACQ_FULL_CF_STEP, &acq_result)) {
+  if (soft_multi_acq_search(acq->mesid,
+                            acq->dopp_hint_low, acq->dopp_hint_high,
+                            ACQ_FULL_CF_STEP, &acq_result)) {
 
     /* Send result of an acquisition to the host. */
     acq_result_send(acq->mesid, acq_result.cn0, acq_result.cp, acq_result.cf);
