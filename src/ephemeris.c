@@ -101,9 +101,11 @@ bool xcorr_calc_eph_positions(const ephemeris_t *e,
   }
 
   double _[3];
-  calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _);
-  calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _);
-  calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _);
+  u8 iode;
+  u16 iodc;
+  calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _, &iodc, &iode);
   pos->time_s = time_s;
   pos->interval_s = interval_s;
   return true;
