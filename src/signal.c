@@ -275,13 +275,9 @@ float code_to_tcxo_doppler_min(code_t code)
   assert(code_valid(code));
 
   float doppler;
-  if (CODE_GPS_L1CA == code) {
-    doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
-  } else if (CODE_GLO_L1CA == code) {
-    doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
-  } else {
-    assert(!"Unsupported code");
-  }
+
+  /* use worst case Doppler */
+  doppler = -TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
 
   return doppler;
 }
@@ -296,13 +292,9 @@ float code_to_tcxo_doppler_max(code_t code)
   assert(code_valid(code));
 
   float doppler;
-  if (CODE_GPS_L1CA == code) {
-    doppler = TCXO_FREQ_OFFSET_MAX_PPM * GPS_L1_TCXO_PPM_TO_HZ;
-  } else if (CODE_GLO_L1CA == code) {
-    doppler = TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
-  } else {
-    assert(!"Unsupported code");
-  }
+
+  /* use worst case Doppler */
+  doppler = TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
 
   return doppler;
 }

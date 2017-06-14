@@ -68,6 +68,9 @@ typedef struct {
 #define TRACK_CMN_FLAG_L2CL_AMBIGUITY (1 << 13)
 /** Tracker flag: tracker has decoded health information */
 #define TRACK_CMN_FLAG_HEALTH_DECODED (1 << 14)
+/** Tracker flag: Doppler outlier */
+#define TRACK_CMN_FLAG_OUTLIER        (1 << 15)
+
 /** Sticky flags mask */
 #define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
                                     TRACK_CMN_FLAG_HAD_FLOCK | \
@@ -77,6 +80,7 @@ typedef struct {
                                     TRACK_CMN_FLAG_XCORR_SUSPECT | \
                                     TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE | \
                                     TRACK_CMN_FLAG_L2CL_AMBIGUITY | \
+                                    TRACK_CMN_FLAG_OUTLIER | \
                                     TRACK_CMN_FLAG_HEALTH_DECODED)
 
 /**
