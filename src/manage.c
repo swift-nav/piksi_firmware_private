@@ -881,7 +881,7 @@ static bool leap_second_is_imminent(void)
    * If GPS time is not known,
    * leap second event cannot be detected. */
   time_quality_t tq = get_time_quality();
-  if (TIME_UNKNOWN != tq) {
+  if (TIME_UNKNOWN == tq) {
     return false;
   }
 
