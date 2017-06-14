@@ -22,7 +22,6 @@
 #include "main.h"
 #include "board/nap/nap_common.h"
 #include "nap/nap_conf.h"
-#include "nap/fft.h"
 #include "sbp.h"
 #include "error.h"
 #include "frontend.h"

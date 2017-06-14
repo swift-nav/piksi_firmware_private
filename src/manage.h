@@ -18,7 +18,7 @@
 #include <libswiftnav/signal.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/track.h>
-#include "board/acq.h"
+#include "soft_macq/soft_macq_main.h"
 
 /** \addtogroup manage
  * \{ */
@@ -58,7 +58,7 @@
  * stabilize after any mode change before using obs. */
 #define TRACK_STABILIZATION_T 1000
 
-#define ACQ_FULL_CF_STEP  acq_bin_width()
+#define ACQ_FULL_CF_STEP  soft_multi_acq_bin_width()
 
 #define MANAGE_NO_CHANNELS_FREE 255
 
