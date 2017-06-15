@@ -16,8 +16,8 @@
 #include <libsbp/system.h>
 #include <libswiftnav/logging.h>
 
+#include "me_calc_pvt.h"
 #include <hal.h>
-#include <ch.h>
 
 #include "peripherals/leds.h"
 #include "io_support.h"
@@ -29,7 +29,6 @@
 #include "track.h"
 #include "timing.h"
 #include "ext_events.h"
-#include "me_calc_pvt.h"
 #include "starling_calc_pvt.h"
 #include "base_obs.h"
 #include "position.h"

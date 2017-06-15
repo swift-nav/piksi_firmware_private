@@ -145,6 +145,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/timing.o \
         $(SWIFTNAV_ROOT)/src/ext_events.o \
         $(SWIFTNAV_ROOT)/src/position.o \
+        $(SWIFTNAV_ROOT)/src/common_calc_pvt.o \
         $(SWIFTNAV_ROOT)/src/starling_calc_pvt.o \
         $(SWIFTNAV_ROOT)/src/me_calc_pvt.o \
         $(SWIFTNAV_ROOT)/src/base_obs.o \

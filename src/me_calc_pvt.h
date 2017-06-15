@@ -13,7 +13,6 @@
 #ifndef ME_CALC_PVT_H
 #define ME_CALC_PVT_H
 
-#include <ch.h>
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
@@ -21,6 +20,10 @@
 #include <libswiftnav/track.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
+
+#define memory_pool_t MemoryPool
+#include <ch.h>
+#undef memory_pool_t
 
 typedef struct {
   u8 signals_tracked;
@@ -36,9 +39,14 @@ typedef struct {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define OBS_N_BUFF 60
+#define OBS_N_BUFF 2
 
 #define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
+
+extern u32 obs_output_divisor;
+
+extern MemoryPool obs_buff_pool;
+extern mailbox_t  obs_mailbox;
 
 soln_stats_t solution_last_stats_get(void);
 soln_pvt_stats_t solution_last_pvt_stats_get(void);

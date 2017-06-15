@@ -26,21 +26,18 @@
 #include <libswiftnav/troposphere.h>
 #include <libswiftnav/sid_set.h>
 
-#define memory_pool_t MemoryPool
-#include <ch.h>
-#undef memory_pool_t
+#include "me_calc_pvt.h"
+
 
 #include "peripherals/leds.h"
 #include "position.h"
 #include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "me_calc_pvt.h"
 #include "manage.h"
-#include "simulator.h"
+
 #include "settings.h"
 #include "timing.h"
-#include "base_obs.h"
 #include "ephemeris.h"
 #include "signal.h"
 #include "system_monitor.h"
@@ -48,17 +45,13 @@
 #include "cnav_msg_storage.h"
 #include "ndb.h"
 #include "shm.h"
+#include "common_calc_pvt.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
-
-/** Max position accuracy we allow to output a SPP solution */
-#define MAX_SPP_ACCURACY_M 100.0
-/** Max velocity accuracy we allow to output a SPP solution */
-#define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
 
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
@@ -74,184 +67,45 @@
 #define MINIMUM_SV_COUNT 5
 
 MemoryPool obs_buff_pool;
-mailbox_t obs_mailbox;
-
-MUTEX_DECL(time_matched_iono_params_lock);
-bool has_time_matched_iono_params = false;
-static ionosphere_t time_matched_iono_params;
-
-MUTEX_DECL(last_sbp_lock);
-gps_time_t last_dgnss;
-gps_time_t last_spp;
+mailbox_t  obs_mailbox;
 
 double soln_freq = 5.0;
-u32 max_age_of_differential = 30;
 u32 obs_output_divisor = 1;
 
-double known_baseline[3] = {0, 0, 0};
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
-bool disable_raim = false;
-bool send_heading = false;
+typedef struct __attribute__((packed)) {
+  observation_header_t header;
+  packed_obs_content_t obs[MAX_CHANNELS];
+} me_msg_obs_t;
 
-double heading_offset = 0.0;
 
-bool disable_klobuchar = false;
+static bool disable_raim = false;
 
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 
+
+/* RFT_TODO *
+ * check that Klobuchar is used in SPP solver */
+
 /* STATIC FUNCTIONS */
-static void extract_covariance(double full_covariance[9],
-                               double vel_covariance[9],
-                               const gnss_solution *soln);
-static double calc_heading(const double b_ned[3]);
 
-
-
-/** Extract the full covariance matrices from soln struct */
-static void extract_covariance(double full_covariance[9], double vel_covariance[9],
-                        const gnss_solution *soln) {
-
-  assert(soln != NULL);
-  assert(full_covariance != NULL);
-  assert(vel_covariance != NULL);
-
-/* soln->cov_err has the covariance in upper triangle covariance form, so
- * copy from
- *
- *    0  1  2       0  1  2
- *    _  3  4   to  3  4  5
- *    _  _  5       6  7  8  */
-
-  full_covariance[0] = soln->err_cov[0];
-  full_covariance[1] = soln->err_cov[1];
-  full_covariance[2] = soln->err_cov[2];
-  full_covariance[3] = soln->err_cov[1];
-  full_covariance[4] = soln->err_cov[3];
-  full_covariance[5] = soln->err_cov[4];
-  full_covariance[6] = soln->err_cov[2];
-  full_covariance[7] = soln->err_cov[4];
-  full_covariance[8] = soln->err_cov[5];
-
-  vel_covariance[0] = soln->vel_cov[0];
-  vel_covariance[1] = soln->vel_cov[1];
-  vel_covariance[2] = soln->vel_cov[2];
-  vel_covariance[3] = soln->vel_cov[1];
-  vel_covariance[4] = soln->vel_cov[3];
-  vel_covariance[5] = soln->vel_cov[4];
-  vel_covariance[6] = soln->vel_cov[2];
-  vel_covariance[7] = soln->vel_cov[4];
-  vel_covariance[8] = soln->vel_cov[5];
-
-}
-
-
-
-static double calc_heading(const double b_ned[3])
+static void me_post_observations(u8 n,
+                                 const navigation_measurement_t m[],
+                                 const gps_time_t *t,
+                                 const gnss_solution *soln )
 {
-  double heading = atan2(b_ned[1], b_ned[0]);
-  if (heading < 0) {
-    heading += 2 * M_PI;
-  }
-  return heading * R2D;
-}
-
-
-static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
-  PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
-  if (filter_manager_is_initialized(filter_manager)) {
-    ret = filter_manager_update(filter_manager);
-    if (ret != PVT_ENGINE_SUCCESS) {
-      detailed_log_info("Skipping filter update with ret = %d", ret);
-    }
-  } else {
-    detailed_log_info("Filter not initialized.");
-  }
-  return ret;
-}
-
-static PVT_ENGINE_INTERFACE_RC get_baseline(
-    const FilterManager *filter_manager, const bool use_time_matched_baseline,
-    dops_t *dops, rtk_baseline_result_t *result) {
-  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
-
-  get_baseline_ret = filter_manager_get_result(
-      filter_manager, use_time_matched_baseline, result);
-
-  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-    *dops = filter_manager_get_dop_values(filter_manager);
-  } else {
-    detailed_log_info("Baseline calculation failed");
-  }
-  return get_baseline_ret;
-}
-
-static void send_observations(u8 n, const navigation_measurement_t m[],
-                              const gps_time_t *t)
-{
-  static u8 buff[256];
-
-  if ((0 == n) || (NULL==m) || (NULL==t)) {
-    gps_time_t t_dummy = GPS_TIME_UNKNOWN;
-    pack_obs_header(&t_dummy, 1, 0, (observation_header_t*) buff);
-    sbp_send_msg(SBP_MSG_OBS,
-                 sizeof(observation_header_t),
-                 buff);
-    return;
-  }
-
-  /* Upper limit set by SBP framing size, preventing underflow */
-  u16 msg_payload_size = MAX(
-      MIN((u16)MAX(msg_obs_max_size, 0), SBP_FRAMING_MAX_PAYLOAD_SIZE),
-      sizeof(observation_header_t)
-    ) - sizeof(observation_header_t);
-
-  /* Lower limit set by sending at least 1 observation */
-  msg_payload_size = MAX(msg_payload_size, sizeof(packed_obs_content_t));
-
-  /* Round down the number of observations per message */
-  u16 obs_in_msg = msg_payload_size / sizeof(packed_obs_content_t);
-
-  /* Round up the number of messages */
-  u16 total = MIN((n + obs_in_msg - 1) / obs_in_msg,
-                  MSG_OBS_HEADER_MAX_SIZE);
-
-  u8 obs_i = 0;
-  for (u8 count = 0; count < total && obs_i < n; count++) {
-    u8 curr_n = MIN(n - obs_i, obs_in_msg);
-    pack_obs_header(t, total, count, (observation_header_t*) buff);
-    packed_obs_content_t *obs = (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
-
-    for (u8 i = 0; i < obs_in_msg && obs_i < n; i++) {
-      if (pack_obs_content(m[obs_i].raw_pseudorange,
-                           m[obs_i].raw_carrier_phase,
-                           m[obs_i].raw_measured_doppler,
-                           m[obs_i].cn0,
-                           m[obs_i].lock_time,
-                           m[obs_i].flags,
-                           m[obs_i].sid,
-                           &obs[i]) >= 0) {
-        /* Packed. */
-        obs_i++;
-      }
-    }
-
-    sbp_send_msg(SBP_MSG_OBS,
-          sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
-          buff);
-  }
-}
-
-static void post_observations(u8 n, const navigation_measurement_t m[],
-                              const gps_time_t *t, const gnss_solution *soln )
-{
+  (void) n;
+  (void) m;
+  (void) t;
+  (void) soln;
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obss_t *obs = chPoolAlloc(&obs_buff_pool);
+  me_msg_obs_t *obs = chPoolAlloc(&obs_buff_pool);
   msg_t ret;
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
@@ -262,26 +116,10 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
     }
   }
   if (NULL != obs) {
-    obs->tor = *t;
-    obs->n = n;
-    for (u8 i = 0, cnt = 0; i < n; ++i) {
-      obs->nm[cnt++] = m[i];
-    }
-    if (soln->valid > 0) {
-      obs->pos_ecef[0] = soln->pos_ecef[0];
-      obs->pos_ecef[1] = soln->pos_ecef[1];
-      obs->pos_ecef[2] = soln->pos_ecef[2];
-      obs->has_pos = true;
-    } else {
-      obs->has_pos = false;
-    }
+    /* RFT_TODO *
+     * rewrite the obs filling and send to Starling
+     * */
 
-    if (soln){
-      obs->soln = *soln;
-    } else {
-      obs->soln.valid = 0;
-      obs->soln.velocity_valid = 0;
-    }
 
     ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
@@ -292,51 +130,6 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
        * */
       log_error("Mailbox should have space!");
       chPoolFree(&obs_buff_pool, obs);
-    }
-  }
-}
-
-static void solution_simulation(sbp_messages_t *sbp_messages)
-{
-  simulation_step();
-
-  /* TODO: The simulator's handling of time is a bit crazy. This is a hack
-   * for now but the simulator should be refactored so that it can give the
-   * exact correct solution time output without this nonsense. */
-  gnss_solution *soln = simulation_current_gnss_solution();
-
-  if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    solution_make_sbp(soln, simulation_current_dops_solution(), FALSE, sbp_messages);
-  }
-
-  if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-      simulation_enabled_for(SIMULATION_MODE_RTK)) {
-
-    u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION : FLOAT_POSITION;
-
-    rtk_baseline_result_t result = {
-        .result_time = soln->time,
-        .num_sats_used = simulation_current_num_sats(),
-        .num_sigs_used = 0,
-        .flags = flags,
-        .has_known_reference_pos = true,
-        .propagation_time = 0.0,
-    };
-    memcpy(result.baseline, simulation_current_baseline_ecef(),
-           sizeof(result.baseline));
-    memcpy(result.covariance, simulation_current_covariance_ecef(),
-           sizeof(result.covariance));
-    memcpy(result.known_reference_pos, simulation_ref_ecef(),
-           sizeof(result.known_reference_pos));
-
-    solution_make_baseline_sbp(&result, simulation_ref_ecef(),
-                               simulation_current_dops_solution(),
-                               sbp_messages);
-
-    double t_check = soln->time.tow * (soln_freq / obs_output_divisor);
-    if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-      send_observations(simulation_current_num_sats(),
-          simulation_current_navigation_measurements(), &(soln->time));
     }
   }
 }
@@ -481,54 +274,13 @@ static void collect_measurements(u64 rec_tc,
   *pn_total = n_active;
 }
 
-void sbp_messages_init(sbp_messages_t *sbp_messages){
-  sbp_init_gps_time(&sbp_messages->gps_time);
-  sbp_init_utc_time(&sbp_messages->utc_time);
-  sbp_init_pos_llh(&sbp_messages->pos_llh);
-  sbp_init_pos_ecef(&sbp_messages->pos_ecef);
-  sbp_init_vel_ned(&sbp_messages->vel_ned);
-  sbp_init_vel_ecef(&sbp_messages->vel_ecef);
-  sbp_init_sbp_dops(&sbp_messages->sbp_dops);
-  sbp_init_age_corrections(&sbp_messages->age_corrections);
-  sbp_init_dgnss_status(&sbp_messages->dgnss_status);
-  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef);
-  sbp_init_baseline_ned(&sbp_messages->baseline_ned);
-  sbp_init_baseline_heading(&sbp_messages->baseline_heading);
-}
-
-bool gate_covariance(gnss_solution *soln) {
-  assert(soln != NULL);
-  double full_covariance[9];
-  double vel_covariance[9];
-  extract_covariance(full_covariance, vel_covariance, soln);
-
-  double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(full_covariance, soln->pos_ecef,
-                         &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_ACCURACY_M) {
-    log_warn("SPP Position suppressed due to position confidence of %.1f exceeding %.0f m",
-             accuracy, MAX_SPP_ACCURACY_M);
-    return true;
-  }
-  covariance_to_accuracy(vel_covariance, soln->pos_ecef,
-                         &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
-    log_warn("SPP Position suppressed due to velocity confidence of %.1f exceeding %.0f m/s",
-             accuracy, MAX_SPP_VEL_ACCURACY_M_PER_S);
-    return true;
-  }
-  return false;
-}
-
-static THD_WORKING_AREA(wa_me_calc_pvt_thread, 5000000);
+static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024*1024);
 static void me_calc_pvt_thread(void *arg)
 {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
 
   systime_t deadline = chVTGetSystemTime();
-
-  sbp_messages_t sbp_messages;
 
   bool clock_jump = FALSE;
   last_good_fix_t lgf;
@@ -539,14 +291,6 @@ static void me_calc_pvt_thread(void *arg)
 
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
     watchdog_notify(WD_NOTIFY_SOLUTION);
-
-    // Init the messages we want to send
-    sbp_messages_init(&sbp_messages);
-
-    /* Here we do all the nice simulation-related stuff. */
-    if (simulation_enabled()) {
-      solution_simulation(&sbp_messages);
-    }
 
     // Take the current nap count
     u64 current_tc = nap_timing_count();
@@ -611,18 +355,12 @@ static void me_calc_pvt_thread(void *arg)
               " (total=%" PRIu8 ")", n_ready, n_inview, n_total);
 
     /* Update stats */
-    if (simulation_enabled_for(SIMULATION_MODE_TRACKING)) {
-      u8 sim_sats = simulation_current_num_sats();
-      last_stats.signals_tracked = sim_sats;
-      last_stats.signals_useable = sim_sats;
-    } else {
-      last_stats.signals_tracked = n_total;
-      last_stats.signals_useable = n_ready;
-    }
+    last_stats.signals_tracked = n_total;
+    last_stats.signals_useable = n_ready;
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
-      send_observations(0, NULL, NULL);
+      send_observations(0, msg_obs_max_size, NULL, NULL);
       continue;
     }
 
@@ -660,7 +398,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
-      send_observations(0, NULL, NULL);
+      send_observations(0, msg_obs_max_size, NULL, NULL);
       continue;
     }
 
@@ -668,7 +406,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (sc_ret != 0) {
        log_error("calc_sat_clock_correction() returned an error");
-       send_observations(0, NULL, NULL);
+       send_observations(0, msg_obs_max_size, NULL, NULL);
        continue;
      }
 
@@ -720,7 +458,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
-      send_observations(0, NULL, NULL);
+      send_observations(0, msg_obs_max_size, NULL, NULL);
       continue;
     }
 
@@ -764,7 +502,7 @@ static void me_calc_pvt_thread(void *arg)
        * continuing to process this epoch - send out solution and observation
        * failed messages if not in time matched mode
        */
-      send_observations(0, NULL, NULL);
+      send_observations(0, msg_obs_max_size, NULL, NULL);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -802,7 +540,7 @@ static void me_calc_pvt_thread(void *arg)
        */
       set_time_fine(rec_tc, current_fix.time);
       clock_jump = TRUE;
-      send_observations(0, NULL, NULL);
+      send_observations(0, msg_obs_max_size, NULL, NULL);
 
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
@@ -820,13 +558,9 @@ static void me_calc_pvt_thread(void *arg)
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
-    if (!simulation_enabled()) {
-      /* Output solution. */
+    /* FXIME: Output solution. */
 
-      bool disable_velocity = clock_jump ||
-                              (current_fix.velocity_valid == 0);
-      solution_make_sbp(&current_fix, &dops, disable_velocity, &sbp_messages);
-    }
+
 
     /*
      * We need to correct our pseudorange and create a new one that is valid for
@@ -919,14 +653,18 @@ static void me_calc_pvt_thread(void *arg)
       /* Also only output observations once our receiver clock is
        * correctly set. */
       double t_check = new_obs_time.tow * (soln_freq / obs_output_divisor);
-      if (!simulation_enabled() &&
+      if (1 &&
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
         /* Post the observations to the mailbox. */
-        post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
+        me_post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
+
+        /* RFT_TODO *
+         * post to time_matched too
+         * */
 
         /* Send the observations. */
-        send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
+        send_observations(n_ready_tdcp, msg_obs_max_size, nav_meas_tdcp, &new_obs_time);
       }
     }
 
@@ -980,68 +718,22 @@ soln_pvt_stats_t solution_last_pvt_stats_get(void)
   return last_pvt_stats;
 }
 
-/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static bool heading_offset_changed(struct setting *s, const char *val)
-{
-  double offset;
-  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  if (fabs(offset) > 180.0) {
-    log_error("Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, leaving heading offset at %3.1f",
-              offset, 180.0, -180.0, heading_offset);
-    ret = false;
-  }
-  *(double*)s->addr = offset;
-  return ret;
-}
 
 
 void me_calc_pvt_setup()
 {
-  /* Set time of last differential solution in the past. */
-  last_dgnss = GPS_TIME_UNKNOWN;
-  last_spp = GPS_TIME_UNKNOWN;
 
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
 
-  static const char const *dgnss_soln_mode_enum[] = {
-    "Low Latency",
-    "Time Matched",
-    "No DGNSS",
-    NULL
-  };
-  static struct setting_type dgnss_soln_mode_setting;
-  int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(dgnss_soln_mode_enum,
-                                                        &dgnss_soln_mode_setting);
-
-  static const char const *dgnss_filter_enum[] = {
-    "Float",
-    "Fixed",
-    NULL
-  };
-  static struct setting_type dgnss_filter_setting;
-  int TYPE_GNSS_FILTER = settings_type_register_enum(dgnss_filter_enum,
-                                                     &dgnss_filter_setting);
-
-
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
-
-  SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
-  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
-  SETTING_NOTIFY("solution", "heading_offset", heading_offset, TYPE_FLOAT, heading_offset_changed);
-
-  SETTING("solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
 
   nmea_setup();
 
   static msg_t obs_mailbox_buff[OBS_N_BUFF];
   chMBObjectInit(&obs_mailbox, obs_mailbox_buff, OBS_N_BUFF);
-  chPoolObjectInit(&obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t obs_buff[OBS_N_BUFF] _CCM;
+  chPoolObjectInit(&obs_buff_pool, sizeof(me_msg_obs_t), NULL);
+  static me_msg_obs_t obs_buff[OBS_N_BUFF] _CCM;
   chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
 
   /* Start solution thread */

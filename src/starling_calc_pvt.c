@@ -48,6 +48,9 @@
 #include "cnav_msg_storage.h"
 #include "ndb.h"
 #include "shm.h"
+#include "common_calc_pvt.h"
+#include "me_calc_pvt.h"
+
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -55,10 +58,6 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-/** Max position accuracy we allow to output a SPP solution */
-#define MAX_SPP_ACCURACY_M 100.0
-/** Max velocity accuracy we allow to output a SPP solution */
-#define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
 
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
@@ -73,8 +72,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
-MemoryPool obs_buff_pool;
-mailbox_t obs_mailbox;
+static MemoryPool time_matched_obs_buff_pool;
+static mailbox_t  time_matched_obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FLOAT;
@@ -89,16 +88,19 @@ MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
+/* RFT_TODO *
+ * starling_simulation_obs_output_divisor logic might have to change */
+static u32 starling_simulation_obs_output_divisor=1;
+
 MUTEX_DECL(last_sbp_lock);
 gps_time_t last_dgnss;
 gps_time_t last_spp;
 
-double soln_freq = 5.0;
+/* RFT_TODO *
+ * interface change should be handled last, won't work like this */
+static double starling_frequency = 5.0;
 u32 max_age_of_differential = 30;
-u32 obs_output_divisor = 1;
 
-double known_baseline[3] = {0, 0, 0};
-s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
 bool disable_raim = false;
 bool send_heading = false;
@@ -108,6 +110,61 @@ double heading_offset = 0.0;
 bool disable_klobuchar = false;
 
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
+
+
+
+static void post_observations(u8 n, const navigation_measurement_t m[],
+                              const gps_time_t *t, const gnss_solution *soln )
+{
+  /* TODO: use a buffer from the pool from the start instead of
+   * allocating nav_meas_tdcp as well. Downside, if we don't end up
+   * pushing the message into the mailbox then we just wasted an
+   * observation from the mailbox for no good reason. */
+
+  obss_t *obs = chPoolAlloc(&obs_buff_pool);
+  msg_t ret;
+  if (obs == NULL) {
+    /* Pool is empty, grab a buffer from the mailbox instead, i.e.
+     * overwrite the oldest item in the queue. */
+    ret = chMBFetch(&obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
+    if (ret != MSG_OK) {
+      log_error("Pool full and mailbox empty!");
+    }
+  }
+  if (NULL != obs) {
+    obs->tor = *t;
+    obs->n = n;
+    for (u8 i = 0, cnt = 0; i < n; ++i) {
+      obs->nm[cnt++] = m[i];
+    }
+    if (soln->valid > 0) {
+      obs->pos_ecef[0] = soln->pos_ecef[0];
+      obs->pos_ecef[1] = soln->pos_ecef[1];
+      obs->pos_ecef[2] = soln->pos_ecef[2];
+      obs->has_pos = true;
+    } else {
+      obs->has_pos = false;
+    }
+
+    if (soln){
+      obs->soln = *soln;
+    } else {
+      obs->soln.valid = 0;
+      obs->soln.velocity_valid = 0;
+    }
+
+    ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+    if (ret != MSG_OK) {
+      /* We could grab another item from the mailbox, discard it and then
+       * post our obs again but if the size of the mailbox and the pool
+       * are equal then we should have already handled the case where the
+       * mailbox is full when we handled the case that the pool was full.
+       * */
+      log_error("Mailbox should have space!");
+      chPoolFree(&obs_buff_pool, obs);
+    }
+  }
+}
 
 void reset_rtk_filter(void) {
   chMtxLock(&time_matched_filter_manager_lock);
@@ -224,43 +281,6 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
     gps_time_t time_guess = get_current_time();
     sbp_make_gps_time(&sbp_messages->gps_time, &time_guess, 0);
   }
-}
-
-/** Extract the full covariance matrices from soln struct */
-void extract_covariance(double full_covariance[9], double vel_covariance[9],
-                        const gnss_solution *soln) {
-
-  assert(soln != NULL);
-  assert(full_covariance != NULL);
-  assert(vel_covariance != NULL);
-
-/* soln->cov_err has the covariance in upper triangle covariance form, so
- * copy from
- *
- *    0  1  2       0  1  2
- *    _  3  4   to  3  4  5
- *    _  _  5       6  7  8  */
-
-  full_covariance[0] = soln->err_cov[0];
-  full_covariance[1] = soln->err_cov[1];
-  full_covariance[2] = soln->err_cov[2];
-  full_covariance[3] = soln->err_cov[1];
-  full_covariance[4] = soln->err_cov[3];
-  full_covariance[5] = soln->err_cov[4];
-  full_covariance[6] = soln->err_cov[2];
-  full_covariance[7] = soln->err_cov[4];
-  full_covariance[8] = soln->err_cov[5];
-
-  vel_covariance[0] = soln->vel_cov[0];
-  vel_covariance[1] = soln->vel_cov[1];
-  vel_covariance[2] = soln->vel_cov[2];
-  vel_covariance[3] = soln->vel_cov[1];
-  vel_covariance[4] = soln->vel_cov[3];
-  vel_covariance[5] = soln->vel_cov[4];
-  vel_covariance[6] = soln->vel_cov[2];
-  vel_covariance[7] = soln->vel_cov[4];
-  vel_covariance[8] = soln->vel_cov[5];
-
 }
 
 /**
@@ -451,6 +471,7 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
   return get_baseline_ret;
 }
 
+<<<<<<< HEAD
 static void send_observations(u8 n, const navigation_measurement_t m[],
                               const gps_time_t *t)
 {
@@ -507,51 +528,9 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
+=======
+>>>>>>> aec7813... split compiles
 
-  obss_t *obs = chPoolAlloc(&obs_buff_pool);
-  msg_t ret;
-  if (obs == NULL) {
-    /* Pool is empty, grab a buffer from the mailbox instead, i.e.
-     * overwrite the oldest item in the queue. */
-    ret = chMBFetch(&obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
-    if (ret != MSG_OK) {
-      log_error("Pool full and mailbox empty!");
-    }
-  }
-  if (NULL != obs) {
-    obs->tor = *t;
-    obs->n = n;
-    for (u8 i = 0, cnt = 0; i < n; ++i) {
-      obs->nm[cnt++] = m[i];
-    }
-    if (soln->valid > 0) {
-      obs->pos_ecef[0] = soln->pos_ecef[0];
-      obs->pos_ecef[1] = soln->pos_ecef[1];
-      obs->pos_ecef[2] = soln->pos_ecef[2];
-      obs->has_pos = true;
-    } else {
-      obs->has_pos = false;
-    }
-
-    if (soln){
-      obs->soln = *soln;
-    } else {
-      obs->soln.valid = 0;
-      obs->soln.velocity_valid = 0;
-    }
-
-    ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
-    if (ret != MSG_OK) {
-      /* We could grab another item from the mailbox, discard it and then
-       * post our obs again but if the size of the mailbox and the pool
-       * are equal then we should have already handled the case where the
-       * mailbox is full when we handled the case that the pool was full.
-       * */
-      log_error("Mailbox should have space!");
-      chPoolFree(&obs_buff_pool, obs);
-    }
-  }
-}
 
 static void solution_simulation(sbp_messages_t *sbp_messages)
 {
@@ -590,9 +569,12 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
                                simulation_current_dops_solution(),
                                sbp_messages);
 
-    double t_check = soln->time.tow * (soln_freq / obs_output_divisor);
+    double t_check = soln->time.tow * (starling_frequency / starling_simulation_obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-      send_observations(simulation_current_num_sats(),
+      /* RFT_TODO *
+       * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
+       * this function will completely go away */
+      send_observations(simulation_current_num_sats(), SBP_FRAMING_MAX_PAYLOAD_SIZE,
           simulation_current_navigation_measurements(), &(soln->time));
     }
   }
@@ -753,30 +735,6 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-bool gate_covariance(gnss_solution *soln) {
-  assert(soln != NULL);
-  double full_covariance[9];
-  double vel_covariance[9];
-  extract_covariance(full_covariance, vel_covariance, soln);
-
-  double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(full_covariance, soln->pos_ecef,
-                         &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_ACCURACY_M) {
-    log_warn("SPP Position suppressed due to position confidence of %.1f exceeding %.0f m",
-             accuracy, MAX_SPP_ACCURACY_M);
-    return true;
-  }
-  covariance_to_accuracy(vel_covariance, soln->pos_ecef,
-                         &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
-    log_warn("SPP Position suppressed due to velocity confidence of %.1f exceeding %.0f m/s",
-             accuracy, MAX_SPP_VEL_ACCURACY_M_PER_S);
-    return true;
-  }
-  return false;
-}
-
 static THD_WORKING_AREA(wa_solution_thread, 5000000);
 static void solution_thread(void *arg)
 {
@@ -794,7 +752,7 @@ static void solution_thread(void *arg)
 
   while (TRUE) {
 
-    sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
+    sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/starling_frequency);
     watchdog_notify(WD_NOTIFY_SOLUTION);
 
     // Init the messages we want to send
@@ -819,8 +777,8 @@ static void solution_thread(void *arg)
       expected_time = napcount2gpstime(rec_tc);
 
       // Round this time to the nearest GPS solution time
-      expected_time.tow = round(expected_time.tow * soln_freq)
-                                 / soln_freq;
+      expected_time.tow = round(expected_time.tow * starling_frequency)
+                                 / starling_frequency;
       normalize_gps_time(&expected_time);
 
       // This time, taken back to nap count, is the nap count we want the observations at
@@ -838,7 +796,7 @@ static void solution_thread(void *arg)
         && lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
-      DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC/2,
+      DO_EVERY((u32)starling_frequency * MAX_AZ_EL_AGE_SEC/2,
                update_sat_azel(lgf.position_solution.pos_ecef,
                                lgf.position_solution.time));
     }
@@ -941,7 +899,7 @@ static void solution_thread(void *arg)
     u8 n_ready_tdcp;
     if (!clock_jump
         && time_quality == TIME_FINE
-        && rec_tc_delta < 2 / soln_freq) {
+        && rec_tc_delta < 2 / starling_frequency) {
 
       /* Form TDCP Dopplers only if the clock has not just been adjusted,
        * and the old measurements are at most one solution cycle old. */
@@ -955,7 +913,7 @@ static void solution_thread(void *arg)
 
       /* Log the reason (if unexpected)*/
       if (!clock_jump && time_quality == TIME_FINE
-          && rec_tc_delta >= 2 / soln_freq) {
+          && rec_tc_delta >= 2 / starling_frequency) {
         log_warn(
           "Time from last measurements %f seconds, skipping TDCP computation",
           rec_tc_delta);
@@ -1021,7 +979,7 @@ static void solution_thread(void *arg)
       if (pvt_ret < 0) {
         /* An error occurred with calc_PVT! */
         /* pvt_err_msg defined in libswiftnav/pvt.c */
-        DO_EVERY((u32)soln_freq,
+        DO_EVERY((u32)starling_frequency,
                  log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
         );
       }
@@ -1107,8 +1065,8 @@ static void solution_thread(void *arg)
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
     gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
-    new_obs_time.tow = round(current_fix.time.tow * soln_freq)
-                              / soln_freq;
+    new_obs_time.tow = round(current_fix.time.tow * starling_frequency)
+                              / starling_frequency;
     normalize_gps_time(&new_obs_time);
     gps_time_match_weeks(&new_obs_time, &current_fix.time);
     double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
@@ -1226,15 +1184,20 @@ static void solution_thread(void *arg)
        * care to ensure that the observations are aligned. */
       /* Also only output observations once our receiver clock is
        * correctly set. */
-      double t_check = new_obs_time.tow * (soln_freq / obs_output_divisor);
+      const u32 nav_output_divisor = 1;
+      /* RFT_TODO *
+       * starling should determine the obs rate depending on the
+       * mailbox communication with the rover, right now it's fixed...
+       * the divisor should be a user setting so that every N obs there
+       * is a solution produced */
+      double t_check = new_obs_time.tow * (starling_frequency / nav_output_divisor);
       if (!simulation_enabled() &&
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
 
-        /* Send the observations. */
-        send_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time);
+
       }
     }
 
@@ -1266,10 +1229,10 @@ static void solution_thread(void *arg)
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
+    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / starling_frequency;
 
     /* Limit dt to twice the max soln rate */
-    double max_deadline = ((1.0 / soln_freq) * 2.0);
+    double max_deadline = ((1.0 / starling_frequency) * 2.0);
     if (fabs(dt) > max_deadline) {
       dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
     }
@@ -1396,12 +1359,12 @@ static void time_matched_obs_thread(void *arg)
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
      * looking for one that matches in time. */
-    while (chMBFetch(&obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE)
+    while (chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE)
             == MSG_OK) {
 
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
         // Not doing any DGNSS.  Toss the obs away.
-        chPoolFree(&obs_buff_pool, obss);
+        chPoolFree(&time_matched_obs_buff_pool, obss);
         continue;
       }
 
@@ -1421,7 +1384,7 @@ static void time_matched_obs_thread(void *arg)
           last_update_time = obss->tor;
         }
 
-        chPoolFree(&obs_buff_pool, obss);
+        chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(base_obss_copy.sender_id, &sbp_messages);
         }
@@ -1440,18 +1403,18 @@ static void time_matched_obs_thread(void *arg)
                    base_obss_copy.tor.wn, base_obss_copy.tor.tow
           );
           /* Return the buffer to the mailbox so we can try it again later. */
-          msg_t ret = chMBPost(&obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
+          msg_t ret = chMBPost(&time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
           if (ret != MSG_OK) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
             log_warn("Obs Matching: mailbox full, discarding observation!");
-            chPoolFree(&obs_buff_pool, obss);
+            chPoolFree(&time_matched_obs_buff_pool, obss);
           }
           break;
         } else {
           /* Time of base obs later than time of local obs,
            * keep moving through the mailbox. */
-          chPoolFree(&obs_buff_pool, obss);
+          chPoolFree(&time_matched_obs_buff_pool, obss);
         }
       }
     }
@@ -1537,9 +1500,6 @@ void starling_calc_pvt_setup()
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
 
-  SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
-  SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
-
   static const char const *dgnss_soln_mode_enum[] = {
     "Low Latency",
     "Time Matched",
@@ -1562,8 +1522,6 @@ void starling_calc_pvt_setup()
                                                      &dgnss_filter_setting);
 
 
-  SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
-
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
   SETTING_NOTIFY("solution", "heading_offset", heading_offset, TYPE_FLOAT, heading_offset_changed);
@@ -1572,11 +1530,11 @@ void starling_calc_pvt_setup()
 
   nmea_setup();
 
-  static msg_t obs_mailbox_buff[OBS_N_BUFF];
-  chMBObjectInit(&obs_mailbox, obs_mailbox_buff, OBS_N_BUFF);
-  chPoolObjectInit(&obs_buff_pool, sizeof(obss_t), NULL);
-  static obss_t obs_buff[OBS_N_BUFF] _CCM;
-  chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
+  static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
+  chMBObjectInit(&time_matched_obs_mailbox, time_matched_obs_mailbox_buff, STARLING_OBS_N_BUFF);
+  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
+  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
+  chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 
   /* Start solution thread */
   chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),

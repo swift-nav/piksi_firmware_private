@@ -26,6 +26,7 @@
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/pvt_engine/propagate.h>
 
+#include "me_calc_pvt.h"
 #include "peripherals/leds.h"
 #include "position.h"
 #include "nmea.h"

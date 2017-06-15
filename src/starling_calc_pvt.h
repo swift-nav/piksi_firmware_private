@@ -22,6 +22,8 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
 
+
+
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
   SOLN_MODE_TIME_MATCHED,
@@ -57,17 +59,16 @@ typedef struct {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define OBS_N_BUFF 60
+#define STARLING_OBS_N_BUFF 60
 
-#define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
+#define STARLING_OBS_BUFF_SIZE (STARLING_OBS_N_BUFF * sizeof(obss_t))
 
 extern double soln_freq;
-extern u32 obs_output_divisor;
+
 extern u32 max_age_of_differential;
 
 void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages);
-void extract_covariance(double full_covariance[9], double vel_covariance[9],
-                        const gnss_solution *soln);
+
 double calc_heading(const double b_ned[3]);
 
 
