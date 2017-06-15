@@ -29,7 +29,8 @@
 #include "track.h"
 #include "timing.h"
 #include "ext_events.h"
-#include "solution.h"
+#include "me_calc_pvt.h"
+#include "starling_calc_pvt.h"
 #include "base_obs.h"
 #include "position.h"
 #include "system_monitor.h"
@@ -122,8 +123,10 @@ int main(void)
   manage_acq_setup();
   manage_track_setup();
   system_monitor_setup();
-  solution_setup();
+
   base_obs_setup();
+  me_calc_pvt_setup();
+  starling_calc_pvt_setup();
 
   simulator_setup();
 

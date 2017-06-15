@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_SOLUTION_H
-#define SWIFTNAV_SOLUTION_H
+#ifndef STARLING_CALC_PVT_H
+#define STARLING_CALC_PVT_H
 
 #include <ch.h>
 #include <libsbp/navigation.h>
@@ -32,16 +32,6 @@ typedef enum {
   FILTER_FLOAT,
   FILTER_FIXED,
 } dgnss_filter_t;
-
-typedef struct {
-  u8 signals_tracked;
-  u8 signals_useable;
-} soln_stats_t;
-
-typedef struct {
-  systime_t systime;
-  u8 signals_used;
-} soln_pvt_stats_t;
 
 typedef struct {
   systime_t systime;
@@ -79,10 +69,10 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
 void extract_covariance(double full_covariance[9], double vel_covariance[9],
                         const gnss_solution *soln);
 double calc_heading(const double b_ned[3]);
-soln_stats_t solution_last_stats_get(void);
-soln_pvt_stats_t solution_last_pvt_stats_get(void);
+
+
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
-void solution_setup(void);
+void starling_calc_pvt_setup(void);
 void reset_rtk_filter(void);
 
 #endif

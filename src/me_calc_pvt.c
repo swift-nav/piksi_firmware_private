@@ -35,7 +35,7 @@
 #include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "solution.h"
+#include "me_calc_pvt.h"
 #include "manage.h"
 #include "simulator.h"
 #include "settings.h"
@@ -76,15 +76,6 @@
 MemoryPool obs_buff_pool;
 mailbox_t obs_mailbox;
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
-dgnss_filter_t dgnss_filter = FILTER_FLOAT;
-
-static FilterManager *time_matched_filter_manager;
-static FilterManager *low_latency_filter_manager;
-
-MUTEX_DECL(time_matched_filter_manager_lock);
-MUTEX_DECL(low_latency_filter_manager_lock);
-
 MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
@@ -109,130 +100,17 @@ bool disable_klobuchar = false;
 
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
-static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
 
-void reset_rtk_filter(void) {
-  chMtxLock(&time_matched_filter_manager_lock);
-  filter_manager_init(time_matched_filter_manager);
-  chMtxUnlock(&time_matched_filter_manager_lock);
-}
+/* STATIC FUNCTIONS */
+static void extract_covariance(double full_covariance[9],
+                               double vel_covariance[9],
+                               const gnss_solution *soln);
+static double calc_heading(const double b_ned[3]);
 
-/** Determine if we have had a DGNSS timeout.
- *
- * \param _last_dgnss. Last time of DGNSS solution
- * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
- *
- */
-bool dgnss_timeout(systime_t _last_dgnss, dgnss_solution_mode_t _dgnss_soln_mode) {
 
-  // No timeout needed in low latency mode;
-  if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
-    return false;
-  }
-
-  // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
-  return (chVTTimeElapsedSinceX(_last_dgnss) > MS2ST(DGNSS_TIMEOUT_MS) );
-}
-
-/** Determine if we have had a SPP timeout.
- *
- * \param _last_spp. Last time of SPP solution
- * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
- *
- */
-bool spp_timeout(const gps_time_t *_last_spp, const gps_time_t *_last_dgnss, dgnss_solution_mode_t _dgnss_soln_mode) {
-
-  // No timeout needed in low latency mode;
-  if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
-    return false;
-  }
-  chMtxLock(&last_sbp_lock);
-  double time_diff = gpsdifftime(_last_dgnss,_last_spp);
-  chMtxUnlock(&last_sbp_lock);
-
-  // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
-  return (time_diff > 0.0);
-}
-
-void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages) {
-  if (soln && soln->valid) {
-    /* Send GPS_TIME message first. */
-    sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
-
-    u8 utc_flags = SPP_POSITION;
-    utc_params_t utc_params;
-    utc_params_t *p_utc_params = &utc_params;
-    bool is_nv;
-    /* try to read UTC parameters from NDB */
-    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
-      if (is_nv) {
-        utc_flags |= (NVM_UTC << 3);
-      } else {
-        utc_flags |= (DECODED_UTC << 3);
-      }
-    } else {
-      p_utc_params = NULL;
-      utc_flags |= (DEFAULT_UTC << 3);
-    }
-
-    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, utc_flags, p_utc_params);
-
-    /* Extract full covariance matrices for position and velocity solutions
-     * from the upper triangular forms given in soln->err_cov and vel_cov */
-    double full_covariance[9];
-    double vel_covariance[9];
-    extract_covariance(full_covariance, vel_covariance, soln);
-
-    /* Compute the accuracy figures from the covariance matrix */
-    double accuracy, h_accuracy, v_accuracy;
-    covariance_to_accuracy(full_covariance, soln->pos_ecef,
-                           &accuracy, &h_accuracy, &v_accuracy);
-
-    double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
-    covariance_to_accuracy(vel_covariance, soln->pos_ecef,
-                           &vel_accuracy, &vel_h_accuracy, &vel_v_accuracy);
-
-    const gps_time_t soln_time = soln->time;
-
-    /* Position in LLH. */
-    sbp_make_pos_llh_vect(&sbp_messages->pos_llh, soln->pos_llh, h_accuracy, v_accuracy,
-                          &soln_time, soln->n_sats_used, SPP_POSITION);
-
-    /* Position in ECEF. */
-    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef, soln->pos_ecef, accuracy,
-                          &soln_time, soln->n_sats_used, SPP_POSITION);
-
-    /* Velocity in NED. */
-    /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
-    if (!clock_jump && soln->velocity_valid) {
-      sbp_make_vel_ned(&sbp_messages->vel_ned,
-                       soln,
-                       vel_h_accuracy, vel_v_accuracy,
-                       SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
-
-      /* Velocity in ECEF. */
-      sbp_make_vel_ecef(&sbp_messages->vel_ecef,
-                        soln,
-                        vel_accuracy,
-                        SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
-    }
-
-    /* DOP message can be sent even if solution fails to compute */
-    if (dops) {
-      sbp_make_dops(&sbp_messages->sbp_dops,dops,sbp_messages->pos_llh.tow, SPP_POSITION);
-    }
-
-    /* Update stats */
-    last_pvt_stats.systime = chVTGetSystemTime();
-    last_pvt_stats.signals_used = soln->n_sigs_used;
-  } else {
-    gps_time_t time_guess = get_current_time();
-    sbp_make_gps_time(&sbp_messages->gps_time, &time_guess, 0);
-  }
-}
 
 /** Extract the full covariance matrices from soln struct */
-void extract_covariance(double full_covariance[9], double vel_covariance[9],
+static void extract_covariance(double full_covariance[9], double vel_covariance[9],
                         const gnss_solution *soln) {
 
   assert(soln != NULL);
@@ -268,78 +146,9 @@ void extract_covariance(double full_covariance[9], double vel_covariance[9],
 
 }
 
-/**
- *
- * @param sender_id sender id of base obs
- * @param sbp_messages struct of sbp messages
- */
-static void solution_send_pos_messages(u8 sender_id, const sbp_messages_t *sbp_messages) {
 
-  if (sbp_messages) {
-    sbp_send_msg(SBP_MSG_GPS_TIME, sizeof(sbp_messages->gps_time), (u8 * ) &sbp_messages->gps_time);
-    sbp_send_msg(SBP_MSG_UTC_TIME, sizeof(sbp_messages->utc_time), (u8 * ) &sbp_messages->utc_time);
-    sbp_send_msg(SBP_MSG_POS_LLH, sizeof(sbp_messages->pos_llh), (u8 * ) &sbp_messages->pos_llh);
-    sbp_send_msg(SBP_MSG_POS_ECEF, sizeof(sbp_messages->pos_ecef), (u8 * ) &sbp_messages->pos_ecef);
-    sbp_send_msg(SBP_MSG_VEL_NED, sizeof(sbp_messages->vel_ned), (u8 * ) &sbp_messages->vel_ned);
-    sbp_send_msg(SBP_MSG_VEL_ECEF, sizeof(sbp_messages->vel_ecef), (u8 * ) &sbp_messages->vel_ecef);
-    sbp_send_msg(SBP_MSG_DOPS, sizeof(sbp_messages->sbp_dops), (u8 *) &sbp_messages->sbp_dops);
 
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_ECEF, sizeof(sbp_messages->baseline_ecef), (u8 * ) &sbp_messages->baseline_ecef);
-    }
-
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_NED, sizeof(sbp_messages->baseline_ned), (u8 * ) &sbp_messages->baseline_ned);
-    }
-
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_AGE_CORRECTIONS, sizeof(sbp_messages->age_corrections), (u8 * ) &sbp_messages->age_corrections);
-    }
-
-    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_DGNSS_STATUS, sizeof(sbp_messages->dgnss_status), (u8 * ) &sbp_messages->dgnss_status);
-    }
-
-    if (send_heading && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-      sbp_send_msg(SBP_MSG_BASELINE_HEADING, sizeof(sbp_messages->baseline_heading),
-                   (u8 * ) &sbp_messages->baseline_heading);
-    }
-  }
-
-  utc_params_t utc_params;
-  utc_params_t *p_utc_params = &utc_params;
-  /* read UTC parameters from NDB if they exist*/
-  if (NDB_ERR_NONE != ndb_utc_params_read(&utc_params, NULL)) {
-    p_utc_params = NULL;
-  }
-
-  /* Send NMEA alongside the sbp */
-  double propagation_time = sbp_messages->age_corrections.age * 0.1;
-  nmea_send_msgs(&sbp_messages->pos_llh, &sbp_messages->vel_ned,
-                 &sbp_messages->sbp_dops, &sbp_messages->gps_time,
-                 propagation_time, sender_id, p_utc_params,
-                 &sbp_messages->baseline_heading);
-
-}
-
-static void solution_send_low_latency_output(u8 sender_id, const sbp_messages_t *sbp_messages) {
-  // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
-  bool wait_for_timeout = false;
-  if (!(dgnss_timeout(last_dgnss_stats.systime, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-    wait_for_timeout = true;
-  }
-
-  if (!wait_for_timeout) {
-    solution_send_pos_messages(sender_id, sbp_messages);
-    chMtxLock(&last_sbp_lock);
-    last_spp.wn = sbp_messages->gps_time.wn;
-    last_spp.tow = sbp_messages->gps_time.tow * 0.001;
-    chMtxUnlock(&last_sbp_lock);
-
-  }
-}
-
-double calc_heading(const double b_ned[3])
+static double calc_heading(const double b_ned[3])
 {
   double heading = atan2(b_ned[1], b_ned[0]);
   if (heading < 0) {
@@ -348,84 +157,6 @@ double calc_heading(const double b_ned[3])
   return heading * R2D;
 }
 
-/** Creates and sends RTK solution.
- * If the base station position is known,
- * send the NMEA and SBP psuedo absolute msgs.
- *
- * If operating in simulation mode, it depends upon the simulation mode enabled
- * and the simulation base_ecef position (both available in the global struct
- * sim_settings and accessed via wrappers prototyped in simulator.h)
- *
- * \param t pointer to gps time struct representing gps time for solution
- * \param n_sats u8 representig the number of satellites
- * \param b_ecef size 3 vector of doubles representing ECEF position (meters)
- * \param ref_ecef size 3 vector of doubles representing reference position
- * for conversion from ECEF to local NED coordinates (meters)
- * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
- */
-void solution_make_baseline_sbp(const rtk_baseline_result_t *result,
-                                const double rover_ecef[3], const dops_t *dops,
-                                sbp_messages_t *sbp_messages) {
-  double b_ned[3];
-  wgsecef2ned(result->baseline, rover_ecef, b_ned);
-
-  double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(result->covariance, rover_ecef, &accuracy, &h_accuracy,
-                         &v_accuracy);
-
-  sbp_make_baseline_ecef(&sbp_messages->baseline_ecef, &result->result_time,
-                         result->num_sats_used, result->baseline, accuracy,
-                         result->flags);
-
-  sbp_make_baseline_ned(&sbp_messages->baseline_ned, &result->result_time,
-                        result->num_sats_used, b_ned, h_accuracy, v_accuracy,
-                        result->flags);
-
-  sbp_make_age_corrections(&sbp_messages->age_corrections, &result->result_time,
-                           result->propagation_time);
-
-  sbp_make_dgnss_status(&sbp_messages->dgnss_status, result->num_sats_used,
-                        result->propagation_time, result->flags);
-
-  if (result->flags == FIXED_POSITION &&
-      dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-    double heading = calc_heading(b_ned);
-    sbp_make_heading(&sbp_messages->baseline_heading, &result->result_time,
-                     heading + heading_offset, result->num_sats_used,
-                     result->flags);
-  }
-
-  if (result->has_known_reference_pos ||
-      (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-       simulation_enabled_for(SIMULATION_MODE_RTK))) {
-    double pseudo_absolute_ecef[3];
-    double pseudo_absolute_llh[3];
-
-    vector_add(3, result->known_reference_pos, result->baseline,
-               pseudo_absolute_ecef);
-    wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
-
-    /* now send pseudo absolute sbp message */
-    sbp_make_pos_llh_vect(&sbp_messages->pos_llh, pseudo_absolute_llh,
-                          h_accuracy, v_accuracy, &result->result_time,
-                          result->num_sats_used, result->flags);
-    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef, pseudo_absolute_ecef,
-                           accuracy, &result->result_time,
-                           result->num_sats_used, result->flags);
-  }
-  sbp_make_dops(&sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow,
-                result->flags);
-
-  chMtxLock(&last_sbp_lock);
-  last_dgnss.wn = result->result_time.wn;
-  last_dgnss.tow = result->result_time.tow;
-  chMtxUnlock(&last_sbp_lock);
-
-  /* Update stats */
-  last_dgnss_stats.systime = chVTGetSystemTime();
-  last_dgnss_stats.mode =
-      (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
-}
 
 static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
@@ -461,6 +192,15 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
 {
   static u8 buff[256];
 
+  if ((0 == n) || (NULL==m) || (NULL==t)) {
+    gps_time_t t_dummy = GPS_TIME_UNKNOWN;
+    pack_obs_header(&t_dummy, 1, 0, (observation_header_t*) buff);
+    sbp_send_msg(SBP_MSG_OBS,
+                 sizeof(observation_header_t),
+                 buff);
+    return;
+  }
+
   /* Upper limit set by SBP framing size, preventing underflow */
   u16 msg_payload_size = MAX(
       MIN((u16)MAX(msg_obs_max_size, 0), SBP_FRAMING_MAX_PAYLOAD_SIZE),
@@ -478,13 +218,12 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
                   MSG_OBS_HEADER_MAX_SIZE);
 
   u8 obs_i = 0;
-  for (u8 count = 0; count < total; count++) {
-
+  for (u8 count = 0; count < total && obs_i < n; count++) {
     u8 curr_n = MIN(n - obs_i, obs_in_msg);
     pack_obs_header(t, total, count, (observation_header_t*) buff);
     packed_obs_content_t *obs = (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
-    for (u8 i = 0; i < curr_n; i++, obs_i++) {
+    for (u8 i = 0; i < obs_in_msg && obs_i < n; i++) {
       if (pack_obs_content(m[obs_i].raw_pseudorange,
                            m[obs_i].raw_carrier_phase,
                            m[obs_i].raw_measured_doppler,
@@ -492,10 +231,9 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
                            m[obs_i].lock_time,
                            m[obs_i].flags,
                            m[obs_i].sid,
-                           &obs[i]) < 0) {
-        /* Error packing this observation, skip it. */
-        i--;
-        curr_n--;
+                           &obs[i]) >= 0) {
+        /* Packed. */
+        obs_i++;
       }
     }
 
@@ -782,11 +520,11 @@ bool gate_covariance(gnss_solution *soln) {
   return false;
 }
 
-static THD_WORKING_AREA(wa_solution_thread, 5000000);
-static void solution_thread(void *arg)
+static THD_WORKING_AREA(wa_me_calc_pvt_thread, 5000000);
+static void me_calc_pvt_thread(void *arg)
 {
   (void)arg;
-  chRegSetThreadName("solution");
+  chRegSetThreadName("me_calc_pvt");
 
   systime_t deadline = chVTGetSystemTime();
 
@@ -884,12 +622,7 @@ static void solution_thread(void *arg)
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
-
-      /* TODO if there are not enough SVs to compute PVT, shouldn't caches
-       *      below be reset? I.e. nav_meas_old and nav_meas_tdcp? */
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
+      send_observations(0, NULL, NULL);
       continue;
     }
 
@@ -927,9 +660,7 @@ static void solution_thread(void *arg)
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
+      send_observations(0, NULL, NULL);
       continue;
     }
 
@@ -937,9 +668,7 @@ static void solution_thread(void *arg)
 
     if (sc_ret != 0) {
        log_error("calc_sat_clock_correction() returned an error");
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
+       send_observations(0, NULL, NULL);
        continue;
      }
 
@@ -991,9 +720,7 @@ static void solution_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
+      send_observations(0, NULL, NULL);
       continue;
     }
 
@@ -1002,21 +729,13 @@ static void solution_thread(void *arg)
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
-      if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
+      if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
-        chMtxLock(&time_matched_iono_params_lock);
-        has_time_matched_iono_params = false;
-        chMtxUnlock(&time_matched_iono_params_lock);
-      } else {
-        chMtxLock(&time_matched_iono_params_lock);
-        has_time_matched_iono_params = true;
-        time_matched_iono_params = *p_i_params;
-        chMtxUnlock(&time_matched_iono_params_lock);
       }
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
-                      lgf.position_solution.pos_ecef,
-                      lgf.position_solution.pos_llh,
-                      p_i_params);
+                    lgf.position_solution.pos_ecef,
+                    lgf.position_solution.pos_llh,
+                    p_i_params);
     }
 
     dops_t dops;
@@ -1045,9 +764,7 @@ static void solution_thread(void *arg)
        * continuing to process this epoch - send out solution and observation
        * failed messages if not in time matched mode
        */
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
+      send_observations(0, NULL, NULL);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -1085,9 +802,8 @@ static void solution_thread(void *arg)
        */
       set_time_fine(rec_tc, current_fix.time);
       clock_jump = TRUE;
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
+      send_observations(0, NULL, NULL);
+
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
       lgf.position_solution = current_fix;
@@ -1188,7 +904,7 @@ static void solution_thread(void *arg)
 
         /* Recompute satellite position, velocity and clock errors */
         if (0 != calc_sat_state(e, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                &nm->sat_clock_err, &nm->sat_clock_err_rate, &nm->IODC, &nm->IODE)) {
+                                &nm->sat_clock_err, &nm->sat_clock_err_rate)) {
           continue;
         }
 
@@ -1197,45 +913,6 @@ static void solution_thread(void *arg)
 
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
-
-      if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
-        PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
-        PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
-        PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
-        rtk_baseline_result_t result;
-
-        chMtxLock(&low_latency_filter_manager_lock);
-
-        bool is_initialized =
-            filter_manager_is_initialized(low_latency_filter_manager);
-
-        if (is_initialized) {
-          set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
-
-          update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
-                                        &current_fix.time, n_ready_tdcp,
-                                        nav_meas_tdcp);
-
-
-        }
-
-        if (update_rov_obs == PVT_ENGINE_SUCCESS) {
-          update_filter_ret = update_filter(low_latency_filter_manager);
-        }
-
-        if (update_filter_ret == PVT_ENGINE_SUCCESS) {
-          result.result_time = current_fix.time;
-          get_baseline_ret =
-              get_baseline(low_latency_filter_manager, false, &dops, &result);
-        }
-
-        chMtxUnlock(&low_latency_filter_manager_lock);
-
-        if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-          solution_make_baseline_sbp(&result, current_fix.pos_ecef, &dops,
-                                     &sbp_messages);
-        }
-      }
 
       /* Output observations only every obs_output_divisor times, taking
        * care to ensure that the observations are aligned. */
@@ -1276,9 +953,6 @@ static void solution_thread(void *arg)
       clock_offset_previous -= dt;
     }
 
-    // Send out messages if needed
-    solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
-
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
     double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
@@ -1295,196 +969,6 @@ static void solution_thread(void *arg)
   }
 }
 
-void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
-                         sbp_messages_t *sbp_messages) {
-  PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
-  PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
-  PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
-  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
-  dops_t RTK_dops;
-  rtk_baseline_result_t result;
-
-  chMtxLock(&time_matched_filter_manager_lock);
-
-  if (!filter_manager_is_initialized(time_matched_filter_manager)) {
-    filter_manager_init(time_matched_filter_manager);
-  }
-
-  if (filter_manager_is_initialized(time_matched_filter_manager)) {
-    chMtxLock(&time_matched_iono_params_lock);
-    if (has_time_matched_iono_params) {
-      filter_manager_update_iono_parameters(time_matched_filter_manager,
-                                            &time_matched_iono_params,
-                                            disable_klobuchar);
-    }
-    chMtxUnlock(&time_matched_iono_params_lock);
-
-    update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager, &rover_obss->tor,
-                                  rover_obss->n, rover_obss->nm);
-    update_ref_obs = filter_manager_update_ref_obs(
-        time_matched_filter_manager, &reference_obss->tor, reference_obss->n,
-        reference_obss->nm, reference_obss->pos_ecef,
-        reference_obss->has_known_pos_ecef ? reference_obss->known_pos_ecef
-                                           : NULL);
-
-    if ( update_rov_obs == PVT_ENGINE_SUCCESS &&
-        update_ref_obs == PVT_ENGINE_SUCCESS) {
-      update_filter_ret = update_filter(time_matched_filter_manager);
-    }
-
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
-      /* If we're in low latency mode we need to copy/update the low latency
-         filter manager from the time matched filter manager. */
-      chMtxLock(&low_latency_filter_manager_lock);
-      copy_filter_manager(low_latency_filter_manager,
-                          time_matched_filter_manager);
-      chMtxUnlock(&low_latency_filter_manager_lock);
-    }
-  }
-
-  /* If we are in time matched mode then calculate and output the baseline
-  * for this observation. */
-  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !simulation_enabled() &&
-      update_filter_ret == PVT_ENGINE_SUCCESS) {
-    /* Note: in time match mode we send the physically incorrect time of the
-     * observation message (which can be receiver clock time, or rounded GPS
-     * time) instead of the true GPS time of the solution. */
-    result.result_time = rover_obss->tor;
-    result.propagation_time = 0;
-    get_baseline_ret =
-        get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
-  }
-
-  chMtxUnlock(&time_matched_filter_manager_lock);
-
-  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-    solution_make_baseline_sbp(&result, rover_obss->pos_ecef, &RTK_dops,
-                               sbp_messages);
-  }
-}
-
-bool update_time_matched(gps_time_t *last_update_time, gps_time_t *current_time, u8 num_obs){
-  double update_dt = gpsdifftime(current_time, last_update_time);
-  double update_rate_limit = 0.99;
-  if(num_obs > 16) {
-    update_rate_limit = 1.99;
-  }
-  if(update_dt < update_rate_limit) {
-    return false;
-  }
-  return true;
-}
-
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 5000000);
-static void time_matched_obs_thread(void *arg)
-{
-  (void)arg;
-  chRegSetThreadName("time matched obs");
-
-  // Declare all SBP messages
-  sbp_messages_t sbp_messages;
-
-  chMtxLock(&time_matched_filter_manager_lock);
-  time_matched_filter_manager = create_filter_manager();
-  chMtxUnlock(&time_matched_filter_manager_lock);
-
-  chMtxLock(&low_latency_filter_manager_lock);
-  low_latency_filter_manager = create_filter_manager();
-  chMtxUnlock(&low_latency_filter_manager_lock);
-
-  while (1) {
-    /* Wait for a new observation to arrive from the base station. */
-    chBSemWait(&base_obs_received);
-
-    // Init the messages we want to send
-    sbp_messages_init(&sbp_messages);
-
-    chMtxLock(&base_obs_lock);
-    obss_t base_obss_copy = base_obss;
-    chMtxUnlock(&base_obs_lock);
-
-    // Check if the el mask has changed and update
-    chMtxLock(&time_matched_filter_manager_lock);
-    set_pvt_engine_elevation_mask(time_matched_filter_manager,get_solution_elevation_mask());
-    chMtxUnlock(&time_matched_filter_manager_lock);
-
-    obss_t *obss;
-    /* Look through the mailbox (FIFO queue) of locally generated observations
-     * looking for one that matches in time. */
-    while (chMBFetch(&obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE)
-            == MSG_OK) {
-
-      if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
-        // Not doing any DGNSS.  Toss the obs away.
-        chPoolFree(&obs_buff_pool, obss);
-        continue;
-      }
-
-      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
-
-      if (fabs(dt) < TIME_MATCH_THRESHOLD &&
-          (base_obss_copy.has_pos == 1 || base_obss_copy.has_known_pos_ecef)) {
-        // We need to form the SBP messages derived from the SPP at this solution time before we
-        // do the differential solution so that the various messages can be overwritten as appropriate,
-        // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
-        gnss_solution soln_copy = obss->soln;
-        solution_make_sbp(&soln_copy, NULL, false, &sbp_messages);
-
-        static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if(update_time_matched(&last_update_time, &obss->tor, obss->n) || dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-          process_matched_obs(obss, &base_obss_copy, &sbp_messages);
-          last_update_time = obss->tor;
-        }
-
-        chPoolFree(&obs_buff_pool, obss);
-        if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(base_obss_copy.sender_id, &sbp_messages);
-        }
-        break;
-      } else {
-        if (dt > 0) {
-          /* Time of base obs before time of local obs, we must not have a local
-           * observation matching this base observation, break and wait for a
-           * new base observation. */
-
-          /* In practice this should basically never happen so lets make a note
-           * if it does. */
-          log_warn("Obs Matching: t_base < t_rover "
-                   "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})", dt,
-                   obss->tor.wn, obss->tor.tow,
-                   base_obss_copy.tor.wn, base_obss_copy.tor.tow
-          );
-          /* Return the buffer to the mailbox so we can try it again later. */
-          msg_t ret = chMBPost(&obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
-          if (ret != MSG_OK) {
-            /* Something went wrong with returning it to the buffer, better just
-             * free it and carry on. */
-            log_warn("Obs Matching: mailbox full, discarding observation!");
-            chPoolFree(&obs_buff_pool, obss);
-          }
-          break;
-        } else {
-          /* Time of base obs later than time of local obs,
-           * keep moving through the mailbox. */
-          chPoolFree(&obs_buff_pool, obss);
-        }
-      }
-    }
-  }
-}
-
-void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void)context;
-  switch (msg[0]) {
-  case 0:
-    log_info("Filter reset requested");
-    reset_rtk_filter();
-    break;
-  default:
-    break;
-  }
-}
 
 soln_stats_t solution_last_stats_get(void)
 {
@@ -1494,11 +978,6 @@ soln_stats_t solution_last_stats_get(void)
 soln_pvt_stats_t solution_last_pvt_stats_get(void)
 {
   return last_pvt_stats;
-}
-
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
-{
-  return last_dgnss_stats;
 }
 
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */
@@ -1519,44 +998,8 @@ static bool heading_offset_changed(struct setting *s, const char *val)
   return ret;
 }
 
-static bool enable_fix_mode(struct setting *s, const char *val)
-{
-  int value;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
 
-  bool enable_fix = value == 0 ? false : true;
-  chMtxLock(&time_matched_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
-  chMtxUnlock(&time_matched_filter_manager_lock);
-  chMtxLock(&low_latency_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
-  chMtxUnlock(&low_latency_filter_manager_lock);
-  *(dgnss_filter_t*)s->addr = value;
-  return ret;
-}
-
-static bool set_max_age(struct setting *s, const char *val)
-{
-  int value;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  chMtxLock(&low_latency_filter_manager_lock);
-  set_max_correction_age(low_latency_filter_manager, value);
-  chMtxUnlock(&low_latency_filter_manager_lock);
-  chMtxLock(&time_matched_filter_manager_lock);
-  set_max_correction_age(time_matched_filter_manager, value);
-  chMtxUnlock(&time_matched_filter_manager_lock);
-  *(int*)s->addr = value;
-  return ret;
-}
-
-void solution_setup()
+void me_calc_pvt_setup()
 {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
@@ -1574,8 +1017,6 @@ void solution_setup()
   static struct setting_type dgnss_soln_mode_setting;
   int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(dgnss_soln_mode_enum,
                                                         &dgnss_soln_mode_setting);
-  SETTING("solution", "dgnss_solution_mode",
-          dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
 
   static const char const *dgnss_filter_enum[] = {
     "Float",
@@ -1604,19 +1045,7 @@ void solution_setup()
   chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
 
   /* Start solution thread */
-  chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),
-                    HIGHPRIO-2, solution_thread, NULL);
-  chThdCreateStatic(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread), NORMALPRIO-3,
-                    time_matched_obs_thread, NULL);
+  chThdCreateStatic(wa_me_calc_pvt_thread, sizeof(wa_me_calc_pvt_thread),
+                    HIGHPRIO-2, me_calc_pvt_thread, NULL);
 
-  SETTING_NOTIFY("solution", "dgnss_filter", dgnss_filter, TYPE_GNSS_FILTER, enable_fix_mode);
-  SETTING_NOTIFY("solution", "correction_age_max", max_age_of_differential, TYPE_INT, set_max_age);
-
-  static sbp_msg_callbacks_node_t reset_filters_node;
-  sbp_register_cbk(
-    SBP_MSG_RESET_FILTERS,
-    &reset_filters_callback,
-    &reset_filters_node
-  );
 }

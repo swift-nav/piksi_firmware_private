@@ -31,7 +31,7 @@
 #include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "solution.h"
+#include "starling_calc_pvt.h"
 #include "manage.h"
 #include "simulator.h"
 #include "settings.h"
