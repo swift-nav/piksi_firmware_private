@@ -131,6 +131,11 @@ void nmea_setup(void)
   SETTING("nmea", "gpgsa_msg_rate", gpgsa_msg_rate, TYPE_INT);
 }
 
+void me_nmea_setup(void)
+{
+  SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
+}
+
 /** Calculate and append the checksum of an NMEA sentence.
  * Calculates the bitwise XOR of the characters in a string until the end of
  * the string or a `*` is encountered. If the first character is `$` then it
@@ -390,9 +395,9 @@ void nmea_gpgsa(const u8 *prns, u8 num_prns, const msg_pos_llh_t *sbp_pos_llh, c
  * \param[in] b     ptr to right side sid
  *
  * Return values:
- *   <0	The element pointed to by a goes before the element pointed to by b
- *   0	The element pointed to by a is equivalent to the element pointed to by b
- *   >0	The element pointed to by a goes after the element pointed to by b
+ *   <0 The element pointed to by a goes before the element pointed to by b
+ *   0  The element pointed to by a is equivalent to the element pointed to by b
+ *   >0 The element pointed to by a goes after the element pointed to by b
  */
 int compare_ch_meas(const void *a, const void *b)
 {
@@ -483,7 +488,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
       }
 
       NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gps[n]->cn0));
-      
+
       j++; /* 4 sats per message no matter what */
     }
     NMEA_SENTENCE_DONE();

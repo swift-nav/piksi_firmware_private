@@ -135,6 +135,7 @@ static void me_send_all(u8 _num_obs,
 
 
 static void me_send_emptyobs(void) {
+  log_info("me_DBG: sending empty obs!");
   me_post_observations(0, NULL, NULL);
   send_observations(0, msg_obs_max_size, NULL, NULL);
 }
@@ -367,6 +368,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
+      log_info("n_ready %d n_inview %d n_total %d", n_ready, n_inview, n_total);
       me_send_emptyobs();
       continue;
     }
@@ -715,15 +717,16 @@ void me_calc_pvt_setup()
 
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
-
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
-  nmea_setup();
-
   static msg_t obs_mailbox_buff[OBS_N_BUFF];
+
   chMBObjectInit(&obs_mailbox, obs_mailbox_buff, OBS_N_BUFF);
+
   chPoolObjectInit(&obs_buff_pool, sizeof(me_msg_obs_t), NULL);
+
   static me_msg_obs_t obs_buff[OBS_N_BUFF] _CCM;
+
   chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
 
   /* Start solution thread */

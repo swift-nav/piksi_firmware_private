@@ -61,8 +61,6 @@ typedef struct {
 
 #define STARLING_OBS_N_BUFF 60
 
-#define STARLING_OBS_BUFF_SIZE (STARLING_OBS_N_BUFF * sizeof(obss_t))
-
 extern double soln_freq;
 
 extern u32 max_age_of_differential;

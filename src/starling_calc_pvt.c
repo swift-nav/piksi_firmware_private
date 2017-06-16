@@ -111,12 +111,12 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  obss_t *obs = chPoolAlloc(&obs_buff_pool);
+  obss_t *obs = chPoolAlloc(&time_matched_obs_buff_pool);
   msg_t ret;
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    ret = chMBFetch(&obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
+    ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
     }
@@ -143,7 +143,7 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
       obs->soln.velocity_valid = 0;
     }
 
-    ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+    ret = chMBPost(&time_matched_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
@@ -151,7 +151,7 @@ static void post_observations(u8 n, const navigation_measurement_t m[],
        * mailbox is full when we handled the case that the pool was full.
        * */
       log_error("Mailbox should have space!");
-      chPoolFree(&obs_buff_pool, obs);
+      chPoolFree(&time_matched_obs_buff_pool, obs);
     }
   }
 }
@@ -335,6 +335,7 @@ static void solution_send_low_latency_output(u8 sender_id, const sbp_messages_t 
   }
 
   if (!wait_for_timeout) {
+    log_info("solution_send_pos_messages() called from within solution_send_low_latency_output() L339");
     solution_send_pos_messages(sender_id, sbp_messages);
     chMtxLock(&last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
@@ -665,6 +666,7 @@ static void solution_thread(void *arg)
     }
 
     u8 n_ready = (rover_channel_epoch->size);
+    log_info("starling_DBG: n_ready %d", n_ready);
     memset(nav_meas, 0, sizeof(nav_meas));
     memcpy(nav_meas, rover_channel_epoch->obs,   n_ready*sizeof(navigation_measurement_t));
     memset(e_meas, 0, sizeof(e_meas));
@@ -726,10 +728,10 @@ static void solution_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
+      //~ log_info("starling_DBG: sid_set_get_sat_count(&codes_tdcp): %d", sid_set_get_sat_count(&codes_tdcp));
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
         solution_send_low_latency_output(0, &sbp_messages);
       }
-      log_info("starling_DBG: sid_set_get_sat_count(&codes_tdcp): %d", sid_set_get_sat_count(&codes_tdcp));
       continue;
     }
 
@@ -782,6 +784,7 @@ static void solution_thread(void *arg)
        * failed messages if not in time matched mode
        */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        //~ log_info("starling_DBG: dgnss_soln_mode %d L728", dgnss_soln_mode);
         solution_send_low_latency_output(0, &sbp_messages);
       }
 
@@ -789,8 +792,8 @@ static void solution_thread(void *arg)
       if (lgf.position_quality > POSITION_STATIC) {
         lgf.position_quality = POSITION_STATIC;
       }
-      log_info("starling_DBG: pvt_ret: %d lgf.position_quality: %d gate_covariance(&current_fix): %d",
-        pvt_ret, lgf.position_quality, gate_covariance(&current_fix));
+      //~ log_info("starling_DBG: pvt_ret: %d lgf.position_quality: %d gate_covariance(&current_fix): %d",
+        //~ pvt_ret, lgf.position_quality, gate_covariance(&current_fix));
       continue;
     }
 
@@ -965,6 +968,7 @@ static void solution_thread(void *arg)
     }
 
     // Send out messages if needed
+    //~ log_info("starling_DBG: solution_send_low_latency_output() L843");
     solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
   }
 }
@@ -1112,6 +1116,7 @@ static void time_matched_obs_thread(void *arg)
 
         chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
+          log_info("solution_send_pos_messages() called at time_matched_obs_thread() L989");
           solution_send_pos_messages(base_obss_copy.sender_id, &sbp_messages);
         }
         break;
@@ -1253,8 +1258,6 @@ void starling_calc_pvt_setup()
   SETTING_NOTIFY("solution", "heading_offset", heading_offset, TYPE_FLOAT, heading_offset_changed);
 
   SETTING("solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
-
-  nmea_setup();
 
   static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
   chMBObjectInit(&time_matched_obs_mailbox, time_matched_obs_mailbox_buff, STARLING_OBS_N_BUFF);

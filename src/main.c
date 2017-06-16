@@ -41,6 +41,7 @@
 #include "signal.h"
 #include "version.h"
 #include "ndb.h"
+#include "nmea.h"
 #include "sbp_utils.h"
 #include "glo_map_setup.h"
 
@@ -170,6 +171,8 @@ int main(void)
   }
 
   SpecanStart();
+
+  nmea_setup();
 
   while (1) {
     chThdSleepSeconds(60);

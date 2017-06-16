@@ -49,8 +49,6 @@ typedef struct _me_msg_obs_t {
 
 #define OBS_N_BUFF 2
 
-#define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
-
 extern u32 obs_output_divisor;
 extern MemoryPool obs_buff_pool;
 extern mailbox_t  obs_mailbox;
