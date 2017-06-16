@@ -122,8 +122,8 @@ int main(void)
   manage_acq_setup();
   manage_track_setup();
   system_monitor_setup();
-  base_obs_setup();
   solution_setup();
+  base_obs_setup();
 
   simulator_setup();
 
