@@ -267,7 +267,7 @@ static void nap_track_irq_thread(void *arg)
 
     handle_nap_track_irq();
     tracking_channels_process();
-    manage_track();
+    sanitize_trackers();
   }
 }
 

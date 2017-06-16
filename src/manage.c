@@ -922,7 +922,7 @@ static bool leap_second_is_imminent(void)
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy and low-elevation satellites for cross-correlation
  * purposes. */
-void manage_track(void)
+void sanitize_trackers(void)
 {
   tracker_channel_t *sTrackerChannel;
   state_t state;
