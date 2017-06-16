@@ -135,7 +135,6 @@ static void me_send_all(u8 _num_obs,
 
 
 static void me_send_emptyobs(void) {
-  log_info("me_DBG: sending empty obs!");
   me_post_observations(0, NULL, NULL);
   send_observations(0, msg_obs_max_size, NULL, NULL);
 }
@@ -368,7 +367,6 @@ static void me_calc_pvt_thread(void *arg)
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
-      log_info("n_ready %d n_inview %d n_total %d", n_ready, n_inview, n_total);
       me_send_emptyobs();
       continue;
     }
@@ -451,7 +449,6 @@ static void me_calc_pvt_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
-      log_info("me_DBG: sid_set_get_sat_count() %d", sid_set_get_sat_count(&codes_tdcp));
       me_send_emptyobs();
       continue;
     }
@@ -496,8 +493,6 @@ static void me_calc_pvt_thread(void *arg)
        * continuing to process this epoch - send out solution and observation
        * failed messages if not in time matched mode
        */
-      log_info("me_DBG: pvt_ret: %d lgf.position_quality: %d gate_covariance(&current_fix): %d",
-        pvt_ret, lgf.position_quality, gate_covariance(&current_fix));
       me_send_emptyobs();
 
       /* If we already had a good fix, degrade its quality to STATIC */
@@ -536,7 +531,6 @@ static void me_calc_pvt_thread(void *arg)
        */
       set_time_fine(rec_tc, current_fix.time);
 
-      log_info("me_DBG: time_quality: %d", time_quality);
       me_send_emptyobs();
 
       /* store this fix as a guess so the satellite elevations and iono/tropo
@@ -655,7 +649,6 @@ static void me_calc_pvt_thread(void *arg)
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
 
         /* Send the observations. */
-        log_info("me_DBG: n_ready_tdcp %d", n_ready_tdcp);
         me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
       }
     }

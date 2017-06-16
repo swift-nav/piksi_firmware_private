@@ -131,11 +131,6 @@ void nmea_setup(void)
   SETTING("nmea", "gpgsa_msg_rate", gpgsa_msg_rate, TYPE_INT);
 }
 
-void me_nmea_setup(void)
-{
-  SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
-}
-
 /** Calculate and append the checksum of an NMEA sentence.
  * Calculates the bitwise XOR of the characters in a string until the end of
  * the string or a `*` is encountered. If the first character is `$` then it
