@@ -112,6 +112,10 @@ int main(void)
   static char uuid_string[37] = {0};
   uuid_string_get(uuid_string);
 
+  static char hw_version_string[16] = {0};
+  hw_version_string_get(hw_version_string);
+  log_info("hw_version: %s", hw_version_string);
+
   nap_auth_setup();
   nap_auth_check();
 
@@ -156,6 +160,8 @@ int main(void)
   READ_ONLY_PARAMETER("system_info", "mac_address", mac_address_string,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "uuid", uuid_string,
+                      TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "hw_version", hw_version_string,
                       TYPE_STRING);
 
   /* Send message to inform host we are up and running. */
