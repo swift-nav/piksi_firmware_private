@@ -257,8 +257,8 @@ static bool factory_params_read(void)
   }
 
   if (factory_data_hardware_revision_get(factory_data, &factory_params.hardware_version) != 0) {
-    log_error("error reading hardware revision from factory data");
-    return false;
+    //factory data didn't countain hardware_version
+    factory_params.hardware_version = 0;
   }
 
   return true;
