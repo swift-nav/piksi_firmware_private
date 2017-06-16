@@ -648,13 +648,19 @@ static void solution_thread(void *arg)
   /* RFT_TODO *
    * removed access to NDB */
   /* ndb_lgf_read(&lgf); */
+  memset(&lgf, 0, sizeof(last_good_fix_t));
 
   while (TRUE) {
 
     watchdog_notify(WD_NOTIFY_STARLING);
 
+    rover_channel_epoch = NULL;
     ret = chMBFetch(&obs_mailbox, (msg_t *)&rover_channel_epoch, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
+      if (NULL != rover_channel_epoch) {
+        log_error("STARLING: mailbox fetch failed with %d", ret);
+        chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      }
       continue;
     }
 
@@ -663,6 +669,9 @@ static void solution_thread(void *arg)
     memcpy(nav_meas, rover_channel_epoch->obs,   n_ready*sizeof(navigation_measurement_t));
     memset(e_meas, 0, sizeof(e_meas));
     memcpy(e_meas,   rover_channel_epoch->ephem, n_ready*sizeof(ephemeris_t));
+
+    chPoolFree(&obs_buff_pool, rover_channel_epoch);
+
 
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);
@@ -690,6 +699,7 @@ static void solution_thread(void *arg)
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
+      log_info("starling_DBG: n_ready < MINIMUM_SV_COUNT: %d < %d", n_ready, MINIMUM_SV_COUNT);
       continue;
     }
 
@@ -719,6 +729,7 @@ static void solution_thread(void *arg)
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
         solution_send_low_latency_output(0, &sbp_messages);
       }
+      log_info("starling_DBG: sid_set_get_sat_count(&codes_tdcp): %d", sid_set_get_sat_count(&codes_tdcp));
       continue;
     }
 
@@ -778,6 +789,8 @@ static void solution_thread(void *arg)
       if (lgf.position_quality > POSITION_STATIC) {
         lgf.position_quality = POSITION_STATIC;
       }
+      log_info("starling_DBG: pvt_ret: %d lgf.position_quality: %d gate_covariance(&current_fix): %d",
+        pvt_ret, lgf.position_quality, gate_covariance(&current_fix));
       continue;
     }
 
@@ -945,8 +958,10 @@ static void solution_thread(void *arg)
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
 
-
       }
+    } else {
+      log_info("starling_DBG: fabs(t_err) > OBS_PROPAGATION_LIMIT: %.3e %.3e",
+         fabs(t_err), OBS_PROPAGATION_LIMIT);
     }
 
     // Send out messages if needed
@@ -1249,7 +1264,7 @@ void starling_calc_pvt_setup()
 
   /* Start solution thread */
   chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),
-                    HIGHPRIO-2, solution_thread, NULL);
+                    HIGHPRIO-3, solution_thread, NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread), NORMALPRIO-3,
                     time_matched_obs_thread, NULL);

@@ -91,12 +91,8 @@ static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
-                                 const ephemeris_t _ephem[],
-                                 const gps_time_t *t,
-                                 const gnss_solution *soln )
+                                 const ephemeris_t _ephem[])
 {
-  (void) t;
-  (void) soln;
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -105,28 +101,25 @@ static void me_post_observations(u8 n,
   me_msg_obs_t *me_msg_obs = chPoolAlloc(&obs_buff_pool);
   msg_t ret;
   if (me_msg_obs == NULL) {
-    /* Pool is empty, grab a buffer from the mailbox instead, i.e.
-     * overwrite the oldest item in the queue. */
-    ret = chMBFetch(&obs_mailbox, (msg_t *)&me_msg_obs, TIME_IMMEDIATE);
-    if (ret != MSG_OK) {
-      log_error("Pool full and mailbox empty!");
-    }
+    log_error("ME: Could not allocate pool!");
+    return;
   }
-  if (NULL != me_msg_obs) {
-    me_msg_obs->size = n;
+
+  me_msg_obs->size = n;
+  if (n) {
     memcpy(me_msg_obs->obs,    _meas, n*sizeof(navigation_measurement_t));
     memcpy(me_msg_obs->ephem, _ephem, n*sizeof(ephemeris_t));
+  }
 
-    ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
-    if (ret != MSG_OK) {
-      /* We could grab another item from the mailbox, discard it and then
-       * post our obs again but if the size of the mailbox and the pool
-       * are equal then we should have already handled the case where the
-       * mailbox is full when we handled the case that the pool was full.
-       * */
-      log_error("Mailbox should have space!");
-      chPoolFree(&obs_buff_pool, me_msg_obs);
-    }
+  ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
+  if (ret != MSG_OK) {
+    /* We could grab another item from the mailbox, discard it and then
+     * post our obs again but if the size of the mailbox and the pool
+     * are equal then we should have already handled the case where the
+     * mailbox is full when we handled the case that the pool was full.
+     * */
+    log_error("ME: Mailbox should have space!");
+    chPoolFree(&obs_buff_pool, me_msg_obs);
   }
 }
 
@@ -134,16 +127,15 @@ static void me_post_observations(u8 n,
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t,
-                        const gnss_solution *_soln)
+                        const gps_time_t *_t)
 {
-  me_post_observations(_num_obs, _meas, _ephem, _t, _soln);
+  me_post_observations(_num_obs, _meas, _ephem);
   send_observations(_num_obs, msg_obs_max_size, _meas, _t);
 }
 
 
 static void me_send_emptyobs(void) {
-  me_post_observations(0, NULL, NULL, NULL, NULL);
+  me_post_observations(0, NULL, NULL);
   send_observations(0, msg_obs_max_size, NULL, NULL);
 }
 
@@ -457,6 +449,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
+      log_info("me_DBG: sid_set_get_sat_count() %d", sid_set_get_sat_count(&codes_tdcp));
       me_send_emptyobs();
       continue;
     }
@@ -501,6 +494,8 @@ static void me_calc_pvt_thread(void *arg)
        * continuing to process this epoch - send out solution and observation
        * failed messages if not in time matched mode
        */
+      log_info("me_DBG: pvt_ret: %d lgf.position_quality: %d gate_covariance(&current_fix): %d",
+        pvt_ret, lgf.position_quality, gate_covariance(&current_fix));
       me_send_emptyobs();
 
       /* If we already had a good fix, degrade its quality to STATIC */
@@ -539,6 +534,7 @@ static void me_calc_pvt_thread(void *arg)
        */
       set_time_fine(rec_tc, current_fix.time);
 
+      log_info("me_DBG: time_quality: %d", time_quality);
       me_send_emptyobs();
 
       /* store this fix as a guess so the satellite elevations and iono/tropo
@@ -657,7 +653,8 @@ static void me_calc_pvt_thread(void *arg)
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
 
         /* Send the observations. */
-        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time, &current_fix);
+        log_info("me_DBG: n_ready_tdcp %d", n_ready_tdcp);
+        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
       }
     }
 
