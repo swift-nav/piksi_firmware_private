@@ -59,16 +59,6 @@
 #define DGNSS_TIMEOUT_MS 5000
 
 
-/** Mandatory flags filter for measurements */
-#define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
-                                   MANAGE_TRACK_FLAG_NO_ERROR | \
-                                   MANAGE_TRACK_FLAG_CONFIRMED | \
-                                   MANAGE_TRACK_FLAG_CN0_SHORT | \
-                                   MANAGE_TRACK_FLAG_ELEVATION | \
-                                   MANAGE_TRACK_FLAG_HAS_EPHE | \
-                                   MANAGE_TRACK_FLAG_HEALTHY | \
-                                   MANAGE_TRACK_FLAG_NAV_SUITABLE | \
-                                   MANAGE_TRACK_FLAG_TOW )
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
@@ -617,108 +607,12 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
   }
 }
 
-/** Sleep until the next solution deadline.
- *
- * \param deadline    Pointer to the current deadline, updated by this function.
- * \param interval    Interval by which the deadline should be advanced.
- */
-static void sol_thd_sleep(systime_t *deadline, systime_t interval)
-{
-  *deadline += interval;
 
-  chSysLock();
-  while (1) {
-    /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
-     * execution time is limited to SOLN_THD_CPU_MAX. */
-    systime_t systime = chVTGetSystemTimeX();
-    systime_t delta = *deadline - systime;
-    systime_t sleep_min = (systime_t)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval);
-    if ((systime_t)(delta - sleep_min) <= ((systime_t)-1) / 2) {
-      chThdSleepS(delta);
-      break;
-    } else {
-      chSysUnlock();
-      if (delta <= ((systime_t)-1) / 2) {
-        /* Deadline is in the future. Skipping due to high CPU usage. */
-        log_warn("Solution thread skipping deadline, "
-                 "time = %lu, deadline = %lu", systime, *deadline);
-      } else {
-        /* Deadline is in the past. */
-        log_warn("Solution thread missed deadline, "
-                 "time = %lu, deadline = %lu", systime, *deadline);
-      }
-      *deadline += interval;
-      chSysLock();
-    }
-  }
-  chSysUnlock();
-}
+/* RFT_TODO *
+ * removing sleep, as it shouldn't be needed when starling is called
+ * by ME, however we might want to keep the CPU usage check */
 
-/**
- * Collects channel measurements, ephemerides and auxiliary data.
- *
- * \param[in]  rec_tc    Timestamp [samples].
- * \param[out] meas      Destination measurement array.
- * \param[out] in_view   Destination in_view array.
- * \param[out] ephe      Destination ephemeris array.
- * \param[out] pn_ready  Destination for measurement array size.
- * \param[out] pn_ready  Destination for in-view array size.
- * \param[out] pn_total  Destination for total active trackers count.
- *
- * \return None
- */
-static void collect_measurements(u64 rec_tc,
-                                 channel_measurement_t meas[MAX_CHANNELS],
-                                 channel_measurement_t in_view[MAX_CHANNELS],
-                                 ephemeris_t ephe[MAX_CHANNELS],
-                                 u8 *pn_ready,
-                                 u8 *pn_inview,
-                                 u8 *pn_total)
-{
-  u8 n_collected = 0;
-  u8 n_inview = 0;
-  u8 n_active = 0;
 
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    manage_track_flags_t flags      = 0; /* Channel flags accumulator */
-    /* Load measurements from the tracking channel and ephemeris from NDB */
-    flags = get_tracking_channel_meas(i, rec_tc,
-                                      &meas[n_collected],
-                                      &ephe[n_collected]);
-
-    if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
-        0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
-        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
-        0 == (flags & MANAGE_TRACK_FLAG_MASKED))
-    {
-      /* Tracking channel is active & not masked */
-      n_active++;
-
-      if (0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
-        /* Tracking channel is not XCORR suspect so it's an actual SV in view */
-        in_view[n_inview++] = meas[n_collected];
-      }
-
-      chan_meas_flags_t meas_flags = meas[n_collected].flags;
-
-      if (0 != (flags & MANAGE_TRACK_FLAG_HEALTHY) &&
-          0 != (flags & MANAGE_TRACK_FLAG_NAV_SUITABLE) &&
-          0 != (flags & MANAGE_TRACK_FLAG_ELEVATION) &&
-          0 != (flags & MANAGE_TRACK_FLAG_TOW) &&
-          0 != (flags & MANAGE_TRACK_FLAG_HAS_EPHE) &&
-          0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) &&
-          0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
-          0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-        /* Tracking channel is suitable for solution calculation */
-        n_collected++;
-      }
-    }
-  }
-
-  *pn_ready = n_collected;
-  *pn_inview = n_inview;
-  *pn_total = n_active;
-}
 
 void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_gps_time(&sbp_messages->gps_time);
@@ -739,21 +633,36 @@ static THD_WORKING_AREA(wa_solution_thread, 5000000);
 static void solution_thread(void *arg)
 {
   (void)arg;
-  chRegSetThreadName("solution");
+  msg_t ret;
+  me_msg_obs_t *rover_channel_epoch;
 
-  systime_t deadline = chVTGetSystemTime();
+  chRegSetThreadName("starling");
 
   sbp_messages_t sbp_messages;
 
   bool clock_jump = FALSE;
-  last_good_fix_t lgf;
+  static last_good_fix_t lgf;
+  static navigation_measurement_t nav_meas[MAX_CHANNELS];
+  static ephemeris_t e_meas[MAX_CHANNELS];
 
-  ndb_lgf_read(&lgf);
+  /* RFT_TODO *
+   * removed access to NDB */
+  /* ndb_lgf_read(&lgf); */
 
   while (TRUE) {
 
-    sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/starling_frequency);
-    watchdog_notify(WD_NOTIFY_SOLUTION);
+    watchdog_notify(WD_NOTIFY_STARLING);
+
+    ret = chMBFetch(&obs_mailbox, (msg_t *)&rover_channel_epoch, DGNSS_TIMEOUT_MS);
+    if (ret != MSG_OK) {
+      continue;
+    }
+
+    u8 n_ready = (rover_channel_epoch->size);
+    memset(nav_meas, 0, sizeof(nav_meas));
+    memcpy(nav_meas, rover_channel_epoch->obs,   n_ready*sizeof(navigation_measurement_t));
+    memset(e_meas, 0, sizeof(e_meas));
+    memcpy(e_meas,   rover_channel_epoch->ephem, n_ready*sizeof(ephemeris_t));
 
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);
@@ -763,34 +672,8 @@ static void solution_thread(void *arg)
       solution_simulation(&sbp_messages);
     }
 
-    // Take the current nap count
-    u64 current_tc = nap_timing_count();
-    u64 rec_tc = current_tc;
-
-    // Work out the expected receiver time in GPS time frame for the current nap count
-    gps_time_t rec_time = napcount2rcvtime(rec_tc);
-    gps_time_t expected_time = GPS_TIME_UNKNOWN;
-
-    // If we've previously had a solution, we can work out our expected obs time
-    if (time_quality == TIME_FINE) {
-      // Work out the time of the current nap count
-      expected_time = napcount2gpstime(rec_tc);
-
-      // Round this time to the nearest GPS solution time
-      expected_time.tow = round(expected_time.tow * starling_frequency)
-                                 / starling_frequency;
-      normalize_gps_time(&expected_time);
-
-      // This time, taken back to nap count, is the nap count we want the observations at
-      rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
-    }
-    // The difference between the current nap count and the nap count we want the observations at
-    // is the amount we want to adjust our deadline by at the end of the solution
-    double delta_tc = -((double)current_tc - (double)rec_tc);
-
-    // Get the expected nap count in receiver time (gps time frame)
-    rec_time = napcount2rcvtime(rec_tc);
-
+    /* RFT_TODO: we know update_sat_azel() should be removed but we think
+     * calc_iono_tropo() migth still need it */
     if (time_quality >= TIME_COARSE
         && lgf.position_solution.valid
         && lgf.position_quality >= POSITION_GUESS) {
@@ -801,130 +684,29 @@ static void solution_thread(void *arg)
                                lgf.position_solution.time));
     }
 
-    u8 n_ready = 0;
-    u8 n_inview = 0;
-    u8 n_total = 0;
-    channel_measurement_t meas[MAX_CHANNELS];
-    channel_measurement_t in_view[MAX_CHANNELS];
-    static ephemeris_t e_meas[MAX_CHANNELS];
-
-    /* TODO: package meas, nav_meas and ephemeris into e.g. an union to
-     * keep them from being separated? */
-
-    /* Collect measurements from trackers, load ephemerides and compute flags */
-    collect_measurements(rec_tc,
-                         meas,
-                         in_view,
-                         e_meas,
-                         &n_ready,
-                         &n_inview,
-                         &n_total);
-
-    nmea_send_gsv(n_inview, in_view);
-
-    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8 " in view "
-              " (total=%" PRIu8 ")", n_ready, n_inview, n_total);
+    /* RFT_TODO *
+     * these ^^^ should be filled by parsing rover_channel_epoch, otherwise it
+     * will be always zero and nothing will be ever done */
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
-
-      /* TODO if there are not enough SVs to compute PVT, shouldn't caches
-       *      below be reset? I.e. nav_meas_old and nav_meas_tdcp? */
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
       continue;
     }
 
-    cnav_msg_t cnav_30[MAX_CHANNELS];
-    const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
-    for (u8 i=0; i < n_ready; i++) {
-      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
-                     &cnav_30[i].data.type_30 : NULL;
-    }
-
-    static navigation_measurement_t nav_meas[MAX_CHANNELS];
-    const channel_measurement_t *p_meas[n_ready];
-    navigation_measurement_t *p_nav_meas[n_ready];
-    const ephemeris_t *p_e_meas[n_ready];
-
-    /* Create arrays of pointers for use in calc_navigation_measurement */
-    for (u8 i = 0; i < n_ready; i++) {
-      p_meas[i] = &meas[i];
-      p_nav_meas[i] = &nav_meas[i];
-      p_e_meas[i] = &e_meas[i];
-    }
-
-    /* Create navigation measurements from the channel measurements */
-    /* If we have timing then we can calculate the relationship between
-     * receiver time and GPS time and hence provide the pseudorange
-     * calculation with the local GPS time of reception. */
-    /* If a FINE quality time solution is not available then don't pass in a
-     * `nav_time`. This will result in valid pseudoranges but with a large
-     * and arbitrary receiver clock error. We may want to discard these
-     * observations after doing a PVT solution. */
-    gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
-
-    s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
-                                            p_rec_time);
-
-    if (nm_ret != 0) {
-      log_error("calc_navigation_measurement() returned an error");
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
-      continue;
-    }
-
-    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
-
-    if (sc_ret != 0) {
-       log_error("calc_sat_clock_correction() returned an error");
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
-       continue;
-     }
-
-    calc_isc(n_ready, p_nav_meas, p_cnav_30);
-
-    static double clock_offset_previous = 0;
-    static u64 rec_tc_old = 0;
-    static u8 n_ready_old = 0;
     static navigation_measurement_t nav_meas_old[MAX_CHANNELS];
     static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
 
-    double rec_tc_delta = (double) (rec_tc - rec_tc_old)
-                                  / NAP_FRONTEND_SAMPLE_RATE_Hz;
+    /* RFT_TODO *
+     * tdcp computation removed as heavily dependent on time from NAP */
     u8 n_ready_tdcp;
-    if (!clock_jump
-        && time_quality == TIME_FINE
-        && rec_tc_delta < 2 / starling_frequency) {
 
-      /* Form TDCP Dopplers only if the clock has not just been adjusted,
-       * and the old measurements are at most one solution cycle old. */
-      n_ready_tdcp = tdcp_doppler(n_ready, nav_meas, n_ready_old, nav_meas_old,
-          nav_meas_tdcp, rec_tc_delta);
-    } else {
-
-      /* Pass the nav_meas with the measured Dopplers as is */
-      memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
-      n_ready_tdcp = n_ready;
-
-      /* Log the reason (if unexpected)*/
-      if (!clock_jump && time_quality == TIME_FINE
-          && rec_tc_delta >= 2 / starling_frequency) {
-        log_warn(
-          "Time from last measurements %f seconds, skipping TDCP computation",
-          rec_tc_delta);
-      }
-    }
+    /* Pass the nav_meas with the measured Dopplers as is */
+    memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
+    n_ready_tdcp = n_ready;
 
     /* Store current observations for next time for
      * TDCP Doppler calculation. */
     memcpy(nav_meas_old, nav_meas, sizeof(nav_meas));
-    n_ready_old = n_ready;
-    rec_tc_old = rec_tc;
 
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
@@ -999,12 +781,6 @@ static void solution_thread(void *arg)
       continue;
     }
 
-    /* Determine the time differenced clock offset which is used to remove
-       receiver clock bias from the computed doppler. */
-    double computed_clock_rate =
-            (current_fix.clock_offset - clock_offset_previous) / rec_tc_delta;
-    clock_offset_previous = current_fix.clock_offset;
-
     /* If we have a success RAIM repair, mark the removed observation as
        invalid. In practice, this means setting only the CN0 flag valid. */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
@@ -1015,37 +791,6 @@ static void solution_thread(void *arg)
         }
       }
     }
-
-    if (time_quality < TIME_FINE) {
-      /* If the time quality is not FINE then our receiver clock bias isn't
-       * known. We should only use this PVT solution to update our time
-       * estimate and then skip all other processing.
-       *
-       * Note that the lack of knowledge of the receiver clock bias does NOT
-       * degrade the quality of the position solution but the rapid change in
-       * bias after the time estimate is first improved may cause issues for
-       * e.g. carrier smoothing. Easier just to discard this first solution.
-       */
-      set_time_fine(rec_tc, current_fix.time);
-      clock_jump = TRUE;
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
-      /* store this fix as a guess so the satellite elevations and iono/tropo
-       * corrections can be computed for the first actual fix */
-      lgf.position_solution = current_fix;
-      lgf.position_quality = POSITION_GUESS;
-      ndb_lgf_store(&lgf);
-      continue;
-    }
-    // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
-    // so we need to store this error in the GPS time (GPS time frame)
-    set_gps_time_offset(rec_tc, current_fix.time);
-
-    /* Update global position solution state. */
-    lgf.position_solution = current_fix;
-    lgf.position_quality = POSITION_FIX;
-    ndb_lgf_store(&lgf);
 
     if (!simulation_enabled()) {
       /* Output solution. */
@@ -1075,6 +820,7 @@ static void solution_thread(void *arg)
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
 
+<<<<<<< HEAD
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
       /* nav_meas_tdcp is updated in place, skipping elements if required. */
@@ -1141,6 +887,8 @@ static void solution_thread(void *arg)
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
 
+=======
+>>>>>>> ce27973... compiles on both starling and me side
       if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
         PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
         PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
@@ -1201,49 +949,12 @@ static void solution_thread(void *arg)
       }
     }
 
-    /* Calculate the receiver clock error and if >1ms perform a clock jump */
-    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_debug("RX clock offset = %f", rx_err);
-    clock_jump = FALSE;
-    if (fabs(rx_err) >= 1e-3) {
-      log_info("Receiver clock offset larger than 1 ms, applying millisecond jump");
-      /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * 1000.0) / 1000.0;
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
-      /* adjust all the carrier phase offsets */
-      /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
-      /* adjust the stored CP measurements so that next TDCP is correct */
-      for (u8 i = 0; i < n_ready_old; i++) {
-        nav_meas_old[i].raw_carrier_phase += dt *
-            sid_to_carr_freq(nav_meas_old[i].sid);
-      }
-      clock_offset_previous -= dt;
-    }
-
     // Send out messages if needed
     solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
-
-    /* Calculate the correction to the current deadline by converting nap count
-     * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / starling_frequency;
-
-    /* Limit dt to twice the max soln rate */
-    double max_deadline = ((1.0 / starling_frequency) * 2.0);
-    if (fabs(dt) > max_deadline) {
-      dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
-    }
-
-    /* Reset timer period with the count that we will estimate will being
-     * us up to the next solution time. */
-    deadline += round(dt * CH_CFG_ST_FREQUENCY);
   }
 }
 
-void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
+void process_matched_obs(const obss_t *rover_channel_meass, const obss_t *reference_obss,
                          sbp_messages_t *sbp_messages) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
@@ -1267,8 +978,8 @@ void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
     }
     chMtxUnlock(&time_matched_iono_params_lock);
 
-    update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager, &rover_obss->tor,
-                                  rover_obss->n, rover_obss->nm);
+    update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager, &rover_channel_meass->tor,
+                                  rover_channel_meass->n, rover_channel_meass->nm);
     update_ref_obs = filter_manager_update_ref_obs(
         time_matched_filter_manager, &reference_obss->tor, reference_obss->n,
         reference_obss->nm, reference_obss->pos_ecef,
@@ -1297,7 +1008,7 @@ void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
      * time) instead of the true GPS time of the solution. */
-    result.result_time = rover_obss->tor;
+    result.result_time = rover_channel_meass->tor;
     result.propagation_time = 0;
     get_baseline_ret =
         get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
@@ -1306,7 +1017,7 @@ void process_matched_obs(const obss_t *rover_obss, const obss_t *reference_obss,
   chMtxUnlock(&time_matched_filter_manager_lock);
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-    solution_make_baseline_sbp(&result, rover_obss->pos_ecef, &RTK_dops,
+    solution_make_baseline_sbp(&result, rover_channel_meass->pos_ecef, &RTK_dops,
                                sbp_messages);
   }
 }

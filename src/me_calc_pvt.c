@@ -74,10 +74,6 @@ u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
-typedef struct __attribute__((packed)) {
-  observation_header_t header;
-  packed_obs_content_t obs[MAX_CHANNELS];
-} me_msg_obs_t;
 
 
 static bool disable_raim = false;
@@ -91,13 +87,14 @@ static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 
 /* STATIC FUNCTIONS */
 
+
+
 static void me_post_observations(u8 n,
-                                 const navigation_measurement_t m[],
+                                 const navigation_measurement_t _meas[],
+                                 const ephemeris_t _ephem[],
                                  const gps_time_t *t,
                                  const gnss_solution *soln )
 {
-  (void) n;
-  (void) m;
   (void) t;
   (void) soln;
   /* TODO: use a buffer from the pool from the start instead of
@@ -105,23 +102,22 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  me_msg_obs_t *obs = chPoolAlloc(&obs_buff_pool);
+  me_msg_obs_t *me_msg_obs = chPoolAlloc(&obs_buff_pool);
   msg_t ret;
-  if (obs == NULL) {
+  if (me_msg_obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    ret = chMBFetch(&obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
+    ret = chMBFetch(&obs_mailbox, (msg_t *)&me_msg_obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
     }
   }
-  if (NULL != obs) {
-    /* RFT_TODO *
-     * rewrite the obs filling and send to Starling
-     * */
+  if (NULL != me_msg_obs) {
+    me_msg_obs->size = n;
+    memcpy(me_msg_obs->obs,    _meas, n*sizeof(navigation_measurement_t));
+    memcpy(me_msg_obs->ephem, _ephem, n*sizeof(ephemeris_t));
 
-
-    ret = chMBPost(&obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+    ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       /* We could grab another item from the mailbox, discard it and then
        * post our obs again but if the size of the mailbox and the pool
@@ -129,9 +125,26 @@ static void me_post_observations(u8 n,
        * mailbox is full when we handled the case that the pool was full.
        * */
       log_error("Mailbox should have space!");
-      chPoolFree(&obs_buff_pool, obs);
+      chPoolFree(&obs_buff_pool, me_msg_obs);
     }
   }
+}
+
+
+static void me_send_all(u8 _num_obs,
+                        const navigation_measurement_t _meas[],
+                        const ephemeris_t _ephem[],
+                        const gps_time_t *_t,
+                        const gnss_solution *_soln)
+{
+  me_post_observations(_num_obs, _meas, _ephem, _t, _soln);
+  send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+}
+
+
+static void me_send_emptyobs(void) {
+  me_post_observations(0, NULL, NULL, NULL, NULL);
+  send_observations(0, msg_obs_max_size, NULL, NULL);
 }
 
 /** Update the satellite azimuth & elevation database with current angles
@@ -282,7 +295,9 @@ static void me_calc_pvt_thread(void *arg)
 
   systime_t deadline = chVTGetSystemTime();
 
-  bool clock_jump = FALSE;
+  /* RFT_TODO *
+   * clock_jump was after all masked by the TIME_FINE state variable
+   * and as not used generated compiler errors */
   last_good_fix_t lgf;
 
   ndb_lgf_read(&lgf);
@@ -290,7 +305,7 @@ static void me_calc_pvt_thread(void *arg)
   while (TRUE) {
 
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
-    watchdog_notify(WD_NOTIFY_SOLUTION);
+    watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     // Take the current nap count
     u64 current_tc = nap_timing_count();
@@ -360,7 +375,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
-      send_observations(0, msg_obs_max_size, NULL, NULL);
+      me_send_emptyobs();
       continue;
     }
 
@@ -398,17 +413,19 @@ static void me_calc_pvt_thread(void *arg)
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
-      send_observations(0, msg_obs_max_size, NULL, NULL);
+      me_send_emptyobs();
       continue;
     }
 
+    /* RFT_TODO *
+     * agreed this should go in starling but ME SPP solver needs it too */
     s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
 
     if (sc_ret != 0) {
-       log_error("calc_sat_clock_correction() returned an error");
-       send_observations(0, msg_obs_max_size, NULL, NULL);
-       continue;
-     }
+      log_error("calc_sat_clock_correction() returned an error");
+      me_send_emptyobs();
+      continue;
+    }
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
@@ -421,28 +438,10 @@ static void me_calc_pvt_thread(void *arg)
     double rec_tc_delta = (double) (rec_tc - rec_tc_old)
                                   / NAP_FRONTEND_SAMPLE_RATE_Hz;
     u8 n_ready_tdcp;
-    if (!clock_jump
-        && time_quality == TIME_FINE
-        && rec_tc_delta < 2 / soln_freq) {
 
-      /* Form TDCP Dopplers only if the clock has not just been adjusted,
-       * and the old measurements are at most one solution cycle old. */
-      n_ready_tdcp = tdcp_doppler(n_ready, nav_meas, n_ready_old, nav_meas_old,
-          nav_meas_tdcp, rec_tc_delta);
-    } else {
-
-      /* Pass the nav_meas with the measured Dopplers as is */
-      memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
-      n_ready_tdcp = n_ready;
-
-      /* Log the reason (if unexpected)*/
-      if (!clock_jump && time_quality == TIME_FINE
-          && rec_tc_delta >= 2 / soln_freq) {
-        log_warn(
-          "Time from last measurements %f seconds, skipping TDCP computation",
-          rec_tc_delta);
-      }
-    }
+    /* Pass the nav_meas with the measured Dopplers as is */
+    memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
+    n_ready_tdcp = n_ready;
 
     /* Store current observations for next time for
      * TDCP Doppler calculation. */
@@ -458,7 +457,7 @@ static void me_calc_pvt_thread(void *arg)
 
     if (sid_set_get_sat_count(&codes_tdcp) < 4) {
       /* Not enough sats to compute PVT */
-      send_observations(0, msg_obs_max_size, NULL, NULL);
+      me_send_emptyobs();
       continue;
     }
 
@@ -502,7 +501,7 @@ static void me_calc_pvt_thread(void *arg)
        * continuing to process this epoch - send out solution and observation
        * failed messages if not in time matched mode
        */
-      send_observations(0, msg_obs_max_size, NULL, NULL);
+      me_send_emptyobs();
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -539,8 +538,8 @@ static void me_calc_pvt_thread(void *arg)
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
       set_time_fine(rec_tc, current_fix.time);
-      clock_jump = TRUE;
-      send_observations(0, msg_obs_max_size, NULL, NULL);
+
+      me_send_emptyobs();
 
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
@@ -558,7 +557,7 @@ static void me_calc_pvt_thread(void *arg)
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
-    /* FXIME: Output solution. */
+    /* RFT_TODO: Output solution. */
 
 
 
@@ -656,22 +655,16 @@ static void me_calc_pvt_thread(void *arg)
       if (1 &&
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
-        /* Post the observations to the mailbox. */
-        me_post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
-
-        /* RFT_TODO *
-         * post to time_matched too
-         * */
 
         /* Send the observations. */
-        send_observations(n_ready_tdcp, msg_obs_max_size, nav_meas_tdcp, &new_obs_time);
+        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time, &current_fix);
       }
     }
 
     /* Calculate the receiver clock error and if >1ms perform a clock jump */
     double rx_err = gpsdifftime(&rec_time, &current_fix.time);
     log_debug("RX clock offset = %f", rx_err);
-    clock_jump = FALSE;
+
     if (fabs(rx_err) >= 1e-3) {
       log_info("Receiver clock offset larger than 1 ms, applying millisecond jump");
       /* round the time adjustment to even milliseconds */

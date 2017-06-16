@@ -13,6 +13,7 @@
 #ifndef ME_CALC_PVT_H
 #define ME_CALC_PVT_H
 
+#include <libsbp/observation.h>
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
@@ -35,6 +36,13 @@ typedef struct {
   u8 signals_used;
 } soln_pvt_stats_t;
 
+typedef struct _me_msg_obs_t {
+  size_t size;
+  navigation_measurement_t obs[MAX_CHANNELS];
+  ephemeris_t ephem[MAX_CHANNELS];
+} me_msg_obs_t;
+
+
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
@@ -44,7 +52,6 @@ typedef struct {
 #define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
 
 extern u32 obs_output_divisor;
-
 extern MemoryPool obs_buff_pool;
 extern mailbox_t  obs_mailbox;
 
