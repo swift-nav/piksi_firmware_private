@@ -170,6 +170,10 @@ s32 tracker_tow_update(tracker_context_t *context,
     }
     current_TOW_ms = TOW_ms;
     if (internal_data->bit_polarity != to_tracker.bit_polarity) {
+      /* Print warning if there was an unexpected polarity change */
+      if (BIT_POLARITY_UNKNOWN != internal_data->bit_polarity) {
+        log_warn_mesid(channel_info->mesid, "Unexpected bit polarity change");
+      }
       /* Reset carrier phase offset on bit polarity change */
       internal_data->reset_cpo = true;
       internal_data->bit_polarity = to_tracker.bit_polarity;
