@@ -483,7 +483,7 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
     pack_obs_header(t, total, count, (observation_header_t*) buff);
     packed_obs_content_t *obs = (packed_obs_content_t *)&buff[sizeof(observation_header_t)];
 
-    for (u8 i = 0; i < obs_in_msg && obs_i < n; i++) {
+    for (u8 i = 0; i < curr_n && obs_i < n; i++, obs_i++) {
       if (pack_obs_content(m[obs_i].raw_pseudorange,
                            m[obs_i].raw_carrier_phase,
                            m[obs_i].raw_measured_doppler,
@@ -491,9 +491,9 @@ static void send_observations(u8 n, const navigation_measurement_t m[],
                            m[obs_i].lock_time,
                            m[obs_i].flags,
                            m[obs_i].sid,
-                           &obs[i]) >= 0) {
-        /* Packed. */
-        obs_i++;
+                           &obs[i]) < 0) {
+        /* When packing fails, increment the obs counter but not the sbp message counter */
+        i--;
       }
     }
 
