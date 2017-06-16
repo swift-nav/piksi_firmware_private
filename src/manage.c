@@ -158,7 +158,6 @@ static glo_acq_state_t glo_acq_timer[NUM_SATS_GLO + 1] = { 0 };
 
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
-static void manage_track(void);
 
 static void manage_tracking_startup(void);
 static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo);
@@ -719,7 +718,6 @@ static void manage_track_thread(void *arg)
     check_clear_glo_unhealthy();
     DO_EVERY(2,
       check_clear_unhealthy();
-      manage_track();
       watchdog_notify(WD_NOTIFY_TRACKING_MGMT);
     );
     tracking_send_state();
@@ -924,7 +922,7 @@ static bool leap_second_is_imminent(void)
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy and low-elevation satellites for cross-correlation
  * purposes. */
-static void manage_track()
+void manage_track(void)
 {
   tracker_channel_t *sTrackerChannel;
   state_t state;

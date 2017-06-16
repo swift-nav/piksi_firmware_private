@@ -21,6 +21,7 @@
 #include "axi_dma.h"
 
 #include "track.h"
+#include "manage.h"
 #include "system_monitor.h"
 
 #include <math.h>
@@ -266,6 +267,7 @@ static void nap_track_irq_thread(void *arg)
 
     handle_nap_track_irq();
     tracking_channels_process();
+    manage_track();
   }
 }
 
