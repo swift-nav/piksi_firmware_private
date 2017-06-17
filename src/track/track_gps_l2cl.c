@@ -233,7 +233,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
   u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel)) {
 
     if (TOW_UNKNOWN != common_data->TOW_ms) {
       /*
@@ -263,7 +263,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
       s32 ToW_ms = TOW_UNKNOWN;
       double error_ms = 0;
       u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-      u8 bit_length = tracker_bit_length_get(channel_info->context);
+      u8 bit_length = tracker_bit_length_get(tracker_channel);
       ToW_ms = tp_tow_compute(tow_entry.TOW_ms,
                               time_delta_tk,
                               bit_length,
@@ -539,7 +539,7 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel->info.context)) {
+      tracker_bit_aligned(tracker_channel)) {
     bool fll_mode = tp_tl_is_fll(&data->tl_state);
     /* Drop L2CL tracker if it is FLL mode */
     if (fll_mode) {

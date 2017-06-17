@@ -239,7 +239,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
   u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel)) {
 
     if (TOW_UNKNOWN != common_data->TOW_ms) {
       /*
@@ -269,7 +269,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
       s32 ToW_ms = TOW_UNKNOWN;
       double error_ms = 0;
       u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-      u8 bit_length = tracker_bit_length_get(channel_info->context);
+      u8 bit_length = tracker_bit_length_get(tracker_channel);
       ToW_ms = tp_tow_compute(tow_entry.TOW_ms,
                               time_delta_tk,
                               bit_length,
@@ -453,11 +453,11 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags)
 {
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
-      !tracker_bit_aligned(channel_info->context)) {
+      !tracker_bit_aligned(tracker_channel)) {
     return;
   }
 
-  if (tracker_check_xcorr_flag(channel_info->context)) {
+  if (tracker_check_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
     common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
     return;
@@ -486,7 +486,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
   /* Increment counter or Make decision if L1 is xcorr flagged */
   check_L1_xcorr_flag(common_data, data, xcorr_flag, &xcorr_suspect);
 
-  bool prn_check_fail = tracker_check_prn_fail_flag(channel_info->context);
+  bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
   set_xcorr_suspect_flag(channel_info, common_data, data,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
@@ -522,38 +522,37 @@ static s8 read_data_polarity(tracker_common_data_t *common_data)
  *
  * Also handles the initialization of L2CL tracker when needed.
  *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data with ToW, sample number and other
- *                               runtime values.
- * \param[in]     data           Common tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
-static void update_l2cl_status(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               const tp_tracker_data_t *data,
+static void update_l2cl_status(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   if (tp_tl_is_fll(&data->tl_state)) {
     tracking_channel_drop_l2cl(channel_info->mesid);
-    tracker_ambiguity_unknown(channel_info->context);
+    tracker_ambiguity_unknown(tracker_channel);
   } else if (data->lock_detect.outp &&
              data->confirmed &&
              0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-             tracker_bit_aligned(channel_info->context)) {
+             tracker_bit_aligned(tracker_channel)) {
 
     /* If needed, read half-cycle ambiguity status from L2CL tracker */
-    if (tracker_ambiguity_resolved(channel_info->context)) {
+    if (tracker_ambiguity_resolved(tracker_channel)) {
       tracking_channel_drop_l2cl(channel_info->mesid);
     } else {
       s8 polarity = read_data_polarity(common_data);
-      tracker_ambiguity_set(channel_info->context, polarity);
+      tracker_ambiguity_set(tracker_channel, polarity);
     }
 
     /* If half-cycle ambiguity is not resolved, try to start L2CL tracker.
      * TOW must be known before trying to start L2CL tracker. */
-    if (!tracker_ambiguity_resolved(channel_info->context) &&
+    if (!tracker_ambiguity_resolved(tracker_channel) &&
         TOW_UNKNOWN != common_data->TOW_ms) {
       /* Start L2 CL tracker if not running already */
       do_l2cm_to_l2cl_handover(common_data->sample_count,
@@ -569,7 +568,6 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
 static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
 {
   gps_l2cm_tracker_data_t *l2c_data = tracker_channel->tracker->data;
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cm_config);
 
@@ -581,5 +579,5 @@ static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
                           &tracker_channel->common_data, l2c_data, cflags);
 
   /* GPS L2CL-specific tracking channel operations */
-  update_l2cl_status(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  update_l2cl_status(tracker_channel, cflags);
 }
