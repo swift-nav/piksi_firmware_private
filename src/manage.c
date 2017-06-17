@@ -366,9 +366,11 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   eph_valid = NDB_ERR_NONE == ndb_ret && ephemeris_valid(&orbit.e, t);
   if (eph_valid) {
     double unused;
+    u8 iode;
+    u16 iodc;
     ss_ret = calc_sat_state(&orbit.e, t, sat_pos, sat_vel,
                             /* double *clock_err = */ &unused,
-                            /* double *clock_rate_err = */ &unused);
+                            /* double *clock_rate_err = */ &unused, &iodc, &iode);
   }
 
   if (eph_valid && (ss_ret == 0)) {
