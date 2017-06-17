@@ -280,7 +280,7 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   memset(data, 0, sizeof(*data));
-  tracker_ambiguity_unknown(channel_info->context);
+  tracker_ambiguity_unknown(tracker_channel);
 
   log_debug_mesid(channel_info->mesid,
                   "[+%" PRIu32 "ms] Tracker start",
@@ -564,16 +564,16 @@ static s32 tp_tl_detect_alias(alias_detect_t *alias_detect, float I, float Q)
  *
  * Detect frequency error and update tracker state as appropriate.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param[in] tracker_channel Tracker channel data
  *
  * \return None
  */
-static void process_alias_error(const tracker_channel_info_t *channel_info,
-                                tracker_common_data_t *common_data,
-                                tp_tracker_data_t *data)
+static void process_alias_error(tracker_channel_t *tracker_channel)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   float I = data->corrs.corr_ad.I - data->alias_detect.first_I;
   float Q = data->corrs.corr_ad.Q - data->alias_detect.first_Q;
 
@@ -1006,8 +1006,6 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker_channel)
 void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
                              u32 cycle_flags)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   bool do_first = 0 != (cycle_flags & TP_CFLAG_ALIAS_FIRST);
@@ -1016,7 +1014,7 @@ void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
      (optimistic phase lock detect AND are in second-stage tracking) */
   if (0 != (cycle_flags & TP_CFLAG_ALIAS_SECOND)) {
     if (data->use_alias_detection && data->lock_detect.outo) {
-      process_alias_error(channel_info, common_data, data);
+      process_alias_error(tracker_channel);
     } else {
       /* If second stage is not enabled, make the first one */
       do_first = true;
