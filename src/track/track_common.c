@@ -462,12 +462,13 @@ static void mode_change_complete(const tracker_channel_info_t *channel_info,
  *
  * The method updates the TL step according to tracking mode.
  *
- * \param[in,out] data Tracker data
+ * \param tracker_channel Tracker channel data
  *
  * \return None
  */
-void tp_tracker_update_cycle_counter(tp_tracker_data_t *data)
+void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel)
 {
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   data->cycle_no = tp_next_cycle_counter(data->tracking_mode,
                                          data->cycle_no);
 }
@@ -1118,7 +1119,8 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker_channel);
   tracker_retune(tracker_channel, chips_to_correlate);
 
-  tp_tracker_update_cycle_counter(data);
+  tp_tracker_update_cycle_counter(tracker_channel);
+
   tp_tracker_update_common_flags(&tracker_channel->common_data, data);
 
   return cflags;
