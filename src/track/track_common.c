@@ -601,8 +601,7 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
  * Updates tracker correlators with data read from FPGA according to current
  * cycle flags.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in,out] data         Generic tracker data.
  * \param[in]     cycle_flags  Current cycle flags.
  */
@@ -693,17 +692,18 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
 /**
  * Updates bit synchronization and decodes message
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] data         Generic tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
-                             tp_tracker_data_t *data,
+void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags)
 {
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+    const tracker_channel_info_t *channel_info = &tracker_channel->info;
+    tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
     bool sensitivity_mode = tp_tl_is_fll(&data->tl_state);
     /* Bit sync / data decoding update counter. */
     u8 update_count_ms = tp_get_bit_ms(data->tracking_mode);
@@ -1103,7 +1103,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
                                   data->cycle_no);
 
   tp_tracker_update_correlators(tracker_channel, cflags);
-  tp_tracker_update_bsync(&tracker_channel->info, data, cflags);
+  tp_tracker_update_bsync(tracker_channel, cflags);
   tp_tracker_update_cn0(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_update_locks(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_update_fll(data, cflags);
