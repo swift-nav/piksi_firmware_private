@@ -230,9 +230,7 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
  * L1 satellites with matching doppler are xcorr flagged for investigation.
  * CN0 difference of xcorr flagged satellites is saved.
  *
- * \param[in]     channel_info    Channel information.
- * \param[in]     common_data     Channel data.
- * \param[in,out] data            Common L1 tracker data.
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in]     entry           xcorr data to be checked against.
  * \param[out]    xcorr_flags     Flags indicating satellites to be investigated.
  * \param[out]    sat_active      Flags indicating satellites currently tracked.
@@ -240,14 +238,16 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
-static void check_L1_entry(const tracker_channel_info_t *channel_info,
-                           tracker_common_data_t *common_data,
-                           gps_l1ca_tracker_data_t *data,
+static void check_L1_entry(tracker_channel_t *tracker_channel,
                            const tracking_channel_cc_entry_t *entry,
                            bool xcorr_flags[],
                            bool sat_active[],
                            float xcorr_cn0_diffs[])
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+
   if (CODE_GPS_L1CA != entry->mesid.code) {
     /* Ignore other than GPS L1CA for now */
     return;
@@ -496,7 +496,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
   for (u16 idx = 0; idx < cnt; ++idx) {
     const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
 
-    check_L1_entry(channel_info, common_data, data, entry,
+    check_L1_entry(tracker_channel, entry,
                    xcorr_flags, sat_active, xcorr_cn0_diffs);
   }
 
