@@ -14,8 +14,6 @@
 #include "track_glo_l1ca.h"
 #include "track_glo_l2ca.h" /* for L1CA to L2CA tracking handover */
 #include "track_cn0.h"
-#include "track_profile_utils.h"
-#include "track_profiles.h"
 #include "track_sid_db.h"
 #include "track.h"
 

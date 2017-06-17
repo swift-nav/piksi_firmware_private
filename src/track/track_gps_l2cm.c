@@ -18,8 +18,6 @@
 #include "track_gps_l2cm.h"
 #include "track_gps_l2cl.h" /* for L2CM to L2CL tracking handover */
 #include "track_cn0.h"
-#include "track_profile_utils.h"
-#include "track_profiles.h"
 #include "track_sid_db.h"
 #include "track.h"
 

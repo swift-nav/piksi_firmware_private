@@ -16,8 +16,6 @@
 /* Local headers */
 #include "track_gps_l2cl.h"
 #include "track_cn0.h"
-#include "track_profile_utils.h"
-#include "track_profiles.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */

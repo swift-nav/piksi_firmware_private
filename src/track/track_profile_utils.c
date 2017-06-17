@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_profile_utils.h"
 
 #include <assert.h>
+#include "track.h"
 
 #define TP_FLAGS_INIT_DEFAULT \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | \

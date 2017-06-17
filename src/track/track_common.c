@@ -17,8 +17,6 @@
 
 #include <track.h>
 
-#include "track_profiles.h"
-#include "track_profile_utils.h"
 #include "track_sid_db.h"
 #include "track_sbp.h"
 #include "signal.h"

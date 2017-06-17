@@ -14,8 +14,6 @@
 #include "track_gps_l1ca.h"
 #include "track_gps_l2cm.h" /* for L1C/A to L2 CM tracking handover */
 #include "track_cn0.h"
-#include "track_profile_utils.h"
-#include "track_profiles.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */
