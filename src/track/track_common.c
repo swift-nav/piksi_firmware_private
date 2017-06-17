@@ -657,7 +657,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
    */
   bool decoded_tow;
   common_data->TOW_ms_prev = common_data->TOW_ms;
-  common_data->TOW_ms = tracker_tow_update(channel_info->context,
+  common_data->TOW_ms = tracker_tow_update(tracker_channel,
                                            common_data->TOW_ms,
                                            int_ms,
                                            &common_data->TOW_residual_ns,
@@ -681,7 +681,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
     /* GLO health data is also decoded along with TOW */
     if (is_glo_sid(channel_info->mesid)) {
       common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
-      common_data->health = tracker_glo_sv_health_get(channel_info->context);
+      common_data->health = tracker_glo_sv_health_get(tracker_channel);
       log_debug_mesid(channel_info->mesid,
                       "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
                       common_data->update_count,

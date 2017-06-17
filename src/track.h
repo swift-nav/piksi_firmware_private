@@ -1211,7 +1211,7 @@ void tracker_ambiguity_unknown(tracker_context_t *context);
 bool tracker_ambiguity_resolved(tracker_context_t *context);
 void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
 u16 tracker_glo_orbit_slot_get(tracker_context_t *context);
-glo_health_t tracker_glo_sv_health_get(tracker_context_t *context);
+glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel);
 void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
 bool tracker_check_prn_fail_flag(tracker_context_t *context);
 bool tracker_check_xcorr_flag(tracker_context_t *context);

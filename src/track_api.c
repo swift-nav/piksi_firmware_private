@@ -393,18 +393,14 @@ u16 tracker_glo_orbit_slot_get(tracker_context_t *context)
 
 /** Get the channel's GLO health information.
  *
- * \param context  Tracker context.
+ * \param tracker_channel  Tracker channel.
  *
  * \return GLO health information
  */
-glo_health_t tracker_glo_sv_health_get(tracker_context_t *context)
+glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-  assert(is_glo_sid(channel_info->mesid));
-
-  return internal_data->health;
+  assert(is_glo_sid(tracker_channel->info.mesid));
+  return tracker_channel->internal_data.health;
 }
 
 /** Output a correlation data message for a tracker channel.
