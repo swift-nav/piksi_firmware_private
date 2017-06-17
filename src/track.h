@@ -1200,10 +1200,7 @@ void tracker_correlations_read(tracker_context_t *context,
                                u32 *sample_count,
                                double *code_phase,
                                double *carrier_phase);
-void tracker_retune(tracker_context_t *context,
-                    double doppler_freq_hz,
-                    double code_phase_rate,
-                    u32 chips_to_correlate);
+void tracker_retune(tracker_channel_t *tracker_channel, u32 chips_to_correlate);
 s32 tracker_tow_update(tracker_context_t *context,
                        s32 current_TOW_ms,
                        u32 int_ms,
