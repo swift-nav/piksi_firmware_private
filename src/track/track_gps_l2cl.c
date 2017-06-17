@@ -58,7 +58,7 @@ static tp_tracker_config_t gps_l2cl_config = TP_TRACKER_DEFAULT_CONFIG;
 /** GPS L2C tracker table */
 static tracker_t gps_l2cl_trackers[NUM_GPS_L2CL_TRACKERS];
 /** GPS L2C tracker data */
-static gps_l2cl_tracker_data_t gps_l2cl_tracker_data[ARRAY_SIZE(gps_l2cl_trackers)];
+static tp_tracker_data_t gps_l2cl_tracker_data[ARRAY_SIZE(gps_l2cl_trackers)];
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2cl_init;
@@ -295,11 +295,11 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
 
 static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel)
 {
-  gps_l2cl_tracker_data_t *data = tracker_channel->tracker->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, &data->data, &gps_l2cl_config);
+  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, data, &gps_l2cl_config);
 
   /* L2CL does not contain data bits.
      L2CL bit sync refers to alignment with L2CM data bits.
@@ -311,9 +311,9 @@ static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel)
 
 static void tracker_gps_l2cl_disable(tracker_channel_t *tracker_channel)
 {
-  gps_l2cl_tracker_data_t *data = tracker_channel->tracker->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
-  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, data);
 }
 
 /** Resets cp_sync counter and sets bit polarity to unknown.
@@ -529,8 +529,7 @@ static void process_cp_data(const me_gnss_signal_t mesid,
 
 static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
 {
-  gps_l2cl_tracker_data_t *l2c_data = tracker_channel->tracker->data;
-  tp_tracker_data_t *data = &l2c_data->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   u32 cflags = tp_tracker_update(tracker_channel, data, &gps_l2cl_config);
 

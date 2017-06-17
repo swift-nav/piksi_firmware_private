@@ -33,6 +33,8 @@
 
 #define NAV_BIT_FIFO_SIZE 64 /**< Size of nav bit FIFO. Must be a power of 2 */
 
+#define TP_DLL_PLL_MEAS_DIM 5
+
 #define NAV_BIT_FIFO_INDEX_MASK ((NAV_BIT_FIFO_SIZE) - 1)
 #define NAV_BIT_FIFO_INDEX_DIFF(write_index, read_index) \
           ((nav_bit_fifo_index_t)((write_index) - (read_index)))
@@ -41,6 +43,107 @@
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
+
+/*
+ * Main tracking: PLL loop selection
+ */
+
+/* FLL-assisted PLL. FLL is first order and PLL is second order */
+#define tl_pll2_state_t        aided_tl_state_fll1_pll2_t
+#define tl_pll2_init           aided_tl_fll1_pll2_init
+#define tl_pll2_retune         aided_tl_fll1_pll2_retune
+#define tl_pll2_update_fll     aided_tl_fll1_pll2_update_fll
+#define tl_pll2_update_dll     aided_tl_fll1_pll2_update_dll
+#define tl_pll2_adjust         aided_tl_fll1_pll2_adjust
+#define tl_pll2_get_dll_error  aided_tl_fll1_pll2_get_dll_error
+#define tl_pll2_discr_update   aided_tl_fll1_pll2_discr_update
+#define tl_pll2_get_rates      aided_tl_fll1_pll2_get_rates
+
+/*
+ * 3rd order PLL loop selection.
+ * The third order PLL loop selection is mutually exclusive from the three
+ * available implementations:
+ *
+ * TRACK_PLL_MODE3_BL
+ * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+ * Note: Bilinear transform integrator implementation
+ *
+ * TRACK_PLL_MODE3_BC
+ * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
+ * Note: Boxcar integrator implementation
+ *
+ * TRACK_PLL_MODE3_FLL
+ * FLL-assisted PLL. FLL is second order and PLL is third order
+ * Note: Bilinear transform integrator implementation
+ *
+ */
+#define TRACK_PLL_MODE3_BL  1
+#define TRACK_PLL_MODE3_BC  2
+#define TRACK_PLL_MODE3_FLL 3
+
+#ifndef TRACK_PLL_MODE3
+#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_BL
+#endif
+
+#if TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BL
+#define tl_pll3_state_t        aided_tl_state3_t
+#define tl_pll3_init           aided_tl_init3
+#define tl_pll3_retune         aided_tl_retune3
+#define tl_pll3_update_fll     aided_tl_update_fll3
+#define tl_pll3_update_dll     aided_tl_update_dll3
+#define tl_pll3_adjust         aided_tl_adjust3
+#define tl_pll3_get_dll_error  aided_tl_get_dll_error3
+#define tl_pll3_discr_update   aided_tl_discr_update3
+#define tl_pll3_get_rates      aided_tl_get_rates3
+#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BC
+#define tl_pll3_state_t        aided_tl_state3b_t
+#define tl_pll3_init           aided_tl_init3b
+#define tl_pll3_retune         aided_tl_retune3b
+#define tl_pll3_update_fll     aided_tl_update_fll3b
+#define tl_pll3_update_dll     aided_tl_update_dll3b
+#define tl_pll3_adjust         aided_tl_adjust3b
+#define tl_pll3_get_dll_error  aided_tl_get_dll_error3b
+#define tl_pll3_discr_update   aided_tl_discr_update3b
+#define tl_pll3_get_rates      aided_tl_get_rates3b
+#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_FLL
+#define tl_pll3_state_t        aided_tl_state_fll2_pll3_t
+#define tl_pll3_init           aided_tl_fll2_pll3_init
+#define tl_pll3_retune         aided_tl_fll2_pll3_retune
+#define tl_pll3_update_fll     aided_tl_fll2_pll3_update_fll
+#define tl_pll3_update_dll     aided_tl_fll2_pll3_update_dll
+#define tl_pll3_adjust         aided_tl_fll2_pll3_adjust
+#define tl_pll3_get_dll_error  aided_tl_fll2_pll3_get_dll_error
+#define tl_pll3_discr_update   aided_tl_fll2_pll3_discr_update
+#define tl_pll3_get_rates      aided_tl_fll2_pll3_get_rates
+#else
+#error Unsupported 3rd order PLL Mode
+#endif
+
+/*
+ * Main tracking: FLL loop selection
+ */
+
+/* FLL-assisted DLL. FLL is first order and DLL is second order */
+#define tl_fll1_state_t        aided_tl_state_fll1_t
+#define tl_fll1_init           aided_tl_fll1_init
+#define tl_fll1_retune         aided_tl_fll1_retune
+#define tl_fll1_update_fll     aided_tl_fll1_update_fll
+#define tl_fll1_update_dll     aided_tl_fll1_update_dll
+#define tl_fll1_adjust         aided_tl_fll1_adjust
+#define tl_fll1_get_dll_error  aided_tl_fll1_get_dll_error
+#define tl_fll1_discr_update   aided_tl_fll1_discr_update
+#define tl_fll1_get_rates      aided_tl_fll1_get_rates
+
+/* FLL-assisted DLL. FLL and DLL are both second order */
+#define tl_fll2_state_t        aided_tl_state_fll2_t
+#define tl_fll2_init           aided_tl_fll2_init
+#define tl_fll2_retune         aided_tl_fll2_retune
+#define tl_fll2_update_fll     aided_tl_fll2_update_fll
+#define tl_fll2_update_dll     aided_tl_fll2_update_dll
+#define tl_fll2_adjust         aided_tl_fll2_adjust
+#define tl_fll2_get_dll_error  aided_tl_fll2_get_dll_error
+#define tl_fll2_discr_update   aided_tl_fll2_discr_update
+#define tl_fll2_get_rates      aided_tl_fll2_get_rates
 
 /**
  * Tracking mode enumeration.
@@ -506,6 +609,83 @@ typedef struct {
   running_stats_t                       pseudorange_stats;
 } tracker_channel_pub_data_t;
 
+/**
+ * Tracker loop state.
+ */
+typedef struct
+{
+  union {
+    tl_pll2_state_t pll2; /**< Tracking loop filter state. */
+    tl_pll3_state_t pll3; /**< Tracking loop filter state. */
+    tl_fll1_state_t fll1; /**< Tracking loop filter state. */
+    tl_fll2_state_t fll2; /**< Tracking loop filter state. */
+  };
+  tp_ctrl_e ctrl;
+} tp_tl_state_t;
+
+/**
+ * EPL accumulator structure.
+ */
+typedef struct
+{
+  union {
+    corr_t epl[TP_DLL_PLL_MEAS_DIM]; /**< E|P|L|VE|VL accumulators as a vector */
+    struct {
+      corr_t early;                  /**< Early accumulator */
+      corr_t prompt;                 /**< Prompt accumulator */
+      corr_t late;                   /**< Late accumulator */
+      corr_t very_early;             /**< Very Early accumulator */
+      corr_t very_late;              /**< Very Late accumulator */
+    };
+  };
+} tp_epl_corr_t;
+
+/**
+ * Tracker accumulators.
+ *
+ * Tracker uses different frequencies for the following algorithms:
+ * - DLL and PLL
+ * - C/N0 estimator
+ * - FLL tracker
+ * - Alias (false lock) detector
+ * - Lock detector
+ * - Bit synchronization and message decoding
+ */
+typedef struct
+{
+  tp_epl_corr_t    corr_epl; /**< EPL correlation results for DLL and PLL
+                              *   in correlation period. */
+  tp_epl_corr_t    corr_cn0; /**< C/N0 accumulators */
+  corr_t           corr_fll; /**< FLL accumulator */
+  corr_t           corr_ad;  /**< False lock (alias) detector accumulator */
+  corr_t           corr_ld;  /**< Lock detector accumulator */
+  s32              corr_bit; /**< Bit sync accumulator */
+} tp_corr_state_t;
+
+/**
+ * Generic tracker data
+ */
+typedef struct {
+  tp_profile_t      profile;                /**< Profile controller state. */
+
+  tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
+  tp_corr_state_t   corrs;                  /**< Correlations */
+  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
+  alias_detect_t    alias_detect;           /**< Alias lock detector. */
+  lock_detect_t     lock_detect;            /**< Lock detector state. */
+  lp1_filter_t      xcorr_filter;           /**< Low-pass SV POV doppler filter */
+  u16               tracking_mode: 3;       /**< Tracking mode */
+  u16               cycle_no: 5;            /**< Cycle index inside current
+                                             *   integration mode. */
+  u16               use_alias_detection: 1; /**< Flag for alias detection control */
+  u16               has_next_params: 1;     /**< Flag if stage transition is in
+                                             *   progress */
+  u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
+  u16               mode_pll: 1;            /**< PLL control flag */
+  u16               mode_fll: 1;            /**< FLL control flag */
+  u16               xcorr_flag: 1;          /**< Cross-correlation filter is in use */
+} tp_tracker_data_t;
+
 struct tracker_interface;
 
 /** Top-level generic tracker channel. */
@@ -538,7 +718,8 @@ typedef struct {
   tracker_t *tracker;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
-  
+
+  tp_tracker_data_t tracker_data;
 } tracker_channel_t;
 
 /** Tracker interface function template. */
@@ -630,191 +811,10 @@ typedef struct {
 #define TP_CFLAG_LD_ADD          ((u32)1 << 23)
 #define TP_CFLAG_LD_USE          ((u32)1 << 24)
 
-#define TP_DLL_PLL_MEAS_DIM 5
-
-/*
- * Main tracking: PLL loop selection
- */
-
-/* FLL-assisted PLL. FLL is first order and PLL is second order */
-#define tl_pll2_state_t        aided_tl_state_fll1_pll2_t
-#define tl_pll2_init           aided_tl_fll1_pll2_init
-#define tl_pll2_retune         aided_tl_fll1_pll2_retune
-#define tl_pll2_update_fll     aided_tl_fll1_pll2_update_fll
-#define tl_pll2_update_dll     aided_tl_fll1_pll2_update_dll
-#define tl_pll2_adjust         aided_tl_fll1_pll2_adjust
-#define tl_pll2_get_dll_error  aided_tl_fll1_pll2_get_dll_error
-#define tl_pll2_discr_update   aided_tl_fll1_pll2_discr_update
-#define tl_pll2_get_rates      aided_tl_fll1_pll2_get_rates
-
-/*
- * 3rd order PLL loop selection.
- * The third order PLL loop selection is mutually exclusive from the three
- * available implementations:
- *
- * TRACK_PLL_MODE3_BL
- * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
- * Note: Bilinear transform integrator implementation
- *
- * TRACK_PLL_MODE3_BC
- * PLL-assisted DLL. FLL and DLL are second order, PLL is third order
- * Note: Boxcar integrator implementation
- *
- * TRACK_PLL_MODE3_FLL
- * FLL-assisted PLL. FLL is second order and PLL is third order
- * Note: Bilinear transform integrator implementation
- *
- */
-#define TRACK_PLL_MODE3_BL  1
-#define TRACK_PLL_MODE3_BC  2
-#define TRACK_PLL_MODE3_FLL 3
-
-#ifndef TRACK_PLL_MODE3
-#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_BL
-#endif
-
-#if TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BL
-#define tl_pll3_state_t        aided_tl_state3_t
-#define tl_pll3_init           aided_tl_init3
-#define tl_pll3_retune         aided_tl_retune3
-#define tl_pll3_update_fll     aided_tl_update_fll3
-#define tl_pll3_update_dll     aided_tl_update_dll3
-#define tl_pll3_adjust         aided_tl_adjust3
-#define tl_pll3_get_dll_error  aided_tl_get_dll_error3
-#define tl_pll3_discr_update   aided_tl_discr_update3
-#define tl_pll3_get_rates      aided_tl_get_rates3
-#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BC
-#define tl_pll3_state_t        aided_tl_state3b_t
-#define tl_pll3_init           aided_tl_init3b
-#define tl_pll3_retune         aided_tl_retune3b
-#define tl_pll3_update_fll     aided_tl_update_fll3b
-#define tl_pll3_update_dll     aided_tl_update_dll3b
-#define tl_pll3_adjust         aided_tl_adjust3b
-#define tl_pll3_get_dll_error  aided_tl_get_dll_error3b
-#define tl_pll3_discr_update   aided_tl_discr_update3b
-#define tl_pll3_get_rates      aided_tl_get_rates3b
-#elif TRACK_PLL_MODE3 == TRACK_PLL_MODE3_FLL
-#define tl_pll3_state_t        aided_tl_state_fll2_pll3_t
-#define tl_pll3_init           aided_tl_fll2_pll3_init
-#define tl_pll3_retune         aided_tl_fll2_pll3_retune
-#define tl_pll3_update_fll     aided_tl_fll2_pll3_update_fll
-#define tl_pll3_update_dll     aided_tl_fll2_pll3_update_dll
-#define tl_pll3_adjust         aided_tl_fll2_pll3_adjust
-#define tl_pll3_get_dll_error  aided_tl_fll2_pll3_get_dll_error
-#define tl_pll3_discr_update   aided_tl_fll2_pll3_discr_update
-#define tl_pll3_get_rates      aided_tl_fll2_pll3_get_rates
-#else
-#error Unsupported 3rd order PLL Mode
-#endif
-
-/*
- * Main tracking: FLL loop selection
- */
-
-/* FLL-assisted DLL. FLL is first order and DLL is second order */
-#define tl_fll1_state_t        aided_tl_state_fll1_t
-#define tl_fll1_init           aided_tl_fll1_init
-#define tl_fll1_retune         aided_tl_fll1_retune
-#define tl_fll1_update_fll     aided_tl_fll1_update_fll
-#define tl_fll1_update_dll     aided_tl_fll1_update_dll
-#define tl_fll1_adjust         aided_tl_fll1_adjust
-#define tl_fll1_get_dll_error  aided_tl_fll1_get_dll_error
-#define tl_fll1_discr_update   aided_tl_fll1_discr_update
-#define tl_fll1_get_rates      aided_tl_fll1_get_rates
-
-/* FLL-assisted DLL. FLL and DLL are both second order */
-#define tl_fll2_state_t        aided_tl_state_fll2_t
-#define tl_fll2_init           aided_tl_fll2_init
-#define tl_fll2_retune         aided_tl_fll2_retune
-#define tl_fll2_update_fll     aided_tl_fll2_update_fll
-#define tl_fll2_update_dll     aided_tl_fll2_update_dll
-#define tl_fll2_adjust         aided_tl_fll2_adjust
-#define tl_fll2_get_dll_error  aided_tl_fll2_get_dll_error
-#define tl_fll2_discr_update   aided_tl_fll2_discr_update
-#define tl_fll2_get_rates      aided_tl_fll2_get_rates
-
-/**
- * EPL accumulator structure.
- */
-typedef struct
-{
-  union {
-    corr_t epl[TP_DLL_PLL_MEAS_DIM]; /**< E|P|L|VE|VL accumulators as a vector */
-    struct {
-      corr_t early;                  /**< Early accumulator */
-      corr_t prompt;                 /**< Prompt accumulator */
-      corr_t late;                   /**< Late accumulator */
-      corr_t very_early;             /**< Very Early accumulator */
-      corr_t very_late;              /**< Very Late accumulator */
-    };
-  };
-} tp_epl_corr_t;
-
-/**
- * Tracker accumulators.
- *
- * Tracker uses different frequencies for the following algorithms:
- * - DLL and PLL
- * - C/N0 estimator
- * - FLL tracker
- * - Alias (false lock) detector
- * - Lock detector
- * - Bit synchronization and message decoding
- */
-typedef struct
-{
-  tp_epl_corr_t    corr_epl; /**< EPL correlation results for DLL and PLL
-                              *   in correlation period. */
-  tp_epl_corr_t    corr_cn0; /**< C/N0 accumulators */
-  corr_t           corr_fll; /**< FLL accumulator */
-  corr_t           corr_ad;  /**< False lock (alias) detector accumulator */
-  corr_t           corr_ld;  /**< Lock detector accumulator */
-  s32              corr_bit; /**< Bit sync accumulator */
-} tp_corr_state_t;
-
-/**
- * Tracker loop state.
- */
-typedef struct
-{
-  union {
-    tl_pll2_state_t pll2; /**< Tracking loop filter state. */
-    tl_pll3_state_t pll3; /**< Tracking loop filter state. */
-    tl_fll1_state_t fll1; /**< Tracking loop filter state. */
-    tl_fll2_state_t fll2; /**< Tracking loop filter state. */
-  };
-  tp_ctrl_e ctrl;
-} tp_tl_state_t;
-
-/**
- * Generic tracker data
- */
-typedef struct {
-  tp_profile_t      profile;                /**< Profile controller state. */
-
-  tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
-  tp_corr_state_t   corrs;                  /**< Correlations */
-  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
-  alias_detect_t    alias_detect;           /**< Alias lock detector. */
-  lock_detect_t     lock_detect;            /**< Lock detector state. */
-  lp1_filter_t      xcorr_filter;           /**< Low-pass SV POV doppler filter */
-  u16               tracking_mode: 3;       /**< Tracking mode */
-  u16               cycle_no: 5;            /**< Cycle index inside current
-                                             *   integration mode. */
-  u16               use_alias_detection: 1; /**< Flag for alias detection control */
-  u16               has_next_params: 1;     /**< Flag if stage transition is in
-                                             *   progress */
-  u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
-  u16               mode_pll: 1;            /**< PLL control flag */
-  u16               mode_fll: 1;            /**< FLL control flag */
-  u16               xcorr_flag: 1;          /**< Cross-correlation filter is in use */
-} tp_tracker_data_t;
-
 /**
  * GPS L1 C/A tracker data container type.
  */
 typedef struct {
-  tp_tracker_data_t data;             /**< Tracker data */
   u16 xcorr_counts[NUM_SATS_GPS];     /**< L1 Cross-correlation interval counters */
   u16 xcorr_count_l2;                 /**< L2 Cross-correlation interval counter */
   u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval counters */
@@ -827,33 +827,11 @@ typedef struct {
  * GPS L2C tracker data container type.
  */
 typedef struct {
-  tp_tracker_data_t data;  /**< Common tracker parameters */
   u16 xcorr_count_l1;      /**< L1 Cross-correlation interval count */
   bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
   bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
   u8  xcorr_flag: 1;       /**< Cross-correlation flag */
 } gps_l2cm_tracker_data_t;
-
-/**
- * GPS L2CL tracker data container type.
- */
-typedef struct {
-  tp_tracker_data_t data;  /**< Common tracker parameters */
-} gps_l2cl_tracker_data_t;
-
-/**
- * GLO L1CA tracker data container type.
- */
-typedef struct {
-  tp_tracker_data_t data;
-} glo_l1ca_tracker_data_t;
-
-/**
- * GLO L2CA tracker data container type.
- */
-typedef struct {
-  tp_tracker_data_t data;
-} glo_l2ca_tracker_data_t;
 
 /**
  * Common tracker configuration container.

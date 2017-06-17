@@ -42,7 +42,7 @@
 static tp_tracker_config_t glo_l2ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
 static tracker_t glo_l2ca_trackers[NUM_GLO_L2CA_TRACKERS];
-static glo_l2ca_tracker_data_t glo_l2ca_tracker_data[ARRAY_SIZE(glo_l2ca_trackers)];
+static tp_tracker_data_t glo_l2ca_tracker_data[ARRAY_SIZE(glo_l2ca_trackers)];
 
 /* Forward declarations of interface methods for GLO L2CA */
 static tracker_interface_function_t tracker_glo_l2ca_init;
@@ -154,25 +154,23 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
 
 static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
 {
-  glo_l2ca_tracker_data_t *data = tracker_channel->tracker->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, &data->data, &glo_l2ca_config);
+  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, data, &glo_l2ca_config);
 }
 
 static void tracker_glo_l2ca_disable(tracker_channel_t *tracker_channel)
 {
-  glo_l2ca_tracker_data_t *data = tracker_channel->tracker->data;
-
-  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info,
+                     &tracker_channel->common_data,
+                     &tracker_channel->tracker_data);
 }
 
 static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel)
 {
-
-  glo_l2ca_tracker_data_t *glo_l2ca_data = tracker_channel->tracker->data;
-  tp_tracker_data_t *data = &glo_l2ca_data->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   u32 tracker_flags = tp_tracker_update(tracker_channel, data, &glo_l2ca_config);
   (void)tracker_flags;
 

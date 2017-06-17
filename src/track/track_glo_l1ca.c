@@ -39,7 +39,7 @@
 static tp_tracker_config_t glo_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
 static tracker_t glo_l1ca_trackers[NUM_GLO_L1CA_TRACKERS];
-static glo_l1ca_tracker_data_t glo_l1ca_tracker_data[ARRAY_SIZE(glo_l1ca_trackers)];
+static tp_tracker_data_t glo_l1ca_tracker_data[ARRAY_SIZE(glo_l1ca_trackers)];
 
 /* Forward declarations of interface methods for GLO L1CA */
 static tracker_interface_function_t tracker_glo_l1ca_init;
@@ -80,22 +80,21 @@ void track_glo_l1ca_register(void)
 
 static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel)
 {
-  glo_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   memset(data, 0, sizeof(*data));
 
   tp_tracker_init(&tracker_channel->info,
                   &tracker_channel->common_data,
-                  &data->data,
+                  data,
                   &glo_l1ca_config);
 }
 
 static void tracker_glo_l1ca_disable(tracker_channel_t *tracker_channel)
 {
-  glo_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
-
   tp_tracker_disable(&tracker_channel->info,
-                     &tracker_channel->common_data, &data->data);
+                     &tracker_channel->common_data,
+                     &tracker_channel->tracker_data);
 }
 
 s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
@@ -250,8 +249,7 @@ static void update_tow_glo_l1ca(const tracker_channel_info_t *channel_info,
 
 static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
 {
-  glo_l1ca_tracker_data_t *glo_l1ca_data = tracker_channel->tracker->data;
-  tp_tracker_data_t *data = &glo_l1ca_data->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   u32 tracker_flags = tp_tracker_update(tracker_channel, data, &glo_l1ca_config);
 
   /* GLO L1 C/A-specific ToW manipulation */

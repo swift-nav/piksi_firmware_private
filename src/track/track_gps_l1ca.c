@@ -113,16 +113,16 @@ static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
 
   tp_tracker_init(&tracker_channel->info,
                   &tracker_channel->common_data,
-                  &data->data, &gps_l1ca_config);
+                  &tracker_channel->tracker_data,
+                  &gps_l1ca_config);
 
 }
 
 static void tracker_gps_l1ca_disable(tracker_channel_t *tracker_channel)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
-
   tp_tracker_disable(&tracker_channel->info,
-                     &tracker_channel->common_data, &data->data);
+                     &tracker_channel->common_data,
+                     &tracker_channel->tracker_data);
 }
 
 /**
@@ -475,6 +475,7 @@ static void check_L2_xcorr_flag(const tracker_channel_info_t *channel_info,
  *        1000 \right )}}\right| < \delta
  * \f]
  *
+ * \param[in,out] tracker_channel Tracker channel data.
  * \param[in]     channel_info   Channel information.
  * \param[in,out] common_data    Channel data with ToW, sample number and other
  *                               runtime values.
@@ -483,7 +484,8 @@ static void check_L2_xcorr_flag(const tracker_channel_info_t *channel_info,
  *
  * \return None
  */
-static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
+static void update_l1_xcorr(tracker_channel_t *tracker_channel,
+                            const tracker_channel_info_t *channel_info,
                             tracker_common_data_t *common_data,
                             gps_l1ca_tracker_data_t *data,
                             u32 cycle_flags)
@@ -498,8 +500,6 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
     common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
     return;
   }
-
-  gps_l1ca_tracker_data_t *mode = data;
 
   tracking_channel_cc_data_t cc_data;
   u16 cnt = tracking_channel_load_cc_data(&cc_data);
@@ -524,7 +524,7 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
+  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tracker_data.tl_state);
   /* If signal is in sensitivity mode, all whitelistings are cleared */
   if (sensitivity_mode) {
     for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
@@ -563,6 +563,7 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
  *        1000 \right )}}\right| < \delta
  * \f]
  *
+ * \param         tracker_channel Tracker channel data
  * \param[in]     channel_info   Channel information.
  * \param[in,out] common_data    Channel data with ToW, sample number and other
  *                               runtime values.
@@ -571,7 +572,8 @@ static void update_l1_xcorr(const tracker_channel_info_t *channel_info,
  *
  * \return None
  */
-static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
+static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
+                                    const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     gps_l1ca_tracker_data_t *data,
                                     u32 cycle_flags)
@@ -580,8 +582,6 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
       !tracker_bit_aligned(channel_info->context)) {
     return;
   }
-
-  gps_l1ca_tracker_data_t *mode = data;
 
   tracking_channel_cc_data_t cc_data;
   u16 cnt = tracking_channel_load_cc_data(&cc_data);
@@ -597,7 +597,7 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
   }
 
   u16 index = mesid_to_code_index(channel_info->mesid);
-  bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
+  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tracker_data.tl_state);
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist[index] = false;
@@ -617,7 +617,7 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
 static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
 {
   gps_l1ca_tracker_data_t *l1ca_data = tracker_channel->tracker->data;
-  tp_tracker_data_t *data = &l1ca_data->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   u32 cflags = tp_tracker_update(tracker_channel, data, &gps_l1ca_config);
 
@@ -625,10 +625,12 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
   update_tow_gps_l1ca(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
 
   /* GPS L1 C/A-specific cross-correlation operations */
-  update_l1_xcorr(&tracker_channel->info, &tracker_channel->common_data, l1ca_data, cflags);
+  update_l1_xcorr(tracker_channel, &tracker_channel->info,
+                  &tracker_channel->common_data, l1ca_data, cflags);
 
   /* GPS L1 C/A-specific L2C cross-correlation operations */
-  update_l1_xcorr_from_l2(&tracker_channel->info, &tracker_channel->common_data, l1ca_data, cflags);
+  update_l1_xcorr_from_l2(tracker_channel, &tracker_channel->info,
+                          &tracker_channel->common_data, l1ca_data, cflags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&

@@ -193,7 +193,8 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, &data->data, &gps_l2cm_config);
+  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data,
+                  &tracker_channel->tracker_data, &gps_l2cm_config);
 
   /* L2C bit sync is known once we start tracking it since
      the L2C ranging code length matches the bit length (20ms).
@@ -204,9 +205,8 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 
 static void tracker_gps_l2cm_disable(tracker_channel_t *tracker_channel)
 {
-  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
-
-  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data,
+                     &tracker_channel->tracker_data);
 }
 
 /**
@@ -448,7 +448,8 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
  *
  * \return None
  */
-static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
+static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
+                                    const tracker_channel_info_t *channel_info,
                                     tracker_common_data_t *common_data,
                                     gps_l2cm_tracker_data_t *data,
                                     u32 cycle_flags)
@@ -464,8 +465,6 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
     return;
   }
 
-  gps_l2cm_tracker_data_t *mode = data;
-
   tracking_channel_cc_data_t cc_data;
   u16 cnt = tracking_channel_load_cc_data(&cc_data);
 
@@ -479,7 +478,7 @@ static void update_l2_xcorr_from_l1(const tracker_channel_info_t *channel_info,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&mode->data.tl_state);
+  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tracker_data.tl_state);
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
@@ -572,7 +571,7 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
 static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
 {
   gps_l2cm_tracker_data_t *l2c_data = tracker_channel->tracker->data;
-  tp_tracker_data_t *data = &l2c_data->data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   u32 cflags = tp_tracker_update(tracker_channel, data, &gps_l2cm_config);
 
@@ -580,7 +579,8 @@ static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
   update_tow_gps_l2c(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
 
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
-  update_l2_xcorr_from_l1(&tracker_channel->info, &tracker_channel->common_data, l2c_data, cflags);
+  update_l2_xcorr_from_l1(tracker_channel, &tracker_channel->info,
+                          &tracker_channel->common_data, l2c_data, cflags);
 
   /* GPS L2CL-specific tracking channel operations */
   update_l2cl_status(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
