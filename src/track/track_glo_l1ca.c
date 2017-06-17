@@ -94,12 +94,14 @@ static void tracker_glo_l1ca_disable(tracker_channel_t *tracker_channel)
                      &tracker_channel->tracker_data);
 }
 
-s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
-                              tracker_common_data_t *common_data,
+s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
                               u64 sample_time_tk,
                               bool half_bit_aligned,
                               s32 *TOW_residual_ns)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+
   assert(channel_info);
   assert(TOW_residual_ns);
   *TOW_residual_ns = 0;
@@ -184,18 +186,17 @@ static void update_tow_in_sid_db(const tracker_common_data_t *common_data,
  * tracker updates the cache. The time difference between signals is ignored
  * as small.
  *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data with ToW, sample number and other
- *                               runtime values.
- * \param[in]     data           Common tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags    Current cycle flags.
  */
-static void update_tow_glo_l1ca(const tracker_channel_info_t *channel_info,
-                                tracker_common_data_t *common_data,
-                                tp_tracker_data_t *data,
+static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags)
 {
   bool half_bit_aligned = false;
+
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context)) {
@@ -230,8 +231,7 @@ static void update_tow_glo_l1ca(const tracker_channel_info_t *channel_info,
   u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
 
   if (TOW_UNKNOWN == common_data->TOW_ms) {
-    common_data->TOW_ms = propagate_tow_from_sid_db(channel_info,
-                                                 common_data,
+    common_data->TOW_ms = propagate_tow_from_sid_db(tracker_channel,
                                                  sample_time_tk,
                                                  half_bit_aligned,
                                                  &common_data->TOW_residual_ns);
@@ -250,7 +250,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
   u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l1ca_config);
 
   /* GLO L1 C/A-specific ToW manipulation */
-  update_tow_glo_l1ca(&tracker_channel->info, &tracker_channel->common_data, data, tracker_flags);
+  update_tow_glo_l1ca(tracker_channel, tracker_flags);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->common_data.health) {
