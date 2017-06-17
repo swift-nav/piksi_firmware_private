@@ -201,7 +201,7 @@ void tracker_interface_register(tracker_interface_list_element_t *element);
 
 /* Tracker instance API functions. Must be called from within an
  * interface function. */
-void tracker_correlations_read(tracker_context_t *context,
+void tracker_correlations_read(u8 nap_channel,
                                corr_t *cs,
                                u32 *sample_count,
                                double *code_phase,

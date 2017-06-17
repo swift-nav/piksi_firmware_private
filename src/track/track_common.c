@@ -622,7 +622,8 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
   u8     int_ms = 0;       /**< Current cycle duration in ms */
 
   /* Read correlations. */
-  tracker_correlations_read(channel_info->context, cs_now.epl,
+  tracker_correlations_read(tracker_channel->info.nap_channel,
+                            cs_now.epl,
                             &sample_count,
                             &code_phase_prompt,
                             &carrier_phase);
