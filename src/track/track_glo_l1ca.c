@@ -80,24 +80,24 @@ void track_glo_l1ca_register(void)
   tracker_interface_register(&tracker_interface_list_glo_l1ca);
 }
 
-static void tracker_glo_l1ca_init(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tracker_data_t *tracker_data)
+static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel)
 {
-  glo_l1ca_tracker_data_t *data = tracker_data;
+  glo_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(channel_info, common_data, &data->data, &glo_l1ca_config);
+  tp_tracker_init(&tracker_channel->info,
+                  &tracker_channel->common_data,
+                  &data->data,
+                  &glo_l1ca_config);
 }
 
-static void tracker_glo_l1ca_disable(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data,
-                                     tracker_data_t *tracker_data)
+static void tracker_glo_l1ca_disable(tracker_channel_t *tracker_channel)
 {
-  glo_l1ca_tracker_data_t *data = tracker_data;
+  glo_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
-  tp_tracker_disable(channel_info, common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info,
+                     &tracker_channel->common_data, &data->data);
 }
 
 s32 propagate_tow_from_sid_db(const tracker_channel_info_t *channel_info,
@@ -250,35 +250,33 @@ static void update_tow_glo_l1ca(const tracker_channel_info_t *channel_info,
   }
 }
 
-static void tracker_glo_l1ca_update(const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    tracker_data_t *tracker_data)
+static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
 {
-  glo_l1ca_tracker_data_t *glo_l1ca_data = tracker_data;
+  glo_l1ca_tracker_data_t *glo_l1ca_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &glo_l1ca_data->data;
-  u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
+  u32 tracker_flags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
                                         &glo_l1ca_config);
 
   /* GLO L1 C/A-specific ToW manipulation */
-  update_tow_glo_l1ca(channel_info, common_data, data, tracker_flags);
+  update_tow_glo_l1ca(&tracker_channel->info, &tracker_channel->common_data, data, tracker_flags);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
-  if (GLO_SV_UNHEALTHY == common_data->health) {
+  if (GLO_SV_UNHEALTHY == tracker_channel->common_data.health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L2CA, channel_info->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L2CA, tracker_channel->info.mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (tracker_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel->info.context)) {
 
     /* Start GLO L2CA tracker if not running */
-    do_glo_l1ca_to_l2ca_handover(common_data->sample_count,
-                                 channel_info->mesid.sat,
-                                 common_data->code_phase_prompt,
-                                 common_data->carrier_freq,
-                                 common_data->cn0);
+    do_glo_l1ca_to_l2ca_handover(tracker_channel->common_data.sample_count,
+                                 tracker_channel->info.mesid.sat,
+                                 tracker_channel->common_data.code_phase_prompt,
+                                 tracker_channel->common_data.carrier_freq,
+                                 tracker_channel->common_data.cn0);
   }
 }

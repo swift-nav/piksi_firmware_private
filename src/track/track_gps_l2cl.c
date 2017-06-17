@@ -295,31 +295,27 @@ static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
   }
 }
 
-static void tracker_gps_l2cl_init(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tracker_data_t *tracker_data)
+static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel)
 {
-  gps_l2cl_tracker_data_t *data = tracker_data;
+  gps_l2cl_tracker_data_t *data = tracker_channel->tracker->data;
 
-  memset(data, 0, sizeof(gps_l2cl_tracker_data_t));
+  memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(channel_info, common_data, &data->data, &gps_l2cl_config);
+  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, &data->data, &gps_l2cl_config);
 
   /* L2CL does not contain data bits.
      L2CL bit sync refers to alignment with L2CM data bits.
      Bit sync is known once we start tracking L2CL, since
      handover from L2CM is done at the end of 20ms integration period,
      i.e. at the edge of a L2CM data bit. */
-  tracker_bit_sync_set(channel_info->context, 0);
+  tracker_bit_sync_set(tracker_channel->info.context, 0);
 }
 
-static void tracker_gps_l2cl_disable(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data,
-                                     tracker_data_t *tracker_data)
+static void tracker_gps_l2cl_disable(tracker_channel_t *tracker_channel)
 {
-  gps_l2cl_tracker_data_t *data = tracker_data;
+  gps_l2cl_tracker_data_t *data = tracker_channel->tracker->data;
 
-  tp_tracker_disable(channel_info, common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, &data->data);
 }
 
 /** Resets cp_sync counter and sets bit polarity to unknown.
@@ -533,30 +529,28 @@ static void process_cp_data(const me_gnss_signal_t mesid,
   increment_cp_counter(mesid, &cp_comp, polarity, common_data);
 }
 
-static void tracker_gps_l2cl_update(const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    tracker_data_t *tracker_data)
+static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
 {
-  gps_l2cl_tracker_data_t *l2c_data = tracker_data;
+  gps_l2cl_tracker_data_t *l2c_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &l2c_data->data;
 
-  u32 cflags = tp_tracker_update(channel_info, common_data, data,
+  u32 cflags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
                                  &gps_l2cl_config);
 
   /* GPS L2 C-specific ToW manipulation */
-  update_tow_gps_l2c(channel_info, common_data, cflags);
+  update_tow_gps_l2c(&tracker_channel->info, &tracker_channel->common_data, cflags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel->info.context)) {
     bool fll_mode = tp_tl_is_fll(&data->tl_state);
     /* Drop L2CL tracker if it is FLL mode */
     if (fll_mode) {
-      tracking_channel_drop_l2cl(channel_info->mesid);
-    } else if (!common_data->cp_sync.synced) {
+      tracking_channel_drop_l2cl(tracker_channel->info.mesid);
+    } else if (!tracker_channel->common_data.cp_sync.synced) {
       /* Try resolving half-cycle ambiguity if it hasn't been resolved. */
-      process_cp_data(channel_info->mesid, common_data);
+      process_cp_data(tracker_channel->info.mesid, &tracker_channel->common_data);
     }
   }
 }

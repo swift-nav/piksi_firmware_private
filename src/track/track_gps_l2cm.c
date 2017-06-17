@@ -189,30 +189,26 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   }
 }
 
-static void tracker_gps_l2cm_init(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tracker_data_t *tracker_data)
+static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 {
-  gps_l2cm_tracker_data_t *data = tracker_data;
+  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
 
-  memset(data, 0, sizeof(gps_l2cm_tracker_data_t));
+  memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(channel_info, common_data, &data->data, &gps_l2cm_config);
+  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, &data->data, &gps_l2cm_config);
 
   /* L2C bit sync is known once we start tracking it since
      the L2C ranging code length matches the bit length (20ms).
      This is the end of 20ms integration period and the edge
      of a data bit. */
-  tracker_bit_sync_set(channel_info->context, 0);
+  tracker_bit_sync_set(tracker_channel->info.context, 0);
 }
 
-static void tracker_gps_l2cm_disable(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data,
-                                     tracker_data_t *tracker_data)
+static void tracker_gps_l2cm_disable(tracker_channel_t *tracker_channel)
 {
-  gps_l2cm_tracker_data_t *data = tracker_data;
+  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
 
-  tp_tracker_disable(channel_info, common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, &data->data);
 }
 
 /**
@@ -575,22 +571,20 @@ static void update_l2cl_status(const tracker_channel_info_t *channel_info,
   }
 }
 
-static void tracker_gps_l2cm_update(const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    tracker_data_t *tracker_data)
+static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
 {
-  gps_l2cm_tracker_data_t *l2c_data = tracker_data;
+  gps_l2cm_tracker_data_t *l2c_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &l2c_data->data;
 
-  u32 cflags = tp_tracker_update(channel_info, common_data, data,
+  u32 cflags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
                                  &gps_l2cm_config);
 
   /* GPS L2 C-specific ToW manipulation */
-  update_tow_gps_l2c(channel_info, common_data, data, cflags);
+  update_tow_gps_l2c(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
 
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
-  update_l2_xcorr_from_l1(channel_info, common_data, l2c_data, cflags);
+  update_l2_xcorr_from_l1(&tracker_channel->info, &tracker_channel->common_data, l2c_data, cflags);
 
   /* GPS L2CL-specific tracking channel operations */
-  update_l2cl_status(channel_info, common_data, data, cflags);
+  update_l2cl_status(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
 }

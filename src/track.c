@@ -1017,11 +1017,8 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
 tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid)
 {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_info_t *info = &tracker_channel->info;
-
-    if (mesid_is_equal(info->mesid, mesid)) {
+    if (mesid_is_equal(tracker_channel->mesid, mesid)) {
       return tracker_channel;
     }
   }
@@ -1240,11 +1237,10 @@ static void tracking_channel_data_sync(tracker_channel_id_t id,
          (from_decoder->bit_polarity == BIT_POLARITY_INVERTED));
 
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
   from_decoder->read_index = internal_data->nav_bit_fifo.read_index;
   if (!nav_data_sync_set(&internal_data->nav_data_sync, from_decoder)) {
-    log_warn_mesid(channel_info->mesid, "Data sync failed");
+    log_warn_mesid(tracker_channel->mesid, "Data sync failed");
   }
 }
 
@@ -1566,8 +1562,7 @@ static bool tracker_active(const tracker_t *tracker)
 static void interface_function(tracker_channel_t *tracker_channel,
                                tracker_interface_function_t *func)
 {
-  func(&tracker_channel->info, &tracker_channel->common_data,
-       tracker_channel->tracker->data);
+  func(tracker_channel);
 }
 
 /** Update the state of a tracker channel and its associated tracker instance.

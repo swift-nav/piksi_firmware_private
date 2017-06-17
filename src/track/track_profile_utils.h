@@ -219,7 +219,7 @@ typedef struct
  * Generic tracker data
  */
 typedef struct {
-  tp_profile_t      profile;                /**< Profile controller state. */
+  tp_profile_t      profile;                /**< Profile controller state. */
 
   tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
   tp_corr_state_t   corrs;                  /**< Correlations */

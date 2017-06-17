@@ -237,74 +237,7 @@ typedef struct {
   tracker_context_t *context;   /**< Current context for library functions. */
 } tracker_channel_info_t;
 
-/** Tracker interface function template. */
-typedef void (tracker_interface_function_t)(
-                 const tracker_channel_info_t *channel_info,
-                 tracker_common_data_t *common_data,
-                 tracker_data_t *tracker_data);
-
-/** Interface to a tracker implementation. */
-typedef struct {
-  /** Code type for which the implementation may be used. */
-  enum code code;
-  /** Init function. Called to set up tracker instance when tracking begins. */
-  tracker_interface_function_t *init;
-  /** Disable function. Called when tracking stops. */
-  tracker_interface_function_t *disable;
-  /** Update function. Called when new correlation outputs are available. */
-  tracker_interface_function_t *update;
-  /** Array of tracker instances used by this interface. */
-  tracker_t *trackers;
-  /** Number of tracker instances in trackers array. */
-  u8 num_trackers;
-} tracker_interface_t;
-
-/** List element passed to tracker_interface_register(). */
-typedef struct tracker_interface_list_element_t {
-  const tracker_interface_t *interface;
-  struct tracker_interface_list_element_t *next;
-} tracker_interface_list_element_t;
-
 /** \} */
-
-void tracker_interface_register(tracker_interface_list_element_t *element);
-
-/* Tracker instance API functions. Must be called from within an
- * interface function. */
-void tracker_correlations_read(tracker_context_t *context,
-                               corr_t *cs,
-                               u32 *sample_count,
-                               double *code_phase,
-                               double *carrier_phase);
-void tracker_retune(tracker_context_t *context,
-                    double doppler_freq_hz,
-                    double code_phase_rate,
-                    u32 chips_to_correlate);
-s32 tracker_tow_update(tracker_context_t *context,
-                       s32 current_TOW_ms,
-                       u32 int_ms,
-                       s32 *TOW_residual_ns,
-                       bool *decoded_tow);
-void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
-void tracker_bit_sync_update(tracker_context_t *context,
-                             u32 int_ms,
-                             s32 corr_prompt_real,
-                             s32 corr_prompt_imag,
-                             bool sensitivity_mode);
-u8 tracker_bit_length_get(tracker_context_t *context);
-bool tracker_bit_aligned(tracker_context_t *context);
-bool tracker_has_bit_sync(tracker_context_t *context);
-bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
-void tracker_ambiguity_unknown(tracker_context_t *context);
-bool tracker_ambiguity_resolved(tracker_context_t *context);
-void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
-u16 tracker_glo_orbit_slot_get(tracker_context_t *context);
-glo_health_t tracker_glo_sv_health_get(tracker_context_t *context);
-void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
-bool tracker_check_prn_fail_flag(tracker_context_t *context);
-bool tracker_check_xcorr_flag(tracker_context_t *context);
-
-
 
 /** \addtogroup tracking
  * \{ */
@@ -511,6 +444,8 @@ typedef struct {
   running_stats_t                       pseudorange_stats;
 } tracker_channel_pub_data_t;
 
+struct tracker_interface;
+
 /** Top-level generic tracker channel. */
 typedef struct {
   /** State of this channel. */
@@ -521,6 +456,11 @@ typedef struct {
   volatile error_flag_t error_flags;
   /** Info associated with this channel. */
   tracker_channel_info_t info;
+
+  me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
+  u8 nap_channel;               /**< Associated NAP channel. */
+  tracker_context_t *context;   /**< Current context for library functions. */
+
   /** Data common to all tracker implementations. RW from channel interface
    * functions. RO from functions in this module. */
   tracker_common_data_t common_data;
@@ -531,12 +471,37 @@ typedef struct {
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
   /** Associated tracker interface. */
-  const tracker_interface_t *interface;
+  const struct tracker_interface *interface;
   /** Associated tracker instance. */
   tracker_t *tracker;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
 } tracker_channel_t;
+
+/** Tracker interface function template. */
+typedef void (tracker_interface_function_t)(tracker_channel_t *tracker_channel);
+
+/** Interface to a tracker implementation. */
+typedef struct tracker_interface {
+  /** Code type for which the implementation may be used. */
+  enum code code;
+  /** Init function. Called to set up tracker instance when tracking begins. */
+  tracker_interface_function_t *init;
+  /** Disable function. Called when tracking stops. */
+  tracker_interface_function_t *disable;
+  /** Update function. Called when new correlation outputs are available. */
+  tracker_interface_function_t *update;
+  /** Array of tracker instances used by this interface. */
+  tracker_t *trackers;
+  /** Number of tracker instances in trackers array. */
+  u8 num_trackers;
+} tracker_interface_t;
+
+/** List element passed to tracker_interface_register(). */
+typedef struct tracker_interface_list_element_t {
+  const tracker_interface_t *interface;
+  struct tracker_interface_list_element_t *next;
+} tracker_interface_list_element_t;
 
 /**
  * Input entry for cross-correlation processing
@@ -667,5 +632,42 @@ s8 nav_bit_quantize(s32 bit_integrate);
 
 u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
 u16 tracking_lock_counter_get(gnss_signal_t sid);
+
+void tracker_interface_register(tracker_interface_list_element_t *element);
+
+/* Tracker instance API functions. Must be called from within an
+ * interface function. */
+void tracker_correlations_read(tracker_context_t *context,
+                               corr_t *cs,
+                               u32 *sample_count,
+                               double *code_phase,
+                               double *carrier_phase);
+void tracker_retune(tracker_context_t *context,
+                    double doppler_freq_hz,
+                    double code_phase_rate,
+                    u32 chips_to_correlate);
+s32 tracker_tow_update(tracker_context_t *context,
+                       s32 current_TOW_ms,
+                       u32 int_ms,
+                       s32 *TOW_residual_ns,
+                       bool *decoded_tow);
+void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
+void tracker_bit_sync_update(tracker_context_t *context,
+                             u32 int_ms,
+                             s32 corr_prompt_real,
+                             s32 corr_prompt_imag,
+                             bool sensitivity_mode);
+u8 tracker_bit_length_get(tracker_context_t *context);
+bool tracker_bit_aligned(tracker_context_t *context);
+bool tracker_has_bit_sync(tracker_context_t *context);
+bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
+void tracker_ambiguity_unknown(tracker_context_t *context);
+bool tracker_ambiguity_resolved(tracker_context_t *context);
+void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
+u16 tracker_glo_orbit_slot_get(tracker_context_t *context);
+glo_health_t tracker_glo_sv_health_get(tracker_context_t *context);
+void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
+bool tracker_check_prn_fail_flag(tracker_context_t *context);
+bool tracker_check_xcorr_flag(tracker_context_t *context);
 
 #endif

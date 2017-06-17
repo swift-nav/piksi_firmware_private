@@ -154,41 +154,35 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 }
 
-static void tracker_glo_l2ca_init(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tracker_data_t *tracker_data)
+static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
 {
-  glo_l2ca_tracker_data_t *data = tracker_data;
+  glo_l2ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(channel_info, common_data, &data->data, &glo_l2ca_config);
+  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, &data->data, &glo_l2ca_config);
 }
 
-static void tracker_glo_l2ca_disable(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data,
-                                     tracker_data_t *tracker_data)
+static void tracker_glo_l2ca_disable(tracker_channel_t *tracker_channel)
 {
-  glo_l2ca_tracker_data_t *data = tracker_data;
+  glo_l2ca_tracker_data_t *data = tracker_channel->tracker->data;
 
-  tp_tracker_disable(channel_info, common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data, &data->data);
 }
 
-static void tracker_glo_l2ca_update(const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    tracker_data_t *tracker_data)
+static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel)
 {
 
-  glo_l2ca_tracker_data_t *glo_l2ca_data = tracker_data;
+  glo_l2ca_tracker_data_t *glo_l2ca_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &glo_l2ca_data->data;
-  u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
+  u32 tracker_flags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
                                         &glo_l2ca_config);
   (void)tracker_flags;
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
-  if (GLO_SV_UNHEALTHY == common_data->health) {
+  if (GLO_SV_UNHEALTHY == tracker_channel->common_data.health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L1CA, channel_info->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L1CA, tracker_channel->info.mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 }

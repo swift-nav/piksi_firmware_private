@@ -18,6 +18,7 @@
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
 #include "shm.h"
+#include "track.h"
 
 /** \addtogroup track_api
  * \{ */
@@ -170,10 +171,7 @@ typedef struct {
 } tracker_channel_info_t;
 
 /** Tracker interface function template. */
-typedef void (tracker_interface_function_t)(
-                 const tracker_channel_info_t *channel_info,
-                 tracker_common_data_t *common_data,
-                 tracker_data_t *tracker_data);
+typedef void (tracker_interface_function_t)(tracker_channel_t *tracker_channel);
 
 /** Interface to a tracker implementation. */
 typedef struct {

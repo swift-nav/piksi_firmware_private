@@ -107,25 +107,24 @@ void track_gps_l1ca_register(void)
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }
 
-static void tracker_gps_l1ca_init(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tracker_data_t *tracker_data)
+static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
 {
-  gps_l1ca_tracker_data_t *data = tracker_data;
+  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
-  memset(data, 0, sizeof(gps_l1ca_tracker_data_t));
+  memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(channel_info, common_data, &data->data, &gps_l1ca_config);
+  tp_tracker_init(&tracker_channel->info,
+                  &tracker_channel->common_data,
+                  &data->data, &gps_l1ca_config);
 
 }
 
-static void tracker_gps_l1ca_disable(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data,
-                                     tracker_data_t *tracker_data)
+static void tracker_gps_l1ca_disable(tracker_channel_t *tracker_channel)
 {
-  gps_l1ca_tracker_data_t *data = tracker_data;
+  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
-  tp_tracker_disable(channel_info, common_data, &data->data);
+  tp_tracker_disable(&tracker_channel->info,
+                     &tracker_channel->common_data, &data->data);
 }
 
 /**
@@ -617,35 +616,33 @@ static void update_l1_xcorr_from_l2(const tracker_channel_info_t *channel_info,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-static void tracker_gps_l1ca_update(const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    tracker_data_t *tracker_data)
+static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
 {
-  gps_l1ca_tracker_data_t *l1ca_data = tracker_data;
+  gps_l1ca_tracker_data_t *l1ca_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &l1ca_data->data;
 
-  u32 cflags = tp_tracker_update(channel_info, common_data, data,
+  u32 cflags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
                                  &gps_l1ca_config);
 
   /* GPS L1 C/A-specific ToW manipulation */
-  update_tow_gps_l1ca(channel_info, common_data, data, cflags);
+  update_tow_gps_l1ca(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
 
   /* GPS L1 C/A-specific cross-correlation operations */
-  update_l1_xcorr(channel_info, common_data, l1ca_data, cflags);
+  update_l1_xcorr(&tracker_channel->info, &tracker_channel->common_data, l1ca_data, cflags);
 
   /* GPS L1 C/A-specific L2C cross-correlation operations */
-  update_l1_xcorr_from_l2(channel_info, common_data, l1ca_data, cflags);
+  update_l1_xcorr_from_l2(&tracker_channel->info, &tracker_channel->common_data, l1ca_data, cflags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel->info.context)) {
 
     /* Start L2 CM tracker if not running */
-    do_l1ca_to_l2cm_handover(common_data->sample_count,
-                             channel_info->mesid.sat,
-                             common_data->code_phase_prompt,
-                             common_data->carrier_freq,
-                             common_data->cn0);
+    do_l1ca_to_l2cm_handover(tracker_channel->common_data.sample_count,
+                             tracker_channel->info.mesid.sat,
+                             tracker_channel->common_data.code_phase_prompt,
+                             tracker_channel->common_data.carrier_freq,
+                             tracker_channel->common_data.cn0);
   }
 }
