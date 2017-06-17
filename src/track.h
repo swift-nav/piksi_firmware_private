@@ -1067,7 +1067,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                            u32 cycle_flags);
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags);
-void tp_tracker_update_fll(tp_tracker_data_t *data, u32 cycle_flags);
+void tp_tracker_update_fll(tracker_channel_t *tracker_channel, u32 cycle_flags);
 void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
                                tracker_common_data_t *common_data,
                                tp_tracker_data_t *data,

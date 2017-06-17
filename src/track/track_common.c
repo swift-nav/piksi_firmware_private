@@ -867,13 +867,15 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
  *
  * The method performs FLL tracking or FLL tracking assistance for PLL.
  *
- * \param[in,out] data         Generic tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-void tp_tracker_update_fll(tp_tracker_data_t *data, u32 cycle_flags)
+void tp_tracker_update_fll(tracker_channel_t *tracker_channel, u32 cycle_flags)
 {
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND)) {
     tp_tl_fll_update_second(&data->tl_state, data->corrs.corr_fll);
   }
@@ -1105,7 +1107,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_bsync(tracker_channel, cflags);
   tp_tracker_update_cn0(tracker_channel, cflags);
   tp_tracker_update_locks(tracker_channel, cflags);
-  tp_tracker_update_fll(data, cflags);
+  tp_tracker_update_fll(tracker_channel, cflags);
   tp_tracker_update_pll_dll(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_flag_outliers(&tracker_channel->info, &tracker_channel->common_data);
   tp_tracker_update_alias(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
