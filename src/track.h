@@ -1072,9 +1072,7 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
                                u32 cycle_flags);
 void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
                              u32 cycle_flags);
-void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
+void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config);
 void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,

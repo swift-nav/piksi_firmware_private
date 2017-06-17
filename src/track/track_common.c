@@ -1034,20 +1034,20 @@ void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
  * The method updates SV doppler value on bit edges. The doppler is not taken from
  * controller, but is a LP product of controller output.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param[in,out  tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  * \param[in]     config       Generic tracker configuration.
  *
  * \return None
  */
-void tp_tracker_filter_doppler(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
+void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(channel_info->context)) {
 
@@ -1110,8 +1110,8 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_pll_dll(tracker_channel, cflags);
   tp_tracker_flag_outliers(tracker_channel);
   tp_tracker_update_alias(tracker_channel, cflags);
+  tp_tracker_filter_doppler(tracker_channel, cflags, config);
 
-  tp_tracker_filter_doppler(&tracker_channel->info, &tracker_channel->common_data, data, cflags, config);
   tp_tracker_update_mode(&tracker_channel->info, &tracker_channel->common_data, data);
   u32 chips_to_correlate = tp_tracker_compute_rollover_count(&tracker_channel->info,
                                                              data,
