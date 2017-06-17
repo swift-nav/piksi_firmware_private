@@ -1192,7 +1192,7 @@ void tracker_correlations_read(u8 nap_channel,
                                double *code_phase,
                                double *carrier_phase);
 void tracker_retune(tracker_channel_t *tracker_channel, u32 chips_to_correlate);
-s32 tracker_tow_update(tracker_context_t *context,
+s32 tracker_tow_update(tracker_channel_t *tracker_channel,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
