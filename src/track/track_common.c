@@ -124,21 +124,21 @@ void tp_tracker_update_lock_detect_parameters(tp_tracker_data_t *data,
 /**
  * Update tracker parameters when initializing or changing tracking mode.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param[in,out  tracker_channel Tracker channel data
  * \param[in]     next_params  Tracking configuration.
  * \param[in]     init         Flag to indicate if the call to initialize or
  *                             to update.
  *
  * \return None
  */
-void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tp_tracker_data_t *data,
+void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
                                   const tp_config_t *next_params,
                                   bool init)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   const tp_loop_params_t *l = &next_params->loop_params;
   u8 prev_cn0_ms = 0;
   bool prev_use_alias_detection = 0;
@@ -308,11 +308,8 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
     data->confirmed = true;
   }
 
-  tp_tracker_update_parameters(channel_info,
-                               common_data,
-                               data,
-                               &init_profile,
-                               true);
+  tp_tracker_update_parameters(tracker_channel, &init_profile,
+                               /* init = */ true);
 }
 
 /**
@@ -423,19 +420,18 @@ static void mode_change_init(tracker_channel_t *tracker_channel)
  *
  * Method fetches new profile parameters and reconfigures as necessary.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param[in,out] tracker_channel Tracker channel data
  *
  * \return None
  */
-static void mode_change_complete(const tracker_channel_info_t *channel_info,
-                                 tracker_common_data_t *common_data,
-                                 tp_tracker_data_t *data)
+static void mode_change_complete(tracker_channel_t *tracker_channel)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   if (data->has_next_params) {
     tp_config_t next_params;
-
     tp_profile_get_config(channel_info->mesid, &data->profile,
                           &next_params, true);
 
@@ -445,11 +441,8 @@ static void mode_change_complete(const tracker_channel_info_t *channel_info,
                     "Reconfiguring tracking profile: new mode=%s",
                     tp_get_mode_str(next_params.loop_params.mode));
 
-    tp_tracker_update_parameters(channel_info,
-                                 common_data,
-                                 data,
-                                 &next_params,
-                                 false);
+    tp_tracker_update_parameters(tracker_channel, &next_params,
+                                 /* init = */ false);
     /* Indicate that a mode change has occurred. */
     common_data->mode_change_count = common_data->update_count;
   }
@@ -1074,11 +1067,7 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_mode(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
-  mode_change_complete(channel_info, common_data, data);
+  mode_change_complete(tracker_channel);
   mode_change_init(tracker_channel);
 }
 
