@@ -1160,9 +1160,6 @@ void track_internal_setup(void);
 
 tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void);
 
-void tracker_internal_context_resolve(tracker_context_t *tracker_context,
-                                      const tracker_channel_info_t **channel_info,
-                                      tracker_internal_data_t **internal_data);
 void internal_data_init(tracker_internal_data_t *internal_data,
                         const me_gnss_signal_t mesid,
                         u16 glo_orbit_slot);
@@ -1197,23 +1194,23 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
                        bool *decoded_tow);
-void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
-void tracker_bit_sync_update(tracker_context_t *context,
+void tracker_bit_sync_set(tracker_channel_t *tracker_channel, s8 bit_phase_ref);
+void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
                              u32 int_ms,
                              s32 corr_prompt_real,
                              s32 corr_prompt_imag,
                              bool sensitivity_mode);
-u8 tracker_bit_length_get(tracker_context_t *context);
-bool tracker_bit_aligned(tracker_context_t *context);
-bool tracker_has_bit_sync(tracker_context_t *context);
-bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
-void tracker_ambiguity_unknown(tracker_context_t *context);
-bool tracker_ambiguity_resolved(tracker_context_t *context);
-void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
-u16 tracker_glo_orbit_slot_get(tracker_context_t *context);
+u8 tracker_bit_length_get(tracker_channel_t *tracker_channel);
+bool tracker_bit_aligned(tracker_channel_t *tracker_channel);
+bool tracker_has_bit_sync(tracker_channel_t *tracker_channel);
+bool tracker_next_bit_aligned(tracker_channel_t *tracker_channel, u32 int_ms);
+void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel);
+bool tracker_ambiguity_resolved(tracker_channel_t *tracker_channel);
+void tracker_ambiguity_set(tracker_channel_t *tracker_channel, s8 polarity);
+u16 tracker_glo_orbit_slot_get(tracker_channel_t *tracker_channel);
 glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel);
-void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
-bool tracker_check_prn_fail_flag(tracker_context_t *context);
-bool tracker_check_xcorr_flag(tracker_context_t *context);
+void tracker_correlations_send(tracker_channel_t *tracker_channel, const corr_t *cs);
+bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel);
+bool tracker_check_xcorr_flag(tracker_channel_t *tracker_channel);
 
 #endif

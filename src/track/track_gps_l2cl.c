@@ -306,7 +306,7 @@ static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel)
      Bit sync is known once we start tracking L2CL, since
      handover from L2CM is done at the end of 20ms integration period,
      i.e. at the edge of a L2CM data bit. */
-  tracker_bit_sync_set(tracker_channel->info.context, 0);
+  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
 }
 
 static void tracker_gps_l2cl_disable(tracker_channel_t *tracker_channel)

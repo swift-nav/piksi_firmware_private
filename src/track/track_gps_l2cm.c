@@ -200,7 +200,7 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
      the L2C ranging code length matches the bit length (20ms).
      This is the end of 20ms integration period and the edge
      of a data bit. */
-  tracker_bit_sync_set(tracker_channel->info.context, 0);
+  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
 }
 
 static void tracker_gps_l2cm_disable(tracker_channel_t *tracker_channel)

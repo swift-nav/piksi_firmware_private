@@ -1285,25 +1285,6 @@ void tracking_channel_glo_data_sync(tracker_channel_id_t id,
   tracking_channel_data_sync(id, from_decoder);
 }
 
-/** Retrieve the channel info and internal data associated with a
- * tracker context.
- *
- * \note This function is declared in track_internal.h to avoid polluting
- * the public API in track.h
- *
- * \param tracker_context     Tracker context to be resolved.
- * \param channel_info        Output tracker channel info.
- * \param internal_data       Output tracker internal data.
- */
-void tracker_internal_context_resolve(tracker_context_t *tracker_context,
-                                      const tracker_channel_info_t **channel_info,
-                                      tracker_internal_data_t **internal_data)
-{
-  tracker_channel_t *tracker_channel = (tracker_channel_t *)tracker_context;
-  *channel_info = &tracker_channel->info;
-  *internal_data = &tracker_channel->internal_data;
-}
-
 /** Check the state of a tracker channel and generate events as required.
  * \param tracker_channel   Tracker channel to use.
  * \param update_required   True when correlations are pending for the

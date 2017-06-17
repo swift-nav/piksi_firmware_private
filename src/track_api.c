@@ -192,16 +192,13 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
 
 /** Set bit sync phase reference
  *
- * \param context           Tracker context.
+ * \param tracker_channel   Tracker channel data.
  * \param bit_phase_ref     Bit phase reference.
  */
-void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
+void tracker_bit_sync_set(tracker_channel_t *tracker_channel, s8 bit_phase_ref)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  bit_sync_set(&internal_data->bit_sync, bit_phase_ref);
+  bit_sync_t *bit_sync = &tracker_channel->internal_data.bit_sync;
+  bit_sync_set(bit_sync, bit_phase_ref);
 }
 
 /** Update bit sync and output navigation message bits for a tracker channel.
@@ -211,15 +208,14 @@ void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref)
  * \param corr_prompt_real  Real part of the prompt correlation.
  * \param sensitivity_mode  Flag indicating tracking channel sensitivity mode.
  */
-void tracker_bit_sync_update(tracker_context_t *context,
+void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
                              u32 int_ms,
                              s32 corr_prompt_real,
                              s32 corr_prompt_imag,
                              bool sensitivity_mode)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+  me_gnss_signal_t mesid = tracker_channel->info.mesid;
+  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   /* Update bit sync */
   s32 bit_integrate;
@@ -229,7 +225,7 @@ void tracker_bit_sync_update(tracker_context_t *context,
                       int_ms,
                       &bit_integrate)) {
     /* Skip FIFO writes for signals which do not require decoder. */
-    if (!code_requires_decoder(channel_info->mesid.code)) {
+    if (!code_requires_decoder(mesid.code)) {
       return;
     }
     s8 soft_bit = nav_bit_quantize(bit_integrate);
@@ -241,7 +237,7 @@ void tracker_bit_sync_update(tracker_context_t *context,
 
       /* warn if the FIFO has become full */
       if (nav_bit_fifo_full(&internal_data->nav_bit_fifo)) {
-        log_warn_mesid(channel_info->mesid, "nav bit FIFO full");
+        log_warn_mesid(mesid, "nav bit FIFO full");
       }
     }
 
@@ -252,17 +248,13 @@ void tracker_bit_sync_update(tracker_context_t *context,
 
 /** Get the bit length for a tracker channel.
  *
- * \param context     Tracker context.
+ * \param tracker_channel  Tracker channel data.
  *
  * \return Bit length
  */
-u8 tracker_bit_length_get(tracker_context_t *context)
+u8 tracker_bit_length_get(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  return internal_data->bit_sync.bit_length;
+  return tracker_channel->internal_data.bit_sync.bit_length;
 }
 
 /** Get the bit alignment state for a tracker channel.
@@ -272,12 +264,9 @@ u8 tracker_bit_length_get(tracker_context_t *context)
  * \return true if bit sync has been established and the most recent
  *         integration is bit aligned, false otherwise.
  */
-bool tracker_bit_aligned(tracker_context_t *context)
+bool tracker_bit_aligned(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
+  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
   return (internal_data->bit_sync.bit_phase ==
             internal_data->bit_sync.bit_phase_ref);
 }
@@ -290,12 +279,9 @@ bool tracker_bit_aligned(tracker_context_t *context)
  * \retval true  Bit sync has been established
  * \retval false Bit sync is not established.
  */
-bool tracker_has_bit_sync(tracker_context_t *context)
+bool tracker_has_bit_sync(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
+  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
   return (BITSYNC_UNSYNCED != internal_data->bit_sync.bit_phase_ref);
 }
 
@@ -310,12 +296,9 @@ bool tracker_has_bit_sync(tracker_context_t *context)
  * \retval false bit sync is not established or the next integration is not bit
  *               aligned.
  */
-bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms)
+bool tracker_next_bit_aligned(tracker_channel_t *tracker_channel, u32 int_ms)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
+  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
   s32 next_bit_phase = internal_data->bit_sync.bit_phase + int_ms;
   next_bit_phase %= internal_data->bit_sync.bit_length;
 
@@ -330,11 +313,10 @@ bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms)
  *
  * \param context     Tracker context.
  */
-void tracker_ambiguity_unknown(tracker_context_t *context)
+void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   internal_data->bit_polarity = BIT_POLARITY_UNKNOWN;
   internal_data->lock_counter =
@@ -348,13 +330,9 @@ void tracker_ambiguity_unknown(tracker_context_t *context)
  *
  * \return false if ambiguity unknown, true if it is known.
  */
-bool tracker_ambiguity_resolved(tracker_context_t *context)
+bool tracker_ambiguity_resolved(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  return internal_data->bit_polarity != BIT_POLARITY_UNKNOWN;
+  return tracker_channel->internal_data.bit_polarity != BIT_POLARITY_UNKNOWN;
 }
 
 /** Set channel's carrier phase ambiguity status.
@@ -364,16 +342,12 @@ bool tracker_ambiguity_resolved(tracker_context_t *context)
  *
  * \return None
  */
-void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
+void tracker_ambiguity_set(tracker_channel_t *tracker_channel, s8 polarity)
 {
   if (BIT_POLARITY_UNKNOWN == polarity) {
     return;
   }
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  internal_data->bit_polarity = polarity;
+  tracker_channel->internal_data.bit_polarity = polarity;
 }
 
 /** Get the channel's GLO orbital slot information.
@@ -382,13 +356,9 @@ void tracker_ambiguity_set(tracker_context_t *context, s8 polarity)
  *
  * \return GLO orbital slot
  */
-u16 tracker_glo_orbit_slot_get(tracker_context_t *context)
+u16 tracker_glo_orbit_slot_get(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  return internal_data->glo_orbit_slot;
+  return tracker_channel->internal_data.glo_orbit_slot;
 }
 
 /** Get the channel's GLO health information.
@@ -408,11 +378,10 @@ glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel)
  * \param context     Tracker context.
  * \param cs          Array of correlations to send.
  */
-void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
+void tracker_correlations_send(tracker_channel_t *tracker_channel, const corr_t *cs)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   /* Output I/Q correlations using SBP if enabled for this channel */
   if (internal_data->output_iq) {
@@ -441,13 +410,9 @@ void tracker_correlations_send(tracker_context_t *context, const corr_t *cs)
  * \param[in] context Tracker context.
  * \return    TRUE if PRN fail flag is set, otherwise FAIL
  */
-bool tracker_check_prn_fail_flag(tracker_context_t *context)
+bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  return internal_data->prn_check_fail;
+  return tracker_channel->internal_data.prn_check_fail;
 }
 
 /**
@@ -460,11 +425,7 @@ bool tracker_check_prn_fail_flag(tracker_context_t *context)
  *
  * \return Cross-correlation flag value-
  */
-bool tracker_check_xcorr_flag(tracker_context_t *context)
+bool tracker_check_xcorr_flag(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info;
-  tracker_internal_data_t *internal_data;
-  tracker_internal_context_resolve(context, &channel_info, &internal_data);
-
-  return internal_data->xcorr_flag;
+  return tracker_channel->internal_data.xcorr_flag;
 }
