@@ -602,7 +602,6 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
  * cycle flags.
  *
  * \param[in]     tracker_channel Tracker channel data
- * \param[in,out] data         Generic tracker data.
  * \param[in]     cycle_flags  Current cycle flags.
  */
 void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
@@ -895,18 +894,18 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel, u32 cycle_flags)
  * This method updates PLL and DLL loops and additionally checks for DLL errors
  * and report data to profile managements.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-void tp_tracker_update_pll_dll(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
+void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
 
     /* Output I/Q correlations using SBP if enabled for this channel */
@@ -1108,7 +1107,8 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_cn0(tracker_channel, cflags);
   tp_tracker_update_locks(tracker_channel, cflags);
   tp_tracker_update_fll(tracker_channel, cflags);
-  tp_tracker_update_pll_dll(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_update_pll_dll(tracker_channel, cflags);
+
   tp_tracker_flag_outliers(&tracker_channel->info, &tracker_channel->common_data);
   tp_tracker_update_alias(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_filter_doppler(&tracker_channel->info, &tracker_channel->common_data, data, cflags, config);
