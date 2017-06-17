@@ -1069,16 +1069,16 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
 /**
  * Mode switching control.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param tracker_channel Tracker channel data
  *
  * \return None
  */
-void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            tp_tracker_data_t *data)
+void tp_tracker_update_mode(tracker_channel_t *tracker_channel)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   mode_change_complete(channel_info, common_data, data);
   mode_change_init(channel_info, data);
 }
@@ -1111,8 +1111,8 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_flag_outliers(tracker_channel);
   tp_tracker_update_alias(tracker_channel, cflags);
   tp_tracker_filter_doppler(tracker_channel, cflags, config);
+  tp_tracker_update_mode(tracker_channel);
 
-  tp_tracker_update_mode(&tracker_channel->info, &tracker_channel->common_data, data);
   u32 chips_to_correlate = tp_tracker_compute_rollover_count(&tracker_channel->info,
                                                              data,
                                                              tracker_channel->common_data.code_phase_prompt);
