@@ -299,7 +299,7 @@ static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel)
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data, data, &gps_l2cl_config);
+  tp_tracker_init(tracker_channel, &gps_l2cl_config);
 
   /* L2CL does not contain data bits.
      L2CL bit sync refers to alignment with L2CM data bits.

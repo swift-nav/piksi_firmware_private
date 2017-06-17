@@ -84,10 +84,7 @@ static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel)
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(&tracker_channel->info,
-                  &tracker_channel->common_data,
-                  data,
-                  &glo_l1ca_config);
+  tp_tracker_init(tracker_channel, &glo_l1ca_config);
 }
 
 static void tracker_glo_l1ca_disable(tracker_channel_t *tracker_channel)

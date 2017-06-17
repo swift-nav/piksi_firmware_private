@@ -264,21 +264,20 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
 /**
  * Initializes tracker data.
  *
- * The method initializes tracker parameter and updates tracker context.
+ * The method initializes tracker parameters.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[out]    data         Generic tracker data to initialize.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     config       Configuration parameters.
  *
  * \return None
  */
-void tp_tracker_init(const tracker_channel_info_t *channel_info,
-                     tracker_common_data_t *common_data,
-                     tp_tracker_data_t *data,
+void tp_tracker_init(tracker_channel_t *tracker_channel,
                      const tp_tracker_config_t *config)
 {
   tp_config_t init_profile;
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   memset(data, 0, sizeof(*data));
   tracker_ambiguity_unknown(channel_info->context);
@@ -408,7 +407,7 @@ static void mode_change_init(tracker_channel_t *tracker_channel)
      * bit update interval in ms. */
     u8 bit_ms = tp_get_bit_ms(data->tracking_mode);
 
-    if (tracker_next_bit_aligned(channel_info->context, bit_ms)) {
+    if (tracker_next_bit_aligned(tracker_channel, bit_ms)) {
       /* When the bit sync is available and the next integration interval is the
        * last one in the bit, check if the profile switch is required. */
       if (tp_profile_has_new_profile(channel_info->mesid, &data->profile)) {
@@ -590,7 +589,7 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
                       "False optimistic lock detected: %f", err);
     }
 
-    tracker_ambiguity_unknown(channel_info->context);
+    tracker_ambiguity_unknown(tracker_channel);
     /* Indicate that a mode change has occurred. */
     common_data->mode_change_count = common_data->update_count;
 
@@ -705,14 +704,13 @@ void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags)
 {
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
-    const tracker_channel_info_t *channel_info = &tracker_channel->info;
     tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
     bool sensitivity_mode = tp_tl_is_fll(&data->tl_state);
     /* Bit sync / data decoding update counter. */
     u8 update_count_ms = tp_get_bit_ms(data->tracking_mode);
     /* Bit sync advance / message decoding */
-    tracker_bit_sync_update(channel_info->context,
+    tracker_bit_sync_update(tracker_channel,
                             update_count_ms,
                             data->corrs.corr_epl.prompt.I,
                             data->corrs.corr_epl.prompt.Q,
@@ -765,7 +763,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz &&
       !data->confirmed &&
       data->lock_detect.outo &&
-      tracker_has_bit_sync(channel_info->context)) {
+      tracker_has_bit_sync(tracker_channel)) {
     data->confirmed = true;
     log_debug_mesid(channel_info->mesid,
                     "CONFIRMED from %f to %d",
@@ -787,7 +785,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   if (cn0 < cn0_params.track_cn0_ambiguity_thres_dbhz) {
     /* C/N0 has dropped below threshold, indicate that the carrier phase
      * ambiguity is now unknown as cycle slips are likely. */
-    tracker_ambiguity_unknown(channel_info->context);
+    tracker_ambiguity_unknown(tracker_channel);
   }
 
   if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
@@ -862,7 +860,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
    * intervals.
    */
   if (!data->mode_pll || !data->lock_detect.outp) {
-    tracker_ambiguity_unknown(channel_info->context);
+    tracker_ambiguity_unknown(tracker_channel);
   }
 }
 
@@ -915,8 +913,7 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
 
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (data->tracking_mode != TP_TM_INITIAL) {
-      tracker_correlations_send(channel_info->context,
-                                data->corrs.corr_epl.epl);
+      tracker_correlations_send(tracker_channel, data->corrs.corr_epl.epl);
     }
 
     if (data->has_next_params) {
@@ -952,7 +949,7 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
 
     /* Do tracking report to manager */
     tp_report_t report;
-    report.bsync = tracker_has_bit_sync(channel_info->context);
+    report.bsync = tracker_has_bit_sync(tracker_channel);
     report.carr_freq = common_data->carrier_freq;
     report.code_phase_rate = common_data->code_phase_rate;
     report.cn0_raw = common_data->cn0;
@@ -1049,12 +1046,11 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel)) {
 
     float xcorr_freq = common_data->carrier_freq;
 

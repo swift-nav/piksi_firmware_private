@@ -193,8 +193,7 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 
   memset(data, 0, sizeof(*data));
 
-  tp_tracker_init(&tracker_channel->info, &tracker_channel->common_data,
-                  &tracker_channel->tracker_data, &gps_l2cm_config);
+  tp_tracker_init(tracker_channel, &gps_l2cm_config);
 
   /* L2C bit sync is known once we start tracking it since
      the L2C ranging code length matches the bit length (20ms).
