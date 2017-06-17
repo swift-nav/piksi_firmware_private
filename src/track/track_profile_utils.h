@@ -384,8 +384,7 @@ void tp_tracker_init(const tracker_channel_info_t *channel_info,
 void tp_tracker_disable(const tracker_channel_info_t *channel_info,
                         tracker_common_data_t *common_data,
                         tp_tracker_data_t *data);
-u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
-                      tracker_common_data_t *common_data,
+u32 tp_tracker_update(tracker_channel_t *tracker_channel,
                       tp_tracker_data_t *data,
                       const tp_tracker_config_t *config);
 void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,

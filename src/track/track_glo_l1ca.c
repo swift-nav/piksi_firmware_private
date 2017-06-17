@@ -254,8 +254,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
 {
   glo_l1ca_tracker_data_t *glo_l1ca_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &glo_l1ca_data->data;
-  u32 tracker_flags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
-                                        &glo_l1ca_config);
+  u32 tracker_flags = tp_tracker_update(tracker_channel, data, &glo_l1ca_config);
 
   /* GLO L1 C/A-specific ToW manipulation */
   update_tow_glo_l1ca(&tracker_channel->info, &tracker_channel->common_data, data, tracker_flags);

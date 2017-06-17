@@ -1086,15 +1086,13 @@ void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
 /**
  * Default tracking loop.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
- * \param[in]     config       Generic tracker configuration.
+ * \param tracker_channel Tracking channel data.
+ * \param data         Generic tracker data.
+ * \param config       Generic tracker configuration.
  *
  * \return Flags, used in the current tracking cycle.
  */
-u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
-                      tracker_common_data_t *common_data,
+u32 tp_tracker_update(tracker_channel_t *tracker_channel,
                       tp_tracker_data_t *data,
                       const tp_tracker_config_t *config)
 {
@@ -1105,26 +1103,26 @@ u32 tp_tracker_update(const tracker_channel_info_t *channel_info,
   u32 cflags = tp_get_cycle_flags(data->tracking_mode,
                                   data->cycle_no);
 
-  tp_tracker_update_correlators(channel_info, common_data, data, cflags);
-  tp_tracker_update_bsync(channel_info, data, cflags);
-  tp_tracker_update_cn0(channel_info, common_data, data, cflags);
-  tp_tracker_update_locks(channel_info, common_data, data, cflags);
+  tp_tracker_update_correlators(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_update_bsync(&tracker_channel->info, data, cflags);
+  tp_tracker_update_cn0(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_update_locks(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_update_fll(data, cflags);
-  tp_tracker_update_pll_dll(channel_info, common_data, data, cflags);
-  tp_tracker_flag_outliers(channel_info, common_data);
-  tp_tracker_update_alias(channel_info, common_data, data, cflags);
-  tp_tracker_filter_doppler(channel_info, common_data, data, cflags, config);
-  tp_tracker_update_mode(channel_info, common_data, data);
-  u32 chips_to_correlate = tp_tracker_compute_rollover_count(channel_info,
+  tp_tracker_update_pll_dll(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_flag_outliers(&tracker_channel->info, &tracker_channel->common_data);
+  tp_tracker_update_alias(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_filter_doppler(&tracker_channel->info, &tracker_channel->common_data, data, cflags, config);
+  tp_tracker_update_mode(&tracker_channel->info, &tracker_channel->common_data, data);
+  u32 chips_to_correlate = tp_tracker_compute_rollover_count(&tracker_channel->info,
                                                              data,
-                                                             common_data->code_phase_prompt);
+                                                             tracker_channel->common_data.code_phase_prompt);
 
-  tracker_retune(channel_info->context, common_data->carrier_freq,
-                 common_data->code_phase_rate,
+  tracker_retune(&tracker_channel->info.context, tracker_channel->common_data.carrier_freq,
+                 tracker_channel->common_data.code_phase_rate,
                  chips_to_correlate);
 
   tp_tracker_update_cycle_counter(data);
-  tp_tracker_update_common_flags(common_data, data);
+  tp_tracker_update_common_flags(&tracker_channel->common_data, data);
 
   return cflags;
 }

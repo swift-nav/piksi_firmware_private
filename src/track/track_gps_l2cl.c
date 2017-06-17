@@ -534,8 +534,7 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
   gps_l2cl_tracker_data_t *l2c_data = tracker_channel->tracker->data;
   tp_tracker_data_t *data = &l2c_data->data;
 
-  u32 cflags = tp_tracker_update(&tracker_channel->info, &tracker_channel->common_data, data,
-                                 &gps_l2cl_config);
+  u32 cflags = tp_tracker_update(tracker_channel, data, &gps_l2cl_config);
 
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(&tracker_channel->info, &tracker_channel->common_data, cflags);

@@ -476,6 +476,7 @@ typedef struct {
   tracker_t *tracker;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
+  
 } tracker_channel_t;
 
 /** Tracker interface function template. */
