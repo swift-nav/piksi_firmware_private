@@ -406,7 +406,6 @@ bool tracker_channel_init(tracker_channel_id_t id,
   {
     /* Set up channel */
     tracker_channel->info.mesid = mesid;
-    tracker_channel->info.context = tracker_channel;
     tracker_channel->info.nap_channel = id;
     tracker_channel->interface = tracker_interface;
     tracker_channel->tracker = tracker;

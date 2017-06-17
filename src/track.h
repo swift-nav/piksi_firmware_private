@@ -385,7 +385,6 @@ typedef struct {
 } tracker_common_data_t;
 
 typedef void tracker_data_t;
-typedef void tracker_context_t;
 
 /** Instance of a tracker implementation. */
 typedef struct {
@@ -399,7 +398,6 @@ typedef struct {
 typedef struct {
   me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
   u8 nap_channel;               /**< Associated NAP channel. */
-  tracker_context_t *context;   /**< Current context for library functions. */
 } tracker_channel_info_t;
 
 /** \} */
@@ -701,7 +699,6 @@ typedef struct {
 
   me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
   u8 nap_channel;               /**< Associated NAP channel. */
-  tracker_context_t *context;   /**< Current context for library functions. */
 
   /** Data common to all tracker implementations. RW from channel interface
    * functions. RO from functions in this module. */

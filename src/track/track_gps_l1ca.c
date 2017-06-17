@@ -133,19 +133,18 @@ static void tracker_gps_l1ca_disable(tracker_channel_t *tracker_channel)
  * GPS L2 C tracker performs ToW update/propagation only on bit edge. This makes
  * it more robust to propagation errors.
  *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data with ToW, sample number and other
- *                               runtime values.
- * \param[in]     data           Common tracker data.
+ * \param[in,out  tracker_channel Tracker channel data
  * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
-static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
-                                tracker_common_data_t *common_data,
-                                tp_tracker_data_t *data,
+static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   tp_tow_entry_t tow_entry;
 
   gnss_signal_t sid = construct_sid(channel_info->mesid.code,
@@ -157,7 +156,7 @@ static void update_tow_gps_l1ca(const tracker_channel_info_t *channel_info,
   bool aligned = false;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel)) {
     /* Check current state: do we have bit/ToW alignment */
     aligned = true;
   }
@@ -488,11 +487,11 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                             u32 cycle_flags)
 {
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
-      !tracker_bit_aligned(channel_info->context)) {
+      !tracker_bit_aligned(tracker_channel)) {
     return;
   }
 
-  if (tracker_check_xcorr_flag(channel_info->context)) {
+  if (tracker_check_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
     common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
     return;
@@ -537,7 +536,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                          xcorr_flags, xcorr_cn0_diffs, &xcorr_suspect);
   }
 
-  bool prn_check_fail = tracker_check_prn_fail_flag(channel_info->context);
+  bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
   set_xcorr_suspect_flag(channel_info, common_data, data,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
@@ -576,7 +575,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags)
 {
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
-      !tracker_bit_aligned(channel_info->context)) {
+      !tracker_bit_aligned(tracker_channel)) {
     return;
   }
 
@@ -605,7 +604,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
   check_L2_xcorr_flag(channel_info, common_data, data,
                       xcorr_flag, &xcorr_suspect);
 
-  bool prn_check_fail = tracker_check_prn_fail_flag(channel_info->context);
+  bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
   set_xcorr_suspect_flag(channel_info, common_data, data,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
@@ -619,7 +618,7 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l1ca_config);
 
   /* GPS L1 C/A-specific ToW manipulation */
-  update_tow_gps_l1ca(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  update_tow_gps_l1ca(tracker_channel, cflags);
 
   /* GPS L1 C/A-specific cross-correlation operations */
   update_l1_xcorr(tracker_channel, &tracker_channel->info,
@@ -632,7 +631,7 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel->info.context)) {
+      tracker_bit_aligned(tracker_channel)) {
 
     /* Start L2 CM tracker if not running */
     do_l1ca_to_l2cm_handover(tracker_channel->common_data.sample_count,
