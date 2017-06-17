@@ -967,20 +967,21 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
   }
 }
 
-
 /**
  * Drops channels with measurement outliers.
  *
  * Check if an unexpected measurement is done and if so, flags the
  * channel for disposal
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
+ * \param[in,out] tracker_channel Tracker channel data
  *
  * \return None
  */
-static void tp_tracker_flag_outliers(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data) {
+static void tp_tracker_flag_outliers(tracker_channel_t *tracker_channel)
+{
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+
   const float fMaxDoppler =
     code_to_sv_doppler_max(channel_info->mesid.code) +
     code_to_tcxo_doppler_max(channel_info->mesid.code);
@@ -991,7 +992,6 @@ static void tp_tracker_flag_outliers(const tracker_channel_info_t *channel_info,
     return;
   }
 }
-
 
 /**
  * Runs false lock detection logic for PLL.
@@ -1108,8 +1108,8 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_locks(tracker_channel, cflags);
   tp_tracker_update_fll(tracker_channel, cflags);
   tp_tracker_update_pll_dll(tracker_channel, cflags);
+  tp_tracker_flag_outliers(tracker_channel);
 
-  tp_tracker_flag_outliers(&tracker_channel->info, &tracker_channel->common_data);
   tp_tracker_update_alias(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_filter_doppler(&tracker_channel->info, &tracker_channel->common_data, data, cflags, config);
   tp_tracker_update_mode(&tracker_channel->info, &tracker_channel->common_data, data);
