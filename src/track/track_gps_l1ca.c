@@ -295,9 +295,7 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
  * If counter reaches maximum value, then based on cn0 differences
  * xcorr flags are set.
  *
- * \param[in]     channel_info    Channel information.
- * \param[in,out] common_data     Channel data.
- * \param[in,out] data            Common L1 tracker data.
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in]     idx             Index of the entry.
  * \param[in]     xcorr_flags     Flags indicating satellites to be investigated.
  * \param[in]     xcorr_cn0_diffs CN0 difference of the satellites to be investigated [dB-Hz].
@@ -305,14 +303,16 @@ static void check_L1_entry(const tracker_channel_info_t *channel_info,
  *
  * \return None
  */
-static void check_L1_xcorr_flags(const tracker_channel_info_t *channel_info,
-                                 tracker_common_data_t *common_data,
-                                 gps_l1ca_tracker_data_t *data,
+static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
                                  u16 idx,
                                  bool xcorr_flags[],
                                  float xcorr_cn0_diffs[],
                                  bool *xcorr_suspect)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+
   if (idx + 1 == channel_info->mesid.sat) {
     /* Exclude self */
     return;
@@ -521,7 +521,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
   bool xcorr_suspect = false;
   /* Increment counters or Make decision for all xcorr flagged signals */
   for (u16 idx = 0; idx < ARRAY_SIZE(xcorr_flags); ++idx) {
-    check_L1_xcorr_flags(channel_info, common_data, data, idx,
+    check_L1_xcorr_flags(tracker_channel, idx,
                          xcorr_flags, xcorr_cn0_diffs, &xcorr_suspect);
   }
 
