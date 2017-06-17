@@ -214,17 +214,17 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
  * Otherwise GPS L2 CM tracker updates the cache.
  * GPS L2 CL only reads ToW from cache and propagates it on bit edge.
  *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data with ToW, sample number and other
- *                               runtime values.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
-static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
+static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+
   tp_tow_entry_t tow_entry;
   gnss_signal_t sid = construct_sid(channel_info->mesid.code,
                                     channel_info->mesid.sat);
@@ -534,7 +534,7 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cl_config);
 
   /* GPS L2 C-specific ToW manipulation */
-  update_tow_gps_l2c(&tracker_channel->info, &tracker_channel->common_data, cflags);
+  update_tow_gps_l2c(tracker_channel, cflags);
 
   if (data->lock_detect.outp &&
       data->confirmed &&

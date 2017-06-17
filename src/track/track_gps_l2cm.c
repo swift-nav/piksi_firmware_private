@@ -219,19 +219,18 @@ static void tracker_gps_l2cm_disable(tracker_channel_t *tracker_channel)
  * GPS L2 C tracker performs ToW update/propagation only on bit edge. This makes
  * it more robust to propagation errors.
  *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data with ToW, sample number and other
- *                               runtime values.
- * \param[in]     data           Common tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
-static void update_tow_gps_l2c(const tracker_channel_info_t *channel_info,
-                               tracker_common_data_t *common_data,
-                               tp_tracker_data_t *data,
+static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   tp_tow_entry_t tow_entry;
   gnss_signal_t sid = construct_sid(channel_info->mesid.code,
                                     channel_info->mesid.sat);
@@ -575,7 +574,7 @@ static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cm_config);
 
   /* GPS L2 C-specific ToW manipulation */
-  update_tow_gps_l2c(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  update_tow_gps_l2c(tracker_channel, cflags);
 
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
   update_l2_xcorr_from_l1(tracker_channel, &tracker_channel->info,

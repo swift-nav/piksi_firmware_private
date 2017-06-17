@@ -203,7 +203,7 @@ void tracker_bit_sync_set(tracker_channel_t *tracker_channel, s8 bit_phase_ref)
 
 /** Update bit sync and output navigation message bits for a tracker channel.
  *
- * \param context           Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  * \param int_ms            Integration period (ms).
  * \param corr_prompt_real  Real part of the prompt correlation.
  * \param sensitivity_mode  Flag indicating tracking channel sensitivity mode.
@@ -259,7 +259,7 @@ u8 tracker_bit_length_get(tracker_channel_t *tracker_channel)
 
 /** Get the bit alignment state for a tracker channel.
  *
- * \param context     Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  *
  * \return true if bit sync has been established and the most recent
  *         integration is bit aligned, false otherwise.
@@ -274,8 +274,7 @@ bool tracker_bit_aligned(tracker_channel_t *tracker_channel)
 /**
  * Tests if the bit sync is established in a tracker channel.
  *
- * \param context     Tracker context.
- *
+ * \param[in] tracker_channel Tracker channel data
  * \retval true  Bit sync has been established
  * \retval false Bit sync is not established.
  */
@@ -288,7 +287,7 @@ bool tracker_has_bit_sync(tracker_channel_t *tracker_channel)
 /**
  * Tests if the bit sync is established in a tracker channel.
  *
- * \param context     Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  * \param int_ms      Next integration period in milliseconds.
  *
  * \retval true  Bit sync has been established and the next integration is bit
@@ -311,7 +310,7 @@ bool tracker_next_bit_aligned(tracker_channel_t *tracker_channel, u32 int_ms)
  * invalidates the half cycle ambiguity, which must be resolved again by the navigation
  *  message processing. Should be called if a cycle slip is suspected.
  *
- * \param context     Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  */
 void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel)
 {
@@ -326,7 +325,7 @@ void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel)
 
 /** Checks channel's carrier phase ambiguity status.
  *
- * \param context Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  *
  * \return false if ambiguity unknown, true if it is known.
  */
@@ -337,7 +336,7 @@ bool tracker_ambiguity_resolved(tracker_channel_t *tracker_channel)
 
 /** Set channel's carrier phase ambiguity status.
  *
- * \param context  Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  * \param polarity Polarity of the half-cycle ambiguity
  *
  * \return None
@@ -352,7 +351,7 @@ void tracker_ambiguity_set(tracker_channel_t *tracker_channel, s8 polarity)
 
 /** Get the channel's GLO orbital slot information.
  *
- * \param context  Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  *
  * \return GLO orbital slot
  */
@@ -375,7 +374,7 @@ glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel)
 
 /** Output a correlation data message for a tracker channel.
  *
- * \param context     Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  * \param cs          Array of correlations to send.
  */
 void tracker_correlations_send(tracker_channel_t *tracker_channel, const corr_t *cs)
@@ -407,7 +406,7 @@ void tracker_correlations_send(tracker_channel_t *tracker_channel, const corr_t 
  * The function checks if PRN fail (decoded prn from L2C data stream
  * is not correspond to SVID) flag set or not.
  * Called from Tracking task.
- * \param[in] context Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  * \return    TRUE if PRN fail flag is set, otherwise FAIL
  */
 bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel)
@@ -421,7 +420,7 @@ bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel)
  * Tracker can use this method to check if a cross-correlation flag is set by
  * external thread.
  *
- * \param[in] context Tracker context.
+ * \param[in] tracker_channel Tracker channel data
  *
  * \return Cross-correlation flag value-
  */
