@@ -985,21 +985,13 @@ tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
 #endif
 
 
-u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
-                         u8 cycle_no);
-
-u32 tp_get_cycle_flags(tp_tm_e tracking_mode,
-                       u8 cycle_no);
-
-
-u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode,
-                                u8 cycle_no);
+u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
+u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no);
+u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode, u8 cycle_no);
 
 u8 tp_get_cycle_count(tp_tm_e tracking_mode);
-u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode,
-                                 u8 cycle_no);
-u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode,
-                                   u8 cycle_no);
+u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
+u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode);
@@ -1078,8 +1070,7 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
 void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
-void tp_update_common_flags(tracker_common_data_t *common_data,
-                                    const tp_tracker_data_t *data);
+void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel);
 void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
                             tracker_common_data_t *common_data,
                             void *input,

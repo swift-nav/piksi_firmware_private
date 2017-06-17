@@ -385,24 +385,23 @@ u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel)
  * is performed when the interval processed by FPGA is the last bit interval,
  * or, in other words, the next cycle has a bit sync flag and closes the bit.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] data         Generic tracker data.
+ * \param tracker_channel Tracker channel data
  *
  * \return None
  */
-static void mode_change_init(const tracker_channel_info_t *channel_info,
-                             tp_tracker_data_t *data)
+static void mode_change_init(tracker_channel_t *tracker_channel)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   if (data->has_next_params || !data->confirmed) {
     /* If the mode switch has been initiated - do nothing */
     return;
   }
 
   /* Compute time of the currently integrated period */
-  u8 next_cycle = tp_next_cycle_counter(data->tracking_mode,
-                                        data->cycle_no);
-  u32 next_cycle_flags = tp_get_cycle_flags(data->tracking_mode,
-                                            next_cycle);
+  u8 next_cycle = tp_next_cycle_counter(data->tracking_mode, data->cycle_no);
+  u32 next_cycle_flags = tp_get_cycle_flags(tracker_channel, next_cycle);
 
   if (0 != (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
     /* The switch is possible only when bit sync counter is updated: get the
@@ -476,16 +475,17 @@ void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel)
 /**
  * Updates common tracker flags.
  *
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in]     data         Generic tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  *
  * \return None
  *
  * \sa track_cmn_flags_t
  */
-void tp_tracker_update_common_flags(tracker_common_data_t *common_data,
-                                    const tp_tracker_data_t *data)
+void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel)
 {
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  const tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   track_cmn_flags_t flags = common_data->flags & TRACK_CMN_FLAG_STICKY_MASK;
 
   if (data->confirmed) {
@@ -1084,7 +1084,7 @@ void tp_tracker_update_mode(tracker_channel_t *tracker_channel)
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   mode_change_complete(channel_info, common_data, data);
-  mode_change_init(channel_info, data);
+  mode_change_init(tracker_channel);
 }
 
 /**
@@ -1103,7 +1103,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
    * State machine control: control is a combination of actions permitted by
    * the tracker state and flags specific for current cycle.
    */
-  u32 cflags = tp_get_cycle_flags(data->tracking_mode, data->cycle_no);
+  u32 cflags = tp_get_cycle_flags(tracker_channel, data->cycle_no);
 
   tp_tracker_update_correlators(tracker_channel, cflags);
   tp_tracker_update_bsync(tracker_channel, cflags);
@@ -1120,8 +1120,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tracker_retune(tracker_channel, chips_to_correlate);
 
   tp_tracker_update_cycle_counter(tracker_channel);
-
-  tp_tracker_update_common_flags(&tracker_channel->common_data, data);
+  tp_tracker_update_common_flags(tracker_channel);
 
   return cflags;
 }
