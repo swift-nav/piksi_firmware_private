@@ -1085,15 +1085,14 @@ void tp_tracker_update_mode(const tracker_channel_info_t *channel_info,
  * Default tracking loop.
  *
  * \param tracker_channel Tracking channel data.
- * \param data         Generic tracker data.
  * \param config       Generic tracker configuration.
  *
  * \return Flags, used in the current tracking cycle.
  */
 u32 tp_tracker_update(tracker_channel_t *tracker_channel,
-                      tp_tracker_data_t *data,
                       const tp_tracker_config_t *config)
 {
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   /*
    * State machine control: control is a combination of actions permitted by
    * the tracker state and flags specific for current cycle.
