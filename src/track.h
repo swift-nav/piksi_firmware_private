@@ -1063,9 +1063,7 @@ void tp_tracker_update_tow(const tracker_channel_info_t *channel_info,
                            tp_tracker_data_t *data,
                            u32 cycle_flags,
                            u64 sample_time_tk);
-void tp_tracker_update_cn0(const tracker_channel_info_t *channel_info,
-                           tracker_common_data_t *common_data,
-                           tp_tracker_data_t *data,
+void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                            u32 cycle_flags);
 void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
                              tracker_common_data_t *common_data,
