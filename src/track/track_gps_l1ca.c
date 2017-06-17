@@ -345,20 +345,20 @@ static void check_L1_xcorr_flags(const tracker_channel_info_t *channel_info,
  *
  * L1 satellite with mismatching doppler is xcorr flagged for investigation.
  *
- * \param[in]     channel_info    Channel information.
- * \param[in]     common_data     Channel data.
- * \param[in,out] data            Common L1 tracker data.
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in]     entry           xcorr data to be checked against.
  * \param[out]    xcorr_flags     Flags indicating satellites to be investigated.
  *
  * \return false if entry was not L2CM from same SV, true if it was.
  */
-static bool check_L2_entries(const tracker_channel_info_t *channel_info,
-                             tracker_common_data_t *common_data,
-                             gps_l1ca_tracker_data_t *data,
+static bool check_L2_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+
   if (CODE_GPS_L2CM != entry->mesid.code ||
       entry->mesid.sat != channel_info->mesid.sat) {
     /* Ignore other than L2CM from same SV */
@@ -572,8 +572,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
   for (u16 idx = 0; idx < cnt; ++idx) {
     const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
 
-    if (check_L2_entries(channel_info, common_data, data,
-                         entry, &xcorr_flag)) {
+    if (check_L2_entries(tracker_channel, entry, &xcorr_flag)) {
       break;
     }
   }
