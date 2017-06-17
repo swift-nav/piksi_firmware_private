@@ -606,11 +606,13 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
  * \param[in,out] data         Generic tracker data.
  * \param[in]     cycle_flags  Current cycle flags.
  */
-void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
-                                   tracker_common_data_t *common_data,
-                                   tp_tracker_data_t *data,
+void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                    u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   tp_epl_corr_t cs_now;    /**< Correlations from FPGA */
   u32    sample_count;     /**< Sample count from FPGA */
   double code_phase_prompt; /**< Code phase from FPGA */
@@ -1100,7 +1102,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   u32 cflags = tp_get_cycle_flags(data->tracking_mode,
                                   data->cycle_no);
 
-  tp_tracker_update_correlators(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_update_correlators(tracker_channel, cflags);
   tp_tracker_update_bsync(&tracker_channel->info, data, cflags);
   tp_tracker_update_cn0(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_update_locks(&tracker_channel->info, &tracker_channel->common_data, data, cflags);

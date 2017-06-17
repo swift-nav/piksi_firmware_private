@@ -1054,9 +1054,7 @@ void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
                                   tp_tracker_data_t *data,
                                   const tp_config_t *next_params,
                                   bool init);
-void tp_tracker_update_correlators(const tracker_channel_info_t *channel_info,
-                                   tracker_common_data_t *common_data,
-                                   tp_tracker_data_t *data,
+void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                    u32 cycle_flags);
 void tp_tracker_update_bsync(const tracker_channel_info_t *channel_info,
                              tp_tracker_data_t *data,
