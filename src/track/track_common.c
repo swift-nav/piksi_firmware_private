@@ -798,18 +798,17 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
  * Updates PLL optimistic and pessimistic registers. In addition, checks if
  * FLL lock is present in FLL tracking mode.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] common_data  Common tracking channel data.
- * \param[in,out] data         Generic tracker data.
+ * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  *
  * \return None
  */
-void tp_tracker_update_locks(const tracker_channel_info_t *channel_info,
-                             tracker_common_data_t *common_data,
-                             tp_tracker_data_t *data,
+void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
     bool fll_loop = tp_tl_is_fll(&data->tl_state);
@@ -1105,7 +1104,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_correlators(tracker_channel, cflags);
   tp_tracker_update_bsync(tracker_channel, cflags);
   tp_tracker_update_cn0(tracker_channel, cflags);
-  tp_tracker_update_locks(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
+  tp_tracker_update_locks(tracker_channel, cflags);
   tp_tracker_update_fll(data, cflags);
   tp_tracker_update_pll_dll(&tracker_channel->info, &tracker_channel->common_data, data, cflags);
   tp_tracker_flag_outliers(&tracker_channel->info, &tracker_channel->common_data);
