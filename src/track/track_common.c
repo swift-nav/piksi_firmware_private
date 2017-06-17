@@ -320,16 +320,16 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
  *
  * The method releases tracker state.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in]     common_data  Common tracking channel data.
- * \param[in,out] data         Tracker private data.
+ * \param[in,out] tracker_channel Tracker channel data
  *
  * \return None
  */
-void tp_tracker_disable(const tracker_channel_info_t *channel_info,
-                        tracker_common_data_t *common_data,
-                        tp_tracker_data_t *data)
+void tp_tracker_disable(tracker_channel_t *tracker_channel)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
   log_debug_mesid(channel_info->mesid,
                   "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
                   common_data->update_count,

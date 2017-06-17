@@ -44,14 +44,13 @@ static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[ARRAY_SIZE(gps_l1ca_tracker
 
 /* Forward declarations of interface methods for GPS L1 C/A */
 static tracker_interface_function_t tracker_gps_l1ca_init;
-static tracker_interface_function_t tracker_gps_l1ca_disable;
 static tracker_interface_function_t tracker_gps_l1ca_update;
 
 /** GPS L1 C/A tracker interface */
 static const tracker_interface_t tracker_interface_gps_l1ca = {
   .code =         CODE_GPS_L1CA,
   .init =         tracker_gps_l1ca_init,
-  .disable =      tracker_gps_l1ca_disable,
+  .disable =      tp_tracker_disable,
   .update =       tracker_gps_l1ca_update,
   .trackers =     gps_l1ca_trackers,
   .num_trackers = ARRAY_SIZE(gps_l1ca_trackers)
@@ -113,13 +112,6 @@ static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
 
   tp_tracker_init(tracker_channel, &gps_l1ca_config);
 
-}
-
-static void tracker_gps_l1ca_disable(tracker_channel_t *tracker_channel)
-{
-  tp_tracker_disable(&tracker_channel->info,
-                     &tracker_channel->common_data,
-                     &tracker_channel->tracker_data);
 }
 
 /**

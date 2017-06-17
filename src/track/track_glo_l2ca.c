@@ -46,14 +46,13 @@ static tp_tracker_data_t glo_l2ca_tracker_data[ARRAY_SIZE(glo_l2ca_trackers)];
 
 /* Forward declarations of interface methods for GLO L2CA */
 static tracker_interface_function_t tracker_glo_l2ca_init;
-static tracker_interface_function_t tracker_glo_l2ca_disable;
 static tracker_interface_function_t tracker_glo_l2ca_update;
 
 /** GLO L2CA tracker interface */
 static const tracker_interface_t tracker_interface_glo_l2ca = {
   .code =         CODE_GLO_L2CA,
   .init =         tracker_glo_l2ca_init,
-  .disable =      tracker_glo_l2ca_disable,
+  .disable =      tp_tracker_disable,
   .update =       tracker_glo_l2ca_update,
   .trackers =     glo_l2ca_trackers,
   .num_trackers = ARRAY_SIZE(glo_l2ca_trackers)
@@ -159,13 +158,6 @@ static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
   memset(data, 0, sizeof(*data));
 
   tp_tracker_init(tracker_channel, &glo_l2ca_config);
-}
-
-static void tracker_glo_l2ca_disable(tracker_channel_t *tracker_channel)
-{
-  tp_tracker_disable(&tracker_channel->info,
-                     &tracker_channel->common_data,
-                     &tracker_channel->tracker_data);
 }
 
 static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel)

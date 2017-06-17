@@ -43,14 +43,13 @@ static tp_tracker_data_t glo_l1ca_tracker_data[ARRAY_SIZE(glo_l1ca_trackers)];
 
 /* Forward declarations of interface methods for GLO L1CA */
 static tracker_interface_function_t tracker_glo_l1ca_init;
-static tracker_interface_function_t tracker_glo_l1ca_disable;
 static tracker_interface_function_t tracker_glo_l1ca_update;
 
 /** GLO L1CA tracker interface */
 static const tracker_interface_t tracker_interface_glo_l1ca = {
   .code =         CODE_GLO_L1CA,
   .init =         tracker_glo_l1ca_init,
-  .disable =      tracker_glo_l1ca_disable,
+  .disable =      tp_tracker_disable,
   .update =       tracker_glo_l1ca_update,
   .trackers =     glo_l1ca_trackers,
   .num_trackers = ARRAY_SIZE(glo_l1ca_trackers)
@@ -85,13 +84,6 @@ static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel)
   memset(data, 0, sizeof(*data));
 
   tp_tracker_init(tracker_channel, &glo_l1ca_config);
-}
-
-static void tracker_glo_l1ca_disable(tracker_channel_t *tracker_channel)
-{
-  tp_tracker_disable(&tracker_channel->info,
-                     &tracker_channel->common_data,
-                     &tracker_channel->tracker_data);
 }
 
 s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,

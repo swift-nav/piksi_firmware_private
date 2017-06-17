@@ -49,14 +49,13 @@ static gps_l2cm_tracker_data_t gps_l2cm_tracker_data[ARRAY_SIZE(gps_l2cm_tracker
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2cm_init;
-static tracker_interface_function_t tracker_gps_l2cm_disable;
 static tracker_interface_function_t tracker_gps_l2cm_update;
 
 /** GPS L2C tracker interface */
 static const tracker_interface_t tracker_interface_gps_l2cm = {
   .code =         CODE_GPS_L2CM,
   .init =         tracker_gps_l2cm_init,
-  .disable =      tracker_gps_l2cm_disable,
+  .disable =      tp_tracker_disable,
   .update =       tracker_gps_l2cm_update,
   .trackers =     gps_l2cm_trackers,
   .num_trackers = ARRAY_SIZE(gps_l2cm_trackers)
@@ -200,12 +199,6 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
      This is the end of 20ms integration period and the edge
      of a data bit. */
   tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
-}
-
-static void tracker_gps_l2cm_disable(tracker_channel_t *tracker_channel)
-{
-  tp_tracker_disable(&tracker_channel->info, &tracker_channel->common_data,
-                     &tracker_channel->tracker_data);
 }
 
 /**

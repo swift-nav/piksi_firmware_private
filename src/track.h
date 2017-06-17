@@ -1031,9 +1031,7 @@ void tp_tracker_register_parameters(const char *section,
 
 void tp_tracker_init(tracker_channel_t *tracker_channel,
                      const tp_tracker_config_t *config);
-void tp_tracker_disable(const tracker_channel_info_t *channel_info,
-                        tracker_common_data_t *common_data,
-                        tp_tracker_data_t *data);
+void tp_tracker_disable(tracker_channel_t *tracker_channel);
 u32 tp_tracker_update(tracker_channel_t *tracker_channel,
                       const tp_tracker_config_t *config);
 void tp_tracker_update_parameters(const tracker_channel_info_t *channel_info,
