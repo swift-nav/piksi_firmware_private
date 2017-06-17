@@ -106,7 +106,7 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
   assert(TOW_residual_ns);
   *TOW_residual_ns = 0;
 
-  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(channel_info->context);
+  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
     return TOW_UNKNOWN;
   }
@@ -158,11 +158,13 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
   return TOW_ms;
 }
 
-static void update_tow_in_sid_db(const tracker_common_data_t *common_data,
-                                 const tracker_channel_info_t *channel_info,
+static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
                                  u64 sample_time_tk)
 {
-  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(channel_info->context);
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  const tracker_common_data_t *common_data = &tracker_channel->common_data;
+
+  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
     return;
   }
@@ -199,7 +201,7 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(channel_info->context)) {
+      tracker_bit_aligned(tracker_channel)) {
     half_bit_aligned = true;
   }
 
@@ -240,7 +242,7 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
   if (half_bit_aligned &&
       common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
       data->confirmed) {
-    update_tow_in_sid_db(common_data, channel_info, sample_time_tk);
+    update_tow_in_sid_db(tracker_channel, sample_time_tk);
   }
 }
 
@@ -262,7 +264,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
   if (data->lock_detect.outp &&
       data->confirmed &&
       0 != (tracker_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel->info.context)) {
+      tracker_bit_aligned(tracker_channel)) {
 
     /* Start GLO L2CA tracker if not running */
     do_glo_l1ca_to_l2ca_handover(tracker_channel->common_data.sample_count,
