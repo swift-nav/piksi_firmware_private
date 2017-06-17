@@ -349,16 +349,18 @@ void tp_tracker_disable(const tracker_channel_info_t *channel_info,
  * tracking mode parameters are used. Otherwise, the new tracking parameters
  * are obtained and used for computation.
  *
- * \param[in]     channel_info Tracking channel information.
- * \param[in,out] data         Generic tracker data.
- * \param[in]     code_phase   Current code phase in chips.
+ * \param[in] tracker_channel Tracker channel data
  *
  * \return Computed number of chips.
  */
-u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      tp_tracker_data_t *data,
-                                      double code_phase)
+u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  tp_tracker_data_t *data = &tracker_channel->tracker_data;
+
+  double code_phase_chips = common_data->code_phase_prompt;
+
   bool plock = data->lock_detect.outp;
   u32 result_ms = 0;
   if (data->has_next_params) {
@@ -371,7 +373,8 @@ u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info
     result_ms = tp_get_rollover_cycle_duration(data->tracking_mode,
                                                data->cycle_no);
   }
-  return tp_convert_ms_to_chips(channel_info->mesid, result_ms, code_phase, plock);
+  return tp_convert_ms_to_chips(channel_info->mesid, result_ms,
+                                code_phase_chips, plock);
 }
 
 /**
@@ -1113,9 +1116,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_filter_doppler(tracker_channel, cflags, config);
   tp_tracker_update_mode(tracker_channel);
 
-  u32 chips_to_correlate = tp_tracker_compute_rollover_count(&tracker_channel->info,
-                                                             data,
-                                                             tracker_channel->common_data.code_phase_prompt);
+  u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker_channel);
 
   tracker_retune(&tracker_channel->info.context, tracker_channel->common_data.carrier_freq,
                  tracker_channel->common_data.code_phase_rate,

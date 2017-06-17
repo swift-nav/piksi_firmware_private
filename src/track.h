@@ -1076,9 +1076,7 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config);
 void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
-u32 tp_tracker_compute_rollover_count(const tracker_channel_info_t *channel_info,
-                                      tp_tracker_data_t *data,
-                                      double code_phase);
+u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tp_tracker_data_t *data);
 void tp_update_common_flags(tracker_common_data_t *common_data,
                                     const tp_tracker_data_t *data);
