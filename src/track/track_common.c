@@ -611,7 +611,7 @@ static void process_alias_error(const tracker_channel_info_t *channel_info,
 void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                    u32 cycle_flags)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  me_gnss_signal_t mesid = tracker_channel->info.mesid;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
@@ -638,7 +638,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
   if (common_data->updated_once) {
     u64 time_diff_ms = now - common_data->update_timestamp_ms;
     if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
-      log_warn_mesid(channel_info->mesid,
+      log_warn_mesid(mesid,
                      "Unexpected tracking channel update rate: %" PRIu64 " ms",
                      time_diff_ms);
     }
@@ -663,7 +663,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                            &common_data->TOW_residual_ns,
                                            &decoded_tow);
   if (!tp_tow_is_sane(common_data->TOW_ms)) {
-    log_error_mesid(channel_info->mesid,
+    log_error_mesid(mesid,
                     "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
                     common_data->update_count, common_data->TOW_ms);
     common_data->TOW_ms = TOW_UNKNOWN;
@@ -672,17 +672,17 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
     common_data->flags &= ~TRACK_CMN_FLAG_HEALTH_DECODED;
   }
   if (decoded_tow) {
-    log_debug_mesid(channel_info->mesid,
+    log_debug_mesid(mesid,
                     "[+%"PRIu32"ms] Decoded TOW %"PRId32,
                     common_data->update_count, common_data->TOW_ms);
     common_data->flags |= TRACK_CMN_FLAG_TOW_DECODED;
     common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
 
     /* GLO health data is also decoded along with TOW */
-    if (is_glo_sid(channel_info->mesid)) {
+    if (is_glo_sid(mesid)) {
       common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
       common_data->health = tracker_glo_sv_health_get(tracker_channel);
-      log_debug_mesid(channel_info->mesid,
+      log_debug_mesid(mesid,
                       "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
                       common_data->update_count,
                       common_data->health);
