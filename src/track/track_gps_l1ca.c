@@ -406,20 +406,20 @@ static bool check_L2_entries(const tracker_channel_info_t *channel_info,
  * If counter reaches maximum value, then based on whitelist status
  * xcorr flags are set.
  *
- * \param[in]     channel_info    Channel information.
- * \param[in,out] common_data     Channel data.
- * \param[in,out] data            Common L1 tracker data.
+ * \param         tracker_channel Tracker channel data
  * \param[in]     xcorr_flag      Flag indicating satellite to be investigated.
  * \param[out]    xcorr_suspect   Flag set if satellite is determined xcorr suspect.
  *
  * \return None
  */
-static void check_L2_xcorr_flag(const tracker_channel_info_t *channel_info,
-                                tracker_common_data_t *common_data,
-                                gps_l1ca_tracker_data_t *data,
+static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+
   u16 index = mesid_to_code_index(channel_info->mesid);
   s32 max_time_cnt = (s32)(gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
 
@@ -587,8 +587,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
 
   bool xcorr_suspect = false;
   /* Increment counter or Make decision if L2 is xcorr flagged */
-  check_L2_xcorr_flag(channel_info, common_data, data,
-                      xcorr_flag, &xcorr_suspect);
+  check_L2_xcorr_flag(tracker_channel, xcorr_flag, &xcorr_suspect);
 
   bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
