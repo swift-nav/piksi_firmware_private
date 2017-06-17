@@ -21,14 +21,12 @@
 #include "track_profile_utils.h"
 #include "track_profiles.h"
 #include "track_sid_db.h"
-#include "track_internal.h"
+#include "track.h"
 
 /* Non-local headers */
 #include <platform_track.h>
 #include <signal.h>
-#include <track_api.h>
 #include <manage.h>
-#include <track.h>
 #include <ndb.h>
 
 /* Libraries */
@@ -43,7 +41,6 @@
 
 /** GPS L2 C configuration section name */
 #define L2CM_TRACK_SETTING_SECTION "l2cm_track"
-
 
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2cm_config = TP_TRACKER_DEFAULT_CONFIG;

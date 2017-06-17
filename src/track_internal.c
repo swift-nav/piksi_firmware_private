@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_internal.h"
 #include "track.h"
 
 #include <stdlib.h>

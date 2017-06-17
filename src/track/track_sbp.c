@@ -19,7 +19,7 @@
 #include "board/v3/nap/nap_hw.h"
 #include "board/v3/nap/nap_constants.h"
 #include "track_sbp.h"
-#include "track_internal.h"
+#include "track.h"
 #include "shm.h"
 #include <sbp.h>
 #include <sbp_utils.h>

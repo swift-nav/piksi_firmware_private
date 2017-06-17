@@ -18,7 +18,7 @@
 #include <libswiftnav/track.h>
 
 #include "track_cn0.h"
-#include "track_api.h"
+#include "track.h"
 
 /** \addtogroup track
  * \{ */

@@ -19,12 +19,11 @@
 #include "track_profile_utils.h"
 #include "track_profiles.h"
 #include "track_sid_db.h"
-#include "track_internal.h"
+#include "track.h"
 
 /* Non-local headers */
 #include <platform_track.h>
 #include <signal.h>
-#include <track_api.h>
 #include <manage.h>
 #include <track.h>
 #include <ndb.h>

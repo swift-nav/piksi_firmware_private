@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_api.h"
-#include "track_internal.h"
 #include "track.h"
 
 #include <libswiftnav/constants.h>
@@ -24,10 +22,6 @@
 #include "sbp_utils.h"
 #include "signal.h"
 #include "decode.h"
-
-/** \defgroup track_api Tracking API
- * API functions used by tracking channel implementations.
- * \{ */
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 
@@ -486,5 +480,3 @@ bool tracker_check_xcorr_flag(tracker_context_t *context)
 
   return internal_data->xcorr_flag;
 }
-
-/** \} */

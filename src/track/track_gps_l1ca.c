@@ -21,7 +21,6 @@
 /* Non-local headers */
 #include <platform_track.h>
 #include <signal.h>
-#include <track_api.h>
 #include <manage.h>
 #include <track.h>
 #include <ndb.h>
@@ -35,10 +34,8 @@
 /* STD headers */
 #include <string.h>
 
-
 /** GPS L1 C/A parameter section name */
 #define L1CA_TRACK_SETTING_SECTION "l1ca_track"
-
 
 /** GPS L1 C/A configuration container */
 static tp_tracker_config_t gps_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;

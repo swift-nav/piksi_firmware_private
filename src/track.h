@@ -20,13 +20,291 @@
 #include <libswiftnav/track.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/run_stats.h>
+#include <libswiftnav/bit_sync.h>
 
 #include <ch.h>
+#include "shm.h"
 
-#include "track_api.h"
-#include "track_internal.h"
 #include "board/nap/track_channel.h"
 #include <platform_signal.h>
+#include "board/nap/nap_common.h"
+
+#define NAV_BIT_FIFO_SIZE 64 /**< Size of nav bit FIFO. Must be a power of 2 */
+
+#define NAV_BIT_FIFO_INDEX_MASK ((NAV_BIT_FIFO_SIZE) - 1)
+#define NAV_BIT_FIFO_INDEX_DIFF(write_index, read_index) \
+          ((nav_bit_fifo_index_t)((write_index) - (read_index)))
+#define NAV_BIT_FIFO_LENGTH(p_fifo) \
+          (NAV_BIT_FIFO_INDEX_DIFF((p_fifo)->write_index, (p_fifo)->read_index))
+
+typedef struct {
+  s8 soft_bit;
+  bool sensitivity_mode;
+} nav_bit_fifo_element_t;
+
+typedef u8 nav_bit_fifo_index_t;
+
+typedef struct {
+  nav_bit_fifo_index_t read_index;
+  nav_bit_fifo_index_t write_index;
+  nav_bit_fifo_element_t elements[NAV_BIT_FIFO_SIZE];
+} nav_bit_fifo_t;
+
+typedef struct {
+  s32 TOW_ms;
+  s32 TOW_residual_ns; /**< Residual to TOW_ms [ns] */
+  s8 bit_polarity;
+  u16 glo_orbit_slot;
+  nav_bit_fifo_index_t read_index;
+  glo_health_t glo_health;
+  bool valid;
+} nav_data_sync_t;
+
+typedef struct {
+  /** FIFO for navigation message bits. */
+  nav_bit_fifo_t nav_bit_fifo;
+  /** Used to sync time decoded from navigation message
+   * back to tracking channel. */
+  nav_data_sync_t nav_data_sync;
+  /** Time since last nav bit was appended to the nav bit FIFO. */
+  u32 nav_bit_TOW_offset_ms;
+  /** Bit sync state. */
+  bit_sync_t bit_sync;
+  /** GLO orbital slot. */
+  u16 glo_orbit_slot;
+  /** Polarity of nav message bits. */
+  s8 bit_polarity;
+  /** Increments when tracking new signal. */
+  u16 lock_counter;
+  /** Set if this channel should output I/Q samples on SBP. */
+  bool output_iq;
+  /** Flags if carrier phase integer offset to be reset. */
+  bool reset_cpo;
+  /** Flags if PRN conformity check failed */
+  bool prn_check_fail;
+  /** Flags if tracker is cross-correlated */
+  bool xcorr_flag;
+  /** GLO SV health info */
+  glo_health_t health;
+} tracker_internal_data_t;
+
+/** \} */
+
+/** Counter type. Value changes every time tracking mode changes. */
+typedef u32 update_count_t;
+
+/** Controller parameters for error sigma computations */
+typedef struct {
+  float fll_bw;  /**< FLL controller NBW [Hz].
+                      Single sided noise bandwidth in case of
+                      FLL and FLL-assisted PLL tracking */
+  float pll_bw;  /**< PLL controller noise bandwidth [Hz].
+                      Single sided noise bandwidth in case of
+                      PLL and FLL-assisted PLL tracking */
+  float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
+  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+} track_ctrl_params_t;
+
+/** Tracker flag: tracker is in confirmed mode */
+#define TRACK_CMN_FLAG_CONFIRMED   (1 << 0)
+/** Tracker flag: tracker is using PLL (possibly with FLL) */
+#define TRACK_CMN_FLAG_PLL_USE     (1 << 1)
+/** Tracker flag: tracker is using FLL (possibly with PLL) */
+#define TRACK_CMN_FLAG_FLL_USE     (1 << 2)
+/** Tracker flag: tracker is using PLL and has pessimistic phase lock */
+#define TRACK_CMN_FLAG_HAS_PLOCK   (1 << 3)
+/** Tracker flag: tracker is using PLL and has optimistic phase lock */
+#define TRACK_CMN_FLAG_HAS_OLOCK   (1 << 4)
+/** Tracker flag: tracker is using FLL and has frequency lock */
+#define TRACK_CMN_FLAG_HAS_FLOCK   (1 << 5)
+/** Tracker flag: tracker has ever had PLL pessimistic lock */
+#define TRACK_CMN_FLAG_HAD_PLOCK   (1 << 6)
+/** Tracker flag: tracker has ever had FLL pessimistic lock */
+#define TRACK_CMN_FLAG_HAD_FLOCK   (1 << 7)
+/** Tracker flag: tracker has decoded TOW.
+    Overrides #TRACK_CMN_FLAG_TOW_PROPAGATED. */
+#define TRACK_CMN_FLAG_TOW_DECODED (1 << 8)
+/** Tracker flag: tracker has propagated TOW */
+#define TRACK_CMN_FLAG_TOW_PROPAGATED (1 << 9)
+/** Tracker flag: tracker is a cross-correlate confirmed */
+#define TRACK_CMN_FLAG_XCORR_CONFIRMED (1 << 10)
+/** Tracker flag: tracker is a cross-correlate suspect */
+#define TRACK_CMN_FLAG_XCORR_SUSPECT (1 << 11)
+/** Tracker flag: tracker xcorr doppler filter is active */
+#define TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
+/** Tracker flag: L2CL tracker has resolved half-cycle ambiguity */
+#define TRACK_CMN_FLAG_L2CL_AMBIGUITY (1 << 13)
+/** Tracker flag: tracker has decoded health information */
+#define TRACK_CMN_FLAG_HEALTH_DECODED (1 << 14)
+/** Tracker flag: Doppler outlier */
+#define TRACK_CMN_FLAG_OUTLIER        (1 << 15)
+
+/** Sticky flags mask */
+#define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
+                                    TRACK_CMN_FLAG_HAD_FLOCK | \
+                                    TRACK_CMN_FLAG_TOW_DECODED | \
+                                    TRACK_CMN_FLAG_TOW_PROPAGATED | \
+                                    TRACK_CMN_FLAG_XCORR_CONFIRMED | \
+                                    TRACK_CMN_FLAG_XCORR_SUSPECT | \
+                                    TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE | \
+                                    TRACK_CMN_FLAG_L2CL_AMBIGUITY | \
+                                    TRACK_CMN_FLAG_OUTLIER | \
+                                    TRACK_CMN_FLAG_HEALTH_DECODED)
+
+/**
+ * Common tracking feature flags.
+ *
+ * Flags is a combination of the following values:
+ * - #TRACK_CMN_FLAG_CONFIRMED
+ * - #TRACK_CMN_FLAG_PLL_USE
+ * - #TRACK_CMN_FLAG_FLL_USE
+ * - #TRACK_CMN_FLAG_HAS_PLOCK
+ * - #TRACK_CMN_FLAG_HAS_OLOCK
+ * - #TRACK_CMN_FLAG_HAS_FLOCK
+ * - #TRACK_CMN_FLAG_HAD_PLOCK
+ * - #TRACK_CMN_FLAG_HAD_FLOCK
+ * - #TRACK_CMN_FLAG_TOW_DECODED
+ * - #TRACK_CMN_FLAG_TOW_PROPAGATED
+ * - #TRACK_CMN_FLAG_XCORR_CONFIRMED
+ * - #TRACK_CMN_FLAG_XCORR_SUSPECT
+ *
+ * \sa tracker_common_data_t
+ */
+typedef u16 track_cmn_flags_t;
+
+/** Parameters for half-cycle ambiguity resolution */
+typedef struct {
+  u8 counter;  /**< Counter for matching carrier phases */
+  s8 polarity; /**< Polarity of the matching carrier phases */
+  bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
+} cp_sync_t;
+
+typedef struct {
+  update_count_t update_count; /**< Number of ms channel has been running */
+  update_count_t mode_change_count;
+                               /**< update_count at last mode change. */
+  update_count_t cn0_below_use_thres_count;
+                               /**< update_count value when C/N0 was
+                                    last below the use threshold. */
+  update_count_t cn0_above_drop_thres_count;
+                               /**< update_count value when C/N0 was
+                                    last above the drop threshold. */
+  update_count_t ld_pess_change_count;
+                               /**< update_count value when pessimistic
+                                    phase detector has changed last time. */
+  update_count_t xcorr_change_count;
+                               /**< update count value when cross-correlation
+                                    flag has changed last time */
+  s32 TOW_ms;                  /**< TOW in ms. */
+  s32 TOW_ms_prev;             /**< previous TOW in ms. */
+  s32 TOW_residual_ns;         /**< Residual to TOW_ms [ns] */
+  u32 sample_count;            /**< Total num samples channel has tracked for. */
+  double code_phase_prompt;    /**< Prompt code phase in chips. */
+  double code_phase_rate;      /**< Code phase rate in chips/s. */
+  double carrier_phase;        /**< Carrier phase in cycles. */
+  double carrier_phase_prev;   /**< Previous carrier phase in cycles. */
+  double carrier_freq;         /**< Carrier frequency Hz. */
+  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
+                                    of PLL/FLL pessimistic locks [Hz]. */
+  float cn0;                   /**< Current estimate of C/N0. */
+  track_cmn_flags_t flags;     /**< Tracker flags */
+  track_ctrl_params_t ctrl_params; /**< Controller parameters */
+  float acceleration;          /**< Acceleration [g] */
+  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
+  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;     /**< Tracking channel last update
+                                    timestamp [ms] */
+  bool updated_once;           /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
+  glo_health_t health;         /**< GLO SV health info */
+} tracker_common_data_t;
+
+typedef void tracker_data_t;
+typedef void tracker_context_t;
+
+/** Instance of a tracker implementation. */
+typedef struct {
+  /** true if tracker is in use. */
+  bool active;
+  /** Pointer to implementation-specific data used by tracker instance. */
+  tracker_data_t *data;
+} tracker_t;
+
+/** Info associated with a tracker channel. */
+typedef struct {
+  me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
+  u8 nap_channel;               /**< Associated NAP channel. */
+  tracker_context_t *context;   /**< Current context for library functions. */
+} tracker_channel_info_t;
+
+/** Tracker interface function template. */
+typedef void (tracker_interface_function_t)(
+                 const tracker_channel_info_t *channel_info,
+                 tracker_common_data_t *common_data,
+                 tracker_data_t *tracker_data);
+
+/** Interface to a tracker implementation. */
+typedef struct {
+  /** Code type for which the implementation may be used. */
+  enum code code;
+  /** Init function. Called to set up tracker instance when tracking begins. */
+  tracker_interface_function_t *init;
+  /** Disable function. Called when tracking stops. */
+  tracker_interface_function_t *disable;
+  /** Update function. Called when new correlation outputs are available. */
+  tracker_interface_function_t *update;
+  /** Array of tracker instances used by this interface. */
+  tracker_t *trackers;
+  /** Number of tracker instances in trackers array. */
+  u8 num_trackers;
+} tracker_interface_t;
+
+/** List element passed to tracker_interface_register(). */
+typedef struct tracker_interface_list_element_t {
+  const tracker_interface_t *interface;
+  struct tracker_interface_list_element_t *next;
+} tracker_interface_list_element_t;
+
+/** \} */
+
+void tracker_interface_register(tracker_interface_list_element_t *element);
+
+/* Tracker instance API functions. Must be called from within an
+ * interface function. */
+void tracker_correlations_read(tracker_context_t *context,
+                               corr_t *cs,
+                               u32 *sample_count,
+                               double *code_phase,
+                               double *carrier_phase);
+void tracker_retune(tracker_context_t *context,
+                    double doppler_freq_hz,
+                    double code_phase_rate,
+                    u32 chips_to_correlate);
+s32 tracker_tow_update(tracker_context_t *context,
+                       s32 current_TOW_ms,
+                       u32 int_ms,
+                       s32 *TOW_residual_ns,
+                       bool *decoded_tow);
+void tracker_bit_sync_set(tracker_context_t *context, s8 bit_phase_ref);
+void tracker_bit_sync_update(tracker_context_t *context,
+                             u32 int_ms,
+                             s32 corr_prompt_real,
+                             s32 corr_prompt_imag,
+                             bool sensitivity_mode);
+u8 tracker_bit_length_get(tracker_context_t *context);
+bool tracker_bit_aligned(tracker_context_t *context);
+bool tracker_has_bit_sync(tracker_context_t *context);
+bool tracker_next_bit_aligned(tracker_context_t *context, u32 int_ms);
+void tracker_ambiguity_unknown(tracker_context_t *context);
+bool tracker_ambiguity_resolved(tracker_context_t *context);
+void tracker_ambiguity_set(tracker_context_t *context, s8 polarity);
+u16 tracker_glo_orbit_slot_get(tracker_context_t *context);
+glo_health_t tracker_glo_sv_health_get(tracker_context_t *context);
+void tracker_correlations_send(tracker_context_t *context, const corr_t *cs);
+bool tracker_check_prn_fail_flag(tracker_context_t *context);
+bool tracker_check_xcorr_flag(tracker_context_t *context);
+
+
 
 /** \addtogroup tracking
  * \{ */
@@ -363,4 +641,31 @@ void tracking_channel_glo_data_sync(tracker_channel_id_t id,
 void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 tracker_channel_t * tracker_channel_get(tracker_channel_id_t id);
 void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);
+
+void track_internal_setup(void);
+
+tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void);
+
+void tracker_internal_context_resolve(tracker_context_t *tracker_context,
+                                      const tracker_channel_info_t **channel_info,
+                                      tracker_internal_data_t **internal_data);
+void internal_data_init(tracker_internal_data_t *internal_data,
+                        const me_gnss_signal_t mesid,
+                        u16 glo_orbit_slot);
+
+void nav_bit_fifo_init(nav_bit_fifo_t *fifo);
+bool nav_bit_fifo_full(nav_bit_fifo_t *fifo);
+bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
+                        const nav_bit_fifo_element_t *element);
+bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element);
+void nav_data_sync_init(nav_data_sync_t *sync);
+bool nav_data_sync_set(nav_data_sync_t *to_tracker,
+                       const nav_data_sync_t *from_decoder);
+bool nav_data_sync_get(nav_data_sync_t *to_tracker,
+                       nav_data_sync_t *from_decoder);
+s8 nav_bit_quantize(s32 bit_integrate);
+
+u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
+u16 tracking_lock_counter_get(gnss_signal_t sid);
+
 #endif

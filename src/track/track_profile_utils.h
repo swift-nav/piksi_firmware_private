@@ -17,7 +17,7 @@
 
 #include <nap/nap_common.h>
 #include <libswiftnav/track.h>
-#include <track_api.h>
+#include <track.h>
 #include <settings.h>
 
 /* Integration tweaks: short / long interval markings */
