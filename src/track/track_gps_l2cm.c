@@ -220,13 +220,12 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   tp_tow_entry_t tow_entry;
-  gnss_signal_t sid = construct_sid(channel_info->mesid.code,
-                                    channel_info->mesid.sat);
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
   track_sid_db_load_tow(sid, &tow_entry);
 
   u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
@@ -246,7 +245,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
         s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1) ?
                       -tail : GPS_L2C_SYMBOL_LENGTH_MS - tail;
 
-        log_info_mesid(channel_info->mesid,
+        log_info_mesid(mesid,
                        "[+%" PRIu32 "ms] Adjusting ToW:"
                        " adjustment=%" PRId8 "ms old_tow=%" PRId32,
                        common_data->update_count,
@@ -269,7 +268,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                               &error_ms);
 
       if (TOW_UNKNOWN != ToW_ms) {
-        log_debug_mesid(channel_info->mesid,
+        log_debug_mesid(mesid,
                         "[+%" PRIu32 "ms]"
                         " Initializing TOW from cache [%" PRIu8 "ms] "
                         "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
@@ -282,7 +281,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
         if (tp_tow_is_sane(common_data->TOW_ms)) {
           common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
         } else {
-          log_error_mesid(channel_info->mesid,
+          log_error_mesid(mesid,
                           "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                           common_data->update_count, common_data->TOW_ms);
           common_data->TOW_ms = TOW_UNKNOWN;
@@ -293,8 +292,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
     if (TOW_UNKNOWN != common_data->TOW_ms &&
         common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
         data->confirmed &&
-        !tracking_is_running(construct_mesid(CODE_GPS_L1CA,
-                                             channel_info->mesid.sat))) {
+        !tracking_is_running(construct_mesid(CODE_GPS_L1CA, mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
        * - CN0 is OK
@@ -323,12 +321,11 @@ static bool check_L1_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
 
   if (CODE_GPS_L1CA != entry->mesid.code ||
-      entry->mesid.sat != channel_info->mesid.sat) {
+      entry->mesid.sat != tracker_channel->mesid.sat) {
     /* Ignore other than L1C/A from same SV */
     return false;
   }
@@ -431,10 +428,7 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
  *        1000 \right )}}\right| < \delta
  * \f]
  *
- * \param[in]     channel_info   Channel information.
- * \param[in,out] common_data    Channel data with ToW, sample number and other
- *                               runtime values.
- * \param[in]     data           Common tracker data.
+ * \param[in,out] tracker_channel Tracker channel data.
  * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
@@ -522,12 +516,12 @@ static s8 read_data_polarity(tracker_common_data_t *common_data)
 static void update_l2cl_status(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
 
   if (tp_tl_is_fll(&data->tl_state)) {
-    tracking_channel_drop_l2cl(channel_info->mesid);
+    tracking_channel_drop_l2cl(mesid);
     tracker_ambiguity_unknown(tracker_channel);
   } else if (data->lock_detect.outp &&
              data->confirmed &&
@@ -536,7 +530,7 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
 
     /* If needed, read half-cycle ambiguity status from L2CL tracker */
     if (tracker_ambiguity_resolved(tracker_channel)) {
-      tracking_channel_drop_l2cl(channel_info->mesid);
+      tracking_channel_drop_l2cl(mesid);
     } else {
       s8 polarity = read_data_polarity(common_data);
       tracker_ambiguity_set(tracker_channel, polarity);
@@ -548,7 +542,7 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
         TOW_UNKNOWN != common_data->TOW_ms) {
       /* Start L2 CL tracker if not running already */
       do_l2cm_to_l2cl_handover(common_data->sample_count,
-                               channel_info->mesid.sat,
+                               mesid.sat,
                                common_data->code_phase_prompt,
                                common_data->carrier_freq,
                                common_data->cn0,

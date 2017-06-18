@@ -190,7 +190,7 @@ void tracking_send_state()
       {
         running =
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
-        mesid = tracker_channel->info.mesid;
+        mesid = tracker_channel->mesid;
         glo_slot_id = internal_data->glo_orbit_slot;
         cn0 = common_data->cn0;
         confirmed = (0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED));
@@ -405,8 +405,8 @@ bool tracker_channel_init(tracker_channel_id_t id,
   tracker_channel_lock(tracker_channel);
   {
     /* Set up channel */
-    tracker_channel->info.mesid = mesid;
-    tracker_channel->info.nap_channel = id;
+    tracker_channel->mesid = mesid;
+    tracker_channel->nap_channel = id;
     tracker_channel->interface = tracker_interface;
     tracker_channel->tracker = tracker;
 
@@ -433,7 +433,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
   }
   tracker_channel_unlock(tracker_channel);
 
-  nap_track_init(tracker_channel->info.nap_channel, mesid, ref_sample_count,
+  nap_track_init(tracker_channel->nap_channel, mesid, ref_sample_count,
                  carrier_freq, code_phase, chips_to_correlate);
 
   /* Update channel public data outside of channel lock */
@@ -474,8 +474,8 @@ void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val)
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(id);
     tracker_channel_lock(tracker_channel);
-    if (CONSTELLATION_GPS == mesid_to_constellation(tracker_channel->info.mesid) &&
-        tracker_channel->info.mesid.sat == mesid.sat) {
+    if (CONSTELLATION_GPS == mesid_to_constellation(tracker_channel->mesid) &&
+        tracker_channel->mesid.sat == mesid.sat) {
       tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
       internal_data->prn_check_fail = val;
     }
@@ -497,7 +497,7 @@ void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid)
     /* Find matching tracker and set the flag  */
     tracker_channel_t *tracker_channel = tracker_channel_get(id);
     tracker_channel_lock(tracker_channel);
-    if (mesid_is_equal(tracker_channel->info.mesid, mesid)) {
+    if (mesid_is_equal(tracker_channel->mesid, mesid)) {
       tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
       internal_data->xcorr_flag = true;
     }
@@ -540,7 +540,7 @@ static void tracking_channel_compute_values(
     /* Translate/expand flags from tracker internal scope */
     info->flags = tracking_channel_get_flags(tracker_channel);
     /* Signal identifier */
-    info->mesid = tracker_channel->info.mesid;
+    info->mesid = tracker_channel->mesid;
     /* GLO slot ID */
     info->glo_orbit_slot = tracker_channel->internal_data.glo_orbit_slot;
     /* Current C/N0 [dB/Hz] */
@@ -1417,7 +1417,7 @@ static bool track_iq_output_notify(struct setting *s, const char *val)
  */
 static void nap_channel_disable(const tracker_channel_t *tracker_channel)
 {
-  nap_track_disable(tracker_channel->info.nap_channel);
+  nap_track_disable(tracker_channel->nap_channel);
 }
 
 /** Retrieve the tracker channel associated with a tracker channel ID.

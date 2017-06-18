@@ -91,10 +91,8 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
                               bool half_bit_aligned,
                               s32 *TOW_residual_ns)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
 
-  assert(channel_info);
   assert(TOW_residual_ns);
   *TOW_residual_ns = 0;
 
@@ -104,7 +102,7 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
   }
 
   /* GLO slot ID is known */
-  gnss_signal_t sid = construct_sid(channel_info->mesid.code, glo_orbit_slot);
+  gnss_signal_t sid = construct_sid(tracker_channel->mesid.code, glo_orbit_slot);
   tp_tow_entry_t tow_entry = {
     .TOW_ms = TOW_UNKNOWN,
     .TOW_residual_ns = 0,
@@ -153,7 +151,6 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
 static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
                                  u64 sample_time_tk)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   const tracker_common_data_t *common_data = &tracker_channel->common_data;
 
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
@@ -161,7 +158,7 @@ static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
     return;
   }
 
-  gnss_signal_t sid = construct_sid(channel_info->mesid.code, glo_orbit_slot);
+  gnss_signal_t sid = construct_sid(tracker_channel->mesid.code, glo_orbit_slot);
 
   /* Update ToW cache */
   tp_tow_entry_t tow_entry = {
@@ -188,7 +185,6 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
 {
   bool half_bit_aligned = false;
 
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
@@ -211,7 +207,7 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
          either with the TOW cache update or with the meander sync */
       s8 error_ms = (tail < half_bit) ? -tail : (GLO_L1CA_BIT_LENGTH_MS - tail);
 
-      log_error_mesid(channel_info->mesid,
+      log_error_mesid(tracker_channel->mesid,
                      "[+%" PRIu32 "ms] Adjusting ToW: "
                      "adjustment=%" PRId8 "ms old_tow=%" PRId32,
                      common_data->update_count,
@@ -249,7 +245,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->common_data.health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L2CA, tracker_channel->info.mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L2CA, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 
@@ -260,7 +256,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
 
     /* Start GLO L2CA tracker if not running */
     do_glo_l1ca_to_l2ca_handover(tracker_channel->common_data.sample_count,
-                                 tracker_channel->info.mesid.sat,
+                                 tracker_channel->mesid.sat,
                                  tracker_channel->common_data.code_phase_prompt,
                                  tracker_channel->common_data.carrier_freq,
                                  tracker_channel->common_data.cn0);

@@ -394,12 +394,6 @@ typedef struct {
   tracker_data_t *data;
 } tracker_t;
 
-/** Info associated with a tracker channel. */
-typedef struct {
-  me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
-  u8 nap_channel;               /**< Associated NAP channel. */
-} tracker_channel_info_t;
-
 /** \} */
 
 /** \addtogroup tracking
@@ -694,8 +688,6 @@ typedef struct {
   systime_t disable_time;
   /** Error flags. May be set at any time by the tracking thread. */
   volatile error_flag_t error_flags;
-  /** Info associated with this channel. */
-  tracker_channel_info_t info;
 
   me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
   u8 nap_channel;               /**< Associated NAP channel. */
@@ -1041,11 +1033,6 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                    u32 cycle_flags);
 void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags);
-void tp_tracker_update_tow(const tracker_channel_info_t *channel_info,
-                           tracker_common_data_t *common_data,
-                           tp_tracker_data_t *data,
-                           u32 cycle_flags,
-                           u64 sample_time_tk);
 void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                            u32 cycle_flags);
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,

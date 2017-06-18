@@ -221,12 +221,11 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
 static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
 
   tp_tow_entry_t tow_entry;
-  gnss_signal_t sid = construct_sid(channel_info->mesid.code,
-                                    channel_info->mesid.sat);
+  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
   track_sid_db_load_tow(sid, &tow_entry);
 
   u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
@@ -246,7 +245,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
         s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1) ?
                       -tail : GPS_L2C_SYMBOL_LENGTH_MS - tail;
 
-        log_info_mesid(channel_info->mesid,
+        log_info_mesid(mesid,
                        "[+%" PRIu32 "ms] Adjusting ToW:"
                        " adjustment=%" PRId8 "ms old_tow=%" PRId32,
                        common_data->update_count,
@@ -269,7 +268,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                               &error_ms);
 
       if (TOW_UNKNOWN != ToW_ms) {
-        log_debug_mesid(channel_info->mesid,
+        log_debug_mesid(mesid,
                         "[+%" PRIu32 "ms]"
                         " Initializing TOW from cache [%" PRIu8 "ms] "
                         "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
@@ -282,7 +281,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
         if (tp_tow_is_sane(common_data->TOW_ms)) {
           common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
         } else {
-          log_error_mesid(channel_info->mesid,
+          log_error_mesid(mesid,
                           "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                           common_data->update_count, common_data->TOW_ms);
           common_data->TOW_ms = TOW_UNKNOWN;
@@ -535,10 +534,10 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
     bool fll_mode = tp_tl_is_fll(&data->tl_state);
     /* Drop L2CL tracker if it is FLL mode */
     if (fll_mode) {
-      tracking_channel_drop_l2cl(tracker_channel->info.mesid);
+      tracking_channel_drop_l2cl(tracker_channel->mesid);
     } else if (!tracker_channel->common_data.cp_sync.synced) {
       /* Try resolving half-cycle ambiguity if it hasn't been resolved. */
-      process_cp_data(tracker_channel->info.mesid, &tracker_channel->common_data);
+      process_cp_data(tracker_channel->mesid, &tracker_channel->common_data);
     }
   }
 }

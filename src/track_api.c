@@ -78,14 +78,13 @@ void tracker_correlations_read(u8 nap_channel,
  */
 void tracker_retune(tracker_channel_t *tracker_channel, u32 chips_to_correlate)
 {
-  tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
 
   double doppler_freq_hz = common_data->carrier_freq;
   double code_phase_rate = tracker_channel->common_data.code_phase_rate;
 
   /* Write NAP UPDATE register. */
-  nap_track_update(channel_info->nap_channel,
+  nap_track_update(tracker_channel->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
@@ -138,7 +137,7 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
   assert(TOW_residual_ns);
   assert(decoded_tow);
 
-  me_gnss_signal_t mesid = tracker_channel->info.mesid;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   /* Latch TOW from nav message if pending */
@@ -214,7 +213,7 @@ void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
                              s32 corr_prompt_imag,
                              bool sensitivity_mode)
 {
-  me_gnss_signal_t mesid = tracker_channel->info.mesid;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   /* Update bit sync */
@@ -314,12 +313,11 @@ bool tracker_next_bit_aligned(tracker_channel_t *tracker_channel, u32 int_ms)
  */
 void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   internal_data->bit_polarity = BIT_POLARITY_UNKNOWN;
   internal_data->lock_counter =
-      tracking_lock_counter_increment(channel_info->mesid);
+      tracking_lock_counter_increment(tracker_channel->mesid);
   internal_data->reset_cpo = true;
 }
 
@@ -368,7 +366,7 @@ u16 tracker_glo_orbit_slot_get(tracker_channel_t *tracker_channel)
  */
 glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel)
 {
-  assert(is_glo_sid(tracker_channel->info.mesid));
+  assert(is_glo_sid(tracker_channel->mesid));
   return tracker_channel->internal_data.health;
 }
 
@@ -379,19 +377,18 @@ glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel)
  */
 void tracker_correlations_send(tracker_channel_t *tracker_channel, const corr_t *cs)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   /* Output I/Q correlations using SBP if enabled for this channel */
   if (internal_data->output_iq) {
     msg_tracking_iq_t msg = {
-      .channel = channel_info->nap_channel,
+      .channel = tracker_channel->nap_channel,
     };
     /* TODO GLO: Handle GLO orbit slot properly. */
-    if (is_glo_sid(channel_info->mesid)) {
+    if (is_glo_sid(tracker_channel->mesid)) {
       return;
     }
-    gnss_signal_t sid = mesid2sid(channel_info->mesid,
+    gnss_signal_t sid = mesid2sid(tracker_channel->mesid,
                                   internal_data->glo_orbit_slot);
     msg.sid = sid_to_sbp(sid);
     for (u32 i = 0; i < 3; i++) {
