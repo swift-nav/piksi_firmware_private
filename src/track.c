@@ -84,10 +84,9 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
 static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal_t mesid);
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
-                                     const me_gnss_signal_t mesid,
-                                     tracker_t **tracker,
-                                     const tracker_interface_t **
-                                     tracker_interface);
+                                const me_gnss_signal_t mesid,
+                                tracker_t **tracker,
+                                const tracker_interface_t **tracker_interface);
 static bool available_tracker_get(const tracker_interface_t *tracker_interface,
                                   tracker_t **tracker);
 static state_t tracker_channel_state_get(const tracker_channel_t *
@@ -1467,12 +1466,14 @@ static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
                                      const tracker_interface_t **
                                      tracker_interface)
 {
-  if (tracker_channel_state_get(tracker_channel) != STATE_DISABLED)
-      return false;
+  if (tracker_channel_state_get(tracker_channel) != STATE_DISABLED) {
+    return false;
+  }
 
   *tracker_interface = tracker_interface_lookup(mesid);
-  if (!available_tracker_get(*tracker_interface, tracker))
+  if (!available_tracker_get(*tracker_interface, tracker)) {
     return false;
+  }
 
   return true;
 }
