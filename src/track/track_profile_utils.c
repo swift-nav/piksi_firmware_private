@@ -631,30 +631,27 @@ bool tp_is_fll_ctrl(tp_ctrl_e ctrl)
  * This function checks if the xcorr_suspect status has changed for the signal,
  * and sets / clears the flag respectively.
  *
- * \param[in]     channel_info      Channel information.
- * \param[in,out] common_data       Channel data.
- * \param[in,out] input             Common L1 or L2 tracker data.
+ * \param         tracker_channel Tracker channel data
  * \param[in]     xcorr_suspect     Flag indicating if signal is xcorr suspect.
  * \param[in]     sensitivity_mode  Flag indicating sensitivity mode.
  *
  * \return None
  */
-void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            void *input,
+void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
                             bool xcorr_suspect,
                             bool sensitivity_mode)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+
   if (CODE_GPS_L1CA == channel_info->mesid.code) {
-    gps_l1ca_tracker_data_t *data;
-    data = (gps_l1ca_tracker_data_t*) input;
+    gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }
     data->xcorr_flag = xcorr_suspect;
   } else {
-    gps_l2cm_tracker_data_t *data;
-    data = (gps_l2cm_tracker_data_t*) input;
+    gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }

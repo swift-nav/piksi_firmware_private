@@ -1062,9 +1062,7 @@ void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
 void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel);
-void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            void *input,
+void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
                             bool xcorr_suspect,
                             bool sensitivity_mode);
 

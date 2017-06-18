@@ -471,7 +471,6 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
 static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                             u32 cycle_flags)
 {
-  const tracker_channel_info_t *channel_info = &tracker_channel->info;
   tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
@@ -527,7 +526,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
 
   bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
-  set_xcorr_suspect_flag(channel_info, common_data, data,
+  set_xcorr_suspect_flag(tracker_channel,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
@@ -557,7 +556,6 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags)
 {
   const tracker_channel_info_t *channel_info = &tracker_channel->info;
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
@@ -590,7 +588,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
 
   bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
-  set_xcorr_suspect_flag(channel_info, common_data, data,
+  set_xcorr_suspect_flag(tracker_channel,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 

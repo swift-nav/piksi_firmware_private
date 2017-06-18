@@ -313,20 +313,20 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
  *
  * L2 satellite with mismatching doppler is xcorr flagged for investigation.
  *
- * \param[in]     channel_info    Channel information.
- * \param[in]     common_data     Channel data.
- * \param[in,out] data            Common L2 tracker data.
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in]     entry           xcorr data to be checked against.
  * \param[out]    xcorr_flag      Flag indicating satellite to be investigated.
  *
  * \return false if entry was not L1C/A from same SV, true if it was.
  */
-static bool check_L1_entries(const tracker_channel_info_t *channel_info,
-                             tracker_common_data_t *common_data,
-                             gps_l2cm_tracker_data_t *data,
+static bool check_L1_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
+  const tracker_channel_info_t *channel_info = &tracker_channel->info;
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+
   if (CODE_GPS_L1CA != entry->mesid.code ||
       entry->mesid.sat != channel_info->mesid.sat) {
     /* Ignore other than L1C/A from same SV */
@@ -440,11 +440,11 @@ static void check_L1_xcorr_flag(tracker_common_data_t *common_data,
  * \return None
  */
 static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
-                                    const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    gps_l2cm_tracker_data_t *data,
                                     u32 cycle_flags)
 {
+  tracker_common_data_t *common_data = &tracker_channel->common_data;
+  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
       !tracker_bit_aligned(tracker_channel)) {
     return;
@@ -463,8 +463,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
   for (u16 idx = 0; idx < cnt; ++idx) {
     const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
 
-    if (check_L1_entries(channel_info, common_data, data,
-                         entry, &xcorr_flag)) {
+    if (check_L1_entries(tracker_channel, entry, &xcorr_flag)) {
       break;
     }
   }
@@ -481,7 +480,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
 
   bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
-  set_xcorr_suspect_flag(channel_info, common_data, data,
+  set_xcorr_suspect_flag(tracker_channel,
                          xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
@@ -560,16 +559,13 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
 
 static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
 {
-  gps_l2cm_tracker_data_t *l2c_data = tracker_channel->tracker->data;
-
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cm_config);
 
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(tracker_channel, cflags);
 
   /* GPS L2 C-specific L1 C/A cross-correlation operations */
-  update_l2_xcorr_from_l1(tracker_channel, &tracker_channel->info,
-                          &tracker_channel->common_data, l2c_data, cflags);
+  update_l2_xcorr_from_l1(tracker_channel, cflags);
 
   /* GPS L2CL-specific tracking channel operations */
   update_l2cl_status(tracker_channel, cflags);
