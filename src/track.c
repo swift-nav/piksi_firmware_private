@@ -176,8 +176,6 @@ void tracking_send_state()
 
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
       const tracker_common_data_t *common_data = &tracker_channel->common_data;
-      const tracker_internal_data_t *internal_data =
-        &tracker_channel->internal_data;
 
       bool running;
       bool confirmed;
@@ -190,7 +188,7 @@ void tracking_send_state()
         running =
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         mesid = tracker_channel->mesid;
-        glo_slot_id = internal_data->glo_orbit_slot;
+        glo_slot_id = tracker_channel->glo_orbit_slot;
         cn0 = common_data->cn0;
         confirmed = (0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED));
       }
@@ -412,7 +410,13 @@ bool tracker_channel_init(tracker_channel_id_t id,
     common_data_init(&tracker_channel->common_data, ref_sample_count,
                      carrier_freq, cn0_init, mesid);
 
-    internal_data_init(&tracker_channel->internal_data, mesid, glo_orbit_slot);
+    tracker_channel->bit_polarity = BIT_POLARITY_UNKNOWN;
+    tracker_channel->glo_orbit_slot = glo_orbit_slot;
+
+    nav_bit_fifo_init(&tracker_channel->nav_bit_fifo);
+    nav_data_sync_init(&tracker_channel->nav_data_sync);
+    bit_sync_init(&tracker_channel->bit_sync, mesid);
+
     interface_function(tracker_channel, tracker_interface->init);
 
     /* Clear error flags before starting NAP tracking channel */
@@ -475,8 +479,7 @@ void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val)
     tracker_channel_lock(tracker_channel);
     if (CONSTELLATION_GPS == mesid_to_constellation(tracker_channel->mesid) &&
         tracker_channel->mesid.sat == mesid.sat) {
-      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-      internal_data->prn_check_fail = val;
+      tracker_channel->prn_check_fail = val;
     }
     tracker_channel_unlock(tracker_channel);
   }
@@ -497,8 +500,7 @@ void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid)
     tracker_channel_t *tracker_channel = tracker_channel_get(id);
     tracker_channel_lock(tracker_channel);
     if (mesid_is_equal(tracker_channel->mesid, mesid)) {
-      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-      internal_data->xcorr_flag = true;
+      tracker_channel->xcorr_flag = true;
     }
     tracker_channel_unlock(tracker_channel);
   }
@@ -541,7 +543,7 @@ static void tracking_channel_compute_values(
     /* Signal identifier */
     info->mesid = tracker_channel->mesid;
     /* GLO slot ID */
-    info->glo_orbit_slot = tracker_channel->internal_data.glo_orbit_slot;
+    info->glo_orbit_slot = tracker_channel->glo_orbit_slot;
     /* Current C/N0 [dB/Hz] */
     info->cn0 = common_data->cn0;
     /* Current time of week for a tracker channel [ms] */
@@ -553,7 +555,7 @@ static void tracking_channel_compute_values(
     /* Tracking channel update time [ms] */
     info->update_timestamp_ms = common_data->update_timestamp_ms;
     /* Lock counter */
-    info->lock_counter = tracker_channel->internal_data.lock_counter;
+    info->lock_counter = tracker_channel->lock_counter;
     /* Sample counter */
     info->sample_count = common_data->sample_count;
     /* Cross-correlation doppler frequency [hz] */
@@ -618,8 +620,8 @@ static void tracking_channel_compute_values(
     ctrl_params->int_ms = common_data->ctrl_params.int_ms;
   }
   if (NULL != reset_cpo) {
-    *reset_cpo = tracker_channel->internal_data.reset_cpo;
-    tracker_channel->internal_data.reset_cpo = false;
+    *reset_cpo = tracker_channel->reset_cpo;
+    tracker_channel->reset_cpo = false;
   }
 }
 
@@ -1191,10 +1193,9 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
                                   bool *sensitivity_mode)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
 
   nav_bit_fifo_element_t element;
-  if (nav_bit_fifo_read(&internal_data->nav_bit_fifo, &element)) {
+  if (nav_bit_fifo_read(&tracker_channel->nav_bit_fifo, &element)) {
     *soft_bit = element.soft_bit;
     *sensitivity_mode = element.sensitivity_mode;
     return true;
@@ -1234,9 +1235,8 @@ static void tracking_channel_data_sync(tracker_channel_id_t id,
          (from_decoder->bit_polarity == BIT_POLARITY_INVERTED));
 
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-  from_decoder->read_index = internal_data->nav_bit_fifo.read_index;
-  if (!nav_data_sync_set(&internal_data->nav_data_sync, from_decoder)) {
+  from_decoder->read_index = tracker_channel->nav_bit_fifo.read_index;
+  if (!nav_data_sync_set(&tracker_channel->nav_data_sync, from_decoder)) {
     log_warn_mesid(tracker_channel->mesid, "Data sync failed");
   }
 }
@@ -1402,8 +1402,7 @@ static bool track_iq_output_notify(struct setting *s, const char *val)
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     for (int i = 0; i < NUM_TRACKER_CHANNELS; i++) {
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      tracker_internal_data_t *internal_data = &tracker_channel->internal_data;
-      internal_data->output_iq = (iq_output_mask & (1 << i)) != 0;
+      tracker_channel->output_iq = (iq_output_mask & (1 << i)) != 0;
     }
     return true;
   }
@@ -1675,7 +1674,6 @@ static tracking_channel_flags_t tracking_channel_get_flags(
   tracking_channel_flags_t result = 0;
 
   const tracker_common_data_t *const common_data = &tracker_channel->common_data;
-  const tracker_internal_data_t *const internal_data = &tracker_channel->internal_data;
 
   if (STATE_ENABLED == tracker_channel_state_get(tracker_channel)) {
 
@@ -1718,18 +1716,18 @@ static tracking_channel_flags_t tracking_channel_get_flags(
       result |= TRACKING_CHANNEL_FLAG_TOW;
     }
     /* Bit sync has been reached. */
-    if (BITSYNC_UNSYNCED != internal_data->bit_sync.bit_phase_ref) {
+    if (BITSYNC_UNSYNCED != tracker_channel->bit_sync.bit_phase_ref) {
       result |= TRACKING_CHANNEL_FLAG_BIT_SYNC;
     }
     /* Nav bit polarity is known, i.e. half-cycles have been resolved.
      * bit polarity known flag is set only when phase lock to prevent the
      * situation when channel loses an SV, but decoder just finished TOW decoding
      * which cause bit polarity know flag set */
-    if (BIT_POLARITY_UNKNOWN != internal_data->bit_polarity
+    if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity
         && (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_BIT_POLARITY;
     }
-    if (BIT_POLARITY_INVERTED == internal_data->bit_polarity) {
+    if (BIT_POLARITY_INVERTED == tracker_channel->bit_polarity) {
       result |= TRACKING_CHANNEL_FLAG_BIT_INVERTED;
     }
     /* Tracking mode */

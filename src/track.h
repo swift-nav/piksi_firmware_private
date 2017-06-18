@@ -695,10 +695,33 @@ typedef struct {
   /** Data common to all tracker implementations. RW from channel interface
    * functions. RO from functions in this module. */
   tracker_common_data_t common_data;
-  /** Data used by the API for all tracker implementations. RW from API
-   * functions called within channel interface functions. RO from functions
-   * in this module. */
-  tracker_internal_data_t internal_data;
+
+  /** FIFO for navigation message bits. */
+  nav_bit_fifo_t nav_bit_fifo;
+  /** Used to sync time decoded from navigation message
+   * back to tracking channel. */
+  nav_data_sync_t nav_data_sync;
+  /** Time since last nav bit was appended to the nav bit FIFO. */
+  u32 nav_bit_TOW_offset_ms;
+  /** Bit sync state. */
+  bit_sync_t bit_sync;
+  /** GLO orbital slot. */
+  u16 glo_orbit_slot;
+  /** Polarity of nav message bits. */
+  s8 bit_polarity;
+  /** Increments when tracking new signal. */
+  u16 lock_counter;
+  /** Set if this channel should output I/Q samples on SBP. */
+  bool output_iq;
+  /** Flags if carrier phase integer offset to be reset. */
+  bool reset_cpo;
+  /** Flags if PRN conformity check failed */
+  bool prn_check_fail;
+  /** Flags if tracker is cross-correlated */
+  bool xcorr_flag;
+  /** GLO SV health info */
+  glo_health_t health;
+
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
   /** Associated tracker interface. */
@@ -1135,10 +1158,6 @@ void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);
 void track_internal_setup(void);
 
 tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void);
-
-void internal_data_init(tracker_internal_data_t *internal_data,
-                        const me_gnss_signal_t mesid,
-                        u16 glo_orbit_slot);
 
 void nav_bit_fifo_init(nav_bit_fifo_t *fifo);
 bool nav_bit_fifo_full(nav_bit_fifo_t *fifo);
