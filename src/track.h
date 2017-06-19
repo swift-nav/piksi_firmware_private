@@ -191,34 +191,6 @@ typedef struct {
   bool valid;
 } nav_data_sync_t;
 
-typedef struct {
-  /** FIFO for navigation message bits. */
-  nav_bit_fifo_t nav_bit_fifo;
-  /** Used to sync time decoded from navigation message
-   * back to tracking channel. */
-  nav_data_sync_t nav_data_sync;
-  /** Time since last nav bit was appended to the nav bit FIFO. */
-  u32 nav_bit_TOW_offset_ms;
-  /** Bit sync state. */
-  bit_sync_t bit_sync;
-  /** GLO orbital slot. */
-  u16 glo_orbit_slot;
-  /** Polarity of nav message bits. */
-  s8 bit_polarity;
-  /** Increments when tracking new signal. */
-  u16 lock_counter;
-  /** Set if this channel should output I/Q samples on SBP. */
-  bool output_iq;
-  /** Flags if carrier phase integer offset to be reset. */
-  bool reset_cpo;
-  /** Flags if PRN conformity check failed */
-  bool prn_check_fail;
-  /** Flags if tracker is cross-correlated */
-  bool xcorr_flag;
-  /** GLO SV health info */
-  glo_health_t health;
-} tracker_internal_data_t;
-
 /**
  * Tracking profile controller data.
  *
