@@ -1168,15 +1168,6 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
 
   return result;
 }
-manage_track_flags_t get_tracking_channel_flags(u8 i)
-{
-  return get_tracking_channel_flags_info(i,    /* Tracking channel index */
-                                         NULL, /* Generic info */
-                                         NULL, /* Time info */
-                                         NULL, /* Frequencies/phases */
-                                         NULL, /* Controller info */
-                                         NULL);/* Misc info */
-}
 
 /**
  * Computes carrier phase offset.
