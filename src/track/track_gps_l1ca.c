@@ -39,8 +39,6 @@
 static tp_tracker_config_t gps_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 /** GPS L1 C/A tracker table */
 static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS];
-/** GPS L1 C/A tracker data */
-static gps_l1ca_tracker_data_t gps_l1ca_tracker_data[ARRAY_SIZE(gps_l1ca_trackers)];
 
 /* Forward declarations of interface methods for GPS L1 C/A */
 static tracker_interface_function_t tracker_gps_l1ca_init;
@@ -98,7 +96,6 @@ void track_gps_l1ca_register(void)
 
   for (u32 i = 0; i < ARRAY_SIZE(gps_l1ca_trackers); i++) {
     gps_l1ca_trackers[i].active = false;
-    gps_l1ca_trackers[i].data = &gps_l1ca_tracker_data[i];
   }
 
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
@@ -106,12 +103,11 @@ void track_gps_l1ca_register(void)
 
 static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   memset(data, 0, sizeof(*data));
 
   tp_tracker_init(tracker_channel, &gps_l1ca_config);
-
 }
 
 /**
@@ -241,7 +237,7 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
                            bool sat_active[],
                            float xcorr_cn0_diffs[])
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (CODE_GPS_L1CA != entry->mesid.code) {
     /* Ignore other than GPS L1CA for now */
@@ -304,7 +300,7 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
                                  float xcorr_cn0_diffs[],
                                  bool *xcorr_suspect)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (idx + 1 == tracker_channel->mesid.sat) {
     /* Exclude self */
@@ -348,7 +344,7 @@ static bool check_L2_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (CODE_GPS_L2CM != entry->mesid.code ||
       entry->mesid.sat != tracker_channel->mesid.sat) {
@@ -407,7 +403,7 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   u16 index = mesid_to_code_index(tracker_channel->mesid);
   s32 max_time_cnt = (s32)(gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
@@ -460,7 +456,7 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
 static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                             u32 cycle_flags)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
       !tracker_bit_aligned(tracker_channel)) {
@@ -543,7 +539,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
 static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags)
 {
-  gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
       !tracker_bit_aligned(tracker_channel)) {

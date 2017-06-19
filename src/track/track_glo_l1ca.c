@@ -39,7 +39,6 @@
 static tp_tracker_config_t glo_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
 static tracker_t glo_l1ca_trackers[NUM_GLO_L1CA_TRACKERS];
-static tp_tracker_data_t glo_l1ca_tracker_data[ARRAY_SIZE(glo_l1ca_trackers)];
 
 /* Forward declarations of interface methods for GLO L1CA */
 static tracker_interface_function_t tracker_glo_l1ca_init;
@@ -71,7 +70,6 @@ void track_glo_l1ca_register(void)
 
   for (u32 i = 0; i < ARRAY_SIZE(glo_l1ca_trackers); i++) {
     glo_l1ca_trackers[i].active = false;
-    glo_l1ca_trackers[i].data = &glo_l1ca_tracker_data[i];
   }
 
   tracker_interface_register(&tracker_interface_list_glo_l1ca);

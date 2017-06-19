@@ -44,8 +44,6 @@
 static tp_tracker_config_t gps_l2cm_config = TP_TRACKER_DEFAULT_CONFIG;
 /** GPS L2C tracker table */
 static tracker_t gps_l2cm_trackers[NUM_GPS_L2CM_TRACKERS];
-/** GPS L2C tracker data */
-static gps_l2cm_tracker_data_t gps_l2cm_tracker_data[ARRAY_SIZE(gps_l2cm_trackers)];
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2cm_init;
@@ -103,7 +101,6 @@ void track_gps_l2cm_register(void)
 
   for (u32 i = 0; i < ARRAY_SIZE(gps_l2cm_trackers); i++) {
     gps_l2cm_trackers[i].active = false;
-    gps_l2cm_trackers[i].data = &gps_l2cm_tracker_data[i];
   }
 
   tracker_interface_register(&tracker_interface_list_element_gps_l2cm);
@@ -188,7 +185,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
 
 static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 {
-  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
   memset(data, 0, sizeof(*data));
 
@@ -318,7 +315,7 @@ static bool check_L1_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
-  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
   if (CODE_GPS_L1CA != entry->mesid.code ||
       entry->mesid.sat != tracker_channel->mesid.sat) {
@@ -380,7 +377,7 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
-  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
   s32 max_time_cnt = (s32)(gps_l2cm_config.xcorr_time * XCORR_UPDATE_RATE);
 
   if (xcorr_flag) {
@@ -431,7 +428,7 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
 static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags)
 {
-  gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+  gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
       !tracker_bit_aligned(tracker_channel)) {

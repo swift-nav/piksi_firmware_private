@@ -639,13 +639,13 @@ void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
                             bool sensitivity_mode)
 {
   if (CODE_GPS_L1CA == tracker_channel->mesid.code) {
-    gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
+    gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }
     data->xcorr_flag = xcorr_suspect;
   } else {
-    gps_l2cm_tracker_data_t *data = tracker_channel->tracker->data;
+    gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }

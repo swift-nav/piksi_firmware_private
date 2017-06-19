@@ -350,8 +350,6 @@ typedef void tracker_data_t;
 typedef struct {
   /** true if tracker is in use. */
   bool active;
-  /** Pointer to implementation-specific data used by tracker instance. */
-  tracker_data_t *data;
 } tracker_t;
 
 /** \} */
@@ -614,31 +612,29 @@ typedef struct
   s32              corr_bit; /**< Bit sync accumulator */
 } tp_corr_state_t;
 
+struct tracker_interface;
+
 /**
- * Generic tracker data
+ * GPS L1 C/A tracker data container type.
  */
 typedef struct {
-  tp_profile_t      profile;                /**< Profile controller state. */
+  u16 xcorr_counts[NUM_SATS_GPS];     /**< L1 Cross-correlation interval counters */
+  u16 xcorr_count_l2;                 /**< L2 Cross-correlation interval counter */
+  u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval counters */
+  bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status */
+  bool xcorr_whitelist_l2;            /**< L2 Cross-correlation whitelist status */
+  u8  xcorr_flag: 1;                  /**< Cross-correlation flag */
+} gps_l1ca_tracker_data_t;
 
-  tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
-  tp_corr_state_t   corrs;                  /**< Correlations */
-  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
-  alias_detect_t    alias_detect;           /**< Alias lock detector. */
-  lock_detect_t     lock_detect;            /**< Lock detector state. */
-  lp1_filter_t      xcorr_filter;           /**< Low-pass SV POV doppler filter */
-  u16               tracking_mode: 3;       /**< Tracking mode */
-  u16               cycle_no: 5;            /**< Cycle index inside current
-                                             *   integration mode. */
-  u16               use_alias_detection: 1; /**< Flag for alias detection control */
-  u16               has_next_params: 1;     /**< Flag if stage transition is in
-                                             *   progress */
-  u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
-  u16               mode_pll: 1;            /**< PLL control flag */
-  u16               mode_fll: 1;            /**< FLL control flag */
-  u16               xcorr_flag: 1;          /**< Cross-correlation filter is in use */
-} tp_tracker_data_t;
-
-struct tracker_interface;
+/**
+ * GPS L2C tracker data container type.
+ */
+typedef struct {
+  u16 xcorr_count_l1;      /**< L1 Cross-correlation interval count */
+  bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
+  bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
+  u8  xcorr_flag: 1;       /**< Cross-correlation flag */
+} gps_l2cm_tracker_data_t;
 
 /** Top-level generic tracker channel. */
 typedef struct {
@@ -740,6 +736,12 @@ typedef struct {
   u16               mode_pll: 1;            /**< PLL control flag */
   u16               mode_fll: 1;            /**< FLL control flag */
   u16               xcorr_filter_active: 1; /**< Cross-correlation filter is in use */
+
+  /* Constellation specific data */
+  union {
+    gps_l1ca_tracker_data_t gps_l1ca;
+    gps_l2cm_tracker_data_t gps_l2cm;
+  };
 } tracker_channel_t;
 
 /** Tracker interface function template. */
@@ -830,28 +832,6 @@ typedef struct {
 #define TP_CFLAG_LD_SET          ((u32)1 << 22)
 #define TP_CFLAG_LD_ADD          ((u32)1 << 23)
 #define TP_CFLAG_LD_USE          ((u32)1 << 24)
-
-/**
- * GPS L1 C/A tracker data container type.
- */
-typedef struct {
-  u16 xcorr_counts[NUM_SATS_GPS];     /**< L1 Cross-correlation interval counters */
-  u16 xcorr_count_l2;                 /**< L2 Cross-correlation interval counter */
-  u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval counters */
-  bool xcorr_whitelist[NUM_SATS_GPS]; /**< L1 Cross-correlation whitelist status */
-  bool xcorr_whitelist_l2;            /**< L2 Cross-correlation whitelist status */
-  u8  xcorr_flag: 1;                  /**< Cross-correlation flag */
-} gps_l1ca_tracker_data_t;
-
-/**
- * GPS L2C tracker data container type.
- */
-typedef struct {
-  u16 xcorr_count_l1;      /**< L1 Cross-correlation interval count */
-  bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
-  bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */
-  u8  xcorr_flag: 1;       /**< Cross-correlation flag */
-} gps_l2cm_tracker_data_t;
 
 /**
  * Common tracker configuration container.

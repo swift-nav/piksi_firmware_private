@@ -57,8 +57,6 @@ typedef struct {
 static tp_tracker_config_t gps_l2cl_config = TP_TRACKER_DEFAULT_CONFIG;
 /** GPS L2C tracker table */
 static tracker_t gps_l2cl_trackers[NUM_GPS_L2CL_TRACKERS];
-/** GPS L2C tracker data */
-static tp_tracker_data_t gps_l2cl_tracker_data[ARRAY_SIZE(gps_l2cl_trackers)];
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2cl_init;
@@ -116,7 +114,6 @@ void track_gps_l2cl_register(void)
 
   for (u32 i = 0; i < ARRAY_SIZE(gps_l2cl_trackers); i++) {
     gps_l2cl_trackers[i].active = false;
-    gps_l2cl_trackers[i].data = &gps_l2cl_tracker_data[i];
   }
 
   tracker_interface_register(&tracker_interface_list_element_gps_l2cl);
