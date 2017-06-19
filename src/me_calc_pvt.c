@@ -628,8 +628,14 @@ static void me_calc_pvt_thread(void *arg)
         }
 
         /* Recompute satellite position, velocity and clock errors */
-        if (0 != calc_sat_state(e, &nm->tot, nm->sat_pos, nm->sat_vel,
-                                &nm->sat_clock_err, &nm->sat_clock_err_rate)) {
+        if (0 != calc_sat_state(e,
+                                &nm->tot,
+                                nm->sat_pos,
+                                nm->sat_vel,
+                                &nm->sat_clock_err,
+                                &nm->sat_clock_err_rate,
+                                &nm->IODC,
+                                &nm->IODE)) {
           continue;
         }
 
