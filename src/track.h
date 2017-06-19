@@ -344,14 +344,6 @@ typedef struct {
   bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
 } cp_sync_t;
 
-typedef void tracker_data_t;
-
-/** Instance of a tracker implementation. */
-typedef struct {
-  /** true if tracker is in use. */
-  bool active;
-} tracker_t;
-
 /** \} */
 
 /** \addtogroup tracking
@@ -713,8 +705,6 @@ typedef struct {
   mutex_t mutex;
   /** Associated tracker interface. */
   const struct tracker_interface *interface;
-  /** Associated tracker instance. */
-  tracker_t *tracker;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
 
@@ -757,10 +747,6 @@ typedef struct tracker_interface {
   tracker_interface_function_t *disable;
   /** Update function. Called when new correlation outputs are available. */
   tracker_interface_function_t *update;
-  /** Array of tracker instances used by this interface. */
-  tracker_t *trackers;
-  /** Number of tracker instances in trackers array. */
-  u8 num_trackers;
 } tracker_interface_t;
 
 /** List element passed to tracker_interface_register(). */

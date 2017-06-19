@@ -37,8 +37,6 @@
 
 /** GPS L1 C/A configuration container */
 static tp_tracker_config_t gps_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
-/** GPS L1 C/A tracker table */
-static tracker_t gps_l1ca_trackers[NUM_GPS_L1CA_TRACKERS];
 
 /* Forward declarations of interface methods for GPS L1 C/A */
 static tracker_interface_function_t tracker_gps_l1ca_init;
@@ -50,8 +48,6 @@ static const tracker_interface_t tracker_interface_gps_l1ca = {
   .init =         tracker_gps_l1ca_init,
   .disable =      tp_tracker_disable,
   .update =       tracker_gps_l1ca_update,
-  .trackers =     gps_l1ca_trackers,
-  .num_trackers = ARRAY_SIZE(gps_l1ca_trackers)
 };
 
 /** GPS L1 C/A tracker interface list element */
@@ -93,10 +89,6 @@ void track_gps_l1ca_register(void)
   lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
                             gps_l1ca_config.xcorr_cof,
                             SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
-
-  for (u32 i = 0; i < ARRAY_SIZE(gps_l1ca_trackers); i++) {
-    gps_l1ca_trackers[i].active = false;
-  }
 
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }

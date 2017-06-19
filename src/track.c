@@ -63,8 +63,6 @@ static const tracker_interface_t tracker_interface_default = {
   .init =         0,
   .disable =      0,
   .update =       0,
-  .trackers =     0,
-  .num_trackers = 0
 };
 
 static u16 iq_output_mask = 0;
@@ -85,13 +83,9 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal_t mesid);
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
                                 const me_gnss_signal_t mesid,
-                                tracker_t **tracker,
                                 const tracker_interface_t **tracker_interface);
-static bool available_tracker_get(const tracker_interface_t *tracker_interface,
-                                  tracker_t **tracker);
 static state_t tracker_channel_state_get(const tracker_channel_t *
                                          tracker_channel);
-static bool tracker_active(const tracker_t *tracker);
 static void interface_function(tracker_channel_t *tracker_channel,
                                tracker_interface_function_t *func);
 static void event(tracker_channel_t *d, event_t event);
@@ -132,7 +126,6 @@ void track_setup(void)
 
   for (u32 i = 0; i < NUM_TRACKER_CHANNELS; i++) {
     tracker_channels[i].state = STATE_DISABLED;
-    tracker_channels[i].tracker = 0;
     chMtxObjectInit(&tracker_channels[i].mutex);
     chMtxObjectInit(&tracker_channels[i].pub_data.info_mutex);
   }
@@ -324,11 +317,8 @@ bool tracker_channel_available(tracker_channel_id_t id,
                                const me_gnss_signal_t mesid)
 {
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-
-  tracker_t *tracker;
   const tracker_interface_t *tracker_interface;
-  return tracker_channel_runnable(tracker_channel, mesid, &tracker,
-                                  &tracker_interface);
+  return tracker_channel_runnable(tracker_channel, mesid, &tracker_interface);
 }
 
 /** Calculate the future code phase after N samples.
@@ -381,9 +371,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
 
   const tracker_interface_t *tracker_interface;
-  tracker_t *tracker;
-  if (!tracker_channel_runnable(tracker_channel, mesid, &tracker,
-                                &tracker_interface)) {
+  if (!tracker_channel_runnable(tracker_channel, mesid, &tracker_interface)) {
     return false;
   }
 
@@ -399,7 +387,6 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->mesid = mesid;
     tracker_channel->nap_channel = id;
     tracker_channel->interface = tracker_interface;
-    tracker_channel->tracker = tracker;
 
     tracker_channel->TOW_ms = TOW_INVALID;
     tracker_channel->TOW_ms_prev = TOW_INVALID;
@@ -1460,13 +1447,11 @@ static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal
  * \param tracker_channel_id    ID of the tracker channel to be checked.
  * \param mesid                 ME signal to be tracked.
  * \param tracker_interface     Output tracker interface to use.
- * \param tracker               Output tracker instance to use.
  *
  * \return true if the tracker channel is available, false otherwise.
  */
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
                                      const me_gnss_signal_t mesid,
-                                     tracker_t **tracker,
                                      const tracker_interface_t **
                                      tracker_interface)
 {
@@ -1475,34 +1460,7 @@ static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
   }
 
   *tracker_interface = tracker_interface_lookup(mesid);
-  if (!available_tracker_get(*tracker_interface, tracker)) {
-    return false;
-  }
-
   return true;
-}
-
-/** Find an inactive tracker instance for the specified tracker interface.
- *
- * \param tracker_interface   Tracker interface to use.
- * \param tracker             Output inactive tracker instance.
- *
- * \return true if *tracker points to an inactive tracker instance,
- * false otherwise.
- */
-static bool available_tracker_get(const tracker_interface_t *tracker_interface,
-                                  tracker_t **tracker)
-{
-  /* Search for a free tracker */
-  for (u32 i=0; i<tracker_interface->num_trackers; i++) {
-    tracker_t *t = &tracker_interface->trackers[i];
-    if (!tracker_active(t)) {
-      *tracker = t;
-      return true;
-    }
-  }
-
-  return false;
 }
 
 /** Return the state of a tracker channel.
@@ -1520,22 +1478,6 @@ static state_t tracker_channel_state_get(const tracker_channel_t *
   state_t state = tracker_channel->state;
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   return state;
-}
-
-/** Return the state of a tracker instance.
- *
- * \note This function performs an acquire operation, meaning that it ensures
- * the returned state was read before any subsequent memory accesses.
- *
- * \param tracker   Tracker to use.
- *
- * \return true if the tracker is active, false if inactive.
- */
-static bool tracker_active(const tracker_t *tracker)
-{
-  bool active = tracker->active;
-  COMPILER_BARRIER(); /* Prevent compiler reordering */
-  return active;
 }
 
 /** Execute an interface function on a tracker channel.
@@ -1562,8 +1504,6 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
   switch (event) {
   case EVENT_ENABLE: {
     assert(tracker_channel->state == STATE_DISABLED);
-    assert(tracker_channel->tracker->active == false);
-    tracker_channel->tracker->active = true;
     /* Sequence point for enable is setting channel state = STATE_ENABLED */
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     tracker_channel->state = STATE_ENABLED;
@@ -1584,11 +1524,9 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
 
   case EVENT_DISABLE_WAIT_COMPLETE: {
     assert(tracker_channel->state == STATE_DISABLE_WAIT);
-    assert(tracker_channel->tracker->active == true);
     /* Sequence point for disable is setting channel state = STATE_DISABLED
      * and/or tracker active = false (order of these two is irrelevant here) */
     COMPILER_BARRIER(); /* Prevent compiler reordering */
-    tracker_channel->tracker->active = false;
     tracker_channel->state = STATE_DISABLED;
   }
   break;

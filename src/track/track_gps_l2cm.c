@@ -42,8 +42,6 @@
 
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2cm_config = TP_TRACKER_DEFAULT_CONFIG;
-/** GPS L2C tracker table */
-static tracker_t gps_l2cm_trackers[NUM_GPS_L2CM_TRACKERS];
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2cm_init;
@@ -55,8 +53,6 @@ static const tracker_interface_t tracker_interface_gps_l2cm = {
   .init =         tracker_gps_l2cm_init,
   .disable =      tp_tracker_disable,
   .update =       tracker_gps_l2cm_update,
-  .trackers =     gps_l2cm_trackers,
-  .num_trackers = ARRAY_SIZE(gps_l2cm_trackers)
 };
 
 /** GPS L2C tracker interface list element */
@@ -98,10 +94,6 @@ void track_gps_l2cm_register(void)
   lp1_filter_compute_params(&gps_l2cm_config.xcorr_f_params,
                             gps_l2cm_config.xcorr_cof,
                             SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
-
-  for (u32 i = 0; i < ARRAY_SIZE(gps_l2cm_trackers); i++) {
-    gps_l2cm_trackers[i].active = false;
-  }
 
   tracker_interface_register(&tracker_interface_list_element_gps_l2cm);
 }

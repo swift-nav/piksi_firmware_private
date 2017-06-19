@@ -38,8 +38,6 @@
 
 static tp_tracker_config_t glo_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
-static tracker_t glo_l1ca_trackers[NUM_GLO_L1CA_TRACKERS];
-
 /* Forward declarations of interface methods for GLO L1CA */
 static tracker_interface_function_t tracker_glo_l1ca_init;
 static tracker_interface_function_t tracker_glo_l1ca_update;
@@ -50,8 +48,6 @@ static const tracker_interface_t tracker_interface_glo_l1ca = {
   .init =         tracker_glo_l1ca_init,
   .disable =      tp_tracker_disable,
   .update =       tracker_glo_l1ca_update,
-  .trackers =     glo_l1ca_trackers,
-  .num_trackers = ARRAY_SIZE(glo_l1ca_trackers)
 };
 
 static tracker_interface_list_element_t tracker_interface_list_glo_l1ca = {
@@ -67,10 +63,6 @@ void track_glo_l1ca_register(void)
   TP_TRACKER_REGISTER_CONFIG(GLO_L1CA_TRACK_SETTING_SECTION,
                              glo_l1ca_config,
                              settings_default_notify);
-
-  for (u32 i = 0; i < ARRAY_SIZE(glo_l1ca_trackers); i++) {
-    glo_l1ca_trackers[i].active = false;
-  }
 
   tracker_interface_register(&tracker_interface_list_glo_l1ca);
 }
