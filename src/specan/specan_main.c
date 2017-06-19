@@ -99,6 +99,10 @@ void ThreadManageSpecan(void *arg) {
       /** split trace in SBP_MSG_SPECAN and send out */
       for (um=0; um<SPECAN_NUMLINES; um+=TRACE_SBP_POINTS) {
 
+        /** cap the number of points to TRACE_SBP_POINTS */
+        uNumPoints = ((um+TRACE_SBP_POINTS)<=SPECAN_NUMLINES) ? (TRACE_SBP_POINTS) : (SPECAN_NUMLINES - um);
+        uMsgLength = sizeof(msg_specan_t) + uNumPoints;
+
         /** find min and max amplitude */
         fMinAmpl = fMaxAmpl = pSpecTrace[um];
         for (k=1; k<uNumPoints; k++) {
@@ -108,10 +112,6 @@ void ThreadManageSpecan(void *arg) {
         /** resulting minimum amplitude and amplitude step */
         p_head->amplitude_ref  = fMinAmpl;
         p_head->amplitude_unit = (fMaxAmpl - fMinAmpl)/(TRACE_ARESOLUTION);
-
-        /** cap the number of points to TRACE_SBP_POINTS */
-        uNumPoints = ((um+TRACE_SBP_POINTS)<=SPECAN_NUMLINES) ? (TRACE_SBP_POINTS) : (SPECAN_NUMLINES - um);
-        uMsgLength = sizeof(msg_specan_t) + uNumPoints;
 
         /** scale amplitude points to uint8_t */
         for (k=0; k<uNumPoints; k++) {
