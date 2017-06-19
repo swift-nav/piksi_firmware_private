@@ -47,7 +47,7 @@ static sc16_t pTmpTrace[SPECAN_FFT_SIZE];
 static uint8_t uCoeff[SPECAN_FFT_SIZE];
 
 static struct {
-  msg_specan_t trace_data;
+  msg_specan_t header;
   u8 payload[TRACE_SBP_POINTS];
 } curr_trace;
 
@@ -69,7 +69,7 @@ void ThreadManageSpecan(void *arg) {
   uint32_t uBuffLen;
 
   /* fecth utility pointer */
-  msg_specan_t *p_head = &(curr_trace.trace_data);
+  msg_specan_t *p_head = &(curr_trace.header);
 
   chRegSetThreadName("spectrum analyzer");
   /* At least at startup in clear sky we want the acquisition not to
@@ -204,8 +204,8 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
     break;
   }
 
-  curr_trace.trace_data.freq_ref  = fStartFreq;
-  curr_trace.trace_data.freq_step = fFrontEndSpms / SPECAN_FFT_SIZE;
+  curr_trace.header.freq_ref  = fStartFreq;
+  curr_trace.header.freq_step = fFrontEndSpms / SPECAN_FFT_SIZE;
 
 
   /* add abs(FFT) */
