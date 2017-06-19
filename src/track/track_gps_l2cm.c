@@ -220,8 +220,6 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
 static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
   tp_tow_entry_t tow_entry;
   me_gnss_signal_t mesid = tracker_channel->mesid;
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
@@ -290,7 +288,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
 
     if (TOW_UNKNOWN != tracker_channel->TOW_ms &&
         tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
-        data->confirmed &&
+        tracker_channel->confirmed &&
         !tracking_is_running(construct_mesid(CODE_GPS_L1CA, mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
@@ -458,7 +456,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tracker_data.tl_state);
+  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
@@ -512,14 +510,13 @@ static s8 read_data_polarity(tracker_channel_t *tracker_channel)
 static void update_l2cl_status(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
-  if (tp_tl_is_fll(&data->tl_state)) {
+  if (tp_tl_is_fll(&tracker_channel->tl_state)) {
     tracking_channel_drop_l2cl(mesid);
     tracker_ambiguity_unknown(tracker_channel);
-  } else if (data->lock_detect.outp &&
-             data->confirmed &&
+  } else if (tracker_channel->lock_detect.outp &&
+             tracker_channel->confirmed &&
              0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
              tracker_bit_aligned(tracker_channel)) {
 

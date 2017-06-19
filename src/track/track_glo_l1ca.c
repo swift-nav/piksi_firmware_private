@@ -79,10 +79,6 @@ void track_glo_l1ca_register(void)
 
 static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
-  memset(data, 0, sizeof(*data));
-
   tp_tracker_init(tracker_channel, &glo_l1ca_config);
 }
 
@@ -180,7 +176,6 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags)
 {
   bool half_bit_aligned = false;
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(tracker_channel)) {
@@ -223,14 +218,13 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
 
   if (half_bit_aligned &&
       tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
-      data->confirmed) {
+      tracker_channel->confirmed) {
     update_tow_in_sid_db(tracker_channel, sample_time_tk);
   }
 }
 
 static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l1ca_config);
 
   /* GLO L1 C/A-specific ToW manipulation */
@@ -243,8 +237,8 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 
-  if (data->lock_detect.outp &&
-      data->confirmed &&
+  if (tracker_channel->lock_detect.outp &&
+      tracker_channel->confirmed &&
       0 != (tracker_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(tracker_channel)) {
 

@@ -292,10 +292,6 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
 
 static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
-  memset(data, 0, sizeof(*data));
-
   tp_tracker_init(tracker_channel, &gps_l2cl_config);
 
   /* L2CL does not contain data bits.
@@ -515,18 +511,16 @@ static void process_cp_data(tracker_channel_t *tracker_channel)
 
 static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cl_config);
 
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(tracker_channel, cflags);
 
-  if (data->lock_detect.outp &&
-      data->confirmed &&
+  if (tracker_channel->lock_detect.outp &&
+      tracker_channel->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(tracker_channel)) {
-    bool fll_mode = tp_tl_is_fll(&data->tl_state);
+    bool fll_mode = tp_tl_is_fll(&tracker_channel->tl_state);
     /* Drop L2CL tracker if it is FLL mode */
     if (fll_mode) {
       tracking_channel_drop_l2cl(tracker_channel->mesid);

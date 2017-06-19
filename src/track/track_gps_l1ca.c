@@ -133,7 +133,6 @@ static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
 static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   tp_tow_entry_t tow_entry;
@@ -209,7 +208,7 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
 
   if (aligned &&
       tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
-      data->confirmed) {
+      tracker_channel->confirmed) {
     /* Update ToW cache:
      * - bit edge is reached
      * - CN0 is OK
@@ -497,7 +496,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tracker_data.tl_state);
+  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
   /* If signal is in sensitivity mode, all whitelistings are cleared */
   if (sensitivity_mode) {
     for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
@@ -564,7 +563,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
   }
 
   u16 index = mesid_to_code_index(tracker_channel->mesid);
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tracker_data.tl_state);
+  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist[index] = false;
@@ -582,8 +581,6 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
 
 static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l1ca_config);
 
   /* GPS L1 C/A-specific ToW manipulation */
@@ -595,8 +592,8 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
   /* GPS L1 C/A-specific L2C cross-correlation operations */
   update_l1_xcorr_from_l2(tracker_channel, cflags);
 
-  if (data->lock_detect.outp &&
-      data->confirmed &&
+  if (tracker_channel->lock_detect.outp &&
+      tracker_channel->confirmed &&
       0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(tracker_channel)) {
 

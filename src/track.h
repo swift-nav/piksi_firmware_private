@@ -722,7 +722,24 @@ typedef struct {
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
 
-  tp_tracker_data_t tracker_data;
+  tp_profile_t      profile;                /**< Profile controller state. */
+
+  tp_tl_state_t     tl_state;               /**< Tracking loop filter state. */
+  tp_corr_state_t   corrs;                  /**< Correlations */
+  track_cn0_state_t cn0_est;                /**< C/N0 estimator state. */
+  alias_detect_t    alias_detect;           /**< Alias lock detector. */
+  lock_detect_t     lock_detect;            /**< Lock detector state. */
+  lp1_filter_t      xcorr_filter;           /**< Low-pass SV POV doppler filter */
+  u16               tracking_mode: 3;       /**< Tracking mode */
+  u16               cycle_no: 5;            /**< Cycle index inside current
+                                             *   integration mode. */
+  u16               use_alias_detection: 1; /**< Flag for alias detection control */
+  u16               has_next_params: 1;     /**< Flag if stage transition is in
+                                             *   progress */
+  u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
+  u16               mode_pll: 1;            /**< PLL control flag */
+  u16               mode_fll: 1;            /**< FLL control flag */
+  u16               xcorr_filter_active: 1; /**< Cross-correlation filter is in use */
 } tracker_channel_t;
 
 /** Tracker interface function template. */

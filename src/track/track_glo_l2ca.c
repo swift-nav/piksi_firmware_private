@@ -153,10 +153,6 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
 
 static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_data_t *data = &tracker_channel->tracker_data;
-
-  memset(data, 0, sizeof(*data));
-
   tp_tracker_init(tracker_channel, &glo_l2ca_config);
 }
 
