@@ -344,46 +344,6 @@ typedef struct {
   bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
 } cp_sync_t;
 
-typedef struct {
-  update_count_t update_count; /**< Number of ms channel has been running */
-  update_count_t mode_change_count;
-                               /**< update_count at last mode change. */
-  update_count_t cn0_below_use_thres_count;
-                               /**< update_count value when C/N0 was
-                                    last below the use threshold. */
-  update_count_t cn0_above_drop_thres_count;
-                               /**< update_count value when C/N0 was
-                                    last above the drop threshold. */
-  update_count_t ld_pess_change_count;
-                               /**< update_count value when pessimistic
-                                    phase detector has changed last time. */
-  update_count_t xcorr_change_count;
-                               /**< update count value when cross-correlation
-                                    flag has changed last time */
-  s32 TOW_ms;                  /**< TOW in ms. */
-  s32 TOW_ms_prev;             /**< previous TOW in ms. */
-  s32 TOW_residual_ns;         /**< Residual to TOW_ms [ns] */
-  u32 sample_count;            /**< Total num samples channel has tracked for. */
-  double code_phase_prompt;    /**< Prompt code phase in chips. */
-  double code_phase_rate;      /**< Code phase rate in chips/s. */
-  double carrier_phase;        /**< Carrier phase in cycles. */
-  double carrier_phase_prev;   /**< Previous carrier phase in cycles. */
-  double carrier_freq;         /**< Carrier frequency Hz. */
-  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
-                                    of PLL/FLL pessimistic locks [Hz]. */
-  float cn0;                   /**< Current estimate of C/N0. */
-  track_cmn_flags_t flags;     /**< Tracker flags */
-  track_ctrl_params_t ctrl_params; /**< Controller parameters */
-  float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
-  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;     /**< Tracking channel last update
-                                    timestamp [ms] */
-  bool updated_once;           /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  glo_health_t health;         /**< GLO SV health info */
-} tracker_common_data_t;
-
 typedef void tracker_data_t;
 
 /** Instance of a tracker implementation. */
@@ -682,19 +642,16 @@ struct tracker_interface;
 
 /** Top-level generic tracker channel. */
 typedef struct {
+  me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
+  u16 glo_orbit_slot;     /**< GLO orbital slot. */
+  u8 nap_channel;         /**< Associated NAP channel. */
+
   /** State of this channel. */
   state_t state;
   /** Time at which the channel was disabled. */
   systime_t disable_time;
   /** Error flags. May be set at any time by the tracking thread. */
   volatile error_flag_t error_flags;
-
-  me_gnss_signal_t mesid;       /**< Current ME signal being decoded. */
-  u8 nap_channel;               /**< Associated NAP channel. */
-
-  /** Data common to all tracker implementations. RW from channel interface
-   * functions. RO from functions in this module. */
-  tracker_common_data_t common_data;
 
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
@@ -705,8 +662,6 @@ typedef struct {
   u32 nav_bit_TOW_offset_ms;
   /** Bit sync state. */
   bit_sync_t bit_sync;
-  /** GLO orbital slot. */
-  u16 glo_orbit_slot;
   /** Polarity of nav message bits. */
   s8 bit_polarity;
   /** Increments when tracking new signal. */
@@ -719,8 +674,44 @@ typedef struct {
   bool prn_check_fail;
   /** Flags if tracker is cross-correlated */
   bool xcorr_flag;
-  /** GLO SV health info */
-  glo_health_t health;
+
+  update_count_t update_count; /**< Number of ms channel has been running */
+  update_count_t mode_change_count;
+                               /**< update_count at last mode change. */
+  update_count_t cn0_below_use_thres_count;
+                               /**< update_count value when C/N0 was
+                                    last below the use threshold. */
+  update_count_t cn0_above_drop_thres_count;
+                               /**< update_count value when C/N0 was
+                                    last above the drop threshold. */
+  update_count_t ld_pess_change_count;
+                               /**< update_count value when pessimistic
+                                    phase detector has changed last time. */
+  update_count_t xcorr_change_count;
+                               /**< update count value when cross-correlation
+                                    flag has changed last time */
+  s32 TOW_ms;                  /**< TOW in ms. */
+  s32 TOW_ms_prev;             /**< previous TOW in ms. */
+  s32 TOW_residual_ns;         /**< Residual to TOW_ms [ns] */
+  u32 sample_count;            /**< Total num samples channel has tracked for. */
+  double code_phase_prompt;    /**< Prompt code phase in chips. */
+  double code_phase_rate;      /**< Code phase rate in chips/s. */
+  double carrier_phase;        /**< Carrier phase in cycles. */
+  double carrier_phase_prev;   /**< Previous carrier phase in cycles. */
+  double carrier_freq;         /**< Carrier frequency Hz. */
+  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
+                                    of PLL/FLL pessimistic locks [Hz]. */
+  float cn0;                   /**< Current estimate of C/N0. */
+  track_cmn_flags_t flags;     /**< Tracker flags */
+  track_ctrl_params_t ctrl_params; /**< Controller parameters */
+  float acceleration;          /**< Acceleration [g] */
+  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
+  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;     /**< Tracking channel last update
+                                    timestamp [ms] */
+  bool updated_once;           /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
+  glo_health_t health;         /**< GLO SV health info */
 
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
@@ -967,11 +958,6 @@ typedef enum
   TP_RESULT_NO_DATA = 1, /**< Profile has changed */
 } tp_result_e;
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 tp_result_e tp_init(void);
 tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
                             tp_profile_t *profile,
@@ -987,15 +973,9 @@ bool        tp_profile_has_new_profile(const me_gnss_signal_t mesid,
                                        tp_profile_t *profile);
 u8          tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
                                                const tp_profile_t *profile);
-tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
-                                   tp_profile_t *profile,
-                                   const tracker_common_data_t *common_data,
-                                   const tp_report_t *data);
-
-#ifdef __cplusplus
-}
-#endif
-
+void tp_profile_report_data(tracker_channel_t *tracker_channel,
+                            tp_profile_t *profile,
+                            const tp_report_t *data);
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
 u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no);

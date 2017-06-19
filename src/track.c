@@ -95,9 +95,6 @@ static bool tracker_active(const tracker_t *tracker);
 static void interface_function(tracker_channel_t *tracker_channel,
                                tracker_interface_function_t *func);
 static void event(tracker_channel_t *d, event_t event);
-static void common_data_init(tracker_common_data_t *common_data,
-                             u32 sample_count, float carrier_freq,
-                             float cn0, const me_gnss_signal_t mesid);
 static void tracker_channel_lock(tracker_channel_t *tracker_channel);
 static void tracker_channel_unlock(tracker_channel_t *tracker_channel);
 static void error_flags_clear(tracker_channel_t *tracker_channel);
@@ -173,10 +170,7 @@ void tracking_send_state()
     u8 uMaxObs =
       (SBP_FRAMING_MAX_PAYLOAD_SIZE/sizeof(tracking_channel_state_t));
     for (u8 i=0; (i<nap_track_n_channels) && (i<uMaxObs); i++) {
-
       tracker_channel_t *tracker_channel = tracker_channel_get(i);
-      const tracker_common_data_t *common_data = &tracker_channel->common_data;
-
       bool running;
       bool confirmed;
       me_gnss_signal_t mesid;
@@ -189,8 +183,8 @@ void tracking_send_state()
             (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
         mesid = tracker_channel->mesid;
         glo_slot_id = tracker_channel->glo_orbit_slot;
-        cn0 = common_data->cn0;
-        confirmed = (0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED));
+        cn0 = tracker_channel->cn0;
+        confirmed = (0 != (tracker_channel->flags & TRACK_CMN_FLAG_CONFIRMED));
       }
       tracker_channel_unlock(tracker_channel);
 
@@ -407,8 +401,24 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->interface = tracker_interface;
     tracker_channel->tracker = tracker;
 
-    common_data_init(&tracker_channel->common_data, ref_sample_count,
-                     carrier_freq, cn0_init, mesid);
+    tracker_channel->TOW_ms = TOW_INVALID;
+    tracker_channel->TOW_ms_prev = TOW_INVALID;
+
+    /* Calculate code phase rate with carrier aiding. */
+    tracker_channel->code_phase_rate = (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
+                                   code_to_chip_rate(mesid.code);
+    tracker_channel->carrier_freq = carrier_freq;
+
+    tracker_channel->sample_count = ref_sample_count;
+    tracker_channel->cn0 = cn0_init;
+    u32 now = timing_getms();
+    tracker_channel->init_timestamp_ms = now;
+    tracker_channel->update_timestamp_ms = now;
+    tracker_channel->updated_once = false;
+    tracker_channel->cp_sync.counter = 0;
+    tracker_channel->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
+    tracker_channel->cp_sync.synced = false;
+    tracker_channel->health = GLO_SV_HEALTHY;
 
     tracker_channel->bit_polarity = BIT_POLARITY_UNKNOWN;
     tracker_channel->glo_orbit_slot = glo_orbit_slot;
@@ -533,8 +543,6 @@ static void tracking_channel_compute_values(
                                       tracking_channel_ctrl_info_t *ctrl_params,
                                       bool *reset_cpo)
 {
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-
   if (NULL != info) {
     /* Tracker identifier */
     info->id = (tracker_channel_id_t)(tracker_channel - &tracker_channels[0]);
@@ -545,33 +553,33 @@ static void tracking_channel_compute_values(
     /* GLO slot ID */
     info->glo_orbit_slot = tracker_channel->glo_orbit_slot;
     /* Current C/N0 [dB/Hz] */
-    info->cn0 = common_data->cn0;
+    info->cn0 = tracker_channel->cn0;
     /* Current time of week for a tracker channel [ms] */
-    info->tow_ms = common_data->TOW_ms;
+    info->tow_ms = tracker_channel->TOW_ms;
     /* Current time of week residual for tow_ms of the tracker channel [ns] */
-    info->tow_residual_ns = common_data->TOW_residual_ns;
+    info->tow_residual_ns = tracker_channel->TOW_residual_ns;
     /* Tracking channel init time [ms] */
-    info->init_timestamp_ms = common_data->init_timestamp_ms;
+    info->init_timestamp_ms = tracker_channel->init_timestamp_ms;
     /* Tracking channel update time [ms] */
-    info->update_timestamp_ms = common_data->update_timestamp_ms;
+    info->update_timestamp_ms = tracker_channel->update_timestamp_ms;
     /* Lock counter */
     info->lock_counter = tracker_channel->lock_counter;
     /* Sample counter */
-    info->sample_count = common_data->sample_count;
+    info->sample_count = tracker_channel->sample_count;
     /* Cross-correlation doppler frequency [hz] */
-    info->xcorr_freq = common_data->xcorr_freq;
+    info->xcorr_freq = tracker_channel->xcorr_freq;
   }
   if (NULL != time_info) {
     time_info->cn0_drop_ms = update_count_diff(tracker_channel,
-                                               &common_data->cn0_above_drop_thres_count);
+                                               &tracker_channel->cn0_above_drop_thres_count);
     time_info->cn0_usable_ms = update_count_diff(tracker_channel,
-                                                 &common_data->cn0_below_use_thres_count);
+                                                 &tracker_channel->cn0_below_use_thres_count);
     time_info->last_mode_change_ms = update_count_diff(tracker_channel,
-                                                       &common_data->mode_change_count);
+                                                       &tracker_channel->mode_change_count);
 
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
       time_info->ld_pess_locked_ms = update_count_diff(tracker_channel,
-                                                       &common_data->ld_pess_change_count);
+                                                       &tracker_channel->ld_pess_change_count);
     } else {
       time_info->ld_pess_locked_ms = 0;
     }
@@ -584,17 +592,17 @@ static void tracking_channel_compute_values(
      * If tracker channel is run by PLL, then time of absence of PLL pessimistic
      * lock is reported.
      */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK) ||
-        0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_PLOCK) ||
+        0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
       time_info->ld_pess_unlocked_ms = 0;
     } else {
       time_info->ld_pess_unlocked_ms = update_count_diff(tracker_channel,
-                                                         &common_data->ld_pess_change_count);
+                                                         &tracker_channel->ld_pess_change_count);
     }
   }
   if (NULL != freq_info) {
     /* Current carrier frequency for a tracker channel. */
-    freq_info->carrier_freq = common_data->carrier_freq;
+    freq_info->carrier_freq = tracker_channel->carrier_freq;
     /* Carrier frequency snapshot at the moment of latest PLL/FLL pessimistic lock
      * condition for a tracker channel.
      *
@@ -602,22 +610,22 @@ static void tracking_channel_compute_values(
      * carrier frequency. It is the latest carrier frequency snapshot, when the
      * tracking channel was in PLL/FLL pessimistic lock state.
      */
-    freq_info->carrier_freq_at_lock = common_data->carrier_freq_at_lock;
+    freq_info->carrier_freq_at_lock = tracker_channel->carrier_freq_at_lock;
     /* Current carrier frequency for a tracker channel. */
-    freq_info->carrier_phase = common_data->carrier_phase;
+    freq_info->carrier_phase = tracker_channel->carrier_phase;
     /* Code phase in chips */
-    freq_info->code_phase_chips = common_data->code_phase_prompt;
+    freq_info->code_phase_chips = tracker_channel->code_phase_prompt;
     /* Code phase rate in chips/s */
-    freq_info->code_phase_rate = common_data->code_phase_rate;
+    freq_info->code_phase_rate = tracker_channel->code_phase_rate;
     /* Acceleration [g] */
-    freq_info->acceleration = common_data->acceleration;
+    freq_info->acceleration = tracker_channel->acceleration;
   }
   if (NULL != ctrl_params) {
     /* Copy loop controller parameters */
-    ctrl_params->pll_bw = common_data->ctrl_params.pll_bw;
-    ctrl_params->fll_bw = common_data->ctrl_params.fll_bw;
-    ctrl_params->dll_bw = common_data->ctrl_params.dll_bw;
-    ctrl_params->int_ms = common_data->ctrl_params.int_ms;
+    ctrl_params->pll_bw = tracker_channel->ctrl_params.pll_bw;
+    ctrl_params->fll_bw = tracker_channel->ctrl_params.fll_bw;
+    ctrl_params->dll_bw = tracker_channel->ctrl_params.dll_bw;
+    ctrl_params->int_ms = tracker_channel->ctrl_params.int_ms;
   }
   if (NULL != reset_cpo) {
     *reset_cpo = tracker_channel->reset_cpo;
@@ -1034,18 +1042,17 @@ tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid)
 void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid)
 {
   me_gnss_signal_t mesid_L2CL = construct_mesid(CODE_GPS_L2CL, mesid.sat);
-  tracker_channel_t *sTrackerChannel = tracker_channel_get_by_mesid(mesid_L2CL);
-  if (sTrackerChannel == NULL) {
+  tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid_L2CL);
+  if (NULL == tracker_channel) {
     return;
   }
   /*! The barrier in manage_track() in manage.c should take care of
     * this anyway
     */
-  if (STATE_ENABLED != tracker_channel_state_get(sTrackerChannel)) {
+  if (STATE_ENABLED != tracker_channel_state_get(tracker_channel)) {
     return;
   }
-  tracker_common_data_t *common_data = &sTrackerChannel->common_data;
-  common_data->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
+  tracker_channel->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
 }
 
 /** Drop unhealthy GLO signal.
@@ -1076,9 +1083,8 @@ void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid)
   if (STATE_ENABLED != tracker_channel_state_get(tracker_channel)) {
     return;
   }
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
-  common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
-  common_data->health = GLO_SV_UNHEALTHY;
+  tracker_channel->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
+  tracker_channel->health = GLO_SV_UNHEALTHY;
 }
 
 /**
@@ -1385,8 +1391,7 @@ static update_count_t update_count_diff(const tracker_channel_t *
                                         tracker_channel,
                                         const update_count_t *val)
 {
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-  update_count_t result = (update_count_t)(common_data->update_count - *val);
+  update_count_t result = (update_count_t)(tracker_channel->update_count - *val);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   /* Allow some margin in case values were not read atomically.
    * Treat a difference of [-10000, 0) as zero. */
@@ -1595,41 +1600,6 @@ static void event(tracker_channel_t *tracker_channel, event_t event)
   }
 }
 
-/** Initialize a tracker common data structure.
- *
- * \param tracker_channel   Tracker channel to use.
- * \param sample_count      Sample count.
- * \param carrier_freq      Carrier frequency.
- * \param cn0               C/N0 estimate.
- * \param mesid             ME signal identifier
- */
-static void common_data_init(tracker_common_data_t *common_data,
-                             u32 sample_count, float carrier_freq,
-                             float cn0, const me_gnss_signal_t mesid)
-{
-  /* Initialize all fields to 0 */
-  memset(common_data, 0, sizeof(tracker_common_data_t));
-
-  common_data->TOW_ms = TOW_INVALID;
-  common_data->TOW_ms_prev = TOW_INVALID;
-
-  /* Calculate code phase rate with carrier aiding. */
-  common_data->code_phase_rate = (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
-                                 code_to_chip_rate(mesid.code);
-  common_data->carrier_freq = carrier_freq;
-
-  common_data->sample_count = sample_count;
-  common_data->cn0 = cn0;
-  u32 now = timing_getms();
-  common_data->init_timestamp_ms = now;
-  common_data->update_timestamp_ms = now;
-  common_data->updated_once = false;
-  common_data->cp_sync.counter = 0;
-  common_data->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
-  common_data->cp_sync.synced = false;
-  common_data->health = GLO_SV_HEALTHY;
-}
-
 /** Lock a tracker channel for exclusive access.
  *
  * \param tracker_channel   Tracker channel to use.
@@ -1673,8 +1643,6 @@ static tracking_channel_flags_t tracking_channel_get_flags(
 {
   tracking_channel_flags_t result = 0;
 
-  const tracker_common_data_t *const common_data = &tracker_channel->common_data;
-
   if (STATE_ENABLED == tracker_channel_state_get(tracker_channel)) {
 
     result |= TRACKING_CHANNEL_FLAG_ACTIVE;
@@ -1684,12 +1652,12 @@ static tracking_channel_flags_t tracking_channel_get_flags(
       result |= TRACKING_CHANNEL_FLAG_NO_ERROR;
     }
     /* Check if the tracking is in confirmed state. */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_CONFIRMED)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_CONFIRMED)) {
       result |= TRACKING_CHANNEL_FLAG_CONFIRMED;
     }
     /* Check C/N0 has been above threshold for a long time (RTK). */
-    u32 cn0_threshold_count_ms = (common_data->update_count -
-                                  common_data->cn0_below_use_thres_count);
+    u32 cn0_threshold_count_ms = (tracker_channel->update_count -
+                                  tracker_channel->cn0_below_use_thres_count);
     if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_LONG) {
       result |= TRACKING_CHANNEL_FLAG_CN0_LONG;
     }
@@ -1698,21 +1666,21 @@ static tracking_channel_flags_t tracking_channel_get_flags(
       result |= TRACKING_CHANNEL_FLAG_CN0_SHORT;
     }
     /* Pessimistic phase lock detector = "locked". */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK) &&
-        (common_data->update_count -
-         common_data->ld_pess_change_count) > TRACK_USE_LOCKED_T) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_PLOCK) &&
+        (tracker_channel->update_count -
+         tracker_channel->ld_pess_change_count) > TRACK_USE_LOCKED_T) {
       result |= TRACKING_CHANNEL_FLAG_CONFIRMED_LOCK;
     }
     /* Some time has elapsed since the last tracking channel mode
      * change, to allow any transients to stabilize.
      * TODO: is this still necessary? */
-    if ((common_data->update_count -
-         common_data->mode_change_count) > TRACK_STABILIZATION_T) {
+    if ((tracker_channel->update_count -
+         tracker_channel->mode_change_count) > TRACK_STABILIZATION_T) {
       result |= TRACKING_CHANNEL_FLAG_STABLE;
     }
 
     /* Channel time of week has been decoded. */
-    if (TOW_INVALID != common_data->TOW_ms) {
+    if (TOW_INVALID != tracker_channel->TOW_ms) {
       result |= TRACKING_CHANNEL_FLAG_TOW;
     }
     /* Bit sync has been reached. */
@@ -1724,69 +1692,69 @@ static tracking_channel_flags_t tracking_channel_get_flags(
      * situation when channel loses an SV, but decoder just finished TOW decoding
      * which cause bit polarity know flag set */
     if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity
-        && (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
+        && (tracker_channel->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_BIT_POLARITY;
     }
     if (BIT_POLARITY_INVERTED == tracker_channel->bit_polarity) {
       result |= TRACKING_CHANNEL_FLAG_BIT_INVERTED;
     }
     /* Tracking mode */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_PLL_USE)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_PLL_USE)) {
       result |= TRACKING_CHANNEL_FLAG_PLL_USE;
     }
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_FLL_USE)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_FLL_USE)) {
       result |= TRACKING_CHANNEL_FLAG_FLL_USE;
     }
     /* Tracking status: pessimistic PLL lock */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_PLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_PLL_PLOCK;
     }
     /* Tracking status: optimistic PLL lock */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_OLOCK)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_OLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_PLL_OLOCK;
     }
     /* Tracking status: FLL lock */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAS_FLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_FLL_LOCK;
     }
     /* Tracking status: tracking channel has ever been in PLL/FLL pessimistic
      * lock state. */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HAD_PLOCK) ||
-        0 != (common_data->flags & TRACK_CMN_FLAG_HAD_FLOCK)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAD_PLOCK) ||
+        0 != (tracker_channel->flags & TRACK_CMN_FLAG_HAD_FLOCK)) {
       result |= TRACKING_CHANNEL_FLAG_HAD_LOCKS;
     }
     /* Tracking status: TOW propagation status */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_PROPAGATED)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_TOW_PROPAGATED)) {
       result |= TRACKING_CHANNEL_FLAG_TOW_PROPAGATED;
     }
     /* Tracking status: TOW decoding status */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_TOW_DECODED)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_TOW_DECODED)) {
       result |= TRACKING_CHANNEL_FLAG_TOW_DECODED;
     }
     /* Tracking status: measurement out of bounds */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_OUTLIER)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_OUTLIER)) {
       result |= TRACKING_CHANNEL_FLAG_OUTLIER;
     }
     /* Tracking status: cross-correlation status */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_CONFIRMED)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_XCORR_CONFIRMED)) {
       result |= TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED;
     }
     /* Tracking status: cross-correlation suspect */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_SUSPECT)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_XCORR_SUSPECT)) {
       result |= TRACKING_CHANNEL_FLAG_XCORR_SUSPECT;
     }
     /* Tracking status: cross-correlation doppler filter active */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE)) {
       result |= TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE;
     }
     /* Tracking status: L2CL half-cycle ambiguity status */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_L2CL_AMBIGUITY)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_L2CL_AMBIGUITY)) {
       result |= TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED;
     }
     /* Tracking status: GLO healthy status */
-    if (0 != (common_data->flags & TRACK_CMN_FLAG_HEALTH_DECODED)) {
+    if (0 != (tracker_channel->flags & TRACK_CMN_FLAG_HEALTH_DECODED)) {
       result |= TRACKING_CHANNEL_FLAG_HEALTH_DECODED;
-      if (GLO_SV_HEALTHY == common_data->health) {
+      if (GLO_SV_HEALTHY == tracker_channel->health) {
         result |= TRACKING_CHANNEL_FLAG_HEALTHY;
       }
     }

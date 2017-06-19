@@ -625,20 +625,19 @@ static void get_profile_params(const me_gnss_signal_t mesid,
 /**
  * Helper method to incorporate tracking loop information into statistics.
  *
- * \param[in]     mesid       ME signal identifier.
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in,out] profile     Satellite profile.
- * \param[in]     common_data Tracker common data
  * \param[in]     data        Data from tracking loop.
  *
  * \return None
  */
-static void update_stats(const me_gnss_signal_t mesid,
+static void update_stats(tracker_channel_t *tracker_channel,
                          tp_profile_t *profile,
-                         const tracker_common_data_t *common_data,
                          const tp_report_t *data)
 {
   float cn0;
-  u32 cur_time_ms = common_data->update_count;
+  u32 cur_time_ms = tracker_channel->update_count;
+  const me_gnss_signal_t mesid = tracker_channel->mesid;
 
   /* Profile lock time count down */
   if (profile->lock_time_ms > data->time_ms) {
@@ -1213,29 +1212,16 @@ u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
  *
  * \param[in]     mesid       ME signal identifier.
  * \param[in,out] profile     Tracking profile data to update
- * \param[in]     common_data Tracker common data
  * \param[in]     data        Tracking loop report.
- *
- * \retval TP_RESULT_SUCCESS on success.
- * \retval TP_RESULT_ERROR   on error.
  */
-tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
-                                   tp_profile_t *profile,
-                                   const tracker_common_data_t *common_data,
-                                   const tp_report_t *data)
+void tp_profile_report_data(tracker_channel_t *tracker_channel,
+                            tp_profile_t *profile,
+                            const tp_report_t *data)
 {
-  tp_result_e res = TP_RESULT_ERROR;
-  if (NULL != data && NULL != profile && NULL != common_data) {
-    /* For now, we support only GPS L1 tracking data, and handle all data
-     * synchronously.
-     *
-     * TODO schedule a message to own thread.
-     */
+  assert(tracker_channel);
+  assert(profile);
+  assert(data);
 
-    update_stats(mesid, profile, common_data, data);
-    print_stats(mesid, profile);
-
-    res = TP_RESULT_SUCCESS;
-  }
-  return res;
+  update_stats(tracker_channel, profile, data);
+  print_stats(tracker_channel->mesid, profile);
 }

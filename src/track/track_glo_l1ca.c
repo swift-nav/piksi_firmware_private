@@ -91,8 +91,6 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
                               bool half_bit_aligned,
                               s32 *TOW_residual_ns)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
-
   assert(TOW_residual_ns);
   *TOW_residual_ns = 0;
 
@@ -130,7 +128,7 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
   log_debug_sid(sid,
                 "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8 "ms]"
                 " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                common_data->update_count,
+                tracker_channel->update_count,
                 ms_align,
                 nap_count_to_ms(time_delta_tk),
                 TOW_ms,
@@ -138,10 +136,10 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
 
   *TOW_residual_ns = tow_entry.TOW_residual_ns;
   if (tp_tow_is_sane(TOW_ms)) {
-    common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
+    tracker_channel->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
   } else {
     log_error_sid(sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
-                  common_data->update_count, TOW_ms);
+                  tracker_channel->update_count, TOW_ms);
     TOW_ms = TOW_UNKNOWN;
   }
 
@@ -151,8 +149,6 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
 static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
                                  u64 sample_time_tk)
 {
-  const tracker_common_data_t *common_data = &tracker_channel->common_data;
-
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
     return;
@@ -162,8 +158,8 @@ static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
 
   /* Update ToW cache */
   tp_tow_entry_t tow_entry = {
-    .TOW_ms = common_data->TOW_ms,
-    .TOW_residual_ns = common_data->TOW_residual_ns,
+    .TOW_ms = tracker_channel->TOW_ms,
+    .TOW_residual_ns = tracker_channel->TOW_residual_ns,
     .sample_time_tk = sample_time_tk
   };
   track_sid_db_update_tow(sid, &tow_entry);
@@ -184,8 +180,6 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags)
 {
   bool half_bit_aligned = false;
-
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
@@ -193,7 +187,7 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
     half_bit_aligned = true;
   }
 
-  if (TOW_UNKNOWN != common_data->TOW_ms && half_bit_aligned) {
+  if (TOW_UNKNOWN != tracker_channel->TOW_ms && half_bit_aligned) {
     /*
      * Verify ToW alignment
      * Current block assumes the meander sync has been reached and current
@@ -201,7 +195,7 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
      * duration (half bit), which is 10ms for GLO L1CA.
      */
     u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
-    u8 tail = common_data->TOW_ms % half_bit;
+    u8 tail = tracker_channel->TOW_ms % half_bit;
     if (0 != tail) {
       /* If this correction is needed, then there is something wrong
          either with the TOW cache update or with the meander sync */
@@ -210,25 +204,25 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
       log_error_mesid(tracker_channel->mesid,
                      "[+%" PRIu32 "ms] Adjusting ToW: "
                      "adjustment=%" PRId8 "ms old_tow=%" PRId32,
-                     common_data->update_count,
+                     tracker_channel->update_count,
                      error_ms,
-                     common_data->TOW_ms);
+                     tracker_channel->TOW_ms);
 
-      common_data->TOW_ms += error_ms;
+      tracker_channel->TOW_ms += error_ms;
     }
   }
 
-  u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
 
-  if (TOW_UNKNOWN == common_data->TOW_ms) {
-    common_data->TOW_ms = propagate_tow_from_sid_db(tracker_channel,
+  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
+    tracker_channel->TOW_ms = propagate_tow_from_sid_db(tracker_channel,
                                                  sample_time_tk,
                                                  half_bit_aligned,
-                                                 &common_data->TOW_residual_ns);
+                                                 &tracker_channel->TOW_residual_ns);
   }
 
   if (half_bit_aligned &&
-      common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
+      tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
       data->confirmed) {
     update_tow_in_sid_db(tracker_channel, sample_time_tk);
   }
@@ -243,7 +237,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
   update_tow_glo_l1ca(tracker_channel, tracker_flags);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
-  if (GLO_SV_UNHEALTHY == tracker_channel->common_data.health) {
+  if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L2CA, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
@@ -255,10 +249,10 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
       tracker_bit_aligned(tracker_channel)) {
 
     /* Start GLO L2CA tracker if not running */
-    do_glo_l1ca_to_l2ca_handover(tracker_channel->common_data.sample_count,
+    do_glo_l1ca_to_l2ca_handover(tracker_channel->sample_count,
                                  tracker_channel->mesid.sat,
-                                 tracker_channel->common_data.code_phase_prompt,
-                                 tracker_channel->common_data.carrier_freq,
-                                 tracker_channel->common_data.cn0);
+                                 tracker_channel->code_phase_prompt,
+                                 tracker_channel->carrier_freq,
+                                 tracker_channel->cn0);
   }
 }

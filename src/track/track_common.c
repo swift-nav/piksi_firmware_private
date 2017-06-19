@@ -137,7 +137,6 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
 {
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
   me_gnss_signal_t mesid = tracker_channel->mesid;
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
 
   const tp_loop_params_t *l = &next_params->loop_params;
   u8 prev_cn0_ms = 0;
@@ -162,9 +161,9 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
   u8 cn0_ms = tp_get_cn0_ms(data->tracking_mode);
   /**< Set initial rates */
   tl_rates_t rates;
-  rates.code_freq = common_data->code_phase_rate -
+  rates.code_freq = tracker_channel->code_phase_rate -
                     code_to_chip_rate(mesid.code);
-  rates.carr_freq = common_data->carrier_freq;
+  rates.carr_freq = tracker_channel->carrier_freq;
   rates.acceleration = 0.0f;
   /**< Set tracking loop configuration parameters */
   tl_config_t config;
@@ -204,11 +203,11 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
   }
 
   /* Export loop controller parameters */
-  common_data->ctrl_params.int_ms = tp_get_dll_ms(data->tracking_mode);
-  common_data->ctrl_params.dll_bw = next_params->loop_params.code_bw;
-  common_data->ctrl_params.pll_bw = data->mode_pll ?
+  tracker_channel->ctrl_params.int_ms = tp_get_dll_ms(data->tracking_mode);
+  tracker_channel->ctrl_params.dll_bw = next_params->loop_params.code_bw;
+  tracker_channel->ctrl_params.pll_bw = data->mode_pll ?
                                     next_params->loop_params.carr_bw : 0.f;
-  common_data->ctrl_params.fll_bw = data->mode_fll ?
+  tracker_channel->ctrl_params.fll_bw = data->mode_fll ?
                                     next_params->loop_params.fll_bw : 0.f;
 
   if (init || cn0_ms != prev_cn0_ms) {
@@ -219,13 +218,13 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
     float cn0_0;
 
     if (data->confirmed) {
-      cn0_t = cn0_0 = common_data->cn0;
+      cn0_t = cn0_0 = tracker_channel->cn0;
     } else {
       /* When confirmation is required, set C/N0 below drop threshold and
        * check that is actually grows to correct range */
       cn0_0 = cn0_params.track_cn0_drop_thres_dbhz -
               TP_TRACKER_CN0_CONFIRM_DELTA;
-      cn0_t = init ? common_data->cn0 : data->cn0_est.cn0_0;
+      cn0_t = init ? tracker_channel->cn0 : data->cn0_est.cn0_0;
     }
 
     /* Initialize C/N0 estimator and filter */
@@ -237,11 +236,11 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
 
     if (!data->confirmed) {
       data->cn0_est.cn0_0 = cn0_t;
-      common_data->cn0 = cn0_t;
+      tracker_channel->cn0 = cn0_t;
     }
     log_debug_mesid(mesid,
                     "CN0 update: CD=%f EST=%f CN0_0=%f",
-                    common_data->cn0,
+                    tracker_channel->cn0,
                     cn0_0,
                     cn0_t);
   }
@@ -275,7 +274,6 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
                      const tp_tracker_config_t *config)
 {
   tp_config_t init_profile;
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
@@ -284,17 +282,17 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
 
   log_debug_mesid(mesid,
                   "[+%" PRIu32 "ms] Tracker start",
-                  common_data->update_count);
+                  tracker_channel->update_count);
 
   /* Do tracking report to manager */
   tp_report_t report;
   report.bsync = false;
-  report.carr_freq = common_data->carrier_freq;
-  report.code_phase_rate = common_data->code_phase_rate;
-  report.cn0 = report.cn0_raw = common_data->cn0;
+  report.carr_freq = tracker_channel->carrier_freq;
+  report.code_phase_rate = tracker_channel->code_phase_rate;
+  report.cn0 = report.cn0_raw = tracker_channel->cn0;
   report.olock = false;
   report.plock = false;
-  report.sample_count = common_data->sample_count;
+  report.sample_count = tracker_channel->sample_count;
   report.time_ms = 0;
 
   if (TP_RESULT_SUCCESS != tp_profile_init(mesid,
@@ -323,13 +321,12 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_disable(tracker_channel_t *tracker_channel)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   log_debug_mesid(tracker_channel->mesid,
                   "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
-                  common_data->update_count,
-                  common_data->TOW_ms);
+                  tracker_channel->update_count,
+                  tracker_channel->TOW_ms);
 
   memset(data, 0, sizeof(*data));
 }
@@ -350,10 +347,9 @@ void tp_tracker_disable(tracker_channel_t *tracker_channel)
  */
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
-  double code_phase_chips = common_data->code_phase_prompt;
+  double code_phase_chips = tracker_channel->code_phase_prompt;
 
   bool plock = data->lock_detect.outp;
   u32 result_ms = 0;
@@ -423,7 +419,6 @@ static void mode_change_init(tracker_channel_t *tracker_channel)
  */
 static void mode_change_complete(tracker_channel_t *tracker_channel)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (data->has_next_params) {
@@ -440,7 +435,7 @@ static void mode_change_complete(tracker_channel_t *tracker_channel)
     tp_tracker_update_parameters(tracker_channel, &next_params,
                                  /* init = */ false);
     /* Indicate that a mode change has occurred. */
-    common_data->mode_change_count = common_data->update_count;
+    tracker_channel->mode_change_count = tracker_channel->update_count;
   }
 }
 
@@ -471,10 +466,9 @@ void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel)
  */
 void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   const tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
-  track_cmn_flags_t flags = common_data->flags & TRACK_CMN_FLAG_STICKY_MASK;
+  track_cmn_flags_t flags = tracker_channel->flags & TRACK_CMN_FLAG_STICKY_MASK;
 
   if (data->confirmed) {
     flags |= TRACK_CMN_FLAG_CONFIRMED;
@@ -490,7 +484,7 @@ void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel)
       /* PLL pessimistic lock */
       flags |= TRACK_CMN_FLAG_HAS_PLOCK;
       flags |= TRACK_CMN_FLAG_HAD_PLOCK;
-      common_data->carrier_freq_at_lock = common_data->carrier_freq;
+      tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
     }
     if (data->mode_fll) {
       flags |= TRACK_CMN_FLAG_FLL_USE;
@@ -510,7 +504,7 @@ void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel)
   }
 
   /* Sanity checks */
-  if (common_data->TOW_ms == TOW_UNKNOWN) {
+  if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
     assert(0 == (flags & TRACK_CMN_FLAG_TOW_DECODED));
     assert(0 == (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
   } else {
@@ -520,7 +514,7 @@ void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel)
            0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED)));
   }
 
-  common_data->flags = flags;
+  tracker_channel->flags = flags;
 }
 
 /**
@@ -559,7 +553,6 @@ static s32 tp_tl_detect_alias(alias_detect_t *alias_detect, float I, float Q)
  */
 static void process_alias_error(tracker_channel_t *tracker_channel)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   float I = data->corrs.corr_ad.I - data->alias_detect.first_I;
@@ -579,7 +572,7 @@ static void process_alias_error(tracker_channel_t *tracker_channel)
 
     tracker_ambiguity_unknown(tracker_channel);
     /* Indicate that a mode change has occurred. */
-    common_data->mode_change_count = common_data->update_count;
+    tracker_channel->mode_change_count = tracker_channel->update_count;
 
     tp_tl_adjust(&data->tl_state, err);
 
@@ -599,7 +592,6 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                    u32 cycle_flags)
 {
   me_gnss_signal_t mesid = tracker_channel->mesid;
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   tp_epl_corr_t cs_now;    /**< Correlations from FPGA */
@@ -622,62 +614,62 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                          data->cycle_no);
 
   u64 now = timing_getms();
-  if (common_data->updated_once) {
-    u64 time_diff_ms = now - common_data->update_timestamp_ms;
+  if (tracker_channel->updated_once) {
+    u64 time_diff_ms = now - tracker_channel->update_timestamp_ms;
     if (time_diff_ms > NAP_CORR_LENGTH_MAX_MS) {
       log_warn_mesid(mesid,
                      "Unexpected tracking channel update rate: %" PRIu64 " ms",
                      time_diff_ms);
     }
   }
-  common_data->updated_once = true;
-  common_data->update_timestamp_ms = now;
+  tracker_channel->updated_once = true;
+  tracker_channel->update_timestamp_ms = now;
 
-  common_data->sample_count = sample_count;
-  common_data->code_phase_prompt = code_phase_prompt;
-  common_data->carrier_phase_prev = common_data->carrier_phase;
-  common_data->carrier_phase = carrier_phase;
+  tracker_channel->sample_count = sample_count;
+  tracker_channel->code_phase_prompt = code_phase_prompt;
+  tracker_channel->carrier_phase_prev = tracker_channel->carrier_phase;
+  tracker_channel->carrier_phase = carrier_phase;
 
   /* ToW update:
    * ToW along with carrier and code phases and sample number and health
    * shall be updated in sync.
    */
   bool decoded_tow;
-  common_data->TOW_ms_prev = common_data->TOW_ms;
-  common_data->TOW_ms = tracker_tow_update(tracker_channel,
-                                           common_data->TOW_ms,
+  tracker_channel->TOW_ms_prev = tracker_channel->TOW_ms;
+  tracker_channel->TOW_ms = tracker_tow_update(tracker_channel,
+                                           tracker_channel->TOW_ms,
                                            int_ms,
-                                           &common_data->TOW_residual_ns,
+                                           &tracker_channel->TOW_residual_ns,
                                            &decoded_tow);
-  if (!tp_tow_is_sane(common_data->TOW_ms)) {
+  if (!tp_tow_is_sane(tracker_channel->TOW_ms)) {
     log_error_mesid(mesid,
                     "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
-                    common_data->update_count, common_data->TOW_ms);
-    common_data->TOW_ms = TOW_UNKNOWN;
-    common_data->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
-    common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
-    common_data->flags &= ~TRACK_CMN_FLAG_HEALTH_DECODED;
+                    tracker_channel->update_count, tracker_channel->TOW_ms);
+    tracker_channel->TOW_ms = TOW_UNKNOWN;
+    tracker_channel->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
+    tracker_channel->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
+    tracker_channel->flags &= ~TRACK_CMN_FLAG_HEALTH_DECODED;
   }
   if (decoded_tow) {
     log_debug_mesid(mesid,
                     "[+%"PRIu32"ms] Decoded TOW %"PRId32,
-                    common_data->update_count, common_data->TOW_ms);
-    common_data->flags |= TRACK_CMN_FLAG_TOW_DECODED;
-    common_data->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
+                    tracker_channel->update_count, tracker_channel->TOW_ms);
+    tracker_channel->flags |= TRACK_CMN_FLAG_TOW_DECODED;
+    tracker_channel->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
 
     /* GLO health data is also decoded along with TOW */
     if (is_glo_sid(mesid)) {
-      common_data->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
-      common_data->health = tracker_glo_sv_health_get(tracker_channel);
+      tracker_channel->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
+      tracker_channel->health = tracker_glo_sv_health_get(tracker_channel);
       log_debug_mesid(mesid,
                       "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
-                      common_data->update_count,
-                      common_data->health);
+                      tracker_channel->update_count,
+                      tracker_channel->health);
     }
   }
 
   /* Channel run time. */
-  common_data->update_count += int_ms;
+  tracker_channel->update_count += int_ms;
 }
 
 /**
@@ -721,7 +713,6 @@ void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
 void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                            u32 cycle_flags)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   float cn0 = data->cn0_est.filter.yn;
@@ -744,7 +735,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
     /* When C/N0 is above a drop threshold or there is a pessimistic lock,
      * tracking shall continue.
      */
-    common_data->cn0_above_drop_thres_count = common_data->update_count;
+    tracker_channel->cn0_above_drop_thres_count = tracker_channel->update_count;
   }
 
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz &&
@@ -766,7 +757,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   }
 
   if (data->confirmed) {
-    common_data->cn0 = cn0;
+    tracker_channel->cn0 = cn0;
   }
 
   if (cn0 < cn0_params.track_cn0_ambiguity_thres_dbhz) {
@@ -777,7 +768,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
 
   if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
     /* Update the latest time we were below the threshold. */
-    common_data->cn0_below_use_thres_count = common_data->update_count;
+    tracker_channel->cn0_below_use_thres_count = tracker_channel->update_count;
   }
 }
 
@@ -795,7 +786,6 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
@@ -828,7 +818,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
     }
 
     if (outp != last_outp) {
-      common_data->ld_pess_change_count = common_data->update_count;
+      tracker_channel->ld_pess_change_count = tracker_channel->update_count;
     }
 
     if (last_outp && !outp && (data->tracking_mode != TP_TM_INITIAL)) {
@@ -891,7 +881,6 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel, u32 cycle_flags)
 void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
                                u32 cycle_flags)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
@@ -927,30 +916,27 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     tp_tl_update(&data->tl_state, &data->corrs.corr_epl, costas);
     tp_tl_get_rates(&data->tl_state, &rates);
 
-    common_data->carrier_freq = rates.carr_freq;
-    common_data->code_phase_rate = rates.code_freq +
+    tracker_channel->carrier_freq = rates.carr_freq;
+    tracker_channel->code_phase_rate = rates.code_freq +
                                    code_to_chip_rate(tracker_channel->mesid.code);
-    common_data->acceleration = rates.acceleration;
+    tracker_channel->acceleration = rates.acceleration;
 
     /* Do tracking report to manager */
     tp_report_t report;
     report.bsync = tracker_has_bit_sync(tracker_channel);
-    report.carr_freq = common_data->carrier_freq;
-    report.code_phase_rate = common_data->code_phase_rate;
-    report.cn0_raw = common_data->cn0;
-    report.cn0 = data->confirmed ? common_data->cn0 : data->cn0_est.cn0_0;
+    report.carr_freq = tracker_channel->carrier_freq;
+    report.code_phase_rate = tracker_channel->code_phase_rate;
+    report.cn0_raw = tracker_channel->cn0;
+    report.cn0 = data->confirmed ? tracker_channel->cn0 : data->cn0_est.cn0_0;
     report.olock = data->lock_detect.outo;
     report.plock = data->lock_detect.outp;
     report.lock_i = data->lock_detect.lpfi.y;
     report.lock_q = data->lock_detect.lpfq.y;
-    report.sample_count = common_data->sample_count;
+    report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(data->tracking_mode);
     report.acceleration = rates.acceleration;
 
-    tp_profile_report_data(tracker_channel->mesid,
-                           &data->profile,
-                           common_data,
-                           &report);
+    tp_profile_report_data(tracker_channel, &data->profile, &report);
   }
 }
 
@@ -966,15 +952,13 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
  */
 static void tp_tracker_flag_outliers(tracker_channel_t *tracker_channel)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
-
   const float fMaxDoppler =
     code_to_sv_doppler_max(tracker_channel->mesid.code) +
     code_to_tcxo_doppler_max(tracker_channel->mesid.code);
 
   /* remove channels with a large positive Doppler outlier */
-  if ( fabsf(common_data->carrier_freq) >  fMaxDoppler ) {
-    (common_data->flags) |= TRACK_CMN_FLAG_OUTLIER;
+  if ( fabsf(tracker_channel->carrier_freq) >  fMaxDoppler ) {
+    (tracker_channel->flags) |= TRACK_CMN_FLAG_OUTLIER;
     return;
   }
 }
@@ -1028,13 +1012,12 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(tracker_channel)) {
 
-    float xcorr_freq = common_data->carrier_freq;
+    float xcorr_freq = tracker_channel->carrier_freq;
 
     if (data->xcorr_flag) {
       xcorr_freq = lp1_filter_update(&data->xcorr_filter,
@@ -1045,7 +1028,7 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
       data->xcorr_flag = true;
     }
 
-    common_data->xcorr_freq = xcorr_freq;
+    tracker_channel->xcorr_freq = xcorr_freq;
   }
 }
 

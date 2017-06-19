@@ -133,7 +133,6 @@ static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
 static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   tp_tracker_data_t *data = &tracker_channel->tracker_data;
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
@@ -142,7 +141,7 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
   track_sid_db_load_tow(sid, &tow_entry);
 
-  u64 sample_time_tk = nap_sample_time_to_count(common_data->sample_count);
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
 
   bool aligned = false;
 
@@ -152,14 +151,14 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
     aligned = true;
   }
 
-  if (TOW_UNKNOWN != common_data->TOW_ms && aligned) {
+  if (TOW_UNKNOWN != tracker_channel->TOW_ms && aligned) {
     /*
      * Verify ToW alignment
      * Current block assumes the bit sync has been reached and current
      * interval has closed a bit interval. ToW shall be aligned by bit
      * duration, which is 20ms for GPS L1 C/A / L2 C.
      */
-    u8 tail = common_data->TOW_ms % GPS_L1CA_BIT_LENGTH_MS;
+    u8 tail = tracker_channel->TOW_ms % GPS_L1CA_BIT_LENGTH_MS;
     if (0 != tail) {
       s8 error_ms = tail < (GPS_L1CA_BIT_LENGTH_MS >> 1) ?
                     -tail : GPS_L1CA_BIT_LENGTH_MS - tail;
@@ -167,15 +166,15 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
       log_info_mesid(mesid,
                      "[+%" PRIu32 "ms] Adjusting ToW: "
                      "adjustment=%" PRId8 "ms old_tow=%" PRId32,
-                     common_data->update_count,
+                     tracker_channel->update_count,
                      error_ms,
-                     common_data->TOW_ms);
+                     tracker_channel->TOW_ms);
 
-      common_data->TOW_ms += error_ms;
+      tracker_channel->TOW_ms += error_ms;
     }
   }
 
-  if (TOW_UNKNOWN == common_data->TOW_ms && TOW_UNKNOWN != tow_entry.TOW_ms) {
+  if (TOW_UNKNOWN == tracker_channel->TOW_ms && TOW_UNKNOWN != tow_entry.TOW_ms) {
     /* ToW is not known, but there is a cached value */
     s32 ToW_ms = TOW_UNKNOWN;
     double error_ms = 0;
@@ -191,32 +190,32 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
       log_debug_mesid(mesid,
                       "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8 "ms]"
                       " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                      common_data->update_count,
+                      tracker_channel->update_count,
                       ms_align,
                       nap_count_to_ms(time_delta_tk),
                       ToW_ms,
                       error_ms);
-      common_data->TOW_ms = ToW_ms;
-      if (tp_tow_is_sane(common_data->TOW_ms)) {
-        common_data->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
+      tracker_channel->TOW_ms = ToW_ms;
+      if (tp_tow_is_sane(tracker_channel->TOW_ms)) {
+        tracker_channel->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
       } else {
         log_error_mesid(mesid,
                         "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
-                        common_data->update_count, common_data->TOW_ms);
-        common_data->TOW_ms = TOW_UNKNOWN;
+                        tracker_channel->update_count, tracker_channel->TOW_ms);
+        tracker_channel->TOW_ms = TOW_UNKNOWN;
       }
     }
   }
 
   if (aligned &&
-      common_data->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
+      tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
       data->confirmed) {
     /* Update ToW cache:
      * - bit edge is reached
      * - CN0 is OK
      * - Tracker is confirmed
      */
-    tow_entry.TOW_ms = common_data->TOW_ms;
+    tow_entry.TOW_ms = tracker_channel->TOW_ms;
     tow_entry.sample_time_tk = sample_time_tk;
     track_sid_db_update_tow(sid, &tow_entry);
   }
@@ -243,7 +242,6 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
                            bool sat_active[],
                            float xcorr_cn0_diffs[])
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   if (CODE_GPS_L1CA != entry->mesid.code) {
@@ -259,9 +257,9 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
   /* Mark active SVs. Later clear the whitelist status of inactive SVs */
   u16 index = mesid_to_code_index(entry->mesid);
   sat_active[index] = true;
-  float cn0 = common_data->cn0;
+  float cn0 = tracker_channel->cn0;
   float entry_cn0 = entry->cn0;
-  float error = fabsf(remainder(entry->freq - common_data->xcorr_freq,
+  float error = fabsf(remainder(entry->freq - tracker_channel->xcorr_freq,
                       L1CA_XCORR_FREQ_STEP));
 
   s32 max_time_cnt = (s32)(10.0f * gps_l1ca_config.xcorr_time * XCORR_UPDATE_RATE);
@@ -307,7 +305,6 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
                                  float xcorr_cn0_diffs[],
                                  bool *xcorr_suspect)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   if (idx + 1 == tracker_channel->mesid.sat) {
@@ -328,7 +325,7 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
         *xcorr_suspect = true;
       } else if (xcorr_cn0_diffs[idx] <= XCORR_CONFIRM_THRESHOLD) {
         /* If CN0 difference is large, mark as confirmed xcorr */
-        common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+        tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
       }
     }
   } else {
@@ -352,7 +349,6 @@ static bool check_L2_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   if (CODE_GPS_L2CM != entry->mesid.code ||
@@ -365,7 +361,7 @@ static bool check_L2_entries(tracker_channel_t *tracker_channel,
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
   /* Convert L2 doppler to L1 */
   float entry_freq = entry->freq * L2_to_L1_freq;
-  float error = fabsf(remainderf(entry_freq - common_data->xcorr_freq,
+  float error = fabsf(remainderf(entry_freq - tracker_channel->xcorr_freq,
                       L1CA_XCORR_FREQ_STEP));
 
   if (error <= gps_l1ca_config.xcorr_delta) {
@@ -376,7 +372,7 @@ static bool check_L2_entries(tracker_channel_t *tracker_channel,
     *xcorr_flag = true;
   }
 
-  if (common_data->cn0 >= L1CA_XCORR_WHITELIST_THRESHOLD) {
+  if (tracker_channel->cn0 >= L1CA_XCORR_WHITELIST_THRESHOLD) {
     /* Whitelist high CN0 signal */
     data->xcorr_whitelist[index] = true;
   } else {
@@ -412,7 +408,6 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   u16 index = mesid_to_code_index(tracker_channel->mesid);
@@ -425,14 +420,14 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
       if (data->xcorr_whitelist[index] &&
           data->xcorr_whitelist_l2) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
-        common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+        tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
       } else if (!data->xcorr_whitelist[index] &&
                  !data->xcorr_whitelist_l2) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
       } else if (!data->xcorr_whitelist[index]) {
         /* Otherwise if L1 signal is not whitelisted, mark as confirmed xcorr */
-        common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+        tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
       }
     }
   } else {
@@ -466,7 +461,6 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
 static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                             u32 cycle_flags)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
   gps_l1ca_tracker_data_t *data = tracker_channel->tracker->data;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
@@ -476,7 +470,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
 
   if (tracker_check_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
-    common_data->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+    tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
     return;
   }
 
@@ -607,10 +601,10 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
       tracker_bit_aligned(tracker_channel)) {
 
     /* Start L2 CM tracker if not running */
-    do_l1ca_to_l2cm_handover(tracker_channel->common_data.sample_count,
+    do_l1ca_to_l2cm_handover(tracker_channel->sample_count,
                              tracker_channel->mesid.sat,
-                             tracker_channel->common_data.code_phase_prompt,
-                             tracker_channel->common_data.carrier_freq,
-                             tracker_channel->common_data.cn0);
+                             tracker_channel->code_phase_prompt,
+                             tracker_channel->carrier_freq,
+                             tracker_channel->cn0);
   }
 }

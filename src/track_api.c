@@ -78,10 +78,8 @@ void tracker_correlations_read(u8 nap_channel,
  */
 void tracker_retune(tracker_channel_t *tracker_channel, u32 chips_to_correlate)
 {
-  tracker_common_data_t *common_data = &tracker_channel->common_data;
-
-  double doppler_freq_hz = common_data->carrier_freq;
-  double code_phase_rate = tracker_channel->common_data.code_phase_rate;
+  double doppler_freq_hz = tracker_channel->carrier_freq;
+  double code_phase_rate = tracker_channel->code_phase_rate;
 
   /* Write NAP UPDATE register. */
   nap_track_update(tracker_channel->nap_channel,
