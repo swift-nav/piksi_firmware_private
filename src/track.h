@@ -1055,8 +1055,7 @@ void tracking_channels_process(void);
 void tracking_channels_missed_update_error(u32 channels_mask);
 
 /* State management interface */
-bool tracker_channel_available(tracker_channel_id_t id,
-                               const me_gnss_signal_t mesid);
+bool tracker_channel_available(tracker_channel_id_t id);
 bool tracker_channel_init(tracker_channel_id_t id,
                           const me_gnss_signal_t mesid,
                           u16 glo_orbit_slot,

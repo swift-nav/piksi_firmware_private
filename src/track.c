@@ -81,9 +81,7 @@ static bool track_iq_output_notify(struct setting *s, const char *val);
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
 static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal_t mesid);
-static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
-                                const me_gnss_signal_t mesid,
-                                const tracker_interface_t **tracker_interface);
+static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel);
 static state_t tracker_channel_state_get(const tracker_channel_t *
                                          tracker_channel);
 static void interface_function(tracker_channel_t *tracker_channel,
@@ -313,12 +311,10 @@ void tracking_channels_missed_update_error(u32 channels_mask)
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_channel_available(tracker_channel_id_t id,
-                               const me_gnss_signal_t mesid)
+bool tracker_channel_available(tracker_channel_id_t id)
 {
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
-  const tracker_interface_t *tracker_interface;
-  return tracker_channel_runnable(tracker_channel, mesid, &tracker_interface);
+  return tracker_channel_runnable(tracker_channel);
 }
 
 /** Calculate the future code phase after N samples.
@@ -370,8 +366,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
 
-  const tracker_interface_t *tracker_interface;
-  if (!tracker_channel_runnable(tracker_channel, mesid, &tracker_interface)) {
+  if (!tracker_channel_runnable(tracker_channel)) {
     return false;
   }
 
@@ -386,6 +381,9 @@ bool tracker_channel_init(tracker_channel_id_t id,
     /* Set up channel */
     tracker_channel->mesid = mesid;
     tracker_channel->nap_channel = id;
+
+    const tracker_interface_t *tracker_interface;
+    tracker_interface = tracker_interface_lookup(mesid);
     tracker_channel->interface = tracker_interface;
 
     tracker_channel->TOW_ms = TOW_INVALID;
@@ -1445,22 +1443,12 @@ static const tracker_interface_t * tracker_interface_lookup(const me_gnss_signal
 /** Determine if a tracker channel can be started to track the specified mesid.
  *
  * \param tracker_channel_id    ID of the tracker channel to be checked.
- * \param mesid                 ME signal to be tracked.
- * \param tracker_interface     Output tracker interface to use.
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel,
-                                     const me_gnss_signal_t mesid,
-                                     const tracker_interface_t **
-                                     tracker_interface)
+static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel)
 {
-  if (tracker_channel_state_get(tracker_channel) != STATE_DISABLED) {
-    return false;
-  }
-
-  *tracker_interface = tracker_interface_lookup(mesid);
-  return true;
+  return (tracker_channel_state_get(tracker_channel) == STATE_DISABLED);
 }
 
 /** Return the state of a tracker channel.
