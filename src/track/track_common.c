@@ -312,9 +312,7 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
  *
  * The method releases tracker state.
  *
- * \param[in,out] tracker_channel Tracker channel data
- *
- * \return None
+ * \param[in] tracker_channel Tracker channel data
  */
 void tp_tracker_disable(tracker_channel_t *tracker_channel)
 {

@@ -533,8 +533,6 @@ typedef struct {
  * The data is grouped according to functional blocks.
  */
 typedef struct {
-  /** Mutex used to permit atomic updates of public channel data. */
-  mutex_t info_mutex;
   /** Generic info for externals */
   volatile tracking_channel_info_t      gen_info;
   /** Timing info for externals */
@@ -630,12 +628,24 @@ typedef struct {
 
 /** Top-level generic tracker channel. */
 typedef struct {
+  /* This portion of the structure is not cleaned-up at tracker channel start */
+
+  /** State of this channel. */
+  state_t state;
+
+  /** Mutex used to permit atomic reads of channel data. */
+  mutex_t mutex;
+  /** Mutex used to permit atomic updates of public channel data. */
+  mutex_t mutex_pub;
+
+  /* The data to be cleaned-up at init must be placed below */
+
+  int cleanup_region_start;
+
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
   u16 glo_orbit_slot;     /**< GLO orbital slot. */
   u8 nap_channel;         /**< Associated NAP channel. */
 
-  /** State of this channel. */
-  state_t state;
   /** Time at which the channel was disabled. */
   systime_t disable_time;
   /** Error flags. May be set at any time by the tracking thread. */
@@ -701,8 +711,6 @@ typedef struct {
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   glo_health_t health;         /**< GLO SV health info */
 
-  /** Mutex used to permit atomic reads of channel data. */
-  mutex_t mutex;
   /** Associated tracker interface. */
   const struct tracker_interface *interface;
   /** Publicly accessible data */

@@ -551,7 +551,7 @@ void manage_set_obs_hint(gnss_signal_t sid)
 }
 
 /** Manages acquisition searches and starts tracking channels after successful acquisitions. */
-static void manage_acq()
+static void manage_acq(void)
 {
   /* Decide which SID to try and then start it acquiring. */
   acq_status_t *acq = choose_acq_sat();
