@@ -192,7 +192,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
   case CODE_GLO_L1CA:
     uDecFactor = SOFTMACQ_DECFACT_GLOG1;
     iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
-    uNcoStep = CirclesToUint32((double) (SOFTMACQ_FC_GLOG1+(_sMeSid.sat-8)*SOFTMACQ_GLOG1_FOFF) / (double) SOFTMACQ_RAW_FS);
+    uNcoStep = CirclesToUint32((double) (SOFTMACQ_FC_GLOG1+(_sMeSid.sat-GLO_FCN_OFFSET)*SOFTMACQ_GLOG1_FOFF) / (double) SOFTMACQ_RAW_FS);
 
     for (k=0, h=0, uNco=0; k<SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
       uSample = ((puSampleBuf[k] >> 2) & 0x3) << BBNCO_CARRPH_BITS;   /** B3..2 are Channel 2 */
