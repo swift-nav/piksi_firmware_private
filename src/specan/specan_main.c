@@ -16,7 +16,7 @@
 #include <libswiftnav/logging.h>
 
 #include <sbp.h>
-#include <libsbp/user.h>
+#include <libsbp/piksi.h>
 #include "board/v3/nap/nap_constants.h"
 #include "board/v3/nap/grabber.h"
 #include "./system_monitor.h"
@@ -46,7 +46,11 @@ static sc16_t pBaseBand[SPECAN_BBSAMPLES];
 static sc16_t pTmpTrace[SPECAN_FFT_SIZE];
 static uint8_t uCoeff[SPECAN_FFT_SIZE];
 
-static sSpecPayload_t sTraceData;
+static struct {
+  msg_specan_t header;
+  u8 payload[TRACE_SBP_POINTS];
+} curr_trace;
+
 static float pSpecTrace[SPECAN_NUMLINES];
 static intFFTr2_t sFFT;
 static uint32_t uTraceStep;
@@ -64,6 +68,9 @@ void ThreadManageSpecan(void *arg) {
   float fMinAmpl, fMaxAmpl;
   uint32_t uBuffLen;
 
+  /* fecth utility pointer */
+  msg_specan_t *p_head = &(curr_trace.header);
+
   chRegSetThreadName("spectrum analyzer");
   /* At least at startup in clear sky we want the acquisition not to
    * be interfered with, later on they will have to contend the CPU as
@@ -77,41 +84,46 @@ void ThreadManageSpecan(void *arg) {
       continue;
     }
 
+    /* TODO *
+     * replace this with the current snapshot timer */
+    gps_time_t curr_time = get_current_time();
+
     for (uBand=1; uBand<=4; uBand++) {
-      /** spectrum specific SBP hereafter */
-      sTraceData.uMsgTag  = uBand;
-      sTraceData.sTime    = get_current_time();
 
+      p_head->channel_tag = uBand;
+      p_head->t.wn = curr_time.wn;
+      p_head->t.tow = curr_time.tow;
+      /** The call below sets start frequency and frequency step */
       SpecanCore(uBand);
-      /** ^^ sets start frequency and frequency step */
 
-      /** find min and max amplitude */
-      fMinAmpl = fMaxAmpl = pSpecTrace[0];
-      for (k=1; k<SPECAN_NUMLINES; k++) {
-        if (fMaxAmpl < pSpecTrace[k]) fMaxAmpl = pSpecTrace[k];
-        if (fMinAmpl > pSpecTrace[k]) fMinAmpl = pSpecTrace[k];
-      }
-      /** resulting minimum amplitude and amplitude step */
-      sTraceData.fMinAmpl   = fMinAmpl;
-      sTraceData.fAmplStep  = (fMaxAmpl - fMinAmpl)/(TRACE_ARESOLUTION);
-      /** ^^ note how this sprocess could also be done on a SBP message scope
-       * to increase quality of output spectrum in case we have portions
-       * which are significantly different */
-
-      /** split trace in SBP_MSG_USER_DATA and send out */
+      /** split trace in SBP_MSG_SPECAN and send out */
       for (um=0; um<SPECAN_NUMLINES; um+=TRACE_SBP_POINTS) {
+
         /** cap the number of points to TRACE_SBP_POINTS */
         uNumPoints = ((um+TRACE_SBP_POINTS)<=SPECAN_NUMLINES) ? (TRACE_SBP_POINTS) : (SPECAN_NUMLINES - um);
-        uMsgLength = sizeof(sSpecPayload_t) -TRACE_SBP_POINTS + uNumPoints;
+        uMsgLength = sizeof(msg_specan_t) + uNumPoints;
+
+        /** find min and max amplitude */
+        fMinAmpl = fMaxAmpl = pSpecTrace[um];
+        for (k=1; k<uNumPoints; k++) {
+          if (fMaxAmpl < pSpecTrace[um+k]) fMaxAmpl = pSpecTrace[um+k];
+          if (fMinAmpl > pSpecTrace[um+k]) fMinAmpl = pSpecTrace[um+k];
+        }
+        /** resulting minimum amplitude and amplitude step */
+        p_head->amplitude_ref  = fMinAmpl;
+        p_head->amplitude_unit = (fMaxAmpl - fMinAmpl)/(TRACE_ARESOLUTION);
 
         /** scale amplitude points to uint8_t */
         for (k=0; k<uNumPoints; k++) {
-          sTraceData.puValues[k] = (uint8_t) floorf((pSpecTrace[um+k] - fMinAmpl)/(sTraceData.fAmplStep));
+          curr_trace.payload[k] = (uint8_t) floorf((pSpecTrace[um+k] - fMinAmpl)/(p_head->amplitude_unit));
         }
+
         /** send this SBP message */
-        sbp_send_msg(SBP_MSG_USER_DATA, uMsgLength, (uint8_t*) &sTraceData);
+        sbp_send_msg(SBP_MSG_SPECAN, uMsgLength, (uint8_t*) &curr_trace);
+
         /** update starting frequency before sending next message... */
-        sTraceData.fStartFreq = sTraceData.fStartFreq + uNumPoints*sTraceData.fFreqStep;
+        p_head->freq_ref = p_head->freq_ref + uNumPoints*p_head->freq_step;
+
         /** */
         chThdSleepMilliseconds(1);
       } /* for user message */
@@ -192,8 +204,8 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
     break;
   }
 
-  sTraceData.fStartFreq = fStartFreq;
-  sTraceData.fFreqStep = fFrontEndSpms / SPECAN_FFT_SIZE;
+  curr_trace.header.freq_ref  = fStartFreq;
+  curr_trace.header.freq_step = fFrontEndSpms / SPECAN_FFT_SIZE;
 
 
   /* add abs(FFT) */

@@ -13,16 +13,6 @@
 
 #define TRACE_SBP_POINTS  (224)
 
-typedef struct _sSpecPayload {
-  uint16_t uMsgTag;
-  gps_time_t sTime;
-  float fStartFreq;
-  float fFreqStep;
-  float fMinAmpl;
-  float fAmplStep;
-  uint8_t puValues[TRACE_SBP_POINTS];
-} sSpecPayload_t;
-
 int SpecanStart(void);
 
 
