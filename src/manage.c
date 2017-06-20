@@ -652,11 +652,11 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid)
    */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     if (code_requires_decoder(mesid.code) &&
-        tracker_channel_available(i) &&
+        tracker_channel_available(i, mesid) &&
         decoder_channel_available(i, mesid)) {
       return i;
     } else if (!code_requires_decoder(mesid.code)  &&
-               tracker_channel_available(i)) {
+               tracker_channel_available(i, mesid)) {
       return i;
     }
   }

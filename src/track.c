@@ -305,12 +305,14 @@ void tracking_channels_missed_update_error(u32 channels_mask)
 /** Determine if a tracker channel is available to track the specified sid.
  *
  * \param id      ID of the tracker channel to be checked.
- * \param sid     Signal to be tracked.
+ * \param mesid   Signal to be tracked.
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_channel_available(tracker_channel_id_t id)
+bool tracker_channel_available(tracker_channel_id_t id,
+                               const me_gnss_signal_t mesid)
 {
+  (void)mesid; /* will be taken in use once NAP adds signal specific channels */
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
   return tracker_channel_runnable(tracker_channel);
 }
@@ -845,20 +847,13 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data)
 
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     tracker_channel_t *tracker_channel = tracker_channel_get(id);
-    tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
     tracking_channel_cc_entry_t entry;
 
     entry.id = id;
-    chMtxLock(&tracker_channel->mutex_pub);
-    entry.mesid = pub_data->gen_info.mesid;
-    entry.flags = pub_data->gen_info.flags;
-    entry.freq = pub_data->gen_info.xcorr_freq;
-    entry.cn0 = pub_data->gen_info.cn0;
-    entry.count = pub_data->gen_info.xcorr_count;
-    entry.wl = pub_data->gen_info.xcorr_wl;
-
-    chMtxUnlock(&tracker_channel->mutex_pub);
+    entry.mesid = tracker_channel->mesid;
+    entry.flags = tracking_channel_get_flags(tracker_channel);;
+    entry.freq = tracker_channel->xcorr_freq;
+    entry.cn0 = tracker_channel->cn0;
 
     if (0 != (entry.flags & TRACKING_CHANNEL_FLAG_ACTIVE) &&
         0 != (entry.flags & TRACKING_CHANNEL_FLAG_CONFIRMED) &&
@@ -1391,7 +1386,7 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel)
 
 /** Retrieve the tracker channel associated with a tracker channel ID.
  *
- * \param tracker_channel_id    ID of the tracker channel to be retrieved.
+ * \param tracker_channel_id ID of the tracker channel to be retrieved.
  *
  * \return Associated tracker channel.
  */

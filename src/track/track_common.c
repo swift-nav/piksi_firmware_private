@@ -320,6 +320,10 @@ void tp_tracker_disable(tracker_channel_t *tracker_channel)
                   "[+%" PRIu32 "ms] Tracker stop TOW=%" PRId32 "ms",
                   tracker_channel->update_count,
                   tracker_channel->TOW_ms);
+
+  size_t cleanup_region_size = sizeof(tracker_channel_t) -
+                       offsetof(tracker_channel_t, cleanup_region_start);
+  memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
 }
 
 /**

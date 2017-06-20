@@ -746,8 +746,6 @@ typedef struct {
   me_gnss_signal_t         mesid; /**< Tracked GNSS ME signal identifier */
   float                    freq;  /**< Doppler frequency for cross-correlation [hz] */
   float                    cn0;   /**< C/N0 level [dB/Hz] */
-  u16                      count; /**< Cross-correlation counter */
-  bool                     wl;    /**< Is signal xcorr whitelisted? */
 } tracking_channel_cc_entry_t;
 
 /**
@@ -1035,7 +1033,8 @@ void tracking_channels_process(void);
 void tracking_channels_missed_update_error(u32 channels_mask);
 
 /* State management interface */
-bool tracker_channel_available(tracker_channel_id_t id);
+bool tracker_channel_available(tracker_channel_id_t id,
+                               const me_gnss_signal_t mesid);
 bool tracker_channel_init(tracker_channel_id_t id,
                           const me_gnss_signal_t mesid,
                           u16 glo_orbit_slot,
