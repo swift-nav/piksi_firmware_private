@@ -21,6 +21,7 @@
 #include "board/v3/nap/grabber.h"
 #include "./system_monitor.h"
 #include "timing.h"
+#include "settings.h"
 
 #include "lib/fixed_fft_r2.h"
 #include "specan_main.h"
@@ -45,6 +46,7 @@ static uint8_t *pSampleBuf;
 static sc16_t pBaseBand[SPECAN_BBSAMPLES];
 static sc16_t pTmpTrace[SPECAN_FFT_SIZE];
 static uint8_t uCoeff[SPECAN_FFT_SIZE];
+static bool    run_spectrum;
 
 static struct {
   msg_specan_t header;
@@ -78,6 +80,8 @@ void ThreadManageSpecan(void *arg) {
    * */
   while (TRUE) {
     chThdSleepMilliseconds(500);
+    if (!run_spectrum) continue;
+
     pSampleBuf = GrabberGetBufferPt(&uBuffLen);
     if (NULL == pSampleBuf) {
       log_error("GrabberGetBufferPt() failed in spectrum analyzer");
@@ -136,6 +140,8 @@ void ThreadManageSpecan(void *arg) {
 int SpecanStart(void) {
   uint32_t k;
   const float fTwoPI = 2.0*M_PI;
+
+  SETTING("system_monitor", "spectrum_analyzer", run_spectrum, TYPE_BOOL);
 
   for (k=0; k<SPECAN_FFT_SIZE; k++) {
     /* uCoeff[k] = MIN(MIN(k+1, SPECAN_FFT_SIZE-k), 32); */
