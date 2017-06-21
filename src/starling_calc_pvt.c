@@ -629,8 +629,8 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-static THD_WORKING_AREA(wa_solution_thread, 5000000);
-static void solution_thread(void *arg)
+static THD_WORKING_AREA(wa_starling_thread, 5000000);
+static void starling_thread(void *arg)
 {
   (void)arg;
   msg_t ret;
@@ -1254,8 +1254,8 @@ void starling_calc_pvt_setup()
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 
   /* Start solution thread */
-  chThdCreateStatic(wa_solution_thread, sizeof(wa_solution_thread),
-                    HIGHPRIO-3, solution_thread, NULL);
+  chThdCreateStatic(wa_starling_thread, sizeof(wa_starling_thread),
+                    HIGHPRIO-3, starling_thread, NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread), NORMALPRIO-3,
                     time_matched_obs_thread, NULL);
