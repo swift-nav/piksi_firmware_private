@@ -24,6 +24,7 @@
 
 #include <ch.h>
 #include "shm.h"
+#include "track_flags.h"
 
 #include "board/nap/track_channel.h"
 #include <platform_signal.h>
@@ -241,52 +242,6 @@ typedef struct {
   float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
   u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
 } track_ctrl_params_t;
-
-/** Tracker flag: tracker is in confirmed mode */
-#define TRACKER_FLAG_ACTIVE                  (1 << 0)
-#define TRACKER_FLAG_CONFIRMED               (1 << 1)
-/** Tracker flag: tracker is using PLL (possibly with FLL) */
-#define TRACKER_FLAG_PLL_USE                 (1 << 2)
-/** Tracker flag: tracker is using FLL (possibly with PLL) */
-#define TRACKER_FLAG_FLL_USE                 (1 << 3)
-/** Tracker flag: tracker is using PLL and has pessimistic phase lock */
-#define TRACKER_FLAG_HAS_PLOCK               (1 << 4)
-/** Tracker flag: tracker is using PLL and has optimistic phase lock */
-#define TRACKER_FLAG_HAS_OLOCK               (1 << 5)
-/** Tracker flag: tracker is using FLL and has frequency lock */
-#define TRACKER_FLAG_HAS_FLOCK               (1 << 6)
-/** Tracker flag: tracker has ever had PLL pessimistic lock */
-#define TRACKER_FLAG_HAD_PLOCK               (1 << 7)
-/** Tracker flag: tracker has ever had FLL pessimistic lock */
-#define TRACKER_FLAG_HAD_FLOCK               (1 << 8)
-/** Tracker flag: tracker has decoded TOW. */
-#define TRACKER_FLAG_TOW_DECODED             (1 << 9)
-#define TRACKER_FLAG_TOW_VALID               (1 << 10)
-/** Tracker flag: tracker is a cross-correlate confirmed */
-#define TRACKER_FLAG_XCORR_CONFIRMED         (1 << 11)
-/** Tracker flag: tracker is a cross-correlate suspect */
-#define TRACKER_FLAG_XCORR_SUSPECT           (1 << 12)
-/** Tracker flag: tracker xcorr doppler filter is active */
-#define TRACKER_FLAG_XCORR_FILTER_ACTIVE     (1 << 13)
-/** Tracker flag: L2CL tracker has resolved half-cycle ambiguity */
-#define TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED (1 << 14)
-/** Tracker flag: tracker has decoded health information */
-#define TRACKER_FLAG_GLO_HEALTH_DECODED      (1 << 15)
-/** Tracker flag: tracker has decoded health information */
-#define TRACKER_FLAG_GLO_HEALTHY             (1 << 16)
-/** Tracker flag: Doppler outlier */
-#define TRACKER_FLAG_OUTLIER                 (1 << 17)
-/** Tracker error was detected */
-#define TRACKER_FLAG_ERROR                   (1 << 18)
-
-#define TRACKER_FLAG_BIT_POLARITY_KNOWN      (1 << 19)
-#define TRACKER_FLAG_BIT_INVERTED            (1 << 20)
-#define TRACKER_FLAG_BIT_SYNC                (1 << 21)
-/** Tracker flag: tracker has valid pseudorange */
-#define TRACKER_FLAG_PSEUDORANGE             (1 << 22)
-
-#define TRACKER_FLAG_CN0_LONG                (1 << 23)
-#define TRACKER_FLAG_CN0_SHORT               (1 << 24)
 
 /** Parameters for half-cycle ambiguity resolution */
 typedef struct {
