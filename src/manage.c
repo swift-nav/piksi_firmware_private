@@ -145,7 +145,7 @@ static float solution_elevation_mask = 10.0;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
+static bool glo_enabled = false;//CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
 
 typedef struct {
   systime_t tick;       /**< Time when GLO SV was detected as unhealthy */
