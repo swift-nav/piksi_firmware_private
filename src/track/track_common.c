@@ -550,6 +550,12 @@ void tp_tracker_update_flags(tracker_channel_t *tracker_channel)
     flags |= TRACKER_FLAG_CN0_SHORT;
   }
 
+  update_count_t last_mode_change_ms = update_count_diff(tracker_channel,
+                                        &tracker_channel->mode_change_count);
+  if (last_mode_change_ms > TRACK_STABILIZATION_T) {
+    flags |= TRACKER_FLAG_STABLE;
+  }
+
   tracker_channel->flags = flags;
 }
 

@@ -74,9 +74,6 @@ static bool send_trk_detailed = 0;
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                      bool update_required);
 
-static update_count_t update_count_diff(const tracker_channel_t *
-                                        tracker_channel,
-                                        const update_count_t *val);
 static bool track_iq_output_notify(struct setting *s, const char *val);
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
@@ -1351,9 +1348,9 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
  *
  * \return The unsigned difference between update_count and *val.
  */
-static update_count_t update_count_diff(const tracker_channel_t *
-                                        tracker_channel,
-                                        const update_count_t *val)
+update_count_t update_count_diff(const tracker_channel_t *
+                                 tracker_channel,
+                                 const update_count_t *val)
 {
   update_count_t result = (update_count_t)(tracker_channel->update_count - *val);
   COMPILER_BARRIER(); /* Prevent compiler reordering */

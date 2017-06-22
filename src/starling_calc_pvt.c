@@ -58,7 +58,6 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
@@ -551,8 +550,6 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 /* RFT_TODO *
  * removing sleep, as it shouldn't be needed when starling is called
  * by ME, however we might want to keep the CPU usage check */
-
-
 
 void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_gps_time(&sbp_messages->gps_time);

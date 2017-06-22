@@ -45,6 +45,10 @@
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
+/** How many milliseconds to wait for the tracking loops to
+ * stabilize after any mode change before using obs. */
+#define TRACK_STABILIZATION_T 1000
+
 /*
  * Main tracking: PLL loop selection
  */
@@ -1018,5 +1022,8 @@ glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel);
 void tracker_correlations_send(tracker_channel_t *tracker_channel, const corr_t *cs);
 bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel);
 bool tracker_check_xcorr_flag(tracker_channel_t *tracker_channel);
+update_count_t update_count_diff(const tracker_channel_t *
+                                 tracker_channel,
+                                 const update_count_t *val);
 
 #endif

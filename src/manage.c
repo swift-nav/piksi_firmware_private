@@ -1068,7 +1068,7 @@ static void manage_track()
  * \sa tracking_channel_lock
  * \sa tracking_channel_unlock
  */
-static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
+static u32 get_tracking_channel_flags_info(u8 i,
                                         tracking_channel_info_t *info,
                                         tracking_channel_time_info_t *time_info,
                                         tracking_channel_freq_info_t *freq_info,
@@ -1085,9 +1085,6 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
     time_info = &tmp_time_info;
   }
 
-  manage_track_flags_t result = 0;
-  u32 tc_flags = 0;
-
   tracking_channel_get_values(i,
                               info,       /* Generic info */
                               time_info,  /* Timers */
@@ -1096,78 +1093,7 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
                               misc_info,  /* Misc info */
                               false);     /* Reset stats */
 
-  /* Convert 'tracking_channel_flags_t' flags into 'manage_track_flags_t' */
-  tc_flags = info->flags;
-  if (0 != (tc_flags & TRACKER_FLAG_ACTIVE)) {
-    result |= MANAGE_TRACK_FLAG_ACTIVE;
-
-    /* Make sure no errors have occurred. */
-    if (0 == (tc_flags & TRACKER_FLAG_ERROR)) {
-      result |= MANAGE_TRACK_FLAG_NO_ERROR;
-    }
-    /* Check if the tracking is in confirmed state. */
-    if (0 != (tc_flags & TRACKER_FLAG_CONFIRMED)) {
-      result |= MANAGE_TRACK_FLAG_CONFIRMED;
-    }
-    /* Channel time of week has been decoded. */
-    if (0 != (tc_flags & TRACKER_FLAG_TOW_VALID)) {
-      result |= MANAGE_TRACK_FLAG_TOW;
-    }
-    /* Nav bit polarity is known, i.e. half-cycles have been resolved. */
-    if (0 != (tc_flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
-      result |= MANAGE_TRACK_FLAG_BIT_POLARITY;
-    }
-    /* PLL tracking with or without FLL assist */
-    if (0 != (tc_flags & TRACKER_FLAG_PLL_USE)) {
-      result |= MANAGE_TRACK_FLAG_PLL_USE;
-    }
-    /* FLL tracking or PLL with FLL assist */
-    if (0 != (tc_flags & TRACKER_FLAG_FLL_USE)) {
-      result |= MANAGE_TRACK_FLAG_FLL_USE;
-    }
-    /* Tracking status: pessimistic PLL lock */
-    if (0 != (tc_flags & TRACKER_FLAG_HAS_PLOCK)) {
-      result |= MANAGE_TRACK_FLAG_PLL_PLOCK;
-    }
-    /* Tracking status: optimistic PLL lock */
-    if (0 != (tc_flags & TRACKER_FLAG_HAS_OLOCK)) {
-      result |= MANAGE_TRACK_FLAG_PLL_OLOCK;
-    }
-    /* Tracking status: FLL lock */
-    if (0 != (tc_flags & TRACKER_FLAG_HAS_FLOCK)) {
-      result |= MANAGE_TRACK_FLAG_FLL_LOCK;
-    }
-
-    /* Check C/N0 has been above threshold for a long time (RTK). */
-    if (0 != (tc_flags & TRACKER_FLAG_CN0_LONG)) {
-      result |= MANAGE_TRACK_FLAG_CN0_LONG;
-    }
-    /* Check C/N0 has been above threshold for the minimum time (SPP). */
-    if (0 != (tc_flags & TRACKER_FLAG_CN0_SHORT)) {
-      result |= MANAGE_TRACK_FLAG_CN0_SHORT;
-    }
-    /* Pessimistic phase lock detector = "locked". */
-    if (time_info->ld_pess_locked_ms > TRACK_USE_LOCKED_T) {
-      result |= MANAGE_TRACK_FLAG_CONFIRMED_LOCK;
-    }
-    /* Some time has elapsed since the last tracking channel mode
-     * change, to allow any transients to stabilize.
-     * TODO: is this still necessary? */
-    if (time_info->last_mode_change_ms > TRACK_STABILIZATION_T) {
-      result |= MANAGE_TRACK_FLAG_STABLE;
-    }
-    if (0 != (tc_flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
-      result |= MANAGE_TRACK_FLAG_XCORR_CONFIRMED;
-    }
-    if (0 != (tc_flags & TRACKER_FLAG_XCORR_SUSPECT)) {
-      result |= MANAGE_TRACK_FLAG_XCORR_SUSPECT;
-    }
-    if (0 != (tc_flags & TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED)) {
-      result |= MANAGE_TRACK_FLAG_L2CL_AMBIGUITY;
-    }
-  }
-
-  return result;
+  return info->flags;
 }
 
 /**
@@ -1225,36 +1151,36 @@ static bool compute_cpo(u64 ref_tc,
  *
  * \return Channel measurement flags
  */
-static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
+static chan_meas_flags_t compute_meas_flags(u32 flags,
                                             bool phase_offset_ok,
                                             const me_gnss_signal_t mesid)
 {
   chan_meas_flags_t meas_flags = 0;
 
-  if (0 != (flags & MANAGE_TRACK_FLAG_PLL_USE)) {
+  if (0 != (flags & TRACKER_FLAG_PLL_USE)) {
     /* PLL is in use. */
     if (phase_offset_ok) {
-      if (0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK) &&
-          0 != (flags & MANAGE_TRACK_FLAG_STABLE) &&
-          0 != (flags & MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET)) {
+      if (0 != (flags & TRACKER_FLAG_HAS_PLOCK) &&
+          0 != (flags & TRACKER_FLAG_STABLE) &&
+          0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET)) {
         meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
         /* Make sense to set half cycle known flag when carrier phase is valid */
-        if (0 != (flags & MANAGE_TRACK_FLAG_BIT_POLARITY)) {
+        if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
           /* Bit polarity is known */
           meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
         }
       }
 
       /* sanity check */
-      if ((flags & MANAGE_TRACK_FLAG_BIT_POLARITY)
-           && !(flags & MANAGE_TRACK_FLAG_PLL_PLOCK)) {
+      if ((flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)
+           && !(flags & TRACKER_FLAG_HAS_PLOCK)) {
         /* Somehow we managed to decode TOW when phase lock lost.
          * This should not happen, so print out warning. */
         log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
       }
 
-      if (0 != (flags & MANAGE_TRACK_FLAG_PLL_OLOCK)) {
+      if (0 != (flags & TRACKER_FLAG_HAS_OLOCK)) {
         /* Optimistic PLL lock: very high noise may prevent phase usage */
         /* meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID; */
       }
@@ -1262,10 +1188,10 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
     /* In PLL mode code and doppler accuracy are assumed to be high */
     meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
     meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
-  } else if (0 != (flags & MANAGE_TRACK_FLAG_FLL_USE)) {
+  } else if (0 != (flags & TRACKER_FLAG_FLL_USE)) {
     /* FLL is in use: no phase measurements; code is valid */
     meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
-    if (0 != (flags & MANAGE_TRACK_FLAG_FLL_LOCK)) {
+    if (0 != (flags & TRACKER_FLAG_HAS_FLOCK)) {
       /* Doppler is valid only if there is FLL lock */
       meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
     }
@@ -1292,12 +1218,12 @@ static chan_meas_flags_t compute_meas_flags(manage_track_flags_t flags,
  *
  * \return Flags
  */
-manage_track_flags_t get_tracking_channel_meas(u8 i,
-                                               u64 ref_tc,
-                                               channel_measurement_t *meas,
-                                               ephemeris_t *ephe)
+u32 get_tracking_channel_meas(u8 i,
+                              u64 ref_tc,
+                              channel_measurement_t *meas,
+                              ephemeris_t *ephe)
 {
-  manage_track_flags_t         flags = 0; /* Result */
+  u32 flags = 0; /* Result */
   tracking_channel_info_t      info;      /* Container for generic info */
   tracking_channel_freq_info_t freq_info; /* Container for measurements */
   tracking_channel_time_info_t time_info; /* Container for time info */
@@ -1317,13 +1243,13 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
   if ((CONSTELLATION_GLO == constellation) &&
       !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
-    return flags | MANAGE_TRACK_FLAG_MASKED;
+    return flags | TRACKER_FLAG_MASKED;
   }
 
-  if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
-      0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
-      0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
-      0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
+  if (0 != (flags & TRACKER_FLAG_ACTIVE) &&
+      0 != (flags & TRACKER_FLAG_CONFIRMED) &&
+      0 == (flags & TRACKER_FLAG_ERROR) &&
+      0 == (flags & TRACKER_FLAG_XCORR_SUSPECT)) {
 
     gnss_signal_t sid = mesid2sid(info.mesid, info.glo_orbit_slot);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
@@ -1359,15 +1285,15 @@ manage_track_flags_t get_tracking_channel_meas(u8 i,
     bool cpo_ok = true;
     if (TIME_FINE <= time_quality &&
         0.0 == carrier_phase_offset &&
-        /* 0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) && */
-        0 != (flags & MANAGE_TRACK_FLAG_PLL_USE) &&
-        0 != (flags & MANAGE_TRACK_FLAG_PLL_PLOCK) &&
-        0 != (flags & MANAGE_TRACK_FLAG_TOW)
-        /* 0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) */) {
+        /* 0 != (flags & TRACKER_FLAG_CONFIRMED) && */
+        0 != (flags & TRACKER_FLAG_PLL_USE) &&
+        0 != (flags & TRACKER_FLAG_HAS_PLOCK) &&
+        0 != (flags & TRACKER_FLAG_TOW_VALID)
+        /* 0 != (flags & TRACKER_FLAG_CN0_SHORT) */) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
     }
     if (0.0 != carrier_phase_offset) {
-      flags |= MANAGE_TRACK_FLAG_CARRIER_PHASE_OFFSET;
+      flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
       meas->carrier_phase -= carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
@@ -1416,15 +1342,15 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
  *
  * \return Flags, computed from ephemeris and other sources.
  */
-manage_track_flags_t get_tracking_channel_sid_flags(const gnss_signal_t sid,
-                                                    s32 tow_ms,
-                                                    const ephemeris_t *pephe)
+u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
+                                   s32 tow_ms,
+                                   const ephemeris_t *pephe)
 {
-  manage_track_flags_t result = 0;
+  u32 flags = 0;
 
   /* Satellite elevation is above the solution mask. */
   if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
-    result |= MANAGE_TRACK_FLAG_ELEVATION;
+    flags |= TRACKER_FLAG_ELEVATION;
   }
 
   gps_time_t t = {
@@ -1436,23 +1362,23 @@ manage_track_flags_t get_tracking_channel_sid_flags(const gnss_signal_t sid,
      This also acts as a sanity check on the channel TOW.*/
   if (NULL != pephe && TOW_UNKNOWN != tow_ms && ephemeris_valid(pephe, &t)) {
 
-    result |= MANAGE_TRACK_FLAG_HAS_EPHE;
+    flags |= TRACKER_FLAG_HAS_EPHE;
 
     if (signal_healthy(pephe->valid, pephe->health_bits,
                        pephe->ura, sid.code)) {
-      result |= MANAGE_TRACK_FLAG_HEALTHY;
+      flags |= TRACKER_FLAG_HEALTHY;
     }
   }
 
   constellation_t constellation = sid_to_constellation(sid);
   if ((CONSTELLATION_GPS == constellation) && shm_navigation_suitable(sid)) {
-    result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
+    flags |= TRACKER_FLAG_NAV_SUITABLE;
   } else if ((CONSTELLATION_GLO == constellation) &&
-             (result & MANAGE_TRACK_FLAG_HEALTHY)) {
-    result |= MANAGE_TRACK_FLAG_NAV_SUITABLE;
+             (flags & TRACKER_FLAG_HEALTHY)) {
+    flags |= TRACKER_FLAG_NAV_SUITABLE;
   }
 
-  return result;
+  return flags;
 }
 
 /** Checks if tracking can be started for a given mesid.

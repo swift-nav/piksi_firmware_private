@@ -41,22 +41,30 @@
 #define TRACKER_FLAG_XCORR_FILTER_ACTIVE     (1 << 13)
 /** Tracker flag: L2CL tracker has resolved half-cycle ambiguity */
 #define TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED (1 << 14)
-/** Tracker flag: tracker has decoded health information */
+/** Tracker flag: GLO tracker has decoded health information */
 #define TRACKER_FLAG_GLO_HEALTH_DECODED      (1 << 15)
-/** Tracker flag: tracker has decoded health information */
+/** Tracker flag: GLO tracker has decoded health information */
 #define TRACKER_FLAG_GLO_HEALTHY             (1 << 16)
+/** Tracker flag: signal is healthy. */
+#define TRACKER_FLAG_HEALTHY                 (1 << 17)
 /** Tracker flag: Doppler outlier */
-#define TRACKER_FLAG_OUTLIER                 (1 << 17)
+#define TRACKER_FLAG_OUTLIER                 (1 << 18)
 /** Tracker error was detected */
-#define TRACKER_FLAG_ERROR                   (1 << 18)
+#define TRACKER_FLAG_ERROR                   (1 << 19)
 
-#define TRACKER_FLAG_BIT_POLARITY_KNOWN      (1 << 19)
-#define TRACKER_FLAG_BIT_INVERTED            (1 << 20)
-#define TRACKER_FLAG_BIT_SYNC                (1 << 21)
+#define TRACKER_FLAG_BIT_POLARITY_KNOWN      (1 << 20)
+#define TRACKER_FLAG_BIT_INVERTED            (1 << 21)
+#define TRACKER_FLAG_BIT_SYNC                (1 << 22)
 /** Tracker flag: tracker has valid pseudorange */
-#define TRACKER_FLAG_PSEUDORANGE             (1 << 22)
+#define TRACKER_FLAG_PSEUDORANGE             (1 << 23)
 
-#define TRACKER_FLAG_CN0_LONG                (1 << 23)
-#define TRACKER_FLAG_CN0_SHORT               (1 << 24)
+#define TRACKER_FLAG_CN0_LONG                (1 << 24)
+#define TRACKER_FLAG_CN0_SHORT               (1 << 25)
+#define TRACKER_FLAG_NAV_SUITABLE            (1 << 26)
+#define TRACKER_FLAG_HAS_EPHE                (1 << 27)
+#define TRACKER_FLAG_ELEVATION               (1 << 28)
+#define TRACKER_FLAG_STABLE                  (1 << 29)
+#define TRACKER_FLAG_CARRIER_PHASE_OFFSET    (1 << 30)
+#define TRACKER_FLAG_MASKED                  (1 << 31)
 
 #endif
