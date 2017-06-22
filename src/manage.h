@@ -23,12 +23,6 @@
 /** \addtogroup manage
  * \{ */
 
-/** C/N0 threshold long interval [ms] */
-#define TRACK_CN0_THRES_COUNT_LONG 2000
-
-/** C/N0 threshold short interval [ms] */
-#define TRACK_CN0_THRES_COUNT_SHORT 100
-
 /** How many ms to allow tracking channel to converge after
     initialization before we consider dropping it.
     Applied to all signals other than GPS L2CL */

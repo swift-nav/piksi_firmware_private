@@ -653,13 +653,13 @@ void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
   }
 
   if (xcorr_suspect) {
-    tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
+    tracker_channel->flags |= TRACKER_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
       log_debug_mesid(tracker_channel->mesid,
                       "setting cross-correlation suspect flag");
     }
   } else {
-    tracker_channel->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
+    tracker_channel->flags &= ~TRACKER_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
       log_debug_mesid(tracker_channel->mesid,
                       "clearing cross-correlation suspect flag");

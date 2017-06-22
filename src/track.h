@@ -243,71 +243,50 @@ typedef struct {
 } track_ctrl_params_t;
 
 /** Tracker flag: tracker is in confirmed mode */
-#define TRACK_CMN_FLAG_CONFIRMED   (1 << 0)
+#define TRACKER_FLAG_ACTIVE                  (1 << 0)
+#define TRACKER_FLAG_CONFIRMED               (1 << 1)
 /** Tracker flag: tracker is using PLL (possibly with FLL) */
-#define TRACK_CMN_FLAG_PLL_USE     (1 << 1)
+#define TRACKER_FLAG_PLL_USE                 (1 << 2)
 /** Tracker flag: tracker is using FLL (possibly with PLL) */
-#define TRACK_CMN_FLAG_FLL_USE     (1 << 2)
+#define TRACKER_FLAG_FLL_USE                 (1 << 3)
 /** Tracker flag: tracker is using PLL and has pessimistic phase lock */
-#define TRACK_CMN_FLAG_HAS_PLOCK   (1 << 3)
+#define TRACKER_FLAG_HAS_PLOCK               (1 << 4)
 /** Tracker flag: tracker is using PLL and has optimistic phase lock */
-#define TRACK_CMN_FLAG_HAS_OLOCK   (1 << 4)
+#define TRACKER_FLAG_HAS_OLOCK               (1 << 5)
 /** Tracker flag: tracker is using FLL and has frequency lock */
-#define TRACK_CMN_FLAG_HAS_FLOCK   (1 << 5)
+#define TRACKER_FLAG_HAS_FLOCK               (1 << 6)
 /** Tracker flag: tracker has ever had PLL pessimistic lock */
-#define TRACK_CMN_FLAG_HAD_PLOCK   (1 << 6)
+#define TRACKER_FLAG_HAD_PLOCK               (1 << 7)
 /** Tracker flag: tracker has ever had FLL pessimistic lock */
-#define TRACK_CMN_FLAG_HAD_FLOCK   (1 << 7)
-/** Tracker flag: tracker has decoded TOW.
-    Overrides #TRACK_CMN_FLAG_TOW_PROPAGATED. */
-#define TRACK_CMN_FLAG_TOW_DECODED (1 << 8)
-/** Tracker flag: tracker has propagated TOW */
-#define TRACK_CMN_FLAG_TOW_PROPAGATED (1 << 9)
+#define TRACKER_FLAG_HAD_FLOCK               (1 << 8)
+/** Tracker flag: tracker has decoded TOW. */
+#define TRACKER_FLAG_TOW_DECODED             (1 << 9)
+#define TRACKER_FLAG_TOW_VALID               (1 << 10)
 /** Tracker flag: tracker is a cross-correlate confirmed */
-#define TRACK_CMN_FLAG_XCORR_CONFIRMED (1 << 10)
+#define TRACKER_FLAG_XCORR_CONFIRMED         (1 << 11)
 /** Tracker flag: tracker is a cross-correlate suspect */
-#define TRACK_CMN_FLAG_XCORR_SUSPECT (1 << 11)
+#define TRACKER_FLAG_XCORR_SUSPECT           (1 << 12)
 /** Tracker flag: tracker xcorr doppler filter is active */
-#define TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
+#define TRACKER_FLAG_XCORR_FILTER_ACTIVE     (1 << 13)
 /** Tracker flag: L2CL tracker has resolved half-cycle ambiguity */
-#define TRACK_CMN_FLAG_L2CL_AMBIGUITY (1 << 13)
+#define TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED (1 << 14)
 /** Tracker flag: tracker has decoded health information */
-#define TRACK_CMN_FLAG_HEALTH_DECODED (1 << 14)
+#define TRACKER_FLAG_GLO_HEALTH_DECODED      (1 << 15)
+/** Tracker flag: tracker has decoded health information */
+#define TRACKER_FLAG_GLO_HEALTHY             (1 << 16)
 /** Tracker flag: Doppler outlier */
-#define TRACK_CMN_FLAG_OUTLIER        (1 << 15)
+#define TRACKER_FLAG_OUTLIER                 (1 << 17)
+/** Tracker error was detected */
+#define TRACKER_FLAG_ERROR                   (1 << 18)
 
-/** Sticky flags mask */
-#define TRACK_CMN_FLAG_STICKY_MASK (TRACK_CMN_FLAG_HAD_PLOCK | \
-                                    TRACK_CMN_FLAG_HAD_FLOCK | \
-                                    TRACK_CMN_FLAG_TOW_DECODED | \
-                                    TRACK_CMN_FLAG_TOW_PROPAGATED | \
-                                    TRACK_CMN_FLAG_XCORR_CONFIRMED | \
-                                    TRACK_CMN_FLAG_XCORR_SUSPECT | \
-                                    TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE | \
-                                    TRACK_CMN_FLAG_L2CL_AMBIGUITY | \
-                                    TRACK_CMN_FLAG_OUTLIER | \
-                                    TRACK_CMN_FLAG_HEALTH_DECODED)
+#define TRACKER_FLAG_BIT_POLARITY_KNOWN      (1 << 19)
+#define TRACKER_FLAG_BIT_INVERTED            (1 << 20)
+#define TRACKER_FLAG_BIT_SYNC                (1 << 21)
+/** Tracker flag: tracker has valid pseudorange */
+#define TRACKER_FLAG_PSEUDORANGE             (1 << 22)
 
-/**
- * Common tracking feature flags.
- *
- * Flags is a combination of the following values:
- * - #TRACK_CMN_FLAG_CONFIRMED
- * - #TRACK_CMN_FLAG_PLL_USE
- * - #TRACK_CMN_FLAG_FLL_USE
- * - #TRACK_CMN_FLAG_HAS_PLOCK
- * - #TRACK_CMN_FLAG_HAS_OLOCK
- * - #TRACK_CMN_FLAG_HAS_FLOCK
- * - #TRACK_CMN_FLAG_HAD_PLOCK
- * - #TRACK_CMN_FLAG_HAD_FLOCK
- * - #TRACK_CMN_FLAG_TOW_DECODED
- * - #TRACK_CMN_FLAG_TOW_PROPAGATED
- * - #TRACK_CMN_FLAG_XCORR_CONFIRMED
- * - #TRACK_CMN_FLAG_XCORR_SUSPECT
- *
- * \sa tracker_common_data_t
- */
-typedef u16 track_cmn_flags_t;
+#define TRACKER_FLAG_CN0_LONG                (1 << 23)
+#define TRACKER_FLAG_CN0_SHORT               (1 << 24)
 
 /** Parameters for half-cycle ambiguity resolution */
 typedef struct {
@@ -347,72 +326,8 @@ typedef struct {
 
 typedef u8 tracker_channel_id_t;
 
-/** Tracking channel flag: tracker is active  */
-#define TRACKING_CHANNEL_FLAG_ACTIVE         (1u << 0)
-/** Tracking channel flag: tracker doesn't have an error */
-#define TRACKING_CHANNEL_FLAG_NO_ERROR       (1u << 1)
-/** Tracking channel flag: tracker has confirmed flag */
-#define TRACKING_CHANNEL_FLAG_CONFIRMED      (1u << 2)
-/** Tracking channel flag: tracker has usable C/N0 for a shorter period (SPP) */
-#define TRACKING_CHANNEL_FLAG_CN0_SHORT      (1u << 3)
-/** Tracking channel flag: tracker has usable C/N0 for a longer period (RTK) */
-#define TRACKING_CHANNEL_FLAG_CN0_LONG       (1u << 4)
-/** Tracking channel flag: tracker has confirmed PLL lock */
-#define TRACKING_CHANNEL_FLAG_CONFIRMED_LOCK (1u << 5)
-/** Tracking channel flag: tracker has not changed modes for some time */
-#define TRACKING_CHANNEL_FLAG_STABLE         (1u << 6)
-/** Tracking channel flag: tracker has ToW */
-#define TRACKING_CHANNEL_FLAG_TOW            (1u << 7)
-/** Tracking channel flag: tracker has bit polarity resolved */
-#define TRACKING_CHANNEL_FLAG_BIT_POLARITY   (1u << 8)
-/** Tracking channel flag: is PLL in use. Can also be combined with FLL flag */
-#define TRACKING_CHANNEL_FLAG_PLL_USE        (1u << 9)
-/** Tracking channel flag: is FLL in use */
-#define TRACKING_CHANNEL_FLAG_FLL_USE        (1u << 10)
-/** Tracking channel flag: is PLL optimistic lock present */
-#define TRACKING_CHANNEL_FLAG_PLL_OLOCK      (1u << 11)
-/** Tracking channel flag: is PLL pessimistic lock present */
-#define TRACKING_CHANNEL_FLAG_PLL_PLOCK      (1u << 12)
-/** Tracking channel flag: is FLL lock present */
-#define TRACKING_CHANNEL_FLAG_FLL_LOCK       (1u << 13)
-/** Tracking channel flag: tracker has bit sync resolved */
-#define TRACKING_CHANNEL_FLAG_BIT_SYNC       (1u << 14)
-/** Tracking channel flag: tracker has bit sync resolved */
-#define TRACKING_CHANNEL_FLAG_HAD_LOCKS      (1u << 15)
-/** Tracking channel flag: tracker has bit sync resolved */
-#define TRACKING_CHANNEL_FLAG_BIT_INVERTED   (1u << 16)
-/** Tracking channel flag: tracker has decoded TOW */
-#define TRACKING_CHANNEL_FLAG_TOW_DECODED    (1u << 17)
-/** Tracking channel flag: tracker has propagated TOW */
-#define TRACKING_CHANNEL_FLAG_TOW_PROPAGATED (1u << 18)
-/** Tracking channel flag: tracker has valid pseudorange */
-#define TRACKING_CHANNEL_FLAG_PSEUDORANGE    (1u << 19)
-/** Tracking channel flag: tracker has subframe sync (L1C/A) */
-#define TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC  (1u << 20)
-/** Tracking channel flag: tracker has message sync (L2C) */
-#define TRACKING_CHANNEL_FLAG_MESSAGE_SYNC    TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC
-/** Tracking channel flag: tracker has word sync (L1C/A) */
-#define TRACKING_CHANNEL_FLAG_WORD_SYNC      (1u << 21)
-/** Tracking channel flag: tracker is a cross-correlation confirmed */
-#define TRACKING_CHANNEL_FLAG_XCORR_CONFIRMED (1u << 22)
-/** Tracking channel flag: tracker is a cross-correlation suspect */
-#define TRACKING_CHANNEL_FLAG_XCORR_SUSPECT (1u << 23)
-/** Tracking channel flag: tracker xcorr doppler filter is active */
-#define TRACKING_CHANNEL_FLAG_XCORR_FILTER_ACTIVE (1u << 24)
-/** Tracking channel flag: L2CL tracker has resolved half-cycle ambiguity */
-#define TRACKING_CHANNEL_FLAG_L2CL_AMBIGUITY_SOLVED (1u << 25)
-/** Tracking channel flag: tracker has health info */
-#define TRACKING_CHANNEL_FLAG_HEALTH_DECODED (1u << 26)
-/** Tracking channel flag: healthy status -- 0 SV is unhealty, 1 SV is healthy */
-#define TRACKING_CHANNEL_FLAG_HEALTHY    (1u << 27)
-/** Tracking channel flag: error, Doppler went out of bounds */
-#define TRACKING_CHANNEL_FLAG_OUTLIER    (1u << 28)
-
 /** Maximum SV azimuth/elevation age in seconds: 1 minute is about 0.5 degrees */
 #define MAX_AZ_EL_AGE_SEC 60
-
-/** Bit mask of tracking channel flags */
-typedef u32 tracking_channel_flags_t;
 
 typedef enum {
   STATE_DISABLED,
@@ -435,7 +350,7 @@ typedef struct {
   tracker_channel_id_t     id;           /**< Channel identifier */
   me_gnss_signal_t         mesid;        /**< ME signal identifier */
   u16                      glo_orbit_slot; /**< GLO orbital slot */
-  tracking_channel_flags_t flags;        /**< Channel flags */
+  u32                      flags;        /**< Tracker flags TRACKER_FLAG_... */
   s32                      tow_ms;       /**< ToW [ms] or TOW_UNKNOWN */
   s32                      tow_residual_ns;   /**< Residual to tow_ms [ns] */
   float                    cn0;          /**< C/N0 [dB/Hz] */
@@ -672,7 +587,7 @@ typedef struct {
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
-  track_cmn_flags_t flags;     /**< Tracker flags */
+  u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   track_ctrl_params_t ctrl_params; /**< Controller parameters */
   float acceleration;          /**< Acceleration [g] */
   float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
@@ -742,7 +657,7 @@ typedef struct tracker_interface_list_element_t {
  */
 typedef struct {
   tracker_channel_id_t     id;    /**< Tracking channel id */
-  tracking_channel_flags_t flags; /**< Tracking channel flags */
+  u32                      flags; /**< Tracker flags TRACKER_FLAG_... */
   me_gnss_signal_t         mesid; /**< Tracked GNSS ME signal identifier */
   float                    freq;  /**< Doppler frequency for cross-correlation [hz] */
   float                    cn0;   /**< C/N0 level [dB/Hz] */
