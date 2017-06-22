@@ -849,10 +849,10 @@ static void check_for_cn0_estimator_change(const me_gnss_signal_t mesid,
 
 /** Integration time is not explicitly available in gnss_track_profiles.
  *  This API infers the integration time from the profiles' array index.
- *  @param mesid ME signal ID
- *  @param state Profiles array.
- *  @param index Profiles array index.
- *  @return Integration time of the profile at the given index [ms]
+ *  \param mesid ME signal ID
+ *  \param state Profiles array.
+ *  \param index Profiles array index.
+ *  \return Integration time of the profile at the given index [ms]
  */
 static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                    const tp_profile_t *state,
