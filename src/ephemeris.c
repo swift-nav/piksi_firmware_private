@@ -219,6 +219,10 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
  */
 eph_new_status_t ephemeris_new(const ephemeris_t *e)
 {
+  if (!sid_supported(e->sid)) {
+    /* throw debug message prior to dying */
+    log_warn_sid(e->sid, "error not supported SID");
+  }
   assert(sid_supported(e->sid));
 
   if (!e->valid) {
