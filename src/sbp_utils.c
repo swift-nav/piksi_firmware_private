@@ -393,7 +393,7 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
 
   msg->L.i = Li;
   u16 frac_part_cp = round(Lf * MSG_OBS_LF_MULTIPLIER);
-  if (frac_part_cp == MSG_OBS_LF_OVERFLOW) {
+  if (frac_part_cp >= MSG_OBS_LF_OVERFLOW) {
     frac_part_cp = 0;
     msg->L.i += 1;
   }
@@ -409,7 +409,7 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
 
   msg->D.i = Di;
   u16 frac_part_d = round(Df * MSG_OBS_DF_MULTIPLIER);
-  if (frac_part_d == MSG_OBS_DF_OVERFLOW) {
+  if (frac_part_d >= MSG_OBS_DF_OVERFLOW) {
     frac_part_d = 0;
     msg->D.i += 1;
   }
