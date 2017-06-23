@@ -29,7 +29,6 @@
 #define PROCESS_PERIOD_ms (1000)
 
 static void nap_isr(void *context);
-static void nap_track_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
 static BSEMAPHORE_DECL(nap_track_irq_sem, TRUE);
@@ -88,10 +87,6 @@ void nap_setup(void)
 
   /* Enable NAP tracking interrupt */
   chThdCreateStatic(wa_nap_track_irq, sizeof(wa_nap_track_irq), HIGHPRIO-1, nap_track_irq_thread, NULL);
-  gic_handler_register(IRQ_ID_NAP_TRACK, nap_track_isr, NULL);
-  gic_irq_sensitivity_set(IRQ_ID_NAP_TRACK, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(IRQ_ID_NAP_TRACK, NAP_TRACK_IRQ_PRIORITY);
-  gic_irq_enable(IRQ_ID_NAP_TRACK);
 }
 
 u64 nap_timing_count(void)
@@ -177,17 +172,6 @@ static void nap_isr(void *context)
   chSysUnlockFromISR();
 }
 
-static void nap_track_isr(void *context)
-{
-  (void)context;
-  chSysLockFromISR();
-
-  /* Wake up processing thread */
-  chBSemSignalI(&nap_track_irq_sem);
-
-  chSysUnlockFromISR();
-}
-
 static void handle_nap_irq(void)
 {
   u32 irq = NAP->IRQ;
@@ -249,13 +233,21 @@ static void nap_track_irq_thread(void *arg)
 {
   (void)arg;
   chRegSetThreadName("NAP Tracking");
+  systime_t sys_time;
 
+  sys_time = chVTGetSystemTime();
   while (TRUE) {
-    /* Waiting for the IRQ to happen.*/
-    chBSemWaitTimeout(&nap_track_irq_sem, MS2ST(PROCESS_PERIOD_ms));
+    sys_time += US2ST(500);
 
     handle_nap_track_irq();
     tracking_channels_process();
+
+    /* this solution relies on the fact that the functions above do not
+     * take longer than 500 us to execute. otherwise, the sleep below
+     * will just sleep for a very long time (counter overflow)
+     * and the system will break. there should be a better way
+     * to do this.. perhaps using the software watchdog is necessary */
+    chThdSleepUntil(sys_time);
   }
 }
 
