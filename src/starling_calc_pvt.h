@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_SOLUTION_H
-#define SWIFTNAV_SOLUTION_H
+#ifndef STARLING_CALC_PVT_H
+#define STARLING_CALC_PVT_H
 
 #include <ch.h>
 #include <libsbp/navigation.h>
@@ -21,6 +21,8 @@
 #include <libswiftnav/track.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
+
+
 
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
@@ -32,16 +34,6 @@ typedef enum {
   FILTER_FLOAT,
   FILTER_FIXED,
 } dgnss_filter_t;
-
-typedef struct {
-  u8 signals_tracked;
-  u8 signals_useable;
-} soln_stats_t;
-
-typedef struct {
-  systime_t systime;
-  u8 signals_used;
-} soln_pvt_stats_t;
 
 typedef struct {
   systime_t systime;
@@ -67,22 +59,19 @@ typedef struct {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define OBS_N_BUFF 60
-
-#define OBS_BUFF_SIZE (OBS_N_BUFF * sizeof(obss_t))
+#define STARLING_OBS_N_BUFF 60
 
 extern double soln_freq;
-extern u32 obs_output_divisor;
+
 extern u32 max_age_of_differential;
 
 void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages);
-void extract_covariance(double full_covariance[9], double vel_covariance[9],
-                        const gnss_solution *soln);
+
 double calc_heading(const double b_ned[3]);
-soln_stats_t solution_last_stats_get(void);
-soln_pvt_stats_t solution_last_pvt_stats_get(void);
+
+
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
-void solution_setup(void);
+void starling_calc_pvt_setup(void);
 void reset_rtk_filter(void);
 
 #endif

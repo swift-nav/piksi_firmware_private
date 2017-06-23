@@ -16,8 +16,8 @@
 #include <libsbp/system.h>
 #include <libswiftnav/logging.h>
 
+#include "me_calc_pvt.h"
 #include <hal.h>
-#include <ch.h>
 
 #include "peripherals/leds.h"
 #include "io_support.h"
@@ -29,7 +29,7 @@
 #include "track.h"
 #include "timing.h"
 #include "ext_events.h"
-#include "solution.h"
+#include "starling_calc_pvt.h"
 #include "base_obs.h"
 #include "position.h"
 #include "system_monitor.h"
@@ -41,6 +41,7 @@
 #include "signal.h"
 #include "version.h"
 #include "ndb.h"
+#include "nmea.h"
 #include "sbp_utils.h"
 #include "glo_map_setup.h"
 
@@ -122,8 +123,10 @@ int main(void)
   manage_acq_setup();
   manage_track_setup();
   system_monitor_setup();
-  solution_setup();
+
   base_obs_setup();
+  me_calc_pvt_setup();
+  starling_calc_pvt_setup();
 
   simulator_setup();
 
@@ -168,6 +171,8 @@ int main(void)
   }
 
   SpecanStart();
+
+  nmea_setup();
 
   while (1) {
     chThdSleepSeconds(60);

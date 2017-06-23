@@ -29,7 +29,7 @@
 #include "settings.h"
 
 #include "simulator.h"
-#include "solution.h"
+#include "starling_calc_pvt.h"
 #include "peripherals/leds.h"
 #include "sbp.h"
 #include "sbp_utils.h"
