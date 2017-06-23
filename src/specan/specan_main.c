@@ -119,7 +119,7 @@ void ThreadManageSpecan(void *arg) {
 
         /** scale amplitude points to uint8_t */
         for (k=0; k<uNumPoints; k++) {
-          curr_trace.payload[k] = (uint8_t) floorf((pSpecTrace[um+k] - fMinAmpl)/(p_head->amplitude_unit));
+          p_head->amplitude_value[k] = (uint8_t) floorf((pSpecTrace[um+k] - fMinAmpl)/(p_head->amplitude_unit));
         }
 
         /** send this SBP message */
@@ -169,7 +169,7 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
   uint32_t uFftScale = 0x0;
   uint32_t uFftStartPt, uTraceStart=0;
   float fStartFreq;
-  const float fFrontEndSpms = NAP_FRONTEND_RAW_SAMPLE_RATE_Hz*0.001;
+  const float fFrontEndSpms = NAP_FRONTEND_RAW_SAMPLE_RATE_Hz*1e-6;
   const float fFreqNco1 = 1590.000;
   const float fFreqNco2 = 1235.000;
 
