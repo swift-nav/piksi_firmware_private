@@ -423,7 +423,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
     double unused;
 
     if (almanacs_enabled &&
-        NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a) &&
+        (NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a)) &&
         almanac_valid(&orbit.a, t) &&
         calc_sat_az_el_almanac(&orbit.a, t, lgf.position_solution.pos_ecef,
                                /* double *az = */ &unused, &el_d) == 0) {
@@ -693,7 +693,7 @@ static void check_clear_glo_unhealthy(void)
 
   for (u32 i = 1; i <= NUM_SATS_GLO; i++) {
     if (glo_acq_timer[i].status &&
-        ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state) {
+        (ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state)) {
       /* check if time since channel dropped due to SV unhealthy greater
        * than GLO ephemeris valid time (30 min) */
       if (chVTTimeElapsedSinceX(glo_acq_timer[i].tick) >
@@ -986,15 +986,15 @@ static void manage_track()
 
     /* Give newly-initialized channels a chance to converge.
      * Signals other than GPS L2CL are given longer time. */
-    if ((now - info.init_timestamp_ms) < TRACK_INIT_T &&
-        info.mesid.code != CODE_GPS_L2CL) {
+    if (((now - info.init_timestamp_ms) < TRACK_INIT_T) &&
+        (info.mesid.code != CODE_GPS_L2CL)) {
       continue;
     }
 
     /* Give newly-initialized L2CL channels a chance to converge.
      * GPS L2CL signals are expected to stabilize fast. */
-    if ((now - info.init_timestamp_ms) < TRACK_INIT_T_L2CL &&
-        info.mesid.code == CODE_GPS_L2CL) {
+    if (((now - info.init_timestamp_ms) < TRACK_INIT_T_L2CL) &&
+        (info.mesid.code == CODE_GPS_L2CL)) {
       continue;
     }
 
@@ -1133,8 +1133,8 @@ static bool compute_cpo(u64 ref_tc,
     /* NOTE: CP sign flip - change the plus sign below */
     *carrier_phase_offset = round(meas->carrier_phase + phase);
 
-    if (0 != (info->flags & TRACKER_FLAG_HAS_PLOCK) &&
-        0 != (info->flags & TRACKER_FLAG_CN0_SHORT)) {
+    if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
       /* Remember offset for the future use */
       tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
     }
@@ -1160,9 +1160,9 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
   if (0 != (flags & TRACKER_FLAG_PLL_USE)) {
     /* PLL is in use. */
     if (phase_offset_ok) {
-      if (0 != (flags & TRACKER_FLAG_HAS_PLOCK) &&
-          0 != (flags & TRACKER_FLAG_STABLE) &&
-          0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET)) {
+      if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+          (0 != (flags & TRACKER_FLAG_STABLE)) &&
+          (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
         meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
         /* Make sense to set half cycle known flag when carrier phase is valid */
@@ -1246,17 +1246,17 @@ u32 get_tracking_channel_meas(u8 i,
     return flags | TRACKER_FLAG_MASKED;
   }
 
-  if (0 != (flags & TRACKER_FLAG_ACTIVE) &&
-      0 != (flags & TRACKER_FLAG_CONFIRMED) &&
-      0 == (flags & TRACKER_FLAG_ERROR) &&
-      0 == (flags & TRACKER_FLAG_XCORR_SUSPECT)) {
+  if ((0 != (flags & TRACKER_FLAG_ACTIVE)) &&
+      (0 != (flags & TRACKER_FLAG_CONFIRMED)) &&
+      (0 == (flags & TRACKER_FLAG_ERROR)) &&
+      (0 == (flags & TRACKER_FLAG_XCORR_SUSPECT))) {
 
     gnss_signal_t sid = mesid2sid(info.mesid, info.glo_orbit_slot);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);
 
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
-    if (NDB_ERR_NONE != res && NDB_ERR_UNCONFIRMED_DATA != res) {
+    if ((NDB_ERR_NONE != res) && (NDB_ERR_UNCONFIRMED_DATA != res)) {
       ephe = NULL;
     }
 
@@ -1283,13 +1283,11 @@ u32 get_tracking_channel_meas(u8 i,
      */
     double carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
-    if (TIME_FINE <= time_quality &&
-        0.0 == carrier_phase_offset &&
-        /* 0 != (flags & TRACKER_FLAG_CONFIRMED) && */
-        0 != (flags & TRACKER_FLAG_PLL_USE) &&
-        0 != (flags & TRACKER_FLAG_HAS_PLOCK) &&
-        0 != (flags & TRACKER_FLAG_TOW_VALID)
-        /* 0 != (flags & TRACKER_FLAG_CN0_SHORT) */) {
+    if ((TIME_FINE <= time_quality) &&
+        (0.0 == carrier_phase_offset) &&
+        (0 != (flags & TRACKER_FLAG_PLL_USE)) &&
+        (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
     }
     if (0.0 != carrier_phase_offset) {
@@ -1360,7 +1358,7 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
 
   /* Ephemeris must be valid, not stale. Satellite must be healthy.
      This also acts as a sanity check on the channel TOW.*/
-  if (NULL != pephe && TOW_UNKNOWN != tow_ms && ephemeris_valid(pephe, &t)) {
+  if ((NULL != pephe) && (TOW_UNKNOWN != tow_ms) && ephemeris_valid(pephe, &t)) {
 
     flags |= TRACKER_FLAG_HAS_EPHE;
 
