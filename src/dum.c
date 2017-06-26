@@ -85,7 +85,7 @@ static int get_doppler(const gnss_signal_t *sid,
   }
 
   e.fit_interval = DUM_FIT_INTERVAL_VALID;
-  if (!ephemeris_params_valid(e.valid, e.fit_interval, &(e.toe), t)) {
+  if (!ephemeris_valid(&e, t)) {
     return -1;
   }
 
