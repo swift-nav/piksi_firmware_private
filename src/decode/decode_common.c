@@ -9,16 +9,19 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/glo_map.h>
 #include <assert.h>
+#include <string.h>
 
 #include "timing.h"
 #include "ephemeris.h"
 #include "track.h"
+
+#include "sbp.h"
+#include "sbp_utils.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
                                              const glo_time_t *glo_t)
@@ -80,8 +83,33 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
                           "Eph status: %"PRIu8" ", r);
   }
 
-  u16 glo_slot_id = n->eph.sid.sat;
-  glo_map_set_slot_id(mesid, glo_slot_id);
+  /* check if previous value of mapped FCN is different */
+  u16 pre_fcn;
+  gnss_signal_t sid = n->eph.sid;
+  if (glo_map_valid(sid)) {
+    pre_fcn = glo_map_get_fcn(sid);
+  } else {
+    pre_fcn = GLO_FCN_UNKNOWN;
+  }
+
+  /* map new value and then send SBP if FCN mapping changed for the GLO SV */
+  if (pre_fcn != mesid.sat) {
+    glo_map_set_slot_id(mesid, sid.sat);
+
+    msg_fcns_glo_t sbp;
+    memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
+    for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
+      gnss_signal_t tmp_sid = construct_sid(sid.code, i);
+      if (glo_map_valid(tmp_sid)) {
+        sbp.fcns[i] = glo_map_get_fcn(tmp_sid);
+      }
+    }
+
+    sbp.tow_ms = n->eph.toe.tow;
+    sbp.wn = n->eph.toe.wn;
+
+    sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8*)&sbp);
+  }
 }
 
 bool glo_data_sync(nav_msg_glo_t *n,
