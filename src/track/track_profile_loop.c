@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_profile_utils.h"
-
 #include <assert.h>
 #include <string.h>
+
+#include "track.h"
 
 /**
  * Initializes tracking filter.

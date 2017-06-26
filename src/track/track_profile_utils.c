@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_profile_utils.h"
 
 #include <assert.h>
+#include "track.h"
 
 #define TP_FLAGS_INIT_DEFAULT \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | \
@@ -348,13 +348,12 @@ u8 tp_next_cycle_counter(tp_tm_e tracking_mode,
 /**
  * Computes tracker flags.
  *
- * \param[in] tracking_mode Tracking mode.
- * \param[in] cycle_no      Cycle number.
+ * \param tracker_channel Tracking channel data.
+ * \param cycle_no
  */
-u32 tp_get_cycle_flags(tp_tm_e tracking_mode,
-                       u8 cycle_no)
+u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no)
 {
-  const state_table_t *tbl = select_table(tracking_mode);
+  const state_table_t *tbl = select_table(tracker_channel->tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
   assert(NULL != ent);
@@ -629,30 +628,24 @@ bool tp_is_fll_ctrl(tp_ctrl_e ctrl)
  * This function checks if the xcorr_suspect status has changed for the signal,
  * and sets / clears the flag respectively.
  *
- * \param[in]     channel_info      Channel information.
- * \param[in,out] common_data       Channel data.
- * \param[in,out] input             Common L1 or L2 tracker data.
+ * \param         tracker_channel Tracker channel data
  * \param[in]     xcorr_suspect     Flag indicating if signal is xcorr suspect.
  * \param[in]     sensitivity_mode  Flag indicating sensitivity mode.
  *
  * \return None
  */
-void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
-                            tracker_common_data_t *common_data,
-                            void *input,
+void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
                             bool xcorr_suspect,
                             bool sensitivity_mode)
 {
-  if (CODE_GPS_L1CA == channel_info->mesid.code) {
-    gps_l1ca_tracker_data_t *data;
-    data = (gps_l1ca_tracker_data_t*) input;
+  if (CODE_GPS_L1CA == tracker_channel->mesid.code) {
+    gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }
     data->xcorr_flag = xcorr_suspect;
   } else {
-    gps_l2cm_tracker_data_t *data;
-    data = (gps_l2cm_tracker_data_t*) input;
+    gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }
@@ -660,17 +653,17 @@ void set_xcorr_suspect_flag(const tracker_channel_info_t *channel_info,
   }
 
   if (xcorr_suspect) {
-    common_data->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
+    tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_mesid(channel_info->mesid,
+      log_debug_mesid(tracker_channel->mesid,
                       "setting cross-correlation suspect flag");
     }
   } else {
-    common_data->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
+    tracker_channel->flags &= ~TRACK_CMN_FLAG_XCORR_SUSPECT;
     if (!sensitivity_mode) {
-      log_debug_mesid(channel_info->mesid,
+      log_debug_mesid(tracker_channel->mesid,
                       "clearing cross-correlation suspect flag");
     }
   }
-  common_data->xcorr_change_count = common_data->update_count;
+  tracker_channel->xcorr_change_count = tracker_channel->update_count;
 }

@@ -551,7 +551,7 @@ void manage_set_obs_hint(gnss_signal_t sid)
 }
 
 /** Manages acquisition searches and starts tracking channels after successful acquisitions. */
-static void manage_acq()
+static void manage_acq(void)
 {
   /* Decide which SID to try and then start it acquiring. */
   acq_status_t *acq = choose_acq_sat();
@@ -1167,15 +1167,6 @@ static manage_track_flags_t get_tracking_channel_flags_info(u8 i,
   }
 
   return result;
-}
-manage_track_flags_t get_tracking_channel_flags(u8 i)
-{
-  return get_tracking_channel_flags_info(i,    /* Tracking channel index */
-                                         NULL, /* Generic info */
-                                         NULL, /* Time info */
-                                         NULL, /* Frequencies/phases */
-                                         NULL, /* Controller info */
-                                         NULL);/* Misc info */
 }
 
 /**
