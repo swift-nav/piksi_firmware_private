@@ -72,6 +72,23 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
   return true;
 }
 
+void send_glo_fcn_mapping(gps_time_t t)
+{
+  msg_fcns_glo_t sbp;
+  memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
+  for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
+    gnss_signal_t tmp_sid = construct_sid(CODE_GLO_L1CA, i);
+    if (glo_map_valid(tmp_sid)) {
+      sbp.fcns[i] = glo_map_get_fcn(tmp_sid);
+    }
+  }
+
+  sbp.tow_ms = t.tow;
+  sbp.wn = t.wn;
+
+  sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8*)&sbp);
+}
+
 void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
 {
   log_debug_mesid(mesid,
@@ -96,19 +113,8 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
   if (pre_fcn != mesid.sat) {
     glo_map_set_slot_id(mesid, sid.sat);
 
-    msg_fcns_glo_t sbp;
-    memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
-    for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
-      gnss_signal_t tmp_sid = construct_sid(sid.code, i);
-      if (glo_map_valid(tmp_sid)) {
-        sbp.fcns[i] = glo_map_get_fcn(tmp_sid);
-      }
-    }
-
-    sbp.tow_ms = n->eph.toe.tow;
-    sbp.wn = n->eph.toe.wn;
-
-    sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8*)&sbp);
+    gps_time_t t = {.tow = n->eph.toe.tow, .wn = n->eph.toe.wn};
+    send_glo_fcn_mapping(t);
   }
 }
 
