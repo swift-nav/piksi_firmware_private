@@ -239,33 +239,33 @@ static void collect_measurements(u64 rec_tc,
   u8 n_active = 0;
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    manage_track_flags_t flags      = 0; /* Channel flags accumulator */
+    u32 flags = 0; /* Channel flags accumulator */
     /* Load measurements from the tracking channel and ephemeris from NDB */
     flags = get_tracking_channel_meas(i, rec_tc,
                                       &meas[n_collected],
                                       &ephe[n_collected]);
 
-    if (0 != (flags & MANAGE_TRACK_FLAG_ACTIVE) &&
-        0 != (flags & MANAGE_TRACK_FLAG_CONFIRMED) &&
-        0 != (flags & MANAGE_TRACK_FLAG_NO_ERROR) &&
-        0 == (flags & MANAGE_TRACK_FLAG_MASKED))
+    if (0 != (flags & TRACKER_FLAG_ACTIVE) &&
+        0 != (flags & TRACKER_FLAG_CONFIRMED) &&
+        0 == (flags & TRACKER_FLAG_ERROR) &&
+        0 == (flags & TRACKER_FLAG_MASKED))
     {
       /* Tracking channel is active & not masked */
       n_active++;
 
-      if (0 == (flags & MANAGE_TRACK_FLAG_XCORR_SUSPECT)) {
+      if (0 == (flags & TRACKER_FLAG_XCORR_SUSPECT)) {
         /* Tracking channel is not XCORR suspect so it's an actual SV in view */
         in_view[n_inview++] = meas[n_collected];
       }
 
       chan_meas_flags_t meas_flags = meas[n_collected].flags;
 
-      if (0 != (flags & MANAGE_TRACK_FLAG_HEALTHY) &&
-          0 != (flags & MANAGE_TRACK_FLAG_NAV_SUITABLE) &&
-          0 != (flags & MANAGE_TRACK_FLAG_ELEVATION) &&
-          0 != (flags & MANAGE_TRACK_FLAG_TOW) &&
-          0 != (flags & MANAGE_TRACK_FLAG_HAS_EPHE) &&
-          0 != (flags & MANAGE_TRACK_FLAG_CN0_SHORT) &&
+      if (0 != (flags & TRACKER_FLAG_HEALTHY) &&
+          0 != (flags & TRACKER_FLAG_NAV_SUITABLE) &&
+          0 != (flags & TRACKER_FLAG_ELEVATION) &&
+          0 != (flags & TRACKER_FLAG_TOW_VALID) &&
+          0 != (flags & TRACKER_FLAG_HAS_EPHE) &&
+          0 != (flags & TRACKER_FLAG_CN0_SHORT) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
