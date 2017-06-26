@@ -11,11 +11,18 @@
  */
 
 #include <libswiftnav/logging.h>
+#include <libswiftnav/glo_map.h>
 #include <ch.h>
+#include <string.h>
 #include <assert.h>
+#include "main.h"
 #include "track.h"
 #include "decode.h"
 #include "signal.h"
+#include "timing.h"
+
+#include "sbp.h"
+#include "sbp_utils.h"
 
 /** \defgroup decoding Decoding
  * Receive data bits from tracking channels and decode navigation messages.
@@ -56,6 +63,8 @@
  *   It does not matter in which order the two structures are released as they
  *   are allocated independently when initializing decoding.
  */
+
+#define DECODE_THREAD_SLEEP_MS 1
 
 typedef enum {
   DECODER_CHANNEL_STATE_DISABLED,
@@ -217,6 +226,25 @@ bool decoder_channel_disable(u8 tracking_channel)
   return true;
 }
 
+static void send_glo_fcn_mapping(void)
+{
+  msg_fcns_glo_t sbp;
+  memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
+  for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
+    gnss_signal_t tmp_sid = construct_sid(CODE_GLO_L1CA, i);
+    if (glo_map_valid(tmp_sid)) {
+      sbp.fcns[i] = glo_map_get_fcn(tmp_sid);
+    }
+  }
+
+  gps_time_t t = get_current_gps_time();
+
+  sbp.tow_ms = t.tow;
+  sbp.wn = t.wn;
+
+  sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8*)&sbp);
+}
+
 static void decode_thread(void *arg)
 {
   (void)arg;
@@ -250,7 +278,12 @@ static void decode_thread(void *arg)
       }
     }
 
-    chThdSleep(MS2ST(1));
+    /* send GLO FCN mapping information every 30 sec */
+    DO_EVERY(30 * SECS_MS / DECODE_THREAD_SLEEP_MS,
+      send_glo_fcn_mapping();
+    );
+
+    chThdSleep(MS2ST(DECODE_THREAD_SLEEP_MS));
   }
 }
 
