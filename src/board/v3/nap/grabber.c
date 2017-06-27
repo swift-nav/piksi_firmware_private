@@ -14,6 +14,7 @@
 
 #include <libswiftnav/logging.h>
 
+#include "main.h"
 #include "axi_dma.h"
 #include "nap_hw.h"
 #include "nap_constants.h"
@@ -29,7 +30,7 @@ static BSEMAPHORE_DECL(axi_dma_rx_bsem, 0);
 
 u8 pRawGrabberBuffer[FIXED_GRABBER_LENGTH] __attribute__((aligned(32)));
 
-static bool raw_samples(u8 *out, u32 len_words, u32 *sample_count);
+static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count);
 
 /** Grab raw samples from NAP.
  *
@@ -49,7 +50,7 @@ u8* grab_samples(u32 *length, u32 *sample_count)
 
 /** Exposes raw samples buffer pointer (to spectrum analyzer as of now)
  *
- * \param[out]  length        Number of samples in the buffer.
+ * \param[out]  length  Number of samples in the buffer.
  *
  * \return Pointer to the beginning of the sample buffer.
  */
@@ -81,35 +82,26 @@ static void axi_dma_rx_callback(bool success)
   chSysUnlockFromISR();
 }
 
-/** Set the ACQ control register for raw samples input.
+/** Set the ACQ control register for raw samples input and start stream.
+ *
+ * \param  len_words  Number of words.
  */
-static void control_set_raw_samples( void )
+static void samples_start(u32 len_words)
 {
+  /* Acquistion is started with a 0-to-1 transition of the RUN bit. */
+  NAP->ACQ_CONTROL = 0;
+
+  COMPILER_BARRIER();
+
   NAP->ACQ_CONTROL =
+      (1                                  << NAP_ACQ_CONTROL_RUN_Pos) |
       (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
+      (NAP_ACQ_CONTROL_DMA_INPUT_FRONTEND << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
       (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_MIXER_Pos) |
-      (GRABBER_LEN_LOG2_MAX               << NAP_ACQ_CONTROL_NFFT_Pos) |
-      (NAP_ACQ_CONTROL_DMA_INPUT_FRONTEND << NAP_ACQ_CONTROL_DMA_INPUT_Pos);
+      ((len_words-1)                      << NAP_ACQ_CONTROL_LENGTH_Pos) |
+      (GRABBER_LEN_LOG2_MAX               << NAP_ACQ_CONTROL_NFFT_Pos);
 }
-
-/** Start streaming samples from the frontend.
- */
-static void sample_stream_start(void)
-{
-  /* Set up timing compare */
-  while (1) {
-    chSysLock();
-    u32 tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
-    NAP->ACQ_TIMING_COMPARE = tc_req;
-    chSysUnlock();
-    if (tc_req - NAP->ACQ_COMPARE_SNAPSHOT <= (u32)TIMING_COMPARE_DELTA) {
-      break;
-    }
-  }
-}
-
 
 /** Start a DMA transfer.
  *
@@ -155,15 +147,6 @@ static bool dma_wait(void)
   return true;
 }
 
-
-/** Returns the sample count corresponding to the first sample of the most
- * recent sample stream.
- */
-static u32 sample_stream_snapshot_get(void)
-{
-  return NAP->ACQ_TIMING_SNAPSHOT;
-}
-
 /** Retrieve a buffer of raw samples.
  *
  * \param out             Output buffer.
@@ -174,11 +157,11 @@ static u32 sample_stream_snapshot_get(void)
  */
 static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count)
 {
-  control_set_raw_samples();
-  sample_stream_start();
+  u32 len_words = len_bytes / sizeof(u32);
   dma_start(0, (u8 *)out, len_bytes);
+  samples_start(len_words);
   bool result = dma_wait();
-  *sample_count = sample_stream_snapshot_get();
+  *sample_count = NAP->ACQ_TIMING_SNAPSHOT;
   return result;
 }
 

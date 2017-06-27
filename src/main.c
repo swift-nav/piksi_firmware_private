@@ -99,6 +99,9 @@ int main(void)
   nap_version_string_get(nap_version_string);
   log_info("nap_build_id: %s", nap_version_string);
 
+  static char nap_date_string[64] = {0};
+  nap_date_string_get(nap_date_string);
+
   static char mfg_id_string[18] = {0};
   mfg_id_string_get(mfg_id_string);
   log_info("mfg_serial_number: %s", mfg_id_string);
@@ -143,6 +146,8 @@ int main(void)
   READ_ONLY_PARAMETER("system_info", "hw_revision", hw_revision_string,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "nap_build_id", nap_version_string,
+                      TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "nap_build_date", nap_date_string,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "nap_channels", nap_track_n_channels,
                       TYPE_INT);
