@@ -94,11 +94,6 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
   log_debug_mesid(mesid,
                  "New ephemeris received [%" PRId16 ", %lf]",
                  n->eph.toe.wn, n->eph.toe.tow);
-  eph_new_status_t r = ephemeris_new(&n->eph);
-  if (EPH_NEW_OK != r) {
-    log_warn_mesid(mesid, "Error in GLO ephemeris processing. "
-                          "Eph status: %"PRIu8" ", r);
-  }
 
   /* check if previous value of mapped FCN is different */
   u16 pre_fcn;
@@ -115,6 +110,12 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
 
     gps_time_t t = {.tow = n->eph.toe.tow, .wn = n->eph.toe.wn};
     send_glo_fcn_mapping(t);
+  }
+
+  eph_new_status_t r = ephemeris_new(&n->eph);
+  if (EPH_NEW_OK != r) {
+    log_warn_mesid(mesid, "Error in GLO ephemeris processing. "
+                          "Eph status: %"PRIu8" ", r);
   }
 }
 

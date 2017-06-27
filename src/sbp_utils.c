@@ -20,6 +20,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/observation.h>
+#include <libswiftnav/glo_map.h>
 
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -549,6 +550,10 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e)
   memcpy(e->glo.acc, msg->acc, sizeof(e->glo.acc));
   e->glo.gamma        = msg->gamma;
   e->glo.tau          = msg->tau;
+  e->glo.d_tau        = msg->d_tau;
+  e->glo.iod          = msg->iod;
+  glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
+                      msg->common.sid.sat);
 }
 
 static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
@@ -560,6 +565,9 @@ static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
   memcpy(msg->acc, e->glo.acc, sizeof(msg->acc));
   msg->gamma          = e->glo.gamma;
   msg->tau            = e->glo.tau;
+  msg->d_tau          = e->glo.d_tau;
+  msg->iod            = e->glo.iod;
+  msg->fcn            = (u8)glo_map_get_fcn(e->sid);
 }
 
 #define TYPE_TABLE_INVALID_MSG_ID 0
@@ -591,7 +599,11 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
 {
-  constellation_t c = sid_to_constellation(e->sid);
+  /* NOTE: here we use common part of GPS message to take sid.code info.
+   *       this also should work for other GNSS because common part is located
+   *       at the same place in memory for all structures.*/
+  constellation_t c =
+           code_to_constellation(((msg_ephemeris_gps_t*)msg)->common.sid.code);
 
   assert(NULL != ephe_type_table[c].unpack);
 
