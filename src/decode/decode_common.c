@@ -96,12 +96,10 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
                  n->eph.toe.wn, n->eph.toe.tow);
 
   /* check if previous value of mapped FCN is different */
-  u16 pre_fcn;
+  u16 pre_fcn = GLO_FCN_UNKNOWN;
   gnss_signal_t sid = n->eph.sid;
   if (glo_map_valid(sid)) {
     pre_fcn = glo_map_get_fcn(sid);
-  } else {
-    pre_fcn = GLO_FCN_UNKNOWN;
   }
 
   /* map new value and then send SBP if FCN mapping changed for the GLO SV */
