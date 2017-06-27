@@ -77,6 +77,8 @@ static bool send_trk_detailed = 0;
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
 
+u16 max_pll_integration_time_ms = 10;
+
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                      bool update_required);
 
@@ -84,6 +86,9 @@ static update_count_t update_count_diff(const tracker_channel_t *
                                         tracker_channel,
                                         const update_count_t *val);
 static bool track_iq_output_notify(struct setting *s, const char *val);
+
+static bool max_pll_integration_time_notify(struct setting *s, const char *val);
+
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
 static const tracker_interface_t * tracker_interface_lookup(gnss_signal_t sid);
@@ -134,6 +139,10 @@ void track_setup(void)
   SETTING_NOTIFY("track", "iq_output_mask", iq_output_mask, TYPE_INT,
                  track_iq_output_notify);
   SETTING("track", "send_trk_detailed", send_trk_detailed, TYPE_BOOL);
+
+  SETTING_NOTIFY("track", "max_pll_integration_time_ms",
+                 max_pll_integration_time_ms, TYPE_INT,
+                 max_pll_integration_time_notify);
 
   track_internal_setup();
 
@@ -1291,6 +1300,20 @@ static bool track_iq_output_notify(struct setting *s, const char *val)
     return true;
   }
   return false;
+}
+
+/** Max PLL integration time change notification callback */
+static bool max_pll_integration_time_notify(struct setting *s, const char *val)
+{
+  /* update global max_pll_integration_time_ms using the default notify */
+  bool ret = settings_default_notify(s, val);
+  if (max_pll_integration_time_ms < 1) {
+    max_pll_integration_time_ms = 1; /* 1ms integration time is the smallest */
+  }
+  log_info("Max configured PLL integration time update: %" PRIu16 " ms",
+           max_pll_integration_time_ms);
+
+  return ret;
 }
 
 /** Disable the NAP tracking channel associated with a tracker channel.
