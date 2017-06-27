@@ -769,6 +769,31 @@ static void starling_thread(void *arg)
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
 
+      const ephemeris_t *stored_ephs[MAX_CHANNELS];
+      for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
+        stored_ephs[i] = NULL;
+      }
+      for (u8 i = 0; i < n_ready_tdcp; i++) {
+        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp];
+        ephemeris_t *e = NULL;
+
+        /* Find the original index of this measurement in order to point to
+         * the correct ephemeris. (Do not load it again from NDB because it may
+         * have changed meanwhile.) */
+        for (u8 j = 0; j < n_ready; j++) {
+          if (sid_is_equal(nm->sid, e_meas[j].sid)) {
+            e = &e_meas[j];
+            break;
+          }
+        }
+
+        if (e == NULL || 1 != ephemeris_valid(e, &nm->tot)) {
+          continue;
+        }
+
+        stored_ephs[n_ready_tdcp] = e;
+      }
+
       if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
         PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
         PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
@@ -782,6 +807,8 @@ static void starling_thread(void *arg)
 
         if (is_initialized) {
           set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
+
+          filter_manager_overwrite_ephemerides( low_latency_filter_manager, stored_ephs);
 
           update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
                                         &current_fix.time, n_ready_tdcp,
@@ -842,6 +869,21 @@ void process_matched_obs(const obss_t *rover_channel_meass, const obss_t *refere
   dops_t RTK_dops;
   rtk_baseline_result_t result;
 
+  ephemeris_t ephs[MAX_CHANNELS];
+  const ephemeris_t *stored_ephs[MAX_CHANNELS];
+  for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
+    stored_ephs[i] = NULL;
+  }
+
+  for (u8 i = 0; i < rover_channel_meass->n; i++) {
+    const navigation_measurement_t *nm = &rover_channel_meass->nm[i];
+    if( NDB_ERR_NONE == ndb_ephemeris_read(nm->sid, &ephs[i]) ) {
+      if (1 == ephemeris_valid(&ephs[i], &nm->tot)) {
+        stored_ephs[i] = &ephs[i];
+      }
+    }
+  }
+
   chMtxLock(&time_matched_filter_manager_lock);
 
   if (!filter_manager_is_initialized(time_matched_filter_manager)) {
@@ -849,6 +891,8 @@ void process_matched_obs(const obss_t *rover_channel_meass, const obss_t *refere
   }
 
   if (filter_manager_is_initialized(time_matched_filter_manager)) {
+    filter_manager_overwrite_ephemerides( time_matched_filter_manager, stored_ephs);
+
     chMtxLock(&time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
