@@ -19,12 +19,6 @@
 #include "registers/swiftnap.h"
 #include "registers/nt1065_frontend.h"
 
-#define NAP_ACQ_CONTROL_DMA_INPUT_FFT      (0U)
-#define NAP_ACQ_CONTROL_DMA_INPUT_FRONTEND (1U)
-
-#define NAP_ACQ_CONTROL_FFT_INPUT_DMA      (0U)
-#define NAP_ACQ_CONTROL_FFT_INPUT_FRONTEND (1U)
-
 #define NAP_TRK_SPACING_CHIPS_Pos (6U)
 #define NAP_TRK_SPACING_CHIPS_Msk (0x7U)
 

@@ -53,9 +53,6 @@ void nap_setup(void)
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  /* Set acquisiton decimation factor */
-  NAP_FE->ACQ_CONTROL = SET_FE_ACQ_CONTROL_DECIMATION(NAP_FE->ACQ_CONTROL, 0xF);
-
   /* Phase increment initialization for GPS L1C/A processing */
   NAP_FE->RF1_PINC = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
 
