@@ -77,7 +77,7 @@ static bool send_trk_detailed = 0;
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
 
-u16 max_pll_integration_time_ms = 10;
+u16 max_pll_integration_time_ms = 5;
 
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                      bool update_required);
