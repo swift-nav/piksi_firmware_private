@@ -137,17 +137,27 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid)
 static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info)
 {
   u8 flags = 0;
-  if (1 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_1MS;
-  } else if (5 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_5MS;
-  } else if (10 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_10MS;
-  } else if (20 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_20MS;
-  } else {
-    assert(!"Unsupported integration time.");
+
+  switch( ctrl_info->int_ms ) {
+    case  1:
+      flags = TRACK_SBP_PARAM_SET_1MS;
+      break;
+    case  5:
+      flags = TRACK_SBP_PARAM_SET_5MS;
+      break;
+    case 10:
+      flags = TRACK_SBP_PARAM_SET_10MS;
+      break;
+    case 20:
+      flags = TRACK_SBP_PARAM_SET_20MS;
+      break;
+    default:
+      log_error("ctrl_info->pll_bw  %.1f fll_bw  %.1f dll_bw %.1f int_ms %d",
+        ctrl_info->pll_bw, ctrl_info->fll_bw, ctrl_info->dll_bw, ctrl_info->int_ms);
+      assert(!"Unsupported integration time.");
+      break;
   }
+
   return flags;
 }
 
