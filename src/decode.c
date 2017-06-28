@@ -112,6 +112,40 @@ static const decoder_interface_t decoder_interface_default = {
   .num_decoders = 0
 };
 
+/** SBP callback for when peer sends us a message containing FCN map
+ * Stores FCN map if valid. If there is a conflict with previous values,
+ * rewrites the old value.
+ */
+static void fcn_glo_callback(u16 sender_id, u8 len, u8 msg[], void* context)
+{
+  (void) context; (void) len; (void) sender_id;
+
+  for (u8 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
+    u16 new_fcn = ((msg_fcns_glo_t*)msg)->fcns[i];
+
+    if (GLO_FCN_UNKNOWN == new_fcn) {
+      /* we need known values only */
+      continue;
+    }
+
+    gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, i);
+    /* read old value */
+    u16 old_fcn = GLO_FCN_UNKNOWN;
+    if (glo_map_valid(sid)) {
+      old_fcn = glo_map_get_fcn(sid);
+    }
+
+    if (old_fcn != new_fcn) {
+      /* rewrite fcn by new value */
+      glo_map_set_slot_id(construct_mesid(CODE_GLO_L1CA, new_fcn), i);
+      if (old_fcn != GLO_FCN_UNKNOWN) {
+        log_warn_sid(sid, "FCN received from peer is not equal to stored: "
+                     "old %"PRIu16", new %"PRIu16"", old_fcn, new_fcn);
+      }
+    }
+  }
+}
+
 /** Set up the decoding module. */
 void decode_setup(void)
 {
@@ -121,6 +155,13 @@ void decode_setup(void)
   }
 
   platform_decode_setup();
+
+  static sbp_msg_callbacks_node_t fcn_glo_node;
+  sbp_register_cbk(
+    SBP_MSG_FCNS_GLO,
+    &fcn_glo_callback,
+    &fcn_glo_node
+  );
 
   chThdCreateStatic(wa_decode_thread, sizeof(wa_decode_thread),
                     NORMALPRIO-1, decode_thread, NULL);
