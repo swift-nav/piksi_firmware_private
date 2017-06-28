@@ -381,7 +381,7 @@ static const tp_profile_entry_t gps_profiles[] = {
   [IDX_HIGH_CN0] =
   { { 20,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
     TP_LD_PARAMS_PLL_5MS,
-              50,          38,                46,               2.,         0,
+              50,          38,                99,               2.,         0,
     IDX_HIGH_CN0, IDX_MID_CN0, IDX_VERY_HIGH_CN0, IDX_HIGH_CN0_DYN,  IDX_NONE,
     TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
 
