@@ -822,7 +822,11 @@ static alma_type_table_element_t alma_type_table[CONSTELLATION_COUNT] = {
 
 void unpack_almanac(const msg_almanac_t *msg, almanac_t *a)
 {
-  constellation_t c = sid_to_constellation(a->sid);
+  /* NOTE: here we use common part of GPS message to take sid.code info.
+   *       this also should work for other GNSS because common part is located
+   *       at the same place in memory for all structures.*/
+  constellation_t c =
+           code_to_constellation(((msg_almanac_gps_t*)msg)->common.sid.code);
 
   assert(NULL != alma_type_table[c].unpack);
 
