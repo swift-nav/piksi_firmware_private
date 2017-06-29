@@ -1254,6 +1254,8 @@ void tracking_channel_glo_data_sync(tracker_channel_id_t id,
   assert(from_decoder);
   assert(from_decoder->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN);
 
+  log_warn("GLO data sync, channel: %u, TOW: %i, valid: %u", id, from_decoder->TOW_ms, from_decoder->valid);
+
   tracking_channel_data_sync(id, from_decoder);
 }
 
