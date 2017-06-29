@@ -774,7 +774,7 @@ static void starling_thread(void *arg)
         stored_ephs[i] = NULL;
       }
       for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp];
+        navigation_measurement_t *nm = &nav_meas_tdcp[i];
         ephemeris_t *e = NULL;
 
         /* Find the original index of this measurement in order to point to
