@@ -14,7 +14,6 @@
 
 #include <libswiftnav/logging.h>
 
-#include "main.h"
 #include "axi_dma.h"
 #include "nap_hw.h"
 #include "nap_constants.h"
@@ -88,19 +87,9 @@ static void axi_dma_rx_callback(bool success)
  */
 static void samples_start(u32 len_words)
 {
-  /* Acquistion is started with a 0-to-1 transition of the RUN bit. */
-  NAP->ACQ_CONTROL = 0;
-
-  COMPILER_BARRIER();
-
-  NAP->ACQ_CONTROL =
-      (1                                  << NAP_ACQ_CONTROL_RUN_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_FRONTEND_Pos) |
-      (NAP_ACQ_CONTROL_DMA_INPUT_FRONTEND << NAP_ACQ_CONTROL_DMA_INPUT_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_FFT_INPUT_Pos) |
-      (0                                  << NAP_ACQ_CONTROL_PEAK_SEARCH_Pos) |
-      ((len_words-1)                      << NAP_ACQ_CONTROL_LENGTH_Pos) |
-      (GRABBER_LEN_LOG2_MAX               << NAP_ACQ_CONTROL_NFFT_Pos);
+  NAP->RAW_CONTROL =
+      (1             << NAP_RAW_CONTROL_RUN_Pos) |
+      ((len_words-1) << NAP_RAW_CONTROL_LENGTH_Pos);
 }
 
 /** Start a DMA transfer.
@@ -157,11 +146,11 @@ static bool dma_wait(void)
  */
 static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count)
 {
-  u32 len_words = len_bytes / sizeof(u32);
+  u32 len_words = len_bytes / sizeof(u64);
   dma_start(0, (u8 *)out, len_bytes);
   samples_start(len_words);
   bool result = dma_wait();
-  *sample_count = NAP->ACQ_TIMING_SNAPSHOT;
+  *sample_count = NAP->RAW_TIMING_SNAPSHOT;
   return result;
 }
 
