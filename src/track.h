@@ -919,6 +919,8 @@ typedef enum
   TP_RESULT_NO_DATA = 1, /**< Profile has changed */
 } tp_result_e;
 
+extern u16 max_pll_integration_time_ms;
+
 tp_result_e tp_init(void);
 tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
                             tp_profile_t *profile,

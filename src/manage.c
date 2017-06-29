@@ -712,7 +712,10 @@ static void manage_track_thread(void *arg)
   (void)arg;
   chRegSetThreadName("manage track");
   while (TRUE) {
-    chThdSleepMilliseconds(500);
+
+#   define MANAGE_TRACK_SLEEP_MS 500 /* [ms] */
+
+    chThdSleepMilliseconds(MANAGE_TRACK_SLEEP_MS);
     check_clear_glo_unhealthy();
     DO_EVERY(2,
       check_clear_unhealthy();
@@ -721,6 +724,13 @@ static void manage_track_thread(void *arg)
     );
     tracking_send_state();
     tracking_send_detailed_state();
+
+#   define MANAGE_TRACK_INFO_UPDATE_DELAY_S 100 /* [s] */
+
+    DO_EVERY(SECS_MS * MANAGE_TRACK_INFO_UPDATE_DELAY_S / MANAGE_TRACK_SLEEP_MS,
+             log_info("Max configured PLL integration time: %" PRIu16 " ms",
+                      max_pll_integration_time_ms);
+    );
   }
 }
 
