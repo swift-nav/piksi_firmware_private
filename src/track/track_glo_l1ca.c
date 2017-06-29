@@ -122,11 +122,12 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
 
   *TOW_residual_ns = tow_entry.TOW_residual_ns;
   if (tp_tow_is_sane(TOW_ms)) {
-    tracker_channel->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
+    tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
   } else {
     log_error_sid(sid, "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                   tracker_channel->update_count, TOW_ms);
     TOW_ms = TOW_UNKNOWN;
+    tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
   }
 
   return TOW_ms;

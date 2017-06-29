@@ -35,10 +35,6 @@
 typedef enum {
   TRACK_SBP_SYNC_NONE = 0,     /**< no synchronization */
   TRACK_SBP_SYNC_BIT = 1,      /**< bit synchronization */
-  TRACK_SBP_SYNC_WORD = 2,     /**< word synchronization (relevant only to L1C/A) */
-  TRACK_SBP_SYNC_SUBFRAME = 3, /**< subframe synchronization (relevant to L1C/A) */
-  TRACK_SBP_SYNC_MESSAGE = TRACK_SBP_SYNC_SUBFRAME /**< message synchronization
-                                                (relevant to L2C) */
 } track_sbp_sync_status_t;
 
 /** TOW status */

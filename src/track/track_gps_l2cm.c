@@ -265,12 +265,13 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                         error_ms);
         tracker_channel->TOW_ms = ToW_ms;
         if (tp_tow_is_sane(tracker_channel->TOW_ms)) {
-          tracker_channel->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
+          tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
         } else {
           log_error_mesid(mesid,
                           "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                           tracker_channel->update_count, tracker_channel->TOW_ms);
           tracker_channel->TOW_ms = TOW_UNKNOWN;
+          tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
         }
       }
     }
@@ -379,14 +380,14 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
       if (data->xcorr_whitelist &&
           data->xcorr_whitelist_l1) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
-        tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+        tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
       } else if (!data->xcorr_whitelist &&
                  !data->xcorr_whitelist_l1) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
       } else if (!data->xcorr_whitelist) {
         /* Otherwise if L2 signal is not whitelisted, mark as confirmed xcorr */
-        tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+        tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
       }
     }
   } else {
@@ -429,7 +430,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
 
   if (tracker_check_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
-    tracker_channel->flags |= TRACK_CMN_FLAG_XCORR_CONFIRMED;
+    tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
     return;
   }
 

@@ -267,12 +267,13 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
                         error_ms);
         tracker_channel->TOW_ms = ToW_ms;
         if (tp_tow_is_sane(tracker_channel->TOW_ms)) {
-          tracker_channel->flags |= TRACK_CMN_FLAG_TOW_PROPAGATED;
+          tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
         } else {
           log_error_mesid(mesid,
                           "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
                           tracker_channel->update_count, tracker_channel->TOW_ms);
           tracker_channel->TOW_ms = TOW_UNKNOWN;
+          tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
         }
       }
     }
@@ -435,7 +436,7 @@ static void increment_cp_counter(tracker_channel_t *tracker_channel,
   } else {
     /* If counter reached maximum. */
     /* Drop L2CL tracker. */
-    tracker_channel->flags |= TRACK_CMN_FLAG_L2CL_AMBIGUITY;
+    tracker_channel->flags |= TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED;
     tracker_channel->cp_sync.synced = true;
 
     /* Load L2CM information */

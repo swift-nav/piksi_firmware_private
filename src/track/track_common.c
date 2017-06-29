@@ -34,6 +34,12 @@
 /** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
 #define TP_FLL_DLL_ERR_THRESHOLD_HZ    0.1
 
+/** C/N0 threshold long interval [ms] */
+#define TRACK_CN0_THRES_COUNT_LONG 2000
+
+/** C/N0 threshold short interval [ms] */
+#define TRACK_CN0_THRES_COUNT_SHORT 100
+
 /**
  * Computes number of chips in the integration interval
  *
@@ -444,60 +450,110 @@ void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel)
 }
 
 /**
- * Updates common tracker flags.
+ * Updates tracker flags.
  *
- * \param[in]     tracker_channel Tracker channel data
+ * \param[in,out] tracker_channel Tracker channel data.
  *
  * \return None
- *
- * \sa track_cmn_flags_t
  */
-void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel)
+void tp_tracker_update_flags(tracker_channel_t *tracker_channel)
 {
-  track_cmn_flags_t flags = tracker_channel->flags & TRACK_CMN_FLAG_STICKY_MASK;
+  u32 flags = tracker_channel->flags;
 
+  flags |= TRACKER_FLAG_ACTIVE;
+
+  flags &= ~TRACKER_FLAG_CONFIRMED;
   if (tracker_channel->confirmed) {
-    flags |= TRACK_CMN_FLAG_CONFIRMED;
+    flags |= TRACKER_FLAG_CONFIRMED;
   }
 
+  if (ERROR_FLAG_NONE != tracker_channel->error_flags) {
+    flags |= TRACKER_FLAG_ERROR;
+  }
+
+  flags &= ~TRACKER_FLAG_PLL_USE;
+  flags &= ~TRACKER_FLAG_FLL_USE;
+  flags &= ~TRACKER_FLAG_HAS_PLOCK;
+  flags &= ~TRACKER_FLAG_HAS_FLOCK;
+  flags &= ~TRACKER_FLAG_HAS_OLOCK;
   if (tracker_channel->mode_pll) {
-    flags |= TRACK_CMN_FLAG_PLL_USE;
+    flags |= TRACKER_FLAG_PLL_USE;
     if (tracker_channel->lock_detect.outo) {
-      /* PLL optimistic lock */
-      flags |= TRACK_CMN_FLAG_HAS_OLOCK;
+      flags |= TRACKER_FLAG_HAS_OLOCK;
     }
     if (tracker_channel->lock_detect.outp) {
-      /* PLL pessimistic lock */
-      flags |= TRACK_CMN_FLAG_HAS_PLOCK;
-      flags |= TRACK_CMN_FLAG_HAD_PLOCK;
+      flags |= TRACKER_FLAG_HAS_PLOCK;
+      flags |= TRACKER_FLAG_HAD_PLOCK;
       tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
     }
     if (tracker_channel->mode_fll) {
-      flags |= TRACK_CMN_FLAG_FLL_USE;
+      flags |= TRACKER_FLAG_FLL_USE;
     }
   } else if (tracker_channel->mode_fll) {
-    flags |= TRACK_CMN_FLAG_FLL_USE;
+    flags |= TRACKER_FLAG_FLL_USE;
     if (tracker_channel->lock_detect.outp) {
-      /* FLL lock criteria */
-      flags |= TRACK_CMN_FLAG_HAS_FLOCK;
+      flags |= TRACKER_FLAG_HAS_FLOCK;
+      flags |= TRACKER_FLAG_HAD_FLOCK;
     }
   } else {
     assert(!"Unknown tracking loop configuration");
   }
 
   if (tracker_channel->xcorr_filter_active) {
-    flags |= TRACK_CMN_FLAG_XCORR_FILTER_ACTIVE;
+    flags |= TRACKER_FLAG_XCORR_FILTER_ACTIVE;
   }
 
-  /* Sanity checks */
-  if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
-    assert(0 == (flags & TRACK_CMN_FLAG_TOW_DECODED));
-    assert(0 == (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
+  if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity
+      && (flags & TRACKER_FLAG_HAS_PLOCK)) {
+    /* Nav bit polarity is known, i.e. half-cycles have been resolved.
+     * bit polarity known flag is set only when phase lock to prevent the
+     * situation when channel loses an SV, but decoder just finished TOW decoding
+     * which cause bit polarity know flag set */
+    flags |= TRACKER_FLAG_BIT_POLARITY_KNOWN;
   } else {
-    assert(0 != (flags & TRACK_CMN_FLAG_TOW_DECODED) ||
-           0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED));
-    assert(!(0 != (flags & TRACK_CMN_FLAG_TOW_DECODED) &&
-           0 != (flags & TRACK_CMN_FLAG_TOW_PROPAGATED)));
+    flags &= ~TRACKER_FLAG_BIT_POLARITY_KNOWN;
+  }
+
+  if (BIT_POLARITY_INVERTED == tracker_channel->bit_polarity) {
+    flags |= TRACKER_FLAG_BIT_INVERTED;
+  } else {
+    flags &= ~TRACKER_FLAG_BIT_INVERTED;
+  }
+
+  if (BITSYNC_UNSYNCED == tracker_channel->bit_sync.bit_phase_ref) {
+    flags &= ~TRACKER_FLAG_BIT_SYNC;
+  } else {
+    flags |= TRACKER_FLAG_BIT_SYNC;
+  }
+
+  if (TOW_INVALID == tracker_channel->TOW_ms) {
+    flags &= ~TRACKER_FLAG_TOW_VALID;
+  } else {
+    flags |= TRACKER_FLAG_TOW_VALID;
+  }
+
+  /* Tracking status: GLO healthy status */
+  if (0 != (tracker_channel->flags & TRACKER_FLAG_GLO_HEALTH_DECODED)) {
+    if (GLO_SV_HEALTHY == tracker_channel->health) {
+      flags |= TRACKER_FLAG_GLO_HEALTHY;
+    }
+  }
+
+  /* Check C/N0 has been above threshold for a long time (RTK). */
+  u32 cn0_threshold_count_ms = (tracker_channel->update_count -
+                                tracker_channel->cn0_below_use_thres_count);
+  if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_LONG) {
+    flags |= TRACKER_FLAG_CN0_LONG;
+  }
+  /* Check C/N0 has been above threshold for the minimum time (SPP). */
+  if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_SHORT) {
+    flags |= TRACKER_FLAG_CN0_SHORT;
+  }
+
+  update_count_t last_mode_change_ms = update_count_diff(tracker_channel,
+                                        &tracker_channel->mode_change_count);
+  if (last_mode_change_ms > TRACK_STABILIZATION_T) {
+    flags |= TRACKER_FLAG_STABLE;
   }
 
   tracker_channel->flags = flags;
@@ -628,20 +684,20 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                     "[+%"PRIu32"ms] Error TOW from decoder %"PRId32,
                     tracker_channel->update_count, tracker_channel->TOW_ms);
     tracker_channel->TOW_ms = TOW_UNKNOWN;
-    tracker_channel->flags &= ~TRACK_CMN_FLAG_TOW_DECODED;
-    tracker_channel->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
-    tracker_channel->flags &= ~TRACK_CMN_FLAG_HEALTH_DECODED;
+    tracker_channel->flags &= ~TRACKER_FLAG_TOW_DECODED;
+    tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+    tracker_channel->flags &= ~TRACKER_FLAG_GLO_HEALTH_DECODED;
   }
   if (decoded_tow) {
     log_debug_mesid(mesid,
                     "[+%"PRIu32"ms] Decoded TOW %"PRId32,
                     tracker_channel->update_count, tracker_channel->TOW_ms);
-    tracker_channel->flags |= TRACK_CMN_FLAG_TOW_DECODED;
-    tracker_channel->flags &= ~TRACK_CMN_FLAG_TOW_PROPAGATED;
+    tracker_channel->flags |= TRACKER_FLAG_TOW_DECODED;
+    tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
 
     /* GLO health data is also decoded along with TOW */
     if (is_glo_sid(mesid)) {
-      tracker_channel->flags |= TRACK_CMN_FLAG_HEALTH_DECODED;
+      tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
       tracker_channel->health = tracker_glo_sv_health_get(tracker_channel);
       log_debug_mesid(mesid,
                       "[+%"PRIu32"ms] Decoded Health info %"PRIu8,
@@ -930,7 +986,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker_channel)
 
   /* remove channels with a large positive Doppler outlier */
   if ( fabsf(tracker_channel->carrier_freq) >  fMaxDoppler ) {
-    (tracker_channel->flags) |= TRACK_CMN_FLAG_OUTLIER;
+    (tracker_channel->flags) |= TRACKER_FLAG_OUTLIER;
     return;
   }
 }
@@ -1045,7 +1101,7 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tracker_retune(tracker_channel, chips_to_correlate);
 
   tp_tracker_update_cycle_counter(tracker_channel);
-  tp_tracker_update_common_flags(tracker_channel);
+  tp_tracker_update_flags(tracker_channel);
 
   return cflags;
 }
