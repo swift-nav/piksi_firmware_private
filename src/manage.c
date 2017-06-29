@@ -809,10 +809,12 @@ static void drop_channel(u8 channel_id,
   u32 time_in_track = (u32)(now - info->init_timestamp_ms);
 
   /* Log message with appropriate priority. */
-  if (CH_DROP_REASON_ERROR == reason) {
-    /* Errors are always logged as errors */
+  if ((CH_DROP_REASON_ERROR == reason) ||
+      (CH_DROP_REASON_NO_UPDATES == reason)) {
     log_error_mesid(info->mesid,
-                    "[+%" PRIu32 "ms] %s", time_in_track,
+                    "[+%" PRIu32 "ms] nap_channel = %" PRIu8 " %s",
+                    time_in_track,
+                    channel_id,
                     get_ch_drop_reason_str(reason));
   } else if (0 == (flags & TRACKER_FLAG_CONFIRMED)) {
     /* Unconfirmed tracker messages are always logged at debug level */
