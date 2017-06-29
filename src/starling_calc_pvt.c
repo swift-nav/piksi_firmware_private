@@ -766,12 +766,14 @@ static void starling_thread(void *arg)
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
 
+      // This will duplicate pointers to satellites with mutliple frequencies,
+      // but this scenario is expected and handled
       const ephemeris_t *stored_ephs[MAX_CHANNELS];
       for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
         stored_ephs[i] = NULL;
       }
       for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp];
+        navigation_measurement_t *nm = &nav_meas_tdcp[i];
         ephemeris_t *e = NULL;
 
         /* Find the original index of this measurement in order to point to
