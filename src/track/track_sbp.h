@@ -37,7 +37,6 @@ typedef enum {
   TRACK_SBP_SYNC_BIT = 1,      /**< bit synchronization */
 } track_sbp_sync_status_t;
 
-/** TOW status */
 typedef enum {
   TRACK_SBP_TOW_NONE = 0,       /**< TOW is not available */
   TRACK_SBP_TOW_DECODED = 1,    /**< decoded TOW is available */

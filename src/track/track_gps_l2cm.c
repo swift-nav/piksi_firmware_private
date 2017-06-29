@@ -276,9 +276,10 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
       }
     }
 
-    if (TOW_UNKNOWN != tracker_channel->TOW_ms &&
-        tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
-        tracker_channel->confirmed &&
+    bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+    if ((TOW_UNKNOWN != tracker_channel->TOW_ms) &&
+        (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
+        confirmed &&
         !tracking_is_running(construct_mesid(CODE_GPS_L1CA, mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
@@ -506,8 +507,8 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
     tracking_channel_drop_l2cl(mesid);
     tracker_ambiguity_unknown(tracker_channel);
   } else if (tracker_channel->lock_detect.outp &&
-             tracker_channel->confirmed &&
-             0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+             (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
+             (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) &&
              tracker_bit_aligned(tracker_channel)) {
 
     /* If needed, read half-cycle ambiguity status from L2CL tracker */

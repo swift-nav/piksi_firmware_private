@@ -26,28 +26,25 @@
 
 /** How many ms to allow tracking channel to converge after
     initialization before we consider dropping it.
-    Applied to all signals other than GPS L2CL */
-#define TRACK_INIT_T 2500
+    Applied to all signals initialized from ACQ. */
+#define TRACK_INIT_FROM_ACQ_MS 2500
 
-/** How many ms to allow L2CL tracking channel to converge after
-    initialization before we consider dropping it */
-#define TRACK_INIT_T_L2CL 500
+/** How many ms to allow tracking channel to converge after
+    initialization before we consider dropping it.
+    Applied to all signals initialized from a handover. */
+#define TRACK_INIT_FROM_HANDOVER_MS 500
 
 /** If a channel is dropped but was running successfully for at least
     this long, mark it for prioritized reacquisition. */
-#define TRACK_REACQ_T 5000
+#define TRACK_REACQ_MS 5000
 
 /** If C/N0 is below track_cn0_threshold for >= TRACK_DROP_CN0_T ms,
     drop the channel. */
-#define TRACK_DROP_CN0_T 500
+#define TRACK_DROP_CN0_MS 500
 
 /** If optimistic phase lock detector shows "unlocked" for >=
     TRACK_DROP_UNLOCKED_T ms, drop the channel. */
-#define TRACK_DROP_UNLOCKED_T 1500
-
-/** If pessimistic phase lock detector shows "locked" for >=
-    TRACK_USE_LOCKED_T ms, use the channel. */
-#define TRACK_USE_LOCKED_T 100
+#define TRACK_DROP_UNLOCKED_MS 1500
 
 #define ACQ_FULL_CF_STEP  soft_multi_acq_bin_width()
 
@@ -55,9 +52,6 @@
 
 #define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
 #define MANAGE_ACQ_THREAD_STACK    16384
-
-#define MANAGE_TRACK_THREAD_PRIORITY (NORMALPRIO-2)
-#define MANAGE_TRACK_THREAD_STACK   16384
 
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
@@ -90,7 +84,7 @@ void manage_acq_setup(void);
 
 void manage_set_obs_hint(gnss_signal_t sid);
 
-void manage_track_setup(void);
+void me_settings_setup(void);
 
 float get_solution_elevation_mask(void);
 void acq_result_send(const me_gnss_signal_t mesid, float cn0, float cp, float cf);
@@ -114,5 +108,7 @@ void l1ca_l2cm_handover_release(u8 sat);
 bool mesid_is_tracked(const me_gnss_signal_t mesid);
 bool is_glo_enabled(void);
 void sanitize_trackers(void);
+void check_clear_glo_unhealthy(void);
+void check_clear_unhealthy(void);
 
 #endif
