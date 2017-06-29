@@ -791,7 +791,7 @@ static void starling_thread(void *arg)
           continue;
         }
 
-        stored_ephs[n_ready_tdcp] = e;
+        stored_ephs[i] = e;
       }
 
       if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
