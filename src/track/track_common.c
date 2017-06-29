@@ -25,6 +25,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#include <inttypes.h>
 
 /** False lock detector filter interval in ms. */
 #define TP_TRACKER_ALIAS_DURATION_MS   (1000)
@@ -529,20 +530,20 @@ static void process_alias_error(tracker_channel_t *tracker_channel)
   float I = tracker_channel->corrs.corr_ad.I - tracker_channel->alias_detect.first_I;
   float Q = tracker_channel->corrs.corr_ad.Q - tracker_channel->alias_detect.first_Q;
 
-  s32 err = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
+  s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
 
-  if (0 != err) {
+  if (0 != err_hz) {
 
     if (tracker_channel->lock_detect.outp) {
       log_warn_mesid(tracker_channel->mesid,
-                     "False phase lock detected: %f", err);
+                     "False phase lock detected: %" PRId32 " Hz", err_hz);
     } else {
       log_debug_mesid(tracker_channel->mesid,
-                      "False optimistic lock detected: %f", err);
+                      "False optimistic lock detected: %" PRId32 " Hz", err_hz);
     }
 
     tracker_ambiguity_unknown(tracker_channel);
-    tp_tl_adjust(&tracker_channel->tl_state, err);
+    tp_tl_adjust(&tracker_channel->tl_state, err_hz);
   }
 }
 
@@ -716,7 +717,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz &&
       !confirmed &&
-      tracker_channel->lock_detect.outo &&
+      tracker_channel->lock_detect.outp &&
       tracker_has_bit_sync(tracker_channel)) {
     tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
     log_debug_mesid(tracker_channel->mesid,

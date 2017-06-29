@@ -770,7 +770,7 @@ static void drop_channel(tracker_channel_t *tracker_channel,
     log_error_mesid(mesid,
                     "[+%" PRIu32 "ms] nap_channel = %" PRIu8 " %s",
                     time_in_track_ms,
-                    tracker_channel->channel_id,
+                    tracker_channel->nap_channel,
                     get_ch_drop_reason_str(reason));
   } else if (0 == (flags & TRACKER_FLAG_CONFIRMED)) {
     /* Unconfirmed tracker messages are always logged at debug level */
@@ -879,7 +879,7 @@ static bool leap_second_is_imminent(void)
  * cross-correlation purposes. */
 void sanitize_trackers(void)
 {
-  u64 now_ms = timing_getms();
+  const u64 now_ms = timing_getms();
   bool leap_second_event = leap_second_is_imminent();
 
   /* Clear GLO satellites TOW cache if it is leap second event */
@@ -957,8 +957,8 @@ void sanitize_trackers(void)
 
     /* PLL/FLL pessimistic lock detector "unlocked" for a while? */
     u32 unlocked_ms = 0;
-    if (0 == (flags & TRACKER_FLAG_HAS_PLOCK) &&
-        0 == (flags & TRACKER_FLAG_HAS_FLOCK)) {
+    if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
       unlocked_ms = update_count_diff(tracker_channel,
                                       &tracker_channel->ld_pess_change_count);
     }

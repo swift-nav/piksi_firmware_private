@@ -135,7 +135,11 @@ void track_setup(void)
 
   platform_track_setup();
 
-  chThdCreateStatic(wa_nap_track_irq, sizeof(wa_nap_track_irq), HIGHPRIO-1, nap_track_irq_thread, NULL);
+  chThdCreateStatic(wa_nap_track_irq,
+                    sizeof(wa_nap_track_irq),
+                    HIGHPRIO - 1,
+                    nap_track_irq_thread,
+                    /* arg = */ NULL);
 }
 
 /** Send tracking state SBP message.

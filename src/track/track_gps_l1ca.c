@@ -196,8 +196,8 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
   }
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (aligned &&
-      (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) && confirmed) {
+  if (confirmed && aligned &&
+      (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD)) {
     /* Update ToW cache:
      * - bit edge is reached
      * - CN0 is OK
