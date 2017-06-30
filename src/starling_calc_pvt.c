@@ -1099,6 +1099,7 @@ static bool enable_fix_mode(struct setting *s, const char *val)
   }
 
   bool enable_fix = value == 0 ? false : true;
+  enable_fix = false;
   chMtxLock(&time_matched_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
   chMtxUnlock(&time_matched_filter_manager_lock);
