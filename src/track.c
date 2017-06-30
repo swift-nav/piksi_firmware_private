@@ -215,6 +215,10 @@ void tracking_send_state(void)
  */
 void tracking_send_detailed_state(void)
 {
+  if (!send_trk_detailed) {
+    return;
+  }
+
   last_good_fix_t lgf;
   last_good_fix_t *plgf = &lgf;
 
@@ -255,9 +259,8 @@ void tracking_send_detailed_state(void)
                                  &ctrl_info,
                                  &misc_info,
                                  plgf);
-    if (send_trk_detailed) {
-      sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8*)&sbp);
-    }
+
+    sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8*)&sbp);
   }
 }
 
@@ -388,9 +391,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
 
   tracker_channel_lock(tracker_channel);
   {
-    size_t cleanup_region_size = sizeof(tracker_channel_t) -
-                         offsetof(tracker_channel_t, cleanup_region_start);
-    memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
+    tracker_cleanup(tracker_channel);
 
     /* Set up channel */
     tracker_channel->mesid = mesid;
@@ -671,8 +672,13 @@ static void tracking_channel_update_values(
 
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
+
+    chMtxLock(&tracker_channel->mutex_pub);
+    tracking_channel_misc_info_t misc_info = pub_data->misc_info;
+    chMtxUnlock(&tracker_channel->mutex_pub);
+
     tracking_channel_measurement_get(ref_tc, info, freq_info, time_info,
-             (tracking_channel_misc_info_t*)&pub_data->misc_info, &meas);
+                                     &misc_info, &meas);
     tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
   }
 

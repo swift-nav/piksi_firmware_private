@@ -327,6 +327,16 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
   tracker_channel->flags |= TRACKER_FLAG_ACTIVE;
 }
 
+void tracker_cleanup(tracker_channel_t *tracker_channel)
+{
+  size_t cleanup_region_size = sizeof(tracker_channel_t) -
+                       offsetof(tracker_channel_t, cleanup_region_start);
+
+  chMtxLock(&tracker_channel->mutex_pub);
+  memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
+  chMtxUnlock(&tracker_channel->mutex_pub);
+}
+
 /**
  * Releases tracker data.
  *
@@ -341,9 +351,7 @@ void tp_tracker_disable(tracker_channel_t *tracker_channel)
                   tracker_channel->update_count,
                   tracker_channel->TOW_ms);
 
-  size_t cleanup_region_size = sizeof(tracker_channel_t) -
-                       offsetof(tracker_channel_t, cleanup_region_start);
-  memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
+  tracker_cleanup(tracker_channel);
 }
 
 /**

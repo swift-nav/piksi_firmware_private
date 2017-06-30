@@ -744,14 +744,8 @@ static const char* get_ch_drop_reason_str(ch_drop_reason_t reason)
  * The method logs channel drop reason message, actually disables tracking
  * channel components and updates ACQ hints for re-acqusition.
  *
- * \param[in] channel_id Channel number
- * \param[in] mesid      ME signal ID
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in] reason     Channel drop reason
- * \param[in] info       Generic data block for dropped channel
- * \param[in] time_info  Time data block for dropped channel
- * \param[in] freq_info  Frequency/phase data block for dropped channel
- *
- * \return None
  */
 static void drop_channel(tracker_channel_t *tracker_channel,
                          ch_drop_reason_t reason)
