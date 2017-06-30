@@ -102,6 +102,8 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
     pre_fcn = glo_map_get_fcn(sid);
   }
 
+  n->eph.glo.fcn = mesid.sat;
+
   /* map new value and then send SBP if FCN mapping changed for the GLO SV */
   if (pre_fcn != mesid.sat) {
     glo_map_set_slot_id(mesid, sid.sat);
