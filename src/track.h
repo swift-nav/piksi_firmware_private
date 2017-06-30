@@ -45,10 +45,6 @@
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
-/** How many milliseconds to wait for the tracking loops to
- * stabilize after any mode change before using obs. */
-#define TRACK_STABILIZATION_T 1000
-
 /*
  * Main tracking: PLL loop selection
  */
@@ -332,7 +328,6 @@ typedef struct {
   u32 cn0_drop_ms;         /**< Time with C/N0 below drop threshold [ms] */
   u32 ld_pess_locked_ms;   /**< Time in pessimistic lock [ms] */
   u32 ld_pess_unlocked_ms; /**< Time without pessimistic lock [ms] */
-  u32 last_mode_change_ms; /**< Time since last mode change [ms] */
 } tracking_channel_time_info_t;
 
 /** Controller parameters for error sigma computations */
@@ -501,8 +496,6 @@ typedef struct {
 
   /** Time at which the channel was disabled. */
   systime_t disable_time;
-  /** Error flags. May be set at any time by the tracking thread. */
-  volatile error_flag_t error_flags;
 
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
@@ -527,8 +520,6 @@ typedef struct {
   bool xcorr_flag;
 
   update_count_t update_count; /**< Number of ms channel has been running */
-  update_count_t mode_change_count;
-                               /**< update_count at last mode change. */
   update_count_t cn0_below_use_thres_count;
                                /**< update_count value when C/N0 was
                                     last below the use threshold. */
@@ -583,10 +574,6 @@ typedef struct {
   u16               use_alias_detection: 1; /**< Flag for alias detection control */
   u16               has_next_params: 1;     /**< Flag if stage transition is in
                                              *   progress */
-  u16               confirmed: 1;           /**< Flag if the tracking is confirmed */
-  u16               mode_pll: 1;            /**< PLL control flag */
-  u16               mode_fll: 1;            /**< FLL control flag */
-  u16               xcorr_filter_active: 1; /**< Cross-correlation filter is in use */
 
   /* Constellation specific data */
   union {
@@ -895,7 +882,6 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
 void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
-void tp_tracker_update_common_flags(tracker_channel_t *tracker_channel);
 void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
                             bool xcorr_suspect,
                             bool sensitivity_mode);
@@ -1034,5 +1020,7 @@ bool tracker_check_xcorr_flag(tracker_channel_t *tracker_channel);
 update_count_t update_count_diff(const tracker_channel_t *
                                  tracker_channel,
                                  const update_count_t *val);
+void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
+void tracker_cleanup(tracker_channel_t *tracker_channel);
 
 #endif

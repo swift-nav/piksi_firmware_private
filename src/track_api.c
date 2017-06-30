@@ -169,6 +169,8 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
 
     *decoded_tow = (TOW_ms >= 0);
     *TOW_residual_ns = to_tracker.TOW_residual_ns;
+
+    update_bit_polarity_flags(tracker_channel);
   } else {
     *decoded_tow = false;
   }
@@ -210,35 +212,40 @@ void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
                              s32 corr_prompt_imag,
                              bool sensitivity_mode)
 {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-
   /* Update bit sync */
   s32 bit_integrate;
-  if (bit_sync_update(&tracker_channel->bit_sync,
-                      corr_prompt_real,
-                      corr_prompt_imag,
-                      int_ms,
-                      &bit_integrate)) {
-    /* Skip FIFO writes for signals which do not require decoder. */
-    if (!code_requires_decoder(mesid.code)) {
-      return;
-    }
-    s8 soft_bit = nav_bit_quantize(bit_integrate);
+  bool integrated = bit_sync_update(&tracker_channel->bit_sync,
+                                    corr_prompt_real,
+                                    corr_prompt_imag,
+                                    int_ms,
+                                    &bit_integrate);
 
-    /* write to FIFO */
-    nav_bit_fifo_element_t element = { .soft_bit = soft_bit,
-                                       .sensitivity_mode = sensitivity_mode };
-    if (nav_bit_fifo_write(&tracker_channel->nav_bit_fifo, &element)) {
-
-      /* warn if the FIFO has become full */
-      if (nav_bit_fifo_full(&tracker_channel->nav_bit_fifo)) {
-        log_warn_mesid(mesid, "nav bit FIFO full");
-      }
-    }
-
-    /* clear nav bit TOW offset */
-    tracker_channel->nav_bit_TOW_offset_ms = 0;
+  if (BITSYNC_UNSYNCED == tracker_channel->bit_sync.bit_phase_ref) {
+    tracker_channel->flags &= ~TRACKER_FLAG_BIT_SYNC;
+  } else {
+    tracker_channel->flags |= TRACKER_FLAG_BIT_SYNC;
   }
+
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  if (!integrated || !code_requires_decoder(mesid.code)) {
+    return;
+  }
+
+  s8 soft_bit = nav_bit_quantize(bit_integrate);
+
+  /* write to FIFO */
+  nav_bit_fifo_element_t element = { .soft_bit = soft_bit,
+                                     .sensitivity_mode = sensitivity_mode };
+  if (nav_bit_fifo_write(&tracker_channel->nav_bit_fifo, &element)) {
+
+    /* warn if the FIFO has become full */
+    if (nav_bit_fifo_full(&tracker_channel->nav_bit_fifo)) {
+      log_warn_mesid(mesid, "nav bit FIFO full");
+    }
+  }
+
+  /* clear nav bit TOW offset */
+  tracker_channel->nav_bit_TOW_offset_ms = 0;
 }
 
 /** Get the bit length for a tracker channel.
@@ -310,6 +317,7 @@ void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel)
   tracker_channel->lock_counter =
       tracking_lock_counter_increment(tracker_channel->mesid);
   tracker_channel->reset_cpo = true;
+  update_bit_polarity_flags(tracker_channel);
 }
 
 /** Checks channel's carrier phase ambiguity status.
@@ -336,6 +344,7 @@ void tracker_ambiguity_set(tracker_channel_t *tracker_channel, s8 polarity)
     return;
   }
   tracker_channel->bit_polarity = polarity;
+  update_bit_polarity_flags(tracker_channel);
 }
 
 /** Get the channel's GLO orbital slot information.

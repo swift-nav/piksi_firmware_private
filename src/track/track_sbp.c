@@ -66,8 +66,7 @@ static u8 get_track_flags(const tracking_channel_info_t *channel_info)
   u8 flags = TRACK_SBP_LOOP_NO_LOCK;
   if (0 != (channel_info->flags & TRACKER_FLAG_HAS_PLOCK)) {
     flags = TRACK_SBP_LOOP_PLL_PESSIMISTIC_LOCK;
-  } else if (0 != (channel_info->flags & TRACKER_FLAG_HAS_OLOCK)) {
-    flags = TRACK_SBP_LOOP_PLL_OPTIMISTIC_LOCK;
+
   } else if (0 != (channel_info->flags & TRACKER_FLAG_HAS_FLOCK)) {
     flags = TRACK_SBP_LOOP_FLL_LOCK;
   }

@@ -72,6 +72,8 @@ static u16 iq_output_mask = 0;
 static bool send_trk_detailed = 0;
 u16 max_pll_integration_time_ms = 10;
 
+static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
+
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                      bool update_required);
 
@@ -108,6 +110,8 @@ static void tracking_channel_update_values(
                                 const tracking_channel_ctrl_info_t *ctrl_params,
                                 bool reset_cpo);
 
+void nap_track_irq_thread(void *arg);
+
 /** Set up the tracking module. */
 void track_setup(void)
 {
@@ -130,12 +134,18 @@ void track_setup(void)
   tp_init();
 
   platform_track_setup();
+
+  chThdCreateStatic(wa_nap_track_irq,
+                    sizeof(wa_nap_track_irq),
+                    HIGHPRIO - 1,
+                    nap_track_irq_thread,
+                    /* arg = */ NULL);
 }
 
 /** Send tracking state SBP message.
  * Send information on each tracking channel to host.
  */
-void tracking_send_state()
+void tracking_send_state(void)
 {
   tracking_channel_state_t states[nap_track_n_channels];
 
@@ -163,19 +173,14 @@ void tracking_send_state()
       bool running;
       bool confirmed;
       me_gnss_signal_t mesid;
-      u16 glo_slot_id = GLO_ORBIT_SLOT_UNKNOWN;
+      u16 glo_slot_id;
       float cn0;
 
-      tracker_channel_lock(tracker_channel);
-      {
-        running =
-            (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
-        mesid = tracker_channel->mesid;
-        glo_slot_id = tracker_channel->glo_orbit_slot;
-        cn0 = tracker_channel->cn0;
-        confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-      }
-      tracker_channel_unlock(tracker_channel);
+      running = (tracker_channel_state_get(tracker_channel) == STATE_ENABLED);
+      mesid = tracker_channel->mesid;
+      glo_slot_id = tracker_channel->glo_orbit_slot;
+      cn0 = tracker_channel->cn0;
+      confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
 
       if (!running || !confirmed) {
         states[i].sid = (gnss_signal16_t){
@@ -210,10 +215,14 @@ void tracking_send_state()
  */
 void tracking_send_detailed_state(void)
 {
+  if (!send_trk_detailed) {
+    return;
+  }
+
   last_good_fix_t lgf;
   last_good_fix_t *plgf = &lgf;
 
-  if ((NDB_ERR_NONE != ndb_lgf_read(&lgf)) && lgf.position_solution.valid) {
+  if ((NDB_ERR_NONE != ndb_lgf_read(&lgf)) || !lgf.position_solution.valid) {
     plgf = NULL;
   }
 
@@ -250,9 +259,8 @@ void tracking_send_detailed_state(void)
                                  &ctrl_info,
                                  &misc_info,
                                  plgf);
-    if (send_trk_detailed) {
-      sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8*)&sbp);
-    }
+
+    sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8*)&sbp);
   }
 }
 
@@ -383,9 +391,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
 
   tracker_channel_lock(tracker_channel);
   {
-    size_t cleanup_region_size = sizeof(tracker_channel_t) -
-                         offsetof(tracker_channel_t, cleanup_region_start);
-    memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
+    tracker_cleanup(tracker_channel);
 
     /* Set up channel */
     tracker_channel->mesid = mesid;
@@ -568,8 +574,6 @@ static void tracking_channel_compute_values(
                                                &tracker_channel->cn0_above_drop_thres_count);
     time_info->cn0_usable_ms = update_count_diff(tracker_channel,
                                                  &tracker_channel->cn0_below_use_thres_count);
-    time_info->last_mode_change_ms = update_count_diff(tracker_channel,
-                                                       &tracker_channel->mode_change_count);
 
     if (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
       time_info->ld_pess_locked_ms = update_count_diff(tracker_channel,
@@ -668,8 +672,13 @@ static void tracking_channel_update_values(
 
     channel_measurement_t meas;
     const channel_measurement_t *c_meas = &meas;
+
+    chMtxLock(&tracker_channel->mutex_pub);
+    tracking_channel_misc_info_t misc_info = pub_data->misc_info;
+    chMtxUnlock(&tracker_channel->mutex_pub);
+
     tracking_channel_measurement_get(ref_tc, info, freq_info, time_info,
-             (tracking_channel_misc_info_t*)&pub_data->misc_info, &meas);
+                                     &misc_info, &meas);
     tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
   }
 
@@ -811,13 +820,6 @@ double tracking_channel_get_lock_time(
   const tracking_channel_time_info_t *time_info,
   const tracking_channel_misc_info_t *misc_info)
 {
-  /* Carrier phase flag is set only once it has been TRACK_STABILIZATION_T
-   * time since the last mode change */
-  u64 stable_ms = 0;
-  if (time_info->last_mode_change_ms > TRACK_STABILIZATION_T) {
-    stable_ms = time_info->last_mode_change_ms - TRACK_STABILIZATION_T;
-  }
-
   u64 cpo_age_ms = 0;
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
@@ -828,7 +830,6 @@ double tracking_channel_get_lock_time(
   u64 lock_time_ms = UINT64_MAX;
 
   lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
-  lock_time_ms = MIN(lock_time_ms, stable_ms);
   lock_time_ms = MIN(lock_time_ms, cpo_age_ms);
 
   return (double) lock_time_ms / SECS_MS;
@@ -1544,7 +1545,7 @@ static void tracker_channel_unlock(tracker_channel_t *tracker_channel)
  */
 static void error_flags_clear(tracker_channel_t *tracker_channel)
 {
-  tracker_channel->error_flags = ERROR_FLAG_NONE;
+  tracker_channel->flags &= ~TRACKER_FLAG_ERROR;
 }
 
 /** Add an error flag to a tracker channel.
@@ -1555,7 +1556,9 @@ static void error_flags_clear(tracker_channel_t *tracker_channel)
 static void error_flags_add(tracker_channel_t *tracker_channel,
                             error_flag_t error_flag)
 {
-  tracker_channel->error_flags |= error_flag;
+  if (error_flag != ERROR_FLAG_NONE) {
+    tracker_channel->flags |= TRACKER_FLAG_ERROR;
+  }
 }
 
 /** \} */

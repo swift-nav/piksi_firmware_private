@@ -26,7 +26,7 @@
     cmd; \
   } \
   do_every_count++; \
-} while(0)
+} while (0)
 
 #define DO_ONLY(n, cmd) do { \
   static u32 do_only_count = 0; \
@@ -34,7 +34,15 @@
     do_only_count++; \
     cmd; \
   } \
-} while(0)
+} while (0)
+
+#define DO_EACH_TICKS(n, cmd) do {\
+  static systime_t ticks = 0; \
+  if (chVTTimeElapsedSinceX(ticks) >= n) { \
+    cmd; \
+    ticks = chVTGetSystemTime(); \
+  } \
+} while (0)
 
 /* See gcc.gnu.org/onlinedocs/cpp/Stringification.html for
  * explanation of pre-processing of macros into strings.

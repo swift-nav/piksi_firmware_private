@@ -195,9 +195,9 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
     }
   }
 
-  if (aligned &&
-      tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD &&
-      tracker_channel->confirmed) {
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  if (confirmed && aligned &&
+      (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD)) {
     /* Update ToW cache:
      * - bit edge is reached
      * - CN0 is OK
@@ -581,9 +581,10 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
   /* GPS L1 C/A-specific L2C cross-correlation operations */
   update_l1_xcorr_from_l2(tracker_channel, cflags);
 
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   if (tracker_channel->lock_detect.outp &&
-      tracker_channel->confirmed &&
-      0 != (cflags & TP_CFLAG_BSYNC_UPDATE) &&
+      confirmed &&
+      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
       tracker_bit_aligned(tracker_channel)) {
 
     /* Start L2 CM tracker if not running */

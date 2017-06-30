@@ -20,13 +20,15 @@
 #include "nap_constants.h"
 #include "axi_dma.h"
 
+#include "main.h"
 #include "track.h"
+#include "manage.h"
 #include "system_monitor.h"
 
 #include <math.h>
 #include <string.h>
 
-#define PROCESS_PERIOD_ms (1000)
+#define PROCESS_PERIOD_MS (500)
 
 static void nap_isr(void *context);
 static void nap_track_isr(void *context);
@@ -35,10 +37,8 @@ static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
 static BSEMAPHORE_DECL(nap_track_irq_sem, TRUE);
 
 static WORKING_AREA_CCM(wa_nap_irq, 32000);
-static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
 
 static void nap_irq_thread(void *arg);
-static void nap_track_irq_thread(void *arg);
 
 u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
@@ -89,7 +89,6 @@ void nap_setup(void)
   gic_irq_enable(IRQ_ID_NAP);
 
   /* Enable NAP tracking interrupt */
-  chThdCreateStatic(wa_nap_track_irq, sizeof(wa_nap_track_irq), HIGHPRIO-1, nap_track_irq_thread, NULL);
   gic_handler_register(IRQ_ID_NAP_TRACK, nap_track_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_NAP_TRACK, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_NAP_TRACK, NAP_TRACK_IRQ_PRIORITY);
@@ -249,23 +248,43 @@ static void nap_irq_thread(void *arg)
 
   while (TRUE) {
     /* Waiting for the IRQ to happen.*/
-    chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_ms));
+    chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_MS));
 
     handle_nap_irq();
   }
 }
 
-static void nap_track_irq_thread(void *arg)
+void nap_track_irq_thread(void *arg)
 {
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
     /* Waiting for the IRQ to happen.*/
-    chBSemWaitTimeout(&nap_track_irq_sem, MS2ST(PROCESS_PERIOD_ms));
+    chBSemWaitTimeout(&nap_track_irq_sem, MS2ST(PROCESS_PERIOD_MS));
 
     handle_nap_track_irq();
     tracking_channels_process();
+
+    sanitize_trackers();
+
+    DO_EACH_TICKS( S2ST(1),
+      check_clear_glo_unhealthy();
+    );
+
+    DO_EACH_TICKS( S2ST(DAY_SECS),
+      check_clear_unhealthy();
+    );
+
+    DO_EACH_TICKS( MS2ST(PROCESS_PERIOD_MS),
+      tracking_send_state();
+      tracking_send_detailed_state();
+    );
+
+    DO_EACH_TICKS( S2ST(100),
+      log_info("Max configured PLL integration time: %" PRIu16 " ms",
+               max_pll_integration_time_ms);
+    );
   }
 }
 

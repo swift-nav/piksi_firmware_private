@@ -117,6 +117,8 @@ int main(void)
 
   frontend_setup();
   timing_setup();
+  me_settings_setup();
+
   ext_event_setup();
   position_setup();
   glo_map_setup();
@@ -124,7 +126,6 @@ int main(void)
   decode_setup();
 
   manage_acq_setup();
-  manage_track_setup();
   system_monitor_setup();
 
   base_obs_setup();
