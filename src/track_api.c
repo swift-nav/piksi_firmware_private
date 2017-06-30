@@ -142,6 +142,12 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
   nav_data_sync_t to_tracker;
   if (nav_data_sync_get(&to_tracker, &tracker_channel->nav_data_sync)) {
 
+    if( (tracker_channel->mesid.code == CODE_GLO_L2CA)  || (tracker_channel->mesid.code == CODE_GLO_L1CA) )
+    {
+      log_warn_mesid(tracker_channel->mesid, "Tracker got TOW, to:%u from:%u, valid:%u",
+          to_tracker.TOW_ms, tracker_channel->nav_data_sync.TOW_ms, tracker_channel->nav_data_sync.valid);
+    }
+
     TOW_ms = adjust_tow_by_bit_fifo_delay(tracker_channel, to_tracker);
 
     /* Warn if updated TOW does not match the current value */
