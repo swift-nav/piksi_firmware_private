@@ -553,6 +553,8 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e)
   e->glo.d_tau        = msg->d_tau;
   e->glo.iod          = msg->iod;
   e->glo.fcn          = (u16)msg->fcn;
+  glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
+                      msg->common.sid.sat);
 }
 
 static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
