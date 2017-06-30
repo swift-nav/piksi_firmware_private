@@ -483,6 +483,14 @@ typedef struct {
   mutex_t mutex;
   /** Mutex used to permit atomic updates of public channel data. */
   mutex_t mutex_pub;
+  /** When tracker is disabled in NAP, all tracker state below
+      cleanup_region_start in this structure is cleaned up.
+      Tracker is not reused immediately. There is time window of
+      about 100ms. If during those 100ms NAP generates an unexpected
+      interrupt, then we disable the tracker channel in NAP again
+      using this parameter. So this parameter should preserve its state
+      over the clean up operation. */
+  u8 nap_channel;         /**< Associated NAP channel. */
 
   /* The data to be cleaned-up at init must be placed below */
 
@@ -490,7 +498,6 @@ typedef struct {
 
   me_gnss_signal_t mesid; /**< Current ME signal being decoded. */
   u16 glo_orbit_slot;     /**< GLO orbital slot. */
-  u8 nap_channel;         /**< Associated NAP channel. */
 
   /** Time at which the channel was disabled. */
   systime_t disable_time;

@@ -1315,7 +1315,6 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
   break;
 
   case STATE_DISABLE_WAIT: {
-    nap_channel_disable(tracker_channel);
     if (chVTTimeElapsedSinceX(tracker_channel->disable_time) >=
           MS2ST(CHANNEL_DISABLE_WAIT_TIME_ms)) {
       event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
