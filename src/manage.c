@@ -1131,7 +1131,7 @@ static bool compute_cpo(u64 ref_tc,
 
     /* initialize the carrier phase offset with the pseudorange measurement */
     /* NOTE: CP sign flip - change the plus sign below */
-    *carrier_phase_offset = 0;
+    *carrier_phase_offset = 100e6;
 
     if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
