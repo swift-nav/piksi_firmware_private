@@ -87,7 +87,7 @@ gps_time_t last_spp;
 
 /* RFT_TODO *
  * interface change should be handled last, won't work like this */
-static double starling_frequency = 5.0;
+double starling_frequency = 5.0;
 u32 max_age_of_differential = 30;
 
 
@@ -600,6 +600,9 @@ static void starling_thread(void *arg)
       }
       continue;
     }
+
+    // This would be good to be derived dynamically, but we can use the setting as this preserves existing behavior
+    starling_frequency = soln_freq;
 
     u8 n_ready = (rover_channel_epoch->size);
     memset(nav_meas, 0, sizeof(nav_meas));
