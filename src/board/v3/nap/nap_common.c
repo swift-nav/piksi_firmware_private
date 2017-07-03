@@ -268,11 +268,9 @@ void nap_track_irq_thread(void *arg)
                max_pll_integration_time_ms);
     );
 
-    /* this solution relies on the fact that the functions above do not
-     * take longer than 500 us to execute. otherwise, the sleep below
-     * will just sleep for a very long time (counter overflow)
-     * and the system will break. there should be a better way
-     * to do this.. perhaps using the software watchdog is necessary */
+    /* Sleep for 500 microseconds. 
+     * The ChibiOS function below should be capable of handling short deadline misses. 
+     */
     chThdSleepUntilWindowed(sys_time, sys_time+US2ST(500));
   }
 }
