@@ -609,6 +609,7 @@ static void starling_thread(void *arg)
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 
+    starling_frequency = soln_freq;
 
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);

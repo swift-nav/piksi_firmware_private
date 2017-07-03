@@ -50,9 +50,6 @@
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
-
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
                                    MANAGE_TRACK_FLAG_NO_ERROR | \
@@ -70,7 +67,6 @@ MemoryPool obs_buff_pool;
 mailbox_t  obs_mailbox;
 
 double soln_freq = 5.0;
-u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
@@ -645,11 +641,7 @@ static void me_calc_pvt_thread(void *arg)
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
 
-      /* Output observations only every obs_output_divisor times, taking
-       * care to ensure that the observations are aligned. */
-      /* Also only output observations once our receiver clock is
-       * correctly set. */
-      double t_check = new_obs_time.tow * (soln_freq / obs_output_divisor);
+      double t_check = new_obs_time.tow * soln_freq;
       if (1 &&
           time_quality == TIME_FINE &&
           fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
@@ -715,7 +707,6 @@ void me_calc_pvt_setup()
 {
 
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
-  SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 
   static msg_t obs_mailbox_buff[OBS_N_BUFF];
