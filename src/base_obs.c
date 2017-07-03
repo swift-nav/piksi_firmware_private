@@ -381,7 +381,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   unpack_obs_header((observation_header_t*)msg, &tor, &total, &count);
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
-  u32 obs_freq = soln_freq / obs_output_divisor;
+  u32 obs_freq = soln_freq;
   double epoch_count = tor.tow * obs_freq;
   double dt = fabs(epoch_count - round(epoch_count)) / obs_freq;
   if (dt > TIME_MATCH_THRESHOLD) {
