@@ -127,7 +127,12 @@ static void me_send_all(u8 _num_obs,
                         const gps_time_t *_t)
 {
   me_post_observations(_num_obs, _meas, _ephem);
-  send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  /* Output observations only every obs_output_divisor times, taking
+  * care to ensure that the observations are aligned. */
+  double t_check = _t->tow * (soln_freq / obs_output_divisor);
+  if(fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
+    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  }
 }
 
 
@@ -642,14 +647,7 @@ static void me_calc_pvt_thread(void *arg)
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
 
-      /* Output observations only every obs_output_divisor times, taking
-       * care to ensure that the observations are aligned. */
-      /* Also only output observations once our receiver clock is
-       * correctly set. */
-      double t_check = new_obs_time.tow * (soln_freq / obs_output_divisor);
-      if (1 &&
-          time_quality == TIME_FINE &&
-          fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
+      if (time_quality == TIME_FINE) {
 
         /* Send the observations. */
         me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);

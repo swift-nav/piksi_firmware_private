@@ -87,7 +87,7 @@ gps_time_t last_spp;
 
 /* RFT_TODO *
  * interface change should be handled last, won't work like this */
-double starling_frequency = 5.0;
+static double starling_frequency = 5.0;
 u32 max_age_of_differential = 30;
 
 
@@ -837,20 +837,8 @@ static void starling_thread(void *arg)
         }
       }
 
-      /* Output observations only every obs_output_divisor times, taking
-       * care to ensure that the observations are aligned. */
-      /* Also only output observations once our receiver clock is
-       * correctly set. */
-      const u32 nav_output_divisor = 1;
-      /* RFT_TODO *
-       * starling should determine the obs rate depending on the
-       * mailbox communication with the rover, right now it's fixed...
-       * the divisor should be a user setting so that every N obs there
-       * is a solution produced */
-      double t_check = new_obs_time.tow * (starling_frequency / nav_output_divisor);
-      if (!simulation_enabled() &&
-          time_quality == TIME_FINE &&
-          fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
+      /* This is posting the rover obs to the mailbox to the time matched thread, we want these sent on at full rate */
+      if (!simulation_enabled()) {
         /* Post the observations to the mailbox. */
         post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
 
