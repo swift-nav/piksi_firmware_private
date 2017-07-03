@@ -73,8 +73,12 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
   ssize_t chunksize = 255 - payload_offset;
   struct sbp_fileio_closure closure;
   msg_fileio_write_req_t *msg = alloca(256);
+  char dbg_filename[100];
   chBSemObjectInit(&closure.sem, true);
   u8 *msg_pt;
+
+  strncpy(dbg_filename, filename, sizeof(dbg_filename));
+  dbg_filename[sizeof(dbg_filename)-1] = '\0';
 
   sbp_msg_callbacks_node_t node;
   sbp_register_cbk_with_closure(SBP_MSG_FILEIO_WRITE_RESP,
@@ -101,7 +105,8 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
     } while (++tries < SBP_FILEIO_TRIES);
 
     if (!success) {
-      log_error("sbp_fileio_write(): tries %d  chunksize %d   s %d", tries, chunksize, s);
+      log_error("sbp_fileio_write(): fn %s  offset %d  buf %p  size %d  tries %d  chunksize %d   s %d",
+        dbg_filename, offset, buf, size, tries, chunksize, s);
       s = -1;
       break;
     }
