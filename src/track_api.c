@@ -146,9 +146,11 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
 
     /* Warn if updated TOW does not match the current value */
     if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
-      log_warn_mesid(mesid,
-                     "TOW mismatch: %" PRId32 ", %" PRId32,
-                     current_TOW_ms, TOW_ms);
+      log_error_mesid(mesid,
+                      "TOW mismatch: %" PRId32 ", %" PRId32,
+                      current_TOW_ms, TOW_ms);
+      /* This is rude, but safe. Do not expect it to happen normally. */
+      tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
     }
     current_TOW_ms = TOW_ms;
     if (tracker_channel->bit_polarity != to_tracker.bit_polarity) {

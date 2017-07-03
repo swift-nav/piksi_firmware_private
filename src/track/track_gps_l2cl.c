@@ -233,14 +233,15 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
         s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1) ?
                       -tail : GPS_L2C_SYMBOL_LENGTH_MS - tail;
 
-        log_info_mesid(mesid,
-                       "[+%" PRIu32 "ms] Adjusting ToW:"
-                       " adjustment=%" PRId8 "ms old_tow=%" PRId32,
-                       tracker_channel->update_count,
-                       error_ms,
-                       tracker_channel->TOW_ms);
+        log_error_mesid(mesid,
+                        "[+%" PRIu32 "ms] TOW error detected: "
+                        "error=%" PRId8 "ms old_tow=%" PRId32,
+                        tracker_channel->update_count,
+                        error_ms,
+                        tracker_channel->TOW_ms);
 
-        tracker_channel->TOW_ms += error_ms;
+        /* This is rude, but safe. Do not expect it to happen normally. */
+        tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
       }
     }
 

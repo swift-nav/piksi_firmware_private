@@ -188,13 +188,14 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
       s8 error_ms = (tail < half_bit) ? -tail : (GLO_L1CA_BIT_LENGTH_MS - tail);
 
       log_error_mesid(tracker_channel->mesid,
-                     "[+%" PRIu32 "ms] Adjusting ToW: "
-                     "adjustment=%" PRId8 "ms old_tow=%" PRId32,
-                     tracker_channel->update_count,
-                     error_ms,
-                     tracker_channel->TOW_ms);
+                      "[+%" PRIu32 "ms] TOW error detected: "
+                      "error=%" PRId8 "ms old_tow=%" PRId32,
+                      tracker_channel->update_count,
+                      error_ms,
+                      tracker_channel->TOW_ms);
 
-      tracker_channel->TOW_ms += error_ms;
+      /* This is rude, but safe. Do not expect it to happen normally. */
+      tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
     }
   }
 
