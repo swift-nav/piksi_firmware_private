@@ -20,6 +20,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/observation.h>
+#include <libswiftnav/glo_map.h>
 
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -393,8 +394,8 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
 
   msg->L.i = Li;
   u16 frac_part_cp = round(Lf * MSG_OBS_LF_MULTIPLIER);
-  if (frac_part_cp == MSG_OBS_LF_OVERFLOW) {
-    frac_part_cp -= MSG_OBS_LF_OVERFLOW;
+  if (frac_part_cp >= MSG_OBS_LF_OVERFLOW) {
+    frac_part_cp = 0;
     msg->L.i += 1;
   }
   msg->L.f = frac_part_cp;
@@ -409,8 +410,8 @@ s8 pack_obs_content(double P, double L, double D, double cn0, double lock_time,
 
   msg->D.i = Di;
   u16 frac_part_d = round(Df * MSG_OBS_DF_MULTIPLIER);
-  if (frac_part_d == MSG_OBS_DF_OVERFLOW) {
-    frac_part_d -= MSG_OBS_DF_OVERFLOW;
+  if (frac_part_d >= MSG_OBS_DF_OVERFLOW) {
+    frac_part_d = 0;
     msg->D.i += 1;
   }
   msg->D.f = frac_part_d;
@@ -549,6 +550,11 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e)
   memcpy(e->glo.acc, msg->acc, sizeof(e->glo.acc));
   e->glo.gamma        = msg->gamma;
   e->glo.tau          = msg->tau;
+  e->glo.d_tau        = msg->d_tau;
+  e->glo.iod          = msg->iod;
+  e->glo.fcn          = (u16)msg->fcn;
+  glo_map_set_slot_id(construct_mesid(msg->common.sid.code, (u16)msg->fcn),
+                      msg->common.sid.sat);
 }
 
 static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
@@ -560,6 +566,9 @@ static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
   memcpy(msg->acc, e->glo.acc, sizeof(msg->acc));
   msg->gamma          = e->glo.gamma;
   msg->tau            = e->glo.tau;
+  msg->d_tau          = e->glo.d_tau;
+  msg->iod            = e->glo.iod;
+  msg->fcn            = (u8)e->glo.fcn;
 }
 
 #define TYPE_TABLE_INVALID_MSG_ID 0
@@ -591,7 +600,11 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
 {
-  constellation_t c = sid_to_constellation(e->sid);
+  /* NOTE: here we use common part of GPS message to take sid.code info.
+   *       this also should work for other GNSS because common part is located
+   *       at the same place in memory for all structures.*/
+  constellation_t c =
+           code_to_constellation(((msg_ephemeris_gps_t*)msg)->common.sid.code);
 
   assert(NULL != ephe_type_table[c].unpack);
 
@@ -810,7 +823,11 @@ static alma_type_table_element_t alma_type_table[CONSTELLATION_COUNT] = {
 
 void unpack_almanac(const msg_almanac_t *msg, almanac_t *a)
 {
-  constellation_t c = sid_to_constellation(a->sid);
+  /* NOTE: here we use common part of GPS message to take sid.code info.
+   *       this also should work for other GNSS because common part is located
+   *       at the same place in memory for all structures.*/
+  constellation_t c =
+           code_to_constellation(((msg_almanac_gps_t*)msg)->common.sid.code);
 
   assert(NULL != alma_type_table[c].unpack);
 

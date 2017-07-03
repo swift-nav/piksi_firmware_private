@@ -12,14 +12,15 @@
 
 #include "manage_led.h"
 
-#include <ch.h>
+#include "me_calc_pvt.h"
+
 #include <hal.h>
 #include <libswiftnav/logging.h>
 
 #include "peripherals/led_adp8866.h"
 #include "peripherals/antenna.h"
 #include "base_obs.h"
-#include "solution.h"
+#include "starling_calc_pvt.h"
 
 #define LED_POS_R   0
 #define LED_POS_G   1

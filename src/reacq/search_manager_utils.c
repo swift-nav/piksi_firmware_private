@@ -52,7 +52,7 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
   gps_time_t t = get_current_time();
 
   ephe.fit_interval = SM_FIT_INTERVAL_VALID;
-  if (!ephemeris_params_valid(ephe.valid, ephe.fit_interval, &ephe.toe, &t)) {
+  if (!ephemeris_valid(&ephe, &t)) {
     return;
   }
 
@@ -97,7 +97,7 @@ bool sm_lgf_stamp(u64 *lgf_stamp)
       lgf.position_quality != POSITION_FIX) {
     return false;
   }
- 
+
   *lgf_stamp = (u64)(gpstime2napcount(&lgf.position_solution.time)
                      * (RX_DT_NOMINAL * 1000.0));
   return true;

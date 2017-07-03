@@ -15,6 +15,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/glo_map.h>
 #include <ch.h>
 #include <assert.h>
 
@@ -337,7 +338,9 @@ static void ephemeris_msg_callback(u16 sender_id, u8 len, u8 msg[],
 {
   (void)context;
 
-  if (len != sizeof(msg_ephemeris_t)) {
+  if (len != sizeof(msg_ephemeris_gps_t) &&
+      len != sizeof(msg_ephemeris_glo_t) &&
+      len != sizeof(msg_ephemeris_sbas_t)) {
     log_warn("Received bad ephemeris from peer");
     return;
   }

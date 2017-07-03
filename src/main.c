@@ -16,8 +16,8 @@
 #include <libsbp/system.h>
 #include <libswiftnav/logging.h>
 
+#include "me_calc_pvt.h"
 #include <hal.h>
-#include <ch.h>
 
 #include "peripherals/leds.h"
 #include "io_support.h"
@@ -29,7 +29,7 @@
 #include "track.h"
 #include "timing.h"
 #include "ext_events.h"
-#include "solution.h"
+#include "starling_calc_pvt.h"
 #include "base_obs.h"
 #include "position.h"
 #include "system_monitor.h"
@@ -41,6 +41,7 @@
 #include "signal.h"
 #include "version.h"
 #include "ndb.h"
+#include "nmea.h"
 #include "sbp_utils.h"
 #include "glo_map_setup.h"
 
@@ -98,6 +99,9 @@ int main(void)
   nap_version_string_get(nap_version_string);
   log_info("nap_build_id: %s", nap_version_string);
 
+  static char nap_date_string[64] = {0};
+  nap_date_string_get(nap_date_string);
+
   static char mfg_id_string[18] = {0};
   mfg_id_string_get(mfg_id_string);
   log_info("mfg_serial_number: %s", mfg_id_string);
@@ -113,6 +117,8 @@ int main(void)
 
   frontend_setup();
   timing_setup();
+  me_settings_setup();
+
   ext_event_setup();
   position_setup();
   glo_map_setup();
@@ -120,10 +126,11 @@ int main(void)
   decode_setup();
 
   manage_acq_setup();
-  manage_track_setup();
   system_monitor_setup();
-  solution_setup();
+
   base_obs_setup();
+  me_calc_pvt_setup();
+  starling_calc_pvt_setup();
 
   simulator_setup();
 
@@ -140,6 +147,8 @@ int main(void)
   READ_ONLY_PARAMETER("system_info", "hw_revision", hw_revision_string,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "nap_build_id", nap_version_string,
+                      TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "nap_build_date", nap_date_string,
                       TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "nap_channels", nap_track_n_channels,
                       TYPE_INT);
@@ -168,6 +177,8 @@ int main(void)
   }
 
   SpecanStart();
+
+  nmea_setup();
 
   while (1) {
     chThdSleepSeconds(60);

@@ -19,7 +19,7 @@
 #include "board/v3/nap/nap_hw.h"
 #include "board/v3/nap/nap_constants.h"
 #include "track_sbp.h"
-#include "track_internal.h"
+#include "track.h"
 #include "shm.h"
 #include <sbp.h>
 #include <sbp_utils.h>
@@ -31,11 +31,7 @@
 static u8 get_sync_flags(const tracking_channel_info_t *channel_info)
 {
   u8 flags = TRACK_SBP_SYNC_NONE;
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_SUBFRAME_SYNC)) {
-    flags = TRACK_SBP_SYNC_SUBFRAME;
-  } else if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_WORD_SYNC)) {
-    flags = TRACK_SBP_SYNC_WORD;
-  } else if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_BIT_SYNC)) {
+  if (0 != (channel_info->flags & TRACKER_FLAG_BIT_SYNC)) {
     flags = TRACK_SBP_SYNC_BIT;
   }
   return flags;
@@ -48,10 +44,13 @@ static u8 get_sync_flags(const tracking_channel_info_t *channel_info)
 static u8 get_tow_flags(const tracking_channel_info_t *channel_info)
 {
   u8 flags = TRACK_SBP_TOW_NONE;
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_TOW_DECODED)) {
-    flags = TRACK_SBP_TOW_DECODED;
-  } else if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_TOW_PROPAGATED)) {
+  if (0 == (channel_info->flags & TRACKER_FLAG_TOW_VALID)) {
+    return flags;
+  }
+  if (0 == (channel_info->flags & TRACKER_FLAG_TOW_DECODED)) {
     flags = TRACK_SBP_TOW_PROPAGATED;
+  } else {
+    flags = TRACK_SBP_TOW_DECODED;
   }
 
   return flags;
@@ -65,17 +64,16 @@ static u8 get_tow_flags(const tracking_channel_info_t *channel_info)
 static u8 get_track_flags(const tracking_channel_info_t *channel_info)
 {
   u8 flags = TRACK_SBP_LOOP_NO_LOCK;
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_PLL_PLOCK)) {
+  if (0 != (channel_info->flags & TRACKER_FLAG_HAS_PLOCK)) {
     flags = TRACK_SBP_LOOP_PLL_PESSIMISTIC_LOCK;
-  } else if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_PLL_OLOCK)) {
-    flags = TRACK_SBP_LOOP_PLL_OPTIMISTIC_LOCK;
-  } else if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_FLL_LOCK)) {
+
+  } else if (0 != (channel_info->flags & TRACKER_FLAG_HAS_FLOCK)) {
     flags = TRACK_SBP_LOOP_FLL_LOCK;
   }
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_PLL_USE)) {
+  if (0 != (channel_info->flags & TRACKER_FLAG_PLL_USE)) {
     flags |= TRACK_SBP_LOOP_PLL;
   }
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_FLL_USE)) {
+  if (0 != (channel_info->flags & TRACKER_FLAG_FLL_USE)) {
     flags |= TRACK_SBP_LOOP_FLL;
   }
   return flags;
@@ -137,17 +135,27 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid)
 static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info)
 {
   u8 flags = 0;
-  if (1 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_1MS;
-  } else if (5 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_5MS;
-  } else if (10 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_10MS;
-  } else if (20 /*[ms]*/ == ctrl_info->int_ms) {
-    flags = TRACK_SBP_PARAM_SET_20MS;
-  } else {
-    assert(!"Unsupported integration time.");
+
+  switch( ctrl_info->int_ms ) {
+    case  1:
+      flags = TRACK_SBP_PARAM_SET_1MS;
+      break;
+    case  5:
+      flags = TRACK_SBP_PARAM_SET_5MS;
+      break;
+    case 10:
+      flags = TRACK_SBP_PARAM_SET_10MS;
+      break;
+    case 20:
+      flags = TRACK_SBP_PARAM_SET_20MS;
+      break;
+    default:
+      log_error("ctrl_info->pll_bw  %.1f fll_bw  %.1f dll_bw %.1f int_ms %d",
+        ctrl_info->pll_bw, ctrl_info->fll_bw, ctrl_info->dll_bw, ctrl_info->int_ms);
+      assert(!"Unsupported integration time.");
+      break;
   }
+
   return flags;
 }
 
@@ -165,11 +173,11 @@ static u8 get_misc_flags(const tracking_channel_info_t *channel_info)
 
   flags |= TRACK_SBP_ACCELERATION_VALID; /* acceleration is always valid */;
 
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_BIT_POLARITY)) {
+  if (0 != (channel_info->flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
     flags |= TRACK_SBP_HALF_CYCLE_AMBIGUITY_RESOLVED;
   }
 
-  if (0 != (channel_info->flags & TRACKING_CHANNEL_FLAG_PSEUDORANGE)) {
+  if (0 != (channel_info->flags & TRACKER_FLAG_PSEUDORANGE)) {
     flags |= TRACK_SBP_PSEUDORANGE_VALID;
   }
 

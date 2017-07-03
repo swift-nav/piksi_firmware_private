@@ -21,6 +21,7 @@
 #include "board/v3/nap/grabber.h"
 #include "./system_monitor.h"
 #include "timing.h"
+#include "settings.h"
 
 #include "lib/fixed_fft_r2.h"
 #include "specan_main.h"
@@ -45,6 +46,7 @@ static uint8_t *pSampleBuf;
 static sc16_t pBaseBand[SPECAN_BBSAMPLES];
 static sc16_t pTmpTrace[SPECAN_FFT_SIZE];
 static uint8_t uCoeff[SPECAN_FFT_SIZE];
+static bool    run_spectrum;
 
 static struct {
   msg_specan_t header;
@@ -78,6 +80,8 @@ void ThreadManageSpecan(void *arg) {
    * */
   while (TRUE) {
     chThdSleepMilliseconds(500);
+    if (!run_spectrum) continue;
+
     pSampleBuf = GrabberGetBufferPt(&uBuffLen);
     if (NULL == pSampleBuf) {
       log_error("GrabberGetBufferPt() failed in spectrum analyzer");
@@ -115,7 +119,7 @@ void ThreadManageSpecan(void *arg) {
 
         /** scale amplitude points to uint8_t */
         for (k=0; k<uNumPoints; k++) {
-          curr_trace.payload[k] = (uint8_t) floorf((pSpecTrace[um+k] - fMinAmpl)/(p_head->amplitude_unit));
+          p_head->amplitude_value[k] = (uint8_t) floorf((pSpecTrace[um+k] - fMinAmpl)/(p_head->amplitude_unit));
         }
 
         /** send this SBP message */
@@ -136,6 +140,8 @@ void ThreadManageSpecan(void *arg) {
 int SpecanStart(void) {
   uint32_t k;
   const float fTwoPI = 2.0*M_PI;
+
+  SETTING("system_monitor", "spectrum_analyzer", run_spectrum, TYPE_BOOL);
 
   for (k=0; k<SPECAN_FFT_SIZE; k++) {
     /* uCoeff[k] = MIN(MIN(k+1, SPECAN_FFT_SIZE-k), 32); */
@@ -163,7 +169,7 @@ static void SpecanCore ( uint8_t _uWhichBand ) {
   uint32_t uFftScale = 0x0;
   uint32_t uFftStartPt, uTraceStart=0;
   float fStartFreq;
-  const float fFrontEndSpms = NAP_FRONTEND_RAW_SAMPLE_RATE_Hz*0.001;
+  const float fFrontEndSpms = NAP_FRONTEND_RAW_SAMPLE_RATE_Hz*1e-6;
   const float fFreqNco1 = 1590.000;
   const float fFreqNco2 = 1235.000;
 

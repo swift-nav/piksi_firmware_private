@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_internal.h"
 #include "track.h"
 
 #include <stdlib.h>
@@ -47,27 +46,6 @@ void track_internal_setup(void)
 tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void)
 {
   return &tracker_interface_list;
-}
-
-/** Initialize a tracker internal data structure.
- *
- * \param tracker_channel   Tracker channel to use.
- * \param mesid             ME signal identifier to use.
- * \param glo_orbit_slot    GLO orbital slot.
- */
-void internal_data_init(tracker_internal_data_t *internal_data,
-                        const me_gnss_signal_t mesid,
-                        u16 glo_orbit_slot)
-{
-  /* Initialize all fields to 0 */
-  memset(internal_data, 0, sizeof(tracker_internal_data_t));
-
-  internal_data->bit_polarity = BIT_POLARITY_UNKNOWN;
-  internal_data->glo_orbit_slot = glo_orbit_slot;
-
-  nav_bit_fifo_init(&internal_data->nav_bit_fifo);
-  nav_data_sync_init(&internal_data->nav_data_sync);
-  bit_sync_init(&internal_data->bit_sync, mesid);
 }
 
 /** Initialize a nav_bit_fifo_t struct.

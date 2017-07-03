@@ -10,8 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_profiles.h"
-#include "track_profile_utils.h"
+#include "track.h"
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/track.h>
@@ -512,25 +511,25 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 };
 
 /**
- * Helper method for get tracking profile parameters.
+ * Helper method to get tracking profiles array.
  *
- * \param[in] sid SV identifier
- * \return tracking parameters structures array pointer
+ * \param[in] mesid ME signal ID
+ * \return Tracking profiles array pointer
  */
-static const tp_profile_entry_t* tp_profiles_from_id(const me_gnss_signal_t mesid)
+static const tp_profile_entry_t* mesid_to_profiles(const me_gnss_signal_t mesid)
 {
-  const tp_profile_entry_t *result = NULL;
+  const tp_profile_entry_t *profiles = NULL;
 
   /* GPS and SBAS constellations use similar signal encoding scheme and thus
-   * the tracker state machines are compatible.  */
-  /* GLONASS constellation require different state machine due to different
-   * data bit encoding and frame structure. */
+     share the same tracking profiles.
+     For GLONASS signals we limit the maximum integration time to 10 ms.
+     Otherwise we use the same set of tracking profiles. */
 
   switch (mesid_to_constellation(mesid)) {
   case CONSTELLATION_GPS:
   case CONSTELLATION_SBAS:
   case CONSTELLATION_GLO:
-    result = gnss_track_profiles;
+    profiles = gnss_track_profiles;
     break;
 
   case CONSTELLATION_INVALID:
@@ -540,7 +539,7 @@ static const tp_profile_entry_t* tp_profiles_from_id(const me_gnss_signal_t mesi
     break;
   }
 
-  return result;
+  return profiles;
 }
 
 /** Return track mode for the given code.
@@ -626,20 +625,19 @@ static void get_profile_params(const me_gnss_signal_t mesid,
 /**
  * Helper method to incorporate tracking loop information into statistics.
  *
- * \param[in]     mesid       ME signal identifier.
+ * \param[in,out] tracker_channel Tracker channel data
  * \param[in,out] profile     Satellite profile.
- * \param[in]     common_data Tracker common data
  * \param[in]     data        Data from tracking loop.
  *
  * \return None
  */
-static void update_stats(const me_gnss_signal_t mesid,
+static void update_stats(tracker_channel_t *tracker_channel,
                          tp_profile_t *profile,
-                         const tracker_common_data_t *common_data,
                          const tp_report_t *data)
 {
   float cn0;
-  u32 cur_time_ms = common_data->update_count;
+  u32 cur_time_ms = tracker_channel->update_count;
+  const me_gnss_signal_t mesid = tracker_channel->mesid;
 
   /* Profile lock time count down */
   if (profile->lock_time_ms > data->time_ms) {
@@ -849,6 +847,41 @@ static void check_for_cn0_estimator_change(const me_gnss_signal_t mesid,
   }
 }
 
+/** Integration time is not explicitly available in gnss_track_profiles.
+ *  This API infers the integration time from the profiles' array index.
+ *  \param mesid ME signal ID
+ *  \param state Profiles array.
+ *  \param index Profiles array index.
+ *  \return Integration time of the profile at the given index [ms]
+ */
+static u8 profile_integration_time(const me_gnss_signal_t mesid,
+                                   const tp_profile_t *state,
+                                   const profile_indices_t index)
+{
+  static u8 int_times[] = {
+    [TP_TM_INITIAL] = 1,
+    [TP_TM_1MS]     = 1,
+    [TP_TM_5MS]     = 5,
+    [TP_TM_10MS]    = 10,
+    [TP_TM_20MS]    = 20
+  };
+  constellation_t c = code_to_constellation(mesid.code);
+  tp_tm_e track_mode;
+  if (CONSTELLATION_GPS == c) {
+    track_mode = state->profiles[index].profile.gps_track_mode;
+  } else if (CONSTELLATION_GLO == c) {
+    track_mode = state->profiles[index].profile.glo_track_mode;
+  } else {
+    assert(!"Unsupported constellation");
+  }
+  assert(track_mode < ARRAY_SIZE(int_times));
+  u8 int_time = int_times[track_mode];
+  assert(int_time != 0);
+  assert(int_time <= 20);
+
+  return int_time;
+}
+
 /**
  * Internal method for profile switch request.
  *
@@ -873,6 +906,12 @@ static bool profile_switch_requested(const me_gnss_signal_t mesid,
 
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
+
+  u8 int_time = profile_integration_time(mesid, state, index);
+  float pll_bw = state->profiles[index].profile.pll_bw;
+  if ((pll_bw > 0) && (int_time > max_pll_integration_time_ms)) {
+    return false; /* setting prevents us doing longer integration time */
+  }
 
   state->lock_time_ms = state->profiles[index].lock_time_ms;
   state->profile_update = true;
@@ -1057,7 +1096,7 @@ tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
     profile->filt_accel = 0;
 
     profile->cur_index = 0;
-    profile->profiles = tp_profiles_from_id(mesid);
+    profile->profiles = mesid_to_profiles(mesid);
     profile->bsync_sticky = 0;
 
     profile->cn0_est = profile->profiles[profile->cur_index].profile.cn0_est;
@@ -1214,29 +1253,16 @@ u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
  *
  * \param[in]     mesid       ME signal identifier.
  * \param[in,out] profile     Tracking profile data to update
- * \param[in]     common_data Tracker common data
  * \param[in]     data        Tracking loop report.
- *
- * \retval TP_RESULT_SUCCESS on success.
- * \retval TP_RESULT_ERROR   on error.
  */
-tp_result_e tp_profile_report_data(const me_gnss_signal_t mesid,
-                                   tp_profile_t *profile,
-                                   const tracker_common_data_t *common_data,
-                                   const tp_report_t *data)
+void tp_profile_report_data(tracker_channel_t *tracker_channel,
+                            tp_profile_t *profile,
+                            const tp_report_t *data)
 {
-  tp_result_e res = TP_RESULT_ERROR;
-  if (NULL != data && NULL != profile && NULL != common_data) {
-    /* For now, we support only GPS L1 tracking data, and handle all data
-     * synchronously.
-     *
-     * TODO schedule a message to own thread.
-     */
+  assert(tracker_channel);
+  assert(profile);
+  assert(data);
 
-    update_stats(mesid, profile, common_data, data);
-    print_stats(mesid, profile);
-
-    res = TP_RESULT_SUCCESS;
-  }
-  return res;
+  update_stats(tracker_channel, profile, data);
+  print_stats(tracker_channel->mesid, profile);
 }

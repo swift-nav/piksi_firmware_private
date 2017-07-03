@@ -17,7 +17,7 @@
 #include <libswiftnav/logging.h>
 
 #include "peripherals/rtc_m41t62.h"
-#include "nap/nap_rtc_hw.h"
+#include "nap/nap_hw.h"
 
 #define MANAGE_RTC_THREAD_STACK   2000
 #define MANAGE_RTC_THREAD_PERIOD  S2ST(10)
@@ -43,10 +43,10 @@ static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc)
     rtc_time->centisecond = 0;
 
     /* Read latched NAP timing count aligned to 1s boundary (time of IRQ) */
-    *nap_tc = NAP_RTC->SAMPLE_COUNT;
+    *nap_tc = NAP->RTC_TIMING_SNAPSHOT;
 
     /* Make sure everything was completed before the second rolls over */
-    bool nap_32k_ok = (NAP_RTC->RTC_COUNT < NAP_32k_LIMIT);
+    bool nap_32k_ok = (GET_NAP_STATUS_RTC_COUNT(NAP->STATUS) < NAP_32k_LIMIT);
 
     success = time_get_ok && time_valid && nap_32k_ok;
   }

@@ -26,9 +26,9 @@ void system_monitor_setup(void);
  */
 typedef enum {
   WD_NOTIFY_NAP_ISR,
-  WD_NOTIFY_TRACKING_MGMT,
   WD_NOTIFY_ACQ_MGMT,
-  WD_NOTIFY_SOLUTION,
+  WD_NOTIFY_ME_CALC_PVT,
+  WD_NOTIFY_STARLING,
   WD_NOTIFY_NUM_THREADS  /* Maximum 32 of these! */
 } watchdog_notify_t;
 

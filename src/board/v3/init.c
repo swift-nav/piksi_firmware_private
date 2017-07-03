@@ -38,7 +38,7 @@
 #include "manage_rtc.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL  (0x03070015U)
+#define REQUIRED_NAP_VERSION_VAL  (0x03080001U)
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
@@ -134,10 +134,13 @@ static bool nap_version_ok(u32 version)
 {
   /* Upper two bytes need to match for register map compatibility,
    * lower two bytes have to be greater or equal to enforce features. */
-  return ((version & REQUIRED_NAP_VERSION_MASK) ==
-      (REQUIRED_NAP_VERSION_VAL & REQUIRED_NAP_VERSION_MASK) &&
-      (version & ~REQUIRED_NAP_VERSION_MASK) >=
-      (REQUIRED_NAP_VERSION_VAL & ~REQUIRED_NAP_VERSION_MASK));
+  if ((version & REQUIRED_NAP_VERSION_MASK) !=
+      (REQUIRED_NAP_VERSION_VAL & REQUIRED_NAP_VERSION_MASK)) {
+    return false;
+  }
+
+  return (version & (~REQUIRED_NAP_VERSION_MASK)) >=
+      (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK));
 }
 
 static void nap_version_check(void)
@@ -354,4 +357,9 @@ u8 hw_revision_string_get(char *hw_revision_string)
 u8 nap_version_string_get(char *nap_version_string)
 {
   return nap_conf_rd_version_string(nap_version_string);
+}
+
+u8 nap_date_string_get(char *nap_date_string)
+{
+  return nap_conf_rd_date_string(nap_date_string);
 }

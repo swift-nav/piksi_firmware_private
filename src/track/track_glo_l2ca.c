@@ -16,15 +16,12 @@
 /* Local headers */
 #include "track_glo_l2ca.h"
 #include "track_cn0.h"
-#include "track_profile_utils.h"
-#include "track_profiles.h"
 #include "track_sid_db.h"
-#include "track_internal.h"
+#include "track.h"
 
 /* Non-local headers */
 #include <platform_track.h>
 #include <signal.h>
-#include <track_api.h>
 #include <manage.h>
 #include <track.h>
 #include <ndb.h>
@@ -44,22 +41,16 @@
 
 static tp_tracker_config_t glo_l2ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
-static tracker_t glo_l2ca_trackers[NUM_GLO_L2CA_TRACKERS];
-static glo_l2ca_tracker_data_t glo_l2ca_tracker_data[ARRAY_SIZE(glo_l2ca_trackers)];
-
 /* Forward declarations of interface methods for GLO L2CA */
 static tracker_interface_function_t tracker_glo_l2ca_init;
-static tracker_interface_function_t tracker_glo_l2ca_disable;
 static tracker_interface_function_t tracker_glo_l2ca_update;
 
 /** GLO L2CA tracker interface */
 static const tracker_interface_t tracker_interface_glo_l2ca = {
   .code =         CODE_GLO_L2CA,
   .init =         tracker_glo_l2ca_init,
-  .disable =      tracker_glo_l2ca_disable,
+  .disable =      tp_tracker_disable,
   .update =       tracker_glo_l2ca_update,
-  .trackers =     glo_l2ca_trackers,
-  .num_trackers = ARRAY_SIZE(glo_l2ca_trackers)
 };
 
 static tracker_interface_list_element_t tracker_interface_list_glo_l2ca = {
@@ -75,11 +66,6 @@ void track_glo_l2ca_register(void)
   TP_TRACKER_REGISTER_CONFIG(GLO_L2CA_TRACK_SETTING_SECTION,
                              glo_l2ca_config,
                              settings_default_notify);
-
-  for (u32 i = 0; i < ARRAY_SIZE(glo_l2ca_trackers); i++) {
-    glo_l2ca_trackers[i].active = false;
-    glo_l2ca_trackers[i].data = &glo_l2ca_tracker_data[i];
-  }
 
   tracker_interface_register(&tracker_interface_list_glo_l2ca);
 }
@@ -155,41 +141,20 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 }
 
-static void tracker_glo_l2ca_init(const tracker_channel_info_t *channel_info,
-                                  tracker_common_data_t *common_data,
-                                  tracker_data_t *tracker_data)
+static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
 {
-  glo_l2ca_tracker_data_t *data = tracker_data;
-
-  memset(data, 0, sizeof(*data));
-
-  tp_tracker_init(channel_info, common_data, &data->data, &glo_l2ca_config);
+  tp_tracker_init(tracker_channel, &glo_l2ca_config);
 }
 
-static void tracker_glo_l2ca_disable(const tracker_channel_info_t *channel_info,
-                                     tracker_common_data_t *common_data,
-                                     tracker_data_t *tracker_data)
+static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel)
 {
-  glo_l2ca_tracker_data_t *data = tracker_data;
-
-  tp_tracker_disable(channel_info, common_data, &data->data);
-}
-
-static void tracker_glo_l2ca_update(const tracker_channel_info_t *channel_info,
-                                    tracker_common_data_t *common_data,
-                                    tracker_data_t *tracker_data)
-{
-
-  glo_l2ca_tracker_data_t *glo_l2ca_data = tracker_data;
-  tp_tracker_data_t *data = &glo_l2ca_data->data;
-  u32 tracker_flags = tp_tracker_update(channel_info, common_data, data,
-                                        &glo_l2ca_config);
+  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
   (void)tracker_flags;
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
-  if (GLO_SV_UNHEALTHY == common_data->health) {
+  if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L1CA, channel_info->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L1CA, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 }
