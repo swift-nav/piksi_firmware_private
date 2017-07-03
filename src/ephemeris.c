@@ -221,7 +221,8 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
 {
   if (!sid_supported(e->sid)) {
     /* throw debug message prior to dying */
-    log_warn_sid(e->sid, "error not supported SID");
+    log_error_sid(e->sid, "SID not supported, toe %4d %8.1f  valid %u  health %u", 
+                  e->toe.wn, e->toe.tow, e->valid, e->health_bits);
   }
   assert(sid_supported(e->sid));
 
