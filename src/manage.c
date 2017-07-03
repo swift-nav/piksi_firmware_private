@@ -814,7 +814,6 @@ static void drop_channel(tracker_channel_t *tracker_channel,
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
     if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
       acq->state = ACQ_PRN_UNHEALTHY;
-      assert(glo_slot_id_is_valid(tracker_channel->glo_orbit_slot));
       glo_acq_timer[tracker_channel->glo_orbit_slot].status = acq;
       /* store system time when GLO channel dropped */
       glo_acq_timer[tracker_channel->glo_orbit_slot].tick = chVTGetSystemTime();
