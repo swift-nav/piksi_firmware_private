@@ -818,6 +818,8 @@ static void drop_channel(tracker_channel_t *tracker_channel,
       glo_acq_timer[tracker_channel->glo_orbit_slot].status = acq;
       /* store system time when GLO channel dropped */
       glo_acq_timer[tracker_channel->glo_orbit_slot].tick = chVTGetSystemTime();
+    } else {
+      acq->state = ACQ_PRN_ACQUIRING;
     }
   } else {
     acq->state = ACQ_PRN_ACQUIRING;
