@@ -581,9 +581,11 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   size_t size)
 {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
-
+u8 name[] = "persistent/ephemeris";
   off_t   offset = sizeof(ndb_file_version) + off;
   ssize_t written = ndb_fs_write(file->name, offset, src, size);
+  if (!memcmp(file->name, name,sizeof(name)))
+    log_info("size %u, res %u", size, written);
   if (written < 0) {
     log_warn("NDB %s: write error", file->type);
     res = NDB_ERR_FILE_IO;

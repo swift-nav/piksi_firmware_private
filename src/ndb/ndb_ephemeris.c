@@ -31,6 +31,9 @@
 #define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
 #define NDB_EPHE_FILE_TYPE   "ephemeris"
 
+#define NDB_EPHE_FILE_NAME2   "persistent/ephe2"
+#define NDB_EPHE_FILE_TYPE2   "ephe2"
+
 static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT];
 static ndb_element_metadata_t ndb_ephemeris_md[ARRAY_SIZE(ndb_ephemeris)];
 static ndb_file_t ndb_ephe_file = {
@@ -40,6 +43,17 @@ static ndb_file_t ndb_ephe_file = {
     .block_md = &ndb_ephemeris_md[0],
     .block_size = sizeof(ndb_ephemeris[0]),
     .block_count = ARRAY_SIZE(ndb_ephemeris),
+};
+
+static ephemeris_t ndb_ephemeris2[PLATFORM_SIGNAL_COUNT];
+static ndb_element_metadata_t ndb_ephemeris_md2[ARRAY_SIZE(ndb_ephemeris)];
+static ndb_file_t ndb_ephe_file2 = {
+    .name = NDB_EPHE_FILE_NAME2,
+    .type = NDB_EPHE_FILE_TYPE2,
+    .block_data = (u8*)&ndb_ephemeris2[0],
+    .block_md = &ndb_ephemeris_md2[0],
+    .block_size = sizeof(ndb_ephemeris[0]),
+    .block_count = ARRAY_SIZE(ndb_ephemeris2),
 };
 
 typedef struct {
@@ -102,6 +116,7 @@ void ndb_ephemeris_init(void)
   SETTING("ndb", "valid_alm_days", ndb_ephe_config.alm_fit_interval, TYPE_INT);
 
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
+  ndb_load_data(&ndb_ephe_file2, ndb_ephe_config.erase_ephemeris);
 }
 
 static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
@@ -449,6 +464,13 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   return res;
 }
 
+static ndb_op_code_t ndb_ephe_store_dbg(const ephemeris_t *e,
+                                              ndb_data_source_t src)
+{
+  u16 idx = sid_to_global_index(e->sid);
+  return ndb_update(e, src, &ndb_ephemeris_md2[idx]);
+}
+
 static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
                                             ndb_data_source_t src)
 {
@@ -526,6 +548,16 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                      sender_id);
 
   return res;
+}
+
+void ndb_ephemeris_store_dbg(ndb_data_source_t src)
+{
+  log_info("Store all GPS ephe to the 2nd DBG file");
+  for (u8 i = GPS_FIRST_PRN; i <= NUM_SATS_GPS; i++) {
+    ephemeris_t e;
+    ndb_ephemeris_read(construct_sid(CODE_GPS_L1CA, i), &e);
+    ndb_ephe_store_dbg(&e, src);
+  }
 }
 
 /**
