@@ -114,7 +114,7 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 
 #define COMPILER_BARRIER() asm volatile ("" : : : "memory")
 
-#define TRACKING_STARTUP_FIFO_SIZE 8    /* Must be a power of 2 */
+#define TRACKING_STARTUP_FIFO_SIZE 16    /* Must be a power of 2 */
 
 #define TRACKING_STARTUP_FIFO_INDEX_MASK ((TRACKING_STARTUP_FIFO_SIZE) - 1)
 #define TRACKING_STARTUP_FIFO_INDEX_DIFF(write_index, read_index) \
@@ -1386,13 +1386,13 @@ static bool tracking_startup_fifo_mesid_present(
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
 {
   u8 result = 2;
-  if(chMtxTryLock(&tracking_startup_mutex))
-  {
-    if(!tracking_startup_fifo_mesid_present(&tracking_startup_fifo,
+  if (chMtxTryLock(&tracking_startup_mutex)) {
+    if (!tracking_startup_fifo_mesid_present(&tracking_startup_fifo,
                                           startup_params->mesid)) {
-      if(tracking_startup_fifo_write(&tracking_startup_fifo,
-                                           startup_params)) {
+      if (tracking_startup_fifo_write(&tracking_startup_fifo, startup_params)) {
         result = 0;
+      } else {
+        log_warn("Tracking startup FIFO full");
       }
     } else {
       result = 1;
