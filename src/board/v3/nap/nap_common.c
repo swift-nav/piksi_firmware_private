@@ -31,10 +31,8 @@
 #define PROCESS_PERIOD_MS (500)
 
 static void nap_isr(void *context);
-static void nap_track_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
-static BSEMAPHORE_DECL(nap_track_irq_sem, TRUE);
 
 static WORKING_AREA_CCM(wa_nap_irq, 32000);
 
@@ -88,11 +86,6 @@ void nap_setup(void)
   gic_irq_priority_set(IRQ_ID_NAP, NAP_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_NAP);
 
-  /* Enable NAP tracking interrupt */
-  gic_handler_register(IRQ_ID_NAP_TRACK, nap_track_isr, NULL);
-  gic_irq_sensitivity_set(IRQ_ID_NAP_TRACK, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(IRQ_ID_NAP_TRACK, NAP_TRACK_IRQ_PRIORITY);
-  gic_irq_enable(IRQ_ID_NAP_TRACK);
 }
 
 u64 nap_timing_count(void)
@@ -178,17 +171,6 @@ static void nap_isr(void *context)
   chSysUnlockFromISR();
 }
 
-static void nap_track_isr(void *context)
-{
-  (void)context;
-  chSysLockFromISR();
-
-  /* Wake up processing thread */
-  chBSemSignalI(&nap_track_irq_sem);
-
-  chSysUnlockFromISR();
-}
-
 static void handle_nap_irq(void)
 {
   u32 irq = NAP->IRQS;
@@ -256,12 +238,12 @@ static void nap_irq_thread(void *arg)
 
 void nap_track_irq_thread(void *arg)
 {
+  systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
-    /* Waiting for the IRQ to happen.*/
-    chBSemWaitTimeout(&nap_track_irq_sem, MS2ST(PROCESS_PERIOD_MS));
+    sys_time = chVTGetSystemTime();
 
     handle_nap_track_irq();
     tracking_channels_process();
@@ -285,6 +267,11 @@ void nap_track_irq_thread(void *arg)
       log_info("Max configured PLL integration time: %" PRIu16 " ms",
                max_pll_integration_time_ms);
     );
+
+    /* Sleep for 500 microseconds. 
+     * The ChibiOS function below should be capable of handling short deadline misses. 
+     */
+    chThdSleepUntilWindowed(sys_time, sys_time+US2ST(500));
   }
 }
 
