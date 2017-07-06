@@ -285,18 +285,28 @@ void nap_track_init(u8 channel,
     /* Contrive for the timing strobe to occur at
      * or close to next PRN start point */
     if (mesid.code == CODE_GPS_L2CL) {
-      u32 code_length = code_to_chip_count(mesid.code);
-      u32 chips = code_length * GPS_L2CL_PRN_START_INTERVAL_MS
-                              / GPS_L2CL_PRN_PERIOD_MS;
-      u8 cp_start = 0;
-      double tmp = ceil(cp / chips);
-      if (tmp >= 0 && tmp < GPS_L2CL_PRN_START_POINTS) {
+      /* At the moment, we can start the L2CL channel every 20ms intervals,
+         i.e. we have precomputed the code generator register contents for
+         these 75 possible starting points (75 = 1.5s / 20ms).
+         (We did not succeed with calculating the register contents for
+         arbitrary 1ms starting point on-the-fly.)
+         interval chips is how many code chips there is in 20ms.
+         The ceil operation is for figuring out which is the next 20ms index
+         where to start the tracker. */
+
+      u32 interval_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
+      u8 cp_start = GPS_L2CL_PRN_START_POINTS;
+      double tmp = ceil(cp / interval_chips);
+      if (tmp >= 0 && tmp <= GPS_L2CL_PRN_START_POINTS) {
         cp_start = tmp;
       }
       index = (cp_start == GPS_L2CL_PRN_START_POINTS) ? 0 : cp_start;
-      tc_req += round((cp_start * chips - cp)
+      /* We assume that (cp_start * interval_chips - cp) is always positive.
+         Otherwise there is a conversion from negative double to u32,
+         which triggers an undefined behaviour. */
+      tc_req += round((cp_start * interval_chips - cp)
               * calc_samples_per_chip(code_phase_rate));
-      NAP->TRK_CODE_INT_INIT = index * chips;
+      NAP->TRK_CODE_INT_INIT = index * interval_chips;
     } else {
       tc_req += round((code_to_chip_count(mesid.code) - cp)
               * calc_samples_per_chip(code_phase_rate));
