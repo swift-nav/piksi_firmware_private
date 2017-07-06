@@ -660,6 +660,7 @@ static void starling_thread(void *arg)
   static last_good_fix_t lgf;
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
+  static gps_time_t obs_time;
 
   /* RFT_TODO *
    * removed access to NDB */
@@ -693,6 +694,8 @@ static void starling_thread(void *arg)
     memcpy(nav_meas, rover_channel_epoch->obs,   n_ready*sizeof(navigation_measurement_t));
     memset(e_meas, 0, sizeof(e_meas));
     memcpy(e_meas,   rover_channel_epoch->ephem, n_ready*sizeof(ephemeris_t));
+    obs_time = rover_channel_epoch->obs_time;
+    (void) obs_time;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 

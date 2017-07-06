@@ -35,6 +35,7 @@ typedef struct _me_msg_obs_t {
   size_t size;
   navigation_measurement_t obs[MAX_CHANNELS];
   ephemeris_t ephem[MAX_CHANNELS];
+  gps_time_t obs_time;
 } me_msg_obs_t;
 
 
