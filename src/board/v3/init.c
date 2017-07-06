@@ -46,7 +46,7 @@
 #define DEV_CFG_INT_STS (*(volatile u32 *)0xf800700c)
 #define DEV_CFG_INT_STS_PCFG_DONE_Msk (1U << 2)
 
-#define FACTORY_DATA_SIZE_MAX 255
+#define FACTORY_DATA_SIZE_MAX 512
 
 #define IMAGE_HARDWARE_INVALID      0xffffffff
 #define IMAGE_HARDWARE_UNKNOWN      0x00000000
@@ -62,6 +62,7 @@ static struct {
   uint8_t nap_key[16];
   uint8_t mac_address[6];
   uint8_t mfg_id[17];
+  uint32_t hardware_version;
 } factory_params;
 
 struct uuid {
@@ -206,6 +207,12 @@ static bool factory_params_read(void)
   uint32_t factory_data_size = sizeof(factory_data_t) +
                                factory_data_body_size;
 
+  /* check buffer length */
+  if (FACTORY_DATA_SIZE_MAX < (ssize_t)factory_data_size) {
+    log_error("error factory data larger than buffer");
+    return false;
+  }
+
   /* check header + body length */
   if (bytes_read < (ssize_t)factory_data_size) {
     log_error("error reading factory data");
@@ -239,14 +246,19 @@ static bool factory_params_read(void)
     return false;
   }
 
-   if (factory_data_mac_address_get(factory_data, factory_params.mac_address) != 0) {
+  if (factory_data_mac_address_get(factory_data, factory_params.mac_address) != 0) {
     log_error("error reading mac address from factory data");
     return false;
   }
 
-   if (factory_data_mfg_id_get(factory_data, factory_params.mfg_id) != 0) {
+  if (factory_data_mfg_id_get(factory_data, factory_params.mfg_id) != 0) {
     log_error("error reading mfg id from factory data");
     return false;
+  }
+
+  if (factory_data_hardware_revision_get(factory_data, &factory_params.hardware_version) != 0) {
+    //factory data didn't countain hardware_version
+    factory_params.hardware_version = 0;
   }
 
   return true;
@@ -324,6 +336,15 @@ u8 mac_address_string_get(char *mac_string)
           );
   return strlen(mac_string);
 }
+
+u8 hw_version_string_get(char *hw_version_string)
+{
+  u16 major_ver = factory_params.hardware_version >> 16;
+  u16 minor_ver = factory_params.hardware_version && 0xFFFF;
+  sprintf(hw_version_string, "%d.%d", major_ver, minor_ver);
+  return strlen(hw_version_string);
+}
+
 
 u8 hw_revision_string_get(char *hw_revision_string)
 {
