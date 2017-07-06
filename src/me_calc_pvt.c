@@ -87,7 +87,8 @@ static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
 
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
-                                 const ephemeris_t _ephem[])
+                                 const ephemeris_t _ephem[],
+                                 const gps_time_t *_t)
 {
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
@@ -105,6 +106,9 @@ static void me_post_observations(u8 n,
   if (n) {
     memcpy(me_msg_obs->obs,    _meas, n*sizeof(navigation_measurement_t));
     memcpy(me_msg_obs->ephem, _ephem, n*sizeof(ephemeris_t));
+  }
+  if (_t != NULL) {
+    me_msg_obs->obs_time = *_t;
   }
 
   ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
@@ -125,7 +129,7 @@ static void me_send_all(u8 _num_obs,
                         const ephemeris_t _ephem[],
                         const gps_time_t *_t)
 {
-  me_post_observations(_num_obs, _meas, _ephem);
+  me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
   double t_check = _t->tow * (soln_freq / obs_output_divisor);
@@ -136,7 +140,7 @@ static void me_send_all(u8 _num_obs,
 
 
 static void me_send_emptyobs(void) {
-  me_post_observations(0, NULL, NULL);
+  me_post_observations(0, NULL, NULL, NULL);
   send_observations(0, msg_obs_max_size, NULL, NULL);
 }
 
