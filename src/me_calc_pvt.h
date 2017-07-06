@@ -31,11 +31,6 @@ typedef struct {
   u8 signals_useable;
 } soln_stats_t;
 
-typedef struct {
-  systime_t systime;
-  u8 signals_used;
-} soln_pvt_stats_t;
-
 typedef struct _me_msg_obs_t {
   size_t size;
   navigation_measurement_t obs[MAX_CHANNELS];
@@ -54,7 +49,6 @@ extern MemoryPool obs_buff_pool;
 extern mailbox_t  obs_mailbox;
 
 soln_stats_t solution_last_stats_get(void);
-soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
 void me_calc_pvt_setup(void);
 

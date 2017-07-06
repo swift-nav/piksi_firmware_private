@@ -76,7 +76,6 @@ s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 static bool disable_raim = false;
 
 static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
-static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 
 
 /* RFT_TODO *
@@ -698,13 +697,6 @@ soln_stats_t solution_last_stats_get(void)
 {
   return last_stats;
 }
-
-soln_pvt_stats_t solution_last_pvt_stats_get(void)
-{
-  return last_pvt_stats;
-}
-
-
 
 void me_calc_pvt_setup()
 {

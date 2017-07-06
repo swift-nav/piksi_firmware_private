@@ -98,6 +98,7 @@ double heading_offset = 0.0;
 
 bool disable_klobuchar = false;
 
+static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
 static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
 
 
@@ -266,6 +267,10 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
       sbp_make_dops(&sbp_messages->sbp_dops,dops,sbp_messages->pos_llh.tow, SPP_POSITION);
     }
 
+    /* Update stats */
+    last_pvt_stats.systime = chVTGetSystemTime();
+    last_pvt_stats.signals_used = soln->n_sigs_used;
+    
   } else {
     gps_time_t time_guess = get_current_time();
     sbp_make_gps_time(&sbp_messages->gps_time, &time_guess, 0);
@@ -1061,6 +1066,11 @@ void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
 {
   return last_dgnss_stats;
+}
+
+soln_pvt_stats_t solution_last_pvt_stats_get(void)
+{
+  return last_pvt_stats;
 }
 
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */
