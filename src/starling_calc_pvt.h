@@ -55,6 +55,11 @@ typedef struct {
   msg_baseline_heading_t baseline_heading;
 } sbp_messages_t;
 
+typedef struct {
+  systime_t systime;
+  u8 signals_used;
+} soln_pvt_stats_t;
+
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
@@ -73,5 +78,7 @@ double calc_heading(const double b_ned[3]);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void starling_calc_pvt_setup(void);
 void reset_rtk_filter(void);
+
+soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
 #endif
