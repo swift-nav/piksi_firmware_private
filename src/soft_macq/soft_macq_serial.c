@@ -168,6 +168,15 @@ bool soft_acq_search(const sc16_t *_cSignal,
     }
   }
 
+  /* False acquisition code phase hack. The vast majority of our false
+   * acquisitions return a code phase zero. Not allowing zero code phase
+   * will reject a small number of true acquisitions, but prevents nearly
+   * all of the false acquisitions. */
+  /* TODO: Check later if this can be removed. */
+  if (0 == peak.sample_offset) {
+    return false;
+  }
+
   s32 corrected_sample_offset = peak.sample_offset;
 
   /* Compute code phase */
