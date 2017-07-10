@@ -657,8 +657,10 @@ static void me_calc_pvt_thread(void *arg)
     double rx_err = gpsdifftime(&rec_time, &current_fix.time);
     log_debug("RX clock offset = %f", rx_err);
 
-    if (fabs(rx_err) >= 1e-3) {
-      log_info("Receiver clock offset larger than 1 ms, applying millisecond jump");
+    /* Clock error needs to be kept within 0.5 ms so that time stamps get
+     * rounded to the correct millisecond. */
+    if (fabs(rx_err) >= 0.5e-3) {
+      log_info("Receiver clock offset larger than 0.5 ms, applying millisecond jump");
       /* round the time adjustment to even milliseconds */
       double dt = round(rx_err * 1000.0) / 1000.0;
       /* adjust the RX to GPS time conversion */
