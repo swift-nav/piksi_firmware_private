@@ -157,7 +157,7 @@ void axi_dma_init(void)
     AXIDMADriver1.s2mm_driver.callback = 0;
     interrupts_init(&AXIDMADriver1.s2mm_driver);
   #else
-    AXIDMADriver1.mm2s_driver.axi_dma_dir = 0;
+    AXIDMADriver1.s2mm_driver.axi_dma_dir = 0;
   #endif
 #endif
 

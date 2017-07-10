@@ -320,7 +320,6 @@ void tracking_channels_missed_update_error(u32 channels_mask)
 bool tracker_channel_available(tracker_channel_id_t id,
                                const me_gnss_signal_t mesid)
 {
-  (void)mesid; /* will be taken in use once NAP adds signal specific channels */
   const tracker_channel_t *tracker_channel = tracker_channel_get(id);
 
   if (!nap_track_supports(id, mesid)) {
