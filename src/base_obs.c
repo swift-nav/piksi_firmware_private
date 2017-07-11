@@ -200,16 +200,8 @@ static void update_obss(obss_t *new_obss)
   bool have_obs = true;
   chMtxLock(&base_obs_lock);
 
-  /* Create a set of navigation measurements to store the previous
-   * observations. */
-  static u8 n_old = 0;
-  static navigation_measurement_t nm_old[MAX_CHANNELS];
-
-  /* Fill in the navigation measurements in base_obss, using TDCP method to
-   * calculate the Doppler shift. */
-  base_obss.n = tdcp_doppler(new_obss->n, new_obss->nm,
-                             n_old, nm_old, base_obss.nm,
-                             gpsdifftime(&new_obss->tor, &tor_old));
+  base_obss.n = new_obss->n;
+  memcpy(base_obss.nm, new_obss->nm, new_obss->n * sizeof(navigation_measurement_t));
 
   /* Assume that we don't know the known, surveyed base position for now. */
   base_obss.has_known_pos_ecef = false;
@@ -231,13 +223,6 @@ static void update_obss(obss_t *new_obss)
     chMtxUnlock(&base_pos_lock);
   }
   old_base_sender_id = base_obss.sender_id;
-
-  /* Copy the current observations over to nm_old so we can difference
-   * against them next time around. */
-  memcpy(nm_old, new_obss->nm,
-         new_obss->n * sizeof(navigation_measurement_t));
-  n_old = new_obss->n;
-  tor_old = new_obss->tor;
 
   /* Copy over the time. */
   base_obss.tor = new_obss->tor;
