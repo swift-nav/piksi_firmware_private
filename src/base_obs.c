@@ -100,7 +100,7 @@ static void base_pos_llh_callback(u16 sender_id,
   (void)len;
   /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
    * sender_id. */
-  if (sender_id == 0) {
+  if (MSG_DUMMY_SENDER_ID == sender_id) {
     return;
   }
   /*TODO: keep track of sender_id to store multiple base positions?*/
@@ -115,7 +115,7 @@ static void base_pos_llh_callback(u16 sender_id,
   base_pos_known = true;
   check_base_position_change();
   /* Relay base station position using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, 0);
+  sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_DUMMY_SENDER_ID);
   chMtxUnlock(&base_pos_lock);
 }
 
@@ -132,7 +132,7 @@ static void base_pos_ecef_callback(u16 sender_id,
   (void)len;
   /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
    * sender_id. */
-  if (sender_id == 0) {
+  if (MSG_DUMMY_SENDER_ID == sender_id) {
     return;
   }
   chMtxLock(&base_pos_lock);
@@ -140,7 +140,7 @@ static void base_pos_ecef_callback(u16 sender_id,
   base_pos_known = true;
   check_base_position_change();
   /* Relay base station position using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, 0);
+  sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_DUMMY_SENDER_ID);
   chMtxUnlock(&base_pos_lock);
 }
 
@@ -357,7 +357,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
    * from the console, not from the base station. We don't want to use them and
    * we don't want to create an infinite loop by forwarding them again so just
    * ignore them. */
-  if (sender_id == 0) {
+  if (MSG_DUMMY_SENDER_ID == sender_id) {
     return;
   }
 
@@ -365,7 +365,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   base_obss_rx.sender_id = sender_id;
 
   /* Relay observations using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_OBS, len, msg, 0);
+  sbp_send_msg_(SBP_MSG_OBS, len, msg, MSG_DUMMY_SENDER_ID);
 
   /* GPS time of observation. */
   gps_time_t tor = GPS_TIME_UNKNOWN;
@@ -518,7 +518,7 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
    * sender_id. */
-  if (sender_id == 0) {
+  if (MSG_DUMMY_SENDER_ID == sender_id) {
     return;
   }
 
