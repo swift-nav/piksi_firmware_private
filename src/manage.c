@@ -466,12 +466,9 @@ static acq_status_t * choose_acq_sat(void)
   gps_time_t t = get_current_time();
 
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (!code_requires_direct_acq(acq_status[i].mesid.code)) {
-      continue;
-    }
-
-    if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked) {
+    if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
+        (acq_status[i].state != ACQ_PRN_ACQUIRING) ||
+        (acq_status[i].masked)) {
       continue;
     }
 
@@ -493,18 +490,16 @@ static acq_status_t * choose_acq_sat(void)
   u32 pick = rand() % total_score;
 
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (!code_requires_direct_acq(acq_status[i].mesid.code)) {
-      continue;
-    }
-
-    if ((acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        acq_status[i].masked) {
+    if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
+        (acq_status[i].state != ACQ_PRN_ACQUIRING) ||
+        (acq_status[i].masked)) {
       continue;
     }
 
     u32 sat_score = 0;
-    for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++)
+    for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++) {
       sat_score += acq_status[i].score[hint];
+    }
     if (pick < sat_score) {
       return &acq_status[i];
     } else {
@@ -594,8 +589,9 @@ static void manage_acq(void)
       acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, doppler_max);
       acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, doppler_min);
       /* Decay hint scores */
-      for (u8 i = 0; i < ACQ_HINT_NUM; i++)
+      for (u8 i = 0; i < ACQ_HINT_NUM; i++) {
         acq->score[i] = (acq->score[i] * 3) / 4;
+      }
       /* Reset hint score for acquisition. */
       acq->score[ACQ_HINT_PREV_ACQ] = 0;
       return;
@@ -1414,7 +1410,7 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
 static void manage_tracking_startup(void)
 {
   tracking_startup_params_t startup_params;
-  while(tracking_startup_fifo_read(&tracking_startup_fifo, &startup_params)) {
+  while (tracking_startup_fifo_read(&tracking_startup_fifo, &startup_params)) {
 
     acq_status_t *acq = &acq_status[mesid_to_global_index(startup_params.mesid)];
 
@@ -1456,6 +1452,9 @@ static void manage_tracking_startup(void)
       continue;
     }
 
+    /* Change state to TRACKING */
+    acq->state = ACQ_PRN_TRACKING;
+
     /* Start the tracking channel */
     if (!tracker_channel_init(chan,
                               startup_params.mesid,
@@ -1466,6 +1465,9 @@ static void manage_tracking_startup(void)
                               startup_params.chips_to_correlate,
                               startup_params.cn0_init)) {
       log_error("tracker channel init failed");
+      /* If starting of a channel fails, change state to ACQUIRING */
+      acq->state = ACQ_PRN_ACQUIRING;
+      continue;
     }
 
     /* TODO: Initialize elevation from ephemeris if we know it precisely */
@@ -1475,9 +1477,6 @@ static void manage_tracking_startup(void)
         !decoder_channel_init(chan, startup_params.mesid)) {
       log_error("decoder channel init failed");
     }
-
-    /* Change state to TRACKING */
-    acq->state = ACQ_PRN_TRACKING;
   }
 }
 
