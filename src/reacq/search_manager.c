@@ -145,8 +145,13 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
       }
     }
 
-    if (visible || deep_job->glo_blind_search) {
+    if (visible) {
       deep_job->cost_hint = ACQ_COST_MIN;
+      deep_job->cost_delta = 0;
+      deep_job->needs_to_run = true;
+      deep_job->oneshot = false;
+    } else if (deep_job->glo_blind_search) {
+      deep_job->cost_hint = ACQ_COST_AVG;
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
