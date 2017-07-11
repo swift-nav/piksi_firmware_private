@@ -483,7 +483,7 @@ void nap_track_read_results(u8 channel,
     s->sw_carr_phase = hw_carr_phase;
     s->reckoned_carr_phase = ((double) hw_carr_phase) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    log_warn_mesid(s->mesid, "first carr phase %+.4lf",
+    log_info_mesid(s->mesid, "first carr phase %+.4lf",
         s->reckoned_carr_phase);
   } else {
 #ifdef PIKSI_RELEASE
