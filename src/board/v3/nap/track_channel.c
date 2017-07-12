@@ -70,10 +70,10 @@ static struct nap_ch_state {
   /** Doppler induced carrier phase.
       Does not include FCN induced carrier phase change. */
   double reckoned_carr_phase;
-  u32 length[2];               /**< Correlation length in samples of Fs */
-  s32 carr_pinc[2];            /**< Carrier phase increment */
-  u64 reckon_init_done;        /**< First carrier phase was read from NAP */
-  s64 sw_carr_phase;           /**< Debug reckoned carrir phase */
+  u32 length[2];           /**< Correlation length in samples of Fs */
+  s32 carr_pinc[2];        /**< Carrier phase increment */
+  u64 reckon_counter;      /**< First carrier phase has to be read from NAP */
+  s64 sw_carr_phase;       /**< Debug reckoned carrier phase */
 } nap_ch_desc[MAX_CHANNELS];
 
 /** Internal tracking channel capability = supported code */
@@ -477,26 +477,21 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = t->TIMING_SNAPSHOT;
 
-  if (s->reckon_init_done < 1) {
+  if (s->reckon_counter < 1) {
     hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-
-    s->sw_carr_phase = hw_carr_phase;
+    s->sw_carr_phase = hw_carr_phase;    
     s->reckoned_carr_phase = ((double) hw_carr_phase) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
   } else {
-#ifndef PIKSI_RELEASE
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-#endif /* PIKSI_RELEASE */
-
     s64 phase_incr = ((s64)s->length[1]) * (s->carr_pinc[1]);
-    s->sw_carr_phase += phase_incr;
     s->reckoned_carr_phase += ((double) phase_incr) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
 #ifndef PIKSI_RELEASE
+    s->sw_carr_phase += phase_incr;
+    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
     if (s->sw_carr_phase != hw_carr_phase) {
-      log_warn("%12llu G%02d reckon err SW %+.6lf  HW %+.6lf DIFF %+.6f",
-        s->reckon_init_done,
-        s->mesid.sat,
+      log_error_mesid(s->mesid, "%12llu reckon err SW %+.6lf  HW %+.6lf DIFF %+.6f",
+        s->reckon_counter,
         s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
         hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
         (s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
@@ -506,7 +501,7 @@ void nap_track_read_results(u8 channel,
   }
   s->reckoned_carr_phase += s->fcn_freq_hz *
                            (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
-  s->reckon_init_done++;
+  s->reckon_counter++;
   *carrier_phase = -(s->reckoned_carr_phase);
 
   /* Spacing between VE and P correlators */
