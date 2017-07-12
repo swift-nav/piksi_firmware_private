@@ -22,6 +22,7 @@ REPO="${PWD##*/}"
 BUCKET="swiftnav-artifacts-pull-requests"
 BUILD_SOURCE="pull-request"
 BUILD_VERSION="$(git describe --tags --dirty --always)"
+HEAD_SHA="$(git rev-parse HEAD)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
@@ -79,7 +80,18 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     fi
 elif [ ! -z "$GITHUB_TOKEN" ]; then
     COMMENT="$(github_links)"
-    URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
-    curl -u "$GITHUB_TOKEN:" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
+    COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
+    curl -u "$GITHUB_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
+    COMMIT_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/commits/$HEAD_SHA"
+    COMMIT_DATA=`curl -u "$GITHUB_TOKEN:" $COMMIT_URL`
+    # find line '"message": "Merge COMMIT_SHA into MASTER_SHA",' and get COMMIT_SHA
+    PARENT_SHA=`echo "$COMMIT_DATA" | grep -m 1 'message' | tr -s ' ' | cut -d ' ' -f 4`
+    # set status of HITL testing to pending
+    STATUS_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/statuses/$PARENT_SHA"
+    STATUS_DESCRIPTION="Waiting for HITL tests to be run and complete"
+    STATUS_TARGET_URL="http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+    STATUS_STATE="pending"
+    STATUS_CONTEXT="continuous-integration/hitl"
+    curl -i -X POST -u "$GITHUB_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_CONTEXT\"}"
 fi
 
