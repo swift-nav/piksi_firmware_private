@@ -282,10 +282,12 @@ static void sch_glo_fcn_set(acq_job_t *job)
   }
 
   if (job->glo_blind_search) {
-    /* FCN not mapped to GLO slot ID, so perform blind search,
-     * just pick random FCN */
-    job->mesid.sat = (rand() % GLO_MAX_FCN) + 1;
-
+    /* FCN not mapped to GLO slot ID, so perform blind search, just pick next
+     * FCN */
+    job->mesid.sat++;
+    if (job->mesid.sat > GLO_MAX_FCN) {
+      job->mesid.sat = GLO_MIN_FCN;
+    }
     job->mesid.code = job->sid.code;
   }
 }

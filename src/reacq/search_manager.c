@@ -52,9 +52,13 @@ void sm_init(acq_jobs_state_t *data)
       data->jobs_gps[type][i].job_type = type;
     }
     for (i = 0; i < NUM_SATS_GLO; i++) {
-      /* NOTE: MESID will be constructed on the fly */
       data->jobs_glo[type][i].sid = construct_sid(CODE_GLO_L1CA,
                                                   GLO_FIRST_PRN + i);
+      /* NOTE: GLO MESID is initialized with random sequence,
+       * so that blind searches are immediately done with random FCNs */
+      data->jobs_glo[type][i].mesid =
+             construct_mesid(CODE_GLO_L1CA, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
+
       data->jobs_glo[type][i].job_type = type;
     }
   }
