@@ -50,6 +50,9 @@
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP       \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
+#define GET_NAP_CORR_LEN      (1+GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL))
+#define SET_NAP_CORR_LEN(len) (SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, len-1))
+
 /** Structure is used to define spacing between two correlators */
 typedef struct {
   u8 chips:3;   /**< Correlator spacing in chips. */
@@ -67,10 +70,11 @@ static struct nap_ch_state {
   /** Doppler induced carrier phase.
       Does not include FCN induced carrier phase change. */
   double reckoned_carr_phase;
-  u32 length[2];               /**< Correlation length in samples of Fs */
-  s32 carr_pinc[2];            /**< Carrier phase increment */
-  bool reckon_init_done;       /**< First carrier phase was read from NAP */
-} nap_ch_state[MAX_CHANNELS];
+  u32 length[2];           /**< Correlation length in samples of Fs */
+  s32 carr_pinc[2];        /**< Carrier phase increment */
+  u64 reckon_counter;      /**< First carrier phase has to be read from NAP */
+  s64 sw_carr_phase;       /**< Debug reckoned carrier phase */
+} nap_ch_desc[MAX_CHANNELS];
 
 /** Internal tracking channel capability = supported code */
 static u8 nap_ch_capability[MAX_CHANNELS];
@@ -163,7 +167,7 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_GLO_L2CA));
 
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct nap_ch_state *s = &nap_ch_desc[channel];
 
   if (nap_ch_capability[channel] != mesid_to_nap_code(mesid)) {
     log_error_mesid(mesid, "Tracking channel %u doesn't support this signal.",
@@ -236,7 +240,7 @@ void nap_track_init(u8 channel,
                    chips_to_correlate,
                    0);
 
-  u32 length = GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL);
+  u32 length = GET_NAP_CORR_LEN;
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -255,7 +259,7 @@ void nap_track_init(u8 channel,
   /* Adjust first integration length due to correlator spacing */
   length += prompt_offset;
   s->length[0] = length;
-  t->CONTROL = SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, length);
+  t->CONTROL = SET_NAP_CORR_LEN(length);
 
   u64 profiling_begin = nap_timing_count();
 
@@ -343,10 +347,10 @@ void nap_track_init(u8 channel,
   }
 
   /* Revert length adjustment for future integrations after channel started */
-  length = GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL);
-  t->CONTROL = SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, length-prompt_offset);
+  length = GET_NAP_CORR_LEN;
+  t->CONTROL = SET_NAP_CORR_LEN(length-prompt_offset);
 
-  u32 length_reg_val = GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL);
+  u32 length_reg_val = GET_NAP_CORR_LEN;
   /* check for underflow */
   if (length <= length_reg_val) {
     u64 profiling_end = nap_timing_count();
@@ -359,12 +363,12 @@ void nap_track_init(u8 channel,
   }
   /* Future integrations for L2CL are 1 chip longer */
   if (mesid.code == CODE_GPS_L2CL) {
-    length = GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL);
+    length = GET_NAP_CORR_LEN;
     length += calc_samples_per_chip(code_phase_rate);
-    t->CONTROL = SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, length);
+    t->CONTROL = SET_NAP_CORR_LEN(length);
   }
   s->length[1] = s->length[0];
-  s->length[0] = GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL);
+  s->length[0] = GET_NAP_CORR_LEN;
 
   /* The first and second integrations are always done with same carr_pinc */
   s->carr_pinc[1] = s->carr_pinc[0];
@@ -384,15 +388,14 @@ void nap_track_update(u8 channel,
   (void)corr_spacing; /* This is always written as 0, for now */
 
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct nap_ch_state *s = &nap_ch_desc[channel];
 
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = code_phase_rate;
 
   u32 code_phase_frac = 0;
   if (!s->init) {
-    code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC *
-        GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL);
+    code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC * GET_NAP_CORR_LEN;
   }
 
   u32 cp_rate_units = round(code_phase_rate *
@@ -404,7 +407,7 @@ void nap_track_update(u8 channel,
   s->length[1] = s->length[0];
   s->length[0] = length;
 
-  t->CONTROL = SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, length);
+  t->CONTROL = SET_NAP_CORR_LEN(length);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -439,7 +442,8 @@ void nap_track_read_results(u8 channel,
                             double *carrier_phase)
 {
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
-  struct nap_ch_state *s = &nap_ch_state[channel];
+  struct nap_ch_state *s = &nap_ch_desc[channel];
+  s64 hw_carr_phase;
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(t->STATUS)) {
     log_warn_mesid(s->mesid,
@@ -473,31 +477,32 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = t->TIMING_SNAPSHOT;
 
-  if (CONSTELLATION_GLO == mesid_to_constellation(s->mesid)) {
-
-    if (s->reckon_init_done) {
-      /* Add the contribution of both FCN and Doppler. With numerical errors indeed
-         but those errors will be recovered by the PLL the next time around as
-         they are exactly the same that NAP is also subject to */
-      s->reckoned_carr_phase += ((double)s->length[1] * s->carr_pinc[1]) /
-                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    } else {
-      /* NAP does not always start counting carrier phase from zero.
-         To workaround it we read the initial carrier phase from NAP and
-         do the reckoning starting from the second integration. */
-      s->reckon_init_done = true;
-      s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-      s->reckoned_carr_phase = (double)nap_carr_phase /
-                                NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    }
-    s->reckoned_carr_phase += s->fcn_freq_hz *
-                              (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
-    *carrier_phase = -s->reckoned_carr_phase;
+  if (s->reckon_counter < 1) {
+    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    s->sw_carr_phase = hw_carr_phase;    
+    s->reckoned_carr_phase = ((double) hw_carr_phase) /
+                              NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
   } else {
-    s64 nap_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-    *carrier_phase = (double)-nap_carr_phase /
-                     NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    s64 phase_incr = ((s64)s->length[1]) * (s->carr_pinc[1]);
+    s->reckoned_carr_phase += ((double) phase_incr) /
+                              NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+#ifndef PIKSI_RELEASE
+    s->sw_carr_phase += phase_incr;
+    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    if (s->sw_carr_phase != hw_carr_phase) {
+      log_error_mesid(s->mesid, "%12llu reckon err SW %+.6lf  HW %+.6lf DIFF %+.6f",
+        s->reckon_counter,
+        s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
+        hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
+        (s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
+        (hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE));
+    }
+#endif /* PIKSI_RELEASE */
   }
+  s->reckoned_carr_phase += s->fcn_freq_hz *
+                           (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
+  s->reckon_counter++;
+  *carrier_phase = -(s->reckoned_carr_phase);
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
