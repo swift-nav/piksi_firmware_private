@@ -44,6 +44,13 @@ typedef struct _me_msg_obs_t {
 
 #define OBS_N_BUFF 2
 
+/* Maximum receiver clock error before it is adjusted back to GPS time.
+ * The default value 0.5 ms keeps the receiver close enough to GPS time to
+ * always round to the output time stamps to the correct millisecond.
+ * Note that values smaller than 0.5 ms will cause oscillation because clock
+ * jumps are always done by full milliseconds. */
+#define MAX_CLOCK_ERROR_S 0.0005
+
 extern u32 obs_output_divisor;
 extern MemoryPool obs_buff_pool;
 extern mailbox_t  obs_mailbox;

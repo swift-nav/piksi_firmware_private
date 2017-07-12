@@ -542,16 +542,15 @@ static void me_calc_pvt_thread(void *arg)
       continue;
     }
 
-    /* Calculate the receiver clock error and if >1ms perform a clock jump */
+    /* Calculate the receiver clock error and adjust if it is too large */
     double rx_err = gpsdifftime(&rec_time, &current_fix.time);
     log_debug("RX clock offset = %f", rx_err);
 
-    /* Clock error needs to be kept within 0.5 ms so that time stamps get
-     * rounded to the correct millisecond. */
-    if (fabs(rx_err) >= 0.5e-3) {
-      log_info("Receiver clock offset larger than 0.5 ms, applying millisecond jump");
+    if (fabs(rx_err) >= MAX_CLOCK_ERROR_S) {
+      log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
+          MAX_CLOCK_ERROR_S * SECS_MS);
       /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * 1000.0) / 1000.0;
+      double dt = round(rx_err * SECS_MS) / SECS_MS;
       /* adjust the RX to GPS time conversion */
       adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
