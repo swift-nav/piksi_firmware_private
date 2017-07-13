@@ -69,6 +69,9 @@ github_links(){
 echo "Comment PULL_REQUEST ($TRAVIS_PULL_REQUEST)"
 echo "Comment BRANCH ($TRAVIS_BRANCH)"
 echo "Comment TAG ($TRAVIS_TAG)"
+echo "Comment SHA ($TRAVIS_PULL_REQUEST_SHA)"
+echo "Comment COMMIT ($TRAVIS_COMMIT)"
+echo "Comment VERSION ($BUILD_VERSION)"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_TAG" == v* || "$TRAVIS_BRANCH" == v*-release ]]; then
