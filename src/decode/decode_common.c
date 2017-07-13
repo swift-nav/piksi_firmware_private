@@ -36,17 +36,16 @@ void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid)
 
 bool is_glo_decode_ready(nav_msg_glo_t *n,
                          me_gnss_signal_t mesid,
-                         s8 soft_bit,
-                         bool sensitivity_mode)
+                         nav_bit_fifo_element_t nav_bit)
 {
   /* Don't trust polarity information while in sensitivity mode. */
-  if (sensitivity_mode) {
+  if (nav_bit.sensitivity_mode) {
     nav_msg_init_glo_with_cb(n, mesid);
     return false;
   }
 
   /* Update GLO data decoder */
-  bool bit_val = soft_bit >= 0;
+  bool bit_val = nav_bit.soft_bit >= 0;
   nav_msg_status_t msg_status = nav_msg_update_glo(n, bit_val);
   if (GLO_STRING_READY != msg_status) {
     return false;

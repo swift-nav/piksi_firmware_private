@@ -16,8 +16,7 @@
 void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 bool is_glo_decode_ready(nav_msg_glo_t *n,
                          me_gnss_signal_t mesid,
-                         s8 soft_bit,
-                         bool sensitivity_mode);
+                         nav_bit_fifo_element_t nav_bit);
 void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
