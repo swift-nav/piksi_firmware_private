@@ -811,12 +811,15 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
     gps2utc(&t, &utc_time, utc_params);
     u16 second_frac = roundf(utc_time.second_frac * NMEA_UTC_S_FRAC_DIVISOR);
     if (second_frac == NMEA_UTC_S_FRAC_DIVISOR) {
-      /* rounding up to next second, recompute the UTC time structure to
-       * normalize it and to handle leap second correctly */
+      /* the UTC timestamp rounds up to next second, so recompute the UTC time
+       * structure to normalize it and to handle leap second correctly */
       double dt = 1.0 - utc_time.second_frac;
-      t.tow += dt;
+      /* round up to the next representable floating point number */
+      t.tow = nextafter(t.tow + dt, INFINITY);
       normalize_gps_time(&t);
       gps2utc(&t, &utc_time, utc_params);
+      /* if the fractional part of the resulting new time stamp is not zero
+       * then we computed wrong... */
       second_frac = roundf(utc_time.second_frac * NMEA_UTC_S_FRAC_DIVISOR);
       assert(second_frac == 0);
     }

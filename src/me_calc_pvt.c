@@ -541,8 +541,37 @@ static void me_calc_pvt_thread(void *arg)
       ndb_lgf_store(&lgf);
       continue;
     }
-    // We now have the nap count we expected the measurements to be at, plus the GPS time error for that nap count
-    // so we need to store this error in the GPS time (GPS time frame)
+
+    /* Calculate the receiver clock error and adjust if it is too large */
+    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
+    log_debug("RX clock offset = %f", rx_err);
+
+    if (fabs(rx_err) >= MAX_CLOCK_ERROR_S) {
+      log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
+          MAX_CLOCK_ERROR_S * SECS_MS);
+      /* round the time adjustment to even milliseconds */
+      double dt = round(rx_err * SECS_MS) / SECS_MS;
+      /* adjust the RX to GPS time conversion */
+      adjust_time_fine(dt);
+      /* adjust all the carrier phase offsets */
+      /* note that the adjustment is always in even cycles because millisecond
+       * breaks up exactly into carrier cycles
+       * TODO: verify this holds for GLONASS as well */
+      tracking_channel_carrier_phase_offsets_adjust(dt);
+      /* adjust the stored CP measurements so that next TDCP is correct */
+      for (u8 i = 0; i < n_ready_old; i++) {
+        nav_meas_old[i].raw_carrier_phase += dt *
+            sid_to_carr_freq(nav_meas_old[i].sid);
+      }
+      clock_offset_previous -= dt;
+      /* adjust the time of current fix */
+      current_fix.time.tow -= dt;
+      normalize_gps_time(&current_fix.time);
+    }
+
+    /* We now have the nap count we expected the measurements to be at, plus
+     * the GPS time error for that nap count so we need to store this error in
+     * the the GPS time (GPS time frame) */
     set_gps_time_offset(rec_tc, current_fix.time);
 
     /* Update global position solution state. */
@@ -651,29 +680,6 @@ static void me_calc_pvt_thread(void *arg)
         /* Send the observations. */
         me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
       }
-    }
-
-    /* Calculate the receiver clock error and if >1ms perform a clock jump */
-    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_debug("RX clock offset = %f", rx_err);
-
-    if (fabs(rx_err) >= 1e-3) {
-      log_info("Receiver clock offset larger than 1 ms, applying millisecond jump");
-      /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * 1000.0) / 1000.0;
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
-      /* adjust all the carrier phase offsets */
-      /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
-      /* adjust the stored CP measurements so that next TDCP is correct */
-      for (u8 i = 0; i < n_ready_old; i++) {
-        nav_meas_old[i].raw_carrier_phase += dt *
-            sid_to_carr_freq(nav_meas_old[i].sid);
-      }
-      clock_offset_previous -= dt;
     }
 
     /* Calculate the correction to the current deadline by converting nap count
