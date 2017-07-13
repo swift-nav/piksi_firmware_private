@@ -1065,7 +1065,7 @@ static bool compute_cpo(u64 ref_tc,
   if (ret) {
     /* initialize the carrier phase offset with a constant value */
     /* NOTE: CP sign flip - change the plus sign below */
-    *carrier_phase_offset = 100e6;
+    *carrier_phase_offset = 100e6 - floor((meas->carrier_phase));
 
     if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
