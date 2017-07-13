@@ -58,8 +58,10 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
     return false;
   }
 
+  u32 time_tag_s = chVTGetSystemTime() / CH_CFG_ST_FREQUENCY;
   /* Get GLO strings 1 - 5, and decode full ephemeris */
-  string_decode_status_t str_status = process_string_glo(n);
+  string_decode_status_t str_status = process_string_glo(n,
+                                                         time_tag_s);
   if (GLO_STRING_DECODE_ERROR == str_status) {
     nav_msg_init_glo_with_cb(n, mesid);
     return false;
