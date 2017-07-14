@@ -39,7 +39,7 @@ typedef void (*decoder_interface_function_t)(
 
 /** Interface to a decoder implementation. */
 typedef struct {
-  enum code code;   /**< Code type for which the implementation may be used. */
+  code_t code;   /**< Code type for which the implementation may be used. */
   /** Init function. Called to set up decoder instance when decoding begins. */
   decoder_interface_function_t init;
   /** Disable function. Called when decoding stops. */
