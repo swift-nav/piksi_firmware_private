@@ -170,7 +170,6 @@ typedef enum
 } tp_ctrl_e;
 
 typedef struct {
-  u32 time_tag_s; /**< Reception time of soft_bit, based on systick [s] */
   s8 soft_bit;
   bool sensitivity_mode;
 } nav_bit_fifo_element_t;

@@ -233,12 +233,10 @@ void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
     return;
   }
 
-  u32 time_tag_s = chVTGetSystemTime() / CH_CFG_ST_FREQUENCY;
   s8 soft_bit = nav_bit_quantize(bit_integrate);
 
   /* write to FIFO */
-  nav_bit_fifo_element_t element = { .time_tag_s = time_tag_s,
-                                     .soft_bit = soft_bit,
+  nav_bit_fifo_element_t element = { .soft_bit = soft_bit,
                                      .sensitivity_mode = sensitivity_mode };
   if (nav_bit_fifo_write(&tracker_channel->nav_bit_fifo, &element)) {
 
