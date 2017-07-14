@@ -588,7 +588,7 @@ typedef void (tracker_interface_function_t)(tracker_channel_t *tracker_channel);
 /** Interface to a tracker implementation. */
 typedef struct tracker_interface {
   /** Code type for which the implementation may be used. */
-  enum code code;
+  code_t code;
   /** Init function. Called to set up tracker instance when tracking begins. */
   tracker_interface_function_t *init;
   /** Disable function. Called when tracking stops. */

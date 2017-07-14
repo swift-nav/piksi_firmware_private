@@ -214,6 +214,32 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
   case CODE_GPS_L1P:
   case CODE_GPS_L2P:
   case CODE_COUNT:
+  case CODE_GPS_L2CX:
+  case CODE_GPS_L5I:
+  case CODE_GPS_L5Q:
+  case CODE_GPS_L5X:
+  case CODE_BDS2_B11:
+  case CODE_BDS2_B2:
+  case CODE_GAL_E1B:
+  case CODE_GAL_E1C:
+  case CODE_GAL_E1X:
+  case CODE_GAL_E6B:
+  case CODE_GAL_E6C:
+  case CODE_GAL_E6X:
+  case CODE_GAL_E7I:
+  case CODE_GAL_E7Q:
+  case CODE_GAL_E7X:
+  case CODE_GAL_E8:
+  case CODE_GAL_E5I:
+  case CODE_GAL_E5Q:
+  case CODE_GAL_E5X:
+  case CODE_QZS_L1CA:
+  case CODE_QZS_L2CM:
+  case CODE_QZS_L2CL:
+  case CODE_QZS_L2CX:
+  case CODE_QZS_L5I:
+  case CODE_QZS_L5Q:
+  case CODE_QZS_L5X:
   default:
     return false;
     break;

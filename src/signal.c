@@ -78,8 +78,8 @@ void signal_init(void)
   memset(constellation_start_indexes, 0, sizeof(constellation_start_indexes));
   memset(me_constellation_start_indexes, 0, sizeof(me_constellation_start_indexes));
 
-  for (enum code code = 0; code < CODE_COUNT; code++) {
-    enum constellation constellation = code_to_constellation(code);
+  for (code_t code = 0; code < CODE_COUNT; code++) {
+    constellation_t constellation = code_to_constellation(code);
     code_table[code].constellation_start_index =
         constellation_start_indexes[constellation];
     code_table[code].me_constellation_start_index =
@@ -93,7 +93,7 @@ void signal_init(void)
   u16 global_start_index = 0;
   u16 me_global_start_index = 0;
 
-  for (enum code code = 0; code < CODE_COUNT; code++) {
+  for (code_t code = 0; code < CODE_COUNT; code++) {
     code_table[code].global_start_index = global_start_index;
     code_table[code].me_global_start_index = me_global_start_index;
 
@@ -113,7 +113,7 @@ void signal_init(void)
  */
 gnss_signal_t sid_from_global_index(u16 global_index)
 {
-  for (enum code code = 0; code < CODE_COUNT; code++) {
+  for (code_t code = 0; code < CODE_COUNT; code++) {
     if (global_index < code_table[code].global_start_index +
         code_signal_counts[code]) {
       return sid_from_code_index(code, global_index -
@@ -136,7 +136,7 @@ gnss_signal_t sid_from_global_index(u16 global_index)
  */
 me_gnss_signal_t mesid_from_global_index(u16 me_global_index)
 {
-  for (enum code code = 0; code < CODE_COUNT; code++) {
+  for (code_t code = 0; code < CODE_COUNT; code++) {
     if (me_global_index < code_table[code].me_global_start_index +
         me_code_signal_counts[code]) {
       return mesid_from_code_index(code, me_global_index -
@@ -159,10 +159,10 @@ me_gnss_signal_t mesid_from_global_index(u16 me_global_index)
  *
  * \return gnss_signal_t corresponding to constellation and constellation_index.
  */
-gnss_signal_t sid_from_constellation_index(enum constellation constellation,
+gnss_signal_t sid_from_constellation_index(constellation_t constellation,
                                            u16 constellation_index)
 {
-  for (enum code code = 0; code < CODE_COUNT; code++) {
+  for (code_t code = 0; code < CODE_COUNT; code++) {
     if (code_to_constellation(code) == constellation) {
       if (constellation_index < code_table[code].constellation_start_index +
           code_signal_counts[code]) {
@@ -252,7 +252,7 @@ bool sid_supported(gnss_signal_t sid)
  *
  * \return true if code is valid and supported, false otherwise.
  */
-bool code_supported(enum code code)
+bool code_supported(code_t code)
 {
   /* Verify general validity */
   if (!code_valid(code))
@@ -320,7 +320,7 @@ gnss_signal_t sv_index_to_sid(u16 sv_index)
   assert(constellation_valid(cons));
 
   /* find the first valid and supported code for this constellation */
-  for (enum code code = 0; code < CODE_COUNT; code++) {
+  for (code_t code = 0; code < CODE_COUNT; code++) {
     if (code_supported(code) && code_to_constellation(code) == cons) {
       sid = construct_sid(code, sv_index - constellation_table[cons].start_index
                           + constellation_table[cons].sat_start);
