@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <alloca.h>
+#include <assert.h>
 
 #include <ch.h>
 
@@ -49,15 +50,20 @@ struct sbp_fileio_closure {
   u8 len;
 };
 
-static void sbp_fileio_callback(u16 sender_id, u8 len, u8 msg[], void* context)
+static void sbp_fileio_callback(u16 sender_id, u8 len, u8 msg_raw[], void* context)
 {
+  assert(NULL != context);
   struct sbp_fileio_closure *closure = context;
+  msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t*) msg_raw;
   (void)sender_id;
 
-  if (((msg_fileio_write_resp_t*)msg)->sequence == closure->seq) {
-    memcpy(closure->msg, msg, len);
+  if (msg->sequence == closure->seq) {
+    memcpy(closure->msg, msg_raw, len);
     closure->len = len;
     chBSemSignal(&closure->sem);
+  } else {
+    log_error("sbp_fileio_callback()  sender %5u  msg->sequence %08x  closure->seq %02x  len %3u",
+      sender_id, msg->sequence, closure->seq, len);
   }
 }
 
@@ -76,6 +82,7 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
   char dbg_filename[100];
   chBSemObjectInit(&closure.sem, true);
   u8 *msg_pt;
+  s8 ret;
 
   strncpy(dbg_filename, filename, sizeof(dbg_filename));
   dbg_filename[sizeof(dbg_filename)-1] = '\0';
@@ -95,9 +102,13 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
     u8 tries = 0;
     bool success = false;
     do {
-      sbp_send_msg(SBP_MSG_FILEIO_WRITE_REQ,
-                   payload_offset + chunksize,
-                   msg_pt);
+      ret = sbp_send_msg(SBP_MSG_FILEIO_WRITE_REQ,
+                         payload_offset + chunksize,
+                         msg_pt);
+      if (ret<0) {
+        log_error("sbp_send_msg(): error %d", ret);
+      }
+
       if (chBSemWaitTimeout(&closure.sem, SBP_FILEIO_TIMEOUT) == MSG_OK) {
         success = true;
         break;

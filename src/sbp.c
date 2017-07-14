@@ -160,22 +160,22 @@ static u32 sbp_buffer_write(u8 *buff, u32 n, void *context)
  *
  * \return         Error code
  */
-u32 sbp_send_msg(u16 msg_type, u8 len, u8 buff[])
+s8 sbp_send_msg(u16 msg_type, u8 len, u8 buff[])
 {
   return sbp_send_msg_(msg_type, len, buff, my_sender_id);
 }
 
-u32 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
+s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id)
 {
   static MUTEX_DECL(send_mutex);
   chMtxLock(&send_mutex);
 
-  u16 ret = 0;
+  s8 ret = 0;
 
   /* Write message into buffer */
   sbp_buffer_reset();
-  ret |= sbp_send_message(&sbp_state, msg_type, sender_id,
-                          len, buff, &sbp_buffer_write);
+  ret = sbp_send_message(&sbp_state, msg_type, sender_id,
+                         len, buff, &sbp_buffer_write);
 
   /* TODO: Put back check for sender_id == 0 somewhere */
   io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
