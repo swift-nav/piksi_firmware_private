@@ -50,8 +50,8 @@ static const u16 code_signal_counts[CODE_COUNT] = {
   [CODE_GPS_L2CM]  = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
   [CODE_GPS_L2CL]  = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
   [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-  [CODE_GLO_L1CA]  = PLATFORM_SIGNAL_COUNT_GLO_L1CA,
-  [CODE_GLO_L2CA]  = PLATFORM_SIGNAL_COUNT_GLO_L2CA,
+  [CODE_GLO_L1OF]  = PLATFORM_SIGNAL_COUNT_GLO_L1CA,
+  [CODE_GLO_L2OF]  = PLATFORM_SIGNAL_COUNT_GLO_L2CA,
   [CODE_GPS_L1P]   = PLATFORM_SIGNAL_COUNT_GPS_L1P,
   [CODE_GPS_L2P]   = PLATFORM_SIGNAL_COUNT_GPS_L2P,
 };
@@ -63,8 +63,8 @@ static const u16 me_code_signal_counts[CODE_COUNT] = {
   [CODE_GPS_L2CM]  = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
   [CODE_GPS_L2CL]  = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
   [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-  [CODE_GLO_L1CA]  = PLATFORM_FREQ_COUNT_GLO_L1CA,
-  [CODE_GLO_L2CA]  = PLATFORM_FREQ_COUNT_GLO_L2CA,
+  [CODE_GLO_L1OF]  = PLATFORM_FREQ_COUNT_GLO_L1CA,
+  [CODE_GLO_L2OF]  = PLATFORM_FREQ_COUNT_GLO_L2CA,
   [CODE_GPS_L1P]   = PLATFORM_SIGNAL_COUNT_GPS_L1P,
   [CODE_GPS_L2P]   = PLATFORM_SIGNAL_COUNT_GPS_L2P,
 };
@@ -358,9 +358,9 @@ double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid)
   assert(mesid_valid(mesid));
 
   double carr_fcn_hz = 0;
-  if (CODE_GLO_L1CA == mesid.code) {
+  if (CODE_GLO_L1OF == mesid.code) {
     carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-  } else if (CODE_GLO_L2CA == mesid.code) {
+  } else if (CODE_GLO_L2OF == mesid.code) {
     carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
   }
   return carr_fcn_hz;

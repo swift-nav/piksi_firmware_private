@@ -10,11 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* skip weak attributes for L2CA API implementation */
-#define TRACK_GLO_L2CA_INTERNAL
+/* skip weak attributes for L2OF API implementation */
+#define TRACK_GLO_L2OF_INTERNAL
 
 /* Local headers */
-#include "track_glo_l2ca.h"
+#include "track_glo_l2of.h"
 #include "track_cn0.h"
 #include "track_sid_db.h"
 #include "track.h"
@@ -36,72 +36,72 @@
 #include <string.h>
 #include <assert.h>
 
-/** GLO L2CA configuration section name */
-#define GLO_L2CA_TRACK_SETTING_SECTION "glo_l2ca_track"
+/** GLO L2OF configuration section name */
+#define GLO_L2OF_TRACK_SETTING_SECTION "glo_l2of_track"
 
-static tp_tracker_config_t glo_l2ca_config = TP_TRACKER_DEFAULT_CONFIG;
+static tp_tracker_config_t glo_l2of_config = TP_TRACKER_DEFAULT_CONFIG;
 
-/* Forward declarations of interface methods for GLO L2CA */
-static tracker_interface_function_t tracker_glo_l2ca_init;
-static tracker_interface_function_t tracker_glo_l2ca_update;
+/* Forward declarations of interface methods for GLO L2OF */
+static tracker_interface_function_t tracker_glo_l2of_init;
+static tracker_interface_function_t tracker_glo_l2of_update;
 
-/** GLO L2CA tracker interface */
-static const tracker_interface_t tracker_interface_glo_l2ca = {
-  .code =         CODE_GLO_L2CA,
-  .init =         tracker_glo_l2ca_init,
+/** GLO L2OF tracker interface */
+static const tracker_interface_t tracker_interface_glo_l2of = {
+  .code =         CODE_GLO_L2OF,
+  .init =         tracker_glo_l2of_init,
   .disable =      tp_tracker_disable,
-  .update =       tracker_glo_l2ca_update,
+  .update =       tracker_glo_l2of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l2ca = {
-  .interface = &tracker_interface_glo_l2ca,
+static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
+  .interface = &tracker_interface_glo_l2of,
   .next = 0
 };
 
-/** Register GLO L2CA tracker into the the tracker interface & settings
+/** Register GLO L2OF tracker into the the tracker interface & settings
  *  framework.
  */
-void track_glo_l2ca_register(void)
+void track_glo_l2of_register(void)
 {
-  TP_TRACKER_REGISTER_CONFIG(GLO_L2CA_TRACK_SETTING_SECTION,
-                             glo_l2ca_config,
+  TP_TRACKER_REGISTER_CONFIG(GLO_L2OF_TRACK_SETTING_SECTION,
+                             glo_l2of_config,
                              settings_default_notify);
 
-  tracker_interface_register(&tracker_interface_list_glo_l2ca);
+  tracker_interface_register(&tracker_interface_list_glo_l2of);
 }
 
-/** Do GLO L1CA to L2CA handover.
+/** Do GLO L1OF to L2OF handover.
  *
- * The condition for the handover is the availability of meander sync on L1CA
+ * The condition for the handover is the availability of meander sync on L1OF
  *
  * \param sample_count NAP sample count
- * \param sat GLO L1CA frequency slot FCN
- * \param code_phase_chips L1CA code phase [chips]
- * \param carrier_freq_hz The current Doppler frequency for the L1CA channel
- * \param init_cn0_dbhz CN0 estimate for the L1CA channel [dB-Hz]
+ * \param sat GLO L1OF frequency slot FCN
+ * \param code_phase_chips L1OF code phase [chips]
+ * \param carrier_freq_hz The current Doppler frequency for the L1OF channel
+ * \param init_cn0_dbhz CN0 estimate for the L1OF channel [dB-Hz]
  */
-void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
+void do_glo_l1of_to_l2of_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
                                   double carrier_freq_hz,
                                   float init_cn0_dbhz)
 {
-  /* compose L2CA MESID: same SV, but code is L2CA */
-  me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2CA, sat);
+  /* compose L2OF MESID: same SV, but code is L2OF */
+  me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2OF, sat);
 
   if (!tracking_startup_ready(L2_mesid)) {
-    return; /* L2CA signal from the SV is already in track */
+    return; /* L2OF signal from the SV is already in track */
   }
 
   if (!handover_valid(code_phase_chips, GLO_CA_CHIPS_NUM)) {
     log_warn_mesid(L2_mesid,
-                   "Unexpected L1CA to L2CA handover code phase: %f",
+                   "Unexpected L1OF to L2OF handover code phase: %f",
                    code_phase_chips);
     return;
   }
 
   /* calculate L2 - L1 frequency scale while taking GLO FCN into account */
-  me_gnss_signal_t L1_mesid = construct_mesid(CODE_GLO_L1CA, sat);
+  me_gnss_signal_t L1_mesid = construct_mesid(CODE_GLO_L1OF, sat);
   double glo_freq_scale = mesid_to_carr_freq(L2_mesid) / mesid_to_carr_freq(L1_mesid);
 
   /* The best elevation estimation could be retrieved by calling
@@ -124,7 +124,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
   case 0:
-    log_debug_mesid(L2_mesid, "L2CA handover done");
+    log_debug_mesid(L2_mesid, "L2OF handover done");
     break;
 
   case 1:
@@ -132,7 +132,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
     break;
 
   case 2:
-    log_warn_mesid(L2_mesid, "Failed to start L2CA tracking");
+    log_warn_mesid(L2_mesid, "Failed to start L2OF tracking");
     break;
 
   default:
@@ -141,20 +141,20 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 }
 
-static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
+static void tracker_glo_l2of_init(tracker_channel_t *tracker_channel)
 {
-  tp_tracker_init(tracker_channel, &glo_l2ca_config);
+  tp_tracker_init(tracker_channel, &glo_l2of_config);
 }
 
-static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel)
+static void tracker_glo_l2of_update(tracker_channel_t *tracker_channel)
 {
-  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
+  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2of_config);
   (void)tracker_flags;
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L1CA, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L1OF, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 }

@@ -950,7 +950,7 @@ static u32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx)
     *sid = sid_from_global_index(i);
     if (sid->code != CODE_GPS_L1CA &&
         sid->code != CODE_SBAS_L1CA &&
-        sid->code != CODE_GLO_L1CA) {
+        sid->code != CODE_GLO_L1OF) {
       i++;
     } else {
       break;

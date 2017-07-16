@@ -87,7 +87,7 @@ static u16 map_sid_to_index(gnss_signal_t sid)
   if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
   } else if (sid_to_constellation(sid) == CONSTELLATION_GLO) {
-    idx = sid_to_global_index(construct_sid(CODE_GLO_L1CA, sid.sat));
+    idx = sid_to_global_index(construct_sid(CODE_GLO_L1OF, sid.sat));
   } else {
     idx = sid_to_global_index(sid);
   }

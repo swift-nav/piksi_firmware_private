@@ -128,7 +128,7 @@ static void fcn_glo_callback(u16 sender_id, u8 len, u8 msg[], void* context)
       continue;
     }
 
-    gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, i);
+    gnss_signal_t sid = construct_sid(CODE_GLO_L1OF, i);
     /* read old value */
     u16 old_fcn = GLO_FCN_UNKNOWN;
     if (glo_map_valid(sid)) {
@@ -137,7 +137,7 @@ static void fcn_glo_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
     if (old_fcn != new_fcn) {
       /* rewrite fcn by new value */
-      glo_map_set_slot_id(construct_mesid(CODE_GLO_L1CA, new_fcn), i);
+      glo_map_set_slot_id(construct_mesid(CODE_GLO_L1OF, new_fcn), i);
       if (old_fcn != GLO_FCN_UNKNOWN) {
         log_warn_sid(sid, "FCN received from peer is not equal to stored: "
                      "old %"PRIu16", new %"PRIu16"", old_fcn, new_fcn);

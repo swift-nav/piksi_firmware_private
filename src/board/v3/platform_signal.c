@@ -15,14 +15,14 @@
 #include "track/track_gps_l1ca.h"
 #include "track/track_gps_l2cm.h"
 #include "track/track_gps_l2cl.h"
-#include "track/track_glo_l1ca.h"
-#include "track/track_glo_l2ca.h"
+#include "track/track_glo_l1of.h"
+#include "track/track_glo_l2of.h"
 #include "track/track_sid_db.h"
 
 #include "decode/decode_gps_l1ca.h"
 #include "decode/decode_gps_l2c.h"
-#include "decode/decode_glo_l1ca.h"
-#include "decode/decode_glo_l2ca.h"
+#include "decode/decode_glo_l1of.h"
+#include "decode/decode_glo_l2of.h"
 
 #include "ndb.h"
 
@@ -32,16 +32,16 @@ void platform_track_setup(void)
   track_gps_l1ca_register();
   track_gps_l2cm_register();
   track_gps_l2cl_register();
-  track_glo_l1ca_register();
-  track_glo_l2ca_register();
+  track_glo_l1of_register();
+  track_glo_l2of_register();
 }
 
 void platform_decode_setup(void)
 {
   decode_gps_l1ca_register();
   decode_gps_l2c_register();
-  decode_glo_l1ca_register();
-  decode_glo_l2ca_register();
+  decode_glo_l1of_register();
+  decode_glo_l2of_register();
 }
 
 void platform_ndb_init(void)

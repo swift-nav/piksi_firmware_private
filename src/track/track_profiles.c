@@ -560,8 +560,8 @@ tp_tm_e track_mode_by_code(code_t code, const struct tp_profile_entry *profile)
   case CODE_GPS_L2CL:
     track_mode = profile->profile.gps_track_mode;
     break;
-  case CODE_GLO_L1CA:
-  case CODE_GLO_L2CA:
+  case CODE_GLO_L1OF:
+  case CODE_GLO_L2OF:
     track_mode = profile->profile.glo_track_mode;
     break;
   case CODE_SBAS_L1CA:

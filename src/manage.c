@@ -145,7 +145,7 @@ static float solution_elevation_mask = 10.0;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
+static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
 
 typedef struct {
   systime_t tick;       /**< Time when GLO SV was detected as unhealthy */
@@ -249,7 +249,7 @@ static bool glo_enable_notify(struct setting *s, const char *val)
 {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-    if (glo_enabled && !(CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT)) {
+    if (glo_enabled && !(CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT)) {
       /* user tries enable GLONASS on the platform that does not support it */
       log_error("The platform does not support GLONASS");
       glo_enabled = false;
@@ -555,7 +555,7 @@ static void manage_acq(void)
 
   /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
-         (CODE_GLO_L1CA == acq->mesid.code));
+         (CODE_GLO_L1OF == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);

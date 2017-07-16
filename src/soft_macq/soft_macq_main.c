@@ -119,7 +119,7 @@ bool soft_multi_acq_search(
    *  */
   if ((uTag) ||
       (!code_equiv(sLastMesId.code, _sMeSid.code)) ||
-      ((sLastMesId.code == CODE_GLO_L1CA) && (sLastMesId.sat != _sMeSid.sat))) {
+      ((sLastMesId.code == CODE_GLO_L1OF) && (sLastMesId.sat != _sMeSid.sat))) {
     /** perform again baseband down-conversion and decimation depending on _sMeSid */
     BbMixAndDecimate(_sMeSid);
   }
@@ -189,7 +189,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
     }
     break;
 
-  case CODE_GLO_L1CA:
+  case CODE_GLO_L1OF:
     uDecFactor = SOFTMACQ_DECFACT_GLOG1;
     iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
     uNcoStep = CirclesToUint32((double) (SOFTMACQ_FC_GLOG1+(_sMeSid.sat-GLO_FCN_OFFSET)*SOFTMACQ_GLOG1_FOFF) / (double) SOFTMACQ_RAW_FS);
@@ -207,7 +207,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
     }
     break;
 
-  case CODE_GLO_L2CA:
+  case CODE_GLO_L2OF:
   case CODE_GPS_L2CM:
   case CODE_GPS_L2CL:
   case CODE_INVALID:

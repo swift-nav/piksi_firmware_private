@@ -53,7 +53,7 @@ void sm_init(acq_jobs_state_t *data)
     }
     for (i = 0; i < NUM_SATS_GLO; i++) {
       /* NOTE: MESID will be constructed on the fly */
-      data->jobs_glo[type][i].sid = construct_sid(CODE_GLO_L1CA,
+      data->jobs_glo[type][i].sid = construct_sid(CODE_GLO_L1OF,
                                                   GLO_FIRST_PRN + i);
       data->jobs_glo[type][i].job_type = type;
     }
@@ -132,7 +132,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
     if (GLO_FCN_UNKNOWN == glo_fcn) {
       deep_job->glo_blind_search = true;
     } else {
-      *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
+      *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
 
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));
@@ -253,7 +253,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     if (GLO_FCN_UNKNOWN == glo_fcn) {
       fallback_job->glo_blind_search = true;
     } else {
-      *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
+      *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
       assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));
