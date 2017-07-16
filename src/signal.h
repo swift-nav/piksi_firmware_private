@@ -32,9 +32,9 @@
                                              NUM_SIGNALS_GPS_L2CL : 0)
 #define PLATFORM_SIGNAL_COUNT_SBAS_L1CA     (CODE_SBAS_L1CA_SUPPORT ?         \
                                              NUM_SIGNALS_SBAS_L1CA : 0)
-#define PLATFORM_SIGNAL_COUNT_GLO_L1CA      (CODE_GLO_L1CA_SUPPORT ?          \
+#define PLATFORM_SIGNAL_COUNT_GLO_L1CA      (CODE_GLO_L1OF_SUPPORT ?          \
                                              NUM_SIGNALS_GLO_L1CA : 0)
-#define PLATFORM_SIGNAL_COUNT_GLO_L2CA      (CODE_GLO_L2CA_SUPPORT ?          \
+#define PLATFORM_SIGNAL_COUNT_GLO_L2CA      (CODE_GLO_L2OF_SUPPORT ?          \
                                              NUM_SIGNALS_GLO_L2CA : 0)
 #define PLATFORM_SIGNAL_COUNT_GPS_L1P       (CODE_GPS_L1P_SUPPORT ?           \
                                              NUM_SIGNALS_GPS_L1P : 0)
@@ -43,9 +43,9 @@
 
 /* Number of GLO frequencies supported
  * on the current hardware platform. */
-#define PLATFORM_FREQ_COUNT_GLO_L1CA      (CODE_GLO_L1CA_SUPPORT ?          \
+#define PLATFORM_FREQ_COUNT_GLO_L1CA      (CODE_GLO_L1OF_SUPPORT ?          \
                                            NUM_FREQ_GLO_L1CA : 0)
-#define PLATFORM_FREQ_COUNT_GLO_L2CA      (CODE_GLO_L2CA_SUPPORT ?          \
+#define PLATFORM_FREQ_COUNT_GLO_L2CA      (CODE_GLO_L2OF_SUPPORT ?          \
                                            NUM_FREQ_GLO_L2CA : 0)
 
 /* Number of signals on each constellation supported

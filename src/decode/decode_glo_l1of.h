@@ -9,11 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef SWIFTNAV_DECODE_GLO_L1CA_H
-#define SWIFTNAV_DECODE_GLO_L1CA_H
+#ifndef SWIFTNAV_DECODE_GLO_L1OF_H
+#define SWIFTNAV_DECODE_GLO_L1OF_H
 
 #include <libswiftnav/common.h>
 
-void decode_glo_l1ca_register(void);
+void decode_glo_l1of_register(void);
 
 #endif

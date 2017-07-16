@@ -108,12 +108,12 @@ BOARDSRC := \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cl.o \
-        $(SWIFTNAV_ROOT)/src/track/track_glo_l1ca.o \
-        $(SWIFTNAV_ROOT)/src/track/track_glo_l2ca.o \
+        $(SWIFTNAV_ROOT)/src/track/track_glo_l1of.o \
+        $(SWIFTNAV_ROOT)/src/track/track_glo_l2of.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_gps_l2c.o \
-        $(SWIFTNAV_ROOT)/src/decode/decode_glo_l1ca.o \
-        $(SWIFTNAV_ROOT)/src/decode/decode_glo_l2ca.o \
+        $(SWIFTNAV_ROOT)/src/decode/decode_glo_l1of.o \
+        $(SWIFTNAV_ROOT)/src/decode/decode_glo_l2of.o \
         $(SWIFTNAV_ROOT)/src/decode/decode_common.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_l2c_capb.o \
 

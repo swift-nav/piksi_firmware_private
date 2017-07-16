@@ -340,8 +340,8 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
       return CODE_NAV_STATE_UNKNOWN;
     }
 
-    case CODE_GLO_L1CA:
-    case CODE_GLO_L2CA: /* Functionality is TBD */
+    case CODE_GLO_L1OF:
+    case CODE_GLO_L2OF: /* Functionality is TBD */
       return CODE_NAV_STATE_UNKNOWN;
 
     case CODE_GPS_L2CL:

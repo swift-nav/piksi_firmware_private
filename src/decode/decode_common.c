@@ -77,7 +77,7 @@ void send_glo_fcn_mapping(gps_time_t t)
   msg_fcns_glo_t sbp;
   memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
   for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
-    gnss_signal_t tmp_sid = construct_sid(CODE_GLO_L1CA, i);
+    gnss_signal_t tmp_sid = construct_sid(CODE_GLO_L1OF, i);
     if (glo_map_valid(tmp_sid)) {
       sbp.fcns[i] = glo_map_get_fcn(tmp_sid);
     }
