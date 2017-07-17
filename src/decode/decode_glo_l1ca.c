@@ -96,7 +96,7 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
 
   while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
-    if (!is_glo_decode_ready(&data->nav_msg, mesid, nav_bit)) {
+    if (!is_glo_decode_ready(&data->nav_msg, mesid, &nav_bit)) {
       continue;
     }
 
