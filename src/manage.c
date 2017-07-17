@@ -1058,8 +1058,8 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
 
   if (0 != (flags & TRACKER_FLAG_PLL_USE)) {
     /* PLL is in use. */
-  if (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) {
-    meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+    if (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) {
+      meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
       /* Make sense to set half cycle known flag when carrier phase is valid */
       if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
