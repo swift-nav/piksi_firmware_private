@@ -318,7 +318,7 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
   if (NDB_ERR_NONE == ndb_op_code) {
     gps_time = glo2gps(glo_t, &utc_params);
   } else {
-    log_info_mesid(mesid, "GLO->GPS time conversion w/o up-to-date UTC params");
+    log_debug_mesid(mesid, "GLO->GPS time conversion w/o up-to-date UTC params");
     gps_time = glo2gps(glo_t, /* utc_params = */ NULL);
   }
   return gps_time;

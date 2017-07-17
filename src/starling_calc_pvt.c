@@ -740,7 +740,7 @@ static void starling_thread(void *arg)
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
-          log_warn_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
+          log_debug_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
           nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         }
       }
