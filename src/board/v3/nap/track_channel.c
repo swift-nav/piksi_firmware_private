@@ -504,7 +504,7 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = t->TIMING_SNAPSHOT;
 
   if (s->reckon_counter < 1) {
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    hw_carr_phase = (s64)t->CARR_PHASE_FRAC;
     s->sw_carr_phase = hw_carr_phase;
     s->reckoned_carr_phase = ((double) hw_carr_phase) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
@@ -514,7 +514,7 @@ void nap_track_read_results(u8 channel,
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
 #ifndef PIKSI_RELEASE
     s->sw_carr_phase += phase_incr;
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    hw_carr_phase = (s64)t->CARR_PHASE_FRAC;
     if (s->sw_carr_phase != hw_carr_phase) {
       log_error_mesid(s->mesid, "%12llu reckon err SW %+.6lf  HW %+.6lf DIFF %+.6f",
         s->reckon_counter,
