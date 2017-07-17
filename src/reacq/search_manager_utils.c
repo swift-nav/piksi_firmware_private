@@ -44,8 +44,13 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
   *known = false;
 
   if (NDB_ERR_NONE != ndb_lgf_read(&lgf) ||
-      POSITION_FIX != lgf.position_quality ||
-      NDB_ERR_NONE != ndb_ephemeris_read(sid, &ephe)) {
+      POSITION_FIX != lgf.position_quality) {
+    return;
+  }
+
+  ndb_op_code_t op_code = ndb_ephemeris_read(sid, &ephe);
+  if (NDB_ERR_NONE != op_code &&
+      NDB_ERR_UNCONFIRMED_DATA != op_code) {
     return;
   }
 

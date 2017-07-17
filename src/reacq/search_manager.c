@@ -52,9 +52,13 @@ void sm_init(acq_jobs_state_t *data)
       data->jobs_gps[type][i].job_type = type;
     }
     for (i = 0; i < NUM_SATS_GLO; i++) {
-      /* NOTE: MESID will be constructed on the fly */
       data->jobs_glo[type][i].sid = construct_sid(CODE_GLO_L1CA,
                                                   GLO_FIRST_PRN + i);
+      /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
+       * blind searches are immediately done with whole range of FCNs */
+      data->jobs_glo[type][i].mesid =
+             construct_mesid(CODE_GLO_L1CA, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
+
       data->jobs_glo[type][i].job_type = type;
     }
   }
@@ -145,8 +149,13 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
       }
     }
 
-    if (visible || deep_job->glo_blind_search) {
+    if (visible) {
       deep_job->cost_hint = ACQ_COST_MIN;
+      deep_job->cost_delta = 0;
+      deep_job->needs_to_run = true;
+      deep_job->oneshot = false;
+    } else if (deep_job->glo_blind_search) {
+      deep_job->cost_hint = ACQ_COST_AVG;
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
