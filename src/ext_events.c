@@ -25,13 +25,39 @@
  * Capture accurate timestamps of external pin events
  * \{ */
 
-static ext_event_trigger_t trigger = TRIG_NONE;
-static u32 timeout_microseconds = 0;
+static struct {
+  ext_event_trigger_t trigger;
+  u32 timeout_microseconds;
+} event_config[3];
 
-/** Settings callback to inform NAP which trigger mode is desired */
-static bool trigger_changed(struct setting *s, const char *val) {
+/** Settings callback to inform NAP which trigger mode and timeout is desired */
+static bool event0_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    nap_rw_ext_event(NULL, NULL, trigger, timeout_microseconds);
+    u8 pin = 0;
+    nap_set_ext_event(
+        pin, event_config[pin].trigger, event_config[pin].timeout_microseconds);
+    return true;
+  }
+  return false;
+}
+
+/** Settings callback to inform NAP which trigger mode and timeout is desired */
+static bool event1_changed(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    u8 pin = 1;
+    nap_set_ext_event(
+        pin, event_config[pin].trigger, event_config[pin].timeout_microseconds);
+    return true;
+  }
+  return false;
+}
+
+/** Settings callback to inform NAP which trigger mode and timeout is desired */
+static bool event2_changed(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    u8 pin = 2;
+    nap_set_ext_event(
+        pin, event_config[pin].trigger, event_config[pin].timeout_microseconds);
     return true;
   }
   return false;
@@ -51,13 +77,38 @@ void ext_event_setup(void) {
   int TYPE_TRIGGER =
       settings_type_register_enum(trigger_enum, &trigger_setting);
 
-  SETTING_NOTIFY(
-      "ext_events", "edge_trigger", trigger, TYPE_TRIGGER, trigger_changed);
-  SETTING_NOTIFY("ext_events",
+  SETTING_NOTIFY("ext_events_0",
+                 "edge_trigger",
+                 event_config[0].trigger,
+                 TYPE_TRIGGER,
+                 event0_changed);
+  SETTING_NOTIFY("ext_events_0",
                  "sensitivity",
-                 timeout_microseconds,
+                 event_config[0].timeout_microseconds,
                  TYPE_INT,
-                 trigger_changed);
+                 event0_changed);
+
+  SETTING_NOTIFY("ext_events_1",
+                 "edge_trigger",
+                 event_config[1].trigger,
+                 TYPE_TRIGGER,
+                 event1_changed);
+  SETTING_NOTIFY("ext_events_1",
+                 "sensitivity",
+                 event_config[1].timeout_microseconds,
+                 TYPE_INT,
+                 event1_changed);
+
+  SETTING_NOTIFY("ext_events_2",
+                 "edge_trigger",
+                 event_config[2].trigger,
+                 TYPE_TRIGGER,
+                 event2_changed);
+  SETTING_NOTIFY("ext_events_2",
+                 "sensitivity",
+                 event_config[2].timeout_microseconds,
+                 TYPE_INT,
+                 event2_changed);
 }
 
 /** Service an external event interrupt
@@ -69,39 +120,50 @@ void ext_event_setup(void) {
  * reads out the details and spits them out as an SBP message to our host.
  *
  */
-void ext_event_service(void) {
-  u8 event_pin;
-  ext_event_trigger_t event_trig;
+void ext_event_service(u32 events) {
+  while (events) {
+    u8 event_pin;
+    ext_event_trigger_t event_trig;
 
-  /* Read the details, and also clear IRQ + set up for next time */
-  u32 event_nap_time =
-      nap_rw_ext_event(&event_pin, &event_trig, trigger, timeout_microseconds);
+    if (events & NAP_IRQS_EXT_EVENT0_Msk) {
+      event_pin = 0;
+      events &= ~NAP_IRQS_EXT_EVENT0_Msk;
+    } else if (events & NAP_IRQS_EXT_EVENT1_Msk) {
+      event_pin = 1;
+      events &= ~NAP_IRQS_EXT_EVENT1_Msk;
+    } else if (events & NAP_IRQS_EXT_EVENT2_Msk) {
+      event_pin = 2;
+      events &= ~NAP_IRQS_EXT_EVENT2_Msk;
+    } else {
+      return;
+    }
 
-  /* We have to infer the most sig word (i.e. # of 262-second rollovers) */
-  union {
-    u32 half[2];
-    u64 full;
-  } tc;
-  tc.full = nap_timing_count();
-  if (tc.half[0] < event_nap_time) /* Rollover occurred since event */
-    tc.half[1]--;
-  tc.half[0] = event_nap_time;
+    u32 event_nap_time = nap_get_ext_event(event_pin, &event_trig);
 
-  /* Prepare the MSG_EXT_EVENT */
-  msg_ext_event_t msg;
-  msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
-  if (get_time_quality() == TIME_FINE) msg.flags |= (1 << 1);
-  msg.pin = event_pin;
+    union {
+      u32 half[2];
+      u64 full;
+    } tc;
+    tc.full = nap_timing_count();
+    if (tc.half[0] < event_nap_time) /* Rollover occurred since event */
+      tc.half[1]--;
+    tc.half[0] = event_nap_time;
 
-  /* Convert to the SBP convention of rounded ms + signed ns residual */
-  gps_time_t gpst = napcount2gpstime(tc.full);
-  msg_gps_time_t mgt;
-  sbp_make_gps_time(&mgt, &gpst, 0);
-  msg.wn = mgt.wn;
-  msg.tow = mgt.tow;
-  msg.ns_residual = mgt.ns_residual;
+    msg_ext_event_t msg;
+    msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
+    if (get_time_quality() == TIME_FINE) msg.flags |= (1 << 1);
+    msg.pin = event_pin;
 
-  sbp_send_msg(SBP_MSG_EXT_EVENT, sizeof(msg), (u8 *)&msg);
+    /* Convert to the SBP convention of rounded ms + signed ns residual */
+    gps_time_t gpst = napcount2gpstime(tc.full);
+    msg_gps_time_t mgt;
+    sbp_make_gps_time(&mgt, &gpst, 0);
+    msg.wn = mgt.wn;
+    msg.tow = mgt.tow;
+    msg.ns_residual = mgt.ns_residual;
+
+    sbp_send_msg(SBP_MSG_EXT_EVENT, sizeof(msg), (u8 *)&msg);
+  }
 }
 
 /** \} */

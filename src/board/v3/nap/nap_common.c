@@ -31,6 +31,9 @@
 
 #define PROCESS_PERIOD_MS (500)
 
+#define NAP_IRQS_EXT_EVENT_MASK \
+  (NAP_IRQS_EXT_EVENT0_Msk | NAP_IRQS_EXT_EVENT1_Msk | NAP_IRQS_EXT_EVENT2_Msk)
+
 static void nap_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
@@ -187,8 +190,8 @@ static void handle_nap_irq(void) {
   u32 irq = NAP->IRQS;
 
   while (irq) {
-    if (irq & NAP_IRQS_EXT_EVENT_Msk) {
-      ext_event_service();
+    if (irq & NAP_IRQS_EXT_EVENT_MASK) {
+      ext_event_service(irq & NAP_IRQS_EXT_EVENT_MASK);
     }
 
     NAP->IRQS = irq;
@@ -304,28 +307,63 @@ bool nap_pps_armed(void) {
   return GET_NAP_STATUS_PPS_TIMING_ARMED(NAP->STATUS);
 }
 
-u32 nap_rw_ext_event(u8 *event_pin,
-                     ext_event_trigger_t *event_trig,
-                     ext_event_trigger_t next_trig,
-                     u32 timeout) {
-  if (event_pin) {
-    *event_pin = 0;
+u32 nap_get_ext_event(u8 pin, ext_event_trigger_t *trig) {
+  switch (pin) {
+    case 0:
+      *trig = GET_NAP_STATUS_EXT_EVENT_EDGE0(NAP->STATUS);
+      return NAP->EVENT0_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
+
+    case 1:
+      *trig = GET_NAP_STATUS_EXT_EVENT_EDGE1(NAP->STATUS);
+      return NAP->EVENT1_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
+
+    case 2:
+      *trig = GET_NAP_STATUS_EXT_EVENT_EDGE2(NAP->STATUS);
+      return NAP->EVENT2_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
+
+    default:
+      return 0;
   }
+}
 
-  if (event_trig) {
-    *event_trig = GET_NAP_STATUS_EXT_EVENT_EDGE(NAP->STATUS);
+void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout) {
+  u32 gap = ceil((double)timeout / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
+
+  switch (pin) {
+    case 0:
+      if (timeout > 0) {
+        NAP->EVENT0_TIMEOUT = gap;
+        u32 ctrl = NAP->CONTROL;
+        NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE0(ctrl, trig) |
+                       SET_NAP_CONTROL_EXT_EVENT_TIMEOUT0(ctrl, 1);
+      } else {
+        NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE0(NAP->CONTROL, trig);
+      }
+      return;
+
+    case 1:
+      if (timeout > 0) {
+        NAP->EVENT1_TIMEOUT = gap;
+        u32 ctrl = NAP->CONTROL;
+        NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE1(ctrl, trig) |
+                       SET_NAP_CONTROL_EXT_EVENT_TIMEOUT1(ctrl, 1);
+      } else {
+        NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE1(NAP->CONTROL, trig);
+      }
+      return;
+
+    case 2:
+      if (timeout > 0) {
+        NAP->EVENT2_TIMEOUT = gap;
+        u32 ctrl = NAP->CONTROL;
+        NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE2(ctrl, trig) |
+                       SET_NAP_CONTROL_EXT_EVENT_TIMEOUT2(ctrl, 1);
+      } else {
+        NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE2(NAP->CONTROL, trig);
+      }
+      return;
+
+    default:
+      return;
   }
-
-  if (timeout > 0) {
-    NAP->EVENT_TIMEOUT =
-        ceil((double)timeout / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
-
-    u32 ctrl = NAP->CONTROL;
-    NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE(ctrl, next_trig) |
-                   SET_NAP_CONTROL_EXT_EVENT_TIMEOUT(ctrl, 1);
-  } else {
-    NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE(NAP->CONTROL, next_trig);
-  }
-
-  return NAP->EVENT_TIMING_SNAPSHOT + NAP_EXT_TIMING_COUNT_OFFSET;
 }
