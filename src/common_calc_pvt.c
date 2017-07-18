@@ -118,19 +118,46 @@ bool gate_covariance(gnss_solution *soln) {
   double vel_covariance[9];
   extract_covariance(full_covariance, vel_covariance, soln);
 
-  double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(full_covariance, soln->pos_ecef,
-                         &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_ACCURACY_M) {
-    log_warn("SPP Position suppressed due to position confidence of %.1f exceeding %.0f m",
-             accuracy, MAX_SPP_ACCURACY_M);
+  double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
+      vel_h_accuracy, vel_v_accuracy;
+  covariance_to_accuracy(full_covariance, soln->pos_ecef, &pos_accuracy,
+                         &pos_h_accuracy, &pos_v_accuracy);
+  covariance_to_accuracy(vel_covariance, soln->pos_ecef, &vel_accuracy,
+                         &vel_h_accuracy, &vel_v_accuracy);
+  return check_covariance(pos_accuracy, vel_accuracy);
+}
+
+bool gate_covariance_pvt_engine(const pvt_engine_result_t *result) {
+  assert(result != NULL);
+
+  double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
+      vel_h_accuracy, vel_v_accuracy;
+  covariance_to_accuracy(result->baseline_covariance, result->baseline,
+                         &pos_accuracy, &pos_h_accuracy, &pos_v_accuracy);
+  if (result->velocity_valid) {
+    covariance_to_accuracy(result->velocity_covariance, result->baseline,
+                           &vel_accuracy, &vel_h_accuracy, &vel_v_accuracy);
+  } else {
+    vel_accuracy = 0;
+    vel_h_accuracy = 0;
+    vel_v_accuracy = 0;
+  }
+  return check_covariance(pos_accuracy, vel_accuracy);
+}
+
+bool check_covariance(const double pos_accuracy, const double vel_accuracy) {
+  if (pos_accuracy > MAX_SPP_ACCURACY_M) {
+    log_warn(
+        "SPP Position suppressed due to position confidence of %.1f exceeding "
+        "%.0f m",
+        pos_accuracy, MAX_SPP_ACCURACY_M);
     return true;
   }
-  covariance_to_accuracy(vel_covariance, soln->pos_ecef,
-                         &accuracy, &h_accuracy, &v_accuracy);
-  if (accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
-    log_warn("SPP Position suppressed due to velocity confidence of %.1f exceeding %.0f m/s",
-             accuracy, MAX_SPP_VEL_ACCURACY_M_PER_S);
+  if (vel_accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
+    log_warn(
+        "SPP Position suppressed due to velocity confidence of %.1f exceeding "
+        "%.0f m/s",
+        vel_accuracy, MAX_SPP_VEL_ACCURACY_M_PER_S);
     return true;
   }
   return false;

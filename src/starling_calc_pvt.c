@@ -69,9 +69,11 @@ dgnss_filter_t dgnss_filter = FILTER_FLOAT;
 
 static FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
+static FilterManager *spp_filter_manager;
 
 MUTEX_DECL(time_matched_filter_manager_lock);
 MUTEX_DECL(low_latency_filter_manager_lock);
+MUTEX_DECL(spp_filter_manager_lock);
 
 MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
@@ -277,6 +279,47 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
   }
 }
 
+// TODO(https://github.com/swift-nav/estimation_team_planning/issues/667)
+static gnss_solution create_spp_result(
+    const pvt_engine_result_t *pvt_engine_result,
+    const gnss_solution *firmware_spp_result) {
+  gnss_solution spp_solution;
+  spp_solution.valid = 1;
+  spp_solution.n_sats_used = pvt_engine_result->num_sats_used;
+  spp_solution.n_sigs_used = pvt_engine_result->num_sigs_used;
+  memcpy(spp_solution.pos_ecef, pvt_engine_result->baseline,
+         3 * sizeof(double));
+  wgsecef2llh(spp_solution.pos_ecef, spp_solution.pos_llh);
+
+  spp_solution.err_cov[0] = pvt_engine_result->baseline_covariance[0];
+  spp_solution.err_cov[1] = pvt_engine_result->baseline_covariance[1];
+  spp_solution.err_cov[2] = pvt_engine_result->baseline_covariance[2];
+  spp_solution.err_cov[3] = pvt_engine_result->baseline_covariance[4];
+  spp_solution.err_cov[4] = pvt_engine_result->baseline_covariance[5];
+  spp_solution.err_cov[5] = pvt_engine_result->baseline_covariance[8];
+  spp_solution.err_cov[6] = firmware_spp_result->err_cov[6];
+
+  spp_solution.velocity_valid = pvt_engine_result->velocity_valid;
+  if (pvt_engine_result->velocity_valid) {
+    memcpy(spp_solution.vel_ecef, pvt_engine_result->velocity,
+           3 * sizeof(double));
+    wgsecef2ned(spp_solution.vel_ecef, spp_solution.pos_ecef,
+                spp_solution.vel_ned);
+    spp_solution.vel_cov[0] = pvt_engine_result->velocity_covariance[0];
+    spp_solution.vel_cov[1] = pvt_engine_result->velocity_covariance[1];
+    spp_solution.vel_cov[2] = pvt_engine_result->velocity_covariance[2];
+    spp_solution.vel_cov[3] = pvt_engine_result->velocity_covariance[4];
+    spp_solution.vel_cov[4] = pvt_engine_result->velocity_covariance[5];
+    spp_solution.vel_cov[5] = pvt_engine_result->velocity_covariance[8];
+    spp_solution.vel_cov[6] = 0;
+  }
+
+  spp_solution.clock_offset = firmware_spp_result->clock_offset;
+  spp_solution.clock_bias = firmware_spp_result->clock_bias;
+  spp_solution.time = firmware_spp_result->time;
+  return spp_solution;
+}
+
 /**
  *
  * @param sender_id sender id of base obs
@@ -372,15 +415,15 @@ double calc_heading(const double b_ned[3])
  * for conversion from ECEF to local NED coordinates (meters)
  * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
  */
-void solution_make_baseline_sbp(const rtk_baseline_result_t *result,
+void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                 const double rover_ecef[3], const dops_t *dops,
                                 sbp_messages_t *sbp_messages) {
   double b_ned[3];
   wgsecef2ned(result->baseline, rover_ecef, b_ned);
 
   double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(result->covariance, rover_ecef, &accuracy, &h_accuracy,
-                         &v_accuracy);
+  covariance_to_accuracy(result->baseline_covariance, rover_ecef, &accuracy,
+                         &h_accuracy, &v_accuracy);
 
   sbp_make_baseline_ecef(&sbp_messages->baseline_ecef, &result->result_time,
                          result->num_sats_used, result->baseline, accuracy,
@@ -451,7 +494,7 @@ static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
 
 static PVT_ENGINE_INTERFACE_RC get_baseline(
     const FilterManager *filter_manager, const bool use_time_matched_baseline,
-    dops_t *dops, rtk_baseline_result_t *result) {
+    dops_t *dops, pvt_engine_result_t *result) {
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
 
   get_baseline_ret = filter_manager_get_result(
@@ -465,6 +508,37 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
   return get_baseline_ret;
 }
 
+static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
+    FilterManager *filter_manager, const gps_time_t *obs_time, const u8 num_obs,
+    const navigation_measurement_t *nav_meas,
+    const ephemeris_t *ephemerides[MAX_CHANNELS],
+    pvt_engine_result_t *result, dops_t *dops) {
+  PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+
+  bool is_initialized = filter_manager_is_initialized(filter_manager);
+
+  if (is_initialized) {
+    set_pvt_engine_elevation_mask(filter_manager,
+                                  get_solution_elevation_mask());
+
+    filter_manager_overwrite_ephemerides(filter_manager, ephemerides);
+
+    update_rov_obs = filter_manager_update_rov_obs(filter_manager, obs_time,
+                                                   num_obs, nav_meas);
+  }
+
+  if (update_rov_obs == PVT_ENGINE_SUCCESS) {
+    update_filter_ret = update_filter(filter_manager);
+  }
+
+  if (update_filter_ret == PVT_ENGINE_SUCCESS) {
+    get_baseline_ret = get_baseline(filter_manager, false, dops, result);
+  }
+
+  return get_baseline_ret;
+}
 
 static void solution_simulation(sbp_messages_t *sbp_messages)
 {
@@ -484,7 +558,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
 
     u8 flags = simulation_enabled_for(SIMULATION_MODE_RTK) ? FIXED_POSITION : FLOAT_POSITION;
 
-    rtk_baseline_result_t result = {
+    pvt_engine_result_t result = {
         .result_time = soln->time,
         .num_sats_used = simulation_current_num_sats(),
         .num_sigs_used = 0,
@@ -494,8 +568,8 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
     };
     memcpy(result.baseline, simulation_current_baseline_ecef(),
            sizeof(result.baseline));
-    memcpy(result.covariance, simulation_current_covariance_ecef(),
-           sizeof(result.covariance));
+    memcpy(result.baseline_covariance, simulation_current_covariance_ecef(),
+           sizeof(result.baseline_covariance));
     memcpy(result.known_reference_pos, simulation_ref_ecef(),
            sizeof(result.known_reference_pos));
 
@@ -591,6 +665,11 @@ static void starling_thread(void *arg)
    * removed access to NDB */
   /* ndb_lgf_read(&lgf); */
   memset(&lgf, 0, sizeof(last_good_fix_t));
+
+  chMtxLock(&spp_filter_manager_lock);
+  spp_filter_manager = create_filter_manager_spp();
+  filter_manager_init(spp_filter_manager);
+  chMtxUnlock(&spp_filter_manager_lock);
 
   while (TRUE) {
 
@@ -691,6 +770,10 @@ static void starling_thread(void *arg)
         has_time_matched_iono_params = true;
         time_matched_iono_params = *p_i_params;
         chMtxUnlock(&time_matched_iono_params_lock);
+        chMtxLock(&spp_filter_manager_lock);
+        filter_manager_update_iono_parameters(spp_filter_manager,
+                                              p_i_params, false);
+        chMtxUnlock(&spp_filter_manager_lock);
       }
       calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
                       lgf.position_solution.pos_ecef,
@@ -746,12 +829,9 @@ static void starling_thread(void *arg)
       }
     }
 
+    bool disable_velocity = false;
     if (!simulation_enabled()) {
-      /* Output solution. */
-
-      bool disable_velocity = clock_jump ||
-                              (current_fix.velocity_valid == 0);
-      solution_make_sbp(&current_fix, &dops, disable_velocity, &sbp_messages);
+      disable_velocity = clock_jump || (current_fix.velocity_valid == 0);
     }
 
     /*
@@ -801,43 +881,42 @@ static void starling_thread(void *arg)
         stored_ephs[i] = e;
       }
 
-      if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
-        PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
-        PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
-        PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
-        rtk_baseline_result_t result;
+      bool successful_spp = false;
+      if (!simulation_enabled() && pvt_ret >= 0) {
+        chMtxLock(&spp_filter_manager_lock);
+        pvt_engine_result_t result_spp;
+        const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
+            call_pvt_engine_filter(spp_filter_manager, &current_fix.time,
+                                   n_ready_tdcp, nav_meas_tdcp, stored_ephs,
+                                   &result_spp, &dops);
 
+        chMtxUnlock(&spp_filter_manager_lock);
+
+        if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
+            !gate_covariance_pvt_engine(&result_spp)) {
+          const gnss_solution spp_solution =
+              create_spp_result(&result_spp, &current_fix);
+          solution_make_sbp(&spp_solution, &dops, disable_velocity,
+                            &sbp_messages);
+          successful_spp = true;
+        }
+      }
+
+      if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+          successful_spp) {
         chMtxLock(&low_latency_filter_manager_lock);
 
-        bool is_initialized =
-            filter_manager_is_initialized(low_latency_filter_manager);
-
-        if (is_initialized) {
-          set_pvt_engine_elevation_mask(low_latency_filter_manager,get_solution_elevation_mask());
-
-          filter_manager_overwrite_ephemerides( low_latency_filter_manager, stored_ephs);
-
-          update_rov_obs = filter_manager_update_rov_obs(low_latency_filter_manager,
-                                        &current_fix.time, n_ready_tdcp,
-                                        nav_meas_tdcp);
-
-
-        }
-
-        if (update_rov_obs == PVT_ENGINE_SUCCESS) {
-          update_filter_ret = update_filter(low_latency_filter_manager);
-        }
-
-        if (update_filter_ret == PVT_ENGINE_SUCCESS) {
-          result.result_time = current_fix.time;
-          get_baseline_ret =
-              get_baseline(low_latency_filter_manager, false, &dops, &result);
-        }
+        pvt_engine_result_t result_rtk;
+        const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
+            call_pvt_engine_filter(
+                low_latency_filter_manager, &current_fix.time, n_ready_tdcp,
+                nav_meas_tdcp, stored_ephs, &result_rtk, &dops);
 
         chMtxUnlock(&low_latency_filter_manager_lock);
 
-        if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-          solution_make_baseline_sbp(&result, current_fix.pos_ecef, &dops,
+        if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
+          result_rtk.result_time = current_fix.time;
+          solution_make_baseline_sbp(&result_rtk, current_fix.pos_ecef, &dops,
                                      &sbp_messages);
         }
       }
@@ -862,7 +941,7 @@ void process_matched_obs(const obss_t *rover_channel_meass, const obss_t *refere
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
   dops_t RTK_dops;
-  rtk_baseline_result_t result;
+  pvt_engine_result_t result;
 
   ephemeris_t ephs[MAX_CHANNELS];
   const ephemeris_t *stored_ephs[MAX_CHANNELS];
@@ -913,8 +992,9 @@ void process_matched_obs(const obss_t *rover_channel_meass, const obss_t *refere
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
-      copy_filter_manager(low_latency_filter_manager,
-                          time_matched_filter_manager);
+      copy_filter_manager_rtk(
+          (FilterManagerRTK *)low_latency_filter_manager,
+          (const FilterManagerRTK *)time_matched_filter_manager);
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
@@ -962,11 +1042,11 @@ static void time_matched_obs_thread(void *arg)
   sbp_messages_t sbp_messages;
 
   chMtxLock(&time_matched_filter_manager_lock);
-  time_matched_filter_manager = create_filter_manager();
+  time_matched_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&time_matched_filter_manager_lock);
 
   chMtxLock(&low_latency_filter_manager_lock);
-  low_latency_filter_manager = create_filter_manager();
+  low_latency_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&low_latency_filter_manager_lock);
 
   while (1) {
