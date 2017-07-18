@@ -1063,20 +1063,9 @@ static bool compute_cpo(u64 ref_tc,
   bool ret = tracking_channel_calc_pseudorange(ref_tc, meas,
                                                &raw_pseudorange);
   if (ret) {
-    /* We don't want to adjust for the recevier clock drift,
-     * so we need to calculate an estimate of that before we
-     * calculate the carrier phase offset */
-    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
-    gps_time_t gps_time = napcount2gpstime(ref_tc);
-
-    double rcv_clk_error =  gpsdifftime(&gps_time,&receiver_time);
-
-    double phase = (sid_to_carr_freq(meas->sid) *
-      ( raw_pseudorange / GPS_C - rcv_clk_error ));
-
     /* initialize the carrier phase offset with the pseudorange measurement */
     /* NOTE: CP sign flip - change the plus sign below */
-    *carrier_phase_offset = round(meas->carrier_phase + phase);
+    *carrier_phase_offset = 0.000000001;
 
     if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
