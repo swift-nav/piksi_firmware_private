@@ -52,32 +52,51 @@ void nap_setup(void)
   axi_dma_start(&AXIDMADriver1);
 
   /* Phase increment initialization for GPS L1C/A processing */
-  NAP_FE->RF1_PINC = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
+  NAP_FE->RF1A_PINC = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
+
+  /* Phase increment initialization for Beidou B1 processing */
+  NAP_FE->RF1B_PINC = NAP_FE_BDS_B1_BASEBAND_MIXER_PINC;
 
   /* Phase increment initialization for GLO L1C/A processing */
-  NAP_FE->RF2_PINC = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
+  NAP_FE->RF2A_PINC = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
 
   /* Phase increment initialization for GLO L2C/A processing */
-  NAP_FE->RF3_PINC = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
+  NAP_FE->RF3A_PINC = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
 
   /* Phase increment initialization for GPS L2C processing */
-  NAP_FE->RF4_PINC = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
+  NAP_FE->RF4A_PINC = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
+
+  /* Phase increment initialization for Beidou B2 processing */
+  NAP_FE->RF4B_PINC = NAP_FE_BDS_B2_BASEBAND_MIXER_PINC;
 
   /* Reset frontend NCOs after number of samples */
-  NAP_FE->NCO_RESET0 = ((NAP_FE_RF1_NCO_RESET-1) << FE_NCO_RESET0_RF1_Pos) |
-                       ((NAP_FE_RF2_NCO_RESET-1) << FE_NCO_RESET0_RF2_Pos);
-  NAP_FE->NCO_RESET1 = ((NAP_FE_RF3_NCO_RESET-1) << FE_NCO_RESET1_RF3_Pos) |
-                       ((NAP_FE_RF4_NCO_RESET-1) << FE_NCO_RESET1_RF4_Pos);
+  NAP_FE->RF1_NCO_RESET =
+      ((NAP_FE_RF1A_NCO_RESET-1) << FE_RF1_NCO_RESET_RF1A_Pos) |
+      ((NAP_FE_RF1B_NCO_RESET-1) << FE_RF1_NCO_RESET_RF1B_Pos);
+
+  NAP_FE->RF2_NCO_RESET =
+      ((NAP_FE_RF2A_NCO_RESET-1) << FE_RF2_NCO_RESET_RF2A_Pos);
+
+  NAP_FE->RF3_NCO_RESET =
+      ((NAP_FE_RF3A_NCO_RESET-1) << FE_RF3_NCO_RESET_RF3A_Pos);
+
+  NAP_FE->RF4_NCO_RESET =
+      ((NAP_FE_RF4A_NCO_RESET-1) << FE_RF4_NCO_RESET_RF4A_Pos) |
+      ((NAP_FE_RF4B_NCO_RESET-1) << FE_RF4_NCO_RESET_RF4B_Pos);
 
   /* Enable frontend channels and their respective NCO resets */
-  NAP_FE->CONTROL = (1 << FE_CONTROL_ENABLE_RF1_Pos) |
-                    (1 << FE_CONTROL_RESET_RF1_NCO_Pos) |
-                    (1 << FE_CONTROL_ENABLE_RF2_Pos) |
-                    (1 << FE_CONTROL_RESET_RF2_NCO_Pos) |
-                    (1 << FE_CONTROL_ENABLE_RF3_Pos) |
-                    (1 << FE_CONTROL_RESET_RF3_NCO_Pos) |
-                    (1 << FE_CONTROL_ENABLE_RF4_Pos) |
-                    (1 << FE_CONTROL_RESET_RF4_NCO_Pos);
+  NAP_FE->CONTROL = (1 << FE_CONTROL_ENABLE_RF1A_Pos) |
+                    (0 << FE_CONTROL_ENABLE_RF1B_Pos) |
+                    (1 << FE_CONTROL_ENABLE_RF2A_Pos) |
+                    (1 << FE_CONTROL_ENABLE_RF3A_Pos) |
+                    (1 << FE_CONTROL_ENABLE_RF4A_Pos) |
+                    (0 << FE_CONTROL_ENABLE_RF4B_Pos) |
+                    (1 << FE_CONTROL_RESET_RF1A_NCO_Pos) |
+                    (1 << FE_CONTROL_RESET_RF1B_NCO_Pos) |
+                    (1 << FE_CONTROL_RESET_RF2A_NCO_Pos) |
+                    (1 << FE_CONTROL_RESET_RF3A_NCO_Pos) |
+                    (1 << FE_CONTROL_RESET_RF4A_NCO_Pos) |
+                    (1 << FE_CONTROL_RESET_RF4B_NCO_Pos);
 
   /* Enable NAP interrupt */
   chThdCreateStatic(wa_nap_irq, sizeof(wa_nap_irq), HIGHPRIO-2, nap_irq_thread, NULL);
@@ -268,8 +287,8 @@ void nap_track_irq_thread(void *arg)
                max_pll_integration_time_ms);
     );
 
-    /* Sleep for 500 microseconds. 
-     * The ChibiOS function below should be capable of handling short deadline misses. 
+    /* Sleep for 500 microseconds.
+     * The ChibiOS function below should be capable of handling short deadline misses.
      */
     chThdSleepUntilWindowed(sys_time, sys_time+US2ST(500));
   }

@@ -44,14 +44,20 @@
                                      / NAP_FRONTEND_RAW_SAMPLE_RATE_Hz + 0.5)
 
 #define NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC          IF_2_MIXER_PINC(14.58e6)
-#define NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-12.00e6)
-#define NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-11.00e6)
 #define NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC             IF_2_MIXER_PINC(7.4e6)
 
-#define NAP_FE_RF1_NCO_RESET                                           (6625)
-#define NAP_FE_RF2_NCO_RESET                                            (265)
-#define NAP_FE_RF3_NCO_RESET                                            (795)
-#define NAP_FE_RF4_NCO_RESET                                           (3975)
+#define NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-12.00e6)
+#define NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC         IF_2_MIXER_PINC(-11.00e6)
+
+#define NAP_FE_BDS_B1_BASEBAND_MIXER_PINC           IF_2_MIXER_PINC(28.902e6)
+#define NAP_FE_BDS_B2_BASEBAND_MIXER_PINC            IF_2_MIXER_PINC(27.86e6)
+
+#define NAP_FE_RF1A_NCO_RESET                                          (6625)
+#define NAP_FE_RF1B_NCO_RESET                                          (7389)
+#define NAP_FE_RF2A_NCO_RESET                                           (265)
+#define NAP_FE_RF3A_NCO_RESET                                           (795)
+#define NAP_FE_RF4A_NCO_RESET                                          (3975)
+#define NAP_FE_RF4B_NCO_RESET                                          (2158)
 
 #define NAP_PPS_TIMING_COUNT_OFFSET                                     (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET                                       (8)
