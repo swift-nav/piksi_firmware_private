@@ -1041,51 +1041,6 @@ static u32 get_tracking_channel_flags_info(u8 i,
   return info->flags;
 }
 
-/**
- * Computes carrier phase offset.
- *
- * \param[in]  ref_tc Reference time
- * \param[in]  info   Generic tracker data for update
- * \param[in]  meas   Pre-populated channel measurement
- * \param[out] carrier_phase_offset Result
- *
- * \retval true Carrier phase offset is computed and \a carrier_phase_offset
- *              updated
- * \retval false Error in computation.
- */
-static bool compute_cpo(u64 ref_tc,
-                        const tracking_channel_info_t *info,
-                        const channel_measurement_t *meas,
-                        double *carrier_phase_offset)
-{
-  /* compute the pseudorange for this signal */
-  double raw_pseudorange;
-  bool ret = tracking_channel_calc_pseudorange(ref_tc, meas,
-                                               &raw_pseudorange);
-  if (ret) {
-    /* We don't want to adjust for the recevier clock drift,
-     * so we need to calculate an estimate of that before we
-     * calculate the carrier phase offset */
-    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
-    gps_time_t gps_time = napcount2gpstime(ref_tc);
-
-    double rcv_clk_error =  gpsdifftime(&gps_time,&receiver_time);
-
-    double phase = (sid_to_carr_freq(meas->sid) *
-      ( raw_pseudorange / GPS_C - rcv_clk_error ));
-
-    /* initialize the carrier phase offset with the pseudorange measurement */
-    /* NOTE: CP sign flip - change the plus sign below */
-    *carrier_phase_offset = round(meas->carrier_phase + phase);
-
-    if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
-      /* Remember offset for the future use */
-      tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
-    }
-  }
-  return ret;
-}
 
 /**
  * Computes channel measurement flags from input.
@@ -1097,23 +1052,19 @@ static bool compute_cpo(u64 ref_tc,
  * \return Channel measurement flags
  */
 static chan_meas_flags_t compute_meas_flags(u32 flags,
-                                            bool phase_offset_ok,
                                             const me_gnss_signal_t mesid)
 {
   chan_meas_flags_t meas_flags = 0;
 
   if (0 != (flags & TRACKER_FLAG_PLL_USE)) {
     /* PLL is in use. */
-    if (phase_offset_ok) {
-      if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-          (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
-        meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+    if (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) {
+      meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
-        /* Make sense to set half cycle known flag when carrier phase is valid */
-        if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
-          /* Bit polarity is known */
-          meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
-        }
+      /* Make sense to set half cycle known flag when carrier phase is valid */
+      if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
+        /* Bit polarity is known */
+        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
       }
 
       /* sanity check */
@@ -1211,30 +1162,7 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
-    /* Adjust carrier phase initial integer offset to be approximately equal to
-     * pseudorange.
-     *
-     * The initial integer offset shall be adjusted only when conditions that
-     * have caused initial offset reset are not longer present. See callers of
-     * tracker_ambiguity_unknown() for more details.
-     *
-     * For now, compute pseudorange for all measurements even when phase is
-     * not available.
-     */
-    double carrier_phase_offset = misc_info.carrier_phase_offset.value;
-    bool cpo_ok = true;
-    if ((TIME_FINE <= time_quality) &&
-        (0.0 == carrier_phase_offset) &&
-        (0 != (flags & TRACKER_FLAG_PLL_USE)) &&
-        (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
-      cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
-    }
-    if (0.0 != carrier_phase_offset) {
-      flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
-      meas->carrier_phase -= carrier_phase_offset;
-    }
-    meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
+    meas->flags = compute_meas_flags(flags, info.mesid);
     meas->elevation = (double) sv_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));

@@ -469,7 +469,7 @@ void nap_track_read_results(u8 channel,
 {
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
-  s64 hw_carr_phase;
+  u32 hw_carr_phase;
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(t->STATUS)) {
     log_warn_mesid(s->mesid,
@@ -504,7 +504,7 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = t->TIMING_SNAPSHOT;
 
   if (s->reckon_counter < 1) {
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    hw_carr_phase = t->CARR_PHASE_FRAC;
     s->sw_carr_phase = hw_carr_phase;
     s->reckoned_carr_phase = ((double) hw_carr_phase) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
@@ -514,8 +514,8 @@ void nap_track_read_results(u8 channel,
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
 #ifndef PIKSI_RELEASE
     s->sw_carr_phase += phase_incr;
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-    if (s->sw_carr_phase != hw_carr_phase) {
+    hw_carr_phase = t->CARR_PHASE_FRAC;
+    if ((s->sw_carr_phase & 0xFFFFFFFF) != hw_carr_phase) {
       log_error_mesid(s->mesid, "%12llu reckon err SW %+.6lf  HW %+.6lf DIFF %+.6f",
         s->reckon_counter,
         s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
