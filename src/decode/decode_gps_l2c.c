@@ -106,7 +106,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     s32 tow_ms;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    symbol_probability = nav_bit.soft_bit + HALF_U8_MAX;
+    symbol_probability = nav_bit.soft_bit + POW_TWO_7;
 
     bool decoded = cnav_msg_decoder_add_symbol(&data->cnav_msg_decoder,
                                                symbol_probability,

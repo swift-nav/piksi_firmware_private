@@ -14,8 +14,6 @@
 
 #include <libswiftnav/common.h>
 
-#define HALF_U8_MAX (128)
-
 void decode_gps_l2c_register(void);
 
 #endif  /* SWIFTNAV_DECODE_GPS_L2C_H */
