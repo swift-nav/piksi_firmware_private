@@ -13,7 +13,6 @@
 #ifndef STARLING_CALC_PVT_H
 #define STARLING_CALC_PVT_H
 
-#include <ch.h>
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
@@ -22,7 +21,7 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
 
-
+#include "piksi_systime.h"
 
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
@@ -36,7 +35,7 @@ typedef enum {
 } dgnss_filter_t;
 
 typedef struct {
-  systime_t systime;
+  piksi_systime_t systime;
   dgnss_filter_t mode;
 } soln_dgnss_stats_t;
 
@@ -56,7 +55,7 @@ typedef struct {
 } sbp_messages_t;
 
 typedef struct {
-  systime_t systime;
+  piksi_systime_t systime;
   u8 signals_used;
 } soln_pvt_stats_t;
 

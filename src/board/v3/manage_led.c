@@ -12,6 +12,7 @@
 
 #include "manage_led.h"
 
+#include "piksi_systime.h"
 #include "me_calc_pvt.h"
 
 #include <hal.h>
@@ -117,9 +118,9 @@ static bool blinker_update(blinker_state_t *b)
 static blink_mode_t pv_blink_mode_get(void)
 {
   /* On if PVT available */
-  systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
-  if ((last_pvt_systime != TIME_INFINITE) &&
-      (chVTTimeElapsedSinceX(last_pvt_systime) < LED_MODE_TIMEOUT)) {
+  piksi_systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
+  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_pvt_systime) &&
+      (piksi_systime_elapsed_since_x(&last_pvt_systime) < LED_MODE_TIMEOUT)) {
     return BLINK_ON;
   }
 
@@ -142,10 +143,11 @@ static void handle_pv(counter_t c, bool *s)
 static blink_mode_t pos_blink_mode_get(void)
 {
   u8 signals_tracked = solution_last_stats_get().signals_tracked;
-  systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
+  piksi_systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
+
   /* On if PVT available */
-  if ((last_pvt_systime != TIME_INFINITE) &&
-      (chVTTimeElapsedSinceX(last_pvt_systime) < LED_MODE_TIMEOUT)) {
+  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_pvt_systime) &&
+      (piksi_systime_elapsed_since_x(&last_pvt_systime) < LED_MODE_TIMEOUT)) {
     return BLINK_ON;
   }
   /* Blink according to signals tracked */
@@ -200,9 +202,13 @@ static blink_mode_t mode_blink_mode_get(void)
 {
   soln_dgnss_stats_t last_dgnss_stats = solution_last_dgnss_stats_get();
 
+  systime_t elapsed = piksi_systime_elapsed_since_x(&last_dgnss_stats.systime);
+
+  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT,
+                                   &last_dgnss_stats.systime);
+
   /* Off if no DGNSS */
-  if ((last_dgnss_stats.systime == TIME_INFINITE) ||
-      (chVTTimeElapsedSinceX(last_dgnss_stats.systime) >= LED_MODE_TIMEOUT)) {
+  if (started && elapsed < LED_MODE_TIMEOUT) {
     return BLINK_OFF;
   }
 

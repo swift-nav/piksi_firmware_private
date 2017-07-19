@@ -22,12 +22,12 @@
 #include <libswiftnav/track.h>
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/time.h>
-#include <ch.h>
 #include <track.h>
 #include <assert.h>
 
 #include "settings.h"
 
+#include "piksi_systime.h"
 #include "simulator.h"
 #include "starling_calc_pvt.h"
 #include "peripherals/leds.h"
@@ -64,23 +64,24 @@ simulation_settings_t sim_settings = {
 
 /* Internal Simulation State Definition */
 struct {
-
-  u32            last_update_ticks;       /**< The last simulation update happened at this CPU tick count. */
-  float          angle;                   /**< Current simulation angle in radians */
-  double         pos[3];                  /**< Current simulated position with no noise, in ECEF coordinates. */
-  double         baseline[3];             /**< Current simulated baseline with no noise, in ECEF coordinates.*/
-  double         covariance[9];
-  u8             num_sats_selected;
+  piksi_systime_t last_update;       /**< The last simulation update happened at
+                                          this CPU tick count. */
+  float           angle;             /**< Current simulation angle in radians */
+  double          pos[3];            /**< Current simulated position with no
+                                          noise, in ECEF coordinates. */
+  double          baseline[3];       /**< Current simulated baseline with no
+                                          noise, in ECEF coordinates.*/
+  double          covariance[9];
+  u8              num_sats_selected;
 
   tracking_channel_state_t  tracking_channel[MAX_CHANNELS];
   navigation_measurement_t  nav_meas[MAX_CHANNELS];
   navigation_measurement_t  base_nav_meas[MAX_CHANNELS];
   dops_t                    dops;
   gnss_solution             noisy_solution;
-
 } sim_state = {
 
-  .last_update_ticks = 0,
+  .last_update = PIKSI_SYSTIME_INIT,
   .angle = 0.0,
   .pos = {
     0.0,
@@ -183,27 +184,35 @@ double lerp(double t, double u, double v, double x, double y) {
 * Adds IID gaussian noise to the true position calculated at every timestep.
 *
 * This function makes a small angle approximation, so the
-* elapsed time (dt) between calls must be such that the (speed * dt) is much less than the radius.
+* elapsed time (dt) between calls must be such that the (speed * dt) is much
+* less than the radius.
 *
 */
 void simulation_step(void)
 {
+  /* First we propagate the current fake PVT solution */
+  piksi_systime_t now;
+  piksi_systime_get(&now);
 
-  //First we propagate the current fake PVT solution
-  systime_t now_ticks = chVTGetSystemTime();
+  double elapsed = 0;
 
-  double elapsed = sim_state.last_update_ticks == 0 ? 0 : (now_ticks - sim_state.last_update_ticks)/(double)CH_CFG_ST_FREQUENCY;
+  if (piksi_systime_cmp(&now, &sim_state.last_update)) {
+    elapsed = piksi_systime_sub(&now, &sim_state.last_update);
+    elapsed /= CH_CFG_ST_FREQUENCY;
+  }
 
-  sim_state.last_update_ticks = now_ticks;
+  sim_state.last_update = now;
 
-  /* Update the time, clamping it to the solution frequency and handling week-rollover. */
+  /* Update the time, clamping it to the solution frequency */
   sim_state.noisy_solution.time.tow =
-    round((sim_state.noisy_solution.time.tow + elapsed) * soln_freq) / soln_freq;
+    round((sim_state.noisy_solution.time.tow + elapsed) * soln_freq);
+  sim_state.noisy_solution.time.tow /= soln_freq;
+
+  /* Handle week-rollover. */
   normalize_gps_time(&sim_state.noisy_solution.time);
 
   simulation_step_position_in_circle(elapsed);
   simulation_step_tracking_and_observations(elapsed);
-
 }
 
 /**

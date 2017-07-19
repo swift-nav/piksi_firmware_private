@@ -1304,7 +1304,7 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
     {
       interface_function(tracker_channel,
                          tracker_channel->interface->disable);
-      tracker_channel->disable_time = chVTGetSystemTimeX();
+      piksi_systime_get_x(&tracker_channel->disable_time);
       event(tracker_channel, EVENT_DISABLE);
     }
     tracker_channel_unlock(tracker_channel);
@@ -1312,7 +1312,7 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
   break;
 
   case STATE_DISABLE_WAIT: {
-    if (chVTTimeElapsedSinceX(tracker_channel->disable_time) >=
+    if (piksi_systime_elapsed_since_x(&tracker_channel->disable_time) >=
           MS2ST(CHANNEL_DISABLE_WAIT_TIME_ms)) {
       event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
     }

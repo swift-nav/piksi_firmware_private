@@ -22,7 +22,7 @@
 #include <libswiftnav/run_stats.h>
 #include <libswiftnav/bit_sync.h>
 
-#include <ch.h>
+#include "piksi_systime.h"
 #include "shm.h"
 #include "track_flags.h"
 
@@ -495,7 +495,7 @@ typedef struct {
   u16 glo_orbit_slot;     /**< GLO orbital slot. */
 
   /** Time at which the channel was disabled. */
-  systime_t disable_time;
+  piksi_systime_t disable_time;
 
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;

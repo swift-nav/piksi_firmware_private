@@ -15,8 +15,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <ch.h>
-
 #include <libsbp/sbp.h>
 #include <libsbp/piksi.h>
 #include <libswiftnav/logging.h>
@@ -28,6 +26,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/glo_map.h>
 
+#include "piksi_systime.h"
 #include "main.h"
 #include "board/nap/track_channel.h"
 #include "ephemeris.h"
@@ -148,8 +147,8 @@ static bool almanacs_enabled = false;
 static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
 
 typedef struct {
-  systime_t tick;       /**< Time when GLO SV was detected as unhealthy */
-  acq_status_t *status; /**< Pointer to acq status for the GLO SV */
+  piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
+  acq_status_t *status;  /**< Pointer to acq status for the GLO SV */
 } glo_acq_state_t;
 
 /* The array keeps time when GLO SV was detected as unhealthy
@@ -684,7 +683,7 @@ void check_clear_glo_unhealthy(void)
         (ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state)) {
       /* check if time since channel dropped due to SV unhealthy greater
        * than GLO ephemeris valid time (30 min) */
-      if (chVTTimeElapsedSinceX(glo_acq_timer[i].tick) >
+      if (piksi_systime_elapsed_since_x(&glo_acq_timer[i].tick) >
           S2ST(ACQ_GLO_EPH_VALID_TIME_SEC)) {
         /* enable GLO aqcuisition again */
         glo_acq_timer[i].status->state = ACQ_PRN_ACQUIRING;
@@ -812,7 +811,7 @@ static void drop_channel(tracker_channel_t *tracker_channel,
       acq->state = ACQ_PRN_UNHEALTHY;
       glo_acq_timer[tracker_channel->glo_orbit_slot].status = acq;
       /* store system time when GLO channel dropped */
-      glo_acq_timer[tracker_channel->glo_orbit_slot].tick = chVTGetSystemTime();
+      piksi_systime_get(&glo_acq_timer[tracker_channel->glo_orbit_slot].tick);
     } else {
       acq->state = ACQ_PRN_ACQUIRING;
     }

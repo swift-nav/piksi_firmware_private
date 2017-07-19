@@ -15,6 +15,8 @@
 
 #include <libswiftnav/common.h>
 
+#include "piksi_systime.h"
+
 #define COMPILER_BARRIER() asm volatile ("" : : : "memory")
 
 /* See http://c-faq.com/cpp/multistmt.html for
@@ -37,10 +39,12 @@
 } while (0)
 
 #define DO_EACH_TICKS(n, cmd) do {\
-  static systime_t ticks = 0; \
-  if (chVTTimeElapsedSinceX(ticks) >= n) { \
+  static piksi_systime_t ticks = PIKSI_SYSTIME_INIT; \
+  piksi_systime_t now; \
+  piksi_systime_get_x(&now); \
+  if (piksi_systime_sub(&now, &ticks) >= n) { \
     cmd; \
-    ticks = chVTGetSystemTime(); \
+    piksi_systime_get_x(&ticks); \
   } \
 } while (0)
 

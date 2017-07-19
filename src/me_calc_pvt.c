@@ -186,16 +186,17 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
  * \param deadline    Pointer to the current deadline, updated by this function.
  * \param interval    Interval by which the deadline should be advanced.
  */
-static void sol_thd_sleep(systime_t *deadline, systime_t interval)
+static void sol_thd_sleep(piksi_systime_t *deadline, systime_t interval)
 {
-  *deadline += interval;
+  piksi_systime_add(deadline, interval);
 
   chSysLock();
   while (1) {
     /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
      * execution time is limited to SOLN_THD_CPU_MAX. */
-    systime_t systime = chVTGetSystemTimeX();
-    systime_t delta = *deadline - systime;
+    piksi_systime_t systime;
+    piksi_systime_get_x(&systime);
+    systime_t delta = piksi_systime_sub(deadline, &systime);
     systime_t sleep_min = (systime_t)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval);
     if ((systime_t)(delta - sleep_min) <= ((systime_t)-1) / 2) {
       chThdSleepS(delta);
@@ -211,7 +212,7 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
         log_warn("Solution thread missed deadline, "
                  "time = %lu, deadline = %lu", systime, *deadline);
       }
-      *deadline += interval;
+      piksi_systime_add(deadline, interval);
       chSysLock();
     }
   }
@@ -296,7 +297,8 @@ static void me_calc_pvt_thread(void *arg)
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
 
-  systime_t deadline = chVTGetSystemTime();
+  piksi_systime_t deadline;
+  piksi_systime_get(&deadline);
 
   /* RFT_TODO *
    * clock_jump was after all masked by the TIME_FINE state variable
@@ -667,7 +669,7 @@ static void me_calc_pvt_thread(void *arg)
 
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. */
-    deadline += round(dt * CH_CFG_ST_FREQUENCY);
+    piksi_systime_add(&deadline, round(dt * CH_CFG_ST_FREQUENCY));
   }
 }
 
