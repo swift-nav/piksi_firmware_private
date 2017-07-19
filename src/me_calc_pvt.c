@@ -218,8 +218,8 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
  * Collects channel measurements, ephemerides and auxiliary data.
  *
  * \param[in]  rec_tc    Timestamp [samples].
- * \param[out] meas      Destination measurement array.
- * \param[out] in_view   Destination in_view array.
+ * \param[out] obs       Destination measurement array.
+ * \param[out] inview    Destination inview array.
  * \param[out] ephe      Destination ephemeris array.
  * \param[out] pn_ready  Destination for measurement array size.
  * \param[out] pn_ready  Destination for in-view array size.
@@ -228,8 +228,8 @@ static void sol_thd_sleep(systime_t *deadline, systime_t interval)
  * \return None
  */
 static void collect_measurements(u64 rec_tc,
-                                 channel_measurement_t meas[MAX_CHANNELS],
-                                 channel_measurement_t in_view[MAX_CHANNELS],
+                                 channel_measurement_t obs[MAX_CHANNELS],
+                                 channel_measurement_t inview[MAX_CHANNELS],
                                  ephemeris_t ephe[MAX_CHANNELS],
                                  u8 *pn_ready,
                                  u8 *pn_inview,
@@ -244,7 +244,7 @@ static void collect_measurements(u64 rec_tc,
     u32 flags = 0; /* Channel flags accumulator */
     /* Load measurements from the tracking channel and ephemeris from NDB */
     flags = get_tracking_channel_meas(i, rec_tc,
-                                      &meas[n_collected],
+                                      &obs[n_collected],
                                       &ephe[n_collected]);
 
     if (0 != (flags & TRACKER_FLAG_ACTIVE) &&
@@ -257,10 +257,10 @@ static void collect_measurements(u64 rec_tc,
 
       if (0 == (flags & TRACKER_FLAG_XCORR_SUSPECT)) {
         /* Tracking channel is not XCORR suspect so it's an actual SV in view */
-        in_view[n_inview++] = meas[n_collected];
+        inview[n_inview++] = obs[n_collected];
       }
 
-      chan_meas_flags_t meas_flags = meas[n_collected].flags;
+      chan_meas_flags_t meas_flags = obs[n_collected].flags;
 
       if (0 != (flags & TRACKER_FLAG_HEALTHY) &&
           0 != (flags & TRACKER_FLAG_NAV_SUITABLE) &&
@@ -271,7 +271,7 @@ static void collect_measurements(u64 rec_tc,
           0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
-        any_gps |= is_gps_sid(meas[n_collected].sid);
+        any_gps |= is_gps_sid(obs[n_collected].sid);
         n_collected++;
       }
     }
@@ -311,7 +311,6 @@ static void me_calc_pvt_thread(void *arg)
     u64 rec_tc = current_tc;
 
     // Work out the expected receiver time in GPS time frame for the current nap count
-    gps_time_t rec_time = napcount2rcvtime(rec_tc);
     gps_time_t expected_time = GPS_TIME_UNKNOWN;
 
     // If we've previously had a solution, we can work out our expected obs time
@@ -332,7 +331,7 @@ static void me_calc_pvt_thread(void *arg)
     double delta_tc = -((double)current_tc - (double)rec_tc);
 
     // Get the expected nap count in receiver time (gps time frame)
-    rec_time = napcount2rcvtime(rec_tc);
+    gps_time_t rec_time = napcount2rcvtime(rec_tc);
 
     if (time_quality >= TIME_COARSE
         && lgf.position_solution.valid
@@ -347,23 +346,23 @@ static void me_calc_pvt_thread(void *arg)
     u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
-    channel_measurement_t meas[MAX_CHANNELS];
-    channel_measurement_t in_view[MAX_CHANNELS];
-    static ephemeris_t e_meas[MAX_CHANNELS];
+    channel_measurement_t m_inview[MAX_CHANNELS];
+    channel_measurement_t m_obs[MAX_CHANNELS];
+    static ephemeris_t m_ephem[MAX_CHANNELS];
 
-    /* TODO: package meas, nav_meas and ephemeris into e.g. an union to
+    /* TODO: package m_obs, nav_meas and ephemeris into e.g. an union to
      * keep them from being separated? */
 
     /* Collect measurements from trackers, load ephemerides and compute flags */
     collect_measurements(rec_tc,
-                         meas,
-                         in_view,
-                         e_meas,
+                         m_obs,
+                         m_inview,
+                         m_ephem,
                          &n_ready,
                          &n_inview,
                          &n_total);
 
-    nmea_send_gsv(n_inview, in_view);
+    nmea_send_gsv(n_inview, m_inview);
 
     log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8 " in view "
               " (total=%" PRIu8 ")", n_ready, n_inview, n_total);
@@ -381,20 +380,21 @@ static void me_calc_pvt_thread(void *arg)
     cnav_msg_t cnav_30[MAX_CHANNELS];
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
     for (u8 i=0; i < n_ready; i++) {
-      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
+      p_cnav_30[i] = cnav_msg_get(m_obs[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
                      &cnav_30[i].data.type_30 : NULL;
     }
 
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
-    const channel_measurement_t *p_meas[n_ready];
+
+    const channel_measurement_t *p_m_obs[n_ready];
     navigation_measurement_t *p_nav_meas[n_ready];
-    const ephemeris_t *p_e_meas[n_ready];
+    const ephemeris_t *p_m_ephem[n_ready];
 
     /* Create arrays of pointers for use in calc_navigation_measurement */
     for (u8 i = 0; i < n_ready; i++) {
-      p_meas[i] = &meas[i];
+      p_m_obs[i]    = &m_obs[i];
       p_nav_meas[i] = &nav_meas[i];
-      p_e_meas[i] = &e_meas[i];
+      p_m_ephem[i]  = &m_ephem[i];
     }
 
     /* Create navigation measurements from the channel measurements */
@@ -407,7 +407,7 @@ static void me_calc_pvt_thread(void *arg)
      * observations after doing a PVT solution. */
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
 
-    s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
+    s8 nm_ret = calc_navigation_measurement(n_ready, p_m_obs, p_nav_meas,
                                             p_rec_time);
 
     if (nm_ret != 0) {
@@ -418,7 +418,7 @@ static void me_calc_pvt_thread(void *arg)
 
     /* RFT_TODO *
      * agreed this should go in starling but ME SPP solver needs it too */
-    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
+    s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_m_ephem);
 
     if (sc_ret != 0) {
       log_error("calc_sat_clock_correction() returned an error");
@@ -550,7 +550,7 @@ static void me_calc_pvt_thread(void *arg)
 
     /* Calculate the receiver clock error and adjust if it is too large */
     double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_debug("RX clock offset = %f", rx_err);
+    log_info("RX clock offset = %f", rx_err);
 
     if (fabs(rx_err) >= MAX_CLOCK_ERROR_S) {
       log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
@@ -584,10 +584,6 @@ static void me_calc_pvt_thread(void *arg)
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
-
-    /* RFT_TODO: Output solution. */
-
-
 
     /*
      * We need to correct our pseudorange and create a new one that is valid for
@@ -636,7 +632,7 @@ static void me_calc_pvt_thread(void *arg)
         /* Correct the observations for the receiver clock error. */
         nm->raw_carrier_phase += current_fix.clock_offset *
                                       GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_measured_doppler += current_fix.clock_bias *
+        nm->raw_measured_doppler += current_fix.clock_drift *
                                     GPS_C / sid_to_lambda(nm->sid);
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
         nm->raw_computed_doppler += computed_clock_rate *
@@ -653,8 +649,8 @@ static void me_calc_pvt_thread(void *arg)
          * the correct ephemeris. (Do not load it again from NDB because it may
          * have changed meanwhile.) */
         for (u8 j = 0; j < n_ready; j++) {
-          if (sid_is_equal(nm->sid, meas[j].sid)) {
-            e = &e_meas[j];
+          if (sid_is_equal(nm->sid, m_obs[j].sid)) {
+            e = &m_ephem[j];
             break;
           }
         }
@@ -684,7 +680,7 @@ static void me_calc_pvt_thread(void *arg)
       if (time_quality == TIME_FINE) {
 
         /* Send the observations. */
-        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
+        me_send_all(n_ready_tdcp, nav_meas_tdcp, m_ephem, &new_obs_time);
       }
     }
 

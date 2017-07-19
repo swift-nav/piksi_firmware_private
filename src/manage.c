@@ -383,10 +383,10 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
     dopp_hint_sat_vel = -sid_to_carr_freq(orbit.e.sid) *
                          vector_dot(3, sat_pos, sat_vel) / GPS_C;
     /* TODO: Check sign of receiver frequency offset correction.
-             There seems to be a sign flip somewhere in 'clock_bias'
+             There seems to be a sign flip somewhere in 'clock_drift'
              computation that gets compensated here */
     dopp_hint_clock = -sid_to_carr_freq(orbit.e.sid) *
-                       lgf.position_solution.clock_bias;
+                       lgf.position_solution.clock_drift;
     dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
     if (time_quality >= TIME_FINE) {
       dopp_uncertainty = DOPP_UNCERT_EPHEM;
@@ -407,7 +407,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
                       lgf.position_solution.pos_ecef[0],
                       lgf.position_solution.pos_ecef[1],
                       lgf.position_solution.pos_ecef[2],
-                      lgf.position_solution.clock_bias,
+                      lgf.position_solution.clock_drift,
                       el);
       return SCORE_COLDSTART;
     }
