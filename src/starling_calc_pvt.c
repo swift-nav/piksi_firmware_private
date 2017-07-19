@@ -645,7 +645,7 @@ void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, 5000000);
+static THD_WORKING_AREA(wa_starling_thread, 4000000);
 static void starling_thread(void *arg)
 {
   (void)arg;
@@ -1032,7 +1032,7 @@ bool update_time_matched(gps_time_t *last_update_time, gps_time_t *current_time,
   return true;
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 5000000);
+static WORKING_AREA_CCM(wa_time_matched_obs_thread, 4000000);
 static void time_matched_obs_thread(void *arg)
 {
   (void)arg;
