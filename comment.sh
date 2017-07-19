@@ -85,6 +85,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 elif [ ! -z "$GITHUB_TOKEN" ]; then
     COMMENT="$(github_links)"
     COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
+    curl -u "$GITHUB_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
     # set status of HITL testing to pending
     STATUS_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/statuses/$TRAVIS_PULL_REQUEST_SHA"
     STATUS_DESCRIPTION="Waiting for HITL tests to be run and complete"
