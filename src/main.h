@@ -40,9 +40,7 @@
 
 #define DO_EACH_TICKS(n, cmd) do {\
   static piksi_systime_t ticks = PIKSI_SYSTIME_INIT; \
-  piksi_systime_t now; \
-  piksi_systime_get_x(&now); \
-  if (piksi_systime_sub(&now, &ticks) >= n) { \
+  if (piksi_systime_elapsed_since_x(&ticks) >= n) { \
     cmd; \
     piksi_systime_get_x(&ticks); \
   } \
