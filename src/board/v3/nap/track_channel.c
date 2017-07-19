@@ -520,8 +520,8 @@ void nap_track_read_results(u8 channel,
         s->reckon_counter,
         (double) s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
         (double) hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
-        (double) (s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
-        (double) (hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE));
+        ((double) s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
+        ((double) hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE));
     }
 #endif /* PIKSI_RELEASE */
   }
