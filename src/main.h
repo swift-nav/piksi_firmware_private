@@ -42,7 +42,7 @@
   static piksi_systime_t ticks = PIKSI_SYSTIME_INIT; \
   if (piksi_systime_elapsed_since_x(&ticks) >= n) { \
     cmd; \
-    piksi_systime_get_x(&ticks); \
+    piksi_systime_get(&ticks); \
   } \
 } while (0)
 

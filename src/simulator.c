@@ -196,7 +196,7 @@ void simulation_step(void)
 
   double elapsed = 0;
 
-  if (piksi_systime_cmp(&now, &sim_state.last_update)) {
+  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &sim_state.last_update)) {
     elapsed = piksi_systime_sub(&now, &sim_state.last_update);
     elapsed /= CH_CFG_ST_FREQUENCY;
   }
@@ -204,9 +204,8 @@ void simulation_step(void)
   sim_state.last_update = now;
 
   /* Update the time, clamping it to the solution frequency */
-  sim_state.noisy_solution.time.tow =
-    round((sim_state.noisy_solution.time.tow + elapsed) * soln_freq);
-  sim_state.noisy_solution.time.tow /= soln_freq;
+  double new_tow = sim_state.noisy_solution.time.tow + elapsed;
+  sim_state.noisy_solution.time.tow = round(new_tow * soln_freq) / soln_freq;
 
   /* Handle week-rollover. */
   normalize_gps_time(&sim_state.noisy_solution.time);

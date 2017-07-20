@@ -58,7 +58,7 @@ static bool piksi_systime_get_internal(piksi_systime_t *t)
     prev.rollover_cnt++;
   }
 
-  t->systime = current;
+  t->systime = prev.systime = current;
   t->rollover_cnt = prev.rollover_cnt;
 
   return TRUE;
@@ -77,6 +77,17 @@ bool piksi_systime_get(piksi_systime_t *t)
 bool piksi_systime_get_x(piksi_systime_t *t)
 {
   return piksi_systime_get_internal(t);
+}
+
+/** Convert piksi_systime to system ticks.
+ *
+ * \param[in] t            Pointer to piksi_systime to convert.
+ *
+ * \return Value converted to system ticks.
+ */
+u64 piksi_systime_to_ticks(const piksi_systime_t *t)
+{
+  return t->rollover_cnt * TIME_INFINITE + t->systime;
 }
 
 /** Get tick count since specific time.
@@ -110,7 +121,7 @@ bool piksi_systime_add(piksi_systime_t *t, systime_t a)
 
   if (space < a) {
     t->rollover_cnt++;
-    t->systime = a - space;
+    t->systime = a - space - 1;
   } else {
     t->systime += a;
   }
@@ -157,8 +168,8 @@ s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b)
  */
 systime_t piksi_systime_sub(const piksi_systime_t *a, const piksi_systime_t *b)
 {
-  s64 a_tot = a->rollover_cnt * TIME_INFINITE + a->systime;
-  s64 b_tot = b->rollover_cnt * TIME_INFINITE + b->systime;
+  u64 a_tot = piksi_systime_to_ticks(a);
+  u64 b_tot = piksi_systime_to_ticks(b);
 
   s64 res = a_tot - b_tot;
 

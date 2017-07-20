@@ -287,18 +287,18 @@ void log_obs_latency(float latency_ms)
   period_accum_ms += (double) obs_period_ms;
   latency_count += 1;
 
-  corr_stats.latency.current =\
+  corr_stats.latency.current =
     (s32)(LATENCY_SMOOTHING * (float)latency_ms +
          (1 - LATENCY_SMOOTHING) * (float)corr_stats.latency.current);
 
-  corr_stats.obs_period.current =\
+  corr_stats.obs_period.current =
     (s32)(PERIOD_SMOOTHING * (float)obs_period_ms +
          (1 - PERIOD_SMOOTHING) * (float)corr_stats.obs_period.current);
 
   /* Don't change the min and max latencies if we appear to have a zero latency
    * speed. */
   if (latency_ms <= 0 ||
-      (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks) &&
+      (!piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks) &&
        0 == obs_period_ms)) {
     log_warn("Incoherent observation reception: latency: %f, period: %f",
              latency_ms,

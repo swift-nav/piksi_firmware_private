@@ -206,11 +206,15 @@ static void sol_thd_sleep(piksi_systime_t *deadline, systime_t interval)
       if (delta <= ((systime_t)-1) / 2) {
         /* Deadline is in the future. Skipping due to high CPU usage. */
         log_warn("Solution thread skipping deadline, "
-                 "time = %lu, deadline = %lu", systime, *deadline);
+                 "time = %llu, deadline = %llu",
+                 piksi_systime_to_ticks(&systime),
+                 piksi_systime_to_ticks(deadline));
       } else {
         /* Deadline is in the past. */
         log_warn("Solution thread missed deadline, "
-                 "time = %lu, deadline = %lu", systime, *deadline);
+                 "time = %llu, deadline = %llu",
+                 piksi_systime_to_ticks(&systime),
+                 piksi_systime_to_ticks(deadline));
       }
       piksi_systime_add(deadline, interval);
       chSysLock();

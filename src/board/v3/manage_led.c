@@ -118,9 +118,12 @@ static bool blinker_update(blinker_state_t *b)
 static blink_mode_t pv_blink_mode_get(void)
 {
   /* On if PVT available */
-  piksi_systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
-  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_pvt_systime) &&
-      (piksi_systime_elapsed_since_x(&last_pvt_systime) < LED_MODE_TIMEOUT)) {
+  piksi_systime_t t = solution_last_pvt_stats_get().systime;
+
+  systime_t elapsed = piksi_systime_elapsed_since_x(&t);
+  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
+
+  if (started && elapsed < LED_MODE_TIMEOUT) {
     return BLINK_ON;
   }
 
@@ -143,11 +146,13 @@ static void handle_pv(counter_t c, bool *s)
 static blink_mode_t pos_blink_mode_get(void)
 {
   u8 signals_tracked = solution_last_stats_get().signals_tracked;
-  piksi_systime_t last_pvt_systime = solution_last_pvt_stats_get().systime;
+  piksi_systime_t t = solution_last_pvt_stats_get().systime;
+
+  systime_t elapsed = piksi_systime_elapsed_since_x(&t);
+  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
 
   /* On if PVT available */
-  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_pvt_systime) &&
-      (piksi_systime_elapsed_since_x(&last_pvt_systime) < LED_MODE_TIMEOUT)) {
+  if (started && elapsed < LED_MODE_TIMEOUT) {
     return BLINK_ON;
   }
   /* Blink according to signals tracked */
@@ -200,12 +205,11 @@ static void handle_link(counter_t c, rgb_led_state_t *s)
 
 static blink_mode_t mode_blink_mode_get(void)
 {
-  soln_dgnss_stats_t last_dgnss_stats = solution_last_dgnss_stats_get();
+  soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
 
-  systime_t elapsed = piksi_systime_elapsed_since_x(&last_dgnss_stats.systime);
+  systime_t elapsed = piksi_systime_elapsed_since_x(&stats.systime);
 
-  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT,
-                                   &last_dgnss_stats.systime);
+  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
 
   /* Off if no DGNSS */
   if (started && elapsed < LED_MODE_TIMEOUT) {
@@ -213,7 +217,7 @@ static blink_mode_t mode_blink_mode_get(void)
   }
 
   /* On if fixed, blink if float */
-  return (last_dgnss_stats.mode == FILTER_FIXED) ? BLINK_ON : BLINK_SLOW;
+  return (stats.mode == FILTER_FIXED) ? BLINK_ON : BLINK_SLOW;
 }
 
 static void handle_mode(counter_t c, rgb_led_state_t *s)

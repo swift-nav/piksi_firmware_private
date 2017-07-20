@@ -32,6 +32,8 @@ typedef struct piksi_systime {
 bool piksi_systime_get(piksi_systime_t *t);
 bool piksi_systime_get_x(piksi_systime_t *t);
 
+u64 piksi_systime_to_ticks(const piksi_systime_t *t);
+
 systime_t piksi_systime_elapsed_since_x(const piksi_systime_t *t);
 
 bool piksi_systime_add(piksi_systime_t *t, systime_t a);
