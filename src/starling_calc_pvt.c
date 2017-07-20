@@ -729,7 +729,6 @@ static void starling_thread(void *arg)
       continue;
     }
 
-    static navigation_measurement_t nav_meas_old[MAX_CHANNELS];
     static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
 
     /* RFT_TODO *
@@ -739,10 +738,6 @@ static void starling_thread(void *arg)
     /* Pass the nav_meas with the measured Dopplers as is */
     memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
     n_ready_tdcp = n_ready;
-
-    /* Store current observations for next time for
-     * TDCP Doppler calculation. */
-    memcpy(nav_meas_old, nav_meas, sizeof(nav_meas));
 
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
