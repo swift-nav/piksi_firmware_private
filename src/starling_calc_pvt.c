@@ -198,7 +198,7 @@ bool spp_timeout(const gps_time_t *_last_spp, const gps_time_t *_last_dgnss, dgn
   return (time_diff > 0.0);
 }
 
-void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages) {
+void solution_make_sbp(const gnss_solution *soln, dops_t *dops, sbp_messages_t *sbp_messages) {
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
@@ -247,8 +247,7 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
                           &soln_time, soln->n_sats_used, SPP_POSITION);
 
     /* Velocity in NED. */
-    /* Do not send if there has been a clock jump. Velocity may be unreliable.*/
-    if (!clock_jump && soln->velocity_valid) {
+    if (soln->velocity_valid) {
       sbp_make_vel_ned(&sbp_messages->vel_ned,
                        soln,
                        vel_h_accuracy, vel_v_accuracy,
@@ -548,7 +547,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
   gnss_solution *soln = simulation_current_gnss_solution();
 
   if (simulation_enabled_for(SIMULATION_MODE_PVT)) {
-    solution_make_sbp(soln, simulation_current_dops_solution(), FALSE, sbp_messages);
+    solution_make_sbp(soln, simulation_current_dops_solution(), sbp_messages);
   }
 
   if (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
@@ -718,8 +717,7 @@ static void starling_thread(void *arg)
       if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
           !gate_covariance_pvt_engine(&result_spp)) {
         spp_solution = create_spp_result(&result_spp);
-        solution_make_sbp(&spp_solution, &dops, false,
-                          &sbp_messages);
+        solution_make_sbp(&spp_solution, &dops, &sbp_messages);
         successful_spp = true;
       } else {
         /* If we can't report a SPP position, something is wrong and no point
@@ -912,7 +910,7 @@ static void time_matched_obs_thread(void *arg)
         // do the differential solution so that the various messages can be overwritten as appropriate,
         // the exception is the DOP messages, as we don't have the SPP DOP and it will always be overwritten by the differential
         gnss_solution soln_copy = obss->soln;
-        solution_make_sbp(&soln_copy, NULL, false, &sbp_messages);
+        solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
         if(update_time_matched(&last_update_time, &obss->tor, obss->n) || dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
