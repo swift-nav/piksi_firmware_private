@@ -729,23 +729,13 @@ static void starling_thread(void *arg)
       continue;
     }
 
-    static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
-
-    /* RFT_TODO *
-     * tdcp computation removed as heavily dependent on time from NAP */
-    u8 n_ready_tdcp;
-
-    /* Pass the nav_meas with the measured Dopplers as is */
-    memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
-    n_ready_tdcp = n_ready;
-
-    gnss_sid_set_t codes_tdcp;
-    sid_set_init(&codes_tdcp);
-    for (u8 i=0; i<n_ready_tdcp; i++) {
-      sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
+    gnss_sid_set_t codes;
+    sid_set_init(&codes);
+    for (u8 i=0; i<n_ready; i++) {
+      sid_set_add(&codes, nav_meas[i].sid);
     }
 
-    if (sid_set_get_sat_count(&codes_tdcp) < 4) {
+    if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
         solution_send_low_latency_output(0, &sbp_messages);
@@ -773,7 +763,7 @@ static void starling_thread(void *arg)
                                               p_i_params, false);
         chMtxUnlock(&spp_filter_manager_lock);
       }
-      calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
+      calc_iono_tropo(n_ready, nav_meas,
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
                       p_i_params);
@@ -788,7 +778,7 @@ static void starling_thread(void *arg)
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
      // TODO(Leith) check velocity_valid
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
+    s8 pvt_ret = calc_PVT(n_ready, nav_meas, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sids);
     if (pvt_ret < 0
         || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
@@ -819,10 +809,10 @@ static void starling_thread(void *arg)
     /* If we have a success RAIM repair, mark the removed observation as
        invalid. In practice, this means setting only the CN0 flag valid. */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
-          log_debug_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
-          nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+      for (u8 i = 0; i < n_ready; i++) {
+        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
+          log_debug_sid(nav_meas[i].sid, "RAIM repair, setting observation invalid.");
+          nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         }
       }
     }
@@ -858,8 +848,8 @@ static void starling_thread(void *arg)
       for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
         stored_ephs[i] = NULL;
       }
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[i];
+      for (u8 i = 0; i < n_ready; i++) {
+        navigation_measurement_t *nm = &nav_meas[i];
         ephemeris_t *e = NULL;
 
         /* Find the original index of this measurement in order to point to
@@ -885,7 +875,7 @@ static void starling_thread(void *arg)
         pvt_engine_result_t result_spp;
         const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
             call_pvt_engine_filter(spp_filter_manager, &current_fix.time,
-                                   n_ready_tdcp, nav_meas_tdcp, stored_ephs,
+                                   n_ready, nav_meas, stored_ephs,
                                    &result_spp, &dops);
 
         chMtxUnlock(&spp_filter_manager_lock);
@@ -907,8 +897,8 @@ static void starling_thread(void *arg)
         pvt_engine_result_t result_rtk;
         const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
             call_pvt_engine_filter(
-                low_latency_filter_manager, &current_fix.time, n_ready_tdcp,
-                nav_meas_tdcp, stored_ephs, &result_rtk, &dops);
+                low_latency_filter_manager, &current_fix.time, n_ready,
+                nav_meas, stored_ephs, &result_rtk, &dops);
 
         chMtxUnlock(&low_latency_filter_manager_lock);
 
@@ -922,7 +912,7 @@ static void starling_thread(void *arg)
       /* This is posting the rover obs to the mailbox to the time matched thread, we want these sent on at full rate */
       if (!simulation_enabled()) {
         /* Post the observations to the mailbox. */
-        post_observations(n_ready_tdcp, nav_meas_tdcp, &new_obs_time, &current_fix);
+        post_observations(n_ready, nav_meas, &new_obs_time, &current_fix);
 
       }
     }
