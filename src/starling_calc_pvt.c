@@ -396,30 +396,22 @@ double calc_heading(const double b_ned[3])
   return heading * R2D;
 }
 
-/** Creates and sends RTK solution.
- * If the base station position is known,
- * send the NMEA and SBP psuedo absolute msgs.
- *
- * If operating in simulation mode, it depends upon the simulation mode enabled
- * and the simulation base_ecef position (both available in the global struct
- * sim_settings and accessed via wrappers prototyped in simulator.h)
- *
- * \param t pointer to gps time struct representing gps time for solution
- * \param n_sats u8 representig the number of satellites
- * \param b_ecef size 3 vector of doubles representing ECEF position (meters)
- * \param ref_ecef size 3 vector of doubles representing reference position
- * for conversion from ECEF to local NED coordinates (meters)
- * \param flags u8 RTK solution flags. 1 if float, 0 if fixed
- */
 void solution_make_baseline_sbp(const pvt_engine_result_t *result,
-                                const double rover_ecef[3], const dops_t *dops,
+                                const double spp_ecef[3], const dops_t *dops,
                                 sbp_messages_t *sbp_messages) {
+  double ecef_pos[3];
+  if (result->has_known_reference_pos) {
+    vector_add(3, result->known_reference_pos, result->baseline,
+               ecef_pos);
+  } else {
+    memcpy(ecef_pos, spp_ecef, 3 * sizeof(double));
+  }
+
   double b_ned[3];
-  // TODO(ben) Use pseudoabsolute if it exists, otherwise use SPP.
-  wgsecef2ned(result->baseline, rover_ecef, b_ned);
+  wgsecef2ned(result->baseline, ecef_pos, b_ned);
 
   double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(result->baseline_covariance, rover_ecef, &accuracy,
+  covariance_to_accuracy(result->baseline_covariance, ecef_pos, &accuracy,
                          &h_accuracy, &v_accuracy);
 
   sbp_make_baseline_ecef(&sbp_messages->baseline_ecef, &result->result_time,
