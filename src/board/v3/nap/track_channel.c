@@ -504,31 +504,34 @@ void nap_track_read_results(u8 channel,
   *count_snapshot = t->TIMING_SNAPSHOT;
 
   if (s->reckon_counter < 1) {
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    hw_carr_phase = t->CARR_PHASE_FRAC;
     s->sw_carr_phase = hw_carr_phase;
     s->reckoned_carr_phase = ((double) hw_carr_phase) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    log_info_mesid(s->mesid, "init carr phase %.6lf",
+      s->reckoned_carr_phase);
   } else {
     s64 phase_incr = ((s64)s->length[1]) * (s->carr_pinc[1]);
     s->reckoned_carr_phase += ((double) phase_incr) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    s->reckoned_carr_phase += s->fcn_freq_hz *
+                              (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 #ifndef PIKSI_RELEASE
     s->sw_carr_phase += phase_incr;
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
-    if (s->sw_carr_phase != hw_carr_phase) {
+    hw_carr_phase = t->CARR_PHASE_FRAC;
+    if ((s->sw_carr_phase & 0xFFFFFFFF) != hw_carr_phase) {
       log_error_mesid(s->mesid, "%12llu reckon err SW %+.9lf  HW %+.9lf DIFF %+.9lf",
         s->reckon_counter,
         (double) s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
         (double) hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
         ((double) s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
         ((double) hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE));
+      s->sw_carr_phase  = (s->sw_carr_phase >> 32) << 32;
+      s->sw_carr_phase |= hw_carr_phase;
     }
 #endif /* PIKSI_RELEASE */
   }
-  s->reckoned_carr_phase += s->fcn_freq_hz *
-                           (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
   s->reckon_counter++;
-  *carrier_phase = -(s->reckoned_carr_phase);
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
@@ -536,6 +539,12 @@ void nap_track_read_results(u8 channel,
       calc_samples_per_chip(s->code_phase_rate[1]);
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
+
+  /* Correct carrier phase with spacing between VE and P correlators */
+  *carrier_phase =
+    -(s->reckoned_carr_phase) +
+    -((prompt_offset * calc_samples_per_chip(s->code_phase_rate[1]) / NAP_TRACK_SAMPLE_RATE_Hz) * /* samples/sample_rate = time */
+      (s->carr_pinc[1] / NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ));                                   /* carr_pinc/(2^32/sample_rate) = freq */
 
   /* Correct code phase with spacing between VE and P correlators */
   *code_phase_prompt = (double)nap_code_phase /
