@@ -615,15 +615,9 @@ static void starling_thread(void *arg)
   sbp_messages_t sbp_messages;
 
   bool clock_jump = FALSE;
-  static last_good_fix_t lgf;
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
-
-  /* RFT_TODO *
-   * removed access to NDB */
-  /* ndb_lgf_read(&lgf); */
-  memset(&lgf, 0, sizeof(last_good_fix_t));
 
   chMtxLock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
@@ -685,30 +679,23 @@ static void starling_thread(void *arg)
       continue;
     }
 
-    /* check if we have a solution, if yes calc iono and tropo correction */
-    if (lgf.position_quality >= POSITION_GUESS) {
-      ionosphere_t i_params;
-      ionosphere_t *p_i_params = &i_params;
-      /* get iono parameters if available */
-      if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
-        p_i_params = NULL;
-        chMtxLock(&time_matched_iono_params_lock);
-        has_time_matched_iono_params = false;
-        chMtxUnlock(&time_matched_iono_params_lock);
-      } else {
-        chMtxLock(&time_matched_iono_params_lock);
-        has_time_matched_iono_params = true;
-        time_matched_iono_params = *p_i_params;
-        chMtxUnlock(&time_matched_iono_params_lock);
-        chMtxLock(&spp_filter_manager_lock);
-        filter_manager_update_iono_parameters(spp_filter_manager,
-                                              p_i_params, false);
-        chMtxUnlock(&spp_filter_manager_lock);
-      }
-      calc_iono_tropo(n_ready, nav_meas,
-                      lgf.position_solution.pos_ecef,
-                      lgf.position_solution.pos_llh,
-                      p_i_params);
+    ionosphere_t i_params;
+    ionosphere_t *p_i_params = &i_params;
+    /* get iono parameters if available */
+    if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
+      p_i_params = NULL;
+      chMtxLock(&time_matched_iono_params_lock);
+      has_time_matched_iono_params = false;
+      chMtxUnlock(&time_matched_iono_params_lock);
+    } else {
+      chMtxLock(&time_matched_iono_params_lock);
+      has_time_matched_iono_params = true;
+      time_matched_iono_params = *p_i_params;
+      chMtxUnlock(&time_matched_iono_params_lock);
+      chMtxLock(&spp_filter_manager_lock);
+      filter_manager_update_iono_parameters(spp_filter_manager,
+                                            p_i_params, false);
+      chMtxUnlock(&spp_filter_manager_lock);
     }
 
     dops_t dops;
@@ -722,8 +709,7 @@ static void starling_thread(void *arg)
      // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready, nav_meas, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sids);
-    if (pvt_ret < 0
-        || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
+    if (pvt_ret < 0 || gate_covariance(&current_fix)) {
 
       if (pvt_ret < 0) {
         /* An error occurred with calc_PVT! */
@@ -739,11 +725,6 @@ static void starling_thread(void *arg)
        */
       if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
         solution_send_low_latency_output(0, &sbp_messages);
-      }
-
-      /* If we already had a good fix, degrade its quality to STATIC */
-      if (lgf.position_quality > POSITION_STATIC) {
-        lgf.position_quality = POSITION_STATIC;
       }
       continue;
     }
