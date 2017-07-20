@@ -281,10 +281,10 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump,
 
 // TODO(https://github.com/swift-nav/estimation_team_planning/issues/667)
 static gnss_solution create_spp_result(
-    const pvt_engine_result_t *pvt_engine_result,
-    const gnss_solution *firmware_spp_result) {
+    const pvt_engine_result_t *pvt_engine_result) {
   gnss_solution spp_solution;
   spp_solution.valid = 1;
+  spp_solution.time = pvt_engine_result->result_time;
   spp_solution.n_sats_used = pvt_engine_result->num_sats_used;
   spp_solution.n_sigs_used = pvt_engine_result->num_sigs_used;
   memcpy(spp_solution.pos_ecef, pvt_engine_result->baseline,
@@ -297,7 +297,6 @@ static gnss_solution create_spp_result(
   spp_solution.err_cov[3] = pvt_engine_result->baseline_covariance[4];
   spp_solution.err_cov[4] = pvt_engine_result->baseline_covariance[5];
   spp_solution.err_cov[5] = pvt_engine_result->baseline_covariance[8];
-  spp_solution.err_cov[6] = firmware_spp_result->err_cov[6];
 
   spp_solution.velocity_valid = pvt_engine_result->velocity_valid;
   if (pvt_engine_result->velocity_valid) {
@@ -311,12 +310,13 @@ static gnss_solution create_spp_result(
     spp_solution.vel_cov[3] = pvt_engine_result->velocity_covariance[4];
     spp_solution.vel_cov[4] = pvt_engine_result->velocity_covariance[5];
     spp_solution.vel_cov[5] = pvt_engine_result->velocity_covariance[8];
-    spp_solution.vel_cov[6] = 0;
   }
 
-  spp_solution.clock_offset = firmware_spp_result->clock_offset;
-  spp_solution.clock_bias = firmware_spp_result->clock_bias;
-  spp_solution.time = firmware_spp_result->time;
+  /* We don't need the following terms in Starling. */
+  spp_solution.err_cov[6] = 0;
+  spp_solution.vel_cov[6] = 0;
+  spp_solution.clock_offset = 0;
+  spp_solution.clock_bias = 0;
   return spp_solution;
 }
 
@@ -419,6 +419,7 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                 const double rover_ecef[3], const dops_t *dops,
                                 sbp_messages_t *sbp_messages) {
   double b_ned[3];
+  // TODO(ben) Use pseudoabsolute if it exists, otherwise use SPP.
   wgsecef2ned(result->baseline, rover_ecef, b_ned);
 
   double accuracy, h_accuracy, v_accuracy;
@@ -614,7 +615,6 @@ static void starling_thread(void *arg)
 
   sbp_messages_t sbp_messages;
 
-  bool clock_jump = FALSE;
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
@@ -647,10 +647,8 @@ static void starling_thread(void *arg)
     memset(e_meas, 0, sizeof(e_meas));
     memcpy(e_meas,   rover_channel_epoch->ephem, n_ready*sizeof(ephemeris_t));
     obs_time = rover_channel_epoch->obs_time;
-    (void) obs_time;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
-
 
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);
@@ -699,71 +697,6 @@ static void starling_thread(void *arg)
     }
 
     dops_t dops;
-    gnss_solution current_fix;
-    gnss_sid_set_t raim_removed_sids;
-
-    /* Calculate the SPP position
-     * disable_raim controlled by external setting. Defaults to false. */
-    /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
-     * just return the rough value from the tracking loop. */
-     // TODO(Leith) check velocity_valid
-    s8 pvt_ret = calc_PVT(n_ready, nav_meas, disable_raim, false,
-                          &current_fix, &dops, &raim_removed_sids);
-    if (pvt_ret < 0 || gate_covariance(&current_fix)) {
-
-      if (pvt_ret < 0) {
-        /* An error occurred with calc_PVT! */
-        /* pvt_err_msg defined in libswiftnav/pvt.c */
-        DO_EVERY((u32)starling_frequency,
-                 log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
-        );
-      }
-
-      /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - send out solution and observation
-       * failed messages if not in time matched mode
-       */
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
-      continue;
-    }
-
-    /* If we have a success RAIM repair, mark the removed observation as
-       invalid. In practice, this means setting only the CN0 flag valid. */
-    if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-      for (u8 i = 0; i < n_ready; i++) {
-        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
-          log_debug_sid(nav_meas[i].sid, "RAIM repair, setting observation invalid.");
-          nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
-        }
-      }
-    }
-
-    bool disable_velocity = false;
-    if (!simulation_enabled()) {
-      disable_velocity = clock_jump || (current_fix.velocity_valid == 0);
-    }
-
-    /*
-     * We need to correct our pseudorange and create a new one that is valid for
-     * a different time of arrival.  In particular we'd like to propagate all the
-     * observations such that they represent what we would have observed had
-     * the observations all arrived at the current epoch (t').
-     */
-
-    /* Calculate the time of the nearest solution epoch, where we expected
-     * to be, and calculate how far we were away from it. */
-    gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
-    new_obs_time.tow = round(current_fix.time.tow * starling_frequency)
-                              / starling_frequency;
-    normalize_gps_time(&new_obs_time);
-    gps_time_match_weeks(&new_obs_time, &current_fix.time);
-    double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
-
-    /* Only send observations that are closely aligned with the desired
-     * solution epochs to ensure they haven't been propagated too far. */
-    if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
 
       // This will duplicate pointers to satellites with mutliple frequencies,
       // but this scenario is expected and handled
@@ -792,12 +725,13 @@ static void starling_thread(void *arg)
         stored_ephs[i] = e;
       }
 
+      pvt_engine_result_t result_spp;
+      gnss_solution spp_solution;
       bool successful_spp = false;
-      if (!simulation_enabled() && pvt_ret >= 0) {
+      if (!simulation_enabled()) {
         chMtxLock(&spp_filter_manager_lock);
-        pvt_engine_result_t result_spp;
         const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
-            call_pvt_engine_filter(spp_filter_manager, &current_fix.time,
+            call_pvt_engine_filter(spp_filter_manager, &obs_time,
                                    n_ready, nav_meas, stored_ephs,
                                    &result_spp, &dops);
 
@@ -805,11 +739,18 @@ static void starling_thread(void *arg)
 
         if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
             !gate_covariance_pvt_engine(&result_spp)) {
-          const gnss_solution spp_solution =
-              create_spp_result(&result_spp, &current_fix);
-          solution_make_sbp(&spp_solution, &dops, disable_velocity,
+          spp_solution = create_spp_result(&result_spp);
+          solution_make_sbp(&spp_solution, &dops, false,
                             &sbp_messages);
           successful_spp = true;
+        } else {
+          /* If we can't report a SPP position, something is wrong and no point
+           * continuing to process this epoch - send out solution and
+           * observation failed messages if not in time matched mode.
+           */
+          if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+            solution_send_low_latency_output(0, &sbp_messages);
+          }
         }
       }
 
@@ -820,14 +761,13 @@ static void starling_thread(void *arg)
         pvt_engine_result_t result_rtk;
         const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
             call_pvt_engine_filter(
-                low_latency_filter_manager, &current_fix.time, n_ready,
+                low_latency_filter_manager, &obs_time, n_ready,
                 nav_meas, stored_ephs, &result_rtk, &dops);
 
         chMtxUnlock(&low_latency_filter_manager_lock);
 
         if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-          result_rtk.result_time = current_fix.time;
-          solution_make_baseline_sbp(&result_rtk, current_fix.pos_ecef, &dops,
+          solution_make_baseline_sbp(&result_rtk, result_spp.baseline, &dops,
                                      &sbp_messages);
         }
       }
@@ -835,10 +775,8 @@ static void starling_thread(void *arg)
       /* This is posting the rover obs to the mailbox to the time matched thread, we want these sent on at full rate */
       if (!simulation_enabled()) {
         /* Post the observations to the mailbox. */
-        post_observations(n_ready, nav_meas, &new_obs_time, &current_fix);
-
+        post_observations(n_ready, nav_meas, &obs_time, &spp_solution);
       }
-    }
 
     // Send out messages if needed
     solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
