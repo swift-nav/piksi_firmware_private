@@ -58,9 +58,6 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-/** Minimum number of satellites to use with PVT */
-#define MINIMUM_SV_COUNT 5
-
 static MemoryPool time_matched_obs_buff_pool;
 static mailbox_t  time_matched_obs_mailbox;
 
@@ -656,25 +653,6 @@ static void starling_thread(void *arg)
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
       solution_simulation(&sbp_messages);
-    }
-
-    if (n_ready < MINIMUM_SV_COUNT) {
-      /* Not enough sats, keep on looping. */
-      continue;
-    }
-
-    gnss_sid_set_t codes;
-    sid_set_init(&codes);
-    for (u8 i=0; i<n_ready; i++) {
-      sid_set_add(&codes, nav_meas[i].sid);
-    }
-
-    if (sid_set_get_sat_count(&codes) < 4) {
-      /* Not enough sats to compute PVT */
-      if(dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-        solution_send_low_latency_output(0, &sbp_messages);
-      }
-      continue;
     }
 
     ionosphere_t i_params;
