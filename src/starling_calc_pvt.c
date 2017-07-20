@@ -588,48 +588,6 @@ static void solution_simulation(sbp_messages_t *sbp_messages)
   }
 }
 
-/** Update the satellite azimuth & elevation database with current angles
- * \param rcv_pos Approximate receiver position
- * \param t Approximate time
- */
-static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
-{
-  ephemeris_t ephemeris;
-  almanac_t almanac;
-  double az, el;
-  u64 nap_count = gpstime2napcount(&t);
-
-  /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
-  for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
-
-    /* form a SID with the first code for the constellation */
-    gnss_signal_t sid = sv_index_to_sid(sv_index);
-    if (!sid_valid(sid)) {
-      continue;
-    }
-    ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
-
-    /* try to compute elevation from any valid ephemeris */
-    if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
-        && ephemeris_valid(&ephemeris, &t)
-        && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, false) >= 0) {
-      sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
-      log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
-
-    /* else try to fetch almanac and use it if it is valid */
-    } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)
-               && calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
-      sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
-      log_debug_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
-    }
-  }
-}
-
-
-/* RFT_TODO *
- * removing sleep, as it shouldn't be needed when starling is called
- * by ME, however we might want to keep the CPU usage check */
-
 void sbp_messages_init(sbp_messages_t *sbp_messages){
   sbp_init_gps_time(&sbp_messages->gps_time);
   sbp_init_utc_time(&sbp_messages->utc_time);
@@ -707,22 +665,6 @@ static void starling_thread(void *arg)
     if (simulation_enabled()) {
       solution_simulation(&sbp_messages);
     }
-
-    /* RFT_TODO: we know update_sat_azel() should be removed but we think
-     * calc_iono_tropo() migth still need it */
-    if (time_quality >= TIME_COARSE
-        && lgf.position_solution.valid
-        && lgf.position_quality >= POSITION_GUESS) {
-      /* Update the satellite elevation angles so that they stay current
-       * (currently once every 30 seconds) */
-      DO_EVERY((u32)starling_frequency * MAX_AZ_EL_AGE_SEC/2,
-               update_sat_azel(lgf.position_solution.pos_ecef,
-                               lgf.position_solution.time));
-    }
-
-    /* RFT_TODO *
-     * these ^^^ should be filled by parsing rover_channel_epoch, otherwise it
-     * will be always zero and nothing will be ever done */
 
     if (n_ready < MINIMUM_SV_COUNT) {
       /* Not enough sats, keep on looping. */
