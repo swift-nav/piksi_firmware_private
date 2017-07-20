@@ -70,7 +70,7 @@ extern double soln_freq;
 
 extern u32 max_age_of_differential;
 
-void solution_make_sbp(const gnss_solution *soln, dops_t *dops, bool clock_jump, sbp_messages_t *sbp_messages);
+void solution_make_sbp(const gnss_solution *soln, dops_t *dops, sbp_messages_t *sbp_messages);
 
 double calc_heading(const double b_ned[3]);
 
