@@ -58,7 +58,13 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
     return false;
   }
 
-  u32 time_tag_ms = ST2MS(chVTGetSystemTime());
+  systime_t sys_ticks = chVTGetSystemTime();
+  /* TODO GLO: Check implementation once piksi_systime is available.
+   * Instead of using ST2MS macro which overflows every 35 minutes,
+   * cast systick into a 64 bit variable for conversion. */
+  u32 time_tag_ms = ((u64)sys_ticks * SECS_MS + CH_CFG_ST_FREQUENCY - 1) /
+                    CH_CFG_ST_FREQUENCY;
+
   /* Get GLO strings 1 - 5, and decode full ephemeris */
   string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
   if (GLO_STRING_DECODE_ERROR == str_status) {
