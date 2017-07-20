@@ -186,9 +186,9 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
  * \param deadline    Pointer to the current deadline, updated by this function.
  * \param interval    Interval by which the deadline should be advanced.
  */
-static void sol_thd_sleep(piksi_systime_t *deadline, systime_t interval)
+static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us)
 {
-  piksi_systime_add(deadline, interval);
+  piksi_systime_inc_us(deadline, interval_us);
 
   chSysLock();
   while (1) {
@@ -196,27 +196,27 @@ static void sol_thd_sleep(piksi_systime_t *deadline, systime_t interval)
      * execution time is limited to SOLN_THD_CPU_MAX. */
     piksi_systime_t systime;
     piksi_systime_get_x(&systime);
-    systime_t delta = piksi_systime_sub(deadline, &systime);
-    systime_t sleep_min = (systime_t)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval);
-    if ((systime_t)(delta - sleep_min) <= ((systime_t)-1) / 2) {
-      chThdSleepS(delta);
+    u32 delta = piksi_systime_sub_us(deadline, &systime);
+    u32 sleep_min = (u32)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval_us);
+    if ((u32)(delta - sleep_min) <= ((u32)-1) / 2) {
+      piksi_systime_sleep_us_s(delta);
       break;
     } else {
       chSysUnlock();
-      if (delta <= ((systime_t)-1) / 2) {
+      if (delta <= ((u32)-1) / 2) {
         /* Deadline is in the future. Skipping due to high CPU usage. */
         log_warn("Solution thread skipping deadline, "
                  "time = %llu, deadline = %llu",
-                 piksi_systime_to_ticks(&systime),
-                 piksi_systime_to_ticks(deadline));
+                 piksi_systime_to_s(&systime),
+                 piksi_systime_to_s(deadline));
       } else {
         /* Deadline is in the past. */
         log_warn("Solution thread missed deadline, "
                  "time = %llu, deadline = %llu",
-                 piksi_systime_to_ticks(&systime),
-                 piksi_systime_to_ticks(deadline));
+                 piksi_systime_to_s(&systime),
+                 piksi_systime_to_s(deadline));
       }
-      piksi_systime_add(deadline, interval);
+      piksi_systime_inc_us(deadline, interval_us);
       chSysLock();
     }
   }
@@ -313,7 +313,7 @@ static void me_calc_pvt_thread(void *arg)
 
   while (TRUE) {
 
-    sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
+    sol_thd_sleep(&deadline, 1000000 / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     /* Take the current nap count */
@@ -672,8 +672,13 @@ static void me_calc_pvt_thread(void *arg)
     }
 
     /* Reset timer period with the count that we will estimate will being
-     * us up to the next solution time. */
-    piksi_systime_add(&deadline, round(dt * CH_CFG_ST_FREQUENCY));
+     * us up to the next solution time. dt as microseconds. */
+    if (0 < dt) {
+      piksi_systime_inc_us(&deadline, round(dt * 1000000));
+    }
+    if (0 > dt) {
+      piksi_systime_dec_us(&deadline, round(dt * 1000000));
+    }
   }
 }
 

@@ -85,9 +85,62 @@ bool piksi_systime_get_x(piksi_systime_t *t)
  *
  * \return Value converted to system ticks.
  */
-u64 piksi_systime_to_ticks(const piksi_systime_t *t)
+static u64 piksi_systime_to_ticks(const piksi_systime_t *t)
 {
   return t->rollover_cnt * TIME_INFINITE + t->systime;
+}
+
+u64 piksi_systime_to_us(const piksi_systime_t *t)
+{
+  return ST2US(piksi_systime_to_ticks(t));
+}
+
+u64 piksi_systime_to_ms(const piksi_systime_t *t)
+{
+  return ST2MS(piksi_systime_to_ticks(t));
+}
+
+u64 piksi_systime_to_s(const piksi_systime_t *t)
+{
+  return ST2S(piksi_systime_to_ticks(t));
+}
+
+/** Subtract b from a.
+ *
+ * \note Function works correctly only if the difference fits to s64.
+ *
+ * \param[in] a           Subtrahend.
+ * \param[in] b           Minuend.
+ *
+ * \return                Difference.
+ */
+static systime_t piksi_systime_sub_internal(const piksi_systime_t *a,
+                                            const piksi_systime_t *b)
+{
+  u64 a_tot = piksi_systime_to_ticks(a);
+  u64 b_tot = piksi_systime_to_ticks(b);
+
+  s64 res = a_tot - b_tot;
+
+  /* check that the answer fits into the return type */
+  assert(b_tot + res == a_tot);
+
+  return res;
+}
+
+u32 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b)
+{
+  return ST2US(piksi_systime_sub_internal(a, b));
+}
+
+u32 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b)
+{
+  return ST2MS(piksi_systime_sub_internal(a, b));
+}
+
+u32 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b)
+{
+  return ST2S(piksi_systime_sub_internal(a, b));
 }
 
 /** Get tick count since specific time.
@@ -96,22 +149,37 @@ u64 piksi_systime_to_ticks(const piksi_systime_t *t)
  *
  * \return System ticks since t.
  */
-systime_t piksi_systime_elapsed_since_x(const piksi_systime_t *t)
+static systime_t piksi_systime_elapsed_since_x(const piksi_systime_t *t)
 {
   piksi_systime_t now;
 
   piksi_systime_get_x(&now);
 
-  return piksi_systime_sub(&now, t);
+  return piksi_systime_sub_internal(&now, t);
 }
 
-/** Add system ticks to piksi_system_t.
+u32 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t)
+{
+  return ST2US(piksi_systime_elapsed_since_x(t));
+}
+
+u32 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t)
+{
+  return ST2MS(piksi_systime_elapsed_since_x(t));
+}
+
+u32 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t)
+{
+  return ST2S(piksi_systime_elapsed_since_x(t));
+}
+
+/** Increment piksi_system_t.
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] a             System tick value to be added.
+ * \param[in] inc           System tick value to be added.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_add(piksi_systime_t *t, systime_t a)
+bool piksi_systime_inc_internal(piksi_systime_t *t, systime_t inc)
 {
   if (NULL == t) {
     return FALSE;
@@ -119,14 +187,67 @@ bool piksi_systime_add(piksi_systime_t *t, systime_t a)
 
   systime_t space = TIME_INFINITE - t->systime;
 
-  if (space < a) {
+  if (space < inc) {
     t->rollover_cnt++;
-    t->systime = a - space - 1;
+    t->systime = inc - space - 1;
   } else {
-    t->systime += a;
+    t->systime += inc;
   }
 
   return TRUE;
+}
+
+bool piksi_systime_inc_us(piksi_systime_t *t, u32 inc)
+{
+  return piksi_systime_inc_internal(t, US2ST(inc));
+}
+
+bool piksi_systime_inc_ms(piksi_systime_t *t, u32 inc)
+{
+  return piksi_systime_inc_internal(t, MS2ST(inc));
+}
+
+bool piksi_systime_inc_s(piksi_systime_t *t, u32 inc)
+{
+  return piksi_systime_inc_internal(t, S2ST(inc));
+}
+
+/** Decrease piksi_system_t.
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           System tick value to be decreased.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
+bool piksi_systime_dec_internal(piksi_systime_t *t, systime_t inc)
+{
+  if (NULL == t) {
+    return FALSE;
+  }
+
+  if (inc > t->systime) {
+    assert(0 < t->rollover_cnt);
+    t->rollover_cnt--;
+    inc -= (t->systime + 1);
+  }
+
+  t->systime -= inc;
+
+  return TRUE;
+}
+
+bool piksi_systime_dec_us(piksi_systime_t *t, u32 dec)
+{
+  return piksi_systime_dec_internal(t, US2ST(dec));
+}
+
+bool piksi_systime_dec_ms(piksi_systime_t *t, u32 dec)
+{
+  return piksi_systime_dec_internal(t, MS2ST(dec));
+}
+
+bool piksi_systime_dec_s(piksi_systime_t *t, u32 dec)
+{
+  return piksi_systime_dec_internal(t, S2ST(dec));
 }
 
 /** Compare a and b.
@@ -157,26 +278,18 @@ s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b)
   return 0;
 }
 
-/** Subtract b from a.
+/** Suspends the invoking thread for the specified time.
  *
- * \note Function works correctly only if the difference fits to systime_t.
- *
- * \param[in] a           Subtrahend.
- * \param[in] b           Minuend.
- *
- * \return                Difference.
+ * \param[in] len   Sleep length [system ticks].
  */
-systime_t piksi_systime_sub(const piksi_systime_t *a, const piksi_systime_t *b)
+void piksi_systime_sleep_s_internal(systime_t len)
 {
-  u64 a_tot = piksi_systime_to_ticks(a);
-  u64 b_tot = piksi_systime_to_ticks(b);
+  chThdSleepS(len);
+}
 
-  s64 res = a_tot - b_tot;
-
-  /* check that the answer fits into the return type */
-  assert(0 == (res ^ ((systime_t)res)));
-
-  return res;
+void piksi_systime_sleep_us_s(u32 len_us)
+{
+  piksi_systime_sleep_s_internal(US2ST(len_us));
 }
 
 /** Suspends the invoking thread until the specified window closes.
@@ -186,8 +299,8 @@ systime_t piksi_systime_sub(const piksi_systime_t *a, const piksi_systime_t *b)
  *
  * \return Time spent in sleep [system ticks].
  */
-systime_t piksi_systime_sleep_until_windowed(const piksi_systime_t *t,
-                                             systime_t window_len)
+systime_t piksi_systime_sleep_until_windowed_internal(const piksi_systime_t *t,
+                                                      systime_t window_len)
 {
   chSysLock();
   systime_t elapsed = piksi_systime_elapsed_since_x(t);
@@ -201,5 +314,23 @@ systime_t piksi_systime_sleep_until_windowed(const piksi_systime_t *t,
   chSysUnlock();
 
   return sleep_len;
+}
+
+u32 piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
+                                          u32 window_len_us)
+{
+  systime_t ret =\
+    piksi_systime_sleep_until_windowed_internal(t, US2ST(window_len_us));
+
+  return ST2US(ret);
+}
+
+u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
+                                          u32 window_len_ms)
+{
+  systime_t ret =\
+    piksi_systime_sleep_until_windowed_internal(t, MS2ST(window_len_ms));
+
+  return ST2MS(ret);
 }
 

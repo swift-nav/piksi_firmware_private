@@ -47,7 +47,7 @@ msg_uart_state_t corr_stats;
 
 #define LATENCY_SMOOTHING 0.5
 #define PERIOD_SMOOTHING 0.5
-#define LOG_OBS_WINDOW_DURATION 3.0
+#define LOG_OBS_WINDOW_DURATION_MS 3000
 
 double latency_count;
 double latency_accum_ms;
@@ -278,8 +278,7 @@ void log_obs_latency(float latency_ms)
   float obs_period_ms = 0;
 
   if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks)) {
-    systime_t diff = piksi_systime_sub(&now, &last_obs_msg_ticks);
-    obs_period_ms = diff / (double)CH_CFG_ST_FREQUENCY * SECS_MS;
+    obs_period_ms = piksi_systime_sub_ms(&now, &last_obs_msg_ticks);
   }
 
   last_obs_msg_ticks = now;
@@ -327,15 +326,13 @@ void log_obs_latency(float latency_ms)
 
 void log_obs_latency_tick(void)
 {
-  double elapsed = piksi_systime_elapsed_since_x(&last_obs_msg_ticks);
-  elapsed /= CH_CFG_ST_FREQUENCY;
+  u32 elapsed_ms = piksi_systime_elapsed_since_ms_x(&last_obs_msg_ticks);
 
   if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks) ||
-      elapsed > LOG_OBS_WINDOW_DURATION) {
+      elapsed_ms > LOG_OBS_WINDOW_DURATION_MS) {
     corr_stats.latency.current = -1;
     corr_stats.obs_period.current = -1;
   }
-
 }
 
 /** \} */

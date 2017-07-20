@@ -1312,8 +1312,8 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
   break;
 
   case STATE_DISABLE_WAIT: {
-    if (piksi_systime_elapsed_since_x(&tracker_channel->disable_time) >=
-          MS2ST(CHANNEL_DISABLE_WAIT_TIME_ms)) {
+    if (piksi_systime_elapsed_since_ms_x(&tracker_channel->disable_time) >=
+        CHANNEL_DISABLE_WAIT_TIME_ms) {
       event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
     }
   }

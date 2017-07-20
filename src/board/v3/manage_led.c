@@ -59,7 +59,7 @@
 #define SLOW_BLINK_PERIOD_COUNTS  (INTERVAL_COUNTS / 1)
 #define FAST_BLINK_PERIOD_COUNTS  (INTERVAL_COUNTS / 2)
 
-#define LED_MODE_TIMEOUT          MS2ST(1500)
+#define LED_MODE_TIMEOUT_MS       1500
 
 #define MANAGE_LED_THREAD_STACK   2000
 #define MANAGE_LED_THREAD_PRIO    (NORMALPRIO + 10)
@@ -120,10 +120,10 @@ static blink_mode_t pv_blink_mode_get(void)
   /* On if PVT available */
   piksi_systime_t t = solution_last_pvt_stats_get().systime;
 
-  systime_t elapsed = piksi_systime_elapsed_since_x(&t);
-  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
+  u32 elapsed = piksi_systime_elapsed_since_ms_x(&t);
+  s8 started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
 
-  if (started && elapsed < LED_MODE_TIMEOUT) {
+  if (started && (elapsed < LED_MODE_TIMEOUT_MS)) {
     return BLINK_ON;
   }
 
@@ -148,11 +148,11 @@ static blink_mode_t pos_blink_mode_get(void)
   u8 signals_tracked = solution_last_stats_get().signals_tracked;
   piksi_systime_t t = solution_last_pvt_stats_get().systime;
 
-  systime_t elapsed = piksi_systime_elapsed_since_x(&t);
-  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
+  u32 elapsed = piksi_systime_elapsed_since_ms_x(&t);
+  s8 started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
 
   /* On if PVT available */
-  if (started && elapsed < LED_MODE_TIMEOUT) {
+  if (started && (elapsed < LED_MODE_TIMEOUT_MS)) {
     return BLINK_ON;
   }
   /* Blink according to signals tracked */
@@ -207,12 +207,12 @@ static blink_mode_t mode_blink_mode_get(void)
 {
   soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
 
-  systime_t elapsed = piksi_systime_elapsed_since_x(&stats.systime);
+  u32 elapsed = piksi_systime_elapsed_since_ms_x(&stats.systime);
 
-  bool started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
+  s8 started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
 
   /* Off if no DGNSS */
-  if (started && elapsed < LED_MODE_TIMEOUT) {
+  if (started && (elapsed < LED_MODE_TIMEOUT_MS)) {
     return BLINK_OFF;
   }
 

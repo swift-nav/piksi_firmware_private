@@ -167,8 +167,7 @@ static void system_monitor_thread(void *arg)
     DO_EVERY(3,
      check_frontend_errors();
     );
-    piksi_systime_sleep_until_windowed(&time,
-                                       MS2ST(heartbeat_period_milliseconds));
+    piksi_systime_sleep_until_windowed_ms(&time, heartbeat_period_milliseconds);
   }
 }
 

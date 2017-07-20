@@ -270,26 +270,26 @@ void nap_track_irq_thread(void *arg)
 
     sanitize_trackers();
 
-    DO_EACH_TICKS( S2ST(1),
+    DO_EACH_MS( 1 * SECS_MS,
       check_clear_glo_unhealthy();
     );
 
-    DO_EACH_TICKS( S2ST(DAY_SECS),
+    DO_EACH_MS( DAY_SECS * SECS_MS,
       check_clear_unhealthy();
     );
 
-    DO_EACH_TICKS( MS2ST(PROCESS_PERIOD_MS),
+    DO_EACH_MS( PROCESS_PERIOD_MS,
       tracking_send_state();
       tracking_send_detailed_state();
     );
 
-    DO_EACH_TICKS( S2ST(100),
+    DO_EACH_MS( 100 * SECS_MS,
       log_info("Max configured PLL integration time: %" PRIu16 " ms",
                max_pll_integration_time_ms);
     );
 
     /* Sleep until 500 microseconds is full. */
-    piksi_systime_sleep_until_windowed(&sys_time, US2ST(500));
+    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
   }
 }
 
