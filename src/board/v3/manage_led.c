@@ -12,7 +12,6 @@
 
 #include "manage_led.h"
 
-#include "piksi_systime.h"
 #include "me_calc_pvt.h"
 
 #include <hal.h>
@@ -22,6 +21,7 @@
 #include "peripherals/antenna.h"
 #include "base_obs.h"
 #include "starling_calc_pvt.h"
+#include "piksi_systime.h"
 
 #define LED_POS_R   0
 #define LED_POS_G   1

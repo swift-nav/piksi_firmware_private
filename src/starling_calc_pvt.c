@@ -26,7 +26,7 @@
 #include <libswiftnav/troposphere.h>
 #include <libswiftnav/sid_set.h>
 
-#include "piksi_systime.h"
+#include "me_calc_pvt.h"
 #include "peripherals/leds.h"
 #include "position.h"
 #include "nmea.h"
@@ -46,8 +46,7 @@
 #include "ndb.h"
 #include "shm.h"
 #include "common_calc_pvt.h"
-#include "me_calc_pvt.h"
-
+#include "piksi_systime.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)

@@ -13,9 +13,7 @@
 #ifndef SWIFTNAV_PIKSI_SYSTIME_H
 #define SWIFTNAV_PIKSI_SYSTIME_H
 
-#define memory_pool_t MemoryPool
 #include <ch.h>
-#undef memory_pool_t
 
 #include <libswiftnav/common.h>
 
