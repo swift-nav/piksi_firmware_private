@@ -11,11 +11,15 @@
  */
 
 #include <assert.h>
+
 #include <ch.h>
 
 #include <libswiftnav/logging.h>
+#include <libswiftnav/time.h>
 
 #include "piksi_systime.h"
+
+
 
 #define PIKSI_SYSTIME_CH_KERNEL_MAJOR 3
 #define PIKSI_SYSTIME_CH_KERNEL_MINOR 1
@@ -29,6 +33,101 @@
      CH_KERNEL_PATCH != PIKSI_SYSTIME_CH_KERNEL_PATCH)
 #error Verify ChibiOS compatibility and update version check.
 #endif
+
+
+
+/** Convert time to system ticks. Based on *2ST macros in
+ * ChibiOS/os/rt/include/chvt.h with wider variable types.
+ *
+ * \note The result is rounded upward to the next tick boundary.
+ */
+#define PIKSI_TIME2ST(t, prefix) \
+  (((u64)t * CH_CFG_ST_FREQUENCY + (prefix - 1)) / prefix)
+
+#define PIKSI_US2ST(t) PIKSI_TIME2ST(t, SECS_US)
+#define PIKSI_MS2ST(t) PIKSI_TIME2ST(t, SECS_MS)
+#define PIKSI_S2ST(t) PIKSI_TIME2ST(t, 1)
+
+/** Define the maximum values that PIKSI_*2ST macros can handle. 
+ *
+ * Dividend (u64)t * PIKSI_ST_FREQ + (prefix - 1) must fit into u64.
+ */
+#define PIKSI_TIME2_LIMIT(prefix) \
+  (((u64)-1  - (u64)prefix + 1) / (u64)CH_CFG_ST_FREQUENCY)
+
+#define PIKSI_US2ST_LIMIT PIKSI_TIME2_LIMIT(SECS_US)
+#define PIKSI_MS2ST_LIMIT PIKSI_TIME2_LIMIT(SECS_MS)
+#define PIKSI_S2ST_LIMIT PIKSI_TIME2_LIMIT(1)
+
+
+
+/** Convert system ticks to time. Based on PIKSI_ST2* macros in
+ * ChibiOS/os/rt/include/chvt.h with wider variable types.
+ *
+ * \note The result is rounded up to the next time unit boundary.
+ */
+#define PIKSI_ST2TIME(n, prefix) \
+  (((u64)n * (u64)prefix + ((u64)CH_CFG_ST_FREQUENCY - 1)) / \
+    (u64)CH_CFG_ST_FREQUENCY)
+
+#define PIKSI_ST2US(n) PIKSI_ST2TIME(n, SECS_US)
+#define PIKSI_ST2MS(n) PIKSI_ST2TIME(n, SECS_MS)
+#define PIKSI_ST2S(n) PIKSI_ST2TIME(n, 1)
+
+/** Define the maximum values that PIKSI_ST2* macros can handle. 
+ *
+ * Dividend (u64)n * (u64)prefix + (CH_CFG_ST_FREQUENCY - 1) must fit into u64.
+ */
+#define PIKSI_ST2_LIMIT(prefix) \
+  (((u64)-1 - (u64)CH_CFG_ST_FREQUENCY + 1) / (u64)prefix)
+
+#define PIKSI_ST2US_LIMIT PIKSI_ST2_LIMIT(SECS_US)
+#define PIKSI_ST2MS_LIMIT PIKSI_ST2_LIMIT(SECS_MS)
+#define PIKSI_ST2S_LIMIT PIKSI_ST2_LIMIT(1)
+
+static inline u64 st2us(u64 st)
+{
+  assert(st <= PIKSI_ST2US_LIMIT);
+
+  return PIKSI_ST2US(st);
+}
+
+static inline u64 st2ms(u64 st)
+{
+  assert(st <= PIKSI_ST2MS_LIMIT);
+
+  return PIKSI_ST2MS(st);
+}
+
+static inline u64 st2s(u64 st)
+{
+  assert(st <= PIKSI_ST2S_LIMIT);
+
+  return PIKSI_ST2S(st);
+}
+
+static inline u64 us2st(u64 us)
+{
+  assert(us <= PIKSI_US2ST_LIMIT);
+
+  return PIKSI_US2ST(us);
+}
+
+static inline u64 ms2st(u64 ms)
+{
+  assert(ms <= PIKSI_MS2ST_LIMIT);
+
+  return PIKSI_MS2ST(ms);
+}
+
+static inline u64 s2st(u64 s)
+{
+  assert(s <= PIKSI_S2ST_LIMIT);
+
+  return PIKSI_S2ST(s);
+}
+
+
 
 /** Get system time. Function detects ChibiOS systime rollover and keeps count
  * of them.
@@ -93,7 +192,6 @@ static u64 piksi_systime_to_ticks(const piksi_systime_t *t)
 /** Convert piksi_systime to microseconds.
  *
  * \note The result is rounded up to the next microsecond boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \param[in] t            Pointer to piksi_systime to convert.
  *
@@ -101,13 +199,14 @@ static u64 piksi_systime_to_ticks(const piksi_systime_t *t)
  */
 u64 piksi_systime_to_us(const piksi_systime_t *t)
 {
-  return ST2US(piksi_systime_to_ticks(t));
+  u64 ticks = piksi_systime_to_ticks(t);
+
+  return st2us(ticks);
 }
 
 /** Convert piksi_systime to milliseconds.
  *
  * \note The result is rounded up to the next millisecond boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \param[in] t            Pointer to piksi_systime to convert.
  *
@@ -115,13 +214,14 @@ u64 piksi_systime_to_us(const piksi_systime_t *t)
  */
 u64 piksi_systime_to_ms(const piksi_systime_t *t)
 {
-  return ST2MS(piksi_systime_to_ticks(t));
+  u64 ticks = piksi_systime_to_ticks(t);
+
+  return st2ms(ticks);
 }
 
 /** Convert piksi_systime to seconds.
  *
  * \note The result is rounded up to the next second boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \param[in] t            Pointer to piksi_systime to convert.
  *
@@ -129,7 +229,9 @@ u64 piksi_systime_to_ms(const piksi_systime_t *t)
  */
 u64 piksi_systime_to_s(const piksi_systime_t *t)
 {
-  return ST2S(piksi_systime_to_ticks(t));
+  u64 ticks = piksi_systime_to_ticks(t);
+
+  return st2s(ticks);
 }
 
 /** Subtract b from a.
@@ -141,8 +243,8 @@ u64 piksi_systime_to_s(const piksi_systime_t *t)
  *
  * \return                Difference.
  */
-static systime_t piksi_systime_sub_internal(const piksi_systime_t *a,
-                                            const piksi_systime_t *b)
+static s64 piksi_systime_sub_internal(const piksi_systime_t *a,
+                                      const piksi_systime_t *b)
 {
   u64 a_tot = piksi_systime_to_ticks(a);
   u64 b_tot = piksi_systime_to_ticks(b);
@@ -158,46 +260,64 @@ static systime_t piksi_systime_sub_internal(const piksi_systime_t *a,
 /** Carry out subtraction and return result as microseconds.
  *
  * \note The result is rounded up to the next microsecond boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \param[in] a           Subtrahend.
  * \param[in] b           Minuend.
  *
  * \return a - b result as microseconds.
  */
-u32 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b)
+u64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b)
 {
-  return ST2US(piksi_systime_sub_internal(a, b));
+  s64 ticks = piksi_systime_sub_internal(a, b);
+
+  if (ticks < 0) {
+    /* Remove sign during conversion */
+    return st2us(ticks * (-1)) * (-1);
+  } else {
+    return st2us(ticks);
+  }
 }
 
 /** Carry out subtraction and return result as milliseconds.
  *
  * \note The result is rounded up to the next millisecond boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \param[in] a           Subtrahend.
  * \param[in] b           Minuend.
  *
  * \return a - b result as milliseconds.
  */
-u32 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b)
+u64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b)
 {
-  return ST2MS(piksi_systime_sub_internal(a, b));
+  s64 ticks = piksi_systime_sub_internal(a, b);
+
+  if (ticks < 0) {
+    /* Remove sign during conversion */
+    return st2ms(ticks * (-1)) * (-1);
+  } else {
+    return st2ms(ticks);
+  }
 }
 
 /** Carry out subtraction and return result as seconds.
  *
  * \note The result is rounded up to the next second boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \param[in] a           Subtrahend.
  * \param[in] b           Minuend.
  *
  * \return a - b result as seconds.
  */
-u32 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b)
+u64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b)
 {
-  return ST2S(piksi_systime_sub_internal(a, b));
+  s64 ticks = piksi_systime_sub_internal(a, b);
+
+  if (ticks < 0) {
+    /* Remove sign during conversion */
+    return st2s(ticks * (-1)) * (-1);
+  } else {
+    return st2s(ticks);
+  }
 }
 
 /** Get tick count since specific time.
@@ -206,7 +326,7 @@ u32 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b)
  *
  * \return System ticks since t.
  */
-static systime_t piksi_systime_elapsed_since_x(const piksi_systime_t *t)
+static u64 piksi_systime_elapsed_since_x(const piksi_systime_t *t)
 {
   piksi_systime_t now;
 
@@ -218,37 +338,40 @@ static systime_t piksi_systime_elapsed_since_x(const piksi_systime_t *t)
 /** Get microsecond count since specific time.
  *
  * \note The result is rounded up to the next microsecond boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \return Microseconds since t.
  */
-u32 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t)
+u64 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t)
 {
-  return ST2US(piksi_systime_elapsed_since_x(t));
+  u64 ticks = piksi_systime_elapsed_since_x(t);
+
+  return st2us(ticks);
 }
 
 /** Get millisecond count since specific time.
  *
  * \note The result is rounded up to the next millisecond boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \return Milliseconds since t.
  */
-u32 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t)
+u64 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t)
 {
-  return ST2MS(piksi_systime_elapsed_since_x(t));
+  u64 ticks = piksi_systime_elapsed_since_x(t);
+
+  return st2ms(ticks);
 }
 
 /** Get second count since specific time.
  *
  * \note The result is rounded up to the next second boundary.
- * TODO: Investigate rollovers and add checks and security against them.
  *
  * \return Seconds since t.
  */
-u32 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t)
+u64 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t)
 {
-  return ST2S(piksi_systime_elapsed_since_x(t));
+  u64 ticks = piksi_systime_elapsed_since_x(t);
+
+  return st2s(ticks);
 }
 
 /** Increment piksi_system_t.
@@ -258,8 +381,15 @@ u32 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t)
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_inc_internal(piksi_systime_t *t, systime_t inc)
+bool piksi_systime_inc_internal(piksi_systime_t *t, u64 inc)
 {
+  if (0 == inc) {
+    return TRUE;
+  }
+
+  /* TODO: modify function to support larger increments */
+  assert(inc <= TIME_INFINITE);
+
   if (NULL == t) {
     return FALSE;
   }
@@ -280,48 +410,45 @@ bool piksi_systime_inc_internal(piksi_systime_t *t, systime_t inc)
  *
  * \note time -> system tick conversion result is rounded upward to the next
  * tick boundary.
- * TODO: Investigate conversion rollovers and add checks and security.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           Microsecond value to be added.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_inc_us(piksi_systime_t *t, u32 inc)
+bool piksi_systime_inc_us(piksi_systime_t *t, u64 inc)
 {
-  return piksi_systime_inc_internal(t, US2ST(inc));
+  return piksi_systime_inc_internal(t, us2st(inc));
 }
 
 /** Increment piksi_system_t with millisecond value.
  *
  * \note time -> system tick conversion result is rounded upward to the next
  * tick boundary.
- * TODO: Investigate conversion rollovers and add checks and security.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           Millisecond value to be added.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_inc_ms(piksi_systime_t *t, u32 inc)
+bool piksi_systime_inc_ms(piksi_systime_t *t, u64 inc)
 {
-  return piksi_systime_inc_internal(t, MS2ST(inc));
+  return piksi_systime_inc_internal(t, ms2st(inc));
 }
 
 /** Increment piksi_system_t with second value.
  *
  * \note time -> system tick conversion result is rounded upward to the next
  * tick boundary.
- * TODO: Investigate conversion rollovers and add checks and security.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           Millisecond value to be added.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_inc_s(piksi_systime_t *t, u32 inc)
+bool piksi_systime_inc_s(piksi_systime_t *t, u64 inc)
 {
-  return piksi_systime_inc_internal(t, S2ST(inc));
+  return piksi_systime_inc_internal(t, s2st(inc));
 }
 
 /** Decrease piksi_system_t.
@@ -331,19 +458,26 @@ bool piksi_systime_inc_s(piksi_systime_t *t, u32 inc)
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_dec_internal(piksi_systime_t *t, systime_t inc)
+bool piksi_systime_dec_internal(piksi_systime_t *t, u64 dec)
 {
+  if (0 == dec) {
+    return TRUE;
+  }
+
+  /* TODO: modify function to support larger decrements */
+  assert(dec <= TIME_INFINITE);
+
   if (NULL == t) {
     return FALSE;
   }
 
-  if (inc > t->systime) {
+  if (dec > t->systime) {
     assert(0 < t->rollover_cnt);
     t->rollover_cnt--;
-    inc -= (t->systime + 1);
+    dec -= (t->systime + 1);
   }
 
-  t->systime -= inc;
+  t->systime -= dec;
 
   return TRUE;
 }
@@ -352,48 +486,45 @@ bool piksi_systime_dec_internal(piksi_systime_t *t, systime_t inc)
  *
  * \note time -> system tick conversion result is rounded upward to the next
  * tick boundary.
- * TODO: Investigate conversion rollovers and add checks and security.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           Microsecond value to be decreased.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_dec_us(piksi_systime_t *t, u32 dec)
+bool piksi_systime_dec_us(piksi_systime_t *t, u64 dec)
 {
-  return piksi_systime_dec_internal(t, US2ST(dec));
+  return piksi_systime_inc_internal(t, us2st(dec));
 }
 
 /** Decrease piksi_system_t with millisecond value.
  *
  * \note time -> system tick conversion result is rounded upward to the next
  * tick boundary.
- * TODO: Investigate conversion rollovers and add checks and security.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           Millisecond value to be decreased.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_dec_ms(piksi_systime_t *t, u32 dec)
+bool piksi_systime_dec_ms(piksi_systime_t *t, u64 dec)
 {
-  return piksi_systime_dec_internal(t, MS2ST(dec));
+  return piksi_systime_inc_internal(t, ms2st(dec));
 }
 
 /** Decrease piksi_system_t with second value.
  *
  * \note time -> system tick conversion result is rounded upward to the next
  * tick boundary.
- * TODO: Investigate conversion rollovers and add checks and security.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           Second value to be decreased.
  *
  * \return TRUE: No errors; False: Failed.
  */
-bool piksi_systime_dec_s(piksi_systime_t *t, u32 dec)
+bool piksi_systime_dec_s(piksi_systime_t *t, u64 dec)
 {
-  return piksi_systime_dec_internal(t, S2ST(dec));
+  return piksi_systime_inc_internal(t, s2st(dec));
 }
 
 /** Compare a and b.
@@ -435,7 +566,7 @@ void piksi_systime_sleep_s_internal(systime_t len)
 
 void piksi_systime_sleep_us_s(u32 len_us)
 {
-  piksi_systime_sleep_s_internal(US2ST(len_us));
+  piksi_systime_sleep_s_internal(us2st(len_us));
 }
 
 /** Suspends the invoking thread until the specified window closes.
@@ -466,17 +597,17 @@ u32 piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
                                           u32 window_len_us)
 {
   systime_t ret =\
-    piksi_systime_sleep_until_windowed_internal(t, US2ST(window_len_us));
+    piksi_systime_sleep_until_windowed_internal(t, us2st(window_len_us));
 
-  return ST2US(ret);
+  return st2us(ret);
 }
 
 u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
                                           u32 window_len_ms)
 {
   systime_t ret =\
-    piksi_systime_sleep_until_windowed_internal(t, MS2ST(window_len_ms));
+    piksi_systime_sleep_until_windowed_internal(t, ms2st(window_len_ms));
 
-  return ST2MS(ret);
+  return st2ms(ret);
 }
 
