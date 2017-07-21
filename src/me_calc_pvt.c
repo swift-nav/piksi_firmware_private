@@ -184,7 +184,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 /** Sleep until the next solution deadline.
  *
  * \param deadline    Pointer to the current deadline, updated by this function.
- * \param interval    Interval by which the deadline should be advanced.
+ * \param interval_us Interval by which the deadline should be advanced [us].
  */
 static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us)
 {
@@ -197,7 +197,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us)
     piksi_systime_t systime;
     piksi_systime_get_x(&systime);
     u32 delta = piksi_systime_sub_us(deadline, &systime);
-    u32 sleep_min = (u32)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval_us);
+    u32 sleep_min = (u32)ceilf((1.0f - SOLN_THD_CPU_MAX) * interval_us);
     if ((u32)(delta - sleep_min) <= ((u32)-1) / 2) {
       piksi_systime_sleep_us_s(delta);
       break;
@@ -313,7 +313,7 @@ static void me_calc_pvt_thread(void *arg)
 
   while (TRUE) {
 
-    sol_thd_sleep(&deadline, 1000000 / soln_freq);
+    sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     /* Take the current nap count */
@@ -674,10 +674,10 @@ static void me_calc_pvt_thread(void *arg)
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. dt as microseconds. */
     if (0 < dt) {
-      piksi_systime_inc_us(&deadline, round(dt * 1000000));
+      piksi_systime_inc_us(&deadline, round(dt * SECS_US));
     }
     if (0 > dt) {
-      piksi_systime_dec_us(&deadline, round(dt * 1000000));
+      piksi_systime_dec_us(&deadline, round(dt * SECS_US));
     }
   }
 }

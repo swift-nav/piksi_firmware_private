@@ -87,19 +87,46 @@ bool piksi_systime_get_x(piksi_systime_t *t)
  */
 static u64 piksi_systime_to_ticks(const piksi_systime_t *t)
 {
-  return t->rollover_cnt * TIME_INFINITE + t->systime;
+  return t->rollover_cnt * ((u64)TIME_INFINITE + 1) + t->systime;
 }
 
+/** Convert piksi_systime to microseconds.
+ *
+ * \note The result is rounded up to the next microsecond boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \param[in] t            Pointer to piksi_systime to convert.
+ *
+ * \return Value converted to microseconds.
+ */
 u64 piksi_systime_to_us(const piksi_systime_t *t)
 {
   return ST2US(piksi_systime_to_ticks(t));
 }
 
+/** Convert piksi_systime to milliseconds.
+ *
+ * \note The result is rounded up to the next millisecond boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \param[in] t            Pointer to piksi_systime to convert.
+ *
+ * \return Value converted to milliseconds.
+ */
 u64 piksi_systime_to_ms(const piksi_systime_t *t)
 {
   return ST2MS(piksi_systime_to_ticks(t));
 }
 
+/** Convert piksi_systime to seconds.
+ *
+ * \note The result is rounded up to the next second boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \param[in] t            Pointer to piksi_systime to convert.
+ *
+ * \return Value converted to seconds.
+ */
 u64 piksi_systime_to_s(const piksi_systime_t *t)
 {
   return ST2S(piksi_systime_to_ticks(t));
@@ -128,16 +155,46 @@ static systime_t piksi_systime_sub_internal(const piksi_systime_t *a,
   return res;
 }
 
+/** Carry out subtraction and return result as microseconds.
+ *
+ * \note The result is rounded up to the next microsecond boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \param[in] a           Subtrahend.
+ * \param[in] b           Minuend.
+ *
+ * \return a - b result as microseconds.
+ */
 u32 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b)
 {
   return ST2US(piksi_systime_sub_internal(a, b));
 }
 
+/** Carry out subtraction and return result as milliseconds.
+ *
+ * \note The result is rounded up to the next millisecond boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \param[in] a           Subtrahend.
+ * \param[in] b           Minuend.
+ *
+ * \return a - b result as milliseconds.
+ */
 u32 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b)
 {
   return ST2MS(piksi_systime_sub_internal(a, b));
 }
 
+/** Carry out subtraction and return result as seconds.
+ *
+ * \note The result is rounded up to the next second boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \param[in] a           Subtrahend.
+ * \param[in] b           Minuend.
+ *
+ * \return a - b result as seconds.
+ */
 u32 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b)
 {
   return ST2S(piksi_systime_sub_internal(a, b));
@@ -158,22 +215,44 @@ static systime_t piksi_systime_elapsed_since_x(const piksi_systime_t *t)
   return piksi_systime_sub_internal(&now, t);
 }
 
+/** Get microsecond count since specific time.
+ *
+ * \note The result is rounded up to the next microsecond boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \return Microseconds since t.
+ */
 u32 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t)
 {
   return ST2US(piksi_systime_elapsed_since_x(t));
 }
 
+/** Get millisecond count since specific time.
+ *
+ * \note The result is rounded up to the next millisecond boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \return Milliseconds since t.
+ */
 u32 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t)
 {
   return ST2MS(piksi_systime_elapsed_since_x(t));
 }
 
+/** Get second count since specific time.
+ *
+ * \note The result is rounded up to the next second boundary.
+ * TODO: Investigate rollovers and add checks and security against them.
+ *
+ * \return Seconds since t.
+ */
 u32 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t)
 {
   return ST2S(piksi_systime_elapsed_since_x(t));
 }
 
 /** Increment piksi_system_t.
+ *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           System tick value to be added.
  *
@@ -197,22 +276,56 @@ bool piksi_systime_inc_internal(piksi_systime_t *t, systime_t inc)
   return TRUE;
 }
 
+/** Increment piksi_system_t with microsecond value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ * TODO: Investigate conversion rollovers and add checks and security.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           Microsecond value to be added.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
 bool piksi_systime_inc_us(piksi_systime_t *t, u32 inc)
 {
   return piksi_systime_inc_internal(t, US2ST(inc));
 }
 
+/** Increment piksi_system_t with millisecond value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ * TODO: Investigate conversion rollovers and add checks and security.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           Millisecond value to be added.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
 bool piksi_systime_inc_ms(piksi_systime_t *t, u32 inc)
 {
   return piksi_systime_inc_internal(t, MS2ST(inc));
 }
 
+/** Increment piksi_system_t with second value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ * TODO: Investigate conversion rollovers and add checks and security.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           Millisecond value to be added.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
 bool piksi_systime_inc_s(piksi_systime_t *t, u32 inc)
 {
   return piksi_systime_inc_internal(t, S2ST(inc));
 }
 
 /** Decrease piksi_system_t.
+ *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           System tick value to be decreased.
  *
@@ -235,16 +348,49 @@ bool piksi_systime_dec_internal(piksi_systime_t *t, systime_t inc)
   return TRUE;
 }
 
+/** Decrease piksi_system_t with microsecond value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ * TODO: Investigate conversion rollovers and add checks and security.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           Microsecond value to be decreased.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
 bool piksi_systime_dec_us(piksi_systime_t *t, u32 dec)
 {
   return piksi_systime_dec_internal(t, US2ST(dec));
 }
 
+/** Decrease piksi_system_t with millisecond value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ * TODO: Investigate conversion rollovers and add checks and security.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           Millisecond value to be decreased.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
 bool piksi_systime_dec_ms(piksi_systime_t *t, u32 dec)
 {
   return piksi_systime_dec_internal(t, MS2ST(dec));
 }
 
+/** Decrease piksi_system_t with second value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ * TODO: Investigate conversion rollovers and add checks and security.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] inc           Second value to be decreased.
+ *
+ * \return TRUE: No errors; False: Failed.
+ */
 bool piksi_systime_dec_s(piksi_systime_t *t, u32 dec)
 {
   return piksi_systime_dec_internal(t, S2ST(dec));

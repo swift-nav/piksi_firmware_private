@@ -217,7 +217,7 @@ static blink_mode_t mode_blink_mode_get(void)
   }
 
   /* On if fixed, blink if float */
-  return (stats.mode == FILTER_FIXED) ? BLINK_ON : BLINK_SLOW;
+  return (FILTER_FIXED == stats.mode) ? BLINK_ON : BLINK_SLOW;
 }
 
 static void handle_mode(counter_t c, rgb_led_state_t *s)

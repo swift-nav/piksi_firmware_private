@@ -45,7 +45,7 @@
 
 #define COMPILER_BARRIER() asm volatile ("" : : : "memory")
 
-#define CHANNEL_DISABLE_WAIT_TIME_ms 100
+#define CHANNEL_DISABLE_WAIT_TIME_MS 100
 
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
@@ -1313,7 +1313,7 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
 
   case STATE_DISABLE_WAIT: {
     if (piksi_systime_elapsed_since_ms_x(&tracker_channel->disable_time) >=
-        CHANNEL_DISABLE_WAIT_TIME_ms) {
+        CHANNEL_DISABLE_WAIT_TIME_MS) {
       event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
     }
   }

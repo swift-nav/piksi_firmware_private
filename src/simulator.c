@@ -198,7 +198,7 @@ void simulation_step(void)
 
   if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &sim_state.last_update)) {
     elapsed = piksi_systime_sub_us(&now, &sim_state.last_update);
-    elapsed /= 1000000.0; /* us to s */
+    elapsed /= SECS_US; /* us to s */
   }
 
   sim_state.last_update = now;
