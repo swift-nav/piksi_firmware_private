@@ -977,9 +977,9 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     chMtxUnlock(&tracker_channel->mutex_pub);
 
     if (adjusted) {
-      log_debug_mesid(mesid,
-                      "Adjusting carrier phase offset to %f",
-                      carrier_phase_offset);
+      log_info_mesid(mesid,
+                     "Adjusting carrier phase offset to %f",
+                     carrier_phase_offset);
     }
   }
 }
