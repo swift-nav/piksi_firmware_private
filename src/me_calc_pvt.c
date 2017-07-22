@@ -530,10 +530,6 @@ static void me_calc_pvt_thread(void *arg)
       continue;
     }
 
-    /* Use P**V**T to determine the oscillator drift which is used
-     * to adjust computed doppler. */
-    double measured_clock_drift = current_fix.clock_bias;
-
     /* Calculate the receiver clock error and adjust if it is too large */
     double rx_err = gpsdifftime(&rec_time, &current_fix.time);
     log_info("rx_err = %.9lf", rx_err);
@@ -589,7 +585,7 @@ static void me_calc_pvt_thread(void *arg)
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_info("t_err %.9lf clk_bias %.3e clk_drift %.3e",
+      log_info("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
                t_err, current_fix.clock_offset, current_fix.clock_bias);
 
       /* Propagate observations to desired time. */
@@ -610,20 +606,20 @@ static void me_calc_pvt_thread(void *arg)
           doppler = nm->raw_measured_doppler;
         }
 
-        nm->raw_carrier_phase += t_err * doppler;
-        /* Note, the pseudorange correction has opposite sign because Doppler
+        /* The pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -= t_err * doppler *
-                               sid_to_lambda(nm->sid);
-
-        /* Correct the observations for the receiver clock error. */
-        nm->raw_carrier_phase += current_fix.clock_offset *
-                                      GPS_C / sid_to_lambda(nm->sid);
+        nm->raw_pseudorange   -= t_err * doppler *
+                                 sid_to_lambda(nm->sid);
+        nm->raw_pseudorange   -= current_fix.clock_offset * GPS_C;
+        /* Carrier Phase corrected by clock offset */
+        nm->raw_carrier_phase += t_err * doppler;
+        nm->raw_carrier_phase += current_fix.clock_offset * GPS_C /
+                                    sid_to_lambda(nm->sid);
+        /* Use P**V**T to determine the oscillator drift which is used
+         * to adjust computed doppler. */
         nm->raw_measured_doppler += current_fix.clock_bias *
                                     GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
-        nm->raw_computed_doppler += measured_clock_drift *
-                                      GPS_C / sid_to_lambda(nm->sid);
+        nm->raw_computed_doppler  = nm->raw_measured_doppler;
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
