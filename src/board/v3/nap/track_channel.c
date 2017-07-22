@@ -508,7 +508,7 @@ void nap_track_read_results(u8 channel,
     s->sw_carr_phase = hw_carr_phase;
     s->reckoned_carr_phase = ((double) hw_carr_phase) /
                               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    log_info_mesid(s->mesid, "init carr phase %.6lf",
+    log_debug_mesid(s->mesid, "init carr phase %.6lf",
       (double) hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE);
   } else {
     s64 phase_incr = ((s64)s->length[1]) * (s->carr_pinc[1]);
@@ -534,12 +534,12 @@ void nap_track_read_results(u8 channel,
 
   *carrier_phase = -(s->reckoned_carr_phase);
 
-  u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
-
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
       (s->spacing[0].samples + s->spacing[1].samples) /
       calc_samples_per_chip(s->code_phase_rate[1]);
+
+  u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
 
   /* Correct code phase with spacing between VE and P correlators */
   *code_phase_prompt = (double)nap_code_phase /
