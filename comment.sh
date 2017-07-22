@@ -28,6 +28,9 @@ ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 RELEASES=""
 SCENARIOS="live-roof-1543-mission%2Clive-roof-1800"
 
+HITL_PASS_RUNS=10
+STATUS_HITL_CONTEXT="hitl/pass-fail"
+
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUCKET="swiftnav-artifacts"
     ARTIFACTS_PATH="$BUILD_PATH"
@@ -35,7 +38,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 fi
 
 LINKS=\
-("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION"
+("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION&runs=$HITL_PASS_RUNS"
 "http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
@@ -43,7 +46,7 @@ LINKS=\
 )
 
 TITLES=\
-("Run a HITL test for this build"
+("Run a HITL test set for this build"
 "HITL Results - pass/fail checks"
 "HITL Results - performance metrics"
 "Commit Log"
@@ -59,7 +62,9 @@ slack_links(){
 
 github_links(){
     echo -n "## $BUILD_VERSION"
-    echo -n "\nYou must manually submit the form in the link for 'Run a HITL test for this build' in order to get data for the 'HITL Results' links."
+    echo -n "\nYou must manually submit the form in the link for 'Run a HITL test set for this build' in order to get data for the 'HITL Results' links."
+    echo -n "\n$HITL_PASS_RUNS runs must pass for the $STATUS_HITL_CONTEXT status to be marked successful"
+    echo -n "\nAny HITL failures require a new commit to start a new test set"
     echo -n "\nNote: the following links are for this Pull Request's ***merge*** commit"
     for index in ${!LINKS[@]}; do
         echo -n "\n+ "[${TITLES[$index]}]"("${LINKS[$index]}")"
@@ -79,7 +84,13 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     fi
 elif [ ! -z "$GITHUB_TOKEN" ]; then
     COMMENT="$(github_links)"
-    URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
-    curl -u "$GITHUB_TOKEN:" -X POST "$URL" -d "{\"body\":\"$COMMENT\"}"
+    COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
+    curl -u "$GITHUB_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
+    # set status of HITL testing to pending
+    STATUS_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/statuses/$TRAVIS_PULL_REQUEST_SHA"
+    STATUS_DESCRIPTION="Waiting for HITL tests to be run and complete"
+    STATUS_TARGET_URL="http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+    STATUS_STATE="pending"
+    curl -i -X POST -u "$GITHUB_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
 fi
 
