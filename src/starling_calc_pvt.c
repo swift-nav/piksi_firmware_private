@@ -649,12 +649,7 @@ static void starling_thread(void *arg)
     ionosphere_t i_params;
     ionosphere_t *p_i_params = &i_params;
     /* get iono parameters if available */
-    if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
-      p_i_params = NULL;
-      chMtxLock(&time_matched_iono_params_lock);
-      has_time_matched_iono_params = false;
-      chMtxUnlock(&time_matched_iono_params_lock);
-    } else {
+    if (ndb_iono_corr_read(p_i_params) == NDB_ERR_NONE) {
       chMtxLock(&time_matched_iono_params_lock);
       has_time_matched_iono_params = true;
       time_matched_iono_params = *p_i_params;
@@ -663,6 +658,11 @@ static void starling_thread(void *arg)
       filter_manager_update_iono_parameters(spp_filter_manager,
                                             p_i_params, false);
       chMtxUnlock(&spp_filter_manager_lock);
+    } else {
+      p_i_params = NULL;
+      chMtxLock(&time_matched_iono_params_lock);
+      has_time_matched_iono_params = false;
+      chMtxUnlock(&time_matched_iono_params_lock);
     }
 
     dops_t dops;
