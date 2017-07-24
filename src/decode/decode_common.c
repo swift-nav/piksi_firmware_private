@@ -54,7 +54,6 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
   /* Check for bit errors in the collected string */
   s8 bit_errors = error_detection_glo(n);
   if (bit_errors != 0) {
-    nav_msg_init_glo_with_cb(n, mesid);
     return false;
   }
 
