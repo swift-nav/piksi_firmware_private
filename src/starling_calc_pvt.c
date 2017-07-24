@@ -97,7 +97,7 @@ double heading_offset = 0.0;
 
 bool disable_klobuchar = false;
 
-bool disable_glonass_in_pvt = true;
+bool enable_glonass_in_pvt = true;
 float glonass_downweight_factor = 4;
 
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
@@ -514,7 +514,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   if (is_initialized) {
     set_pvt_engine_elevation_mask(filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_enable_glonass(filter_manager, disable_glonass_in_pvt);
+    set_pvt_engine_enable_glonass(filter_manager, enable_glonass_in_pvt);
     set_pvt_engine_glonass_downweight_factor(filter_manager,
                                              glonass_downweight_factor);
 
@@ -876,6 +876,9 @@ static void time_matched_obs_thread(void *arg)
     // Check if the el mask has changed and update
     chMtxLock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,get_solution_elevation_mask());
+    set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass_in_pvt);
+    set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
+                                           glonass_downweight_factor);
     chMtxUnlock(&time_matched_filter_manager_lock);
 
     obss_t *obss;
@@ -1055,7 +1058,7 @@ void starling_calc_pvt_setup()
 
   SETTING("solution", "disable_klobuchar_correction", disable_klobuchar,
           TYPE_BOOL);
-  SETTING("solution", "disable_glonass_in_pvt", disable_glonass_in_pvt,
+  SETTING("solution", "enable_glonass_in_pvt", enable_glonass_in_pvt,
           TYPE_BOOL);
   SETTING("solution", "glonass_measurement_std_downweight_factor",
           glonass_downweight_factor, TYPE_FLOAT);
