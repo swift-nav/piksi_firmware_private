@@ -551,7 +551,7 @@ static void me_calc_pvt_thread(void *arg)
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_info("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
+      log_debug("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
                t_err, current_fix.clock_offset, current_fix.clock_bias);
 
       /* Propagate observations to desired time. */
@@ -632,12 +632,12 @@ static void me_calc_pvt_thread(void *arg)
         me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
       }
     } else {
-      log_info("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
+      log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
     }
 
     /* Calculate the receiver clock error and adjust if it is too large */
     double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_info("rx_err = %.9lf", rx_err);
+    log_debug("rx_err = %.9lf", rx_err);
 
     if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
       log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
