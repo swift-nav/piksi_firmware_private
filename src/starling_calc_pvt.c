@@ -644,6 +644,8 @@ static void starling_thread(void *arg)
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
       solution_simulation(&sbp_messages);
+      solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
+      continue;
     }
 
     ionosphere_t i_params;
@@ -695,33 +697,30 @@ static void starling_thread(void *arg)
     pvt_engine_result_t result_spp;
     gnss_solution spp_solution;
     bool successful_spp = false;
-    if (!simulation_enabled()) {
-      chMtxLock(&spp_filter_manager_lock);
-      const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
-          call_pvt_engine_filter(spp_filter_manager, &obs_time,
-                                 n_ready, nav_meas, stored_ephs,
-                                 &result_spp, &dops);
+    chMtxLock(&spp_filter_manager_lock);
+    const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
+        call_pvt_engine_filter(spp_filter_manager, &obs_time,
+                               n_ready, nav_meas, stored_ephs,
+                               &result_spp, &dops);
 
-      chMtxUnlock(&spp_filter_manager_lock);
+    chMtxUnlock(&spp_filter_manager_lock);
 
-      if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
-          !gate_covariance_pvt_engine(&result_spp)) {
-        spp_solution = create_spp_result(&result_spp);
-        solution_make_sbp(&spp_solution, &dops, &sbp_messages);
-        successful_spp = true;
-      } else {
-        /* If we can't report a SPP position, something is wrong and no point
-         * continuing to process this epoch - send out solution and
-         * observation failed messages if not in time matched mode.
-         */
-        if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-          solution_send_low_latency_output(0, &sbp_messages);
-        }
+    if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
+        !gate_covariance_pvt_engine(&result_spp)) {
+      spp_solution = create_spp_result(&result_spp);
+      solution_make_sbp(&spp_solution, &dops, &sbp_messages);
+      successful_spp = true;
+    } else {
+      /* If we can't report a SPP position, something is wrong and no point
+       * continuing to process this epoch - send out solution and
+       * observation failed messages if not in time matched mode.
+       */
+      if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        solution_send_low_latency_output(0, &sbp_messages);
       }
     }
 
-    if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
-        successful_spp) {
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
       chMtxLock(&low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;
@@ -739,12 +738,9 @@ static void starling_thread(void *arg)
     }
 
     /* This is posting the rover obs to the mailbox to the time matched thread, we want these sent on at full rate */
-    if (!simulation_enabled()) {
-      /* Post the observations to the mailbox. */
-      post_observations(n_ready, nav_meas, &obs_time, &spp_solution);
-    }
+    /* Post the observations to the mailbox. */
+    post_observations(n_ready, nav_meas, &obs_time, &spp_solution);
 
-    // Send out messages if needed
     solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
   }
 }
