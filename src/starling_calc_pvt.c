@@ -698,85 +698,85 @@ static void starling_thread(void *arg)
 
     dops_t dops;
 
-      // This will duplicate pointers to satellites with mutliple frequencies,
-      // but this scenario is expected and handled
-      const ephemeris_t *stored_ephs[MAX_CHANNELS];
-      for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
-        stored_ephs[i] = NULL;
-      }
-      for (u8 i = 0; i < n_ready; i++) {
-        navigation_measurement_t *nm = &nav_meas[i];
-        ephemeris_t *e = NULL;
+    // This will duplicate pointers to satellites with mutliple frequencies,
+    // but this scenario is expected and handled
+    const ephemeris_t *stored_ephs[MAX_CHANNELS];
+    for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
+      stored_ephs[i] = NULL;
+    }
+    for (u8 i = 0; i < n_ready; i++) {
+      navigation_measurement_t *nm = &nav_meas[i];
+      ephemeris_t *e = NULL;
 
-        /* Find the original index of this measurement in order to point to
-         * the correct ephemeris. (Do not load it again from NDB because it may
-         * have changed meanwhile.) */
-        for (u8 j = 0; j < n_ready; j++) {
-          if (sid_is_equal(nm->sid, e_meas[j].sid)) {
-            e = &e_meas[j];
-            break;
-          }
-        }
-
-        if (e == NULL || 1 != ephemeris_valid(e, &nm->tot)) {
-          continue;
-        }
-
-        stored_ephs[i] = e;
-      }
-
-      pvt_engine_result_t result_spp;
-      gnss_solution spp_solution;
-      bool successful_spp = false;
-      if (!simulation_enabled()) {
-        chMtxLock(&spp_filter_manager_lock);
-        const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
-            call_pvt_engine_filter(spp_filter_manager, &obs_time,
-                                   n_ready, nav_meas, stored_ephs,
-                                   &result_spp, &dops);
-
-        chMtxUnlock(&spp_filter_manager_lock);
-
-        if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
-            !gate_covariance_pvt_engine(&result_spp)) {
-          spp_solution = create_spp_result(&result_spp);
-          solution_make_sbp(&spp_solution, &dops, false,
-                            &sbp_messages);
-          successful_spp = true;
-        } else {
-          /* If we can't report a SPP position, something is wrong and no point
-           * continuing to process this epoch - send out solution and
-           * observation failed messages if not in time matched mode.
-           */
-          if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-            solution_send_low_latency_output(0, &sbp_messages);
-          }
+      /* Find the original index of this measurement in order to point to
+       * the correct ephemeris. (Do not load it again from NDB because it may
+       * have changed meanwhile.) */
+      for (u8 j = 0; j < n_ready; j++) {
+        if (sid_is_equal(nm->sid, e_meas[j].sid)) {
+          e = &e_meas[j];
+          break;
         }
       }
 
-      if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
-          successful_spp) {
-        chMtxLock(&low_latency_filter_manager_lock);
+      if (e == NULL || 1 != ephemeris_valid(e, &nm->tot)) {
+        continue;
+      }
 
-        pvt_engine_result_t result_rtk;
-        const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
-            call_pvt_engine_filter(
-                low_latency_filter_manager, &obs_time, n_ready,
-                nav_meas, stored_ephs, &result_rtk, &dops);
+      stored_ephs[i] = e;
+    }
 
-        chMtxUnlock(&low_latency_filter_manager_lock);
+    pvt_engine_result_t result_spp;
+    gnss_solution spp_solution;
+    bool successful_spp = false;
+    if (!simulation_enabled()) {
+      chMtxLock(&spp_filter_manager_lock);
+      const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
+          call_pvt_engine_filter(spp_filter_manager, &obs_time,
+                                 n_ready, nav_meas, stored_ephs,
+                                 &result_spp, &dops);
 
-        if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-          solution_make_baseline_sbp(&result_rtk, result_spp.baseline, &dops,
-                                     &sbp_messages);
+      chMtxUnlock(&spp_filter_manager_lock);
+
+      if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
+          !gate_covariance_pvt_engine(&result_spp)) {
+        spp_solution = create_spp_result(&result_spp);
+        solution_make_sbp(&spp_solution, &dops, false,
+                          &sbp_messages);
+        successful_spp = true;
+      } else {
+        /* If we can't report a SPP position, something is wrong and no point
+         * continuing to process this epoch - send out solution and
+         * observation failed messages if not in time matched mode.
+         */
+        if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+          solution_send_low_latency_output(0, &sbp_messages);
         }
       }
+    }
 
-      /* This is posting the rover obs to the mailbox to the time matched thread, we want these sent on at full rate */
-      if (!simulation_enabled()) {
-        /* Post the observations to the mailbox. */
-        post_observations(n_ready, nav_meas, &obs_time, &spp_solution);
+    if (!simulation_enabled() && dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+        successful_spp) {
+      chMtxLock(&low_latency_filter_manager_lock);
+
+      pvt_engine_result_t result_rtk;
+      const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
+          call_pvt_engine_filter(
+              low_latency_filter_manager, &obs_time, n_ready,
+              nav_meas, stored_ephs, &result_rtk, &dops);
+
+      chMtxUnlock(&low_latency_filter_manager_lock);
+
+      if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
+        solution_make_baseline_sbp(&result_rtk, result_spp.baseline, &dops,
+                                   &sbp_messages);
       }
+    }
+
+    /* This is posting the rover obs to the mailbox to the time matched thread, we want these sent on at full rate */
+    if (!simulation_enabled()) {
+      /* Post the observations to the mailbox. */
+      post_observations(n_ready, nav_meas, &obs_time, &spp_solution);
+    }
 
     // Send out messages if needed
     solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
