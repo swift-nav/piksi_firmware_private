@@ -327,9 +327,6 @@ static void me_calc_pvt_thread(void *arg)
     // is the amount we want to adjust our deadline by at the end of the solution
     double delta_tc = -((double)current_tc - (double)rec_tc);
 
-    // Get the expected nap count in receiver time (gps time frame)
-    gps_time_t rec_time = napcount2rcvtime(rec_tc);
-
     if (time_quality >= TIME_COARSE
         && lgf.position_solution.valid
         && lgf.position_quality >= POSITION_GUESS) {
@@ -394,10 +391,13 @@ static void me_calc_pvt_thread(void *arg)
     /* If we have timing then we can calculate the relationship between
      * receiver time and GPS time and hence provide the pseudorange
      * calculation with the local GPS time of reception. */
+    gps_time_t rec_time = napcount2rcvtime(rec_tc);
+
     /* If a FINE quality time solution is not available then don't pass in a
      * `nav_time`. This will result in valid pseudoranges but with a large
      * and arbitrary receiver clock error. We may want to discard these
      * observations after doing a PVT solution. */
+    // Get the expected nap count in receiver time (gps time frame)
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
 
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
@@ -421,20 +421,12 @@ static void me_calc_pvt_thread(void *arg)
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
-    static u8 n_ready_old = 0;
-    static navigation_measurement_t nav_meas_old[MAX_CHANNELS];
     static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
-
     u8 n_ready_tdcp;
 
     /* Pass the nav_meas with the measured Dopplers as is */
     memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
     n_ready_tdcp = n_ready;
-
-    /* Store current observations for next time for
-     * TDCP Doppler calculation. */
-    memcpy(nav_meas_old, nav_meas, sizeof(nav_meas));
-    n_ready_old = n_ready;
 
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
@@ -528,32 +520,6 @@ static void me_calc_pvt_thread(void *arg)
       lgf.position_quality = POSITION_GUESS;
       ndb_lgf_store(&lgf);
       continue;
-    }
-
-    /* Calculate the receiver clock error and adjust if it is too large */
-    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_info("rx_err = %.9lf", rx_err);
-
-    if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
-      log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
-          MAX_CLOCK_ERROR_S * SECS_MS);
-      /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * SECS_MS) / SECS_MS;
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
-      /* adjust all the carrier phase offsets */
-      /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
-      /* adjust the stored CP measurements so that next TDCP is correct */
-      for (u8 i = 0; i < n_ready_old; i++) {
-        nav_meas_old[i].raw_carrier_phase += dt *
-            sid_to_carr_freq(nav_meas_old[i].sid);
-      }
-      /* adjust the time of current fix */
-      current_fix.time.tow -= dt;
-      normalize_gps_time(&current_fix.time);
     }
 
     /* We now have the nap count we expected the measurements to be at, plus
@@ -667,6 +633,27 @@ static void me_calc_pvt_thread(void *arg)
       }
     } else {
       log_info("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
+    }
+
+    /* Calculate the receiver clock error and adjust if it is too large */
+    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
+    log_info("rx_err = %.9lf", rx_err);
+
+    if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
+      log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
+          MAX_CLOCK_ERROR_S * SECS_MS);
+      /* round the time adjustment to even milliseconds */
+      double dt = round(rx_err * SECS_MS) / SECS_MS;
+      /* adjust the RX to GPS time conversion */
+      adjust_time_fine(dt);
+      /* adjust all the carrier phase offsets */
+      /* note that the adjustment is always in even cycles because millisecond
+       * breaks up exactly into carrier cycles
+       * TODO: verify this holds for GLONASS as well */
+      tracking_channel_carrier_phase_offsets_adjust(dt);
+      /* adjust the time of current fix */
+      current_fix.time.tow -= dt;
+      normalize_gps_time(&current_fix.time);
     }
 
     /* Calculate the correction to the current deadline by converting nap count
