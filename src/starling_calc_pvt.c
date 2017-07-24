@@ -670,9 +670,7 @@ static void starling_thread(void *arg)
     // This will duplicate pointers to satellites with mutliple frequencies,
     // but this scenario is expected and handled
     const ephemeris_t *stored_ephs[MAX_CHANNELS];
-    for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
-      stored_ephs[i] = NULL;
-    }
+    memset(stored_ephs, 0, sizeof(stored_ephs));
     for (u8 i = 0; i < n_ready; i++) {
       navigation_measurement_t *nm = &nav_meas[i];
       ephemeris_t *e = NULL;
@@ -762,9 +760,7 @@ void process_matched_obs(const obss_t *rover_channel_meass, const obss_t *refere
 
   ephemeris_t ephs[MAX_CHANNELS];
   const ephemeris_t *stored_ephs[MAX_CHANNELS];
-  for( s16 i = 0; i < MAX_CHANNELS; ++i ) {
-    stored_ephs[i] = NULL;
-  }
+  memset(stored_ephs, 0, sizeof(stored_ephs));
 
   for (u8 i = 0; i < rover_channel_meass->n; i++) {
     const navigation_measurement_t *nm = &rover_channel_meass->nm[i];
