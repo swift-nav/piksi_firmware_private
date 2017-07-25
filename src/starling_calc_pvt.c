@@ -97,7 +97,7 @@ double heading_offset = 0.0;
 
 bool disable_klobuchar = false;
 
-bool enable_glonass_in_pvt = true;
+bool enable_glonass_in_pvt = false;
 float glonass_downweight_factor = 4;
 
 static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
