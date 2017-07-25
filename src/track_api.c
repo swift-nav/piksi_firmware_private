@@ -131,16 +131,6 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
   s32 TOW_ms = TOW_INVALID;
   nav_data_sync_t to_tracker;
   if (nav_data_sync_get(&to_tracker, &tracker_channel->nav_data_sync)) {
-    TOW_ms = adjust_tow_by_bit_fifo_delay(tracker_channel, to_tracker);
-
-    /* Warn if updated TOW does not match the current value */
-    if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
-      log_error_mesid(
-          mesid, "TOW mismatch: %" PRId32 ", %" PRId32, current_TOW_ms, TOW_ms);
-      /* This is rude, but safe. Do not expect it to happen normally. */
-      tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
-    }
-    current_TOW_ms = TOW_ms;
     if (tracker_channel->bit_polarity != to_tracker.bit_polarity) {
       /* Print warning if there was an unexpected polarity change */
       if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity) {
@@ -150,17 +140,34 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
       tracker_channel->reset_cpo = true;
       tracker_channel->bit_polarity = to_tracker.bit_polarity;
     }
-    if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
-        (tracker_channel->glo_orbit_slot != to_tracker.glo_orbit_slot)) {
-      log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
+
+    *decoded_tow = false;
+
+    if (SYNC_ALL == to_tracker.sync_type) {
+      TOW_ms = adjust_tow_by_bit_fifo_delay(tracker_channel, to_tracker);
+
+      /* Warn if updated TOW does not match the current value */
+      if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
+        log_error_mesid(mesid,
+                        "TOW mismatch: %" PRId32 ", %" PRId32,
+                        current_TOW_ms, TOW_ms);
+        /* This is rude, but safe. Do not expect it to happen normally. */
+        tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+      }
+      current_TOW_ms = TOW_ms;
+
+      if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
+          (tracker_channel->glo_orbit_slot != to_tracker.glo_orbit_slot)) {
+        log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
+      }
+      tracker_channel->glo_orbit_slot = to_tracker.glo_orbit_slot;
+      tracker_channel->health = to_tracker.glo_health;
+
+      *decoded_tow = (TOW_ms >= 0);
+      *TOW_residual_ns = to_tracker.TOW_residual_ns;
+
+      update_bit_polarity_flags(tracker_channel);
     }
-    tracker_channel->glo_orbit_slot = to_tracker.glo_orbit_slot;
-    tracker_channel->health = to_tracker.glo_health;
-
-    *decoded_tow = (TOW_ms >= 0);
-    *TOW_residual_ns = to_tracker.TOW_residual_ns;
-
-    update_bit_polarity_flags(tracker_channel);
   } else {
     *decoded_tow = false;
   }

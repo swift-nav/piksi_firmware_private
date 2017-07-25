@@ -18,6 +18,7 @@
 #include "piksi_systime.h"
 #include "timing.h"
 #include "track.h"
+#include "decode_common.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
                                              const glo_time_t *glo_t) {
@@ -28,26 +29,26 @@ void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   nav_msg_init_glo(n, mesid, glo2gps_with_utc_params_cb);
 }
 
-bool is_glo_decode_ready(nav_msg_glo_t *n,
-                         me_gnss_signal_t mesid,
-                         const nav_bit_fifo_element_t *nav_bit) {
+glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
+                                      me_gnss_signal_t mesid,
+                                      const nav_bit_fifo_element_t *nav_bit) {
   /* Don't trust polarity information while in sensitivity mode. */
   if (nav_bit->sensitivity_mode) {
     nav_msg_init_glo_with_cb(n, mesid);
-    return false;
+    return GLO_DECODE_SENSITIVITY;
   }
 
   /* Update GLO data decoder */
   bool bit_val = nav_bit->soft_bit >= 0;
   nav_msg_status_t msg_status = nav_msg_update_glo(n, bit_val);
   if (GLO_STRING_READY != msg_status) {
-    return false;
+    return GLO_DECODE_WAIT;
   }
 
   /* Check for bit errors in the collected string */
   s8 bit_errors = error_detection_glo(n);
   if (bit_errors != 0) {
-    return false;
+    return GLO_DECODE_WAIT;
   }
 
   piksi_systime_t now;
@@ -58,13 +59,13 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
   string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
   if (GLO_STRING_DECODE_ERROR == str_status) {
     nav_msg_init_glo_with_cb(n, mesid);
-    return false;
+    return GLO_DECODE_ERROR;
   }
   if (GLO_STRING_DECODE_WAIT == str_status) {
-    return false;
+    return GLO_DECODE_STRING;
   }
   assert(GLO_STRING_DECODE_DONE == str_status);
-  return true;
+  return GLO_DECODE_DONE;
 }
 
 void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
@@ -87,14 +88,20 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
 
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
-                   u8 tracking_channel) {
+                   u8 tracking_channel,
+                   bool polarity_update_only) {
   nav_data_sync_t from_decoder;
 
   tracking_channel_data_sync_init(&from_decoder);
 
+  if (polarity_update_only) {
+    from_decoder.sync_type = SYNC_POLARITY;
+  }
+
   double TOW_ms = n->gps_time.tow * SECS_MS;
   double rounded_TOW_ms = round(TOW_ms);
-  if ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0)) {
+  if ((SYNC_ALL == from_decoder.sync_type) &&
+      ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0))) {
     log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
     return false;
   }
