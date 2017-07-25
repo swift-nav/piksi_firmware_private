@@ -953,7 +953,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   /* Carrier phase offsets are adjusted for all signals matching SPP criteria */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     me_gnss_signal_t mesid;
-    double carrier_phase_offset = 0.;
+    double carrier_phase_offset = 0;
     bool   adjusted = false;
 
     tracker_channel_t *tracker_channel = tracker_channel_get(i);

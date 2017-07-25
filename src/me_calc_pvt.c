@@ -306,25 +306,26 @@ static void me_calc_pvt_thread(void *arg)
     sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
-    // Take the current nap count
+    /* Take the current nap count */
     u64 current_tc = nap_timing_count();
     u64 rec_tc = current_tc;
 
-    // If we've previously had a solution, we can work out our expected obs time
+    /* If we've previously had a solution, we can work out our expected obs time */
     if (time_quality == TIME_FINE) {
-      // Work out the time of the current nap count
+      /* Work out the time of the current nap count */
       gps_time_t expected_time = napcount2gpstime(rec_tc);
 
-      // Round this time to the nearest GPS solution time
+      /* Round this time to the nearest GPS solution time */
       expected_time.tow = round(expected_time.tow * soln_freq)
                                  / soln_freq;
       normalize_gps_time(&expected_time);
 
-      // This time, taken back to nap count, is the nap count we want the observations at
+      /* This time, taken back to nap count, is the nap count we want the observations at */
       rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
     }
-    // The difference between the current nap count and the nap count we want the observations at
-    // is the amount we want to adjust our deadline by at the end of the solution
+    /* The difference between the current nap count and the nap count we
+     * want the observations at is the amount we want to adjust our deadline
+     * by at the end of the solution */
     double delta_tc = -((double)current_tc - (double)rec_tc);
 
     if (time_quality >= TIME_COARSE
@@ -393,13 +394,13 @@ static void me_calc_pvt_thread(void *arg)
      * calculation with the local GPS time of reception. */
     gps_time_t rec_time = napcount2rcvtime(rec_tc);
 
+    /* Get the expected nap count in receiver time (gps time frame) */
+    gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
+
     /* If a FINE quality time solution is not available then don't pass in a
      * `nav_time`. This will result in valid pseudoranges but with a large
      * and arbitrary receiver clock error. We may want to discard these
      * observations after doing a PVT solution. */
-    // Get the expected nap count in receiver time (gps time frame)
-    gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
-
     s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
                                             p_rec_time);
 
@@ -409,8 +410,6 @@ static void me_calc_pvt_thread(void *arg)
       continue;
     }
 
-    /* RFT_TODO *
-     * agreed this should go in starling but ME SPP solver needs it too */
     s8 sc_ret = calc_sat_clock_corrections(n_ready, p_nav_meas, p_e_meas);
 
     if (sc_ret != 0) {
@@ -462,7 +461,6 @@ static void me_calc_pvt_thread(void *arg)
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
-     // TODO(Leith) check velocity_valid
     s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
                           &current_fix, &dops, &raim_removed_sids);
     if (pvt_ret < 0
@@ -651,9 +649,6 @@ static void me_calc_pvt_thread(void *arg)
        * breaks up exactly into carrier cycles
        * TODO: verify this holds for GLONASS as well */
       tracking_channel_carrier_phase_offsets_adjust(dt);
-      /* adjust the time of current fix */
-      current_fix.time.tow -= dt;
-      normalize_gps_time(&current_fix.time);
     }
 
     /* Calculate the correction to the current deadline by converting nap count
