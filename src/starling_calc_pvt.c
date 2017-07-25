@@ -269,16 +269,20 @@ void solution_make_sbp(const gnss_solution *soln,
     if (soln->velocity_valid) {
       sbp_make_vel_ned(
           &sbp_messages->vel_ned,
-          soln,
+          soln->vel_ned,
           vel_h_accuracy,
           vel_v_accuracy,
+          &soln->time,
+          soln->n_sats_used,
           SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
 
       /* Velocity in ECEF. */
       sbp_make_vel_ecef(
           &sbp_messages->vel_ecef,
-          soln,
+          soln->vel_ecef,
           vel_accuracy,
+          &soln->time,
+          soln->n_sats_used,
           SPP_POSITION); /* TODO replace with a Measured Doppler Flag #define */
     }
 
