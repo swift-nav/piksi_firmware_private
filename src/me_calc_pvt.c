@@ -297,29 +297,6 @@ static void me_calc_pvt_thread(void *arg) {
     sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
-    /* Take the current nap count */
-    u64 current_tc = nap_timing_count();
-    u64 rec_tc = current_tc;
-
-    /* If we've previously had a solution, we can work out our expected obs time
-     */
-    if (get_time_quality() == TIME_FINE) {
-      /* Work out the time of the current nap count */
-      gps_time_t expected_time = napcount2gpstime(rec_tc);
-
-      /* Round this time to the nearest GPS solution time */
-      expected_time.tow = round(expected_time.tow * soln_freq) / soln_freq;
-      normalize_gps_time(&expected_time);
-
-      /* This time, taken back to nap count, is the nap count we want the
-       * observations at */
-      rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
-    }
-    /* The difference between the current nap count and the nap count we
-     * want the observations at is the amount we want to adjust our deadline
-     * by at the end of the solution */
-    double delta_tc = -((double)current_tc - (double)rec_tc);
-
     if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
@@ -335,6 +312,9 @@ static void me_calc_pvt_thread(void *arg) {
     channel_measurement_t meas[MAX_CHANNELS];
     channel_measurement_t in_view[MAX_CHANNELS];
     static ephemeris_t e_meas[MAX_CHANNELS];
+
+    /* Take the current nap count */
+    u64 rec_tc = nap_timing_count();
 
     /* Collect measurements from trackers, load ephemerides and compute flags */
     collect_measurements(
@@ -385,7 +365,7 @@ static void me_calc_pvt_thread(void *arg) {
      * calculation with the local GPS time of reception. */
     gps_time_t rec_time = napcount2rcvtime(rec_tc);
 
-    /* Get the expected nap count in receiver time (gps time frame) */
+    /* Pointer to the reception time (gps time frame) */
     gps_time_t *p_rec_time =
         (get_time_quality() == TIME_FINE) ? &rec_time : NULL;
 
@@ -559,6 +539,11 @@ static void me_calc_pvt_thread(void *arg) {
     gps_time_match_weeks(&new_obs_time, &current_fix.time);
     double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
 
+    log_debug("t_err = %f (new_obs_time %.4f, current_fix.time %.4f)",
+              t_err,
+              new_obs_time.tow,
+              current_fix.time.tow);
+
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
@@ -638,24 +623,18 @@ static void me_calc_pvt_thread(void *arg) {
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
 
-      if (get_time_quality() == TIME_FINE) {
-        /* Send the observations. */
-        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
-      }
+      /* Send the observations. */
+      me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
     } else {
       log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
     }
 
-    /* Calculate the receiver clock error and adjust if it is too large */
-    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_debug("rx_err = %.9lf", rx_err);
-
-    if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
+    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
       log_info(
           "Receiver clock offset larger than %g ms, applying millisecond jump",
           MAX_CLOCK_ERROR_S * SECS_MS);
       /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * SECS_MS) / SECS_MS;
+      double dt = round(current_fix.clock_offset * SECS_MS) / SECS_MS;
       /* adjust the RX to GPS time conversion */
       adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
@@ -667,7 +646,13 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
+
+    u64 expected_tc = (u64)(round(gpstime2napcount(&new_obs_time)));
+
+    /* The difference between the current nap count and the nap count we
+     * would have wanted the observations at is the amount we want to
+     * adjust our deadline by at the end of the solution */
+    double dt = -((double)rec_tc - (double)expected_tc) * RX_DT_NOMINAL;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
