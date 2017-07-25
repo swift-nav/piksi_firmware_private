@@ -61,7 +61,7 @@
 
 
 
-/** Convert system ticks to time. Based on PIKSI_ST2* macros in
+/** Convert system ticks to time. Based on ST2* macros in
  * ChibiOS/os/rt/include/chvt.h with wider variable types.
  *
  * \note The result is rounded up to the next time unit boundary.
@@ -153,7 +153,6 @@ static bool piksi_systime_get_internal(piksi_systime_t *t)
   current = chVTGetSystemTimeX();
 
   if (prev.systime > current) {
-    log_info("System tick rollover");
     prev.rollover_cnt++;
   }
 

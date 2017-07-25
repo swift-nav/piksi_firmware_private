@@ -675,8 +675,7 @@ static void me_calc_pvt_thread(void *arg)
      * us up to the next solution time. dt as microseconds. */
     if (0 < dt) {
       piksi_systime_inc_us(&deadline, round(dt * SECS_US));
-    }
-    if (0 > dt) {
+    } else if (0 > dt) {
       piksi_systime_dec_us(&deadline, round(dt * SECS_US));
     }
   }
