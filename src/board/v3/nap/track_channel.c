@@ -243,14 +243,11 @@ void nap_track_init(u8 channel,
   t->CONTROL = SET_NAP_TRK_CH_CONTROL_SAT(t->CONTROL, prn);
 
   /* Set correlator spacing */
-  t->SPACING = (spacing_to_nap_offset(s->spacing[0]) <<
-      NAP_TRK_CH_SPACING_OFFSET0_Pos) |
-      (spacing_to_nap_offset(s->spacing[1]) <<
-      NAP_TRK_CH_SPACING_OFFSET1_Pos) |
-      (spacing_to_nap_offset(s->spacing[2]) <<
-      NAP_TRK_CH_SPACING_OFFSET2_Pos) |
-      (spacing_to_nap_offset(s->spacing[3]) <<
-      NAP_TRK_CH_SPACING_OFFSET3_Pos);
+  t->SPACING =
+    (spacing_to_nap_offset(s->spacing[0]) << NAP_TRK_CH_SPACING_OFFSET0_Pos) |
+    (spacing_to_nap_offset(s->spacing[1]) << NAP_TRK_CH_SPACING_OFFSET1_Pos) |
+    (spacing_to_nap_offset(s->spacing[2]) << NAP_TRK_CH_SPACING_OFFSET2_Pos) |
+    (spacing_to_nap_offset(s->spacing[3]) << NAP_TRK_CH_SPACING_OFFSET3_Pos);
 
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
   double code_phase_rate = (1.0 + doppler_freq_hz / carrier_freq_hz) *
@@ -299,19 +296,18 @@ void nap_track_init(u8 channel,
   COMPILER_BARRIER();
 
   /* Set up timing compare */
-  u32 tc_req;
   while (1) {
-    u32 diff;
     chSysLock();
-    u32 timing_count = NAP->TIMING_COUNT;
-    tc_req = timing_count + TIMING_COMPARE_DELTA_MIN;
-
-    diff = tc_req - ref_timing_count;
+    /* Next NAP counter to which we propagate, corrected for correlator spacing
+     *  NOTE: this can easily overflow and be a very small number */
+    u32 tc_req = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN - prompt_offset;
+    u32 tc_diff = (tc_req >= ref_timing_count) ?
+                  (tc_req - ref_timing_count) : (tc_req + (1<<32ULL) - ref_timing_count);
     double cp = propagate_code_phase(mesid,
                                      code_phase,
                                      doppler_freq_hz,
-                                     diff);
-    u8 index = 0;
+                                     tc_diff);
+
     /* Contrive for the timing strobe to occur at
      * or close to next PRN start point */
     if (mesid.code == CODE_GPS_L2CL) {
@@ -324,13 +320,9 @@ void nap_track_init(u8 channel,
          The ceil operation is for figuring out which is the next 20ms index
          where to start the tracker. */
 
-      u32 interval_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
-      u8 cp_start = GPS_L2CL_PRN_START_POINTS;
-      double tmp = ceil(cp / interval_chips);
-      if (tmp >= 0 && tmp <= GPS_L2CL_PRN_START_POINTS) {
-        cp_start = tmp;
-      }
-      index = (cp_start == GPS_L2CL_PRN_START_POINTS) ? 0 : cp_start;
+      const u32 interval_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
+      u8 cp_start = 1 + floor(cp / interval_chips);
+      u8 index = cp_start % GPS_L2CL_PRN_START_POINTS;
       /* We assume that (cp_start * interval_chips - cp) is always positive.
          Otherwise there is a conversion from negative double to u32,
          which triggers an undefined behaviour. */
@@ -338,6 +330,7 @@ void nap_track_init(u8 channel,
               * calc_samples_per_chip(code_phase_rate));
       NAP->TRK_CODE_INT_INIT = index * interval_chips;
     } else {
+
       tc_req += round((code_to_chip_count(mesid.code) - cp)
               * calc_samples_per_chip(code_phase_rate));
       NAP->TRK_CODE_INT_INIT = 0;
@@ -349,9 +342,6 @@ void nap_track_init(u8 channel,
     NAP->TRK_CODE_LFSR0_RESET = mesid_to_init_g1(mesid, index);
     NAP->TRK_CODE_LFSR1_INIT = mesid_to_init_g2(mesid);
     NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
-
-    /* Correct timing count for correlator spacing */
-    tc_req -= prompt_offset;
 
     NAP->TRK_TIMING_COMPARE = tc_req;
     chSysUnlock();
@@ -400,9 +390,6 @@ void nap_track_init(u8 channel,
   s->carr_pinc[1] = s->carr_pinc[0];
 
   s->init = false;
-
-  prev_prio = chThdSetPriority(prev_prio);
-  assert(HIGHPRIO == prev_prio);
 }
 
 void nap_track_update(u8 channel,
