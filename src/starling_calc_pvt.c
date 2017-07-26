@@ -62,7 +62,7 @@ static MemoryPool time_matched_obs_buff_pool;
 static mailbox_t  time_matched_obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
-dgnss_filter_t dgnss_filter = FILTER_FLOAT;
+dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
 static FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
@@ -972,7 +972,7 @@ soln_pvt_stats_t solution_last_pvt_stats_get(void)
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */
 static bool heading_offset_changed(struct setting *s, const char *val)
 {
-  double offset;
+  double offset = 0;
   bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
   if (!ret) {
     return ret;
@@ -989,7 +989,7 @@ static bool heading_offset_changed(struct setting *s, const char *val)
 
 static bool enable_fix_mode(struct setting *s, const char *val)
 {
-  int value;
+  int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
   if (!ret) {
     return ret;
@@ -1008,7 +1008,7 @@ static bool enable_fix_mode(struct setting *s, const char *val)
 
 static bool set_max_age(struct setting *s, const char *val)
 {
-  int value;
+  int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
   if (!ret) {
     return ret;
