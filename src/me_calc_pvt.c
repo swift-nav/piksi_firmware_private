@@ -513,11 +513,6 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    /* We now have the nap count we expected the measurements to be at, plus
-     * the GPS time error for that nap count so we need to store this error in
-     * the the GPS time (GPS time frame) */
-    set_gps_time_offset(rec_tc, current_fix.time);
-
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
@@ -539,10 +534,17 @@ static void me_calc_pvt_thread(void *arg) {
     gps_time_match_weeks(&new_obs_time, &current_fix.time);
     double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
 
+    u64 expected_tc = (u64)(round(gpstime2napcount(&new_obs_time)));
+
     log_debug("t_err = %f (new_obs_time %.4f, current_fix.time %.4f)",
               t_err,
               new_obs_time.tow,
               current_fix.time.tow);
+
+    /* We now have the nap count we expected the measurements to be at, plus
+     * the GPS time error for that nap count so we need to store this error in
+     * the the GPS time (GPS time frame) */
+    set_gps_time_offset(rec_tc, current_fix.time);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
@@ -646,8 +648,6 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-
-    u64 expected_tc = (u64)(round(gpstime2napcount(&new_obs_time)));
 
     /* The difference between the current nap count and the nap count we
      * would have wanted the observations at is the amount we want to
