@@ -493,7 +493,7 @@ bool piksi_systime_dec_internal(piksi_systime_t *t, u64 dec)
  */
 bool piksi_systime_dec_us(piksi_systime_t *t, u64 dec)
 {
-  return piksi_systime_inc_internal(t, us2st(dec));
+  return piksi_systime_dec_internal(t, us2st(dec));
 }
 
 /** Decrease piksi_system_t with millisecond value.
@@ -508,7 +508,7 @@ bool piksi_systime_dec_us(piksi_systime_t *t, u64 dec)
  */
 bool piksi_systime_dec_ms(piksi_systime_t *t, u64 dec)
 {
-  return piksi_systime_inc_internal(t, ms2st(dec));
+  return piksi_systime_dec_internal(t, ms2st(dec));
 }
 
 /** Decrease piksi_system_t with second value.
@@ -523,7 +523,7 @@ bool piksi_systime_dec_ms(piksi_systime_t *t, u64 dec)
  */
 bool piksi_systime_dec_s(piksi_systime_t *t, u64 dec)
 {
-  return piksi_systime_inc_internal(t, s2st(dec));
+  return piksi_systime_dec_internal(t, s2st(dec));
 }
 
 /** Compare a and b.

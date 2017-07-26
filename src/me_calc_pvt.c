@@ -676,7 +676,7 @@ static void me_calc_pvt_thread(void *arg)
     if (0 < dt) {
       piksi_systime_inc_us(&deadline, round(dt * SECS_US));
     } else if (0 > dt) {
-      piksi_systime_dec_us(&deadline, round(dt * SECS_US));
+      piksi_systime_dec_us(&deadline, round(-dt * SECS_US));
     }
   }
 }
