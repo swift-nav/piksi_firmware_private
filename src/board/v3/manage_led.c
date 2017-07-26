@@ -48,8 +48,9 @@
       .b = RGB_TO_RGB_LED_COMPONENT(_r,_g,_b,_b)  \
     }
 
+#define MANAGE_LED_THREAD_PERIOD  MS2ST(10)
 #define COUNTER_INTERVAL_ms   MANAGE_LED_THREAD_PERIOD
-#define MS2COUNTS(ms)         (((ms) + COUNTER_INTERVAL_ms - 1) / \
+#define MS2COUNTS(ms)         (((MS2ST(ms)) + COUNTER_INTERVAL_ms - 1) / \
                                COUNTER_INTERVAL_ms)
 
 #define INTERVAL_COUNTS           MS2COUNTS(1000)
@@ -60,7 +61,6 @@
 #define LED_MODE_TIMEOUT          MS2ST(1500)
 
 #define MANAGE_LED_THREAD_STACK   2000
-#define MANAGE_LED_THREAD_PERIOD  MS2ST(10)
 #define MANAGE_LED_THREAD_PRIO    (NORMALPRIO + 10)
 
 typedef struct {
