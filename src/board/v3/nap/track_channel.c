@@ -286,10 +286,6 @@ void nap_track_init(u8 channel,
 
   u64 profiling_begin = nap_timing_count();
 
-  /* Elevate priority to be higher than the priority of the tracker thread */
-  tprio_t prev_prio = chThdSetPriority(HIGHPRIO);
-  assert(LOWPRIO == prev_prio); /* the expected prio of acq thread */
-
   /* Set to start on the timing strobe */
   nap_track_enable(channel);
 
