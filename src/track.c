@@ -70,7 +70,7 @@ static u16 iq_output_mask = 0;
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
 static bool send_trk_detailed = 0;
-u16 max_pll_integration_time_ms = 10;
+u16 max_pll_integration_time_ms = 20;
 
 static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
 
