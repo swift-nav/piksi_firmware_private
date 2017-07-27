@@ -88,14 +88,16 @@ static u8 nap_ch_capability[MAX_CHANNELS];
  *         +1 if a > b
  */
 static s8 CountCompare(u32 a, u32 b) {
-  const u32 threshold = (1<<31);
+  /*const u32 threshold = (1<<31);
   if (a > b) {
     return ((a-b) < threshold) ? +1 : -1;
   }
   if (b > a) {
     return ((b-a) < threshold) ? -1 : +1;
-  }
-  return 0;
+  }*/
+  s32 res = (a-b);
+
+  return res;
 }
 
 
