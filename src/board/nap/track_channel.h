@@ -36,7 +36,7 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,
-                      s16 delta_len);
+                      u8 corr_spacing);
 
 void nap_track_read_results(u8 channel,
                             u32* count_snapshot,

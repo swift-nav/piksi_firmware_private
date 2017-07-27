@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <string.h>
 
-#define TIMING_COMPARE_DELTA     ( 10e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
+#define TIMING_COMPARE_DELTA     (  1e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
 #define TIMING_COMPARE_DELTA_MAX (100e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /* 100ms */
 
 /* NAP track channel parameters. */
@@ -61,7 +61,6 @@ typedef struct {
 
 /** Internal tracking channel state */
 static struct nap_ch_state {
-  bool init;                   /**< Initializing channel. */
   me_gnss_signal_t mesid;      /**< Channel ME sid */
   nap_spacing_t spacing[4];    /**< Correlator spacing. */
   double code_phase_rate[2];   /**< Code phase rates. */
@@ -71,6 +70,7 @@ static struct nap_ch_state {
       Does not include FCN induced carrier phase change. */
   double reckoned_carr_phase;
   u32 length[2];           /**< Correlation length in samples of Fs */
+  s32 length_adjust;       /**< Adjust the length the next time around */
   s32 carr_pinc[2];        /**< Carrier phase increment */
   u64 reckon_counter;      /**< First carrier phase has to be read from NAP */
   s64 sw_carr_phase;       /**< Debug reckoned carrier phase */
@@ -83,18 +83,12 @@ static u8 nap_ch_capability[MAX_CHANNELS];
 /** Returns a > b, wrapping around a u32 (using 2^31 as threshold)
  * \param a
  * \param b
- * \return -1 if a < b
- *          0 if a == b
- *         +1 if a > b
+ * \return neg if a < b
+ *          0  if a == b
+ *         pos if a > b
+ * \note this works as subtracting is equal to adding the complementary+1
  */
-static s8 CountCompare(u32 a, u32 b) {
-  /*const u32 threshold = (1<<31);
-  if (a > b) {
-    return ((a-b) < threshold) ? +1 : -1;
-  }
-  if (b > a) {
-    return ((b-a) < threshold) ? -1 : +1;
-  }*/
+static s32 CountCompare(u32 a, u32 b) {
   s32 res = (a-b);
 
   return res;
@@ -198,7 +192,7 @@ static u16 spacing_to_nap_offset(nap_spacing_t spacing)
  */
 static double calc_samples_per_chip(double _chip_rate)
 {
-  return (double)NAP_TRACK_SAMPLE_RATE_Hz / _chip_rate;
+  return (double) NAP_TRACK_SAMPLE_RATE_Hz / _chip_rate;
 }
 
 void nap_track_init(u8 channel,
@@ -281,35 +275,41 @@ void nap_track_init(u8 channel,
     delta_samples -= calc_samples_per_chip(chip_rate);
   }
 
-  s->init = true;
-  nap_track_update(channel,
-                   _carr_doppler_hz,
-                   chip_rate,
-                   chips_to_correlate,
-                   delta_samples);
-
-  /* MIC_COMMENT: using s->length[0] should work as it is initialized above
-   * by nap_track_update() */
-  if ((s->length[0] < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
-      (s->length[0] > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_mesid(s->mesid,
-                   "Wrong NAP init correlation length: "
-                   "(%" PRIu32 ", %f, %lf %" PRIu32 ")",
-                   s->length[0], _carr_doppler_hz,
-                   chip_rate, chips_to_correlate);
+  /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
+   * does not have to branch for the special "init" situation */
+  /* Chip rate */
+  s->code_phase_rate[1] = s->code_phase_rate[0] = chip_rate;
+  u32 cp_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  t->CODE_PINC = cp_rate_units;
+  /* Integration length */
+  u32 length = calc_length_samples(chips_to_correlate, 0, cp_rate_units);
+  s->length[1] = s->length[0] = length;
+  if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
+      (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
+    log_warn_mesid(s->mesid, "Wrong inital NAP correlation length: "
+                   "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
+                   chips_to_correlate, cp_rate_units, length, chip_rate);
   }
+  t->CONTROL = SET_NAP_CORR_LEN(length);
+  s->length_adjust = delta_samples;
+  /* Carrier phase rate */
+  double carrier_dopp_hz = -(s->fcn_freq_hz + _carr_doppler_hz);
+  s32 carr_pinc = round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
+  s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
+  t->CARR_PINC = carr_pinc;
 
   /* Adjust first integration length due to correlator spacing */
   /* MIC_COMMENT: absorbed using `delta_samples` in nap_track_update() above */
-  /* MIC_COMMENT: what exactly happens when we enable NAP? could we
-   * enable it after setting all registers? */
-  /* Set to start on the timing strobe */
+
+  /* MIC_COMMENT: NAP needs to be enabled before TRK_TIMING_COMPARE
+   * arrives, so could check within lock that TRK_TIMING_COMPARE is still
+   * in the future and only then return */
   nap_track_enable(channel);
 
   COMPILER_BARRIER();
 
   /* get the code rollover point in samples */
-  u32 tc_codestart = ref_timing_count +
+  u32 tc_codestart = ref_timing_count - delta_samples -
                      floor(0.5+(code_phase*calc_samples_per_chip(chip_rate)));
 
   /* Set up timing compare */
@@ -317,22 +317,27 @@ void nap_track_init(u8 channel,
   /* get a reasonable deadline to which propagate to */
   u32 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
 
-  u32 tc_next_rollover = tc_codestart;
-  u8 index = 0;
+  s32 samples_diff = CountCompare(tc_min_propag,tc_codestart);
+  if (!(samples_diff > 0)) {
+    log_error_mesid(mesid, "samples_diff was found to be %d", samples_diff);
+  }
+  assert(samples_diff > 0);
 
+  u32 code_chips, num_codes, tc_next_rollover;
+  double code_samples;
+  u8 index = 0;
   if (mesid.code == CODE_GPS_L2CL) {
-    const u32 interval_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
-    while (CountCompare(tc_next_rollover,tc_min_propag) < 0) {
-      tc_next_rollover +=
-        interval_chips*calc_samples_per_chip(chip_rate);
-      index = (index+1) % GPS_L2CL_PRN_START_POINTS;
-    }
-    NAP->TRK_CODE_INT_INIT = index * interval_chips;
+    code_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
+    code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
+    num_codes = 1 + floor((double)samples_diff / code_samples);
+    tc_next_rollover = tc_codestart + floor(0.5 + (double)num_codes * code_samples);
+    index = (num_codes % GPS_L2CL_PRN_START_POINTS);
+    NAP->TRK_CODE_INT_INIT = index * code_chips;
   } else {
-    while (CountCompare(tc_next_rollover,tc_min_propag) < 0) {
-      tc_next_rollover +=
-        code_to_chip_count(mesid.code)*calc_samples_per_chip(chip_rate);
-    }
+    code_chips = code_to_chip_count(mesid.code);
+    code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
+    num_codes = 1 + floor((double)samples_diff / code_samples);
+    tc_next_rollover = tc_codestart + floor(0.5 + (double)num_codes * code_samples);
     NAP->TRK_CODE_INT_INIT = 0;
   }
 
@@ -346,16 +351,16 @@ void nap_track_init(u8 channel,
 
   NAP->TRK_TIMING_COMPARE = (u32) floor(0.5+tc_next_rollover);
   chSysUnlock();
-
-  s->init = false;
 }
 
 void nap_track_update(u8 _chan_idx,
                       double _carr_doppler_hz,
                       double _chip_rate,
                       u32 _chips_to_correlate,
-                      s16 _delta_len)
+                      u8 corr_spacing)
 {
+  (void)corr_spacing; /* This is always written as 0, for now */
+
   swiftnap_tracking_t *t = &NAP->TRK_CH[_chan_idx];
   struct nap_ch_state *s = &nap_ch_desc[_chan_idx];
 
@@ -370,13 +375,8 @@ void nap_track_update(u8 _chan_idx,
    * matter much in a tracking loop scenario.. */
   /* MIC_COMMENT: so I'd probably remove this s->code_phase_rate[2] and use
    * a s->code_pinc[2] to reckon code increments */
-  u32 code_phase_frac = 0;
-  if (s->init) {
-    s->code_phase_rate[1] = _chip_rate;
-  } else {
-    code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC * (s->length[1]);
-    s->code_phase_rate[1] = s->code_phase_rate[0];
-  }
+  u32 code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC * (s->length[0]);
+  s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = _chip_rate;
 
   u32 cp_rate_units = round(_chip_rate *
@@ -387,12 +387,9 @@ void nap_track_update(u8 _chan_idx,
   /* INTEGRATION LENGTH ------------------------------------------------ */
   u32 length = calc_length_samples(_chips_to_correlate, code_phase_frac,
                                    cp_rate_units);
-  if (s->init) {
-    length += _delta_len;
-    s->length[1] = length;
-  } else {
-    s->length[1] = s->length[0];
-  }
+  length += s->length_adjust;
+  s->length_adjust = 0;
+  s->length[1] = s->length[0];
   s->length[0] = length;
 
   t->CONTROL = SET_NAP_CORR_LEN(length);
@@ -400,8 +397,8 @@ void nap_track_update(u8 _chan_idx,
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_warn_mesid(s->mesid, "Wrong NAP correlation length: "
-                   "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
-                   (int)s->init, _chips_to_correlate, code_phase_frac,
+                   "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
+                   _chips_to_correlate, code_phase_frac,
                    cp_rate_units, length, _chip_rate);
   }
 
@@ -410,12 +407,7 @@ void nap_track_update(u8 _chan_idx,
   double carrier_freq_hz = -(s->fcn_freq_hz + _carr_doppler_hz);
 
   s32 carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
-
-  if (s->init) {
-    s->carr_pinc[1] = carr_pinc;
-  } else {
-    s->carr_pinc[1] = s->carr_pinc[0];
-  }
+  s->carr_pinc[1] = s->carr_pinc[0];
   s->carr_pinc[0] = carr_pinc;
 
   t->CARR_PINC = carr_pinc;
