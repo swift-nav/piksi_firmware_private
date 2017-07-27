@@ -80,15 +80,23 @@ static struct nap_ch_state {
 static u8 nap_ch_capability[MAX_CHANNELS];
 
 
-//~ /** Returns the difference between two NAP counts, wrapping around as
- //~ * b is known to come "before" a - and a is known to come "after" b
- //~ * \param a
- //~ * \param b
- //~ * \return The difference a-b
- //~ */
-//~ static s32 CounterDiff(u32 a, u32 b) {
-  //~ return (a>=b) ? (a-b) : -((UINT_MAX-b)+a);
-//~ }
+/** Returns a > b, wrapping around a u32 (using 2^31 as threshold)
+ * \param a
+ * \param b
+ * \return -1 if a < b
+ *          0 if a == b
+ *         +1 if a > b
+ */
+static s8 CountCompare(u32 a, u32 b) {
+  const u32 threshold = (1<<31);
+  if (a > b) {
+    return ((a-b) < threshold) ? +1 : -1;
+  }
+  if (b > a) {
+    return ((b-a) < threshold) ? -1 : +1;
+  }
+  return 0;
+}
 
 
 /** Compute the correlation length in the units of sampling frequency samples.
@@ -255,8 +263,6 @@ void nap_track_init(u8 channel,
   double chip_rate = (1.0 + _carr_doppler_hz / carrier_freq_hz) *
                            code_to_chip_rate(mesid.code);
 
-
-
   /* Spacing between VE and P correlators */
   s16 delta_samples = s->spacing[0].samples + s->spacing[1].samples +
                       round((s->spacing[0].chips + s->spacing[1].chips) *
@@ -292,13 +298,7 @@ void nap_track_init(u8 channel,
   }
 
   /* Adjust first integration length due to correlator spacing */
-  /* MIC_COMMENT: absorbed using `prompt_offset` in nap_track_update() above */
-  //~ s->length[0] += prompt_offset;
-  //~ t->CONTROL = SET_NAP_CORR_LEN(s->length[0]);
-
-  /* MIC_COMMENT: profiling... mmm... */
-  //~ u64 profiling_begin = nap_timing_count();
-
+  /* MIC_COMMENT: absorbed using `delta_samples` in nap_track_update() above */
   /* MIC_COMMENT: what exactly happens when we enable NAP? could we
    * enable it after setting all registers? */
   /* Set to start on the timing strobe */
@@ -307,64 +307,32 @@ void nap_track_init(u8 channel,
   COMPILER_BARRIER();
 
   /* get the code rollover point in samples */
-  double tc_codestart = ref_timing_count +
-                     code_phase*calc_samples_per_chip(chip_rate);
+  u32 tc_codestart = ref_timing_count +
+                     floor(0.5+(code_phase*calc_samples_per_chip(chip_rate)));
 
   /* Set up timing compare */
-  //~ while (1) {
   chSysLock();  /* this should prevent preemption hopefully? */
   /* get a reasonable deadline to which propagate to */
-  double tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
+  u32 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
 
-  double tc_next_rollover = tc_codestart;
-
+  u32 tc_next_rollover = tc_codestart;
   u8 index = 0;
+
   if (mesid.code == CODE_GPS_L2CL) {
     const u32 interval_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
-    while (tc_next_rollover < tc_min_propag) {
+    while (CountCompare(tc_next_rollover,tc_min_propag) < 0) {
       tc_next_rollover +=
         interval_chips*calc_samples_per_chip(chip_rate);
       index = (index+1) % GPS_L2CL_PRN_START_POINTS;
     }
     NAP->TRK_CODE_INT_INIT = index * interval_chips;
   } else {
-    while (tc_next_rollover < tc_min_propag) {
+    while (CountCompare(tc_next_rollover,tc_min_propag) < 0) {
       tc_next_rollover +=
         code_to_chip_count(mesid.code)*calc_samples_per_chip(chip_rate);
     }
     NAP->TRK_CODE_INT_INIT = 0;
   }
-
-  //~ double cp = propagate_code_phase(mesid,
-                                   //~ code_phase,
-                                   //~ _carr_doppler_hz,
-                                   //~ tc_min);
-  //~ /* Contrive for the timing strobe to occur at
-   //~ * or close to next PRN start point */
-  //~ if (mesid.code == CODE_GPS_L2CL) {
-    //~ /* At the moment, we can start the L2CL channel every 20ms intervals,
-       //~ i.e. we have precomputed the code generator register contents for
-       //~ these 75 possible starting points (75 = 1.5s / 20ms).
-       //~ (We did not succeed with calculating the register contents for
-       //~ arbitrary 1ms starting point on-the-fly.)
-       //~ interval chips is how many code chips there is in 20ms.
-       //~ The ceil operation is for figuring out which is the next 20ms index
-       //~ where to start the tracker. */
-
-    //~ u8 cp_start = 1 + floor(cp / interval_chips);
-    //~ index = cp_start % GPS_L2CL_PRN_START_POINTS;
-    //~ /* We assume that (cp_start * interval_chips - cp) is always positive.
-       //~ Otherwise there is a conversion from negative double to u32,
-       //~ which triggers an undefined behaviour. */
-    //~ tc_req += round((cp_start * interval_chips - cp)
-            //~ * calc_samples_per_chip(chip_rate));
-    //~ NAP->TRK_CODE_INT_INIT = index * interval_chips;
-  //~ } else {
-
-    //~ tc_req += round((code_to_chip_count(mesid.code) - cp)
-            //~ * calc_samples_per_chip(chip_rate));
-    //~ NAP->TRK_CODE_INT_INIT = 0;
-  //~ }
 
   NAP->TRK_CODE_INT_MAX = code_to_chip_count(mesid.code) - 1;
   NAP->TRK_CODE_FRAC_INIT = 0;
@@ -374,51 +342,8 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_LFSR1_INIT = mesid_to_init_g2(mesid);
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
 
-  //~ if (NAP->TIMING_COUNT < )
   NAP->TRK_TIMING_COMPARE = (u32) floor(0.5+tc_next_rollover);
   chSysUnlock();
-  //~ if (tc_req - NAP->TRK_COMPARE_SNAPSHOT <= (u32)TIMING_COMPARE_DELTA_MAX) {
-  //~ break;
-  //~ }
-  //~ }
-
-  //~ /* Sleep until compare match */
-  //~ s32 tc_delta;
-  //~ while ((tc_delta = tc_req - NAP->TIMING_COUNT) >= 0) {
-    //~ systime_t sleep_time = floor(CH_CFG_ST_FREQUENCY * tc_delta /
-        //~ NAP_TRACK_SAMPLE_RATE_Hz);
-
-    //~ /* The next system tick will always occur less than the nominal tick period
-     //~ * in the future, so sleep for an extra tick. */
-    //~ chThdSleep(1 + sleep_time / 2);
-  //~ }
-
-  //~ /* Revert length adjustment for future integrations after channel started */
-  //~ length = GET_NAP_CORR_LEN;
-  //~ t->CONTROL = SET_NAP_CORR_LEN(length-prompt_offset);
-
-  //~ u32 length_reg_val = GET_NAP_CORR_LEN;
-  //~ /* check for underflow */
-  //~ if (length <= length_reg_val) {
-    //~ u64 profiling_end = nap_timing_count();
-    //~ log_warn_mesid(mesid,
-                   //~ "LENGTH: %" PRIu32 " length: %" PRIu32
-                   //~ " prompt_offset: %" PRIu16
-                   //~ " delay_us: %.3lf",
-                   //~ length_reg_val, length, prompt_offset,
-                   //~ (profiling_end - profiling_begin) * RX_DT_NOMINAL * 1e6);
-  //~ }
-  //~ /* Future integrations for L2CL are 1 chip longer */
-  //~ if (mesid.code == CODE_GPS_L2CL) {
-    //~ length = GET_NAP_CORR_LEN;
-    //~ length += calc_samples_per_chip(chip_rate);
-    //~ t->CONTROL = SET_NAP_CORR_LEN(length);
-  //~ }
-  //~ s->length[1] = s->length[0];
-  //~ s->length[0] = GET_NAP_CORR_LEN;
-
-  //~ /* The first and second integrations are always done with same carr_pinc */
-  //~ s->carr_pinc[1] = s->carr_pinc[0];
 
   s->init = false;
 }
@@ -426,8 +351,8 @@ void nap_track_init(u8 channel,
 void nap_track_update(u8 _chan_idx,
                       double _carr_doppler_hz,
                       double _chip_rate,
-                      u32 chips_to_correlate,
-                      s16 delta_len)
+                      u32 _chips_to_correlate,
+                      s16 _delta_len)
 {
   swiftnap_tracking_t *t = &NAP->TRK_CH[_chan_idx];
   struct nap_ch_state *s = &nap_ch_desc[_chan_idx];
@@ -458,10 +383,10 @@ void nap_track_update(u8 _chan_idx,
   t->CODE_PINC = cp_rate_units;
 
   /* INTEGRATION LENGTH ------------------------------------------------ */
-  u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
+  u32 length = calc_length_samples(_chips_to_correlate, code_phase_frac,
                                    cp_rate_units);
   if (s->init) {
-    length += delta_len;
+    length += _delta_len;
     s->length[1] = length;
   } else {
     s->length[1] = s->length[0];
@@ -474,7 +399,7 @@ void nap_track_update(u8 _chan_idx,
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_warn_mesid(s->mesid, "Wrong NAP correlation length: "
                    "(%d %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
-                   (int)s->init, chips_to_correlate, code_phase_frac,
+                   (int)s->init, _chips_to_correlate, code_phase_frac,
                    cp_rate_units, length, _chip_rate);
   }
 
