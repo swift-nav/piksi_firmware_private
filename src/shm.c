@@ -80,7 +80,7 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
     char shi1_str[4], shi4_str[2], shi6_str[2];
     char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
     chMtxLock(&shm_data_access);
-    gps_sat_health_indicators_t shis = gps_shis[sat - 1];
+    gps_sat_health_indicators_t shis = gps_shis[sat - GPS_FIRST_PRN];
     chMtxUnlock(&shm_data_access);
     int_shi_2_str(shis.shi1_set, shis.shi1, shi1_str, sizeof(shi1_str));
     bool_shi_2_str(shis.shi4_set, shis.shi4, shi4_str);
@@ -113,11 +113,12 @@ void shm_log_sat_state(const char* shi_name, u16 sat) {
  * \param sat GPS satellite ID
  * \param new_value value to set SHI1 to
  */
-void shm_gps_set_shi1(u16 sat, u8 new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat <= NUM_SATS_GPS);
+void shm_gps_set_shi1(u16 sat, u8 new_value)
+{
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - 1].shi1 = new_value;
-  gps_shis[sat - 1].shi1_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi1 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi1_set = true;
   chMtxUnlock(&shm_data_access);
   shm_log_sat_state("SHI1", sat);
 }
@@ -128,11 +129,12 @@ void shm_gps_set_shi1(u16 sat, u8 new_value) {
  * \param sat GPS satellite ID
  * \param new_value value to set SHI4 to
  */
-void shm_gps_set_shi4(u16 sat, bool new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat <= NUM_SATS_GPS);
+void shm_gps_set_shi4(u16 sat, bool new_value)
+{
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - 1].shi4 = new_value;
-  gps_shis[sat - 1].shi4_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi4 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi4_set = true;
   chMtxUnlock(&shm_data_access);
   shm_log_sat_state("SHI4", sat);
 }
@@ -143,11 +145,12 @@ void shm_gps_set_shi4(u16 sat, bool new_value) {
  * \param sat GPS satellite ID
  * \param new_value value to set SHI6 to
  */
-void shm_gps_set_shi6(u16 sat, bool new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat <= NUM_SATS_GPS);
+void shm_gps_set_shi6(u16 sat, bool new_value)
+{
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
   chMtxLock(&shm_data_access);
-  gps_shis[sat - 1].shi6 = new_value;
-  gps_shis[sat - 1].shi6_set = true;
+  gps_shis[sat - GPS_FIRST_PRN].shi6 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi6_set = true;
   chMtxUnlock(&shm_data_access);
   shm_log_sat_state("SHI6", sat);
 }
@@ -160,10 +163,10 @@ void shm_gps_set_shi6(u16 sat, bool new_value) {
  */
 void shm_glo_set_shi(u16 sat, u8 new_value)
 {
-  assert(sat >= GLO_FIRST_PRN && sat <= NUM_SATS_GLO);
+  assert(sat >= GLO_FIRST_PRN && sat < GLO_FIRST_PRN + NUM_SATS_GLO);
   chMtxLock(&shm_data_access);
-  glo_shis[sat - 1].shi = new_value;
-  glo_shis[sat - 1].shi_set = true;
+  glo_shis[sat - GLO_FIRST_PRN].shi = new_value;
+  glo_shis[sat - GLO_FIRST_PRN].shi_set = true;
   chMtxUnlock(&shm_data_access);
 }
 
@@ -175,6 +178,7 @@ void shm_glo_set_shi(u16 sat, u8 new_value)
  */
 code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
 {
+  /* Skip GLO satellites if they do not have orbit slot decoded. */
   if (CONSTELLATION_GLO == sid_to_constellation(sid) &&
       GLO_ORBIT_SLOT_UNKNOWN == sid.sat) {
     return CODE_NAV_STATE_UNKNOWN;
@@ -195,8 +199,8 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid)
 
   /* Retrieve SHI data */
   chMtxLock(&shm_data_access);
-  gps_sat_health_indicators_t shis = gps_shis[sid.sat - 1];
-  glo_sat_health_indicators_t shi = glo_shis[sid.sat - 1];
+  gps_sat_health_indicators_t shis = gps_shis[sid.sat - GPS_FIRST_PRN];
+  glo_sat_health_indicators_t shi = glo_shis[sid.sat - GLO_FIRST_PRN];
   chMtxUnlock(&shm_data_access);
 
   switch (sid.code) {
