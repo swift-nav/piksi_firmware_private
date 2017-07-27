@@ -31,7 +31,6 @@
 #include <string.h>
 
 #define TIMING_COMPARE_DELTA     (  1e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
-#define TIMING_COMPARE_DELTA_MAX (100e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /* 100ms */
 
 /* NAP track channel parameters. */
 #define NAP_TRACK_CARRIER_FREQ_WIDTH              32
@@ -190,15 +189,15 @@ static u16 spacing_to_nap_offset(nap_spacing_t spacing)
  * \param code GNSS code identifier.
  * \return Number of samples per code chip.
  */
-static double calc_samples_per_chip(double _chip_rate)
+static double calc_samples_per_chip(double code_phase_rate)
 {
-  return (double) NAP_TRACK_SAMPLE_RATE_Hz / _chip_rate;
+  return (double)NAP_TRACK_SAMPLE_RATE_Hz / code_phase_rate;
 }
 
 void nap_track_init(u8 channel,
                     const me_gnss_signal_t mesid,
                     u32 ref_timing_count,
-                    float _carr_doppler_hz,
+                    float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate)
 {
@@ -256,7 +255,7 @@ void nap_track_init(u8 channel,
 
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
-  double chip_rate = (1.0 + _carr_doppler_hz / carrier_freq_hz) *
+  double chip_rate = (1.0 + doppler_freq_hz / carrier_freq_hz) *
                            code_to_chip_rate(mesid.code);
 
   /* Spacing between VE and P correlators */
@@ -293,7 +292,7 @@ void nap_track_init(u8 channel,
   t->CONTROL = SET_NAP_CORR_LEN(length);
   s->length_adjust = delta_samples;
   /* Carrier phase rate */
-  double carrier_dopp_hz = -(s->fcn_freq_hz + _carr_doppler_hz);
+  double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_freq_hz);
   s32 carr_pinc = round(carrier_dopp_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
   t->CARR_PINC = carr_pinc;
@@ -354,9 +353,9 @@ void nap_track_init(u8 channel,
 }
 
 void nap_track_update(u8 _chan_idx,
-                      double _carr_doppler_hz,
-                      double _chip_rate,
-                      u32 _chips_to_correlate,
+                      double doppler_freq_hz,
+                      double chip_rate,
+                      u32 chips_to_correlate,
                       u8 corr_spacing)
 {
   (void)corr_spacing; /* This is always written as 0, for now */
@@ -377,16 +376,15 @@ void nap_track_update(u8 _chan_idx,
    * a s->code_pinc[2] to reckon code increments */
   u32 code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC * (s->length[0]);
   s->code_phase_rate[1] = s->code_phase_rate[0];
-  s->code_phase_rate[0] = _chip_rate;
+  s->code_phase_rate[0] = chip_rate;
 
-  u32 cp_rate_units = round(_chip_rate *
-      NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
 
-  t->CODE_PINC = cp_rate_units;
+  t->CODE_PINC = code_units;
 
   /* INTEGRATION LENGTH ------------------------------------------------ */
-  u32 length = calc_length_samples(_chips_to_correlate, code_phase_frac,
-                                   cp_rate_units);
+  u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
+                                   code_units);
   length += s->length_adjust;
   s->length_adjust = 0;
   s->length[1] = s->length[0];
@@ -398,13 +396,13 @@ void nap_track_update(u8 _chan_idx,
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
     log_warn_mesid(s->mesid, "Wrong NAP correlation length: "
                    "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
-                   _chips_to_correlate, code_phase_frac,
-                   cp_rate_units, length, _chip_rate);
+                   chips_to_correlate, code_phase_frac,
+                   code_units, length, chip_rate);
   }
 
   /* CARRIER (+FCN) FREQ ---------------------------------------------- */
   /* Note: s->fcn_freq_hz is non zero for Glonass only */
-  double carrier_freq_hz = -(s->fcn_freq_hz + _carr_doppler_hz);
+  double carrier_freq_hz = -(s->fcn_freq_hz + doppler_freq_hz);
 
   s32 carr_pinc = round(carrier_freq_hz * NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ);
   s->carr_pinc[1] = s->carr_pinc[0];
