@@ -118,4 +118,7 @@ docs:
 	$(MAKE) -C docs/diagrams
 	doxygen docs/Doxyfile
 
+clang-format-all:
+	clang-format -i $$(git ls-files 'src/*.[ch]')
+
 .FORCE:
