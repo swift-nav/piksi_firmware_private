@@ -953,8 +953,8 @@ u16 sv_azimuth_degrees_get(gnss_signal_t sid);
 s8 sv_elevation_degrees_get(gnss_signal_t sid);
 
 /* Decoder interface */
-bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
-                                  bool *sensitivity_mode);
+bool tracking_channel_nav_bit_get(tracker_channel_id_t id,
+                                  nav_bit_fifo_element_t *nav_bit);
 bool tracking_channel_health_sync(tracker_channel_id_t id, u8 health);
 void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
 void tracking_channel_gps_data_sync(tracker_channel_id_t id,

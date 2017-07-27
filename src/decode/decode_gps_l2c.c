@@ -91,12 +91,11 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
   gps_l2c_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
-  s8 soft_bit;
-  bool sensitivity_mode;
+  nav_bit_fifo_element_t nav_bit;
   while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
-                                      &soft_bit, &sensitivity_mode)) {
+                                      &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (sensitivity_mode) {
+    if (nav_bit.sensitivity_mode) {
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       cnav_msg_decoder_init(&data->cnav_msg_decoder);
       continue;
@@ -107,7 +106,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     s32 tow_ms;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    symbol_probability = soft_bit + 128;
+    symbol_probability = nav_bit.soft_bit + POW_TWO_7;
 
     bool decoded = cnav_msg_decoder_add_symbol(&data->cnav_msg_decoder,
                                                symbol_probability,

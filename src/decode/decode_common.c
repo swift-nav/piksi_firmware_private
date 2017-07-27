@@ -36,17 +36,16 @@ void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid)
 
 bool is_glo_decode_ready(nav_msg_glo_t *n,
                          me_gnss_signal_t mesid,
-                         s8 soft_bit,
-                         bool sensitivity_mode)
+                         const nav_bit_fifo_element_t *nav_bit)
 {
   /* Don't trust polarity information while in sensitivity mode. */
-  if (sensitivity_mode) {
+  if (nav_bit->sensitivity_mode) {
     nav_msg_init_glo_with_cb(n, mesid);
     return false;
   }
 
   /* Update GLO data decoder */
-  bool bit_val = soft_bit >= 0;
+  bool bit_val = nav_bit->soft_bit >= 0;
   nav_msg_status_t msg_status = nav_msg_update_glo(n, bit_val);
   if (GLO_STRING_READY != msg_status) {
     return false;
@@ -55,12 +54,18 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
   /* Check for bit errors in the collected string */
   s8 bit_errors = error_detection_glo(n);
   if (bit_errors != 0) {
-    nav_msg_init_glo_with_cb(n, mesid);
     return false;
   }
 
+  systime_t sys_ticks = chVTGetSystemTime();
+  /* TODO GLO: Check implementation once piksi_systime is available.
+   * Instead of using ST2MS macro which overflows every 35 minutes,
+   * cast systick into a 64 bit variable for conversion. */
+  u32 time_tag_ms = ((u64)sys_ticks * SECS_MS + CH_CFG_ST_FREQUENCY - 1) /
+                    CH_CFG_ST_FREQUENCY;
+
   /* Get GLO strings 1 - 5, and decode full ephemeris */
-  string_decode_status_t str_status = process_string_glo(n);
+  string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
   if (GLO_STRING_DECODE_ERROR == str_status) {
     nav_msg_init_glo_with_cb(n, mesid);
     return false;

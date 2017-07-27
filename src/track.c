@@ -1157,21 +1157,19 @@ s8 sv_elevation_degrees_get(gnss_signal_t sid)
  * \note This function should should be called from the same thread as
  * tracking_channel_time_sync().
  *
- * \param id               ID of the tracker channel to read from.
- * \param soft_bit         Output soft nav bit value.
- * \param sensitivity_mode Flag indicating tracking channel sensitivity mode.
+ * \param id       ID of the tracker channel to read from.
+ * \param nav_bit  Struct containing nav_bit data.
  *
- * \return true if *soft_bit is valid, false otherwise.
+ * \return true if valid nav_bit is available, false otherwise.
  */
-bool tracking_channel_nav_bit_get(tracker_channel_id_t id, s8 *soft_bit,
-                                  bool *sensitivity_mode)
+bool tracking_channel_nav_bit_get(tracker_channel_id_t id,
+                                  nav_bit_fifo_element_t *nav_bit)
 {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
 
   nav_bit_fifo_element_t element;
   if (nav_bit_fifo_read(&tracker_channel->nav_bit_fifo, &element)) {
-    *soft_bit = element.soft_bit;
-    *sensitivity_mode = element.sensitivity_mode;
+    *nav_bit = element;
     return true;
   }
   return false;

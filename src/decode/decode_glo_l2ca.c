@@ -90,19 +90,13 @@ static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
   glo_l2ca_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
-  s8 soft_bit;
-  bool sensitivity_mode = true;
+  nav_bit_fifo_element_t nav_bit;
   me_gnss_signal_t mesid = channel_info->mesid;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracking_channel_nav_bit_get(channel,
-                                      &soft_bit,
-                                      &sensitivity_mode)) {
+  while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
-    if (!is_glo_decode_ready(&data->nav_msg,
-                             mesid,
-                             soft_bit,
-                             sensitivity_mode)) {
+    if (!is_glo_decode_ready(&data->nav_msg, mesid, &nav_bit)) {
       continue;
     }
 

@@ -434,17 +434,16 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   gps_l1ca_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
-  s8 soft_bit;
-  bool sensitivity_mode = true;
+  nav_bit_fifo_element_t nav_bit;
   while (tracking_channel_nav_bit_get(channel_info->tracking_channel,
-                                      &soft_bit, &sensitivity_mode)) {
+                                      &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (sensitivity_mode) {
+    if (nav_bit.sensitivity_mode) {
       nav_msg_init(&data->nav_msg);
       continue;
     }
     /* Update TOW */
-    bool bit_val = soft_bit >= 0;
+    bool bit_val = nav_bit.soft_bit >= 0;
     nav_data_sync_t from_decoder;
     tracking_channel_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
