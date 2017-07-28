@@ -1,6 +1,7 @@
 #ifndef FIXED_FFT_R2_H_
 #define FIXED_FFT_R2_H_
 
+#include <stdint.h>
 
 #define MAX_FFTR2_RANKS (14)
 #define INTFFT_MAXSIZE  (1<<MAX_FFTR2_RANKS)
