@@ -26,9 +26,7 @@
 #include <libswiftnav/troposphere.h>
 #include <libswiftnav/sid_set.h>
 
-#define memory_pool_t MemoryPool
 #include <ch.h>
-#undef memory_pool_t
 
 #include "peripherals/leds.h"
 #include "position.h"
@@ -58,7 +56,7 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-static MemoryPool time_matched_obs_buff_pool;
+static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t  time_matched_obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
@@ -271,7 +269,7 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, sbp_messages_t *
     /* Update stats */
     last_pvt_stats.systime = chVTGetSystemTime();
     last_pvt_stats.signals_used = soln->n_sigs_used;
-    
+
   } else {
     gps_time_t time_guess = get_current_time();
     sbp_make_gps_time(&sbp_messages->gps_time, &time_guess, 0);
