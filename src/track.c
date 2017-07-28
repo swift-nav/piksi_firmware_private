@@ -298,7 +298,7 @@ void tracking_channels_process(void)
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        a missed update error has occurred.
  */
-void tracking_channels_missed_update_error(u32 channels_mask)
+void tracking_channels_missed_update_error(u64 channels_mask)
 {
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(channel);
