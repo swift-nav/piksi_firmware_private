@@ -13,6 +13,17 @@ os:
   - linux
   - osx
 
+
+matrix:
+  include:
+    - os: linux
+      apt:
+        sources:
+          - llvm-toolchain-trusty
+        packages:
+          - clang-4.0
+      env: TESTENV=lint
+
 before_install:
   - pip install --user --upgrade awscli
 
@@ -29,8 +40,7 @@ install:
 
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
-  - export PATH=$PATH:~/gcc-arm-none-eabi/bin
-  - make PIKSI_HW=v3 PIKSI_REV=prod
+  - ./travis.sh
 
 after_success:
   - git fetch --tags --unshallow
