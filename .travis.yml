@@ -5,7 +5,7 @@ language: c
 notifications:
   slack:
     rooms:
-      - snav:JdxlaluulRxggMfKcNFhurbc#estimation
+      - snav:JdxlaluulRxggMfKcNFhurbc#firmware
     on_pull_requests: false
     on_failure: always
     on_success: never
