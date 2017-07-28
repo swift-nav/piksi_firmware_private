@@ -32,7 +32,9 @@ install:
   # use the committed version.  Travis doesn't have a good way to set
   # a special variable just for this case, so we have to gate only on
   # the event type.
-  - if [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
+  - if [[ "$TESTENV" == "lint" ]]; then
+      echo "lint";
+    elif [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
       ANSIBLE_SUDO_OPTION="" bash setup.sh -s origin/master -x install;
     else
       ANSIBLE_SUDO_OPTION="" bash setup.sh -x install;
