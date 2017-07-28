@@ -18,11 +18,12 @@ os:
 matrix:
   include:
     - os: linux
-      apt:
-        sources:
-          - llvm-toolchain-trusty
-        packages:
-          - clang-format-4.0
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty
+          packages:
+            - clang-format-4.0
       env: TESTENV=lint
 
 before_install:
