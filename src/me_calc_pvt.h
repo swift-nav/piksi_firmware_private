@@ -22,9 +22,7 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
 
-#define memory_pool_t MemoryPool
 #include <ch.h>
-#undef memory_pool_t
 
 typedef struct {
   u8 signals_tracked;
@@ -53,7 +51,7 @@ typedef struct _me_msg_obs_t {
 #define MAX_CLOCK_ERROR_S 0.0005
 
 extern u32 obs_output_divisor;
-extern MemoryPool obs_buff_pool;
+extern memory_pool_t obs_buff_pool;
 extern mailbox_t  obs_mailbox;
 
 soln_stats_t solution_last_stats_get(void);

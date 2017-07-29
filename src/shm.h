@@ -14,6 +14,7 @@
 #define SWIFTNAV_SHM_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/signal.h>
 
 /* Possible satellite code health states */
 typedef enum {

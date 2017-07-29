@@ -63,7 +63,7 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
-MemoryPool obs_buff_pool;
+memory_pool_t obs_buff_pool;
 mailbox_t  obs_mailbox;
 
 double soln_freq = 5.0;

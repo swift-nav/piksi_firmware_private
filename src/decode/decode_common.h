@@ -13,6 +13,8 @@
 #ifndef SWIFTNAV_DECODE_COMMON_H
 #define SWIFTNAV_DECODE_COMMON_H
 
+#include "track.h"
+
 void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 bool is_glo_decode_ready(nav_msg_glo_t *n,
                          me_gnss_signal_t mesid,
