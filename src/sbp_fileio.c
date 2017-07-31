@@ -25,7 +25,7 @@
 #include "sbp_utils.h"
 
 #define SBP_FILEIO_TIMEOUT 5000
-#define SBP_FILEIO_TRIES   5
+#define SBP_FILEIO_TRIES   1
 
 static u8 next_seq(void)
 {

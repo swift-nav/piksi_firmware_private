@@ -305,6 +305,10 @@ static void decode_thread(void *arg)
       send_glo_fcn_mapping(get_current_gps_time());
     );
 
+    DO_EVERY(1000 / DECODE_THREAD_SLEEP_MS,
+      ndb_ephemeris_store_dbg(NDB_DS_RECEIVER);
+    );
+
     chThdSleep(MS2ST(DECODE_THREAD_SLEEP_MS));
   }
 }
