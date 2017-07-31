@@ -42,7 +42,7 @@
  * \note The result is rounded upward to the next tick boundary.
  */
 #define PIKSI_TIME2ST(t, prefix) \
-  (((u64)t * CH_CFG_ST_FREQUENCY + (prefix - 1)) / prefix)
+  (((u64)(t) * CH_CFG_ST_FREQUENCY + ((prefix) - 1)) / (prefix))
 
 #define PIKSI_US2ST(t) PIKSI_TIME2ST(t, SECS_US)
 #define PIKSI_MS2ST(t) PIKSI_TIME2ST(t, SECS_MS)
@@ -53,7 +53,7 @@
  * Dividend (u64)t * PIKSI_ST_FREQ + (prefix - 1) must fit into u64.
  */
 #define PIKSI_TIME2_LIMIT(prefix) \
-  (((u64)-1  - (u64)prefix + 1) / (u64)CH_CFG_ST_FREQUENCY)
+  (((u64)-1  - (u64)(prefix) + 1) / (u64)CH_CFG_ST_FREQUENCY)
 
 #define PIKSI_US2ST_LIMIT PIKSI_TIME2_LIMIT(SECS_US)
 #define PIKSI_MS2ST_LIMIT PIKSI_TIME2_LIMIT(SECS_MS)
@@ -67,7 +67,7 @@
  * \note The result is rounded up to the next time unit boundary.
  */
 #define PIKSI_ST2TIME(n, prefix) \
-  (((u64)n * (u64)prefix + ((u64)CH_CFG_ST_FREQUENCY - 1)) / \
+  (((u64)(n) * (u64)(prefix) + ((u64)CH_CFG_ST_FREQUENCY - 1)) / \
     (u64)CH_CFG_ST_FREQUENCY)
 
 #define PIKSI_ST2US(n) PIKSI_ST2TIME(n, SECS_US)
@@ -79,7 +79,7 @@
  * Dividend (u64)n * (u64)prefix + (CH_CFG_ST_FREQUENCY - 1) must fit into u64.
  */
 #define PIKSI_ST2_LIMIT(prefix) \
-  (((u64)-1 - (u64)CH_CFG_ST_FREQUENCY + 1) / (u64)prefix)
+  (((u64)-1 - (u64)CH_CFG_ST_FREQUENCY + 1) / (u64)(prefix))
 
 #define PIKSI_ST2US_LIMIT PIKSI_ST2_LIMIT(SECS_US)
 #define PIKSI_ST2MS_LIMIT PIKSI_ST2_LIMIT(SECS_MS)
