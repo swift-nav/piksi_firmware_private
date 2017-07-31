@@ -55,7 +55,6 @@
 #define RTC_I2C I2CD2
 #define RTC_I2C_CONFIG {.clk = 200000}
 
-#define LED_I2C I2CD2
 #define LED_I2C_CONFIG {.clk = 200000}
 
 #define EEPROM_I2C I2CD2
