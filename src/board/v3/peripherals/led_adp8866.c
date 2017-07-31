@@ -24,7 +24,7 @@
 
 #define LED_LEVEL_SET_VALUE   0x20
 
-static struct I2CDriver *led_i2c;
+static struct I2CDriver *led_i2c = &I2CD2;
 
 static const I2CConfig led_i2c_config = LED_I2C_CONFIG;
 

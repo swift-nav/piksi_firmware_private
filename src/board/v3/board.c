@@ -44,7 +44,7 @@ static void cycle_counter_init(void)
 
 bool board_is_duro(void)
 {
-  static bool called;
+  static bool called = false;
   static bool is_duro;
   if (!called) {
     u8 host_board_id[6];
