@@ -26,8 +26,7 @@
 #include <libswiftnav/troposphere.h>
 #include <libswiftnav/sid_set.h>
 
-#include <ch.h>
-
+#include "me_calc_pvt.h"
 #include "peripherals/leds.h"
 #include "position.h"
 #include "nmea.h"
@@ -47,8 +46,7 @@
 #include "ndb.h"
 #include "shm.h"
 #include "common_calc_pvt.h"
-#include "me_calc_pvt.h"
-
+#include "piksi_systime.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -98,10 +96,10 @@ bool disable_klobuchar = false;
 bool enable_glonass_in_pvt = false;
 float glonass_downweight_factor = 4;
 
-static soln_pvt_stats_t last_pvt_stats = { .systime = -1, .signals_used = 0 };
-static soln_dgnss_stats_t last_dgnss_stats = { .systime = -1, .mode = 0 };
-
-
+static soln_pvt_stats_t last_pvt_stats = { .systime = PIKSI_SYSTIME_INIT,
+                                           .signals_used = 0 };
+static soln_dgnss_stats_t last_dgnss_stats = { .systime = PIKSI_SYSTIME_INIT,
+                                               .mode = 0 };
 
 static void post_observations(u8 n, const navigation_measurement_t m[],
                               const gps_time_t *t, const gnss_solution *soln )
@@ -168,15 +166,16 @@ void reset_rtk_filter(void) {
  * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
  *
  */
-bool dgnss_timeout(systime_t _last_dgnss, dgnss_solution_mode_t _dgnss_soln_mode) {
-
-  // No timeout needed in low latency mode;
-  if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+bool dgnss_timeout(piksi_systime_t *_last_dgnss,
+                   dgnss_solution_mode_t _dgnss_soln_mode) {
+  /* No timeout needed in low latency mode */
+  if (SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
     return false;
   }
 
-  // Need to compare timeout threshold in MS to system time elapsed (in system ticks)
-  return (chVTTimeElapsedSinceX(_last_dgnss) > MS2ST(DGNSS_TIMEOUT_MS) );
+  /* Need to compare timeout threshold in MS to system time elapsed (in system
+   * ticks) */
+  return (piksi_systime_elapsed_since_ms_x(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
 /** Determine if we have had a SPP timeout.
@@ -267,7 +266,7 @@ void solution_make_sbp(const gnss_solution *soln, dops_t *dops, sbp_messages_t *
     }
 
     /* Update stats */
-    last_pvt_stats.systime = chVTGetSystemTime();
+    piksi_systime_get(&last_pvt_stats.systime);
     last_pvt_stats.signals_used = soln->n_sigs_used;
 
   } else {
@@ -374,7 +373,8 @@ static void solution_send_pos_messages(u8 sender_id, const sbp_messages_t *sbp_m
 static void solution_send_low_latency_output(u8 sender_id, const sbp_messages_t *sbp_messages) {
   // Work out if we need to wait for a certain period of no time matched positions before we output a SBP position
   bool wait_for_timeout = false;
-  if (!(dgnss_timeout(last_dgnss_stats.systime, dgnss_soln_mode)) && dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+  if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
+      SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
     wait_for_timeout = true;
   }
 
@@ -384,7 +384,6 @@ static void solution_send_low_latency_output(u8 sender_id, const sbp_messages_t 
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
     chMtxUnlock(&last_sbp_lock);
-
   }
 }
 
@@ -464,7 +463,7 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   chMtxUnlock(&last_sbp_lock);
 
   /* Update stats */
-  last_dgnss_stats.systime = chVTGetSystemTime();
+  piksi_systime_get(&last_dgnss_stats.systime);
   last_dgnss_stats.mode =
       (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }

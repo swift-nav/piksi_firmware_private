@@ -15,6 +15,7 @@
 #include "nap/track_channel.h"
 #include "../../sbp.h"
 #include "../../ext_events.h"
+#include "../../piksi_systime.h"
 
 #include "nap_hw.h"
 #include "nap_constants.h"
@@ -257,40 +258,38 @@ static void nap_irq_thread(void *arg)
 
 void nap_track_irq_thread(void *arg)
 {
-  systime_t sys_time;
+  piksi_systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
-    sys_time = chVTGetSystemTime();
+    piksi_systime_get(&sys_time);
 
     handle_nap_track_irq();
     tracking_channels_process();
 
     sanitize_trackers();
 
-    DO_EACH_TICKS( S2ST(1),
+    DO_EACH_MS( 1 * SECS_MS,
       check_clear_glo_unhealthy();
     );
 
-    DO_EACH_TICKS( S2ST(DAY_SECS),
+    DO_EACH_MS( DAY_SECS * SECS_MS,
       check_clear_unhealthy();
     );
 
-    DO_EACH_TICKS( MS2ST(PROCESS_PERIOD_MS),
+    DO_EACH_MS( PROCESS_PERIOD_MS,
       tracking_send_state();
       tracking_send_detailed_state();
     );
 
-    DO_EACH_TICKS( S2ST(100),
+    DO_EACH_MS( 100 * SECS_MS,
       log_info("Max configured PLL integration time: %" PRIu16 " ms",
                max_pll_integration_time_ms);
     );
 
-    /* Sleep for 500 microseconds.
-     * The ChibiOS function below should be capable of handling short deadline misses.
-     */
-    chThdSleepUntilWindowed(sys_time, sys_time+US2ST(500));
+    /* Sleep until 500 microseconds is full. */
+    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
   }
 }
 

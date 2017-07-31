@@ -12,7 +12,6 @@
 
 #include <string.h>
 
-#include <ch.h>
 #include <hal.h>
 
 #include <libsbp/system.h>
@@ -22,6 +21,7 @@
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/constants.h>
 
+#include "piksi_systime.h"
 #include "board/nap/nap_common.h"
 #include "peripherals/antenna.h"
 #include "board.h"
@@ -118,32 +118,6 @@ static void check_frontend_errors(void)
   }
 }
 
-/** Sleep thread until a period has elapsed.
- * Keeps track of the previous wake-up time to ensure that a periodic task is
- * woken up on time even if there is jitter in the time the task takes to
- * execute (e.g. due to preemption by higher priority tasks).
- *
- * References:
- *  -# https://www.rfc1149.net/blog/2013/04/03/sleeping-just-the-right-amount-of-time/
- *
- * \param previous Time that the thread was previously woken up
- * \param period Period in system time ticks
- */
-void sleep_until(systime_t *previous, systime_t period)
-{
-  systime_t future = *previous + period;
-  chSysLock();
-  systime_t now = chVTGetSystemTimeX();
-  int must_delay = now < *previous ?
-    (now < future && future < *previous) :
-    (now < future || future < *previous);
-  if (must_delay) {
-    chThdSleepS(future - now);
-  }
-  chSysUnlock();
-  *previous = future;
-}
-
 #define SYSTEM_MONITOR_THREAD_PIORITY (LOWPRIO+10)
 
 static WORKING_AREA_CCM(wa_system_monitor_thread, 2000);
@@ -152,9 +126,10 @@ static void system_monitor_thread(void *arg)
   (void)arg;
   chRegSetThreadName("system monitor");
 
-  systime_t time = chVTGetSystemTime();
+  piksi_systime_t time;
 
   while (TRUE) {
+    piksi_systime_get(&time);
 
     u32 status_flags = antenna_present() << 31 | SBP_MAJOR_VERSION << 16 | SBP_MINOR_VERSION << 8;
     sbp_send_msg(SBP_MSG_HEARTBEAT, sizeof(status_flags), (u8 *)&status_flags);
@@ -192,7 +167,7 @@ static void system_monitor_thread(void *arg)
     DO_EVERY(3,
      check_frontend_errors();
     );
-    sleep_until(&time, MS2ST(heartbeat_period_milliseconds));
+    piksi_systime_sleep_until_windowed_ms(&time, heartbeat_period_milliseconds);
   }
 }
 

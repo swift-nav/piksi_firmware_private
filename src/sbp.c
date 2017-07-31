@@ -47,14 +47,14 @@ msg_uart_state_t corr_stats;
 
 #define LATENCY_SMOOTHING 0.5
 #define PERIOD_SMOOTHING 0.5
-#define LOG_OBS_WINDOW_DURATION 3.0
+#define LOG_OBS_WINDOW_DURATION_MS 3000
 
 double latency_count;
 double latency_accum_ms;
 double period_count;
 double period_accum_ms;
 
-systime_t last_obs_msg_ticks = 0;
+piksi_systime_t last_obs_msg_ticks = PIKSI_SYSTIME_INIT;
 
 sbp_state_t sbp_state;
 
@@ -272,10 +272,13 @@ void detailed_log_(u8 level, const char *file_path, const int line_number,
 
 void log_obs_latency(float latency_ms)
 {
-  systime_t now = chVTGetSystemTime();
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+
   float obs_period_ms = 0;
-  if (last_obs_msg_ticks != 0) {
-    obs_period_ms = (now - last_obs_msg_ticks) / (double)CH_CFG_ST_FREQUENCY * 1000;
+
+  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks)) {
+    obs_period_ms = piksi_systime_sub_ms(&now, &last_obs_msg_ticks);
   }
 
   last_obs_msg_ticks = now;
@@ -283,29 +286,39 @@ void log_obs_latency(float latency_ms)
   period_accum_ms += (double) obs_period_ms;
   latency_count += 1;
 
-  corr_stats.latency.current = (s32) ((LATENCY_SMOOTHING * ((float)latency_ms)) +
-    ((1 - LATENCY_SMOOTHING) * (float) (corr_stats.latency.current)));
+  corr_stats.latency.current =
+    (s32)(LATENCY_SMOOTHING * (float)latency_ms +
+         (1 - LATENCY_SMOOTHING) * (float)corr_stats.latency.current);
 
-  corr_stats.obs_period.current = (s32) ((PERIOD_SMOOTHING * ((float) (obs_period_ms)) +
-    (1 - PERIOD_SMOOTHING) * (float) (corr_stats.obs_period.current)));
+  corr_stats.obs_period.current =
+    (s32)(PERIOD_SMOOTHING * (float)obs_period_ms +
+         (1 - PERIOD_SMOOTHING) * (float)corr_stats.obs_period.current);
 
   /* Don't change the min and max latencies if we appear to have a zero latency
    * speed. */
-  if (latency_ms <= 0 || (last_obs_msg_ticks != 0 && obs_period_ms == 0)) {
-    log_warn("Incoherent observation reception: latency: %f, period: %f", latency_ms, obs_period_ms);
+  if (latency_ms <= 0 ||
+      (!piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks) &&
+       0 == obs_period_ms)) {
+    log_warn("Incoherent observation reception: latency: %f, period: %f",
+             latency_ms,
+             obs_period_ms);
     return;
   }
+
   if (corr_stats.latency.lmin > latency_ms ||
       corr_stats.latency.lmin == 0) {
     corr_stats.latency.lmin = latency_ms;
   }
+
   if (corr_stats.latency.lmax < latency_ms) {
     corr_stats.latency.lmax = latency_ms;
   }
+
   if (corr_stats.obs_period.pmin > obs_period_ms ||
       corr_stats.obs_period.pmin == 0) {
     corr_stats.obs_period.pmin = obs_period_ms;
   }
+
   if (obs_period_ms > corr_stats.obs_period.pmax) {
     corr_stats.obs_period.pmax = obs_period_ms;
   }
@@ -313,13 +326,13 @@ void log_obs_latency(float latency_ms)
 
 void log_obs_latency_tick(void)
 {
-  double elapsed = chVTTimeElapsedSinceX(last_obs_msg_ticks) / (double)CH_CFG_ST_FREQUENCY;
+  u32 elapsed_ms = piksi_systime_elapsed_since_ms_x(&last_obs_msg_ticks);
 
-  if (last_obs_msg_ticks == 0 || elapsed > LOG_OBS_WINDOW_DURATION) {
+  if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks) ||
+      elapsed_ms > LOG_OBS_WINDOW_DURATION_MS) {
     corr_stats.latency.current = -1;
     corr_stats.obs_period.current = -1;
   }
-
 }
 
 /** \} */
