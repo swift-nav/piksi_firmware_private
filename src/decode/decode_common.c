@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "piksi_systime.h"
 #include "timing.h"
 #include "ephemeris.h"
 #include "track.h"
@@ -57,12 +58,9 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
     return false;
   }
 
-  systime_t sys_ticks = chVTGetSystemTime();
-  /* TODO GLO: Check implementation once piksi_systime is available.
-   * Instead of using ST2MS macro which overflows every 35 minutes,
-   * cast systick into a 64 bit variable for conversion. */
-  u32 time_tag_ms = ((u64)sys_ticks * SECS_MS + CH_CFG_ST_FREQUENCY - 1) /
-                    CH_CFG_ST_FREQUENCY;
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+  u32 time_tag_ms = piksi_systime_to_ms(&now);
 
   /* Get GLO strings 1 - 5, and decode full ephemeris */
   string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
