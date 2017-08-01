@@ -9,10 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
+#include <assert.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
-
+#include <libswiftnav/nav_msg_glo.h>
+#include <libswiftnav/glo_map.h>
 #include "ephemeris.h"
 #include "piksi_systime.h"
 #include "timing.h"

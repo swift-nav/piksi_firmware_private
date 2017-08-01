@@ -10,20 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode.h"
 #include <assert.h>
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
-#include <assert.h>
-#include "main.h"
 #include "track.h"
 #include "decode.h"
-#include <assert.h>
-#include "track.h"
-#include "decode.h"
-#include "decode/decode_common.h"
-#include "main.h"
 #include "signal.h"
 
 /** \defgroup decoding Decoding
