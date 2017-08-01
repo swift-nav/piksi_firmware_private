@@ -484,14 +484,17 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    /* If we have a success RAIM repair, mark the removed observation as
-       invalid. In practice, this means setting only the CN0 flag valid. */
+    /* If we have a success RAIM repair, mark the removed observations as
+       invalid, and ask tracker to drop the channels (if needed). */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
           log_debug_sid(nav_meas_tdcp[i].sid,
                         "RAIM repair, setting observation invalid.");
           nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+
+          /* Flag the corresponding tracker channel for dropping */
+          tracking_channel_set_raim_flag(nav_meas[i].sid);
         }
       }
     }
@@ -558,6 +561,11 @@ static void me_calc_pvt_thread(void *arg) {
       u8 n_ready_tdcp_new = 0;
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
+
+        /* Skip this measurement if it was excluded by RAIM */
+        if (0 != (nm->flags & NAV_MEAS_FLAG_RAIM_EXCLUSION)) {
+          continue;
+        }
 
         /* Copy measurement to new index if a previous measurement
          * has been skipped. */
