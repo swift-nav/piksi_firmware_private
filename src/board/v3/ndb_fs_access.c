@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "ndb/ndb_fs_access.h"
 #include "sbp_fileio.h"
@@ -24,10 +24,7 @@
  * \retval true  NDB persistence is in use
  * \retval false NDB persistence is not available
  */
-bool ndb_fs_is_real(void)
-{
-  return true;
-}
+bool ndb_fs_is_real(void) { return true; }
 
 /**
  * Removes file from persistent storage
@@ -36,8 +33,7 @@ bool ndb_fs_is_real(void)
  *
  * \return 0
  */
-int ndb_fs_remove(const char *name)
-{
+int ndb_fs_remove(const char *name) {
   sbp_fileio_remove(name);
   return 0;
 }
@@ -52,8 +48,7 @@ int ndb_fs_remove(const char *name)
  *
  * \return Error code is <0 or number of bytes read.
  */
-ssize_t ndb_fs_read(const char *fn, off_t offset, void *buf, size_t size)
-{
+ssize_t ndb_fs_read(const char *fn, off_t offset, void *buf, size_t size) {
   return sbp_fileio_read(fn, offset, buf, size);
 }
 
@@ -67,8 +62,10 @@ ssize_t ndb_fs_read(const char *fn, off_t offset, void *buf, size_t size)
  *
  * \return Error code is <0 or number of bytes written.
  */
-ssize_t ndb_fs_write(const char *fn, off_t offset, const void *buf, size_t size)
-{
+ssize_t ndb_fs_write(const char *fn,
+                     off_t offset,
+                     const void *buf,
+                     size_t size) {
   return sbp_fileio_write(fn, offset, buf, size);
 }
 
@@ -82,8 +79,7 @@ ssize_t ndb_fs_write(const char *fn, off_t offset, const void *buf, size_t size)
  *
  * \return Error code is <0 or number of bytes written.
  */
-ssize_t ndb_fs_reserve(const char *name, size_t size)
-{
+ssize_t ndb_fs_reserve(const char *name, size_t size) {
   static const u8 zero[256];
   off_t offset = 0;
   ssize_t res = 0;

@@ -36,8 +36,8 @@ typedef struct {
   s32 freq_min;      /**< Lowest interference freq to search. */
   s32 freq_max;      /**< Highest interference freq to search. */
   s32 freq;          /**< Interference freq of next correlation to be read. */
-	u16 count;         /**< Total number of interference freq points searched. */
-	u64 spectrum_power[SPECTRUM_LEN]; /**< Array of power. */
+  u16 count;         /**< Total number of interference freq points searched. */
+  u64 spectrum_power[SPECTRUM_LEN]; /**< Array of power. */
 } cw_state_t;
 
 /** Struct sent by host to cw_start_callback to start a CW search. */

@@ -42,8 +42,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void boardInit(void);
-  void board_send_state(void);
+void boardInit(void);
+void board_send_state(void);
 #ifdef __cplusplus
 }
 #endif

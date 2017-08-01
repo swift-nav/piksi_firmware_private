@@ -15,12 +15,12 @@
 #include <libswiftnav/common.h>
 
 #ifdef TRACK_GLO_L2CA_INTERNAL
-# define L2CA_WEAK
+#define L2CA_WEAK
 #else
-# define L2CA_WEAK __attribute__ ((weak, alias ("l2ca_not_implemented")))
-#endif  /* TRACK_GLO_L2CA_INTERNAL */
+#define L2CA_WEAK __attribute__((weak, alias("l2ca_not_implemented")))
+#endif /* TRACK_GLO_L2CA_INTERNAL */
 
-int l2ca_not_implemented(void) __attribute__ ((weak));
+int l2ca_not_implemented(void) __attribute__((weak));
 inline int l2ca_not_implemented(void) { return -1; }
 
 /* not weak as it is used in L2CA builds only */

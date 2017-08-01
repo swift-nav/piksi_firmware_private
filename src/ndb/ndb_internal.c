@@ -9,23 +9,23 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <string.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/edc.h>
-#include "libsbp/piksi.h"
-#include "version.h"
-#include "timing.h"
-#include "ndb.h"
 #include "ndb_internal.h"
-#include "ndb_fs_access.h"
+#include <assert.h>
+#include <libswiftnav/edc.h>
+#include <libswiftnav/logging.h>
 #include <nap/nap_common.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include "libsbp/piksi.h"
+#include "ndb.h"
+#include "ndb_fs_access.h"
+#include "timing.h"
+#include "version.h"
 
-#define NDB_THREAD_PRIORITY (LOWPRIO+2)
+#define NDB_THREAD_PRIORITY (LOWPRIO + 2)
 static WORKING_AREA_CCM(ndb_thread_wa, 2048);
-static void ndb_service_thread(void*);
+static void ndb_service_thread(void *);
 
 u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];
 u8 ndb_file_end_mark = 0xb6;
@@ -39,8 +39,10 @@ static ndb_element_metadata_t *ndb_wq_get(void);
 
 static ndb_op_code_t ndb_create_file(const ndb_file_t *file);
 static ndb_op_code_t ndb_open_file(const ndb_file_t *file);
-static ndb_op_code_t ndb_read(const ndb_file_t *f, off_t o,
-                              void *data, size_t s);
+static ndb_op_code_t ndb_read(const ndb_file_t *f,
+                              off_t o,
+                              void *data,
+                              size_t s);
 static ndb_op_code_t ndb_wq_process(void);
 
 /**
@@ -57,8 +59,7 @@ static ndb_op_code_t ndb_wq_process(void);
  *
  * \sa ndb_wq_get
  */
-void ndb_wq_put(ndb_element_metadata_t *md)
-{
+void ndb_wq_put(ndb_element_metadata_t *md) {
   assert(0 != (md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)));
 
   /* Check if the element is already in the queue. */
@@ -82,8 +83,7 @@ void ndb_wq_put(ndb_element_metadata_t *md)
  *
  * \return Next block pointer, or NULL if the queue is empty.
  */
-static ndb_element_metadata_t *ndb_wq_get(void)
-{
+static ndb_element_metadata_t *ndb_wq_get(void) {
   ndb_element_metadata_t *res = wq_first;
   if (NULL != res) {
     wq_first = res->next;
@@ -108,8 +108,7 @@ static ndb_element_metadata_t *ndb_wq_get(void)
  *
  * \sa ndb_start
  */
-void ndb_init(void)
-{
+void ndb_init(void) {
   if (!ndb_fs_is_real()) {
     log_info("NDB: configured not to save data to flash file system");
   }
@@ -127,10 +126,12 @@ void ndb_init(void)
  *
  * \sa ndb_init
  */
-void ndb_start(void)
-{
-  chThdCreateStatic(ndb_thread_wa, sizeof(ndb_thread_wa),
-                    NDB_THREAD_PRIORITY, ndb_service_thread, NULL);
+void ndb_start(void) {
+  chThdCreateStatic(ndb_thread_wa,
+                    sizeof(ndb_thread_wa),
+                    NDB_THREAD_PRIORITY,
+                    ndb_service_thread,
+                    NULL);
 }
 
 /**
@@ -146,35 +147,36 @@ void ndb_start(void)
 static void ndb_log_file_open(ndb_op_code_t oc,
                               const char *file_type,
                               u32 loaded,
-                              u32 errors)
-{
+                              u32 errors) {
   switch (oc) {
-  case NDB_ERR_NONE:
-    log_info("NDB %s: File opened; loaded: %" PRIu32
-             " entries, errors: %" PRIu32,
-             file_type, loaded, errors);
-    break;
-  case NDB_ERR_FILE_IO:
-    log_error("NDB %s: Can't open file", file_type);
-    break;
-  case NDB_ERR_INIT_DONE:
-    log_info("NDB %s: Created empty file", file_type);
-    break;
-  case NDB_ERR_NO_CHANGE:
-    log_info("NDB %s: Data has not been changed", file_type);
-    break;
-  case NDB_ERR_MISSING_IE:
-  case NDB_ERR_UNSUPPORTED:
-  case NDB_ERR_BAD_PARAM:
-  case NDB_ERR_UNCONFIRMED_DATA:
-  case NDB_ERR_ALGORITHM_ERROR:
-  case NDB_ERR_NO_DATA:
-  case NDB_ERR_OLDER_DATA:
-  case NDB_ERR_AGED_DATA:
-  case NDB_ERR_GPS_TIME_MISSING:
-  default:
-    assert(!"ndb_log_file_open()");
-    break;
+    case NDB_ERR_NONE:
+      log_info("NDB %s: File opened; loaded: %" PRIu32
+               " entries, errors: %" PRIu32,
+               file_type,
+               loaded,
+               errors);
+      break;
+    case NDB_ERR_FILE_IO:
+      log_error("NDB %s: Can't open file", file_type);
+      break;
+    case NDB_ERR_INIT_DONE:
+      log_info("NDB %s: Created empty file", file_type);
+      break;
+    case NDB_ERR_NO_CHANGE:
+      log_info("NDB %s: Data has not been changed", file_type);
+      break;
+    case NDB_ERR_MISSING_IE:
+    case NDB_ERR_UNSUPPORTED:
+    case NDB_ERR_BAD_PARAM:
+    case NDB_ERR_UNCONFIRMED_DATA:
+    case NDB_ERR_ALGORITHM_ERROR:
+    case NDB_ERR_NO_DATA:
+    case NDB_ERR_OLDER_DATA:
+    case NDB_ERR_AGED_DATA:
+    case NDB_ERR_GPS_TIME_MISSING:
+    default:
+      assert(!"ndb_log_file_open()");
+      break;
   }
 }
 
@@ -193,8 +195,7 @@ static void ndb_log_file_open(ndb_op_code_t oc,
  *
  * \return None
  */
-void ndb_load_data(ndb_file_t *file, bool erase)
-{
+void ndb_load_data(ndb_file_t *file, bool erase) {
   ndb_op_code_t r = NDB_ERR_FILE_IO;
   size_t ds = (size_t)file->block_size * file->block_count;
   size_t mds = sizeof(ndb_element_metadata_nv_t) * file->block_count;
@@ -215,21 +216,19 @@ void ndb_load_data(ndb_file_t *file, bool erase)
     /* Create new file */
     r = ndb_create_file(file);
     if (NDB_ERR_NONE != r) {
-      log_error("NDB %s: error %d while creating new file",
-                file->type, (int)r);
+      log_error("NDB %s: error %d while creating new file", file->type, (int)r);
     }
   }
 
   if (!erase && NDB_ERR_NONE == r) {
     r = ndb_read(file, 0, data, ds);
     if (NDB_ERR_NONE != r) {
-      log_error("NDB %s: error %d while loading data",
-                file->type, (int)r);
+      log_error("NDB %s: error %d while loading data", file->type, (int)r);
     } else {
       r = ndb_read(file, ds, md_nv, mds);
       if (NDB_ERR_NONE != r) {
-        log_error("NDB %s: error %d while loading metadata",
-                  file->type, (int)r);
+        log_error(
+            "NDB %s: error %d while loading metadata", file->type, (int)r);
       }
     }
   }
@@ -252,22 +251,25 @@ void ndb_load_data(ndb_file_t *file, bool erase)
       old_crc |= (u32)metadata[i].nv_data.crc[1] << 8;
       old_crc |= (u32)metadata[i].nv_data.crc[2] << 0;
 
-      u32 new_crc = crc24q((const u8*)&metadata[i].nv_data,
-                           sizeof(metadata[i].nv_data) -
-                           sizeof(metadata[i].nv_data.crc),
-                           crc24q(ptr, file->block_size, 0));
+      u32 new_crc =
+          crc24q((const u8 *)&metadata[i].nv_data,
+                 sizeof(metadata[i].nv_data) - sizeof(metadata[i].nv_data.crc),
+                 crc24q(ptr, file->block_size, 0));
 
       if (old_crc != new_crc) {
-        errors ++;
+        errors++;
 
         log_warn("NDB %s: entry #%" PRIu32 " dropped", file->type, (u32)i);
 
         memset(ptr, 0, file->block_size);
         memset(&metadata[i].nv_data, 0, sizeof(metadata[i].nv_data));
 
-        ndb_write_file_data(file, file->block_size * i + 0, ptr, file->block_size);
-        ndb_write_file_data(file, sizeof(metadata[i].nv_data) * i + ds,
-                            (u8 *)&metadata[i].nv_data, sizeof(metadata[i].nv_data));
+        ndb_write_file_data(
+            file, file->block_size * i + 0, ptr, file->block_size);
+        ndb_write_file_data(file,
+                            sizeof(metadata[i].nv_data) * i + ds,
+                            (u8 *)&metadata[i].nv_data,
+                            sizeof(metadata[i].nv_data));
       }
     }
 
@@ -302,8 +304,7 @@ void ndb_load_data(ndb_file_t *file, bool erase)
  *
  * \return NAP time in seconds
  */
-ndb_timestamp_t ndb_get_timestamp(void)
-{
+ndb_timestamp_t ndb_get_timestamp(void) {
   return nap_count_to_ms(nap_timing_count()) / 1000;
 }
 
@@ -312,11 +313,10 @@ ndb_timestamp_t ndb_get_timestamp(void)
  *
  * \return GPS time in seconds
  */
-gps_time_t ndb_get_GPS_timestamp(void)
-{
-  return (TIME_FINE == get_time_quality()) ?
-                       napcount2rcvtime(nap_timing_count()) :
-                       GPS_TIME_UNKNOWN;
+gps_time_t ndb_get_GPS_timestamp(void) {
+  return (TIME_FINE == get_time_quality())
+             ? napcount2rcvtime(nap_timing_count())
+             : GPS_TIME_UNKNOWN;
 }
 
 /**
@@ -329,9 +329,8 @@ gps_time_t ndb_get_GPS_timestamp(void)
  *
  * \return None
  */
-static void ndb_service_thread(void *p)
-{
-  (void) (p);
+static void ndb_service_thread(void *p) {
+  (void)(p);
   chRegSetThreadName("ndb");
 
   chThdSleepMilliseconds(NV_WRITE_REQ_TIMEOUT);
@@ -361,8 +360,7 @@ static void ndb_service_thread(void *p)
  * \retval NDB_ERR_NO_DATA  No more data to process
  * \retval NDB_ERR_FILE_IO  On file I/O error
  */
-static ndb_op_code_t ndb_wq_process(void)
-{
+static ndb_op_code_t ndb_wq_process(void) {
   ndb_element_metadata_t *md = NULL;
 
   /* Lock NDB and fetch block data and metadata to write along with flags */
@@ -375,12 +373,12 @@ static ndb_op_code_t ndb_wq_process(void)
   }
 
   /* Locally load information from the dequeued element */
-  ndb_ie_size_t              block_size = md->file->block_size;
-  ndb_element_metadata_nv_t  nv_data;
-  u8                         buf[block_size];
-  bool                       write_buf = false;
-  ndb_file_t                *file =  md->file;
-  ndb_ie_index_t             index = md->index;
+  ndb_ie_size_t block_size = md->file->block_size;
+  ndb_element_metadata_nv_t nv_data;
+  u8 buf[block_size];
+  bool write_buf = false;
+  ndb_file_t *file = md->file;
+  ndb_ie_index_t index = md->index;
 
   assert((md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)) != 0);
   assert((md->vflags & NDB_VFLAG_ENQUEUED) == 0);
@@ -408,8 +406,10 @@ static ndb_op_code_t ndb_wq_process(void)
     nv_data.crc[1] = (u8)(crc >> 8);
     nv_data.crc[2] = (u8)(crc);
 
-    log_debug("NDB store %s[%" PRIu32 "] crc=0x%06"PRIX32,
-              file->name, (u32)index, crc);
+    log_debug("NDB store %s[%" PRIu32 "] crc=0x%06" PRIX32,
+              file->name,
+              (u32)index,
+              crc);
 
     off_t offset = ((u32)block_size * file->block_count +
                     sizeof(ndb_element_metadata_nv_t) * index);
@@ -429,8 +429,8 @@ static ndb_op_code_t ndb_wq_process(void)
  * \retval true  Version matches
  * \retval false Version differs
  */
-static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
-{
+static bool ndb_file_verion_match(
+    const char version[MAX_NDB_FILE_VERSION_LEN]) {
   if (ndb_fs_is_real()) {
     return memcmp(version, ndb_file_version, sizeof(ndb_file_version)) == 0;
   } else {
@@ -451,11 +451,10 @@ static bool ndb_file_verion_match(const char version[MAX_NDB_FILE_VERSION_LEN])
  *
  * \return NDB file size in bytes
  */
-static inline size_t ndb_compute_size(const ndb_file_t *file)
-{
+static inline size_t ndb_compute_size(const ndb_file_t *file) {
   return sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
          ((size_t)file->block_size + sizeof(ndb_element_metadata_nv_t)) *
-         file->block_count;
+             file->block_count;
 }
 
 /**
@@ -469,12 +468,12 @@ static inline size_t ndb_compute_size(const ndb_file_t *file)
  *
  * \sa ndb_open_file
  */
-static ndb_op_code_t ndb_create_file(const ndb_file_t *file)
-{
+static ndb_op_code_t ndb_create_file(const ndb_file_t *file) {
   size_t file_size = ndb_compute_size(file);
 
   log_info("NDB %s: creating new empty file; size=%" PRIu32,
-           file->type, (u32)file_size);
+           file->type,
+           (u32)file_size);
 
   /* Delete file if it exists */
   ndb_fs_remove(file->name);
@@ -488,8 +487,8 @@ static ndb_op_code_t ndb_create_file(const ndb_file_t *file)
   ndb_fs_reserve(file->name, file_size);
 
   /* Write file version */
-  if (ndb_fs_write(file->name, 0, ndb_file_version, sizeof(ndb_file_version))
-      != sizeof(ndb_file_version)) {
+  if (ndb_fs_write(file->name, 0, ndb_file_version, sizeof(ndb_file_version)) !=
+      sizeof(ndb_file_version)) {
     return NDB_ERR_FILE_IO;
   }
   /* Write file end mark */
@@ -502,7 +501,6 @@ static ndb_op_code_t ndb_create_file(const ndb_file_t *file)
 
   return ndb_open_file(file);
 }
-
 
 /**
  * Opens NDB file that stores information elements of certain type.
@@ -517,11 +515,11 @@ static ndb_op_code_t ndb_create_file(const ndb_file_t *file)
  *
  * \sa ndb_create_file
  */
-static ndb_op_code_t ndb_open_file(const ndb_file_t *file)
-{
-  size_t expected_size = sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
-                         ((size_t)file->block_size +
-                          sizeof(ndb_element_metadata_nv_t)) * file->block_count;
+static ndb_op_code_t ndb_open_file(const ndb_file_t *file) {
+  size_t expected_size =
+      sizeof(ndb_file_version) + sizeof(ndb_file_end_mark) +
+      ((size_t)file->block_size + sizeof(ndb_element_metadata_nv_t)) *
+          file->block_count;
 
   /* Check file version */
   char ver[MAX_NDB_FILE_VERSION_LEN];
@@ -534,10 +532,9 @@ static ndb_op_code_t ndb_open_file(const ndb_file_t *file)
   } else if (sizeof(ver) == read_res) {
     if (ndb_file_verion_match(ver)) {
       /* Check end mark */
-      u8   em;
-      read_res = ndb_fs_read(file->name,
-                             expected_size - sizeof(em),
-                             &em, sizeof(em));
+      u8 em;
+      read_res =
+          ndb_fs_read(file->name, expected_size - sizeof(em), &em, sizeof(em));
       if (read_res < 0) {
         log_warn("NDB %s: failed to read end mark", file->type);
       } else if (read_res == sizeof(em)) {
@@ -551,12 +548,16 @@ static ndb_op_code_t ndb_open_file(const ndb_file_t *file)
         log_warn("NDB %s: end mark length is incorrect", file->type);
       }
     } else {
-      log_info("NDB %s: file version mismatch; new file is created", file->type);
+      log_info("NDB %s: file version mismatch; new file is created",
+               file->type);
     }
   } else {
-    log_warn("NDB %s: version length is incorrect; "
-             "expected=%" PRId32 " read=%" PRId32,
-             file->type, (s32)sizeof(ver), (s32)read_res);
+    log_warn(
+        "NDB %s: version length is incorrect; "
+        "expected=%" PRId32 " read=%" PRId32,
+        file->type,
+        (s32)sizeof(ver),
+        (s32)read_res);
   }
 
   return NDB_ERR_FILE_IO;
@@ -578,11 +579,10 @@ static ndb_op_code_t ndb_open_file(const ndb_file_t *file)
 ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
                                   off_t off,
                                   const u8 *src,
-                                  size_t size)
-{
+                                  size_t size) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
-  off_t   offset = sizeof(ndb_file_version) + off;
+  off_t offset = sizeof(ndb_file_version) + off;
   ssize_t written = ndb_fs_write(file->name, offset, src, size);
   if (written < 0) {
     log_warn("NDB %s: write error", file->type);
@@ -590,7 +590,9 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
   } else if ((size_t)written != size) {
     log_warn("NDB %s: incorrect write result; expected=%" PRId32
              " actual=%" PRId32,
-             file->type, (s32)size, (s32)written);
+             file->type,
+             (s32)size,
+             (s32)written);
     res = NDB_ERR_FILE_IO;
   } else {
     res = NDB_ERR_NONE;
@@ -618,11 +620,10 @@ ndb_op_code_t ndb_write_file_data(ndb_file_t *file,
 static ndb_op_code_t ndb_read(const ndb_file_t *file,
                               off_t off,
                               void *dst,
-                              size_t size)
-{
+                              size_t size) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
   off_t offset = sizeof(ndb_file_version) + off;
-  ssize_t read =  ndb_fs_read(file->name, offset, dst, size);
+  ssize_t read = ndb_fs_read(file->name, offset, dst, size);
 
   if (read < 0) {
     log_warn("NDB %s: read error", file->type);
@@ -630,7 +631,9 @@ static ndb_op_code_t ndb_read(const ndb_file_t *file,
   } else if ((size_t)read != size) {
     log_warn("NDB %s: incorrect read result; expected=%" PRId32
              " actual=%" PRId32,
-             file->type, (s32)size, (s32)read);
+             file->type,
+             (s32)size,
+             (s32)read);
     res = NDB_ERR_FILE_IO;
   } else {
     res = NDB_ERR_NONE;
@@ -644,20 +647,14 @@ static ndb_op_code_t ndb_read(const ndb_file_t *file,
  *
  * \sa ndb_unlock
  */
-void ndb_lock()
-{
-  chMtxLock(&data_access);
-}
+void ndb_lock() { chMtxLock(&data_access); }
 
 /**
  * Unlocks NDB database state.
  *
  * \sa ndb_unlock
  */
-void ndb_unlock()
-{
-  chMtxUnlock(&data_access);
-}
+void ndb_unlock() { chMtxUnlock(&data_access); }
 
 /**
  * Internal data retrieval function
@@ -676,8 +673,7 @@ void ndb_unlock()
 static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       ndb_ie_index_t idx,
                                       void *out,
-                                      ndb_data_source_t *ds)
-{
+                                      ndb_data_source_t *ds) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   assert(idx < file->block_count);
@@ -728,13 +724,11 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
                                 void *cookie,
                                 void *out,
                                 size_t out_size,
-                                ndb_data_source_t *ds)
-{
+                                ndb_data_source_t *ds) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != file && NULL != out && NULL != match_fn &&
       out_size == file->block_size) {
-
     ndb_lock();
     res = NDB_ERR_MISSING_IE;
     u8 *data_ptr = file->block_data;
@@ -776,8 +770,7 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
                            void *out,
                            size_t out_size,
                            ndb_data_source_t *ds,
-                           bool use_nv_data)
-{
+                           bool use_nv_data) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   assert(md);
@@ -788,8 +781,7 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
     retrieve_data = true;
   }
 
-  if ((NULL != md->file) &&
-      (out_size == md->file->block_size) &&
+  if ((NULL != md->file) && (out_size == md->file->block_size) &&
       retrieve_data) {
     ndb_lock();
     res = ndb_retrieve_int(md->file, md->index, out, ds);
@@ -819,8 +811,7 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
  */
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
-                         ndb_element_metadata_t *md)
-{
+                         ndb_element_metadata_t *md) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != data && NULL != md) {
@@ -871,8 +862,7 @@ ndb_op_code_t ndb_update(const void *data,
  *
  * \sa ndb_update
  */
-ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
-{
+ndb_op_code_t ndb_erase(ndb_element_metadata_t *md) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != md) {
@@ -922,8 +912,7 @@ ndb_op_code_t ndb_erase(ndb_element_metadata_t *md)
  *                                  cannot determine age of data
  * \retval NDB_ERR_AGED_DATA        NDB element has aged out
  */
-ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit)
-{
+ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit) {
   gps_time_t now = ndb_get_GPS_timestamp();
   if (gps_time_valid(&now) && gps_time_valid(t)) {
     double age = gpsdifftime(&now, t);
@@ -942,14 +931,12 @@ ndb_op_code_t ndb_check_age(const gps_time_t *t, double age_limit)
  *  necessary to prevent outputting the same ephemeris for different codes
  *  of the same satellite.
  *  */
-static u32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx)
-{
+static u32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx) {
   u32 i = prev_idx != NDB_SBP_UPDATE_SIG_IDX_INIT ? prev_idx + 1 : 0;
 
   while (i < PLATFORM_SIGNAL_COUNT) {
     *sid = sid_from_global_index(i);
-    if (sid->code != CODE_GPS_L1CA &&
-        sid->code != CODE_SBAS_L1CA &&
+    if (sid->code != CODE_GPS_L1CA && sid->code != CODE_SBAS_L1CA &&
         sid->code != CODE_GLO_L1CA) {
       i++;
     } else {
@@ -960,8 +947,7 @@ static u32 get_next_idx_to_send(gnss_signal_t *sid, s32 prev_idx)
   return i;
 }
 
-void ndb_sbp_update(ndb_sbp_update_info_t *info)
-{
+void ndb_sbp_update(ndb_sbp_update_info_t *info) {
   /* increment call counter */
   info->count++;
 
@@ -998,4 +984,3 @@ void ndb_sbp_update(ndb_sbp_update_info_t *info)
     }
   }
 }
-

@@ -39,7 +39,7 @@ void nap_track_update(u8 channel,
                       u8 corr_spacing);
 
 void nap_track_read_results(u8 channel,
-                            u32* count_snapshot,
+                            u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase);
@@ -50,5 +50,4 @@ void nap_track_enable(u8 channel);
 void nap_track_disable(u8 channel);
 void nap_scan_channels(void);
 
-#endif  /* SWIFTNAV_TRACK_CHANNEL_H */
-
+#endif /* SWIFTNAV_TRACK_CHANNEL_H */

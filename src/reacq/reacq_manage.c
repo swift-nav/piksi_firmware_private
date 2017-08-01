@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "search_manager_api.h"
 #include "scheduler_api.h"
+#include "search_manager_api.h"
 
 /**
  * Reacqusition controller initialization.
@@ -20,10 +20,7 @@
  *
  * \return None
  */
-void init_reacq(void)
-{
-  sm_init(&acq_all_jobs_state_data);
-}
+void init_reacq(void) { sm_init(&acq_all_jobs_state_data); }
 
 /**
  * Reacqusition controller loop.
@@ -33,8 +30,7 @@ void init_reacq(void)
  *
  * \return None
  */
-void manage_reacq(void)
-{
+void manage_reacq(void) {
   sm_run(&acq_all_jobs_state_data);
   sch_run(&acq_all_jobs_state_data);
 }

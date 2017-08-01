@@ -11,8 +11,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <board.h>
 #include "signal.h"
+#include <board.h>
 
 #include <assert.h>
 #include <string.h>
@@ -37,46 +37,48 @@ typedef struct {
   u16 sat_start;
   u16 start_index;
 } constellation_table_element_t;
-static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] = {
-    [CONSTELLATION_GPS] = {GPS_FIRST_PRN, 0},
-    [CONSTELLATION_SBAS] = {SBAS_FIRST_PRN, NUM_SATS_GPS},
-    [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
+static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
+    {
+            [CONSTELLATION_GPS] = {GPS_FIRST_PRN, 0},
+            [CONSTELLATION_SBAS] = {SBAS_FIRST_PRN, NUM_SATS_GPS},
+            [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
 };
 
 /** Number of signals for each code which are supported on
  * the current hardware platform. */
 static const u16 code_signal_counts[CODE_COUNT] = {
-  [CODE_GPS_L1CA]  = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
-  [CODE_GPS_L2CM]  = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
-  [CODE_GPS_L2CL]  = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
-  [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-  [CODE_GLO_L1CA]  = PLATFORM_SIGNAL_COUNT_GLO_L1CA,
-  [CODE_GLO_L2CA]  = PLATFORM_SIGNAL_COUNT_GLO_L2CA,
-  [CODE_GPS_L1P]   = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-  [CODE_GPS_L2P]   = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+        [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+        [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
+        [CODE_GPS_L2CL] = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
+        [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+        [CODE_GLO_L1CA] = PLATFORM_SIGNAL_COUNT_GLO_L1CA,
+        [CODE_GLO_L2CA] = PLATFORM_SIGNAL_COUNT_GLO_L2CA,
+        [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+        [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
 };
 
 /** Number of ME signals for each code which are supported on
  * the current hardware platform. */
 static const u16 me_code_signal_counts[CODE_COUNT] = {
-  [CODE_GPS_L1CA]  = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
-  [CODE_GPS_L2CM]  = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
-  [CODE_GPS_L2CL]  = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
-  [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-  [CODE_GLO_L1CA]  = PLATFORM_FREQ_COUNT_GLO_L1CA,
-  [CODE_GLO_L2CA]  = PLATFORM_FREQ_COUNT_GLO_L2CA,
-  [CODE_GPS_L1P]   = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-  [CODE_GPS_L2P]   = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+        [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+        [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
+        [CODE_GPS_L2CL] = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
+        [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+        [CODE_GLO_L1CA] = PLATFORM_FREQ_COUNT_GLO_L1CA,
+        [CODE_GLO_L2CA] = PLATFORM_FREQ_COUNT_GLO_L2CA,
+        [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+        [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
 };
 
 /** Initialize the signal module. */
-void signal_init(void)
-{
+void signal_init(void) {
   /* Populate constellation start index */
   u16 constellation_start_indexes[CONSTELLATION_COUNT];
   u16 me_constellation_start_indexes[CONSTELLATION_COUNT];
   memset(constellation_start_indexes, 0, sizeof(constellation_start_indexes));
-  memset(me_constellation_start_indexes, 0, sizeof(me_constellation_start_indexes));
+  memset(me_constellation_start_indexes,
+         0,
+         sizeof(me_constellation_start_indexes));
 
   for (code_t code = 0; code < CODE_COUNT; code++) {
     constellation_t constellation = code_to_constellation(code);
@@ -86,7 +88,8 @@ void signal_init(void)
         me_constellation_start_indexes[constellation];
 
     constellation_start_indexes[constellation] += code_signal_counts[code];
-    me_constellation_start_indexes[constellation] += me_code_signal_counts[code];
+    me_constellation_start_indexes[constellation] +=
+        me_code_signal_counts[code];
   }
 
   /* Populate global start index */
@@ -111,13 +114,12 @@ void signal_init(void)
  *
  * \return gnss_signal_t corresponding to global_index.
  */
-gnss_signal_t sid_from_global_index(u16 global_index)
-{
+gnss_signal_t sid_from_global_index(u16 global_index) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
-    if (global_index < code_table[code].global_start_index +
-        code_signal_counts[code]) {
-      return sid_from_code_index(code, global_index -
-          code_table[code].global_start_index);
+    if (global_index <
+        code_table[code].global_start_index + code_signal_counts[code]) {
+      return sid_from_code_index(
+          code, global_index - code_table[code].global_start_index);
     }
   }
 
@@ -130,17 +132,17 @@ gnss_signal_t sid_from_global_index(u16 global_index)
  * \note This function only accounts for codes supported on the current
  *       hardware platform.
  *
- * \param me_global_index    Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
+ * \param me_global_index    Global ME signal index in [0,
+ * PLATFORM_ACQ_TRACK_COUNT).
  *
  * \return me_gnss_signal_t corresponding to me_global_index.
  */
-me_gnss_signal_t mesid_from_global_index(u16 me_global_index)
-{
+me_gnss_signal_t mesid_from_global_index(u16 me_global_index) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
-    if (me_global_index < code_table[code].me_global_start_index +
-        me_code_signal_counts[code]) {
-      return mesid_from_code_index(code, me_global_index -
-                                   code_table[code].me_global_start_index);
+    if (me_global_index <
+        code_table[code].me_global_start_index + me_code_signal_counts[code]) {
+      return mesid_from_code_index(
+          code, me_global_index - code_table[code].me_global_start_index);
     }
   }
 
@@ -160,14 +162,14 @@ me_gnss_signal_t mesid_from_global_index(u16 me_global_index)
  * \return gnss_signal_t corresponding to constellation and constellation_index.
  */
 gnss_signal_t sid_from_constellation_index(constellation_t constellation,
-                                           u16 constellation_index)
-{
+                                           u16 constellation_index) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
     if (code_to_constellation(code) == constellation) {
       if (constellation_index < code_table[code].constellation_start_index +
-          code_signal_counts[code]) {
-        return sid_from_code_index(code, constellation_index -
-            code_table[code].constellation_start_index);
+                                    code_signal_counts[code]) {
+        return sid_from_code_index(
+            code,
+            constellation_index - code_table[code].constellation_start_index);
       }
     }
   }
@@ -185,11 +187,9 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
  *
  * \return Global signal index in [0, PLATFORM_SIGNAL_COUNT).
  */
-u16 sid_to_global_index(gnss_signal_t sid)
-{
+u16 sid_to_global_index(gnss_signal_t sid) {
   assert(code_supported(sid.code));
-  return code_table[sid.code].global_start_index +
-      sid_to_code_index(sid);
+  return code_table[sid.code].global_start_index + sid_to_code_index(sid);
 }
 
 /** Return the global ME signal index for a me_gnss_signal_t.
@@ -201,11 +201,10 @@ u16 sid_to_global_index(gnss_signal_t sid)
  *
  * \return Global ME signal index in [0, PLATFORM_ACQ_TRACK_COUNT).
  */
-u16 mesid_to_global_index(const me_gnss_signal_t mesid)
-{
+u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
   assert(code_supported(mesid.code));
   return code_table[mesid.code].me_global_start_index +
-      mesid_to_code_index(mesid);
+         mesid_to_code_index(mesid);
 }
 
 /** Return the constellation-specific signal index for a gnss_signal_t.
@@ -218,11 +217,10 @@ u16 mesid_to_global_index(const me_gnss_signal_t mesid)
  * \return Constellation-specific signal index in
  *         [0, PLATFORM_SIGNAL_COUNT_\<constellation\>).
  */
-u16 sid_to_constellation_index(gnss_signal_t sid)
-{
+u16 sid_to_constellation_index(gnss_signal_t sid) {
   assert(code_supported(sid.code));
   return code_table[sid.code].constellation_start_index +
-      sid_to_code_index(sid);
+         sid_to_code_index(sid);
 }
 
 /** Determine if a gnss_signal_t is valid and supported on the current
@@ -232,15 +230,12 @@ u16 sid_to_constellation_index(gnss_signal_t sid)
  *
  * \return true if sid is valid and supported, false otherwise.
  */
-bool sid_supported(gnss_signal_t sid)
-{
+bool sid_supported(gnss_signal_t sid) {
   /* Verify general validity */
-  if (!sid_valid(sid))
-    return false;
+  if (!sid_valid(sid)) return false;
 
   /* Verify that the code is supported on this platform */
-  if (!code_supported(sid.code))
-    return false;
+  if (!code_supported(sid.code)) return false;
 
   return true;
 }
@@ -252,15 +247,12 @@ bool sid_supported(gnss_signal_t sid)
  *
  * \return true if code is valid and supported, false otherwise.
  */
-bool code_supported(code_t code)
-{
+bool code_supported(code_t code) {
   /* Verify general validity */
-  if (!code_valid(code))
-    return false;
+  if (!code_valid(code)) return false;
 
   /* Verify that the code is supported on this platform */
-  if (code_signal_counts[code] == 0)
-    return false;
+  if (code_signal_counts[code] == 0) return false;
 
   return true;
 }
@@ -270,8 +262,7 @@ bool code_supported(code_t code)
  * \param code The code to use.
  * \return Minimum Doppler value [Hz]
  */
-float code_to_tcxo_doppler_min(code_t code)
-{
+float code_to_tcxo_doppler_min(code_t code) {
   assert(code_valid(code));
 
   float doppler;
@@ -287,8 +278,7 @@ float code_to_tcxo_doppler_min(code_t code)
  * \param code The code to use.
  * \return Maximum Doppler value [Hz]
  */
-float code_to_tcxo_doppler_max(code_t code)
-{
+float code_to_tcxo_doppler_max(code_t code) {
   assert(code_valid(code));
 
   float doppler;
@@ -305,8 +295,7 @@ float code_to_tcxo_doppler_max(code_t code)
  *
  * \return gnss_signal_t corresponding to sv_index with first valid code.
  */
-gnss_signal_t sv_index_to_sid(u16 sv_index)
-{
+gnss_signal_t sv_index_to_sid(u16 sv_index) {
   assert(sv_index < NUM_SATS);
   assert(constellation_table[0].start_index == 0);
 
@@ -322,14 +311,16 @@ gnss_signal_t sv_index_to_sid(u16 sv_index)
   /* find the first valid and supported code for this constellation */
   for (code_t code = 0; code < CODE_COUNT; code++) {
     if (code_supported(code) && code_to_constellation(code) == cons) {
-      sid = construct_sid(code, sv_index - constellation_table[cons].start_index
-                          + constellation_table[cons].sat_start);
+      sid = construct_sid(code,
+                          sv_index - constellation_table[cons].start_index +
+                              constellation_table[cons].sat_start);
       assert(sid_valid(sid));
       return sid;
     }
   }
   log_debug("Could not generate SID for constellation %d, sv index %u",
-             cons, sv_index);
+            cons,
+            sv_index);
   return sid;
 }
 
@@ -339,12 +330,11 @@ gnss_signal_t sv_index_to_sid(u16 sv_index)
  *
  * \return SV index in [0, NUM_SATS).
  */
-u16 sid_to_sv_index(gnss_signal_t sid)
-{
+u16 sid_to_sv_index(gnss_signal_t sid) {
   assert(sid_valid(sid));
   constellation_t cons = sid_to_constellation(sid);
-  u16 sv_index = constellation_table[cons].start_index +
-      sid.sat - constellation_table[cons].sat_start;
+  u16 sv_index = constellation_table[cons].start_index + sid.sat -
+                 constellation_table[cons].sat_start;
   assert(sv_index < NUM_SATS);
   return sv_index;
 }
@@ -353,8 +343,7 @@ u16 sid_to_sv_index(gnss_signal_t sid)
  * \param mesid me_gnss_signal_t to use
  * \return The frequency channel [Hz]
  */
-double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid)
-{
+double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid) {
   assert(mesid_valid(mesid));
 
   double carr_fcn_hz = 0;

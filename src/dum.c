@@ -11,10 +11,10 @@
  */
 
 #include "dum.h"
-#include "ndb.h"
-#include "timing.h"
 #include "manage.h"
+#include "ndb.h"
 #include "signal.h"
+#include "timing.h"
 
 #include <libswiftnav/dopp_unc.h>
 
@@ -22,7 +22,8 @@
 
 /**
   The user position uncertainty is modeled as a sphere expanding its
-  radius. The center of the sphere is LGF. Then each meter of the radius contributes
+  radius. The center of the sphere is LGF. Then each meter of the radius
+  contributes
   to the final Doppler uncertainty at a fixed scaling factor of
   #DUM_DIST_UNC_FACTOR Hz/m.
   Then the user's most probable location for the purpose of
@@ -30,7 +31,7 @@
 */
 
 /* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
-#define DUM_FIT_INTERVAL_VALID  (WEEK_SECS * 2)
+#define DUM_FIT_INTERVAL_VALID (WEEK_SECS * 2)
 
 /** Signals search will be done in the assumption, that user most probable
     location is a sphere with LFG in the center and the radius of this size.
@@ -39,9 +40,9 @@
 
 /** Doppler estimation methods */
 typedef enum {
-  DUM_LGF,                 /*!< LGF + #DUM_LGF_VICINITY_RADIUS_M */
-  DUM_LGF_PROPAGATION,     /*!< LGF + time based Doppler uncertainty */
-  DUM_METHOD_NUM           /*!< Total number of methods */
+  DUM_LGF,             /*!< LGF + #DUM_LGF_VICINITY_RADIUS_M */
+  DUM_LGF_PROPAGATION, /*!< LGF + time based Doppler uncertainty */
+  DUM_METHOD_NUM       /*!< Total number of methods */
 } dum_method_e;
 
 typedef struct {
@@ -70,11 +71,8 @@ static int get_doppler(const gnss_signal_t *sid,
                        const last_good_fix_t *lgf,
                        float radius,
                        float *doppler_min,
-                       float *doppler_max)
-{
-  if (NULL == t ||
-      TIME_COARSE > time_quality ||
-      NULL == lgf ||
+                       float *doppler_max) {
+  if (NULL == t || TIME_COARSE > time_quality || NULL == lgf ||
       POSITION_UNKNOWN == lgf->position_quality) {
     return -1;
   }
@@ -89,12 +87,9 @@ static int get_doppler(const gnss_signal_t *sid,
     return -1;
   }
 
-  if (0 != calc_sat_doppler_wndw(&e,
-                                 t,
-                                 &lgf->position_solution,
-                                 radius,
-                                 doppler_min,
-                                 doppler_max)) {
+  if (0 !=
+      calc_sat_doppler_wndw(
+          &e, t, &lgf->position_solution, radius, doppler_min, doppler_max)) {
     return -1;
   }
   return 0;
@@ -117,8 +112,7 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
                                           const last_good_fix_t *lgf,
                                           float speed,
                                           float *doppler_min,
-                                          float *doppler_max)
-{
+                                          float *doppler_max) {
   double diff_s = gpsdifftime(t, &lgf->position_solution.time);
   float radius = diff_s * speed;
 
@@ -140,8 +134,7 @@ static int get_doppler_by_lgf(const gnss_signal_t *sid,
                               const gps_time_t *t,
                               const last_good_fix_t *lgf,
                               float *doppler_min,
-                              float *doppler_max)
-{
+                              float *doppler_max) {
   float radius = DUM_LGF_VICINITY_RADIUS_M;
 
   return get_doppler(sid, t, lgf, radius, doppler_min, doppler_max);
@@ -166,17 +159,15 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const last_good_fix_t *lgf,
                           float speed,
                           float *doppler_min,
-                          float *doppler_max)
-{
+                          float *doppler_max) {
   assert(sid != NULL);
   assert(sid_valid(*sid));
-  assert((CODE_GPS_L1CA == sid->code) ||
-         (CODE_GLO_L1CA == sid->code));
+  assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1CA == sid->code));
 
-  float default_doppler_min = code_to_sv_doppler_min(sid->code) +
-                              code_to_tcxo_doppler_min(sid->code);
-  float default_doppler_max = code_to_sv_doppler_max(sid->code) +
-                              code_to_tcxo_doppler_max(sid->code);
+  float default_doppler_min =
+      code_to_sv_doppler_min(sid->code) + code_to_tcxo_doppler_min(sid->code);
+  float default_doppler_max =
+      code_to_sv_doppler_max(sid->code) + code_to_tcxo_doppler_max(sid->code);
   int ret = -1;
   u32 i;
   dum_method_e *mt;
@@ -193,20 +184,19 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
 
   for (j = 0; j < DUM_METHOD_NUM && (ret != 0); j++) {
     switch (method) {
-    case DUM_LGF:
-      ret = get_doppler_by_lgf(sid, t, lgf, doppler_min, doppler_max);
-      break;
+      case DUM_LGF:
+        ret = get_doppler_by_lgf(sid, t, lgf, doppler_min, doppler_max);
+        break;
 
-    case DUM_LGF_PROPAGATION:
-      ret = get_doppler_by_lgf_propagation(sid, t, lgf, speed,
-                                           doppler_min,
-                                           doppler_max);
-      break;
+      case DUM_LGF_PROPAGATION:
+        ret = get_doppler_by_lgf_propagation(
+            sid, t, lgf, speed, doppler_min, doppler_max);
+        break;
 
-    case DUM_METHOD_NUM:
-    default:
-      assert(!"Unexpected method ID!");
-      break;
+      case DUM_METHOD_NUM:
+      default:
+        assert(!"Unexpected method ID!");
+        break;
     }
 
     method = (method + 1) % DUM_METHOD_NUM;

@@ -9,10 +9,10 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <string.h>
 #include <assert.h>
-#include <timing.h>
 #include <ndb.h>
+#include <string.h>
+#include <timing.h>
 #include "task_generator_api.h"
 
 /* Compile unit test in src/reacq directory with:
@@ -42,14 +42,14 @@ gps_time_t get_current_time(void) {
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
-                          float *doppler_min, float *doppler_max) {
+                          float *doppler_min,
+                          float *doppler_max) {
   (void)sid;
   (void)t;
   (void)lgf;
   *doppler_min = 100;
   *doppler_max = 200;
 }
-
 
 /** Test program checking task generator operation
  *
@@ -59,11 +59,10 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
  *
  * \return 0
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   /* There is not much to check in Phase 1 */
   acq_job_t job;
-  acq_task_search_params_t *acq_param =  &job.task_data.task_array[0];
+  acq_task_search_params_t *acq_param = &job.task_data.task_array[0];
   float doppler_min = code_to_sv_doppler_min(CODE_GPS_L1CA) +
                       code_to_tcxo_doppler_min(CODE_GPS_L1CA);
   float doppler_max = code_to_sv_doppler_max(CODE_GPS_L1CA) +

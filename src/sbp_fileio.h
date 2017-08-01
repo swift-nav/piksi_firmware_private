@@ -16,7 +16,13 @@
 #include <libswiftnav/common.h>
 
 void sbp_fileio_remove(const char *filename);
-ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size_t size);
-ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size);
+ssize_t sbp_fileio_write(const char *filename,
+                         off_t offset,
+                         const u8 *buf,
+                         size_t size);
+ssize_t sbp_fileio_read(const char *filename,
+                        off_t offset,
+                        u8 *buf,
+                        size_t size);
 
 #endif

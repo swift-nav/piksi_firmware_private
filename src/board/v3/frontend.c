@@ -26,21 +26,18 @@ static const SPIConfig spi_config = FRONTEND_SPI_CONFIG;
 static void configure_v1(void);
 static void configure_v2(void);
 
-static void frontend_open_spi(void)
-{
+static void frontend_open_spi(void) {
   spiAcquireBus(&FRONTEND_SPI);
   spiStart(&FRONTEND_SPI, &spi_config);
   spiSelect(&FRONTEND_SPI);
 }
 
-static void frontend_close_spi(void)
-{
+static void frontend_close_spi(void) {
   spiUnselect(&FRONTEND_SPI);
   spiReleaseBus(&FRONTEND_SPI);
 }
 
-static u8 spi_write(u8 reg, u8 data)
-{
+static u8 spi_write(u8 reg, u8 data) {
   const u8 send_buf[2] = {reg, data};
   u8 recv_buf[2];
 
@@ -49,8 +46,7 @@ static u8 spi_write(u8 reg, u8 data)
   return recv_buf[1];
 }
 
-static u8 spi_read(u8 reg)
-{
+static u8 spi_read(u8 reg) {
   const u8 dummy_data = 0x00;
   const u8 send_buf[2] = {reg | SPI_READ_MASK, dummy_data};
   u8 recv_buf[2];
@@ -60,14 +56,12 @@ static u8 spi_read(u8 reg)
   return recv_buf[1];
 }
 
-static void frontend_isr(void *context)
-{
+static void frontend_isr(void* context) {
   (void)context;
   frontend_error_notify_isr();
 }
 
-void frontend_configure(void)
-{
+void frontend_configure(void) {
   bool is_aok = true;
   /* If the NT1065 doesn't become healthy within a timeout, retry config */
   do {
@@ -83,15 +77,15 @@ void frontend_configure(void)
     }
 
     switch (release) {
-    case 1:
-      configure_v1();
-      break;
-    case 2:
-      configure_v2();
-      break;
-    default:
-      log_error("nt1065: unsupported chip release");
-      break;
+      case 1:
+        configure_v1();
+        break;
+      case 2:
+        configure_v2();
+        break;
+      default:
+        log_error("nt1065: unsupported chip release");
+        break;
     }
 
     frontend_close_spi();
@@ -121,18 +115,15 @@ void frontend_configure(void)
   }
 }
 
-void frontend_setup(void)
-{
-  /* Register any setting... */
+void frontend_setup(void) { /* Register any setting... */
 }
 
-bool nt1065_get_temperature(double* temperature)
-{
+bool nt1065_get_temperature(double* temperature) {
   int32_t temp_sensor = 0;
-  //temperature is valid after about 30 milliseconds
+  // temperature is valid after about 30 milliseconds
   const uint32_t TEMP_READ_WAIT_MS = 30;
 
-  //start a single temp measurement
+  // start a single temp measurement
   const u8 REG5 = 1;
   frontend_open_spi();
   spi_write(5, REG5);
@@ -141,15 +132,15 @@ bool nt1065_get_temperature(double* temperature)
   chThdSleepMilliseconds(TEMP_READ_WAIT_MS);
 
   frontend_open_spi();
-  //check if temperature read completed
+  // check if temperature read completed
   if ((spi_read(5) & 1) != 0) {
     frontend_close_spi();
     return false;
   }
 
-  //lower 8 bits
+  // lower 8 bits
   temp_sensor = spi_read(8);
-  //upper 2 bits are addr=7 bits 1-0
+  // upper 2 bits are addr=7 bits 1-0
   temp_sensor |= (spi_read(7) & 3) << 8;
 
   frontend_close_spi();
@@ -159,8 +150,7 @@ bool nt1065_get_temperature(double* temperature)
   return true;
 }
 
-bool nt1065_check_plls()
-{
+bool nt1065_check_plls() {
   frontend_open_spi();
   u8 pll_a_status = spi_read(44) & 7;
   u8 pll_b_status = spi_read(48) & 7;
@@ -191,8 +181,7 @@ bool nt1065_check_plls()
   return true;
 }
 
-bool nt1065_check_standby()
-{
+bool nt1065_check_standby() {
   frontend_open_spi();
   u8 ic_mode = spi_read(2) & 3;
   frontend_close_spi();
@@ -203,8 +192,7 @@ bool nt1065_check_standby()
   return true;
 }
 
-bool nt1065_check_calibration()
-{
+bool nt1065_check_calibration() {
   frontend_open_spi();
   u8 calibration_status = spi_read(4) & 2;
   frontend_close_spi();
@@ -215,14 +203,12 @@ bool nt1065_check_calibration()
   return true;
 }
 
-bool nt1065_check_aok_status()
-{
+bool nt1065_check_aok_status() {
   u8 reg7 = nt1065_read_reg(7);
   return (reg7 & 0x10) != 0;
 }
 
-uint8_t nt1065_read_reg(uint8_t reg_addr)
-{
+uint8_t nt1065_read_reg(uint8_t reg_addr) {
   uint8_t value;
   frontend_open_spi();
   value = spi_read(reg_addr);
@@ -230,15 +216,13 @@ uint8_t nt1065_read_reg(uint8_t reg_addr)
   return value;
 }
 
-void nt1065_write_reg(uint8_t reg_addr, uint8_t value)
-{
+void nt1065_write_reg(uint8_t reg_addr, uint8_t value) {
   frontend_open_spi();
   spi_write(reg_addr, value);
   frontend_close_spi();
 }
 
-static void configure_v1(void)
-{
+static void configure_v1(void) {
   for (u8 i = 0; i < 2; ++i) {
     spi_write(2, 0x03);
     spi_write(3, 0x01);
@@ -348,15 +332,14 @@ static void configure_v1(void)
   spi_write(36, 0x0B);
 }
 
-
-static void configure_v2(void)
-{
-  spi_write( 2, 0x03);
-  spi_write( 3, 0x01); /* TCXO frequency setting and LO source*/
-  spi_write( 4, 0x03);
-  spi_write( 5, 0x00);
-  spi_write( 6, 0x1D);
-  spi_write(11, 0x08); /* clock divider ratio (scaled by 2) e.g. 0x08 = /16 and 0x0F = /30 */
+static void configure_v2(void) {
+  spi_write(2, 0x03);
+  spi_write(3, 0x01); /* TCXO frequency setting and LO source*/
+  spi_write(4, 0x03);
+  spi_write(5, 0x00);
+  spi_write(6, 0x1D);
+  spi_write(11, 0x08); /* clock divider ratio (scaled by 2) e.g. 0x08 = /16 and
+                          0x0F = /30 */
   spi_write(12, 0x1C); /* clock source and signal type */
   spi_write(13, 0x03); /* channel 1 enabled and Upper/Lower side-band */
   spi_write(14, 0x30); /* LPF setting for channel 1 - GPS L1 at about 22 MHz */

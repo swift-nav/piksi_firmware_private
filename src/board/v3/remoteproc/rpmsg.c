@@ -17,28 +17,28 @@
 
 #include <assert.h>
 
-#include <libswiftnav/logging.h>
 #include <libswiftnav/common.h>
+#include <libswiftnav/logging.h>
 
 #include <ch.h>
 #include <hal.h>
 
-#include "rpmsg.h"
+#include "lib/fifo.h"
 #include "remoteproc_config.h"
 #include "remoteproc_env.h"
-#include "lib/fifo.h"
+#include "rpmsg.h"
 
 #define ENDPOINT_FIFO_SIZE 4096
 #define RPMSG_BUFFER_SIZE_MAX 512
 
-#define RPMSG_THD_PRIO (HIGHPRIO-21)
+#define RPMSG_THD_PRIO (HIGHPRIO - 21)
 #define RPMSG_THD_STACK_SIZE 4096
 #define RPMSG_THD_PERIOD_ms 10
 
 static const u32 endpoint_addr_config[RPMSG_ENDPOINT__COUNT] = {
-  [RPMSG_ENDPOINT_A] = 100,
-  [RPMSG_ENDPOINT_B] = 101,
-  [RPMSG_ENDPOINT_C] = 102,
+        [RPMSG_ENDPOINT_A] = 100,
+        [RPMSG_ENDPOINT_B] = 101,
+        [RPMSG_ENDPOINT_C] = 102,
 };
 
 typedef struct {
@@ -56,9 +56,8 @@ static u32 rpmsg_buffer_size = 0;
 extern struct remote_resource_table resource_table;
 static struct remote_proc *remote_proc = NULL;
 static struct rsc_table_info rsc_table_info = {
-  .rsc_tab = (struct resource_table *)&resource_table,
-  .size = sizeof(resource_table)
-};
+    .rsc_tab = (struct resource_table *)&resource_table,
+    .size = sizeof(resource_table)};
 
 static BSEMAPHORE_DECL(rpmsg_thd_bsem, false);
 
@@ -66,17 +65,22 @@ static void remoteproc_env_irq_callback(void);
 
 static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel);
 static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel);
-static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel, void *data,
-                             int len, void *priv, unsigned long src);
-static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel, void *data,
-                              int len, void *priv, unsigned long src);
+static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel,
+                             void *data,
+                             int len,
+                             void *priv,
+                             unsigned long src);
+static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
+                              void *data,
+                              int len,
+                              void *priv,
+                              unsigned long src);
 
 static THD_WORKING_AREA(wa_rpmsg_thread, RPMSG_THD_STACK_SIZE);
 static THD_FUNCTION(rpmsg_thread, arg);
 
-void rpmsg_setup(void)
-{
-  for (u32 i=0; i<RPMSG_ENDPOINT__COUNT; i++) {
+void rpmsg_setup(void) {
+  for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
     endpoint_data_t *d = &endpoint_data[i];
     d->rpmsg_endpoint = NULL;
     d->addr = endpoint_addr_config[i];
@@ -93,45 +97,45 @@ void rpmsg_setup(void)
                                         &remote_proc);
   assert(status == 0);
 
-  chThdCreateStatic(wa_rpmsg_thread, sizeof(wa_rpmsg_thread),
-                    RPMSG_THD_PRIO, rpmsg_thread, NULL);
+  chThdCreateStatic(wa_rpmsg_thread,
+                    sizeof(wa_rpmsg_thread),
+                    RPMSG_THD_PRIO,
+                    rpmsg_thread,
+                    NULL);
 
   remoteproc_env_irq_kick();
 }
 
-u32 rpmsg_rx_fifo_length(rpmsg_endpoint_t rpmsg_endpoint)
-{
+u32 rpmsg_rx_fifo_length(rpmsg_endpoint_t rpmsg_endpoint) {
   return fifo_length(&endpoint_data[rpmsg_endpoint].rx_fifo);
 }
 
-u32 rpmsg_tx_fifo_space(rpmsg_endpoint_t rpmsg_endpoint)
-{
+u32 rpmsg_tx_fifo_space(rpmsg_endpoint_t rpmsg_endpoint) {
   return fifo_space(&endpoint_data[rpmsg_endpoint].tx_fifo);
 }
 
-u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint, u8 *buffer, u32 length)
-{
+u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint,
+                       u8 *buffer,
+                       u32 length) {
   return fifo_read(&endpoint_data[rpmsg_endpoint].rx_fifo, buffer, length);
 }
 
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
-                        const u8 *buffer, u32 length)
-{
+                        const u8 *buffer,
+                        u32 length) {
   u32 n = fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
   chBSemSignal(&rpmsg_thd_bsem);
   return n;
 }
 
-static void remoteproc_env_irq_callback(void)
-{
+static void remoteproc_env_irq_callback(void) {
   chSysLockFromISR();
   chBSemSignalI(&rpmsg_thd_bsem);
   chSysUnlockFromISR();
 }
 
-static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel)
-{
-  for (u32 i=0; i<RPMSG_ENDPOINT__COUNT; i++) {
+static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel) {
+  for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
     endpoint_data_t *d = &endpoint_data[i];
     d->rpmsg_endpoint =
         rpmsg_create_ept(rpmsg_channel, rpmsg_endpoint_rx, d, d->addr);
@@ -140,11 +144,10 @@ static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel)
   rpmsg_buffer_size = rpmsg_get_buffer_size(rpmsg_channel);
 }
 
-static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel)
-{
+static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel) {
   (void)rpmsg_channel;
 
-  for (u32 i=0; i<RPMSG_ENDPOINT__COUNT; i++) {
+  for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
     endpoint_data_t *d = &endpoint_data[i];
     rpmsg_destroy_ept(d->rpmsg_endpoint);
     d->rpmsg_endpoint = NULL;
@@ -153,9 +156,11 @@ static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel)
   rpmsg_buffer_size = 0;
 }
 
-static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel, void *data,
-                             int len, void *priv, unsigned long src)
-{
+static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel,
+                             void *data,
+                             int len,
+                             void *priv,
+                             unsigned long src) {
   (void)rpmsg_channel;
   (void)data;
   (void)len;
@@ -163,9 +168,11 @@ static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel, void *data,
   (void)src;
 }
 
-static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel, void *data,
-                              int len, void *priv, unsigned long src)
-{
+static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
+                              void *data,
+                              int len,
+                              void *priv,
+                              unsigned long src) {
   (void)rpmsg_channel;
   (void)src;
 
@@ -173,8 +180,7 @@ static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel, void *data,
   fifo_write(&d->rx_fifo, data, len);
 }
 
-static THD_FUNCTION(rpmsg_thread, arg)
-{
+static THD_FUNCTION(rpmsg_thread, arg) {
   (void)arg;
   chRegSetThreadName("rpmsg");
 
@@ -183,7 +189,7 @@ static THD_FUNCTION(rpmsg_thread, arg)
 
     remoteproc_env_irq_process();
 
-    for (u32 i=0; i<RPMSG_ENDPOINT__COUNT; i++) {
+    for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
       endpoint_data_t *d = &endpoint_data[i];
 
       if (d->rpmsg_endpoint == NULL) {
@@ -193,15 +199,16 @@ static THD_FUNCTION(rpmsg_thread, arg)
       fifo_t *fifo = &d->tx_fifo;
       while (1) {
         u8 buffer[RPMSG_BUFFER_SIZE_MAX];
-        u32 buffer_length = fifo_peek(fifo, buffer,
-                                      MIN(rpmsg_buffer_size, sizeof(buffer)));
+        u32 buffer_length =
+            fifo_peek(fifo, buffer, MIN(rpmsg_buffer_size, sizeof(buffer)));
 
         if (buffer_length == 0) {
           break;
         }
 
-        if (rpmsg_trysendto(d->rpmsg_endpoint->rp_chnl,
-                            buffer, buffer_length, d->addr) != 0) {
+        if (rpmsg_trysendto(
+                d->rpmsg_endpoint->rp_chnl, buffer, buffer_length, d->addr) !=
+            0) {
           break;
         }
 

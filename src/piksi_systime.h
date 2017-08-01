@@ -24,8 +24,8 @@ typedef struct piksi_systime {
 
 #define PIKSI_SYSTIME_RO_CNT_INIT 0
 #define PIKSI_SYSTIME_SYSTIME_INIT 0
-#define PIKSI_SYSTIME_INIT ((piksi_systime_t){PIKSI_SYSTIME_SYSTIME_INIT, \
-                                              PIKSI_SYSTIME_RO_CNT_INIT})
+#define PIKSI_SYSTIME_INIT \
+  ((piksi_systime_t){PIKSI_SYSTIME_SYSTIME_INIT, PIKSI_SYSTIME_RO_CNT_INIT})
 
 bool piksi_systime_get(piksi_systime_t *t);
 bool piksi_systime_get_x(piksi_systime_t *t);
@@ -60,4 +60,3 @@ u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
                                           u32 window_len_ms);
 
 #endif /* SWIFTNAV_PIKSI_SYSTIME_H */
-

@@ -15,8 +15,8 @@
 */
 
 #include "hal.h"
-#include "zynq7000.h"
 #include "slcr_mio.h"
+#include "zynq7000.h"
 
 #define LINE_TO_MIO(line) (32 * PAL_PORT(line) + PAL_PAD(line))
 
@@ -28,24 +28,17 @@
 #define SPI_CLK_GPIO_LINE PAL_LINE(GPIO0, 12)
 #define SPI_SS_GPIO_LINE PAL_LINE(GPIO0, 13)
 
-static void mio_configure(uint8_t mio, uint8_t function, bool tristate,
-                          bool pullup, bool fast)
-{
-  uint32_t clear_mask = (SLCR_MIO_PIN_PULLUP_Msk |
-                         SLCR_MIO_PIN_SPEED_Msk |
-                         SLCR_MIO_PIN_L3_SEL_Msk |
-                         SLCR_MIO_PIN_L2_SEL_Msk |
-                         SLCR_MIO_PIN_L1_SEL_Msk |
-                         SLCR_MIO_PIN_L0_SEL_Msk |
+static void mio_configure(
+    uint8_t mio, uint8_t function, bool tristate, bool pullup, bool fast) {
+  uint32_t clear_mask = (SLCR_MIO_PIN_PULLUP_Msk | SLCR_MIO_PIN_SPEED_Msk |
+                         SLCR_MIO_PIN_L3_SEL_Msk | SLCR_MIO_PIN_L2_SEL_Msk |
+                         SLCR_MIO_PIN_L1_SEL_Msk | SLCR_MIO_PIN_L0_SEL_Msk |
                          SLCR_MIO_PIN_TRI_ENABLE_Msk);
 
   uint32_t set_mask = (function << SLCR_MIO_PIN_L0_SEL_Pos);
-  if (tristate)
-    set_mask |= SLCR_MIO_PIN_TRI_ENABLE_Msk;
-  if (pullup)
-    set_mask |= SLCR_MIO_PIN_PULLUP_Msk;
-  if (fast)
-    set_mask |= SLCR_MIO_PIN_SPEED_Msk;
+  if (tristate) set_mask |= SLCR_MIO_PIN_TRI_ENABLE_Msk;
+  if (pullup) set_mask |= SLCR_MIO_PIN_PULLUP_Msk;
+  if (fast) set_mask |= SLCR_MIO_PIN_SPEED_Msk;
 
   uint32_t mio_pin_reg = SLCR_MIO->MIO_PIN[mio];
   mio_pin_reg &= ~clear_mask;
@@ -53,8 +46,7 @@ static void mio_configure(uint8_t mio, uint8_t function, bool tristate,
   SLCR_MIO->MIO_PIN[mio] = mio_pin_reg;
 }
 
-void boardRevInit(void)
-{
+void boardRevInit(void) {
   /* Unlock SLCR */
   *(volatile uint32_t *)0xF8000008 = 0xDF0D;
 

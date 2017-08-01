@@ -10,39 +10,38 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <libswiftnav/logging.h>
-#include <libswiftnav/pvt.h>
-#include <libswiftnav/constants.h>
-#include <libswiftnav/ephemeris.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/ephemeris.h>
 #include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/logging.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/signal.h>
-#include <libswiftnav/sid_set.h>
+#include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/propagate.h>
+#include <libswiftnav/sid_set.h>
+#include <libswiftnav/signal.h>
 
+#include "base_obs.h"
+#include "cnav_msg_storage.h"
+#include "ephemeris.h"
+#include "manage.h"
 #include "me_calc_pvt.h"
+#include "ndb.h"
+#include "nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
-#include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "starling_calc_pvt.h"
-#include "manage.h"
-#include "simulator.h"
 #include "settings.h"
-#include "timing.h"
-#include "base_obs.h"
-#include "ephemeris.h"
-#include "signal.h"
-#include "ndb.h"
 #include "shm.h"
-#include "cnav_msg_storage.h"
+#include "signal.h"
+#include "simulator.h"
+#include "starling_calc_pvt.h"
+#include "timing.h"
 
 extern bool disable_raim;
 
@@ -71,14 +70,13 @@ static double old_base_pos_ecef[3] = {0, 0, 0};
 static u32 base_obs_msg_counter = 0;
 static u8 old_base_sender_id = 0;
 
-void check_base_position_change(void)
-{
+void check_base_position_change(void) {
   /* Check if the base position has changed and reset the RTK filter if
    * it has.
    */
-  if (old_base_pos_known ) {
+  if (old_base_pos_known) {
     double base_distance = vector_distance(3, old_base_pos_ecef, base_pos_ecef);
-    if( base_distance > SURVEYED_BASE_STATION_DISTANCE_THRESHOLD) {
+    if (base_distance > SURVEYED_BASE_STATION_DISTANCE_THRESHOLD) {
       log_warn("Base station position changed. Resetting RTK filter.");
       reset_rtk_filter();
       base_pos_known = false;
@@ -94,9 +92,12 @@ void check_base_position_change(void)
  * Stores the base station position in the global #base_pos_ecef variable and
  * sets #base_pos_known to `true`.
  */
-static void base_pos_llh_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void) context; (void) len;
+static void base_pos_llh_callback(u16 sender_id,
+                                  u8 len,
+                                  u8 msg[],
+                                  void *context) {
+  (void)context;
+  (void)len;
   // Skip forwarded sender_ids. See note in obs_callback about echo'ing
   // sender_id.
   if (sender_id == 0) {
@@ -123,9 +124,12 @@ static void base_pos_llh_callback(u16 sender_id, u8 len, u8 msg[], void* context
  * Stores the base station position in the global #base_pos_ecef variable and
  * sets #base_pos_known to `true`.
  */
-static void base_pos_ecef_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void) context; (void) len;
+static void base_pos_ecef_callback(u16 sender_id,
+                                   u8 len,
+                                   u8 msg[],
+                                   void *context) {
+  (void)context;
+  (void)len;
   // Skip forwarded sender_ids. See note in obs_callback about echo'ing
   // sender_id.
   if (sender_id == 0) {
@@ -158,8 +162,7 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  * \note This function is stateful as it must store the previous observation
  *       set for the TDCP Doppler.
  */
-static void update_obss(obss_t *new_obss)
-{
+static void update_obss(obss_t *new_obss) {
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
   /* We don't want to allow observations that have the same or earlier time
@@ -170,8 +173,10 @@ static void update_obss(obss_t *new_obss)
   }
 
   /* Ensure observations sorted by PRN. */
-  qsort(new_obss->nm, new_obss->n,
-        sizeof(navigation_measurement_t), nav_meas_cmp);
+  qsort(new_obss->nm,
+        new_obss->n,
+        sizeof(navigation_measurement_t),
+        nav_meas_cmp);
   /** Precheck any base station observations and filter if needed. This is not a
    *  permanent solution for actually correcting GPS L2 base station
    *  observations that have mixed tracking modes in a signal epoch. For more
@@ -201,7 +206,9 @@ static void update_obss(obss_t *new_obss)
   chMtxLock(&base_obs_lock);
 
   base_obss.n = new_obss->n;
-  memcpy(base_obss.nm, new_obss->nm, new_obss->n * sizeof(navigation_measurement_t));
+  memcpy(base_obss.nm,
+         new_obss->nm,
+         new_obss->n * sizeof(navigation_measurement_t));
 
   /* Assume that we don't know the known, surveyed base position for now. */
   base_obss.has_known_pos_ecef = false;
@@ -214,8 +221,11 @@ static void update_obss(obss_t *new_obss)
    */
   if ((old_base_sender_id != 0) &&
       (old_base_sender_id != base_obss.sender_id)) {
-    log_warn("Base station sender ID changed from %u to %u. Resetting RTK"
-             " filter.", old_base_sender_id, base_obss.sender_id);
+    log_warn(
+        "Base station sender ID changed from %u to %u. Resetting RTK"
+        " filter.",
+        old_base_sender_id,
+        base_obss.sender_id);
     reset_rtk_filter();
     chMtxLock(&base_pos_lock);
     base_pos_known = false;
@@ -240,26 +250,26 @@ static void update_obss(obss_t *new_obss)
     dops_t dops;
 
     /* check if we have fix, if yes, calculate iono and tropo correction */
-    if(base_obss.has_pos) {
+    if (base_obss.has_pos) {
       double llh[3];
       wgsecef2llh(base_obss.pos_ecef, llh);
       log_debug("Base: IONO/TROPO correction");
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
       /* get iono parameters if available */
-      if(ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
+      if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      calc_iono_tropo(base_obss.n, base_obss.nm, base_obss.pos_ecef, llh,
-                      p_i_params);
+      calc_iono_tropo(
+          base_obss.n, base_obss.nm, base_obss.pos_ecef, llh, p_i_params);
     }
 
     /* Calculate a position solution. */
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
-    s32 ret = calc_PVT(base_obss.n, base_obss.nm, disable_raim, true,
-                       &soln, &dops, NULL);
+    s32 ret = calc_PVT(
+        base_obss.n, base_obss.nm, disable_raim, true, &soln, &dops, NULL);
 
     if (ret >= 0 && soln.valid) {
       memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
@@ -270,12 +280,13 @@ static void update_obss(obss_t *new_obss)
         double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
 
         if (base_distance > BASE_STATION_RESET_THRESHOLD) {
-          log_warn("Received base observation with SPP position %f m from the"
-                   " surveyed position. Resetting RTK filter.",
-                   base_distance);
-         reset_rtk_filter();
-         base_pos_known = false;
-         memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+          log_warn(
+              "Received base observation with SPP position %f m from the"
+              " surveyed position. Resetting RTK filter.",
+              base_distance);
+          reset_rtk_filter();
+          base_pos_known = false;
+          memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
         } else {
           /* If our known base position is consistent with our calculated base
              SPP, save the known base position. This will be used for
@@ -283,11 +294,13 @@ static void update_obss(obss_t *new_obss)
              difference between the two positions is larger than expected, log
              a warning, but still use the known base position. */
           if (base_distance > SPP_BASE_STATION_DISTANCE_THRESHOLD) {
-            log_warn("Received base observation with SPP position %f m from the"
-                     " surveyed position. Check the base station position setting.",
-                     base_distance);
+            log_warn(
+                "Received base observation with SPP position %f m from the"
+                " surveyed position. Check the base station position setting.",
+                base_distance);
           }
-          memcpy(base_obss.known_pos_ecef, base_pos_ecef, sizeof(base_pos_ecef));
+          memcpy(
+              base_obss.known_pos_ecef, base_pos_ecef, sizeof(base_pos_ecef));
           base_obss.has_known_pos_ecef = true;
         }
       } else {
@@ -298,7 +311,8 @@ static void update_obss(obss_t *new_obss)
       base_obss.has_pos = 0;
       /* TODO(dsk) check for repair failure */
       /* There was an error calculating the position solution. */
-      log_warn("Error calculating base station position: (%s).", pvt_err_msg[-ret-1]);
+      log_warn("Error calculating base station position: (%s).",
+               pvt_err_msg[-ret - 1]);
     }
   } else {
     base_obss.has_pos = 0;
@@ -325,9 +339,8 @@ static void update_obss(obss_t *new_obss)
  * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
  * is called.
  */
-static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void) context;
+static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  (void)context;
 
   /* Keep track of where in the sequence of messages we were last time around
    * so we can verify we haven't dropped a message. */
@@ -363,15 +376,18 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Decode the message header to get the time and how far through the sequence
    * we are. */
-  unpack_obs_header((observation_header_t*)msg, &tor, &total, &count);
+  unpack_obs_header((observation_header_t *)msg, &tor, &total, &count);
   /* Check to see if the observation is aligned with our internal observations,
    * i.e. is it going to time match one of our local obs. */
   u32 obs_freq = soln_freq / obs_output_divisor;
   double epoch_count = tor.tow * obs_freq;
   double dt = fabs(epoch_count - round(epoch_count)) / obs_freq;
   if (dt > TIME_MATCH_THRESHOLD) {
-    log_warn("Unaligned observation from base station ignored, "
-             "tow = %.3f, dt = %.3f", tor.tow, dt);
+    log_warn(
+        "Unaligned observation from base station ignored, "
+        "tow = %.3f, dt = %.3f",
+        tor.tow,
+        dt);
     return;
   }
 
@@ -379,8 +395,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   if (count == 0) {
     prev_tor = tor;
     prev_count = 0;
-  } else if (prev_tor.tow != tor.tow ||
-             prev_tor.wn != tor.wn ||
+  } else if (prev_tor.tow != tor.tow || prev_tor.wn != tor.wn ||
              prev_count + 1 != count) {
     log_info("Dropped one of the observation packets! Skipping this sequence.");
     prev_count = -1;
@@ -391,7 +406,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
   /* Calculate the number of observations in this message by looking at the SBP
    * `len` field. */
-  u8 obs_in_msg = (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
+  u8 obs_in_msg =
+      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
 
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
@@ -401,8 +417,9 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   }
 
   /* Pull out the contents of the message. */
-  packed_obs_content_t *obs = (packed_obs_content_t *)(msg + sizeof(observation_header_t));
-  for (u8 i=0; i<obs_in_msg; i++) {
+  packed_obs_content_t *obs =
+      (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+  for (u8 i = 0; i < obs_in_msg; i++) {
     gnss_signal_t sid = sid_from_sbp16(obs[i].sid);
     if (!sid_supported(sid)) {
       continue;
@@ -413,9 +430,14 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
     /* Unpack the observation into a navigation_measurement_t. */
-    unpack_obs_content(&obs[i], &nm->raw_pseudorange, &nm->raw_carrier_phase,
-                       &nm->raw_measured_doppler, &nm->cn0, &nm->lock_time,
-                       &nm->flags, &nm->sid);
+    unpack_obs_content(&obs[i],
+                       &nm->raw_pseudorange,
+                       &nm->raw_carrier_phase,
+                       &nm->raw_measured_doppler,
+                       &nm->cn0,
+                       &nm->lock_time,
+                       &nm->flags,
+                       &nm->sid);
 
     /* Set the time */
     nm->tot = tor;
@@ -430,17 +452,24 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
-    bool eph_valid = (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
-        && ephemeris_valid(&ephe, &nm->tot);
+    bool eph_valid = (NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) &&
+                     ephemeris_valid(&ephe, &nm->tot);
 
     if (eph_valid) {
       /* Apply corrections to the pseudorange, carrier phase and Doppler. */
       cscc_ret = calc_sat_clock_corrections(1, &nm, &ephe_p);
 
-      /* After correcting the time of transmission for the satellite clock error,
+      /* After correcting the time of transmission for the satellite clock
+         error,
          recalculate the satellite position. */
-      css_ret = calc_sat_state(&ephe, &nm->tot, nm->sat_pos, nm->sat_vel,
-                               &nm->sat_clock_err, &nm->sat_clock_err_rate, &nm->IODC, &nm->IODE);
+      css_ret = calc_sat_state(&ephe,
+                               &nm->tot,
+                               nm->sat_pos,
+                               nm->sat_vel,
+                               &nm->sat_clock_err,
+                               &nm->sat_clock_err_rate,
+                               &nm->IODC,
+                               &nm->IODE);
     }
 
     if (!eph_valid || (cscc_ret != 0) || (css_ret != 0)) {
@@ -457,7 +486,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
     /* Calculate packet latency. */
     if (time_quality >= TIME_COARSE) {
       gps_time_t now = get_current_time();
-      float latency_ms = (float) ((now.tow - tor.tow) * 1000.0);
+      float latency_ms = (float)((now.tow - tor.tow) * 1000.0);
       log_obs_latency(latency_ms);
     }
     /* Update message counter */
@@ -467,17 +496,25 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 
 /** SBP callback for the old style observation messages.
  * Just logs a deprecation warning. */
-static void deprecated_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void) context; (void) len; (void) msg; (void) sender_id;
-  log_warn("Received a deprecated obs msg. Verify firmware version on remote Piksi.");
+static void deprecated_callback(u16 sender_id,
+                                u8 len,
+                                u8 msg[],
+                                void *context) {
+  (void)context;
+  (void)len;
+  (void)msg;
+  (void)sender_id;
+  log_warn(
+      "Received a deprecated obs msg. Verify firmware version on remote "
+      "Piksi.");
 }
 
 /** SBP callback for Group delay message
  */
-static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void) context;
+static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  (void)sender_id;
+  (void)len;
+  (void)context;
 
   log_info("Group delay received from peer");
 
@@ -485,13 +522,15 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   memset(&cnav, 0, sizeof(cnav));
 
   /* unpack received message */
-  cnav.data.type_30.isc_l1ca = ((msg_group_delay_t*)msg)->isc_l1ca;
-  cnav.data.type_30.tgd = ((msg_group_delay_t*)msg)->tgd;
-  cnav.prn = ((msg_group_delay_t*)msg)->sid.sat;
-  cnav.data.type_30.isc_l1ca_valid = (((msg_group_delay_t*)msg)->valid >> 2) & 0x1;
-  cnav.data.type_30.isc_l2c_valid = (((msg_group_delay_t*)msg)->valid >> 1) & 0x1;
-  cnav.data.type_30.tgd_valid = (((msg_group_delay_t*)msg)->valid) & 0x1;
-  cnav.tow = ((msg_group_delay_t*)msg)->t_op.tow;
+  cnav.data.type_30.isc_l1ca = ((msg_group_delay_t *)msg)->isc_l1ca;
+  cnav.data.type_30.tgd = ((msg_group_delay_t *)msg)->tgd;
+  cnav.prn = ((msg_group_delay_t *)msg)->sid.sat;
+  cnav.data.type_30.isc_l1ca_valid =
+      (((msg_group_delay_t *)msg)->valid >> 2) & 0x1;
+  cnav.data.type_30.isc_l2c_valid =
+      (((msg_group_delay_t *)msg)->valid >> 1) & 0x1;
+  cnav.data.type_30.tgd_valid = (((msg_group_delay_t *)msg)->valid) & 0x1;
+  cnav.tow = ((msg_group_delay_t *)msg)->t_op.tow;
   cnav.alert = 0;
   cnav.bit_polarity = 0;
   cnav.msg_id = CNAV_MSG_TYPE_30;
@@ -501,64 +540,34 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 }
 
 /** Setup the base station observation handling subsystem. */
-void base_obs_setup()
-{
+void base_obs_setup() {
   /* Register callbacks on base station messages. */
 
   static sbp_msg_callbacks_node_t base_pos_llh_node;
   sbp_register_cbk(
-    SBP_MSG_BASE_POS_LLH,
-    &base_pos_llh_callback,
-    &base_pos_llh_node
-  );
+      SBP_MSG_BASE_POS_LLH, &base_pos_llh_callback, &base_pos_llh_node);
 
   static sbp_msg_callbacks_node_t base_pos_ecef_node;
   sbp_register_cbk(
-    SBP_MSG_BASE_POS_ECEF,
-    &base_pos_ecef_callback,
-    &base_pos_ecef_node
-  );
+      SBP_MSG_BASE_POS_ECEF, &base_pos_ecef_callback, &base_pos_ecef_node);
 
   static sbp_msg_callbacks_node_t obs_packed_node;
-  sbp_register_cbk(
-    SBP_MSG_OBS,
-    &obs_callback,
-    &obs_packed_node
-  );
+  sbp_register_cbk(SBP_MSG_OBS, &obs_callback, &obs_packed_node);
 
   static sbp_msg_callbacks_node_t deprecated_node;
-  sbp_register_cbk(
-    SBP_MSG_OBS_DEP_A,
-    &deprecated_callback,
-    &deprecated_node
-  );
+  sbp_register_cbk(SBP_MSG_OBS_DEP_A, &deprecated_callback, &deprecated_node);
 
   static sbp_msg_callbacks_node_t deprecated_node_2;
-  sbp_register_cbk(
-    SBP_MSG_OBS_DEP_B,
-    &deprecated_callback,
-    &deprecated_node_2
-  );
+  sbp_register_cbk(SBP_MSG_OBS_DEP_B, &deprecated_callback, &deprecated_node_2);
 
   static sbp_msg_callbacks_node_t deprecated_node_3;
-  sbp_register_cbk(
-    SBP_MSG_OBS_DEP_C,
-    &deprecated_callback,
-    &deprecated_node_3
-  );
+  sbp_register_cbk(SBP_MSG_OBS_DEP_C, &deprecated_callback, &deprecated_node_3);
 
   static sbp_msg_callbacks_node_t ics_node;
-  sbp_register_cbk(
-    SBP_MSG_GROUP_DELAY,
-    &ics_msg_callback,
-    &ics_node
-  );
+  sbp_register_cbk(SBP_MSG_GROUP_DELAY, &ics_msg_callback, &ics_node);
 }
 
 /** Get a rolling count of received base observations. */
-u32 base_obs_msg_counter_get(void)
-{
-  return base_obs_msg_counter;
-}
+u32 base_obs_msg_counter_get(void) { return base_obs_msg_counter; }
 
 /* \} */

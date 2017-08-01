@@ -28,6 +28,7 @@ u32 rpmsg_rx_fifo_length(rpmsg_endpoint_t rpmsg_endpoint);
 u32 rpmsg_tx_fifo_space(rpmsg_endpoint_t rpmsg_endpoint);
 u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint, u8 *buffer, u32 length);
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
-                        const u8 *buffer, u32 length);
+                        const u8 *buffer,
+                        u32 length);
 
 #endif /* SWIFTNAV_RPMSG_H */

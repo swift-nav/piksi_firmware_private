@@ -43,27 +43,29 @@
 #define POS_VALID_GPIO_LINE PAL_LINE(GPIO2, 20)
 
 #define FRONTEND_SPI SPID1
-#define FRONTEND_SPI_CONFIG {0, SPI_MODE_0, \
-                             SPI_CLK_DIV_16, SPI_SS_FRONTEND_GPIO_LINE}
+#define FRONTEND_SPI_CONFIG \
+  { 0, SPI_MODE_0, SPI_CLK_DIV_16, SPI_SS_FRONTEND_GPIO_LINE }
 #define IMU_SPI SPID1
-#define IMU_SPI_CONFIG {0, SPI_MODE_0, \
-                             SPI_CLK_DIV_16, SPI_SS_IMU_GPIO_LINE}
+#define IMU_SPI_CONFIG \
+  { 0, SPI_MODE_0, SPI_CLK_DIV_16, SPI_SS_IMU_GPIO_LINE }
 #define CLK_DAC_SPI SPID2
-#define CLK_DAC_SPI_CONFIG {0, SPI_MODE_1, \
-                            SPI_CLK_DIV_16, SPI_SS_CLK_DAC_GPIO_LINE}
+#define CLK_DAC_SPI_CONFIG \
+  { 0, SPI_MODE_1, SPI_CLK_DIV_16, SPI_SS_CLK_DAC_GPIO_LINE }
 
 #define RTC_I2C I2CD2
-#define RTC_I2C_CONFIG {.clk = 200000}
+#define RTC_I2C_CONFIG \
+  { .clk = 200000 }
 
 #define LED_I2C I2CD2
-#define LED_I2C_CONFIG {.clk = 200000}
+#define LED_I2C_CONFIG \
+  { .clk = 200000 }
 
 #define XADC_VIN_SCALING (11)
 
-#define TCXO_FREQ_HZ 10e6          /* TCXO nominal frequency [Hz] */
+#define TCXO_FREQ_HZ 10e6 /* TCXO nominal frequency [Hz] */
 
 /* Piksi V3 TCXO nominal temperature frequency stability [ppm] */
-#define TCXO_FREQ_STAB_PPM  0.28f
+#define TCXO_FREQ_STAB_PPM 0.28f
 /* Maximum TCXO offset. Includes TCXO nominal temperature frequency stability,
    aging and soldering [ppm] */
 #define TCXO_FREQ_OFFSET_MAX_PPM (TCXO_FREQ_STAB_PPM + 2.42)
@@ -82,7 +84,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void boardRevInit(void);
+void boardRevInit(void);
 #ifdef __cplusplus
 }
 #endif

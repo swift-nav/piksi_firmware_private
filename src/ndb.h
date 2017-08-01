@@ -13,10 +13,10 @@
 #ifndef SWIFTNAV_NDB_H
 #define SWIFTNAV_NDB_H
 
-#include <ndb/ndb_ephemeris.h>
 #include <ndb/ndb_almanac.h>
-#include <ndb/ndb_l2c_capb.h>
+#include <ndb/ndb_ephemeris.h>
 #include <ndb/ndb_iono.h>
+#include <ndb/ndb_l2c_capb.h>
 #include <ndb/ndb_lgf.h>
 #include <ndb/ndb_utc.h>
 

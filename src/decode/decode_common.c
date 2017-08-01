@@ -9,36 +9,33 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include <assert.h>
+#include <libswiftnav/glo_map.h>
+#include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
-#include <libswiftnav/nav_msg_glo.h>
-#include <libswiftnav/glo_map.h>
-#include <assert.h>
 #include <string.h>
 
+#include "ephemeris.h"
 #include "piksi_systime.h"
 #include "timing.h"
-#include "ephemeris.h"
 #include "track.h"
 
 #include "sbp.h"
 #include "sbp_utils.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
-                                             const glo_time_t *glo_t)
-{
+                                             const glo_time_t *glo_t) {
   return glo2gps_with_utc_params(mesid, glo_t);
 }
 
-void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid)
-{
+void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   nav_msg_init_glo(n, mesid, glo2gps_with_utc_params_cb);
 }
 
 bool is_glo_decode_ready(nav_msg_glo_t *n,
                          me_gnss_signal_t mesid,
-                         const nav_bit_fifo_element_t *nav_bit)
-{
+                         const nav_bit_fifo_element_t *nav_bit) {
   /* Don't trust polarity information while in sensitivity mode. */
   if (nav_bit->sensitivity_mode) {
     nav_msg_init_glo_with_cb(n, mesid);
@@ -75,8 +72,7 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
   return true;
 }
 
-void send_glo_fcn_mapping(gps_time_t t)
-{
+void send_glo_fcn_mapping(gps_time_t t) {
   msg_fcns_glo_t sbp;
   memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
   for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
@@ -89,14 +85,14 @@ void send_glo_fcn_mapping(gps_time_t t)
   sbp.tow_ms = t.tow;
   sbp.wn = t.wn;
 
-  sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8*)&sbp);
+  sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8 *)&sbp);
 }
 
-void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
-{
+void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   log_debug_mesid(mesid,
-                 "New ephemeris received [%" PRId16 ", %lf]",
-                 n->eph.toe.wn, n->eph.toe.tow);
+                  "New ephemeris received [%" PRId16 ", %lf]",
+                  n->eph.toe.wn,
+                  n->eph.toe.tow);
 
   /* check if previous value of mapped FCN is different */
   u16 pre_fcn = GLO_FCN_UNKNOWN;
@@ -117,15 +113,16 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
 
   eph_new_status_t r = ephemeris_new(&n->eph);
   if (EPH_NEW_OK != r) {
-    log_warn_mesid(mesid, "Error in GLO ephemeris processing. "
-                          "Eph status: %"PRIu8" ", r);
+    log_warn_mesid(mesid,
+                   "Error in GLO ephemeris processing. "
+                   "Eph status: %" PRIu8 " ",
+                   r);
   }
 }
 
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
-                   u8 tracking_channel)
-{
+                   u8 tracking_channel) {
   nav_data_sync_t from_decoder;
 
   tracking_channel_data_sync_init(&from_decoder);
@@ -143,10 +140,8 @@ bool glo_data_sync(nav_msg_glo_t *n,
 
   from_decoder.bit_polarity = n->bit_polarity;
   from_decoder.glo_orbit_slot = n->eph.sid.sat;
-  if (signal_healthy(n->eph.valid,
-                     n->eph.health_bits,
-                     n->eph.ura,
-                     n->mesid.code)) {
+  if (signal_healthy(
+          n->eph.valid, n->eph.health_bits, n->eph.ura, n->mesid.code)) {
     from_decoder.glo_health = GLO_SV_HEALTHY;
   } else {
     from_decoder.glo_health = GLO_SV_UNHEALTHY;

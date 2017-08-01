@@ -12,19 +12,19 @@
 
 #include "track.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include <ch.h>
 
-#include "signal.h"
 #include "peripherals/random.h"
+#include "signal.h"
 
 /** \addtogroup tracking
  * \{ */
 
-#define COMPILER_BARRIER() asm volatile ("" : : : "memory")
+#define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
 static tracker_interface_list_element_t *tracker_interface_list = 0;
 
@@ -35,16 +35,14 @@ static tracker_interface_list_element_t *tracker_interface_list = 0;
 static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
 
 /** Set up internal tracker data. */
-void track_internal_setup(void)
-{
-  for (u32 i=0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+void track_internal_setup(void) {
+  for (u32 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
     tracking_lock_counters[i] = rand();
   }
 }
 
 /** Return a pointer to the tracker interface list. */
-tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void)
-{
+tracker_interface_list_element_t **tracker_interface_list_ptr_get(void) {
   return &tracker_interface_list;
 }
 
@@ -52,8 +50,7 @@ tracker_interface_list_element_t ** tracker_interface_list_ptr_get(void)
  *
  * \param fifo        nav_bit_fifo_t struct to use.
  */
-void nav_bit_fifo_init(nav_bit_fifo_t *fifo)
-{
+void nav_bit_fifo_init(nav_bit_fifo_t *fifo) {
   fifo->read_index = 0;
   fifo->write_index = 0;
 }
@@ -64,8 +61,7 @@ void nav_bit_fifo_init(nav_bit_fifo_t *fifo)
  *
  * \return true if the nav bit FIFO is full, false otherwise.
  */
-bool nav_bit_fifo_full(nav_bit_fifo_t *fifo)
-{
+bool nav_bit_fifo_full(nav_bit_fifo_t *fifo) {
   return (NAV_BIT_FIFO_LENGTH(fifo) == NAV_BIT_FIFO_SIZE);
 }
 
@@ -79,12 +75,12 @@ bool nav_bit_fifo_full(nav_bit_fifo_t *fifo)
  * \return true if element was read, false otherwise.
  */
 bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
-                        const nav_bit_fifo_element_t *element)
-{
+                        const nav_bit_fifo_element_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) < NAV_BIT_FIFO_SIZE) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     memcpy(&fifo->elements[fifo->write_index & NAV_BIT_FIFO_INDEX_MASK],
-           element, sizeof(nav_bit_fifo_element_t));
+           element,
+           sizeof(nav_bit_fifo_element_t));
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     fifo->write_index++;
     return true;
@@ -102,11 +98,11 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
  *
  * \return true if element was read, false otherwise.
  */
-bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element)
-{
+bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) > 0) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
-    memcpy(element, &fifo->elements[fifo->read_index & NAV_BIT_FIFO_INDEX_MASK],
+    memcpy(element,
+           &fifo->elements[fifo->read_index & NAV_BIT_FIFO_INDEX_MASK],
            sizeof(nav_bit_fifo_element_t));
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     fifo->read_index++;
@@ -120,10 +116,7 @@ bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element)
  *
  * \param sync          nav_data_sync_t struct to use.
  */
-void nav_data_sync_init(nav_data_sync_t *sync)
-{
-  sync->valid = false;
-}
+void nav_data_sync_init(nav_data_sync_t *sync) { sync->valid = false; }
 
 /** Write pending sync data from the decoder thread.
  *
@@ -135,8 +128,7 @@ void nav_data_sync_init(nav_data_sync_t *sync)
  * \return true if data was stored successfully, false otherwise.
  */
 bool nav_data_sync_set(nav_data_sync_t *to_tracker,
-                       const nav_data_sync_t *from_decoder)
-{
+                       const nav_data_sync_t *from_decoder) {
   assert(to_tracker);
   assert(from_decoder);
   bool result = false;
@@ -161,8 +153,8 @@ bool nav_data_sync_set(nav_data_sync_t *to_tracker,
  *
  * \return true if outputs are valid, false otherwise.
  */
-bool nav_data_sync_get(nav_data_sync_t *to_tracker, nav_data_sync_t *from_decoder)
-{
+bool nav_data_sync_get(nav_data_sync_t *to_tracker,
+                       nav_data_sync_t *from_decoder) {
   assert(to_tracker);
   assert(from_decoder);
   bool result = false;
@@ -182,8 +174,7 @@ bool nav_data_sync_get(nav_data_sync_t *to_tracker, nav_data_sync_t *from_decode
  *
  * \param bit_integrate   Signed bit integration value.
  */
-s8 nav_bit_quantize(s32 bit_integrate)
-{
+s8 nav_bit_quantize(s32 bit_integrate) {
   //  0 through  2^24 - 1 ->  0 = weakest positive bit
   // -1 through -2^24     -> -1 = weakest negative bit
 
@@ -197,8 +188,7 @@ s8 nav_bit_quantize(s32 bit_integrate)
  *
  * \param mesid ME identifier to use.
  */
-u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid)
-{
+u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
   return ++tracking_lock_counters[mesid_to_global_index(mesid)];
 }
 
@@ -206,8 +196,7 @@ u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid)
  *
  * \param sid         Signal identifier to use.
  */
-u16 tracking_lock_counter_get(gnss_signal_t sid)
-{
+u16 tracking_lock_counter_get(gnss_signal_t sid) {
   return tracking_lock_counters[sid_to_global_index(sid)];
 }
 

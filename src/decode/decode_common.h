@@ -25,4 +25,4 @@ bool glo_data_sync(nav_msg_glo_t *n,
                    u8 tracking_channel);
 void send_glo_fcn_mapping(gps_time_t t);
 
-#endif  /* #ifndef SWIFTNAV_DECODE_COMMON_H */
+#endif /* #ifndef SWIFTNAV_DECODE_COMMON_H */

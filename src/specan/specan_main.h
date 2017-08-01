@@ -8,12 +8,11 @@
 #ifndef SPECAN_MAIN_H_
 #define SPECAN_MAIN_H_
 
-#include <stdint.h>
 #include <libswiftnav/time.h>
+#include <stdint.h>
 
-#define TRACE_SBP_POINTS  (224)
+#define TRACE_SBP_POINTS (224)
 
 int SpecanStart(void);
-
 
 #endif /* SPECAN_MAIN_H_ */

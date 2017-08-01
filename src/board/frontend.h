@@ -19,4 +19,3 @@ void frontend_configure(void);
 void frontend_setup(void);
 
 #endif
-

@@ -16,16 +16,16 @@
 
 /* Local headers */
 #include "track_gps_l2cm.h"
-#include "track_gps_l2cl.h" /* for L2CM to L2CL tracking handover */
-#include "track_cn0.h"
-#include "track_sid_db.h"
 #include "track.h"
+#include "track_cn0.h"
+#include "track_gps_l2cl.h" /* for L2CM to L2CL tracking handover */
+#include "track_sid_db.h"
 
 /* Non-local headers */
-#include <platform_track.h>
-#include <signal.h>
 #include <manage.h>
 #include <ndb.h>
+#include <platform_track.h>
+#include <signal.h>
 
 /* Libraries */
 #include <libswiftnav/constants.h>
@@ -34,8 +34,8 @@
 #include <libswiftnav/track.h>
 
 /* STD headers */
-#include <string.h>
 #include <assert.h>
+#include <string.h>
 
 /** GPS L2 C configuration section name */
 #define L2CM_TRACK_SETTING_SECTION "l2cm_track"
@@ -49,18 +49,16 @@ static tracker_interface_function_t tracker_gps_l2cm_update;
 
 /** GPS L2C tracker interface */
 static const tracker_interface_t tracker_interface_gps_l2cm = {
-  .code =         CODE_GPS_L2CM,
-  .init =         tracker_gps_l2cm_init,
-  .disable =      tp_tracker_disable,
-  .update =       tracker_gps_l2cm_update,
+    .code = CODE_GPS_L2CM,
+    .init = tracker_gps_l2cm_init,
+    .disable = tp_tracker_disable,
+    .update = tracker_gps_l2cm_update,
 };
 
 /** GPS L2C tracker interface list element */
 static tracker_interface_list_element_t
-  tracker_interface_list_element_gps_l2cm = {
-    .interface = &tracker_interface_gps_l2cm,
-    .next = 0
-  };
+    tracker_interface_list_element_gps_l2cm = {
+        .interface = &tracker_interface_gps_l2cm, .next = 0};
 
 /**
  * Function for updating configuration on parameter change
@@ -70,8 +68,7 @@ static tracker_interface_list_element_t
  *
  * \return Update status
  */
-static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
-{
+static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val) {
   bool res = settings_default_notify(s, val);
 
   if (res) {
@@ -86,8 +83,7 @@ static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
 /** Register L2 CM tracker into the the tracker interface & settings
  *  framework.
  */
-void track_gps_l2cm_register(void)
-{
+void track_gps_l2cm_register(void) {
   TP_TRACKER_REGISTER_CONFIG(L2CM_TRACK_SETTING_SECTION,
                              gps_l2cm_config,
                              settings_pov_speed_cof_proxy);
@@ -112,8 +108,7 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
                               u16 sat,
                               float code_phase,
                               double carrier_freq,
-                              float cn0_init)
-{
+                              float cn0_init) {
   /* compose L2CM MESID: same SV, but code is L2CM */
   me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L2CM, sat);
 
@@ -128,9 +123,8 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
   }
 
   if (!handover_valid(code_phase, GPS_L1CA_CHIPS_NUM)) {
-    log_warn_mesid(mesid,
-                   "Unexpected L1C/A to L2C handover code phase: %f",
-                   code_phase);
+    log_warn_mesid(
+        mesid, "Unexpected L1C/A to L2C handover code phase: %f", code_phase);
     return;
   }
 
@@ -144,39 +138,37 @@ void do_l1ca_to_l2cm_handover(u32 sample_count,
      is called. */
 
   tracking_startup_params_t startup_params = {
-    .mesid              = mesid,
-    .sample_count       = sample_count,
-    /* recalculate doppler freq for L2 from L1 */
-    .carrier_freq       = carrier_freq * GPS_L2_HZ / GPS_L1_HZ,
-    .code_phase         = code_phase,
-    /* chips to correlate during first 1 ms of tracking */
-    .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
-    /* get initial cn0 from parent L1 channel */
-    .cn0_init           = cn0_init,
-    .elevation          = TRACKING_ELEVATION_UNKNOWN
-  };
+      .mesid = mesid,
+      .sample_count = sample_count,
+      /* recalculate doppler freq for L2 from L1 */
+      .carrier_freq = carrier_freq * GPS_L2_HZ / GPS_L1_HZ,
+      .code_phase = code_phase,
+      /* chips to correlate during first 1 ms of tracking */
+      .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
+      /* get initial cn0 from parent L1 channel */
+      .cn0_init = cn0_init,
+      .elevation = TRACKING_ELEVATION_UNKNOWN};
 
   switch (tracking_startup_request(&startup_params)) {
-  case 0:
-    log_debug_mesid(mesid, "L2 CM handover done");
-    break;
+    case 0:
+      log_debug_mesid(mesid, "L2 CM handover done");
+      break;
 
-  case 1:
-    /* sat is already in fifo, no need to inform */
-    break;
+    case 1:
+      /* sat is already in fifo, no need to inform */
+      break;
 
-  case 2:
-    log_warn_mesid(mesid, "Failed to start L2C tracking");
-    break;
+    case 2:
+      log_warn_mesid(mesid, "Failed to start L2C tracking");
+      break;
 
-  default:
-    assert(!"Unknown code returned");
-    break;
+    default:
+      assert(!"Unknown code returned");
+      break;
   }
 }
 
-static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
-{
+static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
   memset(data, 0, sizeof(*data));
@@ -207,8 +199,7 @@ static void tracker_gps_l2cm_init(tracker_channel_t *tracker_channel)
  * \return None
  */
 static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
-                               u32 cycle_flags)
-{
+                               u32 cycle_flags) {
   tp_tow_entry_t tow_entry;
   me_gnss_signal_t mesid = tracker_channel->mesid;
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
@@ -218,7 +209,6 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
       tracker_bit_aligned(tracker_channel)) {
-
     if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
       /*
        * Verify ToW alignment
@@ -228,11 +218,13 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
        */
       u8 tail = tracker_channel->TOW_ms % GPS_L2C_SYMBOL_LENGTH_MS;
       if (0 != tail) {
-        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1) ?
-                      -tail : GPS_L2C_SYMBOL_LENGTH_MS - tail;
+        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1)
+                          ? -tail
+                          : GPS_L2C_SYMBOL_LENGTH_MS - tail;
 
         log_error_mesid(mesid,
-                        "[+%" PRIu32 "ms] TOW error detected: "
+                        "[+%" PRIu32
+                        "ms] TOW error detected: "
                         "error=%" PRId8 "ms old_tow=%" PRId32,
                         tracker_channel->update_count,
                         error_ms,
@@ -243,21 +235,22 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
       }
     }
 
-    if (TOW_UNKNOWN == tracker_channel->TOW_ms && TOW_UNKNOWN != tow_entry.TOW_ms) {
+    if (TOW_UNKNOWN == tracker_channel->TOW_ms &&
+        TOW_UNKNOWN != tow_entry.TOW_ms) {
       /* ToW is not known, but there is a cached value */
       s32 ToW_ms = TOW_UNKNOWN;
       double error_ms = 0;
       u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
       u8 bit_length = tracker_bit_length_get(tracker_channel);
-      ToW_ms = tp_tow_compute(tow_entry.TOW_ms,
-                              time_delta_tk,
-                              bit_length,
-                              &error_ms);
+      ToW_ms = tp_tow_compute(
+          tow_entry.TOW_ms, time_delta_tk, bit_length, &error_ms);
 
       if (TOW_UNKNOWN != ToW_ms) {
         log_debug_mesid(mesid,
-                        "[+%" PRIu32 "ms]"
-                        " Initializing TOW from cache [%" PRIu8 "ms] "
+                        "[+%" PRIu32
+                        "ms]"
+                        " Initializing TOW from cache [%" PRIu8
+                        "ms] "
                         "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
                         tracker_channel->update_count,
                         bit_length,
@@ -269,8 +262,9 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
           tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
         } else {
           log_error_mesid(mesid,
-                          "[+%"PRIu32"ms] Error TOW propagation %"PRId32,
-                          tracker_channel->update_count, tracker_channel->TOW_ms);
+                          "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
+                          tracker_channel->update_count,
+                          tracker_channel->TOW_ms);
           tracker_channel->TOW_ms = TOW_UNKNOWN;
           tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
         }
@@ -279,8 +273,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
 
     bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
     if ((TOW_UNKNOWN != tracker_channel->TOW_ms) &&
-        (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
-        confirmed &&
+        (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) && confirmed &&
         !tracking_is_running(construct_mesid(CODE_GPS_L1CA, mesid.sat))) {
       /* Update ToW cache:
        * - bit edge is reached
@@ -308,8 +301,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
  */
 static bool check_L1_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
-                             bool *xcorr_flag)
-{
+                             bool *xcorr_flag) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
   if (CODE_GPS_L1CA != entry->mesid.code ||
@@ -320,8 +312,8 @@ static bool check_L1_entries(tracker_channel_t *tracker_channel,
 
   /* Convert L2 doppler to L1 */
   float L2_to_L1_freq = GPS_L1_HZ / GPS_L2_HZ;
-  float freq_mod = fmodf(tracker_channel->xcorr_freq * L2_to_L1_freq,
-                         L1CA_XCORR_FREQ_STEP);
+  float freq_mod =
+      fmodf(tracker_channel->xcorr_freq * L2_to_L1_freq, L1CA_XCORR_FREQ_STEP);
 
   float entry_cn0 = entry->cn0;
   float entry_freq = entry->freq;
@@ -336,8 +328,7 @@ static bool check_L1_entries(tracker_channel_t *tracker_channel,
     *xcorr_flag = true;
   }
 
-  if (entry_cn0 >= L1CA_XCORR_WHITELIST_THRESHOLD)
-  {
+  if (entry_cn0 >= L1CA_XCORR_WHITELIST_THRESHOLD) {
     data->xcorr_whitelist_l1 = true;
   } else {
     data->xcorr_whitelist_l1 = false;
@@ -364,14 +355,14 @@ static bool check_L1_entries(tracker_channel_t *tracker_channel,
  *
  * \param[in,out] tracker_channel Tracker channel data
  * \param[in]     xcorr_flag      Flag indicating satellite to be investigated.
- * \param[out]    xcorr_suspect   Flag set if satellite is determined xcorr suspect.
+ * \param[out]    xcorr_suspect   Flag set if satellite is determined xcorr
+ * suspect.
  *
  * \return None
  */
 static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
                                 bool xcorr_flag,
-                                bool *xcorr_suspect)
-{
+                                bool *xcorr_suspect) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
   s32 max_time_cnt = (s32)(gps_l2cm_config.xcorr_time * XCORR_UPDATE_RATE);
 
@@ -379,12 +370,10 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
     if (data->xcorr_count_l1 < max_time_cnt) {
       ++data->xcorr_count_l1;
     } else {
-      if (data->xcorr_whitelist &&
-          data->xcorr_whitelist_l1) {
+      if (data->xcorr_whitelist && data->xcorr_whitelist_l1) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
         tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
-      } else if (!data->xcorr_whitelist &&
-                 !data->xcorr_whitelist_l1) {
+      } else if (!data->xcorr_whitelist && !data->xcorr_whitelist_l1) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
       } else if (!data->xcorr_whitelist) {
@@ -421,8 +410,7 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
  * \return None
  */
 static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
-                                    u32 cycle_flags)
-{
+                                    u32 cycle_flags) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
@@ -441,7 +429,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
 
   bool xcorr_flag = false;
   for (u16 idx = 0; idx < cnt; ++idx) {
-    const tracking_channel_cc_entry_t * const entry = &cc_data.entries[idx];
+    const tracking_channel_cc_entry_t *const entry = &cc_data.entries[idx];
 
     if (check_L1_entries(tracker_channel, entry, &xcorr_flag)) {
       break;
@@ -460,8 +448,8 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
 
   bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
 
-  set_xcorr_suspect_flag(tracker_channel,
-                         xcorr_suspect | prn_check_fail, sensitivity_mode);
+  set_xcorr_suspect_flag(
+      tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
 /** Read the half-cycle ambiguity status.
@@ -470,8 +458,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
  *
  * \return Polarity of the data.
  */
-static s8 read_data_polarity(tracker_channel_t *tracker_channel)
-{
+static s8 read_data_polarity(tracker_channel_t *tracker_channel) {
   s8 retval = BIT_POLARITY_UNKNOWN;
   /* If the half-cycle ambiguity has been resolved,
    * return polarity, and reset polarity and sync status. */
@@ -500,8 +487,7 @@ static s8 read_data_polarity(tracker_channel_t *tracker_channel)
  * \return None
  */
 static void update_l2cl_status(tracker_channel_t *tracker_channel,
-                               u32 cycle_flags)
-{
+                               u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   if (tp_tl_is_fll(&tracker_channel->tl_state)) {
@@ -511,7 +497,6 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
              (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
              (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) &&
              tracker_bit_aligned(tracker_channel)) {
-
     /* If needed, read half-cycle ambiguity status from L2CL tracker */
     if (tracker_ambiguity_resolved(tracker_channel)) {
       tracking_channel_drop_l2cl(mesid);
@@ -535,8 +520,7 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
   }
 }
 
-static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel)
-{
+static void tracker_gps_l2cm_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cm_config);
 
   /* GPS L2 C-specific ToW manipulation */

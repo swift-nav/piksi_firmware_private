@@ -16,10 +16,10 @@
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/pvt.h>
-#include <libswiftnav/track.h>
-#include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
+#include <libswiftnav/pvt.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/track.h>
 
 #include "piksi_systime.h"
 
@@ -69,10 +69,11 @@ extern double soln_freq;
 
 extern u32 max_age_of_differential;
 
-void solution_make_sbp(const gnss_solution *soln, dops_t *dops, sbp_messages_t *sbp_messages);
+void solution_make_sbp(const gnss_solution *soln,
+                       dops_t *dops,
+                       sbp_messages_t *sbp_messages);
 
 double calc_heading(const double b_ned[3]);
-
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void starling_calc_pvt_setup(void);

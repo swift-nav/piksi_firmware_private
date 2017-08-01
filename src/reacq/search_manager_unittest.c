@@ -36,28 +36,48 @@ static struct test_case_t *test_case;
 
 /** Unit test cases */
 static struct test_case_t test_cases[] = {
-  /* No SV tracked, health does not effect */
-  {0,0x0, 0x0, 0x0, 0x0, 0,   0xffffffff, 0x0}, 
-  {10, 0xffffffff, 0x0, 0x0, 0x0, 0,   0xffffffff,0x0},/* All healthy
-                                                          not tracked */
-  {10, 0xffffffff, 0x0, 0x0, 0xffffffff, 0,   0x0, 0x0},/* All healthy all
-                                                           tracked */
-  {20, 0x0, 0x0, 0x0, 0xffffffff, 0,   0x0, 0x0},/* All unhealthy all tracked */
-  {30, 0x1, 0x1, 0x1, 0x0, 0,   0xffffffff, 0x0},/* 1 healthy, not tracked, visible */
-  {30, 0x1, 0x0, 0x1, 0x0, 0,   0xfffffffe, 0x0},/* 1 healthy, not tracked,
-                                                    invisible */
-  {30, 0x1, 0x0, 0x0, 0x0, 0,   0xffffffff, 0x0},/* 1 healthy, not tracked, unknown */
-  /* Timeouts */
-  /* 1 healthy, not tracked, visible */
-  {ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS+1, 0x1, 0x1, 0x1, 0x0, 0,
-   0xffffffff,0xffffffff},
-  /* 1 healthy,  not tracked,invisible */
-  {ACQ_LGF_TIMEOUT_INVIS_MS+1, 0x1, 0x0, 0x1, 0x0, 0,
-   0xfffffffe,0xffffffff},
-  /* 1 healthy, not tracked, unknown */
-  {ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS+1, 0x1, 0x0, 0x0, 0x0, 0,
-   0xffffffff,0xffffffff}
-};
+    /* No SV tracked, health does not effect */
+    {0, 0x0, 0x0, 0x0, 0x0, 0, 0xffffffff, 0x0},
+    {10, 0xffffffff, 0x0, 0x0, 0x0, 0, 0xffffffff, 0x0}, /* All healthy
+                                                            not tracked */
+    {10, 0xffffffff, 0x0, 0x0, 0xffffffff, 0, 0x0, 0x0}, /* All healthy all
+                                                            tracked */
+    {20, 0x0, 0x0, 0x0, 0xffffffff, 0, 0x0, 0x0}, /* All unhealthy all tracked
+                                                     */
+    {30, 0x1, 0x1, 0x1, 0x0, 0, 0xffffffff, 0x0}, /* 1 healthy, not tracked,
+                                                     visible */
+    {30, 0x1, 0x0, 0x1, 0x0, 0, 0xfffffffe, 0x0}, /* 1 healthy, not tracked,
+                                                     invisible */
+    {30, 0x1, 0x0, 0x0, 0x0, 0, 0xffffffff, 0x0}, /* 1 healthy, not tracked,
+                                                     unknown */
+    /* Timeouts */
+    /* 1 healthy, not tracked, visible */
+    {ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS + 1,
+     0x1,
+     0x1,
+     0x1,
+     0x0,
+     0,
+     0xffffffff,
+     0xffffffff},
+    /* 1 healthy,  not tracked,invisible */
+    {ACQ_LGF_TIMEOUT_INVIS_MS + 1,
+     0x1,
+     0x0,
+     0x1,
+     0x0,
+     0,
+     0xfffffffe,
+     0xffffffff},
+    /* 1 healthy, not tracked, unknown */
+    {ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS + 1,
+     0x1,
+     0x0,
+     0x0,
+     0x0,
+     0,
+     0xffffffff,
+     0xffffffff}};
 
 /** Get SV visibility flags
  *
@@ -65,9 +85,7 @@ static struct test_case_t test_cases[] = {
  * \param[out] visible set if SV is visible
  * \param[out] known set if SV is known visible or known invisible
  */
-void sm_get_visibility_flags(gnss_signal_t sid,
-                             bool *visible, bool *known)
-{
+void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
   if (0 != (test_case->vis_mask & (1 << sid_to_code_index(sid)))) {
     *visible = true;
   } else {
@@ -85,8 +103,7 @@ void sm_get_visibility_flags(gnss_signal_t sid,
  *
  * \return true is SV is healthy, false otherwise
  */
-bool sm_is_healthy(gnss_signal_t sid)
-{
+bool sm_is_healthy(gnss_signal_t sid) {
   if (0 != (test_case->health_mask & (1 << sid_to_code_index(sid)))) {
     return true;
   }
@@ -99,8 +116,7 @@ bool sm_is_healthy(gnss_signal_t sid)
  *
  * \return true is SV is tracked, false otherwise
  */
-bool sid_is_tracked(gnss_signal_t sid)
-{
+bool sid_is_tracked(gnss_signal_t sid) {
   if (0 != (test_case->track_mask & (1 << sid_to_code_index(sid)))) {
     return true;
   }
@@ -110,19 +126,15 @@ bool sid_is_tracked(gnss_signal_t sid)
  *
  * \return HW time in milliseconds
  */
-u64 timing_getms(void)
-{
-  return (u64)test_case->now_ms;
-}
+u64 timing_getms(void) { return (u64)test_case->now_ms; }
 
 /** Get HW time of the last good fix (LGF)
  *
  * \param[out] lgf_stamp time of LGF (ms)
  * \return true lgf_stamp is valid, false otherwise
  */
-bool sm_lgf_stamp(u64 *lgf_stamp)
-{
-  *lgf_stamp = (u64)test_case->lgf_stamp_ms; 
+bool sm_lgf_stamp(u64 *lgf_stamp) {
+  *lgf_stamp = (u64)test_case->lgf_stamp_ms;
   return true;
 }
 
@@ -133,16 +145,14 @@ bool sm_lgf_stamp(u64 *lgf_stamp)
  *
  * \return 1 on failure, 0 othersiwe
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   int test_ix;
 
   sm_init(data);
 
-  for(test_ix = 0;
-      test_ix < sizeof(test_cases)/sizeof(test_cases[0]);
-      test_ix++) {
+  for (test_ix = 0; test_ix < sizeof(test_cases) / sizeof(test_cases[0]);
+       test_ix++) {
     u32 gps_run_mask[ACQ_NUM_JOB_TYPES];
     acq_job_types_e type;
     u32 i;
@@ -150,8 +160,11 @@ int main(int argc, char **argv)
     test_case = &test_cases[test_ix];
 
     printf("now=%u health=0x%x vis=0x%x knw=0x%x trk=0x%x lgf=%u\n",
-           test_case->now_ms, test_case->health_mask, test_case->vis_mask,
-           test_case->known_mask, test_case->track_mask,
+           test_case->now_ms,
+           test_case->health_mask,
+           test_case->vis_mask,
+           test_case->known_mask,
+           test_case->track_mask,
            test_case->lgf_stamp_ms);
 
     sm_run(data);
@@ -163,7 +176,7 @@ int main(int argc, char **argv)
         if (data->jobs[type][i].needs_to_run) {
           if (CODE_GPS_L1CA == data->jobs[type][i].sid.code) {
             gps_run_mask[type] |=
-              1 << (data->jobs[type][i].sid.sat - GPS_FIRST_PRN);
+                1 << (data->jobs[type][i].sid.sat - GPS_FIRST_PRN);
           }
         }
       }

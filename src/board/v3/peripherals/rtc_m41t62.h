@@ -16,14 +16,14 @@
 #include <libswiftnav/common.h>
 
 typedef struct {
-  u8 centisecond;   /* 0-99 */
-  u8 second;        /* 0-59 */
-  u8 minute;        /* 0-59 */
-  u8 hour;          /* 0-23 */
-  u8 wday;          /* 1-7 */
-  u8 mday;          /* 1-31 */
-  u8 month;         /* 1-12 */
-  u16 year;         /* 0-399 (aligned to 400 year boundary) */
+  u8 centisecond; /* 0-99 */
+  u8 second;      /* 0-59 */
+  u8 minute;      /* 0-59 */
+  u8 hour;        /* 0-23 */
+  u8 wday;        /* 1-7 */
+  u8 mday;        /* 1-31 */
+  u8 month;       /* 1-12 */
+  u16 year;       /* 0-399 (aligned to 400 year boundary) */
 } rtc_m41t62_time_t;
 
 void rtc_m41t62_init(void);

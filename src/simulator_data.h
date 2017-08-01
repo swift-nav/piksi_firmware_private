@@ -13,8 +13,8 @@
 #ifndef SWIFTNAV_SIMULATOR_DATA_H
 #define SWIFTNAV_SIMULATOR_DATA_H
 
-#include <libswiftnav/common.h>
 #include <libswiftnav/almanac.h>
+#include <libswiftnav/common.h>
 
 extern u16 simulation_week_number;
 extern u8 simulation_num_almanacs;

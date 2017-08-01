@@ -16,4 +16,4 @@
 void watchdog_enable(uint32_t period_ms);
 void watchdog_clear(void);
 
-#endif  /* SWIFTNAV_WATCHDOG_H */
+#endif /* SWIFTNAV_WATCHDOG_H */
