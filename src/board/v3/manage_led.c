@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -10,14 +11,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "manage_led.h"
-
-#include "me_calc_pvt.h"
-
+#include <assert.h>
 #include <hal.h>
 #include <libswiftnav/logging.h>
 
 #include "base_obs.h"
+#include "manage_led.h"
+#include "me_calc_pvt.h"
 #include "peripherals/antenna.h"
 #include "peripherals/led_adp8866.h"
 #include "piksi_systime.h"
@@ -49,15 +49,14 @@
     .b = RGB_TO_RGB_LED_COMPONENT(_r, _g, _b, _b)  \
   }
 
-#define MANAGE_LED_THREAD_PERIOD MS2ST(10)
-#define COUNTER_INTERVAL_ms MANAGE_LED_THREAD_PERIOD
-#define MS2COUNTS(ms) \
-  (((MS2ST(ms)) + COUNTER_INTERVAL_ms - 1) / COUNTER_INTERVAL_ms)
+#define LED_COLOR_OFF RGB_TO_RGB_LED(0, 0, 0)
+#define LED_COLOR_RED RGB_TO_RGB_LED(255, 0, 0)
+#define LED_COLOR_BLUE RGB_TO_RGB_LED(0, 0, 255)
+#define LED_COLOR_ORANGE RGB_TO_RGB_LED(255, 131, 0)
 
-#define INTERVAL_COUNTS MS2COUNTS(1000)
-#define LED_LINK_BLIP_COUNTS MS2COUNTS(20)
-#define SLOW_BLINK_PERIOD_COUNTS (INTERVAL_COUNTS / 1)
-#define FAST_BLINK_PERIOD_COUNTS (INTERVAL_COUNTS / 2)
+#define MANAGE_LED_THREAD_PERIOD_MS 10
+#define SLOW_BLINK_PERIOD_MS 500
+#define FAST_BLINK_PERIOD_MS 250
 
 #define LED_MODE_TIMEOUT_MS 1500
 
@@ -70,151 +69,225 @@ typedef struct {
   u8 b;
 } rgb_led_state_t;
 
-/* Must be wide enough to store 2*INTERVAL_COUNTS */
-typedef u8 counter_t;
+typedef enum {
+  LED_OFF,
+  LED_BLINK_SLOW,
+  LED_BLINK_FAST,
+  LED_ON
+} blink_mode_t;
 
-typedef enum { BLINK_OFF, BLINK_SLOW, BLINK_FAST, BLINK_ON } blink_mode_t;
+typedef enum {
+  DEV_ACQ,
+  DEV_TRK_BELOW_FOUR,
+  DEV_TRK_AT_LEAST_FOUR,
+  DEV_SPS,
+  DEV_FLOAT,
+  DEV_FIXED
+} device_state_t;
 
 typedef struct {
-  blink_mode_t mode;
-  counter_t period;
-  counter_t counter;
+  blink_mode_t mode; /* Current mode */
+  piksi_systime_t state_change; /* Time of previous on/off event */
+  bool on_off; /* Current state */
 } blinker_state_t;
-
-static const counter_t blink_mode_periods[] = {
-        [BLINK_OFF] = 2 * INTERVAL_COUNTS, /* Half period will never occur */
-        [BLINK_SLOW] = SLOW_BLINK_PERIOD_COUNTS,
-        [BLINK_FAST] = FAST_BLINK_PERIOD_COUNTS,
-        [BLINK_ON] = 0, /* Half period will occur immediately */
-};
 
 static THD_WORKING_AREA(wa_manage_led_thread, MANAGE_LED_THREAD_STACK);
 
-static void blinker_reset(blinker_state_t *b, blink_mode_t mode) {
-  b->mode = mode;
-  /* Initialize counter to -1 so that it rolls over
-   * to zero on the next update */
-  b->counter = -1;
-  b->period = blink_mode_periods[mode];
-}
+/** Update LED blink state.
+ *
+ * \param[in] b            LED state information.
+ *
+ * \return bool, TRUE for ON, FALSE for OFF.
+ */
+static bool blinker_update(blinker_state_t *b)
+{
+  u16 period_ms;
 
-static bool blinker_update(blinker_state_t *b) {
-  /* Increment counter */
-  if (++b->counter >= b->period) {
-    b->counter = 0;
+  switch (b->mode) {
+  case LED_OFF:
+    return FALSE;
+    break;
+  case LED_ON:
+    return TRUE;
+    break;
+  case LED_BLINK_SLOW:
+    period_ms = SLOW_BLINK_PERIOD_MS;
+    break;
+  case LED_BLINK_FAST:
+    period_ms = FAST_BLINK_PERIOD_MS;
+    break;
+  default:
+    assert(!"Unknown mode.");
+    break;
   }
 
-  /* Turn on for the second half of the period */
-  return (b->counter >= (b->period / 2));
+  u32 elapsed = piksi_systime_elapsed_since_ms_x(&b->state_change);
+
+  if (elapsed >= period_ms) {
+    b->on_off = !b->on_off;
+    piksi_systime_get_x(&b->state_change);
+  }
+
+  return b->on_off;
 }
 
-static blink_mode_t pv_blink_mode_get(void) {
-  /* On if PVT available */
+/** Determine device state. Each LED has it's own specification how to behave
+ *  under each state.
+ *
+ * \return Device state.
+ */
+static device_state_t get_device_state(void)
+{
+  /* Check for FIXED */
+  soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
+  s8 fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
+
+  if (fix) {
+    u32 elapsed = piksi_systime_elapsed_since_ms_x(&stats.systime);
+    if (elapsed < LED_MODE_TIMEOUT_MS) {
+      return (FILTER_FIXED == stats.mode) ? DEV_FIXED : DEV_FLOAT;
+    }
+  }
+
+  /* Check for SPS */
   piksi_systime_t t = solution_last_pvt_stats_get().systime;
+  fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
 
-  u32 elapsed = piksi_systime_elapsed_since_ms_x(&t);
-  s8 started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
+  if (fix) {
+    u32 elapsed = piksi_systime_elapsed_since_ms_x(&t);
 
-  if (started && (elapsed < LED_MODE_TIMEOUT_MS)) {
-    return BLINK_ON;
+    /* PVT available */
+    if (elapsed < LED_MODE_TIMEOUT_MS) {
+      return DEV_SPS;
+    }
   }
 
-  /* Off otherwise */
-  return BLINK_OFF;
-}
-
-static void handle_pv(counter_t c, bool *s) {
-  static blinker_state_t blinker_state;
-
-  /* Reset when global counter rolls over */
-  if (c == 0) {
-    blinker_reset(&blinker_state, pv_blink_mode_get());
-  }
-
-  *s = blinker_update(&blinker_state);
-}
-
-static blink_mode_t pos_blink_mode_get(void) {
-  u8 signals_tracked = solution_last_stats_get().signals_tracked;
-  piksi_systime_t t = solution_last_pvt_stats_get().systime;
-
-  u32 elapsed = piksi_systime_elapsed_since_ms_x(&t);
-  s8 started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
-
-  /* On if PVT available */
-  if (started && (elapsed < LED_MODE_TIMEOUT_MS)) {
-    return BLINK_ON;
-  }
   /* Blink according to signals tracked */
-  if (signals_tracked >= 4) {
-    return BLINK_FAST;
+  u8 signals_tracked = solution_last_stats_get().signals_tracked;
+
+  if (signals_tracked >= 4)  {
+    return DEV_TRK_AT_LEAST_FOUR;
   }
+
   if ((signals_tracked < 4 && signals_tracked > 0) || antenna_present()) {
-    return BLINK_SLOW;
+    return DEV_TRK_BELOW_FOUR;
   } else {
-    return BLINK_OFF;
+    return DEV_ACQ;
   }
 }
 
-static void handle_pos(counter_t c, rgb_led_state_t *s) {
+/** Handle PV LED state.
+ *
+ * \param[in] dev_state   Current device state.
+ *
+ * \return bool, TRUE for ON, FALSE for OFF.
+ */
+static bool handle_pv(device_state_t dev_state)
+{
+  switch (dev_state) {
+  case DEV_ACQ:
+  case DEV_TRK_BELOW_FOUR:
+  case DEV_TRK_AT_LEAST_FOUR:
+    return FALSE;
+    break;
+  case DEV_SPS:
+  case DEV_FLOAT:
+  case DEV_FIXED:
+    return TRUE;
+    break;
+  default:
+    assert(!"Unknown mode");
+    break;
+  }
+}
+
+/** Handle POS LED state.
+ *
+ * \param[in,out] s       Current LED state.
+ * \param[in] dev_state   Current device state.
+ *
+ */
+static void handle_pos(rgb_led_state_t *s, device_state_t dev_state)
+{
   static blinker_state_t blinker_state;
 
-  /* Reset when global counter rolls over */
-  if (c == 0) {
-    blinker_reset(&blinker_state, pos_blink_mode_get());
+  switch (dev_state) {
+  case DEV_ACQ:
+    blinker_state.mode = LED_OFF;
+    break;
+  case DEV_TRK_BELOW_FOUR:
+    blinker_state.mode = LED_BLINK_SLOW;
+    break;
+  case DEV_TRK_AT_LEAST_FOUR:
+    blinker_state.mode = LED_BLINK_FAST;
+    break;
+  case DEV_SPS:
+  case DEV_FLOAT:
+  case DEV_FIXED:
+    blinker_state.mode = LED_ON;
+    break;
+  default:
+    assert(!"Unknown mode");
+    break;
   }
 
-  *s = blinker_update(&blinker_state) ? RGB_TO_RGB_LED(255, 131, 0)
-                                      : RGB_TO_RGB_LED(0, 0, 0);
+  *s = blinker_update(&blinker_state) ? LED_COLOR_ORANGE : LED_COLOR_OFF;
 }
 
-static void handle_link(counter_t c, rgb_led_state_t *s) {
-  (void)c;
-
+/** Handle LINK LED state. LED state changes according to received remote OBS
+ *  rate.
+ *
+ * \param[in,out] s   Current LED state.
+ *
+ */
+static void handle_link(rgb_led_state_t *s)
+{
+  static bool on_off = FALSE;
   static u8 last_base_obs_msg_counter = 0;
-  static u8 on_counter = 0;
 
-  /* Reset on time if the base obs counter changed */
   u8 base_obs_msg_counter = base_obs_msg_counter_get();
+
   if (base_obs_msg_counter != last_base_obs_msg_counter) {
     last_base_obs_msg_counter = base_obs_msg_counter;
-    on_counter = LED_LINK_BLIP_COUNTS;
+    on_off = !on_off;
+  } else {
+    on_off = FALSE;
   }
 
-  /* Count down to turn off */
-  if (on_counter > 0) {
-    on_counter--;
-  }
-
-  *s = (on_counter > 0) ? RGB_TO_RGB_LED(255, 0, 0) : RGB_TO_RGB_LED(0, 0, 0);
+  *s = on_off ? LED_COLOR_RED : LED_COLOR_OFF;
 }
 
-static blink_mode_t mode_blink_mode_get(void) {
-  soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
-
-  u32 elapsed = piksi_systime_elapsed_since_ms_x(&stats.systime);
-
-  s8 started = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
-
-  /* Off if no DGNSS */
-  if (started && (elapsed < LED_MODE_TIMEOUT_MS)) {
-    return BLINK_OFF;
-  }
-
-  /* On if fixed, blink if float */
-  return (FILTER_FIXED == stats.mode) ? BLINK_ON : BLINK_SLOW;
-}
-
-static void handle_mode(counter_t c, rgb_led_state_t *s) {
+/** Handle MODE LED state.
+ *
+ * \param[in,out] s       Current LED state.
+ * \param[in] dev_state   Current device state.
+ *
+ */
+static void handle_mode(rgb_led_state_t *s, device_state_t dev_state)
+{
   static blinker_state_t blinker_state;
 
-  /* Reset when global counter rolls over */
-  if (c == 0) {
-    blinker_reset(&blinker_state, mode_blink_mode_get());
+  switch (dev_state) {
+  case DEV_ACQ:
+  case DEV_TRK_BELOW_FOUR:
+  case DEV_TRK_AT_LEAST_FOUR:
+    blinker_state.mode = LED_OFF;
+    break;
+  case DEV_SPS:
+    blinker_state.mode = LED_BLINK_SLOW;
+    break;
+  case DEV_FLOAT:
+    blinker_state.mode = LED_BLINK_FAST;
+    break;
+  case DEV_FIXED:
+    blinker_state.mode = LED_ON;
+    break;
+  default:
+    assert(!"Unknown mode");
+    break;
   }
 
-  *s = blinker_update(&blinker_state) ? RGB_TO_RGB_LED(0, 0, 255)
-                                      : RGB_TO_RGB_LED(0, 0, 0);
+  *s = blinker_update(&blinker_state) ? LED_COLOR_BLUE : LED_COLOR_OFF;
 }
 
 static void manage_led_thread(void *arg) {
@@ -231,16 +304,15 @@ static void manage_led_thread(void *arg) {
   led_adp8866_init();
 
   while (TRUE) {
-    static counter_t counter = 0;
-
+    device_state_t dev_state = get_device_state();
     rgb_led_state_t pos_state;
-    handle_pos(counter, &pos_state);
+    handle_pos(&pos_state, dev_state);
 
     rgb_led_state_t link_state;
-    handle_link(counter, &link_state);
+    handle_link(&link_state);
 
     rgb_led_state_t mode_state;
-    handle_mode(counter, &mode_state);
+    handle_mode(&mode_state, dev_state);
 
     led_adp8866_led_state_t led_states[] = {
         {.led = LED_POS_R, .brightness = pos_state.r},
@@ -255,15 +327,10 @@ static void manage_led_thread(void *arg) {
     led_adp8866_leds_set(led_states,
                          sizeof(led_states) / sizeof(led_states[0]));
 
-    bool pv_state;
-    handle_pv(counter, &pv_state);
+    bool pv_state = handle_pv(dev_state);
     palWriteLine(POS_VALID_GPIO_LINE, pv_state ? PAL_HIGH : PAL_LOW);
 
-    if (++counter >= INTERVAL_COUNTS) {
-      counter = 0;
-    }
-
-    chThdSleep(MANAGE_LED_THREAD_PERIOD);
+    piksi_systime_sleep_ms(MANAGE_LED_THREAD_PERIOD_MS);
   }
 }
 
@@ -274,3 +341,4 @@ void manage_led_setup(void) {
                     manage_led_thread,
                     NULL);
 }
+
