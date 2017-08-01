@@ -130,4 +130,8 @@ clang-format-diff:
 	@echo "Autoformatting all lines which differ from master"
 	git-clang-format master
 
+run_tests:
+	$(MAKE) -C tests
+	./tests/run_tests
+
 .FORCE:
