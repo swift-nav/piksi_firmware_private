@@ -34,3 +34,4 @@ scripts/RELEASE-VERSION
 
 src/version.h
 
+tests/run_tests

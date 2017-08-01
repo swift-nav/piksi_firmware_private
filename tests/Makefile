@@ -80,5 +80,5 @@ fixed_fft_r2.o : $(USER_SRC_DIR)/lib/fixed_fft_r2.h $(USER_SRC_DIR)/lib/fixed_ff
 test_fft.o : $(TEST_DIR)/test_fft.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_SRC_DIR) -I$(USER_SRC_DIR)/board/v3/ -I../libswiftnav/include -c $(TEST_DIR)/test_fft.cc
 
-test_fft : fixed_fft_r2.o test_fft.o gtest_main.a
+run_tests : fixed_fft_r2.o test_fft.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
