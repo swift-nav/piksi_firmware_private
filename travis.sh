@@ -5,4 +5,5 @@ if [ "$TESTENV" == "lint" ]; then
 else
   export PATH=$PATH:~/gcc-arm-none-eabi/bin;
   make PIKSI_HW=v3 PIKSI_REV=prod;
+  make run_tests
 fi
