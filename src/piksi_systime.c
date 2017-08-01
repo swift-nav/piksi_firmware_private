@@ -523,13 +523,9 @@ s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b) {
  *
  * \param[in] len   Sleep length [system ticks].
  */
-void piksi_systime_sleep_s_internal(systime_t len)
-{
-  chThdSleepS(len);
-}
+void piksi_systime_sleep_s_internal(systime_t len) { chThdSleepS(len); }
 
-void piksi_systime_sleep_us_s(u32 len_us)
-{
+void piksi_systime_sleep_us_s(u32 len_us) {
   u64 len_st = us2st(len_us);
 
   assert(len_st <= TIME_INFINITE);
@@ -543,13 +539,9 @@ void piksi_systime_sleep_us_s(u32 len_us)
  *
  * \param[in] len   Sleep length [system ticks].
  */
-void piksi_systime_sleep_internal(systime_t len)
-{
-  chThdSleep(len);
-}
+void piksi_systime_sleep_internal(systime_t len) { chThdSleep(len); }
 
-void piksi_systime_sleep_ms(u32 len_ms)
-{
+void piksi_systime_sleep_ms(u32 len_ms) {
   u64 len_st = ms2st(len_ms);
 
   assert(len_st <= TIME_INFINITE);

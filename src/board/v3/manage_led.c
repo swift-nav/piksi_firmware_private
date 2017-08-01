@@ -69,12 +69,7 @@ typedef struct {
   u8 b;
 } rgb_led_state_t;
 
-typedef enum {
-  LED_OFF,
-  LED_BLINK_SLOW,
-  LED_BLINK_FAST,
-  LED_ON
-} blink_mode_t;
+typedef enum { LED_OFF, LED_BLINK_SLOW, LED_BLINK_FAST, LED_ON } blink_mode_t;
 
 typedef enum {
   DEV_ACQ,
@@ -86,9 +81,9 @@ typedef enum {
 } device_state_t;
 
 typedef struct {
-  blink_mode_t mode; /* Current mode */
+  blink_mode_t mode;            /* Current mode */
   piksi_systime_t state_change; /* Time of previous on/off event */
-  bool on_off; /* Current state */
+  bool on_off;                  /* Current state */
 } blinker_state_t;
 
 static THD_WORKING_AREA(wa_manage_led_thread, MANAGE_LED_THREAD_STACK);
@@ -99,26 +94,25 @@ static THD_WORKING_AREA(wa_manage_led_thread, MANAGE_LED_THREAD_STACK);
  *
  * \return bool, TRUE for ON, FALSE for OFF.
  */
-static bool blinker_update(blinker_state_t *b)
-{
+static bool blinker_update(blinker_state_t *b) {
   u16 period_ms;
 
   switch (b->mode) {
-  case LED_OFF:
-    return FALSE;
-    break;
-  case LED_ON:
-    return TRUE;
-    break;
-  case LED_BLINK_SLOW:
-    period_ms = SLOW_BLINK_PERIOD_MS;
-    break;
-  case LED_BLINK_FAST:
-    period_ms = FAST_BLINK_PERIOD_MS;
-    break;
-  default:
-    assert(!"Unknown mode.");
-    break;
+    case LED_OFF:
+      return FALSE;
+      break;
+    case LED_ON:
+      return TRUE;
+      break;
+    case LED_BLINK_SLOW:
+      period_ms = SLOW_BLINK_PERIOD_MS;
+      break;
+    case LED_BLINK_FAST:
+      period_ms = FAST_BLINK_PERIOD_MS;
+      break;
+    default:
+      assert(!"Unknown mode.");
+      break;
   }
 
   u32 elapsed = piksi_systime_elapsed_since_ms_x(&b->state_change);
@@ -136,8 +130,7 @@ static bool blinker_update(blinker_state_t *b)
  *
  * \return Device state.
  */
-static device_state_t get_device_state(void)
-{
+static device_state_t get_device_state(void) {
   /* Check for FIXED */
   soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
   s8 fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
@@ -165,7 +158,7 @@ static device_state_t get_device_state(void)
   /* Blink according to signals tracked */
   u8 signals_tracked = solution_last_stats_get().signals_tracked;
 
-  if (signals_tracked >= 4)  {
+  if (signals_tracked >= 4) {
     return DEV_TRK_AT_LEAST_FOUR;
   }
 
@@ -182,22 +175,21 @@ static device_state_t get_device_state(void)
  *
  * \return bool, TRUE for ON, FALSE for OFF.
  */
-static bool handle_pv(device_state_t dev_state)
-{
+static bool handle_pv(device_state_t dev_state) {
   switch (dev_state) {
-  case DEV_ACQ:
-  case DEV_TRK_BELOW_FOUR:
-  case DEV_TRK_AT_LEAST_FOUR:
-    return FALSE;
-    break;
-  case DEV_SPS:
-  case DEV_FLOAT:
-  case DEV_FIXED:
-    return TRUE;
-    break;
-  default:
-    assert(!"Unknown mode");
-    break;
+    case DEV_ACQ:
+    case DEV_TRK_BELOW_FOUR:
+    case DEV_TRK_AT_LEAST_FOUR:
+      return FALSE;
+      break;
+    case DEV_SPS:
+    case DEV_FLOAT:
+    case DEV_FIXED:
+      return TRUE;
+      break;
+    default:
+      assert(!"Unknown mode");
+      break;
   }
 }
 
@@ -207,28 +199,27 @@ static bool handle_pv(device_state_t dev_state)
  * \param[in] dev_state   Current device state.
  *
  */
-static void handle_pos(rgb_led_state_t *s, device_state_t dev_state)
-{
+static void handle_pos(rgb_led_state_t *s, device_state_t dev_state) {
   static blinker_state_t blinker_state;
 
   switch (dev_state) {
-  case DEV_ACQ:
-    blinker_state.mode = LED_OFF;
-    break;
-  case DEV_TRK_BELOW_FOUR:
-    blinker_state.mode = LED_BLINK_SLOW;
-    break;
-  case DEV_TRK_AT_LEAST_FOUR:
-    blinker_state.mode = LED_BLINK_FAST;
-    break;
-  case DEV_SPS:
-  case DEV_FLOAT:
-  case DEV_FIXED:
-    blinker_state.mode = LED_ON;
-    break;
-  default:
-    assert(!"Unknown mode");
-    break;
+    case DEV_ACQ:
+      blinker_state.mode = LED_OFF;
+      break;
+    case DEV_TRK_BELOW_FOUR:
+      blinker_state.mode = LED_BLINK_SLOW;
+      break;
+    case DEV_TRK_AT_LEAST_FOUR:
+      blinker_state.mode = LED_BLINK_FAST;
+      break;
+    case DEV_SPS:
+    case DEV_FLOAT:
+    case DEV_FIXED:
+      blinker_state.mode = LED_ON;
+      break;
+    default:
+      assert(!"Unknown mode");
+      break;
   }
 
   *s = blinker_update(&blinker_state) ? LED_COLOR_ORANGE : LED_COLOR_OFF;
@@ -240,8 +231,7 @@ static void handle_pos(rgb_led_state_t *s, device_state_t dev_state)
  * \param[in,out] s   Current LED state.
  *
  */
-static void handle_link(rgb_led_state_t *s)
-{
+static void handle_link(rgb_led_state_t *s) {
   static bool on_off = FALSE;
   static u8 last_base_obs_msg_counter = 0;
 
@@ -263,28 +253,27 @@ static void handle_link(rgb_led_state_t *s)
  * \param[in] dev_state   Current device state.
  *
  */
-static void handle_mode(rgb_led_state_t *s, device_state_t dev_state)
-{
+static void handle_mode(rgb_led_state_t *s, device_state_t dev_state) {
   static blinker_state_t blinker_state;
 
   switch (dev_state) {
-  case DEV_ACQ:
-  case DEV_TRK_BELOW_FOUR:
-  case DEV_TRK_AT_LEAST_FOUR:
-    blinker_state.mode = LED_OFF;
-    break;
-  case DEV_SPS:
-    blinker_state.mode = LED_BLINK_SLOW;
-    break;
-  case DEV_FLOAT:
-    blinker_state.mode = LED_BLINK_FAST;
-    break;
-  case DEV_FIXED:
-    blinker_state.mode = LED_ON;
-    break;
-  default:
-    assert(!"Unknown mode");
-    break;
+    case DEV_ACQ:
+    case DEV_TRK_BELOW_FOUR:
+    case DEV_TRK_AT_LEAST_FOUR:
+      blinker_state.mode = LED_OFF;
+      break;
+    case DEV_SPS:
+      blinker_state.mode = LED_BLINK_SLOW;
+      break;
+    case DEV_FLOAT:
+      blinker_state.mode = LED_BLINK_FAST;
+      break;
+    case DEV_FIXED:
+      blinker_state.mode = LED_ON;
+      break;
+    default:
+      assert(!"Unknown mode");
+      break;
   }
 
   *s = blinker_update(&blinker_state) ? LED_COLOR_BLUE : LED_COLOR_OFF;
@@ -341,4 +330,3 @@ void manage_led_setup(void) {
                     manage_led_thread,
                     NULL);
 }
-
