@@ -23,6 +23,5 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid);
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
                    u8 tracking_channel);
-void send_glo_fcn_mapping(gps_time_t t);
 
 #endif /* #ifndef SWIFTNAV_DECODE_COMMON_H */

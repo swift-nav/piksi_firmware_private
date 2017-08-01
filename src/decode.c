@@ -15,16 +15,16 @@
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg_glo.h>
-#include <string.h>
+#include <assert.h>
+#include "main.h"
+#include "track.h"
+#include "decode.h"
+#include <assert.h>
+#include "track.h"
+#include "decode.h"
 #include "decode/decode_common.h"
 #include "main.h"
 #include "signal.h"
-#include "timing.h"
-#include "track.h"
-
-#include "sbp.h"
-#include "sbp_utils.h"
 
 /** \defgroup decoding Decoding
  * Receive data bits from tracking channels and decode navigation messages.
@@ -65,8 +65,6 @@
  *   It does not matter in which order the two structures are released as they
  *   are allocated independently when initializing decoding.
  */
-
-#define DECODE_THREAD_SLEEP_MS 1
 
 typedef enum {
   DECODER_CHANNEL_STATE_DISABLED,
@@ -291,11 +289,7 @@ static void decode_thread(void *arg) {
       }
     }
 
-    /* send GLO FCN mapping information every 30 sec */
-    DO_EVERY(30 * SECS_MS / DECODE_THREAD_SLEEP_MS,
-             send_glo_fcn_mapping(get_current_gps_time()););
-
-    chThdSleep(MS2ST(DECODE_THREAD_SLEEP_MS));
+    chThdSleep(MS2ST(1));
   }
 }
 
