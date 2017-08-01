@@ -13,13 +13,13 @@
 #define NDB_WEAK
 
 #include <libsbp/sbp.h>
-#include <string.h>
 #include <libswiftnav/logging.h>
+#include <string.h>
 #include "ndb.h"
 #include "ndb_internal.h"
-#include "settings.h"
 #include "sbp.h"
 #include "sbp_utils.h"
+#include "settings.h"
 
 #define UTC_PARAMS_FILE_NAME "persistent/utc_params"
 #define UTC_PARAMS_FILE_TYPE "utc parameters"
@@ -27,23 +27,18 @@
 static utc_params_t utc_params;
 static ndb_element_metadata_t utc_params_md;
 
-static ndb_file_t utc_params_file = {
-  .name = UTC_PARAMS_FILE_NAME,
-  .type = UTC_PARAMS_FILE_TYPE,
-  .block_data = (u8*)&utc_params,
-  .block_md = &utc_params_md,
-  .block_size = sizeof(utc_params),
-  .block_count = 1
-};
+static ndb_file_t utc_params_file = {.name = UTC_PARAMS_FILE_NAME,
+                                     .type = UTC_PARAMS_FILE_TYPE,
+                                     .block_data = (u8 *)&utc_params,
+                                     .block_md = &utc_params_md,
+                                     .block_size = sizeof(utc_params),
+                                     .block_count = 1};
 
-void ndb_utc_params_init(void)
-{
-
+void ndb_utc_params_init(void) {
   static bool erase_utc_params = false;
   SETTING("ndb", "erase_utc_params", erase_utc_params, TYPE_BOOL);
 
   ndb_load_data(&utc_params_file, erase_utc_params);
-
 }
 
 /**
@@ -56,15 +51,16 @@ void ndb_utc_params_init(void)
  * \retval NDB_ERR_BAD_PARAM  On parameter error
  * \retval NDB_ERR_MISSING_IE No cached data block
  */
-ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p,
-                                  bool *is_nv)
-{
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
   if (is_nv != NULL) {
     *is_nv = (0 != (utc_params_md.vflags & NDB_VFLAG_DATA_FROM_NV));
   }
 
-  return ndb_retrieve(&utc_params_md, utc_params_p, sizeof(*utc_params_p),
-                      NULL, NDB_USE_NV_UTC);
+  return ndb_retrieve(&utc_params_md,
+                      utc_params_p,
+                      sizeof(*utc_params_p),
+                      NULL,
+                      NDB_USE_NV_UTC);
 }
 
 /**
@@ -86,29 +82,29 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p,
 ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
                                    const utc_params_t *utc_params_p,
                                    ndb_data_source_t src,
-                                   u16 sender_id)
-{
-
+                                   u16 sender_id) {
   ndb_op_code_t res;
   utc_params_t current;
   bool is_nv;
 
-  if (NDB_ERR_NONE == ndb_utc_params_read(&current, &is_nv)
-      && !is_nv
-      && gpsdifftime(&utc_params_p->tot, &current.tot) <= 0) {
+  if (NDB_ERR_NONE == ndb_utc_params_read(&current, &is_nv) && !is_nv &&
+      gpsdifftime(&utc_params_p->tot, &current.tot) <= 0) {
     /* already have a newer parameter set decoded during this session */
     res = NDB_ERR_OLDER_DATA;
 
   } else {
-
     res = ndb_update(utc_params_p, src, &utc_params_md);
 
     if (NULL != utc_params_p && NDB_ERR_NONE == res) {
       log_info_sid(*sid,
-          "Updating UTC parameters: a0=%.1g, a1=%.1g, t_lse=(%d,%.1f), ls=%d, lsf=%d",
-          utc_params_p->a0, utc_params_p->a1,
-          utc_params_p->t_lse.wn, utc_params_p->t_lse.tow,
-          utc_params_p->dt_ls, utc_params_p->dt_lsf);
+                   "Updating UTC parameters: a0=%.1g, a1=%.1g, "
+                   "t_lse=(%d,%.1f), ls=%d, lsf=%d",
+                   utc_params_p->a0,
+                   utc_params_p->a1,
+                   utc_params_p->t_lse.wn,
+                   utc_params_p->t_lse.tow,
+                   utc_params_p->dt_ls,
+                   utc_params_p->dt_lsf);
     }
   }
 

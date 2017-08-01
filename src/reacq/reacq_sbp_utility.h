@@ -19,4 +19,3 @@ void reacq_sbp_init(void);
 void reacq_sbp_data_process(const acq_sv_profile_t *profile);
 
 #endif /* SRC_REACQ_REACQ_SBP_UTILITY_H_ */
-

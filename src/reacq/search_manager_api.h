@@ -62,9 +62,9 @@ typedef enum {
 
 /** Cost hint for job scheduler */
 typedef enum {
-  ACQ_COST_MIN, /**< Initialize cost to minimum of all jobs */
-  ACQ_COST_AVG, /**< Initialize cost to average of all jobs */
-  ACQ_COST_MAX, /**< Initialize cost to maximum of all jobs */
+  ACQ_COST_MIN,     /**< Initialize cost to minimum of all jobs */
+  ACQ_COST_AVG,     /**< Initialize cost to average of all jobs */
+  ACQ_COST_MAX,     /**< Initialize cost to maximum of all jobs */
   ACQ_COST_MAX_PLUS /**< Initialize cost to maximum of all jobs plus
                        ACQ_COST_DELTA_MS */
 } acq_cost_hint_e;
@@ -78,12 +78,12 @@ typedef enum {
 
 /** Acquisition parameters which are passed to hardware */
 typedef struct {
-  float doppler_min_hz; /**< Search window minimum frequency (Hz) */
-  float doppler_max_hz; /**< Search window maximum frequency (Hz) */
-  float freq_bin_size_hz; /**< Frequency bin size (Hz) */
+  float doppler_min_hz;     /**< Search window minimum frequency (Hz) */
+  float doppler_max_hz;     /**< Search window maximum frequency (Hz) */
+  float freq_bin_size_hz;   /**< Frequency bin size (Hz) */
   float cn0_threshold_dbhz; /**< Peaks bellow this are disregarded (dBHz) */
-  u8 integration_time_ms; /**< Coherent integration time (ms) */
- } acq_task_search_params_t;
+  u8 integration_time_ms;   /**< Coherent integration time (ms) */
+} acq_task_search_params_t;
 
 /** Search task defines smallest unit of search work which is passed
     to hardware */
@@ -100,25 +100,27 @@ typedef struct {
   acq_job_types_e job_type;  /**< Job type */
   u64 start_time;            /**< HW millisecond when job started */
   u64 stop_time;             /**< HW millisecond when job finished */
-  u32 cost;                  /**< Cost of job in terms of spent HW time 
+  u32 cost;                  /**< Cost of job in terms of spent HW time
                                 (milliseconds) */
   acq_cost_hint_e cost_hint; /**< Tells how the cost is initialized */
   u32 cost_delta;            /**< Cost delta */
   bool needs_to_run;         /**< Set when this job needs to run */
-  bool oneshot;              /**< Oneshot jobs do not continue automatically 
+  bool oneshot;              /**< Oneshot jobs do not continue automatically
                                 when completed */
   acq_job_scheduling_state_e state; /**< Scheduling state */
-  bool needs_restart;        /**< Set if this job needs to be restarted */
-  acq_task_t task_data;      /**< Search area is divided into smaller tasks */
-  bool glo_blind_search;     /**< GLO blind search flag */
+  bool needs_restart;    /**< Set if this job needs to be restarted */
+  acq_task_t task_data;  /**< Search area is divided into smaller tasks */
+  bool glo_blind_search; /**< GLO blind search flag */
 } acq_job_t;
 
 /** Container for all the jobs */
 typedef struct {
-  acq_job_t jobs_gps[ACQ_NUM_JOB_TYPES][NUM_SATS_GPS]; /**< job for GPS SV for each
-                                                            job type */
-  acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES][NUM_SATS_GLO]; /**< job for GLO SV for each
-                                                            job type */
+  acq_job_t jobs_gps[ACQ_NUM_JOB_TYPES]
+                    [NUM_SATS_GPS]; /**< job for GPS SV for each
+                                         job type */
+  acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES]
+                    [NUM_SATS_GLO]; /**< job for GLO SV for each
+                                         job type */
 } acq_jobs_state_t;
 
 /** Global data of all the jobs is shared between search manager

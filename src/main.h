@@ -17,34 +17,37 @@
 
 #include "piksi_systime.h"
 
-#define COMPILER_BARRIER() asm volatile ("" : : : "memory")
+#define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
 /* See http://c-faq.com/cpp/multistmt.html for
  * and explaination of the do {} while(0)
  */
-#define DO_EVERY(n, cmd) do { \
-  static u32 do_every_count = 0; \
-  if ((n) > 0 && do_every_count % (n) == 0) { \
-    cmd; \
-  } \
-  do_every_count++; \
-} while (0)
+#define DO_EVERY(n, cmd)                        \
+  do {                                          \
+    static u32 do_every_count = 0;              \
+    if ((n) > 0 && do_every_count % (n) == 0) { \
+      cmd;                                      \
+    }                                           \
+    do_every_count++;                           \
+  } while (0)
 
-#define DO_ONLY(n, cmd) do { \
-  static u32 do_only_count = 0; \
-  if (do_only_count < (n)) { \
-    do_only_count++; \
-    cmd; \
-  } \
-} while (0)
+#define DO_ONLY(n, cmd)           \
+  do {                            \
+    static u32 do_only_count = 0; \
+    if (do_only_count < (n)) {    \
+      do_only_count++;            \
+      cmd;                        \
+    }                             \
+  } while (0)
 
-#define DO_EACH_MS(n, cmd) do {\
-  static piksi_systime_t previous = PIKSI_SYSTIME_INIT; \
-  if (piksi_systime_elapsed_since_ms_x(&previous) >= n) { \
-    cmd; \
-    piksi_systime_get(&previous); \
-  } \
-} while (0)
+#define DO_EACH_MS(n, cmd)                                  \
+  do {                                                      \
+    static piksi_systime_t previous = PIKSI_SYSTIME_INIT;   \
+    if (piksi_systime_elapsed_since_ms_x(&previous) >= n) { \
+      cmd;                                                  \
+      piksi_systime_get(&previous);                         \
+    }                                                       \
+  } while (0)
 
 /* See gcc.gnu.org/onlinedocs/cpp/Stringification.html for
  * explanation of pre-processing of macros into strings.

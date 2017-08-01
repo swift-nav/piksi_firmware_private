@@ -56,7 +56,6 @@ typedef struct {
 #define XADC_IF_CFG_ENABLE_Pos (31U)
 #define XADC_IF_CFG_ENABLE_Msk (0x1U << XADC_IF_CFG_ENABLE_Pos)
 
-
 #define XADC_IF_INT_ALM0_Pos (0U)
 #define XADC_IF_INT_ALM0_Msk (0x1U << XADC_IF_INT_ALM0_Pos)
 
@@ -68,7 +67,6 @@ typedef struct {
 
 #define XADC_IF_INT_CFIFO_LTH_Pos (9U)
 #define XADC_IF_INT_CFIFO_LTH_Msk (0x1U << XADC_IF_INT_CFIFO_LTH_Pos)
-
 
 #define XADC_IF_STAT_ALM_Pos (0U)
 #define XADC_IF_STAT_ALM_Msk (0x7FU << XADC_IF_STAT_ALM_Pos)
@@ -94,17 +92,14 @@ typedef struct {
 #define XADC_IF_STAT_CFIFO_LVL_Pos (16U)
 #define XADC_IF_STAT_CFIFO_LVL_Msk (0xFU << XADC_IF_STAT_CFIFO_LVL_Pos)
 
-
 #define XADC_IF_CTRL_RESET_Pos (4U)
 #define XADC_IF_CTRL_RESET_Msk (0x1U << XADC_IF_CTRL_RESET_Pos)
 
-
-#define XADC_IF_CMD(op, addr, data)   (((op) << 26) |                         \
-                                       ((addr) << 16) |                       \
-                                       ((data) << 0))
-#define XADC_IF_OP_NOP    (0x0U)
-#define XADC_IF_OP_READ   (0x1U)
-#define XADC_IF_OP_WRITE  (0x2U)
+#define XADC_IF_CMD(op, addr, data) \
+  (((op) << 26) | ((addr) << 16) | ((data) << 0))
+#define XADC_IF_OP_NOP (0x0U)
+#define XADC_IF_OP_READ (0x1U)
+#define XADC_IF_OP_WRITE (0x2U)
 
 /* Instances */
 #define XADC_IF ((xadc_if_t *)0xF8007100U)

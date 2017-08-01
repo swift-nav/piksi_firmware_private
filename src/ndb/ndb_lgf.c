@@ -13,15 +13,15 @@
 #define DEBUG 0
 #define NDB_WEAK
 
-#include <string.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <string.h>
 #include "ndb.h"
-#include "ndb_internal.h"
-#include "settings.h"
 #include "ndb_fs_access.h"
+#include "ndb_internal.h"
 #include "sbp_utils.h"
+#include "settings.h"
 
 /** Default NDB LGF interval update threshold [s] */
 #define NDB_LGF_UPDATE_INTERVAL_S (30 * MINUTE_SECS)
@@ -31,27 +31,24 @@
 #define LGF_FILE_NAME "persistent/lgf"
 #define LGF_FILE_TYPE "LGF"
 
-static last_good_fix_t last_good_fix;       /**< Locally cached LGF */
+static last_good_fix_t last_good_fix; /**< Locally cached LGF */
 
 /** NDB LGF interval update threshold [s] */
-static s32             lgf_update_s = NDB_LGF_UPDATE_INTERVAL_S;
+static s32 lgf_update_s = NDB_LGF_UPDATE_INTERVAL_S;
 /** NDB LGF distance update threshold [m] */
-static s32             lgf_update_m = NDB_LGF_UPDATE_DISTANCE_M;
+static s32 lgf_update_m = NDB_LGF_UPDATE_DISTANCE_M;
 
-static last_good_fix_t        last_good_fix_saved; /**< NDB LGF data block */
-static ndb_element_metadata_t last_good_fix_md;    /**< NDB LGF metadata */
+static last_good_fix_t last_good_fix_saved;     /**< NDB LGF data block */
+static ndb_element_metadata_t last_good_fix_md; /**< NDB LGF metadata */
 
-static ndb_file_t lgf_file = {
-  .name = LGF_FILE_NAME,
-  .type = LGF_FILE_TYPE,
-  .block_data = (u8*)&last_good_fix_saved,
-  .block_md = &last_good_fix_md,
-  .block_size = sizeof(last_good_fix_saved),
-  .block_count = 1
-};
+static ndb_file_t lgf_file = {.name = LGF_FILE_NAME,
+                              .type = LGF_FILE_TYPE,
+                              .block_data = (u8 *)&last_good_fix_saved,
+                              .block_md = &last_good_fix_md,
+                              .block_size = sizeof(last_good_fix_saved),
+                              .block_count = 1};
 
-void ndb_lgf_init(void)
-{
+void ndb_lgf_init(void) {
   static bool erase_lgf = true;
   SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
   SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
@@ -89,8 +86,7 @@ void ndb_lgf_init(void)
  *
  * \sa ndb_lgf_store
  */
-ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
-{
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   /* LGF is loaded only on boot, and then periodically saved to NV. Because of
@@ -140,8 +136,7 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
  *
  * \sa ndb_lgf_read
  */
-ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
-{
+ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != lgf) {
@@ -159,8 +154,10 @@ ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
 
       /* Compute difference in time and space between
        * last saved position and the passed one */
-      vector_subtract(3, last_good_fix.position_solution.pos_ecef,
-                      last_good_fix_saved.position_solution.pos_ecef, dist_ecef);
+      vector_subtract(3,
+                      last_good_fix.position_solution.pos_ecef,
+                      last_good_fix_saved.position_solution.pos_ecef,
+                      dist_ecef);
       dx = vector_norm(3, dist_ecef);
       dt = gpsdifftime(&last_good_fix.position_solution.time,
                        &last_good_fix_saved.position_solution.time);

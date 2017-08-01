@@ -16,12 +16,12 @@
 #include <libswiftnav/common.h>
 
 #ifdef TRACK_GPS_L2CM_INTERNAL
-# define L2C_WEAK
+#define L2C_WEAK
 #else
-# define L2C_WEAK __attribute__ ((weak, alias ("l2c_not_implemented")))
-#endif  /* TRACK_GPS_L2CM_INTERNAL */
+#define L2C_WEAK __attribute__((weak, alias("l2c_not_implemented")))
+#endif /* TRACK_GPS_L2CM_INTERNAL */
 
-int l2c_not_implemented(void) __attribute__ ((weak));
+int l2c_not_implemented(void) __attribute__((weak));
 inline int l2c_not_implemented(void) { return -1; }
 
 /* not weak as it is used in L2C builds only */

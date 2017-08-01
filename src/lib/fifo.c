@@ -17,13 +17,12 @@
 
 #include "fifo.h"
 
-#define COMPILER_BARRIER() asm volatile ("" : : : "memory")
+#define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
 #define INDEX_MASK(p_fifo) ((p_fifo)->buffer_size - 1)
 #define LENGTH(p_fifo) \
-          ((fifo_size_t)((p_fifo)->write_index - (p_fifo)->read_index))
-#define SPACE(p_fifo) \
-          ((fifo_size_t)((p_fifo)->buffer_size - LENGTH(p_fifo)))
+  ((fifo_size_t)((p_fifo)->write_index - (p_fifo)->read_index))
+#define SPACE(p_fifo) ((fifo_size_t)((p_fifo)->buffer_size - LENGTH(p_fifo)))
 
 typedef u16 rec_size_t;
 
@@ -32,8 +31,7 @@ typedef u16 rec_size_t;
  * using a circular buffer.
  */
 
-static void read_index_advance(fifo_t *fifo, fifo_size_t length)
-{
+static void read_index_advance(fifo_t *fifo, fifo_size_t length) {
   if (length > 0) {
     /* Atomic write of read_index */
     COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -41,8 +39,7 @@ static void read_index_advance(fifo_t *fifo, fifo_size_t length)
   }
 }
 
-static void write_index_advance(fifo_t *fifo, fifo_size_t length)
-{
+static void write_index_advance(fifo_t *fifo, fifo_size_t length) {
   if (length > 0) {
     /* Atomic write of write_index */
     COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -50,9 +47,10 @@ static void write_index_advance(fifo_t *fifo, fifo_size_t length)
   }
 }
 
-static void copy_out_offset(fifo_t *fifo, fifo_size_t offset,
-                            u8 *buffer, fifo_size_t length)
-{
+static void copy_out_offset(fifo_t *fifo,
+                            fifo_size_t offset,
+                            u8 *buffer,
+                            fifo_size_t length) {
   fifo_size_t read_index_masked =
       (fifo->read_index + offset) & INDEX_MASK(fifo);
   if (read_index_masked + length <= fifo->buffer_size) {
@@ -66,14 +64,14 @@ static void copy_out_offset(fifo_t *fifo, fifo_size_t offset,
   }
 }
 
-static void copy_out(fifo_t *fifo, u8 *buffer, fifo_size_t length)
-{
+static void copy_out(fifo_t *fifo, u8 *buffer, fifo_size_t length) {
   copy_out_offset(fifo, 0, buffer, length);
 }
 
-static void copy_in_offset(fifo_t *fifo, fifo_size_t offset,
-                           const u8 *buffer, fifo_size_t length)
-{
+static void copy_in_offset(fifo_t *fifo,
+                           fifo_size_t offset,
+                           const u8 *buffer,
+                           fifo_size_t length) {
   fifo_size_t write_index_masked =
       (fifo->write_index + offset) & INDEX_MASK(fifo);
   if (write_index_masked + length <= fifo->buffer_size) {
@@ -87,14 +85,13 @@ static void copy_in_offset(fifo_t *fifo, fifo_size_t offset,
   }
 }
 
-static void copy_in(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
-{
+static void copy_in(fifo_t *fifo, const u8 *buffer, fifo_size_t length) {
   copy_in_offset(fifo, 0, buffer, length);
 }
 
-static bool rec_size_get(fifo_t *fifo, fifo_size_t fifo_length,
-                         rec_size_t *rec_size)
-{
+static bool rec_size_get(fifo_t *fifo,
+                         fifo_size_t fifo_length,
+                         rec_size_t *rec_size) {
   if (fifo_length < sizeof(rec_size_t)) {
     return false;
   }
@@ -104,9 +101,9 @@ static bool rec_size_get(fifo_t *fifo, fifo_size_t fifo_length,
   return true;
 }
 
-static bool rec_size_set(fifo_t *fifo, fifo_size_t fifo_space,
-                         rec_size_t rec_size)
-{
+static bool rec_size_set(fifo_t *fifo,
+                         fifo_size_t fifo_space,
+                         rec_size_t rec_size) {
   assert(rec_size > 0);
 
   /* Do not proceed if the full record will not fit */
@@ -128,9 +125,10 @@ static bool rec_size_set(fifo_t *fifo, fifo_size_t fifo_space,
  *                    while the FIFO is in use.
  * \param buffer_size Size of buffer. Must be a power of two.
  */
-void fifo_init(fifo_t *fifo, fifo_mode_t mode,
-               u8 *buffer, fifo_size_t buffer_size)
-{
+void fifo_init(fifo_t *fifo,
+               fifo_mode_t mode,
+               u8 *buffer,
+               fifo_size_t buffer_size) {
   /* Require buffer_size to be a power of two */
   assert((buffer_size & (buffer_size - 1)) == 0);
   assert((mode == FIFO_MODE_STANDARD) || (mode == FIFO_MODE_RECORD));
@@ -151,8 +149,7 @@ void fifo_init(fifo_t *fifo, fifo_mode_t mode,
  *
  * \return Number of bytes that may be read from the FIFO.
  */
-fifo_size_t fifo_length(fifo_t *fifo)
-{
+fifo_size_t fifo_length(fifo_t *fifo) {
   fifo_size_t fifo_length = LENGTH(fifo);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   return fifo_length;
@@ -167,8 +164,7 @@ fifo_size_t fifo_length(fifo_t *fifo)
  *
  * \return Number of bytes that may be written to the FIFO.
  */
-fifo_size_t fifo_space(fifo_t *fifo)
-{
+fifo_size_t fifo_space(fifo_t *fifo) {
   fifo_size_t fifo_space = SPACE(fifo);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   return fifo_space;
@@ -184,8 +180,7 @@ fifo_size_t fifo_space(fifo_t *fifo)
  *
  * \return Number of bytes read from the FIFO.
  */
-fifo_size_t fifo_read(fifo_t *fifo, u8 *buffer, fifo_size_t length)
-{
+fifo_size_t fifo_read(fifo_t *fifo, u8 *buffer, fifo_size_t length) {
   fifo_size_t read_length = fifo_peek(fifo, buffer, length);
   read_length = fifo_remove(fifo, read_length);
   return read_length;
@@ -201,8 +196,7 @@ fifo_size_t fifo_read(fifo_t *fifo, u8 *buffer, fifo_size_t length)
  *
  * \return Number of bytes read from the FIFO.
  */
-fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length)
-{
+fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length) {
   /* Atomic read of write_index to get fifo_length */
   fifo_size_t fifo_length = LENGTH(fifo);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -214,8 +208,7 @@ fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length)
         copy_out(fifo, buffer, read_length);
       }
       return read_length;
-    }
-    break;
+    } break;
 
     case FIFO_MODE_RECORD: {
       /* Read record size */
@@ -231,13 +224,9 @@ fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length)
       }
 
       return read_length;
-    }
-    break;
+    } break;
 
-    default: {
-      assert(!"Invalid FIFO mode");
-    }
-    break;
+    default: { assert(!"Invalid FIFO mode"); } break;
   }
 
   return 0;
@@ -252,8 +241,7 @@ fifo_size_t fifo_peek(fifo_t *fifo, u8 *buffer, fifo_size_t length)
  *
  * \return Number of bytes removed from the FIFO.
  */
-fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length)
-{
+fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length) {
   /* Atomic read of write_index to get fifo_length */
   fifo_size_t fifo_length = LENGTH(fifo);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -263,8 +251,7 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length)
       fifo_size_t read_length = MIN(length, fifo_length);
       read_index_advance(fifo, read_length);
       return read_length;
-    }
-    break;
+    } break;
 
     case FIFO_MODE_RECORD: {
       /* Read record size */
@@ -278,13 +265,9 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length)
 
       /* Report the record size as the number of bytes read */
       return rec_size;
-    }
-    break;
+    } break;
 
-    default: {
-      assert(!"Invalid FIFO mode");
-    }
-    break;
+    default: { assert(!"Invalid FIFO mode"); } break;
   }
 
   return 0;
@@ -300,11 +283,9 @@ fifo_size_t fifo_remove(fifo_t *fifo, fifo_size_t length)
  *
  * \return Number of bytes written to the FIFO.
  */
-fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
-{
+fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length) {
   fifo_size_t write_length = fifo_poke(fifo, buffer, length);
-  if (write_length == 0)
-    return 0;
+  if (write_length == 0) return 0;
   write_length = fifo_add(fifo, write_length);
   return write_length;
 }
@@ -319,8 +300,7 @@ fifo_size_t fifo_write(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
  *
  * \return Number of bytes written to the FIFO.
  */
-fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
-{
+fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length) {
   /* Atomic read of read_index to get fifo_space */
   fifo_size_t fifo_space = SPACE(fifo);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -332,8 +312,7 @@ fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
         copy_in(fifo, buffer, write_length);
       }
       return write_length;
-    }
-    break;
+    } break;
 
     case FIFO_MODE_RECORD: {
       /* Write record size */
@@ -348,13 +327,9 @@ fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
       }
 
       return rec_size;
-    }
-    break;
+    } break;
 
-    default: {
-      assert(!"Invalid FIFO mode");
-    }
-    break;
+    default: { assert(!"Invalid FIFO mode"); } break;
   }
 
   return 0;
@@ -369,8 +344,7 @@ fifo_size_t fifo_poke(fifo_t *fifo, const u8 *buffer, fifo_size_t length)
  *
  * \return Number of bytes added to the FIFO.
  */
-fifo_size_t fifo_add(fifo_t *fifo, fifo_size_t length)
-{
+fifo_size_t fifo_add(fifo_t *fifo, fifo_size_t length) {
   /* Atomic read of read_index to get fifo_space */
   fifo_size_t fifo_space = SPACE(fifo);
   COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -380,8 +354,7 @@ fifo_size_t fifo_add(fifo_t *fifo, fifo_size_t length)
       fifo_size_t write_length = MIN(length, fifo_space);
       write_index_advance(fifo, write_length);
       return write_length;
-    }
-    break;
+    } break;
 
     case FIFO_MODE_RECORD: {
       /* Write record size */
@@ -392,13 +365,9 @@ fifo_size_t fifo_add(fifo_t *fifo, fifo_size_t length)
 
       write_index_advance(fifo, sizeof(rec_size_t) + rec_size);
       return rec_size;
-    }
-    break;
+    } break;
 
-    default: {
-      assert(!"Invalid FIFO mode");
-    }
-    break;
+    default: { assert(!"Invalid FIFO mode"); } break;
   }
 
   return 0;

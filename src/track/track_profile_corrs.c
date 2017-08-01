@@ -20,8 +20,7 @@
  *
  * \return Correlation, where I and Q are sums of I and Q of arguments.
  */
-static inline corr_t corr_add(const corr_t a, const corr_t b)
-{
+static inline corr_t corr_add(const corr_t a, const corr_t b) {
   corr_t res = {.I = a.I + b.I, .Q = a.Q + b.Q};
 
   return res;
@@ -34,8 +33,7 @@ static inline corr_t corr_add(const corr_t a, const corr_t b)
  *
  * \return Correlation, where I and Q are inverted.
  */
-static inline corr_t corr_inv(const corr_t a)
-{
+static inline corr_t corr_inv(const corr_t a) {
   corr_t res = {.I = -a.I, .Q = -a.Q};
 
   return res;
@@ -49,10 +47,9 @@ static inline corr_t corr_inv(const corr_t a)
  *
  * \return Resulting accumulator
  */
-static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t * restrict a,
-                                          const tp_epl_corr_t * restrict b,
-                                          tp_epl_corr_t * restrict res)
-{
+static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
+                                          const tp_epl_corr_t *restrict b,
+                                          tp_epl_corr_t *restrict res) {
   for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
     res->epl[i] = corr_add(a->epl[i], b->epl[i]);
 
@@ -66,9 +63,8 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t * restrict a,
  *
  * \return Resulting accumulator
  */
-static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t * restrict a,
-                                          tp_epl_corr_t * restrict res)
-{
+static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t *restrict a,
+                                          tp_epl_corr_t *restrict res) {
   if (a->prompt.I > 0)
     *res = *a;
   else
@@ -92,32 +88,29 @@ static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t * restrict a,
  */
 void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t *restrict cs_now,
-                           tp_corr_state_t *restrict corr_state)
-{
+                           tp_corr_state_t *restrict corr_state) {
   tp_epl_corr_t tmp_epl;
   /* C/N0 estimator accumulators updates */
   if (0 != (cycle_flags & TP_CFLAG_CN0_SET))
     corr_state->corr_cn0 = *cs_now;
   else if (0 != (cycle_flags & TP_CFLAG_CN0_ADD))
-    corr_state->corr_cn0 = *corr_epl_add(&corr_state->corr_cn0, cs_now,
-                                        &tmp_epl);
+    corr_state->corr_cn0 =
+        *corr_epl_add(&corr_state->corr_cn0, cs_now, &tmp_epl);
 
   /* PLL/DLL accumulator updates */
   if (0 != (cycle_flags & TP_CFLAG_EPL_SET))
     corr_state->corr_epl = *cs_now;
   else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD))
-    corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl, cs_now,
-                                         &tmp_epl);
+    corr_state->corr_epl =
+        *corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl);
   else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD_INV))
     /* Sum-up and normalize by bit value (for 20+ ms integrations) */
-    corr_state->corr_epl = *corr_epl_inv(corr_epl_add(&corr_state->corr_epl,
-                                                      cs_now, &tmp_epl),
-                                         &tmp_epl);
+    corr_state->corr_epl = *corr_epl_inv(
+        corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl), &tmp_epl);
   else if (0 != (cycle_flags & TP_CFLAG_EPL_INV_ADD))
     /* Normalize by bit value and sum-up (for 20+ ms integrations) */
-    corr_state->corr_epl = *corr_epl_add(&corr_state->corr_epl,
-                                         corr_epl_inv(cs_now, &tmp_epl),
-                                         &tmp_epl);
+    corr_state->corr_epl = *corr_epl_add(
+        &corr_state->corr_epl, corr_epl_inv(cs_now, &tmp_epl), &tmp_epl);
 
   /* False lock (alias) detector accumulator updates */
   if (0 != (cycle_flags & TP_CFLAG_ALIAS_SET))

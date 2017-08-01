@@ -16,8 +16,8 @@
 #include <libswiftnav/config.h>
 
 /* Include register maps */
-#include "registers/swiftnap.h"
 #include "registers/nt1065_frontend.h"
+#include "registers/swiftnap.h"
 
 #define NAP_TRK_SPACING_CHIPS_Pos (6U)
 #define NAP_TRK_SPACING_CHIPS_Msk (0x7U)
@@ -26,7 +26,7 @@
 #define NAP_TRK_SPACING_SAMPLES_Msk (0x3FU)
 
 /* Instances */
-#define NAP    ((swiftnap_t *)        0x43C00000)
-#define NAP_FE ((nt1065_frontend_t *) 0x43C10000)
+#define NAP ((swiftnap_t *)0x43C00000)
+#define NAP_FE ((nt1065_frontend_t *)0x43C10000)
 
 #endif /* SWIFTNAV_NAP_REGS_H */

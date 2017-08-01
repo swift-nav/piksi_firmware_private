@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdio.h>
-#include <string.h>
 #include <alloca.h>
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <ch.h>
 
@@ -25,10 +25,9 @@
 #include "sbp_utils.h"
 
 #define SBP_FILEIO_TIMEOUT 5000
-#define SBP_FILEIO_TRIES   5
+#define SBP_FILEIO_TRIES 5
 
-static u8 next_seq(void)
-{
+static u8 next_seq(void) {
   static MUTEX_DECL(seq_mtx);
   static u8 seq;
   u8 ret;
@@ -50,11 +49,13 @@ struct sbp_fileio_closure {
   u8 len;
 };
 
-static void sbp_fileio_callback(u16 sender_id, u8 len, u8 msg_raw[], void* context)
-{
+static void sbp_fileio_callback(u16 sender_id,
+                                u8 len,
+                                u8 msg_raw[],
+                                void *context) {
   assert(NULL != context);
   struct sbp_fileio_closure *closure = context;
-  msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t*) msg_raw;
+  msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t *)msg_raw;
   (void)sender_id;
 
   if (msg->sequence == closure->seq) {
@@ -62,18 +63,24 @@ static void sbp_fileio_callback(u16 sender_id, u8 len, u8 msg_raw[], void* conte
     closure->len = len;
     chBSemSignal(&closure->sem);
   } else {
-    log_error("sbp_fileio_callback()  sender %5u  msg->sequence %08x  closure->seq %02x  len %3u",
-      sender_id, msg->sequence, closure->seq, len);
+    log_error(
+        "sbp_fileio_callback()  sender %5u  msg->sequence %08x  closure->seq "
+        "%02x  len %3u",
+        sender_id,
+        msg->sequence,
+        closure->seq,
+        len);
   }
 }
 
-void sbp_fileio_remove(const char *fn)
-{
-  sbp_send_msg(SBP_MSG_FILEIO_REMOVE, strlen(fn), (u8*)fn);
+void sbp_fileio_remove(const char *fn) {
+  sbp_send_msg(SBP_MSG_FILEIO_REMOVE, strlen(fn), (u8 *)fn);
 }
 
-ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size_t size)
-{
+ssize_t sbp_fileio_write(const char *filename,
+                         off_t offset,
+                         const u8 *buf,
+                         size_t size) {
   size_t s = 0;
   u8 payload_offset = sizeof(msg_fileio_write_req_t) + strlen(filename) + 1;
   ssize_t chunksize = 255 - payload_offset;
@@ -85,27 +92,26 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
   s8 ret;
 
   strncpy(dbg_filename, filename, sizeof(dbg_filename));
-  dbg_filename[sizeof(dbg_filename)-1] = '\0';
+  dbg_filename[sizeof(dbg_filename) - 1] = '\0';
 
   sbp_msg_callbacks_node_t node;
-  sbp_register_cbk_with_closure(SBP_MSG_FILEIO_WRITE_RESP,
-                                sbp_fileio_callback, &node, &closure);
+  sbp_register_cbk_with_closure(
+      SBP_MSG_FILEIO_WRITE_RESP, sbp_fileio_callback, &node, &closure);
 
   while (s < size) {
     msg->sequence = closure.seq = next_seq();
     msg->offset = offset + s;
     strcpy(msg->filename, filename);
-    msg_pt = (u8*) msg;
+    msg_pt = (u8 *)msg;
     chunksize = MIN(chunksize, (ssize_t)(size - s));
-    memcpy(msg_pt + payload_offset,  buf + s,  chunksize);
+    memcpy(msg_pt + payload_offset, buf + s, chunksize);
 
     u8 tries = 0;
     bool success = false;
     do {
-      ret = sbp_send_msg(SBP_MSG_FILEIO_WRITE_REQ,
-                         payload_offset + chunksize,
-                         msg_pt);
-      if (ret<0) {
+      ret = sbp_send_msg(
+          SBP_MSG_FILEIO_WRITE_REQ, payload_offset + chunksize, msg_pt);
+      if (ret < 0) {
         log_error("sbp_send_msg(): error %d", ret);
       }
 
@@ -116,8 +122,16 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
     } while (++tries < SBP_FILEIO_TRIES);
 
     if (!success) {
-      log_error("sbp_fileio_write(): fn %s  offset %d  buf %p  size %d  tries %d  chunksize %d   s %d",
-        dbg_filename, offset, buf, size, tries, chunksize, s);
+      log_error(
+          "sbp_fileio_write(): fn %s  offset %d  buf %p  size %d  tries %d  "
+          "chunksize %d   s %d",
+          dbg_filename,
+          offset,
+          buf,
+          size,
+          tries,
+          chunksize,
+          s);
       s = -1;
       break;
     }
@@ -129,16 +143,18 @@ ssize_t sbp_fileio_write(const char *filename, off_t offset, const u8 *buf, size
   return s;
 }
 
-ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size)
-{
+ssize_t sbp_fileio_read(const char *filename,
+                        off_t offset,
+                        u8 *buf,
+                        size_t size) {
   size_t s = 0;
   struct sbp_fileio_closure closure;
   msg_fileio_read_req_t *msg = alloca(256);
   chBSemObjectInit(&closure.sem, true);
 
   sbp_msg_callbacks_node_t node;
-  sbp_register_cbk_with_closure(SBP_MSG_FILEIO_READ_RESP,
-                                sbp_fileio_callback, &node, &closure);
+  sbp_register_cbk_with_closure(
+      SBP_MSG_FILEIO_READ_RESP, sbp_fileio_callback, &node, &closure);
 
   while (s < size) {
     msg->sequence = closure.seq = next_seq();
@@ -151,7 +167,7 @@ ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size
     do {
       sbp_send_msg(SBP_MSG_FILEIO_READ_REQ,
                    sizeof(msg_fileio_read_req_t) + strlen(filename),
-                   (u8*)msg);
+                   (u8 *)msg);
       if (chBSemWaitTimeout(&closure.sem, SBP_FILEIO_TIMEOUT) == MSG_OK) {
         success = true;
         break;
@@ -164,8 +180,7 @@ ssize_t sbp_fileio_read(const char *filename, off_t offset, u8 *buf, size_t size
     }
 
     ssize_t chunksize = MIN(closure.len - 4, (ssize_t)(size - s));
-    if (chunksize == 0)
-      break;
+    if (chunksize == 0) break;
 
     memcpy(buf + s, closure.msg + 4, chunksize);
     s += chunksize;

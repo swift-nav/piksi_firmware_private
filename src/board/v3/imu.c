@@ -11,22 +11,22 @@
  */
 
 #include "imu.h"
-#include <settings.h>
-#include <math.h>
-#include <ch.h>
-#include <hal.h>
-#include <sbp.h>
-#include <timing.h>
-#include <libswiftnav/time.h>
-#include <libswiftnav/logging.h>
-#include <libsbp/imu.h>
 #include <board/nap/nap_common.h>
 #include <board/v3/peripherals/bmi160.h>
+#include <ch.h>
+#include <hal.h>
+#include <libsbp/imu.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/time.h>
+#include <math.h>
+#include <sbp.h>
+#include <settings.h>
+#include <timing.h>
 
-#define IMU_THREAD_PRIO        (HIGHPRIO - 1)
-#define IMU_THREAD_STACK       2000
-#define IMU_AUX_THREAD_PRIO    (LOWPRIO + 10)
-#define IMU_AUX_THREAD_STACK   2000
+#define IMU_THREAD_PRIO (HIGHPRIO - 1)
+#define IMU_THREAD_STACK 2000
+#define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
+#define IMU_AUX_THREAD_STACK 2000
 
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
@@ -51,8 +51,7 @@ static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
-static void imu_isr(void *context)
-{
+static void imu_isr(void *context) {
   (void)context;
   chSysLockFromISR();
 
@@ -67,20 +66,18 @@ static void imu_isr(void *context)
   chSysUnlockFromISR();
 }
 
-static void imu_aux_send(void)
-{
+static void imu_aux_send(void) {
   msg_imu_aux_t imu_aux;
   imu_aux.imu_type = 0; /* Bosch BMI160 */
   imu_aux.temp = bmi160_read_temp();
   imu_aux.imu_conf = (gyr_range << 4) | acc_range;
 
   /* Send out IMU_AUX SBP message. */
-  sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8*)&imu_aux);
+  sbp_send_msg(SBP_MSG_IMU_AUX, sizeof(imu_aux), (u8 *)&imu_aux);
 }
 
 /** IMU auxiliary data processing thread. */
-static void imu_aux_thread(void *arg)
-{
+static void imu_aux_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("IMU aux");
 
@@ -94,8 +91,7 @@ static void imu_aux_thread(void *arg)
 }
 
 /** IMU data processing thread. */
-static void imu_thread(void *arg)
-{
+static void imu_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("IMU");
 
@@ -106,7 +102,6 @@ static void imu_thread(void *arg)
   msg_imu_raw_t imu_raw;
 
   while (TRUE) {
-
     /* Wait until an IMU interrupt occurs. */
     systime_t timeout = TIME_INFINITE;
     if (raw_imu_output) {
@@ -117,7 +112,7 @@ static void imu_thread(void *arg)
        * imu_rate = IMU_RATE_25HZ = 0 -> 40ms, so timeout is set to 45ms
        * imu_rate = IMU_RATE_400HZ = 4 -> 2.5ms, so timeout is set to 9ms
        */
-      timeout = MS2ST(45) / (imu_rate+1);
+      timeout = MS2ST(45) / (imu_rate + 1);
     }
     msg_t status = chBSemWaitTimeout(&imu_irq_sem, timeout);
 
@@ -131,13 +126,12 @@ static void imu_thread(void *arg)
     }
 
     if (new_acc != new_gyro) {
-      log_debug("Accelerometer and Gyro not both ready %u %u\n",
-                new_acc, new_gyro);
+      log_debug(
+          "Accelerometer and Gyro not both ready %u %u\n", new_acc, new_gyro);
       continue;
     }
 
     if (new_acc && new_gyro) {
-
       /* Read out the IMU data and fill out the SBP message. */
       imu_raw.acc_x = acc[0];
       imu_raw.acc_y = acc[1];
@@ -156,10 +150,11 @@ static void imu_thread(void *arg)
          * timing count value into a GPS time. */
         gps_time_t t = napcount2gpstime(tc);
 
-        /* Format the time of week as a fixed point value for the SBP message. */
+        /* Format the time of week as a fixed point value for the SBP message.
+         */
         double tow_ms = t.tow * 1000;
         imu_raw.tow = (u32)tow_ms;
-        imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow)*255);
+        imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow) * 255);
       } else {
         /* Time is unknown, make it as invalid in the SBP message. */
         imu_raw.tow = (1 << 31);
@@ -168,14 +163,13 @@ static void imu_thread(void *arg)
 
       if (raw_imu_output) {
         /* Send out IMU_RAW SBP message. */
-        sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8*)&imu_raw);
+        sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
       }
     }
   }
 }
 
-static bool imu_rate_changed(struct setting *s, const char *val)
-{
+static bool imu_rate_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_set_imu_rate(imu_rate);
     return true;
@@ -183,8 +177,7 @@ static bool imu_rate_changed(struct setting *s, const char *val)
   return false;
 }
 
-static bool raw_imu_output_changed(struct setting *s, const char *val)
-{
+static bool raw_imu_output_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_imu_set_enabled(raw_imu_output);
     return true;
@@ -192,8 +185,7 @@ static bool raw_imu_output_changed(struct setting *s, const char *val)
   return false;
 }
 
-static bool acc_range_changed(struct setting *s, const char *val)
-{
+static bool acc_range_changed(struct setting *s, const char *val) {
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return false;
   }
@@ -205,21 +197,21 @@ static bool acc_range_changed(struct setting *s, const char *val)
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
   switch (acc_range) {
-  case 0: /* 2g */
-    bmi160_set_acc_range(BMI160_ACC_2G);
-    break;
-  case 1: /* 4g */
-    bmi160_set_acc_range(BMI160_ACC_4G);
-    break;
-  case 2: /* 8g */
-    bmi160_set_acc_range(BMI160_ACC_8G);
-    break;
-  case 3: /* 16g */
-    bmi160_set_acc_range(BMI160_ACC_16G);
-    break;
-  default:
-    log_error("Unexpected accelerometer range setting: %u", acc_range);
-    break;
+    case 0: /* 2g */
+      bmi160_set_acc_range(BMI160_ACC_2G);
+      break;
+    case 1: /* 4g */
+      bmi160_set_acc_range(BMI160_ACC_4G);
+      break;
+    case 2: /* 8g */
+      bmi160_set_acc_range(BMI160_ACC_8G);
+      break;
+    case 3: /* 16g */
+      bmi160_set_acc_range(BMI160_ACC_16G);
+      break;
+    default:
+      log_error("Unexpected accelerometer range setting: %u", acc_range);
+      break;
   }
 
   if (output) {
@@ -230,8 +222,7 @@ static bool acc_range_changed(struct setting *s, const char *val)
   return true;
 }
 
-static bool gyr_range_changed(struct setting *s, const char *val)
-{
+static bool gyr_range_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     u8 output = raw_imu_output;
     raw_imu_output = false;
@@ -250,41 +241,45 @@ static bool gyr_range_changed(struct setting *s, const char *val)
   return false;
 }
 
-void imu_init(void)
-{
+void imu_init(void) {
   bmi160_init();
 
-  SETTING_NOTIFY("imu", "imu_raw_output", raw_imu_output, TYPE_BOOL,
+  SETTING_NOTIFY("imu",
+                 "imu_raw_output",
+                 raw_imu_output,
+                 TYPE_BOOL,
                  raw_imu_output_changed);
 
   static const char const *rate_enum[] =
-    /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
-     * issue resulting in messages with duplicate timestamps. */
-    {"25", "50", "100", "200", /* "400",*/ NULL};
+      /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
+       * issue resulting in messages with duplicate timestamps. */
+      {"25", "50", "100", "200", /* "400",*/ NULL};
   static struct setting_type rate_setting;
   int TYPE_RATE = settings_type_register_enum(rate_enum, &rate_setting);
   SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_RATE, imu_rate_changed);
 
-  static const char const *acc_range_enum[] =
-    {"2g", "4g", "8g", "16g", NULL};
+  static const char const *acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   static struct setting_type acc_range_setting;
-  int TYPE_ACC_RANGE = settings_type_register_enum(acc_range_enum,
-                                                   &acc_range_setting);
-  SETTING_NOTIFY("imu", "acc_range", acc_range, TYPE_ACC_RANGE,
-                 acc_range_changed);
+  int TYPE_ACC_RANGE =
+      settings_type_register_enum(acc_range_enum, &acc_range_setting);
+  SETTING_NOTIFY(
+      "imu", "acc_range", acc_range, TYPE_ACC_RANGE, acc_range_changed);
 
-  static const char const *gyr_range_enum[] =
-    {"2000", "1000", "500", "250", "125", NULL};
+  static const char const *gyr_range_enum[] = {
+      "2000", "1000", "500", "250", "125", NULL};
   static struct setting_type gyr_range_setting;
-  int TYPE_GYR_RANGE = settings_type_register_enum(gyr_range_enum,
-                                                   &gyr_range_setting);
-  SETTING_NOTIFY("imu", "gyro_range", gyr_range, TYPE_GYR_RANGE,
-                 gyr_range_changed);
+  int TYPE_GYR_RANGE =
+      settings_type_register_enum(gyr_range_enum, &gyr_range_setting);
+  SETTING_NOTIFY(
+      "imu", "gyro_range", gyr_range, TYPE_GYR_RANGE, gyr_range_changed);
 
-  chThdCreateStatic(wa_imu_thread, sizeof(wa_imu_thread),
-                    IMU_THREAD_PRIO, imu_thread, NULL);
-  chThdCreateStatic(wa_imu_aux_thread, sizeof(wa_imu_aux_thread),
-                    IMU_AUX_THREAD_PRIO, imu_aux_thread, NULL);
+  chThdCreateStatic(
+      wa_imu_thread, sizeof(wa_imu_thread), IMU_THREAD_PRIO, imu_thread, NULL);
+  chThdCreateStatic(wa_imu_aux_thread,
+                    sizeof(wa_imu_aux_thread),
+                    IMU_AUX_THREAD_PRIO,
+                    imu_aux_thread,
+                    NULL);
 
   /* Enable IMU INT1 interrupt */
   gic_handler_register(IRQ_ID_IMU_INT1, imu_isr, NULL);

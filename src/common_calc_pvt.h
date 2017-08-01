@@ -18,29 +18,27 @@
 #include <libsbp/navigation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/pvt.h>
-#include <libswiftnav/track.h>
-#include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
+#include <libswiftnav/pvt.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/track.h>
 
-
+#include "base_obs.h"
+#include "cnav_msg_storage.h"
+#include "ephemeris.h"
+#include "main.h"
+#include "manage.h"
+#include "nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
-#include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "manage.h"
-#include "simulator.h"
 #include "settings.h"
-#include "timing.h"
-#include "base_obs.h"
-#include "ephemeris.h"
-#include "signal.h"
-#include "system_monitor.h"
-#include "main.h"
-#include "cnav_msg_storage.h"
 #include "shm.h"
-
+#include "signal.h"
+#include "simulator.h"
+#include "system_monitor.h"
+#include "timing.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +55,7 @@ bool gate_covariance_pvt_engine(const pvt_engine_result_t *result);
 
 void extract_covariance(double full_covariance[9],
                         double vel_covariance[9],
-                        const gnss_solution *soln) ;
+                        const gnss_solution *soln);
 
 bool check_covariance(const double pos_accuracy, const double vel_accuracy);
 

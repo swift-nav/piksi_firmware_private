@@ -11,8 +11,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "zynq7000.h"
 #include <hal.h>
+#include "zynq7000.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,13 +32,14 @@
 /** \addtogroup io
  * \{ */
 
-/** A simple DMA/interrupt-free UART write function, for use by screaming_death */
+/** A simple DMA/interrupt-free UART write function, for use by screaming_death
+ */
 /* TODO: Move to peripherals/usart.c? */
-static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context)
-{
+static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context) {
   (void)context;
-  for (u8 i=0; i<n; i++) {
-    while (UART1->SR & UART_SR_TXFULL_Msk);
+  for (u8 i = 0; i < n; i++) {
+    while (UART1->SR & UART_SR_TXFULL_Msk)
+      ;
     UART1->FIFO = buff[i];
   }
   return n;
@@ -52,11 +53,10 @@ static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context)
  *
  * \param msg A pointer to an array of chars containing the error message.
  */
-void _screaming_death(const char *pos, const char *msg)
-{
-  __asm__("CPSID if;");           /* Disable all interrupts and faults */
+void _screaming_death(const char *pos, const char *msg) {
+  __asm__("CPSID if;"); /* Disable all interrupts and faults */
 
-  #define SPEAKING_MSG_N 222       /* Maximum length of error message */
+#define SPEAKING_MSG_N 222 /* Maximum length of error message */
 
   static char err_msg[SPEAKING_MSG_N] = "ERROR: ";
 
@@ -69,24 +69,29 @@ void _screaming_death(const char *pos, const char *msg)
   static sbp_state_t sbp_state;
   sbp_state_init(&sbp_state);
 
-  /* Continuously send error message */
-  #define APPROX_ONE_SEC 200000000
+/* Continuously send error message */
+#define APPROX_ONE_SEC 200000000
   while (1) {
     for (u32 d = 0; d < APPROX_ONE_SEC; d++) {
       __asm__("nop");
     }
     /* TODO: Send to other UARTs? */
-    sbp_send_message(&sbp_state, SBP_MSG_PRINT_DEP, 0, len, (u8*)err_msg, &fallback_write_ftdi);
+    sbp_send_message(&sbp_state,
+                     SBP_MSG_PRINT_DEP,
+                     0,
+                     len,
+                     (u8 *)err_msg,
+                     &fallback_write_ftdi);
   }
 }
-
 
 /* OS syscall implementations related to error conditions */
 
 /** Custom assert() failure function. Calls screaming_death(). */
-void __assert_func(const char *_file, int _line, const char *_func,
-                   const char *_expr)
-{
+void __assert_func(const char *_file,
+                   int _line,
+                   const char *_func,
+                   const char *_expr) {
   char pos[255];
   char msg[255];
   sprintf(pos, "%s:%s():%d", _file, _func, _line);
@@ -95,16 +100,12 @@ void __assert_func(const char *_file, int _line, const char *_func,
 }
 
 /** Required by exit() which is (hopefully not) called from BLAS/LAPACK. */
-void _fini(void)
-{
-  return;
-}
+void _fini(void) { return; }
 
 /** _exit(2) syscall handler.  Called by (at least) abort() and exit().
  * Calls screaming_death() to repeatedly print an ERROR until WDT reset.
  */
-void _exit(int status)
-{
+void _exit(int status) {
   (void)status;
   /* TODO: Perhaps print a backtrace; let's see if this ever actually
      occurs before implementing that. */
@@ -113,12 +114,10 @@ void _exit(int status)
 
 /** Enable and/or register handlers for system faults (hard fault, bus
  * fault, memory protection, usage (i.e. divide-by-zero) */
-void fault_handling_setup(void) {
-}
+void fault_handling_setup(void) {}
 
 /* Called by fault handlers in error_asm.s */
-void fault_handler_screaming_death(const char *msg_str, u32 lr)
-{
+void fault_handler_screaming_death(const char *msg_str, u32 lr) {
   char msg[128];
   extern int fallback_sprintf(char *str, const char *fmt, ...);
   fallback_sprintf(msg, "%s lr=%08X", msg_str, (unsigned int)lr);

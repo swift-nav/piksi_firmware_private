@@ -9,12 +9,12 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <string.h>
 #include <assert.h>
-#include "search_manager_api.h"
-#include <timing.h>
-#include <manage.h>
 #include <libswiftnav/glo_map.h>
+#include <manage.h>
+#include <string.h>
+#include <timing.h>
+#include "search_manager_api.h"
 
 /* Search manager functions which call other modules */
 
@@ -35,8 +35,7 @@ acq_jobs_state_t acq_all_jobs_state_data;
  *
  * \return none
  */
-void sm_init(acq_jobs_state_t *data)
-{
+void sm_init(acq_jobs_state_t *data) {
   memset(data, 0, sizeof(acq_jobs_state_t));
 
   acq_job_types_e type;
@@ -44,20 +43,20 @@ void sm_init(acq_jobs_state_t *data)
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i;
     for (i = 0; i < NUM_SATS_GPS; i++) {
-      data->jobs_gps[type][i].mesid = construct_mesid(CODE_GPS_L1CA,
-                                                      GPS_FIRST_PRN + i);
+      data->jobs_gps[type][i].mesid =
+          construct_mesid(CODE_GPS_L1CA, GPS_FIRST_PRN + i);
       /* for GPS SID it's just copy of MESID */
-      data->jobs_gps[type][i].sid = construct_sid(CODE_GPS_L1CA,
-                                                  GPS_FIRST_PRN + i);
+      data->jobs_gps[type][i].sid =
+          construct_sid(CODE_GPS_L1CA, GPS_FIRST_PRN + i);
       data->jobs_gps[type][i].job_type = type;
     }
     for (i = 0; i < NUM_SATS_GLO; i++) {
-      data->jobs_glo[type][i].sid = construct_sid(CODE_GLO_L1CA,
-                                                  GLO_FIRST_PRN + i);
+      data->jobs_glo[type][i].sid =
+          construct_sid(CODE_GLO_L1CA, GLO_FIRST_PRN + i);
       /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
        * blind searches are immediately done with whole range of FCNs */
       data->jobs_glo[type][i].mesid =
-             construct_mesid(CODE_GLO_L1CA, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
+          construct_mesid(CODE_GLO_L1CA, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
 
       data->jobs_glo[type][i].job_type = type;
     }
@@ -70,8 +69,7 @@ void sm_init(acq_jobs_state_t *data)
  *
  * \return none
  */
-static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data)
-{
+static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data) {
   u32 i;
   for (i = 0; i < NUM_SATS_GPS; i++) {
     acq_job_t *deep_job = &jobs_data->jobs_gps[ACQ_JOB_DEEP_SEARCH][i];
@@ -112,8 +110,7 @@ static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data)
  *
  * \return none
  */
-static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
-{
+static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
   if (!is_glo_enabled()) {
     return;
   }
@@ -173,8 +170,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data)
  */
 static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
                                        u64 now_ms,
-                                       u64 lgf_age_ms)
-{
+                                       u64 lgf_age_ms) {
   u32 i;
   for (i = 0; i < NUM_SATS_GPS; i++) {
     acq_job_t *fallback_job = &jobs_data->jobs_gps[ACQ_JOB_FALLBACK_SEARCH][i];
@@ -200,26 +196,23 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
     visible = visible && known;
     invisible = !visible && known;
 
-    if (visible &&
-        lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+    if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
-        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+            ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
       fallback_job->cost_hint = ACQ_COST_AVG;
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if (!known &&
-        lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-        now_ms - fallback_job->stop_time >
-        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+    } else if (!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+               now_ms - fallback_job->stop_time >
+                   ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if (invisible &&
-               lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
+    } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
-               ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
+                   ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
@@ -238,8 +231,7 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
  */
 static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
                                        u64 now_ms,
-                                       u64 lgf_age_ms)
-{
+                                       u64 lgf_age_ms) {
   if (!is_glo_enabled()) {
     return;
   }
@@ -275,27 +267,24 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       }
     }
 
-    if (visible &&
-        lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+    if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
-        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+            ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
       fallback_job->cost_hint = ACQ_COST_AVG;
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if ((!known &&
-        lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-        now_ms - fallback_job->stop_time >
-        ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS)
-        || fallback_job->glo_blind_search) {
+    } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+                now_ms - fallback_job->stop_time >
+                    ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
+               fallback_job->glo_blind_search) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-    } else if (invisible &&
-               lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
+    } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
-               ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
+                   ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
@@ -312,17 +301,16 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
  *
  * \return none
  */
-void sm_run(acq_jobs_state_t *jobs_data)
-{
+void sm_run(acq_jobs_state_t *jobs_data) {
   u64 now_ms = timing_getms();
   u64 lgf_ms, lgf_age_ms;
   if (sm_lgf_stamp(&lgf_ms) && (now_ms >= lgf_ms)) {
     lgf_age_ms = now_ms - lgf_ms;
   } else {
-    lgf_age_ms = MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS,
-                     ACQ_LGF_TIMEOUT_INVIS_MS);
+    lgf_age_ms =
+        MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS, ACQ_LGF_TIMEOUT_INVIS_MS);
   }
-  
+
   sm_calc_all_glo_visibility_flags();
 
   sm_deep_search_run_gps(jobs_data);
@@ -330,4 +318,3 @@ void sm_run(acq_jobs_state_t *jobs_data)
   sm_fallback_search_run_gps(jobs_data, now_ms, lgf_age_ms);
   sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
 }
-

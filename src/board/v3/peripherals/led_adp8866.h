@@ -15,8 +15,8 @@
 
 #include <libswiftnav/common.h>
 
-#define LED_ADP8866_LED_COUNT         9
-#define LED_ADP8866_BRIGHTNESS_MAX  127
+#define LED_ADP8866_LED_COUNT 9
+#define LED_ADP8866_BRIGHTNESS_MAX 127
 
 typedef struct {
   u8 led;

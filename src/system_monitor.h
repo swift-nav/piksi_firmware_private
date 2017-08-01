@@ -28,7 +28,7 @@ typedef enum {
   WD_NOTIFY_ACQ_MGMT,
   WD_NOTIFY_ME_CALC_PVT,
   WD_NOTIFY_STARLING,
-  WD_NOTIFY_NUM_THREADS  /* Maximum 32 of these! */
+  WD_NOTIFY_NUM_THREADS /* Maximum 32 of these! */
 } watchdog_notify_t;
 
 void watchdog_notify(watchdog_notify_t thread_id);

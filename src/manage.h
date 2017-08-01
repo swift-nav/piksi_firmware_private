@@ -15,8 +15,8 @@
 
 #include <ch.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
 #include "soft_macq/soft_macq_main.h"
 #include "track_flags.h"
@@ -46,12 +46,12 @@
     TRACK_DROP_UNLOCKED_T ms, drop the channel. */
 #define TRACK_DROP_UNLOCKED_MS 1500
 
-#define ACQ_FULL_CF_STEP  soft_multi_acq_bin_width()
+#define ACQ_FULL_CF_STEP soft_multi_acq_bin_width()
 
 #define MANAGE_NO_CHANNELS_FREE 255
 
 #define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
-#define MANAGE_ACQ_THREAD_STACK    16384
+#define MANAGE_ACQ_THREAD_STACK 16384
 
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
@@ -68,14 +68,14 @@ typedef struct {
  * Tracking controller parameters.
  */
 typedef struct {
-  float fll_bw;  /**< FLL controller NBW [Hz].
-                      Single sided noise bandwidth in case of
-                      FLL and FLL-assisted PLL tracking */
-  float pll_bw;  /**< PLL controller noise bandwidth [Hz].
-                      Single sided noise bandwidth in case of
-                      PLL and FLL-assisted PLL tracking */
-  float dll_bw;  /**< DLL controller noise bandwidth [Hz]. */
-  u8    int_ms;  /**< PLL/FLL controller integration time [ms] */
+  float fll_bw; /**< FLL controller NBW [Hz].
+                     Single sided noise bandwidth in case of
+                     FLL and FLL-assisted PLL tracking */
+  float pll_bw; /**< PLL controller noise bandwidth [Hz].
+                     Single sided noise bandwidth in case of
+                     PLL and FLL-assisted PLL tracking */
+  float dll_bw; /**< DLL controller noise bandwidth [Hz]. */
+  u8 int_ms;    /**< PLL/FLL controller integration time [ms] */
 } tracking_ctrl_params_t;
 
 /** \} */
@@ -87,7 +87,10 @@ void manage_set_obs_hint(gnss_signal_t sid);
 void me_settings_setup(void);
 
 float get_solution_elevation_mask(void);
-void acq_result_send(const me_gnss_signal_t mesid, float cn0, float cp, float cf);
+void acq_result_send(const me_gnss_signal_t mesid,
+                     float cn0,
+                     float cp,
+                     float cf);
 
 u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,

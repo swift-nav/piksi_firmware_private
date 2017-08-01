@@ -16,5 +16,4 @@
 
 void sch_run(acq_jobs_state_t *jobs_data);
 
-
 #endif /* SWIFTNAV_SCHEDULER_API_H */

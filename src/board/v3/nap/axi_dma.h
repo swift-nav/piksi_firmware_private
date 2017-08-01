@@ -13,12 +13,12 @@
 #ifndef SWIFTNAV_AXI_DMA_H
 #define SWIFTNAV_AXI_DMA_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-#include <osal.h>
 #include <board.h>
 #include <halconf.h>
+#include <osal.h>
 
 /* Note: callbacks are executed from interrupt context */
 typedef void (*axi_dma_callback_t)(bool success);
@@ -46,9 +46,13 @@ extern AXIDMADriver AXIDMADriver2;
 void axi_dma_init(void);
 void axi_dma_start(AXIDMADriver *dp);
 void axi_dma_stop(AXIDMADriver *dp);
-void axi_dma_write_begin(AXIDMADriver *dp, const uint8_t *data,
-                         uint32_t data_length, axi_dma_callback_t callback);
-void axi_dma_read_begin(AXIDMADriver *dp, uint8_t *data,
-                        uint32_t data_length, axi_dma_callback_t callback);
+void axi_dma_write_begin(AXIDMADriver *dp,
+                         const uint8_t *data,
+                         uint32_t data_length,
+                         axi_dma_callback_t callback);
+void axi_dma_read_begin(AXIDMADriver *dp,
+                        uint8_t *data,
+                        uint32_t data_length,
+                        axi_dma_callback_t callback);
 
 #endif /* SWIFTNAV_AXI_DMA_H */
