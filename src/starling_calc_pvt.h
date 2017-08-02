@@ -21,6 +21,7 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/track.h>
 
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include "piksi_systime.h"
 
 typedef enum {
@@ -69,7 +70,7 @@ extern double soln_freq;
 
 extern u32 max_age_of_differential;
 
-void solution_make_sbp(const gnss_solution *soln,
+void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
 

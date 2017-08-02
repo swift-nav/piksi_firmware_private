@@ -15,6 +15,7 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/pvt.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include "track.h"
 
 /** \addtogroup simulator
@@ -87,7 +88,7 @@ void populate_nav_meas(navigation_measurement_t* nav_meas,
 void sbp_send_simulation_enabled(void);
 
 // Getting data from the simulation
-gnss_solution* simulation_current_gnss_solution(void);
+pvt_engine_result_t* simulation_current_pvt_engine_result_t(void);
 dops_t* simulation_current_dops_solution(void);
 double* simulation_ref_ecef(void);
 double* simulation_current_baseline_ecef(void);

@@ -70,7 +70,8 @@ struct {
   navigation_measurement_t nav_meas[MAX_CHANNELS];
   navigation_measurement_t base_nav_meas[MAX_CHANNELS];
   dops_t dops;
-  gnss_solution noisy_solution;
+  pvt_engine_result_t noisy_solution;
+
 } sim_state = {
 
     .last_update = PIKSI_SYSTIME_INIT,
@@ -209,28 +210,27 @@ void simulation_step_position_in_circle(double elapsed) {
   vector_subtract(3, sim_state.pos, sim_settings.base_ecef, sim_state.baseline);
 
   /* Add gaussian noise to PVT position */
-  double* pos_ecef = sim_state.noisy_solution.pos_ecef;
+  double* pos_ecef = sim_state.noisy_solution.baseline;
   double pos_variance = sim_settings.pos_sigma * sim_settings.pos_sigma;
   pos_ecef[0] = sim_state.pos[0] + rand_gaussian(pos_variance);
   pos_ecef[1] = sim_state.pos[1] + rand_gaussian(pos_variance);
   pos_ecef[2] = sim_state.pos[2] + rand_gaussian(pos_variance);
 
-  wgsecef2llh(sim_state.noisy_solution.pos_ecef,
-              sim_state.noisy_solution.pos_llh);
 
   /* Calculate Velocity vector tangent to the sphere */
   double noisy_speed =
       sim_settings.speed +
       rand_gaussian(sim_settings.speed_sigma * sim_settings.speed_sigma);
+  double vel_ned[3];
+  vel_ned[0] = noisy_speed * cos(sim_state.angle);
+  vel_ned[1] = noisy_speed * -1.0 * sin(sim_state.angle);
+  vel_ned[2] = 0.0;
 
-  sim_state.noisy_solution.vel_ned[0] = noisy_speed * cos(sim_state.angle);
-  sim_state.noisy_solution.vel_ned[1] =
-      noisy_speed * -1.0 * sin(sim_state.angle);
-  sim_state.noisy_solution.vel_ned[2] = 0.0;
-
-  wgsned2ecef(sim_state.noisy_solution.vel_ned,
-              sim_state.noisy_solution.pos_ecef,
-              sim_state.noisy_solution.vel_ecef);
+  wgsned2ecef(vel_ned,
+              sim_state.noisy_solution.baseline,
+              sim_state.noisy_solution.velocity);
+  sim_state.noisy_solution.valid = true;
+  sim_state.noisy_solution.velocity_valid = true;
 }
 
 /** Simulates real observations for the current position and the satellite
@@ -331,8 +331,8 @@ void simulation_step_tracking_and_observations(double elapsed) {
     }
   }
 
-  sim_state.noisy_solution.n_sats_used = num_sats_selected;
-  sim_state.noisy_solution.n_sigs_used = num_sats_selected;
+  sim_state.noisy_solution.num_sats_used = num_sats_selected;
+  sim_state.noisy_solution.num_sigs_used = num_sats_selected;
 }
 
 /** Populate a navigation_measurement_t structure with simulated data for
@@ -387,7 +387,7 @@ inline bool simulation_enabled_for(simulation_modes_t mode_mask) {
 /** Get current simulated PVT solution
 * The structure returned by this changes every time simulation_step is called.
 */
-inline gnss_solution* simulation_current_gnss_solution(void) {
+inline pvt_engine_result_t* simulation_current_pvt_engine_result_t(void) {
   return &sim_state.noisy_solution;
 }
 
@@ -417,7 +417,7 @@ inline double* simulation_current_covariance_ecef(void) {
 /** Returns the number of satellites being simulated.
 */
 u8 simulation_current_num_sats(void) {
-  return sim_state.noisy_solution.n_sats_used;
+  return sim_state.noisy_solution.num_sats_used;
 }
 
 /** Returns the current simulated tracking loops state simulated.
