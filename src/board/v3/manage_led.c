@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2016 - 2017 Swift Navigation Inc.
- * Contact: Jacob McNamee <jacob@swiftnav.com>
- *          Pasi Miettinen <pasi.miettinen@exafore.com>
+ * Copyright (C) 2016 Swift Navigation Inc.
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -260,13 +259,11 @@ static void handle_mode(rgb_led_state_t *s, device_state_t dev_state) {
     case DEV_ACQ:
     case DEV_TRK_BELOW_FOUR:
     case DEV_TRK_AT_LEAST_FOUR:
+    case DEV_SPS:
       blinker_state.mode = LED_OFF;
       break;
-    case DEV_SPS:
-      blinker_state.mode = LED_BLINK_SLOW;
-      break;
     case DEV_FLOAT:
-      blinker_state.mode = LED_BLINK_FAST;
+      blinker_state.mode = LED_BLINK_SLOW;
       break;
     case DEV_FIXED:
       blinker_state.mode = LED_ON;
