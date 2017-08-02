@@ -106,6 +106,7 @@ BOARDSRC := \
         $(BOARDDIR)/peripherals/led_adp8866.o \
         $(BOARDDIR)/peripherals/bmi160.o \
         $(BOARDDIR)/peripherals/rtc_m41t62.o \
+        $(BOARDDIR)/peripherals/m24c32d.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cm.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2cl.o \

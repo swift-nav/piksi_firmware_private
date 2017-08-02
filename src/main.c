@@ -41,6 +41,7 @@
 #include "version.h"
 #include "ndb.h"
 #include "sbp_utils.h"
+#include "peripherals/m24c32d.h"
 
 extern void ext_setup(void);
 
@@ -66,6 +67,24 @@ int main(void)
   log_info("Piksi Starting...");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
+
+
+  /* Hardcode "DUROV0" in the EEPROM, if needed */
+  {
+    bool is_duro;
+    u8 host_board_id[6];
+    m24c32d_read(0, host_board_id, 6);
+    is_duro = (memcmp(host_board_id, "DUROV0", 6) == 0);
+    if (is_duro) {
+      log_info("Duro signature read from EEPROM");
+    } else {
+      log_info("Duro signature not found in EEPROM, setting it now");
+      if (m24c32d_write(0, (const u8 *) "DUROV0", 6) != MSG_OK) {
+        log_error("EEPROM write failed!");
+      }
+    }
+
+  }
 
   init();
   signal_init();
