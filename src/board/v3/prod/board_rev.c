@@ -46,6 +46,6 @@ void boardRevInit(void)
   palSetLine(MODEM_PWR_EN_LINE);
 
   palSetLineMode(DURO_LED_nRST_GPIO_LINE, PAL_MODE_OUTPUT);
-  palSetLine(DURO_LED_nRST_GPIO_LINE);
+  palClearLine(DURO_LED_nRST_GPIO_LINE);
 
 }
