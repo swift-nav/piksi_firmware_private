@@ -12,10 +12,8 @@
 
 #include <assert.h>
 #include <hal.h>
-#include <libswiftnav/logging.h>
 
 #include "base_obs.h"
-#include "manage_led.h"
 #include "me_calc_pvt.h"
 #include "peripherals/antenna.h"
 #include "peripherals/led_adp8866.h"
@@ -71,8 +69,8 @@ typedef struct {
 typedef enum { LED_OFF, LED_BLINK_SLOW, LED_BLINK_FAST, LED_ON } blink_mode_t;
 
 typedef enum {
-  DEV_ACQ,
-  DEV_TRK_BELOW_FOUR,
+  DEV_NO_SIGNAL,
+  DEV_ANTENNA,
   DEV_TRK_AT_LEAST_FOUR,
   DEV_SPS,
   DEV_FLOAT,
@@ -161,11 +159,11 @@ static device_state_t get_device_state(void) {
     return DEV_TRK_AT_LEAST_FOUR;
   }
 
-  if ((signals_tracked < 4 && signals_tracked > 0) || antenna_present()) {
-    return DEV_TRK_BELOW_FOUR;
-  } else {
-    return DEV_ACQ;
+  if (antenna_present()) {
+    return DEV_ANTENNA;
   }
+
+  return DEV_NO_SIGNAL;
 }
 
 /** Handle PV LED state.
@@ -176,8 +174,8 @@ static device_state_t get_device_state(void) {
  */
 static bool handle_pv(device_state_t dev_state) {
   switch (dev_state) {
-    case DEV_ACQ:
-    case DEV_TRK_BELOW_FOUR:
+    case DEV_NO_SIGNAL:
+    case DEV_ANTENNA:
     case DEV_TRK_AT_LEAST_FOUR:
       return FALSE;
       break;
@@ -202,10 +200,10 @@ static void handle_pos(rgb_led_state_t *s, device_state_t dev_state) {
   static blinker_state_t blinker_state;
 
   switch (dev_state) {
-    case DEV_ACQ:
+    case DEV_NO_SIGNAL:
       blinker_state.mode = LED_OFF;
       break;
-    case DEV_TRK_BELOW_FOUR:
+    case DEV_ANTENNA:
       blinker_state.mode = LED_BLINK_SLOW;
       break;
     case DEV_TRK_AT_LEAST_FOUR:
@@ -256,8 +254,8 @@ static void handle_mode(rgb_led_state_t *s, device_state_t dev_state) {
   static blinker_state_t blinker_state;
 
   switch (dev_state) {
-    case DEV_ACQ:
-    case DEV_TRK_BELOW_FOUR:
+    case DEV_NO_SIGNAL:
+    case DEV_ANTENNA:
     case DEV_TRK_AT_LEAST_FOUR:
     case DEV_SPS:
       blinker_state.mode = LED_OFF;
