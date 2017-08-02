@@ -21,8 +21,6 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
-#include <libswiftnav/pvt_engine/propagate.h>
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/signal.h>
 

@@ -21,6 +21,8 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/track.h>
 
+#include <libswiftnav/pvt_engine/firmware_binding.h>
+
 /** \addtogroup base_obs Base station observation handling
  * \{ */
 
@@ -39,7 +41,7 @@ typedef struct {
   /** Do we have the known, surveyed position? */
   bool has_known_pos_ecef;
   /** Observation Solution */
-  gnss_solution soln;
+  pvt_engine_result_t soln;
 
   /** Number of observations in the set. */
   u8 n;
