@@ -22,7 +22,10 @@ extern "C" {
 bool ndb_fs_is_real(void);
 int ndb_fs_remove(const char *name);
 ssize_t ndb_fs_read(const char *fn, off_t offset, void *buf, size_t size);
-ssize_t ndb_fs_write(const char *fn, off_t offset, const void *buf, size_t size);
+ssize_t ndb_fs_write(const char *fn,
+                     off_t offset,
+                     const void *buf,
+                     size_t size);
 ssize_t ndb_fs_reserve(const char *name, size_t size);
 
 #ifdef __cplusplus

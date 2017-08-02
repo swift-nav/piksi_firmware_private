@@ -1,20 +1,20 @@
 #ifndef SOFT_MACQ_MAIN_H_
 #define SOFT_MACQ_MAIN_H_
 
-#include <libswiftnav/prns.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/prns.h>
 
 /** Acquisition CN0 threshold to determine if
   * handover to tracking should be initiated. */
-#define ACQ_THRESHOLD 38.0        /* dBHz */
+#define ACQ_THRESHOLD 38.0 /* dBHz */
 
 /** Acquisition CN0 threshold to determine if a strong peak has been found.
   * High CN0 triggers early exit from acquisition frequency sweep */
-#define ACQ_EARLY_THRESHOLD 39.0  /* dBHz */
+#define ACQ_EARLY_THRESHOLD 39.0 /* dBHz */
 
 /** If handover to tracking fails,
  *  satellite with a high CN0 should be prioritized */
-#define ACQ_RETRY_THRESHOLD 39.0  /* dBHz */
+#define ACQ_RETRY_THRESHOLD 39.0 /* dBHz */
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,15 +33,12 @@ typedef struct {
   u32 sample_offset;
 } acq_peak_search_t;
 
-
-bool soft_multi_acq_search(
-  const me_gnss_signal_t _sMeSid,
-  float _fCarrFreqMin,
-  float _fCarrFreqMax,
-  acq_result_t *_psAcqResult);
+bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
+                           float _fCarrFreqMin,
+                           float _fCarrFreqMax,
+                           acq_result_t *_psAcqResult);
 
 float soft_multi_acq_bin_width(void);
-
 
 #ifdef __cplusplus
 }

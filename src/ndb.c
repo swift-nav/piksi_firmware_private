@@ -14,14 +14,10 @@
 #include "signal.h"
 
 /** Set up the NDB module. */
-void ndb_setup(void)
-{
+void ndb_setup(void) {
   ndb_init();
   platform_ndb_init();
   ndb_start();
 }
 
-void ndb_sbp_updates(void)
-{
-  platform_ndb_sbp_updates();
-}
+void ndb_sbp_updates(void) { platform_ndb_sbp_updates(); }

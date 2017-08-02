@@ -14,14 +14,14 @@
 
 #include <ch.h>
 
-#include <libswiftnav/time.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/time.h>
 
 #include "board/nap/nap_common.h"
-#include "settings.h"
 #include "main.h"
-#include "timing.h"
 #include "pps.h"
+#include "settings.h"
+#include "timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)
 
@@ -40,8 +40,7 @@ static double pps_frequency_hz = 1.0;
 static double pps_period = 1.0;
 
 static THD_WORKING_AREA(wa_pps_thread, 256);
-static void pps_thread(void *arg)
-{
+static void pps_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("PPS");
 
@@ -50,7 +49,7 @@ static void pps_thread(void *arg)
       gps_time_t t = get_current_gps_time();
 
       t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
-          ((double)pps_offset_microseconds / 1.0e6);
+              ((double)pps_offset_microseconds / 1.0e6);
 
       u64 next = round(gpstime2napcount(&t));
       nap_pps((u32)next);
@@ -66,8 +65,7 @@ static void pps_thread(void *arg)
  * \param polarity Active logic level.
  * \return Returns true if value is within valid range, false otherwise.
  */
-bool pps_config(u32 microseconds, u8 polarity)
-{
+bool pps_config(u32 microseconds, u8 polarity) {
   if (microseconds < 1 || microseconds >= 1e6) {
     log_info("Invalid PPS width. Valid range: 1-999999\n");
     return FALSE;
@@ -89,8 +87,7 @@ bool pps_config(u32 microseconds, u8 polarity)
  * \param val Pointer to new value.
  * \return Returns true if the change was successful, false otherwise.
  */
-bool pps_config_changed(struct setting *s, const char *val)
-{
+bool pps_config_changed(struct setting *s, const char *val) {
   (void)s;
   (void)val;
 
@@ -107,8 +104,7 @@ bool pps_config_changed(struct setting *s, const char *val)
  * \param val Pointer to new value.
  * \return Returns true if the change was successful, false otherwise.
  */
-bool pps_frequency_changed(struct setting *s, const char *val)
-{
+bool pps_frequency_changed(struct setting *s, const char *val) {
   (void)s;
   (void)val;
 
@@ -134,24 +130,25 @@ bool pps_frequency_changed(struct setting *s, const char *val)
  * Sets the default value for the PPS width and starts a thread to generate
  * the pulses.
  */
-void pps_setup(void)
-{
+void pps_setup(void) {
   pps_config(pps_width_microseconds, pps_polarity);
 
-  SETTING_NOTIFY("pps", "width", pps_width_microseconds, TYPE_INT,
-      pps_config_changed);
+  SETTING_NOTIFY(
+      "pps", "width", pps_width_microseconds, TYPE_INT, pps_config_changed);
 
-  SETTING_NOTIFY("pps", "polarity", pps_polarity, TYPE_INT,
-      pps_config_changed);
+  SETTING_NOTIFY("pps", "polarity", pps_polarity, TYPE_INT, pps_config_changed);
 
-  SETTING_NOTIFY("pps", "offset", pps_offset_microseconds, TYPE_INT,
-      settings_default_notify);
+  SETTING_NOTIFY("pps",
+                 "offset",
+                 pps_offset_microseconds,
+                 TYPE_INT,
+                 settings_default_notify);
 
-  SETTING_NOTIFY("pps", "frequency", pps_frequency_hz, TYPE_FLOAT,
-      pps_frequency_changed);
+  SETTING_NOTIFY(
+      "pps", "frequency", pps_frequency_hz, TYPE_FLOAT, pps_frequency_changed);
 
-  chThdCreateStatic(wa_pps_thread, sizeof(wa_pps_thread), NORMALPRIO+15,
-      pps_thread, NULL);
+  chThdCreateStatic(
+      wa_pps_thread, sizeof(wa_pps_thread), NORMALPRIO + 15, pps_thread, NULL);
 }
 
 /** \} */

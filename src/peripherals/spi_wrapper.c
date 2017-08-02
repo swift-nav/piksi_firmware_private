@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <string.h>
 #include <assert.h>
+#include <string.h>
 
 #include <ch.h>
 #include <hal.h>
@@ -32,17 +32,27 @@ typedef struct {
 } spi_slave_t;
 
 static spi_bus_t spi_bus_1 = {
-  &SPID1, _MUTEX_DATA(spi_bus_1.mutex), NULL, 0, SPI_SLAVE_MAX
-};
+    &SPID1, _MUTEX_DATA(spi_bus_1.mutex), NULL, 0, SPI_SLAVE_MAX};
 
 static spi_bus_t spi_bus_2 = {
-  &SPID2, _MUTEX_DATA(spi_bus_2.mutex), NULL, 0, SPI_SLAVE_MAX
-};
+    &SPID2, _MUTEX_DATA(spi_bus_2.mutex), NULL, 0, SPI_SLAVE_MAX};
 
 static const spi_slave_t spi_slave[] = {
-  [SPI_SLAVE_FPGA] = {&spi_bus_1, {NULL, PAL_PORT(LINE_SPI1NSS), PAL_PAD(LINE_SPI1NSS), 0, false}},
-  [SPI_SLAVE_FLASH] = {&spi_bus_2, {NULL, PAL_PORT(LINE_SPI2NSS_FLASH), PAL_PAD(LINE_SPI2NSS_FLASH), 0, true}},
-  [SPI_SLAVE_FRONTEND] = {&spi_bus_2, {NULL, PAL_PORT(LINE_SPI2NSS_MAX), PAL_PAD(LINE_SPI2NSS_MAX), 0, true}},
+        [SPI_SLAVE_FPGA] =
+            {&spi_bus_1,
+             {NULL, PAL_PORT(LINE_SPI1NSS), PAL_PAD(LINE_SPI1NSS), 0, false}},
+        [SPI_SLAVE_FLASH] = {&spi_bus_2,
+                             {NULL,
+                              PAL_PORT(LINE_SPI2NSS_FLASH),
+                              PAL_PAD(LINE_SPI2NSS_FLASH),
+                              0,
+                              true}},
+        [SPI_SLAVE_FRONTEND] = {&spi_bus_2,
+                                {NULL,
+                                 PAL_PORT(LINE_SPI2NSS_MAX),
+                                 PAL_PAD(LINE_SPI2NSS_MAX),
+                                 0,
+                                 true}},
 };
 
 /** Lock the SPI bus used by the selected peripheral.
@@ -50,8 +60,7 @@ static const spi_slave_t spi_slave[] = {
  * exclusive access to the SPI bus across multiple transactions.
  * \param slave Peripheral to lock the SPI bus for.
  */
-void spi_lock(u8 slave)
-{
+void spi_lock(u8 slave) {
   spi_bus_t *bus = spi_slave[slave].bus;
   thread_t *thread = chThdGetSelfX();
 
@@ -70,8 +79,7 @@ void spi_lock(u8 slave)
  * the bus was locked with spi_lock().
  * \param slave Peripheral to unlock the SPI bus for.
  */
-void spi_unlock(u8 slave)
-{
+void spi_unlock(u8 slave) {
   spi_bus_t *bus = spi_slave[slave].bus;
 
   if (bus->lock_nest > 0) {
@@ -85,8 +93,7 @@ void spi_unlock(u8 slave)
 /** Drive SPI nCS line low for selected peripheral.
  * \param slave Peripheral to drive chip select for.
  */
-void spi_slave_select(u8 slave)
-{
+void spi_slave_select(u8 slave) {
   spi_lock(slave);
 
   const spi_slave_t *s = &spi_slave[slave];
@@ -104,22 +111,22 @@ void spi_slave_select(u8 slave)
 /** Drive all SPI nCS lines high.
  * Should be called after an SPI transfer is finished.
  */
-void spi_slave_deselect(u8 slave)
-{
+void spi_slave_deselect(u8 slave) {
   SPIDriver *driver = spi_slave[slave].bus->driver;
   spiUnselect(driver);
   spi_unlock(slave);
 }
 
-u8 spi_slave_xfer(u8 slave, u8 data)
-{
+u8 spi_slave_xfer(u8 slave, u8 data) {
   SPIDriver *driver = spi_slave[slave].bus->driver;
   return spiPolledExchange(driver, data);
 }
 
 /* Note: buffers must NOT be in CCM */
-void spi_slave_xfer_dma(u8 slave, u16 n_bytes, u8 data_in[], const u8 data_out[])
-{
+void spi_slave_xfer_dma(u8 slave,
+                        u16 n_bytes,
+                        u8 data_in[],
+                        const u8 data_out[]) {
   SPIDriver *driver = spi_slave[slave].bus->driver;
   if (data_in != NULL) {
     spiExchange(driver, n_bytes, data_out, data_in);
@@ -131,4 +138,3 @@ void spi_slave_xfer_dma(u8 slave, u16 n_bytes, u8 data_in[], const u8 data_out[]
 /** \} */
 
 /** \} */
-

@@ -16,25 +16,23 @@
 #include <hal.h>
 #include <libswiftnav/logging.h>
 
-#include "peripherals/rtc_m41t62.h"
 #include "nap/nap_hw.h"
+#include "peripherals/rtc_m41t62.h"
 
-#define MANAGE_RTC_THREAD_STACK   2000
-#define MANAGE_RTC_THREAD_PERIOD  S2ST(10)
-#define MANAGE_RTC_THREAD_PRIO    (LOWPRIO + 5)
+#define MANAGE_RTC_THREAD_STACK 2000
+#define MANAGE_RTC_THREAD_PERIOD S2ST(10)
+#define MANAGE_RTC_THREAD_PRIO (LOWPRIO + 5)
 
 /* Allow some margin to ensure a second interrupt does not occur. */
 #define NAP_32k_LIMIT 16384 /* 0.5s */
 
 static THD_WORKING_AREA(wa_manage_rtc_thread, MANAGE_RTC_THREAD_STACK);
 
-static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc)
-{
+static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc) {
   bool success = false;
 
   /* Enable square wave and IRQ output and wait for 1s boundary */
   if (rtc_m41t62_second_wait()) {
-
     /* Read RTC time */
     bool time_valid;
     bool time_get_ok = rtc_m41t62_time_get(rtc_time, &time_valid);
@@ -57,15 +55,13 @@ static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc)
   return success;
 }
 
-static void manage_rtc_thread(void *arg)
-{
+static void manage_rtc_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("manage RTC");
 
   rtc_m41t62_init();
 
   while (TRUE) {
-
     /* TODO: Check for precise GNSS time and initialize RTC if necessary */
 
     /* Do read sequence */
@@ -79,8 +75,10 @@ static void manage_rtc_thread(void *arg)
   }
 }
 
-void manage_rtc_setup(void)
-{
-  chThdCreateStatic(wa_manage_rtc_thread, sizeof(wa_manage_rtc_thread),
-                    MANAGE_RTC_THREAD_PRIO, manage_rtc_thread, NULL);
+void manage_rtc_setup(void) {
+  chThdCreateStatic(wa_manage_rtc_thread,
+                    sizeof(wa_manage_rtc_thread),
+                    MANAGE_RTC_THREAD_PRIO,
+                    manage_rtc_thread,
+                    NULL);
 }

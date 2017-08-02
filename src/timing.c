@@ -14,14 +14,14 @@
 #include <string.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/logging.h>
 #include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
 #include "main.h"
+#include "ndb/ndb_utc.h"
 #include "sbp.h"
 #include "timing.h"
-#include "ndb/ndb_utc.h"
 
 /** \defgroup timing Timing
  * Maintains the time state of the receiver and provides time related
@@ -51,8 +51,7 @@ static mutex_t clock_mutex;
  * \param quality Quality of the time estimate.
  * \param t GPS time estimate.
  */
-void set_time(time_quality_t quality, gps_time_t t)
-{
+void set_time(time_quality_t quality, gps_time_t t) {
   bool updated = false;
   gps_time_t norm_time = t;
   norm_time.tow -= nap_timing_count() * RX_DT_NOMINAL;
@@ -75,16 +74,14 @@ void set_time(time_quality_t quality, gps_time_t t)
 /** Retrieve GPS time estimate quality.
  *
  */
-time_quality_t get_time_quality(void)
-{
+time_quality_t get_time_quality(void) {
   chMtxLock(&clock_mutex);
   time_quality_t tq = time_quality;
   chMtxUnlock(&clock_mutex);
   return tq;
 }
 
-void clock_est_init(clock_est_state_t *s)
-{
+void clock_est_init(clock_est_state_t *s) {
   chMtxLock(&clock_mutex);
   s->t0_gps = GPS_TIME_UNKNOWN;
   s->clock_period = RX_DT_NOMINAL;
@@ -101,8 +98,7 @@ void clock_est_init(clock_est_state_t *s)
  * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
  */
-void set_time_fine(u64 tc, gps_time_t t)
-{
+void set_time_fine(u64 tc, gps_time_t t) {
   gps_time_t norm_time = t;
   norm_time.tow -= tc * RX_DT_NOMINAL;
   normalize_gps_time(&norm_time);
@@ -122,8 +118,7 @@ void set_time_fine(u64 tc, gps_time_t t)
  * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
  */
-void set_gps_time_offset(u64 tc, gps_time_t t)
-{
+void set_gps_time_offset(u64 tc, gps_time_t t) {
   gps_time_t rcv_time = napcount2rcvtime(tc);
   double time_diff = gpsdifftime(&rcv_time, &t);
 
@@ -136,8 +131,7 @@ void set_gps_time_offset(u64 tc, gps_time_t t)
  *
  * \param dt clock adjustment (s)
  */
-void adjust_time_fine(const double dt)
-{
+void adjust_time_fine(const double dt) {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;
   gps_time.tow -= dt;
@@ -159,8 +153,7 @@ void adjust_time_fine(const double dt)
  *
  * \return Current GPS time.
  */
-gps_time_t get_current_time(void)
-{
+gps_time_t get_current_time(void) {
   /* TODO: Return invalid when TIME_UNKNOWN. */
   /* TODO: Think about what happens when nap_timing_count overflows. */
   u64 tc = nap_timing_count();
@@ -177,8 +170,7 @@ gps_time_t get_current_time(void)
  *
  * \return Current GPS time, or {WN_UNKNOWN, TOW_UNKNOWN} if no fix
  */
-gps_time_t get_current_gps_time(void)
-{
+gps_time_t get_current_gps_time(void) {
   /* TODO: Think about what happens when nap_timing_count overflows. */
   u64 tc = nap_timing_count();
   gps_time_t t = napcount2gpstime(tc);
@@ -195,8 +187,7 @@ gps_time_t get_current_gps_time(void)
  * \param tc Timing count in units of RX_DT_NOMINAL.
  * \return GPS time corresponding to Timing count.
  */
-gps_time_t napcount2gpstime(const double tc)
-{
+gps_time_t napcount2gpstime(const double tc) {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
   if (gps_time_valid(&t)) {
@@ -216,8 +207,7 @@ gps_time_t napcount2gpstime(const double tc)
  * \param tc Timing count in units of RX_DT_NOMINAL.
  * \return Rcv time in GPS time frame corresponding to Timing count.
  */
-gps_time_t napcount2rcvtime(const double tc)
-{
+gps_time_t napcount2rcvtime(const double tc) {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
   if (gps_time_valid(&t)) {
@@ -238,8 +228,7 @@ gps_time_t napcount2rcvtime(const double tc)
  * \param t gps_time_t to convert.
  * \return Timing count in units of RX_DT_NOMINAL.
  */
-double gpstime2napcount(const gps_time_t* t)
-{
+double gpstime2napcount(const gps_time_t *t) {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;
   gps_time.tow -= clock_state.clock_offset;
@@ -256,8 +245,7 @@ double gpstime2napcount(const gps_time_t* t)
  * \param t gps_time_t to convert.
  * \return Timing count in units of RX_DT_NOMINAL.
  */
-double rcvtime2napcount(const gps_time_t* t)
-{
+double rcvtime2napcount(const gps_time_t *t) {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = clock_state.t0_gps;
   double clock_period = clock_state.clock_period;
@@ -267,9 +255,10 @@ double rcvtime2napcount(const gps_time_t* t)
 }
 
 /** Callback to set receiver GPS time estimate. */
-static void set_time_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void) context;
+static void set_time_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  (void)sender_id;
+  (void)len;
+  (void)context;
 
   gps_time_t *t = (gps_time_t *)msg;
 
@@ -279,8 +268,7 @@ static void set_time_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 /** Setup timing functionality.
  * For now just register a callback so that a coarse time can be sent by the
  * host. */
-void timing_setup(void)
-{
+void timing_setup(void) {
   /* TODO: Perhaps setup something to check for nap_timing_count overflows
    * periodically. */
   static sbp_msg_callbacks_node_t set_time_node;
@@ -289,15 +277,14 @@ void timing_setup(void)
 
   sbp_register_cbk(SBP_MSG_SET_TIME, &set_time_callback, &set_time_node);
 
-  clock_est_init((clock_est_state_t*)&clock_state);
+  clock_est_init((clock_est_state_t *)&clock_state);
 }
 
 /** Get current HW time in milliseconds
  *
  * \return HW time in milliseconds
  */
-u64 timing_getms(void)
-{
+u64 timing_getms(void) {
   return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
 }
 
@@ -307,8 +294,7 @@ u64 timing_getms(void)
  * \return The resulting GPS time
  */
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
-                                   const glo_time_t *glo_t)
-{
+                                   const glo_time_t *glo_t) {
   gps_time_t gps_time;
   utc_params_t utc_params;
   ndb_op_code_t ndb_op_code;
@@ -318,7 +304,8 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
   if (NDB_ERR_NONE == ndb_op_code) {
     gps_time = glo2gps(glo_t, &utc_params);
   } else {
-    log_debug_mesid(mesid, "GLO->GPS time conversion w/o up-to-date UTC params");
+    log_debug_mesid(mesid,
+                    "GLO->GPS time conversion w/o up-to-date UTC params");
     gps_time = glo2gps(glo_t, /* utc_params = */ NULL);
   }
   return gps_time;

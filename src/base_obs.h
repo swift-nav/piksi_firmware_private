@@ -17,9 +17,9 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/track.h>
-#include <libswiftnav/time.h>
 #include <libswiftnav/pvt.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/track.h>
 
 /** \addtogroup base_obs Base station observation handling
  * \{ */

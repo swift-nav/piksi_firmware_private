@@ -17,35 +17,35 @@
 
 /* BMI160 Register Addresses */
 
-#define BMI160_REG_CHIP_ID        0x00
-#define BMI160_REG_ERR_REG        0x02
-#define BMI160_REG_PMU_STATUS     0x03
-#define BMI160_REG_DATA           0x04
-#define BMI160_REG_SENSORTIME     0x18
-#define BMI160_REG_STATUS         0x1B
-#define BMI160_REG_INT_STATUS_0   0x1C
-#define BMI160_REG_INT_STATUS_1   0x1D
-#define BMI160_REG_INT_STATUS_2   0x1E
-#define BMI160_REG_INT_STATUS_3   0x1F
-#define BMI160_REG_TEMPERATURE_0  0x20
-#define BMI160_REG_TEMPERATURE_1  0x21
-#define BMI160_REG_ACC_CONF       0x40
-#define BMI160_REG_ACC_RANGE      0x41
-#define BMI160_REG_GYR_CONF       0x42
-#define BMI160_REG_GYR_RANGE      0x43
-#define BMI160_REG_MAG_CONF       0x44
-#define BMI160_REG_MAG_IF         0x4B
-#define BMI160_REG_INT_EN_0       0x50
-#define BMI160_REG_INT_EN_1       0x51
-#define BMI160_REG_INT_EN_2       0x52
-#define BMI160_REG_INT_OUT_CTRL   0x53
-#define BMI160_REG_INT_MAP_0      0x55
-#define BMI160_REG_INT_MAP_1      0x56
-#define BMI160_REG_INT_MAP_2      0x57
-#define BMI160_REG_INT_DATA_0     0x58
-#define BMI160_REG_INT_DATA_1     0x59
-#define BMI160_REG_IF_CONF        0x6B
-#define BMI160_REG_CMD            0x7E
+#define BMI160_REG_CHIP_ID 0x00
+#define BMI160_REG_ERR_REG 0x02
+#define BMI160_REG_PMU_STATUS 0x03
+#define BMI160_REG_DATA 0x04
+#define BMI160_REG_SENSORTIME 0x18
+#define BMI160_REG_STATUS 0x1B
+#define BMI160_REG_INT_STATUS_0 0x1C
+#define BMI160_REG_INT_STATUS_1 0x1D
+#define BMI160_REG_INT_STATUS_2 0x1E
+#define BMI160_REG_INT_STATUS_3 0x1F
+#define BMI160_REG_TEMPERATURE_0 0x20
+#define BMI160_REG_TEMPERATURE_1 0x21
+#define BMI160_REG_ACC_CONF 0x40
+#define BMI160_REG_ACC_RANGE 0x41
+#define BMI160_REG_GYR_CONF 0x42
+#define BMI160_REG_GYR_RANGE 0x43
+#define BMI160_REG_MAG_CONF 0x44
+#define BMI160_REG_MAG_IF 0x4B
+#define BMI160_REG_INT_EN_0 0x50
+#define BMI160_REG_INT_EN_1 0x51
+#define BMI160_REG_INT_EN_2 0x52
+#define BMI160_REG_INT_OUT_CTRL 0x53
+#define BMI160_REG_INT_MAP_0 0x55
+#define BMI160_REG_INT_MAP_1 0x56
+#define BMI160_REG_INT_MAP_2 0x57
+#define BMI160_REG_INT_DATA_0 0x58
+#define BMI160_REG_INT_DATA_1 0x59
+#define BMI160_REG_IF_CONF 0x6B
+#define BMI160_REG_CMD 0x7E
 
 typedef enum {
   BMI160_ACC_2G = 0b0011,
@@ -62,11 +62,11 @@ typedef enum {
   BMI160_GYR_125DGS = 0b100
 } bmi160_gyr_range_t;
 
-#define BMI160_IMU_RATE_25HZ    0b0110
-#define BMI160_IMU_RATE_50HZ    0b0111
-#define BMI160_IMU_RATE_100HZ   0b1000
-#define BMI160_IMU_RATE_200HZ   0b1001
-#define BMI160_IMU_RATE_400HZ   0b1010
+#define BMI160_IMU_RATE_25HZ 0b0110
+#define BMI160_IMU_RATE_50HZ 0b0111
+#define BMI160_IMU_RATE_100HZ 0b1000
+#define BMI160_IMU_RATE_200HZ 0b1001
+#define BMI160_IMU_RATE_400HZ 0b1010
 
 typedef enum {
   IMU_RATE_25HZ = 0,
@@ -92,7 +92,9 @@ typedef enum {
 
 void bmi160_init(void);
 void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag);
-void bmi160_get_data(s16 acc[static 3], s16 gyro[static 3], s16 mag[static 3],
+void bmi160_get_data(s16 acc[static 3],
+                     s16 gyro[static 3],
+                     s16 mag[static 3],
                      u32* sensor_time);
 void bmi160_set_imu_rate(imu_rate_t rate);
 void bmi160_imu_set_enabled(bool enabled);
@@ -103,4 +105,3 @@ u8 bmi160_read_status(void);
 u8 bmi160_read_error(void);
 
 #endif
-

@@ -21,25 +21,23 @@
 
 #include <libswiftnav/logging.h>
 
-#include "sbp.h"
-#include "board/v3/xadc.h"
 #include "board/v3/nt1065.h"
 #include "peripherals/m24c32d.h"
+#include "board/v3/xadc.h"
+#include "sbp.h"
 
 const PALConfig pal_default_config;
 const WDGConfig board_wdg_config = {
-  .period_ms = 30000,
+    .period_ms = 30000,
 };
 
-static void cycle_counter_init(void)
-{
+static void cycle_counter_init(void) {
   /* Set up TTC0_2 with period of ZYNQ7000_CPU_1x_FREQUENCY_Hz / 2^10 */
-  TTC0->CLKCTRL[2] =  (TTC_CLKCTRL_SRC_PCLK << TTC_CLKCTRL_SRC_Pos) |
-                      (9 << TTC_CLKCTRL_PSVAL_Pos) |
-                      (1 << TTC_CLKCTRL_PSEN_Pos);
+  TTC0->CLKCTRL[2] = (TTC_CLKCTRL_SRC_PCLK << TTC_CLKCTRL_SRC_Pos) |
+                     (9 << TTC_CLKCTRL_PSVAL_Pos) | (1 << TTC_CLKCTRL_PSEN_Pos);
   TTC0->INTERVAL[2] = 0xffff;
-  TTC0->CNTCTRL[2] =  (1 << TTC_CNTCTRL_RESET_Pos) |
-                      (1 << TTC_CNTCTRL_INTERVAL_Pos);
+  TTC0->CNTCTRL[2] =
+      (1 << TTC_CNTCTRL_RESET_Pos) | (1 << TTC_CNTCTRL_INTERVAL_Pos);
 }
 
 bool board_is_duro(void)
@@ -58,14 +56,12 @@ bool board_is_duro(void)
 /*
  * Board-specific initialization code.
  */
-void boardInit(void)
-{
+void boardInit(void) {
   boardRevInit();
   cycle_counter_init();
 }
 
-void board_send_state(void)
-{
+void board_send_state(void) {
   msg_device_monitor_t msg;
 
   double fe_temp = 0;

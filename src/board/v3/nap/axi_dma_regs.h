@@ -39,7 +39,6 @@ typedef struct {
 #define AXI_DMA_CR_RESET_Pos (2U)
 #define AXI_DMA_CR_RESET_Msk (0x1U << AXI_DMA_CR_RESET_Pos)
 
-
 #define AXI_DMA_SR_HALTED_Pos (0U)
 #define AXI_DMA_SR_HALTED_Msk (0x1U << AXI_DMA_SR_HALTED_Pos)
 
@@ -51,7 +50,6 @@ typedef struct {
 
 #define AXI_DMA_SR_DECERR_Pos (6U)
 #define AXI_DMA_SR_DECERR_Msk (0x1U << AXI_DMA_SR_DECERR_Pos)
-
 
 #define AXI_DMA_INT_COMPLETE_Pos (12U)
 #define AXI_DMA_INT_COMPLETE_Msk (0x1U << AXI_DMA_INT_COMPLETE_Pos)

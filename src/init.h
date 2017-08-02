@@ -29,4 +29,3 @@ void nap_auth_setup(void);
 void nap_auth_check(void);
 
 #endif
-

@@ -16,4 +16,4 @@
 
 void decode_gps_l2c_register(void);
 
-#endif  /* SWIFTNAV_DECODE_GPS_L2C_H */
+#endif /* SWIFTNAV_DECODE_GPS_L2C_H */

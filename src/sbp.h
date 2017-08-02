@@ -16,8 +16,8 @@
 #include <libsbp/acquisition.h>
 #include <libsbp/bootload.h>
 #include <libsbp/common.h>
-#include <libsbp/observation.h>
 #include <libsbp/logging.h>
+#include <libsbp/observation.h>
 #include <libsbp/piksi.h>
 #include <libsbp/sbp.h>
 #include <libsbp/tracking.h>
@@ -27,8 +27,11 @@ void log_obs_latency_tick(void);
 
 void sbp_setup(void);
 void sbp_sender_id_set(u16 sender_id);
-void sbp_register_cbk(u16 msg_type, sbp_msg_callback_t cb, sbp_msg_callbacks_node_t *node);
-void sbp_register_cbk_with_closure(u16 msg_type, sbp_msg_callback_t cb,
+void sbp_register_cbk(u16 msg_type,
+                      sbp_msg_callback_t cb,
+                      sbp_msg_callbacks_node_t *node);
+void sbp_register_cbk_with_closure(u16 msg_type,
+                                   sbp_msg_callback_t cb,
                                    sbp_msg_callbacks_node_t *node,
                                    void *context);
 void sbp_remove_cbk(sbp_msg_callbacks_node_t *node);

@@ -10,18 +10,18 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libswiftnav/logging.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/nav_msg_glo.h>
-#include <ch.h>
-#include <string.h>
-#include <assert.h>
-#include "main.h"
-#include "track.h"
 #include "decode.h"
+#include <assert.h>
+#include <ch.h>
+#include <libswiftnav/glo_map.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/nav_msg_glo.h>
+#include <string.h>
+#include "decode/decode_common.h"
+#include "main.h"
 #include "signal.h"
 #include "timing.h"
-#include "decode/decode_common.h"
+#include "track.h"
 
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -74,17 +74,13 @@ typedef enum {
   DECODER_CHANNEL_STATE_DISABLE_REQUESTED
 } decoder_channel_state_t;
 
-typedef enum {
-  EVENT_ENABLE,
-  EVENT_DISABLE_REQUEST,
-  EVENT_DISABLE
-} event_t;
+typedef enum { EVENT_ENABLE, EVENT_DISABLE_REQUEST, EVENT_DISABLE } event_t;
 
 /** Top-level generic decoder channel. */
 typedef struct {
-  decoder_channel_state_t state;  /**< State of this channel. */
-  decoder_channel_info_t info;    /**< Info associated with this channel. */
-  decoder_t *decoder;             /**< Associated decoder instance. */
+  decoder_channel_state_t state; /**< State of this channel. */
+  decoder_channel_info_t info;   /**< Info associated with this channel. */
+  decoder_t *decoder;            /**< Associated decoder instance. */
 } decoder_channel_t;
 
 static decoder_interface_list_element_t *decoder_interface_list = 0;
@@ -93,35 +89,37 @@ static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
 static THD_WORKING_AREA(wa_decode_thread, 3072);
 
 static void decode_thread(void *arg);
-static const decoder_interface_t * decoder_interface_get(const me_gnss_signal_t mesid);
-static decoder_channel_t * decoder_channel_get(u8 tracking_channel);
+static const decoder_interface_t *decoder_interface_get(
+    const me_gnss_signal_t mesid);
+static decoder_channel_t *decoder_channel_get(u8 tracking_channel);
 static bool available_decoder_get(const decoder_interface_t *interface,
                                   decoder_t **decoder);
-static decoder_channel_state_t decoder_channel_state_get(const decoder_channel_t *d);
+static decoder_channel_state_t decoder_channel_state_get(
+    const decoder_channel_t *d);
 static bool decoder_active(const decoder_t *decoder);
 static void interface_function(decoder_channel_t *d,
                                decoder_interface_function_t func);
 static void event(decoder_channel_t *d, event_t event);
 
 static const decoder_interface_t decoder_interface_default = {
-  .code =         CODE_INVALID,
-  .init =         0,
-  .disable =      0,
-  .process =      0,
-  .decoders =     0,
-  .num_decoders = 0
-};
+    .code = CODE_INVALID,
+    .init = 0,
+    .disable = 0,
+    .process = 0,
+    .decoders = 0,
+    .num_decoders = 0};
 
 /** SBP callback for when peer sends us a message containing FCN map
  * Stores FCN map if valid. If there is a conflict with previous values,
  * rewrites the old value.
  */
-static void fcn_glo_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void) context; (void) len; (void) sender_id;
+static void fcn_glo_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  (void)context;
+  (void)len;
+  (void)sender_id;
 
   for (u8 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
-    u16 new_fcn = ((msg_fcns_glo_t*)msg)->fcns[i];
+    u16 new_fcn = ((msg_fcns_glo_t *)msg)->fcns[i];
 
     if (GLO_FCN_UNKNOWN == new_fcn) {
       /* we need known values only */
@@ -139,17 +137,19 @@ static void fcn_glo_callback(u16 sender_id, u8 len, u8 msg[], void* context)
       /* rewrite fcn by new value */
       glo_map_set_slot_id(construct_mesid(CODE_GLO_L1CA, new_fcn), i);
       if (old_fcn != GLO_FCN_UNKNOWN) {
-        log_warn_sid(sid, "FCN received from peer is not equal to stored: "
-                     "old %"PRIu16", new %"PRIu16"", old_fcn, new_fcn);
+        log_warn_sid(sid,
+                     "FCN received from peer is not equal to stored: "
+                     "old %" PRIu16 ", new %" PRIu16 "",
+                     old_fcn,
+                     new_fcn);
       }
     }
   }
 }
 
 /** Set up the decoding module. */
-void decode_setup(void)
-{
-  for (u32 i=0; i<NUM_DECODER_CHANNELS; i++) {
+void decode_setup(void) {
+  for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
     decoder_channels[i].state = DECODER_CHANNEL_STATE_DISABLED;
     decoder_channels[i].decoder = 0;
   }
@@ -157,14 +157,13 @@ void decode_setup(void)
   platform_decode_setup();
 
   static sbp_msg_callbacks_node_t fcn_glo_node;
-  sbp_register_cbk(
-    SBP_MSG_FCNS_GLO,
-    &fcn_glo_callback,
-    &fcn_glo_node
-  );
+  sbp_register_cbk(SBP_MSG_FCNS_GLO, &fcn_glo_callback, &fcn_glo_node);
 
-  chThdCreateStatic(wa_decode_thread, sizeof(wa_decode_thread),
-                    NORMALPRIO-1, decode_thread, NULL);
+  chThdCreateStatic(wa_decode_thread,
+                    sizeof(wa_decode_thread),
+                    NORMALPRIO - 1,
+                    decode_thread,
+                    NULL);
 }
 
 /** Register a decoder interface to enable decoding for a constellation / band.
@@ -173,13 +172,11 @@ void decode_setup(void)
  *
  * \param element   Struct describing the interface to register.
  */
-void decoder_interface_register(decoder_interface_list_element_t *element)
-{
+void decoder_interface_register(decoder_interface_list_element_t *element) {
   /* p_next = address of next pointer which must be updated */
   decoder_interface_list_element_t **p_next = &decoder_interface_list;
 
-  while (*p_next != 0)
-    p_next = &(*p_next)->next;
+  while (*p_next != 0) p_next = &(*p_next)->next;
 
   element->next = 0;
   *p_next = element;
@@ -194,8 +191,7 @@ void decoder_interface_register(decoder_interface_list_element_t *element)
  * \return true if a decoder channel is available, false otherwise.
  */
 bool decoder_channel_available(u8 tracking_channel,
-                               const me_gnss_signal_t mesid)
-{
+                               const me_gnss_signal_t mesid) {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
     return false;
@@ -218,9 +214,7 @@ bool decoder_channel_available(u8 tracking_channel,
  *
  * \return true if a decoder channel was initialized, false otherwise.
  */
-bool decoder_channel_init(u8 tracking_channel,
-                          const me_gnss_signal_t mesid)
-{
+bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
     return false;
@@ -255,8 +249,7 @@ bool decoder_channel_init(u8 tracking_channel,
  *
  * \return true if a decoder channel was disabled, false otherwise.
  */
-bool decoder_channel_disable(u8 tracking_channel)
-{
+bool decoder_channel_disable(u8 tracking_channel) {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_ENABLED) {
     return false;
@@ -267,43 +260,40 @@ bool decoder_channel_disable(u8 tracking_channel)
   return true;
 }
 
-static void decode_thread(void *arg)
-{
+static void decode_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("decode");
 
   while (TRUE) {
-
     for (u32 i = 0; i < NUM_DECODER_CHANNELS; i++) {
       decoder_channel_t *d = &decoder_channels[i];
       switch (decoder_channel_state_get(d)) {
-      case DECODER_CHANNEL_STATE_ENABLED: {
-        const decoder_interface_t *interface = decoder_interface_get(d->info.mesid);
-        interface_function(d, interface->process);
-      }
-      break;
+        case DECODER_CHANNEL_STATE_ENABLED: {
+          const decoder_interface_t *interface =
+              decoder_interface_get(d->info.mesid);
+          interface_function(d, interface->process);
+        } break;
 
-      case DECODER_CHANNEL_STATE_DISABLE_REQUESTED: {
-        const decoder_interface_t *interface = decoder_interface_get(d->info.mesid);
-        interface_function(d, interface->disable);
-        event(d, EVENT_DISABLE);
-      }
-      break;
+        case DECODER_CHANNEL_STATE_DISABLE_REQUESTED: {
+          const decoder_interface_t *interface =
+              decoder_interface_get(d->info.mesid);
+          interface_function(d, interface->disable);
+          event(d, EVENT_DISABLE);
+        } break;
 
-      case DECODER_CHANNEL_STATE_DISABLED:
-        /* Do nothing */
-        break;
+        case DECODER_CHANNEL_STATE_DISABLED:
+          /* Do nothing */
+          break;
 
-      default:
-        assert(!"Invalid state");
-        break;
+        default:
+          assert(!"Invalid state");
+          break;
       }
     }
 
     /* send GLO FCN mapping information every 30 sec */
     DO_EVERY(30 * SECS_MS / DECODE_THREAD_SLEEP_MS,
-      send_glo_fcn_mapping(get_current_gps_time());
-    );
+             send_glo_fcn_mapping(get_current_gps_time()););
 
     chThdSleep(MS2ST(DECODE_THREAD_SLEEP_MS));
   }
@@ -315,8 +305,8 @@ static void decode_thread(void *arg)
  *
  * \return Associated decoder interface. May be the default interface.
  */
-static const decoder_interface_t * decoder_interface_get(const me_gnss_signal_t mesid)
-{
+static const decoder_interface_t *decoder_interface_get(
+    const me_gnss_signal_t mesid) {
   const decoder_interface_list_element_t *e = decoder_interface_list;
   while (e != 0) {
     const decoder_interface_t *interface = e->interface;
@@ -335,8 +325,7 @@ static const decoder_interface_t * decoder_interface_get(const me_gnss_signal_t 
  *
  * \return Associated decoder channel.
  */
-static decoder_channel_t * decoder_channel_get(u8 tracking_channel)
-{
+static decoder_channel_t *decoder_channel_get(u8 tracking_channel) {
   /* TODO: Decouple tracking / decoder channels somewhat.
    * Just need to make sure that only a single decoder channel can be allocated
    * to a given tracking channel.
@@ -354,10 +343,9 @@ static decoder_channel_t * decoder_channel_get(u8 tracking_channel)
  * false otherwise.
  */
 static bool available_decoder_get(const decoder_interface_t *interface,
-                                  decoder_t **decoder)
-{
+                                  decoder_t **decoder) {
   /* Search for a free decoder */
-  for (u32 j=0; j<interface->num_decoders; j++) {
+  for (u32 j = 0; j < interface->num_decoders; j++) {
     if (!decoder_active(&interface->decoders[j])) {
       *decoder = &interface->decoders[j];
       return true;
@@ -376,10 +364,10 @@ static bool available_decoder_get(const decoder_interface_t *interface,
  *
  * \return state of the decoder channel.
  */
-static decoder_channel_state_t decoder_channel_state_get(const decoder_channel_t *d)
-{
+static decoder_channel_state_t decoder_channel_state_get(
+    const decoder_channel_t *d) {
   decoder_channel_state_t state = d->state;
-  asm volatile ("" : : : "memory"); /* Prevent compiler reordering */
+  asm volatile("" : : : "memory"); /* Prevent compiler reordering */
   return state;
 }
 
@@ -392,10 +380,9 @@ static decoder_channel_state_t decoder_channel_state_get(const decoder_channel_t
  *
  * \return true if the decoder is active, false if inactive.
  */
-static bool decoder_active(const decoder_t *decoder)
-{
+static bool decoder_active(const decoder_t *decoder) {
   bool active = decoder->active;
-  asm volatile ("" : : : "memory"); /* Prevent compiler reordering */
+  asm volatile("" : : : "memory"); /* Prevent compiler reordering */
   return active;
 }
 
@@ -405,8 +392,7 @@ static bool decoder_active(const decoder_t *decoder)
  * \param func      Interface function to execute.
  */
 static void interface_function(decoder_channel_t *d,
-                               decoder_interface_function_t func)
-{
+                               decoder_interface_function_t func) {
   return func(&d->info, d->decoder->data);
 }
 
@@ -418,39 +404,36 @@ static void interface_function(decoder_channel_t *d,
  * \param d       Decoder channel to use.
  * \param event   Event to process.
  */
-static void event(decoder_channel_t *d, event_t event)
-{
+static void event(decoder_channel_t *d, event_t event) {
   switch (event) {
-  case EVENT_ENABLE: {
-    assert(d->state == DECODER_CHANNEL_STATE_DISABLED);
-    assert(d->decoder->active == false);
-    d->decoder->active = true;
-    /* Sequence point for enable is setting channel state = STATE_ENABLED */
-    asm volatile ("" : : : "memory"); /* Prevent compiler reordering */
-    d->state = DECODER_CHANNEL_STATE_ENABLED;
-  }
-  break;
+    case EVENT_ENABLE: {
+      assert(d->state == DECODER_CHANNEL_STATE_DISABLED);
+      assert(d->decoder->active == false);
+      d->decoder->active = true;
+      /* Sequence point for enable is setting channel state = STATE_ENABLED */
+      asm volatile("" : : : "memory"); /* Prevent compiler reordering */
+      d->state = DECODER_CHANNEL_STATE_ENABLED;
+    } break;
 
-  case EVENT_DISABLE_REQUEST: {
-    assert(d->state == DECODER_CHANNEL_STATE_ENABLED);
-    d->state = DECODER_CHANNEL_STATE_DISABLE_REQUESTED;
-  }
-  break;
+    case EVENT_DISABLE_REQUEST: {
+      assert(d->state == DECODER_CHANNEL_STATE_ENABLED);
+      d->state = DECODER_CHANNEL_STATE_DISABLE_REQUESTED;
+    } break;
 
-  case EVENT_DISABLE: {
-    assert(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
-    assert(d->decoder->active == true);
-    /* Sequence point for disable is setting channel state = STATE_DISABLED
-     * and/or decoder active = false (order of these two is irrelevant here) */
-    asm volatile ("" : : : "memory"); /* Prevent compiler reordering */
-    d->decoder->active = false;
-    d->state = DECODER_CHANNEL_STATE_DISABLED;
-  }
-  break;
+    case EVENT_DISABLE: {
+      assert(d->state == DECODER_CHANNEL_STATE_DISABLE_REQUESTED);
+      assert(d->decoder->active == true);
+      /* Sequence point for disable is setting channel state = STATE_DISABLED
+       * and/or decoder active = false (order of these two is irrelevant here)
+       */
+      asm volatile("" : : : "memory"); /* Prevent compiler reordering */
+      d->decoder->active = false;
+      d->state = DECODER_CHANNEL_STATE_DISABLED;
+    } break;
 
-  default:
-    assert(!"Invalid state");
-    break;
+    default:
+      assert(!"Invalid state");
+      break;
   }
 }
 

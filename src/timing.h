@@ -44,7 +44,7 @@ typedef struct {
 extern volatile time_quality_t time_quality;
 
 #define RX_DT_NOMINAL (1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz)
-#define SEC2TICK(x) ((x) * NAP_FRONTEND_SAMPLE_RATE_Hz)
+#define SEC2TICK(x) ((x)*NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 void timing_setup(void);
 gps_time_t get_current_time(void);
@@ -60,6 +60,6 @@ double gpstime2napcount(const gps_time_t* t);
 double rcvtime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
-                                   const glo_time_t *glo_t);
+                                   const glo_time_t* glo_t);
 
 #endif
