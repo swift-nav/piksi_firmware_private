@@ -3,7 +3,9 @@
 ---
 Language:      Cpp
 BasedOnStyle:  Google
-Standard:      Cpp11
+BreakBeforeBraces: Linux
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
 BinPackParameters: false
 BinPackArguments: false 
 ...
