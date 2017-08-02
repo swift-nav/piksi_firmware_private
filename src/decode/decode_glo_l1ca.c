@@ -96,8 +96,7 @@ static void decoder_glo_l1ca_process(const decoder_channel_info_t *channel_info,
     save_glo_eph(&data->nav_msg, mesid);
 
     /* Store decoded health info */
-    shm_glo_set_shi(data->nav_msg.eph.sid.sat,
-                    data->nav_msg.eph.health_bits);
+    shm_glo_set_shi(data->nav_msg.eph.sid.sat, data->nav_msg.eph.health_bits);
 
     /* Sync tracker with decoder data */
     if (!glo_data_sync(&data->nav_msg, mesid, channel)) {
