@@ -14,14 +14,16 @@ void nap_callbacks_setup(void) {}
 void nap_track_init_wr_blocking(u8 channel,
                                 u8 prn,
                                 s32 carrier_phase,
-                                u16 code_phase) {
+                                u16 code_phase)
+{
   (void)channel;
   (void)prn;
   (void)carrier_phase;
   (void)code_phase;
 }
 
-void nap_track_code_wr_blocking(u8 channel, gnss_signal_t sid) {
+void nap_track_code_wr_blocking(u8 channel, gnss_signal_t sid)
+{
   (void)channel;
   (void)sid;
 }
@@ -30,7 +32,8 @@ void nap_track_update_wr_blocking(u8 channel,
                                   s32 carrier_freq,
                                   u32 code_phase_rate,
                                   u8 rollover_count,
-                                  u8 corr_spacing) {
+                                  u8 corr_spacing)
+{
   (void)channel;
   (void)carrier_freq;
   (void)code_phase_rate;
@@ -54,14 +57,16 @@ u32 nap_error_rd_blocking(void) { return 0; }
 
 void nap_timing_strobe(u32 falling_edge_count) { (void)falling_edge_count; }
 
-bool nap_timing_strobe_wait(u32 timeout) {
+bool nap_timing_strobe_wait(u32 timeout)
+{
   (void)timeout;
   return true;
 }
 
 u32 nap_rw_ext_event(u8 *event_pin,
                      ext_event_trigger_t *event_trig,
-                     ext_event_trigger_t next_trig) {
+                     ext_event_trigger_t next_trig)
+{
   (void)event_pin;
   (void)event_trig;
   (void)next_trig;

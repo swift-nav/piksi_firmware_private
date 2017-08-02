@@ -27,7 +27,8 @@
 #define SBP_FILEIO_TIMEOUT 5000
 #define SBP_FILEIO_TRIES 5
 
-static u8 next_seq(void) {
+static u8 next_seq(void)
+{
   static MUTEX_DECL(seq_mtx);
   static u8 seq;
   u8 ret;
@@ -52,7 +53,8 @@ struct sbp_fileio_closure {
 static void sbp_fileio_callback(u16 sender_id,
                                 u8 len,
                                 u8 msg_raw[],
-                                void *context) {
+                                void *context)
+{
   assert(NULL != context);
   struct sbp_fileio_closure *closure = context;
   msg_fileio_write_resp_t *msg = (msg_fileio_write_resp_t *)msg_raw;
@@ -73,14 +75,16 @@ static void sbp_fileio_callback(u16 sender_id,
   }
 }
 
-void sbp_fileio_remove(const char *fn) {
+void sbp_fileio_remove(const char *fn)
+{
   sbp_send_msg(SBP_MSG_FILEIO_REMOVE, strlen(fn), (u8 *)fn);
 }
 
 ssize_t sbp_fileio_write(const char *filename,
                          off_t offset,
                          const u8 *buf,
-                         size_t size) {
+                         size_t size)
+{
   size_t s = 0;
   u8 payload_offset = sizeof(msg_fileio_write_req_t) + strlen(filename) + 1;
   ssize_t chunksize = 255 - payload_offset;
@@ -146,7 +150,8 @@ ssize_t sbp_fileio_write(const char *filename,
 ssize_t sbp_fileio_read(const char *filename,
                         off_t offset,
                         u8 *buf,
-                        size_t size) {
+                        size_t size)
+{
   size_t s = 0;
   struct sbp_fileio_closure closure;
   msg_fileio_read_req_t *msg = alloca(256);
@@ -180,7 +185,8 @@ ssize_t sbp_fileio_read(const char *filename,
     }
 
     ssize_t chunksize = MIN(closure.len - 4, (ssize_t)(size - s));
-    if (chunksize == 0) break;
+    if (chunksize == 0)
+      break;
 
     memcpy(buf + s, closure.msg + 4, chunksize);
     s += chunksize;

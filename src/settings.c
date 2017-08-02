@@ -35,78 +35,83 @@ int TYPE_BOOL = 0;
 static int settings_format_setting(struct setting *s, char *buf, int len);
 
 static int float_to_string(
-    const void *priv, char *str, int slen, const void *blob, int blen) {
+    const void *priv, char *str, int slen, const void *blob, int blen)
+{
   (void)priv;
 
   switch (blen) {
-    case 4:
-      return snprintf(str, slen, "%.12g", (double)*(float *)blob);
-    case 8:
-      return snprintf(str, slen, "%.12g", *(double *)blob);
-    default:
-      return -1;
+  case 4:
+    return snprintf(str, slen, "%.12g", (double)*(float *)blob);
+  case 8:
+    return snprintf(str, slen, "%.12g", *(double *)blob);
+  default:
+    return -1;
   }
 }
 
 static bool float_from_string(const void *priv,
                               void *blob,
                               int blen,
-                              const char *str) {
+                              const char *str)
+{
   (void)priv;
 
   switch (blen) {
-    case 4:
-      return sscanf(str, "%g", (float *)blob) == 1;
-    case 8:
-      return sscanf(str, "%lg", (double *)blob) == 1;
-    default:
-      return false;
+  case 4:
+    return sscanf(str, "%g", (float *)blob) == 1;
+  case 8:
+    return sscanf(str, "%lg", (double *)blob) == 1;
+  default:
+    return false;
   }
 }
 
 static int int_to_string(
-    const void *priv, char *str, int slen, const void *blob, int blen) {
+    const void *priv, char *str, int slen, const void *blob, int blen)
+{
   (void)priv;
 
   switch (blen) {
-    case 1:
-      return snprintf(str, slen, "%hhd", *(s8 *)blob);
-    case 2:
-      return snprintf(str, slen, "%hd", *(s16 *)blob);
-    case 4:
-      return snprintf(str, slen, "%ld", *(s32 *)blob);
-    default:
-      return -1;
+  case 1:
+    return snprintf(str, slen, "%hhd", *(s8 *)blob);
+  case 2:
+    return snprintf(str, slen, "%hd", *(s16 *)blob);
+  case 4:
+    return snprintf(str, slen, "%ld", *(s32 *)blob);
+  default:
+    return -1;
   }
 }
 
 static bool int_from_string(const void *priv,
                             void *blob,
                             int blen,
-                            const char *str) {
+                            const char *str)
+{
   (void)priv;
 
   switch (blen) {
-    case 1: {
-      s16 tmp;
-      /* Newlib's crappy sscanf doesn't understand %hhd */
-      if (sscanf(str, "%hd", &tmp) == 1) {
-        *(s8 *)blob = tmp;
-        return true;
-      }
-      return false;
+  case 1: {
+    s16 tmp;
+    /* Newlib's crappy sscanf doesn't understand %hhd */
+    if (sscanf(str, "%hd", &tmp) == 1) {
+      *(s8 *)blob = tmp;
+      return true;
     }
-    case 2:
-      return sscanf(str, "%hd", (s16 *)blob) == 1;
-    case 4:
-      return sscanf(str, "%ld", (s32 *)blob) == 1;
-    default:
-      return false;
+    return false;
+  }
+  case 2:
+    return sscanf(str, "%hd", (s16 *)blob) == 1;
+  case 4:
+    return sscanf(str, "%ld", (s32 *)blob) == 1;
+  default:
+    return false;
   }
 }
 
 static int str_to_string(
-    const void *priv, char *str, int slen, const void *blob, int blen) {
+    const void *priv, char *str, int slen, const void *blob, int blen)
+{
   (void)priv;
   if (blen < slen) {
     slen = blen;
@@ -118,14 +123,16 @@ static int str_to_string(
 static bool str_from_string(const void *priv,
                             void *blob,
                             int blen,
-                            const char *str) {
+                            const char *str)
+{
   (void)priv;
   strncpy(blob, str, blen);
   return true;
 }
 
 static int enum_to_string(
-    const void *priv, char *str, int slen, const void *blob, int blen) {
+    const void *priv, char *str, int slen, const void *blob, int blen)
+{
   const char *const *enumnames = priv;
   if (blen != sizeof(u8)) {
     asm("bkpt");
@@ -138,7 +145,8 @@ static int enum_to_string(
 static bool enum_from_string(const void *priv,
                              void *blob,
                              int blen,
-                             const char *str) {
+                             const char *str)
+{
   const char *const *enumnames = priv;
   int i;
 
@@ -159,7 +167,8 @@ static bool enum_from_string(const void *priv,
   return true;
 }
 
-int enum_format_type(const void *priv, char *str, int len) {
+int enum_format_type(const void *priv, char *str, int len)
+{
   int i = 5;
   strncpy(str, "enum:", len);
   for (const char *const *enumnames = priv; *enumnames; enumnames++) {
@@ -187,7 +196,8 @@ static void settings_write_callback(u16 sender_id,
                                     void *context);
 
 int settings_type_register_enum(const char *const enumnames[],
-                                struct setting_type *type) {
+                                struct setting_type *type)
+{
   int i;
   struct setting_type *t;
   type->to_string = enum_to_string;
@@ -202,7 +212,8 @@ int settings_type_register_enum(const char *const enumnames[],
   return i;
 }
 
-void settings_setup(void) {
+void settings_setup(void)
+{
   TYPE_BOOL = settings_type_register_enum(bool_enum, &bool_settings_type);
 
   static sbp_msg_callbacks_node_t settings_write_node;
@@ -216,10 +227,8 @@ struct sbp_settings_closure {
   u8 prefix_len;
 };
 
-static void setting_reg_write_cb(u16 sender_id,
-                                 u8 len,
-                                 u8 msg[],
-                                 void *context) {
+static void setting_reg_write_cb(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   struct sbp_settings_closure *c = context;
   (void)sender_id;
 
@@ -230,7 +239,8 @@ static void setting_reg_write_cb(u16 sender_id,
   chBSemSignal(&c->sem);
 }
 
-void settings_register(struct setting *setting, enum setting_types type) {
+void settings_register(struct setting *setting, enum setting_types type)
+{
   struct setting *s;
   const struct setting_type *t = &type_int;
 
@@ -274,8 +284,8 @@ void settings_register(struct setting *setting, enum setting_types type) {
   sbp_remove_cbk(&node);
 }
 
-static struct setting *settings_lookup(const char *section,
-                                       const char *setting) {
+static struct setting *settings_lookup(const char *section, const char *setting)
+{
   for (struct setting *s = settings_head; s; s = s->next) {
     if ((strcmp(s->section, section) == 0) && (strcmp(s->name, setting) == 0)) {
       return s;
@@ -284,17 +294,20 @@ static struct setting *settings_lookup(const char *section,
   return NULL;
 }
 
-bool settings_default_notify(struct setting *s, const char *val) {
+bool settings_default_notify(struct setting *s, const char *val)
+{
   return s->type->from_string(s->type->priv, s->addr, s->len, val);
 }
 
-bool settings_read_only_notify(struct setting *s, const char *val) {
+bool settings_read_only_notify(struct setting *s, const char *val)
+{
   (void)s;
   (void)val;
   return true;
 }
 
-static int settings_format_setting(struct setting *s, char *buf, int len) {
+static int settings_format_setting(struct setting *s, char *buf, int len)
+{
   int buflen;
 
   /* build and send reply */
@@ -315,7 +328,8 @@ static int settings_format_setting(struct setting *s, char *buf, int len) {
 static void settings_write_callback(u16 sender_id,
                                     u8 len,
                                     u8 msg[],
-                                    void *context) {
+                                    void *context)
+{
   (void)context;
 
   if (sender_id != SBP_SENDER_ID) {
@@ -344,17 +358,19 @@ static void settings_write_callback(u16 sender_id,
     if (msg[i] == '\0') {
       tok++;
       switch (tok) {
-        case 1:
-          setting = (const char *)&msg[i + 1];
+      case 1:
+        setting = (const char *)&msg[i + 1];
+        break;
+      case 2:
+        if (i + 1 < len)
+          value = (const char *)&msg[i + 1];
+        break;
+      case 3:
+        if (i == len - 1)
           break;
-        case 2:
-          if (i + 1 < len) value = (const char *)&msg[i + 1];
-          break;
-        case 3:
-          if (i == len - 1) break;
-        default:
-          log_error("Error in settings write message");
-          return;
+      default:
+        log_error("Error in settings write message");
+        return;
       }
     }
   }

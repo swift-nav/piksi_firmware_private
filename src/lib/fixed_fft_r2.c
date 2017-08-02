@@ -47,7 +47,8 @@ static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks);
 /*! \fn int InitINTFFT
  *  \brief
  */
-int InitIntFFTr2(intFFTr2_t *pIntFFT, int _N) {
+int InitIntFFTr2(intFFTr2_t *pIntFFT, int _N)
+{
   pIntFFT->N = _N;
   pIntFFT->M = 0;
 
@@ -65,7 +66,8 @@ int InitIntFFTr2(intFFTr2_t *pIntFFT, int _N) {
 /*! \fn void FreeIntFFTr2
  *  \brief
  */
-void FreeIntFFTr2(intFFTr2_t *pIntFFT) {
+void FreeIntFFTr2(intFFTr2_t *pIntFFT)
+{
   pIntFFT->N = 0;
   pIntFFT->M = 0;
 }
@@ -76,7 +78,8 @@ void FreeIntFFTr2(intFFTr2_t *pIntFFT) {
 void DoFwdIntFFTr2(intFFTr2_t *pIntFFT,
                    sc16_t *_x,
                    uint32_t _uScale,
-                   int _iShuf) {
+                   int _iShuf)
+{
   uint32_t cnt, nBlocks, _bsize;
   sc16_t *a, *b, *w;
 
@@ -124,7 +127,8 @@ void DoFwdIntFFTr2(intFFTr2_t *pIntFFT,
 void DoBwdIntFFTr2(intFFTr2_t *pIntFFT,
                    sc16_t *_x,
                    uint32_t _uScale,
-                   int _iShuf) {
+                   int _iShuf)
+{
   uint32_t cnt, nBlocks, _bsize;
   sc16_t *a, *b, *w;
 
@@ -173,7 +177,8 @@ void DoBwdIntFFTr2(intFFTr2_t *pIntFFT,
 /*! \fn void InitW
  *  \brief Twiddles initialisation
  */
-static void InitW(intFFTr2_t *pIntFFT) {
+static void InitW(intFFTr2_t *pIntFFT)
+{
   uint32_t k, nBlocks, _bsize;
   sc16_t *tW;
   float s, c, phase, fScale;
@@ -202,7 +207,8 @@ static void InitW(intFFTr2_t *pIntFFT) {
 /*! \fn void InitBR
  *  \brief Bit reversal initialisation
  */
-static void InitBR(intFFTr2_t *pIntFFT) {
+static void InitBR(intFFTr2_t *pIntFFT)
+{
   uint32_t val, bit;
   uint16_t temp;
 
@@ -219,7 +225,8 @@ static void InitBR(intFFTr2_t *pIntFFT) {
 /*! \fn void DoShuffle
  *  \brief Bit reversal initialisation
  */
-static void DoShuffle(intFFTr2_t *pIntFFT, sc16_t *_x) {
+static void DoShuffle(intFFTr2_t *pIntFFT, sc16_t *_x)
+{
   uint32_t cnt, *p;
 
   p = (uint32_t *)_x;
@@ -232,7 +239,8 @@ static void DoShuffle(intFFTr2_t *pIntFFT, sc16_t *_x) {
 
 #if defined __ARM_ARCH_7A__
 
-static void Rank0(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
+static void Rank0(sc16_t *_A, sc16_t *_B, uint32_t _nblks)
+{
   (void)_B;
   __asm__ __volatile__(
       "MOV      r3, #0            \n\t"
@@ -250,7 +258,8 @@ static void Rank0(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
       [A] "+r"(_A), [nB] "+r"(_nblks)::"r0", "r1", "r2", "r3", "cc", "memory");
 }
 
-static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
+static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblks)
+{
   (void)_B;
   __asm__ __volatile__(
       "2:                         \n\t"
@@ -268,7 +277,8 @@ static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
 
 #else
 
-static void Rank0(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
+static void Rank0(sc16_t *_A, sc16_t *_B, uint32_t _nblocks)
+{
   uint32_t blkIdx;
   int16_t bi, bq;
 
@@ -290,7 +300,8 @@ static void Rank0(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
   }
 }
 
-static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
+static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks)
+{
   uint32_t blkIdx;
   int16_t bi, bq;
 
@@ -311,7 +322,8 @@ static void Rank0N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
 
 #if defined __ARM_ARCH_7A__
 
-static void RankF1N(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
+static void RankF1N(sc16_t *_A, sc16_t *_B, uint32_t _nblks)
+{
   __asm__ __volatile__(
       "MOV      r3, #0            \n\t"
       "3:                         \n\t"
@@ -344,7 +356,8 @@ static void RankF1N(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
         "memory");
 }
 
-static void RankF1(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
+static void RankF1(sc16_t *_A, sc16_t *_B, uint32_t _nblks)
+{
   __asm__ __volatile__(
       "MOV      r3, #0            \n\t"
       "4:                         \n\t"
@@ -383,7 +396,8 @@ static void RankF1(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
 
 #else
 
-static void RankF1N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
+static void RankF1N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks)
+{
   uint32_t blkIdx;
   int32_t bi, bq;
 
@@ -412,7 +426,8 @@ static void RankF1N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
   }
 }
 
-static void RankF1(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
+static void RankF1(sc16_t *_A, sc16_t *_B, uint32_t _nblocks)
+{
   uint32_t blkIdx;
   int32_t bi, bq;
 
@@ -455,7 +470,8 @@ static void RankF1(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
 
 #if defined __ARM_ARCH_7A__
 
-static void RankB1N(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
+static void RankB1N(sc16_t *_A, sc16_t *_B, uint32_t _nblks)
+{
   __asm__ __volatile__(
       "MOV      r3, #0            \n\t"
       "5:                         \n\t"
@@ -488,7 +504,8 @@ static void RankB1N(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
         "memory");
 }
 
-static void RankB1(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
+static void RankB1(sc16_t *_A, sc16_t *_B, uint32_t _nblks)
+{
   __asm__ __volatile__(
       "MOV      r3, #0              \n\t"
       "6:                           \n\t"
@@ -527,7 +544,8 @@ static void RankB1(sc16_t *_A, sc16_t *_B, uint32_t _nblks) {
 
 #else
 
-static void RankB1N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
+static void RankB1N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks)
+{
   uint32_t blkIdx;
   int16_t bi, bq;
 
@@ -552,7 +570,8 @@ static void RankB1N(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
   }
 }
 
-static void RankB1(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
+static void RankB1(sc16_t *_A, sc16_t *_B, uint32_t _nblocks)
+{
   uint32_t blkIdx;
   int16_t bi, bq;
 
@@ -590,7 +609,8 @@ static void RankB1(sc16_t *_A, sc16_t *_B, uint32_t _nblocks) {
 #if defined __ARM_NEON__
 
 static void RankF2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   __asm__ __volatile__(
       "7:                                   \n\t"
       "MOV        r2, %[W]                  \n\t"
@@ -626,7 +646,8 @@ static void RankF2pN(
 #elif defined __ARM_ARCH_7A__
 
 static void RankF2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   __asm__ __volatile__(
       "7:                                \n\t"
       "MOV       r12,  %[W]              \n\t"
@@ -661,7 +682,8 @@ static void RankF2pN(
 
 #else
 
-static void ButterflyFwdDfNoScale(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
+static void ButterflyFwdDfNoScale(sc16_t *_A, sc16_t *_B, sc16_t *_W)
+{
   int32_t bi, bq;
 
   bi = (*_B).r;
@@ -683,7 +705,8 @@ static void ButterflyFwdDfNoScale(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
 }
 
 static void RankF2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   uint32_t blkIdx, sizeIdx;
   sc16_t *wBase = _W;
 
@@ -706,7 +729,8 @@ static void RankF2pN(
 #if defined __ARM_NEON__
 
 static void RankF2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   __asm__ __volatile__(
       "9:                                   \n\t"
       "MOV        r2, %[W]                  \n\t"
@@ -744,7 +768,8 @@ static void RankF2p(
 #elif defined __ARM_ARCH_7A__
 
 static void RankF2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   __asm__ __volatile__(
       "MOV        r3,  #0                      \n\t"
       "9:                                      \n\t"
@@ -782,7 +807,8 @@ static void RankF2p(
 
 #else
 
-static void ButterflyFwdDf(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
+static void ButterflyFwdDf(sc16_t *_A, sc16_t *_B, sc16_t *_W)
+{
   int32_t bi, bq;
 
   (*_A).r >>= 1;
@@ -809,7 +835,8 @@ static void ButterflyFwdDf(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
 }
 
 static void RankF2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   uint32_t blkIdx, sizeIdx;
   sc16_t *wtmp;
 
@@ -832,7 +859,8 @@ static void RankF2p(
 #if defined __ARM_NEON__
 
 static void RankB2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   uint32_t sizeIdx;
   sc16_t *wbase = _W;
   do {
@@ -878,7 +906,8 @@ static void RankB2pN(
 #elif defined __ARM_ARCH_7A__
 
 static void RankB2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   __asm__ __volatile__(
       "7:                                       \n\t"
       "MOV       r12,  %[W]                     \n\t"
@@ -913,7 +942,8 @@ static void RankB2pN(
 
 #else
 
-static void ButterflyBwdDtNoScale(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
+static void ButterflyBwdDtNoScale(sc16_t *_A, sc16_t *_B, sc16_t *_W)
+{
   int32_t bi, bq;
 
   bi = +(*_B).r * (*_W).r + (*_B).i * (*_W).i;
@@ -929,7 +959,8 @@ static void ButterflyBwdDtNoScale(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
 }
 
 static void RankB2pN(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   uint32_t blkIdx, sizeIdx;
   sc16_t *wbase = _W;
 
@@ -952,7 +983,8 @@ static void RankB2pN(
 #if defined __ARM_NEON__
 
 static void RankB2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   uint32_t sizeIdx;
   sc16_t *wbase = _W;
 
@@ -999,7 +1031,8 @@ static void RankB2p(
 #elif defined __ARM_ARCH_7A__
 
 static void RankB2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   __asm__ __volatile__(
       "MOV        r3,  #0                       \n\t"
       "9:                                       \n\t"
@@ -1037,7 +1070,8 @@ static void RankB2p(
 
 #else
 
-static void ButterflyBwdDt(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
+static void ButterflyBwdDt(sc16_t *_A, sc16_t *_B, sc16_t *_W)
+{
   int32_t bi, bq;
 
   (*_A).r >>= 1;
@@ -1058,7 +1092,8 @@ static void ButterflyBwdDt(sc16_t *_A, sc16_t *_B, sc16_t *_W) {
 }
 
 static void RankB2p(
-    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize) {
+    sc16_t *_A, sc16_t *_B, sc16_t *_W, uint32_t _nblks, uint32_t _bsize)
+{
   uint32_t blkIdx, sizeIdx;
   sc16_t *wbase = _W;
 

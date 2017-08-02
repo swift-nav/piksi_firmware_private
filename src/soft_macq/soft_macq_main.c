@@ -68,7 +68,8 @@ static bool SoftMacqSerial(const me_gnss_signal_t _sMeSid,
 /*********************************
  *      EXPOSED INTERFACES
  ********************************/
-float soft_multi_acq_bin_width(void) {
+float soft_multi_acq_bin_width(void)
+{
   return (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / SOFTMACQ_DECFACT_GPSL1CA) /
          (SOFTMACQ_BASEBAND_SIZE);
 }
@@ -84,7 +85,8 @@ float soft_multi_acq_bin_width(void) {
 bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
-                           acq_result_t *_psAcqResult) {
+                           acq_result_t *_psAcqResult)
+{
   uint32_t uTag = 0, uBuffLength = 0;
   uint64_t uCurrTimeTag;
   /** sanity checking input parameters */
@@ -148,7 +150,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
 static bool SoftMacqSerial(const me_gnss_signal_t _sMeSid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
-                           acq_result_t *_psLegacyResult) {
+                           acq_result_t *_psLegacyResult)
+{
   float cf_bin_width = soft_acq_bin_width();
 
   return soft_acq_search(pBaseBand,
@@ -162,7 +165,8 @@ static bool SoftMacqSerial(const me_gnss_signal_t _sMeSid,
 /*! \fn bool BbMixAndDecimate
  *  \brief
  **/
-static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
+static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid)
+{
   uint32_t k, h, uDecFactor;
   uint32_t uNco, uNcoVal, uNcoStep = 0;
   uint8_t uSample;
@@ -171,85 +175,87 @@ static bool BbMixAndDecimate(const me_gnss_signal_t _sMeSid) {
   memset(pBaseBand, 0, SOFTMACQ_BASEBAND_SIZE * sizeof(sc16_t));
 
   switch (_sMeSid.code) {
-    case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
-      uDecFactor = SOFTMACQ_DECFACT_GPSL1CA;
-      iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
-      uNcoStep =
-          CirclesToUint32((double)SOFTMACQ_FC_GPSL1 / (double)SOFTMACQ_RAW_FS);
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+    uDecFactor = SOFTMACQ_DECFACT_GPSL1CA;
+    iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
+    uNcoStep =
+        CirclesToUint32((double)SOFTMACQ_FC_GPSL1 / (double)SOFTMACQ_RAW_FS);
 
-      for (k = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 0) & 0x3)
-                  << BBNCO_CARRPH_BITS; /** two LSBs are Channel 1 */
-        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+    for (k = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
+      uSample = ((puSampleBuf[k] >> 0) & 0x3)
+                << BBNCO_CARRPH_BITS; /** two LSBs are Channel 1 */
+      uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
-        h = k / uDecFactor;
-        if (h == SOFTMACQ_BASEBAND_SIZE) break;
+      h = k / uDecFactor;
+      if (h == SOFTMACQ_BASEBAND_SIZE)
+        break;
 
-        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
-        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
-        uNco += uNcoStep;
-      }
-      break;
+      pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
+      pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
+      uNco += uNcoStep;
+    }
+    break;
 
-    case CODE_GLO_L1CA:
-      uDecFactor = SOFTMACQ_DECFACT_GLOG1;
-      iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
-      uNcoStep = CirclesToUint32(
-          (double)(SOFTMACQ_FC_GLOG1 +
-                   (_sMeSid.sat - GLO_FCN_OFFSET) * SOFTMACQ_GLOG1_FOFF) /
-          (double)SOFTMACQ_RAW_FS);
+  case CODE_GLO_L1CA:
+    uDecFactor = SOFTMACQ_DECFACT_GLOG1;
+    iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
+    uNcoStep = CirclesToUint32(
+        (double)(SOFTMACQ_FC_GLOG1 +
+                 (_sMeSid.sat - GLO_FCN_OFFSET) * SOFTMACQ_GLOG1_FOFF) /
+        (double)SOFTMACQ_RAW_FS);
 
-      for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 2) & 0x3)
-                  << BBNCO_CARRPH_BITS; /** B3..2 are Channel 2 */
-        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+    for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
+      uSample = ((puSampleBuf[k] >> 2) & 0x3)
+                << BBNCO_CARRPH_BITS; /** B3..2 are Channel 2 */
+      uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
-        h = k / uDecFactor;
-        if (h == SOFTMACQ_BASEBAND_SIZE) break;
+      h = k / uDecFactor;
+      if (h == SOFTMACQ_BASEBAND_SIZE)
+        break;
 
-        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
-        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
-        uNco += uNcoStep;
-      }
-      break;
+      pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
+      pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
+      uNco += uNcoStep;
+    }
+    break;
 
-    case CODE_GLO_L2CA:
-    case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
-    case CODE_INVALID:
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-    case CODE_COUNT:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_BDS2_B11:
-    case CODE_BDS2_B2:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-    default:
-      return false;
-      break;
+  case CODE_GLO_L2CA:
+  case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
+  case CODE_INVALID:
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
+  case CODE_COUNT:
+  case CODE_GPS_L2CX:
+  case CODE_GPS_L5I:
+  case CODE_GPS_L5Q:
+  case CODE_GPS_L5X:
+  case CODE_BDS2_B11:
+  case CODE_BDS2_B2:
+  case CODE_GAL_E1B:
+  case CODE_GAL_E1C:
+  case CODE_GAL_E1X:
+  case CODE_GAL_E6B:
+  case CODE_GAL_E6C:
+  case CODE_GAL_E6X:
+  case CODE_GAL_E7I:
+  case CODE_GAL_E7Q:
+  case CODE_GAL_E7X:
+  case CODE_GAL_E8:
+  case CODE_GAL_E5I:
+  case CODE_GAL_E5Q:
+  case CODE_GAL_E5X:
+  case CODE_QZS_L1CA:
+  case CODE_QZS_L2CM:
+  case CODE_QZS_L2CL:
+  case CODE_QZS_L2CX:
+  case CODE_QZS_L5I:
+  case CODE_QZS_L5Q:
+  case CODE_QZS_L5X:
+  default:
+    return false;
+    break;
   }
 
   return true;

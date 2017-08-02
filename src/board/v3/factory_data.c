@@ -57,7 +57,8 @@ static uint32_t crc32_tab[] = {
     0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d};
 
-static uint32_t crc32(uint32_t crc, const void *buf, size_t size) {
+static uint32_t crc32(uint32_t crc, const void *buf, size_t size)
+{
   const uint8_t *p;
 
   p = buf;
@@ -68,7 +69,8 @@ static uint32_t crc32(uint32_t crc, const void *buf, size_t size) {
   return crc ^ ~0U;
 }
 
-int factory_data_header_verify(const factory_data_t *f) {
+int factory_data_header_verify(const factory_data_t *f)
+{
   if (le32_to_cpu(f->_signature) != FACTORY_DATA_SIGNATURE) {
     return -1;
   }
@@ -82,7 +84,8 @@ int factory_data_header_verify(const factory_data_t *f) {
   return 0;
 }
 
-int factory_data_body_verify(const factory_data_t *f) {
+int factory_data_body_verify(const factory_data_t *f)
+{
   const factory_data_body_t *b = (const factory_data_body_t *)&f->body[0];
   uint32_t body_crc =
       crc32(0, (const unsigned char *)b, cpu_to_le32(f->_body_size));

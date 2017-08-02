@@ -28,7 +28,8 @@
 
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
-                              bool peak_found) {
+                              bool peak_found)
+{
   acq_sv_profile_t prof;
   /* In Phase 1, task 0 covers full job search space range.
      If there were more tasks, they all together would cover job search

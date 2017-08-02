@@ -100,7 +100,8 @@ struct {
 *
 * \param variance The variance of a zero-mean gaussian to draw a sample from.
 */
-double rand_gaussian(const double variance) {
+double rand_gaussian(const double variance)
+{
   static bool hasSpare = false;
   static double rand1, rand2;
 
@@ -112,7 +113,8 @@ double rand_gaussian(const double variance) {
   hasSpare = true;
 
   rand1 = rand() / ((double)RAND_MAX);
-  if (rand1 < FLT_MIN) rand1 = FLT_MIN;
+  if (rand1 < FLT_MIN)
+    rand1 = FLT_MIN;
   rand1 = -2 * log(rand1);
   rand2 = (rand() / ((double)RAND_MAX)) * (M_PI * 2.0);
 
@@ -132,7 +134,8 @@ double rand_gaussian(const double variance) {
 * \param x The start of the output range.
 * \param y The end of the output range.
 */
-double lerp(double t, double u, double v, double x, double y) {
+double lerp(double t, double u, double v, double x, double y)
+{
   return (t - u) / (v - u) * (y - x) + x;
 }
 
@@ -160,7 +163,8 @@ double lerp(double t, double u, double v, double x, double y) {
 * less than the radius.
 *
 */
-void simulation_step(void) {
+void simulation_step(void)
+{
   /* First we propagate the current fake PVT solution */
   piksi_systime_t now;
   piksi_systime_get(&now);
@@ -190,7 +194,8 @@ void simulation_step(void) {
 * our simulated position in a circle at a given radius and speed
 * around the simulation's center point.
 */
-void simulation_step_position_in_circle(double elapsed) {
+void simulation_step_position_in_circle(double elapsed)
+{
   /* Update the angle, making a small angle approximation. */
   sim_state.angle += (sim_settings.speed * elapsed) / sim_settings.radius;
   if (sim_state.angle > 2 * M_PI) {
@@ -209,7 +214,7 @@ void simulation_step_position_in_circle(double elapsed) {
   vector_subtract(3, sim_state.pos, sim_settings.base_ecef, sim_state.baseline);
 
   /* Add gaussian noise to PVT position */
-  double* pos_ecef = sim_state.noisy_solution.pos_ecef;
+  double *pos_ecef = sim_state.noisy_solution.pos_ecef;
   double pos_variance = sim_settings.pos_sigma * sim_settings.pos_sigma;
   pos_ecef[0] = sim_state.pos[0] + rand_gaussian(pos_variance);
   pos_ecef[1] = sim_state.pos[1] + rand_gaussian(pos_variance);
@@ -253,7 +258,8 @@ void simulation_step_position_in_circle(double elapsed) {
 *
 * \param elapsed Number of seconds elapsed since last simulation step.
 */
-void simulation_step_tracking_and_observations(double elapsed) {
+void simulation_step_tracking_and_observations(double elapsed)
+{
   (void)elapsed;
 
   gps_time_t t = sim_state.noisy_solution.time;
@@ -340,11 +346,12 @@ void simulation_step_tracking_and_observations(double elapsed) {
 * elevation.
 *
 */
-void populate_nav_meas(navigation_measurement_t* nav_meas,
+void populate_nav_meas(navigation_measurement_t *nav_meas,
                        double dist,
                        double elevation,
                        double vel,
-                       int almanac_i) {
+                       int almanac_i)
+{
   nav_meas->sid = (gnss_signal_t){
       .code = simulation_almanacs[almanac_i].sid.code,
       .sat = simulation_almanacs[almanac_i].sid.sat + SIM_PRN_OFFSET};
@@ -380,43 +387,49 @@ inline bool simulation_enabled(void) { return (sim_enabled > 0); }
 *
 * \param mode_mask The mode for which the simulation might be enabled.
 */
-inline bool simulation_enabled_for(simulation_modes_t mode_mask) {
+inline bool simulation_enabled_for(simulation_modes_t mode_mask)
+{
   return (sim_enabled > 0) && ((sim_settings.mode_mask & mode_mask) > 0);
 }
 
 /** Get current simulated PVT solution
 * The structure returned by this changes every time simulation_step is called.
 */
-inline gnss_solution* simulation_current_gnss_solution(void) {
+inline gnss_solution *simulation_current_gnss_solution(void)
+{
   return &sim_state.noisy_solution;
 }
 
 /** Get current simulated DOPS.
 * The structure returned by this changes when settings are updated.
 */
-inline dops_t* simulation_current_dops_solution(void) {
+inline dops_t *simulation_current_dops_solution(void)
+{
   return &sim_state.dops;
 }
 
 /** Get current simulated baseline reference point in ECEF coordinates.
 * The structure returned by this changes when settings are updated.
 */
-inline double* simulation_ref_ecef(void) { return sim_settings.base_ecef; }
+inline double *simulation_ref_ecef(void) { return sim_settings.base_ecef; }
 
 /** Get current simulated baseline vector in ECEF coordinates.
 * The structure returned by this changes every time simulation_step is called.
 */
-inline double* simulation_current_baseline_ecef(void) {
+inline double *simulation_current_baseline_ecef(void)
+{
   return sim_state.baseline;
 }
 
-inline double* simulation_current_covariance_ecef(void) {
+inline double *simulation_current_covariance_ecef(void)
+{
   return sim_state.covariance;
 }
 
 /** Returns the number of satellites being simulated.
 */
-u8 simulation_current_num_sats(void) {
+u8 simulation_current_num_sats(void)
+{
   return sim_state.noisy_solution.n_sats_used;
 }
 
@@ -425,7 +438,8 @@ u8 simulation_current_num_sats(void) {
 *
 * \param channel The simulated tracking channel.
 */
-tracking_channel_state_t simulation_current_tracking_state(u8 channel) {
+tracking_channel_state_t simulation_current_tracking_state(u8 channel)
+{
   if (channel >= simulation_current_num_sats()) {
     channel = simulation_current_num_sats() - 1;
   }
@@ -434,7 +448,8 @@ tracking_channel_state_t simulation_current_tracking_state(u8 channel) {
 
 /** Returns the simulated navigation measurement of our moving position.
 */
-navigation_measurement_t* simulation_current_navigation_measurements(void) {
+navigation_measurement_t *simulation_current_navigation_measurements(void)
+{
   return sim_state.nav_meas;
 }
 
@@ -443,15 +458,16 @@ navigation_measurement_t* simulation_current_navigation_measurements(void) {
 * moves).
 * This is useful for testing RTK algorithms in hardware.
 */
-navigation_measurement_t* simulation_current_base_navigation_measurements(
-    void) {
+navigation_measurement_t *simulation_current_base_navigation_measurements(void)
+{
   return sim_state.base_nav_meas;
 }
 
 /**
 * Do any setup we need for the satellite almanacs.
 */
-void simulator_setup_almanacs(void) {
+void simulator_setup_almanacs(void)
+{
   for (u8 i = 0; i < simulation_num_almanacs; i++) {
     simulation_fake_carrier_bias[i] = (rand() % 1000) * 10;
   }
@@ -459,7 +475,8 @@ void simulator_setup_almanacs(void) {
 
 /** Must be called from main() or equivalent function before simulator runs
 */
-void simulator_setup(void) {
+void simulator_setup(void)
+{
   sim_state.noisy_solution.time.wn = simulation_week_number - 1;
   sim_state.noisy_solution.time.tow = WEEK_SECS - 20;
   sim_state.noisy_solution.valid = 1;

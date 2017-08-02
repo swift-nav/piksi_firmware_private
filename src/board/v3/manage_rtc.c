@@ -28,7 +28,8 @@
 
 static THD_WORKING_AREA(wa_manage_rtc_thread, MANAGE_RTC_THREAD_STACK);
 
-static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc) {
+static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc)
+{
   bool success = false;
 
   /* Enable square wave and IRQ output and wait for 1s boundary */
@@ -55,7 +56,8 @@ static bool time_read_precise(rtc_m41t62_time_t *rtc_time, u64 *nap_tc) {
   return success;
 }
 
-static void manage_rtc_thread(void *arg) {
+static void manage_rtc_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("manage RTC");
 
@@ -75,7 +77,8 @@ static void manage_rtc_thread(void *arg) {
   }
 }
 
-void manage_rtc_setup(void) {
+void manage_rtc_setup(void)
+{
   chThdCreateStatic(wa_manage_rtc_thread,
                     sizeof(wa_manage_rtc_thread),
                     MANAGE_RTC_THREAD_PRIO,

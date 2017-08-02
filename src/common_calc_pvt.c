@@ -13,7 +13,8 @@
 void send_observations(u8 n,
                        u32 msg_obs_max_size,
                        const navigation_measurement_t m[],
-                       const gps_time_t *t) {
+                       const gps_time_t *t)
+{
   static u8 buff[256];
 
   if ((0 == n) || (NULL == m) || (NULL == t)) {
@@ -70,7 +71,8 @@ void send_observations(u8 n,
 /** Extract the full covariance matrices from soln struct */
 void extract_covariance(double full_covariance[9],
                         double vel_covariance[9],
-                        const gnss_solution *soln) {
+                        const gnss_solution *soln)
+{
   assert(soln != NULL);
   assert(full_covariance != NULL);
   assert(vel_covariance != NULL);
@@ -103,7 +105,8 @@ void extract_covariance(double full_covariance[9],
   vel_covariance[8] = soln->vel_cov[5];
 }
 
-bool gate_covariance(gnss_solution *soln) {
+bool gate_covariance(gnss_solution *soln)
+{
   assert(soln != NULL);
   double full_covariance[9];
   double vel_covariance[9];
@@ -124,7 +127,8 @@ bool gate_covariance(gnss_solution *soln) {
   return check_covariance(pos_accuracy, vel_accuracy);
 }
 
-bool gate_covariance_pvt_engine(const pvt_engine_result_t *result) {
+bool gate_covariance_pvt_engine(const pvt_engine_result_t *result)
+{
   assert(result != NULL);
 
   double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
@@ -148,7 +152,8 @@ bool gate_covariance_pvt_engine(const pvt_engine_result_t *result) {
   return check_covariance(pos_accuracy, vel_accuracy);
 }
 
-bool check_covariance(const double pos_accuracy, const double vel_accuracy) {
+bool check_covariance(const double pos_accuracy, const double vel_accuracy)
+{
   if (pos_accuracy > MAX_SPP_ACCURACY_M) {
     log_warn(
         "SPP Position suppressed due to position confidence of %.1f exceeding "

@@ -73,13 +73,15 @@ typedef struct {
   uint8_t imu_cal[264];
 } factory_data_params_t;
 
-static inline uint32_t factory_data_body_size_get(const factory_data_t *f) {
+static inline uint32_t factory_data_body_size_get(const factory_data_t *f)
+{
   return le32_to_cpu(f->_body_size);
 }
 
 #define FACTORY_DATA_GET_U32_FN(param)                                       \
   static inline int factory_data_##param##_get(const factory_data_t *f,      \
-                                               uint32_t *value) {            \
+                                               uint32_t *value)              \
+  {                                                                          \
     const factory_data_body_t *b = (const factory_data_body_t *)&f->body[0]; \
     if (le32_to_cpu(f->_body_size) <                                         \
         offsetof(factory_data_body_t, _##param) + sizeof(b->_##param)) {     \
@@ -91,7 +93,8 @@ static inline uint32_t factory_data_body_size_get(const factory_data_t *f) {
 
 #define FACTORY_DATA_GET_ARRAY_FN(param)                                     \
   static inline int factory_data_##param##_get(const factory_data_t *f,      \
-                                               uint8_t *value) {             \
+                                               uint8_t *value)               \
+  {                                                                          \
     const factory_data_body_t *b = (const factory_data_body_t *)&f->body[0]; \
     if (le32_to_cpu(f->_body_size) <                                         \
         offsetof(factory_data_body_t, _##param) + sizeof(b->_##param)) {     \

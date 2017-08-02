@@ -51,7 +51,8 @@ static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
-static void imu_isr(void *context) {
+static void imu_isr(void *context)
+{
   (void)context;
   chSysLockFromISR();
 
@@ -66,7 +67,8 @@ static void imu_isr(void *context) {
   chSysUnlockFromISR();
 }
 
-static void imu_aux_send(void) {
+static void imu_aux_send(void)
+{
   msg_imu_aux_t imu_aux;
   imu_aux.imu_type = 0; /* Bosch BMI160 */
   imu_aux.temp = bmi160_read_temp();
@@ -77,7 +79,8 @@ static void imu_aux_send(void) {
 }
 
 /** IMU auxiliary data processing thread. */
-static void imu_aux_thread(void *arg) {
+static void imu_aux_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("IMU aux");
 
@@ -91,7 +94,8 @@ static void imu_aux_thread(void *arg) {
 }
 
 /** IMU data processing thread. */
-static void imu_thread(void *arg) {
+static void imu_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("IMU");
 
@@ -169,7 +173,8 @@ static void imu_thread(void *arg) {
   }
 }
 
-static bool imu_rate_changed(struct setting *s, const char *val) {
+static bool imu_rate_changed(struct setting *s, const char *val)
+{
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_set_imu_rate(imu_rate);
     return true;
@@ -177,7 +182,8 @@ static bool imu_rate_changed(struct setting *s, const char *val) {
   return false;
 }
 
-static bool raw_imu_output_changed(struct setting *s, const char *val) {
+static bool raw_imu_output_changed(struct setting *s, const char *val)
+{
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_imu_set_enabled(raw_imu_output);
     return true;
@@ -185,7 +191,8 @@ static bool raw_imu_output_changed(struct setting *s, const char *val) {
   return false;
 }
 
-static bool acc_range_changed(struct setting *s, const char *val) {
+static bool acc_range_changed(struct setting *s, const char *val)
+{
   if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     return false;
   }
@@ -197,21 +204,21 @@ static bool acc_range_changed(struct setting *s, const char *val) {
    * the index of the selected setting in the list of strings, and the relevant
    * enum values */
   switch (acc_range) {
-    case 0: /* 2g */
-      bmi160_set_acc_range(BMI160_ACC_2G);
-      break;
-    case 1: /* 4g */
-      bmi160_set_acc_range(BMI160_ACC_4G);
-      break;
-    case 2: /* 8g */
-      bmi160_set_acc_range(BMI160_ACC_8G);
-      break;
-    case 3: /* 16g */
-      bmi160_set_acc_range(BMI160_ACC_16G);
-      break;
-    default:
-      log_error("Unexpected accelerometer range setting: %u", acc_range);
-      break;
+  case 0: /* 2g */
+    bmi160_set_acc_range(BMI160_ACC_2G);
+    break;
+  case 1: /* 4g */
+    bmi160_set_acc_range(BMI160_ACC_4G);
+    break;
+  case 2: /* 8g */
+    bmi160_set_acc_range(BMI160_ACC_8G);
+    break;
+  case 3: /* 16g */
+    bmi160_set_acc_range(BMI160_ACC_16G);
+    break;
+  default:
+    log_error("Unexpected accelerometer range setting: %u", acc_range);
+    break;
   }
 
   if (output) {
@@ -222,7 +229,8 @@ static bool acc_range_changed(struct setting *s, const char *val) {
   return true;
 }
 
-static bool gyr_range_changed(struct setting *s, const char *val) {
+static bool gyr_range_changed(struct setting *s, const char *val)
+{
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     u8 output = raw_imu_output;
     raw_imu_output = false;
@@ -241,7 +249,8 @@ static bool gyr_range_changed(struct setting *s, const char *val) {
   return false;
 }
 
-void imu_init(void) {
+void imu_init(void)
+{
   bmi160_init();
 
   SETTING_NOTIFY("imu",

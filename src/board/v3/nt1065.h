@@ -18,7 +18,7 @@
  *  @param temperature if succesful temperature is written here
  *  @return True if temperature is valid. False if timed out
  */
-bool nt1065_get_temperature(double* temperature);
+bool nt1065_get_temperature(double *temperature);
 
 /** @brief read nt1065 AOK status
  *    Checks if error in

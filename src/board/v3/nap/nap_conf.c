@@ -28,17 +28,20 @@
  * Functions to get information about the SwiftNAP configuration.
  * \{ */
 
-u32 nap_conf_rd_random(void) {
+u32 nap_conf_rd_random(void)
+{
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(NAP->CONTROL, NAP_RANDOM_OFFSET);
   return NAP->VERSION;
 }
 
-u32 nap_conf_rd_version(void) {
+u32 nap_conf_rd_version(void)
+{
   NAP->CONTROL = SET_NAP_CONTROL_VERSION_ADDR(NAP->CONTROL, NAP_VERSION_OFFSET);
   return NAP->VERSION;
 }
 
-u8 nap_conf_rd_version_string(char version_string[]) {
+u8 nap_conf_rd_version_string(char version_string[])
+{
   u8 i = 0;
   u32 reg = 0;
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
@@ -55,7 +58,8 @@ u8 nap_conf_rd_version_string(char version_string[]) {
   return strlen(version_string);
 }
 
-u8 nap_conf_rd_date_string(char date_string[]) {
+u8 nap_conf_rd_date_string(char date_string[])
+{
   u32 reg;
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
@@ -83,7 +87,8 @@ u8 nap_conf_rd_date_string(char date_string[]) {
   return strlen(date_string);
 }
 
-void nap_rd_dna(u8 dna[]) {
+void nap_rd_dna(u8 dna[])
+{
   u32 reg = 0;
   u32 ctrl = (NAP->CONTROL & ~((u32)NAP_CONTROL_VERSION_ADDR_Msk));
 
@@ -95,11 +100,13 @@ void nap_rd_dna(u8 dna[]) {
   }
 }
 
-bool nap_locked(void) {
+bool nap_locked(void)
+{
   return GET_NAP_STATUS_AUTH_LOCKED(NAP->STATUS) ? true : false;
 }
 
-void nap_unlock(const u8 key[]) {
+void nap_unlock(const u8 key[])
+{
   u32 ctrl = (NAP->CONTROL &
               ~((u32)NAP_CONTROL_KEY_ADDR_Msk | NAP_CONTROL_KEY_BYTE_Msk));
 

@@ -34,14 +34,16 @@ static BSEMAPHORE_DECL(rtc_irq_bsem, 0);
 
 /** Lock and start the I2C driver.
  */
-static void i2c_open(void) {
+static void i2c_open(void)
+{
   i2cAcquireBus(&RTC_I2C);
   i2cStart(&RTC_I2C, &rtc_i2c_config);
 }
 
 /** Unlock and stop the I2C driver.
  */
-static void i2c_close(void) {
+static void i2c_close(void)
+{
   i2cStop(&RTC_I2C);
   i2cReleaseBus(&RTC_I2C);
 }
@@ -54,7 +56,8 @@ static void i2c_close(void) {
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_read(u8 addr, u8 *data, size_t length) {
+static msg_t i2c_read(u8 addr, u8 *data, size_t length)
+{
   return i2cMasterTransmitTimeout(
       &RTC_I2C, RTC_I2C_ADDR, &addr, 1, data, length, RTC_I2C_TIMEOUT);
 }
@@ -67,7 +70,8 @@ static msg_t i2c_read(u8 addr, u8 *data, size_t length) {
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_write(u8 addr, const u8 *data, size_t length) {
+static msg_t i2c_write(u8 addr, const u8 *data, size_t length)
+{
   u8 buf[1 + length];
   buf[0] = addr;
   memcpy(&buf[1], data, length);
@@ -85,10 +89,13 @@ static msg_t i2c_write(u8 addr, const u8 *data, size_t length) {
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_read_txn(u8 addr, u8 *data, size_t length) {
+static msg_t i2c_read_txn(u8 addr, u8 *data, size_t length)
+{
   msg_t msg;
   i2c_open();
-  { msg = i2c_read(addr, data, length); }
+  {
+    msg = i2c_read(addr, data, length);
+  }
   i2c_close();
   return msg;
 }
@@ -103,10 +110,13 @@ static msg_t i2c_read_txn(u8 addr, u8 *data, size_t length) {
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_write_txn(u8 addr, const u8 *data, size_t length) {
+static msg_t i2c_write_txn(u8 addr, const u8 *data, size_t length)
+{
   msg_t msg;
   i2c_open();
-  { msg = i2c_write(addr, data, length); }
+  {
+    msg = i2c_write(addr, data, length);
+  }
   i2c_close();
   return msg;
 }
@@ -117,7 +127,8 @@ static msg_t i2c_write_txn(u8 addr, const u8 *data, size_t length) {
  *
  * \return true if the operation succeeded, false otherwise.
  */
-static bool alarm_regs_write(bool square_wave_enable) {
+static bool alarm_regs_write(bool square_wave_enable)
+{
   rtc_m41t62_alarm_regs_t alarm_regs;
   memset(&alarm_regs, 0, sizeof(alarm_regs));
 
@@ -140,7 +151,8 @@ static bool alarm_regs_write(bool square_wave_enable) {
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-static bool second_wait(void) {
+static bool second_wait(void)
+{
   /* Enable square wave output */
   if (!alarm_regs_write(true)) {
     return false;
@@ -185,7 +197,8 @@ static bool second_wait(void) {
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-static bool second_wait_cleanup(void) {
+static bool second_wait_cleanup(void)
+{
   /* Disable square wave output */
   return alarm_regs_write(false);
 }
@@ -194,7 +207,8 @@ static bool second_wait_cleanup(void) {
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-static bool clock_reset(void) {
+static bool clock_reset(void)
+{
   rtc_m41t62_clock_regs_t clock_regs;
   memset(&clock_regs, 0, sizeof(clock_regs));
 
@@ -219,7 +233,8 @@ static bool clock_reset(void) {
 
 /** Handle an RTC IRQ.
  */
-static void rtc_m41t62_irq_handler(void *context) {
+static void rtc_m41t62_irq_handler(void *context)
+{
   (void)context;
 
   /* Signal IRQ semaphore */
@@ -230,7 +245,8 @@ static void rtc_m41t62_irq_handler(void *context) {
 
 /** Initialize the RTC.
  */
-void rtc_m41t62_init(void) {
+void rtc_m41t62_init(void)
+{
   /* Read all registers */
   rtc_m41t62_regs_t regs;
   u8 tries = 3;
@@ -299,7 +315,8 @@ void rtc_m41t62_init(void) {
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time) {
+bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time)
+{
   rtc_m41t62_clock_regs_t clock_regs;
   memset(&clock_regs, 0, sizeof(clock_regs));
 
@@ -350,7 +367,8 @@ bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time) {
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_time_get(rtc_m41t62_time_t *time, bool *valid) {
+bool rtc_m41t62_time_get(rtc_m41t62_time_t *time, bool *valid)
+{
   /* Read clock */
   rtc_m41t62_clock_regs_t clock_regs;
   if (i2c_read_txn(RTC_M41T62_REG_CLOCK_START,
@@ -397,7 +415,8 @@ bool rtc_m41t62_second_wait(void) { return second_wait(); }
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_second_wait_cleanup(void) {
+bool rtc_m41t62_second_wait_cleanup(void)
+{
   u8 tries = 3;
   do {
     if (second_wait_cleanup()) {

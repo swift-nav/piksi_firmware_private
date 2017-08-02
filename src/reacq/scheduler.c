@@ -42,7 +42,8 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
  */
 void sch_initialize_cost(acq_job_t *init_job,
                          const acq_jobs_state_t *all_jobs_data,
-                         constellation_t gnss) {
+                         constellation_t gnss)
+{
   acq_job_types_e type;
   u32 min_cost = 0;
   u32 max_cost = 0;
@@ -55,16 +56,16 @@ void sch_initialize_cost(acq_job_t *init_job,
   const acq_job_t *pjob = NULL;
 
   switch ((s8)gnss) {
-    case CONSTELLATION_GPS:
-      num_sats = NUM_SATS_GPS;
-      pjob = all_jobs_data->jobs_gps[0];
-      break;
-    case CONSTELLATION_GLO:
-      num_sats = NUM_SATS_GLO;
-      pjob = all_jobs_data->jobs_glo[0];
-      break;
-    default:
-      assert(!"Incorrect constellation");
+  case CONSTELLATION_GPS:
+    num_sats = NUM_SATS_GPS;
+    pjob = all_jobs_data->jobs_gps[0];
+    break;
+  case CONSTELLATION_GLO:
+    num_sats = NUM_SATS_GLO;
+    pjob = all_jobs_data->jobs_glo[0];
+    break;
+  default:
+    assert(!"Incorrect constellation");
   }
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++, pjob += num_sats * type) {
@@ -92,30 +93,30 @@ void sch_initialize_cost(acq_job_t *init_job,
   }
 
   switch (init_job->cost_hint) {
-    case ACQ_COST_MIN:
-      init_job->cost = MAX(init_job->cost, min_cost);
-      break;
-    case ACQ_COST_AVG:
-      if (0 == init_job->cost) {
-        init_job->cost = avg + init_job->cost_delta;
-      } else {
-        init_job->cost = MIN(init_job->cost, avg + init_job->cost_delta);
-      }
-      break;
-    case ACQ_COST_MAX:
-      init_job->cost = max_cost;
-      break;
-    case ACQ_COST_MAX_PLUS:
-      if (0 == init_job->cost) {
-        init_job->cost = max_cost + init_job->cost_delta;
-      } else {
-        init_job->cost = MIN(init_job->cost, max_cost + init_job->cost_delta);
-      }
-      break;
-    default:
-      assert(!"Invalid cost hint");
+  case ACQ_COST_MIN:
+    init_job->cost = MAX(init_job->cost, min_cost);
+    break;
+  case ACQ_COST_AVG:
+    if (0 == init_job->cost) {
+      init_job->cost = avg + init_job->cost_delta;
+    } else {
+      init_job->cost = MIN(init_job->cost, avg + init_job->cost_delta);
+    }
+    break;
+  case ACQ_COST_MAX:
+    init_job->cost = max_cost;
+    break;
+  case ACQ_COST_MAX_PLUS:
+    if (0 == init_job->cost) {
       init_job->cost = max_cost + init_job->cost_delta;
-      break;
+    } else {
+      init_job->cost = MIN(init_job->cost, max_cost + init_job->cost_delta);
+    }
+    break;
+  default:
+    assert(!"Invalid cost hint");
+    init_job->cost = max_cost + init_job->cost_delta;
+    break;
   }
 }
 
@@ -134,7 +135,8 @@ void sch_initialize_cost(acq_job_t *init_job,
  */
 static void sch_limit_costs(acq_jobs_state_t *all_jobs_data,
                             u32 cost,
-                            constellation_t gnss) {
+                            constellation_t gnss)
+{
   acq_job_types_e type;
   u32 min_cost = cost;
 
@@ -142,16 +144,16 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data,
   acq_job_t *pjob = NULL;
 
   switch ((s8)gnss) {
-    case CONSTELLATION_GPS:
-      num_sats = NUM_SATS_GPS;
-      pjob = all_jobs_data->jobs_gps[0];
-      break;
-    case CONSTELLATION_GLO:
-      num_sats = NUM_SATS_GLO;
-      pjob = all_jobs_data->jobs_glo[0];
-      break;
-    default:
-      assert(!"Incorrect constellation");
+  case CONSTELLATION_GPS:
+    num_sats = NUM_SATS_GPS;
+    pjob = all_jobs_data->jobs_gps[0];
+    break;
+  case CONSTELLATION_GLO:
+    num_sats = NUM_SATS_GLO;
+    pjob = all_jobs_data->jobs_glo[0];
+    break;
+  default:
+    assert(!"Incorrect constellation");
   }
 
   acq_job_t *tmp_pjob = pjob; /* this needed to store initial pointer */
@@ -197,7 +199,8 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data,
  *
  * \return job to be run or NULL if there is no job to run
  */
-acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss) {
+acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss)
+{
   acq_job_types_e type;
   acq_job_t *job_to_run = NULL;
 
@@ -205,16 +208,16 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss) {
   acq_job_t *pjob = NULL;
 
   switch ((s8)gnss) {
-    case CONSTELLATION_GPS:
-      num_sats = NUM_SATS_GPS;
-      pjob = jobs_data->jobs_gps[0];
-      break;
-    case CONSTELLATION_GLO:
-      num_sats = NUM_SATS_GLO;
-      pjob = jobs_data->jobs_glo[0];
-      break;
-    default:
-      assert(!"Incorrect constellation");
+  case CONSTELLATION_GPS:
+    num_sats = NUM_SATS_GPS;
+    pjob = jobs_data->jobs_gps[0];
+    break;
+  case CONSTELLATION_GLO:
+    num_sats = NUM_SATS_GLO;
+    pjob = jobs_data->jobs_glo[0];
+    break;
+  default:
+    assert(!"Incorrect constellation");
   }
 
   acq_job_t *tmp_pjob = pjob; /* this needed to store initial pointer */
@@ -274,7 +277,8 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss) {
  *
  * \param job pointer to job to run
  */
-static void sch_glo_fcn_set(acq_job_t *job) {
+static void sch_glo_fcn_set(acq_job_t *job)
+{
   if (NULL == job) {
     return;
   }
@@ -298,7 +302,8 @@ static void sch_glo_fcn_set(acq_job_t *job) {
  */
 static void sch_run_common(acq_jobs_state_t *jobs_data,
                            acq_job_t *job,
-                           constellation_t gnss) {
+                           constellation_t gnss)
+{
   acq_task_t *task = &job->task_data;
   acq_task_search_params_t *acq_param;
   acq_result_t acq_result;
@@ -409,7 +414,8 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
  *
  * \return none
  */
-void sch_run(acq_jobs_state_t *jobs_data) {
+void sch_run(acq_jobs_state_t *jobs_data)
+{
   acq_job_t *job;
   /* select and run job for GPS */
   job = sch_select_job(jobs_data, CONSTELLATION_GPS);

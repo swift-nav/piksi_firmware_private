@@ -56,10 +56,10 @@ void set_gps_time_offset(u64 tc, gps_time_t t);
 void adjust_time_fine(const double dt);
 gps_time_t napcount2gpstime(const double tc);
 gps_time_t napcount2rcvtime(const double tc);
-double gpstime2napcount(const gps_time_t* t);
-double rcvtime2napcount(const gps_time_t* t);
+double gpstime2napcount(const gps_time_t *t);
+double rcvtime2napcount(const gps_time_t *t);
 u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
-                                   const glo_time_t* glo_t);
+                                   const glo_time_t *glo_t);
 
 #endif

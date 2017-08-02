@@ -24,7 +24,8 @@ static acq_sv_profile_t reacq_sbp_buffer[REACQ_SBP_BUFF_SIZE];
 static u8 amount = 0; /* how many data chunks stored in buffer */
 static u64 count = 0;
 
-static void reacq_sbp_send(void) {
+static void reacq_sbp_send(void)
+{
   sbp_send_msg(SBP_MSG_ACQ_SV_PROFILE,
                sizeof(acq_sv_profile_t) * amount,
                (u8 *)&reacq_sbp_buffer);
@@ -34,7 +35,8 @@ static void reacq_sbp_send(void) {
 /**
  * The function initialize timer for reacq SBP message
  */
-void reacq_sbp_init(void) {
+void reacq_sbp_init(void)
+{
   count = nap_timing_count() * RX_DT_NOMINAL;
   amount = 0;
 }
@@ -49,7 +51,8 @@ void reacq_sbp_init(void) {
  *
  * \return none
  */
-void reacq_sbp_data_process(const acq_sv_profile_t *profile) {
+void reacq_sbp_data_process(const acq_sv_profile_t *profile)
+{
   u64 cnt = nap_timing_count() * RX_DT_NOMINAL; /* get current time */
 
   if ((cnt - count) >= REACQ_SBP_PERIOD && amount > 0) {

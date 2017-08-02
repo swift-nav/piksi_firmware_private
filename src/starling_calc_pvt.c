@@ -103,7 +103,8 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
 static void post_observations(u8 n,
                               const navigation_measurement_t m[],
                               const gps_time_t *t,
-                              const gnss_solution *soln) {
+                              const gnss_solution *soln)
+{
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -154,7 +155,8 @@ static void post_observations(u8 n,
   }
 }
 
-void reset_rtk_filter(void) {
+void reset_rtk_filter(void)
+{
   chMtxLock(&time_matched_filter_manager_lock);
   filter_manager_init(time_matched_filter_manager);
   chMtxUnlock(&time_matched_filter_manager_lock);
@@ -167,7 +169,8 @@ void reset_rtk_filter(void) {
  *
  */
 bool dgnss_timeout(piksi_systime_t *_last_dgnss,
-                   dgnss_solution_mode_t _dgnss_soln_mode) {
+                   dgnss_solution_mode_t _dgnss_soln_mode)
+{
   /* No timeout needed in low latency mode */
   if (SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
     return false;
@@ -186,7 +189,8 @@ bool dgnss_timeout(piksi_systime_t *_last_dgnss,
  */
 bool spp_timeout(const gps_time_t *_last_spp,
                  const gps_time_t *_last_dgnss,
-                 dgnss_solution_mode_t _dgnss_soln_mode) {
+                 dgnss_solution_mode_t _dgnss_soln_mode)
+{
   // No timeout needed in low latency mode;
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
@@ -202,7 +206,8 @@ bool spp_timeout(const gps_time_t *_last_spp,
 
 void solution_make_sbp(const gnss_solution *soln,
                        dops_t *dops,
-                       sbp_messages_t *sbp_messages) {
+                       sbp_messages_t *sbp_messages)
+{
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
@@ -300,7 +305,8 @@ void solution_make_sbp(const gnss_solution *soln,
 
 // TODO(https://github.com/swift-nav/estimation_team_planning/issues/667)
 static gnss_solution create_spp_result(
-    const pvt_engine_result_t *pvt_engine_result) {
+    const pvt_engine_result_t *pvt_engine_result)
+{
   gnss_solution spp_solution;
   spp_solution.valid = 1;
   spp_solution.time = pvt_engine_result->result_time;
@@ -345,7 +351,8 @@ static gnss_solution create_spp_result(
  * @param sbp_messages struct of sbp messages
  */
 static void solution_send_pos_messages(u8 sender_id,
-                                       const sbp_messages_t *sbp_messages) {
+                                       const sbp_messages_t *sbp_messages)
+{
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -419,8 +426,9 @@ static void solution_send_pos_messages(u8 sender_id,
                  &sbp_messages->baseline_heading);
 }
 
-static void solution_send_low_latency_output(
-    u8 sender_id, const sbp_messages_t *sbp_messages) {
+static void solution_send_low_latency_output(u8 sender_id,
+                                             const sbp_messages_t *sbp_messages)
+{
   // Work out if we need to wait for a certain period of no time matched
   // positions before we output a SBP position
   bool wait_for_timeout = false;
@@ -438,7 +446,8 @@ static void solution_send_low_latency_output(
   }
 }
 
-double calc_heading(const double b_ned[3]) {
+double calc_heading(const double b_ned[3])
+{
   double heading = atan2(b_ned[1], b_ned[0]);
   if (heading < 0) {
     heading += 2 * M_PI;
@@ -449,7 +458,8 @@ double calc_heading(const double b_ned[3]) {
 void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                 const double spp_ecef[3],
                                 const dops_t *dops,
-                                sbp_messages_t *sbp_messages) {
+                                sbp_messages_t *sbp_messages)
+{
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
     vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
@@ -540,7 +550,8 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
       (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
-static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
+static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager)
+{
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
     ret = filter_manager_update(filter_manager);
@@ -557,7 +568,8 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
     const FilterManager *filter_manager,
     const bool use_time_matched_baseline,
     dops_t *dops,
-    pvt_engine_result_t *result) {
+    pvt_engine_result_t *result)
+{
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
 
   get_baseline_ret = filter_manager_get_result(
@@ -578,7 +590,8 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     const navigation_measurement_t *nav_meas,
     const ephemeris_t *ephemerides[MAX_CHANNELS],
     pvt_engine_result_t *result,
-    dops_t *dops) {
+    dops_t *dops)
+{
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
@@ -609,7 +622,8 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   return get_baseline_ret;
 }
 
-static void solution_simulation(sbp_messages_t *sbp_messages) {
+static void solution_simulation(sbp_messages_t *sbp_messages)
+{
   simulation_step();
 
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack
@@ -663,7 +677,8 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
   }
 }
 
-void sbp_messages_init(sbp_messages_t *sbp_messages) {
+void sbp_messages_init(sbp_messages_t *sbp_messages)
+{
   sbp_init_gps_time(&sbp_messages->gps_time);
   sbp_init_utc_time(&sbp_messages->utc_time);
   sbp_init_pos_llh(&sbp_messages->pos_llh);
@@ -679,7 +694,8 @@ void sbp_messages_init(sbp_messages_t *sbp_messages) {
 }
 
 static THD_WORKING_AREA(wa_starling_thread, 4000000);
-static void starling_thread(void *arg) {
+static void starling_thread(void *arg)
+{
   (void)arg;
   msg_t ret;
   me_msg_obs_t *rover_channel_epoch;
@@ -842,7 +858,8 @@ static void starling_thread(void *arg) {
 
 void process_matched_obs(const obss_t *rover_channel_meass,
                          const obss_t *reference_obss,
-                         sbp_messages_t *sbp_messages) {
+                         sbp_messages_t *sbp_messages)
+{
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
@@ -933,7 +950,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
 
 bool update_time_matched(gps_time_t *last_update_time,
                          gps_time_t *current_time,
-                         u8 num_obs) {
+                         u8 num_obs)
+{
   double update_dt = gpsdifftime(current_time, last_update_time);
   double update_rate_limit = 0.99;
   if (num_obs > 16) {
@@ -946,7 +964,8 @@ bool update_time_matched(gps_time_t *last_update_time,
 }
 
 static WORKING_AREA_CCM(wa_time_matched_obs_thread, 4000000);
-static void time_matched_obs_thread(void *arg) {
+static void time_matched_obs_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("time matched obs");
 
@@ -1055,28 +1074,31 @@ static void time_matched_obs_thread(void *arg) {
   }
 }
 
-void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)sender_id;
   (void)len;
   (void)context;
   switch (msg[0]) {
-    case 0:
-      log_info("Filter reset requested");
-      reset_rtk_filter();
-      break;
-    default:
-      break;
+  case 0:
+    log_info("Filter reset requested");
+    reset_rtk_filter();
+    break;
+  default:
+    break;
   }
 }
 
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
+soln_dgnss_stats_t solution_last_dgnss_stats_get(void)
+{
   return last_dgnss_stats;
 }
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
 
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static bool heading_offset_changed(struct setting *s, const char *val) {
+static bool heading_offset_changed(struct setting *s, const char *val)
+{
   double offset = 0;
   bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
   if (!ret) {
@@ -1097,7 +1119,8 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
   return ret;
 }
 
-static bool enable_fix_mode(struct setting *s, const char *val) {
+static bool enable_fix_mode(struct setting *s, const char *val)
+{
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
   if (!ret) {
@@ -1115,7 +1138,8 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   return ret;
 }
 
-static bool set_max_age(struct setting *s, const char *val) {
+static bool set_max_age(struct setting *s, const char *val)
+{
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
   if (!ret) {
@@ -1132,7 +1156,8 @@ static bool set_max_age(struct setting *s, const char *val) {
   return ret;
 }
 
-void starling_calc_pvt_setup() {
+void starling_calc_pvt_setup()
+{
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;

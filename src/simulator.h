@@ -77,7 +77,7 @@ bool simulation_enabled_for(simulation_modes_t mode_mask);
 // Internals of the simulator
 void simulation_step_position_in_circle(double);
 void simulation_step_tracking_and_observations(double);
-void populate_nav_meas(navigation_measurement_t* nav_meas,
+void populate_nav_meas(navigation_measurement_t *nav_meas,
                        double dist,
                        double elevation,
                        double vel,
@@ -87,14 +87,14 @@ void populate_nav_meas(navigation_measurement_t* nav_meas,
 void sbp_send_simulation_enabled(void);
 
 // Getting data from the simulation
-gnss_solution* simulation_current_gnss_solution(void);
-dops_t* simulation_current_dops_solution(void);
-double* simulation_ref_ecef(void);
-double* simulation_current_baseline_ecef(void);
-double* simulation_current_covariance_ecef(void);
+gnss_solution *simulation_current_gnss_solution(void);
+dops_t *simulation_current_dops_solution(void);
+double *simulation_ref_ecef(void);
+double *simulation_current_baseline_ecef(void);
+double *simulation_current_covariance_ecef(void);
 u8 simulation_current_num_sats(void);
 tracking_channel_state_t simulation_current_tracking_state(u8 channel);
-navigation_measurement_t* simulation_current_navigation_measurements(void);
+navigation_measurement_t *simulation_current_navigation_measurements(void);
 
 // Initialization:
 void simulator_setup_almanacs(void);

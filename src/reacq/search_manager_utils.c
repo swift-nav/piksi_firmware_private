@@ -35,7 +35,8 @@ static sm_glo_sv_vis_t glo_sv_vis[NUM_SATS_GLO] = {0};
  * \param[out] visible is set if SV is visible. Valid only if known is set
  * \param[out] known set if SV is known visible or known invisible
  */
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
+void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
+{
   last_good_fix_t lgf;
   ephemeris_t ephe;
 
@@ -80,7 +81,8 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
  *
  * \return true is SV is healthy, false otherwise
  */
-bool sm_is_healthy(gnss_signal_t sid) {
+bool sm_is_healthy(gnss_signal_t sid)
+{
   return shm_get_sat_state(sid) != CODE_NAV_STATE_INVALID;
 }
 
@@ -89,7 +91,8 @@ bool sm_is_healthy(gnss_signal_t sid) {
  * \param[out] lgf_stamp time of LGF (ms)
  * \return true lgf_stamp is valid, false otherwise
  */
-bool sm_lgf_stamp(u64 *lgf_stamp) {
+bool sm_lgf_stamp(u64 *lgf_stamp)
+{
   last_good_fix_t lgf;
   if (TIME_COARSE != time_quality && TIME_FINE != time_quality) {
     return false;
@@ -113,7 +116,8 @@ bool sm_lgf_stamp(u64 *lgf_stamp) {
  * (see modeling https://github.com/swift-nav/exafore_planning/issues/681)
  * we continuously calculate the position.
  */
-void sm_calc_all_glo_visibility_flags(void) {
+void sm_calc_all_glo_visibility_flags(void)
+{
   if (!is_glo_enabled()) {
     return;
   }
@@ -134,7 +138,8 @@ void sm_calc_all_glo_visibility_flags(void) {
  * \param[out] visible is set if SV is visible. Valid only if known is set
  * \param[out] known set if SV is known visible or known invisible
  */
-void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known)
+{
   *visible = glo_sv_vis[sat - 1].visible;
   *known = glo_sv_vis[sat - 1].known;
 }

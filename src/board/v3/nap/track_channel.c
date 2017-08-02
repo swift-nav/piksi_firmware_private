@@ -90,7 +90,8 @@ static u8 nap_ch_capability[MAX_CHANNELS];
  */
 static u32 calc_length_samples(u32 chips_to_correlate,
                                u32 cp_start_frac_units,
-                               u32 cp_rate_units) {
+                               u32 cp_rate_units)
+{
   u64 cp_end_units = chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
   /* cp_start_frac_units is reinterpreted as a signed value. This works
    * because NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH is equal to 32 */
@@ -104,58 +105,59 @@ static u32 calc_length_samples(u32 chips_to_correlate,
  * \param mesid ME signal ID.
  * \return NAP constellation and band code.
  */
-static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
+static u8 mesid_to_nap_code(const me_gnss_signal_t mesid)
+{
   u8 ret = ~0;
   switch (mesid.code) {
-    case CODE_GPS_L1CA:
-    case CODE_SBAS_L1CA:
-      ret = NAP_TRK_CODE_GPS_L1;
-      break;
-    case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
-      ret = NAP_TRK_CODE_GPS_L2;
-      break;
-    case CODE_GLO_L1CA:
-      ret = NAP_TRK_CODE_GLO_G1;
-      break;
-    case CODE_GLO_L2CA:
-      ret = NAP_TRK_CODE_GLO_G2;
-      break;
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-      assert(!"Unsupported SID");
-      break;
-    case CODE_INVALID:
-    case CODE_COUNT:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_BDS2_B11:
-    case CODE_BDS2_B2:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-    default:
-      assert(!"Invalid code");
-      break;
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+    ret = NAP_TRK_CODE_GPS_L1;
+    break;
+  case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
+    ret = NAP_TRK_CODE_GPS_L2;
+    break;
+  case CODE_GLO_L1CA:
+    ret = NAP_TRK_CODE_GLO_G1;
+    break;
+  case CODE_GLO_L2CA:
+    ret = NAP_TRK_CODE_GLO_G2;
+    break;
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
+    assert(!"Unsupported SID");
+    break;
+  case CODE_INVALID:
+  case CODE_COUNT:
+  case CODE_GPS_L2CX:
+  case CODE_GPS_L5I:
+  case CODE_GPS_L5Q:
+  case CODE_GPS_L5X:
+  case CODE_BDS2_B11:
+  case CODE_BDS2_B2:
+  case CODE_GAL_E1B:
+  case CODE_GAL_E1C:
+  case CODE_GAL_E1X:
+  case CODE_GAL_E6B:
+  case CODE_GAL_E6C:
+  case CODE_GAL_E6X:
+  case CODE_GAL_E7I:
+  case CODE_GAL_E7Q:
+  case CODE_GAL_E7X:
+  case CODE_GAL_E8:
+  case CODE_GAL_E5I:
+  case CODE_GAL_E5Q:
+  case CODE_GAL_E5X:
+  case CODE_QZS_L1CA:
+  case CODE_QZS_L2CM:
+  case CODE_QZS_L2CL:
+  case CODE_QZS_L2CX:
+  case CODE_QZS_L5I:
+  case CODE_QZS_L5Q:
+  case CODE_QZS_L5X:
+  default:
+    assert(!"Invalid code");
+    break;
   }
   return ret;
 }
@@ -164,7 +166,8 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
  * \param spacing Correlator spacing.
  * \return NAP offfset register value.
  */
-static u16 spacing_to_nap_offset(nap_spacing_t spacing) {
+static u16 spacing_to_nap_offset(nap_spacing_t spacing)
+{
   return ((u16)(spacing.chips & NAP_TRK_SPACING_CHIPS_Msk)
           << NAP_TRK_SPACING_CHIPS_Pos) |
          ((spacing.samples & NAP_TRK_SPACING_SAMPLES_Msk)
@@ -175,7 +178,8 @@ static u16 spacing_to_nap_offset(nap_spacing_t spacing) {
  * \param code GNSS code identifier.
  * \return Number of samples per code chip.
  */
-static double calc_samples_per_chip(double code_phase_rate) {
+static double calc_samples_per_chip(double code_phase_rate)
+{
   return (double)NAP_TRACK_SAMPLE_RATE_Hz / code_phase_rate;
 }
 
@@ -184,7 +188,8 @@ void nap_track_init(u8 channel,
                     u32 ref_timing_count,
                     float doppler_freq_hz,
                     double code_phase,
-                    u32 chips_to_correlate) {
+                    u32 chips_to_correlate)
+{
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
          (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1CA) ||
          (mesid.code == CODE_GLO_L2CA));
@@ -398,7 +403,8 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,
-                      u8 corr_spacing) {
+                      u8 corr_spacing)
+{
   (void)corr_spacing; /* This is always written as 0, for now */
 
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
@@ -458,7 +464,8 @@ void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
-                            double *carrier_phase) {
+                            double *carrier_phase)
+{
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
   s64 hw_carr_phase;
@@ -548,7 +555,8 @@ void nap_track_read_results(u8 channel,
   }
 }
 
-void nap_track_enable(u8 channel) {
+void nap_track_enable(u8 channel)
+{
   if (channel < 32) {
     NAP->TRK_CONTROL0 |= (1 << channel);
   } else {
@@ -556,7 +564,8 @@ void nap_track_enable(u8 channel) {
   }
 }
 
-void nap_track_disable(u8 channel) {
+void nap_track_disable(u8 channel)
+{
   if (channel < 32) {
     NAP->TRK_CONTROL0 &= ~(1 << channel);
   } else {
@@ -564,13 +573,15 @@ void nap_track_disable(u8 channel) {
   }
 }
 
-void nap_scan_channels() {
+void nap_scan_channels()
+{
   for (u8 channel = 0; channel < nap_track_n_channels; ++channel) {
     swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
     nap_ch_capability[channel] = GET_NAP_TRK_CH_STATUS_CODE(t->STATUS);
   }
 }
 
-bool nap_track_supports(u8 channel, const me_gnss_signal_t mesid) {
+bool nap_track_supports(u8 channel, const me_gnss_signal_t mesid)
+{
   return nap_ch_capability[channel] == mesid_to_nap_code(mesid);
 }

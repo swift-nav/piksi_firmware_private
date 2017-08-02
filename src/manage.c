@@ -165,7 +165,8 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
 
 static sbp_msg_callbacks_node_t almanac_callback_node;
-static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)sender_id;
   (void)len;
   (void)context;
@@ -173,7 +174,8 @@ static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 }
 
 static sbp_msg_callbacks_node_t mask_sat_callback_node;
-static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)sender_id;
   (void)len;
   (void)context;
@@ -207,7 +209,8 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 }
 
 static THD_WORKING_AREA(wa_manage_acq_thread, MANAGE_ACQ_THREAD_STACK);
-static void manage_acq_thread(void *arg) {
+static void manage_acq_thread(void *arg)
+{
   /* TODO: This should be trigged by a semaphore from the acq ISR code, not
    * just ran periodically. */
 
@@ -244,7 +247,8 @@ static void manage_acq_thread(void *arg) {
 
 /* The function masks/unmasks all GLO satellite,
  * NOTE: this function does not check if GLO SV is already masked or not */
-static bool glo_enable_notify(struct setting *s, const char *val) {
+static bool glo_enable_notify(struct setting *s, const char *val)
+{
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
     if (glo_enabled && !(CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT)) {
@@ -263,7 +267,8 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
   return false;
 }
 
-void manage_acq_setup() {
+void manage_acq_setup()
+{
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
   SETTING_NOTIFY("acquisition",
                  "GLONASS_enabled",
@@ -321,7 +326,8 @@ void manage_acq_setup() {
 static u16 manage_warm_start(const me_gnss_signal_t mesid,
                              const gps_time_t *t,
                              float *dopp_hint_low,
-                             float *dopp_hint_high) {
+                             float *dopp_hint_high)
+{
   /* Do we have any idea where/when we are?  If not, no score. */
   /* TODO: Stricter requirement on time and position uncertainty?
      We ought to keep track of a quantitative uncertainty estimate. */
@@ -461,7 +467,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
 }
 
-static acq_status_t *choose_acq_sat(void) {
+static acq_status_t *choose_acq_sat(void)
+{
   u32 total_score = 0;
   gps_time_t t = get_current_time();
 
@@ -520,7 +527,8 @@ move or the satellite arcs across the sky.
 
 cturvey 10-Feb-2015
 */
-void manage_set_obs_hint(gnss_signal_t sid) {
+void manage_set_obs_hint(gnss_signal_t sid)
+{
   bool valid = sid_supported(sid);
   assert(valid);
   if (valid) {
@@ -545,7 +553,8 @@ void manage_set_obs_hint(gnss_signal_t sid) {
 
 /** Manages acquisition searches and starts tracking channels after successful
  * acquisitions. */
-static void manage_acq(void) {
+static void manage_acq(void)
+{
   /* Decide which SID to try and then start it acquiring. */
   acq_status_t *acq = choose_acq_sat();
   if (acq == NULL) {
@@ -618,7 +627,8 @@ static void manage_acq(void) {
 void acq_result_send(const me_gnss_signal_t mesid,
                      float cn0,
                      float cp,
-                     float cf) {
+                     float cf)
+{
   msg_acq_result_t acq_result_msg;
   /* TODO GLO: Handle GLO orbit slot properly. */
   if (is_glo_sid(mesid)) {
@@ -637,7 +647,8 @@ void acq_result_send(const me_gnss_signal_t mesid,
  *
  * \return Index of first unused tracking channel.
  */
-static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
+static u8 manage_track_new_acq(const me_gnss_signal_t mesid)
+{
   /* Decide which (if any) tracking channel to put
    * a newly acquired satellite into.
    */
@@ -658,7 +669,8 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
 /** Clear unhealthy flags after some time, so we eventually retry
     those sats in case they recover from their sickness.  Call this
     function regularly, and once per day it will reset the flags. */
-void check_clear_unhealthy(void) {
+void check_clear_unhealthy(void)
+{
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
       acq_status[i].state = ACQ_PRN_ACQUIRING;
@@ -668,7 +680,8 @@ void check_clear_unhealthy(void) {
 
 /** Check GLO unhealthy flags and clear after GLO ephemeris valid time
  * This function blocks acquiring GLO SV for some time if the SV is unhealthy */
-void check_clear_glo_unhealthy(void) {
+void check_clear_glo_unhealthy(void)
+{
   if (!is_glo_enabled()) {
     return;
   }
@@ -688,7 +701,8 @@ void check_clear_glo_unhealthy(void) {
   }
 }
 
-void me_settings_setup(void) {
+void me_settings_setup(void)
+{
   SETTING("track", "elevation_mask", tracking_elevation_mask, TYPE_FLOAT);
   SETTING("solution", "elevation_mask", solution_elevation_mask, TYPE_FLOAT);
 }
@@ -704,44 +718,45 @@ float get_solution_elevation_mask() { return solution_elevation_mask; }
  *
  * \return Literal for the given \a reason.
  */
-static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
+static const char *get_ch_drop_reason_str(ch_drop_reason_t reason)
+{
   const char *str = "";
   switch (reason) {
-    case CH_DROP_REASON_ERROR:
-      str = "error occurred, dropping";
-      break;
-    case CH_DROP_REASON_MASKED:
-      str = "channel is masked, dropping";
-      break;
-    case CH_DROP_REASON_NO_BIT_SYNC:
-      str = "no bit sync, dropping";
-      break;
-    case CH_DROP_REASON_NO_PLOCK:
-      str = "No pessimistic lock for too long, dropping";
-      break;
-    case CH_DROP_REASON_LOW_CN0:
-      str = "low CN0 too long, dropping";
-      break;
-    case CH_DROP_REASON_XCORR:
-      str = "cross-correlation confirmed, dropping";
-      break;
-    case CH_DROP_REASON_NO_UPDATES:
-      str = "no updates, dropping";
-      break;
-    case CH_DROP_REASON_L2CL_SYNC:
-      str = "L2CM half-cycle ambiguity resolved, dropping L2CL";
-      break;
-    case CH_DROP_REASON_SV_UNHEALTHY:
-      str = "SV is unhealthy, dropping";
-      break;
-    case CH_DROP_REASON_LEAP_SECOND:
-      str = "Leap second event, dropping GLO signal";
-      break;
-    case CH_DROP_REASON_OUTLIER:
-      str = "SV measurement outlier, dropping";
-      break;
-    default:
-      assert(!"Unknown channel drop reason");
+  case CH_DROP_REASON_ERROR:
+    str = "error occurred, dropping";
+    break;
+  case CH_DROP_REASON_MASKED:
+    str = "channel is masked, dropping";
+    break;
+  case CH_DROP_REASON_NO_BIT_SYNC:
+    str = "no bit sync, dropping";
+    break;
+  case CH_DROP_REASON_NO_PLOCK:
+    str = "No pessimistic lock for too long, dropping";
+    break;
+  case CH_DROP_REASON_LOW_CN0:
+    str = "low CN0 too long, dropping";
+    break;
+  case CH_DROP_REASON_XCORR:
+    str = "cross-correlation confirmed, dropping";
+    break;
+  case CH_DROP_REASON_NO_UPDATES:
+    str = "no updates, dropping";
+    break;
+  case CH_DROP_REASON_L2CL_SYNC:
+    str = "L2CM half-cycle ambiguity resolved, dropping L2CL";
+    break;
+  case CH_DROP_REASON_SV_UNHEALTHY:
+    str = "SV is unhealthy, dropping";
+    break;
+  case CH_DROP_REASON_LEAP_SECOND:
+    str = "Leap second event, dropping GLO signal";
+    break;
+  case CH_DROP_REASON_OUTLIER:
+    str = "SV measurement outlier, dropping";
+    break;
+  default:
+    assert(!"Unknown channel drop reason");
   }
   return str;
 }
@@ -756,7 +771,8 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * \param[in] reason     Channel drop reason
  */
 static void drop_channel(tracker_channel_t *tracker_channel,
-                         ch_drop_reason_t reason) {
+                         ch_drop_reason_t reason)
+{
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */
@@ -847,7 +863,8 @@ static void drop_channel(tracker_channel_t *tracker_channel,
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-static bool leap_second_is_imminent(void) {
+static bool leap_second_is_imminent(void)
+{
   /* Check if GPS time is known.
    * If GPS time is not known,
    * leap second event cannot be detected. */
@@ -879,7 +896,8 @@ static bool leap_second_is_imminent(void) {
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_trackers(void) {
+void sanitize_trackers(void)
+{
   const u64 now_ms = timing_getms();
   bool leap_second_event = leap_second_is_imminent();
 
@@ -1031,7 +1049,8 @@ static u32 get_tracking_channel_flags_info(
     tracking_channel_time_info_t *time_info,
     tracking_channel_freq_info_t *freq_info,
     tracking_channel_ctrl_info_t *ctrl_info,
-    tracking_channel_misc_info_t *misc_info) {
+    tracking_channel_misc_info_t *misc_info)
+{
   tracking_channel_info_t tmp_info;
   tracking_channel_time_info_t tmp_time_info;
 
@@ -1068,7 +1087,8 @@ static u32 get_tracking_channel_flags_info(
 static bool compute_cpo(u64 ref_tc,
                         const tracking_channel_info_t *info,
                         const channel_measurement_t *meas,
-                        double *carrier_phase_offset) {
+                        double *carrier_phase_offset)
+{
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
   bool ret = tracking_channel_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
@@ -1108,7 +1128,8 @@ static bool compute_cpo(u64 ref_tc,
  */
 static chan_meas_flags_t compute_meas_flags(u32 flags,
                                             bool phase_offset_ok,
-                                            const me_gnss_signal_t mesid) {
+                                            const me_gnss_signal_t mesid)
+{
   chan_meas_flags_t meas_flags = 0;
 
   if (0 != (flags & TRACKER_FLAG_PLL_USE)) {
@@ -1170,7 +1191,8 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
 u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
-                              ephemeris_t *ephe) {
+                              ephemeris_t *ephe)
+{
   u32 flags = 0;                          /* Result */
   tracking_channel_info_t info;           /* Container for generic info */
   tracking_channel_freq_info_t freq_info; /* Container for measurements */
@@ -1258,7 +1280,8 @@ u32 get_tracking_channel_meas(u8 i,
  *
  * \return None
  */
-void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
+void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams)
+{
   tracking_channel_ctrl_info_t tmp;
 
   tracking_channel_get_values(i,
@@ -1288,7 +1311,8 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
  */
 u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                    s32 tow_ms,
-                                   const ephemeris_t *pephe) {
+                                   const ephemeris_t *pephe)
+{
   u32 flags = 0;
 
   /* Satellite elevation is above the solution mask. */
@@ -1327,7 +1351,8 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
  * \retval true mesid tracking can be started.
  * \retval false mesid tracking cannot be started.
  */
-bool tracking_startup_ready(const me_gnss_signal_t mesid) {
+bool tracking_startup_ready(const me_gnss_signal_t mesid)
+{
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
   return (acq->state == ACQ_PRN_ACQUIRING) && (!acq->masked);
@@ -1341,7 +1366,8 @@ bool tracking_startup_ready(const me_gnss_signal_t mesid) {
  * \retval true  Tracker for \a mesid is in running state
  * \retval false Tracker for \a mesid is not in running state
  */
-bool tracking_is_running(const me_gnss_signal_t mesid) {
+bool tracking_is_running(const me_gnss_signal_t mesid)
+{
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
   return (acq->state == ACQ_PRN_TRACKING);
@@ -1356,7 +1382,8 @@ bool tracking_is_running(const me_gnss_signal_t mesid) {
  * \return true if the mesid is present, false otherwise.
  */
 static bool tracking_startup_fifo_mesid_present(
-    const tracking_startup_fifo_t *fifo, const me_gnss_signal_t mesid) {
+    const tracking_startup_fifo_t *fifo, const me_gnss_signal_t mesid)
+{
   tracking_startup_fifo_index_t read_index = fifo->read_index;
   tracking_startup_fifo_index_t write_index = fifo->write_index;
   COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -1381,7 +1408,8 @@ static bool tracking_startup_fifo_mesid_present(
  * \retval 2 otherwise
  *
  */
-u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
+u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
+{
   u8 result = 2;
   if (chMtxTryLock(&tracking_startup_mutex)) {
     if (!tracking_startup_fifo_mesid_present(&tracking_startup_fifo,
@@ -1404,7 +1432,8 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
 /** Read tracking startup requests from the FIFO and attempt to start
  * tracking and decoding.
  */
-static void manage_tracking_startup(void) {
+static void manage_tracking_startup(void)
+{
   tracking_startup_params_t startup_params;
   while (tracking_startup_fifo_read(&tracking_startup_fifo, &startup_params)) {
     acq_status_t *acq =
@@ -1479,7 +1508,8 @@ static void manage_tracking_startup(void) {
  *
  * \param fifo        tracking_startup_fifo_t struct to use.
  */
-static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo) {
+static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo)
+{
   fifo->read_index = 0;
   fifo->write_index = 0;
 }
@@ -1492,7 +1522,8 @@ static void tracking_startup_fifo_init(tracking_startup_fifo_t *fifo) {
  * \return true if element was read, false otherwise.
  */
 static bool tracking_startup_fifo_write(
-    tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element) {
+    tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element)
+{
   if (TRACKING_STARTUP_FIFO_LENGTH(fifo) < TRACKING_STARTUP_FIFO_SIZE) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     memcpy(
@@ -1515,7 +1546,8 @@ static bool tracking_startup_fifo_write(
  * \return true if element was read, false otherwise.
  */
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
-                                       tracking_startup_params_t *element) {
+                                       tracking_startup_params_t *element)
+{
   if (TRACKING_STARTUP_FIFO_LENGTH(fifo) > 0) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     memcpy(element,
@@ -1535,7 +1567,8 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
  * \retval true sid is tracked
  * \retval false sid is not tracked
  */
-bool mesid_is_tracked(const me_gnss_signal_t mesid) {
+bool mesid_is_tracked(const me_gnss_signal_t mesid)
+{
   /* This function is used in reacquisition which runs in
      the same thread as acquisition.
      Revisit this if there will be any better way to check

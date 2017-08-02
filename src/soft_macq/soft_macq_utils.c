@@ -31,7 +31,8 @@ sc16_t bbConvTable[BBLUT_SIZE];
  * to 16 bits to make the following decimation faster,
  * why not scaling up a bit in the first place?
  * */
-int InitBBConvLut(void) {
+int InitBBConvLut(void)
+{
   int k;
   int16_t iSampleLUT[(1 << SAMPLE_BITS)] = {-1, -3, +1, +3};
   uint32_t uVal, uPhase;
@@ -67,7 +68,8 @@ int InitBBConvLut(void) {
  * registers
  * overflows to zero (like in a circle you come back to the beginning).
  */
-uint32_t CirclesToUint32(double dCircles) {
+uint32_t CirclesToUint32(double dCircles)
+{
   double dTmp;
   uint32_t uiRet;
 

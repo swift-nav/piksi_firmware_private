@@ -32,7 +32,8 @@
 #define EXPECTED_PEAK_CN0_THRESHOLD_DBHZ 37.0f
 
 /* Stub functions */
-gps_time_t get_current_time(void) {
+gps_time_t get_current_time(void)
+{
   gps_time_t t;
   t.wn = 0;
   t.tow = TOW_UNKNOWN;
@@ -43,7 +44,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float *doppler_min,
-                          float *doppler_max) {
+                          float *doppler_max)
+{
   (void)sid;
   (void)t;
   (void)lgf;
@@ -59,7 +61,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
  *
  * \return 0
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   /* There is not much to check in Phase 1 */
   acq_job_t job;
   acq_task_search_params_t *acq_param = &job.task_data.task_array[0];

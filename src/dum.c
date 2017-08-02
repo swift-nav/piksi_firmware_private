@@ -71,7 +71,8 @@ static int get_doppler(const gnss_signal_t *sid,
                        const last_good_fix_t *lgf,
                        float radius,
                        float *doppler_min,
-                       float *doppler_max) {
+                       float *doppler_max)
+{
   if (NULL == t || TIME_COARSE > time_quality || NULL == lgf ||
       POSITION_UNKNOWN == lgf->position_quality) {
     return -1;
@@ -112,7 +113,8 @@ static int get_doppler_by_lgf_propagation(const gnss_signal_t *sid,
                                           const last_good_fix_t *lgf,
                                           float speed,
                                           float *doppler_min,
-                                          float *doppler_max) {
+                                          float *doppler_max)
+{
   double diff_s = gpsdifftime(t, &lgf->position_solution.time);
   float radius = diff_s * speed;
 
@@ -134,7 +136,8 @@ static int get_doppler_by_lgf(const gnss_signal_t *sid,
                               const gps_time_t *t,
                               const last_good_fix_t *lgf,
                               float *doppler_min,
-                              float *doppler_max) {
+                              float *doppler_max)
+{
   float radius = DUM_LGF_VICINITY_RADIUS_M;
 
   return get_doppler(sid, t, lgf, radius, doppler_min, doppler_max);
@@ -159,7 +162,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const last_good_fix_t *lgf,
                           float speed,
                           float *doppler_min,
-                          float *doppler_max) {
+                          float *doppler_max)
+{
   assert(sid != NULL);
   assert(sid_valid(*sid));
   assert((CODE_GPS_L1CA == sid->code) || (CODE_GLO_L1CA == sid->code));
@@ -184,19 +188,19 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
 
   for (j = 0; j < DUM_METHOD_NUM && (ret != 0); j++) {
     switch (method) {
-      case DUM_LGF:
-        ret = get_doppler_by_lgf(sid, t, lgf, doppler_min, doppler_max);
-        break;
+    case DUM_LGF:
+      ret = get_doppler_by_lgf(sid, t, lgf, doppler_min, doppler_max);
+      break;
 
-      case DUM_LGF_PROPAGATION:
-        ret = get_doppler_by_lgf_propagation(
-            sid, t, lgf, speed, doppler_min, doppler_max);
-        break;
+    case DUM_LGF_PROPAGATION:
+      ret = get_doppler_by_lgf_propagation(
+          sid, t, lgf, speed, doppler_min, doppler_max);
+      break;
 
-      case DUM_METHOD_NUM:
-      default:
-        assert(!"Unexpected method ID!");
-        break;
+    case DUM_METHOD_NUM:
+    default:
+      assert(!"Unexpected method ID!");
+      break;
     }
 
     method = (method + 1) % DUM_METHOD_NUM;

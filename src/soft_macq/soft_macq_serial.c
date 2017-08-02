@@ -72,7 +72,8 @@ static u32 puMaxIdx[4];
 static u32 puMaxVal[4];
 static u32 puSumVal[4];
 
-float soft_acq_bin_width(void) {
+float soft_acq_bin_width(void)
+{
   return SOFTMACQ_SAMPLE_RATE_Hz / (1 << SOFTMACQ_FFTLEN_LOG2);
 }
 
@@ -81,7 +82,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
                      float cf_min,
                      float cf_max,
                      float cf_bin_width,
-                     acq_result_t *acq_result) {
+                     acq_result_t *acq_result)
+{
   /* Configuration */
   u32 fft_len_log2 = SOFTMACQ_FFTLEN_LOG2;
   u32 fft_len = 1 << fft_len_log2;
@@ -217,7 +219,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
 static void code_resample(const me_gnss_signal_t mesid,
                           float chips_per_sample,
                           sc16_t *resampled,
-                          u32 resampled_length) {
+                          u32 resampled_length)
+{
   const u8 *pCode = ca_code(mesid);
   u32 code_length = code_to_chip_count(mesid.code);
 
@@ -247,7 +250,8 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_max,
                             float cf_bin_width,
                             s16 *doppler_bin_min,
-                            s16 *doppler_bin_max) {
+                            s16 *doppler_bin_max)
+{
   /* Loop over Doppler bins */
   *doppler_bin_min = (s16)floorf(cf_min / cf_bin_width);
   *doppler_bin_max = (s16)floorf(cf_max / cf_bin_width);
@@ -290,7 +294,8 @@ static bool ifft_operations(s16 doppler_bin,
                             float fft_bin_width,
                             const sc16_t *_pCodeFft,
                             const sc16_t *_pSampleFft,
-                            float *doppler) {
+                            float *doppler)
+{
   s32 sample_offset = (s32)round((doppler_bin * cf_bin_width) / fft_bin_width);
   /* Actual computed Doppler */
   *doppler = doppler_bin * cf_bin_width;
@@ -329,7 +334,8 @@ static bool ifft_operations(s16 doppler_bin,
 static bool acq_peak_search(const me_gnss_signal_t mesid,
                             float doppler,
                             float fft_bin_width,
-                            acq_peak_search_t *peak) {
+                            acq_peak_search_t *peak)
+{
   uint32_t k = 0, kmax = 0;
   u32 peak_index;
   u32 peak_mag_sq;
@@ -368,11 +374,14 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   return true;
 }
 
-static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize) {
+static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize)
+{
   u32 k, uTmpMag, uSz4th;
 
-  if (NULL == _pcVec) return;
-  if (_uSize == 0) return;
+  if (NULL == _pcVec)
+    return;
+  if (_uSize == 0)
+    return;
 
   puMaxIdx[0] = 0;
   puMaxIdx[1] = 0;

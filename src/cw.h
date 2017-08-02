@@ -58,6 +58,6 @@ void cw_setup(void);
 void cw_start(float freq_min, float freq_max, float freq_bin_width);
 void cw_service_irq(void);
 void cw_send_result(float freq, u64 power);
-void cw_get_spectrum_point(float* freq, u64* power, u16 index);
+void cw_get_spectrum_point(float *freq, u64 *power, u16 index);
 
 #endif

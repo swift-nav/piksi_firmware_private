@@ -48,7 +48,8 @@ static ndb_file_t lgf_file = {.name = LGF_FILE_NAME,
                               .block_size = sizeof(last_good_fix_saved),
                               .block_count = 1};
 
-void ndb_lgf_init(void) {
+void ndb_lgf_init(void)
+{
   static bool erase_lgf = true;
   SETTING("ndb", "erase_lgf", erase_lgf, TYPE_BOOL);
   SETTING("ndb", "lgf_update_s", lgf_update_s, TYPE_INT);
@@ -86,7 +87,8 @@ void ndb_lgf_init(void) {
  *
  * \sa ndb_lgf_store
  */
-ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf)
+{
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   /* LGF is loaded only on boot, and then periodically saved to NV. Because of
@@ -136,7 +138,8 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
  *
  * \sa ndb_lgf_read
  */
-ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf) {
+ndb_op_code_t ndb_lgf_store(const last_good_fix_t *lgf)
+{
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != lgf) {

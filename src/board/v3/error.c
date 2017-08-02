@@ -35,7 +35,8 @@
 /** A simple DMA/interrupt-free UART write function, for use by screaming_death
  */
 /* TODO: Move to peripherals/usart.c? */
-static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context) {
+static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context)
+{
   (void)context;
   for (u8 i = 0; i < n; i++) {
     while (UART1->SR & UART_SR_TXFULL_Msk)
@@ -53,7 +54,8 @@ static u32 fallback_write_ftdi(u8 *buff, u32 n, void *context) {
  *
  * \param msg A pointer to an array of chars containing the error message.
  */
-void _screaming_death(const char *pos, const char *msg) {
+void _screaming_death(const char *pos, const char *msg)
+{
   __asm__("CPSID if;"); /* Disable all interrupts and faults */
 
 #define SPEAKING_MSG_N 222 /* Maximum length of error message */
@@ -91,7 +93,8 @@ void _screaming_death(const char *pos, const char *msg) {
 void __assert_func(const char *_file,
                    int _line,
                    const char *_func,
-                   const char *_expr) {
+                   const char *_expr)
+{
   char pos[255];
   char msg[255];
   sprintf(pos, "%s:%s():%d", _file, _func, _line);
@@ -105,7 +108,8 @@ void _fini(void) { return; }
 /** _exit(2) syscall handler.  Called by (at least) abort() and exit().
  * Calls screaming_death() to repeatedly print an ERROR until WDT reset.
  */
-void _exit(int status) {
+void _exit(int status)
+{
   (void)status;
   /* TODO: Perhaps print a backtrace; let's see if this ever actually
      occurs before implementing that. */
@@ -117,7 +121,8 @@ void _exit(int status) {
 void fault_handling_setup(void) {}
 
 /* Called by fault handlers in error_asm.s */
-void fault_handler_screaming_death(const char *msg_str, u32 lr) {
+void fault_handler_screaming_death(const char *msg_str, u32 lr)
+{
   char msg[128];
   extern int fallback_sprintf(char *str, const char *fmt, ...);
   fallback_sprintf(msg, "%s lr=%08X", msg_str, (unsigned int)lr);

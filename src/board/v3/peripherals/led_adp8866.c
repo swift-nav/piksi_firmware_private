@@ -30,14 +30,16 @@ static u8 brightness_cache[LED_ADP8866_LED_COUNT] = {0};
 
 /** Lock and start the I2C driver.
  */
-static void i2c_open(void) {
+static void i2c_open(void)
+{
   i2cAcquireBus(&LED_I2C);
   i2cStart(&LED_I2C, &led_i2c_config);
 }
 
 /** Unlock and stop the I2C driver.
  */
-static void i2c_close(void) {
+static void i2c_close(void)
+{
   i2cStop(&LED_I2C);
   i2cReleaseBus(&LED_I2C);
 }
@@ -49,7 +51,8 @@ static void i2c_close(void) {
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_read(u8 addr, u8 *data) {
+static msg_t i2c_read(u8 addr, u8 *data)
+{
   return i2cMasterTransmitTimeout(
       &LED_I2C, LED_I2C_ADDR, &addr, 1, data, 1, LED_I2C_TIMEOUT);
 }
@@ -61,7 +64,8 @@ static msg_t i2c_read(u8 addr, u8 *data) {
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_write(u8 addr, u8 data) {
+static msg_t i2c_write(u8 addr, u8 data)
+{
   u8 buf[2] = {addr, data};
   return i2cMasterTransmitTimeout(
       &LED_I2C, LED_I2C_ADDR, buf, sizeof(buf), NULL, 0, LED_I2C_TIMEOUT);
@@ -71,11 +75,14 @@ static msg_t i2c_write(u8 addr, u8 data) {
  *
  * \return true if the operation succeeded, false otherwise.
  */
-static bool id_check(void) {
+static bool id_check(void)
+{
   bool read_ok;
   u8 mfdvid;
   i2c_open();
-  { read_ok = (i2c_read(LED_ADP8866_REG_MFDVID, &mfdvid) == MSG_OK); }
+  {
+    read_ok = (i2c_read(LED_ADP8866_REG_MFDVID, &mfdvid) == MSG_OK);
+  }
   i2c_close();
 
   if (!read_ok) {
@@ -95,7 +102,8 @@ static bool id_check(void) {
  *
  * \return true if the operation succeeded, false otherwise.
  */
-static bool configure(void) {
+static bool configure(void)
+{
   bool ret = true;
 
   i2c_open();
@@ -186,7 +194,8 @@ static bool configure(void) {
  * \return true if the operation succeeded, false otherwise.
  */
 static bool leds_set(const led_adp8866_led_state_t *led_states,
-                     u32 led_states_count) {
+                     u32 led_states_count)
+{
   bool ret = true;
 
   i2c_open();
@@ -220,7 +229,8 @@ static bool leds_set(const led_adp8866_led_state_t *led_states,
  */
 static u32 modified_states_get(const led_adp8866_led_state_t *input_states,
                                u32 input_states_count,
-                               led_adp8866_led_state_t *output_states) {
+                               led_adp8866_led_state_t *output_states)
+{
   u32 output_states_count = 0;
 
   for (u32 i = 0; i < input_states_count; i++) {
@@ -242,7 +252,8 @@ static u32 modified_states_get(const led_adp8866_led_state_t *input_states,
 
 /** Initialize the LED driver.
  */
-void led_adp8866_init(void) {
+void led_adp8866_init(void)
+{
   if (!id_check()) {
     return;
   }
@@ -269,7 +280,8 @@ void led_adp8866_init(void) {
  *
  * \return true if the operation succeeded, false otherwise.
  */
-bool led_adp8866_led_set(const led_adp8866_led_state_t *led_state) {
+bool led_adp8866_led_set(const led_adp8866_led_state_t *led_state)
+{
   return led_adp8866_leds_set(led_state, 1);
 }
 
@@ -281,7 +293,8 @@ bool led_adp8866_led_set(const led_adp8866_led_state_t *led_state) {
  * \return true if the operation succeeded, false otherwise.
  */
 bool led_adp8866_leds_set(const led_adp8866_led_state_t *led_states,
-                          u32 led_states_count) {
+                          u32 led_states_count)
+{
   led_adp8866_led_state_t modified_states[LED_ADP8866_LED_COUNT];
   u32 modified_states_count =
       modified_states_get(led_states, led_states_count, modified_states);

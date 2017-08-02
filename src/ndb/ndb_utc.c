@@ -34,7 +34,8 @@ static ndb_file_t utc_params_file = {.name = UTC_PARAMS_FILE_NAME,
                                      .block_size = sizeof(utc_params),
                                      .block_count = 1};
 
-void ndb_utc_params_init(void) {
+void ndb_utc_params_init(void)
+{
   static bool erase_utc_params = false;
   SETTING("ndb", "erase_utc_params", erase_utc_params, TYPE_BOOL);
 
@@ -51,7 +52,8 @@ void ndb_utc_params_init(void) {
  * \retval NDB_ERR_BAD_PARAM  On parameter error
  * \retval NDB_ERR_MISSING_IE No cached data block
  */
-ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
+ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv)
+{
   if (is_nv != NULL) {
     *is_nv = (0 != (utc_params_md.vflags & NDB_VFLAG_DATA_FROM_NV));
   }
@@ -82,7 +84,8 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
 ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
                                    const utc_params_t *utc_params_p,
                                    ndb_data_source_t src,
-                                   u16 sender_id) {
+                                   u16 sender_id)
+{
   ndb_op_code_t res;
   utc_params_t current;
   bool is_nv;

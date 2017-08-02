@@ -24,7 +24,8 @@
 #include "error.h"
 
 #define WRAP(rtype, proto, usage) \
-  rtype __wrap_##proto {          \
+  rtype __wrap_##proto            \
+  {                               \
     reent_lock();                 \
     extern rtype __real_##proto;  \
     rtype ret = __real_##usage;   \
@@ -44,7 +45,8 @@ static reent_lock_state_t reent_lock_state = {
 static void reent_lock(void);
 static void reent_unlock(void);
 
-static void reent_lock(void) {
+static void reent_lock(void)
+{
   thread_t *thread = chThdGetSelfX();
 
   chSysLock();
@@ -57,7 +59,8 @@ static void reent_lock(void) {
   chSysUnlock();
 }
 
-static void reent_unlock(void) {
+static void reent_unlock(void)
+{
   if (reent_lock_state.nest > 0) {
     reent_lock_state.nest--;
   } else {
@@ -133,7 +136,8 @@ WRAP(int,
      __ssvfiscanf_r(r, f, fmt, va))
 
 /* Implement sbrk() */
-void *_sbrk(int incr) {
+void *_sbrk(int incr)
+{
   chDbgCheck(incr >= 0);
   void *p = chCoreAlloc(incr);
   if (p == NULL) {
@@ -145,18 +149,21 @@ void *_sbrk(int incr) {
 }
 
 /* Implement malloc_lock() and malloc_unlock() */
-void __malloc_lock(struct _reent *r) {
+void __malloc_lock(struct _reent *r)
+{
   (void)r;
   reent_lock();
 }
 
-void __malloc_unlock(struct _reent *r) {
+void __malloc_unlock(struct _reent *r)
+{
   (void)r;
   reent_unlock();
 }
 
 /* sprintf() which bypasses REENT mutex */
-int fallback_sprintf(char *str, const char *fmt, ...) {
+int fallback_sprintf(char *str, const char *fmt, ...)
+{
   int ret;
   va_list ap;
   FILE f;

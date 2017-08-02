@@ -21,7 +21,8 @@
 
 /** Get last saved position from NDB.
  */
-void position_setup(void) {
+void position_setup(void)
+{
   last_good_fix_t lgf;
   if (ndb_lgf_read(&lgf) == NDB_ERR_NONE && lgf.position_solution.valid) {
     log_info("Loaded last position solution from file: %.4f %.4f %.1f",

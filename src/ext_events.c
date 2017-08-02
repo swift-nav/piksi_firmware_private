@@ -29,7 +29,8 @@ static ext_event_trigger_t trigger = TRIG_NONE;
 static u32 timeout_microseconds = 0;
 
 /** Settings callback to inform NAP which trigger mode is desired */
-static bool trigger_changed(struct setting *s, const char *val) {
+static bool trigger_changed(struct setting *s, const char *val)
+{
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     nap_rw_ext_event(NULL, NULL, trigger, timeout_microseconds);
     return true;
@@ -44,7 +45,8 @@ static bool trigger_changed(struct setting *s, const char *val) {
  * to update the NAP if the trigger mode is changed.
  *
  */
-void ext_event_setup(void) {
+void ext_event_setup(void)
+{
   static const char const *trigger_enum[] = {
       "None", "Rising", "Falling", "Both", NULL};
   static struct setting_type trigger_setting;
@@ -69,7 +71,8 @@ void ext_event_setup(void) {
  * reads out the details and spits them out as an SBP message to our host.
  *
  */
-void ext_event_service(void) {
+void ext_event_service(void)
+{
   u8 event_pin;
   ext_event_trigger_t event_trig;
 
@@ -90,7 +93,8 @@ void ext_event_service(void) {
   /* Prepare the MSG_EXT_EVENT */
   msg_ext_event_t msg;
   msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
-  if (time_quality == TIME_FINE) msg.flags |= (1 << 1);
+  if (time_quality == TIME_FINE)
+    msg.flags |= (1 << 1);
   msg.pin = event_pin;
 
   /* Convert to the SBP convention of rounded ms + signed ns residual */

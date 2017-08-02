@@ -90,7 +90,8 @@ static u32 gpgsa_msg_rate = 10;
   do {                                                                        \
     sentence_bufp += snprintf(                                                \
         sentence_bufp, sentence_buf_end - sentence_bufp, fmt, ##__VA_ARGS__); \
-    if (sentence_bufp >= sentence_buf_end) sentence_bufp = sentence_buf_end;  \
+    if (sentence_bufp >= sentence_buf_end)                                    \
+      sentence_bufp = sentence_buf_end;                                       \
   } while (0)
 
 /** NMEA_SENTENCE_DONE: append checksum and dispatch.
@@ -113,7 +114,8 @@ static u32 gpgsa_msg_rate = 10;
  * \param s The NMEA sentence to output.
  * \param size This is the C-string size, not including the null character
  */
-static void nmea_output(char *s, size_t size) {
+static void nmea_output(char *s, size_t size)
+{
   static MUTEX_DECL(send_mutex);
   chMtxLock(&send_mutex);
 
@@ -122,7 +124,8 @@ static void nmea_output(char *s, size_t size) {
   chMtxUnlock(&send_mutex);
 }
 
-void nmea_setup(void) {
+void nmea_setup(void)
+{
   SETTING("nmea", "gpgga_msg_rate", gpgga_msg_rate, TYPE_INT);
   SETTING("nmea", "gpgsv_msg_rate", gpgsv_msg_rate, TYPE_INT);
   SETTING("nmea", "gprmc_msg_rate", gprmc_msg_rate, TYPE_INT);
@@ -144,7 +147,8 @@ void nmea_setup(void) {
  * \param size Length of the buffer.
  *
  */
-static void nmea_append_checksum(char *s, size_t size) {
+static void nmea_append_checksum(char *s, size_t size)
+{
   u8 sum = 0;
   char *p = s;
 
@@ -169,7 +173,8 @@ static void nmea_append_checksum(char *s, size_t size) {
 static void vsnprintf_wrap(char **buf_ptr,
                            char *buf_end,
                            const char *format,
-                           ...) {
+                           ...)
+{
   va_list args;
   va_start(args, format);
 
@@ -207,7 +212,8 @@ static void get_utc_time_string(const msg_gps_time_t *sbp_msg_time,
                                 bool trunc_date,
                                 const utc_tm *t,
                                 char *utc_str,
-                                u8 size) {
+                                u8 size)
+{
   char *buf_end = utc_str + size;
 
   if ((sbp_msg_time->flags & TIME_SOURCE_MASK) == NO_TIME) {
@@ -281,7 +287,8 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
                 const utc_tm *utc_time,
                 const msg_dops_t *sbp_dops,
                 double propagation_time,
-                u8 station_id) {
+                u8 station_id)
+{
   /* GGA sentence is formed by splitting latitude and longitude
      into degrees and minutes parts and then printing them separately
      using printf. Before doing the split we want to take care of
@@ -365,7 +372,8 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
 void nmea_gpgsa(const u8 *prns,
                 u8 num_prns,
                 const msg_pos_llh_t *sbp_pos_llh,
-                const msg_dops_t *sbp_dops) {
+                const msg_dops_t *sbp_dops)
+{
   char fix_mode =
       (sbp_pos_llh->flags == 0) ? '1' : '3'; /* Our fix is allways 3D */
 
@@ -404,7 +412,8 @@ void nmea_gpgsa(const u8 *prns,
  *   0  The element pointed to by a is equivalent to the element pointed to by b
  *   >0 The element pointed to by a goes after the element pointed to by b
  */
-int compare_ch_meas(const void *a, const void *b) {
+int compare_ch_meas(const void *a, const void *b)
+{
   const channel_measurement_t **ca = (const channel_measurement_t **)a;
   const channel_measurement_t **cb = (const channel_measurement_t **)b;
 
@@ -419,7 +428,8 @@ int compare_ch_meas(const void *a, const void *b) {
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
  */
-void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas) {
+void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas)
+{
   const channel_measurement_t *ch_meas_gps[n_used];
 
   if (NULL == ch_meas) {
@@ -508,7 +518,8 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas) {
 static void calc_cog_sog(const msg_vel_ned_t *sbp_vel_ned,
                          double *cog,
                          double *sog_knots,
-                         double *sog_kph) {
+                         double *sog_kph)
+{
   double vel_north_ms = MM2M(sbp_vel_ned->n);
   double vel_east_ms = MM2M(sbp_vel_ned->e);
 
@@ -542,7 +553,8 @@ static void calc_cog_sog(const msg_vel_ned_t *sbp_vel_ned,
 void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_vel_ned_t *sbp_vel_ned,
                 const msg_gps_time_t *sbp_msg_time,
-                const utc_tm *utc_time) {
+                const utc_tm *utc_time)
+{
   /* See the relevant comment for the similar code in nmea_gpgga() function
      for the reasoning behind (... * 1e8 / 1e8) trick */
   double lat = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
@@ -616,7 +628,8 @@ void nmea_gprmc(const msg_pos_llh_t *sbp_pos_llh,
  * \param sbp_vel_ned Pointer to sbp vel ned struct.
  */
 void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned,
-                const msg_pos_llh_t *sbp_pos_llh) {
+                const msg_pos_llh_t *sbp_pos_llh)
+{
   double cog, sog_knots, sog_kph;
   calc_cog_sog(sbp_vel_ned, &cog, &sog_knots, &sog_kph);
 
@@ -657,7 +670,8 @@ void nmea_gpvtg(const msg_vel_ned_t *sbp_vel_ned,
  * NMEA HDT contains Heading.
  *
  */
-void nmea_gphdt(const msg_baseline_heading_t *sbp_baseline_heading) {
+void nmea_gphdt(const msg_baseline_heading_t *sbp_baseline_heading)
+{
   NMEA_SENTENCE_START(40);
   NMEA_SENTENCE_PRINTF("$GPHDT,"); /* Command */
   if ((POSITION_MODE_MASK & sbp_baseline_heading->flags) == FIXED_POSITION) {
@@ -680,7 +694,8 @@ void nmea_gphdt(const msg_baseline_heading_t *sbp_baseline_heading) {
  */
 void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_gps_time_t *sbp_msg_time,
-                const utc_tm *utc_time) {
+                const utc_tm *utc_time)
+{
   /* See the relevant comment for the similar code in nmea_gpgga() function
      for the reasoning behind (... * 1e8 / 1e8) trick */
   double lat = fabs(round(sbp_pos_llh->lat * 1e8) / 1e8);
@@ -731,7 +746,8 @@ void nmea_gpgll(const msg_pos_llh_t *sbp_pos_llh,
  * \param sbp_msg_time Pointer to the current SBP GPS Time.
  * \param utc_time     Pointer to UTC time
  */
-void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const utc_tm *utc_time) {
+void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const utc_tm *utc_time)
+{
   NMEA_SENTENCE_START(40);
   NMEA_SENTENCE_PRINTF("$GPZDA,"); /* Command */
 
@@ -746,7 +762,8 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const utc_tm *utc_time) {
 } /* nmea_gpzda() */
 
 static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
-                                const msg_dops_t *sbp_dops) {
+                                const msg_dops_t *sbp_dops)
+{
   /* Assemble list of currently tracked GPS PRNs */
   /* TODO GLO: Check GLO status. */
   u8 prns[nap_track_n_channels];
@@ -776,7 +793,8 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of channel_measurement structs from tracked SVs
  */
-void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
+void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas)
+{
   DO_EVERY(gpgsv_msg_rate, nmea_gpgsv(n_used, ch_meas););
 }
 
@@ -800,7 +818,8 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     double propagation_time,
                     u8 sender_id,
                     const utc_params_t *utc_params,
-                    const msg_baseline_heading_t *sbp_baseline_heading) {
+                    const msg_baseline_heading_t *sbp_baseline_heading)
+{
   utc_tm utc_time;
 
   /* prepare utc_tm structure with time rounded to NMEA precision */
@@ -860,18 +879,19 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
-char get_nmea_status(u8 flags) {
+char get_nmea_status(u8 flags)
+{
   switch (flags & POSITION_MODE_MASK) {
-    case NO_POSITION:
-      return 'V';
-    case SPP_POSITION: /* autonomous mode */
-    case DGNSS_POSITION:
-    case FLOAT_POSITION:
-    case FIXED_POSITION:
-      return 'A';
-    default:
-      assert(!"Unsupported position type indicator");
-      return 'V';
+  case NO_POSITION:
+    return 'V';
+  case SPP_POSITION: /* autonomous mode */
+  case DGNSS_POSITION:
+  case FLOAT_POSITION:
+  case FIXED_POSITION:
+    return 'A';
+  default:
+    assert(!"Unsupported position type indicator");
+    return 'V';
   }
 }
 
@@ -880,19 +900,20 @@ char get_nmea_status(u8 flags) {
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
-char get_nmea_mode_indicator(u8 flags) {
+char get_nmea_mode_indicator(u8 flags)
+{
   switch (flags & POSITION_MODE_MASK) {
-    case NO_POSITION:
-      return 'N';
-    case SPP_POSITION: /* autonomous mode */
-      return 'A';
-    case DGNSS_POSITION: /* differential mode */
-    case FLOAT_POSITION:
-    case FIXED_POSITION:
-      return 'D';
-    default:
-      assert(!"Unsupported position type indicator");
-      return 'N';
+  case NO_POSITION:
+    return 'N';
+  case SPP_POSITION: /* autonomous mode */
+    return 'A';
+  case DGNSS_POSITION: /* differential mode */
+  case FLOAT_POSITION:
+  case FIXED_POSITION:
+    return 'D';
+  default:
+    assert(!"Unsupported position type indicator");
+    return 'N';
   }
 }
 
@@ -901,21 +922,22 @@ char get_nmea_mode_indicator(u8 flags) {
  *
  * \param flags        u8 sbp_pos_llh->flags
  */
-u8 get_nmea_quality_indicator(u8 flags) {
+u8 get_nmea_quality_indicator(u8 flags)
+{
   switch (flags & POSITION_MODE_MASK) {
-    case NO_POSITION:
-      return NMEA_GGA_QI_INVALID;
-    case SPP_POSITION:
-      return NMEA_GGA_QI_GPS;
-    case DGNSS_POSITION:
-      return NMEA_GGA_QI_DGPS;
-    case FLOAT_POSITION:
-      return NMEA_GGA_QI_FLOAT;
-    case FIXED_POSITION:
-      return NMEA_GGA_QI_RTK;
-    default:
-      assert(!"Unsupported position type indicator");
-      return NMEA_GGA_QI_INVALID;
+  case NO_POSITION:
+    return NMEA_GGA_QI_INVALID;
+  case SPP_POSITION:
+    return NMEA_GGA_QI_GPS;
+  case DGNSS_POSITION:
+    return NMEA_GGA_QI_DGPS;
+  case FLOAT_POSITION:
+    return NMEA_GGA_QI_FLOAT;
+  case FIXED_POSITION:
+    return NMEA_GGA_QI_RTK;
+  default:
+    assert(!"Unsupported position type indicator");
+    return NMEA_GGA_QI_INVALID;
   }
 }
 

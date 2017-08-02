@@ -20,7 +20,8 @@
 #define CLK_SEL_GPIO_LINE PAL_LINE(GPIO2, 30)
 #define LED_nRST_GPIO_LINE PAL_LINE(GPIO2, 18)
 
-void boardRevInit(void) {
+void boardRevInit(void)
+{
   /* Enable PCAP CLK */
   *(volatile uint32_t *)0xF8000168 |= (1 << 0);
 

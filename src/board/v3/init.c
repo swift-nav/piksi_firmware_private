@@ -81,7 +81,8 @@ static void uuid_unpack(const uint8_t *in, struct uuid *uu);
 
 void pre_init(void) { rpmsg_setup(); }
 
-static void random_init(void) {
+static void random_init(void)
+{
   u32 seed = 0;
   u32 sample_data = nap_conf_rd_random();
 
@@ -90,7 +91,8 @@ static void random_init(void) {
   srand(seed);
 }
 
-void init(void) {
+void init(void)
+{
   fault_handling_setup();
   factory_params_read();
 
@@ -117,14 +119,16 @@ void init(void) {
   manage_rtc_setup();
 }
 
-static void nap_conf_check(void) {
+static void nap_conf_check(void)
+{
   while (!(DEV_CFG_INT_STS & DEV_CFG_INT_STS_PCFG_DONE_Msk)) {
     log_error("Waiting for NAP");
     chThdSleepSeconds(2);
   }
 }
 
-static bool nap_version_ok(u32 version) {
+static bool nap_version_ok(u32 version)
+{
   /* Upper two bytes need to match for register map compatibility,
    * lower two bytes have to be greater or equal to enforce features. */
   if ((version & REQUIRED_NAP_VERSION_MASK) !=
@@ -136,7 +140,8 @@ static bool nap_version_ok(u32 version) {
          (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK));
 }
 
-static void nap_version_check(void) {
+static void nap_version_check(void)
+{
   /* NOTE: The NAP ROM contains the Vivado IP version corresponding to the
    * register map and a version string filled with the output of
    * `git describe`. We need to check against the IP version to ensure
@@ -161,7 +166,8 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * USARTs, and SBP subsystems are set up, so that SBP messages and
  * be sent and received (it can't go in init() or nap_setup()).
  */
-void nap_auth_check(void) {
+void nap_auth_check(void)
+{
   while (nap_locked()) {
     log_error("NAP Verification Failed: DNA=%016X, Key=%032X",
               nap_dna,
@@ -172,7 +178,8 @@ void nap_auth_check(void) {
   }
 }
 
-static bool factory_params_read(void) {
+static bool factory_params_read(void)
+{
   uint8_t factory_data_buff[FACTORY_DATA_SIZE_MAX];
   factory_data_t *factory_data = (factory_data_t *)factory_data_buff;
 
@@ -253,21 +260,24 @@ static bool factory_params_read(void) {
   return true;
 }
 
-u16 sender_id_get(void) {
+u16 sender_id_get(void)
+{
   struct uuid my_uuid;
   uuid_unpack(factory_params.uuid, &my_uuid);
   u16 sender_id = (u16)(my_uuid.node[4] << 8) + my_uuid.node[5];
   return sender_id;
 }
 
-u8 mfg_id_string_get(char *mfg_id_string) {
+u8 mfg_id_string_get(char *mfg_id_string)
+{
   memcpy(mfg_id_string, factory_params.mfg_id, sizeof(factory_params.mfg_id));
   mfg_id_string[sizeof(factory_params.mfg_id)] = 0;
   return strlen(mfg_id_string);
 }
 
 /*lifted from libuuid*/
-static void uuid_unpack(const uint8_t in[], struct uuid *uu) {
+static void uuid_unpack(const uint8_t in[], struct uuid *uu)
+{
   const uint8_t *ptr = &in[15];
   uint32_t tmp;
 
@@ -297,7 +307,8 @@ static void uuid_unpack(const uint8_t in[], struct uuid *uu) {
   uu->node[5] = *ptr--;
 }
 
-u8 uuid_string_get(char *uuid_string) {
+u8 uuid_string_get(char *uuid_string)
+{
   struct uuid temp_uuid;
   uuid_unpack(factory_params.uuid, &temp_uuid);
   sprintf(uuid_string,
@@ -316,7 +327,8 @@ u8 uuid_string_get(char *uuid_string) {
   return strlen(uuid_string);
 }
 
-u8 mac_address_string_get(char *mac_string) {
+u8 mac_address_string_get(char *mac_string)
+{
   sprintf(mac_string,
           "%02X-%02X-%02X-%02X-%02X-%02X",
           factory_params.mac_address[5],
@@ -328,45 +340,49 @@ u8 mac_address_string_get(char *mac_string) {
   return strlen(mac_string);
 }
 
-u8 hw_version_string_get(char *hw_version_string) {
+u8 hw_version_string_get(char *hw_version_string)
+{
   u16 major_ver = factory_params.hardware_version >> 16;
   u16 minor_ver = factory_params.hardware_version && 0xFFFF;
   sprintf(hw_version_string, "%d.%d", major_ver, minor_ver);
   return strlen(hw_version_string);
 }
 
-u8 hw_revision_string_get(char *hw_revision_string) {
+u8 hw_revision_string_get(char *hw_revision_string)
+{
   const char *s = NULL;
 
   switch (factory_params.hardware) {
-    case IMAGE_HARDWARE_UNKNOWN:
-      s = "Unknown";
-      break;
-    case IMAGE_HARDWARE_V3_MICROZED:
-      s = "Piksi Multi MicroZed";
-      break;
-    case IMAGE_HARDWARE_V3_EVT1:
-      s = "Piksi Multi EVT1";
-      break;
-    case IMAGE_HARDWARE_V3_EVT2:
-      s = "Piksi Multi EVT2";
-      break;
-    case IMAGE_HARDWARE_V3_PROD:
-      s = "Piksi Multi";
-      break;
-    default:
-      s = "Invalid";
-      break;
+  case IMAGE_HARDWARE_UNKNOWN:
+    s = "Unknown";
+    break;
+  case IMAGE_HARDWARE_V3_MICROZED:
+    s = "Piksi Multi MicroZed";
+    break;
+  case IMAGE_HARDWARE_V3_EVT1:
+    s = "Piksi Multi EVT1";
+    break;
+  case IMAGE_HARDWARE_V3_EVT2:
+    s = "Piksi Multi EVT2";
+    break;
+  case IMAGE_HARDWARE_V3_PROD:
+    s = "Piksi Multi";
+    break;
+  default:
+    s = "Invalid";
+    break;
   }
 
   strcpy(hw_revision_string, s);
   return strlen(hw_revision_string);
 }
 
-u8 nap_version_string_get(char *nap_version_string) {
+u8 nap_version_string_get(char *nap_version_string)
+{
   return nap_conf_rd_version_string(nap_version_string);
 }
 
-u8 nap_date_string_get(char *nap_date_string) {
+u8 nap_date_string_get(char *nap_date_string)
+{
   return nap_conf_rd_date_string(nap_date_string);
 }

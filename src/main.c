@@ -47,9 +47,10 @@
 
 extern void ext_setup(void);
 
-void* __dso_handle(void) { return (void*)0; };
+void *__dso_handle(void) { return (void *)0; };
 
-int main(void) {
+int main(void)
+{
   halInit();
 
   /* Kernel initialization, the main() function becomes a thread with
@@ -161,7 +162,7 @@ int main(void) {
 
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;
-  sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8*)&startup_flags);
+  sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8 *)&startup_flags);
 
   /* send Iono correction, L2C capabilities if valid */
   ionosphere_t iono;

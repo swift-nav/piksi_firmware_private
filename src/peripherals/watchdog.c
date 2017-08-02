@@ -44,7 +44,8 @@ static WDGConfig wdg_config;
  *   RC oscillator which drives the IWDG has a very loose timing spec.  Actual
  *   period may vary up to +88% -32% from this value.
  */
-void watchdog_enable(uint32_t period_ms) {
+void watchdog_enable(uint32_t period_ms)
+{
   uint32_t count, prescale, reload, exponent;
 
   /* Set the count to represent ticks of the 32kHz LSI clock */

@@ -29,7 +29,8 @@ const WDGConfig board_wdg_config = {
     .period_ms = 30000,
 };
 
-static void cycle_counter_init(void) {
+static void cycle_counter_init(void)
+{
   /* Set up TTC0_2 with period of ZYNQ7000_CPU_1x_FREQUENCY_Hz / 2^10 */
   TTC0->CLKCTRL[2] = (TTC_CLKCTRL_SRC_PCLK << TTC_CLKCTRL_SRC_Pos) |
                      (9 << TTC_CLKCTRL_PSVAL_Pos) | (1 << TTC_CLKCTRL_PSEN_Pos);
@@ -41,12 +42,14 @@ static void cycle_counter_init(void) {
 /*
  * Board-specific initialization code.
  */
-void boardInit(void) {
+void boardInit(void)
+{
   boardRevInit();
   cycle_counter_init();
 }
 
-void board_send_state(void) {
+void board_send_state(void)
+{
   msg_device_monitor_t msg;
 
   double fe_temp = 0;
@@ -60,5 +63,5 @@ void board_send_state(void) {
   msg.cpu_vaux = (s16)(xadc_vccaux_get() * 1000);
   msg.cpu_temperature = (s16)(xadc_die_temp_get() * 100);
 
-  sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
+  sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8 *)&msg);
 }

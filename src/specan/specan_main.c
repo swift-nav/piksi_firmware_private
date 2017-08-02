@@ -59,7 +59,8 @@ static uint32_t uTraceStep;
 static void SpecanCore(uint8_t _uWhichBand);
 
 THD_WORKING_AREA(wa_manage_specan_thread, SPECAN_THREAD_STACK);
-void ThreadManageSpecan(void *arg) {
+void ThreadManageSpecan(void *arg)
+{
   (void)arg;
   uint8_t uBand;
   uint32_t um, k, uMsgLength, uNumPoints;
@@ -76,7 +77,8 @@ void ThreadManageSpecan(void *arg) {
    * */
   while (TRUE) {
     chThdSleepMilliseconds(500);
-    if (!run_spectrum) continue;
+    if (!run_spectrum)
+      continue;
 
     pSampleBuf = GrabberGetBufferPt(&uBuffLen);
     if (NULL == pSampleBuf) {
@@ -106,8 +108,10 @@ void ThreadManageSpecan(void *arg) {
         /** find min and max amplitude */
         fMinAmpl = fMaxAmpl = pSpecTrace[um];
         for (k = 1; k < uNumPoints; k++) {
-          if (fMaxAmpl < pSpecTrace[um + k]) fMaxAmpl = pSpecTrace[um + k];
-          if (fMinAmpl > pSpecTrace[um + k]) fMinAmpl = pSpecTrace[um + k];
+          if (fMaxAmpl < pSpecTrace[um + k])
+            fMaxAmpl = pSpecTrace[um + k];
+          if (fMinAmpl > pSpecTrace[um + k])
+            fMinAmpl = pSpecTrace[um + k];
         }
         /** resulting minimum amplitude and amplitude step */
         p_head->amplitude_ref = fMinAmpl;
@@ -133,7 +137,8 @@ void ThreadManageSpecan(void *arg) {
   }
 }
 
-int SpecanStart(void) {
+int SpecanStart(void)
+{
   uint32_t k;
   const float fTwoPI = 2.0 * M_PI;
 
@@ -156,7 +161,8 @@ int SpecanStart(void) {
 
 static void Sca16AddAbssqTo(float *_fOut, sc16_t *_fIn, int _iSize);
 
-static void SpecanCore(uint8_t _uWhichBand) {
+static void SpecanCore(uint8_t _uWhichBand)
+{
   uint32_t k, h;
   int16_t iSignMagLut[4] = {+1, +3, -1, -3};
   uint32_t uFftScale = 0x0;
@@ -167,40 +173,40 @@ static void SpecanCore(uint8_t _uWhichBand) {
   const float fFreqNco2 = 1235.000;
 
   switch (_uWhichBand) {
-    case 1:
-      for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
-        pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 0) & 0x3)];
-        pBaseBand[k].i = 0;
-      }
-      uTraceStart = SPECAN_FFT_SIZE / 2;
-      fStartFreq = fFreqNco1 - fFrontEndSpms / 2;
-      break;
-    case 2:
-      for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
-        pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 2) & 0x3)];
-        pBaseBand[k].i = 0;
-      }
-      uTraceStart = 0;
-      fStartFreq = fFreqNco1;
-      break;
-    case 3:
-      for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
-        pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 4) & 0x3)];
-        pBaseBand[k].i = 0;
-      }
-      uTraceStart = 0;
-      fStartFreq = fFreqNco2;
-      break;
-    case 4:
-      for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
-        pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 6) & 0x3)];
-        pBaseBand[k].i = 0;
-      }
-      uTraceStart = SPECAN_FFT_SIZE / 2;
-      fStartFreq = fFreqNco2 - fFrontEndSpms / 2;
-      break;
-    default:
-      break;
+  case 1:
+    for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
+      pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 0) & 0x3)];
+      pBaseBand[k].i = 0;
+    }
+    uTraceStart = SPECAN_FFT_SIZE / 2;
+    fStartFreq = fFreqNco1 - fFrontEndSpms / 2;
+    break;
+  case 2:
+    for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
+      pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 2) & 0x3)];
+      pBaseBand[k].i = 0;
+    }
+    uTraceStart = 0;
+    fStartFreq = fFreqNco1;
+    break;
+  case 3:
+    for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
+      pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 4) & 0x3)];
+      pBaseBand[k].i = 0;
+    }
+    uTraceStart = 0;
+    fStartFreq = fFreqNco2;
+    break;
+  case 4:
+    for (k = 0; k < SPECAN_GRABBER_LENGTH; k++) {
+      pBaseBand[k].r = iSignMagLut[((pSampleBuf[k] >> 6) & 0x3)];
+      pBaseBand[k].i = 0;
+    }
+    uTraceStart = SPECAN_FFT_SIZE / 2;
+    fStartFreq = fFreqNco2 - fFrontEndSpms / 2;
+    break;
+  default:
+    break;
   }
 
   curr_trace.header.freq_ref = fStartFreq;
@@ -230,11 +236,15 @@ static void SpecanCore(uint8_t _uWhichBand) {
   }
 }
 
-static void Sca16AddAbssqTo(float *_fOut, sc16_t *_fIn, int _iSize) {
+static void Sca16AddAbssqTo(float *_fOut, sc16_t *_fIn, int _iSize)
+{
   int i;
-  if (NULL == _fOut) return;
-  if (NULL == _fIn) return;
-  if (_iSize <= 0) return;
+  if (NULL == _fOut)
+    return;
+  if (NULL == _fIn)
+    return;
+  if (_iSize <= 0)
+    return;
 
   for (i = 0; i < _iSize; i++) {
     _fOut[i] +=

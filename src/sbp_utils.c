@@ -36,7 +36,8 @@
 u32 round_tow_ms(double tow);
 void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out);
 
-sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
+sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from)
+{
   /* TODO GLO: Check GLO status */
   sbp_gnss_signal_t sbp_sid = {
       .code = from.code, .sat = from.sat, .reserved = 0,
@@ -52,7 +53,8 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
   return sbp_sid;
 }
 
-gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
+gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from)
+{
   gnss_signal_t sid = {
       .code = from.code, .sat = from.sat,
   };
@@ -68,7 +70,8 @@ gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
   return sid;
 }
 
-gnss_signal16_t sid_to_sbp16(const gnss_signal_t from) {
+gnss_signal16_t sid_to_sbp16(const gnss_signal_t from)
+{
   gnss_signal16_t sbp_sid = {
       .code = from.code, .sat = from.sat,
   };
@@ -76,7 +79,8 @@ gnss_signal16_t sid_to_sbp16(const gnss_signal_t from) {
   return sbp_sid;
 }
 
-gnss_signal_t sid_from_sbp16(const gnss_signal16_t from) {
+gnss_signal_t sid_from_sbp16(const gnss_signal16_t from)
+{
   gnss_signal_t sid = {
       .code = from.code, .sat = from.sat,
   };
@@ -84,9 +88,8 @@ gnss_signal_t sid_from_sbp16(const gnss_signal16_t from) {
   return sid;
 }
 
-void sbp_make_gps_time(msg_gps_time_t *t_out,
-                       const gps_time_t *t_in,
-                       u8 flags) {
+void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags)
+{
   if (!gps_time_valid(t_in)) {
     memset(t_out, 0, sizeof(msg_gps_time_t));
     return;
@@ -103,7 +106,8 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
                        u8 flags,
-                       const utc_params_t *utc_params) {
+                       const utc_params_t *utc_params)
+{
   if (!gps_time_valid(t_in)) {
     memset(t_out, 0, sizeof(msg_utc_time_t));
     return;
@@ -129,7 +133,8 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
 void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
                            u8 num_sats,
                            double obs_latency,
-                           u8 flags) {
+                           u8 flags)
+{
   if (flags > DGNSS_POSITION) {
     dgnss_status->flags = 2;
   } else {
@@ -145,7 +150,8 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
                            double v_accuracy,
                            const gps_time_t *gps_t,
                            u8 n_sats_used,
-                           u8 flags) {
+                           u8 flags)
+{
   pos_llh->tow = round_tow_ms(gps_t->tow);
   pos_llh->lat = llh[0] * R2D;
   pos_llh->lon = llh[1] * R2D;
@@ -161,7 +167,8 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef,
                             double accuracy,
                             const gps_time_t *gps_t,
                             u8 n_sats_used,
-                            u8 flags) {
+                            u8 flags)
+{
   pos_ecef->tow = round_tow_ms(gps_t->tow);
   pos_ecef->x = ecef[0];
   pos_ecef->y = ecef[1];
@@ -175,7 +182,8 @@ void sbp_make_vel_ned(msg_vel_ned_t *vel_ned,
                       const gnss_solution *soln,
                       double h_accuracy,
                       double v_accuracy,
-                      u8 flags) {
+                      u8 flags)
+{
   vel_ned->tow = round_tow_ms(soln->time.tow);
   vel_ned->n = round(soln->vel_ned[0] * 1e3);
   vel_ned->e = round(soln->vel_ned[1] * 1e3);
@@ -189,7 +197,8 @@ void sbp_make_vel_ned(msg_vel_ned_t *vel_ned,
 void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
                        const gnss_solution *soln,
                        double accuracy,
-                       u8 flags) {
+                       u8 flags)
+{
   vel_ecef->tow = round_tow_ms(soln->time.tow);
   vel_ecef->x = round(soln->vel_ecef[0] * 1e3);
   vel_ecef->y = round(soln->vel_ecef[1] * 1e3);
@@ -202,7 +211,8 @@ void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
 void sbp_make_dops(msg_dops_t *dops_out,
                    const dops_t *dops_in,
                    const u32 tow,
-                   u8 flags) {
+                   u8 flags)
+{
   dops_out->tow = tow;
   dops_out->pdop = round(dops_in->pdop * 100);
   dops_out->gdop = round(dops_in->gdop * 100);
@@ -217,7 +227,8 @@ void sbp_make_baseline_ecef(msg_baseline_ecef_t *baseline_ecef,
                             u8 n_sats,
                             const double b_ecef[3],
                             double accuracy,
-                            u8 flags) {
+                            u8 flags)
+{
   baseline_ecef->tow = round_tow_ms(t->tow);
   baseline_ecef->x = round(1e3 * b_ecef[0]);
   baseline_ecef->y = round(1e3 * b_ecef[1]);
@@ -233,7 +244,8 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned,
                            const double b_ned[3],
                            double h_accuracy,
                            double v_accuracy,
-                           u8 flags) {
+                           u8 flags)
+{
   baseline_ned->tow = round_tow_ms(t->tow);
   baseline_ned->n = round(1e3 * b_ned[0]);
   baseline_ned->e = round(1e3 * b_ned[1]);
@@ -244,7 +256,8 @@ void sbp_make_baseline_ned(msg_baseline_ned_t *baseline_ned,
   baseline_ned->flags = flags;
 }
 
-double constrain_angle(const double heading) {
+double constrain_angle(const double heading)
+{
   double constrained_heading = fmod(heading, 360.0);
   if (constrained_heading < 0) {
     constrained_heading += 360.0;
@@ -256,7 +269,8 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
                       const gps_time_t *t,
                       const double heading,
                       u8 n_sats,
-                      u8 flags) {
+                      u8 flags)
+{
   baseline_heading->tow = round_tow_ms(t->tow);
   baseline_heading->heading =
       round(constrain_angle(heading) * MSG_HEADING_SCALE_FACTOR);
@@ -266,7 +280,8 @@ void sbp_make_heading(msg_baseline_heading_t *baseline_heading,
 
 void sbp_make_age_corrections(msg_age_corrections_t *age_corrections,
                               const gps_time_t *t,
-                              double propagation_time) {
+                              double propagation_time)
+{
   age_corrections->tow = round_tow_ms(t->tow);
   age_corrections->age = MIN(round(10 * propagation_time), UINT16_MAX);
 }
@@ -277,7 +292,8 @@ void sbp_send_ndb_event(u8 event,
                         u8 data_source,
                         const gnss_signal_t *object_sid,
                         const gnss_signal_t *src_sid,
-                        u16 sender) {
+                        u16 sender)
+{
   msg_ndb_event_t msg;
   memset(&msg, 0, sizeof(msg));
 
@@ -303,7 +319,8 @@ void sbp_send_ndb_event(u8 event,
 void unpack_obs_header(const observation_header_t *msg,
                        gps_time_t *t,
                        u8 *total,
-                       u8 *count) {
+                       u8 *count)
+{
   t->wn = msg->t.wn;
   t->tow = ((double)msg->t.tow) / 1e3 + ((double)msg->t.ns_residual) / 1e9;
   normalize_gps_time(t);
@@ -314,13 +331,15 @@ void unpack_obs_header(const observation_header_t *msg,
 void pack_obs_header(const gps_time_t *t,
                      u8 total,
                      u8 count,
-                     observation_header_t *msg) {
+                     observation_header_t *msg)
+{
   round_time_nano(t, &msg->t);
   msg->n_obs =
       ((total << MSG_OBS_HEADER_SEQ_SHIFT) | (count & MSG_OBS_HEADER_SEQ_MASK));
 }
 
-u8 nm_flags_to_sbp(nav_meas_flags_t from) {
+u8 nm_flags_to_sbp(nav_meas_flags_t from)
+{
   u8 to = 0;
   if (0 != (from & NAV_MEAS_FLAG_CODE_VALID)) {
     to |= MSG_OBS_FLAGS_CODE_VALID;
@@ -340,7 +359,8 @@ u8 nm_flags_to_sbp(nav_meas_flags_t from) {
   return to;
 }
 
-nav_meas_flags_t nm_flags_from_sbp(u8 from) {
+nav_meas_flags_t nm_flags_from_sbp(u8 from)
+{
   nav_meas_flags_t to = 0;
   if (0 != (from & MSG_OBS_FLAGS_CODE_VALID)) {
     to |= NAV_MEAS_FLAG_CODE_VALID;
@@ -367,7 +387,8 @@ void unpack_obs_content(const packed_obs_content_t *msg,
                         double *cn0,
                         double *lock_time,
                         nav_meas_flags_t *flags,
-                        gnss_signal_t *sid) {
+                        gnss_signal_t *sid)
+{
   *P = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
   *L = -(((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
   *D = (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
@@ -402,7 +423,8 @@ s8 pack_obs_content(double P,
                     double lock_time,
                     nav_meas_flags_t flags,
                     gnss_signal_t sid,
-                    packed_obs_content_t *msg) {
+                    packed_obs_content_t *msg)
+{
   s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
   if (P < 0 || P_fp > UINT32_MAX) {
     log_error("observation message packing: P integer overflow (%f)", P);
@@ -465,7 +487,8 @@ s8 pack_obs_content(double P,
 }
 
 static void unpack_ephemeris_common(const ephemeris_common_content_t *common,
-                                    ephemeris_t *e) {
+                                    ephemeris_t *e)
+{
   e->toe.tow = common->toe.tow;
   e->toe.wn = common->toe.wn;
   e->valid = common->valid;
@@ -476,7 +499,8 @@ static void unpack_ephemeris_common(const ephemeris_common_content_t *common,
 }
 
 static void pack_ephemeris_common(const ephemeris_t *e,
-                                  ephemeris_common_content_t *common) {
+                                  ephemeris_common_content_t *common)
+{
   common->toe.tow = e->toe.tow;
   common->toe.wn = e->toe.wn;
   common->valid = e->valid;
@@ -486,7 +510,8 @@ static void pack_ephemeris_common(const ephemeris_t *e,
   common->ura = e->ura;
 }
 
-static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e) {
+static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e)
+{
   const msg_ephemeris_gps_t *msg = &m->gps;
   unpack_ephemeris_common(&msg->common, e);
   e->kepler.tgd = msg->tgd;
@@ -514,7 +539,8 @@ static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e) {
   e->kepler.iodc = msg->iodc;
 }
 
-static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
+static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m)
+{
   msg_ephemeris_gps_t *msg = &m->gps;
   pack_ephemeris_common(e, &msg->common);
   msg->tgd = e->kepler.tgd;
@@ -542,7 +568,8 @@ static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg->iodc = e->kepler.iodc;
 }
 
-static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e) {
+static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e)
+{
   const msg_ephemeris_sbas_t *msg = &m->sbas;
   unpack_ephemeris_common(&msg->common, e);
   memcpy(e->xyz.pos, msg->pos, sizeof(e->xyz.pos));
@@ -552,7 +579,8 @@ static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e) {
   e->xyz.a_gf1 = msg->a_gf1;
 }
 
-static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m) {
+static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m)
+{
   msg_ephemeris_sbas_t *msg = &m->sbas;
   pack_ephemeris_common(e, &msg->common);
   memcpy(msg->pos, e->xyz.pos, sizeof(e->xyz.pos));
@@ -562,7 +590,8 @@ static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg->a_gf1 = e->xyz.a_gf1;
 }
 
-static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
+static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e)
+{
   const msg_ephemeris_glo_t *msg = &m->glo;
   unpack_ephemeris_common(&msg->common, e);
   memcpy(e->glo.pos, msg->pos, sizeof(e->glo.pos));
@@ -577,7 +606,8 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
                       msg->common.sid.sat);
 }
 
-static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m) {
+static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m)
+{
   msg_ephemeris_glo_t *msg = &m->glo;
   pack_ephemeris_common(e, &msg->common);
   memcpy(msg->pos, e->glo.pos, sizeof(msg->pos));
@@ -622,7 +652,8 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
      unpack_ephemeris_glo,
      {0}}};
 
-void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
+void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e)
+{
   /* NOTE: here we use common part of GPS message to take sid.code info.
    *       this also should work for other GNSS because common part is located
    *       at the same place in memory for all structures.*/
@@ -634,7 +665,8 @@ void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
   ephe_type_table[c].unpack(msg, e);
 }
 
-msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg) {
+msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg)
+{
   constellation_t c = sid_to_constellation(e->sid);
 
   assert(NULL != ephe_type_table[c].pack);
@@ -644,7 +676,8 @@ msg_info_t pack_ephemeris(const ephemeris_t *e, msg_ephemeris_t *msg) {
   return ephe_type_table[c].msg_info;
 }
 
-void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
+void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *))
+{
   assert(ARRAY_SIZE(ephe_type_table) == CONSTELLATION_COUNT);
 
   for (u8 i = 0; i < ARRAY_SIZE(ephe_type_table); i++) {
@@ -663,7 +696,8 @@ void sbp_ephe_reg_cbks(void (*ephemeris_msg_callback)(u16, u8, u8 *, void *)) {
  * This is helper function packs and sends iono parameters over SBP
  * @param[in] iono pointer to Iono parameters
  */
-void sbp_send_iono(const ionosphere_t *iono) {
+void sbp_send_iono(const ionosphere_t *iono)
+{
   msg_iono_t msg_iono = {
       .t_nmct =
           {/* TODO: set this as 0 for now, beccause functionality
@@ -687,7 +721,8 @@ void sbp_send_iono(const ionosphere_t *iono) {
  * This is helper function packs and sends L2C capabilities over SBP
  * @param[in] l2c_cap pointer to L2C capabilities mask
  */
-void sbp_send_l2c_capabilities(const u32 *l2c_cap) {
+void sbp_send_l2c_capabilities(const u32 *l2c_cap)
+{
   msg_sv_configuration_gps_t msg_l2c = {
       .t_nmct =
           {/* TODO: set this as 0 for now, beccause functionality
@@ -706,7 +741,8 @@ void sbp_send_l2c_capabilities(const u32 *l2c_cap) {
  * This is helper function packs and sends Group delay over SBP
  * @param[in] cnav pointer to GPS CNAV message structure
  */
-void sbp_send_group_delay(const cnav_msg_t *cnav) {
+void sbp_send_group_delay(const cnav_msg_t *cnav)
+{
   gps_time_t t = get_current_time();
   msg_group_delay_t msg_cnav = {
       .t_op =
@@ -733,7 +769,8 @@ void sbp_send_group_delay(const cnav_msg_t *cnav) {
  * @param[in] tow Time-of-week in seconds
  * @return Time-of-week in milliseconds
 */
-u32 round_tow_ms(double tow) {
+u32 round_tow_ms(double tow)
+{
   /* week roll-over */
   u32 tow_ms = round(tow * 1e3);
   while (tow_ms >= WEEK_MS) {
@@ -748,7 +785,8 @@ u32 round_tow_ms(double tow) {
  * @param[in] t_in GPS time
  * @param[out] t_out SBP time
 */
-void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
+void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out)
+{
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
   t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);
@@ -760,7 +798,8 @@ void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
 }
 
 static void pack_almanac_common(const almanac_t *a,
-                                almanac_common_content_t *common) {
+                                almanac_common_content_t *common)
+{
   common->toa.tow = a->toa.tow;
   common->toa.wn = a->toa.wn;
   common->valid = a->valid;
@@ -770,7 +809,8 @@ static void pack_almanac_common(const almanac_t *a,
   common->ura = a->ura;
 }
 
-static void pack_almanac_gps(const almanac_t *a, msg_almanac_t *m) {
+static void pack_almanac_gps(const almanac_t *a, msg_almanac_t *m)
+{
   msg_almanac_gps_t *msg = &m->gps;
   pack_almanac_common(a, &msg->common);
   msg->m0 = a->kepler.m0;
@@ -784,7 +824,8 @@ static void pack_almanac_gps(const almanac_t *a, msg_almanac_t *m) {
   msg->af1 = a->kepler.af1;
 }
 
-static void pack_almanac_glo(const almanac_t *a, msg_almanac_t *m) {
+static void pack_almanac_glo(const almanac_t *a, msg_almanac_t *m)
+{
   msg_almanac_glo_t *msg = &m->glo;
   pack_almanac_common(a, &msg->common);
   msg->lambda_na = a->glo.lambda;
@@ -824,7 +865,8 @@ static alma_type_table_element_t alma_type_table[CONSTELLATION_COUNT] = {
      NULL,
      {0}}};
 
-void unpack_almanac(const msg_almanac_t *msg, almanac_t *a) {
+void unpack_almanac(const msg_almanac_t *msg, almanac_t *a)
+{
   /* NOTE: here we use common part of GPS message to take sid.code info.
    *       this also should work for other GNSS because common part is located
    *       at the same place in memory for all structures.*/
@@ -836,7 +878,8 @@ void unpack_almanac(const msg_almanac_t *msg, almanac_t *a) {
   alma_type_table[c].unpack(msg, a);
 }
 
-msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg) {
+msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg)
+{
   constellation_t c = sid_to_constellation(a->sid);
 
   assert(NULL != alma_type_table[c].pack);
@@ -846,7 +889,8 @@ msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg) {
   return alma_type_table[c].msg_info;
 }
 
-void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
+void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *))
+{
   assert(ARRAY_SIZE(alma_type_table) == CONSTELLATION_COUNT);
 
   for (u8 i = 0; i < ARRAY_SIZE(alma_type_table); i++) {
@@ -861,13 +905,15 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
   }
 }
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time) {
+void sbp_init_gps_time(msg_gps_time_t *gps_time)
+{
   memset(gps_time, 0, sizeof(msg_gps_time_t));
   gps_time_t current_time = get_current_gps_time();
   sbp_make_gps_time(gps_time, &current_time, NO_POSITION);
 }
 
-void sbp_init_utc_time(msg_utc_time_t *utc_time) {
+void sbp_init_utc_time(msg_utc_time_t *utc_time)
+{
   gps_time_t current_time = get_current_gps_time();
   utc_params_t utc_params;
   ndb_utc_params_read(&utc_params, NULL);
@@ -875,42 +921,52 @@ void sbp_init_utc_time(msg_utc_time_t *utc_time) {
   sbp_make_utc_time(utc_time, &current_time, NO_POSITION, &utc_params);
 }
 
-void sbp_init_pos_llh(msg_pos_llh_t *pos_llh) {
+void sbp_init_pos_llh(msg_pos_llh_t *pos_llh)
+{
   memset(pos_llh, 0, sizeof(msg_pos_llh_t));
 }
 
-void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef) {
+void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef)
+{
   memset(pos_ecef, 0, sizeof(msg_pos_ecef_t));
 }
-void sbp_init_vel_ned(msg_vel_ned_t *vel_ned) {
+void sbp_init_vel_ned(msg_vel_ned_t *vel_ned)
+{
   memset(vel_ned, 0, sizeof(msg_vel_ned_t));
 }
 
-void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef) {
+void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef)
+{
   memset(vel_ecef, 0, sizeof(msg_vel_ecef_t));
 }
-void sbp_init_sbp_dops(msg_dops_t *sbp_dops) {
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops)
+{
   memset(sbp_dops, 0, sizeof(msg_dops_t));
 }
 
-void sbp_init_age_corrections(msg_age_corrections_t *age_corrections) {
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections)
+{
   memset(age_corrections, 0, sizeof(msg_age_corrections_t));
   age_corrections->age = 0xFFFF;
 }
 
-void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status) {
+void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status)
+{
   memset(dgnss_status, 0, sizeof(msg_dgnss_status_t));
 }
 
-void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef) {
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef)
+{
   memset(baseline_ecef, 0, sizeof(msg_baseline_ecef_t));
 }
 
-void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned) {
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned)
+{
   memset(baseline_ned, 0, sizeof(msg_baseline_ned_t));
 }
 
-void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading) {
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading)
+{
   memset(baseline_heading, 0, sizeof(msg_baseline_heading_t));
 }
 

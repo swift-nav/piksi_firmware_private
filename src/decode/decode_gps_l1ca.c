@@ -28,7 +28,9 @@
 #include <string.h>
 
 /** GPS L1 C/A decoder data */
-typedef struct { nav_msg_t nav_msg; } gps_l1ca_decoder_data_t;
+typedef struct {
+  nav_msg_t nav_msg;
+} gps_l1ca_decoder_data_t;
 
 static decoder_t gps_l1ca_decoders[NUM_GPS_L1CA_DECODERS];
 static gps_l1ca_decoder_data_t
@@ -69,7 +71,8 @@ static decoder_interface_list_element_t list_element_gps_l1ca = {
  *
  * \return None
  */
-static void check_almanac_xcorr(gnss_signal_t sid) {
+static void check_almanac_xcorr(gnss_signal_t sid)
+{
   xcorr_positions_t alm_pos; /* Almanac's positions for sid */
   alm_pos.time_s = 0;
 
@@ -141,7 +144,8 @@ static void check_almanac_xcorr(gnss_signal_t sid) {
  *
  * \sa check_almanac_xcorr
  */
-static void check_almanac_wn_xcorr(s16 wn, s32 toa) {
+static void check_almanac_wn_xcorr(s16 wn, s32 toa)
+{
   for (u8 sv_idx = 0; sv_idx < NUM_SATS_GPS; ++sv_idx) {
     gnss_signal_t sid = construct_sid(CODE_GPS_L1CA, sv_idx + GPS_FIRST_PRN);
     almanac_t a;
@@ -165,7 +169,8 @@ static void check_almanac_wn_xcorr(s16 wn, s32 toa) {
  * return True  if toa is valid and newer than the one in NDB.
  *        False otherwise
  */
-static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono) {
+static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono)
+{
   bool alma_valid = false; /* Valid toa is available for given sid */
   bool iono_valid = false; /* Valid iono is available in NDB */
   almanac_t existing_a;    /* Existing almanac data */
@@ -209,42 +214,42 @@ static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono) {
  *
  * return None
  */
-static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma) {
+static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma)
+{
   ndb_op_code_t oc =
       ndb_almanac_store(&sid, alma, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID);
   char src_sid_str[SID_STR_LEN_MAX];
   sid_to_string(src_sid_str, sizeof(src_sid_str), sid);
   switch (oc) {
-    case NDB_ERR_NONE:
-      log_debug_sid(alma->sid, "almanac from %s saved", src_sid_str);
-      check_almanac_xcorr(alma->sid);
-      break;
-    case NDB_ERR_NO_CHANGE:
-      log_debug_sid(
-          alma->sid, "almanac from %s is already present", src_sid_str);
-      break;
-    case NDB_ERR_UNCONFIRMED_DATA:
-      log_debug_sid(
-          alma->sid, "almanac from %s is unconfirmed, not saved", src_sid_str);
-      break;
-    case NDB_ERR_OLDER_DATA:
-      log_debug_sid(alma->sid,
-                    "almanac from %s is older than one in DB, not saved",
-                    src_sid_str);
-      break;
-    case NDB_ERR_MISSING_IE:
-    case NDB_ERR_UNSUPPORTED:
-    case NDB_ERR_FILE_IO:
-    case NDB_ERR_INIT_DONE:
-    case NDB_ERR_BAD_PARAM:
-    case NDB_ERR_ALGORITHM_ERROR:
-    case NDB_ERR_NO_DATA:
-    case NDB_ERR_AGED_DATA:
-    case NDB_ERR_GPS_TIME_MISSING:
-    default:
-      log_warn_sid(
-          alma->sid, "error %d storing almanac from %s", (int)oc, src_sid_str);
-      break;
+  case NDB_ERR_NONE:
+    log_debug_sid(alma->sid, "almanac from %s saved", src_sid_str);
+    check_almanac_xcorr(alma->sid);
+    break;
+  case NDB_ERR_NO_CHANGE:
+    log_debug_sid(alma->sid, "almanac from %s is already present", src_sid_str);
+    break;
+  case NDB_ERR_UNCONFIRMED_DATA:
+    log_debug_sid(
+        alma->sid, "almanac from %s is unconfirmed, not saved", src_sid_str);
+    break;
+  case NDB_ERR_OLDER_DATA:
+    log_debug_sid(alma->sid,
+                  "almanac from %s is older than one in DB, not saved",
+                  src_sid_str);
+    break;
+  case NDB_ERR_MISSING_IE:
+  case NDB_ERR_UNSUPPORTED:
+  case NDB_ERR_FILE_IO:
+  case NDB_ERR_INIT_DONE:
+  case NDB_ERR_BAD_PARAM:
+  case NDB_ERR_ALGORITHM_ERROR:
+  case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
+  default:
+    log_warn_sid(
+        alma->sid, "error %d storing almanac from %s", (int)oc, src_sid_str);
+    break;
   }
 }
 
@@ -257,7 +262,8 @@ static void decode_almanac_new(gnss_signal_t sid, const almanac_t *alma) {
  * \return None
  */
 static void decode_almanac_time_new(gnss_signal_t sid,
-                                    const gps_time_t *alma_time) {
+                                    const gps_time_t *alma_time)
+{
   ndb_op_code_t r = ndb_almanac_wn_store(sid,
                                          alma_time->tow,
                                          alma_time->wn,
@@ -265,44 +271,43 @@ static void decode_almanac_time_new(gnss_signal_t sid,
                                          NDB_EVENT_SENDER_ID_VOID);
 
   switch (r) {
-    case NDB_ERR_NONE:
-      log_debug_sid(sid,
-                    "almanac time info saved (%" PRId16 ", %" PRId32 ")",
-                    alma_time->wn,
-                    (s32)alma_time->tow);
-      check_almanac_wn_xcorr(alma_time->wn, (s32)alma_time->tow);
-      break;
-    case NDB_ERR_NO_CHANGE:
-      log_debug_sid(sid,
-                    "almanac time info is already present (%" PRId16
-                    ", %" PRId32 ")",
-                    alma_time->wn,
-                    (s32)alma_time->tow);
-      break;
-    case NDB_ERR_UNCONFIRMED_DATA:
-      log_debug_sid(sid,
-                    "almanac time info is unconfirmed (%" PRId16 ", %" PRId32
-                    ")",
-                    alma_time->wn,
-                    (s32)alma_time->tow);
-      break;
-    case NDB_ERR_OLDER_DATA:
-    case NDB_ERR_MISSING_IE:
-    case NDB_ERR_UNSUPPORTED:
-    case NDB_ERR_FILE_IO:
-    case NDB_ERR_INIT_DONE:
-    case NDB_ERR_BAD_PARAM:
-    case NDB_ERR_ALGORITHM_ERROR:
-    case NDB_ERR_NO_DATA:
-    case NDB_ERR_AGED_DATA:
-    case NDB_ERR_GPS_TIME_MISSING:
-    default:
-      log_error_sid(sid,
-                    "error %d updating almanac time (%" PRId16 ", %" PRId32 ")",
-                    (int)r,
-                    alma_time->wn,
-                    (s32)alma_time->tow);
-      break;
+  case NDB_ERR_NONE:
+    log_debug_sid(sid,
+                  "almanac time info saved (%" PRId16 ", %" PRId32 ")",
+                  alma_time->wn,
+                  (s32)alma_time->tow);
+    check_almanac_wn_xcorr(alma_time->wn, (s32)alma_time->tow);
+    break;
+  case NDB_ERR_NO_CHANGE:
+    log_debug_sid(sid,
+                  "almanac time info is already present (%" PRId16 ", %" PRId32
+                  ")",
+                  alma_time->wn,
+                  (s32)alma_time->tow);
+    break;
+  case NDB_ERR_UNCONFIRMED_DATA:
+    log_debug_sid(sid,
+                  "almanac time info is unconfirmed (%" PRId16 ", %" PRId32 ")",
+                  alma_time->wn,
+                  (s32)alma_time->tow);
+    break;
+  case NDB_ERR_OLDER_DATA:
+  case NDB_ERR_MISSING_IE:
+  case NDB_ERR_UNSUPPORTED:
+  case NDB_ERR_FILE_IO:
+  case NDB_ERR_INIT_DONE:
+  case NDB_ERR_BAD_PARAM:
+  case NDB_ERR_ALGORITHM_ERROR:
+  case NDB_ERR_NO_DATA:
+  case NDB_ERR_AGED_DATA:
+  case NDB_ERR_GPS_TIME_MISSING:
+  default:
+    log_error_sid(sid,
+                  "error %d updating almanac time (%" PRId16 ", %" PRId32 ")",
+                  (int)r,
+                  alma_time->wn,
+                  (s32)alma_time->tow);
+    break;
   }
 }
 
@@ -319,7 +324,8 @@ static void decode_almanac_time_new(gnss_signal_t sid,
  */
 void decode_almanac_health_new(gnss_signal_t src_sid,
                                u32 hlags_mask,
-                               const u8 hflags[32]) {
+                               const u8 hflags[32])
+{
   /* Copy updated flags into the cache, and update all entries in NDB */
   for (u16 sv_idx = 0; sv_idx < 32; ++sv_idx) {
     if (0 != (hlags_mask & 1u << sv_idx)) {
@@ -348,50 +354,50 @@ void decode_almanac_health_new(gnss_signal_t src_sid,
                                                 NDB_EVENT_SENDER_ID_VOID);
 
         switch (r) {
-          case NDB_ERR_NONE:
-            log_debug_sid(target_sid,
-                          "almanac health bits updated (0x%02" PRIX8 ")",
-                          health_bits);
-            break;
-          case NDB_ERR_NO_CHANGE:
-            log_debug_sid(target_sid,
-                          "almanac health bits up to date (0x%02" PRIX8 ")",
-                          health_bits);
-            break;
-          case NDB_ERR_UNCONFIRMED_DATA:
-            log_debug_sid(target_sid,
-                          "almanac health bits are unconfirmed (0x%02" PRIX8
-                          ")",
-                          health_bits);
-            break;
-          case NDB_ERR_NO_DATA:
-            log_debug_sid(target_sid,
-                          "almanac health bits are ignored (0x%02" PRIX8 ")",
-                          health_bits);
-            break;
-          case NDB_ERR_OLDER_DATA:
-          case NDB_ERR_MISSING_IE:
-          case NDB_ERR_UNSUPPORTED:
-          case NDB_ERR_FILE_IO:
-          case NDB_ERR_INIT_DONE:
-          case NDB_ERR_BAD_PARAM:
-          case NDB_ERR_ALGORITHM_ERROR:
-          case NDB_ERR_AGED_DATA:
-          case NDB_ERR_GPS_TIME_MISSING:
-          default:
-            log_error_sid(target_sid,
-                          "error %d updating almanac health bits (0x%02" PRIX8
-                          ")",
-                          (int)r,
-                          health_bits);
-            break;
+        case NDB_ERR_NONE:
+          log_debug_sid(target_sid,
+                        "almanac health bits updated (0x%02" PRIX8 ")",
+                        health_bits);
+          break;
+        case NDB_ERR_NO_CHANGE:
+          log_debug_sid(target_sid,
+                        "almanac health bits up to date (0x%02" PRIX8 ")",
+                        health_bits);
+          break;
+        case NDB_ERR_UNCONFIRMED_DATA:
+          log_debug_sid(target_sid,
+                        "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
+                        health_bits);
+          break;
+        case NDB_ERR_NO_DATA:
+          log_debug_sid(target_sid,
+                        "almanac health bits are ignored (0x%02" PRIX8 ")",
+                        health_bits);
+          break;
+        case NDB_ERR_OLDER_DATA:
+        case NDB_ERR_MISSING_IE:
+        case NDB_ERR_UNSUPPORTED:
+        case NDB_ERR_FILE_IO:
+        case NDB_ERR_INIT_DONE:
+        case NDB_ERR_BAD_PARAM:
+        case NDB_ERR_ALGORITHM_ERROR:
+        case NDB_ERR_AGED_DATA:
+        case NDB_ERR_GPS_TIME_MISSING:
+        default:
+          log_error_sid(target_sid,
+                        "error %d updating almanac health bits (0x%02" PRIX8
+                        ")",
+                        (int)r,
+                        health_bits);
+          break;
         }
       }
     }
   }
 }
 
-void decode_gps_l1ca_register(void) {
+void decode_gps_l1ca_register(void)
+{
   for (u32 i = 0; i < ARRAY_SIZE(gps_l1ca_decoders); i++) {
     gps_l1ca_decoders[i].active = false;
     gps_l1ca_decoders[i].data = &gps_l1ca_decoder_data[i];
@@ -401,7 +407,8 @@ void decode_gps_l1ca_register(void) {
 }
 
 static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
-                                  decoder_data_t *decoder_data) {
+                                  decoder_data_t *decoder_data)
+{
   (void)channel_info;
   gps_l1ca_decoder_data_t *data = decoder_data;
 
@@ -410,13 +417,15 @@ static void decoder_gps_l1ca_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_gps_l1ca_disable(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
+                                     decoder_data_t *decoder_data)
+{
   (void)channel_info;
   (void)decoder_data;
 }
 
 static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
+                                     decoder_data_t *decoder_data)
+{
   gps_l1ca_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
@@ -517,17 +526,17 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
                     dd.ephemeris.toe.tow);
     eph_new_status_t r = ephemeris_new(&dd.ephemeris);
     switch (r) {
-      case EPH_NEW_OK:
-      case EPH_NEW_ERR:
-        break;
-      case EPH_NEW_XCORR:
-        log_info_mesid(channel_info->mesid,
-                       "Channel cross-correlation detected (ephe/alm check)");
-        /* Ephemeris cross-correlates with almanac of another SV */
-        tracking_channel_set_xcorr_flag(channel_info->mesid);
-        break;
-      default:
-        break;
+    case EPH_NEW_OK:
+    case EPH_NEW_ERR:
+      break;
+    case EPH_NEW_XCORR:
+      log_info_mesid(channel_info->mesid,
+                     "Channel cross-correlation detected (ephe/alm check)");
+      /* Ephemeris cross-correlates with almanac of another SV */
+      tracking_channel_set_xcorr_flag(channel_info->mesid);
+      break;
+    default:
+      break;
     }
   }
 

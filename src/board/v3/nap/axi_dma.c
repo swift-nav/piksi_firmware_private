@@ -41,7 +41,8 @@ AXIDMADriver AXIDMADriver2;
 static void axi_dma_dir_transfer_begin(axi_dma_dir_driver_t *ddp,
                                        const uint8_t *data,
                                        uint32_t data_length,
-                                       axi_dma_callback_t callback) {
+                                       axi_dma_callback_t callback)
+{
   axi_dma_dir_t *axi_dma_dir = (axi_dma_dir_t *)ddp->axi_dma_dir;
   osalDbgAssert(axi_dma_dir != 0, "DMA dir not present");
 
@@ -56,7 +57,8 @@ static void axi_dma_dir_transfer_begin(axi_dma_dir_driver_t *ddp,
  *
  * \param ddp     Pointer to the axi_dma_dir_driver_t object.
  */
-static void axi_dma_dir_start(axi_dma_dir_driver_t *ddp) {
+static void axi_dma_dir_start(axi_dma_dir_driver_t *ddp)
+{
   axi_dma_dir_t *axi_dma_dir = (axi_dma_dir_t *)ddp->axi_dma_dir;
   osalDbgAssert(axi_dma_dir != 0, "DMA dir not present");
 
@@ -80,7 +82,8 @@ static void axi_dma_dir_start(axi_dma_dir_driver_t *ddp) {
  *
  * \param ddp     Pointer to the axi_dma_dir_driver_t object.
  */
-static void axi_dma_dir_stop(axi_dma_dir_driver_t *ddp) {
+static void axi_dma_dir_stop(axi_dma_dir_driver_t *ddp)
+{
   axi_dma_dir_t *axi_dma_dir = (axi_dma_dir_t *)ddp->axi_dma_dir;
   osalDbgAssert(axi_dma_dir != 0, "DMA dir not present");
 
@@ -98,7 +101,8 @@ static void axi_dma_dir_stop(axi_dma_dir_driver_t *ddp) {
  *
  * \param ddp     Pointer to the axi_dma_dir_driver_t object.
  */
-static void interrupts_init(axi_dma_dir_driver_t *ddp) {
+static void interrupts_init(axi_dma_dir_driver_t *ddp)
+{
   gic_handler_register(ddp->irq_id, axi_dma_irq_handler, ddp);
   gic_irq_sensitivity_set(ddp->irq_id, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(ddp->irq_id, ddp->irq_priority);
@@ -108,7 +112,8 @@ static void interrupts_init(axi_dma_dir_driver_t *ddp) {
  *
  * \param context   Interrupt context (pointer to axi_dma_dir_driver_t).
  */
-static void axi_dma_irq_handler(void *context) {
+static void axi_dma_irq_handler(void *context)
+{
   axi_dma_dir_driver_t *ddp = (axi_dma_dir_driver_t *)context;
   axi_dma_dir_t *axi_dma_dir = (axi_dma_dir_t *)ddp->axi_dma_dir;
 
@@ -119,18 +124,21 @@ static void axi_dma_irq_handler(void *context) {
 
   /* COMPLETE */
   if (sr & AXI_DMA_INT_COMPLETE_Msk) {
-    if (ddp->callback) ddp->callback(true);
+    if (ddp->callback)
+      ddp->callback(true);
   }
 
   /* ERROR */
   if (sr & AXI_DMA_INT_ERROR_Msk) {
-    if (ddp->callback) ddp->callback(false);
+    if (ddp->callback)
+      ddp->callback(false);
   }
 }
 
 /** Initialize the AXI DMA module.
  */
-void axi_dma_init(void) {
+void axi_dma_init(void)
+{
 #if ZYNQ7000_AXI_DMA_USE_AXI_DMA0 == TRUE
 #if ZYNQ7000_AXI_DMA0_MM2S_PRESENT == TRUE
   AXIDMADriver1.mm2s_driver.axi_dma_dir = &AXI_DMA0->MM2S;
@@ -180,7 +188,8 @@ void axi_dma_init(void) {
  *
  * \param dp      Pointer to the AXIDMADriver object.
  */
-void axi_dma_start(AXIDMADriver *dp) {
+void axi_dma_start(AXIDMADriver *dp)
+{
   axi_dma_dir_t *mm2s = (axi_dma_dir_t *)dp->mm2s_driver.axi_dma_dir;
   axi_dma_dir_t *s2mm = (axi_dma_dir_t *)dp->s2mm_driver.axi_dma_dir;
 
@@ -199,20 +208,25 @@ void axi_dma_start(AXIDMADriver *dp) {
     while (s2mm->CR & AXI_DMA_CR_RESET_Msk)
       ;
 
-  if (mm2s) axi_dma_dir_start(&dp->mm2s_driver);
-  if (s2mm) axi_dma_dir_start(&dp->s2mm_driver);
+  if (mm2s)
+    axi_dma_dir_start(&dp->mm2s_driver);
+  if (s2mm)
+    axi_dma_dir_start(&dp->s2mm_driver);
 }
 
 /** Deactivate an AXI DMA peripheral.
  *
  * \param dp      Pointer to the AXIDMADriver object.
  */
-void axi_dma_stop(AXIDMADriver *dp) {
+void axi_dma_stop(AXIDMADriver *dp)
+{
   axi_dma_dir_t *mm2s = (axi_dma_dir_t *)dp->mm2s_driver.axi_dma_dir;
   axi_dma_dir_t *s2mm = (axi_dma_dir_t *)dp->s2mm_driver.axi_dma_dir;
 
-  if (mm2s) axi_dma_dir_stop(&dp->mm2s_driver);
-  if (s2mm) axi_dma_dir_stop(&dp->s2mm_driver);
+  if (mm2s)
+    axi_dma_dir_stop(&dp->mm2s_driver);
+  if (s2mm)
+    axi_dma_dir_stop(&dp->s2mm_driver);
 }
 
 /** Begin an AXI DMA write transfer.
@@ -227,7 +241,8 @@ void axi_dma_stop(AXIDMADriver *dp) {
 void axi_dma_write_begin(AXIDMADriver *dp,
                          const uint8_t *data,
                          uint32_t data_length,
-                         axi_dma_callback_t callback) {
+                         axi_dma_callback_t callback)
+{
   axi_dma_dir_transfer_begin(&dp->mm2s_driver, data, data_length, callback);
 }
 
@@ -243,6 +258,7 @@ void axi_dma_write_begin(AXIDMADriver *dp,
 void axi_dma_read_begin(AXIDMADriver *dp,
                         uint8_t *data,
                         uint32_t data_length,
-                        axi_dma_callback_t callback) {
+                        axi_dma_callback_t callback)
+{
   axi_dma_dir_transfer_begin(&dp->s2mm_driver, data, data_length, callback);
 }

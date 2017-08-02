@@ -62,16 +62,19 @@ static double base_llh[3];
 /* Global CPU time accumulator, used to measure thread CPU usage. */
 u64 g_ctime = 0;
 
-u32 check_stack_free(thread_t *tp) {
+u32 check_stack_free(thread_t *tp)
+{
   u32 *stack = (u32 *)tp->p_stklimit;
   u32 i;
   for (i = 0; i < 65536 / sizeof(u32); i++) {
-    if (stack[i] != 0x55555555) break;
+    if (stack[i] != 0x55555555)
+      break;
   }
   return 4 * (i - 1);
 }
 
-void send_thread_states(void) {
+void send_thread_states(void)
+{
   thread_t *tp = chRegFirstThread();
   while (tp) {
     msg_thread_state_t tp_state;
@@ -92,7 +95,8 @@ void send_thread_states(void) {
   g_ctime = 0;
 }
 
-static void check_frontend_errors(void) {
+static void check_frontend_errors(void)
+{
   if (!frontend_errors) {
     chSysLock();
     frontend_errors = (frontend_notify_flags & FRONTEND_AOK_ERROR_FLAG) != 0;
@@ -118,7 +122,8 @@ static void check_frontend_errors(void) {
 #define SYSTEM_MONITOR_THREAD_PIORITY (LOWPRIO + 10)
 
 static WORKING_AREA_CCM(wa_system_monitor_thread, 2000);
-static void system_monitor_thread(void *arg) {
+static void system_monitor_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("system monitor");
 
@@ -167,7 +172,8 @@ static void system_monitor_thread(void *arg) {
   }
 }
 
-static void debug_threads(void) {
+static void debug_threads(void)
+{
   const char *state[] = {CH_STATE_NAMES};
   thread_t *tp = chRegFirstThread();
   while (tp) {
@@ -183,7 +189,8 @@ static void debug_threads(void) {
 }
 
 static WORKING_AREA_CCM(wa_watchdog_thread, 1024);
-static void watchdog_thread(void *arg) {
+static void watchdog_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("Watchdog");
 
@@ -191,7 +198,8 @@ static void watchdog_thread(void *arg) {
      take a little while to get going */
   chThdSleepMilliseconds(WATCHDOG_THREAD_PERIOD_MS);
 
-  if (use_wdt) wdgStart(&WDGD1, &board_wdg_config);
+  if (use_wdt)
+    wdgStart(&WDGD1, &board_wdg_config);
 
   while (TRUE) {
     /* Wait for all threads to set a flag indicating they are still
@@ -212,14 +220,16 @@ static void watchdog_thread(void *arg) {
           use_wdt ? "imminent" : "disabled");
       debug_threads();
     } else {
-      if (use_wdt) wdgReset(&WDGD1);
+      if (use_wdt)
+        wdgReset(&WDGD1);
     }
   }
 }
 
 void system_monitor_pre_init(void) { wdgStart(&WDGD1, &board_wdg_config); }
 
-void system_monitor_setup(void) {
+void system_monitor_setup(void)
+{
   SETTING("system_monitor",
           "heartbeat_period_milliseconds",
           heartbeat_period_milliseconds,
@@ -249,7 +259,8 @@ void system_monitor_setup(void) {
  *
  * \param thread_id Unique identifier for the thread.
  **/
-void watchdog_notify(watchdog_notify_t thread_id) {
+void watchdog_notify(watchdog_notify_t thread_id)
+{
   chSysLock();
   watchdog_notify_flags |= WATCHDOG_NOTIFY_FLAG(thread_id);
   chSysUnlock();
@@ -257,7 +268,8 @@ void watchdog_notify(watchdog_notify_t thread_id) {
 
 /** Called by ISR for frontend AOK signal to notify error occured
  **/
-void frontend_error_notify_isr() {
+void frontend_error_notify_isr()
+{
   chSysLockFromISR();
   frontend_notify_flags |= FRONTEND_AOK_ERROR_FLAG;
   chSysUnlockFromISR();
@@ -265,7 +277,8 @@ void frontend_error_notify_isr() {
 
 /** Called during normal execution to notify frontend error occured
  **/
-void frontend_error_notify_sys() {
+void frontend_error_notify_sys()
+{
   chSysLock();
   frontend_notify_flags |= FRONTEND_AOK_ERROR_FLAG;
   chSysUnlock();

@@ -38,7 +38,8 @@ static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count);
  *
  * \return Pointer to the beginning of the sample buffer.
  */
-u8 *grab_samples(u32 *length, u32 *sample_count) {
+u8 *grab_samples(u32 *length, u32 *sample_count)
+{
   *length = FIXED_GRABBER_LENGTH;
   if (raw_samples(pRawGrabberBuffer, FIXED_GRABBER_LENGTH, sample_count)) {
     return pRawGrabberBuffer;
@@ -52,21 +53,24 @@ u8 *grab_samples(u32 *length, u32 *sample_count) {
  *
  * \return Pointer to the beginning of the sample buffer.
  */
-u8 *GrabberGetBufferPt(u32 *length) {
+u8 *GrabberGetBufferPt(u32 *length)
+{
   *length = FIXED_GRABBER_LENGTH;
   return (u8 *)pRawGrabberBuffer;
 }
 
 /** Callback for AXI DMA TX.
  */
-static void axi_dma_tx_callback(bool success) {
+static void axi_dma_tx_callback(bool success)
+{
   (void)success;
   assert(success);
 }
 
 /** Callback for AXI DMA RX.
  */
-static void axi_dma_rx_callback(bool success) {
+static void axi_dma_rx_callback(bool success)
+{
   /* Signal RX semaphore */
   chSysLockFromISR();
   if (success) {
@@ -81,7 +85,8 @@ static void axi_dma_rx_callback(bool success) {
  *
  * \param  len_words  Number of words.
  */
-static void samples_start(u32 len_words) {
+static void samples_start(u32 len_words)
+{
   NAP->RAW_CONTROL = (1 << NAP_RAW_CONTROL_RUN_Pos) |
                      ((len_words - 1) << NAP_RAW_CONTROL_LENGTH_Pos);
 }
@@ -92,7 +97,8 @@ static void samples_start(u32 len_words) {
  * \param out             Output buffer.
  * \param len_bytes       Length of transfer (bytes).
  */
-static void dma_start(const u8 *in, u8 *out, u32 len_bytes) {
+static void dma_start(const u8 *in, u8 *out, u32 len_bytes)
+{
   assert(!((u32)in & (GRABBER_BUFFER_ALIGN - 1)));
   assert(!((u32)out & (GRABBER_BUFFER_ALIGN - 1)));
   assert(!((u32)len_bytes & (GRABBER_LENGTH_ALIGN - 1)));
@@ -116,7 +122,8 @@ static void dma_start(const u8 *in, u8 *out, u32 len_bytes) {
  *
  * \return True if a transfer was completed in time, false otherwise.
  */
-static bool dma_wait(void) {
+static bool dma_wait(void)
+{
   /* Wait for RX semaphore */
   if (chBSemWaitTimeout(&axi_dma_rx_bsem, MS2ST(GRABBER_TIMEOUT_ms)) !=
       MSG_OK) {
@@ -137,7 +144,8 @@ static bool dma_wait(void) {
  *
  * \return True if the samples were successfully retrieved, false otherwise.
  */
-static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count) {
+static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count)
+{
   u32 len_words = len_bytes / sizeof(u64);
   dma_start(0, (u8 *)out, len_bytes);
   samples_start(len_words);

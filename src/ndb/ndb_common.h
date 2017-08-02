@@ -50,7 +50,8 @@ typedef u32 ndb_timestamp_t;
 #endif
 
 enum ndb_op_code ndb_not_implemented(void) __attribute__((weak));
-inline enum ndb_op_code ndb_not_implemented(void) {
+inline enum ndb_op_code ndb_not_implemented(void)
+{
   return NDB_ERR_UNSUPPORTED;
 }
 #endif /* SRC_NDB_COMMON_H_ */

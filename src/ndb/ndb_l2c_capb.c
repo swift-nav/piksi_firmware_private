@@ -41,7 +41,8 @@ static ndb_file_t gps_l2c_capb_file = {
     .block_size = sizeof(gps_l2c_capabilities),
     .block_count = 1};
 
-void ndb_l2c_capb_init(void) {
+void ndb_l2c_capb_init(void)
+{
   static bool erase_l2c_capb = false;
   SETTING("ndb", "erase_l2c_capb", erase_l2c_capb, TYPE_BOOL);
 
@@ -61,7 +62,8 @@ void ndb_l2c_capb_init(void) {
       SBP_MSG_SV_CONFIGURATION_GPS, &l2c_msg_callback, &l2c_mask_callback_node);
 }
 
-ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) {
+ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap)
+{
   return ndb_retrieve(&gps_l2c_capabilities_md,
                       l2c_cap,
                       sizeof(*l2c_cap),
@@ -87,7 +89,8 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_read(u32 *l2c_cap) {
 ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
                                          const u32 *l2c_cap,
                                          ndb_data_source_t src,
-                                         u16 sender_id) {
+                                         u16 sender_id)
+{
   ndb_op_code_t res = ndb_update(l2c_cap, src, &gps_l2c_capabilities_md);
 
   if (NULL != l2c_cap && NDB_ERR_NONE == res) {
@@ -100,7 +103,8 @@ ndb_op_code_t ndb_gps_l2cm_l2c_cap_store(const gnss_signal_t *sid,
   return res;
 }
 
-static void l2c_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void l2c_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)len;
   (void)context;
 

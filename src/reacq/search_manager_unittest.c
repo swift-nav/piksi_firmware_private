@@ -85,7 +85,8 @@ static struct test_case_t test_cases[] = {
  * \param[out] visible set if SV is visible
  * \param[out] known set if SV is known visible or known invisible
  */
-void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
+void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known)
+{
   if (0 != (test_case->vis_mask & (1 << sid_to_code_index(sid)))) {
     *visible = true;
   } else {
@@ -103,7 +104,8 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
  *
  * \return true is SV is healthy, false otherwise
  */
-bool sm_is_healthy(gnss_signal_t sid) {
+bool sm_is_healthy(gnss_signal_t sid)
+{
   if (0 != (test_case->health_mask & (1 << sid_to_code_index(sid)))) {
     return true;
   }
@@ -116,7 +118,8 @@ bool sm_is_healthy(gnss_signal_t sid) {
  *
  * \return true is SV is tracked, false otherwise
  */
-bool sid_is_tracked(gnss_signal_t sid) {
+bool sid_is_tracked(gnss_signal_t sid)
+{
   if (0 != (test_case->track_mask & (1 << sid_to_code_index(sid)))) {
     return true;
   }
@@ -133,7 +136,8 @@ u64 timing_getms(void) { return (u64)test_case->now_ms; }
  * \param[out] lgf_stamp time of LGF (ms)
  * \return true lgf_stamp is valid, false otherwise
  */
-bool sm_lgf_stamp(u64 *lgf_stamp) {
+bool sm_lgf_stamp(u64 *lgf_stamp)
+{
   *lgf_stamp = (u64)test_case->lgf_stamp_ms;
   return true;
 }
@@ -145,7 +149,8 @@ bool sm_lgf_stamp(u64 *lgf_stamp) {
  *
  * \return 1 on failure, 0 othersiwe
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   int test_ix;
 

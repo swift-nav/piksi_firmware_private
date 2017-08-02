@@ -60,7 +60,8 @@ static const spi_slave_t spi_slave[] = {
  * exclusive access to the SPI bus across multiple transactions.
  * \param slave Peripheral to lock the SPI bus for.
  */
-void spi_lock(u8 slave) {
+void spi_lock(u8 slave)
+{
   spi_bus_t *bus = spi_slave[slave].bus;
   thread_t *thread = chThdGetSelfX();
 
@@ -79,7 +80,8 @@ void spi_lock(u8 slave) {
  * the bus was locked with spi_lock().
  * \param slave Peripheral to unlock the SPI bus for.
  */
-void spi_unlock(u8 slave) {
+void spi_unlock(u8 slave)
+{
   spi_bus_t *bus = spi_slave[slave].bus;
 
   if (bus->lock_nest > 0) {
@@ -93,7 +95,8 @@ void spi_unlock(u8 slave) {
 /** Drive SPI nCS line low for selected peripheral.
  * \param slave Peripheral to drive chip select for.
  */
-void spi_slave_select(u8 slave) {
+void spi_slave_select(u8 slave)
+{
   spi_lock(slave);
 
   const spi_slave_t *s = &spi_slave[slave];
@@ -111,13 +114,15 @@ void spi_slave_select(u8 slave) {
 /** Drive all SPI nCS lines high.
  * Should be called after an SPI transfer is finished.
  */
-void spi_slave_deselect(u8 slave) {
+void spi_slave_deselect(u8 slave)
+{
   SPIDriver *driver = spi_slave[slave].bus->driver;
   spiUnselect(driver);
   spi_unlock(slave);
 }
 
-u8 spi_slave_xfer(u8 slave, u8 data) {
+u8 spi_slave_xfer(u8 slave, u8 data)
+{
   SPIDriver *driver = spi_slave[slave].bus->driver;
   return spiPolledExchange(driver, data);
 }
@@ -126,7 +131,8 @@ u8 spi_slave_xfer(u8 slave, u8 data) {
 void spi_slave_xfer_dma(u8 slave,
                         u16 n_bytes,
                         u8 data_in[],
-                        const u8 data_out[]) {
+                        const u8 data_out[])
+{
   SPIDriver *driver = spi_slave[slave].bus->driver;
   if (data_in != NULL) {
     spiExchange(driver, n_bytes, data_out, data_in);

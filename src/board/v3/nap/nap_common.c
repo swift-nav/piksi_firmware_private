@@ -42,7 +42,8 @@ static void nap_irq_thread(void *arg);
 u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
 
-void nap_setup(void) {
+void nap_setup(void)
+{
   nap_track_n_channels = GET_NAP_STATUS_NUM_TRACKING_CH(NAP->STATUS);
   nap_track_n_channels = MIN(nap_track_n_channels, MAX_CHANNELS);
 
@@ -105,7 +106,8 @@ void nap_setup(void) {
   gic_irq_enable(IRQ_ID_NAP);
 }
 
-u64 nap_timing_count(void) {
+u64 nap_timing_count(void)
+{
   static MUTEX_DECL(timing_count_mutex);
   static u32 rollover_count = 0;
   static u32 prev_count = 0;
@@ -114,7 +116,8 @@ u64 nap_timing_count(void) {
 
   u32 count = NAP->TIMING_COUNT;
 
-  if (count < prev_count) rollover_count++;
+  if (count < prev_count)
+    rollover_count++;
 
   prev_count = count;
 
@@ -136,7 +139,8 @@ u64 nap_timing_count(void) {
  *
  * \return Resulting time in ticks.
  */
-u64 nap_sample_time_to_count(u32 sample_count) {
+u64 nap_sample_time_to_count(u32 sample_count)
+{
   /* Converts sample time into NAP time using NAP rollover value */
   u64 time_now = nap_timing_count();
   u32 time_high = (u32)(time_now >> 32);
@@ -155,7 +159,8 @@ u64 nap_sample_time_to_count(u32 sample_count) {
  *
  * \return Time interval in milliseconds.
  */
-double nap_count_to_ms(u64 delta_time) {
+double nap_count_to_ms(u64 delta_time)
+{
   double time_delta =
       (double)delta_time * (1000. / NAP_FRONTEND_SAMPLE_RATE_Hz);
   return time_delta;
@@ -168,12 +173,14 @@ double nap_count_to_ms(u64 delta_time) {
  *
  * \return Time interval in nanoseconds.
  */
-double nap_count_to_ns(u64 delta_time) {
+double nap_count_to_ns(u64 delta_time)
+{
   double time_delta = (double)delta_time * (1e9 / NAP_FRONTEND_SAMPLE_RATE_Hz);
   return time_delta;
 }
 
-static void nap_isr(void *context) {
+static void nap_isr(void *context)
+{
   (void)context;
   chSysLockFromISR();
 
@@ -183,7 +190,8 @@ static void nap_isr(void *context) {
   chSysUnlockFromISR();
 }
 
-static void handle_nap_irq(void) {
+static void handle_nap_irq(void)
+{
   u32 irq = NAP->IRQS;
 
   while (irq) {
@@ -204,7 +212,8 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(void) {
+static void handle_nap_track_irq(void)
+{
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
@@ -233,7 +242,8 @@ static void handle_nap_track_irq(void) {
   watchdog_notify(WD_NOTIFY_NAP_ISR);
 }
 
-static void nap_irq_thread(void *arg) {
+static void nap_irq_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("NAP");
 
@@ -245,7 +255,8 @@ static void nap_irq_thread(void *arg) {
   }
 }
 
-void nap_track_irq_thread(void *arg) {
+void nap_track_irq_thread(void *arg)
+{
   piksi_systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
@@ -274,10 +285,8 @@ void nap_track_irq_thread(void *arg) {
   }
 }
 
-static void nap_rd_dna_callback(u16 sender_id,
-                                u8 len,
-                                u8 msg[],
-                                void *context) {
+static void nap_rd_dna_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)sender_id;
   (void)len;
   (void)msg;
@@ -285,7 +294,8 @@ static void nap_rd_dna_callback(u16 sender_id,
   sbp_send_msg(SBP_MSG_NAP_DEVICE_DNA_RESP, NAP_DNA_LENGTH, nap_dna);
 }
 
-void nap_dna_callback_register(void) {
+void nap_dna_callback_register(void)
+{
   nap_rd_dna(nap_dna);
 
   static sbp_msg_callbacks_node_t nap_dna_node;
@@ -294,11 +304,13 @@ void nap_dna_callback_register(void) {
       SBP_MSG_NAP_DEVICE_DNA_REQ, &nap_rd_dna_callback, &nap_dna_node);
 }
 
-void nap_pps(u32 count) {
+void nap_pps(u32 count)
+{
   NAP->PPS_TIMING_COMPARE = count + NAP_PPS_TIMING_COUNT_OFFSET;
 }
 
-void nap_pps_config(u32 microseconds, u8 active) {
+void nap_pps_config(u32 microseconds, u8 active)
+{
   u32 width =
       ceil((double)microseconds / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6)) -
       1;
@@ -306,14 +318,16 @@ void nap_pps_config(u32 microseconds, u8 active) {
       (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
 }
 
-bool nap_pps_armed(void) {
+bool nap_pps_armed(void)
+{
   return GET_NAP_STATUS_PPS_TIMING_ARMED(NAP->STATUS);
 }
 
 u32 nap_rw_ext_event(u8 *event_pin,
                      ext_event_trigger_t *event_trig,
                      ext_event_trigger_t next_trig,
-                     u32 timeout) {
+                     u32 timeout)
+{
   if (event_pin) {
     *event_pin = 0;
   }

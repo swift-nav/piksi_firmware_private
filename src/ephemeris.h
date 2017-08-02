@@ -27,7 +27,9 @@ typedef enum {
 /**
  * Earth-centered earth-fixed position
  */
-typedef struct { double xyz[3]; } pos_ecef_t;
+typedef struct {
+  double xyz[3];
+} pos_ecef_t;
 
 /**
  * SV positions computed for cross-correlation checks.
@@ -85,7 +87,8 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
  *
  * \return GPS time
  */
-static inline gps_time_t make_gps_time(s32 time_s) {
+static inline gps_time_t make_gps_time(s32 time_s)
+{
   return (gps_time_t){time_s % WEEK_SECS, time_s / WEEK_SECS};
 }
 

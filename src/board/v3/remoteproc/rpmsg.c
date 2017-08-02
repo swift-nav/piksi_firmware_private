@@ -79,7 +79,8 @@ static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
 static THD_WORKING_AREA(wa_rpmsg_thread, RPMSG_THD_STACK_SIZE);
 static THD_FUNCTION(rpmsg_thread, arg);
 
-void rpmsg_setup(void) {
+void rpmsg_setup(void)
+{
   for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
     endpoint_data_t *d = &endpoint_data[i];
     d->rpmsg_endpoint = NULL;
@@ -106,35 +107,39 @@ void rpmsg_setup(void) {
   remoteproc_env_irq_kick();
 }
 
-u32 rpmsg_rx_fifo_length(rpmsg_endpoint_t rpmsg_endpoint) {
+u32 rpmsg_rx_fifo_length(rpmsg_endpoint_t rpmsg_endpoint)
+{
   return fifo_length(&endpoint_data[rpmsg_endpoint].rx_fifo);
 }
 
-u32 rpmsg_tx_fifo_space(rpmsg_endpoint_t rpmsg_endpoint) {
+u32 rpmsg_tx_fifo_space(rpmsg_endpoint_t rpmsg_endpoint)
+{
   return fifo_space(&endpoint_data[rpmsg_endpoint].tx_fifo);
 }
 
-u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint,
-                       u8 *buffer,
-                       u32 length) {
+u32 rpmsg_rx_fifo_read(rpmsg_endpoint_t rpmsg_endpoint, u8 *buffer, u32 length)
+{
   return fifo_read(&endpoint_data[rpmsg_endpoint].rx_fifo, buffer, length);
 }
 
 u32 rpmsg_tx_fifo_write(rpmsg_endpoint_t rpmsg_endpoint,
                         const u8 *buffer,
-                        u32 length) {
+                        u32 length)
+{
   u32 n = fifo_write(&endpoint_data[rpmsg_endpoint].tx_fifo, buffer, length);
   chBSemSignal(&rpmsg_thd_bsem);
   return n;
 }
 
-static void remoteproc_env_irq_callback(void) {
+static void remoteproc_env_irq_callback(void)
+{
   chSysLockFromISR();
   chBSemSignalI(&rpmsg_thd_bsem);
   chSysUnlockFromISR();
 }
 
-static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel) {
+static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel)
+{
   for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
     endpoint_data_t *d = &endpoint_data[i];
     d->rpmsg_endpoint =
@@ -144,7 +149,8 @@ static void rpmsg_channel_created(struct rpmsg_channel *rpmsg_channel) {
   rpmsg_buffer_size = rpmsg_get_buffer_size(rpmsg_channel);
 }
 
-static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel) {
+static void rpmsg_channel_destroyed(struct rpmsg_channel *rpmsg_channel)
+{
   (void)rpmsg_channel;
 
   for (u32 i = 0; i < RPMSG_ENDPOINT__COUNT; i++) {
@@ -160,7 +166,8 @@ static void rpmsg_default_rx(struct rpmsg_channel *rpmsg_channel,
                              void *data,
                              int len,
                              void *priv,
-                             unsigned long src) {
+                             unsigned long src)
+{
   (void)rpmsg_channel;
   (void)data;
   (void)len;
@@ -172,7 +179,8 @@ static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
                               void *data,
                               int len,
                               void *priv,
-                              unsigned long src) {
+                              unsigned long src)
+{
   (void)rpmsg_channel;
   (void)src;
 
@@ -180,7 +188,8 @@ static void rpmsg_endpoint_rx(struct rpmsg_channel *rpmsg_channel,
   fifo_write(&d->rx_fifo, data, len);
 }
 
-static THD_FUNCTION(rpmsg_thread, arg) {
+static THD_FUNCTION(rpmsg_thread, arg)
+{
   (void)arg;
   chRegSetThreadName("rpmsg");
 

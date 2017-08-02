@@ -78,7 +78,8 @@ static ndb_ephe_config_t ndb_ephe_config = {
 /** Flag if almanacs can be used in ephemeris candidate validation */
 static bool almanacs_enabled = false;
 
-static u16 map_sid_to_index(gnss_signal_t sid) {
+static u16 map_sid_to_index(gnss_signal_t sid)
+{
   u16 idx = PLATFORM_SIGNAL_COUNT;
   /*
    * Current architecture uses GPS L1 C/A ephemeris for all GPS signals,
@@ -94,7 +95,8 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
   return idx;
 }
 
-void ndb_ephemeris_init(void) {
+void ndb_ephemeris_init(void)
+{
   SETTING("ndb", "erase_ephemeris", ndb_ephe_config.erase_ephemeris, TYPE_BOOL);
   SETTING("ndb", "valid_alm_acc", ndb_ephe_config.valid_alm_accuracy, TYPE_INT);
   SETTING("ndb", "valid_eph_acc", ndb_ephe_config.valid_eph_accuracy, TYPE_INT);
@@ -103,7 +105,8 @@ void ndb_ephemeris_init(void) {
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
-static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
+static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
+{
   int i;
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     if (ephe_candidates[i].used &&
@@ -116,7 +119,8 @@ static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
 /* Find an empty slot (unused or outdated ephemeris) in the candidate list
  * and add the given candidate. Log a warning if no empty slot found.
  */
-static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
+static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
+{
   int i;
   u32 candidate_age;
   ndb_timestamp_t now = ndb_get_timestamp();
@@ -139,7 +143,8 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
                EPHE_CAND_LIST_LEN);
 }
 
-static void ndb_ephe_release_candidate(s16 cand_index) {
+static void ndb_ephe_release_candidate(s16 cand_index)
+{
   if ((cand_index < 0) || (cand_index >= EPHE_CAND_LIST_LEN)) {
     return;
   }
@@ -161,7 +166,8 @@ static void ndb_ephe_release_candidate(s16 cand_index) {
 static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *existing_e,
                                       const almanac_t *existing_a,
-                                      const ephemeris_t *candidate) {
+                                      const ephemeris_t *candidate)
+{
   if (NULL != candidate && ephemeris_equal(new, candidate)) {
     /* Exact match */
     log_debug_sid(new->sid, "[EPH] candidate match");
@@ -275,7 +281,8 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
  *                                cannot be confirmed yet
  * \retval NDB_ERR_BAD_PARAM      Bad SID
  */
-static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
+static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
+{
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
 
   ephemeris_t existing_e; /* Existing ephemeris data */
@@ -392,7 +399,8 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
  * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
  * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  */
-ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
+ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
+{
   u16 idx = map_sid_to_index(sid);
 
   if (ARRAY_SIZE(ndb_ephemeris) <= idx || NULL == e) {
@@ -440,28 +448,29 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
 }
 
 static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
-                                            ndb_data_source_t src) {
+                                            ndb_data_source_t src)
+{
   if (!e->valid) {
     return NDB_ERR_BAD_PARAM;
   }
 
   if (NDB_DS_RECEIVER == src) {
     switch (ndb_get_ephemeris_status(e)) {
-      case NDB_CAND_IDENTICAL:
-        return NDB_ERR_NO_CHANGE;
-      case NDB_CAND_OLDER:
-        return NDB_ERR_OLDER_DATA;
-      case NDB_CAND_NEW_TRUSTED: {
-        u16 idx = sid_to_global_index(e->sid);
-        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
-      }
-      case NDB_CAND_NEW_CANDIDATE:
-      case NDB_CAND_MISMATCH:
-        return NDB_ERR_UNCONFIRMED_DATA;
-      case NDB_CAND_GPS_TIME_MISSING:
-        return NDB_ERR_GPS_TIME_MISSING;
-      default:
-        assert(!"Invalid status");
+    case NDB_CAND_IDENTICAL:
+      return NDB_ERR_NO_CHANGE;
+    case NDB_CAND_OLDER:
+      return NDB_ERR_OLDER_DATA;
+    case NDB_CAND_NEW_TRUSTED: {
+      u16 idx = sid_to_global_index(e->sid);
+      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+    }
+    case NDB_CAND_NEW_CANDIDATE:
+    case NDB_CAND_MISMATCH:
+      return NDB_ERR_UNCONFIRMED_DATA;
+    case NDB_CAND_GPS_TIME_MISSING:
+      return NDB_ERR_GPS_TIME_MISSING;
+    default:
+      assert(!"Invalid status");
     }
   } else if (NDB_DS_SBP == src) {
     u8 valid, health_bits;
@@ -506,7 +515,8 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
  */
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                                   ndb_data_source_t src,
-                                  u16 sender_id) {
+                                  u16 sender_id)
+{
   ndb_op_code_t res = ndb_ephemeris_store_do(e, src);
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
@@ -529,7 +539,8 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
  * \retval NDB_ERR_NO_CHANGE No data to erase.
  * \retval NDB_ERR_BAD_PARAM Bad parameter.
  */
-ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid) {
+ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid)
+{
   u16 idx = map_sid_to_index(sid);
 
   if (ARRAY_SIZE(ndb_ephemeris_md) <= idx) {
@@ -561,7 +572,8 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
                                  u8 *health_bits,
                                  gps_time_t *toe,
                                  u32 *fit_interval,
-                                 float *ura) {
+                                 float *ura)
+{
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   assert(valid != NULL);
@@ -594,7 +606,8 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
  * \retval TRUE    Ephe found, valid and sent
  * \retval FALSE   Ephe not sent
  */
-bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid) {
+bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid)
+{
   ephemeris_t e;
   gps_time_t t = get_current_time();
   enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);

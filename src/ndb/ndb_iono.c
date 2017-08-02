@@ -39,7 +39,8 @@ static ndb_file_t iono_corr_file = {.name = IONO_CORR_FILE_NAME,
                                     .block_size = sizeof(iono_corr),
                                     .block_count = 1};
 
-void ndb_iono_init(void) {
+void ndb_iono_init(void)
+{
   static bool erase_iono = false;
   SETTING("ndb", "erase_iono", erase_iono, TYPE_BOOL);
 
@@ -62,7 +63,8 @@ void ndb_iono_init(void) {
  *
  * \sa ndb_iono_corr_store
  */
-ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono) {
+ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono)
+{
   ndb_op_code_t ret =
       ndb_retrieve(&iono_corr_md, iono, sizeof(*iono), NULL, NDB_USE_NV_IONO);
   if (NDB_ERR_NONE == ret) {
@@ -90,7 +92,8 @@ ndb_op_code_t ndb_iono_corr_read(ionosphere_t *iono) {
 ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
                                   const ionosphere_t *iono,
                                   ndb_data_source_t src,
-                                  u16 sender_id) {
+                                  u16 sender_id)
+{
   ndb_op_code_t res = ndb_update(iono, src, &iono_corr_md);
 
   if (NULL != iono && NDB_ERR_NONE == res) {
@@ -112,7 +115,8 @@ ndb_op_code_t ndb_iono_corr_store(const gnss_signal_t *sid,
   return res;
 }
 
-static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void iono_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)len;
   (void)context;
 

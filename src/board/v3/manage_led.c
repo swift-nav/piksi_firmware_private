@@ -43,7 +43,8 @@
 #define RGB_TO_RGB_LED(_r, _g, _b)                 \
   (((_r) == 0) && ((_g) == 0) && ((_b) == 0))      \
       ? (rgb_led_state_t){.r = 0, .g = 0, .b = 0}  \
-      : (rgb_led_state_t) {                        \
+      : (rgb_led_state_t)                          \
+  {                                                \
     .r = RGB_TO_RGB_LED_COMPONENT(_r, _g, _b, _r), \
     .g = RGB_TO_RGB_LED_COMPONENT(_r, _g, _b, _g), \
     .b = RGB_TO_RGB_LED_COMPONENT(_r, _g, _b, _b)  \
@@ -90,7 +91,8 @@ static const counter_t blink_mode_periods[] = {
 
 static THD_WORKING_AREA(wa_manage_led_thread, MANAGE_LED_THREAD_STACK);
 
-static void blinker_reset(blinker_state_t *b, blink_mode_t mode) {
+static void blinker_reset(blinker_state_t *b, blink_mode_t mode)
+{
   b->mode = mode;
   /* Initialize counter to -1 so that it rolls over
    * to zero on the next update */
@@ -98,7 +100,8 @@ static void blinker_reset(blinker_state_t *b, blink_mode_t mode) {
   b->period = blink_mode_periods[mode];
 }
 
-static bool blinker_update(blinker_state_t *b) {
+static bool blinker_update(blinker_state_t *b)
+{
   /* Increment counter */
   if (++b->counter >= b->period) {
     b->counter = 0;
@@ -108,7 +111,8 @@ static bool blinker_update(blinker_state_t *b) {
   return (b->counter >= (b->period / 2));
 }
 
-static blink_mode_t pv_blink_mode_get(void) {
+static blink_mode_t pv_blink_mode_get(void)
+{
   /* On if PVT available */
   piksi_systime_t t = solution_last_pvt_stats_get().systime;
 
@@ -123,7 +127,8 @@ static blink_mode_t pv_blink_mode_get(void) {
   return BLINK_OFF;
 }
 
-static void handle_pv(counter_t c, bool *s) {
+static void handle_pv(counter_t c, bool *s)
+{
   static blinker_state_t blinker_state;
 
   /* Reset when global counter rolls over */
@@ -134,7 +139,8 @@ static void handle_pv(counter_t c, bool *s) {
   *s = blinker_update(&blinker_state);
 }
 
-static blink_mode_t pos_blink_mode_get(void) {
+static blink_mode_t pos_blink_mode_get(void)
+{
   u8 signals_tracked = solution_last_stats_get().signals_tracked;
   piksi_systime_t t = solution_last_pvt_stats_get().systime;
 
@@ -156,7 +162,8 @@ static blink_mode_t pos_blink_mode_get(void) {
   }
 }
 
-static void handle_pos(counter_t c, rgb_led_state_t *s) {
+static void handle_pos(counter_t c, rgb_led_state_t *s)
+{
   static blinker_state_t blinker_state;
 
   /* Reset when global counter rolls over */
@@ -168,7 +175,8 @@ static void handle_pos(counter_t c, rgb_led_state_t *s) {
                                       : RGB_TO_RGB_LED(0, 0, 0);
 }
 
-static void handle_link(counter_t c, rgb_led_state_t *s) {
+static void handle_link(counter_t c, rgb_led_state_t *s)
+{
   (void)c;
 
   static u8 last_base_obs_msg_counter = 0;
@@ -189,7 +197,8 @@ static void handle_link(counter_t c, rgb_led_state_t *s) {
   *s = (on_counter > 0) ? RGB_TO_RGB_LED(255, 0, 0) : RGB_TO_RGB_LED(0, 0, 0);
 }
 
-static blink_mode_t mode_blink_mode_get(void) {
+static blink_mode_t mode_blink_mode_get(void)
+{
   soln_dgnss_stats_t stats = solution_last_dgnss_stats_get();
 
   u32 elapsed = piksi_systime_elapsed_since_ms_x(&stats.systime);
@@ -205,7 +214,8 @@ static blink_mode_t mode_blink_mode_get(void) {
   return (FILTER_FIXED == stats.mode) ? BLINK_ON : BLINK_SLOW;
 }
 
-static void handle_mode(counter_t c, rgb_led_state_t *s) {
+static void handle_mode(counter_t c, rgb_led_state_t *s)
+{
   static blinker_state_t blinker_state;
 
   /* Reset when global counter rolls over */
@@ -217,13 +227,16 @@ static void handle_mode(counter_t c, rgb_led_state_t *s) {
                                       : RGB_TO_RGB_LED(0, 0, 0);
 }
 
-static void manage_led_thread(void *arg) {
+static void manage_led_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("manage LED");
 
   /* Configure GPIO */
   chSysLock();
-  { palSetLineMode(POS_VALID_GPIO_LINE, PAL_MODE_OUTPUT); }
+  {
+    palSetLineMode(POS_VALID_GPIO_LINE, PAL_MODE_OUTPUT);
+  }
   chSysUnlock();
 
   palClearLine(POS_VALID_GPIO_LINE);
@@ -267,7 +280,8 @@ static void manage_led_thread(void *arg) {
   }
 }
 
-void manage_led_setup(void) {
+void manage_led_setup(void)
+{
   chThdCreateStatic(wa_manage_led_thread,
                     sizeof(wa_manage_led_thread),
                     MANAGE_LED_THREAD_PRIO,

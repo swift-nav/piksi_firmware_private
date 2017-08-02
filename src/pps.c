@@ -40,7 +40,8 @@ static double pps_frequency_hz = 1.0;
 static double pps_period = 1.0;
 
 static THD_WORKING_AREA(wa_pps_thread, 256);
-static void pps_thread(void *arg) {
+static void pps_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("PPS");
 
@@ -65,7 +66,8 @@ static void pps_thread(void *arg) {
  * \param polarity Active logic level.
  * \return Returns true if value is within valid range, false otherwise.
  */
-bool pps_config(u32 microseconds, u8 polarity) {
+bool pps_config(u32 microseconds, u8 polarity)
+{
   if (microseconds < 1 || microseconds >= 1e6) {
     log_info("Invalid PPS width. Valid range: 1-999999\n");
     return FALSE;
@@ -87,7 +89,8 @@ bool pps_config(u32 microseconds, u8 polarity) {
  * \param val Pointer to new value.
  * \return Returns true if the change was successful, false otherwise.
  */
-bool pps_config_changed(struct setting *s, const char *val) {
+bool pps_config_changed(struct setting *s, const char *val)
+{
   (void)s;
   (void)val;
 
@@ -104,7 +107,8 @@ bool pps_config_changed(struct setting *s, const char *val) {
  * \param val Pointer to new value.
  * \return Returns true if the change was successful, false otherwise.
  */
-bool pps_frequency_changed(struct setting *s, const char *val) {
+bool pps_frequency_changed(struct setting *s, const char *val)
+{
   (void)s;
   (void)val;
 
@@ -130,7 +134,8 @@ bool pps_frequency_changed(struct setting *s, const char *val) {
  * Sets the default value for the PPS width and starts a thread to generate
  * the pulses.
  */
-void pps_setup(void) {
+void pps_setup(void)
+{
   pps_config(pps_width_microseconds, pps_polarity);
 
   SETTING_NOTIFY(

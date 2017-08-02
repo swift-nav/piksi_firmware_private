@@ -25,17 +25,20 @@
 #include "sbp_utils.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
-                                             const glo_time_t *glo_t) {
+                                             const glo_time_t *glo_t)
+{
   return glo2gps_with_utc_params(mesid, glo_t);
 }
 
-void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
+void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid)
+{
   nav_msg_init_glo(n, mesid, glo2gps_with_utc_params_cb);
 }
 
 bool is_glo_decode_ready(nav_msg_glo_t *n,
                          me_gnss_signal_t mesid,
-                         const nav_bit_fifo_element_t *nav_bit) {
+                         const nav_bit_fifo_element_t *nav_bit)
+{
   /* Don't trust polarity information while in sensitivity mode. */
   if (nav_bit->sensitivity_mode) {
     nav_msg_init_glo_with_cb(n, mesid);
@@ -72,7 +75,8 @@ bool is_glo_decode_ready(nav_msg_glo_t *n,
   return true;
 }
 
-void send_glo_fcn_mapping(gps_time_t t) {
+void send_glo_fcn_mapping(gps_time_t t)
+{
   msg_fcns_glo_t sbp;
   memset(sbp.fcns, GLO_FCN_UNKNOWN, sizeof(sbp.fcns));
   for (u16 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; i++) {
@@ -88,7 +92,8 @@ void send_glo_fcn_mapping(gps_time_t t) {
   sbp_send_msg(SBP_MSG_FCNS_GLO, sizeof(sbp), (u8 *)&sbp);
 }
 
-void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
+void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid)
+{
   log_debug_mesid(mesid,
                   "New ephemeris received [%" PRId16 ", %lf]",
                   n->eph.toe.wn,
@@ -122,7 +127,8 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
 
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
-                   u8 tracking_channel) {
+                   u8 tracking_channel)
+{
   nav_data_sync_t from_decoder;
 
   tracking_channel_data_sync_init(&from_decoder);

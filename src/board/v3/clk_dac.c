@@ -17,7 +17,8 @@
 static const SPIConfig spi_config = CLK_DAC_SPI_CONFIG;
 
 /* Controls for 8 bit DAC DAC081S101 or 12 bit DAC121S101*/
-void set_clk_dac(uint16_t val, uint8_t mode) {
+void set_clk_dac(uint16_t val, uint8_t mode)
+{
   assert(mode <= 3);
   assert(val < 4096);
   uint8_t out[2];

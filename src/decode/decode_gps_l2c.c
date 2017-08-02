@@ -56,7 +56,8 @@ static const decoder_interface_t decoder_interface_gps_l2c = {
 static decoder_interface_list_element_t list_element_gps_l2c = {
     .interface = &decoder_interface_gps_l2c, .next = 0};
 
-void decode_gps_l2c_register(void) {
+void decode_gps_l2c_register(void)
+{
   for (u32 i = 0; i < ARRAY_SIZE(gps_l2c_decoders); i++) {
     gps_l2c_decoders[i].active = false;
     gps_l2c_decoders[i].data = &gps_l2c_decoder_data[i];
@@ -66,7 +67,8 @@ void decode_gps_l2c_register(void) {
 }
 
 static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
-                                 decoder_data_t *decoder_data) {
+                                 decoder_data_t *decoder_data)
+{
   (void)channel_info;
   gps_l2c_decoder_data_t *data = decoder_data;
   memset(data, 0, sizeof(gps_l2c_decoder_data_t));
@@ -75,13 +77,15 @@ static void decoder_gps_l2c_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_gps_l2c_disable(const decoder_channel_info_t *channel_info,
-                                    decoder_data_t *decoder_data) {
+                                    decoder_data_t *decoder_data)
+{
   (void)channel_info;
   (void)decoder_data;
 }
 
 static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
-                                    decoder_data_t *decoder_data) {
+                                    decoder_data_t *decoder_data)
+{
   gps_l2c_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */

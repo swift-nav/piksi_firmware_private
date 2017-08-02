@@ -57,11 +57,13 @@ struct hil_platform_ops proc_ops = {
     .shutdown_cpu = _shutdown_cpu,
 };
 
-void remoteproc_env_irq_callback_set(remoteproc_env_irq_callback_t callback) {
+void remoteproc_env_irq_callback_set(remoteproc_env_irq_callback_t callback)
+{
   irq_callback = callback;
 }
 
-void remoteproc_env_irq_process(void) {
+void remoteproc_env_irq_process(void)
+{
   for (int i = 0; i < IRQ_STATUS_COUNT; i++) {
     irq_status_t *s = &irq_status[i];
     if (s->pending) {
@@ -74,7 +76,8 @@ void remoteproc_env_irq_process(void) {
   }
 }
 
-void remoteproc_env_irq_kick(void) {
+void remoteproc_env_irq_kick(void)
+{
   for (int i = 0; i < IRQ_STATUS_COUNT; i++) {
     irq_status_t *s = &irq_status[i];
     if (s->allocated) {
@@ -83,7 +86,8 @@ void remoteproc_env_irq_kick(void) {
   }
 }
 
-int env_init(void) {
+int env_init(void)
+{
   if (env_initialized) {
     return 0;
   }
@@ -104,34 +108,40 @@ int env_init(void) {
   return 0;
 }
 
-int env_deinit(void) {
+int env_deinit(void)
+{
   env_initialized = false;
   return 0;
 }
 
 void *env_allocate_memory(unsigned int size) { return (malloc(size)); }
 
-void env_free_memory(void *ptr) {
+void env_free_memory(void *ptr)
+{
   if (ptr != NULL) {
     free(ptr);
   }
 }
 
-void env_memset(void *ptr, int value, unsigned long size) {
+void env_memset(void *ptr, int value, unsigned long size)
+{
   memset(ptr, value, size);
 }
 
-void env_memcpy(void *dst, void const *src, unsigned long len) {
+void env_memcpy(void *dst, void const *src, unsigned long len)
+{
   memcpy(dst, src, len);
 }
 
 int env_strcmp(const char *dst, const char *src) { return (strcmp(dst, src)); }
 
-void env_strncpy(char *dest, const char *src, unsigned long len) {
+void env_strncpy(char *dest, const char *src, unsigned long len)
+{
   strncpy(dest, src, len);
 }
 
-int env_strncmp(char *dest, const char *src, unsigned long len) {
+int env_strncmp(char *dest, const char *src, unsigned long len)
+{
   return (strncmp(dest, src, len));
 }
 
@@ -145,7 +155,8 @@ void env_rmb(void) { asm volatile("dsb" : : : "memory"); }
 
 void env_wmb(void) { asm volatile("dsb" : : : "memory"); }
 
-int env_create_mutex(void **lock, int count) {
+int env_create_mutex(void **lock, int count)
+{
   (void)count;
   assert(count == 1);
 
@@ -160,7 +171,8 @@ int env_create_mutex(void **lock, int count) {
   return 1;
 }
 
-void env_delete_mutex(void *lock) {
+void env_delete_mutex(void *lock)
+{
   for (int i = 0; i < MUTEX_POOL_COUNT; i++) {
     if (lock == &mutex_pool[i]) {
       mutex_pool_bitfield |= (1 << i);
@@ -175,24 +187,28 @@ void env_lock_mutex(void *lock) { chMtxLock(lock); }
 
 void env_unlock_mutex(void *lock) { chMtxUnlock(lock); }
 
-int env_create_sync_lock(void **lock, int state) {
+int env_create_sync_lock(void **lock, int state)
+{
   (void)lock;
   (void)state;
   assert(!"unsupported");
   return 0;
 }
 
-void env_delete_sync_lock(void *lock) {
+void env_delete_sync_lock(void *lock)
+{
   (void)lock;
   assert(!"unsupported");
 }
 
-void env_acquire_sync_lock(void *lock) {
+void env_acquire_sync_lock(void *lock)
+{
   (void)lock;
   assert(!"unsupported");
 }
 
-void env_release_sync_lock(void *lock) {
+void env_release_sync_lock(void *lock)
+{
   (void)lock;
   assert(!"unsupported");
 }
@@ -207,7 +223,8 @@ void env_register_isr_shared(int vector,
                              void *data,
                              void (*isr)(int vector, void *data),
                              char *name,
-                             int shared) {
+                             int shared)
+{
   (void)vector;
   (void)data;
   (void)isr;
@@ -218,7 +235,8 @@ void env_register_isr_shared(int vector,
 
 void env_register_isr(int vector,
                       void *data,
-                      void (*isr)(int vector, void *data)) {
+                      void (*isr)(int vector, void *data))
+{
   (void)vector;
   (void)data;
   (void)isr;
@@ -229,7 +247,8 @@ void env_update_isr(int vector,
                     void *data,
                     void (*isr)(int vector, void *data),
                     char *name,
-                    int shared) {
+                    int shared)
+{
   (void)vector;
   (void)data;
   (void)isr;
@@ -240,14 +259,16 @@ void env_update_isr(int vector,
 
 void env_enable_interrupt(unsigned int vector,
                           unsigned int priority,
-                          unsigned int polarity) {
+                          unsigned int polarity)
+{
   (void)vector;
   (void)priority;
   (void)polarity;
   assert(!"unsupported");
 }
 
-void env_disable_interrupt(unsigned int vector) {
+void env_disable_interrupt(unsigned int vector)
+{
   (void)vector;
   assert(!"unsupported");
 }
@@ -255,7 +276,8 @@ void env_disable_interrupt(unsigned int vector) {
 void env_map_memory(unsigned int pa,
                     unsigned int va,
                     unsigned int size,
-                    unsigned int flags) {
+                    unsigned int flags)
+{
   (void)pa;
   (void)va;
   (void)size;
@@ -270,12 +292,14 @@ void env_disable_cache(void) {}
 
 void env_flush_invalidate_all_caches(void) {}
 
-unsigned long long env_get_timestamp(void) {
+unsigned long long env_get_timestamp(void)
+{
   assert(!"unsupported");
   return 0;
 }
 
-int platform_get_processor_info(struct hil_proc *proc, int cpu_id) {
+int platform_get_processor_info(struct hil_proc *proc, int cpu_id)
+{
   assert((unsigned int)cpu_id == HIL_RSVD_CPU_ID);
 
   extern const struct hil_proc hil_proc;
@@ -283,12 +307,14 @@ int platform_get_processor_info(struct hil_proc *proc, int cpu_id) {
   return 0;
 }
 
-int platform_get_processor_for_fw(char *fw_name) {
+int platform_get_processor_for_fw(char *fw_name)
+{
   (void)fw_name;
   return 1;
 }
 
-static int _enable_interrupt(struct proc_vring *vring_hw) {
+static int _enable_interrupt(struct proc_vring *vring_hw)
+{
   void *context = NULL;
 
   /* Find an unallocated irq_status structure */
@@ -317,24 +343,28 @@ static int _enable_interrupt(struct proc_vring *vring_hw) {
   return 0;
 }
 
-static void _notify(int cpu_id, struct proc_intr *intr_info) {
+static void _notify(int cpu_id, struct proc_intr *intr_info)
+{
   /* Trigger SGI to cpu_id */
   GIC_ICD->ICDSGIR = ((1 << cpu_id) << 16) | (intr_info->vect_id << 0);
 }
 
-static int _boot_cpu(int cpu_id, unsigned int load_addr) {
+static int _boot_cpu(int cpu_id, unsigned int load_addr)
+{
   (void)cpu_id;
   (void)load_addr;
   assert(!"unsupported");
   return 1;
 }
 
-static void _shutdown_cpu(int cpu_id) {
+static void _shutdown_cpu(int cpu_id)
+{
   (void)cpu_id;
   assert(!"unsupported");
 }
 
-static void rproc_virtio_irq_handler(void *context) {
+static void rproc_virtio_irq_handler(void *context)
+{
   irq_status_t *s = (irq_status_t *)context;
   s->pending = true;
 

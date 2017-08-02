@@ -23,7 +23,8 @@
  * \{ */
 
 /** Setup the LED GPIOs. */
-void led_setup(void) {
+void led_setup(void)
+{
   led_off(LED_GREEN);
   led_off(LED_RED);
 }
@@ -31,36 +32,38 @@ void led_setup(void) {
 /** Turn off an LED.
  * \param led LED to turn off.
  */
-void led_off(u8 led) {
+void led_off(u8 led)
+{
   switch (led) {
-    case LED_1:
-      palSetLine(LINE_LED1);
-      break;
+  case LED_1:
+    palSetLine(LINE_LED1);
+    break;
 
-    case LED_2:
-      palSetLine(LINE_LED2);
-      break;
+  case LED_2:
+    palSetLine(LINE_LED2);
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
 /** Turn on an LED.
  * \param led LED to turn on.
  */
-void led_on(u8 led) {
+void led_on(u8 led)
+{
   switch (led) {
-    case LED_1:
-      palClearLine(LINE_LED1);
-      break;
+  case LED_1:
+    palClearLine(LINE_LED1);
+    break;
 
-    case LED_2:
-      palClearLine(LINE_LED2);
-      break;
+  case LED_2:
+    palClearLine(LINE_LED2);
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
@@ -68,18 +71,19 @@ void led_on(u8 led) {
  * If currently on, switches off, if off, switches on.
  * \param led LED to toggle.
  */
-void led_toggle(u8 led) {
+void led_toggle(u8 led)
+{
   switch (led) {
-    case LED_1:
-      palToggleLine(LINE_LED1);
-      break;
+  case LED_1:
+    palToggleLine(LINE_LED1);
+    break;
 
-    case LED_2:
-      palToggleLine(LINE_LED2);
-      break;
+  case LED_2:
+    palToggleLine(LINE_LED2);
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 

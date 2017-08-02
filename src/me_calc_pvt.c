@@ -79,7 +79,8 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
-                                 const gps_time_t *_t) {
+                                 const gps_time_t *_t)
+{
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -116,7 +117,8 @@ static void me_post_observations(u8 n,
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
+                        const gps_time_t *_t)
+{
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
@@ -126,7 +128,8 @@ static void me_send_all(u8 _num_obs,
   }
 }
 
-static void me_send_emptyobs(void) {
+static void me_send_emptyobs(void)
+{
   me_post_observations(0, NULL, NULL, NULL);
   send_observations(0, msg_obs_max_size, NULL, NULL);
 }
@@ -135,7 +138,8 @@ static void me_send_emptyobs(void) {
  * \param rcv_pos Approximate receiver position
  * \param t Approximate time
  */
-static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
+static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
+{
   ephemeris_t ephemeris;
   almanac_t almanac;
   double az, el;
@@ -171,7 +175,8 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
  * \param deadline    Pointer to the current deadline, updated by this function.
  * \param interval_us Interval by which the deadline should be advanced [us].
  */
-static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
+static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us)
+{
   piksi_systime_inc_us(deadline, interval_us);
 
   chSysLock();
@@ -228,7 +233,8 @@ static void collect_measurements(u64 rec_tc,
                                  ephemeris_t ephe[MAX_CHANNELS],
                                  u8 *pn_ready,
                                  u8 *pn_inview,
-                                 u8 *pn_total) {
+                                 u8 *pn_total)
+{
   u8 n_collected = 0;
   u8 n_inview = 0;
   u8 n_active = 0;
@@ -279,7 +285,8 @@ static void collect_measurements(u64 rec_tc,
 }
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
-static void me_calc_pvt_thread(void *arg) {
+static void me_calc_pvt_thread(void *arg)
+{
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
 
@@ -672,7 +679,8 @@ static void me_calc_pvt_thread(void *arg) {
 
 soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
-void me_calc_pvt_setup() {
+void me_calc_pvt_setup()
+{
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);

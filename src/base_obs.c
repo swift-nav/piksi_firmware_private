@@ -70,7 +70,8 @@ static double old_base_pos_ecef[3] = {0, 0, 0};
 static u32 base_obs_msg_counter = 0;
 static u8 old_base_sender_id = 0;
 
-void check_base_position_change(void) {
+void check_base_position_change(void)
+{
   /* Check if the base position has changed and reset the RTK filter if
    * it has.
    */
@@ -95,7 +96,8 @@ void check_base_position_change(void) {
 static void base_pos_llh_callback(u16 sender_id,
                                   u8 len,
                                   u8 msg[],
-                                  void *context) {
+                                  void *context)
+{
   (void)context;
   (void)len;
   /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
@@ -127,7 +129,8 @@ static void base_pos_llh_callback(u16 sender_id,
 static void base_pos_ecef_callback(u16 sender_id,
                                    u8 len,
                                    u8 msg[],
-                                   void *context) {
+                                   void *context)
+{
   (void)context;
   (void)len;
   /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
@@ -144,11 +147,13 @@ static void base_pos_ecef_callback(u16 sender_id,
   chMtxUnlock(&base_pos_lock);
 }
 
-static inline bool not_l2p_sid(navigation_measurement_t a) {
+static inline bool not_l2p_sid(navigation_measurement_t a)
+{
   return a.sid.code != CODE_GPS_L2P;
 }
 
-static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
+static inline bool shm_suitable_wrapper(navigation_measurement_t meas)
+{
   return shm_navigation_suitable(meas.sid);
 }
 
@@ -162,7 +167,8 @@ static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
  * \note This function is stateful as it must store the previous observation
  *       set for the TDCP Doppler.
  */
-static void update_obss(obss_t *new_obss) {
+static void update_obss(obss_t *new_obss)
+{
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
   /* We don't want to allow observations that have the same or earlier time
@@ -339,7 +345,8 @@ static void update_obss(obss_t *new_obss) {
  * `obss_t` (`base_obss_rx`). Once a full set is received then update_obss()
  * is called.
  */
-static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)context;
 
   /* Keep track of where in the sequence of messages we were last time around
@@ -496,10 +503,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
 /** SBP callback for the old style observation messages.
  * Just logs a deprecation warning. */
-static void deprecated_callback(u16 sender_id,
-                                u8 len,
-                                u8 msg[],
-                                void *context) {
+static void deprecated_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)context;
   (void)len;
   (void)msg;
@@ -511,7 +516,8 @@ static void deprecated_callback(u16 sender_id,
 
 /** SBP callback for Group delay message
  */
-static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
   (void)sender_id;
   (void)len;
   (void)context;
@@ -546,7 +552,8 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 }
 
 /** Setup the base station observation handling subsystem. */
-void base_obs_setup() {
+void base_obs_setup()
+{
   /* Register callbacks on base station messages. */
 
   static sbp_msg_callbacks_node_t base_pos_llh_node;

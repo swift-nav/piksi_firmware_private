@@ -59,7 +59,8 @@ static tracker_interface_list_element_t tracker_interface_list_glo_l2ca = {
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
-void track_glo_l2ca_register(void) {
+void track_glo_l2ca_register(void)
+{
   TP_TRACKER_REGISTER_CONFIG(
       GLO_L2CA_TRACK_SETTING_SECTION, glo_l2ca_config, settings_default_notify);
 
@@ -80,7 +81,8 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
                                   double carrier_freq_hz,
-                                  float init_cn0_dbhz) {
+                                  float init_cn0_dbhz)
+{
   /* compose L2CA MESID: same SV, but code is L2CA */
   me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2CA, sat);
 
@@ -118,29 +120,31 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
       .elevation = TRACKING_ELEVATION_UNKNOWN};
 
   switch (tracking_startup_request(&startup_params)) {
-    case 0:
-      log_debug_mesid(L2_mesid, "L2CA handover done");
-      break;
+  case 0:
+    log_debug_mesid(L2_mesid, "L2CA handover done");
+    break;
 
-    case 1:
-      /* sat is already in fifo, no need to inform */
-      break;
+  case 1:
+    /* sat is already in fifo, no need to inform */
+    break;
 
-    case 2:
-      log_warn_mesid(L2_mesid, "Failed to start L2CA tracking");
-      break;
+  case 2:
+    log_warn_mesid(L2_mesid, "Failed to start L2CA tracking");
+    break;
 
-    default:
-      assert(!"Unknown code returned");
-      break;
+  default:
+    assert(!"Unknown code returned");
+    break;
   }
 }
 
-static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel) {
+static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel)
+{
   tp_tracker_init(tracker_channel, &glo_l2ca_config);
 }
 
-static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel) {
+static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel)
+{
   u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
   (void)tracker_flags;
 

@@ -49,7 +49,8 @@ bool acq_search(gnss_signal_t sid,
                 float cf_min,
                 float cf_max,
                 float cf_bin_width,
-                acq_result_t *acq_result) {
+                acq_result_t *acq_result)
+{
   u32 i = sid_to_code_index(sid);
   (void)cf_min;
   (void)cf_max;
@@ -68,7 +69,8 @@ bool acq_search(gnss_signal_t sid,
   return true;
 }
 
-u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
+u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
+{
   /* Remove from acquisition */
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   data->jobs[0][sid_to_code_index(startup_params->sid)].needs_to_run = false;
@@ -77,12 +79,14 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
 }
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
-                              bool peak_found) {
+                              bool peak_found)
+{
   (void)job;
   (void)acq_result;
   (void)peak_found;
 }
-void sm_init(acq_jobs_state_t *data) {
+void sm_init(acq_jobs_state_t *data)
+{
   memset(data, 0, sizeof(acq_jobs_state_t));
 
   acq_job_types_e type;
@@ -95,7 +99,8 @@ void sm_init(acq_jobs_state_t *data) {
     }
   }
 }
-gps_time_t get_current_time(void) {
+gps_time_t get_current_time(void)
+{
   gps_time_t t;
   t.wn = 0;
   t.tow = TOW_UNKNOWN;
@@ -106,7 +111,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
                           float *doppler_min,
-                          float *doppler_max) {
+                          float *doppler_max)
+{
   (void)sid;
   (void)t;
   (void)lgf;
@@ -114,7 +120,8 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   *doppler_max = 200;
 }
 
-void dum_report_reacq_result(const gnss_signal_t *sid, bool res) {
+void dum_report_reacq_result(const gnss_signal_t *sid, bool res)
+{
   (void)sid;
   (void)res;
 }
@@ -127,7 +134,8 @@ void dum_report_reacq_result(const gnss_signal_t *sid, bool res) {
  *
  * \return none
  */
-static void sch_test_cost_init(void) {
+static void sch_test_cost_init(void)
+{
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   acq_job_t *init_job = &data->jobs[0][10];
   printf("%s\n", __FUNCTION__);
@@ -205,7 +213,8 @@ static void sch_test_cost_init(void) {
  *
  * \return none
  */
-static void sch_test_job_select(void) {
+static void sch_test_job_select(void)
+{
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   acq_job_t *sel;
   printf("%s\n", __FUNCTION__);
@@ -260,7 +269,8 @@ static void sch_test_job_select(void) {
  *
  * \return none
  */
-static void sch_expect_hw_run(bool run, u32 code_index) {
+static void sch_expect_hw_run(bool run, u32 code_index)
+{
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   hw_has_run = false;
   sch_run(data);
@@ -280,7 +290,8 @@ static void sch_expect_hw_run(bool run, u32 code_index) {
  *
  * \return none
  */
-static void sch_test_job_scheduling(void) {
+static void sch_test_job_scheduling(void)
+{
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   printf("%s\n", __FUNCTION__);
   {
@@ -360,7 +371,8 @@ static void sch_test_job_scheduling(void) {
  *
  * \return 1 on failure, 0 othersiwe
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   sch_test_cost_init();
   sch_test_job_select();
   sch_test_job_scheduling();

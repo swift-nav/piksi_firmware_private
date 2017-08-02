@@ -63,7 +63,8 @@ static tracker_interface_list_element_t
  *
  * \return Update status
  */
-static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val) {
+static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val)
+{
   bool res = settings_default_notify(s, val);
 
   if (res) {
@@ -78,7 +79,8 @@ static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val) {
 /** Register GPS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
-void track_gps_l1ca_register(void) {
+void track_gps_l1ca_register(void)
+{
   TP_TRACKER_REGISTER_CONFIG(L1CA_TRACK_SETTING_SECTION,
                              gps_l1ca_config,
                              settings_pov_speed_cof_proxy);
@@ -89,7 +91,8 @@ void track_gps_l1ca_register(void) {
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }
 
-static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel) {
+static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel)
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   memset(data, 0, sizeof(*data));
@@ -114,7 +117,8 @@ static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel) {
  * \return None
  */
 static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
-                                u32 cycle_flags) {
+                                u32 cycle_flags)
+{
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   tp_tow_entry_t tow_entry;
@@ -228,7 +232,8 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
                            const tracking_channel_cc_entry_t *entry,
                            bool xcorr_flags[],
                            bool sat_active[],
-                           float xcorr_cn0_diffs[]) {
+                           float xcorr_cn0_diffs[])
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (CODE_GPS_L1CA != entry->mesid.code) {
@@ -294,7 +299,8 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
                                  u16 idx,
                                  bool xcorr_flags[],
                                  float xcorr_cn0_diffs[],
-                                 bool *xcorr_suspect) {
+                                 bool *xcorr_suspect)
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (idx + 1 == tracker_channel->mesid.sat) {
@@ -338,7 +344,8 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
  */
 static bool check_L2_entries(tracker_channel_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
-                             bool *xcorr_flag) {
+                             bool *xcorr_flag)
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (CODE_GPS_L2CM != entry->mesid.code ||
@@ -397,7 +404,8 @@ static bool check_L2_entries(tracker_channel_t *tracker_channel,
  */
 static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
                                 bool xcorr_flag,
-                                bool *xcorr_suspect) {
+                                bool *xcorr_suspect)
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   u16 index = mesid_to_code_index(tracker_channel->mesid);
@@ -446,8 +454,8 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
-static void update_l1_xcorr(tracker_channel_t *tracker_channel,
-                            u32 cycle_flags) {
+static void update_l1_xcorr(tracker_channel_t *tracker_channel, u32 cycle_flags)
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
@@ -529,7 +537,8 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
  * \return None
  */
 static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
-                                    u32 cycle_flags) {
+                                    u32 cycle_flags)
+{
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
@@ -566,7 +575,8 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
+static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel)
+{
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l1ca_config);
 
   /* GPS L1 C/A-specific ToW manipulation */

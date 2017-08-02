@@ -47,7 +47,8 @@ static void xadc_irq_handler(void *context);
  *
  * \return The received data.
  */
-static u16 xadc_cmd(u8 op, u8 addr, u16 data) {
+static u16 xadc_cmd(u8 op, u8 addr, u16 data)
+{
   /* Write to CMD FIFO */
   XADC_IF->CMD_FIFO = XADC_IF_CMD(op, addr, data);
 
@@ -70,7 +71,8 @@ static u16 xadc_cmd(u8 op, u8 addr, u16 data) {
  *
  * \return The read data.
  */
-static u16 xadc_read(u8 addr) {
+static u16 xadc_read(u8 addr)
+{
   /* Send READ command */
   xadc_cmd(XADC_IF_OP_READ, addr, 0);
 
@@ -83,7 +85,8 @@ static u16 xadc_read(u8 addr) {
  * \param addr   XADC address to write to.
  * \param data   Data to write.
  */
-static void xadc_write(u8 reg, u16 data) {
+static void xadc_write(u8 reg, u16 data)
+{
   /* Send WRITE command */
   xadc_cmd(XADC_IF_OP_WRITE, reg, data);
 }
@@ -92,7 +95,8 @@ static void xadc_write(u8 reg, u16 data) {
  *
  * \param context   Interrupt context (unused).
  */
-static void xadc_irq_handler(void *context) {
+static void xadc_irq_handler(void *context)
+{
   (void)context;
 
   u32 int_stat = XADC_IF->INT_STAT;
@@ -102,7 +106,8 @@ static void xadc_irq_handler(void *context) {
 
 /** Initialize the XADC.
  */
-void xadc_init(void) {
+void xadc_init(void)
+{
   /* Reset interface */
   XADC_IF->CTRL |= XADC_IF_CTRL_RESET_Msk;
   XADC_IF->CTRL &= ~XADC_IF_CTRL_RESET_Msk;
@@ -145,7 +150,8 @@ void xadc_init(void) {
 
 /** Get the most recent VPVN/VIN_MONITOR (V).
  */
-float xadc_vin_get(void) {
+float xadc_vin_get(void)
+{
 #ifdef XADC_VIN_SCALING
   return (float)xadc_read(XADC_ADDR_VPVN) * XADC_VIN_SCALING / 65536;
 #else
@@ -155,30 +161,35 @@ float xadc_vin_get(void) {
 
 /** Get the most recent VCCINT (V).
  */
-float xadc_vccint_get(void) {
+float xadc_vccint_get(void)
+{
   return (float)xadc_read(XADC_ADDR_VCCINT) * 3.0f / 65536;
 }
 
 /** Get the most recent VCCAUX (V).
  */
-float xadc_vccaux_get(void) {
+float xadc_vccaux_get(void)
+{
   return (float)xadc_read(XADC_ADDR_VCCAUX) * 3.0f / 65536;
 }
 
 /** Get the most recent die temperature (C).
  */
-float xadc_die_temp_get(void) {
+float xadc_die_temp_get(void)
+{
   return -273.15f + (float)xadc_read(XADC_ADDR_TEMPERATURE) * 503.975f / 65536;
 }
 
 /** Returns true if the die temperature has exceeded the warning limit.
  */
-bool xadc_die_temp_warning(void) {
+bool xadc_die_temp_warning(void)
+{
   return (XADC_IF->INT_MASK & XADC_IF_INT_ALM0_Msk) ? true : false;
 }
 
 /** Returns true if the die temperature has exceeded the critical limit.
  */
-bool xadc_die_temp_critical(void) {
+bool xadc_die_temp_critical(void)
+{
   return (XADC_IF->INT_MASK & XADC_IF_INT_OT_Msk) ? true : false;
 }

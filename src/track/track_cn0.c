@@ -111,7 +111,8 @@ static float q_avg = 8.f; /* initial value for noise level */
 /**
  * Helper to recompute estimator parameters
  */
-static void recompute_settings(void) {
+static void recompute_settings(void)
+{
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / cn0_periods_ms[i];
 
@@ -138,7 +139,8 @@ static void recompute_settings(void) {
  *
  * \retval true if the setting has been changed.
  */
-static bool settings_notify_proxy(struct setting *s, const char *val) {
+static bool settings_notify_proxy(struct setting *s, const char *val)
+{
   bool res = settings_default_notify(s, val);
 
   if (res) {
@@ -153,7 +155,8 @@ static bool settings_notify_proxy(struct setting *s, const char *val) {
  * computed using equivalent of cn0_est_compute_params() function for
  * integration periods and cut-off frequency defined in this file.
  */
-void track_cn0_params_init(void) {
+void track_cn0_params_init(void)
+{
   for (u32 i = 0; i < INTEG_PERIODS_NUM; i++) {
     float loop_freq = 1e3f / cn0_periods_ms[i];
     cn0_est_compute_params(&cn0_config.params[i].est_params,
@@ -217,14 +220,15 @@ void track_cn0_params_init(void) {
 static void init_estimator(track_cn0_state_t *e,
                            const cn0_est_params_t *p,
                            track_cn0_est_e t,
-                           float cn0_0) {
+                           float cn0_0)
+{
   switch (t) {
-    case TRACK_CN0_EST_BASIC:
-      cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
-      break;
+  case TRACK_CN0_EST_BASIC:
+    cn0_est_basic_init(&e->basic, p, cn0_0, q_avg * sqrtf(p->t_int));
+    break;
 
-    default:
-      assert(false);
+  default:
+    assert(false);
   }
 }
 
@@ -247,19 +251,20 @@ static float update_estimator(track_cn0_state_t *e,
                               float I,
                               float Q,
                               float ve_I,
-                              float ve_Q) {
+                              float ve_Q)
+{
   float cn0 = 0;
   float cn0_basic = cn0_est_basic_update(&e->basic, p, I, Q, ve_I, ve_Q);
 
   switch (t) {
-    case TRACK_CN0_EST_BASIC:
-      q_avg = q_avg * (1 - p->alpha) +
-              p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
-      cn0 = cn0_basic;
-      break;
+  case TRACK_CN0_EST_BASIC:
+    q_avg = q_avg * (1 - p->alpha) +
+            p->alpha * e->basic.noise_Q_abs / sqrtf(p->t_int);
+    cn0 = cn0_basic;
+    break;
 
-    default:
-      assert(false);
+  default:
+    assert(false);
   }
 
   return cn0;
@@ -276,7 +281,8 @@ static float update_estimator(track_cn0_state_t *e,
  *         parameters if precomputed entry is not available.
  */
 static const track_cn0_params_t *track_cn0_get_params(u8 cn0_ms,
-                                                      track_cn0_params_t *p) {
+                                                      track_cn0_params_t *p)
+{
   const track_cn0_params_t *pparams = NULL;
   u8 config_key = cn0_ms;
 
@@ -323,7 +329,8 @@ void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 cn0_ms,
                     track_cn0_state_t *e,
                     float cn0_0,
-                    u8 flags) {
+                    u8 flags)
+{
   track_cn0_params_t p;
 
   e->type = TRACK_CN0_EST_PRIMARY;
@@ -366,7 +373,8 @@ float track_cn0_update(const me_gnss_signal_t mesid,
                        float I,
                        float Q,
                        float ve_I,
-                       float ve_Q) {
+                       float ve_Q)
+{
   track_cn0_params_t p;
   const track_cn0_params_t *pp = track_cn0_get_params(e->cn0_ms, &p);
   float cn0 = 0;
@@ -400,14 +408,15 @@ float track_cn0_update(const me_gnss_signal_t mesid,
  *
  * \return Abbreviated estimator name.
  */
-const char *track_cn0_str(track_cn0_est_e t) {
+const char *track_cn0_str(track_cn0_est_e t)
+{
   const char *str = "?";
   switch (t) {
-    case TRACK_CN0_EST_BASIC:
-      str = "BASIC";
-      break;
-    default:
-      assert(!"Unknown estimator type");
+  case TRACK_CN0_EST_BASIC:
+    str = "BASIC";
+    break;
+  default:
+    assert(!"Unknown estimator type");
   }
   return str;
 }
@@ -419,29 +428,30 @@ const char *track_cn0_str(track_cn0_est_e t) {
  *
  * \return Offset in dB/Hz that corresponds to C/N0 increase for the given input
  */
-float track_cn0_get_offset(u8 cn0_ms) {
+float track_cn0_get_offset(u8 cn0_ms)
+{
   float cn0_offset = 0;
 
   switch (cn0_ms) {
-    case INTEG_PERIOD_1_MS:
-      cn0_offset = TRACK_CN0_OFFSET_1MS_DBHZ;
-      break;
+  case INTEG_PERIOD_1_MS:
+    cn0_offset = TRACK_CN0_OFFSET_1MS_DBHZ;
+    break;
 
-    case INTEG_PERIOD_5_MS:
-      cn0_offset = TRACK_CN0_OFFSET_5MS_DBHZ;
-      break;
+  case INTEG_PERIOD_5_MS:
+    cn0_offset = TRACK_CN0_OFFSET_5MS_DBHZ;
+    break;
 
-    case INTEG_PERIOD_10_MS:
-      cn0_offset = TRACK_CN0_OFFSET_10MS_DBHZ;
-      break;
+  case INTEG_PERIOD_10_MS:
+    cn0_offset = TRACK_CN0_OFFSET_10MS_DBHZ;
+    break;
 
-    case INTEG_PERIOD_20_MS:
-      cn0_offset = TRACK_CN0_OFFSET_20MS_DBHZ;
-      break;
+  case INTEG_PERIOD_20_MS:
+    cn0_offset = TRACK_CN0_OFFSET_20MS_DBHZ;
+    break;
 
-    default:
-      cn0_offset = 10.f * log10f(cn0_ms);
-      break;
+  default:
+    cn0_offset = 10.f * log10f(cn0_ms);
+    break;
   }
   return cn0_offset;
 }
@@ -455,7 +465,8 @@ float track_cn0_get_offset(u8 cn0_ms) {
  *
  * \sa track_cn0_get_sec2pri_threshold
  */
-float track_cn0_get_pri2sec_threshold(u8 cn0_ms) {
+float track_cn0_get_pri2sec_threshold(u8 cn0_ms)
+{
   float cn0_offset = track_cn0_get_offset(cn0_ms);
   return cn0_config.pri2sec_threshold + TRACK_CN0_OFFSET_20MS_DBHZ - cn0_offset;
 }
@@ -469,7 +480,8 @@ float track_cn0_get_pri2sec_threshold(u8 cn0_ms) {
  *
  * \sa track_cn0_get_pri2sec_threshold
  */
-float track_cn0_get_sec2pri_threshold(u8 cn0_ms) {
+float track_cn0_get_sec2pri_threshold(u8 cn0_ms)
+{
   float cn0_offset = track_cn0_get_offset(cn0_ms);
   return cn0_config.sec2pri_threshold + TRACK_CN0_OFFSET_20MS_DBHZ - cn0_offset;
 }

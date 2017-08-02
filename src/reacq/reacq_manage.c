@@ -30,7 +30,8 @@ void init_reacq(void) { sm_init(&acq_all_jobs_state_data); }
  *
  * \return None
  */
-void manage_reacq(void) {
+void manage_reacq(void)
+{
   sm_run(&acq_all_jobs_state_data);
   sch_run(&acq_all_jobs_state_data);
 }

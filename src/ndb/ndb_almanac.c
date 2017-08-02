@@ -114,7 +114,8 @@ static ndb_file_t ndb_alma_wn_file = {
     .block_count = ARRAY_SIZE(ndb_almanac_wn),
 };
 
-static u16 map_sid_to_index(gnss_signal_t sid) {
+static u16 map_sid_to_index(gnss_signal_t sid)
+{
   assert(sid_valid(sid));
   u16 idx = sid_to_code_index(sid);
   static const u8 constellation_to_alm_offset[CONSTELLATION_COUNT] = {
@@ -143,7 +144,8 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
  *
  * \internal
  */
-static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx) {
+static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx)
+{
   assert(prev_idx >= -1);
 
   for (u16 i = (u16)(prev_idx + 1); i < ARRAY_SIZE(alma_candidates); i++) {
@@ -168,7 +170,8 @@ static s16 ndb_alma_candidate_find(gnss_signal_t sid, s16 prev_idx) {
  *
  * \internal
  */
-static void ndb_alma_candidate_add(const almanac_t *alma) {
+static void ndb_alma_candidate_add(const almanac_t *alma)
+{
   ndb_timestamp_t now = ndb_get_timestamp();
   ndb_timestamp_t max_age = 0;
   ndb_ie_index_t max_age_idx = ARRAY_SIZE(alma_candidates);
@@ -217,7 +220,8 @@ static void ndb_alma_candidate_add(const almanac_t *alma) {
  *
  * \internal
  */
-static void ndb_alma_candidate_release(s16 cand_index) {
+static void ndb_alma_candidate_release(s16 cand_index)
+{
   assert(cand_index >= 0 && (u16)cand_index < ARRAY_SIZE(alma_candidates));
   memset(&alma_candidates[cand_index], 0, sizeof(alma_candidates[cand_index]));
 }
@@ -227,7 +231,8 @@ static void ndb_alma_candidate_release(s16 cand_index) {
  *
  * \return None
  */
-static void ndb_alma_candidate_cleanup(void) {
+static void ndb_alma_candidate_cleanup(void)
+{
   ndb_timestamp_t time = ndb_get_timestamp();
   if (time < NDB_MAX_ALMA_CANDIDATE_AGE) {
     time = 0;
@@ -274,7 +279,8 @@ static void ndb_alma_candidate_cleanup(void) {
  *
  * \internal
  */
-static ndb_cand_status_t ndb_alma_candidate_update(const almanac_t *alma) {
+static ndb_cand_status_t ndb_alma_candidate_update(const almanac_t *alma)
+{
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
   almanac_t existing;
 
@@ -390,7 +396,8 @@ static ndb_entry_match_fn ndb_alma_wn_match;
  */
 static bool ndb_alma_wn_match(const void *data,
                               const ndb_element_metadata_t *md,
-                              void *cookie) {
+                              void *cookie)
+{
   (void)md; /* Unused */
 
   u32 toa = *(const u32 *)cookie;
@@ -413,7 +420,8 @@ static bool ndb_alma_wn_match(const void *data,
  *
  * \internal
  */
-static void ndb_alma_wn_update_alma_candidates(u32 toa, u16 wn) {
+static void ndb_alma_wn_update_alma_candidates(u32 toa, u16 wn)
+{
   for (ndb_ie_index_t idx = 0; idx < ARRAY_SIZE(alma_candidates); ++idx) {
     if (alma_candidates[idx].used &&
         WN_UNKNOWN == alma_candidates[idx].alma.toa.wn &&
@@ -430,7 +438,8 @@ static void ndb_alma_wn_update_alma_candidates(u32 toa, u16 wn) {
  *
  * \internal
  */
-static void ndb_alma_wn_candidate_cleanup(void) {
+static void ndb_alma_wn_candidate_cleanup(void)
+{
   ndb_timestamp_t time = ndb_get_timestamp();
   if (time < NDB_MAX_ALMA_WN_CANDIDATE_AGE) {
     time = 0;
@@ -472,7 +481,8 @@ static void ndb_alma_wn_candidate_cleanup(void) {
  *
  * \internal
  */
-static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn) {
+static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn)
+{
   ndb_cand_status_t res = NDB_CAND_MISMATCH;
 
   u16 wn_existing = 0;
@@ -591,7 +601,8 @@ static ndb_cand_status_t ndb_alma_wn_candidate_update(u32 toa, u16 wn) {
  *
  * \internal
  */
-static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds) {
+static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds)
+{
   ndb_ie_index_t idx = 0;
   ndb_ie_index_t empty_idx = ndb_alma_wn_file.block_count;
   ndb_ie_index_t oldest_idx = ndb_alma_wn_file.block_count;
@@ -653,7 +664,8 @@ static void ndb_alma_wn_update_wn_file(u32 toa, u16 wn, ndb_data_source_t ds) {
  * \sa ndb_alma_wn_update_alma_candidates
  * \internal
  */
-static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn) {
+static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn)
+{
   /* Update all almanac entries with the same ToW and empty WN */
   almanac_t *const data = (almanac_t *)ndb_alma_file.block_data;
   ndb_element_metadata_t *const md = ndb_alma_file.block_md;
@@ -688,7 +700,8 @@ static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn) {
  *
  * \note GPS only!
  */
-void ndb_almanac_init(void) {
+void ndb_almanac_init(void)
+{
   static bool erase_almanac = false;
   static bool erase_almanac_wn = false;
   SETTING("ndb", "erase_almanac", erase_almanac, TYPE_BOOL);
@@ -733,7 +746,8 @@ void ndb_almanac_init(void) {
  * \sa ndb_almanac_store
  * \sa ndb_almanac_wn_store
  */
-ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a) {
+ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a)
+{
   u16 idx = map_sid_to_index(sid);
 
   assert(idx < ARRAY_SIZE(ndb_almanac_md));
@@ -764,7 +778,8 @@ ndb_op_code_t ndb_almanac_read(gnss_signal_t sid, almanac_t *a) {
 ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
                                 const almanac_t *a,
                                 ndb_data_source_t ds,
-                                u16 sender_id) {
+                                u16 sender_id)
+{
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != a && a->valid) {
@@ -781,24 +796,24 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
     }
 
     switch (ndb_alma_candidate_update(a)) {
-      case NDB_CAND_IDENTICAL:
-        res = NDB_ERR_NO_CHANGE;
-        break;
-      case NDB_CAND_OLDER:
-        res = NDB_ERR_OLDER_DATA;
-        break;
-      case NDB_CAND_NEW_TRUSTED:
-        res = ndb_update(a, ds, &ndb_almanac_md[map_sid_to_index(a->sid)]);
-        break;
-      case NDB_CAND_NEW_CANDIDATE:
-      case NDB_CAND_MISMATCH:
-        res = NDB_ERR_UNCONFIRMED_DATA;
-        break;
-      case NDB_CAND_GPS_TIME_MISSING:
-        res = NDB_ERR_GPS_TIME_MISSING;
-        break;
-      default:
-        assert(!"Invalid status");
+    case NDB_CAND_IDENTICAL:
+      res = NDB_ERR_NO_CHANGE;
+      break;
+    case NDB_CAND_OLDER:
+      res = NDB_ERR_OLDER_DATA;
+      break;
+    case NDB_CAND_NEW_TRUSTED:
+      res = ndb_update(a, ds, &ndb_almanac_md[map_sid_to_index(a->sid)]);
+      break;
+    case NDB_CAND_NEW_CANDIDATE:
+    case NDB_CAND_MISMATCH:
+      res = NDB_ERR_UNCONFIRMED_DATA;
+      break;
+    case NDB_CAND_GPS_TIME_MISSING:
+      res = NDB_ERR_GPS_TIME_MISSING;
+      break;
+    default:
+      assert(!"Invalid status");
     }
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -825,7 +840,8 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
  * \retval NDB_ERR_BAD_PARAM  Parameter errors.
  * \retval NDB_ERR_MISSING_IE Entry is not found.
  */
-ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn) {
+ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn)
+{
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != wn) {
@@ -878,34 +894,35 @@ ndb_op_code_t ndb_almanac_wn_read(u32 toa, u16 *wn) {
  * \retval NDB_ERR_UNCONFIRMED_DATA New entry, but confirmation is required.
  */
 ndb_op_code_t ndb_almanac_wn_store(
-    gnss_signal_t sid, u32 toa, u16 wn, ndb_data_source_t ds, u16 sender_id) {
+    gnss_signal_t sid, u32 toa, u16 wn, ndb_data_source_t ds, u16 sender_id)
+{
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   switch (ndb_alma_wn_candidate_update(toa, wn)) {
-    case NDB_CAND_IDENTICAL:
-      /* Nothing to be done: same data is already present in NDB file */
-      res = NDB_ERR_NO_CHANGE;
-      break;
-    case NDB_CAND_NEW_CANDIDATE:
-    case NDB_CAND_MISMATCH:
-      res = NDB_ERR_UNCONFIRMED_DATA;
-      break;
-    case NDB_CAND_NEW_TRUSTED:
-      /* Perform NDB database update inside NDB lock section */
-      ndb_lock();
-      /* Create persistent age/WN pair entry */
-      ndb_alma_wn_update_wn_file(toa, wn, ds);
-      /* Update persistent almanac entries with matching age */
-      ndb_alma_wn_update_alma_file(toa, wn);
-      ndb_unlock();
-      res = NDB_ERR_NONE;
-      break;
-    case NDB_CAND_OLDER:
-    case NDB_CAND_GPS_TIME_MISSING:
-      res = NDB_ERR_GPS_TIME_MISSING;
-      break;
-    default:
-      assert(!"Unexpected almanac's TOA/WN candidate status");
+  case NDB_CAND_IDENTICAL:
+    /* Nothing to be done: same data is already present in NDB file */
+    res = NDB_ERR_NO_CHANGE;
+    break;
+  case NDB_CAND_NEW_CANDIDATE:
+  case NDB_CAND_MISMATCH:
+    res = NDB_ERR_UNCONFIRMED_DATA;
+    break;
+  case NDB_CAND_NEW_TRUSTED:
+    /* Perform NDB database update inside NDB lock section */
+    ndb_lock();
+    /* Create persistent age/WN pair entry */
+    ndb_alma_wn_update_wn_file(toa, wn, ds);
+    /* Update persistent almanac entries with matching age */
+    ndb_alma_wn_update_alma_file(toa, wn);
+    ndb_unlock();
+    res = NDB_ERR_NONE;
+    break;
+  case NDB_CAND_OLDER:
+  case NDB_CAND_GPS_TIME_MISSING:
+    res = NDB_ERR_GPS_TIME_MISSING;
+    break;
+  default:
+    assert(!"Unexpected almanac's TOA/WN candidate status");
   }
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
@@ -928,7 +945,8 @@ ndb_op_code_t ndb_almanac_wn_store(
  * \retval NDB_ERR_NO_CHANGE No data to erase.
  * \retval NDB_ERR_BAD_PARAM Bad parameter.
  */
-ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid) {
+ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid)
+{
   u16 idx = map_sid_to_index(sid);
 
   ndb_op_code_t res = ndb_erase(&ndb_almanac_md[idx]);
@@ -971,7 +989,8 @@ ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
                                     u8 health_bits,
                                     ndb_data_source_t ds,
                                     const gnss_signal_t *src_sid,
-                                    u16 sender_id) {
+                                    u16 sender_id)
+{
   health_bits &= 0x1F;
 
   almanac_t tmp;
@@ -993,7 +1012,8 @@ ndb_op_code_t ndb_almanac_hb_update(gnss_signal_t target_sid,
  * \retval TRUE    Alma found, valid and sent
  * \retval FALSE   Alma not sent
  */
-bool ndb_almanac_sbp_update_tx(gnss_signal_t sid) {
+bool ndb_almanac_sbp_update_tx(gnss_signal_t sid)
+{
   almanac_t a;
   gps_time_t t = get_current_time();
   enum ndb_op_code oc = ndb_almanac_read(sid, &a);

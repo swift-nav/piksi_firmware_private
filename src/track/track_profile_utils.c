@@ -243,26 +243,27 @@ static const state_table_t mode_20ms1PN5 = {
  *
  * \return Table pointer or NULL on error.
  */
-static const state_table_t *select_table(tp_tm_e tracking_mode) {
+static const state_table_t *select_table(tp_tm_e tracking_mode)
+{
   switch (tracking_mode) {
-    case TP_TM_INITIAL:
-      return &mode_1msINI;
+  case TP_TM_INITIAL:
+    return &mode_1msINI;
 
-    case TP_TM_5MS:
-      return &mode_5ms1PN;
+  case TP_TM_5MS:
+    return &mode_5ms1PN;
 
-    case TP_TM_1MS:
-      return &mode_1msDYN;
+  case TP_TM_1MS:
+    return &mode_1msDYN;
 
-    case TP_TM_10MS:
-      return &mode_10ms1PN5;
+  case TP_TM_10MS:
+    return &mode_10ms1PN5;
 
-    case TP_TM_20MS:
-      return &mode_20ms1PN5;
+  case TP_TM_20MS:
+    return &mode_20ms1PN5;
 
-    default:
-      assert(!"Invalid mode");
-      break;
+  default:
+    assert(!"Invalid mode");
+    break;
   }
 
   assert(false);
@@ -278,7 +279,8 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
  * \return Entry for the given cycle number or NULL on error.
  */
 static const state_entry_t *select_entry(const state_table_t *table,
-                                         u8 cycle_no) {
+                                         u8 cycle_no)
+{
   if (NULL != table && cycle_no < table->ent_cnt) {
     return &table->entries[cycle_no];
   }
@@ -293,13 +295,15 @@ static const state_entry_t *select_entry(const state_table_t *table,
  *
  * \return Number of cycles in the given mode
  */
-u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no) {
+u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no)
+{
   u8 cycle_cnt; /**< Number of cycles in the current tracking mode */
 
   cycle_cnt = tp_get_cycle_count(tracking_mode);
 
   if (cycle_cnt > 0) {
-    if (++cycle_no >= cycle_cnt) cycle_no = 0;
+    if (++cycle_no >= cycle_cnt)
+      cycle_no = 0;
   } else {
     cycle_no = 0;
   }
@@ -313,7 +317,8 @@ u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no) {
  * \param tracker_channel Tracking channel data.
  * \param cycle_no
  */
-u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no) {
+u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no)
+{
   const state_table_t *tbl = select_table(tracker_channel->tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
@@ -329,7 +334,8 @@ u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no) {
  *
  * \return Number of cycles in the given mode
  */
-u8 tp_get_cycle_count(tp_tm_e tracking_mode) {
+u8 tp_get_cycle_count(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -345,7 +351,8 @@ u8 tp_get_cycle_count(tp_tm_e tracking_mode) {
  *
  * \return Current cycle duration in ms.
  */
-u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
+u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no)
+{
   const state_table_t *tbl = select_table(tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
@@ -364,7 +371,8 @@ u8 tp_get_current_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
  *
  * \return Rollover cycle duration in ms.
  */
-u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
+u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(tbl != NULL);
@@ -387,7 +395,8 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no) {
  *
  * \return C/N0 estimator update period in ms.
  */
-u8 tp_get_cn0_ms(tp_tm_e tracking_mode) {
+u8 tp_get_cn0_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -402,7 +411,8 @@ u8 tp_get_cn0_ms(tp_tm_e tracking_mode) {
  *
  * \return lock detector update period in ms.
  */
-u8 tp_get_ld_ms(tp_tm_e tracking_mode) {
+u8 tp_get_ld_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -417,7 +427,8 @@ u8 tp_get_ld_ms(tp_tm_e tracking_mode) {
  *
  * \return false lock (alias) detector update period in ms.
  */
-u8 tp_get_alias_ms(tp_tm_e tracking_mode) {
+u8 tp_get_alias_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -432,7 +443,8 @@ u8 tp_get_alias_ms(tp_tm_e tracking_mode) {
  *
  * \return FLL discriminator update period in ms.
  */
-u8 tp_get_flld_ms(tp_tm_e tracking_mode) {
+u8 tp_get_flld_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -447,7 +459,8 @@ u8 tp_get_flld_ms(tp_tm_e tracking_mode) {
  *
  * \return FLL loop update period in ms.
  */
-u8 tp_get_flll_ms(tp_tm_e tracking_mode) {
+u8 tp_get_flll_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -462,7 +475,8 @@ u8 tp_get_flll_ms(tp_tm_e tracking_mode) {
  *
  * \return bit sync update period in ms.
  */
-u8 tp_get_bit_ms(tp_tm_e tracking_mode) {
+u8 tp_get_bit_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -477,7 +491,8 @@ u8 tp_get_bit_ms(tp_tm_e tracking_mode) {
  *
  * \return PLL integration period in ms.
  */
-u8 tp_get_pll_ms(tp_tm_e tracking_mode) {
+u8 tp_get_pll_ms(tp_tm_e tracking_mode)
+{
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
@@ -501,26 +516,27 @@ u8 tp_get_dll_ms(tp_tm_e tracking_mode) { return tp_get_pll_ms(tracking_mode); }
  *
  * @return Mode literal
  */
-const char *tp_get_mode_str(tp_tm_e v) {
+const char *tp_get_mode_str(tp_tm_e v)
+{
   const char *str = "?";
   switch (v) {
-    case TP_TM_INITIAL:
-      str = "TM_INI";
-      break;
-    case TP_TM_1MS:
-      str = "TM_1MS";
-      break;
-    case TP_TM_5MS:
-      str = "TM_5MS";
-      break;
-    case TP_TM_10MS:
-      str = "TM_10MS";
-      break;
-    case TP_TM_20MS:
-      str = "TM_20MS";
-      break;
-    default:
-      assert(false);
+  case TP_TM_INITIAL:
+    str = "TM_INI";
+    break;
+  case TP_TM_1MS:
+    str = "TM_1MS";
+    break;
+  case TP_TM_5MS:
+    str = "TM_5MS";
+    break;
+  case TP_TM_10MS:
+    str = "TM_10MS";
+    break;
+  case TP_TM_20MS:
+    str = "TM_20MS";
+    break;
+  default:
+    assert(false);
   }
   return str;
 }
@@ -533,19 +549,20 @@ const char *tp_get_mode_str(tp_tm_e v) {
  * \retval true  controller is PLL or FLL assisted FLL
  * \retval false controller is not PLL
  */
-bool tp_is_pll_ctrl(tp_ctrl_e ctrl) {
+bool tp_is_pll_ctrl(tp_ctrl_e ctrl)
+{
   switch (ctrl) {
-    case TP_CTRL_PLL2:
-    case TP_CTRL_PLL3:
-      return true;
+  case TP_CTRL_PLL2:
+  case TP_CTRL_PLL3:
+    return true;
 
-    case TP_CTRL_FLL1:
-    case TP_CTRL_FLL2:
-      return false;
+  case TP_CTRL_FLL1:
+  case TP_CTRL_FLL2:
+    return false;
 
-    default:
-      assert(!"Unsupported controller type");
-      break;
+  default:
+    assert(!"Unsupported controller type");
+    break;
   }
   return false;
 }
@@ -558,19 +575,20 @@ bool tp_is_pll_ctrl(tp_ctrl_e ctrl) {
  * \retval true  controller is FLL
  * \retval false controller is not FLL
  */
-bool tp_is_fll_ctrl(tp_ctrl_e ctrl) {
+bool tp_is_fll_ctrl(tp_ctrl_e ctrl)
+{
   switch (ctrl) {
-    case TP_CTRL_PLL2:
-    case TP_CTRL_PLL3:
-      return false;
+  case TP_CTRL_PLL2:
+  case TP_CTRL_PLL3:
+    return false;
 
-    case TP_CTRL_FLL1:
-    case TP_CTRL_FLL2:
-      return true;
+  case TP_CTRL_FLL1:
+  case TP_CTRL_FLL2:
+    return true;
 
-    default:
-      assert(!"Unsupported controller type");
-      break;
+  default:
+    assert(!"Unsupported controller type");
+    break;
   }
   return false;
 }
@@ -589,7 +607,8 @@ bool tp_is_fll_ctrl(tp_ctrl_e ctrl) {
  */
 void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
                             bool xcorr_suspect,
-                            bool sensitivity_mode) {
+                            bool sensitivity_mode)
+{
   if (CODE_GPS_L1CA == tracker_channel->mesid.code) {
     gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
     if ((data->xcorr_flag) == xcorr_suspect) {

@@ -56,21 +56,24 @@ static tracker_interface_list_element_t tracker_interface_list_glo_l1ca = {
 /** Register GLO L1CA tracker into the the tracker interface & settings
  *  framework.
  */
-void track_glo_l1ca_register(void) {
+void track_glo_l1ca_register(void)
+{
   TP_TRACKER_REGISTER_CONFIG(
       GLO_L1CA_TRACK_SETTING_SECTION, glo_l1ca_config, settings_default_notify);
 
   tracker_interface_register(&tracker_interface_list_glo_l1ca);
 }
 
-static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel) {
+static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel)
+{
   tp_tracker_init(tracker_channel, &glo_l1ca_config);
 }
 
 s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
                               u64 sample_time_tk,
                               bool half_bit_aligned,
-                              s32 *TOW_residual_ns) {
+                              s32 *TOW_residual_ns)
+{
   assert(TOW_residual_ns);
   *TOW_residual_ns = 0;
 
@@ -129,7 +132,8 @@ s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
 }
 
 static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
-                                 u64 sample_time_tk) {
+                                 u64 sample_time_tk)
+{
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
     return;
@@ -158,7 +162,8 @@ static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
  * \param[in]     cycle_flags    Current cycle flags.
  */
 static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
-                                u32 cycle_flags) {
+                                u32 cycle_flags)
+{
   bool half_bit_aligned = false;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
@@ -209,7 +214,8 @@ static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
   }
 }
 
-static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel) {
+static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel)
+{
   u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l1ca_config);
 
   /* GLO L1 C/A-specific ToW manipulation */

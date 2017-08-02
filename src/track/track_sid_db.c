@@ -58,7 +58,8 @@ static sid_db_cache_t sid_db_cache;
 /**
  * Initializes ToW computation subsystem.
  */
-void track_sid_db_init(void) {
+void track_sid_db_init(void)
+{
   chMtxObjectInit(&sid_db_cache.mutex);
   for (size_t i = 0; i < NUM_SATS; ++i) {
     volatile sid_db_cache_entry_t *entry = &sid_db_cache.entries[i];
@@ -72,7 +73,8 @@ void track_sid_db_init(void) {
 /**
  * Clears GLO ToW cache prior to leap second event.
  */
-void track_sid_db_clear_glo_tow(void) {
+void track_sid_db_clear_glo_tow(void)
+{
   tp_tow_entry_t tow_entry = {
       .TOW_ms = TOW_UNKNOWN, .TOW_residual_ns = 0, .sample_time_tk = 0};
   for (u8 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; ++i) {
@@ -87,7 +89,8 @@ void track_sid_db_clear_glo_tow(void) {
  * \param[in]  sid       GNSS signal identifier.
  * \param[out] tow_entry ToW entry for the given signal.
  */
-void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry) {
+void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry)
+{
   assert(tow_entry);
 
   u16 sv_index = sid_to_sv_index(sid);
@@ -103,7 +106,8 @@ void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry) {
  * \param[in] tow_entry ToW data.
  */
 void track_sid_db_update_tow(const gnss_signal_t sid,
-                             const tp_tow_entry_t *tow_entry) {
+                             const tp_tow_entry_t *tow_entry)
+{
   assert(tow_entry);
 
   u16 sv_index = sid_to_sv_index(sid);
@@ -122,7 +126,8 @@ void track_sid_db_update_tow(const gnss_signal_t sid,
  * \retval false If elevation entry is not present.
  */
 bool track_sid_db_load_elevation(const gnss_signal_t sid,
-                                 tp_azel_entry_t *azel_entry) {
+                                 tp_azel_entry_t *azel_entry)
+{
   bool result = false;
 
   if (NULL != azel_entry) {
@@ -146,7 +151,8 @@ bool track_sid_db_load_elevation(const gnss_signal_t sid,
  * \retval false If elevation entry is not present.
  */
 bool track_sid_db_update_azel(const gnss_signal_t sid,
-                              const tp_azel_entry_t *azel_entry) {
+                              const tp_azel_entry_t *azel_entry)
+{
   bool result = false;
 
   if (NULL != azel_entry) {
@@ -174,10 +180,8 @@ bool track_sid_db_update_azel(const gnss_signal_t sid,
  *
  * \return Computed ToW if >= 0 or #TOW_UNKNOWN on error.
  */
-s32 tp_tow_compute(s32 old_ToW_ms,
-                   u64 delta_tk,
-                   u8 ms_align,
-                   double *error_ms) {
+s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_tk, u8 ms_align, double *error_ms)
+{
   s32 ToW_ms = TOW_UNKNOWN;
 
   if (TOW_UNKNOWN != old_ToW_ms) {
@@ -225,7 +229,8 @@ s32 tp_tow_compute(s32 old_ToW_ms,
  * \retval true  ToW is in range of [0; WEEK_MS) or has a value of TOW_UNKNOWN.
  * \retval false ToW is not valid.
  */
-bool tp_tow_is_sane(s32 tow_ms) {
+bool tp_tow_is_sane(s32 tow_ms)
+{
   return tow_ms == TOW_UNKNOWN || (tow_ms >= 0 && tow_ms < WEEK_MS);
 }
 
@@ -241,7 +246,8 @@ bool tp_tow_is_sane(s32 tow_ms) {
  * \sa track_sid_db_update_positions
  */
 bool track_sid_db_load_positions(const gnss_signal_t sid,
-                                 xcorr_positions_t *position_entry) {
+                                 xcorr_positions_t *position_entry)
+{
   bool result = false;
 
   if (NULL != position_entry) {
@@ -267,7 +273,8 @@ bool track_sid_db_load_positions(const gnss_signal_t sid,
  * \sa track_sid_db_load_positions
  */
 bool track_sid_db_update_positions(const gnss_signal_t sid,
-                                   const xcorr_positions_t *position_entry) {
+                                   const xcorr_positions_t *position_entry)
+{
   bool result = false;
 
   if (NULL != position_entry) {

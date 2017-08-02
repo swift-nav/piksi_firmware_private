@@ -963,8 +963,8 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
  * \param[in] mesid ME signal ID
  * \return Tracking profiles array pointer
  */
-static const tp_profile_entry_t *mesid_to_profiles(
-    const me_gnss_signal_t mesid) {
+static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid)
+{
   const tp_profile_entry_t *profiles = NULL;
 
   /* GPS and SBAS constellations use similar signal encoding scheme and thus
@@ -973,20 +973,20 @@ static const tp_profile_entry_t *mesid_to_profiles(
      Otherwise we use the same set of tracking profiles. */
 
   switch (mesid_to_constellation(mesid)) {
-    case CONSTELLATION_GPS:
-    case CONSTELLATION_SBAS:
-    case CONSTELLATION_GLO:
-      profiles = gnss_track_profiles;
-      break;
+  case CONSTELLATION_GPS:
+  case CONSTELLATION_SBAS:
+  case CONSTELLATION_GLO:
+    profiles = gnss_track_profiles;
+    break;
 
-    case CONSTELLATION_BDS2:
-    case CONSTELLATION_GAL:
-    case CONSTELLATION_QZS:
-    case CONSTELLATION_INVALID:
-    case CONSTELLATION_COUNT:
-    default:
-      assert(!"Invalid constellation");
-      break;
+  case CONSTELLATION_BDS2:
+  case CONSTELLATION_GAL:
+  case CONSTELLATION_QZS:
+  case CONSTELLATION_INVALID:
+  case CONSTELLATION_COUNT:
+  default:
+    assert(!"Invalid constellation");
+    break;
   }
 
   return profiles;
@@ -997,54 +997,54 @@ static const tp_profile_entry_t *mesid_to_profiles(
  * \param profile The profile details having track modes for different codes.
  * \return The track mode.
  */
-tp_tm_e track_mode_by_code(code_t code,
-                           const struct tp_profile_entry *profile) {
+tp_tm_e track_mode_by_code(code_t code, const struct tp_profile_entry *profile)
+{
   tp_tm_e track_mode = TP_TM_INITIAL;
 
   switch (code) {
-    case CODE_GPS_L1CA:
-    case CODE_GPS_L2CM:
-    case CODE_GPS_L2CL:
-      track_mode = profile->profile.gps_track_mode;
-      break;
-    case CODE_GLO_L1CA:
-    case CODE_GLO_L2CA:
-      track_mode = profile->profile.glo_track_mode;
-      break;
-    case CODE_SBAS_L1CA:
-    case CODE_INVALID:
-    case CODE_GPS_L1P:
-    case CODE_GPS_L2P:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
-    case CODE_BDS2_B11:
-    case CODE_BDS2_B2:
-    case CODE_GAL_E1B:
-    case CODE_GAL_E1C:
-    case CODE_GAL_E1X:
-    case CODE_GAL_E6B:
-    case CODE_GAL_E6C:
-    case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
-    case CODE_GAL_E8:
-    case CODE_GAL_E5I:
-    case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
-    case CODE_QZS_L2CX:
-    case CODE_QZS_L5I:
-    case CODE_QZS_L5Q:
-    case CODE_QZS_L5X:
-    case CODE_COUNT:
-    default:
-      assert(0);
-      break;
+  case CODE_GPS_L1CA:
+  case CODE_GPS_L2CM:
+  case CODE_GPS_L2CL:
+    track_mode = profile->profile.gps_track_mode;
+    break;
+  case CODE_GLO_L1CA:
+  case CODE_GLO_L2CA:
+    track_mode = profile->profile.glo_track_mode;
+    break;
+  case CODE_SBAS_L1CA:
+  case CODE_INVALID:
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
+  case CODE_GPS_L2CX:
+  case CODE_GPS_L5I:
+  case CODE_GPS_L5Q:
+  case CODE_GPS_L5X:
+  case CODE_BDS2_B11:
+  case CODE_BDS2_B2:
+  case CODE_GAL_E1B:
+  case CODE_GAL_E1C:
+  case CODE_GAL_E1X:
+  case CODE_GAL_E6B:
+  case CODE_GAL_E6C:
+  case CODE_GAL_E6X:
+  case CODE_GAL_E7I:
+  case CODE_GAL_E7Q:
+  case CODE_GAL_E7X:
+  case CODE_GAL_E8:
+  case CODE_GAL_E5I:
+  case CODE_GAL_E5Q:
+  case CODE_GAL_E5X:
+  case CODE_QZS_L1CA:
+  case CODE_QZS_L2CM:
+  case CODE_QZS_L2CL:
+  case CODE_QZS_L2CX:
+  case CODE_QZS_L5I:
+  case CODE_QZS_L5Q:
+  case CODE_QZS_L5X:
+  case CODE_COUNT:
+  default:
+    assert(0);
+    break;
   }
 
   return track_mode;
@@ -1064,7 +1064,8 @@ tp_tm_e track_mode_by_code(code_t code,
  */
 static void get_profile_params(const me_gnss_signal_t mesid,
                                const tp_profile_t *profile,
-                               tp_config_t *config) {
+                               tp_config_t *config)
+{
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur_index];
   double carr_to_code = mesid_to_carr_to_code(mesid);
@@ -1109,7 +1110,8 @@ static void get_profile_params(const me_gnss_signal_t mesid,
  */
 static void update_stats(tracker_channel_t *tracker_channel,
                          tp_profile_t *profile,
-                         const tp_report_t *data) {
+                         const tp_report_t *data)
+{
   float cn0;
   u32 cur_time_ms = tracker_channel->update_count;
   const me_gnss_signal_t mesid = tracker_channel->mesid;
@@ -1173,23 +1175,24 @@ static void update_stats(tracker_channel_t *tracker_channel,
  *
  * \return Loop controller type literal.
  */
-static const char *get_ctrl_str(tp_ctrl_e v) {
+static const char *get_ctrl_str(tp_ctrl_e v)
+{
   const char *str = "?";
   switch (v) {
-    case TP_CTRL_PLL2:
-      str = "PLL2";
-      break;
-    case TP_CTRL_PLL3:
-      str = "PLL3";
-      break;
-    case TP_CTRL_FLL1:
-      str = "FLL1";
-      break;
-    case TP_CTRL_FLL2:
-      str = "FLL2";
-      break;
-    default:
-      assert(!"Unknown loop controller type");
+  case TP_CTRL_PLL2:
+    str = "PLL2";
+    break;
+  case TP_CTRL_PLL3:
+    str = "PLL3";
+    break;
+  case TP_CTRL_FLL1:
+    str = "FLL1";
+    break;
+  case TP_CTRL_FLL2:
+    str = "FLL2";
+    break;
+  default:
+    assert(!"Unknown loop controller type");
   }
   return str;
 }
@@ -1207,7 +1210,8 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
  */
 static void log_switch(const me_gnss_signal_t mesid,
                        const tp_profile_t *state,
-                       const char *reason) {
+                       const char *reason)
+{
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur_index];
   const tp_profile_entry_t *next_profile = &state->profiles[state->next_index];
   tp_tm_e cur_track_mode = track_mode_by_code(mesid.code, cur_profile);
@@ -1244,7 +1248,8 @@ static void log_switch(const me_gnss_signal_t mesid,
  *
  * \return None
  */
-static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile) {
+static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile)
+{
   if (profile->print_time > 0) {
     return;
   }
@@ -1284,7 +1289,8 @@ static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile) {
  *
  * \params[in,out] state tracking loop state
  */
-static void update_acceleration_status(tp_profile_t *state) {
+static void update_acceleration_status(tp_profile_t *state)
+{
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur_index];
   float acc_threshold_g = cur_profile->acc_threshold;
   float acceleration_g = fabsf(state->filt_accel);
@@ -1301,7 +1307,8 @@ static void update_acceleration_status(tp_profile_t *state) {
  * \param[in,out] state Tracking loop state
  */
 static void check_for_cn0_estimator_change(const me_gnss_signal_t mesid,
-                                           tp_profile_t *state) {
+                                           tp_profile_t *state)
+{
   float cn0 = 0.f;
   const tp_profile_entry_t *cur_profile;
 
@@ -1340,7 +1347,8 @@ static void check_for_cn0_estimator_change(const me_gnss_signal_t mesid,
  */
 static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                    const tp_profile_t *state,
-                                   const profile_indices_t index) {
+                                   const profile_indices_t index)
+{
   static u8 int_times[] = {[TP_TM_INITIAL] = 1,
                            [TP_TM_1MS] = 1,
                            [TP_TM_5MS] = 5,
@@ -1379,7 +1387,8 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
 static bool profile_switch_requested(const me_gnss_signal_t mesid,
                                      tp_profile_t *state,
                                      profile_indices_t index,
-                                     const char *reason) {
+                                     const char *reason)
+{
   if (index == state->cur_index) {
     return false;
   }
@@ -1414,7 +1423,8 @@ static bool profile_switch_requested(const me_gnss_signal_t mesid,
  * \return None
  */
 static void check_for_profile_change(const me_gnss_signal_t mesid,
-                                     tp_profile_t *state) {
+                                     tp_profile_t *state)
+{
   const tp_profile_entry_t *cur_profile;
   u16 flags;
   bool acceleration_detected;
@@ -1513,7 +1523,8 @@ static void check_for_profile_change(const me_gnss_signal_t mesid,
  * \return Computed C/N0 offset in dB/Hz.
  */
 static float compute_cn0_offset(const me_gnss_signal_t mesid,
-                                const tp_profile_t *profile) {
+                                const tp_profile_t *profile)
+{
   const struct tp_profile_entry *cur_profile;
   tp_tm_e mode;
 
@@ -1555,7 +1566,8 @@ tp_result_e tp_init(void) { return TP_RESULT_SUCCESS; }
 tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
                             tp_profile_t *profile,
                             const tp_report_t *data,
-                            tp_config_t *config) {
+                            tp_config_t *config)
+{
   tp_result_e res = TP_RESULT_ERROR;
 
   if (NULL != config && NULL != profile) {
@@ -1610,7 +1622,8 @@ tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
 tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
                                   tp_profile_t *profile,
                                   tp_config_t *config,
-                                  bool commit) {
+                                  bool commit)
+{
   tp_result_e res = TP_RESULT_ERROR;
   if (NULL != config && NULL != profile) {
     if (profile->profile_update) {
@@ -1643,7 +1656,8 @@ tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
  * \retval TP_RESULT_ERROR   On error.
  */
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
-                                      tp_cn0_params_t *cn0_params) {
+                                      tp_cn0_params_t *cn0_params)
+{
   if ((NULL == cn0_params) || (NULL == profile)) {
     return TP_RESULT_ERROR;
   }
@@ -1682,7 +1696,8 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
  * \retval false No profile change is required.
  */
 bool tp_profile_has_new_profile(const me_gnss_signal_t mesid,
-                                tp_profile_t *profile) {
+                                tp_profile_t *profile)
+{
   bool res = false;
   if (NULL != profile) {
     check_for_profile_change(mesid, profile);
@@ -1700,7 +1715,8 @@ bool tp_profile_has_new_profile(const me_gnss_signal_t mesid,
  * \return Loop parameters for the next integration interval
  */
 u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
-                                      const tp_profile_t *profile) {
+                                      const tp_profile_t *profile)
+{
   assert(NULL != profile);
   const struct tp_profile_entry *next_profile;
   next_profile = &profile->profiles[profile->next_index];
@@ -1721,7 +1737,8 @@ u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
  */
 void tp_profile_report_data(tracker_channel_t *tracker_channel,
                             tp_profile_t *profile,
-                            const tp_report_t *data) {
+                            const tp_report_t *data)
+{
   assert(tracker_channel);
   assert(profile);
   assert(data);

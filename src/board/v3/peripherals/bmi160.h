@@ -91,11 +91,11 @@ typedef enum {
 #define BMI160_MFDVID 0b11010001
 
 void bmi160_init(void);
-void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag);
+void bmi160_new_data_available(bool *new_acc, bool *new_gyro, bool *new_mag);
 void bmi160_get_data(s16 acc[static 3],
                      s16 gyro[static 3],
                      s16 mag[static 3],
-                     u32* sensor_time);
+                     u32 *sensor_time);
 void bmi160_set_imu_rate(imu_rate_t rate);
 void bmi160_imu_set_enabled(bool enabled);
 void bmi160_set_acc_range(bmi160_acc_range_t range);
