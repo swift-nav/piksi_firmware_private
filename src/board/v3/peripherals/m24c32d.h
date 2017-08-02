@@ -13,8 +13,8 @@
 #ifndef SWIFTNAV_M24C32D_H
 #define SWIFTNAV_M24C32D_H
 
-#include <stdlib.h>
 #include <libswiftnav/common.h>
+#include <stdlib.h>
 
 bool m24c32d_read(u16 addr, u8 *data, size_t length);
 bool m24c32d_write(u16 addr, const u8 *data, size_t length);

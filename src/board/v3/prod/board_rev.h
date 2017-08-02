@@ -56,10 +56,12 @@
 #define RTC_I2C_CONFIG \
   { .clk = 200000 }
 
-#define LED_I2C_CONFIG {.clk = 200000}
+#define LED_I2C_CONFIG \
+  { .clk = 200000 }
 
 #define EEPROM_I2C I2CD2
-#define EEPROM_I2C_CONFIG {.clk = 200000}
+#define EEPROM_I2C_CONFIG \
+  { .clk = 200000 }
 
 #define XADC_VIN_SCALING (11)
 

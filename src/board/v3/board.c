@@ -22,8 +22,8 @@
 #include <libswiftnav/logging.h>
 
 #include "board/v3/nt1065.h"
-#include "peripherals/m24c32d.h"
 #include "board/v3/xadc.h"
+#include "peripherals/m24c32d.h"
 #include "sbp.h"
 
 const PALConfig pal_default_config;
@@ -40,8 +40,7 @@ static void cycle_counter_init(void) {
       (1 << TTC_CNTCTRL_RESET_Pos) | (1 << TTC_CNTCTRL_INTERVAL_Pos);
 }
 
-bool board_is_duro(void)
-{
+bool board_is_duro(void) {
   static bool called = false;
   static bool is_duro;
   if (!called) {

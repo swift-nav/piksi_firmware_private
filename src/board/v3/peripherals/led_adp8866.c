@@ -52,9 +52,8 @@ static void i2c_close(void) {
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
 static msg_t i2c_read(u8 addr, u8 *data) {
-  return i2cMasterTransmitTimeout(led_i2c, LED_I2C_ADDR,
-                                  &addr, 1, data, 1,
-                                  LED_I2C_TIMEOUT);
+  return i2cMasterTransmitTimeout(
+      led_i2c, LED_I2C_ADDR, &addr, 1, data, 1, LED_I2C_TIMEOUT);
 }
 
 /** Perform an I2C write operation.
@@ -65,10 +64,9 @@ static msg_t i2c_read(u8 addr, u8 *data) {
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
 static msg_t i2c_write(u8 addr, u8 data) {
- u8 buf[2] = { addr, data };
- return i2cMasterTransmitTimeout(led_i2c, LED_I2C_ADDR,
-                                 buf, sizeof(buf), NULL, 0,
-                                 LED_I2C_TIMEOUT);
+  u8 buf[2] = {addr, data};
+  return i2cMasterTransmitTimeout(
+      led_i2c, LED_I2C_ADDR, buf, sizeof(buf), NULL, 0, LED_I2C_TIMEOUT);
 }
 
 /** Verify the contents of the MFDVID register.

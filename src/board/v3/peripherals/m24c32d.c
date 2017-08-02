@@ -18,9 +18,9 @@
 
 #include <string.h>
 
-#define EEPROM_I2C_ADDR      0x50
-#define EEPROM_ID_I2C_ADDR   0x58
-#define EEPROM_I2C_TIMEOUT   MS2ST(100)
+#define EEPROM_I2C_ADDR 0x50
+#define EEPROM_ID_I2C_ADDR 0x58
+#define EEPROM_I2C_TIMEOUT MS2ST(100)
 
 static const I2CConfig eeprom_i2c_config = EEPROM_I2C_CONFIG;
 
@@ -33,15 +33,13 @@ static const I2CConfig eeprom_i2c_config = EEPROM_I2C_CONFIG;
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_read(u8 dev, u16 addr, u8 *data, size_t length)
-{
+static msg_t i2c_read(u8 dev, u16 addr, u8 *data, size_t length) {
   msg_t ret;
   i2cAcquireBus(&EEPROM_I2C);
   i2cStart(&EEPROM_I2C, &eeprom_i2c_config);
   u8 buf[2] = {addr >> 8, addr & 0xFF};
-  ret = i2cMasterTransmitTimeout(&EEPROM_I2C, dev,
-                                 buf, sizeof(buf), data, length,
-                                 EEPROM_I2C_TIMEOUT);
+  ret = i2cMasterTransmitTimeout(
+      &EEPROM_I2C, dev, buf, sizeof(buf), data, length, EEPROM_I2C_TIMEOUT);
 
   i2cStop(&EEPROM_I2C);
   i2cReleaseBus(&EEPROM_I2C);
@@ -56,8 +54,7 @@ static msg_t i2c_read(u8 dev, u16 addr, u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_write(u8 dev, u16 addr, const u8 *data, size_t length)
-{
+static msg_t i2c_write(u8 dev, u16 addr, const u8 *data, size_t length) {
   msg_t ret;
   i2cAcquireBus(&EEPROM_I2C);
   i2cStart(&EEPROM_I2C, &eeprom_i2c_config);
@@ -65,9 +62,8 @@ static msg_t i2c_write(u8 dev, u16 addr, const u8 *data, size_t length)
   buf[0] = addr >> 8;
   buf[1] = addr & 0xFF;
   memcpy(&buf[2], data, length);
-  ret = i2cMasterTransmitTimeout(&EEPROM_I2C, dev,
-                                  buf, sizeof(buf), NULL, 0,
-                                  EEPROM_I2C_TIMEOUT);
+  ret = i2cMasterTransmitTimeout(
+      &EEPROM_I2C, dev, buf, sizeof(buf), NULL, 0, EEPROM_I2C_TIMEOUT);
   i2cStop(&EEPROM_I2C);
   i2cReleaseBus(&EEPROM_I2C);
   return ret;
@@ -81,8 +77,7 @@ static msg_t i2c_write(u8 dev, u16 addr, const u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-bool m24c32d_read(u16 addr, u8 *data, size_t length)
-{
+bool m24c32d_read(u16 addr, u8 *data, size_t length) {
   return i2c_read(EEPROM_I2C_ADDR, addr, data, length);
 }
 
@@ -94,8 +89,7 @@ bool m24c32d_read(u16 addr, u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-bool m24c32d_write(u16 addr, const u8 *data, size_t length)
-{
+bool m24c32d_write(u16 addr, const u8 *data, size_t length) {
   return i2c_write(EEPROM_I2C_ADDR, addr, data, length);
 }
 
@@ -107,8 +101,7 @@ bool m24c32d_write(u16 addr, const u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-bool m24c32d_id_read(u8 addr, u8 *data, size_t length)
-{
+bool m24c32d_id_read(u8 addr, u8 *data, size_t length) {
   return i2c_read(EEPROM_ID_I2C_ADDR, addr, data, length);
 }
 
@@ -120,16 +113,14 @@ bool m24c32d_id_read(u8 addr, u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-bool m24c32d_id_write(u8 addr, const u8 *data, size_t length)
-{
+bool m24c32d_id_write(u8 addr, const u8 *data, size_t length) {
   return i2c_write(EEPROM_ID_I2C_ADDR, addr, data, length);
 }
 
 /** Lock the ID page.
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-bool m24c32d_id_lock(void)
-{
+bool m24c32d_id_lock(void) {
   u8 data = 2;
   return i2c_write(EEPROM_ID_I2C_ADDR, (1 << 10), &data, sizeof(data));
 }
