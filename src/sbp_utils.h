@@ -161,7 +161,7 @@ void sbp_send_ndb_event(u8 event,
 
 #define MSG_HEADING_SCALE_FACTOR 1000.0
 
-#define MSG_DUMMY_SENDER_ID 0
+#define MSG_FORWARD_SENDER_ID 0
 
 void unpack_obs_header(const observation_header_t *msg,
                        gps_time_t *t,
