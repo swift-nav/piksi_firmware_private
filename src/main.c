@@ -130,6 +130,8 @@ int main(void) {
 
   base_obs_setup();
   me_calc_pvt_setup();
+  // TODO(https://github.com/swift-nav/piksi_v3_bug_tracking/issues/569)
+  chThdSleepMilliseconds(500);
   starling_calc_pvt_setup();
 
   simulator_setup();
