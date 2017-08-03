@@ -269,6 +269,7 @@ static void set_time_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
  * For now just register a callback so that a coarse time can be sent by the
  * host. */
 void timing_setup(void) {
+  clock_est_init((clock_est_state_t *)&clock_state);
   /* TODO: Perhaps setup something to check for nap_timing_count overflows
    * periodically. */
   static sbp_msg_callbacks_node_t set_time_node;
@@ -277,7 +278,6 @@ void timing_setup(void) {
 
   sbp_register_cbk(SBP_MSG_SET_TIME, &set_time_callback, &set_time_node);
 
-  clock_est_init((clock_est_state_t *)&clock_state);
 }
 
 /** Get current HW time in milliseconds
