@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <libswiftnav/glo_map.h>
+#include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
-#include <libswiftnav/nav_msg_glo.h>
-#include <libswiftnav/glo_map.h>
 #include "ephemeris.h"
 #include "piksi_systime.h"
 #include "timing.h"
@@ -80,7 +80,7 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   if (EPH_NEW_OK != r) {
     log_warn_mesid(mesid,
                    "Error in GLO ephemeris processing. "
-                   "Eph status: %"PRIu8" ",
+                   "Eph status: %" PRIu8 " ",
                    r);
   }
 

@@ -14,9 +14,9 @@
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
-#include "track.h"
 #include "decode.h"
 #include "signal.h"
+#include "track.h"
 
 /** \defgroup decoding Decoding
  * Receive data bits from tracking channels and decode navigation messages.
