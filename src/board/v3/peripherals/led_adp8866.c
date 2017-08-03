@@ -24,6 +24,8 @@
 
 #define LED_LEVEL_SET_VALUE 0x20
 
+static struct I2CDriver *led_i2c = &I2CD2;
+
 static const I2CConfig led_i2c_config = LED_I2C_CONFIG;
 
 static u8 brightness_cache[LED_ADP8866_LED_COUNT] = {0};
@@ -31,15 +33,15 @@ static u8 brightness_cache[LED_ADP8866_LED_COUNT] = {0};
 /** Lock and start the I2C driver.
  */
 static void i2c_open(void) {
-  i2cAcquireBus(&LED_I2C);
-  i2cStart(&LED_I2C, &led_i2c_config);
+  i2cAcquireBus(led_i2c);
+  i2cStart(led_i2c, &led_i2c_config);
 }
 
 /** Unlock and stop the I2C driver.
  */
 static void i2c_close(void) {
-  i2cStop(&LED_I2C);
-  i2cReleaseBus(&LED_I2C);
+  i2cStop(led_i2c);
+  i2cReleaseBus(led_i2c);
 }
 
 /** Perform an I2C read operation.
@@ -51,7 +53,7 @@ static void i2c_close(void) {
  */
 static msg_t i2c_read(u8 addr, u8 *data) {
   return i2cMasterTransmitTimeout(
-      &LED_I2C, LED_I2C_ADDR, &addr, 1, data, 1, LED_I2C_TIMEOUT);
+      led_i2c, LED_I2C_ADDR, &addr, 1, data, 1, LED_I2C_TIMEOUT);
 }
 
 /** Perform an I2C write operation.
@@ -64,7 +66,7 @@ static msg_t i2c_read(u8 addr, u8 *data) {
 static msg_t i2c_write(u8 addr, u8 data) {
   u8 buf[2] = {addr, data};
   return i2cMasterTransmitTimeout(
-      &LED_I2C, LED_I2C_ADDR, buf, sizeof(buf), NULL, 0, LED_I2C_TIMEOUT);
+      led_i2c, LED_I2C_ADDR, buf, sizeof(buf), NULL, 0, LED_I2C_TIMEOUT);
 }
 
 /** Verify the contents of the MFDVID register.
@@ -243,6 +245,8 @@ static u32 modified_states_get(const led_adp8866_led_state_t *input_states,
 /** Initialize the LED driver.
  */
 void led_adp8866_init(void) {
+  led_i2c = board_is_duro() ? &I2CD1 : &I2CD2;
+
   if (!id_check()) {
     return;
   }

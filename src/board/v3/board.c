@@ -15,6 +15,7 @@
 */
 
 #include <stdlib.h>
+#include <string.h>
 #include "hal.h"
 #include "zynq7000.h"
 
@@ -22,6 +23,7 @@
 
 #include "board/v3/nt1065.h"
 #include "board/v3/xadc.h"
+#include "peripherals/m24c32d.h"
 #include "sbp.h"
 
 const PALConfig pal_default_config;
@@ -36,6 +38,18 @@ static void cycle_counter_init(void) {
   TTC0->INTERVAL[2] = 0xffff;
   TTC0->CNTCTRL[2] =
       (1 << TTC_CNTCTRL_RESET_Pos) | (1 << TTC_CNTCTRL_INTERVAL_Pos);
+}
+
+bool board_is_duro(void) {
+  static bool called = false;
+  static bool is_duro;
+  if (!called) {
+    u8 host_board_id[6];
+    m24c32d_read(0, host_board_id, 6);
+    is_duro = (memcmp(host_board_id, "DUROV0", 6) == 0);
+    called = true;
+  }
+  return is_duro;
 }
 
 /*
