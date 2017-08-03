@@ -161,8 +161,7 @@ static void ndb_ephe_release_candidate(s16 cand_index) {
 static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *existing_e,
                                       const almanac_t *existing_a,
-                                      const ephemeris_t *candidate)
-{
+                                      const ephemeris_t *candidate) {
   if (NULL != candidate) {
     ephemeris_t tmp_eph;
     memcpy(&tmp_eph, candidate, sizeof(tmp_eph));
