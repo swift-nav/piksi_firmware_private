@@ -577,11 +577,11 @@ const char *tp_get_mode_str(tp_tm_e v) {
 }
 
 /**
- * Test if the tracker controller is PLL or FLL assisted PLL
+ * Test if the tracker controller is PLL or FLL assisted DLL
  *
  * \param[in] ctrl Tracker controller type.
  *
- * \retval true  controller is PLL or FLL assisted FLL
+ * \retval true  controller is PLL or FLL assisted DLL
  * \retval false controller is not PLL
  */
 bool tp_is_pll_ctrl(tp_ctrl_e ctrl) {
