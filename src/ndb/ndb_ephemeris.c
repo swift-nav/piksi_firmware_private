@@ -166,7 +166,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
   if (NULL != candidate) {
     ephemeris_t tmp_eph;
     memcpy(&tmp_eph, candidate, sizeof(tmp_eph));
-    if (CONSTELLATION_GPS == code_to_constellation(new->sid.code)) {
+    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
     if (ephemeris_equal(new, &tmp_eph)) {
@@ -177,7 +177,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
   } else if (NULL != existing_e) {
     ephemeris_t tmp_eph;
     memcpy(&tmp_eph, existing_e, sizeof(tmp_eph));
-    if (CONSTELLATION_GPS == code_to_constellation(new->sid.code)) {
+    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
     if (ephemeris_equal(new, existing_e)) {
@@ -340,7 +340,8 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
 
   if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
     /* Fake fit_interval for GLO since it might be changed during ephemeris
-     * validity time which causes warning below because it's not same as stored */
+     * validity time which causes warning below because it's not same as stored
+     */
     tmp_ephep.fit_interval = new->fit_interval;
     if (ephep) {
       ep_eq = ephemeris_equal(&tmp_ephep, new);
