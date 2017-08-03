@@ -716,6 +716,11 @@ static void starling_thread(void *arg) {
     starling_frequency = soln_freq;
 
     u8 n_ready = (rover_channel_epoch->size);
+    if (0 == n_ready) {
+      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      continue;
+    }
+
     memset(nav_meas, 0, sizeof(nav_meas));
     memcpy(nav_meas,
            rover_channel_epoch->obs,
