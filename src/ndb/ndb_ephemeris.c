@@ -162,13 +162,27 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *existing_e,
                                       const almanac_t *existing_a,
                                       const ephemeris_t *candidate) {
-  if (NULL != candidate && ephemeris_equal(new, candidate)) {
-    /* Exact match */
-    log_debug_sid(new->sid, "[EPH] candidate match");
+  if (NULL != candidate) {
+    ephemeris_t tmp_eph;
+    memcpy(&tmp_eph, candidate, sizeof(tmp_eph));
+    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+      tmp_eph.fit_interval = new->fit_interval;
+    }
+    if (ephemeris_equal(new, &tmp_eph)) {
+      /* Exact match */
+      log_debug_sid(new->sid, "[EPH] candidate match");
+    }
     return true;
-  } else if (NULL != existing_e && ephemeris_equal(new, existing_e)) {
-    /* Exact match with stored */
-    log_debug_sid(new->sid, "[EPH] NDB match");
+  } else if (NULL != existing_e) {
+    ephemeris_t tmp_eph;
+    memcpy(&tmp_eph, existing_e, sizeof(tmp_eph));
+    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+      tmp_eph.fit_interval = new->fit_interval;
+    }
+    if (ephemeris_equal(new, existing_e)) {
+      /* Exact match with stored */
+      log_debug_sid(new->sid, "[EPH] NDB match");
+    }
     return true;
   }
 
@@ -315,7 +329,25 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   if (!ephep) {
     ephep = ce;
   }
-  if (ephep && !ephemeris_equal(ephep, new) && (ephep->toe.wn == new->toe.wn) &&
+
+  ephemeris_t tmp_ephep;
+  bool ep_eq;
+  if (ephep) {
+    ep_eq = ephemeris_equal(ephep, new);
+    memcpy(&tmp_ephep, ephep, sizeof(tmp_ephep));
+  }
+
+  if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+    /* Fake fit_interval for GLO since it might be changed during ephemeris
+     * validity time which causes warning below because it's not same as stored
+     */
+    tmp_ephep.fit_interval = new->fit_interval;
+    if (ephep) {
+      ep_eq = ephemeris_equal(&tmp_ephep, new);
+    }
+  }
+
+  if (ephep && !ep_eq && (ephep->toe.wn == new->toe.wn) &&
       (ephep->toe.tow == new->toe.tow)) {
     log_warn_sid(new->sid,
                  "Ephemeris discrepancy detected: "
