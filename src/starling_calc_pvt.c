@@ -92,7 +92,8 @@ double heading_offset = 0.0;
 
 bool disable_klobuchar = false;
 
-bool enable_glonass_in_pvt = false;
+bool enable_glonass_in_spp = true;
+bool enable_glonass_in_rtk = false;
 float glonass_downweight_factor = 4;
 
 static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
@@ -577,6 +578,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     const u8 num_obs,
     const navigation_measurement_t *nav_meas,
     const ephemeris_t *ephemerides[MAX_CHANNELS],
+    const bool enable_glonass,
     pvt_engine_result_t *result,
     dops_t *dops) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
@@ -588,7 +590,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   if (is_initialized) {
     set_pvt_engine_elevation_mask(filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_enable_glonass(filter_manager, enable_glonass_in_pvt);
+    set_pvt_engine_enable_glonass(filter_manager, enable_glonass);
     set_pvt_engine_glonass_downweight_factor(filter_manager,
                                              glonass_downweight_factor);
 
@@ -793,6 +795,7 @@ static void starling_thread(void *arg) {
                                n_ready,
                                nav_meas,
                                stored_ephs,
+                               enable_glonass_in_spp,
                                &result_spp,
                                &dops);
     chMtxUnlock(&spp_filter_manager_lock);
@@ -820,6 +823,7 @@ static void starling_thread(void *arg) {
                                  n_ready,
                                  nav_meas,
                                  stored_ephs,
+                                 enable_glonass_in_rtk,
                                  &result_rtk,
                                  &dops);
 
@@ -977,7 +981,7 @@ static void time_matched_obs_thread(void *arg) {
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_enable_glonass(time_matched_filter_manager,
-                                  enable_glonass_in_pvt);
+                                  enable_glonass_in_rtk);
     set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
                                              glonass_downweight_factor);
     chMtxUnlock(&time_matched_filter_manager_lock);
@@ -1161,7 +1165,9 @@ void starling_calc_pvt_setup() {
   SETTING(
       "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
   SETTING(
-      "solution", "enable_glonass_in_pvt", enable_glonass_in_pvt, TYPE_BOOL);
+      "solution", "enable_glonass_in_spp", enable_glonass_in_spp, TYPE_BOOL);
+  SETTING(
+      "solution", "enable_glonass_in_rtk", enable_glonass_in_rtk, TYPE_BOOL);
   SETTING("solution",
           "glonass_measurement_std_downweight_factor",
           glonass_downweight_factor,
