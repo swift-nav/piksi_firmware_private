@@ -10,11 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "decode.h"
 #include <assert.h>
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
-#include "decode.h"
 #include "signal.h"
 #include "track.h"
 

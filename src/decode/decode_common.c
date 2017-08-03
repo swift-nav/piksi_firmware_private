@@ -83,7 +83,6 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
                    "Eph status: %" PRIu8 " ",
                    r);
   }
-
 }
 
 bool glo_data_sync(nav_msg_glo_t *n,
