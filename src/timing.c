@@ -35,8 +35,9 @@ volatile time_quality_t time_quality = TIME_UNKNOWN;
 
 /** Clock state */
 static volatile clock_est_state_t clock_state;
+
 /** Mutex for guarding clock state access */
-static mutex_t clock_mutex;
+static MUTEX_DECL(clock_mutex);
 
 /** Update GPS time estimate.
  *
@@ -272,8 +273,6 @@ void timing_setup(void) {
   /* TODO: Perhaps setup something to check for nap_timing_count overflows
    * periodically. */
   static sbp_msg_callbacks_node_t set_time_node;
-
-  chMtxObjectInit(&clock_mutex);
 
   sbp_register_cbk(SBP_MSG_SET_TIME, &set_time_callback, &set_time_node);
 
