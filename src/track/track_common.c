@@ -194,9 +194,6 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
   } else if (tp_tl_is_pll(&tracker_channel->tl_state)) {
     tracker_channel->flags |= TRACKER_FLAG_PLL_USE;
     tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
-    if (next_params->loop_params.fll_bw > 0.f) {
-      tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
-    }
   } else {
     tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
     tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
