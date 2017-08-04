@@ -171,7 +171,7 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   int ret = -1;
   u32 i;
   dum_method_e *mt;
-  if (is_glo_sid(construct_mesid(sid->code, sid->sat))) {
+  if (IS_GLO(*sid)) {
     i = sid->sat - GLO_FIRST_PRN;
     mt = &dum_info.glo_svs[i].next_method;
   } else {

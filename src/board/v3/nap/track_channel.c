@@ -208,7 +208,7 @@ void nap_track_init(u8 channel,
   s->mesid = mesid;
 
   /* Correlator spacing: VE -> E */
-  if (is_glo_sid(mesid)) {
+  if (IS_GLO(mesid)) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
   } else {

@@ -80,7 +80,7 @@ static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data) {
 
     assert(mesid_valid(mesid));
     assert(sid_valid(sid));
-    assert(!is_glo_sid(mesid));
+    assert(!IS_GLO(mesid));
 
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
@@ -137,7 +137,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
 
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));
-      assert(is_glo_sid(*mesid));
+      assert(IS_GLO(*mesid));
       assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
       if (!deep_job->glo_blind_search) {
@@ -182,7 +182,7 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
     assert(mesid_valid(mesid));
-    assert(!is_glo_sid(mesid));
+    assert(!IS_GLO(mesid));
 
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
@@ -258,7 +258,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));
-      assert(is_glo_sid(*mesid));
+      assert(IS_GLO(*mesid));
 
       if (!fallback_job->glo_blind_search) {
         sm_get_glo_visibility_flags(sid.sat, &visible, &known);

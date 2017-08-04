@@ -192,7 +192,7 @@ void tracking_send_state(void) {
         states[i].cn0 = 0;
       } else {
         /* TODO GLO: Handle GLO orbit slot properly. */
-        if (mesid_to_constellation(mesid) == CONSTELLATION_GLO) {
+        if (IS_GLO(mesid)) {
           states[i].sid.sat = glo_slot_id;
           states[i].sid.code = mesid.code;
           states[i].fcn = mesid.sat;
@@ -243,7 +243,7 @@ void tracking_send_detailed_state(void) {
     }
 
     /* TODO GLO: Handle GLO orbit slot properly. */
-    if (is_glo_sid(channel_info.mesid)) {
+    if (IS_GLO(channel_info.mesid)) {
       continue;
     }
 
@@ -456,7 +456,7 @@ void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid,
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(id);
     tracker_channel_lock(tracker_channel);
-    if (CONSTELLATION_GPS == mesid_to_constellation(tracker_channel->mesid) &&
+    if (IS_GPS(tracker_channel->mesid) &&
         tracker_channel->mesid.sat == mesid.sat) {
       tracker_channel->prn_check_fail = val;
     }
@@ -479,7 +479,7 @@ void tracking_channel_set_raim_flag(const gnss_signal_t sid) {
     tracker_channel_lock(tracker_channel);
     /* Is this channel's mesid + orbit slot combination valid? */
     bool can_compare = mesid_valid(tracker_channel->mesid);
-    if (is_glo_sid(tracker_channel->mesid)) {
+    if (IS_GLO(tracker_channel->mesid)) {
       can_compare &= glo_slot_id_is_valid(tracker_channel->glo_orbit_slot);
     }
     if (can_compare && sid_is_equal(mesid2sid(tracker_channel->mesid,
@@ -980,7 +980,7 @@ void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid) {
  * \return None
  */
 void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
-  assert(is_glo_sid(mesid));
+  assert(IS_GLO(mesid));
   tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid);
   if (tracker_channel == NULL) {
     return;

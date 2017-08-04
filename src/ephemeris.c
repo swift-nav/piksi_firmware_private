@@ -47,8 +47,7 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 time_s,
                               u32 interval_s,
                               xcorr_positions_t *pos) {
-  constellation_t constellation = code_to_constellation(sid.code);
-  assert(CONSTELLATION_GPS == constellation);
+  assert(IS_GPS(sid));
 
   almanac_t a;
   ndb_op_code_t oc = ndb_almanac_read(sid, &a);
@@ -230,8 +229,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   }
 
   /* TODO GLO: Implement ephemeris - almanac cross-checking for GLO */
-  constellation_t constellation = code_to_constellation(e->sid.code);
-  if (CONSTELLATION_GPS == constellation) {
+  if (IS_GPS(e->sid)) {
     xcorr_positions_t alm_pos;
     xcorr_positions_t eph_pos;
     s32 time_s = e->toe.wn * WEEK_SECS + (s32)e->toe.tow;

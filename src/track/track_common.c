@@ -633,7 +633,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
 
   if (decoded_health) {
     /* GLO health data is also decoded along with TOW */
-    if (is_glo_sid(mesid)) {
+    if (IS_GLO(mesid)) {
       tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
       tracker_channel->health = tracker_glo_sv_health_get(tracker_channel);
       log_debug_mesid(mesid,

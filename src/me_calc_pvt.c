@@ -270,7 +270,7 @@ static void collect_measurements(u64 rec_tc,
           0 != (meas_flags & CHAN_MEAS_FLAG_CODE_VALID) &&
           0 != (meas_flags & CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
         /* Tracking channel is suitable for solution calculation */
-        any_gps |= is_gps_sid(meas[n_collected].sid);
+        any_gps |= IS_GPS(meas[n_collected].sid);
         n_collected++;
       }
     }

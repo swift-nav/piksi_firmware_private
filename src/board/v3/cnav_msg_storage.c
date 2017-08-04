@@ -85,8 +85,7 @@ void cnav_msg_put(const cnav_msg_t *msg) {
 bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg) {
   bool res = false;
 
-  if (cnav_msg_type_id_valid(type) &&
-      (sid_valid(sid) && sid_to_constellation(sid) == CONSTELLATION_GPS)) {
+  if (cnav_msg_type_id_valid(type) && sid_valid(sid) && IS_GPS(sid)) {
     u16 sat_idx = sid_to_code_index(sid);
     u8 msg_idx = cnav_msg_type_to_idx(type);
     chMtxLock(&cnav_msg_mutex);

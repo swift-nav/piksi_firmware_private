@@ -921,11 +921,11 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
                            [TP_TM_5MS] = 5,
                            [TP_TM_10MS] = 10,
                            [TP_TM_20MS] = 20};
-  constellation_t c = code_to_constellation(mesid.code);
+
   tp_tm_e track_mode;
-  if (CONSTELLATION_GPS == c) {
+  if (IS_GPS(mesid)) {
     track_mode = state->profiles[index].profile.gps_track_mode;
-  } else if (CONSTELLATION_GLO == c) {
+  } else if (IS_GLO(mesid)) {
     track_mode = state->profiles[index].profile.glo_track_mode;
   } else {
     assert(!"Unsupported constellation");

@@ -190,8 +190,7 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (sid_supported(sid)) {
     /* TODO GLO: Handle GLO signals properly. */
     me_gnss_signal_t mesid;
-    constellation_t constellation = sid_to_constellation(sid);
-    if (CONSTELLATION_GLO == constellation) {
+    if (IS_GLO(sid)) {
       assert(glo_map_valid(sid));
       u16 fcn = glo_map_get_fcn(sid);
       mesid = construct_mesid(sid.code, fcn);
@@ -256,7 +255,7 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
       return false;
     }
     for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
-      if (is_glo_sid(acq_status[i].mesid)) {
+      if (IS_GLO(acq_status[i].mesid)) {
         acq_status[i].masked = !glo_enabled;
       }
     }
@@ -278,7 +277,7 @@ void manage_acq_setup() {
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
-    if (is_glo_sid(mesid) && !glo_enabled) {
+    if (IS_GLO(mesid) && !glo_enabled) {
       acq_status[i].masked = true;
     } else {
       acq_status[i].masked = false;
@@ -335,7 +334,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   }
 
   /* TODO GLO: Handle GLO orbit slot properly. */
-  assert(!is_glo_sid(mesid));
+  assert(!IS_GLO(mesid));
   gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   float el = TRACKING_ELEVATION_UNKNOWN;
   el = sv_elevation_degrees_get(sid);
@@ -529,8 +528,7 @@ void manage_set_obs_hint(gnss_signal_t sid) {
   if (valid) {
     /* TODO GLO: Handle GLO signals properly. */
     me_gnss_signal_t mesid;
-    constellation_t constellation = sid_to_constellation(sid);
-    if (CONSTELLATION_GLO == constellation) {
+    if (IS_GLO(sid)) {
       if (!glo_map_valid(sid)) {
         /* no guarantee that we have FCN mapping for an observation
          * received from peer */
@@ -624,7 +622,7 @@ void acq_result_send(const me_gnss_signal_t mesid,
                      float cf) {
   msg_acq_result_t acq_result_msg;
   /* TODO GLO: Handle GLO orbit slot properly. */
-  if (is_glo_sid(mesid)) {
+  if (IS_GLO(mesid)) {
     return;
   }
   acq_result_msg.sid = sid_to_sbp(mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN));
@@ -824,7 +822,7 @@ static void drop_channel(tracker_channel_t *tracker_channel,
     }
   }
 
-  if (code_to_constellation(mesid.code) == CONSTELLATION_GLO) {
+  if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
     if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
       acq->state = ACQ_PRN_UNHEALTHY;
@@ -916,8 +914,7 @@ void sanitize_trackers(void) {
     }
 
     /* Drop GLO satellites if it is leap second event */
-    constellation_t constellation = mesid_to_constellation(mesid);
-    if (leap_second_event && (CONSTELLATION_GLO == constellation)) {
+    if (leap_second_event && IS_GLO(mesid)) {
       drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
       continue;
     }
@@ -995,7 +992,7 @@ void sanitize_trackers(void) {
     }
 
     /* Drop GLO if the SV is unhealthy */
-    if (is_glo_sid(mesid)) {
+    if (IS_GLO(mesid)) {
       bool glo_health_decoded =
           (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
       if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
@@ -1208,9 +1205,7 @@ u32 get_tracking_channel_meas(u8 i,
                                           NULL,        /* Ctrl info */
                                           &misc_info); /* Misc info */
 
-  constellation_t constellation = code_to_constellation(info.mesid.code);
-  if ((CONSTELLATION_GLO == constellation) &&
-      !glo_slot_id_is_valid(info.glo_orbit_slot)) {
+  if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
     return flags | TRACKER_FLAG_MASKED;
   }
@@ -1350,11 +1345,9 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
     }
   }
 
-  constellation_t constellation = sid_to_constellation(sid);
-  if ((CONSTELLATION_GPS == constellation) && shm_navigation_suitable(sid)) {
+  if (IS_GPS(sid) && shm_navigation_suitable(sid)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;
-  } else if ((CONSTELLATION_GLO == constellation) &&
-             (flags & TRACKER_FLAG_HEALTHY)) {
+  } else if (IS_GLO(sid) && (flags & TRACKER_FLAG_HEALTHY)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;
   }
 
@@ -1452,7 +1445,7 @@ static void manage_tracking_startup(void) {
 
     /* Make sure the SID is not already tracked and healthy */
     if (acq->state == ACQ_PRN_TRACKING ||
-        (acq->state == ACQ_PRN_UNHEALTHY && is_glo_sid(acq->mesid))) {
+        (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
       continue;
     }
 
