@@ -69,12 +69,13 @@ int main(void)
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
 
+  static char host_board_id[7];
   /* Hardcode "DUROV0" in the EEPROM, if needed */
   {
     bool is_duro;
-    u8 host_board_id[6];
-    m24c32d_read(0, host_board_id, 6);
-    is_duro = (memcmp(host_board_id, "DUROV0", 6) == 0);
+    m24c32d_read(0, (u8*) host_board_id, 6);
+    host_board_id[6] = '\0';
+    is_duro = (memcmp((u8*) host_board_id, "DUROV0", 6) == 0);
     if (is_duro) {
       log_info("Duro signature read from EEPROM");
     } else {
@@ -105,8 +106,8 @@ int main(void)
 
   static char sender_id_str[5];
   sprintf(sender_id_str, "%04X", sender_id);
-
   static char hw_revision_string[64] = {0};
+   
   hw_revision_string_get(hw_revision_string);
   log_info("hw_revision: %s", hw_revision_string);
 
@@ -149,6 +150,7 @@ int main(void)
   ext_setup();
   pps_setup();
 
+  READ_ONLY_PARAMETER("system_info", "host_board_id", host_board_id, TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);
   READ_ONLY_PARAMETER("system_info", "serial_number", mfg_id_string,
                       TYPE_STRING);
