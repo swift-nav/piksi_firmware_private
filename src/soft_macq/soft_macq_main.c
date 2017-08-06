@@ -43,6 +43,11 @@ static uint8_t *puSampleBuf;
 /**! samples are down-converted to baseband and decimated here  */
 static sc16_t pBaseBand[SOFTMACQ_BASEBAND_SIZE] __attribute__ ((aligned (32)));
 
+/** the last grabber acquisition time tag */
+static u32 uLastTimeTag;
+
+/** the last acquired signal */
+static me_gnss_signal_t sLastMesId;
 
 /** */
 static uint32_t iSamplesMs;
@@ -80,6 +85,8 @@ bool soft_multi_acq_search(
 {
   u32 uTag=0;
   u32 uBuffLength=0;
+  u32 uCurrTimeTag;
+
   /** sanity checking input parameters */
   assert(NULL != _psAcqResult);
 
@@ -91,14 +98,21 @@ bool soft_multi_acq_search(
 
   /** Check if the last grabbed signal snapshot isn't too old.
    * If yes, simply grab another one */
-  /** GRAB!!! */
-  puSampleBuf = grab_samples(&uBuffLength, &uTag);
-  if (NULL == puSampleBuf) {
-    log_warn("data grabber failed, uBuffLength %u uTag %u", uBuffLength, uTag);
-    return false;
+  uCurrTimeTag = NAP->TIMING_COUNT;
+  if ((uLastTimeTag == 0) ||
+      ((0.001*(uCurrTimeTag - uLastTimeTag)/NAP_FRONTEND_SAMPLE_RATE_Hz) > SOFTMACQ_MAX_AGE_MS)) {
+    /** GRAB!!! */
+    puSampleBuf = grab_samples(&uBuffLength, &uTag);
+    if (NULL == puSampleBuf) {
+      log_warn(
+          "data grabber failed, uBuffLength %u uTag %u", uBuffLength, uTag);
+      return false;
+    }
+    /** update signal time tag */
+    uLastTimeTag = uTag;
   }
   /** regardless of the result, store here the time tag */
-  _psAcqResult->sample_count = (uint32_t) uTag;
+  _psAcqResult->sample_count = uLastTimeTag;
 
   /** Perform signal conditioning (down-conversion, filtering and decimation):
    * - if we updated the signal snapshot or
@@ -106,8 +120,14 @@ bool soft_multi_acq_search(
    *   with the current one
    * - for Glonass, `sat` holds the FCN and we might want to do this again
    *  */
-  /** perform again baseband down-conversion and decimation depending on _sMeSid */
-  BbMixAndDecimate(_sMeSid);
+  if ((uTag) || (!code_equiv(sLastMesId.code, _sMeSid.code)) ||
+      ((sLastMesId.code == CODE_GLO_L1CA) && (sLastMesId.sat != _sMeSid.sat))) {
+    /** perform again baseband down-conversion and decimation depending on
+     * _sMeSid */
+    BbMixAndDecimate(_sMeSid);
+  }
+  /** store now last used mesid */
+  sLastMesId = _sMeSid;
 
   /** call DBZP-like acquisition with current sensitivity parameters
    *
