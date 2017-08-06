@@ -784,7 +784,7 @@ void tracking_channel_set_carrier_phase_offset(
 
   if (adjusted) {
     log_info_mesid(info->mesid,
-                    "tracking_channel_set_carrier_phase_offset() %lf",
+                    "tracking_channel_set_carrier_phase_offset() %.2lf",
                     carrier_phase_offset);
   }
 }

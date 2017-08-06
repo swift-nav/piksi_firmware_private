@@ -482,10 +482,8 @@ void update_bit_polarity_flags(tracker_channel_t *tracker_channel) {
   if (tracker_channel->flags & TRACKER_FLAG_BIT_POLARITY_KNOWN) {
     if (BIT_POLARITY_INVERTED == tracker_channel->bit_polarity) {
       tracker_channel->flags |= TRACKER_FLAG_BIT_INVERTED;
-      log_info_mesid(tracker_channel->mesid, "detected inverted polarity");
     } else {
       tracker_channel->flags &= ~TRACKER_FLAG_BIT_INVERTED;
-      log_info_mesid(tracker_channel->mesid, "detected good polarity");
     }
   }
 }
