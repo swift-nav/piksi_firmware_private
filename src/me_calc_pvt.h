@@ -13,18 +13,16 @@
 #ifndef ME_CALC_PVT_H
 #define ME_CALC_PVT_H
 
-#include <libsbp/observation.h>
 #include <libsbp/navigation.h>
+#include <libsbp/observation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/pvt.h>
-#include <libswiftnav/track.h>
-#include <libswiftnav/time.h>
 #include <libswiftnav/observation.h>
+#include <libswiftnav/pvt.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/track.h>
 
-#define memory_pool_t MemoryPool
 #include <ch.h>
-#undef memory_pool_t
 
 typedef struct {
   u8 signals_tracked;
@@ -37,7 +35,6 @@ typedef struct _me_msg_obs_t {
   ephemeris_t ephem[MAX_CHANNELS];
   gps_time_t obs_time;
 } me_msg_obs_t;
-
 
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
@@ -53,8 +50,8 @@ typedef struct _me_msg_obs_t {
 #define MAX_CLOCK_ERROR_S 0.0005
 
 extern u32 obs_output_divisor;
-extern MemoryPool obs_buff_pool;
-extern mailbox_t  obs_mailbox;
+extern memory_pool_t obs_buff_pool;
+extern mailbox_t obs_mailbox;
 
 soln_stats_t solution_last_stats_get(void);
 

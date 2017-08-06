@@ -13,26 +13,26 @@
 #ifndef SWIFTNAV_REMOTEPROC_CONFIG_H
 #define SWIFTNAV_REMOTEPROC_CONFIG_H
 
-#include <stddef.h>
 #include <openamp/open_amp.h>
+#include <stddef.h>
 
 /* Resource table entries */
-#define NUM_TABLE_ENTRIES           2
-#define ELF_START                   0x1C000000
-#define ELF_SIZE                    0x02000000
-#define NUM_VRINGS                  2
-#define VRING_ALIGN                 0x00100000
+#define NUM_TABLE_ENTRIES 2
+#define ELF_START 0x1C000000
+#define ELF_SIZE 0x02000000
+#define NUM_VRINGS 2
+#define VRING_ALIGN 0x00100000
 /* Number of buffers per vring. Must be a power of 2. Max = 256. */
-#define VRING_SIZE                  256
-#define VRING0_IRQ                  15
-#define VRING1_IRQ                  14
-#define VRING0_IRQ_PRIO             4
-#define VRING1_IRQ_PRIO             4
-#define RPMSG_IPU_C0_FEATURES       (1 << VIRTIO_RPMSG_F_NS)
-#define MASTER_CPU_ID               0
-#define REMOTE_CPU_ID               1
-#define NUM_CHANNELS                1
-#define CHANNEL0_NAME               "piksi"
+#define VRING_SIZE 256
+#define VRING0_IRQ 15
+#define VRING1_IRQ 14
+#define VRING0_IRQ_PRIO 4
+#define VRING1_IRQ_PRIO 4
+#define RPMSG_IPU_C0_FEATURES (1 << VIRTIO_RPMSG_F_NS)
+#define MASTER_CPU_ID 0
+#define REMOTE_CPU_ID 1
+#define NUM_CHANNELS 1
+#define CHANNEL0_NAME "piksi"
 
 /* Resource table for the given remote */
 struct remote_resource_table {

@@ -9,13 +9,13 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <string.h>
-#include <stdio.h>
 #include <assert.h>
-#include "scheduler_api.h"
-#include <timing.h>
 #include <manage.h>
 #include <ndb.h>
+#include <stdio.h>
+#include <string.h>
+#include <timing.h>
+#include "scheduler_api.h"
 
 /* Compile unit test in src/reacq directory with:
  gcc  -Wall -std=c99 scheduler_unittest.c scheduler.c task_generator.c \
@@ -28,7 +28,7 @@
 */
 
 void sch_initialize_cost(acq_job_t *init_job,
-			 const acq_jobs_state_t *all_jobs_data);
+                         const acq_jobs_state_t *all_jobs_data);
 acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data);
 
 #define EXPECTED_COST_DELTA_MS 50
@@ -37,26 +37,19 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data);
 /* Unit test data */
 acq_jobs_state_t acq_all_jobs_state_data;
 
-static u32 now_ms; /** Current time (ms) */
-static bool hw_has_run; /** Set if acq_search is called */
+static u32 now_ms;        /** Current time (ms) */
+static bool hw_has_run;   /** Set if acq_search is called */
 static u32 hw_code_index; /** Set to code index for which hw was run */
 
 /* Stub functions for unit testing*/
-void chThdSleep(systime_t time)
-{
-  now_ms += (u32)time;
-}
-u64 timing_getms(void)
-{
-  return (u64)now_ms;
-}
-u64 nap_timing_count(void)
-{
-  return timing_getms() / (RX_DT_NOMINAL * 1000.0);
-}
-bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
-                float cf_bin_width, acq_result_t *acq_result)
-{
+void chThdSleep(systime_t time) { now_ms += (u32)time; }
+u64 timing_getms(void) { return (u64)now_ms; }
+u64 nap_timing_count(void) { return timing_getms() / (RX_DT_NOMINAL * 1000.0); }
+bool acq_search(gnss_signal_t sid,
+                float cf_min,
+                float cf_max,
+                float cf_bin_width,
+                acq_result_t *acq_result) {
   u32 i = sid_to_code_index(sid);
   (void)cf_min;
   (void)cf_max;
@@ -68,15 +61,14 @@ bool acq_search(gnss_signal_t sid, float cf_min, float cf_max,
 
   if (i <= 15) {
     return false;
-  } 
+  }
   acq_result->cf = i * 100;
   acq_result->cn0 = 30.0f + (float)i;
   acq_result->cp = i * 10;
   return true;
 }
 
-u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
-{
+u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   /* Remove from acquisition */
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   data->jobs[0][sid_to_code_index(startup_params->sid)].needs_to_run = false;
@@ -85,14 +77,12 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params)
 }
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
-                              bool peak_found)
-{
+                              bool peak_found) {
   (void)job;
   (void)acq_result;
   (void)peak_found;
 }
-void sm_init(acq_jobs_state_t *data)
-{
+void sm_init(acq_jobs_state_t *data) {
   memset(data, 0, sizeof(acq_jobs_state_t));
 
   acq_job_types_e type;
@@ -100,8 +90,7 @@ void sm_init(acq_jobs_state_t *data)
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i;
     for (i = 0; i < NUM_SATS_GPS; i++) {
-      data->jobs[type][i].sid = construct_sid(CODE_GPS_L1CA,
-                                              GPS_FIRST_PRN + i);
+      data->jobs[type][i].sid = construct_sid(CODE_GPS_L1CA, GPS_FIRST_PRN + i);
       data->jobs[type][i].job_type = type;
     }
   }
@@ -116,7 +105,8 @@ gps_time_t get_current_time(void) {
 void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           const gps_time_t *t,
                           const last_good_fix_t *lgf,
-                          float *doppler_min, float *doppler_max) {
+                          float *doppler_min,
+                          float *doppler_max) {
   (void)sid;
   (void)t;
   (void)lgf;
@@ -124,25 +114,23 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
   *doppler_max = 200;
 }
 
-void dum_report_reacq_result(const gnss_signal_t *sid, bool res)
-{
+void dum_report_reacq_result(const gnss_signal_t *sid, bool res) {
   (void)sid;
   (void)res;
 }
 
 /** Test cost initialization
  *
- *  Test failure triggers assertion 
+ *  Test failure triggers assertion
  *
  * \param none
  *
  * \return none
  */
-static void sch_test_cost_init(void)
-{
+static void sch_test_cost_init(void) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   acq_job_t *init_job = &data->jobs[0][10];
-  printf("%s\n",__FUNCTION__);
+  printf("%s\n", __FUNCTION__);
   sm_init(data);
   data->jobs[0][1].cost = 100;
   data->jobs[0][1].needs_to_run = true;
@@ -211,17 +199,16 @@ static void sch_test_cost_init(void)
 
 /** Test job selection
  *
- *  Test failure triggers assertion 
+ *  Test failure triggers assertion
  *
  * \param none
  *
  * \return none
  */
-static void sch_test_job_select(void)
-{
+static void sch_test_job_select(void) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   acq_job_t *sel;
-  printf("%s\n",__FUNCTION__);
+  printf("%s\n", __FUNCTION__);
   sm_init(data);
   data->jobs[0][1].cost = 100;
   data->jobs[0][1].needs_to_run = true;
@@ -251,7 +238,7 @@ static void sch_test_job_select(void)
   data->jobs[1][2].needs_to_run = false;
   sel = sch_select_job(data);
   assert(sel == &data->jobs[1][1]);
-  
+
   /* Check enable running */
   data->jobs[1][2].needs_to_run = true;
   data->jobs[1][2].state = ACQ_STATE_IDLE;
@@ -266,15 +253,14 @@ static void sch_test_job_select(void)
 }
 /** Run scheduler and check that HW ran expected code_index
  *
- *  Test failure triggers assertion 
+ *  Test failure triggers assertion
  *
  * \parma run expect that hw run (true) / does not run (false)
  * \param code_index expected code_index for which hw is run
  *
  * \return none
  */
-static void sch_expect_hw_run(bool run, u32 code_index)
-{
+static void sch_expect_hw_run(bool run, u32 code_index) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
   hw_has_run = false;
   sch_run(data);
@@ -288,16 +274,15 @@ static void sch_expect_hw_run(bool run, u32 code_index)
 
 /** Test job scheduling
  *
- *  Test failure triggers assertion 
+ *  Test failure triggers assertion
  *
  * \param none
  *
  * \return none
  */
-static void sch_test_job_scheduling(void)
-{
+static void sch_test_job_scheduling(void) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  printf("%s\n",__FUNCTION__);
+  printf("%s\n", __FUNCTION__);
   {
     /* Check that nothing is run */
     sm_init(data);
@@ -310,7 +295,7 @@ static void sch_test_job_scheduling(void)
     sm_init(data);
     sch_run(data);
     sch_run(data);
-    assert(2*EXPECTED_SLEEP_TIMEOUT_MS == now_ms);
+    assert(2 * EXPECTED_SLEEP_TIMEOUT_MS == now_ms);
   }
   { /* Check that if peak is found it does not continue */
     sm_init(data);
@@ -324,7 +309,7 @@ static void sch_test_job_scheduling(void)
     sch_expect_hw_run(true, 10);
     sch_expect_hw_run(true, 10);
     sch_expect_hw_run(true, 10);
-  } 
+  }
   { /* Check scheduling order */
     int i;
     sm_init(data);
@@ -338,13 +323,13 @@ static void sch_test_job_scheduling(void)
     data->jobs[0][13].cost_hint = ACQ_COST_MAX_PLUS;
     data->jobs[0][14].needs_to_run = true;
     data->jobs[0][14].cost_hint = ACQ_COST_MAX_PLUS;
-    for(i = 0; i <= EXPECTED_COST_DELTA_MS; i++) {
+    for (i = 0; i <= EXPECTED_COST_DELTA_MS; i++) {
       sch_expect_hw_run(true, 10);
       sch_expect_hw_run(true, 11);
-      sch_expect_hw_run(true, 12);      
+      sch_expect_hw_run(true, 12);
     }
     sch_expect_hw_run(true, 13);
-    for(i = 0; i < EXPECTED_COST_DELTA_MS; i++) {
+    for (i = 0; i < EXPECTED_COST_DELTA_MS; i++) {
       sch_expect_hw_run(true, 10);
       sch_expect_hw_run(true, 11);
       sch_expect_hw_run(true, 12);
@@ -358,8 +343,8 @@ static void sch_test_job_scheduling(void)
     sch_expect_hw_run(true, 14);
   }
   { /* Check scheduling order. If peak is found, start
-	immediately next job even if there is large initial
-	cost difference. */
+        immediately next job even if there is large initial
+        cost difference. */
     sm_init(data);
     data->jobs[0][20].needs_to_run = true;
     data->jobs[0][20].cost_hint = ACQ_COST_MIN;
@@ -367,7 +352,7 @@ static void sch_test_job_scheduling(void)
     data->jobs[0][11].cost_hint = ACQ_COST_MAX_PLUS;
     sch_expect_hw_run(true, 20);
     sch_expect_hw_run(true, 11);
-   }
+  }
 }
 /** Test program checking scheduler operation
  *
@@ -375,8 +360,7 @@ static void sch_test_job_scheduling(void)
  *
  * \return 1 on failure, 0 othersiwe
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   sch_test_cost_init();
   sch_test_job_select();
   sch_test_job_scheduling();

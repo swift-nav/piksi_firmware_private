@@ -10,20 +10,21 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "board.h"
 #include "nap/nap_common.h"
-#include "nap/track_channel.h"
-#include "../../sbp.h"
 #include "../../ext_events.h"
+#include "../../piksi_systime.h"
+#include "../../sbp.h"
+#include "board.h"
+#include "nap/track_channel.h"
 
-#include "nap_hw.h"
-#include "nap_constants.h"
 #include "axi_dma.h"
+#include "nap_constants.h"
+#include "nap_hw.h"
 
 #include "main.h"
-#include "track.h"
 #include "manage.h"
 #include "system_monitor.h"
+#include "track.h"
 
 #include <math.h>
 #include <string.h>
@@ -41,8 +42,7 @@ static void nap_irq_thread(void *arg);
 u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
 
-void nap_setup(void)
-{
+void nap_setup(void) {
   nap_track_n_channels = GET_NAP_STATUS_NUM_TRACKING_CH(NAP->STATUS);
   nap_track_n_channels = MIN(nap_track_n_channels, MAX_CHANNELS);
 
@@ -71,44 +71,41 @@ void nap_setup(void)
 
   /* Reset frontend NCOs after number of samples */
   NAP_FE->RF1_NCO_RESET =
-      ((NAP_FE_RF1A_NCO_RESET-1) << FE_RF1_NCO_RESET_RF1A_Pos) |
-      ((NAP_FE_RF1B_NCO_RESET-1) << FE_RF1_NCO_RESET_RF1B_Pos);
+      ((NAP_FE_RF1A_NCO_RESET - 1) << FE_RF1_NCO_RESET_RF1A_Pos) |
+      ((NAP_FE_RF1B_NCO_RESET - 1) << FE_RF1_NCO_RESET_RF1B_Pos);
 
   NAP_FE->RF2_NCO_RESET =
-      ((NAP_FE_RF2A_NCO_RESET-1) << FE_RF2_NCO_RESET_RF2A_Pos);
+      ((NAP_FE_RF2A_NCO_RESET - 1) << FE_RF2_NCO_RESET_RF2A_Pos);
 
   NAP_FE->RF3_NCO_RESET =
-      ((NAP_FE_RF3A_NCO_RESET-1) << FE_RF3_NCO_RESET_RF3A_Pos);
+      ((NAP_FE_RF3A_NCO_RESET - 1) << FE_RF3_NCO_RESET_RF3A_Pos);
 
   NAP_FE->RF4_NCO_RESET =
-      ((NAP_FE_RF4A_NCO_RESET-1) << FE_RF4_NCO_RESET_RF4A_Pos) |
-      ((NAP_FE_RF4B_NCO_RESET-1) << FE_RF4_NCO_RESET_RF4B_Pos);
+      ((NAP_FE_RF4A_NCO_RESET - 1) << FE_RF4_NCO_RESET_RF4A_Pos) |
+      ((NAP_FE_RF4B_NCO_RESET - 1) << FE_RF4_NCO_RESET_RF4B_Pos);
 
   /* Enable frontend channels and their respective NCO resets */
-  NAP_FE->CONTROL = (1 << FE_CONTROL_ENABLE_RF1A_Pos) |
-                    (0 << FE_CONTROL_ENABLE_RF1B_Pos) |
-                    (1 << FE_CONTROL_ENABLE_RF2A_Pos) |
-                    (1 << FE_CONTROL_ENABLE_RF3A_Pos) |
-                    (1 << FE_CONTROL_ENABLE_RF4A_Pos) |
-                    (0 << FE_CONTROL_ENABLE_RF4B_Pos) |
-                    (1 << FE_CONTROL_RESET_RF1A_NCO_Pos) |
-                    (1 << FE_CONTROL_RESET_RF1B_NCO_Pos) |
-                    (1 << FE_CONTROL_RESET_RF2A_NCO_Pos) |
-                    (1 << FE_CONTROL_RESET_RF3A_NCO_Pos) |
-                    (1 << FE_CONTROL_RESET_RF4A_NCO_Pos) |
-                    (1 << FE_CONTROL_RESET_RF4B_NCO_Pos);
+  NAP_FE->CONTROL =
+      (1 << FE_CONTROL_ENABLE_RF1A_Pos) | (0 << FE_CONTROL_ENABLE_RF1B_Pos) |
+      (1 << FE_CONTROL_ENABLE_RF2A_Pos) | (1 << FE_CONTROL_ENABLE_RF3A_Pos) |
+      (1 << FE_CONTROL_ENABLE_RF4A_Pos) | (0 << FE_CONTROL_ENABLE_RF4B_Pos) |
+      (1 << FE_CONTROL_RESET_RF1A_NCO_Pos) |
+      (1 << FE_CONTROL_RESET_RF1B_NCO_Pos) |
+      (1 << FE_CONTROL_RESET_RF2A_NCO_Pos) |
+      (1 << FE_CONTROL_RESET_RF3A_NCO_Pos) |
+      (1 << FE_CONTROL_RESET_RF4A_NCO_Pos) |
+      (1 << FE_CONTROL_RESET_RF4B_NCO_Pos);
 
   /* Enable NAP interrupt */
-  chThdCreateStatic(wa_nap_irq, sizeof(wa_nap_irq), HIGHPRIO-2, nap_irq_thread, NULL);
+  chThdCreateStatic(
+      wa_nap_irq, sizeof(wa_nap_irq), HIGHPRIO - 2, nap_irq_thread, NULL);
   gic_handler_register(IRQ_ID_NAP, nap_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_NAP, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_NAP, NAP_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_NAP);
-
 }
 
-u64 nap_timing_count(void)
-{
+u64 nap_timing_count(void) {
   static MUTEX_DECL(timing_count_mutex);
   static u32 rollover_count = 0;
   static u32 prev_count = 0;
@@ -117,8 +114,7 @@ u64 nap_timing_count(void)
 
   u32 count = NAP->TIMING_COUNT;
 
-  if (count < prev_count)
-    rollover_count++;
+  if (count < prev_count) rollover_count++;
 
   prev_count = count;
 
@@ -140,8 +136,7 @@ u64 nap_timing_count(void)
  *
  * \return Resulting time in ticks.
  */
-u64 nap_sample_time_to_count(u32 sample_count)
-{
+u64 nap_sample_time_to_count(u32 sample_count) {
   /* Converts sample time into NAP time using NAP rollover value */
   u64 time_now = nap_timing_count();
   u32 time_high = (u32)(time_now >> 32);
@@ -160,9 +155,9 @@ u64 nap_sample_time_to_count(u32 sample_count)
  *
  * \return Time interval in milliseconds.
  */
-double nap_count_to_ms(u64 delta_time)
-{
-  double time_delta = (double)delta_time * (1000. / NAP_FRONTEND_SAMPLE_RATE_Hz);
+double nap_count_to_ms(u64 delta_time) {
+  double time_delta =
+      (double)delta_time * (1000. / NAP_FRONTEND_SAMPLE_RATE_Hz);
   return time_delta;
 }
 
@@ -173,14 +168,12 @@ double nap_count_to_ms(u64 delta_time)
  *
  * \return Time interval in nanoseconds.
  */
-double nap_count_to_ns(u64 delta_time)
-{
+double nap_count_to_ns(u64 delta_time) {
   double time_delta = (double)delta_time * (1e9 / NAP_FRONTEND_SAMPLE_RATE_Hz);
   return time_delta;
 }
 
-static void nap_isr(void *context)
-{
+static void nap_isr(void *context) {
   (void)context;
   chSysLockFromISR();
 
@@ -190,8 +183,7 @@ static void nap_isr(void *context)
   chSysUnlockFromISR();
 }
 
-static void handle_nap_irq(void)
-{
+static void handle_nap_irq(void) {
   u32 irq = NAP->IRQS;
 
   while (irq) {
@@ -212,8 +204,7 @@ static void handle_nap_irq(void)
   }
 }
 
-static void handle_nap_track_irq(void)
-{
+static void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
@@ -237,8 +228,7 @@ static void handle_nap_track_irq(void)
   watchdog_notify(WD_NOTIFY_NAP_ISR);
 }
 
-static void nap_irq_thread(void *arg)
-{
+static void nap_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP");
 
@@ -250,80 +240,75 @@ static void nap_irq_thread(void *arg)
   }
 }
 
-void nap_track_irq_thread(void *arg)
-{
-  systime_t sys_time;
+void nap_track_irq_thread(void *arg) {
+  piksi_systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
-    sys_time = chVTGetSystemTime();
+    piksi_systime_get(&sys_time);
 
     handle_nap_track_irq();
     tracking_channels_process();
 
     sanitize_trackers();
 
-    DO_EACH_TICKS( S2ST(1),
-      check_clear_glo_unhealthy();
-    );
+    DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
 
-    DO_EACH_TICKS( S2ST(DAY_SECS),
-      check_clear_unhealthy();
-    );
+    DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
 
-    DO_EACH_TICKS( MS2ST(PROCESS_PERIOD_MS),
-      tracking_send_state();
-      tracking_send_detailed_state();
-    );
+    DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state();
+               tracking_send_detailed_state(););
 
-    DO_EACH_TICKS( S2ST(100),
-      log_info("Max configured PLL integration time: %" PRIu16 " ms",
-               max_pll_integration_time_ms);
-    );
+    DO_EACH_MS(100 * SECS_MS,
+               log_info("Max configured PLL integration time: %" PRIu16 " ms",
+                        max_pll_integration_time_ms););
 
-    /* Sleep for 500 microseconds.
-     * The ChibiOS function below should be capable of handling short deadline misses.
-     */
-    chThdSleepUntilWindowed(sys_time, sys_time+US2ST(500));
+    /* Sleep until 500 microseconds is full. */
+    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
   }
 }
 
-static void nap_rd_dna_callback(u16 sender_id, u8 len, u8 msg[], void* context)
-{
-  (void)sender_id; (void)len; (void)msg; (void) context;
+static void nap_rd_dna_callback(u16 sender_id,
+                                u8 len,
+                                u8 msg[],
+                                void *context) {
+  (void)sender_id;
+  (void)len;
+  (void)msg;
+  (void)context;
   sbp_send_msg(SBP_MSG_NAP_DEVICE_DNA_RESP, NAP_DNA_LENGTH, nap_dna);
 }
 
-void nap_dna_callback_register(void)
-{
+void nap_dna_callback_register(void) {
   nap_rd_dna(nap_dna);
 
   static sbp_msg_callbacks_node_t nap_dna_node;
 
-  sbp_register_cbk(SBP_MSG_NAP_DEVICE_DNA_REQ, &nap_rd_dna_callback,
-      &nap_dna_node);
+  sbp_register_cbk(
+      SBP_MSG_NAP_DEVICE_DNA_REQ, &nap_rd_dna_callback, &nap_dna_node);
 }
 
-void nap_pps(u32 count)
-{
+void nap_pps(u32 count) {
   NAP->PPS_TIMING_COMPARE = count + NAP_PPS_TIMING_COUNT_OFFSET;
 }
 
-void nap_pps_config(u32 microseconds, u8 active)
-{
-  u32 width = ceil((double)microseconds / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6)) - 1;
-  NAP->PPS_CONTROL = (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
+void nap_pps_config(u32 microseconds, u8 active) {
+  u32 width =
+      ceil((double)microseconds / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6)) -
+      1;
+  NAP->PPS_CONTROL =
+      (width << NAP_PPS_CONTROL_PULSE_WIDTH_Pos) | (active & 0x01);
 }
 
-bool nap_pps_armed(void)
-{
+bool nap_pps_armed(void) {
   return GET_NAP_STATUS_PPS_TIMING_ARMED(NAP->STATUS);
 }
 
-u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
-    ext_event_trigger_t next_trig, u32 timeout)
-{
+u32 nap_rw_ext_event(u8 *event_pin,
+                     ext_event_trigger_t *event_trig,
+                     ext_event_trigger_t next_trig,
+                     u32 timeout) {
   if (event_pin) {
     *event_pin = 0;
   }
@@ -333,10 +318,10 @@ u32 nap_rw_ext_event(u8 *event_pin, ext_event_trigger_t *event_trig,
   }
 
   if (timeout > 0) {
-    NAP->EVENT_TIMEOUT = ceil((double)timeout /
-        ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
+    NAP->EVENT_TIMEOUT =
+        ceil((double)timeout / ((1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz) * 1e6));
 
-    u32 ctrl = NAP-> CONTROL;
+    u32 ctrl = NAP->CONTROL;
     NAP->CONTROL = SET_NAP_CONTROL_EXT_EVENT_EDGE(ctrl, next_trig) |
                    SET_NAP_CONTROL_EXT_EVENT_TIMEOUT(ctrl, 1);
   } else {

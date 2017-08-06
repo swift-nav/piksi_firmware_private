@@ -12,31 +12,31 @@
 
 #define NDB_WEAK
 
-#include <string.h>
 #include <assert.h>
+#include <string.h>
 
-#include <ndb.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
 #include <libswiftnav/linear_algebra.h>
-#include <timing.h>
-#include <signal.h>
+#include <libswiftnav/logging.h>
+#include <ndb.h>
 #include <sbp.h>
 #include <sbp_utils.h>
 #include <settings.h>
+#include <signal.h>
+#include <timing.h>
 
-#include "ndb_internal.h"
 #include "ndb_fs_access.h"
+#include "ndb_internal.h"
 
-#define NDB_EPHE_FILE_NAME   "persistent/ephemeris"
-#define NDB_EPHE_FILE_TYPE   "ephemeris"
+#define NDB_EPHE_FILE_NAME "persistent/ephemeris"
+#define NDB_EPHE_FILE_TYPE "ephemeris"
 
 static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT];
 static ndb_element_metadata_t ndb_ephemeris_md[ARRAY_SIZE(ndb_ephemeris)];
 static ndb_file_t ndb_ephe_file = {
     .name = NDB_EPHE_FILE_NAME,
     .type = NDB_EPHE_FILE_TYPE,
-    .block_data = (u8*)&ndb_ephemeris[0],
+    .block_data = (u8 *)&ndb_ephemeris[0],
     .block_md = &ndb_ephemeris_md[0],
     .block_size = sizeof(ndb_ephemeris[0]),
     .block_count = ARRAY_SIZE(ndb_ephemeris),
@@ -55,30 +55,30 @@ static MUTEX_DECL(cand_list_access);
 
 /** Minimum interval between two ephemeris transmission inside one transmission
     epoch [cycles] */
-#define NDB_EPHE_MESSAGE_SPACING        (150 / NV_WRITE_REQ_TIMEOUT)
+#define NDB_EPHE_MESSAGE_SPACING (150 / NV_WRITE_REQ_TIMEOUT)
 /** Minimum interval between ephemeris transmit epoch starts, can be longer
     if the amount of sent messages makes epoch longer [cycles] */
 #define NDB_EPHE_TRANSMIT_EPOCH_SPACING (30000 / NV_WRITE_REQ_TIMEOUT)
 
 typedef struct {
-  bool erase_ephemeris;    /**< Erase ephemeris data on boot */
-  s16  valid_alm_accuracy; /**< Cross-checking accuracy with valid almanac [m] */
-  s16  valid_eph_accuracy; /**< Cross-checking accuracy with valid ephemeris [m] */
-  s16  alm_fit_interval;   /**< Almanac fit interval (days) */
+  bool erase_ephemeris;   /**< Erase ephemeris data on boot */
+  s16 valid_alm_accuracy; /**< Cross-checking accuracy with valid almanac [m] */
+  s16 valid_eph_accuracy; /**< Cross-checking accuracy with valid ephemeris [m]
+                             */
+  s16 alm_fit_interval;   /**< Almanac fit interval (days) */
 } ndb_ephe_config_t;
 
 static ndb_ephe_config_t ndb_ephe_config = {
-  .erase_ephemeris = true,
-  .valid_alm_accuracy = 5000,
-  .valid_eph_accuracy = 100,
-  .alm_fit_interval = 6,
+    .erase_ephemeris = true,
+    .valid_alm_accuracy = 5000,
+    .valid_eph_accuracy = 100,
+    .alm_fit_interval = 6,
 };
 
 /** Flag if almanacs can be used in ephemeris candidate validation */
 static bool almanacs_enabled = false;
 
-static u16 map_sid_to_index(gnss_signal_t sid)
-{
+static u16 map_sid_to_index(gnss_signal_t sid) {
   u16 idx = PLATFORM_SIGNAL_COUNT;
   /*
    * Current architecture uses GPS L1 C/A ephemeris for all GPS signals,
@@ -94,8 +94,7 @@ static u16 map_sid_to_index(gnss_signal_t sid)
   return idx;
 }
 
-void ndb_ephemeris_init(void)
-{
+void ndb_ephemeris_init(void) {
   SETTING("ndb", "erase_ephemeris", ndb_ephe_config.erase_ephemeris, TYPE_BOOL);
   SETTING("ndb", "valid_alm_acc", ndb_ephe_config.valid_alm_accuracy, TYPE_INT);
   SETTING("ndb", "valid_eph_acc", ndb_ephe_config.valid_eph_accuracy, TYPE_INT);
@@ -104,8 +103,7 @@ void ndb_ephemeris_init(void)
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
-static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
-{
+static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
   int i;
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     if (ephe_candidates[i].used &&
@@ -118,16 +116,15 @@ static s16 ndb_ephe_find_candidate(gnss_signal_t sid)
 /* Find an empty slot (unused or outdated ephemeris) in the candidate list
  * and add the given candidate. Log a warning if no empty slot found.
  */
-static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
-{
+static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
   int i;
   u32 candidate_age;
-  ndb_timestamp_t now  = ndb_get_timestamp();
+  ndb_timestamp_t now = ndb_get_timestamp();
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     bool empty = true;
-    if(ephe_candidates[i].used) {
+    if (ephe_candidates[i].used) {
       candidate_age = ST2S(now - ephe_candidates[i].received_at);
-      empty = candidate_age >  MAX_EPHE_CANDIDATE_AGE;
+      empty = candidate_age > MAX_EPHE_CANDIDATE_AGE;
     }
 
     if (empty) {
@@ -137,12 +134,12 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new)
       return;
     }
   }
-  log_warn_sid(new->sid, "Could not add ephemeris candidate (%d slots full)",
-      EPHE_CAND_LIST_LEN);
+  log_warn_sid(new->sid,
+               "Could not add ephemeris candidate (%d slots full)",
+               EPHE_CAND_LIST_LEN);
 }
 
-static void ndb_ephe_release_candidate(s16 cand_index)
-{
+static void ndb_ephe_release_candidate(s16 cand_index) {
   if ((cand_index < 0) || (cand_index >= EPHE_CAND_LIST_LEN)) {
     return;
   }
@@ -163,17 +160,29 @@ static void ndb_ephe_release_candidate(s16 cand_index)
  */
 static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *existing_e,
-                                      const almanac_t   *existing_a,
-                                      const ephemeris_t *candidate)
-{
-
-  if (NULL != candidate && ephemeris_equal(new, candidate)) {
-    /* Exact match */
-    log_debug_sid(new->sid, "[EPH] candidate match");
+                                      const almanac_t *existing_a,
+                                      const ephemeris_t *candidate) {
+  if (NULL != candidate) {
+    ephemeris_t tmp_eph;
+    memcpy(&tmp_eph, candidate, sizeof(tmp_eph));
+    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+      tmp_eph.fit_interval = new->fit_interval;
+    }
+    if (ephemeris_equal(new, &tmp_eph)) {
+      /* Exact match */
+      log_debug_sid(new->sid, "[EPH] candidate match");
+    }
     return true;
-  } else if (NULL != existing_e && ephemeris_equal(new, existing_e)) {
-    /* Exact match with stored */
-    log_debug_sid(new->sid, "[EPH] NDB match");
+  } else if (NULL != existing_e) {
+    ephemeris_t tmp_eph;
+    memcpy(&tmp_eph, existing_e, sizeof(tmp_eph));
+    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+      tmp_eph.fit_interval = new->fit_interval;
+    }
+    if (ephemeris_equal(new, existing_e)) {
+      /* Exact match with stored */
+      log_debug_sid(new->sid, "[EPH] NDB match");
+    }
     return true;
   }
 
@@ -189,20 +198,16 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
   t_end.tow += MINUTE_SECS * 30 * 2;
   normalize_gps_time(&t_end);
 
-  if (NULL != existing_a &&
-      almanac_valid(existing_a, &t_start) &&
-      almanac_valid(existing_a, &t_end) &&
-      ephemeris_valid(new, &t_start) &&
+  if (NULL != existing_a && almanac_valid(existing_a, &t_start) &&
+      almanac_valid(existing_a, &t_end) && ephemeris_valid(new, &t_start) &&
       ephemeris_valid(new, &t_end)) {
-
     /* Almanac position verification */
 
     bool ok = true;
     gps_time_t t = t_start;
 
     for (u8 i = 0; i < 3 && ok;
-        ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
-
+         ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
       double _[3];
       double alm_sat_pos[3];
       double eph_sat_pos[3];
@@ -213,14 +218,15 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
 
       if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
           0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _, &iodc, &iode)) {
-
         /* Compute distance [m] */
         double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
 
         ok = (d <= ndb_ephe_config.valid_alm_accuracy);
         log_debug_sid(new->sid,
-                     "[EPH] almanac position error %lf T=%" PRId16 ",%" PRId32,
-                     d, t.wn, (s32)t.tow);
+                      "[EPH] almanac position error %lf T=%" PRId16 ",%" PRId32,
+                      d,
+                      t.wn,
+                      (s32)t.tow);
       }
     }
 
@@ -230,9 +236,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
     }
   }
 
-  if (!res &&
-      NULL != existing_e &&
-      ephemeris_valid(existing_e, &t_start) &&
+  if (!res && NULL != existing_e && ephemeris_valid(existing_e, &t_start) &&
       ephemeris_valid(existing_e, &t_end)) {
     /* Previous ephemeris, but still valid */
 
@@ -240,8 +244,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
     gps_time_t t = t_start;
 
     for (u8 i = 0; i < 3 && ok;
-        ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
-
+         ++i, t.tow += MINUTE_SECS * 30, normalize_gps_time(&t)) {
       double _[3];
       double old_sat_pos[3];
       double new_sat_pos[3];
@@ -250,9 +253,9 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
 
       ok = false;
 
-      if (0 == calc_sat_state_n(existing_e, &t, old_sat_pos, _, _, _, &iodc, &iode) &&
+      if (0 == calc_sat_state_n(
+                   existing_e, &t, old_sat_pos, _, _, _, &iodc, &iode) &&
           0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _, &iodc, &iode)) {
-
         /* Compute distance [m] */
         double d = vector_distance(3, old_sat_pos, new_sat_pos);
 
@@ -286,8 +289,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
  *                                cannot be confirmed yet
  * \retval NDB_ERR_BAD_PARAM      Bad SID
  */
-static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
-{
+static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   ndb_cand_status_t r = NDB_CAND_MISMATCH;
 
   ephemeris_t existing_e; /* Existing ephemeris data */
@@ -302,8 +304,10 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   }
 
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
-  if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx], &existing_e,
-                                   sizeof(existing_e), NULL,
+  if (NDB_ERR_NONE == ndb_retrieve(&ndb_ephemeris_md[idx],
+                                   &existing_e,
+                                   sizeof(existing_e),
+                                   NULL,
                                    NDB_USE_NV_EPHEMERIS)) {
     pe = &existing_e;
   }
@@ -325,15 +329,35 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
   if (!ephep) {
     ephep = ce;
   }
-  if (ephep &&
-      !ephemeris_equal(ephep, new) &&
-      (ephep->toe.wn == new->toe.wn) &&
+
+  ephemeris_t tmp_ephep;
+  bool ep_eq;
+  if (ephep) {
+    ep_eq = ephemeris_equal(ephep, new);
+    memcpy(&tmp_ephep, ephep, sizeof(tmp_ephep));
+  }
+
+  if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+    /* Fake fit_interval for GLO since it might be changed during ephemeris
+     * validity time which causes warning below because it's not same as stored
+     */
+    tmp_ephep.fit_interval = new->fit_interval;
+    if (ephep) {
+      ep_eq = ephemeris_equal(&tmp_ephep, new);
+    }
+  }
+
+  if (ephep && !ep_eq && (ephep->toe.wn == new->toe.wn) &&
       (ephep->toe.tow == new->toe.tow)) {
     log_warn_sid(new->sid,
                  "Ephemeris discrepancy detected: "
-                 "%"PRIi16" %"PRIi16" %lf %lf %p %p",
-                 ephep->toe.wn, new->toe.wn,
-                 ephep->toe.tow, new->toe.tow, ce, pe);
+                 "%" PRIi16 " %" PRIi16 " %lf %lf %p %p",
+                 ephep->toe.wn,
+                 new->toe.wn,
+                 ephep->toe.tow,
+                 new->toe.tow,
+                 ce,
+                 pe);
   }
 
   time_quality_t tq = get_time_quality();
@@ -341,8 +365,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
     ndb_ephe_release_candidate(cand_idx);
     ndb_ephe_try_adding_candidate(new);
     r = NDB_CAND_GPS_TIME_MISSING;
-  } else if (NULL != pe &&
-             ephemeris_equal(pe, new) &&
+  } else if (NULL != pe && ephemeris_equal(pe, new) &&
              0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
     /* If new ephemeris is identical to the one in NDB,
      * and the NDB data is not initially loaded from NV,
@@ -401,8 +424,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new)
  * \retval NDB_ERR_AGED_DATA        Data in NDB has aged out
  * \retval NDB_ERR_MISSING_GPS_TIME GPS time is unknown
  */
-ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
-{
+ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   u16 idx = map_sid_to_index(sid);
 
   if (ARRAY_SIZE(ndb_ephemeris) <= idx || NULL == e) {
@@ -410,8 +432,8 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
   }
 
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
-  ndb_op_code_t res = ndb_retrieve(&ndb_ephemeris_md[idx], e, sizeof(*e),
-                                   NULL, NDB_USE_NV_EPHEMERIS);
+  ndb_op_code_t res = ndb_retrieve(
+      &ndb_ephemeris_md[idx], e, sizeof(*e), NULL, NDB_USE_NV_EPHEMERIS);
 
   double ndb_eph_age;
   constellation_t constellation = code_to_constellation(sid.code);
@@ -450,30 +472,28 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e)
 }
 
 static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
-                                            ndb_data_source_t src)
-{
+                                            ndb_data_source_t src) {
   if (!e->valid) {
     return NDB_ERR_BAD_PARAM;
   }
 
   if (NDB_DS_RECEIVER == src) {
     switch (ndb_get_ephemeris_status(e)) {
-    case NDB_CAND_IDENTICAL:
-      return NDB_ERR_NO_CHANGE;
-    case NDB_CAND_OLDER:
-      return NDB_ERR_OLDER_DATA;
-    case NDB_CAND_NEW_TRUSTED:
-    {
-      u16 idx = sid_to_global_index(e->sid);
-      return ndb_update(e, src, &ndb_ephemeris_md[idx]);
-    }
-    case NDB_CAND_NEW_CANDIDATE:
-    case NDB_CAND_MISMATCH:
-      return NDB_ERR_UNCONFIRMED_DATA;
-    case NDB_CAND_GPS_TIME_MISSING:
-      return NDB_ERR_GPS_TIME_MISSING;
-    default:
-      assert(!"Invalid status");
+      case NDB_CAND_IDENTICAL:
+        return NDB_ERR_NO_CHANGE;
+      case NDB_CAND_OLDER:
+        return NDB_ERR_OLDER_DATA;
+      case NDB_CAND_NEW_TRUSTED: {
+        u16 idx = sid_to_global_index(e->sid);
+        return ndb_update(e, src, &ndb_ephemeris_md[idx]);
+      }
+      case NDB_CAND_NEW_CANDIDATE:
+      case NDB_CAND_MISMATCH:
+        return NDB_ERR_UNCONFIRMED_DATA;
+      case NDB_CAND_GPS_TIME_MISSING:
+        return NDB_ERR_GPS_TIME_MISSING;
+      default:
+        assert(!"Invalid status");
     }
   } else if (NDB_DS_SBP == src) {
     u8 valid, health_bits;
@@ -484,12 +504,17 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
     ndb_ephemeris_info(e->sid, &valid, &health_bits, &toe, &fit_interval, &ura);
     if (!valid || gpsdifftime(&e->toe, &toe) ||
         0 == (ndb_ephemeris_md[idx].vflags & NDB_VFLAG_DATA_FROM_NV)) {
-    /* If local ephemeris is not valid or received one is newer or
-     * existing data is initially loaded from NDB,
-     * then save the received one. */
-      log_debug_sid(e->sid,
-                    "Saving ephemeris received over SBP v:%d [%d,%d] vs [%d,%d]",
-                    (int)valid, toe.wn, toe.tow, e->toe.wn, e->toe.tow);
+      /* If local ephemeris is not valid or received one is newer or
+       * existing data is initially loaded from NDB,
+       * then save the received one. */
+      log_debug_sid(
+          e->sid,
+          "Saving ephemeris received over SBP v:%d [%d,%d] vs [%d,%d]",
+          (int)valid,
+          toe.wn,
+          toe.tow,
+          e->toe.wn,
+          e->toe.tow);
       return ndb_update(e, src, &ndb_ephemeris_md[idx]);
     }
     return NDB_ERR_NONE;
@@ -513,8 +538,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
  */
 ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                                   ndb_data_source_t src,
-                                  u16 sender_id)
-{
+                                  u16 sender_id) {
   ndb_op_code_t res = ndb_ephemeris_store_do(e, src);
 
   sbp_send_ndb_event(NDB_EVENT_STORE,
@@ -537,8 +561,7 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
  * \retval NDB_ERR_NO_CHANGE No data to erase.
  * \retval NDB_ERR_BAD_PARAM Bad parameter.
  */
-ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid)
-{
+ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid) {
   u16 idx = map_sid_to_index(sid);
 
   if (ARRAY_SIZE(ndb_ephemeris_md) <= idx) {
@@ -565,10 +588,12 @@ ndb_op_code_t ndb_ephemeris_erase(gnss_signal_t sid)
   return res;
 }
 
-ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
-                                 u8* health_bits, gps_time_t* toe,
-                                 u32* fit_interval, float* ura)
-{
+ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
+                                 u8 *valid,
+                                 u8 *health_bits,
+                                 gps_time_t *toe,
+                                 u32 *fit_interval,
+                                 float *ura) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   assert(valid != NULL);
@@ -601,8 +626,7 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid, u8* valid,
  * \retval TRUE    Ephe found, valid and sent
  * \retval FALSE   Ephe not sent
  */
-bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid)
-{
+bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid) {
   ephemeris_t e;
   gps_time_t t = get_current_time();
   enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);
@@ -617,16 +641,12 @@ bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid)
 }
 
 static ndb_sbp_update_info_t ephe_update_info = {
-  NDB_SBP_UPDATE_CYCLE_COUNT_INIT,
-  NDB_SBP_UPDATE_SIG_IDX_INIT,
-  NDB_EPHE_TRANSMIT_EPOCH_SPACING,
-  NDB_EPHE_MESSAGE_SPACING,
-  &ndb_ephemeris_sbp_update_tx
-};
+    NDB_SBP_UPDATE_CYCLE_COUNT_INIT,
+    NDB_SBP_UPDATE_SIG_IDX_INIT,
+    NDB_EPHE_TRANSMIT_EPOCH_SPACING,
+    NDB_EPHE_MESSAGE_SPACING,
+    &ndb_ephemeris_sbp_update_tx};
 
 /** The function sends ephemeris if valid
  *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
-void ndb_ephemeris_sbp_update(void)
-{
-  ndb_sbp_update(&ephe_update_info);
-}
+void ndb_ephemeris_sbp_update(void) { ndb_sbp_update(&ephe_update_info); }

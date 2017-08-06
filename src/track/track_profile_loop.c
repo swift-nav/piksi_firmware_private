@@ -30,8 +30,7 @@
 void tp_tl_init(tp_tl_state_t *s,
                 tp_ctrl_e ctrl,
                 const tl_rates_t *rates,
-                const tl_config_t *config)
-{
+                const tl_config_t *config) {
   /*
    * TODO add logic to initialize internal filter states: velocity and
    *      acceleration.
@@ -41,24 +40,24 @@ void tp_tl_init(tp_tl_state_t *s,
   s->ctrl = ctrl;
 
   switch (ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_init(&s->pll2, rates, config);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_init(&s->pll2, rates, config);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_init(&s->pll3, rates, config);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_init(&s->pll3, rates, config);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_init(&s->fll1, rates, config);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_init(&s->fll1, rates, config);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_init(&s->fll2, rates, config);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_init(&s->fll2, rates, config);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -74,30 +73,27 @@ void tp_tl_init(tp_tl_state_t *s,
  *
  * \return None.
  */
-void tp_tl_retune(tp_tl_state_t *s,
-                  tp_ctrl_e ctrl,
-                  const tl_config_t *config)
-{
+void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config) {
   if (ctrl == s->ctrl) {
     switch (ctrl) {
-    case TP_CTRL_PLL2:
-      tl_pll2_retune(&s->pll2, config);
-      break;
+      case TP_CTRL_PLL2:
+        tl_pll2_retune(&s->pll2, config);
+        break;
 
-    case TP_CTRL_PLL3:
-      tl_pll3_retune(&s->pll3, config);
-      break;
+      case TP_CTRL_PLL3:
+        tl_pll3_retune(&s->pll3, config);
+        break;
 
-    case TP_CTRL_FLL1:
-      tl_fll1_retune(&s->fll1, config);
-      break;
+      case TP_CTRL_FLL1:
+        tl_fll1_retune(&s->fll1, config);
+        break;
 
-    case TP_CTRL_FLL2:
-      tl_fll2_retune(&s->fll2, config);
-      break;
+      case TP_CTRL_FLL2:
+        tl_fll2_retune(&s->fll2, config);
+        break;
 
-    default:
-      assert(false);
+      default:
+        assert(false);
     }
   } else {
     /*
@@ -106,13 +102,10 @@ void tp_tl_retune(tp_tl_state_t *s,
 
     tl_rates_t rates = {0};
     tp_tl_get_rates(s, &rates);
-    tp_tl_init(s, ctrl,
-               &rates,
-               config);
+    tp_tl_init(s, ctrl, &rates, config);
   }
 
   s->ctrl = ctrl;
-
 }
 
 /**
@@ -125,27 +118,26 @@ void tp_tl_retune(tp_tl_state_t *s,
  *
  * \return None
  */
-void tp_tl_adjust(tp_tl_state_t *s, float err)
-{
+void tp_tl_adjust(tp_tl_state_t *s, float err) {
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_adjust(&s->pll2, err);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_adjust(&s->pll2, err);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_adjust(&s->pll3, err);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_adjust(&s->pll3, err);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_adjust(&s->fll1, err);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_adjust(&s->fll1, err);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_adjust(&s->fll2, err);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_adjust(&s->fll2, err);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -157,27 +149,26 @@ void tp_tl_adjust(tp_tl_state_t *s, float err)
  *
  * \return None
  */
-void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates)
-{
+void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates) {
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_get_rates(&s->pll2, rates);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_get_rates(&s->pll2, rates);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_get_rates(&s->pll3, rates);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_get_rates(&s->pll3, rates);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_get_rates(&s->fll1, rates);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_get_rates(&s->fll1, rates);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_get_rates(&s->fll2, rates);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_get_rates(&s->fll2, rates);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -189,8 +180,7 @@ void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates)
  *
  * \return None
  */
-void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config)
-{
+void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config) {
   memset(config, 0, sizeof(*config));
 
   config->code_bw = l->code_bw;
@@ -214,34 +204,33 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config)
  *
  * \return None
  */
-void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas)
-{
+void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
   /* TODO: Make this more elegant. */
   correlation_t cs2[3];
   for (u32 i = 0; i < 3; i++) {
-    cs2[i].I = cs->epl[2-i].I;
-    cs2[i].Q = cs->epl[2-i].Q;
+    cs2[i].I = cs->epl[2 - i].I;
+    cs2[i].Q = cs->epl[2 - i].Q;
   }
 
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_update_dll(&s->pll2, cs2);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_update_dll(&s->pll2, cs2);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_update_dll(&s->pll3, cs2, costas);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_update_dll(&s->pll3, cs2, costas);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_update_dll(&s->fll1, cs2);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_update_dll(&s->fll1, cs2);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_update_dll(&s->fll2, cs2);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_update_dll(&s->fll2, cs2);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -252,29 +241,28 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas)
  *
  * \return Error in Hz between DLL and PLL/FLL filters.
  */
-float tp_tl_get_dll_error(tp_tl_state_t *s)
-{
+float tp_tl_get_dll_error(tp_tl_state_t *s) {
   float dll_error = 0.;
 
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    dll_error = tl_pll2_get_dll_error(&s->pll2);
-    break;
+    case TP_CTRL_PLL2:
+      dll_error = tl_pll2_get_dll_error(&s->pll2);
+      break;
 
-  case TP_CTRL_PLL3:
-    dll_error = tl_pll3_get_dll_error(&s->pll3);
-    break;
+    case TP_CTRL_PLL3:
+      dll_error = tl_pll3_get_dll_error(&s->pll3);
+      break;
 
-  case TP_CTRL_FLL1:
-    dll_error = tl_fll1_get_dll_error(&s->fll1);
-    break;
+    case TP_CTRL_FLL1:
+      dll_error = tl_fll1_get_dll_error(&s->fll1);
+      break;
 
-  case TP_CTRL_FLL2:
-    dll_error = tl_fll2_get_dll_error(&s->fll2);
-    break;
+    case TP_CTRL_FLL2:
+      dll_error = tl_fll2_get_dll_error(&s->fll2);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 
   return dll_error;
@@ -288,19 +276,18 @@ float tp_tl_get_dll_error(tp_tl_state_t *s)
  * \retval true  PLL or FLL-assisted PLL is used.
  * \retval false FLL-only tracking is used.
  */
-bool tp_tl_is_pll(const tp_tl_state_t *s)
-{
+bool tp_tl_is_pll(const tp_tl_state_t *s) {
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-  case TP_CTRL_PLL3:
-    return true;
+    case TP_CTRL_PLL2:
+    case TP_CTRL_PLL3:
+      return true;
 
-  case TP_CTRL_FLL1:
-  case TP_CTRL_FLL2:
-    return false;
+    case TP_CTRL_FLL1:
+    case TP_CTRL_FLL2:
+      return false;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -318,27 +305,26 @@ bool tp_tl_is_pll(const tp_tl_state_t *s)
  * \sa tp_tl_fll_update_second
  * \sa tp_tl_fll_update
  */
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
-{
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs) {
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, false);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, false);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -355,27 +341,26 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs)
  * \sa tp_tl_fll_update_first
  * \sa tp_tl_fll_update
  */
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
-{
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs) {
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -392,27 +377,26 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs)
  * \sa tp_tl_fll_update_first
  * \sa tp_tl_fll_update_second
  */
-void tp_tl_fll_update(tp_tl_state_t *s)
-{
+void tp_tl_fll_update(tp_tl_state_t *s) {
   switch (s->ctrl) {
-  case TP_CTRL_PLL2:
-    tl_pll2_update_fll(&s->pll2);
-    break;
+    case TP_CTRL_PLL2:
+      tl_pll2_update_fll(&s->pll2);
+      break;
 
-  case TP_CTRL_PLL3:
-    tl_pll3_update_fll(&s->pll3);
-    break;
+    case TP_CTRL_PLL3:
+      tl_pll3_update_fll(&s->pll3);
+      break;
 
-  case TP_CTRL_FLL1:
-    tl_fll1_update_fll(&s->fll1);
-    break;
+    case TP_CTRL_FLL1:
+      tl_fll1_update_fll(&s->fll1);
+      break;
 
-  case TP_CTRL_FLL2:
-    tl_fll2_update_fll(&s->fll2);
-    break;
+    case TP_CTRL_FLL2:
+      tl_fll2_update_fll(&s->fll2);
+      break;
 
-  default:
-    assert(false);
+    default:
+      assert(false);
   }
 }
 
@@ -424,7 +408,4 @@ void tp_tl_fll_update(tp_tl_state_t *s)
  * \retval true  FLL-only tracking is used.
  * \retval false PLL or FLL-assisted PLL is used.
  */
-bool tp_tl_is_fll(const tp_tl_state_t *s)
-{
-  return tp_is_fll_ctrl(s->ctrl);
-}
+bool tp_tl_is_fll(const tp_tl_state_t *s) { return tp_is_fll_ctrl(s->ctrl); }

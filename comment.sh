@@ -18,6 +18,10 @@ if [ "$TRAVIS_OS_NAME" != "linux" ]; then
     exit
 fi
 
+if [ "$TESTENV" == "lint" ]; then
+    exit
+fi
+
 REPO="${PWD##*/}"
 BUCKET="swiftnav-artifacts-pull-requests"
 BUILD_SOURCE="pull-request"

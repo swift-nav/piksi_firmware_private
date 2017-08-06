@@ -10,13 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <hal.h>
 #include <ch.h>
+#include <hal.h>
 
 #include "libswiftnav/common.h"
 #include "libswiftnav/logging.h"
 #include "random.h"
-
 
 #define RANDOM_MAX_TRIES 100
 
@@ -25,8 +24,7 @@ static MUTEX_DECL(rng_mutex);
 /* These two methods copied from:
  * https://raw.githubusercontent.com/libopencm3/libopencm3-examples/058298fd78c23639a1a135871e6c363c9d6153f6/examples/stm32/f4/stm32f4-discovery/random/random.c
  */
-void rng_setup(void)
-{
+void rng_setup(void) {
   rccEnableAHB2(RCC_AHB2ENR_RNGEN, TRUE);
   /* Enable interupt */
   /* Set the IE bit in the RNG->CR register. */
@@ -38,8 +36,7 @@ void rng_setup(void)
   RNG->CR |= RNG_CR_RNGEN;
 }
 
-u32 random_int(void)
-{
+u32 random_int(void) {
   chMtxLock(&rng_mutex);
 
   static u32 last_value;
@@ -51,7 +48,7 @@ u32 random_int(void)
     if ((sr = RNG->SR)) {
       if (sr & RNG_SR_SEIS) {
         /* Seed error, we must reinitialise */
-        log_warn("random: Seed error, restarting RNG 0x%"PRIx32"", sr);
+        log_warn("random: Seed error, restarting RNG 0x%" PRIx32 "", sr);
         RNG->CR &= ~RNG_CR_RNGEN;
         RNG->CR |= RNG_CR_RNGEN;
       }
@@ -59,8 +56,7 @@ u32 random_int(void)
       RNG->SR = ~(sr & (RNG_SR_SEIS | RNG_SR_CEIS));
     }
     /* Check if data is ready. */
-    if ((RNG->SR & RNG_SR_DRDY) == 0)
-      continue;
+    if ((RNG->SR & RNG_SR_DRDY) == 0) continue;
 
     tries++;
     new_value = RNG->DR;

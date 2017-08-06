@@ -10,26 +10,25 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdint.h>
-#include <assert.h>
-#include <libswiftnav/track.h>
-#include <libswiftnav/constants.h>
-#include <timing.h>
-#include "board/nap/track_channel.h"
-#include "board/v3/nap/nap_hw.h"
-#include "board/v3/nap/nap_constants.h"
 #include "track_sbp.h"
-#include "track.h"
-#include "shm.h"
+#include <assert.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/track.h>
 #include <sbp.h>
 #include <sbp_utils.h>
+#include <stdint.h>
+#include <timing.h>
+#include "board/nap/track_channel.h"
+#include "board/v3/nap/nap_constants.h"
+#include "board/v3/nap/nap_hw.h"
+#include "shm.h"
+#include "track.h"
 
 /** Get synchronization status flags
  * \param[in] channel_info channel info
  * \return Bit field of #track_sbp_sync_status_t flags
  */
-static u8 get_sync_flags(const tracking_channel_info_t *channel_info)
-{
+static u8 get_sync_flags(const tracking_channel_info_t *channel_info) {
   u8 flags = TRACK_SBP_SYNC_NONE;
   if (0 != (channel_info->flags & TRACKER_FLAG_BIT_SYNC)) {
     flags = TRACK_SBP_SYNC_BIT;
@@ -41,8 +40,7 @@ static u8 get_sync_flags(const tracking_channel_info_t *channel_info)
  * \param[in] channel_info channel info
  * \return Bit field of #track_sbp_tow_status_t flags
  */
-static u8 get_tow_flags(const tracking_channel_info_t *channel_info)
-{
+static u8 get_tow_flags(const tracking_channel_info_t *channel_info) {
   u8 flags = TRACK_SBP_TOW_NONE;
   if (0 == (channel_info->flags & TRACKER_FLAG_TOW_VALID)) {
     return flags;
@@ -61,8 +59,7 @@ static u8 get_tow_flags(const tracking_channel_info_t *channel_info)
  * \return Bit field of #track_sbp_loop_status_t,
  *         #TRACK_SBP_LOOP_PLL and #TRACK_SBP_LOOP_FLL flags
  */
-static u8 get_track_flags(const tracking_channel_info_t *channel_info)
-{
+static u8 get_track_flags(const tracking_channel_info_t *channel_info) {
   u8 flags = TRACK_SBP_LOOP_NO_LOCK;
   if (0 != (channel_info->flags & TRACKER_FLAG_HAS_PLOCK)) {
     flags = TRACK_SBP_LOOP_PLL_PESSIMISTIC_LOCK;
@@ -85,24 +82,23 @@ static u8 get_track_flags(const tracking_channel_info_t *channel_info)
  * \return Bit field of #sv_health_status_t,
  *         #TRACK_SBP_NAV_STATE_EPHEMERIS and #TRACK_SBP_NAV_STATE_ALMANAC flags
  */
-static u8 get_nav_data_status_flags(gnss_signal_t sid)
-{
+static u8 get_nav_data_status_flags(gnss_signal_t sid) {
   u8 flags = TRACK_SBP_HEALTH_UNKNOWN;
   code_nav_state_t nav_state = shm_get_sat_state(sid);
 
   switch (nav_state) {
-  case CODE_NAV_STATE_UNKNOWN:
-    flags = TRACK_SBP_HEALTH_UNKNOWN;
-    break;
-  case CODE_NAV_STATE_VALID:
-    flags = TRACK_SBP_HEALTH_GOOD;
-    break;
-  case CODE_NAV_STATE_INVALID:
-    flags = TRACK_SBP_HEALTH_BAD;
-    break;
-  default:
-    assert(!"Unknown nav state");
-    break;
+    case CODE_NAV_STATE_UNKNOWN:
+      flags = TRACK_SBP_HEALTH_UNKNOWN;
+      break;
+    case CODE_NAV_STATE_VALID:
+      flags = TRACK_SBP_HEALTH_GOOD;
+      break;
+    case CODE_NAV_STATE_INVALID:
+      flags = TRACK_SBP_HEALTH_BAD;
+      break;
+    default:
+      assert(!"Unknown nav state");
+      break;
   }
 
   if (time_quality <= TIME_GUESS) {
@@ -110,7 +106,10 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid)
   }
 
   gps_time_t t = get_current_time();
-  union { ephemeris_t e; almanac_t a; } orbit;
+  union {
+    ephemeris_t e;
+    almanac_t a;
+  } orbit;
   enum ndb_op_code ndb_op_code;
 
   ndb_op_code = ndb_ephemeris_read(sid, &orbit.e);
@@ -132,15 +131,14 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid)
  * \param[in] ctrl_info Controller parameters for error sigma computations
  * \return Bit field of #track_sbp_param_set_t flags
  */
-static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info)
-{
+static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info) {
   u8 flags = 0;
 
-  switch( ctrl_info->int_ms ) {
-    case  1:
+  switch (ctrl_info->int_ms) {
+    case 1:
       flags = TRACK_SBP_PARAM_SET_1MS;
       break;
-    case  5:
+    case 5:
       flags = TRACK_SBP_PARAM_SET_5MS;
       break;
     case 10:
@@ -151,7 +149,10 @@ static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info)
       break;
     default:
       log_error("ctrl_info->pll_bw  %.1f fll_bw  %.1f dll_bw %.1f int_ms %d",
-        ctrl_info->pll_bw, ctrl_info->fll_bw, ctrl_info->dll_bw, ctrl_info->int_ms);
+                ctrl_info->pll_bw,
+                ctrl_info->fll_bw,
+                ctrl_info->dll_bw,
+                ctrl_info->int_ms);
       assert(!"Unsupported integration time.");
       break;
   }
@@ -166,12 +167,12 @@ static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info)
  *         #TRACK_SBP_HALF_CYCLE_AMBIGUITY_RESOLVED and
  *         #TRACK_SBP_PSEUDORANGE_VALID flags
  */
-static u8 get_misc_flags(const tracking_channel_info_t *channel_info)
-{
+static u8 get_misc_flags(const tracking_channel_info_t *channel_info) {
   /* TODO: set status correctly when re-acq support is added */
-  u8 flags = TRACK_SBP_STATUS_RUNNING;   /* no re-acq state support */
+  u8 flags = TRACK_SBP_STATUS_RUNNING; /* no re-acq state support */
 
-  flags |= TRACK_SBP_ACCELERATION_VALID; /* acceleration is always valid */;
+  flags |= TRACK_SBP_ACCELERATION_VALID; /* acceleration is always valid */
+  ;
 
   if (0 != (channel_info->flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
     flags |= TRACK_SBP_HALF_CYCLE_AMBIGUITY_RESOLVED;
@@ -190,8 +191,7 @@ static u8 get_misc_flags(const tracking_channel_info_t *channel_info)
  * \param[in] max Maximum value
  * \return The coerced value
  */
-static double limit_value(double value, s64 min, s64 max)
-{
+static double limit_value(double value, s64 min, s64 max) {
   if (value > max) {
     value = max;
   } else if (value < min) {
@@ -215,20 +215,15 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
                                   const tracking_channel_time_info_t *time_info,
                                   const tracking_channel_ctrl_info_t *ctrl_info,
                                   const tracking_channel_misc_info_t *misc_info,
-                                  const last_good_fix_t *lgf)
-{
+                                  const last_good_fix_t *lgf) {
   u64 recv_time_ticks = nap_sample_time_to_count(channel_info->sample_count);
   /* receiver clock time of the measurements [ns] */
   state->recv_time = nap_count_to_ns(recv_time_ticks);
 
   channel_measurement_t meas;
 
-  tracking_channel_measurement_get(recv_time_ticks,
-                                   channel_info,
-                                   freq_info,
-                                   time_info,
-                                   misc_info,
-                                   &meas);
+  tracking_channel_measurement_get(
+      recv_time_ticks, channel_info, freq_info, time_info, misc_info, &meas);
 
   s32 tow_ms = channel_info->tow_ms;
 
@@ -285,13 +280,13 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
 
   state->sid = sid_to_sbp(sid);
 
-  double carrier_freq = freq_info->carrier_freq *
-                        TRACK_SBP_DOPPLER_SCALING_FACTOR;
+  double carrier_freq =
+      freq_info->carrier_freq * TRACK_SBP_DOPPLER_SCALING_FACTOR;
   state->doppler = (s32)limit_value(carrier_freq, INT32_MIN, INT32_MAX);
 
   /* Doppler standard deviation [Hz] */
-  double doppler_std = freq_info->carrier_freq_std *
-                       TRACK_SBP_DOPPLER_SCALING_FACTOR;
+  double doppler_std =
+      freq_info->carrier_freq_std * TRACK_SBP_DOPPLER_SCALING_FACTOR;
   state->doppler_std = (u16)limit_value(doppler_std, 0, UINT16_MAX);
 
   /* number of seconds of continuous tracking */
@@ -315,11 +310,11 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   }
 
   /* correlator spacing [ns] */
-  state->corr_spacing = (u16)(NAP_SPACING_SAMPLES *
-                             TRACK_SBP_NAP_SPACING_SCALING_FACTOR);
+  state->corr_spacing =
+      (u16)(NAP_SPACING_SAMPLES * TRACK_SBP_NAP_SPACING_SCALING_FACTOR);
   /* acceleration [g] */
-  double acceleration = freq_info->acceleration *
-                        TRACK_SBP_ACCELERATION_SCALING_FACTOR;
+  double acceleration =
+      freq_info->acceleration * TRACK_SBP_ACCELERATION_SCALING_FACTOR;
   state->acceleration = (s8)(limit_value(acceleration, INT8_MIN, INT8_MAX));
 
   /* sync status flags */

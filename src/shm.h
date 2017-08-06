@@ -14,6 +14,7 @@
 #define SWIFTNAV_SHM_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/signal.h>
 
 /* Possible satellite code health states */
 typedef enum {
@@ -23,14 +24,12 @@ typedef enum {
 } code_nav_state_t;
 
 /* GLO satellite health states */
-typedef enum {
-  GLO_SV_HEALTHY,
-  GLO_SV_UNHEALTHY
-} glo_health_t;
+typedef enum { GLO_SV_HEALTHY, GLO_SV_UNHEALTHY } glo_health_t;
 
 void shm_gps_set_shi1(u16 sat, u8 new_value);
 void shm_gps_set_shi4(u16 sat, bool new_value);
 void shm_gps_set_shi6(u16 sat, bool new_value);
+void shm_glo_set_shi(u16 sat, u8 new_value);
 
 code_nav_state_t shm_get_sat_state(gnss_signal_t sid);
 void shm_log_sat_state(const char* shi_name, u16 sat);

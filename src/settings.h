@@ -15,7 +15,6 @@
 
 #include <libswiftnav/common.h>
 
-
 enum setting_types {
   TYPE_INT,
   TYPE_FLOAT,
@@ -24,7 +23,8 @@ enum setting_types {
 extern int TYPE_BOOL;
 
 struct setting_type {
-  int (*to_string)(const void *priv, char *str, int slen, const void *blob, int blen);
+  int (*to_string)(
+      const void *priv, char *str, int slen, const void *blob, int blen);
   bool (*from_string)(const void *priv, void *blob, int len, const char *str);
   int (*format_type)(const void *priv, char *str, int len);
   const void *priv;
@@ -41,11 +41,12 @@ struct setting {
   const struct setting_type *type;
 };
 
-#define SETTING_NOTIFY(section, name, var, type, notify) do {         \
-  static struct setting setting = \
-    {(section), (name), &(var), sizeof(var), (notify), NULL, NULL}; \
-  settings_register(&(setting), (type)); \
-} while(0)
+#define SETTING_NOTIFY(section, name, var, type, notify)               \
+  do {                                                                 \
+    static struct setting setting = {                                  \
+        (section), (name), &(var), sizeof(var), (notify), NULL, NULL}; \
+    settings_register(&(setting), (type));                             \
+  } while (0)
 
 #define SETTING(section, name, var, type) \
   SETTING_NOTIFY(section, name, var, type, settings_default_notify)
@@ -54,11 +55,11 @@ struct setting {
   SETTING_NOTIFY(section, name, var, type, settings_read_only_notify)
 
 void settings_setup(void);
-int settings_type_register_enum(const char * const enumnames[], struct setting_type *type);
+int settings_type_register_enum(const char *const enumnames[],
+                                struct setting_type *type);
 void settings_register(struct setting *s, enum setting_types type);
 bool settings_default_notify(struct setting *setting, const char *val);
 bool uarta_baudrate_notify(struct setting *setting, const char *val);
 bool settings_read_only_notify(struct setting *setting, const char *val);
 
-#endif  /* SWIFTNAV_SETTINGS_H */
-
+#endif /* SWIFTNAV_SETTINGS_H */

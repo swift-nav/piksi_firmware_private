@@ -10,22 +10,22 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "nap/track_channel.h"
+#include "main.h"
+#include "nap/nap_common.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
-#include "nap/nap_common.h"
-#include "nap/track_channel.h"
-#include "track.h"
-#include "timing.h"
-#include "main.h"
 #include "signal.h"
+#include "timing.h"
+#include "track.h"
 
 #include <ch.h>
 
-#include <libswiftnav/constants.h>
 #include <libswiftnav/common.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/prns.h> /* to expose sid_to_init_g1() declaration */
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
-#include <libswiftnav/prns.h>   /* to expose sid_to_init_g1() declaration */
 
 #include <assert.h>
 #include <string.h>
@@ -33,46 +33,47 @@
 #define TIMING_COMPARE_DELTA     (  1e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
 
 /* NAP track channel parameters. */
-#define NAP_TRACK_CARRIER_FREQ_WIDTH              32
-#define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH  32
-#define NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH     32
+#define NAP_TRACK_CARRIER_FREQ_WIDTH 32
+#define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
+#define NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH 32
 
-#define NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ       \
+#define NAP_TRACK_CARRIER_FREQ_UNITS_PER_HZ \
   (((u64)1 << NAP_TRACK_CARRIER_FREQ_WIDTH) / (double)NAP_TRACK_SAMPLE_RATE_Hz)
 
-#define NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE   \
+#define NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE \
   ((u64)1 << NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH)
 
-#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ    \
+#define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ \
   (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_Hz)
 
-#define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP       \
+#define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
 
-#define GET_NAP_CORR_LEN      (1+GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL))
-#define SET_NAP_CORR_LEN(len) (SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, len-1))
+#define GET_NAP_CORR_LEN (1 + GET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL))
+#define SET_NAP_CORR_LEN(len) \
+  (SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, len - 1))
 
 /** Structure is used to define spacing between two correlators */
 typedef struct {
-  u8 chips:3;   /**< Correlator spacing in chips. */
-  u8 samples:6; /**< Correlator spacing in samples. */
+  u8 chips : 3;   /**< Correlator spacing in chips. */
+  u8 samples : 6; /**< Correlator spacing in samples. */
 } nap_spacing_t;
 
 /** Internal tracking channel state */
 static struct nap_ch_state {
-  me_gnss_signal_t mesid;      /**< Channel ME sid */
-  nap_spacing_t spacing[4];    /**< Correlator spacing. */
-  double code_phase_rate[2];   /**< Code phase rates. */
+  me_gnss_signal_t mesid;    /**< Channel ME sid */
+  nap_spacing_t spacing[4];  /**< Correlator spacing. */
+  double code_phase_rate[2]; /**< Code phase rates. */
   /* The frequency shift due to GLO FCNs [Hz]. Set to zero for GPS. */
   double fcn_freq_hz;
   /** Doppler induced carrier phase.
       Does not include FCN induced carrier phase change. */
   double reckoned_carr_phase;
-  u32 length[2];           /**< Correlation length in samples of Fs */
-  s32 length_adjust;       /**< Adjust the length the next time around */
-  s32 carr_pinc[2];        /**< Carrier phase increment */
-  u64 reckon_counter;      /**< First carrier phase has to be read from NAP */
-  s64 sw_carr_phase;       /**< Debug reckoned carrier phase */
+  u32 length[2];      /**< Correlation length in samples of Fs */
+  s32 length_adjust;  /**< Adjust the length the next time around */
+  s32 carr_pinc[2];   /**< Carrier phase increment */
+  u64 reckon_counter; /**< First carrier phase has to be read from NAP */
+  s64 sw_carr_phase;  /**< Debug reckoned carrier phase */
 } nap_ch_desc[MAX_CHANNELS];
 
 /** Internal tracking channel capability = supported code */
@@ -100,9 +101,9 @@ static s32 CountCompare(u32 a, u32 b) {
  * \param cp_rate_units Code phase rate.
  * \return The correlation length in NAP units
  */
-static u32 calc_length_samples(u32 chips_to_correlate, u32 cp_start_frac_units,
-                               u32 cp_rate_units)
-{
+static u32 calc_length_samples(u32 chips_to_correlate,
+                               u32 cp_start_frac_units,
+                               u32 cp_rate_units) {
   u64 cp_end_units = chips_to_correlate * NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP;
   /* cp_start_frac_units is reinterpreted as a signed value. This works
    * because NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH is equal to 32 */
@@ -116,8 +117,7 @@ static u32 calc_length_samples(u32 chips_to_correlate, u32 cp_start_frac_units,
  * \param mesid ME signal ID.
  * \return NAP constellation and band code.
  */
-static u8 mesid_to_nap_code(const me_gnss_signal_t mesid)
-{
+static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   u8 ret = ~0;
   switch (mesid.code) {
     case CODE_GPS_L1CA:
@@ -140,32 +140,32 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid)
       break;
     case CODE_INVALID:
     case CODE_COUNT:
-    case CODE_GPS_L2CX :
-    case CODE_GPS_L5I  :
-    case CODE_GPS_L5Q  :
-    case CODE_GPS_L5X  :
-    case CODE_BDS2_B11 :
-    case CODE_BDS2_B2  :
-    case CODE_GAL_E1B  :
-    case CODE_GAL_E1C  :
-    case CODE_GAL_E1X  :
-    case CODE_GAL_E6B  :
-    case CODE_GAL_E6C  :
-    case CODE_GAL_E6X  :
-    case CODE_GAL_E7I  :
-    case CODE_GAL_E7Q  :
-    case CODE_GAL_E7X  :
-    case CODE_GAL_E8   :
-    case CODE_GAL_E5I  :
-    case CODE_GAL_E5Q  :
-    case CODE_GAL_E5X  :
-    case CODE_QZS_L1CA :
-    case CODE_QZS_L2CM :
-    case CODE_QZS_L2CL :
-    case CODE_QZS_L2CX :
-    case CODE_QZS_L5I  :
-    case CODE_QZS_L5Q  :
-    case CODE_QZS_L5X  :
+    case CODE_GPS_L2CX:
+    case CODE_GPS_L5I:
+    case CODE_GPS_L5Q:
+    case CODE_GPS_L5X:
+    case CODE_BDS2_B11:
+    case CODE_BDS2_B2:
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
+    case CODE_GAL_E1X:
+    case CODE_GAL_E6B:
+    case CODE_GAL_E6C:
+    case CODE_GAL_E6X:
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
+    case CODE_GAL_E7X:
+    case CODE_GAL_E8:
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
+    case CODE_GAL_E5X:
+    case CODE_QZS_L1CA:
+    case CODE_QZS_L2CM:
+    case CODE_QZS_L2CL:
+    case CODE_QZS_L2CX:
+    case CODE_QZS_L5I:
+    case CODE_QZS_L5Q:
+    case CODE_QZS_L5X:
     default:
       assert(!"Invalid code");
       break;
@@ -177,20 +177,18 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid)
  * \param spacing Correlator spacing.
  * \return NAP offfset register value.
  */
-static u16 spacing_to_nap_offset(nap_spacing_t spacing)
-{
-  return ((u16)(spacing.chips & NAP_TRK_SPACING_CHIPS_Msk) <<
-      NAP_TRK_SPACING_CHIPS_Pos) |
-      ((spacing.samples & NAP_TRK_SPACING_SAMPLES_Msk) <<
-      NAP_TRK_SPACING_SAMPLES_Pos);
+static u16 spacing_to_nap_offset(nap_spacing_t spacing) {
+  return ((u16)(spacing.chips & NAP_TRK_SPACING_CHIPS_Msk)
+          << NAP_TRK_SPACING_CHIPS_Pos) |
+         ((spacing.samples & NAP_TRK_SPACING_SAMPLES_Msk)
+          << NAP_TRK_SPACING_SAMPLES_Pos);
 }
 
 /** Compute the number of samples per code chip.
  * \param code GNSS code identifier.
  * \return Number of samples per code chip.
  */
-static double calc_samples_per_chip(double code_phase_rate)
-{
+static double calc_samples_per_chip(double code_phase_rate) {
   return (double)NAP_TRACK_SAMPLE_RATE_Hz / code_phase_rate;
 }
 
@@ -199,20 +197,17 @@ void nap_track_init(u8 channel,
                     u32 ref_timing_count,
                     float doppler_freq_hz,
                     double code_phase,
-                    u32 chips_to_correlate)
-{
-  assert((mesid.code == CODE_GPS_L1CA) ||
-         (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) ||
-         (mesid.code == CODE_GLO_L1CA) ||
+                    u32 chips_to_correlate) {
+  assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1CA) ||
          (mesid.code == CODE_GLO_L2CA));
 
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   if (nap_ch_capability[channel] != mesid_to_nap_code(mesid)) {
-    log_error_mesid(mesid, "Tracking channel %u doesn't support this signal.",
-        channel);
+    log_error_mesid(
+        mesid, "Tracking channel %u doesn't support this signal.", channel);
     return;
   }
 
@@ -230,12 +225,10 @@ void nap_track_init(u8 channel,
   }
 
   /* Correlator spacing: E -> P (samples only) */
-  s->spacing[1] = (nap_spacing_t){.chips = 0,
-                                  .samples = NAP_SPACING_SAMPLES};
+  s->spacing[1] = (nap_spacing_t){.chips = 0, .samples = NAP_SPACING_SAMPLES};
 
   /* Correlator spacing: P -> L (samples only) */
-  s->spacing[2] = (nap_spacing_t){.chips = 0,
-                                  .samples = NAP_SPACING_SAMPLES};
+  s->spacing[2] = (nap_spacing_t){.chips = 0, .samples = NAP_SPACING_SAMPLES};
 
   /* Correlator spacing: L -> VL */
   s->spacing[3] = (nap_spacing_t){.chips = NAP_SPACING_CHIPS,
@@ -248,10 +241,10 @@ void nap_track_init(u8 channel,
 
   /* Set correlator spacing */
   t->SPACING =
-    (spacing_to_nap_offset(s->spacing[0]) << NAP_TRK_CH_SPACING_OFFSET0_Pos) |
-    (spacing_to_nap_offset(s->spacing[1]) << NAP_TRK_CH_SPACING_OFFSET1_Pos) |
-    (spacing_to_nap_offset(s->spacing[2]) << NAP_TRK_CH_SPACING_OFFSET2_Pos) |
-    (spacing_to_nap_offset(s->spacing[3]) << NAP_TRK_CH_SPACING_OFFSET3_Pos);
+      (spacing_to_nap_offset(s->spacing[0]) << NAP_TRK_CH_SPACING_OFFSET0_Pos) |
+      (spacing_to_nap_offset(s->spacing[1]) << NAP_TRK_CH_SPACING_OFFSET1_Pos) |
+      (spacing_to_nap_offset(s->spacing[2]) << NAP_TRK_CH_SPACING_OFFSET2_Pos) |
+      (spacing_to_nap_offset(s->spacing[3]) << NAP_TRK_CH_SPACING_OFFSET3_Pos);
 
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
@@ -367,8 +360,7 @@ void nap_track_update(u8 _chan_idx,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
-                      u8 corr_spacing)
-{
+                      u8 corr_spacing) {
   (void)corr_spacing; /* This is always written as 0, for now */
 
   swiftnap_tracking_t *t = &NAP->TRK_CH[_chan_idx];
@@ -423,18 +415,17 @@ void nap_track_update(u8 _chan_idx,
 }
 
 void nap_track_read_results(u8 channel,
-                            u32* count_snapshot,
+                            u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
-                            double *carrier_phase)
-{
+                            double *carrier_phase) {
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
   s64 hw_carr_phase;
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(t->STATUS)) {
-    log_warn_mesid(s->mesid,
-                   "Tracking correlator overflow on channel %d", channel);
+    log_warn_mesid(
+        s->mesid, "Tracking correlator overflow on channel %d", channel);
   }
 
   /* E correlator */
@@ -467,26 +458,31 @@ void nap_track_read_results(u8 channel,
   if (s->reckon_counter < 1) {
     hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
     s->sw_carr_phase = hw_carr_phase;
-    s->reckoned_carr_phase = ((double) hw_carr_phase) /
-                              NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    log_debug_mesid(s->mesid, "init carr phase %.6lf",
-      (double) hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE);
+    s->reckoned_carr_phase =
+        ((double)hw_carr_phase) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    log_debug_mesid(
+        s->mesid,
+        "init carr phase %.6lf",
+        (double)hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE);
   } else {
     s64 phase_incr = ((s64)s->length[1]) * (s->carr_pinc[1]);
-    s->reckoned_carr_phase += ((double) phase_incr) /
-                              NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    s->reckoned_carr_phase += s->fcn_freq_hz *
-                              (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
+    s->reckoned_carr_phase +=
+        ((double)phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
+    s->reckoned_carr_phase +=
+        s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 #ifndef PIKSI_RELEASE
     s->sw_carr_phase += phase_incr;
     hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
     if (s->sw_carr_phase != hw_carr_phase) {
-      log_error_mesid(s->mesid, "%12llu reckon err SW %+.9lf  HW %+.9lf DIFF %+.9lf",
-                      s->reckon_counter,
-                      (double)s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
-                      (double)hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
-                      ((double)s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
-                      ((double)hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE));
+      log_error_mesid(
+          s->mesid,
+          "%12llu reckon err SW %+.9lf  HW %+.9lf DIFF %+.9lf",
+          s->reckon_counter,
+          (double)s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
+          (double)hw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE,
+          ((double)s->sw_carr_phase / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE) -
+              ((double)hw_carr_phase /
+               NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE));
       s->sw_carr_phase = hw_carr_phase;
     }
 #endif /* PIKSI_RELEASE */
@@ -497,47 +493,44 @@ void nap_track_read_results(u8 channel,
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips + s->spacing[1].chips +
-      (s->spacing[0].samples + s->spacing[1].samples) /
-      calc_samples_per_chip(s->code_phase_rate[1]);
+                         (s->spacing[0].samples + s->spacing[1].samples) /
+                             calc_samples_per_chip(s->code_phase_rate[1]);
 
   u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
 
   /* Correct code phase with spacing between VE and P correlators */
-  *code_phase_prompt = (double)nap_code_phase /
-      NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP - prompt_offset;
+  *code_phase_prompt =
+      (double)nap_code_phase / NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP -
+      prompt_offset;
 
   if (*code_phase_prompt < 0) {
     *code_phase_prompt += code_to_chip_count(s->mesid.code);
   }
 }
 
-void nap_track_enable(u8 channel)
-{
+void nap_track_enable(u8 channel) {
   if (channel < 32) {
     NAP->TRK_CONTROL0 |= (1 << channel);
   } else {
-    NAP->TRK_CONTROL1 |= (1 << (channel-32));
+    NAP->TRK_CONTROL1 |= (1 << (channel - 32));
   }
 }
 
-void nap_track_disable(u8 channel)
-{
+void nap_track_disable(u8 channel) {
   if (channel < 32) {
     NAP->TRK_CONTROL0 &= ~(1 << channel);
   } else {
-    NAP->TRK_CONTROL1 &= ~(1 << (channel-32));
+    NAP->TRK_CONTROL1 &= ~(1 << (channel - 32));
   }
 }
 
-void nap_scan_channels()
-{
+void nap_scan_channels() {
   for (u8 channel = 0; channel < nap_track_n_channels; ++channel) {
     swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
     nap_ch_capability[channel] = GET_NAP_TRK_CH_STATUS_CODE(t->STATUS);
   }
 }
 
-bool nap_track_supports(u8 channel, const me_gnss_signal_t mesid)
-{
+bool nap_track_supports(u8 channel, const me_gnss_signal_t mesid) {
   return nap_ch_capability[channel] == mesid_to_nap_code(mesid);
 }

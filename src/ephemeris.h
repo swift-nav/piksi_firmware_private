@@ -27,16 +27,14 @@ typedef enum {
 /**
  * Earth-centered earth-fixed position
  */
-typedef struct {
-  double xyz[3];
-} pos_ecef_t;
+typedef struct { double xyz[3]; } pos_ecef_t;
 
 /**
  * SV positions computed for cross-correlation checks.
  */
 typedef struct {
-  u32 time_s;         /**< GPS time for prompt position [s] */
-  u32 interval_s;     /**< Time interval between position [s] */
+  u32 time_s;     /**< GPS time for prompt position [s] */
+  u32 interval_s; /**< Time interval between position [s] */
   union {
     struct {
       pos_ecef_t early, prompt, late;
@@ -49,10 +47,10 @@ typedef struct {
  * Cross-correlation position match status
  */
 typedef enum {
-  XCORR_MATCH_RES_OK,        /**< Position match detected */
-  XCORR_MATCH_RES_NO_ALMANAC,/**< Position match check is not done (no almanac,
-                              *   not enough data, error) */
-  XCORR_MATCH_RES_NO_MATCH   /**< Position mismatch detected */
+  XCORR_MATCH_RES_OK,         /**< Position match detected */
+  XCORR_MATCH_RES_NO_ALMANAC, /**< Position match check is not done (no almanac,
+                               *   not enough data, error) */
+  XCORR_MATCH_RES_NO_MATCH    /**< Position mismatch detected */
 } xcorr_match_res_t;
 
 #ifdef __cplusplus
@@ -87,9 +85,8 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
  *
  * \return GPS time
  */
-static inline gps_time_t make_gps_time(s32 time_s)
-{
-  return (gps_time_t){ time_s % WEEK_SECS, time_s / WEEK_SECS};
+static inline gps_time_t make_gps_time(s32 time_s) {
+  return (gps_time_t){time_s % WEEK_SECS, time_s / WEEK_SECS};
 }
 
 #ifdef __cplusplus
@@ -97,4 +94,3 @@ static inline gps_time_t make_gps_time(s32 time_s)
 #endif
 
 #endif
-

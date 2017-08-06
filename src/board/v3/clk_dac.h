@@ -16,13 +16,13 @@
 #include <stdint.h>
 
 /* Normal */
-#define CLK_DAC_MODE_0            0
+#define CLK_DAC_MODE_0 0
 /* 1k to GND */
-#define CLK_DAC_MODE_1            1
+#define CLK_DAC_MODE_1 1
 /* 100k to GND */
-#define CLK_DAC_MODE_2            2
+#define CLK_DAC_MODE_2 2
 /* High Impedance */
-#define CLK_DAC_MODE_3            3
+#define CLK_DAC_MODE_3 3
 
 /** @brief set the clk dac voltage
  *    Sets the voltage and mode

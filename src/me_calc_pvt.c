@@ -9,87 +9,77 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
-#include <libswiftnav/cnav_msg.h>
 #include <libsbp/sbp.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/pvt.h>
+#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/ephemeris.h>
 #include <libswiftnav/coord_system.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <libswiftnav/ephemeris.h>
 #include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/troposphere.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/pvt.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/sid_set.h>
+#include <libswiftnav/troposphere.h>
 
 #include "me_calc_pvt.h"
 
-
+#include "manage.h"
+#include "nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
-#include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "manage.h"
 
-#include "settings.h"
-#include "timing.h"
+#include "cnav_msg_storage.h"
+#include "common_calc_pvt.h"
 #include "ephemeris.h"
+#include "main.h"
+#include "ndb.h"
+#include "settings.h"
+#include "shm.h"
 #include "signal.h"
 #include "system_monitor.h"
-#include "main.h"
-#include "cnav_msg_storage.h"
-#include "ndb.h"
-#include "shm.h"
-#include "common_calc_pvt.h"
+#include "timing.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
 /** Mandatory flags filter for measurements */
-#define MANAGE_TRACK_FLAGS_FILTER (MANAGE_TRACK_FLAG_ACTIVE | \
-                                   MANAGE_TRACK_FLAG_NO_ERROR | \
-                                   MANAGE_TRACK_FLAG_CONFIRMED | \
-                                   MANAGE_TRACK_FLAG_CN0_SHORT | \
-                                   MANAGE_TRACK_FLAG_ELEVATION | \
-                                   MANAGE_TRACK_FLAG_HAS_EPHE | \
-                                   MANAGE_TRACK_FLAG_HEALTHY | \
-                                   MANAGE_TRACK_FLAG_NAV_SUITABLE | \
-                                   MANAGE_TRACK_FLAG_TOW )
+#define MANAGE_TRACK_FLAGS_FILTER                               \
+  (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR |      \
+   MANAGE_TRACK_FLAG_CONFIRMED | MANAGE_TRACK_FLAG_CN0_SHORT |  \
+   MANAGE_TRACK_FLAG_ELEVATION | MANAGE_TRACK_FLAG_HAS_EPHE |   \
+   MANAGE_TRACK_FLAG_HEALTHY | MANAGE_TRACK_FLAG_NAV_SUITABLE | \
+   MANAGE_TRACK_FLAG_TOW)
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
-MemoryPool obs_buff_pool;
-mailbox_t  obs_mailbox;
+memory_pool_t obs_buff_pool;
+mailbox_t obs_mailbox;
 
 double soln_freq = 5.0;
 u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 
-
-
 static bool disable_raim = false;
 
-static soln_stats_t last_stats = { .signals_tracked = 0, .signals_useable = 0 };
-
+static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
 
 /* STATIC FUNCTIONS */
 
-
-
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
-                                 const gps_time_t *_t)
-{
+                                 const gps_time_t *_t) {
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -104,8 +94,8 @@ static void me_post_observations(u8 n,
 
   me_msg_obs->size = n;
   if (n) {
-    memcpy(me_msg_obs->obs,    _meas, n*sizeof(navigation_measurement_t));
-    memcpy(me_msg_obs->ephem, _ephem, n*sizeof(ephemeris_t));
+    memcpy(me_msg_obs->obs, _meas, n * sizeof(navigation_measurement_t));
+    memcpy(me_msg_obs->ephem, _ephem, n * sizeof(ephemeris_t));
   }
   if (_t != NULL) {
     me_msg_obs->obs_time = *_t;
@@ -123,21 +113,18 @@ static void me_post_observations(u8 n,
   }
 }
 
-
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t)
-{
+                        const gps_time_t *_t) {
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
   double t_check = _t->tow * (soln_freq / obs_output_divisor);
-  if(fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
+  if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
 }
-
 
 static void me_send_emptyobs(void) {
   me_post_observations(0, NULL, NULL, NULL);
@@ -148,8 +135,7 @@ static void me_send_emptyobs(void) {
  * \param rcv_pos Approximate receiver position
  * \param t Approximate time
  */
-static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
-{
+static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
   ephemeris_t ephemeris;
   almanac_t almanac;
   double az, el;
@@ -157,7 +143,6 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 
   /* compute elevation for any valid ephemeris/almanac we can pull from NDB */
   for (u16 sv_index = 0; sv_index < NUM_SATS; sv_index++) {
-
     /* form a SID with the first code for the constellation */
     gnss_signal_t sid = sv_index_to_sid(sv_index);
     if (!sid_valid(sid)) {
@@ -166,15 +151,15 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
     ndb_op_code_t res = ndb_ephemeris_read(sid, &ephemeris);
 
     /* try to compute elevation from any valid ephemeris */
-    if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res)
-        && ephemeris_valid(&ephemeris, &t)
-        && calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, false) >= 0) {
+    if ((NDB_ERR_NONE == res || NDB_ERR_UNCONFIRMED_DATA == res) &&
+        ephemeris_valid(&ephemeris, &t) &&
+        calc_sat_az_el(&ephemeris, &t, rcv_pos, &az, &el, false) >= 0) {
       sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
       log_debug_sid(sid, "Updated elevation from ephemeris %.1f", el * R2D);
 
-    /* else try to fetch almanac and use it if it is valid */
-    } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac)
-               && calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
+      /* else try to fetch almanac and use it if it is valid */
+    } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac) &&
+               calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
       sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
       log_debug_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
     }
@@ -184,34 +169,40 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t)
 /** Sleep until the next solution deadline.
  *
  * \param deadline    Pointer to the current deadline, updated by this function.
- * \param interval    Interval by which the deadline should be advanced.
+ * \param interval_us Interval by which the deadline should be advanced [us].
  */
-static void sol_thd_sleep(systime_t *deadline, systime_t interval)
-{
-  *deadline += interval;
+static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
+  piksi_systime_inc_us(deadline, interval_us);
 
   chSysLock();
   while (1) {
     /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
      * execution time is limited to SOLN_THD_CPU_MAX. */
-    systime_t systime = chVTGetSystemTimeX();
-    systime_t delta = *deadline - systime;
-    systime_t sleep_min = (systime_t)ceilf((1.0f-SOLN_THD_CPU_MAX) * interval);
-    if ((systime_t)(delta - sleep_min) <= ((systime_t)-1) / 2) {
-      chThdSleepS(delta);
+    piksi_systime_t systime;
+    piksi_systime_get_x(&systime);
+    u32 delta = piksi_systime_sub_us(deadline, &systime);
+    u32 sleep_min = (u32)ceilf((1.0f - SOLN_THD_CPU_MAX) * interval_us);
+    if ((u32)(delta - sleep_min) <= ((u32)-1) / 2) {
+      piksi_systime_sleep_us_s(delta);
       break;
     } else {
       chSysUnlock();
-      if (delta <= ((systime_t)-1) / 2) {
+      if (delta <= ((u32)-1) / 2) {
         /* Deadline is in the future. Skipping due to high CPU usage. */
-        log_warn("Solution thread skipping deadline, "
-                 "time = %lu, deadline = %lu", systime, *deadline);
+        log_warn(
+            "Solution thread skipping deadline, "
+            "time = %llu, deadline = %llu",
+            piksi_systime_to_s(&systime),
+            piksi_systime_to_s(deadline));
       } else {
         /* Deadline is in the past. */
-        log_warn("Solution thread missed deadline, "
-                 "time = %lu, deadline = %lu", systime, *deadline);
+        log_warn(
+            "Solution thread missed deadline, "
+            "time = %llu, deadline = %llu",
+            piksi_systime_to_s(&systime),
+            piksi_systime_to_s(deadline));
       }
-      *deadline += interval;
+      piksi_systime_inc_us(deadline, interval_us);
       chSysLock();
     }
   }
@@ -237,8 +228,7 @@ static void collect_measurements(u64 rec_tc,
                                  ephemeris_t ephe[MAX_CHANNELS],
                                  u8 *pn_ready,
                                  u8 *pn_inview,
-                                 u8 *pn_total)
-{
+                                 u8 *pn_total) {
   u8 n_collected = 0;
   u8 n_inview = 0;
   u8 n_active = 0;
@@ -247,15 +237,13 @@ static void collect_measurements(u64 rec_tc,
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     u32 flags = 0; /* Channel flags accumulator */
     /* Load measurements from the tracking channel and ephemeris from NDB */
-    flags = get_tracking_channel_meas(i, rec_tc,
-                                      &meas[n_collected],
-                                      &ephe[n_collected]);
+    flags = get_tracking_channel_meas(
+        i, rec_tc, &meas[n_collected], &ephe[n_collected]);
 
     if (0 != (flags & TRACKER_FLAG_ACTIVE) &&
         0 != (flags & TRACKER_FLAG_CONFIRMED) &&
         0 == (flags & TRACKER_FLAG_ERROR) &&
-        0 == (flags & TRACKER_FLAG_MASKED))
-    {
+        0 == (flags & TRACKER_FLAG_MASKED)) {
       /* Tracking channel is active & not masked */
       n_active++;
 
@@ -290,13 +278,13 @@ static void collect_measurements(u64 rec_tc,
   }
 }
 
-static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024*1024);
-static void me_calc_pvt_thread(void *arg)
-{
+static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
+static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
 
-  systime_t deadline = chVTGetSystemTime();
+  piksi_systime_t deadline;
+  piksi_systime_get(&deadline);
 
   /* RFT_TODO *
    * clock_jump was after all masked by the TIME_FINE state variable
@@ -306,25 +294,25 @@ static void me_calc_pvt_thread(void *arg)
   ndb_lgf_read(&lgf);
 
   while (TRUE) {
-
-    sol_thd_sleep(&deadline, CH_CFG_ST_FREQUENCY/soln_freq);
+    sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     /* Take the current nap count */
     u64 current_tc = nap_timing_count();
     u64 rec_tc = current_tc;
 
-    /* If we've previously had a solution, we can work out our expected obs time */
+    /* If we've previously had a solution, we can work out our expected obs time
+     */
     if (time_quality == TIME_FINE) {
       /* Work out the time of the current nap count */
       gps_time_t expected_time = napcount2gpstime(rec_tc);
 
       /* Round this time to the nearest GPS solution time */
-      expected_time.tow = round(expected_time.tow * soln_freq)
-                                 / soln_freq;
+      expected_time.tow = round(expected_time.tow * soln_freq) / soln_freq;
       normalize_gps_time(&expected_time);
 
-      /* This time, taken back to nap count, is the nap count we want the observations at */
+      /* This time, taken back to nap count, is the nap count we want the
+       * observations at */
       rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
     }
     /* The difference between the current nap count and the nap count we
@@ -332,12 +320,11 @@ static void me_calc_pvt_thread(void *arg)
      * by at the end of the solution */
     double delta_tc = -((double)current_tc - (double)rec_tc);
 
-    if (time_quality >= TIME_COARSE
-        && lgf.position_solution.valid
-        && lgf.position_quality >= POSITION_GUESS) {
+    if (time_quality >= TIME_COARSE && lgf.position_solution.valid &&
+        lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
-      DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC/2,
+      DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC / 2,
                update_sat_azel(lgf.position_solution.pos_ecef,
                                lgf.position_solution.time));
     }
@@ -350,18 +337,17 @@ static void me_calc_pvt_thread(void *arg)
     static ephemeris_t e_meas[MAX_CHANNELS];
 
     /* Collect measurements from trackers, load ephemerides and compute flags */
-    collect_measurements(rec_tc,
-                         meas,
-                         in_view,
-                         e_meas,
-                         &n_ready,
-                         &n_inview,
-                         &n_total);
+    collect_measurements(
+        rec_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
-    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8 " in view "
-              " (total=%" PRIu8 ")", n_ready, n_inview, n_total);
+    log_debug("Selected %" PRIu8 " measurement(s) out of %" PRIu8
+              " in view "
+              " (total=%" PRIu8 ")",
+              n_ready,
+              n_inview,
+              n_total);
 
     /* Update stats */
     last_stats.signals_tracked = n_total;
@@ -375,9 +361,10 @@ static void me_calc_pvt_thread(void *arg)
 
     cnav_msg_t cnav_30[MAX_CHANNELS];
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
-    for (u8 i=0; i < n_ready; i++) {
-      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i]) ?
-                     &cnav_30[i].data.type_30 : NULL;
+    for (u8 i = 0; i < n_ready; i++) {
+      p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i])
+                         ? &cnav_30[i].data.type_30
+                         : NULL;
     }
 
     static navigation_measurement_t nav_meas[MAX_CHANNELS];
@@ -405,8 +392,8 @@ static void me_calc_pvt_thread(void *arg)
      * `nav_time`. This will result in valid pseudoranges but with a large
      * and arbitrary receiver clock error. We may want to discard these
      * observations after doing a PVT solution. */
-    s8 nm_ret = calc_navigation_measurement(n_ready, p_meas, p_nav_meas,
-                                            p_rec_time);
+    s8 nm_ret =
+        calc_navigation_measurement(n_ready, p_meas, p_nav_meas, p_rec_time);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
@@ -433,7 +420,7 @@ static void me_calc_pvt_thread(void *arg)
 
     gnss_sid_set_t codes_tdcp;
     sid_set_init(&codes_tdcp);
-    for (u8 i=0; i<n_ready_tdcp; i++) {
+    for (u8 i = 0; i < n_ready_tdcp; i++) {
       sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
     }
 
@@ -451,10 +438,11 @@ static void me_calc_pvt_thread(void *arg)
       if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      calc_iono_tropo(n_ready_tdcp, nav_meas_tdcp,
-                    lgf.position_solution.pos_ecef,
-                    lgf.position_solution.pos_llh,
-                    p_i_params);
+      calc_iono_tropo(n_ready_tdcp,
+                      nav_meas_tdcp,
+                      lgf.position_solution.pos_ecef,
+                      lgf.position_solution.pos_llh,
+                      p_i_params);
     }
 
     dops_t dops;
@@ -465,17 +453,22 @@ static void me_calc_pvt_thread(void *arg)
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
-    s8 pvt_ret = calc_PVT(n_ready_tdcp, nav_meas_tdcp, disable_raim, false,
-                          &current_fix, &dops, &raim_removed_sids);
-    if (pvt_ret < 0
-        || (lgf.position_quality == POSITION_FIX && gate_covariance(&current_fix))) {
-
+    s8 pvt_ret = calc_PVT(n_ready_tdcp,
+                          nav_meas_tdcp,
+                          disable_raim,
+                          false,
+                          &current_fix,
+                          &dops,
+                          &raim_removed_sids);
+    if (pvt_ret < 0 || (lgf.position_quality == POSITION_FIX &&
+                        gate_covariance(&current_fix))) {
       if (pvt_ret < 0) {
         /* An error occurred with calc_PVT! */
         /* pvt_err_msg defined in libswiftnav/pvt.c */
         DO_EVERY((u32)soln_freq,
-                 log_warn("PVT solver: %s (code %d)", pvt_err_msg[-pvt_ret-1], pvt_ret);
-        );
+                 log_warn("PVT solver: %s (code %d)",
+                          pvt_err_msg[-pvt_ret - 1],
+                          pvt_ret););
       }
 
       /* If we can't report a SPP position, something is wrong and no point
@@ -496,7 +489,8 @@ static void me_calc_pvt_thread(void *arg)
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
-          log_debug_sid(nav_meas_tdcp[i].sid, "RAIM repair, setting observation invalid.");
+          log_debug_sid(nav_meas_tdcp[i].sid,
+                        "RAIM repair, setting observation invalid.");
           nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
         }
       }
@@ -536,7 +530,8 @@ static void me_calc_pvt_thread(void *arg)
 
     /*
      * We need to correct our pseudorange and create a new one that is valid for
-     * a different time of arrival.  In particular we'd like to propagate all the
+     * a different time of arrival.  In particular we'd like to propagate all
+     * the
      * observations such that they represent what we would have observed had
      * the observations all arrived at the current epoch (t').
      */
@@ -544,8 +539,7 @@ static void me_calc_pvt_thread(void *arg)
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
     gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
-    new_obs_time.tow = round(current_fix.time.tow * soln_freq)
-                              / soln_freq;
+    new_obs_time.tow = round(current_fix.time.tow * soln_freq) / soln_freq;
     normalize_gps_time(&new_obs_time);
     gps_time_match_weeks(&new_obs_time, &current_fix.time);
     double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
@@ -554,7 +548,9 @@ static void me_calc_pvt_thread(void *arg)
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
       log_debug("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
-               t_err, current_fix.clock_offset, current_fix.clock_bias);
+                t_err,
+                current_fix.clock_offset,
+                current_fix.clock_bias);
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
@@ -576,18 +572,17 @@ static void me_calc_pvt_thread(void *arg)
 
         /* The pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange   -= t_err * doppler *
-                                 sid_to_lambda(nm->sid);
-        nm->raw_pseudorange   -= current_fix.clock_offset * GPS_C;
+        nm->raw_pseudorange -= t_err * doppler * sid_to_lambda(nm->sid);
+        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
         /* Carrier Phase corrected by clock offset */
         nm->raw_carrier_phase += t_err * doppler;
-        nm->raw_carrier_phase += current_fix.clock_offset * GPS_C /
-                                    sid_to_lambda(nm->sid);
+        nm->raw_carrier_phase +=
+            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
         /* Use P**V**T to determine the oscillator drift which is used
          * to adjust computed doppler. */
-        nm->raw_measured_doppler += current_fix.clock_bias *
-                                    GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_computed_doppler  = nm->raw_measured_doppler;
+        nm->raw_measured_doppler +=
+            current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
+        nm->raw_computed_doppler = nm->raw_measured_doppler;
 
         /* Also apply the time correction to the time of transmission so the
          * satellite positions can be calculated for the correct time. */
@@ -629,7 +624,6 @@ static void me_calc_pvt_thread(void *arg)
       n_ready_tdcp = n_ready_tdcp_new;
 
       if (time_quality == TIME_FINE) {
-
         /* Send the observations. */
         me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
       }
@@ -642,7 +636,8 @@ static void me_calc_pvt_thread(void *arg)
     log_debug("rx_err = %.9lf", rx_err);
 
     if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
-      log_info("Receiver clock offset larger than %g ms, applying millisecond jump",
+      log_info(
+          "Receiver clock offset larger than %g ms, applying millisecond jump",
           MAX_CLOCK_ERROR_S * SECS_MS);
       /* round the time adjustment to even milliseconds */
       double dt = round(rx_err * SECS_MS) / SECS_MS;
@@ -666,20 +661,18 @@ static void me_calc_pvt_thread(void *arg)
     }
 
     /* Reset timer period with the count that we will estimate will being
-     * us up to the next solution time. */
-    deadline += round(dt * CH_CFG_ST_FREQUENCY);
+     * us up to the next solution time. dt as microseconds. */
+    if (0 < dt) {
+      piksi_systime_inc_us(&deadline, round(dt * SECS_US));
+    } else if (0 > dt) {
+      piksi_systime_dec_us(&deadline, round(-dt * SECS_US));
+    }
   }
 }
 
+soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
-soln_stats_t solution_last_stats_get(void)
-{
-  return last_stats;
-}
-
-void me_calc_pvt_setup()
-{
-
+void me_calc_pvt_setup() {
   SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
@@ -695,7 +688,9 @@ void me_calc_pvt_setup()
   chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
 
   /* Start solution thread */
-  chThdCreateStatic(wa_me_calc_pvt_thread, sizeof(wa_me_calc_pvt_thread),
-                    HIGHPRIO-2, me_calc_pvt_thread, NULL);
-
+  chThdCreateStatic(wa_me_calc_pvt_thread,
+                    sizeof(wa_me_calc_pvt_thread),
+                    HIGHPRIO - 2,
+                    me_calc_pvt_thread,
+                    NULL);
 }

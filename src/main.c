@@ -16,43 +16,40 @@
 #include <libsbp/system.h>
 #include <libswiftnav/logging.h>
 
-#include "me_calc_pvt.h"
 #include <hal.h>
+#include "me_calc_pvt.h"
 
-#include "peripherals/leds.h"
-#include "io_support.h"
-#include "board/frontend.h"
-#include "specan/specan_main.h"
-#include "sbp.h"
-#include "init.h"
-#include "manage.h"
-#include "track.h"
-#include "timing.h"
-#include "ext_events.h"
-#include "starling_calc_pvt.h"
 #include "base_obs.h"
-#include "position.h"
-#include "system_monitor.h"
-#include "simulator.h"
-#include "settings.h"
-#include "ephemeris.h"
-#include "pps.h"
+#include "board/frontend.h"
 #include "decode.h"
-#include "signal.h"
-#include "version.h"
+#include "ephemeris.h"
+#include "ext_events.h"
+#include "glo_map_setup.h"
+#include "init.h"
+#include "io_support.h"
+#include "manage.h"
 #include "ndb.h"
 #include "nmea.h"
+#include "peripherals/leds.h"
+#include "position.h"
+#include "pps.h"
+#include "sbp.h"
 #include "sbp_utils.h"
-#include "glo_map_setup.h"
+#include "settings.h"
+#include "signal.h"
+#include "simulator.h"
+#include "specan/specan_main.h"
+#include "starling_calc_pvt.h"
+#include "system_monitor.h"
+#include "timing.h"
+#include "track.h"
+#include "version.h"
 
 extern void ext_setup(void);
 
-void* __dso_handle(void){
-  return (void*)0;
-};
+void* __dso_handle(void) { return (void*)0; };
 
-int main(void)
-{
+int main(void) {
   halInit();
 
   /* Kernel initialization, the main() function becomes a thread with
@@ -78,7 +75,7 @@ int main(void)
 
   if (sender_id == 0) {
     /* TODO: Handle this properly! */
-    sender_id = (u16) rand();
+    sender_id = (u16)rand();
   }
   /* We only need 16 bits for sender ID for sbp */
 
@@ -140,44 +137,40 @@ int main(void)
   ext_setup();
   pps_setup();
 
-  READ_ONLY_PARAMETER("system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "serial_number", mfg_id_string,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "pfwp_build_id", GIT_VERSION,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "pfwp_build_date", __DATE__ " " __TIME__,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "hw_revision", hw_revision_string,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "nap_build_id", nap_version_string,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "nap_build_date", nap_date_string,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "nap_channels", nap_track_n_channels,
-                      TYPE_INT);
+  READ_ONLY_PARAMETER(
+      "system_info", "sbp_sender_id", sender_id_str, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "serial_number", mfg_id_string, TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "pfwp_build_id", GIT_VERSION, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "pfwp_build_date", __DATE__ " " __TIME__, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "hw_revision", hw_revision_string, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "nap_build_id", nap_version_string, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "nap_build_date", nap_date_string, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "nap_channels", nap_track_n_channels, TYPE_INT);
 
-  READ_ONLY_PARAMETER("system_info", "mac_address", mac_address_string,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "uuid", uuid_string,
-                      TYPE_STRING);
-  READ_ONLY_PARAMETER("system_info", "hw_version", hw_version_string,
-                      TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "mac_address", mac_address_string, TYPE_STRING);
+  READ_ONLY_PARAMETER("system_info", "uuid", uuid_string, TYPE_STRING);
+  READ_ONLY_PARAMETER(
+      "system_info", "hw_version", hw_version_string, TYPE_STRING);
 
   /* Send message to inform host we are up and running. */
   u32 startup_flags = 0;
-  sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8 *)&startup_flags);
-
+  sbp_send_msg(SBP_MSG_STARTUP, sizeof(startup_flags), (u8*)&startup_flags);
 
   /* send Iono correction, L2C capabilities if valid */
   ionosphere_t iono;
-  if (ndb_iono_corr_read(&iono) == NDB_ERR_NONE)
-  {
+  if (ndb_iono_corr_read(&iono) == NDB_ERR_NONE) {
     sbp_send_iono(&iono);
   }
 
   u32 l2c_mask;
-  if (ndb_gps_l2cm_l2c_cap_read(&l2c_mask) == NDB_ERR_NONE)
-  {
+  if (ndb_gps_l2cm_l2c_cap_read(&l2c_mask) == NDB_ERR_NONE) {
     sbp_send_l2c_capabilities(&l2c_mask);
   }
 

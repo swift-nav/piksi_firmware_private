@@ -15,10 +15,7 @@
 
 #include <libswiftnav/common.h>
 
-typedef enum {
-  FIFO_MODE_STANDARD,
-  FIFO_MODE_RECORD
-} fifo_mode_t;
+typedef enum { FIFO_MODE_STANDARD, FIFO_MODE_RECORD } fifo_mode_t;
 
 typedef u32 fifo_size_t;
 
@@ -30,8 +27,10 @@ typedef struct {
   u8 *buffer;
 } fifo_t;
 
-void fifo_init(fifo_t *fifo, fifo_mode_t mode,
-               u8 *buffer, fifo_size_t buffer_size);
+void fifo_init(fifo_t *fifo,
+               fifo_mode_t mode,
+               u8 *buffer,
+               fifo_size_t buffer_size);
 
 fifo_size_t fifo_length(fifo_t *fifo);
 fifo_size_t fifo_space(fifo_t *fifo);

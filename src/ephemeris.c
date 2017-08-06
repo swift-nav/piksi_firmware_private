@@ -11,21 +11,21 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <string.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/glo_map.h>
-#include <ch.h>
 #include <assert.h>
+#include <ch.h>
+#include <libswiftnav/ephemeris.h>
+#include <libswiftnav/glo_map.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/logging.h>
+#include <string.h>
 
+#include "ephemeris.h"
+#include "ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "track.h"
-#include "timing.h"
-#include "ephemeris.h"
 #include "signal.h"
-#include "ndb.h"
+#include "timing.h"
+#include "track.h"
 
 #include <track/track_sid_db.h>
 
@@ -46,8 +46,7 @@
 bool xcorr_calc_alm_positions(gnss_signal_t sid,
                               u32 time_s,
                               u32 interval_s,
-                              xcorr_positions_t *pos)
-{
+                              xcorr_positions_t *pos) {
   constellation_t constellation = code_to_constellation(sid.code);
   assert(CONSTELLATION_GPS == constellation);
 
@@ -90,8 +89,7 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
  */
 bool xcorr_calc_eph_positions(const ephemeris_t *e,
                               u32 time_s,
-                              xcorr_positions_t *pos)
-{
+                              xcorr_positions_t *pos) {
   u32 interval_s = e->fit_interval / 2;
   gps_time_t t0 = make_gps_time(time_s - interval_s);
   gps_time_t t1 = make_gps_time(time_s);
@@ -112,7 +110,6 @@ bool xcorr_calc_eph_positions(const ephemeris_t *e,
   return true;
 }
 
-
 /**
  * Loads cached cross-correlation positions from SID cache or computes it from
  * NDB almanac.
@@ -128,8 +125,7 @@ bool xcorr_calc_eph_positions(const ephemeris_t *e,
 bool xcorr_get_alm_positions(gnss_signal_t sid,
                              u32 time_s,
                              u32 interval_s,
-                             xcorr_positions_t *pos)
-{
+                             xcorr_positions_t *pos) {
   if (!track_sid_db_load_positions(sid, pos)) {
     return false;
   }
@@ -140,7 +136,7 @@ bool xcorr_get_alm_positions(gnss_signal_t sid,
 
   bool res = xcorr_calc_alm_positions(sid, time_s, interval_s, pos);
   if (res) {
-     track_sid_db_update_positions(sid, pos);
+    track_sid_db_update_positions(sid, pos);
   }
 
   return res;
@@ -160,8 +156,7 @@ bool xcorr_get_alm_positions(gnss_signal_t sid,
 bool xcorr_match_positions(gnss_signal_t sid0,
                            gnss_signal_t sid1,
                            const xcorr_positions_t *pos0,
-                           const xcorr_positions_t *pos1)
-{
+                           const xcorr_positions_t *pos1) {
   bool ok = true;
   double d[3] = {-1, -1, -1};
   for (u8 i = 0; i < 3 && ok; i++) {
@@ -171,8 +166,8 @@ bool xcorr_match_positions(gnss_signal_t sid0,
 
   char sid_str_[SID_STR_LEN_MAX];
   sid_to_string(sid_str_, sizeof(sid_str_), sid1);
-  log_debug_sid(sid0, "-> %s distance: %le, %le, %le",
-                sid_str_, d[0], d[1], d[2]);
+  log_debug_sid(
+      sid0, "-> %s distance: %le, %le, %le", sid_str_, d[0], d[1], d[2]);
   return ok;
 }
 
@@ -193,8 +188,7 @@ bool xcorr_match_positions(gnss_signal_t sid0,
  */
 xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
                                            gnss_signal_t sid,
-                                           const xcorr_positions_t *pos)
-{
+                                           const xcorr_positions_t *pos) {
   xcorr_positions_t alm_pos;
   if (!xcorr_get_alm_positions(sid, pos->time_s, pos->interval_s, &alm_pos)) {
     return XCORR_MATCH_RES_NO_ALMANAC;
@@ -218,12 +212,15 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
  * \retval EPH_NEW_XCORR Ephemeris matches some other satellite's almanac
  *
  */
-eph_new_status_t ephemeris_new(const ephemeris_t *e)
-{
+eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   if (!sid_supported(e->sid)) {
     /* throw debug message prior to dying */
-    log_error_sid(e->sid, "SID not supported, toe %4d %8.1f  valid %u  health %u", 
-                  e->toe.wn, e->toe.tow, e->valid, e->health_bits);
+    log_error_sid(e->sid,
+                  "SID not supported, toe %4d %8.1f  valid %u  health %u",
+                  e->toe.wn,
+                  e->toe.tow,
+                  e->valid,
+                  e->health_bits);
   }
   assert(sid_supported(e->sid));
 
@@ -252,8 +249,8 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
         /* Skip self */
         continue;
       }
-      if (xcorr_get_alm_positions(sid, eph_pos.time_s, eph_pos.interval_s,
-                                  &alm_pos)) {
+      if (xcorr_get_alm_positions(
+              sid, eph_pos.time_s, eph_pos.interval_s, &alm_pos)) {
         if (xcorr_match_positions(e->sid, sid, &eph_pos, &alm_pos)) {
           /* Matched different almanac - cross correlation detected */
           return EPH_NEW_XCORR;
@@ -264,78 +261,84 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e)
 
     /* Compare against own almanac */
     switch (xcorr_match_alm_position(e->sid, e->sid, &eph_pos)) {
-    case XCORR_MATCH_RES_OK:
-      /* OK, ephemeris matches almanac */
-      break;
-    case XCORR_MATCH_RES_NO_ALMANAC:
-      /* No valid almanac to compare to, should happen only during the
-       * first 13 minutes or so after a cold start */
-      break;
-    case XCORR_MATCH_RES_NO_MATCH:
-      /* Own almanac check has failed due to bad data, cross-correlation etc. */
-      log_warn_sid(e->sid,
-                   "Ephemeris does not match with almanac, discarding");
+      case XCORR_MATCH_RES_OK:
+        /* OK, ephemeris matches almanac */
+        break;
+      case XCORR_MATCH_RES_NO_ALMANAC:
+        /* No valid almanac to compare to, should happen only during the
+         * first 13 minutes or so after a cold start */
+        break;
+      case XCORR_MATCH_RES_NO_MATCH:
+        /* Own almanac check has failed due to bad data, cross-correlation etc.
+         */
+        log_warn_sid(e->sid,
+                     "Ephemeris does not match with almanac, discarding");
 
-      return EPH_NEW_ERR;
-      break;
-    default:
-      assert(!"Invalid match result");
+        return EPH_NEW_ERR;
+        break;
+      default:
+        assert(!"Invalid match result");
     }
   }
 
-  ndb_op_code_t oc = ndb_ephemeris_store(e,
-                                         NDB_DS_RECEIVER,
-                                         NDB_EVENT_SENDER_ID_VOID);
+  ndb_op_code_t oc =
+      ndb_ephemeris_store(e, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID);
   switch (oc) {
-  case NDB_ERR_NONE:
-    log_debug_sid(e->sid, "ephemeris saved");
-    /* update azimuth and elevation into track database */
-    last_good_fix_t lgf;
-    if (ndb_lgf_read(&lgf) != NDB_ERR_NONE) {
+    case NDB_ERR_NONE:
+      log_debug_sid(e->sid, "ephemeris saved");
+      /* update azimuth and elevation into track database */
+      last_good_fix_t lgf;
+      if (ndb_lgf_read(&lgf) != NDB_ERR_NONE) {
+        break;
+      }
+      double az, el;
+      gnss_solution *pos = &lgf.position_solution;
+      bool too_old_or_invalid = calc_sat_az_el(e,
+                                               &pos->time,
+                                               pos->pos_ecef,
+                                               &az,
+                                               &el,
+                                               /*check_validity=*/true) != 0;
+      if (too_old_or_invalid) {
+        break;
+      }
+      sv_azel_degrees_set(
+          e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
+      log_debug_sid(
+          e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);
       break;
-    }
-    double az, el;
-    gnss_solution *pos = &lgf.position_solution;
-    bool too_old_or_invalid = calc_sat_az_el(e, &pos->time, pos->pos_ecef,
-                                             &az, &el,
-                                            /*check_validity=*/ true) != 0;
-    if (too_old_or_invalid) {
-       break;
-    }
-    sv_azel_degrees_set(e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
-    log_debug_sid(e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);
-    break;
-  case NDB_ERR_NO_CHANGE:
-    log_debug_sid(e->sid, "ephemeris is already present");
-    break;
-  case NDB_ERR_UNCONFIRMED_DATA:
-    log_debug_sid(e->sid, "ephemeris is unconfirmed, not saved");
-    break;
-  case NDB_ERR_OLDER_DATA:
-    log_warn_sid(e->sid, "ephemeris is older than one in DB, not saved");
-    break;
-  case NDB_ERR_GPS_TIME_MISSING:
-    log_debug_sid(e->sid, "GPS time unknown, ephemeris in DB not saved");
-    break;
-  case NDB_ERR_MISSING_IE:
-  case NDB_ERR_UNSUPPORTED:
-  case NDB_ERR_FILE_IO:
-  case NDB_ERR_INIT_DONE:
-  case NDB_ERR_BAD_PARAM:
-  case NDB_ERR_ALGORITHM_ERROR:
-  case NDB_ERR_NO_DATA:
-  case NDB_ERR_AGED_DATA:
-  default:
-    log_warn_sid(e->sid, "error %d storing ephemeris", (int)oc);
-    return EPH_NEW_ERR;
+    case NDB_ERR_NO_CHANGE:
+      log_debug_sid(e->sid, "ephemeris is already present");
+      break;
+    case NDB_ERR_UNCONFIRMED_DATA:
+      log_debug_sid(e->sid, "ephemeris is unconfirmed, not saved");
+      break;
+    case NDB_ERR_OLDER_DATA:
+      log_warn_sid(e->sid, "ephemeris is older than one in DB, not saved");
+      break;
+    case NDB_ERR_GPS_TIME_MISSING:
+      log_debug_sid(e->sid, "GPS time unknown, ephemeris in DB not saved");
+      break;
+    case NDB_ERR_MISSING_IE:
+    case NDB_ERR_UNSUPPORTED:
+    case NDB_ERR_FILE_IO:
+    case NDB_ERR_INIT_DONE:
+    case NDB_ERR_BAD_PARAM:
+    case NDB_ERR_ALGORITHM_ERROR:
+    case NDB_ERR_NO_DATA:
+    case NDB_ERR_AGED_DATA:
+    default:
+      log_warn_sid(e->sid, "error %d storing ephemeris", (int)oc);
+      return EPH_NEW_ERR;
   }
 
   return EPH_NEW_OK;
 }
 
-static void ephemeris_msg_callback(u16 sender_id, u8 len, u8 msg[],
-                                   void* context)
-{
+static void ephemeris_msg_callback(u16 sender_id,
+                                   u8 len,
+                                   u8 msg[],
+                                   void *context) {
   (void)context;
 
   if (len != sizeof(msg_ephemeris_gps_t) &&
@@ -356,7 +359,4 @@ static void ephemeris_msg_callback(u16 sender_id, u8 len, u8 msg[],
   ndb_ephemeris_store(&e, NDB_DS_SBP, sender_id);
 }
 
-void ephemeris_setup(void)
-{
-  sbp_ephe_reg_cbks(ephemeris_msg_callback);
-}
+void ephemeris_setup(void) { sbp_ephe_reg_cbks(ephemeris_msg_callback); }

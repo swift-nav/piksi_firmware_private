@@ -10,16 +10,16 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <libswiftnav/logging.h>
-#include <libsbp/navigation.h>
 #include <libsbp/ext_events.h>
+#include <libsbp/navigation.h>
+#include <libswiftnav/logging.h>
 
-#include "board/nap/nap_common.h"
-#include "./settings.h"
-#include "./timing.h"
+#include "./ext_events.h"
 #include "./sbp.h"
 #include "./sbp_utils.h"
-#include "./ext_events.h"
+#include "./settings.h"
+#include "./timing.h"
+#include "board/nap/nap_common.h"
 
 /** \defgroup ext_events External Events
  * Capture accurate timestamps of external pin events
@@ -29,10 +29,8 @@ static ext_event_trigger_t trigger = TRIG_NONE;
 static u32 timeout_microseconds = 0;
 
 /** Settings callback to inform NAP which trigger mode is desired */
-static bool trigger_changed(struct setting *s, const char *val)
-{
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val))
-  {
+static bool trigger_changed(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     nap_rw_ext_event(NULL, NULL, trigger, timeout_microseconds);
     return true;
   }
@@ -41,22 +39,25 @@ static bool trigger_changed(struct setting *s, const char *val)
 
 /** Set up the external event detection system
  *
- * Informs the NAP of the desired trigger mode, and registers a settings callback
+ * Informs the NAP of the desired trigger mode, and registers a settings
+ * callback
  * to update the NAP if the trigger mode is changed.
  *
  */
-void ext_event_setup(void)
-{
-  static const char const *trigger_enum[] =
-    {"None", "Rising", "Falling", "Both", NULL};
+void ext_event_setup(void) {
+  static const char const *trigger_enum[] = {
+      "None", "Rising", "Falling", "Both", NULL};
   static struct setting_type trigger_setting;
-  int TYPE_TRIGGER = settings_type_register_enum(trigger_enum,
-      &trigger_setting);
+  int TYPE_TRIGGER =
+      settings_type_register_enum(trigger_enum, &trigger_setting);
 
-  SETTING_NOTIFY("ext_events", "edge_trigger", trigger, TYPE_TRIGGER,
-      trigger_changed);
-  SETTING_NOTIFY("ext_events", "sensitivity", timeout_microseconds,
-      TYPE_INT, trigger_changed);
+  SETTING_NOTIFY(
+      "ext_events", "edge_trigger", trigger, TYPE_TRIGGER, trigger_changed);
+  SETTING_NOTIFY("ext_events",
+                 "sensitivity",
+                 timeout_microseconds,
+                 TYPE_INT,
+                 trigger_changed);
 }
 
 /** Service an external event interrupt
@@ -68,14 +69,13 @@ void ext_event_setup(void)
  * reads out the details and spits them out as an SBP message to our host.
  *
  */
-void ext_event_service(void)
-{
+void ext_event_service(void) {
   u8 event_pin;
   ext_event_trigger_t event_trig;
 
   /* Read the details, and also clear IRQ + set up for next time */
-  u32 event_nap_time = nap_rw_ext_event(&event_pin, &event_trig, trigger,
-      timeout_microseconds);
+  u32 event_nap_time =
+      nap_rw_ext_event(&event_pin, &event_trig, trigger, timeout_microseconds);
 
   /* We have to infer the most sig word (i.e. # of 262-second rollovers) */
   union {
@@ -83,15 +83,14 @@ void ext_event_service(void)
     u64 full;
   } tc;
   tc.full = nap_timing_count();
-  if (tc.half[0] < event_nap_time)  /* Rollover occurred since event */
+  if (tc.half[0] < event_nap_time) /* Rollover occurred since event */
     tc.half[1]--;
   tc.half[0] = event_nap_time;
 
   /* Prepare the MSG_EXT_EVENT */
   msg_ext_event_t msg;
-  msg.flags = (event_trig == TRIG_RISING) ? (1<<0) : (0<<0);
-  if (time_quality == TIME_FINE)
-    msg.flags |= (1 << 1);
+  msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
+  if (time_quality == TIME_FINE) msg.flags |= (1 << 1);
   msg.pin = event_pin;
 
   /* Convert to the SBP convention of rounded ms + signed ns residual */

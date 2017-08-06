@@ -19,13 +19,13 @@
 
 #include <string.h>
 
-#define RTC_I2C_ADDR      0x68
-#define RTC_I2C_TIMEOUT   MS2ST(100)
-#define RTC_IRQ_TIMEOUT   MS2ST(1500)
-#define RTC_RS_VALUE      RTC_M41T62_RS_32k
+#define RTC_I2C_ADDR 0x68
+#define RTC_I2C_TIMEOUT MS2ST(100)
+#define RTC_IRQ_TIMEOUT MS2ST(1500)
+#define RTC_RS_VALUE RTC_M41T62_RS_32k
 
-#define ONES(value)     (((value) /   1) % 10)
-#define TENS(value)     (((value) /  10) % 10)
+#define ONES(value) (((value) / 1) % 10)
+#define TENS(value) (((value) / 10) % 10)
 #define HUNDREDS(value) (((value) / 100) % 10)
 
 static const I2CConfig rtc_i2c_config = RTC_I2C_CONFIG;
@@ -34,16 +34,14 @@ static BSEMAPHORE_DECL(rtc_irq_bsem, 0);
 
 /** Lock and start the I2C driver.
  */
-static void i2c_open(void)
-{
+static void i2c_open(void) {
   i2cAcquireBus(&RTC_I2C);
   i2cStart(&RTC_I2C, &rtc_i2c_config);
 }
 
 /** Unlock and stop the I2C driver.
  */
-static void i2c_close(void)
-{
+static void i2c_close(void) {
   i2cStop(&RTC_I2C);
   i2cReleaseBus(&RTC_I2C);
 }
@@ -56,11 +54,9 @@ static void i2c_close(void)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_read(u8 addr, u8 *data, size_t length)
-{
-  return i2cMasterTransmitTimeout(&RTC_I2C, RTC_I2C_ADDR,
-                                  &addr, 1, data, length,
-                                  RTC_I2C_TIMEOUT);
+static msg_t i2c_read(u8 addr, u8 *data, size_t length) {
+  return i2cMasterTransmitTimeout(
+      &RTC_I2C, RTC_I2C_ADDR, &addr, 1, data, length, RTC_I2C_TIMEOUT);
 }
 
 /** Perform an I2C write operation.
@@ -71,14 +67,12 @@ static msg_t i2c_read(u8 addr, u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_write(u8 addr, const u8 *data, size_t length)
-{
- u8 buf[1 + length];
- buf[0] = addr;
- memcpy(&buf[1], data, length);
- return i2cMasterTransmitTimeout(&RTC_I2C, RTC_I2C_ADDR,
-                                 buf, sizeof(buf), NULL, 0,
-                                 RTC_I2C_TIMEOUT);
+static msg_t i2c_write(u8 addr, const u8 *data, size_t length) {
+  u8 buf[1 + length];
+  buf[0] = addr;
+  memcpy(&buf[1], data, length);
+  return i2cMasterTransmitTimeout(
+      &RTC_I2C, RTC_I2C_ADDR, buf, sizeof(buf), NULL, 0, RTC_I2C_TIMEOUT);
 }
 
 /** Perform an I2C read transaction.
@@ -91,13 +85,10 @@ static msg_t i2c_write(u8 addr, const u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_read_txn(u8 addr, u8 *data, size_t length)
-{
+static msg_t i2c_read_txn(u8 addr, u8 *data, size_t length) {
   msg_t msg;
   i2c_open();
-  {
-    msg = i2c_read(addr, data, length);
-  }
+  { msg = i2c_read(addr, data, length); }
   i2c_close();
   return msg;
 }
@@ -112,13 +103,10 @@ static msg_t i2c_read_txn(u8 addr, u8 *data, size_t length)
  *
  * \return MSG_OK if the operation succeeded, error message otherwise.
  */
-static msg_t i2c_write_txn(u8 addr, const u8 *data, size_t length)
-{
+static msg_t i2c_write_txn(u8 addr, const u8 *data, size_t length) {
   msg_t msg;
   i2c_open();
-  {
-    msg = i2c_write(addr, data, length);
-  }
+  { msg = i2c_write(addr, data, length); }
   i2c_close();
   return msg;
 }
@@ -129,8 +117,7 @@ static msg_t i2c_write_txn(u8 addr, const u8 *data, size_t length)
  *
  * \return true if the operation succeeded, false otherwise.
  */
-static bool alarm_regs_write(bool square_wave_enable)
-{
+static bool alarm_regs_write(bool square_wave_enable) {
   rtc_m41t62_alarm_regs_t alarm_regs;
   memset(&alarm_regs, 0, sizeof(alarm_regs));
 
@@ -143,7 +130,8 @@ static bool alarm_regs_write(bool square_wave_enable)
   alarm_regs.RPT1 = RTC_M41T62_RPT1(RTC_M41T62_RPT_SECOND);
 
   return (i2c_write_txn(RTC_M41T62_REG_ALARM_START,
-                       (const u8 *)&alarm_regs, sizeof(alarm_regs)) == MSG_OK);
+                        (const u8 *)&alarm_regs,
+                        sizeof(alarm_regs)) == MSG_OK);
 }
 
 /** Prepare and wait for an alarm IRQ aligned to a one second boundary.
@@ -152,8 +140,7 @@ static bool alarm_regs_write(bool square_wave_enable)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-static bool second_wait(void)
-{
+static bool second_wait(void) {
   /* Enable square wave output */
   if (!alarm_regs_write(true)) {
     return false;
@@ -172,7 +159,8 @@ static bool second_wait(void)
     /* Read flags to move address pointer and release IRQ line */
     rtc_m41t62_flags_reg_t flags_reg;
     if (i2c_read_txn(RTC_M41T62_REG_FLAGS,
-                     (u8 *)&flags_reg, sizeof(flags_reg)) != MSG_OK) {
+                     (u8 *)&flags_reg,
+                     sizeof(flags_reg)) != MSG_OK) {
       return false;
     }
 
@@ -183,22 +171,21 @@ static bool second_wait(void)
       break;
     }
 
-  } while(--tries > 0);
+  } while (--tries > 0);
 
   if (tries == 0) {
     return false;
   }
 
   /* Wait for IRQ semaphore */
- return (chBSemWaitTimeout(&rtc_irq_bsem, RTC_IRQ_TIMEOUT) == MSG_OK);
+  return (chBSemWaitTimeout(&rtc_irq_bsem, RTC_IRQ_TIMEOUT) == MSG_OK);
 }
 
 /** Clean up after waiting for a one second boundary.
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-static bool second_wait_cleanup(void)
-{
+static bool second_wait_cleanup(void) {
   /* Disable square wave output */
   return alarm_regs_write(false);
 }
@@ -207,22 +194,23 @@ static bool second_wait_cleanup(void)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-static bool clock_reset(void)
-{
+static bool clock_reset(void) {
   rtc_m41t62_clock_regs_t clock_regs;
   memset(&clock_regs, 0, sizeof(clock_regs));
 
   /* Write ST = 1 */
   clock_regs.ST = 1;
   if (i2c_write_txn(RTC_M41T62_REG_CLOCK_START,
-                    (const u8 *)&clock_regs, sizeof(clock_regs)) != MSG_OK) {
+                    (const u8 *)&clock_regs,
+                    sizeof(clock_regs)) != MSG_OK) {
     return false;
   }
 
   /* Write ST = 0 */
   clock_regs.ST = 0;
   if (i2c_write_txn(RTC_M41T62_REG_CLOCK_START,
-                    (const u8 *)&clock_regs, sizeof(clock_regs)) != MSG_OK) {
+                    (const u8 *)&clock_regs,
+                    sizeof(clock_regs)) != MSG_OK) {
     return false;
   }
 
@@ -231,8 +219,7 @@ static bool clock_reset(void)
 
 /** Handle an RTC IRQ.
  */
-static void rtc_m41t62_irq_handler(void *context)
-{
+static void rtc_m41t62_irq_handler(void *context) {
   (void)context;
 
   /* Signal IRQ semaphore */
@@ -243,8 +230,7 @@ static void rtc_m41t62_irq_handler(void *context)
 
 /** Initialize the RTC.
  */
-void rtc_m41t62_init(void)
-{
+void rtc_m41t62_init(void) {
   /* Read all registers */
   rtc_m41t62_regs_t regs;
   u8 tries = 3;
@@ -253,15 +239,13 @@ void rtc_m41t62_init(void)
       break;
     }
     chThdSleepMilliseconds(1);
-  } while(--tries > 0);
+  } while (--tries > 0);
 
   if (tries == 0) {
     log_warn("Could not read RTC registers at powerup");
   } else {
-
     /* Verify clock registers */
-    if ((regs.clock_regs.ST != 0) ||
-        (regs.clock_regs.OFIE != 0) ||
+    if ((regs.clock_regs.ST != 0) || (regs.clock_regs.OFIE != 0) ||
         (regs.clock_regs.RS != RTC_RS_VALUE)) {
       /* Reset clock, force oscillator fail bit to be set */
       clock_reset();
@@ -269,29 +253,26 @@ void rtc_m41t62_init(void)
 
     /* Verify calibration register */
     if ((regs.calibration_reg.calibration != 0) ||
-        (regs.calibration_reg.S != 0) ||
-        (regs.calibration_reg.OUT != 1)) {
+        (regs.calibration_reg.S != 0) || (regs.calibration_reg.OUT != 1)) {
       /* Set calibration to zero, OUT high */
       rtc_m41t62_calibration_reg_t calibration_reg;
       memset(&calibration_reg, 0, sizeof(calibration_reg));
       calibration_reg.OUT = 1;
       i2c_write_txn(RTC_M41T62_REG_CALIBRATION,
-                    (const u8 *)&calibration_reg, sizeof(calibration_reg));
+                    (const u8 *)&calibration_reg,
+                    sizeof(calibration_reg));
     }
 
     /* Verify alarm registers */
-    if ((regs.alarm_regs.SQWE != 0) ||
-        (regs.alarm_regs.AFE != 1) ||
+    if ((regs.alarm_regs.SQWE != 0) || (regs.alarm_regs.AFE != 1) ||
         (regs.alarm_regs.RPT5 != RTC_M41T62_RPT5(RTC_M41T62_RPT_SECOND)) ||
         (regs.alarm_regs.RPT4 != RTC_M41T62_RPT4(RTC_M41T62_RPT_SECOND)) ||
         (regs.alarm_regs.RPT3 != RTC_M41T62_RPT3(RTC_M41T62_RPT_SECOND)) ||
         (regs.alarm_regs.RPT2 != RTC_M41T62_RPT2(RTC_M41T62_RPT_SECOND)) ||
         (regs.alarm_regs.RPT1 != RTC_M41T62_RPT1(RTC_M41T62_RPT_SECOND)) ||
         (regs.alarm_regs.month_ones != 0) ||
-        (regs.alarm_regs.month_tens != 0) ||
-        (regs.alarm_regs.mday_ones != 0) ||
-        (regs.alarm_regs.mday_tens != 0) ||
-        (regs.alarm_regs.hour_ones != 0) ||
+        (regs.alarm_regs.month_tens != 0) || (regs.alarm_regs.mday_ones != 0) ||
+        (regs.alarm_regs.mday_tens != 0) || (regs.alarm_regs.hour_ones != 0) ||
         (regs.alarm_regs.hour_tens != 0) ||
         (regs.alarm_regs.minute_ones != 0) ||
         (regs.alarm_regs.minute_tens != 0) ||
@@ -318,26 +299,25 @@ void rtc_m41t62_init(void)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time)
-{
+bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time) {
   rtc_m41t62_clock_regs_t clock_regs;
   memset(&clock_regs, 0, sizeof(clock_regs));
 
   /* Note: It is not possible to set the centiseconds value */
-  clock_regs.second_ones =    ONES(time->second);
-  clock_regs.second_tens =    TENS(time->second);
-  clock_regs.minute_ones =    ONES(time->minute);
-  clock_regs.minute_tens =    TENS(time->minute);
-  clock_regs.hour_ones =      ONES(time->hour);
-  clock_regs.hour_tens =      TENS(time->hour);
-  clock_regs.wday_ones =      ONES(time->wday);
-  clock_regs.mday_ones =      ONES(time->mday);
-  clock_regs.mday_tens =      TENS(time->mday);
-  clock_regs.month_ones =     ONES(time->month);
-  clock_regs.month_tens =     TENS(time->month);
-  clock_regs.century_ones =   HUNDREDS(time->year);
-  clock_regs.year_ones =      ONES(time->year);
-  clock_regs.year_tens =      TENS(time->year);
+  clock_regs.second_ones = ONES(time->second);
+  clock_regs.second_tens = TENS(time->second);
+  clock_regs.minute_ones = ONES(time->minute);
+  clock_regs.minute_tens = TENS(time->minute);
+  clock_regs.hour_ones = ONES(time->hour);
+  clock_regs.hour_tens = TENS(time->hour);
+  clock_regs.wday_ones = ONES(time->wday);
+  clock_regs.mday_ones = ONES(time->mday);
+  clock_regs.mday_tens = TENS(time->mday);
+  clock_regs.month_ones = ONES(time->month);
+  clock_regs.month_tens = TENS(time->month);
+  clock_regs.century_ones = HUNDREDS(time->year);
+  clock_regs.year_ones = ONES(time->year);
+  clock_regs.year_tens = TENS(time->year);
 
   clock_regs.ST = 0;
   clock_regs.OFIE = 0;
@@ -348,13 +328,15 @@ bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time)
 
   /* Write clock */
   if (i2c_write_txn(RTC_M41T62_REG_CLOCK_START,
-                    (const u8 *)&clock_regs, sizeof(clock_regs)) != MSG_OK) {
+                    (const u8 *)&clock_regs,
+                    sizeof(clock_regs)) != MSG_OK) {
     return false;
   }
 
   /* Write flags to make sure oscillator fail is cleared */
   if (i2c_write_txn(RTC_M41T62_REG_FLAGS,
-                    (const u8 *)&flags_reg, sizeof(flags_reg)) != MSG_OK) {
+                    (const u8 *)&flags_reg,
+                    sizeof(flags_reg)) != MSG_OK) {
     return false;
   }
 
@@ -368,41 +350,35 @@ bool rtc_m41t62_time_set(const rtc_m41t62_time_t *time)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_time_get(rtc_m41t62_time_t *time, bool *valid)
-{
+bool rtc_m41t62_time_get(rtc_m41t62_time_t *time, bool *valid) {
   /* Read clock */
   rtc_m41t62_clock_regs_t clock_regs;
   if (i2c_read_txn(RTC_M41T62_REG_CLOCK_START,
-                   (u8 *)&clock_regs, sizeof(clock_regs)) != MSG_OK) {
+                   (u8 *)&clock_regs,
+                   sizeof(clock_regs)) != MSG_OK) {
     return false;
   }
 
   /* Read flags */
   rtc_m41t62_flags_reg_t flags_reg;
-  if (i2c_read_txn(RTC_M41T62_REG_FLAGS,
-                   (u8 *)&flags_reg, sizeof(flags_reg)) != MSG_OK) {
+  if (i2c_read_txn(RTC_M41T62_REG_FLAGS, (u8 *)&flags_reg, sizeof(flags_reg)) !=
+      MSG_OK) {
     return false;
   }
 
   /* Check oscillator fail flag */
   *valid = flags_reg.OF ? false : true;
 
-  time->centisecond =   10 * clock_regs.centisecond_tens +
-                         1 * clock_regs.centisecond_ones;
-  time->second =        10 * clock_regs.second_tens +
-                         1 * clock_regs.second_ones;
-  time->minute =        10 * clock_regs.minute_tens +
-                         1 * clock_regs.minute_ones;
-  time->hour =          10 * clock_regs.hour_tens +
-                         1 * clock_regs.hour_ones;
-  time->wday =           1 * clock_regs.wday_ones;
-  time->mday =          10 * clock_regs.mday_tens +
-                         1 * clock_regs.mday_ones;
-  time->month =         10 * clock_regs.month_tens +
-                         1 * clock_regs.month_ones;
-  time->year =         100 * clock_regs.century_ones +
-                        10 * clock_regs.year_tens +
-                         1 * clock_regs.year_ones;
+  time->centisecond =
+      10 * clock_regs.centisecond_tens + 1 * clock_regs.centisecond_ones;
+  time->second = 10 * clock_regs.second_tens + 1 * clock_regs.second_ones;
+  time->minute = 10 * clock_regs.minute_tens + 1 * clock_regs.minute_ones;
+  time->hour = 10 * clock_regs.hour_tens + 1 * clock_regs.hour_ones;
+  time->wday = 1 * clock_regs.wday_ones;
+  time->mday = 10 * clock_regs.mday_tens + 1 * clock_regs.mday_ones;
+  time->month = 10 * clock_regs.month_tens + 1 * clock_regs.month_ones;
+  time->year = 100 * clock_regs.century_ones + 10 * clock_regs.year_tens +
+               1 * clock_regs.year_ones;
 
   return true;
 }
@@ -413,10 +389,7 @@ bool rtc_m41t62_time_get(rtc_m41t62_time_t *time, bool *valid)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_second_wait(void)
-{
-  return second_wait();
-}
+bool rtc_m41t62_second_wait(void) { return second_wait(); }
 
 /** Clean up after waiting for a one second boundary.
  *
@@ -424,15 +397,14 @@ bool rtc_m41t62_second_wait(void)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_second_wait_cleanup(void)
-{
+bool rtc_m41t62_second_wait_cleanup(void) {
   u8 tries = 3;
   do {
     if (second_wait_cleanup()) {
       return true;
     }
     chThdSleepMilliseconds(1);
-  } while(--tries > 0);
+  } while (--tries > 0);
 
   return false;
 }
@@ -441,7 +413,4 @@ bool rtc_m41t62_second_wait_cleanup(void)
  *
  * \return true if the operation was completed successfully, false otherwise.
  */
-bool rtc_m41t62_oscillator_restart(void)
-{
-  return clock_reset();
-}
+bool rtc_m41t62_oscillator_restart(void) { return clock_reset(); }

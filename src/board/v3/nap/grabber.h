@@ -14,25 +14,26 @@
 #define GRABBER_H
 
 #include <libswiftnav/common.h>
-#include <libswiftnav/signal.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/signal.h>
 
-#define GRABBER_LEN_LOG2_MAX    (17)
-#define FIXED_GRABBER_LENGTH_DW (1<<GRABBER_LEN_LOG2_MAX)
-#define FIXED_GRABBER_LENGTH    (4*FIXED_GRABBER_LENGTH_DW)
+#define GRABBER_LEN_LOG2_MAX (17)
+#define FIXED_GRABBER_LENGTH_DW (1 << GRABBER_LEN_LOG2_MAX)
+#define FIXED_GRABBER_LENGTH (4 * FIXED_GRABBER_LENGTH_DW)
 
 #define GRABBER_BUFFER_ALIGN 32
 #define GRABBER_LENGTH_ALIGN 32
-#define GRABBER_CEIL_DIV(a,b) (((a) + (b) - 1) / (b))
+#define GRABBER_CEIL_DIV(a, b) (((a) + (b)-1) / (b))
 
-#define GRABBER_BUFFER_LENGTH_BYTES(type, count)                                  \
-    (GRABBER_LENGTH_ALIGN * GRABBER_CEIL_DIV(count * sizeof(type), GRABBER_LENGTH_ALIGN))
-#define GRABBER_BUFFER_LENGTH_ELEMENTS(type, count)                               \
-    (GRABBER_CEIL_DIV(GRABBER_BUFFER_LENGTH_BYTES(type, count), sizeof(type)))
+#define GRABBER_BUFFER_LENGTH_BYTES(type, count) \
+  (GRABBER_LENGTH_ALIGN *                        \
+   GRABBER_CEIL_DIV(count * sizeof(type), GRABBER_LENGTH_ALIGN))
+#define GRABBER_BUFFER_LENGTH_ELEMENTS(type, count) \
+  (GRABBER_CEIL_DIV(GRABBER_BUFFER_LENGTH_BYTES(type, count), sizeof(type)))
 
-#define GRABBER_BUFFER(name, type, count)                                         \
-    type name[GRABBER_BUFFER_LENGTH_ELEMENTS(type, count)]                        \
-              __attribute__((aligned(GRABBER_BUFFER_ALIGN)))
+#define GRABBER_BUFFER(name, type, count)                \
+  type name[GRABBER_BUFFER_LENGTH_ELEMENTS(type, count)] \
+      __attribute__((aligned(GRABBER_BUFFER_ALIGN)))
 
 extern u8 pRawGrabberBuffer[FIXED_GRABBER_LENGTH] __attribute__((aligned(32)));
 
@@ -40,15 +41,12 @@ extern u8 pRawGrabberBuffer[FIXED_GRABBER_LENGTH] __attribute__((aligned(32)));
 extern "C" {
 #endif
 
+u8 *grab_samples(u32 *length, u32 *sample_count);
 
-u8* grab_samples(u32 *length, u32 *sample_count);
-
-u8* GrabberGetBufferPt(u32 *length);
-
+u8 *GrabberGetBufferPt(u32 *length);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* GRABBER_H */

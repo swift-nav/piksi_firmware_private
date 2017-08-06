@@ -21,7 +21,7 @@
 bool nt1065_get_temperature(double* temperature);
 
 /** @brief read nt1065 AOK status
- *    Checks if error in 
+ *    Checks if error in
  *      LPF auto-calibration
  *      PLL Lock
  *      IC standby mode

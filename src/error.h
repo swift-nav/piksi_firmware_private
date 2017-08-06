@@ -18,11 +18,11 @@
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 
-#define screaming_death(x) _screaming_death(__FILE__ ":" STRINGIZE(__LINE__), (x))
-__attribute__((noreturn)) void _screaming_death(const char *pos, const char *msg);
+#define screaming_death(x) \
+  _screaming_death(__FILE__ ":" STRINGIZE(__LINE__), (x))
+__attribute__((noreturn)) void _screaming_death(const char *pos,
+                                                const char *msg);
 
 void fault_handling_setup(void);
 
-
-#endif  /* SWIFTNAV_ERROR_H */
-
+#endif /* SWIFTNAV_ERROR_H */
