@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <string.h>
 
-#define TIMING_COMPARE_DELTA     (  1e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
+#define TIMING_COMPARE_DELTA (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
 
 /* NAP track channel parameters. */
 #define NAP_TRACK_CARRIER_FREQ_WIDTH 32
@@ -70,7 +70,7 @@ static struct nap_ch_state {
       Does not include FCN induced carrier phase change. */
   double reckoned_carr_phase;
   u32 length[2];      /**< Correlation length in samples of Fs */
-  s32 length_adjust;  /**< Adjust the length the next time around */
+  s16 length_adjust;  /**< Adjust the length the next time around */
   s32 carr_pinc[2];   /**< Carrier phase increment */
   u64 reckon_counter; /**< First carrier phase has to be read from NAP */
   s64 sw_carr_phase;  /**< Debug reckoned carrier phase */
@@ -78,22 +78,6 @@ static struct nap_ch_state {
 
 /** Internal tracking channel capability = supported code */
 static u8 nap_ch_capability[MAX_CHANNELS];
-
-
-/** Returns a > b, wrapping around a u32 (using 2^31 as threshold)
- * \param a
- * \param b
- * \return neg if a < b
- *          0  if a == b
- *         pos if a > b
- * \note this works as subtracting is equal to adding the complementary+1
- */
-static s32 CountCompare(u32 a, u32 b) {
-  s32 res = (a-b);
-
-  return res;
-}
-
 
 /** Compute the correlation length in the units of sampling frequency samples.
  * \param chips_to_correlate The number of chips to correlate over.
@@ -248,8 +232,8 @@ void nap_track_init(u8 channel,
 
   /* code and carrier frequency */
   double carrier_freq_hz = mesid_to_carr_freq(mesid);
-  double chip_rate = (1.0 + doppler_freq_hz / carrier_freq_hz) *
-                           code_to_chip_rate(mesid.code);
+  double chip_rate =
+      (1.0 + doppler_freq_hz / carrier_freq_hz) * code_to_chip_rate(mesid.code);
 
   /* Spacing between VE and P correlators */
   s16 delta_samples = s->spacing[0].samples + s->spacing[1].samples +
@@ -278,9 +262,13 @@ void nap_track_init(u8 channel,
   s->length[1] = s->length[0] = length;
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_mesid(s->mesid, "Wrong inital NAP correlation length: "
+    log_warn_mesid(s->mesid,
+                   "Wrong inital NAP correlation length: "
                    "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
-                   chips_to_correlate, cp_rate_units, length, chip_rate);
+                   chips_to_correlate,
+                   cp_rate_units,
+                   length,
+                   chip_rate);
   }
   t->CONTROL = SET_NAP_CORR_LEN(length);
   s->length_adjust = delta_samples;
@@ -293,6 +281,11 @@ void nap_track_init(u8 channel,
   /* Adjust first integration length due to correlator spacing */
   /* MIC_COMMENT: absorbed using `delta_samples` in nap_track_update() above */
 
+  /* get the code rollover point in samples */
+  u32 tc_codestart =
+      ref_timing_count - delta_samples -
+      floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
+
   /* MIC_COMMENT: NAP needs to be enabled before TRK_TIMING_COMPARE
    * arrives, so could check within lock that TRK_TIMING_COMPARE is still
    * in the future and only then return */
@@ -300,21 +293,12 @@ void nap_track_init(u8 channel,
 
   COMPILER_BARRIER();
 
-  /* get the code rollover point in samples */
-  u32 tc_codestart = ref_timing_count - delta_samples -
-                     floor(0.5+(code_phase*calc_samples_per_chip(chip_rate)));
-
   /* Set up timing compare */
-  chSysLock();  /* this should prevent preemption hopefully? */
+  chSysLock(); /* this should prevent preemption hopefully? */
   /* get a reasonable deadline to which propagate to */
   u32 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
 
-  s32 samples_diff = CountCompare(tc_min_propag,tc_codestart);
-  if (!(samples_diff > 0)) {
-    log_error_mesid(mesid, "samples_diff was found to be %d", samples_diff);
-  }
-  assert(samples_diff > 0);
-
+  u32 samples_diff = tc_min_propag - tc_codestart;
   u32 code_chips, num_codes, tc_next_rollover;
   double code_samples;
   u8 index = 0;
@@ -322,14 +306,16 @@ void nap_track_init(u8 channel,
     code_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
     code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
     num_codes = 1 + floor((double)samples_diff / code_samples);
-    tc_next_rollover = tc_codestart + floor(0.5 + (double)num_codes * code_samples);
+    tc_next_rollover =
+        tc_codestart + floor(0.5 + (double)num_codes * code_samples);
     index = (num_codes % GPS_L2CL_PRN_START_POINTS);
     NAP->TRK_CODE_INT_INIT = index * code_chips;
   } else {
     code_chips = code_to_chip_count(mesid.code);
     code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
     num_codes = 1 + floor((double)samples_diff / code_samples);
-    tc_next_rollover = tc_codestart + floor(0.5 + (double)num_codes * code_samples);
+    tc_next_rollover =
+        tc_codestart + floor(0.5 + (double)num_codes * code_samples);
     NAP->TRK_CODE_INT_INIT = 0;
   }
 
@@ -386,8 +372,8 @@ void nap_track_update(u8 _chan_idx,
   t->CODE_PINC = code_units;
 
   /* INTEGRATION LENGTH ------------------------------------------------ */
-  u32 length = calc_length_samples(chips_to_correlate, code_phase_frac,
-                                   code_units);
+  u32 length =
+      calc_length_samples(chips_to_correlate, code_phase_frac, code_units);
   length += s->length_adjust;
   s->length_adjust = 0;
   s->length[1] = s->length[0];
@@ -397,10 +383,14 @@ void nap_track_update(u8 _chan_idx,
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
-    log_warn_mesid(s->mesid, "Wrong NAP correlation length: "
+    log_warn_mesid(s->mesid,
+                   "Wrong NAP correlation length: "
                    "(%" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32 " %lf)",
-                   chips_to_correlate, code_phase_frac,
-                   code_units, length, chip_rate);
+                   chips_to_correlate,
+                   code_phase_frac,
+                   code_units,
+                   length,
+                   chip_rate);
   }
 
   /* CARRIER (+FCN) FREQ ---------------------------------------------- */
