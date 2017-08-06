@@ -181,7 +181,7 @@ static double calc_samples_per_chip(double code_phase_rate) {
 
 void nap_track_init(u8 channel,
                     const me_gnss_signal_t mesid,
-                    u32 ref_timing_count,
+                    u64 ref_timing_count,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate) {
@@ -322,6 +322,15 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_LFSR1_INIT = mesid_to_init_g2(mesid);
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
 
+    /* if it works I will take 318 hours off to celebrate */
+    s->reckoned_carr_phase = (s->fcn_freq_hz) * (tc_req % 318) / NAP_TRACK_SAMPLE_RATE_Hz;
+    tc_req &= 0xFFFFFFFF;
+
+    /* */
+    NAP->TRK_TIMING_COMPARE = tc_req;
+
+    chSysUnlock();
+
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
 
@@ -443,7 +452,7 @@ void nap_track_read_results(u8 channel,
   if (s->reckon_counter < 1) {
     hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
     s->sw_carr_phase = hw_carr_phase;
-    s->reckoned_carr_phase =
+    s->reckoned_carr_phase +=
         ((double)hw_carr_phase) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
     log_debug_mesid(
         s->mesid,
@@ -453,8 +462,6 @@ void nap_track_read_results(u8 channel,
     s64 phase_incr = ((s64)s->length[1]) * (s->carr_pinc[1]);
     s->reckoned_carr_phase +=
         ((double)phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
-    s->reckoned_carr_phase +=
-        s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 #ifndef PIKSI_RELEASE
     s->sw_carr_phase += phase_incr;
     hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
@@ -472,6 +479,8 @@ void nap_track_read_results(u8 channel,
     }
 #endif /* PIKSI_RELEASE */
   }
+  s->reckoned_carr_phase +=
+    s->fcn_freq_hz * (double)s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz;
   s->reckon_counter++;
 
   *carrier_phase = -(s->reckoned_carr_phase);

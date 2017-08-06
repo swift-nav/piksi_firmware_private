@@ -536,7 +536,7 @@ typedef struct {
   s32 TOW_ms;                /**< TOW in ms. */
   s32 TOW_ms_prev;           /**< previous TOW in ms. */
   s32 TOW_residual_ns;       /**< Residual to TOW_ms [ns] */
-  u32 sample_count;          /**< Total num samples channel has tracked for. */
+  u64 sample_count;          /**< Total num samples channel has tracked for. */
   double code_phase_prompt;  /**< Prompt code phase in chips. */
   double code_phase_rate;    /**< Code phase rate in chips/s. */
   double carrier_phase;      /**< Carrier phase in cycles. */
@@ -905,7 +905,7 @@ bool tracker_channel_available(tracker_channel_id_t id,
 bool tracker_channel_init(tracker_channel_id_t id,
                           const me_gnss_signal_t mesid,
                           u16 glo_orbit_slot,
-                          u32 ref_sample_count,
+                          u64 ref_sample_count,
                           double code_phase,
                           float carrier_freq,
                           u32 chips_to_correlate,

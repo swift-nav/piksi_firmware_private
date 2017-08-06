@@ -41,7 +41,7 @@ extern u8 pRawGrabberBuffer[FIXED_GRABBER_LENGTH] __attribute__((aligned(32)));
 extern "C" {
 #endif
 
-u8 *grab_samples(u32 *length, u32 *sample_count);
+u8 *grab_samples(u32 *length, u64 *p_count);
 
 u8 *GrabberGetBufferPt(u32 *length);
 
