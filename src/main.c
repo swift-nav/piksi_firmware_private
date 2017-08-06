@@ -17,6 +17,7 @@
 #include <libswiftnav/logging.h>
 
 #include <hal.h>
+#include "main.h"
 #include "me_calc_pvt.h"
 
 #include "base_obs.h"
@@ -130,6 +131,9 @@ int main(void) {
 
   base_obs_setup();
   me_calc_pvt_setup();
+
+  COMPILER_BARRIER();
+
   starling_calc_pvt_setup();
 
   simulator_setup();
