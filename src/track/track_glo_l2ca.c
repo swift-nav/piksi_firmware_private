@@ -100,14 +100,27 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   double glo_freq_scale =
       mesid_to_carr_freq(L2_mesid) / mesid_to_carr_freq(L1_mesid);
 
+  /* extend sample_count to 64 bit for Glonass L2OF bias stability */
+  u64 current_tc = nap_timing_count();
+  u64 extended_sample_count = sample_count;
+  /* add the current NAP count MSB */
+  extended_sample_count += (current_tc >> 32) << 32;
+  /* if we have added too much (rollover just happened), then subtract 1MSB */
+  if (extended_sample_count > current_tc) {
+    /* should never happen that the extended is really smaller than the current time */
+    if (extended_sample_count < (1ULL << 32)) {
+      log_error_mesid(L2_mesid, "extended_sample_count %" PRIu64 " current_tc %" PRIu64);
+    } else {
+      extended_sample_count -= (1ULL << 32);
+    }
+  }
   /* The best elevation estimation could be retrieved by calling
      tracking_channel_evelation_degrees_get(nap_channel) here.
      However, we assume it is done where tracker_channel_init()
      is called. */
-
   tracking_startup_params_t startup_params = {
       .mesid = L2_mesid,
-      .sample_count = sample_count,
+      .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
       .carrier_freq = carrier_freq_hz * glo_freq_scale,
       .code_phase = code_phase_chips,
