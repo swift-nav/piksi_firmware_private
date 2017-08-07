@@ -61,11 +61,11 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
 static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize);
 
 static sc16_t code_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
-;
+
 static sc16_t sample_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
-;
+
 static sc16_t result_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
-;
+
 intFFTr2_t sFftConfig;
 
 static u32 puMaxIdx[4];

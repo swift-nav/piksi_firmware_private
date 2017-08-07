@@ -56,6 +56,11 @@
 #define SET_NAP_CORR_LEN(len) \
   (SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, len - 1))
 
+/* this is the common denominator of
+ * 'rats(562.5e3 / (99.375e6/5))' and
+ * 'rats(437.5e3 / (99.375e6/5))' */
+#define FCN_NCO_RESET_COUNT (318)
+
 /** Structure is used to define spacing between two correlators */
 typedef struct {
   u8 chips : 3;   /**< Correlator spacing in chips. */
@@ -278,11 +283,9 @@ void nap_track_init(u8 channel,
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
   t->CARR_PINC = carr_pinc;
 
-  /* Adjust first integration length due to correlator spacing */
-  /* was absorbed using `delta_samples` in nap_track_update() above */
 
   /* get the code rollover point in samples */
-  u32 tc_codestart =
+  u64 tc_codestart =
       ref_timing_count - delta_samples -
       (s32)floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
 
@@ -293,10 +296,17 @@ void nap_track_init(u8 channel,
   /* Set up timing compare */
   chSysLock();
   /* get a reasonable deadline to which propagate to */
-  u32 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
+  u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
+
+  /* extend tc_min_propag to 64 bit */
+  tc_min_propag += (tc_codestart >> 32) << 32;
+  if (tc_min_propag < tc_codestart) {
+    tc_min_propag += (1ULL << 32);
+  }
 
   u32 samples_diff = tc_min_propag - tc_codestart;
-  u32 code_chips, num_codes, tc_next_rollover;
+  u32 code_chips, num_codes;
+  u64 tc_next_rollover;
   double code_samples;
   u8 index = 0;
   if (mesid.code == CODE_GPS_L2CL) {
@@ -310,7 +320,7 @@ void nap_track_init(u8 channel,
     num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
   }
   tc_next_rollover =
-      tc_codestart + (u32)floor(0.5 + (double)num_codes * code_samples);
+      tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
 
   NAP->TRK_CODE_INT_INIT = index * code_chips;
   NAP->TRK_CODE_FRAC_INIT = 0;
@@ -322,15 +332,10 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_LFSR1_INIT = mesid_to_init_g2(mesid);
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
 
-    /* if it works I will take 318 hours off to celebrate */
-    s->reckoned_carr_phase =
-        (s->fcn_freq_hz) * (tc_req % 318) / NAP_TRACK_SAMPLE_RATE_Hz;
-    tc_req &= 0xFFFFFFFF;
-
-    /* */
-    NAP->TRK_TIMING_COMPARE = tc_req;
-
-    chSysUnlock();
+  /* port FCN-induced NCO phase to a common receiver clock point */
+  s->reckoned_carr_phase =
+      (s->fcn_freq_hz) * (tc_next_rollover % FCN_NCO_RESET_COUNT) / NAP_TRACK_SAMPLE_RATE_Hz;
+  tc_next_rollover &= 0xFFFFFFFF;
 
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
