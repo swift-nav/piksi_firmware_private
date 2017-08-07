@@ -46,7 +46,7 @@ static uint8_t *puSampleBuf;
 static sc16_t pBaseBand[SOFTMACQ_BASEBAND_SIZE] __attribute__((aligned(32)));
 
 /** the last grabber acquisition time tag */
-static u64 last_timetag;
+static u32 last_timetag;
 
 /** the last acquired signal */
 static me_gnss_signal_t sLastMesId;
