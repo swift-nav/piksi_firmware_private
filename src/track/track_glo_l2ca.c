@@ -107,9 +107,11 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   extended_sample_count += (current_tc >> 32) << 32;
   /* if we have added too much (rollover just happened), then subtract 1MSB */
   if (extended_sample_count > current_tc) {
-    /* should never happen that the extended is really smaller than the current time */
+    /* should never happen that the extended is really smaller than the current
+     * time */
     if (extended_sample_count < (1ULL << 32)) {
-      log_error_mesid(L2_mesid, "extended_sample_count %" PRIu64 " current_tc %" PRIu64);
+      log_error_mesid(L2_mesid,
+                      "extended_sample_count %" PRIu64 " current_tc %" PRIu64);
     } else {
       extended_sample_count -= (1ULL << 32);
     }
