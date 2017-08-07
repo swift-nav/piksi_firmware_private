@@ -333,8 +333,9 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
 
   /* port FCN-induced NCO phase to a common receiver clock point */
-  s->reckoned_carr_phase =
-      (s->fcn_freq_hz) * (tc_next_rollover % FCN_NCO_RESET_COUNT) / NAP_TRACK_SAMPLE_RATE_Hz;
+  s->reckoned_carr_phase = (s->fcn_freq_hz) *
+                           (tc_next_rollover % FCN_NCO_RESET_COUNT) /
+                           NAP_TRACK_SAMPLE_RATE_Hz;
   tc_next_rollover &= 0xFFFFFFFF;
 
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
