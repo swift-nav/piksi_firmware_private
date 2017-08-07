@@ -90,15 +90,15 @@ void tracker_retune(tracker_channel_t *tracker_channel,
  * \return Updated TOW (ms).
  */
 static s32 adjust_tow_by_bit_fifo_delay(tracker_channel_t *tracker_channel,
-                                        const nav_data_sync_t to_tracker) {
+                                        const nav_data_sync_t *to_tracker) {
   s32 TOW_ms = TOW_INVALID;
   /* Compute time since the pending data was read from the FIFO */
   nav_bit_fifo_index_t fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
-      tracker_channel->nav_bit_fifo.write_index, to_tracker.read_index);
+      tracker_channel->nav_bit_fifo.write_index, to_tracker->read_index);
   u32 fifo_time_diff_ms = fifo_length * tracker_channel->bit_sync.bit_length;
 
   /* Add full bit times + fractional bit time to the specified TOW */
-  TOW_ms = to_tracker.TOW_ms + fifo_time_diff_ms +
+  TOW_ms = to_tracker->TOW_ms + fifo_time_diff_ms +
            tracker_channel->nav_bit_TOW_offset_ms;
 
   TOW_ms = normalize_tow(TOW_ms);
@@ -106,13 +106,59 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_channel_t *tracker_channel,
   return TOW_ms;
 }
 
+static void update_polarity(tracker_channel_t *tracker_channel,
+                            s8 polarity) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  s8 prev_polarity = tracker_channel->bit_polarity;
+  if (prev_polarity != polarity) {
+    /* Print warning if there was an unexpected polarity change */
+    if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity) {
+      log_warn_mesid(mesid, "Unexpected bit polarity change");
+    }
+    /* Reset carrier phase offset on bit polarity change */
+    tracker_channel->reset_cpo = true;
+    tracker_channel->bit_polarity = polarity;
+  }
+}
+
+static void update_misc(tracker_channel_t *tracker_channel,
+                        const nav_data_sync_t *data_sync,
+                        s32 *current_TOW_ms,
+                        s32 *TOW_residual_ns,
+                        bool *decoded_tow) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+
+  s32 TOW_ms = adjust_tow_by_bit_fifo_delay(tracker_channel, data_sync);
+
+  /* Warn if updated TOW does not match the current value */
+  if ((*current_TOW_ms != TOW_INVALID) && (*current_TOW_ms != TOW_ms)) {
+    log_error_mesid(mesid,
+                    "TOW mismatch: %" PRId32 ", %" PRId32,
+                    *current_TOW_ms, TOW_ms);
+    /* This is rude, but safe. Do not expect it to happen normally. */
+    tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+  }
+  *current_TOW_ms = TOW_ms;
+
+  if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
+      (tracker_channel->glo_orbit_slot != data_sync->glo_orbit_slot)) {
+    log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
+  }
+  tracker_channel->glo_orbit_slot = data_sync->glo_orbit_slot;
+  tracker_channel->health = data_sync->glo_health;
+
+  *decoded_tow = (TOW_ms >= 0);
+  *TOW_residual_ns = data_sync->TOW_residual_ns;
+}
+
+
 /** Update the TOW for a tracker channel.
  *
  * \param tracker_channel   Tracker channel.
  * \param current_TOW_ms    Current TOW (ms).
  * \param int_ms            Integration period (ms).
  * \param TOW_residual_ns   TOW residual [ns]
- * \param[out] decoded_tow  Decoded TOW indicator
+ * \param[out] decoded_TOW  Decoded TOW indicator
  *
  * \return Updated TOW (ms).
  */
@@ -125,51 +171,26 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
   assert(TOW_residual_ns);
   assert(decoded_tow);
 
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-
   /* Latch TOW from nav message if pending */
-  s32 TOW_ms = TOW_INVALID;
+
   nav_data_sync_t to_tracker;
+  *decoded_tow = false;
   if (nav_data_sync_get(&to_tracker, &tracker_channel->nav_data_sync)) {
-    if (tracker_channel->bit_polarity != to_tracker.bit_polarity) {
-      /* Print warning if there was an unexpected polarity change */
-      if (BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity) {
-        log_warn_mesid(mesid, "Unexpected bit polarity change");
-      }
-      /* Reset carrier phase offset on bit polarity change */
-      tracker_channel->reset_cpo = true;
-      tracker_channel->bit_polarity = to_tracker.bit_polarity;
-    }
 
-    *decoded_tow = false;
+    decode_sync_flags_t flags = to_tracker.sync_flags;
 
-    if (SYNC_ALL == to_tracker.sync_type) {
-      TOW_ms = adjust_tow_by_bit_fifo_delay(tracker_channel, to_tracker);
-
-      /* Warn if updated TOW does not match the current value */
-      if ((current_TOW_ms != TOW_INVALID) && (current_TOW_ms != TOW_ms)) {
-        log_error_mesid(mesid,
-                        "TOW mismatch: %" PRId32 ", %" PRId32,
-                        current_TOW_ms, TOW_ms);
-        /* This is rude, but safe. Do not expect it to happen normally. */
-        tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
-      }
-      current_TOW_ms = TOW_ms;
-
-      if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
-          (tracker_channel->glo_orbit_slot != to_tracker.glo_orbit_slot)) {
-        log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
-      }
-      tracker_channel->glo_orbit_slot = to_tracker.glo_orbit_slot;
-      tracker_channel->health = to_tracker.glo_health;
-
-      *decoded_tow = (TOW_ms >= 0);
-      *TOW_residual_ns = to_tracker.TOW_residual_ns;
-
+    if (0 != (flags & SYNC_POLARITY)) {
+      update_polarity(tracker_channel, to_tracker.bit_polarity);
       update_bit_polarity_flags(tracker_channel);
     }
-  } else {
-    *decoded_tow = false;
+
+    if (0 != (flags & SYNC_MISC)) {
+      update_misc(tracker_channel,
+                  &to_tracker,
+                  &current_TOW_ms,
+                  TOW_residual_ns,
+                  decoded_tow);
+    }
   }
 
   tracker_channel->nav_bit_TOW_offset_ms += int_ms;

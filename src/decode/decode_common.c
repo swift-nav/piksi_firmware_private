@@ -34,8 +34,13 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       const nav_bit_fifo_element_t *nav_bit) {
   /* Don't trust polarity information while in sensitivity mode. */
   if (nav_bit->sensitivity_mode) {
+    glo_decode_status_t status = GLO_DECODE_SENSITIVITY;
+    if (BIT_POLARITY_UNKNOWN != n->bit_polarity) {
+      /* If polarity was previously known, report polarity loss. */
+      status = GLO_DECODE_POLARITY_LOSS;
+    }
     nav_msg_init_glo_with_cb(n, mesid);
-    return GLO_DECODE_SENSITIVITY;
+    return status;
   }
 
   /* Update GLO data decoder */
@@ -59,7 +64,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
   if (GLO_STRING_DECODE_ERROR == str_status) {
     nav_msg_init_glo_with_cb(n, mesid);
-    return GLO_DECODE_ERROR;
+    return GLO_DECODE_WAIT;
   }
   if (GLO_STRING_DECODE_WAIT == str_status) {
     return GLO_DECODE_STRING;
@@ -68,7 +73,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   return GLO_DECODE_DONE;
 }
 
-void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
+void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid) {
   log_debug_mesid(mesid,
                   "New ephemeris received [%" PRId16 ", %lf]",
                   n->eph.toe.wn,
@@ -89,18 +94,16 @@ void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
                    u8 tracking_channel,
-                   bool polarity_update_only) {
+                   decode_sync_flags_t flags) {
   nav_data_sync_t from_decoder;
 
   tracking_channel_data_sync_init(&from_decoder);
 
-  if (polarity_update_only) {
-    from_decoder.sync_type = SYNC_POLARITY;
-  }
+  from_decoder.sync_flags = flags;
 
   double TOW_ms = n->gps_time.tow * SECS_MS;
   double rounded_TOW_ms = round(TOW_ms);
-  if ((SYNC_ALL == from_decoder.sync_type) &&
+  if ((0 != (flags & SYNC_MISC)) &&
       ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0))) {
     log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
     return false;

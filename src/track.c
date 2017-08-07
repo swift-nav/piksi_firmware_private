@@ -1144,7 +1144,7 @@ void tracking_channel_data_sync_init(nav_data_sync_t *data_sync) {
   memset(data_sync, 0, sizeof(*data_sync));
   data_sync->glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
   data_sync->glo_health = GLO_SV_UNHEALTHY;
-  data_sync->sync_type = SYNC_ALL;
+  data_sync->sync_flags = SYNC_ALL;
 }
 
 /** Propagate decoded time of week, bit polarity and optional glo orbit slot

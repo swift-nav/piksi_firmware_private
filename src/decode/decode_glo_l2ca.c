@@ -85,43 +85,35 @@ static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
   nav_bit_fifo_element_t nav_bit;
   me_gnss_signal_t mesid = channel_info->mesid;
   u8 channel = channel_info->tracking_channel;
-  glo_decode_status_t prev_status = GLO_DECODE_SENSITIVITY;
 
   while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
     glo_decode_status_t glo_decode_status = glo_data_decoding(&data->nav_msg,
                                                               mesid,
                                                               &nav_bit);
-    /* Keep track of decode status, to prevent continuous
-     * data sync while channel stays in sensitivity mode.
-     * I.e. only update polarity loss once per sensitivity mode. */
-    bool polarity_loss = false;
-    if ((GLO_DECODE_SENSITIVITY == glo_decode_status) &&
-        (glo_decode_status != prev_status)) {
-      polarity_loss = true;
-    }
-
-    /* Update prev status once one string has been successfully decoded
-     * after recovering from sensitivity mode. */
-    if ((GLO_DECODE_STRING == glo_decode_status) ||
-        (GLO_DECODE_SENSITIVITY == glo_decode_status)) {
-      prev_status = glo_decode_status;
-    }
-
-    /* Update polarity status,
-     * if a polarity loss has occurred or new string has been decoded. */
-    bool polarity_update_only = false;
-    if (polarity_loss || (GLO_DECODE_STRING == glo_decode_status)) {
-      polarity_update_only = true;
-    } else if (GLO_DECODE_DONE == glo_decode_status) {
-      /* Store ephemeris when all strings have been decoded. */
+    decode_sync_flags_t flags = 0;
+    switch (glo_decode_status) {
+    case GLO_DECODE_STRING:
+    case GLO_DECODE_POLARITY_LOSS:
+      /* Update polarity status if new string has been decoded,
+       * or a polarity loss has occurred. */
+      flags = SYNC_POLARITY;
+      break;
+    case GLO_DECODE_DONE:
+      /* Store ephemeris and health info */
       save_glo_eph(&data->nav_msg, mesid);
-    } else {
-      /* No updates needed. */
+      shm_glo_set_shi(data->nav_msg.eph.sid.sat, data->nav_msg.eph.health_bits);
+      /* Update polarity and misc data. */
+      flags = (SYNC_POLARITY | SYNC_MISC);
+      break;
+    case GLO_DECODE_WAIT:
+    case GLO_DECODE_SENSITIVITY:
+    default:
       continue;
     }
+
     /* Sync tracker with decoder data */
-    if (!glo_data_sync(&data->nav_msg, mesid, channel, polarity_update_only)) {
+    if (!glo_data_sync(&data->nav_msg, mesid, channel, flags)) {
       return;
     }
   }

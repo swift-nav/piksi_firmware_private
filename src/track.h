@@ -182,11 +182,11 @@ typedef struct {
   nav_bit_fifo_element_t elements[NAV_BIT_FIFO_SIZE];
 } nav_bit_fifo_t;
 
-typedef enum
-{
-  SYNC_ALL,      /**< Update all data */
-  SYNC_POLARITY, /**< Update data polarity */
-} sync_e;
+typedef enum {
+  SYNC_POLARITY = (1 << 0), /**< Sync data polarity */
+  SYNC_MISC = (1 << 1),     /**< Sync miscellaneous parameters */
+  SYNC_ALL = (SYNC_POLARITY | SYNC_MISC), /**< Sync all */
+} decode_sync_flags_t;
 
 typedef struct {
   s32 TOW_ms;
@@ -196,7 +196,7 @@ typedef struct {
   nav_bit_fifo_index_t read_index;
   glo_health_t glo_health;
   bool valid;
-  sync_e sync_type;
+  decode_sync_flags_t sync_flags;
 } nav_data_sync_t;
 
 /**
