@@ -28,7 +28,7 @@
 #include "soft_macq_serial.h"
 #include "soft_macq_utils.h"
 
-#define SOFTMACQ_MAX_AGE_S   (0.5)
+#define SOFTMACQ_MAX_AGE_S (0.5)
 #define SOFTMACQ_MAX_AGE_SAMP (SOFTMACQ_MAX_AGE_S * NAP_TRACK_SAMPLE_RATE_Hz)
 
 #define SOFTMACQ_SAMPLE_GRABBER_LENGTH (512 * 1024)
@@ -102,13 +102,15 @@ bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
 
   /** Check if the last grabbed signal snapshot isn't too old.
    * If yes, simply grab another one */
-  curr_timetag =  NAP->TIMING_COUNT;
+  curr_timetag = NAP->TIMING_COUNT;
   if ((last_timetag == 0) ||
       ((curr_timetag - last_timetag) > SOFTMACQ_MAX_AGE_SAMP)) {
     /** GRAB!!! */
     puSampleBuf = grab_samples(&buff_size, &temp_timetag);
     if (NULL == puSampleBuf) {
-      log_warn("data grabber failed, buff_size %u temp_timetag %u", buff_size, temp_timetag);
+      log_warn("data grabber failed, buff_size %u temp_timetag %u",
+               buff_size,
+               temp_timetag);
       return false;
     }
     /** update signal time tag */
