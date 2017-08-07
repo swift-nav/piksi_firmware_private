@@ -967,6 +967,7 @@ void tracking_channel_gps_data_sync(tracker_channel_id_t id,
 void tracking_channel_glo_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder);
 void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
+void tracking_channel_set_raim_flag(const gnss_signal_t sid);
 tracker_channel_t *tracker_channel_get(tracker_channel_id_t id);
 void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);
 
