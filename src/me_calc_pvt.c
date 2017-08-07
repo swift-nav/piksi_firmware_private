@@ -493,8 +493,19 @@ static void me_calc_pvt_thread(void *arg) {
                         "RAIM repair, setting observation invalid.");
           nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
-          /* Flag the corresponding tracker channel for dropping */
-          tracking_channel_set_raim_flag(nav_meas[i].sid);
+          /* Check how large the outlier roughly is, and if it is a gross one,
+           * drop the channel */
+          double geometric_range[3];
+          for (u8 j = 0; j < 3; j++) {
+            geometric_range[j] =
+                nav_meas_tdcp[i].sat_pos[j] - current_fix.pos_ecef[j];
+          }
+          if (fabs(nav_meas_tdcp[i].pseudorange -
+                   current_fix.clock_offset * GPS_C -
+                   vector_norm(3, geometric_range)) >
+              RAIM_DROP_CHANNEL_THRESHOLD_M) {
+            tracking_channel_set_raim_flag(nav_meas[i].sid);
+          }
         }
       }
     }
@@ -561,11 +572,6 @@ static void me_calc_pvt_thread(void *arg) {
       u8 n_ready_tdcp_new = 0;
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
-
-        /* Skip this measurement if it was excluded by RAIM */
-        if (0 != (nm->flags & NAV_MEAS_FLAG_RAIM_EXCLUSION)) {
-          continue;
-        }
 
         /* Copy measurement to new index if a previous measurement
          * has been skipped. */

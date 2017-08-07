@@ -49,6 +49,10 @@ typedef struct _me_msg_obs_t {
  * jumps are always done by full milliseconds. */
 #define MAX_CLOCK_ERROR_S 0.0005
 
+/* If the residual in a pseudorange excluded by RAIM is larger than this, then
+ * drop the channel */
+#define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
+
 extern u32 obs_output_divisor;
 extern memory_pool_t obs_buff_pool;
 extern mailbox_t obs_mailbox;
