@@ -67,7 +67,7 @@ static u16 iq_output_mask = 0;
   * bandwidth intensive msg until a more complete "debug"
   * strategy is designed and implemented. */
 static bool send_trk_detailed = 0;
-u16 max_pll_integration_time_ms = 10;
+u16 max_pll_integration_time_ms = 20;
 
 static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
 
@@ -476,6 +476,33 @@ void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid,
     if (CONSTELLATION_GPS == mesid_to_constellation(tracker_channel->mesid) &&
         tracker_channel->mesid.sat == mesid.sat) {
       tracker_channel->prn_check_fail = val;
+    }
+    tracker_channel_unlock(tracker_channel);
+  }
+}
+
+/**
+ * Sets RAIM exclusion flag to a channel with a given signal identifier
+ *
+ * \param[in] sid signal identifier for channel to set
+ *
+ * \return None
+ */
+void tracking_channel_set_raim_flag(const gnss_signal_t sid) {
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    /* Find the corresponding channel and flag it. (Note that searching by sid
+     * instead of mesid is a bit tricky.. */
+    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_lock(tracker_channel);
+    /* Is this channel's mesid + orbit slot combination valid? */
+    bool can_compare = mesid_valid(tracker_channel->mesid);
+    if (is_glo_sid(tracker_channel->mesid)) {
+      can_compare &= glo_slot_id_is_valid(tracker_channel->glo_orbit_slot);
+    }
+    if (can_compare && sid_is_equal(mesid2sid(tracker_channel->mesid,
+                                              tracker_channel->glo_orbit_slot),
+                                    sid)) {
+      tracker_channel->flags |= TRACKER_FLAG_RAIM_EXCLUSION;
     }
     tracker_channel_unlock(tracker_channel);
   }

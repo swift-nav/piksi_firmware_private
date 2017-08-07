@@ -69,7 +69,8 @@ typedef enum {
   CH_DROP_REASON_SV_UNHEALTHY, /**< The SV is Unhealthy */
   CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
                                     drop GLO satellites */
-  CH_DROP_REASON_OUTLIER       /**< Doppler outlier */
+  CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
+  CH_DROP_REASON_RAIM          /**< Signal removed by RAIM */
 } ch_drop_reason_t;
 
 /** Different hints on satellite info to aid the acqusition */
@@ -740,6 +741,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_OUTLIER:
       str = "SV measurement outlier, dropping";
       break;
+    case CH_DROP_REASON_RAIM:
+      str = "Measurement flagged by RAIM, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
@@ -994,7 +998,13 @@ void sanitize_trackers(void) {
           (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
       if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
         drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+        continue;
       }
+    }
+
+    /* Drop channel if signal was excluded by RAIM */
+    if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
       continue;
     }
   }

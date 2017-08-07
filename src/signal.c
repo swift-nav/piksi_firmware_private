@@ -38,11 +38,17 @@ typedef struct {
   u16 start_index;
 } constellation_table_element_t;
 static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
-    {
-            [CONSTELLATION_GPS] = {GPS_FIRST_PRN, 0},
-            [CONSTELLATION_SBAS] = {SBAS_FIRST_PRN, NUM_SATS_GPS},
-            [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
-};
+    {[CONSTELLATION_GPS] = {GPS_FIRST_PRN, 0},
+     [CONSTELLATION_SBAS] = {SBAS_FIRST_PRN, NUM_SATS_GPS},
+     [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
+     [CONSTELLATION_BDS2] = {BDS2_FIRST_PRN,
+                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO},
+     [CONSTELLATION_GAL] = {GAL_FIRST_PRN,
+                            NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
+                                NUM_SATS_BDS2},
+     [CONSTELLATION_QZS] = {QZS_FIRST_PRN,
+                            NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
+                                NUM_SATS_BDS2 + NUM_SATS_GAL}};
 
 /** Number of signals for each code which are supported on
  * the current hardware platform. */

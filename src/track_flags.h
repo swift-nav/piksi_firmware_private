@@ -62,4 +62,7 @@
 #define TRACKER_FLAG_CARRIER_PHASE_OFFSET (1 << 27)
 #define TRACKER_FLAG_MASKED (1 << 28)
 
+/** Tracker flag: measurement was excluded by RAIM */
+#define TRACKER_FLAG_RAIM_EXCLUSION (1 << 29)
+
 #endif

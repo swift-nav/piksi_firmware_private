@@ -484,14 +484,28 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    /* If we have a success RAIM repair, mark the removed observation as
-       invalid. In practice, this means setting only the CN0 flag valid. */
+    /* If we have a success RAIM repair, mark the removed observations as
+       invalid, and ask tracker to drop the channels (if needed). */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
       for (u8 i = 0; i < n_ready_tdcp; i++) {
         if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
           log_debug_sid(nav_meas_tdcp[i].sid,
                         "RAIM repair, setting observation invalid.");
           nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+
+          /* Check how large the outlier roughly is, and if it is a gross one,
+           * drop the channel */
+          double geometric_range[3];
+          for (u8 j = 0; j < 3; j++) {
+            geometric_range[j] =
+                nav_meas_tdcp[i].sat_pos[j] - current_fix.pos_ecef[j];
+          }
+          if (fabs(nav_meas_tdcp[i].pseudorange -
+                   current_fix.clock_offset * GPS_C -
+                   vector_norm(3, geometric_range)) >
+              RAIM_DROP_CHANNEL_THRESHOLD_M) {
+            tracking_channel_set_raim_flag(nav_meas[i].sid);
+          }
         }
       }
     }
