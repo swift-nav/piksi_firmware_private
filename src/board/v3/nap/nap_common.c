@@ -212,7 +212,6 @@ static void handle_nap_track_irq(void) {
   tracking_channels_update(irq);
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
-
   asm("dsb");
 
   u32 err0 = NAP->TRK_IRQ_ERRORS0;

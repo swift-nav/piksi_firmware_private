@@ -28,6 +28,9 @@
 #include "soft_macq_serial.h"
 #include "soft_macq_utils.h"
 
+#define SOFTMACQ_MAX_AGE_S (0.5)
+#define SOFTMACQ_MAX_AGE_SAMP (SOFTMACQ_MAX_AGE_S * NAP_TRACK_SAMPLE_RATE_Hz)
+
 #define SOFTMACQ_SAMPLE_GRABBER_LENGTH (512 * 1024)
 #define SOFTMACQ_BASEBAND_SIZE (16 * 1024)
 
@@ -41,6 +44,12 @@ static uint8_t *puSampleBuf;
 
 /**! samples are down-converted to baseband and decimated here  */
 static sc16_t pBaseBand[SOFTMACQ_BASEBAND_SIZE] __attribute__((aligned(32)));
+
+/** the last grabber acquisition time tag */
+static u32 last_timetag;
+
+/** the last acquired signal */
+static me_gnss_signal_t sLastMesId;
 
 /** */
 static uint32_t iSamplesMs;
@@ -78,7 +87,10 @@ bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
                            acq_result_t *_psAcqResult) {
-  u32 uTag = 0, uBuffLength = 0;
+  u32 buff_size = 0;
+  u32 temp_timetag = 0;
+  u32 curr_timetag = 0;
+
   /** sanity checking input parameters */
   assert(NULL != _psAcqResult);
 
@@ -88,15 +100,25 @@ bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
     log_info("InitBBConvLut()");
   }
 
-  /** GRAB!!! */
-  puSampleBuf = grab_samples(&uBuffLength, &uTag);
-  if (NULL == puSampleBuf) {
-    log_warn("data grabber failed, uBuffLength %u uTag %u", uBuffLength, uTag);
-    return false;
+  /** Check if the last grabbed signal snapshot isn't too old.
+   * If yes, simply grab another one */
+  curr_timetag = NAP->TIMING_COUNT;
+  if ((last_timetag == 0) ||
+      ((curr_timetag - last_timetag) > SOFTMACQ_MAX_AGE_SAMP)) {
+    /** GRAB!!! */
+    puSampleBuf = grab_samples(&buff_size, &temp_timetag);
+    if (NULL == puSampleBuf) {
+      log_warn("data grabber failed, buff_size %u temp_timetag %u",
+               buff_size,
+               temp_timetag);
+      return false;
+    }
+    /** update signal time tag */
+    last_timetag = temp_timetag;
   }
 
   /** regardless of the result, store here the time tag */
-  _psAcqResult->sample_count = uTag;
+  _psAcqResult->sample_count = last_timetag;
 
   /** Perform signal conditioning (down-conversion, filtering and decimation):
    * - if we updated the signal snapshot or
@@ -104,7 +126,13 @@ bool soft_multi_acq_search(const me_gnss_signal_t _sMeSid,
    *   with the current one
    * - for Glonass, `sat` holds the FCN and we might want to do this again
    *  */
-  BbMixAndDecimate(_sMeSid);
+  if ((temp_timetag) || (!code_equiv(sLastMesId.code, _sMeSid.code)) ||
+      ((sLastMesId.code == CODE_GLO_L1CA) && (sLastMesId.sat != _sMeSid.sat))) {
+    /** perform baseband down-conversion and decimation depending on _sMeSid */
+    BbMixAndDecimate(_sMeSid);
+  }
+  /** store now last used mesid */
+  sLastMesId = _sMeSid;
 
   /** call DBZP-like acquisition with current sensitivity parameters
    *
