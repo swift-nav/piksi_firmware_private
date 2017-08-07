@@ -939,18 +939,18 @@ void sanitize_trackers(void) {
       continue;
     }
 
-    u32 update_delay_ms = now_ms - tracker_channel->update_timestamp_ms;
-    if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
-      drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
-      continue;
-    }
-
     /* Give newly-initialized channels a chance to converge. */
     u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
     u32 wait_ms = code_requires_direct_acq(mesid.code)
                       ? TRACK_INIT_FROM_ACQ_MS
                       : TRACK_INIT_FROM_HANDOVER_MS;
     if (age_ms < wait_ms) {
+      continue;
+    }
+
+    u32 update_delay_ms = now_ms - tracker_channel->update_timestamp_ms;
+    if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
+      drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
       continue;
     }
 
