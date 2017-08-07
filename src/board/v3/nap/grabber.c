@@ -151,7 +151,7 @@ static bool raw_samples(u8 *out, u32 len_bytes, u64 *p_count) {
     sample_msb++;
   }
   old_count = count;
-  (*p_count) = (((u64)sample_msb)<<32) | count;
+  (*p_count) = (((u64)sample_msb) << 32) | count;
 
   return result;
 }

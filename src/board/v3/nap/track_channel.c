@@ -323,7 +323,8 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
 
     /* if it works I will take 318 hours off to celebrate */
-    s->reckoned_carr_phase = (s->fcn_freq_hz) * (tc_req % 318) / NAP_TRACK_SAMPLE_RATE_Hz;
+    s->reckoned_carr_phase =
+        (s->fcn_freq_hz) * (tc_req % 318) / NAP_TRACK_SAMPLE_RATE_Hz;
     tc_req &= 0xFFFFFFFF;
 
     /* */
@@ -480,7 +481,7 @@ void nap_track_read_results(u8 channel,
 #endif /* PIKSI_RELEASE */
   }
   s->reckoned_carr_phase +=
-    s->fcn_freq_hz * (double)s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz;
+      s->fcn_freq_hz * (double)s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz;
   s->reckon_counter++;
 
   *carrier_phase = -(s->reckoned_carr_phase);
