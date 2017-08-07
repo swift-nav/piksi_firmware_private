@@ -953,7 +953,7 @@ void sanitize_trackers(void) {
       drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
       continue;
     }
-    
+
     /* Do we not have nav bit sync yet? */
     if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
       drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
