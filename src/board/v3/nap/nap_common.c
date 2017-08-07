@@ -209,11 +209,16 @@ static void handle_nap_track_irq(void) {
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
-  tracking_channels_update(irq);
-  NAP->TRK_IRQS0 = irq0;
-  NAP->TRK_IRQS1 = irq1;
+  while (irq) {
+    tracking_channels_update(irq);
+    NAP->TRK_IRQS0 = irq0;
+    NAP->TRK_IRQS1 = irq1;
 
-  asm("dsb");
+    asm("dsb");
+    irq0 = NAP->TRK_IRQS0;
+    irq1 = NAP->TRK_IRQS1;
+    irq = ((u64)irq1 << 32) | irq0;
+  }
 
   u32 err0 = NAP->TRK_IRQ_ERRORS0;
   u32 err1 = NAP->TRK_IRQ_ERRORS1;
