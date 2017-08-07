@@ -179,7 +179,6 @@ static double calc_samples_per_chip(double code_phase_rate) {
   return (double)NAP_TRACK_SAMPLE_RATE_Hz / code_phase_rate;
 }
 
-
 void nap_track_init(u8 channel,
                     const me_gnss_signal_t mesid,
                     u32 ref_timing_count,
@@ -290,9 +289,12 @@ void nap_track_init(u8 channel,
       ref_timing_count - delta_samples -
       floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
 
-  log_info_mesid(s->mesid, "tc_codestart %10" PRIu32 " %10" PRIu32 " %+4d %.3f",
-      tc_codestart, ref_timing_count, delta_samples,
-      (0.5 + (code_phase * calc_samples_per_chip(chip_rate))));
+  log_info_mesid(s->mesid,
+                 "tc_codestart %10" PRIu32 " %10" PRIu32 " %+4d %.3f",
+                 tc_codestart,
+                 ref_timing_count,
+                 delta_samples,
+                 (0.5 + (code_phase * calc_samples_per_chip(chip_rate))));
 
   nap_track_enable(channel);
 
@@ -346,7 +348,6 @@ void nap_track_init(u8 channel,
     chThdSleep(1 + sleep_time / 2);
   }
 }
-
 
 void nap_track_update(u8 _chan_idx,
                       double doppler_freq_hz,
@@ -409,7 +410,6 @@ void nap_track_update(u8 _chan_idx,
 
   t->CARR_PINC = carr_pinc;
 }
-
 
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
