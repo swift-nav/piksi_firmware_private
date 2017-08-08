@@ -81,7 +81,7 @@ static void me_post_observations(u8 n,
                                  const ephemeris_t _ephem[],
                                  const gps_time_t *_t) {
   /* TODO: use a buffer from the pool from the start instead of
-   * allocating nav_meas_tdcp as well. Downside, if we don't end up
+   * allocating nav_meas as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
@@ -392,20 +392,13 @@ static void me_calc_pvt_thread(void *arg) {
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
-    static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
-    u8 n_ready_tdcp;
-
-    /* Pass the nav_meas with the measured Dopplers as is */
-    memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
-    n_ready_tdcp = n_ready;
-
-    gnss_sid_set_t codes_tdcp;
-    sid_set_init(&codes_tdcp);
-    for (u8 i = 0; i < n_ready_tdcp; i++) {
-      sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
+    gnss_sid_set_t codes;
+    sid_set_init(&codes);
+    for (u8 i = 0; i < n_ready; i++) {
+      sid_set_add(&codes, nav_meas[i].sid);
     }
 
-    if (sid_set_get_sat_count(&codes_tdcp) < 4) {
+    if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT */
       me_send_emptyobs();
       continue;
@@ -419,8 +412,8 @@ static void me_calc_pvt_thread(void *arg) {
       if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      calc_iono_tropo(n_ready_tdcp,
-                      nav_meas_tdcp,
+      calc_iono_tropo(n_ready,
+                      nav_meas,
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
                       p_i_params);
@@ -434,8 +427,8 @@ static void me_calc_pvt_thread(void *arg) {
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
-    s8 pvt_ret = calc_PVT(n_ready_tdcp,
-                          nav_meas_tdcp,
+    s8 pvt_ret = calc_PVT(n_ready,
+                          nav_meas,
                           disable_raim,
                           false,
                           &current_fix,
@@ -468,21 +461,20 @@ static void me_calc_pvt_thread(void *arg) {
     /* If we have a success RAIM repair, mark the removed observations as
        invalid, and ask tracker to drop the channels (if needed). */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
-          log_debug_sid(nav_meas_tdcp[i].sid,
+      for (u8 i = 0; i < n_ready; i++) {
+        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
+          log_debug_sid(nav_meas[i].sid,
                         "RAIM repair, setting observation invalid.");
-          nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+          nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
           /* Check how large the outlier roughly is, and if it is a gross one,
            * drop the channel */
           double geometric_range[3];
           for (u8 j = 0; j < 3; j++) {
             geometric_range[j] =
-                nav_meas_tdcp[i].sat_pos[j] - current_fix.pos_ecef[j];
+                nav_meas[i].sat_pos[j] - current_fix.pos_ecef[j];
           }
-          if (fabs(nav_meas_tdcp[i].pseudorange -
-                   current_fix.clock_offset * GPS_C -
+          if (fabs(nav_meas[i].pseudorange - current_fix.clock_offset * GPS_C -
                    vector_norm(3, geometric_range)) >
               RAIM_DROP_CHANNEL_THRESHOLD_M) {
             tracking_channel_set_raim_flag(nav_meas[i].sid);
@@ -555,16 +547,16 @@ static void me_calc_pvt_thread(void *arg) {
                 current_fix.clock_bias);
 
       /* Propagate observations to desired time. */
-      /* We have to use the tdcp_doppler result to account for TCXO drift. */
-      /* nav_meas_tdcp is updated in place, skipping elements if required. */
-      u8 n_ready_tdcp_new = 0;
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
+      /* We have to use the doppler measurement to account for TCXO drift. */
+      /* nav_meas is updated in place, skipping elements if required. */
+      u8 n_ready_new = 0;
+      for (u8 i = 0; i < n_ready; i++) {
+        navigation_measurement_t *nm = &nav_meas[n_ready_new];
 
         /* Copy measurement to new index if a previous measurement
          * has been skipped. */
-        if (i != n_ready_tdcp_new) {
-          memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
+        if (i != n_ready_new) {
+          memcpy(nm, &nav_meas[i], sizeof(*nm));
         }
 
         double doppler = 0.0;
@@ -619,14 +611,14 @@ static void me_calc_pvt_thread(void *arg) {
           continue;
         }
 
-        n_ready_tdcp_new++;
+        n_ready_new++;
       }
 
-      /* Update n_ready_tdcp. */
-      n_ready_tdcp = n_ready_tdcp_new;
+      /* Update n_ready. */
+      n_ready = n_ready_new;
 
       /* Send the observations. */
-      me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
+      me_send_all(n_ready, nav_meas, e_meas, &new_obs_time);
     } else {
       log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
     }
