@@ -182,10 +182,14 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
     piksi_systime_get_x(&systime);
     u32 delta = piksi_systime_sub_us(deadline, &systime);
     u32 sleep_min = (u32)ceilf((1.0f - SOLN_THD_CPU_MAX) * interval_us);
+    /* Check that requested sleep delta is larger than sleep_min */
     if ((u32)(delta - sleep_min) <= ((u32)-1) / 2) {
+      /* Sleep the requested time and then break out of the loop */
       piksi_systime_sleep_us_s(delta);
       break;
     } else {
+      /* Deadline is closer than sleep_min, which hints at high CPU usage.
+       * Log a warning, move the deadline forward, and sleep again. */
       chSysUnlock();
       if (delta <= ((u32)-1) / 2) {
         /* Deadline is in the future. Skipping due to high CPU usage. */
@@ -195,13 +199,14 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
             piksi_systime_to_s(&systime),
             piksi_systime_to_s(deadline));
       } else {
-        /* Deadline is in the past. */
+        /* Deadline was in the past. */
         log_warn(
             "Solution thread missed deadline, "
             "time = %llu, deadline = %llu",
             piksi_systime_to_s(&systime),
             piksi_systime_to_s(deadline));
       }
+      /* Move the deadline forward by one interval */
       piksi_systime_inc_us(deadline, interval_us);
       chSysLock();
     }
