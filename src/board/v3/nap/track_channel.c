@@ -339,9 +339,6 @@ void nap_track_init(u8 channel,
 
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
-  if (mesid.code == CODE_GPS_L2CL) {
-    log_info_mesid(s->mesid, "num_codes %d", num_codes);
-  }
 
   /* Sleep until compare match */
   s32 tc_delta;
