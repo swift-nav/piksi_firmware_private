@@ -121,11 +121,11 @@ static void update_polarity(tracker_channel_t *tracker_channel,
   }
 }
 
-static void update_misc(tracker_channel_t *tracker_channel,
-                        const nav_data_sync_t *data_sync,
-                        s32 *current_TOW_ms,
-                        s32 *TOW_residual_ns,
-                        bool *decoded_tow) {
+static void update_tow(tracker_channel_t *tracker_channel,
+                       const nav_data_sync_t *data_sync,
+                       s32 *current_TOW_ms,
+                       s32 *TOW_residual_ns,
+                       bool *decoded_tow) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   s32 TOW_ms = adjust_tow_by_bit_fifo_delay(tracker_channel, data_sync);
@@ -139,6 +139,13 @@ static void update_misc(tracker_channel_t *tracker_channel,
     tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
   }
   *current_TOW_ms = TOW_ms;
+  *decoded_tow = (TOW_ms >= 0);
+  *TOW_residual_ns = data_sync->TOW_residual_ns;
+}
+
+static void update_eph(tracker_channel_t *tracker_channel,
+                       const nav_data_sync_t *data_sync) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
 
   if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
       (tracker_channel->glo_orbit_slot != data_sync->glo_orbit_slot)) {
@@ -146,9 +153,6 @@ static void update_misc(tracker_channel_t *tracker_channel,
   }
   tracker_channel->glo_orbit_slot = data_sync->glo_orbit_slot;
   tracker_channel->health = data_sync->glo_health;
-
-  *decoded_tow = (TOW_ms >= 0);
-  *TOW_residual_ns = data_sync->TOW_residual_ns;
 }
 
 
@@ -166,7 +170,8 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
-                       bool *decoded_tow) {
+                       bool *decoded_tow,
+                       bool *decoded_health) {
   assert(tracker_channel);
   assert(TOW_residual_ns);
   assert(decoded_tow);
@@ -179,17 +184,22 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
 
     decode_sync_flags_t flags = to_tracker.sync_flags;
 
-    if (0 != (flags & SYNC_POLARITY)) {
+    if (0 != (flags & SYNC_POL)) {
       update_polarity(tracker_channel, to_tracker.bit_polarity);
       update_bit_polarity_flags(tracker_channel);
     }
 
-    if (0 != (flags & SYNC_MISC)) {
-      update_misc(tracker_channel,
-                  &to_tracker,
-                  &current_TOW_ms,
-                  TOW_residual_ns,
-                  decoded_tow);
+    if (0 != (flags & SYNC_TOW)) {
+      update_tow(tracker_channel,
+                 &to_tracker,
+                 &current_TOW_ms,
+                 TOW_residual_ns,
+                 decoded_tow);
+    }
+
+    if (0 != (flags & SYNC_EPH)) {
+      update_eph(tracker_channel, &to_tracker);
+      *decoded_health = true;
     }
   }
 

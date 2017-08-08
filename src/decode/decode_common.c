@@ -62,15 +62,54 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
 
   /* Get GLO strings 1 - 5, and decode full ephemeris */
   string_decode_status_t str_status = process_string_glo(n, time_tag_ms);
-  if (GLO_STRING_DECODE_ERROR == str_status) {
+  switch (str_status) {
+  case GLO_STRING_DECODE_ERROR:
     nav_msg_init_glo_with_cb(n, mesid);
     return GLO_DECODE_WAIT;
+    break;
+  case GLO_STRING_DECODE_STRING:
+    return GLO_DECODE_POLARITY_UPDATE;
+    break;
+  case GLO_STRING_DECODE_TOW:
+    return GLO_DECODE_TOW_UPDATE;
+    break;
+  case GLO_STRING_DECODE_EPH:
+    return GLO_DECODE_EPH_UPDATE;
+    break;
+  default:
+    assert("GLO string decode error");
   }
-  if (GLO_STRING_DECODE_WAIT == str_status) {
-    return GLO_DECODE_STRING;
+  return GLO_DECODE_SENSITIVITY;
+}
+
+decode_sync_flags_t get_data_sync_flags(const nav_msg_glo_t *n,
+                                        me_gnss_signal_t mesid,
+                                        glo_decode_status_t status) {
+  decode_sync_flags_t flags = 0;
+
+  switch (status) {
+  case GLO_DECODE_POLARITY_UPDATE:
+  case GLO_DECODE_POLARITY_LOSS:
+    /* Update polarity status if new string has been decoded,
+     * or a polarity loss has occurred. */
+    flags = SYNC_POL;
+    break;
+  case GLO_DECODE_TOW_UPDATE:
+    flags = (SYNC_POL | SYNC_TOW);
+    break;
+  case GLO_DECODE_EPH_UPDATE:
+    /* Store ephemeris and health info */
+    save_glo_eph(n, mesid);
+    shm_glo_set_shi(n->eph.sid.sat, n->eph.health_bits);
+    /* Update polarity and misc data. */
+    flags = (SYNC_POL | SYNC_TOW | SYNC_EPH);
+    break;
+  case GLO_DECODE_WAIT:
+  case GLO_DECODE_SENSITIVITY:
+  default:
+    break;
   }
-  assert(GLO_STRING_DECODE_DONE == str_status);
-  return GLO_DECODE_DONE;
+  return flags;
 }
 
 void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid) {
@@ -103,7 +142,7 @@ bool glo_data_sync(nav_msg_glo_t *n,
 
   double TOW_ms = n->gps_time.tow * SECS_MS;
   double rounded_TOW_ms = round(TOW_ms);
-  if ((0 != (flags & SYNC_MISC)) &&
+  if ((0 != (flags & SYNC_TOW)) &&
       ((rounded_TOW_ms > INT32_MAX) || (rounded_TOW_ms < 0))) {
     log_warn_mesid(mesid, "Unexpected TOW value: %lf ms", rounded_TOW_ms);
     return false;

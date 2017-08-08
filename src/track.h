@@ -183,9 +183,10 @@ typedef struct {
 } nav_bit_fifo_t;
 
 typedef enum {
-  SYNC_POLARITY = (1 << 0), /**< Sync data polarity */
-  SYNC_MISC = (1 << 1),     /**< Sync miscellaneous parameters */
-  SYNC_ALL = (SYNC_POLARITY | SYNC_MISC), /**< Sync all */
+  SYNC_POL = (1 << 0), /**< Sync data polarity */
+  SYNC_TOW = (1 << 1), /**< Sync TOW */
+  SYNC_EPH = (1 << 2), /**< Sync ephemeris parameters */
+  SYNC_ALL = (SYNC_POL | SYNC_TOW | SYNC_EPH), /**< Sync all */
 } decode_sync_flags_t;
 
 typedef struct {
@@ -1007,7 +1008,8 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
-                       bool *decoded_tow);
+                       bool *decoded_tow,
+                       bool *decoded_health);
 void tracker_bit_sync_set(tracker_channel_t *tracker_channel, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
                              u32 int_ms,
