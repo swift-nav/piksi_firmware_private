@@ -19,6 +19,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/propagate.h>
@@ -84,7 +85,10 @@ void check_base_position_change(void) {
     }
   }
   old_base_pos_known = base_pos_known;
-  memcpy(&old_base_pos_ecef, &base_pos_ecef, sizeof(base_pos_ecef));
+  MEMCPY_S(&old_base_pos_ecef,
+           sizeof(old_base_pos_ecef),
+           &base_pos_ecef,
+           sizeof(base_pos_ecef));
 }
 
 /** SBP callback for when the base station sends us a message containing its
@@ -106,7 +110,7 @@ static void base_pos_llh_callback(u16 sender_id,
   /*TODO: keep track of sender_id to store multiple base positions?*/
   double llh_degrees[3];
   double llh[3];
-  memcpy(llh_degrees, msg, 3 * sizeof(double));
+  MEMCPY_S(llh_degrees, sizeof(llh_degrees), msg, sizeof(llh_degrees));
   llh[0] = llh_degrees[0] * D2R;
   llh[1] = llh_degrees[1] * D2R;
   llh[2] = llh_degrees[2];
@@ -136,7 +140,7 @@ static void base_pos_ecef_callback(u16 sender_id,
     return;
   }
   chMtxLock(&base_pos_lock);
-  memcpy(base_pos_ecef, msg, 3 * sizeof(double));
+  MEMCPY_S(base_pos_ecef, sizeof(base_pos_ecef), msg, sizeof(base_pos_ecef));
   base_pos_known = true;
   check_base_position_change();
   /* Relay base station position using sender_id = 0. */
@@ -206,9 +210,10 @@ static void update_obss(obss_t *new_obss) {
   chMtxLock(&base_obs_lock);
 
   base_obss.n = new_obss->n;
-  memcpy(base_obss.nm,
-         new_obss->nm,
-         new_obss->n * sizeof(navigation_measurement_t));
+  MEMCPY_S(base_obss.nm,
+           sizeof(base_obss.nm),
+           new_obss->nm,
+           new_obss->n * sizeof(navigation_measurement_t));
 
   /* Assume that we don't know the known, surveyed base position for now. */
   base_obss.has_known_pos_ecef = false;
@@ -272,7 +277,10 @@ static void update_obss(obss_t *new_obss) {
         base_obss.n, base_obss.nm, disable_raim, true, &soln, &dops, NULL);
 
     if (ret >= 0 && soln.valid) {
-      memcpy(base_obss.pos_ecef, soln.pos_ecef, sizeof(soln.pos_ecef));
+      MEMCPY_S(base_obss.pos_ecef,
+               sizeof(base_obss.pos_ecef),
+               soln.pos_ecef,
+               sizeof(soln.pos_ecef));
       base_obss.has_pos = 1;
 
       chMtxLock(&base_pos_lock);
@@ -299,8 +307,10 @@ static void update_obss(obss_t *new_obss) {
                 " surveyed position. Check the base station position setting.",
                 base_distance);
           }
-          memcpy(
-              base_obss.known_pos_ecef, base_pos_ecef, sizeof(base_pos_ecef));
+          MEMCPY_S(base_obss.known_pos_ecef,
+                   sizeof(base_obss.known_pos_ecef),
+                   base_pos_ecef,
+                   sizeof(base_pos_ecef));
           base_obss.has_known_pos_ecef = true;
         }
       } else {

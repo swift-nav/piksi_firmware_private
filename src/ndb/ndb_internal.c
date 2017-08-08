@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <libswiftnav/edc.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <nap/nap_common.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -115,7 +116,7 @@ void ndb_init(void) {
 
   u16 vlen = sizeof(GIT_VERSION);
   vlen = vlen > sizeof(ndb_file_version) ? sizeof(ndb_file_version) : vlen;
-  memcpy(ndb_file_version, GIT_VERSION, vlen);
+  MEMCPY_S(ndb_file_version, sizeof(ndb_file_version), GIT_VERSION, vlen);
   if (vlen < sizeof(ndb_file_version)) {
     memset(&ndb_file_version[vlen], 0xb6, sizeof(ndb_file_version) - vlen);
   }
@@ -383,7 +384,7 @@ static ndb_op_code_t ndb_wq_process(void) {
   assert((md->vflags & (NDB_VFLAG_IE_DIRTY | NDB_VFLAG_MD_DIRTY)) != 0);
   assert((md->vflags & NDB_VFLAG_ENQUEUED) == 0);
 
-  memcpy(buf, md->data, block_size);
+  MEMCPY_S(buf, sizeof(buf), md->data, block_size);
   write_buf = 0 != (md->vflags & NDB_VFLAG_IE_DIRTY);
 
   /* Mark as saved (optimistically) */
@@ -662,6 +663,7 @@ void ndb_unlock() { chMtxUnlock(&data_access); }
  * \param[in]  file     NDB file object
  * \param[in]  idx      NDB informational element index
  * \param[out] out      Destination data buffer with a proper block size.
+ * \param[in]  out_size Destination buffer size.
  * \param[out] ds       Optional destination for NDB data source.
  *
  * \retval NDB_ERR_NONE       On success
@@ -673,6 +675,7 @@ void ndb_unlock() { chMtxUnlock(&data_access); }
 static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
                                       ndb_ie_index_t idx,
                                       void *out,
+                                      size_t out_size,
                                       ndb_data_source_t *ds) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
@@ -681,7 +684,7 @@ static ndb_op_code_t ndb_retrieve_int(ndb_file_t *file,
   const ndb_element_metadata_t *md = &file->block_md[idx];
 
   if (0 != (md->nv_data.state & NDB_IE_VALID)) {
-    memcpy(out, md->data, md->file->block_size);
+    MEMCPY_S(out, out_size, md->data, md->file->block_size);
 
     if (NULL != ds) {
       *ds = md->nv_data.source;
@@ -735,7 +738,7 @@ ndb_op_code_t ndb_find_retrieve(ndb_file_t *file,
     for (ndb_ie_index_t idx = 0; idx < file->block_count;
          ++idx, data_ptr += file->block_size) {
       if (match_fn(data_ptr, &file->block_md[idx], cookie)) {
-        res = ndb_retrieve_int(file, idx, out, ds);
+        res = ndb_retrieve_int(file, idx, out, out_size, ds);
         break;
       }
     }
@@ -784,7 +787,7 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
   if ((NULL != md->file) && (out_size == md->file->block_size) &&
       retrieve_data) {
     ndb_lock();
-    res = ndb_retrieve_int(md->file, md->index, out, ds);
+    res = ndb_retrieve_int(md->file, md->index, out, out_size, ds);
     ndb_unlock();
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -829,7 +832,7 @@ ndb_op_code_t ndb_update(const void *data,
        * then clear the flag here. */
       md->vflags &= ~NDB_VFLAG_DATA_FROM_NV;
       /* Update data and mark it dirty also mark data valid */
-      memcpy(md->data, data, block_size);
+      MEMCPY_S(md->data, block_size, data, block_size);
       md->nv_data.state |= NDB_IE_VALID;
       md->vflags |= NDB_VFLAG_IE_DIRTY;
       res = NDB_ERR_NONE;

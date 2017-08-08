@@ -20,6 +20,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 
 #include "sbp.h"
@@ -545,9 +546,9 @@ static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
 static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_sbas_t *msg = &m->sbas;
   unpack_ephemeris_common(&msg->common, e);
-  memcpy(e->xyz.pos, msg->pos, sizeof(e->xyz.pos));
-  memcpy(e->xyz.vel, msg->vel, sizeof(e->xyz.vel));
-  memcpy(e->xyz.acc, msg->acc, sizeof(e->xyz.acc));
+  MEMCPY_S(e->xyz.pos, sizeof(e->xyz.pos), msg->pos, sizeof(msg->pos));
+  MEMCPY_S(e->xyz.vel, sizeof(e->xyz.vel), msg->vel, sizeof(msg->vel));
+  MEMCPY_S(e->xyz.acc, sizeof(e->xyz.acc), msg->acc, sizeof(msg->acc));
   e->xyz.a_gf0 = msg->a_gf0;
   e->xyz.a_gf1 = msg->a_gf1;
 }
@@ -555,9 +556,9 @@ static void unpack_ephemeris_sbas(const msg_ephemeris_t *m, ephemeris_t *e) {
 static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg_ephemeris_sbas_t *msg = &m->sbas;
   pack_ephemeris_common(e, &msg->common);
-  memcpy(msg->pos, e->xyz.pos, sizeof(e->xyz.pos));
-  memcpy(msg->vel, e->xyz.vel, sizeof(e->xyz.vel));
-  memcpy(msg->acc, e->xyz.acc, sizeof(e->xyz.acc));
+  MEMCPY_S(msg->pos, sizeof(msg->pos), e->xyz.pos, sizeof(e->xyz.pos));
+  MEMCPY_S(msg->vel, sizeof(msg->vel), e->xyz.vel, sizeof(e->xyz.vel));
+  MEMCPY_S(msg->acc, sizeof(msg->acc), e->xyz.acc, sizeof(e->xyz.acc));
   msg->a_gf0 = e->xyz.a_gf0;
   msg->a_gf1 = e->xyz.a_gf1;
 }
@@ -565,9 +566,9 @@ static void pack_ephemeris_sbas(const ephemeris_t *e, msg_ephemeris_t *m) {
 static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_glo_t *msg = &m->glo;
   unpack_ephemeris_common(&msg->common, e);
-  memcpy(e->glo.pos, msg->pos, sizeof(e->glo.pos));
-  memcpy(e->glo.vel, msg->vel, sizeof(e->glo.vel));
-  memcpy(e->glo.acc, msg->acc, sizeof(e->glo.acc));
+  MEMCPY_S(e->glo.pos, sizeof(e->glo.pos), msg->pos, sizeof(msg->pos));
+  MEMCPY_S(e->glo.vel, sizeof(e->glo.vel), msg->vel, sizeof(msg->vel));
+  MEMCPY_S(e->glo.acc, sizeof(e->glo.acc), msg->acc, sizeof(msg->acc));
   e->glo.gamma = msg->gamma;
   e->glo.tau = msg->tau;
   e->glo.d_tau = msg->d_tau;
@@ -580,9 +581,9 @@ static void unpack_ephemeris_glo(const msg_ephemeris_t *m, ephemeris_t *e) {
 static void pack_ephemeris_glo(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg_ephemeris_glo_t *msg = &m->glo;
   pack_ephemeris_common(e, &msg->common);
-  memcpy(msg->pos, e->glo.pos, sizeof(msg->pos));
-  memcpy(msg->vel, e->glo.vel, sizeof(msg->vel));
-  memcpy(msg->acc, e->glo.acc, sizeof(msg->acc));
+  MEMCPY_S(msg->pos, sizeof(msg->pos), e->glo.pos, sizeof(e->glo.pos));
+  MEMCPY_S(msg->vel, sizeof(msg->vel), e->glo.vel, sizeof(e->glo.vel));
+  MEMCPY_S(msg->acc, sizeof(msg->acc), e->glo.acc, sizeof(e->glo.acc));
   msg->gamma = e->glo.gamma;
   msg->tau = e->glo.tau;
   msg->d_tau = e->glo.d_tau;

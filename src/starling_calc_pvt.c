@@ -20,6 +20,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
@@ -307,8 +308,10 @@ static gnss_solution create_spp_result(
   spp_solution.time = pvt_engine_result->result_time;
   spp_solution.n_sats_used = pvt_engine_result->num_sats_used;
   spp_solution.n_sigs_used = pvt_engine_result->num_sigs_used;
-  memcpy(
-      spp_solution.pos_ecef, pvt_engine_result->baseline, 3 * sizeof(double));
+  MEMCPY_S(spp_solution.pos_ecef,
+           sizeof(spp_solution.pos_ecef),
+           pvt_engine_result->baseline,
+           sizeof(pvt_engine_result->baseline));
   wgsecef2llh(spp_solution.pos_ecef, spp_solution.pos_llh);
 
   spp_solution.err_cov[0] = pvt_engine_result->baseline_covariance[0];
@@ -320,8 +323,10 @@ static gnss_solution create_spp_result(
 
   spp_solution.velocity_valid = pvt_engine_result->velocity_valid;
   if (pvt_engine_result->velocity_valid) {
-    memcpy(
-        spp_solution.vel_ecef, pvt_engine_result->velocity, 3 * sizeof(double));
+    MEMCPY_S(spp_solution.vel_ecef,
+             sizeof(spp_solution.vel_ecef),
+             pvt_engine_result->velocity,
+             sizeof(pvt_engine_result->velocity));
     wgsecef2ned(
         spp_solution.vel_ecef, spp_solution.pos_ecef, spp_solution.vel_ned);
     spp_solution.vel_cov[0] = pvt_engine_result->velocity_covariance[0];
@@ -447,15 +452,17 @@ double calc_heading(const double b_ned[3]) {
   return heading * R2D;
 }
 
+#define SPP_ECEF_SIZE 3
+
 void solution_make_baseline_sbp(const pvt_engine_result_t *result,
-                                const double spp_ecef[3],
+                                const double spp_ecef[SPP_ECEF_SIZE],
                                 const dops_t *dops,
                                 sbp_messages_t *sbp_messages) {
   double ecef_pos[3];
   if (result->has_known_reference_pos) {
     vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
   } else {
-    memcpy(ecef_pos, spp_ecef, 3 * sizeof(double));
+    MEMCPY_S(ecef_pos, sizeof(ecef_pos), spp_ecef, SPP_ECEF_SIZE);
   }
 
   double b_ned[3];
@@ -636,15 +643,18 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
         .has_known_reference_pos = true,
         .propagation_time = 0.0,
     };
-    memcpy(result.baseline,
-           simulation_current_baseline_ecef(),
-           sizeof(result.baseline));
-    memcpy(result.baseline_covariance,
-           simulation_current_covariance_ecef(),
-           sizeof(result.baseline_covariance));
-    memcpy(result.known_reference_pos,
-           simulation_ref_ecef(),
-           sizeof(result.known_reference_pos));
+    MEMCPY_S(result.baseline,
+             sizeof(result.baseline),
+             simulation_current_baseline_ecef(),
+             sizeof(result.baseline));
+    MEMCPY_S(result.baseline_covariance,
+             sizeof(result.baseline_covariance),
+             simulation_current_covariance_ecef(),
+             sizeof(result.baseline_covariance));
+    MEMCPY_S(result.known_reference_pos,
+             sizeof(result.known_reference_pos),
+             simulation_ref_ecef(),
+             sizeof(result.known_reference_pos));
 
     solution_make_baseline_sbp(&result,
                                simulation_ref_ecef(),
@@ -717,13 +727,25 @@ static void starling_thread(void *arg) {
     // as this preserves existing behavior
     starling_frequency = soln_freq;
 
-    u8 n_ready = (rover_channel_epoch->size);
+    u8 n_ready = rover_channel_epoch->size;
     memset(nav_meas, 0, sizeof(nav_meas));
-    memcpy(nav_meas,
-           rover_channel_epoch->obs,
-           n_ready * sizeof(navigation_measurement_t));
+
+    if (n_ready) {
+      MEMCPY_S(nav_meas,
+               sizeof(nav_meas),
+               rover_channel_epoch->obs,
+               n_ready * sizeof(navigation_measurement_t));
+    }
+
     memset(e_meas, 0, sizeof(e_meas));
-    memcpy(e_meas, rover_channel_epoch->ephem, n_ready * sizeof(ephemeris_t));
+
+    if (n_ready) {
+      MEMCPY_S(e_meas,
+               sizeof(e_meas),
+               rover_channel_epoch->ephem,
+               n_ready * sizeof(ephemeris_t));
+    }
+
     obs_time = rover_channel_epoch->obs_time;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);

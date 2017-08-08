@@ -19,6 +19,7 @@
 
 #include <libsbp/file_io.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 
 #include "sbp.h"
 #include "sbp_fileio.h"
@@ -42,10 +43,12 @@ static u8 next_seq(void) {
   return ret;
 }
 
+#define SBP_FILEIO_MSG_LEN 256
+
 struct sbp_fileio_closure {
   u8 seq;
   binary_semaphore_t sem;
-  u8 msg[256];
+  u8 msg[SBP_FILEIO_MSG_LEN];
   u8 len;
 };
 
@@ -59,7 +62,7 @@ static void sbp_fileio_callback(u16 sender_id,
   (void)sender_id;
 
   if (msg->sequence == closure->seq) {
-    memcpy(closure->msg, msg_raw, len);
+    MEMCPY_S(closure->msg, SBP_FILEIO_MSG_LEN, msg_raw, len);
     closure->len = len;
     chBSemSignal(&closure->sem);
   } else {
@@ -104,7 +107,7 @@ ssize_t sbp_fileio_write(const char *filename,
     strcpy(msg->filename, filename);
     msg_pt = (u8 *)msg;
     chunksize = MIN(chunksize, (ssize_t)(size - s));
-    memcpy(msg_pt + payload_offset, buf + s, chunksize);
+    MEMCPY_S(msg_pt + payload_offset, 256 - payload_offset, buf + s, chunksize);
 
     u8 tries = 0;
     bool success = false;
@@ -182,7 +185,7 @@ ssize_t sbp_fileio_read(const char *filename,
     ssize_t chunksize = MIN(closure.len - 4, (ssize_t)(size - s));
     if (chunksize == 0) break;
 
-    memcpy(buf + s, closure.msg + 4, chunksize);
+    MEMCPY_S(buf + s, size - s, closure.msg + 4, chunksize);
     s += chunksize;
   }
 

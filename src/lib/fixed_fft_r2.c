@@ -11,6 +11,7 @@
  */
 
 #include "fixed_fft_r2.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

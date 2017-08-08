@@ -23,6 +23,7 @@
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/signal.h>
 
 #include "./system_monitor.h"
@@ -1514,8 +1515,9 @@ static bool tracking_startup_fifo_write(
     tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element) {
   if (TRACKING_STARTUP_FIFO_LENGTH(fifo) < TRACKING_STARTUP_FIFO_SIZE) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
-    memcpy(
+    MEMCPY_S(
         &fifo->elements[fifo->write_index & TRACKING_STARTUP_FIFO_INDEX_MASK],
+        sizeof(tracking_startup_params_t),
         element,
         sizeof(tracking_startup_params_t));
     COMPILER_BARRIER(); /* Prevent compiler reordering */
@@ -1537,9 +1539,11 @@ static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element) {
   if (TRACKING_STARTUP_FIFO_LENGTH(fifo) > 0) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
-    memcpy(element,
-           &fifo->elements[fifo->read_index & TRACKING_STARTUP_FIFO_INDEX_MASK],
-           sizeof(tracking_startup_params_t));
+    MEMCPY_S(
+        element,
+        sizeof(tracking_startup_params_t),
+        &fifo->elements[fifo->read_index & TRACKING_STARTUP_FIFO_INDEX_MASK],
+        sizeof(tracking_startup_params_t));
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     fifo->read_index++;
     return true;

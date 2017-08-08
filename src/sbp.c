@@ -21,6 +21,7 @@
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 
 #include "error.h"
 #include "io_support.h"
@@ -136,7 +137,10 @@ static void sbp_buffer_reset(void) { sbp_buffer_length = 0; }
 static u32 sbp_buffer_write(u8 *buff, u32 n, void *context) {
   (void)context;
   u32 len = MIN(sizeof(sbp_buffer) - sbp_buffer_length, n);
-  memcpy(&sbp_buffer[sbp_buffer_length], buff, len);
+  MEMCPY_S(&sbp_buffer[sbp_buffer_length],
+           sizeof(sbp_buffer) - sbp_buffer_length,
+           buff,
+           len);
   sbp_buffer_length += len;
   return len;
 }
