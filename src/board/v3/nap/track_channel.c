@@ -287,14 +287,7 @@ void nap_track_init(u8 channel,
   /* get the code rollover point in samples */
   u32 tc_codestart =
       ref_timing_count - delta_samples -
-      floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
-
-  log_info_mesid(s->mesid,
-                 "tc_codestart %10" PRIu32 " %10" PRIu32 " %+4d %.3f",
-                 tc_codestart,
-                 ref_timing_count,
-                 delta_samples,
-                 (0.5 + (code_phase * calc_samples_per_chip(chip_rate))));
+      (s16)floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
 
   nap_track_enable(channel);
 
@@ -312,22 +305,20 @@ void nap_track_init(u8 channel,
   if (mesid.code == CODE_GPS_L2CL) {
     code_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
     code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
-    num_codes = 1 + floor((double)samples_diff / code_samples);
-    tc_next_rollover =
-        tc_codestart + floor(0.5 + (double)num_codes * code_samples);
+    num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
     index = (num_codes % GPS_L2CL_PRN_START_POINTS);
-    NAP->TRK_CODE_INT_INIT = index * code_chips;
   } else {
     code_chips = code_to_chip_count(mesid.code);
     code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
-    num_codes = 1 + floor((double)samples_diff / code_samples);
-    tc_next_rollover =
-        tc_codestart + floor(0.5 + (double)num_codes * code_samples);
-    NAP->TRK_CODE_INT_INIT = 0;
+    num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
   }
+  tc_next_rollover =
+      tc_codestart + (u32)floor(0.5 + (double)num_codes * code_samples);
+
+  NAP->TRK_CODE_INT_INIT = index * code_chips;
+  NAP->TRK_CODE_FRAC_INIT = 0;
 
   NAP->TRK_CODE_INT_MAX = code_to_chip_count(mesid.code) - 1;
-  NAP->TRK_CODE_FRAC_INIT = 0;
 
   NAP->TRK_CODE_LFSR0_INIT = mesid_to_init_g1(mesid, index);
   NAP->TRK_CODE_LFSR0_RESET = mesid_to_init_g1(mesid, index);
@@ -337,9 +328,22 @@ void nap_track_init(u8 channel,
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
 
+  log_info_mesid(s->mesid,
+                 "min_propag %10" PRIu32 " codestart %10" PRIu32 " "
+                 "next_rollover %10" PRIu32 " samples_diff %10" PRIu32 " "
+                 "ref_timing_count %10" PRIu32 " delta_samples %+4d "
+                 "%2d   %.3f",
+                 tc_min_propag, tc_codestart,
+                 tc_next_rollover, samples_diff,
+                 ref_timing_count, delta_samples,
+                 num_codes,
+                 (0.5 + (code_phase * calc_samples_per_chip(chip_rate))));
+
   /* Sleep until compare match */
   s32 tc_delta;
   while ((tc_delta = (tc_next_rollover - NAP->TIMING_COUNT)) >= 0) {
+    log_info_mesid(s->mesid, "tc_delta %10" PRIu32, tc_delta);
+
     systime_t sleep_time =
         floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TRACK_SAMPLE_RATE_Hz);
 
