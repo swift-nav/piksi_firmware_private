@@ -296,7 +296,7 @@ void nap_track_init(u8 channel,
   /* Set up timing compare */
   chSysLock();
   /* get a reasonable deadline to which propagate to */
-  u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA;
+  u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
 
   /* extend tc_min_propag to 64 bit */
   tc_min_propag += (tc_codestart >> 32) << 32;
@@ -340,6 +340,9 @@ void nap_track_init(u8 channel,
 
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
+  if (mesid.code == CODE_GPS_L2CL) {
+    log_info_mesid(s->mesid, "num_codes %d", num_codes);
+  }
 
   /* Sleep until compare match */
   s32 tc_delta;

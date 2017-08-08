@@ -40,19 +40,19 @@
 #endif
 
 /**! sample grabber leaves RAW F/E samples here */
-static uint8_t *puSampleBuf;
+static u8 *sample_buff;
 
 /**! samples are down-converted to baseband and decimated here  */
 static sc16_t pBaseBand[SOFTMACQ_BASEBAND_SIZE] __attribute__((aligned(32)));
 
 /** the last grabber acquisition time tag */
-static u32 last_timetag;
+static u64 last_timetag;
 
 /** the last acquired signal */
 static me_gnss_signal_t mesid_last;
 
 /** */
-static uint32_t iSamplesMs;
+static u32 iSamplesMs;
 
 static bool bModuleInit;
 
@@ -87,7 +87,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
                            acq_result_t *p_acqres) {
-  u32 tmp_timetag = 0;
+  u64 tmp_timetag = 0;
   u32 buff_size = 0;
   /** sanity checking input parameters */
   assert(NULL != p_acqres);
@@ -98,15 +98,20 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
     log_info("InitBBConvLut()");
   }
 
+  /** get current NAP count and extend it */
+  u64 curr_timetag = NAP->TIMING_COUNT;
+  curr_timetag += (last_timetag >> 32) << 32;
+  if (curr_timetag < last_timetag) {
+    curr_timetag += (1ULL << 32);
+  }
   /** Check if the last grabbed signal snapshot isn't too old.
    * If yes, simply grab another one */
-  u32 curr_timetag = NAP->TIMING_COUNT;
   if ((last_timetag == 0) ||
       ((curr_timetag - last_timetag) > SOFTMACQ_MAX_AGE_SAMP)) {
     /** GRAB!!! */
-    puSampleBuf = grab_samples(&buff_size, &tmp_timetag);
-    if (NULL == puSampleBuf) {
-      log_warn("data grabber failed, buff_size %u tmp_timetag %u",
+    sample_buff = grab_samples(&buff_size, &tmp_timetag);
+    if (NULL == sample_buff) {
+      log_warn("grabber failed, buff_size %" PRIu32 " tmp_timetag %" PRIu64,
                buff_size,
                tmp_timetag);
       return false;
@@ -182,7 +187,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
           CirclesToUint32((double)SOFTMACQ_FC_GPSL1 / (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 0) & 0x3)
+        uSample = ((sample_buff[k] >> 0) & 0x3)
                   << BBNCO_CARRPH_BITS; /** two LSBs are Channel 1 */
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
@@ -204,7 +209,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
           (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 2) & 0x3)
+        uSample = ((sample_buff[k] >> 2) & 0x3)
                   << BBNCO_CARRPH_BITS; /** B3..2 are Channel 2 */
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
@@ -224,7 +229,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
                                  (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 0) & 0x3)
+        uSample = ((sample_buff[k] >> 0) & 0x3)
                   << BBNCO_CARRPH_BITS; /** B1..0 are Channel 1 */
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
