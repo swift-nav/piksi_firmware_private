@@ -207,8 +207,7 @@ typedef struct {
   float filt_accel; /**< SV acceleration value for decision logic [g] */
 
   /* Packed fields: 24 bits */
-  u32 olock : 1;                  /**< PLL optimistic lock flag */
-  u32 plock : 1;                  /**< PLL pessimistic lock flag */
+  u32 plock : 1;                  /**< PLL/FLL pessimistic lock flag */
   u32 bsync : 1;                  /**< Bit sync flag */
   u32 bsync_sticky : 1;           /**< Bit sync flag */
   u32 profile_update : 1;         /**< Flag if the profile update is required */
@@ -542,6 +541,7 @@ typedef struct {
   double carrier_phase;      /**< Carrier phase in cycles. */
   double carrier_phase_prev; /**< Previous carrier phase in cycles. */
   double carrier_freq;       /**< Carrier frequency Hz. */
+  double carrier_freq_prev;  /**< Previous readings for FLL lock detector. */
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
@@ -563,18 +563,20 @@ typedef struct {
 
   tp_profile_t profile; /**< Profile controller state. */
 
-  tp_tl_state_t tl_state;      /**< Tracking loop filter state. */
-  tp_corr_state_t corrs;       /**< Correlations */
-  track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
-  alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t lock_detect;   /**< Lock detector state. */
-  lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
-  u16 tracking_mode : 3;       /**< Tracking mode */
-  u16 cycle_no : 5;            /**< Cycle index inside current
-                                *   integration mode. */
-  u16 use_alias_detection : 1; /**< Flag for alias detection control */
-  u16 has_next_params : 1;     /**< Flag if stage transition is in
-                                *   progress */
+  tp_tl_state_t tl_state;         /**< Tracking loop filter state. */
+  tp_corr_state_t corrs;          /**< Correlations */
+  track_cn0_state_t cn0_est;      /**< C/N0 estimator state. */
+  alias_detect_t alias_detect;    /**< Alias lock detector. */
+  lock_detect_t lock_detect_pll;  /**< Checks PLL phase error. */
+  lock_detect_t lock_detect_fll;  /**< Checks FLL vs DLL freq difference n*/
+  lock_detect_t lock_detect_fll2; /**< Checks FLL freq change rate. */
+  lp1_filter_t xcorr_filter;      /**< Low-pass SV POV doppler filter */
+  u16 tracking_mode : 3;          /**< Tracking mode */
+  u16 cycle_no : 5;               /**< Cycle index inside current
+                                   *   integration mode. */
+  u16 use_alias_detection : 1;    /**< Flag for alias detection control */
+  u16 has_next_params : 1;        /**< Flag if stage transition is in
+                                   *   progress */
 
   /* Constellation specific data */
   union {
@@ -771,12 +773,9 @@ typedef struct {
   float cn0;              /**< Computed C/N0 (filtered) in dB/Hz */
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
   u32 plock : 1;          /**< Pessimistic lock flag */
-  u32 olock : 1;          /**< Optimistic lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
-  float lock_i;           /**< Filtered I value from the lock detector */
-  float lock_q;           /**< Filtered Q value from the lock detector */
 } tp_report_t;
 
 /**

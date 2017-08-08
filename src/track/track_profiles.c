@@ -467,7 +467,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_SENS] =
   { {    0,             3,            1,   TP_CTRL_FLL2,             TP_TM_20MS,
                TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_FLL_5MS,
-      4000,             0,          32.,            1.5,                    32.,
+        50,             0,          32.,            1.5,                    32.,
       IDX_SENS,  IDX_NONE, IDX_TRAN_CN0,   IDX_TRAN_DYN,               IDX_NONE,
       TP_HIGH_CN0_WAIT_PLOCK_N0_DYN | TP_HIGH_DYN_WAIT_PLOCK_CN0 |
       TP_WAIT_CN0 | TP_USE_NEXT },
@@ -649,21 +649,9 @@ static void get_profile_params(const me_gnss_signal_t mesid,
   config->loop_params.mode = track_mode_by_code(mesid.code, cur_profile);
   config->loop_params.ctrl = cur_profile->profile.controller_type;
 
-  /*
-   * Alias detection is requires bit-aligned integration accumulator with equal
-   * intervals.
-   * The logic works with PLL in modes:
-   * - 1+N modes with 5 and 10 ms.
-   * - 1+N5 and 1+N10.
-   */
   const tp_tm_e mode = config->loop_params.mode;
-  const tp_ctrl_e ctrl = config->loop_params.ctrl;
-  if ((TP_TM_5MS == mode || TP_TM_10MS == mode || TP_TM_20MS == mode) &&
-      (TP_CTRL_PLL2 == ctrl || TP_CTRL_PLL3 == ctrl)) {
-    config->use_alias_detection = true;
-  } else {
-    config->use_alias_detection = false;
-  }
+  config->use_alias_detection =
+      (TP_TM_5MS == mode) || (TP_TM_10MS == mode) || (TP_TM_20MS == mode);
 
   tp_profile_get_cn0_params(profile, &config->cn0_params);
 }
@@ -721,7 +709,6 @@ static void update_stats(tracker_channel_t *tracker_channel,
     profile->time_snapshot_ms = cur_time_ms;
   }
 
-  profile->olock = data->olock;
   profile->plock = data->plock;
   profile->bsync_sticky |= data->bsync;
 
