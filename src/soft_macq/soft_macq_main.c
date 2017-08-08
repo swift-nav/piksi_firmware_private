@@ -106,8 +106,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
     /** GRAB!!! */
     puSampleBuf = grab_samples(&buff_size, &tmp_timetag);
     if (NULL == puSampleBuf) {
-      log_warn(
-          "data grabber failed, buff_size %u tmp_timetag %u", buff_size, tmp_timetag);
+      log_warn("data grabber failed, buff_size %u tmp_timetag %u",
+               buff_size,
+               tmp_timetag);
       return false;
     }
     /** update signal time tag */
@@ -219,9 +220,8 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_BDS2_B11:
       uDecFactor = SOFTMACQ_DECFACT_BDS2B1;
       iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
-      uNcoStep = CirclesToUint32(
-          (double)(SOFTMACQ_FC_BDS2B1) /
-          (double)SOFTMACQ_RAW_FS);
+      uNcoStep = CirclesToUint32((double)(SOFTMACQ_FC_BDS2B1) /
+                                 (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
         uSample = ((puSampleBuf[k] >> 0) & 0x3)
