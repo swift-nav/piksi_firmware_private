@@ -283,7 +283,6 @@ void nap_track_init(u8 channel,
   s->carr_pinc[1] = s->carr_pinc[0] = carr_pinc;
   t->CARR_PINC = carr_pinc;
 
-
   /* get the code rollover point in samples */
   u64 tc_codestart =
       ref_timing_count - delta_samples -
