@@ -42,7 +42,7 @@ void boardRevInit(void) {
 
   palSetLineMode(LED_nRST_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(LED_nRST_GPIO_LINE);
-  
+
   palSetLineMode(DURO_LED_RST_GPIO_LINE, PAL_MODE_OUTPUT);
   palClearLine(DURO_LED_RST_GPIO_LINE);
 

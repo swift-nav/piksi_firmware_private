@@ -58,11 +58,11 @@ static void init_reg_isc(bool is_duro) {
   if (is_duro) {
     isc_route[0] = 0x23U + 8;
     for (i = 2; i <= 9; i++) {
-      isc_route[i-1] = 0x23U + i - 2;
+      isc_route[i - 1] = 0x23U + i - 2;
     }
   } else {
     for (i = 1; i <= 9; i++) {
-      isc_route[i-1] = 0x23U + i - 1;
+      isc_route[i - 1] = 0x23U + i - 1;
     }
   }
 }
@@ -169,7 +169,7 @@ static bool configure(void) {
 
     /* Set current to zero for all independent sinks */
     for (u32 i = 1; i <= LED_ADP8866_LED_COUNT; i++) {
-      if (i2c_write(isc_route[i-1], 0) != MSG_OK) {
+      if (i2c_write(isc_route[i - 1], 0) != MSG_OK) {
         ret = false;
       }
     }
