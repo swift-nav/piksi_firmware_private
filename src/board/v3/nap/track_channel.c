@@ -328,28 +328,9 @@ void nap_track_init(u8 channel,
   NAP->TRK_TIMING_COMPARE = tc_next_rollover;
   chSysUnlock();
 
-  log_info_mesid(s->mesid,
-                 "min_propag %10" PRIu32 " codestart %10" PRIu32
-                 " "
-                 "next_rollover %10" PRIu32 " samples_diff %10" PRIu32
-                 " "
-                 "ref_timing_count %10" PRIu32
-                 " delta_samples %+4d "
-                 "%2d   %.3f",
-                 tc_min_propag,
-                 tc_codestart,
-                 tc_next_rollover,
-                 samples_diff,
-                 ref_timing_count,
-                 delta_samples,
-                 num_codes,
-                 (0.5 + (code_phase * calc_samples_per_chip(chip_rate))));
-
   /* Sleep until compare match */
   s32 tc_delta;
   while ((tc_delta = (tc_next_rollover - NAP->TIMING_COUNT)) >= 0) {
-    log_info_mesid(s->mesid, "tc_delta %10" PRIu32, tc_delta);
-
     systime_t sleep_time =
         floor(CH_CFG_ST_FREQUENCY * tc_delta / NAP_TRACK_SAMPLE_RATE_Hz);
 
