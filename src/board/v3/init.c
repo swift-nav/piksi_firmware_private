@@ -60,7 +60,7 @@ static struct {
   uint32_t hardware;
   uint32_t timestamp;
   uint8_t uuid[16];
-  uint8_t nap_key[16];
+  uint8_t nap_key[NAP_KEY_LENGTH];
   uint8_t mac_address[6];
   uint8_t mfg_id[17];
   uint32_t hardware_version;
@@ -163,10 +163,22 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * be sent and received (it can't go in init() or nap_setup()).
  */
 void nap_auth_check(void) {
+  char dna[NAP_DNA_LENGTH * 2 + 1];
+  char key[NAP_KEY_LENGTH * 2 + 1];
   while (nap_locked()) {
-    log_error("NAP Verification Failed: DNA=%016X, Key=%032X",
-              nap_dna,
-              factory_params.nap_key);
+    char *pnt = dna;
+    for (int i = 0; i < NAP_DNA_LENGTH; i++) {
+      sprintf(pnt, "%02x", nap_dna[i]);
+      pnt += 2;
+    }
+    dna[NAP_DNA_LENGTH * 2] = '\0';
+    pnt = key;
+    for (int i = 0; i < NAP_KEY_LENGTH; i++) {
+      sprintf(pnt, "%02x", factory_params.nap_key[i]);
+      pnt += 2;
+    }
+    key[NAP_KEY_LENGTH * 2] = '\0';
+    log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
     chThdSleepSeconds(1);
     nap_unlock(factory_params.nap_key);
     chThdSleepSeconds(1);
