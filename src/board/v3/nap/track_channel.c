@@ -329,13 +329,19 @@ void nap_track_init(u8 channel,
   chSysUnlock();
 
   log_info_mesid(s->mesid,
-                 "min_propag %10" PRIu32 " codestart %10" PRIu32 " "
-                 "next_rollover %10" PRIu32 " samples_diff %10" PRIu32 " "
-                 "ref_timing_count %10" PRIu32 " delta_samples %+4d "
+                 "min_propag %10" PRIu32 " codestart %10" PRIu32
+                 " "
+                 "next_rollover %10" PRIu32 " samples_diff %10" PRIu32
+                 " "
+                 "ref_timing_count %10" PRIu32
+                 " delta_samples %+4d "
                  "%2d   %.3f",
-                 tc_min_propag, tc_codestart,
-                 tc_next_rollover, samples_diff,
-                 ref_timing_count, delta_samples,
+                 tc_min_propag,
+                 tc_codestart,
+                 tc_next_rollover,
+                 samples_diff,
+                 ref_timing_count,
+                 delta_samples,
                  num_codes,
                  (0.5 + (code_phase * calc_samples_per_chip(chip_rate))));
 
