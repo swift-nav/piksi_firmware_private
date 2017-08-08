@@ -340,15 +340,15 @@ void nap_track_init(u8 channel,
   }
 }
 
-void nap_track_update(u8 _chan_idx,
+void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
                       u8 corr_spacing) {
   (void)corr_spacing; /* This is always written as 0, for now */
 
-  swiftnap_tracking_t *t = &NAP->TRK_CH[_chan_idx];
-  struct nap_ch_state *s = &nap_ch_desc[_chan_idx];
+  swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
+  struct nap_ch_state *s = &nap_ch_desc[channel];
 
   /* CHIP RATE --------------------------------------------------------- */
   /* MIC_COMMENT: the use of s->code_phase_rate[2] is pretty limited:
