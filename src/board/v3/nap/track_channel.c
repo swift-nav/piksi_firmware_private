@@ -247,10 +247,7 @@ void nap_track_init(u8 channel,
   /* Initial correlation length for L2CL is thus 1 chip shorter,
    * since first L2CM chip is skipped */
   if (mesid.code == CODE_GPS_L2CL) {
-    code_phase -= 1.0f;
-    if (code_phase < 0.0f) {
-      code_phase += GPS_L2CL_CHIPS_NUM;
-    }
+    code_phase += 1.0f;
     delta_samples -= calc_samples_per_chip(chip_rate);
   }
 
@@ -287,7 +284,7 @@ void nap_track_init(u8 channel,
   /* get the code rollover point in samples */
   u32 tc_codestart =
       ref_timing_count - delta_samples -
-      (s16)floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
+      (s32)floor(0.5 + (code_phase * calc_samples_per_chip(chip_rate)));
 
   nap_track_enable(channel);
 
@@ -321,7 +318,7 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_INT_MAX = code_to_chip_count(mesid.code) - 1;
 
   NAP->TRK_CODE_LFSR0_INIT = mesid_to_init_g1(mesid, index);
-  NAP->TRK_CODE_LFSR0_RESET = mesid_to_init_g1(mesid, index);
+  NAP->TRK_CODE_LFSR0_RESET = mesid_to_init_g1(mesid, 0);
   NAP->TRK_CODE_LFSR1_INIT = mesid_to_init_g2(mesid);
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_init_g2(mesid);
 
