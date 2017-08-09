@@ -890,6 +890,8 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
  *
  * \return None
  */
+#define POW_TWO_P31 (2147483648.0)
+#define POW_TWO_P32 (4294967296.0)
 void tracking_channel_measurement_get(
     const double float_tc,
     const tracking_channel_info_t *info,
@@ -907,7 +909,14 @@ void tracking_channel_measurement_get(
   meas->carrier_freq = freq_info->carrier_freq;
   meas->time_of_week_ms = info->tow_ms;
   meas->tow_residual_ns = info->tow_residual_ns;
-  meas->rec_time_delta = (info->sample_count - float_tc) /
+  double extended_sampcount = info->sample_count;
+  extended_sampcount += POW_TWO_P32*floor(float_tc/POW_TWO_P32);
+  if (extended_sampcount > float_tc+POW_TWO_P31) {
+    extended_sampcount -= POW_TWO_P32;
+  } else if (extended_sampcount < float_tc-POW_TWO_P31) {
+    extended_sampcount += POW_TWO_P32;
+  }
+  meas->rec_time_delta = (extended_sampcount - float_tc) /
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
