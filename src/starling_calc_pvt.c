@@ -949,14 +949,42 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 4000000);
-static void time_matched_obs_thread(void *arg) {
-  (void)arg;
-  chRegSetThreadName("time matched obs");
+static bool enable_fix_mode(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
 
-  // Declare all SBP messages
-  sbp_messages_t sbp_messages;
+  bool enable_fix = value == 0 ? false : true;
+  chMtxLock(&time_matched_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
+  chMtxUnlock(&time_matched_filter_manager_lock);
+  chMtxLock(&low_latency_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
+  chMtxUnlock(&low_latency_filter_manager_lock);
+  *(dgnss_filter_t *)s->addr = value;
+  return ret;
+}
 
+static bool set_max_age(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+
+  chMtxLock(&low_latency_filter_manager_lock);
+  set_max_correction_age(low_latency_filter_manager, value);
+  chMtxUnlock(&low_latency_filter_manager_lock);
+  chMtxLock(&time_matched_filter_manager_lock);
+  set_max_correction_age(time_matched_filter_manager, value);
+  chMtxUnlock(&time_matched_filter_manager_lock);
+  *(int *)s->addr = value;
+  return ret;
+}
+
+void init_filters(void) {
   chMtxLock(&time_matched_filter_manager_lock);
   time_matched_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&time_matched_filter_manager_lock);
@@ -964,6 +992,33 @@ static void time_matched_obs_thread(void *arg) {
   chMtxLock(&low_latency_filter_manager_lock);
   low_latency_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&low_latency_filter_manager_lock);
+
+  static const char const *dgnss_filter_enum[] = {"Float", "Fixed", NULL};
+  static struct setting_type dgnss_filter_setting;
+  int TYPE_GNSS_FILTER =
+      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
+
+  SETTING_NOTIFY("solution",
+                 "dgnss_filter",
+                 dgnss_filter,
+                 TYPE_GNSS_FILTER,
+                 enable_fix_mode);
+  SETTING_NOTIFY("solution",
+                 "correction_age_max",
+                 max_age_of_differential,
+                 TYPE_INT,
+                 set_max_age);
+}
+
+static WORKING_AREA_CCM(wa_time_matched_obs_thread, 4000000);
+static void time_matched_obs_thread(void *arg) {
+  (void)arg;
+  chRegSetThreadName("time matched obs");
+
+  init_filters();
+
+  // Declare all SBP messages
+  sbp_messages_t sbp_messages;
 
   while (1) {
     /* Wait for a new observation to arrive from the base station. */
@@ -1101,41 +1156,6 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
   return ret;
 }
 
-static bool enable_fix_mode(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  bool enable_fix = value == 0 ? false : true;
-  chMtxLock(&time_matched_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
-  chMtxUnlock(&time_matched_filter_manager_lock);
-  chMtxLock(&low_latency_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
-  chMtxUnlock(&low_latency_filter_manager_lock);
-  *(dgnss_filter_t *)s->addr = value;
-  return ret;
-}
-
-static bool set_max_age(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  chMtxLock(&low_latency_filter_manager_lock);
-  set_max_correction_age(low_latency_filter_manager, value);
-  chMtxUnlock(&low_latency_filter_manager_lock);
-  chMtxLock(&time_matched_filter_manager_lock);
-  set_max_correction_age(time_matched_filter_manager, value);
-  chMtxUnlock(&time_matched_filter_manager_lock);
-  *(int *)s->addr = value;
-  return ret;
-}
-
 void starling_calc_pvt_setup() {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
@@ -1148,11 +1168,6 @@ void starling_calc_pvt_setup() {
       dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
   SETTING(
       "solution", "dgnss_solution_mode", dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
-
-  static const char const *dgnss_filter_enum[] = {"Float", "Fixed", NULL};
-  static struct setting_type dgnss_filter_setting;
-  int TYPE_GNSS_FILTER =
-      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
@@ -1192,17 +1207,6 @@ void starling_calc_pvt_setup() {
                     NORMALPRIO - 3,
                     time_matched_obs_thread,
                     NULL);
-
-  SETTING_NOTIFY("solution",
-                 "dgnss_filter",
-                 dgnss_filter,
-                 TYPE_GNSS_FILTER,
-                 enable_fix_mode);
-  SETTING_NOTIFY("solution",
-                 "correction_age_max",
-                 max_age_of_differential,
-                 TYPE_INT,
-                 set_max_age);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
