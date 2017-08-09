@@ -253,14 +253,19 @@ static void me_calc_pvt_thread(void *arg) {
     u32 interval_us = round(SECS_US / soln_freq);
 
     /* Try to sleep until next epoch at (deadline + interval_us) */
-    if (!piksi_systime_sleep_until_windowed_us(&deadline, interval_us)) {
+    u32 sleep_us =
+        piksi_systime_sleep_until_windowed_us(&deadline, interval_us);
+    if (0 == sleep_us) {
       piksi_systime_t systime;
       piksi_systime_get(&systime);
       log_warn(
           "Solution thread missed deadline, "
           "time = %llu, deadline = %llu",
-          piksi_systime_to_s(&systime),
-          piksi_systime_to_s(&deadline));
+          piksi_systime_to_us(&systime),
+          piksi_systime_to_us(&deadline));
+      /* Increment deadline to next epoch */
+      piksi_systime_inc_us(&deadline, interval_us);
+      continue;
     }
 
     /* Increment deadline to next epoch */
@@ -285,9 +290,33 @@ static void me_calc_pvt_thread(void *arg) {
     /* Take the current nap count */
     u64 rec_tc = nap_timing_count();
 
-    /* Collect measurements from trackers, load ephemerides and compute flags */
+    /* If we have timing then we can calculate the relationship between
+     * receiver time and GPS time and hence provide the pseudorange
+     * calculation with the local GPS time of reception. */
+    gps_time_t rec_time = napcount2rcvtime(rec_tc);
+
+    u64 expected_tc = rec_tc;
+
+    /* Pointer to the reception time (gps time frame) */
+    gps_time_t *p_rec_time = NULL;
+
+    /* Find the next solution epoch */
+    gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
+    if (TIME_FINE == get_time_quality()) {
+      /* Round the reception time to the nearest solution epoch */
+      new_obs_time.tow = round(rec_time.tow * soln_freq) / soln_freq;
+      normalize_gps_time(&new_obs_time);
+      gps_time_match_weeks(&new_obs_time, &rec_time);
+
+      rec_time = new_obs_time;
+      p_rec_time = &rec_time;
+      expected_tc = (u64)(round(gpstime2napcount(&new_obs_time)));
+    }
+
+    /* Collect measurements from trackers, load ephemerides and compute flags.
+     * Reference the measurments to the solution epoch. */
     collect_measurements(
-        rec_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
+        expected_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
@@ -329,14 +358,6 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Create navigation measurements from the channel measurements */
-    /* If we have timing then we can calculate the relationship between
-     * receiver time and GPS time and hence provide the pseudorange
-     * calculation with the local GPS time of reception. */
-    gps_time_t rec_time = napcount2rcvtime(rec_tc);
-
-    /* Pointer to the reception time (gps time frame) */
-    gps_time_t *p_rec_time =
-        (get_time_quality() == TIME_FINE) ? &rec_time : NULL;
 
     /* If a FINE quality time solution is not available then don't pass in a
      * `nav_time`. This will result in valid pseudoranges but with a large
@@ -462,7 +483,7 @@ static void me_calc_pvt_thread(void *arg) {
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(rec_tc, current_fix.time);
+      set_time_fine(expected_tc, current_fix.time);
 
       me_send_emptyobs();
 
@@ -487,17 +508,19 @@ static void me_calc_pvt_thread(void *arg) {
      * the observations all arrived at the current epoch (t').
      */
 
+    /* new_obs_time was not already set, set it based on fixed time */
+    if (!gps_time_valid(&new_obs_time)) {
+      new_obs_time.tow = round(current_fix.time.tow * soln_freq) / soln_freq;
+      normalize_gps_time(&new_obs_time);
+      gps_time_match_weeks(&new_obs_time, &current_fix.time);
+      expected_tc = (u64)(round(gpstime2napcount(&new_obs_time)));
+    }
+
     /* Calculate the time of the nearest solution epoch, where we expected
      * to be, and calculate how far we were away from it. */
-    gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
-    new_obs_time.tow = round(current_fix.time.tow * soln_freq) / soln_freq;
-    normalize_gps_time(&new_obs_time);
-    gps_time_match_weeks(&new_obs_time, &current_fix.time);
     double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
 
-    u64 expected_tc = (u64)(round(gpstime2napcount(&new_obs_time)));
-
-    log_debug("t_err = %f (new_obs_time %.4f, current_fix.time %.4f)",
+    log_debug("t_err %.9f (new_obs_time %.9f, current_fix.time %.9f)",
               t_err,
               new_obs_time.tow,
               current_fix.time.tow);
@@ -505,7 +528,8 @@ static void me_calc_pvt_thread(void *arg) {
     /* We now have the nap count we expected the measurements to be at, plus
      * the GPS time error for that nap count so we need to store this error in
      * the the GPS time (GPS time frame) */
-    set_gps_time_offset(rec_tc, current_fix.time);
+    set_gps_time_offset(expected_tc + (current_fix.clock_bias / RX_DT_NOMINAL),
+                        current_fix.time);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
