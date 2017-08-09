@@ -28,8 +28,6 @@
 #define LED_ADP8866_REG_ISCC1 (0x1AU)
 #define LED_ADP8866_REG_ISCC2 (0x1BU)
 
-#define LED_ADP8866_REG_ISCn(n) (0x23U + (n)-1)
-
 /* Bitfields */
 #define LED_ADP8866_MFDVID_DVID_Pos (0U)
 #define LED_ADP8866_MFDVID_DVID_Msk (0xfU << LED_ADP8866_MFDVID_DVID_Pos)

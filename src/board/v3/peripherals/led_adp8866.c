@@ -44,6 +44,28 @@ static void i2c_close(void) {
   i2cReleaseBus(led_i2c);
 }
 
+/*
+ * Duro connected different outputs of the adp8866 driver to the RGB
+ * Unfortunately we need different routing on RGB for addressing this
+ * case
+ */
+
+static u8 isc_route[9] = {0};
+
+static void init_reg_isc(bool is_duro) {
+  int i;
+  if (is_duro) {
+    isc_route[0] = 0x23U + 8;
+    for (i = 2; i <= 9; i++) {
+      isc_route[i - 1] = 0x23U + i - 2;
+    }
+  } else {
+    for (i = 1; i <= 9; i++) {
+      isc_route[i - 1] = 0x23U + i - 1;
+    }
+  }
+}
+
 /** Perform an I2C read operation.
  *
  * \param addr          Register address.
@@ -146,7 +168,7 @@ static bool configure(void) {
 
     /* Set current to zero for all independent sinks */
     for (u32 i = 1; i <= LED_ADP8866_LED_COUNT; i++) {
-      if (i2c_write(LED_ADP8866_REG_ISCn(i), 0) != MSG_OK) {
+      if (i2c_write(isc_route[i - 1], 0) != MSG_OK) {
         ret = false;
       }
     }
@@ -197,7 +219,7 @@ static bool leds_set(const led_adp8866_led_state_t *led_states,
       const led_adp8866_led_state_t *led_state = &led_states[i];
 
       /* Write ISCn */
-      if (i2c_write(LED_ADP8866_REG_ISCn(led_state->led + 1),
+      if (i2c_write(isc_route[led_state->led],
                     (led_state->brightness << LED_ADP8866_ISCn_SCDn_Pos)) !=
           MSG_OK) {
         ret = false;
@@ -246,6 +268,8 @@ static u32 modified_states_get(const led_adp8866_led_state_t *input_states,
  */
 void led_adp8866_init(void) {
   led_i2c = board_is_duro() ? &I2CD1 : &I2CD2;
+
+  init_reg_isc(board_is_duro());
 
   if (!id_check()) {
     return;

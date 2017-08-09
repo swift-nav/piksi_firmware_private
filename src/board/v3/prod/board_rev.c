@@ -21,6 +21,9 @@
 #define LED_nRST_GPIO_LINE PAL_LINE(GPIO2, 18)
 #define MODEM_PWR_EN_LINE PAL_LINE(GPIO2, 28)
 
+/* NOTE: On Duro, the LED reset is positive logic */
+#define DURO_LED_RST_GPIO_LINE PAL_LINE(GPIO2, 7)
+
 void boardRevInit(void) {
   /* Enable PCAP CLK */
   *(volatile uint32_t *)0xF8000168 |= (1 << 0);
@@ -39,6 +42,9 @@ void boardRevInit(void) {
 
   palSetLineMode(LED_nRST_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(LED_nRST_GPIO_LINE);
+
+  palSetLineMode(DURO_LED_RST_GPIO_LINE, PAL_MODE_OUTPUT);
+  palClearLine(DURO_LED_RST_GPIO_LINE);
 
   palSetLineMode(MODEM_PWR_EN_LINE, PAL_MODE_OUTPUT);
   palSetLine(MODEM_PWR_EN_LINE);
