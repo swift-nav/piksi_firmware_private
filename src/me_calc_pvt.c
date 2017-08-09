@@ -305,7 +305,7 @@ static void me_calc_pvt_thread(void *arg) {
      */
     if (time_quality == TIME_FINE) {
       /* Work out the time of the current nap count */
-      gps_time_t expected_time = napcount2gpstime(floor(float_tc));
+      gps_time_t expected_time = napcount2gpstime(float_tc);
 
       /* Round this time to the nearest GPS solution time */
       expected_time.tow = round(expected_time.tow * soln_freq) / soln_freq;
@@ -313,7 +313,7 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* This time, taken back to nap count, is the nap count we want the
        * observations at */
-      float_tc = round(gpstime2napcount(&expected_time));
+      float_tc = gpstime2napcount(&expected_time);
     }
     /* The difference between the current nap count and the nap count we
      * want the observations at is the amount we want to adjust our deadline
@@ -534,7 +534,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* We now have the nap count we expected the measurements to be at, plus
      * the GPS time error for that nap count so we need to store this error in
-     * the the GPS time (GPS time frame) */
+     * the GPS time frame */
     set_gps_time_offset(float_tc, current_fix.time);
 
     /* Update global position solution state. */
@@ -561,7 +561,7 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_info("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
+      log_info("t_err %.9lf clk_bias %.9lf clk_drift %.9lf",
                t_err,
                current_fix.clock_offset,
                current_fix.clock_bias);
@@ -646,23 +646,25 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Calculate the receiver clock error and adjust if it is too large */
-    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_debug("rx_err = %.9lf", rx_err);
+    //~ double rx_err = gpsdifftime(&rec_time, &current_fix.time);
+    //~ log_info("rx_err = %.9lf", rx_err);
 
-    if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
-      log_info(
-          "Receiver clock offset larger than %g ms, applying millisecond jump",
-          MAX_CLOCK_ERROR_S * SECS_MS);
-      /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * SECS_MS) / SECS_MS;
+    adjust_time_fine(current_fix.clock_offset + (current_fix.clock_bias / soln_freq));
+
+    //~ if (abs(rx_err) > MAX_CLOCK_ERROR_S) {
+      //~ log_info(
+          //~ "Receiver clock offset larger than %g ms, applying millisecond jump",
+          //~ MAX_CLOCK_ERROR_S * SECS_MS);
+      //~ /* round the time adjustment to even milliseconds */
+      //~ double dt = round(rx_err * SECS_MS) / SECS_MS;
       /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
+      //~ adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
        * breaks up exactly into carrier cycles
        * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
-    }
+      //~ tracking_channel_carrier_phase_offsets_adjust(dt);
+    //~ }
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */

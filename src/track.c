@@ -905,10 +905,10 @@ void tracking_channel_measurement_get(
   meas->sid = mesid2sid(info->mesid, info->glo_orbit_slot);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
-  meas->carrier_phase = freq_info->carrier_phase;
   meas->carrier_freq = freq_info->carrier_freq;
   meas->time_of_week_ms = info->tow_ms;
   meas->tow_residual_ns = info->tow_residual_ns;
+
   double extended_sampcount = info->sample_count;
   extended_sampcount += POW_TWO_P32*floor(float_tc/POW_TWO_P32);
   if (extended_sampcount > float_tc+POW_TWO_P31) {
@@ -918,6 +918,13 @@ void tracking_channel_measurement_get(
   }
   meas->rec_time_delta = (extended_sampcount - float_tc) /
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
+
+  meas->carrier_phase = freq_info->carrier_phase;
+  if (is_glo_sid(info->mesid)) {
+    s8 fcn = info->mesid.sat - GLO_FCN_OFFSET;
+    meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L1_DELTA_HZ;
+  }
+
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
   meas->time_in_track = time_info->cn0_usable_ms / 1000.0;

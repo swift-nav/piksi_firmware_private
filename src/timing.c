@@ -96,8 +96,8 @@ void clock_est_init(clock_est_state_t *s) {
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
  *
- * \param tc SwiftNAP timing count.
- * \param t GPS time estimate associated with timing count.
+ * \param float_tc SwiftNAP timing count.
+ * \param t        GPS time estimate associated with timing count.
  */
 void set_time_fine(double float_tc, gps_time_t t) {
   gps_time_t norm_time = t;
