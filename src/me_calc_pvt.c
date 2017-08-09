@@ -166,6 +166,49 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
   }
 }
 
+/** Sleep until the next solution deadline.
+ *
+ * \param deadline    Pointer to the current deadline, updated by this function.
+ * \param interval_us Interval by which the deadline should be advanced [us].
+ */
+static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
+  piksi_systime_inc_us(deadline, interval_us);
+
+  chSysLock();
+  while (1) {
+    /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
+     * execution time is limited to SOLN_THD_CPU_MAX. */
+    piksi_systime_t systime;
+    piksi_systime_get_x(&systime);
+    u32 delta = piksi_systime_sub_us(deadline, &systime);
+    u32 sleep_min = (u32)ceilf((1.0f - SOLN_THD_CPU_MAX) * interval_us);
+    if ((u32)(delta - sleep_min) <= ((u32)-1) / 2) {
+      piksi_systime_sleep_us_s(delta);
+      break;
+    } else {
+      chSysUnlock();
+      if (delta <= ((u32)-1) / 2) {
+        /* Deadline is in the future. Skipping due to high CPU usage. */
+        log_warn(
+            "Solution thread skipping deadline, "
+            "time = %llu, deadline = %llu",
+            piksi_systime_to_s(&systime),
+            piksi_systime_to_s(deadline));
+      } else {
+        /* Deadline is in the past. */
+        log_warn(
+            "Solution thread missed deadline, "
+            "time = %llu, deadline = %llu",
+            piksi_systime_to_s(&systime),
+            piksi_systime_to_s(deadline));
+      }
+      piksi_systime_inc_us(deadline, interval_us);
+      chSysLock();
+    }
+  }
+  chSysUnlock();
+}
+
 /**
  * Collects channel measurements, ephemerides and auxiliary data.
  *
@@ -247,29 +290,8 @@ static void me_calc_pvt_thread(void *arg) {
   ndb_lgf_read(&lgf);
 
   while (TRUE) {
+    sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
-
-    /* Nominal solution interval in microseconds*/
-    u32 interval_us = round(SECS_US / soln_freq);
-
-    /* Try to sleep until next epoch at (deadline + interval_us) */
-    u32 sleep_us =
-        piksi_systime_sleep_until_windowed_us(&deadline, interval_us);
-    if (0 == sleep_us) {
-      piksi_systime_t systime;
-      piksi_systime_get(&systime);
-      log_warn(
-          "Solution thread missed deadline, "
-          "time = %llu, deadline = %llu",
-          piksi_systime_to_us(&systime),
-          piksi_systime_to_us(&deadline));
-      /* Increment deadline to next epoch */
-      piksi_systime_inc_us(&deadline, interval_us);
-      continue;
-    }
-
-    /* Increment deadline to next epoch */
-    piksi_systime_inc_us(&deadline, interval_us);
 
     if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
