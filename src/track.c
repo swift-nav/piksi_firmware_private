@@ -881,7 +881,7 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
  *
  * The method populates measurement fields according to provided values.
  *
- * \param[in]  ref_tc    Reference timing count.
+ * \param[in]  float_tc  Reference timing count.
  * \param[in]  info      Generic tracking channel information block.
  * \param[in]  freq_info Frequency and phase information block.
  * \param[in]  time_info Time information block.
@@ -891,7 +891,7 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
  * \return None
  */
 void tracking_channel_measurement_get(
-    u64 ref_tc,
+    const double float_tc,
     const tracking_channel_info_t *info,
     const tracking_channel_freq_info_t *freq_info,
     const tracking_channel_time_info_t *time_info,
@@ -907,7 +907,7 @@ void tracking_channel_measurement_get(
   meas->carrier_freq = freq_info->carrier_freq;
   meas->time_of_week_ms = info->tow_ms;
   meas->tow_residual_ns = info->tow_residual_ns;
-  meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc)) /
+  meas->rec_time_delta = (info->sample_count - float_tc) /
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
@@ -919,18 +919,18 @@ void tracking_channel_measurement_get(
 /**
  * Computes raw pseudorange in [m]
  *
- * \param[in]  ref_tc Reference time
- * \param[in]  meas   Pre-populated channel measurement
+ * \param[in]  float_tc Reference time
+ * \param[in]  meas     Pre-populated channel measurement
  * \param[out] raw_pseudorange Computed pseudorange [m]
  *
  * \retval true Pseudorange is valid
  * \retval false Error in computation.
  */
-bool tracking_channel_calc_pseudorange(u64 ref_tc,
+bool tracking_channel_calc_pseudorange(const double float_tc,
                                        const channel_measurement_t *meas,
                                        double *raw_pseudorange) {
   navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
-  gps_time_t rec_time = napcount2gpstime(ref_tc);
+  gps_time_t rec_time = napcount2gpstime(float_tc);
   s8 nm_ret = calc_navigation_measurement(1, &meas, &p_nav_meas, &rec_time);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,

@@ -93,7 +93,7 @@ void acq_result_send(const me_gnss_signal_t mesid,
                      float cf);
 
 u32 get_tracking_channel_meas(u8 i,
-                              u64 ref_tc,
+                              double float_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);

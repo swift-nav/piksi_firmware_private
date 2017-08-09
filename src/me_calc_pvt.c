@@ -212,7 +212,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
 /**
  * Collects channel measurements, ephemerides and auxiliary data.
  *
- * \param[in]  rec_tc    Timestamp [samples].
+ * \param[in]  float_tc  Timestamp [fractional samples].
  * \param[out] meas      Destination measurement array.
  * \param[out] in_view   Destination in_view array.
  * \param[out] ephe      Destination ephemeris array.
@@ -222,7 +222,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
  *
  * \return None
  */
-static void collect_measurements(u64 rec_tc,
+static void collect_measurements(double float_tc,
                                  channel_measurement_t meas[MAX_CHANNELS],
                                  channel_measurement_t in_view[MAX_CHANNELS],
                                  ephemeris_t ephe[MAX_CHANNELS],
@@ -238,7 +238,7 @@ static void collect_measurements(u64 rec_tc,
     u32 flags = 0; /* Channel flags accumulator */
     /* Load measurements from the tracking channel and ephemeris from NDB */
     flags = get_tracking_channel_meas(
-        i, rec_tc, &meas[n_collected], &ephe[n_collected]);
+        i, float_tc, &meas[n_collected], &ephe[n_collected]);
 
     if (0 != (flags & TRACKER_FLAG_ACTIVE) &&
         0 != (flags & TRACKER_FLAG_CONFIRMED) &&
@@ -299,13 +299,13 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Take the current nap count */
     u64 current_tc = nap_timing_count();
-    u64 rec_tc = current_tc;
+    double float_tc = current_tc;
 
     /* If we've previously had a solution, we can work out our expected obs time
      */
     if (time_quality == TIME_FINE) {
       /* Work out the time of the current nap count */
-      gps_time_t expected_time = napcount2gpstime(rec_tc);
+      gps_time_t expected_time = napcount2gpstime(floor(float_tc));
 
       /* Round this time to the nearest GPS solution time */
       expected_time.tow = round(expected_time.tow * soln_freq) / soln_freq;
@@ -313,12 +313,12 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* This time, taken back to nap count, is the nap count we want the
        * observations at */
-      rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
+      float_tc = round(gpstime2napcount(&expected_time));
     }
     /* The difference between the current nap count and the nap count we
      * want the observations at is the amount we want to adjust our deadline
      * by at the end of the solution */
-    double delta_tc = -((double)current_tc - (double)rec_tc);
+    double delta_tc = -((double)current_tc - float_tc);
 
     if (time_quality >= TIME_COARSE && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
@@ -338,7 +338,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Collect measurements from trackers, load ephemerides and compute flags */
     collect_measurements(
-        rec_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
+        float_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
@@ -383,7 +383,7 @@ static void me_calc_pvt_thread(void *arg) {
     /* If we have timing then we can calculate the relationship between
      * receiver time and GPS time and hence provide the pseudorange
      * calculation with the local GPS time of reception. */
-    gps_time_t rec_time = napcount2rcvtime(rec_tc);
+    gps_time_t rec_time = napcount2rcvtime(float_tc);
 
     /* Get the expected nap count in receiver time (gps time frame) */
     gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
@@ -520,7 +520,7 @@ static void me_calc_pvt_thread(void *arg) {
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(rec_tc, current_fix.time);
+      set_time_fine(float_tc, current_fix.time);
 
       me_send_emptyobs();
 
@@ -535,7 +535,7 @@ static void me_calc_pvt_thread(void *arg) {
     /* We now have the nap count we expected the measurements to be at, plus
      * the GPS time error for that nap count so we need to store this error in
      * the the GPS time (GPS time frame) */
-    set_gps_time_offset(rec_tc, current_fix.time);
+    set_gps_time_offset(float_tc, current_fix.time);
 
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
@@ -561,10 +561,10 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_debug("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
-                t_err,
-                current_fix.clock_offset,
-                current_fix.clock_bias);
+      log_info("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
+               t_err,
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       /* Propagate observations to desired time. */
       /* We have to use the tdcp_doppler result to account for TCXO drift. */
