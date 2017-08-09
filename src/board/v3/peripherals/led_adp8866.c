@@ -50,9 +50,8 @@ static void i2c_close(void) {
  * case
  */
 
-static unsigned int isc_route[9] = {0};
+static u8 isc_route[9] = {0};
 
-/* Input of this function is 1..9 */
 static void init_reg_isc(bool is_duro) {
   int i;
   if (is_duro) {
