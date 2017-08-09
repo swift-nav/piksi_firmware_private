@@ -106,8 +106,7 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_channel_t *tracker_channel,
   return TOW_ms;
 }
 
-static void update_polarity(tracker_channel_t *tracker_channel,
-                            s8 polarity) {
+static void update_polarity(tracker_channel_t *tracker_channel, s8 polarity) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
   s8 prev_polarity = tracker_channel->bit_polarity;
   if (prev_polarity != polarity) {
@@ -132,9 +131,8 @@ static void update_tow(tracker_channel_t *tracker_channel,
 
   /* Warn if updated TOW does not match the current value */
   if ((*current_TOW_ms != TOW_INVALID) && (*current_TOW_ms != TOW_ms)) {
-    log_error_mesid(mesid,
-                    "TOW mismatch: %" PRId32 ", %" PRId32,
-                    *current_TOW_ms, TOW_ms);
+    log_error_mesid(
+        mesid, "TOW mismatch: %" PRId32 ", %" PRId32, *current_TOW_ms, TOW_ms);
     /* This is rude, but safe. Do not expect it to happen normally. */
     tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
   }
@@ -155,14 +153,14 @@ static void update_eph(tracker_channel_t *tracker_channel,
   tracker_channel->health = data_sync->glo_health;
 }
 
-
 /** Update the TOW for a tracker channel.
  *
- * \param tracker_channel   Tracker channel.
- * \param current_TOW_ms    Current TOW (ms).
- * \param int_ms            Integration period (ms).
- * \param TOW_residual_ns   TOW residual [ns]
- * \param[out] decoded_TOW  Decoded TOW indicator
+ * \param tracker_channel      Tracker channel.
+ * \param current_TOW_ms       Current TOW (ms).
+ * \param int_ms               Integration period (ms).
+ * \param[out] TOW_residual_ns TOW residual [ns]
+ * \param[out] decoded_tow     Decoded TOW indicator
+ * \param[out] decoded_health  Decoded health indicator
  *
  * \return Updated TOW (ms).
  */
@@ -181,7 +179,6 @@ s32 tracker_tow_update(tracker_channel_t *tracker_channel,
   nav_data_sync_t to_tracker;
   *decoded_tow = false;
   if (nav_data_sync_get(&to_tracker, &tracker_channel->nav_data_sync)) {
-
     decode_sync_flags_t flags = to_tracker.sync_flags;
 
     if (0 != (flags & SYNC_POL)) {

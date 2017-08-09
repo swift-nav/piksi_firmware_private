@@ -183,9 +183,9 @@ typedef struct {
 } nav_bit_fifo_t;
 
 typedef enum {
-  SYNC_POL = (1 << 0), /**< Sync data polarity */
-  SYNC_TOW = (1 << 1), /**< Sync TOW */
-  SYNC_EPH = (1 << 2), /**< Sync ephemeris parameters */
+  SYNC_POL = (1 << 0),                         /**< Sync data polarity */
+  SYNC_TOW = (1 << 1),                         /**< Sync TOW */
+  SYNC_EPH = (1 << 2),                         /**< Sync ephemeris parameters */
   SYNC_ALL = (SYNC_POL | SYNC_TOW | SYNC_EPH), /**< Sync all */
 } decode_sync_flags_t;
 
