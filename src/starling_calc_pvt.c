@@ -93,7 +93,7 @@ double heading_offset = 0.0;
 bool disable_klobuchar = false;
 
 bool enable_glonass_in_spp = true;
-bool enable_glonass_in_rtk = false;
+bool enable_glonass_in_rtk = true;
 float glonass_downweight_factor = 4;
 
 static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
@@ -693,6 +693,7 @@ static void starling_thread(void *arg) {
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
+  static gnss_solution me_soln;
 
   chMtxLock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
@@ -725,6 +726,7 @@ static void starling_thread(void *arg) {
     memset(e_meas, 0, sizeof(e_meas));
     memcpy(e_meas, rover_channel_epoch->ephem, n_ready * sizeof(ephemeris_t));
     obs_time = rover_channel_epoch->obs_time;
+    me_soln = rover_channel_epoch->soln;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 
@@ -784,27 +786,48 @@ static void starling_thread(void *arg) {
       stored_ephs[i] = e;
     }
 
+    pvt_engine_result_t result_rtk;
+    PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret = PVT_ENGINE_FAILURE;
+
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+      chMtxLock(&low_latency_filter_manager_lock);
+
+      rtk_call_filter_ret = call_pvt_engine_filter(low_latency_filter_manager,
+                                                   &obs_time,
+                                                   n_ready,
+                                                   nav_meas,
+                                                   stored_ephs,
+                                                   enable_glonass_in_rtk,
+                                                   &result_rtk,
+                                                   &dops);
+
+      chMtxUnlock(&low_latency_filter_manager_lock);
+    }
+
     pvt_engine_result_t result_spp;
     gnss_solution spp_solution;
-    bool successful_spp = false;
+    PVT_ENGINE_INTERFACE_RC spp_call_filter_ret = PVT_ENGINE_FAILURE;
 
-    chMtxLock(&spp_filter_manager_lock);
-    const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
-        call_pvt_engine_filter(spp_filter_manager,
-                               &obs_time,
-                               n_ready,
-                               nav_meas,
-                               stored_ephs,
-                               enable_glonass_in_spp,
-                               &result_spp,
-                               &dops);
-    chMtxUnlock(&spp_filter_manager_lock);
+    if (rtk_call_filter_ret != PVT_ENGINE_SUCCESS) {
+      chMtxLock(&spp_filter_manager_lock);
+
+      spp_call_filter_ret = call_pvt_engine_filter(spp_filter_manager,
+                                                   &obs_time,
+                                                   n_ready,
+                                                   nav_meas,
+                                                   stored_ephs,
+                                                   enable_glonass_in_spp,
+                                                   &result_spp,
+                                                   &dops);
+      spp_solution = create_spp_result(&result_spp);
+      chMtxUnlock(&spp_filter_manager_lock);
+    }
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
         !gate_covariance_pvt_engine(&result_spp)) {
-      spp_solution = create_spp_result(&result_spp);
       solution_make_sbp(&spp_solution, &dops, &sbp_messages);
-      successful_spp = true;
+    } else if (me_soln.valid) {
+      solution_make_sbp(&me_soln, &dops, &sbp_messages);
     } else if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
       /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - send out solution and
@@ -813,26 +836,9 @@ static void starling_thread(void *arg) {
       solution_send_low_latency_output(0, &sbp_messages);
     }
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
-      chMtxLock(&low_latency_filter_manager_lock);
-
-      pvt_engine_result_t result_rtk;
-      const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
-          call_pvt_engine_filter(low_latency_filter_manager,
-                                 &obs_time,
-                                 n_ready,
-                                 nav_meas,
-                                 stored_ephs,
-                                 enable_glonass_in_rtk,
-                                 &result_rtk,
-                                 &dops);
-
-      chMtxUnlock(&low_latency_filter_manager_lock);
-
-      if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-        solution_make_baseline_sbp(
-            &result_rtk, result_spp.baseline, &dops, &sbp_messages);
-      }
+    if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
+      solution_make_baseline_sbp(
+          &result_rtk, me_soln.pos_ecef, &dops, &sbp_messages);
     }
 
     /* This is posting the rover obs to the mailbox to the time matched thread,
@@ -936,17 +942,10 @@ void process_matched_obs(const obss_t *rover_channel_meass,
 }
 
 bool update_time_matched(gps_time_t *last_update_time,
-                         gps_time_t *current_time,
-                         u8 num_obs) {
-  double update_dt = gpsdifftime(current_time, last_update_time);
-  double update_rate_limit = 0.99;
-  if (num_obs > 16) {
-    update_rate_limit = 1.99;
-  }
-  if (update_dt < update_rate_limit) {
-    return false;
-  }
-  return true;
+                         gps_time_t *current_time) {
+  const double update_dt = gpsdifftime(current_time, last_update_time);
+  const double update_rate_limit = 2;
+  return update_dt >= update_rate_limit;
 }
 
 static bool enable_fix_mode(struct setting *s, const char *val) {
@@ -1067,7 +1066,7 @@ static void time_matched_obs_thread(void *arg) {
         solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
+        if (update_time_matched(&last_update_time, &obss->tor) ||
             dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
           process_matched_obs(obss, &base_obss_copy, &sbp_messages);
           last_update_time = obss->tor;

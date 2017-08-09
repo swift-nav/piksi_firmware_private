@@ -34,6 +34,7 @@ typedef struct _me_msg_obs_t {
   navigation_measurement_t obs[MAX_CHANNELS];
   ephemeris_t ephem[MAX_CHANNELS];
   gps_time_t obs_time;
+  gnss_solution soln;
 } me_msg_obs_t;
 
 /** Maximum time that an observation will be propagated for to align it with a
