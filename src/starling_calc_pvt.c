@@ -693,6 +693,7 @@ static void starling_thread(void *arg) {
   static navigation_measurement_t nav_meas[MAX_CHANNELS];
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
+  static gnss_solution me_soln;
 
   chMtxLock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
@@ -725,6 +726,7 @@ static void starling_thread(void *arg) {
     memset(e_meas, 0, sizeof(e_meas));
     memcpy(e_meas, rover_channel_epoch->ephem, n_ready * sizeof(ephemeris_t));
     obs_time = rover_channel_epoch->obs_time;
+    me_soln = rover_channel_epoch->soln;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 

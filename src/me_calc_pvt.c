@@ -79,7 +79,8 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
-                                 const gps_time_t *_t) {
+                                 const gps_time_t *_t,
+                                 const gnss_solution *soln) {
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -100,6 +101,9 @@ static void me_post_observations(u8 n,
   if (_t != NULL) {
     me_msg_obs->obs_time = *_t;
   }
+  if (soln != NULL) {
+    me_msg_obs->soln = *soln;
+  }
 
   ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
   if (ret != MSG_OK) {
@@ -116,8 +120,9 @@ static void me_post_observations(u8 n,
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
-  me_post_observations(_num_obs, _meas, _ephem, _t);
+                        const gps_time_t *_t,
+                        const gnss_solution *soln) {
+  me_post_observations(_num_obs, _meas, _ephem, _t, soln);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
   double t_check = _t->tow * (soln_freq / obs_output_divisor);
@@ -127,7 +132,7 @@ static void me_send_all(u8 _num_obs,
 }
 
 static void me_send_emptyobs(void) {
-  me_post_observations(0, NULL, NULL, NULL);
+  me_post_observations(0, NULL, NULL, NULL, NULL);
   send_observations(0, msg_obs_max_size, NULL, NULL);
 }
 
@@ -639,7 +644,8 @@ static void me_calc_pvt_thread(void *arg) {
 
       if (time_quality == TIME_FINE) {
         /* Send the observations. */
-        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
+        me_send_all(
+            n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time, &current_fix);
       }
     } else {
       log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
