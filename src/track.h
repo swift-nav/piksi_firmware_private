@@ -635,10 +635,6 @@ typedef struct {
 
 /** \} */
 
-/* Integration tweaks: short / long interval markings */
-#define TP_CFLAG_SHORT_CYCLE ((u32)1 << 0)
-#define TP_CFLAG_LONG_CYCLE ((u32)1 << 1)
-
 /* Bit synchronization and data decoding */
 #define TP_CFLAG_BSYNC_SET ((u32)1 << 2)
 #define TP_CFLAG_BSYNC_ADD ((u32)1 << 3)
