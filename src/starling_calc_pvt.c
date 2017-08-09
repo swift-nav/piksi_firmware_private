@@ -786,27 +786,48 @@ static void starling_thread(void *arg) {
       stored_ephs[i] = e;
     }
 
+    pvt_engine_result_t result_rtk;
+    PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret = PVT_ENGINE_FAILURE;
+
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+      chMtxLock(&low_latency_filter_manager_lock);
+
+      rtk_call_filter_ret = call_pvt_engine_filter(low_latency_filter_manager,
+                                                   &obs_time,
+                                                   n_ready,
+                                                   nav_meas,
+                                                   stored_ephs,
+                                                   enable_glonass_in_rtk,
+                                                   &result_rtk,
+                                                   &dops);
+
+      chMtxUnlock(&low_latency_filter_manager_lock);
+    }
+
     pvt_engine_result_t result_spp;
     gnss_solution spp_solution;
-    bool successful_spp = false;
+    PVT_ENGINE_INTERFACE_RC spp_call_filter_ret = PVT_ENGINE_FAILURE;
 
-    chMtxLock(&spp_filter_manager_lock);
-    const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
-        call_pvt_engine_filter(spp_filter_manager,
-                               &obs_time,
-                               n_ready,
-                               nav_meas,
-                               stored_ephs,
-                               enable_glonass_in_spp,
-                               &result_spp,
-                               &dops);
-    chMtxUnlock(&spp_filter_manager_lock);
+    if (rtk_call_filter_ret != PVT_ENGINE_SUCCESS) {
+      chMtxLock(&spp_filter_manager_lock);
+
+      spp_call_filter_ret = call_pvt_engine_filter(spp_filter_manager,
+                                                   &obs_time,
+                                                   n_ready,
+                                                   nav_meas,
+                                                   stored_ephs,
+                                                   enable_glonass_in_spp,
+                                                   &result_spp,
+                                                   &dops);
+      spp_solution = create_spp_result(&result_spp);
+      chMtxUnlock(&spp_filter_manager_lock);
+    }
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
         !gate_covariance_pvt_engine(&result_spp)) {
-      spp_solution = create_spp_result(&result_spp);
       solution_make_sbp(&spp_solution, &dops, &sbp_messages);
-      successful_spp = true;
+    } else if (me_soln.valid) {
+      solution_make_sbp(&me_soln, &dops, &sbp_messages);
     } else if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
       /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - send out solution and
@@ -815,26 +836,9 @@ static void starling_thread(void *arg) {
       solution_send_low_latency_output(0, &sbp_messages);
     }
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
-      chMtxLock(&low_latency_filter_manager_lock);
-
-      pvt_engine_result_t result_rtk;
-      const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
-          call_pvt_engine_filter(low_latency_filter_manager,
-                                 &obs_time,
-                                 n_ready,
-                                 nav_meas,
-                                 stored_ephs,
-                                 enable_glonass_in_rtk,
-                                 &result_rtk,
-                                 &dops);
-
-      chMtxUnlock(&low_latency_filter_manager_lock);
-
-      if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-        solution_make_baseline_sbp(
-            &result_rtk, result_spp.baseline, &dops, &sbp_messages);
-      }
+    if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
+      solution_make_baseline_sbp(
+          &result_rtk, me_soln.pos_ecef, &dops, &sbp_messages);
     }
 
     /* This is posting the rover obs to the mailbox to the time matched thread,
