@@ -550,8 +550,9 @@ static void me_calc_pvt_thread(void *arg) {
     /* We now have the nap count we expected the measurements to be at, plus
      * the GPS time error for that nap count so we need to store this error in
      * the the GPS time (GPS time frame) */
-    set_gps_time_offset(expected_tc + (current_fix.clock_bias / RX_DT_NOMINAL),
-                        current_fix.time);
+    set_gps_time_offset(
+        expected_tc + (current_fix.clock_bias / RX_DT_NOMINAL / soln_freq),
+        current_fix.time);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
