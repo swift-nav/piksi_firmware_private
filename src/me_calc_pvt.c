@@ -573,7 +573,7 @@ static void me_calc_pvt_thread(void *arg) {
           MAX_CLOCK_ERROR_S * SECS_MS);
 
       /* round the time adjustment to even milliseconds */
-      double dt = round(current_fix.clock_offset * SECS_MS) / SECS_MS;
+      double dt = round(current_fix.clock_offset * 2 * SECS_MS) / SECS_MS;
       /* adjust the RX to GPS time conversion */
       adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
