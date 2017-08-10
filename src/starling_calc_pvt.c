@@ -83,7 +83,7 @@ gps_time_t last_spp;
 
 /* RFT_TODO *
  * interface change should be handled last, won't work like this */
-static double starling_frequency = 5.0;
+static double starling_frequency = 1.0;
 u32 max_age_of_differential = 30;
 
 bool disable_raim = false;
