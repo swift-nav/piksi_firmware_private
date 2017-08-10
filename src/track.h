@@ -347,8 +347,6 @@ typedef struct {
 
 /** Tracking channel miscellaneous info */
 typedef struct {
-  double pseudorange;     /**< Pseudorange [m]  */
-  double pseudorange_std; /**< Pseudorange standard deviation [m] */
   struct {
     double value;         /**< Carrier phase offset value [cycles]. */
     u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
@@ -363,7 +361,6 @@ typedef struct {
   double code_phase_rate;  /**< Code phase rate in chips/s. */
   double carrier_phase;    /**< Carrier phase in cycles. */
   double carrier_freq;     /**< Carrier frequency in Hz. */
-  double carrier_freq_std; /**< Carrier frequency std deviation in Hz. */
   double
       carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
   float acceleration;       /**< Acceleration [g] */
@@ -934,8 +931,7 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_time_info_t *time_info,
                                  tracking_channel_freq_info_t *freq_info,
                                  tracking_channel_ctrl_info_t *ctrl_params,
-                                 tracking_channel_misc_info_t *misc_params,
-                                 bool reset_stats);
+                                 tracking_channel_misc_info_t *misc_params);
 double tracking_channel_get_lock_time(
     const tracking_channel_time_info_t *time_info,
     const tracking_channel_misc_info_t *misc_info);

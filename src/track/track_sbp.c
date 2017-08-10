@@ -178,10 +178,6 @@ static u8 get_misc_flags(const tracking_channel_info_t *channel_info) {
     flags |= TRACK_SBP_HALF_CYCLE_AMBIGUITY_RESOLVED;
   }
 
-  if (0 != (channel_info->flags & TRACKER_FLAG_PSEUDORANGE)) {
-    flags |= TRACK_SBP_PSEUDORANGE_VALID;
-  }
-
   return flags;
 }
 
@@ -227,6 +223,15 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
 
   s32 tow_ms = channel_info->tow_ms;
 
+  double raw_pseudorange = 0;
+  if ((0 != (channel_info->flags & TRACKER_FLAG_TOW_VALID)) &&
+      (0 != (channel_info->flags & TRACKER_FLAG_ACTIVE)) &&
+      (0 == (channel_info->flags & TRACKER_FLAG_ERROR)) &&
+      (get_time_quality() >= TIME_FINE)) {
+    u64 ref_tc = nap_sample_time_to_count(channel_info->sample_count);
+    tracking_channel_calc_pseudorange(ref_tc, &meas, &raw_pseudorange);
+  }
+
   /* TOW status flags */
   state->tow_flags = get_tow_flags(channel_info);
 
@@ -250,12 +255,14 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
     }
   }
 
-  double pseudorange = misc_info->pseudorange * MSG_OBS_P_MULTIPLIER;
+  double pseudorange = raw_pseudorange * MSG_OBS_P_MULTIPLIER;
   state->P = (u32)limit_value(pseudorange, 0, UINT32_MAX);
 
-  /* pseudorange standard deviation */
-  double pseudorange_std = misc_info->pseudorange_std * MSG_OBS_P_MULTIPLIER;
-  state->P_std = (u16)limit_value(pseudorange_std, 0, UINT16_MAX);
+  /* pseudorange standard deviation is not computed
+     as it was deemed to be unusable. Mark as invalid for now.
+     TODO: rework the detailed tracking status message be removing
+     this field */
+  state->P_std = UINT16_MAX;
 
   /* carrier phase coming from NAP (cycles) */
   double L = freq_info->carrier_phase;
@@ -284,10 +291,11 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
       freq_info->carrier_freq * TRACK_SBP_DOPPLER_SCALING_FACTOR;
   state->doppler = (s32)limit_value(carrier_freq, INT32_MIN, INT32_MAX);
 
-  /* Doppler standard deviation [Hz] */
-  double doppler_std =
-      freq_info->carrier_freq_std * TRACK_SBP_DOPPLER_SCALING_FACTOR;
-  state->doppler_std = (u16)limit_value(doppler_std, 0, UINT16_MAX);
+  /* Doppler standard deviation [Hz] is not computed
+     as it was deemed to be unusable. Mark as invalid for now.
+     TODO: rework the detailed tracking status message be removing
+     this field */
+  state->doppler_std = UINT16_MAX;
 
   /* number of seconds of continuous tracking */
   u64 now = timing_getms();
@@ -295,6 +303,9 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
 
   /* miscellaneous flags */
   state->misc_flags = get_misc_flags(channel_info);
+  if (state->P != 0) {
+    state->misc_flags |= TRACK_SBP_PSEUDORANGE_VALID;
+  }
 
   if ((NULL != lgf) && (lgf->position_quality >= POSITION_GUESS)) {
     double clock_offset = lgf->position_solution.clock_offset *

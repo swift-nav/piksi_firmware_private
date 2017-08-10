@@ -758,8 +758,7 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
                                 NULL,   /* Timers */
                                 NULL,   /* Frequencies */
                                 NULL,   /* Loop controller values */
-                                NULL,   /* Misc values */
-                                false); /* Reset stats */
+                                NULL);  /* Misc values */
 
     if (0 != (info.flags & TRACKER_FLAG_ACTIVE)) {
       if (CODE_GPS_L1CA == info.mesid.code) {

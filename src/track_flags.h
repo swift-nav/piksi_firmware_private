@@ -51,18 +51,16 @@
 #define TRACKER_FLAG_BIT_POLARITY_KNOWN (1 << 18)
 #define TRACKER_FLAG_BIT_INVERTED (1 << 19)
 #define TRACKER_FLAG_BIT_SYNC (1 << 20)
-/** Tracker flag: tracker has valid pseudorange */
-#define TRACKER_FLAG_PSEUDORANGE (1 << 21)
 
-#define TRACKER_FLAG_CN0_LONG (1 << 22)
-#define TRACKER_FLAG_CN0_SHORT (1 << 23)
-#define TRACKER_FLAG_NAV_SUITABLE (1 << 24)
-#define TRACKER_FLAG_HAS_EPHE (1 << 25)
-#define TRACKER_FLAG_ELEVATION (1 << 26)
-#define TRACKER_FLAG_CARRIER_PHASE_OFFSET (1 << 27)
-#define TRACKER_FLAG_MASKED (1 << 28)
+#define TRACKER_FLAG_CN0_LONG (1 << 21)
+#define TRACKER_FLAG_CN0_SHORT (1 << 22)
+#define TRACKER_FLAG_NAV_SUITABLE (1 << 23)
+#define TRACKER_FLAG_HAS_EPHE (1 << 24)
+#define TRACKER_FLAG_ELEVATION (1 << 25)
+#define TRACKER_FLAG_CARRIER_PHASE_OFFSET (1 << 26)
+#define TRACKER_FLAG_MASKED (1 << 27)
 
 /** Tracker flag: measurement was excluded by RAIM */
-#define TRACKER_FLAG_RAIM_EXCLUSION (1 << 29)
+#define TRACKER_FLAG_RAIM_EXCLUSION (1 << 28)
 
 #endif

@@ -233,11 +233,10 @@ void tracking_send_detailed_state(void) {
 
     tracking_channel_get_values(i,
                                 &channel_info,
-                                &time_info, /* time info */
+                                &time_info,
                                 &freq_info,
                                 &ctrl_info,
-                                &misc_info, /* misc parameters */
-                                true);      /* reset statistics */
+                                &misc_info);
 
     if (0 == (channel_info.flags & TRACKER_FLAG_ACTIVE) ||
         0 == (channel_info.flags & TRACKER_FLAG_CONFIRMED)) {
@@ -673,31 +672,12 @@ static void tracking_channel_update_values(
     const tracking_channel_freq_info_t *freq_info,
     const tracking_channel_ctrl_info_t *ctrl_params,
     bool reset_cpo) {
-  double raw_pseudorange = 0;
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-  if (0 != (info->flags & TRACKER_FLAG_TOW_VALID) &&
-      0 != (info->flags & TRACKER_FLAG_ACTIVE) &&
-      0 == (info->flags & TRACKER_FLAG_ERROR) && time_quality >= TIME_FINE) {
-    u64 ref_tc = nap_sample_time_to_count(info->sample_count);
-
-    channel_measurement_t meas;
-    const channel_measurement_t *c_meas = &meas;
-
-    chMtxLock(&tracker_channel->mutex_pub);
-    tracking_channel_misc_info_t misc_info = pub_data->misc_info;
-    chMtxUnlock(&tracker_channel->mutex_pub);
-
-    tracking_channel_measurement_get(
-        ref_tc, info, freq_info, time_info, &misc_info, &meas);
-    tracking_channel_calc_pseudorange(ref_tc, c_meas, &raw_pseudorange);
-  }
 
   chMtxLock(&tracker_channel->mutex_pub);
   pub_data->gen_info = *info;
   pub_data->time_info = *time_info;
   pub_data->freq_info = *freq_info;
-  running_stats_update(&pub_data->carr_freq_stats, freq_info->carrier_freq);
   if (reset_cpo) {
     /* Do CPO reset */
     /* no need to update timestamp for zero offset as it keeps count
@@ -705,11 +685,6 @@ static void tracking_channel_update_values(
     pub_data->misc_info.carrier_phase_offset.value = 0;
   }
   pub_data->ctrl_info = *ctrl_params;
-  if (raw_pseudorange != 0) {
-    pub_data->gen_info.flags |= TRACKER_FLAG_PSEUDORANGE;
-    running_stats_update(&pub_data->pseudorange_stats, raw_pseudorange);
-  }
-  pub_data->misc_info.pseudorange = raw_pseudorange;
   chMtxUnlock(&tracker_channel->mutex_pub);
 }
 
@@ -738,12 +713,9 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_time_info_t *time_info,
                                  tracking_channel_freq_info_t *freq_info,
                                  tracking_channel_ctrl_info_t *ctrl_params,
-                                 tracking_channel_misc_info_t *misc_params,
-                                 bool reset_stats) {
+                                 tracking_channel_misc_info_t *misc_params) {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
-  running_stats_t carr_freq_stats;
-  running_stats_t pseudorange_stats;
 
   chMtxLock(&tracker_channel->mutex_pub);
   if (NULL != info) {
@@ -753,30 +725,15 @@ void tracking_channel_get_values(tracker_channel_id_t id,
     *time_info = pub_data->time_info;
   }
   if (NULL != freq_info) {
-    carr_freq_stats = pub_data->carr_freq_stats;
     *freq_info = pub_data->freq_info;
   }
   if (NULL != ctrl_params) {
     *ctrl_params = pub_data->ctrl_info;
   }
   if (NULL != misc_params) {
-    pseudorange_stats = pub_data->pseudorange_stats;
     *misc_params = pub_data->misc_info;
   }
-  if (reset_stats) {
-    running_stats_init(&pub_data->carr_freq_stats);
-    running_stats_init(&pub_data->pseudorange_stats);
-  }
   chMtxUnlock(&tracker_channel->mutex_pub);
-
-  if (NULL != freq_info) {
-    running_stats_get_products(
-        &carr_freq_stats, NULL, &freq_info->carrier_freq_std);
-  }
-  if (NULL != misc_params) {
-    running_stats_get_products(
-        &pseudorange_stats, NULL, &misc_params->pseudorange_std);
-  }
 }
 
 /**
