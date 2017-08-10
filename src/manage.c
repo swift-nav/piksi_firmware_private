@@ -1239,16 +1239,6 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
-    s8 fcn = info.mesid.sat - GLO_FCN_OFFSET;
-    if (CODE_GLO_L1CA==(info.mesid.code)) {
-      //~ log_info_mesid(info.mesid, "rec_time_delta %.9lf", meas->rec_time_delta);
-      meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L1_DELTA_HZ;
-      log_info_mesid(info.mesid, "carrier_phase %18.6lf", meas->carrier_phase);
-    }
-    if (CODE_GLO_L2CA==(info.mesid.code)) {
-      meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L2_DELTA_HZ;
-    }
-
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
      *
@@ -1265,6 +1255,18 @@ u32 get_tracking_channel_meas(u8 i,
         (0 != (flags & TRACKER_FLAG_PLL_USE)) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
+
+      if (CODE_GLO_L1CA==(info.mesid.code)) {
+        double fcn = (info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+        meas->carrier_phase += meas->rec_time_delta * fcn;
+        log_info_mesid(info.mesid, "rec_time_delta %18.9lf  carrier_phase %18.6lf", meas->rec_time_delta, meas->carrier_phase);
+      }
+      if (CODE_GLO_L2CA==(info.mesid.code)) {
+        double fcn = (info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+        meas->carrier_phase += meas->rec_time_delta * fcn;
+        log_info_mesid(info.mesid, "rec_time_delta %18.9lf  carrier_phase %18.6lf", meas->rec_time_delta, meas->carrier_phase);
+      }
+
       cpo_ok = compute_cpo(float_tc, &info, meas, &carrier_phase_offset);
     }
     if (0.0 != carrier_phase_offset) {
