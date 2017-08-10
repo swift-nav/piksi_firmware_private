@@ -180,6 +180,16 @@ gps_time_t get_current_gps_time(void) {
   return t;
 }
 
+/** Get receiver to GPS clock offset
+ *
+ * \note
+ *
+ * \return
+ */
+gps_time_t get_rec2gps_timeoffset(void) {
+  return clock_state.t0_gps;
+}
+
 /** Convert receiver time to GPS time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality

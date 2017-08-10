@@ -19,6 +19,12 @@
 
 #include "nap/nap_constants.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+
 /** \addtogroup timing Timing
  * \{ */
 
@@ -44,6 +50,8 @@ typedef struct {
 #define RX_DT_NOMINAL (1.0 / NAP_FRONTEND_SAMPLE_RATE_Hz)
 #define SEC2TICK(x) ((x)*NAP_FRONTEND_SAMPLE_RATE_Hz)
 
+gps_time_t get_rec2gps_timeoffset(void);
+
 void timing_setup(void);
 gps_time_t get_current_time(void);
 gps_time_t get_current_gps_time(void);
@@ -60,5 +68,9 @@ u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);
 gps_time_t gps_time_round_to_epoch(gps_time_t time, double soln_freq);
+
+#ifdef __cplusplus
+}      /* extern "C" */
+#endif /* __cplusplus */
 
 #endif
