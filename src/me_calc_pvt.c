@@ -373,10 +373,11 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Create navigation measurements from the channel measurements */
 
-    /* If a FINE quality time solution is not available then don't pass in a
-     * `nav_time`. This will result in valid pseudoranges but with a large
-     * and arbitrary receiver clock error. We may want to discard these
-     * observations after doing a PVT solution. */
+    /* If a FINE quality time solution is not available then pass in NULL
+     * instead of `epoch_time`. This will result in valid pseudoranges but with
+     * a large and arbitrary receiver clock error. We will discard these
+     * measurements in any case after getting the PVT solution and initializing
+     * clock. */
     s8 nm_ret = calc_navigation_measurement(
         n_ready,
         p_meas,
@@ -517,16 +518,6 @@ static void me_calc_pvt_thread(void *arg) {
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
-    /*
-     * We need to correct our pseudorange and create a new one that is valid for
-     * a different time of arrival.  In particular we'd like to propagate all
-     * the
-     * observations such that they represent what we would have observed had
-     * the observations all arrived at the current epoch (t').
-     */
-
-    assert(gps_time_valid(&epoch_time));
-
     /* Calculate how far the solution landed from the intended epoch time. */
     double t_err = gpsdifftime(&epoch_time, &current_fix.time);
 
@@ -545,81 +536,28 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_info("t_err %.3e clk_bias %.3e clk_drift %.3e",
-               t_err,
-               current_fix.clock_offset,
-               current_fix.clock_bias);
+      log_debug("t_err %.3e clk_bias %.3e clk_drift %.3e",
+                t_err,
+                current_fix.clock_offset,
+                current_fix.clock_bias);
 
-      /* Propagate observations to desired time. */
-      /* We have to use the doppler measurement to account for TCXO drift. */
-      /* nav_meas is updated in place, skipping elements if required. */
-      u8 n_ready_new = 0;
       for (u8 i = 0; i < n_ready; i++) {
-        navigation_measurement_t *nm = &nav_meas[n_ready_new];
-
-        /* Copy measurement to new index if a previous measurement
-         * has been skipped. */
-        if (i != n_ready_new) {
-          memcpy(nm, &nav_meas[i], sizeof(*nm));
-        }
-
-        double doppler = 0.0;
-        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-          doppler = nm->raw_measured_doppler;
-        }
-
-        /* The pseudorange correction has opposite sign because Doppler
-         * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -= t_err * doppler * sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
-        /* Carrier Phase corrected by clock offset */
-        nm->raw_carrier_phase += t_err * doppler;
-        nm->raw_carrier_phase +=
-            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
-        /* Use P**V**T to determine the oscillator drift which is used
-         * to adjust computed doppler. */
-        nm->raw_measured_doppler +=
-            current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_computed_doppler = nm->raw_measured_doppler;
-
-        /* Also apply the time correction to the time of transmission so the
-         * satellite positions can be calculated for the correct time. */
-        nm->tot.tow += t_err;
-        normalize_gps_time(&nm->tot);
-
-        ephemeris_t *e = NULL;
-
-        /* Find the original index of this measurement in order to point to
-         * the correct ephemeris. (Do not load it again from NDB because it may
-         * have changed meanwhile.) */
-        for (u8 j = 0; j < n_ready; j++) {
-          if (sid_is_equal(nm->sid, meas[j].sid)) {
-            e = &e_meas[j];
-            break;
-          }
-        }
-
-        if (e == NULL || 1 != ephemeris_valid(e, &nm->tot)) {
-          continue;
-        }
-
         /* Recompute satellite position, velocity and clock errors */
-        if (0 != calc_sat_state(e,
-                                &nm->tot,
-                                nm->sat_pos,
-                                nm->sat_vel,
-                                &nm->sat_clock_err,
-                                &nm->sat_clock_err_rate,
-                                &nm->IODC,
-                                &nm->IODE)) {
+
+        /* TODO: Why do we have to do this?? This should not change anything,
+         * but removing this leads to no fixed solution */
+        if (0 != calc_sat_state(&e_meas[i],
+                                &nav_meas[i].tot,
+                                nav_meas[i].sat_pos,
+                                nav_meas[i].sat_vel,
+                                &nav_meas[i].sat_clock_err,
+                                &nav_meas[i].sat_clock_err_rate,
+                                &nav_meas[i].IODC,
+                                &nav_meas[i].IODE)) {
+          log_error_sid(nav_meas[i].sid, "Recomputing sat state failed");
           continue;
         }
-
-        n_ready_new++;
       }
-
-      /* Update n_ready. */
-      n_ready = n_ready_new;
 
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
@@ -628,9 +566,12 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
-      log_info(
+      /* Note we should not enter here except in very exceptional circumstances,
+       * like time solved grossly wrong on the first fix. */
+      log_warn(
           "Receiver clock offset larger than %g ms, applying millisecond jump",
           MAX_CLOCK_ERROR_S * SECS_MS);
+
       /* round the time adjustment to even milliseconds */
       double dt = round(current_fix.clock_offset * SECS_MS) / SECS_MS;
       /* adjust the RX to GPS time conversion */

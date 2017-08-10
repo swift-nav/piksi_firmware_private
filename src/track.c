@@ -865,7 +865,7 @@ void tracking_channel_measurement_get(
 
   /* info->sample_count rolls over at 2^32 while the float ref_tc does not,
    * recover the full sample count to match ref_tc
-   * TODO: would be better the other way around to avoid losing accuracy*/
+   * TODO: would be better the other way around to avoid losing accuracy */
   double extended_sampcount = info->sample_count;
   extended_sampcount += POW_TWO_P32 * floor(ref_tc / POW_TWO_P32);
   if (extended_sampcount > ref_tc + POW_TWO_P31) {
@@ -876,10 +876,6 @@ void tracking_channel_measurement_get(
   meas->rec_time_delta =
       (extended_sampcount - ref_tc) / NAP_FRONTEND_SAMPLE_RATE_Hz;
   meas->carrier_phase = freq_info->carrier_phase;
-  if (is_glo_sid(info->mesid)) {
-    s8 fcn = info->mesid.sat - GLO_FCN_OFFSET;
-    meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L1_DELTA_HZ;
-  }
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
   meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
