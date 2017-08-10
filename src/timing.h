@@ -19,11 +19,9 @@
 
 #include "nap/nap_constants.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
 
 /** \addtogroup timing Timing
  * \{ */
@@ -70,7 +68,7 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
 gps_time_t gps_time_round_to_epoch(gps_time_t time, double soln_freq);
 
 #ifdef __cplusplus
-}      /* extern "C" */
+} /* extern "C" */
 #endif /* __cplusplus */
 
 #endif

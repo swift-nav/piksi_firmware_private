@@ -186,9 +186,7 @@ gps_time_t get_current_gps_time(void) {
  *
  * \return
  */
-gps_time_t get_rec2gps_timeoffset(void) {
-  return clock_state.t0_gps;
-}
+gps_time_t get_rec2gps_timeoffset(void) { return clock_state.t0_gps; }
 
 /** Convert receiver time to GPS time.
  *
