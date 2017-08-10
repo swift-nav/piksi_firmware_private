@@ -212,7 +212,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
 /**
  * Collects channel measurements, ephemerides and auxiliary data.
  *
- * \param[in]  rec_tc    Timestamp [samples].
+ * \param[in]  rec_tc    Timestamp [float ticks].
  * \param[out] meas      Destination measurement array.
  * \param[out] in_view   Destination in_view array.
  * \param[out] ephe      Destination ephemeris array.
@@ -222,7 +222,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
  *
  * \return None
  */
-static void collect_measurements(u64 rec_tc,
+static void collect_measurements(double rec_tc,
                                  channel_measurement_t meas[MAX_CHANNELS],
                                  channel_measurement_t in_view[MAX_CHANNELS],
                                  ephemeris_t ephe[MAX_CHANNELS],
@@ -314,7 +314,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* The desired solution epoch */
     gps_time_t epoch_time = GPS_TIME_UNKNOWN;
-    u64 epoch_tc = rec_tc;
+    double epoch_tc = rec_tc;
 
     /* If gps time is available, round the reception time to the nearest
      * solution epoch */
@@ -324,7 +324,7 @@ static void me_calc_pvt_thread(void *arg) {
        * calculation with the local GPS time of reception. */
       gps_time_t rec_time = napcount2rcvtime(rec_tc);
       epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
-      epoch_tc = (u64)(round(gpstime2napcount(&epoch_time)));
+      epoch_tc = gpstime2napcount(&epoch_time);
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
@@ -545,10 +545,10 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_debug("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
-                t_err,
-                current_fix.clock_offset,
-                current_fix.clock_bias);
+      log_info("t_err %.3e clk_bias %.3e clk_drift %.3e",
+               t_err,
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       /* Propagate observations to desired time. */
       /* We have to use the doppler measurement to account for TCXO drift. */
@@ -648,7 +648,7 @@ static void me_calc_pvt_thread(void *arg) {
     /* The difference between the current nap count and the nap count we
      * would have wanted the observations at is the amount we want to
      * adjust our deadline by at the end of the solution */
-    double dt = -((double)rec_tc - (double)epoch_tc) * RX_DT_NOMINAL;
+    double dt = -((double)rec_tc - epoch_tc) * RX_DT_NOMINAL;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
