@@ -159,6 +159,9 @@ static void update_obss(obss_t *new_obss)
 {
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
+  obss_t old_base_obss;
+  memcpy(old_base_obss, base_obss, sizeof(baseobss));
+
   /* We don't want to allow observations that have the same or earlier time
    * stamp than the last received */
   if (gps_time_valid(&tor_old) && gpsdifftime(&new_obss->tor, &tor_old) <= 0) {
@@ -292,10 +295,7 @@ static void update_obss(obss_t *new_obss)
       }
       chMtxUnlock(&base_pos_lock);
     } else {
-      base_obss.has_pos = 0;
-      /* TODO(dsk) check for repair failure */
-      /* There was an error calculating the position solution. */
-      log_warn("Error calculating base station position: (%s).", pvt_err_msg[-ret-1]);
+      memcpy(base_obss, old_base_obss, sizeof(old_base_obss));
     }
   } else {
     base_obss.has_pos = 0;
