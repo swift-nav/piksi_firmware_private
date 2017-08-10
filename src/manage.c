@@ -1239,6 +1239,16 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
+    s8 fcn = info.mesid.sat - GLO_FCN_OFFSET;
+    if (CODE_GLO_L1CA==(info.mesid.code)) {
+      //~ log_info_mesid(info.mesid, "rec_time_delta %.9lf", meas->rec_time_delta);
+      meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L1_DELTA_HZ;
+      log_info_mesid(info.mesid, "carrier_phase %18.6lf", meas->carrier_phase);
+    }
+    if (CODE_GLO_L2CA==(info.mesid.code)) {
+      meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L2_DELTA_HZ;
+    }
+
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
      *

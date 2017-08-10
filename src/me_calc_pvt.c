@@ -315,6 +315,7 @@ static void me_calc_pvt_thread(void *arg) {
        * observations at */
       float_tc = gpstime2napcount(&expected_time);
     }
+    log_info("float_tc %16.6lf", float_tc);
     /* The difference between the current nap count and the nap count we
      * want the observations at is the amount we want to adjust our deadline
      * by at the end of the solution */

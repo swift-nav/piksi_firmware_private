@@ -920,10 +920,6 @@ void tracking_channel_measurement_get(
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
 
   meas->carrier_phase = freq_info->carrier_phase;
-  if (is_glo_sid(info->mesid)) {
-    s8 fcn = info->mesid.sat - GLO_FCN_OFFSET;
-    meas->carrier_phase += (meas->rec_time_delta) * fcn * GLO_L1_DELTA_HZ;
-  }
 
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
