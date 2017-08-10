@@ -159,6 +159,9 @@ static void update_obss(obss_t *new_obss)
 {
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
+  obss_t old_base_obss;
+  memcpy(&old_base_obss, &base_obss, sizeof(obss_t));
+
   /* We don't want to allow observations that have the same or earlier time
    * stamp than the last received */
   if (gps_time_valid(&tor_old) && gpsdifftime(&new_obss->tor, &tor_old) <= 0) {
@@ -194,8 +197,11 @@ static void update_obss(obss_t *new_obss)
   /* Lock mutex before modifying base_obss.
    * NOTE: We didn't need to lock it before reading in THIS context as this
    * is the only thread that writes to base_obss. */
-  bool have_obs = true;
   chMtxLock(&base_obs_lock);
+  
+  /* Assume the obs are good unless we hit a condition that says they are bad
+     If bad we will use the last set provided they are valid */
+  bool have_obs = true;
 
   /* Create a set of navigation measurements to store the previous
    * observations. */
@@ -292,14 +298,20 @@ static void update_obss(obss_t *new_obss)
       }
       chMtxUnlock(&base_pos_lock);
     } else {
-      base_obss.has_pos = 0;
-      /* TODO(dsk) check for repair failure */
-      /* There was an error calculating the position solution. */
-      log_warn("Error calculating base station position: (%s).", pvt_err_msg[-ret-1]);
+      have_obs = false;
     }
   } else {
+    have_obs = false;
     base_obss.has_pos = 0;
   }
+  
+  /* If new obs are not valid, copy over last set */
+  if (!have_obs) {
+      if (old_base_obss.has_pos && old_base_obss.n >= 5) {
+        memcpy(&base_obss, &old_base_obss, sizeof(obss_t));
+        log_info("Latest base observations invalid. Using prior set.");
+        }
+      }
 
   /* If the surveyed base station position is known then use it to calculate
      the satellite ranges. Otherwise, use the SPP. This calculation will be
