@@ -47,9 +47,6 @@
 #include "system_monitor.h"
 #include "timing.h"
 
-/* Maximum CPU time the solution thread is allowed to use. */
-#define SOLN_THD_CPU_MAX (0.60f)
-
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER                               \
   (MANAGE_TRACK_FLAG_ACTIVE | MANAGE_TRACK_FLAG_NO_ERROR |      \
@@ -175,45 +172,21 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
 
 /** Sleep until the next solution deadline.
  *
- * \param deadline    Pointer to the current deadline, updated by this function.
+ * \param next_epoch  Next_epoch deadline, updated by this function.
  * \param interval_us Interval by which the deadline should be advanced [us].
  */
-static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
-  piksi_systime_inc_us(deadline, interval_us);
+static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
+  u32 slept_us = 0;
+  while (TRUE) {
+    slept_us = piksi_systime_sleep_until_us(next_epoch);
+    piksi_systime_inc_us(next_epoch, interval_us);
 
-  chSysLock();
-  while (1) {
-    /* Sleep for at least (1-SOLN_THD_CPU_MAX) * interval ticks so that
-     * execution time is limited to SOLN_THD_CPU_MAX. */
-    piksi_systime_t systime;
-    piksi_systime_get_x(&systime);
-    u32 delta = piksi_systime_sub_us(deadline, &systime);
-    u32 sleep_min = (u32)ceilf((1.0f - SOLN_THD_CPU_MAX) * interval_us);
-    if ((u32)(delta - sleep_min) <= ((u32)-1) / 2) {
-      piksi_systime_sleep_us_s(delta);
-      break;
+    if (0 == slept_us) {
+      log_warn("High CPU, skip epoch");
     } else {
-      chSysUnlock();
-      if (delta <= ((u32)-1) / 2) {
-        /* Deadline is in the future. Skipping due to high CPU usage. */
-        log_warn(
-            "Solution thread skipping deadline, "
-            "time = %llu, deadline = %llu",
-            piksi_systime_to_s(&systime),
-            piksi_systime_to_s(deadline));
-      } else {
-        /* Deadline is in the past. */
-        log_warn(
-            "Solution thread missed deadline, "
-            "time = %llu, deadline = %llu",
-            piksi_systime_to_s(&systime),
-            piksi_systime_to_s(deadline));
-      }
-      piksi_systime_inc_us(deadline, interval_us);
-      chSysLock();
+      break;
     }
   }
-  chSysUnlock();
 }
 
 /**
@@ -290,14 +263,15 @@ static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
 
-  piksi_systime_t deadline;
-  piksi_systime_get(&deadline);
-
   last_good_fix_t lgf;
   ndb_lgf_read(&lgf);
 
+  piksi_systime_t next_epoch;
+  piksi_systime_get(&next_epoch);
+  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq);
+
   while (TRUE) {
-    sol_thd_sleep(&deadline, SECS_US / soln_freq);
+    me_thd_sleep(&next_epoch, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
@@ -628,9 +602,9 @@ static void me_calc_pvt_thread(void *arg) {
     /* Reset timer period with the count that we will estimate will being
      * us up to the next solution time. dt as microseconds. */
     if (0 < dt) {
-      piksi_systime_inc_us(&deadline, round(dt * SECS_US));
+      piksi_systime_inc_us(&next_epoch, round(dt * SECS_US));
     } else if (0 > dt) {
-      piksi_systime_dec_us(&deadline, round(-dt * SECS_US));
+      piksi_systime_dec_us(&next_epoch, round(-dt * SECS_US));
     }
   }
 }

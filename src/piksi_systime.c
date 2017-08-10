@@ -549,6 +549,26 @@ void piksi_systime_sleep_ms(u32 len_ms) {
   piksi_systime_sleep_internal(len_st);
 }
 
+/** Suspends the invoking thread until specified moment is reached.
+ *
+ * \param[in] t   Time to wake up.
+ *
+ * \return Time spent in sleep [us].
+ */
+u32 piksi_systime_sleep_until_us(const piksi_systime_t *t) {
+  chSysLock();
+  piksi_systime_t now;
+  piksi_systime_get_x(&now);
+  s64 sleep = piksi_systime_sub_internal(t, &now);
+  if (sleep > 0) {
+    chThdSleepS(sleep);
+  } else {
+    sleep = 0;
+  }
+  chSysUnlock();
+  return st2us(sleep);
+}
+
 /** Suspends the invoking thread until the specified window closes.
  *
  * \param[in] t            Window start.
