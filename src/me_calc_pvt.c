@@ -526,7 +526,9 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    adjust_time_fine(current_fix.clock_offset + (current_fix.clock_bias / soln_freq));
+    /* this will change `clock_state.t0_gps` and so will steer the Glonass
+     * carrier phase around the best estimate of 2 ms GPS time rollover */
+    adjust_time_fine(0.5*(current_fix.clock_offset) + (current_fix.clock_bias / soln_freq));
 
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
