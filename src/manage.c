@@ -1239,6 +1239,18 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
+    gps_time_t t0 = get_rec2gps_timeoffset();
+    if (CODE_GLO_L1CA == (info.mesid.code)) {
+      double frac_2ms = fmod(t0.tow, 0.002);
+      double fcn = (info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+      meas->carrier_phase += frac_2ms * fcn;
+    }
+    if (CODE_GLO_L2CA == (info.mesid.code)) {
+      double frac_2ms = fmod(t0.tow, 0.002);
+      double fcn = (info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+      meas->carrier_phase += frac_2ms * fcn;
+    }
+
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
      *
