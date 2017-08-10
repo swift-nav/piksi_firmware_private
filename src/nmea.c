@@ -754,12 +754,11 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
   for (u32 i = 0; i < nap_track_n_channels; i++) {
     tracking_channel_info_t info;
     tracking_channel_get_values(i,
-                                &info,  /* Generic info */
-                                NULL,   /* Timers */
-                                NULL,   /* Frequencies */
-                                NULL,   /* Loop controller values */
-                                NULL,   /* Misc values */
-                                false); /* Reset stats */
+                                &info, /* Generic info */
+                                NULL,  /* Timers */
+                                NULL,  /* Frequencies */
+                                NULL,  /* Loop controller values */
+                                NULL); /* Misc values */
 
     if (0 != (info.flags & TRACKER_FLAG_ACTIVE)) {
       if (CODE_GPS_L1CA == info.mesid.code) {
