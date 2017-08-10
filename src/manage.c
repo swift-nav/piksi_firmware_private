@@ -1281,11 +1281,11 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
   tracking_channel_ctrl_info_t tmp;
 
   tracking_channel_get_values(i,
-                              NULL,   /* Generic info */
-                              NULL,   /* Timers */
-                              NULL,   /* Frequencies */
-                              &tmp,   /* Loop controller values */
-                              NULL);  /* Misc info */
+                              NULL,  /* Generic info */
+                              NULL,  /* Timers */
+                              NULL,  /* Frequencies */
+                              &tmp,  /* Loop controller values */
+                              NULL); /* Misc info */
   pparams->pll_bw = tmp.pll_bw;
   pparams->fll_bw = tmp.fll_bw;
   pparams->dll_bw = tmp.dll_bw;

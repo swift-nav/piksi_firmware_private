@@ -231,12 +231,8 @@ void tracking_send_detailed_state(void) {
     tracking_channel_misc_info_t misc_info;
     msg_tracking_state_detailed_t sbp;
 
-    tracking_channel_get_values(i,
-                                &channel_info,
-                                &time_info,
-                                &freq_info,
-                                &ctrl_info,
-                                &misc_info);
+    tracking_channel_get_values(
+        i, &channel_info, &time_info, &freq_info, &ctrl_info, &misc_info);
 
     if (0 == (channel_info.flags & TRACKER_FLAG_ACTIVE) ||
         0 == (channel_info.flags & TRACKER_FLAG_CONFIRMED)) {
