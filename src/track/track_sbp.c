@@ -101,7 +101,7 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid) {
       break;
   }
 
-  if (time_quality <= TIME_GUESS) {
+  if (get_time_quality() <= TIME_GUESS) {
     return flags;
   }
 
@@ -246,7 +246,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   }
 
   state->tot.wn = 0;
-  if (time_quality >= TIME_COARSE) {
+  if (get_time_quality() >= TIME_COARSE) {
     gps_time_t rec_time = napcount2gpstime(recv_time_ticks);
 
     if (WN_UNKNOWN != rec_time.wn) {

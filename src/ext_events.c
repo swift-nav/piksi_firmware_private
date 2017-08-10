@@ -90,7 +90,7 @@ void ext_event_service(void) {
   /* Prepare the MSG_EXT_EVENT */
   msg_ext_event_t msg;
   msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
-  if (time_quality == TIME_FINE) msg.flags |= (1 << 1);
+  if (get_time_quality() == TIME_FINE) msg.flags |= (1 << 1);
   msg.pin = event_pin;
 
   /* Convert to the SBP convention of rounded ms + signed ns residual */

@@ -226,7 +226,7 @@ static void manage_acq_thread(void *arg) {
     have_fix = (ndb_lgf_read(&lgf) == NDB_ERR_NONE) &&
                lgf.position_solution.valid &&
                (POSITION_FIX == lgf.position_quality) &&
-               ((TIME_COARSE <= time_quality));
+               ((TIME_COARSE <= get_time_quality()));
     if (have_fix && !had_fix) {
       had_fix = true;
       log_info("Switching to re-acq mode");
@@ -328,7 +328,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
      We ought to keep track of a quantitative uncertainty estimate. */
   last_good_fix_t lgf;
   if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
-      lgf.position_quality < POSITION_GUESS || time_quality < TIME_GUESS) {
+      lgf.position_quality < POSITION_GUESS ||
+      get_time_quality() < TIME_GUESS) {
     return SCORE_COLDSTART;
   }
 
@@ -388,7 +389,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
     dopp_hint_clock =
         -sid_to_carr_freq(orbit.e.sid) * lgf.position_solution.clock_bias;
     dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
-    if (time_quality >= TIME_FINE) {
+    if (get_time_quality() >= TIME_FINE) {
       dopp_uncertainty = DOPP_UNCERT_EPHEM;
     }
     ready = true;
@@ -1250,7 +1251,7 @@ u32 get_tracking_channel_meas(u8 i,
      */
     double carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
-    if ((TIME_FINE <= time_quality) && (0.0 == carrier_phase_offset) &&
+    if ((TIME_FINE <= get_time_quality()) && (0.0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_PLL_USE)) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
