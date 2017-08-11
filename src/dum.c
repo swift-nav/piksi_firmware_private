@@ -72,7 +72,7 @@ static int get_doppler(const gnss_signal_t *sid,
                        float radius,
                        float *doppler_min,
                        float *doppler_max) {
-  if (NULL == t || TIME_COARSE > time_quality || NULL == lgf ||
+  if (NULL == t || TIME_COARSE > get_time_quality() || NULL == lgf ||
       POSITION_UNKNOWN == lgf->position_quality) {
     return -1;
   }

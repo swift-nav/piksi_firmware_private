@@ -303,7 +303,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* If we've previously had a solution, we can work out our expected obs time
      */
-    if (time_quality == TIME_FINE) {
+    if (get_time_quality() == TIME_FINE) {
       /* Work out the time of the current nap count */
       gps_time_t expected_time = napcount2gpstime(rec_tc);
 
@@ -320,7 +320,7 @@ static void me_calc_pvt_thread(void *arg) {
      * by at the end of the solution */
     double delta_tc = -((double)current_tc - (double)rec_tc);
 
-    if (time_quality >= TIME_COARSE && lgf.position_solution.valid &&
+    if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
@@ -386,7 +386,8 @@ static void me_calc_pvt_thread(void *arg) {
     gps_time_t rec_time = napcount2rcvtime(rec_tc);
 
     /* Get the expected nap count in receiver time (gps time frame) */
-    gps_time_t *p_rec_time = (time_quality == TIME_FINE) ? &rec_time : NULL;
+    gps_time_t *p_rec_time =
+        (get_time_quality() == TIME_FINE) ? &rec_time : NULL;
 
     /* If a FINE quality time solution is not available then don't pass in a
      * `nav_time`. This will result in valid pseudoranges but with a large
@@ -510,7 +511,7 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
-    if (time_quality < TIME_FINE) {
+    if (get_time_quality() < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
        * known. We should only use this PVT solution to update our time
        * estimate and then skip all other processing.
@@ -637,7 +638,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* Update n_ready_tdcp. */
       n_ready_tdcp = n_ready_tdcp_new;
 
-      if (time_quality == TIME_FINE) {
+      if (get_time_quality() == TIME_FINE) {
         /* Send the observations. */
         me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
       }
