@@ -496,7 +496,11 @@ static void me_calc_pvt_thread(void *arg) {
               current_fix.clock_offset * 1e9,
               current_fix.clock_bias * 1e6);
 
+    static float smooth_fact = 1.0;
+    static float clock_drift_s;
     if (get_time_quality() < TIME_FINE) {
+      smooth_fact = 1.0;
+      clock_drift_s = current_fix.clock_bias;
       /* If the time quality is not FINE then our receiver clock bias isn't
        * known. We should only use this PVT solution to update our time
        * estimate and then skip all other processing.
@@ -517,8 +521,15 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* adjust the RX to GPS time conversion */
-    adjust_time_fine((current_fix.clock_offset) +
-                     (current_fix.clock_bias / soln_freq));
+    adjust_time_fine(smooth_fact*(current_fix.clock_offset) +
+                     (clock_drift_s / soln_freq));
+    clock_drift_s =
+      (smooth_fact) * (current_fix.clock_bias) +
+      (1-smooth_fact) * clock_drift_s;
+    /* adjust the simplest smoothing for clock feedback */
+    if (smooth_fact > 0.05) {
+      smooth_fact -= (0.001 / soln_freq);
+    }
 
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
