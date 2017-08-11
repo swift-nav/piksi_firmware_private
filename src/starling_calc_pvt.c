@@ -462,7 +462,7 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   if (result->has_known_reference_pos) {
     vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
   } else {
-    MEMCPY_S(ecef_pos, sizeof(ecef_pos), spp_ecef, SPP_ECEF_SIZE);
+    MEMCPY_S(ecef_pos, sizeof(ecef_pos), spp_ecef, sizeof(spp_ecef));
   }
 
   double b_ned[3];
