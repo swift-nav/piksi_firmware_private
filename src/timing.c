@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
@@ -99,7 +100,7 @@ void clock_est_init(clock_est_state_t *s) {
  * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
  */
-void set_time_fine(u64 tc, gps_time_t t) {
+void set_time_fine(double tc, gps_time_t t) {
   gps_time_t norm_time = t;
   norm_time.tow -= tc * RX_DT_NOMINAL;
   normalize_gps_time(&norm_time);
@@ -119,7 +120,7 @@ void set_time_fine(u64 tc, gps_time_t t) {
  * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
  */
-void set_gps_time_offset(u64 tc, gps_time_t t) {
+void set_gps_time_offset(double tc, gps_time_t t) {
   gps_time_t rcv_time = napcount2rcvtime(tc);
   double time_diff = gpsdifftime(&rcv_time, &t);
 
@@ -308,6 +309,24 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
     gps_time = glo2gps(glo_t, /* utc_params = */ NULL);
   }
   return gps_time;
+}
+
+/** Given a gps time, return the gps time of the nearest solution epoch
+ * \param gps_time_t time
+ * \param double soln_freq
+ * \return The GPS time of nearest epoch
+ */
+
+gps_time_t gps_time_round_to_epoch(gps_time_t time, double soln_freq) {
+  assert(gps_time_valid(&time));
+  gps_time_t rounded_time = GPS_TIME_UNKNOWN;
+  /* round the time-of-week */
+  rounded_time.tow = round(time.tow * soln_freq) / soln_freq;
+  /* handle case where rounding caused tow roll-over */
+  normalize_gps_time(&rounded_time);
+  /* pick the correct week number */
+  gps_time_match_weeks(&rounded_time, &time);
+  return rounded_time;
 }
 
 /** \} */

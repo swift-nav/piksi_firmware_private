@@ -81,7 +81,7 @@ static void me_post_observations(u8 n,
                                  const ephemeris_t _ephem[],
                                  const gps_time_t *_t) {
   /* TODO: use a buffer from the pool from the start instead of
-   * allocating nav_meas_tdcp as well. Downside, if we don't end up
+   * allocating nav_meas as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
@@ -212,7 +212,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
 /**
  * Collects channel measurements, ephemerides and auxiliary data.
  *
- * \param[in]  rec_tc    Timestamp [samples].
+ * \param[in]  rec_tc    Timestamp [float ticks].
  * \param[out] meas      Destination measurement array.
  * \param[out] in_view   Destination in_view array.
  * \param[out] ephe      Destination ephemeris array.
@@ -222,7 +222,7 @@ static void sol_thd_sleep(piksi_systime_t *deadline, u32 interval_us) {
  *
  * \return None
  */
-static void collect_measurements(u64 rec_tc,
+static void collect_measurements(double rec_tc,
                                  channel_measurement_t meas[MAX_CHANNELS],
                                  channel_measurement_t in_view[MAX_CHANNELS],
                                  ephemeris_t ephe[MAX_CHANNELS],
@@ -286,39 +286,12 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_t deadline;
   piksi_systime_get(&deadline);
 
-  /* RFT_TODO *
-   * clock_jump was after all masked by the TIME_FINE state variable
-   * and as not used generated compiler errors */
   last_good_fix_t lgf;
-
   ndb_lgf_read(&lgf);
 
   while (TRUE) {
     sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
-
-    /* Take the current nap count */
-    u64 current_tc = nap_timing_count();
-    u64 rec_tc = current_tc;
-
-    /* If we've previously had a solution, we can work out our expected obs time
-     */
-    if (get_time_quality() == TIME_FINE) {
-      /* Work out the time of the current nap count */
-      gps_time_t expected_time = napcount2gpstime(rec_tc);
-
-      /* Round this time to the nearest GPS solution time */
-      expected_time.tow = round(expected_time.tow * soln_freq) / soln_freq;
-      normalize_gps_time(&expected_time);
-
-      /* This time, taken back to nap count, is the nap count we want the
-       * observations at */
-      rec_tc = (u64)(round(gpstime2napcount(&expected_time)));
-    }
-    /* The difference between the current nap count and the nap count we
-     * want the observations at is the amount we want to adjust our deadline
-     * by at the end of the solution */
-    double delta_tc = -((double)current_tc - (double)rec_tc);
 
     if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
@@ -336,9 +309,28 @@ static void me_calc_pvt_thread(void *arg) {
     channel_measurement_t in_view[MAX_CHANNELS];
     static ephemeris_t e_meas[MAX_CHANNELS];
 
-    /* Collect measurements from trackers, load ephemerides and compute flags */
+    /* Take the current nap count as the reception time*/
+    u64 rec_tc = nap_timing_count();
+
+    /* The desired solution epoch */
+    gps_time_t epoch_time = GPS_TIME_UNKNOWN;
+    double epoch_tc = rec_tc;
+
+    /* If gps time is available, round the reception time to the nearest
+     * solution epoch */
+    if (TIME_FINE == get_time_quality()) {
+      /* If we have timing then we can calculate the relationship between
+       * receiver time and GPS time and hence provide the pseudorange
+       * calculation with the local GPS time of reception. */
+      gps_time_t rec_time = napcount2rcvtime(rec_tc);
+      epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
+      epoch_tc = gpstime2napcount(&epoch_time);
+    }
+
+    /* Collect measurements from trackers, load ephemerides and compute flags.
+     * Reference the measurements to the solution epoch. */
     collect_measurements(
-        rec_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
+        epoch_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
@@ -380,21 +372,17 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Create navigation measurements from the channel measurements */
-    /* If we have timing then we can calculate the relationship between
-     * receiver time and GPS time and hence provide the pseudorange
-     * calculation with the local GPS time of reception. */
-    gps_time_t rec_time = napcount2rcvtime(rec_tc);
 
-    /* Get the expected nap count in receiver time (gps time frame) */
-    gps_time_t *p_rec_time =
-        (get_time_quality() == TIME_FINE) ? &rec_time : NULL;
-
-    /* If a FINE quality time solution is not available then don't pass in a
-     * `nav_time`. This will result in valid pseudoranges but with a large
-     * and arbitrary receiver clock error. We may want to discard these
-     * observations after doing a PVT solution. */
-    s8 nm_ret =
-        calc_navigation_measurement(n_ready, p_meas, p_nav_meas, p_rec_time);
+    /* If a FINE quality time solution is not available then pass in NULL
+     * instead of `epoch_time`. This will result in valid pseudoranges but with
+     * a large and arbitrary receiver clock error. We will discard these
+     * measurements in any case after getting the PVT solution and initializing
+     * clock. */
+    s8 nm_ret = calc_navigation_measurement(
+        n_ready,
+        p_meas,
+        p_nav_meas,
+        gps_time_valid(&epoch_time) ? &epoch_time : NULL);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
@@ -412,20 +400,13 @@ static void me_calc_pvt_thread(void *arg) {
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
-    static navigation_measurement_t nav_meas_tdcp[MAX_CHANNELS];
-    u8 n_ready_tdcp;
-
-    /* Pass the nav_meas with the measured Dopplers as is */
-    memcpy(nav_meas_tdcp, nav_meas, sizeof(nav_meas));
-    n_ready_tdcp = n_ready;
-
-    gnss_sid_set_t codes_tdcp;
-    sid_set_init(&codes_tdcp);
-    for (u8 i = 0; i < n_ready_tdcp; i++) {
-      sid_set_add(&codes_tdcp, nav_meas_tdcp[i].sid);
+    gnss_sid_set_t codes;
+    sid_set_init(&codes);
+    for (u8 i = 0; i < n_ready; i++) {
+      sid_set_add(&codes, nav_meas[i].sid);
     }
 
-    if (sid_set_get_sat_count(&codes_tdcp) < 4) {
+    if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT */
       me_send_emptyobs();
       continue;
@@ -439,8 +420,8 @@ static void me_calc_pvt_thread(void *arg) {
       if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      calc_iono_tropo(n_ready_tdcp,
-                      nav_meas_tdcp,
+      calc_iono_tropo(n_ready,
+                      nav_meas,
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
                       p_i_params);
@@ -454,8 +435,8 @@ static void me_calc_pvt_thread(void *arg) {
      * disable_raim controlled by external setting. Defaults to false. */
     /* Don't skip velocity solving. If there is a cycle slip, tdcp_doppler will
      * just return the rough value from the tracking loop. */
-    s8 pvt_ret = calc_PVT(n_ready_tdcp,
-                          nav_meas_tdcp,
+    s8 pvt_ret = calc_PVT(n_ready,
+                          nav_meas,
                           disable_raim,
                           false,
                           &current_fix,
@@ -488,21 +469,20 @@ static void me_calc_pvt_thread(void *arg) {
     /* If we have a success RAIM repair, mark the removed observations as
        invalid, and ask tracker to drop the channels (if needed). */
     if (pvt_ret == PVT_CONVERGED_RAIM_REPAIR) {
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        if (sid_set_contains(&raim_removed_sids, nav_meas_tdcp[i].sid)) {
-          log_debug_sid(nav_meas_tdcp[i].sid,
+      for (u8 i = 0; i < n_ready; i++) {
+        if (sid_set_contains(&raim_removed_sids, nav_meas[i].sid)) {
+          log_debug_sid(nav_meas[i].sid,
                         "RAIM repair, setting observation invalid.");
-          nav_meas_tdcp[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+          nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
           /* Check how large the outlier roughly is, and if it is a gross one,
            * drop the channel */
           double geometric_range[3];
           for (u8 j = 0; j < 3; j++) {
             geometric_range[j] =
-                nav_meas_tdcp[i].sat_pos[j] - current_fix.pos_ecef[j];
+                nav_meas[i].sat_pos[j] - current_fix.pos_ecef[j];
           }
-          if (fabs(nav_meas_tdcp[i].pseudorange -
-                   current_fix.clock_offset * GPS_C -
+          if (fabs(nav_meas[i].pseudorange - current_fix.clock_offset * GPS_C -
                    vector_norm(3, geometric_range)) >
               RAIM_DROP_CHANNEL_THRESHOLD_M) {
             tracking_channel_set_raim_flag(nav_meas[i].sid);
@@ -521,7 +501,7 @@ static void me_calc_pvt_thread(void *arg) {
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(rec_tc, current_fix.time);
+      set_time_fine(epoch_tc, current_fix.time);
 
       me_send_emptyobs();
 
@@ -533,129 +513,67 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
-    /* We now have the nap count we expected the measurements to be at, plus
-     * the GPS time error for that nap count so we need to store this error in
-     * the the GPS time (GPS time frame) */
-    set_gps_time_offset(rec_tc, current_fix.time);
-
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
-    /*
-     * We need to correct our pseudorange and create a new one that is valid for
-     * a different time of arrival.  In particular we'd like to propagate all
-     * the
-     * observations such that they represent what we would have observed had
-     * the observations all arrived at the current epoch (t').
-     */
+    /* Calculate how far the solution landed from the intended epoch time. */
+    double t_err = gpsdifftime(&epoch_time, &current_fix.time);
 
-    /* Calculate the time of the nearest solution epoch, where we expected
-     * to be, and calculate how far we were away from it. */
-    gps_time_t new_obs_time = GPS_TIME_UNKNOWN;
-    new_obs_time.tow = round(current_fix.time.tow * soln_freq) / soln_freq;
-    normalize_gps_time(&new_obs_time);
-    gps_time_match_weeks(&new_obs_time, &current_fix.time);
-    double t_err = gpsdifftime(&new_obs_time, &current_fix.time);
+    log_debug("t_err %.9f (new_obs_time %.9f, current_fix.time %.9f)",
+              t_err,
+              epoch_time.tow,
+              current_fix.time.tow);
+
+    /* We now have the nap count we expected the measurements to be at, plus
+     * the GPS time error for that nap count so we need to store this error in
+     * the the GPS time (GPS time frame) */
+    set_gps_time_offset(
+        epoch_tc + (current_fix.clock_bias / RX_DT_NOMINAL / soln_freq),
+        current_fix.time);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_debug("t_err %.9lf clk_bias %.9lf clk_drift %.3e",
+      log_debug("t_err %.3e clk_bias %.3e clk_drift %.3e",
                 t_err,
                 current_fix.clock_offset,
                 current_fix.clock_bias);
 
-      /* Propagate observations to desired time. */
-      /* We have to use the tdcp_doppler result to account for TCXO drift. */
-      /* nav_meas_tdcp is updated in place, skipping elements if required. */
-      u8 n_ready_tdcp_new = 0;
-      for (u8 i = 0; i < n_ready_tdcp; i++) {
-        navigation_measurement_t *nm = &nav_meas_tdcp[n_ready_tdcp_new];
-
-        /* Copy measurement to new index if a previous measurement
-         * has been skipped. */
-        if (i != n_ready_tdcp_new) {
-          memcpy(nm, &nav_meas_tdcp[i], sizeof(*nm));
-        }
-
-        double doppler = 0.0;
-        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-          doppler = nm->raw_measured_doppler;
-        }
-
-        /* The pseudorange correction has opposite sign because Doppler
-         * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -= t_err * doppler * sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
-        /* Carrier Phase corrected by clock offset */
-        nm->raw_carrier_phase += t_err * doppler;
-        nm->raw_carrier_phase +=
-            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
-        /* Use P**V**T to determine the oscillator drift which is used
-         * to adjust computed doppler. */
-        nm->raw_measured_doppler +=
-            current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_computed_doppler = nm->raw_measured_doppler;
-
-        /* Also apply the time correction to the time of transmission so the
-         * satellite positions can be calculated for the correct time. */
-        nm->tot.tow += t_err;
-        normalize_gps_time(&nm->tot);
-
-        ephemeris_t *e = NULL;
-
-        /* Find the original index of this measurement in order to point to
-         * the correct ephemeris. (Do not load it again from NDB because it may
-         * have changed meanwhile.) */
-        for (u8 j = 0; j < n_ready; j++) {
-          if (sid_is_equal(nm->sid, meas[j].sid)) {
-            e = &e_meas[j];
-            break;
-          }
-        }
-
-        if (e == NULL || 1 != ephemeris_valid(e, &nm->tot)) {
-          continue;
-        }
-
+      for (u8 i = 0; i < n_ready; i++) {
         /* Recompute satellite position, velocity and clock errors */
-        if (0 != calc_sat_state(e,
-                                &nm->tot,
-                                nm->sat_pos,
-                                nm->sat_vel,
-                                &nm->sat_clock_err,
-                                &nm->sat_clock_err_rate,
-                                &nm->IODC,
-                                &nm->IODE)) {
+
+        /* TODO: Why do we have to do this?? This should not change anything,
+         * but removing this leads to no fixed solution */
+        if (0 != calc_sat_state(&e_meas[i],
+                                &nav_meas[i].tot,
+                                nav_meas[i].sat_pos,
+                                nav_meas[i].sat_vel,
+                                &nav_meas[i].sat_clock_err,
+                                &nav_meas[i].sat_clock_err_rate,
+                                &nav_meas[i].IODC,
+                                &nav_meas[i].IODE)) {
+          log_error_sid(nav_meas[i].sid, "Recomputing sat state failed");
           continue;
         }
-
-        n_ready_tdcp_new++;
       }
 
-      /* Update n_ready_tdcp. */
-      n_ready_tdcp = n_ready_tdcp_new;
-
-      if (get_time_quality() == TIME_FINE) {
-        /* Send the observations. */
-        me_send_all(n_ready_tdcp, nav_meas_tdcp, e_meas, &new_obs_time);
-      }
+      /* Send the observations. */
+      me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
     } else {
       log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
     }
 
-    /* Calculate the receiver clock error and adjust if it is too large */
-    double rx_err = gpsdifftime(&rec_time, &current_fix.time);
-    log_debug("rx_err = %.9lf", rx_err);
-
-    if (fabs(rx_err) > MAX_CLOCK_ERROR_S) {
-      log_info(
+    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
+      /* Note we should not enter here except in very exceptional circumstances,
+       * like time solved grossly wrong on the first fix. */
+      log_warn(
           "Receiver clock offset larger than %g ms, applying millisecond jump",
           MAX_CLOCK_ERROR_S * SECS_MS);
+
       /* round the time adjustment to even milliseconds */
-      double dt = round(rx_err * SECS_MS) / SECS_MS;
+      double dt = round(current_fix.clock_offset * SECS_MS) / SECS_MS;
       /* adjust the RX to GPS time conversion */
       adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
@@ -667,7 +585,11 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
+
+    /* The difference between the current nap count and the nap count we
+     * would have wanted the observations at is the amount we want to
+     * adjust our deadline by at the end of the solution */
+    double dt = -((double)rec_tc - epoch_tc) * RX_DT_NOMINAL;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
