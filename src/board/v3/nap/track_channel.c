@@ -296,7 +296,7 @@ void nap_track_init(u8 channel,
   chSysLock();
   /* get a reasonable deadline to which propagate to */
   u64 tc_min_propag =
-    nap_sample_time_to_count(NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN);
+      nap_sample_time_to_count(NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN);
 
   u32 samples_diff = tc_min_propag - tc_codestart;
   u32 code_chips, num_codes;
