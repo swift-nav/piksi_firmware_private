@@ -22,6 +22,7 @@
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
 
+#include "lockd/lockd.h"
 #include "piksi_systime.h"
 #include "shm.h"
 #include "track_flags.h"
@@ -563,20 +564,20 @@ typedef struct {
 
   tp_profile_t profile; /**< Profile controller state. */
 
-  tp_tl_state_t tl_state;         /**< Tracking loop filter state. */
-  tp_corr_state_t corrs;          /**< Correlations */
-  track_cn0_state_t cn0_est;      /**< C/N0 estimator state. */
-  alias_detect_t alias_detect;    /**< Alias lock detector. */
-  lock_detect_t lock_detect_pll;  /**< Checks PLL phase error. */
-  lock_detect_t lock_detect_fll;  /**< Checks FLL vs DLL freq difference n*/
-  lock_detect_t lock_detect_fll2; /**< Checks FLL freq change rate. */
-  lp1_filter_t xcorr_filter;      /**< Low-pass SV POV doppler filter */
-  u16 tracking_mode : 3;          /**< Tracking mode */
-  u16 cycle_no : 5;               /**< Cycle index inside current
-                                   *   integration mode. */
-  u16 use_alias_detection : 1;    /**< Flag for alias detection control */
-  u16 has_next_params : 1;        /**< Flag if stage transition is in
-                                   *   progress */
+  tp_tl_state_t tl_state;      /**< Tracking loop filter state. */
+  tp_corr_state_t corrs;       /**< Correlations */
+  track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
+  alias_detect_t alias_detect; /**< Alias lock detector. */
+  lockd_t lockd_pll;           /**< Checks PLL phase error. */
+  lockd_t lockd_fll;           /**< Checks FLL vs DLL freq difference. */
+  lockd_t lockd_freq_rate;     /**< Checks FLL/PLL freq change rate. */
+  lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
+  u16 tracking_mode : 3;       /**< Tracking mode */
+  u16 cycle_no : 5;            /**< Cycle index inside current
+                                *   integration mode. */
+  u16 use_alias_detection : 1; /**< Flag for alias detection control */
+  u16 has_next_params : 1;     /**< Flag if stage transition is in
+                                *   progress */
 
   /* Constellation specific data */
   union {
@@ -731,11 +732,15 @@ typedef struct {
  * Lock detector parameters.
  */
 typedef struct {
-  float k1; /**< LPF coefficient */
-  float k2; /**< I scale factor */
-  u16 lp;   /**< Pessimistic count threshold */
-  u16 lo;   /**< Optimistic count threshold */
-} tp_lock_detect_params_t;
+  float fc;          /**< LPF coefficient */
+  float scale;       /**< signal scale factor */
+  u16 cnt_threshold; /**< lock count threshold */
+} lockd_params_t;
+
+typedef struct {
+  lockd_params_t pll_fll;
+  lockd_params_t freq_rate;
+} tp_lockd_params_t;
 
 /**
  * Lock detector parameters.
@@ -754,9 +759,9 @@ typedef struct {
  * \sa tp_get_profile
  */
 typedef struct {
-  tp_loop_params_t loop_params;               /**< Tracking loop parameters */
-  tp_lock_detect_params_t lock_detect_params; /**< Lock detector parameters */
-  bool use_alias_detection;                   /**< Alias detection flag */
+  tp_loop_params_t loop_params;   /**< Tracking loop parameters */
+  tp_lockd_params_t lockd_params; /**< Lock detector parameters */
+  bool use_alias_detection;       /**< Alias detection flag */
   tp_cn0_params_t cn0_params;
 } tp_config_t;
 

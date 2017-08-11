@@ -107,25 +107,37 @@ void tp_tracker_update_lock_detect_parameters(
     tracker_channel_t *tracker_channel,
     const tp_config_t *next_params,
     bool init) {
-  const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
+  const tp_lockd_params_t *ld = &next_params->lockd_params;
   /* Lock detector integration time */
   bool mode_switch = tp_is_fll_ctrl(tracker_channel->tl_state.ctrl) !=
                      tp_is_fll_ctrl(next_params->loop_params.ctrl);
 
   if (init || mode_switch) {
-    lock_detect_init(
-        &tracker_channel->lock_detect_pll, ld->k1, ld->k2, ld->lp, ld->lo);
-    lock_detect_init(
-        &tracker_channel->lock_detect_fll, ld->k1, ld->k2, ld->lp, ld->lo);
-    lock_detect_init(
-        &tracker_channel->lock_detect_fll2, ld->k1, ld->k2, ld->lp, ld->lo);
+    lockd_init(&tracker_channel->lockd_pll,
+               ld->pll_fll.fc,
+               ld->pll_fll.scale,
+               ld->pll_fll.cnt_threshold);
+    lockd_init(&tracker_channel->lockd_fll,
+               ld->pll_fll.fc,
+               ld->pll_fll.scale,
+               ld->pll_fll.cnt_threshold);
+    lockd_init(&tracker_channel->lockd_freq_rate,
+               ld->freq_rate.fc,
+               ld->freq_rate.scale,
+               ld->freq_rate.cnt_threshold);
   } else {
-    lock_detect_reinit(
-        &tracker_channel->lock_detect_pll, ld->k1, ld->k2, ld->lp, ld->lo);
-    lock_detect_reinit(
-        &tracker_channel->lock_detect_fll, ld->k1, ld->k2, ld->lp, ld->lo);
-    lock_detect_reinit(
-        &tracker_channel->lock_detect_fll2, ld->k1, ld->k2, ld->lp, ld->lo);
+    lockd_reinit(&tracker_channel->lockd_pll,
+                 ld->pll_fll.fc,
+                 ld->pll_fll.scale,
+                 ld->pll_fll.cnt_threshold);
+    lockd_reinit(&tracker_channel->lockd_fll,
+                 ld->pll_fll.fc,
+                 ld->pll_fll.scale,
+                 ld->pll_fll.cnt_threshold);
+    lockd_reinit(&tracker_channel->lockd_freq_rate,
+                 ld->freq_rate.fc,
+                 ld->freq_rate.scale,
+                 ld->freq_rate.cnt_threshold);
   }
 }
 
@@ -706,9 +718,9 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                            tracker_channel->corrs.corr_cn0.very_early.Q);
   }
 
-  bool inlock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
-  if ((cn0 > cn0_params.track_cn0_drop_thres_dbhz) ||
-      (tp_tl_is_pll(&tracker_channel->tl_state) && inlock)) {
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  if ((cn0 > cn0_params.track_cn0_drop_thres_dbhz) || inlock) {
     /* When C/N0 is above a drop threshold or there is a pessimistic lock,
      * tracking shall continue.
      */
@@ -762,15 +774,31 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   }
 }
 
+static void update_freq_rate_lock(tracker_channel_t *tracker_channel) {
+  u8 ld_ms = tp_get_ld_ms(tracker_channel->tracking_mode);
+  float ld_s = (float)ld_ms / SECS_MS;
+  double freq_err_hz =
+      tracker_channel->carrier_freq - tracker_channel->carrier_freq_prev;
+  /* Assume that the maximum expected acceleration is 5g and the carrier
+     wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
+     purpose. */
+  static const double max_freq_err_hz_per_s = 5. * MAX_USER_VELOCITY_MPS / 0.19;
+
+  lockd_update(&tracker_channel->lockd_freq_rate,
+               max_freq_err_hz_per_s * ld_s,
+               freq_err_hz);
+}
+
 static void update_pll_lock(tracker_channel_t *tracker_channel) {
   tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
 
-  lock_detect_update(&tracker_channel->lock_detect_pll,
-                     tracker_channel->corrs.corr_ld.I,
-                     tracker_channel->corrs.corr_ld.Q,
-                     tp_get_ld_ms(tracker_channel->tracking_mode));
+  u8 ld_ms = tp_get_ld_ms(tracker_channel->tracking_mode);
+  lockd_update(&tracker_channel->lockd_pll,
+               fabs(tracker_channel->corrs.corr_ld.I) / (double)ld_ms,
+               fabs(tracker_channel->corrs.corr_ld.Q) / (double)ld_ms);
 
-  if (tracker_channel->lock_detect_pll.outp) {
+  if (tracker_channel->lockd_pll.locked &&
+      tracker_channel->lockd_freq_rate.locked) {
     tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
     tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
@@ -780,27 +808,12 @@ static void update_pll_lock(tracker_channel_t *tracker_channel) {
 static void update_fll_lock(tracker_channel_t *tracker_channel) {
   tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
 
-  u8 ld_ms = tp_get_ld_ms(tracker_channel->tracking_mode);
   float dll_err = tp_tl_get_dll_error(&tracker_channel->tl_state);
+  lockd_update(
+      &tracker_channel->lockd_fll, TP_FLL_DLL_ERR_THRESHOLD_HZ, dll_err);
 
-  lock_detect_update(&tracker_channel->lock_detect_fll,
-                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                     dll_err,
-                     ld_ms);
-
-  double freq_err_hz =
-      tracker_channel->carrier_freq - tracker_channel->carrier_freq_prev;
-  /* Assume that the maximum Doppler change is ~4 Hz per 1 km/h of user speed.
-     The SV velocity induced Doppler is considered negligibly small. */
-  static const double max_freq_err_hz_per_s =
-      4. * MAX_USER_VELOCITY_MPS * (MINUTE_SECS * HOUR_MINUTES) / 1000;
-  double threshold_hz = max_freq_err_hz_per_s * ld_ms / SECS_MS;
-
-  lock_detect_update(
-      &tracker_channel->lock_detect_fll2, threshold_hz, freq_err_hz, ld_ms);
-
-  if (tracker_channel->lock_detect_fll.outp &&
-      tracker_channel->lock_detect_fll2.outp) {
+  if (tracker_channel->lockd_fll.locked &&
+      tracker_channel->lockd_freq_rate.locked) {
     tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
     tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
   }
@@ -826,6 +839,8 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
     bool inlock_prev = false;
     bool inlock = false;
 
+    update_freq_rate_lock(tracker_channel);
+
     if (pll_loop) {
       inlock_prev = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
       update_pll_lock(tracker_channel);
@@ -844,6 +859,9 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
 
     if (inlock_prev && !inlock &&
         (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
+      if (!tracker_channel->lockd_freq_rate.locked) {
+        log_info_mesid(tracker_channel->mesid, "Excessive freq rate");
+      }
       if (fll_loop) {
         log_info_mesid(tracker_channel->mesid, "FLL stress");
       } else if (pll_loop) {
@@ -931,7 +949,7 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
         &tracker_channel->tl_state, &tracker_channel->corrs.corr_epl, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
-    /* The previous carrier frequency used by FLL lock detector */
+    /* The previous carrier frequency used by freq rate lock detector */
     tracker_channel->carrier_freq_prev = tracker_channel->carrier_freq;
 
     tracker_channel->carrier_freq = rates.carr_freq;

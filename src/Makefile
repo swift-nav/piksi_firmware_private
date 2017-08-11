@@ -178,6 +178,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
+        $(SWIFTNAV_ROOT)/src/me/lockd/lockd.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c
@@ -215,6 +216,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/libsbp/c/include \
          $(SWIFTNAV_ROOT)/libswiftnav/include \
          $(SWIFTNAV_ROOT)/src \
+         $(SWIFTNAV_ROOT)/src/me \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/libswiftnav/libfec/include \
 

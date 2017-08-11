@@ -33,7 +33,7 @@
 /** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
 #define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (31.f)
+#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (34.f)
 /** C/N0 threshold for measurements use */
 /** +1 to make it slightly higher than the CN0 drop threshold to avoid
     any race condition */
@@ -178,46 +178,27 @@ static const tp_cn0_params_t cn0_params_default = {
  * Lock detector parameters
  */
 enum {
-  TP_LD_PARAMS_DISABLE,
-  TP_LD_PARAMS_EXTRAOPT,
-  TP_LD_PARAMS_OPT,
-  TP_LD_PARAMS_NORMAL,
-  TP_LD_PARAMS_PESS,
   TP_LD_PARAMS_PLL_1MS,
   TP_LD_PARAMS_PLL_5MS,
+  TP_LD_PARAMS_PLL_10MS,
+  TP_LD_PARAMS_PLL_20MS,
   TP_LD_PARAMS_FLL_5MS
 };
 
 /**
  * Lock detector profiles
  */
-static const tp_lock_detect_params_t ld_params[] = {
-    /*   k1,    k2,  lp,  lo */
-    {
-        0.02f, 1e-6f, 1, 1,
-    }, /* TP_LD_PARAMS_DISABLE */
-    {
-        0.02f, 0.8f, 50, 150,
-    }, /* TP_LD_PARAMS_EXTRAOPT */
-    {
-        0.02f, 1.1f, 50, 150,
-    }, /* TP_LD_PARAMS_OPT */
-    {
-        0.05f, 1.4f, 50, 150,
-    }, /* TP_LD_PARAMS_NORMAL */
-    {
-        0.10f, 1.4f, 50, 200,
-    }, /* TP_LD_PARAMS_PESS */
-    {
-        0.025f, 1.5f, 50, 150,
-    }, /* TP_LD_PARAMS_PLL_1MS */
-    {
-        0.025f, 1.5f, 50, 150,
-    }, /* TP_LD_PARAMS_PLL_5MS */
-    {
-        0.005f, .6f, 50, 200,
-    } /* TP_LD_PARAMS_FLL_5MS */
+/* clang-format off */
+static const tp_lockd_params_t ld_params[] = {
+                          /*      { f, scale, cnt_threshold }
+                            {pll_fll_ld_params}, {freq_rate_ld_params} */
+  [TP_LD_PARAMS_PLL_1MS]  = {{0.020f, 0.67f, 50}, {0.015f, 1.f, 50}},
+  [TP_LD_PARAMS_PLL_5MS]  = {{0.009f, 0.67f, 10}, {0.012f, 1.f, 70}},
+  [TP_LD_PARAMS_PLL_10MS] = {{0.007f, 0.67f, 10}, {0.009f, 1.f, 90}},
+  [TP_LD_PARAMS_PLL_20MS] = {{0.006f, 0.67f, 10}, {0.008f, 1.f, 110}},
+  [TP_LD_PARAMS_FLL_5MS]  = {{0.005f, 1.67f, 10}, {0.008f, 1.f, 130}}
 };
+/* clang-format on */
 
 /** Tracking loop parameters template
  * Filled out at the trackig loop parameters switch event.
@@ -408,7 +389,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* middle range CN0 profile */
   [IDX_MID_CN0] =
   { {   18,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_10MS,
         50,            33,           41,            1.5,                      0,
       IDX_MID_CN0, IDX_LOW_CN0_INI, IDX_HIGH_CN0, IDX_LOW_CN0_DYN,     IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
@@ -416,49 +397,49 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* low range CN0 profiles */
   [IDX_LOW_CN0_INI] =
   { {   15,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_10MS,
         50,            25,           36,            1.5,                      0,
       IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_11] =
   { {   14,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_10MS,
         50,            25,           36,            1.5,                      0,
       IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_12] =
   { {   12,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_10MS,
         50,            25,           36,            1.5,                      0,
       IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_13] =
   { {   10,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_10MS,
         50,            25,           36,            1.5,                      0,
       IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_14] =
   { {   10,             0,            1,   TP_CTRL_PLL3,             TP_TM_20MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_20MS,
         50,            25,           36,            1.5,                      0,
       IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_15] =
   { {    8,             0,            1,   TP_CTRL_PLL3,             TP_TM_20MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_20MS,
         50,            25,           36,            1.5,                      0,
       IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_LOW_CN0_FIN] =
   { {    7,             0,           .5,   TP_CTRL_PLL3,             TP_TM_20MS,
-               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,      TRACK_CN0_EST_PRIMARY },  TP_LD_PARAMS_PLL_20MS,
         50,            25,           36,            1.5,                      0,
       IDX_LOW_CN0_FIN, IDX_SENS, IDX_MID_CN0, IDX_LOW_CN0_DYN,         IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT | TP_HIGH_DYN },
@@ -475,21 +456,21 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity to low range CN0 transitional profiles  */
   [IDX_TRAN_CN0] =
   { {   20,             1,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },  TP_LD_PARAMS_PLL_10MS,
         50,           26.,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 | TP_WAIT_PLOCK },
 
   [IDX_NONAME_19] =
   { {   20,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },  TP_LD_PARAMS_PLL_10MS,
         50,           26.,            0,            1.5,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_20] =
   { {   18,             0,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-               TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
+               TP_TM_10MS,    TRACK_CN0_EST_SECONDARY },  TP_LD_PARAMS_PLL_10MS,
         50,           26.,            0,            1.5,                      0,
       IDX_DLL_RECOVERY, IDX_SENS, IDX_NONE, IDX_LOW_CN0_DYN,           IDX_NONE,
       TP_LOW_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
@@ -638,7 +619,7 @@ static void get_profile_params(const me_gnss_signal_t mesid,
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur_index];
   double carr_to_code = mesid_to_carr_to_code(mesid);
-  config->lock_detect_params = ld_params[cur_profile->ld_params];
+  config->lockd_params = ld_params[cur_profile->ld_params];
 
   /* fill out the tracking loop parameters */
   config->loop_params = loop_params_template;
