@@ -295,13 +295,8 @@ void nap_track_init(u8 channel,
   /* Set up timing compare */
   chSysLock();
   /* get a reasonable deadline to which propagate to */
-  u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
-
-  /* extend tc_min_propag to 64 bit */
-  tc_min_propag += (tc_codestart >> 32) << 32;
-  if (tc_min_propag < tc_codestart) {
-    tc_min_propag += (1ULL << 32);
-  }
+  u64 tc_min_propag =
+    nap_sample_time_to_count(NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN);
 
   u32 samples_diff = tc_min_propag - tc_codestart;
   u32 code_chips, num_codes;

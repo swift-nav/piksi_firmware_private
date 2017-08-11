@@ -99,11 +99,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   }
 
   /** get current NAP count and extend it */
-  u64 curr_timetag = NAP->TIMING_COUNT;
-  curr_timetag += (last_timetag >> 32) << 32;
-  if (curr_timetag < last_timetag) {
-    curr_timetag += (1ULL << 32);
-  }
+  u64 curr_timetag = nap_sample_time_to_count(NAP->TIMING_COUNT);
   /** Check if the last grabbed signal snapshot isn't too old.
    * If yes, simply grab another one */
   if ((last_timetag == 0) ||
