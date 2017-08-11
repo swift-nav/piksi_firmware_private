@@ -1075,7 +1075,7 @@ static u32 get_tracking_channel_flags_info(
  *              updated
  * \retval false Error in computation.
  */
-static bool compute_cpo(u64 ref_tc,
+static bool compute_cpo(double ref_tc,
                         const tracking_channel_info_t *info,
                         const channel_measurement_t *meas,
                         double *carrier_phase_offset) {

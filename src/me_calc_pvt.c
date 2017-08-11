@@ -293,8 +293,9 @@ static void me_calc_pvt_thread(void *arg) {
     sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
-    if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
-        lgf.position_quality >= POSITION_GUESS) {
+    if ((get_time_quality() >= TIME_COARSE) &&
+        (lgf.position_solution.valid) &&
+        (lgf.position_quality >= POSITION_GUESS)) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
       DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC / 2,
@@ -302,35 +303,36 @@ static void me_calc_pvt_thread(void *arg) {
                                lgf.position_solution.time));
     }
 
+    /* Take the current nap count */
+    u64 current_tc = nap_timing_count();
+    double float_tc = current_tc;
+    gps_time_t epoch_time = napcount2gpstime(float_tc);
+
+    /* We previously had a solution: we can work out our expected obs time */
+    if (get_time_quality() == TIME_FINE) {
+      /* Round this time to the nearest GPS solution time */
+      epoch_time.tow = round(epoch_time.tow * soln_freq) / soln_freq;
+      normalize_gps_time(&epoch_time);
+      /* This time, taken back to nap count, is the nap count we want the
+       * observations at */
+      float_tc = gpstime2napcount(&epoch_time);
+    }
+
+    /* The difference between the current nap count and the nap count we
+     * want the observations at is the amount we want to adjust our deadline
+     * by at the end of the solution */
+    double delta_tc = -((double)current_tc - float_tc);
+
     u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
     channel_measurement_t in_view[MAX_CHANNELS];
     static ephemeris_t e_meas[MAX_CHANNELS];
-
-    /* Take the current nap count as the reception time*/
-    u64 rec_tc = nap_timing_count();
-
-    /* The desired solution epoch */
-    gps_time_t epoch_time = GPS_TIME_UNKNOWN;
-    double epoch_tc = rec_tc;
-
-    /* If gps time is available, round the reception time to the nearest
-     * solution epoch */
-    if (TIME_FINE == get_time_quality()) {
-      /* If we have timing then we can calculate the relationship between
-       * receiver time and GPS time and hence provide the pseudorange
-       * calculation with the local GPS time of reception. */
-      gps_time_t rec_time = napcount2rcvtime(rec_tc);
-      epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
-      epoch_tc = gpstime2napcount(&epoch_time);
-    }
-
     /* Collect measurements from trackers, load ephemerides and compute flags.
      * Reference the measurements to the solution epoch. */
     collect_measurements(
-        epoch_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
+        float_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
@@ -491,6 +493,10 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
+    log_debug("clk_bias [ns] %+10.2lf clk_drift [us] %+8.5lf",
+             current_fix.clock_offset * 1e9,
+             current_fix.clock_bias * 1e6);
+
     if (get_time_quality() < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
        * known. We should only use this PVT solution to update our time
@@ -501,9 +507,7 @@ static void me_calc_pvt_thread(void *arg) {
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(epoch_tc, current_fix.time);
-
-      me_send_emptyobs();
+      set_time_fine(float_tc, current_fix.time);
 
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
@@ -513,83 +517,38 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
+    /* adjust the RX to GPS time conversion */
+    adjust_time_fine((current_fix.clock_offset) + (current_fix.clock_bias / soln_freq));
+
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
-    /* Calculate how far the solution landed from the intended epoch time. */
-    double t_err = gpsdifftime(&epoch_time, &current_fix.time);
-
-    log_debug("t_err %.9f (new_obs_time %.9f, current_fix.time %.9f)",
-              t_err,
-              epoch_time.tow,
-              current_fix.time.tow);
-
-    /* We now have the nap count we expected the measurements to be at, plus
-     * the GPS time error for that nap count so we need to store this error in
-     * the the GPS time (GPS time frame) */
-    set_gps_time_offset(
-        epoch_tc + (current_fix.clock_bias / RX_DT_NOMINAL / soln_freq),
-        current_fix.time);
-
-    /* Only send observations that are closely aligned with the desired
-     * solution epochs to ensure they haven't been propagated too far. */
-    if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_info("t_err %.3e clk_bias %.3e clk_drift %.3e",
-               t_err,
-               current_fix.clock_offset,
-               current_fix.clock_bias);
-
-      for (u8 i = 0; i < n_ready; i++) {
-        /* Recompute satellite position, velocity and clock errors */
-
-        /* TODO: Why do we have to do this?? This should not change anything,
-         * but removing this leads to no fixed solution */
-        if (0 != calc_sat_state(&e_meas[i],
-                                &nav_meas[i].tot,
-                                nav_meas[i].sat_pos,
-                                nav_meas[i].sat_vel,
-                                &nav_meas[i].sat_clock_err,
-                                &nav_meas[i].sat_clock_err_rate,
-                                &nav_meas[i].IODC,
-                                &nav_meas[i].IODE)) {
-          log_error_sid(nav_meas[i].sid, "Recomputing sat state failed");
-          continue;
-        }
+    /* I think this is only needed because nm->tot.tow was adjusted
+     * for the satellite clock above by `calc_sat_clock_corrections()`
+     * so the satellite position and velocity needs also adjusting */
+    for (u8 i = 0; i < n_ready; i++) {
+      /* Recompute satellite position, velocity and clock errors */
+      if (0 != calc_sat_state(&e_meas[i],
+                              &nav_meas[i].tot,
+                              nav_meas[i].sat_pos,
+                              nav_meas[i].sat_vel,
+                              &nav_meas[i].sat_clock_err,
+                              &nav_meas[i].sat_clock_err_rate,
+                              &nav_meas[i].IODC,
+                              &nav_meas[i].IODE)) {
+        log_error_sid(nav_meas[i].sid, "Recomputing sat state failed");
+        continue;
       }
-
-      /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
-    } else {
-      log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
     }
 
-    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
-      /* Note we should not enter here except in very exceptional circumstances,
-       * like time solved grossly wrong on the first fix. */
-      log_warn(
-          "Receiver clock offset larger than %g ms, applying millisecond jump",
-          MAX_CLOCK_ERROR_S * SECS_MS);
-
-      /* round the time adjustment to even milliseconds */
-      double dt = round(current_fix.clock_offset * 2 * SECS_MS) / SECS_MS;
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
-      /* adjust all the carrier phase offsets */
-      /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
-    }
+    /* Send the good observations. */
+    me_send_all(n_ready, nav_meas, e_meas, &(current_fix.time));
 
     /* Calculate the correction to the current deadline by converting nap count
      * difference to seconds, we convert to ms to adjust deadline later */
-
-    /* The difference between the current nap count and the nap count we
-     * would have wanted the observations at is the amount we want to
-     * adjust our deadline by at the end of the solution */
-    double dt = -((double)rec_tc - epoch_tc) * RX_DT_NOMINAL;
+    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
 
     /* Limit dt to twice the max soln rate */
     double max_deadline = ((1.0 / soln_freq) * 2.0);
