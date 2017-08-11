@@ -293,8 +293,7 @@ static void me_calc_pvt_thread(void *arg) {
     sol_thd_sleep(&deadline, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
-    if ((get_time_quality() >= TIME_COARSE) &&
-        (lgf.position_solution.valid) &&
+    if ((get_time_quality() >= TIME_COARSE) && (lgf.position_solution.valid) &&
         (lgf.position_quality >= POSITION_GUESS)) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
@@ -494,8 +493,8 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     log_debug("clk_bias [ns] %+10.2lf clk_drift [us] %+8.5lf",
-             current_fix.clock_offset * 1e9,
-             current_fix.clock_bias * 1e6);
+              current_fix.clock_offset * 1e9,
+              current_fix.clock_bias * 1e6);
 
     if (get_time_quality() < TIME_FINE) {
       /* If the time quality is not FINE then our receiver clock bias isn't
@@ -518,7 +517,8 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* adjust the RX to GPS time conversion */
-    adjust_time_fine((current_fix.clock_offset) + (current_fix.clock_bias / soln_freq));
+    adjust_time_fine((current_fix.clock_offset) +
+                     (current_fix.clock_bias / soln_freq));
 
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
