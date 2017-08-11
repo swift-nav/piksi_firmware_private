@@ -1065,28 +1065,28 @@ static u32 get_tracking_channel_flags_info(
 /**
  * Computes carrier phase offset.
  *
- * \param[in]  ref_tc Reference time
- * \param[in]  info   Generic tracker data for update
- * \param[in]  meas   Pre-populated channel measurement
+ * \param[in]  float_tc Reference time
+ * \param[in]  info     Generic tracker data for update
+ * \param[in]  meas     Pre-populated channel measurement
  * \param[out] carrier_phase_offset Result
  *
  * \retval true Carrier phase offset is computed and \a carrier_phase_offset
  *              updated
  * \retval false Error in computation.
  */
-static bool compute_cpo(u64 ref_tc,
+static bool compute_cpo(double float_tc,
                         const tracking_channel_info_t *info,
                         const channel_measurement_t *meas,
                         double *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
-  bool ret = tracking_channel_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
+  bool ret = tracking_channel_calc_pseudorange(float_tc, meas, &raw_pseudorange);
   if (ret) {
     /* We don't want to adjust for the recevier clock drift,
      * so we need to calculate an estimate of that before we
      * calculate the carrier phase offset */
-    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
-    gps_time_t gps_time = napcount2gpstime(ref_tc);
+    gps_time_t receiver_time = napcount2rcvtime(float_tc);
+    gps_time_t gps_time = napcount2gpstime(float_tc);
 
     double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
 
@@ -1179,15 +1179,15 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
  * Additionally, the method computes initial carrier phase offset if it has
  * not been yet available and feeds it back to tracker.
  *
- * \param[in]  i      Tracking channel number.
- * \param[in]  ref_tc Reference time [ticks]
- * \param[out] meas   Container for measurement data.
- * \param[out] ephe   Container for ephemeris
+ * \param[in]  i         Tracking channel number.
+ * \param[in]  float_tc  Reference time [fractional ticks]
+ * \param[out] meas      Container for measurement data.
+ * \param[out] ephe      Container for ephemeris
  *
  * \return Flags
  */
 u32 get_tracking_channel_meas(u8 i,
-                              u64 ref_tc,
+                              double float_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
   u32 flags = 0;                          /* Result */
@@ -1230,7 +1230,7 @@ u32 get_tracking_channel_meas(u8 i,
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
 
     tracking_channel_measurement_get(
-        ref_tc, &info, &freq_info, &time_info, &misc_info, meas);
+        float_tc, &info, &freq_info, &time_info, &misc_info, meas);
 
     /* Adjust for half phase ambiguity */
     if ((0 != (info.flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
@@ -1254,7 +1254,7 @@ u32 get_tracking_channel_meas(u8 i,
         (0 != (flags & TRACKER_FLAG_PLL_USE)) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
-      cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
+      cpo_ok = compute_cpo(float_tc, &info, meas, &carrier_phase_offset);
     }
     if (0.0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;

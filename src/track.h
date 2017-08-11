@@ -915,14 +915,14 @@ bool tracker_channel_disable(tracker_channel_id_t id);
 /* Tracking parameters interface. */
 
 void tracking_channel_measurement_get(
-    u64 ref_tc,
+    const double float_tc,
     const tracking_channel_info_t *info,
     const tracking_channel_freq_info_t *freq_info,
     const tracking_channel_time_info_t *time_info,
     const tracking_channel_misc_info_t *misc_info,
     channel_measurement_t *meas);
 
-bool tracking_channel_calc_pseudorange(u64 ref_tc,
+bool tracking_channel_calc_pseudorange(const double float_tc,
                                        const channel_measurement_t *meas,
                                        double *raw_pseudorange);
 

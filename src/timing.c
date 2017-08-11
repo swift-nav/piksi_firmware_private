@@ -96,12 +96,12 @@ void clock_est_init(clock_est_state_t *s) {
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
  *
- * \param tc SwiftNAP timing count.
- * \param t GPS time estimate associated with timing count.
+ * \param float_tc SwiftNAP timing count.
+ * \param t        GPS time estimate associated with timing count.
  */
-void set_time_fine(u64 tc, gps_time_t t) {
+void set_time_fine(double float_tc, gps_time_t t) {
   gps_time_t norm_time = t;
-  norm_time.tow -= tc * RX_DT_NOMINAL;
+  norm_time.tow -= float_tc * RX_DT_NOMINAL;
   normalize_gps_time(&norm_time);
 
   chMtxLock(&clock_mutex);
@@ -116,11 +116,11 @@ void set_time_fine(u64 tc, gps_time_t t) {
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
  *
- * \param tc SwiftNAP timing count.
- * \param t GPS time estimate associated with timing count.
+ * \param float_tc  SwiftNAP timing count.
+ * \param t         GPS time estimate associated with timing count.
  */
-void set_gps_time_offset(u64 tc, gps_time_t t) {
-  gps_time_t rcv_time = napcount2rcvtime(tc);
+void set_gps_time_offset(const double float_tc, gps_time_t t) {
+  gps_time_t rcv_time = napcount2rcvtime(float_tc);
   double time_diff = gpsdifftime(&rcv_time, &t);
 
   chMtxLock(&clock_mutex);
@@ -179,6 +179,16 @@ gps_time_t get_current_gps_time(void) {
   return t;
 }
 
+/** Get receiver to GPS clock offset
+ *
+ * \note
+ *
+ * \return
+ */
+gps_time_t get_rec2gps_timeoffset(void) {
+  return clock_state.t0_gps;
+}
+
 /** Convert receiver time to GPS time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality
@@ -205,14 +215,14 @@ gps_time_t napcount2gpstime(const double tc) {
  * \note The GPS time may only be a guess or completely unknown. Rcv time
  *  should be continuous with ms jumps
  *
- * \param tc Timing count in units of RX_DT_NOMINAL.
+ * \param float_tc  Timing count in units of RX_DT_NOMINAL.
  * \return Rcv time in GPS time frame corresponding to Timing count.
  */
-gps_time_t napcount2rcvtime(const double tc) {
+gps_time_t napcount2rcvtime(const double float_tc) {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
   if (gps_time_valid(&t)) {
-    t.tow += tc * clock_state.clock_period;
+    t.tow += float_tc * clock_state.clock_period;
     normalize_gps_time(&t);
   }
   chMtxUnlock(&clock_mutex);

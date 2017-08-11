@@ -834,7 +834,7 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
  *
  * The method populates measurement fields according to provided values.
  *
- * \param[in]  ref_tc    Reference timing count.
+ * \param[in]  float_tc  Reference timing count.
  * \param[in]  info      Generic tracking channel information block.
  * \param[in]  freq_info Frequency and phase information block.
  * \param[in]  time_info Time information block.
@@ -843,8 +843,10 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
  *
  * \return None
  */
+#define POW_TWO_P31 (2147483648.0)
+#define POW_TWO_P32 (4294967296.0)
 void tracking_channel_measurement_get(
-    u64 ref_tc,
+    const double float_tc,
     const tracking_channel_info_t *info,
     const tracking_channel_freq_info_t *freq_info,
     const tracking_channel_time_info_t *time_info,
@@ -856,12 +858,22 @@ void tracking_channel_measurement_get(
   meas->sid = mesid2sid(info->mesid, info->glo_orbit_slot);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
-  meas->carrier_phase = freq_info->carrier_phase;
   meas->carrier_freq = freq_info->carrier_freq;
   meas->time_of_week_ms = info->tow_ms;
   meas->tow_residual_ns = info->tow_residual_ns;
-  meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc)) /
+
+  double extended_sampcount = info->sample_count;
+  extended_sampcount += POW_TWO_P32*floor(float_tc/POW_TWO_P32);
+  if (extended_sampcount > float_tc+POW_TWO_P31) {
+    extended_sampcount -= POW_TWO_P32;
+  } else if (extended_sampcount < float_tc-POW_TWO_P31) {
+    extended_sampcount += POW_TWO_P32;
+  }
+  meas->rec_time_delta = (extended_sampcount - float_tc) /
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
+
+  meas->carrier_phase = freq_info->carrier_phase;
+
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
   meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
@@ -872,18 +884,18 @@ void tracking_channel_measurement_get(
 /**
  * Computes raw pseudorange in [m]
  *
- * \param[in]  ref_tc Reference time
- * \param[in]  meas   Pre-populated channel measurement
+ * \param[in]  float_tc Reference time
+ * \param[in]  meas     Pre-populated channel measurement
  * \param[out] raw_pseudorange Computed pseudorange [m]
  *
  * \retval true Pseudorange is valid
  * \retval false Error in computation.
  */
-bool tracking_channel_calc_pseudorange(u64 ref_tc,
+bool tracking_channel_calc_pseudorange(const double float_tc,
                                        const channel_measurement_t *meas,
                                        double *raw_pseudorange) {
   navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
-  gps_time_t rec_time = napcount2gpstime(ref_tc);
+  gps_time_t rec_time = napcount2gpstime(float_tc);
   s8 nm_ret = calc_navigation_measurement(1, &meas, &p_nav_meas, &rec_time);
   if (nm_ret != 0) {
     log_warn_sid(meas->sid,
