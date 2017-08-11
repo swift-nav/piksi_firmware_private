@@ -160,7 +160,7 @@ static void update_obss(obss_t *new_obss)
   static gps_time_t tor_old = GPS_TIME_UNKNOWN;
 
   obss_t old_base_obss;
-  memcpy(old_base_obss, base_obss, sizeof(baseobss));
+  memcpy(&old_base_obss, &base_obss, sizeof(obss_t));
 
   /* We don't want to allow observations that have the same or earlier time
    * stamp than the last received */
@@ -295,7 +295,7 @@ static void update_obss(obss_t *new_obss)
       }
       chMtxUnlock(&base_pos_lock);
     } else {
-      memcpy(base_obss, old_base_obss, sizeof(old_base_obss));
+      memcpy(&base_obss, &old_base_obss, sizeof(obss_t));
     }
   } else {
     base_obss.has_pos = 0;
