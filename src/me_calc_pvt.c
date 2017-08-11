@@ -536,10 +536,10 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_debug("t_err %.3e clk_bias %.3e clk_drift %.3e",
-                t_err,
-                current_fix.clock_offset,
-                current_fix.clock_bias);
+      log_info("t_err %.3e clk_bias %.3e clk_drift %.3e",
+               t_err,
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       for (u8 i = 0; i < n_ready; i++) {
         /* Recompute satellite position, velocity and clock errors */
