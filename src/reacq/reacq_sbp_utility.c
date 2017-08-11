@@ -12,6 +12,7 @@
 
 #include "reacq_sbp_utility.h"
 #include <board/nap/nap_common.h>
+#include <libswiftnav/memcpy_s.h>
 #include <string.h>
 #include <timing.h>
 
@@ -60,7 +61,10 @@ void reacq_sbp_data_process(const acq_sv_profile_t *profile) {
 
   if (profile != NULL) {
     /* put new data to buffer */
-    memcpy(&reacq_sbp_buffer[amount], profile, sizeof(acq_sv_profile_t));
+    MEMCPY_S(&reacq_sbp_buffer[amount],
+             sizeof(acq_sv_profile_t),
+             profile,
+             sizeof(acq_sv_profile_t));
     amount++; /* increase data counter */
     /* was this last data slot? */
     if (amount == REACQ_SBP_BUFF_SIZE) {

@@ -13,6 +13,8 @@
 #include "track.h"
 
 #include <assert.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -78,9 +80,10 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
                         const nav_bit_fifo_element_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) < NAV_BIT_FIFO_SIZE) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
-    memcpy(&fifo->elements[fifo->write_index & NAV_BIT_FIFO_INDEX_MASK],
-           element,
-           sizeof(nav_bit_fifo_element_t));
+    MEMCPY_S(&fifo->elements[fifo->write_index & NAV_BIT_FIFO_INDEX_MASK],
+             sizeof(nav_bit_fifo_element_t),
+             element,
+             sizeof(nav_bit_fifo_element_t));
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     fifo->write_index++;
     return true;
@@ -101,9 +104,10 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) > 0) {
     COMPILER_BARRIER(); /* Prevent compiler reordering */
-    memcpy(element,
-           &fifo->elements[fifo->read_index & NAV_BIT_FIFO_INDEX_MASK],
-           sizeof(nav_bit_fifo_element_t));
+    MEMCPY_S(element,
+             sizeof(nav_bit_fifo_element_t),
+             &fifo->elements[fifo->read_index & NAV_BIT_FIFO_INDEX_MASK],
+             sizeof(nav_bit_fifo_element_t));
     COMPILER_BARRIER(); /* Prevent compiler reordering */
     fifo->read_index++;
     return true;

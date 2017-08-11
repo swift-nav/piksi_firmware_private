@@ -20,6 +20,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
@@ -94,8 +95,14 @@ static void me_post_observations(u8 n,
 
   me_msg_obs->size = n;
   if (n) {
-    memcpy(me_msg_obs->obs, _meas, n * sizeof(navigation_measurement_t));
-    memcpy(me_msg_obs->ephem, _ephem, n * sizeof(ephemeris_t));
+    MEMCPY_S(me_msg_obs->obs,
+             sizeof(me_msg_obs->obs),
+             _meas,
+             n * sizeof(navigation_measurement_t));
+    MEMCPY_S(me_msg_obs->ephem,
+             sizeof(me_msg_obs->ephem),
+             _ephem,
+             n * sizeof(ephemeris_t));
   }
   if (_t != NULL) {
     me_msg_obs->obs_time = *_t;

@@ -13,6 +13,7 @@
 #include <ch.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 
 #include <libsbp/piksi.h>
 #include <sbp.h>
@@ -213,8 +214,10 @@ static void SpecanCore(uint8_t _uWhichBand) {
      * eventually */
     uFftStartPt =
         ((uTraceStep++) * 1331) % (SPECAN_BBSAMPLES - SPECAN_FFT_SIZE);
-    memcpy(
-        pTmpTrace, pBaseBand + uFftStartPt, sizeof(sc16_t) * SPECAN_FFT_SIZE);
+    MEMCPY_S(pTmpTrace,
+             sizeof(pTmpTrace),
+             pBaseBand + uFftStartPt,
+             sizeof(sc16_t) * SPECAN_FFT_SIZE);
     /* perform the FFT of the input data, no scaling */
     for (h = 0; h < SPECAN_FFT_SIZE; h++) {
       pTmpTrace[h].r = pTmpTrace[h].r * uCoeff[h];

@@ -18,6 +18,7 @@
 #include <libsbp/sbp.h>
 
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 
 #include "board/nap/nap_common.h"
 #include "clk_dac.h"
@@ -260,8 +261,11 @@ u16 sender_id_get(void) {
   return sender_id;
 }
 
-u8 mfg_id_string_get(char *mfg_id_string) {
-  memcpy(mfg_id_string, factory_params.mfg_id, sizeof(factory_params.mfg_id));
+u8 mfg_id_string_get(char *mfg_id_string, size_t size) {
+  MEMCPY_S(mfg_id_string,
+           size,
+           factory_params.mfg_id,
+           sizeof(factory_params.mfg_id));
   mfg_id_string[sizeof(factory_params.mfg_id)] = 0;
   return strlen(mfg_id_string);
 }

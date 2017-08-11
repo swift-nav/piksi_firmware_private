@@ -18,6 +18,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <ndb.h>
 #include <sbp.h>
 #include <sbp_utils.h>
@@ -128,7 +129,10 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
     }
 
     if (empty) {
-      memcpy(&ephe_candidates[i].ephe, new, sizeof(ephemeris_t));
+      MEMCPY_S(&ephe_candidates[i].ephe,
+               sizeof(ephemeris_t),
+               new,
+               sizeof(ephemeris_t));
       ephe_candidates[i].received_at = ndb_get_timestamp();
       ephe_candidates[i].used = true;
       return;
@@ -164,7 +168,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
                                       const ephemeris_t *candidate) {
   if (NULL != candidate) {
     ephemeris_t tmp_eph;
-    memcpy(&tmp_eph, candidate, sizeof(tmp_eph));
+    MEMCPY_S(&tmp_eph, sizeof(tmp_eph), candidate, sizeof(tmp_eph));
     if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
@@ -175,7 +179,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
     return true;
   } else if (NULL != existing_e) {
     ephemeris_t tmp_eph;
-    memcpy(&tmp_eph, existing_e, sizeof(tmp_eph));
+    MEMCPY_S(&tmp_eph, sizeof(tmp_eph), existing_e, sizeof(tmp_eph));
     if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
@@ -334,7 +338,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   bool ep_eq;
   if (ephep) {
     ep_eq = ephemeris_equal(ephep, new);
-    memcpy(&tmp_ephep, ephep, sizeof(tmp_ephep));
+    MEMCPY_S(&tmp_ephep, sizeof(tmp_ephep), ephep, sizeof(tmp_ephep));
   }
 
   if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {

@@ -14,6 +14,7 @@
 #include <ch.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/prns.h>
 #include <math.h>
 #include <string.h>
@@ -102,7 +103,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
 
   /** Perform the FFT samples without over-writing the input buffer */
-  memcpy(sample_fft, _cSignal, sizeof(sc16_t) * fft_len);
+  MEMCPY_S(sample_fft, sizeof(sample_fft), _cSignal, sizeof(sc16_t) * fft_len);
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
 
   /* Search for peak */

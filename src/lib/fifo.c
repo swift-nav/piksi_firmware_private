@@ -14,6 +14,8 @@
 #include <string.h>
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 
 #include "fifo.h"
 
@@ -55,12 +57,15 @@ static void copy_out_offset(fifo_t *fifo,
       (fifo->read_index + offset) & INDEX_MASK(fifo);
   if (read_index_masked + length <= fifo->buffer_size) {
     /* One contiguous block */
-    memcpy(buffer, &fifo->buffer[read_index_masked], length);
+    MEMCPY_S(buffer, length, &fifo->buffer[read_index_masked], length);
   } else {
     /* Two contiguous blocks */
     fifo_size_t copy_len_a = fifo->buffer_size - read_index_masked;
-    memcpy(buffer, &fifo->buffer[read_index_masked], copy_len_a);
-    memcpy(&buffer[copy_len_a], fifo->buffer, length - copy_len_a);
+    MEMCPY_S(buffer, length, &fifo->buffer[read_index_masked], copy_len_a);
+    MEMCPY_S(&buffer[copy_len_a],
+             length - copy_len_a,
+             fifo->buffer,
+             length - copy_len_a);
   }
 }
 
@@ -76,12 +81,21 @@ static void copy_in_offset(fifo_t *fifo,
       (fifo->write_index + offset) & INDEX_MASK(fifo);
   if (write_index_masked + length <= fifo->buffer_size) {
     /* One contiguous block */
-    memcpy(&fifo->buffer[write_index_masked], buffer, length);
+    MEMCPY_S(&fifo->buffer[write_index_masked],
+             fifo->buffer_size - write_index_masked,
+             buffer,
+             length);
   } else {
     /* Tow contiguous blocks */
     fifo_size_t copy_len_a = fifo->buffer_size - write_index_masked;
-    memcpy(&fifo->buffer[write_index_masked], buffer, copy_len_a);
-    memcpy(fifo->buffer, &buffer[copy_len_a], length - copy_len_a);
+    MEMCPY_S(&fifo->buffer[write_index_masked],
+             fifo->buffer_size - write_index_masked,
+             buffer,
+             copy_len_a);
+    MEMCPY_S(fifo->buffer,
+             fifo->buffer_size,
+             &buffer[copy_len_a],
+             length - copy_len_a);
   }
 }
 

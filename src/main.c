@@ -99,7 +99,7 @@ int main(void) {
   nap_date_string_get(nap_date_string);
 
   static char mfg_id_string[18] = {0};
-  mfg_id_string_get(mfg_id_string);
+  mfg_id_string_get(mfg_id_string, sizeof(mfg_id_string));
   log_info("mfg_serial_number: %s", mfg_id_string);
 
   static char mac_address_string[18] = {0};
