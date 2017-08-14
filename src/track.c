@@ -865,7 +865,7 @@ void tracking_channel_measurement_get(
   meas->tow_residual_ns = info->tow_residual_ns;
 
   meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc)) /
-    NAP_FRONTEND_SAMPLE_RATE_Hz;
+                         NAP_FRONTEND_SAMPLE_RATE_Hz;
 
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);

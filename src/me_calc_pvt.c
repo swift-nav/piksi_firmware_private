@@ -540,12 +540,11 @@ static void me_calc_pvt_thread(void *arg) {
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
       log_info("t_err %.3e clk_bias %.3e clk_drift %.3e",
-                t_err,
-                current_fix.clock_offset,
-                current_fix.clock_bias);
+               t_err,
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       for (u8 i = 0; i < n_ready; i++) {
-
         navigation_measurement_t *nm = &nav_meas[i];
 
         double doppler = 0.0;
@@ -560,11 +559,11 @@ static void me_calc_pvt_thread(void *arg) {
         /* Carrier Phase corrected by clock offset */
         nm->raw_carrier_phase += t_err * doppler;
         nm->raw_carrier_phase +=
-          current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
+            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
         /* Use P**V**T to determine the oscillator drift which is used
          * to adjust computed doppler. */
         nm->raw_measured_doppler +=
-          current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
+            current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
         nm->raw_computed_doppler = nm->raw_measured_doppler;
 
         /* Also apply the time correction to the time of transmission so the
@@ -598,9 +597,8 @@ static void me_calc_pvt_thread(void *arg) {
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
       /* Note we should not enter here except in very exceptional circumstances,
        * like time solved grossly wrong on the first fix. */
-      log_warn(
-          "Receiver clock offset larger than %g ms, applying 2 ms jump",
-          MAX_CLOCK_ERROR_S * SECS_MS);
+      log_warn("Receiver clock offset larger than %g ms, applying 2 ms jump",
+               MAX_CLOCK_ERROR_S * SECS_MS);
 
       /* round the time adjustment to even milliseconds */
       double dt = round(current_fix.clock_offset * 2 * SECS_MS) / SECS_MS;
