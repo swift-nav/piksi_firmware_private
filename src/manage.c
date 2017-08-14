@@ -1182,14 +1182,14 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
  * not been yet available and feeds it back to tracker.
  *
  * \param[in]  i      Tracking channel number.
- * \param[in]  ref_tc Reference time [float ticks]
+ * \param[in]  ref_tc Reference time [ticks]
  * \param[out] meas   Container for measurement data.
  * \param[out] ephe   Container for ephemeris
  *
  * \return Flags
  */
 u32 get_tracking_channel_meas(u8 i,
-                              double ref_tc,
+                              u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
   u32 flags = 0;                          /* Result */
