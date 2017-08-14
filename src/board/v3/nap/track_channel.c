@@ -404,7 +404,6 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-
   /* Temporary local reduced version of TRK_CH to read NAP data with
    * memcpy into it */
   typedef struct {
@@ -434,8 +433,8 @@ void nap_track_read_results(u8 channel,
    *
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
    */
-  memcpy(&trk_ch, t, sizeof(u32)*3);
-  memcpy(&trk_ch.CARR_PHASE_INT, (void*)&(t->CARR_PHASE_INT), sizeof(u32)*8);
+  memcpy(&trk_ch, t, sizeof(u32) * 3);
+  memcpy(&trk_ch.CARR_PHASE_INT, (void *)&(t->CARR_PHASE_INT), sizeof(u32) * 8);
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(
@@ -503,7 +502,8 @@ void nap_track_read_results(u8 channel,
                          (s->spacing[0].samples + s->spacing[1].samples) /
                              calc_samples_per_chip(s->code_phase_rate[1]);
 
-  u64 nap_code_phase = ((u64)trk_ch.CODE_PHASE_INT << 32) | trk_ch.CODE_PHASE_FRAC;
+  u64 nap_code_phase =
+      ((u64)trk_ch.CODE_PHASE_INT << 32) | trk_ch.CODE_PHASE_FRAC;
 
   /* Correct code phase with spacing between VE and P correlators */
   *code_phase_prompt =
