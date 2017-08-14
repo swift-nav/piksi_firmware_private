@@ -1144,6 +1144,7 @@ void tracking_channel_data_sync_init(nav_data_sync_t *data_sync) {
   memset(data_sync, 0, sizeof(*data_sync));
   data_sync->glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
   data_sync->glo_health = GLO_SV_UNHEALTHY;
+  data_sync->sync_flags = SYNC_ALL;
 }
 
 /** Propagate decoded time of week, bit polarity and optional glo orbit slot
@@ -1160,10 +1161,6 @@ void tracking_channel_data_sync_init(nav_data_sync_t *data_sync) {
 static void tracking_channel_data_sync(tracker_channel_id_t id,
                                        nav_data_sync_t *from_decoder) {
   assert(from_decoder);
-  assert(from_decoder->TOW_ms >= 0);
-  assert(from_decoder->TOW_ms < WEEK_MS);
-  assert((from_decoder->bit_polarity == BIT_POLARITY_NORMAL) ||
-         (from_decoder->bit_polarity == BIT_POLARITY_INVERTED));
 
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
   from_decoder->read_index = tracker_channel->nav_bit_fifo.read_index;
@@ -1208,7 +1205,6 @@ void tracking_channel_gps_data_sync(tracker_channel_id_t id,
 void tracking_channel_glo_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder) {
   assert(from_decoder);
-  assert(from_decoder->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN);
 
   tracking_channel_data_sync(id, from_decoder);
 }

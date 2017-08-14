@@ -13,15 +13,31 @@
 #ifndef SWIFTNAV_DECODE_COMMON_H
 #define SWIFTNAV_DECODE_COMMON_H
 
+#include <libswiftnav/nav_msg_glo.h>
 #include "track.h"
 
+/** GLO data decoding status */
+typedef enum {
+  GLO_DECODE_WAIT,            /**< Decoding in progress */
+  GLO_DECODE_SENSITIVITY,     /**< Decoding in sensitivity mode */
+  GLO_DECODE_POLARITY_LOSS,   /**< Data polarity is lost (polarity update) */
+  GLO_DECODE_POLARITY_UPDATE, /**< String decoded (polarity update) */
+  GLO_DECODE_TOW_UPDATE,      /**< TOW decoded (TOW + polarity update) */
+  GLO_DECODE_EPH_UPDATE,      /**< All GLO strings decoded
+                                   (ephemeris + TOW + polarity update) */
+} glo_decode_status_t;
+
 void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
-bool is_glo_decode_ready(nav_msg_glo_t *n,
-                         me_gnss_signal_t mesid,
-                         const nav_bit_fifo_element_t *nav_bit);
-void save_glo_eph(nav_msg_glo_t *n, me_gnss_signal_t mesid);
+glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
+                                      me_gnss_signal_t mesid,
+                                      const nav_bit_fifo_element_t *nav_bit);
+decode_sync_flags_t get_data_sync_flags(const nav_msg_glo_t *n,
+                                        me_gnss_signal_t mesid,
+                                        glo_decode_status_t status);
+void save_glo_eph(const nav_msg_glo_t *n, me_gnss_signal_t mesid);
 bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
-                   u8 tracking_channel);
+                   u8 tracking_channel,
+                   glo_decode_status_t status);
 
 #endif /* #ifndef SWIFTNAV_DECODE_COMMON_H */

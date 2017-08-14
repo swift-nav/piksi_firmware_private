@@ -598,13 +598,15 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
    * shall be updated in sync.
    */
   bool decoded_tow;
+  bool decoded_health;
   tracker_channel->TOW_ms_prev = tracker_channel->TOW_ms;
   tracker_channel->TOW_ms =
       tracker_tow_update(tracker_channel,
                          tracker_channel->TOW_ms,
                          int_ms,
                          &tracker_channel->TOW_residual_ns,
-                         &decoded_tow);
+                         &decoded_tow,
+                         &decoded_health);
 
   if (!tp_tow_is_sane(tracker_channel->TOW_ms)) {
     log_error_mesid(mesid,
@@ -627,7 +629,9 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
     if (tracker_channel->TOW_ms != TOW_UNKNOWN) {
       tracker_channel->flags |= TRACKER_FLAG_TOW_DECODED;
     }
+  }
 
+  if (decoded_health) {
     /* GLO health data is also decoded along with TOW */
     if (is_glo_sid(mesid)) {
       tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;

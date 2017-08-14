@@ -88,15 +88,10 @@ static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
 
   while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
-    if (!is_glo_decode_ready(&data->nav_msg, mesid, &nav_bit)) {
-      continue;
-    }
-
-    /* Store decoded ephemeris */
-    save_glo_eph(&data->nav_msg, mesid);
-
+    glo_decode_status_t status =
+        glo_data_decoding(&data->nav_msg, mesid, &nav_bit);
     /* Sync tracker with decoder data */
-    if (!glo_data_sync(&data->nav_msg, mesid, channel)) {
+    if (!glo_data_sync(&data->nav_msg, mesid, channel, status)) {
       return;
     }
   }
