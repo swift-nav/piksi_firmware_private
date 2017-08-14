@@ -100,14 +100,15 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   double glo_freq_scale =
       mesid_to_carr_freq(L2_mesid) / mesid_to_carr_freq(L1_mesid);
 
+  u64 extended_sample_count = nap_sample_time_to_count(sample_count);
+
   /* The best elevation estimation could be retrieved by calling
      tracking_channel_evelation_degrees_get(nap_channel) here.
      However, we assume it is done where tracker_channel_init()
      is called. */
-
   tracking_startup_params_t startup_params = {
       .mesid = L2_mesid,
-      .sample_count = sample_count,
+      .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
       .carrier_freq = carrier_freq_hz * glo_freq_scale,
       .code_phase = code_phase_chips,

@@ -1076,7 +1076,7 @@ static u32 get_tracking_channel_flags_info(
  *              updated
  * \retval false Error in computation.
  */
-static bool compute_cpo(u64 ref_tc,
+static bool compute_cpo(double ref_tc,
                         const tracking_channel_info_t *info,
                         const channel_measurement_t *meas,
                         double *carrier_phase_offset) {
@@ -1238,6 +1238,19 @@ u32 get_tracking_channel_meas(u8 i,
     if ((0 != (info.flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
         (0 != (info.flags & TRACKER_FLAG_BIT_INVERTED))) {
       meas->carrier_phase += 0.5;
+    }
+
+    gps_time_t t0 = get_rec2gps_timeoffset();
+    if (CODE_GLO_L1CA == (info.mesid.code)) {
+      log_info("[ns] TOW %10.3lf    %10.3lf", t0.tow, fmod(t0.tow, 0.002)*1e9);
+      double frac_2ms = fmod(t0.tow, 0.002);
+      double fcn = (info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+      meas->carrier_phase -= frac_2ms * fcn;
+    }
+    if (CODE_GLO_L2CA == (info.mesid.code)) {
+      double frac_2ms = fmod(t0.tow, 0.002);
+      double fcn = (info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+      meas->carrier_phase -= frac_2ms * fcn;
     }
 
     /* Adjust carrier phase initial integer offset to be approximately equal to

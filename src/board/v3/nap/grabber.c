@@ -29,7 +29,7 @@ static BSEMAPHORE_DECL(axi_dma_rx_bsem, 0);
 
 u8 pRawGrabberBuffer[FIXED_GRABBER_LENGTH] __attribute__((aligned(32)));
 
-static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count);
+static bool raw_samples(u8 *out, u32 len_bytes, u64 *p_count);
 
 /** Grab raw samples from NAP.
  *
@@ -38,9 +38,9 @@ static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count);
  *
  * \return Pointer to the beginning of the sample buffer.
  */
-u8 *grab_samples(u32 *length, u32 *sample_count) {
+u8 *grab_samples(u32 *length, u64 *p_count) {
   *length = FIXED_GRABBER_LENGTH;
-  if (raw_samples(pRawGrabberBuffer, FIXED_GRABBER_LENGTH, sample_count)) {
+  if (raw_samples(pRawGrabberBuffer, FIXED_GRABBER_LENGTH, p_count)) {
     return pRawGrabberBuffer;
   }
   return NULL;
@@ -133,15 +133,25 @@ static bool dma_wait(void) {
  *
  * \param out             Output buffer.
  * \param len_bytes       Number of bytes.
- * \param sample_count    Output sample count of the first sample used.
+ * \param p_count         Output sample count of the first sample used.
  *
  * \return True if the samples were successfully retrieved, false otherwise.
  */
-static bool raw_samples(u8 *out, u32 len_bytes, u32 *sample_count) {
+static bool raw_samples(u8 *out, u32 len_bytes, u64 *p_count) {
+  static u32 old_count = 0;
+  static u32 sample_msb = 0;
   u32 len_words = len_bytes / sizeof(u64);
   dma_start(0, (u8 *)out, len_bytes);
   samples_start(len_words);
   bool result = dma_wait();
-  *sample_count = NAP->RAW_TIMING_SNAPSHOT;
+  /* get extended counter */
+  u32 count = NAP->RAW_TIMING_SNAPSHOT;
+  if (count < old_count) {
+    /* rolled over */
+    sample_msb++;
+  }
+  old_count = count;
+  (*p_count) = (((u64)sample_msb) << 32) | count;
+
   return result;
 }

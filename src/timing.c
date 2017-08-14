@@ -112,7 +112,7 @@ void set_time_fine(double tc, gps_time_t t) {
   chMtxUnlock(&clock_mutex);
 
   time_t unix_t = gps2time(&t);
-  log_info("Time set to: %s (quality=%d)", ctime(&unix_t), TIME_FINE);
+  log_info("(quality=%d) Time set to: %s", TIME_FINE, ctime(&unix_t));
 }
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
@@ -139,7 +139,6 @@ void adjust_time_fine(const double dt) {
   gps_time.tow -= dt;
   normalize_gps_time(&gps_time);
   clock_state.t0_gps = gps_time;
-  clock_state.clock_offset -= dt;
   chMtxUnlock(&clock_mutex);
 }
 
@@ -179,6 +178,14 @@ gps_time_t get_current_gps_time(void) {
 
   return t;
 }
+
+/** Get receiver to GPS clock offset
+ *
+ * \note
+ *
+ * \return
+ */
+gps_time_t get_rec2gps_timeoffset(void) { return clock_state.t0_gps; }
 
 /** Convert receiver time to GPS time.
  *
