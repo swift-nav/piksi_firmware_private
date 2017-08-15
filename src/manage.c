@@ -1240,20 +1240,24 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
-    //~ double nap_tc_sec = ref_tc/NAP_TRACK_SAMPLE_RATE_Hz;
-    //~ double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
-    //~ if (CODE_GLO_L1CA == info.mesid.code) {
-    //~ double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) *
-    //GLO_L1_DELTA_HZ;
-    //~ meas->carrier_phase += (nap_tc_sec - ref_2ms_boundary) * fcn /
-    //NAP_TRACK_SAMPLE_RATE_Hz;
-    //~ }
-    //~ if (CODE_GLO_L2CA == info.mesid.code) {
-    //~ double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) *
-    //GLO_L2_DELTA_HZ;
-    //~ meas->carrier_phase += (nap_tc_sec - ref_2ms_boundary) * fcn /
-    //NAP_TRACK_SAMPLE_RATE_Hz;
-    //~ }
+    /* In theory this should apply a FCN shift to all channels so that
+     * they go back after power on-off.. however it needs to use the
+     * clock bias and drift information in order to be precise enough
+     * to be usable.
+     */
+    /*
+    double nap_tc_sec = (double)ref_tc / NAP_TRACK_SAMPLE_RATE_Hz;
+    double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
+    if (CODE_GLO_L1CA == info.mesid.code) {
+      double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+      log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec - ref_2ms_boundary)*1e3);
+      meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
+    }
+    if (CODE_GLO_L2CA == info.mesid.code) {
+      double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+      meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
+    }
+    */
 
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.

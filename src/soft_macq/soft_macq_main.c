@@ -40,19 +40,19 @@
 #endif
 
 /**! sample grabber leaves RAW F/E samples here */
-static uint8_t *puSampleBuf;
+static u8 *sample_buff;
 
 /**! samples are down-converted to baseband and decimated here  */
 static sc16_t pBaseBand[SOFTMACQ_BASEBAND_SIZE] __attribute__((aligned(32)));
 
 /** the last grabber acquisition time tag */
-static u32 last_timetag;
+static u64 last_timetag;
 
 /** the last acquired signal */
 static me_gnss_signal_t mesid_last;
 
 /** */
-static uint32_t iSamplesMs;
+static u32 samples_ms;
 
 static bool bModuleInit;
 
@@ -87,7 +87,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
                            acq_result_t *p_acqres) {
-  u32 tmp_timetag = 0;
+  u64 tmp_timetag = 0;
   u32 buff_size = 0;
   /** sanity checking input parameters */
   assert(NULL != p_acqres);
@@ -104,9 +104,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   if ((last_timetag == 0) ||
       ((curr_timetag - last_timetag) > SOFTMACQ_MAX_AGE_SAMP)) {
     /** GRAB!!! */
-    puSampleBuf = grab_samples(&buff_size, &tmp_timetag);
-    if (NULL == puSampleBuf) {
-      log_warn("data grabber failed, buff_size %u tmp_timetag %u",
+    sample_buff = grab_samples(&buff_size, &tmp_timetag);
+    if (NULL == sample_buff) {
+      log_warn("grabber failed, buff_size %" PRIu32 " tmp_timetag %" PRIu64,
                buff_size,
                tmp_timetag);
       return false;
@@ -166,9 +166,9 @@ static bool SoftMacqSerial(const me_gnss_signal_t mesid,
  *  \brief
  **/
 static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
-  uint32_t k, h, uDecFactor;
-  uint32_t uNco, uNcoVal, uNcoStep = 0;
-  uint8_t uSample;
+  u32 k, h, uDecFactor;
+  u32 uNco, uNcoVal, uNcoStep = 0;
+  u8 uSample;
 
   /** first of all reset the destination buffer */
   memset(pBaseBand, 0, SOFTMACQ_BASEBAND_SIZE * sizeof(sc16_t));
@@ -177,12 +177,12 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
       uDecFactor = SOFTMACQ_DECFACT_GPSL1CA;
-      iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
+      samples_ms = SOFTMACQ_RAW_SPMS / uDecFactor;
       uNcoStep =
           CirclesToUint32((double)SOFTMACQ_FC_GPSL1 / (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 0) & 0x3)
+        uSample = ((sample_buff[k] >> 0) & 0x3)
                   << BBNCO_CARRPH_BITS; /** two LSBs are Channel 1 */
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
@@ -197,14 +197,14 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
 
     case CODE_GLO_L1CA:
       uDecFactor = SOFTMACQ_DECFACT_GLOG1;
-      iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
+      samples_ms = SOFTMACQ_RAW_SPMS / uDecFactor;
       uNcoStep = CirclesToUint32(
           (double)(SOFTMACQ_FC_GLOG1 +
                    (mesid.sat - GLO_FCN_OFFSET) * SOFTMACQ_GLOG1_FOFF) /
           (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 2) & 0x3)
+        uSample = ((sample_buff[k] >> 2) & 0x3)
                   << BBNCO_CARRPH_BITS; /** B3..2 are Channel 2 */
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
@@ -219,12 +219,12 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
 
     case CODE_BDS2_B11:
       uDecFactor = SOFTMACQ_DECFACT_BDS2B1;
-      iSamplesMs = SOFTMACQ_RAW_SPMS / uDecFactor;
+      samples_ms = SOFTMACQ_RAW_SPMS / uDecFactor;
       uNcoStep = CirclesToUint32((double)(SOFTMACQ_FC_BDS2B1) /
                                  (double)SOFTMACQ_RAW_FS);
 
       for (k = 0, h = 0, uNco = 0; k < SOFTMACQ_SAMPLE_GRABBER_LENGTH; k++) {
-        uSample = ((puSampleBuf[k] >> 0) & 0x3)
+        uSample = ((sample_buff[k] >> 0) & 0x3)
                   << BBNCO_CARRPH_BITS; /** B1..0 are Channel 1 */
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
