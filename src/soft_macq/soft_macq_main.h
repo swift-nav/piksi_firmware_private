@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 typedef struct {
-  u32 sample_count;
+  u64 sample_count;
   float cp;
   float cf;
   float cn0;

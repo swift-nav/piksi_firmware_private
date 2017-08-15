@@ -69,7 +69,7 @@ void set_time(time_quality_t quality, gps_time_t t) {
 
   if (updated) {
     time_t unix_t = gps2time(&t);
-    log_info("Time set to: %s (quality=%d)", ctime(&unix_t), quality);
+    log_info("(quality=%d) Time set to: %s", TIME_FINE, ctime(&unix_t));
   }
 }
 
@@ -100,7 +100,7 @@ void clock_est_init(clock_est_state_t *s) {
  * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
  */
-void set_time_fine(double tc, gps_time_t t) {
+void set_time_fine(u64 tc, gps_time_t t) {
   gps_time_t norm_time = t;
   norm_time.tow -= tc * RX_DT_NOMINAL;
   normalize_gps_time(&norm_time);
@@ -120,7 +120,7 @@ void set_time_fine(double tc, gps_time_t t) {
  * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
  */
-void set_gps_time_offset(double tc, gps_time_t t) {
+void set_gps_time_offset(u64 tc, gps_time_t t) {
   gps_time_t rcv_time = napcount2rcvtime(tc);
   double time_diff = gpsdifftime(&rcv_time, &t);
 

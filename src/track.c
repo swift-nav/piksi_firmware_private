@@ -361,7 +361,7 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
 bool tracker_channel_init(tracker_channel_id_t id,
                           const me_gnss_signal_t mesid,
                           u16 glo_orbit_slot,
-                          u32 ref_sample_count,
+                          u64 ref_sample_count,
                           double code_phase,
                           float carrier_freq,
                           u32 chips_to_correlate,
@@ -847,7 +847,7 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
  * \return None
  */
 void tracking_channel_measurement_get(
-    double ref_tc,
+    u64 ref_tc,
     const tracking_channel_info_t *info,
     const tracking_channel_freq_info_t *freq_info,
     const tracking_channel_time_info_t *time_info,
@@ -859,23 +859,14 @@ void tracking_channel_measurement_get(
   meas->sid = mesid2sid(info->mesid, info->glo_orbit_slot);
   meas->code_phase_chips = freq_info->code_phase_chips;
   meas->code_phase_rate = freq_info->code_phase_rate;
+  meas->carrier_phase = freq_info->carrier_phase;
   meas->carrier_freq = freq_info->carrier_freq;
   meas->time_of_week_ms = info->tow_ms;
   meas->tow_residual_ns = info->tow_residual_ns;
 
-  /* info->sample_count rolls over at 2^32 while the float ref_tc does not,
-   * recover the full sample count to match ref_tc
-   * TODO: would be better the other way around to avoid losing accuracy */
-  double extended_sampcount = info->sample_count;
-  extended_sampcount += POW_TWO_P32 * floor(ref_tc / POW_TWO_P32);
-  if (extended_sampcount > ref_tc + POW_TWO_P31) {
-    extended_sampcount -= POW_TWO_P32;
-  } else if (extended_sampcount < ref_tc - POW_TWO_P31) {
-    extended_sampcount += POW_TWO_P32;
-  }
-  meas->rec_time_delta =
-      (extended_sampcount - ref_tc) / NAP_FRONTEND_SAMPLE_RATE_Hz;
-  meas->carrier_phase = freq_info->carrier_phase;
+  meas->rec_time_delta = (double)((s32)(info->sample_count - (u32)ref_tc)) /
+                         NAP_FRONTEND_SAMPLE_RATE_Hz;
+
   meas->cn0 = info->cn0;
   meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
   meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
@@ -893,7 +884,7 @@ void tracking_channel_measurement_get(
  * \retval true Pseudorange is valid
  * \retval false Error in computation.
  */
-bool tracking_channel_calc_pseudorange(double ref_tc,
+bool tracking_channel_calc_pseudorange(u64 ref_tc,
                                        const channel_measurement_t *meas,
                                        double *raw_pseudorange) {
   navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;

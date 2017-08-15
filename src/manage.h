@@ -56,7 +56,7 @@
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
   u16 glo_slot_id;        /**< GLO orbital slot. */
-  u32 sample_count;       /**< Reference NAP sample count. */
+  u64 sample_count;       /**< Reference NAP sample count. */
   float carrier_freq;     /**< Carrier frequency Doppler (Hz). */
   double code_phase;      /**< Code phase (chips). */
   u32 chips_to_correlate; /**< Chips to integrate over. */
@@ -93,7 +93,7 @@ void acq_result_send(const me_gnss_signal_t mesid,
                      float cf);
 
 u32 get_tracking_channel_meas(u8 i,
-                              double ref_tc,
+                              u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);

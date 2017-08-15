@@ -19,6 +19,10 @@
 
 #include "nap/nap_constants.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /** \addtogroup timing Timing
  * \{ */
 
@@ -49,8 +53,8 @@ gps_time_t get_current_time(void);
 gps_time_t get_current_gps_time(void);
 void set_time(time_quality_t quality, gps_time_t t);
 time_quality_t get_time_quality(void);
-void set_time_fine(double tc, gps_time_t t);
-void set_gps_time_offset(double tc, gps_time_t t);
+void set_time_fine(u64 tc, gps_time_t t);
+void set_gps_time_offset(u64 tc, gps_time_t t);
 void adjust_time_fine(const double dt);
 gps_time_t napcount2gpstime(const double tc);
 gps_time_t napcount2rcvtime(const double tc);
@@ -60,5 +64,9 @@ u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);
 gps_time_t gps_time_round_to_epoch(gps_time_t time, double soln_freq);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif

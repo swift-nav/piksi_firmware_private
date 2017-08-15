@@ -20,6 +20,11 @@
 #include "../../ext_events.h"
 
 #include "nap/nap_constants.h"
+#include "nap/nap_hw.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** \addtogroup nap
  * \{ */
@@ -83,6 +88,8 @@ void nap_pps(u32 count);
 void nap_pps_config(u32 microseconds, u8 active);
 bool nap_pps_armed(void);
 
-#include "nap/nap_hw.h"
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SWIFTNAV_NAP_COMMON_H */

@@ -203,6 +203,11 @@ static void update_obss(obss_t *new_obss) {
         filter_nav_meas(new_obss->n, new_obss->nm, shm_suitable_wrapper);
   }
 
+  if (new_obss->n == 0) {
+    log_info("All base obs filtered");
+    return;
+  }
+
   /* Lock mutex before modifying base_obss.
    * NOTE: We didn't need to lock it before reading in THIS context as this
    * is the only thread that writes to base_obss. */
