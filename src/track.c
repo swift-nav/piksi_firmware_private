@@ -259,31 +259,16 @@ void tracking_send_detailed_state(void) {
   }
 }
 
-/** Handles pending IRQs for the specified tracking channels.
+/** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
  */
 void tracking_channels_update(u64 channels_mask) {
-  /* For each tracking channel, call tracking_channel_process(). Indicate
-   * that an update is required if the corresponding bit is set in
-   * channels_mask.
-   */
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
-    if (update_required) {
-      tracker_channel_process(tracker_channel, true);
-    }
+    tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
-  }
-}
-
-/** Handles background tasks for all tracking channels.
- */
-void tracking_channels_process(void) {
-  for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
-    tracker_channel_t *tracker_channel = tracker_channel_get(channel);
-    tracker_channel_process(tracker_channel, false);
   }
 }
 

@@ -249,7 +249,6 @@ void nap_track_irq_thread(void *arg) {
     piksi_systime_get(&sys_time);
 
     handle_nap_track_irq();
-    tracking_channels_process();
 
     sanitize_trackers();
 
