@@ -550,6 +550,10 @@ typedef struct {
   double carrier_phase;      /**< Carrier phase in cycles. */
   double carrier_phase_prev; /**< Previous carrier phase in cycles. */
   double carrier_freq;       /**< Carrier frequency Hz. */
+  double carrier_freq_prev;  /**< Carrier frequency Hz. */
+  bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
+  update_count_t carrier_freq_timestamp_ms; /**< carrier_freq_prev timestamp */
+
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
