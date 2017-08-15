@@ -35,12 +35,12 @@
 #define TP_FLAGS_2MS_FIRST                                        \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_SET |       \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET)
+   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST)
 
 #define TP_FLAGS_2MS_SECOND                                                    \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |              \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_USE)
+   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_USE | TP_CFLAG_FLL_SECOND)
 
 #define TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST                        \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD | \
@@ -173,8 +173,8 @@ static const state_table_t mode_2ms = {
     .cn0_ms = 1,
     .ld_ms = 1,
     .fl_ms = 1,
-    .flld_ms = 9,
-    .flll_ms = 10,
+    .flld_ms = 1,
+    .flll_ms = 2,
     .bit_ms = 1,
     .ent_cnt = 20,
     .entries = {{1, TP_FLAGS_2MS_FIRST},
