@@ -184,6 +184,7 @@ enum {
   TP_LD_PARAMS_NORMAL,
   TP_LD_PARAMS_PESS,
   TP_LD_PARAMS_PLL_1MS,
+  TP_LD_PARAMS_PLL_2MS,
   TP_LD_PARAMS_PLL_5MS,
   TP_LD_PARAMS_FLL_5MS
 };
@@ -211,6 +212,9 @@ static const tp_lock_detect_params_t ld_params[] = {
     {
         0.025f, 1.5f, 50, 150,
     }, /* TP_LD_PARAMS_PLL_1MS */
+    {
+        0.025f, 1.5f, 50, 150,
+    }, /* TP_LD_PARAMS_PLL_2MS */
     {
         0.025f, 1.5f, 50, 150,
     }, /* TP_LD_PARAMS_PLL_5MS */
@@ -913,6 +917,7 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                    const profile_indices_t index) {
   static u8 int_times[] = {[TP_TM_INITIAL] = 1,
                            [TP_TM_1MS] = 1,
+                           [TP_TM_2MS] = 2,
                            [TP_TM_5MS] = 5,
                            [TP_TM_10MS] = 10,
                            [TP_TM_20MS] = 20};

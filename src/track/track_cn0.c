@@ -36,6 +36,8 @@
 #define CN0_EST_LPF_CUTOFF_HZ (.25f)
 /** Integration interval: 1ms */
 #define INTEG_PERIOD_1_MS 1
+/** Integration interval: 2ms */
+#define INTEG_PERIOD_2_MS 2
 /** Integration interval: 5ms */
 #define INTEG_PERIOD_5_MS 5
 /** Integration interval: 5ms */
@@ -45,6 +47,8 @@
 
 /** C/N0 offset for 1ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_1MS_DBHZ 0
+/** C/N0 offset for 2ms estimator interval [dB/Hz] */
+#define TRACK_CN0_OFFSET_2MS_DBHZ 3
 /** C/N0 offset for 5ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_5MS_DBHZ 7
 /** C/N0 offset for 10ms estimator interval [dB/Hz] */
@@ -56,6 +60,7 @@
 
 /** Predefined integration periods for C/N0 estimators */
 static const u8 cn0_periods_ms[] = {INTEG_PERIOD_1_MS,
+                                    INTEG_PERIOD_2_MS,
                                     INTEG_PERIOD_5_MS,
                                     INTEG_PERIOD_10_MS,
                                     INTEG_PERIOD_20_MS};
@@ -427,6 +432,10 @@ float track_cn0_get_offset(u8 cn0_ms) {
       cn0_offset = TRACK_CN0_OFFSET_1MS_DBHZ;
       break;
 
+    case INTEG_PERIOD_2_MS:
+      cn0_offset = TRACK_CN0_OFFSET_2MS_DBHZ;
+      break;
+
     case INTEG_PERIOD_5_MS:
       cn0_offset = TRACK_CN0_OFFSET_5MS_DBHZ;
       break;
@@ -440,6 +449,7 @@ float track_cn0_get_offset(u8 cn0_ms) {
       break;
 
     default:
+      assert(!"Unexpected integration time");
       cn0_offset = 10.f * log10f(cn0_ms);
       break;
   }
