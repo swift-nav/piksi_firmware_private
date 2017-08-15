@@ -18,8 +18,8 @@
 #include "nap_constants.h"
 #include "nap_hw.h"
 
-#include "nap/nap_common.h"
 #include "nap/grabber.h"
+#include "nap/nap_common.h"
 
 #define DATA_MEMORY_BARRIER() asm volatile("dmb" : : : "memory")
 

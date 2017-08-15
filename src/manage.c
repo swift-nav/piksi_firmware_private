@@ -1250,7 +1250,8 @@ u32 get_tracking_channel_meas(u8 i,
     double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
     if (CODE_GLO_L1CA == info.mesid.code) {
       double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-      log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec - ref_2ms_boundary)*1e3);
+      log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec -
+    ref_2ms_boundary)*1e3);
       meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
     }
     if (CODE_GLO_L2CA == info.mesid.code) {

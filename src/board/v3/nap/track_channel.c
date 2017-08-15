@@ -287,9 +287,8 @@ void nap_track_init(u8 channel,
   /* was absorbed using `delta_samples` in nap_track_update() above */
 
   /* get the code rollover point in samples */
-  u64 tc_codestart =
-      ref_timing_count - delta_samples -
-      (s32)round(code_phase * calc_samples_per_chip(chip_rate));
+  u64 tc_codestart = ref_timing_count - delta_samples -
+                     (s32)round(code_phase * calc_samples_per_chip(chip_rate));
 
   nap_track_enable(channel);
 
