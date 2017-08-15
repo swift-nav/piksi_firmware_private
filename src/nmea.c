@@ -419,7 +419,8 @@ int compare_ch_meas(const void *a, const void *b) {
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
  */
-void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas,
+void nmea_gsv(u8 n_used,
+              const channel_measurement_t *ch_meas,
               constellation_t gnss) {
   const channel_measurement_t *ch_meas_gnss[n_used];
 
@@ -480,7 +481,8 @@ void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas,
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_gnss_used);
+    NMEA_SENTENCE_PRINTF(
+        "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_gnss_used);
 
     for (u8 j = 0; j < 4 && n < n_gnss_used; n++) {
       s8 ele = sv_elevation_degrees_get(ch_meas_gnss[n]->sid);
@@ -786,8 +788,7 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
  * \param[in] ch_meas     array of channel_measurement structs from tracked SVs
  */
 void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
-  DO_EVERY(gpgsv_msg_rate,
-           nmea_gsv(n_used, ch_meas, CONSTELLATION_GPS);
+  DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas, CONSTELLATION_GPS);
            nmea_gsv(n_used, ch_meas, CONSTELLATION_GLO););
 }
 
