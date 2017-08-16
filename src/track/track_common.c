@@ -705,12 +705,8 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                            tracker_channel->corrs.corr_cn0.very_early.Q);
   }
 
-  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz ||
-      (tp_tl_is_pll(&tracker_channel->tl_state) &&
-       tracker_channel->lock_detect.outp)) {
-    /* When C/N0 is above a drop threshold or there is a pessimistic lock,
-     * tracking shall continue.
-     */
+  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz) {
+    /* When C/N0 is above a drop threshold tracking shall continue. */
     tracker_channel->cn0_above_drop_thres_count = tracker_channel->update_count;
   }
 
@@ -947,19 +943,50 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
  * Check if an unexpected measurement is done and if so, flags the
  * channel for disposal
  *
- * \param[in,out] tracker_channel Tracker channel data
+ * \param[in,out] tracker Tracker channel data
  *
  * \return None
  */
-static void tp_tracker_flag_outliers(tracker_channel_t *tracker_channel) {
-  const float fMaxDoppler =
-      code_to_sv_doppler_max(tracker_channel->mesid.code) +
-      code_to_tcxo_doppler_max(tracker_channel->mesid.code);
+static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
+  const float fMaxDoppler = code_to_sv_doppler_max(tracker->mesid.code) +
+                            code_to_tcxo_doppler_max(tracker->mesid.code);
 
   /* remove channels with a large positive Doppler outlier */
-  if (fabsf(tracker_channel->carrier_freq) > fMaxDoppler) {
-    (tracker_channel->flags) |= TRACKER_FLAG_OUTLIER;
-    return;
+  if (fabsf(tracker->carrier_freq) > fMaxDoppler) {
+    (tracker->flags) |= TRACKER_FLAG_OUTLIER;
+  }
+
+  /* Check the maximum carrier frequency rate.
+     Assume that the maximum expected acceleration is 7g and the carrier
+     wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
+     purpose. */
+  static const double max_freq_rate_hz_per_s =
+      7. * STD_GRAVITY_ACCELERATION / 0.19;
+  /* The carrier freq diff threshold we do not want to exceed */
+  static const double max_freq_diff_hz = 70;
+  /* work out the time difference needed to check the actual freq rate
+     against max_freq_diff_hz threshold */
+  static const u32 diff_interval_ms =
+      (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
+
+  u32 elapsed_ms = tracker->update_count - tracker->carrier_freq_timestamp_ms;
+  if (elapsed_ms >= diff_interval_ms) {
+    if (!tracker->carrier_freq_prev_valid) {
+      tracker->carrier_freq_prev = tracker->carrier_freq;
+      tracker->carrier_freq_prev_valid = true;
+    }
+
+    double diff_hz = tracker->carrier_freq - tracker->carrier_freq_prev;
+    double elapsed_s = (double)elapsed_ms / SECS_MS;
+    /* the elapsed time could be slightly larger than diff_interval_ms.
+       So let's account for it in max_diff_hz */
+    double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
+    if ((fabs(diff_hz) > max_diff_hz)) {
+      tracker->flags |= TRACKER_FLAG_OUTLIER;
+    }
+
+    tracker->carrier_freq_prev = tracker->carrier_freq;
+    tracker->carrier_freq_timestamp_ms = tracker->update_count;
   }
 }
 
@@ -1058,9 +1085,9 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_correlators(tracker_channel, cflags);
   tp_tracker_update_bsync(tracker_channel, cflags);
   tp_tracker_update_cn0(tracker_channel, cflags);
-  tp_tracker_update_locks(tracker_channel, cflags);
   tp_tracker_update_fll(tracker_channel, cflags);
   tp_tracker_update_pll_dll(tracker_channel, cflags);
+  tp_tracker_update_locks(tracker_channel, cflags);
   tp_tracker_flag_outliers(tracker_channel);
   tp_tracker_update_alias(tracker_channel, cflags);
   tp_tracker_filter_doppler(tracker_channel, cflags, config);
