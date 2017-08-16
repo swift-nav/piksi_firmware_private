@@ -153,10 +153,11 @@
  */
 typedef enum {
   TP_TM_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_1MS,     /**< 1 ms PLL/DLL */
-  TP_TM_5MS,     /**< 5 ms PLL/DLL */
-  TP_TM_10MS,    /**< 10 ms PLL/DLL */
-  TP_TM_20MS,    /**< 20 ms PLL/DLL */
+  TP_TM_1MS,     /**< 1 ms */
+  TP_TM_2MS,     /**< 2 ms */
+  TP_TM_5MS,     /**< 5 ms */
+  TP_TM_10MS,    /**< 10 ms */
+  TP_TM_20MS,    /**< 20 ms */
 } tp_tm_e;
 
 /**
@@ -638,10 +639,6 @@ typedef struct {
 } tracking_channel_cc_data_t;
 
 /** \} */
-
-/* Integration tweaks: short / long interval markings */
-#define TP_CFLAG_SHORT_CYCLE ((u32)1 << 0)
-#define TP_CFLAG_LONG_CYCLE ((u32)1 << 1)
 
 /* Bit synchronization and data decoding */
 #define TP_CFLAG_BSYNC_SET ((u32)1 << 2)
