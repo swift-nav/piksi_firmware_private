@@ -908,7 +908,6 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
 
 /* Update interface */
 void tracking_channels_update(u64 channels_mask);
-void tracking_channels_process(void);
 void tracking_channels_missed_update_error(u64 channels_mask);
 
 /* State management interface */
