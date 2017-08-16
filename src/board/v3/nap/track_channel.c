@@ -439,7 +439,6 @@ void nap_track_read_results(u8 channel,
   corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
   corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
-
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
   if (s->reckon_counter < 1) {
