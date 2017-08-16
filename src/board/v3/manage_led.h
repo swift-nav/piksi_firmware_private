@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Jacob McNamee <jacob@swiftnav.com>
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -12,8 +12,6 @@
 
 #ifndef SWIFTNAV_MANAGE_LED_H
 #define SWIFTNAV_MANAGE_LED_H
-
-#include <libswiftnav/common.h>
 
 void manage_led_setup(void);
 

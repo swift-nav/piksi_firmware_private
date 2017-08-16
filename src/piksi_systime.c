@@ -518,12 +518,35 @@ s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b) {
 
 /** Suspends the invoking thread for the specified time.
  *
+ * \note This is an S-Class API,
+ *  this function can be invoked from within a system lock zone by threads only.
+ *
  * \param[in] len   Sleep length [system ticks].
  */
 void piksi_systime_sleep_s_internal(systime_t len) { chThdSleepS(len); }
 
 void piksi_systime_sleep_us_s(u32 len_us) {
-  piksi_systime_sleep_s_internal(us2st(len_us));
+  u64 len_st = us2st(len_us);
+
+  assert(len_st <= TIME_INFINITE);
+
+  piksi_systime_sleep_s_internal(len_st);
+}
+
+/** Suspends the invoking thread for the specified time.
+ * \note Normal API, this function can be invoked by regular system threads
+ *  but not from within a lock zone.
+ *
+ * \param[in] len   Sleep length [system ticks].
+ */
+void piksi_systime_sleep_internal(systime_t len) { chThdSleep(len); }
+
+void piksi_systime_sleep_ms(u32 len_ms) {
+  u64 len_st = ms2st(len_ms);
+
+  assert(len_st <= TIME_INFINITE);
+
+  piksi_systime_sleep_internal(len_st);
 }
 
 /** Suspends the invoking thread until the specified window closes.
