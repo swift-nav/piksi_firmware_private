@@ -404,37 +404,15 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  /* Temporary local reduced version of TRK_CH to read NAP data with
-   * memcpy into it */
-  typedef struct {
-    u32 STATUS;
-    u32 CONTROL;
-    u32 TIMING_SNAPSHOT;
-    u32 CARR_PHASE_INT;
-    u32 CARR_PHASE_FRAC;
-    u32 CODE_PHASE_INT;
-    u32 CODE_PHASE_FRAC;
-    u32 CORR0;
-    u32 CORR1;
-    u32 CORR2;
-    u32 CORR3;
-  } trk_ch_t;
-
-  static trk_ch_t trk_ch;
-
+  static swiftnap_tracking_t trk_ch;
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
   s64 hw_carr_phase;
 
   /* Read track channel data
-   * memcpy over AXI seems to group up to 4 successive reads together which
-   * speeds up the read compared to individual reads. This arrangement should
-   * give us 3 groups (3+4+4).
-   *
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
    */
-  memcpy(&trk_ch, t, sizeof(u32) * 3);
-  memcpy(&trk_ch.CARR_PHASE_INT, (void *)&(t->CARR_PHASE_INT), sizeof(u32) * 8);
+  memcpy(&trk_ch, t, sizeof(swiftnap_tracking_t));
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(
@@ -457,7 +435,10 @@ void nap_track_read_results(u8 channel,
   corrs[3].I = (s16)(trk_ch.CORR0 & 0xFFFF);
   corrs[3].Q = (s16)((trk_ch.CORR0 >> 16) & 0xFFFF);
 
-  /* NOTE: Skipping VL correlator to save CPU cycles since data is not used */
+  /* VL correlator */
+  corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
+  corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
+
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
