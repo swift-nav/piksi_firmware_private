@@ -579,8 +579,9 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
   update_l1_xcorr_from_l2(tracker_channel, cflags);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker_channel->lock_detect.outp && confirmed &&
-      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
+  bool islocked = ((tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK) ||
+                   (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
+  if (islocked && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
       tracker_bit_aligned(tracker_channel)) {
     /* Start L2 CM tracker if not running */
     do_l1ca_to_l2cm_handover(tracker_channel->sample_count,

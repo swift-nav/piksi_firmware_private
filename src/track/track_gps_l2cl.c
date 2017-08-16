@@ -498,8 +498,8 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel) {
   /* GPS L2 C-specific ToW manipulation */
   update_tow_gps_l2c(tracker_channel, cflags);
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker_channel->lock_detect.outp && confirmed &&
+  if ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+      (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
       (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
       tracker_bit_aligned(tracker_channel)) {
     bool fll_mode = tp_tl_is_fll(&tracker_channel->tl_state);

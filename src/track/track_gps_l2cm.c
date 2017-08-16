@@ -493,7 +493,7 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
   if (tp_tl_is_fll(&tracker_channel->tl_state)) {
     tracking_channel_drop_l2cl(mesid);
     tracker_ambiguity_unknown(tracker_channel);
-  } else if (tracker_channel->lock_detect.outp &&
+  } else if ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
              (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
              (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) &&
              tracker_bit_aligned(tracker_channel)) {

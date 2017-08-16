@@ -22,6 +22,7 @@
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
 
+#include "lockd/lockd.h"
 #include "piksi_systime.h"
 #include "shm.h"
 #include "track_flags.h"
@@ -215,8 +216,7 @@ typedef struct {
   float filt_accel; /**< SV acceleration value for decision logic [g] */
 
   /* Packed fields: 24 bits */
-  u32 olock : 1;                  /**< PLL optimistic lock flag */
-  u32 plock : 1;                  /**< PLL pessimistic lock flag */
+  u32 plock : 1;                  /**< PLL/FLL pessimistic lock flag */
   u32 bsync : 1;                  /**< Bit sync flag */
   u32 bsync_sticky : 1;           /**< Bit sync flag */
   u32 profile_update : 1;         /**< Flag if the profile update is required */
@@ -550,6 +550,7 @@ typedef struct {
   double carrier_phase;      /**< Carrier phase in cycles. */
   double carrier_phase_prev; /**< Previous carrier phase in cycles. */
   double carrier_freq;       /**< Carrier frequency Hz. */
+  double carrier_freq_prev;  /**< Previous readings for FLL lock detector. */
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
@@ -575,7 +576,9 @@ typedef struct {
   tp_corr_state_t corrs;       /**< Correlations */
   track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
   alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t lock_detect;   /**< Lock detector state. */
+  lockd_t lockd_pll;           /**< Checks PLL phase error. */
+  lockd_t lockd_fll;           /**< Checks FLL vs DLL freq difference. */
+  lockd_t lockd_freq_rate;     /**< Checks FLL/PLL freq change rate. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   u16 tracking_mode : 3;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current
@@ -737,11 +740,15 @@ typedef struct {
  * Lock detector parameters.
  */
 typedef struct {
-  float k1; /**< LPF coefficient */
-  float k2; /**< I scale factor */
-  u16 lp;   /**< Pessimistic count threshold */
-  u16 lo;   /**< Optimistic count threshold */
-} tp_lock_detect_params_t;
+  float fc;          /**< LPF coefficient */
+  float scale;       /**< signal scale factor */
+  u16 cnt_threshold; /**< lock count threshold */
+} lockd_params_t;
+
+typedef struct {
+  lockd_params_t pll_fll;
+  lockd_params_t freq_rate;
+} tp_lockd_params_t;
 
 /**
  * Lock detector parameters.
@@ -760,9 +767,9 @@ typedef struct {
  * \sa tp_get_profile
  */
 typedef struct {
-  tp_loop_params_t loop_params;               /**< Tracking loop parameters */
-  tp_lock_detect_params_t lock_detect_params; /**< Lock detector parameters */
-  bool use_alias_detection;                   /**< Alias detection flag */
+  tp_loop_params_t loop_params;   /**< Tracking loop parameters */
+  tp_lockd_params_t lockd_params; /**< Lock detector parameters */
+  bool use_alias_detection;       /**< Alias detection flag */
   tp_cn0_params_t cn0_params;
 } tp_config_t;
 
@@ -779,12 +786,9 @@ typedef struct {
   float cn0;              /**< Computed C/N0 (filtered) in dB/Hz */
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
   u32 plock : 1;          /**< Pessimistic lock flag */
-  u32 olock : 1;          /**< Optimistic lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
-  float lock_i;           /**< Filtered I value from the lock detector */
-  float lock_q;           /**< Filtered Q value from the lock detector */
 } tp_report_t;
 
 /**
