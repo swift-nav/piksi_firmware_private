@@ -157,8 +157,8 @@ static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
  * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags    Current cycle flags.
  */
-static void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
-                                u32 cycle_flags) {
+void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
+                         u32 cycle_flags) {
   bool half_bit_aligned = false;
 
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
