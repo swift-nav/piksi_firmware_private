@@ -393,7 +393,7 @@ void nmea_gpgsa(const u8 *prns,
   NMEA_SENTENCE_DONE();
 }
 
-/** Helper function for nmea_gpgsv for comparing sids. Function assumes
+/** Helper function for nmea_gsv for comparing sids. Function assumes
  *  parameter sids have same constellation.
  *
  * \param[in] a     ptr to left side sid
@@ -413,29 +413,31 @@ int compare_ch_meas(const void *a, const void *b) {
   return (*ca)->sid.sat - (*cb)->sid.sat;
 }
 
-/** Assemble a NMEA GPGSV message and send it out NMEA USARTs.
+/** Assemble a NMEA GPGSV or GLGSV message and send it out NMEA USARTs.
  * NMEA GPGSV message contains GNSS Satellites In View (in this case tracked).
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
  */
-void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas) {
-  const channel_measurement_t *ch_meas_gps[n_used];
+void nmea_gsv(u8 n_used,
+              const channel_measurement_t *ch_meas,
+              constellation_t gnss) {
+  const channel_measurement_t *ch_meas_gnss[n_used];
 
   if (NULL == ch_meas) {
     n_used = 0;
   }
 
-  u8 n_gps_used = 0;
+  u8 n_gnss_used = 0;
   for (u8 i = 0; i < n_used; i++) {
-    if (CONSTELLATION_GPS != sid_to_constellation(ch_meas[i].sid)) {
+    if (gnss != sid_to_constellation(ch_meas[i].sid)) {
       continue;
     }
 
     /* check if sat is already picked up from another GPS code */
     bool in_array = false;
-    for (u8 j = 0; j < n_gps_used; j++) {
-      if (ch_meas_gps[j]->sid.sat == ch_meas[i].sid.sat) {
+    for (u8 j = 0; j < n_gnss_used; j++) {
+      if (ch_meas_gnss[j]->sid.sat == ch_meas[i].sid.sat) {
         in_array = true;
         break;
       }
@@ -443,40 +445,50 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas) {
 
     /* for extra security */
     if (!sid_valid(ch_meas[i].sid)) {
-      log_debug_sid(ch_meas[i].sid, "Invalid SV in nmea_gpgsv()");
+      log_debug_sid(ch_meas[i].sid, "Invalid SV in nmea_gsv()");
       continue;
     }
 
     if (!in_array) {
-      ch_meas_gps[n_gps_used++] = &ch_meas[i];
+      ch_meas_gnss[n_gnss_used++] = &ch_meas[i];
     }
   }
 
-  if (0 == n_gps_used) {
+  char *gnss_s = "";
+  if (CONSTELLATION_GPS == gnss) {
+    gnss_s = "GPGSV";
+  } else if (CONSTELLATION_GLO == gnss) {
+    gnss_s = "GLGSV";
+  } else {
+    assert(!"Unsupported GNSS type");
+  }
+
+  if (0 == n_gnss_used) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,%02u", n_gps_used);
+    NMEA_SENTENCE_PRINTF("$%s,1,1,%02u", gnss_s, n_gnss_used);
     NMEA_SENTENCE_DONE();
     return;
   }
 
-  qsort(ch_meas_gps,
-        n_gps_used,
+  qsort(ch_meas_gnss,
+        n_gnss_used,
         sizeof(channel_measurement_t *),
         compare_ch_meas);
 
-  u8 n_messages = (n_gps_used + 3) / 4;
+  u8 n_messages = (n_gnss_used + 3) / 4;
 
   u8 n = 0;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,%u,%u,%02u", n_messages, i + 1, n_gps_used);
+    NMEA_SENTENCE_PRINTF(
+        "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_gnss_used);
 
-    for (u8 j = 0; j < 4 && n < n_gps_used; n++) {
-      s8 ele = sv_elevation_degrees_get(ch_meas_gps[n]->sid);
-      u16 azi = sv_azimuth_degrees_get(ch_meas_gps[n]->sid);
+    for (u8 j = 0; j < 4 && n < n_gnss_used; n++) {
+      s8 ele = sv_elevation_degrees_get(ch_meas_gnss[n]->sid);
+      u16 azi = sv_azimuth_degrees_get(ch_meas_gnss[n]->sid);
 
-      NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gps[n]->sid.sat);
+      NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gnss[n]->sid.sat);
 
       if (TRACKING_ELEVATION_UNKNOWN == ele) {
         NMEA_SENTENCE_PRINTF(",");
@@ -490,7 +502,7 @@ void nmea_gpgsv(u8 n_used, const channel_measurement_t *ch_meas) {
         NMEA_SENTENCE_PRINTF(",%03u", azi);
       }
 
-      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gps[n]->cn0));
+      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gnss[n]->cn0));
 
       j++; /* 4 sats per message no matter what */
     }
@@ -770,13 +782,14 @@ static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
   nmea_gpgsa(prns, num_prns, sbp_pos_llh, sbp_dops);
 }
 
-/** Generate and send periodic GPGSV.
+/** Generate and send periodic GPGSV and GLGSV.
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of channel_measurement structs from tracked SVs
  */
 void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
-  DO_EVERY(gpgsv_msg_rate, nmea_gpgsv(n_used, ch_meas););
+  DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas, CONSTELLATION_GPS);
+           nmea_gsv(n_used, ch_meas, CONSTELLATION_GLO););
 }
 
 /** Generate and send periodic NMEA GPRMC, GPGLL, GPVTG, GPZDA and GPGSA.
