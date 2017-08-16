@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* NT1065 Frontend v0.3.2 register map */
+/* NT1065 Frontend v0.3.3 register map */
 
 #ifndef NT1065_FRONTEND_H
 #define NT1065_FRONTEND_H
