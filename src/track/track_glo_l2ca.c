@@ -14,10 +14,10 @@
 #define TRACK_GLO_L2CA_INTERNAL
 
 /* Local headers */
-#include "track_glo_l1ca.h"
 #include "track_glo_l2ca.h"
 #include "track.h"
 #include "track_cn0.h"
+#include "track_glo_l1ca.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */
@@ -147,8 +147,8 @@ static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel) {
   u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
   (void)tracker_flags;
 
-  /* GLO L2 ToW manipulation, since GLO data bit length is same as for GLO L1
-   * use L1 ToW-related function */
+  /* GLO L2 ToW manipulation, since GLO data and bit length is same as for
+   * GLO L1 use L1 ToW-related function */
   update_tow_glo_l1ca(tracker_channel, tracker_flags);
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */

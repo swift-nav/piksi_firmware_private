@@ -17,7 +17,6 @@
 
 void track_glo_l1ca_register(void);
 /* for L2 tow propagation */
-void update_tow_glo_l1ca(tracker_channel_t *tracker_channel,
-                         u32 cycle_flags);
+void update_tow_glo_l1ca(tracker_channel_t *tracker_channel, u32 cycle_flags);
 
 #endif /* SWIFTNAV_TRACK_GLO_L1CA_H */
