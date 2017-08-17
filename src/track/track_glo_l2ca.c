@@ -146,6 +146,9 @@ static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel) {
   u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
   (void)tracker_flags;
 
+  /* GLO L2 ToW manipulation */
+  update_tow_glo(tracker_channel, tracker_flags);
+
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
