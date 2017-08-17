@@ -381,7 +381,7 @@ u16 tracker_glo_orbit_slot_get(tracker_channel_t *tracker_channel) {
  * \return GLO health information
  */
 glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel) {
-  assert(is_glo_sid(tracker_channel->mesid));
+  assert(IS_GLO(tracker_channel->mesid));
   return tracker_channel->health;
 }
 
@@ -398,7 +398,7 @@ void tracker_correlations_send(tracker_channel_t *tracker_channel,
         .channel = tracker_channel->nap_channel,
     };
     /* TODO GLO: Handle GLO orbit slot properly. */
-    if (is_glo_sid(tracker_channel->mesid)) {
+    if (IS_GLO(tracker_channel->mesid)) {
       return;
     }
     gnss_signal_t sid =

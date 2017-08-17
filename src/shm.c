@@ -174,8 +174,7 @@ void shm_glo_set_shi(u16 sat, u8 new_value) {
  */
 code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   /* Skip GLO satellites if they do not have orbit slot decoded. */
-  if (CONSTELLATION_GLO == sid_to_constellation(sid) &&
-      GLO_ORBIT_SLOT_UNKNOWN == sid.sat) {
+  if (IS_GLO(sid) && !glo_slot_id_is_valid(sid.sat)) {
     return CODE_NAV_STATE_UNKNOWN;
   }
 

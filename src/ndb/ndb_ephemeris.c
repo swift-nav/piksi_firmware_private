@@ -85,9 +85,9 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
    * Current architecture uses GPS L1 C/A ephemeris for all GPS signals,
    * and GLO L1 C/A ephemeris for all GLO signals.
    */
-  if (sid_to_constellation(sid) == CONSTELLATION_GPS) {
+  if (IS_GPS(sid)) {
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
-  } else if (sid_to_constellation(sid) == CONSTELLATION_GLO) {
+  } else if (IS_GLO(sid)) {
     idx = sid_to_global_index(construct_sid(CODE_GLO_L1CA, sid.sat));
   } else {
     idx = sid_to_global_index(sid);
@@ -169,7 +169,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
   if (NULL != candidate) {
     ephemeris_t tmp_eph;
     MEMCPY_S(&tmp_eph, sizeof(tmp_eph), candidate, sizeof(tmp_eph));
-    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+    if (IS_GLO(new->sid)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
     if (ephemeris_equal(new, &tmp_eph)) {
@@ -180,7 +180,7 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
   } else if (NULL != existing_e) {
     ephemeris_t tmp_eph;
     MEMCPY_S(&tmp_eph, sizeof(tmp_eph), existing_e, sizeof(tmp_eph));
-    if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+    if (IS_GLO(new->sid)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
     if (ephemeris_equal(new, existing_e)) {
@@ -341,7 +341,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
     MEMCPY_S(&tmp_ephep, sizeof(tmp_ephep), ephep, sizeof(tmp_ephep));
   }
 
-  if (CONSTELLATION_GLO == code_to_constellation(new->sid.code)) {
+  if (IS_GLO(new->sid)) {
     /* Fake fit_interval for GLO since it might be changed during ephemeris
      * validity time which causes warning below because it's not same as stored
      */
@@ -440,10 +440,9 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
       &ndb_ephemeris_md[idx], e, sizeof(*e), NULL, NDB_USE_NV_EPHEMERIS);
 
   double ndb_eph_age;
-  constellation_t constellation = code_to_constellation(sid.code);
-  if (CONSTELLATION_GPS == constellation) {
+  if (IS_GPS(sid)) {
     ndb_eph_age = NDB_NV_GPS_EPHEMERIS_AGE_SECS;
-  } else if (CONSTELLATION_GLO == constellation) {
+  } else if (IS_GLO(sid)) {
     ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
   } else {
     assert(!"Constellation is not supported");
