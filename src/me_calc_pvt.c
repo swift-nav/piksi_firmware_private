@@ -531,7 +531,8 @@ static void me_calc_pvt_thread(void *arg) {
         n_ready,
         p_meas,
         p_nav_meas,
-        gps_time_valid(&epoch_time) ? &epoch_time : NULL);
+        gps_time_valid(&epoch_time) ? &epoch_time : NULL,
+        gps_time_valid(&epoch_time) ? &epoch_time : &e_meas[0].toe);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
