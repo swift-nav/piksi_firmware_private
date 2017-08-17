@@ -1462,10 +1462,10 @@ static void error_flags_add(tracker_channel_t *tracker_channel,
   }
 }
 
-static s32 propagate_tow_from_sid_db(tracker_channel_t *tracker_channel,
-                                     u64 sample_time_tk,
-                                     bool half_bit_aligned,
-                                     s32 *TOW_residual_ns) {
+static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel,
+                                         u64 sample_time_tk,
+                                         bool half_bit_aligned,
+                                         s32 *TOW_residual_ns) {
   assert(TOW_residual_ns);
   *TOW_residual_ns = 0;
 
@@ -1603,10 +1603,10 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
 
   if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
     tracker_channel->TOW_ms =
-        propagate_tow_from_sid_db(tracker_channel,
-                                  sample_time_tk,
-                                  half_bit_aligned,
-                                  &tracker_channel->TOW_residual_ns);
+        propagate_tow_from_sid_db_glo(tracker_channel,
+                                      sample_time_tk,
+                                      half_bit_aligned,
+                                      &tracker_channel->TOW_residual_ns);
   }
 
   if (half_bit_aligned && (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
