@@ -59,7 +59,7 @@
 /* this is the common denominator of
  * 'rats(562.5e3 / (99.375e6/5))' and
  * 'rats(437.5e3 / (99.375e6/5))' */
-#define FCN_NCO_RESET_COUNT (318)
+#define FCN_NCO_RESET_COUNT (39750)
 
 /** Structure is used to define spacing between two correlators */
 typedef struct {

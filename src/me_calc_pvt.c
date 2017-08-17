@@ -296,9 +296,10 @@ static void me_calc_pvt_thread(void *arg) {
       /* If we have timing then we can calculate the relationship between
        * receiver time and GPS time and hence provide the pseudorange
        * calculation with the local GPS time of reception. */
-      gps_time_t rec_time = napcount2rcvtime(epoch_tc);
+      gps_time_t rec_time = napcount2gpstime(epoch_tc);
       epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
-      epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
+      epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
+      epoch_tc = 39750ULL * ((epoch_tc + 19875ULL)/39750ULL);
     }
 
     double delta_tc = -((double)current_tc - (double)epoch_tc);
@@ -487,8 +488,6 @@ static void me_calc_pvt_thread(void *arg) {
        */
       set_time_fine(epoch_tc, current_fix.time);
 
-      me_send_emptyobs();
-
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
       lgf.position_solution = current_fix;
@@ -497,26 +496,23 @@ static void me_calc_pvt_thread(void *arg) {
       continue;
     }
 
+    /* We now have the nap count we expected the measurements to be at, plus
+     * the GPS time error for that nap count so we need to store this error in
+     * the the GPS time (GPS time frame) */
+    set_gps_time_offset(epoch_tc, current_fix.time);
+    //~ adjust_time_coarse(current_fix.clock_offset + current_fix.clock_bias / soln_freq);
+
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
     lgf.position_quality = POSITION_FIX;
     ndb_lgf_store(&lgf);
 
-    /* We now have the nap count we expected the measurements to be at, plus
-     * the GPS time error for that nap count so we need to store this error in
-     * the the GPS time (GPS time frame) */
-    set_gps_time_offset(epoch_tc, current_fix.time);
-
-    /* Calculate how far the solution landed from the intended epoch time. */
-    double t_err = gpsdifftime(&epoch_time, &current_fix.time);
-
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
-    if (fabs(t_err) < OBS_PROPAGATION_LIMIT) {
-      log_debug("t_err %.3e clk_bias %.3e clk_drift %.3e",
-                t_err,
-                current_fix.clock_offset,
-                current_fix.clock_bias);
+    if (fabs(current_fix.clock_offset) < OBS_PROPAGATION_LIMIT) {
+      log_info("clk_offset %.3e clk_drift %.3e",
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
@@ -528,10 +524,11 @@ static void me_calc_pvt_thread(void *arg) {
 
         /* The pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -= t_err * doppler * sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
+        nm->raw_pseudorange -= (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
+        nm->raw_pseudorange -=
+            current_fix.clock_offset * GPS_C;
         /* Carrier Phase corrected by clock offset */
-        nm->raw_carrier_phase += t_err * doppler;
+        nm->raw_carrier_phase += (current_fix.clock_offset) * doppler;
         nm->raw_carrier_phase +=
             current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
         /* Use P**V**T to determine the oscillator drift which is used
@@ -542,7 +539,7 @@ static void me_calc_pvt_thread(void *arg) {
 
         /* Also apply the time correction to the time of transmission so the
         * satellite positions can be calculated for the correct time. */
-        nm->tot.tow += t_err;
+        nm->tot.tow += (current_fix.clock_offset);
         normalize_gps_time(&(nm->tot));
 
         /* Recompute satellite position, velocity and clock errors */
@@ -565,7 +562,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
     } else {
-      log_warn("t_err %.9lf greater than OBS_PROPAGATION_LIMIT", t_err);
+      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT", (current_fix.clock_offset));
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
