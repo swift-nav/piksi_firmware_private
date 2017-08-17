@@ -79,10 +79,8 @@ u64 nap_sample_time_to_count(u32 sample_count);
 double nap_count_to_ms(u64 delta_time);
 double nap_count_to_ns(u64 delta_time);
 
-u32 nap_rw_ext_event(u8 *event_pin,
-                     ext_event_trigger_t *event_trig,
-                     ext_event_trigger_t next_trig,
-                     u32 timeout);
+u32 nap_get_ext_event(u8 pin, ext_event_trigger_t *trig);
+void nap_set_ext_event(u8 pin, ext_event_trigger_t trig, u32 timeout);
 
 void nap_pps(u32 count);
 void nap_pps_config(u32 microseconds, u8 active);

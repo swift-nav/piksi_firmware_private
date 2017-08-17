@@ -21,6 +21,6 @@ typedef enum {
 } ext_event_trigger_t;
 
 void ext_event_setup(void);
-void ext_event_service(void);
+void ext_event_service(u32 events);
 
 #endif  // SWIFTNAV_EXT_EVENTS_H
