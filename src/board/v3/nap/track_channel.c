@@ -420,44 +420,45 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
+  static swiftnap_tracking_t trk_ch;
   swiftnap_tracking_t *t = &NAP->TRK_CH[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
   s64 hw_carr_phase;
 
-  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(t->STATUS)) {
+  /* Read track channel data
+   * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
+   */
+  memcpy(&trk_ch, t, sizeof(swiftnap_tracking_t));
+
+  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(
         s->mesid, "Tracking correlator overflow on channel %d", channel);
   }
 
   /* E correlator */
-  u32 corr1 = t->CORR1;
-  corrs[0].I = (s16)(corr1 & 0xFFFF);
-  corrs[0].Q = (s16)((corr1 >> 16) & 0xFFFF);
+  corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);
+  corrs[0].Q = (s16)((trk_ch.CORR1 >> 16) & 0xFFFF);
 
   /* P correlator */
-  u32 corr2 = t->CORR2;
-  corrs[1].I = (s16)(corr2 & 0xFFFF);
-  corrs[1].Q = (s16)((corr2 >> 16) & 0xFFFF);
+  corrs[1].I = (s16)(trk_ch.CORR2 & 0xFFFF);
+  corrs[1].Q = (s16)((trk_ch.CORR2 >> 16) & 0xFFFF);
 
   /* L correlator */
-  u32 corr3 = t->CORR3;
-  corrs[2].I = (s16)(corr3 & 0xFFFF);
-  corrs[2].Q = (s16)((corr3 >> 16) & 0xFFFF);
+  corrs[2].I = (s16)(trk_ch.CORR3 & 0xFFFF);
+  corrs[2].Q = (s16)((trk_ch.CORR3 >> 16) & 0xFFFF);
 
   /* VE correlator */
-  u32 corr0 = t->CORR0;
-  corrs[3].I = (s16)(corr0 & 0xFFFF);
-  corrs[3].Q = (s16)((corr0 >> 16) & 0xFFFF);
+  corrs[3].I = (s16)(trk_ch.CORR0 & 0xFFFF);
+  corrs[3].Q = (s16)((trk_ch.CORR0 >> 16) & 0xFFFF);
 
   /* VL correlator */
-  u32 corr4 = t->CORR4;
-  corrs[4].I = (s16)(corr4 & 0xFFFF);
-  corrs[4].Q = (s16)((corr4 >> 16) & 0xFFFF);
+  corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
+  corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
-  *count_snapshot = t->TIMING_SNAPSHOT;
+  *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
   if (s->reckon_counter < 1) {
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    hw_carr_phase = ((s64)trk_ch.CARR_PHASE_INT << 32) | trk_ch.CARR_PHASE_FRAC;
     s->sw_carr_phase = hw_carr_phase;
     s->reckoned_carr_phase +=
         ((double)hw_carr_phase) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
@@ -471,7 +472,7 @@ void nap_track_read_results(u8 channel,
         ((double)phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE;
 #ifndef PIKSI_RELEASE
     s->sw_carr_phase += phase_incr;
-    hw_carr_phase = ((s64)t->CARR_PHASE_INT << 32) | t->CARR_PHASE_FRAC;
+    hw_carr_phase = ((s64)trk_ch.CARR_PHASE_INT << 32) | trk_ch.CARR_PHASE_FRAC;
     if (s->sw_carr_phase != hw_carr_phase) {
       log_error_mesid(
           s->mesid,
@@ -497,7 +498,8 @@ void nap_track_read_results(u8 channel,
                          (s->spacing[0].samples + s->spacing[1].samples) /
                              calc_samples_per_chip(s->code_phase_rate[1]);
 
-  u64 nap_code_phase = ((u64)t->CODE_PHASE_INT << 32) | t->CODE_PHASE_FRAC;
+  u64 nap_code_phase =
+      ((u64)trk_ch.CODE_PHASE_INT << 32) | trk_ch.CODE_PHASE_FRAC;
 
   /* Correct code phase with spacing between VE and P correlators */
   *code_phase_prompt =
