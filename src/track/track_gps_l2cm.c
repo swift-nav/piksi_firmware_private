@@ -436,7 +436,8 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
+  bool sensitivity_mode =
+      (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
@@ -490,25 +491,27 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
                                u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
-  if (tp_tl_is_fll(&tracker_channel->tl_state)) {
-    tracking_channel_drop_l2cl(mesid);
+  bool fll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_FLL_USE));
+  bool pll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE));
+
+  if (fll_loop && !pll_loop) {
     tracker_ambiguity_unknown(tracker_channel);
-  } else if (tracker_channel->lock_detect.outp &&
-             (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
-             (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) &&
-             tracker_bit_aligned(tracker_channel)) {
+  } else if (tracker_ambiguity_resolved(tracker_channel)) {
+    tracking_channel_drop_l2cl(mesid);
+  }
+
+  if ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+      (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
+      (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) &&
+      tracker_bit_aligned(tracker_channel)) {
     /* If needed, read half-cycle ambiguity status from L2CL tracker */
-    if (tracker_ambiguity_resolved(tracker_channel)) {
-      tracking_channel_drop_l2cl(mesid);
-    } else {
-      s8 polarity = read_data_polarity(tracker_channel);
-      tracker_ambiguity_set(tracker_channel, polarity);
-    }
+    s8 polarity = read_data_polarity(tracker_channel);
+    tracker_ambiguity_set(tracker_channel, polarity);
 
     /* If half-cycle ambiguity is not resolved, try to start L2CL tracker.
      * TOW must be known before trying to start L2CL tracker. */
     if (!tracker_ambiguity_resolved(tracker_channel) &&
-        TOW_UNKNOWN != tracker_channel->TOW_ms) {
+        (TOW_UNKNOWN != tracker_channel->TOW_ms)) {
       /* Start L2 CL tracker if not running already */
       do_l2cm_to_l2cl_handover(tracker_channel->sample_count,
                                mesid.sat,

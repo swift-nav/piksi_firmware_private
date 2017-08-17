@@ -107,17 +107,19 @@ void tp_tracker_update_lock_detect_parameters(
     tracker_channel_t *tracker_channel,
     const tp_config_t *next_params,
     bool init) {
-  const tp_lock_detect_params_t *ld = &next_params->lock_detect_params;
-  /* Lock detector integration time */
-  bool mode_switch = tp_is_fll_ctrl(tracker_channel->tl_state.ctrl) !=
-                     tp_is_fll_ctrl(next_params->loop_params.ctrl);
+  const tp_lock_detect_params_t *ldp = &next_params->ld_phase_params;
+  const tp_lock_detect_params_t *ldf = &next_params->ld_freq_params;
 
-  if (init || mode_switch) {
+  if (init) {
     lock_detect_init(
-        &tracker_channel->lock_detect, ld->k1, ld->k2, ld->lp, ld->lo);
+        &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_init(
+        &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   } else {
     lock_detect_reinit(
-        &tracker_channel->lock_detect, ld->k1, ld->k2, ld->lp, ld->lo);
+        &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_reinit(
+        &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   }
 }
 
@@ -189,36 +191,20 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
   }
   tp_tracker_update_lock_detect_parameters(tracker_channel, next_params, init);
 
-  if (tp_tl_is_fll(&tracker_channel->tl_state)) {
-    tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
-    tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
-  } else if (tp_tl_is_pll(&tracker_channel->tl_state)) {
-    tracker_channel->flags |= TRACKER_FLAG_PLL_USE;
-    tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
-    if (next_params->loop_params.fll_bw > 0.f) {
-      tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
-    }
-  } else {
-    tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
-    tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
-    assert(!"Unexpected control mode");
-  }
-
   /* Export loop controller parameters */
   tracker_channel->ctrl_params.int_ms =
       tp_get_dll_ms(tracker_channel->tracking_mode);
   tracker_channel->ctrl_params.dll_bw = next_params->loop_params.code_bw;
+  tracker_channel->ctrl_params.pll_bw = next_params->loop_params.carr_bw;
+  tracker_channel->ctrl_params.fll_bw = next_params->loop_params.fll_bw;
 
-  if (tracker_channel->flags & TRACKER_FLAG_PLL_USE) {
-    tracker_channel->ctrl_params.pll_bw = next_params->loop_params.carr_bw;
-  } else {
-    tracker_channel->ctrl_params.pll_bw = 0.f;
+  tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
+  tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
+  if (tracker_channel->ctrl_params.pll_bw > 0) {
+    tracker_channel->flags |= TRACKER_FLAG_PLL_USE;
   }
-
-  if (tracker_channel->flags & TRACKER_FLAG_FLL_USE) {
-    tracker_channel->ctrl_params.fll_bw = next_params->loop_params.fll_bw;
-  } else {
-    tracker_channel->ctrl_params.fll_bw = 0.f;
+  if (tracker_channel->ctrl_params.fll_bw > 0) {
+    tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
   }
 
   if (init || cn0_ms != prev_cn0_ms) {
@@ -297,7 +283,6 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
   report.carr_freq = tracker_channel->carrier_freq;
   report.code_phase_rate = tracker_channel->code_phase_rate;
   report.cn0 = report.cn0_raw = tracker_channel->cn0;
-  report.olock = false;
   report.plock = false;
   report.sample_count = tracker_channel->sample_count;
   report.time_ms = 0;
@@ -362,7 +347,8 @@ void tp_tracker_disable(tracker_channel_t *tracker_channel) {
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel) {
   double code_phase_chips = tracker_channel->code_phase_prompt;
 
-  bool plock = tracker_channel->lock_detect.outp;
+  bool plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
   u32 result_ms = 0;
   if (tracker_channel->has_next_params) {
     tp_config_t next_params;
@@ -442,6 +428,11 @@ static void mode_change_complete(tracker_channel_t *tracker_channel) {
     tp_tracker_update_parameters(tracker_channel,
                                  &next_params,
                                  /* init = */ false);
+
+    tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
+    if (next_params.sensitivity) {
+      tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
+    }
   }
 }
 
@@ -530,16 +521,12 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
   s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
 
   if (0 != err_hz) {
-    if (tracker_channel->lock_detect.outp) {
+    if ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+        (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK))) {
       log_warn_mesid(tracker_channel->mesid,
                      "False phase lock detected: %" PRId32 " Hz",
                      err_hz);
-    } else {
-      log_debug_mesid(tracker_channel->mesid,
-                      "False optimistic lock detected: %" PRId32 " Hz",
-                      err_hz);
     }
-
     tracker_ambiguity_unknown(tracker_channel);
     tp_tl_adjust(&tracker_channel->tl_state, err_hz);
   }
@@ -664,7 +651,8 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
 void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
-    bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
+    bool sensitivity_mode =
+        (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
     u8 update_count_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
     /* Bit sync advance / message decoding */
@@ -711,8 +699,9 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   }
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed &&
-      tracker_channel->lock_detect.outp &&
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker_channel)) {
     tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
     log_debug_mesid(tracker_channel->mesid,
@@ -756,6 +745,44 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   }
 }
 
+static void update_ld_phase(tracker_channel_t *tracker_channel) {
+  bool last_outp = tracker_channel->ld_phase.outp;
+
+  lock_detect_update(&tracker_channel->ld_phase,
+                     tracker_channel->corrs.corr_ld.I,
+                     tracker_channel->corrs.corr_ld.Q,
+                     tp_get_ld_ms(tracker_channel->tracking_mode));
+
+  bool outp = tracker_channel->ld_phase.outp;
+
+  if (outp) {
+    tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
+    tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
+  } else if (last_outp && (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
+    log_info_mesid(tracker_channel->mesid, "PLL stress");
+  }
+}
+
+static void update_ld_freq(tracker_channel_t *tracker_channel) {
+  bool last_outp = tracker_channel->ld_freq.outp;
+  /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
+  float dll_err = tp_tl_get_dll_error(&tracker_channel->tl_state);
+
+  lock_detect_update(&tracker_channel->ld_freq,
+                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
+                     dll_err,
+                     tp_get_ld_ms(tracker_channel->tracking_mode));
+
+  bool outp = tracker_channel->ld_freq.outp;
+
+  if (outp) {
+    tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
+    tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
+  } else if (last_outp && (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
+    log_info_mesid(tracker_channel->mesid, "FLL stress");
+  }
+}
+
 /**
  * Updates PLL and FLL lock registers.
  *
@@ -773,55 +800,26 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
   bool pll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE));
 
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
-    /* Update PLL/FLL lock detector */
-    bool last_outp = tracker_channel->lock_detect.outp;
-    bool outp = false;
+    bool outp_prev =
+        tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
 
     if (pll_loop) {
-      lock_detect_update(&tracker_channel->lock_detect,
-                         tracker_channel->corrs.corr_ld.I,
-                         tracker_channel->corrs.corr_ld.Q,
-                         tp_get_ld_ms(tracker_channel->tracking_mode));
-
-      outp = tracker_channel->lock_detect.outp;
-
-      if (outp) {
-        tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
-        tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
-        tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
-      }
-    } else if (fll_loop) {
-      /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
-
-      float dll_err = tp_tl_get_dll_error(&tracker_channel->tl_state);
-
-      lock_detect_update(&tracker_channel->lock_detect,
-                         TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                         dll_err,
-                         tp_get_ld_ms(tracker_channel->tracking_mode));
-
-      outp = tracker_channel->lock_detect.outp;
-
-      if (outp) {
-        tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
-        tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
-      }
+      update_ld_phase(tracker_channel);
     }
 
-    if (outp != last_outp) {
+    if (fll_loop) {
+      update_ld_freq(tracker_channel);
+    }
+
+    bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
+    if (outp != outp_prev) {
       tracker_channel->ld_pess_change_count = tracker_channel->update_count;
     }
-
-    if (last_outp && !outp &&
-        (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
-      if (fll_loop) {
-        log_info_mesid(tracker_channel->mesid, "FLL stress");
-      } else if (pll_loop) {
-        log_info_mesid(tracker_channel->mesid, "PLL stress");
-      }
+    if (outp) {
+      tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
     }
   }
   /*
@@ -830,7 +828,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
    * is done always to prevent incorrect handling of partial integration
    * intervals.
    */
-  if (!pll_loop || !tracker_channel->lock_detect.outp) {
+  if (!pll_loop || !tracker_channel->ld_phase.outp) {
     tracker_ambiguity_unknown(tracker_channel);
   }
 }
@@ -925,10 +923,8 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     } else {
       report.cn0 = tracker_channel->cn0;
     }
-    report.olock = tracker_channel->lock_detect.outo;
-    report.plock = tracker_channel->lock_detect.outp;
-    report.lock_i = tracker_channel->lock_detect.lpfi.y;
-    report.lock_q = tracker_channel->lock_detect.lpfq.y;
+    report.plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                    (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
     report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
     report.acceleration = rates.acceleration;
@@ -1005,8 +1001,9 @@ void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
   /* Attempt alias detection if we have pessimistic phase lock detect, OR
      (optimistic phase lock detect AND are in second-stage tracking) */
   if (0 != (cycle_flags & TP_CFLAG_ALIAS_SECOND)) {
-    if (tracker_channel->use_alias_detection &&
-        tracker_channel->lock_detect.outo) {
+    bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                   (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+    if (tracker_channel->use_alias_detection && inlock) {
       process_alias_error(tracker_channel);
     } else {
       /* If second stage is not enabled, make the first one */

@@ -959,7 +959,11 @@ void sanitize_trackers(void) {
       continue;
     }
 
-    /* PLL/FLL pessimistic lock detector "unlocked" for a while? */
+    /* PLL/FLL pessimistic lock detector "unlocked" for a while?
+       We could get rid of this check althogether if not the
+       observed cases, when tracker could not achieve the pessimistic
+       lock state for a long time (minutes?) and yet managed to pass
+       CN0 sanity checks.*/
     u32 unlocked_ms = 0;
     if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
@@ -1142,28 +1146,12 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
         log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
       }
     }
-    /* If PLL is not in pessimistic lock and the tracker
-       is not going to re-lock on a signal, then both code and
-       doppler measurements can go really wrong before tracker switches to
-       FLL mode. So we do not want to report them in such case. */
-    bool pll_in_lock = (0 != (flags & TRACKER_FLAG_HAS_PLOCK));
-    if (pll_in_lock) {
-      meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
-      meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
-    }
-  } else if (0 != (flags & TRACKER_FLAG_FLL_USE)) {
-    /* If FLL is not in pessimistic lock and the tracker
-       is not going to re-lock on a signal, then both code and
-       doppler measurements can go really wrong before tracker is terminated
-       by low CN0 or no lock for too long condition.
-       So we do not want to report them in such case. */
-    bool fll_in_lock = (0 != (flags & TRACKER_FLAG_HAS_FLOCK));
-    if (fll_in_lock) {
-      meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
-      meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
-    }
-  } else {
-    assert(!"Unknown tracker mode");
+  }
+
+  if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) ||
+      (0 != (flags & TRACKER_FLAG_HAS_FLOCK))) {
+    meas_flags |= CHAN_MEAS_FLAG_CODE_VALID;
+    meas_flags |= CHAN_MEAS_FLAG_MEAS_DOPPLER_VALID;
   }
 
   return meas_flags;
