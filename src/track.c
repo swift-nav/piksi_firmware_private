@@ -1523,8 +1523,8 @@ static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel,
   return TOW_ms;
 }
 
-static void update_tow_in_sid_db(tracker_channel_t *tracker_channel,
-                                 u64 sample_time_tk) {
+static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
+                                     u64 sample_time_tk) {
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
     return;
@@ -1611,7 +1611,7 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
 
   if (half_bit_aligned && (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
       (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED))) {
-    update_tow_in_sid_db(tracker_channel, sample_time_tk);
+    update_tow_in_sid_db_glo(tracker_channel, sample_time_tk);
   }
 }
 
