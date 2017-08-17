@@ -63,7 +63,7 @@
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;
 
-double soln_freq = 5.0;
+double soln_freq = 10.0;
 u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
