@@ -828,10 +828,6 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
     tp_tl_fll_update_second(&tracker_channel->tl_state,
                             tracker_channel->corrs.corr_fll);
   }
-
-  if (0 != (cycle_flags & TP_CFLAG_FLL_USE)) {
-    tp_tl_fll_update(&tracker_channel->tl_state);
-  }
 }
 
 /**
