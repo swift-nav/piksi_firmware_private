@@ -56,6 +56,8 @@ void piksi_systime_sleep_us_s(u32 len_us);
 
 void piksi_systime_sleep_ms(u32 len_us);
 
+u32 piksi_systime_sleep_until_us(const piksi_systime_t *t);
+
 u32 piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
                                           u32 window_len_us);
 u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
