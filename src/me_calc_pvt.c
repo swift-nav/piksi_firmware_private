@@ -501,7 +501,6 @@ static void me_calc_pvt_thread(void *arg) {
      * the GPS time error for that nap count so we need to store this error in
      * the the GPS time (GPS time frame) */
     set_gps_time_offset(epoch_tc, current_fix.time);
-    //~ adjust_time_coarse(current_fix.clock_offset + current_fix.clock_bias / soln_freq);
 
     /* Update global position solution state. */
     lgf.position_solution = current_fix;
@@ -544,9 +543,7 @@ static void me_calc_pvt_thread(void *arg) {
         normalize_gps_time(&(nm->tot));
 
         /* Recompute satellite position, velocity and clock errors */
-
-        /* TODO: Why do we have to do this?? This should not change anything,
-         * but removing this leads to no fixed solution */
+        /* NOTE: calc_sat_state changes `tot` */
         if (0 != calc_sat_state(&e_meas[i],
                                 &(nm->tot),
                                 nm->sat_pos,
@@ -578,13 +575,9 @@ static void me_calc_pvt_thread(void *arg) {
       adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
-       * breaks up exactly into carrier cycles
-       * TODO: verify this holds for GLONASS as well */
+       * breaks up exactly into carrier cycles */
       tracking_channel_carrier_phase_offsets_adjust(dt);
     }
-
-    /* Calculate the correction to the current deadline by converting nap count
-     * difference to seconds, we convert to ms to adjust deadline later */
 
     /* The difference between the current nap count and the nap count we
      * would have wanted the observations at is the amount we want to
