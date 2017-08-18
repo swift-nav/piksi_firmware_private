@@ -580,7 +580,8 @@ typedef struct {
   tp_corr_state_t corrs;       /**< Correlations */
   track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
   alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t lock_detect;   /**< Lock detector state. */
+  lock_detect_t ld_phase;      /**< Phase lock detector state. */
+  lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   u16 tracking_mode : 3;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current
@@ -741,7 +742,6 @@ typedef struct {
   float k1; /**< LPF coefficient */
   float k2; /**< I scale factor */
   u16 lp;   /**< Pessimistic count threshold */
-  u16 lo;   /**< Optimistic count threshold */
 } tp_lock_detect_params_t;
 
 /**
@@ -761,10 +761,13 @@ typedef struct {
  * \sa tp_get_profile
  */
 typedef struct {
-  tp_loop_params_t loop_params;               /**< Tracking loop parameters */
-  tp_lock_detect_params_t lock_detect_params; /**< Lock detector parameters */
-  bool use_alias_detection;                   /**< Alias detection flag */
+  tp_loop_params_t loop_params; /**< Tracking loop parameters */
+  tp_lock_detect_params_t
+      ld_phase_params;                    /**< Phase lock detector parameters */
+  tp_lock_detect_params_t ld_freq_params; /**< Freq lock detector parameters */
+  bool use_alias_detection;               /**< Alias detection flag */
   tp_cn0_params_t cn0_params;
+  bool sensitivity;
 } tp_config_t;
 
 /**
@@ -780,12 +783,9 @@ typedef struct {
   float cn0;              /**< Computed C/N0 (filtered) in dB/Hz */
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
   u32 plock : 1;          /**< Pessimistic lock flag */
-  u32 olock : 1;          /**< Optimistic lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
-  float lock_i;           /**< Filtered I value from the lock detector */
-  float lock_q;           /**< Filtered Q value from the lock detector */
 } tp_report_t;
 
 /**

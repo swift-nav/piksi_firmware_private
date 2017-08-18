@@ -499,16 +499,12 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel) {
   update_tow_gps_l2c(tracker_channel, cflags);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker_channel->lock_detect.outp && confirmed &&
-      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
-      tracker_bit_aligned(tracker_channel)) {
-    bool fll_mode = tp_tl_is_fll(&tracker_channel->tl_state);
-    /* Drop L2CL tracker if it is FLL mode */
-    if (fll_mode) {
-      tracking_channel_drop_l2cl(tracker_channel->mesid);
-    } else if (!tracker_channel->cp_sync.synced) {
-      /* Try resolving half-cycle ambiguity if it hasn't been resolved. */
-      process_cp_data(tracker_channel);
-    }
+  bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+
+  if (in_phase_lock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
+      tracker_bit_aligned(tracker_channel) &&
+      !tracker_channel->cp_sync.synced) {
+    /* Try resolving half-cycle ambiguity if it hasn't been resolved. */
+    process_cp_data(tracker_channel);
   }
 }
