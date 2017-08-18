@@ -59,6 +59,12 @@
 #define NAP_FE_RF4A_NCO_RESET (3975)
 #define NAP_FE_RF4B_NCO_RESET (2158)
 
+/**
+ * @brief   This is 2 ms expressed as integer number of tracking samples
+ * @note    needed for Glonass carrier phase stability
+ */
+#define FCN_NCO_RESET_COUNT (39750ULL)
+
 #define NAP_PPS_TIMING_COUNT_OFFSET (-20)
 #define NAP_EXT_TIMING_COUNT_OFFSET (8)
 

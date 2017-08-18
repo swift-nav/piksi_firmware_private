@@ -299,7 +299,8 @@ static void me_calc_pvt_thread(void *arg) {
       gps_time_t rec_time = napcount2gpstime(epoch_tc);
       epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
       epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
-      epoch_tc = 39750ULL * ((epoch_tc + 19875ULL)/39750ULL);
+      epoch_tc = FCN_NCO_RESET_COUNT *
+                 ((epoch_tc + (FCN_NCO_RESET_COUNT/2))/FCN_NCO_RESET_COUNT);
     }
 
     double delta_tc = -((double)current_tc - (double)epoch_tc);
