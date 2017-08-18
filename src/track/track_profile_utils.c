@@ -47,14 +47,13 @@
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD | \
    TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |       \
    TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD | \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
+   TP_CFLAG_LD_USE)
 
 #define TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND                        \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | \
    TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |        \
    TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD |  \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND |      \
-   TP_CFLAG_FLL_USE)
+   TP_CFLAG_LD_USE)
 
 #define TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST                        \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |  \
@@ -84,7 +83,7 @@ typedef struct {
   u8 cn0_ms;                     /**< C/N0 estimator integration time */
   u8 ld_ms;                      /**< Lock detector integration time */
   u8 fl_ms;                      /**< Alias detector integration time */
-  u8 flld_ms;                    /**< FLL discriminator integration time */
+  float flld_ms;                 /**< FLL discriminator integration time */
   u8 flll_ms;                    /**< FLL loop integration time */
   u8 bit_ms;                     /**< Data update period */
   u8 ent_cnt;                    /**< State entries count */
@@ -208,19 +207,20 @@ static const state_table_t mode_5ms1PN = {
     .cn0_ms = 5,
     .ld_ms = 5,
     .fl_ms = 5,
-    .flld_ms = 5,
-    .flll_ms = 10,
+    .flld_ms = 2.5f,
+    .flll_ms = 5,
     .bit_ms = 5,
     .ent_cnt = 8,
     .entries = {
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_ADD},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_ADD},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND},
+        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST | TP_CFLAG_ALIAS_SET},
+        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE},
+        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST | TP_CFLAG_ALIAS_ADD},
+        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE},
+
+        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST | TP_CFLAG_ALIAS_SET},
+        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE},
+        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST | TP_CFLAG_ALIAS_ADD},
+        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE},
     }};
 
 /**
@@ -543,7 +543,7 @@ u8 tp_get_alias_ms(tp_tm_e tracking_mode) {
  *
  * \return FLL discriminator update period in ms.
  */
-u8 tp_get_flld_ms(tp_tm_e tracking_mode) {
+float tp_get_flld_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
