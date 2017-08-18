@@ -82,7 +82,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel) {
 
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-  if (inlock && (tracker_channel->flags & TRACKER_FLAG_CONFIRMED) &&
+  if (inlock && (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
       (0 != (tracker_flags & TP_CFLAG_BSYNC_UPDATE)) &&
       tracker_bit_aligned(tracker_channel)) {
     /* Start GLO L2CA tracker if not running */

@@ -758,7 +758,7 @@ static void update_ld_phase(tracker_channel_t *tracker_channel) {
   if (outp) {
     tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
-  } else if (last_outp && (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
+  } else if (last_outp && (TP_TM_INITIAL != tracker_channel->tracking_mode)) {
     log_info_mesid(tracker_channel->mesid, "PLL stress");
   }
 }
@@ -778,7 +778,7 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
   if (outp) {
     tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
     tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
-  } else if (last_outp && (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
+  } else if (last_outp && (TP_TM_INITIAL != tracker_channel->tracking_mode)) {
     log_info_mesid(tracker_channel->mesid, "FLL stress");
   }
 }
