@@ -194,14 +194,15 @@ static void update_obss(obss_t *new_obss)
         filter_nav_meas(new_obss->n, new_obss->nm, shm_suitable_wrapper);
   }
 
+  /* Assume the obs are good unless we hit a condition that says they are bad
+     If bad we will use the last set provided they are valid */
+  bool have_obs = true;
+  
   /* Lock mutex before modifying base_obss.
    * NOTE: We didn't need to lock it before reading in THIS context as this
    * is the only thread that writes to base_obss. */
   chMtxLock(&base_obs_lock);
   
-  /* Assume the obs are good unless we hit a condition that says they are bad
-     If bad we will use the last set provided they are valid */
-  bool have_obs = true;
 
   /* Create a set of navigation measurements to store the previous
    * observations. */
@@ -294,11 +295,13 @@ static void update_obss(obss_t *new_obss)
           base_obss.has_known_pos_ecef = true;
         }
       } else {
-        base_obss.has_known_pos_ecef = false;
+          base_obss.has_known_pos_ecef = false;
       }
       chMtxUnlock(&base_pos_lock);
     } else {
-      have_obs = false;
+        log_warn("Error calculating base station position: (%s).",
+                 pvt_err_msg[-ret - 1]);
+        have_obs = false;
     }
   } else {
     have_obs = false;
