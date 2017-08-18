@@ -129,15 +129,15 @@ static void me_send_all(u8 _num_obs,
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
   double t_check = _t->tow * (soln_freq / obs_output_divisor);
-  if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD
-    && !simulation_enabled()) {
+  if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD &&
+      !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
 }
 
 static void me_send_emptyobs(void) {
   me_post_observations(0, NULL, NULL, NULL);
-  if(!simulation_enabled()) {
+  if (!simulation_enabled()) {
     send_observations(0, msg_obs_max_size, NULL, NULL);
   }
 }
