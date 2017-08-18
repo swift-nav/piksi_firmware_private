@@ -49,9 +49,6 @@
 
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
-#define POW_TWO_P31 2147483648.0
-#define POW_TWO_P32 4294967296.0
-
 typedef enum {
   EVENT_ENABLE,
   EVENT_DISABLE_REQUEST,
