@@ -164,10 +164,10 @@ typedef enum {
  * Controller types.
  */
 typedef enum {
-  TP_CTRL_PLL2, /**< First order FLL, second order PLL */
-  TP_CTRL_PLL3, /**< Second order FLL, third order PLL */
-  TP_CTRL_FLL1, /**< First order FLL. */
-  TP_CTRL_FLL2, /**< Second order FLL. */
+  TP_CTRL_PLL2, /**< 1st order FLL, 2nd order PLL */
+  TP_CTRL_PLL3, /**< 2nd order FLL, 3rd order PLL */
+  TP_CTRL_FLL1, /**< 1st order FLL */
+  TP_CTRL_FLL2, /**< 2nd order FLL */
 } tp_ctrl_e;
 
 typedef struct {

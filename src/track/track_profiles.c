@@ -112,7 +112,10 @@ typedef enum {
 
   /** Watch high dynamics, once pessimistic lock is acquired
       and CN0 value is above a threshold */
-  TP_HIGH_DYN_WAIT_PLOCK_CN0 = (1 << 10)
+  TP_HIGH_DYN_WAIT_PLOCK_CN0 = (1 << 10),
+
+  /** Do not use carrier aiding */
+  TP_UNAIDED = (1 << 11)
 } tp_profile_flags_t;
 
 /** Tracking loop parameter placeholder */
@@ -288,32 +291,32 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   /* initial profiles */
   [IDX_NONAME_0] =
-  { {   40,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {   0,              3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
             TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         50,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-        0 },
+      TP_UNAIDED },
 
   [IDX_NONAME_1] =
   { {   40,             1,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
             TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         50,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,    IDX_NONE,       IDX_NONE,                IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_NONAME_2] =
   { {   40,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
             TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         60,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      0 },
+      TP_UNAIDED },
 
   [IDX_NONAME_3] =
   { {   35,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
             TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         60,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      0 },
+      TP_UNAIDED },
 
   [IDX_DLL_RECOVERY2] =
   { {   30,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
@@ -641,8 +644,13 @@ static void get_profile_params(const me_gnss_signal_t mesid,
                                tp_config_t *config) {
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur_index];
-  double carr_to_code = mesid_to_carr_to_code(mesid);
   config->lock_detect_params = ld_params[cur_profile->ld_params];
+
+  u16 flags = cur_profile->flags;
+  double carr_to_code = 0.0;
+  if (0 == (flags & TP_UNAIDED)) {
+    carr_to_code = mesid_to_carr_to_code(mesid);
+  }
 
   /* fill out the tracking loop parameters */
   config->loop_params = loop_params_template;
