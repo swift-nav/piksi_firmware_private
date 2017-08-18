@@ -18,6 +18,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/glo_map.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
@@ -69,6 +70,39 @@ s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
+
+/* Empirical corrections for GLO per-frequency bias as per
+ * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
+ */
+static const double glo_l1_isc[] = {[0] = -10.95,
+                                    [1] = -10.82,
+                                    [2] = -10.75,
+                                    [3] = -10.5,
+                                    [4] = -10,
+                                    [5] = -9.4,
+                                    [6] = -8.85,
+                                    [7] = -8.5,
+                                    [8] = -8.27,
+                                    [9] = -8.23,
+                                    [10] = -8.65,
+                                    [11] = -9,
+                                    [12] = -9.53,
+                                    [13] = -9.3};
+static const double glo_l2_isc[] = {[0] = -7.82,
+                                    [1] = -7.518,
+                                    [2] = -7.217,
+                                    [3] = -6.915,
+                                    [4] = -6.614,
+                                    [5] = -6.312,
+                                    [6] = -6.011,
+                                    [7] = -5.709,
+                                    [8] = -5.408,
+                                    [9] = -5.106,
+                                    [10] = -4.805,
+                                    [11] = -4.503,
+                                    [12] = -4.202,
+                                    [13] = -3.9};
+static const double gps_l2_isc = 4.05;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -267,6 +301,75 @@ static void collect_measurements(u64 rec_tc,
   }
 }
 
+/** Apply ISC corrections from hard-coded table
+ *
+ */
+static void apply_isc_table(u8 n_channels,
+                            navigation_measurement_t *nav_meas[]) {
+  for (u8 i = 0; i < n_channels; i++) {
+    double corr = 0;
+    switch (nav_meas[i]->sid.code) {
+      case CODE_GPS_L1CA:
+        break;
+
+      case CODE_GPS_L2CL:
+      case CODE_GPS_L2CM:
+        corr = gps_l2_isc;
+        break;
+
+      case CODE_GLO_L1CA:
+        corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        break;
+
+      case CODE_GLO_L2CA:
+        corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        break;
+
+      case CODE_INVALID:
+      case CODE_COUNT:
+        assert(!"Invalid code.");
+        break;
+
+      case CODE_SBAS_L1CA:
+      case CODE_GPS_L1P:
+      case CODE_GPS_L2P:
+      case CODE_GPS_L2CX:
+      case CODE_GPS_L5I:
+      case CODE_GPS_L5Q:
+      case CODE_GPS_L5X:
+      case CODE_BDS2_B11:
+      case CODE_BDS2_B2:
+      case CODE_GAL_E1B:
+      case CODE_GAL_E1C:
+      case CODE_GAL_E1X:
+      case CODE_GAL_E6B:
+      case CODE_GAL_E6C:
+      case CODE_GAL_E6X:
+      case CODE_GAL_E7I:
+      case CODE_GAL_E7Q:
+      case CODE_GAL_E7X:
+      case CODE_GAL_E8:
+      case CODE_GAL_E5I:
+      case CODE_GAL_E5Q:
+      case CODE_GAL_E5X:
+      case CODE_QZS_L1CA:
+      case CODE_QZS_L2CM:
+      case CODE_QZS_L2CL:
+      case CODE_QZS_L2CX:
+      case CODE_QZS_L5I:
+      case CODE_QZS_L5Q:
+      case CODE_QZS_L5X:
+      default:
+        /* If code not supported we just return a zero correction. */
+        break;
+    }
+
+    nav_meas[i]->pseudorange += corr;
+    nav_meas[i]->carrier_phase -=
+        corr / GPS_C * sid_to_carr_freq(nav_meas[i]->sid);
+  }
+}
+
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
@@ -423,6 +526,8 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
+
+    apply_isc_table(n_ready, p_nav_meas);
 
     gnss_sid_set_t codes;
     sid_set_init(&codes);
