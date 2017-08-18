@@ -56,11 +56,6 @@
 #define SET_NAP_CORR_LEN(len) \
   (SET_NAP_TRK_CH_CONTROL_LENGTH(t->CONTROL, len - 1))
 
-/* this is the common denominator of
- * 'rats(562.5e3 / (99.375e6/5))' and
- * 'rats(437.5e3 / (99.375e6/5))' */
-#define FCN_NCO_RESET_COUNT (318)
-
 /** Structure is used to define spacing between two correlators */
 typedef struct {
   u8 chips : 3;   /**< Correlator spacing in chips. */
