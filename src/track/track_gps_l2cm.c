@@ -491,10 +491,7 @@ static void update_l2cl_status(tracker_channel_t *tracker_channel,
                                u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
-  bool fll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_FLL_USE));
-  bool pll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE));
-
-  if (fll_loop && !pll_loop) {
+  if (0 == (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
     tracker_ambiguity_unknown(tracker_channel);
   } else if (tracker_ambiguity_resolved(tracker_channel)) {
     tracking_channel_drop_l2cl(mesid);

@@ -796,7 +796,6 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
  */
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  bool fll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_FLL_USE));
   bool pll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE));
 
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
@@ -810,9 +809,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
       update_ld_phase(tracker_channel);
     }
 
-    if (fll_loop) {
-      update_ld_freq(tracker_channel);
-    }
+    update_ld_freq(tracker_channel);
 
     bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
     if (outp != outp_prev) {

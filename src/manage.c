@@ -1123,28 +1123,25 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
                                             const me_gnss_signal_t mesid) {
   chan_meas_flags_t meas_flags = 0;
 
-  if (0 != (flags & TRACKER_FLAG_PLL_USE)) {
-    /* PLL is in use. */
-    if (phase_offset_ok) {
-      if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-          (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
-        meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+  if (phase_offset_ok) {
+    if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
+      meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
-        /* Make sense to set half cycle known flag when carrier phase is valid
-         */
-        if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
-          /* Bit polarity is known */
-          meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
-        }
+      /* Make sense to set half cycle known flag when carrier phase is valid
+       */
+      if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
+        /* Bit polarity is known */
+        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
       }
+    }
 
-      /* sanity check */
-      if ((flags & TRACKER_FLAG_BIT_POLARITY_KNOWN) &&
-          !(flags & TRACKER_FLAG_HAS_PLOCK)) {
-        /* Somehow we managed to decode TOW when phase lock lost.
-         * This should not happen, so print out warning. */
-        log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
-      }
+    /* sanity check */
+    if ((flags & TRACKER_FLAG_BIT_POLARITY_KNOWN) &&
+        !(flags & TRACKER_FLAG_HAS_PLOCK)) {
+      /* Somehow we managed to decode TOW when phase lock lost.
+       * This should not happen, so print out warning. */
+      log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
     }
   }
 
@@ -1256,7 +1253,6 @@ u32 get_tracking_channel_meas(u8 i,
     double carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
     if ((TIME_FINE <= get_time_quality()) && (0.0 == carrier_phase_offset) &&
-        (0 != (flags & TRACKER_FLAG_PLL_USE)) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
