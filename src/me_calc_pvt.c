@@ -490,8 +490,8 @@ static void me_calc_pvt_thread(void *arg) {
       set_time_fine(epoch_tc, current_fix.time);
 
       log_info("first fix clk_offset %.3e clk_drift %.3e",
-         current_fix.clock_offset,
-         current_fix.clock_bias);
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       /* store this fix as a guess so the satellite elevations and iono/tropo
        * corrections can be computed for the first actual fix */
