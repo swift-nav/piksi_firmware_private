@@ -1611,6 +1611,18 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
 
   if (half_bit_aligned && (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
       (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED))) {
+    me_gnss_signal_t mesid = {.code = CODE_GLO_L2CA,
+                              .sat = tracker_channel->mesid.sat};
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid);
+    if (CODE_GLO_L1CA == tracker_channel->mesid.code &&
+        TOW_UNKNOWN == tracker_channel->TOW_ms && NULL != trk_ch &&
+        TOW_UNKNOWN != trk_ch->TOW_ms) {
+      /* No need to update ToW if GLO L1 still does not have ToW decoded while
+       * GLO L2 has it. This needed to avoid overwriting ToW data when GLO L1
+       * is back to track after signal blockage, let GLO L2 continue update
+       * the ToW until GLO L1 ToW decoded */
+      return;
+    }
     update_tow_in_sid_db_glo(tracker_channel, sample_time_tk);
   }
 }
