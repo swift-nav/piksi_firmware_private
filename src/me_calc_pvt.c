@@ -300,7 +300,7 @@ static void me_calc_pvt_thread(void *arg) {
       epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
       epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
       epoch_tc = FCN_NCO_RESET_COUNT *
-                 ((epoch_tc + (FCN_NCO_RESET_COUNT/2))/FCN_NCO_RESET_COUNT);
+                 ((epoch_tc + (FCN_NCO_RESET_COUNT / 2)) / FCN_NCO_RESET_COUNT);
     }
 
     double delta_tc = -((double)current_tc - (double)epoch_tc);
@@ -524,9 +524,9 @@ static void me_calc_pvt_thread(void *arg) {
 
         /* The pseudorange correction has opposite sign because Doppler
          * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -= (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
         nm->raw_pseudorange -=
-            current_fix.clock_offset * GPS_C;
+            (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
+        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
         /* Carrier Phase corrected by clock offset */
         nm->raw_carrier_phase += (current_fix.clock_offset) * doppler;
         nm->raw_carrier_phase +=
@@ -560,7 +560,8 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
     } else {
-      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT", (current_fix.clock_offset));
+      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
+               (current_fix.clock_offset));
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
