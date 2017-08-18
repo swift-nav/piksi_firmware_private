@@ -198,6 +198,10 @@ typedef struct bit_sync_input_t {
 
 /** \} */
 
+/** The maximum integration time in PLL mode [ms]. Comes from settings. */
+extern u16 max_pll_integration_time_ms;
+
+
 void tracker_interface_register(tracker_interface_list_element_t *element);
 
 /* Tracker instance API functions. Must be called from within an

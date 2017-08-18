@@ -255,264 +255,261 @@ static const tp_profile_entry_t gps_profiles[] = {
 /*
   These are the short names of the numbers & parameters listed
   in the same order below.
-  { { pll_bw,     fll_bw,        dll_bw,     controller,
-            tracking mode,                      cn0_est },
-      time,   cn0_low_thr, cn0_high_thr,        acc_thr,              ld_params,
-      next,       cn0_low,     cn0_high,            dyn,                   lock,
-     flags }
+  { { pll_bw, fll_bw, dll_bw, controller, tracking mode, cn0_est },
+    ld_params,
+    time,  cn0_low_thr,   cn0_high_thr,   acc_thr,   cn0_dyn,
+    next,  cn0_low_prof,  cn0_high_prof,  dyn_prof,  lock_prof,
+    flags }
 */
 
   /* initial profiles */
   [IDX_NONAME_0] =
-  { {   40,             3,           10,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
-        50,             0,            0,              0,                      0,
-      IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-        0 },
+  { { 40,  3, 10, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_1MS,
+          50,           0,           0,           0,           0,
+    IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    0 },
 
   [IDX_NONAME_1] =
-  { {   40,             1,           10,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
-        50,             0,            0,              0,                      0,
-      IDX_NONE,  IDX_NONE,    IDX_NONE,       IDX_NONE,                IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK },
+  { { 40,  1, 10, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_1MS,
+          50,           0,           0,           0,           0,
+    IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_WAIT_BSYNC | TP_WAIT_PLOCK },
 
   [IDX_NONAME_2] =
-  { {   40,             0,           10,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
-        60,             0,            0,              0,                      0,
-      IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-        0 },
+  { { 40,  0, 10, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_1MS,
+          60,           0,           0,           0,           0,
+    IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+      0 },
 
   [IDX_NONAME_3] =
-  { {   35,             0,           10,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
-        60,             0,            0,              0,                      0,
-       IDX_NONE, IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-        0 },
+  { { 35,  0, 10, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_1MS,
+          60,         0,           0,           0,           0,
+    IDX_NONE,  IDX_NONE,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    0 },
 
   [IDX_DLL_RECOVERY2] =
-  { {   30,             0,           10,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_1MS,
-        60,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 30,  0, 10, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_1MS,
+          60,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_23] =
-  { {   25,             0,           10,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-        60,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 25,  0, 10, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+          60,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_24] =
-  { {   20,             0,            8,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-        60,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 20,  0,  8, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+          60,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_DLL_RECOVERY] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  5, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+         300,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_26] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  5, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+         300,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_27] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  5, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+       300,            30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_28] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  5, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+         300,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_29] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  5, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+       300,            30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_30] =
-  { {   18,             0,            4,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  4, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+       300,            30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_31] =
-  { {   18,             0,            3,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  3, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+       300,            30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   [IDX_NONAME_32] =
-  { {   18,             0,            2,   TP_CTRL_PLL3,
-        TP_TM_GPS_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,            30,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 },
+  { { 18,  0,  2, TP_CTRL_PLL3, TP_TM_GPS_INITIAL, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+         300,          30,           0,           0,           0,
+    IDX_NONE,    IDX_SENS,    IDX_NONE,    IDX_NONE,    IDX_NONE,
+    TP_LOW_CN0 },
 
   /* Very high range CN0 profile. Suitable for pedestrian use case.
      Tolerates large jerk values. */
   [IDX_VERY_HIGH_CN0] =
-  { {   20,              0,           1,   TP_CTRL_PLL3,
-             TP_TM_GPS_1MS,     TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
-       300,             43,           0,            1.5,                      0,
-      IDX_VERY_HIGH_CN0, IDX_HIGH_CN0, IDX_NONE, IDX_HIGH_CN0_DYN,     IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT },
+  { { 20,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_1MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_1MS,
+                  300,           43,        0,              1.5,        0,
+    IDX_VERY_HIGH_CN0, IDX_HIGH_CN0, IDX_NONE, IDX_HIGH_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_USE_NEXT },
 
   /* high range CN0 profile */
   [IDX_HIGH_CN0] =
-  { {   20,             0,            1,   TP_CTRL_PLL3,
-            TP_TM_GPS_5MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
-        50,            38,           46,             2.,                      0,
-      IDX_HIGH_CN0, IDX_MID_CN0, IDX_VERY_HIGH_CN0, IDX_HIGH_CN0_DYN,  IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
+  { { 20,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+              50,          38,                46,               2.,         0,
+    IDX_HIGH_CN0, IDX_MID_CN0, IDX_VERY_HIGH_CN0, IDX_HIGH_CN0_DYN,  IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
 
   /* middle range CN0 profile */
   [IDX_MID_CN0] =
-  { {   18,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,        TRACK_CN0_EST_PRIMARY }, TP_LD_PARAMS_PLL_5MS,
-        50,            33,           41,            1.5,                      0,
-      IDX_MID_CN0, IDX_LOW_CN0_INI, IDX_HIGH_CN0, IDX_LOW_CN0_DYN,     IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
+  { { 18,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+             50,              33,           41,             1.5,        0,
+    IDX_MID_CN0, IDX_LOW_CN0_INI, IDX_HIGH_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
 
   /* low range CN0 profiles */
   [IDX_LOW_CN0_INI] =
-  { {   15,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
+  { { 15,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,        25,           36,             1.5,        0,
+    IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_11] =
-  { {   14,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
+  { { 14,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,        25,           36,             1.5,        0,
+    IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_12] =
-  { {   12,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
+  { { 12,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,        25,           36,             1.5,        0,
+    IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_13] =
-  { {   10,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
+  { { 10,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,        25,           36,             1.5,        0,
+    IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_14] =
-  { {   10,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_20MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
+  { { 10,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_20MS,  TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,        25,           36,             1.5,        0,
+    IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_15] =
-  { {    8,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_20MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
+  { {  8,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_20MS,  TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,        25,           36,             1.5,        0,
+    IDX_NONE,  IDX_SENS,  IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_HIGH_DYN },
 
   [IDX_LOW_CN0_FIN] =
-  { {    7,             0,           .5,   TP_CTRL_PLL3,
-           TP_TM_GPS_20MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_5MS,
-        50,            25,           36,            1.5,                      0,
-      IDX_LOW_CN0_FIN, IDX_SENS, IDX_MID_CN0, IDX_LOW_CN0_DYN,         IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT | TP_HIGH_DYN },
+  { {  7,  0, 0.5, TP_CTRL_PLL3, TP_TM_GPS_20MS, TRACK_CN0_EST_PRIMARY },
+    TP_LD_PARAMS_PLL_5MS,
+                 50,       25,         36,              1.5,        0,
+    IDX_LOW_CN0_FIN, IDX_SENS, IDX_MID_CN0, IDX_LOW_CN0_DYN, IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT | TP_HIGH_DYN },
 
   /* sensitivity profiles */
   [IDX_SENS] =
-  { {    0,             3,            1,   TP_CTRL_FLL2,
-           TP_TM_GPS_20MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_FLL_5MS,
-      4000,             0,          32.,            1.5,                    32.,
-      IDX_SENS,  IDX_NONE, IDX_TRAN_CN0,   IDX_TRAN_DYN,               IDX_NONE,
-      TP_HIGH_CN0_WAIT_PLOCK_N0_DYN | TP_HIGH_DYN_WAIT_PLOCK_CN0 |
-      TP_WAIT_CN0 | TP_USE_NEXT },
+  { {  0,  3,  1, TP_CTRL_FLL2, TP_TM_GPS_20MS, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_FLL_5MS,
+        4000,         0,          32.,            1.5,      32.,
+    IDX_SENS,  IDX_NONE, IDX_TRAN_CN0,   IDX_TRAN_DYN, IDX_NONE,
+    TP_HIGH_CN0_WAIT_PLOCK_N0_DYN | TP_HIGH_DYN_WAIT_PLOCK_CN0 | TP_WAIT_CN0 | TP_USE_NEXT },
 
   /* sensitivity to low range CN0 transitional profiles  */
   [IDX_TRAN_CN0] =
-  { {   20,             1,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
-        50,           26.,            0,              0,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 | TP_WAIT_PLOCK },
+  { { 20,  1,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,       26.,         0,         0,         0,
+    IDX_NONE,  IDX_SENS,  IDX_NONE,  IDX_NONE,  IDX_NONE,
+    TP_LOW_CN0 | TP_WAIT_PLOCK },
 
   [IDX_NONAME_19] =
-  { {   20,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
-        50,           26.,            0,            1.5,                      0,
-      IDX_NONE,  IDX_SENS,     IDX_NONE, IDX_LOW_CN0_DYN,              IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_DYN },
+  { { 20,  0,  1,  TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+          50,       26.,         0,             1.5,         0,
+    IDX_NONE,  IDX_SENS,  IDX_NONE, IDX_LOW_CN0_DYN,  IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_DYN },
 
   [IDX_NONAME_20] =
-  { {   18,             0,            1,   TP_CTRL_PLL3,
-           TP_TM_GPS_10MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
-        50,           26.,            0,            1.5,                      0,
-      IDX_DLL_RECOVERY, IDX_SENS, IDX_NONE, IDX_LOW_CN0_DYN,           IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
+  { {  18,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_10MS, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+                  50,      26.,        0,             1.5,         0,
+    IDX_DLL_RECOVERY, IDX_SENS, IDX_NONE, IDX_LOW_CN0_DYN,  IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_DYN | TP_USE_NEXT },
 
   /* sensitivity to dynamics transitional profiles */
   [IDX_TRAN_DYN] =
-  { {   30,             3,            1,   TP_CTRL_PLL3,
-            TP_TM_GPS_5MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_5MS,
-        50,           30.,            0,              0,                      0,
-    IDX_NONE,    IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 | TP_WAIT_PLOCK },
+  { {  30,  3,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+        50,         30.,         0,         0,         0,
+    IDX_NONE,  IDX_SENS,  IDX_NONE,  IDX_NONE,  IDX_NONE,
+    TP_LOW_CN0 | TP_WAIT_PLOCK },
 
   [IDX_NONAME_22] =
-  { {   30,             1,            1,   TP_CTRL_PLL3,
-            TP_TM_GPS_5MS,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
-        50,           30.,            0,              0,                      0,
-    IDX_LOW_CN0_DYN, IDX_SENS, IDX_NONE,       IDX_NONE,               IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT },
+  { {  30,  1,  1, TP_CTRL_PLL3, TP_TM_GPS_5MS,  TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+                 50,      30.,         0,        0,         0,
+    IDX_LOW_CN0_DYN, IDX_SENS,  IDX_NONE, IDX_NONE,  IDX_NONE,
+    TP_LOW_CN0 | TP_USE_NEXT },
 
   /* dynamics profile for low CN0 */
   [IDX_LOW_CN0_DYN] =
-  { {   30,             0,            1,   TP_CTRL_PLL3,
-            TP_TM_GPS_5MS,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
-        50,           30.,          41.,            1.0,                      0,
-   IDX_LOW_CN0_DYN, IDX_SENS, IDX_HIGH_CN0_DYN, IDX_DLL_RECOVERY2,     IDX_NONE,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_LOW_DYN | TP_USE_NEXT },
+  { {  30,  0,  1,  TP_CTRL_PLL3, TP_TM_GPS_5MS,  TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+                 50,     30.,               41.,               1.0,         0,
+    IDX_LOW_CN0_DYN, IDX_SENS, IDX_HIGH_CN0_DYN, IDX_DLL_RECOVERY2,  IDX_NONE,
+    TP_LOW_CN0 | TP_HIGH_CN0 | TP_LOW_DYN | TP_USE_NEXT },
 
   /* dynamics profile for high CN0 */
   [IDX_HIGH_CN0_DYN] =
-  { {   30,             0,            1,   TP_CTRL_PLL3,
-            TP_TM_GPS_1MS,      TRACK_CN0_EST_SECONDARY }, TP_LD_PARAMS_PLL_5MS,
-        50,            30,            0,              1,                      0,
-   IDX_HIGH_CN0_DYN, IDX_SENS, IDX_NONE, IDX_DLL_RECOVERY2,            IDX_NONE,
-      TP_LOW_CN0 | TP_LOW_DYN | TP_USE_NEXT }
+  { {  30,  0,  1, TP_CTRL_PLL3, TP_TM_GPS_1MS, TRACK_CN0_EST_SECONDARY },
+    TP_LD_PARAMS_PLL_5MS,
+                  50,       30,        0,                 1,        0,
+    IDX_HIGH_CN0_DYN, IDX_SENS, IDX_NONE, IDX_DLL_RECOVERY2, IDX_NONE,
+    TP_LOW_CN0 | TP_LOW_DYN | TP_USE_NEXT }
 };
 
-/**
- * Helper method for get tracking profile parameters.
- *
- * \param[in] sid SV identifier
- * \return tracking parameters structures array pointer
- */
-static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
+/** Helper method to get tracking profiles array.
+ * \param [in] mesid ME signal ID
+ * \return Tracking profiles array pointer
+  */
+static const tp_profile_entry_t* sid_to_profiles(const gnss_signal_t sid)
 {
   const tp_profile_entry_t *result = NULL;
 
@@ -528,9 +525,6 @@ static const tp_profile_entry_t* tp_profiles_from_id(gnss_signal_t sid)
     break;
 
   case CONSTELLATION_GLO:
-    assert(!"Unsupported constellation");
-    break;
-
   case CONSTELLATION_INVALID:
   case CONSTELLATION_COUNT:
   default:
@@ -812,6 +806,41 @@ static void check_for_cn0_estimator_change(gnss_signal_t sid,
   }
 }
 
+
+/** Integration time is not explicitly available in gnss_track_profiles.
+*  This API infers the integration time from the profiles' array index.
+ *  \param mesid ME signal ID
+ *  \param state Profiles array.
+ *  \param index Profiles array index.
+ *  \return Integration time of the profile at the given index [ms]
+ */
+static u8 profile_integration_time(const gnss_signal_t sid,
+                                   const tp_profile_t *state,
+                                   const profile_indices_t index)
+{
+  static u8 int_times[] = {
+    [TP_TM_GPS_INITIAL] = 1,
+    [TP_TM_GPS_1MS]     = 1,
+    [TP_TM_GPS_5MS]     = 5,
+    [TP_TM_GPS_10MS]    = 10,
+    [TP_TM_GPS_20MS]    = 20
+  };
+  constellation_t c = code_to_constellation(sid.code);
+  tp_tm_e track_mode;
+  if (CONSTELLATION_GPS == c) {
+    track_mode = state->profiles[index].profile.mode;
+  } else {
+    assert(!"Unsupported constellation");
+  }
+  assert(track_mode < ARRAY_SIZE(int_times));
+  u8 int_time = int_times[track_mode];
+  assert(int_time != 0);
+  assert(int_time <= 20);
+
+  return int_time;
+}
+
+
 /**
  * Internal method for profile switch request.
  *
@@ -836,6 +865,12 @@ static bool profile_switch_requested(gnss_signal_t sid,
 
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gps_profiles));
+
+  u8 int_time = profile_integration_time(sid, state, index);
+  float pll_bw = state->profiles[index].profile.pll_bw;
+  if ((pll_bw > 0) && (int_time > max_pll_integration_time_ms)) {
+    return false; /* setting prevents us doing longer integration time */
+  }
 
   state->lock_time_ms = state->profiles[index].lock_time_ms;
   state->profile_update = true;
@@ -1006,7 +1041,7 @@ tp_result_e tp_profile_init(gnss_signal_t      sid,
     profile->filt_accel = 0;
 
     profile->cur_index = 0;
-    profile->profiles = tp_profiles_from_id(sid);
+    profile->profiles = sid_to_profiles(sid);
     profile->bsync_sticky = 0;
 
     profile->cn0_est = profile->profiles[profile->cur_index].profile.cn0_est;
