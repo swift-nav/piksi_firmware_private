@@ -295,7 +295,7 @@ u64 timing_getms(void) {
  */
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t *glo_t) {
-  gps_time_t gps_time;
+  gps_time_t gps_time = GPS_TIME_UNKNOWN;
   utc_params_t utc_params;
   ndb_op_code_t ndb_op_code;
 
@@ -306,7 +306,6 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
   } else {
     log_debug_mesid(mesid,
                     "GLO->GPS time conversion w/o up-to-date UTC params");
-    gps_time = glo2gps(glo_t, /* utc_params = */ NULL);
   }
   return gps_time;
 }
