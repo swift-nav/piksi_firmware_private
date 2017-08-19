@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v3.8.8 register map */
+/* SwiftNAP v3.8.9 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -21,13 +21,13 @@
 #define NAP_NUM_TRACKING_CHANNELS 40
 
 // Number of GPS L1 tracking channels
-#define NAP_NUM_GPS_L1_CHANNELS 16
+#define NAP_NUM_GPS_L1_CHANNELS 13
 // Number of GPS L2 tracking channels
-#define NAP_NUM_GPS_L2_CHANNELS 8
+#define NAP_NUM_GPS_L2_CHANNELS 9
 // Number of Glonass G1 tracking channels
-#define NAP_NUM_GLO_G1_CHANNELS 8
+#define NAP_NUM_GLO_G1_CHANNELS 9
 // Number of Glonass G2 tracking channels
-#define NAP_NUM_GLO_G2_CHANNELS 8
+#define NAP_NUM_GLO_G2_CHANNELS 9
 // Number of Beidou B1 tracking channels
 #define NAP_NUM_BDS_B1_CHANNELS 0
 // Number of Beidou B2 tracking channels
