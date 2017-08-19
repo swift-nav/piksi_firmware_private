@@ -747,6 +747,14 @@ static void starling_thread(void *arg) {
                n_ready * sizeof(ephemeris_t));
     }
 
+    if (gps_time_valid(&obs_time) &&
+        gpsdifftime(&obs_time, &rover_channel_epoch->obs_time) > 0) {
+      /* When we change the solution rate down, we sometimes can round the
+       * time to an epoch earlier than the previous one processed, in that
+       * case we want to ignore any epochs with an earlier timestamp */
+      continue;
+    }
+
     obs_time = rover_channel_epoch->obs_time;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
