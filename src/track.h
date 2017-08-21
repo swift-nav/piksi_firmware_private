@@ -231,7 +231,6 @@ typedef struct {
   float k1; /**< LPF coefficient */
   float k2; /**< I scale factor */
   u16 lp;   /**< Pessimistic count threshold */
-  u16 lo;   /**< Optimistic count threshold */
 } tp_lock_detect_params_t;
 
 /**
@@ -274,7 +273,10 @@ typedef struct {
   s16 plock_delay_ms; /**< Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
 
   tp_loop_params_t loop_params; /**< Tracking loop parameters */
-  tp_lock_detect_params_t ld_params;
+  /** Phase lock detector parameters */
+  tp_lock_detect_params_t ld_phase_params;
+  /** Freq lock detector parameters */
+  tp_lock_detect_params_t ld_freq_params;
   tp_cn0_params_t cn0_params;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
@@ -624,7 +626,8 @@ typedef struct {
   tp_corr_state_t corrs;       /**< Correlations */
   track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
   alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t lock_detect;   /**< Lock detector state. */
+  lock_detect_t ld_phase;      /**< Phase lock detector state. */
+  lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   u16 tracking_mode : 3;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current

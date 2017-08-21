@@ -33,7 +33,7 @@
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
 /** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
-#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.1
+#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.13
 
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
@@ -105,18 +105,19 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
 void tp_tracker_update_lock_detect_parameters(
     tracker_channel_t *tracker_channel, bool init) {
   tp_profile_t *profile = &tracker_channel->profile;
-  const tp_lock_detect_params_t *ld = &profile->ld_params;
-  tp_ctrl_e ctrl_cur = tracker_channel->profile.cur.ctrl;
-  tp_ctrl_e ctrl_next = tracker_channel->profile.next.ctrl;
-  /* Lock detector integration time */
-  bool mode_switch = tp_is_fll_ctrl(ctrl_cur) != tp_is_fll_ctrl(ctrl_next);
+  const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
+  const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
 
-  if (init || mode_switch) {
+  if (init) {
     lock_detect_init(
-        &tracker_channel->lock_detect, ld->k1, ld->k2, ld->lp, ld->lo);
+        &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_init(
+        &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   } else {
     lock_detect_reinit(
-        &tracker_channel->lock_detect, ld->k1, ld->k2, ld->lp, ld->lo);
+        &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_reinit(
+        &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   }
 }
 
@@ -184,19 +185,13 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
   }
   tp_tracker_update_lock_detect_parameters(tracker_channel, init);
 
-  if (tp_tl_is_fll(&tracker_channel->tl_state)) {
-    tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
-    tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
-  } else if (tp_tl_is_pll(&tracker_channel->tl_state)) {
+  tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
+  tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
+  if (profile->loop_params.carr_bw > 0) {
     tracker_channel->flags |= TRACKER_FLAG_PLL_USE;
-    tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
-    if (profile->loop_params.fll_bw > 0.f) {
-      tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
-    }
-  } else {
-    tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
-    tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
-    assert(!"Unexpected control mode");
+  }
+  if (profile->loop_params.fll_bw > 0) {
+    tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
   }
 
   if (init || cn0_ms != prev_cn0_ms) {
@@ -332,7 +327,8 @@ void tp_tracker_disable(tracker_channel_t *tracker_channel) {
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel) {
   double code_phase_chips = tracker_channel->code_phase_prompt;
 
-  bool plock = tracker_channel->lock_detect.outp;
+  bool plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
   u32 result_ms = 0;
   if (tracker_channel->has_next_params) {
     tp_profile_update_config(tracker_channel);
@@ -490,7 +486,8 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
   s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
 
   if (0 != err_hz) {
-    if (tracker_channel->lock_detect.outp) {
+    if ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+        (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK))) {
       log_warn_mesid(tracker_channel->mesid,
                      "False phase lock detected: %" PRId32 " Hz",
                      err_hz);
@@ -619,7 +616,8 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
 void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
-    bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
+    bool sensitivity_mode =
+        (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
     u8 update_count_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
     /* Bit sync advance / message decoding */
@@ -666,8 +664,9 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   }
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed &&
-      tracker_channel->lock_detect.outp &&
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker_channel)) {
     tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
     log_debug_mesid(tracker_channel->mesid,
@@ -711,6 +710,44 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   }
 }
 
+static void update_ld_phase(tracker_channel_t *tracker_channel) {
+  bool last_outp = tracker_channel->ld_phase.outp;
+
+  lock_detect_update(&tracker_channel->ld_phase,
+                     tracker_channel->corrs.corr_ld.I,
+                     tracker_channel->corrs.corr_ld.Q,
+                     tp_get_ld_ms(tracker_channel->tracking_mode));
+
+  bool outp = tracker_channel->ld_phase.outp;
+
+  if (outp) {
+    tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
+    tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
+  } else if (last_outp && (TP_TM_INITIAL != tracker_channel->tracking_mode)) {
+    log_info_mesid(tracker_channel->mesid, "PLL stress");
+  }
+}
+
+static void update_ld_freq(tracker_channel_t *tracker_channel) {
+  /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
+  tl_rates_t rates = {0};
+  tp_tl_get_rates(&tracker_channel->tl_state, &rates);
+  float freq_err = rates.code_freq -
+        rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
+
+  lock_detect_update(&tracker_channel->ld_freq,
+                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
+                     freq_err,
+                     tp_get_ld_ms(tracker_channel->tracking_mode));
+
+  bool outp = tracker_channel->ld_freq.outp;
+
+  if (outp) {
+    tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
+    tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
+  }
+}
+
 /**
  * Updates PLL and FLL lock registers.
  *
@@ -724,59 +761,39 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  bool fll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_FLL_USE));
-  bool pll_loop = (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE));
-
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
-    /* Update PLL/FLL lock detector */
-    bool last_outp = tracker_channel->lock_detect.outp;
-    bool outp = false;
+    bool outp_prev =
+        tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
+
+    bool outp_phase_prev = tracker_channel->ld_phase.outp;
+    bool outp_freq_prev = tracker_channel->ld_freq.outp;
 
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
 
-    if (pll_loop) {
-      lock_detect_update(&tracker_channel->lock_detect,
-                         tracker_channel->corrs.corr_ld.I,
-                         tracker_channel->corrs.corr_ld.Q,
-                         tp_get_ld_ms(tracker_channel->tracking_mode));
-
-      outp = tracker_channel->lock_detect.outp;
-
-      if (outp) {
-        tracker_channel->flags |= TRACKER_FLAG_HAS_PLOCK;
-        tracker_channel->flags |= TRACKER_FLAG_HAD_PLOCK;
-        tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
-      }
-    } else if (fll_loop) {
-      /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
-
-      float dll_err = tp_tl_get_dll_error(&tracker_channel->tl_state);
-
-      lock_detect_update(&tracker_channel->lock_detect,
-                         TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                         dll_err,
-                         tp_get_ld_ms(tracker_channel->tracking_mode));
-
-      outp = tracker_channel->lock_detect.outp;
-
-      if (outp) {
-        tracker_channel->flags |= TRACKER_FLAG_HAS_FLOCK;
-        tracker_channel->flags |= TRACKER_FLAG_HAD_FLOCK;
-      }
+    if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
+      update_ld_phase(tracker_channel);
     }
 
-    if (outp != last_outp) {
+    update_ld_freq(tracker_channel);
+
+    bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
+    if (outp != outp_prev) {
       tracker_channel->ld_pess_change_count = tracker_channel->update_count;
     }
+    if (outp) {
+      tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
+    }
 
-    if (last_outp && !outp &&
-        (tracker_channel->tracking_mode != TP_TM_INITIAL)) {
-      if (fll_loop) {
-        log_info_mesid(tracker_channel->mesid, "FLL stress");
-      } else if (pll_loop) {
-        log_info_mesid(tracker_channel->mesid, "PLL stress");
-      }
+    u64 now_ms = timing_getms();
+    u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+    if (!outp_phase_prev && tracker_channel->ld_phase.outp) {
+      log_debug_mesid(tracker_channel->mesid, "Phase lock after %" PRIu32 "ms",
+                     time_in_track_ms);
+    }
+    if (!outp_freq_prev && tracker_channel->ld_freq.outp) {
+      log_debug_mesid(tracker_channel->mesid, "Freq lock after %" PRIu32 "ms",
+                     time_in_track_ms);
     }
   }
   /*
@@ -785,7 +802,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
    * is done always to prevent incorrect handling of partial integration
    * intervals.
    */
-  if (!pll_loop || !tracker_channel->lock_detect.outp) {
+  if (0 == (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
     tracker_ambiguity_unknown(tracker_channel);
   }
 }
@@ -880,7 +897,8 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     } else {
       report.cn0 = tracker_channel->cn0;
     }
-    report.plock = tracker_channel->lock_detect.outp;
+    report.plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                    (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
     report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
     report.acceleration = rates.acceleration;
@@ -957,8 +975,9 @@ void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
   /* Attempt alias detection if we have pessimistic phase lock detect, OR
      (optimistic phase lock detect AND are in second-stage tracking) */
   if (0 != (cycle_flags & TP_CFLAG_ALIAS_SECOND)) {
-    if (tracker_channel->use_alias_detection &&
-        tracker_channel->lock_detect.outo) {
+    bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                   (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+    if (tracker_channel->use_alias_detection && inlock) {
       process_alias_error(tracker_channel);
     } else {
       /* If second stage is not enabled, make the first one */
