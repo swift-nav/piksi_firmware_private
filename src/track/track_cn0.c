@@ -19,9 +19,6 @@
 #include <platform_cn0.h>
 #include <settings.h>
 
-/** Configuration section name */
-#define TRACK_CN0_EST_SETTING_SECTION "cn0_est"
-
 /** C/N0 estimator IIR averaging coefficient:
  * See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22
  * See http://dsp.stackexchange.com/questions/378/
@@ -132,28 +129,6 @@ static void recompute_settings(void) {
   }
 }
 
-/**
- * Updates C/N0 setting.
- *
- * The method updates C/N0 setting and recomputes active estimator parameters
- * if required.
- *
- * \param[in] s   Setting definition
- * \param[in] val Value literal
- *
- * \retval true if the setting has been changed.
- */
-static bool settings_notify_proxy(struct setting *s, const char *val) {
-  bool res = settings_default_notify(s, val);
-
-  if (res) {
-    cn0_config.update_count++;
-    recompute_settings();
-  }
-
-  return res;
-}
-
 /** Pre-compute C/N0 estimator and filter parameters. The parameters are
  * computed using equivalent of cn0_est_compute_params() function for
  * integration periods and cut-off frequency defined in this file.
@@ -173,40 +148,6 @@ void track_cn0_params_init(void) {
   }
   cn0_config.update_count = 1;
   recompute_settings();
-
-  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION,
-                 "alpha",
-                 cn0_config.alpha,
-                 TYPE_FLOAT,
-                 settings_notify_proxy);
-  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION,
-                 "nbw",
-                 cn0_config.nbw,
-                 TYPE_FLOAT,
-                 settings_notify_proxy);
-  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION,
-                 "scale",
-                 cn0_config.scale,
-                 TYPE_FLOAT,
-                 settings_notify_proxy);
-  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION,
-                 "cn0_shift",
-                 cn0_config.cn0_shift,
-                 TYPE_FLOAT,
-                 settings_notify_proxy);
-  SETTING_NOTIFY(TRACK_CN0_EST_SETTING_SECTION,
-                 "cutoff",
-                 cn0_config.cutoff,
-                 TYPE_FLOAT,
-                 settings_notify_proxy);
-  SETTING(TRACK_CN0_EST_SETTING_SECTION,
-          "pri2sec_threshold",
-          cn0_config.pri2sec_threshold,
-          TYPE_FLOAT);
-  SETTING(TRACK_CN0_EST_SETTING_SECTION,
-          "sec2pri_threshold",
-          cn0_config.sec2pri_threshold,
-          TYPE_FLOAT);
 }
 
 /**
