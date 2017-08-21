@@ -201,6 +201,12 @@ typedef struct {
   decode_sync_flags_t sync_flags;
 } nav_data_sync_t;
 
+struct profile_vars {
+  u8 index;
+  float pll_bw;
+  float fll_bw;
+};
+
 /**
  * Tracking profile controller data.
  *
@@ -210,23 +216,22 @@ typedef struct {
   /*
    * Fields are ordered from larger to smaller for minimal memory footprint.
    */
+  float pll_bw;
+  float fll_bw;
 
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
-  float filt_accel; /**< SV acceleration value for decision logic [g] */
 
   /* Packed fields: 24 bits */
-  u32 olock : 1;                  /**< PLL optimistic lock flag */
-  u32 plock : 1;                  /**< PLL pessimistic lock flag */
+  u32 plock : 1;                  /**< Pessimistic lock flag */
   u32 bsync : 1;                  /**< Bit sync flag */
   u32 bsync_sticky : 1;           /**< Bit sync flag */
   u32 profile_update : 1;         /**< Flag if the profile update is required */
+  u32 dll_init : 1;               /**< DLL init required */
   u32 cn0_est : 2;                /**< C/N0 estimator type */
   u16 lock_time_ms;               /**< Profile lock count down timer */
-  u8 cur_index;                   /**< Active profile index [0-37] */
-  u8 next_index;                  /**< Next profile index [0-37] */
-  u16 acceleration_ends_after_ms; /**< There is an acceleration if this
-                                   *   parameter is non-zero [ms] */
+  struct profile_vars cur;        /**< Current profile variables */
+  struct profile_vars next;       /**< Next profile variables */
   u16 print_time;                 /**< Time till next debug print [ms] */
   u32 time_snapshot_ms;           /**< Time snapshot [ms] */
   s16 bs_delay_ms;    /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
@@ -769,6 +774,7 @@ typedef struct {
   bool use_alias_detection;               /**< Alias detection flag */
   tp_cn0_params_t cn0_params;
   bool sensitivity;
+  bool dll_init;
 } tp_config_t;
 
 /**
@@ -801,18 +807,16 @@ typedef enum {
 extern u16 max_pll_integration_time_ms;
 
 tp_result_e tp_init(void);
-tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
-                            tp_profile_t *profile,
-                            const tp_report_t *data,
-                            tp_config_t *config);
-tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
+void tp_profile_init(tracker_channel_t *tracker_channel,
+                     const tp_report_t *data,
+                     tp_config_t *config);
+void tp_profile_get_config(const me_gnss_signal_t mesid,
                                   tp_profile_t *profile,
                                   tp_config_t *config,
                                   bool commit);
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
-bool tp_profile_has_new_profile(const me_gnss_signal_t mesid,
-                                tp_profile_t *profile);
+bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel);
 u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
                                       const tp_profile_t *profile);
 void tp_profile_report_data(tracker_channel_t *tracker_channel,
