@@ -677,6 +677,15 @@ static void starling_thread(void *arg) {
       continue;
     }
 
+    if (gps_time_valid(&obs_time) &&
+        gpsdifftime(&obs_time, &rover_channel_epoch->obs_time) >= 0.0) {
+      /* When we change the solution rate down, we sometimes can round the
+       * time to an epoch earlier than the previous one processed, in that
+       * case we want to ignore any epochs with an earlier timestamp */
+      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      continue;
+    }
+
     // This would be good to be derived dynamically, but we can use the setting
     // as this preserves existing behavior
     starling_frequency = soln_freq;
