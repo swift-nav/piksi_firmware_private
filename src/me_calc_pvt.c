@@ -307,7 +307,7 @@ static void me_calc_pvt_thread(void *arg) {
        * receiver time and GPS time and hence provide the pseudorange
        * calculation with the local GPS time of reception. */
       gps_time_t rec_time = napcount2gpstime(epoch_tc);
-      epoch_time = gps_time_round_to_epoch(rec_time, soln_freq_iter);
+      epoch_time = gps_time_round_to_epoch(&rec_time, soln_freq_iter);
       epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
       epoch_tc = FCN_NCO_RESET_COUNT *
                  ((epoch_tc + (FCN_NCO_RESET_COUNT / 2)) / FCN_NCO_RESET_COUNT);
