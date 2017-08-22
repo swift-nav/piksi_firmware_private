@@ -263,6 +263,21 @@ void tracking_send_detailed_state(void) {
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
  */
+void tracking_channels_read(u64 channels_mask) {
+  for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
+    if (channels_mask & 1) {
+      /* Read correlations. */
+      tracker_channel_t *tracker_channel = tracker_channel_get(channel);
+      tracker_correlations_read(tracker_channel);
+    }
+    channels_mask >>= 1;
+  }
+}
+
+/** Handles background tasks for tracking channels.
+ * \param channels_mask   Bitfield indicating the tracking channels for which
+ *                        new data is available.
+ */
 void tracking_channels_update(u64 channels_mask) {
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_channel_t *tracker_channel = tracker_channel_get(channel);

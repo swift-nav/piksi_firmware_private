@@ -48,20 +48,34 @@ void tracker_interface_register(tracker_interface_list_element_t *element) {
 
 /** Read correlations from the NAP for a tracker channel.
  *
- * \param nap_channel     NAP tracking channel.
+ * \param[in]     tracker_channel Tracker channel data
+ */
+void tracker_correlations_read(tracker_channel_t *tracker_channel) {
+  /* Read NAP CORR register */
+  nap_track_read_results(&tracker_channel->nap_results,
+                         tracker_channel->nap_channel);
+}
+
+/** Read correlations from the NAP for a tracker channel.
+ *
+ * \param[in]     tracker_channel Tracker channel data
  * \param cs              Output array of correlations.
  * \param sample_count    Output sample count.
  * \param code_phase      Output code phase (chips).
  * \param carrier_phase   Output carrier phase (cycles).
  */
-void tracker_correlations_read(u8 nap_channel,
-                               corr_t *cs,
-                               u32 *sample_count,
-                               double *code_phase,
-                               double *carrier_phase) {
-  /* Read NAP CORR register */
-  nap_track_read_results(
-      nap_channel, sample_count, cs, code_phase, carrier_phase);
+void tracker_correlations_parse(tracker_channel_t *tracker_channel,
+                                corr_t *cs,
+                                u32 *sample_count,
+                                double *code_phase,
+                                double *carrier_phase) {
+  /* Parse NAP CORR data */
+  nap_track_parse_results(&tracker_channel->nap_results,
+                          tracker_channel->nap_channel,
+                          sample_count,
+                          cs,
+                          code_phase,
+                          carrier_phase);
 }
 
 /** Write the NAP update register for a tracker channel.

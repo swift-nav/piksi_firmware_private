@@ -589,6 +589,8 @@ typedef struct {
   u16 has_next_params : 1;     /**< Flag if stage transition is in
                                 *   progress */
 
+  swiftnap_tracking_t nap_results;
+
   /* Constellation specific data */
   union {
     gps_l1ca_tracker_data_t gps_l1ca;
@@ -904,6 +906,7 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
                             u32 n_samples);
 
 /* Update interface */
+void tracking_channels_read(u64 channels_mask);
 void tracking_channels_update(u64 channels_mask);
 void tracking_channels_missed_update_error(u64 channels_mask);
 
@@ -998,11 +1001,12 @@ void tracker_interface_register(tracker_interface_list_element_t *element);
 
 /* Tracker instance API functions. Must be called from within an
  * interface function. */
-void tracker_correlations_read(u8 nap_channel,
-                               corr_t *cs,
-                               u32 *sample_count,
-                               double *code_phase,
-                               double *carrier_phase);
+void tracker_correlations_read(tracker_channel_t *tracker_channel);
+void tracker_correlations_parse(tracker_channel_t *tracker_channel,
+                                corr_t *cs,
+                                u32 *sample_count,
+                                double *code_phase,
+                                double *carrier_phase);
 void tracker_retune(tracker_channel_t *tracker_channel, u32 chips_to_correlate);
 s32 tracker_tow_update(tracker_channel_t *tracker_channel,
                        s32 current_TOW_ms,

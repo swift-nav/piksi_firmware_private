@@ -212,7 +212,7 @@ static void handle_nap_track_irq(void) {
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
-  tracking_channels_update(irq);
+  tracking_channels_read(irq);
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
@@ -227,6 +227,8 @@ static void handle_nap_track_irq(void) {
     log_warn("Too many NAP tracking interrupts: 0x%08X%08X", err1, err0);
     tracking_channels_missed_update_error(err);
   }
+
+  tracking_channels_update(irq);
 
   watchdog_notify(WD_NOTIFY_NAP_ISR);
 }
