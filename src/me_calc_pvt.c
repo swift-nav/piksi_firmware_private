@@ -121,11 +121,12 @@ static void me_post_observations(u8 n,
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
+                        const gps_time_t *_t,
+                        double soln_freq_iter) {
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
-  double t_check = _t->tow * (soln_freq / obs_output_divisor);
+  double t_check = _t->tow * (soln_freq_iter / obs_output_divisor);
   if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD &&
       !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
@@ -275,14 +276,19 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq);
 
   while (TRUE) {
-    me_thd_sleep(&next_epoch, SECS_US / soln_freq);
+    /* read current value of soln_freq into a local variable that does not
+     * change during this loop iteration */
+    double soln_freq_iter = soln_freq;
+
+    /* sleep until next epoch, and update the deadline */
+    me_thd_sleep(&next_epoch, SECS_US / soln_freq_iter);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
     if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
-      DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC / 2,
+      DO_EVERY((u32)soln_freq_iter * MAX_AZ_EL_AGE_SEC / 2,
                update_sat_azel(lgf.position_solution.pos_ecef,
                                lgf.position_solution.time));
     }
@@ -301,10 +307,15 @@ static void me_calc_pvt_thread(void *arg) {
        * receiver time and GPS time and hence provide the pseudorange
        * calculation with the local GPS time of reception. */
       gps_time_t rec_time = napcount2gpstime(epoch_tc);
-      epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
+      epoch_time = gps_time_round_to_epoch(rec_time, soln_freq_iter);
       epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
       epoch_tc = FCN_NCO_RESET_COUNT *
                  ((epoch_tc + (FCN_NCO_RESET_COUNT / 2)) / FCN_NCO_RESET_COUNT);
+
+      if (gpsdifftime(&epoch_time, &lgf.position_solution.time) <= 0) {
+        log_info("Next epoch is in the past, skipping");
+        continue;
+      }
     }
 
     double delta_tc = -((double)current_tc - (double)epoch_tc);
@@ -436,7 +447,7 @@ static void me_calc_pvt_thread(void *arg) {
       if (pvt_ret < 0) {
         /* An error occurred with calc_PVT! */
         /* pvt_err_msg defined in libswiftnav/pvt.c */
-        DO_EVERY((u32)soln_freq,
+        DO_EVERY((u32)soln_freq_iter,
                  log_warn("PVT solver: %s (code %d)",
                           pvt_err_msg[-pvt_ret - 1],
                           pvt_ret););
@@ -566,7 +577,7 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
+      me_send_all(n_ready, nav_meas, e_meas, &epoch_time, soln_freq_iter);
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
@@ -591,10 +602,11 @@ static void me_calc_pvt_thread(void *arg) {
     /* The difference between the current nap count and the nap count we
      * would have wanted the observations at is the amount we want to
      * adjust our deadline by at the end of the solution */
-    double dt = delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq;
+    double dt =
+        delta_tc * RX_DT_NOMINAL + current_fix.clock_offset / soln_freq_iter;
 
     /* Limit dt to twice the max soln rate */
-    double max_deadline = ((1.0 / soln_freq) * 2.0);
+    double max_deadline = ((1.0 / soln_freq_iter) * 2.0);
     if (fabs(dt) > max_deadline) {
       dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
     }

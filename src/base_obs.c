@@ -394,14 +394,14 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
    * i.e. is it going to time match one of our local obs. */
   /* if tor is invalid this obs message was sent before a time was solved, so we
    * should ignore */
-  if (tor.wn == WN_UNKNOWN) {
+  if (!gps_time_valid(&tor)) {
     return;
   }
 
-  u32 obs_freq = soln_freq / obs_output_divisor;
-  double epoch_count = tor.tow * obs_freq;
-  double dt = fabs(epoch_count - round(epoch_count)) / obs_freq;
-  if (dt > TIME_MATCH_THRESHOLD) {
+  gps_time_t epoch =
+      gps_time_round_to_epoch(tor, soln_freq / obs_output_divisor);
+  double dt = gpsdifftime(&epoch, &tor);
+  if (fabs(dt) > TIME_MATCH_THRESHOLD) {
     log_warn(
         "Unaligned observation from base station ignored, "
         "tow = %.3f, dt = %.3f",
