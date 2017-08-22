@@ -414,10 +414,12 @@ int compare_ch_meas(const void *a, const void *b) {
 }
 
 /** Assemble a NMEA GPGSV or GLGSV message and send it out NMEA USARTs.
- * NMEA GPGSV message contains GNSS Satellites In View (in this case tracked).
+ * NMEA GPGSV and GLGSV message contains GNSS Satellites In View
+ * (in this case observed)
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
+ * \param[in] gnss        GNSS type
  */
 void nmea_gsv(u8 n_used,
               const channel_measurement_t *ch_meas,
