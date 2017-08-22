@@ -719,7 +719,9 @@ static void starling_thread(void *arg) {
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
       solution_simulation(&sbp_messages);
-      solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
+      // TODO(ben before merging) Why do we need the base_obss sender ID here
+      // for the simulator? Can we just hardcode something?
+      solution_send_low_latency_output(10, &sbp_messages);
       continue;
     }
 
@@ -825,7 +827,8 @@ static void starling_thread(void *arg) {
     /* Post the observations to the mailbox. */
     post_observations(n_ready, nav_meas, &obs_time, &result_spp);
 
-    solution_send_low_latency_output(base_obss.sender_id, &sbp_messages);
+    // TODO(ben before merging) Need to get this base sender id from somewhere.
+    solution_send_low_latency_output(0, &sbp_messages);
   }
 }
 
@@ -1000,21 +1003,31 @@ static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
 
+  obss_t *base_obs;
+  static obss_t base_obss_copy;
   init_filters();
 
   // Declare all SBP messages
   sbp_messages_t sbp_messages;
 
   while (1) {
-    /* Wait for a new observation to arrive from the base station. */
-    chBSemWait(&base_obs_received);
+    base_obs = NULL;
+    const msg_t fetch_ret =
+        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
+
+    if (fetch_ret != MSG_OK) {
+      if (NULL != base_obs) {
+        detailed_log_error("Base obs mailbox fetch failed with %d", fetch_ret);
+        chPoolFree(&base_obs_buff_pool, base_obs);
+      }
+      continue;
+    }
+
+    base_obss_copy = *base_obs;
+    chPoolFree(&base_obs_buff_pool, base_obs);
 
     // Init the messages we want to send
     sbp_messages_init(&sbp_messages);
-
-    chMtxLock(&base_obs_lock);
-    obss_t base_obss_copy = base_obss;
-    chMtxUnlock(&base_obs_lock);
 
     // Check if the el mask has changed and update
     chMtxLock(&time_matched_filter_manager_lock);
@@ -1080,9 +1093,9 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.wn,
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
-          msg_t ret =
+          const msg_t post_ret =
               chMBPost(&time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
-          if (ret != MSG_OK) {
+          if (post_ret != MSG_OK) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
             log_warn("Obs Matching: mailbox full, discarding observation!");
