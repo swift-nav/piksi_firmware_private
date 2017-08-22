@@ -58,11 +58,12 @@ typedef struct {
  */
 #define BASE_STATION_RESET_THRESHOLD 1000.0
 
+#define BASE_OBS_N_BUFF 5
+
 /* \} */
 
-extern mutex_t base_obs_lock;
-extern binary_semaphore_t base_obs_received;
-extern obss_t base_obss;
+extern memory_pool_t base_obs_buff_pool;
+extern mailbox_t base_obs_mailbox;
 
 extern mutex_t base_pos_lock;
 extern bool base_pos_known;

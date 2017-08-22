@@ -47,10 +47,10 @@ extern bool disable_raim;
 /** \defgroup base_obs Base station observation handling
  * \{ */
 
-/** Mutex to control access to the base station observations. */
-MUTEX_DECL(base_obs_lock);
-/** Semaphore that is flagged when a new set of observations are received. */
-BSEMAPHORE_DECL(base_obs_received, TRUE);
+/** Keep a mailbox of received base obs so we can process all of them in
+ * order even if we have a bursty base station connection. */
+memory_pool_t base_obs_buff_pool;
+mailbox_t base_obs_mailbox;
 /** Most recent observations from the base station. */
 obss_t base_obss;
 
@@ -206,11 +206,7 @@ static void update_obss(obss_t *new_obss) {
     return;
   }
 
-  /* Lock mutex before modifying base_obss.
-   * NOTE: We didn't need to lock it before reading in THIS context as this
-   * is the only thread that writes to base_obss. */
   bool have_obs = true;
-  chMtxLock(&base_obs_lock);
 
   base_obss.n = new_obss->n;
   MEMCPY_S(base_obss.nm,
@@ -331,12 +327,24 @@ static void update_obss(obss_t *new_obss) {
     base_obss.has_pos = 0;
   }
 
-  /* Unlock base_obss mutex. */
-  chMtxUnlock(&base_obs_lock);
-
-  /* Signal that a complete base observation has been received. */
   if (have_obs) {
-    chBSemSignal(&base_obs_received);
+    obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
+    if (new_base_obs == NULL) {
+      detailed_log_error(
+          "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+          base_obss.tor.wn,
+          base_obss.tor.tow);
+      return;
+    }
+
+    *new_base_obs = base_obss;
+
+    const msg_t post_ret =
+        chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
+    if (post_ret != MSG_OK) {
+      detailed_log_error("Base obs mailbox should have space!");
+      chPoolFree(&base_obs_buff_pool, new_base_obs);
+    }
   }
 }
 
@@ -567,6 +575,13 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 /** Setup the base station observation handling subsystem. */
 void base_obs_setup() {
   /* Register callbacks on base station messages. */
+
+  static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
+  chMBObjectInit(&base_obs_mailbox, base_obs_mailbox_buff, BASE_OBS_N_BUFF);
+
+  chPoolObjectInit(&base_obs_buff_pool, sizeof(obss_t), NULL);
+  static obss_t base_obs_buff[BASE_OBS_N_BUFF] _CCM;
+  chPoolLoadArray(&base_obs_buff_pool, base_obs_buff, BASE_OBS_N_BUFF);
 
   static sbp_msg_callbacks_node_t base_pos_llh_node;
   sbp_register_cbk(
