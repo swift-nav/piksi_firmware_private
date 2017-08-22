@@ -126,8 +126,9 @@ static void me_send_all(u8 _num_obs,
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
-  double t_check = _t->tow * (soln_freq_iter / obs_output_divisor);
-  if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD &&
+  gps_time_t epoch =
+      gps_time_round_to_epoch(_t, soln_freq_iter / obs_output_divisor);
+  if (fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD &&
       !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
