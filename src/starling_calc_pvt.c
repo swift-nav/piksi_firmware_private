@@ -97,6 +97,8 @@ bool enable_glonass_in_spp = true;
 bool enable_glonass_in_rtk = false;
 float glonass_downweight_factor = 4;
 
+static u8 current_base_sender_id;
+
 static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
@@ -301,10 +303,10 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
 
 /**
  *
- * @param sender_id sender id of base obs
+ * @param base_sender_id sender id of base obs
  * @param sbp_messages struct of sbp messages
  */
-static void solution_send_pos_messages(u8 sender_id,
+static void solution_send_pos_messages(u8 base_sender_id,
                                        const sbp_messages_t *sbp_messages) {
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
@@ -374,13 +376,13 @@ static void solution_send_pos_messages(u8 sender_id,
                  &sbp_messages->sbp_dops,
                  &sbp_messages->gps_time,
                  propagation_time,
-                 sender_id,
+                 base_sender_id,
                  p_utc_params,
                  &sbp_messages->baseline_heading);
 }
 
 static void solution_send_low_latency_output(
-    u8 sender_id, const sbp_messages_t *sbp_messages) {
+    u8 base_sender_id, const sbp_messages_t *sbp_messages) {
   // Work out if we need to wait for a certain period of no time matched
   // positions before we output a SBP position
   bool wait_for_timeout = false;
@@ -390,7 +392,7 @@ static void solution_send_low_latency_output(
   }
 
   if (!wait_for_timeout) {
-    solution_send_pos_messages(sender_id, sbp_messages);
+    solution_send_pos_messages(base_sender_id, sbp_messages);
     chMtxLock(&last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
@@ -663,6 +665,8 @@ static void starling_thread(void *arg) {
   filter_manager_init(spp_filter_manager);
   chMtxUnlock(&spp_filter_manager_lock);
 
+  u8 base_station_sender_id = 0;
+
   while (TRUE) {
     watchdog_notify(WD_NOTIFY_STARLING);
 
@@ -719,9 +723,8 @@ static void starling_thread(void *arg) {
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
       solution_simulation(&sbp_messages);
-      // TODO(ben before merging) Why do we need the base_obss sender ID here
-      // for the simulator? Can we just hardcode something?
-      solution_send_low_latency_output(10, &sbp_messages);
+      const u8 fake_base_sender_id = 1;
+      solution_send_low_latency_output(fake_base_sender_id, &sbp_messages);
       continue;
     }
 
@@ -813,7 +816,7 @@ static void starling_thread(void *arg) {
                                  enable_glonass_in_rtk,
                                  &result_rtk,
                                  &dops);
-
+      base_station_sender_id = current_base_sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
@@ -827,8 +830,7 @@ static void starling_thread(void *arg) {
     /* Post the observations to the mailbox. */
     post_observations(n_ready, nav_meas, &obs_time, &result_spp);
 
-    // TODO(ben before merging) Need to get this base sender id from somewhere.
-    solution_send_low_latency_output(0, &sbp_messages);
+    solution_send_low_latency_output(base_station_sender_id, &sbp_messages);
   }
 }
 
@@ -898,6 +900,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
+      current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
