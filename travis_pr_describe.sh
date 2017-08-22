@@ -37,8 +37,7 @@ DESCRIPTION_FILE="build_v3_prod/pr_description.yaml"
 # TRAVIS_TEST_RESULT: is set to 0 if the build is successful and 1 if the build is broken.
 # TRAVIS_TAG: If the current build is for a git tag, this variable is set to the tag’s name.
 
-if ! [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-  echo "---
+echo "---
 commit:
   sha: $TRAVIS_COMMIT
   message: $TRAVIS_COMMIT_MESSAGE
@@ -54,5 +53,4 @@ target:
 test_result: $TRAVIS_TEST_RESULT
 tag: $TRAVIS_TAG
 " >> $DESCRIPTION_FILE
-  ./publish.sh $DESCRIPTION_FILE
-fi
+./publish.sh $DESCRIPTION_FILE
