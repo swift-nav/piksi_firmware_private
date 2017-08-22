@@ -18,7 +18,7 @@ DESCRIPTION_FILE="build_v3_prod/pr_description.yaml"
 
 if ! [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
   echo "---
-  pr_number: $TRAVIS_PULL_REQUEST
-  commit: $TRAVIS_PULL_REQUEST_SHA" >> $DESCRIPTION_FILE
+pr_number: $TRAVIS_PULL_REQUEST
+commit: $TRAVIS_PULL_REQUEST_SHA" >> $DESCRIPTION_FILE
   ./publish.sh $DESCRIPTION_FILE
 fi
