@@ -414,10 +414,12 @@ int compare_ch_meas(const void *a, const void *b) {
 }
 
 /** Assemble a NMEA GPGSV or GLGSV message and send it out NMEA USARTs.
- * NMEA GPGSV message contains GNSS Satellites In View (in this case tracked).
+ * NMEA GPGSV and GLGSV message contains GNSS Satellites In View
+ * (in this case observed)
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
+ * \param[in] gnss        GNSS type
  */
 void nmea_gsv(u8 n_used,
               const channel_measurement_t *ch_meas,
@@ -488,7 +490,16 @@ void nmea_gsv(u8 n_used,
       s8 ele = sv_elevation_degrees_get(ch_meas_gnss[n]->sid);
       u16 azi = sv_azimuth_degrees_get(ch_meas_gnss[n]->sid);
 
-      NMEA_SENTENCE_PRINTF(",%02u", ch_meas_gnss[n]->sid.sat);
+      u16 sv_id = 0;
+      if (CONSTELLATION_GPS == gnss) {
+        sv_id = ch_meas_gnss[n]->sid.sat;
+      } else if (CONSTELLATION_GLO == gnss) {
+        sv_id = NMEA_SV_ID_GLO(ch_meas_gnss[n]->sid.sat);
+      } else {
+        assert(!"Unsupported GNSS type");
+      }
+
+      NMEA_SENTENCE_PRINTF(",%02u", sv_id);
 
       if (TRACKING_ELEVATION_UNKNOWN == ele) {
         NMEA_SENTENCE_PRINTF(",");
