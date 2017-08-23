@@ -688,7 +688,7 @@ static void starling_thread(void *arg) {
 
     // This would be good to be derived dynamically, but we can use the setting
     // as this preserves existing behavior
-    starling_frequency = soln_freq;
+    starling_frequency = soln_freq_setting;
 
     u8 n_ready = rover_channel_epoch->size;
     memset(nav_meas, 0, sizeof(nav_meas));

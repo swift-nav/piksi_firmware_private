@@ -399,7 +399,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   }
 
   gps_time_t epoch =
-      gps_time_round_to_epoch(&tor, soln_freq / obs_output_divisor);
+      gps_time_round_to_epoch(&tor, soln_freq_setting / obs_output_divisor);
   double dt = gpsdifftime(&epoch, &tor);
   if (fabs(dt) > TIME_MATCH_THRESHOLD) {
     log_warn(
