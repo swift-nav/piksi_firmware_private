@@ -422,23 +422,21 @@ static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
  * The method generates tracking loop parameters according to selected
  * configuration.
  *
- * \param[in]  mesid   ME signal identifier.
- * \param[in]  profile GNSS satellite profile.
- * \param[out] config  Container for computed configuration.
+ * \param tracker_channel[in,out] Tracker channel data
  *
  * \return None
  */
-static void get_profile_params(const me_gnss_signal_t mesid,
-                               const tp_profile_t *profile,
-                               tp_config_t *config) {
+void tp_profile_update_config(tracker_channel_t *tracker_channel) {
+  const me_gnss_signal_t mesid = tracker_channel->mesid;
+  tp_profile_t *profile = &tracker_channel->profile;
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur.index];
 
-  config->ld_phase_params = ld_params[cur_profile->ld_phase_params];
-  config->ld_freq_params = ld_params[cur_profile->ld_freq_params];
+  profile->ld_phase_params = ld_params[cur_profile->ld_phase_params];
+  profile->ld_freq_params = ld_params[cur_profile->ld_freq_params];
 
   /* fill out the tracking loop parameters */
-  config->loop_params = loop_params_template;
+  profile->loop_params = loop_params_template;
 
   u16 flags = cur_profile->flags;
   double carr_to_code = 0.0;
@@ -447,18 +445,21 @@ static void get_profile_params(const me_gnss_signal_t mesid,
   }
 
   /* fill out the rest of tracking loop parameters */
-  config->loop_params.carr_to_code = carr_to_code;
-  config->loop_params.carr_bw = profile->cur.pll_bw;
-  config->loop_params.fll_bw = profile->cur.fll_bw;
-  config->loop_params.code_bw = cur_profile->profile.dll_bw;
-  config->loop_params.mode = get_track_mode(mesid, cur_profile);
-  config->loop_params.ctrl = cur_profile->profile.controller_type;
-  config->sensitivity = (IDX_SENS == profile->cur.index);
-  config->dll_init = profile->dll_init;
+  profile->loop_params.carr_to_code = carr_to_code;
+  profile->loop_params.carr_bw = profile->cur.pll_bw;
+  profile->loop_params.fll_bw = profile->cur.fll_bw;
+  profile->loop_params.code_bw = cur_profile->profile.dll_bw;
+  profile->loop_params.mode = get_track_mode(mesid, cur_profile);
+  profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
-  const tp_tm_e mode = config->loop_params.mode;
-  config->use_alias_detection = (TP_TM_1MS != mode) && (TP_TM_INITIAL != mode);
-  tp_profile_get_cn0_params(profile, &config->cn0_params);
+  tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
+  if (IDX_SENS == profile->cur.index) {
+    tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
+  }
+
+  const tp_tm_e mode = profile->loop_params.mode;
+  profile->use_alias_detection = (TP_TM_1MS != mode) && (TP_TM_INITIAL != mode);
+  tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 
 /**
@@ -861,13 +862,11 @@ tp_result_e tp_init(void) { return TP_RESULT_SUCCESS; }
  *
  * The method registers GNSS signal and returns initial tracking parameters.
  *
- * \param[in]  tracker_channel Tracker channel data
+ * \param[in,out]  tracker_channel Tracker channel data
  * \param[in]  data    Initial parameters.
- * \param[out] config  Container for initial tracking parameters.
  */
 void tp_profile_init(tracker_channel_t *tracker_channel,
-                     const tp_report_t *data,
-                     tp_config_t *config) {
+                     const tp_report_t *data) {
   assert(tracker_channel);
 
   tp_profile_t *profile = &tracker_channel->profile;
@@ -898,34 +897,18 @@ void tp_profile_init(tracker_channel_t *tracker_channel,
   profile->bs_delay_ms = TP_DELAY_UNKNOWN;
   profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
-  get_profile_params(mesid, profile, config);
+  tp_profile_update_config(tracker_channel);
 }
 
-/**
- * Retrieves new tracking profile.
- *
- * \param[in]     mesid    ME signal identifier.
- * \param[in,out] profile  Tracking profile data to read and update.
- * \param[out]    config   Container for new tracking parameters.
- * \param[in]     commit   Commit the mode change happened.
- */
-void tp_profile_get_config(const me_gnss_signal_t mesid,
-                                  tp_profile_t *profile,
-                                  tp_config_t *config,
-                                  bool commit) {
-  assert(config);
-  assert(profile);
+void tp_profile_switch(tracker_channel_t *tracker_channel) {
+  tp_profile_t *profile = &tracker_channel->profile;
   assert(profile->profile_update);
 
   /* Do transition of current profile */
-  if (commit) {
-    profile->profile_update = 0;
+  profile->profile_update = 0;
 
-    profile->cur = profile->next;
-    profile->cn0_offset = compute_cn0_offset(mesid, profile);
-  }
-
-  get_profile_params(mesid, profile, config);
+  profile->cur = profile->next;
+  profile->cn0_offset = compute_cn0_offset(tracker_channel->mesid, profile);
 }
 
 /**

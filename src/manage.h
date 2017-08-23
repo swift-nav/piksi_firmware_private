@@ -5,7 +5,7 @@
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
  *
- * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+n * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
@@ -44,7 +44,7 @@
 
 /** If pessimistic lock detector shows "unlocked" for >=
     TRACK_DROP_UNLOCKED_MS, drop the channel. */
-#define TRACK_DROP_UNLOCKED_MS 3000
+#define TRACK_DROP_UNLOCKED_MS 1500
 
 #define ACQ_FULL_CF_STEP soft_multi_acq_bin_width()
 
