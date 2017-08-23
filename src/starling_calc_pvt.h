@@ -66,7 +66,7 @@ typedef struct {
 
 #define STARLING_OBS_N_BUFF 60
 
-extern double soln_freq;
+extern double soln_freq_setting;
 
 extern u32 max_age_of_differential;
 

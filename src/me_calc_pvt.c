@@ -61,7 +61,7 @@
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;
 
-double soln_freq = 5.0;
+double soln_freq_setting = 5.0;
 u32 obs_output_divisor = 1;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
@@ -121,12 +121,14 @@ static void me_post_observations(u8 n,
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t) {
+                        const gps_time_t *_t,
+                        double soln_freq) {
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
-  double t_check = _t->tow * (soln_freq / obs_output_divisor);
-  if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD &&
+  gps_time_t epoch =
+      gps_time_round_to_epoch(_t, soln_freq / obs_output_divisor);
+  if (fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD &&
       !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
@@ -272,9 +274,14 @@ static void me_calc_pvt_thread(void *arg) {
 
   piksi_systime_t next_epoch;
   piksi_systime_get(&next_epoch);
-  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq);
+  piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
 
   while (TRUE) {
+    /* read current value of soln_freq into a local variable that does not
+     * change during this loop iteration */
+    double soln_freq = soln_freq_setting;
+
+    /* sleep until next epoch, and update the deadline */
     me_thd_sleep(&next_epoch, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
@@ -301,10 +308,15 @@ static void me_calc_pvt_thread(void *arg) {
        * receiver time and GPS time and hence provide the pseudorange
        * calculation with the local GPS time of reception. */
       gps_time_t rec_time = napcount2gpstime(epoch_tc);
-      epoch_time = gps_time_round_to_epoch(rec_time, soln_freq);
+      epoch_time = gps_time_round_to_epoch(&rec_time, soln_freq);
       epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
       epoch_tc = FCN_NCO_RESET_COUNT *
                  ((epoch_tc + (FCN_NCO_RESET_COUNT / 2)) / FCN_NCO_RESET_COUNT);
+
+      if (gpsdifftime(&epoch_time, &lgf.position_solution.time) <= 0) {
+        log_info("Next epoch is in the past, skipping");
+        continue;
+      }
     }
 
     double delta_tc = -((double)current_tc - (double)epoch_tc);
@@ -566,7 +578,7 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
+      me_send_all(n_ready, nav_meas, e_meas, &epoch_time, soln_freq);
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
@@ -612,7 +624,7 @@ static void me_calc_pvt_thread(void *arg) {
 soln_stats_t solution_last_stats_get(void) { return last_stats; }
 
 void me_calc_pvt_setup() {
-  SETTING("solution", "soln_freq", soln_freq, TYPE_FLOAT);
+  SETTING("solution", "soln_freq", soln_freq_setting, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
 

@@ -177,7 +177,8 @@ void simulation_step(void) {
 
   /* Update the time, clamping it to the solution frequency */
   double new_tow = sim_state.noisy_solution.time.tow + elapsed;
-  sim_state.noisy_solution.time.tow = round(new_tow * soln_freq) / soln_freq;
+  sim_state.noisy_solution.time.tow =
+      round(new_tow * soln_freq_setting) / soln_freq_setting;
 
   /* Handle week-rollover. */
   normalize_gps_time(&sim_state.noisy_solution.time);
@@ -215,7 +216,6 @@ void simulation_step_position_in_circle(double elapsed) {
   pos_ecef[0] = sim_state.pos[0] + rand_gaussian(pos_variance);
   pos_ecef[1] = sim_state.pos[1] + rand_gaussian(pos_variance);
   pos_ecef[2] = sim_state.pos[2] + rand_gaussian(pos_variance);
-
 
   /* Calculate Velocity vector tangent to the sphere */
   double noisy_speed =
