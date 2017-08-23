@@ -77,9 +77,10 @@ typedef enum {
 /** Parameter sets */
 typedef enum {
   TRACK_SBP_PARAM_SET_1MS = 0,  /**< 1ms integration time */
-  TRACK_SBP_PARAM_SET_5MS = 1,  /**< 5ms integration time */
-  TRACK_SBP_PARAM_SET_10MS = 2, /**< 10ms integration time */
-  TRACK_SBP_PARAM_SET_20MS = 3  /**< 20ms integration time */
+  TRACK_SBP_PARAM_SET_2MS = 1,  /**< 2ms integration time */
+  TRACK_SBP_PARAM_SET_5MS = 2,  /**< 5ms integration time */
+  TRACK_SBP_PARAM_SET_10MS = 3, /**< 10ms integration time */
+  TRACK_SBP_PARAM_SET_20MS = 4  /**< 20ms integration time */
 } track_sbp_param_set_t;
 
 /** Tracking channel status */
