@@ -160,7 +160,7 @@ static const tp_lock_detect_params_t ld_params[] = {
     [TP_LD_PARAMS_PHASE_10MS] = { 0.015f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_10MS]  = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.007f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_20MS]  = { 0.005f,  .6f, 50 },
 
     [TP_LD_PARAMS_FREQ_SENS]  = { 0.005f,  .6f, 50 }
@@ -283,16 +283,16 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,             TP_TM_20MS,
+  { {  BW_DYN,         1.5,          .5,   TP_CTRL_PLL3,             TP_TM_20MS,
               TP_TM_10MS },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            50,          29,          35,
       IDX_20MS,  IDX_SENS,     IDX_10MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+      /* TP_LOW_CN0 |  */TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
 
   [IDX_SENS] =
-  { {    0,             3,            1,   TP_CTRL_FLL2,             TP_TM_20MS,
+  { {    0,             3,            3,   TP_CTRL_FLL2,             TP_TM_20MS,
              TP_TM_10MS },       TP_LD_PARAMS_FREQ_SENS, TP_LD_PARAMS_FREQ_SENS,
         50,             0,          33.,
       IDX_SENS,  IDX_NONE,     IDX_10MS,
