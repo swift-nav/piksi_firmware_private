@@ -256,19 +256,19 @@ typedef struct {
   float filt_cn0;   /**< C/N0 value for decision logic */
 
   /* Packed fields: 24 bits */
-  u32 plock : 1;                  /**< Pessimistic lock flag */
-  u32 bsync : 1;                  /**< Bit sync flag */
-  u32 bsync_sticky : 1;           /**< Bit sync flag */
-  u32 profile_update : 1;         /**< Flag if the profile update is required */
-  u32 dll_init : 1;               /**< DLL init required */
+  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 bsync : 1;          /**< Bit sync flag */
+  u32 bsync_sticky : 1;   /**< Bit sync flag */
+  u32 profile_update : 1; /**< Flag if the profile update is required */
+  u32 dll_init : 1;       /**< DLL init required */
   u32 use_alias_detection : 1;
-  u32 cn0_est : 2;                /**< C/N0 estimator type */
-  u16 lock_time_ms;               /**< Profile lock count down timer */
-  struct profile_vars cur;        /**< Current profile variables */
-  struct profile_vars next;       /**< Next profile variables */
-  u16 print_time;                 /**< Time till next debug print [ms] */
-  u32 time_snapshot_ms;           /**< Time snapshot [ms] */
-  s16 bs_delay_ms;    /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
+  u32 cn0_est : 2;          /**< C/N0 estimator type */
+  u16 lock_time_ms;         /**< Profile lock count down timer */
+  struct profile_vars cur;  /**< Current profile variables */
+  struct profile_vars next; /**< Next profile variables */
+  u16 print_time;           /**< Time till next debug print [ms] */
+  u32 time_snapshot_ms;     /**< Time snapshot [ms] */
+  s16 bs_delay_ms;          /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
   s16 plock_delay_ms; /**< Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
 
   tp_loop_params_t loop_params; /**< Tracking loop parameters */
@@ -605,14 +605,14 @@ typedef struct {
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
-  float acceleration;              /**< Acceleration [g] */
-  float xcorr_freq;                /**< Doppler for cross-correlation [hz] */
-  u64 init_timestamp_ms;           /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;         /**< Tracking channel last update
-                                        timestamp [ms] */
-  bool updated_once;   /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;   /**< Half-cycle ambiguity resolution */
-  glo_health_t health; /**< GLO SV health info */
+  float acceleration;          /**< Acceleration [g] */
+  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
+  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;     /**< Tracking channel last update
+                                    timestamp [ms] */
+  bool updated_once;           /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
+  glo_health_t health;         /**< GLO SV health info */
 
   /** Associated tracker interface. */
   const struct tracker_interface *interface;

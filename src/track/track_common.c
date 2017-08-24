@@ -102,8 +102,8 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
  *                            to update.
  * \return None
  */
-void tp_tracker_update_lock_detect_parameters(tracker_channel_t *tracker_channel,
-                                              bool init) {
+void tp_tracker_update_lock_detect_parameters(
+    tracker_channel_t *tracker_channel, bool init) {
   tp_profile_t *profile = &tracker_channel->profile;
   const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
   const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
@@ -174,10 +174,8 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
   if (init || profile->dll_init) {
     log_debug_mesid(mesid, "Initializing TL");
 
-    tp_tl_init(&tracker_channel->tl_state,
-               profile->loop_params.ctrl,
-               &rates,
-               &config);
+    tp_tl_init(
+        &tracker_channel->tl_state, profile->loop_params.ctrl, &rates, &config);
   } else {
     log_debug_mesid(mesid, "Re-tuning TL");
 
@@ -732,8 +730,9 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
   /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
   tl_rates_t rates = {0};
   tp_tl_get_rates(&tracker_channel->tl_state, &rates);
-  float freq_err = rates.code_freq -
-        rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
+  float freq_err =
+      rates.code_freq -
+      rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
 
   lock_detect_update(&tracker_channel->ld_freq,
                      TP_FLL_DLL_ERR_THRESHOLD_HZ,
@@ -787,8 +786,9 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
     u64 now_ms = timing_getms();
     u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
     if (!outp_phase_prev && tracker_channel->ld_phase.outp) {
-      log_debug_mesid(tracker_channel->mesid, "Phase lock after %" PRIu32 "ms",
-                     time_in_track_ms);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Phase lock after %" PRIu32 "ms",
+                      time_in_track_ms);
     }
   }
   /*

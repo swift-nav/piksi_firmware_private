@@ -553,8 +553,7 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
  *
  * \return None
  */
-static void log_switch(tracker_channel_t *tracker_channel,
-                       const char *reason) {
+static void log_switch(tracker_channel_t *tracker_channel, const char *reason) {
   const me_gnss_signal_t mesid = tracker_channel->mesid;
   const tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
@@ -660,8 +659,7 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
 }
 
 static bool pll_bw_changed(tracker_channel_t *tracker_channel,
-                           profile_indices_t index)
-{
+                           profile_indices_t index) {
   const me_gnss_signal_t mesid = tracker_channel->mesid;
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
@@ -686,8 +684,7 @@ static bool pll_bw_changed(tracker_channel_t *tracker_channel,
 }
 
 static bool fll_bw_changed(tracker_channel_t *tracker_channel,
-                           profile_indices_t index)
-{
+                           profile_indices_t index) {
   const me_gnss_signal_t mesid = tracker_channel->mesid;
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
@@ -735,7 +732,7 @@ static bool profile_switch_requested(tracker_channel_t *tracker_channel,
 
   u8 int_time = profile_integration_time(mesid, state, index);
   bool pll = (next->profile.pll_bw > 0) || /*fixed*/
-             (next->profile.pll_bw < 0); /*dynamic*/
+             (next->profile.pll_bw < 0);   /*dynamic*/
   if (pll && (int_time > max_pll_integration_time_ms)) {
     /* setting prevents us doing longer PLL integration time */
     index = state->cur.index;
@@ -812,7 +809,8 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
     assert(cur_profile->next != IDX_NONE);
     return profile_switch_requested(tracker_channel, cur_profile->next, "next");
   } else {
-    return profile_switch_requested(tracker_channel, state->cur.index + 1, "next");
+    return profile_switch_requested(
+        tracker_channel, state->cur.index + 1, "next");
   }
 
   if ((cur_profile->profile.pll_bw < 0) || (cur_profile->profile.fll_bw < 0)) {
