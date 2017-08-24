@@ -446,7 +446,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* Pull out the contents of the message. */
   packed_obs_content_t *obs =
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
-  for (u8 i = 0; i < obs_in_msg; i++) {
+  for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < NUM_SIGNALS; i++) {
     gnss_signal_t sid = sid_from_sbp16(obs[i].sid);
     if (!sid_supported(sid)) {
       continue;

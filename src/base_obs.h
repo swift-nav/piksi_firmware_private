@@ -47,7 +47,7 @@ typedef struct {
   u8 n;
   u8 sender_id;
   /** Set of observations. */
-  navigation_measurement_t nm[MAX_CHANNELS];
+  navigation_measurement_t nm[NUM_SIGNALS];
 } obss_t;
 
 /** Maximum difference between observation times to consider them matched. */
