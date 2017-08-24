@@ -670,6 +670,9 @@ static void starling_thread(void *arg) {
   while (TRUE) {
     watchdog_notify(WD_NOTIFY_STARLING);
 
+    // Init the messages we want to send
+    sbp_messages_init(&sbp_messages);
+
     rover_channel_epoch = NULL;
     ret = chMBFetch(
         &obs_mailbox, (msg_t *)&rover_channel_epoch, DGNSS_TIMEOUT_MS);
@@ -681,8 +684,14 @@ static void starling_thread(void *arg) {
       continue;
     }
 
-    if (gps_time_valid(&obs_time) &&
-        gpsdifftime(&obs_time, &rover_channel_epoch->obs_time) >= 0.0) {
+    if (rover_channel_epoch->size == 0 ||
+        !gps_time_valid(&rover_channel_epoch->obs_time)) {
+      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      solution_send_low_latency_output(0, &sbp_messages);
+      continue;
+    }
+
+    if (gpsdifftime(&rover_channel_epoch->obs_time, &obs_time) <= 0.0) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
@@ -716,9 +725,6 @@ static void starling_thread(void *arg) {
     obs_time = rover_channel_epoch->obs_time;
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
-
-    // Init the messages we want to send
-    sbp_messages_init(&sbp_messages);
 
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
@@ -800,6 +806,7 @@ static void starling_thread(void *arg) {
        * observation failed messages if not in time matched mode.
        */
       solution_send_low_latency_output(0, &sbp_messages);
+      continue;
     }
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {

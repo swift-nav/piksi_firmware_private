@@ -104,6 +104,9 @@ static void me_post_observations(u8 n,
   }
   if (_t != NULL) {
     me_msg_obs->obs_time = *_t;
+  } else {
+    me_msg_obs->obs_time.wn = WN_UNKNOWN;
+    me_msg_obs->obs_time.tow = TOW_UNKNOWN;
   }
 
   ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
