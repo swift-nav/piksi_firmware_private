@@ -348,7 +348,8 @@ void nap_track_init(u8 channel,
   }
 }
 
-void nap_track_update(u8 channel,
+void nap_track_update(const swiftnap_tracking_t *nap_results,
+                      u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
@@ -369,7 +370,8 @@ void nap_track_update(u8 channel,
    * matter much in a tracking loop scenario.. */
   /* MIC_COMMENT: so I'd probably remove this s->code_phase_rate[2] and use
    * a s->code_pinc[2] to reckon code increments */
-  u32 code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC * (s->length[0]);
+  u32 code_phase_frac =
+      nap_results->CODE_PHASE_FRAC + nap_results->CODE_PINC * (s->length[0]);
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = chip_rate;
 

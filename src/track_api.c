@@ -83,13 +83,14 @@ void tracker_correlations_parse(tracker_channel_t *tracker_channel,
  * \param[in]     tracker_channel Tracker channel data
  * \param chips_to_correlate  Number of code chips to integrate over.
  */
-void tracker_retune(tracker_channel_t *tracker_channel,
+void tracker_retune(const tracker_channel_t *tracker_channel,
                     u32 chips_to_correlate) {
   double doppler_freq_hz = tracker_channel->carrier_freq;
   double code_phase_rate = tracker_channel->code_phase_rate;
 
   /* Write NAP UPDATE register. */
-  nap_track_update(tracker_channel->nap_channel,
+  nap_track_update(&tracker_channel->nap_results,
+                   tracker_channel->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
