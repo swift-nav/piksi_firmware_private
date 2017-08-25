@@ -240,21 +240,21 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {   30,             6,            3,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {   30,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
         50,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
-  { {   30,             3,            3,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {   30,             3,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
         50,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { {   30,             1,            3,   TP_CTRL_PLL3,              TP_TM_1MS,
+  { {   30,             1,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
               TP_TM_1MS },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
        200,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
