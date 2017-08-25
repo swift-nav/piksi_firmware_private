@@ -124,6 +124,9 @@ static const tp_cn0_params_t cn0_params_default = {
  * Lock detector parameters
  */
 enum {
+  TP_LD_PARAMS_PHASE_INI,
+  TP_LD_PARAMS_FREQ_INI,
+
   TP_LD_PARAMS_PHASE_1MS,
   TP_LD_PARAMS_FREQ_1MS,
 
@@ -148,19 +151,22 @@ enum {
 /* clang-format off */
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.025f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.05f, 1.5f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.005f,  .6f, 50 },
+
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.07f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_1MS]   = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.025f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.07f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.025f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.07f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.015f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.07f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_10MS]  = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.07f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_20MS]  = { 0.005f,  .6f, 50 },
 
     [TP_LD_PARAMS_FREQ_SENS]  = { 0.005f,  .6f, 50 }
@@ -235,14 +241,14 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_INIT_0] =
   { {   30,             6,            3,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
         50,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
   { {   30,             3,            3,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
         50,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
@@ -257,14 +263,14 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_1MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,              TP_TM_1MS,
                TP_TM_1MS },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-          300,          42,           0,
+           50,          42,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,              TP_TM_2MS,
                TP_TM_1MS },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
-          300,          39,          45,
+           50,          39,          45,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
