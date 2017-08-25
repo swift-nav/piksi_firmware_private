@@ -699,7 +699,6 @@ typedef struct {
 /* FLL control */
 #define TP_CFLAG_FLL_SET ((u32)1 << 8)
 #define TP_CFLAG_FLL_ADD ((u32)1 << 9)
-#define TP_CFLAG_FLL_USE ((u32)1 << 10)
 #define TP_CFLAG_FLL_FIRST ((u32)1 << 11)
 #define TP_CFLAG_FLL_SECOND ((u32)1 << 12)
 
