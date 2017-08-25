@@ -213,10 +213,14 @@ static void handle_nap_track_irq(void) {
   u64 irq = ((u64)irq1 << 32) | irq0;
 
   tracking_channels_read(irq);
+  tracking_channels_update(irq);
+
+  COMPILER_BARRIER();
+
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
-  asm("dsb");
+  COMPILER_BARRIER();
 
   u32 err0 = NAP->TRK_IRQ_ERRORS0;
   u32 err1 = NAP->TRK_IRQ_ERRORS1;
@@ -227,8 +231,6 @@ static void handle_nap_track_irq(void) {
     log_warn("Too many NAP tracking interrupts: 0x%08X%08X", err1, err0);
     tracking_channels_missed_update_error(err);
   }
-
-  tracking_channels_update(irq);
 
   watchdog_notify(WD_NOTIFY_NAP_ISR);
 }
@@ -269,7 +271,10 @@ void nap_track_irq_thread(void *arg) {
                         max_pll_integration_time_ms););
 
     /* Sleep until 500 microseconds is full. */
-    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
+    u32 slept = piksi_systime_sleep_until_windowed_us(&sys_time, 500);
+    if (0 == slept) {
+      log_debug("NAP Tracking high CPU");
+    }
   }
 }
 
