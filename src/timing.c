@@ -46,22 +46,21 @@ static MUTEX_DECL(clock_mutex);
  * already known more precisely than the new estimate, the new estimate will be
  * ignored.
  *
- * This function should not be used to give an estimate with TIME_FINE quality
- * as this must be referenced to a particular value of the SwiftNAP timing
- * count.
- *
  * \param quality Quality of the time estimate.
  * \param t GPS time estimate.
+ * \param tc SwiftNAP timing count.
  */
-void set_time(time_quality_t quality, gps_time_t t) {
+void set_time(time_quality_t quality, gps_time_t t, u64 tc) {
   bool updated = false;
   gps_time_t norm_time = t;
-  norm_time.tow -= nap_timing_count() * RX_DT_NOMINAL;
+
+  norm_time.tow -= tc * RX_DT_NOMINAL;
   normalize_gps_time(&norm_time);
 
   chMtxLock(&clock_mutex);
-  if (quality > time_quality) {
+  if (quality >= time_quality) {
     clock_state.t0_gps = norm_time;
+    clock_state.clock_offset = 0.0;
     time_quality = quality;
     updated = true;
   }
@@ -69,7 +68,28 @@ void set_time(time_quality_t quality, gps_time_t t) {
 
   if (updated) {
     time_t unix_t = gps2time(&t);
-    log_info("(quality=%d) Time set to: %s", TIME_FINE, ctime(&unix_t));
+    log_info("(quality=%d) Time set to: %s", quality, ctime(&unix_t));
+  }
+}
+
+/** Update GPS time estimate quality.
+ *
+ * This is to be used when time quality drops.
+ *
+ * \param quality Quality of the time estimate.
+ */
+void downgrade_time_quality(time_quality_t quality) {
+  bool updated = false;
+
+  chMtxLock(&clock_mutex);
+  if (quality < time_quality) {
+    time_quality = quality;
+    updated = true;
+  }
+  chMtxUnlock(&clock_mutex);
+
+  if (updated) {
+    log_info("(quality=%d) Downgraded time quality", quality);
   }
 }
 
@@ -97,30 +117,10 @@ void clock_est_init(clock_est_state_t *s) {
 
 /** Update GPS time estimate precisely referenced to the local receiver time.
  *
- * \param tc SwiftNAP timing count.
  * \param t GPS time estimate associated with timing count.
- */
-void set_time_fine(u64 tc, gps_time_t t) {
-  gps_time_t norm_time = t;
-  norm_time.tow -= tc * RX_DT_NOMINAL;
-  normalize_gps_time(&norm_time);
-
-  chMtxLock(&clock_mutex);
-  clock_state.t0_gps = norm_time;
-  clock_state.clock_offset = 0.0;
-  time_quality = TIME_FINE;
-  chMtxUnlock(&clock_mutex);
-
-  time_t unix_t = gps2time(&t);
-  log_info("Time set to: %s (quality=%d)", ctime(&unix_t), TIME_FINE);
-}
-
-/** Update GPS time estimate precisely referenced to the local receiver time.
- *
  * \param tc SwiftNAP timing count.
- * \param t GPS time estimate associated with timing count.
  */
-void set_gps_time_offset(u64 tc, gps_time_t t) {
+void set_gps_time_offset(gps_time_t t, u64 tc) {
   gps_time_t rcv_time = napcount2rcvtime(tc);
   double time_diff = gpsdifftime(&rcv_time, &t);
 
@@ -264,7 +264,7 @@ static void set_time_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   gps_time_t *t = (gps_time_t *)msg;
 
-  set_time(TIME_COARSE, *t);
+  set_time(TIME_COARSE, *t, nap_timing_count());
 }
 
 /** Setup timing functionality.
