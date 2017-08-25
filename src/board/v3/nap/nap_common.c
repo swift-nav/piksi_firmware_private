@@ -222,6 +222,7 @@ static void nap_irq_thread(void *arg) {
 void nap_track_irq_thread(void *arg) {
   piksi_systime_t sys_time;
   piksi_systime_get(&sys_time);
+  piksi_systime_inc_us(&sys_time, 400);
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
@@ -237,7 +238,7 @@ void nap_track_irq_thread(void *arg) {
     if (0 == slept) {
       log_warn("NAP Tracking missed deadline");
     }
-    piksi_systime_inc_us(&sys_time, 300);
+    piksi_systime_inc_us(&sys_time, 400);
 
     COMPILER_BARRIER();
 
@@ -256,20 +257,9 @@ void nap_track_irq_thread(void *arg) {
       tracking_channels_missed_update_error(err);
     }
 
-    watchdog_notify(WD_NOTIFY_NAP_ISR);
-
     sanitize_trackers();
 
-    DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
-
-    DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
-
-    DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state();
-               tracking_send_detailed_state(););
-
-    DO_EACH_MS(100 * SECS_MS,
-               log_info("Max configured PLL integration time: %" PRIu16 " ms",
-                        max_pll_integration_time_ms););
+    watchdog_notify(WD_NOTIFY_NAP_ISR);
   }
 }
 
