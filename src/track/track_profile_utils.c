@@ -200,7 +200,7 @@ static const state_table_t mode_2ms = {
 /* clang-format on */
 
 /**
- * 5 ms integrations; 1+N mode.
+ * 5 ms integrations
  */
 /* clang-format off */
 static const state_table_t mode_5ms = {
@@ -236,7 +236,7 @@ static const state_table_t mode_5ms = {
 /* clang-format on */
 
 /**
- * 10 ms integrations; 1+N5 mode.
+ * 10 ms integrations
  */
 static const state_table_t mode_10ms = {
     .int_ms = 10,
@@ -258,7 +258,7 @@ static const state_table_t mode_10ms = {
     }};
 
 /**
- * 20 ms integrations; 1+N5 mode.
+ * 20 ms integrations
  */
 /* clang-format off */
 static const state_table_t mode_20ms = {
