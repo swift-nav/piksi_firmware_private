@@ -33,7 +33,7 @@
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
 /** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
-#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.13
+#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.1
 
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
@@ -732,8 +732,9 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
   /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
   tl_rates_t rates = {0};
   tp_tl_get_rates(&tracker_channel->tl_state, &rates);
-  float freq_err = rates.code_freq -
-        rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
+  float freq_err =
+      rates.code_freq -
+      rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
 
   lock_detect_update(&tracker_channel->ld_freq,
                      TP_FLL_DLL_ERR_THRESHOLD_HZ,
@@ -766,7 +767,6 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
         tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
     bool outp_phase_prev = tracker_channel->ld_phase.outp;
-    bool outp_freq_prev = tracker_channel->ld_freq.outp;
 
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
@@ -789,10 +789,6 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
     u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
     if (!outp_phase_prev && tracker_channel->ld_phase.outp) {
       log_debug_mesid(tracker_channel->mesid, "Phase lock after %" PRIu32 "ms",
-                     time_in_track_ms);
-    }
-    if (!outp_freq_prev && tracker_channel->ld_freq.outp) {
-      log_debug_mesid(tracker_channel->mesid, "Freq lock after %" PRIu32 "ms",
                      time_in_track_ms);
     }
   }

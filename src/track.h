@@ -205,7 +205,6 @@ struct profile_vars {
   u8 index;
   float pll_bw;
   float fll_bw;
-  tp_ctrl_e ctrl;
 };
 
 /**
@@ -252,24 +251,21 @@ typedef struct {
 typedef struct {
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
-  float filt_accel; /**< SV acceleration value for decision logic [g] */
 
-  u32 plock : 1;               /**< Pessimistic lock flag */
-  u32 bsync : 1;               /**< Bit sync flag */
-  u32 bsync_sticky : 1;        /**< Bit sync flag */
-  u32 profile_update : 1;      /**< Flag if the profile update is required */
-  u32 cn0_est : 2;             /**< C/N0 estimator type */
-  u32 dll_init : 1;               /**< DLL init required */
-  u32 use_alias_detection : 1; /**< C/N0 estimator type */
+  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 bsync : 1;          /**< Bit sync flag */
+  u32 bsync_sticky : 1;   /**< Bit sync flag */
+  u32 profile_update : 1; /**< Flag if the profile update is required */
+  u32 dll_init : 1;       /**< DLL init required */
+  u32 cn0_est : 2;        /**< C/N0 estimator type */
+  u32 use_alias_detection : 1;
 
-  u16 lock_time_ms;               /**< Profile lock count down timer */
-  struct profile_vars cur;        /**< Current profile variables */
-  struct profile_vars next;       /**< Next profile variables */
-  u16 acceleration_ends_after_ms; /**< There is an acceleration if this
-                                   *   parameter is non-zero [ms] */
-  u16 print_time;                 /**< Time till next debug print [ms] */
-  u32 time_snapshot_ms;           /**< Time snapshot [ms] */
-  s16 bs_delay_ms;    /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
+  u16 lock_time_ms;         /**< Profile lock count down timer */
+  struct profile_vars cur;  /**< Current profile variables */
+  struct profile_vars next; /**< Next profile variables */
+  u16 print_time;           /**< Time till next debug print [ms] */
+  u32 time_snapshot_ms;     /**< Time snapshot [ms] */
+  s16 bs_delay_ms;          /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
   s16 plock_delay_ms; /**< Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
 
   tp_loop_params_t loop_params; /**< Tracking loop parameters */
@@ -700,7 +696,6 @@ typedef struct {
 /* FLL control */
 #define TP_CFLAG_FLL_SET ((u32)1 << 8)
 #define TP_CFLAG_FLL_ADD ((u32)1 << 9)
-#define TP_CFLAG_FLL_USE ((u32)1 << 10)
 #define TP_CFLAG_FLL_FIRST ((u32)1 << 11)
 #define TP_CFLAG_FLL_SECOND ((u32)1 << 12)
 
