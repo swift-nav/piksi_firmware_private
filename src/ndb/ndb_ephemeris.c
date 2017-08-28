@@ -32,7 +32,7 @@
 #define NDB_EPHE_FILE_NAME "persistent/ephemeris"
 #define NDB_EPHE_FILE_TYPE "ephemeris"
 
-static ephemeris_t ndb_ephemeris[PLATFORM_SIGNAL_COUNT];
+static ephemeris_t ndb_ephemeris[PLATFORM_SV_COUNT];
 static ndb_element_metadata_t ndb_ephemeris_md[ARRAY_SIZE(ndb_ephemeris)];
 static ndb_file_t ndb_ephe_file = {
     .name = NDB_EPHE_FILE_NAME,
@@ -80,7 +80,7 @@ static ndb_ephe_config_t ndb_ephe_config = {
 static bool almanacs_enabled = false;
 
 static u16 map_sid_to_index(gnss_signal_t sid) {
-  u16 idx = PLATFORM_SIGNAL_COUNT;
+  u16 idx = 0;
   /*
    * Current architecture uses GPS L1 C/A ephemeris for all GPS signals,
    * and GLO L1 C/A ephemeris for all GLO signals.
@@ -89,8 +89,10 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
     idx = sid_to_global_index(construct_sid(CODE_GPS_L1CA, sid.sat));
   } else if (IS_GLO(sid)) {
     idx = sid_to_global_index(construct_sid(CODE_GLO_L1CA, sid.sat));
+  } else if (IS_SBAS(sid)) {
+    idx = sid_to_global_index(construct_sid(CODE_SBAS_L1CA, sid.sat));
   } else {
-    idx = sid_to_global_index(sid);
+    assert(!"SID not supported");
   }
   return idx;
 }
@@ -487,7 +489,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
       case NDB_CAND_OLDER:
         return NDB_ERR_OLDER_DATA;
       case NDB_CAND_NEW_TRUSTED: {
-        u16 idx = sid_to_global_index(e->sid);
+        u16 idx = map_sid_to_index(e->sid);
         return ndb_update(e, src, &ndb_ephemeris_md[idx]);
       }
       case NDB_CAND_NEW_CANDIDATE:
@@ -604,7 +606,7 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
   assert(toe != NULL);
   assert(fit_interval != NULL);
   assert(ura != NULL);
-  u16 idx = sid_to_global_index(sid);
+  u16 idx = map_sid_to_index(sid);
   ndb_lock();
   if (0 != (ndb_ephemeris_md[idx].nv_data.state & NDB_IE_VALID)) {
     *valid = ndb_ephemeris[idx].valid;
