@@ -43,6 +43,8 @@ static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
 
+extern double soln_freq_setting;
+
 /** \addtogroup io
  * \{ */
 
@@ -803,6 +805,15 @@ void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
            nmea_gsv(n_used, ch_meas, CONSTELLATION_GLO););
 }
 
+bool send_nmea(u32 rate, u32 gps_tow_ms) {
+  double output_rate = soln_freq_setting * rate;
+
+  if (fmod(gps_tow_ms * 0.001, output_rate) == 0) {
+    return true;
+  }
+  return false;
+}
+
 /** Generate and send periodic NMEA GPRMC, GPGLL, GPVTG, GPZDA and GPGSA.
  * (but not GPGGA) messages.
  *
@@ -849,32 +860,44 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   }
 
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
-    DO_EVERY(gpgga_msg_rate,
-             nmea_gpgga(sbp_pos_llh,
-                        sbp_msg_time,
-                        &utc_time,
-                        sbp_dops,
-                        propagation_time,
-                        sender_id););
+    if (send_nmea(gpgga_msg_rate, sbp_msg_time->tow)) {
+      nmea_gpgga(sbp_pos_llh,
+                 sbp_msg_time,
+                 &utc_time,
+                 sbp_dops,
+                 propagation_time,
+                 sender_id);
+    }
   }
-  if (sbp_baseline_heading && send_heading) {
-    DO_EVERY(gphdt_msg_rate, nmea_gphdt(sbp_baseline_heading););
+  if (sbp_baseline_heading && send_heading && sbp_msg_time) {
+    if (send_nmea(gphdt_msg_rate, sbp_msg_time->tow)) {
+      nmea_gphdt(sbp_baseline_heading);
+    }
   }
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
-    DO_EVERY(gprmc_msg_rate,
-             nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time, &utc_time););
+    if (send_nmea(gprmc_msg_rate, sbp_msg_time->tow)) {
+      nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time, &utc_time);
+    }
   }
   if (sbp_pos_llh && sbp_msg_time) {
-    DO_EVERY(gpgll_msg_rate, nmea_gpgll(sbp_pos_llh, sbp_msg_time, &utc_time););
+    if (send_nmea(gpgll_msg_rate, sbp_msg_time->tow)) {
+      nmea_gpgll(sbp_pos_llh, sbp_msg_time, &utc_time);
+    }
   }
-  if (sbp_vel_ned && sbp_pos_llh) {
-    DO_EVERY(gpvtg_msg_rate, nmea_gpvtg(sbp_vel_ned, sbp_pos_llh););
+  if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
+    if (send_nmea(gpvtg_msg_rate, sbp_msg_time->tow)) {
+      nmea_gpvtg(sbp_vel_ned, sbp_pos_llh);
+    }
   }
   if (sbp_msg_time) {
-    DO_EVERY(gpzda_msg_rate, nmea_gpzda(sbp_msg_time, &utc_time););
+    if (send_nmea(gpzda_msg_rate, sbp_msg_time->tow)) {
+      nmea_gpzda(sbp_msg_time, &utc_time);
+    }
   }
-  if (sbp_dops && sbp_pos_llh) {
-    DO_EVERY(gpgsa_msg_rate, nmea_assemble_gpgsa(sbp_pos_llh, sbp_dops););
+  if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
+    if (send_nmea(gpgsa_msg_rate, sbp_msg_time->tow)) {
+      nmea_assemble_gpgsa(sbp_pos_llh, sbp_dops);
+    }
   }
 }
 
