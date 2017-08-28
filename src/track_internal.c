@@ -196,12 +196,4 @@ u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
   return ++tracking_lock_counters[mesid_to_global_index(mesid)];
 }
 
-/** Return the tracking lock counter for the specified sid.
- *
- * \param sid         Signal identifier to use.
- */
-u16 tracking_lock_counter_get(gnss_signal_t sid) {
-  return tracking_lock_counters[sid_to_global_index(sid)];
-}
-
 /** \} */
