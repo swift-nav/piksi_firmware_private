@@ -959,7 +959,11 @@ void sanitize_trackers(void) {
       continue;
     }
 
-    /* PLL/FLL pessimistic lock detector "unlocked" for a while? */
+    /* PLL/FLL pessimistic lock detector "unlocked" for a while?
+       We could get rid of this check althogether if not the
+       observed cases, when tracker could not achieve the pessimistic
+       lock state for a long time (minutes?) and yet managed to pass
+       CN0 sanity checks.*/
     u32 unlocked_ms = 0;
     if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
