@@ -480,7 +480,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity to low range CN0 transitional profiles  */
   [IDX_TRAN_CN0] =
   { {   20,             1,            1,   TP_CTRL_PLL3,             TP_TM_10MS,
-              TP_TM_10MS },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+             TP_TM_10MS },      TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
         50,           26.,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 | TP_WAIT_PLOCK },
@@ -502,14 +502,14 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   /* sensitivity to dynamics transitional profiles */
   [IDX_TRAN_DYN] =
   { {   30,             3,            1,   TP_CTRL_PLL3,              TP_TM_5MS,
-              TP_TM_5MS },       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
+              TP_TM_5MS },       TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
         50,           30.,            0,              0,                      0,
     IDX_NONE,    IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 | TP_WAIT_PLOCK },
 
   [IDX_NONAME_22] =
   { {   30,             1,            1,   TP_CTRL_PLL3,              TP_TM_5MS,
-              TP_TM_5MS },       TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
+              TP_TM_5MS },       TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
         50,           30.,            0,              0,                      0,
     IDX_LOW_CN0_DYN, IDX_SENS, IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT },
@@ -615,7 +615,6 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
   }
 
   /* fill out the rest of tracking loop parameters */
-
   profile->loop_params.carr_to_code = carr_to_code;
   profile->loop_params.carr_bw = profile->cur.pll_bw;
   profile->loop_params.fll_bw = profile->cur.fll_bw;
