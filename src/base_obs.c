@@ -248,8 +248,8 @@ static void update_obss(obss_t *new_obss) {
     sid_set_add(&codes, base_obss.nm[i].sid);
   }
 
-  /* Require at least 5 signals from at least 4 distinct satellites */
-  if (base_obss.n >= 5 && sid_set_get_sat_count(&codes) >= 4) {
+  /* Require at least 5 distinct satellites */
+  if (sid_set_get_sat_count(&codes) >= 5) {
     gnss_solution soln;
     dops_t dops;
 
