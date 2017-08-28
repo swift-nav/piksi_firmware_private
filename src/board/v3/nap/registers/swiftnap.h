@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v3.8.10 register map */
+/* SwiftNAP v3.8.11 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H

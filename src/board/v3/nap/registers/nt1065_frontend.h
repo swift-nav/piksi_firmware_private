@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* NT1065 Frontend v0.3.5 register map */
+/* NT1065 Frontend v0.3.6 register map */
 
 #ifndef NT1065_FRONTEND_H
 #define NT1065_FRONTEND_H
@@ -35,6 +35,7 @@ typedef struct {
   volatile u32 RF4_NCO_RESET;
   volatile u32 DECIMATION0;
   volatile u32 DECIMATION1;
+  const volatile u32 AGC;
 } nt1065_frontend_t;
 
 /* Register: FE_STATUS */
@@ -381,5 +382,42 @@ typedef struct {
   (((REG)&FE_DECIMATION1_RF4B_Msk) >> FE_DECIMATION1_RF4B_Pos)
 #define SET_FE_DECIMATION1_RF4B(REG, VAL) \
   (((REG) & ~FE_DECIMATION1_RF4B_Msk) | ((VAL) << FE_DECIMATION1_RF4B_Pos))
+
+/* Register: FE_AGC */
+#define FE_AGC_RF1A_Pos (0U)
+#define FE_AGC_RF1A_Len (5U)
+#define FE_AGC_RF1A_Rst (0x4U)
+#define FE_AGC_RF1A_Msk (0x1FU << FE_AGC_RF1A_Pos)
+#define GET_FE_AGC_RF1A(REG) (((REG)&FE_AGC_RF1A_Msk) >> FE_AGC_RF1A_Pos)
+
+#define FE_AGC_RF1B_Pos (5U)
+#define FE_AGC_RF1B_Len (5U)
+#define FE_AGC_RF1B_Rst (0x4U)
+#define FE_AGC_RF1B_Msk (0x1FU << FE_AGC_RF1B_Pos)
+#define GET_FE_AGC_RF1B(REG) (((REG)&FE_AGC_RF1B_Msk) >> FE_AGC_RF1B_Pos)
+
+#define FE_AGC_RF2A_Pos (10U)
+#define FE_AGC_RF2A_Len (5U)
+#define FE_AGC_RF2A_Rst (0x4U)
+#define FE_AGC_RF2A_Msk (0x1FU << FE_AGC_RF2A_Pos)
+#define GET_FE_AGC_RF2A(REG) (((REG)&FE_AGC_RF2A_Msk) >> FE_AGC_RF2A_Pos)
+
+#define FE_AGC_RF3A_Pos (15U)
+#define FE_AGC_RF3A_Len (5U)
+#define FE_AGC_RF3A_Rst (0x4U)
+#define FE_AGC_RF3A_Msk (0x1FU << FE_AGC_RF3A_Pos)
+#define GET_FE_AGC_RF3A(REG) (((REG)&FE_AGC_RF3A_Msk) >> FE_AGC_RF3A_Pos)
+
+#define FE_AGC_RF4A_Pos (20U)
+#define FE_AGC_RF4A_Len (5U)
+#define FE_AGC_RF4A_Rst (0x4U)
+#define FE_AGC_RF4A_Msk (0x1FU << FE_AGC_RF4A_Pos)
+#define GET_FE_AGC_RF4A(REG) (((REG)&FE_AGC_RF4A_Msk) >> FE_AGC_RF4A_Pos)
+
+#define FE_AGC_RF4B_Pos (25U)
+#define FE_AGC_RF4B_Len (5U)
+#define FE_AGC_RF4B_Rst (0x4U)
+#define FE_AGC_RF4B_Msk (0x1FU << FE_AGC_RF4B_Pos)
+#define GET_FE_AGC_RF4B(REG) (((REG)&FE_AGC_RF4B_Msk) >> FE_AGC_RF4B_Pos)
 
 #endif
