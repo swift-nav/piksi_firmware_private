@@ -992,7 +992,6 @@ bool nav_data_sync_get(nav_data_sync_t *to_tracker,
 s8 nav_bit_quantize(s32 bit_integrate);
 
 u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
-u16 tracking_lock_counter_get(gnss_signal_t sid);
 
 void tracker_interface_register(tracker_interface_list_element_t *element);
 
