@@ -939,8 +939,27 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
 /**
  * Drops channels with measurement outliers.
  *
- * Check if an unexpected measurement is done and if so, flags the
- * channel for disposal
+ * Three types of outliers are checked:
+ *
+ * 1. Check if an unexpected measurement is done and if so, flags the
+ *    channel for disposal.
+ *
+ * 2. Check the maximum carrier frequency rate due to acceleration.
+ *    Assume that the maximum expected acceleration is 7g and the carrier
+ *    wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
+ *    purpose.
+ *    The check is done by testing a difference of the current
+ *    carrier frequency against the ARRAY_SIZE(tracker->carrier_freq_acc) ms
+ *    old carrier frequency.
+ *
+ * 3. Check the maximum carrier frequency change due to velocity change.
+ *    Unlike the acceleration sanity check above, this check is done
+ *    over a longer time interval. An out-of-lock tracking loop might
+ *    pass the acceleration check above displaying a reasonable
+ *    frequency change rate and yet the integral velocity change could be
+ *    unrealistic. So here we check that the user velocity increase
+ *    does not exceed the value of the configured maximum velocity
+ *    as declared in #MAX_USER_VELOCITY_MPS plus a margin.
  *
  * \param[in,out] tracker Tracker channel data
  *
@@ -955,38 +974,58 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
     (tracker->flags) |= TRACKER_FLAG_OUTLIER;
   }
 
-  /* Check the maximum carrier frequency rate.
-     Assume that the maximum expected acceleration is 7g and the carrier
-     wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
-     purpose. */
-  static const double max_freq_rate_hz_per_s =
-      7. * STD_GRAVITY_ACCELERATION / 0.19;
-  /* The carrier freq diff threshold we do not want to exceed */
-  static const double max_freq_diff_hz = 70;
-  /* work out the time difference needed to check the actual freq rate
-     against max_freq_diff_hz threshold */
-  static const u32 diff_interval_ms =
-      (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
+  /* We keep a history of past carrier freq readings */
+  if (!tracker->carrier_freq_valid) {
+    for (size_t i = 0; i < ARRAY_SIZE(tracker->carrier_freq_acc); i++) {
+      tracker->carrier_freq_acc[i] = tracker->carrier_freq;
+    }
+    for (size_t i = 0; i < ARRAY_SIZE(tracker->carrier_freq_vel); i++) {
+      tracker->carrier_freq_vel[i] = tracker->carrier_freq;
+    }
+    tracker->cfi_acc = tracker->cfi_vel = 0;
+    tracker->carrier_freq_timestamp_ms = tracker->update_count;
+    tracker->carrier_freq_valid = true;
+  }
 
   u32 elapsed_ms = tracker->update_count - tracker->carrier_freq_timestamp_ms;
-  if (elapsed_ms >= diff_interval_ms) {
-    if (!tracker->carrier_freq_prev_valid) {
-      tracker->carrier_freq_prev = tracker->carrier_freq;
-      tracker->carrier_freq_prev_valid = true;
-    }
+  assert(elapsed_ms <= 20);
 
-    double diff_hz = tracker->carrier_freq - tracker->carrier_freq_prev;
-    double elapsed_s = (double)elapsed_ms / SECS_MS;
-    /* the elapsed time could be slightly larger than diff_interval_ms.
-       So let's account for it in max_diff_hz */
-    double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
-    if ((fabs(diff_hz) > max_diff_hz)) {
-      tracker->flags |= TRACKER_FLAG_OUTLIER;
+  for (u8 i = 0; i < elapsed_ms; i++) {
+    tracker->carrier_freq_acc[tracker->cfi_acc] = tracker->carrier_freq;
+    if (0 == tracker->cfi_acc) {
+      tracker->carrier_freq_vel[tracker->cfi_vel] = tracker->carrier_freq;
+      tracker->cfi_vel++;
+      tracker->cfi_vel &= 7;
+      assert(8 == ARRAY_SIZE(tracker->carrier_freq_vel));
     }
-
-    tracker->carrier_freq_prev = tracker->carrier_freq;
-    tracker->carrier_freq_timestamp_ms = tracker->update_count;
+    tracker->cfi_acc++;
+    tracker->cfi_acc &= 0xFF;
+    assert(256 == ARRAY_SIZE(tracker->carrier_freq_acc));
   }
+
+  /* Acceleration sanity check */
+  static const double max_freq_rate_hz_per_s =
+      9. * STD_GRAVITY_ACCELERATION / 0.19;
+  static const double max_acc_freq_diff_hz =
+      max_freq_rate_hz_per_s *
+      ((double)ARRAY_SIZE(tracker->carrier_freq_acc) / SECS_MS);
+
+  double carrier_freq_acc = tracker->carrier_freq_acc[tracker->cfi_acc];
+  double diff_hz = tracker->carrier_freq - carrier_freq_acc;
+  if ((fabs(diff_hz) > max_acc_freq_diff_hz)) {
+    tracker->flags |= TRACKER_FLAG_OUTLIER;
+  }
+
+  /* Velocity sanity check. SV induced Doppler change is deemed to
+     be negligibly small for the time interval in use (couple of seconds). */
+  static const double max_vel_freq_diff_hz = 1.5 * MAX_USER_VELOCITY_MPS / 0.19;
+
+  double carrier_freq_vel = tracker->carrier_freq_vel[tracker->cfi_vel];
+  diff_hz = tracker->carrier_freq - carrier_freq_vel;
+  if ((fabs(diff_hz) > max_vel_freq_diff_hz)) {
+    tracker->flags |= TRACKER_FLAG_OUTLIER;
+  }
+  tracker->carrier_freq_timestamp_ms = tracker->update_count;
 }
 
 /**
