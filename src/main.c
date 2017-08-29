@@ -57,7 +57,7 @@ int main(void) {
   chSysInit();
 
   /* Piksi hardware initialization. */
-  pre_init();
+  pre_initialize12345();
 
   io_support_init();
   sbp_setup();
