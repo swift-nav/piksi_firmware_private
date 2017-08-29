@@ -48,6 +48,5 @@ bool nap_track_supports(u8 channel, const me_gnss_signal_t mesid);
 
 void nap_track_enable(u8 channel);
 void nap_track_disable(u8 channel);
-void nap_scan_channels(void);
 
 #endif /* SWIFTNAV_TRACK_CHANNEL_H */
