@@ -184,20 +184,6 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
   return construct_sid(CODE_INVALID, 0);
 }
 
-/** Return the global signal index for a gnss_signal_t.
- *
- * \note This function only accounts for codes supported on the current
- *       hardware platform.
- *
- * \param sid   gnss_signal_t to use.
- *
- * \return Global signal index in [0, PLATFORM_SIGNAL_COUNT).
- */
-u16 sid_to_global_index(gnss_signal_t sid) {
-  assert(code_supported(sid.code));
-  return code_table[sid.code].global_start_index + sid_to_code_index(sid);
-}
-
 /** Return the global ME signal index for a me_gnss_signal_t.
  *
  * \note This function only accounts for codes supported on the current
