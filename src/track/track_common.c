@@ -371,18 +371,20 @@ static void mode_change_init(tracker_channel_t *tracker_channel) {
                                         tracker_channel->cycle_no);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker_channel, next_cycle);
 
-  if (0 != (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
-    /* The switch is possible only when bit sync counter is updated: get the
-     * bit update interval in ms. */
-    u8 bit_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
+  if (0 == (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+    return;
+  }
 
-    if (tracker_next_bit_aligned(tracker_channel, bit_ms)) {
-      /* When the bit sync is available and the next integration interval is the
-       * last one in the bit, check if the profile switch is required. */
-      if (tp_profile_has_new_profile(tracker_channel)) {
-        /* Initiate profile change */
-        tracker_channel->has_next_params = true;
-      }
+  /* The switch is possible only when bit sync counter is updated: get the
+   * bit update interval in ms. */
+  u8 bit_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
+
+  if (tracker_next_bit_aligned(tracker_channel, bit_ms)) {
+    /* When the bit sync is available and the next integration interval is the
+     * last one in the bit, check if the profile switch is required. */
+    if (tp_profile_has_new_profile(tracker_channel)) {
+      /* Initiate profile change */
+      tracker_channel->has_next_params = true;
     }
   }
 }
