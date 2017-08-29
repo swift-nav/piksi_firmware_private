@@ -1137,8 +1137,8 @@ static chan_meas_flags_t compute_meas_flags(u32 flags,
     }
 
     /* sanity check */
-    if ((flags & TRACKER_FLAG_BIT_POLARITY_KNOWN) &&
-        !(flags & TRACKER_FLAG_HAS_PLOCK)) {
+    if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+        (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
       /* Somehow we managed to decode TOW when phase lock lost.
        * This should not happen, so print out warning. */
       log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
