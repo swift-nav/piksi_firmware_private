@@ -152,7 +152,8 @@ void ext_event_service(u32 events) {
 
     msg_ext_event_t msg;
     msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
-    if (get_time_quality() >= TIME_FINE) {
+    /* Is gps time good, i.e. within 1 microsecond */
+    if (get_time_quality() >= TIME_PROPAGATED) {
       msg.flags |= (1 << 1);
     }
     msg.pin = event_pin;

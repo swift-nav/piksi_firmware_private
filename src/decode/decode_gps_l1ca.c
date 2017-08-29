@@ -523,13 +523,15 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
         /* if time is not already known, construct coarse time from ephemeris'
          * time of week and decoded TOW_ms */
         if (TIME_UNKNOWN == get_time_quality()) {
+          gps_time_t t = GPS_TIME_UNKNOWN;
           tracker_channel_t *tracker_channel =
               tracker_channel_get(channel_info->tracking_channel);
-          gps_time_t t = GPS_TIME_UNKNOWN;
+          chMtxLock(&tracker_channel->mutex);
           t.tow = (double)tracker_channel->nav_data_sync.TOW_ms / SECS_MS +
                   GPS_NOMINAL_RANGE / GPS_C;
+          chMtxUnlock(&tracker_channel->mutex);
           gps_time_match_weeks(&t, &dd.ephemeris.toe);
-          set_time(TIME_COARSE, t, nap_timing_count());
+          set_time(TIME_COARSE, &t, nap_timing_count());
         }
         break;
       case EPH_NEW_ERR:
