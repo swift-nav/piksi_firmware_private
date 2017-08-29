@@ -206,55 +206,19 @@ static void update_obss(obss_t *new_obss) {
     return;
   }
 
-  bool have_obs = true;
-
-  base_obss.n = new_obss->n;
-  MEMCPY_S(base_obss.nm,
-           sizeof(base_obss.nm),
-           new_obss->nm,
-           new_obss->n * sizeof(navigation_measurement_t));
-
-  /* Assume that we don't know the known, surveyed base position for now. */
-  base_obss.has_known_pos_ecef = false;
-
-  /* Copy over sender ID. */
-  base_obss.sender_id = new_obss->sender_id;
-
-  /* Check if the base sender ID has changed and reset the RTK filter if
-   * it has.
-   */
-  if ((old_base_sender_id != 0) &&
-      (old_base_sender_id != base_obss.sender_id)) {
-    log_warn(
-        "Base station sender ID changed from %u to %u. Resetting RTK"
-        " filter.",
-        old_base_sender_id,
-        base_obss.sender_id);
-    reset_rtk_filter();
-    chMtxLock(&base_pos_lock);
-    base_pos_known = false;
-    memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
-    chMtxUnlock(&base_pos_lock);
-  }
-  old_base_sender_id = base_obss.sender_id;
-
-  /* Copy over the time. */
-  base_obss.tor = new_obss->tor;
-
   /* Count distinct satellites */
   gnss_sid_set_t codes;
   sid_set_init(&codes);
-  for (u8 i = 0; i < base_obss.n; i++) {
-    sid_set_add(&codes, base_obss.nm[i].sid);
+  for (u8 i = 0; i < new_obss->n; i++) {
+    sid_set_add(&codes, new_obss->nm[i].sid);
   }
 
-  /* Require at least 5 signals from at least 4 distinct satellites */
-  if (base_obss.n >= 5 && sid_set_get_sat_count(&codes) >= 4) {
-    gnss_solution soln;
-    dops_t dops;
-
+  /* Require at least 5 distinct satellites */
+  if (sid_set_get_sat_count(&codes) >= MIN_SATS_FOR_PVT) {
+    bool base_changed = (old_base_sender_id != 0) &&
+                        (old_base_sender_id != new_obss->sender_id);
     /* check if we have fix, if yes, calculate iono and tropo correction */
-    if (base_obss.has_pos) {
+    if (!base_changed && base_obss.has_pos) {
       double llh[3];
       wgsecef2llh(base_obss.pos_ecef, llh);
       log_debug("Base: IONO/TROPO correction");
@@ -264,22 +228,60 @@ static void update_obss(obss_t *new_obss) {
       if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
+      // Use the previous ECEF position to get the iono/tropo for the new
+      // measurements
       calc_iono_tropo(
-          base_obss.n, base_obss.nm, base_obss.pos_ecef, llh, p_i_params);
+          new_obss->n, new_obss->nm, base_obss.pos_ecef, llh, p_i_params);
     }
+
+    gnss_solution soln;
+    dops_t dops;
 
     /* Calculate a position solution. */
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
     s32 ret = calc_PVT(
-        base_obss.n, base_obss.nm, disable_raim, true, &soln, &dops, NULL);
+        new_obss->n, new_obss->nm, disable_raim, true, &soln, &dops, NULL);
 
     if (ret >= 0 && soln.valid) {
+      /* Copy over the time. */
+      base_obss.tor = new_obss->tor;
+
+      base_obss.n = new_obss->n;
+      MEMCPY_S(base_obss.nm,
+               sizeof(base_obss.nm),
+               new_obss->nm,
+               new_obss->n * sizeof(navigation_measurement_t));
+
+      /* Assume that we don't know the known, surveyed base position for now. */
+      base_obss.has_known_pos_ecef = false;
+
       MEMCPY_S(base_obss.pos_ecef,
                sizeof(base_obss.pos_ecef),
                soln.pos_ecef,
                sizeof(soln.pos_ecef));
+
+      /* Copy over sender ID. */
+      base_obss.sender_id = new_obss->sender_id;
+
+      /* Check if the base sender ID has changed and reset the RTK filter if
+       * it has.
+       */
+      if (base_changed) {
+        log_warn(
+            "Base station sender ID changed from %u to %u. Resetting RTK"
+            " filter.",
+            old_base_sender_id,
+            base_obss.sender_id);
+        reset_rtk_filter();
+        chMtxLock(&base_pos_lock);
+        base_pos_known = false;
+        memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
+        chMtxUnlock(&base_pos_lock);
+      }
+      old_base_sender_id = base_obss.sender_id;
+
       base_obss.has_pos = 1;
 
       chMtxLock(&base_pos_lock);
@@ -316,34 +318,30 @@ static void update_obss(obss_t *new_obss) {
         base_obss.has_known_pos_ecef = false;
       }
       chMtxUnlock(&base_pos_lock);
+
+      obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
+      if (new_base_obs == NULL) {
+        detailed_log_error(
+            "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
+            base_obss.tor.wn,
+            base_obss.tor.tow);
+        return;
+      }
+
+      *new_base_obs = base_obss;
+
+      const msg_t post_ret =
+          chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
+      if (post_ret != MSG_OK) {
+        detailed_log_error("Base obs mailbox should have space!");
+        chPoolFree(&base_obs_buff_pool, new_base_obs);
+      }
     } else {
       base_obss.has_pos = 0;
       /* TODO(dsk) check for repair failure */
       /* There was an error calculating the position solution. */
       log_warn("Error calculating base station position: (%s).",
                pvt_err_msg[-ret - 1]);
-    }
-  } else {
-    base_obss.has_pos = 0;
-  }
-
-  if (have_obs) {
-    obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
-    if (new_base_obs == NULL) {
-      detailed_log_error(
-          "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
-          base_obss.tor.wn,
-          base_obss.tor.tow);
-      return;
-    }
-
-    *new_base_obs = base_obss;
-
-    const msg_t post_ret =
-        chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
-    if (post_ret != MSG_OK) {
-      detailed_log_error("Base obs mailbox should have space!");
-      chPoolFree(&base_obs_buff_pool, new_base_obs);
     }
   }
 }
