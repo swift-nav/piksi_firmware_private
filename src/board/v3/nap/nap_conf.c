@@ -96,7 +96,7 @@ void nap_rd_dna(u8 dna[]) {
 }
 
 bool nap_locked(void) {
-  return GET_NAP_STATUS_AUTH_LOCKED(NAP->STATUS) ? true : false;
+  return GET_NAP_STATUS_LOCKED(NAP->STATUS) ? true : false;
 }
 
 void nap_unlock(const u8 key[]) {
