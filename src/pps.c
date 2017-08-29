@@ -45,7 +45,7 @@ static void pps_thread(void *arg) {
   chRegSetThreadName("PPS");
 
   while (TRUE) {
-    if (get_time_quality() >= TIME_FINE && !nap_pps_armed()) {
+    if (get_time_quality() >= TIME_PROPAGATED && !nap_pps_armed()) {
       gps_time_t t = get_current_gps_time();
 
       t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
