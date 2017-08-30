@@ -800,10 +800,6 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
         tracker_channel, state->cur.index + 1, "next");
   }
 
-  if ((cur_profile->profile.pll_bw < 0) || (cur_profile->profile.fll_bw < 0)) {
-    return profile_switch_requested(tracker_channel, state->cur.index, "bw");
-  }
-
   return false;
 }
 

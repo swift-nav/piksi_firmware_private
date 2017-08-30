@@ -785,11 +785,12 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
       tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
     }
 
-    u64 now_ms = timing_getms();
-    u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
     if (!outp_phase_prev && tracker_channel->ld_phase.outp) {
-      log_debug_mesid(tracker_channel->mesid, "Phase lock after %" PRIu32 "ms",
-                     time_in_track_ms);
+      u64 now_ms = timing_getms();
+      u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Phase lock after %" PRIu32 "ms",
+                      time_in_track_ms);
     }
   }
   /*
