@@ -291,9 +291,9 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   /* initial profiles */
   [IDX_NONAME_0] =
-  { {   0,              3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {    0,            20,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
             TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
-        50,             0,            0,              0,                      0,
+       100,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_UNAIDED },
 
@@ -974,6 +974,14 @@ static bool profile_switch_requested(const me_gnss_signal_t mesid,
   float pll_bw = state->profiles[index].profile.pll_bw;
   if ((pll_bw > 0) && (int_time > max_pll_integration_time_ms)) {
     return false; /* setting prevents us doing longer integration time */
+  }
+
+  state->dll_init = false;
+  const tp_profile_entry_t *cur = &state->profiles[state->cur_index];
+  const tp_profile_entry_t *next = &state->profiles[index];
+  if ((0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED))) {
+    /* Unaided DLL velocity causes instability when switching to aided DLL */
+    state->dll_init = true;
   }
 
   state->lock_time_ms = state->profiles[index].lock_time_ms;
