@@ -172,7 +172,9 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
   config.fll_discr_freq =
       1000.f / tp_get_flld_ms(tracker_channel->tracking_mode);
 
-  if (init) {
+  tp_profile_t *profile = &tracker_channel->profile;
+  /* DLL init could be done nicer by initing DLL only */
+  if (init || profile->dll_init) {
     log_debug_mesid(mesid, "Initializing TL");
 
     tp_tl_init(&tracker_channel->tl_state,
