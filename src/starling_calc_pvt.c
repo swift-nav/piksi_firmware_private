@@ -94,7 +94,7 @@ double heading_offset = 0.0;
 bool disable_klobuchar = false;
 
 bool enable_glonass_in_spp = true;
-bool enable_glonass_in_rtk = false;
+bool enable_glonass_in_rtk = true;
 float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;
