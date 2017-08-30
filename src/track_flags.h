@@ -63,4 +63,6 @@
 /** Tracker flag: measurement was excluded by RAIM */
 #define TRACKER_FLAG_RAIM_EXCLUSION (1 << 28)
 
+#define TRACKER_FLAG_SENSITIVITY_MODE (1 << 29)
+
 #endif

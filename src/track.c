@@ -616,10 +616,11 @@ static void tracking_channel_compute_values(
   }
   if (NULL != ctrl_params) {
     /* Copy loop controller parameters */
-    ctrl_params->pll_bw = tracker_channel->ctrl_params.pll_bw;
-    ctrl_params->fll_bw = tracker_channel->ctrl_params.fll_bw;
-    ctrl_params->dll_bw = tracker_channel->ctrl_params.dll_bw;
-    ctrl_params->int_ms = tracker_channel->ctrl_params.int_ms;
+    tp_profile_t *profile = &tracker_channel->profile;
+    ctrl_params->pll_bw = profile->loop_params.carr_bw;
+    ctrl_params->fll_bw = profile->loop_params.fll_bw;
+    ctrl_params->dll_bw = profile->loop_params.code_bw;
+    ctrl_params->int_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
   }
   if (NULL != reset_cpo) {
     *reset_cpo = tracker_channel->reset_cpo;

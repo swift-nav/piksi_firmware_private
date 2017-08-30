@@ -41,9 +41,7 @@
  * C/N0 estimator types
  */
 typedef enum {
-  TRACK_CN0_EST_BASIC, /**< Basic estimator */
-  TRACK_CN0_EST_PRIMARY = TRACK_CN0_EST_BASIC,
-  TRACK_CN0_EST_SECONDARY = TRACK_CN0_EST_BASIC
+  TRACK_CN0_EST_BASIC /**< Basic estimator */
 } track_cn0_est_e;
 
 /**

@@ -16,57 +16,56 @@
 #define TP_FLAGS_INIT_DEFAULT                                                  \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |              \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
+   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET)
 
-#define TP_FLAGS_DYNAMICS_DEFAULT_FIRST                           \
+#define TP_FLAGS_1MS_FIRST                                        \
   (TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |       \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | \
    TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST)
 
-#define TP_FLAGS_DYNAMICS_DEFAULT_SECOND                          \
+#define TP_FLAGS_1MS_SECOND                                       \
   (TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |       \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND)
+   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
 
-#define TP_FLAGS_SHORT_DEFAULT                                \
-  (TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_BSYNC_SET | \
-   TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET)
+#define TP_FLAGS_SHORT \
+  (TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_BSYNC_SET | TP_CFLAG_LD_SET)
+
+#define TP_FLAGS_SHORT_ADD \
+  (TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_LD_ADD)
 
 #define TP_FLAGS_2MS_FIRST                                        \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_SET |       \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST)
+   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET)
 
 #define TP_FLAGS_2MS_SECOND                                                    \
   (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | \
    TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |              \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_USE |                     \
-   TP_CFLAG_FLL_SECOND)
+   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD)
 
-#define TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST                        \
+#define TP_FLAGS_5MS_FIRST                                        \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD | \
    TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |       \
    TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD | \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
+   TP_CFLAG_LD_USE)
 
-#define TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND                        \
+#define TP_FLAGS_5MS_SECOND                                        \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | \
    TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |        \
    TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD |  \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND |      \
-   TP_CFLAG_FLL_USE)
+   TP_CFLAG_LD_USE)
 
-#define TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST                        \
+#define TP_FLAGS_10MS_FIRST                                        \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |  \
    TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | \
-   TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
+   TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE)
 
-#define TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND                       \
+#define TP_FLAGS_10MS_SECOND                                       \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | \
    TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |        \
    TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |  \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND |      \
-   TP_CFLAG_FLL_USE)
+   TP_CFLAG_LD_USE)
 
 /**
  * State entry.
@@ -84,7 +83,7 @@ typedef struct {
   u8 cn0_ms;                     /**< C/N0 estimator integration time */
   u8 ld_ms;                      /**< Lock detector integration time */
   u8 fl_ms;                      /**< Alias detector integration time */
-  u8 flld_ms;                    /**< FLL discriminator integration time */
+  float flld_ms;                 /**< FLL discriminator integration time */
   u8 flll_ms;                    /**< FLL loop integration time */
   u8 bit_ms;                     /**< Data update period */
   u8 ent_cnt;                    /**< State entries count */
@@ -99,71 +98,70 @@ static const state_table_t mode_1msINI = {
     .cn0_ms = 1,
     .ld_ms = 1,
     .fl_ms = 1,
-    .flld_ms = 10,
-    .flll_ms = 10,
+    .flld_ms = 1,
+    .flll_ms = 1,
     .bit_ms = 1,
     .ent_cnt = 20,
     .entries = {
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_USE},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT},
-        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_USE},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_FIRST},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
+        {1, TP_FLAGS_INIT_DEFAULT | TP_CFLAG_FLL_SECOND},
     }};
 
 /**
- * Dynamics tracking mode (bit sync, FLL-assisted PLL, 1 ms)
+ * 1ms tracking mode (bit sync, FLL-assisted PLL)
  */
-static const state_table_t mode_1msDYN = {
+/* clang-format off */
+static const state_table_t mode_1ms = {
     .int_ms = 1,
     .cn0_ms = 10,
     .ld_ms = 1,
     .fl_ms = 1,
-    .flld_ms = 9,
-    .flll_ms = 10,
+    .flld_ms = 1,
+    .flll_ms = 1,
     .bit_ms = 1,
     .ent_cnt = 20,
     .entries = {
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_FIRST},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1,
-         TP_FLAGS_DYNAMICS_DEFAULT_SECOND | TP_CFLAG_CN0_USE |
-             TP_CFLAG_FLL_USE},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_FIRST},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1, TP_FLAGS_DYNAMICS_DEFAULT_SECOND},
-        {1,
-         TP_FLAGS_DYNAMICS_DEFAULT_SECOND | TP_CFLAG_CN0_USE |
-             TP_CFLAG_FLL_USE},
+        {1, TP_FLAGS_1MS_FIRST},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND | TP_CFLAG_CN0_USE},
+
+        {1, TP_FLAGS_1MS_FIRST },
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND},
+        {1, TP_FLAGS_1MS_SECOND | TP_CFLAG_CN0_USE},
     }};
+/* clang-format on */
 
 /**
  * 2ms integration profile
@@ -174,59 +172,73 @@ static const state_table_t mode_2ms = {
     .cn0_ms = 1,
     .ld_ms = 1,
     .fl_ms = 1,
-    .flld_ms = 1,
+    .flld_ms = 2,
     .flll_ms = 2,
     .bit_ms = 1,
     .ent_cnt = 20,
     .entries = {{1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_FIRST},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
+
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_FIRST},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND},
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND},
                 {1, TP_FLAGS_2MS_FIRST},
-                {1, TP_FLAGS_2MS_SECOND}}};
+                {1, TP_FLAGS_2MS_SECOND | TP_CFLAG_FLL_SECOND}}};
 /* clang-format on */
 
 /**
- * 5 ms integrations; 1+N mode.
+ * 5 ms integrations
  */
-static const state_table_t mode_5ms1PN = {
+/* clang-format off */
+static const state_table_t mode_5ms = {
     .int_ms = 5,
     .cn0_ms = 5,
     .ld_ms = 5,
     .fl_ms = 5,
-    .flld_ms = 5,
-    .flll_ms = 10,
+    .flld_ms = 2.5,
+    .flll_ms = 5,
     .bit_ms = 5,
-    .ent_cnt = 8,
+    .ent_cnt = 12,
     .entries = {
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_ADD},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_FIRST},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_ADD},
-        {4, TP_FLAGS_5MS1PN_LONG_DEFAULT_SECOND},
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET},
+        {1, TP_FLAGS_SHORT_ADD | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST |
+            TP_CFLAG_ALIAS_ADD},
+        {3, TP_FLAGS_5MS_FIRST | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND},
+
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_ADD},
+        {1, TP_FLAGS_SHORT_ADD | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND |
+            TP_CFLAG_ALIAS_ADD},
+        {3, TP_FLAGS_5MS_SECOND | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND},
+
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET},
+        {1, TP_FLAGS_SHORT_ADD | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST |
+            TP_CFLAG_ALIAS_SET},
+        {3, TP_FLAGS_5MS_FIRST | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND},
+
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_ADD},
+        {1, TP_FLAGS_SHORT_ADD | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND |
+            TP_CFLAG_ALIAS_ADD},
+        {3, TP_FLAGS_5MS_SECOND | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND},
     }};
+/* clang-format on */
 
 /**
- * 10 ms integrations; 1+N5 mode.
+ * 10 ms integrations
  */
-static const state_table_t mode_10ms1PN5 = {
+static const state_table_t mode_10ms = {
     .int_ms = 10,
     .cn0_ms = 10,
     .ld_ms = 5,
@@ -236,28 +248,30 @@ static const state_table_t mode_10ms1PN5 = {
     .bit_ms = 5,
     .ent_cnt = 6,
     .entries = {
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST},
-        {5, TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND},
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST},
-        {5, TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND},
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET},
+        {4, TP_FLAGS_10MS_FIRST | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST},
+        {5, TP_FLAGS_10MS_SECOND | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND},
+
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET},
+        {4, TP_FLAGS_10MS_FIRST | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST},
+        {5, TP_FLAGS_10MS_SECOND | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND},
     }};
 
 /**
- * 20 ms integrations; 1+N5 mode.
+ * 20 ms integrations
  */
-static const state_table_t mode_20ms1PN5 = {
+/* clang-format off */
+static const state_table_t mode_20ms = {
     .int_ms = 20,
     .cn0_ms = 20,
     .ld_ms = 5,
     .fl_ms = 5,
-    .flld_ms = 15,
+    .flld_ms = 5,
     .flll_ms = 20,
     .bit_ms = 5,
     .ent_cnt = 5,
     .entries = {
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
+        {1, TP_FLAGS_SHORT | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET},
         {4,
          (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |
           TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
@@ -277,9 +291,10 @@ static const state_table_t mode_20ms1PN5 = {
          (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
           TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |
           TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |
-          TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND |
-          TP_CFLAG_FLL_USE)},
+          TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)}
     }};
+
+/* clang-format on */
 
 /**
  * Helper for locating tracker state table.
@@ -293,20 +308,20 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
     case TP_TM_INITIAL:
       return &mode_1msINI;
 
-    case TP_TM_5MS:
-      return &mode_5ms1PN;
-
     case TP_TM_1MS:
-      return &mode_1msDYN;
+      return &mode_1ms;
 
     case TP_TM_2MS:
       return &mode_2ms;
 
+    case TP_TM_5MS:
+      return &mode_5ms;
+
     case TP_TM_10MS:
-      return &mode_10ms1PN5;
+      return &mode_10ms;
 
     case TP_TM_20MS:
-      return &mode_20ms1PN5;
+      return &mode_20ms;
 
     default:
       assert(!"Invalid mode");
@@ -480,7 +495,7 @@ u8 tp_get_alias_ms(tp_tm_e tracking_mode) {
  *
  * \return FLL discriminator update period in ms.
  */
-u8 tp_get_flld_ms(tp_tm_e tracking_mode) {
+float tp_get_flld_ms(tp_tm_e tracking_mode) {
   const state_table_t *tbl = select_table(tracking_mode);
 
   assert(NULL != tbl);
