@@ -16,6 +16,8 @@
 #include <ephemeris.h>
 #include <libswiftnav/signal.h>
 
+#include "piksi_systime.h"
+
 /** Minimum value for C/N0 to update ToW cache [dB/Hz] */
 #define CN0_TOW_CACHE_THRESHOLD (30.f)
 
@@ -25,7 +27,7 @@
 typedef struct {
   s32 TOW_ms;          /**< ToW value [ms] */
   s32 TOW_residual_ns; /**< Residual to TOW_ms [ns] */
-  u64 sample_time_tk;  /**< ToW value time [ticks] */
+  piksi_systime_t sample_time; /**< ToW value time */
 } tp_tow_entry_t;
 
 /**
@@ -39,7 +41,7 @@ typedef struct {
 
 void track_sid_db_init(void);
 void track_sid_db_clear_glo_tow(void);
-s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_tk, u8 ms_align, double *error_ms);
+s32 tp_tow_compute(s32 old_ToW_ms, u64 delta_us, u8 ms_align, double *error_ms);
 bool tp_tow_is_sane(s32 tow_ms);
 void track_sid_db_load_tow(const gnss_signal_t sid, tp_tow_entry_t *tow_entry);
 void track_sid_db_update_tow(const gnss_signal_t sid,

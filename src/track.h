@@ -508,6 +508,9 @@ typedef struct {
   /** Time at which the channel was disabled. */
   piksi_systime_t disable_time;
 
+  /** Time at which the channel was updated. */
+  piksi_systime_t update_time;
+
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
   /** Used to sync time decoded from navigation message
@@ -1033,6 +1036,8 @@ update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
                                  const update_count_t *val);
 void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
 void tracker_cleanup(tracker_channel_t *tracker_channel);
+
+void update_tow_gps(tracker_channel_t *tracker_channel, u32 cycle_flags);
 
 /* for GLO L1/L2 tow propagation */
 void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags);
