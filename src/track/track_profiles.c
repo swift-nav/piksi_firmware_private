@@ -262,7 +262,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   [IDX_2MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,              TP_TM_2MS,
-               TP_TM_1MS },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
+               TP_TM_2MS },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            50,          39,          45,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
