@@ -56,10 +56,10 @@
    TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND |      \
    TP_CFLAG_FLL_USE)
 
-#define TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST                        \
-  (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |  \
-   TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | \
-   TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
+#define TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST                                    \
+  (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |              \
+   TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | \
+   TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST)
 
 #define TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND                       \
   (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD | \
@@ -225,6 +225,38 @@ static const state_table_t mode_5ms1PN = {
 
 /**
  * 10 ms integrations; 1+N5 mode.
+ * This mode is used in 10ms PLL+DLL mode for GPS and GLO and
+ * in 10ms FLL+DLL mode for GLO only.
+ * There were cases, when FLL was tracking an GLO alias offset by 200Hz.
+ * To let FLL discriminator detect the alias and be robust to
+ * all other GPS and GLO aliases we use (1+3) + 6 scheme.
+ * The following table clarifies what are the frequency errors
+ * that could be detected by FLL discriminator with different integration
+ * times:
+ *
+ * | error [Hz] |   1ms | 4ms |   5ms |    6ms |    7ms |
+ * |------------+-------+-----+-------+--------+--------|
+ * |         25 | 0.025 | 0.1 | 0.125 |    1.5 |  0.175 |
+ * |         50 |  0.05 | 0.2 |  0.25 |    0.3 |   0.35 |
+ * |         75 | 0.075 | 0.3 | 0.375 |   0.45 |  0.525 |
+ * |        100 |   0.1 | 0.4 |   0.5 |    0.5 |    0.7 |
+ * |        125 | 0.125 | 0.5 | 0.625 |   0.75 |  0.875 |
+ * |        150 | 0.150 | 0.6 |  0.75 |    0.9 | *1.05* |
+ * |        175 | 0.175 | 0.7 | 0.875 | *1.05* |  1.225 |
+ * |        200 | 0.200 | 0.8 | *1.0* |    1.2 |    1.4 |
+ * |        225 | 0.225 | 0.9 | 1.125 |   1.35 |  1.575 |
+ * |        250 | 0.250 | 1.0 |  1.25 |    1.5 |   1.75 |
+ * |        275 | 0.275 | 1.1 | 1.375 |   1.65 |  1.925 |
+ * |        300 | 0.300 | 1.2 |   1.5 |    1.8 |    2.1 |
+ *
+ * The columns for different integration times indicate the frequency
+ * errors as they are seen by the frequency discriminator.
+ * The ones, which are close to multiple of 1Hz are particularly
+ * bad as they are not detected by the discriminator.
+ * The selected 4 + 6 scheme should allow us to eliminate false
+ * lock across all possible frequency aliases.
+ * The same reasoning should also apply to the alias lock detector
+ * performance used to correct frequency errors in PLL.
  */
 static const state_table_t mode_10ms1PN5 = {
     .int_ms = 10,
@@ -233,15 +265,15 @@ static const state_table_t mode_10ms1PN5 = {
     .fl_ms = 5,
     .flld_ms = 5,
     .flll_ms = 10,
-    .bit_ms = 5,
+    .bit_ms = 10,
     .ent_cnt = 6,
     .entries = {
         {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST},
-        {5, TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND},
+        {3, TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST},
+        {6, TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND},
         {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4, TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST},
-        {5, TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND},
+        {3, TP_FLAGS_10MS1PN_LONG_DEFAULT_FIRST},
+        {6, TP_FLAGS_10MS1PN_LONG_DEFAULT_SECOND},
     }};
 
 /**
