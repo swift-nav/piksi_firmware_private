@@ -291,9 +291,9 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   /* initial profiles */
   [IDX_NONAME_0] =
-  { {   40,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {    0,            20,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
             TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
-        50,             0,            0,              0,                      0,
+       100,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_UNAIDED },
 
