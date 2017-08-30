@@ -315,7 +315,7 @@ ndb_timestamp_t ndb_get_timestamp(void) {
  * \return GPS time in seconds
  */
 gps_time_t ndb_get_GPS_timestamp(void) {
-  return (TIME_FINE == get_time_quality())
+  return (TIME_UNKNOWN != get_time_quality())
              ? napcount2rcvtime(nap_timing_count())
              : GPS_TIME_UNKNOWN;
 }

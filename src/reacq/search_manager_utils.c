@@ -91,7 +91,7 @@ bool sm_is_healthy(gnss_signal_t sid) {
  */
 bool sm_lgf_stamp(u64 *lgf_stamp) {
   last_good_fix_t lgf;
-  if (get_time_quality() < TIME_COARSE) {
+  if (TIME_UNKNOWN == get_time_quality()) {
     return false;
   }
   if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||

@@ -42,34 +42,69 @@ static MUTEX_DECL(clock_mutex);
 
 /** Update GPS time estimate.
  *
- * This function may be called to update the GPS time estimate. If the time is
- * already known more precisely than the new estimate, the new estimate will be
- * ignored.
- *
- * This function should not be used to give an estimate with TIME_FINE quality
- * as this must be referenced to a particular value of the SwiftNAP timing
- * count.
+ * This function updates the GPS time estimate precisely referenced against
+ * receiver time. Depending on the current and new time quality, we either
+ * re-initialize the clock model, or fine-tune the clock offset, or ignore the
+ * new estimate altogether if current time quality is already better.
  *
  * \param quality Quality of the time estimate.
- * \param t GPS time estimate.
+ * \param t Pointer to GPS time estimate.
+ * \param tc SwiftNAP timing count.
  */
-void set_time(time_quality_t quality, gps_time_t t) {
+void set_time(time_quality_t new_quality, const gps_time_t *t, u64 tc) {
+  bool quality_updated = false;
+
+  if (time_quality >= TIME_FINE && new_quality >= TIME_FINE) {
+    /* Time quality is already fine, so we just fine-tune the clock offset */
+    gps_time_t rcv_time = napcount2rcvtime(tc);
+    double time_diff = gpsdifftime(&rcv_time, t);
+
+    chMtxLock(&clock_mutex);
+    clock_state.clock_offset = time_diff;
+    if (new_quality != time_quality) {
+      time_quality = new_quality;
+      quality_updated = true;
+    }
+    chMtxUnlock(&clock_mutex);
+  } else if (new_quality >= time_quality) {
+    /* Current time quality is less than fine: re-initialize the clock state */
+    gps_time_t t0 = *t;
+    add_secs(&t0, -(tc * RX_DT_NOMINAL));
+
+    chMtxLock(&clock_mutex);
+    clock_state.t0_gps = t0;
+    clock_state.clock_offset = 0.0;
+    clock_state.clock_period = RX_DT_NOMINAL;
+    time_quality = new_quality;
+    chMtxUnlock(&clock_mutex);
+
+    quality_updated = true;
+  }
+
+  if (quality_updated) {
+    time_t unix_t = gps2time(t);
+    log_info("(quality=%d) Time set to: %s", new_quality, ctime(&unix_t));
+  }
+}
+
+/** Downgrade GPS time estimate quality.
+ *
+ * This is to be used when time quality drops.
+ *
+ * \param quality Quality of the time estimate.
+ */
+void downgrade_time_quality(time_quality_t quality) {
   bool updated = false;
-  gps_time_t norm_time = t;
-  norm_time.tow -= nap_timing_count() * RX_DT_NOMINAL;
-  normalize_gps_time(&norm_time);
 
   chMtxLock(&clock_mutex);
-  if (quality > time_quality) {
-    clock_state.t0_gps = norm_time;
+  if (quality < time_quality) {
     time_quality = quality;
     updated = true;
   }
   chMtxUnlock(&clock_mutex);
 
   if (updated) {
-    time_t unix_t = gps2time(&t);
-    log_info("(quality=%d) Time set to: %s", TIME_FINE, ctime(&unix_t));
+    log_info("(quality=%d) Downgraded time quality", quality);
   }
 }
 
@@ -92,40 +127,6 @@ void clock_est_init(clock_est_state_t *s) {
   s->P[0][1] = 0;
   s->P[1][0] = 0;
   s->P[1][1] = (double)RX_DT_NOMINAL * RX_DT_NOMINAL / 1e12; /* 1ppm. */
-  chMtxUnlock(&clock_mutex);
-}
-
-/** Update GPS time estimate precisely referenced to the local receiver time.
- *
- * \param tc SwiftNAP timing count.
- * \param t GPS time estimate associated with timing count.
- */
-void set_time_fine(u64 tc, gps_time_t t) {
-  gps_time_t norm_time = t;
-  norm_time.tow -= tc * RX_DT_NOMINAL;
-  normalize_gps_time(&norm_time);
-
-  chMtxLock(&clock_mutex);
-  clock_state.t0_gps = norm_time;
-  clock_state.clock_offset = 0.0;
-  time_quality = TIME_FINE;
-  chMtxUnlock(&clock_mutex);
-
-  time_t unix_t = gps2time(&t);
-  log_info("Time set to: %s (quality=%d)", ctime(&unix_t), TIME_FINE);
-}
-
-/** Update GPS time estimate precisely referenced to the local receiver time.
- *
- * \param tc SwiftNAP timing count.
- * \param t GPS time estimate associated with timing count.
- */
-void set_gps_time_offset(u64 tc, gps_time_t t) {
-  gps_time_t rcv_time = napcount2rcvtime(tc);
-  double time_diff = gpsdifftime(&rcv_time, &t);
-
-  chMtxLock(&clock_mutex);
-  clock_state.clock_offset = time_diff;
   chMtxUnlock(&clock_mutex);
 }
 
@@ -264,7 +265,7 @@ static void set_time_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   gps_time_t *t = (gps_time_t *)msg;
 
-  set_time(TIME_COARSE, *t);
+  set_time(TIME_COARSE, t, nap_timing_count());
 }
 
 /** Setup timing functionality.

@@ -347,8 +347,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
                  pe);
   }
 
-  time_quality_t tq = get_time_quality();
-  if (TIME_FINE != tq) {
+  if (TIME_UNKNOWN == get_time_quality()) {
     ndb_ephe_release_candidate(cand_idx);
     ndb_ephe_try_adding_candidate(new);
     r = NDB_CAND_GPS_TIME_MISSING;

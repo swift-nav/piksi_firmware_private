@@ -282,13 +282,15 @@ static void me_calc_pvt_thread(void *arg) {
   while (TRUE) {
     /* read current value of soln_freq into a local variable that does not
      * change during this loop iteration */
+    chSysLock();
     double soln_freq = soln_freq_setting;
+    chSysUnlock();
 
     /* sleep until next epoch, and update the deadline */
     me_thd_sleep(&next_epoch, SECS_US / soln_freq);
     watchdog_notify(WD_NOTIFY_ME_CALC_PVT);
 
-    if (get_time_quality() >= TIME_COARSE && lgf.position_solution.valid &&
+    if (TIME_UNKNOWN != get_time_quality() && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
        * (currently once every 30 seconds) */
@@ -306,7 +308,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* If gps time is available, round the reception time to the nearest
      * solution epoch */
-    if (TIME_FINE == get_time_quality()) {
+    if (TIME_PROPAGATED <= get_time_quality()) {
       /* If we have timing then we can calculate the relationship between
        * receiver time and GPS time and hence provide the pseudorange
        * calculation with the local GPS time of reception. */
@@ -317,8 +319,26 @@ static void me_calc_pvt_thread(void *arg) {
                  ((epoch_tc + (FCN_NCO_RESET_COUNT / 2)) / FCN_NCO_RESET_COUNT);
 
       if (gpsdifftime(&epoch_time, &lgf.position_solution.time) <= 0) {
-        log_info("Next epoch is in the past, skipping");
+        /* We are already past the next solution epoch, can happen when solution
+         * frequency changes */
+        log_info(
+            "Next epoch (wn %d tow %f) is in the past wrt (wn %d tow %f), "
+            "skipping",
+            epoch_time.wn,
+            epoch_time.tow,
+            lgf.position_solution.time.wn,
+            lgf.position_solution.time.tow);
         continue;
+      }
+
+      if (gpsdifftime(&rec_time, &lgf.position_solution.time) >
+          MAX_TIME_PROPAGATED_S) {
+        /* too long time from last time solution, downgrade position and time
+         * qualities */
+        downgrade_time_quality(TIME_COARSE);
+        if (lgf.position_quality > POSITION_STATIC) {
+          lgf.position_quality = POSITION_STATIC;
+        }
       }
     }
 
@@ -467,6 +487,9 @@ static void me_calc_pvt_thread(void *arg) {
       if (lgf.position_quality > POSITION_STATIC) {
         lgf.position_quality = POSITION_STATIC;
       }
+
+      /* If we already have time solution, degrade it into PROPAGATED */
+      downgrade_time_quality(TIME_PROPAGATED);
       continue;
     }
 
@@ -496,39 +519,37 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
-    if (get_time_quality() < TIME_FINE) {
-      /* If the time quality is not FINE then our receiver clock bias isn't
-       * known. We should only use this PVT solution to update our time
-       * estimate and then skip all other processing.
+    /* Update global position solution state. */
+    lgf.position_solution = current_fix;
+    lgf.position_quality = POSITION_FIX;
+    ndb_lgf_store(&lgf);
+
+    time_quality_t old_time_quality = get_time_quality();
+
+    /* Update the relationship between the solved GPS time and NAP count tc.
+     * Set to TIME_FINE if RAIM was not available, otherwise to TIME_FINEST. */
+    time_quality_t new_time_quality =
+        PVT_CONVERGED_NO_RAIM == pvt_ret ? TIME_FINE : TIME_FINEST;
+    set_time(new_time_quality, &current_fix.time, epoch_tc);
+
+    if (TIME_PROPAGATED > old_time_quality) {
+      /* If the time quality is not at least TIME_PROPAGATED then our receiver
+       * clock bias isn't known. We should only use this PVT solution to update
+       * our time estimate and then skip all other processing.
        *
        * Note that the lack of knowledge of the receiver clock bias does NOT
        * degrade the quality of the position solution but the rapid change in
        * bias after the time estimate is first improved may cause issues for
        * e.g. carrier smoothing. Easier just to discard this first solution.
        */
-      set_time_fine(epoch_tc, current_fix.time);
 
       log_info("first fix clk_offset %.3e clk_drift %.3e",
                current_fix.clock_offset,
                current_fix.clock_bias);
 
-      /* store this fix as a guess so the satellite elevations and iono/tropo
-       * corrections can be computed for the first actual fix */
-      lgf.position_solution = current_fix;
-      lgf.position_quality = POSITION_GUESS;
-      ndb_lgf_store(&lgf);
+      me_send_emptyobs();
       continue;
     }
-
-    /* We now have the nap count we expected the measurements to be at, plus
-     * the GPS time error for that nap count so we need to store this error in
-     * the the GPS time (GPS time frame) */
-    set_gps_time_offset(epoch_tc, current_fix.time);
-
-    /* Update global position solution state. */
-    lgf.position_solution = current_fix;
-    lgf.position_quality = POSITION_FIX;
-    ndb_lgf_store(&lgf);
 
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */

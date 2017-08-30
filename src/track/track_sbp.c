@@ -101,7 +101,7 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid) {
       break;
   }
 
-  if (get_time_quality() <= TIME_GUESS) {
+  if (get_time_quality() == TIME_UNKNOWN) {
     return flags;
   }
 

@@ -329,7 +329,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   last_good_fix_t lgf;
   if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
       lgf.position_quality < POSITION_GUESS ||
-      get_time_quality() < TIME_GUESS) {
+      get_time_quality() == TIME_UNKNOWN) {
     return SCORE_COLDSTART;
   }
 

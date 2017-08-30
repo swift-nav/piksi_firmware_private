@@ -145,13 +145,17 @@ void ext_event_service(u32 events) {
       u64 full;
     } tc;
     tc.full = nap_timing_count();
-    if (tc.half[0] < event_nap_time) /* Rollover occurred since event */
+    if (tc.half[0] < event_nap_time) { /* Rollover occurred since event */
       tc.half[1]--;
+    }
     tc.half[0] = event_nap_time;
 
     msg_ext_event_t msg;
     msg.flags = (event_trig == TRIG_RISING) ? (1 << 0) : (0 << 0);
-    if (get_time_quality() == TIME_FINE) msg.flags |= (1 << 1);
+    /* Is gps time good, i.e. within 1 microsecond */
+    if (get_time_quality() >= TIME_PROPAGATED) {
+      msg.flags |= (1 << 1);
+    }
     msg.pin = event_pin;
 
     /* Convert to the SBP convention of rounded ms + signed ns residual */

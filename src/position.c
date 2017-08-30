@@ -15,6 +15,7 @@
 
 #include <libswiftnav/logging.h>
 
+#include "board/nap/nap_common.h"
 #include "ndb.h"
 #include "position.h"
 #include "timing.h"
@@ -32,7 +33,7 @@ void position_setup(void) {
      * stored. Position quality will be changed on next position update. */
     lgf.position_quality = POSITION_GUESS;
     ndb_lgf_store(&lgf);
-    set_time(TIME_GUESS, lgf.position_solution.time);
+    set_time(TIME_UNKNOWN, &lgf.position_solution.time, nap_timing_count());
   } else {
     log_info("No LGF information available (%d, %d)",
              lgf.position_solution.valid,
