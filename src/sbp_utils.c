@@ -481,7 +481,7 @@ static void unpack_ephemeris_common(const ephemeris_common_content_t *common,
 
 static void pack_ephemeris_common(const ephemeris_t *e,
                                   ephemeris_common_content_t *common) {
-  common->toe.tow = e->toe.tow;
+  common->toe.tow = round(e->toe.tow);
   common->toe.wn = e->toe.wn;
   common->valid = e->valid;
   common->health_bits = e->health_bits;
@@ -540,7 +540,7 @@ static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg->af0 = e->kepler.af0;
   msg->af1 = e->kepler.af1;
   msg->af2 = e->kepler.af2;
-  msg->toc.tow = e->kepler.toc.tow;
+  msg->toc.tow = round(e->kepler.toc.tow);
   msg->toc.wn = e->kepler.toc.wn;
   msg->iode = e->kepler.iode;
   msg->iodc = e->kepler.iodc;
@@ -765,7 +765,7 @@ void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
 
 static void pack_almanac_common(const almanac_t *a,
                                 almanac_common_content_t *common) {
-  common->toa.tow = a->toa.tow;
+  common->toa.tow = round(a->toa.tow);
   common->toa.wn = a->toa.wn;
   common->valid = a->valid;
   common->health_bits = a->health_bits;
