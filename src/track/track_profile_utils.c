@@ -226,6 +226,7 @@ static const state_table_t mode_5ms1PN = {
 /**
  * 10 ms integrations; 1+N5 mode.
  */
+/* clang-format off */
 static const state_table_t mode_10ms1PN5 = {
     .int_ms = 10,
     .cn0_ms = 10,
@@ -286,6 +287,7 @@ static const state_table_t mode_10ms1PN5 = {
             TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD |
             TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE }
     }};
+/* clang-format on */
 
 /**
  * 20 ms integrations; 1+N5 mode.
