@@ -272,7 +272,7 @@ static const state_table_t mode_10ms = {
             TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_ADD |
             TP_CFLAG_BSYNC_UPDATE |
             TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD |
-            TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE },
+            TP_CFLAG_FLL_SECOND },
 
         {1, TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_BSYNC_SET |
             TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET },
@@ -297,7 +297,7 @@ static const state_table_t mode_10ms = {
             TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_ADD |
             TP_CFLAG_BSYNC_UPDATE |
             TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD |
-            TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE }
+            TP_CFLAG_FLL_SECOND }
     }};
 /* clang-format on */
 
