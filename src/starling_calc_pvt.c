@@ -684,6 +684,15 @@ static void starling_thread(void *arg) {
       continue;
     }
 
+    /* Here we do all the nice simulation-related stuff. */
+    if (simulation_enabled()) {
+      solution_simulation(&sbp_messages);
+      const u8 fake_base_sender_id = 1;
+      solution_send_low_latency_output(fake_base_sender_id, &sbp_messages);
+      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      continue;
+    }
+
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
       chPoolFree(&obs_buff_pool, rover_channel_epoch);
@@ -726,13 +735,6 @@ static void starling_thread(void *arg) {
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 
-    /* Here we do all the nice simulation-related stuff. */
-    if (simulation_enabled()) {
-      solution_simulation(&sbp_messages);
-      const u8 fake_base_sender_id = 1;
-      solution_send_low_latency_output(fake_base_sender_id, &sbp_messages);
-      continue;
-    }
 
     ionosphere_t i_params;
     ionosphere_t *p_i_params = &i_params;
