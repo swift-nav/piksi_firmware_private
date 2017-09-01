@@ -763,13 +763,11 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
   if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
-    bool outp_prev =
-        tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
-
-    bool outp_phase_prev = tracker_channel->ld_phase.outp;
-
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
+
+    bool outp_prev =
+        tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
     if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
       update_ld_phase(tracker_channel);
@@ -778,19 +776,19 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
     update_ld_freq(tracker_channel);
 
     bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
+
+    if (!outp_prev && outp) {
+      u32 unlocked_ms = update_count_diff(tracker_channel,
+          &tracker_channel->ld_pess_change_count);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Lock after %" PRIu32 "ms", unlocked_ms);
+    }
+
     if (outp != outp_prev) {
       tracker_channel->ld_pess_change_count = tracker_channel->update_count;
     }
     if (outp) {
       tracker_channel->carrier_freq_at_lock = tracker_channel->carrier_freq;
-    }
-
-    if (!outp_phase_prev && tracker_channel->ld_phase.outp) {
-      u64 now_ms = timing_getms();
-      u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
-      log_debug_mesid(tracker_channel->mesid,
-                      "Phase lock after %" PRIu32 "ms",
-                      time_in_track_ms);
     }
   }
   /*
