@@ -191,25 +191,20 @@ static const tp_loop_params_t loop_params_template = {
  *
  * The table describes a set of different profiles and
  * the logic controlling how different profiles are selected.
- * One entry of the table is one distinct profile, which targets
- * a specific condition. For example, low CN0, high acceleration,
- * transitional profile activated for a short time, while transitioning
- * to a target profile etc.
+ * One entry of the table is one distinct profile.
  *
  * Essentially, the table describes a finite state machine (FSM).
  * Each tracking channel has its own instance of the FSM.
  * Therefore, all tracking channels are independent and may have
  * different profiles active at any moment of time.
- * The actual profile switching is done in #check_for_profile_change()
+ * The actual profile switching is done in #profile_switch_requested()
  * function.
  *
  * The transition within the table happens as a result of
- * continous evaluation of four parameters:
+ * continous evaluation of two parameters:
  *
  * -# time
  * -# CN0 level
- * -# dynamics (acceleration)
- * -# availability of pessimistic lock
  *
  * Each profile has the field tp_profile_entry_t::flags, which
  * tells, which parameters affect the transition to a next profile.
