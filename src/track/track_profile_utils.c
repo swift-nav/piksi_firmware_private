@@ -292,39 +292,65 @@ static const state_table_t mode_10ms1PN5 = {
 /**
  * 20 ms integrations; 1+N5 mode.
  */
+/* clang-format off */
 static const state_table_t mode_20ms1PN5 = {
     .int_ms = 20,
     .cn0_ms = 20,
-    .ld_ms = 5,
-    .fl_ms = 5,
-    .flld_ms = 15,
+    .ld_ms = 10,
+    .fl_ms = 2,
+    .flld_ms = 2,
     .flll_ms = 20,
-    .bit_ms = 5,
-    .ent_cnt = 5,
+    .bit_ms = 4,
+    .ent_cnt = 11,
     .entries = {
-        {1, TP_FLAGS_SHORT_DEFAULT | TP_CFLAG_ALIAS_SET},
-        {4,
-         (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |
-          TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD |
-          TP_CFLAG_FLL_FIRST)},
-        {5,
-         (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
-          TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET |
-          TP_CFLAG_FLL_SECOND)},
-        {5,
-         (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
-          TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET |
-          TP_CFLAG_FLL_SECOND)},
-        {5,
-         (TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
-          TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |
-          TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |
-          TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND |
-          TP_CFLAG_FLL_USE)},
-    }};
+        {1, TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_BSYNC_SET |
+            TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET | TP_CFLAG_ALIAS_SET},
+        {1, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_FIRST | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_FIRST},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_SET |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_SET |
+            TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
+            TP_CFLAG_LD_SET | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_SET |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND | TP_CFLAG_CN0_ADD |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_BSYNC_SET |
+            TP_CFLAG_LD_ADD | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND},
+        {2, TP_CFLAG_ALIAS_ADD | TP_CFLAG_ALIAS_SECOND |
+            TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE |
+            TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |
+            TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
+            TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | TP_CFLAG_FLL_ADD |
+            TP_CFLAG_FLL_SECOND | TP_CFLAG_FLL_USE}
+    }
+};
+/* clang-format on */
 
 /**
  * Helper for locating tracker state table.
