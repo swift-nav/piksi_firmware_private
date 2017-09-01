@@ -43,6 +43,14 @@
    has been seen earlier than this time [ms] */
 #define TP_ACCELERATION_MAX_AGE_MS (2000)
 
+#define TL_BWT_MAX (0.1f)
+
+#define PLL_CN0_X1 (20.0f)
+#define PLL_CN0_X2 (50.0f)
+#define PLL_BW_Y1 (7.0f)
+#define PLL_BW_Y2 (30.0f)
+#define FLL_BW_MIN (0.1f)
+
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
   /** Placeholder for an index. Indicates an unused index field. */
@@ -305,92 +313,92 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_NONAME_2] =
-  { {   40,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   40,             0,           10,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         60,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_UNAIDED },
 
   [IDX_NONAME_3] =
-  { {   35,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   35,             0,           10,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         60,             0,            0,              0,                      0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_UNAIDED },
 
   [IDX_DLL_RECOVERY2] =
-  { {   30,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   30,             0,           10,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,    TRACK_CN0_EST_SECONDARY },   TP_LD_PARAMS_PLL_1MS,
         60,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_23] =
-  { {   25,             0,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   25,             0,           10,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
         60,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_24] =
-  { {   20,             0,            8,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   20,             0,            8,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
         60,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_DLL_RECOVERY] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_26] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_27] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_28] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_29] =
-  { {   18,             0,            5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_30] =
-  { {   18,             0,            4,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            4,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_31] =
-  { {   18,             0,            3,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            3,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
 
   [IDX_NONAME_32] =
-  { {   18,             0,            2,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-            TP_TM_INITIAL,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
+  { {   18,             0,            2,   TP_CTRL_PLL3,              TP_TM_1MS,
+                TP_TM_1MS,      TRACK_CN0_EST_PRIMARY },   TP_LD_PARAMS_PLL_1MS,
        300,            30,            0,              0,                      0,
       IDX_NONE,  IDX_SENS,     IDX_NONE,       IDX_NONE,               IDX_NONE,
       TP_LOW_CN0 },
@@ -627,6 +635,49 @@ tp_tm_e track_mode_by_code(code_t code,
   return track_mode;
 }
 
+static float compute_pll_bw(float cn0, u8 T_ms) {
+  float y[2] = {PLL_BW_Y1, PLL_BW_Y2};   /* bw */
+  float x[2] = {PLL_CN0_X1, PLL_CN0_X2}; /* cn0 */
+
+  float m = (y[1] - y[0]) / (x[1] - x[0]);
+
+  float bw = m * cn0 - x[0] * m + y[0];
+
+  /* Form bandwidth * integration time product. */
+  float bwt = bw * (float)T_ms / SECS_MS;
+
+  /* Limit bandwidth so that loop stability criteria is satisfied. */
+  if (bwt > TL_BWT_MAX) {
+    bw = TL_BWT_MAX * SECS_MS / T_ms;
+  }
+
+  /* Limit PLL bw to minimum bound */
+  if (bw < MIN(PLL_BW_Y1, PLL_BW_Y2)) {
+    bw = MIN(PLL_BW_Y1, PLL_BW_Y2);
+  }
+
+  return bw;
+}
+
+static float compute_fll_bw(float cn0, u8 T_ms) {
+  float bw = 3.0f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
+
+  /* Limit FLL bw to minimum bound */
+  if (bw < FLL_BW_MIN) {
+    bw = FLL_BW_MIN;
+  }
+
+  /* Form bandwidth * integration time product. */
+  float bwt = bw * (float)T_ms / SECS_MS;
+
+  /* Limit bandwidth so that loop stability criteria is satisfied. */
+  if (bwt > TL_BWT_MAX) {
+    bw = TL_BWT_MAX * SECS_MS / T_ms;
+  }
+
+  return bw;
+}
+
 /**
  * Helper method to obtain tracking loop parameters.
  *
@@ -645,6 +696,8 @@ static void get_profile_params(const me_gnss_signal_t mesid,
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur_index];
   config->lock_detect_params = ld_params[cur_profile->ld_params];
+  config->loop_params = loop_params_template;
+  float cn0 = profile->filt_cn0;
 
   u16 flags = cur_profile->flags;
   double carr_to_code = 0.0;
@@ -652,12 +705,33 @@ static void get_profile_params(const me_gnss_signal_t mesid,
     carr_to_code = mesid_to_carr_to_code(mesid);
   }
 
-  /* fill out the tracking loop parameters */
-  config->loop_params = loop_params_template;
+  if (profile->cur_index >= IDX_DLL_RECOVERY2 &&
+      profile->cur_index != IDX_SENS) {
+    tp_tm_e tracking_mode;
+    constellation_t con = mesid_to_constellation(mesid);
+    if (CONSTELLATION_GPS == con) {
+      tracking_mode = cur_profile->profile.gps_track_mode;
+    } else if (CONSTELLATION_GLO == con) {
+      tracking_mode = cur_profile->profile.glo_track_mode;
+    } else {
+      assert(!"Unsupported constellation");
+    }
+    u8 pll_t_ms = tp_get_pll_ms(tracking_mode);
+    u8 fll_t_ms = tp_get_flll_ms(tracking_mode);
+
+    float pll_bw = compute_pll_bw(cn0, pll_t_ms);
+    float fll_bw = compute_fll_bw(cn0, fll_t_ms);
+
+    config->loop_params.carr_bw = pll_bw;
+    config->loop_params.fll_bw = fll_bw;
+  } else {
+    config->loop_params.carr_bw = cur_profile->profile.pll_bw;
+    config->loop_params.fll_bw = cur_profile->profile.fll_bw;
+  }
+
+  /* fill out the rest of tracking loop parameters */
   config->loop_params.carr_to_code = carr_to_code;
   config->loop_params.code_bw = cur_profile->profile.dll_bw;
-  config->loop_params.carr_bw = cur_profile->profile.pll_bw;
-  config->loop_params.fll_bw = cur_profile->profile.fll_bw;
   config->loop_params.mode = track_mode_by_code(mesid.code, cur_profile);
   config->loop_params.ctrl = cur_profile->profile.controller_type;
 

@@ -85,7 +85,7 @@
 #define TRACK_PLL_MODE3_FLL 3
 
 #ifndef TRACK_PLL_MODE3
-#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_BL
+#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_FLL
 #endif
 
 #if TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BL
@@ -829,7 +829,7 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode);
-u8 tp_get_flld_ms(tp_tm_e tracking_mode);
+float tp_get_flld_ms(tp_tm_e tracking_mode);
 u8 tp_get_flll_ms(tp_tm_e tracking_mode);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode);

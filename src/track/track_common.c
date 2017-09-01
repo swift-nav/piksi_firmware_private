@@ -196,9 +196,6 @@ void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
   } else if (tp_tl_is_pll(&tracker_channel->tl_state)) {
     tracker_channel->flags |= TRACKER_FLAG_PLL_USE;
     tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
-    if (next_params->loop_params.fll_bw > 0.f) {
-      tracker_channel->flags |= TRACKER_FLAG_FLL_USE;
-    }
   } else {
     tracker_channel->flags &= ~TRACKER_FLAG_PLL_USE;
     tracker_channel->flags &= ~TRACKER_FLAG_FLL_USE;
@@ -856,10 +853,6 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
   if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND)) {
     tp_tl_fll_update_second(&tracker_channel->tl_state,
                             tracker_channel->corrs.corr_fll);
-  }
-
-  if (0 != (cycle_flags & TP_CFLAG_FLL_USE)) {
-    tp_tl_fll_update(&tracker_channel->tl_state);
   }
 }
 
