@@ -262,10 +262,6 @@ void nap_track_irq_thread(void *arg) {
     DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state();
                tracking_send_detailed_state(););
 
-    DO_EACH_MS(100 * SECS_MS,
-               log_info("Max configured PLL integration time: %" PRIu16 " ms",
-                        max_pll_integration_time_ms););
-
     /* Sleep until 500 microseconds is full. */
     piksi_systime_sleep_until_windowed_us(&sys_time, 500);
   }
