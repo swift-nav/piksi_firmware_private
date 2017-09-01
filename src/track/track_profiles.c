@@ -896,7 +896,7 @@ static bool profile_switch_requested(tracker_channel_t *tracker_channel,
   }
 
   state->dll_init = false;
-  const tp_profile_entry_t *cur = &state->profiles[state->cur_index];
+  const tp_profile_entry_t *cur = &state->profiles[state->cur.index];
   const tp_profile_entry_t *next = &state->profiles[index];
   if ((0 != (cur->flags & TP_UNAIDED)) && (0 == (next->flags & TP_UNAIDED))) {
     /* Unaided DLL velocity causes instability when switching to aided DLL */
