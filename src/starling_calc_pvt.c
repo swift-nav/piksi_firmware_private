@@ -735,7 +735,6 @@ static void starling_thread(void *arg) {
 
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 
-
     ionosphere_t i_params;
     ionosphere_t *p_i_params = &i_params;
     /* get iono parameters if available */
