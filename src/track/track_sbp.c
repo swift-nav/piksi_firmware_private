@@ -138,6 +138,9 @@ static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info) {
     case 1:
       flags = TRACK_SBP_PARAM_SET_1MS;
       break;
+    case 2:
+      flags = TRACK_SBP_PARAM_SET_2MS;
+      break;
     case 5:
       flags = TRACK_SBP_PARAM_SET_5MS;
       break;
