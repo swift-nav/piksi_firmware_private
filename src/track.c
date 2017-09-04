@@ -1544,25 +1544,8 @@ static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
   track_sid_db_update_tow(sid, &tow_entry);
 }
 
-static u8 get_tow_alignment(tracker_channel_t *trk_ch, bool aligned) {
-  if (CODE_GPS_L1CA == trk_ch->mesid.code) {
-    return aligned ? GPS_L1CA_BIT_LENGTH_MS : GPS_L1CA_PSYMBOL_LENGTH_MS;
-  } else {
-    return tracker_bit_length_get(trk_ch);
-  }
-}
-
 static void read_tow_cache(tracker_channel_t *trk_ch,
-                           bool aligned,
                            tp_tow_entry_t *tow_entry) {
-  if (CODE_GPS_L2CM == trk_ch->mesid.code && !aligned) {
-    return;
-  }
-
-  if (CODE_GPS_L2CL == trk_ch->mesid.code && !aligned) {
-    return;
-  }
-
   gnss_signal_t sid = construct_sid(trk_ch->mesid.code, trk_ch->mesid.sat);
   track_sid_db_load_tow(sid, tow_entry);
 
@@ -1575,7 +1558,8 @@ static void read_tow_cache(tracker_channel_t *trk_ch,
   u64 delta_us =
       piksi_systime_sub_us(&trk_ch->update_time, &tow_entry->sample_time);
 
-  u8 align = get_tow_alignment(trk_ch, aligned);
+  u8 align = (CODE_GPS_L1CA == trk_ch->mesid.code) ?
+      GPS_L1CA_BIT_LENGTH_MS : tracker_bit_length_get(trk_ch);
 
   s32 ToW_ms = tp_tow_compute(tow_entry->TOW_ms, delta_us, align, &error_ms);
 
@@ -1679,13 +1663,15 @@ static bool verify_tow_alignment(tracker_channel_t *trk_ch, u32 cycle_flags) {
 void update_tow_gps(tracker_channel_t *trk_ch, u32 cycle_flags) {
   assert(IS_GPS(trk_ch->mesid));
 
-  bool aligned = verify_tow_alignment(trk_ch, cycle_flags);
+  if (!verify_tow_alignment(trk_ch, cycle_flags)) {
+    return;
+  }
 
   tp_tow_entry_t tow_entry;
 
   if (TOW_UNKNOWN == trk_ch->TOW_ms) {
     /* TOW unkown, fetch from cache */
-    read_tow_cache(trk_ch, aligned, &tow_entry);
+    read_tow_cache(trk_ch, &tow_entry);
   }
 
   if (CODE_GPS_L2CL == trk_ch->mesid.code) {
@@ -1696,11 +1682,6 @@ void update_tow_gps(tracker_channel_t *trk_ch, u32 cycle_flags) {
   if (CODE_GPS_L2CM == trk_ch->mesid.code &&
       tracking_is_running(construct_mesid(CODE_GPS_L1CA, trk_ch->mesid.sat))) {
     /* There is GPS L1 C/A tracker for the same SV. */
-    return;
-  }
-
-  if (!aligned) {
-    /* Not aligned */
     return;
   }
 
