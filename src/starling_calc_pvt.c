@@ -511,7 +511,8 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
       (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
 }
 
-static PVT_ENGINE_INTERFACE_RC update_filter_position(FilterManager *filter_manager) {
+static PVT_ENGINE_INTERFACE_RC update_filter_position(
+    FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
     ret = filter_manager_update_position(filter_manager);
@@ -524,7 +525,8 @@ static PVT_ENGINE_INTERFACE_RC update_filter_position(FilterManager *filter_mana
   return ret;
 }
 
-static PVT_ENGINE_INTERFACE_RC update_filter_ambiguity(FilterManager *filter_manager) {
+static PVT_ENGINE_INTERFACE_RC update_filter_ambiguity(
+    FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
     ret = filter_manager_update_ambiguity(filter_manager);
@@ -890,17 +892,14 @@ void process_matched_obs(const obss_t *rover_channel_meass,
 
   if (filter_manager_is_initialized(rtk_filter_manager)) {
     chMtxLock(&rtk_filter_manager_lock);
-    filter_manager_overwrite_ephemerides(rtk_filter_manager,
-                                         stored_ephs);
+    filter_manager_overwrite_ephemerides(rtk_filter_manager, stored_ephs);
     chMtxUnlock(&rtk_filter_manager_lock);
-
 
     if (has_iono_params) {
       chMtxLock(&rtk_filter_manager_lock);
       chMtxLock(&iono_params_lock);
-      filter_manager_update_iono_parameters(rtk_filter_manager,
-                                            &time_matched_iono_params,
-                                            disable_klobuchar);
+      filter_manager_update_iono_parameters(
+          rtk_filter_manager, &time_matched_iono_params, disable_klobuchar);
       chMtxUnlock(&iono_params_lock);
       chMtxUnlock(&rtk_filter_manager_lock);
     }
