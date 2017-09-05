@@ -1464,86 +1464,6 @@ static void error_flags_add(tracker_channel_t *tracker_channel,
   }
 }
 
-static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel,
-                                         const piksi_systime_t *sample_time,
-                                         bool half_bit_aligned,
-                                         s32 *TOW_residual_ns) {
-  assert(TOW_residual_ns);
-  *TOW_residual_ns = 0;
-
-  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
-  if (!glo_slot_id_is_valid(glo_orbit_slot)) {
-    return TOW_UNKNOWN;
-  }
-
-  /* GLO slot ID is known */
-  gnss_signal_t sid =
-      construct_sid(tracker_channel->mesid.code, glo_orbit_slot);
-  tp_tow_entry_t tow_entry = {.TOW_ms = TOW_UNKNOWN,
-                              .TOW_residual_ns = 0,
-                              .sample_time = PIKSI_SYSTIME_INIT};
-
-  track_sid_db_load_tow(sid, &tow_entry);
-  if (TOW_UNKNOWN == tow_entry.TOW_ms) {
-    return TOW_UNKNOWN;
-  }
-
-  /* We have a cached GLO TOW */
-
-  double error_ms = 0;
-  u64 time_delta_us = piksi_systime_sub_us(sample_time, &tow_entry.sample_time);
-  u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
-  u8 ms_align = half_bit_aligned ? half_bit : GLO_PRN_PERIOD_MS;
-  s32 TOW_ms;
-
-  TOW_ms = tp_tow_compute(tow_entry.TOW_ms, time_delta_us, ms_align, &error_ms);
-  if (TOW_UNKNOWN == TOW_ms) {
-    return TOW_UNKNOWN;
-  }
-
-  log_debug_sid(sid,
-                "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
-                "ms]"
-                " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                tracker_channel->update_count,
-                ms_align,
-                time_delta_us / (double)SECS_MS,
-                TOW_ms,
-                error_ms);
-
-  *TOW_residual_ns = tow_entry.TOW_residual_ns;
-  if (tp_tow_is_sane(TOW_ms)) {
-    tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
-  } else {
-    log_error_sid(sid,
-                  "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
-                  tracker_channel->update_count,
-                  TOW_ms);
-    TOW_ms = TOW_UNKNOWN;
-    tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
-  }
-
-  return TOW_ms;
-}
-
-static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
-                                     const piksi_systime_t *sample_time) {
-  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
-  if (!glo_slot_id_is_valid(glo_orbit_slot)) {
-    return;
-  }
-
-  gnss_signal_t sid =
-      construct_sid(tracker_channel->mesid.code, glo_orbit_slot);
-
-  /* Update ToW cache */
-  tp_tow_entry_t tow_entry = {
-      .TOW_ms = tracker_channel->TOW_ms,
-      .TOW_residual_ns = tracker_channel->TOW_residual_ns,
-      .sample_time = *sample_time};
-  track_sid_db_update_tow(sid, &tow_entry);
-}
-
 static void read_tow_cache(tracker_channel_t *trk_ch,
                            tp_tow_entry_t *tow_entry) {
   gnss_signal_t sid = construct_sid(trk_ch->mesid.code, trk_ch->mesid.sat);
@@ -1703,6 +1623,84 @@ void update_tow_gps(tracker_channel_t *trk_ch, u32 cycle_flags) {
   }
 }
 
+static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel,
+                                         const piksi_systime_t *sample_time,
+                                         s32 *TOW_residual_ns) {
+  assert(TOW_residual_ns);
+  *TOW_residual_ns = 0;
+
+  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
+  if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+    return TOW_UNKNOWN;
+  }
+
+  /* GLO slot ID is known */
+  gnss_signal_t sid =
+      construct_sid(tracker_channel->mesid.code, glo_orbit_slot);
+  tp_tow_entry_t tow_entry = {.TOW_ms = TOW_UNKNOWN,
+                              .TOW_residual_ns = 0,
+                              .sample_time = PIKSI_SYSTIME_INIT};
+
+  track_sid_db_load_tow(sid, &tow_entry);
+  if (TOW_UNKNOWN == tow_entry.TOW_ms) {
+    return TOW_UNKNOWN;
+  }
+
+  /* We have a cached GLO TOW */
+
+  double error_ms = 0;
+  u64 time_delta_us = piksi_systime_sub_us(sample_time, &tow_entry.sample_time);
+  u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
+  s32 TOW_ms;
+
+  TOW_ms = tp_tow_compute(tow_entry.TOW_ms, time_delta_us, half_bit, &error_ms);
+  if (TOW_UNKNOWN == TOW_ms) {
+    return TOW_UNKNOWN;
+  }
+
+  log_debug_sid(sid,
+                "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
+                "ms]"
+                " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                tracker_channel->update_count,
+                half_bit,
+                time_delta_us / (double)SECS_MS,
+                TOW_ms,
+                error_ms);
+
+  *TOW_residual_ns = tow_entry.TOW_residual_ns;
+  if (tp_tow_is_sane(TOW_ms)) {
+    tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
+  } else {
+    log_error_sid(sid,
+                  "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
+                  tracker_channel->update_count,
+                  TOW_ms);
+    TOW_ms = TOW_UNKNOWN;
+    tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+  }
+
+  return TOW_ms;
+}
+
+static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
+                                     const piksi_systime_t *sample_time) {
+  u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
+  if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+    return;
+  }
+
+  gnss_signal_t sid =
+      construct_sid(tracker_channel->mesid.code, glo_orbit_slot);
+
+  /* Update ToW cache */
+  tp_tow_entry_t tow_entry = {
+      .TOW_ms = tracker_channel->TOW_ms,
+      .TOW_residual_ns = tracker_channel->TOW_residual_ns,
+      .sample_time = *sample_time};
+  track_sid_db_update_tow(sid, &tow_entry);
+}
+
 /**
  * Performs ToW caching and propagation.
  *
@@ -1727,14 +1725,13 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
     }
   }
 
-  bool half_bit_aligned = false;
-
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel)) {
-    half_bit_aligned = true;
+  if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
+      !tracker_bit_aligned(tracker_channel)) {
+    /* No alignment */
+    return;
   }
 
-  if (TOW_UNKNOWN != tracker_channel->TOW_ms && half_bit_aligned) {
+  if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
     /*
      * Verify ToW alignment
      * Current block assumes the meander sync has been reached and current
@@ -1765,11 +1762,10 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
     tracker_channel->TOW_ms =
         propagate_tow_from_sid_db_glo(tracker_channel,
                                       &tracker_channel->update_time,
-                                      half_bit_aligned,
                                       &tracker_channel->TOW_residual_ns);
   }
 
-  if (half_bit_aligned && (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
+  if ((tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
       (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED))) {
     me_gnss_signal_t mesid = {.code = CODE_GLO_L2CA,
                               .sat = tracker_channel->mesid.sat};
