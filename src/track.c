@@ -1558,10 +1558,12 @@ static void read_tow_cache(tracker_channel_t *trk_ch,
   u64 delta_us =
       piksi_systime_sub_us(&trk_ch->update_time, &tow_entry->sample_time);
 
-  u8 align = (CODE_GPS_L1CA == trk_ch->mesid.code) ?
-      GPS_L1CA_BIT_LENGTH_MS : tracker_bit_length_get(trk_ch);
+  u8 align = tracker_bit_length_get(trk_ch);
 
-  s32 ToW_ms = tp_tow_compute(tow_entry->TOW_ms, delta_us, align, &error_ms);
+  s32 ToW_ms = tp_tow_compute(tow_entry->TOW_ms,
+                              delta_us,
+                              align,
+                              &error_ms);
 
   if (TOW_UNKNOWN == ToW_ms) {
     return;
@@ -1605,7 +1607,8 @@ static void read_tow_cache(tracker_channel_t *trk_ch,
  *
  * \return TRUE if ToW is aligned
  */
-static bool verify_tow_alignment(tracker_channel_t *trk_ch, u32 cycle_flags) {
+static bool verify_tow_alignment_gps(tracker_channel_t *trk_ch,
+                                     u32 cycle_flags) {
   if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
     return FALSE;
   }
@@ -1663,7 +1666,7 @@ static bool verify_tow_alignment(tracker_channel_t *trk_ch, u32 cycle_flags) {
 void update_tow_gps(tracker_channel_t *trk_ch, u32 cycle_flags) {
   assert(IS_GPS(trk_ch->mesid));
 
-  if (!verify_tow_alignment(trk_ch, cycle_flags)) {
+  if (!verify_tow_alignment_gps(trk_ch, cycle_flags)) {
     return;
   }
 
