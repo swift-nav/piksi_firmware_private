@@ -371,8 +371,7 @@ void nap_track_update(u8 channel,
    * matter much in a tracking loop scenario.. */
   /* MIC_COMMENT: so I'd probably remove this s->code_phase_rate[2] and use
    * a s->code_pinc[2] to reckon code increments */
-  static u32 code_units = 0;
-  code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
   t->CODE_PINC = code_units;
 
   u32 code_phase_frac = t->CODE_PHASE_FRAC + code_units * (s->length[0]);
@@ -425,7 +424,6 @@ void nap_track_read_results(u8 channel,
   /* Read track channel data
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
    */
-//  memcpy(&trk_ch, t, sizeof(swiftnap_tracking_t));
   memcpy(&trk_ch, t, SWIFTNAP_TRACKING_READABLE_SIZE);
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
