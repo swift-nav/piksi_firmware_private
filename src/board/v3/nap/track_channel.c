@@ -74,6 +74,7 @@ static struct nap_ch_state {
   double reckoned_carr_phase;
   u32 length[2];      /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];   /**< Carrier phase increment */
+  u32 code_pinc[2];   /**< Code phase increment */
   u64 reckon_counter; /**< First carrier phase has to be read from NAP */
   s64 sw_carr_phase;  /**< Debug reckoned carrier phase */
   s16 length_adjust;  /**< Adjust the length the next time around */
@@ -256,6 +257,7 @@ void nap_track_init(u8 channel,
   /* Chip rate */
   s->code_phase_rate[1] = s->code_phase_rate[0] = chip_rate;
   u32 cp_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  s->code_pinc[1] = s->code_pinc[0] = cp_rate_units;
   t->CODE_PINC = cp_rate_units;
   /* Integration length */
   u32 length = calc_length_samples(chips_to_correlate, 0, cp_rate_units);
@@ -371,12 +373,15 @@ void nap_track_update(u8 channel,
    * matter much in a tracking loop scenario.. */
   /* MIC_COMMENT: so I'd probably remove this s->code_phase_rate[2] and use
    * a s->code_pinc[2] to reckon code increments */
-  u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
-  t->CODE_PINC = code_units;
-
-  u32 code_phase_frac = t->CODE_PHASE_FRAC + code_units * (s->length[0]);
+  u32 code_phase_frac = t->CODE_PHASE_FRAC + s->code_pinc[0] * (s->length[0]);
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = chip_rate;
+
+  u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  s->code_pinc[1] = s->code_pinc[0];
+  s->code_pinc[0] = code_units;
+
+  t->CODE_PINC = code_units;
 
   /* INTEGRATION LENGTH ------------------------------------------------ */
   u32 length =
