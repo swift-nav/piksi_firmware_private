@@ -281,12 +281,12 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            50,          25,          35,
-      IDX_20MS,   IDX_NONE,     IDX_10MS,
-      TP_HIGH_CN0 | TP_USE_NEXT },
+      IDX_20MS,   IDX_SENS,     IDX_10MS,
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,             1,           1,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {     0,           1.0,           1,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
          50,             0,         32.,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
@@ -455,7 +455,7 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
   profile->use_alias_detection =
       (TP_TM_1MS_GPS != mode) && (TP_TM_1MS_GLO != mode) &&
       (TP_TM_2MS_GPS != mode) && (TP_TM_2MS_GLO != mode) &&
-      (TP_TM_INITIAL != mode);
+      (TP_TM_20MS_GPS != mode) && (TP_TM_INITIAL != mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 
@@ -558,7 +558,7 @@ static void log_switch(tracker_channel_t *tracker_channel, const char *reason) {
   tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
 
-  log_debug_mesid(mesid,
+  log_info_mesid(mesid,
                   "%s: plock=%" PRId16 " bs=%" PRId16
                   " cn0=%.1f "
                   "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
