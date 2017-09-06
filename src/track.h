@@ -152,12 +152,16 @@
  * Tracking mode enumeration.
  */
 typedef enum {
-  TP_TM_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_1MS,     /**< 1 ms */
-  TP_TM_2MS,     /**< 2 ms */
-  TP_TM_5MS,     /**< 5 ms */
-  TP_TM_10MS,    /**< 10 ms */
-  TP_TM_20MS,    /**< 20 ms */
+  TP_TM_INITIAL,  /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_1MS_GPS,  /**< 1 ms */
+  TP_TM_1MS_GLO,  /**< 1 ms */
+  TP_TM_2MS_GPS,  /**< 2 ms */
+  TP_TM_2MS_GLO,  /**< 2 ms */
+  TP_TM_5MS_GPS,  /**< 5 ms */
+  TP_TM_5MS_GLO,  /**< 5 ms */
+  TP_TM_10MS_GPS, /**< 10 ms */
+  TP_TM_10MS_GLO, /**< 10 ms */
+  TP_TM_20MS_GPS  /**< 20 ms */
 } tp_tm_e;
 
 /**
@@ -625,7 +629,7 @@ typedef struct {
   lock_detect_t ld_phase;      /**< Phase lock detector state. */
   lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
-  u16 tracking_mode : 3;       /**< Tracking mode */
+  tp_tm_e tracking_mode;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current
                                 *   integration mode. */
   u16 use_alias_detection : 1; /**< Flag for alias detection control */

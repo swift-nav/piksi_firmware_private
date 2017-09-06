@@ -58,7 +58,8 @@ typedef enum {
   IDX_2MS,
   IDX_5MS,
   IDX_10MS,
-  IDX_20MS
+  IDX_20MS,
+  IDX_SENS
 } profile_indices_t;
 
 typedef enum {
@@ -146,7 +147,7 @@ enum {
 /* clang-format off */
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,   .5f, 50 },
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,   1.f, 50 },
     [TP_LD_PARAMS_FREQ_INI]   = { 0.005f,  .6f, 50 },
 
     [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,   .5f, 50 },
@@ -155,14 +156,14 @@ static const tp_lock_detect_params_t ld_params[] = {
     [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,   .5f, 50 },
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   .5f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,  1.0f, 50 },
     [TP_LD_PARAMS_FREQ_5MS]   = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.01f,   .5f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,  1.3f, 50 },
     [TP_LD_PARAMS_FREQ_10MS]  = { 0.005f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.001f, 1.2f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]  = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.005f, 1.2f, 50 },
+    [TP_LD_PARAMS_FREQ_20MS]  = { 0.005f,  .6f, 50 }
 };
 /* clang-format on */
 
@@ -242,46 +243,54 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { {   30,             1,            5,   TP_CTRL_PLL3,              TP_TM_1MS,
-              TP_TM_1MS },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+  { {   30,             1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+          TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
        200,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
   [IDX_1MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,              TP_TM_1MS,
-               TP_TM_1MS },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-           50,          42,           0,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+           TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+           50,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,              TP_TM_2MS,
-               TP_TM_2MS },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
-           50,          39,          45,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
+           TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
+           50,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,              TP_TM_5MS,
-               TP_TM_5MS },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
-           50,          35,          42,
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
+           TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
+           50,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
-      TP_LOW_CN0 |TP_HIGH_CN0 | TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,             TP_TM_10MS,
-              TP_TM_10MS },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
+          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            50,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { {  BW_DYN,           1,          .5,   TP_CTRL_PLL3,             TP_TM_20MS,
-              TP_TM_10MS },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           50,           0,          35,
+  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+           50,          25,          35,
       IDX_20MS,   IDX_NONE,     IDX_10MS,
       TP_HIGH_CN0 | TP_USE_NEXT },
+
+  /* sensitivity profile */
+  [IDX_SENS] =
+  { {     0,             1,           1,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+         50,             0,         32.,
+      IDX_SENS,  IDX_NONE,     IDX_20MS,
+      TP_HIGH_CN0 | TP_USE_NEXT }
 };
 /* clang-format on */
 
@@ -438,12 +447,16 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
   tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
-  if (tracker_channel->cn0 < 25.) {
+  if (IDX_SENS == profile->next.index) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
   const tp_tm_e mode = profile->loop_params.mode;
-  profile->use_alias_detection = (TP_TM_1MS != mode) && (TP_TM_INITIAL != mode);
+  profile->use_alias_detection = (TP_TM_1MS_GPS != mode) &&
+                                 (TP_TM_1MS_GLO != mode) &&
+                                 (TP_TM_2MS_GPS != mode) &&
+                                 (TP_TM_2MS_GLO != mode) &&
+                                 (TP_TM_INITIAL != mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 
@@ -617,12 +630,21 @@ static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile) {
 static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                    const tp_profile_t *state,
                                    const profile_indices_t index) {
-  static u8 int_times[] = {[TP_TM_INITIAL] = 1,
-                           [TP_TM_1MS] = 1,
-                           [TP_TM_2MS] = 2,
-                           [TP_TM_5MS] = 5,
-                           [TP_TM_10MS] = 10,
-                           [TP_TM_20MS] = 20};
+  static const u8 int_times[] = {[TP_TM_INITIAL] = 1,
+
+                                 [TP_TM_1MS_GPS] = 1,
+                                 [TP_TM_1MS_GLO] = 1,
+
+                                 [TP_TM_2MS_GPS] = 2,
+                                 [TP_TM_2MS_GLO] = 2,
+
+                                 [TP_TM_5MS_GPS] = 5,
+                                 [TP_TM_5MS_GLO] = 5,
+
+                                 [TP_TM_10MS_GPS] = 10,
+                                 [TP_TM_10MS_GLO] = 10,
+
+                                 [TP_TM_20MS_GPS] = 20};
 
   tp_tm_e track_mode;
   if (IS_GPS(mesid)) {
