@@ -302,10 +302,15 @@ void nap_track_init(u8 channel,
   code_chips = code_to_chip_count(mesid.code);
   code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
   num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
-  index = (num_codes % GPS_L2CL_PRN_START_POINTS);
 
   tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
+
+  me_gnss_signal_t mesid1 = mesid;
+  if (mesid.code == CODE_GPS_L2CM) {
+    index = (num_codes % GPS_L2CL_PRN_START_POINTS);
+    mesid1.code = CODE_GPS_L2CL;
+  }
 
   NAP->TRK_CODE_INT_INIT = 0 * code_chips;
   NAP->TRK_CODE_FRAC_INIT = 0;
