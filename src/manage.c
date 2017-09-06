@@ -239,6 +239,15 @@ static void manage_acq_thread(void *arg) {
     }
 
     manage_tracking_startup();
+
+    DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
+
+    DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
+
+    DO_EACH_MS(100 * SECS_MS,
+               log_info("Max configured PLL integration time: %" PRIu16 " ms",
+                        max_pll_integration_time_ms););
+
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
   }
 }

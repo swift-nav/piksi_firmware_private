@@ -224,13 +224,6 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   s32 tow_ms = channel_info->tow_ms;
 
   double raw_pseudorange = 0;
-  if ((0 != (channel_info->flags & TRACKER_FLAG_TOW_VALID)) &&
-      (0 != (channel_info->flags & TRACKER_FLAG_ACTIVE)) &&
-      (0 == (channel_info->flags & TRACKER_FLAG_ERROR)) &&
-      (get_time_quality() >= TIME_FINE)) {
-    u64 ref_tc = nap_sample_time_to_count(channel_info->sample_count);
-    tracking_channel_calc_pseudorange(ref_tc, &meas, &raw_pseudorange);
-  }
 
   /* TOW status flags */
   state->tow_flags = get_tow_flags(channel_info);

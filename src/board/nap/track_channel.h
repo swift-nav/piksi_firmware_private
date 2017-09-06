@@ -32,17 +32,21 @@ void nap_track_init(u8 channel,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate);
-void nap_track_update(u8 channel,
+void nap_track_update(const swiftnap_tracking_t *trk_ch,
+                      u8 channel,
                       double doppler_freq_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,
                       u8 corr_spacing);
 
-void nap_track_read_results(u8 channel,
-                            u32 *count_snapshot,
-                            corr_t corrs[],
-                            double *code_phase_prompt,
-                            double *carrier_phase);
+void nap_track_read_results(swiftnap_tracking_t *res, u8 nap_channel);
+
+void nap_track_parse_results(const swiftnap_tracking_t *nap_results,
+                             u8 channel,
+                             u32 *count_snapshot,
+                             corr_t corrs[],
+                             double *code_phase_prompt,
+                             double *carrier_phase);
 
 bool nap_track_supports(u8 channel, const me_gnss_signal_t mesid);
 

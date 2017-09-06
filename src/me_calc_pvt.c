@@ -59,6 +59,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
+#define TRK_MSG_PERIOD_MS (500)
+
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;
 
@@ -383,6 +385,9 @@ static void me_calc_pvt_thread(void *arg) {
   piksi_systime_inc_us(&next_epoch, SECS_US / soln_freq_setting);
 
   while (TRUE) {
+    DO_EACH_MS(TRK_MSG_PERIOD_MS, tracking_send_state();
+               tracking_send_detailed_state(););
+
     /* read current value of soln_freq into a local variable that does not
      * change during this loop iteration */
     chSysLock();

@@ -207,30 +207,6 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(void) {
-  u32 irq0 = NAP->TRK_IRQS0;
-  u32 irq1 = NAP->TRK_IRQS1;
-  u64 irq = ((u64)irq1 << 32) | irq0;
-
-  tracking_channels_update(irq);
-  NAP->TRK_IRQS0 = irq0;
-  NAP->TRK_IRQS1 = irq1;
-
-  asm("dsb");
-
-  u32 err0 = NAP->TRK_IRQ_ERRORS0;
-  u32 err1 = NAP->TRK_IRQ_ERRORS1;
-  u64 err = ((u64)err1 << 32) | err0;
-  if (err) {
-    NAP->TRK_IRQ_ERRORS0 = err0;
-    NAP->TRK_IRQ_ERRORS1 = err1;
-    log_warn("Too many NAP tracking interrupts: 0x%08X%08X", err1, err0);
-    tracking_channels_missed_update_error(err);
-  }
-
-  watchdog_notify(WD_NOTIFY_NAP_ISR);
-}
-
 static void nap_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP");
@@ -245,29 +221,45 @@ static void nap_irq_thread(void *arg) {
 
 void nap_track_irq_thread(void *arg) {
   piksi_systime_t sys_time;
+  piksi_systime_get(&sys_time);
+  piksi_systime_inc_us(&sys_time, 400);
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
-    piksi_systime_get(&sys_time);
+    u32 irq0 = NAP->TRK_IRQS0;
+    u32 irq1 = NAP->TRK_IRQS1;
+    u64 irq = ((u64)irq1 << 32) | irq0;
 
-    handle_nap_track_irq();
+    tracking_channels_read(irq);
+    tracking_channels_update(irq);
+
+    u32 slept = piksi_systime_sleep_until_us(&sys_time);
+    if (0 == slept) {
+      log_warn("NAP Tracking missed deadline");
+    }
+    piksi_systime_inc_us(&sys_time, 400);
+
+    COMPILER_BARRIER();
+
+    NAP->TRK_IRQS0 = irq0;
+    NAP->TRK_IRQS1 = irq1;
+
+    COMPILER_BARRIER();
+
+    u32 err0 = NAP->TRK_IRQ_ERRORS0;
+    u32 err1 = NAP->TRK_IRQ_ERRORS1;
+    u64 err = ((u64)err1 << 32) | err0;
+    if (err) {
+      NAP->TRK_IRQ_ERRORS0 = err0;
+      NAP->TRK_IRQ_ERRORS1 = err1;
+      log_warn("Too many NAP tracking interrupts: 0x%08X%08X", err1, err0);
+      tracking_channels_missed_update_error(err);
+    }
 
     sanitize_trackers();
 
-    DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
-
-    DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
-
-    DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state();
-               tracking_send_detailed_state(););
-
-    DO_EACH_MS(100 * SECS_MS,
-               log_info("Max configured PLL integration time: %" PRIu16 " ms",
-                        max_pll_integration_time_ms););
-
-    /* Sleep until 500 microseconds is full. */
-    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
+    watchdog_notify(WD_NOTIFY_NAP_ISR);
   }
 }
 
