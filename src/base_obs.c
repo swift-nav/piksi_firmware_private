@@ -321,7 +321,7 @@ static void update_obss(obss_t *new_obss) {
 
       obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
       if (new_base_obs == NULL) {
-        detailed_log_error(
+        detailed_log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
             base_obss.tor.wn,
             base_obss.tor.tow);
