@@ -363,16 +363,6 @@ void nap_track_update(u8 channel,
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   /* CHIP RATE --------------------------------------------------------- */
-  /* MIC_COMMENT: the use of s->code_phase_rate[2] is pretty limited:
-   * just converts samples to chips in nap_track_read_results() but
-   * the difference between the nominal one and the real (with Doppler)
-   * one will produce a sub-mm difference.. so what is its point? */
-  /* MIC_COMMENT: do we need to read from NAP the length in the else below?
-   * we should be able to use the reckoned value, but I am not sure if
-   * this should be s->length[1] or s->length[0].. it probably does not
-   * matter much in a tracking loop scenario.. */
-  /* MIC_COMMENT: so I'd probably remove this s->code_phase_rate[2] and use
-   * a s->code_pinc[2] to reckon code increments */
   u32 code_phase_frac = t->CODE_PHASE_FRAC + s->code_pinc[0] * (s->length[0]);
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = chip_rate;
@@ -429,7 +419,7 @@ void nap_track_read_results(u8 channel,
   /* Read track channel data
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
    */
-  memcpy(&trk_ch, t, SWIFTNAP_TRACKING_READABLE_SIZE);
+  memcpy(&trk_ch, t, SWIFTNAP_TRACKING_NUM_READABLE * sizeof(u32));
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(

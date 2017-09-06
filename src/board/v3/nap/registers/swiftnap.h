@@ -42,7 +42,7 @@ enum {
   NAP_TRK_CODE_BDS_B2 = 5,
 };
 
-#define SWIFTNAP_TRACKING_READABLE_SIZE 48
+#define SWIFTNAP_TRACKING_NUM_READABLE 12
 
 /* Tracking channel register structure */
 typedef struct {
