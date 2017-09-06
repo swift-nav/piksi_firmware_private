@@ -490,7 +490,9 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
     bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
     log_warn_mesid(tracker_channel->mesid,
                    "False freq detected: %" PRId32 " Hz (plock=%d,flock=%d)",
-                   err_hz, (int)plock, (int)flock);
+                   err_hz,
+                   (int)plock,
+                   (int)flock);
     tracker_ambiguity_unknown(tracker_channel);
     tp_tl_adjust(&tracker_channel->tl_state, err_hz);
   }
@@ -777,10 +779,10 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
     bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
     if (!outp_prev && outp) {
-      u32 unlocked_ms = update_count_diff(tracker_channel,
-          &tracker_channel->ld_pess_change_count);
-      log_debug_mesid(tracker_channel->mesid,
-                      "Lock after %" PRIu32 "ms", unlocked_ms);
+      u32 unlocked_ms = update_count_diff(
+          tracker_channel, &tracker_channel->ld_pess_change_count);
+      log_debug_mesid(
+          tracker_channel->mesid, "Lock after %" PRIu32 "ms", unlocked_ms);
     }
 
     if (outp != outp_prev) {

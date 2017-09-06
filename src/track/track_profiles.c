@@ -558,7 +558,7 @@ static void log_switch(tracker_channel_t *tracker_channel, const char *reason) {
   tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
 
-  log_info_mesid(mesid,
+  log_debug_mesid(mesid,
                   "%s: plock=%" PRId16 " bs=%" PRId16
                   " cn0=%.1f "
                   "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",

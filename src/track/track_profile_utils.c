@@ -446,8 +446,7 @@ static const state_table_t mode_10ms_glo = {
 /* clang-format on */
 
 #define TP_FLAGS_20MS \
-  (TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD | TP_CFLAG_LD_ADD | \
-   TP_CFLAG_BSYNC_ADD)
+  (TP_CFLAG_CN0_ADD | TP_CFLAG_EPL_ADD | TP_CFLAG_LD_ADD | TP_CFLAG_BSYNC_ADD)
 
 /**
  * 20 ms integrations
