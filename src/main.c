@@ -43,6 +43,7 @@
 #include "system_monitor.h"
 #include "timing.h"
 #include "track.h"
+#include "board/v3/nap/track_dma.h"
 #include "version.h"
 
 extern void ext_setup(void);
@@ -124,6 +125,8 @@ int main(void) {
   glo_map_setup();
   track_setup();
   decode_setup();
+
+  track_dma_setup();
 
   manage_acq_setup();
   system_monitor_setup();
