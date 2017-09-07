@@ -102,6 +102,6 @@ TEST(piksi_systime_tests, sub_s) {
 
   diff = piksi_systime_sub_s(&st1, &st2);
   // diff should be one negative rollover in s
-  EXPECT_EQ(diff, -ceil(((s64)TIME_INFINITE - 1) / (double)CH_CFG_ST_FREQUENCY));
+  EXPECT_EQ(diff,
+            -ceil(((s64)TIME_INFINITE - 1) / (double)CH_CFG_ST_FREQUENCY));
 }
-

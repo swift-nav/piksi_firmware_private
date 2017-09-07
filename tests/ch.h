@@ -13,18 +13,18 @@
 #ifndef _CH_H_
 #define _CH_H_
 
-#define CH_KERNEL_MAJOR         3
-#define CH_KERNEL_MINOR         1
-#define CH_KERNEL_PATCH         3
+#define CH_KERNEL_MAJOR 3
+#define CH_KERNEL_MINOR 1
+#define CH_KERNEL_PATCH 3
 
 typedef unsigned int systime_t;
 
-void chSysLock() {};
-void chSysUnlock() {};
+void chSysLock(){};
+void chSysUnlock(){};
 
-systime_t chVTGetSystemTimeX() {return 0;};
-systime_t chThdSleep() {return 1;};
-systime_t chThdSleepS() {return 1;};
+systime_t chVTGetSystemTimeX() { return 0; };
+systime_t chThdSleep() { return 1; };
+systime_t chThdSleepS() { return 1; };
 
 #define TIME_INFINITE (systime_t)(-1)
 
