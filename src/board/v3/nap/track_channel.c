@@ -74,6 +74,7 @@ static struct nap_ch_state {
   double reckoned_carr_phase;
   u32 length[2];      /**< Correlation length in samples of Fs */
   s32 carr_pinc[2];   /**< Carrier phase increment */
+  u32 code_pinc[2];   /**< Code phase increment */
   u64 reckon_counter; /**< First carrier phase has to be read from NAP */
   s64 sw_carr_phase;  /**< Debug reckoned carrier phase */
   s16 length_adjust;  /**< Adjust the length the next time around */
@@ -256,6 +257,7 @@ void nap_track_init(u8 channel,
   /* Chip rate */
   s->code_phase_rate[1] = s->code_phase_rate[0] = chip_rate;
   u32 cp_rate_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  s->code_pinc[1] = s->code_pinc[0] = cp_rate_units;
   t->CODE_PINC = cp_rate_units;
   /* Integration length */
   u32 length = calc_length_samples(chips_to_correlate, 0, cp_rate_units);
@@ -361,21 +363,13 @@ void nap_track_update(u8 channel,
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   /* CHIP RATE --------------------------------------------------------- */
-  /* MIC_COMMENT: the use of s->code_phase_rate[2] is pretty limited:
-   * just converts samples to chips in nap_track_read_results() but
-   * the difference between the nominal one and the real (with Doppler)
-   * one will produce a sub-mm difference.. so what is its point? */
-  /* MIC_COMMENT: do we need to read from NAP the length in the else below?
-   * we should be able to use the reckoned value, but I am not sure if
-   * this should be s->length[1] or s->length[0].. it probably does not
-   * matter much in a tracking loop scenario.. */
-  /* MIC_COMMENT: so I'd probably remove this s->code_phase_rate[2] and use
-   * a s->code_pinc[2] to reckon code increments */
-  u32 code_phase_frac = t->CODE_PHASE_FRAC + t->CODE_PINC * (s->length[0]);
+  u32 code_phase_frac = t->CODE_PHASE_FRAC + s->code_pinc[0] * (s->length[0]);
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = chip_rate;
 
   u32 code_units = round(chip_rate * NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ);
+  s->code_pinc[1] = s->code_pinc[0];
+  s->code_pinc[0] = code_units;
 
   t->CODE_PINC = code_units;
 
@@ -425,7 +419,7 @@ void nap_track_read_results(u8 channel,
   /* Read track channel data
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
    */
-  memcpy(&trk_ch, t, sizeof(swiftnap_tracking_t));
+  memcpy(&trk_ch, t, SWIFTNAP_TRACKING_NUM_READABLE * sizeof(u32));
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(
