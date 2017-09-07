@@ -1,70 +1,21 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
-
-    This file is part of ChibiOS.
-
-    ChibiOS is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    ChibiOS is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/**
- * @file    ch.h
- * @brief   ChibiOS/RT main include file.
- * @details This header includes all the required kernel headers so it is the
- *          only kernel header you usually want to include in your application.
+ * Copyright (C) 2017 Swift Navigation Inc.
+ * Contact: Pasi Miettinen <pasi.miettinen@exafore.com>
  *
- * @addtogroup kernel_info
- * @details Kernel related info.
- * @{
+ * This source is subject to the license found in the file 'LICENSE' which must
+ * be be distributed together with this source. All other rights reserved.
+ *
+ * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+ * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 #ifndef _CH_H_
 #define _CH_H_
 
-/**
- * @brief   ChibiOS/RT identification macro.
- */
-#define _CHIBIOS_RT_
-
-/**
- * @brief   Stable release flag.
- */
-#define CH_KERNEL_STABLE        1
-
-/**
- * @name    ChibiOS/RT version identification
- * @{
- */
-/**
- * @brief   Kernel version string.
- */
-#define CH_KERNEL_VERSION       "3.1.3"
-
-/**
- * @brief   Kernel version major number.
- */
 #define CH_KERNEL_MAJOR         3
-
-/**
- * @brief   Kernel version minor number.
- */
 #define CH_KERNEL_MINOR         1
-
-/**
- * @brief   Kernel version patch number.
- */
 #define CH_KERNEL_PATCH         3
-/** @} */
 
 typedef unsigned int systime_t;
 
