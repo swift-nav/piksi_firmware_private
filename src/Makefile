@@ -180,6 +180,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
+        $(BOARDDIR)/v3/nap/track_dma.o \
         main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
