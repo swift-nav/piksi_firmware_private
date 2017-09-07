@@ -420,8 +420,8 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   if (count == 0) {
     prev_tor = tor;
     prev_count = 0;
-  } else if (prev_tor.tow != tor.tow || prev_tor.wn != tor.wn ||
-             prev_count + 1 != count) {
+  } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
+             prev_tor.wn != tor.wn || prev_count + 1 != count) {
     log_info("Dropped one of the observation packets! Skipping this sequence.");
     prev_count = -1;
     return;
