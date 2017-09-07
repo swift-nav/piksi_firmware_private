@@ -206,6 +206,7 @@ static void update_sat_azel(const double rcv_pos[3], const gps_time_t t) {
 
       /* else try to fetch almanac and use it if it is valid */
     } else if (NDB_ERR_NONE == ndb_almanac_read(sid, &almanac) &&
+               almanac_valid(&almanac, &t) &&
                calc_sat_az_el_almanac(&almanac, &t, rcv_pos, &az, &el) >= 0) {
       sv_azel_degrees_set(sid, round(az * R2D), round(el * R2D), nap_count);
       log_debug_sid(sid, "Updated elevation from almanac %.1f", el * R2D);
