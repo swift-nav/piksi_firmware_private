@@ -531,18 +531,12 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
   s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
 
   if (0 != err_hz) {
-    if (tracker_channel->lock_detect.outp) {
-      log_warn_mesid(tracker_channel->mesid,
-                     "False phase lock detected: %" PRId32 " Hz",
-                     err_hz);
-    } else {
-      log_debug_mesid(tracker_channel->mesid,
-                      "False optimistic lock detected: %" PRId32 " Hz",
-                      err_hz);
-    }
+    log_warn_mesid(tracker_channel->mesid,
+                   "False lock detected (ignored): %" PRId32 " Hz",
+                   err_hz);
 
-    tracker_ambiguity_unknown(tracker_channel);
-    tp_tl_adjust(&tracker_channel->tl_state, err_hz);
+    /* tracker_ambiguity_unknown(tracker_channel); */
+    /* tp_tl_adjust(&tracker_channel->tl_state, err_hz); */
   }
 }
 
