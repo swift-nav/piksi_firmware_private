@@ -266,7 +266,7 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
       data->xcorr_whitelist[index] = true;
     }
   }
-  if (0 != (entry->flags & TRACKER_FLAG_FLL_USE)) {
+  if (0 != (entry->flags & TRACKER_FLAG_SENSITIVITY_MODE)) {
     data->xcorr_whitelist[index] = false;
     data->xcorr_whitelist_counts[index] = 0;
   }
@@ -484,7 +484,8 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
+  bool sensitivity_mode =
+      (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
   /* If signal is in sensitivity mode, all whitelistings are cleared */
   if (sensitivity_mode) {
     for (u16 idx = 0; idx < ARRAY_SIZE(data->xcorr_whitelist); ++idx) {
@@ -550,7 +551,8 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
   }
 
   u16 index = mesid_to_code_index(tracker_channel->mesid);
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
+  bool sensitivity_mode =
+      (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist[index] = false;
@@ -579,8 +581,10 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
   update_l1_xcorr_from_l2(tracker_channel, cflags);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker_channel->lock_detect.outp && confirmed &&
-      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+
+  if (inlock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
       tracker_bit_aligned(tracker_channel)) {
     /* Start L2 CM tracker if not running */
     do_l1ca_to_l2cm_handover(tracker_channel->sample_count,

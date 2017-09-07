@@ -85,7 +85,7 @@
 #define TRACK_PLL_MODE3_FLL 3
 
 #ifndef TRACK_PLL_MODE3
-#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_BL
+#define TRACK_PLL_MODE3 TRACK_PLL_MODE3_FLL
 #endif
 
 #if TRACK_PLL_MODE3 == TRACK_PLL_MODE3_BL
@@ -152,12 +152,16 @@
  * Tracking mode enumeration.
  */
 typedef enum {
-  TP_TM_INITIAL, /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_1MS,     /**< 1 ms */
-  TP_TM_2MS,     /**< 2 ms */
-  TP_TM_5MS,     /**< 5 ms */
-  TP_TM_10MS,    /**< 10 ms */
-  TP_TM_20MS,    /**< 20 ms */
+  TP_TM_INITIAL,  /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_1MS_GPS,  /**< 1 ms */
+  TP_TM_1MS_GLO,  /**< 1 ms */
+  TP_TM_2MS_GPS,  /**< 2 ms */
+  TP_TM_2MS_GLO,  /**< 2 ms */
+  TP_TM_5MS_GPS,  /**< 5 ms */
+  TP_TM_5MS_GLO,  /**< 5 ms */
+  TP_TM_10MS_GPS, /**< 10 ms */
+  TP_TM_10MS_GLO, /**< 10 ms */
+  TP_TM_20MS_GPS  /**< 20 ms */
 } tp_tm_e;
 
 /**
@@ -201,37 +205,79 @@ typedef struct {
   decode_sync_flags_t sync_flags;
 } nav_data_sync_t;
 
+struct profile_vars {
+  u8 index;
+  float pll_bw;
+  float fll_bw;
+};
+
+/**
+ * Tracking loop parameters.
+ */
+typedef struct {
+  float code_bw;      /**< Code tracking noise bandwidth in Hz */
+  float code_zeta;    /**< Code tracking loop damping ratio */
+  float code_k;       /**< Code tracking loop gain coefficient */
+  float carr_to_code; /**< */
+  float carr_bw;      /**< Carrier tracking loop noise bandwidth in Hz */
+  float carr_zeta;    /**< Carrier tracking loop damping ratio */
+  float carr_k;       /**< Carrier tracking loop gain coefficient */
+  float fll_bw;       /**< FLL BW */
+  tp_tm_e mode;       /**< Operation mode */
+  tp_ctrl_e ctrl;     /**< Controller type */
+} tp_loop_params_t;
+
+/**
+ * Lock detector parameters.
+ */
+typedef struct {
+  float k1; /**< LPF coefficient */
+  float k2; /**< I scale factor */
+  u16 lp;   /**< Pessimistic count threshold */
+} tp_lock_detect_params_t;
+
+/**
+ * Lock detector parameters.
+ */
+typedef struct {
+  track_cn0_est_e est;
+
+  float track_cn0_use_thres_dbhz;
+  float track_cn0_drop_thres_dbhz;
+  float track_cn0_ambiguity_thres_dbhz;
+} tp_cn0_params_t;
+
 /**
  * Tracking profile controller data.
  *
  * The controller uses this container for managing profile switching logic.
  */
 typedef struct {
-  /*
-   * Fields are ordered from larger to smaller for minimal memory footprint.
-   */
-
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
-  float filt_accel; /**< SV acceleration value for decision logic [g] */
 
-  /* Packed fields: 24 bits */
-  u32 olock : 1;                  /**< PLL optimistic lock flag */
-  u32 plock : 1;                  /**< PLL pessimistic lock flag */
-  u32 bsync : 1;                  /**< Bit sync flag */
-  u32 bsync_sticky : 1;           /**< Bit sync flag */
-  u32 profile_update : 1;         /**< Flag if the profile update is required */
-  u32 dll_init : 1;               /**< DLL init required */
-  u32 cn0_est : 2;                /**< C/N0 estimator type */
-  u16 lock_time_ms;               /**< Profile lock count down timer */
-  u8 cur_index;                   /**< Active profile index [0-37] */
-  u8 next_index;                  /**< Next profile index [0-37] */
-  u16 acceleration_ends_after_ms; /**< There is an acceleration if this
-                                   *   parameter is non-zero [ms] */
-  u16 print_time;                 /**< Time till next debug print [ms] */
-  u32 time_snapshot_ms;           /**< Time snapshot [ms] */
-  s16 bs_delay_ms;    /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
+  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 bsync : 1;          /**< Bit sync flag */
+  u32 bsync_sticky : 1;   /**< Bit sync flag */
+  u32 profile_update : 1; /**< Flag if the profile update is required */
+  u32 dll_init : 1;       /**< DLL init required */
+  u32 cn0_est : 2;        /**< C/N0 estimator type */
+  u32 use_alias_detection : 1;
+
+  u16 lock_time_ms;         /**< Profile lock count down timer */
+  struct profile_vars cur;  /**< Current profile variables */
+  struct profile_vars next; /**< Next profile variables */
+  u16 print_time;           /**< Time till next debug print [ms] */
+  u32 time_snapshot_ms;     /**< Time snapshot [ms] */
+  s16 bs_delay_ms;          /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
   s16 plock_delay_ms; /**< Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
+
+  tp_loop_params_t loop_params; /**< Tracking loop parameters */
+  /** Phase lock detector parameters */
+  tp_lock_detect_params_t ld_phase_params;
+  /** Freq lock detector parameters */
+  tp_lock_detect_params_t ld_freq_params;
+  tp_cn0_params_t cn0_params;
 
   const struct tp_profile_entry *profiles; /**< Profiles switching table. */
 } tp_profile_t;
@@ -560,15 +606,14 @@ typedef struct {
                                     of PLL/FLL pessimistic locks [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
-  track_ctrl_params_t ctrl_params; /**< Controller parameters */
-  float acceleration;              /**< Acceleration [g] */
-  float xcorr_freq;                /**< Doppler for cross-correlation [hz] */
-  u64 init_timestamp_ms;           /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;         /**< Tracking channel last update
-                                        timestamp [ms] */
-  bool updated_once;   /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;   /**< Half-cycle ambiguity resolution */
-  glo_health_t health; /**< GLO SV health info */
+  float acceleration;          /**< Acceleration [g] */
+  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
+  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;     /**< Tracking channel last update
+                                    timestamp [ms] */
+  bool updated_once;           /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
+  glo_health_t health;         /**< GLO SV health info */
 
   /** Associated tracker interface. */
   const struct tracker_interface *interface;
@@ -581,9 +626,10 @@ typedef struct {
   tp_corr_state_t corrs;       /**< Correlations */
   track_cn0_state_t cn0_est;   /**< C/N0 estimator state. */
   alias_detect_t alias_detect; /**< Alias lock detector. */
-  lock_detect_t lock_detect;   /**< Lock detector state. */
+  lock_detect_t ld_phase;      /**< Phase lock detector state. */
+  lock_detect_t ld_freq;       /**< Frequency lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
-  u16 tracking_mode : 3;       /**< Tracking mode */
+  tp_tm_e tracking_mode;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current
                                 *   integration mode. */
   u16 use_alias_detection : 1; /**< Flag for alias detection control */
@@ -654,7 +700,6 @@ typedef struct {
 /* FLL control */
 #define TP_CFLAG_FLL_SET ((u32)1 << 8)
 #define TP_CFLAG_FLL_ADD ((u32)1 << 9)
-#define TP_CFLAG_FLL_USE ((u32)1 << 10)
 #define TP_CFLAG_FLL_FIRST ((u32)1 << 11)
 #define TP_CFLAG_FLL_SECOND ((u32)1 << 12)
 
@@ -720,55 +765,6 @@ typedef struct {
   } while (0)
 
 /**
- * Tracking loop parameters.
- */
-typedef struct {
-  float code_bw;      /**< Code tracking noise bandwidth in Hz */
-  float code_zeta;    /**< Code tracking loop damping ratio */
-  float code_k;       /**< Code tracking loop gain coefficient */
-  float carr_to_code; /**< */
-  float carr_bw;      /**< Carrier tracking loop noise bandwidth in Hz */
-  float carr_zeta;    /**< Carrier tracking loop damping ratio */
-  float carr_k;       /**< Carrier tracking loop gain coefficient */
-  float fll_bw;       /**< FLL BW */
-  tp_tm_e mode;       /**< Operation mode */
-  tp_ctrl_e ctrl;     /**< Operation mode */
-} tp_loop_params_t;
-
-/**
- * Lock detector parameters.
- */
-typedef struct {
-  float k1; /**< LPF coefficient */
-  float k2; /**< I scale factor */
-  u16 lp;   /**< Pessimistic count threshold */
-  u16 lo;   /**< Optimistic count threshold */
-} tp_lock_detect_params_t;
-
-/**
- * Lock detector parameters.
- */
-typedef struct {
-  track_cn0_est_e est;
-
-  float track_cn0_use_thres_dbhz;
-  float track_cn0_drop_thres_dbhz;
-  float track_cn0_ambiguity_thres_dbhz;
-} tp_cn0_params_t;
-
-/**
- * Tracking loop configuration container.
- *
- * \sa tp_get_profile
- */
-typedef struct {
-  tp_loop_params_t loop_params;               /**< Tracking loop parameters */
-  tp_lock_detect_params_t lock_detect_params; /**< Lock detector parameters */
-  bool use_alias_detection;                   /**< Alias detection flag */
-  tp_cn0_params_t cn0_params;
-} tp_config_t;
-
-/**
  * Tracking loop data.
  *
  * This structure contains tracking parameters required for profile changing
@@ -781,12 +777,9 @@ typedef struct {
   float cn0;              /**< Computed C/N0 (filtered) in dB/Hz */
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
   u32 plock : 1;          /**< Pessimistic lock flag */
-  u32 olock : 1;          /**< Optimistic lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
-  float lock_i;           /**< Filtered I value from the lock detector */
-  float lock_q;           /**< Filtered Q value from the lock detector */
 } tp_report_t;
 
 /**
@@ -801,18 +794,16 @@ typedef enum {
 extern u16 max_pll_integration_time_ms;
 
 tp_result_e tp_init(void);
-tp_result_e tp_profile_init(const me_gnss_signal_t mesid,
-                            tp_profile_t *profile,
-                            const tp_report_t *data,
-                            tp_config_t *config);
-tp_result_e tp_profile_get_config(const me_gnss_signal_t mesid,
-                                  tp_profile_t *profile,
-                                  tp_config_t *config,
-                                  bool commit);
+void tp_profile_init(tracker_channel_t *tracker_channel,
+                     const tp_report_t *data);
+
+void tp_profile_update_config(tracker_channel_t *tracker_channel);
+void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init);
+void tp_profile_switch(tracker_channel_t *tracker_channel);
+
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
-bool tp_profile_has_new_profile(const me_gnss_signal_t mesid,
-                                tp_profile_t *profile);
+bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel);
 u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
                                       const tp_profile_t *profile);
 void tp_profile_report_data(tracker_channel_t *tracker_channel,
@@ -829,7 +820,7 @@ u32 tp_get_rollover_cycle_duration(tp_tm_e tracking_mode, u8 cycle_no);
 u8 tp_get_cn0_ms(tp_tm_e tracking_mode);
 u8 tp_get_ld_ms(tp_tm_e tracking_mode);
 u8 tp_get_alias_ms(tp_tm_e tracking_mode);
-u8 tp_get_flld_ms(tp_tm_e tracking_mode);
+float tp_get_flld_ms(tp_tm_e tracking_mode);
 u8 tp_get_flll_ms(tp_tm_e tracking_mode);
 u8 tp_get_bit_ms(tp_tm_e tracking_mode);
 u8 tp_get_pll_ms(tp_tm_e tracking_mode);
@@ -869,9 +860,6 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
 void tp_tracker_disable(tracker_channel_t *tracker_channel);
 u32 tp_tracker_update(tracker_channel_t *tracker_channel,
                       const tp_tracker_config_t *config);
-void tp_tracker_update_parameters(tracker_channel_t *tracker_channel,
-                                  const tp_config_t *next_params,
-                                  bool init);
 void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
                                    u32 cycle_flags);
 void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,

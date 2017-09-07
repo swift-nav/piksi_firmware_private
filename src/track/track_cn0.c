@@ -272,15 +272,14 @@ void track_cn0_init(const me_gnss_signal_t mesid,
                     u8 flags) {
   track_cn0_params_t p;
 
-  e->type = TRACK_CN0_EST_PRIMARY;
+  e->type = TRACK_CN0_EST_BASIC;
   e->cn0_0 = (u8)cn0_0;
   e->flags = flags;
   e->cn0_ms = cn0_ms;
 
   const track_cn0_params_t *pp = track_cn0_get_params(cn0_ms, &p);
 
-  init_estimator(e, &pp->est_params, TRACK_CN0_EST_PRIMARY, cn0_0);
-  init_estimator(e, &pp->est_params, TRACK_CN0_EST_SECONDARY, cn0_0);
+  init_estimator(e, &pp->est_params, TRACK_CN0_EST_BASIC, cn0_0);
 
   cn0_filter_init(&e->filter, &pp->filter_params, cn0_0);
 
@@ -337,25 +336,6 @@ float track_cn0_update(const me_gnss_signal_t mesid,
   cn0 = cn0_filter_update(&e->filter, &pp->filter_params, cn0);
 
   return cn0;
-}
-
-/**
- * Provides literal constant for C/N0 estimator type
- *
- * \param[in] t C/N0 estimator type
- *
- * \return Abbreviated estimator name.
- */
-const char *track_cn0_str(track_cn0_est_e t) {
-  const char *str = "?";
-  switch (t) {
-    case TRACK_CN0_EST_BASIC:
-      str = "BASIC";
-      break;
-    default:
-      assert(!"Unknown estimator type");
-  }
-  return str;
 }
 
 /**
