@@ -508,9 +508,6 @@ typedef struct {
   /** Time at which the channel was disabled. */
   piksi_systime_t disable_time;
 
-  /** Time at which the channel was updated. */
-  piksi_systime_t update_time;
-
   /** FIFO for navigation message bits. */
   nav_bit_fifo_t nav_bit_fifo;
   /** Used to sync time decoded from navigation message

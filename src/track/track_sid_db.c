@@ -73,9 +73,8 @@ void track_sid_db_init(void) {
  * Clears GLO ToW cache prior to leap second event.
  */
 void track_sid_db_clear_glo_tow(void) {
-  tp_tow_entry_t tow_entry = {.TOW_ms = TOW_UNKNOWN,
-                              .TOW_residual_ns = 0,
-                              .sample_time = PIKSI_SYSTIME_INIT};
+  tp_tow_entry_t tow_entry = {
+      .TOW_ms = TOW_UNKNOWN, .TOW_residual_ns = 0, .sample_time_tk = 0};
   for (u8 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; ++i) {
     gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, i);
     track_sid_db_update_tow(sid, &tow_entry);
@@ -176,7 +175,7 @@ bool track_sid_db_update_azel(const gnss_signal_t sid,
  * \return Computed ToW if >= 0 or #TOW_UNKNOWN on error.
  */
 s32 tp_tow_compute(s32 old_ToW_ms,
-                   u64 delta_us,
+                   u64 delta_tk,
                    u8 ms_align,
                    double *error_ms) {
   s32 ToW_ms = TOW_UNKNOWN;
@@ -184,7 +183,7 @@ s32 tp_tow_compute(s32 old_ToW_ms,
   if (TOW_UNKNOWN != old_ToW_ms) {
     /* Propagate ToW time from cached entry according to estimated time
      * jump. */
-    double delta_d = delta_us / (double)SECS_MS;
+    double delta_d = nap_count_to_ms(delta_tk);
 
     /* Check interval sanity and validity */
     if (delta_d >= 0 && delta_d <= MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {

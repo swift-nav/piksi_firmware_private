@@ -1204,8 +1204,6 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
 
         tracker_channel_lock(tracker_channel);
         {
-          piksi_systime_get(&tracker_channel->update_time);
-
           interface_function(tracker_channel,
                              tracker_channel->interface->update);
 
@@ -1477,7 +1475,8 @@ static bool verify_bit_alignment(tracker_channel_t *trk_ch, u32 cycle_flags) {
 }
 
 static void read_tow_cache(tracker_channel_t *trk_ch,
-                           tp_tow_entry_t *tow_entry) {
+                           tp_tow_entry_t *tow_entry,
+                           u64 sample_time_tk) {
   gnss_signal_t sid = construct_sid(trk_ch->mesid.code, trk_ch->mesid.sat);
   track_sid_db_load_tow(sid, tow_entry);
 
@@ -1487,12 +1486,11 @@ static void read_tow_cache(tracker_channel_t *trk_ch,
 
   /* There is a cached value */
   double error_ms = 0;
-  u64 delta_us =
-      piksi_systime_sub_us(&trk_ch->update_time, &tow_entry->sample_time);
+  u64 delta_tk = sample_time_tk - tow_entry->sample_time_tk;
 
   u8 align = tracker_bit_length_get(trk_ch);
 
-  s32 ToW_ms = tp_tow_compute(tow_entry->TOW_ms, delta_us, align, &error_ms);
+  s32 ToW_ms = tp_tow_compute(tow_entry->TOW_ms, delta_tk, align, &error_ms);
 
   if (TOW_UNKNOWN == ToW_ms) {
     return;
@@ -1506,7 +1504,7 @@ static void read_tow_cache(tracker_channel_t *trk_ch,
                   "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
                   trk_ch->update_count,
                   align,
-                  delta_us / (double)SECS_MS,
+                  nap_count_to_ms(delta_tk),
                   ToW_ms,
                   error_ms);
 
@@ -1582,12 +1580,13 @@ void update_tow_gps(tracker_channel_t *trk_ch, u32 cycle_flags) {
   }
 
   tp_tow_entry_t tow_entry;
+  u64 sample_time_tk = nap_sample_time_to_count(trk_ch->sample_count);
 
   if (TOW_UNKNOWN != trk_ch->TOW_ms) {
     check_tow_alignment_gps(trk_ch);
   } else {
     /* TOW unkown, fetch from cache */
-    read_tow_cache(trk_ch, &tow_entry);
+    read_tow_cache(trk_ch, &tow_entry, sample_time_tk);
   }
 
   if (CODE_GPS_L2CL == trk_ch->mesid.code) {
@@ -1610,13 +1609,14 @@ void update_tow_gps(tracker_channel_t *trk_ch, u32 cycle_flags) {
      * - CN0 is OK
      */
     tow_entry.TOW_ms = trk_ch->TOW_ms;
-    tow_entry.sample_time = trk_ch->update_time;
+    tow_entry.sample_time_tk = trk_ch->sample_count;
     gnss_signal_t sid = construct_sid(trk_ch->mesid.code, trk_ch->mesid.sat);
     track_sid_db_update_tow(sid, &tow_entry);
   }
 }
 
-static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel) {
+static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel,
+                                         u64 sample_time_tk) {
   tracker_channel->TOW_residual_ns = 0;
 
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
@@ -1637,12 +1637,11 @@ static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel) {
   /* We have a cached GLO TOW */
 
   double error_ms = 0;
-  u64 time_delta_us = piksi_systime_sub_us(&tracker_channel->update_time,
-                                           &tow_entry.sample_time);
+  u64 delta_tk = sample_time_tk - tow_entry.sample_time_tk;
   u8 half_bit = (GLO_L1CA_BIT_LENGTH_MS / 2);
-  s32 TOW_ms;
 
-  TOW_ms = tp_tow_compute(tow_entry.TOW_ms, time_delta_us, half_bit, &error_ms);
+  s32 TOW_ms = tp_tow_compute(tow_entry.TOW_ms, delta_tk, half_bit, &error_ms);
+
   if (TOW_UNKNOWN == TOW_ms) {
     return TOW_UNKNOWN;
   }
@@ -1653,7 +1652,7 @@ static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel) {
                 " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
                 tracker_channel->update_count,
                 half_bit,
-                time_delta_us / (double)SECS_MS,
+                nap_count_to_ms(delta_tk),
                 TOW_ms,
                 error_ms);
 
@@ -1673,7 +1672,7 @@ static s32 propagate_tow_from_sid_db_glo(tracker_channel_t *tracker_channel) {
 }
 
 static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
-                                     const piksi_systime_t *sample_time) {
+                                     u64 sample_time) {
   u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
   if (!glo_slot_id_is_valid(glo_orbit_slot)) {
     return;
@@ -1686,7 +1685,7 @@ static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
   tp_tow_entry_t tow_entry = {
       .TOW_ms = tracker_channel->TOW_ms,
       .TOW_residual_ns = tracker_channel->TOW_residual_ns,
-      .sample_time = *sample_time};
+      .sample_time_tk = sample_time};
   track_sid_db_update_tow(sid, &tow_entry);
 }
 
@@ -1738,10 +1737,12 @@ void update_tow_glo(tracker_channel_t *trk_ch, u32 cycle_flags) {
     return;
   }
 
+  u64 sample_time_tk = nap_sample_time_to_count(trk_ch->sample_count);
+
   if (TOW_UNKNOWN != trk_ch->TOW_ms) {
     check_tow_alignment_glo(trk_ch);
   } else {
-    trk_ch->TOW_ms = propagate_tow_from_sid_db_glo(trk_ch);
+    trk_ch->TOW_ms = propagate_tow_from_sid_db_glo(trk_ch, sample_time_tk);
   }
 
   if (CODE_GLO_L2CA == trk_ch->mesid.code &&
@@ -1754,7 +1755,7 @@ void update_tow_glo(tracker_channel_t *trk_ch, u32 cycle_flags) {
   if ((trk_ch->flags & TRACKER_FLAG_CONFIRMED) &&
       (TOW_UNKNOWN != trk_ch->TOW_ms) &&
       (trk_ch->cn0 >= CN0_TOW_CACHE_THRESHOLD)) {
-    update_tow_in_sid_db_glo(trk_ch, &trk_ch->update_time);
+    update_tow_in_sid_db_glo(trk_ch, sample_time_tk);
   }
 }
 

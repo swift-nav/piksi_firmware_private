@@ -27,7 +27,7 @@
 typedef struct {
   s32 TOW_ms;          /**< ToW value [ms] */
   s32 TOW_residual_ns; /**< Residual to TOW_ms [ns] */
-  piksi_systime_t sample_time; /**< ToW value time */
+  u64 sample_time_tk;  /**< ToW value time [ticks] */
 } tp_tow_entry_t;
 
 /**
