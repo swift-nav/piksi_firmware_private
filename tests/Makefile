@@ -80,5 +80,11 @@ fixed_fft_r2.o : $(USER_SRC_DIR)/lib/fixed_fft_r2.h $(USER_SRC_DIR)/lib/fixed_ff
 test_fft.o : $(TEST_DIR)/test_fft.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_SRC_DIR) -I$(USER_SRC_DIR)/board/v3/ -I../libswiftnav/include -c $(TEST_DIR)/test_fft.cc
 
-run_tests : fixed_fft_r2.o test_fft.o gtest_main.a
+piksi_systime.o : $(USER_SRC_DIR)/piksi_systime.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/piksi_systime.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_SRC_DIR) -I./ -I../src/board/v3 -I../libswiftnav/include -c $(USER_SRC_DIR)/piksi_systime.c
+
+test_piksi_systime.o : $(TEST_DIR)/test_piksi_systime.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_SRC_DIR) -I$(USER_SRC_DIR)/board/v3/ -I../libswiftnav/include -I./ -c $(TEST_DIR)/test_piksi_systime.cc
+
+run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
