@@ -38,7 +38,7 @@
  * \note The result is rounded upward to the next tick boundary.
  */
 #define PIKSI_TIME2ST(t, prefix) \
-  (((u64)(t)*CH_CFG_ST_FREQUENCY + ((prefix)-1)) / (prefix))
+  (((u64)(t) * CH_CFG_ST_FREQUENCY + ((prefix) - 1)) / (prefix))
 
 #define PIKSI_US2ST(t) PIKSI_TIME2ST(t, SECS_US)
 #define PIKSI_MS2ST(t) PIKSI_TIME2ST(t, SECS_MS)
@@ -440,6 +440,7 @@ bool piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
     assert(0 < t->rollover_cnt);
     t->rollover_cnt--;
     dec -= (t->systime + 1);
+    t->systime = TIME_INFINITE;
   }
 
   t->systime -= dec;
