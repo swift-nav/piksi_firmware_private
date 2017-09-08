@@ -24,7 +24,395 @@ TEST(piksi_systime_tests, to_us) {
   st.rollover_cnt = 1;
   us = piksi_systime_to_us(&st);
   // should be one positive rollover + one min step in us
-  EXPECT_EQ(us, ((s64)TIME_INFINITE + 1 + 1) * SECS_US / CH_CFG_ST_FREQUENCY);
+  EXPECT_EQ(us, ceil(((s64)TIME_INFINITE + 1 + 1) *\
+                     (double)SECS_US / CH_CFG_ST_FREQUENCY));
+
+  st.rollover_cnt = -1;
+  // result should overflow
+  EXPECT_DEATH(piksi_systime_to_us(&st), "");
+}
+
+TEST(piksi_systime_tests, to_ms) {
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  u64 ms = piksi_systime_to_ms(&st);
+  // should be the smallest positive step in ms
+  EXPECT_EQ(ms, ceil((double)SECS_MS / CH_CFG_ST_FREQUENCY));
+
+  st.systime = 1;
+  st.rollover_cnt = 1;
+  ms = piksi_systime_to_ms(&st);
+  // should be one positive rollover + one min step in ms
+  EXPECT_EQ(ms, ceil(((s64)TIME_INFINITE + 1 + 1) *\
+                     (double)SECS_MS / CH_CFG_ST_FREQUENCY));
+
+  st.rollover_cnt = -1;
+  // result should overflow
+  EXPECT_DEATH(piksi_systime_to_ms(&st), "");
+}
+
+TEST(piksi_systime_tests, to_s) {
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  u64 s = piksi_systime_to_s(&st);
+  // should be the smallest positive step in s
+  EXPECT_EQ(s, ceil(1.0 / CH_CFG_ST_FREQUENCY));
+
+  st.systime = 1;
+  st.rollover_cnt = 1;
+  s = piksi_systime_to_s(&st);
+  // should be one positive rollover + one min step in s
+  EXPECT_EQ(s, ceil(((s64)TIME_INFINITE + 1 + 1) * 1.0 / CH_CFG_ST_FREQUENCY));
+
+  st.rollover_cnt = -1;
+  s = piksi_systime_to_s(&st);
+  // should be 4,294,967,295 positive rollovers + one min step in s
+  EXPECT_EQ(s, ceil(((u32)(-1) * ((u64)TIME_INFINITE + 1) + 1) *\
+                    1.0 / CH_CFG_ST_FREQUENCY));
+}
+
+TEST(piksi_systime_tests, inc_us) {
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  // check null pointer
+  bool ret = piksi_systime_inc_us(NULL, 1);
+  EXPECT_EQ(ret, false);
+
+  // zero increment is always approved
+  ret = piksi_systime_inc_us(NULL, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // zero increment is always approved
+  ret = piksi_systime_inc_us(&st, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // add one
+  u64 inc = 1;
+  ret = piksi_systime_inc_us(&st, inc);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, ceil(1 + inc * (double)CH_CFG_ST_FREQUENCY / SECS_US));
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // rollover
+  inc = 1;
+  st.systime = TIME_INFINITE;
+  st.rollover_cnt = 0;
+  ret = piksi_systime_inc_us(&st, inc);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, ceil((double)CH_CFG_ST_FREQUENCY / SECS_US - 1));
+  EXPECT_EQ(st.rollover_cnt, 1);
+
+  // add minus one -> overflow
+  inc = -1;
+  EXPECT_DEATH(piksi_systime_inc_us(&st, inc), "");
+
+  // piksi_systime_inc_internal is currently limited to TIME_INFINITE ticks,
+  // test TIME_INFINITE + 1
+  inc = ceil(1 + TIME_INFINITE * (double)SECS_US / CH_CFG_ST_FREQUENCY);
+  EXPECT_DEATH(piksi_systime_inc_us(&st, inc), "");
+}
+
+TEST(piksi_systime_tests, inc_ms) {
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  // check null pointer
+  bool ret = piksi_systime_inc_ms(NULL, 1);
+  EXPECT_EQ(ret, false);
+
+  // zero increment is always approved
+  ret = piksi_systime_inc_ms(NULL, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // zero increment is always approved
+  ret = piksi_systime_inc_ms(&st, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // add one
+  u64 inc = 1;
+  ret = piksi_systime_inc_ms(&st, inc);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, ceil(1 + inc * (double)CH_CFG_ST_FREQUENCY / SECS_MS));
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // rollover
+  inc = 1;
+  st.systime = TIME_INFINITE;
+  st.rollover_cnt = 0;
+  ret = piksi_systime_inc_ms(&st, inc);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, ceil((double)CH_CFG_ST_FREQUENCY / SECS_MS - 1));
+  EXPECT_EQ(st.rollover_cnt, 1);
+
+  // add minus one -> overflow
+  inc = -1;
+  EXPECT_DEATH(piksi_systime_inc_ms(&st, inc), "");
+
+  // piksi_systime_inc_internal is currently limited to TIME_INFINITE ticks,
+  // test TIME_INFINITE + 1
+  inc = ceil(1 + TIME_INFINITE * (double)SECS_MS / CH_CFG_ST_FREQUENCY);
+  EXPECT_DEATH(piksi_systime_inc_ms(&st, inc), "");
+}
+
+TEST(piksi_systime_tests, inc_s) {
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  // check null pointer
+  bool ret = piksi_systime_inc_s(NULL, 1);
+  EXPECT_EQ(ret, false);
+
+  // zero increment is always approved
+  ret = piksi_systime_inc_s(NULL, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // zero increment is always approved
+  ret = piksi_systime_inc_s(&st, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // add one
+  u64 inc = 1;
+  ret = piksi_systime_inc_s(&st, inc);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, ceil(1 + inc * (double)CH_CFG_ST_FREQUENCY));
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // rollover
+  inc = 1;
+  st.systime = TIME_INFINITE;
+  st.rollover_cnt = 0;
+  ret = piksi_systime_inc_s(&st, inc);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, ceil((double)CH_CFG_ST_FREQUENCY) - 1);
+  EXPECT_EQ(st.rollover_cnt, 1);
+
+  // add minus one -> overflow
+  inc = -1;
+  EXPECT_DEATH(piksi_systime_inc_s(&st, inc), "");
+
+  // piksi_systime_inc_internal is currently limited to TIME_INFINITE ticks,
+  // test TIME_INFINITE + 1
+  inc = ceil(1 + TIME_INFINITE * (double)SECS_MS);
+  EXPECT_DEATH(piksi_systime_inc_s(&st, inc), "");
+}
+
+TEST(piksi_systime_tests, dec_us) {
+  // one tick doesn't equal one micro
+  const double as_ticks = (double)SECS_US / CH_CFG_ST_FREQUENCY;
+
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  // check null pointer
+  bool ret = piksi_systime_dec_us(NULL, 1);
+  EXPECT_EQ(ret, false);
+
+  // zero decrement is always approved
+  ret = piksi_systime_dec_us(NULL, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // zero decrement is always approved
+  ret = piksi_systime_dec_us(&st, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // dec one
+  u64 dec = 1 * as_ticks;
+  st.systime = 1;
+  ret = piksi_systime_dec_us(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 0);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // dec one from 0
+  dec = 1 * as_ticks;
+  st.systime = 0;
+  st.rollover_cnt = 0;
+  EXPECT_DEATH(piksi_systime_dec_us(&st, dec), "");
+
+  // dec one from rollover
+  dec = 1 * as_ticks;
+  st.systime = 0;
+  st.rollover_cnt = 1;
+  ret = piksi_systime_dec_us(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.rollover_cnt, 0);
+  EXPECT_EQ(st.systime, TIME_INFINITE);
+
+  // dec two from rollover + 1
+  // make sure we take two ticks (one tick reprepsents multiple us increments)
+  dec = 2 * as_ticks;
+  st.systime = 1;
+  st.rollover_cnt = 1;
+  ret = piksi_systime_dec_us(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.rollover_cnt, 0);
+  EXPECT_EQ(st.systime, TIME_INFINITE);
+
+  // overflow
+  dec = -1;
+  EXPECT_DEATH(piksi_systime_dec_us(&st, dec), "");
+
+  // piksi_systime_dec_internal is currently limited to TIME_INFINITE ticks,
+  // test TIME_INFINITE + 1
+  dec = ceil(1 + TIME_INFINITE * (double)SECS_US / CH_CFG_ST_FREQUENCY);
+  EXPECT_DEATH(piksi_systime_dec_us(&st, dec), "");
+}
+
+TEST(piksi_systime_tests, dec_ms) {
+  // one tick doesn't equal one milli
+  const double as_millis = (double)CH_CFG_ST_FREQUENCY/ SECS_MS;
+
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  // check null pointer
+  bool ret = piksi_systime_dec_ms(NULL, 1);
+  EXPECT_EQ(ret, false);
+
+  // zero decrement is always approved
+  ret = piksi_systime_dec_ms(NULL, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // zero decrement is always approved
+  ret = piksi_systime_dec_ms(&st, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // dec one
+  u64 dec = 1;
+  st.systime = 1 * as_millis;
+  ret = piksi_systime_dec_ms(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 0);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // dec one from 0
+  dec = 1;
+  st.systime = 0;
+  st.rollover_cnt = 0;
+  EXPECT_DEATH(piksi_systime_dec_ms(&st, dec), "");
+
+  // dec one from rollover
+  dec = 1;
+  st.systime = 0;
+  st.rollover_cnt = 1;
+  ret = piksi_systime_dec_ms(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.rollover_cnt, 0);
+  EXPECT_EQ(st.systime, (u32)-(1 * as_millis));
+
+  // dec two from rollover + 1
+  // make sure we take two ticks (one tick reprepsents multiple us increments)
+  dec = 2;
+  st.systime = 1 * as_millis;
+  st.rollover_cnt = 1;
+  ret = piksi_systime_dec_ms(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.rollover_cnt, 0);
+  EXPECT_EQ(st.systime, (u32)-(1 * as_millis));
+
+  // overflow
+  dec = -1;
+  EXPECT_DEATH(piksi_systime_dec_ms(&st, dec), "");
+
+  // piksi_systime_dec_internal is currently limited to TIME_INFINITE ticks,
+  // test TIME_INFINITE + 1
+  dec = ceil(1 + TIME_INFINITE * (double)SECS_MS / CH_CFG_ST_FREQUENCY);
+  EXPECT_DEATH(piksi_systime_dec_ms(&st, dec), "");
+}
+
+TEST(piksi_systime_tests, dec_s) {
+  // one tick doesn't equal one second
+  const double as_seconds = (double)CH_CFG_ST_FREQUENCY;
+
+  piksi_systime_t st = PIKSI_SYSTIME_INIT;
+  st.systime = 1;
+
+  // check null pointer
+  bool ret = piksi_systime_dec_s(NULL, 1);
+  EXPECT_EQ(ret, false);
+
+  // zero decrement is always approved
+  ret = piksi_systime_dec_s(NULL, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // zero decrement is always approved
+  ret = piksi_systime_dec_s(&st, 0);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 1);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // dec one
+  u64 dec = 1;
+  st.systime = 1 * as_seconds;
+  ret = piksi_systime_dec_s(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.systime, 0);
+  EXPECT_EQ(st.rollover_cnt, 0);
+
+  // dec one from 0
+  dec = 1;
+  st.systime = 0;
+  st.rollover_cnt = 0;
+  EXPECT_DEATH(piksi_systime_dec_s(&st, dec), "");
+
+  // dec one from rollover
+  dec = 1;
+  st.systime = 0;
+  st.rollover_cnt = 1;
+  ret = piksi_systime_dec_s(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.rollover_cnt, 0);
+  EXPECT_EQ(st.systime, (u32)-(1 * as_seconds));
+
+  // dec two from rollover + 1
+  // make sure we take two ticks (one tick reprepsents multiple us increments)
+  dec = 2;
+  st.systime = 1 * as_seconds;
+  st.rollover_cnt = 1;
+  ret = piksi_systime_dec_s(&st, dec);
+  EXPECT_EQ(ret, true);
+  EXPECT_EQ(st.rollover_cnt, 0);
+  EXPECT_EQ(st.systime, (u32)-(1 * as_seconds));
+
+  // overflow
+  dec = -1;
+  EXPECT_DEATH(piksi_systime_dec_s(&st, dec), "");
+
+  // piksi_systime_dec_internal is currently limited to TIME_INFINITE ticks,
+  // test TIME_INFINITE + 1
+  dec = ceil(1 + TIME_INFINITE * 1.0 / CH_CFG_ST_FREQUENCY);
+  EXPECT_DEATH(piksi_systime_dec_s(&st, dec), "");
 }
 
 TEST(piksi_systime_tests, sub_us) {
@@ -105,3 +493,4 @@ TEST(piksi_systime_tests, sub_s) {
   EXPECT_EQ(diff,
             -ceil(((s64)TIME_INFINITE - 1) / (double)CH_CFG_ST_FREQUENCY));
 }
+
