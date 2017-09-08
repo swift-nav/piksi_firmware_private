@@ -649,14 +649,42 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
 
   if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
-    /* Update C/N0 estimate */
-    cn0 = track_cn0_update(tracker_channel->mesid,
-                           cn0_params.est,
-                           &tracker_channel->cn0_est,
-                           tracker_channel->corrs.corr_cn0.prompt.I,
-                           tracker_channel->corrs.corr_cn0.prompt.Q,
-                           tracker_channel->corrs.corr_cn0.very_early.I,
-                           tracker_channel->corrs.corr_cn0.very_early.Q);
+    /* Workaround for
+     * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/475
+     * don't update c/n0 if correlators data are 0 use
+     * last post-filter sample instead */
+    if (0 == tracker_channel->corrs.corr_cn0.prompt.I &&
+        0 == tracker_channel->corrs.corr_cn0.prompt.Q) {
+      log_warn_mesid(tracker_channel->mesid,
+                     "Prompt I/Q: %d/%d",
+                     tracker_channel->corrs.corr_cn0.prompt.I,
+                     tracker_channel->corrs.corr_cn0.prompt.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Early I/Q: %d/%d",
+                     tracker_channel->corrs.corr_cn0.early.I,
+                     tracker_channel->corrs.corr_cn0.early.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Late I/Q: %d/%d",
+                     tracker_channel->corrs.corr_cn0.late.I,
+                     tracker_channel->corrs.corr_cn0.late.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Very Early I/Q: %d/%d",
+                     tracker_channel->corrs.corr_cn0.very_early.I,
+                     tracker_channel->corrs.corr_cn0.very_early.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Very Late I/Q: %d/%d",
+                     tracker_channel->corrs.corr_cn0.very_late.I,
+                     tracker_channel->corrs.corr_cn0.very_late.Q);
+    } else {
+      /* Update C/N0 estimate */
+      cn0 = track_cn0_update(tracker_channel->mesid,
+                             cn0_params.est,
+                             &tracker_channel->cn0_est,
+                             tracker_channel->corrs.corr_cn0.prompt.I,
+                             tracker_channel->corrs.corr_cn0.prompt.Q,
+                             tracker_channel->corrs.corr_cn0.very_early.I,
+                             tracker_channel->corrs.corr_cn0.very_early.Q);
+    }
   }
 
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz) {
