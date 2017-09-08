@@ -284,20 +284,21 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   switch (oc) {
     case NDB_ERR_NONE:
       log_debug_sid(e->sid, "ephemeris saved");
-      /* update azimuth and elevation into track database */
+      /* if LGF is available, try to compute azimuth and elevation with the new
+       * ephemeris and save them into track database */
       last_good_fix_t lgf;
       if (ndb_lgf_read(&lgf) != NDB_ERR_NONE) {
         break;
       }
       double az, el;
       gnss_solution *pos = &lgf.position_solution;
-      bool too_old_or_invalid = calc_sat_az_el(e,
-                                               &pos->time,
-                                               pos->pos_ecef,
-                                               &az,
-                                               &el,
-                                               /*check_validity=*/true) != 0;
-      if (too_old_or_invalid) {
+      if (!ephemeris_valid(e, &pos->time) ||
+          calc_sat_az_el(e,
+                         &pos->time,
+                         pos->pos_ecef,
+                         &az,
+                         &el,
+                         /*check_validity=*/false) != 0) {
         break;
       }
       sv_azel_degrees_set(
