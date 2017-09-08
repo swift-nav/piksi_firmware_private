@@ -808,7 +808,7 @@ void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
 bool send_nmea(u32 rate, u32 gps_tow_ms) {
   double output_rate = soln_freq_setting * rate;
 
-  if (fmod(gps_tow_ms * 0.001, output_rate) == 0) {
+  if (fmod(gps_tow_ms * 0.001, 1.0 / output_rate) == 0) {
     return true;
   }
   return false;
