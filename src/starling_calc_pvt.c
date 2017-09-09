@@ -718,10 +718,21 @@ static void starling_thread(void *arg) {
      * b is the number of satellites processed and x is the max cpu load.
      * This is an approximation as we're actually scaling cubicly with number of
      * obs */
-    if (fabs(starling_frequency - soln_freq_setting) > 0.01) {
+    static dgnss_solution_mode_t old_dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
+    if (fabs(starling_frequency - soln_freq_setting) > 0.01 ||
+        dgnss_soln_mode != old_dgnss_soln_mode) {
       starling_frequency = soln_freq_setting;
-      s32 max_sats = floor(cbrt(1.0 / soln_freq_setting));
-      log_error("Setting max sats to %d", max_sats);
+      old_dgnss_soln_mode = dgnss_soln_mode;
+      if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+        double max_cpu = 5.0 * pow(14.0, 3);
+        s32 max_sats = floor(cbrt(max_cpu / soln_freq_setting));
+        log_warn("Max Sats set to %d", max_sats);
+        set_pvt_engine_max_sats_to_process(low_latency_filter_manager,
+                                           max_sats);
+        set_pvt_engine_max_sats_to_process(spp_filter_manager, max_sats);
+      } else {
+        set_pvt_engine_max_sats_to_process(spp_filter_manager, 25);
+      }
     }
 
     u8 n_ready = rover_channel_epoch->size;
