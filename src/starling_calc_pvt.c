@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -708,9 +709,20 @@ static void starling_thread(void *arg) {
       continue;
     }
 
-    // This would be good to be derived dynamically, but we can use the setting
-    // as this preserves existing behavior
-    starling_frequency = soln_freq_setting;
+    /* This would be good to be derived dynamically, but we can use the setting
+     * as this preserves existing behavior
+     * We want to set the min sats based on the solution frequency set. */
+    /* As we know we can process at 5Hz with 14 Sats, and we know we
+     * scale linearly with rate and cubicly with sats we can work out
+     * the max sats for any rate by using a.b^3 = x where a is the rate and
+     * b is the number of satellites processed and x is the max cpu load.
+     * This is an approximation as we're actually scaling cubicly with number of
+     * obs */
+    if (fabs(starling_frequency - soln_freq_setting) > 0.01) {
+      starling_frequency = soln_freq_setting;
+      s32 max_sats = floor(cbrt(1.0 / soln_freq_setting));
+      log_error("Setting max sats to %d", max_sats);
+    }
 
     u8 n_ready = rover_channel_epoch->size;
     memset(nav_meas, 0, sizeof(nav_meas));
