@@ -806,9 +806,12 @@ void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
 }
 
 bool send_nmea(u32 rate, u32 gps_tow_ms) {
-  double output_rate = soln_freq_setting * rate;
+  if (rate == 0) {
+    return false;
+  }
 
-  if (fmod(gps_tow_ms * 0.001, 1.0 / output_rate) == 0) {
+  s32 output_period = (1.0 / soln_freq_setting * rate) * 1e3;
+  if ((gps_tow_ms % output_period) == 0) {
     return true;
   }
   return false;
