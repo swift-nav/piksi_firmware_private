@@ -356,10 +356,7 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   NMEA_SENTENCE_DONE();
 }
 
-int gsa_cmp(const void * a, const void * b)
-{
-  return (*(u8*)a - *(u8*)b);
-}
+int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
 
 /** Assemble a NMEA GPGSA message and send it out NMEA USARTs.
  * NMEA GPGSA message contains GNSS DOP and Active Satellites.
@@ -367,6 +364,7 @@ int gsa_cmp(const void * a, const void * b)
  * \param prns      Array of PRNs to output.
  * \param num_prns  Number of valid PRNs in array.
  * \param sbp_dops  Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
+ * \param cons      Working constellation.
  */
 void nmea_gsa(u8 *prns,
               u8 num_prns,
@@ -374,7 +372,7 @@ void nmea_gsa(u8 *prns,
               const msg_dops_t *sbp_dops,
               constellation_t cons) {
   /* Our fix is always 3D */
-  char fix_mode = (sbp_pos_llh->flags == 0) ? '1' : '3';
+  char fix_mode = (0 == sbp_pos_llh->flags) ? '1' : '3';
 
   NMEA_SENTENCE_START(120);
 
@@ -795,7 +793,6 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
 static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
                               const msg_dops_t *sbp_dops) {
   /* Assemble list of currently tracked GPS PRNs */
-  /* TODO GLO: Check GLO status. */
   u8 prns_gps[nap_track_n_channels];
   u8 num_prns_gps = 0;
   u8 prns_glo[nap_track_n_channels];
