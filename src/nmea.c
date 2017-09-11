@@ -26,6 +26,7 @@
 #include "board/nap/track_channel.h"
 #include "io_support.h"
 #include "main.h"
+#include "me_calc_pvt.h"
 #include "nmea.h"
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -42,8 +43,6 @@ static u32 gphdt_msg_rate = 1;
 static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
 static u32 gpgsa_msg_rate = 10;
-
-extern double soln_freq_setting;
 
 /** \addtogroup io
  * \{ */
@@ -810,7 +809,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
     return false;
   }
 
-  s32 output_period = (1.0 / soln_freq_setting * rate) * 1e3;
+  const s32 output_period = (const s32)((1.0 / soln_freq_setting * rate) * 1e3);
   if ((gps_tow_ms % output_period) == 0) {
     return true;
   }
