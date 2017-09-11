@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -54,6 +55,9 @@
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
+
+/** defined max cpu at 5Hz with 14 sats */
+#define MAX_CPU (5.0 * pow(14.0, 3))
 
 static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
@@ -708,9 +712,31 @@ static void starling_thread(void *arg) {
       continue;
     }
 
-    // This would be good to be derived dynamically, but we can use the setting
-    // as this preserves existing behavior
-    starling_frequency = soln_freq_setting;
+    /* This would be good to be derived dynamically, but we can use the setting
+     * as this preserves existing behavior
+     * We want to set the min sats based on the solution frequency set. */
+    /* As we know we can process at 5Hz with 14 Sats, and we know we
+     * scale linearly with rate and cubicly with sats we can work out
+     * the max sats for any rate by using a.b^3 = x where a is the rate and
+     * b is the number of satellites processed and x is the max cpu load.
+     * This is an approximation as we're actually scaling cubicly with number of
+     * obs */
+    static dgnss_solution_mode_t old_dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
+    if (fabs(starling_frequency - soln_freq_setting) > 0.01 ||
+        dgnss_soln_mode != old_dgnss_soln_mode) {
+      starling_frequency = soln_freq_setting;
+      old_dgnss_soln_mode = dgnss_soln_mode;
+      if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+        double max_cpu = MAX_CPU;
+        s32 max_sats = floor(cbrt(max_cpu / soln_freq_setting));
+        log_warn("Max Sats set to %d", max_sats);
+        set_pvt_engine_max_sats_to_process(low_latency_filter_manager,
+                                           max_sats);
+        set_pvt_engine_max_sats_to_process(spp_filter_manager, max_sats);
+      } else {
+        set_pvt_engine_max_sats_to_process(spp_filter_manager, 25);
+      }
+    }
 
     u8 n_ready = rover_channel_epoch->size;
     memset(nav_meas, 0, sizeof(nav_meas));
