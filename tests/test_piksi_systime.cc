@@ -216,7 +216,7 @@ TEST(piksi_systime_tests, inc_s) {
 
 TEST(piksi_systime_tests, dec_us) {
   // one tick doesn't equal one micro
-  const double as_ticks = (double)SECS_US / CH_CFG_ST_FREQUENCY;
+  const double min_step = (double)SECS_US / CH_CFG_ST_FREQUENCY;
 
   piksi_systime_t st = PIKSI_SYSTIME_INIT;
   st.systime = 1;
@@ -239,7 +239,7 @@ TEST(piksi_systime_tests, dec_us) {
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // dec one
-  u64 dec = 1 * as_ticks;
+  u64 dec = 1 * min_step;
   st.systime = 1;
   ret = piksi_systime_dec_us(&st, dec);
   EXPECT_EQ(ret, true);
@@ -247,13 +247,13 @@ TEST(piksi_systime_tests, dec_us) {
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // dec one from 0
-  dec = 1 * as_ticks;
+  dec = 1 * min_step;
   st.systime = 0;
   st.rollover_cnt = 0;
   EXPECT_DEATH(piksi_systime_dec_us(&st, dec), "");
 
   // dec one from rollover
-  dec = 1 * as_ticks;
+  dec = 1 * min_step;
   st.systime = 0;
   st.rollover_cnt = 1;
   ret = piksi_systime_dec_us(&st, dec);
@@ -263,7 +263,7 @@ TEST(piksi_systime_tests, dec_us) {
 
   // dec two from rollover + 1
   // make sure we take two ticks (one tick reprepsents multiple us increments)
-  dec = 2 * as_ticks;
+  dec = 2 * min_step;
   st.systime = 1;
   st.rollover_cnt = 1;
   ret = piksi_systime_dec_us(&st, dec);
@@ -283,7 +283,7 @@ TEST(piksi_systime_tests, dec_us) {
 
 TEST(piksi_systime_tests, dec_ms) {
   // one tick doesn't equal one milli
-  const double as_millis = (double)CH_CFG_ST_FREQUENCY/ SECS_MS;
+  const double min_step = (double)CH_CFG_ST_FREQUENCY/ SECS_MS;
 
   piksi_systime_t st = PIKSI_SYSTIME_INIT;
   st.systime = 1;
@@ -307,7 +307,7 @@ TEST(piksi_systime_tests, dec_ms) {
 
   // dec one
   u64 dec = 1;
-  st.systime = 1 * as_millis;
+  st.systime = 1 * min_step;
   ret = piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(ret, true);
   EXPECT_EQ(st.systime, 0);
@@ -326,17 +326,17 @@ TEST(piksi_systime_tests, dec_ms) {
   ret = piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(ret, true);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-(1 * as_millis));
+  EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
   // dec two from rollover + 1
   // make sure we take two ticks (one tick reprepsents multiple us increments)
   dec = 2;
-  st.systime = 1 * as_millis;
+  st.systime = 1 * min_step;
   st.rollover_cnt = 1;
   ret = piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(ret, true);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-(1 * as_millis));
+  EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
   // overflow
   dec = -1;
@@ -350,7 +350,7 @@ TEST(piksi_systime_tests, dec_ms) {
 
 TEST(piksi_systime_tests, dec_s) {
   // one tick doesn't equal one second
-  const double as_seconds = (double)CH_CFG_ST_FREQUENCY;
+  const double min_step = (double)CH_CFG_ST_FREQUENCY;
 
   piksi_systime_t st = PIKSI_SYSTIME_INIT;
   st.systime = 1;
@@ -374,7 +374,7 @@ TEST(piksi_systime_tests, dec_s) {
 
   // dec one
   u64 dec = 1;
-  st.systime = 1 * as_seconds;
+  st.systime = 1 * min_step;
   ret = piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(ret, true);
   EXPECT_EQ(st.systime, 0);
@@ -393,17 +393,17 @@ TEST(piksi_systime_tests, dec_s) {
   ret = piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(ret, true);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-(1 * as_seconds));
+  EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
   // dec two from rollover + 1
   // make sure we take two ticks (one tick reprepsents multiple us increments)
   dec = 2;
-  st.systime = 1 * as_seconds;
+  st.systime = 1 * min_step;
   st.rollover_cnt = 1;
   ret = piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(ret, true);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-(1 * as_seconds));
+  EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
   // overflow
   dec = -1;
@@ -492,5 +492,62 @@ TEST(piksi_systime_tests, sub_s) {
   // diff should be one negative rollover in s
   EXPECT_EQ(diff,
             -ceil(((s64)TIME_INFINITE - 1) / (double)CH_CFG_ST_FREQUENCY));
+}
+
+TEST(piksi_systime_tests, cmp) {
+  piksi_systime_t st1 = PIKSI_SYSTIME_INIT;
+  st1.systime = 10;
+  piksi_systime_t st2 = PIKSI_SYSTIME_INIT;
+  st2.systime = 11;
+
+  s8 res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res > 0);
+
+  res = piksi_systime_cmp(&st2, &st1);
+  EXPECT_TRUE(res < 0);
+
+  st1.systime = 11;
+  res = piksi_systime_cmp(&st2, &st1);
+  EXPECT_TRUE(res == 0  );
+
+  st2.rollover_cnt = 1;
+  res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res > 0);
+
+  res = piksi_systime_cmp(&st2, &st1);
+  EXPECT_TRUE(res < 0);
+
+  EXPECT_DEATH(piksi_systime_cmp(NULL, &st2), "");
+  EXPECT_DEATH(piksi_systime_cmp(&st1, NULL), "");
+  EXPECT_DEATH(piksi_systime_cmp(NULL, NULL), "");
+}
+
+TEST(piksi_systime_tests, misc) {
+  piksi_systime_t st1 = PIKSI_SYSTIME_INIT;
+  piksi_systime_t st2 = PIKSI_SYSTIME_INIT;
+
+  piksi_systime_inc_us(&st1, 1);
+  s8 res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res < 0);
+  s64 diff = piksi_systime_sub_us(&st1, &st2);
+  piksi_systime_dec_us(&st1, diff);
+  res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res == 0);
+
+  piksi_systime_inc_ms(&st1, 1);
+  res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res < 0);
+  diff = piksi_systime_sub_ms(&st1, &st2);
+  piksi_systime_dec_ms(&st1, diff);
+  res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res == 0);
+
+  piksi_systime_inc_s(&st1, 1);
+  res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res < 0);
+  diff = piksi_systime_sub_s(&st1, &st2);
+  piksi_systime_dec_s(&st1, diff);
+  res = piksi_systime_cmp(&st1, &st2);
+  EXPECT_TRUE(res == 0);
 }
 
