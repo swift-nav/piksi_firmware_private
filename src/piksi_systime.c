@@ -498,6 +498,8 @@ bool piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
  * \return -1 if a > b; 0 if a == b; 1 if a < b
  */
 s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b) {
+  assert(NULL != a && NULL != b);
+
   if (a->rollover_cnt > b->rollover_cnt) {
     return -1;
   }
