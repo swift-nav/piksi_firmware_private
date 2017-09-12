@@ -109,8 +109,8 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     bool empty = true;
     if (ephe_candidates[i].used) {
-      candidate_age = piksi_systime_to_s(&now) -
-                      piksi_systime_to_s(&ephe_candidates[i].received_at);
+      candidate_age = piksi_systime_sub_s(&now,
+                                          &ephe_candidates[i].received_at);
       empty = candidate_age > MAX_EPHE_CANDIDATE_AGE;
     }
 
