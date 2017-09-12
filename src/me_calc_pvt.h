@@ -56,6 +56,7 @@ typedef struct _me_msg_obs_t {
 extern u32 obs_output_divisor;
 extern memory_pool_t obs_buff_pool;
 extern mailbox_t obs_mailbox;
+extern double soln_freq_setting;
 
 soln_stats_t solution_last_stats_get(void);
 
