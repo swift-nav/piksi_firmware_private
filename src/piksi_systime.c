@@ -216,8 +216,8 @@ u64 piksi_systime_to_s(const piksi_systime_t *t) {
  *
  * \note Function works correctly only if the difference fits to s64.
  *
- * \param[in] a           Subtrahend.
- * \param[in] b           Minuend.
+ * \param[in] a           Minuend.
+ * \param[in] b           Subtrahend.
  *
  * \return                Difference.
  */
@@ -238,8 +238,8 @@ static s64 piksi_systime_sub_internal(const piksi_systime_t *a,
  *
  * \note The result is rounded up to the next microsecond boundary.
  *
- * \param[in] a           Subtrahend.
- * \param[in] b           Minuend.
+ * \param[in] a           Minuend.
+ * \param[in] b           Subtrahend.
  *
  * \return a - b result as microseconds.
  */
@@ -258,8 +258,8 @@ u64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b) {
  *
  * \note The result is rounded up to the next millisecond boundary.
  *
- * \param[in] a           Subtrahend.
- * \param[in] b           Minuend.
+ * \param[in] a           Minuend.
+ * \param[in] b           Subtrahend.
  *
  * \return a - b result as milliseconds.
  */
@@ -278,8 +278,8 @@ u64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b) {
  *
  * \note The result is rounded up to the next second boundary.
  *
- * \param[in] a           Subtrahend.
- * \param[in] b           Minuend.
+ * \param[in] a           Minuend.
+ * \param[in] b           Subtrahend.
  *
  * \return a - b result as seconds.
  */

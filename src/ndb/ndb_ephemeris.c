@@ -20,6 +20,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <ndb.h>
+#include <piksi_systime.h>
 #include <sbp.h>
 #include <sbp_utils.h>
 #include <settings.h>
@@ -45,7 +46,7 @@ static ndb_file_t ndb_ephe_file = {
 typedef struct {
   ephemeris_t ephe;
   bool used;
-  ndb_timestamp_t received_at;
+  piksi_systime_t received_at;
 } ephemeris_candidate_t;
 
 #define EPHE_CAND_LIST_LEN (NUM_SATS_GPS + NUM_SATS_GLO)
@@ -103,11 +104,13 @@ static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
 static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
   int i;
   u32 candidate_age;
-  ndb_timestamp_t now = ndb_get_timestamp();
+  piksi_systime_t now;
+  piksi_systime_get(&now);
   for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     bool empty = true;
     if (ephe_candidates[i].used) {
-      candidate_age = ST2S(now - ephe_candidates[i].received_at);
+      candidate_age =
+          piksi_systime_sub_s(&now, &ephe_candidates[i].received_at);
       empty = candidate_age > MAX_EPHE_CANDIDATE_AGE;
     }
 
@@ -116,7 +119,7 @@ static void ndb_ephe_try_adding_candidate(const ephemeris_t *new) {
                sizeof(ephemeris_t),
                new,
                sizeof(ephemeris_t));
-      ephe_candidates[i].received_at = ndb_get_timestamp();
+      piksi_systime_get(&ephe_candidates[i].received_at);
       ephe_candidates[i].used = true;
       return;
     }
