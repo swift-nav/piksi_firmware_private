@@ -729,7 +729,6 @@ static void starling_thread(void *arg) {
       if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
         double max_cpu = MAX_CPU;
         s32 max_sats = floor(cbrt(max_cpu / soln_freq_setting));
-        log_warn("Max Sats set to %d", max_sats);
         set_pvt_engine_max_sats_to_process(low_latency_filter_manager,
                                            max_sats);
         set_pvt_engine_max_sats_to_process(spp_filter_manager, max_sats);
