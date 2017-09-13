@@ -32,8 +32,8 @@
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
-/** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
-#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.1
+/** FLL freq error threshold. Used to assess FLL frequency lock. In [Hz]. */
+#define TP_FLL_FREQ_ERR_THRESHOLD_HZ 50.
 
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
@@ -761,13 +761,11 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
   /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
   tl_rates_t rates = {0};
   tp_tl_get_rates(&tracker_channel->tl_state, &rates);
-  float freq_err =
-      rates.code_freq -
-      rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
+  float fll_freq_err_hz = rates.fll_freq_err_hz;
 
   lock_detect_update(&tracker_channel->ld_freq,
-                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                     freq_err,
+                     TP_FLL_FREQ_ERR_THRESHOLD_HZ,
+                     fll_freq_err_hz,
                      tp_get_ld_ms(tracker_channel->tracking_mode));
 
   bool outp = tracker_channel->ld_freq.outp;
