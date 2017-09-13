@@ -148,22 +148,22 @@ enum {
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
     [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,   1.f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.05f,   1.f, 50 },
 
     [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,   .5f, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.05f,   1.f, 50 },
 
     [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,   .5f, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.05f,   1.f, 50 },
 
     [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,  1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.05f,   1.f, 50 },
 
     [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,  1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS]  = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_10MS]  = { 0.05f,   1.f, 50 },
 
     [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,  1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]  = { 0.005f,  .6f, 50 }
+    [TP_LD_PARAMS_FREQ_20MS]  = { 0.05f,   1.f, 50 }
 };
 /* clang-format on */
 
@@ -243,7 +243,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { {   30,             1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+  { {  BW_DYN,          1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
           TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
        200,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
@@ -451,11 +451,7 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
-  const tp_tm_e mode = profile->loop_params.mode;
-  profile->use_alias_detection =
-      (TP_TM_1MS_GPS != mode) && (TP_TM_1MS_GLO != mode) &&
-      (TP_TM_2MS_GPS != mode) && (TP_TM_2MS_GLO != mode) &&
-      (TP_TM_20MS_GPS != mode) && (TP_TM_INITIAL != mode);
+  profile->use_alias_detection = (profile->loop_params.fll_bw <= 0);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 
