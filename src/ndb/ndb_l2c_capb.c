@@ -26,7 +26,7 @@
 /** L2C capabilities file type */
 #define GPS_L2C_CAPB_FILE_TYPE "l2c capabilities"
 /** L2C capability default value */
-#define GPS_L2C_CAPAB_DEFAULT 0xffffffff
+#define GPS_L2C_CAPAB_DEFAULT 0xF7814BF5
 
 static u32 gps_l2c_capabilities;
 static ndb_element_metadata_t gps_l2c_capabilities_md;
