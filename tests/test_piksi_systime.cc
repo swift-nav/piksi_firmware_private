@@ -24,8 +24,9 @@ TEST(piksi_systime_tests, to_us) {
   st.rollover_cnt = 1;
   us = piksi_systime_to_us(&st);
   // should be one positive rollover + one min step in us
-  EXPECT_EQ(us, ceil(((s64)TIME_INFINITE + 1 + 1) *
-      (double)SECS_US / CH_CFG_ST_FREQUENCY));
+  EXPECT_EQ(us,
+            ceil(((s64)TIME_INFINITE + 1 + 1) * (double)SECS_US /
+                 CH_CFG_ST_FREQUENCY));
 
   st.rollover_cnt = -1;
   // result should overflow
@@ -44,8 +45,9 @@ TEST(piksi_systime_tests, to_ms) {
   st.rollover_cnt = 1;
   ms = piksi_systime_to_ms(&st);
   // should be one positive rollover + one min step in ms
-  EXPECT_EQ(ms, ceil(((s64)TIME_INFINITE + 1 + 1) *
-      (double)SECS_MS / CH_CFG_ST_FREQUENCY));
+  EXPECT_EQ(ms,
+            ceil(((s64)TIME_INFINITE + 1 + 1) * (double)SECS_MS /
+                 CH_CFG_ST_FREQUENCY));
 
   st.rollover_cnt = -1;
   // result should overflow
@@ -69,8 +71,9 @@ TEST(piksi_systime_tests, to_s) {
   st.rollover_cnt = -1;
   s = piksi_systime_to_s(&st);
   // should be 4,294,967,295 positive rollovers + one min step in s
-  EXPECT_EQ(s, ceil(((u32)(-1) * ((u64)TIME_INFINITE + 1) + 1) * 1.0 /
-      CH_CFG_ST_FREQUENCY));
+  EXPECT_EQ(s,
+            ceil(((u32)(-1) * ((u64)TIME_INFINITE + 1) + 1) * 1.0 /
+                 CH_CFG_ST_FREQUENCY));
 }
 
 TEST(piksi_systime_tests, inc_us) {
