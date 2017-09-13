@@ -4,7 +4,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ] ; then
   base_commit="HEAD^"
   echo "Running clang-format against parent commit $(git rev-parse $base_commit)"
 else
-  base_commit="$TRAVIS_BRANCH"
+  base_commit="origin/$TRAVIS_BRANCH"
   echo "Running clang-format against branch $base_commit, with hash $(git rev-parse $base_commit)"
 fi
 output="$(git-clang-format-4.0 --binary clang-format-4.0 --commit $base_commit --diff)"
