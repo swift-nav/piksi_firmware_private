@@ -38,7 +38,7 @@
  * \note The result is rounded upward to the next tick boundary.
  */
 #define PIKSI_TIME2ST(t, prefix) \
-  (((u64)(t) * CH_CFG_ST_FREQUENCY + ((prefix) - 1)) / (prefix))
+  (((u64)(t) * CH_CFG_ST_FREQUENCY + ((prefix)-1)) / (prefix))
 
 #define PIKSI_US2ST(t) PIKSI_TIME2ST(t, SECS_US)
 #define PIKSI_MS2ST(t) PIKSI_TIME2ST(t, SECS_MS)
