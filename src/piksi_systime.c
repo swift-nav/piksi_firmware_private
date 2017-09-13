@@ -349,19 +349,16 @@ u64 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t) {
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           System tick value to be added.
  *
- * \return true: No errors; false: Failed.
  */
-bool piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
+void piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
+  assert(t);
+
   if (0 == inc) {
-    return true;
+    return;
   }
 
   /* TODO: modify function to support larger increments */
   assert(inc <= TIME_INFINITE);
-
-  if (NULL == t) {
-    return false;
-  }
 
   systime_t space = TIME_INFINITE - t->systime;
 
@@ -371,8 +368,6 @@ bool piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
   } else {
     t->systime += inc;
   }
-
-  return true;
 }
 
 /** Increment piksi_system_t with microsecond value.
@@ -385,8 +380,8 @@ bool piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
  *
  * \return true: No errors; false: Failed.
  */
-bool piksi_systime_inc_us(piksi_systime_t *t, u64 inc) {
-  return piksi_systime_inc_internal(t, us2st(inc));
+void piksi_systime_inc_us(piksi_systime_t *t, u64 inc) {
+  piksi_systime_inc_internal(t, us2st(inc));
 }
 
 /** Increment piksi_system_t with millisecond value.
@@ -399,8 +394,8 @@ bool piksi_systime_inc_us(piksi_systime_t *t, u64 inc) {
  *
  * \return true: No errors; false: Failed.
  */
-bool piksi_systime_inc_ms(piksi_systime_t *t, u64 inc) {
-  return piksi_systime_inc_internal(t, ms2st(inc));
+void piksi_systime_inc_ms(piksi_systime_t *t, u64 inc) {
+  piksi_systime_inc_internal(t, ms2st(inc));
 }
 
 /** Increment piksi_system_t with second value.
@@ -413,28 +408,24 @@ bool piksi_systime_inc_ms(piksi_systime_t *t, u64 inc) {
  *
  * \return true: No errors; false: Failed.
  */
-bool piksi_systime_inc_s(piksi_systime_t *t, u64 inc) {
-  return piksi_systime_inc_internal(t, s2st(inc));
+void piksi_systime_inc_s(piksi_systime_t *t, u64 inc) {
+  piksi_systime_inc_internal(t, s2st(inc));
 }
 
 /** Decrease piksi_system_t.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
  * \param[in] inc           System tick value to be decreased.
- *
- * \return true: No errors; false: Failed.
  */
-bool piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
+void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
+  assert(t);
+
   if (0 == dec) {
-    return true;
+    return;
   }
 
   /* TODO: modify function to support larger decrements */
   assert(dec <= TIME_INFINITE);
-
-  if (NULL == t) {
-    return false;
-  }
 
   if (dec > t->systime) {
     assert(0 < t->rollover_cnt);
@@ -444,8 +435,6 @@ bool piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
   }
 
   t->systime -= dec;
-
-  return true;
 }
 
 /** Decrease piksi_system_t with microsecond value.
@@ -458,8 +447,8 @@ bool piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
  *
  * \return true: No errors; false: Failed.
  */
-bool piksi_systime_dec_us(piksi_systime_t *t, u64 dec) {
-  return piksi_systime_dec_internal(t, us2st(dec));
+void piksi_systime_dec_us(piksi_systime_t *t, u64 dec) {
+  piksi_systime_dec_internal(t, us2st(dec));
 }
 
 /** Decrease piksi_system_t with millisecond value.
@@ -472,8 +461,8 @@ bool piksi_systime_dec_us(piksi_systime_t *t, u64 dec) {
  *
  * \return true: No errors; false: Failed.
  */
-bool piksi_systime_dec_ms(piksi_systime_t *t, u64 dec) {
-  return piksi_systime_dec_internal(t, ms2st(dec));
+void piksi_systime_dec_ms(piksi_systime_t *t, u64 dec) {
+  piksi_systime_dec_internal(t, ms2st(dec));
 }
 
 /** Decrease piksi_system_t with second value.
@@ -486,8 +475,8 @@ bool piksi_systime_dec_ms(piksi_systime_t *t, u64 dec) {
  *
  * \return true: No errors; false: Failed.
  */
-bool piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
-  return piksi_systime_dec_internal(t, s2st(dec));
+void piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
+  piksi_systime_dec_internal(t, s2st(dec));
 }
 
 /** Compare a and b.

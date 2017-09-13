@@ -78,26 +78,16 @@ TEST(piksi_systime_tests, inc_us) {
   st.systime = 1;
 
   // check null pointer
-  bool ret = piksi_systime_inc_us(NULL, 1);
-  EXPECT_EQ(ret, false);
+  EXPECT_DEATH(piksi_systime_inc_us(NULL, 1), "");
 
-  // zero increment is always approved
-  ret = piksi_systime_inc_us(NULL, 0);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(st.systime, 1);
-  EXPECT_EQ(st.rollover_cnt, 0);
-
-  // zero increment is always approved
-  ret = piksi_systime_inc_us(&st, 0);
-  EXPECT_EQ(ret, true);
+  // zero increment
+  piksi_systime_inc_us(&st, 0);
   EXPECT_EQ(st.systime, 1);
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // add one
   u64 inc = 1;
-  ret = piksi_systime_inc_us(&st, inc);
-  EXPECT_EQ(ret, true);
+  piksi_systime_inc_us(&st, inc);
   EXPECT_EQ(st.systime, ceil(1 + inc * (double)CH_CFG_ST_FREQUENCY / SECS_US));
   EXPECT_EQ(st.rollover_cnt, 0);
 
@@ -105,8 +95,7 @@ TEST(piksi_systime_tests, inc_us) {
   inc = 1;
   st.systime = TIME_INFINITE;
   st.rollover_cnt = 0;
-  ret = piksi_systime_inc_us(&st, inc);
-  EXPECT_EQ(ret, true);
+  piksi_systime_inc_us(&st, inc);
   EXPECT_EQ(st.systime, ceil((double)CH_CFG_ST_FREQUENCY / SECS_US - 1));
   EXPECT_EQ(st.rollover_cnt, 1);
 
@@ -125,26 +114,16 @@ TEST(piksi_systime_tests, inc_ms) {
   st.systime = 1;
 
   // check null pointer
-  bool ret = piksi_systime_inc_ms(NULL, 1);
-  EXPECT_EQ(ret, false);
+  EXPECT_DEATH(piksi_systime_inc_ms(NULL, 1), "");
 
-  // zero increment is always approved
-  ret = piksi_systime_inc_ms(NULL, 0);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(st.systime, 1);
-  EXPECT_EQ(st.rollover_cnt, 0);
-
-  // zero increment is always approved
-  ret = piksi_systime_inc_ms(&st, 0);
-  EXPECT_EQ(ret, true);
+  // zero increment
+  piksi_systime_inc_ms(&st, 0);
   EXPECT_EQ(st.systime, 1);
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // add one
   u64 inc = 1;
-  ret = piksi_systime_inc_ms(&st, inc);
-  EXPECT_EQ(ret, true);
+  piksi_systime_inc_ms(&st, inc);
   EXPECT_EQ(st.systime, ceil(1 + inc * (double)CH_CFG_ST_FREQUENCY / SECS_MS));
   EXPECT_EQ(st.rollover_cnt, 0);
 
@@ -152,8 +131,7 @@ TEST(piksi_systime_tests, inc_ms) {
   inc = 1;
   st.systime = TIME_INFINITE;
   st.rollover_cnt = 0;
-  ret = piksi_systime_inc_ms(&st, inc);
-  EXPECT_EQ(ret, true);
+  piksi_systime_inc_ms(&st, inc);
   EXPECT_EQ(st.systime, ceil((double)CH_CFG_ST_FREQUENCY / SECS_MS - 1));
   EXPECT_EQ(st.rollover_cnt, 1);
 
@@ -172,26 +150,16 @@ TEST(piksi_systime_tests, inc_s) {
   st.systime = 1;
 
   // check null pointer
-  bool ret = piksi_systime_inc_s(NULL, 1);
-  EXPECT_EQ(ret, false);
+  EXPECT_DEATH(piksi_systime_inc_s(NULL, 1), "");
 
-  // zero increment is always approved
-  ret = piksi_systime_inc_s(NULL, 0);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(st.systime, 1);
-  EXPECT_EQ(st.rollover_cnt, 0);
-
-  // zero increment is always approved
-  ret = piksi_systime_inc_s(&st, 0);
-  EXPECT_EQ(ret, true);
+  // zero increment
+  piksi_systime_inc_s(&st, 0);
   EXPECT_EQ(st.systime, 1);
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // add one
   u64 inc = 1;
-  ret = piksi_systime_inc_s(&st, inc);
-  EXPECT_EQ(ret, true);
+  piksi_systime_inc_s(&st, inc);
   EXPECT_EQ(st.systime, ceil(1 + inc * (double)CH_CFG_ST_FREQUENCY));
   EXPECT_EQ(st.rollover_cnt, 0);
 
@@ -199,8 +167,7 @@ TEST(piksi_systime_tests, inc_s) {
   inc = 1;
   st.systime = TIME_INFINITE;
   st.rollover_cnt = 0;
-  ret = piksi_systime_inc_s(&st, inc);
-  EXPECT_EQ(ret, true);
+  piksi_systime_inc_s(&st, inc);
   EXPECT_EQ(st.systime, ceil((double)CH_CFG_ST_FREQUENCY) - 1);
   EXPECT_EQ(st.rollover_cnt, 1);
 
@@ -222,27 +189,17 @@ TEST(piksi_systime_tests, dec_us) {
   st.systime = 1;
 
   // check null pointer
-  bool ret = piksi_systime_dec_us(NULL, 1);
-  EXPECT_EQ(ret, false);
+  EXPECT_DEATH(piksi_systime_dec_us(NULL, 1), "");
 
-  // zero decrement is always approved
-  ret = piksi_systime_dec_us(NULL, 0);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(st.systime, 1);
-  EXPECT_EQ(st.rollover_cnt, 0);
-
-  // zero decrement is always approved
-  ret = piksi_systime_dec_us(&st, 0);
-  EXPECT_EQ(ret, true);
+  // zero decrement
+  piksi_systime_dec_us(&st, 0);
   EXPECT_EQ(st.systime, 1);
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // dec one
   u64 dec = 1 * min_step;
   st.systime = 1;
-  ret = piksi_systime_dec_us(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_us(&st, dec);
   EXPECT_EQ(st.systime, 0);
   EXPECT_EQ(st.rollover_cnt, 0);
 
@@ -256,8 +213,7 @@ TEST(piksi_systime_tests, dec_us) {
   dec = 1 * min_step;
   st.systime = 0;
   st.rollover_cnt = 1;
-  ret = piksi_systime_dec_us(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_us(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
   EXPECT_EQ(st.systime, TIME_INFINITE);
 
@@ -266,8 +222,7 @@ TEST(piksi_systime_tests, dec_us) {
   dec = 2 * min_step;
   st.systime = 1;
   st.rollover_cnt = 1;
-  ret = piksi_systime_dec_us(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_us(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
   EXPECT_EQ(st.systime, TIME_INFINITE);
 
@@ -289,27 +244,17 @@ TEST(piksi_systime_tests, dec_ms) {
   st.systime = 1;
 
   // check null pointer
-  bool ret = piksi_systime_dec_ms(NULL, 1);
-  EXPECT_EQ(ret, false);
+  EXPECT_DEATH(piksi_systime_dec_ms(NULL, 1), "");
 
-  // zero decrement is always approved
-  ret = piksi_systime_dec_ms(NULL, 0);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(st.systime, 1);
-  EXPECT_EQ(st.rollover_cnt, 0);
-
-  // zero decrement is always approved
-  ret = piksi_systime_dec_ms(&st, 0);
-  EXPECT_EQ(ret, true);
+  // zero decrement
+  piksi_systime_dec_ms(&st, 0);
   EXPECT_EQ(st.systime, 1);
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // dec one
   u64 dec = 1;
   st.systime = 1 * min_step;
-  ret = piksi_systime_dec_ms(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(st.systime, 0);
   EXPECT_EQ(st.rollover_cnt, 0);
 
@@ -323,8 +268,7 @@ TEST(piksi_systime_tests, dec_ms) {
   dec = 1;
   st.systime = 0;
   st.rollover_cnt = 1;
-  ret = piksi_systime_dec_ms(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
   EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
@@ -333,8 +277,7 @@ TEST(piksi_systime_tests, dec_ms) {
   dec = 2;
   st.systime = 1 * min_step;
   st.rollover_cnt = 1;
-  ret = piksi_systime_dec_ms(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
   EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
@@ -356,27 +299,17 @@ TEST(piksi_systime_tests, dec_s) {
   st.systime = 1;
 
   // check null pointer
-  bool ret = piksi_systime_dec_s(NULL, 1);
-  EXPECT_EQ(ret, false);
+  EXPECT_DEATH(piksi_systime_dec_s(NULL, 1), "");
 
   // zero decrement is always approved
-  ret = piksi_systime_dec_s(NULL, 0);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(ret, true);
-  EXPECT_EQ(st.systime, 1);
-  EXPECT_EQ(st.rollover_cnt, 0);
-
-  // zero decrement is always approved
-  ret = piksi_systime_dec_s(&st, 0);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_s(&st, 0);
   EXPECT_EQ(st.systime, 1);
   EXPECT_EQ(st.rollover_cnt, 0);
 
   // dec one
   u64 dec = 1;
   st.systime = 1 * min_step;
-  ret = piksi_systime_dec_s(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(st.systime, 0);
   EXPECT_EQ(st.rollover_cnt, 0);
 
@@ -390,8 +323,7 @@ TEST(piksi_systime_tests, dec_s) {
   dec = 1;
   st.systime = 0;
   st.rollover_cnt = 1;
-  ret = piksi_systime_dec_s(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
   EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
@@ -400,8 +332,7 @@ TEST(piksi_systime_tests, dec_s) {
   dec = 2;
   st.systime = 1 * min_step;
   st.rollover_cnt = 1;
-  ret = piksi_systime_dec_s(&st, dec);
-  EXPECT_EQ(ret, true);
+  piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
   EXPECT_EQ(st.systime, (u32)-(1 * min_step));
 
@@ -508,7 +439,7 @@ TEST(piksi_systime_tests, cmp) {
 
   st1.systime = 11;
   res = piksi_systime_cmp(&st2, &st1);
-  EXPECT_TRUE(res == 0  );
+  EXPECT_TRUE(res == 0);
 
   st2.rollover_cnt = 1;
   res = piksi_systime_cmp(&st1, &st2);

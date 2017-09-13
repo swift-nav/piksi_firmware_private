@@ -44,13 +44,13 @@ u64 piksi_systime_to_us(const piksi_systime_t *t);
 u64 piksi_systime_to_ms(const piksi_systime_t *t);
 u64 piksi_systime_to_s(const piksi_systime_t *t);
 
-bool piksi_systime_inc_us(piksi_systime_t *t, u64 inc);
-bool piksi_systime_inc_ms(piksi_systime_t *t, u64 inc);
-bool piksi_systime_inc_s(piksi_systime_t *t, u64 inc);
+void piksi_systime_inc_us(piksi_systime_t *t, u64 inc);
+void piksi_systime_inc_ms(piksi_systime_t *t, u64 inc);
+void piksi_systime_inc_s(piksi_systime_t *t, u64 inc);
 
-bool piksi_systime_dec_us(piksi_systime_t *t, u64 dec);
-bool piksi_systime_dec_ms(piksi_systime_t *t, u64 dec);
-bool piksi_systime_dec_s(piksi_systime_t *t, u64 dec);
+void piksi_systime_dec_us(piksi_systime_t *t, u64 dec);
+void piksi_systime_dec_ms(piksi_systime_t *t, u64 dec);
+void piksi_systime_dec_s(piksi_systime_t *t, u64 dec);
 
 s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b);
 
