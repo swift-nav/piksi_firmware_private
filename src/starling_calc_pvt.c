@@ -1073,20 +1073,6 @@ static void time_matched_obs_thread(void *arg) {
                                   enable_glonass_in_rtk);
     set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
                                              glonass_downweight_factor);
-
-    static dgnss_solution_mode_t old_dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
-    static double old_frequency = 5.0;
-    if (fabs(old_frequency - soln_freq_setting) > 0.01 ||
-        dgnss_soln_mode != old_dgnss_soln_mode) {
-      old_frequency = soln_freq_setting;
-      old_dgnss_soln_mode = dgnss_soln_mode;
-      if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-        double max_cpu = MAX_CPU;
-        s32 max_sats = floor(cbrt(max_cpu / soln_freq_setting));
-        set_pvt_engine_max_sats_to_process(time_matched_filter_manager,
-                                           max_sats);
-      }
-    }
     chMtxUnlock(&time_matched_filter_manager_lock);
 
     obss_t *obss;
