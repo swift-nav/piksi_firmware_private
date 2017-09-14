@@ -160,7 +160,7 @@ static bool decimate_observations(const gps_time_t *_t) {
    * later dependencies on being consistent, all we want to know
    * is should this epoch be decimated from output. */
   gps_time_t epoch =
-    gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
+      gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
   return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
 }
 
@@ -171,7 +171,7 @@ static void me_send_all(u8 _num_obs,
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
-  if ( decimate_observations(_t) && !simulation_enabled()) {
+  if (decimate_observations(_t) && !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
 }
