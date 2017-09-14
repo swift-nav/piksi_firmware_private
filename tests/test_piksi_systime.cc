@@ -243,6 +243,8 @@ TEST(piksi_systime_tests, dec_ms) {
   // one tick doesn't equal one milli
   const double min_step = (double)CH_CFG_ST_FREQUENCY / SECS_MS;
 
+  piksi_systime_t ref = PIKSI_SYSTIME_INIT;
+
   piksi_systime_t st = PIKSI_SYSTIME_INIT;
   st.systime = 1;
 
@@ -271,18 +273,22 @@ TEST(piksi_systime_tests, dec_ms) {
   dec = 1;
   st.systime = 0;
   st.rollover_cnt = 1;
+  ref = st;
   piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-min_step);
+  // reference should be larger by the amount of decrement
+  EXPECT_EQ(dec, piksi_systime_sub_ms(&ref, &st));
 
   // dec two from rollover + 1
-  // make sure we take two ticks (one tick reprepsents multiple us increments)
+  // make sure we take two ticks (one tick reprepsents multiple ms increments)
   dec = 2;
   st.systime = 1 * min_step;
   st.rollover_cnt = 1;
+  ref = st;
   piksi_systime_dec_ms(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-min_step);
+  // reference should be larger by the amount of decrement
+  EXPECT_EQ(dec, piksi_systime_sub_ms(&ref, &st));
 
   // overflow
   dec = -1;
@@ -297,6 +303,8 @@ TEST(piksi_systime_tests, dec_ms) {
 TEST(piksi_systime_tests, dec_s) {
   // one tick doesn't equal one second
   const double min_step = (double)CH_CFG_ST_FREQUENCY;
+
+  piksi_systime_t ref = PIKSI_SYSTIME_INIT;
 
   piksi_systime_t st = PIKSI_SYSTIME_INIT;
   st.systime = 1;
@@ -326,18 +334,22 @@ TEST(piksi_systime_tests, dec_s) {
   dec = 1;
   st.systime = 0;
   st.rollover_cnt = 1;
+  ref = st;
   piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-min_step);
+  // reference should be larger by the amount of decrement
+  EXPECT_EQ(dec, piksi_systime_sub_s(&ref, &st));
 
   // dec two from rollover + 1
-  // make sure we take two ticks (one tick reprepsents multiple us increments)
+  // make sure we take two ticks
   dec = 2;
   st.systime = 1 * min_step;
   st.rollover_cnt = 1;
+  ref = st;
   piksi_systime_dec_s(&st, dec);
   EXPECT_EQ(st.rollover_cnt, 0);
-  EXPECT_EQ(st.systime, (u32)-min_step);
+  // reference should be larger by the amount of decrement
+  EXPECT_EQ(dec, piksi_systime_sub_s(&ref, &st));
 
   // overflow
   dec = -1;
