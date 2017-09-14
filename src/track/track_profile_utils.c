@@ -161,9 +161,12 @@ static const state_table_t mode_1ms_glo = {
 };
 /* clang-format on */
 
-#define TP_FLAGS_2MS                                                           \
-  (TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | \
-   TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |              \
+#define TP_FLAGS_2MS_FIRST                                    \
+  (TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_BSYNC_SET | \
+   TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST)
+#define TP_FLAGS_2MS_SECOND                                                    \
+  (TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE | TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | \
+   TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD |              \
    TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
 
 /**
@@ -175,33 +178,32 @@ static const state_table_t mode_2ms_gps = {
     .cn0_ms = 2,
     .ld_ms = 2,
     .fl_ms = 2, /* not used */
-    .flld_ms = 2,
+    .flld_ms = 1,
     .flll_ms = 2,
     .bit_ms = 2,
-    .ent_cnt = 11,
+    .ent_cnt = 20,
     .entries = {
-      {1, TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET |
-          TP_CFLAG_BSYNC_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET},
-      {1, TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE |
-          TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |
-          TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE |
-          TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
 
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-
-      {2, TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE |
-          TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |
-          TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_SET | TP_CFLAG_LD_USE |
-          TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS}
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
     }
 };
 /* clang-format on */
@@ -215,33 +217,32 @@ static const state_table_t mode_2ms_glo = {
     .cn0_ms = 2,
     .ld_ms = 2,
     .fl_ms = 2, /* not used for 2ms integration time */
-    .flld_ms = 2,
+    .flld_ms = 1,
     .flll_ms = 2,
     .bit_ms = 2,
-    .ent_cnt = 11,
+    .ent_cnt = 20,
     .entries = {
-      {1, TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET |
-          TP_CFLAG_BSYNC_SET | TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET},
-      {1, TP_CFLAG_CN0_ADD | TP_CFLAG_CN0_USE |
-          TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE |
-          TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE |
-          TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
 
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-
-      {2, TP_CFLAG_CN0_SET | TP_CFLAG_CN0_USE |
-          TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE |
-          TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE |
-          TP_CFLAG_LD_SET | TP_CFLAG_LD_USE |
-          TP_CFLAG_FLL_SET | TP_CFLAG_FLL_FIRST},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS},
-      {2, TP_FLAGS_2MS}
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
+      {1, TP_FLAGS_2MS_FIRST},
+      {1, TP_FLAGS_2MS_SECOND},
     }
 };
 /* clang-format on */
