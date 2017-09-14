@@ -404,7 +404,7 @@ void piksi_systime_inc_ms(piksi_systime_t *t, u64 inc) {
  * tick boundary.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] inc           Millisecond value to be added.
+ * \param[in] inc           Seconds value to be added.
  *
  * \return true: No errors; false: Failed.
  */
