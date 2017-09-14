@@ -155,25 +155,34 @@ static void me_post_observations(u8 n,
   }
 }
 
+static bool decimate_observations(const gps_time_t *_t) {
+  /* We can use the solution setting directly here as we have no
+   * later dependencies on being consistent, all we want to know
+   * is should this epoch be decimated from output. */
+  gps_time_t epoch =
+      gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
+  return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
+}
+
 static void me_send_all(u8 _num_obs,
                         const navigation_measurement_t _meas[],
                         const ephemeris_t _ephem[],
-                        const gps_time_t *_t,
-                        double soln_freq) {
+                        const gps_time_t *_t) {
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
   * care to ensure that the observations are aligned. */
-  gps_time_t epoch =
-      gps_time_round_to_epoch(_t, soln_freq / obs_output_divisor);
-  if (fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD &&
-      !simulation_enabled()) {
+  if (decimate_observations(_t) && !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
 }
 
 static void me_send_emptyobs(void) {
   me_post_observations(0, NULL, NULL, NULL);
-  if (!simulation_enabled()) {
+  /* When we don't have a time solve, we still want to decimate our
+   * observation output, we can use the GPS time if we have one,
+   * otherwise we'll default to using receiver time. */
+  const gps_time_t _t = get_current_gps_time();
+  if (decimate_observations(&_t) && !simulation_enabled()) {
     send_observations(0, msg_obs_max_size, NULL, NULL);
   }
 }
@@ -708,7 +717,7 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* Send the observations. */
-      me_send_all(n_ready, nav_meas, e_meas, &epoch_time, soln_freq);
+      me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
