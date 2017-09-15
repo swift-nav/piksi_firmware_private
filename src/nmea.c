@@ -42,7 +42,7 @@ static u32 gpvtg_msg_rate = 1;
 static u32 gphdt_msg_rate = 1;
 static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
-static u32 gpgsa_msg_rate = 10;
+static u32 gsa_msg_rate = 10;
 
 /** \addtogroup io
  * \{ */
@@ -131,7 +131,7 @@ void nmea_setup(void) {
   SETTING("nmea", "gphdt_msg_rate", gphdt_msg_rate, TYPE_INT);
   SETTING("nmea", "gpgll_msg_rate", gpgll_msg_rate, TYPE_INT);
   SETTING("nmea", "gpzda_msg_rate", gpzda_msg_rate, TYPE_INT);
-  SETTING("nmea", "gpgsa_msg_rate", gpgsa_msg_rate, TYPE_INT);
+  SETTING("nmea", "gsa_msg_rate", gsa_msg_rate, TYPE_INT);
 }
 
 /** Calculate and append the checksum of an NMEA sentence.
@@ -931,7 +931,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
     }
   }
   if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
-    if (send_nmea(gpgsa_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gsa_msg_rate, sbp_msg_time->tow)) {
       nmea_assemble_gsa(sbp_pos_llh, sbp_dops);
     }
   }
