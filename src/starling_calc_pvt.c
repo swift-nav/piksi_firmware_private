@@ -814,10 +814,7 @@ static void starling_thread(void *arg) {
        * continuing to process this epoch - send out solution and
        * observation failed messages if not in time matched mode.
        */
-      solution_send_low_latency_output(0,
-                                       &sbp_messages,
-                                       n_ready,
-                                       nav_meas);
+      solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
       continue;
     }
 
@@ -849,10 +846,8 @@ static void starling_thread(void *arg) {
     /* Post the observations to the mailbox. */
     post_observations(n_ready, nav_meas, &obs_time, &result_spp);
 
-    solution_send_low_latency_output(base_station_sender_id,
-                                     &sbp_messages,
-                                     n_ready,
-                                     nav_meas);
+    solution_send_low_latency_output(
+        base_station_sender_id, &sbp_messages, n_ready, nav_meas);
   }
 }
 
@@ -1099,10 +1094,8 @@ static void time_matched_obs_thread(void *arg) {
 
         chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(base_obss_copy.sender_id,
-                                     &sbp_messages,
-                                     obss->n,
-                                     obss->nm);
+          solution_send_pos_messages(
+              base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
         }
         break;
       } else {
