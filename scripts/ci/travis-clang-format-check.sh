@@ -4,6 +4,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ] ; then
   base_commit="HEAD^"
   echo "Running clang-format against parent commit $(git rev-parse $base_commit)"
 else
+  git remote set-branches origin $TRAVIS_BRANCH && git fetch
   base_commit="origin/$TRAVIS_BRANCH"
   echo "Running clang-format against branch $base_commit, with hash $(git rev-parse $base_commit)"
 fi
