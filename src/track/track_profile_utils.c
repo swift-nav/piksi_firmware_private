@@ -384,7 +384,7 @@ static const state_table_t mode_20ms_gps = {
     .cn0_ms = 20,
     .ld_ms = 20,
     .fl_ms = 2, /* not used */
-    .flld_ms = 10.0f,
+    .flld_ms = 15.0f, /* 3 times 5 ms update */
     .flll_ms = 20,
     .bit_ms = 20,
     .ent_cnt = 9,
@@ -392,15 +392,15 @@ static const state_table_t mode_20ms_gps = {
       {1, TP_CFLAG_CN0_SET | TP_CFLAG_EPL_SET | TP_CFLAG_BSYNC_SET |
           TP_CFLAG_LD_SET | TP_CFLAG_FLL_SET},
       {1, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD},
-      {3, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD},
-
-      {2, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD},
       {3, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_FIRST},
 
       {2, TP_FLAGS_20MS | TP_CFLAG_FLL_SET},
-      {3, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD},
+      {3, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND},
 
-      {2, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD},
+      {2, TP_FLAGS_20MS | TP_CFLAG_FLL_SET},
+      {3, TP_FLAGS_20MS | TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND},
+
+      {2, TP_FLAGS_20MS | TP_CFLAG_FLL_SET},
       {3, TP_FLAGS_20MS | TP_CFLAG_BSYNC_UPDATE |
           TP_CFLAG_FLL_ADD | TP_CFLAG_FLL_SECOND | TP_CFLAG_LD_USE |
           TP_CFLAG_CN0_USE | TP_CFLAG_EPL_USE}
