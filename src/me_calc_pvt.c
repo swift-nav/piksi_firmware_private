@@ -297,9 +297,10 @@ static void collect_measurements(u64 rec_tc,
    * before returning anything */
   if (any_gps) {
     *pn_ready = n_collected;
-    *pn_inview = n_inview;
     *pn_total = n_active;
   }
+
+  *pn_inview = n_inview;
 }
 
 /** Apply ISC corrections from hard-coded table
