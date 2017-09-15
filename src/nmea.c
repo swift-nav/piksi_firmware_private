@@ -791,34 +791,25 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
 }
 
 static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
-                              const msg_dops_t *sbp_dops) {
+                              const msg_dops_t *sbp_dops,
+                              u8 n_meas,
+                              const navigation_measurement_t nav_meas[]) {
   /* Assemble list of currently tracked GPS PRNs */
-  u8 prns_gps[nap_track_n_channels];
+  u8 prns_gps[n_meas];
   u8 num_prns_gps = 0;
-  u8 prns_glo[nap_track_n_channels];
+  u8 prns_glo[n_meas];
   u8 num_prns_glo = 0;
 
-  for (u32 i = 0; i < nap_track_n_channels; i++) {
-    tracking_channel_info_t info;
-    tracking_channel_get_values(i,
-                                &info, /* Generic info */
-                                NULL,  /* Timers */
-                                NULL,  /* Frequencies */
-                                NULL,  /* Loop controller values */
-                                NULL); /* Misc values */
-
-    if (0 == (info.flags & TRACKER_FLAG_ACTIVE)) {
+  for (u32 i = 0; i < n_meas; i++) {
+    const navigation_measurement_t info = nav_meas[i];
+    if (IS_GPS(info.sid) && !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
+      prns_gps[num_prns_gps++] = info.sid.sat;
       continue;
     }
 
-    if (IS_GPS(info.mesid) && !in_set(prns_gps, num_prns_gps, info.mesid.sat)) {
-      prns_gps[num_prns_gps++] = info.mesid.sat;
-      continue;
-    }
-
-    if (IS_GLO(info.mesid) &&
-        !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.mesid.sat))) {
-      prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.mesid.sat);
+    if (IS_GLO(info.sid) &&
+        !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
+      prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
       continue;
     }
   }
@@ -870,7 +861,9 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     double propagation_time,
                     u8 sender_id,
                     const utc_params_t *utc_params,
-                    const msg_baseline_heading_t *sbp_baseline_heading) {
+                    const msg_baseline_heading_t *sbp_baseline_heading,
+                    u8 n_meas,
+                    const navigation_measurement_t nav_meas[]) {
   utc_tm utc_time;
 
   /* prepare utc_tm structure with time rounded to NMEA precision */
@@ -932,7 +925,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   }
   if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
     if (send_nmea(gsa_msg_rate, sbp_msg_time->tow)) {
-      nmea_assemble_gsa(sbp_pos_llh, sbp_dops);
+      nmea_assemble_gsa(sbp_pos_llh, sbp_dops, n_meas, nav_meas);
     }
   }
 }
