@@ -126,7 +126,7 @@ int main(void) {
   track_setup();
   decode_setup();
 
-  track_dma_setup();
+  track_dma_init();
 
   manage_acq_setup();
   system_monitor_setup();

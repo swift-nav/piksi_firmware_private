@@ -60,6 +60,7 @@ endif
 
 all: firmware tests
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
+	@cp build_v3_prod/piksi_firmware_v3_prod.stripped.elf ~/shared/piksi_firmware.elf
 
 firmware: $(FW_DEPS)
 	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
