@@ -241,7 +241,7 @@ static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
  * \param[out] in_view   Destination in_view array.
  * \param[out] ephe      Destination ephemeris array.
  * \param[out] pn_ready  Destination for measurement array size.
- * \param[out] pn_ready  Destination for in-view array size.
+ * \param[out] pn_inview Destination for in-view array size.
  * \param[out] pn_total  Destination for total active trackers count.
  *
  * \return None
@@ -297,9 +297,10 @@ static void collect_measurements(u64 rec_tc,
    * before returning anything */
   if (any_gps) {
     *pn_ready = n_collected;
-    *pn_inview = n_inview;
-    *pn_total = n_active;
   }
+
+  *pn_inview = n_inview;
+  *pn_total = n_active;
 }
 
 /** Apply ISC corrections from hard-coded table
