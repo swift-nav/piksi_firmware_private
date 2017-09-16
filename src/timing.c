@@ -213,10 +213,8 @@ gps_time_t napcount2gpstime(const double tc) {
 gps_time_t napcount2rcvtime(const double tc) {
   chMtxLock(&clock_mutex);
   gps_time_t t = clock_state.t0_gps;
-  if (gps_time_valid(&t)) {
-    t.tow += tc * clock_state.clock_period;
-    normalize_gps_time(&t);
-  }
+  t.tow += tc * clock_state.clock_period;
+  normalize_gps_time(&t);
   chMtxUnlock(&clock_mutex);
 
   return t;
@@ -318,7 +316,6 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
  */
 
 gps_time_t gps_time_round_to_epoch(const gps_time_t *time, double soln_freq) {
-  assert(gps_time_valid(time));
   gps_time_t rounded_time = GPS_TIME_UNKNOWN;
   /* round the time-of-week */
   rounded_time.tow = round(time->tow * soln_freq) / soln_freq;
