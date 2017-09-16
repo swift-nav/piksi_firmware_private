@@ -92,8 +92,7 @@ double heading_offset = 0.0;
 
 bool disable_klobuchar = false;
 
-bool enable_glonass_in_spp = true;
-bool enable_glonass_in_rtk = true;
+bool enable_glonass = true;
 float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;
@@ -540,7 +539,6 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     const u8 num_obs,
     const navigation_measurement_t *nav_meas,
     const ephemeris_t *ephemerides[MAX_CHANNELS],
-    const bool enable_glonass,
     const double solution_frequency,
     pvt_engine_result_t *result,
     dops_t *dops) {
@@ -791,7 +789,6 @@ static void starling_thread(void *arg) {
                                n_ready,
                                nav_meas,
                                stored_ephs,
-                               enable_glonass_in_spp,
                                starling_frequency,
                                &result_spp,
                                &dops);
@@ -821,7 +818,6 @@ static void starling_thread(void *arg) {
                                  n_ready,
                                  nav_meas,
                                  stored_ephs,
-                                 enable_glonass_in_rtk,
                                  starling_frequency,
                                  &result_rtk,
                                  &dops);
@@ -1045,8 +1041,7 @@ static void time_matched_obs_thread(void *arg) {
     chMtxLock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_enable_glonass(time_matched_filter_manager,
-                                  enable_glonass_in_rtk);
+    set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
     set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
                                              glonass_downweight_factor);
     set_pvt_engine_update_frequency(time_matched_filter_manager,
@@ -1191,10 +1186,7 @@ void starling_calc_pvt_setup() {
 
   SETTING(
       "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
-  SETTING(
-      "solution", "enable_glonass_in_spp", enable_glonass_in_spp, TYPE_BOOL);
-  SETTING(
-      "solution", "enable_glonass_in_rtk", enable_glonass_in_rtk, TYPE_BOOL);
+  SETTING("solution", "enable_glonass", enable_glonass, TYPE_BOOL);
   SETTING("solution",
           "glonass_measurement_std_downweight_factor",
           glonass_downweight_factor,

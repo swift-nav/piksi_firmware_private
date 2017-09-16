@@ -267,7 +267,7 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
 void manage_acq_setup() {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
   SETTING_NOTIFY("acquisition",
-                 "GLONASS_enabled",
+                 "glonass_acquisition_enabled",
                  glo_enabled,
                  TYPE_BOOL,
                  glo_enable_notify);
