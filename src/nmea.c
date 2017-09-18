@@ -384,6 +384,8 @@ void nmea_gsa(u8 *prns,
     NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
   } else if (CONSTELLATION_GLO == cons) {
     NMEA_SENTENCE_PRINTF("$GLGSA,A,%c,", fix_mode); /* Always automatic mode */
+  } else {
+    assert(!"Unknown constellation");
   }
 
   qsort(prns, num_prns, sizeof(prns[0]), gsa_cmp);
@@ -396,7 +398,7 @@ void nmea_gsa(u8 *prns,
     }
   }
 
-  if (fix && NULL != sbp_dops) {
+  if (fix && (NULL != sbp_dops)) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
                          round(10 * sbp_dops->pdop * 0.01) / 10,
                          round(10 * sbp_dops->hdop * 0.01) / 10,
