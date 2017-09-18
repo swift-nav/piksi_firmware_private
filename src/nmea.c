@@ -361,21 +361,22 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
 
 int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
 
-/** Assemble a NMEA GPGSA message and send it out NMEA USARTs.
- * NMEA GPGSA message contains GNSS DOP and Active Satellites.
+/** Assemble a NMEA GSA message and send it out NMEA USARTs.
+ * NMEA GSA message contains GNSS DOP and Active Satellites.
  *
  * \param prns      Array of PRNs to output.
  * \param num_prns  Number of valid PRNs in array.
+ * \param fix       Fix indicator.
  * \param sbp_dops  Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
  * \param cons      Working constellation.
  */
 void nmea_gsa(u8 *prns,
               u8 num_prns,
-              const msg_pos_llh_t *sbp_pos_llh,
+              bool fix,
               const msg_dops_t *sbp_dops,
               constellation_t cons) {
   /* Our fix is always 3D */
-  char fix_mode = (0 == sbp_pos_llh->flags) ? '1' : '3';
+  char fix_mode = fix ? '3' : '1';
 
   NMEA_SENTENCE_START(120);
   NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
@@ -388,7 +389,7 @@ void nmea_gsa(u8 *prns,
     }
   }
 
-  if (sbp_dops && ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION)) {
+  if (fix && NULL != sbp_dops) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
                          round(10 * sbp_dops->pdop * 0.01) / 10,
                          round(10 * sbp_dops->hdop * 0.01) / 10,
@@ -794,10 +795,12 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
   u8 prns_glo[n_meas];
   u8 num_prns_glo = 0;
 
-  if (NO_POSITION == (sbp_pos_llh->flags & POSITION_MODE_MASK)) {
+  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
+
+  if (!fix) {
     /* No fix, no active SVs, send GSA messages and return */
-    nmea_gsa(prns_gps, num_prns_gps, sbp_pos_llh, sbp_dops, CONSTELLATION_GPS);
-    nmea_gsa(prns_glo, num_prns_glo, sbp_pos_llh, sbp_dops, CONSTELLATION_GLO);
+    nmea_gsa(prns_gps, num_prns_gps, fix, sbp_dops, CONSTELLATION_GPS);
+    nmea_gsa(prns_glo, num_prns_glo, fix, sbp_dops, CONSTELLATION_GLO);
     return;
   }
 
@@ -820,8 +823,10 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
       continue;
     }
   }
-  /* Send GPGSA message */
-  nmea_gpgsa(prns, num_prns, sbp_pos_llh, sbp_dops);
+
+  /* Send GSA messages */
+  nmea_gsa(prns_gps, num_prns_gps, fix, sbp_dops, CONSTELLATION_GPS);
+  nmea_gsa(prns_glo, num_prns_glo, fix, sbp_dops, CONSTELLATION_GLO);
 }
 
 /** Generate and send periodic GPGSV and GLGSV.
