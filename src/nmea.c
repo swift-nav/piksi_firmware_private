@@ -34,6 +34,9 @@
 #include "timing.h"
 #include "track.h"
 
+extern bool enable_glonass_in_spp;
+extern bool enable_glonass_in_rtk;
+
 static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
                                   solution rate. */
 static u32 gpgsv_msg_rate = 10;
@@ -378,8 +381,7 @@ void nmea_gsa(u8 *prns,
   NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
 
   for (u8 i = 0; i < 12; i++) {
-    if (((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION) &&
-        (i < num_prns)) {
+    if (i < num_prns) {
       NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
     } else {
       NMEA_SENTENCE_PRINTF(",");
@@ -787,12 +789,24 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
                               const msg_dops_t *sbp_dops,
                               u8 n_meas,
                               const navigation_measurement_t nav_meas[]) {
-  /* Assemble list of currently tracked GPS PRNs */
   u8 prns_gps[n_meas];
   u8 num_prns_gps = 0;
   u8 prns_glo[n_meas];
   u8 num_prns_glo = 0;
 
+  if (NO_POSITION == (sbp_pos_llh->flags & POSITION_MODE_MASK)) {
+    /* No fix, no active SVs, send GSA messages and return */
+    nmea_gsa(prns_gps, num_prns_gps, sbp_pos_llh, sbp_dops, CONSTELLATION_GPS);
+    nmea_gsa(prns_glo, num_prns_glo, sbp_pos_llh, sbp_dops, CONSTELLATION_GLO);
+    return;
+  }
+
+  /* Check if GLO is enabled in fix */
+  u8 fix_mode = sbp_pos_llh->flags & POSITION_MODE_MASK;
+  bool glgsa = ((SPP_POSITION == fix_mode) && enable_glonass_in_spp) ||
+                ((SPP_POSITION < fix_mode) && enable_glonass_in_rtk);
+
+  /* Assemble list of currently active SVs */
   for (u32 i = 0; i < n_meas; i++) {
     const navigation_measurement_t info = nav_meas[i];
     if (IS_GPS(info.sid) && !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
@@ -800,7 +814,7 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
       continue;
     }
 
-    if (IS_GLO(info.sid) &&
+    if (glgsa && IS_GLO(info.sid) &&
         !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
       prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
       continue;
