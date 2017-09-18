@@ -112,6 +112,8 @@ void track_dma_init(void) {
   pl330.buf_size = sizeof(progbuf);
   pl330.buf = progbuf;
 
+  *PL330_APER_CLK_CTRL |= (1 << PL330_DMA_CPU_2XCLKACT_Pos);
+
   pl330_transfer_setup(&pl330);
 }
 
