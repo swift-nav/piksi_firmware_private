@@ -167,17 +167,15 @@ void nap_auth_check(void) {
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
-  char *pnt = dna;
   for (int k = 0; k < NAP_AUTH_RETRIES && nap_locked(); k++) {
+    char *pnt = dna;
     for (int i = NAP_DNA_LENGTH - 1; i >= 0; i--) {
-      sprintf(pnt, "%02x", nap_dna[i]);
-      pnt += 2;
+      pnt += sprintf(pnt, "%02x", nap_dna[i]);
     }
     dna[NAP_DNA_LENGTH * 2] = '\0';
     pnt = key;
     for (int i = NAP_KEY_LENGTH - 1; i >= 0; i--) {
-      sprintf(pnt, "%02x", factory_params.nap_key[i]);
-      pnt += 2;
+      pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
     log_error("NAP Verification Failed: DNA=%s, Key=%s", dna, key);
