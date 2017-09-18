@@ -1091,8 +1091,10 @@ static void time_matched_obs_thread(void *arg) {
            * observation matching this base observation, break and wait for a
            * new base observation. */
 
-          /* In practice this should basically never happen so lets make a note
-           * if it does. */
+          /* In practice this should only happen when we initially start
+           * receiving corrections, or if the ntrip/skylark corrections are old
+           * due to connection problems.
+           */
           log_warn(
               "Obs Matching: t_base < t_rover "
               "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})",
@@ -1102,8 +1104,8 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.wn,
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
-          const msg_t post_ret =
-              chMBPost(&time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
+          const msg_t post_ret = chMBPostAhead(
+            &time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
           if (post_ret != MSG_OK) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
