@@ -303,6 +303,8 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
  *
  * @param base_sender_id sender id of base obs
  * @param sbp_messages struct of sbp messages
+ * @param n_meas nav_meas len
+ * @param nav_meas Valid navigation measurements
  */
 static void solution_send_pos_messages(
     u8 base_sender_id,
