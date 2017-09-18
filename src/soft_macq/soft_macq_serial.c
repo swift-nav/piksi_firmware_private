@@ -91,7 +91,6 @@ bool soft_acq_search(const sc16_t *_cSignal,
   /** init soft FFT */
   if (sFftConfig.N != fft_len) {
     InitIntFFTr2(&sFftConfig, fft_len);
-    log_info("InitIntFFTr2()");
   }
 
   float fft_bin_width = SOFTMACQ_SAMPLE_RATE_Hz / fft_len;
