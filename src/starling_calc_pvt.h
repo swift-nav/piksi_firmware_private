@@ -20,9 +20,12 @@
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/track.h>
-
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+
 #include "piksi_systime.h"
+
+extern bool enable_glonass_in_spp;
+extern bool enable_glonass_in_rtk;
 
 typedef enum {
   SOLN_MODE_LOW_LATENCY,

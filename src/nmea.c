@@ -31,11 +31,9 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
+#include "starling_calc_pvt.h"
 #include "timing.h"
 #include "track.h"
-
-extern bool enable_glonass_in_spp;
-extern bool enable_glonass_in_rtk;
 
 static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
                                   solution rate. */
