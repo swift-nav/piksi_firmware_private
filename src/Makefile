@@ -181,6 +181,7 @@ CSRC := $(STARTUPSRC) \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         $(BOARDDIR)/v3/nap/track_dma.o \
+        $(BOARDDIR)/v3/nap/pl330.o \
         main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

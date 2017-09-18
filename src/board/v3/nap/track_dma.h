@@ -15,6 +15,9 @@
 
 #include <libswiftnav/logging.h>
 
+
+#define PL330_DMA_MAX_BURST_SIZE      3
+
 #define PL330_BASE_S                 (0xF8003000U)
 #define PL330_BASE_NS                (0xF8004000U)
 
@@ -64,22 +67,15 @@
 
 #define PL330_DBGSTATUS              (volatile u32*)(PL330_DMAC0_BASE + 0x00000D00U)
 #define PL330_DBGSTATUS_BUSY_Pos     (0x0U)
+#define PL330_DSR                    (volatile u32*)(PL330_DMAC0_BASE)
+#define PL330_DSR_DMA_STATUS_Mask    (0xF)
+#define PL330_DSR_DNS_Mask           (0x200)
+#define PL330_FSRD                   (volatile u32*)(PL330_DMAC0_BASE + 0x00000030U)
+#define PL330_FSRD_FS_MGR_Mask       (0x1U)
 
 #define PL330_DBGCMD                 (volatile u32*)(PL330_DMAC0_BASE + 0x00000D04U)
 #define PL330_DBGINST0               (volatile u32*)(PL330_DMAC0_BASE + 0x00000D08U)
 #define PL330_DBGINST1               (volatile u32*)(PL330_DMAC0_BASE + 0x00000D0CU)
-
-
-
-/*
- * XDMAPS_DBGINST0 - constructs the word for the Debug Instruction-0 Register.
- * @b1: Instruction byte 1
- * @b0: Instruction byte 0
- * @ch: Channel number
- * @dbg_th: Debug thread encoding: 0 = DMA manager thread, 1 = DMA channel
- */
-#define XDmaPs_DBGINST0(b1, b0, ch, dbg_th) \
-	(((b1) << 24) | ((b0) << 16) | (((ch) & 0x7) << 8) | ((dbg_th & 0x1)))
 
 
 void track_dma_init(void);
