@@ -76,3 +76,14 @@ void board_send_state(void) {
 
   sbp_send_msg(SBP_MSG_DEVICE_MONITOR, sizeof(msg), (u8*)&msg);
 }
+
+/* ENET0_RST_LINE (MIO pin 0) is a GPIO connected to the hardware WDT /en line.
+ * This line is pulled up in the bootloader to disable the WDT. Pulling this
+ * line low enables the WDT triggering a hard reset after WDT timeout
+ */
+void hard_reset(void) {
+  const ioline_t ENET0_RST_LINE = PAL_LINE(GPIO0, 0);
+  const int WDT_RESET_WAIT = 10;
+  palClearLine(ENET0_RST_LINE);
+  chThdSleepSeconds(WDT_RESET_WAIT);
+}
