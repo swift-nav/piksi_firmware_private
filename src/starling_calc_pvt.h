@@ -24,9 +24,6 @@
 
 #include "piksi_systime.h"
 
-extern bool enable_glonass_in_spp;
-extern bool enable_glonass_in_rtk;
-
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
   SOLN_MODE_TIME_MATCHED,

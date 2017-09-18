@@ -81,4 +81,6 @@ char get_nmea_mode_indicator(u8 flags);
 u8 get_nmea_quality_indicator(u8 flags);
 
 extern bool send_heading;
+extern bool enable_glonass_in_spp;
+extern bool enable_glonass_in_rtk;
 #endif /* SWIFTNAV_NMEA_H */
