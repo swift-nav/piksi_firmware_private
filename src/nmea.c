@@ -816,7 +816,7 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
   /* Check if GLO is enabled in fix */
   u8 fix_mode = sbp_pos_llh->flags & POSITION_MODE_MASK;
   bool glgsa = ((SPP_POSITION == fix_mode) && enable_glonass_in_spp) ||
-                ((SPP_POSITION < fix_mode) && enable_glonass_in_rtk);
+               ((SPP_POSITION < fix_mode) && enable_glonass_in_rtk);
 
   /* Assemble list of currently active SVs */
   for (u32 i = 0; i < n_meas; i++) {
