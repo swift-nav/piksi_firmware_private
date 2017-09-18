@@ -67,6 +67,8 @@ typedef struct {
 #define STARLING_OBS_N_BUFF 60
 
 extern u32 max_age_of_differential;
+extern bool enable_glonass;
+extern bool send_heading;
 
 void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,

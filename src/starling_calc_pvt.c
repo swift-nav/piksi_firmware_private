@@ -93,6 +93,7 @@ double heading_offset = 0.0;
 bool disable_klobuchar = false;
 
 bool enable_glonass = true;
+
 float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;

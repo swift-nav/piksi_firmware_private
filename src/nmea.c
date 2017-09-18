@@ -31,6 +31,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
+#include "starling_calc_pvt.h"
 #include "timing.h"
 #include "track.h"
 
@@ -810,11 +811,6 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
     return;
   }
 
-  /* Check if GLO is enabled in fix */
-  u8 fix_mode = sbp_pos_llh->flags & POSITION_MODE_MASK;
-  bool glgsa = ((SPP_POSITION == fix_mode) && enable_glonass_in_spp) ||
-               ((SPP_POSITION < fix_mode) && enable_glonass_in_rtk);
-
   /* Assemble list of currently active SVs */
   for (u32 i = 0; i < n_meas; i++) {
     const navigation_measurement_t info = nav_meas[i];
@@ -823,7 +819,7 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
       continue;
     }
 
-    if (glgsa && IS_GLO(info.sid) &&
+    if (enable_glonass && IS_GLO(info.sid) &&
         !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
       prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
       continue;
