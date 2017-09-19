@@ -79,6 +79,6 @@
 
 
 void track_dma_init(void);
-void track_dma_start(u32* const s_addr, u32* const d_addr);
+void track_dma_start(u32* const s_addr, u32* const d_addr, u32 size);
 
 #endif /* SWIFTNAV_TRACK_DMA_H */

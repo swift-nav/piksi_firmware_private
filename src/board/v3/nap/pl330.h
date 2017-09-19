@@ -98,12 +98,6 @@ enum pl330_byteswap {
 	SWAP_16,
 };
 
-enum pl330_transfer_type {
-	MEM2MEM = 0,
-	MEM2PERIPH,
-	PERIPH2MEM,
-};
-
 /*
  * Request Configuration.
  * The PL330 core does not modify this and uses the last
@@ -142,7 +136,6 @@ struct pl330_transfer_struct {
 	unsigned long single_brst_size;
 	unsigned long brst_len;
 	unsigned long peripheral_id;
-	unsigned long transfer_type;
 	unsigned long enable_cache1;
 	unsigned long buf_size;
 	u8 *buf;

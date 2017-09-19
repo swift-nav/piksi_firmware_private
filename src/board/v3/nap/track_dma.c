@@ -38,51 +38,43 @@ static void track_dma_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("track DMA");
 
-  u32 count = 0;
   while(TRUE) {
 
-  	pl330_transfer_start(&pl330);
+	log_info("- src \t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
+		src_buf[0],
+		src_buf[1],
+		src_buf[2],
+		src_buf[3],
+		src_buf[4],
+		src_buf[5],
+		src_buf[6],
+		src_buf[7],
+		src_buf[8],
+		src_buf[9],
+		src_buf[10],
+		src_buf[11]);
 
-  	log_info("- src \t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
-  		src_buf[0],
-  		src_buf[1],
-  		src_buf[2],
-  		src_buf[3],
-  		src_buf[4],
-  		src_buf[5],
-  		src_buf[6],
-  		src_buf[7],
-  		src_buf[8],
-  		src_buf[9],
-  		src_buf[10],
-  		src_buf[11]);
-  	log_info("- dest\t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
-  		dst_buf[0],
-  		dst_buf[1],
-  		dst_buf[2],
-  		dst_buf[3],
-  		dst_buf[4],
-  		dst_buf[5],
-  		dst_buf[6],
-  		dst_buf[7],
-  		dst_buf[8],
-  		dst_buf[9],
-  		dst_buf[10],
-  		dst_buf[11]);
+	log_info("- dest\t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
+		dst_buf[0],
+		dst_buf[1],
+		dst_buf[2],
+		dst_buf[3],
+		dst_buf[4],
+		dst_buf[5],
+		dst_buf[6],
+		dst_buf[7],
+		dst_buf[8],
+		dst_buf[9],
+		dst_buf[10],
+		dst_buf[11]);
 
-//	pl330_transfer_finish(&pl330);
+    if(memcmp(src_buf, dst_buf, sizeof(src_buf)) == 0)
+    	log_warn("YEEEAAAHH ------- COPY WORKED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-	if((*PL330_DBGSTATUS) == 0)
-		log_info("DMA is idle");
-	if((*PL330_DSR) != 0)
-		log_info("DMA DSR register: 0x%0x", *PL330_DSR);
-	if((*PL330_FSRD) & PL330_FSRD_FS_MGR_Mask)
-		log_info("DMA in FAULTING STATE");
+  	//for(u8 i = 0; i < 12; i++)
+    //		src_buf[i]++;
 
-  	if(memcmp(src_buf, dst_buf, sizeof(src_buf)) == 0)
-  		log_warn("YEEEAAAHH ------- COPY WORKED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  	else
-  		log_info("DMA did not work ------------------ %0d", count++);
+    pl330_transfer_start(&pl330);
 
   	chThdSleepMilliseconds(3000);
   }
@@ -98,19 +90,19 @@ void track_dma_init(void) {
   	                NULL);
 
   log_info("track DMA thread started ------------------");
+  log_info("sizeof(src_buf) : %d ####################", sizeof(src_buf));
 
   pl330.channel_num = 0;
   pl330.src_addr = (u32)&src_buf;
   pl330.dst_addr = (u32)&dst_buf;
   pl330.size_byte = sizeof(src_buf);
-  pl330.brst_size = 2;         // single bytes
-  pl330.single_brst_size = 2;  // 8 byte per beat
-  pl330.brst_len = 1;          // 1 transfer each burst
-  pl330.peripheral_id = 1;     // #define XPAR_PS7_DMA_S_DEVICE_ID 1
-  pl330.transfer_type = MEM2MEM;
-  pl330.enable_cache1 = 0;
-  pl330.buf_size = sizeof(progbuf);
-  pl330.buf = progbuf;
+  pl330.brst_size = 2;              // word access (u32, 4 byte)
+  pl330.single_brst_size = 2;       // -"-
+  pl330.brst_len = sizeof(src_buf); // num transfers each burst (?????????)
+  pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
+  pl330.enable_cache1 = 0;          // no cache
+  pl330.buf = progbuf;              // microcode program buffer
+  pl330.buf_size = sizeof(progbuf); // microcode program buffer size
 
   *PL330_APER_CLK_CTRL |= (1 << PL330_DMA_CPU_2XCLKACT_Pos);
 
@@ -143,12 +135,11 @@ void track_dma_init(void) {
 //  gic_irq_enable(IRQ_ID_DMAC_0);
 //}
 
-void track_dma_start(u32* const s_addr, u32* const d_addr) {
-  (void)s_addr;
-  (void)d_addr;
-//  char DmaProg[32];
+void track_dma_start(u32* const s_addr, u32* const d_addr, u32 size) {
+  pl330.src_addr = (u32)&s_addr;
+  pl330.dst_addr = (u32)&d_addr;
+  pl330.size_byte = size;
 
-
-
-
+  pl330_transfer_setup(&pl330);
+  pl330_transfer_start(&pl330);
 }

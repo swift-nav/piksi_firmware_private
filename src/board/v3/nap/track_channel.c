@@ -422,18 +422,8 @@ void nap_track_read_results(u8 channel,
    * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
    */
   memcpy(&trk_ch, t, SWIFTNAP_TRACKING_NUM_READABLE * sizeof(u32));
-//  track_dma_start((u32*)&trk_ch, (u32*)t);
-
-  static swiftnap_tracking_t test_trk_ch = {0};
-
-  static u32 cnt = 0;
-  cnt++;
-  if(cnt > 8000)
-  {
-    cnt = 0;
-    track_dma_start((u32*)&trk_ch, (u32*)&test_trk_ch);
-  }
-
+//  track_dma_start((u32*)&trk_ch, (u32*)t,
+//   SWIFTNAP_TRACKING_NUM_READABLE * sizeof(u32));
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(

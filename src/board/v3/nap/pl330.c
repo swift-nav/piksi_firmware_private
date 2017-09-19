@@ -619,7 +619,6 @@ static inline void pl330_execute_DBGINSN(u8 insn[], int as_manager,
 
 	/* If timed out due to halted state-machine */
 	if (pl330_until_dmac_idle(timeout_loops)) {
-//		printf("DMAC halted!\n");
 		return;
 	}
 	/* Get going */
@@ -699,8 +698,6 @@ static int pl330_trigger(int channel_num, u8 *buffer_address, int timeout_loops)
 	struct _arg_GO go;
 	int channel0_manager1;
 
-	log_info("pl330_trigger");
-
 	/*
 	 * Return if already ACTIVE. It will ensure DMAGO is executed at
 	 * STOPPED state too
@@ -713,22 +710,14 @@ static int pl330_trigger(int channel_num, u8 *buffer_address, int timeout_loops)
 	go.chan = channel_num;
 	go.addr = (u32)buffer_address;
 
-//	if (PL330_DMA_BASE == PL330_BASE_NS)
-//		go.ns = 1;	/* non-secure condition */
-//	else
-		go.ns = 0;	/* secure condition */
+	go.ns = 0;	/* secure condition */
 	_emit_GO(insn, &go);
 
 	/* Only manager can execute GO */
 	channel0_manager1 = 1;
 
-	log_info("execute GO command");
-
 	pl330_execute_DBGINSN(insn, channel0_manager1, channel_num,
 		timeout_loops);
-
-	if(*PL330_DBGSTATUS)
-		log_info("execute GO command SUCCESSFUL");
 
 	return 0;
 }
@@ -745,10 +734,6 @@ static int pl330_trigger(int channel_num, u8 *buffer_address, int timeout_loops)
 static int pl330_start(int channel0_manager1, int channel_num,
 	u8 *buffer_address, int timeout_loops)
 {
-#ifdef PL330_DEBUG_MCGEN
-//	puts("INFO: DMA BASE Address = ");
-//	printf("0x%08x\n", PL330_DMA_BASE);
-#endif
 	switch (pl330_getstate(channel0_manager1, channel_num)) {
 	case PL330_STATE_FAULT_COMPLETING:
 		UNTIL(channel0_manager1, channel_num,
@@ -851,96 +836,24 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 	struct pl330_reqcfg reqcfg;
 	cmd_line = 0;
 
-
-
-#ifdef PL330_DEBUG_MCGEN
-//	if (pl330->transfer_type == MEM2PERIPH)
-//		puts("INFO: mem2perip");
-//	else if (pl330->transfer_type == PERIPH2MEM)
-//		puts("INFO: perip2mem");
-//	else
-//		puts("INFO: mem2mem");
-
-//	printf(" - 0x%08lx -> 0x%08lx\nsize=%08x brst_size=2^%li "
-//		"brst_len=%li singles_brst_size=2^%li\n",
-//		pl330->src_addr, pl330->dst_addr, data_size_byte,
-//		pl330->brst_size, pl330->brst_len,
-//		pl330->single_brst_size);
-#endif
-
 	/* burst_size = 2 ^ brst_size */
 	burst_size = 1 << pl330->brst_size;
 
-	/* Fool proof checking */
-	if (pl330->brst_size > PL330_DMA_MAX_BURST_SIZE) {
-		log_warn("ERROR PL330: brst_size must 0-%d (not %li)\n",
-			PL330_DMA_MAX_BURST_SIZE, pl330->brst_size);
-		return 1;
-	}
-	if (pl330->single_brst_size > PL330_DMA_MAX_BURST_SIZE) {
-		log_warn("ERROR PL330 : single_brst_size must 0-%d (not %li)\n",
-			PL330_DMA_MAX_BURST_SIZE, pl330->single_brst_size);
-		return 1;
-	}
-	if (pl330->brst_len < 1 || pl330->brst_len > 16) {
-		log_warn("ERROR PL330 : brst_len must 1-16 (not %li)\n",
-			pl330->brst_len);
-		return 1;
-	}
-	if (pl330->src_addr & (burst_size - 1)) {
-		log_warn("ERROR PL330 : source address unaligned\n");
-		return 1;
-	}
-	if (pl330->dst_addr & (burst_size - 1)) {
-		log_warn("ERROR PL330 : destination address unaligned\n");
-		return 1;
-	}
-
 	/* Setup the command list */
-
-	log_warn("######## control reached pl330.c(890) ########");
 
 	/* DMAMOV SAR, x->src_addr */
 	off += _emit_MOV(&pl330->buf[off], SAR, pl330->src_addr);
 	/* DMAMOV DAR, x->dst_addr */
 	off += _emit_MOV(&pl330->buf[off], DAR, pl330->dst_addr);
-	/* DMAFLUSHP P(periheral_id) */
-	if (pl330->transfer_type != MEM2MEM)
-		off += _emit_FLUSHP(&pl330->buf[off], pl330->peripheral_id);
-
-	log_warn("######## control reached pl330.c(900) ########");
 
 	/* Preparing the CCR value */
-	if (pl330->transfer_type == MEM2PERIPH) {
-		reqcfg.dst_inc = 0;	/* disable auto increment */
-		reqcfg.src_inc = 1;	/* enable auto increment */
-	} else if (pl330->transfer_type == PERIPH2MEM) {
-		reqcfg.dst_inc = 1;
-		reqcfg.src_inc = 0;
-	} else {
-		/* MEM2MEM */
-		reqcfg.dst_inc = 1;
-		reqcfg.src_inc = 1;
-	}
-	if (PL330_DMA_BASE == PL330_BASE_NS)
-		reqcfg.nonsecure = 1;	/* Non Secure mode */
-	else
-		reqcfg.nonsecure = 0;	/* Secure mode */
-	if (pl330->enable_cache1 == 0) {
-		reqcfg.dcctl = 0x1;	/* noncacheable but bufferable */
-		reqcfg.scctl = 0x1;
-	} else {
-		if (pl330->transfer_type == MEM2PERIPH) {
-			reqcfg.dcctl = 0x1;
-			reqcfg.scctl = 0x7;	/* cacheable write back */
-		} else if (pl330->transfer_type == PERIPH2MEM) {
-			reqcfg.dcctl = 0x7;
-			reqcfg.scctl = 0x1;
-		} else {
-			reqcfg.dcctl = 0x7;
-			reqcfg.scctl = 0x7;
-		}
-	}
+	/* MEM2MEM */
+	reqcfg.dst_inc = 1;
+	reqcfg.src_inc = 1;
+
+	reqcfg.nonsecure = 0;	/* Secure mode */
+	reqcfg.dcctl = 0x1;	/* noncacheable but bufferable */
+	reqcfg.scctl = 0x1;
 	reqcfg.privileged = 1;		/* 1 - Priviledge  */
 	reqcfg.insnaccess = 0;		/* 0 - data access */
 	reqcfg.swap = 0;		/* 0 - no endian swap */
@@ -954,8 +867,9 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 	/* BURST */
 	/* Can initiate a burst? */
 	while (data_size_byte >= burst_size * pl330->brst_len) {
+		log_warn("ENTERED HERE BURST ############################### datasizebyte: %s", data_size_byte);
+
 		lcnt0 = data_size_byte / (burst_size * pl330->brst_len);
-//		lcnt1 = 0;
 		lcnt1 = 1;
 		if (lcnt0 >= 256 * 256)
 			lcnt0 = lcnt1 = 256;
@@ -963,21 +877,7 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 			lcnt1 = lcnt0 / 256;
 			lcnt0 = 256;
 		}
-		log_warn("######## size_byte: %d burst_size: %d burst_len: %d ########",
-			data_size_byte, burst_size, pl330->brst_len);
-
 		data_size_byte -= (burst_size * pl330->brst_len * lcnt0 * lcnt1);
-
-#ifdef PL330_DEBUG_MCGEN
-//		printf("Transferring 0x%08lx Remain 0x%08x\n", (burst_size *
-//			pl330->brst_len * lcnt0 * lcnt1), data_size_byte);
-//		printf("Running burst - brst_size=2^%li, brst_len=%li, "
-//			"lcnt0=%i, lcnt1=%i\n", pl330->brst_size,
-//			pl330->brst_len, lcnt0, lcnt1);
-#endif
-
-		log_warn("######## control reached pl330.c(964) ########");
-		log_warn("######## lcnt0: %d lcnt1: %d ########", lcnt0, lcnt1);
 
 		if (lcnt1) {
 			/* DMALP1 */
@@ -987,22 +887,19 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 		/* DMALP0 */
 		off += _emit_LP(&pl330->buf[off], 0, lcnt0);
 		loopjmp0 = off;
-//		/* DMAWFP periheral_id, burst */
-//		if (pl330->transfer_type != MEM2MEM)
-//			off += _emit_WFP(&pl330->buf[off], BURST,
-//				pl330->peripheral_id);
+
 		/* DMALD */
 		off += _emit_LD(&pl330->buf[off], ALWAYS);
+
 		/* DMARMB */
 		off += _emit_RMB(&pl330->buf[off]);
-		/* DMASTPB peripheral_id */
-//		if (pl330->transfer_type != MEM2MEM)
-//			off += _emit_STP(&pl330->buf[off], BURST,
-//				pl330->peripheral_id);
-//		else
-			off += _emit_ST(&pl330->buf[off], ALWAYS);
+
+		/* DMAST */
+		off += _emit_ST(&pl330->buf[off], ALWAYS);
+
 		/* DMAWMB */
 		off += _emit_WMB(&pl330->buf[off]);
+
 		/* DMALP0END */
 		struct _arg_LPEND lpend;
 		lpend.cond = ALWAYS;
@@ -1010,24 +907,21 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 		lpend.loop = 0;		/* loop cnt 0 */
 		lpend.bjump = off - loopjmp0;
 		off += _emit_LPEND(&pl330->buf[off], &lpend);
+
 		/* DMALP1END */
 		if (lcnt1) {
-			//struct _arg_LPEND lpend;
 			lpend.cond = ALWAYS;
 			lpend.forever = 0;
 			lpend.loop = 1;		/* loop cnt 1*/
 			lpend.bjump = off - loopjmp1;
 			off += _emit_LPEND(&pl330->buf[off], &lpend);
 		}
-		/* ensure the microcode don't exceed buffer size */
+		/* ensure the microcode doesn't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
-			log_error("ERROR PL330 : Exceed buffer size in pl330.c(1010)\n");
+			log_error("ERROR PL330 : Exceed buffer size\n");
 			return 1;
 		}
 	}
-
-	log_warn("######## control reached pl330.c(1014) ########");
-
 	/* SINGLE */
 	pl330->brst_size = pl330->single_brst_size;
 	pl330->brst_len = 1;
@@ -1035,22 +929,8 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 	burst_size = (1 << pl330->brst_size);
 	lcnt0 = data_size_byte / (burst_size * pl330->brst_len);
 
-	/* ensure all data will be transfered */
-	data_size_byte = data_size_byte -
-		(burst_size * pl330->brst_len * lcnt0);
-	if (data_size_byte)
-//		puts("ERROR PL330 : Detected the possibility of untransfered"
-//			"data. Please ensure correct single burst size\n");
-
 	if (lcnt0) {
-#ifdef PL330_DEBUG_MCGEN
-//		printf("Transferring 0x%08lx Remain 0x%08x\n", (burst_size *
-//			pl330->brst_len * lcnt0 * lcnt1), data_size_byte);
-//		printf("Running single - brst_size=2^%li, brst_len=%li, "
-//			"lcnt0=%i\n", pl330->brst_size, pl330->brst_len,
-//			lcnt0);
-#endif
-
+		log_warn("ENTERED HERE SINGLE ############################### datasizebyte: %d, lcnt0: %d", data_size_byte, lcnt0);
 		/* Preparing the CCR value */
 		reqcfg.brst_len = pl330->brst_len;	/* DMA burst length */
 		reqcfg.brst_size = pl330->brst_size;	/* DMA burst size */
@@ -1061,20 +941,12 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 		/* DMALP0 */
 		off += _emit_LP(&pl330->buf[off], 0, lcnt0);
 		loopjmp0 = off;
-		/* DMAWFP peripheral_id, single */
-		if (pl330->transfer_type != MEM2MEM)
-			off += _emit_WFP(&pl330->buf[off], SINGLE,
-				pl330->peripheral_id);
 		/* DMALD */
 		off += _emit_LD(&pl330->buf[off], ALWAYS);
 		/* DMARMB */
 		off += _emit_RMB(&pl330->buf[off]);
-		/* DMASTPS peripheral_id */
-		if (pl330->transfer_type != MEM2MEM)
-			off += _emit_STP(&pl330->buf[off], SINGLE,
-				pl330->peripheral_id);
-		else
-			off += _emit_ST(&pl330->buf[off], ALWAYS);
+		/* DMAST */
+		off += _emit_ST(&pl330->buf[off], ALWAYS);
 		/* DMAWMB */
 		off += _emit_WMB(&pl330->buf[off]);
 		/* DMALPEND */
@@ -1086,16 +958,13 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 		off += _emit_LPEND(&pl330->buf[off], &lpend1);
 		/* ensure the microcode don't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
-//			puts("ERROR PL330 : Exceed buffer size\n");
+			log_error("ERROR PL330 : Exceed buffer size\n");
 			return 1;
 		}
 	}
 
 	/* DMAEND */
 	off += _emit_END(&pl330->buf[off]);
-
-	log_warn("######## control reached pl330.c(1082) ########");
-
 	return 0;
 }
 
@@ -1165,11 +1034,6 @@ int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330)
 	u32 ccr = 0;			/* Channel Control Register */
 	struct pl330_reqcfg reqcfg;
 	cmd_line = 0;
-
-//#ifdef PL330_DEBUG_MCGEN
-//	puts("INFO: Write zeroes -> ");
-//	printf("0x%08lx size=0x%08x\n", pl330->dst_addr, data_size_byte);
-//#endif
 
 	/* for burst, always use the maximum burst size and length */
 	pl330->brst_size = PL330_DMA_MAX_BURST_SIZE;
