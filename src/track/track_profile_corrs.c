@@ -133,8 +133,7 @@ void tp_update_correlators(u32 cycle_flags,
   /* Message payload / bit sync accumulator updates */
   if (0 != (cycle_flags & TP_CFLAG_BSYNC_SET)) {
     corr_state->corr_bit = cs_now->prompt;
-  }
-  else if (0 != (cycle_flags & TP_CFLAG_BSYNC_ADD)) {
+  } else if (0 != (cycle_flags & TP_CFLAG_BSYNC_ADD)) {
     corr_state->corr_bit = corr_add(corr_state->corr_bit, cs_now->prompt);
   }
 }
