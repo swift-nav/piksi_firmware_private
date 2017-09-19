@@ -4,13 +4,13 @@
 # See this for details:
 # https://gist.github.com/dergachev/f5da514802fcbbb441a1
 - name: Handle Ubuntu 13.04 end of life.
-  sudo: True
+  become: true
   shell: sed -i.bak -r 's/(archive|security).ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == '13.04'
 
 - name: Install base Ubuntu packages
   apt: pkg={{ item }} state=installed update_cache=yes
-  sudo: True
+  become: true
   with_items:
     - git
     - build-essential
@@ -18,7 +18,7 @@
     - wget
 
 - name: Update APT repo cache
-  sudo: Yes
+  become: true
   apt: update_cache=yes
 
 # Set up conditional installation for ARM GCC tooling later.
