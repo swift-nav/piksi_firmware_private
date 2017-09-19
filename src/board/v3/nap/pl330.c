@@ -23,38 +23,33 @@
 #include <libswiftnav/logging.h>
 #include "pl330.h"
 
-/* To enabled the printout of debug message and microcode command setup */
-#ifdef DEBUG
-#define PL330_DEBUG_MCGEN
-#endif
-
 /* Register and Bit field Definitions */
 
 /* DMA Status */
-#define DS			0x0
+#define DS				0x0
 #define DS_ST_STOP		0x0
 #define DS_ST_EXEC		0x1
 #define DS_ST_CMISS		0x2
-#define DS_ST_UPDTPC		0x3
+#define DS_ST_UPDTPC	0x3
 #define DS_ST_WFE		0x4
 #define DS_ST_ATBRR		0x5
 #define DS_ST_QBUSY		0x6
 #define DS_ST_WFP		0x7
 #define DS_ST_KILL		0x8
 #define DS_ST_CMPLT		0x9
-#define DS_ST_FLTCMP		0xe
+#define DS_ST_FLTCMP	0xe
 #define DS_ST_FAULT		0xf
 
 /* DMA Program Count register */
 #define DPC			0x4
 /* Interrupt Enable register */
-#define INTEN			0x20
+#define INTEN		0x20
 /* event-Interrupt Raw Status register */
 #define ES			0x24
 /* Interrupt Status register */
-#define INTSTATUS		0x28
+#define INTSTATUS	0x28
 /* Interrupt Clear register */
-#define INTCLR			0x2c
+#define INTCLR		0x2c
 /* Fault Status DMA Manager register */
 #define FSM			0x30
 /* Fault Status DMA Channel register */
@@ -67,7 +62,7 @@
 #define FTC(n)			(_FTC + (n)*0x4)
 
 /* Channel Status register */
-#define _CS			0x100
+#define _CS				0x100
 #define CS(n)			(_CS + (n)*0x8)
 #define CS_CNS			(1 << 21)
 
@@ -76,15 +71,15 @@
 #define CPC(n)			(_CPC + (n)*0x8)
 
 /* Source Address register */
-#define _SA			0x400
+#define _SA				0x400
 #define SA(n)			(_SA + (n)*0x20)
 
 /* Destination Address register */
-#define _DA			0x404
+#define _DA				0x404
 #define DA(n)			(_DA + (n)*0x20)
 
 /* Channel Control register */
-#define _CC			0x408
+#define _CC				0x408
 #define CC(n)			(_CC + (n)*0x20)
 
 /* Channel Control register (CCR) Setting */
@@ -151,7 +146,7 @@
 
 /* Configuration register value */
 #define CR1_ICACHE_LEN_SHIFT		0
-#define CR1_ICACHE_LEN_MASK		0x7
+#define CR1_ICACHE_LEN_MASK			0x7
 #define CR1_NUM_ICACHELINES_SHIFT	4
 #define CR1_NUM_ICACHELINES_MASK	0xf
 
@@ -172,12 +167,12 @@
 /* Microcode opcode value */
 #define CMD_DMAADDH		0x54
 #define CMD_DMAEND		0x00
-#define CMD_DMAFLUSHP		0x35
+#define CMD_DMAFLUSHP	0x35
 #define CMD_DMAGO		0xa0
 #define CMD_DMALD		0x04
 #define CMD_DMALDP		0x25
 #define CMD_DMALP		0x20
-#define CMD_DMALPEND		0x28
+#define CMD_DMALPEND	0x28
 #define CMD_DMAKILL		0x01
 #define CMD_DMAMOV		0xbc
 #define CMD_DMANOP		0x18
@@ -193,7 +188,7 @@
 /* the size of opcode plus opcode required settings */
 #define SZ_DMAADDH		3
 #define SZ_DMAEND		1
-#define SZ_DMAFLUSHP		2
+#define SZ_DMAFLUSHP	2
 #define SZ_DMALD		1
 #define SZ_DMALDP		2
 #define SZ_DMALP		2
@@ -215,17 +210,6 @@
 #define UNTIL(u, t, s)	while (!(pl330_getstate(u, t) & (s)));
 
 static unsigned cmd_line;
-
-/* debug message printout */
-#ifdef PL330_DEBUG_MCGEN
-#define PL330_DBGCMD_DUMP(off, x...)	do { \
-						printf("%x:", cmd_line); \
-						printf(x); \
-						cmd_line += off; \
-					} while (0)
-#else
-#define PL330_DBGCMD_DUMP(off, x...)	do {} while (0)
-#endif
 
 /* Enum declaration */
 enum dmamov_dst {
@@ -268,7 +252,6 @@ struct _arg_GO {
 static inline u32 _emit_END(u8 buf[])
 {
 	buf[0] = CMD_DMAEND;
-//	PL330_DBGCMD_DUMP(SZ_DMAEND, "\tDMAEND\n");
 	return SZ_DMAEND;
 }
 
@@ -284,7 +267,6 @@ static inline u32 _emit_FLUSHP(u8 buf[], u8 peri)
 	peri &= 0x1f;
 	peri <<= 3;
 	buf[1] = peri;
-//	PL330_DBGCMD_DUMP(SZ_DMAFLUSHP, "\tDMAFLUSHP %u\n", peri >> 3);
 	return SZ_DMAFLUSHP;
 }
 
@@ -301,8 +283,6 @@ static inline u32 _emit_LD(u8 buf[], enum pl330_cond cond)
 		buf[0] |= (0 << 1) | (1 << 0);
 	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (1 << 0);
-//	PL330_DBGCMD_DUMP(SZ_DMALD, "\tDMALD%c\n",
-//		cond == SINGLE ? 'S' : (cond == BURST ? 'B' : 'A'));
 	return SZ_DMALD;
 }
 
@@ -322,7 +302,6 @@ static inline u32 _emit_LP(u8 buf[], unsigned loop, u8 cnt)
 	will be done by driver here*/
 	cnt--;
 	buf[1] = cnt;
-//	PL330_DBGCMD_DUMP(SZ_DMALP, "\tDMALP_%c %u\n", loop ? '1' : '0', cnt);
 	return SZ_DMALP;
 }
 
@@ -352,11 +331,6 @@ static inline u32 _emit_LPEND(u8 buf[],	const struct _arg_LPEND *arg)
 	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (1 << 0);
 	buf[1] = bjump;
-//	PL330_DBGCMD_DUMP(SZ_DMALPEND, "\tDMALP%s%c_%c bjmpto_%x\n",
-//			forever ? "FE" : "END",
-//			cond == SINGLE ? 'S' : (cond == BURST ? 'B' : 'A'),
-//			loop ? '1' : '0',
-//			bjump);
 	return SZ_DMALPEND;
 }
 
@@ -387,8 +361,6 @@ static inline u32 _emit_MOV(u8 buf[],
 	buf[3] = (val >> 8) & 0xFF;
 	buf[4] = (val >> 16) & 0xFF;
 	buf[5] = (val >> 24) & 0xFF;
-//	PL330_DBGCMD_DUMP(SZ_DMAMOV, "\tDMAMOV %s 0x%x\n",
-//		dst == SAR ? "SAR" : (dst == DAR ? "DAR" : "CCR"), val);
 	return SZ_DMAMOV;
 }
 
@@ -400,7 +372,6 @@ static inline u32 _emit_MOV(u8 buf[],
 static inline u32 _emit_NOP(u8 buf[])
 {
 	buf[0] = CMD_DMANOP;
-//	PL330_DBGCMD_DUMP(SZ_DMANOP, "\tDMANOP\n");
 	return SZ_DMANOP;
 }
 
@@ -412,7 +383,6 @@ static inline u32 _emit_NOP(u8 buf[])
 static inline u32 _emit_RMB(u8 buf[])
 {
 	buf[0] = CMD_DMARMB;
-//	PL330_DBGCMD_DUMP(SZ_DMARMB, "\tDMARMB\n");
 	return SZ_DMARMB;
 }
 
@@ -428,7 +398,6 @@ static inline u32 _emit_SEV(u8 buf[], u8 ev)
 	ev &= 0x1f;
 	ev <<= 3;
 	buf[1] = ev;
-//	PL330_DBGCMD_DUMP(SZ_DMASEV, "\tDMASEV %u\n", ev >> 3);
 	return SZ_DMASEV;
 }
 
@@ -445,8 +414,6 @@ static inline u32 _emit_ST(u8 buf[], enum pl330_cond cond)
 		buf[0] |= (0 << 1) | (1 << 0);
 	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (1 << 0);
-//	PL330_DBGCMD_DUMP(SZ_DMAST, "\tDMAST%c\n",
-//		cond == SINGLE ? 'S' : (cond == BURST ? 'B' : 'A'));
 	return SZ_DMAST;
 }
 
@@ -465,8 +432,6 @@ static inline u32 _emit_STP(u8 buf[], enum pl330_cond cond, u8 peri)
 	peri &= 0x1f;
 	peri <<= 3;
 	buf[1] = peri;
-//	PL330_DBGCMD_DUMP(SZ_DMASTP, "\tDMASTP%c %u\n",
-//		cond == SINGLE ? 'S' : 'B', peri >> 3);
 	return SZ_DMASTP;
 }
 
@@ -478,7 +443,6 @@ static inline u32 _emit_STP(u8 buf[], enum pl330_cond cond, u8 peri)
 static inline u32 _emit_STZ(u8 buf[])
 {
 	buf[0] = CMD_DMASTZ;
-//	PL330_DBGCMD_DUMP(SZ_DMASTZ, "\tDMASTZ\n");
 	return SZ_DMASTZ;
 }
 
@@ -501,8 +465,6 @@ static inline u32 _emit_WFP(u8 buf[], enum pl330_cond cond, u8 peri)
 	peri &= 0x1f;
 	peri <<= 3;
 	buf[1] = peri;
-//	PL330_DBGCMD_DUMP(SZ_DMAWFP, "\tDMAWFP%c %u\n",
-//		cond == SINGLE ? 'S' : (cond == BURST ? 'B' : 'P'), peri >> 3);
 	return SZ_DMAWFP;
 }
 
@@ -514,7 +476,6 @@ static inline u32 _emit_WFP(u8 buf[], enum pl330_cond cond, u8 peri)
 static inline u32 _emit_WMB(u8 buf[])
 {
 	buf[0] = CMD_DMAWMB;
-//	PL330_DBGCMD_DUMP(SZ_DMAWMB, "\tDMAWMB\n");
 	return SZ_DMAWMB;
 }
 
@@ -999,11 +960,6 @@ int pl330_transfer_finish(struct pl330_transfer_struct *pl330)
 
 	/* check the state */
 	if (pl330_getstate(0, pl330->channel_num) == PL330_STATE_FAULTING) {
-//		printf("FAULT Mode: Channel %li Faulting, FTR = 0x%08x, "
-//			"CPC = 0x%08x\n", pl330->channel_num,
-//			*(u32*)(PL330_DMA_BASE + FTC(pl330->channel_num)),
-//			((u32)(*(PL330_DMA_BASE + CPC(pl330->channel_num)))
-//				- (u32)pl330->buf));
 		log_error("ERROR in pl330_transfer_finish(), pl330.c(1115)");
 		return 1;
 	}
@@ -1055,10 +1011,7 @@ int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330)
 	reqcfg.privileged = 1;			/* 1 - Priviledge  */
 	reqcfg.insnaccess = 0;			/* 0 - data access */
 	reqcfg.swap = 0;			/* 0 - no endian swap */
-	if (PL330_DMA_BASE == PL330_BASE_NS)
-		reqcfg.nonsecure = 1;		/* Non Secure mode */
-	else
-		reqcfg.nonsecure = 0;		/* Secure mode */
+	reqcfg.nonsecure = 0;		/* Secure mode */
 	reqcfg.brst_len = pl330->brst_len;	/* DMA burst length */
 	reqcfg.brst_size = pl330->brst_size;	/* DMA burst size */
 	/* Preparing the CCR value */
@@ -1079,14 +1032,6 @@ int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330)
 		}
 		data_size_byte = data_size_byte -
 			(burst_size * pl330->brst_len * lcnt0 * lcnt1);
-
-#ifdef PL330_DEBUG_MCGEN
-//		printf("Transferring 0x%08lx Remain 0x%08x\n", (burst_size *
-//			pl330->brst_len * lcnt0 * lcnt1), data_size_byte);
-//		printf("Running burst - brst_size=2^%li, brst_len=%li, "
-//			"lcnt0=%i, lcnt1=%i\n", pl330->brst_size,
-//			pl330->brst_len, lcnt0, lcnt1);
-#endif
 
 		if (lcnt1) {
 			/* DMALP1 */
@@ -1128,22 +1073,7 @@ int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330)
 	burst_size = (1 << pl330->brst_size);
 	lcnt0 = data_size_byte / (burst_size * pl330->brst_len);
 
-	/* ensure all data will be transfered */
-	data_size_byte = data_size_byte -
-		(burst_size * pl330->brst_len * lcnt0);
-	if (data_size_byte)
-//		puts("ERROR PL330 : Detected the possibility of untransfered"
-//			"data. Please ensure correct single burst size\n");
-
 	if (lcnt0) {
-#ifdef PL330_DEBUG_MCGEN
-//		printf("Transferring 0x%08lx Remain 0x%08x\n", (burst_size *
-//			pl330->brst_len * lcnt0), data_size_byte);
-//		printf("Running single - brst_size=2^%li, brst_len=%li, "
-//			"lcnt0=%i\n", pl330->brst_size, pl330->brst_len,
-//			lcnt0);
-#endif
-
 		/* Preparing the CCR value */
 		reqcfg.brst_len = pl330->brst_len;	/* DMA burst length */
 		reqcfg.brst_size = pl330->brst_size;	/* DMA burst size */
@@ -1165,7 +1095,7 @@ int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330)
 		off += _emit_LPEND(&pl330->buf[off], &lpend1);
 		/* ensure the microcode don't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
-//			puts("ERROR PL330 : Exceed buffer size\n");
+			log_error("ERROR PL330 : Exceed buffer size\n");
 			return 1;
 		}
 	}
