@@ -664,7 +664,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                              tracker_channel->corrs.corr_cn0.very_early.Q);
     }
     /* https://github.com/swift-nav/me_team_planning/issues/62 (1) */
-    if ((0 == tracker_channel->corrs.corr_cn0.prompt.I) ||
+    /*if ((0 == tracker_channel->corrs.corr_cn0.prompt.I) ||
         (0 == tracker_channel->corrs.corr_cn0.prompt.Q) ||
         (0 == tracker_channel->corrs.corr_cn0.early.I) ||
         (0 == tracker_channel->corrs.corr_cn0.early.Q) ||
@@ -687,7 +687,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
                tracker_channel->corrs.corr_cn0.late.Q,
                tracker_channel->corrs.corr_cn0.very_late.I,
                tracker_channel->corrs.corr_cn0.very_late.Q);
-    }
+    }*/
   }
 
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz) {

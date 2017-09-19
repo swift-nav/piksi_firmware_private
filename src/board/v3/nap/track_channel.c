@@ -446,6 +446,22 @@ void nap_track_read_results(u8 channel,
   corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
   corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
+  if (!(s->reckon_counter % 256)) {
+    log_info("VEEPLVL IQ %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d",
+             s->mesid.sat,
+             s->mesid.code,
+             corrs[3].I,
+             corrs[3].Q,
+             corrs[0].I,
+             corrs[0].Q,
+             corrs[1].I,
+             corrs[1].Q,
+             corrs[2].I,
+             corrs[2].Q,
+             corrs[4].I,
+             corrs[4].Q);
+  }
+
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
   if (s->reckon_counter < 1) {
