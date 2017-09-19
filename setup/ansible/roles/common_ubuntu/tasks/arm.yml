@@ -2,16 +2,16 @@
 # https://launchpad.net/~terry.guo/+archive/ubuntu/gcc-arm-embedded
 
 - name: Add ARM GCC repo toolchain repository
-  sudo: True
+  become: True
   command: add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
 
 - name: Updating apt-cache
-  sudo: True
+  become: True
   apt: update_cache=yes
 
 - name: Install ARM GCC toolchain (all Ubuntu distributions)
   apt: pkg={{ item }} state=latest
-  sudo: True
+  become: True
   ignore_errors: True
   with_items:
     - gcc-arm-embedded
