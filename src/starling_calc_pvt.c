@@ -864,7 +864,6 @@ static void starling_thread(void *arg) {
 void process_matched_obs(const obss_t *rover_channel_meass,
                          const obss_t *reference_obss,
                          sbp_messages_t *sbp_messages) {
-  PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
@@ -904,6 +903,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       chMtxUnlock(&rtk_filter_manager_lock);
     }
 
+    chMtxLock(&rtk_filter_manager_lock);
     update_ref_obs = filter_manager_update_ref_obs(
         rtk_filter_manager,
         &reference_obss->tor,
@@ -912,10 +912,12 @@ void process_matched_obs(const obss_t *rover_channel_meass,
         reference_obss->pos_ecef,
         reference_obss->has_known_pos_ecef ? reference_obss->known_pos_ecef
                                            : NULL);
+    chMtxUnlock(&rtk_filter_manager_lock);
 
-    if (update_rov_obs == PVT_ENGINE_SUCCESS &&
-        update_ref_obs == PVT_ENGINE_SUCCESS) {
+    if (update_ref_obs == PVT_ENGINE_SUCCESS) {
+      chMtxLock(&rtk_filter_manager_lock);
       update_filter_ret = update_filter_ambiguity(rtk_filter_manager);
+      chMtxUnlock(&rtk_filter_manager_lock);
     }
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
@@ -937,8 +939,10 @@ void process_matched_obs(const obss_t *rover_channel_meass,
      * time) instead of the true GPS time of the solution. */
     result.time = rover_channel_meass->tor;
     result.propagation_time = 0;
+    chMtxLock(&rtk_filter_manager_lock);
     get_baseline_ret =
         get_baseline(rtk_filter_manager, true, &RTK_dops, &result);
+    chMtxUnlock(&rtk_filter_manager_lock);
   }
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
