@@ -69,27 +69,6 @@ enum pl330_dstcachectrl {
 	DCCTRL7,	/* Cacheable write-back, allocate on writes only */
 };
 
-/* Populated by the PL330 core driver for DMA API driver's info */
-struct pl330_config {
-	u32	periph_id;
-	u32	pcell_id;
-#define DMAC_MODE_NS	(1 << 0)
-	unsigned int	mode;
-	unsigned int	data_bus_width:10; /* In number of bits */
-	unsigned int	data_buf_dep:10;
-	unsigned int	num_chan:4;
-	unsigned int	num_peri:6;
-	u32		peri_ns;
-	unsigned int	num_events:6;
-	u32		irq_ns;
-	unsigned int	cache_line_width;
-	unsigned int	cache_line_num;
-	unsigned int	read_issuing;
-	unsigned int	read_queue_depth;
-	unsigned int	write_issuing;
-	unsigned int	write_queue_depth;
-};
-
 enum pl330_byteswap {
 	SWAP_NO = 0,
 	SWAP_2,

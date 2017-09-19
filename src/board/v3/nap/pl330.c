@@ -808,10 +808,8 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 	off += _emit_MOV(&pl330->buf[off], DAR, pl330->dst_addr);
 
 	/* Preparing the CCR value */
-	/* MEM2MEM */
 	reqcfg.dst_inc = 1;
 	reqcfg.src_inc = 1;
-
 	reqcfg.nonsecure = 0;	/* Secure mode */
 	reqcfg.dcctl = 0x1;	/* noncacheable but bufferable */
 	reqcfg.scctl = 0x1;
@@ -820,6 +818,7 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 	reqcfg.swap = 0;		/* 0 - no endian swap */
 	reqcfg.brst_len = pl330->brst_len;	/* DMA burst length */
 	reqcfg.brst_size = pl330->brst_size;	/* DMA burst size */
+
 	/* Preparing the CCR value */
 	ccr = _prepare_ccr(&reqcfg);
 	/* DMAMOV CCR, ccr */
@@ -828,10 +827,12 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 	/* BURST */
 	/* Can initiate a burst? */
 	while (data_size_byte >= burst_size * pl330->brst_len) {
-		log_warn("ENTERED HERE BURST ############################### datasizebyte: %s", data_size_byte);
 
 		lcnt0 = data_size_byte / (burst_size * pl330->brst_len);
 		lcnt1 = 1;
+
+		log_warn("ENTERED HERE BURST ############################### datasizebyte: %d, lcnt0: %d", data_size_byte, lcnt0);
+
 		if (lcnt0 >= 256 * 256)
 			lcnt0 = lcnt1 = 256;
 		else if (lcnt0 >= 256) {
@@ -917,12 +918,15 @@ int pl330_transfer_setup(struct pl330_transfer_struct *pl330)
 		lpend1.loop = 0;	/* loop cnt 0 */
 		lpend1.bjump = off - loopjmp0;
 		off += _emit_LPEND(&pl330->buf[off], &lpend1);
-		/* ensure the microcode don't exceed buffer size */
+		/* ensure the microcode doesn't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
 			log_error("ERROR PL330 : Exceed buffer size\n");
 			return 1;
 		}
 	}
+
+	/* DMASEV - notify processor */
+	off += _emit_SEV(&pl330->buf[off], pl330->channel_num);
 
 	/* DMAEND */
 	off += _emit_END(&pl330->buf[off]);
@@ -1061,7 +1065,7 @@ int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330)
 		}
 		/* ensure the microcode don't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
-//			puts("ERROR PL330 : Exceed buffer size\n");
+			log_error("ERROR PL330 : Exceed buffer size\n");
 			return 1;
 		}
 	}

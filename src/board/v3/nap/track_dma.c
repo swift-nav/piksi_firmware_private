@@ -30,8 +30,8 @@ static u32 dst_buf[12] = {0};
 static struct pl330_transfer_struct pl330;
 static u8 progbuf[128] = {0};
 
-//static void interrupts_init(void);
-//static void pl330_dma_irq_handler(void *context);
+static void interrupts_init(void);
+static void pl330_dma_irq_handler(void *context);
 
 
 static void track_dma_thread(void *arg) {
@@ -71,8 +71,8 @@ static void track_dma_thread(void *arg) {
     if(memcmp(src_buf, dst_buf, sizeof(src_buf)) == 0)
     	log_warn("YEEEAAAHH ------- COPY WORKED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-  	//for(u8 i = 0; i < 12; i++)
-    //		src_buf[i]++;
+    for(u8 i = 0; i < 12; i++)
+    	src_buf[i]++;
 
     pl330_transfer_start(&pl330);
 
@@ -91,6 +91,8 @@ void track_dma_init(void) {
 
   log_info("track DMA thread started ------------------");
   log_info("sizeof(src_buf) : %d ####################", sizeof(src_buf));
+
+  interrupts_init();
 
   pl330.channel_num = 0;
   pl330.src_addr = (u32)&src_buf;
@@ -114,27 +116,27 @@ void track_dma_init(void) {
  *
  * \param context   Interrupt context (pointer to pl330_dma_dir_driver_t).
  */
-//static void pl330_dma_irq_handler(void *context) {
-//  (void)context;
-//
-//  /* Read interrupt status flags */
-//  u32 status = *PL330_INT_STATUS;
-//
-//  log_info("YEEEAAAHH ----------------------------- DMA INTERRUPT CAPTURED !!!! %x", status);
-//
-//  /* Clear interrupt flags */
-//  *PL330_INTCLR &= ~(1 << PL330_INTCLR_0);
-//  gic_irq_pending_clear(IRQ_ID_DMAC_0);
-//}
+static void pl330_dma_irq_handler(void *context) {
+  (void)context;
+
+  /* Read interrupt status flags */
+  //u32 status = *PL330_INT_STATUS;
+
+  log_warn("YEEEAAAHH ----------------------------- DMA INTERRUPT CAPTURED !!!!");// %x", status);
+
+  /* Clear interrupt flags */
+  *PL330_INTCLR &= ~(1 << PL330_INTCLR_0);
+  gic_irq_pending_clear(IRQ_ID_DMAC_0);
+}
 
 /** Initialize interrupts for an PL330 DMA direction driver.
  */
-//static void interrupts_init(void) {
-//  gic_handler_register(IRQ_ID_DMAC_0, pl330_dma_irq_handler, NULL);
-//  gic_irq_sensitivity_set(IRQ_ID_DMAC_0, IRQ_SENSITIVITY_LEVEL);
-//  gic_irq_priority_set(IRQ_ID_DMAC_0, 4);
-//  gic_irq_enable(IRQ_ID_DMAC_0);
-//}
+static void interrupts_init(void) {
+  gic_handler_register(IRQ_ID_DMAC_0, pl330_dma_irq_handler, NULL);
+  gic_irq_sensitivity_set(IRQ_ID_DMAC_0, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(IRQ_ID_DMAC_0, 4);
+  gic_irq_enable(IRQ_ID_DMAC_0);
+}
 
 void track_dma_start(u32* const s_addr, u32* const d_addr, u32 size) {
   pl330.src_addr = (u32)&s_addr;
