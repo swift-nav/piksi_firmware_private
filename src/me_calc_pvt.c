@@ -414,10 +414,10 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Take the current nap count as the reception time*/
-    u64 current_tc = nap_timing_count();
+    s64 current_tc = nap_timing_count();
 
     /* The desired solution NAP counter and epoch */
-    u64 epoch_tc = current_tc;
+    s64 epoch_tc = current_tc;
     gps_time_t epoch_time = GPS_TIME_UNKNOWN;
 
     /* If gps time is available, round the reception time to the nearest
@@ -426,11 +426,20 @@ static void me_calc_pvt_thread(void *arg) {
       /* If we have timing then we can calculate the relationship between
        * receiver time and GPS time and hence provide the pseudorange
        * calculation with the local GPS time of reception. */
-      gps_time_t rec_time = napcount2gpstime(epoch_tc);
-      epoch_time = gps_time_round_to_epoch(&rec_time, soln_freq);
-      epoch_tc = (u64)round(gpstime2napcount(&epoch_time));
-      epoch_tc = FCN_NCO_RESET_COUNT *
-                 ((epoch_tc + (FCN_NCO_RESET_COUNT / 2)) / FCN_NCO_RESET_COUNT);
+      gps_time_t rcv_time = napcount2rcvtime(current_tc);
+
+      if (gpsdifftime(&rcv_time, &lgf.position_solution.time) >
+          MAX_TIME_PROPAGATED_S) {
+        /* too long time from last time solution, downgrade position and time
+         * qualities */
+        downgrade_time_quality(TIME_COARSE);
+        if (lgf.position_quality > POSITION_STATIC) {
+          lgf.position_quality = POSITION_STATIC;
+        }
+      }
+
+      /* round current estimated GPS time to the epoch boundary */
+      epoch_time = gps_time_round_to_epoch(&rcv_time, soln_freq);
 
       if (gpsdifftime(&epoch_time, &lgf.position_solution.time) <= 0) {
         /* We are already past the next solution epoch, can happen when solution
@@ -445,18 +454,19 @@ static void me_calc_pvt_thread(void *arg) {
         continue;
       }
 
-      if (gpsdifftime(&rec_time, &lgf.position_solution.time) >
-          MAX_TIME_PROPAGATED_S) {
-        /* too long time from last time solution, downgrade position and time
-         * qualities */
-        downgrade_time_quality(TIME_COARSE);
-        if (lgf.position_quality > POSITION_STATIC) {
-          lgf.position_quality = POSITION_STATIC;
-        }
-      }
+      /* now align that counter to a NAP 2 ms boundary,
+       * needed for Glonass carrier phases */
+      s64 temp_tc = (s64)round(rcvtime2napcount(&epoch_time));
+      //~ if (epoch_tc > temp_tc) {
+        //~ epoch_tc = FCN_NCO_RESET_COUNT *
+                   //~ ((temp_tc + (FCN_NCO_RESET_COUNT - 1)) / FCN_NCO_RESET_COUNT);
+      //~ } else {
+        epoch_tc = FCN_NCO_RESET_COUNT *
+                   ((temp_tc)                             / FCN_NCO_RESET_COUNT);
+      //~ }
     }
 
-    double delta_tc = -((double)current_tc - (double)epoch_tc);
+    double delta_tc = -(current_tc - epoch_tc);
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
      * Reference the measurements to the solution epoch. */
@@ -670,7 +680,7 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(current_fix.clock_offset) < OBS_PROPAGATION_LIMIT) {
-      log_debug("clk_offset %.3e clk_drift %.3e",
+      log_info("clk_offset %.3e clk_drift %.3e",
                 current_fix.clock_offset,
                 current_fix.clock_bias);
 
@@ -724,14 +734,16 @@ static void me_calc_pvt_thread(void *arg) {
                (current_fix.clock_offset));
     }
 
-    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
+    if (fabs(current_fix.clock_offset) > 0.0011) {
       /* Note we should not enter here except in very exceptional circumstances,
        * like time solved grossly wrong on the first fix. */
-      log_warn("Receiver clock offset larger than %g ms, applying 2 ms jump",
-               MAX_CLOCK_ERROR_S * SECS_MS);
 
       /* round the time adjustment to even milliseconds */
-      double dt = round(current_fix.clock_offset * 2 * SECS_MS) / SECS_MS;
+      double dt = round(current_fix.clock_offset * (SECS_MS/2)) / (SECS_MS/2);
+
+      log_warn("Receiver clock offset larger than %g ms, applying %g jump",
+         0.001 * SECS_MS, dt);
+
       /* adjust the RX to GPS time conversion */
       adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
