@@ -68,7 +68,7 @@ github_links(){
     echo -n "## $BUILD_VERSION"
     echo -n "\nNote:"
     echo -n "\n- You must manually submit the form in the link for 'Run a HITL test set for this build' in order to get data for the 'HITL Results' links."
-    echo -n "\n- $HITL_PASS_RUNS runs of the 'live-roof-1543-mission' scenario must pass for the $STATUS_HITL_CONTEXT status to be marked successful. Any HITL runs that fail to complete require another manual submission of the 'Run a HITL test set for this build' form."
+    echo -n "\n- $HITL_PASS_RUNS HITL runs of the 'live-roof-1543-mission' scenario must pass for the $STATUS_HITL_CONTEXT status to be marked successful. If any HITL runs fail to complete you will have to manually submit the 'Run a HITL test set for this build' form again."
     echo -n "\n- Check the status of HITL runs through the [hitl-dashboard](http://hitl-dashboard.swiftnav.com)."
     echo -n "\n"
     echo -n "\nThe following links are for this Pull Request's ***merge*** commit:"
