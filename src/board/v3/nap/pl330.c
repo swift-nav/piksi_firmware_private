@@ -924,7 +924,7 @@ int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 		}
 	}
 	/* DMASEV - notify processor */
-	off += _emit_SEV(&pl330->buf[off], 0);
+	off += _emit_SEV(&pl330->buf[off], pl330->channel_num);
 
 	/* DMAEND */
 	off += _emit_END(&pl330->buf[off]);

@@ -17,6 +17,7 @@
 #include <hal.h>
 #include <stdint.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/common.h>
 #include <string.h>
 
 #define TRACK_DMA_THREAD_PRIO (NORMALPRIO)
@@ -32,14 +33,22 @@ static u8 progbuf[128] = {0};
 
 static void interrupts_init(void);
 static void pl330_dma_irq_handler(void *context);
-
+//
+//static u32 irq_nr = 4711;
+//
+//void track_dma_set_irq_number(u32 nr) {
+//	irq_nr = nr;
+//}
+//
+//static void track_dma_print_irq_number(void) {
+//	log_warn("irq number captured: %d", irq_nr);
+//}
 
 static void track_dma_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("track DMA");
 
   while(TRUE) {
-
     track_dma_start(src_buf, dst_buf);
 
     if(memcmp(src_buf, dst_buf, sizeof(src_buf)) != 0) {
@@ -78,7 +87,7 @@ static void track_dma_thread(void *arg) {
     	src_buf[i]++;
 
     if(*PL330_INT_STATUS)
-    	log_warn("interrupt source is ok ---------------------------------");
+    	log_warn("interrupt source is ok ---------------------------------0x%0x", *PL330_INT_STATUS);
 
   	chThdSleepMilliseconds(3000);
   }
@@ -95,8 +104,7 @@ void track_dma_init(void) {
 
   log_info("track DMA thread started ------------------");
 
-
-  pl330.channel_num = 0;
+  pl330.channel_num = PL330_CHANNEL_TO_USE;
   pl330.src_addr = (u32)src_buf;
   pl330.dst_addr = (u32)dst_buf;
   pl330.size_byte = sizeof(src_buf);
@@ -108,7 +116,6 @@ void track_dma_init(void) {
   pl330.buf = progbuf;              // microcode program buffer
   pl330.buf_size = sizeof(progbuf); // microcode program buffer size
 
-
   /* activate DMA peripheral clock */
   *PL330_APER_CLK_CTRL |= (1 << PL330_DMA_CPU_2XCLKACT_Pos);
 
@@ -117,12 +124,17 @@ void track_dma_init(void) {
   interrupts_init();
 
 //  *PL330_GIC_DIST_EN = 0;
-//  *PL330_GIC_SPI_TARGET11 |= (3 << 16); // target both cpus
 
-//  *PL330_INTEN |= (1 << PL330_INTEN_0);
+  // clear both bits
+  *PL330_TARGET_REG_TO_USE &= ~(3 << PL330_TARGET_ID_TO_USE);
+  // set respectively
+  *PL330_TARGET_REG_TO_USE |= (PL330_TARGET_CPU_TO_USE << PL330_TARGET_ID_TO_USE);
+
+//  *PL330_INTEN |= (1 << PL330_INTEN_7);
+  *PL330_INTEN |= (1 << PL330_CHANNEL_TO_USE);
 //  *PL330_INTEN = 0xFFFFFFFF;
 //  *PL330_GIC_DIST_EN |= (1 << PL330_GIC_EN_INT_Pos);
- // *PL330_GIC_ENABLE_SET |= (1 << PL330_GIC_EN_INT_Pos);
+//  *PL330_GIC_ENABLE_SET |= (1 << PL330_GIC_EN_INT_Pos);
 //  *PL330_GIC_CONTROL |= 0x01;
 //  *PL330_INTCLR &= ~(1 << PL330_INTCLR_0);
 }
@@ -134,20 +146,29 @@ void track_dma_init(void) {
 static void pl330_dma_irq_handler(void *context) {
   (void)context;
 
+  chSysLockFromISR();
+
+  *PL330_INTCLR &= ~(1 << PL330_CHANNEL_TO_USE);
+  /* Clear interrupt flags */
+//  gic_irq_pending_clear(IRQ_ID_DMAC_7);
+  gic_irq_pending_clear(PL330_IRQ_ID_TO_USE);
+
   log_warn("YEEEAAAHH ----------------------------- DMA INTERRUPT CAPTURED !!!!");// %x", status);
 
-  /* Clear interrupt flags */
-  *PL330_INTCLR &= ~(1 << PL330_INTCLR_0);
-  gic_irq_pending_clear(IRQ_ID_DMAC_0);
+  chSysUnlockFromISR();
 }
 
 /** Initialize interrupts for an PL330 DMA direction driver.
  */
 static void interrupts_init(void) {
-  gic_handler_register(IRQ_ID_DMAC_0, pl330_dma_irq_handler, NULL);
-  gic_irq_sensitivity_set(IRQ_ID_DMAC_0, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(IRQ_ID_DMAC_0, 5);
-  gic_irq_enable(IRQ_ID_DMAC_0);
+//  gic_handler_register(IRQ_ID_DMAC_7, pl330_dma_irq_handler, NULL);
+//  gic_irq_sensitivity_set(IRQ_ID_DMAC_7, IRQ_SENSITIVITY_EDGE);
+//  gic_irq_priority_set(IRQ_ID_DMAC_7, 5);
+//  gic_irq_enable(IRQ_ID_DMAC_7);//
+  gic_handler_register(PL330_IRQ_ID_TO_USE, pl330_dma_irq_handler, NULL);
+  gic_irq_sensitivity_set(PL330_IRQ_ID_TO_USE, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(PL330_IRQ_ID_TO_USE, 5);
+  gic_irq_enable(PL330_IRQ_ID_TO_USE);
 }
 
 void track_dma_start(u32* const s_addr, u32* const d_addr) {
