@@ -752,7 +752,7 @@ void tracking_channel_set_carrier_phase_offset(
   chMtxUnlock(&tracker_channel->mutex_pub);
 
   if (adjusted) {
-    log_debug_mesid(info->mesid,
+    log_info_mesid(info->mesid,
                     "Adjusting carrier phase offset to %lf",
                     carrier_phase_offset);
   }
@@ -897,7 +897,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
   /* Carrier phase offsets are adjusted for all signals matching SPP criteria */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     me_gnss_signal_t mesid;
-    double carrier_phase_offset = 0;
+    double carrier_phase_offset = 0.0;
     bool adjusted = false;
 
     tracker_channel_t *tracker_channel = tracker_channel_get(i);
@@ -921,7 +921,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     chMtxUnlock(&tracker_channel->mutex_pub);
 
     if (adjusted) {
-      log_debug_mesid(
+      log_info_mesid(
           mesid, "Adjusting carrier phase offset to %f", carrier_phase_offset);
     }
   }
