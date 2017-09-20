@@ -624,8 +624,8 @@ void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
     /* Bit sync advance / message decoding */
     tracker_bit_sync_update(tracker_channel,
                             update_count_ms,
-                            tracker_channel->corrs.corr_epl.prompt.I,
-                            tracker_channel->corrs.corr_epl.prompt.Q,
+                            tracker_channel->corrs.corr_bit.I,
+                            tracker_channel->corrs.corr_bit.Q,
                             sensitivity_mode);
 
     /* TODO Update BS from ToW when appropriate. */
