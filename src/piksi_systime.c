@@ -123,15 +123,11 @@ static inline u64 s2st(u64 s) {
  *
  * \param[out] t            Pointer to piksi_systime_t variable, system time
  *                          will be set to this variable.
- *
- * \return true: No errors; false: Failed.
  */
-static bool piksi_systime_get_internal(piksi_systime_t *t) {
+static void piksi_systime_get_internal(piksi_systime_t *t) {
   static piksi_systime_t prev = PIKSI_SYSTIME_INIT;
 
-  if (NULL == t) {
-    return false;
-  }
+  assert(t);
 
   systime_t current;
 
@@ -143,22 +139,17 @@ static bool piksi_systime_get_internal(piksi_systime_t *t) {
 
   t->systime = prev.systime = current;
   t->rollover_cnt = prev.rollover_cnt;
-
-  return true;
 }
 
 /* Lock version */
-bool piksi_systime_get(piksi_systime_t *t) {
+void piksi_systime_get(piksi_systime_t *t) {
   chSysLock();
-  bool ret = piksi_systime_get_internal(t);
+  piksi_systime_get_internal(t);
   chSysUnlock();
-  return ret;
 }
 
 /* No lock version, this should be used if caller already has the lock. */
-bool piksi_systime_get_x(piksi_systime_t *t) {
-  return piksi_systime_get_internal(t);
-}
+void piksi_systime_get_x(piksi_systime_t *t) { piksi_systime_get_internal(t); }
 
 /** Convert piksi_systime to system ticks.
  *
