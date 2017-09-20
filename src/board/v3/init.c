@@ -163,7 +163,7 @@ void nap_auth_setup(void) { nap_unlock(factory_params.nap_key); }
  * be sent and received (it can't go in init() or nap_setup()).
  */
 void nap_auth_check(void) {
-  const int NAP_AUTH_RETRIES = 10;
+  const int NAP_AUTH_RETRIES = 3;
   char dna[NAP_DNA_LENGTH * 2 + 1];
   char key[NAP_KEY_LENGTH * 2 + 1];
 
