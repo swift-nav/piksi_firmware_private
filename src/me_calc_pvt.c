@@ -418,7 +418,10 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* The desired solution NAP counter and epoch */
     s64 epoch_tc = current_tc;
+    s64 gtemp_tc = current_tc;
+
     gps_time_t epoch_time = GPS_TIME_UNKNOWN;
+    gps_time_t gtemp_time = GPS_TIME_UNKNOWN;
 
     /* If gps time is available, round the reception time to the nearest
      * solution epoch */
@@ -454,19 +457,15 @@ static void me_calc_pvt_thread(void *arg) {
         continue;
       }
 
+      /* get NAP at the epoch with a round GPS time */
+      epoch_tc = (s64)round(rcvtime2napcount(&epoch_time));
+
       /* now align that counter to a NAP 2 ms boundary,
        * needed for Glonass carrier phases */
-      s64 temp_tc = (s64)round(rcvtime2napcount(&epoch_time));
-      //~ if (epoch_tc > temp_tc) {
-        //~ epoch_tc = FCN_NCO_RESET_COUNT *
-                   //~ ((temp_tc + (FCN_NCO_RESET_COUNT - 1)) / FCN_NCO_RESET_COUNT);
-      //~ } else {
-        epoch_tc = FCN_NCO_RESET_COUNT *
-                   ((temp_tc)                             / FCN_NCO_RESET_COUNT);
-      //~ }
+      gtemp_tc = FCN_NCO_RESET_COUNT *
+                 ((epoch_tc + (FCN_NCO_RESET_COUNT/2))/ FCN_NCO_RESET_COUNT);
+      gtemp_time = napcount2rcvtime(gtemp_tc);
     }
-
-    double delta_tc = -(current_tc - epoch_tc);
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
      * Reference the measurements to the solution epoch. */
@@ -478,7 +477,7 @@ static void me_calc_pvt_thread(void *arg) {
     static ephemeris_t e_meas[MAX_CHANNELS];
 
     collect_measurements(
-        epoch_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
+        gtemp_tc, meas, in_view, e_meas, &n_ready, &n_inview, &n_total);
 
     nmea_send_gsv(n_inview, in_view);
 
@@ -522,7 +521,7 @@ static void me_calc_pvt_thread(void *arg) {
     /* Create navigation measurements from the channel measurements */
 
     /* If a FINE quality time solution is not available then pass in NULL
-     * instead of `epoch_time`. This will result in valid pseudoranges but with
+     * instead of `gtemp_time`. This will result in valid pseudoranges but with
      * a large and arbitrary receiver clock error. We will discard these
      * measurements in any case after getting the PVT solution and initializing
      * clock. */
@@ -530,7 +529,7 @@ static void me_calc_pvt_thread(void *arg) {
         n_ready,
         p_meas,
         p_nav_meas,
-        gps_time_valid(&epoch_time) ? &epoch_time : NULL);
+        gps_time_valid(&gtemp_time) ? &gtemp_time : NULL);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
@@ -656,7 +655,7 @@ static void me_calc_pvt_thread(void *arg) {
      * Set to TIME_FINE if RAIM was not available, otherwise to TIME_FINEST. */
     time_quality_t new_time_quality =
         PVT_CONVERGED_NO_RAIM == pvt_ret ? TIME_FINE : TIME_FINEST;
-    set_time(new_time_quality, &current_fix.time, epoch_tc);
+    set_time(new_time_quality, &current_fix.time, gtemp_tc);
 
     if (TIME_PROPAGATED > old_time_quality) {
       /* If the time quality is not at least TIME_PROPAGATED then our receiver
@@ -684,6 +683,8 @@ static void me_calc_pvt_thread(void *arg) {
                 current_fix.clock_offset,
                 current_fix.clock_bias);
 
+      double gtemp_diff = (gtemp_tc - epoch_tc) * RX_DT_NOMINAL;
+
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
 
@@ -697,6 +698,9 @@ static void me_calc_pvt_thread(void *arg) {
         nm->raw_pseudorange -=
             (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
+        /* Also apply the residual fractional epoch error */
+        nm->raw_pseudorange -= gtemp_diff * GPS_C;
+
         /* Carrier Phase corrected by clock offset */
         nm->raw_carrier_phase += (current_fix.clock_offset) * doppler;
         nm->raw_carrier_phase +=
@@ -705,7 +709,10 @@ static void me_calc_pvt_thread(void *arg) {
          * to adjust computed doppler. */
         nm->raw_measured_doppler +=
             current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
+        /* Also apply the residual fractional epoch error */
+        nm->raw_carrier_phase += gtemp_diff * GPS_C / sid_to_lambda(nm->sid);
         nm->raw_computed_doppler = nm->raw_measured_doppler;
+
 
         /* Also apply the time correction to the time of transmission so the
         * satellite positions can be calculated for the correct time. */
@@ -734,7 +741,7 @@ static void me_calc_pvt_thread(void *arg) {
                (current_fix.clock_offset));
     }
 
-    if (fabs(current_fix.clock_offset) > 0.0011) {
+    if (fabs(current_fix.clock_offset) > (1.1/SECS_MS)) {
       /* Note we should not enter here except in very exceptional circumstances,
        * like time solved grossly wrong on the first fix. */
 
@@ -744,13 +751,17 @@ static void me_calc_pvt_thread(void *arg) {
       log_warn("Receiver clock offset larger than %g ms, applying %g jump",
          0.001 * SECS_MS, dt);
 
-      /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
        * breaks up exactly into carrier cycles */
       tracking_channel_carrier_phase_offsets_adjust(dt);
+
+      /* adjust the RX to GPS time conversion */
+      adjust_time_fine(dt);
     }
+
+    /* */
+    double delta_tc = -(current_tc - epoch_tc);
 
     /* The difference between the current nap count and the nap count we
      * would have wanted the observations at is the amount we want to
