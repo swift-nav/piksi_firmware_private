@@ -31,7 +31,7 @@
 #define PL330_DMAC_RST_CTRL          (volatile u32*)(PL330_SLCR_BASE + 0x0000020CU)
 #define PL330_DMAC_RST_Pos           (0x0U)
 
-#define PL330_INTEN                  (volatile u32*)(PL330_SLCR_BASE + 0x00000020U)
+#define PL330_INTEN                  (volatile u32*)(PL330_DMAC0_BASE + 0x00000020U)
 #define PL330_INTEN_0                (0x0U)
 
 #define PL330_CCR0                   (volatile u32*)(PL330_DMAC0_BASE + 0x00000400U)
@@ -59,11 +59,12 @@
 
 #define PL330_MPCORE_BASE            (0xF8F00000U)
 #define PL330_GIC_DIST_EN            (volatile u32*)(PL330_MPCORE_BASE + 0x00001000U)
+#define PL330_GIC_CONTROL            (volatile u32*)(PL330_MPCORE_BASE + 0x00000100U)
+#define PL330_GIC_ENABLE_SET         (volatile u32*)(PL330_MPCORE_BASE + 0x00001100U)
 #define PL330_GIC_EN_INT_Pos         (0x0U)
 #define PL330_ICDICFR2               (volatile u32*)(PL330_MPCORE_BASE + 0x00001C08U)
 #define PL330_GIC_DISABLE            (volatile u32*)(PL330_MPCORE_BASE + 0x00001180U)
-#define PL330_GIC_CPU_PRIOR          (volatile u32*)(PL330_MPCORE_BASE + 0x00000104U)
-#define PL330_GIC_CONTROL            (volatile u32*)(PL330_MPCORE_BASE + 0x00000100U)
+#define PL330_GIC_SPI_TARGET11       (volatile u32*)(PL330_MPCORE_BASE + 0x0000182CU)
 
 #define PL330_DBGSTATUS              (volatile u32*)(PL330_DMAC0_BASE + 0x00000D00U)
 #define PL330_DBGSTATUS_BUSY_Pos     (0x0U)
@@ -79,6 +80,6 @@
 
 
 void track_dma_init(void);
-void track_dma_start(u32* const s_addr, u32* const d_addr, u32 size);
+void track_dma_start(u32* const s_addr, u32* const d_addr);
 
 #endif /* SWIFTNAV_TRACK_DMA_H */
