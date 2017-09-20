@@ -60,19 +60,6 @@ __late_init:
     .code   32
 #endif
 
-    /*
-     * Cached text initialization.
-     * NOTE: It assumes that the size is a multiple of 4.
-     */
-    ldr     r1, =__cached_text_flash
-    ldr     r2, =__cached_text_start
-    ldr     r3, =__cached_text_end
-cached_text_loop:
-    cmp     r2, r3
-    ldrlo   r0, [r1], #4
-    strlo   r0, [r2], #4
-    blo     cached_text_loop
-
     /* Set MMU TTB0 base */
     ldr r0, =MMUTable               /* load MMU translation table base */
     orr r0, r0, #0x2                /* shareable, non-cacheable */

@@ -22,9 +22,8 @@
  */
 MEMORY
 {
-    flash : org = 0x1b000000, len = 0x02000000
-    vring : org = 0x1d000000, len = 0x00800000
-    ram0  : org = 0x1d800000, len = 0x02800000
+    vring : org = 0x1f800000, len = 0x00800000
+    ram0  : org = 0x1b000000, len = 0x04800000
     ram1  : org = 0x00000000, len = 0
     ram2  : org = 0x00000000, len = 0
     ram3  : org = 0x00000000, len = 0
@@ -33,6 +32,8 @@ MEMORY
     ram6  : org = 0x00000000, len = 0
     ram7  : org = 0x00000000, len = 0
 }
+
+REGION_ALIAS("flash", ram0);
 
 /* RAM region to be used for stacks. This stack accommodates the processing
    of all exceptions and interrupts*/
@@ -64,21 +65,6 @@ SECTIONS {
         KEEP(*(.resource_table))
         PROVIDE(__rtable_end = .);
     } > flash
-
-    .cached_text_align : {. = ALIGN(16);} > flash
-    PROVIDE(__cached_text_flash = .);
-
-    .cached_text : ALIGN(16) SUBALIGN(16)
-    {
-        . = ALIGN(4);
-        PROVIDE(__cached_text_start = .);
-        *(EXCLUDE_FILE(*crt0.o *crt1.o *cpu_init.o) .text)
-        *(EXCLUDE_FILE(*crt0.o *crt1.o *cpu_init.o) .text.*)
-        *(.rodata)
-        *(.rodata.*)
-        . = ALIGN(4);
-        PROVIDE(__cached_text_end = .);
-    } > ram0 AT > flash
 }
 
 __main_thread_stack_base__ = __stacks_base__;

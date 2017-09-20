@@ -32,15 +32,21 @@ MMUTable:
 .set    SECT, SECT+0x100000
 .endr
 
-.rept   0x28                /* 0x1b000000 - 0x1d7fffff (Shared DDR)
+.rept   0x1                 /* 0x1b000000 - 0x1b0fffff (Firmware startup)
                              * Normal, shared, non-cacheable */
 .word   SECT + 0x14de2      /* S=b1 TEX=b100 AP=b11, Domain=b1111, C=b0, B=b0 */
 .set    SECT, SECT+0x100000
 .endr
 
-.rept   0x28                /* 0x1d800000 - 0x1fffffff (Firmware DDR)
+.rept   0x47                /* 0x1b100000 - 0x1f7fffff (Firmware DDR)
                              * Normal, shared, inner and outer cacheable */
 .word   SECT + 0x15de6      /* S=b1 TEX=b101 AP=b11, Domain=b1111, C=b0, B=b1 */
+.set    SECT, SECT+0x100000
+.endr
+
+.rept   0x08                /* 0x1f800000 - 0x1fffffff (Shared vring DDR)
+                             * Normal, shared, non-cacheable */
+.word   SECT + 0x14de2      /* S=b1 TEX=b100 AP=b11, Domain=b1111, C=b0, B=b0 */
 .set    SECT, SECT+0x100000
 .endr
 

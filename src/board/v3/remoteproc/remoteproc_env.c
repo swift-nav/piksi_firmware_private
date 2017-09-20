@@ -252,18 +252,50 @@ void env_disable_interrupt(unsigned int vector) {
   assert(!"unsupported");
 }
 
+#define CACHE_LINE_LENGTH (4*8)
+
 void env_map_memory(unsigned int pa,
                     unsigned int va,
                     unsigned int size,
                     unsigned int flags) {
-  (void)pa;
-  (void)va;
-  (void)size;
-  (void)flags;
+  assert(pa == va);
+  assert((pa & ~0xfff00000) == 0);
+  assert(flags == (SHARED_MEM | UNCACHED));
 
-  /* This function is not implemented. It is assumed that memory will be
-   * mapped statically.
-   */
+  //volatile bool wait = true;
+  //while(wait);
+
+  extern volatile uint32_t MMUTable[];
+
+  /* invalidate dcache */
+/*
+  unsigned int a;
+  for (a = pa & ~(CACHE_LINE_LENGTH); a < pa + size; a += CACHE_LINE_LENGTH) {
+    asm volatile ("mcr p15, 0, %0, c7, c6, 1"::"r"(a));
+  }
+
+  env_mb();
+  asm volatile ("isb");
+*/
+  /* Update translation table */
+  for (unsigned i = pa >> 20; i < ((pa + size + 0xfffff) >> 20); i++) {
+    MMUTable[i] = (i << 20) | 0x14de2; /* SHARED_MEM | UNCACHED */
+/*  env_mb();
+    asm volatile ("isb");
+    asm volatile ("mcr p15, 0, %0, c7, c10, 1"::
+                  "r"((unsigned)&MMUTable[i] & ~CACHE_LINE_LENGTH));
+*/
+  }
+  env_mb();
+  asm volatile ("isb");
+  /* invalidate entire unified TLB */
+  asm volatile ("mcr p15, 0, %0, c8, c7, 0"::"r"(0));
+  env_mb();
+  asm volatile ("isb");
+
+  //memset((void*)pa, 0xa5, size);
+
+  env_mb();
 }
 
 void env_disable_cache(void) {}
