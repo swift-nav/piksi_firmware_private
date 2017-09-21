@@ -33,7 +33,7 @@
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
 /** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
-#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.1
+#define TP_FLL_DLL_ERR_THRESHOLD_HZ (0.014f)
 
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
@@ -765,10 +765,32 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
       rates.code_freq -
       rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
 
-  lock_detect_update(&tracker_channel->ld_freq,
-                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                     freq_err,
-                     tp_get_ld_ms(tracker_channel->tracking_mode));
+  /* Calculated low-pass filtered frequency error */
+  tracker_channel->ld_freq.lpfq.y +=
+      tracker_channel->ld_freq.k1 *
+      (freq_err - tracker_channel->ld_freq.lpfq.y);
+
+  if (fabsf(tracker_channel->ld_freq.lpfq.y) < TP_FLL_DLL_ERR_THRESHOLD_HZ) {
+    /* Error < threshold, looks like we're locked */
+    tracker_channel->ld_freq.outo = true;
+    tracker_channel->ld_freq.pcount2 = 0;
+    /* Wait before raising the pessimistic indicator */
+    if (tracker_channel->ld_freq.pcount1 > tracker_channel->ld_freq.lp) {
+      tracker_channel->ld_freq.outp = true;
+    } else {
+      tracker_channel->ld_freq.pcount1++;
+    }
+  } else {
+    /* Threshold < error, looks like we're not locked */
+    tracker_channel->ld_freq.outp = false;
+    tracker_channel->ld_freq.pcount1 = 0;
+    /* Wait before lowering the optimistic indicator */
+    if (tracker_channel->ld_freq.pcount2 > tracker_channel->ld_freq.lo) {
+      tracker_channel->ld_freq.outo = false;
+    } else {
+      tracker_channel->ld_freq.pcount2++;
+    }
+  }
 
   bool outp = tracker_channel->ld_freq.outp;
 
@@ -800,6 +822,14 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
 
     if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
       update_ld_phase(tracker_channel);
+    } else {
+      /* Reset internal variables while detector is not in use. */
+      tracker_channel->ld_phase.lpfi.y = 0.0f;
+      tracker_channel->ld_phase.lpfq.y = 0.0f;
+      tracker_channel->ld_phase.outp = false;
+      tracker_channel->ld_phase.outo = false;
+      tracker_channel->ld_phase.pcount1 = 0;
+      tracker_channel->ld_phase.pcount2 = 0;
     }
 
     update_ld_freq(tracker_channel);
