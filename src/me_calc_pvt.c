@@ -461,8 +461,7 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* truncate to the closest NAP 2 ms boundary,
        * needed for Glonass carrier phases */
-      gtemp_tc = FCN_NCO_RESET_COUNT *
-                 (epoch_tc / FCN_NCO_RESET_COUNT);
+      gtemp_tc = FCN_NCO_RESET_COUNT * (epoch_tc / FCN_NCO_RESET_COUNT);
 
       log_debug("epoch_tc %" PRIu64 " gtemp_tc %" PRIu64 " diff %d",
                 epoch_tc,
@@ -683,8 +682,8 @@ static void me_calc_pvt_thread(void *arg) {
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(current_fix.clock_offset) < OBS_PROPAGATION_LIMIT) {
       log_info("clk_offset %.3e clk_drift %.3e",
-                current_fix.clock_offset,
-                current_fix.clock_bias);
+               current_fix.clock_offset,
+               current_fix.clock_bias);
 
       /* gtemp_tc is always smaller than epoch_tc */
       double gtemp_diff = (epoch_tc - gtemp_tc) * RX_DT_NOMINAL;
@@ -724,7 +723,6 @@ static void me_calc_pvt_thread(void *arg) {
             current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
         nm->raw_computed_doppler = nm->raw_measured_doppler;
 
-
         /* Also apply the time correction to the time of transmission so the
         * satellite positions can be calculated for the correct time. */
         nm->tot.tow += (current_fix.clock_offset);
@@ -757,10 +755,12 @@ static void me_calc_pvt_thread(void *arg) {
        * like time solved grossly wrong on the first fix. */
 
       /* round the time adjustment to even milliseconds */
-      double dt = round(current_fix.clock_offset * (SECS_MS/2)) / (SECS_MS/2);
+      double dt =
+          round(current_fix.clock_offset * (SECS_MS / 2)) / (SECS_MS / 2);
 
       log_warn("Receiver clock offset larger than %g ms, applying %g ms jump",
-         MAX_CLOCK_ERROR_S * SECS_MS, dt * SECS_MS);
+               MAX_CLOCK_ERROR_S * SECS_MS,
+               dt * SECS_MS);
 
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
