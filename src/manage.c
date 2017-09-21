@@ -1102,7 +1102,9 @@ static bool compute_cpo(u64 ref_tc,
 
     log_debug_mesid(info->mesid,
                     "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
-                    raw_pseudorange, rcv_clk_error, *carrier_phase_offset);
+                    raw_pseudorange,
+                    rcv_clk_error,
+                    *carrier_phase_offset);
 
     if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
@@ -1256,8 +1258,7 @@ u32 get_tracking_channel_meas(u8 i,
      */
     double carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
-    if ((TIME_FINE <= get_time_quality()) &&
-        (0.0 == carrier_phase_offset) &&
+    if ((TIME_FINE <= get_time_quality()) && (0.0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
