@@ -31,6 +31,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
+#include "starling_calc_pvt.h"
 #include "timing.h"
 #include "track.h"
 
@@ -42,7 +43,7 @@ static u32 gpvtg_msg_rate = 1;
 static u32 gphdt_msg_rate = 1;
 static u32 gpgll_msg_rate = 10;
 static u32 gpzda_msg_rate = 10;
-static u32 gpgsa_msg_rate = 10;
+static u32 gsa_msg_rate = 10;
 
 /** \addtogroup io
  * \{ */
@@ -131,7 +132,7 @@ void nmea_setup(void) {
   SETTING("nmea", "gphdt_msg_rate", gphdt_msg_rate, TYPE_INT);
   SETTING("nmea", "gpgll_msg_rate", gpgll_msg_rate, TYPE_INT);
   SETTING("nmea", "gpzda_msg_rate", gpzda_msg_rate, TYPE_INT);
-  SETTING("nmea", "gpgsa_msg_rate", gpgsa_msg_rate, TYPE_INT);
+  SETTING("nmea", "gsa_msg_rate", gsa_msg_rate, TYPE_INT);
 }
 
 /** Calculate and append the checksum of an NMEA sentence.
@@ -356,33 +357,44 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
   NMEA_SENTENCE_DONE();
 }
 
-/** Assemble a NMEA GPGSA message and send it out NMEA USARTs.
- * NMEA GPGSA message contains GNSS DOP and Active Satellites.
+int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
+
+/** Assemble a NMEA GSA message and send it out NMEA USARTs.
+ * NMEA GSA message contains GNSS DOP and Active Satellites.
  *
  * \param prns      Array of PRNs to output.
  * \param num_prns  Number of valid PRNs in array.
+ * \param fix       Fix indicator.
  * \param sbp_dops  Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
+ * \param cons      Working constellation.
  */
-void nmea_gpgsa(const u8 *prns,
-                u8 num_prns,
-                const msg_pos_llh_t *sbp_pos_llh,
-                const msg_dops_t *sbp_dops) {
-  char fix_mode =
-      (sbp_pos_llh->flags == 0) ? '1' : '3'; /* Our fix is allways 3D */
+void nmea_gsa(u8 *prns,
+              u8 num_prns,
+              bool fix,
+              const msg_dops_t *sbp_dops,
+              constellation_t cons) {
+  /* Our fix is always 3D */
+  char fix_mode = fix ? '3' : '1';
 
   NMEA_SENTENCE_START(120);
-  NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
+
+  if (CONSTELLATION_GPS == cons) {
+    NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
+  } else if (CONSTELLATION_GLO == cons) {
+    NMEA_SENTENCE_PRINTF("$GLGSA,A,%c,", fix_mode); /* Always automatic mode */
+  } else {
+    assert(!"Unknown constellation");
+  }
 
   for (u8 i = 0; i < 12; i++) {
-    if (((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION) &&
-        (i < num_prns)) {
+    if (i < num_prns) {
       NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
     } else {
       NMEA_SENTENCE_PRINTF(",");
     }
   }
 
-  if (sbp_dops && ((sbp_pos_llh->flags & POSITION_MODE_MASK) != NO_POSITION)) {
+  if (fix && (NULL != sbp_dops)) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
                          round(10 * sbp_dops->pdop * 0.01) / 10,
                          round(10 * sbp_dops->hdop * 0.01) / 10,
@@ -769,29 +781,52 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const utc_tm *utc_time) {
 
 } /* nmea_gpzda() */
 
-static void nmea_assemble_gpgsa(const msg_pos_llh_t *sbp_pos_llh,
-                                const msg_dops_t *sbp_dops) {
-  /* Assemble list of currently tracked GPS PRNs */
-  /* TODO GLO: Check GLO status. */
-  u8 prns[nap_track_n_channels];
-  u8 num_prns = 0;
-  for (u32 i = 0; i < nap_track_n_channels; i++) {
-    tracking_channel_info_t info;
-    tracking_channel_get_values(i,
-                                &info, /* Generic info */
-                                NULL,  /* Timers */
-                                NULL,  /* Frequencies */
-                                NULL,  /* Loop controller values */
-                                NULL); /* Misc values */
-
-    if (0 != (info.flags & TRACKER_FLAG_ACTIVE)) {
-      if (CODE_GPS_L1CA == info.mesid.code) {
-        prns[num_prns++] = info.mesid.sat;
-      }
+static bool in_set(u8 prns[], u8 count, u8 prn) {
+  for (u8 i = 0; i < count; i++) {
+    if (prns[i] == prn) {
+      return true;
     }
   }
-  /* Send GPGSA message */
-  nmea_gpgsa(prns, num_prns, sbp_pos_llh, sbp_dops);
+
+  return false;
+}
+
+static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
+                              const msg_dops_t *sbp_dops,
+                              u8 n_meas,
+                              const navigation_measurement_t nav_meas[]) {
+  u8 prns_gps[n_meas];
+  u8 num_prns_gps = 0;
+  u8 prns_glo[n_meas];
+  u8 num_prns_glo = 0;
+
+  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
+
+  if (!fix) {
+    /* No fix, no active SVs, send GSA messages and return */
+    nmea_gsa(prns_gps, num_prns_gps, fix, sbp_dops, CONSTELLATION_GPS);
+    nmea_gsa(prns_glo, num_prns_glo, fix, sbp_dops, CONSTELLATION_GLO);
+    return;
+  }
+
+  /* Assemble list of currently active SVs */
+  for (u32 i = 0; i < n_meas; i++) {
+    const navigation_measurement_t info = nav_meas[i];
+    if (IS_GPS(info.sid) && !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
+      prns_gps[num_prns_gps++] = info.sid.sat;
+      continue;
+    }
+
+    if (enable_glonass && IS_GLO(info.sid) &&
+        !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
+      prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
+      continue;
+    }
+  }
+
+  /* Send GSA messages */
+  nmea_gsa(prns_gps, num_prns_gps, fix, sbp_dops, CONSTELLATION_GPS);
+  nmea_gsa(prns_glo, num_prns_glo, fix, sbp_dops, CONSTELLATION_GLO);
 }
 
 /** Generate and send periodic GPGSV and GLGSV.
@@ -828,6 +863,8 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
  * \param propagation_time time of base observation propagation
  * \param sender_id    NMEA sender id
  * \param utc_params   Pointer to UTC parameters
+ * \param n_meas       nav_meas len
+ * \param nav_meas     Valid navigation measurements
  */
 void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     const msg_vel_ned_t *sbp_vel_ned,
@@ -836,7 +873,9 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     double propagation_time,
                     u8 sender_id,
                     const utc_params_t *utc_params,
-                    const msg_baseline_heading_t *sbp_baseline_heading) {
+                    const msg_baseline_heading_t *sbp_baseline_heading,
+                    u8 n_meas,
+                    const navigation_measurement_t nav_meas[]) {
   utc_tm utc_time;
 
   /* prepare utc_tm structure with time rounded to NMEA precision */
@@ -897,8 +936,8 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
     }
   }
   if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
-    if (send_nmea(gpgsa_msg_rate, sbp_msg_time->tow)) {
-      nmea_assemble_gpgsa(sbp_pos_llh, sbp_dops);
+    if (send_nmea(gsa_msg_rate, sbp_msg_time->tow)) {
+      nmea_assemble_gsa(sbp_pos_llh, sbp_dops, n_meas, nav_meas);
     }
   }
 }

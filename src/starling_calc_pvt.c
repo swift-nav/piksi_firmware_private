@@ -93,6 +93,7 @@ double heading_offset = 0.0;
 bool disable_klobuchar = false;
 
 bool enable_glonass = true;
+
 float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;
@@ -303,9 +304,14 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
  *
  * @param base_sender_id sender id of base obs
  * @param sbp_messages struct of sbp messages
+ * @param n_meas nav_meas len
+ * @param nav_meas Valid navigation measurements
  */
-static void solution_send_pos_messages(u8 base_sender_id,
-                                       const sbp_messages_t *sbp_messages) {
+static void solution_send_pos_messages(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]) {
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -376,11 +382,16 @@ static void solution_send_pos_messages(u8 base_sender_id,
                  propagation_time,
                  base_sender_id,
                  p_utc_params,
-                 &sbp_messages->baseline_heading);
+                 &sbp_messages->baseline_heading,
+                 n_meas,
+                 nav_meas);
 }
 
 static void solution_send_low_latency_output(
-    u8 base_sender_id, const sbp_messages_t *sbp_messages) {
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]) {
   // Work out if we need to wait for a certain period of no time matched
   // positions before we output a SBP position
   bool wait_for_timeout = false;
@@ -390,7 +401,7 @@ static void solution_send_low_latency_output(
   }
 
   if (!wait_for_timeout) {
-    solution_send_pos_messages(base_sender_id, sbp_messages);
+    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
     chMtxLock(&last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
@@ -687,7 +698,10 @@ static void starling_thread(void *arg) {
     if (simulation_enabled()) {
       solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
-      solution_send_low_latency_output(fake_base_sender_id, &sbp_messages);
+      solution_send_low_latency_output(fake_base_sender_id,
+                                       &sbp_messages,
+                                       rover_channel_epoch->size,
+                                       rover_channel_epoch->obs);
       chPoolFree(&obs_buff_pool, rover_channel_epoch);
       continue;
     }
@@ -695,7 +709,7 @@ static void starling_thread(void *arg) {
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
       chPoolFree(&obs_buff_pool, rover_channel_epoch);
-      solution_send_low_latency_output(0, &sbp_messages);
+      solution_send_low_latency_output(0, &sbp_messages, 0, nav_meas);
       continue;
     }
 
@@ -803,7 +817,7 @@ static void starling_thread(void *arg) {
        * continuing to process this epoch - send out solution and
        * observation failed messages if not in time matched mode.
        */
-      solution_send_low_latency_output(0, &sbp_messages);
+      solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
       continue;
     }
 
@@ -835,7 +849,8 @@ static void starling_thread(void *arg) {
     /* Post the observations to the mailbox. */
     post_observations(n_ready, nav_meas, &obs_time, &result_spp);
 
-    solution_send_low_latency_output(base_station_sender_id, &sbp_messages);
+    solution_send_low_latency_output(
+        base_station_sender_id, &sbp_messages, n_ready, nav_meas);
   }
 }
 
@@ -1082,7 +1097,8 @@ static void time_matched_obs_thread(void *arg) {
 
         chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(base_obss_copy.sender_id, &sbp_messages);
+          solution_send_pos_messages(
+              base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
         }
         break;
       } else {
