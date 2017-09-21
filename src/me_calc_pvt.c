@@ -707,7 +707,7 @@ static void me_calc_pvt_thread(void *arg) {
         /* Remove the fractional 2-ms residual FCN contribution */
         if (CODE_GLO_L1CA == nm->sid.code) {
           fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
-        } else if (CODE_GLO_L1CA == nm->sid.code) {
+        } else if (CODE_GLO_L2CA == nm->sid.code) {
           fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
         } else {
           fcn = 0.0;
