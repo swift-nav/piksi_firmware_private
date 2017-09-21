@@ -681,9 +681,9 @@ static void me_calc_pvt_thread(void *arg) {
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(current_fix.clock_offset) < OBS_PROPAGATION_LIMIT) {
-      log_info("clk_offset %.3e clk_drift %.3e",
-               current_fix.clock_offset,
-               current_fix.clock_bias);
+      log_debug("clk_offset %.3e clk_drift %.3e",
+                current_fix.clock_offset,
+                current_fix.clock_bias);
 
       /* gtemp_tc is always smaller than epoch_tc */
       double gtemp_diff = (epoch_tc - gtemp_tc) * RX_DT_NOMINAL;
