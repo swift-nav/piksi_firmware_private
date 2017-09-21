@@ -464,11 +464,10 @@ static void me_calc_pvt_thread(void *arg) {
       gtemp_tc = FCN_NCO_RESET_COUNT *
                  (epoch_tc / FCN_NCO_RESET_COUNT);
 
-      log_info(
-        "epoch_tc %" PRId64 " gtemp_tc %" PRId64 " diff %d",
-        epoch_tc,
-        gtemp_tc,
-        epoch_tc - gtemp_tc);
+      log_debug("epoch_tc %" PRId64 " gtemp_tc %" PRId64 " diff %d",
+                epoch_tc,
+                gtemp_tc,
+                epoch_tc - gtemp_tc);
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
@@ -752,7 +751,7 @@ static void me_calc_pvt_thread(void *arg) {
                (current_fix.clock_offset));
     }
 
-    if (fabs(current_fix.clock_offset) > (1.01/SECS_MS)) {
+    if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
       /* Note we should not enter here except in very exceptional circumstances,
        * like time solved grossly wrong on the first fix. */
 
@@ -760,7 +759,7 @@ static void me_calc_pvt_thread(void *arg) {
       double dt = round(current_fix.clock_offset * (SECS_MS/2)) / (SECS_MS/2);
 
       log_warn("Receiver clock offset larger than %g ms, applying %g jump",
-         0.001 * SECS_MS, dt);
+         MAX_CLOCK_ERROR_S * SECS_MS, dt);
 
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
