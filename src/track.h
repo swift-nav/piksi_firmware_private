@@ -495,7 +495,7 @@ typedef struct {
   corr_t corr_fll;        /**< FLL accumulator */
   corr_t corr_ad;         /**< False lock (alias) detector accumulator */
   corr_t corr_ld;         /**< Lock detector accumulator */
-  s32 corr_bit;           /**< Bit sync accumulator */
+  corr_t corr_bit;        /**< Bit sync accumulator */
 } tp_corr_state_t;
 
 struct tracker_interface;
