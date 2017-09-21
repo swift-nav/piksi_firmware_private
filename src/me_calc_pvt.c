@@ -414,11 +414,11 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Take the current nap count as the reception time*/
-    s64 current_tc = nap_timing_count();
+    u64 current_tc = nap_timing_count();
 
     /* The desired solution NAP counter and epoch */
-    s64 epoch_tc = current_tc;
-    s64 gtemp_tc = current_tc;
+    u64 epoch_tc = current_tc;
+    u64 gtemp_tc = current_tc;
 
     gps_time_t epoch_time = GPS_TIME_UNKNOWN;
 
@@ -457,14 +457,14 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* get NAP at the epoch with a round GPS time */
-      epoch_tc = (s64)round(rcvtime2napcount(&epoch_time));
+      epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
 
-      /* now get the closest NAP 2 ms boundary,
+      /* truncate to the closest NAP 2 ms boundary,
        * needed for Glonass carrier phases */
       gtemp_tc = FCN_NCO_RESET_COUNT *
                  (epoch_tc / FCN_NCO_RESET_COUNT);
 
-      log_debug("epoch_tc %" PRId64 " gtemp_tc %" PRId64 " diff %d",
+      log_debug("epoch_tc %" PRIu64 " gtemp_tc %" PRIu64 " diff %d",
                 epoch_tc,
                 gtemp_tc,
                 epoch_tc - gtemp_tc);
@@ -686,6 +686,7 @@ static void me_calc_pvt_thread(void *arg) {
                 current_fix.clock_offset,
                 current_fix.clock_bias);
 
+      /* gtemp_tc is always smaller than epoch_tc */
       double gtemp_diff = (epoch_tc - gtemp_tc) * RX_DT_NOMINAL;
       double fcn;
 
@@ -758,8 +759,8 @@ static void me_calc_pvt_thread(void *arg) {
       /* round the time adjustment to even milliseconds */
       double dt = round(current_fix.clock_offset * (SECS_MS/2)) / (SECS_MS/2);
 
-      log_warn("Receiver clock offset larger than %g ms, applying %g jump",
-         MAX_CLOCK_ERROR_S * SECS_MS, dt);
+      log_warn("Receiver clock offset larger than %g ms, applying %g ms jump",
+         MAX_CLOCK_ERROR_S * SECS_MS, dt * SECS_MS);
 
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
@@ -771,7 +772,7 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* */
-    double delta_tc = -(current_tc - epoch_tc);
+    double delta_tc = -((s64)current_tc - (s64)epoch_tc);
 
     /* The difference between the current nap count and the nap count we
      * would have wanted the observations at is the amount we want to
