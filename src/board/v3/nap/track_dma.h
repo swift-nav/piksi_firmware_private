@@ -33,11 +33,6 @@
 
 #define PL330_INTEN                  (volatile u32*)(PL330_DMAC0_BASE + 0x00000020U)
 #define PL330_INTEN_0                (0x0U)
-#define PL330_INTEN_7                (0x7U)
-
-#define PL330_CCR0                   (volatile u32*)(PL330_DMAC0_BASE + 0x00000400U)
-#define PL330_CCR0_SRC_INC_Pos       (0x0U)
-#define PL330_CCR0_DST_INC_Pos       (0xEU)
 
 #define PL330_INT_EVENT_RIS          (volatile u32*)(PL330_DMAC0_BASE + 0x00000024U)
 #define PL330_INT_EVENT_0            (0x0U)
@@ -47,10 +42,6 @@
 
 #define PL330_INTCLR                 (volatile u32*)(PL330_DMAC0_BASE + 0x0000002CU)
 #define PL330_INTCLR_0               (0x0U)
-#define PL330_INTCLR_7               (0x7U)
-
-#define PL330_SAR_CH0                (volatile u32*)(PL330_DMAC0_BASE + 0x00000400U)
-#define PL330_DAR_CH0                (volatile u32*)(PL330_DMAC0_BASE + 0x00000404U)
 
 #define PL330_CHANNEL_TO_USE         (0x1U)                     // channel nr
 #define PL330_IRQ_ID_TO_USE          IRQ_ID_DMAC_1              // must correspond to channel nr
@@ -58,14 +49,6 @@
 #define PL330_TARGET_ID_TO_USE       PL330_GIC_SPI_TARGET_ID47  // must correspond to channel nr
 #define PL330_TARGET_REG_TO_USE      PL330_GIC_SPI_TARGET_REG11 // must correspond to target_id
                                                                 // --> see define of target_id
-
-/* CAREFUL WITH WRITING THESE REGISTERS - MUST BE WRITTEN IN EXACT SEQUENCE
- * --> SEE ug585 TRM pg. 1156 */
-#define PL330_DMA_SRC_ADDR           (volatile u32*)(PL330_DEVCFG_BASE + 0x00000018U)
-#define PL330_DMA_DST_ADDR           (volatile u32*)(PL330_DEVCFG_BASE + 0x0000001CU)
-#define PL330_DMA_SRC_LEN            (volatile u32*)(PL330_DEVCFG_BASE + 0x00000020U)
-#define PL330_DMA_DST_LEN            (volatile u32*)(PL330_DEVCFG_BASE + 0x00000024U)
-
 #define PL330_MPCORE_BASE            (0xF8F00000U)
 #define PL330_GIC_DIST_EN            (volatile u32*)(PL330_MPCORE_BASE + 0x00001000U)
 #define PL330_GIC_CONTROL            (volatile u32*)(PL330_MPCORE_BASE + 0x00000100U)
@@ -78,14 +61,14 @@
 #define PL330_GIC_SPI_TARGET_REG11   (volatile u32*)(PL330_MPCORE_BASE + 0x0000182CU)
 #define PL330_GIC_SPI_TARGET_REG12   (volatile u32*)(PL330_MPCORE_BASE + 0x00001830U)
 #define PL330_GIC_SPI_TARGET_REG18   (volatile u32*)(PL330_MPCORE_BASE + 0x00001848U)
-#define PL330_GIC_SPI_TARGET_ID46    (16) // reg 11
-#define PL330_GIC_SPI_TARGET_ID47    (24) // reg 11
-#define PL330_GIC_SPI_TARGET_ID48    (0)  // reg 12
-#define PL330_GIC_SPI_TARGET_ID49    (8)  // reg 12
-#define PL330_GIC_SPI_TARGET_ID72    (0)  // reg 48
-#define PL330_GIC_SPI_TARGET_ID73    (8)  // reg 48
-#define PL330_GIC_SPI_TARGET_ID74    (16) // reg 48
-#define PL330_GIC_SPI_TARGET_ID75    (24) // reg 48
+#define PL330_GIC_SPI_TARGET_ID46    (16) // reg11
+#define PL330_GIC_SPI_TARGET_ID47    (24) // reg11
+#define PL330_GIC_SPI_TARGET_ID48    (0)  // reg12
+#define PL330_GIC_SPI_TARGET_ID49    (8)  // reg12
+#define PL330_GIC_SPI_TARGET_ID72    (0)  // reg48
+#define PL330_GIC_SPI_TARGET_ID73    (8)  // reg48
+#define PL330_GIC_SPI_TARGET_ID74    (16) // reg48
+#define PL330_GIC_SPI_TARGET_ID75    (24) // reg48
 #define PL330_GIC_TARGET_NO_CPU      (0)
 #define PL330_GIC_TARGET_CPU0        (1)
 #define PL330_GIC_TARGET_CPU1        (2)
@@ -102,7 +85,6 @@
 #define PL330_DBGCMD                 (volatile u32*)(PL330_DMAC0_BASE + 0x00000D04U)
 #define PL330_DBGINST0               (volatile u32*)(PL330_DMAC0_BASE + 0x00000D08U)
 #define PL330_DBGINST1               (volatile u32*)(PL330_DMAC0_BASE + 0x00000D0CU)
-
 
 void track_dma_init(void);
 void track_dma_start(u32* const s_addr, u32* const d_addr);

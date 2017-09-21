@@ -762,9 +762,7 @@ void pl330_stop(int channel0_manager1, int channel_num, int timeout_loops)
 }
 
 /******************************************************************************
-DMA transfer setup (MEM2MEM, MEM2PERIPH or PERIPH2MEM)
-For Peripheral transfer, the FIFO threshold value is expected at
-2 ^ pl330->brst_size * pl330->brst_len.
+DMA transfer setup (MEM2MEM)
 Return:		1 for error or not successful
 
 channel_num	-	channel number assigned, valid from 0 to 7
@@ -777,7 +775,6 @@ single_brst_size -	single transfer size (from 0 - 3)
 brst_len	-	valid from 1 - 16 where each burst can trasfer 1 - 16
 			data chunk (each chunk size equivalent to brst_size)
 peripheral_id	-	assigned peripheral_id, valid from 0 to 31
-transfer_type	-	MEM2MEM, MEM2PERIPH or PERIPH2MEM
 enable_cache1	-	1 for cache enabled for memory
 			(cacheable and bufferable, but do not allocate)
 buf_size	-	sizeof(buf)
@@ -838,7 +835,7 @@ int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 		data_size_byte = data_size_byte -
 			(burst_size * pl330->brst_len * lcnt0 * lcnt1);
 
-		log_warn("ENTERED HERE BURST ############################### datasizebyte: %d, lcnt0: %d, lcnt1: %d", data_size_byte, lcnt0, lcnt1);
+		log_warn("ENTERED HERE BURST ### datasizebyte: %d, lcnt0: %d, lcnt1: %d", data_size_byte, lcnt0, lcnt1);
 		log_info("Transferring 0x%08lx Remain 0x%08x\n", (burst_size *
 			pl330->brst_len * lcnt0 * lcnt1), data_size_byte);
 		log_info("Running burst - brst_size=2^%li, brst_len=%li, "
@@ -878,7 +875,7 @@ int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 		}
 		/* ensure the microcode don't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
-			log_warn("ERROR PL330 : Exceed buffer size\n");
+			log_error("ERROR PL330 : Exceeds microcode program buffer size\n");
 			return 1;
 		}
 	}
@@ -891,7 +888,7 @@ int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 	lcnt0 = data_size_byte / (burst_size * pl330->brst_len);
 
 	if (lcnt0) {
-		log_warn("ENTERED HERE SINGLE ############################### datasizebyte: %d, lcnt0: %d", data_size_byte, lcnt0);
+		log_warn("ENTERED HERE SINGLE ### datasizebyte: %d, lcnt0: %d, lcnt1: %d", data_size_byte, lcnt0, lcnt1);
 		/* Preparing the CCR value */
 		reqcfg.brst_len = pl330->brst_len;	/* DMA burst length */
 		reqcfg.brst_size = pl330->brst_size;	/* DMA burst size */
@@ -919,7 +916,7 @@ int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 		off += _emit_LPEND(&pl330->buf[off], &lpend1);
 		/* ensure the microcode doesn't exceed buffer size */
 		if ((u32)off > pl330->buf_size) {
-			log_error("ERROR PL330 : Exceed buffer size\n");
+			log_error("ERROR PL330 : Exceeds microcode program buffer size\n");
 			return 1;
 		}
 	}
