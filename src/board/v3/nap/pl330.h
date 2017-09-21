@@ -124,6 +124,7 @@ struct pl330_transfer_struct {
 void pl330_stop(int channel0_manager1, int channel_num, int timeout_loops);
 void pl330_transfer_setup_src_dst(struct pl330_transfer_struct *pl330);
 int pl330_transfer_init(struct pl330_transfer_struct *pl330);
+int my_microcode(struct pl330_transfer_struct *pl330);
 int pl330_transfer_start(struct pl330_transfer_struct *pl330);
 int pl330_transfer_zeroes(struct pl330_transfer_struct *pl330);
 

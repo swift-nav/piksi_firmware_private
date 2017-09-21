@@ -33,7 +33,6 @@ static u8 progbuf[128] = {0};
 static u8 count = 0;
 static volatile u8 memres = 0;
 
-static void interrupts_init(void);
 static void pl330_dma_irq_handler(void *context);
 
 static void track_dma_thread(void *arg) {
@@ -41,10 +40,10 @@ static void track_dma_thread(void *arg) {
   chRegSetThreadName("track DMA");
 
   while(TRUE) {
-    track_dma_start(src_buf, dst_buf);
+    //track_dma_start(src_buf, dst_buf);
     pl330_transfer_start(&pl330);
 
-    if(memres) {
+   // if(memres) {
 		log_info("- src \t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
 			src_buf[0],
 			src_buf[1],
@@ -72,7 +71,7 @@ static void track_dma_thread(void *arg) {
 			dst_buf[9],
 			dst_buf[10],
 			dst_buf[11]);
-	}
+	//}
 
    log_warn("memcmp() --> %d", memres);
    log_warn("count    --> %d", count);
@@ -101,26 +100,44 @@ void track_dma_init(void) {
   pl330.size_byte = sizeof(src_buf);
   pl330.brst_size = 2;              // NOT CHANGEABLE (AXI 32bit width)  word access (u32, 4 byte)
   pl330.single_brst_size = 2;       // NOT CHANGEABLE (AXI 32bit width) -"-
-  pl330.brst_len = 7; 				// num transfers each burst (valid 1-16)
+  pl330.brst_len = 1; 				// num transfers each burst (valid 1-16)
   pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
   pl330.enable_cache1 = 0;          // no cache
   pl330.buf = progbuf;              // microcode program buffer
   pl330.buf_size = sizeof(progbuf); // microcode program buffer size
 
+  pl330_transfer_init(&pl330);
+
+//  pl330.channel_num = PL330_CHANNEL_TO_USE;
+//  pl330.src_addr = (u32)src_buf;
+//  pl330.dst_addr = (u32)dst_buf;
+//  pl330.size_byte = sizeof(src_buf);
+//  pl330.brst_size = 4;              // NOT CHANGEABLE (AXI 32bit width)  word access (u32, 4 byte)
+//  pl330.brst_len = 12; 				// num transfers each burst (valid 1-16)
+//  pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
+//  pl330.enable_cache1 = 0;          // no cache
+//  pl330.buf = progbuf;              // microcode program buffer
+//  pl330.buf_size = sizeof(progbuf); // microcode program buffer size
+//  //
+//  my_microcode(&pl330);
+
+
   /* activate DMA peripheral clock */
   *PL330_APER_CLK_CTRL |= (1 << PL330_DMA_CPU_2XCLKACT_Pos);
-
-  pl330_transfer_init(&pl330);
 
   // set interrupt target to NO_CPU
   *PL330_TARGET_REG_TO_USE &= ~(PL330_GIC_TARGET_BOTH_CPU << PL330_TARGET_ID_TO_USE);
   // set interrupt target to CPU1
   *PL330_TARGET_REG_TO_USE |= (PL330_TARGET_CPU_TO_USE << PL330_TARGET_ID_TO_USE);
 
+  // enable interrupt
   *PL330_INTEN |= (1 << PL330_CHANNEL_TO_USE);
   *PL330_GIC_DIST_EN |= (1 << PL330_GIC_EN_INT_Pos);
 
-  interrupts_init();
+  gic_handler_register(PL330_IRQ_ID_TO_USE, pl330_dma_irq_handler, NULL);
+  gic_irq_sensitivity_set(PL330_IRQ_ID_TO_USE, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(PL330_IRQ_ID_TO_USE, 4);
+  gic_irq_enable(PL330_IRQ_ID_TO_USE);
 }
 
 /** PL330 DMA IRQ handler.
@@ -130,21 +147,12 @@ void track_dma_init(void) {
 static void pl330_dma_irq_handler(void *context) {
   (void)context;
 
-  memres = memcmp(src_buf, dst_buf, sizeof(src_buf));
+  //memres = memcmp(src_buf, dst_buf, sizeof(src_buf));
   count++;
 
   /* Clear interrupt flags */
   *PL330_INTCLR |= (1 << PL330_CHANNEL_TO_USE);
 
-}
-
-/** Initialize interrupts for an PL330 DMA direction driver.
- */
-static void interrupts_init(void) {
-  gic_handler_register(PL330_IRQ_ID_TO_USE, pl330_dma_irq_handler, NULL);
-  gic_irq_sensitivity_set(PL330_IRQ_ID_TO_USE, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(PL330_IRQ_ID_TO_USE, 4);
-  gic_irq_enable(PL330_IRQ_ID_TO_USE);
 }
 
 void track_dma_start(u32* const s_addr, u32* const d_addr) {
