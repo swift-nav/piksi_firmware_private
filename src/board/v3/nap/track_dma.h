@@ -54,7 +54,7 @@
 
 #define PL330_CHANNEL_TO_USE         (0x1U)                     // channel nr
 #define PL330_IRQ_ID_TO_USE          IRQ_ID_DMAC_1              // must correspond to channel nr
-#define PL330_TARGET_CPU_TO_USE      PL330_GIC_TARGET_NO_CPU      // checkout linux <-> firmware
+#define PL330_TARGET_CPU_TO_USE      PL330_GIC_TARGET_CPU1 	      // checkout linux <-> firmware
 #define PL330_TARGET_ID_TO_USE       PL330_GIC_SPI_TARGET_ID47  // must correspond to channel nr
 #define PL330_TARGET_REG_TO_USE      PL330_GIC_SPI_TARGET_REG11 // must correspond to target_id
                                                                 // --> see define of target_id
@@ -69,7 +69,9 @@
 #define PL330_MPCORE_BASE            (0xF8F00000U)
 #define PL330_GIC_DIST_EN            (volatile u32*)(PL330_MPCORE_BASE + 0x00001000U)
 #define PL330_GIC_CONTROL            (volatile u32*)(PL330_MPCORE_BASE + 0x00000100U)
-#define PL330_GIC_ENABLE_SET         (volatile u32*)(PL330_MPCORE_BASE + 0x00001100U)
+#define PL330_GIC_ENABLE_SET0        (volatile u32*)(PL330_MPCORE_BASE + 0x00001100U)
+#define PL330_GIC_ENABLE_SET1        (volatile u32*)(PL330_MPCORE_BASE + 0x00001104U)
+#define PL330_GIC_ENABLE_SET2        (volatile u32*)(PL330_MPCORE_BASE + 0x00001108U)
 #define PL330_GIC_EN_INT_Pos         (0x0U)
 #define PL330_ICDICFR2               (volatile u32*)(PL330_MPCORE_BASE + 0x00001C08U)
 #define PL330_GIC_DISABLE            (volatile u32*)(PL330_MPCORE_BASE + 0x00001180U)

@@ -30,6 +30,7 @@ static u32 src_buf[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
 static u32 dst_buf[12] = {0};
 static struct pl330_transfer_struct pl330;
 static u8 progbuf[128] = {0};
+static u8 count = 0;
 
 static void interrupts_init(void);
 static void pl330_dma_irq_handler(void *context);
@@ -86,8 +87,15 @@ static void track_dma_thread(void *arg) {
     for(u8 i = 0; i < 12; i++)
     	src_buf[i]++;
 
+
     if(*PL330_INT_STATUS)
-    	log_warn("interrupt source is ok ---------------------------------0x%0x", *PL330_INT_STATUS);
+    	log_warn("FIRST interrupt status reg: 0x%0x ----------", *PL330_INT_STATUS);
+	log_warn("interrupt event ris reg: 0x%0x ----------", *PL330_INT_EVENT_RIS);
+	log_warn("count: %d ----------", count);
+
+//  *PL330_INTCLR = 0xFFFFFFFF;
+    	log_warn("interrupt status reg: 0x%0x ----------", *PL330_INT_STATUS);
+
 
   	chThdSleepMilliseconds(3000);
   }
@@ -110,7 +118,7 @@ void track_dma_init(void) {
   pl330.size_byte = sizeof(src_buf);
   pl330.brst_size = 2;              // NOT CHANGEABLE (AXI 32bit width)  word access (u32, 4 byte)
   pl330.single_brst_size = 2;       // NOT CHANGEABLE (AXI 32bit width) -"-
-  pl330.brst_len = 16; // num transfers each burst (valid 1-16)
+  pl330.brst_len = 16; 				// num transfers each burst (valid 1-16)
   pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
   pl330.enable_cache1 = 0;          // no cache
   pl330.buf = progbuf;              // microcode program buffer
@@ -121,22 +129,28 @@ void track_dma_init(void) {
 
   pl330_transfer_init(&pl330);
 
-  interrupts_init();
 
-//  *PL330_GIC_DIST_EN = 0;
-
-  // clear both bits
-  *PL330_TARGET_REG_TO_USE &= ~(3 << PL330_TARGET_ID_TO_USE);
+  // clear both bits (set target 'no cpu')
+  *PL330_TARGET_REG_TO_USE &= ~(PL330_GIC_TARGET_BOTH_CPU << PL330_TARGET_ID_TO_USE);
   // set respectively
   *PL330_TARGET_REG_TO_USE |= (PL330_TARGET_CPU_TO_USE << PL330_TARGET_ID_TO_USE);
 
 //  *PL330_INTEN |= (1 << PL330_INTEN_7);
   *PL330_INTEN |= (1 << PL330_CHANNEL_TO_USE);
 //  *PL330_INTEN = 0xFFFFFFFF;
-//  *PL330_GIC_DIST_EN |= (1 << PL330_GIC_EN_INT_Pos);
+  *PL330_GIC_DIST_EN |= (1 << PL330_GIC_EN_INT_Pos);
 //  *PL330_GIC_ENABLE_SET |= (1 << PL330_GIC_EN_INT_Pos);
+  *PL330_GIC_ENABLE_SET1 |= (1 << (PL330_IRQ_ID_TO_USE-32));
+  *PL330_GIC_ENABLE_SET0 |= (1 << PL330_CHANNEL_TO_USE);
+
+//  *PL330_GIC_ENABLE_SET0 = 0xFFFFFFFF;
+//  *PL330_GIC_ENABLE_SET1 = 0xFFFFFFFF;
+//  *PL330_GIC_ENABLE_SET2 = 0xFFFFFFFF;
 //  *PL330_GIC_CONTROL |= 0x01;
 //  *PL330_INTCLR &= ~(1 << PL330_INTCLR_0);
+//  *PL330_INTCLR |= (1 << PL330_CHANNEL_TO_USE);
+  *PL330_INTCLR = 0xFFFFFFFF;
+  interrupts_init();
 }
 
 /** PL330 DMA IRQ handler.
@@ -146,16 +160,16 @@ void track_dma_init(void) {
 static void pl330_dma_irq_handler(void *context) {
   (void)context;
 
-  chSysLockFromISR();
+//  chSysLockFromISR();
+//  log_warn("YEEEAAAHH ----------------------------- DMA INTERRUPT CAPTURED !!!!");// %x", status);
 
-  *PL330_INTCLR &= ~(1 << PL330_CHANNEL_TO_USE);
+  *PL330_INTCLR |= (1 << PL330_CHANNEL_TO_USE);
   /* Clear interrupt flags */
 //  gic_irq_pending_clear(IRQ_ID_DMAC_7);
-  gic_irq_pending_clear(PL330_IRQ_ID_TO_USE);
+//  gic_irq_pending_clear(PL330_IRQ_ID_TO_USE);
+	count++;
 
-  log_warn("YEEEAAAHH ----------------------------- DMA INTERRUPT CAPTURED !!!!");// %x", status);
-
-  chSysUnlockFromISR();
+//  chSysUnlockFromISR();
 }
 
 /** Initialize interrupts for an PL330 DMA direction driver.
@@ -167,7 +181,7 @@ static void interrupts_init(void) {
 //  gic_irq_enable(IRQ_ID_DMAC_7);//
   gic_handler_register(PL330_IRQ_ID_TO_USE, pl330_dma_irq_handler, NULL);
   gic_irq_sensitivity_set(PL330_IRQ_ID_TO_USE, IRQ_SENSITIVITY_EDGE);
-  gic_irq_priority_set(PL330_IRQ_ID_TO_USE, 5);
+  gic_irq_priority_set(PL330_IRQ_ID_TO_USE, 4);
   gic_irq_enable(PL330_IRQ_ID_TO_USE);
 }
 
