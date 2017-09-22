@@ -15,9 +15,6 @@
 
 #include <libswiftnav/logging.h>
 
-
-#define PL330_DMA_MAX_BURST_SIZE      3
-
 #define PL330_BASE_S                 (0xF8003000U)
 #define PL330_BASE_NS                (0xF8004000U)
 
@@ -43,9 +40,8 @@
 #define PL330_INTCLR                 (volatile u32*)(PL330_DMAC0_BASE + 0x0000002CU)
 #define PL330_INTCLR_0               (0x0U)
 
-#define PL330_CHANNEL_TO_USE         (0x1U)                     // channel nr
-#define PL330_IRQ_ID_TO_USE          IRQ_ID_DMAC_1              // must correspond to channel nr
-#define PL330_TARGET_CPU_TO_USE      PL330_GIC_TARGET_CPU1 	      // checkout linux <-> firmware
+#define PL330_CHANNEL_TO_USE         (0x1U)                     // channel nr 0-7
+#define PL330_IRQ_ID_TO_USE          IRQ_ID_DMAC_1              // must correspond to channel nr 0-7
 #define PL330_TARGET_ID_TO_USE       PL330_GIC_SPI_TARGET_ID47  // must correspond to channel nr
 #define PL330_TARGET_REG_TO_USE      PL330_GIC_SPI_TARGET_REG11 // must correspond to target_id
                                                                 // --> see define of target_id
@@ -70,9 +66,9 @@
 #define PL330_GIC_SPI_TARGET_ID74    (16) // reg48
 #define PL330_GIC_SPI_TARGET_ID75    (24) // reg48
 #define PL330_GIC_TARGET_NO_CPU      (0)
-#define PL330_GIC_TARGET_CPU0        (1)
-#define PL330_GIC_TARGET_CPU1        (2)
-#define PL330_GIC_TARGET_BOTH_CPU    (3)
+#define PL330_GIC_TARGET_CPU0_LINUX  (1)  // Linux can't handle the IRQ - results in crash (Oops Bug 17)
+#define PL330_GIC_TARGET_CPU1_FW     (2)
+#define PL330_GIC_TARGET_BOTH_CPU    (3)  // Linux can't handle the IRQ - results in crash (Oops Bug 17)
 
 #define PL330_DBGSTATUS              (volatile u32*)(PL330_DMAC0_BASE + 0x00000D00U)
 #define PL330_DBGSTATUS_BUSY_Pos     (0x0U)
@@ -89,5 +85,6 @@
 void track_dma_init(void);
 void track_dma_start(u32* const s_addr, u32* const d_addr);
 void track_dma_set_irq_number(u32 nr);
+void pl330_dma_irq_handler(void *context);
 
 #endif /* SWIFTNAV_TRACK_DMA_H */

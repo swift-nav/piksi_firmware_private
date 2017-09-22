@@ -17,9 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Modified by Michael Wurm <mwurm@swiftnav.com>
+ * September 2017
  */
-
-//#include <asm/arch/pl330_csr.h>
 
 #ifndef __PL330_CORE_H
 #define __PL330_CORE_H
@@ -44,8 +45,7 @@
 #define PL330_STATE_QUEUEBUSY		(1 << 11)
 #define PL330_STATE_INVALID			(1 << 15)
 
-#define PL330_DMA_BASE    PL330_BASE_S
-
+#define PL330_DMA_MAX_BURST_SIZE      8
 
 enum pl330_srccachectrl {
 	SCCTRL0 = 0,	/* Noncacheable and nonbufferable */

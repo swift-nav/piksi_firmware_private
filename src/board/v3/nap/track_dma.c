@@ -19,6 +19,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/common.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define TRACK_DMA_THREAD_PRIO (NORMALPRIO)
 #define TRACK_DMA_THREAD_STACK 2000
@@ -26,25 +27,28 @@
 /** Working area for the track_dma thread. */
 static THD_WORKING_AREA(wa_track_dma_thread, TRACK_DMA_THREAD_STACK);
 
-static u32 src_buf[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
-static u32 dst_buf[12] = {0};
+#define BUFFER_SIZE 16
+static u32 src_buf[BUFFER_SIZE] __attribute__ ((aligned (32)));
+static u32 dst_buf[BUFFER_SIZE] __attribute__ ((aligned (32)));
+
 static struct pl330_transfer_struct pl330;
 static u8 progbuf[128] = {0};
-static u8 count = 0;
-static volatile u8 memres = 0;
-
-static void pl330_dma_irq_handler(void *context);
+static u32 irq_count = 0;
+static volatile u32 copy_failed = 0;
 
 static void track_dma_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("track DMA");
 
-  while(TRUE) {
-    //track_dma_start(src_buf, dst_buf);
-    pl330_transfer_start(&pl330);
+  for(u8 i = 0; i < BUFFER_SIZE; i++)
+    src_buf[i] = i;
 
-   // if(memres) {
-		log_info("- src \t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
+  while(TRUE) {
+    track_dma_start(src_buf, dst_buf);
+
+	if(copy_failed) {
+		log_error("DMA copy failed! Src and Dst buffer not equal.");
+		log_info("- src \t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
 			src_buf[0],
 			src_buf[1],
 			src_buf[2],
@@ -56,9 +60,13 @@ static void track_dma_thread(void *arg) {
 			src_buf[8],
 			src_buf[9],
 			src_buf[10],
-			src_buf[11]);
+			src_buf[11],
+			src_buf[12],
+			src_buf[13],
+			src_buf[14],
+			src_buf[15]);
 
-		log_info("- dest\t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
+		log_info("- dest\t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
 			dst_buf[0],
 			dst_buf[1],
 			dst_buf[2],
@@ -70,37 +78,41 @@ static void track_dma_thread(void *arg) {
 			dst_buf[8],
 			dst_buf[9],
 			dst_buf[10],
-			dst_buf[11]);
-	//}
+			dst_buf[11],
+			dst_buf[12],
+			dst_buf[13],
+			dst_buf[14],
+			dst_buf[15]);
+	}
 
-   log_warn("memcmp() --> %d", memres);
-   log_warn("count    --> %d", count);
+	log_info("irq_count --> %d", irq_count);
 
-    for(u8 i = 0; i < 12; i++)
-    	src_buf[i]++;
+    for(u8 i = 0; i < BUFFER_SIZE; i++)
+   		src_buf[i]++;
 
-  	chThdSleepMilliseconds(3000);
+	chThdSleepMilliseconds(3000);
   }
 }
 
+/******************************************************************************
+This function initializes the PL330 DMA.
+******************************************************************************/
 void track_dma_init(void) {
-  log_info("track DMA thread starting ----------------");
-
   chThdCreateStatic(wa_track_dma_thread,
   	                sizeof(wa_track_dma_thread),
   	                TRACK_DMA_THREAD_PRIO,
   	                track_dma_thread,
   	                NULL);
 
-  log_info("track DMA thread started ------------------");
+  log_info("track DMA thread started");
 
   pl330.channel_num = PL330_CHANNEL_TO_USE;
   pl330.src_addr = (u32)src_buf;
   pl330.dst_addr = (u32)dst_buf;
   pl330.size_byte = sizeof(src_buf);
-  pl330.brst_size = 2;              // NOT CHANGEABLE (AXI 32bit width)  word access (u32, 4 byte)
-  pl330.single_brst_size = 2;       // NOT CHANGEABLE (AXI 32bit width) -"-
-  pl330.brst_len = 1; 				// num transfers each burst (valid 1-16)
+  pl330.brst_size = 4;              // DO NOT CHANGE (AXI 32bit width) (4 byte access)
+  pl330.single_brst_size = 4;       // DO NOT CHANGE (AXI 32bit width) (4 byte access)
+  pl330.brst_len = 4; 				// num transfers each burst (valid 1-16)
   pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
   pl330.enable_cache1 = 0;          // no cache
   pl330.buf = progbuf;              // microcode program buffer
@@ -108,29 +120,15 @@ void track_dma_init(void) {
 
   pl330_transfer_init(&pl330);
 
-//  pl330.channel_num = PL330_CHANNEL_TO_USE;
-//  pl330.src_addr = (u32)src_buf;
-//  pl330.dst_addr = (u32)dst_buf;
-//  pl330.size_byte = sizeof(src_buf);
-//  pl330.brst_size = 4;              // NOT CHANGEABLE (AXI 32bit width)  word access (u32, 4 byte)
-//  pl330.brst_len = 12; 				// num transfers each burst (valid 1-16)
-//  pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
-//  pl330.enable_cache1 = 0;          // no cache
-//  pl330.buf = progbuf;              // microcode program buffer
-//  pl330.buf_size = sizeof(progbuf); // microcode program buffer size
-//  //
-//  my_microcode(&pl330);
-
-
   /* activate DMA peripheral clock */
   *PL330_APER_CLK_CTRL |= (1 << PL330_DMA_CPU_2XCLKACT_Pos);
 
-  // set interrupt target to NO_CPU
+  /* set interrupt target to NO_CPU */
   *PL330_TARGET_REG_TO_USE &= ~(PL330_GIC_TARGET_BOTH_CPU << PL330_TARGET_ID_TO_USE);
-  // set interrupt target to CPU1
-  *PL330_TARGET_REG_TO_USE |= (PL330_TARGET_CPU_TO_USE << PL330_TARGET_ID_TO_USE);
+  /* set interrupt target to CPU1 (Firmware) */
+  *PL330_TARGET_REG_TO_USE |= (PL330_GIC_TARGET_CPU1_FW << PL330_TARGET_ID_TO_USE);
 
-  // enable interrupt
+  /* enable interrupt */
   *PL330_INTEN |= (1 << PL330_CHANNEL_TO_USE);
   *PL330_GIC_DIST_EN |= (1 << PL330_GIC_EN_INT_Pos);
 
@@ -144,25 +142,22 @@ void track_dma_init(void) {
  *
  * \param context   Interrupt context (pointer to pl330_dma_dir_driver_t).
  */
-static void pl330_dma_irq_handler(void *context) {
+ void pl330_dma_irq_handler(void *context) {
   (void)context;
 
-  //memres = memcmp(src_buf, dst_buf, sizeof(src_buf));
-  count++;
+  copy_failed = memcmp(src_buf, dst_buf, sizeof(src_buf));
+  irq_count++;
 
   /* Clear interrupt flags */
   *PL330_INTCLR |= (1 << PL330_CHANNEL_TO_USE);
 
 }
 
+/* */
 void track_dma_start(u32* const s_addr, u32* const d_addr) {
+  pl330.src_addr = (u32)s_addr;
+  pl330.dst_addr = (u32)d_addr;
 
-(void)s_addr;
-(void)d_addr;
-
-//  pl330.src_addr = (u32)s_addr;
-//  pl330.dst_addr = (u32)d_addr;
-
-  //pl330_transfer_setup_src_dst(&pl330);
-  //pl330_transfer_start(&pl330);
+  pl330_transfer_setup_src_dst(&pl330);
+  pl330_transfer_start(&pl330);
 }
