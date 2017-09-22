@@ -13,6 +13,7 @@
 #ifndef SWIFTNAV_TRACK_DMA_H
 #define SWIFTNAV_TRACK_DMA_H
 
+#include <libswiftnav/common.h>
 #include <libswiftnav/logging.h>
 
 #define PL330_BASE_S                 (0xF8003000U)
@@ -84,7 +85,5 @@
 
 void track_dma_init(void);
 void track_dma_start(u32* const s_addr, u32* const d_addr);
-void track_dma_set_irq_number(u32 nr);
-void pl330_dma_irq_handler(void *context);
 
 #endif /* SWIFTNAV_TRACK_DMA_H */

@@ -249,7 +249,7 @@ struct _arg_GO {
 
 /*
  * Function:	add opcode DMAEND into microcode (end)
- * Return:	size of opcode
+ * Return:		size of opcode
  * Parameter:	buf -> the buffer which stored the microcode program
  */
 static inline u32 _emit_END(u8 buf[])
@@ -260,8 +260,9 @@ static inline u32 _emit_END(u8 buf[])
 
 /*
  * Function:	add opcode DMAFLUSHP into microcode (flush peripheral)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ *		buf -> the buffer which stored the microcode program
  *		peri -> peripheral ID as listed in DMA NPP
  */
 static inline u32 _emit_FLUSHP(u8 buf[], u8 peri)
@@ -275,8 +276,9 @@ static inline u32 _emit_FLUSHP(u8 buf[], u8 peri)
 
 /*
  * Function:	add opcode DMALD into microcode (load)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ * 		buf -> the buffer which stored the microcode program
  *		cond -> execution criteria such as single, burst or always
  */
 static inline u32 _emit_LD(u8 buf[], enum pl330_cond cond)
@@ -291,8 +293,9 @@ static inline u32 _emit_LD(u8 buf[], enum pl330_cond cond)
 
 /*
  * Function:	add opcode DMALP into microcode (loop)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ *		buf -> the buffer which stored the microcode program
  *		loop -> selection of using counter 0 or 1  (valid value 0 or 1)
  *		cnt -> number of iteration (valid value 1-256)
  */
@@ -310,8 +313,9 @@ static inline u32 _emit_LP(u8 buf[], unsigned loop, u8 cnt)
 
 /*
  * Function:	add opcode DMALPEND into microcode (loop end)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ *		buf -> the buffer which stored the microcode program
  *		arg -> structure _arg_LPEND which contain all needed info
  *		arg->cond -> execution criteria such as single, burst or always
  *		arg->forever -> forever loop? used if DMALPFE started the loop
@@ -339,7 +343,7 @@ static inline u32 _emit_LPEND(u8 buf[],	const struct _arg_LPEND *arg)
 
 /*
  * Function:	add opcode DMAKILL into microcode (kill)
- * Return:	size of opcode
+ * Return:		size of opcode
  * Parameter:	buf -> the buffer which stored the microcode program
  */
 static inline u32 _emit_KILL(u8 buf[])
@@ -350,8 +354,9 @@ static inline u32 _emit_KILL(u8 buf[])
 
 /*
  * Function:	add opcode DMAMOV into microcode (move)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ *		buf -> the buffer which stored the microcode program
  *		dst -> destination register (valid value SAR, DAR or CCR)
  *		val -> 32bit value that to be written into destination register
  */
@@ -369,7 +374,7 @@ static inline u32 _emit_MOV(u8 buf[],
 
 /*
  * Function:	add opcode DMANOP into microcode  (no operation)
- * Return:	size of opcode
+ * Return:		size of opcode
  * Parameter:	buf -> the buffer which stored the microcode program
  */
 static inline u32 _emit_NOP(u8 buf[])
@@ -380,7 +385,7 @@ static inline u32 _emit_NOP(u8 buf[])
 
 /*
  * Function:	add opcode DMARMB into microcode  (read memory barrier)
- * Return:	size of opcode
+ * Return:		size of opcode
  * Parameter:	buf -> the buffer which stored the microcode program
  */
 static inline u32 _emit_RMB(u8 buf[])
@@ -391,8 +396,9 @@ static inline u32 _emit_RMB(u8 buf[])
 
 /*
  * Function:	add opcode DMASEV into microcode  (send event)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ *		buf -> the buffer which stored the microcode program
  *		ev -> the event number (valid 0 - 31)
  */
 static inline u32 _emit_SEV(u8 buf[], u8 ev)
@@ -422,8 +428,9 @@ static inline u32 _emit_ST(u8 buf[], enum pl330_cond cond)
 
 /*
  * Function:	add opcode DMASTP into microcode (store and notify peripheral)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Return:		size of opcode
+ * Parameter:
+ *		buf -> the buffer which stored the microcode program
  *		cond -> execution criteria such as single, burst or always
  *		peri -> peripheral ID as listed in DMA NPP
  */
@@ -440,7 +447,7 @@ static inline u32 _emit_STP(u8 buf[], enum pl330_cond cond, u8 peri)
 
 /*
  * Function:	add opcode DMASTZ into microcode (store zeroes)
- * Return:	size of opcode
+ * Return:		size of opcode
  * Parameter:	buf -> the buffer which stored the microcode program
  */
 static inline u32 _emit_STZ(u8 buf[])
@@ -450,9 +457,10 @@ static inline u32 _emit_STZ(u8 buf[])
 }
 
 /*
- * Function:	add opcode DMAWFP into microcode (wait for peripheral)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Function:  add opcode DMAWFP into microcode (wait for peripheral)
+ * Return:	  size of opcode
+ * Parameter:
+* 		buf -> the buffer which stored the microcode program
  *		cond -> execution criteria such as single, burst or always
  *		peri -> peripheral ID as listed in DMA NPP
  */
@@ -472,9 +480,9 @@ static inline u32 _emit_WFP(u8 buf[], enum pl330_cond cond, u8 peri)
 }
 
 /*
- * Function:	add opcode DMAWMB into microcode  (write memory barrier)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
+ * Function:  add opcode DMAWMB into microcode  (write memory barrier)
+ * Return:	  size of opcode
+ * Parameter: buf -> the buffer which stored the microcode program
  */
 static inline u32 _emit_WMB(u8 buf[])
 {
@@ -483,15 +491,16 @@ static inline u32 _emit_WMB(u8 buf[])
 }
 
 /*
- * Function:	add opcode DMALGO into microcode (go)
- * Return:	size of opcode
- * Parameter:	buf -> the buffer which stored the microcode program
- *		arg -> structure _arg_GO which contain all needed info
- *		arg->chan -> channel number
- *		arg->addr -> start address of the microcode program
- *			     which will be wrote into CPC register
- *		arg->ns -> 1 for non secure, 0 for secure
- *			   (if only DMA Manager is in secure)
+ * Function: add opcode DMALGO into microcode (go)
+ * Return:	 size of opcode
+ * Parameter:
+ *   buf       -> the buffer which stored the microcode program
+ *	 arg       -> structure _arg_GO which contain all needed info
+ *	 arg->chan -> channel number
+ *	 arg->addr -> start address of the microcode program
+ *		          which will be written into CPC register
+ *	 arg->ns   -> 1 for non secure, 0 for secure
+ *			      (if only DMA Manager is in secure)
  */
 static inline u32 _emit_GO(u8 buf[], const struct _arg_GO *arg)
 {
@@ -509,8 +518,8 @@ static inline u32 _emit_GO(u8 buf[], const struct _arg_GO *arg)
 }
 
 /*
- * Function:	Populate the CCR register
- * Parameter:	rqc -> Request Configuration.
+ * Function:  Populate the CCR register
+ * Parameter: rqc -> Request Configuration.
  */
 static inline u32 _prepare_ccr(const struct pl330_reqcfg *rqc)
 {
@@ -543,9 +552,9 @@ static inline u32 _prepare_ccr(const struct pl330_reqcfg *rqc)
 }
 
 /*
- * Function:	wait until DMA Manager is idle
- * Return:	1 = error / timeout ocurred before idle
- * Parameter:	loop -> number of loop before timeout ocurred
+ * Function:  wait until DMA Manager is idle
+ * Return:	  1 = error / timeout ocurred before idle
+ * Parameter: loop -> number of loop before timeout ocurred
  */
 static int pl330_until_dmac_idle(int loops)
 {
@@ -560,11 +569,12 @@ static int pl330_until_dmac_idle(int loops)
 }
 
 /*
- * Function:	execute debug instruction such as DMAGO and DMAKILL
- * Parameter:	insn -> the buffer which stored the debug instruction
- *		as_manager -> 1 = debug thread is encoding as DMA manager thread
- *		channel_num -> the channel number (only if as_manager=0)
- *		timeout_loops -> number of loop before timeout ocurred
+ * Function:  execute debug instruction such as DMAGO and DMAKILL
+ * Parameter:
+ *   insn          -> the buffer which stored the debug instruction
+ *	 as_manager    -> 1 = debug thread is encoding as DMA manager thread
+ *	 channel_num   -> the channel number (only if as_manager=0)
+ *	 timeout_loops -> number of loop before timeout ocurred
  */
 static inline void pl330_execute_DBGINSN(u8 insn[], int as_manager,
 	int channel_num, int timeout_loops)
@@ -590,9 +600,10 @@ static inline void pl330_execute_DBGINSN(u8 insn[], int as_manager,
 }
 
 /*
- * Function:	Get the status of current channel or manager
- * Parameter:	channel0_manager1 -> 0 for channel and 1 for manager
- *		channel_num -> the channel number (only if as_manager=0)
+ * Function:  Get the status of current channel or manager
+ * Parameter:
+ *   channel0_manager1 -> 0 for channel and 1 for manager
+ *	 channel_num       -> the channel number (only if as_manager=0)
  */
 static inline u32 pl330_getstate(int channel0_manager1, int channel_num)
 {
@@ -649,12 +660,13 @@ static inline u32 pl330_getstate(int channel0_manager1, int channel_num)
 	}
 }
 
-/* Function:	Execute the DMAGO through debug instruction
- * Return:	1 for error as DMA is not ready
- * Parameter:	channel_num -> the channel number
- *		buffer_address -> start address of the microcode program
- *				  which will be wrote into CPC register
- *		timeout_loops -> number of loop before timeout ocurred
+/* Function: Execute the DMAGO through debug instruction
+ * Return:	 1 for error as DMA is not ready
+ * Parameter:
+ *   channel_num    -> the channel number
+ *	 buffer_address -> start address of the microcode program
+ *	 				   which will be written into CPC register
+ *	 timeout_loops  -> number of loop before timeout ocurred
  */
 static int pl330_trigger(int channel_num, u8 *buffer_address, int timeout_loops)
 {
@@ -687,13 +699,14 @@ static int pl330_trigger(int channel_num, u8 *buffer_address, int timeout_loops)
 }
 
 /*
- * Function:	Execute the command list through DMAGO and debug instruction
- * Return:	1 for error where DMA is not ready
- * Parameter:	channel0_manager1 -> 0 for channel and 1 for manager
- *		channel_num -> the channel number
- *		buffer_address -> start address of the microcode program which
- *				  will be wrote into CPC register
- *		timeout_loops -> number of loop before timeout ocurred
+ * Function: Execute the command list through DMAGO and debug instruction
+ * Return:	 1 for error where DMA is not ready
+ * Parameter:
+ *   channel0_manager1 -> 0 for channel and 1 for manager
+ *	 channel_num       -> the channel number
+ *	 buffer_address    -> start address of the microcode program which
+ *			  		      will be written into CPC register
+ *	 timeout_loops     -> number of loop before timeout ocurred
  */
 static int pl330_start(int channel0_manager1, int channel_num,
 	u8 *buffer_address, int timeout_loops)
@@ -734,9 +747,10 @@ static int pl330_start(int channel0_manager1, int channel_num,
 }
 
 /* Function:	Stop the manager or channel
- * Parameter:	channel0_manager1 -> 0 for channel and 1 for manager
- *		channel_num -> the channel number (only if as_manager=0)
- *		timeout_loops -> number of loop before timeout ocurred
+ * Parameter:
+ *   channel0_manager1 -> 0 for channel and 1 for manager
+ *	 channel_num       -> the channel number (only if as_manager=0)
+ *	 timeout_loops     -> number of loop before timeout ocurred
  */
 void pl330_stop(int channel0_manager1, int channel_num, int timeout_loops)
 {
@@ -766,22 +780,25 @@ void pl330_stop(int channel0_manager1, int channel_num, int timeout_loops)
 
 /******************************************************************************
 DMA transfer setup (MEM2MEM)
+This function writes the whole microcode according to parameters given
+in the struct.
+
 Return:		1 for error or not successful
 
-channel_num	-	channel number assigned, valid from 0 to 7
-src_addr	-	address to transfer from / source
-dst_addr	-	address to transfer to / destination
-size_byte	-	number of bytes to be transferred
-brst_size	-	valid 1,2,4,8 bytes
-single_brst_size -	valid 1,2,4,8 bytes
-brst_len	-	valid from 1 - 16 where each burst can trasfer 1 - 16
-			data chunk (each chunk size equivalent to brst_size)
+channel_num		-	channel number assigned, valid from 0 to 7
+src_addr		-	address to transfer from / source
+dst_addr		-	address to transfer to / destination
+size_byte		-	number of bytes to be transferred
+brst_size		-	valid 1,2,4,8 bytes
+single_brst_size-	valid 1,2,4,8 bytes
+brst_len		-	valid from 1 - 16 where each burst can trasfer 1 - 16
+					data chunk (each chunk size equivalent to brst_size)
 peripheral_id	-	assigned peripheral_id, valid from 0 to 31
 enable_cache1	-	1 for cache enabled for memory
-			(cacheable and bufferable, but do not allocate)
-buf_size	-	sizeof(buf)
-buf		    -	buffer handler which will point to the memory
-			    allocated for dma microcode
+					(cacheable and bufferable, but do not allocate)
+buf_size		-	sizeof(buf)
+buf		    	-	buffer handler which will point to the memory
+			    	allocated for dma microcode
 ******************************************************************************/
 int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 {
@@ -950,14 +967,16 @@ int pl330_transfer_init(struct pl330_transfer_struct *pl330)
 }
 
 /******************************************************************************
-DMA transfer setup
 This function only modifies src_addr and dst_addr in the microcode buffer.
 In that way, time is saved when changing the addresses frequently.
 
 Parameter:
 pl330_transfer_struct containing new src_addr and/or dst_addr
+
+IMPORTANT: source and destination addresses must be
+           AXI bus width (32bit) aligned !!
 ******************************************************************************/
-void pl330_transfer_setup_src_dst(struct pl330_transfer_struct *pl330)
+void pl330_transfer_change_src_dst(struct pl330_transfer_struct *pl330)
 {
 	/* DMAMOV SAR, x->src_addr */
 	_emit_MOV(&pl330->buf[0], SAR, pl330->src_addr);
@@ -967,19 +986,18 @@ void pl330_transfer_setup_src_dst(struct pl330_transfer_struct *pl330)
 
 /******************************************************************************
 DMA run or start
-Return:		1 for error or not successful
+Return:	1 for error or not successful
 
 channel_num	-	channel number assigned, valid from 0 to 7
-buf		-	buffer handler which will point to the memory
-			allocated for dma microcode
+buf		    -	buffer handler which will point to the memory
+				allocated for dma microcode
 ******************************************************************************/
 int pl330_transfer_start(struct pl330_transfer_struct *pl330)
 {
 	/* Timeout loop */
-	int timeout_loops = 10000;
+	u32 const timeout_loops = 10000;
 
 	/* Execute the command list */
 	return pl330_start(0, pl330->channel_num, pl330->buf,
 		timeout_loops);
 }
-

@@ -12,14 +12,8 @@
 
 #include "track_dma.h"
 #include "pl330.h"
-#include "registers/swiftnap.h"
-#include "zynq7000.h"
 #include <hal.h>
-#include <stdint.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/common.h>
 #include <string.h>
-#include <stdlib.h>
 
 #define TRACK_DMA_THREAD_PRIO (NORMALPRIO)
 #define TRACK_DMA_THREAD_STACK 2000
@@ -27,15 +21,16 @@
 /** Working area for the track_dma thread. */
 static THD_WORKING_AREA(wa_track_dma_thread, TRACK_DMA_THREAD_STACK);
 
-#define BUFFER_SIZE 16
+#define BUFFER_SIZE 12
 static u32 src_buf[BUFFER_SIZE] __attribute__ ((aligned (32)));
 static u32 dst_buf[BUFFER_SIZE] __attribute__ ((aligned (32)));
 
 static struct pl330_transfer_struct pl330;
-static u8 progbuf[128] = {0};
+static u8 microcode_progbuf[128] = {0};
 static u32 irq_count = 0;
-static volatile u32 copy_failed = 0;
+static u32 copy_failed = 0;
 
+/* DMA usage example thread, simple tests and debug output */
 static void track_dma_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("track DMA");
@@ -60,11 +55,7 @@ static void track_dma_thread(void *arg) {
 			src_buf[8],
 			src_buf[9],
 			src_buf[10],
-			src_buf[11],
-			src_buf[12],
-			src_buf[13],
-			src_buf[14],
-			src_buf[15]);
+			src_buf[11]);
 
 		log_info("- dest\t %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d %2d",
 			dst_buf[0],
@@ -78,13 +69,8 @@ static void track_dma_thread(void *arg) {
 			dst_buf[8],
 			dst_buf[9],
 			dst_buf[10],
-			dst_buf[11],
-			dst_buf[12],
-			dst_buf[13],
-			dst_buf[14],
-			dst_buf[15]);
+			dst_buf[11]);
 	}
-
 	log_info("irq_count --> %d", irq_count);
 
     for(u8 i = 0; i < BUFFER_SIZE; i++)
@@ -92,6 +78,17 @@ static void track_dma_thread(void *arg) {
 
 	chThdSleepMilliseconds(3000);
   }
+}
+
+/* Interrupt service routing for the DMA interrupt */
+static void pl330_dma_irq_handler(void *context) {
+  (void)context;
+
+  copy_failed = memcmp(src_buf, dst_buf, sizeof(src_buf));
+  irq_count++;
+
+  /* Clear interrupt flags */
+  *PL330_INTCLR |= (1 << PL330_CHANNEL_TO_USE);
 }
 
 /******************************************************************************
@@ -110,13 +107,13 @@ void track_dma_init(void) {
   pl330.src_addr = (u32)src_buf;
   pl330.dst_addr = (u32)dst_buf;
   pl330.size_byte = sizeof(src_buf);
-  pl330.brst_size = 4;              // DO NOT CHANGE (AXI 32bit width) (4 byte access)
-  pl330.single_brst_size = 4;       // DO NOT CHANGE (AXI 32bit width) (4 byte access)
-  pl330.brst_len = 4; 				// num transfers each burst (valid 1-16)
-  pl330.peripheral_id = 1;          // #define XPAR_PS7_DMA_S_DEVICE_ID 1
-  pl330.enable_cache1 = 0;          // no cache
-  pl330.buf = progbuf;              // microcode program buffer
-  pl330.buf_size = sizeof(progbuf); // microcode program buffer size
+  pl330.brst_size = 4;          // DO NOT CHANGE (AXI 32bit width) (4 byte access)
+  pl330.single_brst_size = 4;   // DO NOT CHANGE (AXI 32bit width) (4 byte access)
+  pl330.brst_len = 4;           // num transfers each burst (valid 1-16)
+  pl330.peripheral_id = 1;      // #define XPAR_PS7_DMA_S_DEVICE_ID 1
+  pl330.enable_cache1 = 0;      // no cache (not implemented in driver)
+  pl330.buf = microcode_progbuf;
+  pl330.buf_size = sizeof(microcode_progbuf);
 
   pl330_transfer_init(&pl330);
 
@@ -138,26 +135,11 @@ void track_dma_init(void) {
   gic_irq_enable(PL330_IRQ_ID_TO_USE);
 }
 
-/** PL330 DMA IRQ handler.
- *
- * \param context   Interrupt context (pointer to pl330_dma_dir_driver_t).
- */
- void pl330_dma_irq_handler(void *context) {
-  (void)context;
-
-  copy_failed = memcmp(src_buf, dst_buf, sizeof(src_buf));
-  irq_count++;
-
-  /* Clear interrupt flags */
-  *PL330_INTCLR |= (1 << PL330_CHANNEL_TO_USE);
-
-}
-
-/* */
+/* Starts a DMA transfer with given addresses */
 void track_dma_start(u32* const s_addr, u32* const d_addr) {
   pl330.src_addr = (u32)s_addr;
   pl330.dst_addr = (u32)d_addr;
 
-  pl330_transfer_setup_src_dst(&pl330);
+  pl330_transfer_change_src_dst(&pl330);
   pl330_transfer_start(&pl330);
 }
