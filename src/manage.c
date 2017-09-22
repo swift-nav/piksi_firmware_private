@@ -1100,6 +1100,12 @@ static bool compute_cpo(u64 ref_tc,
     /* NOTE: CP sign flip - change the plus sign below */
     *carrier_phase_offset = round(meas->carrier_phase + phase);
 
+    log_debug_mesid(info->mesid,
+                    "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
+                    raw_pseudorange,
+                    rcv_clk_error,
+                    *carrier_phase_offset);
+
     if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
       /* Remember offset for the future use */
