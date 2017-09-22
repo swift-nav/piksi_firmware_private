@@ -12,7 +12,7 @@ USE_OPT += -mfpu=neon -mfloat-abi=hard
 # Stack size to be allocated to the ARM System/User stack. This
 # stack is the stack used by the main() thread.
 ifeq ($(USE_SYSTEM_STACKSIZE),)
-  USE_SYSTEM_STACKSIZE = 0x8000
+  USE_SYSTEM_STACKSIZE = 0x10000
 endif
 
 # Stack size to the allocated to the ARM IRQ stack. This
@@ -90,9 +90,11 @@ BOARDSRC := \
         $(BOARDDIR)/factory_data.o \
         $(BOARDDIR)/manage_led.o \
         $(BOARDDIR)/imu.o \
+        $(BOARDDIR)/pl330_dmac.o \
         $(BOARDDIR)/manage_rtc.o \
         $(BOARDDIR)/nap/axi_dma.o \
         $(BOARDDIR)/nap/grabber.o \
+        $(BOARDDIR)/nap/track_dma.o \
         $(BOARDDIR)/nap/nap_common.o \
         $(BOARDDIR)/nap/nap_conf.o \
         $(BOARDDIR)/nap/nap_dummy.o \
