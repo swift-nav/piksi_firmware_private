@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <string.h>
 
-#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz)
+#define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 #define NAP_TRACK_CARRIER_FREQ_WIDTH 32
 #define NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH 32
@@ -43,7 +43,7 @@
   ((u64)1 << NAP_TRACK_CARRIER_PHASE_FRACTIONAL_WIDTH)
 
 #define NAP_TRACK_CODE_PHASE_RATE_UNITS_PER_HZ \
-  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_TRACK_SAMPLE_RATE_Hz)
+  (NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP / (double)NAP_CODE_SAMPLE_RATE_Hz)
 
 #define NAP_TRACK_CODE_PHASE_UNITS_PER_CHIP \
   ((u64)1 << NAP_TRACK_CODE_PHASE_FRACTIONAL_WIDTH)
@@ -339,7 +339,7 @@ void nap_track_update(u8 channel,
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   /* CHIP RATE --------------------------------------------------------- */
-  u32 code_phase_frac = (u32)s->sw_code_phase + s->code_pinc[0] * s->length[0];
+  u32 code_phase_frac = (u32)s->sw_code_phase + s->code_pinc[0] * s->length[0] * 2;
 
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = chip_rate;

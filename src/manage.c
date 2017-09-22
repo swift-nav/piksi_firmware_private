@@ -1226,7 +1226,7 @@ u32 get_tracking_channel_meas(u8 i,
      * to be usable.
      */
     /*
-    double nap_tc_sec = (double)ref_tc / NAP_TRACK_SAMPLE_RATE_Hz;
+    double nap_tc_sec = (double)ref_tc / NAP_FRONTEND_SAMPLE_RATE_Hz;
     double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
     if (CODE_GLO_L1CA == info.mesid.code) {
       double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;

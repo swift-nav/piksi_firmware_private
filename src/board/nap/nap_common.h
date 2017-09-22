@@ -54,10 +54,10 @@ extern u8 nap_dna[NAP_DNA_LENGTH];
 #define NAP_CORR_LENGTH_MIN_MS 0.5
 
 /** Convert milliseconds to NAP samples */
-#define NAP_MS_2_SAMPLES(ms) (((double)(ms) / 1000.) * NAP_TRACK_SAMPLE_RATE_Hz)
+#define NAP_MS_2_SAMPLES(ms) (((double)(ms) / 1000.) * NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 /** Convert NAP samples to milliseconds */
-#define NAP_SAMPLES_2_MS(samples) (((samples)*1000.) / NAP_TRACK_SAMPLE_RATE_Hz)
+#define NAP_SAMPLES_2_MS(samples) (((samples)*1000.) / NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 /** \} */
 

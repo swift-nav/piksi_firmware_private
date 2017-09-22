@@ -13,33 +13,17 @@
 #ifndef SWIFTNAV_NAP_CONSTANTS_H
 #define SWIFTNAV_NAP_CONSTANTS_H
 
-/**
- * @brief   The sampling rate of the samples coming off the frontend
- */
-#define NAP_FRONTEND_RAW_SAMPLE_RATE_Hz (99.375e6)
+#define NAP_FRONTEND_SAMPLE_RATE_Hz (99.375e6)
 
-/**
- * @brief   The sample rate decimation used by tracking channels
- */
-#define NAP_TRACK_DECIMATION_RATE (5)
+#define NAP_TRACK_DECIMATION_RATE (10)
+#define NAP_CODE_DECIMATION_RATE (5)
 
-/**
- * @brief   The tracking channel sample rate after decimation
- * @note    This is the effective sampling rate of the tracking results
- */
 #define NAP_TRACK_SAMPLE_RATE_Hz \
-  (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE)
+  (NAP_FRONTEND_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE)
 
-/**
- * @brief   The sample rate used by the sample count for timing
- * @note    The sample count currently uses tracking samples
- */
-#define NAP_FRONTEND_SAMPLE_RATE_Hz (NAP_TRACK_SAMPLE_RATE_Hz)
+#define NAP_CODE_SAMPLE_RATE_Hz \
+  (NAP_FRONTEND_SAMPLE_RATE_Hz / NAP_CODE_DECIMATION_RATE)
 
-/**
- * @brief   This is 2 ms expressed as integer number of tracking samples
- * @note    needed for Glonass carrier phase stability
- */
 #define FCN_NCO_RESET_COUNT (39750ULL)
 
 #define NAP_PPS_TIMING_COUNT_OFFSET (-20)

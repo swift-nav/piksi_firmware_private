@@ -29,7 +29,7 @@
 #include "soft_macq_utils.h"
 
 #define SOFTMACQ_MAX_AGE_S (0.5)
-#define SOFTMACQ_MAX_AGE_SAMP (SOFTMACQ_MAX_AGE_S * NAP_TRACK_SAMPLE_RATE_Hz)
+#define SOFTMACQ_MAX_AGE_SAMP (SOFTMACQ_MAX_AGE_S * NAP_FRONTEND_SAMPLE_RATE_Hz)
 
 #define SOFTMACQ_SAMPLE_GRABBER_LENGTH (512 * 1024)
 #define SOFTMACQ_BASEBAND_SIZE (16 * 1024)
@@ -71,7 +71,7 @@ static bool SoftMacqSerial(const me_gnss_signal_t mesid,
  *      EXPOSED INTERFACES
  ********************************/
 float soft_multi_acq_bin_width(void) {
-  return (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / SOFTMACQ_DECFACT_GPSL1CA) /
+  return (NAP_FRONTEND_SAMPLE_RATE_Hz / SOFTMACQ_DECFACT_GPSL1CA) /
          (SOFTMACQ_BASEBAND_SIZE);
 }
 
