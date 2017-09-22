@@ -60,6 +60,9 @@ static tracker_interface_list_element_t
     tracker_interface_list_element_gps_l2c = {
         .interface = &tracker_interface_gps_l2c, .next = 0};
 
+
+
+
 /**
  * Function for updating configuration on parameter change
  *
@@ -461,6 +464,8 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
+#define NUM_COH_L2C_20MS_SYMB 5
+
 static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2c_config);
 
@@ -469,4 +474,25 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
 
   /* GPS L2C-specific L1 C/A cross-correlation operations */
   update_l2_xcorr_from_l1(tracker_channel, cflags);
+
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+
+  if (in_phase_lock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
+      tracker_bit_aligned(tracker_channel)) {
+    s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
+    /* naturally synched as we track */
+    if (0 == tracker_channel->cp_sync.polarity) {
+      tracker_channel->cp_sync.polarity = symb_sign;
+      tracker_channel->cp_sync.synced = false;
+    } else {
+      tracker_channel->cp_sync.polarity += symb_sign;
+      if (NUM_COH_L2C_20MS_SYMB == ABS(tracker_channel->cp_sync.polarity)) {
+        tracker_channel->cp_sync.synced = true;
+        tracker_channel->cp_sync.polarity -= symb_sign;
+      } else {
+        tracker_channel->cp_sync.synced = false;
+      }
+    }
+  }
 }
