@@ -317,12 +317,12 @@ void nap_track_init(u8 channel,
 
   NAP->TRK_CODE_INT_MAX = code_to_chip_count(mesid.code) - 1;
 
-  NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, index);
+  NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
   NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
 
-  NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr0_last(mesid);
+  NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr0_init(mesid1, index);
+  NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr0_init(mesid1, 0);
+  NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr0_last(mesid1);
 
   /* port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *
