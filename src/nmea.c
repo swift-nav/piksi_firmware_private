@@ -52,6 +52,9 @@ static u32 gsa_msg_rate = 10;
  * Send messages in NMEA 2.30 format.
  * \{ */
 
+/* Max SVs reported per GSA message */
+#define GSA_MAX_SV 12
+
 /* Number of decimals in NMEA time stamp (valid values 1-4) */
 #define NMEA_UTC_S_DECIMALS 2
 #define NMEA_UTC_S_FRAC_DIVISOR pow(10, NMEA_UTC_S_DECIMALS)
@@ -369,10 +372,13 @@ int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
  * \param cons      Working constellation.
  */
 void nmea_gsa(u8 *prns,
-              u8 num_prns,
-              bool fix,
+              const u8 num_prns,
+              const bool fix,
               const msg_dops_t *sbp_dops,
-              constellation_t cons) {
+              const constellation_t cons) {
+  assert(prns);
+  assert(sbp_dops);
+
   /* Our fix is always 3D */
   char fix_mode = fix ? '3' : '1';
 
@@ -386,7 +392,9 @@ void nmea_gsa(u8 *prns,
     assert(!"Unknown constellation");
   }
 
-  for (u8 i = 0; i < 12; i++) {
+  qsort(prns, num_prns, sizeof(u8), gsa_cmp);
+
+  for (u8 i = 0; i < GSA_MAX_SV; i++) {
     if (i < num_prns) {
       NMEA_SENTENCE_PRINTF("%02d,", prns[i]);
     } else {
@@ -396,9 +404,9 @@ void nmea_gsa(u8 *prns,
 
   if (fix && (NULL != sbp_dops)) {
     NMEA_SENTENCE_PRINTF("%.1f,%.1f,%.1f",
-                         round(10 * sbp_dops->pdop * 0.01) / 10,
-                         round(10 * sbp_dops->hdop * 0.01) / 10,
-                         round(10 * sbp_dops->vdop * 0.01) / 10);
+                         round(sbp_dops->pdop * 0.1) / 10,
+                         round(sbp_dops->hdop * 0.1) / 10,
+                         round(sbp_dops->vdop * 0.1) / 10);
   } else {
     NMEA_SENTENCE_PRINTF(",,");
   }
@@ -793,14 +801,18 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
 
 static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
                               const msg_dops_t *sbp_dops,
-                              u8 n_meas,
+                              const u8 n_meas,
                               const navigation_measurement_t nav_meas[]) {
-  u8 prns_gps[n_meas];
+  assert(sbp_pos_llh);
+  assert(sbp_dops);
+  assert(nav_meas);
+
+  u8 prns_gps[GSA_MAX_SV];
   u8 num_prns_gps = 0;
-  u8 prns_glo[n_meas];
+  u8 prns_glo[GSA_MAX_SV];
   u8 num_prns_glo = 0;
 
-  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
+  bool fix = (NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK));
 
   if (!fix) {
     /* No fix, no active SVs, send GSA messages and return */
@@ -810,14 +822,18 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
   }
 
   /* Assemble list of currently active SVs */
-  for (u32 i = 0; i < n_meas; i++) {
+  for (u8 i = 0; i < n_meas; i++) {
     const navigation_measurement_t info = nav_meas[i];
-    if (IS_GPS(info.sid) && !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
+    if (IS_GPS(info.sid) &&
+        num_prns_gps < GSA_MAX_SV &&
+        !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
       prns_gps[num_prns_gps++] = info.sid.sat;
       continue;
     }
 
-    if (enable_glonass && IS_GLO(info.sid) &&
+    if (enable_glonass &&
+        IS_GLO(info.sid) &&
+        num_prns_glo < GSA_MAX_SV &&
         !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
       prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
       continue;
