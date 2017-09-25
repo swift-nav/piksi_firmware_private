@@ -2,23 +2,31 @@
 # run if already have it: i.e., if gcc-arm-none is already in your
 # PATH after sys_deps.yml.
 
-- name: Download GCC arm
-  shell: wget https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-linux.tar.bz2
+- file: state=directory path=~/gcc-arm-none-eabi
 
-- name: unzip ARM
-  shell: tar -jxvf gcc-arm-none-eabi-5_3-2016q1-20160330-linux.tar.bz2
+- name: Download and unpack gcc-arm utilities.
+  unarchive:
+    src: https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-linux.tar.bz2
+    remote_src: yes
+    dest: ~/gcc-arm-none-eabi
+    extra_opts: '--strip-components=1'
 
-- name: Create arm-gcc directory.
-  shell: mkdir -p ~/gcc-arm-none-eabi
+- name: Check bash profile.
+  stat: path=~/.bash_profile
+  register: bash_profile_present
 
-- name: Copy gcc-arm to destination directory.
-  shell: cp -r ~/gcc-arm-none-eabi-5_3-2016q1/ ~/gcc-arm-none-eabi
+- name: Check for ~/.profile
+  stat: path=~/.profile
+  register: dot_profile_present
 
-- name: Check that bashrc exists.
-  shell: touch ~/.bashrc
+- name: Add arm-gcc directory to PATH (~/.bash_profile)
+  when: bash_profile_present.stat.exists and not dot_profile_present.stat.exists
+  lineinfile:
+    path: ~/.bash_profile
+    line: 'export PATH=$PATH:$HOME/gcc-arm-none-eabi/bin'
 
-- name: Add arm-gcc directory to PATH
-  shell: echo '\nexport PATH=$PATH:~/gcc-arm-none-eabi/gcc-arm-none-eabi-5_3-2016q1/bin' >> ~/.bashrc
-
-- name: Update PATH
-  shell: . ~/.bashrc
+- name: Add arm-gcc directory to PATH (~/.profile)
+  when: not bash_profile_present.stat.exists and dot_profile_present.stat.exists
+  lineinfile:
+    path: ~/.profile
+    line: 'export PATH=$PATH:$HOME/gcc-arm-none-eabi/bin'

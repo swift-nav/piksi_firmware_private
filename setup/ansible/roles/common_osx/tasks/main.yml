@@ -2,5 +2,6 @@
 # X. The subtasks included here are executed in-order.
 
 - include: sys_deps.yml
+
 - include: arm.yml
-  when: armgcc.stdout == ""
+  when: armgcc.stdout != "y"

@@ -5,9 +5,10 @@
   with_items:
     - wget
     - cmake
+    - gnu-tar
 
 # Set up conditional installation for ARM GCC tooling later.
 - name: Checking for arm gcc
-  shell: which arm-none-eabi-gcc
+  shell: which arm-none-eabi-gcc 2>&1 1>/dev/null && echo y || echo n
   register: armgcc
   ignore_errors: true
