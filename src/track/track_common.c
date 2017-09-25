@@ -41,6 +41,9 @@
 /** C/N0 threshold short interval [ms] */
 #define TRACK_CN0_THRES_COUNT_SHORT 100
 
+/** C/N0 hysteresis threshold */
+#define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
+
 /**
  * Computes number of chips in the integration interval
  *
@@ -725,16 +728,15 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
     /* Update the latest time we were below the threshold. */
     tracker_channel->cn0_below_use_thres_count = tracker_channel->update_count;
+    /* Flag as low CN0 measurements. */
+    tracker_channel->flags &= ~TRACKER_FLAG_CN0_LONG;
+    tracker_channel->flags &= ~TRACKER_FLAG_CN0_SHORT;
   }
 
-  /* Check C/N0 has been above threshold for a long time (RTK). */
-  u32 cn0_threshold_count_ms = (tracker_channel->update_count -
-                                tracker_channel->cn0_below_use_thres_count);
-  if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_LONG) {
+  if (cn0 >
+      (cn0_params.track_cn0_use_thres_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
+    /* Flag as high CN0 measurements. */
     tracker_channel->flags |= TRACKER_FLAG_CN0_LONG;
-  }
-  /* Check C/N0 has been above threshold for the minimum time (SPP). */
-  if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_SHORT) {
     tracker_channel->flags |= TRACKER_FLAG_CN0_SHORT;
   }
 }
