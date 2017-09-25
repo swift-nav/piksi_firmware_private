@@ -44,8 +44,7 @@ function build () {
     # Pulls down git submodules and builds the project, assuming that
     # all other system, and ARM GCC have been installed.
     log_info "Initializing Git submodules for ChibiOS, libopencm3, libsbp and libswiftnav..."
-    git submodule init
-    git submodule update
+    git submodule update --init --recursive
     if ! [[ -z $1 ]]
     then
        pushd libswiftnav
@@ -171,12 +170,16 @@ function run_all_platforms () {
     fi
     # by default, ask for sudo password but allow this behaviour to be
     # overridden by specifying ANSIBLE_SUDO_OPTION="" for use with e.g. travis
-    ANSIBLE_SUDO_OPTION=${ANSIBLE_SUDO_OPTION-"--ask-sudo-pass"}
+    ANSIBLE_SUDO_OPTION=${ANSIBLE_SUDO_OPTION-"--ask-become-pass"}
     # setup_ansible_plugins
     ansible-playbook $ANSIBLE_SUDO_OPTION -i setup/ansible/inventory.ini \
         setup/ansible/provision.yml --connection=local
     log_info "Done!"
     log_info ""
+    if ! which arm-none-eabi-gcc &>/dev/null; then
+      log_error "Please run 'source ~/.bash_profile' (or ~/.profile) to load the ARM toolchain into the current shell."
+      log_info ""
+    fi
     log_info "If you'd like to build the firmware, run: bash setup.sh -x build."
 }
 
