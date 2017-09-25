@@ -139,7 +139,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
                                      * doppler_bin_min to doppler_bin_max */
 
   while (loop_index <= doppler_bin_max) {
-    watchdog_notify(WD_NOTIFY_ACQ_MGMT);
+    /* watchdog_notify(WD_NOTIFY_ACQ_MGMT); */
     doppler_bin = start_bin + ind1 * (ind2 / 2);
     ind1 *= -1;
     ind2 += 1;
