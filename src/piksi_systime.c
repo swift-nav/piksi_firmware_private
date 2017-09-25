@@ -214,6 +214,8 @@ u64 piksi_systime_to_s(const piksi_systime_t *t) {
  */
 static s64 piksi_systime_sub_internal(const piksi_systime_t *a,
                                       const piksi_systime_t *b) {
+  assert((NULL != a) && (NULL != b));
+
   u64 a_tot = piksi_systime_to_ticks(a);
   u64 b_tot = piksi_systime_to_ticks(b);
 
@@ -415,7 +417,8 @@ void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
   if (dec > t->systime) {
     assert(0 < t->rollover_cnt);
     t->rollover_cnt--;
-    dec -= (t->systime + 1);
+    dec -= t->systime;
+    dec -= 1;
     t->systime = TIME_INFINITE;
   }
 
@@ -466,7 +469,7 @@ void piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
  * \return -1 if a > b; 0 if a == b; 1 if a < b
  */
 s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b) {
-  assert(NULL != a && NULL != b);
+  assert((NULL != a) && (NULL != b));
 
   if (a->rollover_cnt > b->rollover_cnt) {
     return -1;
