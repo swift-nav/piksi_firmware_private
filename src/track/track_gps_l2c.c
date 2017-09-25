@@ -38,14 +38,12 @@
 /** GPS L2C configuration section name */
 #define L2C_TRACK_SETTING_SECTION "l2c_track"
 
-
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2c_config = TP_TRACKER_DEFAULT_CONFIG;
 
 /* Forward declarations of interface methods for GPS L2C */
 static tracker_interface_function_t tracker_gps_l2c_init;
 static tracker_interface_function_t tracker_gps_l2c_update;
-
 
 /** GPS L2C tracker interface */
 static const tracker_interface_t tracker_interface_gps_l2c = {
@@ -56,12 +54,8 @@ static const tracker_interface_t tracker_interface_gps_l2c = {
 };
 
 /** GPS L2C tracker interface list element */
-static tracker_interface_list_element_t
-    tracker_interface_list_element_gps_l2c = {
-        .interface = &tracker_interface_gps_l2c, .next = 0};
-
-
-
+static tracker_interface_list_element_t tracker_interface_list_element_gps_l2c =
+    {.interface = &tracker_interface_gps_l2c, .next = 0};
 
 /**
  * Function for updating configuration on parameter change
@@ -87,9 +81,8 @@ static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val) {
  *  framework.
  */
 void track_gps_l2c_register(void) {
-  TP_TRACKER_REGISTER_CONFIG(L2C_TRACK_SETTING_SECTION,
-                             gps_l2c_config,
-                             settings_pov_speed_cof_proxy);
+  TP_TRACKER_REGISTER_CONFIG(
+      L2C_TRACK_SETTING_SECTION, gps_l2c_config, settings_pov_speed_cof_proxy);
   lp1_filter_compute_params(&gps_l2c_config.xcorr_f_params,
                             gps_l2c_config.xcorr_cof,
                             SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
@@ -178,7 +171,6 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
       break;
   }
 }
-
 
 static void tracker_gps_l2c_init(tracker_channel_t *tracker_channel) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
@@ -478,8 +470,7 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
 
-  if (in_phase_lock && confirmed &&
-      tracker_bit_aligned(tracker_channel) &&
+  if (in_phase_lock && confirmed && tracker_bit_aligned(tracker_channel) &&
       (0 != (cflags & TP_CFLAG_BSYNC_UPDATE))) {
     s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
     s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
@@ -498,10 +489,9 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
     }
   }
   if (tracker_channel->cp_sync.synced) {
-    tracker_channel->bit_polarity =
-      (tracker_channel->cp_sync.polarity) > 0 ?
-        BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
+    tracker_channel->bit_polarity = (tracker_channel->cp_sync.polarity) > 0
+                                        ? BIT_POLARITY_NORMAL
+                                        : BIT_POLARITY_INVERTED;
     update_bit_polarity_flags(tracker_channel);
   }
-
 }

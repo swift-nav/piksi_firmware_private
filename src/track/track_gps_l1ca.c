@@ -585,8 +585,7 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
 
-  if (inlock && confirmed &&
-      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
+  if (inlock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
       tracker_bit_aligned(tracker_channel) &&
       (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
     /* Start L2C tracker if not running */

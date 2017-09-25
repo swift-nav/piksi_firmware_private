@@ -1466,7 +1466,8 @@ static void manage_tracking_startup(void) {
           acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
-      log_info_mesid(startup_params.mesid, "No free tracking channel available.");
+      log_info_mesid(startup_params.mesid,
+                     "No free tracking channel available.");
       continue;
     }
 
