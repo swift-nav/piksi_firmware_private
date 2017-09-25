@@ -1095,11 +1095,11 @@ static void time_matched_obs_thread(void *arg) {
           last_update_time = obss->tor;
         }
 
-        chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(
               base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
         }
+        chPoolFree(&time_matched_obs_buff_pool, obss);
         break;
       } else {
         if (dt > 0) {
