@@ -387,7 +387,6 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->init_timestamp_ms = now;
     tracker_channel->update_timestamp_ms = now;
     tracker_channel->updated_once = false;
-    tracker_channel->cp_sync.counter = 0;
     tracker_channel->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker_channel->cp_sync.synced = false;
     tracker_channel->health = GLO_SV_HEALTHY;

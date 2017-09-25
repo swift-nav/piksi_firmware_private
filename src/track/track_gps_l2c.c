@@ -464,7 +464,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-#define NUM_COH_L2C_20MS_SYMB 5
+#define NUM_COH_L2C_20MS_SYMB 10
 
 static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2c_config);
@@ -478,21 +478,30 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
 
-  if (in_phase_lock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
-      tracker_bit_aligned(tracker_channel)) {
+  if (in_phase_lock && confirmed &&
+      tracker_bit_aligned(tracker_channel) &&
+      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE))) {
     s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
+    s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
     /* naturally synched as we track */
-    if (0 == tracker_channel->cp_sync.polarity) {
+    if (symb_sign != pol_sign) {
       tracker_channel->cp_sync.polarity = symb_sign;
       tracker_channel->cp_sync.synced = false;
     } else {
       tracker_channel->cp_sync.polarity += symb_sign;
       if (NUM_COH_L2C_20MS_SYMB == ABS(tracker_channel->cp_sync.polarity)) {
         tracker_channel->cp_sync.synced = true;
-        tracker_channel->cp_sync.polarity -= symb_sign;
+        tracker_channel->cp_sync.polarity -= symb_sign; /* saturate */
       } else {
         tracker_channel->cp_sync.synced = false;
       }
     }
   }
+  if (tracker_channel->cp_sync.synced) {
+    tracker_channel->bit_polarity =
+      (tracker_channel->cp_sync.polarity) > 0 ?
+        BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
+    update_bit_polarity_flags(tracker_channel);
+  }
+
 }
