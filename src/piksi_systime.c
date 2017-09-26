@@ -127,6 +127,10 @@ static inline u64 s2st(u64 s) {
 static void piksi_systime_get_internal(piksi_systime_t *t) {
   static piksi_systime_t prev = PIKSI_SYSTIME_INIT;
 
+  if (NULL == t) {
+    return;
+  }
+
   assert(t);
 
   systime_t current;
@@ -342,6 +346,10 @@ u64 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t) {
  *
  */
 void piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
+  if (NULL == t) {
+    return;
+  }
+
   assert(t);
 
   if (0 == inc) {
@@ -403,6 +411,10 @@ void piksi_systime_inc_s(piksi_systime_t *t, u64 inc) {
  * \param[in] inc           System tick value to be decreased.
  */
 void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
+  if (NULL == t) {
+    return;
+  }
+
   assert(t);
 
   if (0 == dec) {
