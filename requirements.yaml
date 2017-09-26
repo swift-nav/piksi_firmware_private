@@ -8,7 +8,7 @@
         - piksi_firmware_v3_prod.stripped.elf
   artifacts:
     -
-      bucket: swiftnav-artifacts
+      bucket: swiftnav-artifacts-pull-requests
       prefix: piksi_buildroot/v1.2.0-branch-8-geadb525/v3/prod
       files:
         - uImage.piksiv3_prod
