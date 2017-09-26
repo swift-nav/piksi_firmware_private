@@ -11,6 +11,7 @@
  */
 #include <assert.h>
 #include <dum.h>
+#include <libswiftnav/glo_map.h>
 #include <manage.h>
 #include <timing.h>
 #include <track.h>
@@ -23,6 +24,7 @@
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
+
 /* Scheduler constants */
 
 /** Avoid busy loop by sleeping if there are no jobs to run. */
@@ -279,7 +281,7 @@ static void sch_glo_fcn_set(acq_job_t *job) {
     return;
   }
 
-  if (job->glo_blind_search) {
+  if (!glo_map_valid(job->sid)) {
     /* FCN not mapped to GLO slot ID, so perform blind search, just pick next
      * FCN */
     job->mesid.sat++;
@@ -350,9 +352,10 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
 
   if (peak_found) { /* Send to track */
     u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-    if (!job->glo_blind_search && IS_GLO(job->mesid)) {
+    if (IS_GLO(job->mesid) && glo_map_valid(job->sid)) {
       glo_orbit_slot = job->sid.sat;
     }
+
     tracking_startup_params_t tracking_startup_params = {
         .mesid = job->mesid,
         .sample_count = acq_result.sample_count,
@@ -364,7 +367,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
         .glo_slot_id = glo_orbit_slot};
     task->task_index = ACQ_UNINITIALIZED_TASKS;
     job->state = ACQ_STATE_IDLE;
-    job->glo_blind_search = false;
 
     tracking_startup_request(&tracking_startup_params);
 
