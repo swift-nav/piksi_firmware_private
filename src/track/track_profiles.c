@@ -28,7 +28,7 @@
 #include <string.h>
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
+#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (21.f)
 
 /** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
 #define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
@@ -39,11 +39,18 @@
     any race condition */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (TP_HARD_CN0_DROP_THRESHOLD_DBHZ + 1)
 
-#define TL_BWT_MAX (0.1f)
+/** BW = (5 + (CN0 - 20)/2); */
+/**  T         BW       T*BW  */
+/** 20         11        0.21
+    10         12        0.12
+     5         14      0.0675
+     2         16       0.031
+     1         17       0.017 */
+#define TL_BWT_MAX (0.25f)
 
 #define PLL_CN0_MIN (20.0f)
 #define PLL_CN0_MAX (50.0f)
-#define PLL_BW_MIN (7.0f)
+#define PLL_BW_MIN (5.0f)
 #define PLL_BW_MAX (20.0f)
 #define FLL_BW_MIN (0.1f)
 
@@ -53,7 +60,6 @@ typedef enum {
   IDX_NONE = -1,
   IDX_INIT_0,
   IDX_INIT_1,
-  IDX_INIT_2,
   IDX_1MS,
   IDX_2MS,
   IDX_5MS,
@@ -229,68 +235,61 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {   30,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {   30,             0,           10,   TP_CTRL_PLL2,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-        50,             0,            0,
+       100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
-  { {   30,             3,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-        50,             0,            0,
-      IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
-
-  [IDX_INIT_2] =
-  { {   30,             1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+  { {   25,             0,            6,   TP_CTRL_PLL2,          TP_TM_1MS_GPS,
           TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-       200,             0,            0,
+       100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_PLOCK },
+       TP_WAIT_BSYNC | TP_WAIT_PLOCK },
 
-  [IDX_1MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+  [IDX_1MS]
+  { {      BW_DYN,           0,           4,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
            TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-           50,          48,           0,
+          100,          44,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT},
+      TP_USE_NEXT |  TP_LOW_CN0 },
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
+  { {      BW_DYN,           0,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
            TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
-           50,          43,          51,
+           100,          41,          47,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0},
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
+  { {      BW_DYN,           0,           2,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
            TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
-           50,          35,          46,
+           100,          37,          44,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
+  { {      BW_DYN,           0,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-           50,          32,          38,
+           100,          34,          40,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+     TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {      BW_DYN,           0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           50,          25,          35,
-      IDX_20MS,   IDX_SENS,     IDX_10MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+           100,          31,          37,
+      IDX_20MS,   IDX_SENS,    IDX_10MS,
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,           1.0,           1,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {      BW_DYN,           0,         .25,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-         50,             0,         32.,
+         100,             0,         34,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
-      TP_HIGH_CN0 | TP_USE_NEXT }
+      TP_USE_NEXT |              TP_HIGH_CN0 }
 };
 /* clang-format on */
 
