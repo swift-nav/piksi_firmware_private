@@ -54,9 +54,9 @@ void piksi_systime_dec_s(piksi_systime_t *t, u64 dec);
 
 s8 piksi_systime_cmp(const piksi_systime_t *a, const piksi_systime_t *b);
 
-s64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b);
-s64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b);
-s64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b);
+u64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b);
+u64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b);
+u64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b);
 
 void piksi_systime_sleep_us_s(u32 len_us);
 

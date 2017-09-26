@@ -234,7 +234,7 @@ static s64 piksi_systime_sub_internal(const piksi_systime_t *a,
  *
  * \return a - b result as microseconds.
  */
-s64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b) {
+u64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b) {
   s64 ticks = piksi_systime_sub_internal(a, b);
 
   if (ticks < 0) {
@@ -254,7 +254,7 @@ s64 piksi_systime_sub_us(const piksi_systime_t *a, const piksi_systime_t *b) {
  *
  * \return a - b result as milliseconds.
  */
-s64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b) {
+u64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b) {
   s64 ticks = piksi_systime_sub_internal(a, b);
 
   if (ticks < 0) {
@@ -274,7 +274,7 @@ s64 piksi_systime_sub_ms(const piksi_systime_t *a, const piksi_systime_t *b) {
  *
  * \return a - b result as seconds.
  */
-s64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b) {
+u64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b) {
   s64 ticks = piksi_systime_sub_internal(a, b);
 
   if (ticks < 0) {
