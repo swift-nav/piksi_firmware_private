@@ -36,6 +36,9 @@ echo "Uploading $@ to $BUILD_PATH"
 echo "Publish PULL_REQUEST ($TRAVIS_PULL_REQUEST)"
 echo "Publish BRANCH ($TRAVIS_BRANCH)"
 echo "Publish TAG ($TRAVIS_TAG)"
+echo "Publish VERSION ($BUILD_VERSION)"
+echo "Publish SHA ($TRAVIS_COMMIT)"
+echo "Publish SHA-1 ($TRAVIS_PULL_REQUEST_SHA)"
 
 for file in "$@"
 do
