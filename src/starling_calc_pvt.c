@@ -178,7 +178,7 @@ bool dgnss_timeout(piksi_systime_t *_last_dgnss,
 
   /* Need to compare timeout threshold in MS to system time elapsed (in system
    * ticks) */
-  return (piksi_systime_elapsed_since_ms_x(_last_dgnss) > DGNSS_TIMEOUT_MS);
+  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
 /** Determine if we have had a SPP timeout.
