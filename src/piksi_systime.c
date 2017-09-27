@@ -404,9 +404,6 @@ void piksi_systime_inc_s(piksi_systime_t *t, u64 inc) {
  * \param[in] inc           System tick value to be decreased.
  */
 void piksi_systime_dec_internal(piksi_systime_t *t, u64 dec) {
-  if (NULL == t) {
-    return;
-  }
 
   assert(t);
 
