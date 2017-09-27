@@ -679,7 +679,7 @@ void check_clear_glo_unhealthy(void) {
         (ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state)) {
       /* check if time since channel dropped due to SV unhealthy greater
        * than GLO ephemeris valid time (30 min) */
-      if (piksi_systime_elapsed_since_s_x(&glo_acq_timer[i].tick) >
+      if (piksi_systime_elapsed_since_s(&glo_acq_timer[i].tick) >
           ACQ_GLO_EPH_VALID_TIME_SEC) {
         /* enable GLO aqcuisition again */
         glo_acq_timer[i].status->state = ACQ_PRN_ACQUIRING;

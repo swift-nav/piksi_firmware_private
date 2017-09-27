@@ -43,7 +43,7 @@
 #define DO_EACH_MS(n, cmd)                                  \
   do {                                                      \
     static piksi_systime_t previous = PIKSI_SYSTIME_INIT;   \
-    if (piksi_systime_elapsed_since_ms_x(&previous) >= n) { \
+    if (piksi_systime_elapsed_since_ms(&previous) >= n) { \
       cmd;                                                  \
       piksi_systime_get(&previous);                         \
     }                                                       \

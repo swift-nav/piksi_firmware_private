@@ -317,7 +317,7 @@ void log_obs_latency(float latency_ms) {
 }
 
 void log_obs_latency_tick(void) {
-  u32 elapsed_ms = piksi_systime_elapsed_since_ms_x(&last_obs_msg_ticks);
+  u32 elapsed_ms = piksi_systime_elapsed_since_ms(&last_obs_msg_ticks);
 
   if (piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &last_obs_msg_ticks) ||
       elapsed_ms > LOG_OBS_WINDOW_DURATION_MS) {

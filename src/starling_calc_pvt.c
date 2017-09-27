@@ -178,7 +178,7 @@ bool dgnss_timeout(piksi_systime_t *_last_dgnss,
 
   /* Need to compare timeout threshold in MS to system time elapsed (in system
    * ticks) */
-  return (piksi_systime_elapsed_since_ms_x(_last_dgnss) > DGNSS_TIMEOUT_MS);
+  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
 /** Determine if we have had a SPP timeout.
@@ -1095,11 +1095,11 @@ static void time_matched_obs_thread(void *arg) {
           last_update_time = obss->tor;
         }
 
-        chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(
               base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
         }
+        chPoolFree(&time_matched_obs_buff_pool, obss);
         break;
       } else {
         if (dt > 0) {
