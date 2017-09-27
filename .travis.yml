@@ -14,6 +14,10 @@ os:
   - linux
   - osx
 
+branches:
+  only:
+    - master
+    - v1.2.0-release
 
 matrix:
   include:
