@@ -342,9 +342,6 @@ u64 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t) {
  *
  */
 void piksi_systime_inc_internal(piksi_systime_t *t, u64 inc) {
-  if (NULL == t) {
-    return;
-  }
 
   assert(t);
 
