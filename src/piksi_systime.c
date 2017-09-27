@@ -147,8 +147,7 @@ void piksi_systime_get(piksi_systime_t *t) {
 }
 
 /* No lock version, this should be used if caller already has the lock. */
-static void piksi_systime_get_x(piksi_systime_t *t)
-{
+static void piksi_systime_get_x(piksi_systime_t *t) {
   piksi_systime_get_internal(t);
 }
 
