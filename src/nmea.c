@@ -824,16 +824,13 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
   /* Assemble list of currently active SVs */
   for (u8 i = 0; i < n_meas; i++) {
     const navigation_measurement_t info = nav_meas[i];
-    if (IS_GPS(info.sid) &&
-        num_prns_gps < GSA_MAX_SV &&
+    if (IS_GPS(info.sid) && num_prns_gps < GSA_MAX_SV &&
         !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
       prns_gps[num_prns_gps++] = info.sid.sat;
       continue;
     }
 
-    if (enable_glonass &&
-        IS_GLO(info.sid) &&
-        num_prns_glo < GSA_MAX_SV &&
+    if (enable_glonass && IS_GLO(info.sid) && num_prns_glo < GSA_MAX_SV &&
         !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
       prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
       continue;
