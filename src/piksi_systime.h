@@ -34,11 +34,10 @@ extern "C" {
 #endif
 
 void piksi_systime_get(piksi_systime_t *t);
-void piksi_systime_get_x(piksi_systime_t *t);
 
-u64 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t);
-u64 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t);
-u64 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t);
+u64 piksi_systime_elapsed_since_us(const piksi_systime_t *t);
+u64 piksi_systime_elapsed_since_ms(const piksi_systime_t *t);
+u64 piksi_systime_elapsed_since_s(const piksi_systime_t *t);
 
 u64 piksi_systime_to_us(const piksi_systime_t *t);
 u64 piksi_systime_to_ms(const piksi_systime_t *t);
