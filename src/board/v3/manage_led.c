@@ -112,11 +112,11 @@ static bool blinker_update(blinker_state_t *b) {
       break;
   }
 
-  u32 elapsed = piksi_systime_elapsed_since_ms_x(&b->state_change);
+  u32 elapsed = piksi_systime_elapsed_since_ms(&b->state_change);
 
   if (elapsed >= period_ms) {
     b->on_off = !b->on_off;
-    piksi_systime_get_x(&b->state_change);
+    piksi_systime_get(&b->state_change);
   }
 
   return b->on_off;
@@ -133,7 +133,7 @@ static device_state_t get_device_state(void) {
   s8 fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &stats.systime);
 
   if (fix) {
-    u32 elapsed = piksi_systime_elapsed_since_ms_x(&stats.systime);
+    u32 elapsed = piksi_systime_elapsed_since_ms(&stats.systime);
     if (elapsed < LED_MODE_TIMEOUT_MS) {
       return (FILTER_FIXED == stats.mode) ? DEV_FIXED : DEV_FLOAT;
     }
@@ -144,7 +144,7 @@ static device_state_t get_device_state(void) {
   fix = piksi_systime_cmp(&PIKSI_SYSTIME_INIT, &t);
 
   if (fix) {
-    u32 elapsed = piksi_systime_elapsed_since_ms_x(&t);
+    u32 elapsed = piksi_systime_elapsed_since_ms(&t);
 
     /* PVT available */
     if (elapsed < LED_MODE_TIMEOUT_MS) {
