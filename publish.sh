@@ -28,6 +28,7 @@ PRS_BUCKET="${PRS_BUCKET:-swiftnav-artifacts-pull-requests}"
 
 BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
+SHA_KEY="$BUILD_PATH/SHA"
 if [[ ! -z "$PRODUCT_VERSION" ]]; then
     BUILD_PATH="$BUILD_PATH/$PRODUCT_VERSION"
 fi
@@ -36,16 +37,21 @@ echo "Uploading $@ to $BUILD_PATH"
 echo "Publish PULL_REQUEST ($TRAVIS_PULL_REQUEST)"
 echo "Publish BRANCH ($TRAVIS_BRANCH)"
 echo "Publish TAG ($TRAVIS_TAG)"
+echo "Publish VERSION ($BUILD_VERSION)"
+echo "Publish SHA ($TRAVIS_PULL_REQUEST_SHA)"
+
+SHA_FILE="$(mktemp)"
+echo "$TRAVIS_PULL_REQUEST_SHA" > "$SHA_FILE"
 
 for file in "$@"
 do
     KEY="$BUILD_PATH/$(basename $file)"
     if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         if [[ "$TRAVIS_BRANCH" == master || "$TRAVIS_TAG" == v* || "$TRAVIS_BRANCH" == v*-release ]]; then
-            OBJECT="s3://$BUCKET/$KEY"
-            aws s3 cp "$file" "$OBJECT"
+            aws s3 cp "$file" "s3://$BUCKET/$KEY"
         fi
     else
         aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY" --body "$file" --acl public-read
+        aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$SHA_KEY" --body "$SHA_FILE" --acl public-read
     fi
 done
