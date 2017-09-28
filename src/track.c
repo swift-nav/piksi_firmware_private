@@ -1234,14 +1234,14 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
       {
         interface_function(tracker_channel,
                            tracker_channel->interface->disable);
-        piksi_systime_get_x(&tracker_channel->disable_time);
+        piksi_systime_get(&tracker_channel->disable_time);
         event(tracker_channel, EVENT_DISABLE);
       }
       tracker_channel_unlock(tracker_channel);
     } break;
 
     case STATE_DISABLE_WAIT: {
-      if (piksi_systime_elapsed_since_ms_x(&tracker_channel->disable_time) >=
+      if (piksi_systime_elapsed_since_ms(&tracker_channel->disable_time) >=
           CHANNEL_DISABLE_WAIT_TIME_MS) {
         event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
       }
