@@ -524,6 +524,11 @@ typedef struct {
   u8 xcorr_flag : 1;       /**< Cross-correlation flag */
 } gps_l2cm_tracker_data_t;
 
+/* tracker_channel_t::rates_vel_check update rate */
+#define TL_CF_VEL_CHECK_UPDATE_MS 3000
+/* tracker_channel_t::rates_acc_check update rate */
+#define TL_CF_ACC_CHECK_UPDATE_MS 20
+
 /** Top-level generic tracker channel. */
 typedef struct {
   /* This portion of the structure is not cleaned-up at tracker channel start */
@@ -604,6 +609,32 @@ typedef struct {
 
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
+
+  /** We use the velocity limit of 1.5 * MAX_USER_VELOCITY_MPS,
+      which translates to ~300Hz. We want to have access to >=~3s old
+      rates reading to apply the check. The SV motion induced Doppler
+      change is negligibly small in this case (<10Hz).
+      So we choose the rates_vel_check[]
+      size 2 and the update rate 3000ms (#TL_RATES_VEL_CHECK_UPDATE_MS)*/
+  tl_rates_t cf_vel_check[2];
+  bool cf_vel_valid;  /* rates_vel_check[] is valid */
+  u8 cf_vel_index;    /* the index into rates_vel_check[] */
+  /** The timestamp of last update of rates_vel_check[] */
+  update_count_t cf_vel_timestamp_ms;
+
+  /** We use the acceleration limit set to 9g, which translates
+      to 9g/0.19 ~ 464Hz/s. We want to prevent loop errors beyond 50Hz.
+      It translates to the check timeout of 50 / (464 / 1000) ~ 107[ms].
+      If we take a snapshot of a tracking loop output every
+      20ms (#TL_RATES_ACC_CHECK_UPDATE_MS), then
+      we have to keep track of last 6 snapshots to always have access to
+      ~120ms old rates reading. */
+  tl_rates_t cf_acc_check[6];
+  bool cf_acc_valid;         /* rates_acc_check[] is valid  */
+  u8 cf_acc_index;           /* the index into rates_acc_check[] */
+  /** The timestamp of last update of rates_acc_check[] */
+  update_count_t cf_acc_timestamp_ms;
+
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   float acceleration;          /**< Acceleration [g] */
