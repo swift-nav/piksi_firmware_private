@@ -517,11 +517,8 @@ static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
     ret = filter_manager_update(filter_manager);
-    if (ret != PVT_ENGINE_SUCCESS) {
-      detailed_log_info("Skipping filter update with ret = %d", ret);
-    }
   } else {
-    detailed_log_info("Filter not initialized.");
+    log_info("Starling Filter not initialized.");
   }
   return ret;
 }
@@ -538,9 +535,8 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
     *dops = filter_manager_get_dop_values(filter_manager);
-  } else {
-    detailed_log_info("Baseline calculation failed");
   }
+
   return get_baseline_ret;
 }
 
@@ -1040,7 +1036,7 @@ static void time_matched_obs_thread(void *arg) {
 
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
-        detailed_log_error("Base obs mailbox fetch failed with %d", fetch_ret);
+        log_error("Base obs mailbox fetch failed with %d", fetch_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
