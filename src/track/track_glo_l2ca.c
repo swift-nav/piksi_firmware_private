@@ -28,8 +28,8 @@
 
 /* Libraries */
 #include <libswiftnav/constants.h>
-#include <libswiftnav/logging.h>
 #include <libswiftnav/glo_map.h>
+#include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
 
@@ -124,33 +124,33 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   /* check if we have the fcn mapped alredy to some slot id */
   u8 num_si = glo_map_get_slot_id(sat, &slot_id);
   switch (num_si) {
-  case 1:
-    /* the fcn mapped to one slot id only,
-     * so use it as glo l2 prn to be tracked */
-    startup_params.glo_slot_id = (u16)(slot_id >> 16);
-    break;
-  case 2: {
-    /* we have 2 slot ids mapped to one fcn */
-    gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, (u16)(slot_id >> 16));
-    /* check which slot id for glo l2 we need to track */
-    if (glo_map_get_fcn(sid) == sat) {
-      /* the fcn mapped to the FIRST slot ID is same that desired fcn,
-       * track it */
+    case 1:
+      /* the fcn mapped to one slot id only,
+       * so use it as glo l2 prn to be tracked */
       startup_params.glo_slot_id = (u16)(slot_id >> 16);
-    } else {
-      sid = construct_sid(CODE_GLO_L1CA, (u16)(slot_id & 0xffff));
+      break;
+    case 2: {
+      /* we have 2 slot ids mapped to one fcn */
+      gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, (u16)(slot_id >> 16));
+      /* check which slot id for glo l2 we need to track */
       if (glo_map_get_fcn(sid) == sat) {
-        /* the fcn mapped to the SECOND slot ID is same that desired fcn,
+        /* the fcn mapped to the FIRST slot ID is same that desired fcn,
          * track it */
-        startup_params.glo_slot_id = (u16)(slot_id & 0xffff);
+        startup_params.glo_slot_id = (u16)(slot_id >> 16);
+      } else {
+        sid = construct_sid(CODE_GLO_L1CA, (u16)(slot_id & 0xffff));
+        if (glo_map_get_fcn(sid) == sat) {
+          /* the fcn mapped to the SECOND slot ID is same that desired fcn,
+           * track it */
+          startup_params.glo_slot_id = (u16)(slot_id & 0xffff);
+        }
       }
     }
-  }
-    break;
-  default:
-  case 0:
-    startup_params.glo_slot_id = 0;
-    break;
+      break;
+    default:
+    case 0:
+      startup_params.glo_slot_id = 0;
+      break;
   }
 
   switch (tracking_startup_request(&startup_params)) {
