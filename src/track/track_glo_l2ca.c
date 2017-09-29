@@ -145,8 +145,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
           startup_params.glo_slot_id = (u16)(slot_id & 0xffff);
         }
       }
-    }
-      break;
+    } break;
     default:
     case 0:
       startup_params.glo_slot_id = 0;
