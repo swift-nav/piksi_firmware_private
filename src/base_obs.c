@@ -321,7 +321,7 @@ static void update_obss(obss_t *new_obss) {
 
       obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
       if (new_base_obs == NULL) {
-        detailed_log_warn(
+        log_warn(
             "Base obs pool full, discarding base obs at: wn: %d, tow: %.2f",
             base_obss.tor.wn,
             base_obss.tor.tow);
@@ -333,7 +333,7 @@ static void update_obss(obss_t *new_obss) {
       const msg_t post_ret =
           chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
       if (post_ret != MSG_OK) {
-        detailed_log_error("Base obs mailbox should have space!");
+        log_error("Base obs mailbox should have space!");
         chPoolFree(&base_obs_buff_pool, new_base_obs);
       }
     } else {
