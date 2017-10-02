@@ -942,20 +942,6 @@ void process_matched_obs(const obss_t *rover_channel_meass,
   }
 }
 
-bool update_time_matched(gps_time_t *last_update_time,
-                         gps_time_t *current_time,
-                         u8 num_obs) {
-  double update_dt = gpsdifftime(current_time, last_update_time);
-  double update_rate_limit = 0.99;
-  if (num_obs > 16) {
-    update_rate_limit = 1.99;
-  }
-  if (update_dt < update_rate_limit) {
-    return false;
-  }
-  return true;
-}
-
 static bool enable_fix_mode(struct setting *s, const char *val) {
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
@@ -1084,12 +1070,7 @@ static void time_matched_obs_thread(void *arg) {
         pvt_engine_result_t soln_copy = obss->soln;
         solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
-        static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
-            dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-          process_matched_obs(obss, &base_obss_copy, &sbp_messages);
-          last_update_time = obss->tor;
-        }
+        process_matched_obs(obss, &base_obss_copy, &sbp_messages);
 
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(
