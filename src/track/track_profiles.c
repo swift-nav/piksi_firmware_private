@@ -382,7 +382,7 @@ static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
 }
 
 static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
-  float bw = 3.0f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
+  float bw = 1.0f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
 
   /* Limit FLL bw to minimum bound */
   if (bw < FLL_BW_MIN) {
