@@ -235,60 +235,60 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {   30,             0,           10,   TP_CTRL_PLL2,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-       100,             0,            0,
-      IDX_NONE,  IDX_NONE,     IDX_NONE,
+  { {    0,             10,          6,    TP_CTRL_PLL3,          TP_TM_INITIAL,
+           TP_TM_INITIAL },      TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+       100,              0,          0,
+      IDX_NONE,   IDX_NONE,   IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
-  { {   25,             0,            6,   TP_CTRL_PLL2,          TP_TM_1MS_GPS,
-          TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-       100,             0,            0,
-       IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_BSYNC | TP_WAIT_PLOCK },
+  { {  25,               0,          5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+           TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+           200,          0,          0,
+      IDX_NONE,   IDX_NONE,   IDX_NONE,
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK },
 
   [IDX_1MS]
-  { {      BW_DYN,           0,           4,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+  { {    BW_DYN,         0,          4,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
            TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-          100,          44,           0,
+           50,          44,          0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_USE_NEXT |  TP_LOW_CN0 },
 
   [IDX_2MS] =
-  { {      BW_DYN,           0,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
+  { {    BW_DYN,         0,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
            TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
-           100,          41,          47,
+           50,          41,          47,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0},
 
   [IDX_5MS] =
-  { {      BW_DYN,           0,           2,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
+  { {    BW_DYN,         0,           2,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
            TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
-           100,          37,          44,
+           50,          37,          44,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   [IDX_10MS] =
-  { {      BW_DYN,           0,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
+  { {    BW_DYN,         0,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-           100,          34,          40,
-     IDX_10MS,    IDX_20MS,     IDX_5MS,
-     TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
+            50,          34,         40,
+      IDX_10MS,    IDX_20MS,     IDX_5MS,
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   [IDX_20MS] =
-  { {      BW_DYN,           0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {    BW_DYN,         0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           100,          31,          37,
+            50,         31,          37,
       IDX_20MS,   IDX_SENS,    IDX_10MS,
       TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {      BW_DYN,           0,         .25,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {       0,         1.0,         .25,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-         100,             0,         34,
-      IDX_SENS,  IDX_NONE,     IDX_20MS,
+            50,          0,           34,
+      IDX_SENS,   IDX_NONE,     IDX_20MS,
       TP_USE_NEXT |              TP_HIGH_CN0 }
 };
 /* clang-format on */
