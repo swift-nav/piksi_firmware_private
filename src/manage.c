@@ -99,6 +99,8 @@ typedef struct {
   me_gnss_signal_t mesid;  /**< ME signal identifier. */
 } acq_status_t;
 
+static MUTEX_DECL(acq_status_mutex);
+
 static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
 
@@ -198,9 +200,11 @@ static void mask_sat_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       mesid = construct_mesid(sid.code, sid.sat);
     }
     u16 me_global_index = mesid_to_global_index(mesid);
+    chMtxLock(&acq_status_mutex);
     acq_status_t *acq = &acq_status[me_global_index];
     acq->masked = (m->mask & MASK_ACQUISITION) ? true : false;
     track_mask[me_global_index] = (m->mask & MASK_TRACKING) ? true : false;
+    chMtxUnlock(&acq_status_mutex);
     log_info_sid(sid, "Mask = 0x%02x", m->mask);
   } else {
     log_warn("Mask not set for invalid SID");
@@ -254,11 +258,13 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
       glo_enabled = false;
       return false;
     }
+    chMtxLock(&acq_status_mutex);
     for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
       if (IS_GLO(acq_status[i].mesid)) {
         acq_status[i].masked = !glo_enabled;
       }
     }
+    chMtxUnlock(&acq_status_mutex);
     return true;
   }
   return false;
@@ -274,6 +280,7 @@ void manage_acq_setup() {
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
+  chMtxLock(&acq_status_mutex);
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
@@ -294,6 +301,7 @@ void manage_acq_setup() {
 
     track_mask[i] = false;
   }
+  chMtxUnlock(&acq_status_mutex);
 
   sbp_register_cbk(SBP_MSG_ALMANAC, &almanac_callback, &almanac_callback_node);
 
@@ -525,31 +533,36 @@ cturvey 10-Feb-2015
 void manage_set_obs_hint(gnss_signal_t sid) {
   bool valid = sid_supported(sid);
   assert(valid);
-  if (valid) {
-    /* TODO GLO: Handle GLO signals properly. */
-    me_gnss_signal_t mesid;
-    if (IS_GLO(sid)) {
-      if (!glo_map_valid(sid)) {
-        /* no guarantee that we have FCN mapping for an observation
-         * received from peer */
-        return;
-      }
-      u16 fcn = glo_map_get_fcn(sid);
-      mesid = construct_mesid(sid.code, fcn);
-    } else {
-      mesid = construct_mesid(sid.code, sid.sat);
+  
+  /* TODO GLO: Handle GLO signals properly. */
+  me_gnss_signal_t mesid;
+  if (IS_GLO(sid)) {
+    if (!glo_map_valid(sid)) {
+      /* no guarantee that we have FCN mapping for an observation
+       * received from peer */
+      return;
     }
-    acq_status[mesid_to_global_index(mesid)].score[ACQ_HINT_REMOTE_OBS] =
-        SCORE_OBS;
+    u16 fcn = glo_map_get_fcn(sid);
+    mesid = construct_mesid(sid.code, fcn);
+  } else {
+    mesid = construct_mesid(sid.code, sid.sat);
   }
+  chMtxLock(&acq_status_mutex);
+  acq_status[mesid_to_global_index(mesid)].score[ACQ_HINT_REMOTE_OBS] =
+      SCORE_OBS;
+  chMtxUnlock(&acq_status_mutex);
 }
 
 /** Manages acquisition searches and starts tracking channels after successful
  * acquisitions. */
 static void manage_acq(void) {
   /* Decide which SID to try and then start it acquiring. */
+  if (!chMtxTryLock(&acq_status_mutex)) {
+    return;
+  }
   acq_status_t *acq = choose_acq_sat();
   if (acq == NULL) {
+    chMtxUnlock(&acq_status_mutex);
     return;
   }
 
@@ -592,6 +605,7 @@ static void manage_acq(void) {
       }
       /* Reset hint score for acquisition. */
       acq->score[ACQ_HINT_PREV_ACQ] = 0;
+      chMtxUnlock(&acq_status_mutex);
       return;
     }
 
@@ -607,6 +621,7 @@ static void manage_acq(void) {
 
     tracking_startup_request(&tracking_startup_params);
   }
+  chMtxUnlock(&acq_status_mutex);
 }
 
 /** Send results of an acquisition to the host.
@@ -660,11 +675,13 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
     those sats in case they recover from their sickness.  Call this
     function regularly, and once per day it will reset the flags. */
 void check_clear_unhealthy(void) {
+  chMtxLock(&acq_status_mutex);
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
       acq_status[i].state = ACQ_PRN_ACQUIRING;
     }
   }
+  chMtxUnlock(&acq_status_mutex);
 }
 
 /** Check GLO unhealthy flags and clear after GLO ephemeris valid time
@@ -815,9 +832,11 @@ static void drop_channel(tracker_channel_t *tracker_channel,
             mesid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
       } else {
         /* FIXME other constellations/bands */
+        //chMtxLock(&acq_status_mutex);
         acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
         acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP, doppler_min);
         acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
+        //chMtxLock(&acq_status_mutex);
       }
     }
   }
@@ -1352,8 +1371,11 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
  */
 bool tracking_startup_ready(const me_gnss_signal_t mesid) {
   u16 global_index = mesid_to_global_index(mesid);
+  chMtxLock(&acq_status_mutex);
   acq_status_t *acq = &acq_status[global_index];
-  return (acq->state == ACQ_PRN_ACQUIRING) && (!acq->masked);
+  bool ret = (acq->state == ACQ_PRN_ACQUIRING) && (!acq->masked);
+  chMtxUnlock(&acq_status_mutex);
+  return ret;
 }
 
 /**
@@ -1366,8 +1388,11 @@ bool tracking_startup_ready(const me_gnss_signal_t mesid) {
  */
 bool tracking_is_running(const me_gnss_signal_t mesid) {
   u16 global_index = mesid_to_global_index(mesid);
+  chMtxLock(&acq_status_mutex);
   acq_status_t *acq = &acq_status[global_index];
-  return (acq->state == ACQ_PRN_TRACKING);
+  bool ret = (acq->state == ACQ_PRN_TRACKING);
+  chMtxUnlock(&acq_status_mutex);
+  return ret;
 }
 
 /** Check if a startup request for a mesid is present in a
@@ -1430,12 +1455,14 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
 static void manage_tracking_startup(void) {
   tracking_startup_params_t startup_params;
   while (tracking_startup_fifo_read(&tracking_startup_fifo, &startup_params)) {
+    chMtxLock(&acq_status_mutex);
     acq_status_t *acq =
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
     /* Make sure the SID is not already tracked and healthy */
     if (acq->state == ACQ_PRN_TRACKING ||
         (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
+      chMtxUnlock(&acq_status_mutex);
       continue;
     }
 
@@ -1467,6 +1494,7 @@ static void manage_tracking_startup(void) {
         }
       }
       log_debug("No free tracking channel available.");
+      chMtxUnlock(&acq_status_mutex);
       continue;
     }
 
@@ -1485,8 +1513,10 @@ static void manage_tracking_startup(void) {
       log_error("tracker channel init failed");
       /* If starting of a channel fails, change state to ACQUIRING */
       acq->state = ACQ_PRN_ACQUIRING;
+      chMtxUnlock(&acq_status_mutex);
       continue;
     }
+    chMtxUnlock(&acq_status_mutex);
 
     /* TODO: Initialize elevation from ephemeris if we know it precisely */
 
@@ -1567,8 +1597,11 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
      Revisit this if there will be any better way to check
      if SV is in track. */
   u16 global_index = mesid_to_global_index(mesid);
+  chMtxLock(&acq_status_mutex);
   acq_status_t *acq = &acq_status[global_index];
-  return acq->state == ACQ_PRN_TRACKING;
+  bool ret = acq->state == ACQ_PRN_TRACKING;
+  chMtxUnlock(&acq_status_mutex);
+  return ret;
 }
 
 /** Checks if GLONASS enabled
