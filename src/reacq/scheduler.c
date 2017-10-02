@@ -281,7 +281,7 @@ static void sch_glo_fcn_set(acq_job_t *job) {
     return;
   }
 
-  u32 slot_id;
+  u16 slot_id1, slot_id2;
   if (!glo_map_valid(job->sid)) {
     bool next = true;
     do {
@@ -292,7 +292,7 @@ static void sch_glo_fcn_set(acq_job_t *job) {
         job->mesid.sat = GLO_MIN_FCN;
       }
       /* now check if the selected frequency already mapped to other slot id */
-      if (glo_map_get_slot_id(job->mesid.sat, &slot_id) == 0) {
+      if (glo_map_get_slot_id(job->mesid.sat, &slot_id1, &slot_id2) == 0) {
         /* selected frequency is not mapped to other slot id, so use it for
          * acquisition */
         next = false;

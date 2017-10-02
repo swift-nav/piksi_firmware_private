@@ -122,7 +122,6 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
     gnss_signal_t sid = deep_job->sid;
     u16 glo_fcn = GLO_FCN_UNKNOWN;
     bool visible = false;
-    bool vis = false;
     bool known = false;
 
     /* Initialize jobs to not run */
@@ -143,8 +142,8 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
         continue;
       }
 
-      sm_get_glo_visibility_flags(sid.sat, &vis, &known);
-      visible = vis && known;
+      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
+      visible = visible && known;
     }
 
     if (visible) {

@@ -120,29 +120,29 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
       .cn0_init = init_cn0_dbhz,
       .elevation = TRACKING_ELEVATION_UNKNOWN};
 
-  u32 slot_id;
+  u16 slot_id1, slot_id2;
   /* check if we have the fcn mapped alredy to some slot id */
-  u8 num_si = glo_map_get_slot_id(sat, &slot_id);
+  u8 num_si = glo_map_get_slot_id(sat, &slot_id1, &slot_id2);
   switch (num_si) {
     case 1:
       /* the fcn mapped to one slot id only,
        * so use it as glo l2 prn to be tracked */
-      startup_params.glo_slot_id = (u16)(slot_id >> 16);
+      startup_params.glo_slot_id = slot_id1;
       break;
     case 2: {
       /* we have 2 slot ids mapped to one fcn */
-      gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, (u16)(slot_id >> 16));
+      gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, slot_id1);
       /* check which slot id for glo l2 we need to track */
       if (glo_map_get_fcn(sid) == sat) {
         /* the fcn mapped to the FIRST slot ID is same that desired fcn,
          * track it */
-        startup_params.glo_slot_id = (u16)(slot_id >> 16);
+        startup_params.glo_slot_id = slot_id1;
       } else {
-        sid = construct_sid(CODE_GLO_L1CA, (u16)(slot_id & 0xffff));
+        sid = construct_sid(CODE_GLO_L1CA, slot_id2);
         if (glo_map_get_fcn(sid) == sat) {
           /* the fcn mapped to the SECOND slot ID is same that desired fcn,
            * track it */
-          startup_params.glo_slot_id = (u16)(slot_id & 0xffff);
+          startup_params.glo_slot_id = slot_id2;
         }
       }
     } break;
