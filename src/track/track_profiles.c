@@ -39,12 +39,12 @@
     any race condition */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (TP_HARD_CN0_DROP_THRESHOLD_DBHZ + 1)
 
-#define TL_BWT_MAX (0.1f)
+#define TL_BWT_MAX (0.18f)
 
 #define PLL_CN0_MIN (20.0f)
 #define PLL_CN0_MAX (50.0f)
 #define PLL_BW_MIN (7.0f)
-#define PLL_BW_MAX (20.0f)
+#define PLL_BW_MAX (30.0f)
 #define FLL_BW_MIN (0.1f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
@@ -229,21 +229,21 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {   30,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {   40,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
         50,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
-  { {   30,             3,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+  { {   40,             3,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
         50,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { {   30,             1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+  { {   40,             1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
           TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
        200,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
