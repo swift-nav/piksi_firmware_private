@@ -28,7 +28,7 @@
 
 const PALConfig pal_default_config;
 const WDGConfig board_wdg_config = {
-    .period_ms = 30000,
+    .period_ms = 20000,
 };
 
 static void cycle_counter_init(void) {
