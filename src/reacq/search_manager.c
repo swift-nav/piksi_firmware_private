@@ -123,16 +123,13 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
     u16 glo_fcn = GLO_FCN_UNKNOWN;
     bool visible = false;
     bool known = false;
+
     /* Initialize jobs to not run */
     deep_job->needs_to_run = false;
 
     if (glo_map_valid(sid)) {
       glo_fcn = glo_map_get_fcn(sid);
-    }
 
-    if (GLO_FCN_UNKNOWN == glo_fcn) {
-      deep_job->glo_blind_search = true;
-    } else {
       *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
 
       assert(mesid_valid(*mesid));
@@ -140,10 +137,13 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
       assert(IS_GLO(*mesid));
       assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
-      if (!deep_job->glo_blind_search) {
-        sm_get_glo_visibility_flags(sid.sat, &visible, &known);
-        visible = visible && known;
+      /* Check if jobs need to run */
+      if (mesid_is_tracked(*mesid)) {
+        continue;
       }
+
+      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
+      visible = visible && known;
     }
 
     if (visible) {
@@ -151,7 +151,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
-    } else if (deep_job->glo_blind_search) {
+    } else if (!glo_map_valid(sid)) {
       deep_job->cost_hint = ACQ_COST_AVG;
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
@@ -246,25 +246,26 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     bool invisible = false;
     bool known = false;
 
-    if (glo_map_valid(sid)) {
-      glo_fcn = glo_map_get_fcn(sid);
-    }
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
-    if (GLO_FCN_UNKNOWN == glo_fcn) {
-      fallback_job->glo_blind_search = true;
-    } else {
+
+    if (glo_map_valid(sid)) {
+      glo_fcn = glo_map_get_fcn(sid);
+
       *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
       assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));
       assert(IS_GLO(*mesid));
 
-      if (!fallback_job->glo_blind_search) {
-        sm_get_glo_visibility_flags(sid.sat, &visible, &known);
-        visible = visible && known;
-        invisible = !visible && known;
+      /* Check if jobs need to run */
+      if (mesid_is_tracked(*mesid)) {
+        continue;
       }
+
+      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
+      visible = visible && known;
+      invisible = !visible && known;
     }
 
     if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
@@ -277,7 +278,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                 now_ms - fallback_job->stop_time >
                     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
-               fallback_job->glo_blind_search) {
+               !glo_map_valid(sid)) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
