@@ -11,6 +11,7 @@
  */
 
 #include <assert.h>
+#include <libswiftnav/glo_map.h>
 #include <manage.h>
 #include <sbp_utils.h>
 #include "reacq_sbp_utility.h"
@@ -39,7 +40,7 @@ void sch_send_acq_profile_msg(const acq_job_t *job,
   prof.status = peak_found;
   prof.cn0 = (u16)(10 * acq_result->cn0);
   prof.int_time = acq_params->integration_time_ms;
-  if (job->glo_blind_search) {
+  if (IS_GLO(job->mesid) && !glo_map_valid(job->sid)) {
     prof.sid =
         sid_to_sbp(construct_sid(job->mesid.code, GLO_ORBIT_SLOT_UNKNOWN));
   } else {
