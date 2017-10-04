@@ -575,7 +575,6 @@ static void manage_acq(void) {
   }
 
   acq_result_t acq_result;
-  memset(&acq_result, 0, sizeof(acq_result));
   if (soft_multi_acq_search(
           acq->mesid, acq->dopp_hint_low, acq->dopp_hint_high, &acq_result)) {
     /* Send result of an acquisition to the host. */

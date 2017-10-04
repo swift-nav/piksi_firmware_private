@@ -92,6 +92,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   /** sanity checking input parameters */
   assert(NULL != p_acqres);
 
+  memset(p_acqres, 0, sizeof(acq_result_t));
+
   if (!bModuleInit) {
     InitBBConvLut();
     bModuleInit = true;
