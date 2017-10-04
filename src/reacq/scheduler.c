@@ -13,7 +13,6 @@
 #include <dum.h>
 #include <libswiftnav/glo_map.h>
 #include <manage.h>
-#include <string.h>
 #include <timing.h>
 #include <track.h>
 #include "scheduler_api.h"
@@ -342,8 +341,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
   assert(mesid_valid(job->mesid));
 
   job->start_time = timing_getms();
-
-  memset(&acq_result, 0, sizeof(acq_result));
 
   peak_found = soft_multi_acq_search(job->mesid,
                                      acq_param->doppler_min_hz,
