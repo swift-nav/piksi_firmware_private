@@ -701,7 +701,8 @@ static void me_calc_pvt_thread(void *arg) {
          * has the opposite sign compared to the pseudorange rate. */
         nm->raw_pseudorange -=
             (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
+        nm->raw_pseudorange -=
+            current_fix.clock_bias * current_fix.clock_offset * GPS_C;
 
         /* Remove the fractional 2-ms residual FCN contribution */
         if (CODE_GLO_L1CA == nm->sid.code) {
@@ -714,8 +715,9 @@ static void me_calc_pvt_thread(void *arg) {
         nm->raw_carrier_phase += gtemp_diff * fcn;
         /* Carrier Phase corrected by clock offset */
         nm->raw_carrier_phase += (current_fix.clock_offset) * doppler;
-        nm->raw_carrier_phase +=
-            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
+        nm->raw_carrier_phase += current_fix.clock_bias *
+                                 current_fix.clock_offset * GPS_C /
+                                 sid_to_lambda(nm->sid);
 
         /* Use P**V**T to determine the oscillator drift which is used
          * to adjust computed doppler. */
