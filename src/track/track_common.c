@@ -489,9 +489,9 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
   s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
 
   if (0 != err_hz) {
+    /*
     bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
     bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-    /*
     log_warn_mesid(tracker_channel->mesid,
                    "False freq detected: %" PRId32 " Hz (plock=%d,flock=%d)",
                    err_hz,
