@@ -150,19 +150,19 @@ bool gate_covariance_pvt_engine(const pvt_engine_result_t *result) {
 
 bool check_covariance(const double pos_accuracy, const double vel_accuracy) {
   if (pos_accuracy > MAX_SPP_ACCURACY_M) {
-    log_warn(
+    /*log_warn(
         "SPP Position suppressed due to position confidence of %.1f exceeding "
         "%.0f m",
         pos_accuracy,
-        MAX_SPP_ACCURACY_M);
+        MAX_SPP_ACCURACY_M);*/
     return true;
   }
   if (vel_accuracy > MAX_SPP_VEL_ACCURACY_M_PER_S) {
-    log_warn(
+    /*log_warn(
         "SPP Position suppressed due to velocity confidence of %.1f exceeding "
         "%.0f m/s",
         vel_accuracy,
-        MAX_SPP_VEL_ACCURACY_M_PER_S);
+        MAX_SPP_VEL_ACCURACY_M_PER_S);*/
     return true;
   }
   return false;

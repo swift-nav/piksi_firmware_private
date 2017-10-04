@@ -32,6 +32,8 @@ void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
                                       const nav_bit_fifo_element_t *nav_bit) {
+  (void)mesid;
+
   /* Don't trust polarity information while in sensitivity mode. */
   if (nav_bit->sensitivity_mode) {
     glo_decode_status_t status = GLO_DECODE_SENSITIVITY;
@@ -53,7 +55,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   /* Check for bit errors in the collected string */
   s8 bit_errors = error_detection_glo(n);
   if (bit_errors != 0) {
-    log_warn_mesid(mesid, "Parity error");
+    /*log_warn_mesid(mesid, "Parity error");*/
     return GLO_DECODE_WAIT;
   }
 
