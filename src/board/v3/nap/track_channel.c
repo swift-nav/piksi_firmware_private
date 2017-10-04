@@ -339,7 +339,8 @@ void nap_track_update(u8 channel,
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
   /* CHIP RATE --------------------------------------------------------- */
-  u32 code_phase_frac = (u32)s->sw_code_phase + s->code_pinc[0] * s->length[0] * 2;
+  u32 code_phase_frac = (u32)s->sw_code_phase + s->code_pinc[0] *
+      s->length[0] * (NAP_TRACK_DECIMATION_RATE / NAP_CODE_DECIMATION_RATE);
 
   s->code_phase_rate[1] = s->code_phase_rate[0];
   s->code_phase_rate[0] = chip_rate;
