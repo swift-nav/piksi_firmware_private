@@ -105,19 +105,18 @@ typedef enum {
 
 /** Status of acquisition for a particular ME SID. */
 typedef struct {
-  state_e state;           /**< Management status of signal. */
-  bool masked;             /**< Prevent acquisition. */
-  u16 score[ACQ_HINT_NUM]; /**< Acquisition preference of signal. */
-  float dopp_hint_low;     /**< Low bound of doppler search hint. */
-  float dopp_hint_high;    /**< High bound of doppler search hint. */
-  me_gnss_signal_t mesid;  /**< ME signal identifier. */
-  piksi_systime_t tick;    /**< Time when GLO SV was detected as unhealthy */
-  trk_to_acq_e from_trk_to_acq;
-  u32 trk_flags;
-  float carrier_freq;
-  bool obs_hint;
-  acq_mask_e acq_mask_event;
-  mutex_t mtx;
+  state_e state;                /**< Management status of signal. */
+  bool masked;                  /**< Prevent acquisition. */
+  u16 score[ACQ_HINT_NUM];      /**< Acquisition preference of signal. */
+  float dopp_hint_low;          /**< Low bound of doppler search hint. */
+  float dopp_hint_high;         /**< High bound of doppler search hint. */
+  me_gnss_signal_t mesid;       /**< ME signal identifier. */
+  piksi_systime_t tick;         /**< When GLO SV was detected as unhealthy */
+  trk_to_acq_e from_trk_to_acq; /**< Drop channel from tracking event */
+  float carrier_freq;           /**< Doppler info from tracker */
+  bool obs_hint;                /**< Base obs says SV should be visible */
+  acq_mask_e acq_mask_event;    /**< SV mask request */
+  mutex_t mtx;                  /**< For multi-threading protection */
 } acq_status_t;
 
 static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
@@ -238,7 +237,7 @@ static void update_status_array(void) {
       case TRK_TO_ACQ_YES: {
         acq->state = ACQ_PRN_ACQUIRING;
         acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
-        if (0 == acq->carrier_freq) {
+        if (NAN == acq->carrier_freq) {
           break;
         }
         float carrier_freq = acq->carrier_freq;
@@ -256,7 +255,7 @@ static void update_status_array(void) {
           acq->dopp_hint_high =
               MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
         }
-        acq->carrier_freq = 0;
+        acq->carrier_freq = NAN;
         break;
       }
 
@@ -384,7 +383,7 @@ void manage_acq_setup() {
     chMtxObjectInit(&acq_status[i].mtx);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
     acq_status[i].from_trk_to_acq = TRK_TO_ACQ_NO_ACTION;
-    acq_status[i].carrier_freq = 0;
+    acq_status[i].carrier_freq = NAN;
     acq_status[i].tick = PIKSI_SYSTIME_INIT;
     acq_status[i].obs_hint = false;
     acq_status[i].acq_mask_event = ACQ_MASK_NO_ACTION;
@@ -423,12 +422,10 @@ void manage_acq_setup() {
  * whether a satellite is in view and the range of doppler frequencies
  * in which we expect to find it.
  *
- * \param mesid ME signal id
+ * \param mesid Acquisition status
  * \param t     Time at which to evaluate ephemeris and almanac (typically
- * system's
- *              estimate of current time)
- * \param dopp_hint_low, dopp_hint_high Pointers to store doppler search range
- *  from ephemeris or almanac, if available and elevation > mask
+ * system's estimate of current time)
+ *
  * \return Score (higher is better)
  */
 static u16 manage_warm_start(acq_status_t *acq, const gps_time_t *t) {
@@ -633,7 +630,6 @@ void manage_set_obs_hint(gnss_signal_t sid) {
   bool valid = sid_supported(sid);
   assert(valid);
 
-  /* TODO GLO: Handle GLO signals properly. */
   me_gnss_signal_t mesid;
   if (IS_GLO(sid)) {
     if (!glo_map_valid(sid)) {
