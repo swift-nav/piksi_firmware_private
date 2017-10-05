@@ -161,19 +161,19 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
     if (ephemeris_equal(new, &tmp_eph)) {
       /* Exact match */
       log_debug_sid(new->sid, "[EPH] candidate match");
+      return true;
     }
-    return true;
   } else if (NULL != existing_e) {
     ephemeris_t tmp_eph;
     MEMCPY_S(&tmp_eph, sizeof(tmp_eph), existing_e, sizeof(tmp_eph));
     if (IS_GLO(new->sid)) {
       tmp_eph.fit_interval = new->fit_interval;
     }
-    if (ephemeris_equal(new, existing_e)) {
+    if (ephemeris_equal(new, &tmp_eph)) {
       /* Exact match with stored */
       log_debug_sid(new->sid, "[EPH] NDB match");
+      return true;
     }
-    return true;
   }
 
   bool res = false;
