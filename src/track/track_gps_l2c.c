@@ -37,6 +37,8 @@
 
 /** GPS L2C configuration section name */
 #define L2C_TRACK_SETTING_SECTION "l2c_track"
+#define NUM_COH_L2C_20MS_SYMB 10
+
 
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2c_config = TP_TRACKER_DEFAULT_CONFIG;
@@ -107,11 +109,11 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
                              double carrier_freq,
                              float cn0_init,
                              s32 TOW_ms) {
-  /* compose L2CL MESID: same SV, but code is L2CL */
+  /* compose L2CM MESID: same SV, but code is L2CM */
   me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L2CM, sat);
 
   if (!tracking_startup_ready(mesid)) {
-    return; /* L2CL signal from the SV is already in track */
+    return; /* L2C signal from the SV is already in track */
   }
 
   u32 capb;
@@ -440,7 +442,8 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
     }
   }
 
-  bool sensitivity_mode = tp_tl_is_fll(&tracker_channel->tl_state);
+  bool sensitivity_mode =
+    (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
@@ -455,8 +458,6 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
   set_xcorr_suspect_flag(
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
-
-#define NUM_COH_L2C_20MS_SYMB 10
 
 static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2c_config);

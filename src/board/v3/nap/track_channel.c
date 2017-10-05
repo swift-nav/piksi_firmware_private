@@ -312,7 +312,7 @@ void nap_track_init(u8 channel,
     mesid1.code = CODE_GPS_L2CL;
   }
 
-  NAP->TRK_CODE_INT_INIT = 0 * code_chips;
+  NAP->TRK_CODE_INT_INIT = 0;
   NAP->TRK_CODE_FRAC_INIT = 0;
 
   NAP->TRK_CODE_INT_MAX = code_to_chip_count(mesid.code) - 1;
@@ -440,26 +440,6 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
-
-  /*
-    if (!(s->reckon_counter % 256) &&
-       (s->mesid.code == CODE_GPS_L2CM)) {
-      log_info("VEEPLVL IQ %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d
-    %+6d %+6d",
-               s->mesid.sat,
-               s->mesid.code,
-               corrs[3].I,
-               corrs[3].Q,
-               corrs[0].I,
-               corrs[0].Q,
-               corrs[1].I,
-               corrs[1].Q,
-               corrs[2].I,
-               corrs[2].Q,
-               corrs[4].I,
-               corrs[4].Q);
-    }
-  */
 
   if (s->reckon_counter < 1) {
     hw_carr_phase = ((s64)trk_ch.CARR_PHASE_INT << 32) | trk_ch.CARR_PHASE_FRAC;

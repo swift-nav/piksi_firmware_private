@@ -102,8 +102,7 @@ static const double glo_l2_isc[] = {[0] = -7.82,
                                     [11] = -4.503,
                                     [12] = -4.202,
                                     [13] = -3.9};
-static const double gps_l2_isc = 0.0; /* -4.05 */
-;
+static const double gps_l2_isc = -4.05;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
