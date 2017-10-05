@@ -39,7 +39,6 @@
 #define L2C_TRACK_SETTING_SECTION "l2c_track"
 #define NUM_COH_L2C_20MS_SYMB 10
 
-
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2c_config = TP_TRACKER_DEFAULT_CONFIG;
 
@@ -443,7 +442,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
   }
 
   bool sensitivity_mode =
-    (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
+      (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
   if (sensitivity_mode) {
     /* If signal is in sensitivity mode, its whitelisting is cleared */
     data->xcorr_whitelist = false;
