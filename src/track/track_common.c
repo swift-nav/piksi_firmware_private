@@ -71,12 +71,6 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
    * or close to chip_rate. */
   current_chip %= chip_rate;
 
-  /* L2CL code phase has been adjusted by 1,
-   * due to L2CM code chip occupying first slot. */
-  if (CODE_GPS_L2CL == mesid.code) {
-    current_chip += 1;
-  }
-
   s32 offset = current_chip;
   /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
    * and thus next integration period should be longer than nominally. */
