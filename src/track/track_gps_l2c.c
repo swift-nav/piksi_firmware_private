@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 /* Local headers */
 #include "track_gps_l2c.h"
 #include "track_cn0.h"
@@ -473,7 +472,10 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
     /* naturally synched as we track */
     s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
     s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
-    log_debug("G%02d L2C %+2d %+3d", tracker_channel->mesid.sat, symb_sign, tracker_channel->cp_sync.polarity);
+    log_debug("G%02d L2C %+2d %+3d",
+              tracker_channel->mesid.sat,
+              symb_sign,
+              tracker_channel->cp_sync.polarity);
     if (symb_sign != pol_sign) {
       tracker_channel->cp_sync.polarity = symb_sign;
       tracker_channel->cp_sync.synced = false;
@@ -488,8 +490,9 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
     }
   }
   if (tracker_channel->cp_sync.synced) {
-    tracker_channel->bit_polarity =
-      ((tracker_channel->cp_sync.polarity) < 0) ? BIT_POLARITY_NORMAL : BIT_POLARITY_INVERTED;
+    tracker_channel->bit_polarity = ((tracker_channel->cp_sync.polarity) < 0)
+                                        ? BIT_POLARITY_NORMAL
+                                        : BIT_POLARITY_INVERTED;
     update_bit_polarity_flags(tracker_channel);
   }
 }

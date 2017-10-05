@@ -150,7 +150,9 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     tracking_channel_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = tow_ms;
     from_decoder.bit_polarity = data->cnav_msg.bit_polarity;
-    log_debug("G%02d data->cnav_msg.bit_polarity %+2d", channel_info->mesid.sat, data->cnav_msg.bit_polarity);
+    log_debug("G%02d data->cnav_msg.bit_polarity %+2d",
+              channel_info->mesid.sat,
+              data->cnav_msg.bit_polarity);
     tracking_channel_gps_data_sync(channel_info->tracking_channel,
                                    &from_decoder);
 
