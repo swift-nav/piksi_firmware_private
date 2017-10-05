@@ -188,94 +188,6 @@ void do_l2cm_to_l2cl_handover(u32 sample_count,
   }
 }
 
-/**
- * Updates L2CL ToW from cache and propagates it on bit edges.
- *
- * When GPS L1 C/A tracker is running, it is responsible for cache updates.
- * Otherwise GPS L2 CM tracker updates the cache.
- * GPS L2 CL only reads ToW from cache and propagates it on bit edge.
- *
- * \param[in]     tracker_channel Tracker channel data
- * \param[in]     cycle_flags    Current cycle flags.
- *
- * \return None
- */
-static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
-                               u32 cycle_flags) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-
-  tp_tow_entry_t tow_entry;
-  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
-  track_sid_db_load_tow(sid, &tow_entry);
-
-  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
-
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel)) {
-    if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
-      /*
-       * Verify ToW alignment
-       * Current block assumes the bit sync has been reached and current
-       * interval has closed a bit interval. ToW shall be aligned by bit
-       * duration, which is 20ms for GPS L1 C/A / L2 C.
-       */
-      u8 tail = tracker_channel->TOW_ms % GPS_L2C_SYMBOL_LENGTH_MS;
-      if (0 != tail) {
-        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1)
-                          ? -tail
-                          : GPS_L2C_SYMBOL_LENGTH_MS - tail;
-
-        log_error_mesid(mesid,
-                        "[+%" PRIu32
-                        "ms] TOW error detected: "
-                        "error=%" PRId8 "ms old_tow=%" PRId32,
-                        tracker_channel->update_count,
-                        error_ms,
-                        tracker_channel->TOW_ms);
-
-        /* This is rude, but safe. Do not expect it to happen normally. */
-        tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
-      }
-    }
-
-    if (TOW_UNKNOWN == tracker_channel->TOW_ms &&
-        TOW_UNKNOWN != tow_entry.TOW_ms) {
-      /* ToW is not known, but there is a cached value */
-      s32 ToW_ms = TOW_UNKNOWN;
-      double error_ms = 0;
-      u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-      u8 bit_length = tracker_bit_length_get(tracker_channel);
-      ToW_ms = tp_tow_compute(
-          tow_entry.TOW_ms, time_delta_tk, bit_length, &error_ms);
-
-      if (TOW_UNKNOWN != ToW_ms) {
-        log_debug_mesid(mesid,
-                        "[+%" PRIu32
-                        "ms]"
-                        " Initializing TOW from cache [%" PRIu8
-                        "ms] "
-                        "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                        tracker_channel->update_count,
-                        bit_length,
-                        nap_count_to_ms(time_delta_tk),
-                        ToW_ms,
-                        error_ms);
-        tracker_channel->TOW_ms = ToW_ms;
-        if (tp_tow_is_sane(tracker_channel->TOW_ms)) {
-          tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
-        } else {
-          log_error_mesid(mesid,
-                          "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
-                          tracker_channel->update_count,
-                          tracker_channel->TOW_ms);
-          tracker_channel->TOW_ms = TOW_UNKNOWN;
-          tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
-        }
-      }
-    }
-  }
-}
-
 static void tracker_gps_l2cl_init(tracker_channel_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &gps_l2cl_config);
 
@@ -496,7 +408,7 @@ static void tracker_gps_l2cl_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2cl_config);
 
   /* GPS L2 C-specific ToW manipulation */
-  update_tow_gps_l2c(tracker_channel, cflags);
+  update_tow_gps(tracker_channel, cflags);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
