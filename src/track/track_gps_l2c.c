@@ -10,8 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* skip weak attributes for L2C API implementation */
-#define TRACK_GPS_L2CL_INTERNAL
 
 /* Local headers */
 #include "track_gps_l2c.h"
