@@ -898,8 +898,7 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
       corr_epl.prompt = corr_epl.very_late;
       costas = false;
     }
-    tp_tl_update(
-        &tracker_channel->tl_state, &corr_epl, costas);
+    tp_tl_update(&tracker_channel->tl_state, &corr_epl, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
