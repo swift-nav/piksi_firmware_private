@@ -892,9 +892,14 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
 
     tl_rates_t rates = {0};
 
-    bool costas = (tracker_channel->mesid.code != CODE_GPS_L2CL);
+    bool costas = true;
+    tp_epl_corr_t corr_epl = tracker_channel->corrs.corr_epl;
+    if (CODE_GPS_L2CM == tracker_channel->mesid.code) {
+      corr_epl.prompt = corr_epl.very_late;
+      costas = false;
+    }
     tp_tl_update(
-        &tracker_channel->tl_state, &tracker_channel->corrs.corr_epl, costas);
+        &tracker_channel->tl_state, &corr_epl, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
