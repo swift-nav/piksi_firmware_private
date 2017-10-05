@@ -488,11 +488,13 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
         tracker_channel->cp_sync.synced = false;
       }
     }
-  }
-  if (tracker_channel->cp_sync.synced) {
-    tracker_channel->bit_polarity = ((tracker_channel->cp_sync.polarity) < 0)
-                                        ? BIT_POLARITY_NORMAL
-                                        : BIT_POLARITY_INVERTED;
+    if (tracker_channel->cp_sync.synced) {
+      tracker_channel->bit_polarity = ((tracker_channel->cp_sync.polarity) < 0)
+                                          ? BIT_POLARITY_NORMAL
+                                          : BIT_POLARITY_INVERTED;
+    } else {
+      tracker_channel->bit_polarity = BIT_POLARITY_UNKNOWN;
+    }
     update_bit_polarity_flags(tracker_channel);
   }
 }
