@@ -20,6 +20,7 @@
 #include "axi_dma.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
+#include "track_dma.h"
 
 #include "main.h"
 #include "manage.h"
@@ -35,8 +36,10 @@
   (NAP_IRQS_EXT_EVENT0_Msk | NAP_IRQS_EXT_EVENT1_Msk | NAP_IRQS_EXT_EVENT2_Msk)
 
 static void nap_isr(void *context);
+static void nap_dma_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
+static BSEMAPHORE_DECL(nap_dma_irq_sem, TRUE);
 
 static WORKING_AREA_CCM(wa_nap_irq, 32000);
 
@@ -46,58 +49,13 @@ u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
 
 void nap_setup(void) {
-  nap_track_n_channels = GET_NAP_STATUS_NUM_TRACKING_CH(NAP->STATUS);
-  nap_track_n_channels = MIN(nap_track_n_channels, MAX_CHANNELS);
-
-  nap_scan_channels();
+  nap_track_n_channels = MIN(NAP_NUM_TRACKING_CHANNELS, MAX_CHANNELS);
 
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
 
-  /* Phase increment initialization for GPS L1C/A processing */
-  NAP_FE->RF1A_PINC = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for Beidou B1 processing */
-  NAP_FE->RF1B_PINC = NAP_FE_BDS_B1_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for GLO L1C/A processing */
-  NAP_FE->RF2A_PINC = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for GLO L2C/A processing */
-  NAP_FE->RF3A_PINC = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for GPS L2C processing */
-  NAP_FE->RF4A_PINC = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for Beidou B2 processing */
-  NAP_FE->RF4B_PINC = NAP_FE_BDS_B2_BASEBAND_MIXER_PINC;
-
-  /* Reset frontend NCOs after number of samples */
-  NAP_FE->RF1_NCO_RESET =
-      ((NAP_FE_RF1A_NCO_RESET - 1) << FE_RF1_NCO_RESET_RF1A_Pos) |
-      ((NAP_FE_RF1B_NCO_RESET - 1) << FE_RF1_NCO_RESET_RF1B_Pos);
-
-  NAP_FE->RF2_NCO_RESET =
-      ((NAP_FE_RF2A_NCO_RESET - 1) << FE_RF2_NCO_RESET_RF2A_Pos);
-
-  NAP_FE->RF3_NCO_RESET =
-      ((NAP_FE_RF3A_NCO_RESET - 1) << FE_RF3_NCO_RESET_RF3A_Pos);
-
-  NAP_FE->RF4_NCO_RESET =
-      ((NAP_FE_RF4A_NCO_RESET - 1) << FE_RF4_NCO_RESET_RF4A_Pos) |
-      ((NAP_FE_RF4B_NCO_RESET - 1) << FE_RF4_NCO_RESET_RF4B_Pos);
-
-  /* Enable frontend channels and their respective NCO resets */
-  NAP_FE->CONTROL =
-      (1 << FE_CONTROL_ENABLE_RF1A_Pos) | (0 << FE_CONTROL_ENABLE_RF1B_Pos) |
-      (1 << FE_CONTROL_ENABLE_RF2A_Pos) | (1 << FE_CONTROL_ENABLE_RF3A_Pos) |
-      (1 << FE_CONTROL_ENABLE_RF4A_Pos) | (0 << FE_CONTROL_ENABLE_RF4B_Pos) |
-      (1 << FE_CONTROL_RESET_RF1A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF1B_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF2A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF3A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF4A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF4B_NCO_Pos);
+  track_dma_init(
+      nap_dma_isr, (u32)&NAP->TRK_IRQS0, (u32)NAP_DMA, sizeof(nap_dma_t));
 
   /* Enable NAP interrupt */
   chThdCreateStatic(
@@ -179,10 +137,15 @@ double nap_count_to_ns(u64 delta_time) {
 static void nap_isr(void *context) {
   (void)context;
   chSysLockFromISR();
-
-  /* Wake up processing thread */
   chBSemSignalI(&nap_irq_sem);
+  chSysUnlockFromISR();
+}
 
+static void nap_dma_isr(void *context) {
+  (void)context;
+  chSysLockFromISR();
+  track_dma_clear_irq();
+  chBSemSignalI(&nap_dma_irq_sem);
   chSysUnlockFromISR();
 }
 
@@ -208,18 +171,16 @@ static void handle_nap_irq(void) {
 }
 
 static void handle_nap_track_irq(void) {
-  u32 irq0 = NAP->TRK_IRQS0;
-  u32 irq1 = NAP->TRK_IRQS1;
+  u32 irq0 = NAP_DMA->TRK_IRQS0;
+  u32 irq1 = NAP_DMA->TRK_IRQS1;
+  NAP->TRK_IRQS0 = irq0;
+  NAP->TRK_IRQS1 = irq1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
   tracking_channels_update(irq);
-  NAP->TRK_IRQS0 = irq0;
-  NAP->TRK_IRQS1 = irq1;
 
-  asm("dsb");
-
-  u32 err0 = NAP->TRK_IRQ_ERRORS0;
-  u32 err1 = NAP->TRK_IRQ_ERRORS1;
+  u32 err0 = NAP_DMA->TRK_IRQ_ERRORS0;
+  u32 err1 = NAP_DMA->TRK_IRQ_ERRORS1;
   u64 err = ((u64)err1 << 32) | err0;
   if (err) {
     NAP->TRK_IRQ_ERRORS0 = err0;
@@ -236,19 +197,20 @@ static void nap_irq_thread(void *arg) {
   chRegSetThreadName("NAP");
 
   while (TRUE) {
-    /* Waiting for the IRQ to happen.*/
     chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_MS));
-
     handle_nap_irq();
   }
 }
 
 void nap_track_irq_thread(void *arg) {
-  piksi_systime_t sys_time;
   (void)arg;
+  piksi_systime_t sys_time;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
+    track_dma_start();
+    chBSemWaitTimeout(&nap_dma_irq_sem, MS2ST(PROCESS_PERIOD_MS));
+
     piksi_systime_get(&sys_time);
 
     handle_nap_track_irq();
