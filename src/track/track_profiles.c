@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Valeri Atamaniouk <valeri@swift-nav.com>
+ * Contact: Michele Bavaro <michele@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -54,6 +54,10 @@ typedef enum {
   IDX_INIT_0,
   IDX_INIT_1,
   IDX_INIT_2,
+  IDX_1MS,
+  IDX_2MS,
+  IDX_5MS,
+  IDX_10MS,
   IDX_20MS,
   IDX_SENS
 } profile_indices_t;
@@ -245,21 +249,49 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
+  [IDX_1MS] =
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+           TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+          100,          44,           0,
+      IDX_1MS,     IDX_2MS,    IDX_NONE,
+            0},
+
+  [IDX_2MS] =
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
+           TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
+          100,          41,          47,
+      IDX_2MS,     IDX_5MS,     IDX_1MS,
+            0},
+
+  [IDX_5MS] =
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
+           TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
+          100,          37,          44,
+      IDX_5MS,    IDX_10MS,     IDX_2MS,
+            0},
+
+  [IDX_10MS] =
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
+          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+          100,          34,          40,
+     IDX_10MS,    IDX_20MS,    IDX_NONE,
+            0},
+
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          0.5,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,         0.5,   TP_CTRL_PLL3,
             TP_TM_20MS_GPS,          TP_TM_10MS_GLO },
             TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           50,            31,            0,
+          100,          28,           37,
       IDX_20MS,     IDX_SENS,     IDX_NONE,
       TP_USE_NEXT | TP_LOW_CN0 },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,               2,            1,   TP_CTRL_PLL3,
+  { {     1,        BW_DYN,            1,   TP_CTRL_PLL3,
           TP_TM_20MS_GPS,          TP_TM_10MS_GLO },
           TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-         50,               0,           34,
-      IDX_SENS,     IDX_NONE,     IDX_20MS,
+        200,             0,           31,
+      IDX_SENS,   IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
 };
 /* clang-format on */

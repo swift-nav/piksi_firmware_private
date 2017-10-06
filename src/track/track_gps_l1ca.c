@@ -224,6 +224,7 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
+ #ifdef CHECK_GPS_L1CA_CROSSCORR
 static void check_L1_entry(tracker_channel_t *tracker_channel,
                            const tracking_channel_cc_entry_t *entry,
                            bool xcorr_flags[],
@@ -271,6 +272,8 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
     data->xcorr_whitelist_counts[index] = 0;
   }
 }
+#endif /* CHECK_GPS_L1CA_CROSSCORR */
+
 
 /**
  * Check xcorr flagged L1 satellites.
@@ -290,6 +293,7 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
+#ifdef CHECK_GPS_L1CA_CROSSCORR
 static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
                                  u16 idx,
                                  bool xcorr_flags[],
@@ -323,6 +327,7 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
     data->xcorr_counts[idx] = 0;
   }
 }
+#endif /* CHECK_GPS_L1CA_CROSSCORR */
 
 /**
  * Check L1 doppler vs. L2 doppler of the same SV.
@@ -446,6 +451,7 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
+#ifdef CHECK_GPS_L1CA_CROSSCORR
 static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                             u32 cycle_flags) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
@@ -506,6 +512,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
   set_xcorr_suspect_flag(
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
+#endif /* CHECK_GPS_L1CA_CROSSCORR */
 
 /**
  * Updates L1 cross-correlation state from L2.
@@ -574,8 +581,10 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
   /* GPS L1 C/A-specific ToW manipulation */
   update_tow_gps_l1ca(tracker_channel, cflags);
 
+#ifdef CHECK_GPS_L1CA_CROSSCORR
   /* GPS L1 C/A-specific cross-correlation operations */
   update_l1_xcorr(tracker_channel, cflags);
+#endif /* CHECK_GPS_L1CA_CROSSCORR */
 
   /* GPS L1 C/A-specific L2C cross-correlation operations */
   update_l1_xcorr_from_l2(tracker_channel, cflags);
