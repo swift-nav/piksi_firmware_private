@@ -244,14 +244,6 @@ void nap_track_init(u8 channel,
                       round((s->spacing[0].chips + s->spacing[1].chips) *
                             calc_samples_per_chip(chip_rate));
 
-  /* Delay L2CL code phase by 1 chip to accommodate zero in the L2CM slot */
-  /* Initial correlation length for L2CL is thus 1 chip shorter,
-   * since first L2CM chip is skipped */
-  if (mesid.code == CODE_GPS_L2CL) {
-    code_phase += 1.0f;
-    delta_samples -= calc_samples_per_chip(chip_rate);
-  }
-
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
   /* Chip rate */
@@ -306,30 +298,31 @@ void nap_track_init(u8 channel,
   u64 tc_next_rollover;
   double code_samples;
   u8 index = 0;
-  if (mesid.code == CODE_GPS_L2CL) {
-    code_chips = GPS_L2CL_PRN_CHIPS_PER_INTERVAL;
-    code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
-    num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
-    index = (num_codes % GPS_L2CL_PRN_START_POINTS);
-  } else {
-    code_chips = code_to_chip_count(mesid.code);
-    code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
-    num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
-  }
+
+  code_chips = code_to_chip_count(mesid.code);
+  code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
+  num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
+
   tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
 
-  NAP->TRK_CODE_INT_INIT = index * code_chips;
+  me_gnss_signal_t mesid1 = mesid;
+  if (mesid.code == CODE_GPS_L2CM) {
+    index = (num_codes % GPS_L2CL_PRN_START_POINTS);
+    mesid1.code = CODE_GPS_L2CL;
+  }
+
+  NAP->TRK_CODE_INT_INIT = 0;
   NAP->TRK_CODE_FRAC_INIT = 0;
 
   NAP->TRK_CODE_INT_MAX = code_to_chip_count(mesid.code) - 1;
 
-  NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, index);
+  NAP->TRK_CODE_LFSR0_INIT = mesid_to_lfsr0_init(mesid, 0);
   NAP->TRK_CODE_LFSR0_RESET = mesid_to_lfsr0_init(mesid, 0);
 
-  NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr0_init(mesid, 0);
-  NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr0_last(mesid);
+  NAP->TRK_CODE_LFSR1_INIT = mesid_to_lfsr0_init(mesid1, index);
+  NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr0_init(mesid1, 0);
+  NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr0_last(mesid1);
 
   /* port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *
@@ -447,6 +440,26 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
+
+  /*
+    if (!(s->reckon_counter % 256) &&
+        (s->mesid.code == CODE_GPS_L2CM)) {
+      log_info("VEEPLVL IQ %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d
+    %+6d %+6d",
+               s->mesid.sat,
+               s->mesid.code,
+               corrs[3].I,
+               corrs[3].Q,
+               corrs[0].I,
+               corrs[0].Q,
+               corrs[1].I,
+               corrs[1].Q,
+               corrs[2].I,
+               corrs[2].Q,
+               corrs[4].I,
+               corrs[4].Q);
+    }
+  */
 
   if (s->reckon_counter < 1) {
     hw_carr_phase = ((s64)trk_ch.CARR_PHASE_INT << 32) | trk_ch.CARR_PHASE_FRAC;

@@ -71,12 +71,6 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
    * or close to chip_rate. */
   current_chip %= chip_rate;
 
-  /* L2CL code phase has been adjusted by 1,
-   * due to L2CM code chip occupying first slot. */
-  if (CODE_GPS_L2CL == mesid.code) {
-    current_chip += 1;
-  }
-
   s32 offset = current_chip;
   /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
    * and thus next integration period should be longer than nominally. */
@@ -898,9 +892,13 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
 
     tl_rates_t rates = {0};
 
-    bool costas = (tracker_channel->mesid.code != CODE_GPS_L2CL);
-    tp_tl_update(
-        &tracker_channel->tl_state, &tracker_channel->corrs.corr_epl, costas);
+    bool costas = true;
+    tp_epl_corr_t corr_epl = tracker_channel->corrs.corr_epl;
+    if (CODE_GPS_L2CM == tracker_channel->mesid.code) {
+      corr_epl.prompt = corr_epl.very_late;
+      costas = false;
+    }
+    tp_tl_update(&tracker_channel->tl_state, &corr_epl, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;

@@ -65,8 +65,6 @@ typedef enum {
   CH_DROP_REASON_LOW_CN0,      /**< Low C/N0 for too long */
   CH_DROP_REASON_XCORR,        /**< Confirmed cross-correlation */
   CH_DROP_REASON_NO_UPDATES,   /**< No tracker updates for too long */
-  CH_DROP_REASON_L2CL_SYNC,    /**< Drop L2CL after half-cycle ambiguity
-                                    has been resolved */
   CH_DROP_REASON_SV_UNHEALTHY, /**< The SV is Unhealthy */
   CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
                                     drop GLO satellites */
@@ -729,9 +727,6 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_NO_UPDATES:
       str = "no updates, dropping";
       break;
-    case CH_DROP_REASON_L2CL_SYNC:
-      str = "L2CM half-cycle ambiguity resolved, dropping L2CL";
-      break;
     case CH_DROP_REASON_SV_UNHEALTHY:
       str = "SV is unhealthy, dropping";
       break;
@@ -986,12 +981,6 @@ void sanitize_trackers(void) {
     /* Do we have confirmed cross-correlation? */
     if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
       drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
-      continue;
-    }
-
-    /* Drop L2CL if the half-cycle ambiguity has been resolved. */
-    if (0 != (flags & TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_L2CL_SYNC);
       continue;
     }
 
@@ -1466,7 +1455,8 @@ static void manage_tracking_startup(void) {
           acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
-      log_debug("No free tracking channel available.");
+      log_info_mesid(startup_params.mesid,
+                     "No free tracking channel available.");
       continue;
     }
 
