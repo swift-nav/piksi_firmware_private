@@ -22,5 +22,6 @@ static void glo_map_lock(void) { chMtxLock(&glo_map_mutex); }
 
 static void glo_map_unlock(void) { chMtxUnlock(&glo_map_mutex); }
 
-void glo_map_setup(void) { glo_map_init(glo_map_lock, glo_map_unlock,
-                                        glo_sv_id_fcn_map); }
+void glo_map_setup(void) {
+  glo_map_init(glo_map_lock, glo_map_unlock, glo_sv_id_fcn_map);
+}
