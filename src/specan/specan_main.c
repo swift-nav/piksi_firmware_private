@@ -29,7 +29,7 @@
 #define SPECAN_THREAD_STACK (4 * 1024)
 #define SPECAN_THREAD_PRIORITY (LOWPRIO + 1)
 
-#define SPECAN_SAMPLING_FREQ (NAP_FRONTEND_RAW_SAMPLE_RATE_Hz)
+#define SPECAN_SAMPLING_FREQ (NAP_FRONTEND_SAMPLE_RATE_Hz)
 #define SPECAN_FFT_SIZE (1024)
 #define SPECAN_AVGCOUNT (100)
 #define SPECAN_NUMLINES (SPECAN_FFT_SIZE / 2)
@@ -163,7 +163,7 @@ static void SpecanCore(uint8_t _uWhichBand) {
   uint32_t uFftScale = 0x0;
   uint32_t uFftStartPt, uTraceStart = 0;
   float fStartFreq;
-  const float fFrontEndSpms = NAP_FRONTEND_RAW_SAMPLE_RATE_Hz * 1e-6;
+  const float fFrontEndSpms = NAP_FRONTEND_SAMPLE_RATE_Hz * 1e-6;
   const float fFreqNco1 = 1590.000;
   const float fFreqNco2 = 1235.000;
 

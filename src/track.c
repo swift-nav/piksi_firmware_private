@@ -323,7 +323,7 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
   /* Calculate the code phase rate with carrier aiding. */
   double code_phase_rate = (1.0 + carrier_freq / mesid_to_carr_freq(mesid)) *
                            code_to_chip_rate(mesid.code);
-  code_phase += n_samples * code_phase_rate / NAP_FRONTEND_SAMPLE_RATE_Hz;
+  code_phase += n_samples * code_phase_rate / NAP_CODE_SAMPLE_RATE_Hz;
   u32 cp_int = floor(code_phase);
   code_phase -= cp_int - (cp_int % code_to_chip_count(mesid.code));
   return code_phase;
