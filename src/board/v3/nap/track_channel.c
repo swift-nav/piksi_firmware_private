@@ -30,6 +30,8 @@
 #include <assert.h>
 #include <string.h>
 
+#define PIKSI_RELEASE
+
 #define TIMING_COMPARE_DELTA_MIN (1e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /*   1ms */
 #define TIMING_COMPARE_DELTA_MAX               \
   (100e-3 * NAP_TRACK_SAMPLE_RATE_Hz) /* 100ms \
