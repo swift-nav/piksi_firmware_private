@@ -249,7 +249,8 @@ CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
 	-Wuninitialized -Wstrict-prototypes \
 	-Wformat=2 \
 	-Wimplicit-function-declaration -Wredundant-decls \
-	-Wformat-security -Wpointer-arith
+	-Wformat-security -Wpointer-arith \
+	-Wlogical-op -Wjump-misses-init
 	# TODO Leith: enable these once I figure out how to skip them on ChibiOS stuff
 	# -Wmissing-prototypes -Wcast-align
 
@@ -271,7 +272,8 @@ CPPWARN = -Wall -Wextra -Werror -Weffc++ -std=gnu++11 \
   -Wunknown-pragmas  -Wunreachable-code -Wunused \
   -Wunused-function  -Wunused-label  -Wunused-parameter \
   -Wunused-value  -Wunused-variable  -Wvariadic-macros \
-  -Wvolatile-register-var  -Wwrite-strings
+  -Wvolatile-register-var  -Wwrite-strings \
+  -Wlogical-op -Wold-style-cast -Wuseless-cast
 
 #
 # Compiler settings

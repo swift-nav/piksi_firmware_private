@@ -349,7 +349,7 @@ u8 mac_address_string_get(char *mac_string) {
 
 u8 hw_version_string_get(char *hw_version_string) {
   u16 major_ver = factory_params.hardware_version >> 16;
-  u16 minor_ver = factory_params.hardware_version && 0xFFFF;
+  u16 minor_ver = factory_params.hardware_version & 0xFFFF;
   sprintf(hw_version_string, "%d.%d", major_ver, minor_ver);
   return strlen(hw_version_string);
 }
