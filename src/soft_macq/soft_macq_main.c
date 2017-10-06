@@ -97,7 +97,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   if (!bModuleInit) {
     InitBBConvLut();
     bModuleInit = true;
-    log_info("InitBBConvLut()");
+    log_debug("InitBBConvLut()");
   }
 
   /** Check if the last grabbed signal snapshot isn't too old.
