@@ -36,10 +36,10 @@ typedef struct {
   const state_entry_t entries[]; /**< State entries */
 } state_table_t;
 
-#define TP_FLAGS_INI                                                           \
-  ( TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | \
-   TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |              \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET)
+#define TP_FLAGS_INI                                           \
+  (TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_SET |  \
+   TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | \
+   TP_CFLAG_FLL_SET)
 
 /**
  * Initial tracking mode (no bit sync, FLL-assisted PLL, 1 ms)
@@ -63,8 +63,9 @@ static const state_table_t mode_1msINI = {
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
-        {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD |
-            TP_CFLAG_CN0_USE},
+        {1,
+         TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD |
+             TP_CFLAG_CN0_USE},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_SET},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
@@ -74,8 +75,9 @@ static const state_table_t mode_1msINI = {
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
         {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD},
-        {1, TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD |
-            TP_CFLAG_CN0_USE},
+        {1,
+         TP_FLAGS_INI | TP_CFLAG_FLL_SECOND | TP_CFLAG_CN0_ADD |
+             TP_CFLAG_CN0_USE},
     }};
 
 #define TP_FLAGS_1MS                                           \
@@ -163,10 +165,10 @@ static const state_table_t mode_1ms_glo = {
 };
 /* clang-format on */
 
-#define TP_FLAGS_2MS                                                           \
-  (TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | \
-   TP_CFLAG_BSYNC_SET | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET |              \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
+#define TP_FLAGS_2MS                                           \
+  (TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_SET |  \
+   TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | \
+   TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
 
 /**
  * 2ms integration profile for GPS
@@ -248,10 +250,10 @@ static const state_table_t mode_2ms_glo = {
 };
 /* clang-format on */
 
-#define TP_FLAGS_5MS                                                           \
-  (TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | \
-   TP_CFLAG_BSYNC_ADD | TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD |              \
-   TP_CFLAG_LD_USE | TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
+#define TP_FLAGS_5MS                                           \
+  (TP_CFLAG_EPL_ADD | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_ADD |  \
+   TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_ADD | TP_CFLAG_LD_USE | \
+   TP_CFLAG_FLL_SET | TP_CFLAG_FLL_SECOND)
 
 /**
  * 5 ms integrations for GPS
@@ -456,8 +458,7 @@ static const state_table_t mode_10ms_glo = {
 };
 /* clang-format on */
 
-#define TP_FLAGS_20MS \
-  (TP_CFLAG_EPL_ADD | TP_CFLAG_LD_ADD | TP_CFLAG_BSYNC_ADD)
+#define TP_FLAGS_20MS (TP_CFLAG_EPL_ADD | TP_CFLAG_LD_ADD | TP_CFLAG_BSYNC_ADD)
 
 /**
  * 20 ms integrations
