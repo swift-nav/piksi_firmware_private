@@ -49,3 +49,4 @@ do
         aws s3api put-object --no-sign-request --bucket "$PRS_BUCKET" --key "$KEY" --body "$file" --acl public-read
     fi
 done
+
