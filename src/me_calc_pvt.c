@@ -385,7 +385,6 @@ static void apply_isc_table(u8 n_channels,
 }
 #endif /* USE_EMPIRICAL_ISC */
 
-
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
