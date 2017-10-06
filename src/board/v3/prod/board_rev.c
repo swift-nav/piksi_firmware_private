@@ -20,6 +20,7 @@
 #define CLK_SEL_GPIO_LINE PAL_LINE(GPIO2, 30)
 #define LED_nRST_GPIO_LINE PAL_LINE(GPIO2, 18)
 #define MODEM_PWR_EN_LINE PAL_LINE(GPIO2, 28)
+#define IMU_EN_GPIO_LINE PAL_LINE(GPIO2, 24)
 
 /* NOTE: On Duro, the LED reset is positive logic */
 #define DURO_LED_RST_GPIO_LINE PAL_LINE(GPIO2, 7)
@@ -48,4 +49,7 @@ void boardRevInit(void) {
 
   palSetLineMode(MODEM_PWR_EN_LINE, PAL_MODE_OUTPUT);
   palSetLine(MODEM_PWR_EN_LINE);
+
+  palSetLineMode(IMU_EN_GPIO_LINE, PAL_MODE_OUTPUT);
+  palSetLine(IMU_EN_GPIO_LINE);
 }
