@@ -27,7 +27,7 @@
 /** How many ms to allow tracking channel to converge after
     initialization before we consider dropping it.
     Applied to all signals initialized from ACQ. */
-#define TRACK_INIT_FROM_ACQ_MS 2500
+#define TRACK_INIT_FROM_ACQ_MS 2000
 
 /** How many ms to allow tracking channel to converge after
     initialization before we consider dropping it.

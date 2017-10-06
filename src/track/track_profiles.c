@@ -28,7 +28,7 @@
 #include <string.h>
 
 /** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
+#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (21.f)
 
 /** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
 #define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
@@ -37,13 +37,24 @@
 /** C/N0 threshold for measurements use */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 
-#define TL_BWT_MAX (0.1f)
+/** BW = (8 + (CN0 - 20)*2/5); */
+/**  T         CN0         BW       T*BW  */
+/** 20         21           8       0.168
+    20         31          12       0.248
+    10         34          14       0.136
+     5         37          15       0.074
+     2         41          16       0.0328
+     1         44          18       0.0176
+     1         50          20       0.02   */
+#define TL_BWT_MAX (0.5f)
 
-#define PLL_CN0_MIN (20.0f)
+#define PLL_CN0_MIN (21.0f)
+#define PLL_BW_MIN (8.0f)
+
 #define PLL_CN0_MAX (50.0f)
-#define PLL_BW_MIN (7.0f)
 #define PLL_BW_MAX (20.0f)
-#define FLL_BW_MIN (0.1f)
+
+#define FLL_BW_MIN (0.0f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -227,68 +238,68 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {   30,             3,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-        50,             0,            0,
-      IDX_NONE,  IDX_NONE,     IDX_NONE,
+  { {       35,          0,          7,    TP_CTRL_PLL3,          TP_TM_INITIAL,
+           TP_TM_INITIAL },      TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+           100,          0,          0,
+      IDX_NONE,   IDX_NONE,   IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
-  { {   30,             3,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-        50,             0,            0,
-      IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+  { {       30,          0,          6,    TP_CTRL_PLL3,          TP_TM_INITIAL,
+           TP_TM_INITIAL },      TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+           100,          0,          0,
+      IDX_NONE,   IDX_NONE,   IDX_NONE,
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK },
 
   [IDX_INIT_2] =
-  { {   30,             1,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
-          TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-       200,             0,            0,
-       IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_PLOCK },
-
-  [IDX_1MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+  { {       25,          0,          5,    TP_CTRL_PLL3,          TP_TM_1MS_GPS,
            TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-           50,          48,           0,
+           200,          0,          0,
+      IDX_NONE,   IDX_NONE,   IDX_NONE,
+      TP_WAIT_PLOCK },
+
+  [IDX_1MS]
+  { {    BW_DYN,         0,          4,    TP_CTRL_PLL3,          TP_TM_1MS_GPS,
+           TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+          100,          44,          0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT},
+      TP_USE_NEXT |  TP_LOW_CN0 },
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
+  { {    BW_DYN,         0,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
            TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
-           50,          43,          51,
+          100,          41,          47,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0},
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
+  { {    BW_DYN,         0,           2,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
            TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
-           50,          35,          46,
+          100,          37,          44,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
-          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-           50,          32,          38,
-     IDX_10MS,    IDX_20MS,     IDX_5MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+  { {    BW_DYN,          0,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
+           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+           100,          34,         40,
+      IDX_10MS,    IDX_20MS,     IDX_5MS,
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {    BW_DYN,         0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           50,          25,          35,
-      IDX_20MS,   IDX_SENS,     IDX_10MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
+           100,         31,          37,
+      IDX_20MS,   IDX_SENS,    IDX_10MS,
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0 },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,           1.0,           1,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {       0,         1.0,         1.0,   TP_CTRL_FLL2,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-         50,             0,         32.,
-      IDX_SENS,  IDX_NONE,     IDX_20MS,
-      TP_HIGH_CN0 | TP_USE_NEXT }
+          1000,          0,           34,
+      IDX_SENS,   IDX_NONE,     IDX_20MS,
+      TP_USE_NEXT |              TP_HIGH_CN0 }
 };
 /* clang-format on */
 
