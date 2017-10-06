@@ -74,6 +74,7 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* Empirical corrections for GLO per-frequency bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  */
+#ifdef USE_EMPIRICAL_ISC
 static const double glo_l1_isc[] = {[0] = -10.95,
                                     [1] = -10.82,
                                     [2] = -10.75,
@@ -103,6 +104,7 @@ static const double glo_l2_isc[] = {[0] = -7.82,
                                     [12] = -4.202,
                                     [13] = -3.9};
 static const double gps_l2_isc = 4.05;
+#endif /* USE_EMPIRICAL_ISC */
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -315,6 +317,7 @@ static void collect_measurements(u64 rec_tc,
 /** Apply ISC corrections from hard-coded table
  *
  */
+#ifdef USE_EMPIRICAL_ISC
 static void apply_isc_table(u8 n_channels,
                             navigation_measurement_t *nav_meas[]) {
   for (u8 i = 0; i < n_channels; i++) {
@@ -380,6 +383,8 @@ static void apply_isc_table(u8 n_channels,
         corr / GPS_C * sid_to_carr_freq(nav_meas[i]->sid);
   }
 }
+#endif /* USE_EMPIRICAL_ISC */
+
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
 static void me_calc_pvt_thread(void *arg) {
@@ -549,7 +554,9 @@ static void me_calc_pvt_thread(void *arg) {
 
     calc_isc(n_ready, p_nav_meas, p_cnav_30);
 
+#ifdef USE_EMPIRICAL_ISC
     apply_isc_table(n_ready, p_nav_meas);
+#endif /* USE_EMPIRICAL_ISC */
 
     gnss_sid_set_t codes;
     sid_set_init(&codes);
