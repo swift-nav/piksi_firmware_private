@@ -285,8 +285,8 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
     case NDB_ERR_NONE:
       log_debug_sid(e->sid, "ephemeris saved");
       {
-        /* if LGF is available, try to compute azimuth and elevation with the new
-         * ephemeris and save them into track database */
+        /* if LGF is available, try to compute azimuth and elevation with the
+         * new ephemeris and save them into track database */
         last_good_fix_t lgf;
         if (ndb_lgf_read(&lgf) != NDB_ERR_NONE) {
           break;
