@@ -246,6 +246,7 @@ static void nap_irq_thread(void *arg) {
 void nap_track_irq_thread(void *arg) {
   piksi_systime_t sys_time;
   (void)arg;
+  u32 agc;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
@@ -254,6 +255,14 @@ void nap_track_irq_thread(void *arg) {
     handle_nap_track_irq();
 
     sanitize_trackers();
+
+    DO_EACH_MS(1 * SECS_MS,
+               agc = NAP_FE->AGC;
+               log_info("AGC 1,2,3,4: %5.2f %5.2f %5.2f %5.2f",
+                 GET_FE_AGC_RF1A(agc)*0.25,
+                 GET_FE_AGC_RF2A(agc)*0.25,
+                 GET_FE_AGC_RF3A(agc)*0.25,
+                 GET_FE_AGC_RF4A(agc)*0.25););
 
     DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
 
