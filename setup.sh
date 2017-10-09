@@ -44,7 +44,7 @@ function build () {
     # Pulls down git submodules and builds the project, assuming that
     # all other system, and ARM GCC have been installed.
     log_info "Initializing Git submodules for ChibiOS, libopencm3, libsbp and libswiftnav..."
-    git submodule update --init --recursive
+    git submodule update --init --recursive --recommend-shallow --jobs 5
     if ! [[ -z $1 ]]
     then
        pushd libswiftnav
@@ -111,19 +111,20 @@ function homebrew_install () {
 function bootstrap_osx () {
     log_info "Checking base OS X development tools..."
     # Download and install Command Line Tools
-    if [[ ! -x /usr/bin/gcc ]]; then
+    if ! which gcc &>/dev/null; then
         log_info "Installing Xcode developer tools..."
         xcode-select --install
     fi
     # Download and install Homebrew
-    if [[ ! -x /usr/local/bin/brew ]]; then
+    if ! which brew &>/dev/null; then
         log_info "Installing homebrew..."
         homebrew_install
     fi
     # Download and install Ansible
-    if [[ ! -x /usr/local/bin/ansible ]]; then
+    if ! which ansible &>/dev/null; then
         log_info "Installing Ansible..."
-        brew install ansible 2> /dev/null
+        #sudo pip install ansible
+        brew install ansible
     fi
 }
 
