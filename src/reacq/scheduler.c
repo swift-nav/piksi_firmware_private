@@ -362,8 +362,38 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
 
   if (peak_found) { /* Send to track */
     u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-    if (IS_GLO(job->mesid) && glo_map_valid(job->sid)) {
-      glo_orbit_slot = job->sid.sat;
+    if (IS_GLO(job->mesid)) {
+      u16 slot_id1, slot_id2;
+      /* check if we have the fcn mapped already to some slot id */
+      u8 num_si = glo_map_get_slot_id(job->mesid.sat, &slot_id1, &slot_id2);
+      switch (num_si) {
+        case 1:
+          /* the fcn mapped to one slot id only,
+           * so use it as glo prn to be tracked */
+          glo_orbit_slot = slot_id1;
+          break;
+        case 2: {
+          /* we have 2 slot ids mapped to one fcn */
+          gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, slot_id1);
+          /* check which slot id for glo we need to track */
+          if (glo_map_get_fcn(sid) == job->mesid.sat) {
+            /* the fcn mapped to the FIRST slot ID is same that desired fcn,
+             * track it */
+            glo_orbit_slot = slot_id1;
+          } else {
+            sid = construct_sid(CODE_GLO_L1CA, slot_id2);
+            if (glo_map_get_fcn(sid) == job->mesid.sat) {
+              /* the fcn mapped to the SECOND slot ID is same that desired fcn,
+               * track it */
+              glo_orbit_slot = slot_id2;
+            }
+          }
+        } break;
+        default:
+        case 0:
+          glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+          break;
+      }
     }
 
     tracking_startup_params_t tracking_startup_params = {
