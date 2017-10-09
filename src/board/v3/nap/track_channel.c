@@ -398,36 +398,31 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-  static swiftnap_tracking_rd_t trk_ch;
-  swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
+  swiftnap_tracking_rd_t *t =
+      (swiftnap_tracking_rd_t *)&NAP_DMA->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  /* Read track channel data
-   * NOTE: Compiler couldn't optimize MEMCPY_S over AXI so using regular memcpy
-   */
-  memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
-
-  *count_snapshot = trk_ch.TIMING_SNAPSHOT;
+  *count_snapshot = t->TIMING_SNAPSHOT;
 
   /* E correlator */
-  corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);
-  corrs[0].Q = (s16)((trk_ch.CORR1 >> 16) & 0xFFFF);
+  corrs[0].I = (s16)t->CORR1;
+  corrs[0].Q = (s16)(t->CORR1 >> 16);
 
   /* P correlator */
-  corrs[1].I = (s16)(trk_ch.CORR2 & 0xFFFF);
-  corrs[1].Q = (s16)((trk_ch.CORR2 >> 16) & 0xFFFF);
+  corrs[1].I = (s16)t->CORR2;
+  corrs[1].Q = (s16)(t->CORR2 >> 16);
 
   /* L correlator */
-  corrs[2].I = (s16)(trk_ch.CORR3 & 0xFFFF);
-  corrs[2].Q = (s16)((trk_ch.CORR3 >> 16) & 0xFFFF);
+  corrs[2].I = (s16)t->CORR3;
+  corrs[2].Q = (s16)(t->CORR3 >> 16);
 
   /* VE correlator */
-  corrs[3].I = (s16)(trk_ch.CORR0 & 0xFFFF);
-  corrs[3].Q = (s16)((trk_ch.CORR0 >> 16) & 0xFFFF);
+  corrs[3].I = (s16)t->CORR0;
+  corrs[3].Q = (s16)(t->CORR0 >> 16);
 
   /* VL correlator */
-  corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
-  corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
+  corrs[4].I = (s16)t->CORR4;
+  corrs[4].Q = (s16)(t->CORR4 >> 16);
 
   /* Spacing between VE and P correlators */
   double prompt_offset = s->spacing[0].chips +
@@ -479,15 +474,15 @@ void nap_track_read_results(u8 channel,
   }
   */
 
-  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
+  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(t->STATUS)) {
     log_warn_mesid(s->mesid, "Tracking correlator overflow.");
   }
 
   /* Check carrier phase reckoning */
   u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
-  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(trk_ch.STATUS)
+  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(t->STATUS)
                          << NAP_TRK_CH_STATUS_CARR_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
+                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(t->STATUS);
   if (sw_carr_phase != hw_carr_phase) {
     log_error_mesid(s->mesid,
                     "Carrier reckoning: SW=%u.%u, HW=%u.%u",
@@ -499,9 +494,9 @@ void nap_track_read_results(u8 channel,
 
   /* Check code phase reckoning */
   u8 sw_code_phase = (s->sw_code_phase >> 29) & 0x3F;
-  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(trk_ch.STATUS)
+  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(t->STATUS)
                          << NAP_TRK_CH_STATUS_CODE_PHASE_FRAC_Len |
-                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
+                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(t->STATUS);
   if (sw_code_phase != hw_code_phase) {
     log_error_mesid(s->mesid,
                     "Code reckoning: SW=%u.%u, HW=%u.%u",
