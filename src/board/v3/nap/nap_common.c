@@ -20,6 +20,7 @@
 #include "axi_dma.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
+#include "track_dma.h"
 
 #include "main.h"
 #include "manage.h"
@@ -30,13 +31,16 @@
 #include <string.h>
 
 #define PROCESS_PERIOD_MS (500)
+#define DMA_PERIOD_MS (1)
 
 #define NAP_IRQS_EXT_EVENT_MASK \
   (NAP_IRQS_EXT_EVENT0_Msk | NAP_IRQS_EXT_EVENT1_Msk | NAP_IRQS_EXT_EVENT2_Msk)
 
 static void nap_isr(void *context);
+static void dma_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
+static BSEMAPHORE_DECL(dma_irq_sem, TRUE);
 
 static WORKING_AREA_CCM(wa_nap_irq, 32000);
 
@@ -50,6 +54,9 @@ void nap_setup(void) {
 
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
+
+  track_dma_init(
+      dma_isr, (u32)&NAP->TRK_IRQS0, (u32)NAP_DMA, sizeof(nap_dma_t));
 
   /* Enable NAP interrupt */
   chThdCreateStatic(
@@ -131,10 +138,15 @@ double nap_count_to_ns(u64 delta_time) {
 static void nap_isr(void *context) {
   (void)context;
   chSysLockFromISR();
-
-  /* Wake up processing thread */
   chBSemSignalI(&nap_irq_sem);
+  chSysUnlockFromISR();
+}
 
+static void dma_isr(void *context) {
+  (void)context;
+  chSysLockFromISR();
+  track_dma_clear_irq();
+  chBSemSignalI(&dma_irq_sem);
   chSysUnlockFromISR();
 }
 
@@ -160,18 +172,17 @@ static void handle_nap_irq(void) {
 }
 
 static void handle_nap_track_irq(void) {
-  u32 irq0 = NAP->TRK_IRQS0;
-  u32 irq1 = NAP->TRK_IRQS1;
+  u32 irq0 = NAP_DMA->TRK_IRQS0;
+  u32 irq1 = NAP_DMA->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
   tracking_channels_update(irq);
+
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
-  asm("dsb");
-
-  u32 err0 = NAP->TRK_IRQ_ERRORS0;
-  u32 err1 = NAP->TRK_IRQ_ERRORS1;
+  u32 err0 = NAP_DMA->TRK_IRQ_ERRORS0;
+  u32 err1 = NAP_DMA->TRK_IRQ_ERRORS1;
   u64 err = ((u64)err1 << 32) | err0;
   if (err) {
     NAP->TRK_IRQ_ERRORS0 = err0;
@@ -188,20 +199,21 @@ static void nap_irq_thread(void *arg) {
   chRegSetThreadName("NAP");
 
   while (TRUE) {
-    /* Waiting for the IRQ to happen.*/
     chBSemWaitTimeout(&nap_irq_sem, MS2ST(PROCESS_PERIOD_MS));
-
     handle_nap_irq();
   }
 }
 
 void nap_track_irq_thread(void *arg) {
-  piksi_systime_t sys_time;
   (void)arg;
+  piksi_systime_t sys_time;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
     piksi_systime_get(&sys_time);
+
+    track_dma_start();
+    chBSemWaitTimeout(&dma_irq_sem, MS2ST(DMA_PERIOD_MS));
 
     handle_nap_track_irq();
 

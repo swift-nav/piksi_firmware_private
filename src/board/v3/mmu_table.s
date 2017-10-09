@@ -38,11 +38,16 @@ MMUTable:
 .set    SECT, SECT+0x100000
 .endr
 
-.rept   0x28                /* 0x1d800000 - 0x1fffffff (Firmware DDR)
+.rept   0x27                /* 0x1d800000 - 0x1fefffff (Firmware DDR)
                              * Normal, shared, inner and outer cacheable */
 .word   SECT + 0x15de6      /* S=b1 TEX=b101 AP=b11, Domain=b1111, C=b0, B=b1 */
 .set    SECT, SECT+0x100000
 .endr
+
+                            /* 0x1ff00000 - 0x1fffffff (Firmware DMA DDR)
+                             * Normal, shared, non-cacheable */
+.word   SECT + 0x14de2      /* S=b1 TEX=b100 AP=b11, Domain=b1111, C=b0, B=b0 */
+.set    SECT, SECT+0x100000
 
 .rept   0x200               /* 0x20000000 - 0x3fffffff (DDR reserved)
                              * Generates a translation fault if accessed */
