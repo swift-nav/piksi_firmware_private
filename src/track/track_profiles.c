@@ -37,7 +37,7 @@
 /** C/N0 threshold for measurements use */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 
-#define TL_BWT_MAX (0.1f)
+#define TL_BWT_MAX (0.18 * 20.f)
 
 #define PLL_CN0_MIN (20.0f)
 #define PLL_CN0_MAX (50.0f)
@@ -382,7 +382,12 @@ static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
 }
 
 static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
-  float bw = 1.5f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
+  float bw;
+  if (cn0 < 40.0f) {
+    bw = 1.5f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
+  } else {
+    bw = 1.5;
+  }
 
   /* Limit FLL bw to minimum bound */
   if (bw < FLL_BW_MIN) {
