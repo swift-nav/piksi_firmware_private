@@ -44,7 +44,7 @@ function build () {
     # Pulls down git submodules and builds the project, assuming that
     # all other system, and ARM GCC have been installed.
     log_info "Initializing Git submodules for ChibiOS, libopencm3, libsbp and libswiftnav..."
-    git submodule update --init --recursive --recommend-shallow --jobs 5
+    git submodule update --init --recursive
     if ! [[ -z $1 ]]
     then
        pushd libswiftnav

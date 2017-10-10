@@ -1,5 +1,5 @@
 - name: Initializing Git submodules for ChibiOS, libopencm3, and libswiftnav...
-  shell: git submodule update --init --recursive --recommend-shallow --jobs 5
+  shell: git submodule update --init --recursive
 
 - name: Build piksi_firmware
   local_action: shell make clean && make
