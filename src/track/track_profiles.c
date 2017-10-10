@@ -453,8 +453,6 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
 
   const tp_tm_e mode = profile->loop_params.mode;
   profile->use_alias_detection =
-      (TP_TM_1MS_GPS != mode) && (TP_TM_1MS_GLO != mode) &&
-      (TP_TM_2MS_GPS != mode) && (TP_TM_2MS_GLO != mode) &&
       (TP_TM_20MS_GPS != mode) && (TP_TM_INITIAL != mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
