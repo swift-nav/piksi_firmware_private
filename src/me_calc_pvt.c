@@ -189,6 +189,27 @@ static void me_send_emptyobs(void) {
   }
 }
 
+/* send the unpropagated observations when PVT solution failed or is not
+ * available */
+/* TODO: flag them somehow? */
+static void me_send_unpropagated(u8 _num_obs,
+                                 const navigation_measurement_t _meas[],
+                                 const ephemeris_t _ephem[],
+                                 const gps_time_t *_t) {
+  /* require at least some timing quality */
+  if (TIME_PROPAGATED > get_time_quality()) {
+    me_send_emptyobs();
+    return;
+  }
+
+  me_post_observations(_num_obs, _meas, _ephem, _t);
+  /* Output observations only every obs_output_divisor times, taking
+  * care to ensure that the observations are aligned. */
+  if (decimate_observations(_t) && !simulation_enabled()) {
+    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  }
+}
+
 /** Update the satellite azimuth & elevation database with current angles
  * \param rcv_pos Approximate receiver position
  * \param t Approximate time
@@ -498,8 +519,9 @@ static void me_calc_pvt_thread(void *arg) {
     last_stats.signals_tracked = n_total;
     last_stats.signals_useable = n_ready;
 
-    if (n_ready < MINIMUM_SV_COUNT) {
-      /* Not enough sats, keep on looping. */
+    if (n_ready < MINIMUM_SV_COUNT && TIME_PROPAGATED > get_time_quality()) {
+      /* No time estimate and not enough satellites to solve it, keep on
+       * looping. */
       me_send_emptyobs();
       continue;
     }
@@ -565,7 +587,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT */
-      me_send_emptyobs();
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
     }
 
@@ -611,10 +633,13 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - send out solution and observation
-       * failed messages if not in time matched mode
+       * continuing to process this epoch - mark observations unusable but send
+       * them out to enable debugging.
        */
-      me_send_emptyobs();
+      for (u8 i = 0; i < n_ready; i++) {
+        nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+      }
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -680,7 +705,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_bias);
 
-      me_send_emptyobs();
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
     }
 
@@ -754,6 +779,7 @@ static void me_calc_pvt_thread(void *arg) {
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
