@@ -111,19 +111,20 @@ function homebrew_install () {
 function bootstrap_osx () {
     log_info "Checking base OS X development tools..."
     # Download and install Command Line Tools
-    if [[ ! -x /usr/bin/gcc ]]; then
+    if ! which gcc &>/dev/null; then
         log_info "Installing Xcode developer tools..."
         xcode-select --install
     fi
     # Download and install Homebrew
-    if [[ ! -x /usr/local/bin/brew ]]; then
+    if ! which brew &>/dev/null; then
         log_info "Installing homebrew..."
         homebrew_install
     fi
     # Download and install Ansible
-    if [[ ! -x /usr/local/bin/ansible ]]; then
+    if ! which ansible &>/dev/null; then
         log_info "Installing Ansible..."
-        brew install ansible 2> /dev/null
+        #sudo pip install ansible
+        brew install ansible
     fi
 }
 
