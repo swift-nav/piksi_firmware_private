@@ -29,10 +29,9 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
-RELEASES=""
-SCENARIOS="live-roof-1543-mission%2Clive-roof-1800"
+SCENARIO="live-roof-1543-mission"
 
-HITL_PASS_RUNS=5
+HITL_PASS_RUNS=10
 STATUS_HITL_CONTEXT="hitl/pass-fail"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
@@ -41,18 +40,48 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUILD_SOURCE="release"
 fi
 
+if [ "$BUILD_SOURCE" == "pull-request" ]; then
+    HITL_BUILD_SOURCE="pr"
+else
+    HITL_BUILD_SOURCE="master"
+fi
+
+hitl_viewer_link() {
+    local PAGE=$1
+    local ARGS=$2
+    echo "https://gnss-analysis.swiftnav.com$PAGE/$ARGS"
+}
+hitl_metrics_link() {
+    local PRESET=$1
+    echo $(hitl_viewer_link "" "metrics_preset=$PRESET&scenario=$SCENARIO&build_type=$HITL_BUILD_SOURCE&firmware_versions=$BUILD_VERSION")
+}
+hitl_pass_fail_link () {
+    echo $(hitl_metrics_link "pass_fail")
+}
+hitl_high_level_link () {
+    echo $(hitl_metrics_link "detailed")
+}
+hitl_artifacts_link () {
+    echo $(hitl_viewer_link "/artifacts" "build_type=$HITL_BUILD_SOURCE&name_filter=$BUILD_VERSION")
+}
+hitl_test_runs_link () {
+    echo $(hitl_viewer_link "/test_runs" "scenario=$SCENARIO&build_type=$HITL_BUILD_SOURCE&firmware_versions=$BUILD_VERSION")
+}
+
 LINKS=\
 ("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION&runs=$HITL_PASS_RUNS"
-"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
-"http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/piksi-multi-PRD/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+$(hitl_pass_fail_link)
+$(hitl_high_level_link)
+$(hitl_test_runs_link)
 "https://github.com/swift-nav/piksi_firmware_private/commits/$BUILD_VERSION"
-"http://hitl-dashboard.swiftnav.com/files/$BUCKET/$REPO/$BUILD_VERSION/"
+$(hitl_artifacts_link)
 )
 
 TITLES=\
 ("Run a HITL test set for this build"
-"HITL Results - pass/fail checks"
-"HITL Results - performance metrics"
+"HITL Results - aggregated pass/fail checks (click on < 100 pass rates for failing runs)"
+"HITL Results - aggregated performance metrics"
+"HITL Runs - performance metrics for individual runs"
 "Commit Log"
 "Firmware Artifacts"
 )
@@ -95,7 +124,7 @@ elif [ ! -z "$GITHUB_TOKEN" ]; then
     # set status of HITL testing to pending
     STATUS_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/statuses/$TRAVIS_PULL_REQUEST_SHA"
     STATUS_DESCRIPTION="Waiting for HITL tests to be run and complete"
-    STATUS_TARGET_URL="http://sbp-log-analysis.swiftnav.com/#/d/0/q/x/firmware/y/metric/f/metric/p/passfail/f/scenario/sv/$SCENARIOS/f/firmware/sv/$RELEASES%2C$BUILD_VERSION"
+    STATUS_TARGET_URL=$(hitl_pass_fail_link)
     STATUS_STATE="pending"
     curl -i -X POST -u "$GITHUB_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
 fi
