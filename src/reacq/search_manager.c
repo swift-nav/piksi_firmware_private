@@ -52,11 +52,11 @@ void sm_init(acq_jobs_state_t *data) {
     }
     for (i = 0; i < NUM_SATS_GLO; i++) {
       data->jobs_glo[type][i].sid =
-          construct_sid(CODE_GLO_L1CA, GLO_FIRST_PRN + i);
+          construct_sid(CODE_GLO_L1OF, GLO_FIRST_PRN + i);
       /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
        * blind searches are immediately done with whole range of FCNs */
       data->jobs_glo[type][i].mesid =
-          construct_mesid(CODE_GLO_L1CA, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
+          construct_mesid(CODE_GLO_L1OF, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
 
       data->jobs_glo[type][i].job_type = type;
     }
@@ -130,7 +130,7 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
     if (glo_map_valid(sid)) {
       glo_fcn = glo_map_get_fcn(sid);
 
-      *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
+      *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
 
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));
@@ -252,7 +252,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
     if (glo_map_valid(sid)) {
       glo_fcn = glo_map_get_fcn(sid);
 
-      *mesid = construct_mesid(CODE_GLO_L1CA, glo_fcn);
+      *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
       assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
       assert(mesid_valid(*mesid));
       assert(sid_valid(sid));

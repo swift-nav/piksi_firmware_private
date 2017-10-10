@@ -76,7 +76,7 @@ void track_sid_db_clear_glo_tow(void) {
   tp_tow_entry_t tow_entry = {
       .TOW_ms = TOW_UNKNOWN, .TOW_residual_ns = 0, .sample_time_tk = 0};
   for (u8 i = GLO_FIRST_PRN; i <= NUM_SATS_GLO; ++i) {
-    gnss_signal_t sid = construct_sid(CODE_GLO_L1CA, i);
+    gnss_signal_t sid = construct_sid(CODE_GLO_L1OF, i);
     track_sid_db_update_tow(sid, &tow_entry);
   }
 }

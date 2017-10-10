@@ -328,11 +328,11 @@ static void apply_isc_table(u8 n_channels,
         corr = gps_l2_isc;
         break;
 
-      case CODE_GLO_L1CA:
+      case CODE_GLO_L1OF:
         corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
-      case CODE_GLO_L2CA:
+      case CODE_GLO_L2OF:
         corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
@@ -704,9 +704,9 @@ static void me_calc_pvt_thread(void *arg) {
         nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
 
         /* Remove the fractional 2-ms residual FCN contribution */
-        if (CODE_GLO_L1CA == nm->sid.code) {
+        if (CODE_GLO_L1OF == nm->sid.code) {
           fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
-        } else if (CODE_GLO_L2CA == nm->sid.code) {
+        } else if (CODE_GLO_L2OF == nm->sid.code) {
           fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
         } else {
           fcn = 0.0;

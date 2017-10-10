@@ -104,10 +104,10 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2CX:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
-    case CODE_GLO_L1CA:
+    case CODE_GLO_L1OF:
       ret = NAP_TRK_CODE_GLO_G1;
       break;
-    case CODE_GLO_L2CA:
+    case CODE_GLO_L2OF:
       ret = NAP_TRK_CODE_GLO_G2;
       break;
     case CODE_BDS2_B11:
@@ -178,8 +178,8 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1CA) ||
-         (mesid.code == CODE_GLO_L2CA));
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
+         (mesid.code == CODE_GLO_L2OF));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
