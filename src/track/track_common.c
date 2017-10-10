@@ -475,6 +475,8 @@ static s32 tp_tl_detect_alias(tracker_channel_t *trk, float I, float Q) {
     if (abs_err > 25) {
       correction = 100 * (abs_err / 100) + 50;
     }
+  } else {
+    assert(!"Unsupported contellation");
   }
 
   return err >= 0 ? correction : -correction;
