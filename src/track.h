@@ -301,7 +301,6 @@ typedef struct {
 
 /** Parameters for half-cycle ambiguity resolution */
 typedef struct {
-  u8 counter;  /**< Counter for matching carrier phases */
   s8 polarity; /**< Polarity of the matching carrier phases */
   bool synced; /**< Flag for indicating half-cycle ambiguity resolution */
 } cp_sync_t;

@@ -35,9 +35,7 @@
 /** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
 #define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (31.f)
 /** C/N0 threshold for measurements use */
-/** +1 to make it slightly higher than the CN0 drop threshold to avoid
-    any race condition */
-#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (TP_HARD_CN0_DROP_THRESHOLD_DBHZ + 1)
+#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 
 #define TL_BWT_MAX (0.1f)
 
@@ -384,7 +382,7 @@ static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
 }
 
 static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
-  float bw = 3.0f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
+  float bw = 1.5f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
 
   /* Limit FLL bw to minimum bound */
   if (bw < FLL_BW_MIN) {

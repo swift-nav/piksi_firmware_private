@@ -49,9 +49,6 @@
 
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
-#define POW_TWO_P31 2147483648.0
-#define POW_TWO_P32 4294967296.0
-
 typedef enum {
   EVENT_ENABLE,
   EVENT_DISABLE_REQUEST,
@@ -390,7 +387,6 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->init_timestamp_ms = now;
     tracker_channel->update_timestamp_ms = now;
     tracker_channel->updated_once = false;
-    tracker_channel->cp_sync.counter = 0;
     tracker_channel->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker_channel->cp_sync.synced = false;
     tracker_channel->health = GLO_SV_HEALTHY;
@@ -943,28 +939,6 @@ tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
   return NULL;
 }
 
-/** Drop the L2CL tracker when it is no longer needed.
- *  This function can be called from both L2CM and L2CL trackers.
- *
- * \param[in] mesid ME signal identifier.
- *
- * \return None
- */
-void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid) {
-  me_gnss_signal_t mesid_L2CL = construct_mesid(CODE_GPS_L2CL, mesid.sat);
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid_L2CL);
-  if (NULL == tracker_channel) {
-    return;
-  }
-  /*! The barrier in manage_track() in manage.c should take care of
-    * this anyway
-    */
-  if (STATE_ENABLED != tracker_channel_state_get(tracker_channel)) {
-    return;
-  }
-  tracker_channel->flags |= TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED;
-}
-
 /** Drop unhealthy GLO signal.
  *
  *  Both L1CA and L2CA decode the health information independently.
@@ -1234,14 +1208,14 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
       {
         interface_function(tracker_channel,
                            tracker_channel->interface->disable);
-        piksi_systime_get_x(&tracker_channel->disable_time);
+        piksi_systime_get(&tracker_channel->disable_time);
         event(tracker_channel, EVENT_DISABLE);
       }
       tracker_channel_unlock(tracker_channel);
     } break;
 
     case STATE_DISABLE_WAIT: {
-      if (piksi_systime_elapsed_since_ms_x(&tracker_channel->disable_time) >=
+      if (piksi_systime_elapsed_since_ms(&tracker_channel->disable_time) >=
           CHANNEL_DISABLE_WAIT_TIME_MS) {
         event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
       }

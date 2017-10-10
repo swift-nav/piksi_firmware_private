@@ -13,7 +13,7 @@
 /* Local headers */
 #include "track_gps_l1ca.h"
 #include "track_cn0.h"
-#include "track_gps_l2cm.h" /* for L1C/A to L2 CM tracking handover */
+#include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
 #include "track_sid_db.h"
 
 /* Non-local headers */
@@ -581,16 +581,19 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
   update_l1_xcorr_from_l2(tracker_channel, cflags);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
-      tracker_bit_aligned(tracker_channel)) {
-    /* Start L2 CM tracker if not running */
-    do_l1ca_to_l2cm_handover(tracker_channel->sample_count,
-                             tracker_channel->mesid.sat,
-                             tracker_channel->code_phase_prompt,
-                             tracker_channel->carrier_freq,
-                             tracker_channel->cn0);
+      tracker_bit_aligned(tracker_channel) &&
+      (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
+    /* Start L2C tracker if not running */
+    do_l1ca_to_l2c_handover(tracker_channel->sample_count,
+                            tracker_channel->mesid.sat,
+                            tracker_channel->code_phase_prompt,
+                            tracker_channel->carrier_freq,
+                            tracker_channel->cn0,
+                            tracker_channel->TOW_ms);
   }
 }

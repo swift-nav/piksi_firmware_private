@@ -129,9 +129,7 @@ static void piksi_systime_get_internal(piksi_systime_t *t) {
 
   assert(t);
 
-  systime_t current;
-
-  current = chVTGetSystemTimeX();
+  systime_t current = chVTGetSystemTimeX();
 
   if (prev.systime > current) {
     prev.rollover_cnt++;
@@ -149,7 +147,9 @@ void piksi_systime_get(piksi_systime_t *t) {
 }
 
 /* No lock version, this should be used if caller already has the lock. */
-void piksi_systime_get_x(piksi_systime_t *t) { piksi_systime_get_internal(t); }
+static void piksi_systime_get_x(piksi_systime_t *t) {
+  piksi_systime_get_internal(t);
+}
 
 /** Convert piksi_systime to system ticks.
  *
@@ -291,10 +291,10 @@ s64 piksi_systime_sub_s(const piksi_systime_t *a, const piksi_systime_t *b) {
  *
  * \return System ticks since t.
  */
-static u64 piksi_systime_elapsed_since_x(const piksi_systime_t *t) {
+static u64 piksi_systime_elapsed_since(const piksi_systime_t *t) {
   piksi_systime_t now;
 
-  piksi_systime_get_x(&now);
+  piksi_systime_get(&now);
 
   return piksi_systime_sub_internal(&now, t);
 }
@@ -305,8 +305,8 @@ static u64 piksi_systime_elapsed_since_x(const piksi_systime_t *t) {
  *
  * \return Microseconds since t.
  */
-u64 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t) {
-  u64 ticks = piksi_systime_elapsed_since_x(t);
+u64 piksi_systime_elapsed_since_us(const piksi_systime_t *t) {
+  u64 ticks = piksi_systime_elapsed_since(t);
 
   return st2us(ticks);
 }
@@ -317,8 +317,8 @@ u64 piksi_systime_elapsed_since_us_x(const piksi_systime_t *t) {
  *
  * \return Milliseconds since t.
  */
-u64 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t) {
-  u64 ticks = piksi_systime_elapsed_since_x(t);
+u64 piksi_systime_elapsed_since_ms(const piksi_systime_t *t) {
+  u64 ticks = piksi_systime_elapsed_since(t);
 
   return st2ms(ticks);
 }
@@ -329,10 +329,24 @@ u64 piksi_systime_elapsed_since_ms_x(const piksi_systime_t *t) {
  *
  * \return Seconds since t.
  */
-u64 piksi_systime_elapsed_since_s_x(const piksi_systime_t *t) {
-  u64 ticks = piksi_systime_elapsed_since_x(t);
+u64 piksi_systime_elapsed_since_s(const piksi_systime_t *t) {
+  u64 ticks = piksi_systime_elapsed_since(t);
 
   return st2s(ticks);
+}
+
+/** Get tick count since specific time. No lock version.
+ *
+ * \param[in] t            Pointer to time variable indicating the start moment.
+ *
+ * \return System ticks since t.
+ */
+static u64 piksi_systime_elapsed_since_x(const piksi_systime_t *t) {
+  piksi_systime_t now;
+
+  piksi_systime_get_x(&now);
+
+  return piksi_systime_sub_internal(&now, t);
 }
 
 /** Increment piksi_system_t.

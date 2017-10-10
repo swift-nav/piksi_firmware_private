@@ -39,7 +39,7 @@
 #include "xadc.h"
 
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
-#define REQUIRED_NAP_VERSION_VAL (0x0308000CU)
+#define REQUIRED_NAP_VERSION_VAL NAP_VERSION
 
 #define SLCR_PSS_RST_CTRL (*(volatile u32 *)0xf8000200)
 #define SLCR_PSS_RST_CTRL_SOFT_RST 1
@@ -133,8 +133,12 @@ static bool nap_version_ok(u32 version) {
     return false;
   }
 
+#if (REQUIRED_NAP_VERSION_VAL & ~REQUIRED_NAP_VERSION_MASK) > 0
   return (version & (~REQUIRED_NAP_VERSION_MASK)) >=
          (REQUIRED_NAP_VERSION_VAL & (~REQUIRED_NAP_VERSION_MASK));
+#else
+  return (version & (~REQUIRED_NAP_VERSION_MASK)) == 0;
+#endif
 }
 
 static void nap_version_check(void) {
@@ -349,7 +353,7 @@ u8 mac_address_string_get(char *mac_string) {
 
 u8 hw_version_string_get(char *hw_version_string) {
   u16 major_ver = factory_params.hardware_version >> 16;
-  u16 minor_ver = factory_params.hardware_version && 0xFFFF;
+  u16 minor_ver = factory_params.hardware_version & 0xFFFF;
   sprintf(hw_version_string, "%d.%d", major_ver, minor_ver);
   return strlen(hw_version_string);
 }

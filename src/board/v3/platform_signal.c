@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
@@ -15,8 +16,7 @@
 #include "track/track_glo_l1ca.h"
 #include "track/track_glo_l2ca.h"
 #include "track/track_gps_l1ca.h"
-#include "track/track_gps_l2cl.h"
-#include "track/track_gps_l2cm.h"
+#include "track/track_gps_l2c.h"
 #include "track/track_sid_db.h"
 
 #include "decode/decode_glo_l1ca.h"
@@ -29,8 +29,7 @@
 void platform_track_setup(void) {
   track_sid_db_init();
   track_gps_l1ca_register();
-  track_gps_l2cm_register();
-  track_gps_l2cl_register();
+  track_gps_l2c_register();
   track_glo_l1ca_register();
   track_glo_l2ca_register();
 }

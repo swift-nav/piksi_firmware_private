@@ -46,58 +46,10 @@ u8 nap_dna[NAP_DNA_LENGTH] = {0};
 u8 nap_track_n_channels = 0;
 
 void nap_setup(void) {
-  nap_track_n_channels = GET_NAP_STATUS_NUM_TRACKING_CH(NAP->STATUS);
-  nap_track_n_channels = MIN(nap_track_n_channels, MAX_CHANNELS);
-
-  nap_scan_channels();
+  nap_track_n_channels = MIN(NAP_NUM_TRACKING_CHANNELS, MAX_CHANNELS);
 
   axi_dma_init();
   axi_dma_start(&AXIDMADriver1);
-
-  /* Phase increment initialization for GPS L1C/A processing */
-  NAP_FE->RF1A_PINC = NAP_FE_GPS_L1CA_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for Beidou B1 processing */
-  NAP_FE->RF1B_PINC = NAP_FE_BDS_B1_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for GLO L1C/A processing */
-  NAP_FE->RF2A_PINC = NAP_FE_GLO_L1CA_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for GLO L2C/A processing */
-  NAP_FE->RF3A_PINC = NAP_FE_GLO_L2CA_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for GPS L2C processing */
-  NAP_FE->RF4A_PINC = NAP_FE_GPS_L2C_BASEBAND_MIXER_PINC;
-
-  /* Phase increment initialization for Beidou B2 processing */
-  NAP_FE->RF4B_PINC = NAP_FE_BDS_B2_BASEBAND_MIXER_PINC;
-
-  /* Reset frontend NCOs after number of samples */
-  NAP_FE->RF1_NCO_RESET =
-      ((NAP_FE_RF1A_NCO_RESET - 1) << FE_RF1_NCO_RESET_RF1A_Pos) |
-      ((NAP_FE_RF1B_NCO_RESET - 1) << FE_RF1_NCO_RESET_RF1B_Pos);
-
-  NAP_FE->RF2_NCO_RESET =
-      ((NAP_FE_RF2A_NCO_RESET - 1) << FE_RF2_NCO_RESET_RF2A_Pos);
-
-  NAP_FE->RF3_NCO_RESET =
-      ((NAP_FE_RF3A_NCO_RESET - 1) << FE_RF3_NCO_RESET_RF3A_Pos);
-
-  NAP_FE->RF4_NCO_RESET =
-      ((NAP_FE_RF4A_NCO_RESET - 1) << FE_RF4_NCO_RESET_RF4A_Pos) |
-      ((NAP_FE_RF4B_NCO_RESET - 1) << FE_RF4_NCO_RESET_RF4B_Pos);
-
-  /* Enable frontend channels and their respective NCO resets */
-  NAP_FE->CONTROL =
-      (1 << FE_CONTROL_ENABLE_RF1A_Pos) | (0 << FE_CONTROL_ENABLE_RF1B_Pos) |
-      (1 << FE_CONTROL_ENABLE_RF2A_Pos) | (1 << FE_CONTROL_ENABLE_RF3A_Pos) |
-      (1 << FE_CONTROL_ENABLE_RF4A_Pos) | (0 << FE_CONTROL_ENABLE_RF4B_Pos) |
-      (1 << FE_CONTROL_RESET_RF1A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF1B_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF2A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF3A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF4A_NCO_Pos) |
-      (1 << FE_CONTROL_RESET_RF4B_NCO_Pos);
 
   /* Enable NAP interrupt */
   chThdCreateStatic(

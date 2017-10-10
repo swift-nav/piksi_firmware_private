@@ -178,7 +178,7 @@ bool dgnss_timeout(piksi_systime_t *_last_dgnss,
 
   /* Need to compare timeout threshold in MS to system time elapsed (in system
    * ticks) */
-  return (piksi_systime_elapsed_since_ms_x(_last_dgnss) > DGNSS_TIMEOUT_MS);
+  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
 }
 
 /** Determine if we have had a SPP timeout.
@@ -517,11 +517,8 @@ static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
     ret = filter_manager_update(filter_manager);
-    if (ret != PVT_ENGINE_SUCCESS) {
-      detailed_log_info("Skipping filter update with ret = %d", ret);
-    }
   } else {
-    detailed_log_info("Filter not initialized.");
+    log_info("Starling Filter not initialized.");
   }
   return ret;
 }
@@ -538,9 +535,8 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
     *dops = filter_manager_get_dop_values(filter_manager);
-  } else {
-    detailed_log_info("Baseline calculation failed");
   }
+
   return get_baseline_ret;
 }
 
@@ -1040,7 +1036,7 @@ static void time_matched_obs_thread(void *arg) {
 
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
-        detailed_log_error("Base obs mailbox fetch failed with %d", fetch_ret);
+        log_error("Base obs mailbox fetch failed with %d", fetch_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
@@ -1095,11 +1091,11 @@ static void time_matched_obs_thread(void *arg) {
           last_update_time = obss->tor;
         }
 
-        chPoolFree(&time_matched_obs_buff_pool, obss);
         if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
           solution_send_pos_messages(
               base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
         }
+        chPoolFree(&time_matched_obs_buff_pool, obss);
         break;
       } else {
         if (dt > 0) {
@@ -1107,8 +1103,10 @@ static void time_matched_obs_thread(void *arg) {
            * observation matching this base observation, break and wait for a
            * new base observation. */
 
-          /* In practice this should basically never happen so lets make a note
-           * if it does. */
+          /* In practice this should only happen when we initially start
+           * receiving corrections, or if the ntrip/skylark corrections are old
+           * due to connection problems.
+           */
           log_warn(
               "Obs Matching: t_base < t_rover "
               "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})",
@@ -1118,8 +1116,8 @@ static void time_matched_obs_thread(void *arg) {
               base_obss_copy.tor.wn,
               base_obss_copy.tor.tow);
           /* Return the buffer to the mailbox so we can try it again later. */
-          const msg_t post_ret =
-              chMBPost(&time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
+          const msg_t post_ret = chMBPostAhead(
+              &time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
           if (post_ret != MSG_OK) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */

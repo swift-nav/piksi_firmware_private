@@ -10,13 +10,13 @@ notifications:
     on_failure: never
     on_success: never
 
-os:
-  - linux
-  - osx
-
+branches:
+  only:
+    - master
 
 matrix:
   include:
+    - os: linux
     - os: linux
       addons:
         apt:
@@ -25,8 +25,11 @@ matrix:
           packages:
             - clang-format-4.0
       env: TESTENV=lint
+    - os: osx
+      osx_image: xcode8
 
 before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - pip install --user --upgrade awscli
 
 install:

@@ -41,6 +41,9 @@
 /** C/N0 threshold short interval [ms] */
 #define TRACK_CN0_THRES_COUNT_SHORT 100
 
+/** C/N0 hysteresis threshold */
+#define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
+
 /**
  * Computes number of chips in the integration interval
  *
@@ -67,12 +70,6 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
   /* Take modulo of the code phase. Nominally this should be close to zero,
    * or close to chip_rate. */
   current_chip %= chip_rate;
-
-  /* L2CL code phase has been adjusted by 1,
-   * due to L2CM code chip occupying first slot. */
-  if (CODE_GPS_L2CL == mesid.code) {
-    current_chip += 1;
-  }
 
   s32 offset = current_chip;
   /* If current_chip is close to chip_rate, the code hasn't rolled over yet,
@@ -725,16 +722,15 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   if (cn0 < cn0_params.track_cn0_use_thres_dbhz) {
     /* Update the latest time we were below the threshold. */
     tracker_channel->cn0_below_use_thres_count = tracker_channel->update_count;
+    /* Flag as low CN0 measurements. */
+    tracker_channel->flags &= ~TRACKER_FLAG_CN0_LONG;
+    tracker_channel->flags &= ~TRACKER_FLAG_CN0_SHORT;
   }
 
-  /* Check C/N0 has been above threshold for a long time (RTK). */
-  u32 cn0_threshold_count_ms = (tracker_channel->update_count -
-                                tracker_channel->cn0_below_use_thres_count);
-  if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_LONG) {
+  if (cn0 >
+      (cn0_params.track_cn0_use_thres_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
+    /* Flag as high CN0 measurements. */
     tracker_channel->flags |= TRACKER_FLAG_CN0_LONG;
-  }
-  /* Check C/N0 has been above threshold for the minimum time (SPP). */
-  if (cn0_threshold_count_ms > TRACK_CN0_THRES_COUNT_SHORT) {
     tracker_channel->flags |= TRACKER_FLAG_CN0_SHORT;
   }
 }
@@ -896,9 +892,13 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
 
     tl_rates_t rates = {0};
 
-    bool costas = (tracker_channel->mesid.code != CODE_GPS_L2CL);
-    tp_tl_update(
-        &tracker_channel->tl_state, &tracker_channel->corrs.corr_epl, costas);
+    bool costas = true;
+    tp_epl_corr_t corr_epl = tracker_channel->corrs.corr_epl;
+    if (CODE_GPS_L2CM == tracker_channel->mesid.code) {
+      corr_epl.prompt = corr_epl.very_late;
+      costas = false;
+    }
+    tp_tl_update(&tracker_channel->tl_state, &corr_epl, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
