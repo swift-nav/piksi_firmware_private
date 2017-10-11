@@ -67,6 +67,11 @@ int main(void) {
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
+  unsigned int reboot_state = (*(volatile unsigned int *)0xF8000258);
+  static char reboot_state_string[64] = {0};
+  sprintf(reboot_state_string, "%X", reboot_state);
+  log_info("reboot_state: %s", reboot_state_string);
+
   init();
   signal_init();
 
