@@ -90,6 +90,8 @@ static void imu_aux_thread(void *arg) {
   }
 }
 
+int count = 0;
+
 /** IMU data processing thread. */
 static void imu_thread(void *arg) {
   (void)arg;
@@ -115,6 +117,13 @@ static void imu_thread(void *arg) {
       timeout = MS2ST(45) / (imu_rate + 1);
     }
     msg_t status = chBSemWaitTimeout(&imu_irq_sem, timeout);
+
+    for(int i=0; i<count; i++) {
+      for(int k=0; k<1000000; k++) {
+        nap_sample_time_to_count(nap_tc);
+      }
+    }
+    count++;
 
     bool new_acc, new_gyro, new_mag;
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
