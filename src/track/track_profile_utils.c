@@ -39,7 +39,7 @@ typedef struct {
 #define TP_FLAGS_INI                                           \
   (TP_CFLAG_EPL_SET | TP_CFLAG_EPL_USE | TP_CFLAG_BSYNC_SET |  \
    TP_CFLAG_BSYNC_UPDATE | TP_CFLAG_LD_SET | TP_CFLAG_LD_USE | \
-   TP_CFLAG_FLL_SET)
+   TP_CFLAG_FLL_SET  | TP_CFLAG_FLL_HALFQ)
 
 /**
  * Initial tracking mode (no bit sync, FLL-assisted PLL, 1 ms)

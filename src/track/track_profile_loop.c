@@ -305,22 +305,22 @@ bool tp_tl_is_pll(const tp_tl_state_t *s) {
  * \sa tp_tl_fll_update_second
  * \sa tp_tl_fll_update
  */
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs) {
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq) {
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false);
+      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, false, halfq);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, false);
+      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, false, halfq);
       break;
 
     case TP_CTRL_FLL1:
-      tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false);
+      tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, false, halfq);
       break;
 
     case TP_CTRL_FLL2:
-      tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false);
+      tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, false, halfq);
       break;
 
     default:
@@ -341,22 +341,22 @@ void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs) {
  * \sa tp_tl_fll_update_first
  * \sa tp_tl_fll_update
  */
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs) {
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq) {
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
-      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true);
+      tl_pll2_discr_update(&s->pll2, cs.I, cs.Q, true, halfq);
       break;
 
     case TP_CTRL_PLL3:
-      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true);
+      tl_pll3_discr_update(&s->pll3, cs.I, cs.Q, true, halfq);
       break;
 
     case TP_CTRL_FLL1:
-      tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true);
+      tl_fll1_discr_update(&s->fll1, cs.I, cs.Q, true, halfq);
       break;
 
     case TP_CTRL_FLL2:
-      tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true);
+      tl_fll2_discr_update(&s->fll2, cs.I, cs.Q, true, halfq);
       break;
 
     default:
