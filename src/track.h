@@ -701,6 +701,7 @@ typedef struct {
 #define TP_CFLAG_FLL_ADD ((u32)1 << 9)
 #define TP_CFLAG_FLL_FIRST ((u32)1 << 11)
 #define TP_CFLAG_FLL_SECOND ((u32)1 << 12)
+#define TP_CFLAG_FLL_HALFQ ((u32)1 << 25)
 
 /* DLL/PLL control */
 #define TP_CFLAG_EPL_SET ((u32)1 << 13)
@@ -846,8 +847,8 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
 float tp_tl_get_dll_error(tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);
-void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs);
-void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs);
+void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq);
+void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
 /* Generic tracker functions */
