@@ -687,39 +687,39 @@ typedef struct {
 /** \} */
 
 /* Bit synchronization and data decoding */
-#define TP_CFLAG_BSYNC_SET ((u32)1 << 2)
-#define TP_CFLAG_BSYNC_ADD ((u32)1 << 3)
-#define TP_CFLAG_BSYNC_UPDATE ((u32)1 << 4)
+#define TPF_BSYNC_SET ((u32)1 << 2)
+#define TPF_BSYNC_ADD ((u32)1 << 3)
+#define TPF_BSYNC_UPD ((u32)1 << 4)
 
 /* C/N0 estimator control */
-#define TP_CFLAG_CN0_SET ((u32)1 << 5)
-#define TP_CFLAG_CN0_ADD ((u32)1 << 6)
-#define TP_CFLAG_CN0_USE ((u32)1 << 7)
+#define TPF_CN0_SET ((u32)1 << 5)
+#define TPF_CN0_ADD ((u32)1 << 6)
+#define TPF_CN0_USE ((u32)1 << 7)
 
 /* FLL control */
-#define TP_CFLAG_FLL_SET ((u32)1 << 8)
-#define TP_CFLAG_FLL_ADD ((u32)1 << 9)
-#define TP_CFLAG_FLL_FIRST ((u32)1 << 11)
-#define TP_CFLAG_FLL_SECOND ((u32)1 << 12)
-#define TP_CFLAG_FLL_HALFQ ((u32)1 << 25)
+#define TPF_FLL_SET ((u32)1 << 8)
+#define TPF_FLL_ADD ((u32)1 << 9)
+#define TPF_FLL_1ST ((u32)1 << 11)
+#define TPF_FLL_2ND ((u32)1 << 12)
+#define TPF_FLL_HALFQ ((u32)1 << 25)
 
 /* DLL/PLL control */
-#define TP_CFLAG_EPL_SET ((u32)1 << 13)
-#define TP_CFLAG_EPL_ADD ((u32)1 << 14)
-#define TP_CFLAG_EPL_ADD_INV ((u32)1 << 15)
-#define TP_CFLAG_EPL_INV_ADD ((u32)1 << 16)
-#define TP_CFLAG_EPL_USE ((u32)1 << 17)
+#define TPF_EPL_SET ((u32)1 << 13)
+#define TPF_EPL_ADD ((u32)1 << 14)
+#define TPF_EPL_ADD_INV ((u32)1 << 15)
+#define TPF_EPL_INV_ADD ((u32)1 << 16)
+#define TPF_EPL_USE ((u32)1 << 17)
 
 /* False lock detector control */
-#define TP_CFLAG_ALIAS_SET ((u32)1 << 18)
-#define TP_CFLAG_ALIAS_ADD ((u32)1 << 19)
-#define TP_CFLAG_ALIAS_FIRST ((u32)1 << 20)
-#define TP_CFLAG_ALIAS_SECOND ((u32)1 << 21)
+#define TPF_ALIAS_SET ((u32)1 << 18)
+#define TPF_ALIAS_ADD ((u32)1 << 19)
+#define TPF_ALIAS_1ST ((u32)1 << 20)
+#define TPF_ALIAS_2ND ((u32)1 << 21)
 
 /* Lock detector control */
-#define TP_CFLAG_LD_SET ((u32)1 << 22)
-#define TP_CFLAG_LD_ADD ((u32)1 << 23)
-#define TP_CFLAG_LD_USE ((u32)1 << 24)
+#define TPF_LD_SET ((u32)1 << 22)
+#define TPF_LD_ADD ((u32)1 << 23)
+#define TPF_LD_USE ((u32)1 << 24)
 
 /**
  * Common tracker configuration container.

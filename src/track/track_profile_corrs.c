@@ -91,49 +91,49 @@ void tp_update_correlators(u32 cycle_flags,
                            tp_corr_state_t *restrict corr_state) {
   tp_epl_corr_t tmp_epl;
   /* C/N0 estimator accumulators updates */
-  if (0 != (cycle_flags & TP_CFLAG_CN0_SET))
+  if (0 != (cycle_flags & TPF_CN0_SET))
     corr_state->corr_cn0 = *cs_now;
-  else if (0 != (cycle_flags & TP_CFLAG_CN0_ADD))
+  else if (0 != (cycle_flags & TPF_CN0_ADD))
     corr_state->corr_cn0 =
         *corr_epl_add(&corr_state->corr_cn0, cs_now, &tmp_epl);
 
   /* PLL/DLL accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_EPL_SET))
+  if (0 != (cycle_flags & TPF_EPL_SET))
     corr_state->corr_epl = *cs_now;
-  else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD))
+  else if (0 != (cycle_flags & TPF_EPL_ADD))
     corr_state->corr_epl =
         *corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl);
-  else if (0 != (cycle_flags & TP_CFLAG_EPL_ADD_INV))
+  else if (0 != (cycle_flags & TPF_EPL_ADD_INV))
     /* Sum-up and normalize by bit value (for 20+ ms integrations) */
     corr_state->corr_epl = *corr_epl_inv(
         corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl), &tmp_epl);
-  else if (0 != (cycle_flags & TP_CFLAG_EPL_INV_ADD))
+  else if (0 != (cycle_flags & TPF_EPL_INV_ADD))
     /* Normalize by bit value and sum-up (for 20+ ms integrations) */
     corr_state->corr_epl = *corr_epl_add(
         &corr_state->corr_epl, corr_epl_inv(cs_now, &tmp_epl), &tmp_epl);
 
   /* False lock (alias) detector accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_ALIAS_SET))
+  if (0 != (cycle_flags & TPF_ALIAS_SET))
     corr_state->corr_ad = cs_now->prompt;
-  else if (0 != (cycle_flags & TP_CFLAG_ALIAS_ADD))
+  else if (0 != (cycle_flags & TPF_ALIAS_ADD))
     corr_state->corr_ad = corr_add(corr_state->corr_ad, cs_now->prompt);
 
   /* Lock detector accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_LD_SET))
+  if (0 != (cycle_flags & TPF_LD_SET))
     corr_state->corr_ld = cs_now->prompt;
-  else if (0 != (cycle_flags & TP_CFLAG_LD_ADD))
+  else if (0 != (cycle_flags & TPF_LD_ADD))
     corr_state->corr_ld = corr_add(corr_state->corr_ld, cs_now->prompt);
 
   /* FLL accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_FLL_SET))
+  if (0 != (cycle_flags & TPF_FLL_SET))
     corr_state->corr_fll = cs_now->prompt;
-  else if (0 != (cycle_flags & TP_CFLAG_FLL_ADD))
+  else if (0 != (cycle_flags & TPF_FLL_ADD))
     corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_now->prompt);
 
   /* Message payload / bit sync accumulator updates */
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_SET)) {
+  if (0 != (cycle_flags & TPF_BSYNC_SET)) {
     corr_state->corr_bit = cs_now->prompt;
-  } else if (0 != (cycle_flags & TP_CFLAG_BSYNC_ADD)) {
+  } else if (0 != (cycle_flags & TPF_BSYNC_ADD)) {
     corr_state->corr_bit = corr_add(corr_state->corr_bit, cs_now->prompt);
   }
 }
