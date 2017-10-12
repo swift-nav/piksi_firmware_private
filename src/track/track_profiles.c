@@ -37,13 +37,15 @@
 /** C/N0 threshold for measurements use */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 
-#define TL_BWT_MAX (0.1f)
+#define TL_BWT_MAX (0.18f * 20.f)
 
-#define PLL_CN0_MIN (20.0f)
-#define PLL_CN0_MAX (50.0f)
-#define PLL_BW_MIN (7.0f)
+#define ADJ_CN0_MAX (60.0f)
 #define PLL_BW_MAX (20.0f)
-#define FLL_BW_MIN (0.1f)
+#define FLL_BW_MAX (3.0f)
+
+#define ADJ_CN0_MIN (20.0f)
+#define PLL_BW_MIN (10.0f)
+#define FLL_BW_MIN (1.0f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -236,14 +238,14 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_1] =
   { {   18,             4,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-        50,             0,            0,
+       100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
   { {   18,             3,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
           TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-       200,             0,            0,
+       150,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
@@ -255,7 +257,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
+  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
            TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            50,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
@@ -284,7 +286,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,           1.0,           1,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {     0,           1.0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
          50,             0,         32.,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
@@ -348,7 +350,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
 
 static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
   float y[2] = {PLL_BW_MIN, PLL_BW_MAX};   /* bw */
-  float x[2] = {PLL_CN0_MIN, PLL_CN0_MAX}; /* cn0 */
+  float x[2] = {ADJ_CN0_MIN, ADJ_CN0_MAX}; /* cn0 */
 
   float m = (y[1] - y[0]) / (x[1] - x[0]);
 
@@ -382,12 +384,12 @@ static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
 }
 
 static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
-  float bw = 1.5f * expf((40.0f - cn0) * (cn0 - 40.0f) / 80.0f);
+  float y[2] = {FLL_BW_MIN, FLL_BW_MAX};   /* bw */
+  float x[2] = {ADJ_CN0_MIN, ADJ_CN0_MAX}; /* cn0 */
 
-  /* Limit FLL bw to minimum bound */
-  if (bw < FLL_BW_MIN) {
-    bw = FLL_BW_MIN;
-  }
+  float m = (y[1] - y[0]) / (x[1] - x[0]);
+
+  float bw = (cn0 - x[0]) * m + y[0];
 
   /* Form bandwidth * integration time product. */
   float bwt = bw * (float)T_ms / SECS_MS;
