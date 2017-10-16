@@ -21,24 +21,24 @@ MMUTable:
      */
 .set SECT, 0
 
-                            /* 0x00000000 - 0x00100000 (Low OCM / DDR)
+                            /* 0x00000000 - 0x000fffff (Low OCM / DDR)
                              * Generates a translation fault if accessed */
 .word   SECT + 0x0          /* S=b0 TEX=b000 AP=b00, Domain=b0, C=b0, B=b0 */
 .set    SECT, SECT+0x100000
 
-.rept   0x1BF               /* 0x00100000 - 0x1c000000 (Linux DDR)
+.rept   0x1AF               /* 0x00100000 - 0x1affffff (Linux DDR)
                              * Generates a translation fault if accessed */
 .word   SECT + 0x0          /* S=b0 TEX=b000 AP=b00, Domain=b0, C=b0, B=b0 */
 .set    SECT, SECT+0x100000
 .endr
 
-.rept   0x28                /* 0x1c000000 - 0x1e800000 (Shared DDR)
+.rept   0x28                /* 0x1b000000 - 0x1d7fffff (Shared DDR)
                              * Normal, shared, non-cacheable */
 .word   SECT + 0x14de2      /* S=b1 TEX=b100 AP=b11, Domain=b1111, C=b0, B=b0 */
 .set    SECT, SECT+0x100000
 .endr
 
-.rept   0x18                /* 0x1e800000 - 0x1fffffff (Firmware DDR)
+.rept   0x28                /* 0x1d800000 - 0x1fffffff (Firmware DDR)
                              * Normal, shared, inner and outer cacheable */
 .word   SECT + 0x15de6      /* S=b1 TEX=b101 AP=b11, Domain=b1111, C=b0, B=b1 */
 .set    SECT, SECT+0x100000
