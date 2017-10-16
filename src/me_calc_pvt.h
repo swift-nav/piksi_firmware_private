@@ -50,7 +50,7 @@ typedef struct _me_msg_obs_t {
 #define MAX_CLOCK_ERROR_S 0.00101
 
 /* If the residual in a pseudorange excluded by RAIM is larger than this, then
- * drop the channel */
+ * drop the channel and the corresponding ephemeris */
 #define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
 
 extern u32 obs_output_divisor;
