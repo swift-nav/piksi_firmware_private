@@ -250,7 +250,7 @@ void imu_init(void) {
                  TYPE_BOOL,
                  raw_imu_output_changed);
 
-  static const char const *rate_enum[] =
+  static const char *const rate_enum[] =
       /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
        * issue resulting in messages with duplicate timestamps. */
       {"25", "50", "100", "200", /* "400",*/ NULL};
@@ -258,14 +258,14 @@ void imu_init(void) {
   int TYPE_RATE = settings_type_register_enum(rate_enum, &rate_setting);
   SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_RATE, imu_rate_changed);
 
-  static const char const *acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
+  static const char *const acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   static struct setting_type acc_range_setting;
   int TYPE_ACC_RANGE =
       settings_type_register_enum(acc_range_enum, &acc_range_setting);
   SETTING_NOTIFY(
       "imu", "acc_range", acc_range, TYPE_ACC_RANGE, acc_range_changed);
 
-  static const char const *gyr_range_enum[] = {
+  static const char *const gyr_range_enum[] = {
       "2000", "1000", "500", "250", "125", NULL};
   static struct setting_type gyr_range_setting;
   int TYPE_GYR_RANGE =
