@@ -840,12 +840,8 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
 void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
                            u32 cycle_flags) {
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
-  if (0 != (cycle_flags & TPF_FLL_1ST)) {
-    tp_tl_fll_update_first(
-        &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
-  }
 
-  if (0 != (cycle_flags & TPF_FLL_2ND)) {
+  if (0 != (cycle_flags & TPF_FLL_USE)) {
     tp_tl_fll_update_second(
         &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
   }

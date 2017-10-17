@@ -699,9 +699,8 @@ typedef struct {
 /* FLL control */
 #define TPF_FLL_SET ((u32)1 << 8)
 #define TPF_FLL_ADD ((u32)1 << 9)
-#define TPF_FLL_1ST ((u32)1 << 11)
-#define TPF_FLL_2ND ((u32)1 << 12)
-#define TPF_FLL_HALFQ ((u32)1 << 25)
+#define TPF_FLL_USE ((u32)1 << 11)
+#define TPF_FLL_HALFQ ((u32)1 << 12)
 
 /* DLL/PLL control */
 #define TPF_EPL_SET ((u32)1 << 13)
