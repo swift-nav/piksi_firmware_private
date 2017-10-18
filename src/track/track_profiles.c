@@ -41,11 +41,11 @@
 
 #define ADJ_CN0_MAX (60.0f)
 #define PLL_BW_MAX (20.0f)
-#define FLL_BW_MAX (3.0f)
+#define FLL_BW_MAX (2.75f)
 
 #define ADJ_CN0_MIN (20.0f)
 #define PLL_BW_MIN (10.0f)
-#define FLL_BW_MIN (1.0f)
+#define FLL_BW_MIN (0.75f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -231,7 +231,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_0] =
   { {   18,             5,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
-        50,             0,            0,
+       100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED },
 
@@ -243,44 +243,44 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { {   18,             3,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
-          TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-       150,             0,            0,
+  { {   18,             3,            5,   TP_CTRL_PLL3,          TP_TM_INITIAL,
+          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+       100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
   [IDX_1MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
            TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-           50,          48,           0,
+           40,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
   { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
            TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
-           50,          43,          51,
+           40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_5MS] =
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
            TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
-           50,          35,          46,
+           40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_10MS] =
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-           50,          32,          38,
+           40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
   { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           50,          25,          35,
+           40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
@@ -288,7 +288,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_SENS] =
   { {     0,           1.0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-         50,             0,         32.,
+        100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
 };

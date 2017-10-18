@@ -53,8 +53,20 @@ static const state_table_t mode_1msINI = {
   .flld_ms = 1,
   .flll_ms = 1,
   .bit_ms = 1,
-  .ent_cnt = 10,
+  .ent_cnt = 20,
   .entries = {
+    {1, TP_FLAGS_INI | TPF_CN0_SET},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD},
+    {1, TP_FLAGS_INI | TPF_CN0_ADD |
+                       TPF_CN0_USE},
+
     {1, TP_FLAGS_INI | TPF_CN0_SET},
     {1, TP_FLAGS_INI | TPF_CN0_ADD},
     {1, TP_FLAGS_INI | TPF_CN0_ADD},
