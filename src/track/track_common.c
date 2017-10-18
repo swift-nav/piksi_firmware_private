@@ -363,7 +363,7 @@ static void mode_change_init(tracker_channel_t *tracker_channel) {
                                         tracker_channel->cycle_no);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker_channel, next_cycle);
 
-  if (0 == (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+  if (0 == (next_cycle_flags & TPF_BSYNC_UPD)) {
     return;
   }
 
@@ -613,7 +613,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+  if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
     bool sensitivity_mode =
         (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
@@ -645,7 +645,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   tp_cn0_params_t cn0_params;
   tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
 
-  if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
+  if (0 != (cycle_flags & TPF_CN0_USE)) {
     /* Workaround for
      * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/475
      * don't update c/n0 if correlators data are 0 use
@@ -787,7 +787,7 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
  */
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
+  if (0 != (cycle_flags & TPF_LD_USE)) {
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
 
@@ -839,13 +839,9 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
                            u32 cycle_flags) {
-  bool halfq = (0 != (cycle_flags & TP_CFLAG_FLL_HALFQ));
-  if (0 != (cycle_flags & TP_CFLAG_FLL_FIRST)) {
-    tp_tl_fll_update_first(
-        &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
-  }
+  bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
-  if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND)) {
+  if (0 != (cycle_flags & TPF_FLL_USE)) {
     tp_tl_fll_update_second(
         &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
   }
@@ -864,7 +860,7 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
                                u32 cycle_flags) {
-  if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
+  if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker_channel->tracking_mode != TP_TM_INITIAL) {
       tracker_correlations_send(tracker_channel,
@@ -991,11 +987,11 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
  */
 void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  bool do_first = 0 != (cycle_flags & TP_CFLAG_ALIAS_FIRST);
+  bool do_first = 0 != (cycle_flags & TPF_ALIAS_1ST);
 
   /* Attempt alias detection if we have pessimistic phase lock detect, OR
      (optimistic phase lock detect AND are in second-stage tracking) */
-  if (0 != (cycle_flags & TP_CFLAG_ALIAS_SECOND)) {
+  if (0 != (cycle_flags & TPF_ALIAS_2ND)) {
     bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                    (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
     if (tracker_channel->use_alias_detection && inlock) {
@@ -1029,7 +1025,7 @@ void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
 void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config) {
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
       tracker_bit_aligned(tracker_channel)) {
     float xcorr_freq = tracker_channel->carrier_freq;
 
