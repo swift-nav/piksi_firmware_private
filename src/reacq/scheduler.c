@@ -25,7 +25,6 @@
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
-void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
 u16 get_orbit_slot(const u16 fcn);
 
