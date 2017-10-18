@@ -853,12 +853,19 @@ void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
 }
 
 bool send_nmea(u32 rate, u32 gps_tow_ms) {
-  if (rate == 0) {
+  if (rate == 0 ) {
+    return false;
+  }
+  if (gps_tow_ms == 0 ) {
     return false;
   }
 
-  const s32 output_period = (const s32)((1.0 / soln_freq_setting * rate) * 1e3);
-  if ((gps_tow_ms % output_period) == 0) {
+  /* If the modulu of latest gps time estimate time with configured
+   * output period is less than 1/2 the solution period we should send the NMEA message.
+   * This way, we still send no_fix messages when receiver clock is drifting. */
+  const u32 soln_period_ms = (const s32) 1/soln_freq_setting * 1e3;
+  const u32 output_period_ms = (const s32) soln_period_ms * rate;
+  if ((gps_tow_ms % output_period_ms) < (soln_period_ms / 2)) {
     return true;
   }
   return false;
@@ -912,7 +919,6 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
       assert(second_frac == 0);
     }
   }
-
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
     if (send_nmea(gpgga_msg_rate, sbp_msg_time->tow)) {
       nmea_gpgga(sbp_pos_llh,
