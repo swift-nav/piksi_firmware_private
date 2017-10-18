@@ -126,7 +126,7 @@ static void update_tow_gps_l1ca(tracker_channel_t *tracker_channel,
 
   bool aligned = false;
 
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
       tracker_bit_aligned(tracker_channel)) {
     /* Check current state: do we have bit/ToW alignment */
     aligned = true;
@@ -450,7 +450,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel,
                             u32 cycle_flags) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
-  if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
+  if (0 == (cycle_flags & TPF_BSYNC_UPD) ||
       !tracker_bit_aligned(tracker_channel)) {
     return;
   }
@@ -533,7 +533,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
-  if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
+  if (0 == (cycle_flags & TPF_BSYNC_UPD) ||
       !tracker_bit_aligned(tracker_channel)) {
     return;
   }
@@ -585,7 +585,7 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
 
-  if (inlock && confirmed && (0 != (cflags & TP_CFLAG_BSYNC_UPDATE)) &&
+  if (inlock && confirmed && (0 != (cflags & TPF_BSYNC_UPD)) &&
       tracker_bit_aligned(tracker_channel) &&
       (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
     /* Start L2C tracker if not running */

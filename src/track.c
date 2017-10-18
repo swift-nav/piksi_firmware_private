@@ -1542,7 +1542,7 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
 
   bool half_bit_aligned = false;
 
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
       tracker_bit_aligned(tracker_channel)) {
     half_bit_aligned = true;
   }

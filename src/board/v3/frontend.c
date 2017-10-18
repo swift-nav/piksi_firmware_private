@@ -342,7 +342,7 @@ static void configure_v2(void) {
                           0x0F = /30 */
   spi_write(12, 0x1C); /* clock source and signal type */
   spi_write(13, 0x03); /* channel 1 enabled and Upper/Lower side-band */
-  spi_write(14, 0x30); /* LPF setting for channel 1 - GPS L1 at about 22 MHz */
+  spi_write(14, 0x30); /* LPF setting for channel 1 - GPS L1 */
   spi_write(15, 0x0B);
   spi_write(16, 0x34);
   spi_write(17, 0xF1);
@@ -363,7 +363,7 @@ static void configure_v2(void) {
   spi_write(32, 0xEA);
   spi_write(33, 0x0B);
   spi_write(34, 0x03); /* channel 4 enabled and Upper/Lower side-band */
-  spi_write(35, 0x18); /* LPF setting for channel 4 - GPS L2 at about 16 MHz */
+  spi_write(35, 0x18); /* LPF setting for channel 4 - GPS L2 */
   spi_write(36, 0x0B);
   spi_write(37, 0x34);
   spi_write(38, 0xF1);
