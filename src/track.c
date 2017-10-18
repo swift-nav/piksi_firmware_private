@@ -1554,6 +1554,23 @@ static void update_tow_in_sid_db_glo(tracker_channel_t *tracker_channel,
  * \param[in]     cycle_flags    Current cycle flags.
  */
 void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
+  bool half_bit_aligned = false;
+
+  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+      tracker_bit_aligned(tracker_channel)) {
+    half_bit_aligned = true;
+  }
+
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
+
+  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
+    tracker_channel->TOW_ms =
+        propagate_tow_from_sid_db_glo(tracker_channel,
+                                      sample_time_tk,
+                                      half_bit_aligned,
+                                      &tracker_channel->TOW_residual_ns);
+  }
+
   /* for GLO L2 check if corresponding GLO L1 tracker is running */
   if (CODE_GLO_L2CA == tracker_channel->mesid.code) {
     me_gnss_signal_t mesid = {.code = CODE_GLO_L1CA,
@@ -1564,13 +1581,6 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
        * no need to continue */
       return;
     }
-  }
-
-  bool half_bit_aligned = false;
-
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel)) {
-    half_bit_aligned = true;
   }
 
   if (TOW_UNKNOWN != tracker_channel->TOW_ms && half_bit_aligned) {
@@ -1598,16 +1608,6 @@ void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags) {
       /* This is rude, but safe. Do not expect it to happen normally. */
       tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
     }
-  }
-
-  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
-
-  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
-    tracker_channel->TOW_ms =
-        propagate_tow_from_sid_db_glo(tracker_channel,
-                                      sample_time_tk,
-                                      half_bit_aligned,
-                                      &tracker_channel->TOW_residual_ns);
   }
 
   if (half_bit_aligned && (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) &&
