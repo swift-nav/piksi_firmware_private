@@ -652,7 +652,7 @@ void sbp_messages_init(sbp_messages_t *sbp_messages) {
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, 4000000);
+static THD_WORKING_AREA(wa_starling_thread, 8000000);
 static void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
