@@ -57,6 +57,8 @@ static const tracker_interface_t tracker_interface_glo_l2of = {
 static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
     .interface = &tracker_interface_glo_l2of, .next = 0};
 
+u16 get_orbit_slot(const u16 fcn);
+
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
@@ -110,7 +112,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
 
   tracking_startup_params_t startup_params = {
       .mesid = L2_mesid,
-      .glo_slot_id = glo_map_get_orbit_slot(sat),
+      .glo_slot_id = get_orbit_slot(sat),
       .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
       .carrier_freq = carrier_freq_hz * glo_freq_scale,
