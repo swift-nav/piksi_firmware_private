@@ -209,7 +209,7 @@ static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
 
   u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
 
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
       tracker_bit_aligned(tracker_channel)) {
     if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
       /*
@@ -415,7 +415,7 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
                                     u32 cycle_flags) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
-  if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
+  if (0 == (cycle_flags & TPF_BSYNC_UPD) ||
       !tracker_bit_aligned(tracker_channel)) {
     return;
   }
@@ -468,7 +468,7 @@ static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
 
   if (in_phase_lock && confirmed && tracker_bit_aligned(tracker_channel) &&
-      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE))) {
+      (0 != (cflags & TPF_BSYNC_UPD))) {
     /* naturally synched as we track */
     s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
     s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
