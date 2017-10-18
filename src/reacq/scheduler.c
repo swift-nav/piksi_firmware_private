@@ -16,6 +16,7 @@
 #include <timing.h>
 #include <track.h>
 #include "scheduler_api.h"
+#include "search_manager_api.h"
 #include "task_generator_api.h"
 
 #include "soft_macq/soft_macq_main.h"
@@ -24,6 +25,9 @@
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
+
+u16 get_orbit_slot(const u16 fcn);
 
 /* Scheduler constants */
 
@@ -363,7 +367,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
   if (peak_found) { /* Send to track */
     u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
     if (IS_GLO(job->mesid) && glo_map_valid(job->sid)) {
-      glo_orbit_slot = job->sid.sat;
+      glo_orbit_slot = get_orbit_slot(job->mesid.sat);
     }
 
     tracking_startup_params_t tracking_startup_params = {
