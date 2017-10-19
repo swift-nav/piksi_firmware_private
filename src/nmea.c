@@ -28,6 +28,7 @@
 #include "main.h"
 #include "me_calc_pvt.h"
 #include "nmea.h"
+#include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
@@ -857,8 +858,13 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
     return false;
   }
 
-  const s32 output_period = (const s32)((1.0 / soln_freq_setting * rate) * 1e3);
-  if ((gps_tow_ms % output_period) == 0) {
+  /* If the modulu of latest gps time estimate time with configured
+  * output period is less than 1/2 the solution period we should send the NMEA
+  * message.
+  * This way, we still send no_fix messages when receiver clock is drifting. */
+  u32 soln_period_ms = (u32)(1.0 / soln_freq_setting * 1e3);
+  u32 output_period_ms = (u32)soln_period_ms * rate;
+  if ((gps_tow_ms % output_period_ms) < (soln_period_ms / 2)) {
     return true;
   }
   return false;
@@ -890,9 +896,18 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
                     u8 n_meas,
                     const navigation_measurement_t nav_meas[]) {
   utc_tm utc_time;
+  static bool first_fix = false;
+
+  piksi_systime_t piksi_system_time;
+  u64 piksi_time_ms;
+  piksi_systime_get(&piksi_system_time);
+  /* piksi_time_ms will be used to decimate output before the first PVT
+   * solution */
+  piksi_time_ms = piksi_systime_to_ms(&piksi_system_time);
 
   /* prepare utc_tm structure with time rounded to NMEA precision */
   if ((sbp_msg_time->flags & TIME_SOURCE_MASK) != NO_TIME) {
+    first_fix = true;
     gps_time_t t = {
         .wn = sbp_msg_time->wn,
         .tow = 1e-3 * sbp_msg_time->tow + 1e-9 * sbp_msg_time->ns_residual};
@@ -913,8 +928,12 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
     }
   }
 
+  if (first_fix) {
+    piksi_time_ms = sbp_msg_time->tow;
+  }
+
   if (sbp_pos_llh && sbp_msg_time && sbp_dops) {
-    if (send_nmea(gpgga_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gpgga_msg_rate, piksi_time_ms)) {
       nmea_gpgga(sbp_pos_llh,
                  sbp_msg_time,
                  &utc_time,
@@ -924,32 +943,32 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
     }
   }
   if (sbp_baseline_heading && send_heading && sbp_msg_time) {
-    if (send_nmea(gphdt_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gphdt_msg_rate, piksi_time_ms)) {
       nmea_gphdt(sbp_baseline_heading);
     }
   }
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
-    if (send_nmea(gprmc_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gprmc_msg_rate, piksi_time_ms)) {
       nmea_gprmc(sbp_pos_llh, sbp_vel_ned, sbp_msg_time, &utc_time);
     }
   }
   if (sbp_pos_llh && sbp_msg_time) {
-    if (send_nmea(gpgll_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gpgll_msg_rate, piksi_time_ms)) {
       nmea_gpgll(sbp_pos_llh, sbp_msg_time, &utc_time);
     }
   }
   if (sbp_vel_ned && sbp_pos_llh && sbp_msg_time) {
-    if (send_nmea(gpvtg_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gpvtg_msg_rate, piksi_time_ms)) {
       nmea_gpvtg(sbp_vel_ned, sbp_pos_llh);
     }
   }
   if (sbp_msg_time) {
-    if (send_nmea(gpzda_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gpzda_msg_rate, piksi_time_ms)) {
       nmea_gpzda(sbp_msg_time, &utc_time);
     }
   }
   if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
-    if (send_nmea(gsa_msg_rate, sbp_msg_time->tow)) {
+    if (send_nmea(gsa_msg_rate, piksi_time_ms)) {
       nmea_assemble_gsa(sbp_pos_llh, sbp_dops, n_meas, nav_meas);
     }
   }
