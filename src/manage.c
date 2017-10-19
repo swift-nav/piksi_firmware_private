@@ -166,6 +166,8 @@ static bool tracking_startup_fifo_write(
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
 
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
+
 static sbp_msg_callbacks_node_t almanac_callback_node;
 static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   (void)sender_id;
@@ -1576,5 +1578,52 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
  * @return true if GLONASS enabled, otherwise false
  */
 bool is_glo_enabled(void) { return glo_enabled; }
+
+/**
+ * The function retrieves the GLO orbit slot, if the mapping to a FCN exists
+ * and the SV is visible.
+ *
+ * @param[in]  fcn  Frequency slot to be checked
+ *
+ * @return GLO orbit slot
+ */
+u16 get_orbit_slot(const u16 fcn) {
+  u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+  u16 slot_id1, slot_id2;
+  /* check if we have the fcn mapped already to some slot id */
+  u8 num_si = glo_map_get_slot_id(fcn, &slot_id1, &slot_id2);
+  switch (num_si) {
+    case 1: {
+      bool vis, kn = false;
+      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
+      /* the fcn mapped to one slot id only,
+       * so use it as glo prn to be tracked if it's visible at the moment */
+      if (vis & kn) {
+        glo_orbit_slot = slot_id1;
+      }
+    } break;
+    case 2: {
+      bool vis, kn = false;
+      /* we have 2 slot ids mapped to one fcn */
+      /* check if SV with slot id 1 is visible */
+      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
+      if (vis && kn) {
+        /* SV with the FIRST slot ID is visible, track it */
+        glo_orbit_slot = slot_id1;
+      } else {
+        /* check the second slot id */
+        sm_get_glo_visibility_flags(slot_id2, &vis, &kn);
+        if (vis & kn) {
+          /* SV with the SECOND slot ID is visible, track it */
+          glo_orbit_slot = slot_id2;
+        }
+      }
+    } break;
+    default:
+      glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+      break;
+  }
+  return glo_orbit_slot;
+}
 
 /** \} */

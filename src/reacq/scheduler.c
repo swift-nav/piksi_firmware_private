@@ -16,7 +16,6 @@
 #include <timing.h>
 #include <track.h>
 #include "scheduler_api.h"
-#include "search_manager_api.h"
 #include "task_generator_api.h"
 
 #include "soft_macq/soft_macq_main.h"
@@ -25,8 +24,6 @@
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
-
-u16 get_orbit_slot(const u16 fcn);
 
 /* Scheduler constants */
 

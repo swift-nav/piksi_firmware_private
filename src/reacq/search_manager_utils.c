@@ -11,7 +11,6 @@
  */
 #include <board/nap/nap_common.h>
 #include <libswiftnav/sv_visibility.h>
-#include <libswiftnav/glo_map.h>
 #include <ndb.h>
 #include <shm.h>
 #include <timing.h>
@@ -138,51 +137,4 @@ void sm_calc_all_glo_visibility_flags(void) {
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
   *visible = glo_sv_vis[sat - 1].visible;
   *known = glo_sv_vis[sat - 1].known;
-}
-
-/**
- * The function retrieves the GLO orbit slot, if the mapping to a FCN exists
- * and the SV is visible.
- *
- * @param[in]  fcn  Frequency slot to be checked
- *
- * @return GLO orbit slot
- */
-u16 get_orbit_slot(const u16 fcn) {
-  u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-  u16 slot_id1, slot_id2;
-  /* check if we have the fcn mapped already to some slot id */
-  u8 num_si = glo_map_get_slot_id(fcn, &slot_id1, &slot_id2);
-  switch (num_si) {
-    case 1: {
-      bool vis, kn = false;
-      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
-      /* the fcn mapped to one slot id only,
-       * so use it as glo prn to be tracked if it's visible at the moment */
-      if (vis & kn) {
-        glo_orbit_slot = slot_id1;
-      }
-    } break;
-    case 2: {
-      bool vis, kn = false;
-      /* we have 2 slot ids mapped to one fcn */
-      /* check if SV with slot id 1 is visible */
-      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
-      if (vis && kn) {
-        /* SV with the FIRST slot ID is visible, track it */
-        glo_orbit_slot = slot_id1;
-      } else {
-        /* check the second slot id */
-        sm_get_glo_visibility_flags(slot_id2, &vis, &kn);
-        if (vis & kn) {
-          /* SV with the SECOND slot ID is visible, track it */
-          glo_orbit_slot = slot_id2;
-        }
-      }
-    } break;
-    default:
-      glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-      break;
-  }
-  return glo_orbit_slot;
 }
