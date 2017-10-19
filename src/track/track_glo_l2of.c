@@ -57,8 +57,6 @@ static const tracker_interface_t tracker_interface_glo_l2of = {
 static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
     .interface = &tracker_interface_glo_l2of, .next = 0};
 
-u16 get_orbit_slot(const u16 fcn);
-
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
