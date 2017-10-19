@@ -8,7 +8,7 @@
 /** Max position accuracy we allow to output a SPP solution */
 #define MAX_SPP_ACCURACY_M 100.0
 /** Max velocity accuracy we allow to output a SPP solution */
-#define MAX_SPP_VEL_ACCURACY_M_PER_S 100.0
+#define MAX_SPP_VEL_ACCURACY_M_PER_S 10.0
 
 void send_observations(u8 n,
                        u32 msg_obs_max_size,
