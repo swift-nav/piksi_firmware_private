@@ -74,15 +74,13 @@
  * on the current hardware platform. */
 #define PLATFORM_SIGNAL_COUNT                               \
   (PLATFORM_SIGNAL_COUNT_GPS + PLATFORM_SIGNAL_COUNT_SBAS + \
-   PLATFORM_SIGNAL_COUNT_GLO + \
-   PLATFORM_SIGNAL_COUNT_BDS2)
+   PLATFORM_SIGNAL_COUNT_GLO + PLATFORM_SIGNAL_COUNT_BDS2)
 
 /* Total number of simultaneous acquisition / tracking resources supported
  * on the current hardware platform. */
 #define PLATFORM_ACQ_TRACK_COUNT                            \
   (PLATFORM_SIGNAL_COUNT_GPS + PLATFORM_SIGNAL_COUNT_SBAS + \
-   PLATFORM_FREQ_COUNT_GLO + \
-   PLATFORM_SIGNAL_COUNT_BDS2)
+   PLATFORM_FREQ_COUNT_GLO + PLATFORM_SIGNAL_COUNT_BDS2)
 
 /* \} */
 

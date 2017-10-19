@@ -147,7 +147,6 @@ static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
 /** Flag if BEIDOU2 enabled */
 static bool bds2_enabled = CODE_BDS2_B11_SUPPORT;
 
-
 typedef struct {
   piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
   acq_status_t *status; /**< Pointer to acq status for the GLO SV */
@@ -264,7 +263,6 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
   }
   return false;
 }
-
 
 /* The function masks/unmasks all Beidou satellites,
  * NOTE: this function does not check if BDS2 SV is already masked or not */
