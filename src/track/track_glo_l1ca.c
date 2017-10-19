@@ -44,7 +44,7 @@ static tracker_interface_function_t tracker_glo_l1ca_update;
 
 /** GLO L1CA tracker interface */
 static const tracker_interface_t tracker_interface_glo_l1ca = {
-    .code = CODE_GLO_L1CA,
+    .code = CODE_GLO_L1OF,
     .init = tracker_glo_l1ca_init,
     .disable = tp_tracker_disable,
     .update = tracker_glo_l1ca_update,
@@ -76,7 +76,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel) {
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L2CA, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 

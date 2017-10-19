@@ -32,7 +32,7 @@
 /** GLO L2CA decoder data */
 typedef struct { nav_msg_glo_t nav_msg; } glo_l2ca_decoder_data_t;
 
-static decoder_t glo_l2ca_decoders[NUM_GLO_L2CA_DECODERS];
+static decoder_t glo_l2ca_decoders[NUM_GLO_L2OF_DECODERS];
 static glo_l2ca_decoder_data_t
     glo_l2ca_decoder_data[ARRAY_SIZE(glo_l2ca_decoders)];
 
@@ -44,7 +44,7 @@ static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_glo_l2ca = {
-    .code = CODE_GLO_L2CA,
+    .code = CODE_GLO_L2OF,
     .init = decoder_glo_l2ca_init,
     .disable = decoder_glo_l2ca_disable,
     .process = decoder_glo_l2ca_process,

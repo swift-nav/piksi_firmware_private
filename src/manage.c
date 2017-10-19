@@ -143,7 +143,9 @@ static float solution_elevation_mask = 10.0;
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
+static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
+/** Flag if BEIDOU2 enabled */
+static bool bds2_enabled = CODE_BDS2_B11_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
@@ -246,7 +248,7 @@ static void manage_acq_thread(void *arg) {
 static bool glo_enable_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-    if (glo_enabled && !(CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT)) {
+    if (glo_enabled && !(CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT)) {
       /* user tries enable GLONASS on the platform that does not support it */
       log_error("The platform does not support GLONASS");
       glo_enabled = false;
@@ -262,6 +264,27 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
   return false;
 }
 
+/* The function masks/unmasks all Beidou satellites,
+ * NOTE: this function does not check if BDS2 SV is already masked or not */
+static bool bds2_enable_notify(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_info("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
+    if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
+      /* user tries enable Beidou2 on the platform that does not support it */
+      log_error("The platform does not support BDS2");
+      bds2_enabled = false;
+      return false;
+    }
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+      if (IS_BDS2(acq_status[i].mesid)) {
+        acq_status[i].masked = !bds2_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 void manage_acq_setup() {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
   SETTING_NOTIFY("acquisition",
@@ -269,6 +292,11 @@ void manage_acq_setup() {
                  glo_enabled,
                  TYPE_BOOL,
                  glo_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "bds2_acquisition_enabled",
+                 bds2_enabled,
+                 TYPE_BOOL,
+                 bds2_enable_notify);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
@@ -553,7 +581,8 @@ static void manage_acq(void) {
 
   /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
-         (CODE_GLO_L1CA == acq->mesid.code));
+         (CODE_GLO_L1OF == acq->mesid.code) ||
+         (CODE_BDS2_B11 == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
@@ -1223,13 +1252,13 @@ u32 get_tracking_channel_meas(u8 i,
     /*
     double nap_tc_sec = (double)ref_tc / NAP_TRACK_SAMPLE_RATE_Hz;
     double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
-    if (CODE_GLO_L1CA == info.mesid.code) {
+    if (CODE_GLO_L1OF == info.mesid.code) {
       double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
       log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec -
     ref_2ms_boundary)*1e3);
       meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
     }
-    if (CODE_GLO_L2CA == info.mesid.code) {
+    if (CODE_GLO_L2OF == info.mesid.code) {
       double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
       meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
     }

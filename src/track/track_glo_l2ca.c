@@ -48,7 +48,7 @@ static tracker_interface_function_t tracker_glo_l2ca_update;
 
 /** GLO L2CA tracker interface */
 static const tracker_interface_t tracker_interface_glo_l2ca = {
-    .code = CODE_GLO_L2CA,
+    .code = CODE_GLO_L2OF,
     .init = tracker_glo_l2ca_init,
     .disable = tp_tracker_disable,
     .update = tracker_glo_l2ca_update,
@@ -83,7 +83,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
                                   double carrier_freq_hz,
                                   float init_cn0_dbhz) {
   /* compose L2CA MESID: same SV, but code is L2CA */
-  me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2CA, sat);
+  me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2OF, sat);
 
   if (!tracking_startup_ready(L2_mesid)) {
     return; /* L2CA signal from the SV is already in track */
@@ -97,7 +97,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 
   /* calculate L2 - L1 frequency scale while taking GLO FCN into account */
-  me_gnss_signal_t L1_mesid = construct_mesid(CODE_GLO_L1CA, sat);
+  me_gnss_signal_t L1_mesid = construct_mesid(CODE_GLO_L1OF, sat);
   double glo_freq_scale =
       mesid_to_carr_freq(L2_mesid) / mesid_to_carr_freq(L1_mesid);
 
@@ -154,7 +154,7 @@ static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel) {
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L1CA, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L1OF, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 }
