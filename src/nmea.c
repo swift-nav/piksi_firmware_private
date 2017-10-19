@@ -858,7 +858,7 @@ bool send_nmea(u32 rate, u32 gps_tow_ms) {
     return false;
   }
 
-  /* If the modulu of latest gps time estimate time with configured
+  /* If the modulo of latest gps time estimate time with configured
   * output period is less than 1/2 the solution period we should send the NMEA
   * message.
   * This way, we still send no_fix messages when receiver clock is drifting. */
