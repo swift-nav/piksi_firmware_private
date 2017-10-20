@@ -68,10 +68,14 @@ static void tracker_glo_l1of_init(tracker_channel_t *tracker_channel) {
 }
 
 static void tracker_glo_l1of_update(tracker_channel_t *tracker_channel) {
-  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l1of_config);
+  u32 cflags = tp_tracker_update(tracker_channel, &glo_l1of_config);
+  bool bit_aligned =
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
 
-  /* GLO L1 C/A-specific ToW manipulation */
-  update_tow_glo(tracker_channel, tracker_flags);
+  if (bit_aligned) {
+    /* TOW manipulation on bit edge */
+    tp_tracker_tow_cache(tracker_channel);
+  }
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
@@ -80,11 +84,11 @@ static void tracker_glo_l1of_update(tracker_channel_t *tracker_channel) {
     tracking_channel_drop_unhealthy_glo(mesid_drop);
   }
 
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-  if (inlock && (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) &&
-      (0 != (tracker_flags & TPF_BSYNC_UPD)) &&
-      tracker_bit_aligned(tracker_channel)) {
+
+  if (inlock && confirmed && bit_aligned) {
     /* Start GLO L2CA tracker if not running */
     do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
                                  tracker_channel->mesid.sat,
