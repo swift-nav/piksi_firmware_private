@@ -838,6 +838,8 @@ static void starling_thread(void *arg) {
 
       AmbResetStruct amb_reset;
       amb_reset.initialized = false;
+      amb_reset.reset_amb_manager = false;
+      amb_reset.num_ambs = 0;
       pvt_engine_result_t result_rtk;
       result_rtk.valid = false;
       const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
@@ -856,17 +858,17 @@ static void starling_thread(void *arg) {
         solution_make_baseline_sbp(
             &result_rtk, result_spp.baseline, &dops, &sbp_messages);
       }
-//      if (amb_reset.initialized) {
-//        chMtxLock(&amb_lock);
-//        if (amb_reset.reset_amb_manager) {
-//          reset_amb_manager(rtk_filter_manager);
-//        } else {
-//          reset_other_staged_ambs(rtk_filter_manager,
-//                                  amb_reset.ambs_to_keep,
-//                                  amb_reset.num_ambs);
-//        }
-//        chMtxUnlock(&amb_lock);
-//      }
+      if (amb_reset.initialized) {
+        chMtxLock(&amb_lock);
+        if (amb_reset.reset_amb_manager) {
+          reset_amb_manager(rtk_filter_manager);
+        } else {
+          reset_other_staged_ambs(rtk_filter_manager,
+                                  amb_reset.ambs_to_keep,
+                                  amb_reset.num_ambs);
+        }
+        chMtxUnlock(&amb_lock);
+      }
     }
 
     /* This is posting the rover obs to the mailbox to the time matched thread,
