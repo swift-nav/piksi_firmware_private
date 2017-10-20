@@ -24,6 +24,7 @@
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
+#include <libswiftnav/pvt_engine/amb_reset_struct.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/troposphere.h>
@@ -513,7 +514,7 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
 }
 
 static PVT_ENGINE_INTERFACE_RC update_filter_position(
-    FilterManager *filter_manager, pvt_engine::AmbResetStruct *amb_reset) {
+    FilterManager *filter_manager, AmbResetStruct *amb_reset) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
     ret = filter_manager_update_position(filter_manager, amb_reset);
@@ -562,7 +563,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     const double solution_frequency,
     pvt_engine_result_t *result,
     dops_t *dops,
-    pvt_engine::AmbResetStruct *amb_reset) {
+    AmbResetStruct *amb_reset) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
@@ -813,7 +814,8 @@ static void starling_thread(void *arg) {
                                nav_meas,
                                starling_frequency,
                                &result_spp,
-                               &dops);
+                               &dops,
+                               NULL);
     chMtxUnlock(&spp_filter_manager_lock);
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
@@ -834,8 +836,8 @@ static void starling_thread(void *arg) {
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
       chMtxLock(&rtk_filter_manager_lock);
 
-      pvt_engine::AmbResetStruct amb_reset;
-      bool reset_amb_manager = false;
+      AmbResetStruct amb_reset;
+      amb_reset.initialized = false;
       pvt_engine_result_t result_rtk;
       result_rtk.valid = false;
       const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
@@ -859,7 +861,9 @@ static void starling_thread(void *arg) {
         if (amb_reset.reset_amb_manager) {
           reset_amb_manager(rtk_filter_manager);
         } else {
-          reset_other_staged_ambs(rtk_filter_manager, amb_reset.ambs_to_keep);
+          reset_other_staged_ambs(rtk_filter_manager,
+                                  &amb_reset.ambs_to_keep[0],
+                                  amb_reset.num_ambs);
         }
         chMtxUnlock(&amb_lock);
       }
