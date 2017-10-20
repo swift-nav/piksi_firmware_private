@@ -808,12 +808,14 @@ static void starling_thread(void *arg) {
         !gate_covariance_pvt_engine(&result_spp)) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
       successful_spp = true;
-    } else if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-      /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - send out solution and
-       * observation failed messages if not in time matched mode.
-       */
-      solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
+    } else {
+      if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        /* If we can't report a SPP position, something is wrong and no point
+         * continuing to process this epoch - send out solution and
+         * observation failed messages if not in time matched mode.
+         */
+        solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
+      }
       continue;
     }
 
