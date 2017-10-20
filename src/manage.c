@@ -146,10 +146,10 @@ static bool almanacs_enabled = false;
 static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
 /** Flag if SBAS enabled */
 static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
+/** Flag if BEIDOU2 enabled */
+static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
 /** Flag if QZSS enabled */
 static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT;
-/** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B11_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
@@ -635,10 +635,11 @@ static void manage_acq(void) {
     return;
   }
 
-  /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
          (CODE_GLO_L1OF == acq->mesid.code) ||
-         (CODE_BDS2_B11 == acq->mesid.code));
+         (CODE_SBAS_L1CA == acq->mesid.code) ||
+         (CODE_BDS2_B11 == acq->mesid.code) ||
+         (CODE_QZS_L1CA == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
