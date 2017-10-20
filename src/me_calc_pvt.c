@@ -382,6 +382,24 @@ static void apply_isc_table(u8 n_channels,
 }
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
+
+static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
+                               const gnss_solution *current_fix) {
+  /* Check how large the outlier roughly is, and if it is a gross one,
+   * drop the channel and delete the possibly corrupt ephemeris */
+  double geometric_range[3];
+  for (u8 j = 0; j < 3; j++) {
+    geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
+  }
+  if (fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+           vector_norm(3, geometric_range)) > RAIM_DROP_CHANNEL_THRESHOLD_M) {
+    /* mark channel for dropping */
+    tracking_channel_set_raim_flag(nav_meas->sid);
+    /* clear the ephemeris for this signal */
+    ndb_ephemeris_erase(nav_meas->sid);
+  }
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -630,18 +648,8 @@ static void me_calc_pvt_thread(void *arg) {
           nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
           /* Check how large the outlier roughly is, and if it is a gross one,
-           * drop the channel */
-          double geometric_range[3];
-          for (u8 j = 0; j < 3; j++) {
-            geometric_range[j] =
-                nav_meas[i].sat_pos[j] - current_fix.pos_ecef[j];
-          }
-          if (fabs(+nav_meas[i].pseudorange +
-                   -current_fix.clock_offset * GPS_C +
-                   -vector_norm(3, geometric_range)) >
-              RAIM_DROP_CHANNEL_THRESHOLD_M) {
-            tracking_channel_set_raim_flag(nav_meas[i].sid);
-          }
+           * drop the channel and delete the possibly corrupt ephemeris */
+          drop_gross_outlier(&nav_meas[i], &current_fix);
         }
       }
     }
