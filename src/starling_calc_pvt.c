@@ -852,7 +852,6 @@ static void starling_thread(void *arg) {
                                  &dops,
                                  &amb_reset);
       base_station_sender_id = current_base_sender_id;
-      chMtxUnlock(&rtk_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
         solution_make_baseline_sbp(
@@ -863,12 +862,12 @@ static void starling_thread(void *arg) {
         if (amb_reset.reset_amb_manager) {
           reset_amb_manager(rtk_filter_manager);
         } else {
-          reset_other_staged_ambs(rtk_filter_manager,
-                                  amb_reset.ambs_to_keep,
-                                  amb_reset.num_ambs);
+          reset_other_staged_ambs(
+              rtk_filter_manager, amb_reset.ambs_to_keep, amb_reset.num_ambs);
         }
         chMtxUnlock(&amb_lock);
       }
+      chMtxUnlock(&rtk_filter_manager_lock);
     }
 
     /* This is posting the rover obs to the mailbox to the time matched thread,
