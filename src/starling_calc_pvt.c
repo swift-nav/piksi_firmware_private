@@ -911,7 +911,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       update_filter_ret = update_filter(time_matched_filter_manager);
     }
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+                update_filter_ret == PVT_ENGINE_SUCCESS) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
@@ -922,6 +923,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
+    
 
   /* If we are in time matched mode then calculate and output the baseline
   * for this observation. */
