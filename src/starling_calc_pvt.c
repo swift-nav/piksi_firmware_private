@@ -923,6 +923,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
+    
 
   /* If we are in time matched mode then calculate and output the baseline
   * for this observation. */
