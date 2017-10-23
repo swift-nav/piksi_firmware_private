@@ -72,7 +72,12 @@ MUTEX_DECL(amb_lock);
 MUTEX_DECL(rtk_filter_manager_lock);
 MUTEX_DECL(spp_filter_manager_lock);
 
-static gps_time_t last_reset;
+typedef struct ResetTimes {
+  gps_time_t reset_time;
+  gnss_signal_t amb;
+} ResetTimes;
+
+static ResetTimes last_reset[MAX_NUM_SATS][2];
 
 MUTEX_DECL(iono_params_lock);
 bool has_iono_params = false;
@@ -854,9 +859,20 @@ static void starling_thread(void *arg) {
                                  &dops,
                                  &amb_reset);
       base_station_sender_id = current_base_sender_id;
-      if (amb_reset.initialized &&
-          (amb_reset.reset_amb_manager /*|| amb_reset.num_ambs > 0*/)) {
-        last_reset = obs_time;
+      if (amb_reset.initialized) {
+        if (amb_reset.reset_amb_manager) {
+          for (s32 sat = 0; sat < MAX_NUM_SATS; ++sat) {
+            for (s32 freq = 0; freq < 2; ++freq) {
+              last_reset[sat][freq].reset_time = obs_time;
+            }
+          }
+        }
+        for (s32 index = 0; index < amb_reset.num_ambs; ++index) {
+          last_reset[amb_reset.ambs_2_reset[index].sat]
+                    [(amb_reset.ambs_2_reset[index].code == CODE_GPS_L1CA) ? 0
+                                                                           : 1]
+                        .reset_time = obs_time;
+        }
       }
       chMtxUnlock(&rtk_filter_manager_lock);
 
@@ -869,8 +885,8 @@ static void starling_thread(void *arg) {
         if (amb_reset.reset_amb_manager) {
           reset_amb_manager(rtk_filter_manager);
         } else {
-          reset_other_staged_ambs(
-              rtk_filter_manager, amb_reset.ambs_to_keep, amb_reset.num_ambs);
+          reset_staged_ambs(
+              rtk_filter_manager, amb_reset.ambs_2_reset, amb_reset.num_ambs);
         }
         chMtxUnlock(&amb_lock);
       }
@@ -950,11 +966,24 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&rtk_filter_manager_lock);
-      if (last_reset.wn == WN_UNKNOWN ||
-          gpsdifftime(&reference_obss->tor, &last_reset) > 0.0) {
-        copy_ambiguities(rtk_filter_manager);
-        current_base_sender_id = reference_obss->sender_id;
+      for (s32 sat = 0; sat < MAX_NUM_SATS; ++sat) {
+        for (s32 freq = 0; freq < 2; ++freq) {
+          if (gpsdifftime(&reference_obss->tor,
+                          &last_reset[sat][freq].reset_time) <
+              FLOAT_EQUALITY_EPS) {
+            gnss_signal_t sig;
+            sig.sat = sat;
+            if (freq == 0) {
+              sig.code = CODE_GPS_L1CA;
+            } else {
+              sig.code = CODE_GPS_L2CM;
+            }
+            reset_staged_ambs(rtk_filter_manager, &sig, 1);
+          }
+        }
       }
+      copy_ambiguities(rtk_filter_manager);
+      current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&rtk_filter_manager_lock);
     }
   }
@@ -1024,8 +1053,14 @@ static bool set_max_age(struct setting *s, const char *val) {
 }
 
 void init_filters(void) {
-  last_reset.tow = TOW_UNKNOWN;
-  last_reset.wn = WN_UNKNOWN;
+  for (s32 sat = 0; sat < MAX_NUM_SATS; ++sat) {
+    for (s32 freq = 0; freq < 2; ++freq) {
+      last_reset[sat][freq].amb.sat = sat;
+      last_reset[sat][freq].amb.code = freq;
+      last_reset[sat][freq].reset_time.tow = TOW_UNKNOWN;
+      last_reset[sat][freq].reset_time.wn = WN_UNKNOWN;
+    }
+  }
 
   chMtxLock(&rtk_filter_manager_lock);
   rtk_filter_manager = create_filter_manager_rtk();
