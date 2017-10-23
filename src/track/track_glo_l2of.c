@@ -14,7 +14,7 @@
 #define TRACK_GLO_L2CA_INTERNAL
 
 /* Local headers */
-#include "track_glo_l2ca.h"
+#include "track_glo_l2of.h"
 #include "track.h"
 #include "track_cn0.h"
 #include "track_sid_db.h"
@@ -38,36 +38,36 @@
 #include <string.h>
 
 /** GLO L2CA configuration section name */
-#define GLO_L2CA_TRACK_SETTING_SECTION "glo_l2ca_track"
+#define GLO_L2OF_TRACK_SETTING_SECTION "glo_l2of_track"
 
-static tp_tracker_config_t glo_l2ca_config = TP_TRACKER_DEFAULT_CONFIG;
+static tp_tracker_config_t glo_l2of_config = TP_TRACKER_DEFAULT_CONFIG;
 
 /* Forward declarations of interface methods for GLO L2CA */
-static tracker_interface_function_t tracker_glo_l2ca_init;
-static tracker_interface_function_t tracker_glo_l2ca_update;
+static tracker_interface_function_t tracker_glo_l2of_init;
+static tracker_interface_function_t tracker_glo_l2of_update;
 
 /** GLO L2CA tracker interface */
-static const tracker_interface_t tracker_interface_glo_l2ca = {
+static const tracker_interface_t tracker_interface_glo_l2of = {
     .code = CODE_GLO_L2OF,
-    .init = tracker_glo_l2ca_init,
+    .init = tracker_glo_l2of_init,
     .disable = tp_tracker_disable,
-    .update = tracker_glo_l2ca_update,
+    .update = tracker_glo_l2of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l2ca = {
-    .interface = &tracker_interface_glo_l2ca, .next = 0};
+static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
+    .interface = &tracker_interface_glo_l2of, .next = 0};
 
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
-void track_glo_l2ca_register(void) {
+void track_glo_l2of_register(void) {
   TP_TRACKER_REGISTER_CONFIG(
-      GLO_L2CA_TRACK_SETTING_SECTION, glo_l2ca_config, settings_default_notify);
+      GLO_L2OF_TRACK_SETTING_SECTION, glo_l2of_config, settings_default_notify);
 
-  tracker_interface_register(&tracker_interface_list_glo_l2ca);
+  tracker_interface_register(&tracker_interface_list_glo_l2of);
 }
 
-/** Do GLO L1CA to L2CA handover.
+/** Do GLO L1OF to L2OF handover.
  *
  * The condition for the handover is the availability of meander sync on L1CA
  *
@@ -77,7 +77,7 @@ void track_glo_l2ca_register(void) {
  * \param carrier_freq_hz The current Doppler frequency for the L1CA channel
  * \param init_cn0_dbhz CN0 estimate for the L1CA channel [dB-Hz]
  */
-void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
+void do_glo_l1of_to_l2of_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
                                   double carrier_freq_hz,
@@ -140,12 +140,12 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 }
 
-static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &glo_l2ca_config);
+static void tracker_glo_l2of_init(tracker_channel_t *tracker_channel) {
+  tp_tracker_init(tracker_channel, &glo_l2of_config);
 }
 
-static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel) {
-  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
+static void tracker_glo_l2of_update(tracker_channel_t *tracker_channel) {
+  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2of_config);
   (void)tracker_flags;
 
   /* GLO L2 ToW manipulation */

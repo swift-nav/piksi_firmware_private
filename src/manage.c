@@ -144,8 +144,12 @@ static float solution_elevation_mask = 10.0;
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
 static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
+/** Flag if SBAS enabled */
+static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
 /** Flag if BEIDOU2 enabled */
-static bool bds2_enabled = CODE_BDS2_B11_SUPPORT;
+static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
+/** Flag if QZSS enabled */
+static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
@@ -264,6 +268,27 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
   return false;
 }
 
+/* The function masks/unmasks all SBAS satellites,
+ * NOTE: this function does not check if SBAS SV is already masked or not */
+static bool sbas_enable_notify(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_info("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
+    if (sbas_enabled && !(CODE_SBAS_L1CA_SUPPORT)) {
+      /* user tries enable SBAS on the platform that does not support it */
+      log_error("The platform does not support SBAS");
+      sbas_enabled = false;
+      return false;
+    }
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+      if (IS_SBAS(acq_status[i].mesid)) {
+        acq_status[i].masked = !sbas_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 /* The function masks/unmasks all Beidou satellites,
  * NOTE: this function does not check if BDS2 SV is already masked or not */
 static bool bds2_enable_notify(struct setting *s, const char *val) {
@@ -285,6 +310,27 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
   return false;
 }
 
+/* The function masks/unmasks all QZSS satellites,
+ * NOTE: this function does not check if QZSS SV is already masked or not */
+static bool qzss_enable_notify(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_info("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
+    if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT)) {
+      /* user tries enable QZSS on the platform that does not support it */
+      log_error("The platform does not support QZSS");
+      qzss_enabled = false;
+      return false;
+    }
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+      if (IS_QZSS(acq_status[i].mesid)) {
+        acq_status[i].masked = !qzss_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 void manage_acq_setup() {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
   SETTING_NOTIFY("acquisition",
@@ -293,10 +339,20 @@ void manage_acq_setup() {
                  TYPE_BOOL,
                  glo_enable_notify);
   SETTING_NOTIFY("acquisition",
+                 "sbas_acquisition_enabled",
+                 sbas_enabled,
+                 TYPE_BOOL,
+                 sbas_enable_notify);
+  SETTING_NOTIFY("acquisition",
                  "bds2_acquisition_enabled",
                  bds2_enabled,
                  TYPE_BOOL,
                  bds2_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "qzss_acquisition_enabled",
+                 qzss_enabled,
+                 TYPE_BOOL,
+                 qzss_enable_notify);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
@@ -579,10 +635,11 @@ static void manage_acq(void) {
     return;
   }
 
-  /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
          (CODE_GLO_L1OF == acq->mesid.code) ||
-         (CODE_BDS2_B11 == acq->mesid.code));
+         (CODE_SBAS_L1CA == acq->mesid.code) ||
+         (CODE_BDS2_B11 == acq->mesid.code) ||
+         (CODE_QZS_L1CA == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);

@@ -15,6 +15,6 @@
 #include <libswiftnav/common.h>
 #include "track.h"
 
-void track_glo_l1ca_register(void);
+void track_glo_l1of_register(void);
 
 #endif /* SWIFTNAV_TRACK_GLO_L1OF_H */

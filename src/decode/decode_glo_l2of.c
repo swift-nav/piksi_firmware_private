@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_glo_l2ca.h"
+#include "decode_glo_l2of.h"
 #include "decode.h"
 
 #include <libswiftnav/glo_map.h>
@@ -30,56 +30,56 @@
 #include "decode_common.h"
 
 /** GLO L2CA decoder data */
-typedef struct { nav_msg_glo_t nav_msg; } glo_l2ca_decoder_data_t;
+typedef struct { nav_msg_glo_t nav_msg; } glo_l2of_decoder_data_t;
 
-static decoder_t glo_l2ca_decoders[NUM_GLO_L2OF_DECODERS];
-static glo_l2ca_decoder_data_t
-    glo_l2ca_decoder_data[ARRAY_SIZE(glo_l2ca_decoders)];
+static decoder_t glo_l2of_decoders[NUM_GLO_L2OF_DECODERS];
+static glo_l2of_decoder_data_t
+    glo_l2of_decoder_data[ARRAY_SIZE(glo_l2of_decoders)];
 
-static void decoder_glo_l2ca_init(const decoder_channel_info_t *channel_info,
+static void decoder_glo_l2of_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data);
-static void decoder_glo_l2ca_disable(const decoder_channel_info_t *channel_info,
+static void decoder_glo_l2of_disable(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data);
-static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
+static void decoder_glo_l2of_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data);
 
-static const decoder_interface_t decoder_interface_glo_l2ca = {
+static const decoder_interface_t decoder_interface_glo_l2of = {
     .code = CODE_GLO_L2OF,
-    .init = decoder_glo_l2ca_init,
-    .disable = decoder_glo_l2ca_disable,
-    .process = decoder_glo_l2ca_process,
-    .decoders = glo_l2ca_decoders,
-    .num_decoders = ARRAY_SIZE(glo_l2ca_decoders)};
+    .init = decoder_glo_l2of_init,
+    .disable = decoder_glo_l2of_disable,
+    .process = decoder_glo_l2of_process,
+    .decoders = glo_l2of_decoders,
+    .num_decoders = ARRAY_SIZE(glo_l2of_decoders)};
 
-static decoder_interface_list_element_t list_element_glo_l2ca = {
-    .interface = &decoder_interface_glo_l2ca, .next = 0};
+static decoder_interface_list_element_t list_element_glo_l2of = {
+    .interface = &decoder_interface_glo_l2of, .next = 0};
 
-void decode_glo_l2ca_register(void) {
-  for (u32 i = 0; i < ARRAY_SIZE(glo_l2ca_decoders); i++) {
-    glo_l2ca_decoders[i].active = false;
-    glo_l2ca_decoders[i].data = &glo_l2ca_decoder_data[i];
+void decode_glo_l2of_register(void) {
+  for (u32 i = 0; i < ARRAY_SIZE(glo_l2of_decoders); i++) {
+    glo_l2of_decoders[i].active = false;
+    glo_l2of_decoders[i].data = &glo_l2of_decoder_data[i];
   }
 
-  decoder_interface_register(&list_element_glo_l2ca);
+  decoder_interface_register(&list_element_glo_l2of);
 }
 
-static void decoder_glo_l2ca_init(const decoder_channel_info_t *channel_info,
+static void decoder_glo_l2of_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data) {
-  glo_l2ca_decoder_data_t *data = decoder_data;
+  glo_l2of_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
   nav_msg_init_glo_with_cb(&data->nav_msg, channel_info->mesid);
 }
 
-static void decoder_glo_l2ca_disable(const decoder_channel_info_t *channel_info,
+static void decoder_glo_l2of_disable(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data) {
   (void)channel_info;
   (void)decoder_data;
 }
 
-static void decoder_glo_l2ca_process(const decoder_channel_info_t *channel_info,
+static void decoder_glo_l2of_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data) {
-  glo_l2ca_decoder_data_t *data = decoder_data;
+  glo_l2of_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;

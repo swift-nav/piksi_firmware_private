@@ -11,10 +11,10 @@
  */
 
 /* Local headers */
-#include "track_glo_l1ca.h"
+#include "track_glo_l1of.h"
 #include "track.h"
 #include "track_cn0.h"
-#include "track_glo_l2ca.h" /* for L1CA to L2CA tracking handover */
+#include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
 #include "track_sid_db.h"
 
 /* Non-local headers */
@@ -34,41 +34,41 @@
 #include <string.h>
 
 /** GLO L1CA configuration section name */
-#define GLO_L1CA_TRACK_SETTING_SECTION "glo_l1ca_track"
+#define GLO_L1CA_TRACK_SETTING_SECTION "glo_l1of_track"
 
-static tp_tracker_config_t glo_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
+static tp_tracker_config_t glo_l1of_config = TP_TRACKER_DEFAULT_CONFIG;
 
 /* Forward declarations of interface methods for GLO L1CA */
-static tracker_interface_function_t tracker_glo_l1ca_init;
-static tracker_interface_function_t tracker_glo_l1ca_update;
+static tracker_interface_function_t tracker_glo_l1of_init;
+static tracker_interface_function_t tracker_glo_l1of_update;
 
 /** GLO L1CA tracker interface */
-static const tracker_interface_t tracker_interface_glo_l1ca = {
+static const tracker_interface_t tracker_interface_glo_l1of = {
     .code = CODE_GLO_L1OF,
-    .init = tracker_glo_l1ca_init,
+    .init = tracker_glo_l1of_init,
     .disable = tp_tracker_disable,
-    .update = tracker_glo_l1ca_update,
+    .update = tracker_glo_l1of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l1ca = {
-    .interface = &tracker_interface_glo_l1ca, .next = 0};
+static tracker_interface_list_element_t tracker_interface_list_glo_l1of = {
+    .interface = &tracker_interface_glo_l1of, .next = 0};
 
 /** Register GLO L1CA tracker into the the tracker interface & settings
  *  framework.
  */
-void track_glo_l1ca_register(void) {
+void track_glo_l1of_register(void) {
   TP_TRACKER_REGISTER_CONFIG(
-      GLO_L1CA_TRACK_SETTING_SECTION, glo_l1ca_config, settings_default_notify);
+      GLO_L1CA_TRACK_SETTING_SECTION, glo_l1of_config, settings_default_notify);
 
-  tracker_interface_register(&tracker_interface_list_glo_l1ca);
+  tracker_interface_register(&tracker_interface_list_glo_l1of);
 }
 
-static void tracker_glo_l1ca_init(tracker_channel_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &glo_l1ca_config);
+static void tracker_glo_l1of_init(tracker_channel_t *tracker_channel) {
+  tp_tracker_init(tracker_channel, &glo_l1of_config);
 }
 
-static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel) {
-  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l1ca_config);
+static void tracker_glo_l1of_update(tracker_channel_t *tracker_channel) {
+  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l1of_config);
 
   /* GLO L1 C/A-specific ToW manipulation */
   update_tow_glo(tracker_channel, tracker_flags);
@@ -86,7 +86,7 @@ static void tracker_glo_l1ca_update(tracker_channel_t *tracker_channel) {
       (0 != (tracker_flags & TPF_BSYNC_UPD)) &&
       tracker_bit_aligned(tracker_channel)) {
     /* Start GLO L2CA tracker if not running */
-    do_glo_l1ca_to_l2ca_handover(tracker_channel->sample_count,
+    do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
                                  tracker_channel->mesid.sat,
                                  tracker_channel->code_phase_prompt,
                                  tracker_channel->carrier_freq,
