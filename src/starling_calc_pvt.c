@@ -74,10 +74,6 @@ MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
-/* RFT_TODO *
- * starling_simulation_obs_output_divisor logic might have to change */
-static u32 starling_simulation_obs_output_divisor = 1;
-
 MUTEX_DECL(last_sbp_lock);
 gps_time_t last_dgnss;
 gps_time_t last_spp;
@@ -624,7 +620,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
                                sbp_messages);
 
     double t_check = soln->time.tow * (starling_frequency /
-                                       starling_simulation_obs_output_divisor);
+      obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
       /* RFT_TODO *
        * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
