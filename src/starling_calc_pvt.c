@@ -72,12 +72,7 @@ MUTEX_DECL(amb_lock);
 MUTEX_DECL(rtk_filter_manager_lock);
 MUTEX_DECL(spp_filter_manager_lock);
 
-typedef struct ResetTimes {
-  gps_time_t reset_time;
-  gnss_signal_t amb;
-} ResetTimes;
-
-static ResetTimes last_reset[MAX_NUM_SATS][2];
+ResetTimesArray reset_times;
 
 MUTEX_DECL(iono_params_lock);
 bool has_iono_params = false;
@@ -521,10 +516,10 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
 }
 
 static PVT_ENGINE_INTERFACE_RC update_filter_position(
-    FilterManager *filter_manager, AmbResetStruct *amb_reset) {
+    FilterManager *filter_manager, ResetTimesArray *last_reset) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
-    ret = filter_manager_update_position(filter_manager, amb_reset);
+    ret = filter_manager_update_position(filter_manager, last_reset);
     if (ret != PVT_ENGINE_SUCCESS) {
       detailed_log_info("Skipping filter update with ret = %d", ret);
     }
@@ -570,7 +565,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     const double solution_frequency,
     pvt_engine_result_t *result,
     dops_t *dops,
-    AmbResetStruct *amb_reset) {
+    ResetTimesArray *last_reset) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
@@ -590,7 +585,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   }
 
   if (update_rov_obs == PVT_ENGINE_SUCCESS) {
-    update_filter_ret = update_filter_position(filter_manager, amb_reset);
+    update_filter_ret = update_filter_position(filter_manager, last_reset);
   }
 
   if (update_filter_ret == PVT_ENGINE_SUCCESS) {
@@ -843,10 +838,6 @@ static void starling_thread(void *arg) {
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
       chMtxLock(&rtk_filter_manager_lock);
 
-      AmbResetStruct amb_reset;
-      amb_reset.initialized = false;
-      amb_reset.reset_amb_manager = false;
-      amb_reset.num_ambs = 0;
       pvt_engine_result_t result_rtk;
       result_rtk.valid = false;
       const PVT_ENGINE_INTERFACE_RC rtk_call_filter_ret =
@@ -857,39 +848,19 @@ static void starling_thread(void *arg) {
                                  starling_frequency,
                                  &result_rtk,
                                  &dops,
-                                 &amb_reset);
+                                 &reset_times);
       base_station_sender_id = current_base_sender_id;
-      if (amb_reset.initialized) {
-        if (amb_reset.reset_amb_manager) {
-          for (s32 sat = 0; sat < MAX_NUM_SATS; ++sat) {
-            for (s32 freq = 0; freq < 2; ++freq) {
-              last_reset[sat][freq].reset_time = obs_time;
-            }
-          }
-        }
-        for (s32 index = 0; index < amb_reset.num_ambs; ++index) {
-          last_reset[amb_reset.ambs_2_reset[index].sat]
-                    [(amb_reset.ambs_2_reset[index].code == CODE_GPS_L1CA) ? 0
-                                                                           : 1]
-                        .reset_time = obs_time;
-        }
-      }
       chMtxUnlock(&rtk_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
         solution_make_baseline_sbp(
             &result_rtk, result_spp.baseline, &dops, &sbp_messages);
       }
-      if (amb_reset.initialized) {
-        chMtxLock(&amb_lock);
-        if (amb_reset.reset_amb_manager) {
-          reset_amb_manager(rtk_filter_manager);
-        } else {
-          reset_staged_ambs(
-              rtk_filter_manager, amb_reset.ambs_2_reset, amb_reset.num_ambs);
-        }
-        chMtxUnlock(&amb_lock);
-      }
+      chMtxLock(&amb_lock);
+      chMtxLock(&rtk_filter_manager_lock);
+      handle_amb_resets(rtk_filter_manager, &obs_time, &reset_times);
+      chMtxUnlock(&rtk_filter_manager_lock);
+      chMtxUnlock(&amb_lock);
     }
 
     /* This is posting the rover obs to the mailbox to the time matched thread,
@@ -958,6 +929,9 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     if (update_ref_obs == PVT_ENGINE_SUCCESS) {
       chMtxLock(&amb_lock);
       update_filter_ret = update_filter_ambiguity(rtk_filter_manager);
+      chMtxLock(&rtk_filter_manager_lock);
+      handle_amb_resets(rtk_filter_manager, &reference_obss->tor, &reset_times);
+      chMtxUnlock(&rtk_filter_manager_lock);
       chMtxUnlock(&amb_lock);
     }
 
@@ -966,22 +940,6 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&rtk_filter_manager_lock);
-      for (s32 sat = 0; sat < MAX_NUM_SATS; ++sat) {
-        for (s32 freq = 0; freq < 2; ++freq) {
-          if (gpsdifftime(&reference_obss->tor,
-                          &last_reset[sat][freq].reset_time) <
-              FLOAT_EQUALITY_EPS) {
-            gnss_signal_t sig;
-            sig.sat = sat;
-            if (freq == 0) {
-              sig.code = CODE_GPS_L1CA;
-            } else {
-              sig.code = CODE_GPS_L2CM;
-            }
-            reset_staged_ambs(rtk_filter_manager, &sig, 1);
-          }
-        }
-      }
       copy_ambiguities(rtk_filter_manager);
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&rtk_filter_manager_lock);
@@ -1053,12 +1011,17 @@ static bool set_max_age(struct setting *s, const char *val) {
 }
 
 void init_filters(void) {
-  for (s32 sat = 0; sat < MAX_NUM_SATS; ++sat) {
-    for (s32 freq = 0; freq < 2; ++freq) {
-      last_reset[sat][freq].amb.sat = sat;
-      last_reset[sat][freq].amb.code = freq;
-      last_reset[sat][freq].reset_time.tow = TOW_UNKNOWN;
-      last_reset[sat][freq].reset_time.wn = WN_UNKNOWN;
+  reset_times.last_amb_manager_reset.wn = WN_UNKNOWN;
+  reset_times.last_amb_manager_reset.tow = TOW_UNKNOWN;
+  for (u16 constel = 0; constel < CONSTELLATION_COUNT; ++constel) {
+    for (u16 sat = 0; sat < MAX_NUM_SATS; ++sat) {
+      for (s32 freq = 0; freq < FREQS; ++freq) {
+        reset_times.last_reset[constel][sat][freq].amb.sat = sat;
+        reset_times.last_reset[constel][sat][freq].amb.code =
+            (freq == 0) ? CODE_GPS_L1CA : CODE_GPS_L2CM;
+        reset_times.last_reset[constel][sat][freq].reset_time.tow = TOW_UNKNOWN;
+        reset_times.last_reset[constel][sat][freq].reset_time.wn = WN_UNKNOWN;
+      }
     }
   }
 
