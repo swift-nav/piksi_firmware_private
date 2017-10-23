@@ -72,6 +72,8 @@ MUTEX_DECL(amb_lock);
 MUTEX_DECL(rtk_filter_manager_lock);
 MUTEX_DECL(spp_filter_manager_lock);
 
+static gps_time_t last_reset;
+
 MUTEX_DECL(iono_params_lock);
 bool has_iono_params = false;
 static ionosphere_t time_matched_iono_params;
@@ -852,6 +854,10 @@ static void starling_thread(void *arg) {
                                  &dops,
                                  &amb_reset);
       base_station_sender_id = current_base_sender_id;
+      if (amb_reset.initialized &&
+          (amb_reset.reset_amb_manager || amb_reset.num_ambs > 0)) {
+        last_reset = obs_time;
+      }
       chMtxUnlock(&rtk_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
@@ -862,10 +868,9 @@ static void starling_thread(void *arg) {
         chMtxLock(&amb_lock);
         if (amb_reset.reset_amb_manager) {
           reset_amb_manager(rtk_filter_manager);
-        } else {
-          reset_other_staged_ambs(rtk_filter_manager,
-                                  amb_reset.ambs_to_keep,
-                                  amb_reset.num_ambs);
+        } else if (amb_reset.num_ambs > 0) {
+          reset_other_staged_ambs(
+              rtk_filter_manager, amb_reset.ambs_to_keep, amb_reset.num_ambs);
         }
         chMtxUnlock(&amb_lock);
       }
@@ -945,8 +950,11 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&rtk_filter_manager_lock);
-      copy_ambiguities(rtk_filter_manager);
-      current_base_sender_id = reference_obss->sender_id;
+      if (last_reset.wn == WN_UNKNOWN ||
+          gpsdifftime(&reference_obss->tor, &last_reset) > 0.0) {
+        copy_ambiguities(rtk_filter_manager);
+        current_base_sender_id = reference_obss->sender_id;
+      }
       chMtxUnlock(&rtk_filter_manager_lock);
     }
   }
@@ -1016,6 +1024,9 @@ static bool set_max_age(struct setting *s, const char *val) {
 }
 
 void init_filters(void) {
+  last_reset.tow = TOW_UNKNOWN;
+  last_reset.wn = WN_UNKNOWN;
+
   chMtxLock(&rtk_filter_manager_lock);
   rtk_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&rtk_filter_manager_lock);
