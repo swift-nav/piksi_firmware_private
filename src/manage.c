@@ -236,11 +236,11 @@ static void manage_acq_thread(void *arg) {
       log_info("Switching to re-acq mode");
     }
 
-    //~ if (had_fix) {
-      //~ manage_reacq();
-    //~ } else {
+    if (had_fix) {
+      manage_reacq();
+    } else {
       manage_acq();
-    //~ }
+    }
 
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
