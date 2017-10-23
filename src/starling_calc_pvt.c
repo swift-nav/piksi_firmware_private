@@ -854,10 +854,10 @@ static void starling_thread(void *arg) {
                                  &dops,
                                  &amb_reset);
       base_station_sender_id = current_base_sender_id;
-      // if (amb_reset.initialized &&
-      //    (amb_reset.reset_amb_manager || amb_reset.num_ambs > 0)) {
-      //  last_reset = obs_time;
-      //}
+      if (amb_reset.initialized &&
+          (amb_reset.reset_amb_manager /*|| amb_reset.num_ambs > 0*/)) {
+        last_reset = obs_time;
+      }
       chMtxUnlock(&rtk_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
