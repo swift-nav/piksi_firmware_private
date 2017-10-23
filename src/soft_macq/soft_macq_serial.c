@@ -104,9 +104,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
   code_resample(mesid, chips_per_sample, code_fft, fft_len);
 
   /* For constellations with frequent symbol transitions, do 1x4 CxNC */
-  if ((CODE_SBAS_L1CA == mesid.code) ||
-      (CODE_BDS2_B11 == mesid.code)) {
-    memset(code_fft+CODE_SMPS, 0, sizeof(sc16_t)*(fft_len-CODE_SMPS));
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    memset(code_fft + CODE_SMPS, 0, sizeof(sc16_t) * (fft_len - CODE_SMPS));
   }
 
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
