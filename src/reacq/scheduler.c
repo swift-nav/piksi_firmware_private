@@ -363,7 +363,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
   if (peak_found) { /* Send to track */
     u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
     if (IS_GLO(job->mesid)) {
-      glo_orbit_slot = glo_map_get_orbit_slot(job->mesid.sat);
+      glo_orbit_slot = get_orbit_slot(job->mesid.sat);
     }
 
     tracking_startup_params_t tracking_startup_params = {

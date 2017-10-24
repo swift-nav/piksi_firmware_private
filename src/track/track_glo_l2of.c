@@ -110,7 +110,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
 
   tracking_startup_params_t startup_params = {
       .mesid = L2_mesid,
-      .glo_slot_id = glo_map_get_orbit_slot(sat),
+      .glo_slot_id = get_orbit_slot(sat),
       .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
       .carrier_freq = carrier_freq_hz * glo_freq_scale,
