@@ -619,8 +619,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
                                simulation_current_dops_solution(),
                                sbp_messages);
 
-    double t_check = soln->time.tow * (starling_frequency /
-      obs_output_divisor);
+    double t_check = soln->time.tow * (starling_frequency / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
       /* RFT_TODO *
        * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
