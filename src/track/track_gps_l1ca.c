@@ -465,7 +465,7 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
 
   if (bit_aligned) {
     /* TOW manipulation on bit edge */
-    tp_tracker_tow_cache(tracker_channel);
+    tracker_tow_cache(tracker_channel);
   }
 
   /* GPS L1 C/A-specific cross-correlation operations */

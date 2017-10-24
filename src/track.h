@@ -1021,5 +1021,5 @@ update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
 void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
 void tracker_cleanup(tracker_channel_t *tracker_channel);
 
-void tp_tracker_tow_cache(tracker_channel_t *tracker_channel);
+void tracker_tow_cache(tracker_channel_t *tracker_channel);
 #endif

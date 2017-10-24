@@ -15,7 +15,6 @@
 #include <libswiftnav/track.h>
 
 #include "signal.h"
-#include "track.h"
 #include "track_sid_db.h"
 
 #include <assert.h>
@@ -279,4 +278,107 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
   }
 
   return result;
+}
+
+/**
+ * Stores TOW info into the cache.
+ *
+ * \param[in] tracker_channel Tracker channel data
+ */
+void update_tow_in_sid_db(tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  gnss_signal_t sid;
+  u16 glo_orbit_slot = 0;
+
+  if (IS_GPS(mesid)) {
+    sid = construct_sid(mesid.code, mesid.sat);
+  } else if (IS_GLO(mesid)) {
+    /* Check that GLO orbit slot ID is available */
+    glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
+    if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+      /* If no GLO orbit slot ID is available,
+       * then cannot proceed with TOW cache write. */
+      return;
+    }
+    sid = construct_sid(mesid.code, glo_orbit_slot);
+  } else {
+    assert(!"Unsupported TOW cache constellation");
+  }
+
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
+
+  /* Update TOW cache */
+  tp_tow_entry_t tow_entry = {
+      .TOW_ms = tracker_channel->TOW_ms,
+      .TOW_residual_ns = tracker_channel->TOW_residual_ns,
+      .sample_time_tk = sample_time_tk};
+  track_sid_db_update_tow(sid, &tow_entry);
+}
+
+/**
+ * Reads TOW info from the cache.
+ *
+ * \param[in] tracker_channel Tracker channel data
+ */
+void propagate_tow_from_sid_db(tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  gnss_signal_t sid;
+  u16 glo_orbit_slot = 0;
+
+  if (IS_GPS(mesid)) {
+    sid = construct_sid(mesid.code, mesid.sat);
+  } else if (IS_GLO(mesid)) {
+    /* Check that GLO orbit slot ID is available */
+    glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
+    if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+      /* If no GLO orbit slot ID is available,
+       * then cannot proceed with TOW cache read. */
+      return;
+    }
+    sid = construct_sid(mesid.code, glo_orbit_slot);
+  } else {
+    assert(!"Unsupported TOW cache constellation");
+  }
+
+  /* Read TOW cache */
+  tp_tow_entry_t tow_entry;
+  track_sid_db_load_tow(sid, &tow_entry);
+  if (TOW_UNKNOWN == tow_entry.TOW_ms) {
+    /* No valid cached TOW value found */
+    return;
+  }
+
+  /* There is a valid cached TOW value */
+  double error_ms = 0;
+  u8 bit_length = tracker_bit_length_get(tracker_channel);
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
+  u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
+  s32 TOW_ms =
+      tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, bit_length, &error_ms);
+
+  if (TOW_UNKNOWN != TOW_ms) {
+    log_debug_mesid(mesid,
+                    "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
+                    "ms]"
+                    " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                    tracker_channel->update_count,
+                    bit_length,
+                    nap_count_to_ms(time_delta_tk),
+                    TOW_ms,
+                    error_ms);
+
+    if (tp_tow_is_sane(TOW_ms)) {
+      tracker_channel->TOW_residual_ns = tow_entry.TOW_residual_ns;
+      tracker_channel->TOW_ms = TOW_ms;
+      tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
+    } else {
+      log_error_mesid(mesid,
+                      "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
+                      tracker_channel->update_count,
+                      tracker_channel->TOW_ms);
+      tracker_channel->TOW_residual_ns = 0;
+      tracker_channel->TOW_ms = TOW_UNKNOWN;
+      tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+    }
+  }
 }

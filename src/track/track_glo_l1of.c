@@ -74,7 +74,7 @@ static void tracker_glo_l1of_update(tracker_channel_t *tracker_channel) {
 
   if (bit_aligned) {
     /* TOW manipulation on bit edge */
-    tp_tracker_tow_cache(tracker_channel);
+    tracker_tow_cache(tracker_channel);
   }
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
