@@ -112,11 +112,11 @@ void antenna_init(void) {
 bool antenna_present(void) {
   switch (antenna_mode) {
     case ANTENNA_MODE_PRIMARY: {
-      return (palReadLine(ANT_PRESENT_1_GPIO_LINE) == PAL_HIGH);
+      return antenna_bias && (palReadLine(ANT_PRESENT_1_GPIO_LINE) == PAL_HIGH);
     }
 
     case ANTENNA_MODE_SECONDARY: {
-      return (palReadLine(ANT_PRESENT_2_GPIO_LINE) == PAL_HIGH);
+      return antenna_bias && (palReadLine(ANT_PRESENT_2_GPIO_LINE) == PAL_HIGH);
     }
 
     default: {
