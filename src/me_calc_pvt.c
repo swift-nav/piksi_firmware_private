@@ -196,6 +196,66 @@ static void me_send_emptyobs(void) {
   }
 }
 
+/* Roughly propagate and send the observations when PVT solution failed or is
+ * not available. Flag all with RAIM exclusion so they do not get used
+ * downstream. */
+static void me_send_unpropagated(u8 _num_obs,
+                                 navigation_measurement_t _meas[],
+                                 const ephemeris_t _ephem[],
+                                 const gps_time_t *_t) {
+  /* require at least some timing quality */
+  if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(_t) ||
+      _num_obs == 0) {
+    me_send_emptyobs();
+    return;
+  }
+
+  double offset = 0;
+  double drift = 0;
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE == ndb_lgf_read(&lgf) && lgf.position_solution.valid) {
+    /* estimate the current clock offset from LGF */
+    double dt = gpsdifftime(_t, &lgf.position_solution.time);
+    offset = lgf.position_solution.clock_offset +
+             dt * lgf.position_solution.clock_bias;
+    drift = lgf.position_solution.clock_bias;
+  }
+
+  for (u8 i = 0; i < _num_obs; i++) {
+    /* mark the measurement unusable to be on the safe side */
+    /* TODO: could relax this in order to send also under-determined measurement
+     * sets to Starling */
+    _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+
+    double doppler = 0.0;
+    if (0 != (_meas[i].flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+      doppler = _meas[i].raw_measured_doppler;
+    }
+
+    /* The pseudorange correction has opposite sign because Doppler
+     * has the opposite sign compared to the pseudorange rate. */
+    _meas[i].raw_pseudorange -= offset * doppler * sid_to_lambda(_meas[i].sid);
+    _meas[i].raw_pseudorange -= offset * GPS_C;
+
+    /* Carrier Phase corrected by clock offset */
+    _meas[i].raw_carrier_phase += offset * doppler;
+    _meas[i].raw_carrier_phase += offset * GPS_C / sid_to_lambda(_meas[i].sid);
+
+    /* Use P**V**T to determine the oscillator drift which is used
+     * to adjust computed doppler. */
+    _meas[i].raw_measured_doppler +=
+        drift * GPS_C / sid_to_lambda(_meas[i].sid);
+    _meas[i].raw_computed_doppler = _meas[i].raw_measured_doppler;
+  }
+
+  me_post_observations(_num_obs, _meas, _ephem, _t);
+  /* Output observations only every obs_output_divisor times, taking
+  * care to ensure that the observations are aligned. */
+  if (decimate_observations(_t) && !simulation_enabled()) {
+    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
+  }
+}
+
 /** Update the satellite azimuth & elevation database with current angles
  * \param rcv_pos Approximate receiver position
  * \param t Approximate time
@@ -528,8 +588,7 @@ static void me_calc_pvt_thread(void *arg) {
     last_stats.signals_tracked = n_total;
     last_stats.signals_useable = n_ready;
 
-    if (n_ready < MINIMUM_SV_COUNT) {
-      /* Not enough sats, keep on looping. */
+    if (n_ready == 0) {
       me_send_emptyobs();
       continue;
     }
@@ -593,7 +652,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT */
-      me_send_emptyobs();
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
     }
 
@@ -639,10 +698,10 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - send out solution and observation
-       * failed messages if not in time matched mode
+       * continuing to process this epoch - mark observations unusable but send
+       * them out to enable debugging.
        */
-      me_send_emptyobs();
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -698,7 +757,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_bias);
 
-      me_send_emptyobs();
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
     }
 
@@ -772,6 +831,7 @@ static void me_calc_pvt_thread(void *arg) {
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
+      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
