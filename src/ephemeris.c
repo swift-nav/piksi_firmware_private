@@ -200,6 +200,115 @@ xcorr_match_res_t xcorr_match_alm_position(gnss_signal_t sid0,
 }
 
 /**
+ * Helper function. Delete ghost ephemeris associated with SID
+ * \param sid GNSS SID
+ */
+static void delete_ghost_ephe(const gnss_signal_t sid) {
+  ndb_op_code_t c = ndb_ephemeris_erase(sid);
+  if (c == NDB_ERR_NONE) {
+    log_info_sid(sid, "removed from NDB as ghost");
+  } else {
+    log_error_sid(sid, "cannot delete ephemeris from NDB, code %" PRIu8 " ", c);
+  }
+}
+
+/**
+ * The function compares ephemeris against other ones stored in NDB for same
+ * GNSS. The function is used to check if the ephemeris in question is result of
+ * incorrect decoding due to cross-correlation.
+ * \param e Pointer to ephemeris to be checked.
+ * \return true if ephemeris in question is duplicate of other one, otherwise
+ *         returns false.
+ */
+static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
+  assert(e != NULL);
+
+  ephemeris_t test_e;
+  u16 first_prn, num_sats;
+  char *gnss = "";
+
+  if (IS_GPS(e->sid)) {
+    first_prn = GPS_FIRST_PRN;
+    num_sats = NUM_SATS_GPS;
+    gnss = "GPS";
+  } else if (IS_GLO(e->sid)) {
+    /* Checking for GLO ephemeris is useless, because
+     * 1) No doppler x-corr can be happen due to frequency division
+     * 2) The probability of getting the same ephemeris from different SV due to
+     * incorrect decoding is vanishingly small
+     * 3) The chance we incorrectly decode slot_id twice is small, so no
+     * ephemeris overwriting happens */
+    return false;
+  } else {
+    log_warn("Unsupported GNSS. Ephemeris-to-ephemeris check skipped");
+    return false;
+  }
+
+  for (u16 i = first_prn; i <= num_sats; i++) {
+    if (e->sid.sat == i) {
+      /* don't compare with itself */
+      continue;
+    }
+    ndb_op_code_t res =
+        ndb_ephemeris_read(construct_sid(e->sid.code, i), &test_e);
+    if (NDB_ERR_NONE != res) {
+      if (NDB_ERR_MISSING_IE != res && NDB_ERR_UNCONFIRMED_DATA != res &&
+          NDB_ERR_AGED_DATA != res) {
+        log_error("Ephemeris NDB read error %" PRIu8 " ", res);
+      }
+      /* some problems when read ephemeres from NDB, try next */
+      continue;
+    }
+    gnss_signal_t backup = test_e.sid;
+    /* Fake SID before checking, because we want ephemeris_equal compares
+     * everything but sid */
+    test_e.sid = e->sid;
+    if (!ephemeris_equal(e, &test_e)) {
+      continue;
+    }
+    /* restore sid */
+    test_e.sid = backup;
+    /* Next step is to make sure that stored ephemeris was from real SV
+    So, first, check if stored SV is being tracked */
+    tracker_channel_t *tc_test = NULL;
+    tc_test = tracker_channel_get_by_mesid(
+        construct_mesid(test_e.sid.code, test_e.sid.sat));
+    if (tc_test) {
+      /* stored SV is still being tracked */
+      tracker_channel_t *tc_new = NULL;
+      tc_new = tracker_channel_get_by_mesid(
+          construct_mesid(e->sid.code, e->sid.sat));
+      assert(tc_new != NULL);
+      /* now check which SV has stronger signal, consider that
+       * stronger signal belongs to real SV */
+      if (tc_test->cn0 < tc_new->cn0) {
+        /* Stored SV is ghost one, so remove it from NDB */
+        delete_ghost_ephe(test_e.sid);
+        /* and immediately drop tracked ghost signal */
+        tracking_channel_set_xcorr_flag(tc_test->mesid);
+        return false; /* exit and notify that new ephemeris from real SV and
+                         it can be stored in NDB */
+      } else {
+        /* new ephemeris is Ghost */
+        log_info_sid(e->sid,
+                     "Ephemeris to ephemeris x-corr suspect. "
+                     "Real is %s SV %d",
+                     gnss,
+                     test_e.sid.sat);
+        return true;
+      }
+    } else {
+      /* stored SV is not tracked, remove it from NDB and mark new one as
+       * cross-correlated as well, because we actually don't know which one is
+       * ghost */
+      delete_ghost_ephe(test_e.sid);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Checks that new GPS ephemeris matches its own almanac and none of the other
  * satellites, and if so, pass to it to NDB.
  *
@@ -226,6 +335,12 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   if (!e->valid) {
     log_warn_sid(e->sid, "invalid ephemeris");
     return EPH_NEW_ERR;
+  }
+
+  /* compare new ephemeris against all other ephemeris to make sure there is
+   * no ephemeris-to-ephemeris cross-correlation */
+  if (xcorr_check_eph_to_eph(e)) {
+    return EPH_NEW_XCORR;
   }
 
   /* TODO GLO: Implement ephemeris - almanac cross-checking for GLO */
