@@ -188,31 +188,33 @@ s32 tp_tow_compute(s32 old_TOW_ms,
   double delta_d = nap_count_to_ms(delta_tk);
 
   /* Check interval sanity and validity */
-  if (delta_d >= 0 && delta_d <= MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {
-    double tmp_TOW_ms = old_TOW_ms + delta_d;
-    TOW_ms = (s32)round(tmp_TOW_ms);
+  if (delta_d < 0 || delta_d > MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {
+    return TOW_ms;
+  }
 
-    if (ms_align > 1) {
-      /* If the result is known to be aligned by some interval, do it here. */
-      s32 round = TOW_ms % ms_align;
-      if (round < (ms_align >> 1)) {
-        TOW_ms -= round;
-      } else {
-        TOW_ms += ms_align - round;
-      }
+  double tmp_TOW_ms = old_TOW_ms + delta_d;
+  TOW_ms = (s32)round(tmp_TOW_ms);
+
+  if (ms_align > 1) {
+    /* If the result is known to be aligned by some interval, do it here. */
+    s32 round = TOW_ms % ms_align;
+    if (round < (ms_align >> 1)) {
+      TOW_ms -= round;
+    } else {
+      TOW_ms += ms_align - round;
     }
+  }
 
-    if (NULL != error_ms) {
-      /* Compute rounding/aligning error */
-      *error_ms = TOW_ms - tmp_TOW_ms;
-    }
+  if (NULL != error_ms) {
+    /* Compute rounding/aligning error */
+    *error_ms = TOW_ms - tmp_TOW_ms;
+  }
 
-    /* Fix up ToW */
-    TOW_ms %= WEEK_MS;
+  /* Fix up ToW */
+  TOW_ms %= WEEK_MS;
 
-    if (!tp_tow_is_sane(TOW_ms)) {
-      TOW_ms = TOW_UNKNOWN;
-    }
+  if (!tp_tow_is_sane(TOW_ms)) {
+    TOW_ms = TOW_UNKNOWN;
   }
 
   return TOW_ms;

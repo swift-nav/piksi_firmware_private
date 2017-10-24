@@ -1089,37 +1089,39 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   return cflags;
 }
 
-static bool tow_is_aligned(tracker_channel_t *tracker_channel) {
+static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
   u8 bit_length = tracker_bit_length_get(tracker_channel);
 
-  if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
-    /*
-     * Verify ToW alignment
-     * Current block assumes the bit sync has been reached and current
-     * interval has closed a bit interval. ToW shall be aligned by bit
-     * duration, which is:
-     * 20ms for GPS L1 / L2
-     * 10ms for GLO L1 / L2
-     */
-    u8 tail = tracker_channel->TOW_ms % bit_length;
-    if (0 != tail) {
-      /* If this correction is needed, then there is something wrong
-         either with the TOW cache update or with the bit sync */
-      s8 error_ms = tail < (bit_length >> 1) ? -tail : bit_length - tail;
+  if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
+    return true;
+  }
 
-      log_error_mesid(mesid,
-                      "[+%" PRIu32
-                      "ms] TOW error detected: "
-                      "error=%" PRId8 "ms old_tow=%" PRId32,
-                      tracker_channel->update_count,
-                      error_ms,
-                      tracker_channel->TOW_ms);
+  /*
+   * Verify ToW bit alignment
+   * Current block assumes the bit sync has been reached and current
+   * interval has closed a bit interval. ToW shall be aligned by bit
+   * duration, which is:
+   * 20ms for GPS L1 / L2
+   * 10ms for GLO L1 / L2
+   */
+  u8 tail = tracker_channel->TOW_ms % bit_length;
+  if (0 != tail) {
+    /* If this correction is needed, then there is something wrong
+       either with the TOW cache update or with the bit sync */
+    s8 error_ms = tail < (bit_length >> 1) ? -tail : bit_length - tail;
 
-      /* This is rude, but safe. Do not expect it to happen normally. */
-      tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
-      return false;
-    }
+    log_error_mesid(mesid,
+                    "[+%" PRIu32
+                    "ms] TOW error detected: "
+                    "error=%" PRId8 "ms old_tow=%" PRId32,
+                    tracker_channel->update_count,
+                    error_ms,
+                    tracker_channel->TOW_ms);
+
+    /* This is rude, but safe. Do not expect it to happen normally. */
+    tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+    return false;
   }
   return true;
 }
@@ -1188,7 +1190,7 @@ static bool update_tow_cache(const tracker_channel_t *tracker_channel) {
  */
 void tracker_tow_cache(tracker_channel_t *tracker_channel) {
   /* Check that tracker has valid TOW. */
-  if (!tow_is_aligned(tracker_channel)) {
+  if (!tow_is_bit_aligned(tracker_channel)) {
     return;
   }
 
