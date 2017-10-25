@@ -22,6 +22,7 @@
 #include <platform_cn0.h>
 #include <platform_track.h>
 #include <signal.h>
+#include <track/track_utils.h>
 
 #include <assert.h>
 #include <math.h>
@@ -39,13 +40,14 @@
 
 #define TL_BWT_MAX (0.18f * 20.f)
 
-#define ADJ_CN0_MAX (60.0f)
-#define PLL_BW_MAX (20.0f)
-#define FLL_BW_MAX (2.75f)
-
 #define ADJ_CN0_MIN (20.0f)
+#define ADJ_CN0_MAX (60.0f)
+
 #define PLL_BW_MIN (10.0f)
+#define PLL_BW_MAX (20.0f)
+
 #define FLL_BW_MIN (0.75f)
+#define FLL_BW_MAX (2.75f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -149,23 +151,23 @@ enum {
 /* clang-format off */
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,   1.f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = {  0.07f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,   .5f, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f,  .5f, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = {  0.07f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,   .5f, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f,  .5f, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = {  0.07f,  .6f, 40 },
 
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,  1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = {  0.06f, 1.0f, 50 },
+    [TP_LD_PARAMS_FREQ_5MS]   = {  0.07f,  .6f, 20 },
 
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,  1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS]  = { 0.005f,  .6f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = {  0.02f, 1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.07f,  .6f, 15 },
 
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,  1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]  = { 0.005f,  .6f, 50 }
+    [TP_LD_PARAMS_PHASE_20MS] = {  0.01f, 1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.07f,  .6f, 10 }
 };
 /* clang-format on */
 
@@ -418,7 +420,7 @@ static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
     bw = TL_BWT_MAX * SECS_MS / T_ms;
   }
 
-  if (bw < bw_cur) {
+  if (bw < bw_cur && bw_cur > 0.0f) {
     /* Reducing the FLL BW by more than 30 percent at a time could lead
        to FLL instabilities */
     if (((bw_cur - bw) / bw_cur) > 0.33) {
@@ -714,7 +716,7 @@ static bool pll_bw_changed(tracker_channel_t *tracker_channel,
   float pll_bw = compute_pll_bw(cn0, pll_t_ms, state->cur.pll_bw);
 
   /* Simple hysteresis to avoid too often PLL retunes */
-  float pll_bw_diff = fabs(pll_bw - state->cur.pll_bw);
+  float pll_bw_diff = fabsf(pll_bw - state->cur.pll_bw);
   if (pll_bw_diff > .9) {
     state->next.pll_bw = pll_bw;
     return true;
@@ -739,7 +741,7 @@ static bool fll_bw_changed(tracker_channel_t *tracker_channel,
   float fll_bw = compute_fll_bw(cn0, fll_t_ms, state->cur.fll_bw);
 
   /* Simple hysteresis to avoid too often FLL retunes */
-  float fll_bw_diff = fabs(fll_bw - state->cur.fll_bw);
+  float fll_bw_diff = fabsf(fll_bw - state->cur.fll_bw);
   if (fll_bw_diff > .2) {
     state->next.fll_bw = fll_bw;
     return true;

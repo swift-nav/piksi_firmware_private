@@ -149,7 +149,7 @@ void tp_tl_adjust(tp_tl_state_t *s, float err) {
  *
  * \return None
  */
-void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates) {
+void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates) {
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       tl_pll2_get_rates(&s->pll2, rates);
@@ -235,13 +235,56 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
 }
 
 /**
+ * Get unfiltered FLL discriminator frequency error
+ *
+ * \param[in] s  Tracker state.
+ *
+ * \return Raw frequency error
+ *
+ */
+float tp_tl_get_fll_error(const tp_tl_state_t *s) {
+  float freq_error = 0.0f;
+
+  switch (s->ctrl) {
+    case TP_CTRL_PLL2:
+      if (s->pll2.freq_a0 > 0) {
+        freq_error = s->pll2.discr_sum * s->pll2.discr_mul;
+      }
+      break;
+
+    case TP_CTRL_PLL3:
+      if ((s->pll3.fll_bw_hz > 0) && (0 != s->pll3.discr_cnt)) {
+        freq_error = s->pll3.discr_sum_hz / s->pll3.discr_cnt;
+      }
+      break;
+
+    case TP_CTRL_FLL1:
+      if (s->fll1.freq_a0 > 0) {
+        freq_error = s->fll1.discr_sum * s->fll1.discr_mul;
+      }
+      break;
+
+    case TP_CTRL_FLL2:
+      if (s->fll2.freq_a0 > 0) {
+        freq_error = s->fll2.discr_sum * s->fll2.discr_mul;
+      }
+      break;
+
+    default:
+      assert(false);
+  }
+
+  return freq_error;
+}
+
+/**
  * Return DLL error if available.
  *
  * \param[in] s Tracker state.
  *
  * \return Error in Hz between DLL and PLL/FLL filters.
  */
-float tp_tl_get_dll_error(tp_tl_state_t *s) {
+float tp_tl_get_dll_error(const tp_tl_state_t *s) {
   float dll_error = 0.;
 
   switch (s->ctrl) {

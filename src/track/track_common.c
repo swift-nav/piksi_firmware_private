@@ -21,6 +21,7 @@
 #include "timing.h"
 #include "track_sbp.h"
 #include "track_sid_db.h"
+#include "track_utils.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -31,9 +32,6 @@
 #define TP_TRACKER_ALIAS_DURATION_MS (1000)
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
-
-/** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
-#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.1
 
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
@@ -760,17 +758,11 @@ static void update_ld_phase(tracker_channel_t *tracker_channel) {
 }
 
 static void update_ld_freq(tracker_channel_t *tracker_channel) {
-  /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
-  tl_rates_t rates = {0};
-  tp_tl_get_rates(&tracker_channel->tl_state, &rates);
-  float freq_err =
-      rates.code_freq -
-      rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
+  /* FLL lock detector is based on frequency error seen by FLL discriminator */
+  float unfiltered_freq_error = tracker_channel->unfiltered_freq_error;
 
-  lock_detect_update(&tracker_channel->ld_freq,
-                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                     freq_err,
-                     tp_get_ld_ms(tracker_channel->tracking_mode));
+  /* Calculate low-pass filtered frequency error */
+  freq_lock_detect_update(&tracker_channel->ld_freq, unfiltered_freq_error);
 
   bool outp = tracker_channel->ld_freq.outp;
 
@@ -793,18 +785,22 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
  */
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  if (0 != (cycle_flags & TPF_LD_USE)) {
-    tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
-    tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
-
+  if (0 != (cycle_flags & TPF_LD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
     bool outp_prev =
         tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
-    if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
-      update_ld_phase(tracker_channel);
+    if (0 != (cycle_flags & TPF_LD_USE)) {
+      tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
+
+      if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
+        update_ld_phase(tracker_channel);
+      }
     }
 
-    update_ld_freq(tracker_channel);
+    if (0 != (cycle_flags & TPF_FLL_USE)) {
+      tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
+      update_ld_freq(tracker_channel);
+    }
 
     bool outp = tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
@@ -850,6 +846,8 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
   if (0 != (cycle_flags & TPF_FLL_USE)) {
     tp_tl_fll_update_second(
         &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
+    tracker_channel->unfiltered_freq_error =
+        tp_tl_get_fll_error(&tracker_channel->tl_state);
   }
 }
 
