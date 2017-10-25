@@ -1536,7 +1536,7 @@ static void manage_tracking_startup(void) {
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
     /* Make sure the SID is not already tracked and healthy */
-    if (acq->state == ACQ_PRN_TRACKING ||
+    if ((acq->state == ACQ_PRN_TRACKING) ||
         (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
       continue;
     }

@@ -34,6 +34,9 @@ void platform_track_setup(void) {
   track_gps_l2c_register();
   track_glo_l1of_register();
   track_glo_l2of_register();
+  track_sbas_l1_register();
+  track_bds2_b11_register();
+  track_bds2_b2_register();
   track_qzss_l1ca_register();
   track_qzss_l2c_register();
 }
