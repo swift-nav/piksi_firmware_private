@@ -74,35 +74,37 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* Empirical corrections for GLO per-frequency bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  */
-static const double glo_l1_isc[] = {[0] = 0.0,
-                                    [1] = 0.0,
-                                    [2] = 0.0,
-                                    [3] = 0.0,
-                                    [4] = 0.0,
-                                    [5] = 0.0,
-                                    [6] = 0.0,
-                                    [7] = 0.0,
-                                    [8] = 0.0,
-                                    [9] = 0.0,
-                                    [10] = 0.0,
+static const double glo_l1_isc[] = {[0] = -7.25,
+                                    [1] = -7.37,
+                                    [2] = -7.5,
+                                    [3] = -7.57,
+                                    [4] = -7.51,
+                                    [5] = -7.25,
+                                    [6] = -7,
+                                    [7] = -6.72,
+                                    [8] = -7,
+                                    [9] = -7.3,
+                                    [10] = -7.73,
+                                    [11] = -8.45,
+                                    [12] = -8.95,
+                                    [13] = -9.5};
+
+static const double glo_l2_isc[] = {[0] = -2.5,
+                                    [1] = -2.26,
+                                    [2] = -1.83,
+                                    [3] = -1.45,
+                                    [4] = -1.27,
+                                    [5] = -1.16,
+                                    [6] = -1,
+                                    [7] = -0.8,
+                                    [8] = -0.5,
+                                    [9] = -0.35,
+                                    [10] = -0.25,
                                     [11] = 0.0,
                                     [12] = 0.0,
                                     [13] = 0.0};
-static const double glo_l2_isc[] = {[0] = -7.82,
-                                    [1] = -7.518,
-                                    [2] = -7.217,
-                                    [3] = -6.915,
-                                    [4] = -6.614,
-                                    [5] = -6.312,
-                                    [6] = -6.011,
-                                    [7] = -5.709,
-                                    [8] = -5.408,
-                                    [9] = -5.106,
-                                    [10] = -4.805,
-                                    [11] = -4.503,
-                                    [12] = -4.202,
-                                    [13] = -3.9};
-static const double gps_l2_isc = -2;
+
+static const double gps_l2_isc = -1.95;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -376,8 +378,7 @@ static void apply_isc_table(u8 n_channels,
     }
 
     nav_meas[i]->pseudorange += corr;
-    nav_meas[i]->carrier_phase -=
-        corr / GPS_C * sid_to_carr_freq(nav_meas[i]->sid);
+    nav_meas[i]->raw_pseudorange += corr;
   }
 }
 
