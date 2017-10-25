@@ -918,8 +918,8 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     } else {
       report.cn0 = tracker_channel->cn0;
     }
-    report.plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                    (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+    report.plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+    report.flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
     report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
     report.acceleration = rates.acceleration;

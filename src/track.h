@@ -256,7 +256,8 @@ typedef struct {
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
 
-  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 plock : 1;          /**< Pessimistic phase lock flag */
+  u32 flock : 1;          /**< Pessimistic frequency lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 bsync_sticky : 1;   /**< Bit sync flag */
   u32 profile_update : 1; /**< Flag if the profile update is required */
@@ -777,7 +778,8 @@ typedef struct {
   float acceleration;     /**< Acceleration in Hz/s */
   float cn0;              /**< Computed C/N0 (filtered) in dB/Hz */
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
-  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 plock : 1;          /**< Pessimistic phase lock flag */
+  u32 flock : 1;          /**< Pessimistic frequency lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
