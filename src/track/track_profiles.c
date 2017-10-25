@@ -46,8 +46,7 @@
 #define PLL_BW_MIN (10.0f)
 #define PLL_BW_MAX (20.0f)
 
-#define FLL_BW_MIN (0.75f)
-#define FLL_BW_MAX (2.75f)
+#define FLL_BW (3.f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -387,13 +386,26 @@ static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
   return bw;
 }
 
-static float compute_fll_bw(float cn0, u8 T_ms, float bw_cur) {
-  float y[2] = {FLL_BW_MIN, FLL_BW_MAX};   /* bw */
-  float x[2] = {ADJ_CN0_MIN, ADJ_CN0_MAX}; /* cn0 */
+/** Compute FLL bw adjustment (multiplier) based on filtered frequency error
+ * \param freq_err Filtered FLL discriminator error in Hz.
+ * \return FLL bw adjustment [0..1]
+ *         Small freq error shall give small multiplier (~0)
+ *         high freq error shall give multiplier of (~1)
+ */
+static float compute_fll_bw_adjust(float freq_err) {
+  float err = fabsf(freq_err);
+  if (err > TP_FLL_ERR_THRESHOLD_HZ) {
+    err = TP_FLL_ERR_THRESHOLD_HZ;
+  }
+  return err / TP_FLL_ERR_THRESHOLD_HZ;
+}
 
-  float m = (y[1] - y[0]) / (x[1] - x[0]);
+static float compute_fll_bw(u8 T_ms, float bw_cur, float freq_err) {
+  float bw = FLL_BW;
 
-  float bw = (cn0 - x[0]) * m + y[0];
+  /* Adjust bw based on current frequency error */
+  float bw_adjust = compute_fll_bw_adjust(freq_err);
+  bw = bw * bw_adjust;
 
   /* Form bandwidth * integration time product. */
   float bwt = bw * (float)T_ms / SECS_MS;
