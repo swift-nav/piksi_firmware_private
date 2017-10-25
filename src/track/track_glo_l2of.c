@@ -146,18 +146,22 @@ static void tracker_glo_l2of_init(tracker_channel_t *tracker_channel) {
 
 static void tracker_glo_l2of_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &glo_l2of_config);
-  bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
-
-  if (bit_aligned) {
-    /* TOW manipulation on bit edge */
-    tracker_tow_cache(tracker_channel);
-  }
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L1OF, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
+    return;
   }
+
+  bool bit_aligned =
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+
+  if (!bit_aligned) {
+    return;
+  }
+
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker_channel);
 }

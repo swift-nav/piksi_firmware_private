@@ -301,18 +301,11 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
  * \f]
  *
  * \param[in,out] tracker_channel Tracker channel data.
- * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
-static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
-                                    u32 cycle_flags) {
+static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
-
-  if (0 == (cycle_flags & TPF_BSYNC_UPD) ||
-      !tracker_bit_aligned(tracker_channel)) {
-    return;
-  }
 
   if (tracker_check_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
@@ -351,21 +344,24 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
 
 static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2c_config);
+
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
 
-  if (bit_aligned) {
-    /* TOW manipulation on bit edge */
-    tracker_tow_cache(tracker_channel);
+  if (!bit_aligned) {
+    return;
   }
 
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker_channel);
+
   /* GPS L2C-specific L1 C/A cross-correlation operations */
-  update_l2_xcorr_from_l1(tracker_channel, cflags);
+  update_l2_xcorr_from_l1(tracker_channel);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
 
-  if (in_phase_lock && confirmed && bit_aligned) {
+  if (in_phase_lock && confirmed) {
     /* naturally synched as we track */
     s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
     s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
