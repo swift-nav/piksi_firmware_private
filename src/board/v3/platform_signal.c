@@ -13,15 +13,15 @@
 
 #include "platform_signal.h"
 
-#include "track/track_gps_l1ca.h"
-#include "track/track_gps_l2c.h"
-#include "track/track_glo_l1of.h"
-#include "track/track_glo_l2of.h"
-#include "track/track_sbas_l1.h"
 #include "track/track_bds2_b11.h"
 #include "track/track_bds2_b2.h"
+#include "track/track_glo_l1of.h"
+#include "track/track_glo_l2of.h"
+#include "track/track_gps_l1ca.h"
+#include "track/track_gps_l2c.h"
 #include "track/track_qzss_l1ca.h"
 #include "track/track_qzss_l2c.h"
+#include "track/track_sbas_l1.h"
 #include "track/track_sid_db.h"
 
 #include "decode/decode_glo_l1of.h"

@@ -77,7 +77,7 @@ static void tracker_sbas_l1ca_init(tracker_channel_t *tracker_channel) {
  * \return None
  */
 static void update_tow_sbas_l1ca(tracker_channel_t *tracker_channel,
-                                u32 cycle_flags) {
+                                 u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   tp_tow_entry_t tow_entry;
@@ -127,7 +127,8 @@ static void update_tow_sbas_l1ca(tracker_channel_t *tracker_channel,
     s32 ToW_ms = TOW_UNKNOWN;
     double error_ms = 0;
     u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-    u8 ms_align = aligned ? SBAS_L1CA_BIT_LENGTH_MS : SBAS_L1CA_PSYMBOL_LENGTH_MS;
+    u8 ms_align =
+        aligned ? SBAS_L1CA_BIT_LENGTH_MS : SBAS_L1CA_PSYMBOL_LENGTH_MS;
 
     ToW_ms =
         tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, ms_align, &error_ms);

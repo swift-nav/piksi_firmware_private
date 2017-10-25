@@ -171,7 +171,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
     }
 
     /* Find highest peak of the current doppler bin */
-    if (!peak_search(mesid, result_fft, fft_len, doppler, fft_bin_width, &peak)) {
+    if (!peak_search(
+            mesid, result_fft, fft_len, doppler, fft_bin_width, &peak)) {
       return false;
     }
 
@@ -352,20 +353,20 @@ static bool peak_search(const me_gnss_signal_t mesid,
   u32 sum_mag_sq;
   float snr = 0.0f;
   float cn0 = 0.0f;
-  u32 *result_mag = (u32*) c_array;
+  u32 *result_mag = (u32 *)c_array;
 
   /* In place magnitude */
   for (k = 0; k < array_sz; k++) {
     s32 re = c_array[k].r;
     s32 im = c_array[k].i;
-    result_mag[k] = (u32)(re*re) + (u32)(im*im);
+    result_mag[k] = (u32)(re * re) + (u32)(im * im);
   }
 
   /* For constellations with frequent symbol transitions,
    * accumulate non-coherently */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    for (k=1; k<((array_sz+CODE_SMPS-1)/CODE_SMPS); k++) {
-      for (u32 h=0; h<CODE_SMPS; h++) {
+    for (k = 1; k < ((array_sz + CODE_SMPS - 1) / CODE_SMPS); k++) {
+      for (u32 h = 0; h < CODE_SMPS; h++) {
         u32 src_idx = k * CODE_SMPS + h;
         if (src_idx >= array_sz) break;
         result_mag[h] += result_mag[src_idx];
@@ -415,12 +416,12 @@ static void GetFourMaxes(const u32 *_puVec, u32 _uSize) {
   if (NULL == _puVec) return;
   if (_uSize == 0) return;
 
-  memset(puMaxIdx, 0, 4*sizeof(u32));
-  memset(puMaxVal, 0, 4*sizeof(u32));
-  memset(puSumVal, 0, 4*sizeof(u32));
+  memset(puMaxIdx, 0, 4 * sizeof(u32));
+  memset(puMaxVal, 0, 4 * sizeof(u32));
+  memset(puSumVal, 0, 4 * sizeof(u32));
   uSz4th = _uSize / 4;
 
-  for (k = 0;          k < 1 * uSz4th; k++) {
+  for (k = 0; k < 1 * uSz4th; k++) {
     uTmpMag = _puVec[k];
     puSumVal[0] += uTmpMag;
     if (uTmpMag > puMaxVal[0]) {

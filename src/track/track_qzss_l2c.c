@@ -52,8 +52,9 @@ static const tracker_interface_t tracker_interface_qzss_l2c = {
 };
 
 /** QZSS L2C tracker interface list element */
-static tracker_interface_list_element_t tracker_interface_list_element_qzss_l2c =
-    {.interface = &tracker_interface_qzss_l2c, .next = 0};
+static tracker_interface_list_element_t
+    tracker_interface_list_element_qzss_l2c = {
+        .interface = &tracker_interface_qzss_l2c, .next = 0};
 
 /** Register L2 CM tracker into the the tracker interface & settings
  *  framework.
@@ -93,7 +94,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
   //~ u32 capb;
   //~ ndb_qzss_l2cm_l2c_cap_read(&capb);
   //~ if (0 == (capb & ((u32)1 << (sat - 1)))) {
-    //~ return;
+  //~ return;
   //~ }
 
   if (!handover_valid(code_phase, QZS_L1CA_CHIPS_NUM)) {
@@ -166,7 +167,8 @@ static void tracker_qzss_l2c_init(tracker_channel_t *tracker_channel) {
  * tracker updates the cache. The time difference between signals is ignored
  * as small.
  *
- * QZSS L2 C tracker performs ToW update/propagation only on bit edge. This makes
+ * QZSS L2 C tracker performs ToW update/propagation only on bit edge. This
+ * makes
  * it more robust to propagation errors.
  *
  * \param[in]     tracker_channel Tracker channel data
@@ -175,7 +177,7 @@ static void tracker_qzss_l2c_init(tracker_channel_t *tracker_channel) {
  * \return None
  */
 static void update_tow_qzss_l2c(tracker_channel_t *tracker_channel,
-                               u32 cycle_flags) {
+                                u32 cycle_flags) {
   tp_tow_entry_t tow_entry;
   me_gnss_signal_t mesid = tracker_channel->mesid;
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);

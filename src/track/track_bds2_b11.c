@@ -68,4 +68,3 @@ static void tracker_bds2_b11_update(tracker_channel_t *tracker_channel) {
 void track_bds2_b11_register(void) {
   tracker_interface_register(&tracker_interface_list_element_bds2_b11);
 }
-

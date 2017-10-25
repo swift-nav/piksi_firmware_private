@@ -74,7 +74,8 @@ static void tracker_qzss_l1ca_init(tracker_channel_t *tracker_channel) {
  * tracker updates the cache. The time difference between signals is ignored
  * as small.
  *
- * QZSS L2 C tracker performs ToW update/propagation only on bit edge. This makes
+ * QZSS L2 C tracker performs ToW update/propagation only on bit edge. This
+ * makes
  * it more robust to propagation errors.
  *
  * \param[in,out  tracker_channel Tracker channel data
@@ -83,7 +84,7 @@ static void tracker_qzss_l1ca_init(tracker_channel_t *tracker_channel) {
  * \return None
  */
 static void update_tow_qzss_l1ca(tracker_channel_t *tracker_channel,
-                                u32 cycle_flags) {
+                                 u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   tp_tow_entry_t tow_entry;

@@ -148,7 +148,6 @@ static const u64 beidou2_mask = 0x07c0013fffULL;
 static const u32 qzss_mask = 0x7;
 static const u64 galileo_mask = 0x022a62ddbULL;
 
-
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
@@ -250,9 +249,9 @@ static void manage_acq_thread(void *arg) {
     }
 
     //~ if (had_fix) {
-      //~ manage_reacq();
+    //~ manage_reacq();
     //~ } else {
-      manage_acq();
+    manage_acq();
     //~ }
 
     manage_tracking_startup();
@@ -376,16 +375,24 @@ void manage_acq_setup() {
       acq_status[i].masked = !glo_enabled;
     }
     if (IS_SBAS(mesid)) {
-      acq_status[i].masked = !sbas_enabled || (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN))&1));
+      acq_status[i].masked =
+          !sbas_enabled ||
+          (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN)) & 1));
     }
     if (IS_BDS2(mesid)) {
-      acq_status[i].masked = !bds2_enabled || (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN))&1));
+      acq_status[i].masked =
+          !bds2_enabled ||
+          (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN)) & 1));
     }
     if (IS_QZSS(mesid)) {
-      acq_status[i].masked = !qzss_enabled || (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN))&1));
+      acq_status[i].masked =
+          !qzss_enabled ||
+          (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN)) & 1));
     }
     if (IS_GAL(mesid)) {
-      acq_status[i].masked = !galileo_enabled || (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN))&1));
+      acq_status[i].masked =
+          !galileo_enabled ||
+          (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN)) & 1));
     }
 
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
