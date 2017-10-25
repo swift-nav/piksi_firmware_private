@@ -94,6 +94,7 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   u8 ret = ~0;
   switch (mesid.code) {
     case CODE_GPS_L1CA:
+    case CODE_QZS_L1CA:
       ret = NAP_TRK_CODE_GPS_L1;
       break;
     case CODE_SBAS_L1CA:
@@ -136,7 +137,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:

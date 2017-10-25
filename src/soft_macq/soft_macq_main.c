@@ -178,6 +178,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
   switch (mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
+    case CODE_QZS_L1CA:
       uDecFactor = SOFTMACQ_DECFACT_GPSL1CA;
       samples_ms = SOFTMACQ_RAW_SPMS / uDecFactor;
       uNcoStep =
@@ -239,13 +240,12 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_INVALID:
     case CODE_GLO_L2OF:
     case CODE_GPS_L2CM:
     case CODE_GPS_L2CL:
-    case CODE_INVALID:
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
-    case CODE_COUNT:
     case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
@@ -264,13 +264,13 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
     case CODE_QZS_L5X:
+    case CODE_COUNT:
     default:
       return false;
       break;

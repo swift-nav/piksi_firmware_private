@@ -140,6 +140,15 @@ static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
+/* Bootstrap acquisiton by suggesting which PRN are active in the
+ * constellation - effective for not FOC systems.
+ * TODO: put this into NDB, similar to L2C capability */
+static const u32 sbas_mask = 0x7ffff;
+static const u64 beidou2_mask = 0x07c0013fffULL;
+static const u32 qzss_mask = 0x7;
+static const u64 galileo_mask = 0x022a62ddbULL;
+
+
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
@@ -150,6 +159,8 @@ static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
 static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
 /** Flag if QZSS enabled */
 static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT;
+/** Flag if Galileo enabled */
+static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
@@ -238,11 +249,11 @@ static void manage_acq_thread(void *arg) {
       log_info("Switching to re-acq mode");
     }
 
-    if (had_fix) {
-      manage_reacq();
-    } else {
+    //~ if (had_fix) {
+      //~ manage_reacq();
+    //~ } else {
       manage_acq();
-    }
+    //~ }
 
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
@@ -274,7 +285,7 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
  * NOTE: this function does not check if SBAS SV is already masked or not */
 static bool sbas_enable_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_info("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
+    log_debug("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
     if (sbas_enabled && !(CODE_SBAS_L1CA_SUPPORT)) {
       /* user tries enable SBAS on the platform that does not support it */
       log_error("The platform does not support SBAS");
@@ -295,7 +306,7 @@ static bool sbas_enable_notify(struct setting *s, const char *val) {
  * NOTE: this function does not check if BDS2 SV is already masked or not */
 static bool bds2_enable_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_info("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
+    log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
     if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
       /* user tries enable Beidou2 on the platform that does not support it */
       log_error("The platform does not support BDS2");
@@ -316,7 +327,7 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
  * NOTE: this function does not check if QZSS SV is already masked or not */
 static bool qzss_enable_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_info("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
+    log_debug("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
     if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT)) {
       /* user tries enable QZSS on the platform that does not support it */
       log_error("The platform does not support QZSS");
@@ -361,11 +372,22 @@ void manage_acq_setup() {
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
-    if (IS_GLO(mesid) && !glo_enabled) {
-      acq_status[i].masked = true;
-    } else {
-      acq_status[i].masked = false;
+    if (IS_GLO(mesid)) {
+      acq_status[i].masked = !glo_enabled;
     }
+    if (IS_SBAS(mesid)) {
+      acq_status[i].masked = !sbas_enabled || (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN))&1));
+    }
+    if (IS_BDS2(mesid)) {
+      acq_status[i].masked = !bds2_enabled || (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN))&1));
+    }
+    if (IS_QZSS(mesid)) {
+      acq_status[i].masked = !qzss_enabled || (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN))&1));
+    }
+    if (IS_GAL(mesid)) {
+      acq_status[i].masked = !galileo_enabled || (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN))&1));
+    }
+
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
 
     if (code_requires_direct_acq(mesid.code)) {
@@ -407,6 +429,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
                              const gps_time_t *t,
                              float *dopp_hint_low,
                              float *dopp_hint_high) {
+  return SCORE_COLDSTART;
+
   /* Do we have any idea where/when we are?  If not, no score. */
   /* TODO: Stricter requirement on time and position uncertainty?
      We ought to keep track of a quantitative uncertainty estimate. */
@@ -418,7 +442,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   }
 
   /* TODO GLO: Handle GLO orbit slot properly. */
-  assert(!IS_GLO(mesid));
+  if (CODE_GPS_L1CA != mesid.code) return SCORE_COLDSTART;
+
   gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   float el = TRACKING_ELEVATION_UNKNOWN;
   el = sv_elevation_degrees_get(sid);
