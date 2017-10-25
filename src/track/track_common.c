@@ -792,6 +792,12 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
 
       if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
         update_ld_phase(tracker_channel);
+      } else {
+        /* Reset internal variables while phase lock detector is not in use. */
+        tp_profile_t *profile = &tracker_channel->profile;
+        const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
+        lock_detect_init(
+            &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
       }
     }
 
