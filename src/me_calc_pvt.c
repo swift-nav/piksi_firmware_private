@@ -74,20 +74,20 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* Empirical corrections for GLO per-frequency bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  */
-static const double glo_l1_isc[] = {[0] = -10.95,
-                                    [1] = -10.82,
-                                    [2] = -10.75,
-                                    [3] = -10.5,
-                                    [4] = -10,
-                                    [5] = -9.4,
-                                    [6] = -8.85,
-                                    [7] = -8.5,
-                                    [8] = -8.27,
-                                    [9] = -8.23,
-                                    [10] = -8.65,
-                                    [11] = -9,
-                                    [12] = -9.53,
-                                    [13] = -9.3};
+static const double glo_l1_isc[] = {[0] = 0.0,
+                                    [1] = 0.0,
+                                    [2] = 0.0,
+                                    [3] = 0.0,
+                                    [4] = 0.0,
+                                    [5] = 0.0,
+                                    [6] = 0.0,
+                                    [7] = 0.0,
+                                    [8] = 0.0,
+                                    [9] = 0.0,
+                                    [10] = 0.0,
+                                    [11] = 0.0,
+                                    [12] = 0.0,
+                                    [13] = 0.0};
 static const double glo_l2_isc[] = {[0] = -7.82,
                                     [1] = -7.518,
                                     [2] = -7.217,
@@ -102,7 +102,7 @@ static const double glo_l2_isc[] = {[0] = -7.82,
                                     [11] = -4.503,
                                     [12] = -4.202,
                                     [13] = -3.9};
-static const double gps_l2_isc = -4.05;
+static const double gps_l2_isc = -2;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
