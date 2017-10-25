@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 - 2017 Swift Navigation Inc.
+ * Copyright (C) 2017 Swift Navigation Inc.
  * Contact: Michele Bavaro <michele@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -11,9 +11,8 @@
  */
 
 /* Local headers */
-#include "track_qzss_l1ca.h"
+#include "track_sbas_l1.h"
 #include "track_cn0.h"
-#include "track_qzss_l2c.h" /* for L1C/A to L2C tracking handover */
 #include "track_sid_db.h"
 
 /* Non-local headers */
@@ -32,49 +31,44 @@
 /* STD headers */
 #include <string.h>
 
-/** QZSS L1 C/A parameter section name */
-#define QZSS_L1CA_TRACK_SETTING_SECTION "qzss_l1ca_track"
+/** SBAS L1 parameter section name */
+#define SBAS_L1_TRACK_SETTING_SECTION "sbas_l1_track"
 
-/** QZSS L1 C/A configuration container */
-static tp_tracker_config_t qzss_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
+/** SBAS L1 configuration container */
+static tp_tracker_config_t sbas_l1ca_config = TP_TRACKER_DEFAULT_CONFIG;
 
-/* Forward declarations of interface methods for QZSS L1 C/A */
-static tracker_interface_function_t tracker_qzss_l1ca_init;
-static tracker_interface_function_t tracker_qzss_l1ca_update;
+/* Forward declarations of interface methods for SBAS L1 */
+static tracker_interface_function_t tracker_sbas_l1ca_init;
+static tracker_interface_function_t tracker_sbas_l1ca_update;
 
-/** QZSS L1 C/A tracker interface */
-static const tracker_interface_t tracker_interface_qzss_l1ca = {
-    .code = CODE_QZS_L1CA,
-    .init = tracker_qzss_l1ca_init,
+/** SBAS L1 tracker interface */
+static const tracker_interface_t tracker_interface_sbas_l1ca = {
+    .code = CODE_SBAS_L1CA,
+    .init = tracker_sbas_l1ca_init,
     .disable = tp_tracker_disable,
-    .update = tracker_qzss_l1ca_update,
+    .update = tracker_sbas_l1ca_update,
 };
 
-/** QZSS L1 C/A tracker interface list element */
+/** SBAS L1 C/A tracker interface list element */
 static tracker_interface_list_element_t
-    tracker_interface_list_element_qzss_l1ca = {
-        .interface = &tracker_interface_qzss_l1ca, .next = 0};
+    tracker_interface_list_element_sbas_l1ca = {
+        .interface = &tracker_interface_sbas_l1ca, .next = 0};
 
-/** Register QZSS L1 C/A tracker into the the tracker interface & settings
+/** Register SBAS L1 tracker into the the tracker interface & settings
  *  framework.
  */
-void track_qzss_l1ca_register(void) {
-  tracker_interface_register(&tracker_interface_list_element_qzss_l1ca);
+void track_sbas_l1_register(void) {
+  tracker_interface_register(&tracker_interface_list_element_sbas_l1ca);
 }
 
-static void tracker_qzss_l1ca_init(tracker_channel_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &qzss_l1ca_config);
+static void tracker_sbas_l1ca_init(tracker_channel_t *tracker_channel) {
+  tp_tracker_init(tracker_channel, &sbas_l1ca_config);
 }
 
 /**
  * Performs ToW caching and propagation.
  *
- * QZSS L1 C/A and L2 C use shared structure for ToW caching. When QZSS L1 C/A
- * tracker is running, it is responsible for cache updates. Otherwise QZSS L2 C
- * tracker updates the cache. The time difference between signals is ignored
- * as small.
- *
- * QZSS L2 C tracker performs ToW update/propagation only on bit edge. This makes
+ * SBAS L2 tracker performs ToW update/propagation only on bit edge. This makes
  * it more robust to propagation errors.
  *
  * \param[in,out  tracker_channel Tracker channel data
@@ -82,7 +76,7 @@ static void tracker_qzss_l1ca_init(tracker_channel_t *tracker_channel) {
  *
  * \return None
  */
-static void update_tow_qzss_l1ca(tracker_channel_t *tracker_channel,
+static void update_tow_sbas_l1ca(tracker_channel_t *tracker_channel,
                                 u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
@@ -106,13 +100,13 @@ static void update_tow_qzss_l1ca(tracker_channel_t *tracker_channel,
      * Verify ToW alignment
      * Current block assumes the bit sync has been reached and current
      * interval has closed a bit interval. ToW shall be aligned by bit
-     * duration, which is 20ms for QZSS L1 C/A / L2 C.
+     * duration, which is 20ms for SBAS L1.
      */
-    u8 tail = tracker_channel->TOW_ms % QZS_L1CA_BIT_LENGTH_MS;
+    u8 tail = tracker_channel->TOW_ms % SBAS_L1CA_BIT_LENGTH_MS;
     if (0 != tail) {
-      s8 error_ms = tail < (QZS_L1CA_BIT_LENGTH_MS >> 1)
+      s8 error_ms = tail < (SBAS_L1CA_BIT_LENGTH_MS >> 1)
                         ? -tail
-                        : QZS_L1CA_BIT_LENGTH_MS - tail;
+                        : SBAS_L1CA_BIT_LENGTH_MS - tail;
 
       log_error_mesid(mesid,
                       "[+%" PRIu32
@@ -133,7 +127,7 @@ static void update_tow_qzss_l1ca(tracker_channel_t *tracker_channel,
     s32 ToW_ms = TOW_UNKNOWN;
     double error_ms = 0;
     u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-    u8 ms_align = aligned ? QZS_L1CA_BIT_LENGTH_MS : QZS_L1CA_PSYMBOL_LENGTH_MS;
+    u8 ms_align = aligned ? SBAS_L1CA_BIT_LENGTH_MS : SBAS_L1CA_PSYMBOL_LENGTH_MS;
 
     ToW_ms =
         tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, ms_align, &error_ms);
@@ -176,26 +170,9 @@ static void update_tow_qzss_l1ca(tracker_channel_t *tracker_channel,
   }
 }
 
-static void tracker_qzss_l1ca_update(tracker_channel_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &qzss_l1ca_config);
+static void tracker_sbas_l1ca_update(tracker_channel_t *tracker_channel) {
+  u32 cflags = tp_tracker_update(tracker_channel, &sbas_l1ca_config);
 
-  /* QZSS L1 C/A-specific ToW manipulation */
-  update_tow_qzss_l1ca(tracker_channel, cflags);
-
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-
-  if (inlock && confirmed && (0 != (cflags & TPF_BSYNC_UPD)) &&
-      tracker_bit_aligned(tracker_channel) &&
-      (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
-    /* Start L2C tracker if not running */
-    qzss_l1ca_to_l2c_handover(tracker_channel->sample_count,
-                              tracker_channel->mesid.sat,
-                              tracker_channel->code_phase_prompt,
-                              tracker_channel->carrier_freq,
-                              tracker_channel->cn0,
-                              tracker_channel->TOW_ms);
-  }
+  /* SBAS L1-specific ToW manipulation */
+  update_tow_sbas_l1ca(tracker_channel, cflags);
 }

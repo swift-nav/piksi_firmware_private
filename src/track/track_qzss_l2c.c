@@ -55,32 +55,10 @@ static const tracker_interface_t tracker_interface_qzss_l2c = {
 static tracker_interface_list_element_t tracker_interface_list_element_qzss_l2c =
     {.interface = &tracker_interface_qzss_l2c, .next = 0};
 
-/**
- * Function for updating configuration on parameter change
- *
- * \param[in] s   Setting descriptor
- * \param[in] val New parameter value
- *
- * \return Update status
- */
-static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val) {
-  bool res = settings_default_notify(s, val);
-
-  if (res) {
-    lp1_filter_compute_params(&qzss_l2c_config.xcorr_f_params,
-                              qzss_l2c_config.xcorr_cof,
-                              SECS_MS / QZS_L2C_SYMBOL_LENGTH_MS);
-  }
-
-  return res;
-}
-
 /** Register L2 CM tracker into the the tracker interface & settings
  *  framework.
  */
 void track_qzss_l2c_register(void) {
-  TP_TRACKER_REGISTER_CONFIG(
-      QZSS_L2C_TRACK_SETTING_SECTION, qzss_l2c_config, settings_pov_speed_cof_proxy);
   lp1_filter_compute_params(&qzss_l2c_config.xcorr_f_params,
                             qzss_l2c_config.xcorr_cof,
                             SECS_MS / QZS_L2C_SYMBOL_LENGTH_MS);
