@@ -151,6 +151,82 @@ static const state_table_t mode_1ms_glo = {
   }
 };
 
+
+/**
+ * 1 ms tracking mode for SBAS
+ */
+static const state_table_t mode_1ms_sbas = {
+  .int_ms = 1,
+  .cn0_ms = 10,
+  .lockdet_ms = 1,
+  .alias_ms = 1, /* not used as equal to flld_ms */
+  .flld_ms = 1,
+  .flll_ms = 1,
+  .bit_ms = 20,
+  .ent_cnt = 2,
+  .entries = {
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
+                       TPF_CN0_USE}
+  }
+};
+
+/**
+ * 1ms tracking mode for Beidou2
+ */
+static const state_table_t mode_1ms_bds2 = {
+  .int_ms = 1,
+  .cn0_ms = 10,
+  .lockdet_ms = 1,
+  .alias_ms = 1, /* not used as equal to flld_ms */
+  .flld_ms = 1,
+  .flll_ms = 1,
+  .bit_ms = 20,
+  .ent_cnt = 20,
+  .entries = {
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TPF_EPL_INV  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TPF_EPL_INV  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TPF_EPL_INV  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
+                       TPF_CN0_USE},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_ADD},
+    {1, TPF_EPL_INV  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TPF_EPL_INV  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TPF_EPL_INV  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TPF_EPL_SET  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TPF_EPL_SET  |
+        TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
+                       TPF_CN0_USE | TPF_BSYNC_UPD }
+  }
+};
+
 #define TP_FLAGS_2MS                        \
   (TPF_EPL_SET | TPF_LD_SET | TPF_FLL_SET | \
    TPF_EPL_USE | TPF_LD_USE | TPF_FLL_USE)
@@ -210,6 +286,83 @@ static const state_table_t mode_2ms_glo = {
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
     {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
                        TPF_CN0_USE | TPF_BSYNC_UPD}
+  }
+};
+
+/**
+ * 2 ms tracking mode for SBAS
+ */
+static const state_table_t mode_2ms_sbas = {
+  .int_ms = 1,
+  .cn0_ms = 10,
+  .lockdet_ms = 1,
+  .alias_ms = 1, /* not used as equal to flld_ms */
+  .flld_ms = 1,
+  .flll_ms = 1,
+  .bit_ms = 20,
+  .ent_cnt = 1,
+  .entries = {
+    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ}
+  }
+};
+
+/**
+ * 2 ms integration profile for Beidou2
+ */
+static const state_table_t mode_2ms_bds2 = {
+  .int_ms = 2,
+  .cn0_ms = 10,
+  .lockdet_ms = 2,
+  .alias_ms = 2, /* not used as equal to flld_ms */
+  .flld_ms = 2,
+  .flll_ms = 2,
+  .bit_ms = 20,
+  .ent_cnt = 17,
+  .entries = {
+    {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE  |                               TPF_LD_USE | TPF_FLL_USE |
+                                                                  TPF_FLL_HALFQ},
+
+    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+                                                     TPF_LD_USE | TPF_FLL_USE},
+
+    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+                       TPF_CN0_USE |                 TPF_LD_USE | TPF_FLL_USE},
+
+    {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+                                                     TPF_LD_USE | TPF_FLL_USE},
+
+    {1, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+                                                     TPF_LD_USE | TPF_FLL_USE},
+
+    {2, TP_FLAGS_2MS | TPF_CN0_ADD | TPF_BSYNC_ADD},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+                                                     TPF_LD_USE | TPF_FLL_USE},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+                       TPF_CN0_USE |                 TPF_LD_USE | TPF_FLL_USE},
   }
 };
 
@@ -277,7 +430,51 @@ static const state_table_t mode_5ms_glo = {
     {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
                                                                  TPF_FLL_USE},
     {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET |
-        TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE},
+        TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE}
+  }
+};
+
+/**
+ * 5 ms integrations for Beidou2
+ */
+static const state_table_t mode_5ms_bds2 = {
+  .int_ms = 5,
+  .cn0_ms = 10,
+  .lockdet_ms = 5,
+  .alias_ms = 5, /* not used in this profile as equal to flld_ms */
+  .flld_ms = 5,
+  .flll_ms = 5,
+  .bit_ms = 20,
+  .ent_cnt = 14,
+  .entries = {
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE |                               TPF_LD_USE | TPF_FLL_USE |
+                                                                 TPF_FLL_HALFQ},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_SET | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {2, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_LD_USE | TPF_FLL_USE},
+
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE |                               TPF_LD_USE | TPF_FLL_USE},
+
+    {1, TPF_EPL_SET | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {3, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE},
+>>>>>>> 9d1453b... compiles again
   }
 };
 
@@ -327,20 +524,63 @@ static const state_table_t mode_10ms_glo = {
   .bit_ms = 10,
   .ent_cnt = 5,
   .entries = {
-    {1, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET},
-    {1, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
                                                     TPF_LD_USE | TPF_FLL_USE |
                                                                  TPF_FLL_HALFQ},
 
-    {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
-        TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE}
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE}
   }
 };
 
 /**
- * 20 ms integrations
+ * 10 ms integrations for Beidou2
+ */
+static const state_table_t mode_10ms_bds2 = {
+  .int_ms = 10,
+  .cn0_ms = 10,
+  .lockdet_ms = 5,
+  .alias_ms = 5,
+  .flld_ms = 10,
+  .flll_ms = 10,
+  .bit_ms = 20,
+  .ent_cnt = 14,
+  .entries = {
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+                                                    TPF_LD_USE |               TPF_ALIAS_1ST},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {2, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+        TPF_EPL_USE | TPF_CN0_USE |                 TPF_LD_USE | TPF_FLL_USE | TPF_ALIAS_2ND |
+                                                                 TPF_FLL_HALFQ},
+
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+                                                    TPF_LD_USE |               TPF_ALIAS_1ST},
+
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {3, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_SET | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE | TPF_ALIAS_2ND}
+  }
+};
+
+/**
+ * 20 ms integrations for GPS
  */
 static const state_table_t mode_20ms_gps = {
   .int_ms = 20,
@@ -352,23 +592,66 @@ static const state_table_t mode_20ms_gps = {
   .bit_ms = 20,
   .ent_cnt = 9,
   .entries = {
-    {1, TPF_CN0_SET | TPF_EPL_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
-    {1, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
                                                                                TPF_ALIAS_1ST},
 
-    {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
-        TPF_CN0_USE |                                            TPF_FLL_USE | TPF_ALIAS_2ND |
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+                      TPF_CN0_USE |                              TPF_FLL_USE | TPF_ALIAS_2ND |
                                                                  TPF_FLL_HALFQ},
 
-    {2, TPF_CN0_SET | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET | TPF_ALIAS_SET},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+    {2, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET | TPF_ALIAS_SET},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
                                                                                TPF_ALIAS_1ST},
 
-    {2, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET},
-    {3, TPF_CN0_ADD | TPF_EPL_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
-        TPF_CN0_USE | TPF_EPL_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE | TPF_ALIAS_2ND}
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET},
+    {3, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE | TPF_ALIAS_2ND}
+  }
+};
+
+/**
+ * 20 ms integrations for Beidou2
+ */
+static const state_table_t mode_20ms_bds2 = {
+  .int_ms = 20,
+  .cn0_ms = 10,
+  .lockdet_ms = 20,
+  .alias_ms = 5,
+  .flld_ms = 10,
+  .flll_ms = 20,
+  .bit_ms = 20,
+  .ent_cnt = 14,
+  .entries = {
+    {1, TPF_EPL_SET | TPF_CN0_SET | TPF_BSYNC_SET | TPF_LD_SET | TPF_FLL_SET | TPF_ALIAS_SET},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+                                                                               TPF_ALIAS_1ST},
+
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {2, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD},
+    {2, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+                      TPF_CN0_USE |                              TPF_FLL_USE | TPF_ALIAS_2ND |
+                                                                 TPF_FLL_HALFQ},
+
+    {1, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_SET | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_SET | TPF_ALIAS_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+                                                                               TPF_ALIAS_1ST},
+
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET},
+    {3, TPF_EPL_INV |
+        TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_SET},
+    {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_LD_ADD | TPF_FLL_ADD | TPF_ALIAS_ADD |
+        TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_LD_USE | TPF_FLL_USE | TPF_ALIAS_2ND}
   }
 };
 /* clang-format on */
@@ -391,11 +674,23 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
     case TP_TM_1MS_GLO:
       return &mode_1ms_glo;
 
+    case TP_TM_1MS_SBAS:
+      return &mode_1ms_sbas;
+
+    case TP_TM_1MS_BDS2:
+      return &mode_1ms_bds2;
+
     case TP_TM_2MS_GPS:
       return &mode_2ms_gps;
 
     case TP_TM_2MS_GLO:
       return &mode_2ms_glo;
+
+    case TP_TM_2MS_SBAS:
+      return &mode_2ms_sbas;
+
+    case TP_TM_2MS_BDS2:
+      return &mode_2ms_bds2;
 
     case TP_TM_5MS_GPS:
       return &mode_5ms_gps;
@@ -403,14 +698,23 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
     case TP_TM_5MS_GLO:
       return &mode_5ms_glo;
 
+    case TP_TM_5MS_BDS2:
+      return &mode_5ms_bds2;
+
     case TP_TM_10MS_GPS:
       return &mode_10ms_gps;
 
     case TP_TM_10MS_GLO:
       return &mode_10ms_glo;
 
+    case TP_TM_10MS_BDS2:
+      return &mode_10ms_bds2;
+
     case TP_TM_20MS_GPS:
       return &mode_20ms_gps;
+
+    case TP_TM_20MS_BDS2:
+      return &mode_20ms_bds2;
 
     default:
       assert(!"Invalid mode");
@@ -665,11 +969,23 @@ const char *tp_get_mode_str(tp_tm_e v) {
     case TP_TM_1MS_GLO:
       str = "TM_1MS_GLO";
       break;
+    case TP_TM_1MS_SBAS:
+      str = "TM_1MS_SBAS";
+      break;
+    case TP_TM_1MS_BDS2:
+      str = "TM_1MS_BDS2";
+      break;
     case TP_TM_2MS_GPS:
       str = "TM_2MS_GPS";
       break;
     case TP_TM_2MS_GLO:
       str = "TM_2MS_GLO";
+      break;
+    case TP_TM_2MS_SBAS:
+      str = "TM_2MS_SBAS";
+      break;
+    case TP_TM_2MS_BDS2:
+      str = "TM_2MS_BDS2";
       break;
     case TP_TM_5MS_GPS:
       str = "TM_5MS_GPS";
@@ -677,14 +993,23 @@ const char *tp_get_mode_str(tp_tm_e v) {
     case TP_TM_5MS_GLO:
       str = "TM_5MS_GLO";
       break;
+    case TP_TM_5MS_BDS2:
+      str = "TM_5MS_BDS2";
+      break;
     case TP_TM_10MS_GPS:
       str = "TM_10MS_GPS";
       break;
     case TP_TM_10MS_GLO:
       str = "TM_10MS_GLO";
       break;
+    case TP_TM_10MS_BDS2:
+      str = "TM_10MS_BDS2";
+      break;
     case TP_TM_20MS_GPS:
       str = "TM_20MS_GPS";
+      break;
+    case TP_TM_20MS_BDS2:
+      str = "TM_20MS_BDS2";
       break;
     default:
       assert(false);

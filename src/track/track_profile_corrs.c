@@ -56,20 +56,17 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
   return res;
 }
 /**
- * Inverts EPL correlations if the prompt in-phase is negative.
+ * Flips EPL accumulator sign.
  *
  * \param[in]  a   Input accumulator
  * \param[out] res Resulting accumulator
  *
- * \return Resulting accumulator
+ * \return Pointer to resulting accumulator
  */
 static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t *restrict a,
                                           tp_epl_corr_t *restrict res) {
-  if (a->prompt.I > 0)
-    *res = *a;
-  else
-    for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
-      res->epl[i] = corr_inv(a->epl[i]);
+  for (u8 i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
+    res->epl[i] = corr_inv(a->epl[i]);
 
   return res;
 }
@@ -90,50 +87,51 @@ void tp_update_correlators(u32 cycle_flags,
                            const tp_epl_corr_t *restrict cs_now,
                            tp_corr_state_t *restrict corr_state) {
   tp_epl_corr_t tmp_epl;
-  /* C/N0 estimator accumulators updates */
-  if (0 != (cycle_flags & TPF_CN0_SET))
-    corr_state->corr_cn0 = *cs_now;
-  else if (0 != (cycle_flags & TPF_CN0_ADD))
-    corr_state->corr_cn0 =
-        *corr_epl_add(&corr_state->corr_cn0, cs_now, &tmp_epl);
+  tp_epl_corr_t straight;
+  tp_epl_corr_t *cs_straight = (tp_epl_corr_t *) &straight;
 
-  /* PLL/DLL accumulator updates */
+  /* Correlator accumulators update */
+  if (0 != (cycle_flags & TPF_EPL_INV)) {
+    corr_epl_inv(cs_now, cs_straight);
+  } else {
+    *cs_straight = *cs_now;
+  }
+
   if (0 != (cycle_flags & TPF_EPL_SET))
-    corr_state->corr_epl = *cs_now;
+    corr_state->corr_epl = *cs_straight;
   else if (0 != (cycle_flags & TPF_EPL_ADD))
     corr_state->corr_epl =
-        *corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl);
-  else if (0 != (cycle_flags & TPF_EPL_ADD_INV))
-    /* Sum-up and normalize by bit value (for 20+ ms integrations) */
-    corr_state->corr_epl = *corr_epl_inv(
-        corr_epl_add(&corr_state->corr_epl, cs_now, &tmp_epl), &tmp_epl);
-  else if (0 != (cycle_flags & TPF_EPL_INV_ADD))
-    /* Normalize by bit value and sum-up (for 20+ ms integrations) */
-    corr_state->corr_epl = *corr_epl_add(
-        &corr_state->corr_epl, corr_epl_inv(cs_now, &tmp_epl), &tmp_epl);
+        *corr_epl_add(&corr_state->corr_epl, cs_straight, &tmp_epl);
+
+  /* C/N0 estimator accumulators updates */
+  if (0 != (cycle_flags & TPF_CN0_SET))
+    corr_state->corr_cn0 = *cs_straight;
+  else if (0 != (cycle_flags & TPF_CN0_ADD))
+    corr_state->corr_cn0 =
+        *corr_epl_add(&corr_state->corr_cn0, cs_straight, &tmp_epl);
 
   /* False lock (alias) detector accumulator updates */
   if (0 != (cycle_flags & TPF_ALIAS_SET))
-    corr_state->corr_ad = cs_now->prompt;
+    corr_state->corr_ad = cs_straight->prompt;
   else if (0 != (cycle_flags & TPF_ALIAS_ADD))
-    corr_state->corr_ad = corr_add(corr_state->corr_ad, cs_now->prompt);
+    corr_state->corr_ad = corr_add(corr_state->corr_ad, cs_straight->prompt);
 
   /* Lock detector accumulator updates */
   if (0 != (cycle_flags & TPF_LD_SET))
-    corr_state->corr_ld = cs_now->prompt;
+    corr_state->corr_ld = cs_straight->prompt;
   else if (0 != (cycle_flags & TPF_LD_ADD))
-    corr_state->corr_ld = corr_add(corr_state->corr_ld, cs_now->prompt);
+    corr_state->corr_ld = corr_add(corr_state->corr_ld, cs_straight->prompt);
 
   /* FLL accumulator updates */
   if (0 != (cycle_flags & TPF_FLL_SET))
-    corr_state->corr_fll = cs_now->prompt;
+    corr_state->corr_fll = cs_straight->prompt;
   else if (0 != (cycle_flags & TPF_FLL_ADD))
-    corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_now->prompt);
+    corr_state->corr_fll = corr_add(corr_state->corr_fll, cs_straight->prompt);
 
   /* Message payload / bit sync accumulator updates */
   if (0 != (cycle_flags & TPF_BSYNC_SET)) {
-    corr_state->corr_bit = cs_now->prompt;
+    corr_state->corr_bit = cs_straight->prompt;
   } else if (0 != (cycle_flags & TPF_BSYNC_ADD)) {
-    corr_state->corr_bit = corr_add(corr_state->corr_bit, cs_now->prompt);
+    corr_state->corr_bit = corr_add(corr_state->corr_bit, cs_straight->prompt);
   }
 }

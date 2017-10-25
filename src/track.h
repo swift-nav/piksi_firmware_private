@@ -152,16 +152,23 @@
  * Tracking mode enumeration.
  */
 typedef enum {
-  TP_TM_INITIAL,  /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_1MS_GPS,  /**< 1 ms */
-  TP_TM_1MS_GLO,  /**< 1 ms */
-  TP_TM_2MS_GPS,  /**< 2 ms */
-  TP_TM_2MS_GLO,  /**< 2 ms */
-  TP_TM_5MS_GPS,  /**< 5 ms */
-  TP_TM_5MS_GLO,  /**< 5 ms */
-  TP_TM_10MS_GPS, /**< 10 ms */
-  TP_TM_10MS_GLO, /**< 10 ms */
-  TP_TM_20MS_GPS  /**< 20 ms */
+  TP_TM_INITIAL,   /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_1MS_GPS,   /**< 1 ms */
+  TP_TM_1MS_GLO,   /**< 1 ms */
+  TP_TM_1MS_SBAS,  /**< 1 ms */
+  TP_TM_1MS_BDS2,  /**< 1 ms */
+  TP_TM_2MS_GPS,   /**< 2 ms */
+  TP_TM_2MS_GLO,   /**< 2 ms */
+  TP_TM_2MS_SBAS,  /**< 2 ms */
+  TP_TM_2MS_BDS2,  /**< 2 ms */
+  TP_TM_5MS_GPS,   /**< 5 ms */
+  TP_TM_5MS_GLO,   /**< 5 ms */
+  TP_TM_5MS_BDS2,  /**< 5 ms */
+  TP_TM_10MS_GPS,  /**< 10 ms */
+  TP_TM_10MS_GLO,  /**< 10 ms */
+  TP_TM_10MS_BDS2, /**< 10 ms */
+  TP_TM_20MS_GPS,  /**< 20 ms */
+  TP_TM_20MS_BDS2  /**< 20 ms */
 } tp_tm_e;
 
 /**
@@ -702,12 +709,11 @@ typedef struct {
 #define TPF_FLL_USE ((u32)1 << 11)
 #define TPF_FLL_HALFQ ((u32)1 << 12)
 
-/* DLL/PLL control */
-#define TPF_EPL_SET ((u32)1 << 13)
-#define TPF_EPL_ADD ((u32)1 << 14)
-#define TPF_EPL_ADD_INV ((u32)1 << 15)
-#define TPF_EPL_INV_ADD ((u32)1 << 16)
-#define TPF_EPL_USE ((u32)1 << 17)
+/* correlators control */
+#define TPF_EPL_INV ((u32)1 << 13) /* invert correlators */
+#define TPF_EPL_SET ((u32)1 << 14)
+#define TPF_EPL_ADD ((u32)1 << 15)
+#define TPF_EPL_USE ((u32)1 << 16)
 
 /* False lock detector control */
 #define TPF_ALIAS_SET ((u32)1 << 18)
