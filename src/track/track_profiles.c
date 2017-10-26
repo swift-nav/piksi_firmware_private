@@ -358,7 +358,10 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
     track_mode = profile->profile.sbas_track_mode;
   } else if (IS_BDS2(mesid)) {
     track_mode = profile->profile.bds2_track_mode;
+  } else if (IS_QZSS(mesid)) {
+    track_mode = profile->profile.gps_track_mode;
   } else {
+    log_error_mesid(mesid, "unknown profile?");
     assert(0);
   }
   return track_mode;

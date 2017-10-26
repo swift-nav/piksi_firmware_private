@@ -201,6 +201,9 @@ void nap_track_init(u8 channel,
   if (IS_GLO(mesid)) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
+  } else if (IS_BDS2(mesid)) {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
   } else {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
