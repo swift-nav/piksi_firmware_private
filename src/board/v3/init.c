@@ -182,7 +182,10 @@ void nap_auth_check(void) {
       pnt += sprintf(pnt, "%02x", factory_params.nap_key[i]);
     }
     key[NAP_KEY_LENGTH * 2] = '\0';
-    log_error("NAP Verification Failed: DNA=%s, Key=%s, Status=%08x", dna, key, NAP->STATUS);
+    log_error("NAP Verification Failed: DNA=%s, Key=%s, Status=%08x",
+              dna,
+              key,
+              NAP->STATUS);
     nap_unlock(factory_params.nap_key);
     chThdSleepSeconds(1);
   }
