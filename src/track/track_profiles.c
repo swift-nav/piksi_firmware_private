@@ -38,7 +38,7 @@
 /** C/N0 threshold for measurements use */
 #define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
 
-#define TL_BWT_MAX (0.18f * 20.f)
+#define TL_BWT_MAX (18.f * 0.020f)
 
 #define ADJ_CN0_MIN (20.0f)
 #define ADJ_CN0_MAX (60.0f)
@@ -64,13 +64,12 @@ typedef enum {
 } profile_indices_t;
 
 typedef enum {
-  TP_LOW_CN0 = (1 << 0),         /**< Watch low CN0 value */
-  TP_HIGH_CN0 = (1 << 1),        /**< Watch high CN0 value */
-  TP_NO_FLOCK_NO_PLL = (1 << 2), /**< Disable PLL if no freq lock condition */
-  TP_WAIT_BSYNC = (1 << 5),      /**< Wait for bit sync */
-  TP_WAIT_PLOCK = (1 << 6),      /**< Wait for phase lock */
-  TP_WAIT_FLOCK = (1 << 7),      /**< Wait for frequency lock */
-  TP_USE_NEXT = (1 << 8),        /**< Use next index to choose next profile */
+  TP_LOW_CN0 = (1 << 0),    /**< Watch low CN0 value */
+  TP_HIGH_CN0 = (1 << 1),   /**< Watch high CN0 value */
+  TP_WAIT_BSYNC = (1 << 5), /**< Wait for bit sync */
+  TP_WAIT_PLOCK = (1 << 6), /**< Wait for phase lock */
+  TP_WAIT_FLOCK = (1 << 7), /**< Wait for frequency lock */
+  TP_USE_NEXT = (1 << 8),   /**< Use next index to choose next profile */
 
   /** Do not use carrier aiding */
   TP_UNAIDED = (1 << 11)
@@ -151,22 +150,22 @@ enum {
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
     [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.003f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f,  .6f, 50 },
 
     [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f,  .5f, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.003f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f,   .6f, 50 },
 
     [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f,  .5f, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.003f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f,  .6f, 40 },
 
     [TP_LD_PARAMS_PHASE_5MS]  = {  0.06f, 1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.003f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.07f,  .6f, 20 },
 
     [TP_LD_PARAMS_PHASE_10MS] = {  0.02f, 1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS]  = { 0.003f,  .6f, 50 },
+    [TP_LD_PARAMS_FREQ_10MS]  = { 0.07f,  .6f, 15 },
 
     [TP_LD_PARAMS_PHASE_20MS] = {  0.01f, 1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]  = { 0.003f,  .6f, 50 }
+    [TP_LD_PARAMS_FREQ_20MS]  = { 0.07f,  .6f, 10 }
 };
 /* clang-format on */
 
@@ -243,49 +242,49 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
           100,          0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_NO_FLOCK_NO_PLL | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
           TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-         150,           0,            0,
+         100,           0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_PLOCK | TP_NO_FLOCK_NO_PLL },
+       TP_WAIT_PLOCK },
 
   [IDX_1MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
            TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
            40,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
-      TP_LOW_CN0 | TP_NO_FLOCK_NO_PLL | TP_USE_NEXT},
+      TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
   { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
            TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_NO_FLOCK_NO_PLL | TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_5MS] =
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
            TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
            40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_NO_FLOCK_NO_PLL | TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_10MS] =
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
-     TP_LOW_CN0 | TP_HIGH_CN0 | TP_NO_FLOCK_NO_PLL | TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
   { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_NO_FLOCK_NO_PLL | TP_USE_NEXT },
+      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
@@ -351,7 +350,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
   return track_mode;
 }
 
-static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
+static float compute_pll_bw(float cn0, u8 T_ms) {
   float y[2] = {PLL_BW_MIN, PLL_BW_MAX};   /* bw */
   float x[2] = {ADJ_CN0_MIN, ADJ_CN0_MAX}; /* cn0 */
 
@@ -365,18 +364,6 @@ static float compute_pll_bw(float cn0, u8 T_ms, float bw_cur) {
   /* Limit bandwidth so that loop stability criteria is satisfied. */
   if (bwt > TL_BWT_MAX) {
     bw = TL_BWT_MAX * SECS_MS / T_ms;
-  }
-
-  if (bw < PLL_BW_MIN) {
-    bw = PLL_BW_MIN;
-  }
-
-  if (bw < bw_cur) {
-    /* Reducing the PLL BW by more than 12 percent at a time could lead
-       to PLL instabilities */
-    if (((bw_cur - bw) / bw_cur) > 0.12) {
-      bw = (1 - 0.12) * bw_cur;
-    }
   }
 
   if (bw < PLL_BW_MIN) {
@@ -400,7 +387,7 @@ static float compute_fll_bw_adjust(float freq_err) {
   return err / TP_FLL_ERR_THRESHOLD_HZ;
 }
 
-static float compute_fll_bw(u8 T_ms, float bw_cur, float freq_err) {
+static float compute_fll_bw(u8 T_ms, float freq_err) {
   float bw = FLL_BW;
 
   /* Adjust bw based on current frequency error */
@@ -413,14 +400,6 @@ static float compute_fll_bw(u8 T_ms, float bw_cur, float freq_err) {
   /* Limit bandwidth so that loop stability criteria is satisfied. */
   if (bwt > TL_BWT_MAX) {
     bw = TL_BWT_MAX * SECS_MS / T_ms;
-  }
-
-  if (bw < bw_cur && bw_cur > 0.0f) {
-    /* Reducing the FLL BW by more than 30 percent at a time could lead
-       to FLL instabilities */
-    if (((bw_cur - bw) / bw_cur) > 0.33) {
-      bw = (1 - 0.33) * bw_cur;
-    }
   }
 
   return bw;
@@ -563,35 +542,23 @@ static const char *get_ctrl_str(tp_ctrl_e v) {
  * The function generate log output only when debug level logging is enabled.
  *
  * \param tracker_channel Tracker channel data
- * \param[in] reason Profile switching reason.
+ * \param[in] reason Profile switching reason in a textual form
  *
  * \return None
  */
-static void log_switch(tracker_channel_t *tracker_channel,
-                       tp_profile_flags_t reason) {
+static void log_switch(tracker_channel_t *tracker_channel, const char *reason) {
   const me_gnss_signal_t mesid = tracker_channel->mesid;
   const tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *cur_profile = &state->profiles[state->cur.index];
   const tp_profile_entry_t *next_profile = &state->profiles[state->next.index];
   tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
-  const char *reason_str = "UKNOWN";
-
-  if (TP_LOW_CN0 == reason) {
-    reason_str = "LOWCN0";
-  } else if (TP_HIGH_CN0 == reason) {
-    reason_str = "HIGHCN0";
-  } else if (TP_NO_FLOCK_NO_PLL == reason) {
-    reason_str = "NOFLOCK";
-  } else if (TP_USE_NEXT == reason) {
-    reason_str = "NEXT";
-  }
 
   log_debug_mesid(mesid,
                   "%s: plock=%" PRId16 " bs=%" PRId16
                   " cn0=%.1f "
                   "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
-                  reason_str,
+                  reason,
                   state->plock_delay_ms,
                   state->bs_delay_ms,
                   state->filt_cn0,
@@ -691,60 +658,73 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
 }
 
 static bool pll_bw_changed(tracker_channel_t *tracker_channel,
-                           profile_indices_t index,
-                           bool flock_loss) {
+                           profile_indices_t index) {
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
-
-  if (flock_loss || (fabsf(entry->profile.pll_bw) < 0.01)) {
-    bool changed = (state->cur.pll_bw > 0.01);
-    state->next.pll_bw = 0;
-    return changed;
-  }
-
   float pll_bw;
+
   if (entry->profile.pll_bw >= 0) { /* fixed PLL BW */
     pll_bw = entry->profile.pll_bw;
   } else { /* dynamic PLL BW */
     tp_tm_e track_mode = get_track_mode(tracker_channel->mesid, entry);
     u8 pll_t_ms = tp_get_pll_ms(track_mode);
-    pll_bw = compute_pll_bw(tracker_channel->cn0, pll_t_ms, state->cur.pll_bw);
+    pll_bw = compute_pll_bw(tracker_channel->cn0, pll_t_ms);
   }
 
   /* Simple hysteresis to avoid too often PLL retunes */
   float pll_bw_diff = fabsf(pll_bw - state->cur.pll_bw);
-  if (pll_bw_diff > .9) {
-    state->next.pll_bw = pll_bw;
-    return true;
+  if ((pll_bw_diff < (state->cur.pll_bw * .20f)) || (pll_bw_diff < .5f)) {
+    state->next.pll_bw = state->cur.pll_bw;
+    return false;
   }
-  state->next.pll_bw = state->cur.pll_bw;
-  return false;
+
+  if ((pll_bw > 0) && (pll_bw < state->cur.pll_bw)) {
+    /* Reducing the PLL BW by more than 12 percent at a time could lead
+       to PLL instabilities */
+    if ((state->cur.pll_bw - pll_bw) > (0.12 * state->cur.pll_bw)) {
+      pll_bw = (1 - 0.12) * state->cur.pll_bw;
+    }
+  }
+
+  state->next.pll_bw = pll_bw;
+
+  return true;
 }
 
 static bool fll_bw_changed(tracker_channel_t *tracker_channel,
-                           profile_indices_t index,
-                           bool flock_loss) {
+                           profile_indices_t index) {
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *entry = &state->profiles[index];
 
   float fll_bw;
-  if (flock_loss || (entry->profile.fll_bw < 0)) { /* dynamic FLL BW */
+  if (entry->profile.fll_bw >= 0) { /* fixed FLL BW */
+    fll_bw = entry->profile.fll_bw;
+  } else { /* dynamic FLL BW */
     tp_tm_e track_mode = get_track_mode(tracker_channel->mesid, entry);
     u8 fll_t_ms = tp_get_flll_ms(track_mode);
     float freq_err = tracker_channel->ld_freq.lpfi.y;
-    fll_bw = compute_fll_bw(fll_t_ms, state->cur.fll_bw, freq_err);
-  } else { /* fixed FLL BW */
-    fll_bw = entry->profile.fll_bw;
+    fll_bw = compute_fll_bw(fll_t_ms, freq_err);
+
   }
 
   /* Simple hysteresis to avoid too often FLL retunes */
   float fll_bw_diff = fabsf(fll_bw - state->cur.fll_bw);
-  if (fll_bw_diff > .2) {
-    state->next.fll_bw = fll_bw;
-    return true;
+  if ((fll_bw_diff < (state->cur.fll_bw * .10f)) || (fll_bw_diff < .3)) {
+    state->next.fll_bw = state->cur.fll_bw;
+    return false;
   }
-  state->next.fll_bw = state->cur.fll_bw;
-  return false;
+
+
+  if (fll_bw < state->cur.fll_bw) {
+    /* Reducing the FLL BW by more than 20 percent at a time could lead
+       to FLL instabilities */
+    if ((state->cur.fll_bw - fll_bw) > (0.20 * state->cur.fll_bw)) {
+      fll_bw = (1 - 0.20) * state->cur.fll_bw;
+    }
+  }
+
+  state->next.fll_bw = fll_bw;
+  return true;
 }
 
 /**
@@ -761,7 +741,7 @@ static bool fll_bw_changed(tracker_channel_t *tracker_channel,
  */
 static bool profile_switch_requested(tracker_channel_t *tracker_channel,
                                      profile_indices_t index,
-                                     tp_profile_flags_t reason) {
+                                     const char *reason) {
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
 
@@ -777,9 +757,8 @@ static bool profile_switch_requested(tracker_channel_t *tracker_channel,
     index = state->cur.index;
   }
 
-  bool flock_loss = (TP_NO_FLOCK_NO_PLL == reason);
-  bool pll_changed = pll_bw_changed(tracker_channel, index, flock_loss);
-  bool fll_changed = fll_bw_changed(tracker_channel, index, flock_loss);
+  bool pll_changed = pll_bw_changed(tracker_channel, index);
+  bool fll_changed = fll_bw_changed(tracker_channel, index);
 
   if ((index == state->cur.index) && !pll_changed && !fll_changed) {
     return false;
@@ -822,28 +801,23 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
   if ((0 != (flags & TP_LOW_CN0)) &&
       (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_low, TP_LOW_CN0)) {
+          tracker_channel, cur_profile->next_cn0_low, "low cn0")) {
     return true;
-  }
-
-  if ((0 != (flags & TP_NO_FLOCK_NO_PLL)) && !state->flock) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, TP_NO_FLOCK_NO_PLL);
   }
 
   if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
     return profile_switch_requested(
-        tracker_channel, state->cur.index, TP_WAIT_BSYNC);
+        tracker_channel, state->cur.index, "wbsync");
   }
 
   if (0 != (flags & TP_WAIT_FLOCK) && !state->flock) {
     return profile_switch_requested(
-        tracker_channel, state->cur.index, TP_WAIT_FLOCK);
+        tracker_channel, state->cur.index, "wflock");
   }
 
   if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
     return profile_switch_requested(
-        tracker_channel, state->cur.index, TP_WAIT_PLOCK);
+        tracker_channel, state->cur.index, "wplock");
   }
 
   if (state->lock_time_ms > 0) {
@@ -853,17 +827,16 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
   if ((0 != (flags & TP_HIGH_CN0)) &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_high, TP_HIGH_CN0)) {
+          tracker_channel, cur_profile->next_cn0_high, "high cno")) {
     return true;
   }
 
   if (0 != (flags & TP_USE_NEXT)) {
     assert(cur_profile->next != IDX_NONE);
-    return profile_switch_requested(
-        tracker_channel, cur_profile->next, TP_USE_NEXT);
+    return profile_switch_requested(tracker_channel, cur_profile->next, "next");
   } else {
     return profile_switch_requested(
-        tracker_channel, state->cur.index + 1, TP_USE_NEXT);
+        tracker_channel, state->cur.index + 1, "next");
   }
 
   return false;

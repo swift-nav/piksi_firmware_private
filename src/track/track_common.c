@@ -797,7 +797,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
       }
     }
 
-    if (0 != (cycle_flags & TPF_FLL_USE)) {
+    if (0 != (cycle_flags & TPF_EPL_USE)) {
       tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
       update_ld_freq(tracker_channel);
     }
