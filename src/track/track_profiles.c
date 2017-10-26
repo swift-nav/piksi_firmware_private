@@ -704,7 +704,6 @@ static bool fll_bw_changed(tracker_channel_t *tracker_channel,
     u8 fll_t_ms = tp_get_flll_ms(track_mode);
     float freq_err = tracker_channel->ld_freq.lpfi.y;
     fll_bw = compute_fll_bw(fll_t_ms, freq_err);
-
   }
 
   /* Simple hysteresis to avoid too often FLL retunes */
@@ -713,7 +712,6 @@ static bool fll_bw_changed(tracker_channel_t *tracker_channel,
     state->next.fll_bw = state->cur.fll_bw;
     return false;
   }
-
 
   if (fll_bw < state->cur.fll_bw) {
     /* Reducing the FLL BW by more than 20 percent at a time could lead
