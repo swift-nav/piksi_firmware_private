@@ -177,9 +177,13 @@ void nap_track_init(u8 channel,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate) {
-  assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
-         (mesid.code == CODE_GLO_L2OF));
+  assert((mesid.code == CODE_GPS_L1CA)  || (mesid.code == CODE_GPS_L2CM) ||
+         (mesid.code == CODE_GPS_L2CL)  ||
+         (mesid.code == CODE_GLO_L1OF)  || (mesid.code == CODE_GLO_L2OF) ||
+         (mesid.code == CODE_SBAS_L1CA) ||
+         (mesid.code == CODE_BDS2_B11)  || (mesid.code == CODE_BDS2_B2) ||
+         (mesid.code == CODE_QZS_L1CA)  || (mesid.code == CODE_QZS_L2CM) ||
+         (mesid.code == CODE_QZS_L2CL) );
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
@@ -275,7 +279,6 @@ void nap_track_init(u8 channel,
   u32 code_chips, num_codes;
   u64 tc_next_rollover;
   double code_samples;
-  u8 index = 0;
 
   code_chips = code_to_chip_count(mesid.code);
   code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
@@ -284,6 +287,7 @@ void nap_track_init(u8 channel,
   tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
 
+  u8 index = 0;
   me_gnss_signal_t mesid1 = mesid;
   if (mesid.code == CODE_GPS_L2CM) {
     index = (num_codes % GPS_L2CL_PRN_START_POINTS);
