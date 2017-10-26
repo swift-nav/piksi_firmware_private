@@ -177,13 +177,12 @@ void nap_track_init(u8 channel,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate) {
-  assert((mesid.code == CODE_GPS_L1CA)  || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL)  ||
-         (mesid.code == CODE_GLO_L1OF)  || (mesid.code == CODE_GLO_L2OF) ||
-         (mesid.code == CODE_SBAS_L1CA) ||
-         (mesid.code == CODE_BDS2_B11)  || (mesid.code == CODE_BDS2_B2) ||
-         (mesid.code == CODE_QZS_L1CA)  || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L2CL) );
+  assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
+         (mesid.code == CODE_GLO_L2OF) || (mesid.code == CODE_SBAS_L1CA) ||
+         (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
+         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
+         (mesid.code == CODE_QZS_L2CL));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];

@@ -469,15 +469,13 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
 
   const tp_tm_e mode = profile->loop_params.mode;
   profile->use_alias_detection =
-      ( TP_TM_1MS_GPS != mode)  && ( TP_TM_1MS_GLO != mode)  &&
-      ( TP_TM_2MS_GPS != mode)  && ( TP_TM_2MS_GLO != mode)  &&
-      ( TP_TM_5MS_GPS != mode)  && ( TP_TM_5MS_GLO != mode)  &&
-                                   (TP_TM_10MS_GLO != mode)  &&
-      ( TP_TM_1MS_BDS2 != mode) && (TP_TM_1MS_SBAS != mode)  &&
-      ( TP_TM_2MS_BDS2 != mode) && (TP_TM_2MS_SBAS != mode)  &&
-      ( TP_TM_5MS_BDS2 != mode) &&
-      (TP_TM_10MS_BDS2 != mode) &&
-      (TP_TM_20MS_BDS2 != mode) &&
+      (TP_TM_1MS_GPS != mode) && (TP_TM_1MS_GLO != mode) &&
+      (TP_TM_2MS_GPS != mode) && (TP_TM_2MS_GLO != mode) &&
+      (TP_TM_5MS_GPS != mode) && (TP_TM_5MS_GLO != mode) &&
+      (TP_TM_10MS_GLO != mode) && (TP_TM_1MS_BDS2 != mode) &&
+      (TP_TM_1MS_SBAS != mode) && (TP_TM_2MS_BDS2 != mode) &&
+      (TP_TM_2MS_SBAS != mode) && (TP_TM_5MS_BDS2 != mode) &&
+      (TP_TM_10MS_BDS2 != mode) && (TP_TM_20MS_BDS2 != mode) &&
       (TP_TM_INITIAL != mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
@@ -654,25 +652,25 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                    const profile_indices_t index) {
   static const u8 int_times[] = {[TP_TM_INITIAL] = 1,
 
-                                 [TP_TM_1MS_GPS]  = 1,
-                                 [TP_TM_1MS_GLO]  = 1,
+                                 [TP_TM_1MS_GPS] = 1,
+                                 [TP_TM_1MS_GLO] = 1,
                                  [TP_TM_1MS_SBAS] = 1,
                                  [TP_TM_1MS_BDS2] = 1,
 
-                                 [TP_TM_2MS_GPS]  = 2,
-                                 [TP_TM_2MS_GLO]  = 2,
+                                 [TP_TM_2MS_GPS] = 2,
+                                 [TP_TM_2MS_GLO] = 2,
                                  [TP_TM_2MS_SBAS] = 2,
                                  [TP_TM_2MS_BDS2] = 2,
 
-                                 [TP_TM_5MS_GPS]  = 5,
-                                 [TP_TM_5MS_GLO]  = 5,
+                                 [TP_TM_5MS_GPS] = 5,
+                                 [TP_TM_5MS_GLO] = 5,
                                  [TP_TM_5MS_BDS2] = 5,
 
-                                 [TP_TM_10MS_GPS]  = 10,
-                                 [TP_TM_10MS_GLO]  = 10,
+                                 [TP_TM_10MS_GPS] = 10,
+                                 [TP_TM_10MS_GLO] = 10,
                                  [TP_TM_10MS_BDS2] = 10,
 
-                                 [TP_TM_20MS_GPS]  = 20,
+                                 [TP_TM_20MS_GPS] = 20,
                                  [TP_TM_20MS_BDS2] = 20};
 
   tp_tm_e track_mode;

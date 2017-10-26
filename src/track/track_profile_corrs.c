@@ -88,7 +88,7 @@ void tp_update_correlators(u32 cycle_flags,
                            tp_corr_state_t *restrict corr_state) {
   tp_epl_corr_t tmp_epl;
   tp_epl_corr_t straight;
-  tp_epl_corr_t *cs_straight = (tp_epl_corr_t *) &straight;
+  tp_epl_corr_t *cs_straight = (tp_epl_corr_t *)&straight;
 
   /* Correlator accumulators update */
   if (0 != (cycle_flags & TPF_EPL_INV)) {
