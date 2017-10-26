@@ -100,13 +100,10 @@ bool nap_locked(void) {
 }
 
 void nap_unlock(const u8 key[]) {
-  u32 ctrl =
-      (NAP->CONTROL &
-       ~((u32)NAP_AUTHENTICATION_ADDR_Msk | NAP_AUTHENTICATION_BYTE_Msk));
-
   for (u8 i = 0; i < NAP_KEY_LENGTH; ++i) {
-    NAP->CONTROL = ctrl | ((u32)key[i] << NAP_AUTHENTICATION_BYTE_Pos) |
-                   (i << NAP_AUTHENTICATION_ADDR_Pos);
+    NAP->AUTHENTICATION = ((u32)key[i] << NAP_AUTHENTICATION_BYTE_Pos) |
+                   (i    << NAP_AUTHENTICATION_ADDR_Pos) |
+                   (0x00 << NAP_AUTHENTICATION_OPERATION_Pos);
   }
 }
 
