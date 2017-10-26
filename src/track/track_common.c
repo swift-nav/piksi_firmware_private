@@ -1094,7 +1094,7 @@ static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
   u8 bit_length = tracker_bit_length_get(tracker_channel);
 
   if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
-    return true;
+    return false;
   }
 
   /*
@@ -1126,7 +1126,7 @@ static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
   return true;
 }
 
-static bool update_tow_cache(const tracker_channel_t *tracker_channel) {
+static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
@@ -1189,18 +1189,18 @@ static bool update_tow_cache(const tracker_channel_t *tracker_channel) {
  * \return None
  */
 void tracker_tow_cache(tracker_channel_t *tracker_channel) {
+  /* If TOW is unknown, check if a valid cached TOW is available. */
+  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
+    propagate_tow_from_sid_db(tracker_channel);
+  }
+
   /* Check that tracker has valid TOW. */
   if (!tow_is_bit_aligned(tracker_channel)) {
     return;
   }
 
   /* Check if a tracker should update TOW cache. */
-  if (update_tow_cache(tracker_channel)) {
+  if (should_update_tow_cache(tracker_channel)) {
     update_tow_in_sid_db(tracker_channel);
-  }
-
-  /* If TOW is unknown, check if a valid cached TOW is available. */
-  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
-    propagate_tow_from_sid_db(tracker_channel);
   }
 }
