@@ -55,6 +55,7 @@ static tracker_interface_list_element_t
         .interface = &tracker_interface_bds2_b11, .next = 0};
 
 static void tracker_bds2_b11_init(tracker_channel_t *tracker_channel) {
+  bds2_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &bds2_l1ca_config);
 }
 
