@@ -286,9 +286,9 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,           1.0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
+  { {     0,           1.0,          .5,   TP_CTRL_PLL3,    TP_TM_20MS_GPS_SENS,
           TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-        100,             0,          32,
+        100,             0,          29,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
 };
@@ -455,7 +455,7 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
   profile->use_alias_detection =
       (TP_TM_1MS_GPS != mode) && (TP_TM_1MS_GLO != mode) &&
       (TP_TM_2MS_GPS != mode) && (TP_TM_2MS_GLO != mode) &&
-      (TP_TM_20MS_GPS != mode) && (TP_TM_INITIAL != mode);
+      (TP_TM_20MS_GPS_SENS != mode) && (TP_TM_INITIAL != mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 
@@ -643,7 +643,8 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                  [TP_TM_10MS_GPS] = 10,
                                  [TP_TM_10MS_GLO] = 10,
 
-                                 [TP_TM_20MS_GPS] = 20};
+                                 [TP_TM_20MS_GPS] = 20,
+                                 [TP_TM_20MS_GPS_SENS] = 20};
 
   tp_tm_e track_mode;
   if (IS_GPS(mesid)) {

@@ -34,7 +34,7 @@
 
 #define NAV_BIT_FIFO_SIZE                            \
   64 /**< Size of nav bit FIFO. Must be a power of 2 \
-        */
+      */
 
 #define TP_DLL_PLL_MEAS_DIM 5
 
@@ -161,7 +161,8 @@ typedef enum {
   TP_TM_5MS_GLO,  /**< 5 ms */
   TP_TM_10MS_GPS, /**< 10 ms */
   TP_TM_10MS_GLO, /**< 10 ms */
-  TP_TM_20MS_GPS  /**< 20 ms */
+  TP_TM_20MS_GPS, /**< 20 ms */
+  TP_TM_20MS_GPS_SENS /**< 20 ms sensitivity */
 } tp_tm_e;
 
 /**
@@ -313,7 +314,7 @@ typedef struct {
 #define TRACKING_AZIMUTH_UNKNOWN 400
 #define TRACKING_ELEVATION_UNKNOWN          \
   100 /* Ensure it will be above elev. mask \
-         */
+       */
 /** GPS L1 C/A cross-correlation frequency step [hz] */
 #define L1CA_XCORR_FREQ_STEP 1000.f
 /** GPS L1 C/A CN0 threshold for whitelisting [dB-Hz] */
@@ -329,7 +330,7 @@ typedef struct {
 /** Carrier phases within tolerance are declared equal. [cycles]
  *  Stable PLL remains within +-15 degree from correct phase.
  *  360 * 0.08 ~= 30 degrees
-*/
+ */
 #define CARRIER_PHASE_TOLERANCE 0.08f
 /** counter for half-cycle ambiguity resolution */
 #define CARRIER_PHASE_AMBIGUITY_COUNTER 50
