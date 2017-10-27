@@ -1021,6 +1021,5 @@ update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
 void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
 void tracker_cleanup(tracker_channel_t *tracker_channel);
 
-/* for GLO L1/L2 tow propagation */
-void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags);
+void tracker_tow_cache(tracker_channel_t *tracker_channel);
 #endif

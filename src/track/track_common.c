@@ -1088,3 +1088,119 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
 
   return cflags;
 }
+
+static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  u8 bit_length = tracker_bit_length_get(tracker_channel);
+
+  if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
+    return false;
+  }
+
+  /*
+   * Verify ToW bit alignment
+   * Current block assumes the bit sync has been reached and current
+   * interval has closed a bit interval. ToW shall be aligned by bit
+   * duration, which is:
+   * 20ms for GPS L1 / L2
+   * 10ms for GLO L1 / L2
+   */
+  u8 tail = tracker_channel->TOW_ms % bit_length;
+  if (0 != tail) {
+    /* If this correction is needed, then there is something wrong
+       either with the TOW cache update or with the bit sync */
+    s8 error_ms = tail < (bit_length >> 1) ? -tail : bit_length - tail;
+
+    log_error_mesid(mesid,
+                    "[+%" PRIu32
+                    "ms] TOW error detected: "
+                    "error=%" PRId8 "ms old_tow=%" PRId32,
+                    tracker_channel->update_count,
+                    error_ms,
+                    tracker_channel->TOW_ms);
+
+    /* This is rude, but safe. Do not expect it to happen normally. */
+    tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+    return false;
+  }
+  return true;
+}
+
+static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  bool cn0_ok = (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD);
+  bool tow_is_known = (TOW_UNKNOWN != tracker_channel->TOW_ms);
+  bool responsible_for_update = false;
+
+  if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code) {
+    /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
+    responsible_for_update = true;
+  } else if (CODE_GPS_L2CM == mesid.code) {
+    /* Check if corresponding GPS L1CA satellite is being tracked with valid
+     * TOW. If GPS L1CA is not tracked, then GPS L2CM updates the TOW cache.
+     */
+    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
+      responsible_for_update = false;
+    } else {
+      responsible_for_update = true;
+    }
+  } else if (CODE_GLO_L2OF == mesid.code) {
+    /* Check if corresponding GLO L1OF satellite is being tracked with valid
+     * TOW. If GLO L1OF is not tracked, then GLO L2OF updates the TOW cache.
+     */
+    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
+      responsible_for_update = false;
+    } else {
+      responsible_for_update = true;
+    }
+  } else {
+    assert(!"Unsupported TOW cache code");
+  }
+
+  /* Update TOW cache if:
+   * - CN0 is OK
+   * - Tracker is confirmed
+   * - Tracker TOW is known
+   * - Tracker is responsible for TOW cache updates
+   */
+  return (cn0_ok && confirmed && tow_is_known && responsible_for_update);
+}
+
+/**
+ * Performs ToW caching and propagation.
+ *
+ * GPS L1CA / L2CM and GLO L1OF / L2OF both use shared structure for ToW
+ * caching.
+ * When L1 tracker is running, it is responsible for cache updates. Otherwise L2
+ * tracker updates the cache. The time difference between signals is ignored
+ * as small.
+ *
+ * Tracker performs ToW update/propagation only on bit edge. This makes
+ * it more robust to propagation errors.
+ *
+ * \param[in,out] tracker_channel Tracker channel data
+ *
+ * \return None
+ */
+void tracker_tow_cache(tracker_channel_t *tracker_channel) {
+  /* If TOW is unknown, check if a valid cached TOW is available. */
+  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
+    propagate_tow_from_sid_db(tracker_channel);
+  }
+
+  /* Check that tracker has valid TOW. */
+  if (!tow_is_bit_aligned(tracker_channel)) {
+    return;
+  }
+
+  /* Check if a tracker should update TOW cache. */
+  if (should_update_tow_cache(tracker_channel)) {
+    update_tow_in_sid_db(tracker_channel);
+  }
+}
