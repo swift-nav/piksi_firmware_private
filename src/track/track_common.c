@@ -335,6 +335,10 @@ u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel) {
     result_ms = tp_get_rollover_cycle_duration(tracker_channel->tracking_mode,
                                                tracker_channel->cycle_no);
   }
+  if (0 == result_ms) {
+    log_error_mesid(tracker_channel->mesid, "tracking_mode %d cycle_no %d result_ms 0",
+                    tracker_channel->tracking_mode, tracker_channel->cycle_no);
+  }
   return tp_convert_ms_to_chips(
       tracker_channel->mesid, result_ms, code_phase_chips, plock);
 }

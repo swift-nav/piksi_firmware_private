@@ -364,18 +364,16 @@ static bool peak_search(const me_gnss_signal_t mesid,
 
   /* For constellations with frequent symbol transitions,
    * accumulate non-coherently */
-  //~ if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    //~ u8 non_coh = array_sz / CODE_SMPS;
-    //~ for (u32 m = 1; m < non_coh; m++) {
-      //~ for (u32 h = 0; h < CODE_SMPS; h++) {
-        //~ u32 src_idx = m * CODE_SMPS + h;
-        //~ if (src_idx >= array_sz) break;
-        //~ result_mag[h] += result_mag[src_idx];
-      //~ }
-    //~ }
-    //~ log_info_mesid(mesid, "array_sz %d non_coh %d CODE_SMPS %d, result_mag[0] %u",
-                   //~ array_sz, non_coh, CODE_SMPS, result_mag[0]);
-  //~ }
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    u8 non_coh = array_sz / CODE_SMPS;
+    for (u32 m = 1; m < non_coh; m++) {
+      for (u32 h = 0; h < CODE_SMPS; h++) {
+        u32 src_idx = m * CODE_SMPS + h;
+        if (src_idx >= array_sz) break;
+        result_mag[h] += result_mag[src_idx];
+      }
+    }
+  }
 
   GetFourMaxes(result_mag, CODE_SMPS);
   peak_mag_sq = 0;
@@ -397,6 +395,15 @@ static bool peak_search(const me_gnss_signal_t mesid,
   /* Compute C/N0 */
   snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SMPS / 4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
+
+  /* For constellations with frequent symbol transitions,
+   * having zeroed the code and accumulated non-coherently,
+   * flip left-right the correlation result */
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    s32 x = peak_index - array_sz;
+    s32 y = CODE_SMPS;
+    peak_index = x - y * (x/y);
+  }
 
   if (cn0 > peak->cn0) {
     /* New max peak found */
