@@ -36,7 +36,7 @@
 //~ #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 #define SOFTMACQ_SAMPLE_RATE_Hz (SOFTMACQ_RAW_FS / SOFTMACQ_DECFACT_GPSL1CA)
-#define CODE_SMPS (SOFTMACQ_SAMPLE_RATE_Hz / 1000)
+#define CODE_SPMS (SOFTMACQ_SAMPLE_RATE_Hz / 1000)
 
 static void code_resample(const me_gnss_signal_t mesid,
                           float chips_per_sample,
@@ -90,7 +90,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
   u32 fft_len_log2 = SOFTMACQ_FFTLEN_LOG2;
   u32 fft_len = 1 << fft_len_log2;
   assert(fft_len <= INTFFT_MAXSIZE);
-  assert(fft_len > CODE_SMPS);
+  assert(fft_len > CODE_SPMS);
 
   /* init soft FFT */
   if (sFftConfig.N != fft_len) {
@@ -102,12 +102,13 @@ bool soft_acq_search(const sc16_t *_cSignal,
   float chips_per_sample =
       code_to_chip_rate(mesid.code) / SOFTMACQ_SAMPLE_RATE_Hz;
 
-  /* Generate, resample, and FFT code */
-  code_resample(mesid, chips_per_sample, code_fft, fft_len);
-
   /* For constellations with frequent symbol transitions, do 1x4 CxNC */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    memset(code_fft + CODE_SMPS, 0, sizeof(sc16_t) * (fft_len - CODE_SMPS));
+    code_resample(mesid, chips_per_sample,
+                  code_fft + CODE_SPMS * (fft_len/CODE_SPMS - 1), CODE_SPMS);
+  } else {
+    /* Generate, resample, and FFT code */
+    code_resample(mesid, chips_per_sample, code_fft, fft_len);
   }
 
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
@@ -365,17 +366,17 @@ static bool peak_search(const me_gnss_signal_t mesid,
   /* For constellations with frequent symbol transitions,
    * accumulate non-coherently */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    u8 non_coh = array_sz / CODE_SMPS;
+    u8 non_coh = array_sz / CODE_SPMS;
     for (u32 m = 1; m < non_coh; m++) {
-      for (u32 h = 0; h < CODE_SMPS; h++) {
-        u32 src_idx = m * CODE_SMPS + h;
+      for (u32 h = 0; h < CODE_SPMS; h++) {
+        u32 src_idx = m * CODE_SPMS + h;
         if (src_idx >= array_sz) break;
         result_mag[h] += result_mag[src_idx];
       }
     }
   }
 
-  GetFourMaxes(result_mag, CODE_SMPS);
+  GetFourMaxes(result_mag, CODE_SPMS);
   peak_mag_sq = 0;
   peak_index = 0;
   for (k = 0; k < 4; k++) {
@@ -393,17 +394,8 @@ static bool peak_search(const me_gnss_signal_t mesid,
   }
 
   /* Compute C/N0 */
-  snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SMPS / 4));
+  snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SPMS / 4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
-
-  /* For constellations with frequent symbol transitions,
-   * having zeroed the code and accumulated non-coherently,
-   * flip left-right the correlation result */
-  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    s32 x = peak_index - array_sz;
-    s32 y = CODE_SMPS;
-    peak_index = x - y * (x/y);
-  }
 
   if (cn0 > peak->cn0) {
     /* New max peak found */

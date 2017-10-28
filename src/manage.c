@@ -894,10 +894,10 @@ static void drop_channel(tracker_channel_t *tracker_channel,
                     get_ch_drop_reason_str(reason));
   } else if (0 == (flags & TRACKER_FLAG_CONFIRMED)) {
     /* Unconfirmed tracker messages are always logged at debug level */
-    log_info_mesid(mesid,
-                   "[+%" PRIu32 "ms] %s",
-                   time_in_track_ms,
-                   get_ch_drop_reason_str(reason));
+    log_debug_mesid(mesid,
+                    "[+%" PRIu32 "ms] %s",
+                    time_in_track_ms,
+                    get_ch_drop_reason_str(reason));
   } else {
     /* Confirmed tracker messages are always logged at info level */
     log_info_mesid(mesid,
