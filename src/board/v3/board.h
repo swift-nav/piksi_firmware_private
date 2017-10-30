@@ -44,7 +44,6 @@ extern "C" {
 #endif
 void boardInit(void);
 void board_send_state(void);
-bool board_is_duro(void);
 void hard_reset(void);
 #ifdef __cplusplus
 }

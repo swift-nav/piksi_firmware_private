@@ -88,9 +88,8 @@ BOARDSRC := \
         $(BOARDDIR)/io_support.o \
         $(BOARDDIR)/xadc.o \
         $(BOARDDIR)/factory_data.o \
-        $(BOARDDIR)/manage_led.o \
+        $(BOARDDIR)/manage_pv.o \
         $(BOARDDIR)/imu.o \
-        $(BOARDDIR)/manage_rtc.o \
         $(BOARDDIR)/nap/axi_dma.o \
         $(BOARDDIR)/nap/grabber.o \
         $(BOARDDIR)/nap/nap_common.o \
@@ -102,10 +101,7 @@ BOARDSRC := \
         $(BOARDDIR)/remoteproc/remoteproc_env.o \
         $(BOARDDIR)/remoteproc/rpmsg.o \
         $(BOARDDIR)/peripherals/antenna.o \
-        $(BOARDDIR)/peripherals/led_adp8866.o \
         $(BOARDDIR)/peripherals/bmi160.o \
-        $(BOARDDIR)/peripherals/rtc_m41t62.o \
-        $(BOARDDIR)/peripherals/m24c32d.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l1ca.o \
         $(SWIFTNAV_ROOT)/src/track/track_gps_l2c.o \
         $(SWIFTNAV_ROOT)/src/track/track_glo_l1of.o \

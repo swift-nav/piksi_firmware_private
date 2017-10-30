@@ -13,6 +13,6 @@
 #ifndef SWIFTNAV_MANAGE_LED_H
 #define SWIFTNAV_MANAGE_LED_H
 
-void manage_led_setup(void);
+void manage_pv_setup(void);
 
 #endif /* SWIFTNAV_MANAGE_LED_H */
