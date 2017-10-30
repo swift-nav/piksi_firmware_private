@@ -28,7 +28,7 @@ fi
 
 GITHUB_USER="cbeighley"
 HITL_API_GITHUB_TOKEN="01d15035bd5e9100385c2f845533a6c593c60879"
-HITL_API_URL="http://hitlapi-hitlapi-v3v5zi4-1951594375.us-west-2.elb.amazonaws.com/jobs"
+HITL_API_URL="http://hitlapi-hitlapi-v3v5zi4-1951594375.us-west-2.elb.amazonaws.com"
 TESTER_EMAIL="colin@swiftnav.com"
 
 #BUILD_TYPE="pull_request"
