@@ -16,6 +16,7 @@
 #include <ch.h>
 #include <hal.h>
 #include <libsbp/imu.h>
+#include <libsbp/mag.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/time.h>
 #include <math.h>
@@ -43,11 +44,12 @@ static BSEMAPHORE_DECL(imu_irq_sem, TRUE);
 static u32 nap_tc;
 
 /* Settings */
-
-static imu_rate_t imu_rate = IMU_RATE_50HZ;
+static u8 imu_rate = 1;
 static bool raw_imu_output = false;
 static u8 acc_range = 2;
 static bmi160_gyr_range_t gyr_range = BMI160_GYR_1000DGS;
+static u8 mag_rate = 1;
+static bool raw_mag_output = false;
 
 /** Interrupt service routine for the IMU_INT1 interrupt.
  * Records the time and then flags the IMU data processing thread to wake up. */
@@ -100,30 +102,37 @@ static void imu_thread(void *arg) {
   s16 mag[3];
   u32 sensor_time;
   msg_imu_raw_t imu_raw;
+  msg_mag_raw_t mag_raw;
 
   while (TRUE) {
     /* Wait until an IMU interrupt occurs. */
     systime_t timeout = TIME_INFINITE;
-    if (raw_imu_output) {
+    if (raw_imu_output || raw_mag_output) {
       /* If output is enabled and we're actually expecting interrupts, we
        * set a timeout a little after the expected interrupt.
        *
        * This works out because of the numeric values of imu_rate_t:
-       * imu_rate = IMU_RATE_25HZ = 0 -> 40ms, so timeout is set to 45ms
-       * imu_rate = IMU_RATE_400HZ = 4 -> 2.5ms, so timeout is set to 9ms
+       * imu_rate = BMI160_RATE_6_25HZ = 4 -> 160ms, so timeout is set to 200ms
+       * imu_rate = BMI160_RATE_400HZ = 10 -> 2.5ms,so timeout is set to
+       * 3.125ms
        */
-      timeout = MS2ST(45) / (imu_rate + 1);
+      u32 max_rate;
+      /* Only drive timeout from mag if IMU is disabled
+       * since max mag rate == min imu rate
+       */
+      if (!raw_imu_output) {
+        /* Setting enum offset by 4 from rate enum for mag */
+        max_rate = mag_rate + 4;
+      } else {
+        /* Setting enum offset by 6 from rate enum for imu */
+        max_rate = imu_rate + 6;
+      }
+      timeout = MS2ST(200) / (1 << (max_rate - 4));
     }
-    msg_t status = chBSemWaitTimeout(&imu_irq_sem, timeout);
+    chBSemWaitTimeout(&imu_irq_sem, timeout);
 
     bool new_acc, new_gyro, new_mag;
     bmi160_new_data_available(&new_acc, &new_gyro, &new_mag);
-
-    bmi160_get_data(acc, gyro, mag, &sensor_time);
-
-    if (new_mag) {
-      /* TODO: Magnetometer */
-    }
 
     if (new_acc != new_gyro) {
       log_debug(
@@ -131,7 +140,37 @@ static void imu_thread(void *arg) {
       continue;
     }
 
-    if (new_acc && new_gyro) {
+    if (!new_acc && !new_gyro && !new_mag) {
+      continue;
+    }
+
+    s16 *mag_ptr = (new_mag) ? mag : NULL;
+    bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
+
+    u32 tow;
+    u8 tow_f;
+    /* Recover the full 64 bit timing count from the 32 LSBs
+    * captured in the ISR. */
+    u64 tc = nap_sample_time_to_count(nap_tc);
+
+    /* Calculate the GPS time of the observation, if possible. */
+    if (get_time_quality() >= TIME_FINE) {
+      /* We know the GPS time to high accuracy, this allows us to convert a
+        * timing count value into a GPS time. */
+      gps_time_t t = napcount2gpstime(tc);
+
+      /* Format the time of week as a fixed point value for the SBP message.
+        */
+      double tow_ms = t.tow * 1000;
+      tow = (u32)tow_ms;
+      tow_f = (u8)round((tow_ms - tow) * 255);
+    } else {
+      /* Time is unknown, make it as invalid in the SBP message. */
+      tow = (1 << 31);
+      tow_f = 0;
+    }
+
+    if (new_acc && new_gyro && raw_imu_output) {
       /* Read out the IMU data and fill out the SBP message. */
       imu_raw.acc_x = acc[0];
       imu_raw.acc_y = acc[1];
@@ -139,47 +178,88 @@ static void imu_thread(void *arg) {
       imu_raw.gyr_x = gyro[0];
       imu_raw.gyr_y = gyro[1];
       imu_raw.gyr_z = gyro[2];
+      imu_raw.tow = tow;
+      imu_raw.tow_f = tow_f;
 
-      /* Recover the full 64 bit timing count from the 32 LSBs
-       * captured in the ISR. */
-      u64 tc = nap_sample_time_to_count(nap_tc);
+      /* Send out IMU_RAW SBP message. */
+      sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
+    }
+    if (new_mag && raw_mag_output) {
+      /* Read out the magnetometer data and fill out the SBP message. */
+      mag_raw.mag_x = mag[0];
+      mag_raw.mag_y = mag[1];
+      mag_raw.mag_z = mag[2];
+      mag_raw.tow = tow;
+      mag_raw.tow_f = tow_f;
 
-      /* Calculate the GPS time of the observation, if possible. */
-      if ((status != MSG_TIMEOUT) && (get_time_quality() >= TIME_FINE)) {
-        /* We know the GPS time to high accuracy, this allows us to convert a
-         * timing count value into a GPS time. */
-        gps_time_t t = napcount2gpstime(tc);
-
-        /* Format the time of week as a fixed point value for the SBP message.
-         */
-        double tow_ms = t.tow * 1000;
-        imu_raw.tow = (u32)tow_ms;
-        imu_raw.tow_f = (u8)round((tow_ms - imu_raw.tow) * 255);
-      } else {
-        /* Time is unknown, make it as invalid in the SBP message. */
-        imu_raw.tow = (1 << 31);
-        imu_raw.tow_f = 0;
-      }
-
-      if (raw_imu_output) {
-        /* Send out IMU_RAW SBP message. */
-        sbp_send_msg(SBP_MSG_IMU_RAW, sizeof(imu_raw), (u8 *)&imu_raw);
-      }
+      /* Send out MAG_RAW SBP message. */
+      sbp_send_msg(SBP_MSG_MAG_RAW, sizeof(mag_raw), (u8 *)&mag_raw);
     }
   }
 }
 
 static bool imu_rate_changed(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    bmi160_set_imu_rate(imu_rate);
-    return true;
+  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    return false;
   }
-  return false;
+  /* Convert between the setting value, which is an integer corresponding to
+   * the index of the selected setting in the list of strings, and the relevant
+   * enum values */
+  switch (imu_rate) {
+    case 0: /* 25Hz */
+      bmi160_set_imu_rate(BMI160_RATE_25HZ);
+      break;
+    case 1: /* 50Hz */
+      bmi160_set_imu_rate(BMI160_RATE_50HZ);
+      break;
+    case 2: /* 100Hz */
+      bmi160_set_imu_rate(BMI160_RATE_100HZ);
+      break;
+    case 3: /* 200Hz */
+      bmi160_set_imu_rate(BMI160_RATE_200HZ);
+      break;
+    default:
+      log_error("Unexpected imu rate setting: %u", imu_rate);
+      return false;
+  }
+  return true;
 }
 
 static bool raw_imu_output_changed(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     bmi160_imu_set_enabled(raw_imu_output);
+    return true;
+  }
+  return false;
+}
+
+static bool mag_rate_changed(struct setting *s, const char *val) {
+  if (!s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    return false;
+  }
+  /* Convert between the setting value, which is an integer corresponding to
+   * the index of the selected setting in the list of strings, and the relevant
+   * enum values */
+  switch (mag_rate) {
+    case 0: /* 6.25Hz */
+      bmi160_set_mag_rate(BMI160_RATE_6_25HZ);
+      break;
+    case 1: /* 12.5Hz */
+      bmi160_set_mag_rate(BMI160_RATE_12_5HZ);
+      break;
+    case 2: /* 25Hz */
+      bmi160_set_mag_rate(BMI160_RATE_25HZ);
+      break;
+    default:
+      log_error("Unexpected magnetometer rate setting: %u", mag_rate);
+      return false;
+  }
+  return true;
+}
+
+static bool raw_mag_output_changed(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    bmi160_mag_set_enabled(raw_mag_output);
     return true;
   }
   return false;
@@ -250,13 +330,14 @@ void imu_init(void) {
                  TYPE_BOOL,
                  raw_imu_output_changed);
 
-  static const char const *rate_enum[] =
+  static const char const *imu_rate_enum[] =
       /* TODO: 400 Hz mode disabled for now as at that speed there is a timing
        * issue resulting in messages with duplicate timestamps. */
       {"25", "50", "100", "200", /* "400",*/ NULL};
-  static struct setting_type rate_setting;
-  int TYPE_RATE = settings_type_register_enum(rate_enum, &rate_setting);
-  SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_RATE, imu_rate_changed);
+  static struct setting_type imu_rate_setting;
+  int TYPE_IMU_RATE =
+      settings_type_register_enum(imu_rate_enum, &imu_rate_setting);
+  SETTING_NOTIFY("imu", "imu_rate", imu_rate, TYPE_IMU_RATE, imu_rate_changed);
 
   static const char const *acc_range_enum[] = {"2g", "4g", "8g", "16g", NULL};
   static struct setting_type acc_range_setting;
@@ -272,6 +353,19 @@ void imu_init(void) {
       settings_type_register_enum(gyr_range_enum, &gyr_range_setting);
   SETTING_NOTIFY(
       "imu", "gyro_range", gyr_range, TYPE_GYR_RANGE, gyr_range_changed);
+
+  SETTING_NOTIFY("imu",
+                 "mag_raw_output",
+                 raw_mag_output,
+                 TYPE_BOOL,
+                 raw_mag_output_changed);
+  static const char const *mag_rate_enum[] =
+      /* Rates up to 100Hz possible, but not recomended */
+      {"6.25", "12.5", "25", NULL};
+  static struct setting_type mag_rate_setting;
+  int TYPE_MAG_RATE =
+      settings_type_register_enum(mag_rate_enum, &mag_rate_setting);
+  SETTING_NOTIFY("imu", "mag_rate", mag_rate, TYPE_MAG_RATE, mag_rate_changed);
 
   chThdCreateStatic(
       wa_imu_thread, sizeof(wa_imu_thread), IMU_THREAD_PRIO, imu_thread, NULL);
