@@ -55,6 +55,7 @@ after_success:
   - ./publish.sh requirements.yaml
   - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf
   - GITHUB_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 SLACK_CHANNEL=github ./comment.sh
+  - ./kickoff_hitl.sh
 
 env:
   global:
