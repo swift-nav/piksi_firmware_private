@@ -85,12 +85,12 @@ hitl_links(){
     for index in ${!SCENARIOS[@]}; do
       echo -n "${SCENARIOS[$index]},"
     done
-    echo -n "&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=scenario_name&display_type=table)"
+    echo -n "&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)"
     echo -n "\n+ "[detailed]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=detailed&scenario="
     for index in ${!SCENARIOS[@]}; do
       echo -n "${SCENARIOS[$index]},"
     done
-    echo -n "&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=scenario_name&display_type=table)"
+    echo -n "&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)"
 }
 COMMENT="$(hitl_links)"
 echo "PR comment:"
