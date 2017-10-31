@@ -29,8 +29,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 fi
 
 HITL_API_GITHUB_USER="swiftnav-travis"
-#HITL_API_URL="https://hitlapi.swiftnav.com"
-HITL_API_URL="https://htlai.swiftnav.com"
+HITL_API_URL="https://hitlapi.swiftnav.com"
 # From https://github.com/travis-ci/travis-ci/issues/8557, it is not trivial to
 # get the name / email of the person who made the PR, so we'll use the email of
 # the commit instead.
@@ -41,7 +40,7 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 
 REPO="${PWD##*/}"
 COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
-COMMENT_HEADER="## hitl smoke tests: $BUILD_VERSION"
+COMMENT_HEADER="## HITL smoke tests: $BUILD_VERSION"
 
 # HITL scenarios to kick off, and # of runs for each scenario.
 SCENARIOS=\
