@@ -63,7 +63,7 @@ set +e
 for index in ${!SCENARIOS[@]}; do
     URL="$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=${RUNS[$index]}&scenario_name=${SCENARIOS[$index]}"
     echo "Posting to HITL API URL: \"$URL\""
-    capture_ids+=$(curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -X POST $URL | python -c "import sys, json; print json.load(sys.stdin)['id']")
+    capture_ids+=($(curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -X POST $URL | python -c "import sys, json; print json.load(sys.stdin)['id']"))
     if [ ! $? -eq 0 ]; then
         curl -u "$GITHUB_COMMENT_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT_HEADER\nThere was an error using the HITL API to kick off smoke tests for this commit.\"}"
         echo "There was an error using the HITL API. Posted comment to GitHub PR, exiting."
