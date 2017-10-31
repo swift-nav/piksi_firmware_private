@@ -31,10 +31,8 @@ HITL_API_GITHUB_TOKEN="01d15035bd5e9100385c2f845533a6c593c60879"
 HITL_API_URL="http://hitlapi-hitlapi-v3v5zi4-1951594375.us-west-2.elb.amazonaws.com"
 TESTER_EMAIL="colin@swiftnav.com"
 
-#BUILD_TYPE="pull_request"
-#BUILD_VERSION="$(git describe --tags --dirty --always)"
-BUILD_TYPE="release_candidate"
-BUILD_VERSION="v1.2.12"
+BUILD_TYPE="pull_request"
+BUILD_VERSION="$(git describe --tags --dirty --always)"
 
 # Kick off HITL smoke tests:
 #   1x `live-roof-1543-mission`
