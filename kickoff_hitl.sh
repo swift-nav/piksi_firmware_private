@@ -26,10 +26,13 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     exit
 fi
 
-GITHUB_USER="cbeighley"
-HITL_API_GITHUB_TOKEN="01d15035bd5e9100385c2f845533a6c593c60879"
+GITHUB_USER="swiftnav-travis"
+HITL_API_GITHUB_TOKEN="653d7a7d3b1f17988f8ded38478369dc526e6e2f"
 HITL_API_URL="http://hitlapi-hitlapi-v3v5zi4-1951594375.us-west-2.elb.amazonaws.com"
-TESTER_EMAIL="colin@swiftnav.com"
+# From https://github.com/travis-ci/travis-ci/issues/8557, it is not trivial to
+# get the name / email of the person who made the PR, so we'll use the email of
+# the commit instead.
+TESTER_EMAIL="$(git log --format='%ae' HEAD | head -n 1)"
 
 BUILD_TYPE="pull_request"
 BUILD_VERSION="$(git describe --tags --dirty --always)"
