@@ -117,15 +117,15 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         DATA="text=$COMMENT"
         curl --data-urlencode "$DATA" "$URL"
     fi
-elif [ ! -z "$GITHUB_TOKEN" ]; then
+elif [ ! -z "$GITHUB_COMMENT_TOKEN" ]; then
     COMMENT="$(github_links)"
     COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
-    curl -u "$GITHUB_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
+    curl -u "$GITHUB_COMMENT_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
     # set status of HITL testing to pending
     STATUS_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/statuses/$TRAVIS_PULL_REQUEST_SHA"
     STATUS_DESCRIPTION="Waiting for HITL tests to be run and complete"
     STATUS_TARGET_URL=$(hitl_pass_fail_link)
     STATUS_STATE="pending"
-    curl -i -X POST -u "$GITHUB_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
+    curl -i -X POST -u "$GITHUB_COMMENT_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
 fi
 
