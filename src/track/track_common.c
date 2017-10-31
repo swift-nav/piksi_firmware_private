@@ -773,10 +773,7 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
 }
 
 /**
- * Updates PLL and FLL lock registers.
- *
- * Updates PLL optimistic and pessimistic registers. In addition, checks if
- * FLL lock is present in FLL tracking mode.
+ * Updates PLL and FLL lock detectors.
  *
  * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
@@ -785,11 +782,12 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
  */
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  if (0 != (cycle_flags & TPF_LD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
+  /* Phase lock and frequency lock detectors are updated asynchronously. */
+  if (0 != (cycle_flags & TPF_PLD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
     bool outp_prev =
         tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
-    if (0 != (cycle_flags & TPF_LD_USE)) {
+    if (0 != (cycle_flags & TPF_PLD_USE)) {
       tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
 
       if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {

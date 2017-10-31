@@ -723,10 +723,10 @@ typedef struct {
 #define TPF_ALIAS_1ST ((u32)1 << 20)
 #define TPF_ALIAS_2ND ((u32)1 << 21)
 
-/* Lock detector control */
-#define TPF_LD_SET ((u32)1 << 22)
-#define TPF_LD_ADD ((u32)1 << 23)
-#define TPF_LD_USE ((u32)1 << 24)
+/* Phase lock detector control */
+#define TPF_PLD_SET ((u32)1 << 22)
+#define TPF_PLD_ADD ((u32)1 << 23)
+#define TPF_PLD_USE ((u32)1 << 24)
 
 /**
  * Common tracker configuration container.
