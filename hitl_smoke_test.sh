@@ -42,6 +42,8 @@ REPO="${PWD##*/}"
 COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
 COMMENT_HEADER="## HITL smoke tests: $BUILD_VERSION"
 
+TRAVIS_BUILD_URL="https://travis-ci.com/swift-nav/piksi_firmware_private/builds/$TRAVIS_BUILD_ID"
+
 # HITL scenarios to kick off, and # of runs for each scenario.
 SCENARIOS=\
 ("live-roof-1543-mission"
@@ -65,7 +67,7 @@ for index in ${!SCENARIOS[@]}; do
     echo "Posting to HITL API URL: \"$URL\""
     capture_ids+=($(curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -X POST $URL | python -c "import sys, json; print json.load(sys.stdin)['id']"))
     if [ ! $? -eq 0 ]; then
-        curl -u "$GITHUB_COMMENT_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT_HEADER\nThere was an error using the HITL API to kick off smoke tests for this commit.\"}"
+        curl -u "$GITHUB_COMMENT_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT_HEADER\nThere was an error using the HITL API to kick off smoke tests for this commit. See $TRAVIS_BUILD_URL.\"}"
         echo "There was an error using the HITL API. Posted comment to GitHub PR, exiting."
         exit 1
     fi
