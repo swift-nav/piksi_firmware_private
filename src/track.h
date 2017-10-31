@@ -161,8 +161,7 @@ typedef enum {
   TP_TM_5MS_GLO,  /**< 5 ms */
   TP_TM_10MS_GPS, /**< 10 ms */
   TP_TM_10MS_GLO, /**< 10 ms */
-  TP_TM_20MS_GPS, /**< 20 ms */
-  TP_TM_20MS_GPS_SENS /**< 20 ms sensitivity */
+  TP_TM_20MS_GPS  /**< 20 ms */
 } tp_tm_e;
 
 /**
