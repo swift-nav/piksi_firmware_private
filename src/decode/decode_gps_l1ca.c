@@ -538,7 +538,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
         break;
       case EPH_NEW_XCORR:
         log_info_mesid(channel_info->mesid,
-                       "Channel cross-correlation detected (ephe/alm check)");
+                       "Channel cross-correlation detected "
+                       "(ephe/ephe or ephe/alm check)");
         /* Ephemeris cross-correlates with almanac of another SV */
         tracking_channel_set_xcorr_flag(channel_info->mesid);
         break;
