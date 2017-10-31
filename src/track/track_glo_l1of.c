@@ -14,7 +14,6 @@
 #include "track_glo_l1of.h"
 #include "track.h"
 #include "track_cn0.h"
-#include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
 #include "track_sid_db.h"
 
 /* Non-local headers */
@@ -87,17 +86,4 @@ static void tracker_glo_l1of_update(tracker_channel_t *tracker_channel) {
 
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker_channel);
-
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-
-  if (inlock && confirmed) {
-    /* Start GLO L2CA tracker if not running */
-    do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
-                                 tracker_channel->mesid.sat,
-                                 tracker_channel->code_phase_prompt,
-                                 tracker_channel->carrier_freq,
-                                 tracker_channel->cn0);
-  }
 }
