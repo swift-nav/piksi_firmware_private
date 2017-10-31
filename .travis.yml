@@ -57,7 +57,7 @@ after_success:
   # These tokens are in plaintext so Swift developers can make PR's from their
   # personal forks. We may want to revisit this at some point.
   - GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 SLACK_CHANNEL=github ./comment.sh
-  - HITL_API_GITHUB_TOKEN=d70b53ef8e8e0966818c473c56c02bf45b17290b GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 ./kickoff_hitl.sh
+  - HITL_API_GITHUB_TOKEN=d70b53ef8e8e0966818c473c56c02bf45b17290b GITHUB_COMMENT_TOKEN=29ff16b8acbf635fad0c702d3189c04a997b9719 ./hitl_smoke_test.sh
 
 env:
   global:
