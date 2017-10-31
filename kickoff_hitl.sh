@@ -26,8 +26,7 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     exit
 fi
 
-GITHUB_USER="swiftnav-travis"
-HITL_API_GITHUB_TOKEN="653d7a7d3b1f17988f8ded38478369dc526e6e2f"
+HITL_API_GITHUB_USER="swiftnav-travis"
 HITL_API_URL="http://hitlapi-hitlapi-v3v5zi4-1951594375.us-west-2.elb.amazonaws.com"
 # From https://github.com/travis-ci/travis-ci/issues/8557, it is not trivial to
 # get the name / email of the person who made the PR, so we'll use the email of
@@ -41,7 +40,7 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 #   1x `live-roof-1543-mission`
 #   1x `live-roof-1543-mission-dropouts-zero-baseline`
 #   1x `live-roof-1543-mission-skylark-glonass`
-curl -u $GITHUB_USER:$HITL_API_GITHUB_TOKEN -v -X POST "$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=1&scenario_name=live-roof-1543-mission"
-curl -u $GITHUB_USER:$HITL_API_GITHUB_TOKEN -v -X POST "$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=1&scenario_name=live-roof-1543-mission-dropouts-zero-baseline"
-curl -u $GITHUB_USER:$HITL_API_GITHUB_TOKEN -v -X POST "$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=1&scenario_name=live-roof-1543-mission-skylark-glonass"
+curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -v -X POST "$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=1&scenario_name=live-roof-1543-mission"
+curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -v -X POST "$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=1&scenario_name=live-roof-1543-mission-dropouts-zero-baseline"
+curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -v -X POST "$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=1&scenario_name=live-roof-1543-mission-skylark-glonass"
 
