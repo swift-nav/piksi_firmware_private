@@ -80,7 +80,7 @@ set -e
 # Comment on the PR with links to the hitl-dashboard and gnss-analysis.
 hitl_links(){
     echo -n "$COMMENT_HEADER"
-    echo -n "\nThese tests are kicked off whenever you push a new commit to this PR."
+    echo -n "\nThese test runs are kicked off whenever you push a new commit to this PR. All passfail metrics in these runs must pass for the `hitl/pass-fail` status to be marked successful."
     echo -n "\n### job status"
     for index in ${!capture_ids[@]}; do
         echo -n "\n+ "[${SCENARIOS[$index]} runs]"("http://hitl-dashboard.swiftnav.com/job/${capture_ids[$index]}")"
