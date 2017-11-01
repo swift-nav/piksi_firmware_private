@@ -104,6 +104,9 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_QZS_L2CL:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
+    case CODE_GPS_L5Q:
+      ret = NAP_TRK_CODE_GPS_L5;
+      break;
     case CODE_GLO_L1OF:
       ret = NAP_TRK_CODE_GLO_G1;
       break;
@@ -122,7 +125,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       break;
     case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
@@ -176,8 +178,9 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
-         (mesid.code == CODE_GLO_L2OF) || (mesid.code == CODE_SBAS_L1CA) ||
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5Q)  ||
+         (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
+         (mesid.code == CODE_SBAS_L1CA) ||
          (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
          (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
          (mesid.code == CODE_QZS_L2CL));
@@ -203,8 +206,15 @@ void nap_track_init(u8 channel,
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
   } else {
-    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                    .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+    if ((CODE_GPS_L5I == mesid.code) ||
+        (CODE_GPS_L5Q == mesid.code) ||
+        (CODE_GPS_L5X == mesid.code)) {
+      s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                      .samples = 0};
+    } else {
+      s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                      .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
+    }
   }
 
   /* Correlator spacing: L -> VL */
@@ -447,7 +457,7 @@ void nap_track_read_results(u8 channel,
 
 #ifndef PIKSI_RELEASE
   /* Useful for debugging correlators
-  if (s->mesid.code == CODE_GPS_L2CM && s->mesid.sat == 15) {
+  if (s->mesid.code == CODE_GPS_L5Q) {
     log_info("VEEPLVL IQ \
         %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d",
         s->mesid.sat,

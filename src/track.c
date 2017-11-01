@@ -368,9 +368,9 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->mesid = mesid;
     tracker_channel->nap_channel = id;
 
-    const tracker_interface_t *tracker_intf;
-    tracker_intf = tracker_interface_lookup(mesid);
-    tracker_channel->interface = tracker_intf;
+    const tracker_interface_t *trk_intf;
+    trk_intf = tracker_interface_lookup(mesid);
+    tracker_channel->interface = trk_intf;
 
     tracker_channel->TOW_ms = TOW_INVALID;
     tracker_channel->TOW_ms_prev = TOW_INVALID;
@@ -398,7 +398,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
     nav_data_sync_init(&tracker_channel->nav_data_sync);
     bit_sync_init(&tracker_channel->bit_sync, mesid);
 
-    interface_function(tracker_channel, tracker_intf->init);
+    interface_function(tracker_channel, trk_intf->init);
 
     /* Clear error flags before starting NAP tracking channel */
     error_flags_clear(tracker_channel);

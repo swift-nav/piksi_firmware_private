@@ -1599,6 +1599,10 @@ static void manage_tracking_startup(void) {
       continue;
     }
 
+    if (acq->mesid.code == CODE_GPS_L5Q) {
+      log_info("G%02d L5Q tracking started", acq->mesid.sat);
+    }
+
     /* TODO: Initialize elevation from ephemeris if we know it precisely */
 
     /* Start the decoder channel if needed */

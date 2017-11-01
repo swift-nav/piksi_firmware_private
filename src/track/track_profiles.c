@@ -354,7 +354,11 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
   tp_tm_e track_mode = TP_TM_INITIAL;
 
   if (IS_GPS(mesid)) {
-    track_mode = profile->profile.gps_track_mode;
+    if (CODE_GPS_L5Q == mesid.code) {
+      track_mode = TP_TM_INITIAL;
+    } else {
+      track_mode = profile->profile.gps_track_mode;
+    }
   } else if (IS_GLO(mesid)) {
     track_mode = profile->profile.glo_track_mode;
   } else if (IS_SBAS(mesid)) {

@@ -253,10 +253,10 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
                      const tp_tracker_config_t *config) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
-  tracker_ambiguity_unknown(tracker_channel);
+  log_debug_mesid(mesid, "[+%" PRIu32 "ms] Tracker start",
+                  tracker_channel->update_count);
 
-  log_debug_mesid(
-      mesid, "[+%" PRIu32 "ms] Tracker start", tracker_channel->update_count);
+  tracker_ambiguity_unknown(tracker_channel);
 
   /* Do tracking report to manager */
   tp_report_t report;
@@ -1149,7 +1149,7 @@ static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
   if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code) {
     /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
     responsible_for_update = true;
-  } else if (CODE_GPS_L2CM == mesid.code) {
+  } else if (CODE_GPS_L2CM == mesid.code || CODE_GPS_L5Q == mesid.code) {
     /* Check if corresponding GPS L1CA satellite is being tracked with valid
      * TOW. If GPS L1CA is not tracked, then GPS L2CM updates the TOW cache.
      */

@@ -82,14 +82,14 @@ void do_l1ca_to_l5_handover(u32 sample_count,
   me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L5Q, sat);
 
   if (!tracking_startup_ready(mesid)) {
-    return; /* L2C signal from the SV is already in track */
+    return; /* L5 signal from the SV is already in track */
   }
 
-  //~ u32 capb;
-  //~ ndb_gps_l2cm_l2c_cap_read(&capb);
-  //~ if (0 == (capb & ((u32)1 << (sat - 1)))) {
-    //~ return;
-  //~ }
+  u32 capb;
+  ndb_gps_l2cm_l2c_cap_read(&capb);
+  if (0 == (capb & ((u32)1 << (sat - 1)))) {
+    return;
+  }
 
   if (!handover_valid(code_phase, GPS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(
@@ -102,7 +102,7 @@ void do_l1ca_to_l5_handover(u32 sample_count,
       .sample_count = sample_count,
       /* recalculate doppler freq for L5 from L1 */
       .carrier_freq = carrier_freq * GPS_L5_HZ / GPS_L1_HZ,
-      .code_phase = code_phase,
+      .code_phase = code_phase * GPS_L5_CHIPPING_RATE / GPS_CA_CHIPPING_RATE,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
       /* get initial cn0 from parent L1CA channel */
