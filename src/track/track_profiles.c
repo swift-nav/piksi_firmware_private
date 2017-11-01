@@ -233,14 +233,14 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED },
+      0 },
 
   [IDX_INIT_1] =
   { {   18,             4,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
           TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK },
 
   [IDX_INIT_2] =
   { {   18,             3,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
