@@ -78,7 +78,7 @@ set -e
 hitl_links(){
     echo -n "$COMMENT_HEADER"
     echo -n "\nThese tests are kicked off whenever you push a new commit to this PR."
-    echo -n "\n### capture jobs status"
+    echo -n "\n### job status"
     for index in ${!capture_ids[@]}; do
         echo -n "\n+ "[${SCENARIOS[$index]} runs]"("http://hitl-dashboard.swiftnav.com/job/${capture_ids[$index]}")"
     done
