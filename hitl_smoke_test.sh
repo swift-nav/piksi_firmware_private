@@ -59,8 +59,9 @@ RUNS=\
 # Capture IDs of kicked off jobs.
 capture_ids=()
 
-# Kick off jobs, record capture ID of each job. If a job fails to be kicked
-# off, post a comment to the Pull Request and fail Travis.
+# Kick off jobs, record capture ID of each job. If a job fails to be kicked off,
+# post a comment to the Pull Request. Note: this doesn't fail Travis, since it
+# is part of `after_success`.
 set +e
 for index in ${!SCENARIOS[@]}; do
     URL="$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=${RUNS[$index]}&scenario_name=${SCENARIOS[$index]}"
