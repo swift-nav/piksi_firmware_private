@@ -33,7 +33,7 @@
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
 /** DLL error threshold. Used to assess FLL frequency lock. In [Hz]. */
-#define TP_FLL_DLL_ERR_THRESHOLD_HZ 0.1
+#define TP_FLL_DLL_ERR_THRESHOLD_HZ (0.014f)
 
 /** C/N0 threshold long interval [ms] */
 #define TRACK_CN0_THRES_COUNT_LONG 2000
@@ -740,6 +740,43 @@ static void update_ld_phase(tracker_channel_t *tracker_channel) {
   }
 }
 
+/** Update the frequency lock detector with frequency error.
+ * \param l
+ * \param err Frequency error between DLL and FLL.
+ * \param threshold Frequency error threshold.
+ *
+ * References:
+ *  -# Understanding GPS: Principles and Applications, 2nd Edition
+ *     Section 5.11.2, pp 233-235
+ *     Elliott D. Kaplan. Artech House, 1996.
+ */
+static void freq_lock_detect_update(lock_detect_t *l, float err) {
+  /* Calculated low-pass filtered prompt correlations */
+  l->lpfi.y += l->k1 * (err - l->lpfi.y);
+
+  if (fabsf(l->lpfi.y) < TP_FLL_DLL_ERR_THRESHOLD_HZ) {
+    /* error < threshold, looks like we're locked */
+    l->outo = true;
+    l->pcount2 = 0;
+    /* Wait before raising the pessimistic indicator */
+    if (l->pcount1 > l->lp) {
+      l->outp = true;
+    } else {
+      l->pcount1++;
+    }
+  } else {
+    /* error >= threshold, looks like we're not locked */
+    l->outp = false;
+    l->pcount1 = 0;
+    /* Wait before lowering the optimistic indicator */
+    if (l->pcount2 > l->lo) {
+      l->outo = false;
+    } else {
+      l->pcount2++;
+    }
+  }
+}
+
 static void update_ld_freq(tracker_channel_t *tracker_channel) {
   /* In FLL mode, there is no phase lock. Check if FLL/DLL error is small */
   tl_rates_t rates = {0};
@@ -748,10 +785,8 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
       rates.code_freq -
       rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid);
 
-  lock_detect_update(&tracker_channel->ld_freq,
-                     TP_FLL_DLL_ERR_THRESHOLD_HZ,
-                     freq_err,
-                     tp_get_ld_ms(tracker_channel->tracking_mode));
+  /* Calculate low-pass filtered frequency error */
+  freq_lock_detect_update(&tracker_channel->ld_freq, freq_err);
 
   bool outp = tracker_channel->ld_freq.outp;
 
@@ -783,6 +818,9 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
 
     if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
       update_ld_phase(tracker_channel);
+    } else {
+      /* Reset internal variables while detector is not in use. */
+      memset(&tracker_channel->ld_phase, 0, sizeof(tracker_channel->ld_phase));
     }
 
     update_ld_freq(tracker_channel);
