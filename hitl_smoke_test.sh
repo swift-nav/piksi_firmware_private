@@ -86,7 +86,7 @@ hitl_links(){
         echo -n "\n+ "[${SCENARIOS[$index]} runs]"("http://hitl-dashboard.swiftnav.com/job/${capture_ids[$index]}")"
     done
     echo -n "\n### gnss-analysis results"
-    echo -n "\nThese links will only have data if at least one run has completed."
+    echo -n "\nAt least one run must complete for these links to have data."
     echo -n "\n+ "[passfail]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=pass_fail&scenario="
     for index in ${!SCENARIOS[@]}; do
       echo -n "${SCENARIOS[$index]},"
