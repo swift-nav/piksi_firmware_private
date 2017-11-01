@@ -44,7 +44,7 @@
 
 /** If pessimistic lock detector shows "unlocked" for >=
     TRACK_DROP_UNLOCKED_MS, drop the channel. */
-#define TRACK_DROP_UNLOCKED_MS 1500
+#define TRACK_DROP_UNLOCKED_MS 2500
 
 #define ACQ_FULL_CF_STEP soft_multi_acq_bin_width()
 
