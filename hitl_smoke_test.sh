@@ -49,9 +49,11 @@ SCENARIOS=\
 ("live-roof-1543-mission"
 "live-roof-1543-mission-dropouts-zero-baseline"
 "live-roof-1543-mission-skylark-glonass"
+"live-roof-1543-mission-skylark"
 )
 RUNS=\
 ("1"
+"1"
 "1"
 "1"
 )
