@@ -139,6 +139,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_common.o \
         $(SWIFTNAV_ROOT)/src/track/track_sid_db.o \
         $(SWIFTNAV_ROOT)/src/track/track_sbp.o \
+        $(SWIFTNAV_ROOT)/src/track/track_utils.o \
         $(SWIFTNAV_ROOT)/src/glo_map_setup.o \
         $(SWIFTNAV_ROOT)/src/manage.o \
         $(SWIFTNAV_ROOT)/src/settings.o \

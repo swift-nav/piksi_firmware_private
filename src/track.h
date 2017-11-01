@@ -256,7 +256,8 @@ typedef struct {
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
 
-  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 plock : 1;          /**< Pessimistic phase lock flag */
+  u32 flock : 1;          /**< Pessimistic frequency lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 bsync_sticky : 1;   /**< Bit sync flag */
   u32 profile_update : 1; /**< Flag if the profile update is required */
@@ -603,10 +604,12 @@ typedef struct {
 
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
+  float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
+                                    discriminator output [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [hz] */
+  float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
   u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
   u64 update_timestamp_ms;     /**< Tracking channel last update
                                     timestamp [ms] */
@@ -775,7 +778,8 @@ typedef struct {
   float acceleration;     /**< Acceleration in Hz/s */
   float cn0;              /**< Computed C/N0 (filtered) in dB/Hz */
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
-  u32 plock : 1;          /**< Pessimistic lock flag */
+  u32 plock : 1;          /**< Pessimistic phase lock flag */
+  u32 flock : 1;          /**< Pessimistic frequency lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
@@ -840,10 +844,11 @@ void tp_tl_init(tp_tl_state_t *s,
 void tp_tl_retune(tp_tl_state_t *s, tp_ctrl_e ctrl, const tl_config_t *config);
 
 void tp_tl_adjust(tp_tl_state_t *s, float err);
-void tp_tl_get_rates(tp_tl_state_t *s, tl_rates_t *rates);
+void tp_tl_get_rates(const tp_tl_state_t *s, tl_rates_t *rates);
 void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
-float tp_tl_get_dll_error(tp_tl_state_t *s);
+float tp_tl_get_fll_error(const tp_tl_state_t *s);
+float tp_tl_get_dll_error(const tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);
 void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq);
