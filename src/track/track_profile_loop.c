@@ -239,34 +239,34 @@ void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas) {
  *
  * \param[in] s  Tracker state.
  *
- * \return Raw frequency error
+ * \return Unfiltered frequency error [Hz]
  *
  */
 float tp_tl_get_fll_error(const tp_tl_state_t *s) {
-  float freq_error = 0.0f;
+  float freq_error_hz = 0.0f;
 
   switch (s->ctrl) {
     case TP_CTRL_PLL2:
       if (s->pll2.freq_a0 > 0) {
-        freq_error = s->pll2.discr_sum * s->pll2.discr_mul;
+        freq_error_hz = s->pll2.discr_sum * s->pll2.discr_mul;
       }
       break;
 
     case TP_CTRL_PLL3:
       if ((s->pll3.fll_bw_hz > 0) && (0 != s->pll3.discr_cnt)) {
-        freq_error = s->pll3.discr_sum_hz / s->pll3.discr_cnt;
+        freq_error_hz = s->pll3.discr_sum_hz / s->pll3.discr_cnt;
       }
       break;
 
     case TP_CTRL_FLL1:
       if (s->fll1.freq_a0 > 0) {
-        freq_error = s->fll1.discr_sum * s->fll1.discr_mul;
+        freq_error_hz = s->fll1.discr_sum * s->fll1.discr_mul;
       }
       break;
 
     case TP_CTRL_FLL2:
       if (s->fll2.freq_a0 > 0) {
-        freq_error = s->fll2.discr_sum * s->fll2.discr_mul;
+        freq_error_hz = s->fll2.discr_sum * s->fll2.discr_mul;
       }
       break;
 
@@ -274,7 +274,7 @@ float tp_tl_get_fll_error(const tp_tl_state_t *s) {
       assert(false);
   }
 
-  return freq_error;
+  return freq_error_hz;
 }
 
 /**

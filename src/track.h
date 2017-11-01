@@ -611,18 +611,18 @@ typedef struct {
 
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
-  float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
-                                    discriminator output [Hz]. */
-  float cn0;                   /**< Current estimate of C/N0. */
-  u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
-  float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
-  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;     /**< Tracking channel last update
-                                    timestamp [ms] */
-  bool updated_once;           /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  glo_health_t health;         /**< GLO SV health info */
+  float unfiltered_freq_error_hz; /**< Unfiltered frequency error at the FLL
+                                       discriminator output [Hz]. */
+  float cn0;                      /**< Current estimate of C/N0. */
+  u32 flags;                      /**< Tracker flags TRACKER_FLAG_... */
+  float acceleration;             /**< Acceleration [g] */
+  float xcorr_freq;               /**< Doppler for cross-correlation [Hz] */
+  u64 init_timestamp_ms;          /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;        /**< Tracking channel last update
+                                       timestamp [ms] */
+  bool updated_once;   /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;   /**< Half-cycle ambiguity resolution */
+  glo_health_t health; /**< GLO SV health info */
 
   /** Associated tracker interface. */
   const struct tracker_interface *interface;
