@@ -202,9 +202,8 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
   /* Check common GPS */
   if (IS_GPS(sid)) {
-
     if (shis.shi1_set && !check_6bit_health_word(shis.shi1, sid.code)) {
-        return CODE_NAV_STATE_INVALID;
+      return CODE_NAV_STATE_INVALID;
     }
 
     almanac_t a;
