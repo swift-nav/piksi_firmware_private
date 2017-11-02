@@ -311,14 +311,16 @@ static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
   char hf_sid_str[SID_STR_LEN_MAX];
   sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
 
-  /* NAV data health summary indicates error -> delete data
-   * TODO: almanac data is more likely to be from another satellite than this
-   *       unhealthy one, do not delete? Furthermore we should actually delete
-   *       the almanacs for other SVs that were recorded from this unhealthy 
-   *       one. */
-  if (NDB_ERR_NONE == ndb_almanac_erase(target_sid)) {
-    log_info_sid(
-        target_sid, "almanac deleted (health flags from %s)", hf_sid_str);
+  /** NAV data health summary indicates error -> delete data 
+   * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
+   *       health words indicate health of the NAV data in accordance with
+   *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
+   *       SV Health). These details indicate which of the subframes are bad.
+   */
+  if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
+    log_info_sid(target_sid,
+                 "decoded almanacs deleted (health flags from %s)",
+                 hf_sid_str);
   }
 
   if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
