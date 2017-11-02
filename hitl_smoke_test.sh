@@ -87,16 +87,14 @@ hitl_links(){
     done
     echo -n "\n### gnss-analysis results"
     echo -n "\nAt least one run must complete for these links to have data."
-    echo -n "\n+ "[passfail]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=pass_fail&scenario="
+    echo -n "\n#### passfail"
     for index in ${!SCENARIOS[@]}; do
-      echo -n "${SCENARIOS[$index]},"
+      echo -n "\n+ "[${SCENARIOS[$index]}]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=pass_fail&scenario=${SCENARIOS[$index]}&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)" 
     done
-    echo -n "&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)"
-    echo -n "\n+ "[detailed]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=detailed&scenario="
+    echo -n "\n#### detailed"
     for index in ${!SCENARIOS[@]}; do
-      echo -n "${SCENARIOS[$index]},"
+      echo -n "\n+ "[${SCENARIOS[$index]}]"(""https://gnss-analysis.swiftnav.com/summary_type=q50&metrics_preset=detailed&scenario=${SCENARIOS[$index]}&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)" 
     done
-    echo -n "&build_type=pr&firmware_versions=$BUILD_VERSION&groupby_key=firmware&display_type=table)"
 }
 COMMENT="$(hitl_links)"
 echo "PR comment:"
