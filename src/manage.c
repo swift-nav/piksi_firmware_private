@@ -157,7 +157,7 @@ static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
 /** Flag if BEIDOU2 enabled */
 static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
 /** Flag if QZSS enabled */
-static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT;
+static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 /** Flag if Galileo enabled */
 static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
@@ -248,11 +248,11 @@ static void manage_acq_thread(void *arg) {
       log_info("Switching to re-acq mode");
     }
 
-    //~ if (had_fix) {
-    //~ manage_reacq();
-    //~ } else {
-    manage_acq();
-    //~ }
+    if (had_fix) {
+      manage_reacq();
+    } else {
+      manage_acq();
+    }
 
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
@@ -327,7 +327,7 @@ static bool bds2_enable_notify(struct setting *s, const char *val) {
 static bool qzss_enable_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
-    if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2CX_SUPPORT)) {
+    if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT)) {
       /* user tries enable QZSS on the platform that does not support it */
       log_error("The platform does not support QZSS");
       qzss_enabled = false;

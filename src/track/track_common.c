@@ -946,7 +946,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
 
   /* remove channels with a large positive Doppler outlier */
   if (fabsf(tracker->carrier_freq) > fMaxDoppler) {
-    log_info_mesid(
+    log_debug_mesid(
         tracker->mesid, "Doppler %.2f too high", tracker->carrier_freq);
     (tracker->flags) |= TRACKER_FLAG_OUTLIER;
   }
@@ -977,7 +977,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
     if ((fabs(diff_hz) > max_diff_hz)) {
-      log_info_mesid(
+      log_debug_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
       tracker->flags |= TRACKER_FLAG_OUTLIER;
     }
