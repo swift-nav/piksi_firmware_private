@@ -34,7 +34,7 @@ typedef struct {
   cnav_msg_decoder_t cnav_msg_decoder;
 } gps_l2c_decoder_data_t;
 
-static decoder_t gps_l2c_decoders[NUM_GPS_L2CM_DECODERS];
+static decoder_t gps_l2c_decoders[NUM_GPS_L2C_DECODERS];
 static gps_l2c_decoder_data_t
     gps_l2c_decoder_data[ARRAY_SIZE(gps_l2c_decoders)];
 

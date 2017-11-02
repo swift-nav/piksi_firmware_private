@@ -118,9 +118,15 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
   assert(sid_valid(sid));
   u16 idx = sid_to_code_index(sid);
   static const u8 constellation_to_alm_offset[CONSTELLATION_COUNT] = {
-      0,                           /* CONSTELLATION_GPS offset */
-      NUM_SATS_GPS,                /* CONSTELLATION_SBAS offset */
-      NUM_SATS_GPS + NUM_SATS_SBAS /* CONSTELLATION_GLO offset */
+      0,                            /* CONSTELLATION_GPS offset */
+      NUM_SATS_GPS,                 /* CONSTELLATION_SBAS offset */
+      NUM_SATS_GPS + NUM_SATS_SBAS, /* CONSTELLATION_GLO offset */
+      NUM_SATS_GPS + NUM_SATS_SBAS +
+          NUM_SATS_GLO, /* CONSTELLATION_BDS2 offset */
+      NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
+          NUM_SATS_BDS2, /* CONSTELLATION_GAL offset */
+      NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO + NUM_SATS_BDS2 +
+          NUM_SATS_GAL /* CONSTELLATION_QZS offset */
   };
   /* Current architecture uses one almanac per satellite. */
   constellation_t constellation = sid_to_constellation(sid);

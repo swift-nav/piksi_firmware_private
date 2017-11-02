@@ -36,7 +36,7 @@
 //~ #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
 #define SOFTMACQ_SAMPLE_RATE_Hz (SOFTMACQ_RAW_FS / SOFTMACQ_DECFACT_GPSL1CA)
-#define CODE_SMPS (SOFTMACQ_SAMPLE_RATE_Hz / 1000)
+#define CODE_SPMS (SOFTMACQ_SAMPLE_RATE_Hz / 1000)
 
 static void code_resample(const me_gnss_signal_t mesid,
                           float chips_per_sample,
@@ -55,12 +55,14 @@ static bool ifft_operations(s16 doppler_bin,
                             const sc16_t *code_fft,
                             const sc16_t *sample_fft,
                             float *doppler);
-static bool acq_peak_search(const me_gnss_signal_t mesid,
-                            float doppler,
-                            float fft_bin_width,
-                            acq_peak_search_t *peak);
+static bool peak_search(const me_gnss_signal_t mesid,
+                        sc16_t *c_array,
+                        const u32 array_size,
+                        const float doppler,
+                        const float fft_bin_width,
+                        acq_peak_search_t *peak);
 
-static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize);
+static void GetFourMaxes(const u32 *_pcVec, u32 _uSize);
 
 static sc16_t code_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
@@ -88,24 +90,27 @@ bool soft_acq_search(const sc16_t *_cSignal,
   u32 fft_len_log2 = SOFTMACQ_FFTLEN_LOG2;
   u32 fft_len = 1 << fft_len_log2;
   assert(fft_len <= INTFFT_MAXSIZE);
-  assert(fft_len > CODE_SMPS);
+  assert(fft_len > CODE_SPMS);
 
   /* init soft FFT */
   if (sFftConfig.N != fft_len) {
     InitIntFFTr2(&sFftConfig, fft_len);
-    log_info("InitIntFFTr2()");
+    log_debug("InitIntFFTr2()");
   }
 
   float fft_bin_width = SOFTMACQ_SAMPLE_RATE_Hz / fft_len;
   float chips_per_sample =
       code_to_chip_rate(mesid.code) / SOFTMACQ_SAMPLE_RATE_Hz;
 
-  /* Generate, resample, and FFT code */
-  code_resample(mesid, chips_per_sample, code_fft, fft_len);
-
   /* For constellations with frequent symbol transitions, do 1x4 CxNC */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    memset(code_fft + CODE_SMPS, 0, sizeof(sc16_t) * (fft_len - CODE_SMPS));
+    code_resample(mesid,
+                  chips_per_sample,
+                  code_fft + CODE_SPMS * (fft_len / CODE_SPMS - 1),
+                  CODE_SPMS);
+  } else {
+    /* Generate, resample, and FFT code */
+    code_resample(mesid, chips_per_sample, code_fft, fft_len);
   }
 
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
@@ -169,7 +174,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
     }
 
     /* Find highest peak of the current doppler bin */
-    if (!acq_peak_search(mesid, doppler, fft_bin_width, &peak)) {
+    if (!peak_search(
+            mesid, result_fft, fft_len, doppler, fft_bin_width, &peak)) {
       return false;
     }
 
@@ -329,6 +335,8 @@ static bool ifft_operations(s16 doppler_bin,
 /** Read IFFT results from NAP and compute cn0 of highest peak.
  *  If cn0 is new maximum cn0, save cn0, doppler and sample_offset.
  * \param[in]     mesid         ME signal id
+ * \param[in]     c_array       Complex input array
+ * \param[in]     array_sz      Array size
  * \param[in]     doppler       Actual doppler of current frequency bin [Hz]
  * \param[in]     fft_len       FFT length
  * \param[in]     fft_bin_width Doppler bin width [Hz]
@@ -336,18 +344,41 @@ static bool ifft_operations(s16 doppler_bin,
  * \retval true  Success
  * \retval false Failure
  */
-static bool acq_peak_search(const me_gnss_signal_t mesid,
-                            float doppler,
-                            float fft_bin_width,
-                            acq_peak_search_t *peak) {
-  uint32_t k = 0, kmax = 0;
+static bool peak_search(const me_gnss_signal_t mesid,
+                        sc16_t *c_array,
+                        const u32 array_sz,
+                        const float doppler,
+                        const float fft_bin_width,
+                        acq_peak_search_t *peak) {
+  u32 k = 0, kmax = 0;
   u32 peak_index;
   u32 peak_mag_sq;
   u32 sum_mag_sq;
   float snr = 0.0f;
   float cn0 = 0.0f;
+  u32 *result_mag = (u32 *)c_array;
 
-  GetFourMaxes(result_fft, CODE_SMPS);
+  /* In place magnitude */
+  for (k = 0; k < array_sz; k++) {
+    s32 re = c_array[k].r;
+    s32 im = c_array[k].i;
+    result_mag[k] = (u32)(re * re) + (u32)(im * im);
+  }
+
+  /* For constellations with frequent symbol transitions,
+   * accumulate non-coherently */
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    u8 non_coh = array_sz / CODE_SPMS;
+    for (u32 m = 1; m < non_coh; m++) {
+      for (u32 h = 0; h < CODE_SPMS; h++) {
+        u32 src_idx = m * CODE_SPMS + h;
+        if (src_idx >= array_sz) break;
+        result_mag[h] += result_mag[src_idx];
+      }
+    }
+  }
+
+  GetFourMaxes(result_mag, CODE_SPMS);
   peak_mag_sq = 0;
   peak_index = 0;
   for (k = 0; k < 4; k++) {
@@ -365,7 +396,7 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   }
 
   /* Compute C/N0 */
-  snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SMPS / 4));
+  snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SPMS / 4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
 
   if (cn0 > peak->cn0) {
@@ -378,29 +409,24 @@ static bool acq_peak_search(const me_gnss_signal_t mesid,
   return true;
 }
 
-static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize) {
+/**
+ * Gets the maximums in the four quarter-slices of the input array
+ * \param[in]     _puVec       Input array of magnitude values
+ * \param[in]     _uSize       Array size
+ */
+static void GetFourMaxes(const u32 *_puVec, u32 _uSize) {
   u32 k, uTmpMag, uSz4th;
 
-  if (NULL == _pcVec) return;
+  if (NULL == _puVec) return;
   if (_uSize == 0) return;
 
-  puMaxIdx[0] = 0;
-  puMaxIdx[1] = 0;
-  puMaxIdx[2] = 0;
-  puMaxIdx[3] = 0;
-  puMaxVal[0] = 0;
-  puMaxVal[1] = 0;
-  puMaxVal[2] = 0;
-  puMaxVal[3] = 0;
-  puSumVal[0] = 0;
-  puSumVal[1] = 0;
-  puSumVal[2] = 0;
-  puSumVal[3] = 0;
+  memset(puMaxIdx, 0, 4 * sizeof(u32));
+  memset(puMaxVal, 0, 4 * sizeof(u32));
+  memset(puSumVal, 0, 4 * sizeof(u32));
   uSz4th = _uSize / 4;
 
   for (k = 0; k < 1 * uSz4th; k++) {
-    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) +
-              ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    uTmpMag = _puVec[k];
     puSumVal[0] += uTmpMag;
     if (uTmpMag > puMaxVal[0]) {
       puMaxVal[0] = uTmpMag;
@@ -408,8 +434,7 @@ static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize) {
     }
   }
   for (k = 1 * uSz4th; k < 2 * uSz4th; k++) {
-    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) +
-              ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    uTmpMag = _puVec[k];
     puSumVal[1] += uTmpMag;
     if (uTmpMag > puMaxVal[1]) {
       puMaxVal[1] = uTmpMag;
@@ -417,8 +442,7 @@ static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize) {
     }
   }
   for (k = 2 * uSz4th; k < 3 * uSz4th; k++) {
-    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) +
-              ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    uTmpMag = _puVec[k];
     puSumVal[2] += uTmpMag;
     if (uTmpMag > puMaxVal[2]) {
       puMaxVal[2] = uTmpMag;
@@ -426,8 +450,7 @@ static void GetFourMaxes(const sc16_t *_pcVec, u32 _uSize) {
     }
   }
   for (k = 3 * uSz4th; k < _uSize; k++) {
-    uTmpMag = ((s32)_pcVec[k].r * (s32)_pcVec[k].r) +
-              ((s32)_pcVec[k].i * (s32)_pcVec[k].i);
+    uTmpMag = _puVec[k];
     puSumVal[3] += uTmpMag;
     if (uTmpMag > puMaxVal[3]) {
       puMaxVal[3] = uTmpMag;

@@ -87,6 +87,8 @@ typedef struct tp_profile_entry {
     tp_ctrl_e controller_type; /**< Controller type */
     tp_tm_e gps_track_mode;    /**< GPS Tracking mode */
     tp_tm_e glo_track_mode;    /**< GLO Tracking mode */
+    tp_tm_e sbas_track_mode;   /**< SBAS Tracking mode */
+    tp_tm_e bds2_track_mode;   /**< BDS2 Tracking mode */
   } profile;
 
   u8 ld_phase_params; /**< One of TP_LD_PARAMS_... constants */
@@ -221,73 +223,83 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 /*
   These are the short names of the numbers & parameters listed
   in the same order below.
-  { { pll_bw,      fll_bw,       dll_bw,     controller,      tracking_mode_gps,
-      tracking_mode_glo },              ld_phase_params,         ld_freq_params,
-   time_ms,   cn0_low_thr, cn0_high_thr,
-      next,       cn0_low,     cn0_high,
+  { { pll_bw,      fll_bw,       dll_bw,     controller,
+      tracking_mode_gps, tracking_mode_glo, tracking_mode_sbas, tracking_mode_bds2 },
+    ld_phase_params,        ld_freq_params,
+    time_ms,   cn0_low_thr,   cn0_high_thr,
+       next,       cn0_low,       cn0_high,
      flags }
 */
 
   [IDX_INIT_0] =
-  { {   18,             5,           10,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+  { {   18,             5,           10,   TP_CTRL_PLL3,
+          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+          TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED },
 
   [IDX_INIT_1] =
-  { {   18,             4,            7,   TP_CTRL_PLL3,          TP_TM_INITIAL,
-          TP_TM_INITIAL },       TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+  { {   18,             4,            7,   TP_CTRL_PLL3,
+          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+    TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
-  { {   18,             3,            5,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
-          TP_TM_1MS_GLO },       TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+  { {   18,             3,            5,   TP_CTRL_PLL3,
+          TP_TM_1MS_GPS,  TP_TM_1MS_GLO,  TP_TM_1MS_SBAS,  TP_TM_1MS_BDS2 },
+    TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
        100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
   [IDX_1MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,          TP_TM_1MS_GPS,
-           TP_TM_1MS_GLO },      TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
+          TP_TM_1MS_GPS,  TP_TM_1MS_GLO,  TP_TM_1MS_SBAS,  TP_TM_1MS_BDS2 },
+    TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
            40,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,          TP_TM_2MS_GPS,
-           TP_TM_2MS_GLO },      TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
+  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
+          TP_TM_2MS_GPS,  TP_TM_2MS_GLO,  TP_TM_2MS_SBAS,  TP_TM_2MS_BDS2 },
+    TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,          TP_TM_5MS_GPS,
-           TP_TM_5MS_GLO },      TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+          TP_TM_5MS_GPS,  TP_TM_5MS_GLO,  TP_TM_2MS_SBAS,  TP_TM_5MS_BDS2 },
+    TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
            40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,         TP_TM_10MS_GPS,
-          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+        TP_TM_10MS_GPS,  TP_TM_10MS_GLO,  TP_TM_2MS_SBAS, TP_TM_10MS_BDS2 },
+    TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
-          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,
+      TP_TM_20MS_GPS,  TP_TM_10MS_GLO,  TP_TM_2MS_SBAS,  TP_TM_20MS_BDS2 },
+    TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {     0,           1.0,          .5,   TP_CTRL_PLL3,         TP_TM_20MS_GPS,
-          TP_TM_10MS_GLO },     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+  { {      0,           1.0,          .5,   TP_CTRL_PLL3,
+      TP_TM_20MS_GPS,  TP_TM_10MS_GLO,  TP_TM_2MS_SBAS,  TP_TM_20MS_BDS2 },
+    TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
@@ -311,14 +323,14 @@ static const tp_profile_entry_t *mesid_to_profiles(
 
   switch (mesid_to_constellation(mesid)) {
     case CONSTELLATION_GPS:
-    case CONSTELLATION_SBAS:
     case CONSTELLATION_GLO:
+    case CONSTELLATION_SBAS:
+    case CONSTELLATION_BDS2:
+    case CONSTELLATION_QZS:
       profiles = gnss_track_profiles;
       break;
 
-    case CONSTELLATION_BDS2:
     case CONSTELLATION_GAL:
-    case CONSTELLATION_QZS:
     case CONSTELLATION_INVALID:
     case CONSTELLATION_COUNT:
     default:
@@ -342,7 +354,14 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
     track_mode = profile->profile.gps_track_mode;
   } else if (IS_GLO(mesid)) {
     track_mode = profile->profile.glo_track_mode;
+  } else if (IS_SBAS(mesid)) {
+    track_mode = profile->profile.sbas_track_mode;
+  } else if (IS_BDS2(mesid)) {
+    track_mode = profile->profile.bds2_track_mode;
+  } else if (IS_QZSS(mesid)) {
+    track_mode = profile->profile.gps_track_mode;
   } else {
+    log_error_mesid(mesid, "unknown profile?");
     assert(0);
   }
   return track_mode;
@@ -455,7 +474,12 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
   profile->use_alias_detection =
       (TP_TM_1MS_GPS != mode) && (TP_TM_1MS_GLO != mode) &&
       (TP_TM_2MS_GPS != mode) && (TP_TM_2MS_GLO != mode) &&
-      (TP_TM_20MS_GPS != mode) && (TP_TM_INITIAL != mode);
+      (TP_TM_5MS_GPS != mode) && (TP_TM_5MS_GLO != mode) &&
+      (TP_TM_10MS_GLO != mode) && (TP_TM_1MS_BDS2 != mode) &&
+      (TP_TM_1MS_SBAS != mode) && (TP_TM_2MS_BDS2 != mode) &&
+      (TP_TM_2MS_SBAS != mode) && (TP_TM_5MS_BDS2 != mode) &&
+      (TP_TM_10MS_BDS2 != mode) && (TP_TM_20MS_BDS2 != mode) &&
+      (TP_TM_INITIAL != mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
 }
 
@@ -633,23 +657,36 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
 
                                  [TP_TM_1MS_GPS] = 1,
                                  [TP_TM_1MS_GLO] = 1,
+                                 [TP_TM_1MS_SBAS] = 1,
+                                 [TP_TM_1MS_BDS2] = 1,
 
                                  [TP_TM_2MS_GPS] = 2,
                                  [TP_TM_2MS_GLO] = 2,
+                                 [TP_TM_2MS_SBAS] = 2,
+                                 [TP_TM_2MS_BDS2] = 2,
 
                                  [TP_TM_5MS_GPS] = 5,
                                  [TP_TM_5MS_GLO] = 5,
+                                 [TP_TM_5MS_BDS2] = 5,
 
                                  [TP_TM_10MS_GPS] = 10,
                                  [TP_TM_10MS_GLO] = 10,
+                                 [TP_TM_10MS_BDS2] = 10,
 
-                                 [TP_TM_20MS_GPS] = 20};
+                                 [TP_TM_20MS_GPS] = 20,
+                                 [TP_TM_20MS_BDS2] = 20};
 
   tp_tm_e track_mode;
   if (IS_GPS(mesid)) {
     track_mode = state->profiles[index].profile.gps_track_mode;
   } else if (IS_GLO(mesid)) {
     track_mode = state->profiles[index].profile.glo_track_mode;
+  } else if (IS_SBAS(mesid)) {
+    track_mode = state->profiles[index].profile.sbas_track_mode;
+  } else if (IS_BDS2(mesid)) {
+    track_mode = state->profiles[index].profile.bds2_track_mode;
+  } else if (IS_QZSS(mesid)) {
+    track_mode = state->profiles[index].profile.gps_track_mode;
   } else {
     assert(!"Unsupported constellation");
   }

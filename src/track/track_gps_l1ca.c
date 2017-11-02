@@ -121,8 +121,9 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
                            float xcorr_cn0_diffs[]) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
-  if (CODE_GPS_L1CA != entry->mesid.code) {
-    /* Ignore other than GPS L1CA for now */
+  if ((CODE_GPS_L1CA != entry->mesid.code) &&
+      (CODE_QZS_L1CA != entry->mesid.code)) {
+    /* Ignore other than L1CA for now */
     return;
   }
 
