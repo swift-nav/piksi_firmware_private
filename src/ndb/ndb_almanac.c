@@ -787,24 +787,27 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
     }
 
     switch (ndb_alma_candidate_update(a)) {
-      case NDB_CAND_IDENTICAL:
-        res = NDB_ERR_NO_CHANGE;
-        break;
-      case NDB_CAND_OLDER:
-        res = NDB_ERR_OLDER_DATA;
-        break;
-      case NDB_CAND_NEW_TRUSTED:
-        res = ndb_update(a, ds, &ndb_almanac_md[map_sid_to_index(a->sid)]);
-        break;
-      case NDB_CAND_NEW_CANDIDATE:
-      case NDB_CAND_MISMATCH:
-        res = NDB_ERR_UNCONFIRMED_DATA;
-        break;
-      case NDB_CAND_GPS_TIME_MISSING:
-        res = NDB_ERR_GPS_TIME_MISSING;
-        break;
-      default:
-        assert(!"Invalid status");
+    case NDB_CAND_IDENTICAL:
+      res = NDB_ERR_NO_CHANGE;
+      break;
+    case NDB_CAND_OLDER:
+      res = NDB_ERR_OLDER_DATA;
+      break;
+    case NDB_CAND_NEW_TRUSTED:
+      res = ndb_update_with_src_sid(a,
+                                    ds,
+                                    *src_sid,
+                                    &ndb_almanac_md[map_sid_to_index(a->sid)]);
+      break;
+    case NDB_CAND_NEW_CANDIDATE:
+    case NDB_CAND_MISMATCH:
+      res = NDB_ERR_UNCONFIRMED_DATA;
+      break;
+    case NDB_CAND_GPS_TIME_MISSING:
+      res = NDB_ERR_GPS_TIME_MISSING;
+      break;
+    default:
+      assert(!"Invalid status");
     }
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -955,6 +958,54 @@ ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid) {
                      NDB_EVENT_SENDER_ID_VOID);
 
   return res;
+}
+
+/**
+ * Erase almanac data by data source SV
+ *
+ * \param[in] sid Data source SV signal identifier
+ *
+ * \retval NDB_ERR_NONE      Successful operation.
+ * \retval NDB_ERR_NO_CHANGE No data to erase.
+ */
+ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid) {
+  ndb_op_code_t ret = NDB_ERR_NO_CHANGE;
+  for (u8 idx = 0; idx < ARRAY_SIZE(ndb_almanac); idx++) {
+    if (NDB_DS_UNDEFINED == ndb_almanac_md[idx].nv_data.source ||
+        0 != sid_compare(ndb_almanac_md[idx].nv_data.src_sid, src_sid)) {
+      continue;
+    }
+    almanac_t a;
+    ndb_op_code_t ret_internal = ndb_retrieve(&ndb_almanac_md[idx],
+                                              &a,
+                                              sizeof(a),
+                                              NULL,
+                                              NDB_USE_NV_ALMANAC);
+    if (NDB_ERR_NONE != ret_internal) {
+      log_warn("Error " PRIu8 " reading almanac, ndb_almanac_erase_by_src",
+               ret_internal);
+      continue;
+    }
+
+    ret = ret_internal;
+
+    s16 cand_idx = ndb_alma_candidate_find(a.sid, -1);
+    if (0 <= cand_idx) {
+      ndb_alma_candidate_release(cand_idx);
+    }
+
+    ndb_op_code_t res = ndb_erase(&ndb_almanac_md[idx]);
+
+    sbp_send_ndb_event(NDB_EVENT_ERASE,
+                       NDB_EVENT_OTYPE_ALMANAC,
+                       res,
+                       NDB_DS_UNDEFINED,
+                       &a.sid,
+                       NULL,
+                       NDB_EVENT_SENDER_ID_VOID);
+  }
+
+  return ret;
 }
 
 /**
