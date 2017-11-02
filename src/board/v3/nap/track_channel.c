@@ -102,7 +102,8 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
       break;
     case CODE_GPS_L2CM:
     case CODE_GPS_L2CL:
-    case CODE_GPS_L2CX:
+    case CODE_QZS_L2CM:
+    case CODE_QZS_L2CL:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
     case CODE_GLO_L1OF:
@@ -121,6 +122,7 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
       assert(!"Unsupported SID");
       break;
+    case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
@@ -137,8 +139,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
