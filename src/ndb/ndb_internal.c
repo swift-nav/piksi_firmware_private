@@ -860,10 +860,7 @@ ndb_op_code_t ndb_update_with_src_sid(const void *data,
 ndb_op_code_t ndb_update(const void *data,
                          ndb_data_source_t src,
                          ndb_element_metadata_t *md) {
-  return ndb_update_with_src_sid(data,
-                                 src,
-                                 construct_sid(-1, -1),
-                                 md);
+  return ndb_update_with_src_sid(data, src, construct_sid(-1, -1), md);
 }
 
 /**
