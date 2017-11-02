@@ -336,8 +336,10 @@ u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel) {
                                                tracker_channel->cycle_no);
   }
   if (0 == result_ms) {
-    log_error_mesid(tracker_channel->mesid, "tracking_mode %d cycle_no %d result_ms 0",
-                    tracker_channel->tracking_mode, tracker_channel->cycle_no);
+    log_error_mesid(tracker_channel->mesid,
+                    "tracking_mode %d cycle_no %d result_ms 0",
+                    tracker_channel->tracking_mode,
+                    tracker_channel->cycle_no);
   }
   return tp_convert_ms_to_chips(
       tracker_channel->mesid, result_ms, code_phase_chips, plock);
@@ -944,7 +946,8 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
 
   /* remove channels with a large positive Doppler outlier */
   if (fabsf(tracker->carrier_freq) > fMaxDoppler) {
-    log_info_mesid(tracker->mesid, "Doppler %.2f too high", tracker->carrier_freq);
+    log_info_mesid(
+        tracker->mesid, "Doppler %.2f too high", tracker->carrier_freq);
     (tracker->flags) |= TRACKER_FLAG_OUTLIER;
   }
 
@@ -974,7 +977,8 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
     if ((fabs(diff_hz) > max_diff_hz)) {
-      log_info_mesid(tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
+      log_info_mesid(
+          tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
       tracker->flags |= TRACKER_FLAG_OUTLIER;
     }
 

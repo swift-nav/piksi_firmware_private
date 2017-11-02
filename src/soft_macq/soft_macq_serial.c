@@ -104,8 +104,10 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* For constellations with frequent symbol transitions, do 1x4 CxNC */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    code_resample(mesid, chips_per_sample,
-                  code_fft + CODE_SPMS * (fft_len/CODE_SPMS - 1), CODE_SPMS);
+    code_resample(mesid,
+                  chips_per_sample,
+                  code_fft + CODE_SPMS * (fft_len / CODE_SPMS - 1),
+                  CODE_SPMS);
   } else {
     /* Generate, resample, and FFT code */
     code_resample(mesid, chips_per_sample, code_fft, fft_len);
