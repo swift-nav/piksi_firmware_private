@@ -110,9 +110,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GLO_L1OF:
       ret = NAP_TRK_CODE_GLO_G1;
       break;
-    case CODE_GLO_L2OF:
-      ret = NAP_TRK_CODE_GLO_G2;
-      break;
     case CODE_BDS2_B11:
       ret = NAP_TRK_CODE_BDS_B1;
       break;
@@ -126,6 +123,7 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5X:
+    case CODE_GLO_L2OF:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
     case CODE_GAL_E1X:
