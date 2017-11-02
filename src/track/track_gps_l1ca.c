@@ -477,7 +477,10 @@ static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
                             tracker_channel->carrier_freq,
                             tracker_channel->cn0,
                             tracker_channel->TOW_ms);
+  }
 
+  if (CODE_GPS_L5Q_SUPPORT && inlock && confirmed && bit_aligned) {
+    /* Start L5 tracker if not running */
     do_l1ca_to_l5_handover(tracker_channel->sample_count,
                            tracker_channel->mesid.sat,
                            tracker_channel->code_phase_prompt,
