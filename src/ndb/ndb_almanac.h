@@ -26,6 +26,7 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
                                 ndb_data_source_t ds,
                                 u16 sender_id);
 ndb_op_code_t ndb_almanac_erase(gnss_signal_t sid);
+ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid);
 ndb_op_code_t ndb_almanac_wn_read(u32 tow, u16 *wn);
 ndb_op_code_t ndb_almanac_wn_store(
     gnss_signal_t sid, u32 tow, u16 wn, ndb_data_source_t ds, u16 sender_id);
