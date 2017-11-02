@@ -311,7 +311,7 @@ static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
   char hf_sid_str[SID_STR_LEN_MAX];
   sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
 
-  /** NAV data health summary indicates error -> delete data 
+  /** NAV data health summary indicates error -> delete data
    * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
    *       health words indicate health of the NAV data in accordance with
    *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
@@ -343,10 +343,8 @@ static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
 static void decode_almanac_health_new(gnss_signal_t src_sid,
                                       u32 hlags_mask,
                                       const u8 hflags[32]) {
-
   /* Copy updated flags into the cache, and update all entries in NDB */
   for (u16 sv_idx = 0; sv_idx < 32; ++sv_idx) {
-
     if (0 == (hlags_mask & 1u << sv_idx)) {
       /* No flag information for this SV */
       continue;
@@ -363,46 +361,46 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
                                             NDB_EVENT_SENDER_ID_VOID);
 
     switch (r) {
-    case NDB_ERR_NONE:
-      log_debug_sid(target_sid,
-                    "almanac health bits updated (0x%02" PRIX8 ")",
-                    health_bits);
-      break;
-    case NDB_ERR_NO_CHANGE:
-      log_debug_sid(target_sid,
-                    "almanac health bits up to date (0x%02" PRIX8 ")",
-                    health_bits);
-      break;
-    case NDB_ERR_UNCONFIRMED_DATA:
-      log_debug_sid(target_sid,
-                    "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
-                    health_bits);
-      break;
-    case NDB_ERR_NO_DATA:
-      log_debug_sid(target_sid,
-                    "almanac health bits are ignored (0x%02" PRIX8 ")",
-                    health_bits);
-      break;
-    case NDB_ERR_OLDER_DATA:
-    case NDB_ERR_MISSING_IE:
-    case NDB_ERR_UNSUPPORTED:
-    case NDB_ERR_FILE_IO:
-    case NDB_ERR_INIT_DONE:
-    case NDB_ERR_BAD_PARAM:
-    case NDB_ERR_ALGORITHM_ERROR:
-    case NDB_ERR_AGED_DATA:
-    case NDB_ERR_GPS_TIME_MISSING:
-    default:
-      log_error_sid(target_sid,
-                    "error %d updating almanac health bits (0x%02" PRIX8 ")",
-                    (int)r,
-                    health_bits);
-      break;
+      case NDB_ERR_NONE:
+        log_debug_sid(target_sid,
+                      "almanac health bits updated (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_NO_CHANGE:
+        log_debug_sid(target_sid,
+                      "almanac health bits up to date (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_UNCONFIRMED_DATA:
+        log_debug_sid(target_sid,
+                      "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_NO_DATA:
+        log_debug_sid(target_sid,
+                      "almanac health bits are ignored (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_OLDER_DATA:
+      case NDB_ERR_MISSING_IE:
+      case NDB_ERR_UNSUPPORTED:
+      case NDB_ERR_FILE_IO:
+      case NDB_ERR_INIT_DONE:
+      case NDB_ERR_BAD_PARAM:
+      case NDB_ERR_ALGORITHM_ERROR:
+      case NDB_ERR_AGED_DATA:
+      case NDB_ERR_GPS_TIME_MISSING:
+      default:
+        log_error_sid(target_sid,
+                      "error %d updating almanac health bits (0x%02" PRIX8 ")",
+                      (int)r,
+                      health_bits);
+        break;
     }
 
     if (!check_6bit_health_word(health_bits, target_sid.code)) {
       erase_nav_data(target_sid, src_sid);
-    }    
+    }
   }
 }
 
