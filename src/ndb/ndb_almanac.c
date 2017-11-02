@@ -787,27 +787,25 @@ ndb_op_code_t ndb_almanac_store(const gnss_signal_t *src_sid,
     }
 
     switch (ndb_alma_candidate_update(a)) {
-    case NDB_CAND_IDENTICAL:
-      res = NDB_ERR_NO_CHANGE;
-      break;
-    case NDB_CAND_OLDER:
-      res = NDB_ERR_OLDER_DATA;
-      break;
-    case NDB_CAND_NEW_TRUSTED:
-      res = ndb_update_with_src_sid(a,
-                                    ds,
-                                    *src_sid,
-                                    &ndb_almanac_md[map_sid_to_index(a->sid)]);
-      break;
-    case NDB_CAND_NEW_CANDIDATE:
-    case NDB_CAND_MISMATCH:
-      res = NDB_ERR_UNCONFIRMED_DATA;
-      break;
-    case NDB_CAND_GPS_TIME_MISSING:
-      res = NDB_ERR_GPS_TIME_MISSING;
-      break;
-    default:
-      assert(!"Invalid status");
+      case NDB_CAND_IDENTICAL:
+        res = NDB_ERR_NO_CHANGE;
+        break;
+      case NDB_CAND_OLDER:
+        res = NDB_ERR_OLDER_DATA;
+        break;
+      case NDB_CAND_NEW_TRUSTED:
+        res = ndb_update_with_src_sid(
+            a, ds, *src_sid, &ndb_almanac_md[map_sid_to_index(a->sid)]);
+        break;
+      case NDB_CAND_NEW_CANDIDATE:
+      case NDB_CAND_MISMATCH:
+        res = NDB_ERR_UNCONFIRMED_DATA;
+        break;
+      case NDB_CAND_GPS_TIME_MISSING:
+        res = NDB_ERR_GPS_TIME_MISSING;
+        break;
+      default:
+        assert(!"Invalid status");
     }
   } else {
     res = NDB_ERR_BAD_PARAM;
@@ -976,11 +974,8 @@ ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid) {
       continue;
     }
     almanac_t a;
-    ndb_op_code_t ret_internal = ndb_retrieve(&ndb_almanac_md[idx],
-                                              &a,
-                                              sizeof(a),
-                                              NULL,
-                                              NDB_USE_NV_ALMANAC);
+    ndb_op_code_t ret_internal = ndb_retrieve(
+        &ndb_almanac_md[idx], &a, sizeof(a), NULL, NDB_USE_NV_ALMANAC);
     if (NDB_ERR_NONE != ret_internal) {
       log_warn("Error " PRIu8 " reading almanac, ndb_almanac_erase_by_src",
                ret_internal);
