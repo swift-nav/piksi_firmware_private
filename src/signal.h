@@ -56,7 +56,7 @@
 
 /* Number of signals on each constellation supported
  * on the current hardware platform. */
-#define PLATFORM_SIGNAL_COUNT_GPS                                    \
+#define PLATFORM_SIGNAL_COUNT_GPS                                   \
   (PLATFORM_SIGNAL_COUNT_GPS_L1CA + PLATFORM_SIGNAL_COUNT_GPS_L2C + \
    PLATFORM_SIGNAL_COUNT_GPS_L1P + PLATFORM_SIGNAL_COUNT_GPS_L2P)
 
