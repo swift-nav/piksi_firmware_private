@@ -24,6 +24,7 @@
 #include "signal.h"
 #include "timing.h"
 #include "track.h"
+#include "track/track_sid_db.h"
 
 #include <assert.h>
 #include <string.h>
@@ -327,6 +328,9 @@ static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
     log_info_sid(
         target_sid, "ephemeris deleted (health flags from %s)", hf_sid_str);
   }
+
+  /* Clear TOW cache */
+  clear_tow_in_sid_db(target_sid);
 }
 
 /**
@@ -490,7 +494,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   /* Let's not use data from unhealthy satellite. */
   if (shm_navigation_unusable(sid)) {
-    /* Clear NDB */
+    /* Clear NDB and TOW cache */
     erase_nav_data(sid, sid);
     /* Clear subframe data */
     nav_msg_init(&data->nav_msg);
