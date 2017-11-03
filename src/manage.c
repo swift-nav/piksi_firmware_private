@@ -25,6 +25,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/gnss_capabilities.h>
 
 #include "./system_monitor.h"
 #include "board/nap/track_channel.h"
@@ -143,14 +144,6 @@ static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
-/* Bootstrap acquisiton by suggesting which PRN are active in the
- * constellation - effective for not FOC systems.
- * TODO: put this into NDB, similar to L2C capability */
-static const u32 sbas_mask = 0x7ffff;
-static const u64 beidou2_mask = 0x07c0013fffULL;
-static const u32 qzss_mask = 0x7;
-static const u64 galileo_mask = 0x022a62ddbULL;
-
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
@@ -251,11 +244,11 @@ static void manage_acq_thread(void *arg) {
       log_info("Switching to re-acq mode");
     }
 
-    if (had_fix) {
-      manage_reacq();
-    } else {
+    //~ if (had_fix) {
+      //~ manage_reacq();
+    //~ } else {
       manage_acq();
-    }
+    //~ }
 
     manage_tracking_startup();
     watchdog_notify(WD_NOTIFY_ACQ_MGMT);
@@ -375,27 +368,24 @@ void manage_acq_setup() {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
     if (IS_GLO(mesid)) {
-      acq_status[i].masked = !glo_enabled;
+      acq_status[i].masked =
+          !glo_enabled || !glo_active(mesid);
     }
     if (IS_SBAS(mesid)) {
       acq_status[i].masked =
-          !sbas_enabled ||
-          (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN)) & 1));
+          !sbas_enabled || !sbas_active(mesid);
     }
     if (IS_BDS2(mesid)) {
       acq_status[i].masked =
-          !bds2_enabled ||
-          (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN)) & 1));
+          !bds2_enabled || !bds_active(mesid);
     }
     if (IS_QZSS(mesid)) {
       acq_status[i].masked =
-          !qzss_enabled ||
-          (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN)) & 1));
+          !qzss_enabled || !qzss_active(mesid);
     }
     if (IS_GAL(mesid)) {
       acq_status[i].masked =
-          !galileo_enabled ||
-          (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN)) & 1));
+          !galileo_enabled || !gal_active(mesid);
     }
 
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
