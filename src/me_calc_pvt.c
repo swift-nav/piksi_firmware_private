@@ -769,7 +769,7 @@ static void me_calc_pvt_thread(void *arg) {
       double dt =
           round(current_fix.clock_offset * (SECS_MS / 2)) / (SECS_MS / 2);
 
-      log_warn("Receiver clock offset larger than %g ms, applying %g ms jump",
+      log_info("Receiver clock offset larger than %g ms, applying %g ms jump",
                MAX_CLOCK_ERROR_S * SECS_MS,
                dt * SECS_MS);
 
