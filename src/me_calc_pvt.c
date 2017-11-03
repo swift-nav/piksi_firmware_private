@@ -89,20 +89,20 @@ static const double glo_l1_isc[] = {[0] = -7.25,
                                     [12] = -8.95,
                                     [13] = -9.5};
 
-static const double glo_l2_isc[] = {[0] = -2.5,
-                                    [1] = -2.26,
-                                    [2] = -1.83,
-                                    [3] = -1.45,
-                                    [4] = -1.27,
-                                    [5] = -1.16,
-                                    [6] = -1,
-                                    [7] = -0.8,
-                                    [8] = -0.5,
-                                    [9] = -0.35,
-                                    [10] = -0.25,
-                                    [11] = 0.0,
-                                    [12] = 0.0,
-                                    [13] = 0.0};
+static const double glo_l2_isc[] = {[0] = -7.5,
+                                    [1] = -7.26,
+                                    [2] = -6.83,
+                                    [3] = -6.45,
+                                    [4] = -6.27,
+                                    [5] = -6.16,
+                                    [6] = -6,
+                                    [7] = -5.8,
+                                    [8] = -5.5,
+                                    [9] = -5.35,
+                                    [10] = -5.25,
+                                    [11] = -5.0,
+                                    [12] = -5.0,
+                                    [13] = -5.0};
 
 static const double gps_l2_isc = -1.95;
 
@@ -315,27 +315,27 @@ static void collect_measurements(u64 rec_tc,
 }
 
 /** Apply ISC corrections from hard-coded table
- *
+ * Alignment is performed relative to the Septentrio
  */
 static void apply_isc_table(u8 n_channels,
                             navigation_measurement_t *nav_meas[]) {
   for (u8 i = 0; i < n_channels; i++) {
-    double corr = 0;
+    double pseudorange_corr = 0;
     switch (nav_meas[i]->sid.code) {
       case CODE_GPS_L1CA:
         break;
 
       case CODE_GPS_L2CL:
       case CODE_GPS_L2CM:
-        corr = gps_l2_isc;
+        pseudorange_corr = gps_l2_isc;
         break;
 
       case CODE_GLO_L1OF:
-        corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        pseudorange_corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
       case CODE_GLO_L2OF:
-        corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        pseudorange_corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
       case CODE_INVALID:
@@ -377,8 +377,8 @@ static void apply_isc_table(u8 n_channels,
         break;
     }
 
-    nav_meas[i]->pseudorange += corr;
-    nav_meas[i]->raw_pseudorange += corr;
+    nav_meas[i]->pseudorange += pseudorange_corr;
+    nav_meas[i]->raw_pseudorange += pseudorange_corr;
   }
 }
 
