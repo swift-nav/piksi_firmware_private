@@ -74,35 +74,37 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* Empirical corrections for GLO per-frequency bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  */
-static const double glo_l1_isc[] = {[0] = -10.95,
-                                    [1] = -10.82,
-                                    [2] = -10.75,
-                                    [3] = -10.5,
-                                    [4] = -10,
-                                    [5] = -9.4,
-                                    [6] = -8.85,
-                                    [7] = -8.5,
-                                    [8] = -8.27,
-                                    [9] = -8.23,
-                                    [10] = -8.65,
-                                    [11] = -9,
-                                    [12] = -9.53,
-                                    [13] = -9.3};
-static const double glo_l2_isc[] = {[0] = -7.82,
-                                    [1] = -7.518,
-                                    [2] = -7.217,
-                                    [3] = -6.915,
-                                    [4] = -6.614,
-                                    [5] = -6.312,
-                                    [6] = -6.011,
-                                    [7] = -5.709,
-                                    [8] = -5.408,
-                                    [9] = -5.106,
-                                    [10] = -4.805,
-                                    [11] = -4.503,
-                                    [12] = -4.202,
-                                    [13] = -3.9};
-static const double gps_l2_isc = 4.05;
+static const double glo_l1_isc[] = {[0] = -7.25,
+                                    [1] = -7.37,
+                                    [2] = -7.5,
+                                    [3] = -7.57,
+                                    [4] = -7.51,
+                                    [5] = -7.25,
+                                    [6] = -7,
+                                    [7] = -6.72,
+                                    [8] = -7,
+                                    [9] = -7.3,
+                                    [10] = -7.73,
+                                    [11] = -8.45,
+                                    [12] = -8.95,
+                                    [13] = -9.5};
+
+static const double glo_l2_isc[] = {[0] = -7.5,
+                                    [1] = -7.26,
+                                    [2] = -6.83,
+                                    [3] = -6.45,
+                                    [4] = -6.27,
+                                    [5] = -6.16,
+                                    [6] = -6,
+                                    [7] = -5.8,
+                                    [8] = -5.5,
+                                    [9] = -5.35,
+                                    [10] = -5.25,
+                                    [11] = -5.0,
+                                    [12] = -5.0,
+                                    [13] = -5.0};
+
+static const double gps_l2_isc = -1.95;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -313,27 +315,29 @@ static void collect_measurements(u64 rec_tc,
 }
 
 /** Apply ISC corrections from hard-coded table
- *
+ * Alignment is performed relative to the Septentrio
  */
 static void apply_isc_table(u8 n_channels,
                             navigation_measurement_t *nav_meas[]) {
   for (u8 i = 0; i < n_channels; i++) {
-    double corr = 0;
+    double pseudorange_corr = 0;
     switch (nav_meas[i]->sid.code) {
       case CODE_GPS_L1CA:
         break;
 
       case CODE_GPS_L2CL:
       case CODE_GPS_L2CM:
-        corr = gps_l2_isc;
+        pseudorange_corr = gps_l2_isc;
         break;
 
       case CODE_GLO_L1OF:
-        corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        pseudorange_corr =
+            glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
       case CODE_GLO_L2OF:
-        corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        pseudorange_corr =
+            glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
       case CODE_INVALID:
@@ -375,9 +379,8 @@ static void apply_isc_table(u8 n_channels,
         break;
     }
 
-    nav_meas[i]->pseudorange += corr;
-    nav_meas[i]->carrier_phase -=
-        corr / GPS_C * sid_to_carr_freq(nav_meas[i]->sid);
+    nav_meas[i]->pseudorange += pseudorange_corr;
+    nav_meas[i]->raw_pseudorange += pseudorange_corr;
   }
 }
 
