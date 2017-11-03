@@ -331,11 +331,13 @@ static void apply_isc_table(u8 n_channels,
         break;
 
       case CODE_GLO_L1OF:
-        pseudorange_corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        pseudorange_corr = 
+            glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
       case CODE_GLO_L2OF:
-        pseudorange_corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        pseudorange_corr = 
+            glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
         break;
 
       case CODE_INVALID:
