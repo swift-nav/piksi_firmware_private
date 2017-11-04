@@ -71,7 +71,7 @@ static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
-/* Empirical corrections for GLO per-frequency bias as per
+/* Empirical corrections for GLO per-frequency pseudorange bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  */
 static const double glo_l1_isc[] = {[0] = -7.25,
@@ -105,6 +105,13 @@ static const double glo_l2_isc[] = {[0] = -7.5,
                                     [13] = -5.0};
 
 static const double gps_l2_isc = -1.95;
+
+/* These biases are to align the GLONASS carrier phase to the Septentrio
+ * receivers carrier phase These biases are in cycles and are proportional to
+ * the frequency number
+ * */
+static const double glo_l1_carrier_phase_bias = -0.07 / 8;
+static const double glo_l2_carrier_phase_bias = 0;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -172,7 +179,7 @@ static void me_send_all(u8 _num_obs,
                         const gps_time_t *_t) {
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
-  * care to ensure that the observations are aligned. */
+   * care to ensure that the observations are aligned. */
   if (decimate_observations(_t) && !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
@@ -321,6 +328,7 @@ static void apply_isc_table(u8 n_channels,
                             navigation_measurement_t *nav_meas[]) {
   for (u8 i = 0; i < n_channels; i++) {
     double pseudorange_corr = 0;
+    double carrier_phase_corr = 0;
     switch (nav_meas[i]->sid.code) {
       case CODE_GPS_L1CA:
         break;
@@ -333,11 +341,15 @@ static void apply_isc_table(u8 n_channels,
       case CODE_GLO_L1OF:
         pseudorange_corr =
             glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
+                             glo_l1_carrier_phase_bias;
         break;
 
       case CODE_GLO_L2OF:
         pseudorange_corr =
             glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
+                             glo_l2_carrier_phase_bias;
         break;
 
       case CODE_INVALID:
@@ -381,6 +393,7 @@ static void apply_isc_table(u8 n_channels,
 
     nav_meas[i]->pseudorange += pseudorange_corr;
     nav_meas[i]->raw_pseudorange += pseudorange_corr;
+    nav_meas[i]->raw_carrier_phase -= carrier_phase_corr;
   }
 }
 
@@ -735,7 +748,7 @@ static void me_calc_pvt_thread(void *arg) {
         nm->raw_computed_doppler = nm->raw_measured_doppler;
 
         /* Also apply the time correction to the time of transmission so the
-        * satellite positions can be calculated for the correct time. */
+         * satellite positions can be calculated for the correct time. */
         nm->tot.tow += (current_fix.clock_offset);
         normalize_gps_time(&(nm->tot));
 
