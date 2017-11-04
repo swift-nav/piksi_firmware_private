@@ -69,7 +69,6 @@ void track_bds2_b2_register(void) {
   tracker_interface_register(&tracker_interface_list_element_bds2_b2);
 }
 
-
 /** Do B1 to B2 handover.
  *
  * The condition for the handover is that TOW must be known.

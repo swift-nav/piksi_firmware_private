@@ -13,8 +13,8 @@
 #include "track.h"
 
 #include <libswiftnav/constants.h>
-#include <libswiftnav/track.h>
 #include <libswiftnav/gnss_capabilities.h>
+#include <libswiftnav/track.h>
 
 #include <board.h>
 #include <chconf_board.h>
@@ -89,10 +89,10 @@ typedef struct tp_profile_entry {
     float fll_bw;              /**< FLL bandwidth [Hz]  */
     float dll_bw;              /**< DLL bandwidth [Hz] */
     tp_ctrl_e controller_type; /**< Controller type */
-    tp_tm_e tm_20ms;    /**< typical GPS and QZSS Tracking mode */
-    tp_tm_e tm_10ms;    /**< typical GLO Tracking mode */
-    tp_tm_e tm_2ms;     /**< typical SBAS Tracking mode */
-    tp_tm_e tm_nh20ms;  /**< typical BDS and GPS L5 Tracking mode */
+    tp_tm_e tm_20ms;           /**< typical GPS and QZSS Tracking mode */
+    tp_tm_e tm_10ms;           /**< typical GLO Tracking mode */
+    tp_tm_e tm_2ms;            /**< typical SBAS Tracking mode */
+    tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
   } profile;
 
   u8 ld_phase_params; /**< One of TP_LD_PARAMS_... constants */
@@ -355,10 +355,8 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
   tp_tm_e track_mode = TP_TM_INITIAL;
 
   if (IS_GPS(mesid) || IS_QZSS(mesid)) {
-    if ((CODE_GPS_L5I == mesid.code) ||
-        (CODE_GPS_L5Q == mesid.code) ||
-        (CODE_QZS_L5I == mesid.code) ||
-        (CODE_QZS_L5Q == mesid.code)) {
+    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
+        (CODE_QZS_L5I == mesid.code) || (CODE_QZS_L5Q == mesid.code)) {
       track_mode = entry->profile.tm_nh20ms;
     } else {
       track_mode = entry->profile.tm_20ms;
@@ -664,10 +662,8 @@ static u8 profile_integration_time(const me_gnss_signal_t mesid,
                                  [TP_TM_20MS_NH20MS] = 20};
   tp_tm_e track_mode;
   if (IS_GPS(mesid) || IS_QZSS(mesid)) {
-    if ((CODE_GPS_L5I == mesid.code) ||
-        (CODE_GPS_L5Q == mesid.code) ||
-        (CODE_QZS_L5I == mesid.code) ||
-        (CODE_QZS_L5Q == mesid.code)) {
+    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
+        (CODE_QZS_L5I == mesid.code) || (CODE_QZS_L5Q == mesid.code)) {
       track_mode = state->profiles[index].profile.tm_nh20ms;
     } else {
       track_mode = state->profiles[index].profile.tm_20ms;

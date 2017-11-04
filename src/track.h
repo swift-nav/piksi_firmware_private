@@ -151,28 +151,28 @@
  * Tracking mode enumeration.
  */
 typedef enum {
-  TP_TM_INITIAL,     /**< Initial tracking mode */
+  TP_TM_INITIAL, /**< Initial tracking mode */
 
-  TP_TM_1MS_20MS,    /**< 1 ms */
-  TP_TM_1MS_10MS,    /**< 1 ms */
-  TP_TM_1MS_2MS,     /**< 1 ms */
-  TP_TM_1MS_NH20MS,  /**< 1 ms */
+  TP_TM_1MS_20MS,   /**< 1 ms */
+  TP_TM_1MS_10MS,   /**< 1 ms */
+  TP_TM_1MS_2MS,    /**< 1 ms */
+  TP_TM_1MS_NH20MS, /**< 1 ms */
 
-  TP_TM_2MS_20MS,    /**< 2 ms */
-  TP_TM_2MS_10MS,    /**< 2 ms */
-  TP_TM_2MS_2MS,     /**< 2 ms */
-  TP_TM_2MS_NH20MS,  /**< 2 ms */
+  TP_TM_2MS_20MS,   /**< 2 ms */
+  TP_TM_2MS_10MS,   /**< 2 ms */
+  TP_TM_2MS_2MS,    /**< 2 ms */
+  TP_TM_2MS_NH20MS, /**< 2 ms */
 
-  TP_TM_5MS_20MS,    /**< 5 ms */
-  TP_TM_5MS_10MS,    /**< 5 ms */
-  TP_TM_5MS_NH20MS,  /**< 5 ms */
+  TP_TM_5MS_20MS,   /**< 5 ms */
+  TP_TM_5MS_10MS,   /**< 5 ms */
+  TP_TM_5MS_NH20MS, /**< 5 ms */
 
   TP_TM_10MS_20MS,   /**< 10 ms */
   TP_TM_10MS_10MS,   /**< 10 ms */
   TP_TM_10MS_NH20MS, /**< 10 ms */
 
-  TP_TM_20MS_20MS,   /**< 20 ms */
-  TP_TM_20MS_NH20MS  /**< 20 ms */
+  TP_TM_20MS_20MS,  /**< 20 ms */
+  TP_TM_20MS_NH20MS /**< 20 ms */
 } tp_tm_e;
 
 /**

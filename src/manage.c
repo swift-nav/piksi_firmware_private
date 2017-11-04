@@ -21,11 +21,11 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/glo_map.h>
+#include <libswiftnav/gnss_capabilities.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/gnss_capabilities.h>
 
 #include "./system_monitor.h"
 #include "board/nap/track_channel.h"
@@ -245,9 +245,9 @@ static void manage_acq_thread(void *arg) {
     }
 
     //~ if (had_fix) {
-      //~ manage_reacq();
+    //~ manage_reacq();
     //~ } else {
-      manage_acq();
+    manage_acq();
     //~ }
 
     manage_tracking_startup();
@@ -368,24 +368,19 @@ void manage_acq_setup() {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
     if (IS_GLO(mesid)) {
-      acq_status[i].masked =
-          !glo_enabled || !glo_active(mesid);
+      acq_status[i].masked = !glo_enabled || !glo_active(mesid);
     }
     if (IS_SBAS(mesid)) {
-      acq_status[i].masked =
-          !sbas_enabled || !sbas_active(mesid);
+      acq_status[i].masked = !sbas_enabled || !sbas_active(mesid);
     }
     if (IS_BDS2(mesid)) {
-      acq_status[i].masked =
-          !bds2_enabled || !bds_active(mesid);
+      acq_status[i].masked = !bds2_enabled || !bds_active(mesid);
     }
     if (IS_QZSS(mesid)) {
-      acq_status[i].masked =
-          !qzss_enabled || !qzss_active(mesid);
+      acq_status[i].masked = !qzss_enabled || !qzss_active(mesid);
     }
     if (IS_GAL(mesid)) {
-      acq_status[i].masked =
-          !galileo_enabled || !gal_active(mesid);
+      acq_status[i].masked = !galileo_enabled || !gal_active(mesid);
     }
 
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
