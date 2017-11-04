@@ -1111,8 +1111,9 @@ static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
    * Current block assumes the bit sync has been reached and current
    * interval has closed a bit interval. ToW shall be aligned by bit
    * duration, which is:
-   * 20ms for GPS L1 / L2
-   * 10ms for GLO L1 / L2
+   * 20ms for GPS and QZSS L1/L2/L5, plus Beidou B1/B2 with D1 data
+   * 10ms for GLO L1/L2
+   * 2 ms for SBAS and Beidou B1/B2 with D2 data
    */
   u8 tail = tracker_channel->TOW_ms % bit_length;
   if (0 != tail) {
