@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_bds2_b11.h"
+#include "track_bds2_b2.h"
 #include "track_cn0.h"
 #include "track_sid_db.h"
 
@@ -60,7 +61,30 @@ static void tracker_bds2_b11_init(tracker_channel_t *tracker_channel) {
 }
 
 static void tracker_bds2_b11_update(tracker_channel_t *tracker_channel) {
-  tp_tracker_update(tracker_channel, &bds2_l1ca_config);
+  u32 cflags = tp_tracker_update(tracker_channel, &bds2_l1ca_config);
+
+  bool bit_aligned =
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+
+  if (!bit_aligned) {
+    return;
+  }
+
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker_channel);
+
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+
+  if (inlock && confirmed) {
+    /* Start B2 tracker if not running */
+    bds_b11_to_b2_handover(tracker_channel->sample_count,
+                           tracker_channel->mesid.sat,
+                           tracker_channel->code_phase_prompt,
+                           tracker_channel->carrier_freq,
+                           tracker_channel->cn0);
+  }
 }
 
 /** Register BDS2 B11 tracker into the the tracker interface & settings

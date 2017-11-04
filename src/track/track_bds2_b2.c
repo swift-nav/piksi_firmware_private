@@ -68,3 +68,64 @@ static void tracker_bds2_b2_update(tracker_channel_t *tracker_channel) {
 void track_bds2_b2_register(void) {
   tracker_interface_register(&tracker_interface_list_element_bds2_b2);
 }
+
+
+/** Do B1 to B2 handover.
+ *
+ * The condition for the handover is that TOW must be known.
+ *
+ * \param[in] sample_count NAP sample count
+ * \param[in] sat          Satellite ID
+ * \param[in] code_phase   code phase [chips]
+ * \param[in] carrier_freq Doppler [Hz]
+ * \param[in] cn0          CN0 estimate [dB-Hz]
+ * \param[in] TOW_ms       Latest decoded TOW [ms]
+ */
+void bds_b11_to_b2_handover(u32 sample_count,
+                            u16 sat,
+                            double code_phase,
+                            double carrier_freq,
+                            float cn0_init) {
+  /* compose B2 MESID: same SV, but code is B2 */
+  me_gnss_signal_t mesid_B2 = construct_mesid(CODE_BDS2_B2, sat);
+
+  if (!tracking_startup_ready(mesid_B2)) {
+    return; /* B2 signal from the SV is already in track */
+  }
+
+  if (!handover_valid(code_phase, BDS2_B11_CHIPS_NUM)) {
+    log_warn_mesid(
+        mesid_B2, "Unexpected B1 to B2 hand-over code phase: %f", code_phase);
+    return;
+  }
+
+  tracking_startup_params_t startup_params = {
+      .mesid = mesid_B2,
+      .sample_count = sample_count,
+      /* recalculate doppler freq for B2 from B1 */
+      .carrier_freq = carrier_freq * BDS2_B2_HZ / BDS2_B11_HZ,
+      .code_phase = code_phase,
+      /* chips to correlate during first 1 ms of tracking */
+      .chips_to_correlate = code_to_chip_rate(mesid_B2.code) * 1e-3,
+      /* get initial cn0 from parent B1 channel */
+      .cn0_init = cn0_init,
+      .elevation = TRACKING_ELEVATION_UNKNOWN};
+
+  switch (tracking_startup_request(&startup_params)) {
+    case 0:
+      log_debug_mesid(mesid_B2, "B2 handover done");
+      break;
+
+    case 1:
+      /* sat is already in fifo, no need to inform */
+      break;
+
+    case 2:
+      log_warn_mesid(mesid_B2, "Failed to start B2 tracking");
+      break;
+
+    default:
+      assert(!"Unknown code returned");
+      break;
+  }
+}
