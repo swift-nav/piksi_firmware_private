@@ -196,13 +196,52 @@ static void me_send_emptyobs(void) {
   }
 }
 
-/* Roughly propagate and send the observations when PVT solution failed or is
+/* remove the clock offset and bias from measurements */
+static void remove_clock_offset(navigation_measurement_t *nm,
+                                double clock_offset,
+                                double clock_drift,
+                                double gtemp_diff) {
+  double doppler = 0.0;
+  if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+    doppler = nm->raw_measured_doppler;
+  }
+
+  /* The pseudorange correction has opposite sign because Doppler has the
+   * opposite sign compared to the pseudorange rate. */
+  nm->raw_pseudorange -= clock_offset * doppler * sid_to_lambda(nm->sid);
+  nm->raw_pseudorange -= clock_offset * GPS_C;
+
+  double fcn = 0.0;
+  /* Remove the fractional 2-ms residual FCN contribution */
+  if (CODE_GLO_L1OF == nm->sid.code) {
+    fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
+  } else if (CODE_GLO_L2OF == nm->sid.code) {
+    fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
+  }
+  nm->raw_carrier_phase += gtemp_diff * fcn;
+
+  /* Carrier Phase corrected by clock offset */
+  nm->raw_carrier_phase += clock_offset * doppler;
+  nm->raw_carrier_phase += clock_offset * GPS_C / sid_to_lambda(nm->sid);
+
+  /* Use P**V**T to determine the oscillator drift which is used to adjust
+   * computed doppler. */
+  nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);
+  nm->raw_computed_doppler = nm->raw_measured_doppler;
+
+  /* Also apply the time correction to the time of transmission so the
+   * satellite positions can be calculated for the correct time. */
+  nm->tot.tow += clock_offset;
+  normalize_gps_time(&(nm->tot));
+}
+
+/** Roughly propagate and send the observations when PVT solution failed or is
  * not available. Flag all with RAIM exclusion so they do not get used
  * downstream. */
-static void me_send_unpropagated(u8 _num_obs,
-                                 navigation_measurement_t _meas[],
-                                 const ephemeris_t _ephem[],
-                                 const gps_time_t *_t) {
+static void me_send_failed_obs(u8 _num_obs,
+                               navigation_measurement_t _meas[],
+                               const ephemeris_t _ephem[],
+                               const gps_time_t *_t) {
   /* require at least some timing quality */
   if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(_t) ||
       _num_obs == 0) {
@@ -210,15 +249,15 @@ static void me_send_unpropagated(u8 _num_obs,
     return;
   }
 
-  double offset = 0;
-  double drift = 0;
+  double clock_offset = 0;
+  double clock_drift = 0;
   last_good_fix_t lgf;
   if (NDB_ERR_NONE == ndb_lgf_read(&lgf) && lgf.position_solution.valid) {
     /* estimate the current clock offset from LGF */
     double dt = gpsdifftime(_t, &lgf.position_solution.time);
-    offset = lgf.position_solution.clock_offset +
-             dt * lgf.position_solution.clock_bias;
-    drift = lgf.position_solution.clock_bias;
+    clock_offset = lgf.position_solution.clock_offset +
+                   dt * lgf.position_solution.clock_bias;
+    clock_drift = lgf.position_solution.clock_bias;
   }
 
   for (u8 i = 0; i < _num_obs; i++) {
@@ -227,25 +266,8 @@ static void me_send_unpropagated(u8 _num_obs,
      * sets to Starling */
     _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
-    double doppler = 0.0;
-    if (0 != (_meas[i].flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-      doppler = _meas[i].raw_measured_doppler;
-    }
-
-    /* The pseudorange correction has opposite sign because Doppler
-     * has the opposite sign compared to the pseudorange rate. */
-    _meas[i].raw_pseudorange -= offset * doppler * sid_to_lambda(_meas[i].sid);
-    _meas[i].raw_pseudorange -= offset * GPS_C;
-
-    /* Carrier Phase corrected by clock offset */
-    _meas[i].raw_carrier_phase += offset * doppler;
-    _meas[i].raw_carrier_phase += offset * GPS_C / sid_to_lambda(_meas[i].sid);
-
-    /* Use P**V**T to determine the oscillator drift which is used
-     * to adjust computed doppler. */
-    _meas[i].raw_measured_doppler +=
-        drift * GPS_C / sid_to_lambda(_meas[i].sid);
-    _meas[i].raw_computed_doppler = _meas[i].raw_measured_doppler;
+    /* propagate the measurements with the clock bias and drift from LGF */
+    remove_clock_offset(&_meas[i], clock_offset, clock_drift, 0.0);
   }
 
   me_post_observations(_num_obs, _meas, _ephem, _t);
@@ -650,12 +672,6 @@ static void me_calc_pvt_thread(void *arg) {
       sid_set_add(&codes, nav_meas[i].sid);
     }
 
-    if (sid_set_get_sat_count(&codes) < 4) {
-      /* Not enough sats to compute PVT */
-      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
-      continue;
-    }
-
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
@@ -669,6 +685,12 @@ static void me_calc_pvt_thread(void *arg) {
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
                       p_i_params);
+    }
+
+    if (sid_set_get_sat_count(&codes) < 4) {
+      /* Not enough sats to compute PVT, send them as unusable */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
+      continue;
     }
 
     dops_t dops;
@@ -699,9 +721,8 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - mark observations unusable but send
-       * them out to enable debugging.
-       */
-      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
+       * them out to enable debugging. */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -757,7 +778,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_bias);
 
-      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
     }
 
@@ -768,48 +789,17 @@ static void me_calc_pvt_thread(void *arg) {
                 current_fix.clock_offset,
                 current_fix.clock_bias);
 
+      double clock_offset = current_fix.clock_offset;
+      double clock_drift = current_fix.clock_bias;
+
       /* gtemp_tc is always smaller than epoch_tc */
       double gtemp_diff = (epoch_tc - gtemp_tc) * RX_DT_NOMINAL;
-      double fcn;
 
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
 
-        double doppler = 0.0;
-        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-          doppler = nm->raw_measured_doppler;
-        }
-
-        /* The pseudorange correction has opposite sign because Doppler
-         * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -=
-            (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
-
-        /* Remove the fractional 2-ms residual FCN contribution */
-        if (CODE_GLO_L1OF == nm->sid.code) {
-          fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
-        } else if (CODE_GLO_L2OF == nm->sid.code) {
-          fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
-        } else {
-          fcn = 0.0;
-        }
-        nm->raw_carrier_phase += gtemp_diff * fcn;
-        /* Carrier Phase corrected by clock offset */
-        nm->raw_carrier_phase += (current_fix.clock_offset) * doppler;
-        nm->raw_carrier_phase +=
-            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
-
-        /* Use P**V**T to determine the oscillator drift which is used
-         * to adjust computed doppler. */
-        nm->raw_measured_doppler +=
-            current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_computed_doppler = nm->raw_measured_doppler;
-
-        /* Also apply the time correction to the time of transmission so the
-         * satellite positions can be calculated for the correct time. */
-        nm->tot.tow += (current_fix.clock_offset);
-        normalize_gps_time(&(nm->tot));
+        /* remove clock offset from the measurement */
+        remove_clock_offset(nm, clock_offset, clock_drift, gtemp_diff);
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
@@ -831,7 +821,8 @@ static void me_calc_pvt_thread(void *arg) {
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
-      me_send_unpropagated(n_ready, nav_meas, e_meas, &epoch_time);
+      /* Send the observations, but marked unusable */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
