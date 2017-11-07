@@ -157,7 +157,7 @@ void tracking_send_state(void) {
     }
     if (num_sats < nap_track_n_channels) {
       for (u8 i = num_sats; i < nap_track_n_channels; i++) {
-        states[i].sid = (gnss_signal16_t){
+        states[i].sid = (sbp_gnss_signal_t){
             .sat = 0, .code = 0,
         };
         states[i].cn0 = 0;
@@ -182,7 +182,7 @@ void tracking_send_state(void) {
       confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
 
       if (!running || !confirmed) {
-        states[i].sid = (gnss_signal16_t){
+        states[i].sid = (sbp_gnss_signal_t){
             .sat = 0, .code = 0,
         };
         states[i].fcn = 0;
