@@ -89,6 +89,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
   me_gnss_signal_t mesid_B2 = construct_mesid(CODE_BDS2_B2, sat);
 
   if (!tracking_startup_ready(mesid_B2)) {
+    //~ log_info_mesid(mesid_B2, "already in track");
     return; /* B2 signal from the SV is already in track */
   }
 
@@ -112,7 +113,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_debug_mesid(mesid_B2, "B2 handover done");
+      log_info_mesid(mesid_B2, "B2 handover done");
       break;
 
     case 1:
