@@ -67,6 +67,7 @@ void send_observations(u8 n,
   }
 }
 
+
 /** Extract the full covariance matrices from soln struct */
 void extract_covariance(double full_covariance[9],
                         double vel_covariance[9],
