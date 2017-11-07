@@ -16,4 +16,10 @@
 
 void track_bds2_b2_register(void);
 
+void bds_b11_to_b2_handover(u32 sample_count,
+                            u16 sat,
+                            double code_phase,
+                            double carrier_freq,
+                            float cn0_init);
+
 #endif /* TRACK_BDS2_B2_H */

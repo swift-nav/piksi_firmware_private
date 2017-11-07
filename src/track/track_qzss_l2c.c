@@ -91,12 +91,6 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
     return; /* L2C signal from the SV is already in track */
   }
 
-  //~ u32 capb;
-  //~ ndb_qzss_l2cm_l2c_cap_read(&capb);
-  //~ if (0 == (capb & ((u32)1 << (sat - 1)))) {
-  //~ return;
-  //~ }
-
   if (!handover_valid(code_phase, QZS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(
         mesid, "Unexpected L1CA to L2C hand-over code phase: %f", code_phase);

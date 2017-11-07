@@ -449,8 +449,6 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     if (!sid_supported(sid)) {
       continue;
     }
-    /* Flag this as visible/viable to acquisition/search */
-    manage_set_obs_hint(sid);
 
     navigation_measurement_t *nm = &base_obss_rx.nm[base_obss_rx.n];
 
