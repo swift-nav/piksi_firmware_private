@@ -31,7 +31,7 @@
 #define RESULT_DIV (2048)
 #define FFT_SCALE_SCHED_CODE (0x01555555)
 #define FFT_SCALE_SCHED_SAMPLES (0x01111111)
-#define FFT_SCALE_SCHED_INV (0x01111111)
+#define FFT_SCALE_SCHED_INV (0x01110111)
 
 //~ #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
@@ -48,7 +48,7 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_bin_width,
                             s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
-static bool ifft_operations(s16 doppler_bin,
+static void ifft_operations(s16 doppler_bin,
                             float cf_bin_width,
                             u32 fft_len,
                             float fft_bin_width,
@@ -163,15 +163,13 @@ bool soft_acq_search(const sc16_t *_cSignal,
     loop_index += 1;
 
     /* Multiply and do IFFT */
-    if (!ifft_operations(doppler_bin,
-                         cf_bin_width,
-                         fft_len,
-                         fft_bin_width,
-                         code_fft,
-                         sample_fft,
-                         &doppler)) {
-      return false;
-    }
+    ifft_operations(doppler_bin,
+                    cf_bin_width,
+                    fft_len,
+                    fft_bin_width,
+                    code_fft,
+                    sample_fft,
+                    &doppler);
 
     /* Find highest peak of the current doppler bin */
     if (!peak_search(
@@ -209,6 +207,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
    * all of the false acquisitions. */
   /* TODO: Check later if this can be removed. */
   if (0 == peak.sample_offset) {
+    log_debug_mesid(mesid, "false acq");
     return false;
   }
 
@@ -297,10 +296,8 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
  * \param[in]     _pSampleFft    Sample FFT
  * \param[in]     fft_len_log2  FFT length
  * \param[in,out] doppler       Actual doppler of current frequency bin [Hz]
- * \retval true  Success
- * \retval false Failure
  */
-static bool ifft_operations(s16 doppler_bin,
+static void ifft_operations(s16 doppler_bin,
                             float cf_bin_width,
                             u32 fft_len,
                             float fft_bin_width,
@@ -328,8 +325,6 @@ static bool ifft_operations(s16 doppler_bin,
 
   /* Inverse FFT */
   DoBwdIntFFTr2(&sFftConfig, result_fft, FFT_SCALE_SCHED_INV, 1);
-
-  return true;
 }
 
 /** Read IFFT results from NAP and compute cn0 of highest peak.
@@ -368,6 +363,8 @@ static bool peak_search(const me_gnss_signal_t mesid,
   /* For constellations with frequent symbol transitions,
    * accumulate non-coherently */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    result_mag[0] = 0;
+    result_mag[1] = 0;
     u8 non_coh = array_sz / CODE_SPMS;
     for (u32 m = 1; m < non_coh; m++) {
       for (u32 h = 0; h < CODE_SPMS; h++) {
@@ -398,6 +395,11 @@ static bool peak_search(const me_gnss_signal_t mesid,
   /* Compute C/N0 */
   snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SPMS / 4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
+
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    /* artificially pump the C/N0 a little for non-coherent as MEAN is not STD */
+    cn0 += 3.0;
+  }
 
   if (cn0 > peak->cn0) {
     /* New max peak found */
