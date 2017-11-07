@@ -409,8 +409,15 @@ s8 pack_obs_content(double P,
                     packed_obs_content_t *msg) {
   s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
   if (P < 0 || P_fp > UINT32_MAX) {
-    log_error_sid(
-        sid, "observation message packing: P integer overflow (%f)", P);
+    log_error_sid(sid,
+                  "observation message packing: P integer overflow "
+                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                  P,
+                  L,
+                  D,
+                  cn0,
+                  lock_time,
+                  flags);
     return -1;
   }
 
@@ -418,8 +425,15 @@ s8 pack_obs_content(double P,
 
   double Li = floor(-L);
   if (Li < INT32_MIN || Li > INT32_MAX) {
-    log_error_sid(
-        sid, "observation message packing: L integer overflow (%f)", L);
+    log_error_sid(sid,
+                  "observation message packing: L integer overflow "
+                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                  P,
+                  L,
+                  D,
+                  cn0,
+                  lock_time,
+                  flags);
     return -1;
   }
 
@@ -435,8 +449,15 @@ s8 pack_obs_content(double P,
 
   double Di = floor(D);
   if (Di < INT16_MIN || Di > INT16_MAX) {
-    log_error_sid(
-        sid, "observation message packing: D integer overflow (%f)", D);
+    log_error_sid(sid,
+                  "observation message packing: D integer overflow "
+                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                  P,
+                  L,
+                  D,
+                  cn0,
+                  lock_time,
+                  flags);
     return -1;
   }
 
@@ -453,8 +474,15 @@ s8 pack_obs_content(double P,
   if (0 != (flags & NAV_MEAS_FLAG_CN0_VALID)) {
     s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
     if (cn0 < 0 || cn0_fp > UINT8_MAX) {
-      log_error_sid(
-          sid, "observation message packing: C/N0 integer overflow (%f)", cn0);
+      log_error_sid(sid,
+                    "observation message packing: C/N0 integer overflow "
+                    "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                    P,
+                    L,
+                    D,
+                    cn0,
+                    lock_time,
+                    flags);
       return -1;
     }
 
