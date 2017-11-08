@@ -397,7 +397,8 @@ static bool peak_search(const me_gnss_signal_t mesid,
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
 
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    /* artificially pump the C/N0 a little for non-coherent as MEAN is not STD */
+    /* artificially pump the C/N0 a little for non-coherent as MEAN is not STD
+     */
     cn0 += 2.0;
   }
 
