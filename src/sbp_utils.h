@@ -214,9 +214,6 @@ msg_info_t pack_almanac(const almanac_t *a, msg_almanac_t *msg);
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from);
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
 
-gnss_signal_t sid_from_sbp16(const gnss_signal16_t from);
-gnss_signal16_t sid_to_sbp16(const gnss_signal_t from);
-
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_l2c_capabilities(const u32 *l2c_cap);
 void sbp_send_group_delay(const cnav_msg_t *cnav);

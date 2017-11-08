@@ -15,7 +15,6 @@
 #include <libswiftnav/track.h>
 
 #include "signal.h"
-#include "track.h"
 #include "track_sid_db.h"
 
 #include <assert.h>
@@ -163,7 +162,7 @@ bool track_sid_db_update_azel(const gnss_signal_t sid,
 /**
  * Computes ToW estimate according to previous ToW and time interval.
  *
- * \param[in]  old_ToW_ms Previous ToW value [ms].
+ * \param[in]  old_TOW_ms Previous ToW value [ms].
  * \param[in]  delta_tk   Time interval from the previous ToW [ticks]
  * \param[in]  ms_align   ToW alignment flag [ms]:
  *                        - 1 for 1ms alignment (default)
@@ -174,47 +173,51 @@ bool track_sid_db_update_azel(const gnss_signal_t sid,
  *
  * \return Computed ToW if >= 0 or #TOW_UNKNOWN on error.
  */
-s32 tp_tow_compute(s32 old_ToW_ms,
+s32 tp_tow_compute(s32 old_TOW_ms,
                    u64 delta_tk,
                    u8 ms_align,
                    double *error_ms) {
-  s32 ToW_ms = TOW_UNKNOWN;
+  s32 TOW_ms = TOW_UNKNOWN;
 
-  if (TOW_UNKNOWN != old_ToW_ms) {
-    /* Propagate ToW time from cached entry according to estimated time
-     * jump. */
-    double delta_d = nap_count_to_ms(delta_tk);
+  if (old_TOW_ms == TOW_UNKNOWN) {
+    return TOW_ms;
+  }
 
-    /* Check interval sanity and validity */
-    if (delta_d >= 0 && delta_d <= MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {
-      double tmp_ToW_ms = old_ToW_ms + delta_d;
-      ToW_ms = (s32)round(tmp_ToW_ms);
+  /* Propagate ToW time from cached entry according to estimated time
+   * jump. */
+  double delta_d = nap_count_to_ms(delta_tk);
 
-      if (ms_align > 1) {
-        /* If the result is known to be aligned by some interval, do it here. */
-        s32 round = ToW_ms % ms_align;
-        if (round < (ms_align >> 1)) {
-          ToW_ms -= round;
-        } else {
-          ToW_ms += ms_align - round;
-        }
-      }
+  /* Check interval sanity and validity */
+  if (delta_d < 0 || delta_d > MAXIMUM_DB_CACHE_USE_INTERVAL_MS) {
+    return TOW_ms;
+  }
 
-      if (NULL != error_ms) {
-        /* Compute rounding/aligning error */
-        *error_ms = ToW_ms - tmp_ToW_ms;
-      }
+  double tmp_TOW_ms = old_TOW_ms + delta_d;
+  TOW_ms = (s32)round(tmp_TOW_ms);
 
-      /* Fix up ToW */
-      ToW_ms %= WEEK_MS;
-
-      if (!tp_tow_is_sane(ToW_ms)) {
-        ToW_ms = TOW_UNKNOWN;
-      }
+  if (ms_align > 1) {
+    /* If the result is known to be aligned by some interval, do it here. */
+    s32 round = TOW_ms % ms_align;
+    if (round < (ms_align >> 1)) {
+      TOW_ms -= round;
+    } else {
+      TOW_ms += ms_align - round;
     }
   }
 
-  return ToW_ms;
+  if (NULL != error_ms) {
+    /* Compute rounding/aligning error */
+    *error_ms = TOW_ms - tmp_TOW_ms;
+  }
+
+  /* Fix up ToW */
+  TOW_ms %= WEEK_MS;
+
+  if (!tp_tow_is_sane(TOW_ms)) {
+    TOW_ms = TOW_UNKNOWN;
+  }
+
+  return TOW_ms;
 }
 
 /**
@@ -279,4 +282,104 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
   }
 
   return result;
+}
+
+static bool tow_cache_sid_available(tracker_channel_t *tracker_channel,
+                                    gnss_signal_t *sid) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  u16 glo_orbit_slot = 0;
+
+  if (IS_GPS(mesid)) {
+    *sid = construct_sid(mesid.code, mesid.sat);
+  } else if (IS_GLO(mesid)) {
+    /* Check that GLO orbit slot ID is available */
+    glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
+    if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+      /* If no GLO orbit slot ID is available,
+       * then cannot proceed with TOW cache write. */
+      return false;
+    }
+    *sid = construct_sid(mesid.code, glo_orbit_slot);
+  } else {
+    assert(!"Unsupported TOW cache constellation");
+  }
+  return true;
+}
+
+/**
+ * Stores TOW info into the cache.
+ *
+ * \param[in] tracker_channel Tracker channel data
+ */
+void update_tow_in_sid_db(tracker_channel_t *tracker_channel) {
+  gnss_signal_t sid;
+  if (!tow_cache_sid_available(tracker_channel, &sid)) {
+    return;
+  }
+
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
+
+  /* Update TOW cache */
+  tp_tow_entry_t tow_entry = {
+      .TOW_ms = tracker_channel->TOW_ms,
+      .TOW_residual_ns = tracker_channel->TOW_residual_ns,
+      .sample_time_tk = sample_time_tk};
+  track_sid_db_update_tow(sid, &tow_entry);
+}
+
+/**
+ * Reads TOW info from the cache.
+ *
+ * \param[in] tracker_channel Tracker channel data
+ */
+void propagate_tow_from_sid_db(tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  gnss_signal_t sid;
+  if (!tow_cache_sid_available(tracker_channel, &sid)) {
+    return;
+  }
+
+  /* Read TOW cache */
+  tp_tow_entry_t tow_entry;
+  track_sid_db_load_tow(sid, &tow_entry);
+  if (TOW_UNKNOWN == tow_entry.TOW_ms) {
+    /* No valid cached TOW value found */
+    return;
+  }
+
+  /* There is a valid cached TOW value */
+  double error_ms = 0;
+  u8 bit_length = tracker_bit_length_get(tracker_channel);
+  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
+  u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
+  s32 TOW_ms =
+      tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, bit_length, &error_ms);
+
+  if (TOW_UNKNOWN == TOW_ms) {
+    return;
+  }
+
+  log_debug_mesid(mesid,
+                  "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
+                  "ms]"
+                  " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                  tracker_channel->update_count,
+                  bit_length,
+                  nap_count_to_ms(time_delta_tk),
+                  TOW_ms,
+                  error_ms);
+
+  if (tp_tow_is_sane(TOW_ms)) {
+    tracker_channel->TOW_residual_ns = tow_entry.TOW_residual_ns;
+    tracker_channel->TOW_ms = TOW_ms;
+    tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
+  } else {
+    log_error_mesid(mesid,
+                    "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
+                    tracker_channel->update_count,
+                    tracker_channel->TOW_ms);
+    tracker_channel->TOW_residual_ns = 0;
+    tracker_channel->TOW_ms = TOW_UNKNOWN;
+    tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+  }
 }

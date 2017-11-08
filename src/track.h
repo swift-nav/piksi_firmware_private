@@ -34,7 +34,7 @@
 
 #define NAV_BIT_FIFO_SIZE                            \
   64 /**< Size of nav bit FIFO. Must be a power of 2 \
-        */
+      */
 
 #define TP_DLL_PLL_MEAS_DIM 5
 
@@ -152,16 +152,23 @@
  * Tracking mode enumeration.
  */
 typedef enum {
-  TP_TM_INITIAL,  /**< Initial tracking mode (same as pipelining otherwise) */
-  TP_TM_1MS_GPS,  /**< 1 ms */
-  TP_TM_1MS_GLO,  /**< 1 ms */
-  TP_TM_2MS_GPS,  /**< 2 ms */
-  TP_TM_2MS_GLO,  /**< 2 ms */
-  TP_TM_5MS_GPS,  /**< 5 ms */
-  TP_TM_5MS_GLO,  /**< 5 ms */
-  TP_TM_10MS_GPS, /**< 10 ms */
-  TP_TM_10MS_GLO, /**< 10 ms */
-  TP_TM_20MS_GPS  /**< 20 ms */
+  TP_TM_INITIAL,   /**< Initial tracking mode (same as pipelining otherwise) */
+  TP_TM_1MS_GPS,   /**< 1 ms */
+  TP_TM_1MS_GLO,   /**< 1 ms */
+  TP_TM_1MS_SBAS,  /**< 1 ms */
+  TP_TM_1MS_BDS2,  /**< 1 ms */
+  TP_TM_2MS_GPS,   /**< 2 ms */
+  TP_TM_2MS_GLO,   /**< 2 ms */
+  TP_TM_2MS_SBAS,  /**< 2 ms */
+  TP_TM_2MS_BDS2,  /**< 2 ms */
+  TP_TM_5MS_GPS,   /**< 5 ms */
+  TP_TM_5MS_GLO,   /**< 5 ms */
+  TP_TM_5MS_BDS2,  /**< 5 ms */
+  TP_TM_10MS_GPS,  /**< 10 ms */
+  TP_TM_10MS_GLO,  /**< 10 ms */
+  TP_TM_10MS_BDS2, /**< 10 ms */
+  TP_TM_20MS_GPS,  /**< 20 ms */
+  TP_TM_20MS_BDS2  /**< 20 ms */
 } tp_tm_e;
 
 /**
@@ -313,7 +320,7 @@ typedef struct {
 #define TRACKING_AZIMUTH_UNKNOWN 400
 #define TRACKING_ELEVATION_UNKNOWN          \
   100 /* Ensure it will be above elev. mask \
-         */
+       */
 /** GPS L1 C/A cross-correlation frequency step [hz] */
 #define L1CA_XCORR_FREQ_STEP 1000.f
 /** GPS L1 C/A CN0 threshold for whitelisting [dB-Hz] */
@@ -329,7 +336,7 @@ typedef struct {
 /** Carrier phases within tolerance are declared equal. [cycles]
  *  Stable PLL remains within +-15 degree from correct phase.
  *  360 * 0.08 ~= 30 degrees
-*/
+ */
 #define CARRIER_PHASE_TOLERANCE 0.08f
 /** counter for half-cycle ambiguity resolution */
 #define CARRIER_PHASE_AMBIGUITY_COUNTER 50
@@ -702,12 +709,11 @@ typedef struct {
 #define TPF_FLL_USE ((u32)1 << 11)
 #define TPF_FLL_HALFQ ((u32)1 << 12)
 
-/* DLL/PLL control */
-#define TPF_EPL_SET ((u32)1 << 13)
-#define TPF_EPL_ADD ((u32)1 << 14)
-#define TPF_EPL_ADD_INV ((u32)1 << 15)
-#define TPF_EPL_INV_ADD ((u32)1 << 16)
-#define TPF_EPL_USE ((u32)1 << 17)
+/* correlators control */
+#define TPF_EPL_INV ((u32)1 << 13) /* invert correlators */
+#define TPF_EPL_SET ((u32)1 << 14)
+#define TPF_EPL_ADD ((u32)1 << 15)
+#define TPF_EPL_USE ((u32)1 << 16)
 
 /* False lock detector control */
 #define TPF_ALIAS_SET ((u32)1 << 18)
@@ -1021,6 +1027,5 @@ update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
 void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
 void tracker_cleanup(tracker_channel_t *tracker_channel);
 
-/* for GLO L1/L2 tow propagation */
-void update_tow_glo(tracker_channel_t *tracker_channel, u32 cycle_flags);
+void tracker_tow_cache(tracker_channel_t *tracker_channel);
 #endif

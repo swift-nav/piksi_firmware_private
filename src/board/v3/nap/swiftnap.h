@@ -24,15 +24,13 @@
 #define NAP_NUM_TRACKING_CHANNELS (63U)
 
 // Number of GPS L1 tracking channels
-#define NAP_NUM_GPS_L1_CHANNELS (12U)
+#define NAP_NUM_GPS_L1_CHANNELS (16U)
 // Number of GPS L2 tracking channels
 #define NAP_NUM_GPS_L2_CHANNELS (9U)
 // Number of Glonass G1 tracking channels
 #define NAP_NUM_GLO_G1_CHANNELS (10U)
 // Number of Glonass G2 tracking channels
 #define NAP_NUM_GLO_G2_CHANNELS (10U)
-// Number of SBAS tracking channels
-#define NAP_NUM_SBAS_CHANNELS (4U)
 // Number of Beidou B1 tracking channels
 #define NAP_NUM_BDS_B1_CHANNELS (9U)
 // Number of Beidou B2 tracking channels
@@ -49,9 +47,8 @@ typedef enum {
   NAP_TRK_CODE_GPS_L2 = 1,
   NAP_TRK_CODE_GLO_G1 = 2,
   NAP_TRK_CODE_GLO_G2 = 3,
-  NAP_TRK_CODE_SBAS = 4,
-  NAP_TRK_CODE_BDS_B1 = 5,
-  NAP_TRK_CODE_BDS_B2 = 6,
+  NAP_TRK_CODE_BDS_B1 = 4,
+  NAP_TRK_CODE_BDS_B2 = 5,
 } swiftnap_code_t;
 
 static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
@@ -61,23 +58,23 @@ static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
      [6] = NAP_TRK_CODE_GPS_L1,  [7] = NAP_TRK_CODE_GPS_L1,
      [8] = NAP_TRK_CODE_GPS_L1,  [9] = NAP_TRK_CODE_GPS_L1,
      [10] = NAP_TRK_CODE_GPS_L1, [11] = NAP_TRK_CODE_GPS_L1,
-     [12] = NAP_TRK_CODE_GPS_L2, [13] = NAP_TRK_CODE_GPS_L2,
-     [14] = NAP_TRK_CODE_GPS_L2, [15] = NAP_TRK_CODE_GPS_L2,
+     [12] = NAP_TRK_CODE_GPS_L1, [13] = NAP_TRK_CODE_GPS_L1,
+     [14] = NAP_TRK_CODE_GPS_L1, [15] = NAP_TRK_CODE_GPS_L1,
      [16] = NAP_TRK_CODE_GPS_L2, [17] = NAP_TRK_CODE_GPS_L2,
      [18] = NAP_TRK_CODE_GPS_L2, [19] = NAP_TRK_CODE_GPS_L2,
-     [20] = NAP_TRK_CODE_GPS_L2, [21] = NAP_TRK_CODE_GLO_G1,
-     [22] = NAP_TRK_CODE_GLO_G1, [23] = NAP_TRK_CODE_GLO_G1,
-     [24] = NAP_TRK_CODE_GLO_G1, [25] = NAP_TRK_CODE_GLO_G1,
+     [20] = NAP_TRK_CODE_GPS_L2, [21] = NAP_TRK_CODE_GPS_L2,
+     [22] = NAP_TRK_CODE_GPS_L2, [23] = NAP_TRK_CODE_GPS_L2,
+     [24] = NAP_TRK_CODE_GPS_L2, [25] = NAP_TRK_CODE_GLO_G1,
      [26] = NAP_TRK_CODE_GLO_G1, [27] = NAP_TRK_CODE_GLO_G1,
      [28] = NAP_TRK_CODE_GLO_G1, [29] = NAP_TRK_CODE_GLO_G1,
-     [30] = NAP_TRK_CODE_GLO_G1, [31] = NAP_TRK_CODE_GLO_G2,
-     [32] = NAP_TRK_CODE_GLO_G2, [33] = NAP_TRK_CODE_GLO_G2,
-     [34] = NAP_TRK_CODE_GLO_G2, [35] = NAP_TRK_CODE_GLO_G2,
+     [30] = NAP_TRK_CODE_GLO_G1, [31] = NAP_TRK_CODE_GLO_G1,
+     [32] = NAP_TRK_CODE_GLO_G1, [33] = NAP_TRK_CODE_GLO_G1,
+     [34] = NAP_TRK_CODE_GLO_G1, [35] = NAP_TRK_CODE_GLO_G2,
      [36] = NAP_TRK_CODE_GLO_G2, [37] = NAP_TRK_CODE_GLO_G2,
      [38] = NAP_TRK_CODE_GLO_G2, [39] = NAP_TRK_CODE_GLO_G2,
-     [40] = NAP_TRK_CODE_GLO_G2, [41] = NAP_TRK_CODE_SBAS,
-     [42] = NAP_TRK_CODE_SBAS,   [43] = NAP_TRK_CODE_SBAS,
-     [44] = NAP_TRK_CODE_SBAS,   [45] = NAP_TRK_CODE_BDS_B1,
+     [40] = NAP_TRK_CODE_GLO_G2, [41] = NAP_TRK_CODE_GLO_G2,
+     [42] = NAP_TRK_CODE_GLO_G2, [43] = NAP_TRK_CODE_GLO_G2,
+     [44] = NAP_TRK_CODE_GLO_G2, [45] = NAP_TRK_CODE_BDS_B1,
      [46] = NAP_TRK_CODE_BDS_B1, [47] = NAP_TRK_CODE_BDS_B1,
      [48] = NAP_TRK_CODE_BDS_B1, [49] = NAP_TRK_CODE_BDS_B1,
      [50] = NAP_TRK_CODE_BDS_B1, [51] = NAP_TRK_CODE_BDS_B1,

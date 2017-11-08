@@ -31,7 +31,6 @@ ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
 SCENARIO="live-roof-1543-mission"
 
-HITL_PASS_RUNS=10
 STATUS_HITL_CONTEXT="hitl/pass-fail"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
@@ -69,7 +68,7 @@ hitl_test_runs_link () {
 }
 
 LINKS=\
-("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION&runs=$HITL_PASS_RUNS"
+("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION&runs=10"
 $(hitl_pass_fail_link)
 $(hitl_high_level_link)
 $(hitl_test_runs_link)
@@ -97,7 +96,6 @@ github_links(){
     echo -n "## $BUILD_VERSION"
     echo -n "\nNote:"
     echo -n "\n- You must manually submit the form in the link for 'Run a HITL test set for this build' in order to get data for the 'HITL Results' links."
-    echo -n "\n- $HITL_PASS_RUNS HITL runs of the 'live-roof-1543-mission' scenario must pass for the $STATUS_HITL_CONTEXT status to be marked successful. If any HITL runs fail to complete you will have to manually submit the 'Run a HITL test set for this build' form again."
     echo -n "\n- Check the status of HITL runs through the [hitl-dashboard](http://hitl-dashboard.swiftnav.com)."
     echo -n "\n"
     echo -n "\nThe following links are for this Pull Request's ***merge*** commit:"
@@ -117,15 +115,15 @@ if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
         DATA="text=$COMMENT"
         curl --data-urlencode "$DATA" "$URL"
     fi
-elif [ ! -z "$GITHUB_TOKEN" ]; then
+elif [ ! -z "$GITHUB_COMMENT_TOKEN" ]; then
     COMMENT="$(github_links)"
     COMMENT_URL="https://api.github.com/repos/swift-nav/$REPO/issues/$TRAVIS_PULL_REQUEST/comments"
-    curl -u "$GITHUB_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
+    curl -u "$GITHUB_COMMENT_TOKEN:" -X POST "$COMMENT_URL" -d "{\"body\":\"$COMMENT\"}"
     # set status of HITL testing to pending
     STATUS_URL="https://api.github.com/repos/swift-nav/piksi_firmware_private/statuses/$TRAVIS_PULL_REQUEST_SHA"
     STATUS_DESCRIPTION="Waiting for HITL tests to be run and complete"
     STATUS_TARGET_URL=$(hitl_pass_fail_link)
     STATUS_STATE="pending"
-    curl -i -X POST -u "$GITHUB_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
+    curl -i -X POST -u "$GITHUB_COMMENT_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
 fi
 

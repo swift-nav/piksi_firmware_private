@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swift-nav.com>
+ * Contact: Michele Bavaro <michele@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -9,15 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "ndb.h"
-#include "ndb/ndb_internal.h"
-#include "signal.h"
+#ifndef TRACK_QZSS_L1CA_H
+#define TRACK_QZSS_L1CA_H
 
-/** Set up the NDB module. */
-void ndb_setup(void) {
-  ndb_init();
-  platform_ndb_init();
-  ndb_start();
-}
+#include <libswiftnav/common.h>
 
-void ndb_sbp_updates(void) { platform_ndb_sbp_updates(); }
+void track_qzss_l1ca_register(void);
+
+#endif /* TRACK_QZSS_L1CA_H */
