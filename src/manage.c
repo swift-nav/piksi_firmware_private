@@ -73,16 +73,6 @@ typedef enum {
   CH_DROP_REASON_RAIM          /**< Signal removed by RAIM */
 } ch_drop_reason_t;
 
-/** Different hints on satellite info to aid the acqusition */
-enum acq_hint {
-  ACQ_HINT_WARMSTART,  /**< Information from almanac or ephemeris */
-  ACQ_HINT_PREV_ACQ,   /**< Previous successful acqusition. */
-  ACQ_HINT_PREV_TRACK, /**< Previously tracked satellite. */
-  ACQ_HINT_REMOTE_OBS, /**< Observation from reference station. */
-
-  ACQ_HINT_NUM
-};
-
 /** Status of acquisition for a particular ME SID. */
 typedef struct {
   enum {
@@ -92,7 +82,6 @@ typedef struct {
     ACQ_PRN_UNHEALTHY
   } state;                 /**< Management status of signal. */
   bool masked;             /**< Prevent acquisition. */
-  u16 score[ACQ_HINT_NUM]; /**< Acquisition preference of signal. */
   float dopp_hint_low;     /**< Low bound of doppler search hint. */
   float dopp_hint_high;    /**< High bound of doppler search hint. */
   me_gnss_signal_t mesid;  /**< ME signal identifier. */
@@ -376,8 +365,6 @@ void manage_acq_setup() {
 
     log_debug_mesid(mesid, "global index %3d masked %d", i, acq_status[i].masked);
 
-    memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
-
     if (code_requires_direct_acq(mesid.code)) {
       acq_status[i].dopp_hint_low = code_to_sv_doppler_min(mesid.code) +
                                     code_to_tcxo_doppler_min(mesid.code);
@@ -466,12 +453,6 @@ static void manage_acq(void) {
       float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
       acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, doppler_max);
       acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, doppler_min);
-      /* Decay hint scores */
-      for (u8 i = 0; i < ACQ_HINT_NUM; i++) {
-        acq->score[i] = (acq->score[i] * 3) / 4;
-      }
-      /* Reset hint score for acquisition. */
-      acq->score[ACQ_HINT_PREV_ACQ] = 0;
       return;
     }
 
@@ -1096,26 +1077,6 @@ u32 get_tracking_channel_meas(u8 i,
         (0 != (info.flags & TRACKER_FLAG_BIT_INVERTED))) {
       meas->carrier_phase += 0.5;
     }
-
-    /* In theory this should apply a FCN shift to all channels so that
-     * they go back after power on-off.. however it needs to use the
-     * clock bias and drift information in order to be precise enough
-     * to be usable.
-     */
-    /*
-    double nap_tc_sec = (double)ref_tc / NAP_TRACK_SAMPLE_RATE_Hz;
-    double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
-    if (CODE_GLO_L1OF == info.mesid.code) {
-      double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-      log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec -
-    ref_2ms_boundary)*1e3);
-      meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
-    }
-    if (CODE_GLO_L2OF == info.mesid.code) {
-      double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
-      meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
-    }
-    */
 
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
