@@ -10,5 +10,4 @@ triggered through the link in the Travis comment.*
 *Detail what bug was fixed, feature implemented, link to design doc.*
 
 # Testing
-- [ ] This PR has been HITL tested, and has passed all passfail checks.
-- [ ] *Detail the other testing you have performed here. You have performed other testing, right? ...*
+- *Detail the testing you have performed to verify this PR here.*
