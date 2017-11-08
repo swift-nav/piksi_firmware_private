@@ -289,10 +289,7 @@ static bool tow_cache_sid_available(tracker_channel_t *tracker_channel,
   me_gnss_signal_t mesid = tracker_channel->mesid;
   u16 glo_orbit_slot = 0;
 
-  if (IS_GPS(mesid) ||
-      IS_SBAS(mesid) ||
-      IS_BDS2(mesid) ||
-      IS_QZSS(mesid)) {
+  if (IS_GPS(mesid) || IS_SBAS(mesid) || IS_BDS2(mesid) || IS_QZSS(mesid)) {
     *sid = construct_sid(mesid.code, mesid.sat);
   } else if (IS_GLO(mesid)) {
     /* Check that GLO orbit slot ID is available */

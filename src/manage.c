@@ -366,7 +366,8 @@ void manage_acq_setup() {
       acq_status[i].masked = !galileo_enabled || !gal_active(mesid);
     }
 
-    log_debug_mesid(mesid, "global index %3d masked %d", i, acq_status[i].masked);
+    log_debug_mesid(
+        mesid, "global index %3d masked %d", i, acq_status[i].masked);
 
     if (code_requires_direct_acq(mesid.code)) {
       acq_status[i].dopp_hint_low = code_to_sv_doppler_min(mesid.code) +
@@ -394,15 +395,16 @@ void manage_acq_setup() {
 static acq_status_t *choose_acq_sat(void) {
   static u32 satidx = 0;
 
-  while(1) {
+  while (1) {
     satidx = (satidx + 1) % ARRAY_SIZE(acq_status);
     if ((!code_requires_direct_acq(acq_status[satidx].mesid.code)) ||
-        (acq_status[satidx].state != ACQ_PRN_ACQUIRING) || (acq_status[satidx].masked)) {
-          log_debug_mesid(
-              acq_status[satidx].mesid, "skipping, direct_acq %d state %d masked %d",
-              code_requires_direct_acq(acq_status[satidx].mesid.code),
-              acq_status[satidx].state,
-              acq_status[satidx].masked);
+        (acq_status[satidx].state != ACQ_PRN_ACQUIRING) ||
+        (acq_status[satidx].masked)) {
+      log_debug_mesid(acq_status[satidx].mesid,
+                      "skipping, direct_acq %d state %d masked %d",
+                      code_requires_direct_acq(acq_status[satidx].mesid.code),
+                      acq_status[satidx].state,
+                      acq_status[satidx].masked);
       continue;
     }
     return &acq_status[satidx];
@@ -1300,7 +1302,7 @@ static void manage_tracking_startup(void) {
         }
       }
       log_debug_mesid(startup_params.mesid,
-                     "No free tracking channel available.");
+                      "No free tracking channel available.");
       continue;
     }
 
