@@ -108,8 +108,8 @@ typedef struct {
   bool oneshot;              /**< Oneshot jobs do not continue automatically
                                 when completed */
   acq_job_scheduling_state_e state; /**< Scheduling state */
-  bool needs_restart;    /**< Set if this job needs to be restarted */
-  acq_task_t task_data;  /**< Search area is divided into smaller tasks */
+  bool needs_restart;   /**< Set if this job needs to be restarted */
+  acq_task_t task_data; /**< Search area is divided into smaller tasks */
 } acq_job_t;
 
 /** Container for all the jobs */
