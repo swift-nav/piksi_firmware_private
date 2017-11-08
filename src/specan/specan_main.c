@@ -93,6 +93,7 @@ void ThreadManageSpecan(void *arg) {
       p_head->channel_tag = uBand;
       p_head->t.wn = curr_time.wn;
       p_head->t.tow = curr_time.tow;
+      p_head->t.ns_residual = 0;
       /** The call below sets start frequency and frequency step */
       SpecanCore(uBand);
 
