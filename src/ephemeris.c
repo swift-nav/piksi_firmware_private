@@ -252,9 +252,8 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
     ndb_op_code_t res =
         ndb_ephemeris_read(construct_sid(e->sid.code, i), &test_e);
     if (NDB_ERR_NONE != res) {
-      if (NDB_ERR_MISSING_IE != res && NDB_ERR_UNCONFIRMED_DATA != res &&
-          NDB_ERR_AGED_DATA != res) {
-        log_error("Ephemeris NDB read error %" PRIu8 " ", res);
+      if (NDB_ERR_BAD_PARAM == res) {
+        log_error_sid(e->sid, "Ephemeris NDB read error: bad param");
       }
       /* some problems when read ephemeres from NDB, try next */
       continue;
