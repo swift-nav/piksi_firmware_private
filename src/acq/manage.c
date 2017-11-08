@@ -558,7 +558,7 @@ static u16 manage_warm_start(acq_status_t *acq, const gps_time_t *t) {
   }
 
   /* TODO GLO: Handle GLO orbit slot properly. */
-  if (CODE_GPS_L1CA != mesid.code) {
+  if (CODE_GPS_L1CA != acq->mesid.code) {
     return SCORE_COLDSTART;
   }
 
