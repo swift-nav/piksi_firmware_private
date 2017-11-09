@@ -419,16 +419,16 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   return CODE_NAV_STATE_UNKNOWN;
 }
 
-/** Check if tracking of signal is allowed.
+/** Check if signal is unhealthy.
  *
  * \param sid Signal ID
  *
  * \returns true if signal health of specified signal
  *               is not CODE_NAV_STATE_INVALID, false otherwise
  */
-bool shm_tracking_allowed(gnss_signal_t sid) {
+bool shm_signal_unhealthy(gnss_signal_t sid) {
   assert(sid_valid(sid));
-  return shm_get_sat_state(sid) != CODE_NAV_STATE_INVALID;
+  return shm_get_sat_state(sid) == CODE_NAV_STATE_INVALID;
 }
 
 /** Check if signal is suitable for navigation

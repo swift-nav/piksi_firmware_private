@@ -493,7 +493,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   /* Health indicates CODE_NAV_STATE_INVALID */
-  if (!shm_tracking_allowed(sid)) {
+  if (shm_signal_unhealthy(sid)) {
     /* Clear NDB and TOW cache */
     erase_nav_data(sid, sid);
     /* Clear subframe data */
