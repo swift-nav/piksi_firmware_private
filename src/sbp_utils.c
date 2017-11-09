@@ -750,7 +750,7 @@ u32 round_tow_ms(double tow) {
  * nanosecond remainder, taking care of week roll-over
  * @param[in] t_in GPS time
  * @param[out] t_out SBP time
-*/
+ */
 void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
