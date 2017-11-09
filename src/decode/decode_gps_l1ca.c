@@ -492,12 +492,17 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     shm_gps_set_shi1(sid.sat, dd.shi1);
   }
 
-  /* Let's not use data from unhealthy satellite. */
-  if (shm_navigation_unusable(sid)) {
+  /* Health indicates CODE_NAV_STATE_INVALID */
+  if (!shm_tracking_allowed(sid)) {
     /* Clear NDB and TOW cache */
     erase_nav_data(sid, sid);
     /* Clear subframe data */
     nav_msg_init(&data->nav_msg);
+    return;
+  }
+
+  /* Do not use data from sv that is not declared as CODE_NAV_STATE_VALID. */
+  if (!shm_navigation_suitable(sid)) {
     return;
   }
 
