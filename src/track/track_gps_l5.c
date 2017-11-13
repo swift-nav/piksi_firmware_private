@@ -27,6 +27,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
+#include <libswiftnav/gnss_capabilities.h>
 
 /* STD headers */
 #include <assert.h>
@@ -85,11 +86,11 @@ void do_l1ca_to_l5_handover(u32 sample_count,
     return; /* L5 signal from the SV is already in track */
   }
 
-  u32 capb;
-  ndb_gps_l2cm_l2c_cap_read(&capb);
-  if (0 == (capb & ((u32)1 << (sat - 1)))) {
+  if (0 == (gnss_capab.gps_l5 & (1ULL << (sat - 1)))) {
     return;
   }
+
+  if (32 != mesid.sat) return;
 
   if (!handover_valid(code_phase, GPS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(

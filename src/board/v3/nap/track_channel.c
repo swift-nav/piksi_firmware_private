@@ -208,7 +208,7 @@ void nap_track_init(u8 channel,
         (CODE_GPS_L5Q == mesid.code) ||
         (CODE_GPS_L5X == mesid.code)) {
       s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                      .samples = 0};
+                                      .samples = 1};
     } else {
       s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                       .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
@@ -402,6 +402,11 @@ void nap_track_read_results(u8 channel,
   memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
+
+  if ((CODE_GPS_L5Q == s->mesid.code) &&
+       (s->mesid.sat == 32)) {
+    log_info_mesid(s->mesid, "snapshot %u", *count_snapshot);
+  }
 
   /* E correlator */
   corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);

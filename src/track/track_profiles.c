@@ -355,7 +355,7 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
 
   if (IS_GPS(mesid)) {
     if (CODE_GPS_L5Q == mesid.code) {
-      track_mode = TP_TM_INITIAL;
+      track_mode = profile->profile.bds2_track_mode;
     } else {
       track_mode = profile->profile.gps_track_mode;
     }
