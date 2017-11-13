@@ -18,6 +18,21 @@
 #include "shm.h"
 
 static MUTEX_DECL(cnav_msg_mutex);
+
+typedef struct {
+  bool msg_valid;
+  cnav_msg_t msg;
+} cnav_msg_storage_t;
+
+typedef enum {
+  CNAV_MSG_TYPE_IDX_10,
+  CNAV_MSG_TYPE_IDX_11,
+  CNAV_MSG_TYPE_IDX_30,
+  CNAV_MSG_TYPE_IDX_32,
+  CNAV_MSG_TYPE_IDX_33,
+  CNAV_MSG_TYPE_NUM
+} cnav_msg_idx_t;
+
 static cnav_msg_storage_t cnav_msg_storage[NUM_SATS_GPS][CNAV_MSG_TYPE_NUM];
 
 static cnav_msg_idx_t cnav_msg_type_to_idx(cnav_msg_type_t t) {
@@ -97,4 +112,23 @@ bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg) {
   }
 
   return res;
+}
+
+/** Clears content of every CNAV (GPS L2CM) navigation message for parameter sid
+ *
+ * \param sid Signal ID to clear
+ *
+ */
+void cnav_msg_clear(gnss_signal_t sid) {
+  if (!sid_valid(sid) || !IS_GPS(sid)) {
+    log_debug_sid(sid, "cnav_msg_clear: invalid sid");
+    return;
+  }
+
+  u16 sat_idx = sid_to_code_index(sid);
+  chMtxLock(&cnav_msg_mutex);
+  memset(&cnav_msg_storage[sat_idx],
+         0,
+         sizeof(cnav_msg_storage_t) * CNAV_MSG_TYPE_NUM);
+  chMtxUnlock(&cnav_msg_mutex);
 }
