@@ -253,8 +253,8 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
                      const tp_tracker_config_t *config) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
-  log_debug_mesid(mesid, "[+%" PRIu32 "ms] Tracker start",
-                  tracker_channel->update_count);
+  log_debug_mesid(
+      mesid, "[+%" PRIu32 "ms] Tracker start", tracker_channel->update_count);
 
   tracker_ambiguity_unknown(tracker_channel);
 

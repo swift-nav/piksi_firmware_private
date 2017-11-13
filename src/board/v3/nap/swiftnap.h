@@ -3170,4 +3170,3 @@ typedef struct {
    ((VAL) << NAP_TRK_CH_CODE_PINC_VALUE_Pos))
 
 #endif
-

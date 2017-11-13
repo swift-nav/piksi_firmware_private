@@ -24,10 +24,10 @@
 
 /* Libraries */
 #include <libswiftnav/constants.h>
+#include <libswiftnav/gnss_capabilities.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
-#include <libswiftnav/gnss_capabilities.h>
 
 /* STD headers */
 #include <assert.h>
@@ -78,7 +78,7 @@ void do_l1ca_to_l5_handover(u32 sample_count,
                             double carrier_freq,
                             float cn0_init,
                             s32 TOW_ms) {
-  (void) TOW_ms;
+  (void)TOW_ms;
   /* compose L5 MESID: same SV, but code is L5 */
   me_gnss_signal_t mesid = construct_mesid(CODE_GPS_L5Q, sat);
 

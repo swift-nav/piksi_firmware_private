@@ -176,12 +176,11 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5Q)  ||
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GPS_L5Q) ||
          (mesid.code == CODE_GLO_L1OF) || (mesid.code == CODE_GLO_L2OF) ||
-         (mesid.code == CODE_SBAS_L1CA) ||
-         (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
-         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L2CL));
+         (mesid.code == CODE_SBAS_L1CA) || (mesid.code == CODE_BDS2_B11) ||
+         (mesid.code == CODE_BDS2_B2) || (mesid.code == CODE_QZS_L1CA) ||
+         (mesid.code == CODE_QZS_L2CM) || (mesid.code == CODE_QZS_L2CL));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
@@ -204,11 +203,10 @@ void nap_track_init(u8 channel,
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
   } else {
-    if ((CODE_GPS_L5I == mesid.code) ||
-        (CODE_GPS_L5Q == mesid.code) ||
+    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
         (CODE_GPS_L5X == mesid.code)) {
-      s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
-                                      .samples = 1};
+      s->spacing[0] =
+          (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS, .samples = 1};
     } else {
       s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                       .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
@@ -403,8 +401,7 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
-  if ((CODE_GPS_L5Q == s->mesid.code) &&
-       (s->mesid.sat == 32)) {
+  if ((CODE_GPS_L5Q == s->mesid.code) && (s->mesid.sat == 32)) {
     log_info_mesid(s->mesid, "snapshot %u", *count_snapshot);
   }
 
