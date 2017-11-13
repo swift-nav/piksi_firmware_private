@@ -383,3 +383,15 @@ void propagate_tow_from_sid_db(tracker_channel_t *tracker_channel) {
     tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
   }
 }
+
+/**
+ * Clear TOW info from the cache.
+ *
+ * \param[in] sid   Target GNSS signal identifier.
+ */
+void clear_tow_in_sid_db(const gnss_signal_t sid) {
+  /* Update TOW cache */
+  tp_tow_entry_t tow_entry = {
+      .TOW_ms = TOW_UNKNOWN, .TOW_residual_ns = 0, .sample_time_tk = 0};
+  track_sid_db_update_tow(sid, &tow_entry);
+}
