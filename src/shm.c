@@ -46,6 +46,243 @@ static void int_shi_2_str(bool set, unsigned shi, char* str, int len) {
   }
 }
 
+/** The six-bit health indication given by bits 17 through 22 of word three
+ * refers to the transmitting SV. The MSB shall indicate a summary of the
+ * health of the NAV data, where
+ *   0 = all NAV data are OK,
+ *   1 = some or all NAV data are bad.
+ *
+ * http://www.gps.gov/technical/icwg/IS-GPS-200H.pdf
+ * 20.3.3.3.1.4 SV Health.
+ *
+ * \param health_bits SV health bits
+ * \return 1 if the satellite health summary is OK.
+ *         0 otherwise.
+ */
+static u8 gps_nav_data_health_summary(u8 health_bits)
+{
+  u8 summary = (health_bits >> 5) & 0x1;
+
+  return (0 == summary) ? 1 : 0;
+}
+
+typedef enum gps_signal_component_health {
+  ALL_SIGNALS_OK = 0,
+  ALL_SIGNALS_WEAK,
+  ALL_SIGNALS_DEAD,
+  ALL_SIGNALS_NO_DATA,
+  L1_P_SIGNAL_WEAK,
+  L1_P_SIGNAL_DEAD,
+  L1_P_SIGNAL_NO_DATA,
+  L2_P_SIGNAL_WEAK,
+  L2_P_SIGNAL_DEAD,
+  L2_P_SIGNAL_NO_DATA,
+  L1_C_SIGNAL_WEAK,
+  L1_C_SIGNAL_DEAD,
+  L1_C_SIGNAL_NO_DATA,
+  L2_C_SIGNAL_WEAK,
+  L2_C_SIGNAL_DEAD,
+  L2_C_SIGNAL_NO_DATA,
+  L1_L2_P_SIGNAL_WEAK,
+  L1_L2_P_SIGNAL_DEAD,
+  L1_L2_P_SIGNAL_NO_DATA,
+  L1_L2_C_SIGNAL_WEAK,
+  L1_L2_C_SIGNAL_DEAD,
+  L1_L2_C_SIGNAL_NO_DATA,
+  L1_SIGNAL_WEAK,
+  L1_SIGNAL_DEAD,
+  L1_SIGNAL_NO_DATA,
+  L2_SIGNAL_WEAK,
+  L2_SIGNAL_DEAD,
+  L2_SIGNAL_NO_DATA,
+  SV_TEMPORARILY_OUT,
+  SV_WILL_BE_TEMPORARILY_OUT,
+  ONLY_URA_VALID,
+  MULTIPLE_PROBLEMS
+} gps_signal_component_health_t;
+
+/** Check GPS NAV data health summary and signal component status.
+ *
+ *  From IS-GPS-200H:
+ *  The six-bit words provide a one-bit summary of the NAV data's health status
+ *  in the MSB position in accordance with paragraph 20.3.3.3.1.4. The five LSBs
+ *  of both the eight-bit and the six-bit words provide the health status of the
+ *  SV's signal components in accordance with the code given in Table 20-VIII.
+ *
+ * \param health_bits SV health bits. Refer to gps_nav_data_health_summary()
+ *        documentation above for details.
+ * \param code code for which health should be analyzed
+ *
+ * \return 1 if current signal is OK.
+ *         0 otherwise.
+ */
+static u8 check_6bit_health_word(const u8 health_bits, const code_t code)
+{
+  /* Check NAV data health summary */
+  if (((CODE_GPS_L1CA == code) || (CODE_GPS_L1P == code)) &&
+      0 == gps_nav_data_health_summary(health_bits)) {
+    return 0;
+  }
+
+  const u8 b = health_bits & 0x1f;
+
+  /* Check general issues */
+  if (b == ALL_SIGNALS_WEAK ||
+      b == ALL_SIGNALS_DEAD ||
+      b == ALL_SIGNALS_NO_DATA ||
+      b == SV_TEMPORARILY_OUT ||
+      b == SV_WILL_BE_TEMPORARILY_OUT ||
+      b == ONLY_URA_VALID ||
+      b == MULTIPLE_PROBLEMS) {
+    return 0;
+  }
+
+  /* Check code specific issues */
+  switch (code) {
+  case CODE_GPS_L1CA:
+    if (b == L1_C_SIGNAL_WEAK ||
+        b == L1_C_SIGNAL_DEAD ||
+        b == L1_C_SIGNAL_NO_DATA ||
+        b == L1_L2_C_SIGNAL_WEAK ||
+        b == L1_L2_C_SIGNAL_DEAD ||
+        b == L1_L2_C_SIGNAL_NO_DATA ||
+        b == L1_SIGNAL_WEAK ||
+        b == L1_SIGNAL_DEAD ||
+        b == L1_SIGNAL_NO_DATA) {
+      return 0;
+    }
+    return 1;
+
+  case CODE_GPS_L2CM:
+    if (b == L2_C_SIGNAL_WEAK ||
+        b == L2_C_SIGNAL_DEAD ||
+        b == L2_C_SIGNAL_NO_DATA ||
+        b == L1_L2_C_SIGNAL_WEAK ||
+        b == L1_L2_C_SIGNAL_DEAD ||
+        b == L1_L2_C_SIGNAL_NO_DATA ||
+        b == L2_SIGNAL_WEAK ||
+        b == L2_SIGNAL_DEAD ||
+        b == L2_SIGNAL_NO_DATA) {
+      return 0;
+    }
+    return 1;
+
+  case CODE_GPS_L1P:
+    if (b == L1_P_SIGNAL_WEAK ||
+        b == L1_P_SIGNAL_DEAD ||
+        b == L1_P_SIGNAL_NO_DATA ||
+        b == L1_L2_P_SIGNAL_WEAK ||
+        b == L1_L2_P_SIGNAL_DEAD ||
+        b == L1_L2_P_SIGNAL_NO_DATA ||
+        b == L1_SIGNAL_WEAK ||
+        b == L1_SIGNAL_DEAD ||
+        b == L1_SIGNAL_NO_DATA) {
+      return 0;
+    }
+    return 1;
+
+  case CODE_GPS_L2P:
+    if (b == L2_P_SIGNAL_WEAK ||
+        b == L2_P_SIGNAL_DEAD ||
+        b == L2_P_SIGNAL_NO_DATA ||
+        b == L1_L2_P_SIGNAL_WEAK ||
+        b == L1_L2_P_SIGNAL_DEAD ||
+        b == L1_L2_P_SIGNAL_NO_DATA ||
+        b == L2_SIGNAL_WEAK ||
+        b == L2_SIGNAL_DEAD ||
+        b == L2_SIGNAL_NO_DATA) {
+      return 0;
+    }
+    return 1;
+
+  case CODE_INVALID:
+  case CODE_COUNT:
+  case CODE_GPS_L2CL:
+  case CODE_SBAS_L1CA:
+  case CODE_GLO_L1OF:
+  case CODE_GLO_L2OF:
+  case CODE_GPS_L2CX :
+  case CODE_GPS_L5I  :
+  case CODE_GPS_L5Q  :
+  case CODE_GPS_L5X  :
+  case CODE_BDS2_B11 :
+  case CODE_BDS2_B2  :
+  case CODE_GAL_E1B  :
+  case CODE_GAL_E1C  :
+  case CODE_GAL_E1X  :
+  case CODE_GAL_E6B  :
+  case CODE_GAL_E6C  :
+  case CODE_GAL_E6X  :
+  case CODE_GAL_E7I  :
+  case CODE_GAL_E7Q  :
+  case CODE_GAL_E7X  :
+  case CODE_GAL_E8   :
+  case CODE_GAL_E5I  :
+  case CODE_GAL_E5Q  :
+  case CODE_GAL_E5X  :
+  case CODE_QZS_L1CA :
+  case CODE_QZS_L2CM :
+  case CODE_QZS_L2CL :
+  case CODE_QZS_L2CX :
+  case CODE_QZS_L5I  :
+  case CODE_QZS_L5Q  :
+  case CODE_QZS_L5X  :
+  default:
+    assert(!"Unsupported code");
+    return 0;
+  }
+}
+
+/** Check if this this ephemeris is healthy
+ *
+ * \param valid Ephemeris
+ * \param code signal code, ephe->sid can't be used as for example L2CM uses
+ *             L1CA ephes
+ * \return true if the ephemeris is healthy
+ *         false otherwise
+ */
+bool shm_ephe_healthy(const ephemeris_t *ephe, const code_t code)
+{
+  /* Presume healthy */
+  bool ret = true;
+
+  if (!ephe->valid) {
+    /* If we don't yet have an ephemeris, assume satellite is healthy */
+    /* Otherwise we will stop tracking the sat and never find out */
+    return ret;
+  }
+
+  switch(code_to_constellation(code)) {
+  case CONSTELLATION_GPS:
+    if (encode_ura(ephe->ura) > MAX_ALLOWED_GPS_URA_IDX) {
+      ret = false;
+      /* Satellite is not healthy, no reason to check further */
+      break;
+    }
+
+    ret = (1 == check_6bit_health_word(ephe->health_bits, code));
+
+    break;
+
+  case CONSTELLATION_SBAS:
+  case CONSTELLATION_GLO:
+    ret = (0 == ephe->health_bits);
+    break;
+
+  case CONSTELLATION_INVALID:
+  case CONSTELLATION_COUNT:
+  case CONSTELLATION_BDS2:
+  case CONSTELLATION_GAL:
+  case CONSTELLATION_QZS:
+  default:
+    assert(!"Unsupported constellation");
+    ret = false;
+    break;
+  }
+
+  return ret;
+}
+
 static void cns_2_str(code_nav_state_t state, char** state_str) {
   switch (state) {
     case CODE_NAV_STATE_UNKNOWN:
@@ -63,119 +300,13 @@ static void cns_2_str(code_nav_state_t state, char** state_str) {
   }
 }
 
-/** Output current health state of GSP satellite to the log.
- *  Function does nothing if DEBUG is off.
- *
- * \param shi_name Name of the SHI that was changed last.
- * \param sat GPS satellite ID for which current state should be logged
- *
- */
-void shm_log_sat_state(const char* shi_name, u16 sat) {
-  if (DEBUG) {
-    code_nav_state_t s_l1 =
-        shm_get_sat_state(construct_sid(CODE_GPS_L1CA, sat));
-    gnss_signal_t l2_sid = construct_sid(CODE_GPS_L2CM, sat);
-    code_nav_state_t s_l2 = shm_get_sat_state(l2_sid);
-    char* s_l1_str;
-    char* s_l2_str;
-    cns_2_str(s_l1, &s_l1_str);
-    cns_2_str(s_l2, &s_l2_str);
-    char shi1_str[4], shi4_str[2], shi6_str[2];
-    char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
-    chMtxLock(&shm_data_access);
-    gps_sat_health_indicators_t shis = gps_shis[sat - GPS_FIRST_PRN];
-    chMtxUnlock(&shm_data_access);
-    int_shi_2_str(shis.shi1_set, shis.shi1, shi1_str, sizeof(shi1_str));
-    bool_shi_2_str(shis.shi4_set, shis.shi4, shi4_str);
-    cnav_msg_t cnav_msg10;
-    bool shi5_set = cnav_msg_get(l2_sid, CNAV_MSG_TYPE_10, &cnav_msg10);
-    cnav_msg_type_10_t m10 = cnav_msg10.data.type_10;
-    bool_shi_2_str(shi5_set, m10.l1_health, shi5_l1_str);
-    bool_shi_2_str(shi5_set, m10.l2_health, shi5_l2_str);
-    bool_shi_2_str(shi5_set, m10.l5_health, shi5_l5_str);
-    bool_shi_2_str(shis.shi6_set, shis.shi6, shi6_str);
-    log_debug(
-        "GPS SV %02d %s update. State {L1:%s, L2:%s} "
-        "SHI[1:%s, 4:%s, 5:{%s,%s,%s}, 6:%s]",
-        sat,
-        shi_name,
-        s_l1_str,
-        s_l2_str,
-        shi1_str,
-        shi4_str,
-        shi5_l1_str,
-        shi5_l2_str,
-        shi5_l5_str,
-        shi6_str);
-  }
-}
-
-/** Update SHI1 for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
- *
- * \param sat GPS satellite ID
- * \param new_value value to set SHI1 to
- */
-void shm_gps_set_shi1(u16 sat, u8 new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
-  chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi1 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi1_set = true;
-  chMtxUnlock(&shm_data_access);
-  shm_log_sat_state("SHI1", sat);
-}
-
-/** Update SHI4 for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
- *
- * \param sat GPS satellite ID
- * \param new_value value to set SHI4 to
- */
-void shm_gps_set_shi4(u16 sat, bool new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
-  chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi4 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi4_set = true;
-  chMtxUnlock(&shm_data_access);
-  shm_log_sat_state("SHI4", sat);
-}
-
-/** Update SHI6 for GPS satellite.
- *  Refer to libswiftnav/shm.h for details of SHIs.
- *
- * \param sat GPS satellite ID
- * \param new_value value to set SHI6 to
- */
-void shm_gps_set_shi6(u16 sat, bool new_value) {
-  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
-  chMtxLock(&shm_data_access);
-  gps_shis[sat - GPS_FIRST_PRN].shi6 = new_value;
-  gps_shis[sat - GPS_FIRST_PRN].shi6_set = true;
-  chMtxUnlock(&shm_data_access);
-  shm_log_sat_state("SHI6", sat);
-}
-
-/** Update SHI for GLO satellite.
- *  Refer to libswiftnav/shm.h for details of SHI.
- *
- * \param sat GLO satellite ID
- * \param new_value value to set SHI to
- */
-void shm_glo_set_shi(u16 sat, u8 new_value) {
-  assert(sat >= GLO_FIRST_PRN && sat < GLO_FIRST_PRN + NUM_SATS_GLO);
-  chMtxLock(&shm_data_access);
-  glo_shis[sat - GLO_FIRST_PRN].shi = new_value;
-  glo_shis[sat - GLO_FIRST_PRN].shi_set = true;
-  chMtxUnlock(&shm_data_access);
-}
-
 /** Get signal current health state
  *
  * \param sid Signal ID
  *
  * \returns Current health state of the signal
  */
-code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
+static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   /* Skip GLO satellites if they do not have orbit slot decoded. */
   if (IS_GLO(sid) && !glo_slot_id_is_valid(sid.sat)) {
     return CODE_NAV_STATE_UNKNOWN;
@@ -419,12 +550,130 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   return CODE_NAV_STATE_UNKNOWN;
 }
 
+/** Output current health state of GSP satellite to the log.
+ *  Function does nothing if DEBUG is off.
+ *
+ * \param shi_name Name of the SHI that was changed last.
+ * \param sat GPS satellite ID for which current state should be logged
+ *
+ */
+void shm_log_sat_state(const char* shi_name, u16 sat) {
+  if (DEBUG) {
+    code_nav_state_t s_l1 =
+        shm_get_sat_state(construct_sid(CODE_GPS_L1CA, sat));
+    gnss_signal_t l2_sid = construct_sid(CODE_GPS_L2CM, sat);
+    code_nav_state_t s_l2 = shm_get_sat_state(l2_sid);
+    char* s_l1_str;
+    char* s_l2_str;
+    cns_2_str(s_l1, &s_l1_str);
+    cns_2_str(s_l2, &s_l2_str);
+    char shi1_str[4], shi4_str[2], shi6_str[2];
+    char shi5_l1_str[2], shi5_l2_str[2], shi5_l5_str[2];
+    chMtxLock(&shm_data_access);
+    gps_sat_health_indicators_t shis = gps_shis[sat - GPS_FIRST_PRN];
+    chMtxUnlock(&shm_data_access);
+    int_shi_2_str(shis.shi1_set, shis.shi1, shi1_str, sizeof(shi1_str));
+    bool_shi_2_str(shis.shi4_set, shis.shi4, shi4_str);
+    cnav_msg_t cnav_msg10;
+    bool shi5_set = cnav_msg_get(l2_sid, CNAV_MSG_TYPE_10, &cnav_msg10);
+    cnav_msg_type_10_t m10 = cnav_msg10.data.type_10;
+    bool_shi_2_str(shi5_set, m10.l1_health, shi5_l1_str);
+    bool_shi_2_str(shi5_set, m10.l2_health, shi5_l2_str);
+    bool_shi_2_str(shi5_set, m10.l5_health, shi5_l5_str);
+    bool_shi_2_str(shis.shi6_set, shis.shi6, shi6_str);
+    log_debug(
+        "GPS SV %02d %s update. State {L1:%s, L2:%s} "
+        "SHI[1:%s, 4:%s, 5:{%s,%s,%s}, 6:%s]",
+        sat,
+        shi_name,
+        s_l1_str,
+        s_l2_str,
+        shi1_str,
+        shi4_str,
+        shi5_l1_str,
+        shi5_l2_str,
+        shi5_l5_str,
+        shi6_str);
+  }
+}
+
+/** Update SHI1 for GPS satellite.
+ *  Refer to libswiftnav/shm.h for details of SHIs.
+ *
+ * \param sat GPS satellite ID
+ * \param new_value value to set SHI1 to
+ */
+void shm_gps_set_shi1(u16 sat, u8 new_value) {
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  chMtxLock(&shm_data_access);
+  gps_shis[sat - GPS_FIRST_PRN].shi1 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi1_set = true;
+  chMtxUnlock(&shm_data_access);
+  shm_log_sat_state("SHI1", sat);
+}
+
+/** Update SHI4 for GPS satellite.
+ *  Refer to libswiftnav/shm.h for details of SHIs.
+ *
+ * \param sat GPS satellite ID
+ * \param new_value value to set SHI4 to
+ */
+void shm_gps_set_shi4(u16 sat, bool new_value) {
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  chMtxLock(&shm_data_access);
+  gps_shis[sat - GPS_FIRST_PRN].shi4 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi4_set = true;
+  chMtxUnlock(&shm_data_access);
+  shm_log_sat_state("SHI4", sat);
+}
+
+/** Update SHI6 for GPS satellite.
+ *  Refer to libswiftnav/shm.h for details of SHIs.
+ *
+ * \param sat GPS satellite ID
+ * \param new_value value to set SHI6 to
+ */
+void shm_gps_set_shi6(u16 sat, bool new_value) {
+  assert(sat >= GPS_FIRST_PRN && sat < GPS_FIRST_PRN + NUM_SATS_GPS);
+  chMtxLock(&shm_data_access);
+  gps_shis[sat - GPS_FIRST_PRN].shi6 = new_value;
+  gps_shis[sat - GPS_FIRST_PRN].shi6_set = true;
+  chMtxUnlock(&shm_data_access);
+  shm_log_sat_state("SHI6", sat);
+}
+
+/** Update SHI for GLO satellite.
+ *  Refer to libswiftnav/shm.h for details of SHI.
+ *
+ * \param sat GLO satellite ID
+ * \param new_value value to set SHI to
+ */
+void shm_glo_set_shi(u16 sat, u8 new_value) {
+  assert(sat >= GLO_FIRST_PRN && sat < GLO_FIRST_PRN + NUM_SATS_GLO);
+  chMtxLock(&shm_data_access);
+  glo_shis[sat - GLO_FIRST_PRN].shi = new_value;
+  glo_shis[sat - GLO_FIRST_PRN].shi_set = true;
+  chMtxUnlock(&shm_data_access);
+}
+
+/** Check if signal is healthy.
+ *
+ * \param sid Signal ID
+ *
+ * \returns true if signal health of specified signal
+ *               is CODE_NAV_STATE_INVALID, false otherwise
+ */
+bool shm_signal_healthy(gnss_signal_t sid) {
+  assert(sid_valid(sid));
+  return shm_get_sat_state(sid) == CODE_NAV_STATE_VALID;
+}
+
 /** Check if signal is unhealthy.
  *
  * \param sid Signal ID
  *
  * \returns true if signal health of specified signal
- *               is not CODE_NAV_STATE_INVALID, false otherwise
+ *               is CODE_NAV_STATE_INVALID, false otherwise
  */
 bool shm_signal_unhealthy(gnss_signal_t sid) {
   assert(sid_valid(sid));
@@ -451,4 +700,15 @@ bool shm_navigation_suitable(gnss_signal_t sid) {
  */
 bool shm_navigation_unusable(gnss_signal_t sid) {
   return shm_get_sat_state(sid) != CODE_NAV_STATE_VALID;
+}
+
+/** Check if signal health is unknown
+ *
+ * \param sat Signal ID
+ *
+ * \returns true if health of signal is not CODE_NAV_STATE_UNKNOWN,
+ *          false otherwise
+ */
+bool shm_health_unknown(gnss_signal_t sid) {
+  return shm_get_sat_state(sid) == CODE_NAV_STATE_UNKNOWN;
 }
