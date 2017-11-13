@@ -402,7 +402,9 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
         break;
     }
 
-    if (!check_6bit_health_word(health_bits, target_sid.code)) {
+    /* Health indicates CODE_NAV_STATE_INVALID */
+    if (shm_signal_unhealthy(target_sid)) {
+      /* Clear NDB and TOW cache */
       erase_nav_data(target_sid, src_sid);
     }
   }
