@@ -16,21 +16,8 @@
 #include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/signal.h>
 
-typedef enum {
-  CNAV_MSG_TYPE_IDX_10,
-  CNAV_MSG_TYPE_IDX_11,
-  CNAV_MSG_TYPE_IDX_30,
-  CNAV_MSG_TYPE_IDX_32,
-  CNAV_MSG_TYPE_IDX_33,
-  CNAV_MSG_TYPE_NUM
-} cnav_msg_idx_t;
-
-typedef struct {
-  bool msg_valid;
-  cnav_msg_t msg;
-} cnav_msg_storage_t;
-
 void cnav_msg_put(const cnav_msg_t *msg);
 bool cnav_msg_get(gnss_signal_t sid, cnav_msg_type_t type, cnav_msg_t *msg);
+void cnav_msg_clear(gnss_signal_t sid);
 
 #endif /* LIBSWIFTNAV_CNAV_MSG_STORAGE_H */
