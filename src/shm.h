@@ -34,7 +34,7 @@ void shm_glo_set_shi(u16 sat, u8 new_value);
 code_nav_state_t shm_get_sat_state(gnss_signal_t sid);
 void shm_log_sat_state(const char* shi_name, u16 sat);
 
-bool shm_tracking_allowed(gnss_signal_t sid);
+bool shm_signal_unhealthy(gnss_signal_t sid);
 bool shm_navigation_suitable(gnss_signal_t sid);
 bool shm_navigation_unusable(gnss_signal_t sid);
 
