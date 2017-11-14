@@ -23,8 +23,14 @@ void chSysLock(){};
 void chSysUnlock(){};
 
 systime_t chVTGetSystemTimeX() { return 0; };
-systime_t chThdSleep() { return 1; };
-systime_t chThdSleepS() { return 1; };
+systime_t chThdSleep(systime_t time) {
+  (void)time;
+  return 1;
+};
+systime_t chThdSleepS(systime_t time) {
+  (void)time;
+  return 1;
+};
 
 #define TIME_INFINITE (systime_t)(-1)
 
