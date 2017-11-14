@@ -308,31 +308,6 @@ static void decode_almanac_time_new(gnss_signal_t sid,
   }
 }
 
-static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
-  char hf_sid_str[SID_STR_LEN_MAX];
-  sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
-
-  /** NAV data health summary indicates error -> delete data
-   * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
-   *       health words indicate health of the NAV data in accordance with
-   *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
-   *       SV Health). These details indicate which of the subframes are bad.
-   */
-  if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
-    log_info_sid(target_sid,
-                 "decoded almanacs deleted (health flags from %s)",
-                 hf_sid_str);
-  }
-
-  if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
-    log_info_sid(
-        target_sid, "ephemeris deleted (health flags from %s)", hf_sid_str);
-  }
-
-  /* Clear TOW cache */
-  clear_tow_in_sid_db(target_sid);
-}
-
 /**
  * Deletes almanacs/ephemeris for SVs with error bit set and updates almanacs
  * otherwise. Data source SV is assumed valid and healthy.
@@ -408,9 +383,10 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
       erase_nav_data(target_sid, src_sid);
     }
 
-    gnss_signal_t l2cm = (gnss_signal_t){.sat = target_sid.sat, CODE_GPS_L2CM};
+    gnss_signal_t l2cm = (gnss_signal_t){.sat = target_sid.sat,
+                                         .code = CODE_GPS_L2CM};
     if (shm_signal_unhealthy(l2cm)) {
-      /* Clear NDB and TOW cache */
+      /* Clear CNAV data and TOW cache */
       erase_cnav_data(l2cm, src_sid);
     }
   }
@@ -498,6 +474,13 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   if (dd.shi1_upd_flag) {
     log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi1);
     shm_gps_set_shi1(sid.sat, dd.shi1);
+  }
+
+  /* Health indicates CODE_NAV_STATE_INVALID for L2CM */
+  gnss_signal_t l2cm = (gnss_signal_t){.sat = sid.sat, .code = CODE_GPS_L2CM};
+  if (shm_signal_unhealthy(l2cm)) {
+    /* Clear CNAV data and TOW cache */
+    erase_cnav_data(l2cm, sid);
   }
 
   /* Health indicates CODE_NAV_STATE_INVALID */

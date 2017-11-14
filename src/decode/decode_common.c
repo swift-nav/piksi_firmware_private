@@ -19,6 +19,7 @@
 
 #include "decode_common.h"
 #include "ephemeris.h"
+#include "ndb.h"
 #include "piksi_systime.h"
 #include "timing.h"
 #include "track.h"
@@ -173,6 +174,31 @@ bool glo_data_sync(nav_msg_glo_t *n,
   }
   tracking_channel_glo_data_sync(tracking_channel, &from_decoder);
   return true;
+}
+
+void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
+  char hf_sid_str[SID_STR_LEN_MAX];
+  sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
+
+  /** NAV data health summary or signal health indicates error -> delete data
+   * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
+   *       health words indicate health of the NAV data in accordance with
+   *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
+   *       SV Health). These details indicate which of the subframes are bad.
+   */
+  if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
+    log_info_sid(target_sid,
+                 "decoded almanacs deleted (health flags from %s)",
+                 hf_sid_str);
+  }
+
+  if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
+    log_info_sid(
+        target_sid, "ephemeris deleted (health flags from %s)", hf_sid_str);
+  }
+
+  /* Clear TOW cache */
+  clear_tow_in_sid_db(target_sid);
 }
 
 void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
