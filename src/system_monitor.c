@@ -115,7 +115,7 @@ static void check_frontend_errors(void) {
   }
 }
 
-#define SYSTEM_MONITOR_THREAD_PIORITY (HIGHPRIO -2)
+#define SYSTEM_MONITOR_THREAD_PIORITY (HIGHPRIO - 2)
 
 static WORKING_AREA_CCM(wa_system_monitor_thread, 2000);
 static void system_monitor_thread(void *arg) {
