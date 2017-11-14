@@ -9,16 +9,20 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "decode_common.h"
+
 #include <assert.h>
+
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
+
+#include "decode_common.h"
 #include "ephemeris.h"
 #include "piksi_systime.h"
 #include "timing.h"
 #include "track.h"
+#include "track/track_sid_db.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
                                              const glo_time_t *glo_t) {
@@ -170,3 +174,17 @@ bool glo_data_sync(nav_msg_glo_t *n,
   tracking_channel_glo_data_sync(tracking_channel, &from_decoder);
   return true;
 }
+
+void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
+  char hf_sid_str[SID_STR_LEN_MAX];
+  sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
+
+  cnav_msg_clear(target_sid);
+  log_debug_sid(target_sid,
+                "CNAV data cleared (health flags from %s)",
+                hf_sid_str);
+
+  /* Clear TOW cache */
+  clear_tow_in_sid_db(target_sid);
+}
+

@@ -10,12 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_gps_l1ca.h"
-#include "decode.h"
-
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h>
 
+#include "decode.h"
+#include "decode_common.h"
+#include "decode_gps_l1ca.h"
 #include "ephemeris.h"
 #include "ndb.h"
 #include "sbp.h"
@@ -406,6 +406,12 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
     if (shm_signal_unhealthy(target_sid)) {
       /* Clear NDB and TOW cache */
       erase_nav_data(target_sid, src_sid);
+    }
+
+    gnss_signal_t l2cm = (gnss_signal_t){.sat = target_sid.sat, CODE_GPS_L2CM};
+    if (shm_signal_unhealthy(l2cm)) {
+      /* Clear NDB and TOW cache */
+      erase_cnav_data(l2cm, src_sid);
     }
   }
 }
