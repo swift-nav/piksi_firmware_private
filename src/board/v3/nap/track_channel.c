@@ -232,6 +232,15 @@ void nap_track_init(u8 channel,
       NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples +
       round(s->spacing[0].chips * calc_samples_per_chip(chip_rate));
 
+  if (CODE_GPS_L5Q == (s->mesid.code)) {
+    log_info_mesid(s->mesid,
+                   "delta_samples %d chip_rate %.1lf carrier_freq_hz %.1lf code_chips %d code_samples %.6lf chips_to_correlate %d",
+                   delta_samples, chip_rate, carrier_freq_hz,
+                   code_to_chip_count(mesid.code),
+                   calc_samples_per_chip(chip_rate),
+                   chips_to_correlate);
+  }
+
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
   /* Chip rate */
@@ -401,9 +410,9 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
-  if ((CODE_GPS_L5Q == s->mesid.code) && (s->mesid.sat == 32)) {
-    log_info_mesid(s->mesid, "snapshot %u", *count_snapshot);
-  }
+  //~ if ((CODE_GPS_L5Q == s->mesid.code) && (s->mesid.sat == 32)) {
+    //~ log_info_mesid(s->mesid, "snapshot %u", *count_snapshot);
+  //~ }
 
   /* E correlator */
   corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);

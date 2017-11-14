@@ -90,7 +90,7 @@ void do_l1ca_to_l5_handover(u32 sample_count,
     return;
   }
 
-  if (32 != mesid.sat) return;
+  if (3 != mesid.sat) return;
 
   if (!handover_valid(code_phase, GPS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(
