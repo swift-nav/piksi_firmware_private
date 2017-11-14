@@ -206,11 +206,9 @@ void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
   sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
 
   cnav_msg_clear(target_sid);
-  log_debug_sid(target_sid,
-                "CNAV data cleared (health flags from %s)",
-                hf_sid_str);
+  log_debug_sid(
+      target_sid, "CNAV data cleared (health flags from %s)", hf_sid_str);
 
   /* Clear TOW cache */
   clear_tow_in_sid_db(target_sid);
 }
-

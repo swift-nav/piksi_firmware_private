@@ -59,8 +59,7 @@ static void int_shi_2_str(bool set, unsigned shi, char* str, int len) {
  * \return 1 if the satellite health summary is OK.
  *         0 otherwise.
  */
-static u8 gps_nav_data_health_summary(u8 health_bits)
-{
+static u8 gps_nav_data_health_summary(u8 health_bits) {
   u8 summary = (health_bits >> 5) & 0x1;
 
   return (0 == summary) ? 1 : 0;
@@ -116,8 +115,7 @@ typedef enum gps_signal_component_health {
  * \return 1 if current signal is OK.
  *         0 otherwise.
  */
-static u8 check_6bit_health_word(const u8 health_bits, const code_t code)
-{
+static u8 check_6bit_health_word(const u8 health_bits, const code_t code) {
   /* Check NAV data health summary */
   if (((CODE_GPS_L1CA == code) || (CODE_GPS_L1P == code)) &&
       0 == gps_nav_data_health_summary(health_bits)) {
@@ -127,109 +125,90 @@ static u8 check_6bit_health_word(const u8 health_bits, const code_t code)
   const u8 b = health_bits & 0x1f;
 
   /* Check general issues */
-  if (b == ALL_SIGNALS_WEAK ||
-      b == ALL_SIGNALS_DEAD ||
-      b == ALL_SIGNALS_NO_DATA ||
-      b == SV_TEMPORARILY_OUT ||
-      b == SV_WILL_BE_TEMPORARILY_OUT ||
-      b == ONLY_URA_VALID ||
+  if (b == ALL_SIGNALS_WEAK || b == ALL_SIGNALS_DEAD ||
+      b == ALL_SIGNALS_NO_DATA || b == SV_TEMPORARILY_OUT ||
+      b == SV_WILL_BE_TEMPORARILY_OUT || b == ONLY_URA_VALID ||
       b == MULTIPLE_PROBLEMS) {
     return 0;
   }
 
   /* Check code specific issues */
   switch (code) {
-  case CODE_GPS_L1CA:
-    if (b == L1_C_SIGNAL_WEAK ||
-        b == L1_C_SIGNAL_DEAD ||
-        b == L1_C_SIGNAL_NO_DATA ||
-        b == L1_L2_C_SIGNAL_WEAK ||
-        b == L1_L2_C_SIGNAL_DEAD ||
-        b == L1_L2_C_SIGNAL_NO_DATA ||
-        b == L1_SIGNAL_WEAK ||
-        b == L1_SIGNAL_DEAD ||
-        b == L1_SIGNAL_NO_DATA) {
-      return 0;
-    }
-    return 1;
+    case CODE_GPS_L1CA:
+      if (b == L1_C_SIGNAL_WEAK || b == L1_C_SIGNAL_DEAD ||
+          b == L1_C_SIGNAL_NO_DATA || b == L1_L2_C_SIGNAL_WEAK ||
+          b == L1_L2_C_SIGNAL_DEAD || b == L1_L2_C_SIGNAL_NO_DATA ||
+          b == L1_SIGNAL_WEAK || b == L1_SIGNAL_DEAD ||
+          b == L1_SIGNAL_NO_DATA) {
+        return 0;
+      }
+      return 1;
 
-  case CODE_GPS_L2CM:
-    if (b == L2_C_SIGNAL_WEAK ||
-        b == L2_C_SIGNAL_DEAD ||
-        b == L2_C_SIGNAL_NO_DATA ||
-        b == L1_L2_C_SIGNAL_WEAK ||
-        b == L1_L2_C_SIGNAL_DEAD ||
-        b == L1_L2_C_SIGNAL_NO_DATA ||
-        b == L2_SIGNAL_WEAK ||
-        b == L2_SIGNAL_DEAD ||
-        b == L2_SIGNAL_NO_DATA) {
-      return 0;
-    }
-    return 1;
+    case CODE_GPS_L2CM:
+      if (b == L2_C_SIGNAL_WEAK || b == L2_C_SIGNAL_DEAD ||
+          b == L2_C_SIGNAL_NO_DATA || b == L1_L2_C_SIGNAL_WEAK ||
+          b == L1_L2_C_SIGNAL_DEAD || b == L1_L2_C_SIGNAL_NO_DATA ||
+          b == L2_SIGNAL_WEAK || b == L2_SIGNAL_DEAD ||
+          b == L2_SIGNAL_NO_DATA) {
+        return 0;
+      }
+      return 1;
 
-  case CODE_GPS_L1P:
-    if (b == L1_P_SIGNAL_WEAK ||
-        b == L1_P_SIGNAL_DEAD ||
-        b == L1_P_SIGNAL_NO_DATA ||
-        b == L1_L2_P_SIGNAL_WEAK ||
-        b == L1_L2_P_SIGNAL_DEAD ||
-        b == L1_L2_P_SIGNAL_NO_DATA ||
-        b == L1_SIGNAL_WEAK ||
-        b == L1_SIGNAL_DEAD ||
-        b == L1_SIGNAL_NO_DATA) {
-      return 0;
-    }
-    return 1;
+    case CODE_GPS_L1P:
+      if (b == L1_P_SIGNAL_WEAK || b == L1_P_SIGNAL_DEAD ||
+          b == L1_P_SIGNAL_NO_DATA || b == L1_L2_P_SIGNAL_WEAK ||
+          b == L1_L2_P_SIGNAL_DEAD || b == L1_L2_P_SIGNAL_NO_DATA ||
+          b == L1_SIGNAL_WEAK || b == L1_SIGNAL_DEAD ||
+          b == L1_SIGNAL_NO_DATA) {
+        return 0;
+      }
+      return 1;
 
-  case CODE_GPS_L2P:
-    if (b == L2_P_SIGNAL_WEAK ||
-        b == L2_P_SIGNAL_DEAD ||
-        b == L2_P_SIGNAL_NO_DATA ||
-        b == L1_L2_P_SIGNAL_WEAK ||
-        b == L1_L2_P_SIGNAL_DEAD ||
-        b == L1_L2_P_SIGNAL_NO_DATA ||
-        b == L2_SIGNAL_WEAK ||
-        b == L2_SIGNAL_DEAD ||
-        b == L2_SIGNAL_NO_DATA) {
-      return 0;
-    }
-    return 1;
+    case CODE_GPS_L2P:
+      if (b == L2_P_SIGNAL_WEAK || b == L2_P_SIGNAL_DEAD ||
+          b == L2_P_SIGNAL_NO_DATA || b == L1_L2_P_SIGNAL_WEAK ||
+          b == L1_L2_P_SIGNAL_DEAD || b == L1_L2_P_SIGNAL_NO_DATA ||
+          b == L2_SIGNAL_WEAK || b == L2_SIGNAL_DEAD ||
+          b == L2_SIGNAL_NO_DATA) {
+        return 0;
+      }
+      return 1;
 
-  case CODE_INVALID:
-  case CODE_COUNT:
-  case CODE_GPS_L2CL:
-  case CODE_SBAS_L1CA:
-  case CODE_GLO_L1OF:
-  case CODE_GLO_L2OF:
-  case CODE_GPS_L2CX :
-  case CODE_GPS_L5I  :
-  case CODE_GPS_L5Q  :
-  case CODE_GPS_L5X  :
-  case CODE_BDS2_B11 :
-  case CODE_BDS2_B2  :
-  case CODE_GAL_E1B  :
-  case CODE_GAL_E1C  :
-  case CODE_GAL_E1X  :
-  case CODE_GAL_E6B  :
-  case CODE_GAL_E6C  :
-  case CODE_GAL_E6X  :
-  case CODE_GAL_E7I  :
-  case CODE_GAL_E7Q  :
-  case CODE_GAL_E7X  :
-  case CODE_GAL_E8   :
-  case CODE_GAL_E5I  :
-  case CODE_GAL_E5Q  :
-  case CODE_GAL_E5X  :
-  case CODE_QZS_L1CA :
-  case CODE_QZS_L2CM :
-  case CODE_QZS_L2CL :
-  case CODE_QZS_L2CX :
-  case CODE_QZS_L5I  :
-  case CODE_QZS_L5Q  :
-  case CODE_QZS_L5X  :
-  default:
-    assert(!"Unsupported code");
-    return 0;
+    case CODE_INVALID:
+    case CODE_COUNT:
+    case CODE_GPS_L2CL:
+    case CODE_SBAS_L1CA:
+    case CODE_GLO_L1OF:
+    case CODE_GLO_L2OF:
+    case CODE_GPS_L2CX:
+    case CODE_GPS_L5I:
+    case CODE_GPS_L5Q:
+    case CODE_GPS_L5X:
+    case CODE_BDS2_B11:
+    case CODE_BDS2_B2:
+    case CODE_GAL_E1B:
+    case CODE_GAL_E1C:
+    case CODE_GAL_E1X:
+    case CODE_GAL_E6B:
+    case CODE_GAL_E6C:
+    case CODE_GAL_E6X:
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
+    case CODE_GAL_E7X:
+    case CODE_GAL_E8:
+    case CODE_GAL_E5I:
+    case CODE_GAL_E5Q:
+    case CODE_GAL_E5X:
+    case CODE_QZS_L1CA:
+    case CODE_QZS_L2CM:
+    case CODE_QZS_L2CL:
+    case CODE_QZS_L2CX:
+    case CODE_QZS_L5I:
+    case CODE_QZS_L5Q:
+    case CODE_QZS_L5X:
+    default:
+      assert(!"Unsupported code");
+      return 0;
   }
 }
 
@@ -241,8 +220,7 @@ static u8 check_6bit_health_word(const u8 health_bits, const code_t code)
  * \return true if the ephemeris is healthy
  *         false otherwise
  */
-bool shm_ephe_healthy(const ephemeris_t *ephe, const code_t code)
-{
+bool shm_ephe_healthy(const ephemeris_t* ephe, const code_t code) {
   /* Presume healthy */
   bool ret = true;
 
@@ -252,32 +230,32 @@ bool shm_ephe_healthy(const ephemeris_t *ephe, const code_t code)
     return ret;
   }
 
-  switch(code_to_constellation(code)) {
-  case CONSTELLATION_GPS:
-    if (encode_ura(ephe->ura) > MAX_ALLOWED_GPS_URA_IDX) {
-      ret = false;
-      /* Satellite is not healthy, no reason to check further */
+  switch (code_to_constellation(code)) {
+    case CONSTELLATION_GPS:
+      if (encode_ura(ephe->ura) > MAX_ALLOWED_GPS_URA_IDX) {
+        ret = false;
+        /* Satellite is not healthy, no reason to check further */
+        break;
+      }
+
+      ret = (1 == check_6bit_health_word(ephe->health_bits, code));
+
       break;
-    }
 
-    ret = (1 == check_6bit_health_word(ephe->health_bits, code));
+    case CONSTELLATION_SBAS:
+    case CONSTELLATION_GLO:
+      ret = (0 == ephe->health_bits);
+      break;
 
-    break;
-
-  case CONSTELLATION_SBAS:
-  case CONSTELLATION_GLO:
-    ret = (0 == ephe->health_bits);
-    break;
-
-  case CONSTELLATION_INVALID:
-  case CONSTELLATION_COUNT:
-  case CONSTELLATION_BDS2:
-  case CONSTELLATION_GAL:
-  case CONSTELLATION_QZS:
-  default:
-    assert(!"Unsupported constellation");
-    ret = false;
-    break;
+    case CONSTELLATION_INVALID:
+    case CONSTELLATION_COUNT:
+    case CONSTELLATION_BDS2:
+    case CONSTELLATION_GAL:
+    case CONSTELLATION_QZS:
+    default:
+      assert(!"Unsupported constellation");
+      ret = false;
+      break;
   }
 
   return ret;

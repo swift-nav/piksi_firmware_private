@@ -87,9 +87,9 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid) {
 
   if (shm_health_unknown(sid)) {
     flags = TRACK_SBP_HEALTH_UNKNOWN;
-  } else if(shm_signal_healthy(sid)) {
+  } else if (shm_signal_healthy(sid)) {
     flags = TRACK_SBP_HEALTH_GOOD;
-  } else if(shm_signal_unhealthy(sid)) {
+  } else if (shm_signal_unhealthy(sid)) {
     flags = TRACK_SBP_HEALTH_BAD;
   } else {
     assert(!"Unknown nav state");

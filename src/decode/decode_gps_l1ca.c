@@ -383,8 +383,8 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
       erase_nav_data(target_sid, src_sid);
     }
 
-    gnss_signal_t l2cm = (gnss_signal_t){.sat = target_sid.sat,
-                                         .code = CODE_GPS_L2CM};
+    gnss_signal_t l2cm =
+        (gnss_signal_t){.sat = target_sid.sat, .code = CODE_GPS_L2CM};
     if (shm_signal_unhealthy(l2cm)) {
       /* Clear CNAV data and TOW cache */
       erase_cnav_data(l2cm, src_sid);
