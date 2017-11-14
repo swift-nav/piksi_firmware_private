@@ -41,6 +41,8 @@ bool glo_data_sync(nav_msg_glo_t *n,
                    me_gnss_signal_t mesid,
                    u8 tracking_channel,
                    glo_decode_status_t status);
+
+void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
 void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
 
 #endif /* #ifndef SWIFTNAV_DECODE_COMMON_H */
