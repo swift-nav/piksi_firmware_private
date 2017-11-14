@@ -23,6 +23,7 @@
 #include <libswiftnav/track.h>
 
 #include <ch.h>
+#include "observation_biases_calibration.h"
 
 typedef struct {
   u8 signals_tracked;

@@ -42,6 +42,7 @@
 #include "ephemeris.h"
 #include "main.h"
 #include "ndb.h"
+#include "observation_biases_calibration.h"
 #include "settings.h"
 #include "shm.h"
 #include "signal.h"
@@ -70,48 +71,6 @@ s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
-
-/* Empirical corrections for GLO per-frequency pseudorange bias as per
- * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
- */
-static const double glo_l1_isc[] = {[0] = -7.25,
-                                    [1] = -7.37,
-                                    [2] = -7.5,
-                                    [3] = -7.57,
-                                    [4] = -7.51,
-                                    [5] = -7.25,
-                                    [6] = -7,
-                                    [7] = -6.72,
-                                    [8] = -7,
-                                    [9] = -7.3,
-                                    [10] = -7.73,
-                                    [11] = -8.45,
-                                    [12] = -8.95,
-                                    [13] = -9.5};
-
-static const double glo_l2_isc[] = {[0] = -7.5,
-                                    [1] = -7.26,
-                                    [2] = -6.83,
-                                    [3] = -6.45,
-                                    [4] = -6.27,
-                                    [5] = -6.16,
-                                    [6] = -6,
-                                    [7] = -5.8,
-                                    [8] = -5.5,
-                                    [9] = -5.35,
-                                    [10] = -5.25,
-                                    [11] = -5.0,
-                                    [12] = -5.0,
-                                    [13] = -5.0};
-
-static const double gps_l2_isc = -1.95;
-
-/* These biases are to align the GLONASS carrier phase to the Septentrio
- * receivers carrier phase These biases are in cycles and are proportional to
- * the frequency number
- * */
-static const double glo_l1_carrier_phase_bias = -0.07 / 8;
-static const double glo_l2_carrier_phase_bias = 0;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -401,82 +360,6 @@ static void collect_measurements(u64 rec_tc,
 
   *pn_inview = n_inview;
   *pn_total = n_active;
-}
-
-/** Apply ISC corrections from hard-coded table
- * Alignment is performed relative to the Septentrio
- */
-static void apply_isc_table(u8 n_channels,
-                            navigation_measurement_t *nav_meas[]) {
-  for (u8 i = 0; i < n_channels; i++) {
-    double pseudorange_corr = 0;
-    double carrier_phase_corr = 0;
-    switch (nav_meas[i]->sid.code) {
-      case CODE_GPS_L1CA:
-        break;
-
-      case CODE_GPS_L2CL:
-      case CODE_GPS_L2CM:
-        pseudorange_corr = gps_l2_isc;
-        break;
-
-      case CODE_GLO_L1OF:
-        pseudorange_corr =
-            glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
-        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
-                             glo_l1_carrier_phase_bias;
-        break;
-
-      case CODE_GLO_L2OF:
-        pseudorange_corr =
-            glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
-        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
-                             glo_l2_carrier_phase_bias;
-        break;
-
-      case CODE_INVALID:
-      case CODE_COUNT:
-        assert(!"Invalid code.");
-        break;
-
-      case CODE_SBAS_L1CA:
-      case CODE_GPS_L1P:
-      case CODE_GPS_L2P:
-      case CODE_GPS_L2CX:
-      case CODE_GPS_L5I:
-      case CODE_GPS_L5Q:
-      case CODE_GPS_L5X:
-      case CODE_BDS2_B11:
-      case CODE_BDS2_B2:
-      case CODE_GAL_E1B:
-      case CODE_GAL_E1C:
-      case CODE_GAL_E1X:
-      case CODE_GAL_E6B:
-      case CODE_GAL_E6C:
-      case CODE_GAL_E6X:
-      case CODE_GAL_E7I:
-      case CODE_GAL_E7Q:
-      case CODE_GAL_E7X:
-      case CODE_GAL_E8:
-      case CODE_GAL_E5I:
-      case CODE_GAL_E5Q:
-      case CODE_GAL_E5X:
-      case CODE_QZS_L1CA:
-      case CODE_QZS_L2CM:
-      case CODE_QZS_L2CL:
-      case CODE_QZS_L2CX:
-      case CODE_QZS_L5I:
-      case CODE_QZS_L5Q:
-      case CODE_QZS_L5X:
-      default:
-        /* If code not supported we just return a zero correction. */
-        break;
-    }
-
-    nav_meas[i]->pseudorange += pseudorange_corr;
-    nav_meas[i]->raw_pseudorange += pseudorange_corr;
-    nav_meas[i]->raw_carrier_phase -= carrier_phase_corr;
-  }
 }
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
