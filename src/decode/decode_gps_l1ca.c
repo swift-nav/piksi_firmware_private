@@ -476,6 +476,15 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     shm_gps_set_shi1(sid.sat, dd.shi1);
   }
 
+  /* Health indicates CODE_NAV_STATE_INVALID */
+  if (!shm_tracking_allowed(sid)) {
+    /* Clear NDB ephe */
+    ndb_ephemeris_erase(sid);     
+    /* Clear subframe data */
+    nav_msg_init(&data->nav_msg);
+    return;
+  }
+
   /* Let's not use data from unhealthy satellite. */
   if (shm_navigation_unusable(sid)) {
     return;
