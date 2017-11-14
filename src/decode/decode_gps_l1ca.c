@@ -10,12 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_gps_l1ca.h"
-#include "decode.h"
-
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h>
 
+#include "decode.h"
+#include "decode_common.h"
+#include "decode_gps_l1ca.h"
 #include "ephemeris.h"
 #include "ndb.h"
 #include "sbp.h"
@@ -312,7 +312,7 @@ static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
   char hf_sid_str[SID_STR_LEN_MAX];
   sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
 
-  /** NAV data health summary indicates error -> delete data
+  /** NAV data health summary or signal health indicates error -> delete data
    * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
    *       health words indicate health of the NAV data in accordance with
    *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
@@ -406,6 +406,12 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
     if (shm_signal_unhealthy(target_sid)) {
       /* Clear NDB and TOW cache */
       erase_nav_data(target_sid, src_sid);
+    }
+
+    gnss_signal_t l2cm = (gnss_signal_t){.sat = target_sid.sat, CODE_GPS_L2CM};
+    if (shm_signal_unhealthy(l2cm)) {
+      /* Clear NDB and TOW cache */
+      erase_cnav_data(l2cm, src_sid);
     }
   }
 }
