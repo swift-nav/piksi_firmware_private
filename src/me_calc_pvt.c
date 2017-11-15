@@ -59,6 +59,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
+#define ME_CALC_PVT_THREAD_PIORITY (HIGHPRIO - 3)
+
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;
 
@@ -890,7 +892,7 @@ void me_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
                     sizeof(wa_me_calc_pvt_thread),
-                    HIGHPRIO - 3,
+                    ME_CALC_PVT_THREAD_PIORITY,
                     me_calc_pvt_thread,
                     NULL);
 }
