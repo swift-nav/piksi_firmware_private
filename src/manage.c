@@ -1439,8 +1439,7 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
       ephemeris_valid(pephe, &t)) {
     flags |= TRACKER_FLAG_HAS_EPHE;
 
-    if (signal_healthy(
-            pephe->valid, pephe->health_bits, pephe->ura, sid.code)) {
+    if (shm_ephe_healthy(pephe, sid.code)) {
       flags |= TRACKER_FLAG_HEALTHY;
     }
   }

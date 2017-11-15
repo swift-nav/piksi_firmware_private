@@ -74,16 +74,6 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known) {
   sv_visibility_status_get(&vis_cfg, visible, known);
 }
 
-/** Check if SV is healthy
- *
- * \param sid GNSS signal identifier
- *
- * \return true is SV is healthy, false otherwise
- */
-bool sm_is_healthy(gnss_signal_t sid) {
-  return shm_get_sat_state(sid) != CODE_NAV_STATE_INVALID;
-}
-
 /** Get HW time of the last good fix (LGF)
  *
  * \param[out] lgf_stamp time of LGF (ms)

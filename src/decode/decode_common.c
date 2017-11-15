@@ -9,16 +9,21 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "decode_common.h"
+
 #include <assert.h>
+
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/time.h>
+
+#include "decode_common.h"
 #include "ephemeris.h"
+#include "ndb.h"
 #include "piksi_systime.h"
 #include "timing.h"
 #include "track.h"
+#include "track/track_sid_db.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
                                              const glo_time_t *glo_t) {
@@ -162,12 +167,48 @@ bool glo_data_sync(nav_msg_glo_t *n,
 
   from_decoder.bit_polarity = n->bit_polarity;
   from_decoder.glo_orbit_slot = n->eph.sid.sat;
-  if (signal_healthy(
-          n->eph.valid, n->eph.health_bits, n->eph.ura, n->mesid.code)) {
+  if (shm_ephe_healthy(&n->eph, n->mesid.code)) {
     from_decoder.glo_health = GLO_SV_HEALTHY;
   } else {
     from_decoder.glo_health = GLO_SV_UNHEALTHY;
   }
   tracking_channel_glo_data_sync(tracking_channel, &from_decoder);
   return true;
+}
+
+void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
+  char hf_sid_str[SID_STR_LEN_MAX];
+  sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
+
+  /** NAV data health summary or signal health indicates error -> delete data
+   * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
+   *       health words indicate health of the NAV data in accordance with
+   *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
+   *       SV Health). These details indicate which of the subframes are bad.
+   */
+  if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
+    log_info_sid(target_sid,
+                 "decoded almanacs deleted (health flags from %s)",
+                 hf_sid_str);
+  }
+
+  if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
+    log_info_sid(
+        target_sid, "ephemeris deleted (health flags from %s)", hf_sid_str);
+  }
+
+  /* Clear TOW cache */
+  clear_tow_in_sid_db(target_sid);
+}
+
+void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
+  char hf_sid_str[SID_STR_LEN_MAX];
+  sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
+
+  cnav_msg_clear(target_sid);
+  log_debug_sid(
+      target_sid, "CNAV data cleared (health flags from %s)", hf_sid_str);
+
+  /* Clear TOW cache */
+  clear_tow_in_sid_db(target_sid);
 }

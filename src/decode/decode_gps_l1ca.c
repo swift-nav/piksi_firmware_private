@@ -10,12 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_gps_l1ca.h"
-#include "decode.h"
-
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h>
 
+#include "decode.h"
+#include "decode_common.h"
+#include "decode_gps_l1ca.h"
 #include "ephemeris.h"
 #include "ndb.h"
 #include "sbp.h"
@@ -24,6 +24,7 @@
 #include "signal.h"
 #include "timing.h"
 #include "track.h"
+#include "track/track_sid_db.h"
 
 #include <assert.h>
 #include <string.h>
@@ -309,7 +310,7 @@ static void decode_almanac_time_new(gnss_signal_t sid,
 
 /**
  * Deletes almanacs/ephemeris for SVs with error bit set and updates almanacs
- * otherwise.
+ * otherwise. Data source SV is assumed valid and healthy.
  *
  * \param[in] src_sid    Health bits source SV
  * \param[in] hlags_mask Mask where new bits are set for valid entries in \a
@@ -318,76 +319,75 @@ static void decode_almanac_time_new(gnss_signal_t sid,
  *
  * \return None
  */
-void decode_almanac_health_new(gnss_signal_t src_sid,
-                               u32 hlags_mask,
-                               const u8 hflags[32]) {
+static void decode_almanac_health_new(gnss_signal_t src_sid,
+                                      u32 hlags_mask,
+                                      const u8 hflags[32]) {
   /* Copy updated flags into the cache, and update all entries in NDB */
   for (u16 sv_idx = 0; sv_idx < 32; ++sv_idx) {
-    if (0 != (hlags_mask & 1u << sv_idx)) {
-      gnss_signal_t target_sid = construct_sid(CODE_GPS_L1CA, sv_idx + 1);
-      char hf_sid_str[SID_STR_LEN_MAX];
-      sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
+    if (0 == (hlags_mask & 1u << sv_idx)) {
+      /* No flag information for this SV */
+      continue;
+    }
 
-      u8 health_bits = hflags[sv_idx];
+    gnss_signal_t target_sid = construct_sid(CODE_GPS_L1CA, sv_idx + 1);
 
-      if (0 != (health_bits & 1 << 5)) {
-        /* Error in almanac */
-        if (NDB_ERR_NONE == ndb_almanac_erase(target_sid)) {
-          log_info_sid(
-              target_sid, "almanac deleted (health flags from %s)", hf_sid_str);
-        }
-        if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
-          log_info_sid(target_sid,
-                       "ephemeris deleted (health flags from %s)",
-                       hf_sid_str);
-        }
-      } else {
-        ndb_op_code_t r = ndb_almanac_hb_update(target_sid,
-                                                health_bits,
-                                                NDB_DS_RECEIVER,
-                                                &src_sid,
-                                                NDB_EVENT_SENDER_ID_VOID);
+    u8 health_bits = hflags[sv_idx];
 
-        switch (r) {
-          case NDB_ERR_NONE:
-            log_debug_sid(target_sid,
-                          "almanac health bits updated (0x%02" PRIX8 ")",
-                          health_bits);
-            break;
-          case NDB_ERR_NO_CHANGE:
-            log_debug_sid(target_sid,
-                          "almanac health bits up to date (0x%02" PRIX8 ")",
-                          health_bits);
-            break;
-          case NDB_ERR_UNCONFIRMED_DATA:
-            log_debug_sid(target_sid,
-                          "almanac health bits are unconfirmed (0x%02" PRIX8
-                          ")",
-                          health_bits);
-            break;
-          case NDB_ERR_NO_DATA:
-            log_debug_sid(target_sid,
-                          "almanac health bits are ignored (0x%02" PRIX8 ")",
-                          health_bits);
-            break;
-          case NDB_ERR_OLDER_DATA:
-          case NDB_ERR_MISSING_IE:
-          case NDB_ERR_UNSUPPORTED:
-          case NDB_ERR_FILE_IO:
-          case NDB_ERR_INIT_DONE:
-          case NDB_ERR_BAD_PARAM:
-          case NDB_ERR_ALGORITHM_ERROR:
-          case NDB_ERR_AGED_DATA:
-          case NDB_ERR_GPS_TIME_MISSING:
-          default:
-            log_error_sid(target_sid,
-                          "error %d updating almanac health bits (0x%02" PRIX8
-                          ")",
-                          (int)r,
-                          health_bits);
-            break;
-        }
-      }
+    ndb_op_code_t r = ndb_almanac_hb_update(target_sid,
+                                            health_bits,
+                                            NDB_DS_RECEIVER,
+                                            &src_sid,
+                                            NDB_EVENT_SENDER_ID_VOID);
+
+    switch (r) {
+      case NDB_ERR_NONE:
+        log_debug_sid(target_sid,
+                      "almanac health bits updated (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_NO_CHANGE:
+        log_debug_sid(target_sid,
+                      "almanac health bits up to date (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_UNCONFIRMED_DATA:
+        log_debug_sid(target_sid,
+                      "almanac health bits are unconfirmed (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_NO_DATA:
+        log_debug_sid(target_sid,
+                      "almanac health bits are ignored (0x%02" PRIX8 ")",
+                      health_bits);
+        break;
+      case NDB_ERR_OLDER_DATA:
+      case NDB_ERR_MISSING_IE:
+      case NDB_ERR_UNSUPPORTED:
+      case NDB_ERR_FILE_IO:
+      case NDB_ERR_INIT_DONE:
+      case NDB_ERR_BAD_PARAM:
+      case NDB_ERR_ALGORITHM_ERROR:
+      case NDB_ERR_AGED_DATA:
+      case NDB_ERR_GPS_TIME_MISSING:
+      default:
+        log_error_sid(target_sid,
+                      "error %d updating almanac health bits (0x%02" PRIX8 ")",
+                      (int)r,
+                      health_bits);
+        break;
+    }
+
+    /* Health indicates CODE_NAV_STATE_INVALID */
+    if (shm_signal_unhealthy(target_sid)) {
+      /* Clear NDB and TOW cache */
+      erase_nav_data(target_sid, src_sid);
+    }
+
+    gnss_signal_t l2cm =
+        (gnss_signal_t){.sat = target_sid.sat, .code = CODE_GPS_L2CM};
+    if (shm_signal_unhealthy(l2cm)) {
+      /* Clear CNAV data and TOW cache */
+      erase_cnav_data(l2cm, src_sid);
     }
   }
 }
@@ -476,8 +476,24 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     shm_gps_set_shi1(sid.sat, dd.shi1);
   }
 
-  /* Let's not use data from unhealthy satellite. */
-  if (shm_navigation_unusable(sid)) {
+  /* Health indicates CODE_NAV_STATE_INVALID for L2CM */
+  gnss_signal_t l2cm = (gnss_signal_t){.sat = sid.sat, .code = CODE_GPS_L2CM};
+  if (shm_signal_unhealthy(l2cm)) {
+    /* Clear CNAV data and TOW cache */
+    erase_cnav_data(l2cm, sid);
+  }
+
+  /* Health indicates CODE_NAV_STATE_INVALID */
+  if (shm_signal_unhealthy(sid)) {
+    /* Clear NDB and TOW cache */
+    erase_nav_data(sid, sid);
+    /* Clear subframe data */
+    nav_msg_init(&data->nav_msg);
+    return;
+  }
+
+  /* Do not use data from sv that is not declared as CODE_NAV_STATE_VALID. */
+  if (!shm_navigation_suitable(sid)) {
     return;
   }
 

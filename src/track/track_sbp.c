@@ -84,21 +84,15 @@ static u8 get_track_flags(const tracking_channel_info_t *channel_info) {
  */
 static u8 get_nav_data_status_flags(gnss_signal_t sid) {
   u8 flags = TRACK_SBP_HEALTH_UNKNOWN;
-  code_nav_state_t nav_state = shm_get_sat_state(sid);
 
-  switch (nav_state) {
-    case CODE_NAV_STATE_UNKNOWN:
-      flags = TRACK_SBP_HEALTH_UNKNOWN;
-      break;
-    case CODE_NAV_STATE_VALID:
-      flags = TRACK_SBP_HEALTH_GOOD;
-      break;
-    case CODE_NAV_STATE_INVALID:
-      flags = TRACK_SBP_HEALTH_BAD;
-      break;
-    default:
-      assert(!"Unknown nav state");
-      break;
+  if (shm_health_unknown(sid)) {
+    flags = TRACK_SBP_HEALTH_UNKNOWN;
+  } else if (shm_signal_healthy(sid)) {
+    flags = TRACK_SBP_HEALTH_GOOD;
+  } else if (shm_signal_unhealthy(sid)) {
+    flags = TRACK_SBP_HEALTH_BAD;
+  } else {
+    assert(!"Unknown nav state");
   }
 
   if (get_time_quality() == TIME_UNKNOWN) {
