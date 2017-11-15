@@ -11,10 +11,14 @@
  */
 #ifndef OBSERVATION_BIASES_CALIBRATION_H
 #define OBSERVATION_BIASES_CALIBRATION_H
-#include <libswiftnav/track.h>
-#include <libswiftnav/common.h>
 #include <assert.h>
+#include "base_obs.h"
+#include <libswiftnav/common.h>
 #include <libswiftnav/glo_map.h>
+#include "sbp.h"
+#include "sbp_utils.h"
+#include "timing.h"
+#include <libswiftnav/track.h>
 
 /* Empirical corrections for GLO per-frequency pseudorange bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
@@ -59,7 +63,21 @@ static const double gps_l2_isc = -1.95;
 static const double glo_l1_carrier_phase_bias = -0.07 / 8;
 static const double glo_l2_carrier_phase_bias = 0;
 
+/* This following constants describes the biases that will be sent through
+ * SBP_MSG_GLO_BIASES in the sbp stream. Biases are to be expressed in meters
+ * and are not quantized
+ */
+static const u8 broadcast_mask = 255;
+static const double broadcast_l1ca_bias = 0.;
+static const double broadcast_l1p_bias = 0.;
+static const double broadcast_l2ca_bias = 0.;
+static const double broadcast_l2p_bias = 0.;
+
 void apply_isc_table(u8 n_channels,
                             navigation_measurement_t *nav_meas[]);
+
+static const double biases_message_freq_setting = 1.0;
+bool decimate_glonass_biases(const gps_time_t *_t);
+void send_glonass_biases(void);
 
 #endif //PIKSI_FIRMWARE_PRIVATE_OBSERVATION_BIASES_CALIBRATION_H

@@ -87,3 +87,19 @@ void apply_isc_table(u8 n_channels,
         nav_meas[i]->raw_carrier_phase -= carrier_phase_corr;
     }
 }
+
+bool decimate_glonass_biases(const gps_time_t *_t) {
+    /* We can use the solution setting directly here as we have no
+     * later dependencies on being consistent, all we want to know
+     * is should this epoch be decimated from output. */
+    gps_time_t epoch =
+            gps_time_round_to_epoch(_t, biases_message_freq_setting);
+    return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
+}
+
+void send_glonass_biases(void) {
+    static u8 buff[256];
+
+    pack_glonass_biases_content(broadcast_mask, broadcast_l1ca_bias, broadcast_l1p_bias, broadcast_l2ca_bias, broadcast_l2p_bias, (msg_glo_biases_t *)buff);
+    sbp_send_msg(SBP_MSG_GLO_BIASES, sizeof(msg_glo_biases_t),buff);
+}
