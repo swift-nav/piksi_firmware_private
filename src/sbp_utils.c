@@ -338,7 +338,7 @@ void unpack_glonass_biases_content(const msg_glo_biases_t msg,
                                    double *l1ca_bias,
                                    double *l1p_bias,
                                    double *l2ca_bias,
-                                   double *l2p_bias){
+                                   double *l2p_bias) {
   *mask = ((u8)msg.mask);
   *l1ca_bias = ((double)msg.l1ca_bias / MSG_GLO_BIASES_MULTIPLIER);
   *l1p_bias = ((double)msg.l1p_bias / MSG_GLO_BIASES_MULTIPLIER);
@@ -351,7 +351,7 @@ void pack_glonass_biases_content(const u8 mask,
                                  const double l1p_bias,
                                  const double l2ca_bias,
                                  const double l2p_bias,
-                                 msg_glo_biases_t *packed_msg){
+                                 msg_glo_biases_t *packed_msg) {
   packed_msg->mask = ((u8)mask);
   packed_msg->l1ca_bias = (s16)round(l1ca_bias * MSG_GLO_BIASES_MULTIPLIER);
   packed_msg->l1p_bias = (s16)round(l1p_bias * MSG_GLO_BIASES_MULTIPLIER);

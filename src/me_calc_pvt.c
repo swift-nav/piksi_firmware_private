@@ -142,9 +142,9 @@ static void me_send_all(u8 _num_obs,
   if (decimate_observations(_t) && !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
-    if (decimate_glonass_biases(_t)) {
-        send_glonass_biases();
-    }
+  if (decimate_glonass_biases(_t)) {
+    send_glonass_biases();
+  }
 }
 
 static void me_send_emptyobs(void) {
