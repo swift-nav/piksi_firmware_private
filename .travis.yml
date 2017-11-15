@@ -18,6 +18,9 @@ branches:
     - v1.2.0-release
     - v1.3.0-release
 
+git:
+  submodules: false
+
 matrix:
   include:
     - os: linux
@@ -33,6 +36,7 @@ matrix:
       osx_image: xcode8
 
 before_install:
+  - travis_wait git submodule update --init --recursive
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - pip install --user --upgrade awscli
 
