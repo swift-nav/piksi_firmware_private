@@ -1215,7 +1215,7 @@ void starling_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_starling_thread,
                     sizeof(wa_starling_thread),
-                    HIGHPRIO - 3,
+                    HIGHPRIO - 4,
                     starling_thread,
                     NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,

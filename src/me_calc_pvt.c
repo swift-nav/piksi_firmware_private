@@ -890,7 +890,7 @@ void me_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
                     sizeof(wa_me_calc_pvt_thread),
-                    HIGHPRIO - 2,
+                    HIGHPRIO - 3,
                     me_calc_pvt_thread,
                     NULL);
 }
