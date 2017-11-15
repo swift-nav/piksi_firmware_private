@@ -140,10 +140,26 @@ static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
+/* Bootstrap acquisiton by suggesting which PRN are active in the
+ * constellation - effective for not FOC systems.
+ * TODO: put this into NDB, similar to L2C capability */
+static const u32 sbas_mask = 0x7ffff;
+static const u64 beidou2_mask = 0x07c0013fffULL;
+static const u32 qzss_mask = 0x7;
+static const u64 galileo_mask = 0x022a62ddbULL;
+
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
-static bool glo_enabled = CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT;
+static bool glo_enabled = CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT;
+/** Flag if SBAS enabled */
+static bool sbas_enabled = CODE_SBAS_L1CA_SUPPORT;
+/** Flag if BEIDOU2 enabled */
+static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
+/** Flag if QZSS enabled */
+static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
+/** Flag if Galileo enabled */
+static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
@@ -163,6 +179,8 @@ static bool tracking_startup_fifo_write(
     tracking_startup_fifo_t *fifo, const tracking_startup_params_t *element);
 static bool tracking_startup_fifo_read(tracking_startup_fifo_t *fifo,
                                        tracking_startup_params_t *element);
+
+void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 
 static sbp_msg_callbacks_node_t almanac_callback_node;
 static void almanac_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
@@ -246,7 +264,7 @@ static void manage_acq_thread(void *arg) {
 static bool glo_enable_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-    if (glo_enabled && !(CODE_GLO_L1CA_SUPPORT || CODE_GLO_L2CA_SUPPORT)) {
+    if (glo_enabled && !(CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT)) {
       /* user tries enable GLONASS on the platform that does not support it */
       log_error("The platform does not support GLONASS");
       glo_enabled = false;
@@ -262,6 +280,69 @@ static bool glo_enable_notify(struct setting *s, const char *val) {
   return false;
 }
 
+/* The function masks/unmasks all SBAS satellites,
+ * NOTE: this function does not check if SBAS SV is already masked or not */
+static bool sbas_enable_notify(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_debug("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
+    if (sbas_enabled && !(CODE_SBAS_L1CA_SUPPORT)) {
+      /* user tries enable SBAS on the platform that does not support it */
+      log_error("The platform does not support SBAS");
+      sbas_enabled = false;
+      return false;
+    }
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+      if (IS_SBAS(acq_status[i].mesid)) {
+        acq_status[i].masked = !sbas_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/* The function masks/unmasks all Beidou satellites,
+ * NOTE: this function does not check if BDS2 SV is already masked or not */
+static bool bds2_enable_notify(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
+    if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
+      /* user tries enable Beidou2 on the platform that does not support it */
+      log_error("The platform does not support BDS2");
+      bds2_enabled = false;
+      return false;
+    }
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+      if (IS_BDS2(acq_status[i].mesid)) {
+        acq_status[i].masked = !bds2_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/* The function masks/unmasks all QZSS satellites,
+ * NOTE: this function does not check if QZSS SV is already masked or not */
+static bool qzss_enable_notify(struct setting *s, const char *val) {
+  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
+    log_debug("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
+    if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT)) {
+      /* user tries enable QZSS on the platform that does not support it */
+      log_error("The platform does not support QZSS");
+      qzss_enabled = false;
+      return false;
+    }
+    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+      if (IS_QZSS(acq_status[i].mesid)) {
+        acq_status[i].masked = !qzss_enabled;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 void manage_acq_setup() {
   SETTING("acquisition", "almanacs_enabled", almanacs_enabled, TYPE_BOOL);
   SETTING_NOTIFY("acquisition",
@@ -269,17 +350,51 @@ void manage_acq_setup() {
                  glo_enabled,
                  TYPE_BOOL,
                  glo_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "sbas_acquisition_enabled",
+                 sbas_enabled,
+                 TYPE_BOOL,
+                 sbas_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "bds2_acquisition_enabled",
+                 bds2_enabled,
+                 TYPE_BOOL,
+                 bds2_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "qzss_acquisition_enabled",
+                 qzss_enabled,
+                 TYPE_BOOL,
+                 qzss_enable_notify);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     me_gnss_signal_t mesid = mesid_from_global_index(i);
     acq_status[i].state = ACQ_PRN_ACQUIRING;
-    if (IS_GLO(mesid) && !glo_enabled) {
-      acq_status[i].masked = true;
-    } else {
-      acq_status[i].masked = false;
+    if (IS_GLO(mesid)) {
+      acq_status[i].masked = !glo_enabled;
     }
+    if (IS_SBAS(mesid)) {
+      acq_status[i].masked =
+          !sbas_enabled ||
+          (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN)) & 1));
+    }
+    if (IS_BDS2(mesid)) {
+      acq_status[i].masked =
+          !bds2_enabled ||
+          (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN)) & 1));
+    }
+    if (IS_QZSS(mesid)) {
+      acq_status[i].masked =
+          !qzss_enabled ||
+          (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN)) & 1));
+    }
+    if (IS_GAL(mesid)) {
+      acq_status[i].masked =
+          !galileo_enabled ||
+          (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN)) & 1));
+    }
+
     memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
 
     if (code_requires_direct_acq(mesid.code)) {
@@ -321,6 +436,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
                              const gps_time_t *t,
                              float *dopp_hint_low,
                              float *dopp_hint_high) {
+  return SCORE_COLDSTART;
+
   /* Do we have any idea where/when we are?  If not, no score. */
   /* TODO: Stricter requirement on time and position uncertainty?
      We ought to keep track of a quantitative uncertainty estimate. */
@@ -332,7 +449,8 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
   }
 
   /* TODO GLO: Handle GLO orbit slot properly. */
-  assert(!IS_GLO(mesid));
+  if (CODE_GPS_L1CA != mesid.code) return SCORE_COLDSTART;
+
   gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   float el = TRACKING_ELEVATION_UNKNOWN;
   el = sv_elevation_degrees_get(sid);
@@ -551,9 +669,11 @@ static void manage_acq(void) {
     return;
   }
 
-  /* Only GPS L1CA and GLO L1 direct acquisition is supported. */
   assert((CODE_GPS_L1CA == acq->mesid.code) ||
-         (CODE_GLO_L1CA == acq->mesid.code));
+         (CODE_GLO_L1OF == acq->mesid.code) ||
+         (CODE_SBAS_L1CA == acq->mesid.code) ||
+         (CODE_BDS2_B11 == acq->mesid.code) ||
+         (CODE_QZS_L1CA == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);
@@ -1223,13 +1343,13 @@ u32 get_tracking_channel_meas(u8 i,
     /*
     double nap_tc_sec = (double)ref_tc / NAP_TRACK_SAMPLE_RATE_Hz;
     double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
-    if (CODE_GLO_L1CA == info.mesid.code) {
+    if (CODE_GLO_L1OF == info.mesid.code) {
       double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
       log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec -
     ref_2ms_boundary)*1e3);
       meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
     }
-    if (CODE_GLO_L2CA == info.mesid.code) {
+    if (CODE_GLO_L2OF == info.mesid.code) {
       double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
       meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
     }
@@ -1247,7 +1367,8 @@ u32 get_tracking_channel_meas(u8 i,
      */
     double carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
-    if ((TIME_FINE <= get_time_quality()) && (0.0 == carrier_phase_offset) &&
+    if ((TIME_PROPAGATED <= get_time_quality()) &&
+        (0.0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
@@ -1423,7 +1544,7 @@ static void manage_tracking_startup(void) {
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
     /* Make sure the SID is not already tracked and healthy */
-    if (acq->state == ACQ_PRN_TRACKING ||
+    if ((acq->state == ACQ_PRN_TRACKING) ||
         (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
       continue;
     }
@@ -1566,5 +1687,52 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
  * @return true if GLONASS enabled, otherwise false
  */
 bool is_glo_enabled(void) { return glo_enabled; }
+
+/**
+ * The function retrieves the GLO orbit slot, if the mapping to a FCN exists
+ * and the SV is visible.
+ *
+ * @param[in]  fcn  Frequency slot to be checked
+ *
+ * @return GLO orbit slot
+ */
+u16 get_orbit_slot(const u16 fcn) {
+  u16 glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+  u16 slot_id1, slot_id2;
+  /* check if we have the fcn mapped already to some slot id */
+  u8 num_si = glo_map_get_slot_id(fcn, &slot_id1, &slot_id2);
+  switch (num_si) {
+    case 1: {
+      bool vis, kn = false;
+      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
+      /* the fcn mapped to one slot id only,
+       * so use it as glo prn to be tracked if it's visible at the moment */
+      if (vis & kn) {
+        glo_orbit_slot = slot_id1;
+      }
+    } break;
+    case 2: {
+      bool vis, kn = false;
+      /* we have 2 slot ids mapped to one fcn */
+      /* check if SV with slot id 1 is visible */
+      sm_get_glo_visibility_flags(slot_id1, &vis, &kn);
+      if (vis && kn) {
+        /* SV with the FIRST slot ID is visible, track it */
+        glo_orbit_slot = slot_id1;
+      } else {
+        /* check the second slot id */
+        sm_get_glo_visibility_flags(slot_id2, &vis, &kn);
+        if (vis & kn) {
+          /* SV with the SECOND slot ID is visible, track it */
+          glo_orbit_slot = slot_id2;
+        }
+      }
+    } break;
+    default:
+      glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
+      break;
+  }
+  return glo_orbit_slot;
+}
 
 /** \} */

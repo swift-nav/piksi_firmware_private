@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2016 - 2017 Swift Navigation Inc.
  * Contact: Adel Mamin <adel.mamin@exafore.com>
- * Contact: Valeri Atamaniouk <valeri.atamaniouk@exafore.com>
+ * Contact: Michele Bavaro <michele@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -335,6 +335,12 @@ u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel) {
     result_ms = tp_get_rollover_cycle_duration(tracker_channel->tracking_mode,
                                                tracker_channel->cycle_no);
   }
+  if (0 == result_ms) {
+    log_error_mesid(tracker_channel->mesid,
+                    "tracking_mode %d cycle_no %d result_ms 0",
+                    tracker_channel->tracking_mode,
+                    tracker_channel->cycle_no);
+  }
   return tp_convert_ms_to_chips(
       tracker_channel->mesid, result_ms, code_phase_chips, plock);
 }
@@ -363,7 +369,7 @@ static void mode_change_init(tracker_channel_t *tracker_channel) {
                                         tracker_channel->cycle_no);
   u32 next_cycle_flags = tp_get_cycle_flags(tracker_channel, next_cycle);
 
-  if (0 == (next_cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+  if (0 == (next_cycle_flags & TPF_BSYNC_UPD)) {
     return;
   }
 
@@ -613,7 +619,7 @@ void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE)) {
+  if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
     bool sensitivity_mode =
         (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
@@ -645,7 +651,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
   tp_cn0_params_t cn0_params;
   tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
 
-  if (0 != (cycle_flags & TP_CFLAG_CN0_USE)) {
+  if (0 != (cycle_flags & TPF_CN0_USE)) {
     /* Workaround for
      * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/475
      * don't update c/n0 if correlators data are 0 use
@@ -787,7 +793,7 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
  */
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  if (0 != (cycle_flags & TP_CFLAG_LD_USE)) {
+  if (0 != (cycle_flags & TPF_LD_USE)) {
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
     tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
 
@@ -839,13 +845,9 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
                            u32 cycle_flags) {
-  bool halfq = (0 != (cycle_flags & TP_CFLAG_FLL_HALFQ));
-  if (0 != (cycle_flags & TP_CFLAG_FLL_FIRST)) {
-    tp_tl_fll_update_first(
-        &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
-  }
+  bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
-  if (0 != (cycle_flags & TP_CFLAG_FLL_SECOND)) {
+  if (0 != (cycle_flags & TPF_FLL_USE)) {
     tp_tl_fll_update_second(
         &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
   }
@@ -864,7 +866,7 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
  */
 void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
                                u32 cycle_flags) {
-  if (0 != (cycle_flags & TP_CFLAG_EPL_USE)) {
+  if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker_channel->tracking_mode != TP_TM_INITIAL) {
       tracker_correlations_send(tracker_channel,
@@ -944,6 +946,8 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
 
   /* remove channels with a large positive Doppler outlier */
   if (fabsf(tracker->carrier_freq) > fMaxDoppler) {
+    log_debug_mesid(
+        tracker->mesid, "Doppler %.2f too high", tracker->carrier_freq);
     (tracker->flags) |= TRACKER_FLAG_OUTLIER;
   }
 
@@ -973,6 +977,8 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
     if ((fabs(diff_hz) > max_diff_hz)) {
+      log_debug_mesid(
+          tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
       tracker->flags |= TRACKER_FLAG_OUTLIER;
     }
 
@@ -991,11 +997,11 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
  */
 void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  bool do_first = 0 != (cycle_flags & TP_CFLAG_ALIAS_FIRST);
+  bool do_first = 0 != (cycle_flags & TPF_ALIAS_1ST);
 
   /* Attempt alias detection if we have pessimistic phase lock detect, OR
      (optimistic phase lock detect AND are in second-stage tracking) */
-  if (0 != (cycle_flags & TP_CFLAG_ALIAS_SECOND)) {
+  if (0 != (cycle_flags & TPF_ALIAS_2ND)) {
     bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                    (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
     if (tracker_channel->use_alias_detection && inlock) {
@@ -1029,7 +1035,7 @@ void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
 void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config) {
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
+  if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
       tracker_bit_aligned(tracker_channel)) {
     float xcorr_freq = tracker_channel->carrier_freq;
 
@@ -1091,4 +1097,120 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_cycle_counter(tracker_channel);
 
   return cflags;
+}
+
+static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  u8 bit_length = tracker_bit_length_get(tracker_channel);
+
+  if (tracker_channel->TOW_ms == TOW_UNKNOWN) {
+    return false;
+  }
+
+  /*
+   * Verify ToW bit alignment
+   * Current block assumes the bit sync has been reached and current
+   * interval has closed a bit interval. ToW shall be aligned by bit
+   * duration, which is:
+   * 20ms for GPS L1 / L2
+   * 10ms for GLO L1 / L2
+   */
+  u8 tail = tracker_channel->TOW_ms % bit_length;
+  if (0 != tail) {
+    /* If this correction is needed, then there is something wrong
+       either with the TOW cache update or with the bit sync */
+    s8 error_ms = tail < (bit_length >> 1) ? -tail : bit_length - tail;
+
+    log_error_mesid(mesid,
+                    "[+%" PRIu32
+                    "ms] TOW error detected: "
+                    "error=%" PRId8 "ms old_tow=%" PRId32,
+                    tracker_channel->update_count,
+                    error_ms,
+                    tracker_channel->TOW_ms);
+
+    /* This is rude, but safe. Do not expect it to happen normally. */
+    tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+    return false;
+  }
+  return true;
+}
+
+static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  bool cn0_ok = (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD);
+  bool tow_is_known = (TOW_UNKNOWN != tracker_channel->TOW_ms);
+  bool responsible_for_update = false;
+
+  if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code) {
+    /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
+    responsible_for_update = true;
+  } else if (CODE_GPS_L2CM == mesid.code) {
+    /* Check if corresponding GPS L1CA satellite is being tracked with valid
+     * TOW. If GPS L1CA is not tracked, then GPS L2CM updates the TOW cache.
+     */
+    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
+      responsible_for_update = false;
+    } else {
+      responsible_for_update = true;
+    }
+  } else if (CODE_GLO_L2OF == mesid.code) {
+    /* Check if corresponding GLO L1OF satellite is being tracked with valid
+     * TOW. If GLO L1OF is not tracked, then GLO L2OF updates the TOW cache.
+     */
+    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
+      responsible_for_update = false;
+    } else {
+      responsible_for_update = true;
+    }
+  } else {
+    assert(!"Unsupported TOW cache code");
+  }
+
+  /* Update TOW cache if:
+   * - CN0 is OK
+   * - Tracker is confirmed
+   * - Tracker TOW is known
+   * - Tracker is responsible for TOW cache updates
+   */
+  return (cn0_ok && confirmed && tow_is_known && responsible_for_update);
+}
+
+/**
+ * Performs ToW caching and propagation.
+ *
+ * GPS L1CA / L2CM and GLO L1OF / L2OF both use shared structure for ToW
+ * caching.
+ * When L1 tracker is running, it is responsible for cache updates. Otherwise L2
+ * tracker updates the cache. The time difference between signals is ignored
+ * as small.
+ *
+ * Tracker performs ToW update/propagation only on bit edge. This makes
+ * it more robust to propagation errors.
+ *
+ * \param[in,out] tracker_channel Tracker channel data
+ *
+ * \return None
+ */
+void tracker_tow_cache(tracker_channel_t *tracker_channel) {
+  /* If TOW is unknown, check if a valid cached TOW is available. */
+  if (TOW_UNKNOWN == tracker_channel->TOW_ms) {
+    propagate_tow_from_sid_db(tracker_channel);
+  }
+
+  /* Check that tracker has valid TOW. */
+  if (!tow_is_bit_aligned(tracker_channel)) {
+    return;
+  }
+
+  /* Check if a tracker should update TOW cache. */
+  if (should_update_tow_cache(tracker_channel)) {
+    update_tow_in_sid_db(tracker_channel);
+  }
 }

@@ -113,5 +113,6 @@ bool is_glo_enabled(void);
 void sanitize_trackers(void);
 void check_clear_glo_unhealthy(void);
 void check_clear_unhealthy(void);
+u16 get_orbit_slot(const u16 fcn);
 
 #endif

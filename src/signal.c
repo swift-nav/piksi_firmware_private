@@ -43,38 +43,50 @@ static constellation_table_element_t constellation_table[CONSTELLATION_COUNT] =
      [CONSTELLATION_GLO] = {GLO_FIRST_PRN, NUM_SATS_GPS + NUM_SATS_SBAS},
      [CONSTELLATION_BDS2] = {BDS2_FIRST_PRN,
                              NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO},
-     [CONSTELLATION_GAL] = {GAL_FIRST_PRN,
-                            NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-                                NUM_SATS_BDS2},
      [CONSTELLATION_QZS] = {QZS_FIRST_PRN,
                             NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-                                NUM_SATS_BDS2 + NUM_SATS_GAL}};
+                                NUM_SATS_BDS2},
+     [CONSTELLATION_GAL] = {GAL_FIRST_PRN,
+                            NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
+                                NUM_SATS_BDS2 + NUM_SATS_QZS}};
 
 /** Number of signals for each code which are supported on
  * the current hardware platform. */
-static const u16 code_signal_counts[CODE_COUNT] = {
-        [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
-        [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
-        [CODE_GPS_L2CL] = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
-        [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-        [CODE_GLO_L1CA] = PLATFORM_SIGNAL_COUNT_GLO_L1CA,
-        [CODE_GLO_L2CA] = PLATFORM_SIGNAL_COUNT_GLO_L2CA,
-        [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-        [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
-};
+static const u16 code_signal_counts[CODE_COUNT] =
+    {[CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+     [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+     [CODE_GPS_L2CL] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+     [CODE_GPS_L2CX] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+     [CODE_GLO_L1OF] = PLATFORM_SIGNAL_COUNT_GLO_L1OF,
+     [CODE_GLO_L2OF] = PLATFORM_SIGNAL_COUNT_GLO_L2OF,
+     [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+     [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+     [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+     [CODE_BDS2_B11] = PLATFORM_SIGNAL_COUNT_BDS2_B11,
+     [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
+     [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
+     [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+     [CODE_QZS_L2CL] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+     [CODE_QZS_L2CX] = PLATFORM_SIGNAL_COUNT_QZS_L2C};
 
 /** Number of ME signals for each code which are supported on
  * the current hardware platform. */
-static const u16 me_code_signal_counts[CODE_COUNT] = {
-        [CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
-        [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2CM,
-        [CODE_GPS_L2CL] = PLATFORM_SIGNAL_COUNT_GPS_L2CL,
-        [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
-        [CODE_GLO_L1CA] = PLATFORM_FREQ_COUNT_GLO_L1CA,
-        [CODE_GLO_L2CA] = PLATFORM_FREQ_COUNT_GLO_L2CA,
-        [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
-        [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
-};
+static const u16 me_code_signal_counts[CODE_COUNT] =
+    {[CODE_GPS_L1CA] = PLATFORM_SIGNAL_COUNT_GPS_L1CA,
+     [CODE_GPS_L2CM] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+     [CODE_GPS_L2CL] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+     [CODE_GPS_L2CX] = PLATFORM_SIGNAL_COUNT_GPS_L2C,
+     [CODE_GLO_L1OF] = PLATFORM_FREQ_COUNT_GLO_L1OF,
+     [CODE_GLO_L2OF] = PLATFORM_FREQ_COUNT_GLO_L2OF,
+     [CODE_GPS_L1P] = PLATFORM_SIGNAL_COUNT_GPS_L1P,
+     [CODE_GPS_L2P] = PLATFORM_SIGNAL_COUNT_GPS_L2P,
+     [CODE_SBAS_L1CA] = PLATFORM_SIGNAL_COUNT_SBAS_L1CA,
+     [CODE_BDS2_B11] = PLATFORM_SIGNAL_COUNT_BDS2_B11,
+     [CODE_BDS2_B2] = PLATFORM_SIGNAL_COUNT_BDS2_B2,
+     [CODE_QZS_L1CA] = PLATFORM_SIGNAL_COUNT_QZS_L1CA,
+     [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+     [CODE_QZS_L2CL] = PLATFORM_SIGNAL_COUNT_QZS_L2C,
+     [CODE_QZS_L2CX] = PLATFORM_SIGNAL_COUNT_QZS_L2C};
 
 /** Initialize the signal module. */
 void signal_init(void) {
@@ -128,7 +140,7 @@ gnss_signal_t sid_from_global_index(u16 global_index) {
           code, global_index - code_table[code].global_start_index);
     }
   }
-
+  log_error("global_index %d is outside range", global_index);
   assert(!"Invalid global index");
   return construct_sid(CODE_INVALID, 0);
 }
@@ -339,9 +351,9 @@ double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid) {
   assert(mesid_valid(mesid));
 
   double carr_fcn_hz = 0;
-  if (CODE_GLO_L1CA == mesid.code) {
+  if (CODE_GLO_L1OF == mesid.code) {
     carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-  } else if (CODE_GLO_L2CA == mesid.code) {
+  } else if (CODE_GLO_L2OF == mesid.code) {
     carr_fcn_hz = (mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
   }
   return carr_fcn_hz;

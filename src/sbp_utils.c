@@ -35,48 +35,17 @@
  * \{ */
 
 u32 round_tow_ms(double tow);
-void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out);
+void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out);
 
 sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from) {
-  /* TODO GLO: Check GLO status */
   sbp_gnss_signal_t sbp_sid = {
-      .code = from.code, .sat = from.sat, .reserved = 0,
+      .code = from.code, .sat = from.sat,
   };
-
-  /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other
-   * constellations are "real" satellite identifiers.
-   */
-  if (IS_GPS(from)) {
-    sbp_sid.sat -= GPS_FIRST_PRN;
-  }
 
   return sbp_sid;
 }
 
 gnss_signal_t sid_from_sbp(const sbp_gnss_signal_t from) {
-  gnss_signal_t sid = {
-      .code = from.code, .sat = from.sat,
-  };
-
-  /* Maintain legacy compatibility with GPS PRN encoding. Sat values for other
-   * constellations are "real" satellite identifiers.
-   */
-  if (IS_GPS(sid)) {
-    sid.sat += GPS_FIRST_PRN;
-  }
-
-  return sid;
-}
-
-gnss_signal16_t sid_to_sbp16(const gnss_signal_t from) {
-  gnss_signal16_t sbp_sid = {
-      .code = from.code, .sat = from.sat,
-  };
-
-  return sbp_sid;
-}
-
-gnss_signal_t sid_from_sbp16(const gnss_signal16_t from) {
   gnss_signal_t sid = {
       .code = from.code, .sat = from.sat,
   };
@@ -92,7 +61,7 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
     return;
   }
   /* TODO(Leith): SBP message should reuse the GPSTimeNano struct */
-  gps_time_nano_t t_nano;
+  sbp_gps_time_t t_nano;
   round_time_nano(t_in, &t_nano);
   t_out->wn = t_nano.wn;
   t_out->tow = t_nano.tow;
@@ -292,11 +261,11 @@ void sbp_send_ndb_event(u8 event,
   msg.data_source = data_source;
 
   if (NULL != object_sid) {
-    msg.object_sid = sid_to_sbp16(*object_sid);
+    msg.object_sid = sid_to_sbp(*object_sid);
   }
 
   if (NULL != src_sid) {
-    msg.src_sid = sid_to_sbp16(*src_sid);
+    msg.src_sid = sid_to_sbp(*src_sid);
   }
 
   msg.original_sender = sender;
@@ -381,7 +350,7 @@ void unpack_obs_content(const packed_obs_content_t *msg,
   if (msg->cn0 != 0) {
     *flags |= NAV_MEAS_FLAG_CN0_VALID;
   }
-  *sid = sid_from_sbp16(msg->sid);
+  *sid = sid_from_sbp(msg->sid);
 }
 
 /** Pack GPS observables into a `msg_obs_content_t` struct.
@@ -409,7 +378,15 @@ s8 pack_obs_content(double P,
                     packed_obs_content_t *msg) {
   s64 P_fp = llround(P * MSG_OBS_P_MULTIPLIER);
   if (P < 0 || P_fp > UINT32_MAX) {
-    log_error("observation message packing: P integer overflow (%f)", P);
+    log_error_sid(sid,
+                  "observation message packing: P integer overflow "
+                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                  P,
+                  L,
+                  D,
+                  cn0,
+                  lock_time,
+                  flags);
     return -1;
   }
 
@@ -417,7 +394,15 @@ s8 pack_obs_content(double P,
 
   double Li = floor(-L);
   if (Li < INT32_MIN || Li > INT32_MAX) {
-    log_error("observation message packing: L integer overflow (%f)", L);
+    log_error_sid(sid,
+                  "observation message packing: L integer overflow "
+                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                  P,
+                  L,
+                  D,
+                  cn0,
+                  lock_time,
+                  flags);
     return -1;
   }
 
@@ -433,7 +418,15 @@ s8 pack_obs_content(double P,
 
   double Di = floor(D);
   if (Di < INT16_MIN || Di > INT16_MAX) {
-    log_error("observation message packing: D integer overflow (%f)", D);
+    log_error_sid(sid,
+                  "observation message packing: D integer overflow "
+                  "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                  P,
+                  L,
+                  D,
+                  cn0,
+                  lock_time,
+                  flags);
     return -1;
   }
 
@@ -450,7 +443,15 @@ s8 pack_obs_content(double P,
   if (0 != (flags & NAV_MEAS_FLAG_CN0_VALID)) {
     s32 cn0_fp = lround(cn0 * MSG_OBS_CN0_MULTIPLIER);
     if (cn0 < 0 || cn0_fp > UINT8_MAX) {
-      log_error("observation message packing: C/N0 integer overflow (%f)", cn0);
+      log_error_sid(sid,
+                    "observation message packing: C/N0 integer overflow "
+                    "(%.1f,%.1f,%.1f,%.1f,%.1f,0x%X)",
+                    P,
+                    L,
+                    D,
+                    cn0,
+                    lock_time,
+                    flags);
       return -1;
     }
 
@@ -463,7 +464,7 @@ s8 pack_obs_content(double P,
 
   msg->flags = nm_flags_to_sbp(flags);
 
-  msg->sid = sid_to_sbp16(sid);
+  msg->sid = sid_to_sbp(sid);
 
   return 0;
 }
@@ -474,7 +475,7 @@ static void unpack_ephemeris_common(const ephemeris_common_content_t *common,
   e->toe.wn = common->toe.wn;
   e->valid = common->valid;
   e->health_bits = common->health_bits;
-  e->sid = sid_from_sbp16(common->sid);
+  e->sid = sid_from_sbp(common->sid);
   e->fit_interval = common->fit_interval;
   e->ura = common->ura;
 }
@@ -485,7 +486,7 @@ static void pack_ephemeris_common(const ephemeris_t *e,
   common->toe.wn = e->toe.wn;
   common->valid = e->valid;
   common->health_bits = e->health_bits;
-  common->sid = sid_to_sbp16(e->sid);
+  common->sid = sid_to_sbp(e->sid);
   common->fit_interval = e->fit_interval;
   common->ura = e->ura;
 }
@@ -717,9 +718,7 @@ void sbp_send_group_delay(const cnav_msg_t *cnav) {
           {/* Convert from 6 seconds unit */
            .tow = (u32)(cnav->tow * 6),
            .wn = t.wn},
-      .sid =
-          (sbp_gnss_signal_t){
-              .code = CODE_GPS_L2CM, .sat = cnav->prn, .reserved = 0},
+      .sid = (sbp_gnss_signal_t){.code = CODE_GPS_L2CM, .sat = cnav->prn},
       .valid = cnav->data.type_30.tgd_valid |
                cnav->data.type_30.isc_l2c_valid << 1 |
                cnav->data.type_30.isc_l1ca_valid << 2,
@@ -736,7 +735,7 @@ void sbp_send_group_delay(const cnav_msg_t *cnav) {
  * week roll-over
  * @param[in] tow Time-of-week in seconds
  * @return Time-of-week in milliseconds
-*/
+ */
 u32 round_tow_ms(double tow) {
   /* week roll-over */
   u32 tow_ms = round(tow * 1e3);
@@ -751,8 +750,8 @@ u32 round_tow_ms(double tow) {
  * nanosecond remainder, taking care of week roll-over
  * @param[in] t_in GPS time
  * @param[out] t_out SBP time
-*/
-void round_time_nano(const gps_time_t *t_in, gps_time_nano_t *t_out) {
+ */
+void round_time_nano(const gps_time_t *t_in, sbp_gps_time_t *t_out) {
   t_out->wn = t_in->wn;
   t_out->tow = round(t_in->tow * 1e3);
   t_out->ns_residual = round((t_in->tow - t_out->tow / 1e3) * 1e9);

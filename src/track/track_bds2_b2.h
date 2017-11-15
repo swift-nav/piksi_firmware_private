@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
+ * Copyright (C) 2017 Swift Navigation Inc.
  * Contact: Michele Bavaro <michele@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -9,15 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef SWIFTNAV_REACQ_API_H
-#define SWIFTNAV_REACQ_API_H
+#ifndef TRACK_BDS2_B2_H
+#define TRACK_BDS2_B2_H
 
-/** \addtogroup reacq Reacqusition Framework
- * \{ */
+#include <libswiftnav/common.h>
 
-void init_reacq(void);
-void manage_reacq(void);
+void track_bds2_b2_register(void);
 
-/** \} */
-
-#endif /* SWIFTNAV_REACQ_API_H */
+#endif /* TRACK_BDS2_B2_H */

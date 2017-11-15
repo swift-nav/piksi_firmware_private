@@ -97,7 +97,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   if (!bModuleInit) {
     InitBBConvLut();
     bModuleInit = true;
-    log_info("InitBBConvLut()");
+    log_debug("InitBBConvLut()");
   }
 
   /** Check if the last grabbed signal snapshot isn't too old.
@@ -108,9 +108,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
     /** GRAB!!! */
     sample_buff = grab_samples(&buff_size, &tmp_timetag);
     if (NULL == sample_buff) {
-      log_warn("grabber failed, buff_size %" PRIu32 " tmp_timetag %" PRIu64,
-               buff_size,
-               tmp_timetag);
+      log_error("grabber failed, buff_size %" PRIu32 " tmp_timetag %" PRIu64,
+                buff_size,
+                tmp_timetag);
       return false;
     }
     /** update signal time tag */
@@ -126,7 +126,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * - for Glonass, `sat` holds the FCN and we might want to do this again
    *  */
   if ((tmp_timetag) || (!code_equiv(mesid_last.code, mesid.code)) ||
-      ((mesid_last.code == CODE_GLO_L1CA) && (mesid_last.sat != mesid.sat))) {
+      ((mesid_last.code == CODE_GLO_L1OF) && (mesid_last.sat != mesid.sat))) {
     /** perform again baseband down-conversion and decimation depending on
      * mesid */
     BbMixAndDecimate(mesid);
@@ -178,6 +178,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
   switch (mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
+    case CODE_QZS_L1CA:
       uDecFactor = SOFTMACQ_DECFACT_GPSL1CA;
       samples_ms = SOFTMACQ_RAW_SPMS / uDecFactor;
       uNcoStep =
@@ -197,7 +198,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_GLO_L1CA:
+    case CODE_GLO_L1OF:
       uDecFactor = SOFTMACQ_DECFACT_GLOG1;
       samples_ms = SOFTMACQ_RAW_SPMS / uDecFactor;
       uNcoStep = CirclesToUint32(
@@ -239,13 +240,12 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
-    case CODE_GLO_L2CA:
+    case CODE_INVALID:
+    case CODE_GLO_L2OF:
     case CODE_GPS_L2CM:
     case CODE_GPS_L2CL:
-    case CODE_INVALID:
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
-    case CODE_COUNT:
     case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
@@ -264,13 +264,13 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
     case CODE_QZS_L5X:
+    case CODE_COUNT:
     default:
       return false;
       break;

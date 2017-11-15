@@ -14,7 +14,7 @@
 #define TRACK_GLO_L2CA_INTERNAL
 
 /* Local headers */
-#include "track_glo_l2ca.h"
+#include "track_glo_l2of.h"
 #include "track.h"
 #include "track_cn0.h"
 #include "track_sid_db.h"
@@ -38,36 +38,36 @@
 #include <string.h>
 
 /** GLO L2CA configuration section name */
-#define GLO_L2CA_TRACK_SETTING_SECTION "glo_l2ca_track"
+#define GLO_L2OF_TRACK_SETTING_SECTION "glo_l2of_track"
 
-static tp_tracker_config_t glo_l2ca_config = TP_TRACKER_DEFAULT_CONFIG;
+static tp_tracker_config_t glo_l2of_config = TP_TRACKER_DEFAULT_CONFIG;
 
 /* Forward declarations of interface methods for GLO L2CA */
-static tracker_interface_function_t tracker_glo_l2ca_init;
-static tracker_interface_function_t tracker_glo_l2ca_update;
+static tracker_interface_function_t tracker_glo_l2of_init;
+static tracker_interface_function_t tracker_glo_l2of_update;
 
 /** GLO L2CA tracker interface */
-static const tracker_interface_t tracker_interface_glo_l2ca = {
-    .code = CODE_GLO_L2CA,
-    .init = tracker_glo_l2ca_init,
+static const tracker_interface_t tracker_interface_glo_l2of = {
+    .code = CODE_GLO_L2OF,
+    .init = tracker_glo_l2of_init,
     .disable = tp_tracker_disable,
-    .update = tracker_glo_l2ca_update,
+    .update = tracker_glo_l2of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l2ca = {
-    .interface = &tracker_interface_glo_l2ca, .next = 0};
+static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
+    .interface = &tracker_interface_glo_l2of, .next = 0};
 
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
-void track_glo_l2ca_register(void) {
+void track_glo_l2of_register(void) {
   TP_TRACKER_REGISTER_CONFIG(
-      GLO_L2CA_TRACK_SETTING_SECTION, glo_l2ca_config, settings_default_notify);
+      GLO_L2OF_TRACK_SETTING_SECTION, glo_l2of_config, settings_default_notify);
 
-  tracker_interface_register(&tracker_interface_list_glo_l2ca);
+  tracker_interface_register(&tracker_interface_list_glo_l2of);
 }
 
-/** Do GLO L1CA to L2CA handover.
+/** Do GLO L1OF to L2OF handover.
  *
  * The condition for the handover is the availability of meander sync on L1CA
  *
@@ -77,13 +77,13 @@ void track_glo_l2ca_register(void) {
  * \param carrier_freq_hz The current Doppler frequency for the L1CA channel
  * \param init_cn0_dbhz CN0 estimate for the L1CA channel [dB-Hz]
  */
-void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
+void do_glo_l1of_to_l2of_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
                                   double carrier_freq_hz,
                                   float init_cn0_dbhz) {
   /* compose L2CA MESID: same SV, but code is L2CA */
-  me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2CA, sat);
+  me_gnss_signal_t L2_mesid = construct_mesid(CODE_GLO_L2OF, sat);
 
   if (!tracking_startup_ready(L2_mesid)) {
     return; /* L2CA signal from the SV is already in track */
@@ -97,7 +97,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 
   /* calculate L2 - L1 frequency scale while taking GLO FCN into account */
-  me_gnss_signal_t L1_mesid = construct_mesid(CODE_GLO_L1CA, sat);
+  me_gnss_signal_t L1_mesid = construct_mesid(CODE_GLO_L1OF, sat);
   double glo_freq_scale =
       mesid_to_carr_freq(L2_mesid) / mesid_to_carr_freq(L1_mesid);
 
@@ -110,7 +110,7 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
 
   tracking_startup_params_t startup_params = {
       .mesid = L2_mesid,
-      .glo_slot_id = glo_map_get_orbit_slot(sat),
+      .glo_slot_id = get_orbit_slot(sat),
       .sample_count = extended_sample_count,
       /* recalculate doppler freq for L2 from L1 */
       .carrier_freq = carrier_freq_hz * glo_freq_scale,
@@ -140,21 +140,28 @@ void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
   }
 }
 
-static void tracker_glo_l2ca_init(tracker_channel_t *tracker_channel) {
-  tp_tracker_init(tracker_channel, &glo_l2ca_config);
+static void tracker_glo_l2of_init(tracker_channel_t *tracker_channel) {
+  tp_tracker_init(tracker_channel, &glo_l2of_config);
 }
 
-static void tracker_glo_l2ca_update(tracker_channel_t *tracker_channel) {
-  u32 tracker_flags = tp_tracker_update(tracker_channel, &glo_l2ca_config);
-  (void)tracker_flags;
-
-  /* GLO L2 ToW manipulation */
-  update_tow_glo(tracker_channel, tracker_flags);
+static void tracker_glo_l2of_update(tracker_channel_t *tracker_channel) {
+  u32 cflags = tp_tracker_update(tracker_channel, &glo_l2of_config);
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
-    mesid_drop = construct_mesid(CODE_GLO_L1CA, tracker_channel->mesid.sat);
+    mesid_drop = construct_mesid(CODE_GLO_L1OF, tracker_channel->mesid.sat);
     tracking_channel_drop_unhealthy_glo(mesid_drop);
+    return;
   }
+
+  bool bit_aligned =
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+
+  if (!bit_aligned) {
+    return;
+  }
+
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker_channel);
 }

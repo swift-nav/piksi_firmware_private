@@ -59,6 +59,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
+#define ME_CALC_PVT_THREAD_PIORITY (HIGHPRIO - 3)
+
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;
 
@@ -71,38 +73,47 @@ static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
-/* Empirical corrections for GLO per-frequency bias as per
+/* Empirical corrections for GLO per-frequency pseudorange bias as per
  * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
  */
-static const double glo_l1_isc[] = {[0] = -10.95,
-                                    [1] = -10.82,
-                                    [2] = -10.75,
-                                    [3] = -10.5,
-                                    [4] = -10,
-                                    [5] = -9.4,
-                                    [6] = -8.85,
-                                    [7] = -8.5,
-                                    [8] = -8.27,
-                                    [9] = -8.23,
-                                    [10] = -8.65,
-                                    [11] = -9,
-                                    [12] = -9.53,
-                                    [13] = -9.3};
-static const double glo_l2_isc[] = {[0] = -7.82,
-                                    [1] = -7.518,
-                                    [2] = -7.217,
-                                    [3] = -6.915,
-                                    [4] = -6.614,
-                                    [5] = -6.312,
-                                    [6] = -6.011,
-                                    [7] = -5.709,
-                                    [8] = -5.408,
-                                    [9] = -5.106,
-                                    [10] = -4.805,
-                                    [11] = -4.503,
-                                    [12] = -4.202,
-                                    [13] = -3.9};
-static const double gps_l2_isc = 4.05;
+static const double glo_l1_isc[] = {[0] = -7.25,
+                                    [1] = -7.37,
+                                    [2] = -7.5,
+                                    [3] = -7.57,
+                                    [4] = -7.51,
+                                    [5] = -7.25,
+                                    [6] = -7,
+                                    [7] = -6.72,
+                                    [8] = -7,
+                                    [9] = -7.3,
+                                    [10] = -7.73,
+                                    [11] = -8.45,
+                                    [12] = -8.95,
+                                    [13] = -9.5};
+
+static const double glo_l2_isc[] = {[0] = -7.5,
+                                    [1] = -7.26,
+                                    [2] = -6.83,
+                                    [3] = -6.45,
+                                    [4] = -6.27,
+                                    [5] = -6.16,
+                                    [6] = -6,
+                                    [7] = -5.8,
+                                    [8] = -5.5,
+                                    [9] = -5.35,
+                                    [10] = -5.25,
+                                    [11] = -5.0,
+                                    [12] = -5.0,
+                                    [13] = -5.0};
+
+static const double gps_l2_isc = -1.95;
+
+/* These biases are to align the GLONASS carrier phase to the Septentrio
+ * receivers carrier phase These biases are in cycles and are proportional to
+ * the frequency number
+ * */
+static const double glo_l1_carrier_phase_bias = -0.07 / 8;
+static const double glo_l2_carrier_phase_bias = 0;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -170,7 +181,7 @@ static void me_send_all(u8 _num_obs,
                         const gps_time_t *_t) {
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
-  * care to ensure that the observations are aligned. */
+   * care to ensure that the observations are aligned. */
   if (decimate_observations(_t) && !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
@@ -184,6 +195,88 @@ static void me_send_emptyobs(void) {
   const gps_time_t _t = get_current_gps_time();
   if (decimate_observations(&_t) && !simulation_enabled()) {
     send_observations(0, msg_obs_max_size, NULL, NULL);
+  }
+}
+
+/* remove the clock offset and bias from measurements */
+static void remove_clock_offset(navigation_measurement_t *nm,
+                                double clock_offset,
+                                double clock_drift,
+                                double gtemp_diff) {
+  double doppler = 0.0;
+  if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
+    doppler = nm->raw_measured_doppler;
+  }
+
+  /* The pseudorange correction has opposite sign because Doppler has the
+   * opposite sign compared to the pseudorange rate. */
+  nm->raw_pseudorange -= clock_offset * doppler * sid_to_lambda(nm->sid);
+  nm->raw_pseudorange -= clock_offset * GPS_C;
+
+  double fcn = 0.0;
+  /* Remove the fractional 2-ms residual FCN contribution */
+  if (CODE_GLO_L1OF == nm->sid.code) {
+    fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
+  } else if (CODE_GLO_L2OF == nm->sid.code) {
+    fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
+  }
+  nm->raw_carrier_phase += gtemp_diff * fcn;
+
+  /* Carrier Phase corrected by clock offset */
+  nm->raw_carrier_phase += clock_offset * doppler;
+  nm->raw_carrier_phase += clock_offset * GPS_C / sid_to_lambda(nm->sid);
+
+  /* Use P**V**T to determine the oscillator drift which is used to adjust
+   * computed doppler. */
+  nm->raw_measured_doppler += clock_drift * GPS_C / sid_to_lambda(nm->sid);
+  nm->raw_computed_doppler = nm->raw_measured_doppler;
+
+  /* Also apply the time correction to the time of transmission so the
+   * satellite positions can be calculated for the correct time. */
+  nm->tot.tow += clock_offset;
+  normalize_gps_time(&(nm->tot));
+}
+
+/** Roughly propagate and send the observations when PVT solution failed or is
+ * not available. Flag all with RAIM exclusion so they do not get used
+ * downstream. */
+static void me_send_failed_obs(u8 _num_obs,
+                               navigation_measurement_t _meas[],
+                               const ephemeris_t _ephem[],
+                               const gps_time_t *_t) {
+  /* require at least some timing quality */
+  if (TIME_PROPAGATED > get_time_quality() || !gps_time_valid(_t) ||
+      _num_obs == 0) {
+    me_send_emptyobs();
+    return;
+  }
+
+  double clock_offset = 0;
+  double clock_drift = 0;
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE == ndb_lgf_read(&lgf) && lgf.position_solution.valid) {
+    /* estimate the current clock offset from LGF */
+    double dt = gpsdifftime(_t, &lgf.position_solution.time);
+    clock_offset = lgf.position_solution.clock_offset +
+                   dt * lgf.position_solution.clock_bias;
+    clock_drift = lgf.position_solution.clock_bias;
+  }
+
+  for (u8 i = 0; i < _num_obs; i++) {
+    /* mark the measurement unusable to be on the safe side */
+    /* TODO: could relax this in order to send also under-determined measurement
+     * sets to Starling */
+    _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
+
+    /* propagate the measurements with the clock bias and drift from LGF */
+    remove_clock_offset(&_meas[i], clock_offset, clock_drift, 0.0);
+  }
+
+  me_post_observations(_num_obs, _meas, _ephem, _t);
+  /* Output observations only every obs_output_divisor times, taking
+  * care to ensure that the observations are aligned. */
+  if (decimate_observations(_t) && !simulation_enabled()) {
+    send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
 }
 
@@ -313,27 +406,34 @@ static void collect_measurements(u64 rec_tc,
 }
 
 /** Apply ISC corrections from hard-coded table
- *
+ * Alignment is performed relative to the Septentrio
  */
 static void apply_isc_table(u8 n_channels,
                             navigation_measurement_t *nav_meas[]) {
   for (u8 i = 0; i < n_channels; i++) {
-    double corr = 0;
+    double pseudorange_corr = 0;
+    double carrier_phase_corr = 0;
     switch (nav_meas[i]->sid.code) {
       case CODE_GPS_L1CA:
         break;
 
       case CODE_GPS_L2CL:
       case CODE_GPS_L2CM:
-        corr = gps_l2_isc;
+        pseudorange_corr = gps_l2_isc;
         break;
 
-      case CODE_GLO_L1CA:
-        corr = glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+      case CODE_GLO_L1OF:
+        pseudorange_corr =
+            glo_l1_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
+                             glo_l1_carrier_phase_bias;
         break;
 
-      case CODE_GLO_L2CA:
-        corr = glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+      case CODE_GLO_L2OF:
+        pseudorange_corr =
+            glo_l2_isc[glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN];
+        carrier_phase_corr = (glo_map_get_fcn(nav_meas[i]->sid) - GLO_MIN_FCN) *
+                             glo_l2_carrier_phase_bias;
         break;
 
       case CODE_INVALID:
@@ -375,13 +475,31 @@ static void apply_isc_table(u8 n_channels,
         break;
     }
 
-    nav_meas[i]->pseudorange += corr;
-    nav_meas[i]->carrier_phase -=
-        corr / GPS_C * sid_to_carr_freq(nav_meas[i]->sid);
+    nav_meas[i]->pseudorange += pseudorange_corr;
+    nav_meas[i]->raw_pseudorange += pseudorange_corr;
+    nav_meas[i]->raw_carrier_phase -= carrier_phase_corr;
   }
 }
 
 static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
+
+static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
+                               const gnss_solution *current_fix) {
+  /* Check how large the outlier roughly is, and if it is a gross one,
+   * drop the channel and delete the possibly corrupt ephemeris */
+  double geometric_range[3];
+  for (u8 j = 0; j < 3; j++) {
+    geometric_range[j] = nav_meas->sat_pos[j] - current_fix->pos_ecef[j];
+  }
+  if (fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
+           vector_norm(3, geometric_range)) > RAIM_DROP_CHANNEL_THRESHOLD_M) {
+    /* mark channel for dropping */
+    tracking_channel_set_raim_flag(nav_meas->sid);
+    /* clear the ephemeris for this signal */
+    ndb_ephemeris_erase(nav_meas->sid);
+  }
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -494,8 +612,7 @@ static void me_calc_pvt_thread(void *arg) {
     last_stats.signals_tracked = n_total;
     last_stats.signals_useable = n_ready;
 
-    if (n_ready < MINIMUM_SV_COUNT) {
-      /* Not enough sats, keep on looping. */
+    if (n_ready == 0) {
       me_send_emptyobs();
       continue;
     }
@@ -557,12 +674,6 @@ static void me_calc_pvt_thread(void *arg) {
       sid_set_add(&codes, nav_meas[i].sid);
     }
 
-    if (sid_set_get_sat_count(&codes) < 4) {
-      /* Not enough sats to compute PVT */
-      me_send_emptyobs();
-      continue;
-    }
-
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
@@ -576,6 +687,12 @@ static void me_calc_pvt_thread(void *arg) {
                       lgf.position_solution.pos_ecef,
                       lgf.position_solution.pos_llh,
                       p_i_params);
+    }
+
+    if (sid_set_get_sat_count(&codes) < 4) {
+      /* Not enough sats to compute PVT, send them as unusable */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
+      continue;
     }
 
     dops_t dops;
@@ -605,10 +722,9 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - send out solution and observation
-       * failed messages if not in time matched mode
-       */
-      me_send_emptyobs();
+       * continuing to process this epoch - mark observations unusable but send
+       * them out to enable debugging. */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -630,18 +746,8 @@ static void me_calc_pvt_thread(void *arg) {
           nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
           /* Check how large the outlier roughly is, and if it is a gross one,
-           * drop the channel */
-          double geometric_range[3];
-          for (u8 j = 0; j < 3; j++) {
-            geometric_range[j] =
-                nav_meas[i].sat_pos[j] - current_fix.pos_ecef[j];
-          }
-          if (fabs(+nav_meas[i].pseudorange +
-                   -current_fix.clock_offset * GPS_C +
-                   -vector_norm(3, geometric_range)) >
-              RAIM_DROP_CHANNEL_THRESHOLD_M) {
-            tracking_channel_set_raim_flag(nav_meas[i].sid);
-          }
+           * drop the channel and delete the possibly corrupt ephemeris */
+          drop_gross_outlier(&nav_meas[i], &current_fix);
         }
       }
     }
@@ -674,7 +780,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_bias);
 
-      me_send_emptyobs();
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
     }
 
@@ -685,48 +791,17 @@ static void me_calc_pvt_thread(void *arg) {
                 current_fix.clock_offset,
                 current_fix.clock_bias);
 
+      double clock_offset = current_fix.clock_offset;
+      double clock_drift = current_fix.clock_bias;
+
       /* gtemp_tc is always smaller than epoch_tc */
       double gtemp_diff = (epoch_tc - gtemp_tc) * RX_DT_NOMINAL;
-      double fcn;
 
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
 
-        double doppler = 0.0;
-        if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
-          doppler = nm->raw_measured_doppler;
-        }
-
-        /* The pseudorange correction has opposite sign because Doppler
-         * has the opposite sign compared to the pseudorange rate. */
-        nm->raw_pseudorange -=
-            (current_fix.clock_offset) * doppler * sid_to_lambda(nm->sid);
-        nm->raw_pseudorange -= current_fix.clock_offset * GPS_C;
-
-        /* Remove the fractional 2-ms residual FCN contribution */
-        if (CODE_GLO_L1CA == nm->sid.code) {
-          fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
-        } else if (CODE_GLO_L2CA == nm->sid.code) {
-          fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
-        } else {
-          fcn = 0.0;
-        }
-        nm->raw_carrier_phase += gtemp_diff * fcn;
-        /* Carrier Phase corrected by clock offset */
-        nm->raw_carrier_phase += (current_fix.clock_offset) * doppler;
-        nm->raw_carrier_phase +=
-            current_fix.clock_offset * GPS_C / sid_to_lambda(nm->sid);
-
-        /* Use P**V**T to determine the oscillator drift which is used
-         * to adjust computed doppler. */
-        nm->raw_measured_doppler +=
-            current_fix.clock_bias * GPS_C / sid_to_lambda(nm->sid);
-        nm->raw_computed_doppler = nm->raw_measured_doppler;
-
-        /* Also apply the time correction to the time of transmission so the
-        * satellite positions can be calculated for the correct time. */
-        nm->tot.tow += (current_fix.clock_offset);
-        normalize_gps_time(&(nm->tot));
+        /* remove clock offset from the measurement */
+        remove_clock_offset(nm, clock_offset, clock_drift, gtemp_diff);
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
@@ -748,6 +823,8 @@ static void me_calc_pvt_thread(void *arg) {
     } else {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
+      /* Send the observations, but marked unusable */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
@@ -815,7 +892,7 @@ void me_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
                     sizeof(wa_me_calc_pvt_thread),
-                    HIGHPRIO - 2,
+                    ME_CALC_PVT_THREAD_PIORITY,
                     me_calc_pvt_thread,
                     NULL);
 }

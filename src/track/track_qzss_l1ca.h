@@ -9,15 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef SWIFTNAV_REACQ_API_H
-#define SWIFTNAV_REACQ_API_H
+#ifndef TRACK_QZSS_L1CA_H
+#define TRACK_QZSS_L1CA_H
 
-/** \addtogroup reacq Reacqusition Framework
- * \{ */
+#include <libswiftnav/common.h>
 
-void init_reacq(void);
-void manage_reacq(void);
+void track_qzss_l1ca_register(void);
 
-/** \} */
-
-#endif /* SWIFTNAV_REACQ_API_H */
+#endif /* TRACK_QZSS_L1CA_H */

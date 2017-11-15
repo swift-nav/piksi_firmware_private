@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 - 2017 Swift Navigation Inc.
- * Contact: Roman Gezikov <rgezikov@exafore.com>
+ * Contact: Michele Bavaro <michele@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -366,8 +366,8 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     *
     * Return CODE_NAV_STATE_UNKNOWN otherwise
     */
-    case CODE_GLO_L1CA:
-    case CODE_GLO_L2CA:
+    case CODE_GLO_L1OF:
+    case CODE_GLO_L2OF:
       if (shi.shi_set && (GLO_SV_UNHEALTHY == shi.shi)) {
         return CODE_NAV_STATE_INVALID;
       } else if (shi.shi_set && (GLO_SV_HEALTHY == shi.shi)) {

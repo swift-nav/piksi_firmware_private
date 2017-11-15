@@ -17,16 +17,16 @@
 #ifdef TRACK_GLO_L2CA_INTERNAL
 #define L2CA_WEAK
 #else
-#define L2CA_WEAK __attribute__((weak, alias("l2ca_not_implemented")))
+#define L2CA_WEAK __attribute__((weak, alias("l2of_not_implemented")))
 #endif /* TRACK_GLO_L2CA_INTERNAL */
 
-int l2ca_not_implemented(void) __attribute__((weak));
-inline int l2ca_not_implemented(void) { return -1; }
+int l2of_not_implemented(void) __attribute__((weak));
+inline int l2of_not_implemented(void) { return -1; }
 
 /* not weak as it is used in L2CA builds only */
-void track_glo_l2ca_register(void);
+void track_glo_l2of_register(void);
 
-void do_glo_l1ca_to_l2ca_handover(u32 sample_count,
+void do_glo_l1of_to_l2of_handover(u32 sample_count,
                                   u16 sat,
                                   float code_phase_chips,
                                   double carrier_freq_hz,

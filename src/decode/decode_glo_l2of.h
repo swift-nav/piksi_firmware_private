@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swiftnav.com>
+ * Copyright (C) 2017 Swift Navigation Inc.
+ * Contact: Tommi Paakki <tpaakki@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -9,15 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef SWIFTNAV_REACQ_API_H
-#define SWIFTNAV_REACQ_API_H
+#ifndef SWIFTNAV_DECODE_GLO_L2OF_H
+#define SWIFTNAV_DECODE_GLO_L2OF_H
 
-/** \addtogroup reacq Reacqusition Framework
- * \{ */
+#include <libswiftnav/common.h>
 
-void init_reacq(void);
-void manage_reacq(void);
+void decode_glo_l2of_register(void);
 
-/** \} */
-
-#endif /* SWIFTNAV_REACQ_API_H */
+#endif

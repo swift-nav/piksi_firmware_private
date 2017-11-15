@@ -62,19 +62,16 @@ typedef enum {
   BMI160_GYR_125DGS = 0b100
 } bmi160_gyr_range_t;
 
-#define BMI160_IMU_RATE_25HZ 0b0110
-#define BMI160_IMU_RATE_50HZ 0b0111
-#define BMI160_IMU_RATE_100HZ 0b1000
-#define BMI160_IMU_RATE_200HZ 0b1001
-#define BMI160_IMU_RATE_400HZ 0b1010
-
+/* rate = 25 * 2 ^ (imu_rate - 6) valid for 12 > imu_rate > 0 */
 typedef enum {
-  IMU_RATE_25HZ = 0,
-  IMU_RATE_50HZ = 1,
-  IMU_RATE_100HZ = 2,
-  IMU_RATE_200HZ = 3,
-  IMU_RATE_400HZ = 4,
-} imu_rate_t;
+  BMI160_RATE_6_25HZ = 0b0100,
+  BMI160_RATE_12_5HZ = 0b0101,
+  BMI160_RATE_25HZ = 0b0110,
+  BMI160_RATE_50HZ = 0b0111,
+  BMI160_RATE_100HZ = 0b1000,
+  BMI160_RATE_200HZ = 0b1001,
+  BMI160_RATE_400HZ = 0b1010
+} bmi160_rate_t;
 
 #define BMI160_STATUS_ACC_RDY_Msk 0x80
 #define BMI160_STATUS_GYRO_RDY_Msk 0x40
@@ -90,16 +87,32 @@ typedef enum {
 /* ID of device in BMI160_REG_CHIP_ID */
 #define BMI160_MFDVID 0b11010001
 
+/* BMI150 Register Addresses */
+#define BMM150_REG_ID 0x40
+#define BMM150_REG_MODE1 0x4B
+#define BMM150_REG_MODE2 0x4C
+#define BMM150_REG_DATA 0x42
+#define BMM150_REG_NXY 0x51
+#define BMM150_REG_NZ 0x52
+
+/* I2C Slave Address of BMM150 */
+#define BMM150_I2C_SLV_ADDR 0x13
+
+/* ID of device in BMM150_REG_ID */
+#define BMM150_REG_MFDVID 0x32
+
 void bmi160_init(void);
 void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag);
 void bmi160_get_data(s16 acc[static 3],
                      s16 gyro[static 3],
                      s16 mag[static 3],
                      u32* sensor_time);
-void bmi160_set_imu_rate(imu_rate_t rate);
+void bmi160_set_imu_rate(bmi160_rate_t rate);
 void bmi160_imu_set_enabled(bool enabled);
 void bmi160_set_acc_range(bmi160_acc_range_t range);
 void bmi160_set_gyr_range(bmi160_gyr_range_t range);
+void bmi160_set_mag_rate(bmi160_rate_t rate);
+void bmi160_mag_set_enabled(bool enabled);
 s16 bmi160_read_temp(void);
 u8 bmi160_read_status(void);
 u8 bmi160_read_error(void);

@@ -74,10 +74,6 @@ MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
-/* RFT_TODO *
- * starling_simulation_obs_output_divisor logic might have to change */
-static u32 starling_simulation_obs_output_divisor = 1;
-
 MUTEX_DECL(last_sbp_lock);
 gps_time_t last_dgnss;
 gps_time_t last_spp;
@@ -623,8 +619,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
                                simulation_current_dops_solution(),
                                sbp_messages);
 
-    double t_check = soln->time.tow * (starling_frequency /
-                                       starling_simulation_obs_output_divisor);
+    double t_check = soln->time.tow * (starling_frequency / obs_output_divisor);
     if (fabs(t_check - (u32)t_check) < TIME_MATCH_THRESHOLD) {
       /* RFT_TODO *
        * SBP_FRAMING_MAX_PAYLOAD_SIZE replaces the setting for now, but
@@ -808,12 +803,14 @@ static void starling_thread(void *arg) {
         !gate_covariance_pvt_engine(&result_spp)) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
       successful_spp = true;
-    } else if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
-      /* If we can't report a SPP position, something is wrong and no point
-       * continuing to process this epoch - send out solution and
-       * observation failed messages if not in time matched mode.
-       */
-      solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
+    } else {
+      if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
+        /* If we can't report a SPP position, something is wrong and no point
+         * continuing to process this epoch - send out solution and
+         * observation failed messages if not in time matched mode.
+         */
+        solution_send_low_latency_output(0, &sbp_messages, n_ready, nav_meas);
+      }
       continue;
     }
 
@@ -909,7 +906,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       update_filter_ret = update_filter(time_matched_filter_manager);
     }
 
-    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+        update_filter_ret == PVT_ENGINE_SUCCESS) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
@@ -1217,7 +1215,7 @@ void starling_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_starling_thread,
                     sizeof(wa_starling_thread),
-                    HIGHPRIO - 3,
+                    HIGHPRIO - 4,
                     starling_thread,
                     NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,

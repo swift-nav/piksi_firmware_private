@@ -94,20 +94,20 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
   u8 ret = ~0;
   switch (mesid.code) {
     case CODE_GPS_L1CA:
-      ret = NAP_TRK_CODE_GPS_L1;
-      break;
     case CODE_SBAS_L1CA:
-      ret = NAP_TRK_CODE_SBAS;
+    case CODE_QZS_L1CA:
+      ret = NAP_TRK_CODE_GPS_L1;
       break;
     case CODE_GPS_L2CM:
     case CODE_GPS_L2CL:
-    case CODE_GPS_L2CX:
+    case CODE_QZS_L2CM:
+    case CODE_QZS_L2CL:
       ret = NAP_TRK_CODE_GPS_L2;
       break;
-    case CODE_GLO_L1CA:
+    case CODE_GLO_L1OF:
       ret = NAP_TRK_CODE_GLO_G1;
       break;
-    case CODE_GLO_L2CA:
+    case CODE_GLO_L2OF:
       ret = NAP_TRK_CODE_GLO_G2;
       break;
     case CODE_BDS2_B11:
@@ -120,6 +120,7 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
       assert(!"Unsupported SID");
       break;
+    case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
@@ -136,9 +137,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
-    case CODE_QZS_L1CA:
-    case CODE_QZS_L2CM:
-    case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
@@ -178,8 +176,11 @@ void nap_track_init(u8 channel,
                     double code_phase,
                     u32 chips_to_correlate) {
   assert((mesid.code == CODE_GPS_L1CA) || (mesid.code == CODE_GPS_L2CM) ||
-         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1CA) ||
-         (mesid.code == CODE_GLO_L2CA));
+         (mesid.code == CODE_GPS_L2CL) || (mesid.code == CODE_GLO_L1OF) ||
+         (mesid.code == CODE_GLO_L2OF) || (mesid.code == CODE_SBAS_L1CA) ||
+         (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
+         (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
+         (mesid.code == CODE_QZS_L2CL));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
@@ -198,6 +199,9 @@ void nap_track_init(u8 channel,
   if (IS_GLO(mesid)) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GLO_SPACING_SAMPLES};
+  } else if (IS_BDS2(mesid)) {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
   } else {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
@@ -275,7 +279,6 @@ void nap_track_init(u8 channel,
   u32 code_chips, num_codes;
   u64 tc_next_rollover;
   double code_samples;
-  u8 index = 0;
 
   code_chips = code_to_chip_count(mesid.code);
   code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
@@ -284,6 +287,7 @@ void nap_track_init(u8 channel,
   tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
 
+  u8 index = 0;
   me_gnss_signal_t mesid1 = mesid;
   if (mesid.code == CODE_GPS_L2CM) {
     index = (num_codes % GPS_L2CL_PRN_START_POINTS);

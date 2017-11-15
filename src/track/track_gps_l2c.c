@@ -185,112 +185,6 @@ static void tracker_gps_l2c_init(tracker_channel_t *tracker_channel) {
 }
 
 /**
- * Performs ToW caching and propagation.
- *
- * GPS L1 C/A and L2 C use shared structure for ToW caching. When GPS L1 C/A
- * tracker is running, it is responsible for cache updates. Otherwise GPS L2 C
- * tracker updates the cache. The time difference between signals is ignored
- * as small.
- *
- * GPS L2 C tracker performs ToW update/propagation only on bit edge. This makes
- * it more robust to propagation errors.
- *
- * \param[in]     tracker_channel Tracker channel data
- * \param[in]     cycle_flags    Current cycle flags.
- *
- * \return None
- */
-static void update_tow_gps_l2c(tracker_channel_t *tracker_channel,
-                               u32 cycle_flags) {
-  tp_tow_entry_t tow_entry;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-  gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);
-  track_sid_db_load_tow(sid, &tow_entry);
-
-  u64 sample_time_tk = nap_sample_time_to_count(tracker_channel->sample_count);
-
-  if (0 != (cycle_flags & TP_CFLAG_BSYNC_UPDATE) &&
-      tracker_bit_aligned(tracker_channel)) {
-    if (TOW_UNKNOWN != tracker_channel->TOW_ms) {
-      /*
-       * Verify ToW alignment
-       * Current block assumes the bit sync has been reached and current
-       * interval has closed a bit interval. ToW shall be aligned by bit
-       * duration, which is 20ms for GPS L1 C/A / L2 C.
-       */
-      u8 tail = tracker_channel->TOW_ms % GPS_L2C_SYMBOL_LENGTH_MS;
-      if (0 != tail) {
-        s8 error_ms = tail < (GPS_L2C_SYMBOL_LENGTH_MS >> 1)
-                          ? -tail
-                          : GPS_L2C_SYMBOL_LENGTH_MS - tail;
-
-        log_error_mesid(mesid,
-                        "[+%" PRIu32
-                        "ms] TOW error detected: "
-                        "error=%" PRId8 "ms old_tow=%" PRId32,
-                        tracker_channel->update_count,
-                        error_ms,
-                        tracker_channel->TOW_ms);
-
-        /* This is rude, but safe. Do not expect it to happen normally. */
-        tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
-      }
-    }
-
-    if (TOW_UNKNOWN == tracker_channel->TOW_ms &&
-        TOW_UNKNOWN != tow_entry.TOW_ms) {
-      /* ToW is not known, but there is a cached value */
-      s32 ToW_ms = TOW_UNKNOWN;
-      double error_ms = 0;
-      u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
-      u8 bit_length = tracker_bit_length_get(tracker_channel);
-      ToW_ms = tp_tow_compute(
-          tow_entry.TOW_ms, time_delta_tk, bit_length, &error_ms);
-
-      if (TOW_UNKNOWN != ToW_ms) {
-        log_debug_mesid(mesid,
-                        "[+%" PRIu32
-                        "ms]"
-                        " Initializing TOW from cache [%" PRIu8
-                        "ms] "
-                        "delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                        tracker_channel->update_count,
-                        bit_length,
-                        nap_count_to_ms(time_delta_tk),
-                        ToW_ms,
-                        error_ms);
-        tracker_channel->TOW_ms = ToW_ms;
-        if (tp_tow_is_sane(tracker_channel->TOW_ms)) {
-          tracker_channel->flags |= TRACKER_FLAG_TOW_VALID;
-        } else {
-          log_error_mesid(mesid,
-                          "[+%" PRIu32 "ms] Error TOW propagation %" PRId32,
-                          tracker_channel->update_count,
-                          tracker_channel->TOW_ms);
-          tracker_channel->TOW_ms = TOW_UNKNOWN;
-          tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
-        }
-      }
-    }
-
-    bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-    if ((TOW_UNKNOWN != tracker_channel->TOW_ms) &&
-        (tracker_channel->cn0 >= CN0_TOW_CACHE_THRESHOLD) && confirmed &&
-        !tracking_is_running(construct_mesid(CODE_GPS_L1CA, mesid.sat))) {
-      /* Update ToW cache:
-       * - bit edge is reached
-       * - CN0 is OK
-       * - Tracker is confirmed
-       * - There is no GPS L1 C/A tracker for the same SV.
-       */
-      tow_entry.TOW_ms = tracker_channel->TOW_ms;
-      tow_entry.sample_time_tk = sample_time_tk;
-      track_sid_db_update_tow(sid, &tow_entry);
-    }
-  }
-}
-
-/**
  * Check L2 doppler vs. L1 doppler of the same SV.
  *
  * L2 satellite with mismatching doppler is xcorr flagged for investigation.
@@ -407,18 +301,11 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
  * \f]
  *
  * \param[in,out] tracker_channel Tracker channel data.
- * \param[in]     cycle_flags    Current cycle flags.
  *
  * \return None
  */
-static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
-                                    u32 cycle_flags) {
+static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
-
-  if (0 == (cycle_flags & TP_CFLAG_BSYNC_UPDATE) ||
-      !tracker_bit_aligned(tracker_channel)) {
-    return;
-  }
 
   if (tracker_check_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
@@ -458,17 +345,23 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel,
 static void tracker_gps_l2c_update(tracker_channel_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l2c_config);
 
-  /* GPS L2C-specific ToW manipulation */
-  update_tow_gps_l2c(tracker_channel, cflags);
+  bool bit_aligned =
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+
+  if (!bit_aligned) {
+    return;
+  }
+
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker_channel);
 
   /* GPS L2C-specific L1 C/A cross-correlation operations */
-  update_l2_xcorr_from_l1(tracker_channel, cflags);
+  update_l2_xcorr_from_l1(tracker_channel);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
 
-  if (in_phase_lock && confirmed && tracker_bit_aligned(tracker_channel) &&
-      (0 != (cflags & TP_CFLAG_BSYNC_UPDATE))) {
+  if (in_phase_lock && confirmed) {
     /* naturally synched as we track */
     s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
     s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
