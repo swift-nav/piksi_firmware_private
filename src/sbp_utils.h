@@ -27,6 +27,7 @@
 #include <libswiftnav/time.h>
 
 #include "ndb.h"
+#include "observation_biases_calibration.h"
 
 typedef struct {
   union {
@@ -170,18 +171,10 @@ void sbp_send_ndb_event(u8 event,
 #define MSG_FORWARD_SENDER_ID 0
 
 void unpack_glonass_biases_content(const msg_glo_biases_t msg,
-                                   u8 *mask,
-                                   double *l1ca_bias,
-                                   double *l1p_bias,
-                                   double *l2ca_bias,
-                                   double *l2p_bias);
+                                   glo_biases_t *glonass_biases);
 
-void pack_glonass_biases_content(const u8 mask,
-                                 const double l1ca_bias,
-                                 const double l1p_bias,
-                                 const double l2ca_bias,
-                                 const double l2p_bias,
-                                 msg_glo_biases_t *packed_msg);
+void pack_glonass_biases_content(const glo_biases_t glonass_biases,
+                                 msg_glo_biases_t *msg);
 
 void unpack_obs_header(const observation_header_t *msg,
                        gps_time_t *t,

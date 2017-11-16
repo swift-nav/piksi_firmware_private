@@ -334,29 +334,27 @@ nav_meas_flags_t nm_flags_from_sbp(u8 from) {
 }
 
 void unpack_glonass_biases_content(const msg_glo_biases_t msg,
-                                   u8 *mask,
-                                   double *l1ca_bias,
-                                   double *l1p_bias,
-                                   double *l2ca_bias,
-                                   double *l2p_bias) {
-  *mask = ((u8)msg.mask);
-  *l1ca_bias = ((double)msg.l1ca_bias / MSG_GLO_BIASES_MULTIPLIER);
-  *l1p_bias = ((double)msg.l1p_bias / MSG_GLO_BIASES_MULTIPLIER);
-  *l2ca_bias = ((double)msg.l2ca_bias / MSG_GLO_BIASES_MULTIPLIER);
-  *l2p_bias = ((double)msg.l2p_bias / MSG_GLO_BIASES_MULTIPLIER);
+                                   glo_biases_t *glonass_biases) {
+  glonass_biases->mask = ((u8)msg.mask);
+  glonass_biases->l1of_bias =
+      ((double)msg.l1ca_bias / MSG_GLO_BIASES_MULTIPLIER);
+  glonass_biases->l1p_bias = ((double)msg.l1p_bias / MSG_GLO_BIASES_MULTIPLIER);
+  glonass_biases->l2of_bias =
+      ((double)msg.l2ca_bias / MSG_GLO_BIASES_MULTIPLIER);
+  glonass_biases->l2p_bias = ((double)msg.l2p_bias / MSG_GLO_BIASES_MULTIPLIER);
 }
 
-void pack_glonass_biases_content(const u8 mask,
-                                 const double l1ca_bias,
-                                 const double l1p_bias,
-                                 const double l2ca_bias,
-                                 const double l2p_bias,
-                                 msg_glo_biases_t *packed_msg) {
-  packed_msg->mask = ((u8)mask);
-  packed_msg->l1ca_bias = (s16)round(l1ca_bias * MSG_GLO_BIASES_MULTIPLIER);
-  packed_msg->l1p_bias = (s16)round(l1p_bias * MSG_GLO_BIASES_MULTIPLIER);
-  packed_msg->l2ca_bias = (s16)round(l2ca_bias * MSG_GLO_BIASES_MULTIPLIER);
-  packed_msg->l2p_bias = (s16)round(l2p_bias * MSG_GLO_BIASES_MULTIPLIER);
+void pack_glonass_biases_content(const glo_biases_t glonass_biases,
+                                 msg_glo_biases_t *msg) {
+  msg->mask = ((u8)glonass_biases.mask);
+  msg->l1ca_bias =
+      (s16)round(glonass_biases.l1of_bias * MSG_GLO_BIASES_MULTIPLIER);
+  msg->l1p_bias =
+      (s16)round(glonass_biases.l1p_bias * MSG_GLO_BIASES_MULTIPLIER);
+  msg->l2ca_bias =
+      (s16)round(glonass_biases.l2of_bias * MSG_GLO_BIASES_MULTIPLIER);
+  msg->l2p_bias =
+      (s16)round(glonass_biases.l2p_bias * MSG_GLO_BIASES_MULTIPLIER);
 }
 
 void unpack_obs_content(const packed_obs_content_t *msg,

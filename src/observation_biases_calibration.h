@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014-2017 Swift Navigation Inc.
- * Contact: Fergus Noble <fergus@swift-nav.com>
+ * Contact: Fergus Noble <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -12,12 +12,9 @@
 #ifndef OBSERVATION_BIASES_CALIBRATION_H
 #define OBSERVATION_BIASES_CALIBRATION_H
 #include <assert.h>
-#include <libswiftnav/common.h>
 #include <libswiftnav/glo_map.h>
-#include <libswiftnav/track.h>
 #include "base_obs.h"
 #include "sbp.h"
-#include "sbp_utils.h"
 #include "timing.h"
 
 /* Empirical corrections for GLO per-frequency pseudorange bias as per
@@ -67,16 +64,21 @@ static const double glo_l2_carrier_phase_bias = 0;
  * SBP_MSG_GLO_BIASES in the sbp stream. Biases are to be expressed in meters
  * and are not quantized
  */
-static const u8 broadcast_mask = 255;
-static const double broadcast_l1ca_bias = 0.;
-static const double broadcast_l1p_bias = 0.;
-static const double broadcast_l2ca_bias = 0.;
-static const double broadcast_l2p_bias = 0.;
+typedef struct {
+  u8 mask;       /**< GLONASS FDMA signals mask [boolean] */
+  s16 l1of_bias; /**< GLONASS L1 OF Code-Phase Bias [m] */
+  s16 l1p_bias;  /**< GLONASS L1 P Code-Phase Bias [m] */
+  s16 l2of_bias; /**< GLONASS L2 OF Code-Phase Bias [m] */
+  s16 l2p_bias;  /**< GLONASS L2 P Code-Phase Bias [m] */
+} glo_biases_t;
+
+static const glo_biases_t piksi_glonass_biases = {
+    .mask = 255, .l1of_bias = 0, .l1p_bias = 0, .l2of_bias = 0, .l2p_bias = 0};
 
 void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]);
 
-static const double biases_message_freq_setting = 1.0;
-bool decimate_glonass_biases(const gps_time_t *_t);
+// Send the glonass bias message every 5 observations message
+static const u32 biases_message_freq_setting = 5.0;
 void send_glonass_biases(void);
 
 #endif  // PIKSI_FIRMWARE_PRIVATE_OBSERVATION_BIASES_CALIBRATION_H
