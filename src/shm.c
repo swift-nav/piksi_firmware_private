@@ -313,7 +313,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   return CODE_NAV_STATE_UNKNOWN;
 }
 
-/** Output current health state of GSP satellite to the log.
+/** Output current health state of GPS satellite to the log.
  *  Function does nothing if DEBUG is off.
  *
  * \param shi_name Name of the SHI that was changed last.
@@ -419,9 +419,9 @@ void shm_glo_set_shi(u16 sat, u8 new_value) {
   chMtxUnlock(&shm_data_access);
 }
 
-/** Check if this this ephemeris is healthy
+/** Check if this ephemeris is healthy
  *
- * \param valid Ephemeris
+ * \param ephe Ephemeris
  * \param code signal code, ephe->sid can't be used as for example L2CM uses
  *             L1CA ephes
  * \return true if the ephemeris is healthy
