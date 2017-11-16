@@ -802,9 +802,10 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
  * The method updates NDB data block, marks it valid and updates block metadata.
  * After an update, the block is scheduled for asynchronous write.
  *
- * \param[in]     data New block data.
- * \param[in]     src  Block data source.
- * \param[in,out] md   Block metadata.
+ * \param[in]     data     New block data.
+ * \param[in]     src      Block data source.
+ * \param[in]     src_sid  Block data source sid.
+ * \param[in,out] md       Block metadata.
  *
  * \retval NDB_ERR_NONE      On success
  * \retval NDB_ERR_BAD_PARAM On parameter error
@@ -812,9 +813,10 @@ ndb_op_code_t ndb_retrieve(const ndb_element_metadata_t *md,
  * \sa ndb_retrieve
  * \sa ndb_erase
  */
-ndb_op_code_t ndb_update(const void *data,
-                         ndb_data_source_t src,
-                         ndb_element_metadata_t *md) {
+ndb_op_code_t ndb_update_with_src_sid(const void *data,
+                                      ndb_data_source_t src,
+                                      gnss_signal_t src_sid,
+                                      ndb_element_metadata_t *md) {
   ndb_op_code_t res = NDB_ERR_ALGORITHM_ERROR;
 
   if (NULL != data && NULL != md) {
@@ -825,6 +827,10 @@ ndb_op_code_t ndb_update(const void *data,
     /* Update metadata and mark it dirty */
     md->vflags |= NDB_VFLAG_MD_DIRTY;
     md->nv_data.source = src;
+
+    if (NDB_DS_RECEIVER == src) {
+      md->nv_data.src_sid = src_sid;
+    }
 
     if (memcmp(data, md->data, block_size) != 0 ||
         (md->vflags & NDB_VFLAG_DATA_FROM_NV) != 0) {
@@ -849,6 +855,13 @@ ndb_op_code_t ndb_update(const void *data,
   }
 
   return res;
+}
+
+ndb_op_code_t ndb_update(const void *data,
+                         ndb_data_source_t src,
+                         ndb_element_metadata_t *md) {
+  return ndb_update_with_src_sid(
+      data, src, construct_sid(CODE_INVALID, SAT_INVALID), md);
 }
 
 /**
