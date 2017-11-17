@@ -40,6 +40,12 @@
 /** GLO L2CA configuration section name */
 #define GLO_L2OF_TRACK_SETTING_SECTION "glo_l2of_track"
 
+/* This value is used for handover process and will be substracted from initial
+ *  C/N0 value taken from L1 to eliminate overshoots at the beginning
+ *  of L2 tracking
+ *  The value was calculated as mean value of L1/L2 signal power ratio */
+#define GLO_L2OF_CN0_INIT_ADJUST_DBHZ (3.2f)
+
 static tp_tracker_config_t glo_l2of_config = TP_TRACKER_DEFAULT_CONFIG;
 
 /* Forward declarations of interface methods for GLO L2CA */
@@ -118,7 +124,7 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(L2_mesid.code) * 1e-3,
       /* get initial cn0 from parent L1 channel */
-      .cn0_init = init_cn0_dbhz,
+      .cn0_init = init_cn0_dbhz - GLO_L2OF_CN0_INIT_ADJUST_DBHZ,
       .elevation = TRACKING_ELEVATION_UNKNOWN};
 
   switch (tracking_startup_request(&startup_params)) {
