@@ -9,11 +9,11 @@
   artifacts:
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_buildroot/v1.2.0-develop-2017110820/v3/prod
+      prefix: piksi_buildroot/v1.2.0-develop-2017111721/v3/prod
       files:
         - uImage.piksiv3_prod
     -
       bucket: swiftnav-artifacts
-      prefix: piksi_fpga/v1.2.0-develop-2017110820-2-gbad165e
+      prefix: piksi_fpga/v1.2.0-develop-2017111721
       files:
         - piksi_prod_fpga.bit
