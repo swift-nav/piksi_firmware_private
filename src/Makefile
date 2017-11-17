@@ -149,6 +149,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/common_calc_pvt.o \
         $(SWIFTNAV_ROOT)/src/starling_calc_pvt.o \
         $(SWIFTNAV_ROOT)/src/me_calc_pvt.o \
+        $(SWIFTNAV_ROOT)/src/observation_biases_calibration.o \
         $(SWIFTNAV_ROOT)/src/base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator_data.o \
