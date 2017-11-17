@@ -36,6 +36,12 @@
 #define L2C_TRACK_SETTING_SECTION "l2c_track"
 #define NUM_COH_L2C_20MS_SYMB 10
 
+/* This value is used for handover process and will be substracted from initial
+ *  C/N0 value taken from L1 to eliminate overshoots at the beginning
+ *  of L2 tracking
+ *  The value was calculated as mean value of L1/L2 signal power ratio */
+#define GPS_L2CM_CN0_INIT_ADJUST_DBHZ (8.2f)
+
 /** GPS L2C configuration container */
 static tp_tracker_config_t gps_l2c_config = TP_TRACKER_DEFAULT_CONFIG;
 
@@ -148,7 +154,7 @@ void do_l1ca_to_l2c_handover(u32 sample_count,
       /* chips to correlate during first 1 ms of tracking */
       .chips_to_correlate = code_to_chip_rate(mesid.code) * 1e-3,
       /* get initial cn0 from parent L1CA channel */
-      .cn0_init = cn0_init,
+      .cn0_init = cn0_init - GPS_L2CM_CN0_INIT_ADJUST_DBHZ,
       .elevation = TRACKING_ELEVATION_UNKNOWN};
 
   switch (tracking_startup_request(&startup_params)) {
