@@ -1135,8 +1135,9 @@ void tracking_channel_gps_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
-  if ((from_decoder->TOW_ms < 0) ||
-      (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity)) {
+  if ((SYNC_POL != from_decoder->sync_flags) &&
+      ((from_decoder->TOW_ms < 0) ||
+       (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity))) {
     return;
   }
   tracking_channel_data_sync(id, from_decoder);
