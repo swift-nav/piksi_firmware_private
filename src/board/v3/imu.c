@@ -133,12 +133,12 @@ static void imu_thread(void *arg) {
 
     if (new_acc && new_gyro) {
       /* Read out the IMU data and fill out the SBP message. */
-      imu_raw.acc_x = acc[0];
-      imu_raw.acc_y = acc[1];
-      imu_raw.acc_z = acc[2];
-      imu_raw.gyr_x = gyro[0];
-      imu_raw.gyr_y = gyro[1];
-      imu_raw.gyr_z = gyro[2];
+      imu_raw.acc_x = acc[1];
+      imu_raw.acc_y = acc[0];
+      imu_raw.acc_z = -acc[2];
+      imu_raw.gyr_x = gyro[1];
+      imu_raw.gyr_y = gyro[0];
+      imu_raw.gyr_z = -gyro[2];
 
       /* Recover the full 64 bit timing count from the 32 LSBs
        * captured in the ISR. */
