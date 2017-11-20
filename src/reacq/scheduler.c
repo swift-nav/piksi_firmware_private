@@ -195,16 +195,16 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data,
  *  which should run next.
  *
  * \param jobs_data pointer to job data
- * \param gnss GNSS constellation
  *
  * \return job to be run or NULL if there is no job to run
  */
-acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data, constellation_t gnss) {
+acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
   acq_job_types_e type;
   acq_job_t *job_to_run = NULL;
 
   u8 num_sats = 0;
   acq_job_t *pjob = NULL;
+  constellation_t gnss = jobs_data->constellation;
 
   switch ((s8)gnss) {
     case CONSTELLATION_GPS:
@@ -306,15 +306,14 @@ static void sch_glo_fcn_set(acq_job_t *job) {
  *
  * \param jobs_data pointer to job data
  * \param job pointer to job to run
- * \param gnss GNSS constellation
  */
 static void sch_run_common(acq_jobs_state_t *jobs_data,
-                           acq_job_t *job,
-                           constellation_t gnss) {
+                           acq_job_t *job) {
   acq_task_t *task = &job->task_data;
   acq_task_search_params_t *acq_param;
   acq_result_t acq_result;
   bool peak_found;
+  constellation_t gnss = jobs_data->constellation;
 
   if (NULL == job) {
     chThdSleepMilliseconds(ACQ_SLEEP_TIMEOUT_MS);
@@ -423,13 +422,10 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
  */
 void sch_run(acq_jobs_state_t *jobs_data) {
   acq_job_t *job;
-  /* select and run job for GPS */
-  job = sch_select_job(jobs_data, CONSTELLATION_GPS);
-  sch_run_common(jobs_data, job, CONSTELLATION_GPS);
-  /* now same for GLO */
-  if (is_glo_enabled()) {
-    job = sch_select_job(jobs_data, CONSTELLATION_GLO);
+
+  job = sch_select_job(jobs_data);
+  if (CONSTELLATION_GLO == jobs_data->constellation) {
     sch_glo_fcn_set(job);
-    sch_run_common(jobs_data, job, CONSTELLATION_GLO);
   }
+  sch_run_common(jobs_data, job);
 }

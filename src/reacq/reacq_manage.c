@@ -31,6 +31,7 @@ void init_reacq(void) { sm_init(&acq_all_jobs_state_data); }
  * \return None
  */
 void manage_reacq(void) {
+  sm_constellation_select(&acq_all_jobs_state_data);
   sm_run(&acq_all_jobs_state_data);
   sch_run(&acq_all_jobs_state_data);
 }

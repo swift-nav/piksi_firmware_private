@@ -120,6 +120,7 @@ typedef struct {
   acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES]
                     [NUM_SATS_GLO]; /**< job for GLO SV for each
                                          job type */
+  constellation_t constellation;
 } acq_jobs_state_t;
 
 /** Global data of all the jobs is shared between search manager
@@ -127,6 +128,7 @@ typedef struct {
 extern acq_jobs_state_t acq_all_jobs_state_data;
 
 void sm_init(acq_jobs_state_t *data);
+void sm_constellation_select(acq_jobs_state_t *jobs_data);
 void sm_run(acq_jobs_state_t *jobs_data);
 
 #endif /* SWIFTNAV_SEARCH_MANAGER_API_H */
