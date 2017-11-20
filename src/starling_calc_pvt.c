@@ -237,18 +237,18 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
     wgsecef2llh(pos_ecef, pos_llh);
 
     double accuracy, h_accuracy, v_accuracy;
-    covariance_to_accuracy(soln->baseline_covariance,
-                           pos_ecef,
-                           &accuracy,
-                           &h_accuracy,
-                           &v_accuracy);
+    pvt_engine_covariance_to_accuracy(soln->baseline_covariance,
+                                      pos_ecef,
+                                      &accuracy,
+                                      &h_accuracy,
+                                      &v_accuracy);
 
     double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
-    covariance_to_accuracy(soln->velocity_covariance,
-                           pos_ecef,
-                           &vel_accuracy,
-                           &vel_h_accuracy,
-                           &vel_v_accuracy);
+    pvt_engine_covariance_to_accuracy(soln->velocity_covariance,
+                                      pos_ecef,
+                                      &vel_accuracy,
+                                      &vel_h_accuracy,
+                                      &vel_v_accuracy);
 
     sbp_make_pos_llh_vect(&sbp_messages->pos_llh,
                           pos_llh,
@@ -437,11 +437,11 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   wgsecef2ned(result->baseline, ecef_pos, b_ned);
 
   double accuracy, h_accuracy, v_accuracy;
-  covariance_to_accuracy(result->baseline_covariance,
-                         ecef_pos,
-                         &accuracy,
-                         &h_accuracy,
-                         &v_accuracy);
+  pvt_engine_covariance_to_accuracy(result->baseline_covariance,
+                                    ecef_pos,
+                                    &accuracy,
+                                    &h_accuracy,
+                                    &v_accuracy);
 
   sbp_make_baseline_ecef(&sbp_messages->baseline_ecef,
                          &result->time,
@@ -805,8 +805,7 @@ static void starling_thread(void *arg) {
                                &dops);
     chMtxUnlock(&spp_filter_manager_lock);
 
-    if (spp_call_filter_ret == PVT_ENGINE_SUCCESS &&
-        !gate_covariance_pvt_engine(&result_spp)) {
+    if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
       successful_spp = true;
     } else {
