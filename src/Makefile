@@ -252,7 +252,8 @@ CWARN = -Wall -Wextra -Werror -std=gnu99 -Wimplicit \
 	-Wformat=2 \
 	-Wimplicit-function-declaration -Wredundant-decls \
 	-Wformat-security -Wpointer-arith \
-	-Wlogical-op -Wjump-misses-init
+	-Wlogical-op -Wjump-misses-init \
+	-Wno-implicit-fallthrough
 	# TODO Leith: enable these once I figure out how to skip them on ChibiOS stuff
 	# -Wmissing-prototypes -Wcast-align
 
