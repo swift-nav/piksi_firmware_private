@@ -998,7 +998,7 @@ void init_filters(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&low_latency_filter_manager_lock);
 
-  static const char * const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
+  static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
   int TYPE_GNSS_FILTER =
       settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
@@ -1180,7 +1180,7 @@ void starling_calc_pvt_setup() {
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
 
-  static const char * const dgnss_soln_mode_enum[] = {
+  static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
   static struct setting_type dgnss_soln_mode_setting;
   int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(
