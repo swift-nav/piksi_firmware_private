@@ -27,8 +27,7 @@
 #include "frontend.h"
 #include "imu.h"
 #include "main.h"
-#include "manage_led.h"
-#include "manage_rtc.h"
+#include "manage_pv.h"
 #include "nap/nap_conf.h"
 #include "nt1065.h"
 #include "peripherals/antenna.h"
@@ -113,9 +112,8 @@ void init(void) {
   random_init();
   xadc_init();
   antenna_init();
-  manage_led_setup();
+  manage_pv_setup();
   imu_init();
-  manage_rtc_setup();
 }
 
 static void nap_conf_check(void) {
