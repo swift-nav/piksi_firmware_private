@@ -29,7 +29,7 @@
 #include <string.h>
 
 /** False lock detector filter interval in ms. */
-#define TP_TRACKER_ALIAS_DURATION_MS (1000)
+#define TP_TRACKER_ALIAS_DURATION_MS (3000)
 /** Initial C/N0 for confirmation [dB/Hz] */
 #define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
 
@@ -225,15 +225,15 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
   }
 
   if (tracker_channel->use_alias_detection) {
-    u8 alias_detect_ms = tp_get_alias_ms(tracker_channel->tracking_mode);
+    float alias_detect_ms = tp_get_alias_ms(tracker_channel->tracking_mode);
 
     if (prev_use_alias_detection) {
       alias_detect_reinit(&tracker_channel->alias_detect,
-                          TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms,
+                          (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
                           alias_detect_ms * 1e-3f);
     } else {
       alias_detect_init(&tracker_channel->alias_detect,
-                        TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms,
+                        (u32)(TP_TRACKER_ALIAS_DURATION_MS / alias_detect_ms),
                         alias_detect_ms * 1e-3f);
     }
   }
@@ -446,56 +446,41 @@ void update_bit_polarity_flags(tracker_channel_t *tracker_channel) {
 }
 
 /**
- * Runs alias detection logic
- *
- * \param[in,out] alias_detect Alias detector's state
- * \param[in]     I            the value of in-phase arm of the correlator
- * \param[in]     Q            the value of quadrature arm of the correlator
- *
- * \return The frequency error of PLL [Hz]
- */
-static s32 tp_tl_detect_alias(alias_detect_t *alias_detect, float I, float Q) {
-  float err = alias_detect_second(alias_detect, I, Q);
-  s32 abs_err = (s32)(fabsf(err) + .5f);
-  s32 correction = 0;
-
-  /* The expected frequency errors are +-(25 + N * 50) Hz
-     For more details, see:
-     https://swiftnav.hackpad.com/Alias-PLL-lock-detector-in-L2C-4fWUJWUNnOE */
-  if (abs_err > 12) {
-    correction = 50 * (abs_err / 50) + 25;
-  }
-
-  return err >= 0 ? correction : -correction;
-}
-
-/**
  * Second stage of false lock detection.
  *
  * Detect frequency error and update tracker state as appropriate.
  *
  * \param[in] tracker_channel Tracker channel data
+ * \param[in] I in-phase signal component
+ * \param[in] Q quadrature signal component
  *
  * \return None
  */
-static void process_alias_error(tracker_channel_t *tracker_channel) {
-  float I =
-      tracker_channel->corrs.corr_ad.I - tracker_channel->alias_detect.first_I;
-  float Q =
-      tracker_channel->corrs.corr_ad.Q - tracker_channel->alias_detect.first_Q;
+static void process_alias_error(tracker_channel_t *tracker_channel,
+                                float I,
+                                float Q) {
+  float err_hz = alias_detect_second(&tracker_channel->alias_detect, I, Q);
 
-  s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
-
-  if (0 != err_hz) {
+  /* The expected frequency errors depend on the modulated data rate.
+     For more details on GPS, see:
+     https://swiftnav.hackpad.com/Alias-PLL-lock-detector-in-L2C-4fWUJWUNnOE
+     However in practice we see alias frequencies also in between the expected
+     ones. So let's just correct the error we actually observe. */
+  if (fabsf(err_hz) > 0.) {
     bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
     bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-    log_warn_mesid(tracker_channel->mesid,
-                   "False freq detected: %" PRId32 " Hz (plock=%d,flock=%d)",
-                   err_hz,
-                   (int)plock,
-                   (int)flock);
-    tracker_ambiguity_unknown(tracker_channel);
-    tp_tl_adjust(&tracker_channel->tl_state, err_hz);
+    if (fabsf(err_hz) > 10.) {
+      log_warn_mesid(tracker_channel->mesid,
+                     "False freq detected: %.1f Hz (plock=%d,flock=%d)",
+                     err_hz,
+                     (int)plock,
+                     (int)flock);
+
+      tracker_ambiguity_unknown(tracker_channel);
+      /* alias_detect_second() returns the freq correction value directly.
+         So we can use it as is for the adjustment. */
+      tp_tl_adjust(&tracker_channel->tl_state, err_hz);
+    }
   }
 }
 
@@ -990,7 +975,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
 }
 
 /**
- * Runs false lock detection logic for PLL.
+ * Runs false lock detection logic.
  *
  * \param[in,out] tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
@@ -999,25 +984,31 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
  */
 void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
-  bool do_first = 0 != (cycle_flags & TPF_ALIAS_1ST);
+  if (!tracker_channel->use_alias_detection) {
+    return;
+  }
 
-  /* Attempt alias detection if we have pessimistic phase lock detect, OR
-     (optimistic phase lock detect AND are in second-stage tracking) */
-  if (0 != (cycle_flags & TPF_ALIAS_2ND)) {
+  bool do_first = (0 != (cycle_flags & TPF_ALIAS_1ST));
+  bool do_second = (0 != (cycle_flags & TPF_ALIAS_2ND));
+
+  if (!do_first && !do_second) {
+    return;
+  }
+
+  float I = tracker_channel->corrs.corr_ad.I;
+  float Q = tracker_channel->corrs.corr_ad.Q;
+
+  if (do_second) {
     bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                    (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-    if (tracker_channel->use_alias_detection && inlock) {
-      process_alias_error(tracker_channel);
-    } else {
-      /* If second stage is not enabled, make the first one */
-      do_first = true;
+    if (inlock) {
+      process_alias_error(tracker_channel, I, Q);
     }
+    do_first = true;
   }
 
   if (do_first) {
-    alias_detect_first(&tracker_channel->alias_detect,
-                       tracker_channel->corrs.corr_ad.I,
-                       tracker_channel->corrs.corr_ad.Q);
+    alias_detect_first(&tracker_channel->alias_detect, I, Q);
   }
 }
 
