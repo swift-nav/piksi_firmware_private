@@ -232,15 +232,6 @@ void nap_track_init(u8 channel,
       NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples +
       round(s->spacing[0].chips * calc_samples_per_chip(chip_rate));
 
-  if (CODE_GPS_L5Q == (s->mesid.code)) {
-    log_info_mesid(s->mesid,
-                   "delta_samples %d chip_rate %.1lf carrier_freq_hz %.1lf code_chips %d code_samples %.6lf chips_to_correlate %d",
-                   delta_samples, chip_rate, carrier_freq_hz,
-                   code_to_chip_count(mesid.code),
-                   calc_samples_per_chip(chip_rate),
-                   chips_to_correlate);
-  }
-
   /* MIC_COMMENT: nap_track_update_init() so that nap_track_update()
    * does not have to branch for the special "init" situation */
   /* Chip rate */
@@ -410,10 +401,6 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
-  //~ if ((CODE_GPS_L5Q == s->mesid.code) && (s->mesid.sat == 32)) {
-    //~ log_info_mesid(s->mesid, "snapshot %u", *count_snapshot);
-  //~ }
-
   /* E correlator */
   corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);
   corrs[0].Q = (s16)((trk_ch.CORR1 >> 16) & 0xFFFF);
@@ -465,25 +452,6 @@ void nap_track_read_results(u8 channel,
   *carrier_phase = -(s->reckoned_carr_phase);
 
 #ifndef PIKSI_RELEASE
-  /* Useful for debugging correlators
-  if (s->mesid.code == CODE_GPS_L5Q) {
-    log_info("VEEPLVL IQ \
-        %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d",
-        s->mesid.sat,
-        s->mesid.code,
-        corrs[3].I,
-        corrs[3].Q,
-        corrs[0].I,
-        corrs[0].Q,
-        corrs[1].I,
-        corrs[1].Q,
-        corrs[2].I,
-        corrs[2].Q,
-        corrs[4].I,
-        corrs[4].Q);
-  }
-  */
-
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid, "Tracking correlator overflow.");
   }

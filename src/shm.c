@@ -381,16 +381,17 @@ code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       return CODE_NAV_STATE_UNKNOWN;
 
     case CODE_GPS_L2CL:
+    case CODE_GPS_L2CX:
+    case CODE_GPS_L5I:
+    case CODE_GPS_L5Q:
+    case CODE_GPS_L5X:
       return CODE_NAV_STATE_UNKNOWN;
+
     case CODE_SBAS_L1CA:
       assert(!"Unsupported code");
 
     case CODE_INVALID:
     case CODE_COUNT:
-    case CODE_GPS_L2CX:
-    case CODE_GPS_L5I:
-    case CODE_GPS_L5Q:
-    case CODE_GPS_L5X:
     case CODE_BDS2_B11:
     case CODE_BDS2_B2:
     case CODE_GAL_E1B:
