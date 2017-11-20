@@ -130,18 +130,16 @@ void sch_initialize_cost(acq_job_t *init_job,
  *
  * \param all_jobs_data pointer to jobs data
  * \param cost cumulative cost of just finished job
- * \param gnss GNSS constellation
  *
  * \return none
  */
-static void sch_limit_costs(acq_jobs_state_t *all_jobs_data,
-                            u32 cost,
-                            constellation_t gnss) {
+static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost) {
   acq_job_types_e type;
   u32 min_cost = cost;
 
   u8 num_sats = 0;
   acq_job_t *pjob = NULL;
+  constellation_t gnss = all_jobs_data->constellation;
 
   switch ((s8)gnss) {
     case CONSTELLATION_GPS:
@@ -307,13 +305,11 @@ static void sch_glo_fcn_set(acq_job_t *job) {
  * \param jobs_data pointer to job data
  * \param job pointer to job to run
  */
-static void sch_run_common(acq_jobs_state_t *jobs_data,
-                           acq_job_t *job) {
+static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
   acq_task_t *task = &job->task_data;
   acq_task_search_params_t *acq_param;
   acq_result_t acq_result;
   bool peak_found;
-  constellation_t gnss = jobs_data->constellation;
 
   if (NULL == job) {
     chThdSleepMilliseconds(ACQ_SLEEP_TIMEOUT_MS);
@@ -351,7 +347,7 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
   /* Update cost with spent HW time. Limit with 1 ms minimum
      since 0 update would stuck scheduling. */
   job->cost += (u32)MAX(1, job->stop_time - job->start_time);
-  sch_limit_costs(jobs_data, job->cost, gnss);
+  sch_limit_costs(jobs_data, job->cost);
 
   /* It is unclear should peak checks take place in acq module
      or here. */
@@ -422,7 +418,6 @@ static void sch_run_common(acq_jobs_state_t *jobs_data,
  */
 void sch_run(acq_jobs_state_t *jobs_data) {
   acq_job_t *job;
-
   job = sch_select_job(jobs_data);
   if (CONSTELLATION_GLO == jobs_data->constellation) {
     sch_glo_fcn_set(job);

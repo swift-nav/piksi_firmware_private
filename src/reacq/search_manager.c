@@ -310,7 +310,7 @@ void sm_constellation_select(acq_jobs_state_t *jobs_data) {
     /* Always start from GPS constellation. */
     jobs_data->constellation = CONSTELLATION_GPS;
   } else if (CONSTELLATION_GPS == jobs_data->constellation &&
-      is_glo_enabled()) {
+             is_glo_enabled()) {
     jobs_data->constellation = CONSTELLATION_GLO;
   } else if (CONSTELLATION_GLO == jobs_data->constellation) {
     jobs_data->constellation = CONSTELLATION_GPS;
