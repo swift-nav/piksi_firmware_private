@@ -27,7 +27,7 @@
 
 static struct setting *settings_head;
 
-static const char const *bool_enum[] = {"False", "True", NULL};
+static const char * const bool_enum[] = {"False", "True", NULL};
 static struct setting_type bool_settings_type;
 /* Bool type identifier can't be a constant because its allocated on setup. */
 int TYPE_BOOL = 0;
