@@ -149,8 +149,11 @@ void pps_setup(void) {
   SETTING_NOTIFY(
       "pps", "frequency", pps_frequency_hz, TYPE_FLOAT, pps_frequency_changed);
 
-  chThdCreateStatic(
-      wa_pps_thread, sizeof(wa_pps_thread), PPS_THREAD_PRIORITY, pps_thread, NULL);
+  chThdCreateStatic(wa_pps_thread,
+                    sizeof(wa_pps_thread),
+                    PPS_THREAD_PRIORITY,
+                    pps_thread,
+                    NULL);
 }
 
 /** \} */

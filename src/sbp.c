@@ -108,8 +108,11 @@ static void sbp_thread(void *arg) {
 void sbp_setup(void) {
   sbp_state_init(&sbp_state);
 
-  chThdCreateStatic(
-      wa_sbp_thread, sizeof(wa_sbp_thread), SBP_THREAD_PRIORITY, sbp_thread, NULL);
+  chThdCreateStatic(wa_sbp_thread,
+                    sizeof(wa_sbp_thread),
+                    SBP_THREAD_PRIORITY,
+                    sbp_thread,
+                    NULL);
 }
 
 void sbp_sender_id_set(u16 sender_id) { my_sender_id = sender_id; }

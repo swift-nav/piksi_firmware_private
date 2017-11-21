@@ -54,10 +54,10 @@
 #define SOLN_THD_CPU_MAX (0.60f)
 
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6*1024*1024)
+#define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (6*1024*1024)
+#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
@@ -923,8 +923,9 @@ void process_matched_obs(const obss_t *rover_channel_meass,
           (const FilterManagerRTK *)time_matched_filter_manager);
       u32 end = NAP->TIMING_COUNT;
       log_info("copy_filter_manager_rtk DST %p   SRC %p in %d ticks",
-               low_latency_filter_manager, time_matched_filter_manager,
-               (end > begin) ? (end-begin) : (begin + (4294967295U - end)));
+               low_latency_filter_manager,
+               time_matched_filter_manager,
+               (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
@@ -1026,7 +1027,8 @@ void init_filters(void) {
                  set_max_age);
 }
 
-static THD_WORKING_AREA(wa_time_matched_obs_thread, TIME_MATCHED_OBS_THREAD_STACK);
+static THD_WORKING_AREA(wa_time_matched_obs_thread,
+                        TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");

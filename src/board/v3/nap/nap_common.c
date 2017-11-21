@@ -55,8 +55,11 @@ void nap_setup(void) {
   axi_dma_start(&AXIDMADriver1);
 
   /* Enable NAP interrupt */
-  chThdCreateStatic(
-      wa_nap_irq, sizeof(wa_nap_irq), NAP_IRQ_THREAD_PRIORITY, nap_irq_thread, NULL);
+  chThdCreateStatic(wa_nap_irq,
+                    sizeof(wa_nap_irq),
+                    NAP_IRQ_THREAD_PRIORITY,
+                    nap_irq_thread,
+                    NULL);
   gic_handler_register(IRQ_ID_NAP, nap_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_NAP, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_NAP, NAP_IRQ_PRIORITY);
