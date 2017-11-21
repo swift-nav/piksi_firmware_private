@@ -61,6 +61,9 @@ void sm_init(acq_jobs_state_t *data) {
       data->jobs_glo[type][i].job_type = type;
     }
   }
+  /* When constellation is initialized with CONSTELLATION_INVALID,
+   * sm_constellation_select() will choose GPS as the first constellation. */
+  data->constellation = CONSTELLATION_INVALID;
 }
 
 /** Checks if deep searches need to run for GPS SV
@@ -294,6 +297,29 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
   } /* loop SVs */
 }
 
+/**
+ * Select constellation for reacqusition.
+ *
+ * The method selects next constellation from where SV is reacquired.
+ * TODO: Add priority handling.
+ *
+ * \return None
+ */
+void sm_constellation_select(acq_jobs_state_t *jobs_data) {
+  if (CONSTELLATION_INVALID == jobs_data->constellation) {
+    /* Always start from GPS constellation. */
+    jobs_data->constellation = CONSTELLATION_GPS;
+  } else if (CONSTELLATION_GPS == jobs_data->constellation &&
+             is_glo_enabled()) {
+    jobs_data->constellation = CONSTELLATION_GLO;
+  } else if (CONSTELLATION_GLO == jobs_data->constellation) {
+    jobs_data->constellation = CONSTELLATION_GPS;
+  } else {
+    log_error("Unsupported reacq constellation");
+    jobs_data->constellation = CONSTELLATION_GPS;
+  }
+}
+
 /** Run search manager
  *
  *  Decides when and which jobs need to be run
@@ -312,10 +338,12 @@ void sm_run(acq_jobs_state_t *jobs_data) {
         MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS, ACQ_LGF_TIMEOUT_INVIS_MS);
   }
 
-  sm_calc_all_glo_visibility_flags();
-
-  sm_deep_search_run_gps(jobs_data);
-  sm_deep_search_run_glo(jobs_data);
-  sm_fallback_search_run_gps(jobs_data, now_ms, lgf_age_ms);
-  sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
+  if (CONSTELLATION_GPS == jobs_data->constellation) {
+    sm_deep_search_run_gps(jobs_data);
+    sm_fallback_search_run_gps(jobs_data, now_ms, lgf_age_ms);
+  } else if (CONSTELLATION_GLO == jobs_data->constellation) {
+    sm_calc_all_glo_visibility_flags();
+    sm_deep_search_run_glo(jobs_data);
+    sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
+  }
 }
