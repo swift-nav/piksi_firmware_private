@@ -917,10 +917,14 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
+      u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
-          log_info("copy_filter_manager_rtk DST %p   SRC %p", low_latency_filter_manager, time_matched_filter_manager);
+      u32 end = NAP->TIMING_COUNT;
+      log_info("copy_filter_manager_rtk DST %p   SRC %p in %d ticks",
+               low_latency_filter_manager, time_matched_filter_manager,
+               (end > begin) ? (end-begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
