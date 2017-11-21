@@ -54,10 +54,10 @@
 #define SOLN_THD_CPU_MAX (0.60f)
 
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (4*1024*1024)
+#define STARLING_THREAD_STACK (6*1024*1024)
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (4*1024*1024)
+#define TIME_MATCHED_OBS_THREAD_STACK (6*1024*1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
@@ -920,6 +920,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
+          log_info("copy_filter_manager_rtk DST %p   SRC %p", low_latency_filter_manager, time_matched_filter_manager);
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
     }

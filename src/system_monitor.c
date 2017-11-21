@@ -49,7 +49,7 @@ extern const WDGConfig board_wdg_config;
 #define SYSTEM_MONITOR_THREAD_STACK (2*1024)
 
 #define WATCHDOG_THREAD_PRIORITY (HIGHPRIO)
-#define WATCHDOG_THREAD_STACK (1024)
+#define WATCHDOG_THREAD_STACK (1 * 1024)
 
 /* Time between sending system monitor and heartbeat messages in milliseconds */
 static uint32_t heartbeat_period_milliseconds = 1000;

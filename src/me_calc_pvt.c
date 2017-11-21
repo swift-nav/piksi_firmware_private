@@ -61,7 +61,7 @@
 #define MINIMUM_SV_COUNT 5
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
-#define ME_CALC_PVT_THREAD_STACK (1024*1024)
+#define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;

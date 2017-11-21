@@ -24,7 +24,7 @@
 #include "timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)
-#define PPS_THREAD_STACK (1024)
+#define PPS_THREAD_STACK (1 * 1024)
 #define PPS_THREAD_PRIORITY (NORMALPRIO + 15)
 
 /** \defgroup pps Pulse-per-second (PPS)

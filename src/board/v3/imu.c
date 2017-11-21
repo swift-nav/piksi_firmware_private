@@ -25,9 +25,9 @@
 #include <timing.h>
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
-#define IMU_THREAD_STACK 2000
+#define IMU_THREAD_STACK (2 * 1024)
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
-#define IMU_AUX_THREAD_STACK 2000
+#define IMU_AUX_THREAD_STACK (2 * 1024)
 
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);

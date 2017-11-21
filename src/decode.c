@@ -18,7 +18,7 @@
 #include "signal.h"
 #include "track.h"
 
-#define DECODE_THREAD_STACK (4*1024)
+#define DECODE_THREAD_STACK (4 * 1024)
 #define DECODE_THREAD_PRIORITY (NORMALPRIO - 1)
 
 /** \defgroup decoding Decoding
