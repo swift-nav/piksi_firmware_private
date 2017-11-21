@@ -24,6 +24,8 @@
 #include "timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)
+#define PPS_THREAD_STACK (1024)
+#define PPS_THREAD_PRIORITY (NORMALPRIO + 15)
 
 /** \defgroup pps Pulse-per-second (PPS)
  * Generate a pulse-per-second in alignment with GPS time.
@@ -39,7 +41,7 @@ static s32 pps_offset_microseconds = 0;
 static double pps_frequency_hz = 1.0;
 static double pps_period = 1.0;
 
-static THD_WORKING_AREA(wa_pps_thread, 256);
+static THD_WORKING_AREA(wa_pps_thread, PPS_THREAD_STACK);
 static void pps_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("PPS");
@@ -148,7 +150,7 @@ void pps_setup(void) {
       "pps", "frequency", pps_frequency_hz, TYPE_FLOAT, pps_frequency_changed);
 
   chThdCreateStatic(
-      wa_pps_thread, sizeof(wa_pps_thread), NORMALPRIO + 15, pps_thread, NULL);
+      wa_pps_thread, sizeof(wa_pps_thread), PPS_THREAD_PRIORITY, pps_thread, NULL);
 }
 
 /** \} */

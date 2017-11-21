@@ -25,7 +25,9 @@
 #include "version.h"
 
 #define NDB_THREAD_PRIORITY (LOWPRIO + 2)
-static WORKING_AREA_CCM(ndb_thread_wa, 2048);
+#define NDB_THREAD_STACK (4 * 1024)
+
+static THD_WORKING_AREA(ndb_thread_wa, NDB_THREAD_STACK);
 static void ndb_service_thread(void *);
 
 u8 ndb_file_version[MAX_NDB_FILE_VERSION_LEN];

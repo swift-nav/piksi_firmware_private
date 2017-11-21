@@ -45,6 +45,12 @@ extern const WDGConfig board_wdg_config;
 
 #define FRONTEND_AOK_ERROR_FLAG 1
 
+#define SYSTEM_MONITOR_THREAD_PRIORITY (HIGHPRIO - 2)
+#define SYSTEM_MONITOR_THREAD_STACK (2*1024)
+
+#define WATCHDOG_THREAD_PRIORITY (HIGHPRIO)
+#define WATCHDOG_THREAD_STACK (1024)
+
 /* Time between sending system monitor and heartbeat messages in milliseconds */
 static uint32_t heartbeat_period_milliseconds = 1000;
 /* Use watchdog timer or not */
@@ -65,7 +71,7 @@ u64 g_ctime = 0;
 u32 check_stack_free(thread_t *tp) {
   u32 *stack = (u32 *)tp->p_stklimit;
   u32 i;
-  for (i = 0; i < 65536 / sizeof(u32); i++) {
+  for (i = 0; i < (1<<24) / sizeof(u32); i++) {
     if (stack[i] != 0x55555555) break;
   }
   return 4 * (i - 1);
@@ -115,9 +121,7 @@ static void check_frontend_errors(void) {
   }
 }
 
-#define SYSTEM_MONITOR_THREAD_PIORITY (HIGHPRIO - 2)
-
-static WORKING_AREA_CCM(wa_system_monitor_thread, 2000);
+static THD_WORKING_AREA(wa_system_monitor_thread, SYSTEM_MONITOR_THREAD_STACK);
 static void system_monitor_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("system monitor");
@@ -182,7 +186,7 @@ static void debug_threads(void) {
   }
 }
 
-static WORKING_AREA_CCM(wa_watchdog_thread, 1024);
+static THD_WORKING_AREA(wa_watchdog_thread, WATCHDOG_THREAD_STACK);
 static void watchdog_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("Watchdog");
@@ -234,12 +238,12 @@ void system_monitor_setup(void) {
 
   chThdCreateStatic(wa_system_monitor_thread,
                     sizeof(wa_system_monitor_thread),
-                    SYSTEM_MONITOR_THREAD_PIORITY,
+                    SYSTEM_MONITOR_THREAD_PRIORITY,
                     system_monitor_thread,
                     NULL);
   chThdCreateStatic(wa_watchdog_thread,
                     sizeof(wa_watchdog_thread),
-                    HIGHPRIO,
+                    WATCHDOG_THREAD_PRIORITY,
                     watchdog_thread,
                     NULL);
 }

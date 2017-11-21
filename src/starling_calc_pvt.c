@@ -53,6 +53,12 @@
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
+#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
+#define STARLING_THREAD_STACK (4*1024*1024)
+
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
+#define TIME_MATCHED_OBS_THREAD_STACK (4*1024*1024)
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
@@ -647,7 +653,7 @@ void sbp_messages_init(sbp_messages_t *sbp_messages) {
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, 4000000);
+static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 static void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
@@ -1015,7 +1021,7 @@ void init_filters(void) {
                  set_max_age);
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 4000000);
+static THD_WORKING_AREA(wa_time_matched_obs_thread, TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
@@ -1215,12 +1221,12 @@ void starling_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_starling_thread,
                     sizeof(wa_starling_thread),
-                    HIGHPRIO - 4,
+                    STARLING_THREAD_PRIORITY,
                     starling_thread,
                     NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread),
-                    NORMALPRIO - 3,
+                    TIME_MATCHED_OBS_THREAD_PRIORITY,
                     time_matched_obs_thread,
                     NULL);
 

@@ -47,6 +47,9 @@
 
 #define CHANNEL_DISABLE_WAIT_TIME_MS 100
 
+#define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
+#define NAP_TRACK_IRQ_THREAD_STACK (32 * 1024)
+
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
 typedef enum {
@@ -69,7 +72,7 @@ static u16 iq_output_mask = 0;
 static bool send_trk_detailed = 0;
 u16 max_pll_integration_time_ms = 20;
 
-static WORKING_AREA_CCM(wa_nap_track_irq, 32000);
+static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 
 static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                     bool update_required);
@@ -139,7 +142,7 @@ void track_setup(void) {
 
   chThdCreateStatic(wa_nap_track_irq,
                     sizeof(wa_nap_track_irq),
-                    HIGHPRIO - 1,
+                    NAP_TRACK_IRQ_THREAD_PRIORITY,
                     nap_track_irq_thread,
                     /* arg = */ NULL);
 }
