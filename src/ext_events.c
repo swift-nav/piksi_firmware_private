@@ -71,7 +71,7 @@ static bool event2_changed(struct setting *s, const char *val) {
  *
  */
 void ext_event_setup(void) {
-  static const char const *trigger_enum[] = {
+  static const char *const trigger_enum[] = {
       "None", "Rising", "Falling", "Both", NULL};
   static struct setting_type trigger_setting;
   int TYPE_TRIGGER =
