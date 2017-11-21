@@ -496,8 +496,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   if (shm_signal_unhealthy(sid)) {
     /* Clear NDB and TOW cache */
     erase_nav_data(sid, sid);
-    /* Clear subframe data */
-    nav_msg_init(&data->nav_msg);
+    /* Clear decoded subframe data */
+    nav_msg_clear_decoded(&data->nav_msg);
     return;
   }
 
