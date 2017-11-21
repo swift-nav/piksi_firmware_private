@@ -51,8 +51,6 @@ void send_observations(u8 n,
 
 bool gate_covariance(gnss_solution *soln);
 
-bool gate_covariance_pvt_engine(const pvt_engine_result_t *result);
-
 void extract_covariance(double full_covariance[9],
                         double vel_covariance[9],
                         const gnss_solution *soln);
