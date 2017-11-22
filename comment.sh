@@ -127,3 +127,4 @@ elif [ ! -z "$GITHUB_COMMENT_TOKEN" ]; then
     curl -i -X POST -u "$GITHUB_COMMENT_TOKEN:" $STATUS_URL -d "{\"state\": \"$STATUS_STATE\",\"target_url\": \"$STATUS_TARGET_URL\", \"description\": \"$STATUS_DESCRIPTION\", \"context\": \"$STATUS_HITL_CONTEXT\"}"
 fi
 
+
