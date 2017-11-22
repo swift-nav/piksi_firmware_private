@@ -27,6 +27,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
+#include <libswiftnav/gnss_capabilities.h>
 
 /* STD headers */
 #include <assert.h>
@@ -91,6 +92,10 @@ void bds_b11_to_b2_handover(u32 sample_count,
   if (!tracking_startup_ready(mesid_B2)) {
     //~ log_info_mesid(mesid_B2, "already in track");
     return; /* B2 signal from the SV is already in track */
+  }
+
+  if (!bds_b2b(mesid_B2)) {
+    return; /* B2 signal not available */
   }
 
   if (!handover_valid(code_phase, BDS2_B11_CHIPS_NUM)) {

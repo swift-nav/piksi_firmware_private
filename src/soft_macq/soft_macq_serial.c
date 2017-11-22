@@ -119,6 +119,23 @@ bool soft_acq_search(const sc16_t *_cSignal,
   MEMCPY_S(sample_fft, sizeof(sample_fft), _cSignal, sizeof(sc16_t) * fft_len);
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
 
+  if (CODE_BDS2_B11 == mesid.code) {
+    log_info_mesid(mesid, "%.1f %.1f %.1f %.1f %.1f", );
+      (float) sample_fft[11855].r * (float) sample_fft[11855].r + (float) sample_fft[11855].i * (float) sample_fft[11855].i,
+      (float) sample_fft[11856].r * (float) sample_fft[11856].r + (float) sample_fft[11856].i * (float) sample_fft[11856].i,
+      (float) sample_fft[11857].r * (float) sample_fft[11857].r + (float) sample_fft[11857].i * (float) sample_fft[11857].i,
+      (float) sample_fft[11858].r * (float) sample_fft[11858].r + (float) sample_fft[11858].i * (float) sample_fft[11858].i,
+      (float) sample_fft[11859].r * (float) sample_fft[11859].r + (float) sample_fft[11859].i * (float) sample_fft[11859].i);
+    //~ sample_fft[11856].r = 0;
+    //~ sample_fft[11856].i = 0;
+    //~ sample_fft[11857].r = 0;
+    //~ sample_fft[11857].i = 0;
+    //~ sample_fft[11858].r = 0;
+    //~ sample_fft[11858].i = 0;
+    //~ sample_fft[11859].r = 0;
+    //~ sample_fft[11859].i = 0;
+  }
+
   /* Search for peak */
   acq_peak_search_t peak = {0};
   s16 doppler_bin_min = 0;
@@ -215,6 +232,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
+  log_info_mesid(mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
 
   /* Set output */
   acq_result->cp = cp;
@@ -396,10 +414,11 @@ static bool peak_search(const me_gnss_signal_t mesid,
   snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SPMS / 4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
 
-  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
-    /* artificially pump the C/N0 a little for non-coherent as MEAN is not STD
-     */
+  /* artificially pump the C/N0 for non-coherent as MEAN is not STD */
+  if (CODE_SBAS_L1CA == mesid.code) {
     cn0 += 2.0;
+  } else if (CODE_BDS2_B11 == mesid.code) {
+    cn0 += 4.0;
   }
 
   if (cn0 > peak->cn0) {
