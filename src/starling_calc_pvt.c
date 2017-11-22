@@ -159,6 +159,11 @@ static void post_observations(u8 n,
   }
 }
 
+void set_known_ref_pos(const double base_pos[3]) {
+  filter_manager_set_known_ref_pos(
+      (FilterManagerRTK *)time_matched_filter_manager, base_pos);
+}
+
 void reset_rtk_filter(void) {
   chMtxLock(&time_matched_filter_manager_lock);
   filter_manager_init(time_matched_filter_manager);
@@ -898,13 +903,11 @@ void process_matched_obs(const obss_t *rover_channel_meass,
                                                    rover_channel_meass->n,
                                                    rover_channel_meass->nm);
     update_ref_obs = filter_manager_update_ref_obs(
-        time_matched_filter_manager,
+        (FilterManagerRTK *)time_matched_filter_manager,
         &reference_obss->tor,
         reference_obss->n,
         reference_obss->nm,
-        reference_obss->pos_ecef,
-        reference_obss->has_known_pos_ecef ? reference_obss->known_pos_ecef
-                                           : NULL);
+        reference_obss->pos_ecef);
 
     if (update_rov_obs == PVT_ENGINE_SUCCESS &&
         update_ref_obs == PVT_ENGINE_SUCCESS) {
@@ -916,6 +919,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
+      chMtxLock(&base_pos_lock);
       u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
@@ -926,6 +930,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
+      chMtxUnlock(&base_pos_lock);
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
@@ -1083,8 +1088,7 @@ static void time_matched_obs_thread(void *arg) {
 
       double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
-      if (fabs(dt) < TIME_MATCH_THRESHOLD &&
-          (base_obss_copy.has_pos == 1 || base_obss_copy.has_known_pos_ecef)) {
+      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
         // We need to form the SBP messages derived from the SPP at this
         // solution time before we
         // do the differential solution so that the various messages can be

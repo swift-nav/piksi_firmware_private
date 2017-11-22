@@ -38,8 +38,6 @@ typedef struct {
   u8 has_pos;
   /** The known, surveyed base position. */
   double known_pos_ecef[3];
-  /** Do we have the known, surveyed position? */
-  bool has_known_pos_ecef;
   /** Observation Solution */
   pvt_engine_result_t soln;
 

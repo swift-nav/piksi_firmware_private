@@ -150,7 +150,7 @@ static void system_monitor_thread(void *arg) {
         base_distance =
             vector_distance(3, base_ecef, lgf.position_solution.pos_ecef);
 
-        if (base_distance > SPP_BASE_STATION_DISTANCE_THRESHOLD) {
+        if (base_distance > SPP_BASE_STATION_DIFFERENCE_WARNING_THRESHOLD) {
           log_warn(
               "Invalid surveyed position coordinates. No base position message "
               "will be sent.");
