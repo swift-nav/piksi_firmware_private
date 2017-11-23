@@ -42,6 +42,11 @@
 /** C/N0 hysteresis threshold */
 #define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
 
+/** Correct the false lock if the absolute detected freq error is more than
+    this value in [Hz]. In practice, observed alias frequencies were
+    above 12Hz, so 10Hz is deemed a reasonable threshold. */
+#define TRACK_ALIAS_THRESHOLD_HZ 10.f
+
 /**
  * Computes number of chips in the integration interval
  *
@@ -461,7 +466,7 @@ static void process_alias_error(tracker_channel_t *tracker_channel,
                                 float Q) {
   float err_hz = alias_detect_second(&tracker_channel->alias_detect, I, Q);
 
-  if (fabsf(err_hz) < 10.) {
+  if (fabsf(err_hz) < TRACK_ALIAS_THRESHOLD_HZ) {
     return;
   }
 
