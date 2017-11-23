@@ -366,19 +366,23 @@ int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
 /** Assemble a NMEA GSA message and send it out NMEA USARTs.
  * NMEA GSA message contains GNSS DOP and Active Satellites.
  *
- * \param prns      Array of PRNs to output.
- * \param num_prns  Number of valid PRNs in array.
- * \param fix       Fix indicator.
- * \param sbp_dops  Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
- * \param cons      Working constellation.
+ * \param prns         Array of PRNs to output.
+ * \param num_prns     Number of valid PRNs in array.
+ * \param sbp_pos_llh  Pos data pointer.
+ * \param sbp_dops     Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
+ * \param cons         Working constellation for talker ID selection.
+ *                     Talker ID 'GN' is indicated with CONSTELLATION_COUNT.
  */
 void nmea_gsa(u8 *prns,
               const u8 num_prns,
-              const bool fix,
+              const msg_pos_llh_t *sbp_pos_llh,
               const msg_dops_t *sbp_dops,
               const constellation_t cons) {
   assert(prns);
   assert(sbp_dops);
+  assert(sbp_pos_llh);
+
+  bool fix = NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK);
 
   /* Our fix is always 3D */
   char fix_mode = fix ? '3' : '1';
@@ -389,6 +393,8 @@ void nmea_gsa(u8 *prns,
     NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
   } else if (CONSTELLATION_GLO == cons) {
     NMEA_SENTENCE_PRINTF("$GLGSA,A,%c,", fix_mode); /* Always automatic mode */
+  } else if (CONSTELLATION_COUNT == cons) {
+    NMEA_SENTENCE_PRINTF("$GNGSA,A,%c,", fix_mode); /* Always automatic mode */
   } else {
     assert(!"Unknown constellation");
   }
@@ -800,11 +806,11 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
   return false;
 }
 
-static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
+static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
                               const msg_dops_t *sbp_dops,
                               const u8 n_meas,
                               const navigation_measurement_t nav_meas[]) {
-  assert(sbp_pos_llh);
+  assert(sbp_pos);
   assert(sbp_dops);
   assert(nav_meas);
 
@@ -812,15 +818,6 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
   u8 num_prns_gps = 0;
   u8 prns_glo[GSA_MAX_SV];
   u8 num_prns_glo = 0;
-
-  bool fix = (NO_POSITION != (sbp_pos_llh->flags & POSITION_MODE_MASK));
-
-  if (!fix) {
-    /* No fix, no active SVs, send GSA messages and return */
-    nmea_gsa(prns_gps, num_prns_gps, fix, sbp_dops, CONSTELLATION_GPS);
-    nmea_gsa(prns_glo, num_prns_glo, fix, sbp_dops, CONSTELLATION_GLO);
-    return;
-  }
 
   /* Assemble list of currently active SVs */
   for (u8 i = 0; i < n_meas; i++) {
@@ -839,8 +836,16 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos_llh,
   }
 
   /* Send GSA messages */
-  nmea_gsa(prns_gps, num_prns_gps, fix, sbp_dops, CONSTELLATION_GPS);
-  nmea_gsa(prns_glo, num_prns_glo, fix, sbp_dops, CONSTELLATION_GLO);
+  if (0 != num_prns_gps && 0 != num_prns_glo) {
+    /* Talker ID 'GN' is indicated with CONSTELLATION_COUNT */
+    nmea_gsa(prns_gps, num_prns_gps, sbp_pos, sbp_dops, CONSTELLATION_COUNT);
+    nmea_gsa(prns_glo, num_prns_glo, sbp_pos, sbp_dops, CONSTELLATION_COUNT);
+  } else {
+    nmea_gsa(prns_gps, num_prns_gps, sbp_pos, sbp_dops, CONSTELLATION_GPS);
+    if (enable_glonass) {
+      nmea_gsa(prns_glo, num_prns_glo, sbp_pos, sbp_dops, CONSTELLATION_GLO);
+    }
+  }
 }
 
 /** Generate and send periodic GPGSV and GLGSV.
