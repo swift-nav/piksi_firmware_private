@@ -450,21 +450,23 @@ int compare_ch_meas(const void *a, const void *b) {
  * \param[in] gnss        GNSS type
  */
 void nmea_gsv(u8 n_used,
-              const channel_measurement_t *ch_meas,
-              constellation_t gnss) {
-  const channel_measurement_t *ch_meas_gnss[n_used];
+              const channel_measurement_t *ch_meas) {
 
-  if (NULL == ch_meas) {
-    n_used = 0;
+  if (0 == n_used || NULL == ch_meas) {
+    NMEA_SENTENCE_START(120);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
+    NMEA_SENTENCE_DONE();
+    return;
   }
+
+  /* Default talker id GPS */
+  constellation_t talker = CONSTELLATION_INVALID;
+
+  const channel_measurement_t *ch_meas_gnss[n_used];
 
   u8 n_gnss_used = 0;
   for (u8 i = 0; i < n_used; i++) {
-    if (gnss != sid_to_constellation(ch_meas[i].sid)) {
-      continue;
-    }
-
-    /* check if sat is already picked up from another GPS code */
+    /* check if sat is already picked up from another code */
     bool in_array = false;
     for (u8 j = 0; j < n_gnss_used; j++) {
       if (ch_meas_gnss[j]->sid.sat == ch_meas[i].sid.sat) {
@@ -479,16 +481,28 @@ void nmea_gsv(u8 n_used,
       continue;
     }
 
+    /* Check if SVs from multiple constellations */
+    constellation_t gnss = code_to_constellation(ch_meas[i].sid.code);
+    if (CONSTELLATION_INVALID == talker) {
+      /* First loop */
+      talker = gnss;
+    } else if (talker != gnss) {
+      /* Indicate GN talker ID with CONSTELLATION_COUNT */
+      talker = CONSTELLATION_COUNT;
+    }
+
     if (!in_array) {
       ch_meas_gnss[n_gnss_used++] = &ch_meas[i];
     }
   }
 
   char *gnss_s = "";
-  if (CONSTELLATION_GPS == gnss) {
+  if (CONSTELLATION_GPS == talker) {
     gnss_s = "GPGSV";
-  } else if (CONSTELLATION_GLO == gnss) {
+  } else if (CONSTELLATION_GLO == talker) {
     gnss_s = "GLGSV";
+  } else if (CONSTELLATION_COUNT == talker) {
+    gnss_s = "GNGSV";
   } else {
     assert(!"Unsupported GNSS type");
   }
@@ -519,6 +533,7 @@ void nmea_gsv(u8 n_used,
       u16 azi = track_sid_db_azimuth_degrees_get(ch_meas_gnss[n]->sid);
 
       u16 sv_id = 0;
+      constellation_t gnss = code_to_constellation(ch_meas_gnss[n]->sid.code);
       if (CONSTELLATION_GPS == gnss) {
         sv_id = ch_meas_gnss[n]->sid.sat;
       } else if (CONSTELLATION_GLO == gnss) {
@@ -855,8 +870,7 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
  * \param[in] ch_meas     array of channel_measurement structs from tracked SVs
  */
 void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
-  DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas, CONSTELLATION_GPS);
-           nmea_gsv(n_used, ch_meas, CONSTELLATION_GLO););
+  DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas));
 }
 
 bool send_nmea(u32 rate, u32 gps_tow_ms) {
