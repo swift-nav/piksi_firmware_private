@@ -10,12 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_gps_l1ca.h"
-#include "decode.h"
-
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h>
 
+#include "decode.h"
+#include "decode_common.h"
+#include "decode_gps_l1ca.h"
 #include "ephemeris.h"
 #include "ndb.h"
 #include "sbp.h"
@@ -308,31 +308,6 @@ static void decode_almanac_time_new(gnss_signal_t sid,
   }
 }
 
-static void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
-  char hf_sid_str[SID_STR_LEN_MAX];
-  sid_to_string(hf_sid_str, sizeof(hf_sid_str), src_sid);
-
-  /** NAV data health summary indicates error -> delete data
-   * TODO: Read 8bit health words and utilize "the three MSBs of the eight-bit
-   *       health words indicate health of the NAV data in accordance with
-   *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
-   *       SV Health). These details indicate which of the subframes are bad.
-   */
-  if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
-    log_info_sid(target_sid,
-                 "decoded almanacs deleted (health flags from %s)",
-                 hf_sid_str);
-  }
-
-  if (NDB_ERR_NONE == ndb_ephemeris_erase(target_sid)) {
-    log_info_sid(
-        target_sid, "ephemeris deleted (health flags from %s)", hf_sid_str);
-  }
-
-  /* Clear TOW cache */
-  clear_tow_in_sid_db(target_sid);
-}
-
 /**
  * Deletes almanacs/ephemeris for SVs with error bit set and updates almanacs
  * otherwise. Data source SV is assumed valid and healthy.
@@ -407,6 +382,13 @@ static void decode_almanac_health_new(gnss_signal_t src_sid,
       /* Clear NDB and TOW cache */
       erase_nav_data(target_sid, src_sid);
     }
+
+    gnss_signal_t l2cm =
+        (gnss_signal_t){.sat = target_sid.sat, .code = CODE_GPS_L2CM};
+    if (shm_signal_unhealthy(l2cm)) {
+      /* Clear CNAV data and TOW cache */
+      erase_cnav_data(l2cm, src_sid);
+    }
   }
 }
 
@@ -470,13 +452,13 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
-  gnss_signal_t sid =
+  gnss_signal_t l1ca_sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
 
   if (dd.invalid_control_or_data) {
     log_info_mesid(channel_info->mesid, "Invalid control or data element");
 
-    ndb_op_code_t c = ndb_ephemeris_erase(sid);
+    ndb_op_code_t c = ndb_ephemeris_erase(l1ca_sid);
 
     if (NDB_ERR_NONE == c) {
       log_info_mesid(channel_info->mesid, "ephemeris deleted (1/0)");
@@ -487,30 +469,37 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     return;
   }
 
-  shm_gps_set_shi4(sid.sat, !data->nav_msg.alert);
+  shm_gps_set_shi4(l1ca_sid.sat, !data->nav_msg.alert);
 
   if (dd.shi1_upd_flag) {
     log_debug_mesid(channel_info->mesid, "SHI1: 0x%" PRIx8, dd.shi1);
-    shm_gps_set_shi1(sid.sat, dd.shi1);
+    shm_gps_set_shi1(l1ca_sid.sat, dd.shi1);
+  }
+
+  /* Health indicates CODE_NAV_STATE_INVALID for L2CM */
+  gnss_signal_t l2cm_sid = construct_sid(CODE_GPS_L2CM, l1ca_sid.sat);
+  if (shm_signal_unhealthy(l2cm_sid)) {
+    /* Clear CNAV data and TOW cache */
+    erase_cnav_data(l2cm_sid, l1ca_sid);
   }
 
   /* Health indicates CODE_NAV_STATE_INVALID */
-  if (shm_signal_unhealthy(sid)) {
+  if (shm_signal_unhealthy(l1ca_sid)) {
     /* Clear NDB and TOW cache */
-    erase_nav_data(sid, sid);
+    erase_nav_data(l1ca_sid, l1ca_sid);
     /* Clear decoded subframe data */
     nav_msg_clear_decoded(&data->nav_msg);
     return;
   }
 
   /* Do not use data from sv that is not declared as CODE_NAV_STATE_VALID. */
-  if (!shm_navigation_suitable(sid)) {
+  if (!shm_navigation_suitable(l1ca_sid)) {
     return;
   }
 
   if (dd.gps_l2c_sv_capability_upd_flag) {
     /* store new L2C value into NDB */
-    if (ndb_gps_l2cm_l2c_cap_store(&sid,
+    if (ndb_gps_l2cm_l2c_cap_store(&l1ca_sid,
                                    &dd.gps_l2c_sv_capability,
                                    NDB_DS_RECEIVER,
                                    NDB_EVENT_SENDER_ID_VOID) == NDB_ERR_NONE) {
@@ -520,9 +509,9 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.iono_corr_upd_flag) {
     /* store new iono parameters */
-    if (check_iono_timestamp(sid, &dd.iono) &&
+    if (check_iono_timestamp(l1ca_sid, &dd.iono) &&
         (ndb_iono_corr_store(
-             &sid, &dd.iono, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID) ==
+             &l1ca_sid, &dd.iono, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID) ==
          NDB_ERR_NONE)) {
       sbp_send_iono(&dd.iono);
     }
@@ -531,7 +520,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   if (dd.utc_params_upd_flag) {
     /* store new utc parameters */
     if (ndb_utc_params_store(
-            &sid, &dd.utc, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID) ==
+            &l1ca_sid, &dd.utc, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID) ==
         NDB_ERR_NONE) {
       /*TODO: sbp_send_utc_params(&dd.utc); */
     }
@@ -582,7 +571,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
                     dd.almanac.toa.wn,
                     dd.almanac.toa.tow);
 
-    decode_almanac_new(sid, &dd.almanac);
+    decode_almanac_new(l1ca_sid, &dd.almanac);
   }
   if (dd.almanac_time_upd_flag) {
     /* Store new almanac time to NDB*/
@@ -591,7 +580,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
                     dd.almanac_time.wn,
                     (s32)dd.almanac_time.tow);
 
-    decode_almanac_time_new(sid, &dd.almanac_time);
+    decode_almanac_time_new(l1ca_sid, &dd.almanac_time);
   }
   if (0 != dd.almanac_health_upd_flags) {
     log_debug_mesid(channel_info->mesid,
@@ -599,6 +588,6 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
                     dd.almanac_health_upd_flags);
     /* Erase bad almanacs/ephemeris and update health flags for others */
     decode_almanac_health_new(
-        sid, dd.almanac_health_upd_flags, dd.almanac_health);
+        l1ca_sid, dd.almanac_health_upd_flags, dd.almanac_health);
   }
 }

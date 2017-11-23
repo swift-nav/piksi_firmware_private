@@ -10,9 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_gps_l2c.h"
-#include "decode.h"
-
 #include <assert.h>
 #include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/constants.h>
@@ -21,6 +18,9 @@
 #include <string.h>
 
 #include "cnav_msg_storage.h"
+#include "decode.h"
+#include "decode_common.h"
+#include "decode_gps_l2c.h"
 #include "ephemeris.h"
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -83,6 +83,8 @@ static void decoder_gps_l2c_disable(const decoder_channel_info_t *channel_info,
 static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
                                     decoder_data_t *decoder_data) {
   gps_l2c_decoder_data_t *data = decoder_data;
+  gnss_signal_t l2c_sid =
+      construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;
@@ -109,7 +111,39 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       continue;
     }
 
+    /* Update health indicators */
     shm_gps_set_shi6(channel_info->mesid.sat, !data->cnav_msg.alert);
+
+    if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
+      log_debug_mesid(channel_info->mesid,
+                      "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
+                      data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
+                      data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
+                      data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
+      cnav_msg_put(&data->cnav_msg);
+    }
+
+    /* Health indicates CODE_NAV_STATE_INVALID for L1CA */
+    gnss_signal_t l1ca_sid = construct_sid(CODE_GPS_L1CA, l2c_sid.sat);
+    if (shm_signal_unhealthy(l1ca_sid)) {
+      /* Clear NDB and TOW cache */
+      erase_nav_data(l1ca_sid, l2c_sid);
+    }
+
+    /* Health indicates CODE_NAV_STATE_INVALID */
+    if (shm_signal_unhealthy(l2c_sid)) {
+      /* Clear CNAV data and TOW cache */
+      erase_cnav_data(l2c_sid, l2c_sid);
+      /* Clear message data */
+      data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
+      cnav_msg_decoder_init(&data->cnav_msg_decoder);
+      continue;
+    }
+
+    /* Do not use data from sv that is not declared as CODE_NAV_STATE_VALID. */
+    if (!shm_navigation_suitable(l2c_sid)) {
+      continue;
+    }
 
     if (CNAV_MSG_TYPE_30 == data->cnav_msg.msg_id) {
       if (data->cnav_msg.data.type_30.tgd_valid) {
@@ -130,13 +164,6 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       cnav_msg_put(&data->cnav_msg);
 
       sbp_send_group_delay(&data->cnav_msg);
-    } else if (CNAV_MSG_TYPE_10 == data->cnav_msg.msg_id) {
-      log_debug_mesid(channel_info->mesid,
-                      "L1 healthy: %s, L2 healthy: %s, L5 healthy: %s",
-                      data->cnav_msg.data.type_10.l1_health ? "Y" : "N",
-                      data->cnav_msg.data.type_10.l2_health ? "Y" : "N",
-                      data->cnav_msg.data.type_10.l5_health ? "Y" : "N");
-      cnav_msg_put(&data->cnav_msg);
     }
 
     tow_ms =
