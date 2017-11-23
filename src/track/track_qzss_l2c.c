@@ -88,6 +88,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
   me_gnss_signal_t mesid = construct_mesid(CODE_QZS_L2CM, sat);
 
   if (!tracking_startup_ready(mesid)) {
+    log_debug_mesid(mesid, "already in track");
     return; /* L2C signal from the SV is already in track */
   }
 
@@ -126,7 +127,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_debug_mesid(mesid, "L2C handover done");
+      log_info_mesid(mesid, "L2C handover done");
       break;
 
     case 1:

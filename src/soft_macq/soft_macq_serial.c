@@ -119,15 +119,20 @@ bool soft_acq_search(const sc16_t *_cSignal,
   MEMCPY_S(sample_fft, sizeof(sample_fft), _cSignal, sizeof(sc16_t) * fft_len);
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
 
+  /* simple notch filter */
   if (CODE_BDS2_B11 == mesid.code) {
     //~ log_info_mesid(mesid, "%.1f %.1f %.1f %.1f %.1f",
-      //~ (float) sample_fft[11855].r * (float) sample_fft[11855].r + (float) sample_fft[11855].i * (float) sample_fft[11855].i,
-      //~ (float) sample_fft[11856].r * (float) sample_fft[11856].r + (float) sample_fft[11856].i * (float) sample_fft[11856].i,
-      //~ (float) sample_fft[11857].r * (float) sample_fft[11857].r + (float) sample_fft[11857].i * (float) sample_fft[11857].i,
-      //~ (float) sample_fft[11858].r * (float) sample_fft[11858].r + (float) sample_fft[11858].i * (float) sample_fft[11858].i,
-      //~ (float) sample_fft[11859].r * (float) sample_fft[11859].r + (float) sample_fft[11859].i * (float) sample_fft[11859].i);
+      //~ (float)sample_fft[11855].r * (float)sample_fft[11855].r + (float)sample_fft[11855].i * (float)sample_fft[11855].i,
+      //~ (float)sample_fft[11856].r * (float)sample_fft[11856].r + (float)sample_fft[11856].i * (float)sample_fft[11856].i,
+      //~ (float)sample_fft[11857].r * (float)sample_fft[11857].r + (float)sample_fft[11857].i * (float)sample_fft[11857].i,
+      //~ (float)sample_fft[11858].r * (float)sample_fft[11858].r + (float)sample_fft[11858].i * (float)sample_fft[11858].i,
+      //~ (float)sample_fft[11859].r * (float)sample_fft[11859].r + (float)sample_fft[11859].i * (float)sample_fft[11859].i);
+    sample_fft[11857].r = 0;
+    sample_fft[11857].i = 0;
     sample_fft[11858].r = 0;
     sample_fft[11858].i = 0;
+    sample_fft[11859].r = 0;
+    sample_fft[11859].i = 0;
   }
 
   /* Search for peak */
@@ -195,16 +200,16 @@ bool soft_acq_search(const sc16_t *_cSignal,
       /* IF peak was found on the starting bin,
        * then need to check both sides of the starting bin. */
       if (doppler_bin == start_bin) {
-        loop_index = doppler_bin_max - 1; /* Make 2 more searches */
+        loop_index = doppler_bin_max - 3; /* Make 4 more searches */
       }
       /* ELSE peak was found on other than starting bin ,
        * then need to check one more bin from the same side. */
       else {
         /* Extend bin boundaries to handle situation
          * where peak is found on last positive or negative bin. */
-        doppler_bin_max += 1;
-        doppler_bin_min -= 1;
-        loop_index = doppler_bin_max; /* Make 1 more search */
+        doppler_bin_max += 2;
+        doppler_bin_min -= 2;
+        loop_index = doppler_bin_max - 2; /* Make 3 more search */
         /* Adjust ind1 and ind2 so that same frequency side is searched */
         ind1 *= -1;
         ind2 += 1;
@@ -410,8 +415,9 @@ static bool peak_search(const me_gnss_signal_t mesid,
 
   /* artificially pump the C/N0 for non-coherent as MEAN is not STD */
   if (CODE_SBAS_L1CA == mesid.code) {
-    cn0 += 2.0;
-  } else if (CODE_BDS2_B11 == mesid.code) {
+    cn0 += 4.0;
+  }
+  if (CODE_BDS2_B11 == mesid.code) {
     cn0 += 4.0;
   }
 

@@ -951,7 +951,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
   static const double max_freq_rate_hz_per_s =
       7. * STD_GRAVITY_ACCELERATION / 0.19;
   /* The carrier freq diff threshold we do not want to exceed */
-  static const double max_freq_diff_hz = 70;
+  static const double max_freq_diff_hz = 250;
   /* work out the time difference needed to check the actual freq rate
      against max_freq_diff_hz threshold */
   static const u32 diff_interval_ms =
@@ -970,7 +970,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
     if ((fabs(diff_hz) > max_diff_hz)) {
-      log_debug_mesid(
+      log_info_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
       tracker->flags |= TRACKER_FLAG_OUTLIER;
     }
@@ -1144,7 +1144,11 @@ static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
   bool tow_is_known = (TOW_UNKNOWN != tracker_channel->TOW_ms);
   bool responsible_for_update = false;
 
-  if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code) {
+  if (CODE_GPS_L1CA == mesid.code ||
+      CODE_GLO_L1OF == mesid.code ||
+      CODE_SBAS_L1CA == mesid.code ||
+      CODE_QZS_L1CA == mesid.code ||
+      CODE_BDS2_B11 == mesid.code) {
     /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
     responsible_for_update = true;
   } else if (CODE_GPS_L2CM == mesid.code) {
@@ -1163,6 +1167,28 @@ static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
      * TOW. If GLO L1OF is not tracked, then GLO L2OF updates the TOW cache.
      */
     me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
+      responsible_for_update = false;
+    } else {
+      responsible_for_update = true;
+    }
+  } else if (CODE_QZS_L2CM == mesid.code) {
+    /* Check if corresponding QZSS L1CA satellite is being tracked with valid
+     * TOW. If QZSS L1CA is not tracked, then QZSS L2CM updates the TOW cache.
+     */
+    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
+      responsible_for_update = false;
+    } else {
+      responsible_for_update = true;
+    }
+  } else if (CODE_BDS2_B2 == mesid.code) {
+    /* Check if corresponding Beidou B1 satellite is being tracked with valid
+     * TOW. If not, then Beidou B2 updates the TOW cache.
+     */
+    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_BDS2_B11, mesid.sat);
     tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
     if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
       responsible_for_update = false;

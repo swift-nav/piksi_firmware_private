@@ -359,15 +359,17 @@ void propagate_tow_from_sid_db(tracker_channel_t *tracker_channel) {
     return;
   }
 
-  log_debug_mesid(mesid,
-                  "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
-                  "ms]"
-                  " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
-                  tracker_channel->update_count,
-                  bit_length,
-                  nap_count_to_ms(time_delta_tk),
-                  TOW_ms,
-                  error_ms);
+  if (CODE_QZS_L1CA == tracker_channel->mesid.code) {
+    log_info_mesid(mesid,
+                   "[+%" PRIu32 "ms] Initializing TOW from cache [%" PRIu8
+                   "ms]"
+                   " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
+                   tracker_channel->update_count,
+                    bit_length,
+                   nap_count_to_ms(time_delta_tk),
+                   TOW_ms,
+                   error_ms);
+  }
 
   if (tp_tow_is_sane(TOW_ms)) {
     tracker_channel->TOW_residual_ns = tow_entry.TOW_residual_ns;

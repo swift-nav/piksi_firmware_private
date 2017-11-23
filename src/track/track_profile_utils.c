@@ -142,7 +142,7 @@ static const state_table_t mode_1ms_2ms = {
   .entries = {
     {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE}
+                       TPF_CN0_USE | TPF_BSYNC_UPD}
   }
 };
 
@@ -265,14 +265,16 @@ static const state_table_t mode_2ms_2ms = {
   .cn0_ms = 2,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
-  .flld_ms = 2,
+  .flld_ms = 1,
   .flll_ms = 2,
   .bit_ms = 2,
-  .ent_cnt = 1,
+  .ent_cnt = 2,
   .entries = {
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE |
-                                                                   TPF_FLL_HALFQ}
+    {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET
+                                                                 | TPF_FLL_USE
+                                                                 | TPF_FLL_HALFQ},
+    {1, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE},
   }
 };
 

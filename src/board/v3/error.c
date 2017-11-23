@@ -21,6 +21,7 @@
 #include <libswiftnav/logging.h>
 
 #include "peripherals/leds.h"
+#include "piksi_systime.h"
 
 #include "error.h"
 #include "sbp.h"
@@ -96,6 +97,10 @@ void __assert_func(const char *_file,
   char msg[255];
   sprintf(pos, "%s:%s():%d", _file, _func, _line);
   sprintf(msg, "assertion '%s' failed", _expr);
+
+  log_error("%s %s", pos, msg);
+  piksi_systime_sleep_ms(5000);
+
   _screaming_death(pos, msg);
 }
 
