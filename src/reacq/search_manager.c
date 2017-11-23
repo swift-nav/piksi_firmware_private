@@ -297,25 +297,98 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
 }
 
 /**
+ * Check if constellation is scheduled for reacqusition.
+ *
+ * The method extracts scheduling bit from the priority mask.
+ *
+ * \return true  if constellation is scheduled (mask bit is 1).
+ *         false otherwise
+ */
+bool check_priority_mask(u32 priority_mask, u8 priority_counter) {
+  priority_mask >>= (REACQ_PRIORITY_CYCLE - priority_counter) & 0x1;
+  return priority_mask;
+}
+
+/**
+ * Check if current constellation is supported and scheduled for reacqusition.
+ *
+ * \return true  if constellation is supported and scheduled.
+ *         false otherwise
+ */
+bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
+  switch (jobs_data->constellation) {
+    case CONSTELLATION_GPS:
+      return true;
+      break;
+
+    case CONSTELLATION_SBAS:
+      if (is_sbas_enabled() &&
+          check_priority_mask(SBAS_REACQ_NORMAL_PRIO,
+                              jobs_data->priority_counter)) {
+        return true;
+      }
+      break;
+
+    case CONSTELLATION_GLO:
+      if (is_glo_enabled() &&
+          check_priority_mask(GLO_REACQ_NORMAL_PRIO,
+                              jobs_data->priority_counter)) {
+        return true;
+      }
+      break;
+
+    case CONSTELLATION_BDS2:
+      if (is_bds2_enabled() &&
+          check_priority_mask(BDS2_REACQ_NORMAL_PRIO,
+                              jobs_data->priority_counter)) {
+        return true;
+      }
+      break;
+
+    case CONSTELLATION_QZS:
+      if (is_qzss_enabled() &&
+          check_priority_mask(QZSS_REACQ_NORMAL_PRIO,
+                              jobs_data->priority_counter)) {
+        return true;
+      }
+      break;
+
+    case CONSTELLATION_GAL:
+      if (is_galileo_enabled() &&
+          check_priority_mask(GAL_REACQ_NORMAL_PRIO,
+                              jobs_data->priority_counter)) {
+        return true;
+      }
+      break;
+
+    case CONSTELLATION_INVALID:
+    case CONSTELLATION_COUNT:
+    default:
+      assert(!"Unsupported reacq constellation!");
+      break;
+  }
+  return false;
+}
+
+/**
  * Select constellation for reacqusition.
  *
- * The method selects next constellation from where SV is reacquired.
- * TODO: Add priority handling.
+ * The method selects next constellation from where next SV is reacquired.
  *
  * \return None
  */
 void sm_constellation_select(acq_jobs_state_t *jobs_data) {
-  if (CONSTELLATION_INVALID == jobs_data->constellation) {
-    /* Always start from GPS constellation. */
-    jobs_data->constellation = CONSTELLATION_GPS;
-  } else if (CONSTELLATION_GPS == jobs_data->constellation &&
-             is_glo_enabled()) {
-    jobs_data->constellation = CONSTELLATION_GLO;
-  } else if (CONSTELLATION_GLO == jobs_data->constellation) {
-    jobs_data->constellation = CONSTELLATION_GPS;
-  } else {
-    log_error("Unsupported reacq constellation");
-    jobs_data->constellation = CONSTELLATION_GPS;
+  while (true) {
+    if (CONSTELLATION_COUNT == ++jobs_data->constellation) {
+      jobs_data->constellation = CONSTELLATION_GPS;
+      if (REACQ_PRIORITY_CYCLE == ++jobs_data->priority_counter) {
+        jobs_data->priority_counter = 0;
+      }
+    }
+
+    if (reacq_scheduled(jobs_data)) {
+      return;
+    }
   }
 }
 
