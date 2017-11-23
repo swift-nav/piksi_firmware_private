@@ -83,7 +83,7 @@ static void decoder_gps_l2c_disable(const decoder_channel_info_t *channel_info,
 static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
                                     decoder_data_t *decoder_data) {
   gps_l2c_decoder_data_t *data = decoder_data;
-  gnss_signal_t sid =
+  gnss_signal_t l2c_sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
 
   /* Process incoming nav bits */
@@ -124,16 +124,16 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     }
 
     /* Health indicates CODE_NAV_STATE_INVALID for L1CA */
-    gnss_signal_t l1ca = (gnss_signal_t){.sat = sid.sat, .code = CODE_GPS_L1CA};
-    if (shm_signal_unhealthy(l1ca)) {
+    gnss_signal_t l1ca_sid = construct_sid(CODE_GPS_L1CA, l2c_sid.sat);
+    if (shm_signal_unhealthy(l1ca_sid)) {
       /* Clear NDB and TOW cache */
-      erase_nav_data(l1ca, sid);
+      erase_nav_data(l1ca_sid, l2c_sid);
     }
 
     /* Health indicates CODE_NAV_STATE_INVALID */
-    if (shm_signal_unhealthy(sid)) {
+    if (shm_signal_unhealthy(l2c_sid)) {
       /* Clear CNAV data and TOW cache */
-      erase_cnav_data(sid, sid);
+      erase_cnav_data(l2c_sid, l2c_sid);
       /* Clear message data */
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       cnav_msg_decoder_init(&data->cnav_msg_decoder);
@@ -141,7 +141,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     }
 
     /* Do not use data from sv that is not declared as CODE_NAV_STATE_VALID. */
-    if (!shm_navigation_suitable(sid)) {
+    if (!shm_navigation_suitable(l2c_sid)) {
       continue;
     }
 
