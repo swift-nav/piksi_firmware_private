@@ -461,27 +461,28 @@ static void process_alias_error(tracker_channel_t *tracker_channel,
                                 float Q) {
   float err_hz = alias_detect_second(&tracker_channel->alias_detect, I, Q);
 
+  if (fabsf(err_hz) < 10.) {
+    return;
+  }
+
   /* The expected frequency errors depend on the modulated data rate.
      For more details on GPS, see:
      https://swiftnav.hackpad.com/Alias-PLL-lock-detector-in-L2C-4fWUJWUNnOE
      However in practice we see alias frequencies also in between the expected
      ones. So let's just correct the error we actually observe. */
-  if (fabsf(err_hz) > 0.) {
-    bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
-    bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-    if (fabsf(err_hz) > 10.) {
-      log_warn_mesid(tracker_channel->mesid,
-                     "False freq detected: %.1f Hz (plock=%d,flock=%d)",
-                     err_hz,
-                     (int)plock,
-                     (int)flock);
 
-      tracker_ambiguity_unknown(tracker_channel);
-      /* alias_detect_second() returns the freq correction value directly.
-         So we can use it as is for the adjustment. */
-      tp_tl_adjust(&tracker_channel->tl_state, err_hz);
-    }
-  }
+  bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+  bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
+  log_warn_mesid(tracker_channel->mesid,
+                 "False freq detected: %.1f Hz (plock=%d,flock=%d)",
+                 err_hz,
+                 (int)plock,
+                 (int)flock);
+
+  tracker_ambiguity_unknown(tracker_channel);
+  /* alias_detect_second() returns the freq correction value directly.
+     So we can use it as is for the adjustment. */
+  tp_tl_adjust(&tracker_channel->tl_state, err_hz);
 }
 
 /**
