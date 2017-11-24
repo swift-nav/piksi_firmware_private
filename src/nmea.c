@@ -53,6 +53,12 @@ static u32 gsa_msg_rate = 10;
  * Send messages in NMEA 2.30 format.
  * \{ */
 
+/* Convert GLO sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
+#define NMEA_SV_ID_GLO(x) (x + 64)
+
+/* Convert SBAS sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
+#define NMEA_SV_ID_SBAS(x) (x - 87)
+
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
 
@@ -421,8 +427,33 @@ void nmea_gsa(u8 *prns,
   NMEA_SENTENCE_DONE();
 }
 
-/** Helper function for nmea_gsv for comparing sids. Function assumes
- *  parameter sids have same constellation.
+static u8 nmea_get_id(const gnss_signal_t sid) {
+  u8 id = -1;
+
+  switch (sid_to_constellation(sid)) {
+    case CONSTELLATION_GPS:
+      id = sid.sat;
+      break;
+    case CONSTELLATION_GLO:
+      id = NMEA_SV_ID_GLO(sid.sat);
+      break;
+    case CONSTELLATION_SBAS:
+      id = NMEA_SV_ID_SBAS(sid.sat);
+      break;
+    case CONSTELLATION_BDS2:
+    case CONSTELLATION_QZS:
+    case CONSTELLATION_GAL:
+    case CONSTELLATION_COUNT:
+    case CONSTELLATION_INVALID:
+    default:
+      assert(!"Unsupported constellation");
+      break;
+  }
+
+  return id;
+}
+
+/** Helper function for nmea_gsv for comparing sids.
  *
  * \param[in] a     ptr to left side sid
  * \param[in] b     ptr to right side sid
@@ -436,9 +467,7 @@ int compare_ch_meas(const void *a, const void *b) {
   const channel_measurement_t **ca = (const channel_measurement_t **)a;
   const channel_measurement_t **cb = (const channel_measurement_t **)b;
 
-  assert(sid_to_constellation((*ca)->sid) == sid_to_constellation((*cb)->sid));
-
-  return (*ca)->sid.sat - (*cb)->sid.sat;
+  return nmea_get_id((*ca)->sid) - nmea_get_id((*cb)->sid);
 }
 
 /** Assemble a NMEA GSV message and send it out NMEA USARTs.
@@ -853,14 +882,14 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
     const navigation_measurement_t info = nav_meas[i];
     if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) &&
         num_prns_gps < GSA_MAX_SV &&
-        !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
-      prns_gps[num_prns_gps++] = info.sid.sat;
+        !in_set(prns_gps, num_prns_gps, nmea_get_id(info.sid))) {
+      prns_gps[num_prns_gps++] = nmea_get_id(info.sid);
       continue;
     }
 
     if (enable_glonass && IS_GLO(info.sid) && num_prns_glo < GSA_MAX_SV &&
-        !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
-      prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
+        !in_set(prns_glo, num_prns_glo, nmea_get_id(info.sid))) {
+      prns_glo[num_prns_glo++] = nmea_get_id(info.sid);
       continue;
     }
   }
