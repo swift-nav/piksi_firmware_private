@@ -505,15 +505,7 @@ static void nmea_gsv_print(const u8 n_used,
       s8 ele = track_sid_db_elevation_degrees_get(ch_meas[n]->sid);
       u16 azi = track_sid_db_azimuth_degrees_get(ch_meas[n]->sid);
 
-      u16 sv_id = 0;
-      constellation_t gnss = code_to_constellation(ch_meas[n]->sid.code);
-      if (CONSTELLATION_GPS == gnss) {
-        sv_id = ch_meas[n]->sid.sat;
-      } else if (CONSTELLATION_GLO == gnss) {
-        sv_id = NMEA_SV_ID_GLO(ch_meas[n]->sid.sat);
-      } else {
-        assert(!"Unsupported GNSS type");
-      }
+      u16 sv_id = nmea_get_id(ch_meas[n]->sid);
 
       NMEA_SENTENCE_PRINTF(",%02u", sv_id);
 
