@@ -106,7 +106,7 @@ void tp_tracker_update_lock_detect_parameters(
   if (init) {
     lock_detect_init(
         &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
-    lock_detect_init(
+    freq_lock_detect_init(
         &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   } else {
     lock_detect_reinit(

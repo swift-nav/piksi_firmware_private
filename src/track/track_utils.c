@@ -9,7 +9,23 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include <string.h>
+
 #include "track_utils.h"
+
+/** Initialize the frequency lock detector state.
+ * \param l
+ * \param k1 LPF coefficient.
+ * \param k2 I Scale factor.
+ * \param lp Pessimistic count threshold.
+ * \param lo Optimistic count threshold
+ */
+void freq_lock_detect_init(
+    lock_detect_t *l, float k1, float k2, u16 lp, u16 lo) {
+  memset(l, 0, sizeof(*l)); /* sets l->lpf[iq].y = 0 */
+  l->lpfi.y = TP_FLL_SATURATION_THRESHOLD_HZ;
+  lock_detect_reinit(l, k1, k2, lp, lo);
+}
 
 /** Update the frequency lock detector with frequency error.
  * \param l   Lock detector state structure.

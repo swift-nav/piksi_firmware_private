@@ -32,6 +32,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
+void freq_lock_detect_init(
+    lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void freq_lock_detect_update(lock_detect_t *l, float err);
 
 #ifdef __cplusplus
