@@ -297,7 +297,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
 }
 
 /**
- * Check priority mask bit.
+ * Check if constellation is scheduled for reacq, based on priority mask bit.
  *
  * The method extracts the scheduling bit from the priority mask.
  *
@@ -328,48 +328,35 @@ bool check_priority_mask(reacq_prio_level_t prio_level,
 }
 
 /**
- * Check if current constellation is supported and scheduled for reacqusition.
+ * Check if given constellation is supported.
  *
- * \return true  if constellation is supported and scheduled.
+ * \return true  if constellation is supported.
  *         false otherwise
  */
-bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
-  /* TODO: Add logic to select priority level based on tracked GPS count. */
-  reacq_prio_level_t prio_level = REACQ_NORMAL_PRIO;
-
-  switch (jobs_data->constellation) {
+bool is_constellation_enabled(constellation_t con) {
+  switch (con) {
     case CONSTELLATION_GPS:
       return true;
       break;
 
     case CONSTELLATION_SBAS:
-      if (is_sbas_enabled() && check_priority_mask(prio_level, jobs_data)) {
-        return true;
-      }
+      return is_sbas_enabled();
       break;
 
     case CONSTELLATION_GLO:
-      if (is_glo_enabled() && check_priority_mask(prio_level, jobs_data)) {
-        return true;
-      }
+      return is_glo_enabled();
       break;
 
     case CONSTELLATION_BDS2:
-      if (is_bds2_enabled() && check_priority_mask(prio_level, jobs_data)) {
-        return true;
-      }
+      return is_bds2_enabled();
       break;
 
     case CONSTELLATION_QZS:
-      if (is_qzss_enabled() && check_priority_mask(prio_level, jobs_data)) {
-        return true;
-      }
+      return is_qzss_enabled();
       break;
 
     case CONSTELLATION_GAL:
-      if (is_galileo_enabled() && check_priority_mask(prio_level, jobs_data)) {
-        return true;
-      }
+      return is_galileo_enabled();
       break;
 
     case CONSTELLATION_INVALID:
@@ -379,6 +366,20 @@ bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
       break;
   }
   return false;
+}
+
+/**
+ * Check if current constellation is supported and scheduled for reacqusition.
+ *
+ * \return true  if constellation is supported and scheduled.
+ *         false otherwise
+ */
+bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
+  /* TODO: Add logic to select priority level based on tracked GPS count. */
+  reacq_prio_level_t prio_level = REACQ_NORMAL_PRIO;
+
+  return (is_constellation_enabled(jobs_data->constellation) &&
+          check_priority_mask(prio_level, jobs_data));
 }
 
 /**
