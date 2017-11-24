@@ -297,15 +297,33 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
 }
 
 /**
- * Check if constellation is scheduled for reacqusition.
+ * Check priority mask bit.
  *
- * The method extracts scheduling bit from the priority mask.
+ * The method extracts the scheduling bit from the priority mask.
  *
  * \return true  if constellation is scheduled (mask bit is 1).
  *         false otherwise
  */
-bool check_priority_mask(u32 priority_mask, u8 priority_counter) {
-  priority_mask >>= (REACQ_PRIORITY_CYCLE - priority_counter) & 0x1;
+bool check_priority_mask(reacq_prio_level_t prio_level,
+                         acq_jobs_state_t *jobs_data) {
+  u32 priority_mask = 0;
+  switch (prio_level) {
+    case REACQ_NORMAL_PRIO:
+      priority_mask = reacq_normal_prio[jobs_data->constellation];
+      break;
+
+    case REACQ_LOW_PRIO:
+      priority_mask = reacq_low_prio[jobs_data->constellation];
+      break;
+
+    case REACQ_PRIO_COUNT:
+    default:
+      priority_mask = reacq_normal_prio[jobs_data->constellation];
+      log_error("Unsupported re-acq priority mask: %" PRIu8 " ", prio_level);
+  }
+
+  priority_mask >>= (REACQ_PRIORITY_CYCLE - jobs_data->priority_counter);
+  priority_mask &= 0x1;
   return priority_mask;
 }
 
@@ -316,47 +334,40 @@ bool check_priority_mask(u32 priority_mask, u8 priority_counter) {
  *         false otherwise
  */
 bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
+  /* TODO: Add logic to select priority level based on tracked GPS count. */
+  reacq_prio_level_t prio_level = REACQ_NORMAL_PRIO;
+
   switch (jobs_data->constellation) {
     case CONSTELLATION_GPS:
       return true;
       break;
 
     case CONSTELLATION_SBAS:
-      if (is_sbas_enabled() &&
-          check_priority_mask(SBAS_REACQ_NORMAL_PRIO,
-                              jobs_data->priority_counter)) {
+      if (is_sbas_enabled() && check_priority_mask(prio_level, jobs_data)) {
         return true;
       }
       break;
 
     case CONSTELLATION_GLO:
-      if (is_glo_enabled() &&
-          check_priority_mask(GLO_REACQ_NORMAL_PRIO,
-                              jobs_data->priority_counter)) {
+      if (is_glo_enabled() && check_priority_mask(prio_level, jobs_data)) {
         return true;
       }
       break;
 
     case CONSTELLATION_BDS2:
-      if (is_bds2_enabled() &&
-          check_priority_mask(BDS2_REACQ_NORMAL_PRIO,
-                              jobs_data->priority_counter)) {
+      if (is_bds2_enabled() && check_priority_mask(prio_level, jobs_data)) {
         return true;
       }
       break;
 
     case CONSTELLATION_QZS:
-      if (is_qzss_enabled() &&
-          check_priority_mask(QZSS_REACQ_NORMAL_PRIO,
-                              jobs_data->priority_counter)) {
+      if (is_qzss_enabled() && check_priority_mask(prio_level, jobs_data)) {
         return true;
       }
       break;
 
     case CONSTELLATION_GAL:
-      if (is_galileo_enabled() &&
-          check_priority_mask(GAL_REACQ_NORMAL_PRIO,
-                              jobs_data->priority_counter)) {
+      if (is_galileo_enabled() && check_priority_mask(prio_level, jobs_data)) {
         return true;
       }
       break;
@@ -373,7 +384,7 @@ bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
 /**
  * Select constellation for reacqusition.
  *
- * The method selects next constellation from where next SV is reacquired.
+ * The method selects next scheduled constellation for reacquisition.
  *
  * \return None
  */

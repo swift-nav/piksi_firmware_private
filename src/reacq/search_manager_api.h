@@ -16,37 +16,6 @@
 
 /* Search manager constants */
 
-/** Re-acq priority mask length in bits */
-#define REACQ_PRIORITY_CYCLE (30)
-
-/** GPS re-acq priority mask. */
-#define GPS_REACQ_PRIO (0b111111111111111111111111111111)
-
-/** GLO re-acq normal priority mask. */
-#define GLO_REACQ_NORMAL_PRIO (0b010101010101010101010101010101)
-/** GLO re-acq low priority mask. */
-#define GLO_REACQ_LOW_PRIO (0b000010000100001000010000100001)
-
-/** SBAS re-acq normal priority mask. */
-#define SBAS_REACQ_NORMAL_PRIO (0b000000000100000000010000000001)
-/** SBAS re-acq low priority mask. */
-#define SBAS_REACQ_LOW_PRIO (0b000000000000000000000000000001)
-
-/** BDS2 re-acq normal priority mask. */
-#define BDS2_REACQ_NORMAL_PRIO (0b101010101010101010101010101010)
-/** BDS2 re-acq low priority mask. */
-#define BDS2_REACQ_LOW_PRIO (0b000100001000010000100001000010)
-
-/** QZSS re-acq normal priority mask. */
-#define QZSS_REACQ_NORMAL_PRIO (0b010101010101010101010101010101)
-/** QZSS re-acq low priority mask. */
-#define QZSS_REACQ_LOW_PRIO (0b001000010000100001000010000100)
-
-/** GAL re-acq normal priority mask. */
-#define GAL_REACQ_NORMAL_PRIO (0b101010101010101010101010101010)
-/** GAL re-acq low priority mask. */
-#define GAL_REACQ_LOW_PRIO (0b010000100001000010000100001000)
-
 /** Timeout (ms) defining period between fallback searches of
     visible and unknown SVs */
 #define ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS 8000
@@ -83,6 +52,36 @@
     It lets other minimum cost jobs have chance to run as they will have
     marginally smaller cost. */
 #define ACQ_COST_DELTA_MIN_MS 1
+
+/** Re-acq priority mask length in bits */
+#define REACQ_PRIORITY_CYCLE (30)
+
+/** Re-acq priority levels. */
+typedef enum reacq_prio_level_e {
+  REACQ_NORMAL_PRIO,
+  REACQ_LOW_PRIO,
+  REACQ_PRIO_COUNT,
+} reacq_prio_level_t;
+
+/** Re-acq normal priority masks. */
+static const u32 reacq_normal_prio[] = {
+    0b111111111111111111111111111111, /* GPS */
+    0b000000000100000000010000000001, /* SBAS */
+    0b010101010101010101010101010101, /* GLO */
+    0b101010101010101010101010101010, /* BDS2 */
+    0b010101010101010101010101010101, /* QZSS */
+    0b101010101010101010101010101010  /* GAL */
+};
+
+/** Re-acq low priority masks. */
+static const u32 reacq_low_prio[] = {
+    0b111111111111111111111111111111, /* GPS */
+    0b000000000000000000000000000001, /* SBAS */
+    0b000010000100001000010000100001, /* GLO */
+    0b000100001000010000100001000010, /* BDS2 */
+    0b001000010000100001000010000100, /* QZSS */
+    0b010000100001000010000100001000  /* GAL */
+};
 
 /** Search job types */
 typedef enum {
