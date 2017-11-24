@@ -491,10 +491,7 @@ static void nmea_gsv_print(const u8 n_used,
     assert(!"Unsupported GNSS type");
   }
 
-  qsort(ch_meas,
-        n_used,
-        sizeof(channel_measurement_t *),
-        compare_ch_meas);
+  qsort(ch_meas, n_used, sizeof(channel_measurement_t *), compare_ch_meas);
 
   u8 n_messages = (n_used + 3) / 4;
 
@@ -502,8 +499,7 @@ static void nmea_gsv_print(const u8 n_used,
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF(
-        "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_used);
+    NMEA_SENTENCE_PRINTF("$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_used);
 
     for (u8 j = 0; j < 4 && n < n_used; n++) {
       s8 ele = sv_elevation_degrees_get(ch_meas[n]->sid);
@@ -880,8 +876,7 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
   /* Assemble list of currently active SVs */
   for (u8 i = 0; i < n_meas; i++) {
     const navigation_measurement_t info = nav_meas[i];
-    if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) &&
-        num_prns_gps < GSA_MAX_SV &&
+    if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) && num_prns_gps < GSA_MAX_SV &&
         !in_set(prns_gps, num_prns_gps, nmea_get_id(info.sid))) {
       prns_gps[num_prns_gps++] = nmea_get_id(info.sid);
       continue;
