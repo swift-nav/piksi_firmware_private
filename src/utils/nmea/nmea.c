@@ -56,7 +56,7 @@ static u32 gsa_msg_rate = 10;
 /* Convert GLO sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
 #define NMEA_SV_ID_GLO(x) (x + 64)
 
-/* Convert SBAS sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
+/* Convert SBAS sid.sat to NMEA SV ID format: SBAS SV IDs are from 33 to 54 */
 #define NMEA_SV_ID_SBAS(x) (x - 87)
 
 /* Max SVs reported per GSA message */
