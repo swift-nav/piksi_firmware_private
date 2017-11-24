@@ -441,63 +441,18 @@ int compare_ch_meas(const void *a, const void *b) {
   return (*ca)->sid.sat - (*cb)->sid.sat;
 }
 
-/** Assemble a NMEA GPGSV or GLGSV message and send it out NMEA USARTs.
- * NMEA GPGSV and GLGSV message contains GNSS Satellites In View
- * (in this case observed)
+/** Assemble a NMEA GSV message and send it out NMEA USARTs.
+ * NMEA GSV  message contains GNSS Satellites In View (in this case observed).
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
- * \param[in] gnss        GNSS type
+ * \param[in] talker      indicator which talker ID to use
  */
-void nmea_gsv(u8 n_used,
-              const channel_measurement_t *ch_meas) {
-
-  if (0 == n_used || NULL == ch_meas) {
-    NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
-    NMEA_SENTENCE_DONE();
-    return;
-  }
-
-  /* Default talker id GPS */
-  constellation_t talker = CONSTELLATION_INVALID;
-
-  const channel_measurement_t *ch_meas_gnss[n_used];
-
-  u8 n_gnss_used = 0;
-  for (u8 i = 0; i < n_used; i++) {
-    /* check if sat is already picked up from another code */
-    bool in_array = false;
-    for (u8 j = 0; j < n_gnss_used; j++) {
-      if (ch_meas_gnss[j]->sid.sat == ch_meas[i].sid.sat) {
-        in_array = true;
-        break;
-      }
-    }
-
-    /* for extra security */
-    if (!sid_valid(ch_meas[i].sid)) {
-      log_debug_sid(ch_meas[i].sid, "Invalid SV in nmea_gsv()");
-      continue;
-    }
-
-    /* Check if SVs from multiple constellations */
-    constellation_t gnss = code_to_constellation(ch_meas[i].sid.code);
-    if (CONSTELLATION_INVALID == talker) {
-      /* First loop */
-      talker = gnss;
-    } else if (talker != gnss) {
-      /* Indicate GN talker ID with CONSTELLATION_COUNT */
-      talker = CONSTELLATION_COUNT;
-    }
-
-    if (!in_array) {
-      ch_meas_gnss[n_gnss_used++] = &ch_meas[i];
-    }
-  }
-
+static void nmea_gsv_print(const u8 n_used,
+                           const channel_measurement_t *ch_meas[],
+                           const constellation_t talker) {
   char *gnss_s = "";
-  if (CONSTELLATION_GPS == talker) {
+  if (CONSTELLATION_GPS == talker || CONSTELLATION_SBAS == talker) {
     gnss_s = "GPGSV";
   } else if (CONSTELLATION_GLO == talker) {
     gnss_s = "GLGSV";
@@ -507,37 +462,30 @@ void nmea_gsv(u8 n_used,
     assert(!"Unsupported GNSS type");
   }
 
-  if (0 == n_gnss_used) {
-    NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$%s,1,1,%02u", gnss_s, n_gnss_used);
-    NMEA_SENTENCE_DONE();
-    return;
-  }
-
-  qsort(ch_meas_gnss,
-        n_gnss_used,
+  qsort(ch_meas,
+        n_used,
         sizeof(channel_measurement_t *),
         compare_ch_meas);
 
-  u8 n_messages = (n_gnss_used + 3) / 4;
+  u8 n_messages = (n_used + 3) / 4;
 
   u8 n = 0;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
     NMEA_SENTENCE_PRINTF(
-        "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_gnss_used);
+        "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_used);
 
-    for (u8 j = 0; j < 4 && n < n_gnss_used; n++) {
-      s8 ele = sv_elevation_degrees_get(ch_meas_gnss[n]->sid);
-      u16 azi = sv_azimuth_degrees_get(ch_meas_gnss[n]->sid);
+    for (u8 j = 0; j < 4 && n < n_used; n++) {
+      s8 ele = sv_elevation_degrees_get(ch_meas[n]->sid);
+      u16 azi = sv_azimuth_degrees_get(ch_meas[n]->sid);
 
       u16 sv_id = 0;
-      constellation_t gnss = code_to_constellation(ch_meas_gnss[n]->sid.code);
+      constellation_t gnss = code_to_constellation(ch_meas[n]->sid.code);
       if (CONSTELLATION_GPS == gnss) {
-        sv_id = ch_meas_gnss[n]->sid.sat;
+        sv_id = ch_meas[n]->sid.sat;
       } else if (CONSTELLATION_GLO == gnss) {
-        sv_id = NMEA_SV_ID_GLO(ch_meas_gnss[n]->sid.sat);
+        sv_id = NMEA_SV_ID_GLO(ch_meas[n]->sid.sat);
       } else {
         assert(!"Unsupported GNSS type");
       }
@@ -556,12 +504,78 @@ void nmea_gsv(u8 n_used,
         NMEA_SENTENCE_PRINTF(",%03u", azi);
       }
 
-      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gnss[n]->cn0));
+      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas[n]->cn0));
 
       j++; /* 4 sats per message no matter what */
     }
     NMEA_SENTENCE_DONE();
   }
+}
+
+static void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
+  if (0 == n_used || NULL == ch_meas) {
+    NMEA_SENTENCE_START(120);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
+    NMEA_SENTENCE_DONE();
+    return;
+  }
+
+  const channel_measurement_t *ch_meas_gnss[n_used];
+
+  u8 n_gnss_used = 0;
+  for (u8 i = 0; i < n_used; i++) {
+    /* check if sat is already picked up from another code */
+    bool in_array = false;
+    for (u8 j = 0; j < n_gnss_used; j++) {
+      if (ch_meas_gnss[j]->sid.sat == ch_meas[i].sid.sat) {
+        in_array = true;
+        break;
+      }
+    }
+
+    if (in_array) {
+      /* SV already on the list */
+      continue;
+    }
+
+    /* for extra security */
+    if (!sid_valid(ch_meas[i].sid)) {
+      log_debug_sid(ch_meas[i].sid, "Invalid SV in nmea_gsv()");
+      continue;
+    }
+
+    ch_meas_gnss[n_gnss_used++] = &ch_meas[i];
+  }
+
+  if (0 == n_gnss_used) {
+    NMEA_SENTENCE_START(120);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
+    NMEA_SENTENCE_DONE();
+    return;
+  }
+
+  /* Talker id */
+  constellation_t talker = CONSTELLATION_INVALID;
+
+  for (u8 i = 0; i < n_gnss_used; i++) {
+    /* Check if SVs from multiple constellations */
+    constellation_t gnss = code_to_constellation(ch_meas_gnss[i]->sid.code);
+    if (CONSTELLATION_INVALID == talker) {
+      /* First loop */
+      talker = gnss;
+    } else if (CONSTELLATION_GPS == talker && CONSTELLATION_SBAS == gnss) {
+      /* GPS and SBAS use both GP talker ID */
+      continue;
+    } else if (CONSTELLATION_SBAS == talker && CONSTELLATION_GPS == gnss) {
+      /* GPS and SBAS use both GP talker ID */
+      continue;
+    } else if (talker != gnss) {
+      /* Indicate GN talker ID with CONSTELLATION_COUNT */
+      talker = CONSTELLATION_COUNT;
+    }
+  }
+
+  nmea_gsv_print(n_gnss_used, ch_meas_gnss, talker);
 }
 
 /** Calculate Course and Speed Over Ground values.
