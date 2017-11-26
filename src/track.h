@@ -650,6 +650,9 @@ typedef struct {
     gps_l1ca_tracker_data_t gps_l1ca;
     gps_l2cm_tracker_data_t gps_l2cm;
   };
+
+  bool init_profiles_passed;
+  piksi_systime_t previous_ms;
 } tracker_channel_t;
 
 /** Tracker interface function template. */
