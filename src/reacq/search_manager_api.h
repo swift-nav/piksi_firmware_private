@@ -150,6 +150,9 @@ typedef struct {
   acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES]
                     [NUM_SATS_GLO]; /**< job for GLO SV for each
                                          job type */
+  acq_job_t jobs_sbas[ACQ_NUM_JOB_TYPES]
+                     [NUM_SATS_GLO]; /**< job for SBAS SV for each
+                                          job type */
   constellation_t constellation;
   u8 priority_counter;
 } acq_jobs_state_t;

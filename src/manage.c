@@ -588,7 +588,9 @@ static acq_status_t *choose_acq_sat(void) {
 
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
-        (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
+        CODE_SBAS_L1CA == acq_status[i].mesid.code || /* Prevent SBAS acq. */
+        (acq_status[i].state != ACQ_PRN_ACQUIRING) ||
+        (acq_status[i].masked)) {
       continue;
     }
 

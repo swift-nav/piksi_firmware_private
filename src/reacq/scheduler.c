@@ -65,6 +65,10 @@ void sch_initialize_cost(acq_job_t *init_job,
       num_sats = NUM_SATS_GLO;
       pjob = all_jobs_data->jobs_glo[0];
       break;
+    case CONSTELLATION_SBAS:
+      num_sats = NUM_SATS_SBAS;
+      pjob = all_jobs_data->jobs_sbas[0];
+      break;
     default:
       assert(!"Incorrect constellation");
   }
@@ -150,6 +154,10 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost) {
       num_sats = NUM_SATS_GLO;
       pjob = all_jobs_data->jobs_glo[0];
       break;
+    case CONSTELLATION_SBAS:
+      num_sats = NUM_SATS_SBAS;
+      pjob = all_jobs_data->jobs_sbas[0];
+      break;
     default:
       assert(!"Incorrect constellation");
   }
@@ -212,6 +220,10 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
     case CONSTELLATION_GLO:
       num_sats = NUM_SATS_GLO;
       pjob = jobs_data->jobs_glo[0];
+      break;
+    case CONSTELLATION_SBAS:
+      num_sats = NUM_SATS_SBAS;
+      pjob = jobs_data->jobs_sbas[0];
       break;
     default:
       assert(!"Incorrect constellation");
