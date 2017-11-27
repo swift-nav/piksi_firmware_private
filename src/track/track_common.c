@@ -450,22 +450,33 @@ void update_bit_polarity_flags(tracker_channel_t *tracker_channel) {
 /**
  * Runs alias detection logic
  *
- * \param[in,out] alias_detect Alias detector's state
- * \param[in]     I            the value of in-phase arm of the correlator
- * \param[in]     Q            the value of quadrature arm of the correlator
+ * \param[in,out] trk Tracker channel data
+ * \param[in]     I   the value of in-phase arm of the correlator
+ * \param[in]     Q   the value of quadrature arm of the correlator
  *
  * \return The frequency error of PLL [Hz]
  */
-static s32 tp_tl_detect_alias(alias_detect_t *alias_detect, float I, float Q) {
+static s32 tp_tl_detect_alias(tracker_channel_t *trk, float I, float Q) {
+  alias_detect_t *alias_detect = &trk->alias_detect;
   float err = alias_detect_second(alias_detect, I, Q);
   s32 abs_err = (s32)(fabsf(err) + .5f);
   s32 correction = 0;
 
-  /* The expected frequency errors are +-(25 + N * 50) Hz
-     For more details, see:
+  /* For more details on alias lock detection, see:
      https://swiftnav.hackpad.com/Alias-PLL-lock-detector-in-L2C-4fWUJWUNnOE */
-  if (abs_err > 12) {
-    correction = 50 * (abs_err / 50) + 25;
+
+  if (IS_GPS(trk->mesid)) {
+    /* The expected frequency errors are +-(25 + N * 50) Hz */
+    if (abs_err > 12) {
+      correction = 50 * (abs_err / 50) + 25;
+    }
+  } else if (IS_GLO(trk->mesid)) {
+    /* The expected frequency errors are +-(50 + N * 100) Hz */
+    if (abs_err > 25) {
+      correction = 100 * (abs_err / 100) + 50;
+    }
+  } else {
+    assert(!"Unsupported contellation");
   }
 
   return err >= 0 ? correction : -correction;
@@ -486,10 +497,9 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
   float Q =
       tracker_channel->corrs.corr_ad.Q - tracker_channel->alias_detect.first_Q;
 
-  s32 err_hz = tp_tl_detect_alias(&tracker_channel->alias_detect, I, Q);
+  s32 err_hz = tp_tl_detect_alias(tracker_channel, I, Q);
 
   if (0 != err_hz) {
-    /*
     bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
     bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
     log_warn_mesid(tracker_channel->mesid,
@@ -497,7 +507,6 @@ static void process_alias_error(tracker_channel_t *tracker_channel) {
                    err_hz,
                    (int)plock,
                    (int)flock);
-    */
     tracker_ambiguity_unknown(tracker_channel);
     tp_tl_adjust(&tracker_channel->tl_state, err_hz);
   }
