@@ -1144,10 +1144,8 @@ static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
   bool tow_is_known = (TOW_UNKNOWN != tracker_channel->TOW_ms);
   bool responsible_for_update = false;
 
-  if (CODE_GPS_L1CA == mesid.code ||
-      CODE_GLO_L1OF == mesid.code ||
-      CODE_SBAS_L1CA == mesid.code ||
-      CODE_QZS_L1CA == mesid.code ||
+  if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code ||
+      CODE_SBAS_L1CA == mesid.code || CODE_QZS_L1CA == mesid.code ||
       CODE_BDS2_B11 == mesid.code) {
     /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
     responsible_for_update = true;

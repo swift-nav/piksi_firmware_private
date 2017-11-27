@@ -23,13 +23,13 @@
 #include "track/track_sbas_l1.h"
 #include "track/track_sid_db.h"
 
-#include "decode/decode_gps_l1ca.h"
-#include "decode/decode_gps_l2c.h"
+#include "decode/decode_bds_d1.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
+#include "decode/decode_gps_l1ca.h"
+#include "decode/decode_gps_l2c.h"
 #include "decode/decode_qzss_l1ca.h"
 #include "decode/decode_sbas_l1.h"
-#include "decode/decode_bds_d1.h"
 
 #include "ndb.h"
 

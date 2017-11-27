@@ -24,10 +24,10 @@
 
 /* Libraries */
 #include <libswiftnav/constants.h>
+#include <libswiftnav/gnss_capabilities.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
-#include <libswiftnav/gnss_capabilities.h>
 
 /* STD headers */
 #include <assert.h>

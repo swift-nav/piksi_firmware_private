@@ -47,7 +47,6 @@
 #define NUM_QZSS_L1CA_DECODERS NAP_NUM_GPS_L1_CHANNELS
 #define NUM_SBAS_L1_DECODERS NAP_NUM_GPS_L1_CHANNELS
 
-
 void platform_track_setup(void);
 void platform_decode_setup(void);
 

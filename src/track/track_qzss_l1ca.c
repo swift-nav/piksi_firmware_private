@@ -85,7 +85,8 @@ static void tracker_qzss_l1ca_update(tracker_channel_t *tracker_channel) {
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed && (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
-    log_debug_mesid(tracker_channel->mesid, "calling qzss_l1ca_to_l2c_handover()");
+    log_debug_mesid(tracker_channel->mesid,
+                    "calling qzss_l1ca_to_l2c_handover()");
 
     /* Start L2C tracker if not running */
     qzss_l1ca_to_l2c_handover(tracker_channel->sample_count,

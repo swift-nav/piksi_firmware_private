@@ -122,11 +122,16 @@ bool soft_acq_search(const sc16_t *_cSignal,
   /* simple notch filter */
   if (CODE_BDS2_B11 == mesid.code) {
     //~ log_info_mesid(mesid, "%.1f %.1f %.1f %.1f %.1f",
-      //~ (float)sample_fft[11855].r * (float)sample_fft[11855].r + (float)sample_fft[11855].i * (float)sample_fft[11855].i,
-      //~ (float)sample_fft[11856].r * (float)sample_fft[11856].r + (float)sample_fft[11856].i * (float)sample_fft[11856].i,
-      //~ (float)sample_fft[11857].r * (float)sample_fft[11857].r + (float)sample_fft[11857].i * (float)sample_fft[11857].i,
-      //~ (float)sample_fft[11858].r * (float)sample_fft[11858].r + (float)sample_fft[11858].i * (float)sample_fft[11858].i,
-      //~ (float)sample_fft[11859].r * (float)sample_fft[11859].r + (float)sample_fft[11859].i * (float)sample_fft[11859].i);
+    //~ (float)sample_fft[11855].r * (float)sample_fft[11855].r +
+    //(float)sample_fft[11855].i * (float)sample_fft[11855].i,
+    //~ (float)sample_fft[11856].r * (float)sample_fft[11856].r +
+    //(float)sample_fft[11856].i * (float)sample_fft[11856].i,
+    //~ (float)sample_fft[11857].r * (float)sample_fft[11857].r +
+    //(float)sample_fft[11857].i * (float)sample_fft[11857].i,
+    //~ (float)sample_fft[11858].r * (float)sample_fft[11858].r +
+    //(float)sample_fft[11858].i * (float)sample_fft[11858].i,
+    //~ (float)sample_fft[11859].r * (float)sample_fft[11859].r +
+    //(float)sample_fft[11859].i * (float)sample_fft[11859].i);
     sample_fft[11857].r = 0;
     sample_fft[11857].i = 0;
     sample_fft[11858].r = 0;

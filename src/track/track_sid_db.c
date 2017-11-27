@@ -365,7 +365,7 @@ void propagate_tow_from_sid_db(tracker_channel_t *tracker_channel) {
                    "ms]"
                    " delta=%.2lfms ToW=%" PRId32 "ms error=%lf",
                    tracker_channel->update_count,
-                    bit_length,
+                   bit_length,
                    nap_count_to_ms(time_delta_tk),
                    TOW_ms,
                    error_ms);
