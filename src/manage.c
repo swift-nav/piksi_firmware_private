@@ -123,6 +123,9 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 /* Refer also internal NDB definition NDB_NV_GLO_EPHEMERIS_AGE_SECS */
 #define ACQ_GLO_EPH_VALID_TIME_SEC (30 * MINUTE_SECS)
 
+#define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
+#define MANAGE_ACQ_THREAD_STACK (32 * 1024)
+
 typedef u8 tracking_startup_fifo_index_t;
 
 typedef struct {

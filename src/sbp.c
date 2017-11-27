@@ -49,6 +49,9 @@ msg_uart_state_t corr_stats;
 #define PERIOD_SMOOTHING 0.5
 #define LOG_OBS_WINDOW_DURATION_MS 3000
 
+#define SBP_THREAD_PRIORITY (HIGHPRIO - 22)
+#define SBP_THREAD_STACK (512 * 1024)
+
 double latency_count;
 double latency_accum_ms;
 double period_count;
@@ -63,7 +66,7 @@ static u32 sbp_buffer_length;
 
 static MUTEX_DECL(sbp_cb_mutex);
 
-static WORKING_AREA_CCM(wa_sbp_thread, 5000000);
+static THD_WORKING_AREA(wa_sbp_thread, SBP_THREAD_STACK);
 static void sbp_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("SBP");
@@ -105,8 +108,11 @@ static void sbp_thread(void *arg) {
 void sbp_setup(void) {
   sbp_state_init(&sbp_state);
 
-  chThdCreateStatic(
-      wa_sbp_thread, sizeof(wa_sbp_thread), HIGHPRIO - 22, sbp_thread, NULL);
+  chThdCreateStatic(wa_sbp_thread,
+                    sizeof(wa_sbp_thread),
+                    SBP_THREAD_PRIORITY,
+                    sbp_thread,
+                    NULL);
 }
 
 void sbp_sender_id_set(u16 sender_id) { my_sender_id = sender_id; }

@@ -53,6 +53,12 @@
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
+#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
+#define STARLING_THREAD_STACK (6 * 1024 * 1024)
+
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
+#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
@@ -647,7 +653,7 @@ void sbp_messages_init(sbp_messages_t *sbp_messages) {
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, 4000000);
+static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 static void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
@@ -911,9 +917,15 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
+      u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
+      u32 end = NAP->TIMING_COUNT;
+      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %d ticks",
+                low_latency_filter_manager,
+                time_matched_filter_manager,
+                (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
@@ -1015,7 +1027,8 @@ void init_filters(void) {
                  set_max_age);
 }
 
-static WORKING_AREA_CCM(wa_time_matched_obs_thread, 4000000);
+static THD_WORKING_AREA(wa_time_matched_obs_thread,
+                        TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
@@ -1215,12 +1228,12 @@ void starling_calc_pvt_setup() {
   /* Start solution thread */
   chThdCreateStatic(wa_starling_thread,
                     sizeof(wa_starling_thread),
-                    HIGHPRIO - 4,
+                    STARLING_THREAD_PRIORITY,
                     starling_thread,
                     NULL);
   chThdCreateStatic(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread),
-                    NORMALPRIO - 3,
+                    TIME_MATCHED_OBS_THREAD_PRIORITY,
                     time_matched_obs_thread,
                     NULL);
 

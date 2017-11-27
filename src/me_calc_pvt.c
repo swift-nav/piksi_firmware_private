@@ -60,7 +60,8 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
-#define ME_CALC_PVT_THREAD_PIORITY (HIGHPRIO - 3)
+#define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
+#define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
 memory_pool_t obs_buff_pool;
 mailbox_t obs_mailbox;
@@ -365,7 +366,7 @@ static void collect_measurements(u64 rec_tc,
   *pn_total = n_active;
 }
 
-static THD_WORKING_AREA(wa_me_calc_pvt_thread, 1024 * 1024);
+static THD_WORKING_AREA(wa_me_calc_pvt_thread, ME_CALC_PVT_THREAD_STACK);
 
 static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
                                const gnss_solution *current_fix) {
@@ -769,14 +770,14 @@ void me_calc_pvt_setup() {
 
   chPoolObjectInit(&obs_buff_pool, sizeof(me_msg_obs_t), NULL);
 
-  static me_msg_obs_t obs_buff[OBS_N_BUFF] _CCM;
+  static me_msg_obs_t obs_buff[OBS_N_BUFF];
 
   chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
 
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
                     sizeof(wa_me_calc_pvt_thread),
-                    ME_CALC_PVT_THREAD_PIORITY,
+                    ME_CALC_PVT_THREAD_PRIORITY,
                     me_calc_pvt_thread,
                     NULL);
 }

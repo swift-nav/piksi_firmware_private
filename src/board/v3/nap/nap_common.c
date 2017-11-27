@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Jacob McNamee <jacob@swiftnav.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -31,6 +31,9 @@
 
 #define PROCESS_PERIOD_MS (500)
 
+#define NAP_IRQ_THREAD_STACK (32 * 1024)
+#define NAP_IRQ_THREAD_PRIORITY (HIGHPRIO - 2)
+
 #define NAP_IRQS_EXT_EVENT_MASK \
   (NAP_IRQS_EXT_EVENT0_Msk | NAP_IRQS_EXT_EVENT1_Msk | NAP_IRQS_EXT_EVENT2_Msk)
 
@@ -38,7 +41,7 @@ static void nap_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
 
-static WORKING_AREA_CCM(wa_nap_irq, 32000);
+static THD_WORKING_AREA(wa_nap_irq, NAP_IRQ_THREAD_STACK);
 
 static void nap_irq_thread(void *arg);
 
@@ -52,8 +55,11 @@ void nap_setup(void) {
   axi_dma_start(&AXIDMADriver1);
 
   /* Enable NAP interrupt */
-  chThdCreateStatic(
-      wa_nap_irq, sizeof(wa_nap_irq), HIGHPRIO - 2, nap_irq_thread, NULL);
+  chThdCreateStatic(wa_nap_irq,
+                    sizeof(wa_nap_irq),
+                    NAP_IRQ_THREAD_PRIORITY,
+                    nap_irq_thread,
+                    NULL);
   gic_handler_register(IRQ_ID_NAP, nap_isr, NULL);
   gic_irq_sensitivity_set(IRQ_ID_NAP, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_NAP, NAP_IRQ_PRIORITY);

@@ -50,9 +50,6 @@
 
 #define MANAGE_NO_CHANNELS_FREE 255
 
-#define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
-#define MANAGE_ACQ_THREAD_STACK 16384
-
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
   u16 glo_slot_id;        /**< GLO orbital slot. */

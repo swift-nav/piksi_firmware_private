@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011-2016 Swift Navigation Inc.
- * Contact: Jacob McNamee <jacob@swiftnav.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -17,6 +17,9 @@
 #include <libswiftnav/logging.h>
 #include "signal.h"
 #include "track.h"
+
+#define DECODE_THREAD_STACK (4 * 1024)
+#define DECODE_THREAD_PRIORITY (NORMALPRIO - 1)
 
 /** \defgroup decoding Decoding
  * Receive data bits from tracking channels and decode navigation messages.
@@ -76,7 +79,7 @@ typedef struct {
 static decoder_interface_list_element_t *decoder_interface_list = 0;
 static decoder_channel_t decoder_channels[NUM_DECODER_CHANNELS];
 
-static THD_WORKING_AREA(wa_decode_thread, 3072);
+static THD_WORKING_AREA(wa_decode_thread, DECODE_THREAD_STACK);
 
 static void decode_thread(void *arg);
 static const decoder_interface_t *decoder_interface_get(
@@ -110,7 +113,7 @@ void decode_setup(void) {
 
   chThdCreateStatic(wa_decode_thread,
                     sizeof(wa_decode_thread),
-                    NORMALPRIO - 1,
+                    DECODE_THREAD_PRIORITY,
                     decode_thread,
                     NULL);
 }
