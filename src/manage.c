@@ -586,11 +586,13 @@ static acq_status_t *choose_acq_sat(void) {
   u32 total_score = 0;
   gps_time_t t = get_current_time();
 
+  /* Prevent SBAS in normal acquisition. Current design document specifies that
+   * SBAS is only searched in re-acquisition.
+   * https://paper.dropbox.com/doc/SBAS-Task-Plan-10FUSrKqc1nZybQ2JYvN9 */
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
-        CODE_SBAS_L1CA == acq_status[i].mesid.code || /* Prevent SBAS acq. */
-        (acq_status[i].state != ACQ_PRN_ACQUIRING) ||
-        (acq_status[i].masked)) {
+        (CODE_SBAS_L1CA == acq_status[i].mesid.code) ||
+        (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
       continue;
     }
 

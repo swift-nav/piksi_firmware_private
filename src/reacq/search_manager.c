@@ -419,17 +419,18 @@ bool check_priority_mask(reacq_prio_level_t prio_level,
   u32 priority_mask = 0;
   switch (prio_level) {
     case REACQ_NORMAL_PRIO:
+      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_normal_prio));
       priority_mask = reacq_normal_prio[jobs_data->constellation];
       break;
 
     case REACQ_LOW_PRIO:
+      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_low_prio));
       priority_mask = reacq_low_prio[jobs_data->constellation];
       break;
 
     case REACQ_PRIO_COUNT:
     default:
-      priority_mask = reacq_normal_prio[jobs_data->constellation];
-      log_error("Unsupported re-acq priority mask: %" PRIu8 " ", prio_level);
+      assert(!"Unsupported re-acq priority mask");
   }
 
   priority_mask >>= (REACQ_PRIORITY_CYCLE - jobs_data->priority_counter);
