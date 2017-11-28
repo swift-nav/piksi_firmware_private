@@ -304,11 +304,11 @@ DINCDIR =
 
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
-          $(LIBSWIFTNAV_BUILDDIR)/libfec/src \
+          $(LIBSWIFTNAV_BUILDDIR)/libfec \
           $(BOARDLIBDIR)
 
 # List all default libraries here
-DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav-static \
+DLIBS = $(BOARDLIBS) -lsbp-static -lswiftnav \
         -lm -Wl,--start-group -lstdc++ -lc -lnosys -Wl,--end-group -lfec
 
 #

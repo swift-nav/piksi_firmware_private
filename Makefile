@@ -48,7 +48,7 @@ MAKEFLAGS += LIBSWIFTNAV_BUILDDIR=$(LIBSWIFTNAV_BUILDDIR)
 MAKEFLAGS += OPENAMP_BUILDDIR=$(OPENAMP_BUILDDIR)
 
 FW_DEPS=$(LIBSBP_BUILDDIR)/src/libsbp-static.a \
-        $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a
+        $(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a
 
 ifeq ($(PIKSI_HW),v3)
   CMAKEFLAGS += -DCMAKE_SYSTEM_PROCESSOR=cortex-a9
@@ -81,7 +81,7 @@ $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	      $(CMAKEFLAGS) ../
 	$(MAKE) -C $(LIBSBP_BUILDDIR) $(MAKEFLAGS)
 
-$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav-static.a: .FORCE
+$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.a: .FORCE
 	@printf "BUILD   libswiftnav for target $(PIKSI_TARGET)\n"; \
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
