@@ -14,8 +14,8 @@
 
 #include <ch.h>
 
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/time.h>
 
 #include "piksi_systime.h"
 
