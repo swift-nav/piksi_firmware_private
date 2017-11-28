@@ -67,6 +67,7 @@ typedef enum {
 typedef enum {
   TP_LOW_CN0 = (1 << 0),    /**< Watch low CN0 value */
   TP_HIGH_CN0 = (1 << 1),   /**< Watch high CN0 value */
+  TP_WAIT_DLOCK = (1 << 2), /**< Wait for code lock (DLL) */
   TP_WAIT_BSYNC = (1 << 5), /**< Wait for bit sync */
   TP_WAIT_PLOCK = (1 << 6), /**< Wait for phase lock */
   TP_WAIT_FLOCK = (1 << 7), /**< Wait for frequency lock */
@@ -506,6 +507,7 @@ static void update_stats(tracker_channel_t *tracker_channel,
 
   profile->plock = data->plock;
   profile->flock = data->flock;
+  profile->dlock = data->dlock;
   profile->bsync_sticky |= data->bsync;
 
   cn0 = data->cn0;
@@ -834,6 +836,11 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
   if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wplock");
+  }
+
+  if (0 != (flags & TP_WAIT_DLOCK) && !state->dlock) {
+    return profile_switch_requested(
+        tracker_channel, state->cur.index, "wdlock");
   }
 
   if (state->lock_time_ms > 0) {

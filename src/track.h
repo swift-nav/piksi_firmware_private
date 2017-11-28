@@ -264,6 +264,7 @@ typedef struct {
 
   u32 plock : 1;          /**< Pessimistic phase lock flag */
   u32 flock : 1;          /**< Pessimistic frequency lock flag */
+  u32 dlock : 1;          /**< Pessimistic DLL lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 bsync_sticky : 1;   /**< Bit sync flag */
   u32 profile_update : 1; /**< Flag if the profile update is required */
@@ -608,20 +609,22 @@ typedef struct {
   bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
   update_count_t carrier_freq_timestamp_ms; /**< carrier_freq_prev timestamp */
 
-  double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
-                                    of PLL/FLL pessimistic locks [Hz]. */
-  float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
-                                    discriminator output [Hz]. */
-  float cn0;                   /**< Current estimate of C/N0. */
-  u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
-  float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
-  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;     /**< Tracking channel last update
-                                    timestamp [ms] */
-  bool updated_once;           /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  glo_health_t health;         /**< GLO SV health info */
+  double carrier_freq_at_lock;   /**< Carrier frequency snapshot in the presence
+                                      of PLL/FLL pessimistic locks [Hz]. */
+  float unfiltered_freq_error;   /**< Unfiltered frequency error at the FLL
+                                      discriminator output [Hz]. */
+  float unfiltered_code_error_m; /**< Unfiltered code error at the DLL
+                                    discriminator output [m]. */
+  float cn0;                     /**< Current estimate of C/N0. */
+  u32 flags;                     /**< Tracker flags TRACKER_FLAG_... */
+  float acceleration;            /**< Acceleration [g] */
+  float xcorr_freq;              /**< Doppler for cross-correlation [Hz] */
+  u64 init_timestamp_ms;         /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;       /**< Tracking channel last update
+                                      timestamp [ms] */
+  bool updated_once;             /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;             /**< Half-cycle ambiguity resolution */
+  glo_health_t health;           /**< GLO SV health info */
 
   /** Associated tracker interface. */
   const struct tracker_interface *interface;
@@ -636,6 +639,7 @@ typedef struct {
   alias_detect_t alias_detect; /**< Alias lock detector. */
   lock_detect_t ld_phase;      /**< Phase lock detector state. */
   lock_detect_t ld_freq;       /**< Frequency lock detector state. */
+  lock_detect_t ld_code;       /**< Code lock detector state. */
   lp1_filter_t xcorr_filter;   /**< Low-pass SV POV doppler filter */
   tp_tm_e tracking_mode;       /**< Tracking mode */
   u16 cycle_no : 5;            /**< Cycle index inside current
@@ -649,6 +653,9 @@ typedef struct {
     gps_l1ca_tracker_data_t gps_l1ca;
     gps_l2cm_tracker_data_t gps_l2cm;
   };
+
+  bool init_profiles_passed;
+  u64 previous_ms;
 } tracker_channel_t;
 
 /** Tracker interface function template. */
@@ -785,6 +792,7 @@ typedef struct {
   float cn0_raw;          /**< Computed C/N0 (raw) in dB/Hz */
   u32 plock : 1;          /**< Pessimistic phase lock flag */
   u32 flock : 1;          /**< Pessimistic frequency lock flag */
+  u32 dlock : 1;          /**< Pessimistic code lock flag */
   u32 bsync : 1;          /**< Bit sync flag */
   u32 time_ms : 8;        /**< Time in milliseconds */
   u32 sample_count;       /**< Channel sample count */
@@ -854,6 +862,7 @@ void tp_tl_get_config(const tp_loop_params_t *l, tl_config_t *config);
 void tp_tl_update(tp_tl_state_t *s, const tp_epl_corr_t *cs, bool costas);
 float tp_tl_get_fll_error(const tp_tl_state_t *s);
 float tp_tl_get_dll_error(const tp_tl_state_t *s);
+float tp_tl_get_dll_disc_error(const tp_tl_state_t *s);
 bool tp_tl_is_pll(const tp_tl_state_t *s);
 bool tp_tl_is_fll(const tp_tl_state_t *s);
 void tp_tl_fll_update_first(tp_tl_state_t *s, corr_t cs, bool halfq);

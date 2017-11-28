@@ -312,6 +312,31 @@ float tp_tl_get_dll_error(const tp_tl_state_t *s) {
 }
 
 /**
+ * Return DLL discriminator error.
+ *
+ * \param[in] s Tracker state.
+ *
+ * \return Dll discriminator error [chips]
+ */
+float tp_tl_get_dll_disc_error(const tp_tl_state_t *s) {
+  float dll_error_chips = 0.;
+
+  switch (s->ctrl) {
+    case TP_CTRL_PLL3:
+      dll_error_chips = s->pll3.dll_disc_error_chips;
+      break;
+    case TP_CTRL_FLL1:
+    case TP_CTRL_FLL2:
+    case TP_CTRL_PLL2:
+    default:
+      assert(false);
+      break;
+  }
+
+  return dll_error_chips;
+}
+
+/**
  * Test if the tracker is PLL.
  *
  * \param[in] s Tracker state.
