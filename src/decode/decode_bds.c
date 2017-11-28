@@ -15,8 +15,8 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg_bds.h>
 
-#include "decode_bds.h"
 #include "decode.h"
+#include "decode_bds.h"
 #include "decode_common.h"
 #include "ephemeris.h"
 #include "ndb.h"
@@ -27,7 +27,6 @@
 #include "timing.h"
 #include "track.h"
 #include "track/track_sid_db.h"
-
 
 /** BDS decoder data */
 typedef struct { nav_msg_bds_t nav_msg; } bds_decoder_data_t;
@@ -68,7 +67,7 @@ void decode_bds_register(void) {
 }
 
 static void decoder_bds_init(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
+                             decoder_data_t *decoder_data) {
   bds_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
@@ -76,11 +75,10 @@ static void decoder_bds_init(const decoder_channel_info_t *channel_info,
 }
 
 static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
+                                decoder_data_t *decoder_data) {
   (void)channel_info;
   (void)decoder_data;
 }
-
 
 static void dump_navmsg(const nav_msg_bds_t *n) {
   char bitstream[256];
@@ -94,7 +92,7 @@ static void dump_navmsg(const nav_msg_bds_t *n) {
 }
 
 static void decoder_bds_process(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
+                                decoder_data_t *decoder_data) {
   bds_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */

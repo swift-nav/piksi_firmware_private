@@ -13,8 +13,8 @@
 #ifndef SWIFTNAV_DECODE_COMMON_H
 #define SWIFTNAV_DECODE_COMMON_H
 
-#include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/nav_msg_bds.h>
+#include <libswiftnav/nav_msg_glo.h>
 
 #include "cnav_msg_storage.h"
 #include "track.h"
@@ -32,10 +32,10 @@ typedef enum {
 
 /** BDS data decoding status */
 typedef enum {
-  BDS_DECODE_WAIT,            /**< Decoding in progress */
-  BDS_DECODE_TLM,             /**< 1st word decoded with valid CRC */
-  BDS_DECODE_TOW,             /**< 2nd word decoded with valid CRC */
-  BDS_DECODE_WORD             /**< 3rd to 10th decoded with valid CRC */
+  BDS_DECODE_WAIT, /**< Decoding in progress */
+  BDS_DECODE_TLM,  /**< 1st word decoded with valid CRC */
+  BDS_DECODE_TOW,  /**< 2nd word decoded with valid CRC */
+  BDS_DECODE_WORD  /**< 3rd to 10th decoded with valid CRC */
 } bds_decode_status_t;
 
 void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid);
