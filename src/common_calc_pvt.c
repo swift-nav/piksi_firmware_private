@@ -111,40 +111,16 @@ bool gate_covariance(gnss_solution *soln) {
 
   double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
       vel_h_accuracy, vel_v_accuracy;
-  covariance_to_accuracy(full_covariance,
-                         soln->pos_ecef,
-                         &pos_accuracy,
-                         &pos_h_accuracy,
-                         &pos_v_accuracy);
-  covariance_to_accuracy(vel_covariance,
-                         soln->pos_ecef,
-                         &vel_accuracy,
-                         &vel_h_accuracy,
-                         &vel_v_accuracy);
-  return check_covariance(pos_accuracy, vel_accuracy);
-}
-
-bool gate_covariance_pvt_engine(const pvt_engine_result_t *result) {
-  assert(result != NULL);
-
-  double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
-      vel_h_accuracy, vel_v_accuracy;
-  covariance_to_accuracy(result->baseline_covariance,
-                         result->baseline,
-                         &pos_accuracy,
-                         &pos_h_accuracy,
-                         &pos_v_accuracy);
-  if (result->velocity_valid) {
-    covariance_to_accuracy(result->velocity_covariance,
-                           result->baseline,
-                           &vel_accuracy,
-                           &vel_h_accuracy,
-                           &vel_v_accuracy);
-  } else {
-    vel_accuracy = 0;
-    vel_h_accuracy = 0;
-    vel_v_accuracy = 0;
-  }
+  pvt_engine_covariance_to_accuracy(full_covariance,
+                                    soln->pos_ecef,
+                                    &pos_accuracy,
+                                    &pos_h_accuracy,
+                                    &pos_v_accuracy);
+  pvt_engine_covariance_to_accuracy(vel_covariance,
+                                    soln->pos_ecef,
+                                    &vel_accuracy,
+                                    &vel_h_accuracy,
+                                    &vel_v_accuracy);
   return check_covariance(pos_accuracy, vel_accuracy);
 }
 
