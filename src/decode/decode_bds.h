@@ -9,11 +9,9 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef DECODE_BDS_D1_H
-#define DECODE_BDS_D1_H
+#ifndef DECODE_BDS_H
+#define DECODE_BDS_H
 
-#include <libswiftnav/common.h>
+void decode_bds_register(void);
 
-void decode_bds_d1_register(void);
-
-#endif /* DECODE_BDS_D1_H */
+#endif /* DECODE_BDS_H */

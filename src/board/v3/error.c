@@ -99,7 +99,7 @@ void __assert_func(const char *_file,
   sprintf(msg, "assertion '%s' failed", _expr);
 
   log_error("%s %s", pos, msg);
-  piksi_systime_sleep_ms(5000);
+  piksi_systime_sleep_ms(3000);
 
   _screaming_death(pos, msg);
 }

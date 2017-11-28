@@ -212,3 +212,4 @@ void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
   /* Clear TOW cache */
   clear_tow_in_sid_db(target_sid);
 }
+

@@ -23,13 +23,13 @@
 #include "track/track_sbas_l1.h"
 #include "track/track_sid_db.h"
 
-#include "decode/decode_bds_d1.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
 #include "decode/decode_gps_l1ca.h"
 #include "decode/decode_gps_l2c.h"
 #include "decode/decode_qzss_l1ca.h"
 #include "decode/decode_sbas_l1.h"
+#include "decode/decode_bds.h"
 
 #include "ndb.h"
 
@@ -53,7 +53,7 @@ void platform_decode_setup(void) {
   decode_glo_l2of_register();
   decode_qzss_l1ca_register();
   decode_sbas_l1_register();
-  decode_bds_d1_register();
+  decode_bds_register();
 }
 
 void platform_ndb_init(void) {

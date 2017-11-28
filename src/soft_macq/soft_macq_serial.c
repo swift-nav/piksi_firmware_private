@@ -236,7 +236,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
-  log_info_mesid(mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
+  log_debug_mesid(mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
 
   /* Set output */
   acq_result->cp = cp;
