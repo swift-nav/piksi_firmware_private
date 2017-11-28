@@ -49,3 +49,22 @@ void freq_lock_detect_update(lock_detect_t *l, float err) {
     }
   }
 }
+
+/** Update the DLL lock detector with the discriminator error.
+ * \param l   Lock detector state structure.
+ * \param err_m DLL discriminator error [m]
+ */
+void code_lock_detect_update(lock_detect_t *l, float err_m) {
+  l->lpfi.y += l->k1 * (err_m - l->lpfi.y);
+
+  if (fabsf(l->lpfi.y) < TP_DLL_ERR_THRESHOLD_M) {
+    if (l->pcount1 > l->lp) {
+      l->outp = true;
+    } else {
+      l->pcount1++;
+    }
+  } else {
+    l->outp = false;
+    l->pcount1 = 0;
+  }
+}

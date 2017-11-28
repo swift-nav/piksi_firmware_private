@@ -15,24 +15,31 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/track.h>
+#include "board/nap/nap_common.h"
+#include "nap/nap_constants.h"
 
 /* FLL saturation threshold in [Hz]. When signal is lost, filtered frequency
  * error can grow fast.
  * When the signal comes back, the saturation threshold helps the filter to
  * converge quickly below error threshold.
-*/
+ */
 #define TP_FLL_SATURATION_THRESHOLD_HZ (15.f)
 /* FLL error threshold in [Hz]. Used to assess FLL frequency lock.
  * The threshold should be less than the expected aliased frequency, < 25 Hz.
  * Another factor is to avoid false positives from high dynamics.
-*/
+ */
 #define TP_FLL_ERR_THRESHOLD_HZ (10.f)
+
+/* DLL discriminator error threshold in [m]. Used to assess DLL lock.
+ */
+#define TP_DLL_ERR_THRESHOLD_M 6.f
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
 void freq_lock_detect_update(lock_detect_t *l, float err);
+void code_lock_detect_update(lock_detect_t *l, float err_m);
 
 #ifdef __cplusplus
 }

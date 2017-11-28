@@ -108,14 +108,20 @@ void tp_tracker_update_lock_detect_parameters(
   const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
   const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
 
+  /* Code lock detector reuses the lock detector
+     parameters of phase lock detector */
   if (init) {
     lock_detect_init(
         &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_init(
+        &tracker_channel->ld_code, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
     lock_detect_init(
         &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   } else {
     lock_detect_reinit(
         &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+    lock_detect_reinit(
+        &tracker_channel->ld_code, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
     lock_detect_reinit(
         &tracker_channel->ld_freq, ldf->k1, ldf->k2, ldf->lp, /*lo=*/0);
   }
@@ -173,6 +179,18 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
   /* DLL init could be done nicer by initing DLL only */
   if (init || profile->dll_init) {
     log_debug_mesid(mesid, "Initializing TL");
+
+    if (profile->dll_init) {
+      u64 now_ms = timing_getms();
+      u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+      tracker_channel->init_profiles_passed = true;
+      log_info_mesid(mesid, "adel: %f,%f,%f,%f,%" PRIu32,
+                     tracker_channel->unfiltered_code_error_m,
+                     tracker_channel->ld_code.lpfi.y,
+                     tracker_channel->unfiltered_freq_error,
+                     tracker_channel->ld_freq.lpfi.y,
+                     time_in_track_ms);
+    }
 
     tp_tl_init(
         &tracker_channel->tl_state, profile->loop_params.ctrl, &rates, &config);
@@ -282,6 +300,7 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
   tp_profile_apply_config(tracker_channel, /* init = */ true);
 
   tracker_channel->flags |= TRACKER_FLAG_ACTIVE;
+  tracker_channel->previous_ms = PIKSI_SYSTIME_INIT;
 }
 
 void tracker_cleanup(tracker_channel_t *tracker_channel) {
@@ -686,7 +705,8 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)) ||
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_DLOCK)));
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker_channel)) {
     tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
@@ -763,6 +783,15 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
   }
 }
 
+static void update_ld_code(tracker_channel_t *tracker_channel) {
+  code_lock_detect_update(&tracker_channel->ld_code,
+                          tracker_channel->unfiltered_code_error_m);
+
+  if (tracker_channel->ld_code.outp) {
+    tracker_channel->flags |= TRACKER_FLAG_HAS_DLOCK;
+  }
+}
+
 /**
  * Updates PLL and FLL lock detectors.
  *
@@ -780,15 +809,21 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
 
     if (0 != (cycle_flags & TPF_PLD_USE)) {
       tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
+      tracker_channel->flags &= ~TRACKER_FLAG_HAS_DLOCK;
 
       if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
         update_ld_phase(tracker_channel);
+        update_ld_code(tracker_channel);
       } else {
         /* Reset internal variables while phase lock detector is not in use. */
         tp_profile_t *profile = &tracker_channel->profile;
         const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
         lock_detect_init(
             &tracker_channel->ld_phase, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
+
+        /* re-use the phase lock detector parameters */
+        lock_detect_init(
+            &tracker_channel->ld_code, ldp->k1, ldp->k2, ldp->lp, /*lo=*/0);
       }
     }
 
@@ -896,6 +931,9 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     }
     tp_tl_update(&tracker_channel->tl_state, &corr_epl, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
+    tracker_channel->unfiltered_code_error_m =
+        ((double)GPS_C * tp_tl_get_dll_disc_error(&tracker_channel->tl_state)) /
+        code_to_chip_rate(tracker_channel->mesid.code);
 
     tracker_channel->carrier_freq = rates.carr_freq;
     tracker_channel->code_phase_rate =
@@ -915,6 +953,7 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     }
     report.plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
     report.flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
+    report.dlock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_DLOCK));
     report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
     report.acceleration = rates.acceleration;

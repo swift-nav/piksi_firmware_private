@@ -37,8 +37,8 @@
 #define TRACKER_FLAG_XCORR_SUSPECT (1 << 11)
 /** Tracker flag: tracker xcorr doppler filter is active */
 #define TRACKER_FLAG_XCORR_FILTER_ACTIVE (1 << 12)
-/** Tracker flag: L2CL tracker has resolved half-cycle ambiguity */
-#define TRACKER_FLAG_L2CL_AMBIGUITY_RESOLVED (1 << 13)
+/** Tracker flag: tracker has DLL lock */
+#define TRACKER_FLAG_HAS_DLOCK (1 << 13)
 /** Tracker flag: GLO tracker has decoded health information */
 #define TRACKER_FLAG_GLO_HEALTH_DECODED (1 << 14)
 /** Tracker flag: signal is healthy. */
