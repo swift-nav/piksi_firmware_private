@@ -184,7 +184,7 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
       u64 now_ms = timing_getms();
       u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
       tracker_channel->init_profiles_passed = true;
-      log_info_mesid(mesid, "adel: %f,%f,%f,%f,%" PRIu32,
+      log_info_mesid(mesid, "adel2: %f,%f,%f,%f,%" PRIu32,
                      tracker_channel->unfiltered_code_error_m,
                      tracker_channel->ld_code.lpfi.y,
                      tracker_channel->unfiltered_freq_error,
@@ -300,7 +300,7 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
   tp_profile_apply_config(tracker_channel, /* init = */ true);
 
   tracker_channel->flags |= TRACKER_FLAG_ACTIVE;
-  tracker_channel->previous_ms = PIKSI_SYSTIME_INIT;
+  tracker_channel->previous_ms = 0;
 }
 
 void tracker_cleanup(tracker_channel_t *tracker_channel) {
@@ -705,8 +705,7 @@ void tp_tracker_update_cn0(tracker_channel_t *tracker_channel,
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)) ||
-                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_DLOCK)));
+                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed && inlock &&
       tracker_has_bit_sync(tracker_channel)) {
     tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
@@ -934,6 +933,20 @@ void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
     tracker_channel->unfiltered_code_error_m =
         ((double)GPS_C * tp_tl_get_dll_disc_error(&tracker_channel->tl_state)) /
         code_to_chip_rate(tracker_channel->mesid.code);
+
+    if (!tracker_channel->init_profiles_passed) {
+      u64 now_ms = timing_getms();
+      if ((now_ms - tracker_channel->previous_ms) > 200) {
+        tracker_channel->previous_ms = now_ms;
+        u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+        log_info_mesid(tracker_channel->mesid, "adel: %f,%f,%f,%f,%" PRIu32,
+                       tracker_channel->ld_code.lpfi.y,
+                       rates.carr_freq,
+                       rates.code_freq,
+                       rates.carr_freq / mesid_to_carr_to_code(tracker_channel->mesid),
+                       time_in_track_ms);
+      }
+    }
 
     tracker_channel->carrier_freq = rates.carr_freq;
     tracker_channel->code_phase_rate =

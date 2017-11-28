@@ -655,7 +655,7 @@ typedef struct {
   };
 
   bool init_profiles_passed;
-  piksi_systime_t previous_ms;
+  u64 previous_ms;
 } tracker_channel_t;
 
 /** Tracker interface function template. */
