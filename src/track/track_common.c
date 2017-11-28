@@ -174,6 +174,10 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
   if (init || profile->dll_init) {
     log_debug_mesid(mesid, "Initializing TL");
 
+    if (profile->dll_init) {
+      tracker_channel->init_profiles_passed = true;
+    }
+
     tp_tl_init(
         &tracker_channel->tl_state, profile->loop_params.ctrl, &rates, &config);
   } else {
@@ -282,6 +286,7 @@ void tp_tracker_init(tracker_channel_t *tracker_channel,
   tp_profile_apply_config(tracker_channel, /* init = */ true);
 
   tracker_channel->flags |= TRACKER_FLAG_ACTIVE;
+  tracker_channel->previous_ms = PIKSI_SYSTIME_INIT;
 }
 
 void tracker_cleanup(tracker_channel_t *tracker_channel) {
@@ -1089,6 +1094,14 @@ u32 tp_tracker_update(tracker_channel_t *tracker_channel,
   tp_tracker_update_alias(tracker_channel, cflags);
   tp_tracker_filter_doppler(tracker_channel, cflags, config);
   tp_tracker_update_mode(tracker_channel);
+
+  if (!tracker_channel->init_profiles_passed) {
+    if (piksi_systime_elapsed_since_ms(&tracker_channel->previous_ms) >= 200) {
+      log_info_mesid(
+          tracker_channel->mesid, "adel2: %" PRIx32, tracker_channel->flags);
+      piksi_systime_get(&tracker_channel->previous_ms);
+    }
+  }
 
   u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker_channel);
   tracker_retune(tracker_channel, chips_to_correlate);
