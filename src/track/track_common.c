@@ -750,10 +750,10 @@ static void update_ld_phase(tracker_channel_t *tracker_channel) {
 
 static void update_ld_freq(tracker_channel_t *tracker_channel) {
   /* FLL lock detector is based on frequency error seen by FLL discriminator */
-  float unfiltered_freq_error = tracker_channel->unfiltered_freq_error;
+  float unfiltered_freq_error_hz = tracker_channel->unfiltered_freq_error_hz;
 
   /* Calculate low-pass filtered frequency error */
-  freq_lock_detect_update(&tracker_channel->ld_freq, unfiltered_freq_error);
+  freq_lock_detect_update(&tracker_channel->ld_freq, unfiltered_freq_error_hz);
 
   bool outp = tracker_channel->ld_freq.outp;
 
@@ -774,11 +774,13 @@ static void update_ld_freq(tracker_channel_t *tracker_channel) {
 void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
                              u32 cycle_flags) {
   /* Phase lock and frequency lock detectors are updated asynchronously. */
-  if (0 != (cycle_flags & TPF_PLD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
+  bool pld_use = (0 != (cycle_flags & TPF_PLD_USE));
+  bool fld_use = (0 != (cycle_flags & TPF_FLL_USE));
+  if (pld_use || fld_use) {
     bool outp_prev =
         tracker_channel->ld_phase.outp || tracker_channel->ld_freq.outp;
 
-    if (0 != (cycle_flags & TPF_PLD_USE)) {
+    if (pld_use) {
       tracker_channel->flags &= ~TRACKER_FLAG_HAS_PLOCK;
 
       if (0 != (tracker_channel->flags & TRACKER_FLAG_PLL_USE)) {
@@ -792,7 +794,7 @@ void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
       }
     }
 
-    if (0 != (cycle_flags & TPF_FLL_USE)) {
+    if (fld_use) {
       tracker_channel->flags &= ~TRACKER_FLAG_HAS_FLOCK;
       update_ld_freq(tracker_channel);
     }
@@ -841,7 +843,7 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
   if (0 != (cycle_flags & TPF_FLL_USE)) {
     tp_tl_fll_update_second(
         &tracker_channel->tl_state, tracker_channel->corrs.corr_fll, halfq);
-    tracker_channel->unfiltered_freq_error =
+    tracker_channel->unfiltered_freq_error_hz =
         tp_tl_get_fll_error(&tracker_channel->tl_state);
   }
 }

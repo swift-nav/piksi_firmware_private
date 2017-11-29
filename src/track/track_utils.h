@@ -32,7 +32,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-void freq_lock_detect_update(lock_detect_t *l, float err);
+void freq_lock_detect_update(lock_detect_t *l, float freq_err_hz);
 
 #ifdef __cplusplus
 }

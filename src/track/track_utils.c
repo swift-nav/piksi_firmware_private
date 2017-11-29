@@ -12,13 +12,13 @@
 #include "track_utils.h"
 
 /** Update the frequency lock detector with frequency error.
- * \param l   Lock detector state structure.
- * \param err Frequency error of FLL.
+ * \param l           Lock detector state structure.
+ * \param freq_err_hz Frequency error of FLL [Hz].
  *
  */
-void freq_lock_detect_update(lock_detect_t *l, float err) {
+void freq_lock_detect_update(lock_detect_t *l, float freq_err_hz) {
   /* Calculate filtered frequency error */
-  l->lpfi.y += l->k1 * (err - l->lpfi.y);
+  l->lpfi.y += l->k1 * (freq_err_hz - l->lpfi.y);
 
   /* Saturate filter */
   if (l->lpfi.y > TP_FLL_SATURATION_THRESHOLD_HZ) {
