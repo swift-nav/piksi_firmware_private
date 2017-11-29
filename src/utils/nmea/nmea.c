@@ -464,7 +464,7 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
  *  printing function.
  *
  * \note NMEA 0183 - Standard For Interfacing Marine Electronic Devices
- *       versions 3.01 and 4.10 state following:
+ *       versions 2.30, 3.01 and 4.10 state following:
  *       If only GPS, GLONASS, Galileo etc. is used for the reported position
  *       solution the talker ID is GP, GL, etc. and the DOP values pertain to
  *       the individual system. If GPS, GLONASS, Galileo etc. are combined to
@@ -609,7 +609,7 @@ static void nmea_gsv_print(const u8 n_used,
  * function.
  *
  * \note NMEA 0183 - Standard For Interfacing Marine Electronic Devices
- *       versions 3.01 and 4.10 state following:
+ *       versions 2.30, 3.01 and 4.10 state following:
  *       If multiple GPS, GLONASS, Galileo, etc. satellites are in view, use
  *       separate GSV sentences with talker ID GP to show the GPS satellites in
  *       view and talker GL to show the GLONASS satellites in view and talker GA
