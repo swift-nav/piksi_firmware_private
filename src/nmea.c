@@ -488,10 +488,10 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
   assert(sbp_dops);
   assert(nav_meas);
 
-  u8 prns_gps[GSA_MAX_SV];
-  u8 num_prns_gps = 0;
-  u8 prns_glo[GSA_MAX_SV];
-  u8 num_prns_glo = 0;
+  u8 prns_gp[GSA_MAX_SV];
+  u8 num_prns_gp = 0;
+  u8 prns_gl[GSA_MAX_SV];
+  u8 num_prns_gl = 0;
 
   /* Assemble list of currently active SVs */
   for (u8 i = 0; i < n_meas; i++) {
@@ -504,28 +504,28 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
      *   - maximum group size is GSA_MAX_SV
      *   - if SV is reported already by another signal (eg. GPS L1CA vs L2C)
      */
-    if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) && num_prns_gps < GSA_MAX_SV &&
-        !in_set(prns_gps, num_prns_gps, nmea_get_id(info.sid))) {
-      prns_gps[num_prns_gps++] = nmea_get_id(info.sid);
+    if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) && num_prns_gp < GSA_MAX_SV &&
+        !in_set(prns_gp, num_prns_gp, nmea_get_id(info.sid))) {
+      prns_gp[num_prns_gp++] = nmea_get_id(info.sid);
       continue;
     }
 
-    if (enable_glonass && IS_GLO(info.sid) && num_prns_glo < GSA_MAX_SV &&
-        !in_set(prns_glo, num_prns_glo, nmea_get_id(info.sid))) {
-      prns_glo[num_prns_glo++] = nmea_get_id(info.sid);
+    if (enable_glonass && IS_GLO(info.sid) && num_prns_gl < GSA_MAX_SV &&
+        !in_set(prns_gl, num_prns_gl, nmea_get_id(info.sid))) {
+      prns_gl[num_prns_gl++] = nmea_get_id(info.sid);
       continue;
     }
   }
 
   /* Send GSA messages */
-  if (0 != num_prns_gps && 0 != num_prns_glo) {
+  if (0 != num_prns_gp && 0 != num_prns_gl) {
     /* At least two constellations detected, use GN talker ID */
-    nmea_gsa(prns_gps, num_prns_gps, sbp_pos, sbp_dops, "GN");
-    nmea_gsa(prns_glo, num_prns_glo, sbp_pos, sbp_dops, "GN");
+    nmea_gsa(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GN");
+    nmea_gsa(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GN");
   } else {
-    nmea_gsa(prns_gps, num_prns_gps, sbp_pos, sbp_dops, "GP");
+    nmea_gsa(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
     if (enable_glonass) {
-      nmea_gsa(prns_glo, num_prns_glo, sbp_pos, sbp_dops, "GL");
+      nmea_gsa(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GL");
     }
   }
 }
