@@ -14,8 +14,8 @@
 #define SWIFTNAV_TIME_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/time.h>
 
 #include "nap/nap_constants.h"
 

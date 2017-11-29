@@ -13,7 +13,7 @@
 #ifndef SRC_NDB_UTC_H_
 #define SRC_NDB_UTC_H_
 
-#include <libswiftnav/time.h>
+#include <libswiftnav/gnss_time.h>
 #include <ndb/ndb_common.h>
 
 void ndb_utc_params_init(void);

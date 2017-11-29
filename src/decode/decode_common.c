@@ -13,9 +13,9 @@
 #include <assert.h>
 
 #include <libswiftnav/glo_map.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/time.h>
 
 #include "decode_common.h"
 #include "ephemeris.h"

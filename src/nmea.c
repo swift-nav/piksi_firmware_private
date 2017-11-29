@@ -19,9 +19,9 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/time.h>
 
 #include "board/nap/track_channel.h"
 #include "io_support.h"

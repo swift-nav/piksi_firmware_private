@@ -22,9 +22,9 @@
 #include <libsbp/system.h>
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/time.h>
 
 #include "ndb.h"
 #include "observation_biases_calibration.h"
