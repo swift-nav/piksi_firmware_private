@@ -15,6 +15,6 @@
 
 #include <libswiftnav/common.h>
 
-void rf_clk_init(void);
+void rf_clk_init(bool allow_ext_clk);
 
 #endif /* SWIFTNAV_RF_CLK_H */

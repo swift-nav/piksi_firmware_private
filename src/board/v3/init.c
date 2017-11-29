@@ -101,7 +101,9 @@ void init(void) {
   nap_dna_callback_register();
   nap_setup();
 
-  rf_clk_init();
+  /* Only boards after we started tracking HW version have working clk mux */
+  bool allow_ext_clk = factory_params.hardware_version > 0;
+  rf_clk_init(allow_ext_clk);
 
   frontend_configure();
 

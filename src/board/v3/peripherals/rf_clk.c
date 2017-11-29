@@ -38,21 +38,23 @@ static bool rf_clk_config_notify(struct setting *s, const char *val)
   {
     return false;
   }
- 
+
   antenna_configure(rf_clk_ext);
 
   return true;
 }
 
-void rf_clk_init(void)
+void rf_clk_init(bool allow_ext_clk)
 {
     /* Start DAC off at it's midpoint if present */
   set_clk_dac(2048, CLK_DAC_MODE_0);
 
   palSetLineMode(CLK_SEL_GPIO_LINE, PAL_MODE_OUTPUT);
 
-  SETTING_NOTIFY("frontend", "use_ext_clk",
-                 rf_clk_ext, TYPE_BOOL, rf_clk_config_notify);
+  if (allow_ext_clk) {
+    SETTING_NOTIFY("frontend", "use_ext_clk",
+                  rf_clk_ext, TYPE_BOOL, rf_clk_config_notify);
+  }
 
   antenna_configure(rf_clk_ext);
 
