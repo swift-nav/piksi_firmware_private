@@ -31,12 +31,12 @@
 #include "nap/nap_conf.h"
 #include "nt1065.h"
 #include "peripherals/antenna.h"
+#include "peripherals/rf_clk.h"
 #include "remoteproc/rpmsg.h"
 #include "sbp.h"
 #include "sbp_fileio.h"
 #include "system_monitor.h"
 #include "xadc.h"
-#include "peripherals/rf_clk.h"
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL NAP_VERSION
 
