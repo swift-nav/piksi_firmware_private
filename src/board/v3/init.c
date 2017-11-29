@@ -31,12 +31,12 @@
 #include "nap/nap_conf.h"
 #include "nt1065.h"
 #include "peripherals/antenna.h"
+#include "peripherals/rf_clk.h"
 #include "remoteproc/rpmsg.h"
 #include "sbp.h"
 #include "sbp_fileio.h"
 #include "system_monitor.h"
 #include "xadc.h"
-
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL NAP_VERSION
 
@@ -101,8 +101,9 @@ void init(void) {
   nap_dna_callback_register();
   nap_setup();
 
-  /* Start DAC off at it's midpoint if present */
-  set_clk_dac(2048, CLK_DAC_MODE_0);
+  /* Only boards after we started tracking HW version have working clk mux */
+  bool allow_ext_clk = factory_params.hardware_version > 0;
+  rf_clk_init(allow_ext_clk);
 
   frontend_configure();
 
