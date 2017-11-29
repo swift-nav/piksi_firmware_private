@@ -89,13 +89,13 @@ void bds_b11_to_b2_handover(u32 sample_count,
   /* compose B2 MESID: same SV, but code is B2 */
   me_gnss_signal_t mesid_B2 = construct_mesid(CODE_BDS2_B2, sat);
 
-  if (!tracking_startup_ready(mesid_B2)) {
-    //~ log_info_mesid(mesid_B2, "already in track");
-    return; /* B2 signal from the SV is already in track */
+  if (!bds_b2(mesid_B2)) {
+    return; /* B2 signal not available */
   }
 
-  if (!bds_b2b(mesid_B2)) {
-    return; /* B2 signal not available */
+  if (!tracking_startup_ready(mesid_B2)) {
+    log_debug_mesid(mesid_B2, "already in track");
+    return; /* B2 signal from the SV is already in track */
   }
 
   if (!handover_valid(code_phase, BDS2_B11_CHIPS_NUM)) {

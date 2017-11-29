@@ -84,8 +84,8 @@ static void dump_navmsg(const nav_msg_bds_t *n) {
   char bitstream[256];
   char tempstr[64];
   sprintf(bitstream, " 3 %02d 0 ", n->prn);
-  for (u8 k = 0; k < 10; k++) {
-    sprintf(tempstr, "%08" PRIx32 " ", n->subframe_bits[k]);
+  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
+    sprintf(tempstr, "%08" PRIx32 " ", n->frame_words[k]);
     strcat(bitstream, tempstr);
   }
   log_info("%s", bitstream);
