@@ -182,7 +182,9 @@ static void handle_nap_track_irq(void) {
   if (err) {
     NAP->TRK_IRQ_ERRORS0 = err0;
     NAP->TRK_IRQ_ERRORS1 = err1;
-    log_warn("Too many NAP tracking interrupts: 0x%08X%08X", err1, err0);
+    log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32,
+             err1,
+             err0);
     tracking_channels_missed_update_error(err);
   }
 

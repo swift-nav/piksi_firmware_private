@@ -466,7 +466,7 @@ static void me_calc_pvt_thread(void *arg) {
        * needed for Glonass carrier phases */
       gtemp_tc = FCN_NCO_RESET_COUNT * (epoch_tc / FCN_NCO_RESET_COUNT);
 
-      log_debug("epoch_tc %" PRIu64 " gtemp_tc %" PRIu64 " diff %d",
+      log_debug("epoch_tc %" PRIu64 " gtemp_tc %" PRIu64 " diff %" PRIu64,
                 epoch_tc,
                 gtemp_tc,
                 epoch_tc - gtemp_tc);

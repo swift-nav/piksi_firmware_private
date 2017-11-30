@@ -668,7 +668,7 @@ static void ndb_alma_wn_update_alma_file(u32 toa, u16 wn) {
     if (0 != (md[idx].nv_data.state & NDB_IE_VALID) &&
         toa == (u32)data[idx].toa.tow && WN_UNKNOWN == data[idx].toa.wn) {
       log_debug_sid(ndb_almanac[idx].sid,
-                    "NDB: updating almanac time (%" PRIu16 ", % " PRIu32 ")",
+                    "NDB: updating almanac time (%" PRIu16 ", %" PRIu32 ")",
                     wn,
                     toa);
 
@@ -977,7 +977,7 @@ ndb_op_code_t ndb_almanac_erase_by_src(gnss_signal_t src_sid) {
     ndb_op_code_t ret_internal = ndb_retrieve(
         &ndb_almanac_md[idx], &a, sizeof(a), NULL, NDB_USE_NV_ALMANAC);
     if (NDB_ERR_NONE != ret_internal) {
-      log_warn("Error " PRIu8 " reading almanac, ndb_almanac_erase_by_src",
+      log_warn("Error %" PRIu8 " reading almanac, ndb_almanac_erase_by_src",
                ret_internal);
       continue;
     }

@@ -503,7 +503,7 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
        * then save the received one. */
       log_debug_sid(
           e->sid,
-          "Saving ephemeris received over SBP v:%d [%d,%d] vs [%d,%d]",
+          "Saving ephemeris received over SBP v:%d [%d,%f] vs [%d,%f]",
           (int)valid,
           toe.wn,
           toe.tow,

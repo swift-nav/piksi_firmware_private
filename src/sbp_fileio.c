@@ -66,13 +66,12 @@ static void sbp_fileio_callback(u16 sender_id,
     closure->len = len;
     chBSemSignal(&closure->sem);
   } else {
-    log_error(
-        "sbp_fileio_callback()  sender %5u  msg->sequence %08x  closure->seq "
-        "%02x  len %3u",
-        sender_id,
-        msg->sequence,
-        closure->seq,
-        len);
+    log_error("sbp_fileio_callback()  sender %5u  msg->sequence %08" PRIx32
+              " closure->seq %02" PRIx8 " len %3" PRIu8,
+              sender_id,
+              msg->sequence,
+              closure->seq,
+              len);
   }
 }
 
@@ -125,16 +124,15 @@ ssize_t sbp_fileio_write(const char *filename,
     } while (++tries < SBP_FILEIO_TRIES);
 
     if (!success) {
-      log_error(
-          "sbp_fileio_write(): fn %s  offset %d  buf %p  size %d  tries %d  "
-          "chunksize %d   s %d",
-          dbg_filename,
-          offset,
-          buf,
-          size,
-          tries,
-          chunksize,
-          s);
+      log_error("sbp_fileio_write(): fn %s  offset %" PRIu32
+                " buf %p  size %d  tries %d  chunksize %d   s %d",
+                dbg_filename,
+                offset,
+                buf,
+                size,
+                tries,
+                chunksize,
+                s);
       s = -1;
       break;
     }

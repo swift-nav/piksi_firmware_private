@@ -391,7 +391,7 @@ static bool peak_search(const me_gnss_signal_t mesid,
   sum_mag_sq = puSumVal[(kmax + 2) % 4];
 
   if (sum_mag_sq == 0) {
-    log_error_mesid(mesid, "Acq_search: zero_noise (%u)", sum_mag_sq);
+    log_error_mesid(mesid, "Acq_search: zero_noise (%" PRIu32 ")", sum_mag_sq);
     return false;
   }
 
