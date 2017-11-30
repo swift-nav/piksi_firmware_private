@@ -690,7 +690,7 @@ static void starling_thread(void *arg) {
         &obs_mailbox, (msg_t *)&rover_channel_epoch, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
       if (NULL != rover_channel_epoch) {
-        log_error("STARLING: mailbox fetch failed with %d", ret);
+        log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
         chPoolFree(&obs_buff_pool, rover_channel_epoch);
       }
       continue;
@@ -925,7 +925,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
       u32 end = NAP->TIMING_COUNT;
-      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %d ticks",
+      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %" PRIu32 " ticks",
                 low_latency_filter_manager,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
@@ -1051,7 +1051,7 @@ static void time_matched_obs_thread(void *arg) {
 
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %d", fetch_ret);
+        log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
