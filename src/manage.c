@@ -1004,9 +1004,34 @@ static bool leap_second_is_imminent(void) {
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
+extern bool adel_utc;
 void sanitize_trackers(void) {
   const u64 now_ms = timing_getms();
   bool leap_second_event = leap_second_is_imminent();
+  static u64 last_ms = 0;
+  static u32 onoff_cnt = 0;
+
+  if (adel_utc) {
+    if (0 == last_ms) {
+      log_info("adel: started RF on/off sequence");
+      last_ms = now_ms;
+    }
+    if ((now_ms - last_ms) > 60000) {
+      last_ms = now_ms;
+      for (u8 i = 0; i < nap_track_n_channels; i++) {
+        tracker_channel_t *tracker_channel = tracker_channel_get(i);
+        u32 flags = tracker_channel->flags;
+        /* Skip channels that aren't in use */
+        if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
+          continue;
+        }
+        drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
+      }
+      onoff_cnt++;
+      log_info("adel: restarted %d times", onoff_cnt);
+      return;
+    }
+  }
 
   /* Clear GLO satellites TOW cache if it is leap second event */
   if (leap_second_event) {
