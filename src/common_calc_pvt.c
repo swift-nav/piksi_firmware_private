@@ -128,7 +128,7 @@ bool gate_covariance(gnss_solution *soln) {
 bool check_covariance(const double pos_accuracy, const double vel_accuracy) {
   if (pos_accuracy > MAX_SPP_ACCURACY_M) {
     log_warn(
-        "SPP Position suppressed due blah to position confidence of %.1f exceeding "
+        "SPP Position suppressed due to position confidence of %.1f exceeding "
         "%.0f m",
         pos_accuracy,
         MAX_SPP_ACCURACY_M);
