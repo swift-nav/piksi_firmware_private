@@ -55,7 +55,6 @@ typedef enum {
   IDX_NONE = -1,
   IDX_INIT_0,
   IDX_INIT_1,
-  IDX_INIT_2,
   IDX_1MS,
   IDX_2MS,
   IDX_5MS,
@@ -157,9 +156,9 @@ enum {
 static const tp_lock_detect_params_t ld_params[] = {
                        /*    k1,   k2, lp */
     [LD_PHASE_INI_GPS] = { 0.09f,  1.f, 50 },
-    [LD_PHASE_INI_GLO] = { 0.18f,  1.f, 70 },
+    [LD_PHASE_INI_GLO] = { 0.18f,  1.f, 80 },
     [LD_FREQ_INI_GPS]  = { 0.07f,  .6f, 50 },
-    [LD_FREQ_INI_GLO]  = { 0.18f,  .6f, 70 },
+    [LD_FREQ_INI_GLO]  = { 0.18f,  .6f, 80 },
 
     [LD_PHASE_1MS]     = { 0.09f,  .5f, 50 },
     [LD_FREQ_1MS]      = { 0.07f,  .6f, 50 },
@@ -248,25 +247,16 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       LD_PHASE_INI_GPS, LD_PHASE_INI_GLO,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED | TP_WAIT_FLOCK},
+      TP_UNAIDED},
 
   [IDX_INIT_1] =
-  { { BW_DYN,     BW_DYN,             20,   TP_CTRL_PLL3,
+  { { BW_DYN,     BW_DYN,             10,   TP_CTRL_PLL3,
          TP_TM_INITIAL,     TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
        LD_FREQ_INI_GPS,   LD_FREQ_INI_GLO,
       LD_PHASE_INI_GPS,  LD_PHASE_INI_GLO,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
-
-  [IDX_INIT_2] =
-  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-          TP_TM_1MS_GPS,  TP_TM_1MS_GLO,  TP_TM_1MS_SBAS,  TP_TM_1MS_BDS2 },
-            LD_FREQ_1MS,    LD_FREQ_1MS,
-           LD_PHASE_1MS,   LD_PHASE_1MS,
-       100,             0,            0,
-       IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_PLOCK },
 
   [IDX_1MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
