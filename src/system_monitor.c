@@ -51,6 +51,16 @@ extern const WDGConfig board_wdg_config;
 #define WATCHDOG_THREAD_PRIORITY (HIGHPRIO)
 #define WATCHDOG_THREAD_STACK (1 * 1024)
 
+/** Values controlling the check_free_stack search */
+
+#define STACK_FILL_VALUE 0x55555555
+/* the stack size to search exhaustively */
+#define STACK_FINE_SIZE_BYTES (32 * 1024)
+/* max stack size to search */
+#define STACK_MAX_SIZE_BYTES (1 << 24)
+/* step size in the granular stack search */
+#define STACK_SEARCH_STEP_BYTES 1024
+
 /* Time between sending system monitor and heartbeat messages in milliseconds */
 static uint32_t heartbeat_period_milliseconds = 1000;
 /* Use watchdog timer or not */
@@ -70,11 +80,21 @@ u64 g_ctime = 0;
 
 u32 check_stack_free(thread_t *tp) {
   u32 *stack = (u32 *)tp->p_stklimit;
-  u32 i;
-  for (i = 0; i < 65536 / sizeof(u32); i++) {
-    if (stack[i] != 0x55555555) break;
+
+  /* Search the beginning of the stack for the first touched word */
+  for (u32 i = 0; i < STACK_FINE_SIZE_BYTES / sizeof(u32); i++) {
+    if (stack[i] != STACK_FILL_VALUE) {
+      return sizeof(u32) * (i - 1);
+    }
   }
-  return 4 * (i - 1);
+  /* Search the rest of the stack more granularly */
+  for (u32 i = STACK_FINE_SIZE_BYTES; i < STACK_MAX_SIZE_BYTES / sizeof(u32);
+       i += STACK_SEARCH_STEP_BYTES / sizeof(u32)) {
+    if (stack[i] != STACK_FILL_VALUE) {
+      return sizeof(u32) * i - STACK_SEARCH_STEP_BYTES;
+    }
+  }
+  return STACK_MAX_SIZE_BYTES;
 }
 
 void send_thread_states(void) {
