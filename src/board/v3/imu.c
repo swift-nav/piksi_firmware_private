@@ -150,17 +150,17 @@ static void imu_thread(void *arg) {
     u32 tow;
     u8 tow_f;
     /* Recover the full 64 bit timing count from the 32 LSBs
-    * captured in the ISR. */
+     * captured in the ISR. */
     u64 tc = nap_sample_time_to_count(nap_tc);
 
     /* Calculate the GPS time of the observation, if possible. */
     if (get_time_quality() >= TIME_FINE) {
       /* We know the GPS time to high accuracy, this allows us to convert a
-        * timing count value into a GPS time. */
+       * timing count value into a GPS time. */
       gps_time_t t = napcount2gpstime(tc);
 
       /* Format the time of week as a fixed point value for the SBP message.
-        */
+       */
       double tow_ms = t.tow * 1000;
       tow = (u32)tow_ms;
       tow_f = (u8)round((tow_ms - tow) * 255);
@@ -172,12 +172,12 @@ static void imu_thread(void *arg) {
 
     if (new_acc && new_gyro && raw_imu_output) {
       /* Read out the IMU data and fill out the SBP message. */
-      imu_raw.acc_x = acc[0];
-      imu_raw.acc_y = acc[1];
-      imu_raw.acc_z = acc[2];
-      imu_raw.gyr_x = gyro[0];
-      imu_raw.gyr_y = gyro[1];
-      imu_raw.gyr_z = gyro[2];
+      imu_raw.acc_x = acc[1];
+      imu_raw.acc_y = acc[0];
+      imu_raw.acc_z = -acc[2];
+      imu_raw.gyr_x = gyro[1];
+      imu_raw.gyr_y = gyro[0];
+      imu_raw.gyr_z = -gyro[2];
       imu_raw.tow = tow;
       imu_raw.tow_f = tow_f;
 
