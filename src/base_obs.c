@@ -54,45 +54,14 @@ mailbox_t base_obs_mailbox;
 /** Most recent observations from the base station. */
 obss_t base_obss;
 
-/** Mutex to control access to the base station position state.
- * (#base_pos_ecef and #base_pos_known) */
+/** Mutex to control access to the base station position state. */
 MUTEX_DECL(base_pos_lock);
-/** Is the base station position known? i.e. is #base_pos_ecef valid? */
-bool base_pos_known = false;
-/** Base station known position in ECEF as sent to us by the base station in
- * the BASE_POS message.  */
-double base_pos_ecef[3];
-
-static bool old_base_pos_known = false;
-static double old_base_pos_ecef[3] = {0, 0, 0};
 
 static u32 base_obs_msg_counter = 0;
 static u8 old_base_sender_id = 0;
 
-void check_base_position_change(void) {
-  /* Check if the base position has changed and reset the RTK filter if
-   * it has.
-   */
-  if (old_base_pos_known) {
-    double base_distance = vector_distance(3, old_base_pos_ecef, base_pos_ecef);
-    if (base_distance > SURVEYED_BASE_STATION_DISTANCE_THRESHOLD) {
-      log_warn("Base station position changed. Resetting RTK filter.");
-      reset_rtk_filter();
-      base_pos_known = false;
-      memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
-    }
-  }
-  old_base_pos_known = base_pos_known;
-  MEMCPY_S(&old_base_pos_ecef,
-           sizeof(old_base_pos_ecef),
-           &base_pos_ecef,
-           sizeof(base_pos_ecef));
-}
-
 /** SBP callback for when the base station sends us a message containing its
  * known location in LLH coordinates.
- * Stores the base station position in the global #base_pos_ecef variable and
- * sets #base_pos_known to `true`.
  */
 static void base_pos_llh_callback(u16 sender_id,
                                   u8 len,
@@ -107,24 +76,21 @@ static void base_pos_llh_callback(u16 sender_id,
   }
   /*TODO: keep track of sender_id to store multiple base positions?*/
   double llh_degrees[3];
-  double llh[3];
+  double llh[3], base_pos[3];
   MEMCPY_S(llh_degrees, sizeof(llh_degrees), msg, sizeof(llh_degrees));
   llh[0] = llh_degrees[0] * D2R;
   llh[1] = llh_degrees[1] * D2R;
   llh[2] = llh_degrees[2];
+  wgsllh2ecef(llh, base_pos);
   chMtxLock(&base_pos_lock);
-  wgsllh2ecef(llh, base_pos_ecef);
-  base_pos_known = true;
-  check_base_position_change();
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_LLH, len, msg, MSG_FORWARD_SENDER_ID);
+  set_known_ref_pos(base_pos);
   chMtxUnlock(&base_pos_lock);
 }
 
 /** SBP callback for when the base station sends us a message containing its
  * known location in ECEF coordinates.
- * Stores the base station position in the global #base_pos_ecef variable and
- * sets #base_pos_known to `true`.
  */
 static void base_pos_ecef_callback(u16 sender_id,
                                    u8 len,
@@ -137,12 +103,12 @@ static void base_pos_ecef_callback(u16 sender_id,
   if (MSG_FORWARD_SENDER_ID == sender_id) {
     return;
   }
+  double base_pos[3];
+  MEMCPY_S(base_pos, sizeof(base_pos), msg, sizeof(base_pos));
   chMtxLock(&base_pos_lock);
-  MEMCPY_S(base_pos_ecef, sizeof(base_pos_ecef), msg, sizeof(base_pos_ecef));
-  base_pos_known = true;
-  check_base_position_change();
   /* Relay base station position using sender_id = 0. */
   sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
+  set_known_ref_pos(base_pos);
   chMtxUnlock(&base_pos_lock);
 }
 
@@ -254,9 +220,6 @@ static void update_obss(obss_t *new_obss) {
                new_obss->nm,
                new_obss->n * sizeof(navigation_measurement_t));
 
-      /* Assume that we don't know the known, surveyed base position for now. */
-      base_obss.has_known_pos_ecef = false;
-
       MEMCPY_S(base_obss.pos_ecef,
                sizeof(base_obss.pos_ecef),
                soln.pos_ecef,
@@ -275,49 +238,10 @@ static void update_obss(obss_t *new_obss) {
             old_base_sender_id,
             base_obss.sender_id);
         reset_rtk_filter();
-        chMtxLock(&base_pos_lock);
-        base_pos_known = false;
-        memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
-        chMtxUnlock(&base_pos_lock);
       }
       old_base_sender_id = base_obss.sender_id;
 
       base_obss.has_pos = 1;
-
-      chMtxLock(&base_pos_lock);
-      if (base_pos_known) {
-        double base_distance = vector_distance(3, soln.pos_ecef, base_pos_ecef);
-
-        if (base_distance > BASE_STATION_RESET_THRESHOLD) {
-          log_warn(
-              "Received base observation with SPP position %f m from the"
-              " surveyed position. Resetting RTK filter.",
-              base_distance);
-          reset_rtk_filter();
-          base_pos_known = false;
-          memset(&base_pos_ecef, 0, sizeof(base_pos_ecef));
-        } else {
-          /* If our known base position is consistent with our calculated base
-             SPP, save the known base position. This will be used for
-             calculating the pseudo-absolute position later. However, if the
-             difference between the two positions is larger than expected, log
-             a warning, but still use the known base position. */
-          if (base_distance > SPP_BASE_STATION_DISTANCE_THRESHOLD) {
-            log_warn(
-                "Received base observation with SPP position %f m from the"
-                " surveyed position. Check the base station position setting.",
-                base_distance);
-          }
-          MEMCPY_S(base_obss.known_pos_ecef,
-                   sizeof(base_obss.known_pos_ecef),
-                   base_pos_ecef,
-                   sizeof(base_pos_ecef));
-          base_obss.has_known_pos_ecef = true;
-        }
-      } else {
-        base_obss.has_known_pos_ecef = false;
-      }
-      chMtxUnlock(&base_pos_lock);
 
       obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
       if (new_base_obs == NULL) {

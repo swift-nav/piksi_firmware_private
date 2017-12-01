@@ -79,6 +79,7 @@ double calc_heading(const double b_ned[3]);
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void starling_calc_pvt_setup(void);
 void reset_rtk_filter(void);
+void set_known_ref_pos(const double base_pos[3]);
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
