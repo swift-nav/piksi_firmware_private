@@ -51,6 +51,11 @@ extern const WDGConfig board_wdg_config;
 #define WATCHDOG_THREAD_PRIORITY (HIGHPRIO)
 #define WATCHDOG_THREAD_STACK (1 * 1024)
 
+#define MAX_STACK_SIZE (1 << 24)
+#define STACK_FILL_VALUE 0x55555555
+/* granularity of rough stack size search in u32 words = 1024 bytes) */
+#define STACK_SEARCH_STEP 64
+
 /* Time between sending system monitor and heartbeat messages in milliseconds */
 static uint32_t heartbeat_period_milliseconds = 1000;
 /* Use watchdog timer or not */
@@ -71,10 +76,28 @@ u64 g_ctime = 0;
 u32 check_stack_free(thread_t *tp) {
   u32 *stack = (u32 *)tp->p_stklimit;
   u32 i;
-  for (i = 0; i < 65536 / sizeof(u32); i++) {
-    if (stack[i] != 0x55555555) break;
+
+  /* Find the rough size with blocks of 1024 bytes */
+  for (i = 0; i < MAX_STACK_SIZE / sizeof(u32); i += STACK_SEARCH_STEP) {
+    /* The whole block is considered free if the last word is free */
+    if (stack[i + STACK_SEARCH_STEP - 1] != STACK_FILL_VALUE) {
+      break;
+    }
   }
-  return 4 * (i - 1);
+  /* Bisect within the block to find the exact size */
+  /* The pointer to the first word of the search interval */
+  u32 a = i;
+  /* Pointer to the last word */
+  u32 b = i + STACK_SEARCH_STEP;
+  while (b - a > 1) {
+    i = (a + b) / 2;
+    if (stack[i] == STACK_FILL_VALUE) {
+      a = i;
+    } else {
+      b = i;
+    }
+  }
+  return 4 * i;
 }
 
 void send_thread_states(void) {
