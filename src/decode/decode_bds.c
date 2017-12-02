@@ -14,6 +14,7 @@
 
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg_bds.h>
+#include <libswiftnav/gnss_capabilities.h>
 
 #include "decode.h"
 #include "decode_bds.h"
@@ -83,7 +84,8 @@ static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
 static void dump_navmsg(const nav_msg_bds_t *n) {
   char bitstream[256];
   char tempstr[64];
-  sprintf(bitstream, " 3 %02d 0 ", n->prn);
+  u32 tow = (((n->frame_words[0] >> 4) << 12) | ((n->frame_words[1] >> 18) & 0xfffU)) & 0xfffffU;
+  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->prn, tow);
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     sprintf(tempstr, "%08" PRIx32 " ", n->frame_words[k]);
     strcat(bitstream, tempstr);
@@ -93,7 +95,17 @@ static void dump_navmsg(const nav_msg_bds_t *n) {
 
 static void decoder_bds_process(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data) {
+  bds_d1_decoded_data_t dd_d1nav;
+  bds_d2_decoded_data_t dd_d2nav;
+
+  assert(channel_info);
+  assert(decoder_data);
+
+  memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
+  memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
+
   bds_decoder_data_t *data = decoder_data;
+  me_gnss_signal_t mesid = channel_info->mesid;
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;
@@ -105,13 +117,17 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
     bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
     if (tlm_rx) {
       dump_navmsg(&data->nav_msg);
-      /* this is risky if there are more than 3 seconds worth of symbols
-       * in the nav buffer but it's the only way around the problem of
-       * knowing the TOW without decoding the navigation data */
+
+      s32 TOWms = BDS_TOW_INVALID;
       nav_data_sync_t from_decoder;
       tracking_channel_data_sync_init(&from_decoder);
-      gps_time_t now = get_current_gps_time();
-      from_decoder.TOW_ms = 6000.0 * rintf(now.tow / 6.0);
+      if ( bds_d2nav(mesid) ) {
+        TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
+        from_decoder.TOW_ms = TOWms - 600;
+      } else {
+        TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
+        from_decoder.TOW_ms = TOWms -  60;
+      }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
       tracking_channel_gps_data_sync(channel_info->tracking_channel,
                                      &from_decoder);

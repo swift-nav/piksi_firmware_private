@@ -323,9 +323,7 @@ typedef struct {
  * \{ */
 
 #define TRACKING_AZIMUTH_UNKNOWN 400
-#define TRACKING_ELEVATION_UNKNOWN          \
-  100 /* Ensure it will be above elev. mask \
-       */
+#define TRACKING_ELEVATION_UNKNOWN 100 /* Default to above elev. mask */
 /** GPS L1 C/A cross-correlation frequency step [hz] */
 #define L1CA_XCORR_FREQ_STEP 1000.f
 /** GPS L1 C/A CN0 threshold for whitelisting [dB-Hz] */
