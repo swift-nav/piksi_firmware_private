@@ -124,6 +124,7 @@ bool gate_covariance(gnss_solution *soln) {
   return check_covariance(pos_accuracy, vel_accuracy);
 }
 
+
 bool check_covariance(const double pos_accuracy, const double vel_accuracy) {
   if (pos_accuracy > MAX_SPP_ACCURACY_M) {
     log_warn(
