@@ -12,9 +12,9 @@
 #include <assert.h>
 #include <string.h>
 
+#include <libswiftnav/gnss_capabilities.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg_bds.h>
-#include <libswiftnav/gnss_capabilities.h>
 
 #include "decode.h"
 #include "decode_bds.h"
@@ -84,7 +84,9 @@ static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
 static void dump_navmsg(const nav_msg_bds_t *n) {
   char bitstream[256];
   char tempstr[64];
-  u32 tow = (((n->frame_words[0] >> 4) << 12) | ((n->frame_words[1] >> 18) & 0xfffU)) & 0xfffffU;
+  u32 tow = (((n->frame_words[0] >> 4) << 12) |
+             ((n->frame_words[1] >> 18) & 0xfffU)) &
+            0xfffffU;
   sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->prn, tow);
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     sprintf(tempstr, "%08" PRIx32 " ", n->frame_words[k]);
@@ -121,12 +123,12 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
       s32 TOWms = BDS_TOW_INVALID;
       nav_data_sync_t from_decoder;
       tracking_channel_data_sync_init(&from_decoder);
-      if ( bds_d2nav(mesid) ) {
+      if (bds_d2nav(mesid)) {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
         from_decoder.TOW_ms = TOWms - 600;
       } else {
         TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
-        from_decoder.TOW_ms = TOWms -  60;
+        from_decoder.TOW_ms = TOWms - 60;
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
       tracking_channel_gps_data_sync(channel_info->tracking_channel,
