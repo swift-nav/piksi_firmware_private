@@ -127,7 +127,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_info_mesid(mesid, "L2C handover done");
+      log_debug_mesid(mesid, "L2C handover done");
       break;
 
     case 1:

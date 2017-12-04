@@ -951,7 +951,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
   static const double max_freq_rate_hz_per_s =
       7. * STD_GRAVITY_ACCELERATION / 0.19;
   /* The carrier freq diff threshold we do not want to exceed */
-  static const double max_freq_diff_hz = 250;
+  static const double max_freq_diff_hz = 70;
   /* work out the time difference needed to check the actual freq rate
      against max_freq_diff_hz threshold */
   static const u32 diff_interval_ms =
@@ -970,7 +970,7 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
        So let's account for it in max_diff_hz */
     double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
     if ((fabs(diff_hz) > max_diff_hz)) {
-      log_info_mesid(
+      log_debug_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
       tracker->flags |= TRACKER_FLAG_OUTLIER;
     }

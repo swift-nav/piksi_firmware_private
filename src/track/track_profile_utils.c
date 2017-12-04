@@ -100,7 +100,7 @@ static const state_table_t mode_1ms_20ms = {
 };
 
 /**
- * 1ms tracking mode for GLO
+ * 1 ms tracking mode for GLO
  */
 static const state_table_t mode_1ms_10ms = {
   .int_ms = 1,
@@ -200,7 +200,7 @@ static const state_table_t mode_1ms_nh20ms = {
    TPF_EPL_USE | TPF_PLD_USE | TPF_FLL_USE)
 
 /**
- * 2ms integration profile for most GPS and QZSS
+ * 2 ms integration profile for most GPS and QZSS
  */
 static const state_table_t mode_2ms_20ms = {
   .int_ms = 2,

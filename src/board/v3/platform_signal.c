@@ -12,24 +12,24 @@
 
 #include "platform_signal.h"
 
-#include "track/track_bds2_b11.h"
-#include "track/track_bds2_b2.h"
-#include "track/track_glo_l1of.h"
-#include "track/track_glo_l2of.h"
 #include "track/track_gps_l1ca.h"
 #include "track/track_gps_l2c.h"
+#include "track/track_glo_l1of.h"
+#include "track/track_glo_l2of.h"
+#include "track/track_sbas_l1.h"
 #include "track/track_qzss_l1ca.h"
 #include "track/track_qzss_l2c.h"
-#include "track/track_sbas_l1.h"
+#include "track/track_bds2_b11.h"
+#include "track/track_bds2_b2.h"
 #include "track/track_sid_db.h"
 
-#include "decode/decode_bds.h"
-#include "decode/decode_glo_l1of.h"
-#include "decode/decode_glo_l2of.h"
 #include "decode/decode_gps_l1ca.h"
 #include "decode/decode_gps_l2c.h"
+#include "decode/decode_glo_l1of.h"
+#include "decode/decode_glo_l2of.h"
 #include "decode/decode_qzss_l1ca.h"
 #include "decode/decode_sbas_l1.h"
+#include "decode/decode_bds.h"
 
 #include "ndb.h"
 
@@ -39,11 +39,21 @@ void platform_track_setup(void) {
   track_gps_l2c_register();
   track_glo_l1of_register();
   track_glo_l2of_register();
+#ifdef CODE_SBAS_L1CA_SUPPORT
   track_sbas_l1_register();
-  track_bds2_b11_register();
-  track_bds2_b2_register();
+#endif
+#ifdef CODE_QZSS_L1CA_SUPPORT
   track_qzss_l1ca_register();
+#endif
+#ifdef CODE_QZSS_L2C_SUPPORT
   track_qzss_l2c_register();
+#endif
+#ifdef CODE_BDS2_B11_SUPPORT
+  track_bds2_b11_register();
+#endif
+#ifdef CODE_BDS2_B2_SUPPORT
+  track_bds2_b2_register();
+#endif
 }
 
 void platform_decode_setup(void) {
@@ -51,9 +61,15 @@ void platform_decode_setup(void) {
   decode_gps_l2c_register();
   decode_glo_l1of_register();
   decode_glo_l2of_register();
-  decode_qzss_l1ca_register();
+#ifdef CODE_SBAS_L1CA_SUPPORT
   decode_sbas_l1_register();
+#endif
+#ifdef CODE_QZSS_L1CA_SUPPORT
+  decode_qzss_l1ca_register();
+#endif
+#ifdef CODE_BDS2_B11_SUPPORT
   decode_bds_register();
+#endif
 }
 
 void platform_ndb_init(void) {
