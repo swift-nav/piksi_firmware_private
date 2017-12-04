@@ -46,8 +46,8 @@
 #define PLL_BW_MIN (10.0f)
 #define PLL_BW_MAX (20.0f)
 
-#define FLL_BW_MIN (0.75f)
-#define FLL_BW_MAX (2.75f)
+#define FLL_BW_MIN (1.5f)
+#define FLL_BW_MAX (3.0f)
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
