@@ -210,8 +210,8 @@ static void me_send_failed_obs(u8 _num_obs,
     /* estimate the current clock offset from LGF */
     double dt = gpsdifftime(_t, &lgf.position_solution.time);
     clock_offset = lgf.position_solution.clock_offset +
-                   dt * lgf.position_solution.clock_bias;
-    clock_drift = lgf.position_solution.clock_bias;
+                   dt * lgf.position_solution.clock_drift;
+    clock_drift = lgf.position_solution.clock_drift;
   }
 
   u64 ref_tc = rcvtime2napcount(_t);
@@ -645,7 +645,7 @@ static void me_calc_pvt_thread(void *arg) {
 
       log_info("first fix clk_offset %.3e clk_drift %.3e",
                current_fix.clock_offset,
-               current_fix.clock_bias);
+               current_fix.clock_drift);
 
       me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
@@ -656,10 +656,10 @@ static void me_calc_pvt_thread(void *arg) {
     if (fabs(current_fix.clock_offset) < OBS_PROPAGATION_LIMIT) {
       log_debug("clk_offset %.3e clk_drift %.3e",
                 current_fix.clock_offset,
-                current_fix.clock_bias);
+                current_fix.clock_drift);
 
       double clock_offset = current_fix.clock_offset;
-      double clock_drift = current_fix.clock_bias;
+      double clock_drift = current_fix.clock_drift;
 
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
