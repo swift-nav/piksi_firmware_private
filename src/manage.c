@@ -20,7 +20,6 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
-#include <libswiftnav/glo_map.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
@@ -506,7 +505,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
              There seems to be a sign flip somewhere in 'clock_bias'
              computation that gets compensated here */
     dopp_hint_clock =
-        -sid_to_carr_freq(orbit.e.sid) * lgf.position_solution.clock_bias;
+        -sid_to_carr_freq(orbit.e.sid) * lgf.position_solution.clock_drift;
     dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
     if (get_time_quality() >= TIME_FINE) {
       dopp_uncertainty = DOPP_UNCERT_EPHEM;
@@ -527,7 +526,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
                       lgf.position_solution.pos_ecef[0],
                       lgf.position_solution.pos_ecef[1],
                       lgf.position_solution.pos_ecef[2],
-                      lgf.position_solution.clock_bias,
+                      lgf.position_solution.clock_drift,
                       el);
       return SCORE_COLDSTART;
     }
@@ -1208,6 +1207,11 @@ static bool compute_cpo(u64 ref_tc,
     double phase = (sid_to_carr_freq(meas->sid) *
                     (raw_pseudorange / GPS_C - rcv_clk_error));
 
+    /* Remove the fractional 2-ms residual FCN contribution */
+    if (IS_GLO(meas->sid)) {
+      phase -= glo_2ms_fcn_residual(meas->sid, ref_tc);
+    }
+
     /* initialize the carrier phase offset with the pseudorange measurement */
     /* NOTE: CP sign flip - change the plus sign below */
     *carrier_phase_offset = round(meas->carrier_phase + phase);
@@ -1735,6 +1739,27 @@ u16 get_orbit_slot(const u16 fcn) {
       break;
   }
   return glo_orbit_slot;
+}
+
+/** Return GLO fractional 2ms FCN residual for signal at given NAP count
+ * \param sid gnss_signal_t to use
+ * \param ref_tc NAP counter the measurements are referenced to
+ * \return The residual in cycles
+ */
+double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc) {
+  if (!IS_GLO(sid)) {
+    return 0.0;
+  }
+
+  double carr_fcn_hz = 0;
+  if (CODE_GLO_L1OF == sid.code) {
+    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+  } else if (CODE_GLO_L2OF == sid.code) {
+    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+  }
+  u64 gtemp_tc = FCN_NCO_RESET_COUNT * (ref_tc / FCN_NCO_RESET_COUNT);
+  double gtemp_diff = (ref_tc - gtemp_tc) / NAP_FRONTEND_SAMPLE_RATE_Hz;
+  return -gtemp_diff * carr_fcn_hz;
 }
 
 /** \} */
