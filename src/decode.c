@@ -176,7 +176,7 @@ bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
   const decoder_interface_t *interface = decoder_interface_get(mesid);
   decoder_t *decoder;
   if (!available_decoder_get(interface, &decoder)) {
-    log_warn_mesid(mesid, "!available_decoder_get()");
+    log_debug_mesid(mesid, "!available_decoder_get()");
     return false;
   }
 

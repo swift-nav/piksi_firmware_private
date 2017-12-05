@@ -31,7 +31,7 @@
 #define RESULT_DIV (2048)
 #define FFT_SCALE_SCHED_CODE (0x01555555)
 #define FFT_SCALE_SCHED_SAMPLES (0x01111111)
-#define FFT_SCALE_SCHED_INV (0x01110111)
+#define FFT_SCALE_SCHED_INV (0x01111111)
 
 //~ #define FFT_SAMPLES_INPUT FFT_SAMPLES_INPUT_RF1
 
@@ -299,12 +299,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
     return false;
   }
 
-  /* Check that at least 3 doppler bins are provided,
-   * since minimum of 3 bins are searched.
-   * If less than 3, just add 2 more. */
-  if ((*doppler_bin_max - *doppler_bin_min + 1) < 3) {
-    *doppler_bin_max += 1;
-    *doppler_bin_min -= 1;
+  /* Check that at least 5 doppler bins are provided,
+   * since minimum of 5 bins are searched.
+   * If less than 5, just add 4 more. */
+  if ((*doppler_bin_max - *doppler_bin_min + 1) < 5) {
+    *doppler_bin_max += 2;
+    *doppler_bin_min -= 2;
   }
   return true;
 }

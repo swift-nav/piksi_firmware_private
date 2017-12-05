@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 - 2017 Swift Navigation Inc.
+ * Copyright (C) 2017 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -97,11 +97,11 @@ static void decoder_qzss_l1ca_process(
     tracking_channel_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
 
-    //~ log_info_mesid(channel_info->mesid, "from_decoder.TOW_ms %6d",
-    //~ from_decoder.TOW_ms);
+    log_debug_mesid(channel_info->mesid, "from_decoder.TOW_ms %6" PRId32,
+                    from_decoder.TOW_ms);
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-    tracking_channel_gps_data_sync(channel_info->tracking_channel,
-                                   &from_decoder);
+    tracking_channel_data_sync(channel_info->tracking_channel,
+                               &from_decoder);
   }
 }

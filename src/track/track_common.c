@@ -1147,54 +1147,22 @@ static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
   if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code ||
       CODE_SBAS_L1CA == mesid.code || CODE_QZS_L1CA == mesid.code ||
       CODE_BDS2_B11 == mesid.code) {
-    /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
     responsible_for_update = true;
-  } else if (CODE_GPS_L2CM == mesid.code) {
-    /* Check if corresponding GPS L1CA satellite is being tracked with valid
-     * TOW. If GPS L1CA is not tracked, then GPS L2CM updates the TOW cache.
-     */
-    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
-    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
-    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
-      responsible_for_update = false;
-    } else {
-      responsible_for_update = true;
-    }
-  } else if (CODE_GLO_L2OF == mesid.code) {
-    /* Check if corresponding GLO L1OF satellite is being tracked with valid
-     * TOW. If GLO L1OF is not tracked, then GLO L2OF updates the TOW cache.
-     */
-    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
-    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
-    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
-      responsible_for_update = false;
-    } else {
-      responsible_for_update = true;
-    }
-  } else if (CODE_QZS_L2CM == mesid.code) {
-    /* Check if corresponding QZSS L1CA satellite is being tracked with valid
-     * TOW. If QZSS L1CA is not tracked, then QZSS L2CM updates the TOW cache.
-     */
-    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
-    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
-    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
-      responsible_for_update = false;
-    } else {
-      responsible_for_update = true;
-    }
-  } else if (CODE_BDS2_B2 == mesid.code) {
-    /* Check if corresponding Beidou B1 satellite is being tracked with valid
-     * TOW. If not, then Beidou B2 updates the TOW cache.
-     */
-    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_BDS2_B11, mesid.sat);
-    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
-    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
-      responsible_for_update = false;
-    } else {
-      responsible_for_update = true;
-    }
   } else {
-    assert(!"Unsupported TOW cache code");
+    me_gnss_signal_t mesid_L1;
+    if (CODE_GPS_L2CM == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    } else if (CODE_GLO_L2OF == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+    } else if (CODE_QZS_L2CM == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
+    } else if (CODE_BDS2_B2 == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_BDS2_B11, mesid.sat);
+    } else {
+      assert(!"Unsupported TOW cache code");
+    }
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    responsible_for_update = ((NULL == trk_ch) || (TOW_UNKNOWN == trk_ch->TOW_ms));
   }
 
   /* Update TOW cache if:

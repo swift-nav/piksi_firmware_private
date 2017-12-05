@@ -92,7 +92,7 @@ static void dump_navmsg(const nav_msg_bds_t *n) {
     sprintf(tempstr, "%08" PRIx32 " ", n->frame_words[k]);
     strcat(bitstream, tempstr);
   }
-  log_info("%s", bitstream);
+  log_debug("%s", bitstream);
 }
 
 static void decoder_bds_process(const decoder_channel_info_t *channel_info,
@@ -131,8 +131,8 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
         from_decoder.TOW_ms = TOWms - 60;
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-      tracking_channel_gps_data_sync(channel_info->tracking_channel,
-                                     &from_decoder);
+      tracking_channel_data_sync(channel_info->tracking_channel,
+                                 &from_decoder);
     }
   }
   return;

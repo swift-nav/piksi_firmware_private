@@ -967,8 +967,8 @@ bool tracking_channel_nav_bit_get(tracker_channel_id_t id,
                                   nav_bit_fifo_element_t *nav_bit);
 bool tracking_channel_health_sync(tracker_channel_id_t id, u8 health);
 void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
-void tracking_channel_gps_data_sync(tracker_channel_id_t id,
-                                    nav_data_sync_t *from_decoder);
+void tracking_channel_data_sync(tracker_channel_id_t id,
+                                nav_data_sync_t *from_decoder);
 void tracking_channel_glo_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder);
 void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
