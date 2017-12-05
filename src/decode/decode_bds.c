@@ -131,8 +131,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
         from_decoder.TOW_ms = TOWms - 60;
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-      tracking_channel_data_sync(channel_info->tracking_channel,
-                                 &from_decoder);
+      tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
     }
   }
   return;

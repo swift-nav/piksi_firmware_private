@@ -1111,8 +1111,7 @@ void tracking_channel_data_sync_init(nav_data_sync_t *nav_data_sync) {
  * \param id           ID of the tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.
  */
-static void data_sync(tracker_channel_id_t id,
-                      nav_data_sync_t *from_decoder) {
+static void data_sync(tracker_channel_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
   tracker_channel_t *tracker_channel = tracker_channel_get(id);

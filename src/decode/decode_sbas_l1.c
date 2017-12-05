@@ -97,11 +97,11 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     tracking_channel_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
 
-    log_debug_mesid(channel_info->mesid, "from_decoder.TOW_ms %6" PRId32,
+    log_debug_mesid(channel_info->mesid,
+                    "from_decoder.TOW_ms %6" PRId32,
                     from_decoder.TOW_ms);
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-    tracking_channel_data_sync(channel_info->tracking_channel,
-                               &from_decoder);
+    tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 }

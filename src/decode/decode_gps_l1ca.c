@@ -435,8 +435,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     tracking_channel_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-    tracking_channel_data_sync(channel_info->tracking_channel,
-                               &from_decoder);
+    tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 
   /* Check if there is a new nav msg subframe to process. */
