@@ -30,10 +30,6 @@
  * time and local receiver time, i.e. the timer in the SwiftNAP.
  * \{ */
 
-/** Global time estimate quality state.
- * See \ref time_quality_t for possible values. */
-volatile time_quality_t time_quality = TIME_UNKNOWN;
-
 /** Clock state */
 static volatile clock_est_state_t clock_state;
 
@@ -100,6 +96,19 @@ static bool propagate_clock_state(u64 tc, double x[2], double P[2][2]) {
   return true;
 }
 
+/* Convert clock variance into a time quality level */
+static time_quality_t clock_var_to_time_quality(double clock_var) {
+  /* 6 sigma confidence limit for the clock error */
+  double clock_confidence = 6 * sqrt(clock_var);
+
+  if (clock_confidence < TIME_FINEST_THRESHOLD_S) return TIME_FINEST;
+  if (clock_confidence < TIME_FINE_THRESHOLD_S) return TIME_FINE;
+  if (clock_confidence < TIME_PROPAGATED_THRESHOLD_S) return TIME_PROPAGATED;
+  if (clock_confidence < TIME_COARSE_THRESHOLD_S) return TIME_COARSE;
+
+  return TIME_UNKNOWN;
+}
+
 /** Update GPS time estimate.
  *
  * This function uses the PVT solution to update the model relating receiver
@@ -111,8 +120,6 @@ void update_time(u64 tc, const gnss_solution *sol) {
     log_warn("Tried to adjust clock with invalid solution");
     return;
   }
-
-  time_quality_t old_quality = get_time_quality();
 
   chMtxLock(&clock_mutex);
   if (clock_state.tc == 0) {
@@ -130,12 +137,15 @@ void update_time(u64 tc, const gnss_solution *sol) {
     clock_state.P[1][1] = sol->clock_drift_var;
     chMtxUnlock(&clock_mutex);
 
+    time_quality_t time_quality =
+        clock_var_to_time_quality(clock_state.P[0][0]);
     time_t unix_t = gps2time(&sol->time);
-    log_info(
-        "(quality=%d) Time set to: %s", get_time_quality(), ctime(&unix_t));
+    log_info("(quality=%d) Time set to: %s", time_quality, ctime(&unix_t));
 
     return;
   }
+
+  time_quality_t old_quality = clock_var_to_time_quality(clock_state.P[0][0]);
   chMtxUnlock(&clock_mutex);
 
   /* a priori state estimate */
@@ -223,11 +233,10 @@ void update_time(u64 tc, const gnss_solution *sol) {
   matrix_copy(2, 2, (double *)P, (double *)clock_state.P);
   chMtxUnlock(&clock_mutex);
 
-  time_quality_t new_quality = get_time_quality();
+  time_quality_t new_quality = clock_var_to_time_quality(P[0][0]);
 
   if (new_quality != old_quality) {
-    time_t unix_t = gps2time(&t);
-    log_info("(quality=%d) Time set to: %s", new_quality, ctime(&unix_t));
+    log_info("Time quality changed: %d -> %d", old_quality, new_quality);
   }
 }
 
@@ -264,15 +273,7 @@ time_quality_t get_time_quality(void) {
     return TIME_UNKNOWN;
   }
 
-  /* 6 sigma error limit for the clock error */
-  double clock_confidence = 6 * sqrt(clock_var[0][0]);
-
-  if (clock_confidence < TIME_FINEST_THRESHOLD_S) return TIME_FINEST;
-  if (clock_confidence < TIME_FINE_THRESHOLD_S) return TIME_FINE;
-  if (clock_confidence < TIME_PROPAGATED_THRESHOLD_S) return TIME_PROPAGATED;
-  if (clock_confidence < TIME_COARSE_THRESHOLD_S) return TIME_COARSE;
-
-  return TIME_UNKNOWN;
+  return clock_var_to_time_quality(clock_var[0][0]);
 }
 
 void clock_est_init(clock_est_state_t *s) {
