@@ -55,33 +55,10 @@ static tracker_interface_list_element_t
     tracker_interface_list_element_gps_l1ca = {
         .interface = &tracker_interface_gps_l1ca, .next = 0};
 
-/**
- * Function for updating configuration on parameter change
- *
- * \param[in] s   Setting descriptor
- * \param[in] val New parameter value
- *
- * \return Update status
- */
-static bool settings_pov_speed_cof_proxy(struct setting *s, const char *val) {
-  bool res = settings_default_notify(s, val);
-
-  if (res) {
-    lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
-                              gps_l1ca_config.xcorr_cof,
-                              SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
-  }
-
-  return res;
-}
-
 /** Register GPS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
 void track_gps_l1ca_register(void) {
-  TP_TRACKER_REGISTER_CONFIG(L1CA_TRACK_SETTING_SECTION,
-                             gps_l1ca_config,
-                             settings_pov_speed_cof_proxy);
   lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
                             gps_l1ca_config.xcorr_cof,
                             SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
