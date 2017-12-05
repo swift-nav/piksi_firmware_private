@@ -477,6 +477,13 @@ static void me_calc_pvt_thread(void *arg) {
     last_stats.signals_useable = n_ready;
 
     if (n_ready == 0) {
+      gps_time_t smoothed_t = napcount2gpstime(epoch_tc);
+      double clock_drift = get_clock_drift();
+
+      log_info("RAW: %.1f, NaN, NaN, %.9f, %.9g",
+               epoch_time.tow,
+               smoothed_t.tow,
+               clock_drift);
       me_send_emptyobs();
       continue;
     }
@@ -651,11 +658,16 @@ static void me_calc_pvt_thread(void *arg) {
 
     double clock_offset = gpsdifftime(&epoch_time, &smoothed_t);
 
+    log_info("RAW: %.1f, %.9f, %.9g, %.9f, %.9g",
+             epoch_time.tow,
+             current_fix.time.tow,
+             current_fix.clock_drift,
+             smoothed_t.tow,
+             clock_drift);
+
     /* Only send observations that are closely aligned with the desired
      * solution epochs to ensure they haven't been propagated too far. */
     if (fabs(clock_offset) < OBS_PROPAGATION_LIMIT) {
-      log_debug("clk_offset %.3e clk_drift %.3e", clock_offset, clock_drift);
-
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
 
