@@ -83,19 +83,21 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
   sbas_l1_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
+  u8 channel = channel_info->tracking_channel;
   nav_bit_fifo_element_t nav_bit;
-  while (
-      tracking_channel_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (nav_bit.sensitivity_mode) {
       nav_msg_init(&data->nav_msg);
       continue;
     }
     /* Update TOW */
-    bool bit_val = nav_bit.soft_bit >= 0;
     nav_data_sync_t from_decoder;
     tracking_channel_data_sync_init(&from_decoder);
-    from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
+
+    /* TODO: implement this below using SOFT Viterbi */
+    /* s8 soft_bit = nav_bit.soft_bit; */
+    /* from_decoder.TOW_ms = sbas_nav_msg_update(&data->nav_msg, soft_bit); */
 
     log_debug_mesid(channel_info->mesid,
                     "from_decoder.TOW_ms %6" PRId32,
