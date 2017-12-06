@@ -186,16 +186,16 @@ bool soft_acq_search(const sc16_t *_cSignal,
       /* IF peak was found on the starting bin,
        * then need to check both sides of the starting bin. */
       if (doppler_bin == start_bin) {
-        loop_index = doppler_bin_max - 1; /* Make 2 more searches */
+        loop_index = doppler_bin_max - 3; /* Make 4 more searches */
       }
       /* ELSE peak was found on other than starting bin ,
        * then need to check one more bin from the same side. */
       else {
         /* Extend bin boundaries to handle situation
          * where peak is found on last positive or negative bin. */
-        doppler_bin_max += 1;
-        doppler_bin_min -= 1;
-        loop_index = doppler_bin_max; /* Make 1 more search */
+        doppler_bin_max += 2;
+        doppler_bin_min -= 2;
+        loop_index = doppler_bin_max - 2; /* Make 3 more search */
         /* Adjust ind1 and ind2 so that same frequency side is searched */
         ind1 *= -1;
         ind2 += 1;
