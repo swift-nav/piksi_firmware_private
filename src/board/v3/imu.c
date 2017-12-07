@@ -11,6 +11,7 @@
  */
 
 #include "imu.h"
+#include "main.h"
 #include <board/nap/nap_common.h>
 #include <board/v3/peripherals/bmi160.h>
 #include <ch.h>
@@ -28,6 +29,7 @@
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK 2000
 
+float BMI160_DT_LOOKUP[] = {0.04, 0.02, 0.01, 0.005};
 /** Working area for the IMU data processing thread. */
 static THD_WORKING_AREA(wa_imu_thread, IMU_THREAD_STACK);
 /** Working area for the IMU auxiliary data processing thread. */
@@ -99,6 +101,7 @@ static void imu_thread(void *arg) {
   s16 gyro[3];
   s16 mag[3];
   u32 sensor_time;
+  u32 p_sensor_time = 0;
   msg_imu_raw_t imu_raw;
 
   while (TRUE) {
@@ -132,6 +135,15 @@ static void imu_thread(void *arg) {
     }
 
     if (new_acc && new_gyro) {
+      s16 *mag_ptr = (new_mag) ? mag : NULL;
+      bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
+      double dt = (sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_SECONDS;
+      double err_pcent = (fabs(dt - BMI160_DT_LOOKUP[imu_rate])/BMI160_DT_LOOKUP[imu_rate] * 100.0);
+      if (err_pcent > BMI160_DT_ERR_THRESH && err_pcent < 100.0) {
+        log_error("IMU sampling period of %f exceeded error threshhold", dt);
+        log_error("Error registor: %u status register: %u", bmi160_read_error(), bmi160_read_status());
+      }
+      p_sensor_time = sensor_time;
       /* Read out the IMU data and fill out the SBP message. */
       imu_raw.acc_x = acc[1];
       imu_raw.acc_y = acc[0];
