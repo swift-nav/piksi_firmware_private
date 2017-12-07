@@ -2,9 +2,6 @@
 
 #include "sbas_select.h"
 
-#undef log_info
-#define log_info(...) printf(__VA_ARGS__)
-
 void log_(u8 level, const char *msg, ...) {
   (void)level;
   (void)msg;

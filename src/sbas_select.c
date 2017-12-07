@@ -109,7 +109,8 @@ static u8 get_sbas_area_index(sbas_type_t sbas) {
   if (SBAS_UNKNOWN == sbas) {
     return 0;
   }
-  for (u8 i = 0; i < ARRAY_SIZE(sbas_coverage); i++) {
+  u8 i;
+  for (i = 0; i < ARRAY_SIZE(sbas_coverage); i++) {
     if (sbas_coverage[i].sbas == sbas) {
       return i;
     }
@@ -156,7 +157,8 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
    * just return, don't check others to avoid unwanted SBAS switch */
   u8 i = get_sbas_area_index(used_sbas);
   /* go through all hardcoded SBAS area */
-  for (u8 j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
+  u8 j;
+  for (j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
     /* check if user position is in SBAS area under testing */
     if (point_in_region(sbas_coverage[i].borders,
                         lgf->position_solution.pos_llh[0],
