@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2017 Swift Navigation Inc.
- * Contact: Michele Bavaro <michele@swiftnav.com>
+ * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -9,17 +9,11 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef TRACK_BDS2_B2_H
-#define TRACK_BDS2_B2_H
+#ifndef DECODE_QZSS_L1CA_H
+#define DECODE_QZSS_L1CA_H
 
 #include <libswiftnav/common.h>
 
-void track_bds2_b2_register(void);
+void decode_qzss_l1ca_register(void);
 
-void bds_b11_to_b2_handover(u32 sample_count,
-                            u16 sat,
-                            double code_phase,
-                            double carrier_freq,
-                            float cn0_init);
-
-#endif /* TRACK_BDS2_B2_H */
+#endif /* DECODE_QZSS_L1CA_H */

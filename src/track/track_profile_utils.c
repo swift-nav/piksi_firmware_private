@@ -61,9 +61,9 @@ static const state_table_t mode_1msINI = {
    TPF_EPL_USE | TPF_PLD_USE | TPF_FLL_USE)
 
 /**
- * 1ms tracking mode for GPS: exactly as above but with bitsync
+ * 1 ms tracking mode for most GPS and QZSS: exactly as above but with bitsync
  */
-static const state_table_t mode_1ms_gps = {
+static const state_table_t mode_1ms_20ms = {
   .int_ms = 1,
   .cn0_ms = 10,
   .lockdet_ms = 1,
@@ -100,9 +100,9 @@ static const state_table_t mode_1ms_gps = {
 };
 
 /**
- * 1ms tracking mode for GLO
+ * 1 ms tracking mode for GLO
  */
-static const state_table_t mode_1ms_glo = {
+static const state_table_t mode_1ms_10ms = {
   .int_ms = 1,
   .cn0_ms = 10,
   .lockdet_ms = 1,
@@ -128,9 +128,9 @@ static const state_table_t mode_1ms_glo = {
 
 
 /**
- * 1 ms tracking mode for SBAS
+ * 1 ms tracking mode for SBAS and Beidou with D2 nav
  */
-static const state_table_t mode_1ms_sbas = {
+static const state_table_t mode_1ms_2ms = {
   .int_ms = 1,
   .cn0_ms = 2,
   .lockdet_ms = 1,
@@ -142,14 +142,14 @@ static const state_table_t mode_1ms_sbas = {
   .entries = {
     {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
     {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
-                       TPF_CN0_USE}
+                       TPF_CN0_USE | TPF_BSYNC_UPD}
   }
 };
 
 /**
- * 1ms tracking mode for Beidou2
+ * 1 ms tracking mode for Beidou with D1 nav and GPS L5
  */
-static const state_table_t mode_1ms_bds2 = {
+static const state_table_t mode_1ms_nh20ms = {
   .int_ms = 1,
   .cn0_ms = 10,
   .lockdet_ms = 1,
@@ -200,9 +200,9 @@ static const state_table_t mode_1ms_bds2 = {
    TPF_EPL_USE | TPF_PLD_USE | TPF_FLL_USE)
 
 /**
- * 2ms integration profile for GPS
+ * 2 ms integration profile for most GPS and QZSS
  */
-static const state_table_t mode_2ms_gps = {
+static const state_table_t mode_2ms_20ms = {
   .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
@@ -233,9 +233,9 @@ static const state_table_t mode_2ms_gps = {
 };
 
 /**
- * 2ms integration profile for GLO
+ * 2 ms integration profile for GLO
  */
-static const state_table_t mode_2ms_glo = {
+static const state_table_t mode_2ms_10ms = {
   .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
@@ -258,28 +258,30 @@ static const state_table_t mode_2ms_glo = {
 };
 
 /**
- * 2 ms tracking mode for SBAS
+ * 2 ms tracking mode for SBAS and Beidou with D2 nav
  */
-static const state_table_t mode_2ms_sbas = {
+static const state_table_t mode_2ms_2ms = {
   .int_ms = 2,
   .cn0_ms = 2,
   .lockdet_ms = 2,
   .alias_ms = 0, /* not used as equal to flld_ms */
-  .flld_ms = 2,
+  .flld_ms = 1,
   .flll_ms = 2,
   .bit_ms = 2,
-  .ent_cnt = 1,
+  .ent_cnt = 2,
   .entries = {
-    {2, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE |
-                                                                   TPF_FLL_HALFQ}
+    {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET
+                                                                 | TPF_FLL_USE
+                                                                 | TPF_FLL_HALFQ},
+    {1, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_SET |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE},
   }
 };
 
 /**
- * 2 ms integration profile for Beidou2
+ * 2 ms integration profile for Beidou with D1 nav and GPS L5
  */
-static const state_table_t mode_2ms_bds2 = {
+static const state_table_t mode_2ms_nh20ms = {
   .int_ms = 2,
   .cn0_ms = 10,
   .lockdet_ms = 2,
@@ -335,9 +337,9 @@ static const state_table_t mode_2ms_bds2 = {
 };
 
 /**
- * 5 ms integrations for GPS
+ * 5 ms integrations for most GPS and QZSS
  */
-static const state_table_t mode_5ms_gps = {
+static const state_table_t mode_5ms_20ms = {
   .int_ms = 5,
   .cn0_ms = 10,
   .lockdet_ms = 5,
@@ -377,7 +379,7 @@ static const state_table_t mode_5ms_gps = {
 /**
  * 5 ms integrations for GLO
  */
-static const state_table_t mode_5ms_glo = {
+static const state_table_t mode_5ms_10ms = {
   .int_ms = 5,
   .cn0_ms = 10,
   .lockdet_ms = 5,
@@ -403,9 +405,9 @@ static const state_table_t mode_5ms_glo = {
 };
 
 /**
- * 5 ms integrations for Beidou2
+ * 5 ms integrations for Beidou with D1 nav and GPS L5
  */
-static const state_table_t mode_5ms_bds2 = {
+static const state_table_t mode_5ms_nh20ms = {
   .int_ms = 5,
   .cn0_ms = 10,
   .lockdet_ms = 5,
@@ -446,9 +448,9 @@ static const state_table_t mode_5ms_bds2 = {
 };
 
 /**
- * 10 ms integrations for GPS
+ * 10 ms integrations for most GPS and QZSS
  */
-static const state_table_t mode_10ms_gps = {
+static const state_table_t mode_10ms_20ms = {
   .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 5,
@@ -481,7 +483,7 @@ static const state_table_t mode_10ms_gps = {
 /**
  * 10 ms integrations for GLO
  */
-static const state_table_t mode_10ms_glo = {
+static const state_table_t mode_10ms_10ms = {
   .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 5,
@@ -506,9 +508,9 @@ static const state_table_t mode_10ms_glo = {
 };
 
 /**
- * 10 ms integrations for Beidou2
+ * 10 ms integrations for Beidou with D1 nav and GPS L5
  */
-static const state_table_t mode_10ms_bds2 = {
+static const state_table_t mode_10ms_nh20ms = {
   .int_ms = 10,
   .cn0_ms = 10,
   .lockdet_ms = 5,
@@ -549,9 +551,9 @@ static const state_table_t mode_10ms_bds2 = {
 };
 
 /**
- * 20 ms integrations for GPS
+ * 20 ms integrations for most GPS and QZSS
  */
-static const state_table_t mode_20ms_gps = {
+static const state_table_t mode_20ms_20ms = {
   .int_ms = 20,
   .cn0_ms = 10,
   .lockdet_ms = 20,
@@ -586,9 +588,9 @@ static const state_table_t mode_20ms_gps = {
 };
 
 /**
- * 20 ms integrations for Beidou2
+ * 20 ms integrations for Beidou with D1 nav and GPS L5
  */
-static const state_table_t mode_20ms_bds2 = {
+static const state_table_t mode_20ms_nh20ms = {
   .int_ms = 20,
   .cn0_ms = 10,
   .lockdet_ms = 20,
@@ -641,53 +643,53 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
     case TP_TM_INITIAL:
       return &mode_1msINI;
 
-    case TP_TM_1MS_GPS:
-      return &mode_1ms_gps;
+    case TP_TM_1MS_20MS:
+      return &mode_1ms_20ms;
 
-    case TP_TM_1MS_GLO:
-      return &mode_1ms_glo;
+    case TP_TM_1MS_10MS:
+      return &mode_1ms_10ms;
 
-    case TP_TM_1MS_SBAS:
-      return &mode_1ms_sbas;
+    case TP_TM_1MS_2MS:
+      return &mode_1ms_2ms;
 
-    case TP_TM_1MS_BDS2:
-      return &mode_1ms_bds2;
+    case TP_TM_1MS_NH20MS:
+      return &mode_1ms_nh20ms;
 
-    case TP_TM_2MS_GPS:
-      return &mode_2ms_gps;
+    case TP_TM_2MS_20MS:
+      return &mode_2ms_20ms;
 
-    case TP_TM_2MS_GLO:
-      return &mode_2ms_glo;
+    case TP_TM_2MS_10MS:
+      return &mode_2ms_10ms;
 
-    case TP_TM_2MS_SBAS:
-      return &mode_2ms_sbas;
+    case TP_TM_2MS_2MS:
+      return &mode_2ms_2ms;
 
-    case TP_TM_2MS_BDS2:
-      return &mode_2ms_bds2;
+    case TP_TM_2MS_NH20MS:
+      return &mode_2ms_nh20ms;
 
-    case TP_TM_5MS_GPS:
-      return &mode_5ms_gps;
+    case TP_TM_5MS_20MS:
+      return &mode_5ms_20ms;
 
-    case TP_TM_5MS_GLO:
-      return &mode_5ms_glo;
+    case TP_TM_5MS_10MS:
+      return &mode_5ms_10ms;
 
-    case TP_TM_5MS_BDS2:
-      return &mode_5ms_bds2;
+    case TP_TM_5MS_NH20MS:
+      return &mode_5ms_nh20ms;
 
-    case TP_TM_10MS_GPS:
-      return &mode_10ms_gps;
+    case TP_TM_10MS_20MS:
+      return &mode_10ms_20ms;
 
-    case TP_TM_10MS_GLO:
-      return &mode_10ms_glo;
+    case TP_TM_10MS_10MS:
+      return &mode_10ms_10ms;
 
-    case TP_TM_10MS_BDS2:
-      return &mode_10ms_bds2;
+    case TP_TM_10MS_NH20MS:
+      return &mode_10ms_nh20ms;
 
-    case TP_TM_20MS_GPS:
-      return &mode_20ms_gps;
+    case TP_TM_20MS_20MS:
+      return &mode_20ms_20ms;
 
-    case TP_TM_20MS_BDS2:
-      return &mode_20ms_bds2;
+    case TP_TM_20MS_NH20MS:
+      return &mode_20ms_nh20ms;
 
     default:
       assert(!"Invalid mode");
@@ -934,55 +936,55 @@ const char *tp_get_mode_str(tp_tm_e v) {
   const char *str = "?";
   switch (v) {
     case TP_TM_INITIAL:
-      str = "TM_INI";
+      str = "TM INI";
       break;
-    case TP_TM_1MS_GPS:
-      str = "TM_1MS_GPS";
+    case TP_TM_1MS_20MS:
+      str = "TM 1/20 MS";
       break;
-    case TP_TM_1MS_GLO:
-      str = "TM_1MS_GLO";
+    case TP_TM_1MS_10MS:
+      str = "TM 1/10 MS";
       break;
-    case TP_TM_1MS_SBAS:
-      str = "TM_1MS_SBAS";
+    case TP_TM_1MS_2MS:
+      str = "TM 1/2 MS";
       break;
-    case TP_TM_1MS_BDS2:
-      str = "TM_1MS_BDS2";
+    case TP_TM_1MS_NH20MS:
+      str = "TM 1/NH20 MS";
       break;
-    case TP_TM_2MS_GPS:
-      str = "TM_2MS_GPS";
+    case TP_TM_2MS_20MS:
+      str = "TM 2/20 MS";
       break;
-    case TP_TM_2MS_GLO:
-      str = "TM_2MS_GLO";
+    case TP_TM_2MS_10MS:
+      str = "TM 2/10 MS";
       break;
-    case TP_TM_2MS_SBAS:
-      str = "TM_2MS_SBAS";
+    case TP_TM_2MS_2MS:
+      str = "TM 2/2 MS";
       break;
-    case TP_TM_2MS_BDS2:
-      str = "TM_2MS_BDS2";
+    case TP_TM_2MS_NH20MS:
+      str = "TM 2/20 MS";
       break;
-    case TP_TM_5MS_GPS:
-      str = "TM_5MS_GPS";
+    case TP_TM_5MS_20MS:
+      str = "TM 5/20 MS";
       break;
-    case TP_TM_5MS_GLO:
-      str = "TM_5MS_GLO";
+    case TP_TM_5MS_10MS:
+      str = "TM 5/10 MS";
       break;
-    case TP_TM_5MS_BDS2:
-      str = "TM_5MS_BDS2";
+    case TP_TM_5MS_NH20MS:
+      str = "TM 5/NH20 MS";
       break;
-    case TP_TM_10MS_GPS:
-      str = "TM_10MS_GPS";
+    case TP_TM_10MS_20MS:
+      str = "TM 10/20 MS";
       break;
-    case TP_TM_10MS_GLO:
-      str = "TM_10MS_GLO";
+    case TP_TM_10MS_10MS:
+      str = "TM 10/10 MS";
       break;
-    case TP_TM_10MS_BDS2:
-      str = "TM_10MS_BDS2";
+    case TP_TM_10MS_NH20MS:
+      str = "TM 10/NH20 MS";
       break;
-    case TP_TM_20MS_GPS:
-      str = "TM_20MS_GPS";
+    case TP_TM_20MS_20MS:
+      str = "TM 20/20 MS";
       break;
-    case TP_TM_20MS_BDS2:
-      str = "TM_20MS_BDS2";
+    case TP_TM_20MS_NH20MS:
+      str = "TM 20/NH20 MS";
       break;
     default:
       assert(false);

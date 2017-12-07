@@ -180,8 +180,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
     log_debug("G%02d data->cnav_msg.bit_polarity %+2d",
               channel_info->mesid.sat,
               data->cnav_msg.bit_polarity);
-    tracking_channel_gps_data_sync(channel_info->tracking_channel,
-                                   &from_decoder);
+    tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
 
     /* check PRN conformity */
     bool prn_fail = channel_info->mesid.sat != (u16)data->cnav_msg.prn;

@@ -1111,8 +1111,9 @@ static bool tow_is_bit_aligned(tracker_channel_t *tracker_channel) {
    * Current block assumes the bit sync has been reached and current
    * interval has closed a bit interval. ToW shall be aligned by bit
    * duration, which is:
-   * 20ms for GPS L1 / L2
-   * 10ms for GLO L1 / L2
+   * 20ms for GPS and QZSS L1/L2/L5, plus Beidou B1/B2 with D1 data
+   * 10ms for GLO L1/L2
+   * 2 ms for SBAS and Beidou B1/B2 with D2 data
    */
   u8 tail = tracker_channel->TOW_ms % bit_length;
   if (0 != tail) {
@@ -1143,33 +1144,26 @@ static bool should_update_tow_cache(const tracker_channel_t *tracker_channel) {
   bool tow_is_known = (TOW_UNKNOWN != tracker_channel->TOW_ms);
   bool responsible_for_update = false;
 
-  if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code) {
-    /* GPS L1CA and GLO L1OF are always responsible for TOW cache updates. */
+  if (CODE_GPS_L1CA == mesid.code || CODE_GLO_L1OF == mesid.code ||
+      CODE_SBAS_L1CA == mesid.code || CODE_QZS_L1CA == mesid.code ||
+      CODE_BDS2_B11 == mesid.code) {
     responsible_for_update = true;
-  } else if (CODE_GPS_L2CM == mesid.code) {
-    /* Check if corresponding GPS L1CA satellite is being tracked with valid
-     * TOW. If GPS L1CA is not tracked, then GPS L2CM updates the TOW cache.
-     */
-    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
-    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
-    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
-      responsible_for_update = false;
-    } else {
-      responsible_for_update = true;
-    }
-  } else if (CODE_GLO_L2OF == mesid.code) {
-    /* Check if corresponding GLO L1OF satellite is being tracked with valid
-     * TOW. If GLO L1OF is not tracked, then GLO L2OF updates the TOW cache.
-     */
-    me_gnss_signal_t mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
-    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
-    if ((NULL != trk_ch) && (TOW_UNKNOWN != trk_ch->TOW_ms)) {
-      responsible_for_update = false;
-    } else {
-      responsible_for_update = true;
-    }
   } else {
-    assert(!"Unsupported TOW cache code");
+    me_gnss_signal_t mesid_L1;
+    if (CODE_GPS_L2CM == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GPS_L1CA, mesid.sat);
+    } else if (CODE_GLO_L2OF == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_GLO_L1OF, mesid.sat);
+    } else if (CODE_QZS_L2CM == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_QZS_L1CA, mesid.sat);
+    } else if (CODE_BDS2_B2 == mesid.code) {
+      mesid_L1 = construct_mesid(CODE_BDS2_B11, mesid.sat);
+    } else {
+      assert(!"Unsupported TOW cache code");
+    }
+    tracker_channel_t *trk_ch = tracker_channel_get_by_mesid(mesid_L1);
+    responsible_for_update =
+        ((NULL == trk_ch) || (TOW_UNKNOWN == trk_ch->TOW_ms));
   }
 
   /* Update TOW cache if:

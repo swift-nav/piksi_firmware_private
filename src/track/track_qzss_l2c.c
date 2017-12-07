@@ -88,14 +88,9 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
   me_gnss_signal_t mesid = construct_mesid(CODE_QZS_L2CM, sat);
 
   if (!tracking_startup_ready(mesid)) {
+    log_debug_mesid(mesid, "already in track");
     return; /* L2C signal from the SV is already in track */
   }
-
-  //~ u32 capb;
-  //~ ndb_qzss_l2cm_l2c_cap_read(&capb);
-  //~ if (0 == (capb & ((u32)1 << (sat - 1)))) {
-  //~ return;
-  //~ }
 
   if (!handover_valid(code_phase, QZS_L1CA_CHIPS_NUM)) {
     log_warn_mesid(

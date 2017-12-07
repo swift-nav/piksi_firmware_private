@@ -48,7 +48,7 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
                             float cf_bin_width,
                             s16 *doppler_bin_min,
                             s16 *doppler_bin_max);
-static bool ifft_operations(s16 doppler_bin,
+static void ifft_operations(s16 doppler_bin,
                             float cf_bin_width,
                             u32 fft_len,
                             float fft_bin_width,
@@ -119,6 +119,27 @@ bool soft_acq_search(const sc16_t *_cSignal,
   MEMCPY_S(sample_fft, sizeof(sample_fft), _cSignal, sizeof(sc16_t) * fft_len);
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
 
+  /* simple notch filter */
+  if (CODE_BDS2_B11 == mesid.code) {
+    //~ log_info_mesid(mesid, "%.1f %.1f %.1f %.1f %.1f",
+    //~ (float)sample_fft[11855].r * (float)sample_fft[11855].r +
+    //(float)sample_fft[11855].i * (float)sample_fft[11855].i,
+    //~ (float)sample_fft[11856].r * (float)sample_fft[11856].r +
+    //(float)sample_fft[11856].i * (float)sample_fft[11856].i,
+    //~ (float)sample_fft[11857].r * (float)sample_fft[11857].r +
+    //(float)sample_fft[11857].i * (float)sample_fft[11857].i,
+    //~ (float)sample_fft[11858].r * (float)sample_fft[11858].r +
+    //(float)sample_fft[11858].i * (float)sample_fft[11858].i,
+    //~ (float)sample_fft[11859].r * (float)sample_fft[11859].r +
+    //(float)sample_fft[11859].i * (float)sample_fft[11859].i);
+    sample_fft[11857].r = 0;
+    sample_fft[11857].i = 0;
+    sample_fft[11858].r = 0;
+    sample_fft[11858].i = 0;
+    sample_fft[11859].r = 0;
+    sample_fft[11859].i = 0;
+  }
+
   /* Search for peak */
   acq_peak_search_t peak = {0};
   s16 doppler_bin_min = 0;
@@ -163,15 +184,13 @@ bool soft_acq_search(const sc16_t *_cSignal,
     loop_index += 1;
 
     /* Multiply and do IFFT */
-    if (!ifft_operations(doppler_bin,
-                         cf_bin_width,
-                         fft_len,
-                         fft_bin_width,
-                         code_fft,
-                         sample_fft,
-                         &doppler)) {
-      return false;
-    }
+    ifft_operations(doppler_bin,
+                    cf_bin_width,
+                    fft_len,
+                    fft_bin_width,
+                    code_fft,
+                    sample_fft,
+                    &doppler);
 
     /* Find highest peak of the current doppler bin */
     if (!peak_search(
@@ -186,16 +205,16 @@ bool soft_acq_search(const sc16_t *_cSignal,
       /* IF peak was found on the starting bin,
        * then need to check both sides of the starting bin. */
       if (doppler_bin == start_bin) {
-        loop_index = doppler_bin_max - 1; /* Make 2 more searches */
+        loop_index = doppler_bin_max - 3; /* Make 4 more searches */
       }
       /* ELSE peak was found on other than starting bin ,
        * then need to check one more bin from the same side. */
       else {
         /* Extend bin boundaries to handle situation
          * where peak is found on last positive or negative bin. */
-        doppler_bin_max += 1;
-        doppler_bin_min -= 1;
-        loop_index = doppler_bin_max; /* Make 1 more search */
+        doppler_bin_max += 2;
+        doppler_bin_min -= 2;
+        loop_index = doppler_bin_max - 2; /* Make 3 more search */
         /* Adjust ind1 and ind2 so that same frequency side is searched */
         ind1 *= -1;
         ind2 += 1;
@@ -209,6 +228,7 @@ bool soft_acq_search(const sc16_t *_cSignal,
    * all of the false acquisitions. */
   /* TODO: Check later if this can be removed. */
   if (0 == peak.sample_offset) {
+    log_debug_mesid(mesid, "false acq");
     return false;
   }
 
@@ -216,6 +236,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
 
   /* Compute code phase */
   float cp = chips_per_sample * corrected_sample_offset;
+  log_debug_mesid(
+      mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
 
   /* Set output */
   acq_result->cp = cp;
@@ -277,12 +299,12 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
     return false;
   }
 
-  /* Check that at least 3 doppler bins are provided,
-   * since minimum of 3 bins are searched.
-   * If less than 3, just add 2 more. */
-  if ((*doppler_bin_max - *doppler_bin_min + 1) < 3) {
-    *doppler_bin_max += 1;
-    *doppler_bin_min -= 1;
+  /* Check that at least 5 doppler bins are provided,
+   * since minimum of 5 bins are searched.
+   * If less than 5, just add 4 more. */
+  if ((*doppler_bin_max - *doppler_bin_min + 1) < 5) {
+    *doppler_bin_max += 2;
+    *doppler_bin_min -= 2;
   }
   return true;
 }
@@ -297,10 +319,8 @@ static bool get_bin_min_max(const me_gnss_signal_t mesid,
  * \param[in]     _pSampleFft    Sample FFT
  * \param[in]     fft_len_log2  FFT length
  * \param[in,out] doppler       Actual doppler of current frequency bin [Hz]
- * \retval true  Success
- * \retval false Failure
  */
-static bool ifft_operations(s16 doppler_bin,
+static void ifft_operations(s16 doppler_bin,
                             float cf_bin_width,
                             u32 fft_len,
                             float fft_bin_width,
@@ -328,8 +348,6 @@ static bool ifft_operations(s16 doppler_bin,
 
   /* Inverse FFT */
   DoBwdIntFFTr2(&sFftConfig, result_fft, FFT_SCALE_SCHED_INV, 1);
-
-  return true;
 }
 
 /** Read IFFT results from NAP and compute cn0 of highest peak.
@@ -368,6 +386,8 @@ static bool peak_search(const me_gnss_signal_t mesid,
   /* For constellations with frequent symbol transitions,
    * accumulate non-coherently */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+    result_mag[0] = 0;
+    result_mag[1] = 0;
     u8 non_coh = array_sz / CODE_SPMS;
     for (u32 m = 1; m < non_coh; m++) {
       for (u32 h = 0; h < CODE_SPMS; h++) {
@@ -398,6 +418,14 @@ static bool peak_search(const me_gnss_signal_t mesid,
   /* Compute C/N0 */
   snr = (float)peak_mag_sq / ((float)sum_mag_sq / (CODE_SPMS / 4));
   cn0 = 10.0f * log10f(snr * PLATFORM_CN0_EST_BW_HZ * fft_bin_width);
+
+  /* artificially pump the C/N0 for non-coherent as MEAN is not STD */
+  if (CODE_SBAS_L1CA == mesid.code) {
+    cn0 += 4.0;
+  }
+  if (CODE_BDS2_B11 == mesid.code) {
+    cn0 += 4.0;
+  }
 
   if (cn0 > peak->cn0) {
     /* New max peak found */

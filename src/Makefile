@@ -307,7 +307,7 @@ DINCDIR =
 DLIBDIR = $(LIBSBP_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/src \
           $(LIBSWIFTNAV_BUILDDIR)/libfec \
-	  $(LIBSWIFTNAV_BUILDDIR)/refactor/common \
+          $(LIBSWIFTNAV_BUILDDIR)/refactor/common \
           $(BOARDLIBDIR)
 
 # List all default libraries here

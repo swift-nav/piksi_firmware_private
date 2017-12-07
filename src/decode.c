@@ -169,12 +169,14 @@ bool decoder_channel_available(u8 tracking_channel,
 bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
   decoder_channel_t *d = decoder_channel_get(tracking_channel);
   if (decoder_channel_state_get(d) != DECODER_CHANNEL_STATE_DISABLED) {
+    log_debug_mesid(mesid, "DECODER_CHANNEL_STATE_DISABLED");
     return false;
   }
 
   const decoder_interface_t *interface = decoder_interface_get(mesid);
   decoder_t *decoder;
   if (!available_decoder_get(interface, &decoder)) {
+    log_debug_mesid(mesid, "!available_decoder_get()");
     return false;
   }
 
