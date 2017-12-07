@@ -37,15 +37,12 @@ static volatile clock_est_state_t clock_state;
 static MUTEX_DECL(clock_mutex);
 
 /** Process noise parameters for clock state Kalman filter */
-#define CLOCK_BIAS_VAR 1e-20
-#define CLOCK_DRIFT_VAR 1e-25
-/* Clock drift variance estimates are a bit over-optimistic, downgrade them a
- * bit */
-#define CLOCK_DRIFT_MEAS_VAR_COEF 4
+#define CLOCK_BIAS_VAR 1e-19
+#define CLOCK_DRIFT_VAR 1e-23
 
 /* default value for clock drift when not solved */
-#define NOMINAL_CLOCK_DRIFT -8.5e-7;
-#define NOMINAL_CLOCK_DRIFT_VAR 1e-14;
+#define NOMINAL_CLOCK_DRIFT -1e-6;
+#define NOMINAL_CLOCK_DRIFT_VAR 1e-13;
 
 /* The thresholds for time qualities */
 #define TIME_COARSE_THRESHOLD_S 10e-3
@@ -98,8 +95,8 @@ static bool propagate_clock_state(u64 tc, double x[2], double P[2][2]) {
 
 /* Convert clock variance into a time quality level */
 static time_quality_t clock_var_to_time_quality(double clock_var) {
-  /* 6 sigma confidence limit for the clock error */
-  double clock_confidence = 6 * sqrt(clock_var);
+  /* 3 sigma confidence limit for the clock error */
+  double clock_confidence = 3 * sqrt(clock_var);
 
   if (clock_confidence < TIME_FINEST_THRESHOLD_S) return TIME_FINEST;
   if (clock_confidence < TIME_FINE_THRESHOLD_S) return TIME_FINE;
@@ -161,7 +158,7 @@ void update_time(u64 tc, const gnss_solution *sol) {
   R[0][0] = sol->clock_offset_var;
   R[0][1] = 0;
   R[1][0] = 0;
-  R[1][1] = CLOCK_DRIFT_MEAS_VAR_COEF * sol->clock_drift_var;
+  R[1][1] = sol->clock_drift_var;
 
   /* Innovation */
   double inno[2];
