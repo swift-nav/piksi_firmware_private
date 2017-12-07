@@ -164,17 +164,9 @@ void sbp_send_ndb_event(u8 event,
 #define MSG_OBS_FLAGS_MEAS_DOPPLER_VALID ((u8)(1 << 3))
 #define MSG_OBS_FLAGS_RAIM_EXCLUSION ((u8)(1 << 7))
 
-#define MSG_GLO_BIASES_MULTIPLIER ((double)5e1)
-
 #define MSG_HEADING_SCALE_FACTOR 1000.0
 
 #define MSG_FORWARD_SENDER_ID 0
-
-void unpack_glonass_biases_content(const msg_glo_biases_t msg,
-                                   glo_biases_t *glonass_biases);
-
-void pack_glonass_biases_content(const glo_biases_t glonass_biases,
-                                 msg_glo_biases_t *msg);
 
 void unpack_obs_header(const observation_header_t *msg,
                        gps_time_t *t,

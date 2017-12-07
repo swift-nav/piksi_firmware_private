@@ -13,6 +13,7 @@
 #define OBSERVATION_BIASES_CALIBRATION_H
 #include <assert.h>
 #include <libswiftnav/glo_map.h>
+#include <libswiftnav/glonass_phase_biases.h>
 #include "base_obs.h"
 #include "sbp.h"
 #include "timing.h"
@@ -59,21 +60,6 @@ static const double gps_l2_isc = -1.95;
  * */
 static const double glo_l1_carrier_phase_bias = -0.07 / 8;
 static const double glo_l2_carrier_phase_bias = 0;
-
-/* This following constants describes the biases that will be sent through
- * SBP_MSG_GLO_BIASES in the sbp stream. Biases are to be expressed in meters
- * and are not quantized
- */
-typedef struct {
-  u8 mask;       /**< GLONASS FDMA signals mask [boolean] */
-  s16 l1of_bias; /**< GLONASS L1 OF Code-Phase Bias [m] */
-  s16 l1p_bias;  /**< GLONASS L1 P Code-Phase Bias [m] */
-  s16 l2of_bias; /**< GLONASS L2 OF Code-Phase Bias [m] */
-  s16 l2p_bias;  /**< GLONASS L2 P Code-Phase Bias [m] */
-} glo_biases_t;
-
-static const glo_biases_t piksi_glonass_biases = {
-    .mask = 255, .l1of_bias = 0, .l1p_bias = 0, .l2of_bias = 0, .l2p_bias = 0};
 
 void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]);
 
