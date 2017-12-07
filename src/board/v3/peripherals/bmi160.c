@@ -17,7 +17,6 @@
 #include <string.h>
 
 static const SPIConfig spi_config = IMU_SPI_CONFIG;
-
 #define SPI_READ_MASK (1 << 7)
 
 /** Open and lock the SPI but that the BMI160 is on. */
@@ -240,7 +239,7 @@ void bmi160_get_data(s16 acc[static 3],
   }
   memcpy(gyro, &buf[1 + BMI160_DATA_GYRO_OFFSET], 2 * 3);
   memcpy(acc, &buf[1 + BMI160_DATA_ACC_OFFSET], 2 * 3);
-  *sensor_time = 0;
+  *sensor_time = 0x00FFFFFF; //maxint represents invalid time
   memcpy(sensor_time, &buf[1 + BMI160_DATA_TIME_OFFSET], 3);
 }
 
