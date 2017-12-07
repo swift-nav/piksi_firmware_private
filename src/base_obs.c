@@ -17,6 +17,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/glonass_phase_biases.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
@@ -56,6 +57,9 @@ obss_t base_obss;
 
 /** Mutex to control access to the base station position state. */
 MUTEX_DECL(base_pos_lock);
+
+/** Mutex to control access to the base station glonass biases. */
+MUTEX_DECL(base_glonass_biases_lock);
 
 static u32 base_obs_msg_counter = 0;
 static u8 old_base_sender_id = 0;
@@ -110,6 +114,30 @@ static void base_pos_ecef_callback(u16 sender_id,
   sbp_send_msg_(SBP_MSG_BASE_POS_ECEF, len, msg, MSG_FORWARD_SENDER_ID);
   set_known_ref_pos(base_pos);
   chMtxUnlock(&base_pos_lock);
+}
+
+/** SBP callback for when the base station sends us a message containing its
+ * known GLONASS code-phase bias (RTCM 1230).
+ */
+static void base_glonass_biases_callback(u16 sender_id,
+                                         u8 len,
+                                         u8 msg[],
+                                         void *context) {
+  (void)context;
+  (void)len;
+  /* Skip forwarded sender_ids. See note in obs_callback about echo'ing
+   * sender_id. */
+  if (MSG_FORWARD_SENDER_ID == sender_id) {
+    return;
+  }
+  glo_biases_t biases;
+  unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
+
+  chMtxLock(&base_glonass_biases_lock);
+  /* Relay base station GLONASS biases using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
+  set_known_glonass_biases(biases);
+  chMtxUnlock(&base_glonass_biases_lock);
 }
 
 static inline bool not_l2p_sid(navigation_measurement_t a) {
@@ -512,6 +540,11 @@ void base_obs_setup() {
   static sbp_msg_callbacks_node_t base_pos_ecef_node;
   sbp_register_cbk(
       SBP_MSG_BASE_POS_ECEF, &base_pos_ecef_callback, &base_pos_ecef_node);
+
+  static sbp_msg_callbacks_node_t base_glonass_biases_node;
+  sbp_register_cbk(SBP_MSG_GLO_BIASES,
+                   &base_glonass_biases_callback,
+                   &base_glonass_biases_node);
 
   static sbp_msg_callbacks_node_t obs_packed_node;
   sbp_register_cbk(SBP_MSG_OBS, &obs_callback, &obs_packed_node);
