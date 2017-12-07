@@ -754,27 +754,6 @@ typedef struct {
   }
 
 /**
- * Registers common configuration parameters for a tracker section.
- *
- * \param[in]     section Configuration section name.
- * \param[in,out] config  Tracker parameters container.
- * \param[in]     proxy   Function pointer for handling parameter updates.
- *
- * \return None
- */
-#define TP_TRACKER_REGISTER_CONFIG(section, config, proxy)                \
-  do {                                                                    \
-    SETTING((section),                                                    \
-            "show_unconfirmed",                                           \
-            (config).show_unconfirmed_trackers,                           \
-            TYPE_BOOL);                                                   \
-    SETTING_NOTIFY(                                                       \
-        (section), "xcorr_cof", (config).xcorr_cof, TYPE_FLOAT, (proxy)); \
-    SETTING((section), "xcorr_delta", (config).xcorr_delta, TYPE_FLOAT);  \
-    SETTING((section), "xcorr_time", (config).xcorr_time, TYPE_FLOAT);    \
-  } while (0)
-
-/**
  * Tracking loop data.
  *
  * This structure contains tracking parameters required for profile changing

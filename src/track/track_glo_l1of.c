@@ -57,9 +57,6 @@ static tracker_interface_list_element_t tracker_interface_list_glo_l1of = {
  *  framework.
  */
 void track_glo_l1of_register(void) {
-  TP_TRACKER_REGISTER_CONFIG(
-      GLO_L1CA_TRACK_SETTING_SECTION, glo_l1of_config, settings_default_notify);
-
   tracker_interface_register(&tracker_interface_list_glo_l1of);
 }
 
