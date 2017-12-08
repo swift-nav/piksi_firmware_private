@@ -180,6 +180,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
+        $(SWIFTNAV_ROOT)/src/sbas_select.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c

@@ -38,6 +38,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I../libswiftnav/include
 INCLUDE_DIRS += -I../libswiftnav/refactor/common
 INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
+INCLUDE_DIRS += -I../libswiftnav/libfec/include
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
@@ -95,5 +96,11 @@ piksi_systime.o : $(USER_SRC_DIR)/piksi_systime.h $(USER_SRC_DIR)/chconf.h ./ch.
 test_piksi_systime.o : $(TEST_DIR)/test_piksi_systime.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_piksi_systime.cc
 
-run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o gtest_main.a
+sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/sbas_select.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/sbas_select.c
+
+test_sbas_select.o : $(TEST_DIR)/test_sbas_select.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_sbas_select.cc
+
+run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o sbas_select.o test_sbas_select.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
