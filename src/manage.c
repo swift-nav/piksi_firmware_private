@@ -586,8 +586,12 @@ static acq_status_t *choose_acq_sat(void) {
   u32 total_score = 0;
   gps_time_t t = get_current_time();
 
+  /* Prevent SBAS in normal acquisition. Current design document specifies that
+   * SBAS is only searched in re-acquisition.
+   * https://paper.dropbox.com/doc/SBAS-Task-Plan-10FUSrKqc1nZybQ2JYvN9 */
   for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
     if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
+        (CODE_SBAS_L1CA == acq_status[i].mesid.code) ||
         (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
       continue;
     }
@@ -1689,6 +1693,30 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
  * @return true if GLONASS enabled, otherwise false
  */
 bool is_glo_enabled(void) { return glo_enabled; }
+
+/** Checks if SBAS enabled
+ *
+ * @return true if SBAS enabled, otherwise false
+ */
+bool is_sbas_enabled(void) { return sbas_enabled; }
+
+/** Checks if BDS2 enabled
+ *
+ * @return true if BDS2 enabled, otherwise false
+ */
+bool is_bds2_enabled(void) { return bds2_enabled; }
+
+/** Checks if QZSS enabled
+ *
+ * @return true if QZSS enabled, otherwise false
+ */
+bool is_qzss_enabled(void) { return qzss_enabled; }
+
+/** Checks if GAL enabled
+ *
+ * @return true if GAL enabled, otherwise false
+ */
+bool is_galileo_enabled(void) { return galileo_enabled; }
 
 /**
  * The function retrieves the GLO orbit slot, if the mapping to a FCN exists

@@ -59,6 +59,14 @@ void sm_init(acq_jobs_state_t *data) {
 
       data->jobs_glo[type][i].job_type = type;
     }
+    for (i = 0; i < NUM_SATS_SBAS; i++) {
+      data->jobs_sbas[type][i].sid =
+          construct_sid(CODE_SBAS_L1CA, SBAS_FIRST_PRN + i);
+      /* for SBAS SID it's just copy of MESID */
+      data->jobs_sbas[type][i].mesid =
+          construct_mesid(CODE_SBAS_L1CA, SBAS_FIRST_PRN + i);
+      data->jobs_sbas[type][i].job_type = type;
+    }
   }
   /* When constellation is initialized with CONSTELLATION_INVALID,
    * sm_constellation_select() will choose GPS as the first constellation. */
@@ -82,7 +90,7 @@ static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data) {
 
     assert(mesid_valid(mesid));
     assert(sid_valid(sid));
-    assert(!IS_GLO(mesid));
+    assert(IS_GPS(mesid));
 
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
@@ -162,6 +170,47 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
   } /* loop SVs */
 }
 
+/** Checks if deep searches need to run for SBAS SV
+ *
+ * \param jobs_data pointer to job data
+ *
+ * \return none
+ */
+static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
+  u32 i;
+  for (i = 0; i < NUM_SATS_SBAS; i++) {
+    acq_job_t *deep_job = &jobs_data->jobs_sbas[ACQ_JOB_DEEP_SEARCH][i];
+    me_gnss_signal_t mesid = deep_job->mesid;
+    gnss_signal_t sid = deep_job->sid;
+
+    bool visible, known;
+
+    assert(mesid_valid(mesid));
+    assert(sid_valid(sid));
+    assert(IS_SBAS(mesid));
+
+    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
+
+    /* Initialize jobs to not run */
+    deep_job->needs_to_run = false;
+
+    /* Check if jobs need to run */
+    if (mesid_is_tracked(mesid)) {
+      continue;
+    }
+
+    sm_get_visibility_flags(sid, &visible, &known);
+    visible = visible && known;
+
+    if (visible) {
+      deep_job->cost_hint = ACQ_COST_MIN;
+      deep_job->cost_delta = 0;
+      deep_job->needs_to_run = true;
+      deep_job->oneshot = false;
+    }
+  } /* loop SVs */
+}
+
 /** Checks if fallback searches need to run for GPS SV
  *
  * \param jobs_data pointer to job data
@@ -184,7 +233,7 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
     assert(mesid_valid(mesid));
-    assert(!IS_GLO(mesid));
+    assert(IS_GPS(mesid));
 
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
@@ -296,26 +345,173 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
   } /* loop SVs */
 }
 
+/** Checks if fallback searches need to run for SBAS SV
+ *
+ * \param jobs_data pointer to job data
+ * \param now_ms current time (ms)
+ * \param lgf_age_ms age of the last good fix (ms)
+ *
+ * \return none
+ */
+static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
+                                        u64 now_ms,
+                                        u64 lgf_age_ms) {
+  u32 i;
+  for (i = 0; i < NUM_SATS_SBAS; i++) {
+    acq_job_t *fallback_job = &jobs_data->jobs_sbas[ACQ_JOB_FALLBACK_SEARCH][i];
+    me_gnss_signal_t mesid = fallback_job->mesid;
+    gnss_signal_t sid = fallback_job->sid;
+
+    bool visible, invisible, known;
+
+    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
+
+    assert(mesid_valid(mesid));
+    assert(IS_SBAS(mesid));
+
+    /* Initialize jobs to not run */
+    fallback_job->needs_to_run = false;
+
+    /* Check if jobs need to run */
+    if (mesid_is_tracked(mesid)) {
+      continue;
+    }
+
+    sm_get_visibility_flags(sid, &visible, &known);
+    visible = visible && known;
+    invisible = !visible && known;
+
+    if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+        now_ms - fallback_job->stop_time >
+            ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+      fallback_job->cost_hint = ACQ_COST_AVG;
+      fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
+      fallback_job->needs_to_run = true;
+      fallback_job->oneshot = true;
+    } else if (!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
+               now_ms - fallback_job->stop_time >
+                   ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
+      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
+      fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
+      fallback_job->needs_to_run = true;
+      fallback_job->oneshot = true;
+    } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
+               now_ms - fallback_job->stop_time >
+                   ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
+      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
+      fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
+      fallback_job->needs_to_run = true;
+      fallback_job->oneshot = true;
+    }
+  } /* loop SVs */
+}
+
+/**
+ * Check if constellation is scheduled for reacq, based on priority mask bit.
+ *
+ * The method extracts the scheduling bit from the priority mask.
+ *
+ * \return true  if constellation is scheduled (mask bit is 1).
+ *         false otherwise
+ */
+bool check_priority_mask(reacq_prio_level_t prio_level,
+                         acq_jobs_state_t *jobs_data) {
+  u32 priority_mask = 0;
+  switch (prio_level) {
+    case REACQ_NORMAL_PRIO:
+      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_normal_prio));
+      priority_mask = reacq_normal_prio[jobs_data->constellation];
+      break;
+
+    case REACQ_LOW_PRIO:
+      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_low_prio));
+      priority_mask = reacq_low_prio[jobs_data->constellation];
+      break;
+
+    case REACQ_PRIO_COUNT:
+    default:
+      assert(!"Unsupported re-acq priority mask");
+  }
+
+  priority_mask >>= (REACQ_PRIORITY_CYCLE - jobs_data->priority_counter);
+  priority_mask &= 0x1;
+  return priority_mask;
+}
+
+/**
+ * Check if given constellation is supported.
+ *
+ * \return true  if constellation is supported.
+ *         false otherwise
+ */
+bool is_constellation_enabled(constellation_t con) {
+  switch (con) {
+    case CONSTELLATION_GPS:
+      return true;
+      break;
+
+    case CONSTELLATION_SBAS:
+      return is_sbas_enabled();
+      break;
+
+    case CONSTELLATION_GLO:
+      return is_glo_enabled();
+      break;
+
+    case CONSTELLATION_BDS2:
+      return is_bds2_enabled();
+      break;
+
+    case CONSTELLATION_QZS:
+      return is_qzss_enabled();
+      break;
+
+    case CONSTELLATION_GAL:
+      return is_galileo_enabled();
+      break;
+
+    case CONSTELLATION_INVALID:
+    case CONSTELLATION_COUNT:
+    default:
+      assert(!"Unsupported reacq constellation!");
+      break;
+  }
+  return false;
+}
+
+/**
+ * Check if current constellation is supported and scheduled for reacqusition.
+ *
+ * \return true  if constellation is supported and scheduled.
+ *         false otherwise
+ */
+bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
+  /* TODO: Add logic to select priority level based on tracked GPS count. */
+  reacq_prio_level_t prio_level = REACQ_NORMAL_PRIO;
+
+  return (is_constellation_enabled(jobs_data->constellation) &&
+          check_priority_mask(prio_level, jobs_data));
+}
+
 /**
  * Select constellation for reacqusition.
  *
- * The method selects next constellation from where SV is reacquired.
- * TODO: Add priority handling.
+ * The method selects next scheduled constellation for reacquisition.
  *
  * \return None
  */
 void sm_constellation_select(acq_jobs_state_t *jobs_data) {
-  if (CONSTELLATION_INVALID == jobs_data->constellation) {
-    /* Always start from GPS constellation. */
-    jobs_data->constellation = CONSTELLATION_GPS;
-  } else if (CONSTELLATION_GPS == jobs_data->constellation &&
-             is_glo_enabled()) {
-    jobs_data->constellation = CONSTELLATION_GLO;
-  } else if (CONSTELLATION_GLO == jobs_data->constellation) {
-    jobs_data->constellation = CONSTELLATION_GPS;
-  } else {
-    log_error("Unsupported reacq constellation");
-    jobs_data->constellation = CONSTELLATION_GPS;
+  while (true) {
+    if (CONSTELLATION_COUNT == ++jobs_data->constellation) {
+      jobs_data->constellation = CONSTELLATION_GPS;
+      if (REACQ_PRIORITY_CYCLE == ++jobs_data->priority_counter) {
+        jobs_data->priority_counter = 0;
+      }
+    }
+
+    if (reacq_scheduled(jobs_data)) {
+      return;
+    }
   }
 }
 
@@ -344,5 +540,8 @@ void sm_run(acq_jobs_state_t *jobs_data) {
     sm_calc_all_glo_visibility_flags();
     sm_deep_search_run_glo(jobs_data);
     sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
+  } else if (CONSTELLATION_SBAS == jobs_data->constellation) {
+    sm_deep_search_run_sbas(jobs_data);
+    sm_fallback_search_run_sbas(jobs_data, now_ms, lgf_age_ms);
   }
 }

@@ -53,6 +53,36 @@
     marginally smaller cost. */
 #define ACQ_COST_DELTA_MIN_MS 1
 
+/** Re-acq priority mask length in bits */
+#define REACQ_PRIORITY_CYCLE (30)
+
+/** Re-acq priority levels. */
+typedef enum reacq_prio_level_e {
+  REACQ_NORMAL_PRIO,
+  REACQ_LOW_PRIO,
+  REACQ_PRIO_COUNT,
+} reacq_prio_level_t;
+
+/** Re-acq normal priority masks. */
+static const u32 reacq_normal_prio[] = {
+    0b111111111111111111111111111111, /* GPS */
+    0b000000000100000000010000000001, /* SBAS */
+    0b111111111111111111111111111111, /* GLO */
+    0b101010101010101010101010101010, /* BDS2 */
+    0b010101010101010101010101010101, /* QZSS */
+    0b101010101010101010101010101010  /* GAL */
+};
+
+/** Re-acq low priority masks. */
+static const u32 reacq_low_prio[] = {
+    0b111111111111111111111111111111, /* GPS */
+    0b000000000000000000000000000001, /* SBAS */
+    0b000010000100001000010000100001, /* GLO */
+    0b000100001000010000100001000010, /* BDS2 */
+    0b001000010000100001000010000100, /* QZSS */
+    0b010000100001000010000100001000  /* GAL */
+};
+
 /** Search job types */
 typedef enum {
   ACQ_JOB_DEEP_SEARCH,     /**< Deep job type */
@@ -120,7 +150,11 @@ typedef struct {
   acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES]
                     [NUM_SATS_GLO]; /**< job for GLO SV for each
                                          job type */
+  acq_job_t jobs_sbas[ACQ_NUM_JOB_TYPES]
+                     [NUM_SATS_GLO]; /**< job for SBAS SV for each
+                                          job type */
   constellation_t constellation;
+  u8 priority_counter;
 } acq_jobs_state_t;
 
 /** Global data of all the jobs is shared between search manager
