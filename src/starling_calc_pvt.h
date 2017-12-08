@@ -64,7 +64,7 @@ typedef struct {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define STARLING_OBS_N_BUFF 60
+#define STARLING_OBS_N_BUFF 150
 
 extern u32 max_age_of_differential;
 extern bool enable_glonass;
