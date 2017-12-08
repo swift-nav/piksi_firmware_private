@@ -1052,18 +1052,18 @@ static void time_matched_obs_thread(void *arg) {
     const msg_t fetch_ret =
         chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
 
-    if (gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
-        LATENCY_TIMEOUT) {
-      log_warn(
-          "Latency exceeded 15 seconds, time matched filter cannot process");
-    }
-
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
+    }
+
+    if (gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
+        LATENCY_TIMEOUT) {
+      log_warn(
+          "Latency exceeded 15 seconds, time matched filter cannot process");
     }
 
     base_obss_copy = *base_obs;
