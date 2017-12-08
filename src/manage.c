@@ -502,7 +502,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
     dopp_hint_sat_vel = -sid_to_carr_freq(orbit.e.sid) *
                         vector_dot(3, sat_pos, sat_vel) / GPS_C;
     /* TODO: Check sign of receiver frequency offset correction.
-             There seems to be a sign flip somewhere in 'clock_bias'
+             There seems to be a sign flip somewhere in 'clock_drift'
              computation that gets compensated here */
     dopp_hint_clock =
         -sid_to_carr_freq(orbit.e.sid) * lgf.position_solution.clock_drift;
@@ -1198,41 +1198,27 @@ static bool compute_cpo(u64 ref_tc,
                         double *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
-  bool ret = tracking_channel_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
-  if (ret) {
-    /* We don't want to adjust for the recevier clock drift,
-     * so we need to calculate an estimate of that before we
-     * calculate the carrier phase offset */
-    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
-    gps_time_t gps_time = napcount2gpstime(ref_tc);
-
-    double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
-
-    double phase = (sid_to_carr_freq(meas->sid) *
-                    (raw_pseudorange / GPS_C - rcv_clk_error));
-
-    /* Remove the fractional 2-ms residual FCN contribution */
-    if (IS_GLO(meas->sid)) {
-      phase -= glo_2ms_fcn_residual(meas->sid, ref_tc);
-    }
-
-    /* initialize the carrier phase offset with the pseudorange measurement */
-    /* NOTE: CP sign flip - change the plus sign below */
-    *carrier_phase_offset = round(meas->carrier_phase + phase);
-
-    log_debug_mesid(info->mesid,
-                    "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
-                    raw_pseudorange,
-                    rcv_clk_error,
-                    *carrier_phase_offset);
-
-    if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
-      /* Remember offset for the future use */
-      tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
-    }
+  if (!tracking_channel_calc_pseudorange(ref_tc, meas, &raw_pseudorange)) {
+    return false;
   }
-  return ret;
+
+  double phase = sid_to_carr_freq(meas->sid) * raw_pseudorange / GPS_C;
+
+  /* initialize the carrier phase offset with the
+     pseudorange measurement */
+  /* NOTE: CP sign flip - change the plus sign below */
+  *carrier_phase_offset = round(meas->carrier_phase + phase);
+
+  log_debug_mesid(info->mesid,
+                  "raw_pseudorange %lf CPO to %lf",
+                  raw_pseudorange,
+                  *carrier_phase_offset);
+
+  /* Remember offset for the future use */
+  tracking_channel_set_carrier_phase_offset(
+      info, *carrier_phase_offset, ref_tc);
+
+  return true;
 }
 
 /**
@@ -1381,12 +1367,15 @@ u32 get_tracking_channel_meas(u8 i,
     if ((TIME_PROPAGATED <= get_time_quality()) &&
         (0.0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
+        (0 != (flags & TRACKER_FLAG_TOW_VALID)) &&
+        (0 != (flags & TRACKER_FLAG_CN0_SHORT))) {
       cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
     }
     if (0.0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
       meas->carrier_phase -= carrier_phase_offset;
+      meas->cpo_tc = misc_info.carrier_phase_offset.timestamp;
+      meas->cpo_time = misc_info.carrier_phase_offset.gps_time;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
     meas->elevation = (double)sv_elevation_degrees_get(meas->sid);

@@ -414,7 +414,8 @@ typedef struct {
 typedef struct {
   struct {
     double value;         /**< Carrier phase offset value [cycles]. */
-    u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
+    u64 timestamp;        /**< Carrier phase offset timestamp [nap count] */
+    gps_time_t gps_time;  /**< Carrier phase offset timestamp [gps time] */
   } carrier_phase_offset; /**< Carrier phase offset */
 } tracking_channel_misc_info_t;
 
@@ -515,10 +516,10 @@ struct tracker_interface;
 typedef struct {
   u16 xcorr_counts[NUM_SATS_GPS]; /**< L1 Cross-correlation interval counters */
   u16 xcorr_count_l2;             /**< L2 Cross-correlation interval counter */
-  u16 xcorr_whitelist_counts
-      [NUM_SATS_GPS]; /**< L1 whitelist interval counters */
-  bool xcorr_whitelist
-      [NUM_SATS_GPS];      /**< L1 Cross-correlation whitelist status */
+  u16 xcorr_whitelist_counts[NUM_SATS_GPS]; /**< L1 whitelist interval
+                                               counters */
+  bool xcorr_whitelist[NUM_SATS_GPS];       /**< L1 Cross-correlation whitelist
+                                               status */
   bool xcorr_whitelist_l2; /**< L2 Cross-correlation whitelist status */
   u8 xcorr_flag : 1;       /**< Cross-correlation flag */
 } gps_l1ca_tracker_data_t;
@@ -535,7 +536,8 @@ typedef struct {
 
 /** Top-level generic tracker channel. */
 typedef struct {
-  /* This portion of the structure is not cleaned-up at tracker channel start */
+  /* This portion of the structure is not cleaned-up at tracker channel start
+   */
 
   /** State of this channel. */
   state_t state;
@@ -661,7 +663,8 @@ typedef void(tracker_interface_function_t)(tracker_channel_t *tracker_channel);
 typedef struct tracker_interface {
   /** Code type for which the implementation may be used. */
   code_t code;
-  /** Init function. Called to set up tracker instance when tracking begins. */
+  /** Init function. Called to set up tracker instance when tracking begins.
+   */
   tracker_interface_function_t *init;
   /** Disable function. Called when tracking stops. */
   tracker_interface_function_t *disable;
@@ -738,9 +741,9 @@ typedef struct {
   bool show_unconfirmed_trackers; /**< Flag to control reporting of unconfirmed
                                    *   tracker channels */
   float xcorr_delta; /**< Frequency delta error for cross-correlation [hz] */
-  float
-      xcorr_cof; /**< LPF cut-off frequency for cross-correlation filter [hz] */
-  float xcorr_time; /**< Cross-correlation time threshold [s] */
+  float xcorr_cof;   /**< LPF cut-off frequency for cross-correlation filter
+                        [hz] */
+  float xcorr_time;  /**< Cross-correlation time threshold [s] */
   lp1_filter_params_t
       xcorr_f_params; /**< Cross-correlation filter parameters */
 } tp_tracker_config_t;
@@ -926,7 +929,7 @@ double tracking_channel_get_lock_time(
 u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
 
 void tracking_channel_set_carrier_phase_offset(
-    const tracking_channel_info_t *info, double carrier_phase_offset);
+    const tracking_channel_info_t *info, double carrier_phase_offset, u64 tc);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
