@@ -24,8 +24,9 @@
 #include <settings.h>
 #include <timing.h>
 
-#define IMU_THREAD_PRIO (HIGHPRIO - 1)
-#define IMU_THREAD_STACK 2000
+#define IMU_THREAD_PRIO (HIGHPRIO)
+#define IMU_THREAD_STACK (2 * 1024)
+
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK 2000
 
@@ -145,7 +146,7 @@ static void imu_thread(void *arg) {
       }
       p_sensor_time = sensor_time;
       if (dt >=  73.0 || dt <= 0.0 || err_pcent >= 400.0 || err_pcent <= 0) {
-        log_error("Received discontinous sensor_time. dt: %f curr: 0x%06lx prev: 0x%06lx", dt, sensor_time, p_sensor_time);
+        log_debug("Received discontinous sensor_time. dt: %f curr: 0x%06lx prev: 0x%06lx", dt, sensor_time, p_sensor_time);
       }
       /* Read out the IMU data and fill out the SBP message. */
       imu_raw.acc_x = acc[1];
