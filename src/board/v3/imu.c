@@ -151,9 +151,12 @@ static void imu_thread(void *arg) {
     bmi160_get_data(acc, gyro, mag_ptr, &sensor_time);
     double dt = (sensor_time - p_sensor_time) * BMI160_SENSOR_TIME_TO_SECONDS;
     double err_pcent = (fabs(dt - BMI160_DT_LOOKUP[imu_rate])/BMI160_DT_LOOKUP[imu_rate] * 100.0);
-    if (err_pcent > BMI160_DT_ERR_THRESH && err_pcent < 100.0) {
+    if (err_pcent > BMI160_DT_ERR_THRESH && err_pcent < 400.0) {
       log_error("IMU sampling period of %f exceeded error threshhold", dt);
       log_error("Error registor: %u status register: %u", bmi160_read_error(), bmi160_read_status());
+    }
+    if (dt >=  73.0 || dt <= 0.0 || err_pcent >= 400.0 || err_pcent <= 0) {
+      log_error("Received discontinous sensor_time. dt: %f curr: 0x%06lx prev: 0x%06lx", dt, sensor_time, p_sensor_time);
     }
     p_sensor_time = sensor_time;
     u32 tow;
