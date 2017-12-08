@@ -133,8 +133,10 @@ static bool point_in_region(const point_coord_t *border,
    */
   (void)lat_deg;
   double tmp_lon = lon_deg;
-  if (180.f == lon_deg) {
-    /* handle an exception: 180 deg is same as -180 deg */
+  if (lon_deg > 0.f && fabs(180.f - lon_deg) < 1.f/3600.f) {
+    /* handle an exception: 180 deg is same as -180 deg
+     * (actually check that difference between user's longitude and 180 deg is
+     * less than 1 sec) */
     tmp_lon = -180.f;
   }
   return ((double)(border[0].lon_deg - SBAS_SELECT_HYST_DEG) <= tmp_lon) &&
