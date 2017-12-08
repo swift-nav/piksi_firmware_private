@@ -11,15 +11,11 @@
  */
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>
-#include <libswiftnav/glo_map.h>
-#include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
@@ -45,7 +41,6 @@
 #include "observation_biases_calibration.h"
 #include "settings.h"
 #include "shm.h"
-#include "signal.h"
 #include "simulator.h"
 #include "system_monitor.h"
 #include "timing.h"
@@ -163,7 +158,7 @@ static void me_send_emptyobs(void) {
 static void remove_clock_offset(navigation_measurement_t *nm,
                                 double clock_offset,
                                 double clock_drift,
-                                double gtemp_diff) {
+                                u64 ref_tc) {
   double doppler = 0.0;
   if (0 != (nm->flags & NAV_MEAS_FLAG_MEAS_DOPPLER_VALID)) {
     doppler = nm->raw_measured_doppler;
@@ -174,14 +169,10 @@ static void remove_clock_offset(navigation_measurement_t *nm,
   nm->raw_pseudorange -= clock_offset * doppler * sid_to_lambda(nm->sid);
   nm->raw_pseudorange -= clock_offset * GPS_C;
 
-  double fcn = 0.0;
   /* Remove the fractional 2-ms residual FCN contribution */
-  if (CODE_GLO_L1OF == nm->sid.code) {
-    fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L1_DELTA_HZ;
-  } else if (CODE_GLO_L2OF == nm->sid.code) {
-    fcn = (glo_map_get_fcn(nm->sid) - GLO_MIN_FCN) * GLO_L2_DELTA_HZ;
+  if (IS_GLO(nm->sid)) {
+    nm->raw_carrier_phase -= glo_2ms_fcn_residual(nm->sid, ref_tc);
   }
-  nm->raw_carrier_phase += gtemp_diff * fcn;
 
   /* Carrier Phase corrected by clock offset */
   nm->raw_carrier_phase += clock_offset * doppler;
@@ -223,6 +214,7 @@ static void me_send_failed_obs(u8 _num_obs,
     clock_drift = lgf.position_solution.clock_bias;
   }
 
+  u64 ref_tc = rcvtime2napcount(_t);
   for (u8 i = 0; i < _num_obs; i++) {
     /* mark the measurement unusable to be on the safe side */
     /* TODO: could relax this in order to send also under-determined measurement
@@ -230,7 +222,7 @@ static void me_send_failed_obs(u8 _num_obs,
     _meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION;
 
     /* propagate the measurements with the clock bias and drift from LGF */
-    remove_clock_offset(&_meas[i], clock_offset, clock_drift, 0.0);
+    remove_clock_offset(&_meas[i], clock_offset, clock_drift, ref_tc);
   }
 
   me_post_observations(_num_obs, _meas, _ephem, _t);
@@ -421,7 +413,6 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* The desired solution NAP counter and epoch */
     u64 epoch_tc = current_tc;
-    u64 gtemp_tc = current_tc;
 
     gps_time_t epoch_time = GPS_TIME_UNKNOWN;
 
@@ -461,15 +452,6 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* get NAP at the epoch with a round GPS time */
       epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
-
-      /* truncate to the closest NAP 2 ms boundary,
-       * needed for Glonass carrier phases */
-      gtemp_tc = FCN_NCO_RESET_COUNT * (epoch_tc / FCN_NCO_RESET_COUNT);
-
-      log_debug("epoch_tc %" PRIu64 " gtemp_tc %" PRIu64 " diff %" PRIu64,
-                epoch_tc,
-                gtemp_tc,
-                epoch_tc - gtemp_tc);
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
@@ -679,14 +661,11 @@ static void me_calc_pvt_thread(void *arg) {
       double clock_offset = current_fix.clock_offset;
       double clock_drift = current_fix.clock_bias;
 
-      /* gtemp_tc is always smaller than epoch_tc */
-      double gtemp_diff = (epoch_tc - gtemp_tc) * RX_DT_NOMINAL;
-
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
 
         /* remove clock offset from the measurement */
-        remove_clock_offset(nm, clock_offset, clock_drift, gtemp_diff);
+        remove_clock_offset(nm, clock_offset, clock_drift, epoch_tc);
 
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */

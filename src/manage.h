@@ -115,5 +115,6 @@ void sanitize_trackers(void);
 void check_clear_glo_unhealthy(void);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);
+double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc);
 
 #endif

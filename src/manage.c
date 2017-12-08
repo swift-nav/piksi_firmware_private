@@ -20,7 +20,6 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
-#include <libswiftnav/glo_map.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
@@ -1212,6 +1211,11 @@ static bool compute_cpo(u64 ref_tc,
     double phase = (sid_to_carr_freq(meas->sid) *
                     (raw_pseudorange / GPS_C - rcv_clk_error));
 
+    /* Remove the fractional 2-ms residual FCN contribution */
+    if (IS_GLO(meas->sid)) {
+      phase -= glo_2ms_fcn_residual(meas->sid, ref_tc);
+    }
+
     /* initialize the carrier phase offset with the pseudorange measurement */
     /* NOTE: CP sign flip - change the plus sign below */
     *carrier_phase_offset = round(meas->carrier_phase + phase);
@@ -1763,6 +1767,28 @@ u16 get_orbit_slot(const u16 fcn) {
       break;
   }
   return glo_orbit_slot;
+}
+
+/** Return GLO fractional 2ms FCN residual for signal at given NAP count
+ * \param sid gnss_signal_t to use
+ * \param ref_tc NAP counter the measurements are referenced to
+ * \return The residual in cycles
+ */
+double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc) {
+  if (!IS_GLO(sid)) {
+    return 0.0;
+  }
+
+  double carr_fcn_hz = 0;
+  if (CODE_GLO_L1OF == sid.code) {
+    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
+  } else if (CODE_GLO_L2OF == sid.code) {
+    carr_fcn_hz = (glo_map_get_fcn(sid) - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
+  }
+
+  u64 tc_2ms_boundary = FCN_NCO_RESET_COUNT * (ref_tc / FCN_NCO_RESET_COUNT);
+  return -carr_fcn_hz * (ref_tc - tc_2ms_boundary) /
+         NAP_FRONTEND_SAMPLE_RATE_Hz;
 }
 
 /** \} */
