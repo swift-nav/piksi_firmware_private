@@ -11,6 +11,7 @@
  */
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
@@ -460,8 +461,13 @@ static void me_calc_pvt_thread(void *arg) {
     u8 n_inview = 0;
     u8 n_total = 0;
     channel_measurement_t meas[MAX_CHANNELS];
+    memset(&meas, 0, sizeof(meas));
+
     channel_measurement_t in_view[MAX_CHANNELS];
-    static ephemeris_t e_meas[MAX_CHANNELS];
+    memset(&in_view, 0, sizeof(in_view));
+
+    ephemeris_t e_meas[MAX_CHANNELS];
+    memset(&e_meas, 0, sizeof(e_meas));
 
     /* Collect measurements propagated to the current NAP tick */
     collect_measurements(
@@ -486,6 +492,8 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     cnav_msg_t cnav_30[MAX_CHANNELS];
+    memset(&cnav_30, 0, sizeof(cnav_30));
+
     const cnav_msg_type_30_t *p_cnav_30[MAX_CHANNELS];
     for (u8 i = 0; i < n_ready; i++) {
       p_cnav_30[i] = cnav_msg_get(meas[i].sid, CNAV_MSG_TYPE_30, &cnav_30[i])
@@ -493,7 +501,9 @@ static void me_calc_pvt_thread(void *arg) {
                          : NULL;
     }
 
-    static navigation_measurement_t nav_meas[MAX_CHANNELS];
+    navigation_measurement_t nav_meas[MAX_CHANNELS];
+    memset(&nav_meas, 0, sizeof(nav_meas));
+
     const channel_measurement_t *p_meas[n_ready];
     navigation_measurement_t *p_nav_meas[n_ready];
     const ephemeris_t *p_e_meas[n_ready];
