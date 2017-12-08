@@ -83,6 +83,7 @@ static ionosphere_t time_matched_iono_params;
 MUTEX_DECL(last_sbp_lock);
 gps_time_t last_dgnss;
 gps_time_t last_spp;
+gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 u32 max_age_of_differential = 30;
@@ -155,6 +156,8 @@ static void post_observations(u8 n,
        * */
       log_error("Mailbox should have space!");
       chPoolFree(&time_matched_obs_buff_pool, obs);
+    } else {
+      last_time_matched_rover_obs_post = *t;
     }
   }
 }
@@ -1049,6 +1052,12 @@ static void time_matched_obs_thread(void *arg) {
     const msg_t fetch_ret =
         chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
 
+    if (gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
+        LATENCY_TIMEOUT) {
+      log_warn(
+          "Latency exceeded 15 seconds, time matched filter cannot process");
+    }
+
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
@@ -1195,6 +1204,7 @@ void starling_calc_pvt_setup() {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
+  last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
 
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
