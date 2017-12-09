@@ -19,4 +19,6 @@ void antenna_init(void);
 
 bool antenna_present(void);
 
+bool antenna_shorted(void);
+
 #endif /* SWIFTNAV_ANTENNA_H */

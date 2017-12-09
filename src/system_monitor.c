@@ -131,8 +131,8 @@ static void system_monitor_thread(void *arg) {
   while (TRUE) {
     piksi_systime_get(&time);
 
-    u32 status_flags = antenna_present() << 31 | SBP_MAJOR_VERSION << 16 |
-                       SBP_MINOR_VERSION << 8;
+    u32 status_flags = antenna_present() << 31 | antenna_shorted() << 30 |
+                       SBP_MAJOR_VERSION << 16 | SBP_MINOR_VERSION << 8;
     sbp_send_msg(SBP_MSG_HEARTBEAT, sizeof(status_flags), (u8 *)&status_flags);
 
     /* If we are in base station mode then broadcast our known location. */
