@@ -64,7 +64,11 @@ typedef struct {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-#define STARLING_OBS_N_BUFF 60
+/* Warn on 4 second base station observation latency */
+#define LATENCY_TIMEOUT 4
+
+/* Make the buffer large enough to handle 15 second latency at 10Hz */
+#define STARLING_OBS_N_BUFF LATENCY_TIMEOUT * 10
 
 extern u32 max_age_of_differential;
 extern bool enable_glonass;
