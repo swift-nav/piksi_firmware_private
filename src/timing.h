@@ -15,6 +15,7 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
+#include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
 
 #include "nap/nap_constants.h"
@@ -41,11 +42,11 @@ typedef enum {
 #define MAX_TIME_PROPAGATED_S 60
 
 typedef struct {
-  gps_time_t t0_gps;   /**< Clock offset estimate. GPS time when local timer
-                            value equals zero. */
-  double clock_period; /**< Clock period estimate. */
-  double clock_offset; /**< offset to improve precision of GPS time */
-  double P[2][2];      /**< State covariance matrix. */
+  u64 tc;            /**< NAP tick of the estimate */
+  gps_time_t t_gps;  /**< GPS time estimate at tc. */
+  gps_time_t t0_gps; /**< GPS time estimate at tc=0. */
+  double clock_rate; /**< Clock rate estimate with respect to RX_DT_NOMINAL. */
+  double P[2][2];    /**< State covariance matrix. */
 } clock_est_state_t;
 
 /** \} */
@@ -56,18 +57,17 @@ typedef struct {
 void timing_setup(void);
 gps_time_t get_current_time(void);
 gps_time_t get_current_gps_time(void);
-void set_time(time_quality_t quality, const gps_time_t* t, u64 tc);
-void downgrade_time_quality(time_quality_t quality);
+void set_time(u64 tc, const gps_time_t* t, double accuracy);
+void update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
-void adjust_time_fine(const double dt);
+void adjust_rcvtime_offset(const double dt);
 gps_time_t napcount2gpstime(const double tc);
-gps_time_t napcount2rcvtime(const double tc);
 double gpstime2napcount(const gps_time_t* t);
-double rcvtime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);
 gps_time_t gps_time_round_to_epoch(const gps_time_t* time, double soln_freq);
+double get_clock_drift(void);
 
 #ifdef __cplusplus
 }

@@ -734,7 +734,7 @@ void tracking_channel_get_values(tracker_channel_id_t id,
  * \return None
  */
 void tracking_channel_set_carrier_phase_offset(
-    const tracking_channel_info_t *info, double carrier_phase_offset) {
+    const tracking_channel_info_t *info, double carrier_phase_offset, u64 tc) {
   bool adjusted = false;
   tracker_channel_t *tracker_channel = tracker_channel_get(info->id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
@@ -744,7 +744,8 @@ void tracking_channel_set_carrier_phase_offset(
       mesid_is_equal(info->mesid, pub_data->gen_info.mesid) &&
       info->lock_counter == pub_data->gen_info.lock_counter) {
     pub_data->misc_info.carrier_phase_offset.value = carrier_phase_offset;
-    pub_data->misc_info.carrier_phase_offset.timestamp_ms = timing_getms();
+    pub_data->misc_info.carrier_phase_offset.timestamp = tc;
+    pub_data->misc_info.carrier_phase_offset.gps_time = napcount2gpstime(tc);
     adjusted = true;
   }
   chMtxUnlock(&tracker_channel->mutex_pub);
@@ -768,9 +769,10 @@ double tracking_channel_get_lock_time(
     const tracking_channel_misc_info_t *misc_info) {
   u64 cpo_age_ms = 0;
   if (0 != misc_info->carrier_phase_offset.value) {
-    u64 now_ms = timing_getms();
-    assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
-    cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
+    u64 now = nap_timing_count();
+    assert(now >= misc_info->carrier_phase_offset.timestamp);
+    cpo_age_ms = (u64)((now - misc_info->carrier_phase_offset.timestamp) *
+                       RX_DT_NOMINAL * SECS_MS);
   }
 
   u64 lock_time_ms = UINT64_MAX;

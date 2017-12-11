@@ -307,7 +307,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   if ((NULL != lgf) && (lgf->position_quality >= POSITION_GUESS)) {
     double clock_offset = lgf->position_solution.clock_offset *
                           TRACK_SBP_CLOCK_OFFSET_SCALING_FACTOR;
-    double clock_drift = lgf->position_solution.clock_bias *
+    double clock_drift = lgf->position_solution.clock_drift *
                          TRACK_SBP_CLOCK_DRIFT_SCALING_FACTOR;
     state->clock_offset = (s16)limit_value(clock_offset, INT16_MIN, INT16_MAX);
     state->clock_drift = (s16)limit_value(clock_drift, INT16_MIN, INT16_MAX);
