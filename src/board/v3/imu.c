@@ -25,7 +25,7 @@
 #include <settings.h>
 #include <timing.h>
 
-#define IMU_THREAD_PRIO (HIGHPRIO - 1)
+#define IMU_THREAD_PRIO (HIGHPRIO)
 #define IMU_THREAD_STACK (2 * 1024)
 #define IMU_AUX_THREAD_PRIO (LOWPRIO + 10)
 #define IMU_AUX_THREAD_STACK (2 * 1024)
