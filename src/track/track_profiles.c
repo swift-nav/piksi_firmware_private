@@ -575,7 +575,7 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
   tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
-  if (profile->cur.pll_bw <= 0) {
+  if (profile->cur.index == IDX_SENS) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
