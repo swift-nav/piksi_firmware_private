@@ -236,7 +236,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {    0,             7,           20,   TP_CTRL_PLL3,
+  { {    0,             4,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
           TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
@@ -449,7 +449,7 @@ void tp_profile_update_config(tracker_channel_t *tracker_channel) {
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
   tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
-  if (profile->cur.pll_bw <= 0) {
+  if (profile->cur.index == IDX_SENS) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
