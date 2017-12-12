@@ -76,6 +76,8 @@ typedef enum {
   IMU_RATE_400HZ = 4,
 } imu_rate_t;
 
+#define BMI160_DT_ERR_THRESH  10.0
+#define BMI160_SENSOR_TIME_TO_SECONDS (0.000039) 
 #define BMI160_STATUS_ACC_RDY_Msk 0x80
 #define BMI160_STATUS_GYRO_RDY_Msk 0x40
 #define BMI160_STATUS_MAG_RDY_Msk 0x20
