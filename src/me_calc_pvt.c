@@ -75,6 +75,93 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* STATIC FUNCTIONS */
 
+/** Calculate and return ISC value for selected code if value is available.
+ *  Otherwise return 0.
+ *
+ * Note: TGD (the ISC from L2P to L1P) is already applied in calc_sat_state().
+ *
+ * \param code Code used
+ * \param msg ISC data message
+ */
+static double get_isc_corr(code_t code, const cnav_msg_type_30_t *msg)
+{
+  if(NULL == msg)
+    return 0;
+
+  switch (code) {
+  case CODE_GPS_L1CA:
+    if (msg->isc_l1ca_valid)
+      return msg->isc_l1ca * GROUP_DELAY_SCALE() * GPS_C;
+    break;
+
+  case CODE_GPS_L2CL:
+  case CODE_GPS_L2CM:
+    if (msg->isc_l2c_valid)
+      return msg->isc_l2c * GROUP_DELAY_SCALE() * GPS_C;
+    break;
+
+  case CODE_INVALID:
+  case CODE_COUNT:
+    assert(!"Invalid code.");
+    break;
+
+  case CODE_SBAS_L1CA:
+  case CODE_GLO_L1OF:
+  case CODE_GLO_L2OF:
+  case CODE_GPS_L1P:
+  case CODE_GPS_L2P:
+  case CODE_GPS_L2CX :
+  case CODE_GPS_L5I  :
+  case CODE_GPS_L5Q  :
+  case CODE_GPS_L5X  :
+  case CODE_BDS2_B11 :
+  case CODE_BDS2_B2  :
+  case CODE_GAL_E1B  :
+  case CODE_GAL_E1C  :
+  case CODE_GAL_E1X  :
+  case CODE_GAL_E6B  :
+  case CODE_GAL_E6C  :
+  case CODE_GAL_E6X  :
+  case CODE_GAL_E7I  :
+  case CODE_GAL_E7Q  :
+  case CODE_GAL_E7X  :
+  case CODE_GAL_E8   :
+  case CODE_GAL_E5I  :
+  case CODE_GAL_E5Q  :
+  case CODE_GAL_E5X  :
+  case CODE_QZS_L1CA :
+  case CODE_QZS_L2CM :
+  case CODE_QZS_L2CL :
+  case CODE_QZS_L2CX :
+  case CODE_QZS_L5I  :
+  case CODE_QZS_L5Q  :
+  case CODE_QZS_L5X  :
+  default:
+    /* If code not supported we just return a zero correction. */
+    break;
+  }
+
+  return 0;
+}
+
+/** Apply ISC corrections
+ * This function applies ISC corrections to the measurements calculated by
+ * calc_navigation_measurement().
+ *
+ * Note: this function does not check pseudorange
+ * flags as a correction to an invalid value will just result in another invalid
+ * value.
+ */
+static void calc_isc(u8 n_channels, navigation_measurement_t *nav_meas[],
+                     const cnav_msg_type_30_t *p_cnav_30[])
+{
+  for (u8 i=0; i<n_channels; i++) {
+    nav_meas[i]->pseudorange += get_isc_corr(nav_meas[i]->sid.code, p_cnav_30[i]);
+    nav_meas[i]->carrier_phase -= get_isc_corr(nav_meas[i]->sid.code,
+        p_cnav_30[i]) / GPS_C * sid_to_carr_freq(nav_meas[i]->sid);
+  }
+}
+
 static void me_post_observations(u8 n,
                                  const navigation_measurement_t _meas[],
                                  const ephemeris_t _ephem[],
