@@ -925,6 +925,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
       chMtxLock(&base_pos_lock);
+      chMtxLock(&base_glonass_biases_lock);
       u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
@@ -935,6 +936,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
+      chMtxUnlock(&base_glonass_biases_lock);
       chMtxUnlock(&base_pos_lock);
       chMtxUnlock(&low_latency_filter_manager_lock);
     }

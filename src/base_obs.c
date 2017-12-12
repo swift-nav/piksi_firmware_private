@@ -134,10 +134,10 @@ static void base_glonass_biases_callback(u16 sender_id,
   unpack_glonass_biases_content(*(msg_glo_biases_t *)msg, &biases);
 
   chMtxLock(&base_glonass_biases_lock);
-  /* Relay base station GLONASS biases using sender_id = 0. */
-  sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
   set_known_glonass_biases(biases);
   chMtxUnlock(&base_glonass_biases_lock);
+  /* Relay base station GLONASS biases using sender_id = 0. */
+  sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
 static inline bool not_l2p_sid(navigation_measurement_t a) {
