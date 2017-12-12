@@ -153,23 +153,23 @@ enum {
 /* clang-format off */
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.f, 50 },
     [TP_LD_PARAMS_FREQ_INI]   = {  0.07f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f,  1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_1MS]   = {  0.07f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f,  1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_2MS]   = {  0.07f,  .6f, 40 },
 
     [TP_LD_PARAMS_PHASE_5MS]  = {  0.06f, 1.5f, 50 },
     [TP_LD_PARAMS_FREQ_5MS]   = {  0.08f,  .6f, 20 },
 
     [TP_LD_PARAMS_PHASE_10MS] = {  0.02f, 1.5f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f,  .6f, 15 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f,   .6f, 15 },
 
     [TP_LD_PARAMS_PHASE_20MS] = {  0.01f, 1.5f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f,  .6f, 10 }
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f,   .6f, 10 }
 };
 /* clang-format on */
 
