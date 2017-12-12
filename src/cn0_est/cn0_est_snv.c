@@ -12,8 +12,8 @@
 
 #include <cn0_est/cn0_est_common.h>
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -22,7 +22,7 @@
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_SNV_NSR_MIN_MULTIPLIER (1e-16f)
 /** Maximum supported NSR value (1/NSR_MIN_MULTIPLIER)*/
-#define CN0_SNV_NSR_MIN            (1e16f)
+#define CN0_SNV_NSR_MIN (1e16f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -49,8 +49,7 @@
  */
 void cn0_est_snv_init(cn0_est_snv_state_t *s,
                       const cn0_est_params_t *p,
-                      float cn0_0)
-{
+                      float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -74,8 +73,8 @@ void cn0_est_snv_init(cn0_est_snv_state_t *s,
  */
 float cn0_est_snv_update(cn0_est_snv_state_t *s,
                          const cn0_est_params_t *p,
-                         float I, float Q)
-{
+                         float I,
+                         float Q) {
   if (s->cnt >= 1) {
     s->I_sum += fabsf(I);
     s->P_tot += I * I + Q * Q;

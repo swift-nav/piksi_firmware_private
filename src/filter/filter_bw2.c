@@ -12,13 +12,12 @@
 
 #include "filter/filter_common.h"
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.
  * \{ */
-
 
 /**
  * Computes parameters for Butterworth LP IIR filter.
@@ -29,16 +28,15 @@
  */
 void bw2_filter_compute_params(bw2_filter_params_t *p,
                                float cutoff_freq,
-                               float loop_freq)
-{
+                               float loop_freq) {
   memset(p, 0, sizeof(*p));
 
   float Tw0 = tanf((float)M_PI * cutoff_freq / loop_freq);
   float tmp = 1.0f + (float)M_SQRT2 * Tw0 + Tw0 * Tw0;
 
   p->b = Tw0 * Tw0 / tmp;
-  p->a2 = (-2.0f + 2.0f * Tw0 * Tw0)/tmp;
-  p->a3 = (1.0f - (float)M_SQRT2 * Tw0 + Tw0 * Tw0)/tmp;
+  p->a2 = (-2.0f + 2.0f * Tw0 * Tw0) / tmp;
+  p->a3 = (1.0f - (float)M_SQRT2 * Tw0 + Tw0 * Tw0) / tmp;
 }
 
 /**
@@ -56,18 +54,19 @@ void bw2_filter_compute_params(bw2_filter_params_t *p,
  * where \f$ \omega_c = \frac{2}{T}\tan (2\pi f_{cut}\frac{T}{2})  \f$
  * and \f$ b = \frac{\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
  * and \f$ a_2 = \frac{-2 + 2\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
- * and \f$ a_3 = \frac{1 - \sqrt{2}\omega_c + \omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$.
+ * and \f$ a_3 = \frac{1 - \sqrt{2}\omega_c + \omega_c^2}{1 + \sqrt{2}\omega_c +
+ * \omega_c^2} \f$.
  *
  * \param f           Filter object
- * \param initial     Initial value for \f$ x_{n}, x_{n-1}, y_{n} and y_{n-1} \f$
+ * \param initial     Initial value for \f$ x_{n}, x_{n-1}, y_{n} and y_{n-1}
+ * \f$
  * \param p           Filter parameters
  *
  * \return None
  */
 void bw2_filter_init(bw2_filter_t *f,
                      const bw2_filter_params_t *p,
-                     float initial)
-{
+                     float initial) {
   memset(f, 0, sizeof(*f));
   (void)p;
 
@@ -90,7 +89,8 @@ void bw2_filter_init(bw2_filter_t *f,
  * where \f$ \omega_c = \frac{2}{T}\tan (2\pi f_{cut}\frac{T}{2})  \f$
  * and \f$ b = \frac{\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
  * and \f$ a_2 = \frac{-2 + 2\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
- * and \f$ a_3 = \frac{1 - \sqrt{2}\omega_c + \omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$.
+ * and \f$ a_3 = \frac{1 - \sqrt{2}\omega_c + \omega_c^2}{1 + \sqrt{2}\omega_c +
+ * \omega_c^2} \f$.
  *
  * \param f     Filter object
  * \param p     Filter parameters
@@ -100,12 +100,11 @@ void bw2_filter_init(bw2_filter_t *f,
  */
 float bw2_filter_update(bw2_filter_t *f,
                         const bw2_filter_params_t *p,
-                        float value)
-{
+                        float value) {
   if (!isnan(value)) {
     float yn_prev = f->yn;
     f->yn = p->b * (value + f->xn * 2.f + f->xn_prev) - p->a2 * f->yn -
-        p->a3 * f->yn_prev;
+            p->a3 * f->yn_prev;
 
     /* Initial state is not too stable, but should be close to that */
     f->yn_prev = yn_prev;

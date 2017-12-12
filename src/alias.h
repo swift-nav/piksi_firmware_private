@@ -44,7 +44,7 @@ void alias_detect_first(alias_detect_t *a, float I, float Q);
 float alias_detect_second(alias_detect_t *a, float I, float Q);
 
 #ifdef __cplusplus
-}      /* extern "C" */
+} /* extern "C" */
 #endif /* __cplusplus */
 
 #endif /* SWIFTNAV_ALIAS_H */

@@ -10,11 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 #include "filter/filter_common.h"
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -32,8 +31,7 @@
  */
 void lp1_filter_compute_params(lp1_filter_params_t *p,
                                float cutoff_freq,
-                               float loop_freq)
-{
+                               float loop_freq) {
   float Tw0 = (float)(2 * M_PI) * cutoff_freq / loop_freq;
   p->b = Tw0 / (Tw0 + 2.f);
   p->a = (Tw0 - 2.f) / (Tw0 + 2.f);
@@ -66,8 +64,7 @@ void lp1_filter_compute_params(lp1_filter_params_t *p,
  */
 void lp1_filter_init(lp1_filter_t *f,
                      const lp1_filter_params_t *p,
-                     float initial)
-{
+                     float initial) {
   memset(f, 0, sizeof(*f));
 
   /* Set up initial filter state so that stable input produces stable output */
@@ -98,11 +95,10 @@ void lp1_filter_init(lp1_filter_t *f,
  */
 float lp1_filter_update(lp1_filter_t *f,
                         const lp1_filter_params_t *p,
-                        float value)
-{
+                        float value) {
   if (!isnan(value)) {
-  f->yn = p->b * (value + f->xn) - p->a * f->yn;
-  f->xn = value;
+    f->yn = p->b * (value + f->xn) - p->a * f->yn;
+    f->xn = value;
   }
   return f->yn;
 }

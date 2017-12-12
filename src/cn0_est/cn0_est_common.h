@@ -12,7 +12,7 @@
 
 #ifndef SWIFTNAV_CN0_EST_COMMON_H
 #define SWIFTNAV_CN0_EST_COMMON_H
- 
+
 #include <libswiftnav/common.h>
 
 typedef struct {
@@ -98,43 +98,76 @@ extern "C" {
 #endif
 
 /* C/N0 estimators */
-void cn0_est_compute_params(cn0_est_params_t *p, float bw, float alpha,
-                            float loop_freq, float scale, float cn0_shift);
+void cn0_est_compute_params(cn0_est_params_t *p,
+                            float bw,
+                            float alpha,
+                            float loop_freq,
+                            float scale,
+                            float cn0_shift);
 
-void cn0_est_bl_init(cn0_est_bl_state_t *s, const cn0_est_params_t *p,
+void cn0_est_bl_init(cn0_est_bl_state_t *s,
+                     const cn0_est_params_t *p,
                      float cn0_0);
-float cn0_est_bl_update(cn0_est_bl_state_t *s, const cn0_est_params_t *p,
-                        float I, float Q);
-float cn0_est_bl_update_q(cn0_est_bl_state_t *s, const cn0_est_params_t *p,
-                          float I, float Q);
-void cn0_est_snv_init(cn0_est_snv_state_t *s, const cn0_est_params_t *p,
+float cn0_est_bl_update(cn0_est_bl_state_t *s,
+                        const cn0_est_params_t *p,
+                        float I,
+                        float Q);
+float cn0_est_bl_update_q(cn0_est_bl_state_t *s,
+                          const cn0_est_params_t *p,
+                          float I,
+                          float Q);
+void cn0_est_snv_init(cn0_est_snv_state_t *s,
+                      const cn0_est_params_t *p,
                       float cn0_0);
-float cn0_est_snv_update(cn0_est_snv_state_t *s, const cn0_est_params_t *p,
-                         float I, float Q);
-void cn0_est_rscn_init(cn0_est_rscn_state_t *s, const cn0_est_params_t *p,
+float cn0_est_snv_update(cn0_est_snv_state_t *s,
+                         const cn0_est_params_t *p,
+                         float I,
+                         float Q);
+void cn0_est_rscn_init(cn0_est_rscn_state_t *s,
+                       const cn0_est_params_t *p,
                        float cn0_0);
-float cn0_est_rscn_update(cn0_est_rscn_state_t *s, const cn0_est_params_t *p,
-                          float I, float Q);
-void cn0_est_mm_init(cn0_est_mm_state_t *s, const cn0_est_params_t *p,
+float cn0_est_rscn_update(cn0_est_rscn_state_t *s,
+                          const cn0_est_params_t *p,
+                          float I,
+                          float Q);
+void cn0_est_mm_init(cn0_est_mm_state_t *s,
+                     const cn0_est_params_t *p,
                      float cn0_0);
-float cn0_est_mm_update(cn0_est_mm_state_t *s, const cn0_est_params_t *p,
-                        float I, float Q);
-void cn0_est_nwpr_init(cn0_est_nwpr_state_t *s, const cn0_est_params_t *p,
+float cn0_est_mm_update(cn0_est_mm_state_t *s,
+                        const cn0_est_params_t *p,
+                        float I,
+                        float Q);
+void cn0_est_nwpr_init(cn0_est_nwpr_state_t *s,
+                       const cn0_est_params_t *p,
                        float cn0_0);
-float cn0_est_nwpr_update(cn0_est_nwpr_state_t *s, const cn0_est_params_t *p,
-                          float I, float Q);
-void cn0_est_svr_init(cn0_est_svr_state_t *s, const cn0_est_params_t *p,
+float cn0_est_nwpr_update(cn0_est_nwpr_state_t *s,
+                          const cn0_est_params_t *p,
+                          float I,
+                          float Q);
+void cn0_est_svr_init(cn0_est_svr_state_t *s,
+                      const cn0_est_params_t *p,
                       float cn0_0);
-float cn0_est_svr_update(cn0_est_svr_state_t *s, const cn0_est_params_t *p,
-                         float I, float Q);
-void cn0_est_ch_init(cn0_est_ch_state_t *s, const cn0_est_params_t *p,
+float cn0_est_svr_update(cn0_est_svr_state_t *s,
+                         const cn0_est_params_t *p,
+                         float I,
+                         float Q);
+void cn0_est_ch_init(cn0_est_ch_state_t *s,
+                     const cn0_est_params_t *p,
                      float cn0_0);
-float cn0_est_ch_update(cn0_est_ch_state_t *s, const cn0_est_params_t *p,
-                        float I, float Q);
-void cn0_est_basic_init(cn0_est_basic_state_t *s, const cn0_est_params_t *p,
-                        float cn0_0, float q0);
-float cn0_est_basic_update(cn0_est_basic_state_t *s, const cn0_est_params_t *p,
-                           float I, float Q, float ve_I, float ve_Q);
+float cn0_est_ch_update(cn0_est_ch_state_t *s,
+                        const cn0_est_params_t *p,
+                        float I,
+                        float Q);
+void cn0_est_basic_init(cn0_est_basic_state_t *s,
+                        const cn0_est_params_t *p,
+                        float cn0_0,
+                        float q0);
+float cn0_est_basic_update(cn0_est_basic_state_t *s,
+                           const cn0_est_params_t *p,
+                           float I,
+                           float Q,
+                           float ve_I,
+                           float ve_Q);
 
 #ifdef __cplusplus
 }

@@ -12,8 +12,8 @@
 
 #include <cn0_est/cn0_est_common.h>
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 #define CN0_EST_MM_INIT_COUNT 200
 
@@ -24,10 +24,9 @@
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_MM_NSR_MIN_MULTIPLIER (1e-6f)
 /** Maximum supported NSR value (1/CN0_MM_NSR_MIN_MULTIPLIER)*/
-#define CN0_MM_NSR_MIN            (1e6f)
+#define CN0_MM_NSR_MIN (1e6f)
 
-static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4)
-{
+static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4) {
   float tmp = 2 * M_2 * M_2 - M_4;
   float nsr;
 
@@ -47,7 +46,7 @@ static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4)
   float nsr_db = 10.f * log10f(nsr);
 
   /* Compute CN0 */
-  float x= p->log_bw - nsr_db;
+  float x = p->log_bw - nsr_db;
   return x < 10 ? 10 : x > 60 ? 60 : x;
 }
 
@@ -84,8 +83,7 @@ static float compute_cn0(const cn0_est_params_t *p, float M_2, float M_4)
  */
 void cn0_est_mm_init(cn0_est_mm_state_t *s,
                      const cn0_est_params_t *p,
-                     float cn0_0)
-{
+                     float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -110,8 +108,8 @@ void cn0_est_mm_init(cn0_est_mm_state_t *s,
  */
 float cn0_est_mm_update(cn0_est_mm_state_t *s,
                         const cn0_est_params_t *p,
-                        float I, float Q)
-{
+                        float I,
+                        float Q) {
   float m_2 = I * I + Q * Q;
   float m_4 = m_2 * m_2;
 

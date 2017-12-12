@@ -2,21 +2,19 @@
 
 #include "filter/filter_common.h"
 
-#define BW   1000
+#define BW 1000
 #define CN0_0 40
 #define CUTOFF_FREQ 0.5
 #define LOOP_FREQ 1000
 
-TEST(filter_tests, test_lp1_params)
-{
+TEST(filter_tests, test_lp1_params) {
   lp1_filter_params_t params;
   lp1_filter_compute_params(&params, CUTOFF_FREQ, LOOP_FREQ);
   EXPECT_TRUE(params.a != 0.f);
   EXPECT_TRUE(params.b != 0.f);
 }
 
-TEST(filter_tests, test_lp1_init1)
-{
+TEST(filter_tests, test_lp1_init1) {
   lp1_filter_params_t params;
   lp1_filter_compute_params(&params, CUTOFF_FREQ, LOOP_FREQ);
   lp1_filter_t filter;
@@ -49,8 +47,7 @@ TEST(filter_tests, test_lp1_update1)
   EXPECT_TRUE(r == 1.f);
 }*/
 
-TEST(filter_tests, test_lp1_update2)
-{
+TEST(filter_tests, test_lp1_update2) {
   lp1_filter_params_t params;
   lp1_filter_compute_params(&params, CUTOFF_FREQ, LOOP_FREQ);
   lp1_filter_t filter;
@@ -73,8 +70,7 @@ TEST(filter_tests, test_lp1_update2)
   EXPECT_TRUE(r > 1.f);
 }*/
 
-TEST(filter_tests, test_bw2_params)
-{
+TEST(filter_tests, test_bw2_params) {
   bw2_filter_params_t params;
   bw2_filter_compute_params(&params, CUTOFF_FREQ, LOOP_FREQ);
   EXPECT_TRUE(params.a2 != 0.f);
@@ -82,8 +78,7 @@ TEST(filter_tests, test_bw2_params)
   EXPECT_TRUE(params.b != 0.f);
 }
 
-TEST(filter_tests, test_bw2_init1)
-{
+TEST(filter_tests, test_bw2_init1) {
   bw2_filter_params_t params;
   bw2_filter_compute_params(&params, CUTOFF_FREQ, LOOP_FREQ);
   bw2_filter_t filter;
@@ -121,8 +116,7 @@ TEST(filter_tests, test_bw2_init1)
   EXPECT_TRUE(fabsf(r - 1.f) < 1e-6);
 }*/
 
-TEST(filter_tests, test_bw2_update2)
-{
+TEST(filter_tests, test_bw2_update2) {
   bw2_filter_params_t params;
   bw2_filter_compute_params(&params, CUTOFF_FREQ, LOOP_FREQ);
   bw2_filter_t filter;
@@ -146,4 +140,3 @@ TEST(filter_tests, test_bw2_update2)
 
   EXPECT_TRUE(r > 1.f);
 }*/
-

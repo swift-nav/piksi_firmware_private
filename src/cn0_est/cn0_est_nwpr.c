@@ -12,8 +12,8 @@
 
 #include <cn0_est/cn0_est_common.h>
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 #define CN0_EST_NWPR_INIT_M 20
 #define CN0_EST_NWPR_INIT_N 100
@@ -26,7 +26,7 @@
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_NWPR_NSR_MIN_MULTIPLIER (1e-16f)
 /** Maximum supported NSR value (1/CN0_NWPR_NSR_MIN_MULTIPLIER) */
-#define CN0_NWPR_NSR_MIN            (1e16f)
+#define CN0_NWPR_NSR_MIN (1e16f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -44,8 +44,7 @@
  */
 void cn0_est_nwpr_init(cn0_est_nwpr_state_t *s,
                        const cn0_est_params_t *p,
-                       float cn0_0)
-{
+                       float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -71,8 +70,8 @@ void cn0_est_nwpr_init(cn0_est_nwpr_state_t *s,
  */
 float cn0_est_nwpr_update(cn0_est_nwpr_state_t *s,
                           const cn0_est_params_t *p,
-                          float I, float Q)
-{
+                          float I,
+                          float Q) {
   (void)p;
 
   s->WBP += I * I + Q * Q;
@@ -103,9 +102,7 @@ float cn0_est_nwpr_update(cn0_est_nwpr_state_t *s,
 
     /* Explain why this magic number 35 is needed. Tested against spirent,
        works fine. */
-    if (0 != P_n &&
-        P_d > 0 &&
-        P_n > 0)
+    if (0 != P_n && P_d > 0 && P_n > 0)
       s->cn0_db = 35 + 10.f * log10f(P_d / P_n);
 
     /* Restart outer loop */

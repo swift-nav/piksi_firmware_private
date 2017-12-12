@@ -12,8 +12,8 @@
 
 #include <cn0_est/cn0_est_common.h>
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -22,7 +22,7 @@
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_SNV_NSR_MIN_MULTIPLIER (1e-16f)
 /** Maximum supported NSR value (1/NSR_MIN_MULTIPLIER)*/
-#define CN0_SNV_NSR_MIN            (1e16f)
+#define CN0_SNV_NSR_MIN (1e16f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -40,8 +40,7 @@
  */
 void cn0_est_svr_init(cn0_est_svr_state_t *s,
                       const cn0_est_params_t *p,
-                      float cn0_0)
-{
+                      float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -63,9 +62,9 @@ void cn0_est_svr_init(cn0_est_svr_state_t *s,
  * \return Computed \f$ C / N_0 \f$ value
  */
 float cn0_est_svr_update(cn0_est_svr_state_t *s,
-                        const cn0_est_params_t *p,
-                        float I, float Q)
-{
+                         const cn0_est_params_t *p,
+                         float I,
+                         float Q) {
   /* Compute values for this iteration */
   float I_abs = fabsf(I);
   float Q_abs = fabsf(Q);
@@ -77,21 +76,19 @@ float cn0_est_svr_update(cn0_est_svr_state_t *s,
   if (I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
   } else {
-    float P_s;    /* Signal power */
-    float P_tot;  /* Signal + noise power */
+    float P_s;   /* Signal power */
+    float P_tot; /* Signal + noise power */
     float S_2 = I_abs * I_abs + Q_abs * Q_abs;
     float S_prev_2 = I_prev_abs * I_prev_abs + Q_prev_abs * Q_prev_abs;
 
     P_s = s->P_s += (S_2 * S_prev_2 - s->P_s) * p->alpha;
     P_tot = s->P_tot += (S_2 * S_2 - s->P_tot) * p->alpha;
 
-    if (0 == P_s)
-      return s->cn0_db;
+    if (0 == P_s) return s->cn0_db;
 
     float nsr = (P_tot - P_s) / P_s;
 
-    if (isnan(nsr) || nsr < 0)
-      return s->cn0_db;
+    if (isnan(nsr) || nsr < 0) return s->cn0_db;
 
     s->cn0_db = p->log_bw - 10.f * log10f(nsr);
   }

@@ -12,8 +12,8 @@
 
 #include <cn0_est/cn0_est_common.h>
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -22,14 +22,13 @@
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_BL_NSR_MIN_MULTIPLIER (1e-6f)
 /** Maximum supported NSR value (1/NSR_MIN_MULTIPLIER)*/
-#define CN0_BL_NSR_MIN            (1e6f)
+#define CN0_BL_NSR_MIN (1e6f)
 /** Maximum estimator output value */
-#define CN0_BL_DB_MAX             (100.f)
+#define CN0_BL_DB_MAX (100.f)
 /** Minimum estimator output value */
-#define CN0_BL_DB_MIN             (0.f)
+#define CN0_BL_DB_MIN (0.f)
 
-static float limit_cn0(float cn0)
-{
+static float limit_cn0(float cn0) {
   if (cn0 > CN0_BL_DB_MAX)
     return CN0_BL_DB_MAX;
   else if (cn0 < CN0_BL_DB_MIN)
@@ -38,8 +37,7 @@ static float limit_cn0(float cn0)
     return cn0;
 }
 
-static float compute_nsr(float P_s, float P_n)
-{
+static float compute_nsr(float P_s, float P_n) {
   /* Ensure the NSR is within the limit */
   if (P_s < P_n * CN0_BL_NSR_MIN_MULTIPLIER)
     return CN0_BL_NSR_MIN;
@@ -61,8 +59,7 @@ void cn0_est_compute_params(cn0_est_params_t *p,
                             float alpha,
                             float loop_freq,
                             float scale,
-                            float cn0_shift)
-{
+                            float cn0_shift) {
   memset(p, 0, sizeof(*p));
 
   p->log_bw = 10.f * log10f(bw * loop_freq);
@@ -111,8 +108,7 @@ void cn0_est_compute_params(cn0_est_params_t *p,
  */
 void cn0_est_bl_init(cn0_est_bl_state_t *s,
                      const cn0_est_params_t *p,
-                     float cn0_0)
-{
+                     float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -135,8 +131,8 @@ void cn0_est_bl_init(cn0_est_bl_state_t *s,
  */
 float cn0_est_bl_update(cn0_est_bl_state_t *s,
                         const cn0_est_params_t *p,
-                        float I, float Q)
-{
+                        float I,
+                        float Q) {
   /* Compute values for this iteration */
   float I_abs = fabsf(I);
   (void)Q;
@@ -146,9 +142,9 @@ float cn0_est_bl_update(cn0_est_bl_state_t *s,
   if (I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
   } else {
-    float P_n;    /* Noise power */
-    float P_s;    /* Signal power */
-    float nsr;    /* Noise to signal ratio */
+    float P_n; /* Noise power */
+    float P_s; /* Signal power */
+    float nsr; /* Noise to signal ratio */
 
     P_n = I_abs - I_prev_abs;
     P_n *= P_n;
@@ -175,8 +171,8 @@ float cn0_est_bl_update(cn0_est_bl_state_t *s,
  */
 float cn0_est_bl_update_q(cn0_est_bl_state_t *s,
                           const cn0_est_params_t *p,
-                          float I, float Q)
-{
+                          float I,
+                          float Q) {
   /* Compute values for this iteration */
   float I_abs = fabsf(I);
   float Q_abs = fabsf(Q);
@@ -188,9 +184,9 @@ float cn0_est_bl_update_q(cn0_est_bl_state_t *s,
   if (I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
   } else {
-    float P_n;    /* Noise power */
-    float P_s;    /* Signal power */
-    float nsr;    /* Noise to signal ratio */
+    float P_n; /* Noise power */
+    float P_s; /* Signal power */
+    float nsr; /* Noise to signal ratio */
 
     P_n = Q_abs - Q_prev_abs;
     P_n *= P_n;

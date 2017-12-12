@@ -66,18 +66,24 @@ extern "C" {
 #endif
 
 /* General purpose filters */
-void lp1_filter_compute_params(lp1_filter_params_t *p, float cutoff_freq,
+void lp1_filter_compute_params(lp1_filter_params_t *p,
+                               float cutoff_freq,
                                float loop_freq);
-void lp1_filter_init(lp1_filter_t *f, const lp1_filter_params_t *p,
+void lp1_filter_init(lp1_filter_t *f,
+                     const lp1_filter_params_t *p,
                      float initial);
-float lp1_filter_update(lp1_filter_t *f, const lp1_filter_params_t *p,
+float lp1_filter_update(lp1_filter_t *f,
+                        const lp1_filter_params_t *p,
                         float value);
 
-void bw2_filter_compute_params(bw2_filter_params_t *p, float cutoff_freq,
+void bw2_filter_compute_params(bw2_filter_params_t *p,
+                               float cutoff_freq,
                                float loop_freq);
-void bw2_filter_init(bw2_filter_t *f, const bw2_filter_params_t *p,
+void bw2_filter_init(bw2_filter_t *f,
+                     const bw2_filter_params_t *p,
                      float initial);
-float bw2_filter_update(bw2_filter_t *f, const bw2_filter_params_t *p,
+float bw2_filter_update(bw2_filter_t *f,
+                        const bw2_filter_params_t *p,
                         float value);
 
 #ifdef __cplusplus

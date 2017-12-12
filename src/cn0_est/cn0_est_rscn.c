@@ -12,8 +12,8 @@
 
 #include <cn0_est/cn0_est_common.h>
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 #define CN0_EST_RSCN_INIT_COUNT 20.f
 
@@ -24,7 +24,7 @@
 /** Multiplier for checking out-of bounds NSR */
 #define CN0_RSCN_NSR_MIN_MULTIPLIER (1e-16f)
 /** Maximum supported NSR value (1/CN0_RSCN_NSR_MIN_MULTIPLIER)*/
-#define CN0_RSCN_NSR_MIN            (1e16f)
+#define CN0_RSCN_NSR_MIN (1e16f)
 
 /** Initialize the \f$ C / N_0 \f$ estimator state.
  *
@@ -51,8 +51,7 @@
  */
 void cn0_est_rscn_init(cn0_est_rscn_state_t *s,
                        const cn0_est_params_t *p,
-                       float cn0_0)
-{
+                       float cn0_0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -76,8 +75,8 @@ void cn0_est_rscn_init(cn0_est_rscn_state_t *s,
  */
 float cn0_est_rscn_update(cn0_est_rscn_state_t *s,
                           const cn0_est_params_t *p,
-                          float I, float Q)
-{
+                          float I,
+                          float Q) {
   float I_2 = I * I;
   float Q_2 = Q * Q;
 

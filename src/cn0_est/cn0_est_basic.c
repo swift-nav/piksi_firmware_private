@@ -12,10 +12,10 @@
 
 #include <cn0_est/cn0_est_common.h>
 
+#include <assert.h>
 #include <libswiftnav/logging.h>
 #include <math.h>
 #include <string.h>
-#include <assert.h>
 
 /**
   * The function returns signal power
@@ -23,10 +23,7 @@
   * \param Q Quadrature component
   * \return Signal power
   */
-static float c_pwr(float I, float Q)
-{
-  return I * I + Q * Q;
-}
+static float c_pwr(float I, float Q) { return I * I + Q * Q; }
 
 /**
  * The function calculates noise power
@@ -35,8 +32,9 @@ static float c_pwr(float I, float Q)
  * \param p Estimator parameters
  * \return Noise power
  */
-static float n0_pwr(cn0_est_basic_state_t *s, float Q, const cn0_est_params_t *p)
-{
+static float n0_pwr(cn0_est_basic_state_t *s,
+                    float Q,
+                    const cn0_est_params_t *p) {
   float Q_abs = s->noise_Q_abs * (1 - p->alpha) + p->alpha * fabsf(Q);
 
   s->noise_Q_abs = Q_abs;
@@ -59,8 +57,8 @@ static float n0_pwr(cn0_est_basic_state_t *s, float Q, const cn0_est_params_t *p
  */
 void cn0_est_basic_init(cn0_est_basic_state_t *s,
                         const cn0_est_params_t *p,
-                        float cn0_0, float q0)
-{
+                        float cn0_0,
+                        float q0) {
   memset(s, 0, sizeof(*s));
 
   (void)p;
@@ -83,9 +81,10 @@ void cn0_est_basic_init(cn0_est_basic_state_t *s,
  */
 float cn0_est_basic_update(cn0_est_basic_state_t *s,
                            const cn0_est_params_t *p,
-                           float p_I, float p_Q,
-                           float ve_I, float ve_Q)
-{
+                           float p_I,
+                           float p_Q,
+                           float ve_I,
+                           float ve_Q) {
   (void)ve_I;
   /* calculate signal power */
   float c = c_pwr(p_I, p_Q);
@@ -95,8 +94,15 @@ float cn0_est_basic_update(cn0_est_basic_state_t *s,
   float cn0 = c * loop_freq / n0;
   cn0 = p->scale * 10.f * log10f(cn0) + p->cn0_shift;
   if (!isnormal(cn0)) {
-    log_warn("cn0 estimator problem: c %.3e  loop_freq %.3e  n0 %.3e  p_I %.3e  p_Q %.3e  ve_Q %.3e",
-      c, loop_freq, n0, p_I, p_Q, ve_Q);
+    log_warn(
+        "cn0 estimator problem: c %.3e  loop_freq %.3e  n0 %.3e  p_I %.3e  p_Q "
+        "%.3e  ve_Q %.3e",
+        c,
+        loop_freq,
+        n0,
+        p_I,
+        p_Q,
+        ve_Q);
   }
   s->cn0_db = cn0;
   return s->cn0_db;
