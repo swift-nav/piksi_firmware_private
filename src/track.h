@@ -16,11 +16,13 @@
 #include <libsbp/tracking.h>
 #include <libswiftnav/bit_sync.h>
 #include <libswiftnav/common.h>
+#include <libswiftnav/nav_meas.h>
 #include <libswiftnav/nav_msg.h>
 #include <libswiftnav/run_stats.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
 
+#include "alias.h"
 #include "piksi_systime.h"
 #include "shm.h"
 #include "track_flags.h"

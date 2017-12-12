@@ -96,11 +96,57 @@ piksi_systime.o : $(USER_SRC_DIR)/piksi_systime.h $(USER_SRC_DIR)/chconf.h ./ch.
 test_piksi_systime.o : $(TEST_DIR)/test_piksi_systime.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_piksi_systime.cc
 
-sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/sbas_select.c $(GTEST_HEADERS)
+sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/sbas_select.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/sbas_select.c
 
 test_sbas_select.o : $(TEST_DIR)/test_sbas_select.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_sbas_select.cc
 
-run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o sbas_select.o test_sbas_select.o gtest_main.a
+cn0_est_bl.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c
+
+cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c
+
+cn0_est_mm.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c
+
+cn0_est_nwpr.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c
+
+cn0_est_rscn.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c
+
+cn0_est_basic.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c
+
+test_cn0_est.o : $(TEST_DIR)/test_cn0_est.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_est.cc
+
+filter_bw2.o : $(USER_SRC_DIR)/filter/filter_common.h $(USER_SRC_DIR)/filter/filter_bw2.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/filter/filter_bw2.c
+
+filter_lp1.o : $(USER_SRC_DIR)/filter/filter_common.h $(USER_SRC_DIR)/filter/filter_lp1.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/filter/filter_lp1.c
+
+test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
+
+run_tests : fixed_fft_r2.o \
+            test_fft.o \
+            piksi_systime.o \
+            test_piksi_systime.o \
+            sbas_select.o \
+            test_sbas_select.o \
+            cn0_est_bl.o \
+            cn0_est_snv.o \
+            cn0_est_mm.o \
+            cn0_est_nwpr.o \
+            cn0_est_rscn.o \
+            cn0_est_basic.o \
+            test_cn0_est.o \
+            filter_bw2.o \
+            filter_lp1.o \
+            test_filters.o \
+            gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
