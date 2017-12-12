@@ -124,6 +124,8 @@ CSRC := $(STARTUPSRC) \
         $(BOARDSRC) \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.o \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_bl.o \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp_fileio.o \
