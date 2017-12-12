@@ -67,6 +67,8 @@ extern mutex_t base_pos_lock;
 extern bool base_pos_known;
 extern double base_pos_ecef[3];
 
+extern mutex_t base_glonass_biases_lock;
+
 void base_obs_setup(void);
 
 u32 base_obs_msg_counter_get(void);

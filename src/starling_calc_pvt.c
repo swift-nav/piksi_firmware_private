@@ -164,6 +164,11 @@ void set_known_ref_pos(const double base_pos[3]) {
       (FilterManagerRTK *)time_matched_filter_manager, base_pos);
 }
 
+void set_known_glonass_biases(const glo_biases_t biases) {
+  filter_manager_set_known_glonass_biases(
+      (FilterManagerRTK *)time_matched_filter_manager, biases);
+}
+
 void reset_rtk_filter(void) {
   chMtxLock(&time_matched_filter_manager_lock);
   filter_manager_init(time_matched_filter_manager);
@@ -920,6 +925,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
          filter manager from the time matched filter manager. */
       chMtxLock(&low_latency_filter_manager_lock);
       chMtxLock(&base_pos_lock);
+      chMtxLock(&base_glonass_biases_lock);
       u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
@@ -930,13 +936,14 @@ void process_matched_obs(const obss_t *rover_channel_meass,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
+      chMtxUnlock(&base_glonass_biases_lock);
       chMtxUnlock(&base_pos_lock);
       chMtxUnlock(&low_latency_filter_manager_lock);
     }
   }
 
   /* If we are in time matched mode then calculate and output the baseline
-  * for this observation. */
+   * for this observation. */
   if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !simulation_enabled() &&
       update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
