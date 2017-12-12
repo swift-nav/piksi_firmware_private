@@ -144,6 +144,8 @@ void do_glo_l1of_to_l2of_handover(u32 sample_count,
 
 static void tracker_glo_l2of_init(tracker_channel_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &glo_l2of_config);
+
+  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
 }
 
 static void tracker_glo_l2of_update(tracker_channel_t *tracker_channel) {

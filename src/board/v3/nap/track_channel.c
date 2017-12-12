@@ -267,6 +267,24 @@ void nap_track_init(u8 channel,
 
   /* Set up timing compare */
   chSysLock();
+
+  u32 code_chips = code_to_chip_count(mesid.code);
+  double code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
+
+  bool symbol_synced = !code_requires_direct_acq(mesid.code);
+  u32 num_codes = 1;
+  if (symbol_synced) {
+    /* symbol synced code phase must remain symbol synced after propagation */
+    if (CODE_GLO_L2OF == mesid.code) {
+      /* GLO L2OF has the same symbol (meander) length as GLO L1OF */
+      num_codes = GLO_L1CA_SYMBOL_LENGTH_MS / GLO_PRN_PERIOD_MS;
+    } else if (CODE_GPS_L2CM == mesid.code) {
+      num_codes = GPS_L2C_SYMBOL_LENGTH_MS / GPS_L2CM_PRN_PERIOD_MS;
+    } else {
+      assert(0);
+    }
+  }
+
   /* get a reasonable deadline to which propagate to */
   u64 tc_min_propag = NAP->TIMING_COUNT + TIMING_COMPARE_DELTA_MIN;
   /* extend tc_min_propag - cannot use helper function in syslock */
@@ -276,15 +294,11 @@ void nap_track_init(u8 channel,
   }
 
   u32 samples_diff = tc_min_propag - tc_codestart;
-  u32 code_chips, num_codes;
-  u64 tc_next_rollover;
-  double code_samples;
+  u32 tmp = 1 + (u32)floor((double)samples_diff / code_samples);
+  assert(num_codes);
+  num_codes *= (tmp + num_codes - 1) / num_codes;
 
-  code_chips = code_to_chip_count(mesid.code);
-  code_samples = (double)code_chips * calc_samples_per_chip(chip_rate);
-  num_codes = 1 + (u32)floor((double)samples_diff / code_samples);
-
-  tc_next_rollover =
+  u64 tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);
 
   u8 index = 0;
@@ -416,9 +430,9 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
-  double prompt_offset = s->spacing[0].chips +
-                         (NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples) /
-                             calc_samples_per_chip(s->code_phase_rate[1]);
+  double prompt_offset =
+      s->spacing[0].chips + (NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples) /
+                                calc_samples_per_chip(s->code_phase_rate[1]);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
