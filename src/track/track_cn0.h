@@ -13,9 +13,11 @@
 #ifndef SWIFTNAV_TRACK_CN0_H
 #define SWIFTNAV_TRACK_CN0_H
 
-#include <libswiftnav/track.h>
-#include <cn0_est/cn0_est_common.h>
-#include <nap/nap_constants.h>
+#include <libswiftnav/signal.h>
+
+#include "cn0_est/cn0_est_common.h"
+#include "filter/filter_common.h"
+#include "nap/nap_constants.h"
 
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
 #define TRACK_CN0_SNR_OFFSET (-174.f + PLATFORM_NOISE_FIGURE)

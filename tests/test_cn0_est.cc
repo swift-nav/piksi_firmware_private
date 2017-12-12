@@ -1,9 +1,4 @@
-
 #include "gtest/gtest.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 
 #include "cn0_est/cn0_est_common.h"
 
