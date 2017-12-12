@@ -93,6 +93,10 @@ typedef struct {
   float cn0_shift; /** < Shift for C/No in dBHz */
 } cn0_est_params_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* C/N0 estimators */
 void cn0_est_compute_params(cn0_est_params_t *p, float bw, float alpha,
                             float loop_freq, float scale, float cn0_shift);
@@ -131,5 +135,9 @@ void cn0_est_basic_init(cn0_est_basic_state_t *s, const cn0_est_params_t *p,
                         float cn0_0, float q0);
 float cn0_est_basic_update(cn0_est_basic_state_t *s, const cn0_est_params_t *p,
                            float I, float Q, float ve_I, float ve_Q);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SWIFTNAV_CN0_EST_COMMON_H */
