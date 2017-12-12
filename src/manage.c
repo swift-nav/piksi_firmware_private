@@ -1028,7 +1028,7 @@ void sanitize_trackers(void) {
         drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
       }
       onoff_cnt++;
-      log_info("adel: restarted %d times", onoff_cnt);
+      log_info("adel: restarted %"PRIu32" times", onoff_cnt);
       return;
     }
   }
