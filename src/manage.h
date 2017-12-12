@@ -17,7 +17,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
+#include <libswiftnav/nav_meas.h>
 #include "soft_macq/soft_macq_main.h"
 #include "track_flags.h"
 
