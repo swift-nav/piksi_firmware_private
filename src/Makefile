@@ -128,6 +128,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.o \
         $(SWIFTNAV_ROOT)/src/filter/filter_bw2.o \
         $(SWIFTNAV_ROOT)/src/filter/filter_lp1.o \
+        $(SWIFTNAV_ROOT)/src/alias.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp_fileio.o \

@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_CN0_EST_COMMON_H
 #define SWIFTNAV_CN0_EST_COMMON_H
  
- #include <libswiftnav/common.h>
+#include <libswiftnav/common.h>
 
 typedef struct {
   float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
