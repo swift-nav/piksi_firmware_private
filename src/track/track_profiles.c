@@ -423,10 +423,16 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
   return bw;
 }
 
-static u8 get_profile_index(const tp_profile_entry_t *profiles,
-                            size_t num,
+static u8 get_profile_index(code_t code,
+                            const tp_profile_entry_t *profiles,
+                            size_t num_profiles,
                             float cn0) {
-  for (size_t i = 0; i < num; i++) {
+  if (code_requires_direct_acq(code)) {
+    return 0; /* signals from ACQ always go through init profiles */
+  }
+
+  /* the bit/symbol sync is known so we can start with non-init profiles */
+  for (size_t i = 0; i < num_profiles; i++) {
     if (profiles[i].cn0_low_threshold <= 0) {
       continue;
     }
@@ -443,10 +449,7 @@ static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
   const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num_profiles);
   assert(profiles);
 
-  u8 index = 0;
-  if ((CODE_GPS_L2CM == mesid.code) || (CODE_GLO_L2OF == mesid.code)) {
-    index = get_profile_index(profiles, num_profiles, cn0);
-  }
+  u8 index = get_profile_index(mesid.code, profiles, num_profiles, cn0);
 
   struct profile_vars vars = {0};
   vars.index = index;
