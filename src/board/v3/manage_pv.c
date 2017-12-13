@@ -31,6 +31,7 @@
 
 typedef enum {
   DEV_NO_SIGNAL,
+  DEV_ANTENNA_SHORTED,
   DEV_ANTENNA,
   DEV_TRK_AT_LEAST_FOUR,
   DEV_SPS,
@@ -77,6 +78,10 @@ static device_state_t get_device_state(void) {
     return DEV_TRK_AT_LEAST_FOUR;
   }
 
+  if (antenna_shorted()) {
+    return DEV_ANTENNA_SHORTED;
+  }
+
   if (antenna_present()) {
     return DEV_ANTENNA;
   }
@@ -93,6 +98,7 @@ static device_state_t get_device_state(void) {
 static bool handle_pv(device_state_t dev_state) {
   switch (dev_state) {
     case DEV_NO_SIGNAL:
+    case DEV_ANTENNA_SHORTED:
     case DEV_ANTENNA:
     case DEV_TRK_AT_LEAST_FOUR:
       return FALSE;

@@ -127,3 +127,22 @@ bool antenna_present(void) {
 
   return false;
 }
+
+bool antenna_shorted(void) {
+  switch (antenna_mode) {
+    case ANTENNA_MODE_PRIMARY: {
+      return antenna_bias && (palReadLine(ANT_NFAULT_1_GPIO_LINE) == PAL_LOW);
+    }
+
+    case ANTENNA_MODE_SECONDARY: {
+      return antenna_bias && (palReadLine(ANT_NFAULT_2_GPIO_LINE) == PAL_LOW);
+    }
+
+    default: {
+      assert(!"Invalid antenna mode setting");
+      return false;
+    }
+  }
+
+  return false;
+}
