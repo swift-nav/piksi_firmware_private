@@ -17,7 +17,6 @@
 #include <string.h>
 
 #include <libswiftnav/logging.h>
-#include <libswiftnav/prns.h>
 
 #include "board/v3/nap/grabber.h"
 #include "nap/nap_common.h"

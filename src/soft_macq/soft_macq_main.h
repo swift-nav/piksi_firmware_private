@@ -2,7 +2,8 @@
 #define SOFT_MACQ_MAIN_H_
 
 #include <libswiftnav/logging.h>
-#include <libswiftnav/prns.h>
+
+#include "prns.h"
 
 /** Acquisition CN0 threshold to determine if
   * handover to tracking should be initiated. */

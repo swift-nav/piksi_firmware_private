@@ -157,6 +157,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/system_monitor.o \
         $(SWIFTNAV_ROOT)/src/ephemeris.o \
         $(SWIFTNAV_ROOT)/src/pps.o \
+        $(SWIFTNAV_ROOT)/src/prns.o \
         $(SWIFTNAV_ROOT)/src/decode.o \
         $(SWIFTNAV_ROOT)/src/signal.o \
         $(SWIFTNAV_ROOT)/src/piksi_systime.o \
