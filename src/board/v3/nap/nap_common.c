@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/alias_detector.h>
+
 #include "nap/nap_common.h"
 #include "../../ext_events.h"
 #include "../../piksi_systime.h"

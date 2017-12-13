@@ -22,7 +22,6 @@
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/track.h>
 #include <track.h>
 
 #include "settings.h"

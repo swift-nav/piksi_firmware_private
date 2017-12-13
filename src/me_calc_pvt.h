@@ -20,7 +20,7 @@
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
-#include <libswiftnav/track.h>
+#include <libswiftnav/nav_meas.h>
 
 #include <ch.h>
 

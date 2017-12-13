@@ -10,9 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "sbas_select.h"
-#include <assert.h>
 #include <libswiftnav/signal.h>
+
+#include "sbas_select.h"
+
+#include <assert.h>
+#include <math.h>
 
 /** PRN mask for WAAS, https://wiki2.org/en/WAAS#Space_segment */
 #define SBAS_SELECT_WAAS_MASK                                      \

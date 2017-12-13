@@ -14,10 +14,12 @@
 #define SWIFTNAV_MANAGE_H
 
 #include <ch.h>
+
+#include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
+
 #include "soft_macq/soft_macq_main.h"
 #include "track_flags.h"
 

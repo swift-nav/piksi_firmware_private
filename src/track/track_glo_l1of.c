@@ -27,7 +27,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
+#include <libswiftnav/alias_detector.h>
 
 /* STD headers */
 #include <assert.h>

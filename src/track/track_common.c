@@ -13,7 +13,6 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/track.h>
 
 #include <track.h>
 
