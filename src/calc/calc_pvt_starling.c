@@ -79,9 +79,9 @@ bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
 MUTEX_DECL(last_sbp_lock);
-gps_time_t last_dgnss;
-gps_time_t last_spp;
-gps_time_t last_time_matched_rover_obs_post;
+static gps_time_t last_dgnss;
+static gps_time_t last_spp;
+static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 u32 max_age_of_differential = 30;
