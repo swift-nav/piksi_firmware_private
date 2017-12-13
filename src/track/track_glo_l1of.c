@@ -24,10 +24,10 @@
 #include <signal.h>
 
 /* Libraries */
+#include <libswiftnav/alias_detector.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/alias_detector.h>
 
 /* STD headers */
 #include <assert.h>
