@@ -179,6 +179,12 @@ prns.o : $(USER_SRC_DIR)/soft_macq/prns.h $(USER_SRC_DIR)/soft_macq/prns.c $(GTE
 test_prns.o : $(TEST_DIR)/test_prns.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_prns.cc
 
+clock_filter.o : $(USER_SRC_DIR)/clock_filter.h $(USER_SRC_DIR)/clock_filter.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/clock_filter.c
+
+test_clock_filter.o : $(TEST_DIR)/test_clock_filter.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_clock_filter.cc
+
 OBJS = \
   fixed_fft_r2.o \
   test_fft.o \
@@ -206,6 +212,8 @@ OBJS = \
   test_trk_loop.o \
   prns.o \
   test_prns.o \
+  clock_filter.o \
+  test_clock_filter.o \
   gtest_main.a
 
 LIBS = -lswiftnav -lswiftnav-common -lpthread
