@@ -430,9 +430,9 @@ void nap_track_read_results(u8 channel,
   corrs[4].Q = (s16)((trk_ch.CORR4 >> 16) & 0xFFFF);
 
   /* Spacing between VE and P correlators */
-  double prompt_offset =
-      s->spacing[0].chips + (NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples) /
-                                calc_samples_per_chip(s->code_phase_rate[1]);
+  double prompt_offset = s->spacing[0].chips +
+                         (NAP_EPL_SPACING_SAMPLES + s->spacing[0].samples) /
+                             calc_samples_per_chip(s->code_phase_rate[1]);
 
   /* Code and carrier phase reckoning */
   s64 carr_phase_incr = ((s64)s->length[1]) * s->carr_pinc[1];
