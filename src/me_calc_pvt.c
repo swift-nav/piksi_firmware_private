@@ -172,12 +172,12 @@ static void remove_clock_offset(navigation_measurement_t *nm,
 
   /* Remove the fractional 2-ms residual FCN contribution */
   if (IS_GLO(nm->sid)) {
-    nm->raw_carrier_phase -= glo_2ms_fcn_residual(nm->sid, ref_tc);
+    nm->raw_carrier_phase += glo_2ms_fcn_residual(nm->sid, ref_tc);
   }
 
   /* Carrier Phase corrected by clock offset */
-  nm->raw_carrier_phase += clock_offset * doppler;
-  nm->raw_carrier_phase += clock_offset * GPS_C / sid_to_lambda(nm->sid);
+  nm->raw_carrier_phase -= clock_offset * doppler;
+  nm->raw_carrier_phase -= clock_offset * GPS_C / sid_to_lambda(nm->sid);
 
   /* Use P**V**T to determine the oscillator drift which is used to adjust
    * computed doppler. */

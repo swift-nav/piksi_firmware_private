@@ -343,7 +343,7 @@ void unpack_obs_content(const packed_obs_content_t *msg,
                         nav_meas_flags_t *flags,
                         gnss_signal_t *sid) {
   *P = ((double)msg->P) / MSG_OBS_P_MULTIPLIER;
-  *L = -(((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
+  *L = (((double)msg->L.i) + (((double)msg->L.f) / MSG_OBS_LF_MULTIPLIER));
   *D = (((double)msg->D.i) + (((double)msg->D.f) / MSG_OBS_DF_MULTIPLIER));
   *cn0 = ((double)msg->cn0) / MSG_OBS_CN0_MULTIPLIER;
   *lock_time = decode_lock_time(msg->lock);
@@ -393,7 +393,7 @@ s8 pack_obs_content(double P,
 
   msg->P = P_fp;
 
-  double Li = floor(-L);
+  double Li = floor(L);
   if (Li < INT32_MIN || Li > INT32_MAX) {
     log_error_sid(sid,
                   "observation message packing: L integer overflow "
@@ -407,7 +407,7 @@ s8 pack_obs_content(double P,
     return -1;
   }
 
-  double Lf = -L - Li;
+  double Lf = L - Li;
 
   msg->L.i = Li;
   u16 frac_part_cp = round(Lf * MSG_OBS_LF_MULTIPLIER);
