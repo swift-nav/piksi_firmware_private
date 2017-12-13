@@ -294,9 +294,9 @@ void nap_track_init(u8 channel,
   }
 
   u32 samples_diff = tc_min_propag - tc_codestart;
-  u32 tmp = 1 + (u32)floor((double)samples_diff / code_samples);
+  u32 tmp = (u32)floor((double)samples_diff / code_samples);
   assert(num_codes);
-  num_codes *= (tmp + num_codes - 1) / num_codes;
+  num_codes *= (1 + (tmp / num_codes));
 
   u64 tc_next_rollover =
       tc_codestart + (u64)floor(0.5 + (double)num_codes * code_samples);

@@ -313,11 +313,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
  * Helper method to get tracking profiles array.
  *
  * \param[in] mesid ME signal ID
- * \param[in] num number of profiles
+ * \param[in] num_profiles number of profiles
  * \return Tracking profiles array pointer
  */
 static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
-                                                   size_t *num) {
+                                                   size_t *num_profiles) {
   const tp_profile_entry_t *profiles = NULL;
 
   /* GPS and SBAS constellations use similar signal encoding scheme and thus
@@ -332,8 +332,8 @@ static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
     case CONSTELLATION_BDS2:
     case CONSTELLATION_QZS:
       profiles = gnss_track_profiles;
-      if (num) {
-        *num = ARRAY_SIZE(gnss_track_profiles);
+      if (num_profiles) {
+        *num_profiles = ARRAY_SIZE(gnss_track_profiles);
       }
       break;
 
@@ -425,7 +425,7 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
 
 static u8 get_profile_index(const tp_profile_entry_t *profiles,
                             size_t num,
-                            double cn0) {
+                            float cn0) {
   for (size_t i = 0; i < num; i++) {
     if (profiles[i].cn0_low_threshold <= 0) {
       continue;
@@ -438,14 +438,14 @@ static u8 get_profile_index(const tp_profile_entry_t *profiles,
 }
 
 static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
-                                            double cn0) {
-  size_t num = 0;
-  const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num);
+                                            float cn0) {
+  size_t num_profiles = 0;
+  const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num_profiles);
   assert(profiles);
 
   u8 index = 0;
   if ((CODE_GPS_L2CM == mesid.code) || (CODE_GLO_L2OF == mesid.code)) {
-    index = get_profile_index(profiles, num, cn0);
+    index = get_profile_index(profiles, num_profiles, cn0);
   }
 
   struct profile_vars vars = {0};
@@ -976,7 +976,7 @@ void tp_profile_init(tracker_channel_t *tracker_channel,
   memset(profile, 0, sizeof(*profile));
 
   profile->filt_cn0 = data->cn0;
-  profile->profiles = mesid_to_profiles(mesid, /* num = */ NULL);
+  profile->profiles = mesid_to_profiles(mesid, /* num_profiles = */ NULL);
 
   profile->cur = get_profile_vars(mesid, data->cn0);
 
