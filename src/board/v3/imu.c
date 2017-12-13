@@ -156,7 +156,7 @@ static void imu_thread(void *arg) {
       log_error("Error registor: %u status register: %u", bmi160_read_error(), bmi160_read_status());
     }
     if (dt >=  73.0 || dt <= 0.0 || err_pcent >= 400.0 || err_pcent <= 0) {
-      log_error("Received discontinous sensor_time. dt: %f curr: 0x%06lx prev: 0x%06lx", dt, sensor_time, p_sensor_time);
+      log_debug("Received discontinous sensor_time. dt: %f curr: 0x%06lx prev: 0x%06lx", dt, sensor_time, p_sensor_time);
     }
     p_sensor_time = sensor_time;
     u32 tow;
