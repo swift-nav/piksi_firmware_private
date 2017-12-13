@@ -14,7 +14,7 @@
 #define SWIFTNAV_TRACK_UTILS_H
 
 #include <libswiftnav/constants.h>
-#include <libswiftnav/track.h>
+#include <libswiftnav/lock_detector.h>
 
 /* FLL saturation threshold in [Hz]. When signal is lost, filtered frequency
  * error can grow fast.

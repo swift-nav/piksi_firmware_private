@@ -14,7 +14,6 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_capabilities.h>
-#include <libswiftnav/track.h>
 
 #include <board.h>
 #include <chconf_board.h>
