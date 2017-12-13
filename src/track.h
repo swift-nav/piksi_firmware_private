@@ -21,6 +21,7 @@
 #include <libswiftnav/signal.h>
 #include <libswiftnav/track.h>
 
+#include "alias.h"
 #include "piksi_systime.h"
 #include "shm.h"
 #include "track_flags.h"

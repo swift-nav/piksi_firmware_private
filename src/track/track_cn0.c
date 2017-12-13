@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "track_cn0.h"
+#include "cn0_est/cn0_est_common.h"
 
 #include <assert.h>
 #include <math.h>
