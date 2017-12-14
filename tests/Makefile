@@ -63,6 +63,7 @@ $(LSNP) :
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
+	      -DCMAKE_CXX_COMPILER=g++-5 \
 	      ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
 
