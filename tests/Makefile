@@ -57,7 +57,6 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 .PHONY:
 
 all : run_tests
-	@printf "BUILT all\n";
 
 $(LSNP) :
 	@printf "BUILD libswiftnav\n"; \
@@ -167,11 +166,4 @@ run_tests : \
   test_cn0_estimator.o \
   test_filters.o \
   gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
-=======
-run_tests : $(LSNP) fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o \
-sbas_select.o test_sbas_select.o cn0_est_basic.o cn0_est_bl.o \
-cn0_est_mm.o cn0_est_nwpr.o cn0_est_rscn.o cn0_est_snv.o \
-test_cn0_estimator.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@
->>>>>>> Build libswiftnav.so
