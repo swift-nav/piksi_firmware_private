@@ -167,4 +167,3 @@ run_tests : \
   test_filters.o \
   gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@
-
