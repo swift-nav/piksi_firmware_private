@@ -12,6 +12,10 @@
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
 
+SWIFTNAV_ROOT := ..
+LIB_BUILDFOLDER = build_pm_test
+LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
 GTEST_DIR = ../third_party/googletest/googletest
@@ -21,6 +25,8 @@ USER_SRC_DIR = ../src
 
 # Where to find tests
 TEST_DIR = .
+
+LSNP=$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.so
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -41,10 +47,6 @@ INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 
-# All tests produced by this Makefile.  Remember to add new tests you
-# created to the list.
-TESTS = sample1_unittest
-
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
 GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
@@ -52,10 +54,23 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 
 # House-keeping build targets.
 
+.PHONY:
+
 all : run_tests
+	@printf "BUILT all\n";
+
+$(LSNP) :
+	@printf "BUILD libswiftnav\n"; \
+	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+	cmake -DMAX_CHANNELS=45 \
+	      -DPIKSI_MULTI_UNIT_TEST=ON \
+	      ../
+	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
 
 clean :
-	rm -f $(TESTS) gtest.a gtest_main.a *.o
+	@printf "CLEAN   libswiftnav\n"; \
+	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
+	rm -f run_tests gtest.a gtest_main.a *.o
 
 # Builds gtest.a and gtest_main.a.
 
@@ -124,6 +139,7 @@ cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.
 test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_estimator.cc
 
+<<<<<<< HEAD
 filter_bw2.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/utils/filters/filter_bw2.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_bw2.c
 
@@ -152,3 +168,10 @@ run_tests : \
   test_filters.o \
   gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
+=======
+run_tests : $(LSNP) fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o \
+sbas_select.o test_sbas_select.o cn0_est_basic.o cn0_est_bl.o \
+cn0_est_mm.o cn0_est_nwpr.o cn0_est_rscn.o cn0_est_snv.o \
+test_cn0_estimator.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@
+>>>>>>> Build libswiftnav.so
