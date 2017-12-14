@@ -1209,16 +1209,16 @@ static bool compute_cpo(u64 ref_tc,
     double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
 
     /* pseudorange in circles */
-    double pseduorange_circ = (sid_to_carr_freq(meas->sid) *
+    double pseudorange_circ = (sid_to_carr_freq(meas->sid) *
                                (raw_pseudorange / GPS_C - rcv_clk_error));
 
     /* Remove the fractional 2-ms residual FCN contribution */
     if (IS_GLO(meas->sid)) {
-      pseduorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
+      pseudorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
     }
 
     /* initialize the carrier phase offset with the pseudorange measurement */
-    *carrier_phase_offset = round(pseduorange_circ - meas->carrier_phase);
+    *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
 
     log_debug_mesid(info->mesid,
                     "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
