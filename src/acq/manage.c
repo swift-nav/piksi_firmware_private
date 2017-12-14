@@ -983,7 +983,7 @@ static bool leap_second_is_imminent(void) {
 
   bool leap_second_event = false;
   utc_params_t utc_params;
-  gps_time_t gps_time = get_current_gps_time();
+  gps_time_t gps_time = get_current_time();
 
   /* is_leap_second_event() returns true within 1 second of the event.
    * Thus, add 1 second to current GPS time.
