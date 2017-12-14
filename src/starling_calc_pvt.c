@@ -1218,7 +1218,7 @@ void starling_calc_pvt_setup() {
   int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(
       dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
   SETTING(
-      "solution", "dgnss_solution_mode", dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
+      "solution", "rtk_solution_mode", dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
 
   SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
