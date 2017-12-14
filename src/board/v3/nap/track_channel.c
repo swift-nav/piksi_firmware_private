@@ -23,9 +23,9 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/filter_common.h>
 #include <libswiftnav/prns.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
 
 #include <assert.h>
 #include <string.h>

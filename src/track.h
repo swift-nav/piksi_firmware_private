@@ -14,12 +14,16 @@
 #define SWIFTNAV_TRACK_H
 
 #include <libsbp/tracking.h>
+
+#include <libswiftnav/alias_detector.h>
 #include <libswiftnav/bit_sync.h>
+#include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
+#include <libswiftnav/lock_detector.h>
 #include <libswiftnav/nav_msg.h>
 #include <libswiftnav/run_stats.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
+#include <libswiftnav/trk_loop_common.h>
 
 #include "piksi_systime.h"
 #include "shm.h"

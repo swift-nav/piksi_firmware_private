@@ -18,6 +18,7 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/nav_meas_calc.h>
 
 #include "board/nap/track_channel.h"
 #include "manage.h"

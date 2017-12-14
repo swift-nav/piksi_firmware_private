@@ -31,7 +31,6 @@
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
 
 /* STD headers */
 #include <assert.h>

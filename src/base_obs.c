@@ -21,6 +21,7 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
+#include <libswiftnav/nav_meas_calc.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/signal.h>

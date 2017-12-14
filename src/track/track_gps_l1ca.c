@@ -24,10 +24,11 @@
 #include <track.h>
 
 /* Libraries */
+#include <libswiftnav/ch_meas.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/filter_common.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/track.h>
 
 /* STD headers */
 #include <string.h>

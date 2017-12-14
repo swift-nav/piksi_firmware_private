@@ -10,19 +10,20 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track_sbp.h"
 #include <assert.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/track.h>
+#include <libswiftnav/nav_meas_calc.h>
 #include <sbp.h>
 #include <sbp_utils.h>
 #include <stdint.h>
 #include <timing.h>
+
 #include "board/nap/track_channel.h"
 #include "board/v3/nap/nap_constants.h"
 #include "board/v3/nap/nap_hw.h"
 #include "shm.h"
 #include "track.h"
+#include "track_sbp.h"
 
 /** Get synchronization status flags
  * \param[in] channel_info channel info

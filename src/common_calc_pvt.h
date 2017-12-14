@@ -21,7 +21,6 @@
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
-#include <libswiftnav/track.h>
 
 #include "base_obs.h"
 #include "cnav_msg_storage.h"

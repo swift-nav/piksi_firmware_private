@@ -20,7 +20,6 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/track.h>
 
 #include "piksi_systime.h"
 
