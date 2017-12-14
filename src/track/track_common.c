@@ -147,8 +147,8 @@ void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init) {
 
   tracker_channel->has_next_params = false;
 
-  /* Set the step number for mode switch. Current step is one step behind bit
-   * edge */
+  /* For mode switch the current step is one step behind bit edge.
+     For start-up it is 0. */
   u8 cycle_cnt = tp_get_cycle_count(l->mode);
   tracker_channel->cycle_no = init ? 0 : (cycle_cnt - 1);
 
