@@ -667,7 +667,6 @@ void ndb_unlock() { chMtxUnlock(&data_access); }
  * \param[out] ds       Optional destination for NDB data source.
  *
  * \retval NDB_ERR_NONE       On success
- * \retval NDB_ERR_BAD_PARAM  On parameter error
  * \retval NDB_ERR_MISSING_IE No cached data block
  *
  * \internal
