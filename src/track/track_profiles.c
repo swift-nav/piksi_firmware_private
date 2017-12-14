@@ -267,7 +267,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
     TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            40,          43,          51,
@@ -275,7 +275,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
           TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
     TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
            40,          35,          46,
@@ -283,7 +283,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
         TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            40,          32,          38,
