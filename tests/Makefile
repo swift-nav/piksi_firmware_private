@@ -102,5 +102,29 @@ sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/chconf.h ./ch.h $(
 test_sbas_select.o : $(TEST_DIR)/test_sbas_select.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_sbas_select.cc
 
-run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o sbas_select.o test_sbas_select.o gtest_main.a
+cn0_est_basic.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c
+
+cn0_est_bl.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c
+
+cn0_est_mm.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c
+
+cn0_est_nwpr.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c
+
+cn0_est_rscn.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c
+
+cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c
+
+test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_estimator.cc
+
+run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o \
+sbas_select.o test_sbas_select.o cn0_est_basic.o cn0_est_bl.o \
+cn0_est_mm.o cn0_est_nwpr.o cn0_est_rscn.o cn0_est_snv.o \
+test_cn0_estimator.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@

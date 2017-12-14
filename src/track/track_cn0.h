@@ -13,10 +13,10 @@
 #ifndef SWIFTNAV_TRACK_CN0_H
 #define SWIFTNAV_TRACK_CN0_H
 
-#include <libswiftnav/cn0_est_common.h>
 #include <libswiftnav/filter_common.h>
 #include <libswiftnav/signal.h>
 
+#include <cn0_est/cn0_est_common.h>
 #include <nap/nap_constants.h>
 
 /** Fixed SNR offset for converting 1ms C/N0 to SNR */
