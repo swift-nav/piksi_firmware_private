@@ -1208,16 +1208,17 @@ static bool compute_cpo(u64 ref_tc,
 
     double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
 
-    double phase = (sid_to_carr_freq(meas->sid) *
-                    (raw_pseudorange / GPS_C - rcv_clk_error));
+    /* pseudorange in circles */
+    double pseduorange_circ = (sid_to_carr_freq(meas->sid) *
+                               (raw_pseudorange / GPS_C - rcv_clk_error));
 
     /* Remove the fractional 2-ms residual FCN contribution */
     if (IS_GLO(meas->sid)) {
-      phase -= glo_2ms_fcn_residual(meas->sid, ref_tc);
+      pseduorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
     }
 
     /* initialize the carrier phase offset with the pseudorange measurement */
-    *carrier_phase_offset = round(meas->carrier_phase - phase);
+    *carrier_phase_offset = round(pseduorange_circ - meas->carrier_phase);
 
     log_debug_mesid(info->mesid,
                     "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
@@ -1365,7 +1366,7 @@ u32 get_tracking_channel_meas(u8 i,
     }
     if (0.0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
-      meas->carrier_phase -= carrier_phase_offset;
+      meas->carrier_phase += carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
     meas->elevation = (double)sv_elevation_degrees_get(meas->sid);
