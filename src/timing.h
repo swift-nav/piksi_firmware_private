@@ -48,7 +48,6 @@ typedef enum {
 
 void timing_setup(void);
 gps_time_t get_current_time(void);
-gps_time_t get_current_gps_time(void);
 void set_time(u64 tc, const gps_time_t* t, double accuracy);
 void update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
