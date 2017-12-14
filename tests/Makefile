@@ -138,7 +138,6 @@ cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.
 test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_estimator.cc
 
-<<<<<<< HEAD
 filter_bw2.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/utils/filters/filter_bw2.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_bw2.c
 
@@ -167,3 +166,4 @@ run_tests : \
   test_filters.o \
   gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@
+
