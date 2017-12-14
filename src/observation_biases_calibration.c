@@ -55,7 +55,7 @@ static const double gps_l2_isc = -1.95;
  * receivers carrier phase These biases are in cycles and are proportional to
  * the frequency number
  * */
-static const double glo_l1_carrier_phase_bias = +0.07 / 8;
+static const double glo_l1_carrier_phase_bias = -0.07 / 8;
 static const double glo_l2_carrier_phase_bias = 0;
 
 /** Apply ISC corrections from hard-coded table
