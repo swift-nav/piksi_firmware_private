@@ -5,8 +5,10 @@
 #include "piksi_systime.h"
 
 #include <libswiftnav/gnss_time.h>
+#include <libswiftnav/cycle_slip.h>
 
 TEST(piksi_systime_tests, init) {
+  was_cycle_slip(1,1,1);
   piksi_systime_t st = PIKSI_SYSTIME_INIT;
   EXPECT_EQ(st.systime, 0);
   EXPECT_EQ(st.rollover_cnt, 0);
