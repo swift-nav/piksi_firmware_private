@@ -27,9 +27,6 @@ matrix:
             - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
               key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
             - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:zoogie/sdl2-snapshots'
-            - sourceline: 'ppa:libreoffice/ppa'  # For doxygen 1.8
-            - sourceline: 'ppa:isage-dna/imagick' # for ImageMagick
           packages:
             - g++-5
             - libc++-dev

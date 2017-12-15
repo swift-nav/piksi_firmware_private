@@ -15,6 +15,7 @@
 SWIFTNAV_ROOT := ..
 LIB_BUILDFOLDER = build_pm_test
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -166,4 +167,4 @@ run_tests : \
   test_cn0_estimator.o \
   test_filters.o \
   gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@ -Wl,-R$(LIBSWIFTNAV_SEARCHPATH)
