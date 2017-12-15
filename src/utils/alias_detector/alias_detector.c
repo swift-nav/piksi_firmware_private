@@ -23,8 +23,8 @@
  * \param time_diff Time difference between calls to alias_detect_first and
  *                  alias_detect_second.
  */
-void alias_detect_init(alias_detect_t *a, 
-                       u32 acc_len, 
+void alias_detect_init(alias_detect_t *a,
+                       u32 acc_len,
                        float time_diff) {
   memset(a, 0, sizeof(*a));
   a->acc_len = acc_len;
@@ -39,8 +39,8 @@ void alias_detect_init(alias_detect_t *a,
  * \param time_diff Time difference between calls to alias_detect_first and
  *                  alias_detect_second.
  */
-void alias_detect_reinit(alias_detect_t *a, 
-                         u32 acc_len, 
+void alias_detect_reinit(alias_detect_t *a,
+                         u32 acc_len,
                          float time_diff) {
   /* Just reset averaging. To preserve state it would be necessary to rescale
    * the dot and cross terms based on the new and old time_diff values.
@@ -54,8 +54,8 @@ void alias_detect_reinit(alias_detect_t *a,
  * \param I The prompt in-phase correlation.
  * \param Q The prompt quadrature-phase correlation.
  */
-void alias_detect_first(alias_detect_t *a, 
-                        float I, 
+void alias_detect_first(alias_detect_t *a,
+                        float I,
                         float Q) {
   a->first_I = I;
   a->first_Q = Q;
@@ -69,8 +69,8 @@ void alias_detect_first(alias_detect_t *a,
  * \param Q The prompt quadrature-phase correlation.
  * \returns Calculated frequency error or zero.
  */
-float alias_detect_second(alias_detect_t *a, 
-                          float I, 
+float alias_detect_second(alias_detect_t *a,
+                          float I,
                           float Q) {
   a->dot   += I * a->first_I + Q * a->first_Q;
   a->cross += a->first_I * Q - I * a->first_Q;

@@ -22,9 +22,9 @@
  * \param lp Pessimistic count threshold.
  * \param lo Optimistic count threshold
  */
-void lock_detect_init(lock_detect_t *l, 
-                      float k1, 
-                      float k2, 
+void lock_detect_init(lock_detect_t *l,
+                      float k1,
+                      float k2,
                       u16 lp, 
                       u16 lo) {
   memset(l, 0, sizeof(*l)); /* sets l->lpf[iq].y = 0 */
@@ -38,9 +38,9 @@ void lock_detect_init(lock_detect_t *l,
  * \param lp Pessimistic count threshold.
  * \param lo Optimistic count threshold
  */
-void lock_detect_reinit(lock_detect_t *l, 
+void lock_detect_reinit(lock_detect_t *l,
                         float k1,
-                        float k2, 
+                        float k2,
                         u16 lp, 
                         u16 lo) {
   /* Adjust LPF coefficient */
@@ -68,9 +68,9 @@ static float lock_detect_lpf_update(struct loop_detect_lpf *lpf,
  *     Section 5.11.2, pp 233-235
  *     Elliott D. Kaplan. Artech House, 1996.
  */
-void lock_detect_update(lock_detect_t *l, 
-                        float I, 
-                        float Q, 
+void lock_detect_update(lock_detect_t *l,
+                        float I,
+                        float Q,
                         float DT) {
   float a, b;
   /* Calculated low-pass filtered prompt correlations */
