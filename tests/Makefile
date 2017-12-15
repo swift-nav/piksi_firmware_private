@@ -27,8 +27,6 @@ USER_SRC_DIR = ../src
 # Where to find tests
 TEST_DIR = .
 
-#LSNP=$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.so
-
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
