@@ -181,6 +181,14 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(SWIFTNAV_ROOT)/src/sbas_select.o \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_bl.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_ch.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_mm.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_nwpr.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_rscn.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_snv.c \
+        $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_svr.c \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c
