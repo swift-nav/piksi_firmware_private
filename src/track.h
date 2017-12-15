@@ -15,11 +15,9 @@
 
 #include <libsbp/tracking.h>
 
-#include <libswiftnav/alias_detector.h>
 #include <libswiftnav/bit_sync.h>
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/lock_detector.h>
 #include <libswiftnav/nav_msg.h>
 #include <libswiftnav/run_stats.h>
 #include <libswiftnav/signal.h>
@@ -34,6 +32,8 @@
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
 #include "track/track_cn0.h"
+#include "utils/alias_detector/alias_detector.h"
+#include "utils/lock_detector/lock_detector.h"
 
 #define NAV_BIT_FIFO_SIZE                            \
   64 /**< Size of nav bit FIFO. Must be a power of 2 \

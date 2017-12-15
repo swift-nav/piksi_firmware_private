@@ -181,6 +181,8 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(SWIFTNAV_ROOT)/src/sbas_select.o \
+        $(SWIFTNAV_ROOT)/src/utils/alias_detector/alias_detector.o \
+        $(SWIFTNAV_ROOT)/src/utils/lock_detector/lock_detector.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.c \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_bl.c \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_ch.c \

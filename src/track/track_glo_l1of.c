@@ -11,6 +11,7 @@
  */
 
 /* Local headers */
+#include "../utils/alias_detector/alias_detector.h"
 #include "track_glo_l1of.h"
 #include "track.h"
 #include "track_cn0.h"
@@ -24,7 +25,6 @@
 #include <signal.h>
 
 /* Libraries */
-#include <libswiftnav/alias_detector.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
