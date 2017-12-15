@@ -29,8 +29,6 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
-            - libc++-dev
-            - libc++abi-dev
       env:
         - CXX_COMPILER=g++-5
     - os: linux
