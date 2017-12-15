@@ -26,7 +26,7 @@
 void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff) {
   memset(a, 0, sizeof(*a));
   a->acc_len = acc_len;
-  a->k       = (float)(0.5 * M_1_PI) / time_diff;
+  a->k = (float)(0.5 * M_1_PI) / time_diff;
   a->first_I = 1.f;
 }
 
@@ -64,7 +64,7 @@ void alias_detect_first(alias_detect_t *a, float I, float Q) {
  * \returns Calculated frequency error or zero.
  */
 float alias_detect_second(alias_detect_t *a, float I, float Q) {
-  a->dot   += I * a->first_I + Q * a->first_Q;
+  a->dot += I * a->first_I + Q * a->first_Q;
   a->cross += a->first_I * Q - I * a->first_Q;
   a->first_I = I;
   a->first_Q = Q;
