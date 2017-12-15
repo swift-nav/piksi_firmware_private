@@ -27,7 +27,7 @@ USER_SRC_DIR = ../src
 # Where to find tests
 TEST_DIR = .
 
-LSNP=$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.so
+#LSNP=$(LIBSWIFTNAV_BUILDDIR)/src/libswiftnav.so
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -55,11 +55,11 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 
 # House-keeping build targets.
 
-.PHONY:
+.PHONY: lsnp
 
-all : run_tests
+all : lsnp run_tests
 
-$(LSNP) :
+lsnp :
 	@printf "BUILD libswiftnav\n"; \
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
 	cmake -DMAX_CHANNELS=45 \
@@ -150,7 +150,7 @@ filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chc
 test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
 
-run_tests : \
+OBJS = \
   fixed_fft_r2.o \
   test_fft.o \
   piksi_systime.o \
@@ -168,4 +168,7 @@ run_tests : \
   test_cn0_estimator.o \
   test_filters.o \
   gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L../libswiftnav/build_pm_test/src/ $^ -lswiftnav -o $@ -Wl,-R$(LIBSWIFTNAV_SEARCHPATH)
+
+run_tests : lsnp $(OBJS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) -L$(LIBSWIFTNAV_SEARCHPATH) -lswiftnav -o $@ -Wl,-rpath, $(LIBSWIFTNAV_SEARCHPATH)
+
