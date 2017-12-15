@@ -11,8 +11,8 @@
  */
 
 /* Local headers */
-#include "../utils/alias_detector/alias_detector.h"
 #include "track_glo_l1of.h"
+#include "../utils/alias_detector/alias_detector.h"
 #include "track.h"
 #include "track_cn0.h"
 #include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
