@@ -168,5 +168,4 @@ OBJS = \
   gtest_main.a
 
 run_tests : lsnp $(OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) -L$(LIBSWIFTNAV_SEARCHPATH) -lswiftnav -o $@ -Wl,-rpath, $(LIBSWIFTNAV_SEARCHPATH)
-
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) -L$(LIBSWIFTNAV_SEARCHPATH) -lswiftnav -lpthread -o $@ -Wl,-rpath, $(LIBSWIFTNAV_SEARCHPATH)
