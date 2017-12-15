@@ -12,7 +12,7 @@
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
 
-SWIFTNAV_ROOT := ..
+SWIFTNAV_ROOT := $(shell pwd)/..
 LIB_BUILDFOLDER = build_pm_test
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
