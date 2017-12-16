@@ -93,7 +93,6 @@ static void random_init(void) {
 void init(void) {
   fault_handling_setup();
   factory_params_read();
-
   /* Make sure FPGA is configured - required for EMIO usage */
   nap_conf_check();
 
@@ -189,6 +188,15 @@ void nap_auth_check(void) {
     log_error("NAP Unlock Retries Exceeded. Triggering Reset");
     hard_reset();
   }
+}
+
+static bool host_board_eeprom_read(char *outbuf, size_t len) {
+  ssize_t bytes_read =
+      sbp_fileio_read("/config/host_board_eeprom", 0, (uint8_t *)outbuf, len);
+  if (bytes_read < (ssize_t)sizeof(factory_data_t)) {
+    log_error("Error reading /config/host_board_eeprom.");
+  }
+  return bytes_read;
 }
 
 static bool factory_params_read(void) {
@@ -359,7 +367,8 @@ u8 hw_version_string_get(char *hw_version_string) {
 
 u8 hw_revision_string_get(char *hw_revision_string) {
   const char *s = NULL;
-
+  char host_board_eeprom[6];
+  host_board_eeprom_read(host_board_eeprom, sizeof(host_board_eeprom));
   switch (factory_params.hardware) {
     case IMAGE_HARDWARE_UNKNOWN:
       s = "Unknown";
@@ -374,7 +383,11 @@ u8 hw_revision_string_get(char *hw_revision_string) {
       s = "Piksi Multi EVT2";
       break;
     case IMAGE_HARDWARE_V3_PROD:
-      s = "Piksi Multi";
+      if (memcmp(host_board_eeprom, "DURO", 4) == 0) {
+        s = "Duro";
+      } else {
+        s = "Piksi Multi";
+      }
       break;
     default:
       s = "Invalid";
