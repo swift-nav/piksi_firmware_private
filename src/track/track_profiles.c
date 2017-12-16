@@ -313,10 +313,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
  * Helper method to get tracking profiles array.
  *
  * \param[in] mesid ME signal ID
+ * \param[in] num_profiles number of profiles
  * \return Tracking profiles array pointer
  */
-static const tp_profile_entry_t *mesid_to_profiles(
-    const me_gnss_signal_t mesid) {
+static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
+                                                   size_t *num_profiles) {
   const tp_profile_entry_t *profiles = NULL;
 
   /* GPS and SBAS constellations use similar signal encoding scheme and thus
@@ -331,6 +332,9 @@ static const tp_profile_entry_t *mesid_to_profiles(
     case CONSTELLATION_BDS2:
     case CONSTELLATION_QZS:
       profiles = gnss_track_profiles;
+      if (num_profiles) {
+        *num_profiles = ARRAY_SIZE(gnss_track_profiles);
+      }
       break;
 
     case CONSTELLATION_GAL:
@@ -417,6 +421,57 @@ static float compute_fll_bw(float cn0, u8 T_ms) {
   }
 
   return bw;
+}
+
+static u8 get_profile_index(code_t code,
+                            const tp_profile_entry_t *profiles,
+                            size_t num_profiles,
+                            float cn0) {
+  if (code_requires_direct_acq(code)) {
+    return 0; /* signals from ACQ always go through init profiles */
+  }
+
+  /* the bit/symbol sync is known so we can start with non-init profiles */
+  for (size_t i = 0; i < num_profiles; i++) {
+    if (profiles[i].cn0_low_threshold <= 0) {
+      continue;
+    }
+    if (cn0 > profiles[i].cn0_low_threshold) {
+      return i;
+    }
+  }
+  return 0;
+}
+
+static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
+                                            float cn0) {
+  size_t num_profiles = 0;
+  const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num_profiles);
+  assert(profiles);
+
+  u8 index = get_profile_index(mesid.code, profiles, num_profiles, cn0);
+
+  struct profile_vars vars = {0};
+  vars.index = index;
+
+  const tp_profile_entry_t *entry = &profiles[index];
+  if (entry->profile.pll_bw >= 0) { /* fixed PLL BW */
+    vars.pll_bw = entry->profile.pll_bw;
+  } else { /* dynamic PLL BW */
+    tp_tm_e track_mode = get_track_mode(mesid, entry);
+    u8 pll_t_ms = tp_get_pll_ms(track_mode);
+    vars.pll_bw = compute_pll_bw(cn0, pll_t_ms);
+  }
+
+  if (entry->profile.fll_bw >= 0) { /* fixed FLL BW */
+    vars.fll_bw = entry->profile.fll_bw;
+  } else { /* dynamic FLL BW */
+    tp_tm_e track_mode = get_track_mode(mesid, entry);
+    u8 fll_t_ms = tp_get_flll_ms(track_mode);
+    vars.fll_bw = compute_fll_bw(cn0, fll_t_ms);
+  }
+
+  return vars;
 }
 
 /**
@@ -924,14 +979,9 @@ void tp_profile_init(tracker_channel_t *tracker_channel,
   memset(profile, 0, sizeof(*profile));
 
   profile->filt_cn0 = data->cn0;
-  profile->profiles = mesid_to_profiles(mesid);
+  profile->profiles = mesid_to_profiles(mesid, /* num_profiles = */ NULL);
 
-  const tp_profile_entry_t *entry = &profile->profiles[0];
-  profile->cur.index = 0;
-  profile->cur.pll_bw = entry->profile.pll_bw;
-  profile->cur.fll_bw = entry->profile.fll_bw;
-  assert(entry->profile.pll_bw >= 0); /* fixed PLL BW */
-  assert(entry->profile.fll_bw >= 0); /* fixed FLL BW */
+  profile->cur = get_profile_vars(mesid, data->cn0);
 
   profile->bsync_sticky = 0;
 
@@ -947,6 +997,8 @@ void tp_profile_init(tracker_channel_t *tracker_channel,
   profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
   tp_profile_update_config(tracker_channel);
+
+  log_switch(tracker_channel, "init");
 }
 
 void tp_profile_switch(tracker_channel_t *tracker_channel) {
