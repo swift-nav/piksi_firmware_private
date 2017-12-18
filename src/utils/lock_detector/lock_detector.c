@@ -15,6 +15,13 @@
 
 #include "lock_detector.h"
 
+/* FLL saturation threshold in [Hz]. When signal is lost, filtered frequency
+ * error can grow fast.
+ * When the signal comes back, the saturation threshold helps the filter to
+ * converge quickly below error threshold.
+*/
+#define TP_FLL_SATURATION_THRESHOLD_HZ (15.f)
+
 /** Initialise the lock detector state.
  * \param l
  * \param k1 LPF coefficient.
