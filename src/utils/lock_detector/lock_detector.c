@@ -22,6 +22,12 @@
 */
 #define TP_FLL_SATURATION_THRESHOLD_HZ (15.f)
 
+/* FLL error threshold in [Hz]. Used to assess FLL frequency lock.
+ * The threshold should be less than the expected aliased frequency, < 25 Hz.
+ * Another factor is to avoid false positives from high dynamics.
+*/
+#define TP_FLL_ERR_THRESHOLD_HZ (10.f)
+
 /** Initialise the lock detector state.
  * \param l
  * \param k1 LPF coefficient.
