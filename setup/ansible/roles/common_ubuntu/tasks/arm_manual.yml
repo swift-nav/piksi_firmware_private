@@ -1,12 +1,14 @@
 # Download and install arm-gcc compiler and add to path. This doesn't
 # run if already have it: i.e., if gcc-arm-none is already in your
 # PATH after sys_deps.yml.
+#
+# Currently hardcoded to use the GNU ARM embedded toolchain, version 6-q2.
 
 - file: state=directory path=~/gcc-arm-none-eabi
 
 - name: Download and unpack gcc-arm utilities.
   unarchive:
-    src: https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-linux.tar.bz2
+    src: https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2
     remote_src: yes
     dest: ~/gcc-arm-none-eabi
     extra_opts: '--strip-components=1'
