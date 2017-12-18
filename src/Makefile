@@ -231,6 +231,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/libswiftnav/libfec/include \
+         $(SWIFTNAV_ROOT)/src/utils \
 
 #
 # Project, sources and paths
