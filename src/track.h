@@ -29,11 +29,11 @@
 
 #include <platform_signal.h>
 #include <settings.h>
+#include "alias_detector/alias_detector.h"
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
-#include "track/track_cn0.h"
-#include "alias_detector/alias_detector.h"
 #include "lock_detector/lock_detector.h"
+#include "track/track_cn0.h"
 
 #define NAV_BIT_FIFO_SIZE                            \
   64 /**< Size of nav bit FIFO. Must be a power of 2 \
