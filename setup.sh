@@ -173,7 +173,7 @@ function run_all_platforms () {
     # overridden by specifying ANSIBLE_SUDO_OPTION="" for use with e.g. travis
     ANSIBLE_SUDO_OPTION=${ANSIBLE_SUDO_OPTION-"--ask-become-pass"}
     # setup_ansible_plugins
-    ansible-playbook $ANSIBLE_SUDO_OPTION -i setup/ansible/inventory.ini \
+    FORCE_MANUAL_GCC=y ansible-playbook $ANSIBLE_SUDO_OPTION -i setup/ansible/inventory.ini \
         setup/ansible/provision.yml --connection=local
     log_info "Done!"
     log_info ""
