@@ -39,6 +39,7 @@ INCLUDE_DIRS += -I../libswiftnav/include
 INCLUDE_DIRS += -I../libswiftnav/refactor/common
 INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
@@ -123,8 +124,18 @@ cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.
 test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_estimator.cc
 
+filter_bw2.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/utils/filters/filter_bw2.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_bw2.c
+
+filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/utils/filters/filter_lp1.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_lp1.c
+
+test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
+
 run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o \
 sbas_select.o test_sbas_select.o cn0_est_basic.o cn0_est_bl.o \
 cn0_est_mm.o cn0_est_nwpr.o cn0_est_rscn.o cn0_est_snv.o \
-test_cn0_estimator.o gtest_main.a
+filter_bw2.o filter_lp1.o \
+test_cn0_estimator.o test_filters.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@

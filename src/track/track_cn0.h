@@ -13,7 +13,8 @@
 #ifndef SWIFTNAV_TRACK_CN0_H
 #define SWIFTNAV_TRACK_CN0_H
 
-#include <libswiftnav/filter_common.h>
+#include "filters/filter_common.h"
+
 #include <libswiftnav/signal.h>
 
 #include <cn0_est/cn0_est_common.h>

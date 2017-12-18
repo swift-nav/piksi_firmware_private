@@ -190,6 +190,8 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_rscn.c \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_snv.c \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_svr.c \
+        $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.c \
+        $(SWIFTNAV_ROOT)/src/utils/filters/filter_bw2.c \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c

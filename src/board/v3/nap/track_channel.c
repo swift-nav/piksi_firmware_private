@@ -11,6 +11,7 @@
  */
 
 #include "nap/track_channel.h"
+#include "filters/filter_common.h"
 #include "main.h"
 #include "nap/nap_common.h"
 #include "nap_constants.h"
@@ -23,7 +24,6 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/filter_common.h>
 #include <libswiftnav/prns.h>
 #include <libswiftnav/signal.h>
 
