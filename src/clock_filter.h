@@ -15,7 +15,7 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/pvt.h>
+#include "pvt.h"
 
 typedef struct {
   u64 tc;               /**< NAP tick of the estimate */

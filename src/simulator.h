@@ -14,7 +14,6 @@
 #define SWIFTNAV_SIMULATOR_H
 
 #include <libswiftnav/common.h>
-#include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include "track.h"
 

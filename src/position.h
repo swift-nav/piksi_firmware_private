@@ -14,7 +14,8 @@
 #define SWIFTNAV_POSITION_H
 
 #include <libswiftnav/common.h>
-#include <libswiftnav/pvt.h>
+
+#include "pvt.h"
 
 /** \addtogroup position
  * \{ */

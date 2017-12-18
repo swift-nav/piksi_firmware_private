@@ -20,7 +20,6 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
 
 #include "base_obs.h"
 #include "cnav_msg_storage.h"
@@ -30,6 +29,7 @@
 #include "nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
+#include "pvt.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
