@@ -88,3 +88,42 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT) {
     }
   }
 }
+
+/** Update the frequency lock detector with frequency error.
+ * \param l   Lock detector state structure.
+ * \param err Frequency error of FLL.
+ *
+ */
+void freq_lock_detect_update(lock_detect_t *l, float err) {
+  /* Calculate filtered frequency error */
+  l->lpfi.y += l->k1 * (err - l->lpfi.y);
+
+  /* Saturate filter */
+  if (l->lpfi.y > TP_FLL_SATURATION_THRESHOLD_HZ) {
+    l->lpfi.y = TP_FLL_SATURATION_THRESHOLD_HZ;
+  } else if (l->lpfi.y < -TP_FLL_SATURATION_THRESHOLD_HZ) {
+    l->lpfi.y = -TP_FLL_SATURATION_THRESHOLD_HZ;
+  }
+
+  if (fabsf(l->lpfi.y) < TP_FLL_ERR_THRESHOLD_HZ) {
+    /* error < threshold, looks like we're locked */
+    l->outo = true;
+    l->pcount2 = 0;
+    /* Wait before raising the pessimistic indicator */
+    if (l->pcount1 > l->lp) {
+      l->outp = true;
+    } else {
+      l->pcount1++;
+    }
+  } else {
+    /* error >= threshold, looks like we're not locked */
+    l->outp = false;
+    l->pcount1 = 0;
+    /* Wait before lowering the optimistic indicator */
+    if (l->pcount2 > l->lo) {
+      l->outo = false;
+    } else {
+      l->pcount2++;
+    }
+  }
+}
