@@ -290,7 +290,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
 
   u16 idx = sid_to_sv_index(new->sid);
   if (ARRAY_SIZE(ndb_ephemeris) <= idx) {
-    return NDB_ERR_BAD_PARAM;
+    return NDB_CAND_BAD_PARAM;
   }
 
   assert(idx < ARRAY_SIZE(ndb_ephemeris_md));
@@ -377,11 +377,18 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
       ndb_ephe_try_adding_candidate(new);
       log_debug_sid(new->sid, "[EPH] mismatch");
     }
-  } else if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
-    /* first candidate, but can be verified from an older ephemeris
-     * or almanac */
-    log_debug_sid(new->sid, "[EPH] new trusted");
-    r = NDB_CAND_NEW_TRUSTED;
+  } else if (NULL != pe || NULL != pa) {
+    /* Previous ephemeris or almanac exists */
+    if (ndb_can_confirm_ephemeris(new, pe, pa, NULL)) {
+      /* first candidate, but can be verified from an older ephemeris
+       * or almanac */
+      log_debug_sid(new->sid, "[EPH] new trusted");
+      r = NDB_CAND_NEW_TRUSTED;
+    } else {
+      /* Verification from an older ephemeris or almanac failed */
+      r = NDB_CAND_BAD_PARAM;
+      log_debug_sid(new->sid, "[EPH] Bad ephemeris candidate received");
+    }
   } else {
     /* New one is not in candidate list yet, try to put it
      * to an empty slot */
@@ -491,6 +498,8 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
         return NDB_ERR_UNCONFIRMED_DATA;
       case NDB_CAND_GPS_TIME_MISSING:
         return NDB_ERR_GPS_TIME_MISSING;
+      case NDB_CAND_BAD_PARAM:
+        return NDB_ERR_BAD_PARAM;
       default:
         assert(!"Invalid status");
     }
