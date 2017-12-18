@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "../../utils/alias_detector/alias_detector.h"
+#include "alias_detector/alias_detector.h"
 
 #include "nap/nap_common.h"
 #include "../../ext_events.h"

@@ -190,6 +190,13 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_rscn.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_snv.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_svr.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_fll1.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_fll1_pll2.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_fll2.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_fll2_pll3.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll3b.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/track_pll3.o \
+        $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_bw2.o \
         $(BOARDDIR)/ndb_fs_access.o \

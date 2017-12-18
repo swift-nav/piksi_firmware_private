@@ -6,8 +6,6 @@
 
 #include "cn0_est/cn0_est_common.h"
 
-using namespace std;
-
 #define BW 1000
 #define CN0_0 40
 #define CUTOFF_FREQ 0.1
@@ -55,9 +53,9 @@ TEST(cn0_test, test_cn0_bl) {
   float cn0 = 0.0;
 
   signal_I = generate_input(test_length, 100);
-  if (NULL == signal_I) cout << "Could not allocate I data";
+  if (NULL == signal_I) std::cout << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
-  if (NULL == signal_Q) cout << "Could not allocate Q data";
+  if (NULL == signal_Q) std::cout << "Could not allocate Q data";
 
   cn0_est_bl_init(&s, &p, CN0_0);
 
@@ -95,9 +93,9 @@ TEST(cn0_test, test_cn0_snv) {
   float cn0 = 0.0;
 
   signal_I = generate_input(test_length, 100);
-  if (NULL == signal_I) cout << "Could not allocate I data";
+  if (NULL == signal_I) std::cout << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
-  if (NULL == signal_Q) cout << "Could not allocate Q data";
+  if (NULL == signal_Q) std::cout << "Could not allocate Q data";
 
   cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_snv_init(&s, &p, CN0_0);
@@ -136,9 +134,9 @@ TEST(cn0_test, test_cn0_mm) {
   float cn0 = 0.0;
 
   signal_I = generate_input(test_length, 100);
-  if (NULL == signal_I) cout << "Could not allocate I data";
+  if (NULL == signal_I) std::cout << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
-  if (NULL == signal_Q) cout << "Could not allocate Q data";
+  if (NULL == signal_Q) std::cout << "Could not allocate Q data";
 
   cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_mm_init(&s, &p, CN0_0);
@@ -180,9 +178,9 @@ TEST(cn0_test, test_cn0_nwpr) {
   float cn0 = 0.0;
 
   signal_I = generate_input(test_length, 100);
-  if (NULL == signal_I) cout << "Could not allocate I data";
+  if (NULL == signal_I) std::cout << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
-  if (NULL == signal_Q) cout << "Could not allocate Q data";
+  if (NULL == signal_Q) std::cout << "Could not allocate Q data";
 
   cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_nwpr_init(&s, &p, CN0_0);
@@ -221,9 +219,9 @@ TEST(cn0_test, test_cn0_rscn) {
   float cn0 = 0.0;
 
   signal_I = generate_input(test_length, 100);
-  if (NULL == signal_I) cout << "Could not allocate I data";
+  if (NULL == signal_I) std::cout << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
-  if (NULL == signal_Q) cout << "Could not allocate Q data";
+  if (NULL == signal_Q) std::cout << "Could not allocate Q data";
 
   cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ, 1, 0);
   cn0_est_rscn_init(&s, &p, CN0_0);
@@ -261,11 +259,11 @@ TEST(cn0_test, test_cn0_basic) {
   float cn0 = 0.0;
 
   signal_I = generate_input(test_length, 100);
-  if (NULL == signal_I) cout << "Could not allocate I data";
+  if (NULL == signal_I) std::cout << "Could not allocate I data";
   signal_Q = generate_input(test_length, 50);
-  if (NULL == signal_Q) cout << "Could not allocate Q data";
+  if (NULL == signal_Q) std::cout << "Could not allocate Q data";
   noise_Q = generate_input(test_length, 2);
-  if (NULL == noise_Q) cout << "Could not allocate Q data";
+  if (NULL == noise_Q) std::cout << "Could not allocate Q data";
 
   cn0_est_basic_init(&s, &p, CN0_0, 8);
   p.t_int = 1000;
