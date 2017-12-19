@@ -63,7 +63,7 @@ int main(void) {
   sbp_setup();
   settings_setup();
 
-  log_info("Piksi Starting...");
+  log_info("Piksi Starting..");
   log_info("pfwp_build_id: " GIT_VERSION "");
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
