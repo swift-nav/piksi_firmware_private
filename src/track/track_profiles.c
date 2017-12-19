@@ -622,24 +622,34 @@ static void log_switch(tracker_channel_t *tracker_channel, const char *reason) {
   tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
 
-  log_debug_mesid(mesid,
-                  "%s: plock=%" PRId16 " bs=%" PRId16
-                  " cn0=%.1f "
-                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+  u64 now_ms = tracker_channel->update_timestamp_ms;
+  if (!tracker_channel->profile_timestamp_ms) {
+    tracker_channel->profile_timestamp_ms = now_ms;
+  }
+  u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+  u32 profile_time_ms = (u32)(now_ms - tracker_channel->profile_timestamp_ms);
+  tracker_channel->profile_timestamp_ms = now_ms;
+
+  /* clang-format off */
+  log_debug_mesid(mesid, "%s,%" PRIu32 "(%" PRIu32 "),cn0=%.1f,"
+                  "(%s,%.1f,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%.1f,%s)",
                   reason,
-                  state->plock_delay_ms,
-                  state->bs_delay_ms,
+                  time_in_track_ms,
+                  profile_time_ms,
                   state->filt_cn0,
                   /* old state */
                   tp_get_mode_str(cur_track_mode),
                   state->cur.pll_bw,
                   state->cur.fll_bw,
+                  cur_profile->profile.dll_bw,
                   get_ctrl_str(cur_profile->profile.controller_type),
                   /* new state */
                   tp_get_mode_str(next_track_mode),
                   state->next.pll_bw,
                   state->next.fll_bw,
+                  next_profile->profile.dll_bw,
                   get_ctrl_str(next_profile->profile.controller_type));
+  /* clang-format on */
 }
 
 /**
@@ -890,6 +900,10 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
     return true;
   }
 
+  if (state->lock_time_ms > 0) {
+    return false; /* tracking loop has not settled yet */
+  }
+
   if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wbsync");
@@ -903,10 +917,6 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
   if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wplock");
-  }
-
-  if (state->lock_time_ms > 0) {
-    return false; /* tracking loop has not settled yet */
   }
 
   if ((0 != (flags & TP_HIGH_CN0)) &&
@@ -998,6 +1008,11 @@ void tp_profile_init(tracker_channel_t *tracker_channel,
   profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
   tp_profile_update_config(tracker_channel);
+
+  const struct tp_profile_entry *entry;
+  entry = &profile->profiles[profile->cur.index];
+
+  profile->lock_time_ms = entry->lock_time_ms;
 
   log_switch(tracker_channel, "init");
 }
