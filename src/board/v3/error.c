@@ -88,6 +88,10 @@ void _screaming_death(const char *pos, const char *msg) {
 
 /* OS syscall implementations related to error conditions */
 
+static volatile u32 *const debug_apb = (void *)0xf8892000;
+#define DBGDSCR (&debug_apb[34])
+#define DBGDSCR_HDBGEN (1 << 14)
+
 /** Custom assert() failure function. Calls screaming_death(). */
 void __assert_func(const char *_file,
                    int _line,
@@ -101,6 +105,11 @@ void __assert_func(const char *_file,
   log_error("%s %s", pos, msg);
   piksi_systime_sleep_ms(3000);
 
+  /* Trap if debugger is connected */
+  if (*DBGDSCR & DBGDSCR_HDBGEN) {
+    asm("bkpt");
+  }
+
   _screaming_death(pos, msg);
 }
 
@@ -112,8 +121,11 @@ void _fini(void) { return; }
  */
 void _exit(int status) {
   (void)status;
-  /* TODO: Perhaps print a backtrace; let's see if this ever actually
-     occurs before implementing that. */
+  /* Trap if debugger is connected */
+  if (*DBGDSCR & DBGDSCR_HDBGEN) {
+    asm("bkpt");
+  }
+
   screaming_death("abort() or exit() was called");
 }
 
