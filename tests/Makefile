@@ -133,9 +133,22 @@ filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chc
 test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
 
-run_tests : fixed_fft_r2.o test_fft.o piksi_systime.o test_piksi_systime.o \
-sbas_select.o test_sbas_select.o cn0_est_basic.o cn0_est_bl.o \
-cn0_est_mm.o cn0_est_nwpr.o cn0_est_rscn.o cn0_est_snv.o \
-filter_bw2.o filter_lp1.o \
-test_cn0_estimator.o test_filters.o gtest_main.a
+run_tests : \
+  fixed_fft_r2.o \
+  test_fft.o \
+  piksi_systime.o \
+  test_piksi_systime.o \
+  sbas_select.o \
+  test_sbas_select.o \
+  cn0_est_basic.o \
+  cn0_est_bl.o \
+  cn0_est_mm.o \
+  cn0_est_nwpr.o \
+  cn0_est_rscn.o \
+  cn0_est_snv.o \
+  filter_bw2.o \
+  filter_lp1.o \
+  test_cn0_estimator.o \
+  test_filters.o \
+  gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
