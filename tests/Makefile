@@ -11,6 +11,10 @@
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
+SWIFTNAV_ROOT := $(shell pwd)/..
+LIB_BUILDFOLDER = build_pm_test
+LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
+LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -41,10 +45,6 @@ INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 
-# All tests produced by this Makefile.  Remember to add new tests you
-# created to the list.
-TESTS = sample1_unittest
-
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
 GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
@@ -52,10 +52,25 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 
 # House-keeping build targets.
 
-all : run_tests
+.PHONY: lsnp
+
+all : lsnp run_tests
+
+lsnp :
+	@printf "BUILD libswiftnav\n"; \
+	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
+	cmake -DMAX_CHANNELS=45 \
+	      -DPIKSI_MULTI_UNIT_TEST=ON \
+	      -DCMAKE_C_COMPILER=gcc-5 \
+	      -DCMAKE_CXX_COMPILER=g++-5 \
+	      -DENABLE_AUTOFORMAT=OFF \
+	      ../
+	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
 
 clean :
-	rm -f $(TESTS) gtest.a gtest_main.a *.o
+	@printf "CLEAN   libswiftnav\n"; \
+	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
+	rm -f run_tests gtest.a gtest_main.a *.o
 
 # Builds gtest.a and gtest_main.a.
 
@@ -97,28 +112,28 @@ piksi_systime.o : $(USER_SRC_DIR)/piksi_systime.h $(USER_SRC_DIR)/chconf.h ./ch.
 test_piksi_systime.o : $(TEST_DIR)/test_piksi_systime.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_piksi_systime.cc
 
-sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/sbas_select.c $(GTEST_HEADERS)
+sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/sbas_select.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/sbas_select.c
 
 test_sbas_select.o : $(TEST_DIR)/test_sbas_select.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_sbas_select.cc
 
-cn0_est_basic.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c $(GTEST_HEADERS)
+cn0_est_basic.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c
 
-cn0_est_bl.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c $(GTEST_HEADERS)
+cn0_est_bl.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c
 
-cn0_est_mm.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c $(GTEST_HEADERS)
+cn0_est_mm.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c
 
-cn0_est_nwpr.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c $(GTEST_HEADERS)
+cn0_est_nwpr.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c
 
-cn0_est_rscn.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c $(GTEST_HEADERS)
+cn0_est_rscn.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c
 
-cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c $(GTEST_HEADERS)
+cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c
 
 test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
@@ -133,7 +148,7 @@ filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chc
 test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
 
-run_tests : \
+OBJS = \
   fixed_fft_r2.o \
   test_fft.o \
   piksi_systime.o \
@@ -151,4 +166,6 @@ run_tests : \
   test_cn0_estimator.o \
   test_filters.o \
   gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
+
+run_tests : lsnp $(OBJS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) -L$(LIBSWIFTNAV_SEARCHPATH) -lswiftnav -lpthread -o $@ -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)

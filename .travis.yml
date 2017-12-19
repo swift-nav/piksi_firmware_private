@@ -21,6 +21,16 @@ branches:
 matrix:
   include:
     - os: linux
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
+              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+      env:
+        - C_COMPILER=gcc-5 CXX_COMPILER=g++-5
     - os: linux
       addons:
         apt:
@@ -31,9 +41,11 @@ matrix:
       env: TESTENV=lint
     - os: osx
       osx_image: xcode8
+      env: C_COMPILER=gcc-5 CXX_COMPILER=g++-5
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc5 --enable-cxx; fi
   - pip install --user --upgrade awscli
 
 install:
