@@ -11,7 +11,6 @@
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
-
 SWIFTNAV_ROOT := $(shell pwd)/..
 LIB_BUILDFOLDER = build_pm_test
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
@@ -64,6 +63,7 @@ lsnp :
 	      -DPIKSI_MULTI_UNIT_TEST=ON \
 	      -DCMAKE_C_COMPILER=gcc-5 \
 	      -DCMAKE_CXX_COMPILER=g++-5 \
+	      -DENABLE_AUTOFORMAT=OFF \
 	      ../
 	$(MAKE) -C $(LIBSWIFTNAV_BUILDDIR) --no-print-directory
 
