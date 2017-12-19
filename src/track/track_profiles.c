@@ -22,11 +22,12 @@
 #include <platform_cn0.h>
 #include <platform_track.h>
 #include <signal.h>
-#include <track/track_utils.h>
 
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+
+#include "lock_detector/lock_detector.h"
 
 /** C/N0 threshold when we can't say if we are still tracking */
 #define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)

@@ -15,6 +15,19 @@
 
 #include "lock_detector.h"
 
+/* FLL saturation threshold in [Hz]. When signal is lost, filtered frequency
+ * error can grow fast.
+ * When the signal comes back, the saturation threshold helps the filter to
+ * converge quickly below error threshold.
+*/
+#define TP_FLL_SATURATION_THRESHOLD_HZ (15.f)
+
+/* FLL error threshold in [Hz]. Used to assess FLL frequency lock.
+ * The threshold should be less than the expected aliased frequency, < 25 Hz.
+ * Another factor is to avoid false positives from high dynamics.
+*/
+#define TP_FLL_ERR_THRESHOLD_HZ (10.f)
+
 /** Initialise the lock detector state.
  * \param l
  * \param k1 LPF coefficient.
@@ -78,6 +91,45 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT) {
     }
   } else {
     /* In-phase < quadrature, looks like we're not locked */
+    l->outp = false;
+    l->pcount1 = 0;
+    /* Wait before lowering the optimistic indicator */
+    if (l->pcount2 > l->lo) {
+      l->outo = false;
+    } else {
+      l->pcount2++;
+    }
+  }
+}
+
+/** Update the frequency lock detector with frequency error.
+ * \param l   Lock detector state structure.
+ * \param err Frequency error of FLL.
+ *
+ */
+void freq_lock_detect_update(lock_detect_t *l, float err) {
+  /* Calculate filtered frequency error */
+  l->lpfi.y += l->k1 * (err - l->lpfi.y);
+
+  /* Saturate filter */
+  if (l->lpfi.y > TP_FLL_SATURATION_THRESHOLD_HZ) {
+    l->lpfi.y = TP_FLL_SATURATION_THRESHOLD_HZ;
+  } else if (l->lpfi.y < -TP_FLL_SATURATION_THRESHOLD_HZ) {
+    l->lpfi.y = -TP_FLL_SATURATION_THRESHOLD_HZ;
+  }
+
+  if (fabsf(l->lpfi.y) < TP_FLL_ERR_THRESHOLD_HZ) {
+    /* error < threshold, looks like we're locked */
+    l->outo = true;
+    l->pcount2 = 0;
+    /* Wait before raising the pessimistic indicator */
+    if (l->pcount1 > l->lp) {
+      l->outp = true;
+    } else {
+      l->pcount1++;
+    }
+  } else {
+    /* error >= threshold, looks like we're not locked */
     l->outp = false;
     l->pcount1 = 0;
     /* Wait before lowering the optimistic indicator */

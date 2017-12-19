@@ -16,11 +16,11 @@
 
 #include <track.h>
 
+#include "lock_detector/lock_detector.h"
 #include "signal.h"
 #include "timing.h"
 #include "track_sbp.h"
 #include "track_sid_db.h"
-#include "track_utils.h"
 
 #include <assert.h>
 #include <inttypes.h>

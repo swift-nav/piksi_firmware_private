@@ -42,6 +42,7 @@ typedef struct {
 void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
+void freq_lock_detect_update(lock_detect_t *l, float err);
 
 #ifdef __cplusplus
 } /* extern "C" */
