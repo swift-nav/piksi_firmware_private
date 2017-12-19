@@ -15,6 +15,7 @@ SWIFTNAV_ROOT := $(shell pwd)/..
 LIB_BUILDFOLDER = build_pm_test
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
+LIBSWIFTNAV_COMMON_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/refactor/common
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -167,5 +168,9 @@ OBJS = \
   test_filters.o \
   gtest_main.a
 
+LIBS = -lswiftnav -lswiftnav-common -lpthread
+LIB_PATH = -L$(LIBSWIFTNAV_SEARCHPATH) -L$(LIBSWIFTNAV_COMMON_SEARCHPATH)
+LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH) -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
+
 run_tests : lsnp $(OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) -L$(LIBSWIFTNAV_SEARCHPATH) -lswiftnav -lpthread -o $@ -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
