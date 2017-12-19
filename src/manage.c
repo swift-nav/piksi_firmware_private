@@ -1208,17 +1208,17 @@ static bool compute_cpo(u64 ref_tc,
 
     double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
 
-    double phase = (sid_to_carr_freq(meas->sid) *
-                    (raw_pseudorange / GPS_C - rcv_clk_error));
+    /* pseudorange in circles */
+    double pseudorange_circ = (sid_to_carr_freq(meas->sid) *
+                               (raw_pseudorange / GPS_C - rcv_clk_error));
 
     /* Remove the fractional 2-ms residual FCN contribution */
     if (IS_GLO(meas->sid)) {
-      phase -= glo_2ms_fcn_residual(meas->sid, ref_tc);
+      pseudorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
     }
 
     /* initialize the carrier phase offset with the pseudorange measurement */
-    /* NOTE: CP sign flip - change the plus sign below */
-    *carrier_phase_offset = round(meas->carrier_phase + phase);
+    *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
 
     log_debug_mesid(info->mesid,
                     "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
@@ -1346,26 +1346,6 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += 0.5;
     }
 
-    /* In theory this should apply a FCN shift to all channels so that
-     * they go back after power on-off.. however it needs to use the
-     * clock bias and drift information in order to be precise enough
-     * to be usable.
-     */
-    /*
-    double nap_tc_sec = (double)ref_tc / NAP_TRACK_SAMPLE_RATE_Hz;
-    double ref_2ms_boundary = 0.002 * floor(nap_tc_sec/0.002);
-    if (CODE_GLO_L1OF == info.mesid.code) {
-      double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L1_DELTA_HZ;
-      log_info("F%+2d %8.6lf", info.mesid.sat - GLO_FCN_OFFSET, (nap_tc_sec -
-    ref_2ms_boundary)*1e3);
-      meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
-    }
-    if (CODE_GLO_L2OF == info.mesid.code) {
-      double fcn = ((double)info.mesid.sat - GLO_FCN_OFFSET) * GLO_L2_DELTA_HZ;
-      meas->carrier_phase -= (nap_tc_sec - ref_2ms_boundary) * fcn;
-    }
-    */
-
     /* Adjust carrier phase initial integer offset to be approximately equal to
      * pseudorange.
      *
@@ -1386,7 +1366,7 @@ u32 get_tracking_channel_meas(u8 i,
     }
     if (0.0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
-      meas->carrier_phase -= carrier_phase_offset;
+      meas->carrier_phase += carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
     meas->elevation = (double)sv_elevation_degrees_get(meas->sid);

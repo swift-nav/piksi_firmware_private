@@ -457,7 +457,7 @@ void nap_track_read_results(u8 channel,
       ((double)carr_phase_incr) / NAP_TRACK_CARRIER_PHASE_UNITS_PER_CYCLE +
       s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 
-  *carrier_phase = -(s->reckoned_carr_phase);
+  *carrier_phase = (s->reckoned_carr_phase);
 
 #ifndef PIKSI_RELEASE
   /* Useful for debugging correlators

@@ -12,6 +12,52 @@
 #include "observation_biases_calibration.h"
 #include "sbp_utils.h"
 
+/* exported setting */
+const u32 biases_message_freq_setting = 5.0;
+
+/* Empirical corrections for GLO per-frequency pseudorange bias as per
+ * https://github.com/swift-nav/piksi_v3_bug_tracking/issues/606#issuecomment-323163617
+ * to align observations to Septentrio receiver-type biases
+ */
+static const double glo_l1_isc[] = {[0] = -7.25,
+                                    [1] = -7.37,
+                                    [2] = -7.5,
+                                    [3] = -7.57,
+                                    [4] = -7.51,
+                                    [5] = -7.25,
+                                    [6] = -7,
+                                    [7] = -6.72,
+                                    [8] = -7,
+                                    [9] = -7.3,
+                                    [10] = -7.73,
+                                    [11] = -8.45,
+                                    [12] = -8.95,
+                                    [13] = -9.5};
+
+static const double glo_l2_isc[] = {[0] = -7.5,
+                                    [1] = -7.26,
+                                    [2] = -6.83,
+                                    [3] = -6.45,
+                                    [4] = -6.27,
+                                    [5] = -6.16,
+                                    [6] = -6,
+                                    [7] = -5.8,
+                                    [8] = -5.5,
+                                    [9] = -5.35,
+                                    [10] = -5.25,
+                                    [11] = -5.0,
+                                    [12] = -5.0,
+                                    [13] = -5.0};
+
+static const double gps_l2_isc = -1.95;
+
+/* These biases are to align the GLONASS carrier phase to the Septentrio
+ * receivers carrier phase These biases are in cycles and are proportional to
+ * the frequency number
+ * */
+static const double glo_l1_carrier_phase_bias = -0.07 / 8;
+static const double glo_l2_carrier_phase_bias = 0;
+
 /** Apply ISC corrections from hard-coded table
  * Alignment is performed relative to the Septentrio
  * receiver type
@@ -84,7 +130,7 @@ void apply_isc_table(u8 n_channels, navigation_measurement_t *nav_meas[]) {
 
     nav_meas[i]->pseudorange += pseudorange_corr;
     nav_meas[i]->raw_pseudorange += pseudorange_corr;
-    nav_meas[i]->raw_carrier_phase -= carrier_phase_corr;
+    nav_meas[i]->raw_carrier_phase += carrier_phase_corr;
   }
 }
 
