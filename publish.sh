@@ -32,6 +32,11 @@ if [[ ! -z "$PRODUCT_VERSION" ]]; then
     BUILD_PATH="$BUILD_PATH/$PRODUCT_VERSION"
 fi
 
+echo "$(git status)"
+cd libswiftnav
+echo "$(git status)"
+echo "$(git diff)"
+cd ..
 echo "Uploading $@ to $BUILD_PATH"
 echo "Publish PULL_REQUEST ($TRAVIS_PULL_REQUEST)"
 echo "Publish BRANCH ($TRAVIS_BRANCH)"
