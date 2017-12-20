@@ -41,9 +41,6 @@
 #define MS2KMHR(x, y, z) \
   (sqrt((x) * (x) + (y) * (y) + (z) * (z)) * (3600.0 / 1000.0))
 
-/* Convert GLO sid to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
-#define NMEA_SV_ID_GLO(x) (x + 64)
-
 void nmea_setup(void);
 void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
                 const msg_gps_time_t *sbp_msg_time,

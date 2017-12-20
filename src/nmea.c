@@ -53,6 +53,12 @@ static u32 gsa_msg_rate = 10;
  * Send messages in NMEA 2.30 format.
  * \{ */
 
+/* Convert GLO sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
+#define NMEA_SV_ID_GLO(x) (x + 64)
+
+/* Convert SBAS sid.sat to NMEA SV ID format: SBAS SV IDs are from 33 to 54 */
+#define NMEA_SV_ID_SBAS(x) (x - 87)
+
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
 
@@ -363,21 +369,46 @@ void nmea_gpgga(const msg_pos_llh_t *sbp_pos_llh,
 
 int gsa_cmp(const void *a, const void *b) { return (*(u8 *)a - *(u8 *)b); }
 
-/** Assemble a NMEA GSA message and send it out NMEA USARTs.
+static u8 nmea_get_id(const gnss_signal_t sid) {
+  u8 id = -1;
+
+  switch (sid_to_constellation(sid)) {
+    case CONSTELLATION_GPS:
+      id = sid.sat;
+      break;
+    case CONSTELLATION_GLO:
+      id = NMEA_SV_ID_GLO(sid.sat);
+      break;
+    case CONSTELLATION_SBAS:
+      id = NMEA_SV_ID_SBAS(sid.sat);
+      break;
+    case CONSTELLATION_BDS2:
+    case CONSTELLATION_QZS:
+    case CONSTELLATION_GAL:
+    case CONSTELLATION_COUNT:
+    case CONSTELLATION_INVALID:
+    default:
+      log_error("Unsupported constellation");
+      break;
+  }
+
+  return id;
+}
+
+/** Assemble a NMEA GSA string and send it out NMEA USARTs.
  * NMEA GSA message contains GNSS DOP and Active Satellites.
  *
  * \param prns         Array of PRNs to output.
  * \param num_prns     Number of valid PRNs in array.
  * \param sbp_pos_llh  Pos data pointer.
  * \param sbp_dops     Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
- * \param cons         Working constellation for talker ID selection.
- *                     Talker ID 'GN' is indicated with CONSTELLATION_COUNT.
+ * \param talker       Talker ID to use.
  */
 void nmea_gsa(u8 *prns,
               const u8 num_prns,
               const msg_pos_llh_t *sbp_pos_llh,
               const msg_dops_t *sbp_dops,
-              const constellation_t cons) {
+              const char *talker) {
   assert(prns);
   assert(sbp_dops);
   assert(sbp_pos_llh);
@@ -388,16 +419,8 @@ void nmea_gsa(u8 *prns,
   char fix_mode = fix ? '3' : '1';
 
   NMEA_SENTENCE_START(120);
-
-  if (CONSTELLATION_GPS == cons) {
-    NMEA_SENTENCE_PRINTF("$GPGSA,A,%c,", fix_mode); /* Always automatic mode */
-  } else if (CONSTELLATION_GLO == cons) {
-    NMEA_SENTENCE_PRINTF("$GLGSA,A,%c,", fix_mode); /* Always automatic mode */
-  } else if (CONSTELLATION_COUNT == cons) {
-    NMEA_SENTENCE_PRINTF("$GNGSA,A,%c,", fix_mode); /* Always automatic mode */
-  } else {
-    assert(!"Unknown constellation");
-  }
+  /* Always automatic mode */
+  NMEA_SENTENCE_PRINTF("$%sGSA,A,%c,", talker, fix_mode);
 
   qsort(prns, num_prns, sizeof(u8), gsa_cmp);
 
@@ -421,8 +444,93 @@ void nmea_gsa(u8 *prns,
   NMEA_SENTENCE_DONE();
 }
 
-/** Helper function for nmea_gsv for comparing sids. Function assumes
- *  parameter sids have same constellation.
+/** Check if prn is in array.
+ *
+ * \param prns Array of prns
+ * \param count Length of prns
+ * \param prn PRN to check
+ */
+static bool in_set(u8 prns[], u8 count, u8 prn) {
+  for (u8 i = 0; i < count; i++) {
+    if (prns[i] == prn) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/** Group measurements by constellation and forward information to GSA
+ *  printing function.
+ *
+ * \note NMEA 0183 - Standard For Interfacing Marine Electronic Devices
+ *       versions 2.30, 3.01 and 4.10 state following:
+ *       If only GPS, GLONASS, Galileo etc. is used for the reported position
+ *       solution the talker ID is GP, GL, etc. and the DOP values pertain to
+ *       the individual system. If GPS, GLONASS, Galileo etc. are combined to
+ *       obtain the reported position solution multiple GSA sentences are
+ *       produced, one with the GPS satellites, another with the GLONASS
+ *       satellites and another with Galileo satellites, etc. Each of these GSA
+ *       sentences shall have talker ID GN, to indicate that the satellites are
+ *       used in a combined solution and each shall have the PDOP, HDOP and VDOP
+ *       for the combined satellites used in the position.
+ *
+ * \param sbp_pos      Pointer to position data
+ * \param sbp_dops     Pointer to DOPS data
+ * \param n_meas       Number of measurements
+ * \param nav_meas     Array of navigation measurements
+ */
+static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
+                              const msg_dops_t *sbp_dops,
+                              const u8 n_meas,
+                              const navigation_measurement_t nav_meas[]) {
+  assert(sbp_pos);
+  assert(sbp_dops);
+  assert(nav_meas);
+
+  u8 prns_gp[GSA_MAX_SV];
+  u8 num_prns_gp = 0;
+  u8 prns_gl[GSA_MAX_SV];
+  u8 num_prns_gl = 0;
+
+  /* Assemble list of currently active SVs */
+  for (u8 i = 0; i < n_meas; i++) {
+    const navigation_measurement_t info = nav_meas[i];
+    /* Check following:
+     *   - constellation to group by correct talker ID
+     *       * GPS and SBAS use GP
+     *       * GLO uses GL
+     *       * If both GP and GL are present, replace them both with GN
+     *   - maximum group size is GSA_MAX_SV
+     *   - if SV is reported already by another signal (eg. GPS L1CA vs L2C)
+     */
+    if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) && num_prns_gp < GSA_MAX_SV &&
+        !in_set(prns_gp, num_prns_gp, nmea_get_id(info.sid))) {
+      prns_gp[num_prns_gp++] = nmea_get_id(info.sid);
+      continue;
+    }
+
+    if (enable_glonass && IS_GLO(info.sid) && num_prns_gl < GSA_MAX_SV &&
+        !in_set(prns_gl, num_prns_gl, nmea_get_id(info.sid))) {
+      prns_gl[num_prns_gl++] = nmea_get_id(info.sid);
+      continue;
+    }
+  }
+
+  /* Send GSA messages */
+  if (0 != num_prns_gp && 0 != num_prns_gl) {
+    /* At least two constellations detected, use GN talker ID */
+    nmea_gsa(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GN");
+    nmea_gsa(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GN");
+  } else {
+    nmea_gsa(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
+    if (enable_glonass) {
+      nmea_gsa(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GL");
+    }
+  }
+}
+
+/** Helper function for nmea_gsv for comparing sids.
  *
  * \param[in] a     ptr to left side sid
  * \param[in] b     ptr to right side sid
@@ -436,96 +544,44 @@ int compare_ch_meas(const void *a, const void *b) {
   const channel_measurement_t **ca = (const channel_measurement_t **)a;
   const channel_measurement_t **cb = (const channel_measurement_t **)b;
 
-  assert(sid_to_constellation((*ca)->sid) == sid_to_constellation((*cb)->sid));
-
-  return (*ca)->sid.sat - (*cb)->sid.sat;
+  return nmea_get_id((*ca)->sid) - nmea_get_id((*cb)->sid);
 }
 
-/** Assemble a NMEA GPGSV or GLGSV message and send it out NMEA USARTs.
- * NMEA GPGSV and GLGSV message contains GNSS Satellites In View
- * (in this case observed)
+/** Assemble a NMEA GSV message string and send it out NMEA USARTs.
+ * NMEA GSV  message contains GNSS Satellites In View (in this case observed).
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
- * \param[in] gnss        GNSS type
+ * \param[in] talker      indicator which talker ID to use
  */
-void nmea_gsv(u8 n_used,
-              const channel_measurement_t *ch_meas,
-              constellation_t gnss) {
-  const channel_measurement_t *ch_meas_gnss[n_used];
-
-  if (NULL == ch_meas) {
-    n_used = 0;
-  }
-
-  u8 n_gnss_used = 0;
-  for (u8 i = 0; i < n_used; i++) {
-    if (gnss != sid_to_constellation(ch_meas[i].sid)) {
-      continue;
-    }
-
-    /* check if sat is already picked up from another GPS code */
-    bool in_array = false;
-    for (u8 j = 0; j < n_gnss_used; j++) {
-      if (ch_meas_gnss[j]->sid.sat == ch_meas[i].sid.sat) {
-        in_array = true;
-        break;
-      }
-    }
-
-    /* for extra security */
-    if (!sid_valid(ch_meas[i].sid)) {
-      log_debug_sid(ch_meas[i].sid, "Invalid SV in nmea_gsv()");
-      continue;
-    }
-
-    if (!in_array) {
-      ch_meas_gnss[n_gnss_used++] = &ch_meas[i];
-    }
-  }
-
+static void nmea_gsv_print(const u8 n_used,
+                           const channel_measurement_t *ch_meas[],
+                           const constellation_t talker) {
   char *gnss_s = "";
-  if (CONSTELLATION_GPS == gnss) {
+  if (CONSTELLATION_GPS == talker || CONSTELLATION_SBAS == talker) {
     gnss_s = "GPGSV";
-  } else if (CONSTELLATION_GLO == gnss) {
+  } else if (CONSTELLATION_GLO == talker) {
     gnss_s = "GLGSV";
   } else {
-    assert(!"Unsupported GNSS type");
-  }
-
-  if (0 == n_gnss_used) {
-    NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF("$%s,1,1,%02u", gnss_s, n_gnss_used);
-    NMEA_SENTENCE_DONE();
+    log_error("Unsupported GNSS type");
     return;
   }
 
-  qsort(ch_meas_gnss,
-        n_gnss_used,
-        sizeof(channel_measurement_t *),
-        compare_ch_meas);
+  qsort(ch_meas, n_used, sizeof(channel_measurement_t *), compare_ch_meas);
 
-  u8 n_messages = (n_gnss_used + 3) / 4;
+  u8 n_messages = (n_used + 3) / 4;
 
   u8 n = 0;
 
   for (u8 i = 0; i < n_messages; i++) {
     NMEA_SENTENCE_START(120);
-    NMEA_SENTENCE_PRINTF(
-        "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_gnss_used);
+    NMEA_SENTENCE_PRINTF("$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_used);
 
-    for (u8 j = 0; j < 4 && n < n_gnss_used; n++) {
-      s8 ele = sv_elevation_degrees_get(ch_meas_gnss[n]->sid);
-      u16 azi = sv_azimuth_degrees_get(ch_meas_gnss[n]->sid);
+    for (u8 j = 0; j < 4 && n < n_used; n++) {
+      s8 ele = sv_elevation_degrees_get(ch_meas[n]->sid);
+      u16 azi = sv_azimuth_degrees_get(ch_meas[n]->sid);
 
-      u16 sv_id = 0;
-      if (CONSTELLATION_GPS == gnss) {
-        sv_id = ch_meas_gnss[n]->sid.sat;
-      } else if (CONSTELLATION_GLO == gnss) {
-        sv_id = NMEA_SV_ID_GLO(ch_meas_gnss[n]->sid.sat);
-      } else {
-        assert(!"Unsupported GNSS type");
-      }
+      u16 sv_id = nmea_get_id(ch_meas[n]->sid);
 
       NMEA_SENTENCE_PRINTF(",%02u", sv_id);
 
@@ -541,11 +597,74 @@ void nmea_gsv(u8 n_used,
         NMEA_SENTENCE_PRINTF(",%03u", azi);
       }
 
-      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas_gnss[n]->cn0));
+      NMEA_SENTENCE_PRINTF(",%02u", (u8)roundf(ch_meas[n]->cn0));
 
       j++; /* 4 sats per message no matter what */
     }
     NMEA_SENTENCE_DONE();
+  }
+}
+
+/** Group tracked SVs by constellation and forward information to GSV printing
+ * function.
+ *
+ * \note NMEA 0183 - Standard For Interfacing Marine Electronic Devices
+ *       versions 2.30, 3.01 and 4.10 state following:
+ *       If multiple GPS, GLONASS, Galileo, etc. satellites are in view, use
+ *       separate GSV sentences with talker ID GP to show the GPS satellites in
+ *       view and talker GL to show the GLONASS satellites in view and talker GA
+ *       to show the Galileo satellites in view, etc. When more than ranging
+ *       signal is used per satellite, also use separate GSV sentences with a
+ *       Signal ID corresponding to the ranging signal. The GN identifier shall
+ *       not be used with this sentence!
+ *
+ * \param[in] n_used      size of ch_meas
+ * \param[in] ch_meas     array of ch_measurement structs from SVs in track
+ * \param[in] talker      indicator which talker ID to use
+ */
+static void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
+  if (0 == n_used || NULL == ch_meas) {
+    NMEA_SENTENCE_START(120);
+    NMEA_SENTENCE_PRINTF("$GPGSV,1,1,0");
+    NMEA_SENTENCE_DONE();
+    return;
+  }
+
+  /* Group by constellation */
+  const channel_measurement_t *ch_meas_grouped[CONSTELLATION_COUNT][n_used];
+  u8 n_gnss_used[CONSTELLATION_COUNT] = {0};
+
+  for (u8 i = 0; i < n_used; i++) {
+    constellation_t cons = code_to_constellation(ch_meas[i].sid.code);
+
+    /* Special case, SBAS uses GP talker ID */
+    if (CONSTELLATION_SBAS == cons) {
+      cons = CONSTELLATION_GPS;
+    }
+
+    /* check if sat is already picked up from another code */
+    bool in_array = false;
+    for (u8 j = 0; j < n_gnss_used[cons]; j++) {
+      if (ch_meas_grouped[cons][j]->sid.sat == ch_meas[i].sid.sat) {
+        in_array = true;
+        break;
+      }
+    }
+
+    if (in_array) {
+      /* SV already on the list */
+      continue;
+    }
+
+    ch_meas_grouped[cons][n_gnss_used[cons]++] = &ch_meas[i];
+  }
+
+  /* Print grouped sentences */
+  for (u8 cons = 0; cons < CONSTELLATION_COUNT; cons++) {
+    if (0 == n_gnss_used[cons]) {
+      continue;
+    }
+    nmea_gsv_print(n_gnss_used[cons], ch_meas_grouped[cons], cons);
   }
 }
 
@@ -796,66 +915,13 @@ void nmea_gpzda(const msg_gps_time_t *sbp_msg_time, const utc_tm *utc_time) {
 
 } /* nmea_gpzda() */
 
-static bool in_set(u8 prns[], u8 count, u8 prn) {
-  for (u8 i = 0; i < count; i++) {
-    if (prns[i] == prn) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
-                              const msg_dops_t *sbp_dops,
-                              const u8 n_meas,
-                              const navigation_measurement_t nav_meas[]) {
-  assert(sbp_pos);
-  assert(sbp_dops);
-  assert(nav_meas);
-
-  u8 prns_gps[GSA_MAX_SV];
-  u8 num_prns_gps = 0;
-  u8 prns_glo[GSA_MAX_SV];
-  u8 num_prns_glo = 0;
-
-  /* Assemble list of currently active SVs */
-  for (u8 i = 0; i < n_meas; i++) {
-    const navigation_measurement_t info = nav_meas[i];
-    if (IS_GPS(info.sid) && num_prns_gps < GSA_MAX_SV &&
-        !in_set(prns_gps, num_prns_gps, info.sid.sat)) {
-      prns_gps[num_prns_gps++] = info.sid.sat;
-      continue;
-    }
-
-    if (enable_glonass && IS_GLO(info.sid) && num_prns_glo < GSA_MAX_SV &&
-        !in_set(prns_glo, num_prns_glo, NMEA_SV_ID_GLO(info.sid.sat))) {
-      prns_glo[num_prns_glo++] = NMEA_SV_ID_GLO(info.sid.sat);
-      continue;
-    }
-  }
-
-  /* Send GSA messages */
-  if (0 != num_prns_gps && 0 != num_prns_glo) {
-    /* Talker ID 'GN' is indicated with CONSTELLATION_COUNT */
-    nmea_gsa(prns_gps, num_prns_gps, sbp_pos, sbp_dops, CONSTELLATION_COUNT);
-    nmea_gsa(prns_glo, num_prns_glo, sbp_pos, sbp_dops, CONSTELLATION_COUNT);
-  } else {
-    nmea_gsa(prns_gps, num_prns_gps, sbp_pos, sbp_dops, CONSTELLATION_GPS);
-    if (enable_glonass) {
-      nmea_gsa(prns_glo, num_prns_glo, sbp_pos, sbp_dops, CONSTELLATION_GLO);
-    }
-  }
-}
-
 /** Generate and send periodic GPGSV and GLGSV.
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of channel_measurement structs from tracked SVs
  */
 void nmea_send_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
-  DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas, CONSTELLATION_GPS);
-           nmea_gsv(n_used, ch_meas, CONSTELLATION_GLO););
+  DO_EVERY(gpgsv_msg_rate, nmea_gsv(n_used, ch_meas));
 }
 
 bool send_nmea(u32 rate, u32 gps_tow_ms) {
