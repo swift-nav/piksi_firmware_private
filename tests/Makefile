@@ -123,7 +123,8 @@ C_SRCS = fixed_fft_r2.c \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/filters -name '*.c')) \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/track_loop -name '*.c')) \
          prns.c \
-         clock_filter.c
+         clock_filter.c \
+         nav_meas_calc.c
 
 CXX_SRCS = test_fft.cc \
            test_sbas_select.cc \
@@ -131,7 +132,8 @@ CXX_SRCS = test_fft.cc \
            test_filters.cc \
            test_trk_loop.cc \
            test_prns.cc \
-           test_clock_filter.cc
+           test_clock_filter.cc \
+           test_nav_meas_calc_data.cc
 
 OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(C_SRCS))
 OBJS += $(patsubst %.cc,$(OBJDIR)/%.o,$(CXX_SRCS))
