@@ -42,6 +42,7 @@ s8 calc_navigation_measurement(u8 n_channels,
   /* To calculate the pseudorange from the time of transmit we need the local
    * time of reception. */
   gps_time_t tor = GPS_TIME_UNKNOWN;
+  u8 i = 0;
   if (NULL != rec_time && gps_time_valid(rec_time)) {
     /* If we were given a valid time, use that. */
     tor = *rec_time;
@@ -50,7 +51,7 @@ s8 calc_navigation_measurement(u8 n_channels,
      * pseudoranges arbitrarily to a nominal value and reference all the other
      * pseudoranges to that. This doesn't affect the PVT solution but does
      * potentially correspond to a large receiver clock error. */
-    for (u8 i = 0; i < n_channels; i++) {
+    for (i = 0; i < n_channels; i++) {
       /* use the time of the first GPS signal */
       if (IS_GPS(meas[i]->sid)) {
         tor.tow = 1e-3 * meas[i]->time_of_week_ms + GPS_NOMINAL_RANGE / GPS_C;
@@ -65,7 +66,7 @@ s8 calc_navigation_measurement(u8 n_channels,
     }
   }
 
-  for (u8 i = 0; i < n_channels; i++) {
+  for (i = 0; i < n_channels; i++) {
     nav_meas[i]->sid = meas[i]->sid;
 
     u32 code_length = code_to_chip_count(meas[i]->sid.code);
@@ -247,7 +248,8 @@ static double get_isc_corr(code_t code, const cnav_msg_type_30_t *msg) {
 void calc_isc(u8 n_channels,
               navigation_measurement_t *nav_meas[],
               const cnav_msg_type_30_t *p_cnav_30[]) {
-  for (u8 i = 0; i < n_channels; i++) {
+  u8 i = 0;
+  for (i = 0; i < n_channels; i++) {
     nav_meas[i]->pseudorange +=
         get_isc_corr(nav_meas[i]->sid.code, p_cnav_30[i]);
     nav_meas[i]->carrier_phase -=
