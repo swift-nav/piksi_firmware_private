@@ -110,7 +110,10 @@ void update_time(u64 tc, const gnss_solution *sol) {
 
   time_quality_t old_quality = clock_var_to_time_quality(clock_state.P[0][0]);
 
+  /* propagate the previous clock state estimate to current epoch tc */
   propagate_clock_state(&clock_state, tc);
+
+  /* update the clock state with the solved time for this epoch */
   update_clock_state(&clock_state, sol);
 
   /* match week number to the solution time */

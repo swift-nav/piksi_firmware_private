@@ -10,13 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <assert.h>
-#include <math.h>
+#include "clock_filter.h"
 
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
-
-#include "clock_filter.h"
 
 /** Process noise parameters for clock state Kalman filter */
 #define CLOCK_BIAS_VAR 1e-19
@@ -25,7 +22,14 @@
 /* Time in which clock state uncertainty does not change significantly */
 #define CLOCK_STATE_MIN_PROPAGATE_TIME_S 1e-3
 
-/* Propagate the given clock state to clock tick `tc` */
+/** Propagate clock state to current epoch
+ *
+ * Update the clock_state in place to represent the propagated clock state
+ * estimate at tick `tc`.
+ *
+ * \param clock_state Pointer to clock state estimate to be propagated
+ * \param tc NAP tick counter of the current epoch
+ */
 void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
   u64 ref_tc = clock_state->tc;
 
@@ -69,7 +73,14 @@ void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
   return;
 }
 
-/* Kalman filter update step */
+/** Kalman filter update step.
+ *
+ * Update the clock_state in place with the current solved time estimate.
+ *
+ * \param clock_state Pointer to clock state estimate to be updated (needs
+ *                    to be already propagated to current epoch)
+ * \param sol Pointer to the PVT solution for the current epoch
+ */
 void update_clock_state(clock_est_state_t *clock_state,
                         const gnss_solution *sol) {
   /* a priori state estimate */
