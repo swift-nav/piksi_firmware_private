@@ -66,7 +66,7 @@ capture_ids=()
 # is part of `after_success`.
 set +e
 for index in ${!SCENARIOS[@]}; do
-    URL="$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=${RUNS[$index]}&scenario_name=${SCENARIOS[$index]}"
+    URL="$HITL_API_URL/jobs?&build_type=$BUILD_TYPE&build=$BUILD_VERSION&tester_email=$TESTER_EMAIL&runs=${RUNS[$index]}&scenario_name=${SCENARIOS[$index]}&priority=1"
     echo "Posting to HITL API URL: \"$URL\""
     capture_ids+=($(curl -u $HITL_API_GITHUB_USER:$HITL_API_GITHUB_TOKEN -X POST $URL | python -c "import sys, json; print json.load(sys.stdin)['id']"))
     if [ ! $? -eq 0 ]; then
