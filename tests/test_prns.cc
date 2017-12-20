@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "prns.h"
+#include "soft_macq/prns.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -13,7 +13,6 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>
-#include <libswiftnav/prns.h>
 #include <libswiftnav/signal.h>
 
 #include <assert.h>
