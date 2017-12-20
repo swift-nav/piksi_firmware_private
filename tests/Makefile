@@ -27,6 +27,8 @@ USER_SRC_DIR = ../src
 # Where to find tests
 TEST_DIR = .
 
+OBJDIR = obj
+
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
@@ -71,7 +73,8 @@ lsnp :
 clean :
 	@printf "CLEAN   libswiftnav\n"; \
 	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
-	rm -f run_tests gtest.a gtest_main.a *.o
+	$(RM) -rf $(OBJDIR)
+	rm -f run_tests
 
 # Builds gtest.a and gtest_main.a.
 
@@ -83,142 +86,63 @@ GTEST_SRCS_ = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
 # implementation details, the dependencies specified below are
 # conservative and not optimized.  This is fine as Google Test
 # compiles fast and for ordinary users its source rarely changes.
-gtest-all.o : $(GTEST_SRCS_)
+$(OBJDIR)/gtest-all.o : $(GTEST_SRCS_)
 	$(CXX) $(CPPFLAGS) -I$(GTEST_DIR) $(CXXFLAGS) -c \
-            $(GTEST_DIR)/src/gtest-all.cc
+            $(GTEST_DIR)/src/gtest-all.cc -o $@
 
-gtest_main.o : $(GTEST_SRCS_)
+$(OBJDIR)/gtest_main.o : $(GTEST_SRCS_)
 	$(CXX) $(CPPFLAGS) -I$(GTEST_DIR) $(CXXFLAGS) -c \
-            $(GTEST_DIR)/src/gtest_main.cc
+            $(GTEST_DIR)/src/gtest_main.cc -o $@
 
-gtest.a : gtest-all.o
-	$(AR) $(ARFLAGS) $@ $^
-
-gtest_main.a : gtest-all.o gtest_main.o
+$(OBJDIR)/gtest_main.a : $(OBJDIR)/gtest-all.o $(OBJDIR)/gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
 # Builds a sample test.  A test should link with either gtest.a or
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-fixed_fft_r2.o : $(USER_SRC_DIR)/lib/fixed_fft_r2.h $(USER_SRC_DIR)/lib/fixed_fft_r2.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_SRC_DIR)/lib/fixed_fft_r2.c
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-test_fft.o : $(TEST_DIR)/test_fft.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_fft.cc
+vpath %.c $(USER_SRC_DIR) \
+          $(USER_SRC_DIR)/lib \
+          $(USER_SRC_DIR)/cn0_est \
+          $(USER_SRC_DIR)/utils/filters \
+          $(USER_SRC_DIR)/utils/track_loop \
+          $(USER_SRC_DIR)/soft_macq
 
-piksi_systime.o : $(USER_SRC_DIR)/piksi_systime.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/piksi_systime.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/piksi_systime.c
+C_SRCS = fixed_fft_r2.c \
+         sbas_select.c \
+         $(notdir $(shell find $(USER_SRC_DIR)/cn0_est -name '*.c')) \
+         $(notdir $(shell find $(USER_SRC_DIR)/utils/filters -name '*.c')) \
+         $(notdir $(shell find $(USER_SRC_DIR)/utils/track_loop -name '*.c')) \
+         prns.c \
+         clock_filter.c
 
-test_piksi_systime.o : $(TEST_DIR)/test_piksi_systime.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_piksi_systime.cc
+CXX_SRCS = test_fft.cc \
+           test_sbas_select.cc \
+           test_cn0_estimator.cc \
+           test_filters.cc \
+           test_trk_loop.cc \
+           test_prns.cc \
+           test_clock_filter.cc
 
-sbas_select.o : $(USER_SRC_DIR)/sbas_select.h $(USER_SRC_DIR)/sbas_select.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/sbas_select.c
+OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(C_SRCS))
+OBJS += $(patsubst %.cc,$(OBJDIR)/%.o,$(CXX_SRCS))
 
-test_sbas_select.o : $(TEST_DIR)/test_sbas_select.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_sbas_select.cc
+$(OBJDIR)/%.o: %.c
+	$(CC) $(CPPFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
-cn0_est_basic.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_basic.c
+$(OBJDIR)/%.o: %.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
-cn0_est_bl.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_bl.c
-
-cn0_est_mm.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_mm.c
-
-cn0_est_nwpr.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_nwpr.c
-
-cn0_est_rscn.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_rscn.c
-
-cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/cn0_est/cn0_est_snv.c
-
-test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_estimator.cc
-
-filter_bw2.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/utils/filters/filter_bw2.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_bw2.c
-
-filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/utils/filters/filter_lp1.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_lp1.c
-
-test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
-
-track_fll1.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll1.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll1.c
-
-track_fll1_pll2.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll1_pll2.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll1_pll2.c
-
-track_fll2.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll2.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll2.c
-
-track_fll2_pll3.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll2_pll3.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll2_pll3.c
-
-track_pll3.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_pll3.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_pll3.c
-
-track_pll3b.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_pll3b.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_pll3b.c
-	
-trk_loop_common.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.c
-
-test_trk_loop.o : $(TEST_DIR)/test_trk_loop.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_trk_loop.cc
-
-prns.o : $(USER_SRC_DIR)/soft_macq/prns.h $(USER_SRC_DIR)/soft_macq/prns.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/soft_macq/prns.c
-
-test_prns.o : $(TEST_DIR)/test_prns.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_prns.cc
-
-clock_filter.o : $(USER_SRC_DIR)/clock_filter.h $(USER_SRC_DIR)/clock_filter.c $(GTEST_HEADERS)
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/clock_filter.c
-
-test_clock_filter.o : $(TEST_DIR)/test_clock_filter.cc $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_clock_filter.cc
-
-OBJS = \
-  fixed_fft_r2.o \
-  test_fft.o \
-  piksi_systime.o \
-  test_piksi_systime.o \
-  sbas_select.o \
-  test_sbas_select.o \
-  cn0_est_basic.o \
-  cn0_est_bl.o \
-  cn0_est_mm.o \
-  cn0_est_nwpr.o \
-  cn0_est_rscn.o \
-  cn0_est_snv.o \
-  filter_bw2.o \
-  filter_lp1.o \
-  test_cn0_estimator.o \
-  test_filters.o \
-  track_fll1.o \
-  track_fll1_pll2.o \
-  track_fll2.o \
-  track_fll2_pll3.o \
-  track_pll3.o \
-  track_pll3b.o \
-  trk_loop_common.o \
-  test_trk_loop.o \
-  prns.o \
-  test_prns.o \
-  clock_filter.o \
-  test_clock_filter.o \
-  gtest_main.a
+OBJS += $(OBJDIR)/gtest_main.a
 
 LIBS = -lswiftnav -lswiftnav-common -lpthread
-LIB_PATH = -L$(LIBSWIFTNAV_SEARCHPATH) -L$(LIBSWIFTNAV_COMMON_SEARCHPATH)
-LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH) -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
+LIB_PATH = -L$(LIBSWIFTNAV_SEARCHPATH)
+LIB_PATH += -L$(LIBSWIFTNAV_COMMON_SEARCHPATH)
+LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
+LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
 
-run_tests : lsnp $(OBJS)
+run_tests : lsnp $(OBJDIR) $(OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
