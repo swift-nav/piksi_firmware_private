@@ -9,16 +9,13 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include <assert.h>
 
 #include "dum.h"
 #include "manage.h"
 #include "ndb.h"
 #include "signal.h"
 #include "timing.h"
-
-#include <libswiftnav/dopp_unc.h>
-
-#include <assert.h>
 
 /**
   The user position uncertainty is modeled as a sphere expanding its
@@ -56,6 +53,59 @@ typedef struct {
 } dum_info_t;
 
 static dum_info_t dum_info = {0};
+
+/** Doppler uncertainty VS position uncertainty factor, Hz / m */
+#define DUM_DIST_UNC_FACTOR .001
+
+/** Estimate a satellite specific Doppler search window center and width based
+ *  on given time estimate and LGF data which also includes TCXO offset and
+ *  drift. Function returns the lower and upper limit of the estimated Doppler
+ *  search window and the center point between these limits is the most likely
+ *  Doppler value. Function will widen the search window based on the count of
+ *  earlier failed acquisition tries.
+ *
+ * \param[in] e Pointer to an ephemeris structure for the satellite of interest
+ * \param[in] t Current time estimate
+ * \param[in] lgf Last Good Fix
+ * \param[in] radius Position uncertainty sphere radius, meters
+ * \param[out] doppler_min Output window floor, Hz
+ * \param[out] doppler_max Output window ceiling, Hz
+ * \return  0 on success,
+ *         -1 otherwise
+ */
+
+static s8 calc_sat_doppler_wndw(const ephemeris_t *e,
+                                const gps_time_t *t,
+                                const gnss_solution *lgf,
+                                float radius,
+                                float *doppler_min,
+                                float *doppler_max) {
+  double vel[3] = {0};
+  double doppler = 0;
+
+  if ((NULL == e) || (NULL == t) || (NULL == lgf)) {
+    assert(!"Bad input");
+  }
+
+  if (0 > calc_sat_doppler(e, t, lgf->pos_ecef, vel, &doppler)) {
+    return -1;
+  }
+  doppler = -doppler;
+
+  /* Add clock elements */
+  /* TODO: Check sign of receiver frequency offset correction.
+           There seems to be a sign flip somewhere in 'clock_drift'
+           computation that gets compensated here */
+  float tcxo_shift = -lgf->clock_drift * sid_to_carr_freq(e->sid);
+  doppler += tcxo_shift;
+
+  /* Add distance uncertainty */
+  float unc = radius * DUM_DIST_UNC_FACTOR;
+  *doppler_min = doppler - unc;
+  *doppler_max = doppler + unc;
+
+  return 0;
+}
 
 /** Compute Doppler uncertainty using LGF, time and ephemeris.
  * \param[in] sid signal id pointer
