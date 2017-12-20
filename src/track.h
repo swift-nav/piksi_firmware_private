@@ -21,7 +21,6 @@
 #include <libswiftnav/nav_msg.h>
 #include <libswiftnav/run_stats.h>
 #include <libswiftnav/signal.h>
-#include <libswiftnav/trk_loop_common.h>
 
 #include "piksi_systime.h"
 #include "shm.h"
@@ -34,6 +33,7 @@
 #include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"
 #include "track/track_cn0.h"
+#include "track_loop/trk_loop_common.h"
 
 #define NAV_BIT_FIFO_SIZE                            \
   64 /**< Size of nav bit FIFO. Must be a power of 2 \

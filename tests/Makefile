@@ -140,14 +140,38 @@ cn0_est_snv.o : $(USER_SRC_DIR)/cn0_est/cn0_est_common.h $(USER_SRC_DIR)/cn0_est
 test_cn0_estimator.o : $(TEST_DIR)/test_cn0_estimator.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_cn0_estimator.cc
 
-filter_bw2.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/utils/filters/filter_bw2.c $(GTEST_HEADERS)
+filter_bw2.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/utils/filters/filter_bw2.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_bw2.c
 
-filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/chconf.h ./ch.h $(USER_SRC_DIR)/utils/filters/filter_lp1.c $(GTEST_HEADERS)
+filter_lp1.o : $(USER_SRC_DIR)/utils/filters/filter_common.h $(USER_SRC_DIR)/utils/filters/filter_lp1.c $(GTEST_HEADERS)
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/filters/filter_lp1.c
 
 test_filters.o : $(TEST_DIR)/test_filters.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_filters.cc
+
+track_fll1.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll1.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll1.c
+
+track_fll1_pll2.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll1_pll2.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll1_pll2.c
+
+track_fll2.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll2.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll2.c
+
+track_fll2_pll3.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_fll2_pll3.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_fll2_pll3.c
+
+track_pll3.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_pll3.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_pll3.c
+
+track_pll3b.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/track_pll3b.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/track_pll3b.c
+	
+trk_loop_common.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.c
+
+test_trk_loop.o : $(TEST_DIR)/test_trk_loop.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_trk_loop.cc
 
 OBJS = \
   fixed_fft_r2.o \
@@ -166,6 +190,14 @@ OBJS = \
   filter_lp1.o \
   test_cn0_estimator.o \
   test_filters.o \
+  track_fll1.o \
+  track_fll1_pll2.o \
+  track_fll2.o \
+  track_fll2_pll3.o \
+  track_pll3.o \
+  track_pll3b.o \
+  trk_loop_common.o \
+  test_trk_loop.o \
   gtest_main.a
 
 LIBS = -lswiftnav -lswiftnav-common -lpthread
