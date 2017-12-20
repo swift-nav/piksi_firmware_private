@@ -143,6 +143,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/manage.o \
         $(SWIFTNAV_ROOT)/src/settings.o \
         $(SWIFTNAV_ROOT)/src/timing.o \
+        $(SWIFTNAV_ROOT)/src/clock_filter.o \
         $(SWIFTNAV_ROOT)/src/ext_events.o \
         $(SWIFTNAV_ROOT)/src/position.o \
         $(SWIFTNAV_ROOT)/src/common_calc_pvt.o \

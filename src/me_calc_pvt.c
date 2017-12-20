@@ -211,8 +211,8 @@ static void me_send_failed_obs(u8 _num_obs,
     /* estimate the current clock offset from LGF */
     double dt = gpsdifftime(_t, &lgf.position_solution.time);
     clock_offset = lgf.position_solution.clock_offset +
-                   dt * lgf.position_solution.clock_bias;
-    clock_drift = lgf.position_solution.clock_bias;
+                   dt * lgf.position_solution.clock_drift;
+    clock_drift = lgf.position_solution.clock_drift;
   }
 
   u64 ref_tc = rcvtime2napcount(_t);
@@ -427,9 +427,6 @@ static void me_calc_pvt_thread(void *arg) {
 
       if (gpsdifftime(&rcv_time, &lgf.position_solution.time) >
           MAX_TIME_PROPAGATED_S) {
-        /* too long time from last time solution, downgrade position and time
-         * qualities */
-        downgrade_time_quality(TIME_COARSE);
         if (lgf.position_quality > POSITION_STATIC) {
           lgf.position_quality = POSITION_STATIC;
         }
@@ -507,7 +504,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Create navigation measurements from the channel measurements */
 
-    /* If a FINE quality time solution is not available then pass in NULL
+    /* If `epoch_time` is invalid (i.e. GPS_TIME_UNKNOWN), then pass in NULL
      * instead of `epoch_time`. This will result in valid pseudoranges but with
      * a large and arbitrary receiver clock error. We will discard these
      * measurements in any case after getting the PVT solution and initializing
@@ -599,8 +596,6 @@ static void me_calc_pvt_thread(void *arg) {
         lgf.position_quality = POSITION_STATIC;
       }
 
-      /* If we already have time solution, degrade it into PROPAGATED */
-      downgrade_time_quality(TIME_PROPAGATED);
       continue;
     }
 
@@ -627,16 +622,12 @@ static void me_calc_pvt_thread(void *arg) {
 
     time_quality_t old_time_quality = get_time_quality();
 
-    /* Update the relationship between the solved GPS time and NAP count tc.
-     * Set to TIME_FINE if RAIM was not available, otherwise to TIME_FINEST. */
-    time_quality_t new_time_quality =
-        PVT_CONVERGED_NO_RAIM == pvt_ret ? TIME_FINE : TIME_FINEST;
-    set_time(new_time_quality, &current_fix.time, epoch_tc);
+    /* Update the relationship between the solved GPS time and NAP count tc.*/
+    update_time(epoch_tc, &current_fix);
 
     if (TIME_PROPAGATED > old_time_quality) {
-      /* If the time quality is not at least TIME_PROPAGATED then our receiver
-       * clock bias isn't known. We should only use this PVT solution to update
-       * our time estimate and then skip all other processing.
+      /* If the time quality was not at least TIME_PROPAGATED then this solution
+       * likely causes a clock jump and should be discarded.
        *
        * Note that the lack of knowledge of the receiver clock bias does NOT
        * degrade the quality of the position solution but the rapid change in
@@ -646,7 +637,7 @@ static void me_calc_pvt_thread(void *arg) {
 
       log_info("first fix clk_offset %.3e clk_drift %.3e",
                current_fix.clock_offset,
-               current_fix.clock_bias);
+               current_fix.clock_drift);
 
       me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
       continue;
@@ -657,10 +648,10 @@ static void me_calc_pvt_thread(void *arg) {
     if (fabs(current_fix.clock_offset) < OBS_PROPAGATION_LIMIT) {
       log_debug("clk_offset %.3e clk_drift %.3e",
                 current_fix.clock_offset,
-                current_fix.clock_bias);
+                current_fix.clock_drift);
 
       double clock_offset = current_fix.clock_offset;
-      double clock_drift = current_fix.clock_bias;
+      double clock_drift = current_fix.clock_drift;
 
       for (u8 i = 0; i < n_ready; i++) {
         navigation_measurement_t *nm = &nav_meas[i];
@@ -710,7 +701,7 @@ static void me_calc_pvt_thread(void *arg) {
       tracking_channel_carrier_phase_offsets_adjust(dt);
 
       /* adjust the RX to GPS time conversion */
-      adjust_time_fine(dt);
+      adjust_rcvtime_offset(dt);
     }
 
     /* */
