@@ -173,6 +173,12 @@ trk_loop_common.o : $(USER_SRC_DIR)/utils/track_loop/trk_loop_common.h $(USER_SR
 test_trk_loop.o : $(TEST_DIR)/test_trk_loop.cc $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_trk_loop.cc
 
+prns.o : $(USER_SRC_DIR)/soft_macq/prns.h $(USER_SRC_DIR)/soft_macq/prns.c $(GTEST_HEADERS)
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(USER_SRC_DIR)/soft_macq/prns.c
+
+test_prns.o : $(TEST_DIR)/test_prns.cc $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $(TEST_DIR)/test_prns.cc
+
 OBJS = \
   fixed_fft_r2.o \
   test_fft.o \
@@ -198,6 +204,8 @@ OBJS = \
   track_pll3b.o \
   trk_loop_common.o \
   test_trk_loop.o \
+  prns.o \
+  test_prns.o \
   gtest_main.a
 
 LIBS = -lswiftnav -lswiftnav-common -lpthread

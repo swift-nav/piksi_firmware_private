@@ -17,6 +17,7 @@
 #include "nap_constants.h"
 #include "nap_hw.h"
 #include "signal.h"
+#include "soft_macq/prns.h"
 #include "timing.h"
 #include "track.h"
 
@@ -24,7 +25,6 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/prns.h>
 #include <libswiftnav/signal.h>
 
 #include <assert.h>

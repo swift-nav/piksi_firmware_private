@@ -15,7 +15,6 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
-#include <libswiftnav/prns.h>
 #include <math.h>
 #include <string.h>
 #include "./system_monitor.h"

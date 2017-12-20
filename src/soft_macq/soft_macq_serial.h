@@ -1,8 +1,6 @@
 #ifndef SOFT_MACQ_SERIAL_H_
 #define SOFT_MACQ_SERIAL_H_
 
-#include <libswiftnav/prns.h>
-
 #include "soft_macq_defines.h"
 #include "soft_macq_main.h"
 
