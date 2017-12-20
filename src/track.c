@@ -18,11 +18,11 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_meas_calc.h>
 
 #include "board/nap/track_channel.h"
 #include "manage.h"
 #include "nap/nap_constants.h"
+#include "nav_meas_calc.h"
 #include "ndb.h"
 #include "position.h"
 #include "sbp.h"

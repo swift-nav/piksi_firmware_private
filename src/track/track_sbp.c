@@ -12,7 +12,6 @@
 
 #include <assert.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/nav_meas_calc.h>
 #include <sbp.h>
 #include <sbp_utils.h>
 #include <stdint.h>
