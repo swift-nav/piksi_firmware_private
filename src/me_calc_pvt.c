@@ -18,7 +18,6 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
-#include <libswiftnav/nav_meas_calc.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
@@ -28,6 +27,7 @@
 #include "me_calc_pvt.h"
 
 #include "manage.h"
+#include "nav_meas_calc.h"
 #include "nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
