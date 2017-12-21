@@ -11,7 +11,6 @@
  */
 
 #include <assert.h>
-#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h> /* For BIT_POLARITY_... constants */

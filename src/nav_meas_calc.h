@@ -13,7 +13,8 @@
 #ifndef SWIFTNAV_NAV_MEAS_CALC_H
 #define SWIFTNAV_NAV_MEAS_CALC_H
 
-#include <libswiftnav/cnav_msg.h>
+#include "nav_msg/cnav_msg.h"
+
 #include <libswiftnav/common.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/nav_meas.h>

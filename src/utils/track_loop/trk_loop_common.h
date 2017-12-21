@@ -13,7 +13,6 @@
 #ifndef TRACK_LOOP_H
 #define TRACK_LOOP_H
 
-#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/linear_algebra.h>

@@ -13,7 +13,6 @@
 #include <stdio.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/logging.h>
