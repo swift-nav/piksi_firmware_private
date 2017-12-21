@@ -99,12 +99,8 @@ clean:
 	$(RM) -rf $(LIBSWIFTNAV_BUILDDIR)
 	@printf "CLEAN   open-amp\n"; \
 	$(RM) -rf $(OPENAMP_BUILDDIR)
-	$(Q)for i in tests/*; do \
-		if [ -d $$i ]; then \
-			printf "CLEAN   $$i\n"; \
-			$(MAKE) -C $$i $(MAKEFLAGS) clean || exit $?; \
-		fi; \
-	done
+	@printf "CLEAN   tests\n"; \
+	$(MAKE) -C tests clean
 
 docs:
 	$(MAKE) -C docs/diagrams
