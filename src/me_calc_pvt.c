@@ -770,7 +770,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
     } else {
-      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
+      log_info("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                (current_fix.clock_offset));
     }
 

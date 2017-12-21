@@ -147,7 +147,7 @@ static void update_eph(tracker_channel_t *tracker_channel,
 
   if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
       (tracker_channel->glo_orbit_slot != data_sync->glo_orbit_slot)) {
-    log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
+    log_info_mesid(mesid, "GLO orbit slot change");
   }
   tracker_channel->glo_orbit_slot = data_sync->glo_orbit_slot;
   tracker_channel->health = data_sync->glo_health;
