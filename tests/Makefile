@@ -34,12 +34,16 @@ OBJDIR = obj
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
+# Flags passed to the C compiler.
+CFLAGS += -g -Wall -Wextra
+
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread --coverage
 
 # Compiler include directories.
 INCLUDE_DIRS :=
 INCLUDE_DIRS += -I./
+INCLUDE_DIRS += -I./stubs
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I../libswiftnav/include
@@ -131,7 +135,7 @@ OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(C_SRCS))
 OBJS += $(patsubst %.cc,$(OBJDIR)/%.o,$(CXX_SRCS))
 
 $(OBJDIR)/%.o: %.c
-	$(CC) $(CPPFLAGS) $(INCLUDE_DIRS) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
 $(OBJDIR)/%.o: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $< -o $@
@@ -145,4 +149,4 @@ LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
 LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
 
 run_tests : lsnp $(OBJDIR) $(OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
