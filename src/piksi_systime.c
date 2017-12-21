@@ -125,7 +125,8 @@ static inline u64 s2st(u64 s) {
  *                          will be set to this variable.
  */
 static void piksi_systime_get_internal(piksi_systime_t *t) {
-  static piksi_systime_t prev = PIKSI_SYSTIME_INIT;
+  static piksi_systime_t prev = {PIKSI_SYSTIME_SYSTIME_INIT,
+                                 PIKSI_SYSTIME_RO_CNT_INIT};
 
   assert(t);
 
