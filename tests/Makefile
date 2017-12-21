@@ -28,6 +28,7 @@ USER_SRC_DIR = ../src
 TEST_DIR = .
 
 OBJDIR = obj
+TEST_SRC_DIR = src
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -101,10 +102,10 @@ $(OBJDIR)/gtest_main.o : $(GTEST_SRCS_)
 $(OBJDIR)/gtest_main.a : $(OBJDIR)/gtest-all.o $(OBJDIR)/gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
-# Builds a sample test.  A test should link with either gtest.a or
-# gtest_main.a, depending on whether it defines its own main()
-# function.
+# A test should link with either gtest.a or gtest_main.a, depending on whether
+# it defines its own main() function.
 
+# Rule for creating output dir for build deliverables
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
@@ -115,8 +116,9 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/track_loop \
           $(USER_SRC_DIR)/soft_macq
 
-vpath %.cc ./src
+vpath %.cc $(TEST_SRC_DIR)
 
+# Code to test
 C_SRCS = fixed_fft_r2.c \
          sbas_select.c \
          $(notdir $(shell find $(USER_SRC_DIR)/cn0_est -name '*.c')) \
@@ -124,23 +126,20 @@ C_SRCS = fixed_fft_r2.c \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/track_loop -name '*.c')) \
          prns.c \
          clock_filter.c \
-         nav_meas_calc.c
+         nav_meas_calc.c \
+         piksi_systime.c
 
-CXX_SRCS = test_fft.cc \
-           test_sbas_select.cc \
-           test_cn0_estimator.cc \
-           test_filters.cc \
-           test_trk_loop.cc \
-           test_prns.cc \
-           test_clock_filter.cc \
-           test_nav_meas_calc_data.cc
+# Test source files
+CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
 
 OBJS = $(patsubst %.c,$(OBJDIR)/%.o,$(C_SRCS))
 OBJS += $(patsubst %.cc,$(OBJDIR)/%.o,$(CXX_SRCS))
 
+# Rule for C files
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
+# Rule for C++ files
 $(OBJDIR)/%.o: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
