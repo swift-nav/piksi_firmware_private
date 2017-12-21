@@ -676,7 +676,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* Send the observations. */
       me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
     } else {
-      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
+      log_info("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                smoothed_offset);
       /* Send the observations, but marked unusable */
       me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
