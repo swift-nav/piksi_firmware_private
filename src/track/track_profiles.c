@@ -156,7 +156,7 @@ static const tp_lock_detect_params_t ld_params[] = {
     [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.f, 50 },
     [TP_LD_PARAMS_FREQ_INI]   = {  0.07f,  .6f, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f, 1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f,  1.f, 50 },
     [TP_LD_PARAMS_FREQ_1MS]   = {  0.07f,  .6f, 50 },
 
     [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f, 1.5f, 50 },
