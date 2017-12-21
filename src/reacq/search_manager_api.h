@@ -63,26 +63,6 @@ typedef enum reacq_prio_level_e {
   REACQ_PRIO_COUNT,
 } reacq_prio_level_t;
 
-/** Re-acq normal priority masks. */
-static const u32 reacq_normal_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
-    0b000000000100000000010000000001, /* SBAS */
-    0b111111111111111111111111111111, /* GLO */
-    0b101010101010101010101010101010, /* BDS2 */
-    0b010101010101010101010101010101, /* QZSS */
-    0b101010101010101010101010101010  /* GAL */
-};
-
-/** Re-acq low priority masks. */
-static const u32 reacq_low_prio[] = {
-    0b111111111111111111111111111111, /* GPS */
-    0b000000000000000000000000000001, /* SBAS */
-    0b000010000100001000010000100001, /* GLO */
-    0b000100001000010000100001000010, /* BDS2 */
-    0b001000010000100001000010000100, /* QZSS */
-    0b010000100001000010000100001000  /* GAL */
-};
-
 /** Search job types */
 typedef enum {
   ACQ_JOB_DEEP_SEARCH,     /**< Deep job type */
