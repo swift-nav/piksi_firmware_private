@@ -58,20 +58,12 @@ endif
 
 .PHONY: all tests firmware docs .FORCE
 
-all: firmware tests
+all: firmware
 	@printf "BUILDING For target $(PIKSI_TARGET)\n"
 
 firmware: $(FW_DEPS)
 	@printf "BUILD   src for target $(PIKSI_TARGET)\n"; \
 	$(MAKE) -r -C src $(MAKEFLAGS)
-
-tests:
-	$(Q)for i in tests/*; do \
-		if [ -d $$i ]; then \
-			printf "BUILD   $$i\n"; \
-			$(MAKE) -r -C $$i $(MAKEFLAGS) || exit $?; \
-		fi; \
-	done
 
 $(LIBSBP_BUILDDIR)/src/libsbp-static.a:
 	@printf "BUILD   libsbp for target $(PIKSI_TARGET)\n"; \
