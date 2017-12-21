@@ -115,6 +115,8 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/track_loop \
           $(USER_SRC_DIR)/soft_macq
 
+vpath %.cc ./src
+
 C_SRCS = fixed_fft_r2.c \
          sbas_select.c \
          $(notdir $(shell find $(USER_SRC_DIR)/cn0_est -name '*.c')) \
