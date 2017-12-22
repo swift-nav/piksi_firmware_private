@@ -260,7 +260,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
        TP_WAIT_PLOCK },
 
   [IDX_1MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           4,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
     TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
            40,          48,           0,
@@ -268,7 +268,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           4,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
     TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            40,          43,          51,
@@ -276,7 +276,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           4,   TP_CTRL_PLL3,
           TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
     TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
            40,          35,          46,
@@ -284,7 +284,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           4,   TP_CTRL_PLL3,
         TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
     TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            40,          32,          38,
@@ -292,7 +292,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            40,          25,          35,
@@ -301,7 +301,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {      0,           1.0,          .5,   TP_CTRL_PLL3,
+  { {      0,           1.0,          2,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
     TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         100,             0,          32,
@@ -622,24 +622,34 @@ static void log_switch(tracker_channel_t *tracker_channel, const char *reason) {
   tp_tm_e cur_track_mode = get_track_mode(mesid, cur_profile);
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
 
-  log_debug_mesid(mesid,
-                  "%s: plock=%" PRId16 " bs=%" PRId16
-                  " cn0=%.1f "
-                  "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
+  u64 now_ms = tracker_channel->update_timestamp_ms;
+  if (!tracker_channel->profile_timestamp_ms) {
+    tracker_channel->profile_timestamp_ms = now_ms;
+  }
+  u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+  u32 profile_time_ms = (u32)(now_ms - tracker_channel->profile_timestamp_ms);
+  tracker_channel->profile_timestamp_ms = now_ms;
+
+  /* clang-format off */
+  log_debug_mesid(mesid, "%s,%" PRIu32 "(%" PRIu32 "),cn0=%.1f,"
+                  "(%s,%.1f,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%.1f,%s)",
                   reason,
-                  state->plock_delay_ms,
-                  state->bs_delay_ms,
+                  time_in_track_ms,
+                  profile_time_ms,
                   state->filt_cn0,
                   /* old state */
                   tp_get_mode_str(cur_track_mode),
                   state->cur.pll_bw,
                   state->cur.fll_bw,
+                  cur_profile->profile.dll_bw,
                   get_ctrl_str(cur_profile->profile.controller_type),
                   /* new state */
                   tp_get_mode_str(next_track_mode),
                   state->next.pll_bw,
                   state->next.fll_bw,
+                  next_profile->profile.dll_bw,
                   get_ctrl_str(next_profile->profile.controller_type));
+  /* clang-format on */
 }
 
 /**
@@ -890,6 +900,10 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
     return true;
   }
 
+  if (state->lock_time_ms > 0) {
+    return false; /* tracking loop has not settled yet */
+  }
+
   if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wbsync");
@@ -903,10 +917,6 @@ bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel) {
   if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wplock");
-  }
-
-  if (state->lock_time_ms > 0) {
-    return false; /* tracking loop has not settled yet */
   }
 
   if ((0 != (flags & TP_HIGH_CN0)) &&
@@ -998,6 +1008,11 @@ void tp_profile_init(tracker_channel_t *tracker_channel,
   profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
   tp_profile_update_config(tracker_channel);
+
+  const struct tp_profile_entry *entry;
+  entry = &profile->profiles[profile->cur.index];
+
+  profile->lock_time_ms = entry->lock_time_ms;
 
   log_switch(tracker_channel, "init");
 }
