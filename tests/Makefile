@@ -120,6 +120,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/sv_visibility \
           $(USER_SRC_DIR)/nav_msg \
           $(USER_SRC_DIR)/utils/bit_sync \
+          $(USER_SRC_DIR)/utils/run_stats
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -137,7 +138,8 @@ C_SRCS = fixed_fft_r2.c \
          sv_visibility.c \
          cnav_msg.c \
          bit_sync.c \
-         nav_msg_glo.c
+         nav_msg_glo.c \
+         run_stats.c
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
