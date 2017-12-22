@@ -113,6 +113,7 @@ $(OBJDIR):
 vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/lib \
           $(USER_SRC_DIR)/cn0_est \
+          $(USER_SRC_DIR)/utils \
           $(USER_SRC_DIR)/utils/filters \
           $(USER_SRC_DIR)/utils/track_loop \
           $(USER_SRC_DIR)/soft_macq \
@@ -140,7 +141,9 @@ C_SRCS = fixed_fft_r2.c \
          bit_sync.c \
          nav_msg_glo.c \
          run_stats.c \
-         gnss_capabilities.c
+         gnss_capabilities.c \
+         sid_set.c \
+         pvt.c \
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))

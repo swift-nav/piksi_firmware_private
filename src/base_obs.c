@@ -22,7 +22,6 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/sid_set.h>
 #include <libswiftnav/signal.h>
 
 #include "base_obs.h"
@@ -34,6 +33,7 @@
 #include "nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
+#include "pvt.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
@@ -42,6 +42,7 @@
 #include "simulator.h"
 #include "starling_calc_pvt.h"
 #include "timing.h"
+#include "utils/sid_set.h"
 
 extern bool disable_raim;
 

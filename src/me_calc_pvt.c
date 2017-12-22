@@ -18,32 +18,31 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/sid_set.h>
 #include <libswiftnav/troposphere.h>
 
 #include "me_calc_pvt.h"
-
-#include "manage.h"
-#include "nav_meas_calc.h"
-#include "nmea.h"
-#include "peripherals/leds.h"
-#include "position.h"
-#include "sbp.h"
-#include "sbp_utils.h"
 
 #include "cnav_msg_storage.h"
 #include "common_calc_pvt.h"
 #include "ephemeris.h"
 #include "main.h"
+#include "manage.h"
+#include "nav_meas_calc.h"
 #include "ndb/ndb.h"
+#include "nmea.h"
 #include "observation_biases_calibration.h"
+#include "peripherals/leds.h"
+#include "position.h"
+#include "pvt.h"
+#include "sbp.h"
+#include "sbp_utils.h"
 #include "settings.h"
 #include "shm.h"
 #include "simulator.h"
 #include "system_monitor.h"
 #include "timing.h"
+#include "utils/sid_set.h"
 
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER                               \
