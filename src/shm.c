@@ -14,11 +14,11 @@
 #include <ch.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg.h>
 #include <libswiftnav/shm.h>
 #include <signal.h>
 
 #include "cnav_msg_storage.h"
+#include "nav_msg/nav_msg.h"
 #include "ndb.h"
 #include "shm.h"
 

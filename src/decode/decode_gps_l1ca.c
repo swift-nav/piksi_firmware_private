@@ -11,12 +11,12 @@
  */
 
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg.h>
 
 #include "decode.h"
 #include "decode_common.h"
 #include "decode_gps_l1ca.h"
 #include "ephemeris.h"
+#include "nav_msg/nav_msg.h"
 #include "ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"

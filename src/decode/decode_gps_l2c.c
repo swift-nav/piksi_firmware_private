@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg.h> /* For BIT_POLARITY_... constants */
 #include <string.h>
 
 #include "cnav_msg_storage.h"
@@ -21,6 +20,7 @@
 #include "decode_common.h"
 #include "decode_gps_l2c.h"
 #include "ephemeris.h"
+#include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm.h"

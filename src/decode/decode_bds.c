@@ -14,12 +14,12 @@
 
 #include <libswiftnav/gnss_capabilities.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg_bds.h>
 
 #include "decode.h"
 #include "decode_bds.h"
 #include "decode_common.h"
 #include "ephemeris.h"
+#include "nav_msg/nav_msg_bds.h"
 #include "ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"

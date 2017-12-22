@@ -10,13 +10,15 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "decode_glo_l2of.h"
-#include "decode.h"
+#include <assert.h>
+#include <string.h>
 
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg_glo.h>
 
+#include "decode.h"
+#include "decode_common.h"
+#include "decode_glo_l2of.h"
 #include "ephemeris.h"
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -24,10 +26,6 @@
 #include "signal.h"
 #include "timing.h"
 #include "track.h"
-
-#include <assert.h>
-#include <string.h>
-#include "decode_common.h"
 
 /** GLO L2CA decoder data */
 typedef struct { nav_msg_glo_t nav_msg; } glo_l2of_decoder_data_t;
