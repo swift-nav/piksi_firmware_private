@@ -15,7 +15,6 @@
 #include <string.h>
 
 #include <libsbp/sbp.h>
-#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>

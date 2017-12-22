@@ -21,12 +21,12 @@
 #include <libsbp/observation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/almanac.h>
-#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
 
+#include "nav_msg/cnav_msg.h"
 #include "ndb.h"
 #include "observation_biases_calibration.h"
 

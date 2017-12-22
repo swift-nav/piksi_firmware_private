@@ -12,7 +12,6 @@
 
 #include <assert.h>
 #include <ch.h>
-#include <libswiftnav/cnav_msg.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_msg.h>

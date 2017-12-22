@@ -13,7 +13,8 @@
 #ifndef LIBSWIFTNAV_CNAV_MSG_STORAGE_H
 #define LIBSWIFTNAV_CNAV_MSG_STORAGE_H
 
-#include <libswiftnav/cnav_msg.h>
+#include "nav_msg/cnav_msg.h"
+
 #include <libswiftnav/signal.h>
 
 void cnav_msg_put(const cnav_msg_t *msg);

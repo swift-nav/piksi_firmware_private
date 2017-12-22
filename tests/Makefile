@@ -16,6 +16,7 @@ LIB_BUILDFOLDER = build_pm_test
 LIBSWIFTNAV_BUILDDIR=$(SWIFTNAV_ROOT)/libswiftnav/$(LIB_BUILDFOLDER)
 LIBSWIFTNAV_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/src
 LIBSWIFTNAV_COMMON_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/refactor/common
+LIBSWIFTNAV_FEC_SEARCHPATH=$(LIBSWIFTNAV_BUILDDIR)/libfec
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -114,7 +115,8 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/cn0_est \
           $(USER_SRC_DIR)/utils/filters \
           $(USER_SRC_DIR)/utils/track_loop \
-          $(USER_SRC_DIR)/soft_macq
+          $(USER_SRC_DIR)/soft_macq \
+          $(USER_SRC_DIR)/nav_msg
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -127,7 +129,8 @@ C_SRCS = fixed_fft_r2.c \
          prns.c \
          clock_filter.c \
          nav_meas_calc.c \
-         piksi_systime.c
+         piksi_systime.c \
+         cnav_msg.c
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
@@ -145,11 +148,13 @@ $(OBJDIR)/%.o: %.cc
 
 OBJS += $(OBJDIR)/gtest_main.a
 
-LIBS = -lswiftnav -lswiftnav-common -lpthread
+LIBS = -lswiftnav -lswiftnav-common -lpthread -lfec
 LIB_PATH = -L$(LIBSWIFTNAV_SEARCHPATH)
 LIB_PATH += -L$(LIBSWIFTNAV_COMMON_SEARCHPATH)
+LIB_PATH += -L$(LIBSWIFTNAV_FEC_SEARCHPATH)
 LIB_RPATH = -Wl,-rpath,$(LIBSWIFTNAV_SEARCHPATH)
 LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_COMMON_SEARCHPATH)
+LIB_RPATH += -Wl,-rpath,$(LIBSWIFTNAV_FEC_SEARCHPATH)
 
 run_tests : lsnp $(OBJDIR) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIB_PATH) $(LIBS) -o $@ $(LIB_RPATH)
