@@ -15,8 +15,6 @@
 #include <math.h>
 #include <string.h>
 
-#include <libswiftnav/gnss_capabilities.h>
-
 #include "bit_sync.h"
 
 /* Approx number of nav bit edges needed to accept bit sync for a

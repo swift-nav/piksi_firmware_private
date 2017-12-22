@@ -16,6 +16,7 @@
 #include "track_sid_db.h"
 
 /* Non-local headers */
+#include <gnss_capabilities.h>
 #include <manage.h>
 #include <platform_track.h>
 #include <signal.h>
@@ -23,7 +24,6 @@
 
 /* Libraries */
 #include <libswiftnav/constants.h>
-#include <libswiftnav/gnss_capabilities.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/signal.h>
 

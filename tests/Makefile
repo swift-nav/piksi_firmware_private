@@ -139,7 +139,8 @@ C_SRCS = fixed_fft_r2.c \
          cnav_msg.c \
          bit_sync.c \
          nav_msg_glo.c \
-         run_stats.c
+         run_stats.c \
+         l2c_capability.c
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
