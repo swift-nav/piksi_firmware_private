@@ -16,6 +16,8 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
+#include "nav_msg/nav_msg.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -56,6 +58,8 @@ bool bds_b2(const me_gnss_signal_t mesid);
 bool qzss_active(const me_gnss_signal_t mesid);
 
 bool gal_active(const me_gnss_signal_t mesid);
+
+void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl);
 
 #ifdef __cplusplus
 } /* extern "C" */

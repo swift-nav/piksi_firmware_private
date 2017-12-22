@@ -1,5 +1,5 @@
+#include "gnss_capabilities.h"
 #include "gtest/gtest.h"
-#include "l2c_capability.h"
 
 #include <stdio.h>
 #include <stdlib.h>

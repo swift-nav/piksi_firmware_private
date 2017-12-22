@@ -165,7 +165,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/pps.o \
         $(SWIFTNAV_ROOT)/src/decode.o \
         $(SWIFTNAV_ROOT)/src/gnss_capabilities.o \
-        $(SWIFTNAV_ROOT)/src/l2c_capability.o \
         $(SWIFTNAV_ROOT)/src/signal.o \
         $(SWIFTNAV_ROOT)/src/piksi_systime.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_internal.o \
