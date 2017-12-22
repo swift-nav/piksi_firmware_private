@@ -134,7 +134,8 @@ C_SRCS = fixed_fft_r2.c \
          piksi_systime.c \
          correlate.c \
          sv_visibility.c \
-         cnav_msg.c
+         cnav_msg.c \
+         nav_msg_glo.c
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))
