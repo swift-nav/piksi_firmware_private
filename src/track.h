@@ -17,7 +17,6 @@
 
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/run_stats.h>
 #include <libswiftnav/signal.h>
 
 #include "piksi_systime.h"
@@ -454,10 +453,6 @@ typedef struct {
   volatile tracking_channel_ctrl_info_t ctrl_info;
   /** Miscellaneous parameters */
   volatile tracking_channel_misc_info_t misc_info;
-  /** Carrier frequency products */
-  running_stats_t carr_freq_stats;
-  /** Pseudorange products */
-  running_stats_t pseudorange_stats;
 } tracker_channel_pub_data_t;
 
 /**

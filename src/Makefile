@@ -209,6 +209,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/correlate/correlate.o \
         $(SWIFTNAV_ROOT)/src/utils/sv_visibility/sv_visibility.o \
         $(SWIFTNAV_ROOT)/src/utils/bit_sync/bit_sync.o \
+        $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c
