@@ -18,8 +18,7 @@
 /** Running statistics initializaiton
  * \param p Running statistics state
  */
-void running_stats_init(running_stats_t *p)
-{
+void running_stats_init(running_stats_t *p) {
   p->n = 0;
   p->sum = 0;
   p->sum_of_squares = 0;
@@ -29,8 +28,7 @@ void running_stats_init(running_stats_t *p)
  * \param p Running statistics state
  * \param v New value
  */
-void running_stats_update(running_stats_t *p, double v)
-{
+void running_stats_update(running_stats_t *p, double v) {
   p->n++;
   if (0 == p->n) {
     /* Overflow just happened. Reset statistics by intializing it. */
@@ -47,8 +45,7 @@ void running_stats_update(running_stats_t *p, double v)
  * \param[out] mean Mean value
  * \param[out] std Standard deviation
  */
-void running_stats_get_products(running_stats_t *p, double *mean, double *std)
-{
+void running_stats_get_products(running_stats_t *p, double *mean, double *std) {
   if (NULL != mean) {
     if (0 == p->n) {
       *mean = 0;
@@ -67,4 +64,3 @@ void running_stats_get_products(running_stats_t *p, double *mean, double *std)
     }
   }
 }
-

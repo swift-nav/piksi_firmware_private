@@ -19,16 +19,14 @@
 
 #include "run_stats/run_stats.h"
 
-TEST(run_stats_test, test_run_stats)
-{
+TEST(run_stats_test, test_run_stats) {
   running_stats_t stat = {.n = 1, .sum = 1, .sum_of_squares = 1};
   double mean, std;
 
   running_stats_init(&stat);
   EXPECT_TRUE(stat.n == 0 && stat.sum == 0 && stat.sum_of_squares == 0);
 
-  for (int i = 0; i < 10; i++)
-  {
+  for (int i = 0; i < 10; i++) {
     running_stats_update(&stat, (double)i);
   }
   EXPECT_TRUE(stat.n == 10 && stat.sum == 45 && stat.sum_of_squares == 285);
@@ -37,13 +35,11 @@ TEST(run_stats_test, test_run_stats)
   EXPECT_TRUE((mean - 4.5) <= 1e-6 && (std - 3.027650) <= 1e-6);
 
   running_stats_init(&stat);
-  for (int i = 0; i > -10; i--)
-  {
+  for (int i = 0; i > -10; i--) {
     running_stats_update(&stat, (double)i);
   }
   EXPECT_TRUE(stat.n == 10 && stat.sum == -45 && stat.sum_of_squares == 285);
 
   running_stats_get_products(&stat, &mean, &std);
   EXPECT_TRUE((mean + 4.5) <= 1e-6 && (std - 3.027650) <= 1e-6);
-
 }

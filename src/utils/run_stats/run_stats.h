@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef LIBSWIFTNAV_INCLUDE_LIBSWIFTNAV_RUN_STATS_H_
-#define LIBSWIFTNAV_INCLUDE_LIBSWIFTNAV_RUN_STATS_H_
+#ifndef SWIFTNAV_RUN_STATS_H
+#define SWIFTNAV_RUN_STATS_H
 
 #include <libswiftnav/common.h>
 
@@ -31,7 +31,7 @@ void running_stats_update(running_stats_t *p, double v);
 void running_stats_get_products(running_stats_t *p, double *mean, double *std);
 
 #ifdef __cplusplus
-}      /* extern "C" */
+} /* extern "C" */
 #endif /* __cplusplus */
 
-#endif /* LIBSWIFTNAV_INCLUDE_LIBSWIFTNAV_RUN_STATS_H_ */
+#endif /* SWIFTNAV_RUN_STATS_H */
