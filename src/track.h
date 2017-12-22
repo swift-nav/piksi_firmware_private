@@ -15,7 +15,6 @@
 
 #include <libsbp/tracking.h>
 
-#include <libswiftnav/bit_sync.h>
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/run_stats.h>
@@ -28,6 +27,7 @@
 #include <platform_signal.h>
 #include <settings.h>
 #include "alias_detector/alias_detector.h"
+#include "bit_sync/bit_sync.h"
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"

@@ -118,7 +118,8 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/soft_macq \
           $(USER_SRC_DIR)/utils/correlate \
           $(USER_SRC_DIR)/utils/sv_visibility \
-          $(USER_SRC_DIR)/nav_msg
+          $(USER_SRC_DIR)/nav_msg \
+          $(USER_SRC_DIR)/utils/bit_sync \
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -135,6 +136,7 @@ C_SRCS = fixed_fft_r2.c \
          correlate.c \
          sv_visibility.c \
          cnav_msg.c \
+         bit_sync.c \
          nav_msg_glo.c
 
 # Test source files
