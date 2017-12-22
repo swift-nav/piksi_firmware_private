@@ -12,8 +12,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <libswiftnav/logging.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/logging.h>
 
 #include "gtest/gtest.h"
 
