@@ -22,9 +22,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/sid_set.h>
 #include <libswiftnav/troposphere.h>
 
 #include "base_obs.h"
@@ -39,6 +37,7 @@
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "position.h"
+#include "pvt.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
@@ -48,6 +47,7 @@
 #include "starling_calc_pvt.h"
 #include "system_monitor.h"
 #include "timing.h"
+#include "utils/sid_set.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
