@@ -18,9 +18,10 @@
 #include <libswiftnav/bits.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/ionosphere.h>
-#include <libswiftnav/l2c_capability.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/shm.h>
+
+#include <gnss_capabilities.h>
 
 #include "nav_msg/nav_msg.h"
 
