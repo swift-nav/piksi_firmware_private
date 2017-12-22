@@ -34,7 +34,7 @@
 #include "main.h"
 #include "manage.h"
 #include "me_calc_pvt.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "nmea.h"
 #include "peripherals/leds.h"
 #include "piksi_systime.h"

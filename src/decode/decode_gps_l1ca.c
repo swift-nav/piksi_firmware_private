@@ -17,7 +17,7 @@
 #include "decode_gps_l1ca.h"
 #include "ephemeris.h"
 #include "nav_msg/nav_msg.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm.h"

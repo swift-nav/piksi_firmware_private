@@ -27,7 +27,6 @@
 #include <libswiftnav/signal.h>
 
 #include "nav_msg/cnav_msg.h"
-#include "ndb.h"
 #include "observation_biases_calibration.h"
 
 typedef struct {

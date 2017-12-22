@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <board/nap/nap_common.h>
-#include <ndb.h>
+#include "ndb/ndb.h"
 #include <shm.h>
 #include <timing.h>
 #include "manage.h"

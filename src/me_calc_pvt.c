@@ -37,7 +37,7 @@
 #include "common_calc_pvt.h"
 #include "ephemeris.h"
 #include "main.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "observation_biases_calibration.h"
 #include "settings.h"
 #include "shm.h"

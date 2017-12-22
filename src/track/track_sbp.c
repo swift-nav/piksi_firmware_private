@@ -20,6 +20,7 @@
 #include "board/nap/track_channel.h"
 #include "board/v3/nap/nap_constants.h"
 #include "board/v3/nap/nap_hw.h"
+#include "ndb/ndb.h"
 #include "shm.h"
 #include "track.h"
 #include "track_sbp.h"
