@@ -11,9 +11,9 @@
  */
 
 /* Local headers */
+#include "track_gps_l2c.h"
 #include "ndb/ndb.h"
 #include "track_cn0.h"
-#include "track_gps_l2c.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */

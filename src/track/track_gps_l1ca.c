@@ -11,9 +11,9 @@
  */
 
 /* Local headers */
+#include "track_gps_l1ca.h"
 #include "filters/filter_common.h"
 #include "track_cn0.h"
-#include "track_gps_l1ca.h"
 #include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
 #include "track_sid_db.h"
 

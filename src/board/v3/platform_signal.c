@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
+#include "platform_signal.h"
 #include "decode/decode_bds.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
@@ -19,7 +19,6 @@
 #include "decode/decode_qzss_l1ca.h"
 #include "decode/decode_sbas_l1.h"
 #include "ndb/ndb.h"
-#include "platform_signal.h"
 #include "track/track_bds2_b11.h"
 #include "track/track_bds2_b2.h"
 #include "track/track_glo_l1of.h"
