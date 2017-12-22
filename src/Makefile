@@ -203,6 +203,8 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_bw2.o \
+        $(SWIFTNAV_ROOT)/src/utils/correlate/correlate.o \
+        $(SWIFTNAV_ROOT)/src/utils/sv_visibility/sv_visibility.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
         main.c

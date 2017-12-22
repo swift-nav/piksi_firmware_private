@@ -10,12 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <board/nap/nap_common.h>
-#include <libswiftnav/sv_visibility.h>
 #include <ndb.h>
 #include <shm.h>
 #include <timing.h>
 #include "manage.h"
 #include "search_manager_api.h"
+
+#include "sv_visibility/sv_visibility.h"
 
 /* Ephemerides fit interval for the purpose of (re-)acq, two weeks, [s] */
 #define SM_FIT_INTERVAL_VALID (WEEK_SECS * 2)
