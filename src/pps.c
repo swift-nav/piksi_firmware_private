@@ -27,6 +27,8 @@
 #define PPS_THREAD_STACK (1 * 1024)
 #define PPS_THREAD_PRIORITY (NORMALPRIO + 15)
 
+#define PPS_FW_OFFSET_S 570e-9
+
 /** \defgroup pps Pulse-per-second (PPS)
  * Generate a pulse-per-second in alignment with GPS time.
  * \{ */
@@ -48,10 +50,10 @@ static void pps_thread(void *arg) {
 
   while (TRUE) {
     if (get_time_quality() >= TIME_PROPAGATED && !nap_pps_armed()) {
-      gps_time_t t = get_current_gps_time();
+      gps_time_t t = get_current_time();
 
       t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
-              ((double)pps_offset_microseconds / 1.0e6);
+              ((double)pps_offset_microseconds / 1.0e6) + PPS_FW_OFFSET_S;
 
       u64 next = round(gpstime2napcount(&t));
       nap_pps((u32)next);
