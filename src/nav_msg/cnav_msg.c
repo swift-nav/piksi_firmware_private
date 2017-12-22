@@ -11,8 +11,7 @@
  */
 
 #include "nav_msg/cnav_msg.h"
-
-#include <libswiftnav/nav_msg.h> /* For BIT_POLARITY_... constants */
+#include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 
 #include <limits.h>
 #include <string.h>

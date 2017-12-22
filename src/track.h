@@ -18,7 +18,6 @@
 #include <libswiftnav/bit_sync.h>
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
-#include <libswiftnav/nav_msg.h>
 #include <libswiftnav/run_stats.h>
 #include <libswiftnav/signal.h>
 
@@ -32,6 +31,7 @@
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"
+#include "nav_msg/nav_msg.h"
 #include "track/track_cn0.h"
 #include "track_loop/trk_loop_common.h"
 

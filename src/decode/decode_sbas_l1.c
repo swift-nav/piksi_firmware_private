@@ -14,9 +14,9 @@
 #include "decode.h"
 
 #include <libswiftnav/logging.h>
-#include <libswiftnav/nav_msg.h>
 
 #include "ephemeris.h"
+#include "nav_msg/nav_msg.h"
 #include "ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
