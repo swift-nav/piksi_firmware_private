@@ -19,7 +19,6 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
-#include <ndb.h>
 #include <piksi_systime.h>
 #include <sbp.h>
 #include <sbp_utils.h>
@@ -27,6 +26,7 @@
 #include <signal.h>
 #include <timing.h>
 
+#include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 

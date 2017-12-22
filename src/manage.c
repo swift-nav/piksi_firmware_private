@@ -32,7 +32,7 @@
 #include "ephemeris.h"
 #include "main.h"
 #include "manage.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "nmea.h"
 #include "piksi_systime.h"
 #include "position.h"

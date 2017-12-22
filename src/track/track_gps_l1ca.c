@@ -19,7 +19,6 @@
 
 /* Non-local headers */
 #include <manage.h>
-#include <ndb.h>
 #include <platform_track.h>
 #include <signal.h>
 #include <track.h>

@@ -16,7 +16,7 @@
 #include <libswiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "position.h"
 #include "timing.h"
 

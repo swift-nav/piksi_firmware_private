@@ -23,7 +23,7 @@
 #include "manage.h"
 #include "nap/nap_constants.h"
 #include "nav_meas_calc.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "position.h"
 #include "sbp.h"
 #include "sbp_utils.h"

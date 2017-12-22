@@ -19,7 +19,7 @@
 
 #include "cnav_msg_storage.h"
 #include "nav_msg/nav_msg.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "shm.h"
 
 static MUTEX_DECL(shm_data_access);

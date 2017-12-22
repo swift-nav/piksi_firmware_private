@@ -12,7 +12,7 @@
 
 #include <assert.h>
 #include <dum.h>
-#include <ndb.h>
+#include <ndb/ndb.h>
 #include <timing.h>
 #include "manage.h"
 #include "search_manager_api.h"

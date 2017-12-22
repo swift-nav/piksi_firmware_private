@@ -18,7 +18,7 @@
 
 #include "decode_common.h"
 #include "ephemeris.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "piksi_systime.h"
 #include "timing.h"
 #include "track.h"

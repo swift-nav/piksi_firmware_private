@@ -23,6 +23,7 @@
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 
+#include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "timing.h"

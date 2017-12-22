@@ -20,7 +20,7 @@
 #include <string.h>
 
 #include "ephemeris.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "signal.h"

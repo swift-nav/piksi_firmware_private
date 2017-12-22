@@ -13,7 +13,7 @@
 
 #include "dum.h"
 #include "manage.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "signal.h"
 #include "timing.h"
 

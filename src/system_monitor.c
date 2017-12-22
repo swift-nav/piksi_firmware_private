@@ -26,7 +26,7 @@
 #include "board/nap/nap_common.h"
 #include "main.h"
 #include "manage.h"
-#include "ndb.h"
+#include "ndb/ndb.h"
 #include "nt1065.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
