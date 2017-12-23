@@ -29,8 +29,8 @@ typedef struct {
   u16 me_constellation_start_index;
   u16 global_start_index;
   u16 me_global_start_index;
-} code_table_element_t;
-static code_table_element_t code_table[CODE_COUNT];
+} code_info_table_element_t;
+static code_info_table_element_t code_info_table[CODE_COUNT];
 
 /** Table of sv constellation indexes. */
 typedef struct {
@@ -92,9 +92,9 @@ void signal_init(void) {
 
   for (code_t code = 0; code < CODE_COUNT; code++) {
     constellation_t constellation = code_to_constellation(code);
-    code_table[code].constellation_start_index =
+    code_info_table[code].constellation_start_index =
         constellation_start_indexes[constellation];
-    code_table[code].me_constellation_start_index =
+    code_info_table[code].me_constellation_start_index =
         me_constellation_start_indexes[constellation];
 
     constellation_start_indexes[constellation] += code_signal_counts[code];
@@ -107,8 +107,8 @@ void signal_init(void) {
   u16 me_global_start_index = 0;
 
   for (code_t code = 0; code < CODE_COUNT; code++) {
-    code_table[code].global_start_index = global_start_index;
-    code_table[code].me_global_start_index = me_global_start_index;
+    code_info_table[code].global_start_index = global_start_index;
+    code_info_table[code].me_global_start_index = me_global_start_index;
 
     global_start_index += code_signal_counts[code];
     me_global_start_index += me_code_signal_counts[code];
@@ -127,9 +127,9 @@ void signal_init(void) {
 gnss_signal_t sid_from_global_index(u16 global_index) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
     if (global_index <
-        code_table[code].global_start_index + code_signal_counts[code]) {
+        code_info_table[code].global_start_index + code_signal_counts[code]) {
       return sid_from_code_index(
-          code, global_index - code_table[code].global_start_index);
+          code, global_index - code_info_table[code].global_start_index);
     }
   }
   log_error("global_index %d is outside range", global_index);
@@ -149,10 +149,10 @@ gnss_signal_t sid_from_global_index(u16 global_index) {
  */
 me_gnss_signal_t mesid_from_global_index(u16 me_global_index) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
-    if (me_global_index <
-        code_table[code].me_global_start_index + me_code_signal_counts[code]) {
+    if (me_global_index < code_info_table[code].me_global_start_index +
+                              me_code_signal_counts[code]) {
       return mesid_from_code_index(
-          code, me_global_index - code_table[code].me_global_start_index);
+          code, me_global_index - code_info_table[code].me_global_start_index);
     }
   }
 
@@ -175,11 +175,13 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
                                            u16 constellation_index) {
   for (code_t code = 0; code < CODE_COUNT; code++) {
     if (code_to_constellation(code) == constellation) {
-      if (constellation_index < code_table[code].constellation_start_index +
-                                    code_signal_counts[code]) {
+      if (constellation_index <
+          code_info_table[code].constellation_start_index +
+              code_signal_counts[code]) {
         return sid_from_code_index(
             code,
-            constellation_index - code_table[code].constellation_start_index);
+            constellation_index -
+                code_info_table[code].constellation_start_index);
       }
     }
   }
@@ -199,7 +201,7 @@ gnss_signal_t sid_from_constellation_index(constellation_t constellation,
  */
 u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
   assert(code_supported(mesid.code));
-  return code_table[mesid.code].me_global_start_index +
+  return code_info_table[mesid.code].me_global_start_index +
          mesid_to_code_index(mesid);
 }
 
@@ -215,7 +217,7 @@ u16 mesid_to_global_index(const me_gnss_signal_t mesid) {
  */
 u16 sid_to_constellation_index(gnss_signal_t sid) {
   assert(code_supported(sid.code));
-  return code_table[sid.code].constellation_start_index +
+  return code_info_table[sid.code].constellation_start_index +
          sid_to_code_index(sid);
 }
 
