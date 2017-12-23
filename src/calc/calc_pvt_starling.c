@@ -972,7 +972,9 @@ void process_matched_obs(const obss_t *rover_channel_meass,
         reference_obss->nm,
         reference_obss->pos_ecef);
 
-    if (update_rov_obs == PVT_ENGINE_SUCCESS &&
+    if ((update_rov_obs == PVT_ENGINE_SUCCESS ||
+         update_rov_obs == PVT_ENGINE_NO_OBS ||
+         update_rov_obs == PVT_ENGINE_INSUFFICIENT_OBS) &&
         update_ref_obs == PVT_ENGINE_SUCCESS) {
       update_filter_ret = update_filter(time_matched_filter_manager);
     }
