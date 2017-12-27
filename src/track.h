@@ -824,9 +824,6 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
 void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
-void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
-                            bool xcorr_suspect,
-                            bool sensitivity_mode);
 
 void track_setup(void);
 

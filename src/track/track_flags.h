@@ -76,6 +76,9 @@ extern "C" {
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 void tracker_set_raim_flag(const gnss_signal_t sid);
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid);
+void tracker_set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
+                                    bool xcorr_suspect,
+                                    bool sensitivity_mode);
 
 bool tracker_get_prn_fail_flag(tracker_channel_t *tracker_channel);
 bool tracker_get_xcorr_flag(tracker_channel_t *tracker_channel);

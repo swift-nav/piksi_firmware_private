@@ -81,6 +81,53 @@ void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
 }
 
 /**
+ * Sets and clears the L1 & L2 xcorr_suspect flag.
+ *
+ * This function checks if the xcorr_suspect status has changed for the
+ * signal,
+ * and sets / clears the flag respectively.
+ *
+ * \param         tracker_channel Tracker channel data
+ * \param[in]     xcorr_suspect     Flag indicating if signal is xcorr
+ * suspect.
+ * \param[in]     sensitivity_mode  Flag indicating sensitivity mode.
+ *
+ * \return None
+ */
+void tracker_set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
+                                    bool xcorr_suspect,
+                                    bool sensitivity_mode) {
+  if (CODE_GPS_L1CA == tracker_channel->mesid.code) {
+    gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
+    if ((data->xcorr_flag) == xcorr_suspect) {
+      return;
+    }
+    data->xcorr_flag = xcorr_suspect;
+  } else {
+    gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
+    if ((data->xcorr_flag) == xcorr_suspect) {
+      return;
+    }
+    data->xcorr_flag = xcorr_suspect;
+  }
+
+  if (xcorr_suspect) {
+    tracker_channel->flags |= TRACKER_FLAG_XCORR_SUSPECT;
+    if (!sensitivity_mode) {
+      log_debug_mesid(tracker_channel->mesid,
+                      "setting cross-correlation suspect flag");
+    }
+  } else {
+    tracker_channel->flags &= ~TRACKER_FLAG_XCORR_SUSPECT;
+    if (!sensitivity_mode) {
+      log_debug_mesid(tracker_channel->mesid,
+                      "clearing cross-correlation suspect flag");
+    }
+  }
+  tracker_channel->xcorr_change_count = tracker_channel->update_count;
+}
+
+/**
  * The function checks if PRN fail (decoded prn from L2C data stream
  * is not correspond to SVID) flag set or not.
  * Called from Tracking task.
