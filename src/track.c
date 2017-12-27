@@ -89,8 +89,6 @@ static state_t tracker_channel_state_get(
 static void interface_function(tracker_channel_t *tracker_channel,
                                tracker_interface_function_t *func);
 static void event(tracker_channel_t *d, event_t event);
-static void tracker_channel_lock(tracker_channel_t *tracker_channel);
-static void tracker_channel_unlock(tracker_channel_t *tracker_channel);
 static void error_flags_clear(tracker_channel_t *tracker_channel);
 static void error_flags_add(tracker_channel_t *tracker_channel,
                             error_flag_t error_flag);
@@ -363,7 +361,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
   tracking_channel_freq_info_t freq_info;
   tracking_channel_ctrl_info_t ctrl_params;
 
-  tracker_channel_lock(tracker_channel);
+  tracker_lock(tracker_channel);
   {
     tracker_cleanup(tracker_channel);
 
@@ -413,7 +411,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracking_channel_compute_values(
         tracker_channel, &info, &time_info, &freq_info, &ctrl_params, NULL);
   }
-  tracker_channel_unlock(tracker_channel);
+  tracker_unlock(tracker_channel);
 
   nap_track_init(tracker_channel->nap_channel,
                  mesid,
@@ -440,74 +438,6 @@ bool tracker_channel_disable(tracker_channel_id_t id) {
   tracker_channel_t *tracker_channel = tracker_channel_get(id);
   event(tracker_channel, EVENT_DISABLE_REQUEST);
   return true;
-}
-
-/**
- * The function sets or clears PRN fail flag.
- * Called from Decoder task.
- * \param[in] mesid  ME SV ID
- * \param[in] val prn fail flag value. TRUE if decoded prn from L2C data stream
- *            is not correspond to SVID, otherwise FALSE
- */
-void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid,
-                                        bool val) {
-  /* Find SV ID for L1CA and L2CM and set the flag  */
-  for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
-    tracker_channel_t *tracker_channel = tracker_channel_get(id);
-    tracker_channel_lock(tracker_channel);
-    if (IS_GPS(tracker_channel->mesid) &&
-        tracker_channel->mesid.sat == mesid.sat) {
-      tracker_channel->prn_check_fail = val;
-    }
-    tracker_channel_unlock(tracker_channel);
-  }
-}
-
-/**
- * Sets RAIM exclusion flag to a channel with a given signal identifier
- *
- * \param[in] sid signal identifier for channel to set
- *
- * \return None
- */
-void tracking_channel_set_raim_flag(const gnss_signal_t sid) {
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    /* Find the corresponding channel and flag it. (Note that searching by sid
-     * instead of mesid is a bit tricky.. */
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
-    tracker_channel_lock(tracker_channel);
-    /* Is this channel's mesid + orbit slot combination valid? */
-    bool can_compare = mesid_valid(tracker_channel->mesid);
-    if (IS_GLO(tracker_channel->mesid)) {
-      can_compare &= glo_slot_id_is_valid(tracker_channel->glo_orbit_slot);
-    }
-    if (can_compare && sid_is_equal(mesid2sid(tracker_channel->mesid,
-                                              tracker_channel->glo_orbit_slot),
-                                    sid)) {
-      tracker_channel->flags |= TRACKER_FLAG_RAIM_EXCLUSION;
-    }
-    tracker_channel_unlock(tracker_channel);
-  }
-}
-
-/**
- * Sets cross-correlation flag to a channel with a given ME signal identifier
- *
- * \param[in] mesid ME signal identifier for channel to set cross-correlation
- *                  flag.
- *
- * \return None
- */
-void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid) {
-  for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
-    /* Find matching tracker and set the flag  */
-    tracker_channel_t *tracker_channel = tracker_channel_get(id);
-    tracker_channel_lock(tracker_channel);
-    if (mesid_is_equal(tracker_channel->mesid, mesid)) {
-      tracker_channel->xcorr_flag = true;
-    }
-    tracker_channel_unlock(tracker_channel);
-  }
 }
 
 /**
@@ -1107,7 +1037,7 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
         tracking_channel_ctrl_info_t ctrl_params;
         bool reset_cpo;
 
-        tracker_channel_lock(tracker_channel);
+        tracker_lock(tracker_channel);
         {
           interface_function(tracker_channel,
                              tracker_channel->interface->update);
@@ -1120,7 +1050,7 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
                                           &ctrl_params,
                                           &reset_cpo);
         }
-        tracker_channel_unlock(tracker_channel);
+        tracker_unlock(tracker_channel);
 
         /* Update channel public data outside of channel lock */
         tracking_channel_update_values(tracker_channel,
@@ -1134,14 +1064,14 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
 
     case STATE_DISABLE_REQUESTED: {
       nap_channel_disable(tracker_channel);
-      tracker_channel_lock(tracker_channel);
+      tracker_lock(tracker_channel);
       {
         interface_function(tracker_channel,
                            tracker_channel->interface->disable);
         piksi_systime_get(&tracker_channel->disable_time);
         event(tracker_channel, EVENT_DISABLE);
       }
-      tracker_channel_unlock(tracker_channel);
+      tracker_unlock(tracker_channel);
     } break;
 
     case STATE_DISABLE_WAIT: {
@@ -1335,7 +1265,7 @@ static void event(tracker_channel_t *tracker_channel, event_t event) {
  *
  * \param tracker_channel   Tracker channel to use.
  */
-static void tracker_channel_lock(tracker_channel_t *tracker_channel) {
+void tracker_lock(tracker_channel_t *tracker_channel) {
   chMtxLock(&tracker_channel->mutex);
 }
 
@@ -1343,7 +1273,7 @@ static void tracker_channel_lock(tracker_channel_t *tracker_channel) {
  *
  * \param tracker_channel   Tracker channel to use.
  */
-static void tracker_channel_unlock(tracker_channel_t *tracker_channel) {
+void tracker_unlock(tracker_channel_t *tracker_channel) {
   chMtxUnlock(&tracker_channel->mutex);
 }
 

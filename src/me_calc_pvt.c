@@ -374,7 +374,7 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   if (fabs(nav_meas->pseudorange - current_fix->clock_offset * GPS_C -
            vector_norm(3, geometric_range)) > RAIM_DROP_CHANNEL_THRESHOLD_M) {
     /* mark channel for dropping */
-    tracking_channel_set_raim_flag(nav_meas->sid);
+    tracker_set_raim_flag(nav_meas->sid);
     /* clear the ephemeris for this signal */
     ndb_ephemeris_erase(nav_meas->sid);
   }

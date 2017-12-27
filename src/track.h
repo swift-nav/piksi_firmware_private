@@ -21,7 +21,6 @@
 
 #include "piksi_systime.h"
 #include "shm.h"
-#include "track_flags.h"
 
 #include <platform_signal.h>
 #include <settings.h>
@@ -825,9 +824,6 @@ void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
 void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
-void set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
-                            bool xcorr_suspect,
-                            bool sensitivity_mode);
 
 void track_setup(void);
 
@@ -900,10 +896,7 @@ void tracking_channel_data_sync(tracker_channel_id_t id,
                                 nav_data_sync_t *from_decoder);
 void tracking_channel_glo_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder);
-void tracking_channel_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
-void tracking_channel_set_raim_flag(const gnss_signal_t sid);
 tracker_channel_t *tracker_channel_get(tracker_channel_id_t id);
-void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);
 
 void track_internal_setup(void);
 
@@ -944,12 +937,14 @@ u16 tracker_glo_orbit_slot_get(tracker_channel_t *tracker_channel);
 glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel);
 void tracker_correlations_send(tracker_channel_t *tracker_channel,
                                const corr_t *cs);
-bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel);
-bool tracker_check_xcorr_flag(tracker_channel_t *tracker_channel);
+
 update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
                                  const update_count_t *val);
 void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
 void tracker_cleanup(tracker_channel_t *tracker_channel);
 
 void tracker_tow_cache(tracker_channel_t *tracker_channel);
+
+void tracker_lock(tracker_channel_t *tracker_channel);
+void tracker_unlock(tracker_channel_t *tracker_channel);
 #endif

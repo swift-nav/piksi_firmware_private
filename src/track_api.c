@@ -11,6 +11,7 @@
  */
 
 #include "track.h"
+#include "track/track_flags.h"
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
@@ -424,29 +425,4 @@ void tracker_correlations_send(tracker_channel_t *tracker_channel,
     }
     sbp_send_msg(SBP_MSG_TRACKING_IQ, sizeof(msg), (u8 *)&msg);
   }
-}
-
-/**
- * The function checks if PRN fail (decoded prn from L2C data stream
- * is not correspond to SVID) flag set or not.
- * Called from Tracking task.
- * \param[in] tracker_channel Tracker channel data
- * \return    TRUE if PRN fail flag is set, otherwise FAIL
- */
-bool tracker_check_prn_fail_flag(tracker_channel_t *tracker_channel) {
-  return tracker_channel->prn_check_fail;
-}
-
-/**
- * Checks if the tracker has cross-correlation flag set.
- *
- * Tracker can use this method to check if a cross-correlation flag is set by
- * external thread.
- *
- * \param[in] tracker_channel Tracker channel data
- *
- * \return Cross-correlation flag value-
- */
-bool tracker_check_xcorr_flag(tracker_channel_t *tracker_channel) {
-  return tracker_channel->xcorr_flag;
 }

@@ -26,8 +26,8 @@
 #include "signal.h"
 #include "timing.h"
 #include "track.h"
-
-#include <track/track_sid_db.h>
+#include "track/track_flags.h"
+#include "track/track_sid_db.h"
 
 /** Maximum distance for ephemeris-almanac cross-correlation tests [m] */
 #define XCORR_MAX_EA_DISTANCE_M 50000.0f
@@ -284,7 +284,7 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
         /* Stored SV is ghost one, so remove it from NDB */
         delete_ghost_ephe(test_e.sid);
         /* and immediately drop tracked ghost signal */
-        tracking_channel_set_xcorr_flag(tc_test->mesid);
+        tracker_set_xcorr_flag(tc_test->mesid);
         return false; /* exit and notify that new ephemeris from real SV and
                          it can be stored in NDB */
       } else {

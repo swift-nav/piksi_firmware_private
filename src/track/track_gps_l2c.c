@@ -290,7 +290,7 @@ static void check_L1_xcorr_flag(tracker_channel_t *tracker_channel,
 static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
-  if (tracker_check_xcorr_flag(tracker_channel)) {
+  if (tracker_get_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
     tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
     return;
@@ -319,9 +319,9 @@ static void update_l2_xcorr_from_l1(tracker_channel_t *tracker_channel) {
   /* Increment counter or Make decision if L1 is xcorr flagged */
   check_L1_xcorr_flag(tracker_channel, xcorr_flag, &xcorr_suspect);
 
-  bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
+  bool prn_check_fail = tracker_get_prn_fail_flag(tracker_channel);
 
-  set_xcorr_suspect_flag(
+  tracker_set_xcorr_suspect_flag(
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 

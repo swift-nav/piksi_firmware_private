@@ -11,6 +11,7 @@
  */
 
 #include "track.h"
+#include "track/track_flags.h"
 
 #include <libswiftnav/constants.h>
 

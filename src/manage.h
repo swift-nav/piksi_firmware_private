@@ -21,7 +21,7 @@
 #include <libswiftnav/signal.h>
 
 #include "soft_macq/soft_macq_main.h"
-#include "track_flags.h"
+#include "track/track_flags.h"
 
 /** \addtogroup manage
  * \{ */
