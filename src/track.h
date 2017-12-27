@@ -30,21 +30,12 @@
 #include "board/nap/nap_common.h"
 #include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"
+#include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_msg/nav_msg.h"
 #include "track/track_cn0.h"
 #include "track_loop/trk_loop_common.h"
 
-#define NAV_BIT_FIFO_SIZE                            \
-  64 /**< Size of nav bit FIFO. Must be a power of 2 \
-      */
-
 #define TP_DLL_PLL_MEAS_DIM 5
-
-#define NAV_BIT_FIFO_INDEX_MASK ((NAV_BIT_FIFO_SIZE)-1)
-#define NAV_BIT_FIFO_INDEX_DIFF(write_index, read_index) \
-  ((nav_bit_fifo_index_t)((write_index) - (read_index)))
-#define NAV_BIT_FIFO_LENGTH(p_fifo) \
-  (NAV_BIT_FIFO_INDEX_DIFF((p_fifo)->write_index, (p_fifo)->read_index))
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
@@ -187,19 +178,6 @@ typedef enum {
   TP_CTRL_FLL1, /**< 1st order FLL */
   TP_CTRL_FLL2, /**< 2nd order FLL */
 } tp_ctrl_e;
-
-typedef struct {
-  s8 soft_bit;
-  bool sensitivity_mode;
-} nav_bit_fifo_element_t;
-
-typedef u8 nav_bit_fifo_index_t;
-
-typedef struct {
-  nav_bit_fifo_index_t read_index;
-  nav_bit_fifo_index_t write_index;
-  nav_bit_fifo_element_t elements[NAV_BIT_FIFO_SIZE];
-} nav_bit_fifo_t;
 
 typedef enum {
   SYNC_POL = (1 << 0),                         /**< Sync data polarity */
@@ -958,11 +936,6 @@ void track_internal_setup(void);
 
 tracker_interface_list_element_t **tracker_interface_list_ptr_get(void);
 
-void nav_bit_fifo_init(nav_bit_fifo_t *fifo);
-bool nav_bit_fifo_full(nav_bit_fifo_t *fifo);
-bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
-                        const nav_bit_fifo_element_t *element);
-bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element);
 void nav_data_sync_init(nav_data_sync_t *sync);
 bool nav_data_sync_set(nav_data_sync_t *to_tracker,
                        const nav_data_sync_t *from_decoder);
