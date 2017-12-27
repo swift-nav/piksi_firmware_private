@@ -31,6 +31,7 @@
 #include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
+#include "nav_data_sync/nav_data_sync.h"
 #include "nav_msg/nav_msg.h"
 #include "track/track_cn0.h"
 #include "track_loop/trk_loop_common.h"
@@ -178,24 +179,6 @@ typedef enum {
   TP_CTRL_FLL1, /**< 1st order FLL */
   TP_CTRL_FLL2, /**< 2nd order FLL */
 } tp_ctrl_e;
-
-typedef enum {
-  SYNC_POL = (1 << 0),                         /**< Sync data polarity */
-  SYNC_TOW = (1 << 1),                         /**< Sync TOW */
-  SYNC_EPH = (1 << 2),                         /**< Sync ephemeris parameters */
-  SYNC_ALL = (SYNC_POL | SYNC_TOW | SYNC_EPH), /**< Sync all */
-} decode_sync_flags_t;
-
-typedef struct {
-  s32 TOW_ms;
-  s32 TOW_residual_ns; /**< Residual to TOW_ms [ns] */
-  s8 bit_polarity;
-  u16 glo_orbit_slot;
-  nav_bit_fifo_index_t read_index;
-  glo_health_t glo_health;
-  bool valid;
-  decode_sync_flags_t sync_flags;
-} nav_data_sync_t;
 
 struct profile_vars {
   u8 index;
@@ -935,13 +918,6 @@ void tracking_channel_set_xcorr_flag(const me_gnss_signal_t mesid);
 void track_internal_setup(void);
 
 tracker_interface_list_element_t **tracker_interface_list_ptr_get(void);
-
-void nav_data_sync_init(nav_data_sync_t *sync);
-bool nav_data_sync_set(nav_data_sync_t *to_tracker,
-                       const nav_data_sync_t *from_decoder);
-bool nav_data_sync_get(nav_data_sync_t *to_tracker,
-                       nav_data_sync_t *from_decoder);
-s8 nav_bit_quantize(s32 bit_integrate);
 
 u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
 

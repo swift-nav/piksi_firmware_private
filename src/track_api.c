@@ -224,6 +224,20 @@ void tracker_bit_sync_set(tracker_channel_t *tracker_channel,
   bit_sync_set(bit_sync, bit_phase_ref);
 }
 
+/** Compress a 32 bit integration value down to 8 bits.
+ *
+ * \param bit_integrate   Signed bit integration value.
+ */
+static s8 nav_bit_quantize(s32 bit_integrate) {
+  //  0 through  2^24 - 1 ->  0 = weakest positive bit
+  // -1 through -2^24     -> -1 = weakest negative bit
+
+  if (bit_integrate >= 0)
+    return bit_integrate / (1 << 24);
+  else
+    return ((bit_integrate + 1) / (1 << 24)) - 1;
+}
+
 /** Update bit sync and output navigation message bits for a tracker channel.
  *
  * \param[in] tracker_channel Tracker channel data
