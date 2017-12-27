@@ -13,8 +13,8 @@
 #ifndef SWIFTNAV_NAV_DATA_SYNC_H
 #define SWIFTNAV_NAV_DATA_SYNC_H
 
-#include "nav_bit_fifo/nav_bit_fifo.h"
 #include "main.h"
+#include "nav_bit_fifo/nav_bit_fifo.h"
 #include "shm.h"
 
 typedef enum {
