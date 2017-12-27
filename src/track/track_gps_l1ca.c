@@ -365,9 +365,8 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel) {
 
   bool prn_check_fail = tracker_get_prn_fail_flag(tracker_channel);
 
-  tracker_set_xcorr_suspect_flag(tracker_channel,
-                                 xcorr_suspect | prn_check_fail,
-                                 sensitivity_mode);
+  tracker_set_xcorr_suspect_flag(
+      tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
 /**
@@ -420,9 +419,8 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel) {
 
   bool prn_check_fail = tracker_get_prn_fail_flag(tracker_channel);
 
-  tracker_set_xcorr_suspect_flag(tracker_channel,
-                                 xcorr_suspect | prn_check_fail,
-                                 sensitivity_mode);
+  tracker_set_xcorr_suspect_flag(
+      tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
 static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
