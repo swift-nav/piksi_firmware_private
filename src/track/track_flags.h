@@ -13,6 +13,10 @@
 #ifndef TRACK_FLAGS_H
 #define TRACK_FLAGS_H
 
+#include <libswiftnav/signal.h>
+
+#include "track.h"
+
 /** Tracker flag: tracker is in confirmed mode */
 #define TRACKER_FLAG_ACTIVE (1 << 0)
 #define TRACKER_FLAG_CONFIRMED (1 << 1)
@@ -64,5 +68,20 @@
 #define TRACKER_FLAG_RAIM_EXCLUSION (1 << 28)
 
 #define TRACKER_FLAG_SENSITIVITY_MODE (1 << 29)
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
+void tracker_set_raim_flag(const gnss_signal_t sid);
+void tracker_set_xcorr_flag(const me_gnss_signal_t mesid);
+
+bool tracker_get_prn_fail_flag(tracker_channel_t *tracker_channel);
+bool tracker_get_xcorr_flag(tracker_channel_t *tracker_channel);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif

@@ -25,7 +25,7 @@
 #include "sbp_utils.h"
 #include "shm.h"
 #include "signal.h"
-#include "track.h"
+#include "track/track_flags.h"
 
 /** GPS L2 C decoder data */
 typedef struct {
@@ -189,6 +189,6 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
                      data->cnav_msg.prn);
     }
     /* set or clear prn_fail flag for L2CM and parent L1CA */
-    tracking_channel_set_prn_fail_flag(channel_info->mesid, prn_fail);
+    tracker_set_prn_fail_flag(channel_info->mesid, prn_fail);
   }
 }

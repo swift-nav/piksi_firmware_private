@@ -14,6 +14,7 @@
 #include "track_gps_l1ca.h"
 #include "filters/filter_common.h"
 #include "track_cn0.h"
+#include "track_flags.h"
 #include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
 #include "track_sid_db.h"
 
@@ -316,7 +317,7 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
 static void update_l1_xcorr(tracker_channel_t *tracker_channel) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
-  if (tracker_check_xcorr_flag(tracker_channel)) {
+  if (tracker_get_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
     tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
     return;
@@ -362,7 +363,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel) {
         tracker_channel, idx, xcorr_flags, xcorr_cn0_diffs, &xcorr_suspect);
   }
 
-  bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
+  bool prn_check_fail = tracker_get_prn_fail_flag(tracker_channel);
 
   set_xcorr_suspect_flag(
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
@@ -416,7 +417,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel) {
   /* Increment counter or Make decision if L2 is xcorr flagged */
   check_L2_xcorr_flag(tracker_channel, xcorr_flag, &xcorr_suspect);
 
-  bool prn_check_fail = tracker_check_prn_fail_flag(tracker_channel);
+  bool prn_check_fail = tracker_get_prn_fail_flag(tracker_channel);
 
   set_xcorr_suspect_flag(
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);

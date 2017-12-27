@@ -15,6 +15,7 @@
 
 #include "signal.h"
 #include "timing.h"
+#include "track_flags.h"
 #include "track_sid_db.h"
 
 #include <assert.h>

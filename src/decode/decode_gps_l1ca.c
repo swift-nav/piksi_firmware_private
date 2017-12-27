@@ -24,6 +24,7 @@
 #include "signal.h"
 #include "timing.h"
 #include "track.h"
+#include "track/track_flags.h"
 #include "track/track_sid_db.h"
 
 #include <assert.h>
@@ -124,7 +125,7 @@ static void check_almanac_xcorr(gnss_signal_t sid) {
       log_warn_sid(
           sid1, "Almanac-ephemeris cross-correlation with %s", sid_str_);
       ndb_ephemeris_erase(sid1);
-      tracking_channel_set_xcorr_flag(construct_mesid(sid1.code, sid1.sat));
+      tracker_set_xcorr_flag(construct_mesid(sid1.code, sid1.sat));
     }
   }
 }
@@ -557,7 +558,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
                        "Channel cross-correlation detected "
                        "(ephe/ephe or ephe/alm check)");
         /* Ephemeris cross-correlates with almanac of another SV */
-        tracking_channel_set_xcorr_flag(channel_info->mesid);
+        tracker_set_xcorr_flag(channel_info->mesid);
         break;
       default:
         break;

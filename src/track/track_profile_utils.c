@@ -11,6 +11,8 @@
  */
 
 #include <assert.h>
+
+#include "track/track_flags.h"
 #include "track.h"
 
 /**
