@@ -34,7 +34,7 @@
 #include "settings.h"
 #include "starling_calc_pvt.h"
 #include "timing.h"
-#include "track.h"
+#include "track/track_sid_db.h"
 
 static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the
                                   solution rate. */
@@ -515,8 +515,8 @@ void nmea_gsv(u8 n_used,
         "$%s,%u,%u,%02u", gnss_s, n_messages, i + 1, n_gnss_used);
 
     for (u8 j = 0; j < 4 && n < n_gnss_used; n++) {
-      s8 ele = sv_elevation_degrees_get(ch_meas_gnss[n]->sid);
-      u16 azi = sv_azimuth_degrees_get(ch_meas_gnss[n]->sid);
+      s8 ele = track_sid_db_elevation_degrees_get(ch_meas_gnss[n]->sid);
+      u16 azi = track_sid_db_azimuth_degrees_get(ch_meas_gnss[n]->sid);
 
       u16 sv_id = 0;
       if (CONSTELLATION_GPS == gnss) {

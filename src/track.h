@@ -312,10 +312,6 @@ typedef struct {
 
 typedef u8 tracker_channel_id_t;
 
-/** Maximum SV azimuth/elevation age in seconds: 1 minute is about 0.5 degrees
- */
-#define MAX_AZ_EL_AGE_SEC 60
-
 typedef enum {
   STATE_DISABLED,
   STATE_ENABLED,
@@ -894,12 +890,6 @@ void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid);
 void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid);
 
 bool handover_valid(double code_phase_chips, double max_chips);
-bool sv_azel_degrees_set(gnss_signal_t sid,
-                         u16 azimuth,
-                         s8 elevation,
-                         u64 timestamp);
-u16 sv_azimuth_degrees_get(gnss_signal_t sid);
-s8 sv_elevation_degrees_get(gnss_signal_t sid);
 
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id,
