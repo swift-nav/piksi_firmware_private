@@ -416,7 +416,7 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
                            /*check_validity=*/false) != 0) {
           break;
         }
-        sv_azel_degrees_set(
+        track_sid_db_azel_degrees_set(
             e->sid, round(az * R2D), round(el * R2D), nap_timing_count());
         log_debug_sid(
             e->sid, "Updated elevation from new ephemeris %.1f deg", el * R2D);

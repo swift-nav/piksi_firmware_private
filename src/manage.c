@@ -455,7 +455,7 @@ static u16 manage_warm_start(const me_gnss_signal_t mesid,
 
   gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   float el = TRACKING_ELEVATION_UNKNOWN;
-  el = sv_elevation_degrees_get(sid);
+  el = track_sid_db_elevation_degrees_get(sid);
   if (el < tracking_elevation_mask) {
     return SCORE_BELOWMASK;
   }
@@ -1369,7 +1369,7 @@ u32 get_tracking_channel_meas(u8 i,
       meas->carrier_phase += carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
-    meas->elevation = (double)sv_elevation_degrees_get(meas->sid);
+    meas->elevation = (double)track_sid_db_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));
   }
@@ -1418,7 +1418,7 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
   u32 flags = 0;
 
   /* Satellite elevation is above the solution mask. */
-  if (sv_elevation_degrees_get(sid) >= solution_elevation_mask) {
+  if (track_sid_db_elevation_degrees_get(sid) >= solution_elevation_mask) {
     flags |= TRACKER_FLAG_ELEVATION;
   }
 
