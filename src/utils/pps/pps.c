@@ -21,7 +21,7 @@
 #include "main.h"
 #include "pps.h"
 #include "settings.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)
 #define PPS_THREAD_STACK (1 * 1024)

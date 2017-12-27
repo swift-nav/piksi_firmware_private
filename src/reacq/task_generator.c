@@ -11,12 +11,12 @@
  */
 
 #include <assert.h>
-#include <dum.h>
 #include <ndb/ndb.h>
-#include <timing.h>
+#include "dum/dum.h"
 #include "manage.h"
 #include "search_manager_api.h"
 #include "task_generator_api.h"
+#include "timing/timing.h"
 
 /** Integration time. */
 #define ACQ_INTEGRATION_TIME_4MS 4

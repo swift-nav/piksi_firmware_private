@@ -27,7 +27,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "gnss_capabilities.h"
+#include "gnss_capabilities/gnss_capabilities.h"
 #include "lock_detector/lock_detector.h"
 
 /** C/N0 threshold when we can't say if we are still tracking */

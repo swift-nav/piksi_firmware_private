@@ -23,7 +23,7 @@
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "shm.h"
+#include "shm/shm.h"
 #include "signal.h"
 #include "track/track_flags.h"
 

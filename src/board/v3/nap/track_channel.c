@@ -18,7 +18,7 @@
 #include "nap_hw.h"
 #include "signal.h"
 #include "soft_macq/prns.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "track.h"
 
 #include <ch.h>

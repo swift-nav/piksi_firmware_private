@@ -18,7 +18,7 @@
 #include "board/nap/nap_common.h"
 #include "ndb/ndb.h"
 #include "position.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 /** Get last saved position from NDB.
  */

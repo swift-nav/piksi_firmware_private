@@ -30,7 +30,7 @@
 #include "settings.h"
 #include "signal.h"
 #include "simulator.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "track.h"
 #include "track/track_cn0.h"
 #include "track/track_sbp.h"

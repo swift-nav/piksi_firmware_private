@@ -16,7 +16,7 @@
 #include <libswiftnav/glonass_phase_biases.h>
 #include "base_obs.h"
 #include "sbp.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 /* Send the glonass bias message every 5 observations message */
 extern const u32 biases_message_freq_setting;

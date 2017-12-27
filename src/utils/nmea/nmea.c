@@ -33,7 +33,7 @@
 #include "sbp_utils.h"
 #include "settings.h"
 #include "starling_calc_pvt.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "track/track_sid_db.h"
 
 static u32 gpgga_msg_rate = 1; /* By design GGA should be output at the

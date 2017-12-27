@@ -22,9 +22,9 @@
 #include "ephemeris.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "shm.h"
+#include "shm/shm.h"
 #include "signal.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "track.h"
 
 /** GLO L1CA decoder data */

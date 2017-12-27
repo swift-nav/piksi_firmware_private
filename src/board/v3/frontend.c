@@ -17,7 +17,7 @@
 
 #include "frontend.h"
 #include "nt1065.h"
-#include "system_monitor.h"
+#include "system_monitor/system_monitor.h"
 
 #define SPI_READ_MASK (1 << 7)
 

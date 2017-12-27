@@ -20,7 +20,7 @@
 #include <libswiftnav/signal.h>
 
 #include "piksi_systime.h"
-#include "shm.h"
+#include "shm/shm.h"
 
 #include <platform_signal.h>
 #include <settings.h>

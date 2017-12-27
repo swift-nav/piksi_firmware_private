@@ -31,17 +31,17 @@
 #include "manage.h"
 #include "me_calc_pvt.h"
 #include "ndb/ndb.h"
-#include "nmea.h"
+#include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
-#include "shm.h"
+#include "shm/shm.h"
 #include "signal.h"
 #include "simulator.h"
 #include "starling_calc_pvt.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 extern bool disable_raim;
 

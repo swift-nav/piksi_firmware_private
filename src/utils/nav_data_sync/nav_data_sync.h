@@ -15,7 +15,7 @@
 
 #include "main.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
-#include "shm.h"
+#include "shm/shm.h"
 
 typedef enum {
   SYNC_POL = (1 << 0),                         /**< Sync data polarity */

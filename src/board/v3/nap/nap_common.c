@@ -13,10 +13,10 @@
 #include "alias_detector/alias_detector.h"
 
 #include "../../ext_events.h"
-#include "../../piksi_systime.h"
 #include "board.h"
 #include "nap/nap_common.h"
 #include "nap/track_channel.h"
+#include "piksi_systime.h"
 #include "sbp.h"
 
 #include "axi_dma.h"
@@ -25,7 +25,7 @@
 
 #include "main.h"
 #include "manage.h"
-#include "system_monitor.h"
+#include "system_monitor/system_monitor.h"
 #include "track.h"
 
 #include <math.h>

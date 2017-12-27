@@ -21,8 +21,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/shm.h>
 
-#include <gnss_capabilities.h>
-
+#include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg.h"
 
 /** Bad parity subframe mask for subframes 3-10 */

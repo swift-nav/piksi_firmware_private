@@ -16,7 +16,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
-#include "gnss_capabilities.h"
+#include "gnss_capabilities/gnss_capabilities.h"
 
 #ifdef __cplusplus
 extern "C" {

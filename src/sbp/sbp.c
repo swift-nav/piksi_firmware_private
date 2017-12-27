@@ -30,7 +30,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 /** \defgroup io Input/Output
  * Communications to and from host.

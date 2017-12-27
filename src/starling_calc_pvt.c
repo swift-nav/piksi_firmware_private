@@ -35,19 +35,19 @@
 #include "manage.h"
 #include "me_calc_pvt.h"
 #include "ndb/ndb.h"
-#include "nmea.h"
+#include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
-#include "shm.h"
+#include "shm/shm.h"
 #include "signal.h"
 #include "simulator.h"
 #include "starling_calc_pvt.h"
-#include "system_monitor.h"
-#include "timing.h"
+#include "system_monitor/system_monitor.h"
+#include "timing/timing.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)

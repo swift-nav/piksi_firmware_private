@@ -24,11 +24,11 @@
 #include <sbp_utils.h>
 #include <settings.h>
 #include <signal.h>
-#include <timing.h>
 
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
+#include "timing/timing.h"
 
 #define NDB_EPHE_FILE_NAME "persistent/ephemeris"
 #define NDB_EPHE_FILE_TYPE "ephemeris"

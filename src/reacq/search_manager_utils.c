@@ -10,11 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <board/nap/nap_common.h>
-#include <shm.h>
-#include <timing.h>
 #include "manage.h"
 #include "ndb/ndb.h"
 #include "search_manager_api.h"
+#include "shm/shm.h"
+#include "timing/timing.h"
 
 #include "sv_visibility/sv_visibility.h"
 

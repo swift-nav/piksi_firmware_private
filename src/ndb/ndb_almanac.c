@@ -19,11 +19,11 @@
 #include <sbp_utils.h>
 #include <signal.h>
 #include <string.h>
-#include <timing.h>
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 #include "settings.h"
+#include "timing/timing.h"
 
 /** Almanac file name */
 #define NDB_ALMA_FILE_NAME "persistent/almanac"
