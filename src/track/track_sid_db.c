@@ -14,7 +14,7 @@
 #include <libswiftnav/gnss_time.h>
 
 #include "signal.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "track_flags.h"
 #include "track_sid_db.h"
 
