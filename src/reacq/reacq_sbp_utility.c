@@ -11,10 +11,10 @@
  */
 
 #include "reacq_sbp_utility.h"
+#include "timing/timing.h"
 #include <board/nap/nap_common.h>
 #include <libswiftnav/memcpy_s.h>
 #include <string.h>
-#include <timing.h>
 
 /** Size of reacquisition-related SBP buffer */
 #define REACQ_SBP_BUFF_SIZE ((u8)(255 / sizeof(acq_sv_profile_t)))

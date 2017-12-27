@@ -18,7 +18,7 @@
 #include <libswiftnav/logging.h>
 
 #include "board/nap/nap_common.h"
-#include "clock_filter.h"
+#include "clock_filter/clock_filter.h"
 #include "main.h"
 #include "ndb/ndb_utc.h"
 #include "sbp.h"

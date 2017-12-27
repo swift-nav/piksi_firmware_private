@@ -17,7 +17,7 @@
 #include <libswiftnav/memcpy_s.h>
 #include <math.h>
 #include <string.h>
-#include "./system_monitor.h"
+#include "system_monitor/system_monitor.h"
 
 #include "lib/fixed_fft_r2.h"
 

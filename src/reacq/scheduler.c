@@ -10,13 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <assert.h>
-#include <dum.h>
 #include <libswiftnav/glo_map.h>
 #include <manage.h>
-#include <timing.h>
 #include <track.h>
+#include "dum/dum.h"
 #include "scheduler_api.h"
 #include "task_generator_api.h"
+#include "timing/timing.h"
 
 #include "soft_macq/soft_macq_main.h"
 

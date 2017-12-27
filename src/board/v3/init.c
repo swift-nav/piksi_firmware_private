@@ -35,7 +35,7 @@
 #include "remoteproc/rpmsg.h"
 #include "sbp.h"
 #include "sbp_fileio.h"
-#include "system_monitor.h"
+#include "system_monitor/system_monitor.h"
 #include "xadc.h"
 #define REQUIRED_NAP_VERSION_MASK (0xFFFF0000U)
 #define REQUIRED_NAP_VERSION_VAL NAP_VERSION

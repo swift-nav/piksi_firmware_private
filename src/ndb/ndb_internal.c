@@ -21,7 +21,7 @@
 #include "libsbp/piksi.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "version.h"
 
 #define NDB_THREAD_PRIORITY (LOWPRIO + 2)

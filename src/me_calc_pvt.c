@@ -27,7 +27,7 @@
 
 #include "manage.h"
 #include "nav_meas_calc.h"
-#include "nmea.h"
+#include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
 #include "sbp.h"
@@ -40,10 +40,10 @@
 #include "ndb/ndb.h"
 #include "observation_biases_calibration.h"
 #include "settings.h"
-#include "shm.h"
+#include "shm/shm.h"
 #include "simulator.h"
-#include "system_monitor.h"
-#include "timing.h"
+#include "system_monitor/system_monitor.h"
+#include "timing/timing.h"
 #include "track/track_sid_db.h"
 
 /** Mandatory flags filter for measurements */

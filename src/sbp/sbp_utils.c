@@ -26,7 +26,7 @@
 #include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 /** \addtogroup sbp
  * \{ */

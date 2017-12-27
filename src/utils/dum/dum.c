@@ -15,7 +15,7 @@
 #include "manage.h"
 #include "ndb/ndb.h"
 #include "signal.h"
-#include "timing.h"
+#include "timing/timing.h"
 
 /**
   The user position uncertainty is modeled as a sphere expanding its

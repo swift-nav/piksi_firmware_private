@@ -19,7 +19,7 @@
 #include <sbp_utils.h>
 #include <signal.h>
 #include <string.h>
-#include <timing.h>
+#include "timing/timing.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"

@@ -124,7 +124,7 @@ CSRC := $(STARTUPSRC) \
         $(BOARDSRC) \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.o \
-        $(SWIFTNAV_ROOT)/src/dum.o \
+        $(SWIFTNAV_ROOT)/src/utils/dum/dum.o \
         $(SWIFTNAV_ROOT)/src/sbp/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp/sbp_fileio.o \
         $(SWIFTNAV_ROOT)/src/sbp/sbp_utils.o \
@@ -144,11 +144,11 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
-        $(SWIFTNAV_ROOT)/src/glo_map_setup.o \
+        $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
         $(SWIFTNAV_ROOT)/src/manage.o \
         $(SWIFTNAV_ROOT)/src/settings.o \
-        $(SWIFTNAV_ROOT)/src/timing.o \
-        $(SWIFTNAV_ROOT)/src/clock_filter.o \
+        $(SWIFTNAV_ROOT)/src/utils/timing/timing.o \
+        $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
         $(SWIFTNAV_ROOT)/src/ext_events.o \
         $(SWIFTNAV_ROOT)/src/position.o \
         $(SWIFTNAV_ROOT)/src/common_calc_pvt.o \
@@ -160,14 +160,14 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/syscalls.o \
-        $(SWIFTNAV_ROOT)/src/nmea.o \
-        $(SWIFTNAV_ROOT)/src/system_monitor.o \
+        $(SWIFTNAV_ROOT)/src/utils/nmea/nmea.o \
+        $(SWIFTNAV_ROOT)/src/utils/system_monitor/system_monitor.o \
         $(SWIFTNAV_ROOT)/src/ephemeris.o \
-        $(SWIFTNAV_ROOT)/src/pps.o \
-        $(SWIFTNAV_ROOT)/src/decode.o \
-        $(SWIFTNAV_ROOT)/src/gnss_capabilities.o \
+        $(SWIFTNAV_ROOT)/src/utils/pps/pps.o \
+        $(SWIFTNAV_ROOT)/src/decode/decode.o \
+        $(SWIFTNAV_ROOT)/src/utils/gnss_capabilities/gnss_capabilities.o \
         $(SWIFTNAV_ROOT)/src/signal.o \
-        $(SWIFTNAV_ROOT)/src/piksi_systime.o \
+        $(SWIFTNAV_ROOT)/src/hal/piksi_systime.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_internal.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_ephemeris.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_almanac.o \
@@ -175,7 +175,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_lgf.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_utc.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb.o \
-        $(SWIFTNAV_ROOT)/src/shm.o \
+        $(SWIFTNAV_ROOT)/src/utils/shm/shm.o \
         $(SWIFTNAV_ROOT)/src/reacq/reacq_manage.o \
         $(SWIFTNAV_ROOT)/src/reacq/reacq_sbp_utility.o \
         $(SWIFTNAV_ROOT)/src/reacq/search_manager.o \
@@ -258,6 +258,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/utils \
          $(SWIFTNAV_ROOT)/src/simulator \
          $(SWIFTNAV_ROOT)/src/sbp \
+         $(SWIFTNAV_ROOT)/src/decode \
+         $(SWIFTNAV_ROOT)/src/hal \
 
 #
 # Project, sources and paths

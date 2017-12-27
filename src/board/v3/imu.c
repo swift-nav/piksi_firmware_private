@@ -11,6 +11,8 @@
  */
 
 #include "imu.h"
+#include "timing/timing.h"
+
 #include <board/nap/nap_common.h>
 #include <board/v3/peripherals/bmi160.h>
 #include <ch.h>
@@ -22,7 +24,6 @@
 #include <math.h>
 #include <sbp.h>
 #include <settings.h>
-#include <timing.h>
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
 #define IMU_THREAD_STACK (2 * 1024)

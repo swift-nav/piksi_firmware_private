@@ -27,17 +27,17 @@
 #include "ephemeris.h"
 #include "main.h"
 #include "manage.h"
-#include "nmea.h"
+#include "nmea/nmea.h"
 #include "peripherals/leds.h"
 #include "position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings.h"
-#include "shm.h"
+#include "shm/shm.h"
 #include "signal.h"
 #include "simulator.h"
-#include "system_monitor.h"
-#include "timing.h"
+#include "system_monitor/system_monitor.h"
+#include "timing/timing.h"
 
 #ifdef __cplusplus
 extern "C" {

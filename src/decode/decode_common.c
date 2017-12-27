@@ -20,7 +20,7 @@
 #include "ephemeris.h"
 #include "ndb/ndb.h"
 #include "piksi_systime.h"
-#include "timing.h"
+#include "timing/timing.h"
 #include "track.h"
 #include "track/track_sid_db.h"
 

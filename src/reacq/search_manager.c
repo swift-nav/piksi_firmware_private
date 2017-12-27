@@ -13,7 +13,7 @@
 #include <libswiftnav/glo_map.h>
 #include <manage.h>
 #include <string.h>
-#include <timing.h>
+#include "timing/timing.h"
 #include "search_manager_api.h"
 
 /** Re-acq normal priority masks. */
