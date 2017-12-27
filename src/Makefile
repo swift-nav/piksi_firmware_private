@@ -125,9 +125,9 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/lib/fifo.o \
         $(SWIFTNAV_ROOT)/src/lib/fixed_fft_r2.o \
         $(SWIFTNAV_ROOT)/src/dum.o \
-        $(SWIFTNAV_ROOT)/src/sbp.o \
-        $(SWIFTNAV_ROOT)/src/sbp_fileio.o \
-        $(SWIFTNAV_ROOT)/src/sbp_utils.o \
+        $(SWIFTNAV_ROOT)/src/sbp/sbp.o \
+        $(SWIFTNAV_ROOT)/src/sbp/sbp_fileio.o \
+        $(SWIFTNAV_ROOT)/src/sbp/sbp_utils.o \
         $(SWIFTNAV_ROOT)/src/track.o \
         $(SWIFTNAV_ROOT)/src/track_internal.o \
         $(SWIFTNAV_ROOT)/src/track_api.o \
@@ -156,8 +156,8 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_meas_calc.o \
         $(SWIFTNAV_ROOT)/src/observation_biases_calibration.o \
         $(SWIFTNAV_ROOT)/src/base_obs.o \
-        $(SWIFTNAV_ROOT)/src/simulator.o \
-        $(SWIFTNAV_ROOT)/src/simulator_data.o \
+        $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
+        $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/syscalls.o \
         $(SWIFTNAV_ROOT)/src/nmea.o \
         $(SWIFTNAV_ROOT)/src/system_monitor.o \
@@ -254,6 +254,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/board \
          $(SWIFTNAV_ROOT)/libswiftnav/libfec/include \
          $(SWIFTNAV_ROOT)/src/utils \
+         $(SWIFTNAV_ROOT)/src/simulator \
+         $(SWIFTNAV_ROOT)/src/sbp \
 
 #
 # Project, sources and paths
