@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "main.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
+#include "main.h"
 
 #define NAV_BIT_FIFO_INDEX_MASK ((NAV_BIT_FIFO_SIZE)-1)
 #define NAV_BIT_FIFO_LENGTH(p_fifo) \

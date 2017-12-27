@@ -16,10 +16,10 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/memcpy_s.h>
 
-#define NAV_BIT_FIFO_SIZE 64 /**< Size of nav bit FIFO. Must be a power of 2 */
+#define NAV_BIT_FIFO_SIZE 64 /* Size of nav bit FIFO. Must be a power of 2 */
 
 #define NAV_BIT_FIFO_INDEX_DIFF(write_index, read_index) \
-    ((nav_bit_fifo_index_t)((write_index) - (read_index)))
+  ((nav_bit_fifo_index_t)((write_index) - (read_index)))
 
 typedef struct {
   s8 soft_bit;
@@ -45,7 +45,7 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
 bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element);
 
 #ifdef __cplusplus
-}      /* extern "C" */
+} /* extern "C" */
 #endif /* __cplusplus */
 
 #endif /* SWIFTNAV_NAV_BIT_FIFO_H */
