@@ -1034,22 +1034,14 @@ static void tracker_channel_process(tracker_channel_t *tracker,
                              tracker_interface_lookup(tracker->mesid)->update);
 
           /* Read channel public data while in channel lock */
-          tracking_channel_compute_values(tracker,
-                                          &info,
-                                          &time_info,
-                                          &freq_info,
-                                          &ctrl_params,
-                                          &reset_cpo);
+          tracking_channel_compute_values(
+              tracker, &info, &time_info, &freq_info, &ctrl_params, &reset_cpo);
         }
         tracker_unlock(tracker);
 
         /* Update channel public data outside of channel lock */
-        tracking_channel_update_values(tracker,
-                                       &info,
-                                       &time_info,
-                                       &freq_info,
-                                       &ctrl_params,
-                                       reset_cpo);
+        tracking_channel_update_values(
+            tracker, &info, &time_info, &freq_info, &ctrl_params, reset_cpo);
       }
     } break;
 
