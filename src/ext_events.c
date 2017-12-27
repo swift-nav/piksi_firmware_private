@@ -15,11 +15,11 @@
 #include <libswiftnav/logging.h>
 
 #include "./ext_events.h"
+#include "./settings.h"
+#include "board/nap/nap_common.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "./settings.h"
 #include "timing/timing.h"
-#include "board/nap/nap_common.h"
 
 /** \defgroup ext_events External Events
  * Capture accurate timestamps of external pin events

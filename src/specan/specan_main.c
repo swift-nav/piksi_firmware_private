@@ -17,10 +17,10 @@
 
 #include <libsbp/piksi.h>
 #include <sbp.h>
-#include "system_monitor/system_monitor.h"
 #include "board/v3/nap/grabber.h"
 #include "board/v3/nap/nap_constants.h"
 #include "settings.h"
+#include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
 #include "lib/fixed_fft_r2.h"

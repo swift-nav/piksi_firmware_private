@@ -13,8 +13,8 @@
 #include <libswiftnav/glo_map.h>
 #include <manage.h>
 #include <string.h>
-#include "timing/timing.h"
 #include "search_manager_api.h"
+#include "timing/timing.h"
 
 /** Re-acq normal priority masks. */
 static const u32 reacq_normal_prio[] = {

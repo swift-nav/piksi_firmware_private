@@ -25,7 +25,6 @@
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/signal.h>
 
-#include "system_monitor/system_monitor.h"
 #include "board/nap/track_channel.h"
 #include "decode.h"
 #include "dum/dum.h"
@@ -43,6 +42,7 @@
 #include "shm/shm.h"
 #include "signal.h"
 #include "soft_macq/soft_macq_main.h"
+#include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track.h"
 #include "track/track_sid_db.h"
