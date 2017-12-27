@@ -53,6 +53,7 @@ INCLUDE_DIRS += -I../libswiftnav/refactor/common
 INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -120,7 +121,10 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/sv_visibility \
           $(USER_SRC_DIR)/nav_msg \
           $(USER_SRC_DIR)/utils/bit_sync \
-          $(USER_SRC_DIR)/utils/run_stats
+          $(USER_SRC_DIR)/utils/run_stats \
+          $(USER_SRC_DIR)/utils/clock_filter \
+          $(USER_SRC_DIR)/hal \
+          $(USER_SRC_DIR)/utils/gnss_capabilities
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -140,7 +144,7 @@ C_SRCS = fixed_fft_r2.c \
          bit_sync.c \
          nav_msg_glo.c \
          run_stats.c \
-         gnss_capabilities.c
+         gnss_capabilities.c \
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))

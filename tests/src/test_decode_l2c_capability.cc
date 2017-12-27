@@ -1,4 +1,4 @@
-#include "gnss_capabilities.h"
+#include "gnss_capabilities/gnss_capabilities.h"
 #include "gtest/gtest.h"
 
 #include <stdio.h>
