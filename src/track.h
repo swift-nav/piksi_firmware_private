@@ -462,8 +462,6 @@ typedef struct {
   corr_t corr_bit;        /**< Bit sync accumulator */
 } tp_corr_state_t;
 
-struct tracker_interface;
-
 /**
  * GPS L1 C/A tracker data container type.
  */
@@ -581,8 +579,6 @@ typedef struct {
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   glo_health_t health;         /**< GLO SV health info */
 
-  /** Associated tracker interface. */
-  const struct tracker_interface *interface;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
 
@@ -608,27 +604,6 @@ typedef struct {
     gps_l2cm_tracker_data_t gps_l2cm;
   };
 } tracker_channel_t;
-
-/** Tracker interface function template. */
-typedef void(tracker_interface_function_t)(tracker_channel_t *tracker_channel);
-
-/** Interface to a tracker implementation. */
-typedef struct tracker_interface {
-  /** Code type for which the implementation may be used. */
-  code_t code;
-  /** Init function. Called to set up tracker instance when tracking begins. */
-  tracker_interface_function_t *init;
-  /** Disable function. Called when tracking stops. */
-  tracker_interface_function_t *disable;
-  /** Update function. Called when new correlation outputs are available. */
-  tracker_interface_function_t *update;
-} tracker_interface_t;
-
-/** List element passed to tracker_interface_register(). */
-typedef struct tracker_interface_list_element_t {
-  const tracker_interface_t *interface;
-  struct tracker_interface_list_element_t *next;
-} tracker_interface_list_element_t;
 
 /**
  * Input entry for cross-correlation processing
@@ -900,11 +875,7 @@ tracker_channel_t *tracker_channel_get(tracker_channel_id_t id);
 
 void track_internal_setup(void);
 
-tracker_interface_list_element_t **tracker_interface_list_ptr_get(void);
-
 u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
-
-void tracker_interface_register(tracker_interface_list_element_t *element);
 
 /* Tracker instance API functions. Must be called from within an
  * interface function. */

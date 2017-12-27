@@ -28,8 +28,6 @@
 
 #define COMPILER_BARRIER() asm volatile("" : : : "memory")
 
-static tracker_interface_list_element_t *tracker_interface_list = 0;
-
 /* signal lock counter
  * A map of signal to an initially random number that increments each time that
  * signal begins being tracked.
@@ -41,11 +39,6 @@ void track_internal_setup(void) {
   for (u32 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
     tracking_lock_counters[i] = rand();
   }
-}
-
-/** Return a pointer to the tracker interface list. */
-tracker_interface_list_element_t **tracker_interface_list_ptr_get(void) {
-  return &tracker_interface_list;
 }
 
 /** Increment and return the tracking lock counter for the specified mesid.

@@ -33,6 +33,7 @@
 #include "timing/timing.h"
 #include "track.h"
 #include "track/track_cn0.h"
+#include "track/track_interface.h"
 #include "track/track_sbp.h"
 #include "track/track_sid_db.h"
 
@@ -61,10 +62,6 @@ typedef enum {
 
 static tracker_channel_t tracker_channels[NUM_TRACKER_CHANNELS];
 
-static const tracker_interface_t tracker_interface_default = {
-    .code = CODE_INVALID, .init = 0, .disable = 0, .update = 0,
-};
-
 static u16 iq_output_mask = 0;
 /** send_trk_detailed setting is a stop gap to suppress this
   * bandwidth intensive msg until a more complete "debug"
@@ -81,8 +78,6 @@ static bool track_iq_output_notify(struct setting *s, const char *val);
 static bool max_pll_integration_time_notify(struct setting *s, const char *val);
 static void nap_channel_disable(const tracker_channel_t *tracker_channel);
 
-static const tracker_interface_t *tracker_interface_lookup(
-    const me_gnss_signal_t mesid);
 static bool tracker_channel_runnable(const tracker_channel_t *tracker_channel);
 static state_t tracker_channel_state_get(
     const tracker_channel_t *tracker_channel);
@@ -369,10 +364,6 @@ bool tracker_channel_init(tracker_channel_id_t id,
     tracker_channel->mesid = mesid;
     tracker_channel->nap_channel = id;
 
-    const tracker_interface_t *tracker_intf;
-    tracker_intf = tracker_interface_lookup(mesid);
-    tracker_channel->interface = tracker_intf;
-
     tracker_channel->TOW_ms = TOW_INVALID;
     tracker_channel->TOW_ms_prev = TOW_INVALID;
 
@@ -399,7 +390,7 @@ bool tracker_channel_init(tracker_channel_id_t id,
     nav_data_sync_init(&tracker_channel->nav_data_sync);
     bit_sync_init(&tracker_channel->bit_sync, mesid);
 
-    interface_function(tracker_channel, tracker_intf->init);
+    interface_function(tracker_channel, tracker_interface_lookup(mesid)->init);
 
     /* Clear error flags before starting NAP tracking channel */
     error_flags_clear(tracker_channel);
@@ -1025,9 +1016,9 @@ void tracking_channel_glo_data_sync(tracker_channel_id_t id,
  * \param update_required   True when correlations are pending for the
  *                          tracking channel.
  */
-static void tracker_channel_process(tracker_channel_t *tracker_channel,
+static void tracker_channel_process(tracker_channel_t *tracker,
                                     bool update_required) {
-  switch (tracker_channel_state_get(tracker_channel)) {
+  switch (tracker_channel_state_get(tracker)) {
     case STATE_ENABLED: {
       if (update_required) {
         /* Channel public data blocks for transferring between locks */
@@ -1037,23 +1028,23 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
         tracking_channel_ctrl_info_t ctrl_params;
         bool reset_cpo;
 
-        tracker_lock(tracker_channel);
+        tracker_lock(tracker);
         {
-          interface_function(tracker_channel,
-                             tracker_channel->interface->update);
+          interface_function(tracker,
+                             tracker_interface_lookup(tracker->mesid)->update);
 
           /* Read channel public data while in channel lock */
-          tracking_channel_compute_values(tracker_channel,
+          tracking_channel_compute_values(tracker,
                                           &info,
                                           &time_info,
                                           &freq_info,
                                           &ctrl_params,
                                           &reset_cpo);
         }
-        tracker_unlock(tracker_channel);
+        tracker_unlock(tracker);
 
         /* Update channel public data outside of channel lock */
-        tracking_channel_update_values(tracker_channel,
+        tracking_channel_update_values(tracker,
                                        &info,
                                        &time_info,
                                        &freq_info,
@@ -1063,21 +1054,21 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
     } break;
 
     case STATE_DISABLE_REQUESTED: {
-      nap_channel_disable(tracker_channel);
-      tracker_lock(tracker_channel);
+      nap_channel_disable(tracker);
+      tracker_lock(tracker);
       {
-        interface_function(tracker_channel,
-                           tracker_channel->interface->disable);
-        piksi_systime_get(&tracker_channel->disable_time);
-        event(tracker_channel, EVENT_DISABLE);
+        interface_function(tracker,
+                           tracker_interface_lookup(tracker->mesid)->disable);
+        piksi_systime_get(&tracker->disable_time);
+        event(tracker, EVENT_DISABLE);
       }
-      tracker_unlock(tracker_channel);
+      tracker_unlock(tracker);
     } break;
 
     case STATE_DISABLE_WAIT: {
-      if (piksi_systime_elapsed_since_ms(&tracker_channel->disable_time) >=
+      if (piksi_systime_elapsed_since_ms(&tracker->disable_time) >=
           CHANNEL_DISABLE_WAIT_TIME_MS) {
-        event(tracker_channel, EVENT_DISABLE_WAIT_COMPLETE);
+        event(tracker, EVENT_DISABLE_WAIT_COMPLETE);
       }
     } break;
 
@@ -1086,8 +1077,8 @@ static void tracker_channel_process(tracker_channel_t *tracker_channel,
         /* Tracking channel is not owned by the update thread, but the update
          * register must be written to clear the interrupt flag. Set error
          * flag to indicate that NAP is in an unknown state. */
-        nap_channel_disable(tracker_channel);
-        error_flags_add(tracker_channel, ERROR_FLAG_INTERRUPT_WHILE_DISABLED);
+        nap_channel_disable(tracker);
+        error_flags_add(tracker, ERROR_FLAG_INTERRUPT_WHILE_DISABLED);
       }
     } break;
 
@@ -1163,26 +1154,6 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel) {
 tracker_channel_t *tracker_channel_get(tracker_channel_id_t id) {
   assert(id < NUM_TRACKER_CHANNELS);
   return &tracker_channels[id];
-}
-
-/** Look up the tracker interface for the specified mesid.
- *
- * \param mesid ME signal to be tracked.
- *
- * \return Associated tracker interface. May be the default interface.
- */
-static const tracker_interface_t *tracker_interface_lookup(
-    const me_gnss_signal_t mesid) {
-  const tracker_interface_list_element_t *e = *tracker_interface_list_ptr_get();
-  while (e != 0) {
-    const tracker_interface_t *interface = e->interface;
-    if (interface->code == mesid.code) {
-      return interface;
-    }
-    e = e->next;
-  }
-
-  return &tracker_interface_default;
 }
 
 /** Determine if a tracker channel can be started to track the specified mesid.
