@@ -33,6 +33,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 
+#include "board/nap/track_channel.h"
 #include "calc_pvt_common.h"
 #include "cnav_msg_storage.h"
 #include "ephemeris.h"
@@ -44,7 +45,9 @@
 #include "simulator.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
+#include "track/track_params.h"
 #include "track/track_sid_db.h"
+#include "track/track_sbp.h"
 
 /** Mandatory flags filter for measurements */
 #define MANAGE_TRACK_FLAGS_FILTER                               \

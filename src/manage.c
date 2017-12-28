@@ -45,6 +45,7 @@
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_api.h"
+#include "track/track_params.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
 

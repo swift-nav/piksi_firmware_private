@@ -13,7 +13,15 @@
 #ifndef SWIFTNAV_TRACKER_H
 #define SWIFTNAV_TRACKER_H
 
+#include "alias_detector/alias_detector.h"
+#include "bit_sync/bit_sync.h"
+#include "board/nap/nap_common.h"
+#include "hal/piksi_systime.h"
+#include "lock_detector/lock_detector.h"
+#include "nav_bit_fifo/nav_bit_fifo.h"
+#include "nav_data_sync/nav_data_sync.h"
 #include "track_cfg.h"
+#include "track_cn0.h"
 #include "track_loop/trk_loop_common.h"
 
 #define TP_DLL_PLL_MEAS_DIM 5

@@ -22,6 +22,7 @@
 #include "track_api.h"
 #include "track_flags.h"
 #include "track_sbp.h"
+#include "track_params.h"
 #include "track_sid_db.h"
 
 #include <assert.h>

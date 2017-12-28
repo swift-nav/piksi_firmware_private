@@ -11,7 +11,9 @@
  */
 
 #include "track_state.h"
+#include "board/nap/track_channel.h"
 #include "ndb/ndb.h"
+#include "platform_signal.h"
 #include "position/position.h"
 #include "sbp_utils.h"
 #include "simulator/simulator.h"
@@ -20,6 +22,7 @@
 #include "track_api.h"
 #include "track_flags.h"
 #include "track_interface.h"
+#include "track_params.h"
 #include "track_sbp.h"
 
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)

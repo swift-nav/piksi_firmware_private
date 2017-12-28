@@ -15,21 +15,11 @@
 
 #include <libsbp/tracking.h>
 
-#include <libswiftnav/ch_meas.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
-#include "piksi_systime.h"
 #include "shm/shm.h"
 
-#include <platform_signal.h>
-#include "alias_detector/alias_detector.h"
-#include "bit_sync/bit_sync.h"
-#include "board/nap/nap_common.h"
-#include "board/nap/track_channel.h"
-#include "lock_detector/lock_detector.h"
-#include "nav_bit_fifo/nav_bit_fifo.h"
-#include "nav_data_sync/nav_data_sync.h"
 #include "nav_msg/nav_msg.h"
 #include "settings/settings.h"
 #include "track/track_cfg.h"
@@ -38,27 +28,6 @@
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
-
-/**
- * Input entry for cross-correlation processing
- *
- * \sa tracker_cc_data_t
- */
-typedef struct {
-  tracker_id_t id;         /**< Tracking channel id */
-  u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
-  me_gnss_signal_t mesid;  /**< Tracked GNSS ME signal identifier */
-  float freq;              /**< Doppler frequency for cross-correlation [hz] */
-  float cn0;               /**< C/N0 level [dB/Hz] */
-} tracker_cc_entry_t;
-
-/**
- * Data container for cross-correlation processing
- */
-typedef struct {
-  /** Entries with data for cross-correlation  */
-  tracker_cc_entry_t entries[NUM_TRACKER_CHANNELS];
-} tracker_cc_data_t;
 
 /** \} */
 
@@ -199,39 +168,6 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
                             double code_phase,
                             double carrier_freq,
                             u32 n_samples);
-
-/* Tracking parameters interface. */
-
-void tracking_channel_measurement_get(u64 ref_tc,
-                                      const tracker_info_t *info,
-                                      const tracker_freq_info_t *freq_info,
-                                      const tracker_time_info_t *time_info,
-                                      const tracker_misc_info_t *misc_info,
-                                      channel_measurement_t *meas);
-
-bool tracking_channel_calc_pseudorange(u64 ref_tc,
-                                       const channel_measurement_t *meas,
-                                       double *raw_pseudorange);
-
-void tracking_channel_get_values(tracker_id_t id,
-                                 tracker_info_t *info,
-                                 tracker_time_info_t *time_info,
-                                 tracker_freq_info_t *freq_info,
-                                 tracker_ctrl_info_t *ctrl_params,
-                                 tracker_misc_info_t *misc_params);
-double tracking_channel_get_lock_time(const tracker_time_info_t *time_info,
-                                      const tracker_misc_info_t *misc_info);
-u16 tracking_channel_load_cc_data(tracker_cc_data_t *cc_data);
-
-void tracking_channel_set_carrier_phase_offset(const tracker_info_t *info,
-                                               double carrier_phase_offset);
-void tracking_channel_carrier_phase_offsets_adjust(double dt);
-
-tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
-void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid);
-void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid);
-
-bool handover_valid(double code_phase_chips, double max_chips);
 
 /* Decoder interface */
 bool tracking_channel_nav_bit_get(tracker_id_t id,

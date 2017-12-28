@@ -24,6 +24,7 @@
 #include "timing/timing.h"
 #include "track.h"
 #include "track_flags.h"
+#include "track_params.h"
 #include "track_sbp.h"
 
 /** Get synchronization status flags
