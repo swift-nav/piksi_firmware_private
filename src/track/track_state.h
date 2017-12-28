@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef SWIFTNAV_TRACK_UPDATE_H
-#define SWIFTNAV_TRACK_UPDATE_H
+#ifndef SWIFTNAV_TRACK_STATE_H
+#define SWIFTNAV_TRACK_STATE_H
 
 #include "track.h"
 
@@ -50,4 +50,4 @@ void tracking_send_detailed_state(void);
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif /* SWIFTNAV_TRACK_UPDATE_H  */
+#endif /* SWIFTNAV_TRACK_STATE_H  */
