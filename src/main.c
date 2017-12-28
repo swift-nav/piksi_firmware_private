@@ -42,7 +42,7 @@
 #include "starling_calc_pvt.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_state.h"
 #include "version.h"
 
 extern void ext_setup(void);

@@ -23,7 +23,7 @@
 #include "shm/shm.h"
 #include "signal.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_state.h"
 #include "track/track_flags.h"
 #include "track/track_sid_db.h"
 
@@ -541,7 +541,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
         if (TIME_UNKNOWN == get_time_quality()) {
           gps_time_t t = GPS_TIME_UNKNOWN;
           tracker_channel_t *tracker_channel =
-              tracker_channel_get(channel_info->tracking_channel);
+              tracker_get(channel_info->tracking_channel);
           chMtxLock(&tracker_channel->mutex);
           t.tow = (double)tracker_channel->nav_data_sync.TOW_ms / SECS_MS +
                   GPS_NOMINAL_RANGE / GPS_C;

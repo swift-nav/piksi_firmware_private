@@ -800,32 +800,10 @@ void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
 
-void track_setup(void);
-
-void tracking_send_state(void);
-void tracking_send_detailed_state(void);
-
 double propagate_code_phase(const me_gnss_signal_t mesid,
                             double code_phase,
                             double carrier_freq,
                             u32 n_samples);
-
-/* Update interface */
-void tracking_channels_update(u64 channels_mask);
-void tracking_channels_missed_update_error(u64 channels_mask);
-
-/* State management interface */
-bool tracker_channel_available(tracker_channel_id_t id,
-                               const me_gnss_signal_t mesid);
-bool tracker_channel_init(tracker_channel_id_t id,
-                          const me_gnss_signal_t mesid,
-                          u16 glo_orbit_slot,
-                          u64 ref_sample_count,
-                          double code_phase,
-                          float carrier_freq,
-                          u32 chips_to_correlate,
-                          float cn0_init);
-bool tracker_channel_disable(tracker_channel_id_t id);
 
 /* Tracking parameters interface. */
 
@@ -871,7 +849,6 @@ void tracking_channel_data_sync(tracker_channel_id_t id,
                                 nav_data_sync_t *from_decoder);
 void tracking_channel_glo_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder);
-tracker_channel_t *tracker_channel_get(tracker_channel_id_t id);
 
 void track_internal_setup(void);
 

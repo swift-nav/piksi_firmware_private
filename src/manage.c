@@ -46,6 +46,7 @@
 #include "timing/timing.h"
 #include "track/track_api.h"
 #include "track/track_sid_db.h"
+#include "track/track_state.h"
 
 /** \defgroup manage Manage
  * Manage acquisition and tracking.
@@ -768,11 +769,11 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
    */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     if (code_requires_decoder(mesid.code) &&
-        tracker_channel_available(i, mesid) &&
+        tracker_available(i, mesid) &&
         decoder_channel_available(i, mesid)) {
       return i;
     } else if (!code_requires_decoder(mesid.code) &&
-               tracker_channel_available(i, mesid)) {
+               tracker_available(i, mesid)) {
       return i;
     }
   }
@@ -959,7 +960,7 @@ static void drop_channel(tracker_channel_t *tracker_channel,
 
   /* Finally disable the decoder and tracking channels */
   decoder_channel_disable(tracker_channel->nap_channel);
-  tracker_channel_disable(tracker_channel->nap_channel);
+  tracker_disable(tracker_channel->nap_channel);
 }
 
 /**
@@ -1018,7 +1019,7 @@ void sanitize_trackers(void) {
      * not in `STATE_ENABLED` in the first place. It remains to check
      * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
      * */
-    tracker_channel_t *tracker_channel = tracker_channel_get(i);
+    tracker_channel_t *tracker_channel = tracker_get(i);
 
     state_t state = tracker_channel->state;
     COMPILER_BARRIER();
@@ -1575,14 +1576,14 @@ static void manage_tracking_startup(void) {
     acq->state = ACQ_PRN_TRACKING;
 
     /* Start the tracking channel */
-    if (!tracker_channel_init(chan,
-                              startup_params.mesid,
-                              startup_params.glo_slot_id,
-                              startup_params.sample_count,
-                              startup_params.code_phase,
-                              startup_params.carrier_freq,
-                              startup_params.chips_to_correlate,
-                              startup_params.cn0_init)) {
+    if (!tracker_init(chan,
+                      startup_params.mesid,
+                      startup_params.glo_slot_id,
+                      startup_params.sample_count,
+                      startup_params.code_phase,
+                      startup_params.carrier_freq,
+                      startup_params.chips_to_correlate,
+                      startup_params.cn0_init)) {
       log_error("tracker channel init failed");
       /* If starting of a channel fails, change state to ACQUIRING */
       acq->state = ACQ_PRN_ACQUIRING;
