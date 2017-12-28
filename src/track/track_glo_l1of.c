@@ -72,7 +72,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker_channel->mesid.sat);
-    tracking_channel_drop_unhealthy_glo(mesid_drop);
+    tracker_drop_unhealthy_glo(mesid_drop);
     return;
   }
 

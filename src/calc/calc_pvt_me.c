@@ -703,7 +703,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
        * breaks up exactly into carrier cycles */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
+      tracker_carrier_phase_offsets_adjust(dt);
 
       /* adjust the RX to GPS time conversion */
       adjust_rcvtime_offset(dt);

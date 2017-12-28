@@ -1169,7 +1169,7 @@ static u32 get_tracking_channel_flags_info(u8 i,
     time_info = &tmp_time_info;
   }
 
-  tracking_channel_get_values(i,
+  tracker_get_values(i,
                               info,      /* Generic info */
                               time_info, /* Timers */
                               freq_info, /* Frequencies */
@@ -1197,7 +1197,7 @@ static bool compute_cpo(u64 ref_tc,
                         double *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
-  bool ret = tracking_channel_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
+  bool ret = tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
   if (ret) {
     /* We don't want to adjust for the recevier clock drift,
      * so we need to calculate an estimate of that before we
@@ -1228,7 +1228,7 @@ static bool compute_cpo(u64 ref_tc,
     if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
         (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
       /* Remember offset for the future use */
-      tracking_channel_set_carrier_phase_offset(info, *carrier_phase_offset);
+      tracker_set_carrier_phase_offset(info, *carrier_phase_offset);
     }
   }
   return ret;
@@ -1336,7 +1336,7 @@ u32 get_tracking_channel_meas(u8 i,
     /* Load information from SID cache */
     flags |= get_tracking_channel_sid_flags(sid, info.tow_ms, ephe);
 
-    tracking_channel_measurement_get(
+    tracker_measurement_get(
         ref_tc, &info, &freq_info, &time_info, &misc_info, meas);
 
     /* Adjust for half phase ambiguity */
@@ -1387,7 +1387,7 @@ u32 get_tracking_channel_meas(u8 i,
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
   tracker_ctrl_info_t tmp;
 
-  tracking_channel_get_values(i,
+  tracker_get_values(i,
                               NULL,  /* Generic info */
                               NULL,  /* Timers */
                               NULL,  /* Frequencies */

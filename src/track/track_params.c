@@ -35,7 +35,7 @@
  *
  * \return None
  */
-void tracking_channel_measurement_get(u64 ref_tc,
+void tracker_measurement_get(u64 ref_tc,
                                       const tracker_info_t *info,
                                       const tracker_freq_info_t *freq_info,
                                       const tracker_time_info_t *time_info,
@@ -56,7 +56,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
                          NAP_FRONTEND_SAMPLE_RATE_Hz;
 
   meas->cn0 = info->cn0;
-  meas->lock_time = tracking_channel_get_lock_time(time_info, misc_info);
+  meas->lock_time = tracker_get_lock_time(time_info, misc_info);
   meas->time_in_track = time_info->cn0_usable_ms / 1000.0;
   meas->elevation = TRACKING_ELEVATION_UNKNOWN;
   meas->flags = 0;
@@ -72,7 +72,7 @@ void tracking_channel_measurement_get(u64 ref_tc,
  * \retval true Pseudorange is valid
  * \retval false Error in computation.
  */
-bool tracking_channel_calc_pseudorange(u64 ref_tc,
+bool tracker_calc_pseudorange(u64 ref_tc,
                                        const channel_measurement_t *meas,
                                        double *raw_pseudorange) {
   navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
@@ -88,6 +88,151 @@ bool tracking_channel_calc_pseudorange(u64 ref_tc,
   return true;
 }
 
+/**
+ * Atomically loads tracking channel public informational block.
+ *
+ * The channel locks public informational block and loads data from it into
+ * output parameters.
+ *
+ * \param[in]  id           Tracking channel identifier.
+ * \param[out] info         Optional destination for generic information.
+ * \param[out] time_info    Optional destination for timing information.
+ * \param[out] freq_info    Optional destination for frequency and phase
+ *                          information.
+ * \param[out] ctrl_params  Optional destination for loop controller
+ * information.
+ * \param[out] misc_params  Optional destination for misc information.
+ * \param[in] reset_stats   Reset channel statistics
+ *
+ * \return None
+ *
+ * \sa tracking_channel_update_values
+ */
+void tracker_get_values(tracker_id_t id,
+                                 tracker_info_t *info,
+                                 tracker_time_info_t *time_info,
+                                 tracker_freq_info_t *freq_info,
+                                 tracker_ctrl_info_t *ctrl_params,
+                                 tracker_misc_info_t *misc_params) {
+  tracker_t *tracker_channel = tracker_get(id);
+  tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&tracker_channel->mutex_pub);
+  if (NULL != info) {
+    *info = pub_data->gen_info;
+  }
+  if (NULL != time_info) {
+    *time_info = pub_data->time_info;
+  }
+  if (NULL != freq_info) {
+    *freq_info = pub_data->freq_info;
+  }
+  if (NULL != ctrl_params) {
+    *ctrl_params = pub_data->ctrl_info;
+  }
+  if (NULL != misc_params) {
+    *misc_params = pub_data->misc_info;
+  }
+  chMtxUnlock(&tracker_channel->mutex_pub);
+}
+
+/**
+ * Computes the lock time from tracking channel time info.
+ *
+ * \param[in]  time_info Time information block.
+ * \param[in]  misc_info Miscellaneous information block.
+ *
+ * \return Lock time [s]
+ */
+double tracker_get_lock_time(const tracker_time_info_t *time_info,
+                                      const tracker_misc_info_t *misc_info) {
+  u64 cpo_age_ms = 0;
+  if (0 != misc_info->carrier_phase_offset.value) {
+    u64 now_ms = timing_getms();
+    assert(now_ms >= misc_info->carrier_phase_offset.timestamp_ms);
+    cpo_age_ms = now_ms - misc_info->carrier_phase_offset.timestamp_ms;
+  }
+
+  u64 lock_time_ms = UINT64_MAX;
+
+  lock_time_ms = MIN(lock_time_ms, time_info->ld_pess_locked_ms);
+  lock_time_ms = MIN(lock_time_ms, cpo_age_ms);
+
+  return (double)lock_time_ms / SECS_MS;
+}
+
+/**
+ * Loads data relevant to cross-correlation processing
+ *
+ * The method loads information from all trackers for cross-correlation
+ * algorithm.
+ *
+ * \param[out] cc_data Destination container
+ *
+ * \return Number of entries loaded
+ *
+ * \sa tracker_cc_data_t
+ */
+u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
+  u16 cnt = 0;
+
+  for (tracker_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+    tracker_t *tracker_channel = tracker_get(id);
+    tracker_cc_entry_t entry;
+
+    entry.id = id;
+    entry.mesid = tracker_channel->mesid;
+    entry.flags = tracker_channel->flags;
+    entry.freq = tracker_channel->xcorr_freq;
+    entry.cn0 = tracker_channel->cn0;
+
+    if (0 != (entry.flags & TRACKER_FLAG_ACTIVE) &&
+        0 != (entry.flags & TRACKER_FLAG_CONFIRMED) &&
+        0 != (entry.flags & TRACKER_FLAG_XCORR_FILTER_ACTIVE)) {
+      cc_data->entries[cnt++] = entry;
+    }
+  }
+
+  return cnt;
+}
+
+/**
+ * Atomically updates carrier phase offset.
+ *
+ * The method locates tracking channel object, locks it, and updates the
+ * carrier phase offset only if the channel is still active, belongs to the
+ * same signal and has the same lock counter.
+ *
+ * \param[in] info                 Generic tracking channel information block
+ *                                 used for locating destination channel and
+ *                                 checking integrity.
+ * \param[in] carrier_phase_offset Carrier phase offset to set.
+ *
+ * \return None
+ */
+void tracker_set_carrier_phase_offset(const tracker_info_t *info,
+                                               double carrier_phase_offset) {
+  bool adjusted = false;
+  tracker_t *tracker_channel = tracker_get(info->id);
+  tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
+
+  chMtxLock(&tracker_channel->mutex_pub);
+  if (0 != (pub_data->gen_info.flags & TRACKER_FLAG_ACTIVE) &&
+      mesid_is_equal(info->mesid, pub_data->gen_info.mesid) &&
+      info->lock_counter == pub_data->gen_info.lock_counter) {
+    pub_data->misc_info.carrier_phase_offset.value = carrier_phase_offset;
+    pub_data->misc_info.carrier_phase_offset.timestamp_ms = timing_getms();
+    adjusted = true;
+  }
+  chMtxUnlock(&tracker_channel->mutex_pub);
+
+  if (adjusted) {
+    log_debug_mesid(info->mesid,
+                    "Adjusting carrier phase offset to %lf",
+                    carrier_phase_offset);
+  }
+}
+
 /** Adjust all carrier phase offsets with a receiver clock correction.
  * Note that as this change to carrier is equal to the change caused to
  * pseudoranges by the clock correction, the code-carrier difference does
@@ -95,7 +240,7 @@ bool tracking_channel_calc_pseudorange(u64 ref_tc,
  *
  * \param dt      Receiver clock change (s)
  */
-void tracking_channel_carrier_phase_offsets_adjust(double dt) {
+void tracker_carrier_phase_offsets_adjust(double dt) {
   /* Carrier phase offsets are adjusted for all signals matching SPP criteria */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     me_gnss_signal_t mesid;
@@ -160,7 +305,7 @@ tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
  *
  * \return None
  */
-void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
+void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
   assert(IS_GLO(mesid));
   tracker_t *tracker_channel = tracker_channel_get_by_mesid(mesid);
   if (tracker_channel == NULL) {

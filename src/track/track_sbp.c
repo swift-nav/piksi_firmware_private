@@ -218,7 +218,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
 
   channel_measurement_t meas;
 
-  tracking_channel_measurement_get(
+  tracker_measurement_get(
       recv_time_ticks, channel_info, freq_info, time_info, misc_info, &meas);
 
   s32 tow_ms = channel_info->tow_ms;
@@ -229,7 +229,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
       (0 == (channel_info->flags & TRACKER_FLAG_ERROR)) &&
       (get_time_quality() >= TIME_FINE)) {
     u64 ref_tc = nap_sample_time_to_count(channel_info->sample_count);
-    tracking_channel_calc_pseudorange(ref_tc, &meas, &raw_pseudorange);
+    tracker_calc_pseudorange(ref_tc, &meas, &raw_pseudorange);
   }
 
   /* TOW status flags */
@@ -282,7 +282,7 @@ void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
   float cn0 = channel_info->cn0 * MSG_OBS_CN0_MULTIPLIER;
   state->cn0 = (u8)limit_value(cn0, 0, UINT8_MAX);
 
-  double lock_time = tracking_channel_get_lock_time(time_info, misc_info);
+  double lock_time = tracker_get_lock_time(time_info, misc_info);
   state->lock = encode_lock_time(lock_time);
 
   state->sid = sid_to_sbp(sid);

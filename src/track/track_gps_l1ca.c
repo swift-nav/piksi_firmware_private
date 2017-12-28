@@ -327,7 +327,7 @@ static void update_l1_xcorr(tracker_t *tracker_channel) {
   }
 
   tracker_cc_data_t cc_data;
-  u16 cnt = tracking_channel_load_cc_data(&cc_data);
+  u16 cnt = tracker_load_cc_data(&cc_data);
 
   bool xcorr_flags[NUM_SATS_GPS] = {false};
   bool sat_active[NUM_SATS_GPS] = {false};
@@ -397,7 +397,7 @@ static void update_l1_xcorr_from_l2(tracker_t *tracker_channel) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   tracker_cc_data_t cc_data;
-  u16 cnt = tracking_channel_load_cc_data(&cc_data);
+  u16 cnt = tracker_load_cc_data(&cc_data);
 
   bool xcorr_flag = false;
   for (u16 idx = 0; idx < cnt; ++idx) {
