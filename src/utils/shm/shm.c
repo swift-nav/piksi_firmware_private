@@ -15,12 +15,12 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/shm.h>
-#include <signal.h>
 
 #include "cnav_msg_storage.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
 #include "shm.h"
+#include "signal_db/signal_db.h"
 
 static MUTEX_DECL(shm_data_access);
 

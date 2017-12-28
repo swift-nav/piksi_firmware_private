@@ -20,7 +20,7 @@
 #include "board/nap/nap_common.h"
 #include "main.h"
 #include "pps.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "timing/timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)

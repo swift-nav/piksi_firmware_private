@@ -20,7 +20,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track.h"
 #include "track/track_sid_db.h"

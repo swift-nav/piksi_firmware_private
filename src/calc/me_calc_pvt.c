@@ -29,7 +29,7 @@
 #include "nav_meas_calc.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 
@@ -39,7 +39,7 @@
 #include "main.h"
 #include "ndb/ndb.h"
 #include "observation_biases_calibration.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
 #include "system_monitor/system_monitor.h"

@@ -13,10 +13,13 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
 
-#include "signal_db/signal_db.h"
-#include "timing/timing.h"
-#include "track_api.h"
+#include "signal.h"
+<<<<<<< HEAD
+#include "timing.h"
 #include "track_flags.h"
+=======
+#include "timing/timing.h"
+>>>>>>> Update after rebase
 #include "track_sid_db.h"
 
 #include <assert.h>

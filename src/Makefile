@@ -148,17 +148,17 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
         $(SWIFTNAV_ROOT)/src/manage.o \
-        $(SWIFTNAV_ROOT)/src/settings.o \
+        $(SWIFTNAV_ROOT)/src/utils/settings/settings.o \
         $(SWIFTNAV_ROOT)/src/utils/timing/timing.o \
         $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
-        $(SWIFTNAV_ROOT)/src/ext_events.o \
-        $(SWIFTNAV_ROOT)/src/position.o \
-        $(SWIFTNAV_ROOT)/src/common_calc_pvt.o \
-        $(SWIFTNAV_ROOT)/src/starling_calc_pvt.o \
-        $(SWIFTNAV_ROOT)/src/me_calc_pvt.o \
-        $(SWIFTNAV_ROOT)/src/nav_meas_calc.o \
+        $(SWIFTNAV_ROOT)/src/utils/ext_events/ext_events.o \
+        $(SWIFTNAV_ROOT)/src/utils/position/position.o \
+        $(SWIFTNAV_ROOT)/src/calc/common_calc_pvt.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_calc_pvt.o \
+        $(SWIFTNAV_ROOT)/src/calc/me_calc_pvt.o \
+        $(SWIFTNAV_ROOT)/src/calc/nav_meas_calc.o \
         $(SWIFTNAV_ROOT)/src/observation_biases_calibration.o \
-        $(SWIFTNAV_ROOT)/src/base_obs.o \
+        $(SWIFTNAV_ROOT)/src/calc/base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/syscalls.o \
@@ -168,7 +168,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/pps/pps.o \
         $(SWIFTNAV_ROOT)/src/decode/decode.o \
         $(SWIFTNAV_ROOT)/src/utils/gnss_capabilities/gnss_capabilities.o \
-        $(SWIFTNAV_ROOT)/src/signal.o \
+        $(SWIFTNAV_ROOT)/src/utils/signal_db/signal_db.o \
         $(SWIFTNAV_ROOT)/src/hal/piksi_systime.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_internal.o \
         $(SWIFTNAV_ROOT)/src/ndb/ndb_ephemeris.o \
@@ -190,7 +190,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
-        $(SWIFTNAV_ROOT)/src/sbas_select.o \
+        $(SWIFTNAV_ROOT)/src/utils/sbas_select/sbas_select.o \
         $(SWIFTNAV_ROOT)/src/utils/alias_detector/alias_detector.o \
         $(SWIFTNAV_ROOT)/src/utils/lock_detector/lock_detector.o \
         $(SWIFTNAV_ROOT)/src/cn0_est/cn0_est_basic.o \
@@ -262,6 +262,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/sbp \
          $(SWIFTNAV_ROOT)/src/decode \
          $(SWIFTNAV_ROOT)/src/hal \
+         $(SWIFTNAV_ROOT)/src/calc \
 
 #
 # Project, sources and paths

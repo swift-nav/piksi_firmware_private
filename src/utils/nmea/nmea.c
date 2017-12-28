@@ -31,7 +31,7 @@
 #include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "starling_calc_pvt.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"

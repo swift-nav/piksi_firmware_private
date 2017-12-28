@@ -24,7 +24,7 @@
 #include <libswiftnav/linear_algebra.h>
 #include <track.h>
 
-#include "settings.h"
+#include "settings/settings.h"
 
 #include "me_calc_pvt.h"
 #include "peripherals/leds.h"

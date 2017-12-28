@@ -11,6 +11,7 @@
  */
 
 /* Local headers */
+#include "signal_db/signal_db.h"
 #include "track_bds2_b11.h"
 #include "track_api.h"
 #include "track_bds2_b2.h"
@@ -21,7 +22,6 @@
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
-#include <signal.h>
 #include <track.h>
 
 /* Libraries */

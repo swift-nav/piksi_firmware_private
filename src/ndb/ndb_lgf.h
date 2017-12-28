@@ -14,7 +14,8 @@
 #define SRC_NDB_LGF_H_
 
 #include <ndb/ndb_common.h>
-#include <position.h>
+
+#include "position/position.h"
 
 void ndb_lgf_init(void);
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) NDB_WEAK;

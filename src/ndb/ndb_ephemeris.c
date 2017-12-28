@@ -22,12 +22,12 @@
 #include <piksi_systime.h>
 #include <sbp.h>
 #include <sbp_utils.h>
-#include <settings.h>
-#include <signal.h>
 
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
+#include "settings/settings.h"
+#include "signal_db/signal_db.h"
 #include "timing/timing.h"
 
 #define NDB_EPHE_FILE_NAME "persistent/ephemeris"

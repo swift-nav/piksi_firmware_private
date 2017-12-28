@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_DUM_H
 #define SWIFTNAV_DUM_H
 
-#include "position.h"
+#include "position/position.h"
 
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/signal.h>

@@ -54,6 +54,7 @@ INCLUDE_DIRS += -I../libswiftnav/include/libswiftnav
 INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -124,7 +125,9 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/run_stats \
           $(USER_SRC_DIR)/utils/clock_filter \
           $(USER_SRC_DIR)/hal \
-          $(USER_SRC_DIR)/utils/gnss_capabilities
+          $(USER_SRC_DIR)/utils/gnss_capabilities \
+          $(USER_SRC_DIR)/utils/sbas_select \
+          $(USER_SRC_DIR)/calc \
 
 vpath %.cc $(TEST_SRC_DIR)
 

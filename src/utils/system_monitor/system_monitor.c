@@ -30,9 +30,9 @@
 #include "nt1065.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "simulator.h"
 #include "system_monitor.h"
 

@@ -14,11 +14,11 @@
 #include <libsbp/navigation.h>
 #include <libswiftnav/logging.h>
 
-#include "./ext_events.h"
-#include "./settings.h"
+#include "ext_events.h"
 #include "board/nap/nap_common.h"
 #include "sbp.h"
 #include "sbp_utils.h"
+#include "settings/settings.h"
 #include "timing/timing.h"
 
 /** \defgroup ext_events External Events

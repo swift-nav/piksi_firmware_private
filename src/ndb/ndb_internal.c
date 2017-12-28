@@ -15,12 +15,12 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <nap/nap_common.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include "libsbp/piksi.h"
 #include "ndb.h"
 #include "ndb_fs_access.h"
+#include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "version.h"
 

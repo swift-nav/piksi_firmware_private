@@ -13,7 +13,8 @@
 #define SBAS_SELECT_H
 
 #include <libswiftnav/common.h>
-#include <position.h>
+
+#include "position/position.h"
 
 typedef enum sbas_e {
   SBAS_UNKNOWN = -1,

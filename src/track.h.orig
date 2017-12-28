@@ -20,9 +20,15 @@
 #include <libswiftnav/signal.h>
 
 #include "piksi_systime.h"
+<<<<<<< HEAD
+#include "shm.h"
+=======
 #include "shm/shm.h"
+#include "track_flags.h"
+>>>>>>> [repo refactor] Move multiple files into separate folders
 
 #include <platform_signal.h>
+#include <settings.h>
 #include "alias_detector/alias_detector.h"
 #include "bit_sync/bit_sync.h"
 #include "board/nap/nap_common.h"
@@ -31,7 +37,6 @@
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_data_sync/nav_data_sync.h"
 #include "nav_msg/nav_msg.h"
-#include "settings/settings.h"
 #include "track/track_cn0.h"
 #include "track_loop/trk_loop_common.h"
 
@@ -462,6 +467,8 @@ typedef struct {
   corr_t corr_bit;        /**< Bit sync accumulator */
 } tp_corr_state_t;
 
+struct tracker_interface;
+
 /**
  * GPS L1 C/A tracker data container type.
  */
@@ -579,6 +586,8 @@ typedef struct {
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   glo_health_t health;         /**< GLO SV health info */
 
+  /** Associated tracker interface. */
+  const struct tracker_interface *interface;
   /** Publicly accessible data */
   tracker_channel_pub_data_t pub_data;
 
@@ -604,6 +613,27 @@ typedef struct {
     gps_l2cm_tracker_data_t gps_l2cm;
   };
 } tracker_channel_t;
+
+/** Tracker interface function template. */
+typedef void(tracker_interface_function_t)(tracker_channel_t *tracker_channel);
+
+/** Interface to a tracker implementation. */
+typedef struct tracker_interface {
+  /** Code type for which the implementation may be used. */
+  code_t code;
+  /** Init function. Called to set up tracker instance when tracking begins. */
+  tracker_interface_function_t *init;
+  /** Disable function. Called when tracking stops. */
+  tracker_interface_function_t *disable;
+  /** Update function. Called when new correlation outputs are available. */
+  tracker_interface_function_t *update;
+} tracker_interface_t;
+
+/** List element passed to tracker_interface_register(). */
+typedef struct tracker_interface_list_element_t {
+  const tracker_interface_t *interface;
+  struct tracker_interface_list_element_t *next;
+} tracker_interface_list_element_t;
 
 /**
  * Input entry for cross-correlation processing
@@ -800,10 +830,32 @@ void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
 
+void track_setup(void);
+
+void tracking_send_state(void);
+void tracking_send_detailed_state(void);
+
 double propagate_code_phase(const me_gnss_signal_t mesid,
                             double code_phase,
                             double carrier_freq,
                             u32 n_samples);
+
+/* Update interface */
+void tracking_channels_update(u64 channels_mask);
+void tracking_channels_missed_update_error(u64 channels_mask);
+
+/* State management interface */
+bool tracker_channel_available(tracker_channel_id_t id,
+                               const me_gnss_signal_t mesid);
+bool tracker_channel_init(tracker_channel_id_t id,
+                          const me_gnss_signal_t mesid,
+                          u16 glo_orbit_slot,
+                          u64 ref_sample_count,
+                          double code_phase,
+                          float carrier_freq,
+                          u32 chips_to_correlate,
+                          float cn0_init);
+bool tracker_channel_disable(tracker_channel_id_t id);
 
 /* Tracking parameters interface. */
 
@@ -849,9 +901,55 @@ void tracking_channel_data_sync(tracker_channel_id_t id,
                                 nav_data_sync_t *from_decoder);
 void tracking_channel_glo_data_sync(tracker_channel_id_t id,
                                     nav_data_sync_t *from_decoder);
+tracker_channel_t *tracker_channel_get(tracker_channel_id_t id);
 
 void track_internal_setup(void);
 
+tracker_interface_list_element_t **tracker_interface_list_ptr_get(void);
+
 u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
 
+void tracker_interface_register(tracker_interface_list_element_t *element);
+
+/* Tracker instance API functions. Must be called from within an
+ * interface function. */
+void tracker_correlations_read(u8 nap_channel,
+                               corr_t *cs,
+                               u32 *sample_count,
+                               double *code_phase,
+                               double *carrier_phase);
+void tracker_retune(tracker_channel_t *tracker_channel, u32 chips_to_correlate);
+s32 tracker_tow_update(tracker_channel_t *tracker_channel,
+                       s32 current_TOW_ms,
+                       u32 int_ms,
+                       s32 *TOW_residual_ns,
+                       bool *decoded_tow,
+                       bool *decoded_health);
+void tracker_bit_sync_set(tracker_channel_t *tracker_channel, s8 bit_phase_ref);
+void tracker_bit_sync_update(tracker_channel_t *tracker_channel,
+                             u32 int_ms,
+                             s32 corr_prompt_real,
+                             s32 corr_prompt_imag,
+                             bool sensitivity_mode);
+u8 tracker_bit_length_get(tracker_channel_t *tracker_channel);
+bool tracker_bit_aligned(tracker_channel_t *tracker_channel);
+bool tracker_has_bit_sync(tracker_channel_t *tracker_channel);
+bool tracker_next_bit_aligned(tracker_channel_t *tracker_channel, u32 int_ms);
+void tracker_ambiguity_unknown(tracker_channel_t *tracker_channel);
+bool tracker_ambiguity_resolved(tracker_channel_t *tracker_channel);
+void tracker_ambiguity_set(tracker_channel_t *tracker_channel, s8 polarity);
+u16 tracker_glo_orbit_slot_get(tracker_channel_t *tracker_channel);
+glo_health_t tracker_glo_sv_health_get(tracker_channel_t *tracker_channel);
+void tracker_correlations_send(tracker_channel_t *tracker_channel,
+                               const corr_t *cs);
+
+update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
+                                 const update_count_t *val);
+void update_bit_polarity_flags(tracker_channel_t *tracker_channel);
+void tracker_cleanup(tracker_channel_t *tracker_channel);
+
+void tracker_tow_cache(tracker_channel_t *tracker_channel);
+
+void tracker_lock(tracker_channel_t *tracker_channel);
+void tracker_unlock(tracker_channel_t *tracker_channel);
 #endif

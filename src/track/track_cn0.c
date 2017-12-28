@@ -9,6 +9,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include "settings/settings.h"
 #include "track_cn0.h"
 
 #include <assert.h>
@@ -17,7 +18,6 @@
 #include <board.h>
 #include <chconf.h>
 #include <platform_cn0.h>
-#include <settings.h>
 
 /** C/N0 estimator IIR averaging coefficient:
  * See http://www.insidegnss.com/auto/IGM_gnss-sol-janfeb10.pdf p. 22

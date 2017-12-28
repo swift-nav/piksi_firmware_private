@@ -12,8 +12,8 @@
 
 #include "alias_detector/alias_detector.h"
 
-#include "../../ext_events.h"
 #include "board.h"
+#include "ext_events/ext_events.h"
 #include "nap/nap_common.h"
 #include "nap/track_channel.h"
 #include "piksi_systime.h"

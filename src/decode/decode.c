@@ -15,7 +15,7 @@
 #include <ch.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "track.h"
 
 #define DECODE_THREAD_STACK (4 * 1024)
