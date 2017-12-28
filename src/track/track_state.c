@@ -155,13 +155,12 @@ bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
  * \return None
  */
 
-static void tracking_channel_compute_values(
-    tracker_t *tracker_channel,
-    tracker_info_t *info,
-    tracker_time_info_t *time_info,
-    tracker_freq_info_t *freq_info,
-    tracker_ctrl_info_t *ctrl_params,
-    bool *reset_cpo) {
+static void tracking_channel_compute_values(tracker_t *tracker_channel,
+                                            tracker_info_t *info,
+                                            tracker_time_info_t *time_info,
+                                            tracker_freq_info_t *freq_info,
+                                            tracker_ctrl_info_t *ctrl_params,
+                                            bool *reset_cpo) {
   if (NULL != info) {
     /* Tracker identifier */
     info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
@@ -506,8 +505,7 @@ static void error_flags_add(tracker_t *tracker_channel,
  * \param update_required   True when correlations are pending for the
  *                          tracking channel.
  */
-static void tracker_channel_process(tracker_t *tracker,
-                                    bool update_required) {
+static void tracker_channel_process(tracker_t *tracker, bool update_required) {
   switch (tracker_state_get(tracker)) {
     case STATE_ENABLED: {
       if (update_required) {

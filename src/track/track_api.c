@@ -54,8 +54,7 @@ void tracker_correlations_read(u8 nap_channel,
  * \param[in]     tracker_channel Tracker channel data
  * \param chips_to_correlate  Number of code chips to integrate over.
  */
-void tracker_retune(tracker_t *tracker_channel,
-                    u32 chips_to_correlate) {
+void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker_channel->carrier_freq;
   double code_phase_rate = tracker_channel->code_phase_rate;
 
@@ -203,8 +202,7 @@ s32 tracker_tow_update(tracker_t *tracker_channel,
  * \param tracker_channel   Tracker channel data.
  * \param bit_phase_ref     Bit phase reference.
  */
-void tracker_bit_sync_set(tracker_t *tracker_channel,
-                          s8 bit_phase_ref) {
+void tracker_bit_sync_set(tracker_t *tracker_channel, s8 bit_phase_ref) {
   bit_sync_t *bit_sync = &tracker_channel->bit_sync;
   bit_sync_set(bit_sync, bit_phase_ref);
 }
@@ -389,8 +387,7 @@ glo_health_t tracker_glo_sv_health_get(tracker_t *tracker_channel) {
  * \param[in] tracker_channel Tracker channel data
  * \param cs          Array of correlations to send.
  */
-void tracker_correlations_send(tracker_t *tracker_channel,
-                               const corr_t *cs) {
+void tracker_correlations_send(tracker_t *tracker_channel, const corr_t *cs) {
   /* Output I/Q correlations using SBP if enabled for this channel */
   if (tracker_channel->output_iq) {
     msg_tracking_iq_t msg = {

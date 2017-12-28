@@ -880,8 +880,7 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * \param[in,out] tracker_channel Tracker channel data
  * \param[in] reason     Channel drop reason
  */
-static void drop_channel(tracker_t *tracker_channel,
-                         ch_drop_reason_t reason) {
+static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
    */
@@ -1153,13 +1152,12 @@ void sanitize_trackers(void) {
  * \sa tracking_channel_lock
  * \sa tracking_channel_unlock
  */
-static u32 get_tracking_channel_flags_info(
-    u8 i,
-    tracker_info_t *info,
-    tracker_time_info_t *time_info,
-    tracker_freq_info_t *freq_info,
-    tracker_ctrl_info_t *ctrl_info,
-    tracker_misc_info_t *misc_info) {
+static u32 get_tracking_channel_flags_info(u8 i,
+                                           tracker_info_t *info,
+                                           tracker_time_info_t *time_info,
+                                           tracker_freq_info_t *freq_info,
+                                           tracker_ctrl_info_t *ctrl_info,
+                                           tracker_misc_info_t *misc_info) {
   tracker_info_t tmp_info;
   tracker_time_info_t tmp_time_info;
 
@@ -1301,10 +1299,10 @@ u32 get_tracking_channel_meas(u8 i,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
   u32 flags = 0;                          /* Result */
-  tracker_info_t info;           /* Container for generic info */
-  tracker_freq_info_t freq_info; /* Container for measurements */
-  tracker_time_info_t time_info; /* Container for time info */
-  tracker_misc_info_t misc_info; /* Container for measurements */
+  tracker_info_t info;                    /* Container for generic info */
+  tracker_freq_info_t freq_info;          /* Container for measurements */
+  tracker_time_info_t time_info;          /* Container for time info */
+  tracker_misc_info_t misc_info;          /* Container for measurements */
 
   memset(meas, 0, sizeof(*meas));
 

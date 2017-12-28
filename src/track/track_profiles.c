@@ -971,8 +971,7 @@ tp_result_e tp_init(void) { return TP_RESULT_SUCCESS; }
  * \param[in,out]  tracker_channel Tracker channel data
  * \param[in]  data    Initial parameters.
  */
-void tp_profile_init(tracker_t *tracker_channel,
-                     const tp_report_t *data) {
+void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data) {
   assert(tracker_channel);
 
   tp_profile_t *profile = &tracker_channel->profile;

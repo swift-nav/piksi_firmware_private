@@ -182,7 +182,7 @@ typedef enum {
  * Generic tracking channel information for external use.
  */
 typedef struct {
-  tracker_id_t id; /**< Channel identifier */
+  tracker_id_t id;         /**< Channel identifier */
   me_gnss_signal_t mesid;  /**< ME signal identifier */
   u16 glo_orbit_slot;      /**< GLO orbital slot */
   u32 flags;               /**< Tracker flags TRACKER_FLAG_... */

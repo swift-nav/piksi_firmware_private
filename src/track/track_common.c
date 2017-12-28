@@ -103,8 +103,8 @@ static u32 tp_convert_ms_to_chips(me_gnss_signal_t mesid,
  *                            to update.
  * \return None
  */
-void tp_tracker_update_lock_detect_parameters(
-    tracker_t *tracker_channel, bool init) {
+void tp_tracker_update_lock_detect_parameters(tracker_t *tracker_channel,
+                                              bool init) {
   tp_profile_t *profile = &tracker_channel->profile;
   const tp_lock_detect_params_t *ldp = &profile->ld_phase_params;
   const tp_lock_detect_params_t *ldf = &profile->ld_freq_params;
@@ -287,8 +287,7 @@ void tp_tracker_init(tracker_t *tracker_channel,
 
 void tracker_cleanup(tracker_t *tracker_channel) {
   size_t cleanup_region_size =
-      sizeof(tracker_t) -
-      offsetof(tracker_t, cleanup_region_start);
+      sizeof(tracker_t) - offsetof(tracker_t, cleanup_region_start);
 
   chMtxLock(&tracker_channel->mutex_pub);
   memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
@@ -462,9 +461,7 @@ void update_bit_polarity_flags(tracker_t *tracker_channel) {
  *
  * \return None
  */
-static void process_alias_error(tracker_t *tracker_channel,
-                                float I,
-                                float Q) {
+static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
   float err_hz = alias_detect_second(&tracker_channel->alias_detect, I, Q);
 
   if (fabsf(err_hz) < TRACK_ALIAS_THRESHOLD_HZ) {
@@ -607,8 +604,7 @@ void tp_tracker_update_correlators(tracker_t *tracker_channel,
  *
  * \return None
  */
-void tp_tracker_update_bsync(tracker_t *tracker_channel,
-                             u32 cycle_flags) {
+void tp_tracker_update_bsync(tracker_t *tracker_channel, u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
     bool sensitivity_mode =
         (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
@@ -635,8 +631,7 @@ void tp_tracker_update_bsync(tracker_t *tracker_channel,
  *
  * \return None
  */
-void tp_tracker_update_cn0(tracker_t *tracker_channel,
-                           u32 cycle_flags) {
+void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
   float cn0 = tracker_channel->cn0_est.filter.yn;
   tp_cn0_params_t cn0_params;
   tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
@@ -772,8 +767,7 @@ static void update_ld_freq(tracker_t *tracker_channel) {
  *
  * \return None
  */
-void tp_tracker_update_locks(tracker_t *tracker_channel,
-                             u32 cycle_flags) {
+void tp_tracker_update_locks(tracker_t *tracker_channel, u32 cycle_flags) {
   /* Phase lock and frequency lock detectors are updated asynchronously. */
   if (0 != (cycle_flags & TPF_PLD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
     bool outp_prev =
@@ -835,8 +829,7 @@ void tp_tracker_update_locks(tracker_t *tracker_channel,
  *
  * \return None
  */
-void tp_tracker_update_fll(tracker_t *tracker_channel,
-                           u32 cycle_flags) {
+void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
   bool halfq = (0 != (cycle_flags & TPF_FLL_HALFQ));
 
   if (0 != (cycle_flags & TPF_FLL_USE)) {
@@ -858,8 +851,7 @@ void tp_tracker_update_fll(tracker_t *tracker_channel,
  *
  * \return None
  */
-void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
-                               u32 cycle_flags) {
+void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker_channel->tracking_mode != TP_TM_INITIAL) {
@@ -989,8 +981,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
  *
  * \return None
  */
-void tp_tracker_update_alias(tracker_t *tracker_channel,
-                             u32 cycle_flags) {
+void tp_tracker_update_alias(tracker_t *tracker_channel, u32 cycle_flags) {
   if (!tracker_channel->use_alias_detection) {
     return;
   }
