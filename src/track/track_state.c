@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "track_state.h"
 #include "ndb/ndb.h"
 #include "position.h"
 #include "sbp_utils.h"
@@ -20,7 +21,6 @@
 #include "track_flags.h"
 #include "track_interface.h"
 #include "track_sbp.h"
-#include "track_state.h"
 
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
 #define NAP_TRACK_IRQ_THREAD_STACK (32 * 1024)
@@ -127,8 +127,7 @@ tracker_channel_t *tracker_get(tracker_channel_id_t id) {
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_available(tracker_channel_id_t id,
-                               const me_gnss_signal_t mesid) {
+bool tracker_available(tracker_channel_id_t id, const me_gnss_signal_t mesid) {
   const tracker_channel_t *tracker_channel = tracker_get(id);
 
   if (!nap_track_supports(id, mesid)) {
@@ -476,13 +475,11 @@ bool tracker_runnable(const tracker_channel_t *tracker_channel) {
  *
  * \return state of the decoder channel.
  */
-state_t tracker_state_get(
-    const tracker_channel_t *tracker_channel) {
+state_t tracker_state_get(const tracker_channel_t *tracker_channel) {
   state_t state = tracker_channel->state;
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   return state;
 }
-
 
 /** Disable the NAP tracking channel associated with a tracker channel.
  *

@@ -768,8 +768,7 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
    * a newly acquired satellite into.
    */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    if (code_requires_decoder(mesid.code) &&
-        tracker_available(i, mesid) &&
+    if (code_requires_decoder(mesid.code) && tracker_available(i, mesid) &&
         decoder_channel_available(i, mesid)) {
       return i;
     } else if (!code_requires_decoder(mesid.code) &&

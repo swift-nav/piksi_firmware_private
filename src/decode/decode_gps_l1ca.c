@@ -23,9 +23,9 @@
 #include "shm/shm.h"
 #include "signal.h"
 #include "timing/timing.h"
-#include "track/track_state.h"
 #include "track/track_flags.h"
 #include "track/track_sid_db.h"
+#include "track/track_state.h"
 
 #include <assert.h>
 #include <string.h>
