@@ -15,6 +15,10 @@
 
 #include "track.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* Tracker instance API functions. Must be called from within an
  * interface function. */
 void tracker_correlations_read(u8 nap_channel,
@@ -56,5 +60,9 @@ void tracker_tow_cache(tracker_channel_t *tracker_channel);
 
 void tracker_lock(tracker_channel_t *tracker_channel);
 void tracker_unlock(tracker_channel_t *tracker_channel);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif /* SWIFTNAV_TRACK_API_H  */

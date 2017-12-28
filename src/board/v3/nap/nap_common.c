@@ -26,7 +26,7 @@
 #include "main.h"
 #include "manage.h"
 #include "system_monitor/system_monitor.h"
-#include "track.h"
+#include "track/track_state.h"
 
 #include <math.h>
 #include <string.h>
@@ -172,7 +172,7 @@ static void handle_nap_track_irq(void) {
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
-  tracking_channels_update(irq);
+  trackers_update(irq);
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
@@ -187,7 +187,7 @@ static void handle_nap_track_irq(void) {
     log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32,
              err1,
              err0);
-    tracking_channels_missed_update_error(err);
+    trackers_missed(err);
   }
 
   watchdog_notify(WD_NOTIFY_NAP_ISR);
