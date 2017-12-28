@@ -95,7 +95,7 @@ static void tracker_gps_l1ca_init(tracker_t *tracker_channel) {
  * \return None
  */
 static void check_L1_entry(tracker_t *tracker_channel,
-                           const tracking_channel_cc_entry_t *entry,
+                           const tracker_cc_entry_t *entry,
                            bool xcorr_flags[],
                            bool sat_active[],
                            float xcorr_cn0_diffs[]) {
@@ -208,7 +208,7 @@ static void check_L1_xcorr_flags(tracker_t *tracker_channel,
  * \return false if entry was not L2CM from same SV, true if it was.
  */
 static bool check_L2_entries(tracker_t *tracker_channel,
-                             const tracking_channel_cc_entry_t *entry,
+                             const tracker_cc_entry_t *entry,
                              bool *xcorr_flag) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
@@ -325,7 +325,7 @@ static void update_l1_xcorr(tracker_t *tracker_channel) {
     return;
   }
 
-  tracking_channel_cc_data_t cc_data;
+  tracker_cc_data_t cc_data;
   u16 cnt = tracking_channel_load_cc_data(&cc_data);
 
   bool xcorr_flags[NUM_SATS_GPS] = {false};
@@ -333,7 +333,7 @@ static void update_l1_xcorr(tracker_t *tracker_channel) {
   float xcorr_cn0_diffs[NUM_SATS_GPS] = {0.0f};
 
   for (u16 idx = 0; idx < cnt; ++idx) {
-    const tracking_channel_cc_entry_t *const entry = &cc_data.entries[idx];
+    const tracker_cc_entry_t *const entry = &cc_data.entries[idx];
 
     check_L1_entry(
         tracker_channel, entry, xcorr_flags, sat_active, xcorr_cn0_diffs);
@@ -395,12 +395,12 @@ static void update_l1_xcorr(tracker_t *tracker_channel) {
 static void update_l1_xcorr_from_l2(tracker_t *tracker_channel) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
-  tracking_channel_cc_data_t cc_data;
+  tracker_cc_data_t cc_data;
   u16 cnt = tracking_channel_load_cc_data(&cc_data);
 
   bool xcorr_flag = false;
   for (u16 idx = 0; idx < cnt; ++idx) {
-    const tracking_channel_cc_entry_t *const entry = &cc_data.entries[idx];
+    const tracker_cc_entry_t *const entry = &cc_data.entries[idx];
 
     if (check_L2_entries(tracker_channel, entry, &xcorr_flag)) {
       break;

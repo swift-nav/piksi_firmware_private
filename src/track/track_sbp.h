@@ -99,11 +99,11 @@ typedef enum {
 #define TRACK_SBP_CLOCK_VALID (1 << 5)
 
 void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
-                                  const tracking_channel_info_t *channel_info,
-                                  const tracking_channel_freq_info_t *freq_info,
-                                  const tracking_channel_time_info_t *time_info,
-                                  const tracking_channel_ctrl_info_t *ctrl_info,
-                                  const tracking_channel_misc_info_t *misc_info,
+                                  const tracker_info_t *channel_info,
+                                  const tracker_freq_info_t *freq_info,
+                                  const tracker_time_info_t *time_info,
+                                  const tracker_ctrl_info_t *ctrl_info,
+                                  const tracker_misc_info_t *misc_info,
                                   const last_good_fix_t *lgf);
 
 #endif /* _TRACK_SBP_H */

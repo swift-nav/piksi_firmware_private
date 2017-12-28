@@ -21,11 +21,11 @@ extern "C" {
 
 void track_setup(void);
 
-tracker_t *tracker_get(tracker_channel_id_t id);
+tracker_t *tracker_get(tracker_id_t id);
 
 /* State management interface */
-bool tracker_available(tracker_channel_id_t id, const me_gnss_signal_t mesid);
-bool tracker_init(tracker_channel_id_t id,
+bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid);
+bool tracker_init(tracker_id_t id,
                   const me_gnss_signal_t mesid,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
@@ -33,7 +33,7 @@ bool tracker_init(tracker_channel_id_t id,
                   float carrier_freq,
                   u32 chips_to_correlate,
                   float cn0_init);
-bool tracker_disable(tracker_channel_id_t id);
+bool tracker_disable(tracker_id_t id);
 
 bool tracker_runnable(const tracker_t *tracker_channel);
 state_t tracker_state_get(const tracker_t *tracker_channel);

@@ -42,23 +42,23 @@
 /**
  * Input entry for cross-correlation processing
  *
- * \sa tracking_channel_cc_data_t
+ * \sa tracker_cc_data_t
  */
 typedef struct {
-  tracker_channel_id_t id; /**< Tracking channel id */
+  tracker_id_t id; /**< Tracking channel id */
   u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
   me_gnss_signal_t mesid;  /**< Tracked GNSS ME signal identifier */
   float freq;              /**< Doppler frequency for cross-correlation [hz] */
   float cn0;               /**< C/N0 level [dB/Hz] */
-} tracking_channel_cc_entry_t;
+} tracker_cc_entry_t;
 
 /**
  * Data container for cross-correlation processing
  */
 typedef struct {
   /** Entries with data for cross-correlation  */
-  tracking_channel_cc_entry_t entries[NUM_TRACKER_CHANNELS];
-} tracking_channel_cc_data_t;
+  tracker_cc_entry_t entries[NUM_TRACKER_CHANNELS];
+} tracker_cc_data_t;
 
 /** \} */
 
@@ -210,29 +210,29 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
 
 void tracking_channel_measurement_get(
     u64 ref_tc,
-    const tracking_channel_info_t *info,
-    const tracking_channel_freq_info_t *freq_info,
-    const tracking_channel_time_info_t *time_info,
-    const tracking_channel_misc_info_t *misc_info,
+    const tracker_info_t *info,
+    const tracker_freq_info_t *freq_info,
+    const tracker_time_info_t *time_info,
+    const tracker_misc_info_t *misc_info,
     channel_measurement_t *meas);
 
 bool tracking_channel_calc_pseudorange(u64 ref_tc,
                                        const channel_measurement_t *meas,
                                        double *raw_pseudorange);
 
-void tracking_channel_get_values(tracker_channel_id_t id,
-                                 tracking_channel_info_t *info,
-                                 tracking_channel_time_info_t *time_info,
-                                 tracking_channel_freq_info_t *freq_info,
-                                 tracking_channel_ctrl_info_t *ctrl_params,
-                                 tracking_channel_misc_info_t *misc_params);
+void tracking_channel_get_values(tracker_id_t id,
+                                 tracker_info_t *info,
+                                 tracker_time_info_t *time_info,
+                                 tracker_freq_info_t *freq_info,
+                                 tracker_ctrl_info_t *ctrl_params,
+                                 tracker_misc_info_t *misc_params);
 double tracking_channel_get_lock_time(
-    const tracking_channel_time_info_t *time_info,
-    const tracking_channel_misc_info_t *misc_info);
-u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data);
+    const tracker_time_info_t *time_info,
+    const tracker_misc_info_t *misc_info);
+u16 tracking_channel_load_cc_data(tracker_cc_data_t *cc_data);
 
 void tracking_channel_set_carrier_phase_offset(
-    const tracking_channel_info_t *info, double carrier_phase_offset);
+    const tracker_info_t *info, double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
 tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
@@ -242,13 +242,13 @@ void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid);
 bool handover_valid(double code_phase_chips, double max_chips);
 
 /* Decoder interface */
-bool tracking_channel_nav_bit_get(tracker_channel_id_t id,
+bool tracking_channel_nav_bit_get(tracker_id_t id,
                                   nav_bit_fifo_element_t *nav_bit);
-bool tracking_channel_health_sync(tracker_channel_id_t id, u8 health);
+bool tracking_channel_health_sync(tracker_id_t id, u8 health);
 void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
-void tracking_channel_data_sync(tracker_channel_id_t id,
+void tracking_channel_data_sync(tracker_id_t id,
                                 nav_data_sync_t *from_decoder);
-void tracking_channel_glo_data_sync(tracker_channel_id_t id,
+void tracking_channel_glo_data_sync(tracker_id_t id,
                                     nav_data_sync_t *from_decoder);
 
 void track_internal_setup(void);

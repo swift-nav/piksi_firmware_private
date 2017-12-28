@@ -162,7 +162,7 @@ typedef struct {
 /** \addtogroup tracking
  * \{ */
 
-typedef u8 tracker_channel_id_t;
+typedef u8 tracker_id_t;
 
 typedef enum {
   STATE_DISABLED,
@@ -182,7 +182,7 @@ typedef enum {
  * Generic tracking channel information for external use.
  */
 typedef struct {
-  tracker_channel_id_t id; /**< Channel identifier */
+  tracker_id_t id; /**< Channel identifier */
   me_gnss_signal_t mesid;  /**< ME signal identifier */
   u16 glo_orbit_slot;      /**< GLO orbital slot */
   u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
@@ -198,7 +198,7 @@ typedef struct {
   float xcorr_freq;        /**< Cross-correlation doppler [hz] */
   u16 xcorr_count;         /**< Cross-correlation counter */
   bool xcorr_wl;           /**< Is signal xcorr whitelisted? */
-} tracking_channel_info_t;
+} tracker_info_t;
 
 /**
  * Timing information from tracking channel for external use.
@@ -208,7 +208,7 @@ typedef struct {
   u32 cn0_drop_ms;         /**< Time with C/N0 below drop threshold [ms] */
   u32 ld_pess_locked_ms;   /**< Time in pessimistic lock [ms] */
   u32 ld_pess_unlocked_ms; /**< Time without pessimistic lock [ms] */
-} tracking_channel_time_info_t;
+} tracker_time_info_t;
 
 /** Controller parameters for error sigma computations */
 typedef struct {
@@ -220,7 +220,7 @@ typedef struct {
                      PLL and FLL-assisted PLL tracking */
   float dll_bw; /**< DLL controller noise bandwidth [Hz]. */
   u8 int_ms;    /**< PLL/FLL controller integration time [ms] */
-} tracking_channel_ctrl_info_t;
+} tracker_ctrl_info_t;
 
 /** Tracking channel miscellaneous info */
 typedef struct {
@@ -228,7 +228,7 @@ typedef struct {
     double value;         /**< Carrier phase offset value [cycles]. */
     u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
   } carrier_phase_offset; /**< Carrier phase offset */
-} tracking_channel_misc_info_t;
+} tracker_misc_info_t;
 
 /**
  * Phase and frequencies information
@@ -241,7 +241,7 @@ typedef struct {
   double
       carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
   float acceleration;       /**< Acceleration [g] */
-} tracking_channel_freq_info_t;
+} tracker_freq_info_t;
 
 /**
  * Public data segment.
@@ -253,16 +253,16 @@ typedef struct {
  */
 typedef struct {
   /** Generic info for externals */
-  volatile tracking_channel_info_t gen_info;
+  volatile tracker_info_t gen_info;
   /** Timing info for externals */
-  volatile tracking_channel_time_info_t time_info;
+  volatile tracker_time_info_t time_info;
   /** Frequency info for externals */
-  volatile tracking_channel_freq_info_t freq_info;
+  volatile tracker_freq_info_t freq_info;
   /** Controller parameters */
-  volatile tracking_channel_ctrl_info_t ctrl_info;
+  volatile tracker_ctrl_info_t ctrl_info;
   /** Miscellaneous parameters */
-  volatile tracking_channel_misc_info_t misc_info;
-} tracker_channel_pub_data_t;
+  volatile tracker_misc_info_t misc_info;
+} tracker_pub_data_t;
 
 /**
  * Tracker loop state.
@@ -433,7 +433,7 @@ typedef struct {
   glo_health_t health;         /**< GLO SV health info */
 
   /** Publicly accessible data */
-  tracker_channel_pub_data_t pub_data;
+  tracker_pub_data_t pub_data;
 
   tp_profile_t profile; /**< Profile controller state. */
 
