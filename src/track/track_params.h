@@ -24,11 +24,11 @@
  * \sa tracker_cc_data_t
  */
 typedef struct {
-  tracker_id_t id;         /**< Tracking channel id */
-  u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
-  me_gnss_signal_t mesid;  /**< Tracked GNSS ME signal identifier */
-  float freq;              /**< Doppler frequency for cross-correlation [hz] */
-  float cn0;               /**< C/N0 level [dB/Hz] */
+  tracker_id_t id;        /**< Tracking channel id */
+  u32 flags;              /**< Tracker flags TRACKER_FLAG_... */
+  me_gnss_signal_t mesid; /**< Tracked GNSS ME signal identifier */
+  float freq;             /**< Doppler frequency for cross-correlation [hz] */
+  float cn0;              /**< C/N0 level [dB/Hz] */
 } tracker_cc_entry_t;
 
 /**
@@ -46,28 +46,28 @@ extern "C" {
 #endif /* __cplusplus */
 
 void tracker_measurement_get(u64 ref_tc,
-                                      const tracker_info_t *info,
-                                      const tracker_freq_info_t *freq_info,
-                                      const tracker_time_info_t *time_info,
-                                      const tracker_misc_info_t *misc_info,
-                                      channel_measurement_t *meas);
+                             const tracker_info_t *info,
+                             const tracker_freq_info_t *freq_info,
+                             const tracker_time_info_t *time_info,
+                             const tracker_misc_info_t *misc_info,
+                             channel_measurement_t *meas);
 
 bool tracker_calc_pseudorange(u64 ref_tc,
-                                       const channel_measurement_t *meas,
-                                       double *raw_pseudorange);
+                              const channel_measurement_t *meas,
+                              double *raw_pseudorange);
 
 void tracker_get_values(tracker_id_t id,
-                                 tracker_info_t *info,
-                                 tracker_time_info_t *time_info,
-                                 tracker_freq_info_t *freq_info,
-                                 tracker_ctrl_info_t *ctrl_params,
-                                 tracker_misc_info_t *misc_params);
+                        tracker_info_t *info,
+                        tracker_time_info_t *time_info,
+                        tracker_freq_info_t *freq_info,
+                        tracker_ctrl_info_t *ctrl_params,
+                        tracker_misc_info_t *misc_params);
 double tracker_get_lock_time(const tracker_time_info_t *time_info,
-                                      const tracker_misc_info_t *misc_info);
+                             const tracker_misc_info_t *misc_info);
 u16 tracker_load_cc_data(tracker_cc_data_t *cc_data);
 
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
-                                               double carrier_phase_offset);
+                                      double carrier_phase_offset);
 void tracker_carrier_phase_offsets_adjust(double dt);
 
 tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);

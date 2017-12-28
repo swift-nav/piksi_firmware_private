@@ -1170,11 +1170,11 @@ static u32 get_tracking_channel_flags_info(u8 i,
   }
 
   tracker_get_values(i,
-                              info,      /* Generic info */
-                              time_info, /* Timers */
-                              freq_info, /* Frequencies */
-                              ctrl_info, /* Loop controller values */
-                              misc_info);
+                     info,      /* Generic info */
+                     time_info, /* Timers */
+                     freq_info, /* Frequencies */
+                     ctrl_info, /* Loop controller values */
+                     misc_info);
 
   return info->flags;
 }
@@ -1388,11 +1388,11 @@ void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
   tracker_ctrl_info_t tmp;
 
   tracker_get_values(i,
-                              NULL,  /* Generic info */
-                              NULL,  /* Timers */
-                              NULL,  /* Frequencies */
-                              &tmp,  /* Loop controller values */
-                              NULL); /* Misc info */
+                     NULL,  /* Generic info */
+                     NULL,  /* Timers */
+                     NULL,  /* Frequencies */
+                     &tmp,  /* Loop controller values */
+                     NULL); /* Misc info */
   pparams->pll_bw = tmp.pll_bw;
   pparams->fll_bw = tmp.fll_bw;
   pparams->dll_bw = tmp.dll_bw;

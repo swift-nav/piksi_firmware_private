@@ -36,11 +36,11 @@
  * \return None
  */
 void tracker_measurement_get(u64 ref_tc,
-                                      const tracker_info_t *info,
-                                      const tracker_freq_info_t *freq_info,
-                                      const tracker_time_info_t *time_info,
-                                      const tracker_misc_info_t *misc_info,
-                                      channel_measurement_t *meas) {
+                             const tracker_info_t *info,
+                             const tracker_freq_info_t *freq_info,
+                             const tracker_time_info_t *time_info,
+                             const tracker_misc_info_t *misc_info,
+                             channel_measurement_t *meas) {
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
 
@@ -73,8 +73,8 @@ void tracker_measurement_get(u64 ref_tc,
  * \retval false Error in computation.
  */
 bool tracker_calc_pseudorange(u64 ref_tc,
-                                       const channel_measurement_t *meas,
-                                       double *raw_pseudorange) {
+                              const channel_measurement_t *meas,
+                              double *raw_pseudorange) {
   navigation_measurement_t nav_meas, *p_nav_meas = &nav_meas;
   gps_time_t rec_time = napcount2gpstime(ref_tc);
   s8 nm_ret = calc_navigation_measurement(1, &meas, &p_nav_meas, &rec_time);
@@ -109,11 +109,11 @@ bool tracker_calc_pseudorange(u64 ref_tc,
  * \sa tracking_channel_update_values
  */
 void tracker_get_values(tracker_id_t id,
-                                 tracker_info_t *info,
-                                 tracker_time_info_t *time_info,
-                                 tracker_freq_info_t *freq_info,
-                                 tracker_ctrl_info_t *ctrl_params,
-                                 tracker_misc_info_t *misc_params) {
+                        tracker_info_t *info,
+                        tracker_time_info_t *time_info,
+                        tracker_freq_info_t *freq_info,
+                        tracker_ctrl_info_t *ctrl_params,
+                        tracker_misc_info_t *misc_params) {
   tracker_t *tracker_channel = tracker_get(id);
   tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
 
@@ -145,7 +145,7 @@ void tracker_get_values(tracker_id_t id,
  * \return Lock time [s]
  */
 double tracker_get_lock_time(const tracker_time_info_t *time_info,
-                                      const tracker_misc_info_t *misc_info) {
+                             const tracker_misc_info_t *misc_info) {
   u64 cpo_age_ms = 0;
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
@@ -211,7 +211,7 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
  * \return None
  */
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
-                                               double carrier_phase_offset) {
+                                      double carrier_phase_offset) {
   bool adjusted = false;
   tracker_t *tracker_channel = tracker_get(info->id);
   tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
