@@ -44,7 +44,7 @@
 #include "soft_macq/soft_macq_main.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_api.h"
 #include "track/track_sid_db.h"
 
 /** \defgroup manage Manage

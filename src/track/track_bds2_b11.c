@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_bds2_b11.h"
+#include "track_api.h"
 #include "track_bds2_b2.h"
 #include "track_cn0.h"
 #include "track_interface.h"
