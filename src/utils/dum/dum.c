@@ -14,7 +14,7 @@
 #include "dum.h"
 #include "manage.h"
 #include "ndb/ndb.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "timing/timing.h"
 
 /**

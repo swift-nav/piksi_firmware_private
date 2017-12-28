@@ -25,22 +25,22 @@
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/signal.h>
 
-#include "base_obs.h"
+#include "calc_base_obs.h"
+#include "calc_pvt_me.h"
+#include "calc_pvt_starling.h"
 #include "cnav_msg_storage.h"
 #include "ephemeris.h"
 #include "manage.h"
-#include "me_calc_pvt.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "shm/shm.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "simulator.h"
-#include "starling_calc_pvt.h"
 #include "timing/timing.h"
 
 extern bool disable_raim;

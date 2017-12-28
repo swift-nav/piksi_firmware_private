@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "signal_db/signal_db.h"
 #include "track.h"
 #include "track/track_flags.h"
 
@@ -21,7 +22,6 @@
 #include <nap/nap_hw.h>
 #include <platform_cn0.h>
 #include <platform_track.h>
-#include <signal.h>
 
 #include <assert.h>
 #include <math.h>

@@ -20,8 +20,9 @@
 #include <libswiftnav/nav_meas.h>
 #include <libswiftnav/observation.h>
 
+#include "calc_nav_meas.h"
+
 #include "gtest/gtest.h"
-#include "nav_meas_calc.h"
 
 /* real ephemeris for SV 15 at 8:00, 30-May-2016 */
 /* tow and toc modified to fit the dates below */

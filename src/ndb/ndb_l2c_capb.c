@@ -19,7 +19,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 /** L2C capabilities file name */
 #define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"

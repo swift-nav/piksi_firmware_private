@@ -12,7 +12,7 @@
 
 #include "track_state.h"
 #include "ndb/ndb.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp_utils.h"
 #include "simulator/simulator.h"
 #include "timing/timing.h"

@@ -17,12 +17,12 @@
 #include <libswiftnav/logging.h>
 #include <sbp.h>
 #include <sbp_utils.h>
-#include <signal.h>
 #include <string.h>
 #include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
-#include "settings.h"
+#include "settings/settings.h"
+#include "signal_db/signal_db.h"
 #include "timing/timing.h"
 
 /** Almanac file name */

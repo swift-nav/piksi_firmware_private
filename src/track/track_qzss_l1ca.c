@@ -12,6 +12,7 @@
 
 /* Local headers */
 #include "track_qzss_l1ca.h"
+#include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_cn0.h"
 #include "track_interface.h"
@@ -21,7 +22,6 @@
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
-#include <signal.h>
 #include <track.h>
 
 /* Libraries */

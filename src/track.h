@@ -23,7 +23,6 @@
 #include "shm/shm.h"
 
 #include <platform_signal.h>
-#include <settings.h>
 #include "alias_detector/alias_detector.h"
 #include "bit_sync/bit_sync.h"
 #include "board/nap/nap_common.h"
@@ -32,6 +31,7 @@
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_data_sync/nav_data_sync.h"
 #include "nav_msg/nav_msg.h"
+#include "settings/settings.h"
 #include "track/track_cn0.h"
 #include "track_loop/trk_loop_common.h"
 

@@ -92,7 +92,7 @@
 
 /* \} */
 
-void signal_init(void);
+void signal_db_init(void);
 gnss_signal_t sid_from_global_index(u16 global_index);
 me_gnss_signal_t mesid_from_global_index(u16 global_index);
 gnss_signal_t sid_from_constellation_index(constellation_t constellation,

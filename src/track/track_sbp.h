@@ -13,7 +13,7 @@
 #ifndef _TRACK_SBP_H
 #define _TRACK_SBP_H
 
-#include "position.h"
+#include "position/position.h"
 #include "track.h"
 
 /** Acceleration scaling factor. Original units [g]. */

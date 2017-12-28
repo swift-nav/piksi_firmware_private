@@ -20,7 +20,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 /** Ionospheric corrections file name */
 #define IONO_CORR_FILE_NAME "persistent/iono"

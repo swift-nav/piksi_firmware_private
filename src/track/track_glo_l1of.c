@@ -13,6 +13,7 @@
 /* Local headers */
 #include "track_glo_l1of.h"
 #include "alias_detector/alias_detector.h"
+#include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_cn0.h"
 #include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
@@ -22,7 +23,6 @@
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
-#include <signal.h>
 
 /* Libraries */
 #include <libswiftnav/constants.h>

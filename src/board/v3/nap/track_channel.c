@@ -16,7 +16,7 @@
 #include "nap/nap_common.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
 #include "track.h"

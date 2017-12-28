@@ -3,7 +3,7 @@
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 
-#include "common_calc_pvt.h"
+#include "calc_pvt_common.h"
 
 /** Max position accuracy we allow to output a SPP solution */
 #define MAX_SPP_ACCURACY_M 100.0

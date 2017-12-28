@@ -24,15 +24,15 @@
 #include <libswiftnav/linear_algebra.h>
 #include <track.h>
 
-#include "settings.h"
+#include "settings/settings.h"
 
-#include "me_calc_pvt.h"
+#include "calc_pvt_me.h"
+#include "calc_pvt_starling.h"
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "simulator.h"
-#include "starling_calc_pvt.h"
 
 #include "simulator_data.h"
 

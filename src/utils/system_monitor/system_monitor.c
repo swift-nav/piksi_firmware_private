@@ -21,18 +21,18 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 
-#include "base_obs.h"
 #include "board.h"
 #include "board/nap/nap_common.h"
+#include "calc_base_obs.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
 #include "nt1065.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "simulator.h"
 #include "system_monitor.h"
 

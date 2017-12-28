@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "sbas_select.h"
+#include "sbas_select/sbas_select.h"
 
 void log_(u8 level, const char *msg, ...) {
   (void)level;

@@ -17,13 +17,14 @@
 #include <libswiftnav/logging.h>
 
 #include <hal.h>
-#include "me_calc_pvt.h"
+#include "calc_pvt_me.h"
 
-#include "base_obs.h"
 #include "board/frontend.h"
+#include "calc_base_obs.h"
+#include "calc_pvt_starling.h"
 #include "decode.h"
 #include "ephemeris.h"
-#include "ext_events.h"
+#include "ext_events/ext_events.h"
 #include "glo_map_setup/glo_map_setup.h"
 #include "init.h"
 #include "io_support.h"
@@ -31,15 +32,14 @@
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
-#include "position.h"
+#include "position/position.h"
 #include "pps/pps.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
-#include "signal.h"
+#include "settings/settings.h"
+#include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "specan/specan_main.h"
-#include "starling_calc_pvt.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"
@@ -68,7 +68,7 @@ int main(void) {
   log_info("pfwp_build_date: " __DATE__ " " __TIME__ "");
 
   init();
-  signal_init();
+  signal_db_init();
 
   static u16 sender_id;
   sender_id = sender_id_get();

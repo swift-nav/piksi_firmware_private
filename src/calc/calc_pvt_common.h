@@ -22,19 +22,19 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 
-#include "base_obs.h"
+#include "calc_base_obs.h"
 #include "cnav_msg_storage.h"
 #include "ephemeris.h"
 #include "main.h"
 #include "manage.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "shm/shm.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"

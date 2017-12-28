@@ -19,7 +19,7 @@
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 #define UTC_PARAMS_FILE_NAME "persistent/utc_params"
 #define UTC_PARAMS_FILE_TYPE "utc parameters"

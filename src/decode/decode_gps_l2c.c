@@ -24,7 +24,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "track/track_flags.h"
 
 /** GPS L2 C decoder data */

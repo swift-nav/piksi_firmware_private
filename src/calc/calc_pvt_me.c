@@ -23,23 +23,23 @@
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/troposphere.h>
 
-#include "me_calc_pvt.h"
+#include "calc_nav_meas.h"
+#include "calc_pvt_me.h"
 
 #include "manage.h"
-#include "nav_meas_calc.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
-#include "position.h"
+#include "position/position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 
+#include "calc_pvt_common.h"
 #include "cnav_msg_storage.h"
-#include "common_calc_pvt.h"
 #include "ephemeris.h"
 #include "main.h"
 #include "ndb/ndb.h"
 #include "observation_biases_calibration.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
 #include "system_monitor/system_monitor.h"

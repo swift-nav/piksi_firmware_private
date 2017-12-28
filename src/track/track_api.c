@@ -22,7 +22,7 @@
 #include "decode.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 

@@ -11,7 +11,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "signal.h"
+#include "signal_db.h"
 #include <board.h>
 
 #include <assert.h>
@@ -81,7 +81,7 @@ static const u16 me_code_signal_counts[CODE_COUNT] =
      [CODE_QZS_L2CM] = PLATFORM_SIGNAL_COUNT_QZS_L2C};
 
 /** Initialize the signal module. */
-void signal_init(void) {
+void signal_db_init(void) {
   /* Populate constellation start index */
   u16 constellation_start_indexes[CONSTELLATION_COUNT];
   u16 me_constellation_start_indexes[CONSTELLATION_COUNT];

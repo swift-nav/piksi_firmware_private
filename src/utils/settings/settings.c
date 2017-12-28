@@ -18,7 +18,7 @@
 #include <libswiftnav/logging.h>
 
 #include "sbp.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 #define SETTINGS_FILE "config"
 

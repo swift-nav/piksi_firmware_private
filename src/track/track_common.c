@@ -17,7 +17,7 @@
 #include <track.h>
 
 #include "lock_detector/lock_detector.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_flags.h"

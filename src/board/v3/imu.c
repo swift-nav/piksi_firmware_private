@@ -11,6 +11,7 @@
  */
 
 #include "imu.h"
+#include "settings/settings.h"
 #include "timing/timing.h"
 
 #include <board/nap/nap_common.h>
@@ -23,7 +24,6 @@
 #include <libswiftnav/logging.h>
 #include <math.h>
 #include <sbp.h>
-#include <settings.h>
 
 #define IMU_THREAD_PRIO (HIGHPRIO - 1)
 #define IMU_THREAD_STACK (2 * 1024)

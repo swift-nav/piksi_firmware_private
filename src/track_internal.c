@@ -21,7 +21,7 @@
 #include <ch.h>
 
 #include "peripherals/random.h"
-#include "signal.h"
+#include "signal_db/signal_db.h"
 
 /** \addtogroup tracking
  * \{ */
