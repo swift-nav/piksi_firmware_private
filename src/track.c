@@ -26,7 +26,7 @@
 #include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "signal.h"
 #include "timing/timing.h"
 #include "track.h"
