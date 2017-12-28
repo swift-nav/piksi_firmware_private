@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track.h"
+#include "track/track_api.h"
 #include "track/track_flags.h"
 
 #include <libswiftnav/constants.h>

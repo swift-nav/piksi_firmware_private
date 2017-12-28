@@ -15,7 +15,7 @@
 
 /* Local headers */
 #include "track_glo_l2of.h"
-#include "track.h"
+#include "track_api.h"
 #include "track_cn0.h"
 #include "track_interface.h"
 #include "track_sid_db.h"

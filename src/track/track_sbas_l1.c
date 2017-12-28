@@ -11,6 +11,7 @@
  */
 
 /* Local headers */
+#include "track_api.h"
 #include "track_sbas_l1.h"
 #include "track_cn0.h"
 #include "track_interface.h"

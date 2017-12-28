@@ -12,6 +12,7 @@
 
 #include "track/track_flags.h"
 #include "track.h"
+#include "track/track_api.h"
 
 /**
  * The function sets or clears PRN fail flag.

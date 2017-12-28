@@ -13,6 +13,7 @@
 /* Local headers */
 #include "track_bds2_b2.h"
 #include "gnss_capabilities/gnss_capabilities.h"
+#include "track_api.h"
 #include "track_cn0.h"
 #include "track_interface.h"
 #include "track_sid_db.h"
