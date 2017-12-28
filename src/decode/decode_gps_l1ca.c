@@ -540,7 +540,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
          * time of week and decoded TOW_ms */
         if (TIME_UNKNOWN == get_time_quality()) {
           gps_time_t t = GPS_TIME_UNKNOWN;
-          tracker_channel_t *tracker_channel =
+          tracker_t *tracker_channel =
               tracker_get(channel_info->tracking_channel);
           chMtxLock(&tracker_channel->mutex);
           t.tow = (double)tracker_channel->nav_data_sync.TOW_ms / SECS_MS +

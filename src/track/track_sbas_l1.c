@@ -61,7 +61,7 @@ void track_sbas_l1_register(void) {
   tracker_interface_register(&tracker_interface_list_element_sbas_l1ca);
 }
 
-static void tracker_sbas_l1ca_init(tracker_channel_t *tracker_channel) {
+static void tracker_sbas_l1ca_init(tracker_t *tracker_channel) {
   sbas_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &sbas_l1ca_config);
 }
@@ -77,7 +77,7 @@ static void tracker_sbas_l1ca_init(tracker_channel_t *tracker_channel) {
  *
  * \return None
  */
-static void update_tow_sbas_l1ca(tracker_channel_t *tracker_channel,
+static void update_tow_sbas_l1ca(tracker_t *tracker_channel,
                                  u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
@@ -172,7 +172,7 @@ static void update_tow_sbas_l1ca(tracker_channel_t *tracker_channel,
   }
 }
 
-static void tracker_sbas_l1ca_update(tracker_channel_t *tracker_channel) {
+static void tracker_sbas_l1ca_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &sbas_l1ca_config);
 
   /* SBAS L1-specific ToW manipulation */

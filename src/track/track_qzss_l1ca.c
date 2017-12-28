@@ -62,12 +62,12 @@ void track_qzss_l1ca_register(void) {
   tracker_interface_register(&tracker_interface_list_element_qzss_l1ca);
 }
 
-static void tracker_qzss_l1ca_init(tracker_channel_t *tracker_channel) {
+static void tracker_qzss_l1ca_init(tracker_t *tracker_channel) {
   qzss_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &qzss_l1ca_config);
 }
 
-static void tracker_qzss_l1ca_update(tracker_channel_t *tracker_channel) {
+static void tracker_qzss_l1ca_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &qzss_l1ca_config);
 
   bool bit_aligned =

@@ -751,7 +751,7 @@ u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no) {
  * \param tracker_channel Tracking channel data.
  * \param cycle_no
  */
-u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no) {
+u32 tp_get_cycle_flags(tracker_t *tracker_channel, u8 cycle_no) {
   const state_table_t *tbl = select_table(tracker_channel->tracking_mode);
   const state_entry_t *ent = select_entry(tbl, cycle_no);
 
