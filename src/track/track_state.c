@@ -115,7 +115,7 @@ void track_setup(void) {
  *
  * \return Associated tracker channel.
  */
-tracker_t *tracker_get(tracker_channel_id_t id) {
+tracker_t *tracker_get(tracker_id_t id) {
   assert(id < NUM_TRACKER_CHANNELS);
   return &trackers[id];
 }
@@ -127,7 +127,7 @@ tracker_t *tracker_get(tracker_channel_id_t id) {
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_available(tracker_channel_id_t id, const me_gnss_signal_t mesid) {
+bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
   const tracker_t *tracker_channel = tracker_get(id);
 
   if (!nap_track_supports(id, mesid)) {
@@ -157,14 +157,14 @@ bool tracker_available(tracker_channel_id_t id, const me_gnss_signal_t mesid) {
 
 static void tracking_channel_compute_values(
     tracker_t *tracker_channel,
-    tracking_channel_info_t *info,
-    tracking_channel_time_info_t *time_info,
-    tracking_channel_freq_info_t *freq_info,
-    tracking_channel_ctrl_info_t *ctrl_params,
+    tracker_info_t *info,
+    tracker_time_info_t *time_info,
+    tracker_freq_info_t *freq_info,
+    tracker_ctrl_info_t *ctrl_params,
     bool *reset_cpo) {
   if (NULL != info) {
     /* Tracker identifier */
-    info->id = (tracker_channel_id_t)(tracker_channel - &trackers[0]);
+    info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
     /* Translate/expand flags from tracker internal scope */
     info->flags = tracker_channel->flags;
     /* Signal identifier */
@@ -286,12 +286,12 @@ static void error_flags_clear(tracker_t *tracker_channel) {
  */
 static void tracking_channel_update_values(
     tracker_t *tracker_channel,
-    const tracking_channel_info_t *info,
-    const tracking_channel_time_info_t *time_info,
-    const tracking_channel_freq_info_t *freq_info,
-    const tracking_channel_ctrl_info_t *ctrl_params,
+    const tracker_info_t *info,
+    const tracker_time_info_t *time_info,
+    const tracker_freq_info_t *freq_info,
+    const tracker_ctrl_info_t *ctrl_params,
     bool reset_cpo) {
-  tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
+  tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
 
   chMtxLock(&tracker_channel->mutex_pub);
   pub_data->gen_info = *info;
@@ -361,7 +361,7 @@ static void event(tracker_t *tracker_channel, event_t event) {
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
-bool tracker_init(tracker_channel_id_t id,
+bool tracker_init(tracker_id_t id,
                   const me_gnss_signal_t mesid,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
@@ -376,10 +376,10 @@ bool tracker_init(tracker_channel_id_t id,
   }
 
   /* Channel public data blocks */
-  tracking_channel_info_t info;
-  tracking_channel_time_info_t time_info;
-  tracking_channel_freq_info_t freq_info;
-  tracking_channel_ctrl_info_t ctrl_params;
+  tracker_info_t info;
+  tracker_time_info_t time_info;
+  tracker_freq_info_t freq_info;
+  tracker_ctrl_info_t ctrl_params;
 
   tracker_lock(tracker_channel);
   {
@@ -449,7 +449,7 @@ bool tracker_init(tracker_channel_id_t id,
  *
  * \return true if the tracker channel was disabled, false otherwise.
  */
-bool tracker_disable(tracker_channel_id_t id) {
+bool tracker_disable(tracker_id_t id) {
   /* Request disable */
   tracker_t *tracker_channel = tracker_get(id);
   event(tracker_channel, EVENT_DISABLE_REQUEST);
@@ -512,10 +512,10 @@ static void tracker_channel_process(tracker_t *tracker,
     case STATE_ENABLED: {
       if (update_required) {
         /* Channel public data blocks for transferring between locks */
-        tracking_channel_info_t info;
-        tracking_channel_time_info_t time_info;
-        tracking_channel_freq_info_t freq_info;
-        tracking_channel_ctrl_info_t ctrl_params;
+        tracker_info_t info;
+        tracker_time_info_t time_info;
+        tracker_freq_info_t freq_info;
+        tracker_ctrl_info_t ctrl_params;
         bool reset_cpo;
 
         tracker_lock(tracker);
@@ -674,11 +674,11 @@ void tracking_send_detailed_state(void) {
   }
 
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    tracking_channel_info_t channel_info;
-    tracking_channel_freq_info_t freq_info;
-    tracking_channel_time_info_t time_info;
-    tracking_channel_ctrl_info_t ctrl_info;
-    tracking_channel_misc_info_t misc_info;
+    tracker_info_t channel_info;
+    tracker_freq_info_t freq_info;
+    tracker_time_info_t time_info;
+    tracker_ctrl_info_t ctrl_info;
+    tracker_misc_info_t misc_info;
     msg_tracking_state_detailed_t sbp;
 
     tracking_channel_get_values(

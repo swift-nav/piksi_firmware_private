@@ -181,7 +181,7 @@ static void tracker_gps_l2c_init(tracker_t *tracker_channel) {
  * \return false if entry was not L1C/A from same SV, true if it was.
  */
 static bool check_L1_entries(tracker_t *tracker_channel,
-                             const tracking_channel_cc_entry_t *entry,
+                             const tracker_cc_entry_t *entry,
                              bool *xcorr_flag) {
   gps_l2cm_tracker_data_t *data = &tracker_channel->gps_l2cm;
 
@@ -298,12 +298,12 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker_channel) {
     return;
   }
 
-  tracking_channel_cc_data_t cc_data;
+  tracker_cc_data_t cc_data;
   u16 cnt = tracking_channel_load_cc_data(&cc_data);
 
   bool xcorr_flag = false;
   for (u16 idx = 0; idx < cnt; ++idx) {
-    const tracking_channel_cc_entry_t *const entry = &cc_data.entries[idx];
+    const tracker_cc_entry_t *const entry = &cc_data.entries[idx];
 
     if (check_L1_entries(tracker_channel, entry, &xcorr_flag)) {
       break;

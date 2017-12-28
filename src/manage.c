@@ -1155,13 +1155,13 @@ void sanitize_trackers(void) {
  */
 static u32 get_tracking_channel_flags_info(
     u8 i,
-    tracking_channel_info_t *info,
-    tracking_channel_time_info_t *time_info,
-    tracking_channel_freq_info_t *freq_info,
-    tracking_channel_ctrl_info_t *ctrl_info,
-    tracking_channel_misc_info_t *misc_info) {
-  tracking_channel_info_t tmp_info;
-  tracking_channel_time_info_t tmp_time_info;
+    tracker_info_t *info,
+    tracker_time_info_t *time_info,
+    tracker_freq_info_t *freq_info,
+    tracker_ctrl_info_t *ctrl_info,
+    tracker_misc_info_t *misc_info) {
+  tracker_info_t tmp_info;
+  tracker_time_info_t tmp_time_info;
 
   if (NULL == info) {
     info = &tmp_info;
@@ -1193,7 +1193,7 @@ static u32 get_tracking_channel_flags_info(
  * \retval false Error in computation.
  */
 static bool compute_cpo(u64 ref_tc,
-                        const tracking_channel_info_t *info,
+                        const tracker_info_t *info,
                         const channel_measurement_t *meas,
                         double *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
@@ -1301,10 +1301,10 @@ u32 get_tracking_channel_meas(u8 i,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
   u32 flags = 0;                          /* Result */
-  tracking_channel_info_t info;           /* Container for generic info */
-  tracking_channel_freq_info_t freq_info; /* Container for measurements */
-  tracking_channel_time_info_t time_info; /* Container for time info */
-  tracking_channel_misc_info_t misc_info; /* Container for measurements */
+  tracker_info_t info;           /* Container for generic info */
+  tracker_freq_info_t freq_info; /* Container for measurements */
+  tracker_time_info_t time_info; /* Container for time info */
+  tracker_misc_info_t misc_info; /* Container for measurements */
 
   memset(meas, 0, sizeof(*meas));
 
@@ -1386,7 +1386,7 @@ u32 get_tracking_channel_meas(u8 i,
  * \return None
  */
 void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
-  tracking_channel_ctrl_info_t tmp;
+  tracker_ctrl_info_t tmp;
 
   tracking_channel_get_values(i,
                               NULL,  /* Generic info */

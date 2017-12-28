@@ -30,7 +30,7 @@
  * \param[in] channel_info channel info
  * \return Bit field of #track_sbp_sync_status_t flags
  */
-static u8 get_sync_flags(const tracking_channel_info_t *channel_info) {
+static u8 get_sync_flags(const tracker_info_t *channel_info) {
   u8 flags = TRACK_SBP_SYNC_NONE;
   if (0 != (channel_info->flags & TRACKER_FLAG_BIT_SYNC)) {
     flags = TRACK_SBP_SYNC_BIT;
@@ -42,7 +42,7 @@ static u8 get_sync_flags(const tracking_channel_info_t *channel_info) {
  * \param[in] channel_info channel info
  * \return Bit field of #track_sbp_tow_status_t flags
  */
-static u8 get_tow_flags(const tracking_channel_info_t *channel_info) {
+static u8 get_tow_flags(const tracker_info_t *channel_info) {
   u8 flags = TRACK_SBP_TOW_NONE;
   if (0 == (channel_info->flags & TRACKER_FLAG_TOW_VALID)) {
     return flags;
@@ -61,7 +61,7 @@ static u8 get_tow_flags(const tracking_channel_info_t *channel_info) {
  * \return Bit field of #track_sbp_loop_status_t,
  *         #TRACK_SBP_LOOP_PLL and #TRACK_SBP_LOOP_FLL flags
  */
-static u8 get_track_flags(const tracking_channel_info_t *channel_info) {
+static u8 get_track_flags(const tracker_info_t *channel_info) {
   u8 flags = TRACK_SBP_LOOP_NO_LOCK;
   if (0 != (channel_info->flags & TRACKER_FLAG_HAS_PLOCK)) {
     flags = TRACK_SBP_LOOP_PLL_PESSIMISTIC_LOCK;
@@ -127,7 +127,7 @@ static u8 get_nav_data_status_flags(gnss_signal_t sid) {
  * \param[in] ctrl_info Controller parameters for error sigma computations
  * \return Bit field of #track_sbp_param_set_t flags
  */
-static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info) {
+static u8 get_pset_flags(const tracker_ctrl_info_t *ctrl_info) {
   u8 flags = 0;
 
   switch (ctrl_info->int_ms) {
@@ -166,7 +166,7 @@ static u8 get_pset_flags(const tracking_channel_ctrl_info_t *ctrl_info) {
  *         #TRACK_SBP_HALF_CYCLE_AMBIGUITY_RESOLVED and
  *         #TRACK_SBP_PSEUDORANGE_VALID flags
  */
-static u8 get_misc_flags(const tracking_channel_info_t *channel_info) {
+static u8 get_misc_flags(const tracker_info_t *channel_info) {
   /* TODO: set status correctly when re-acq support is added */
   u8 flags = TRACK_SBP_STATUS_RUNNING; /* no re-acq state support */
 
@@ -205,11 +205,11 @@ static double limit_value(double value, s64 min, s64 max) {
  * \return None
  */
 void track_sbp_get_detailed_state(msg_tracking_state_detailed_t *state,
-                                  const tracking_channel_info_t *channel_info,
-                                  const tracking_channel_freq_info_t *freq_info,
-                                  const tracking_channel_time_info_t *time_info,
-                                  const tracking_channel_ctrl_info_t *ctrl_info,
-                                  const tracking_channel_misc_info_t *misc_info,
+                                  const tracker_info_t *channel_info,
+                                  const tracker_freq_info_t *freq_info,
+                                  const tracker_time_info_t *time_info,
+                                  const tracker_ctrl_info_t *ctrl_info,
+                                  const tracker_misc_info_t *misc_info,
                                   const last_good_fix_t *lgf) {
   u64 recv_time_ticks = nap_sample_time_to_count(channel_info->sample_count);
   /* receiver clock time of the measurements [ns] */
