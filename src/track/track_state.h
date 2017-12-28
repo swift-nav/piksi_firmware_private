@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_TRACK_STATE_H
 #define SWIFTNAV_TRACK_STATE_H
 
-#include "track.h"
+#include "tracker.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -16,6 +16,7 @@
 #include "track_api.h"
 #include "track_cn0.h"
 #include "track_interface.h"
+#include "track_params.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */

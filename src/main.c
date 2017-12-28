@@ -20,6 +20,7 @@
 #include "calc_pvt_me.h"
 
 #include "board/frontend.h"
+#include "board/nap/track_channel.h"
 #include "calc_base_obs.h"
 #include "calc_pvt_starling.h"
 #include "decode.h"

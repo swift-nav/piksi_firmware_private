@@ -27,6 +27,7 @@
 #include "timing/timing.h"
 #include "track.h"
 #include "track/track_flags.h"
+#include "track/track_params.h"
 #include "track/track_sid_db.h"
 
 /** Maximum distance for ephemeris-almanac cross-correlation tests [m] */

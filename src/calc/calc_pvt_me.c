@@ -33,6 +33,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 
+#include "board/nap/track_channel.h"
 #include "calc_pvt_common.h"
 #include "cnav_msg_storage.h"
 #include "ephemeris.h"
@@ -44,6 +45,8 @@
 #include "simulator.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
+#include "track/track_params.h"
+#include "track/track_sbp.h"
 #include "track/track_sid_db.h"
 
 /** Mandatory flags filter for measurements */
@@ -700,7 +703,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* adjust all the carrier phase offsets */
       /* note that the adjustment is always in even cycles because millisecond
        * breaks up exactly into carrier cycles */
-      tracking_channel_carrier_phase_offsets_adjust(dt);
+      tracker_carrier_phase_offsets_adjust(dt);
 
       /* adjust the RX to GPS time conversion */
       adjust_rcvtime_offset(dt);

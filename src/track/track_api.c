@@ -10,19 +10,19 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track/track_api.h"
-#include "track/track_flags.h"
+#include <assert.h>
+#include <ch.h>
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/logging.h>
 
-#include <assert.h>
-#include <ch.h>
-
+#include "board/nap/track_channel.h"
 #include "decode.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "signal_db/signal_db.h"
+#include "track_api.h"
+#include "track_flags.h"
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 
@@ -406,4 +406,20 @@ void tracker_correlations_send(tracker_t *tracker_channel, const corr_t *cs) {
     }
     sbp_send_msg(SBP_MSG_TRACKING_IQ, sizeof(msg), (u8 *)&msg);
   }
+}
+
+/** Lock a tracker channel for exclusive access.
+ *
+ * \param tracker_channel   Tracker channel to use.
+ */
+void tracker_lock(tracker_t *tracker_channel) {
+  chMtxLock(&tracker_channel->mutex);
+}
+
+/** Unlock a locked tracker channel.
+ *
+ * \param tracker_channel   Tracker channel to use.
+ */
+void tracker_unlock(tracker_t *tracker_channel) {
+  chMtxUnlock(&tracker_channel->mutex);
 }

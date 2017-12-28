@@ -10,9 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track/track_flags.h"
-#include "track/track_api.h"
-#include "track/track_state.h"
+#include "track_flags.h"
+#include "board/nap/track_channel.h"
+#include "platform_signal.h"
+#include "track_api.h"
+#include "track_state.h"
 
 /**
  * The function sets or clears PRN fail flag.

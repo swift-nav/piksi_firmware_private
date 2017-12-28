@@ -11,7 +11,9 @@
  */
 
 #include "track_state.h"
+#include "board/nap/track_channel.h"
 #include "ndb/ndb.h"
+#include "platform_signal.h"
 #include "position/position.h"
 #include "sbp_utils.h"
 #include "simulator/simulator.h"
@@ -20,6 +22,7 @@
 #include "track_api.h"
 #include "track_flags.h"
 #include "track_interface.h"
+#include "track_params.h"
 #include "track_sbp.h"
 
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
@@ -679,7 +682,7 @@ void tracking_send_detailed_state(void) {
     tracker_misc_info_t misc_info;
     msg_tracking_state_detailed_t sbp;
 
-    tracking_channel_get_values(
+    tracker_get_values(
         i, &channel_info, &time_info, &freq_info, &ctrl_info, &misc_info);
 
     if (0 == (channel_info.flags & TRACKER_FLAG_ACTIVE) ||
