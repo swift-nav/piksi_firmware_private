@@ -139,7 +139,7 @@ C_SRCS = fixed_fft_r2.c \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/track_loop -name '*.c')) \
          prns.c \
          clock_filter.c \
-         nav_meas_calc.c \
+         calc_nav_meas.c \
          piksi_systime.c \
          correlate.c \
          sv_visibility.c \
