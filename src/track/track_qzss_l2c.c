@@ -13,6 +13,7 @@
 /* Local headers */
 #include "track_qzss_l2c.h"
 #include "track_cn0.h"
+#include "track_interface.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */

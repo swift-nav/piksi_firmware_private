@@ -16,6 +16,7 @@
 #include "track.h"
 #include "track_cn0.h"
 #include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
+#include "track_interface.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */

@@ -31,22 +31,6 @@ static s32 normalize_tow(s32 tow) {
   return tow % GPS_WEEK_LENGTH_ms;
 }
 
-/** Register a tracker interface to enable tracking for a code type.
- *
- * \note element and all subordinate data must be statically allocated!
- *
- * \param element   Struct describing the interface to register.
- */
-void tracker_interface_register(tracker_interface_list_element_t *element) {
-  /* p_next = address of next pointer which must be updated */
-  tracker_interface_list_element_t **p_next = tracker_interface_list_ptr_get();
-
-  while (*p_next != 0) p_next = &(*p_next)->next;
-
-  element->next = 0;
-  *p_next = element;
-}
-
 /** Read correlations from the NAP for a tracker channel.
  *
  * \param nap_channel     NAP tracking channel.
