@@ -9,8 +9,8 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "settings/settings.h"
 #include "track_cn0.h"
+#include "settings/settings.h"
 
 #include <assert.h>
 #include <math.h>
