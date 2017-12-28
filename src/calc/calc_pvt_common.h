@@ -22,7 +22,7 @@
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt.h>
 
-#include "base_obs.h"
+#include "calc_base_obs.h"
 #include "cnav_msg_storage.h"
 #include "ephemeris.h"
 #include "main.h"

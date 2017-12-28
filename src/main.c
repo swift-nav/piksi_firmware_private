@@ -17,10 +17,11 @@
 #include <libswiftnav/logging.h>
 
 #include <hal.h>
-#include "me_calc_pvt.h"
+#include "calc_pvt_me.h"
 
-#include "base_obs.h"
 #include "board/frontend.h"
+#include "calc_base_obs.h"
+#include "calc_pvt_starling.h"
 #include "decode.h"
 #include "ephemeris.h"
 #include "ext_events/ext_events.h"
@@ -39,7 +40,6 @@
 #include "signal_db/signal_db.h"
 #include "simulator.h"
 #include "specan/specan_main.h"
-#include "starling_calc_pvt.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_state.h"

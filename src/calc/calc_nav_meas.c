@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "nav_meas_calc.h"
+#include "calc_nav_meas.h"
 
 #include <libswiftnav/cycle_slip.h>
 #include <libswiftnav/linear_algebra.h>

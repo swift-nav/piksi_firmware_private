@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/glonass_phase_biases.h>
-#include "base_obs.h"
+#include "calc_base_obs.h"
 #include "sbp.h"
 #include "timing/timing.h"
 

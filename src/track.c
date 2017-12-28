@@ -20,9 +20,9 @@
 #include <libswiftnav/logging.h>
 
 #include "board/nap/track_channel.h"
+#include "calc_nav_meas.h"
 #include "manage.h"
 #include "nap/nap_constants.h"
-#include "nav_meas_calc.h"
 #include "ndb/ndb.h"
 #include "sbp.h"
 #include "sbp_utils.h"

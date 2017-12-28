@@ -21,9 +21,9 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 
-#include "base_obs.h"
 #include "board.h"
 #include "board/nap/nap_common.h"
+#include "calc_base_obs.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"

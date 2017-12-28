@@ -153,12 +153,12 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
         $(SWIFTNAV_ROOT)/src/utils/ext_events/ext_events.o \
         $(SWIFTNAV_ROOT)/src/utils/position/position.o \
-        $(SWIFTNAV_ROOT)/src/calc/common_calc_pvt.o \
-        $(SWIFTNAV_ROOT)/src/calc/starling_calc_pvt.o \
-        $(SWIFTNAV_ROOT)/src/calc/me_calc_pvt.o \
-        $(SWIFTNAV_ROOT)/src/calc/nav_meas_calc.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_pvt_starling.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/observation_biases_calibration.o \
-        $(SWIFTNAV_ROOT)/src/calc/base_obs.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
         $(SWIFTNAV_ROOT)/src/syscalls.o \
