@@ -14,8 +14,8 @@
 #include <libsbp/navigation.h>
 #include <libswiftnav/logging.h>
 
-#include "ext_events.h"
 #include "board/nap/nap_common.h"
+#include "ext_events.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"

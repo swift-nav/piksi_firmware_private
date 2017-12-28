@@ -11,9 +11,9 @@
  */
 
 /* Local headers */
+#include "track_gps_l2c.h"
 #include "ndb/ndb.h"
 #include "signal_db/signal_db.h"
-#include "track_gps_l2c.h"
 #include "track_api.h"
 #include "track_cn0.h"
 #include "track_interface.h"

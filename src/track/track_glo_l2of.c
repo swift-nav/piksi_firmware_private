@@ -14,8 +14,8 @@
 #define TRACK_GLO_L2CA_INTERNAL
 
 /* Local headers */
-#include "signal_db/signal_db.h"
 #include "track_glo_l2of.h"
+#include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_cn0.h"
 #include "track_interface.h"
