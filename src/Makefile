@@ -135,7 +135,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_common.o \
         $(SWIFTNAV_ROOT)/src/track/track_flags.o \
         $(SWIFTNAV_ROOT)/src/track/track_interface.o \
-        $(SWIFTNAV_ROOT)/src/track/track_params.o \
         $(SWIFTNAV_ROOT)/src/track/track_profiles.o \
         $(SWIFTNAV_ROOT)/src/track/track_profile_utils.o \
         $(SWIFTNAV_ROOT)/src/track/track_profile_loop.o \
@@ -143,6 +142,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_sid_db.o \
         $(SWIFTNAV_ROOT)/src/track/track_sbp.o \
         $(SWIFTNAV_ROOT)/src/track/track_state.o \
+        $(SWIFTNAV_ROOT)/src/track/track_utils.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \

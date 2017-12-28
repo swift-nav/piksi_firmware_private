@@ -39,7 +39,7 @@ typedef struct {
   tracker_cc_entry_t entries[NUM_TRACKER_CHANNELS];
 } tracker_cc_data_t;
 
-/* Tracker parameters interface. */
+/* Tracker utility interface. */
 
 #ifdef __cplusplus
 extern "C" {

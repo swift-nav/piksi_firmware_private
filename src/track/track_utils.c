@@ -18,8 +18,8 @@
 #include "calc_nav_meas.h"
 #include "timing/timing.h"
 #include "track_flags.h"
-#include "track_params.h"
 #include "track_state.h"
+#include "track_utils.h"
 
 /**
  * Converts tracking channel data blocks into channel measurement structure.
