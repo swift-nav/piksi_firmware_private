@@ -358,7 +358,7 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
   return result;
 }
 
-static bool tow_cache_sid_available(tracker_channel_t *tracker_channel,
+static bool tow_cache_sid_available(tracker_t *tracker_channel,
                                     gnss_signal_t *sid) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
   u16 glo_orbit_slot = 0;
@@ -385,7 +385,7 @@ static bool tow_cache_sid_available(tracker_channel_t *tracker_channel,
  *
  * \param[in] tracker_channel Tracker channel data
  */
-void update_tow_in_sid_db(tracker_channel_t *tracker_channel) {
+void update_tow_in_sid_db(tracker_t *tracker_channel) {
   gnss_signal_t sid;
   if (!tow_cache_sid_available(tracker_channel, &sid)) {
     return;
@@ -406,7 +406,7 @@ void update_tow_in_sid_db(tracker_channel_t *tracker_channel) {
  *
  * \param[in] tracker_channel Tracker channel data
  */
-void propagate_tow_from_sid_db(tracker_channel_t *tracker_channel) {
+void propagate_tow_from_sid_db(tracker_t *tracker_channel) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
   gnss_signal_t sid;
   if (!tow_cache_sid_available(tracker_channel, &sid)) {

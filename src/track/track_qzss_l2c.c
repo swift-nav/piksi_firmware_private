@@ -144,7 +144,7 @@ void qzss_l1ca_to_l2c_handover(u32 sample_count,
   }
 }
 
-static void tracker_qzss_l2c_init(tracker_channel_t *tracker_channel) {
+static void tracker_qzss_l2c_init(tracker_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &qzss_l2c_config);
 
   /* L2C bit sync is known once we start tracking it since
@@ -171,7 +171,7 @@ static void tracker_qzss_l2c_init(tracker_channel_t *tracker_channel) {
  *
  * \return None
  */
-static void update_tow_qzss_l2c(tracker_channel_t *tracker_channel,
+static void update_tow_qzss_l2c(tracker_t *tracker_channel,
                                 u32 cycle_flags) {
   tp_tow_entry_t tow_entry;
   me_gnss_signal_t mesid = tracker_channel->mesid;
@@ -261,7 +261,7 @@ static void update_tow_qzss_l2c(tracker_channel_t *tracker_channel,
   }
 }
 
-static void tracker_qzss_l2c_update(tracker_channel_t *tracker_channel) {
+static void tracker_qzss_l2c_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &qzss_l2c_config);
 
   /* QZSS L2C-specific ToW manipulation */

@@ -55,11 +55,11 @@ static const tracker_interface_t tracker_interface_bds2_b2 = {
 static tracker_interface_list_element_t tracker_interface_list_element_bds2_b2 =
     {.interface = &tracker_interface_bds2_b2, .next = 0};
 
-static void tracker_bds2_b2_init(tracker_channel_t *tracker_channel) {
+static void tracker_bds2_b2_init(tracker_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &bds2_b2_config);
 }
 
-static void tracker_bds2_b2_update(tracker_channel_t *tracker_channel) {
+static void tracker_bds2_b2_update(tracker_t *tracker_channel) {
   tp_tracker_update(tracker_channel, &bds2_b2_config);
 }
 

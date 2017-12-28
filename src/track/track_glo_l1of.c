@@ -60,11 +60,11 @@ void track_glo_l1of_register(void) {
   tracker_interface_register(&tracker_interface_list_glo_l1of);
 }
 
-static void tracker_glo_l1of_init(tracker_channel_t *tracker_channel) {
+static void tracker_glo_l1of_init(tracker_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &glo_l1of_config);
 }
 
-static void tracker_glo_l1of_update(tracker_channel_t *tracker_channel) {
+static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &glo_l1of_config);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */

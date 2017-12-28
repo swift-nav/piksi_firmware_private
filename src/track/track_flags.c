@@ -24,7 +24,7 @@
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
   /* Find SV ID for L1CA and L2CM and set the flag  */
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
-    tracker_channel_t *tracker_channel = tracker_get(id);
+    tracker_t *tracker_channel = tracker_get(id);
     tracker_lock(tracker_channel);
     if (IS_GPS(tracker_channel->mesid) &&
         tracker_channel->mesid.sat == mesid.sat) {
@@ -45,7 +45,7 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
     /* Find the corresponding channel and flag it. (Note that searching by sid
      * instead of mesid is a bit tricky.. */
-    tracker_channel_t *tracker_channel = tracker_get(i);
+    tracker_t *tracker_channel = tracker_get(i);
     tracker_lock(tracker_channel);
     /* Is this channel's mesid + orbit slot combination valid? */
     bool can_compare = mesid_valid(tracker_channel->mesid);
@@ -72,7 +72,7 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     /* Find matching tracker and set the flag  */
-    tracker_channel_t *tracker_channel = tracker_get(id);
+    tracker_t *tracker_channel = tracker_get(id);
     tracker_lock(tracker_channel);
     if (mesid_is_equal(tracker_channel->mesid, mesid)) {
       tracker_channel->xcorr_flag = true;
@@ -95,7 +95,7 @@ void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
  *
  * \return None
  */
-void tracker_set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
+void tracker_set_xcorr_suspect_flag(tracker_t *tracker_channel,
                                     bool xcorr_suspect,
                                     bool sensitivity_mode) {
   if (CODE_GPS_L1CA == tracker_channel->mesid.code) {
@@ -135,7 +135,7 @@ void tracker_set_xcorr_suspect_flag(tracker_channel_t *tracker_channel,
  * \param[in] tracker_channel Tracker channel data
  * \return    TRUE if PRN fail flag is set, otherwise FAIL
  */
-bool tracker_get_prn_fail_flag(tracker_channel_t *tracker_channel) {
+bool tracker_get_prn_fail_flag(tracker_t *tracker_channel) {
   return tracker_channel->prn_check_fail;
 }
 
@@ -149,6 +149,6 @@ bool tracker_get_prn_fail_flag(tracker_channel_t *tracker_channel) {
  *
  * \return Cross-correlation flag value-
  */
-bool tracker_get_xcorr_flag(tracker_channel_t *tracker_channel) {
+bool tracker_get_xcorr_flag(tracker_t *tracker_channel) {
   return tracker_channel->xcorr_flag;
 }

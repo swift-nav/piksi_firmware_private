@@ -880,7 +880,7 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
  * \param[in,out] tracker_channel Tracker channel data
  * \param[in] reason     Channel drop reason
  */
-static void drop_channel(tracker_channel_t *tracker_channel,
+static void drop_channel(tracker_t *tracker_channel,
                          ch_drop_reason_t reason) {
   /* Read the required parameters from the tracking channel first to ensure
    * that the tracking channel is not restarted in the mean time.
@@ -1018,7 +1018,7 @@ void sanitize_trackers(void) {
      * not in `STATE_ENABLED` in the first place. It remains to check
      * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
      * */
-    tracker_channel_t *tracker_channel = tracker_get(i);
+    tracker_t *tracker_channel = tracker_get(i);
 
     state_t state = tracker_channel->state;
     COMPILER_BARRIER();

@@ -96,7 +96,7 @@ void tracking_channel_get_values(tracker_channel_id_t id,
                                  tracking_channel_freq_info_t *freq_info,
                                  tracking_channel_ctrl_info_t *ctrl_params,
                                  tracking_channel_misc_info_t *misc_params) {
-  tracker_channel_t *tracker_channel = tracker_get(id);
+  tracker_t *tracker_channel = tracker_get(id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
   chMtxLock(&tracker_channel->mutex_pub);
@@ -135,7 +135,7 @@ void tracking_channel_get_values(tracker_channel_id_t id,
 void tracking_channel_set_carrier_phase_offset(
     const tracking_channel_info_t *info, double carrier_phase_offset) {
   bool adjusted = false;
-  tracker_channel_t *tracker_channel = tracker_get(info->id);
+  tracker_t *tracker_channel = tracker_get(info->id);
   tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
 
   chMtxLock(&tracker_channel->mutex_pub);
@@ -196,7 +196,7 @@ u16 tracking_channel_load_cc_data(tracking_channel_cc_data_t *cc_data) {
   u16 cnt = 0;
 
   for (tracker_channel_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
-    tracker_channel_t *tracker_channel = tracker_get(id);
+    tracker_t *tracker_channel = tracker_get(id);
     tracking_channel_cc_entry_t entry;
 
     entry.id = id;
@@ -297,7 +297,7 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
     double carrier_phase_offset = 0.0;
     bool adjusted = false;
 
-    tracker_channel_t *tracker_channel = tracker_get(i);
+    tracker_t *tracker_channel = tracker_get(i);
     tracker_channel_pub_data_t *pub_data = &tracker_channel->pub_data;
     volatile tracking_channel_misc_info_t *misc_info = &pub_data->misc_info;
 
@@ -330,9 +330,9 @@ void tracking_channel_carrier_phase_offsets_adjust(double dt) {
  *
  * \return tracker channel container for the requested mesid.
  */
-tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
+tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    tracker_channel_t *tracker_channel = tracker_get(i);
+    tracker_t *tracker_channel = tracker_get(i);
     if (mesid_is_equal(tracker_channel->mesid, mesid)) {
       return tracker_channel;
     }
@@ -357,7 +357,7 @@ tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid) {
  */
 void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
   assert(IS_GLO(mesid));
-  tracker_channel_t *tracker_channel = tracker_channel_get_by_mesid(mesid);
+  tracker_t *tracker_channel = tracker_channel_get_by_mesid(mesid);
   if (tracker_channel == NULL) {
     return;
   }
@@ -406,7 +406,7 @@ bool handover_valid(double code_phase_chips, double max_chips) {
  */
 bool tracking_channel_nav_bit_get(tracker_channel_id_t id,
                                   nav_bit_fifo_element_t *nav_bit) {
-  tracker_channel_t *tracker_channel = tracker_get(id);
+  tracker_t *tracker_channel = tracker_get(id);
 
   nav_bit_fifo_element_t element;
   if (nav_bit_fifo_read(&tracker_channel->nav_bit_fifo, &element)) {
@@ -441,7 +441,7 @@ void tracking_channel_data_sync_init(nav_data_sync_t *nav_data_sync) {
 static void data_sync(tracker_channel_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
-  tracker_channel_t *tracker_channel = tracker_get(id);
+  tracker_t *tracker_channel = tracker_get(id);
   from_decoder->read_index = tracker_channel->nav_bit_fifo.read_index;
   if (!nav_data_sync_set(&tracker_channel->nav_data_sync, from_decoder)) {
     log_warn_mesid(tracker_channel->mesid, "Data sync failed");
@@ -500,7 +500,7 @@ void tracking_channel_glo_data_sync(tracker_channel_id_t id,
  *
  * \return The unsigned difference between update_count and *val.
  */
-update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
+update_count_t update_count_diff(const tracker_t *tracker_channel,
                                  const update_count_t *val) {
   update_count_t result =
       (update_count_t)(tracker_channel->update_count - *val);
@@ -517,7 +517,7 @@ update_count_t update_count_diff(const tracker_channel_t *tracker_channel,
  *
  * \param tracker_channel   Tracker channel to use.
  */
-void tracker_lock(tracker_channel_t *tracker_channel) {
+void tracker_lock(tracker_t *tracker_channel) {
   chMtxLock(&tracker_channel->mutex);
 }
 
@@ -525,7 +525,7 @@ void tracker_lock(tracker_channel_t *tracker_channel) {
  *
  * \param tracker_channel   Tracker channel to use.
  */
-void tracker_unlock(tracker_channel_t *tracker_channel) {
+void tracker_unlock(tracker_t *tracker_channel) {
   chMtxUnlock(&tracker_channel->mutex);
 }
 

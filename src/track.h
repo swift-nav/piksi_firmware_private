@@ -115,24 +115,24 @@ typedef enum {
 extern u16 max_pll_integration_time_ms;
 
 tp_result_e tp_init(void);
-void tp_profile_init(tracker_channel_t *tracker_channel,
+void tp_profile_init(tracker_t *tracker_channel,
                      const tp_report_t *data);
 
-void tp_profile_update_config(tracker_channel_t *tracker_channel);
-void tp_profile_apply_config(tracker_channel_t *tracker_channel, bool init);
-void tp_profile_switch(tracker_channel_t *tracker_channel);
+void tp_profile_update_config(tracker_t *tracker_channel);
+void tp_profile_apply_config(tracker_t *tracker_channel, bool init);
+void tp_profile_switch(tracker_t *tracker_channel);
 
 tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
                                       tp_cn0_params_t *cn0_params);
-bool tp_profile_has_new_profile(tracker_channel_t *tracker_channel);
+bool tp_profile_has_new_profile(tracker_t *tracker_channel);
 u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
                                       const tp_profile_t *profile);
-void tp_profile_report_data(tracker_channel_t *tracker_channel,
+void tp_profile_report_data(tracker_t *tracker_channel,
                             tp_profile_t *profile,
                             const tp_report_t *data);
 
 u8 tp_next_cycle_counter(tp_tm_e tracking_mode, u8 cycle_no);
-u32 tp_get_cycle_flags(tracker_channel_t *tracker_channel, u8 cycle_no);
+u32 tp_get_cycle_flags(tracker_t *tracker_channel, u8 cycle_no);
 u32 tp_compute_cycle_parameters(tp_tm_e tracking_mode, u8 cycle_no);
 
 u8 tp_get_cycle_count(tp_tm_e tracking_mode);
@@ -177,29 +177,29 @@ void tp_tl_fll_update(tp_tl_state_t *s);
 void tp_tracker_register_parameters(const char *section,
                                     tp_tracker_config_t *config);
 
-void tp_tracker_init(tracker_channel_t *tracker_channel,
+void tp_tracker_init(tracker_t *tracker_channel,
                      const tp_tracker_config_t *config);
-void tp_tracker_disable(tracker_channel_t *tracker_channel);
-u32 tp_tracker_update(tracker_channel_t *tracker_channel,
+void tp_tracker_disable(tracker_t *tracker_channel);
+u32 tp_tracker_update(tracker_t *tracker_channel,
                       const tp_tracker_config_t *config);
-void tp_tracker_update_correlators(tracker_channel_t *tracker_channel,
+void tp_tracker_update_correlators(tracker_t *tracker_channel,
                                    u32 cycle_flags);
-void tp_tracker_update_bsync(tracker_channel_t *tracker_channel,
+void tp_tracker_update_bsync(tracker_t *tracker_channel,
                              u32 cycle_flags);
-void tp_tracker_update_cn0(tracker_channel_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_locks(tracker_channel_t *tracker_channel,
+void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags);
+void tp_tracker_update_locks(tracker_t *tracker_channel,
                              u32 cycle_flags);
-void tp_tracker_update_fll(tracker_channel_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_pll_dll(tracker_channel_t *tracker_channel,
+void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags);
+void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
                                u32 cycle_flags);
-void tp_tracker_update_alias(tracker_channel_t *tracker_channel,
+void tp_tracker_update_alias(tracker_t *tracker_channel,
                              u32 cycle_flags);
-void tp_tracker_filter_doppler(tracker_channel_t *tracker_channel,
+void tp_tracker_filter_doppler(tracker_t *tracker_channel,
                                u32 cycle_flags,
                                const tp_tracker_config_t *config);
-void tp_tracker_update_mode(tracker_channel_t *tracker_channel);
-u32 tp_tracker_compute_rollover_count(tracker_channel_t *tracker_channel);
-void tp_tracker_update_cycle_counter(tracker_channel_t *tracker_channel);
+void tp_tracker_update_mode(tracker_t *tracker_channel);
+u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel);
+void tp_tracker_update_cycle_counter(tracker_t *tracker_channel);
 
 double propagate_code_phase(const me_gnss_signal_t mesid,
                             double code_phase,
@@ -235,7 +235,7 @@ void tracking_channel_set_carrier_phase_offset(
     const tracking_channel_info_t *info, double carrier_phase_offset);
 void tracking_channel_carrier_phase_offsets_adjust(double dt);
 
-tracker_channel_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
+tracker_t *tracker_channel_get_by_mesid(const me_gnss_signal_t mesid);
 void tracking_channel_drop_l2cl(const me_gnss_signal_t mesid);
 void tracking_channel_drop_unhealthy_glo(const me_gnss_signal_t mesid);
 

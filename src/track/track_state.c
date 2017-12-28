@@ -40,7 +40,7 @@ typedef enum {
   EVENT_DISABLE_WAIT_COMPLETE
 } event_t;
 
-static tracker_channel_t trackers[NUM_TRACKER_CHANNELS];
+static tracker_t trackers[NUM_TRACKER_CHANNELS];
 
 /** send_trk_detailed setting is a stop gap to suppress this
   * bandwidth intensive msg until a more complete "debug"
@@ -53,7 +53,7 @@ static u16 iq_output_mask = 0;
 static bool track_iq_output_notify(struct setting *s, const char *val) {
   if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
     for (int i = 0; i < NUM_TRACKER_CHANNELS; i++) {
-      tracker_channel_t *tracker_channel = tracker_get(i);
+      tracker_t *tracker_channel = tracker_get(i);
       tracker_channel->output_iq = (iq_output_mask & (1 << i)) != 0;
     }
     return true;
@@ -115,7 +115,7 @@ void track_setup(void) {
  *
  * \return Associated tracker channel.
  */
-tracker_channel_t *tracker_get(tracker_channel_id_t id) {
+tracker_t *tracker_get(tracker_channel_id_t id) {
   assert(id < NUM_TRACKER_CHANNELS);
   return &trackers[id];
 }
@@ -128,7 +128,7 @@ tracker_channel_t *tracker_get(tracker_channel_id_t id) {
  * \return true if the tracker channel is available, false otherwise.
  */
 bool tracker_available(tracker_channel_id_t id, const me_gnss_signal_t mesid) {
-  const tracker_channel_t *tracker_channel = tracker_get(id);
+  const tracker_t *tracker_channel = tracker_get(id);
 
   if (!nap_track_supports(id, mesid)) {
     return false;
@@ -156,7 +156,7 @@ bool tracker_available(tracker_channel_id_t id, const me_gnss_signal_t mesid) {
  */
 
 static void tracking_channel_compute_values(
-    tracker_channel_t *tracker_channel,
+    tracker_t *tracker_channel,
     tracking_channel_info_t *info,
     tracking_channel_time_info_t *time_info,
     tracking_channel_freq_info_t *freq_info,
@@ -258,7 +258,7 @@ static void tracking_channel_compute_values(
  *
  * \param tracker_channel   Tracker channel to use.
  */
-static void error_flags_clear(tracker_channel_t *tracker_channel) {
+static void error_flags_clear(tracker_t *tracker_channel) {
   tracker_channel->flags &= ~TRACKER_FLAG_ERROR;
 }
 
@@ -285,7 +285,7 @@ static void error_flags_clear(tracker_channel_t *tracker_channel) {
  * \sa tracking_channel_carrier_phase_offsets_adjust
  */
 static void tracking_channel_update_values(
-    tracker_channel_t *tracker_channel,
+    tracker_t *tracker_channel,
     const tracking_channel_info_t *info,
     const tracking_channel_time_info_t *time_info,
     const tracking_channel_freq_info_t *freq_info,
@@ -315,7 +315,7 @@ static void tracking_channel_update_values(
  * \param tracker_channel   Tracker channel to use.
  * \param event             Event to process.
  */
-static void event(tracker_channel_t *tracker_channel, event_t event) {
+static void event(tracker_t *tracker_channel, event_t event) {
   switch (event) {
     case EVENT_ENABLE: {
       assert(tracker_channel->state == STATE_DISABLED);
@@ -369,7 +369,7 @@ bool tracker_init(tracker_channel_id_t id,
                   float carrier_freq,
                   u32 chips_to_correlate,
                   float cn0_init) {
-  tracker_channel_t *tracker_channel = tracker_get(id);
+  tracker_t *tracker_channel = tracker_get(id);
 
   if (!tracker_runnable(tracker_channel)) {
     return false;
@@ -451,7 +451,7 @@ bool tracker_init(tracker_channel_id_t id,
  */
 bool tracker_disable(tracker_channel_id_t id) {
   /* Request disable */
-  tracker_channel_t *tracker_channel = tracker_get(id);
+  tracker_t *tracker_channel = tracker_get(id);
   event(tracker_channel, EVENT_DISABLE_REQUEST);
   return true;
 }
@@ -462,7 +462,7 @@ bool tracker_disable(tracker_channel_id_t id) {
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_runnable(const tracker_channel_t *tracker_channel) {
+bool tracker_runnable(const tracker_t *tracker_channel) {
   return (tracker_state_get(tracker_channel) == STATE_DISABLED);
 }
 
@@ -475,7 +475,7 @@ bool tracker_runnable(const tracker_channel_t *tracker_channel) {
  *
  * \return state of the decoder channel.
  */
-state_t tracker_state_get(const tracker_channel_t *tracker_channel) {
+state_t tracker_state_get(const tracker_t *tracker_channel) {
   state_t state = tracker_channel->state;
   COMPILER_BARRIER(); /* Prevent compiler reordering */
   return state;
@@ -485,7 +485,7 @@ state_t tracker_state_get(const tracker_channel_t *tracker_channel) {
  *
  * \param tracker_channel   Tracker channel to use.
  */
-static void nap_channel_disable(const tracker_channel_t *tracker_channel) {
+static void nap_channel_disable(const tracker_t *tracker_channel) {
   nap_track_disable(tracker_channel->nap_channel);
 }
 
@@ -494,7 +494,7 @@ static void nap_channel_disable(const tracker_channel_t *tracker_channel) {
  * \param tracker_channel   Tracker channel to use.
  * \param error_flag        Error flag to add.
  */
-static void error_flags_add(tracker_channel_t *tracker_channel,
+static void error_flags_add(tracker_t *tracker_channel,
                             error_flag_t error_flag) {
   if (error_flag != ERROR_FLAG_NONE) {
     tracker_channel->flags |= TRACKER_FLAG_ERROR;
@@ -506,7 +506,7 @@ static void error_flags_add(tracker_channel_t *tracker_channel,
  * \param update_required   True when correlations are pending for the
  *                          tracking channel.
  */
-static void tracker_channel_process(tracker_channel_t *tracker,
+static void tracker_channel_process(tracker_t *tracker,
                                     bool update_required) {
   switch (tracker_state_get(tracker)) {
     case STATE_ENABLED: {
@@ -572,7 +572,7 @@ static void tracker_channel_process(tracker_channel_t *tracker,
  */
 void trackers_update(u64 channels_mask) {
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
-    tracker_channel_t *tracker_channel = tracker_get(channel);
+    tracker_t *tracker_channel = tracker_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
@@ -585,7 +585,7 @@ void trackers_update(u64 channels_mask) {
  */
 void trackers_missed(u64 channels_mask) {
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
-    tracker_channel_t *tracker_channel = tracker_get(channel);
+    tracker_t *tracker_channel = tracker_get(channel);
     bool error = (channels_mask & 1) ? true : false;
     if (error) {
       error_flags_add(tracker_channel, ERROR_FLAG_MISSED_UPDATE);
@@ -618,7 +618,7 @@ void tracking_send_state(void) {
     u8 uMaxObs =
         (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(tracking_channel_state_t));
     for (u8 i = 0; (i < nap_track_n_channels) && (i < uMaxObs); i++) {
-      tracker_channel_t *tracker_channel = tracker_get(i);
+      tracker_t *tracker_channel = tracker_get(i);
       bool running;
       bool confirmed;
       me_gnss_signal_t mesid;

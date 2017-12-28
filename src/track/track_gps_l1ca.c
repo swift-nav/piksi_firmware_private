@@ -69,7 +69,7 @@ void track_gps_l1ca_register(void) {
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }
 
-static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel) {
+static void tracker_gps_l1ca_init(tracker_t *tracker_channel) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   memset(data, 0, sizeof(*data));
@@ -94,7 +94,7 @@ static void tracker_gps_l1ca_init(tracker_channel_t *tracker_channel) {
  *
  * \return None
  */
-static void check_L1_entry(tracker_channel_t *tracker_channel,
+static void check_L1_entry(tracker_t *tracker_channel,
                            const tracking_channel_cc_entry_t *entry,
                            bool xcorr_flags[],
                            bool sat_active[],
@@ -161,7 +161,7 @@ static void check_L1_entry(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
-static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
+static void check_L1_xcorr_flags(tracker_t *tracker_channel,
                                  u16 idx,
                                  bool xcorr_flags[],
                                  float xcorr_cn0_diffs[],
@@ -207,7 +207,7 @@ static void check_L1_xcorr_flags(tracker_channel_t *tracker_channel,
  *
  * \return false if entry was not L2CM from same SV, true if it was.
  */
-static bool check_L2_entries(tracker_channel_t *tracker_channel,
+static bool check_L2_entries(tracker_t *tracker_channel,
                              const tracking_channel_cc_entry_t *entry,
                              bool *xcorr_flag) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
@@ -266,7 +266,7 @@ static bool check_L2_entries(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
-static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
+static void check_L2_xcorr_flag(tracker_t *tracker_channel,
                                 bool xcorr_flag,
                                 bool *xcorr_suspect) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
@@ -316,7 +316,7 @@ static void check_L2_xcorr_flag(tracker_channel_t *tracker_channel,
  *
  * \return None
  */
-static void update_l1_xcorr(tracker_channel_t *tracker_channel) {
+static void update_l1_xcorr(tracker_t *tracker_channel) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   if (tracker_get_xcorr_flag(tracker_channel)) {
@@ -392,7 +392,7 @@ static void update_l1_xcorr(tracker_channel_t *tracker_channel) {
  *
  * \return None
  */
-static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel) {
+static void update_l1_xcorr_from_l2(tracker_t *tracker_channel) {
   gps_l1ca_tracker_data_t *data = &tracker_channel->gps_l1ca;
 
   tracking_channel_cc_data_t cc_data;
@@ -425,7 +425,7 @@ static void update_l1_xcorr_from_l2(tracker_channel_t *tracker_channel) {
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-static void tracker_gps_l1ca_update(tracker_channel_t *tracker_channel) {
+static void tracker_gps_l1ca_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &gps_l1ca_config);
 
   bool bit_aligned =

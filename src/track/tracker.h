@@ -456,6 +456,6 @@ typedef struct {
     gps_l1ca_tracker_data_t gps_l1ca;
     gps_l2cm_tracker_data_t gps_l2cm;
   };
-} tracker_channel_t;
+} tracker_t;
 
 #endif /* SWIFTNAV_TRACKER_H  */
