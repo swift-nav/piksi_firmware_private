@@ -171,8 +171,7 @@ static void tracker_qzss_l2c_init(tracker_t *tracker_channel) {
  *
  * \return None
  */
-static void update_tow_qzss_l2c(tracker_t *tracker_channel,
-                                u32 cycle_flags) {
+static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
   tp_tow_entry_t tow_entry;
   me_gnss_signal_t mesid = tracker_channel->mesid;
   gnss_signal_t sid = construct_sid(mesid.code, mesid.sat);

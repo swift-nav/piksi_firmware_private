@@ -77,8 +77,7 @@ static void tracker_sbas_l1ca_init(tracker_t *tracker_channel) {
  *
  * \return None
  */
-static void update_tow_sbas_l1ca(tracker_t *tracker_channel,
-                                 u32 cycle_flags) {
+static void update_tow_sbas_l1ca(tracker_t *tracker_channel, u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
 
   tp_tow_entry_t tow_entry;

@@ -48,8 +48,7 @@ bool tracker_ambiguity_resolved(tracker_t *tracker_channel);
 void tracker_ambiguity_set(tracker_t *tracker_channel, s8 polarity);
 u16 tracker_glo_orbit_slot_get(tracker_t *tracker_channel);
 glo_health_t tracker_glo_sv_health_get(tracker_t *tracker_channel);
-void tracker_correlations_send(tracker_t *tracker_channel,
-                               const corr_t *cs);
+void tracker_correlations_send(tracker_t *tracker_channel, const corr_t *cs);
 
 update_count_t update_count_diff(const tracker_t *tracker_channel,
                                  const update_count_t *val);

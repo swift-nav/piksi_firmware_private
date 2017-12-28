@@ -132,8 +132,8 @@ void tracking_channel_get_values(tracker_id_t id,
  *
  * \return None
  */
-void tracking_channel_set_carrier_phase_offset(
-    const tracker_info_t *info, double carrier_phase_offset) {
+void tracking_channel_set_carrier_phase_offset(const tracker_info_t *info,
+                                               double carrier_phase_offset) {
   bool adjusted = false;
   tracker_t *tracker_channel = tracker_get(info->id);
   tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
@@ -162,9 +162,8 @@ void tracking_channel_set_carrier_phase_offset(
  *
  * \return Lock time [s]
  */
-double tracking_channel_get_lock_time(
-    const tracker_time_info_t *time_info,
-    const tracker_misc_info_t *misc_info) {
+double tracking_channel_get_lock_time(const tracker_time_info_t *time_info,
+                                      const tracker_misc_info_t *misc_info) {
   u64 cpo_age_ms = 0;
   if (0 != misc_info->carrier_phase_offset.value) {
     u64 now_ms = timing_getms();
@@ -229,13 +228,12 @@ u16 tracking_channel_load_cc_data(tracker_cc_data_t *cc_data) {
  *
  * \return None
  */
-void tracking_channel_measurement_get(
-    u64 ref_tc,
-    const tracker_info_t *info,
-    const tracker_freq_info_t *freq_info,
-    const tracker_time_info_t *time_info,
-    const tracker_misc_info_t *misc_info,
-    channel_measurement_t *meas) {
+void tracking_channel_measurement_get(u64 ref_tc,
+                                      const tracker_info_t *info,
+                                      const tracker_freq_info_t *freq_info,
+                                      const tracker_time_info_t *time_info,
+                                      const tracker_misc_info_t *misc_info,
+                                      channel_measurement_t *meas) {
   /* Update our channel measurement. */
   memset(meas, 0, sizeof(*meas));
 
