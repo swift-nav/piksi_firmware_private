@@ -128,7 +128,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/sbp/sbp.o \
         $(SWIFTNAV_ROOT)/src/sbp/sbp_fileio.o \
         $(SWIFTNAV_ROOT)/src/sbp/sbp_utils.o \
-        $(SWIFTNAV_ROOT)/src/track.o \
         $(SWIFTNAV_ROOT)/src/track/track_api.o \
         $(SWIFTNAV_ROOT)/src/track/track_cn0.o \
         $(SWIFTNAV_ROOT)/src/track/track_common.o \
