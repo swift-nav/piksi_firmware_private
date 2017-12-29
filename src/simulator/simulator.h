@@ -16,7 +16,6 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include "track.h"
 
 /** \addtogroup simulator
  * \{ */

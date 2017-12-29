@@ -14,13 +14,12 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
 
-#include <track.h>
-
 #include "lock_detector/lock_detector.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_cfg.h"
+#include "track_common.h"
 #include "track_flags.h"
 #include "track_sbp.h"
 #include "track_sid_db.h"

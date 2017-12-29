@@ -15,13 +15,13 @@
 #include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_cn0.h"
+#include "track_common.h"
 #include "track_interface.h"
 #include "track_sid_db.h"
 
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
-#include <track.h>
 
 /* Libraries */
 #include <libswiftnav/constants.h>

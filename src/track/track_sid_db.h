@@ -16,7 +16,7 @@
 #include <libswiftnav/signal.h>
 
 #include "ephemeris/ephemeris.h"
-#include "track.h"
+#include "tracker.h"
 
 /** Minimum value for C/N0 to update ToW cache [dB/Hz] */
 #define CN0_TOW_CACHE_THRESHOLD (30.f)

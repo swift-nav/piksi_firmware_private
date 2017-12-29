@@ -15,7 +15,7 @@
 
 #include <libswiftnav/signal.h>
 
-#include "track.h"
+#include "tracker.h"
 
 /** Tracker flag: tracker is in confirmed mode */
 #define TRACKER_FLAG_ACTIVE (1 << 0)

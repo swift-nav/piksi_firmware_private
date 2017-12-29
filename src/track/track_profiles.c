@@ -28,6 +28,7 @@
 #include "lock_detector/lock_detector.h"
 #include "signal_db/signal_db.h"
 #include "track/track_cfg.h"
+#include "track/track_common.h"
 #include "track/track_flags.h"
 
 /** Unknown delay indicator */

@@ -12,7 +12,7 @@
 
 #include <assert.h>
 
-#include "track.h"
+#include "track_common.h"
 #include "track/track_flags.h"
 
 /**

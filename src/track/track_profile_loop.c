@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "track.h"
+#include "track_common.h"
 
 /**
  * Initializes tracking filter.

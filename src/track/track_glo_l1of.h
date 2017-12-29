@@ -13,7 +13,6 @@
 #define SWIFTNAV_TRACK_GLO_L1OF_H
 
 #include <libswiftnav/common.h>
-#include "track.h"
 
 void track_glo_l1of_register(void);
 

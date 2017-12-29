@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "track.h"
+#include "track_common.h"
 
 /**
  * Sums up two correlations and return a result.

@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_TRACK_INTERFACE_H
 #define SWIFTNAV_TRACK_INTERFACE_H
 
-#include "track.h"
+#include "tracker.h"
 
 /** Tracker interface function template. */
 typedef void(tracker_interface_function_t)(tracker_t *tracker_channel);
