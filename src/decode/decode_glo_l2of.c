@@ -19,7 +19,6 @@
 #include "decode.h"
 #include "decode_common.h"
 #include "decode_glo_l2of.h"
-#include "ephemeris.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"

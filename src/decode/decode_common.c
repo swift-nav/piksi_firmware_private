@@ -17,7 +17,6 @@
 #include <libswiftnav/signal.h>
 
 #include "decode_common.h"
-#include "ephemeris.h"
 #include "ndb/ndb.h"
 #include "piksi_systime.h"
 #include "timing/timing.h"

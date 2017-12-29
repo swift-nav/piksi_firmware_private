@@ -15,7 +15,6 @@
 
 #include <libswiftnav/logging.h>
 
-#include "ephemeris.h"
 #include "nav_msg/nav_msg.h"
 #include "sbp.h"
 #include "sbp_utils.h"

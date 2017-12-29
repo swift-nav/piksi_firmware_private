@@ -24,7 +24,7 @@
 
 #include "calc_base_obs.h"
 #include "cnav_msg_storage.h"
-#include "ephemeris.h"
+#include "ephemeris/ephemeris.h"
 #include "main.h"
 #include "manage.h"
 #include "nmea/nmea.h"

@@ -28,7 +28,7 @@
 #include "board/nap/track_channel.h"
 #include "decode.h"
 #include "dum/dum.h"
-#include "ephemeris.h"
+#include "ephemeris/ephemeris.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"

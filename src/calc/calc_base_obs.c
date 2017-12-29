@@ -29,7 +29,6 @@
 #include "calc_pvt_me.h"
 #include "calc_pvt_starling.h"
 #include "cnav_msg_storage.h"
-#include "ephemeris.h"
 #include "manage.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
