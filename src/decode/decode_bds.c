@@ -24,7 +24,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
 /** BDS decoder data */
@@ -111,7 +111,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
   nav_bit_fifo_element_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel, &nav_bit)) {
     bool bit_val = (nav_bit.soft_bit) >= 0;
 
     bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
@@ -120,7 +120,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
 
       s32 TOWms = BDS_TOW_INVALID;
       nav_data_sync_t from_decoder;
-      tracking_channel_data_sync_init(&from_decoder);
+      tracker_data_sync_init(&from_decoder);
       if (bds_d2nav(mesid)) {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
         from_decoder.TOW_ms = TOWms - 600;
@@ -129,7 +129,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
         from_decoder.TOW_ms = TOWms - 60;
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-      tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
+      tracker_data_sync(channel_info->tracking_channel, &from_decoder);
     }
   }
   return;

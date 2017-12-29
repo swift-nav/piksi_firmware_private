@@ -20,7 +20,7 @@
 #include "ndb/ndb.h"
 #include "piksi_systime.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
 static gps_time_t glo2gps_with_utc_params_cb(me_gnss_signal_t mesid,
@@ -147,7 +147,7 @@ bool glo_data_sync(nav_msg_glo_t *n,
 
   nav_data_sync_t from_decoder;
 
-  tracking_channel_data_sync_init(&from_decoder);
+  tracker_data_sync_init(&from_decoder);
 
   from_decoder.sync_flags = flags;
 
@@ -170,7 +170,7 @@ bool glo_data_sync(nav_msg_glo_t *n,
   } else {
     from_decoder.glo_health = GLO_SV_UNHEALTHY;
   }
-  tracking_channel_glo_data_sync(tracking_channel, &from_decoder);
+  tracker_glo_data_sync(tracking_channel, &from_decoder);
   return true;
 }
 

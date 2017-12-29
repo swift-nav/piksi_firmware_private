@@ -21,7 +21,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
 #include <assert.h>
@@ -83,7 +83,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
   /* Process incoming nav bits */
   u8 channel = channel_info->tracking_channel;
   nav_bit_fifo_element_t nav_bit;
-  while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (nav_bit.sensitivity_mode) {
       nav_msg_init(&data->nav_msg);
@@ -91,7 +91,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     }
     /* Update TOW */
     nav_data_sync_t from_decoder;
-    tracking_channel_data_sync_init(&from_decoder);
+    tracker_data_sync_init(&from_decoder);
 
     /* TODO: implement this below using SOFT Viterbi */
     /* s8 soft_bit = nav_bit.soft_bit; */
@@ -102,6 +102,6 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
                     from_decoder.TOW_ms);
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-    tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
+    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 }

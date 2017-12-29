@@ -166,13 +166,4 @@ double propagate_code_phase(const me_gnss_signal_t mesid,
                             double carrier_freq,
                             u32 n_samples);
 
-/* Decoder interface */
-bool tracking_channel_nav_bit_get(tracker_id_t id,
-                                  nav_bit_fifo_element_t *nav_bit);
-bool tracking_channel_health_sync(tracker_id_t id, u8 health);
-void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
-void tracking_channel_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder);
-void tracking_channel_glo_data_sync(tracker_id_t id,
-                                    nav_data_sync_t *from_decoder);
-
 #endif
