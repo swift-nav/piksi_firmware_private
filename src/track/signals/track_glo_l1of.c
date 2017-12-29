@@ -14,11 +14,11 @@
 #include "track_glo_l1of.h"
 #include "alias_detector/alias_detector.h"
 #include "signal_db/signal_db.h"
-#include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
 #include "track/track_api.h"
 #include "track/track_common.h"
 #include "track/track_interface.h"
 #include "track/track_utils.h"
+#include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
 
 /* Non-local headers */
 #include <manage.h>

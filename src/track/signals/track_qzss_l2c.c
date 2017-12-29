@@ -11,8 +11,8 @@
  */
 
 /* Local headers */
-#include "signal_db/signal_db.h"
 #include "track_qzss_l2c.h"
+#include "signal_db/signal_db.h"
 #include "track/track_api.h"
 #include "track/track_common.h"
 #include "track/track_interface.h"
