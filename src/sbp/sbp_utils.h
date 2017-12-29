@@ -27,7 +27,7 @@
 #include <libswiftnav/signal.h>
 
 #include "nav_msg/cnav_msg.h"
-#include "observation_biases_calibration.h"
+#include "obs_bias/obs_bias.h"
 
 typedef struct {
   union {

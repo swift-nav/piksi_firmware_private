@@ -39,7 +39,7 @@
 #include "ephemeris.h"
 #include "main.h"
 #include "ndb/ndb.h"
-#include "observation_biases_calibration.h"
+#include "obs_bias/obs_bias.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
