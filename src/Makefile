@@ -218,7 +218,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(BOARDDIR)/cnav_msg_storage.o \
-        main.c
+        $(SWIFTNAV_ROOT)/src/main/main.o
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -263,7 +263,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/decode \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/calc \
-         $(SWIFTNAV_ROOT)/src/cfg
+         $(SWIFTNAV_ROOT)/src/cfg \
+         $(SWIFTNAV_ROOT)/src/main
 
 #
 # Project, sources and paths
@@ -388,7 +389,7 @@ ULIBS =
 	@echo "Stripping $@"
 	@$(TRGT)strip -o $@ $<
 
-$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main.c: version.h
+$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main/main.c: version.h
 .DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).stripped.elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 
