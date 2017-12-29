@@ -18,8 +18,8 @@
 #include "track_cn0.h"
 #include "track_glo_l2of.h" /* for L1CA to L2CA tracking handover */
 #include "track_interface.h"
-#include "track_params.h"
 #include "track_sid_db.h"
+#include "track_utils.h"
 
 /* Non-local headers */
 #include <manage.h>

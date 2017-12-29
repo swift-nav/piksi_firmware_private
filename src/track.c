@@ -32,10 +32,10 @@
 #include "track/track_api.h"
 #include "track/track_cn0.h"
 #include "track/track_interface.h"
-#include "track/track_params.h"
 #include "track/track_sbp.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
+#include "track/track_utils.h"
 
 /** \defgroup tracking Tracking
  * Track satellites via interrupt driven updates to SwiftNAP tracking channels.

@@ -142,9 +142,6 @@ void tp_tl_fll_update_second(tp_tl_state_t *s, corr_t cs, bool halfq);
 void tp_tl_fll_update(tp_tl_state_t *s);
 
 /* Generic tracker functions */
-void tp_tracker_register_parameters(const char *section,
-                                    tp_tracker_config_t *config);
-
 void tp_tracker_init(tracker_t *tracker_channel,
                      const tp_tracker_config_t *config);
 void tp_tracker_disable(tracker_t *tracker_channel);

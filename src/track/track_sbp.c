@@ -24,8 +24,8 @@
 #include "timing/timing.h"
 #include "track.h"
 #include "track_flags.h"
-#include "track_params.h"
 #include "track_sbp.h"
+#include "track_utils.h"
 
 /** Get synchronization status flags
  * \param[in] channel_info channel info
