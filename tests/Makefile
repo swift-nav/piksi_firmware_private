@@ -55,6 +55,7 @@ INCLUDE_DIRS += -I../libswiftnav/libfec/include
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
