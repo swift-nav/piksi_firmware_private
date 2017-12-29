@@ -147,7 +147,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
-        $(SWIFTNAV_ROOT)/src/manage.o \
+        $(SWIFTNAV_ROOT)/src/acq/manage.o \
         $(SWIFTNAV_ROOT)/src/utils/settings/settings.o \
         $(SWIFTNAV_ROOT)/src/utils/timing/timing.o \
         $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
@@ -264,7 +264,8 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/calc \
          $(SWIFTNAV_ROOT)/src/cfg \
-         $(SWIFTNAV_ROOT)/src/main
+         $(SWIFTNAV_ROOT)/src/main \
+         $(SWIFTNAV_ROOT)/src/acq
 
 #
 # Project, sources and paths
