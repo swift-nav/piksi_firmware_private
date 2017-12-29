@@ -167,3 +167,43 @@
 #define CARRIER_PHASE_AMBIGUITY_COUNTER 50
 /** handover should occur when code phase is near zero [chips] */
 #define HANDOVER_CODE_PHASE_THRESHOLD 0.5
+
+/** False lock detector filter interval in ms. */
+#define TP_TRACKER_ALIAS_DURATION_MS (3000)
+/** Initial C/N0 for confirmation [dB/Hz] */
+#define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
+
+/** C/N0 threshold long interval [ms] */
+#define TRACK_CN0_THRES_COUNT_LONG 2000
+
+/** C/N0 threshold short interval [ms] */
+#define TRACK_CN0_THRES_COUNT_SHORT 100
+
+/** C/N0 hysteresis threshold */
+#define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
+
+/** Correct the false lock if the absolute detected freq error is more than
+    this value in [Hz]. In practice, observed alias frequencies were
+    above 12Hz, so 10Hz is deemed a reasonable threshold. */
+#define TRACK_ALIAS_THRESHOLD_HZ 10.f
+
+/** C/N0 threshold when we can't say if we are still tracking */
+#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
+
+/** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
+#define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
+/** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
+#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (31.f)
+/** C/N0 threshold for measurements use */
+#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
+
+#define TL_BWT_MAX (18.f * 0.020f)
+
+#define ADJ_CN0_MIN (20.0f)
+#define ADJ_CN0_MAX (60.0f)
+
+#define PLL_BW_MIN (10.0f)
+#define PLL_BW_MAX (20.0f)
+
+#define FLL_BW_MIN (1.5f)
+#define FLL_BW_MAX (3.0f)

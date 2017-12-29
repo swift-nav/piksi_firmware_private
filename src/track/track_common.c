@@ -14,12 +14,12 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
 
-#include <track.h>
-
 #include "lock_detector/lock_detector.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
+#include "track_cfg.h"
+#include "track_common.h"
 #include "track_flags.h"
 #include "track_sbp.h"
 #include "track_sid_db.h"
@@ -29,25 +29,6 @@
 #include <inttypes.h>
 #include <math.h>
 #include <string.h>
-
-/** False lock detector filter interval in ms. */
-#define TP_TRACKER_ALIAS_DURATION_MS (3000)
-/** Initial C/N0 for confirmation [dB/Hz] */
-#define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
-
-/** C/N0 threshold long interval [ms] */
-#define TRACK_CN0_THRES_COUNT_LONG 2000
-
-/** C/N0 threshold short interval [ms] */
-#define TRACK_CN0_THRES_COUNT_SHORT 100
-
-/** C/N0 hysteresis threshold */
-#define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
-
-/** Correct the false lock if the absolute detected freq error is more than
-    this value in [Hz]. In practice, observed alias frequencies were
-    above 12Hz, so 10Hz is deemed a reasonable threshold. */
-#define TRACK_ALIAS_THRESHOLD_HZ 10.f
 
 /**
  * Computes number of chips in the integration interval
@@ -420,35 +401,6 @@ static void mode_change_complete(tracker_t *tracker_channel) {
 void tp_tracker_update_cycle_counter(tracker_t *tracker_channel) {
   tracker_channel->cycle_no = tp_next_cycle_counter(
       tracker_channel->tracking_mode, tracker_channel->cycle_no);
-}
-
-/**
- * Update #TRACKER_FLAG_BIT_POLARITY_KNOWN and
- * #TRACKER_FLAG_BIT_INVERTED flags based on
- * tracker_t::bit_polarity value.
- *
- * \param[in,out] tracker_channel Tracker channel data.
- */
-void update_bit_polarity_flags(tracker_t *tracker_channel) {
-  if ((BIT_POLARITY_UNKNOWN != tracker_channel->bit_polarity) &&
-      (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
-    /* Nav bit polarity is known, i.e. half-cycles have been resolved.
-     * bit polarity known flag is set only when phase lock to prevent the
-     * situation when channel loses an SV, but decoder just finished TOW
-     * decoding
-     * which cause bit polarity know flag set */
-    tracker_channel->flags |= TRACKER_FLAG_BIT_POLARITY_KNOWN;
-  } else {
-    tracker_channel->flags &= ~TRACKER_FLAG_BIT_POLARITY_KNOWN;
-  }
-
-  if (tracker_channel->flags & TRACKER_FLAG_BIT_POLARITY_KNOWN) {
-    if (BIT_POLARITY_INVERTED == tracker_channel->bit_polarity) {
-      tracker_channel->flags |= TRACKER_FLAG_BIT_INVERTED;
-    } else {
-      tracker_channel->flags &= ~TRACKER_FLAG_BIT_INVERTED;
-    }
-  }
 }
 
 /**

@@ -16,6 +16,7 @@
 #include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_cn0.h"
+#include "track_common.h"
 #include "track_interface.h"
 #include "track_sid_db.h"
 #include "track_utils.h"
@@ -23,7 +24,6 @@
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
-#include <track.h>
 
 /* Libraries */
 #include <libswiftnav/constants.h>
@@ -328,52 +328,52 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker_channel) {
       tracker_channel, xcorr_suspect | prn_check_fail, sensitivity_mode);
 }
 
-static void tracker_gps_l2c_update(tracker_t *tracker_channel) {
-  u32 cflags = tp_tracker_update(tracker_channel, &gps_l2c_config);
+static void tracker_gps_l2c_update(tracker_t *tracker) {
+  u32 cflags = tp_tracker_update(tracker, &gps_l2c_config);
 
   bool bit_aligned =
-      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
     return;
   }
 
   /* TOW manipulation on bit edge */
-  tracker_tow_cache(tracker_channel);
+  tracker_tow_cache(tracker);
 
   /* GPS L2C-specific L1 C/A cross-correlation operations */
-  update_l2_xcorr_from_l1(tracker_channel);
+  update_l2_xcorr_from_l1(tracker);
 
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool in_phase_lock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+  bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
+  bool in_phase_lock = (0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK));
 
   if (in_phase_lock && confirmed) {
     /* naturally synched as we track */
-    s8 symb_sign = SIGN(tracker_channel->corrs.corr_epl.very_late.I);
-    s8 pol_sign = SIGN(tracker_channel->cp_sync.polarity);
+    s8 symb_sign = SIGN(tracker->corrs.corr_epl.very_late.I);
+    s8 pol_sign = SIGN(tracker->cp_sync.polarity);
     log_debug("G%02d L2C %+2d %+3d",
-              tracker_channel->mesid.sat,
+              tracker->mesid.sat,
               symb_sign,
-              tracker_channel->cp_sync.polarity);
+              tracker->cp_sync.polarity);
     if (symb_sign != pol_sign) {
-      tracker_channel->cp_sync.polarity = symb_sign;
-      tracker_channel->cp_sync.synced = false;
+      tracker->cp_sync.polarity = symb_sign;
+      tracker->cp_sync.synced = false;
     } else {
-      tracker_channel->cp_sync.polarity += symb_sign;
-      if (NUM_COH_L2C_20MS_SYMB == ABS(tracker_channel->cp_sync.polarity)) {
-        tracker_channel->cp_sync.synced = true;
-        tracker_channel->cp_sync.polarity -= symb_sign; /* saturate */
+      tracker->cp_sync.polarity += symb_sign;
+      if (NUM_COH_L2C_20MS_SYMB == ABS(tracker->cp_sync.polarity)) {
+        tracker->cp_sync.synced = true;
+        tracker->cp_sync.polarity -= symb_sign; /* saturate */
       } else {
-        tracker_channel->cp_sync.synced = false;
+        tracker->cp_sync.synced = false;
       }
     }
-    if (tracker_channel->cp_sync.synced) {
-      tracker_channel->bit_polarity = ((tracker_channel->cp_sync.polarity) < 0)
-                                          ? BIT_POLARITY_NORMAL
-                                          : BIT_POLARITY_INVERTED;
+    if (tracker->cp_sync.synced) {
+      tracker->bit_polarity = ((tracker->cp_sync.polarity) < 0)
+                                  ? BIT_POLARITY_NORMAL
+                                  : BIT_POLARITY_INVERTED;
     } else {
-      tracker_channel->bit_polarity = BIT_POLARITY_UNKNOWN;
+      tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
     }
-    update_bit_polarity_flags(tracker_channel);
+    tracker_update_bit_polarity_flags(tracker);
   }
 }

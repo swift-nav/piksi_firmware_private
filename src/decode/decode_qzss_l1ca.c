@@ -21,7 +21,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
 #include <assert.h>
@@ -82,8 +82,7 @@ static void decoder_qzss_l1ca_process(
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;
-  while (
-      tracking_channel_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (nav_bit.sensitivity_mode) {
       nav_msg_init(&data->nav_msg);
@@ -92,7 +91,7 @@ static void decoder_qzss_l1ca_process(
     /* Update TOW */
     bool bit_val = nav_bit.soft_bit >= 0;
     nav_data_sync_t from_decoder;
-    tracking_channel_data_sync_init(&from_decoder);
+    tracker_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
 
     log_debug_mesid(channel_info->mesid,
@@ -100,6 +99,6 @@ static void decoder_qzss_l1ca_process(
                     from_decoder.TOW_ms);
 
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
-    tracking_channel_data_sync(channel_info->tracking_channel, &from_decoder);
+    tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 }

@@ -12,8 +12,8 @@
 
 #include <assert.h>
 
-#include "track.h"
 #include "track/track_flags.h"
+#include "track_common.h"
 
 /**
  * State entry.

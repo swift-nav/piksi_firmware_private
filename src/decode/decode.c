@@ -16,7 +16,7 @@
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/logging.h>
 #include "signal_db/signal_db.h"
-#include "track.h"
+#include "track/track_decode.h"
 
 #define DECODE_THREAD_STACK (4 * 1024)
 #define DECODE_THREAD_PRIORITY (NORMALPRIO - 1)
@@ -187,7 +187,7 @@ bool decoder_channel_init(u8 tracking_channel, const me_gnss_signal_t mesid) {
 
   /* Empty the nav bit FIFO */
   nav_bit_fifo_element_t nav_bit;
-  while (tracking_channel_nav_bit_get(d->info.tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(d->info.tracking_channel, &nav_bit)) {
     ;
   }
 

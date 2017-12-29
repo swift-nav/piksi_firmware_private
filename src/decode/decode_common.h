@@ -13,9 +13,10 @@
 #ifndef SWIFTNAV_DECODE_COMMON_H
 #define SWIFTNAV_DECODE_COMMON_H
 
+#include "nav_bit_fifo/nav_bit_fifo.h"
+#include "nav_data_sync/nav_data_sync.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "nav_msg/nav_msg_glo.h"
-#include "track.h"
 
 /** GLO data decoding status */
 typedef enum {

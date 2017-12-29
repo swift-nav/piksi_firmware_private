@@ -18,8 +18,6 @@
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/pvt.h>
 
-#include "track.h"
-
 /* The "QI" stands for "Quality Indicator" which is the terminology used
    for this field in the NMEA specification. */
 #define NMEA_GGA_QI_INVALID 0

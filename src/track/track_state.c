@@ -16,10 +16,11 @@
 #include "platform_signal.h"
 #include "position/position.h"
 #include "sbp_utils.h"
+#include "settings/settings.h"
 #include "simulator/simulator.h"
 #include "timing/timing.h"
-#include "track.h"
 #include "track_api.h"
+#include "track_common.h"
 #include "track_flags.h"
 #include "track_interface.h"
 #include "track_sbp.h"
@@ -31,6 +32,8 @@
 #define CHANNEL_DISABLE_WAIT_TIME_MS 100
 
 #define MAX_VAL_CN0 (255.0 / 4.0)
+
+u16 max_pll_integration_time_ms = 20;
 
 static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 

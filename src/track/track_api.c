@@ -154,13 +154,13 @@ static void update_eph(tracker_t *tracker_channel,
  *
  * \return Updated TOW (ms).
  */
-s32 tracker_tow_update(tracker_t *tracker_channel,
+s32 tracker_tow_update(tracker_t *tracker,
                        s32 current_TOW_ms,
                        u32 int_ms,
                        s32 *TOW_residual_ns,
                        bool *decoded_tow,
                        bool *decoded_health) {
-  assert(tracker_channel);
+  assert(tracker);
   assert(TOW_residual_ns);
   assert(decoded_tow);
 
@@ -168,29 +168,26 @@ s32 tracker_tow_update(tracker_t *tracker_channel,
 
   nav_data_sync_t to_tracker;
   *decoded_tow = false;
-  if (nav_data_sync_get(&to_tracker, &tracker_channel->nav_data_sync)) {
+  if (nav_data_sync_get(&to_tracker, &tracker->nav_data_sync)) {
     decode_sync_flags_t flags = to_tracker.sync_flags;
 
     if (0 != (flags & SYNC_POL)) {
-      update_polarity(tracker_channel, to_tracker.bit_polarity);
-      update_bit_polarity_flags(tracker_channel);
+      update_polarity(tracker, to_tracker.bit_polarity);
+      tracker_update_bit_polarity_flags(tracker);
     }
 
     if (0 != (flags & SYNC_TOW)) {
-      update_tow(tracker_channel,
-                 &to_tracker,
-                 &current_TOW_ms,
-                 TOW_residual_ns,
-                 decoded_tow);
+      update_tow(
+          tracker, &to_tracker, &current_TOW_ms, TOW_residual_ns, decoded_tow);
     }
 
     if (0 != (flags & SYNC_EPH)) {
-      update_eph(tracker_channel, &to_tracker);
+      update_eph(tracker, &to_tracker);
       *decoded_health = true;
     }
   }
 
-  tracker_channel->nav_bit_TOW_offset_ms += int_ms;
+  tracker->nav_bit_TOW_offset_ms += int_ms;
 
   if (current_TOW_ms != TOW_INVALID) {
     /* Have a valid time of week - increment it. */
@@ -205,11 +202,11 @@ s32 tracker_tow_update(tracker_t *tracker_channel,
 
 /** Set bit sync phase reference
  *
- * \param tracker_channel   Tracker channel data.
+ * \param tracker   Tracker channel data.
  * \param bit_phase_ref     Bit phase reference.
  */
-void tracker_bit_sync_set(tracker_t *tracker_channel, s8 bit_phase_ref) {
-  bit_sync_t *bit_sync = &tracker_channel->bit_sync;
+void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
+  bit_sync_t *bit_sync = &tracker->bit_sync;
   bit_sync_set(bit_sync, bit_phase_ref);
 }
 
@@ -347,14 +344,13 @@ static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
  * navigation
  *  message processing. Should be called if a cycle slip is suspected.
  *
- * \param[in] tracker_channel Tracker channel data
+ * \param[in] tracker Tracker data
  */
-void tracker_ambiguity_unknown(tracker_t *tracker_channel) {
-  tracker_channel->bit_polarity = BIT_POLARITY_UNKNOWN;
-  tracker_channel->lock_counter =
-      tracking_lock_counter_increment(tracker_channel->mesid);
-  tracker_channel->reset_cpo = true;
-  update_bit_polarity_flags(tracker_channel);
+void tracker_ambiguity_unknown(tracker_t *tracker) {
+  tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
+  tracker->lock_counter = tracking_lock_counter_increment(tracker->mesid);
+  tracker->reset_cpo = true;
+  tracker_update_bit_polarity_flags(tracker);
 }
 
 /** Checks channel's carrier phase ambiguity status.
@@ -369,17 +365,17 @@ bool tracker_ambiguity_resolved(tracker_t *tracker_channel) {
 
 /** Set channel's carrier phase ambiguity status.
  *
- * \param[in] tracker_channel Tracker channel data
+ * \param[in] tracker Tracker data
  * \param polarity Polarity of the half-cycle ambiguity
  *
  * \return None
  */
-void tracker_ambiguity_set(tracker_t *tracker_channel, s8 polarity) {
+void tracker_ambiguity_set(tracker_t *tracker, s8 polarity) {
   if (BIT_POLARITY_UNKNOWN == polarity) {
     return;
   }
-  tracker_channel->bit_polarity = polarity;
-  update_bit_polarity_flags(tracker_channel);
+  tracker->bit_polarity = polarity;
+  tracker_update_bit_polarity_flags(tracker);
 }
 
 /** Get the channel's GLO orbital slot information.
@@ -427,6 +423,31 @@ void tracker_correlations_send(tracker_t *tracker_channel, const corr_t *cs) {
     }
     sbp_send_msg(SBP_MSG_TRACKING_IQ, sizeof(msg), (u8 *)&msg);
   }
+}
+
+/** Return the unsigned difference between update_count and *val for a
+ * tracker channel.
+ *
+ * \note This function allows some margin to avoid glitches in case values
+ * are not read atomically from the tracking channel data.
+ *
+ * \param tracker_channel   Tracker channel to use.
+ * \param val               Pointer to the value to be subtracted
+ *                          from update_count.
+ *
+ * \return The unsigned difference between update_count and *val.
+ */
+update_count_t update_count_diff(const tracker_t *tracker_channel,
+                                 const update_count_t *val) {
+  update_count_t result =
+      (update_count_t)(tracker_channel->update_count - *val);
+  COMPILER_BARRIER(); /* Prevent compiler reordering */
+  /* Allow some margin in case values were not read atomically.
+   * Treat a difference of [-10000, 0) as zero. */
+  if (result > (update_count_t)(UINT32_MAX - 10000))
+    return 0;
+  else
+    return result;
 }
 
 /** Lock a tracker channel for exclusive access.

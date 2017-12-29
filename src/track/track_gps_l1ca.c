@@ -16,6 +16,7 @@
 #include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_cn0.h"
+#include "track_common.h"
 #include "track_flags.h"
 #include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
 #include "track_interface.h"
@@ -25,7 +26,6 @@
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
-#include <track.h>
 
 /* Libraries */
 #include <libswiftnav/ch_meas.h>

@@ -18,18 +18,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
-#include "shm/shm.h"
-
-#include "nav_msg/nav_msg.h"
-#include "settings/settings.h"
-#include "track/track_cfg.h"
-#include "track/track_cn0.h"
 #include "track/tracker.h"
-
-/** Unknown delay indicator */
-#define TP_DELAY_UNKNOWN -1
-
-/** \} */
 
 /**
  * Common tracker configuration container.
@@ -80,8 +69,6 @@ typedef enum {
   TP_RESULT_ERROR = -1,  /**< Error during operation */
   TP_RESULT_NO_DATA = 1, /**< Profile has changed */
 } tp_result_e;
-
-extern u16 max_pll_integration_time_ms;
 
 tp_result_e tp_init(void);
 void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data);
@@ -160,19 +147,5 @@ void tp_tracker_filter_doppler(tracker_t *tracker_channel,
 void tp_tracker_update_mode(tracker_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_t *tracker_channel);
-
-double propagate_code_phase(const me_gnss_signal_t mesid,
-                            double code_phase,
-                            double carrier_freq,
-                            u32 n_samples);
-
-/* Decoder interface */
-bool tracking_channel_nav_bit_get(tracker_id_t id,
-                                  nav_bit_fifo_element_t *nav_bit);
-bool tracking_channel_health_sync(tracker_id_t id, u8 health);
-void tracking_channel_data_sync_init(nav_data_sync_t *data_sync);
-void tracking_channel_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder);
-void tracking_channel_glo_data_sync(tracker_id_t id,
-                                    nav_data_sync_t *from_decoder);
 
 #endif

@@ -24,7 +24,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
-#include "track.h"
+#include "track/track_decode.h"
 
 /** GLO L2CA decoder data */
 typedef struct { nav_msg_glo_t nav_msg; } glo_l2of_decoder_data_t;
@@ -83,7 +83,7 @@ static void decoder_glo_l2of_process(const decoder_channel_info_t *channel_info,
   me_gnss_signal_t mesid = channel_info->mesid;
   u8 channel = channel_info->tracking_channel;
 
-  while (tracking_channel_nav_bit_get(channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
     glo_decode_status_t status =
         glo_data_decoding(&data->nav_msg, mesid, &nav_bit);
