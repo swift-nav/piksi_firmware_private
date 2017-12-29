@@ -1299,11 +1299,11 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
-  u32 flags = 0;                          /* Result */
-  tracker_info_t info;                    /* Container for generic info */
-  tracker_freq_info_t freq_info;          /* Container for measurements */
-  tracker_time_info_t time_info;          /* Container for time info */
-  tracker_misc_info_t misc_info;          /* Container for measurements */
+  u32 flags = 0;                 /* Result */
+  tracker_info_t info;           /* Container for generic info */
+  tracker_freq_info_t freq_info; /* Container for measurements */
+  tracker_time_info_t time_info; /* Container for time info */
+  tracker_misc_info_t misc_info; /* Container for measurements */
 
   memset(meas, 0, sizeof(*meas));
 
