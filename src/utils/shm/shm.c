@@ -16,7 +16,7 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/shm.h>
 
-#include "cnav_msg_storage.h"
+#include "nav_msg/cnav_msg_storage.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
 #include "shm.h"

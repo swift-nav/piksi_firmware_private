@@ -15,7 +15,6 @@
 #include <libswiftnav/logging.h>
 #include <string.h>
 
-#include "cnav_msg_storage.h"
 #include "decode.h"
 #include "decode_common.h"
 #include "decode_gps_l2c.h"

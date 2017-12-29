@@ -28,7 +28,7 @@
 #include "calc_base_obs.h"
 #include "calc_pvt_me.h"
 #include "calc_pvt_starling.h"
-#include "cnav_msg_storage.h"
+#include "nav_msg/cnav_msg_storage.h"
 #include "manage.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"

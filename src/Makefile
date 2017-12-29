@@ -144,6 +144,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_utils.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
+        $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg_storage.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
@@ -217,7 +218,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
         $(BOARDDIR)/ndb_fs_access.o \
-        $(BOARDDIR)/cnav_msg_storage.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
