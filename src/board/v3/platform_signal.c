@@ -19,16 +19,8 @@
 #include "decode/decode_qzss_l1ca.h"
 #include "decode/decode_sbas_l1.h"
 #include "ndb/ndb.h"
-#include "track/track_bds2_b11.h"
-#include "track/track_bds2_b2.h"
-#include "track/track_glo_l1of.h"
-#include "track/track_glo_l2of.h"
-#include "track/track_gps_l1ca.h"
-#include "track/track_gps_l2c.h"
-#include "track/track_qzss_l1ca.h"
-#include "track/track_qzss_l2c.h"
-#include "track/track_sbas_l1.h"
 #include "track/track_sid_db.h"
+#include "track/track_signals.h"
 
 void platform_track_setup(void) {
   track_sid_db_init();
