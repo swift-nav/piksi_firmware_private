@@ -51,6 +51,8 @@
 #define FLL_BW_MIN (1.5f)
 #define FLL_BW_MAX (3.0f)
 
+extern u16 max_pll_integration_time_ms;
+
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
   /** Placeholder for an index. Indicates an unused index field. */

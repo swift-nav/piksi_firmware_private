@@ -76,6 +76,11 @@ void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid);
 
 bool handover_valid(double code_phase_chips, double max_chips);
 
+double propagate_code_phase(const me_gnss_signal_t mesid,
+                            double code_phase,
+                            double carrier_freq,
+                            u32 n_samples);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

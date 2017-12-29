@@ -81,8 +81,6 @@ typedef enum {
   TP_RESULT_NO_DATA = 1, /**< Profile has changed */
 } tp_result_e;
 
-extern u16 max_pll_integration_time_ms;
-
 tp_result_e tp_init(void);
 void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data);
 
@@ -160,10 +158,5 @@ void tp_tracker_filter_doppler(tracker_t *tracker_channel,
 void tp_tracker_update_mode(tracker_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel);
 void tp_tracker_update_cycle_counter(tracker_t *tracker_channel);
-
-double propagate_code_phase(const me_gnss_signal_t mesid,
-                            double code_phase,
-                            double carrier_freq,
-                            u32 n_samples);
 
 #endif

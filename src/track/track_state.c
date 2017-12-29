@@ -32,6 +32,8 @@
 
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
+u16 max_pll_integration_time_ms = 20;
+
 static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 
 void nap_track_irq_thread(void *arg);

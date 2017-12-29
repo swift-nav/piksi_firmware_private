@@ -131,6 +131,35 @@ void tracker_set_xcorr_suspect_flag(tracker_t *tracker_channel,
 }
 
 /**
+ * Update #TRACKER_FLAG_BIT_POLARITY_KNOWN and
+ * #TRACKER_FLAG_BIT_INVERTED flags based on
+ * tracker_t::bit_polarity value.
+ *
+ * \param[in,out] tracker Tracker data.
+ */
+void tracker_update_bit_polarity_flags(tracker_t *tracker) {
+  if ((BIT_POLARITY_UNKNOWN != tracker->bit_polarity) &&
+      (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) {
+    /* Nav bit polarity is known, i.e. half-cycles have been resolved.
+     * bit polarity known flag is set only when phase lock to prevent the
+     * situation when channel loses an SV, but decoder just finished TOW
+     * decoding
+     * which cause bit polarity know flag set */
+    tracker->flags |= TRACKER_FLAG_BIT_POLARITY_KNOWN;
+  } else {
+    tracker->flags &= ~TRACKER_FLAG_BIT_POLARITY_KNOWN;
+  }
+
+  if (tracker->flags & TRACKER_FLAG_BIT_POLARITY_KNOWN) {
+    if (BIT_POLARITY_INVERTED == tracker->bit_polarity) {
+      tracker->flags |= TRACKER_FLAG_BIT_INVERTED;
+    } else {
+      tracker->flags &= ~TRACKER_FLAG_BIT_INVERTED;
+    }
+  }
+}
+
+/**
  * The function checks if PRN fail (decoded prn from L2C data stream
  * is not correspond to SVID) flag set or not.
  * Called from Tracking task.
