@@ -175,8 +175,4 @@ void tracking_channel_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder);
 void tracking_channel_glo_data_sync(tracker_id_t id,
                                     nav_data_sync_t *from_decoder);
 
-void track_internal_setup(void);
-
-u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid);
-
 #endif

@@ -26,6 +26,12 @@
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 
+/* signal lock counter
+ * A map of signal to an initially random number that increments each time that
+ * signal begins being tracked.
+ */
+static u16 tracking_lock_counters[PLATFORM_ACQ_TRACK_COUNT];
+
 static s32 normalize_tow(s32 tow) {
   assert(tow >= 0);
   return tow % GPS_WEEK_LENGTH_ms;
@@ -317,6 +323,21 @@ bool tracker_next_bit_aligned(tracker_t *tracker_channel, u32 int_ms) {
   next_bit_phase %= tracker_channel->bit_sync.bit_length;
 
   return (next_bit_phase == tracker_channel->bit_sync.bit_phase_ref);
+}
+
+/** Set up internal tracker data. */
+void track_internal_setup(void) {
+  for (u32 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+    tracking_lock_counters[i] = rand();
+  }
+}
+
+/** Increment and return the tracking lock counter for the specified mesid.
+ *
+ * \param mesid ME identifier to use.
+ */
+static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
+  return ++tracking_lock_counters[mesid_to_global_index(mesid)];
 }
 
 /** Sets a channel's carrier phase ambiguity to unknown.
