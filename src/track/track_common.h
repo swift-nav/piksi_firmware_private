@@ -18,15 +18,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
-#include "shm/shm.h"
-
-#include "nav_msg/nav_msg.h"
-#include "settings/settings.h"
-#include "track/track_cfg.h"
-#include "track/track_cn0.h"
 #include "track/tracker.h"
-
-/** \} */
 
 /**
  * Common tracker configuration container.
