@@ -10,9 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "signal_db/signal_db.h"
-#include "track.h"
-#include "track/track_flags.h"
 
 #include <libswiftnav/constants.h>
 
@@ -29,27 +26,12 @@
 
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "lock_detector/lock_detector.h"
+#include "signal_db/signal_db.h"
+#include "track/track_cfg.h"
+#include "track/track_flags.h"
 
-/** C/N0 threshold when we can't say if we are still tracking */
-#define TP_HARD_CN0_DROP_THRESHOLD_DBHZ (18.f)
-
-/** Default C/N0 threshold in dB/Hz for bit polarity ambiguity */
-#define TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ (30.f)
-/** Default C/N0 threshold in dB/Hz for dropping track (for 1 ms integration) */
-#define TP_DEFAULT_CN0_DROP_THRESHOLD_DBHZ (31.f)
-/** C/N0 threshold for measurements use */
-#define TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ (27.f)
-
-#define TL_BWT_MAX (18.f * 0.020f)
-
-#define ADJ_CN0_MIN (20.0f)
-#define ADJ_CN0_MAX (60.0f)
-
-#define PLL_BW_MIN (10.0f)
-#define PLL_BW_MAX (20.0f)
-
-#define FLL_BW_MIN (1.5f)
-#define FLL_BW_MAX (3.0f)
+/** Unknown delay indicator */
+#define TP_DELAY_UNKNOWN -1
 
 extern u16 max_pll_integration_time_ms;
 

@@ -20,6 +20,7 @@
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
+#include "track_cfg.h"
 #include "track_flags.h"
 #include "track_sbp.h"
 #include "track_sid_db.h"
@@ -29,25 +30,6 @@
 #include <inttypes.h>
 #include <math.h>
 #include <string.h>
-
-/** False lock detector filter interval in ms. */
-#define TP_TRACKER_ALIAS_DURATION_MS (3000)
-/** Initial C/N0 for confirmation [dB/Hz] */
-#define TP_TRACKER_CN0_CONFIRM_DELTA (2.f)
-
-/** C/N0 threshold long interval [ms] */
-#define TRACK_CN0_THRES_COUNT_LONG 2000
-
-/** C/N0 threshold short interval [ms] */
-#define TRACK_CN0_THRES_COUNT_SHORT 100
-
-/** C/N0 hysteresis threshold */
-#define TRACK_CN0_HYSTERESIS_THRES_DBHZ (3.f)
-
-/** Correct the false lock if the absolute detected freq error is more than
-    this value in [Hz]. In practice, observed alias frequencies were
-    above 12Hz, so 10Hz is deemed a reasonable threshold. */
-#define TRACK_ALIAS_THRESHOLD_HZ 10.f
 
 /**
  * Computes number of chips in the integration interval

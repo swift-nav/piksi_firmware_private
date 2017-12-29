@@ -26,9 +26,6 @@
 #include "track/track_cn0.h"
 #include "track/tracker.h"
 
-/** Unknown delay indicator */
-#define TP_DELAY_UNKNOWN -1
-
 /** \} */
 
 /**
