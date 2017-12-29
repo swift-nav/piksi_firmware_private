@@ -13,12 +13,11 @@
 /* Local headers */
 #include "track_qzss_l1ca.h"
 #include "signal_db/signal_db.h"
-#include "track_api.h"
-#include "track_cn0.h"
-#include "track_common.h"
-#include "track_interface.h"
+#include "track/track_api.h"
+#include "track/track_common.h"
+#include "track/track_interface.h"
+#include "track/track_utils.h"
 #include "track_qzss_l2c.h" /* for L1C/A to L2C tracking handover */
-#include "track_sid_db.h"
 
 /* Non-local headers */
 #include <manage.h>

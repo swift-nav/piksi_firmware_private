@@ -14,14 +14,11 @@
 #include "track_gps_l1ca.h"
 #include "filters/filter_common.h"
 #include "signal_db/signal_db.h"
-#include "track_api.h"
-#include "track_cn0.h"
-#include "track_common.h"
-#include "track_flags.h"
+#include "track/track_api.h"
+#include "track/track_common.h"
+#include "track/track_interface.h"
+#include "track/track_utils.h"
 #include "track_gps_l2c.h" /* for L1C/A to L2C tracking handover */
-#include "track_interface.h"
-#include "track_sid_db.h"
-#include "track_utils.h"
 
 /* Non-local headers */
 #include <manage.h>
