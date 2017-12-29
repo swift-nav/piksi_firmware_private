@@ -263,6 +263,7 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/decode \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/calc \
+         $(SWIFTNAV_ROOT)/src/cfg
 
 #
 # Project, sources and paths
