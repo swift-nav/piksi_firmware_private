@@ -13,7 +13,7 @@
 #ifndef SWIFTNAV_DECODE_COMMON_H
 #define SWIFTNAV_DECODE_COMMON_H
 
-#include "cnav_msg_storage.h"
+#include "nav_msg/cnav_msg_storage.h"
 #include "nav_msg/nav_msg_glo.h"
 #include "track.h"
 

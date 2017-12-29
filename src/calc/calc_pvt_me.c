@@ -35,11 +35,9 @@
 
 #include "board/nap/track_channel.h"
 #include "calc_pvt_common.h"
-#include "cnav_msg_storage.h"
-#include "ephemeris.h"
 #include "main.h"
 #include "ndb/ndb.h"
-#include "observation_biases_calibration.h"
+#include "obs_bias/obs_bias.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"

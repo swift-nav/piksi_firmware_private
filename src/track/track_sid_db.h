@@ -13,8 +13,9 @@
 #ifndef SWIFTNAV_TRACK_SID_DB_H_
 #define SWIFTNAV_TRACK_SID_DB_H_
 
-#include <ephemeris.h>
 #include <libswiftnav/signal.h>
+
+#include "ephemeris/ephemeris.h"
 #include "track.h"
 
 /** Minimum value for C/N0 to update ToW cache [dB/Hz] */

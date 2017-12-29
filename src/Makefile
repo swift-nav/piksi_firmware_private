@@ -129,7 +129,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/sbp/sbp_fileio.o \
         $(SWIFTNAV_ROOT)/src/sbp/sbp_utils.o \
         $(SWIFTNAV_ROOT)/src/track.o \
-        $(SWIFTNAV_ROOT)/src/track_internal.o \
         $(SWIFTNAV_ROOT)/src/track/track_api.o \
         $(SWIFTNAV_ROOT)/src/track/track_cn0.o \
         $(SWIFTNAV_ROOT)/src/track/track_common.o \
@@ -145,10 +144,11 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_utils.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
+        $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg_storage.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
-        $(SWIFTNAV_ROOT)/src/manage.o \
+        $(SWIFTNAV_ROOT)/src/acq/manage.o \
         $(SWIFTNAV_ROOT)/src/utils/settings/settings.o \
         $(SWIFTNAV_ROOT)/src/utils/timing/timing.o \
         $(SWIFTNAV_ROOT)/src/utils/clock_filter/clock_filter.o \
@@ -158,14 +158,14 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_starling.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
-        $(SWIFTNAV_ROOT)/src/observation_biases_calibration.o \
+        $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_base_obs.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator.o \
         $(SWIFTNAV_ROOT)/src/simulator/simulator_data.o \
-        $(SWIFTNAV_ROOT)/src/syscalls.o \
+        $(SWIFTNAV_ROOT)/src/utils/syscalls/syscalls.o \
         $(SWIFTNAV_ROOT)/src/utils/nmea/nmea.o \
         $(SWIFTNAV_ROOT)/src/utils/system_monitor/system_monitor.o \
-        $(SWIFTNAV_ROOT)/src/ephemeris.o \
+        $(SWIFTNAV_ROOT)/src/utils/ephemeris/ephemeris.o \
         $(SWIFTNAV_ROOT)/src/utils/pps/pps.o \
         $(SWIFTNAV_ROOT)/src/decode/decode.o \
         $(SWIFTNAV_ROOT)/src/utils/gnss_capabilities/gnss_capabilities.o \
@@ -218,8 +218,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
         $(BOARDDIR)/ndb_fs_access.o \
-        $(BOARDDIR)/cnav_msg_storage.o \
-        main.c
+        $(SWIFTNAV_ROOT)/src/main/main.o
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -264,6 +263,9 @@ INCDIR = $(STARTUPINC) $(PORTINC) $(KERNINC) \
          $(SWIFTNAV_ROOT)/src/decode \
          $(SWIFTNAV_ROOT)/src/hal \
          $(SWIFTNAV_ROOT)/src/calc \
+         $(SWIFTNAV_ROOT)/src/cfg \
+         $(SWIFTNAV_ROOT)/src/main \
+         $(SWIFTNAV_ROOT)/src/acq
 
 #
 # Project, sources and paths
@@ -388,7 +390,7 @@ ULIBS =
 	@echo "Stripping $@"
 	@$(TRGT)strip -o $@ $<
 
-$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main.c: version.h
+$(SWIFTNAV_ROOT)/src/ndb/ndb_internal.c $(SWIFTNAV_ROOT)/src/main/main.c: version.h
 .DEFAULT_GOAL := $(BUILDDIR)/$(PROJECT).stripped.elf
 include $(SWIFTNAV_ROOT)/ext/Makefile.include
 

@@ -19,6 +19,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
+void track_internal_setup(void);
+
 /* Tracker instance API functions. Must be called from within an
  * interface function. */
 void tracker_correlations_read(u8 nap_channel,

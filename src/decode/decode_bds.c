@@ -17,7 +17,6 @@
 #include "decode.h"
 #include "decode_bds.h"
 #include "decode_common.h"
-#include "ephemeris.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "sbp.h"

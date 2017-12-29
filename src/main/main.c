@@ -24,7 +24,7 @@
 #include "calc_base_obs.h"
 #include "calc_pvt_starling.h"
 #include "decode.h"
-#include "ephemeris.h"
+#include "ephemeris/ephemeris.h"
 #include "ext_events/ext_events.h"
 #include "glo_map_setup/glo_map_setup.h"
 #include "init.h"
