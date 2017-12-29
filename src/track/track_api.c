@@ -177,11 +177,8 @@ s32 tracker_tow_update(tracker_t *tracker,
     }
 
     if (0 != (flags & SYNC_TOW)) {
-      update_tow(tracker,
-                 &to_tracker,
-                 &current_TOW_ms,
-                 TOW_residual_ns,
-                 decoded_tow);
+      update_tow(
+          tracker, &to_tracker, &current_TOW_ms, TOW_residual_ns, decoded_tow);
     }
 
     if (0 != (flags & SYNC_EPH)) {
@@ -351,8 +348,7 @@ static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
  */
 void tracker_ambiguity_unknown(tracker_t *tracker) {
   tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
-  tracker->lock_counter =
-      tracking_lock_counter_increment(tracker->mesid);
+  tracker->lock_counter = tracking_lock_counter_increment(tracker->mesid);
   tracker->reset_cpo = true;
   tracker_update_bit_polarity_flags(tracker);
 }

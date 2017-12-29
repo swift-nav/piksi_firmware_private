@@ -369,8 +369,8 @@ static void tracker_gps_l2c_update(tracker_t *tracker) {
     }
     if (tracker->cp_sync.synced) {
       tracker->bit_polarity = ((tracker->cp_sync.polarity) < 0)
-                                          ? BIT_POLARITY_NORMAL
-                                          : BIT_POLARITY_INVERTED;
+                                  ? BIT_POLARITY_NORMAL
+                                  : BIT_POLARITY_INVERTED;
     } else {
       tracker->bit_polarity = BIT_POLARITY_UNKNOWN;
     }

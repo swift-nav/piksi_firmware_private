@@ -86,8 +86,7 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;
-  while (
-      tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (nav_bit.sensitivity_mode) {
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;

@@ -82,8 +82,7 @@ static void decoder_qzss_l1ca_process(
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;
-  while (
-      tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
+  while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (nav_bit.sensitivity_mode) {
       nav_msg_init(&data->nav_msg);

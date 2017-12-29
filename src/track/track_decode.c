@@ -25,8 +25,7 @@
  *
  * \return true if valid nav_bit is available, false otherwise.
  */
-bool tracker_nav_bit_get(tracker_id_t id,
-                                  nav_bit_fifo_element_t *nav_bit) {
+bool tracker_nav_bit_get(tracker_id_t id, nav_bit_fifo_element_t *nav_bit) {
   tracker_t *tracker_channel = tracker_get(id);
 
   nav_bit_fifo_element_t element;
@@ -80,8 +79,7 @@ static void data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
  * \param id           ID of the GPS tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.
  */
-void tracker_data_sync(tracker_id_t id,
-                                nav_data_sync_t *from_decoder) {
+void tracker_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
   if ((from_decoder->TOW_ms < 0) ||
@@ -102,8 +100,7 @@ void tracker_data_sync(tracker_id_t id,
  * \param id           ID of the GLO tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.
  */
-void tracker_glo_data_sync(tracker_id_t id,
-                                    nav_data_sync_t *from_decoder) {
+void tracker_glo_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
   data_sync(id, from_decoder);
