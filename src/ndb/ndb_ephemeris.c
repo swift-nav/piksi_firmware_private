@@ -523,28 +523,6 @@ static ndb_op_code_t ndb_ephemeris_store_do(const ephemeris_t *e,
 }
 
 /**
- * Sends out MsgEphemeris
- *
- * \param[in] sid  GNSS signal identifier to indicate which ephe to send
- *
- * \retval TRUE    Ephe found, valid and sent
- * \retval FALSE   Ephe not sent
- */
-static bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid) {
-  ephemeris_t e;
-  gps_time_t t = get_current_time();
-  enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);
-  if (NDB_ERR_NONE == oc && ephemeris_valid(&e, &t)) {
-    msg_ephemeris_t msg;
-    msg_info_t info = pack_ephemeris(&e, &msg);
-    sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-/**
  * Store ephemeris
  *
  * \param[in] e           Ephemeris
@@ -571,7 +549,9 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                      sender_id);
 
   if (NDB_ERR_NO_CHANGE != res) {
-    ndb_ephemeris_sbp_update_tx(e->sid);
+    msg_ephemeris_t msg;
+    msg_info_t info = pack_ephemeris(e, &msg);
+    sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
   }
 
   return res;
