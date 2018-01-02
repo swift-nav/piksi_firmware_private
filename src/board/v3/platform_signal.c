@@ -71,6 +71,5 @@ void platform_ndb_init(void) {
 }
 
 void platform_ndb_sbp_updates(void) {
-  ndb_ephemeris_sbp_update();
   ndb_almanac_sbp_update();
 }
