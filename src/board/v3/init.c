@@ -21,6 +21,7 @@
 #include <libswiftnav/memcpy_s.h>
 
 #include "board/nap/nap_common.h"
+#include "board/v3/board.h"
 #include "clk_dac.h"
 #include "error.h"
 #include "factory_data.h"
@@ -360,7 +361,7 @@ u8 hw_version_string_get(char *hw_version_string) {
 
 u8 hw_revision_string_get(char *hw_revision_string) {
   const char *s = NULL;
-
+  bool is_duro = board_is_duro();
   switch (factory_params.hardware) {
     case IMAGE_HARDWARE_UNKNOWN:
       s = "Unknown";
@@ -375,7 +376,11 @@ u8 hw_revision_string_get(char *hw_revision_string) {
       s = "Piksi Multi EVT2";
       break;
     case IMAGE_HARDWARE_V3_PROD:
-      s = "Piksi Multi";
+      if (is_duro) {
+        s = "Duro";
+      } else {
+        s = "Piksi Multi";
+      }
       break;
     default:
       s = "Invalid";
