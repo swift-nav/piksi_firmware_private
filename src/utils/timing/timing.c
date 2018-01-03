@@ -190,26 +190,6 @@ void adjust_rcvtime_offset(const double dt) {
   chMtxUnlock(&clock_mutex);
 }
 
-/** Get current RCV time.
- *
- * \note The RCV time may only be a guess or completely unknown. time_quality
- *       should be checked first to determine the quality of the RCV time
- *       estimate.
- *
- * This function should be used only for approximate timing purposes as simply
- * calling this function does not give a well defined instant at which the RCV
- * time is queried.
- *
- * \return Current GPS time.
- */
-gps_time_t get_current_time(void) {
-  /* TODO: Think about what happens when nap_timing_count overflows. */
-  u64 tc = nap_timing_count();
-  gps_time_t t = napcount2rcvtime(tc);
-
-  return t;
-}
-
 /** Get current GPS time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality
@@ -218,8 +198,7 @@ gps_time_t get_current_time(void) {
  *
  * \return Current GPS time, or {WN_UNKNOWN, TOW_UNKNOWN} if no fix
  */
-gps_time_t get_current_gps_time(void) {
-  /* TODO: Think about what happens when nap_timing_count overflows. */
+gps_time_t get_current_time(void) {
   u64 tc = nap_timing_count();
   gps_time_t t = napcount2gpstime(tc);
 

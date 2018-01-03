@@ -867,12 +867,12 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
 
 void sbp_init_gps_time(msg_gps_time_t *gps_time) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
-  gps_time_t current_time = get_current_gps_time();
+  gps_time_t current_time = get_current_time();
   sbp_make_gps_time(gps_time, &current_time, NO_POSITION);
 }
 
 void sbp_init_utc_time(msg_utc_time_t *utc_time) {
-  gps_time_t current_time = get_current_gps_time();
+  gps_time_t current_time = get_current_time();
   utc_params_t utc_params;
   ndb_utc_params_read(&utc_params, NULL);
   memset(utc_time, 0, sizeof(msg_utc_time_t));
