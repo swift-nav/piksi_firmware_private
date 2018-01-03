@@ -79,6 +79,7 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
  * \retval NDB_ERR_OLDER_DATA      More relevant parameters already in NDB.
  * \retval NDB_ERR_BAD_PARAM       Parameter errors.
  */
+bool adel_utc = false;
 ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
                                    const utc_params_t *utc_params_p,
                                    ndb_data_source_t src,
@@ -105,6 +106,7 @@ ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
   } else {
     res = ndb_update(utc_params_p, src, &utc_params_md);
 
+    adel_utc = true;
     if (NULL != utc_params_p && NDB_ERR_NONE == res) {
       double offset = get_gps_utc_offset(&now, utc_params_p);
       log_info_sid(*sid,
