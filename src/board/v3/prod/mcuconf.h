@@ -62,6 +62,11 @@
 /*
  * CAN driver system settings.
  */
+#define ZYNQ7000_CAN_CAN_REFCLK_FREQUENCY_Hz 001000000U
+#define ZYNQ7000_CAN_USE_CAN0 TRUE
+#define ZYNQ7000_CAN_USE_CAN1 TRUE
+#define ZYNQ7000_CAN_CAN0_IRQ_PRIORITY 4
+#define ZYNQ7000_CAN_CAN1_IRQ_PRIORITY 4
 
 /*
  * MAC driver system settings.
