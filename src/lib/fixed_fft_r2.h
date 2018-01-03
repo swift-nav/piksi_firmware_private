@@ -16,7 +16,7 @@ typedef struct _sc16 {
 
 /** MACRO called to declare and initialize a FFT */
 #define FFT_DECL(SIZE, NAME)                                           \
-  static struct {                                                      \
+  struct {                                                             \
     u32 M;                                                             \
     u32 N;                                                             \
     sc16_t *W;                                                         \

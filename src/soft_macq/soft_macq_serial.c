@@ -69,7 +69,7 @@ static sc16_t sample_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
 static sc16_t result_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
-FFT_DECL(SOFTMACQ_FFTLEN, sFftConfig);
+static FFT_DECL(SOFTMACQ_FFTLEN, sFftConfig);
 
 static u32 puMaxIdx[4];
 static u32 puMaxVal[4];
