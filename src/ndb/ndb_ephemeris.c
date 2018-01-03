@@ -548,6 +548,12 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                      NULL,
                      sender_id);
 
+  if (NDB_ERR_NO_CHANGE != res) {
+    msg_ephemeris_t msg;
+    msg_info_t info = pack_ephemeris(e, &msg);
+    sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
+  }
+
   return res;
 }
 
@@ -616,36 +622,3 @@ ndb_op_code_t ndb_ephemeris_info(gnss_signal_t sid,
   ndb_unlock();
   return res;
 }
-
-/**
- * Sends out MsgEphemeris
- *
- * \param[in] sid  GNSS signal identifier to indicate which ephe to send
- *
- * \retval TRUE    Ephe found, valid and sent
- * \retval FALSE   Ephe not sent
- */
-bool ndb_ephemeris_sbp_update_tx(gnss_signal_t sid) {
-  ephemeris_t e;
-  gps_time_t t = get_current_time();
-  enum ndb_op_code oc = ndb_ephemeris_read(sid, &e);
-  if (NDB_ERR_NONE == oc && ephemeris_valid(&e, &t)) {
-    msg_ephemeris_t msg;
-    msg_info_t info = pack_ephemeris(&e, &msg);
-    sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-static ndb_sbp_update_info_t ephe_update_info = {
-    NDB_SBP_UPDATE_CYCLE_COUNT_INIT,
-    NDB_SBP_UPDATE_SIG_IDX_INIT,
-    NDB_EPHE_TRANSMIT_EPOCH_SPACING,
-    NDB_EPHE_MESSAGE_SPACING,
-    &ndb_ephemeris_sbp_update_tx};
-
-/** The function sends ephemeris if valid
- *  Function called every NV_WRITE_REQ_TIMEOUT ms from NDB thread*/
-void ndb_ephemeris_sbp_update(void) { ndb_sbp_update(&ephe_update_info); }
