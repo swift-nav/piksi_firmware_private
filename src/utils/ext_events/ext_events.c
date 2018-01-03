@@ -77,34 +77,34 @@ void ext_event_setup(void) {
   int TYPE_TRIGGER =
       settings_type_register_enum(trigger_enum, &trigger_setting);
 
-  SETTING_NOTIFY("ext_events_0",
+  SETTING_NOTIFY("ext_event_a",
                  "edge_trigger",
                  event_config[0].trigger,
                  TYPE_TRIGGER,
                  event0_changed);
-  SETTING_NOTIFY("ext_events_0",
+  SETTING_NOTIFY("ext_event_a",
                  "sensitivity",
                  event_config[0].timeout_microseconds,
                  TYPE_INT,
                  event0_changed);
 
-  SETTING_NOTIFY("ext_events_1",
+  SETTING_NOTIFY("ext_event_b",
                  "edge_trigger",
                  event_config[1].trigger,
                  TYPE_TRIGGER,
                  event1_changed);
-  SETTING_NOTIFY("ext_events_1",
+  SETTING_NOTIFY("ext_event_b",
                  "sensitivity",
                  event_config[1].timeout_microseconds,
                  TYPE_INT,
                  event1_changed);
 
-  SETTING_NOTIFY("ext_events_2",
+  SETTING_NOTIFY("ext_event_c",
                  "edge_trigger",
                  event_config[2].trigger,
                  TYPE_TRIGGER,
                  event2_changed);
-  SETTING_NOTIFY("ext_events_2",
+  SETTING_NOTIFY("ext_event_c",
                  "sensitivity",
                  event_config[2].timeout_microseconds,
                  TYPE_INT,
