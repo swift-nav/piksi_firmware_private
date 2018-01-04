@@ -42,7 +42,7 @@ void boardRevInit(void) {
   can_clk_ctrl &= 0xFC0FC0FF;
   can_clk_ctrl |= divisor0 << 8;
   can_clk_ctrl |= divisor1 << 20;
-  *(volatile uint32_t *)0xF800015C = can_clk_ctrl;
+  *(volatile uint32_t *)0xF800015C = can_clk_ctrl & 0xFFFFFFF0;
 
   palSetLineMode(SPI_SS_IMU_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_IMU_GPIO_LINE);
