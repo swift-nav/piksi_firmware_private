@@ -316,12 +316,12 @@ static bool _sbas_msg_decode(sbas_v27_part_t *part,
 
       switch (msg->msg_id) {
         case 12:
-          msg->tow = getbitu(part->decoded, 121, 20) * 1000;
+          msg->tow = getbitu(part->decoded, 121, 20); /* Seconds */
           break;
         default:
-          //        log_info_sid(construct_sid(CODE_SBAS_L1CA, msg->prn),
-          //                     "Unsupported SBAS message type %d",
-          //                     msg->msg_id);
+          /* log_info_sid(construct_sid(CODE_SBAS_L1CA, msg->prn),
+                          "Unsupported SBAS message type %d",
+                          msg->msg_id); */
           break;
       }
 
@@ -379,7 +379,7 @@ void sbas_msg_decoder_init(sbas_msg_decoder_t *dec) {
  * The time of the last input symbol can be computed from the message ToW and
  * delay by the formulae:
  * \code
- * symbolTime_ms = msg->tow * 6000 + *pdelay * 20
+ * symbolTime_ms = msg->tow * SECS_MS + *pdelay * SBAS_L1CA_SYMBOL_LENGTH_MS
  * \endcode
  *
  * \param[in,out] dec    Decoder object.
