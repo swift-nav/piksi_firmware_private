@@ -172,9 +172,6 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
         log_info("SBAS system changed: old %" PRId8 ", new %" PRId8,
                  (s8)used_sbas,
                  (s8)sbas_coverage[i].sbas);
-        log_info("lgf: %f, %f",
-                 lgf->position_solution.pos_llh[0] * R2D,
-                 lgf->position_solution.pos_llh[1] * R2D);
         /* update used SBAS info */
         used_sbas = sbas_coverage[i].sbas;
       }
