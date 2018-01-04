@@ -79,17 +79,17 @@ void e_out(void) {
             n.eph.glo.acc[0],
             n.eph.glo.acc[1],
             n.eph.glo.acc[2]);
-  EXPECT_LT(fabs(n.eph.glo.pos[0] - X), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.pos[1] - Y), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.pos[2] - Z), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.vel[0] - VX), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.vel[1] - VY), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.vel[2] - VZ), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.acc[0] - AX), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.acc[1] - AY), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.acc[2] - AZ), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.tau - TAU), LOW_TOL);
-  EXPECT_LT(fabs(n.eph.glo.gamma - GAMMA), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.pos[0] - X), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.pos[1] - Y), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.pos[2] - Z), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.vel[0] - VX), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.vel[1] - VY), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.vel[2] - VZ), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.acc[0] - AX), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.acc[1] - AY), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.acc[2] - AZ), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.tau - TAU), LOW_TOL);
+  EXPECT_LT(abs(n.eph.glo.gamma - GAMMA), LOW_TOL);
 }
 
 static gps_time_t glo2gps_with_utc_params_stub(me_gnss_signal_t mesid,
