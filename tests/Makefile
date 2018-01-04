@@ -40,7 +40,7 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include
 CFLAGS += -g -Wall -Wextra -Werror -std=c99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -Werror -pthread --coverage
+CXXFLAGS += -g -Wall -Wextra -Werror --coverage
 
 # Compiler include directories.
 INCLUDE_DIRS :=
