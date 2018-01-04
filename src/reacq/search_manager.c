@@ -13,11 +13,11 @@
 #include <libswiftnav/glo_map.h>
 #include <manage.h>
 #include <string.h>
+#include "ndb/ndb_lgf.h"
+#include "position/position.h"
+#include "sbas_select/sbas_select.h"
 #include "search_manager_api.h"
 #include "timing/timing.h"
-#include "sbas_select/sbas_select.h"
-#include "position/position.h"
-#include "ndb/ndb_lgf.h"
 
 /** How many SBAS SV can be tracked */
 #define SBAS_SV_NUM_LIMIT 3
@@ -251,10 +251,9 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
   last_good_fix_t lgf;
   if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
     /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
-    sbas_mask = sbas_select_prn_mask(SBAS_WAAS) |
-                sbas_select_prn_mask(SBAS_EGNOS) |
-                sbas_select_prn_mask(SBAS_GAGAN) |
-                sbas_select_prn_mask(SBAS_MSAS);
+    sbas_mask =
+        sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
+        sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
   } else {
     sbas_mask = sbas_select_prn_mask(sbas_select_provider(&lgf));
   }
@@ -459,10 +458,9 @@ static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
   last_good_fix_t lgf;
   if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
     /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
-    sbas_mask = sbas_select_prn_mask(SBAS_WAAS) |
-                sbas_select_prn_mask(SBAS_EGNOS) |
-                sbas_select_prn_mask(SBAS_GAGAN) |
-                sbas_select_prn_mask(SBAS_MSAS);
+    sbas_mask =
+        sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
+        sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
   } else {
     sbas_mask = sbas_select_prn_mask(sbas_select_provider(&lgf));
   }
