@@ -30,8 +30,8 @@ void boardRevInit(void) {
 
   /* Increase CAN clock */
   uint32_t can_clk_ctrl = *(volatile uint32_t *)0xF800015C;  // Default 0x00501903.
-  uint32_t divisor0 = (can_clk_crl >> 8) & 0x3F;
-  uint32_t divisor1 = (can_clk_crl >> 20) & 0x3F;
+  uint32_t divisor0 = (can_clk_ctrl >> 8) & 0x3F;
+  uint32_t divisor1 = (can_clk_ctrl >> 20) & 0x3F;
   if(divisor0 > 1){
     divisor0 /= 2;
   }
