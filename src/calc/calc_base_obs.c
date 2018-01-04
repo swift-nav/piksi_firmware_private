@@ -215,15 +215,13 @@ static void update_obss(obss_t *new_obss) {
     if (!base_changed && base_obss.has_pos) {
       log_debug("Base: IONO/TROPO correction");
       ionosphere_t i_params;
-      ionosphere_t *p_i_params = &i_params;
-      /* get iono parameters if available */
-      if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
-        p_i_params = NULL;
+      /* get iono parameters if available, otherwise use default ones */
+      if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
+        i_params = DEFAULT_IONO_PARAMS;
       }
       /* Use the previous ECEF position to get the iono/tropo for the new
        * measurements */
-      calc_iono_tropo(
-          new_obss->n, new_obss->nm, base_obss.pos_ecef, p_i_params);
+      calc_iono_tropo(new_obss->n, new_obss->nm, base_obss.pos_ecef, &i_params);
     }
 
     gnss_solution soln;

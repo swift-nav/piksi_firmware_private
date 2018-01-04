@@ -754,23 +754,17 @@ static void starling_thread(void *arg) {
     chPoolFree(&obs_buff_pool, rover_channel_epoch);
 
     ionosphere_t i_params;
-    ionosphere_t *p_i_params = &i_params;
-    /* get iono parameters if available */
-    if (ndb_iono_corr_read(p_i_params) == NDB_ERR_NONE) {
-      chMtxLock(&time_matched_iono_params_lock);
-      has_time_matched_iono_params = true;
-      time_matched_iono_params = *p_i_params;
-      chMtxUnlock(&time_matched_iono_params_lock);
-      chMtxLock(&spp_filter_manager_lock);
-      filter_manager_update_iono_parameters(
-          spp_filter_manager, p_i_params, false);
-      chMtxUnlock(&spp_filter_manager_lock);
-    } else {
-      p_i_params = NULL;
-      chMtxLock(&time_matched_iono_params_lock);
-      has_time_matched_iono_params = false;
-      chMtxUnlock(&time_matched_iono_params_lock);
+    /* get iono parameters if available, otherwise use default ones */
+    if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
+      i_params = DEFAULT_IONO_PARAMS;
     }
+    chMtxLock(&time_matched_iono_params_lock);
+    has_time_matched_iono_params = true;
+    time_matched_iono_params = i_params;
+    chMtxUnlock(&time_matched_iono_params_lock);
+    chMtxLock(&spp_filter_manager_lock);
+    filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
+    chMtxUnlock(&spp_filter_manager_lock);
 
     dops_t dops;
 
