@@ -37,10 +37,10 @@ TEST_SRC_DIR = src
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
 # Flags passed to the C compiler.
-CFLAGS += -g -Wall -Wextra -std=c99 -D_GNU_SOURCE
+CFLAGS += -g -Wall -Wextra -Werror -std=c99 -D_GNU_SOURCE
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread --coverage
+CXXFLAGS += -g -Wall -Wextra -Werror -pthread --coverage
 
 # Compiler include directories.
 INCLUDE_DIRS :=
