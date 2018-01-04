@@ -29,7 +29,7 @@ void boardRevInit(void) {
   *(volatile uint32_t *)0xF8000168 |= (1 << 0);
 
   /* Increase CAN clock */
-  *(volatile uint32_t *)0xF8000160 = 0x03501903;  // Default 0x00501903.
+  *(volatile uint32_t *)0xF800015C = 0x00201903;  // Default 0x00501903.
 
   palSetLineMode(SPI_SS_IMU_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_IMU_GPIO_LINE);
