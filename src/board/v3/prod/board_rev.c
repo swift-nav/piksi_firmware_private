@@ -33,10 +33,10 @@ void boardRevInit(void) {
   uint32_t can_clk_ctrl = *(volatile uint32_t *)0xF800015C;
   uint32_t divisor0 = (can_clk_ctrl >> 8) & 0x3F;
   uint32_t divisor1 = (can_clk_ctrl >> 20) & 0x3F;
-  if (divisor0 > 1){
+  if (divisor0 > 1) {
     divisor0 /= 2;
   }
-  if (divisor1 > 1){
+  if (divisor1 > 1) {
     divisor1 /= 2;
   }
   can_clk_ctrl &= 0xFC0FC0FF;
