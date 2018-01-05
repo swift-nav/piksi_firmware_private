@@ -17,6 +17,7 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/ionosphere.h>
 #include <libswiftnav/nav_meas.h>
 
 #ifdef __cplusplus
@@ -38,6 +39,10 @@ u8 tdcp_doppler(u8 n_new,
                 navigation_measurement_t *m_old,
                 navigation_measurement_t *m_corrected,
                 double dt);
+void calc_iono_tropo(u8 n_meas,
+                     navigation_measurement_t *nav_meas,
+                     const double *pos_ecef,
+                     const ionosphere_t *iono_params);
 
 #ifdef __cplusplus
 } /* extern "C" */

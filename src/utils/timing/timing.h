@@ -15,8 +15,8 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/pvt.h>
 #include <libswiftnav/signal.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 #include "nap/nap_constants.h"
 

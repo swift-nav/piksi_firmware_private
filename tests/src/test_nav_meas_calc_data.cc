@@ -15,7 +15,9 @@
 
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
 #include <libswiftnav/nav_meas.h>
 #include <libswiftnav/observation.h>
@@ -489,4 +491,80 @@ TEST(test_tdcp_doppler, second_test) {
   EXPECT_TRUE(!(nav_meas_tdcp[0].flags & NAV_MEAS_FLAG_COMP_DOPPLER_VALID));
   EXPECT_EQ(nav_meas_tdcp[1].raw_computed_doppler, 200);
   EXPECT_TRUE(nav_meas_tdcp[1].flags & NAV_MEAS_FLAG_COMP_DOPPLER_VALID);
+}
+
+TEST(iono_tropo_usage_test, iono_tropo_test) {
+  /*NOTE: this unit test checks calc_iono_tropo function usage only.
+   * The iono and tropo correction unit tests are in LNSP */
+  u8 n_ready_tdcp = 1;
+
+  static navigation_measurement_t nav_meas_tdcp = {
+      22932174.15685,  /* raw_pseudorange */
+      22932174.15685,  /* pseudorange */
+      32,              /* raw_carrier_phase */
+      0.0,             /* carrier_phase */
+      1000,            /* raw_measured_doppler */
+      1000,            /* measured_doppler */
+      1000,            /* raw_computed_doppler */
+      1000,            /* computed_doppler */
+      0.0,             /* computed_doppler_dt */
+      {-9680013.54,    /* sat_pos[0] */
+       -15286326.35,   /* sat_pos[1] */
+       19429449.38},   /* sat_pos[2] */
+      {-1000,          /* sat_vel[0] */
+       3000,           /* sat_vel[1] */
+       2000},          /* sat_vel[2] */
+      0,               /* IODE */
+      0.0,             /* sat_clock_err */
+      0.0,             /* sat_clock_err_rate */
+      0,               /* IODC */
+      35,              /* cn0 */
+      36,              /* lock_time */
+      0.0,             /* time_in_track */
+      0.0,             /* elevation */
+      {479820,         /* tot.tow */
+       1875},          /* tot.wn */
+      {1,              /* sid.sat */
+       CODE_GPS_L1CA}, /* sid.code */
+      0xAAAA           /* nav_meas_flags_t */
+  };
+
+  double pos_ecef[3];
+  double pos_llh[3] = {20.3 * D2R, 149.1 * D2R, 0};
+  wgsllh2ecef(pos_llh, pos_ecef);
+
+  double pr_tropo_corrected = 22932123.831141;
+  double pr_iono_tropo_corrected = 22932118.957291;
+  double doppler_tropo_corrected = 999.521223;
+  double doppler_iono_tropo_corrected = 999.517450;
+
+  ionosphere_t i = {{479820, 1875},
+                    0.1583e-7,
+                    -0.7451e-8,
+                    -0.5960e-7,
+                    0.1192e-6,
+                    0.1290e6,
+                    -0.2130e6,
+                    0.6554e5,
+                    0.3277e6};
+
+  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, &i);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_iono_tropo_corrected);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.measured_doppler, doppler_iono_tropo_corrected);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.computed_doppler, doppler_iono_tropo_corrected);
+
+  nav_meas_tdcp.pseudorange = 22932174.156858064;
+  nav_meas_tdcp.measured_doppler = 1000;
+  nav_meas_tdcp.computed_doppler = 1000;
+
+  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, (ionosphere_t *)NULL);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_tropo_corrected);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.measured_doppler, doppler_tropo_corrected);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.computed_doppler, doppler_tropo_corrected);
 }

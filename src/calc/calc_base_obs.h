@@ -18,7 +18,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/pvt.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 
