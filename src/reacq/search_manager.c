@@ -13,8 +13,14 @@
 #include <libswiftnav/glo_map.h>
 #include <manage.h>
 #include <string.h>
+#include "ndb/ndb_lgf.h"
+#include "position/position.h"
+#include "sbas_select/sbas_select.h"
 #include "search_manager_api.h"
 #include "timing/timing.h"
+
+/** How many SBAS SV can be tracked */
+#define SBAS_SV_NUM_LIMIT 3
 
 /** Re-acq normal priority masks. */
 static const u32 reacq_normal_prio[] = {
@@ -42,6 +48,71 @@ bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
+
+/**
+ * The function calculates how many SV of defined GNSS are in track
+ * \param[in] jobs_data Pointer to all jobs
+ * \param[in] gnss GNSS constellation type
+ */
+static u8 sv_track_count(acq_jobs_state_t *jobs_data, constellation_t gnss) {
+  assert(jobs_data != NULL);
+  u8 num_sats = 0;
+  u8 sv_tracked = 0;
+  acq_job_t *job_ptr;
+  switch ((s8)gnss) {
+    case CONSTELLATION_GPS:
+      num_sats = NUM_SATS_GPS;
+      job_ptr = &jobs_data->jobs_gps[0][0];
+      break;
+    case CONSTELLATION_GLO:
+      num_sats = NUM_SATS_GLO;
+      job_ptr = &jobs_data->jobs_glo[0][0];
+      break;
+    case CONSTELLATION_SBAS:
+      num_sats = NUM_SATS_SBAS;
+      job_ptr = &jobs_data->jobs_sbas[0][0];
+      break;
+    default:
+      assert(!"Incorrect constellation");
+  }
+  for (u8 i = 0; i < num_sats; i++) {
+    if (mesid_is_tracked(job_ptr[i].mesid)) {
+      sv_tracked++;
+    }
+  }
+  return sv_tracked;
+}
+
+/**
+ * Helper function. Return SBAS mask depending on user position and limit SBAS
+ * SV that needs to be acquired
+ * \param[in] jobs pointer to jobs list
+ * \param[in] job_type Job type
+ * \return mask for SBAS SV. 0 mask means no SBAS SV need to be acquired,
+ * because we already reach the limit.
+ */
+static u32 sbas_limit_mask(acq_jobs_state_t *jobs_data,
+                           acq_job_types_e job_type) {
+  u32 ret = 0;
+  if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    u8 i;
+    for (i = 0; i < NUM_SATS_SBAS; i++) {
+      /* mark all jobs as not needed to run */
+      jobs_data->jobs_sbas[job_type][i].needs_to_run = false;
+    }
+    return ret;
+  }
+  /* read LGF */
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
+    /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
+    ret = sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
+          sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
+  } else {
+    ret = sbas_select_prn_mask(sbas_select_provider(&lgf));
+  }
+  return ret;
+}
 
 /** Global search job data */
 acq_jobs_state_t acq_all_jobs_state_data;
@@ -197,8 +268,17 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
  * \return none
  */
 static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
+  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
+  u32 sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_DEEP_SEARCH);
+  if (0 == sbas_mask) {
+    return;
+  }
   u32 i;
   for (i = 0; i < NUM_SATS_SBAS; i++) {
+    if (!((sbas_mask >> i) & 1)) {
+      /* don't set job for those SBAS SV which are not in our SBAS range */
+      continue;
+    }
     acq_job_t *deep_job = &jobs_data->jobs_sbas[ACQ_JOB_DEEP_SEARCH][i];
     me_gnss_signal_t mesid = deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
@@ -220,6 +300,7 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
     }
 
     sm_get_visibility_flags(sid, &visible, &known);
+
     visible = visible && known;
 
     if (visible) {
@@ -227,6 +308,10 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
+      sbas_limit--;
+    }
+    if (0 == sbas_limit) {
+      return;
     }
   } /* loop SVs */
 }
@@ -376,8 +461,17 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
 static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
                                         u64 now_ms,
                                         u64 lgf_age_ms) {
+  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
+  u32 sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_FALLBACK_SEARCH);
+  if (0 == sbas_mask) {
+    return;
+  }
   u32 i;
   for (i = 0; i < NUM_SATS_SBAS; i++) {
+    if (!((sbas_mask >> i) & 1)) {
+      /* don't set job for those SBAS SV which are not in our SBAS range */
+      continue;
+    }
     acq_job_t *fallback_job = &jobs_data->jobs_sbas[ACQ_JOB_FALLBACK_SEARCH][i];
     me_gnss_signal_t mesid = fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
@@ -408,6 +502,7 @@ static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      sbas_limit--;
     } else if (!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
@@ -415,6 +510,7 @@ static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      sbas_limit--;
     } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
@@ -422,6 +518,10 @@ static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      sbas_limit--;
+    }
+    if (0 == sbas_limit) {
+      return;
     }
   } /* loop SVs */
 }

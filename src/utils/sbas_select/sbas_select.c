@@ -149,7 +149,7 @@ static bool point_in_region(const point_coord_t *border,
 /**
  * The function calculates what SBAS system is available
  * depending on user position.
- * \param lgf[in] LGF structure
+ * \param[in] lgf LGF structure
  * \return SBAS type corresponding to user's position
  */
 sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
@@ -166,8 +166,8 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
   for (j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
     /* check if user position is in SBAS area under testing */
     if (point_in_region(sbas_coverage[i].borders,
-                        lgf->position_solution.pos_llh[0],
-                        lgf->position_solution.pos_llh[1])) {
+                        lgf->position_solution.pos_llh[0] * R2D,
+                        lgf->position_solution.pos_llh[1] * R2D)) {
       if (sbas_coverage[i].sbas != used_sbas) {
         log_info("SBAS system changed: old %" PRId8 ", new %" PRId8,
                  (s8)used_sbas,

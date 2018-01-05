@@ -30,74 +30,74 @@ TEST(sbas_select_tests, provider) {
 
   // check WAAS range and test that latitude does not affect
   lgf.position_quality = POSITION_FIX;
-  lgf.position_solution.pos_llh[0] = 30;
-  lgf.position_solution.pos_llh[1] = -100;
+  lgf.position_solution.pos_llh[0] = 30 * D2R;
+  lgf.position_solution.pos_llh[1] = -100 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
-  lgf.position_solution.pos_llh[0] = -30;
+  lgf.position_solution.pos_llh[0] = -30 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
 
   // check EGNOS range
-  lgf.position_solution.pos_llh[1] = 10;
+  lgf.position_solution.pos_llh[1] = 10 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
 
   // check GAGAN range
-  lgf.position_solution.pos_llh[1] = 50;
+  lgf.position_solution.pos_llh[1] = 50 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_GAGAN);
 
   // check MSAS range
-  lgf.position_solution.pos_llh[1] = 120;
+  lgf.position_solution.pos_llh[1] = 120 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_MSAS);
 
   // check out of any range
-  lgf.position_solution.pos_llh[1] = 170;
+  lgf.position_solution.pos_llh[1] = 170 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_UNKNOWN);
 
   // check Borders
-  lgf.position_solution.pos_llh[1] = -180;
+  lgf.position_solution.pos_llh[1] = -180 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
-  lgf.position_solution.pos_llh[1] = -50;
+  lgf.position_solution.pos_llh[1] = -50 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
-  lgf.position_solution.pos_llh[1] = 40;
+  lgf.position_solution.pos_llh[1] = 40 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-  lgf.position_solution.pos_llh[1] = 100;
+  lgf.position_solution.pos_llh[1] = 100 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_GAGAN);
-  lgf.position_solution.pos_llh[1] = 160;
+  lgf.position_solution.pos_llh[1] = 160 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_MSAS);
-  lgf.position_solution.pos_llh[1] = 180;
+  lgf.position_solution.pos_llh[1] = 180 * D2R;
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
 
   // check border crossing
-  lgf.position_solution.pos_llh[1] = 0.f;  // set to EGNOS
+  lgf.position_solution.pos_llh[1] = 0.f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
   // move through EGNOS-GAGAN border
-  for (lgf.position_solution.pos_llh[1] = 39.f;
-       lgf.position_solution.pos_llh[1] <= 41.f;
+  for (lgf.position_solution.pos_llh[1] = 39.f * D2R;
+       lgf.position_solution.pos_llh[1] <= 41.f * D2R;
        lgf.position_solution.pos_llh[1] =
-           lgf.position_solution.pos_llh[1] + .1) {
+           lgf.position_solution.pos_llh[1] + .1 * D2R) {
     sbas_type_t s = sbas_select_provider(&lgf);
     EXPECT_EQ(s, SBAS_EGNOS);
   }
-  lgf.position_solution.pos_llh[1] = 41.1f;  // set to GAGAN
+  lgf.position_solution.pos_llh[1] = 41.1f * D2R;  // set to GAGAN
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_GAGAN);
-  for (lgf.position_solution.pos_llh[1] = 41.f;
-       lgf.position_solution.pos_llh[1] >= 39.0f;
+  for (lgf.position_solution.pos_llh[1] = 41.f * D2R;
+       lgf.position_solution.pos_llh[1] >= 39.f * D2R;
        lgf.position_solution.pos_llh[1] =
-           lgf.position_solution.pos_llh[1] - .1) {
+           lgf.position_solution.pos_llh[1] - .1 * D2R) {
     sbas_type_t s = sbas_select_provider(&lgf);
     EXPECT_EQ(s, SBAS_GAGAN);
   }
-  lgf.position_solution.pos_llh[1] = 38.9f;  // set to GAGAN
+  lgf.position_solution.pos_llh[1] = 38.9f * D2R;  // set to GAGAN
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
 
   // check debouncing
-  lgf.position_solution.pos_llh[1] = 0.f;  // set to EGNOS
+  lgf.position_solution.pos_llh[1] = 0.f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-  lgf.position_solution.pos_llh[1] = 40.f;  // set to EGNOS
+  lgf.position_solution.pos_llh[1] = 40.f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-  lgf.position_solution.pos_llh[1] = 39.9f;  // set to EGNOS
+  lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-  lgf.position_solution.pos_llh[1] = 40.1f;  // set to EGNOS
+  lgf.position_solution.pos_llh[1] = 40.1f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-  lgf.position_solution.pos_llh[1] = 39.9f;  // set to EGNOS
+  lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
 }

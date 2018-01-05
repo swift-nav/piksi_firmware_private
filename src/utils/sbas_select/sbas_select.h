@@ -13,6 +13,7 @@
 #define SBAS_SELECT_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/constants.h>
 
 #include "position/position.h"
 
