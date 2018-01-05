@@ -140,7 +140,7 @@ TEST(cnav_tests, cnav_decoder_init) {
   EXPECT_EQ(0, dec.part2.n_decoded);
 }
 
-static cnav_msg_t basic = {22, 0, 1000, 0, 0, 0, 0, 0, 0, 0, 0};
+static cnav_msg_t basic = {22, 0, 1000, 0, 0, .data = {{0, 0, 0, 0, 0, 0}}};
 
 static size_t add_encoded_message(u32 *pacc, u8 *buf, cnav_msg_t *msg) {
   u8 src_msg[38] = {0};
