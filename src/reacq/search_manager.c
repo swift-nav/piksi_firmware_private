@@ -83,6 +83,37 @@ static u8 sv_track_count(acq_jobs_state_t *jobs_data, constellation_t gnss) {
   return sv_tracked;
 }
 
+/**
+ * Helper function. Return SBAS mask depending on user position and limit SBAS
+ * SV that needs to be acquired
+ * \param[in] jobs pointer to jobs list
+ * \param[in] job_type Job type
+ * \return mask for SBAS SV. 0 mask means no SBAS SV need to be acquired,
+ * because we already reach the limit.
+ */
+static u32 sbas_limit_mask(acq_jobs_state_t *jobs_data,
+                           acq_job_types_e job_type) {
+  u32 ret = 0;
+  if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    u8 i;
+    for (i = 0; i < NUM_SATS_SBAS; i++) {
+      /* mark all jobs as not needed to run */
+      jobs_data->jobs_sbas[job_type][i].needs_to_run = false;
+    }
+    return ret;
+  }
+  /* read LGF */
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
+    /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
+    ret = sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
+          sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
+  } else {
+    ret = sbas_select_prn_mask(sbas_select_provider(&lgf));
+  }
+  return ret;
+}
+
 /** Global search job data */
 acq_jobs_state_t acq_all_jobs_state_data;
 
@@ -237,26 +268,12 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
  * \return none
  */
 static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
-  u32 i;
   u8 sbas_limit = SBAS_SV_NUM_LIMIT;
-  u32 sbas_mask;
-  if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-    for (i = 0; i < NUM_SATS_SBAS; i++) {
-      /* mark all jobs as not needed to run */
-      jobs_data->jobs_sbas[ACQ_JOB_DEEP_SEARCH][i].needs_to_run = false;
-    }
+  u32 sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_DEEP_SEARCH);
+  if (0 == sbas_mask) {
     return;
   }
-  /* read LGF */
-  last_good_fix_t lgf;
-  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
-    /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
-    sbas_mask =
-        sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
-        sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
-  } else {
-    sbas_mask = sbas_select_prn_mask(sbas_select_provider(&lgf));
-  }
+  u32 i;
   for (i = 0; i < NUM_SATS_SBAS; i++) {
     if (!((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
@@ -444,26 +461,12 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
 static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
                                         u64 now_ms,
                                         u64 lgf_age_ms) {
-  u32 i;
   u8 sbas_limit = SBAS_SV_NUM_LIMIT;
-  u32 sbas_mask;
-  if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-    for (i = 0; i < NUM_SATS_SBAS; i++) {
-      /* mark all jobs as not needed to run */
-      jobs_data->jobs_sbas[ACQ_JOB_FALLBACK_SEARCH][i].needs_to_run = false;
-    }
+  u32 sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_FALLBACK_SEARCH);
+  if (0 == sbas_mask) {
     return;
   }
-  /* read LGF */
-  last_good_fix_t lgf;
-  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
-    /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
-    sbas_mask =
-        sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
-        sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
-  } else {
-    sbas_mask = sbas_select_prn_mask(sbas_select_provider(&lgf));
-  }
+  u32 i;
   for (i = 0; i < NUM_SATS_SBAS; i++) {
     if (!((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
