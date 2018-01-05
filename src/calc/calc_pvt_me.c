@@ -18,26 +18,24 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/sid_set.h>
+#include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 
+#include "board/nap/track_channel.h"
 #include "calc_nav_meas.h"
+#include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-
+#include "main.h"
 #include "manage.h"
+#include "ndb/ndb.h"
 #include "nmea/nmea.h"
+#include "obs_bias/obs_bias.h"
 #include "peripherals/leds.h"
 #include "position/position.h"
 #include "sbp.h"
 #include "sbp_utils.h"
-
-#include "board/nap/track_channel.h"
-#include "calc_pvt_common.h"
-#include "main.h"
-#include "ndb/ndb.h"
-#include "obs_bias/obs_bias.h"
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
@@ -551,11 +549,8 @@ static void me_calc_pvt_thread(void *arg) {
       if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      calc_iono_tropo(n_ready,
-                      nav_meas,
-                      lgf.position_solution.pos_ecef,
-                      lgf.position_solution.pos_llh,
-                      p_i_params);
+      calc_iono_tropo(
+          n_ready, nav_meas, lgf.position_solution.pos_ecef, p_i_params);
     }
 
     if (sid_set_get_sat_count(&codes) < 4) {

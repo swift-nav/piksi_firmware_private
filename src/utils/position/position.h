@@ -14,7 +14,7 @@
 #define SWIFTNAV_POSITION_H
 
 #include <libswiftnav/common.h>
-#include <libswiftnav/pvt.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 /** \addtogroup position
  * \{ */

@@ -20,7 +20,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 #include "calc_base_obs.h"
 #include "ephemeris/ephemeris.h"

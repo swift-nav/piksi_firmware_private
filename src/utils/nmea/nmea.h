@@ -16,7 +16,7 @@
 #include <libsbp/navigation.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/pvt.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 /* The "QI" stands for "Quality Indicator" which is the terminology used
    for this field in the NMEA specification. */

@@ -18,8 +18,8 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/observation.h>
-#include <libswiftnav/pvt.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <libswiftnav/single_epoch_solver.h>
 
 #include "piksi_systime.h"
 

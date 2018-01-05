@@ -26,6 +26,7 @@
 #include <libswiftnav/signal.h>
 
 #include "calc_base_obs.h"
+#include "calc_nav_meas.h"
 #include "calc_pvt_me.h"
 #include "calc_pvt_starling.h"
 #include "manage.h"
@@ -212,8 +213,6 @@ static void update_obss(obss_t *new_obss) {
                         (old_base_sender_id != new_obss->sender_id);
     /* check if we have fix, if yes, calculate iono and tropo correction */
     if (!base_changed && base_obss.has_pos) {
-      double llh[3];
-      wgsecef2llh(base_obss.pos_ecef, llh);
       log_debug("Base: IONO/TROPO correction");
       ionosphere_t i_params;
       ionosphere_t *p_i_params = &i_params;
@@ -221,10 +220,10 @@ static void update_obss(obss_t *new_obss) {
       if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
         p_i_params = NULL;
       }
-      // Use the previous ECEF position to get the iono/tropo for the new
-      // measurements
+      /* Use the previous ECEF position to get the iono/tropo for the new
+       * measurements */
       calc_iono_tropo(
-          new_obss->n, new_obss->nm, base_obss.pos_ecef, llh, p_i_params);
+          new_obss->n, new_obss->nm, base_obss.pos_ecef, p_i_params);
     }
 
     gnss_solution soln;
