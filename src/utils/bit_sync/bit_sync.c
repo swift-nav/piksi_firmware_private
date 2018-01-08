@@ -22,12 +22,6 @@
 #define BITSYNC_THRES_HI 11
 #define BITSYNC_THRES_LO 3
 
-/* Symbol lengths for different constellations. Bounded by BIT_LENGTH_MAX */
-#define SYMBOL_LENGTH_GPS_MS 20
-#define SYMBOL_LENGTH_GLO_MS 10
-#define SYMBOL_LENGTH_SBAS_L1_MS 2
-#define SYMBOL_LENGTH_BDS_D1NAV_MS 20
-#define SYMBOL_LENGTH_BDS_D2NAV_MS 2
 #define SYMBOL_LENGTH_NH20_MS 20
 
 /* The sync hisotgram should be as follows for Beidou2 NH20 code
@@ -69,24 +63,24 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
     case CODE_QZS_L2CL:
     case CODE_QZS_L5I:
     case CODE_QZS_L5Q:
-      bit_length = SYMBOL_LENGTH_GPS_MS;
+      bit_length = GPS_L1CA_SYMBOL_LENGTH_MS;
       break;
 
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
-      bit_length = SYMBOL_LENGTH_GLO_MS;
+      bit_length = GLO_L1CA_SYMBOL_LENGTH_MS;
       break;
 
     case CODE_SBAS_L1CA:
-      bit_length = SYMBOL_LENGTH_SBAS_L1_MS;
+      bit_length = SBAS_L1CA_SYMBOL_LENGTH_MS;
       break;
 
     case CODE_BDS2_B11:
     case CODE_BDS2_B2:
       if (bds_d2nav(mesid)) {
-        bit_length = SYMBOL_LENGTH_BDS_D2NAV_MS;
+        bit_length = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS;
       } else {
-        bit_length = SYMBOL_LENGTH_BDS_D1NAV_MS;
+        bit_length = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS;
       }
       break;
 

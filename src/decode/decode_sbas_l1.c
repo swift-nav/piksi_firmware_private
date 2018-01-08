@@ -111,7 +111,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     }
 
     tow_ms = data->sbas_msg.tow * SECS_MS;
-    tow_ms += delay * SBAS_L1CA_BIT_LENGTH_MS;
+    tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
     if (tow_ms >= WEEK_MS) {
       tow_ms -= WEEK_MS;
     }

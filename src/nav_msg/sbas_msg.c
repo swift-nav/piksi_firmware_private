@@ -325,6 +325,8 @@ static bool _sbas_msg_decode(sbas_v27_part_t *part,
           break;
       }
 
+      /* TODO: Generate SBAS raw data SBP msg here. */
+
       *delay = (part->n_decoded - SBAS_MSG_LENGTH + SBAS_V27_DELAY_BITS +
                 SBAS_V27_CONSTRAINT_LENGTH - 1) *
                    2 +
