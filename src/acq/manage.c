@@ -867,7 +867,6 @@ void sanitize_tracker(tracker_t *tracker_channel,
  * Computes carrier phase offset.
  *
  * \param[in]  ref_tc Reference time
- * \param[in]  info   Generic tracker data for update
  * \param[in]  meas   Pre-populated channel measurement
  * \param[out] carrier_phase_offset Result
  *
@@ -876,46 +875,23 @@ void sanitize_tracker(tracker_t *tracker_channel,
  * \retval false Error in computation.
  */
 static bool compute_cpo(u64 ref_tc,
-                        const tracker_info_t *info,
                         const channel_measurement_t *meas,
                         s64 *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
-  bool ret = tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
-  if (ret) {
-    /* We don't want to adjust for the recevier clock drift,
-     * so we need to calculate an estimate of that before we
-     * calculate the carrier phase offset */
-    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
-    gps_time_t gps_time = napcount2gpstime(ref_tc);
-
-    double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
-
-    /* pseudorange in circles */
-    double pseudorange_circ = (sid_to_carr_freq(meas->sid) *
-                               (raw_pseudorange / GPS_C - rcv_clk_error));
-
-    /* Remove the fractional 2-ms residual FCN contribution */
-    if (IS_GLO(meas->sid)) {
-      pseudorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
-    }
-
-    /* initialize the carrier phase offset with the pseudorange measurement */
-    *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
-
-    log_debug_mesid(info->mesid,
-                    "raw_pseudorange %lf rcv_clk_error %e CPO to %" PRId64,
-                    raw_pseudorange,
-                    rcv_clk_error,
-                    *carrier_phase_offset);
-
-    if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
-      /* Remember offset for the future use */
-      tracker_set_carrier_phase_offset(info, *carrier_phase_offset);
-    }
+  if (!tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange)) {
+    return false;
   }
-  return ret;
+
+  /* remove subsecond part of the clock error */
+  double cpo_correction = subsecond_cpo_correction(ref_tc);
+  double pseudorange_circ =
+      sid_to_carr_freq(meas->sid) * (raw_pseudorange / GPS_C - cpo_correction);
+
+  /* initialize the carrier phase offset with the pseudorange measurement */
+  *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
+
+  return true;
 }
 
 /**
@@ -1032,8 +1008,8 @@ u32 get_tracking_channel_meas(u8 i,
         (0 != (flags & TRACKER_FLAG_TOW_VALID)) &&
         (0 != (flags & TRACKER_FLAG_CN0_SHORT)) &&
         (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
-        (TIME_PROPAGATED <= get_time_quality())) {
-      if (compute_cpo(ref_tc, &info, meas, &carrier_phase_offset)) {
+        (TIME_FINE <= get_time_quality())) {
+      if (compute_cpo(ref_tc, meas, &carrier_phase_offset)) {
         tracker_set_carrier_phase_offset(&info, carrier_phase_offset);
       }
     }

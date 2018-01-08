@@ -58,6 +58,7 @@ gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);
 gps_time_t gps_time_round_to_epoch(const gps_time_t* time, double soln_freq);
 double get_clock_drift(void);
+double subsecond_cpo_correction(u64 tc);
 
 #ifdef __cplusplus
 }

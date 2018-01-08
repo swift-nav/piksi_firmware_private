@@ -395,4 +395,17 @@ double get_clock_drift() {
   return 1.0 - clock_rate;
 }
 
+/* Compute the sub-second portion of difference between NAP counter and gps time
+ */
+double subsecond_cpo_correction(u64 ref_tc) {
+  /* Careful with numerical cancellation, we need this correction accurate to
+   * the 10th decimal place. */
+  gps_time_t ref_time = napcount2gpstime(ref_tc);
+  double time_subsecond = ref_time.tow - round(ref_time.tow);
+  u64 tc_subsecond = ref_tc % (u64)NAP_FRONTEND_SAMPLE_RATE_Hz;
+  double cpo_correction = time_subsecond - RX_DT_NOMINAL * tc_subsecond;
+
+  return cpo_correction - round(cpo_correction);
+}
+
 /** \} */
