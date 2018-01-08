@@ -149,6 +149,7 @@ C_SRCS = fixed_fft_r2.c \
          nav_msg_glo.c \
          run_stats.c \
          gnss_capabilities.c \
+         nav_msg.c \
 
 # Test source files
 CXX_SRCS = $(notdir $(shell find $(TEST_SRC_DIR) -name '*.cc'))

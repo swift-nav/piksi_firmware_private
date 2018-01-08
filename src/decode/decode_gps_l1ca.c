@@ -424,6 +424,7 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   nav_bit_fifo_element_t nav_bit;
+  s8 prev_polarity = BIT_POLARITY_UNKNOWN;
   while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (nav_bit.sensitivity_mode) {
@@ -434,8 +435,15 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
     bool bit_val = nav_bit.soft_bit >= 0;
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
+    prev_polarity = data->nav_msg.bit_polarity;
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);
     from_decoder.bit_polarity = data->nav_msg.bit_polarity;
+    /* Let's not update TOW together with fast HCA resolution. */
+    if (BIT_POLARITY_UNKNOWN == prev_polarity &&
+        BIT_POLARITY_UNKNOWN != from_decoder.bit_polarity) {
+      /* Only update polarity. */
+      from_decoder.sync_flags = SYNC_POL;
+    }
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 

@@ -44,6 +44,19 @@
 /** Total number of words matching 01 or 10 bit pattern */
 #define GPS_LNAV_BAD_DATA_WORDS 8
 
+/** TOW adjustment offset in bits.*/
+#define TOW_OFFSET_BITS 240
+/** Bit offset where to look for preamble candidate for bit polarity */
+#define BIT_POLARITY_PREAMBLE_OFFSET 60
+/** Bit offset where to look for preamble candidate for subframe processing */
+#define SUBFRAME_PREAMBLE_OFFSET 360
+/** Bit index offset where preamble candidate for bit polarity starts */
+#define BIT_POLARITY_BUFFER_OFFSET \
+  (NAV_MSG_SUBFRAME_BITS_LEN - BIT_POLARITY_PREAMBLE_OFFSET)
+/** Bit index offset where preamble candidate for subframe processing starts */
+#define SUBFRAME_BUFFER_OFFSET \
+  (NAV_MSG_SUBFRAME_BITS_LEN - SUBFRAME_PREAMBLE_OFFSET)
+
 /**
  * Subframe data check status
  */
@@ -52,8 +65,6 @@ typedef enum {
   GPS_LNAV_SF_STATUS_ERROR,
   GPS_LNAV_SF_STATUS_INVALID,
 } gps_lnav_sf_status_t;
-
-static u8 nav_parity(u32 *word);
 
 /**
  * Initializes GPS LNAV message decoder.
@@ -89,7 +100,7 @@ void nav_msg_clear_decoded(nav_msg_t *n) {
  *
  * \return Extracted bits
  */
-static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
+u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
   assert(n_bits > 0 && n_bits <= 32);
 
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
@@ -129,6 +140,303 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
   return word >> (32 - n_bits);
 }
 
+s32 adjust_tow(u32 TOW_trunc) {
+  /* The TOW in the message is for the start of the NEXT subframe. */
+  s32 TOW_ms = TOW_INVALID;
+
+  if (TOW_trunc == 0) {
+    /* end-of-week special case */
+    TOW_ms = WEEK_MS - TOW_OFFSET_BITS * GPS_L1CA_BIT_LENGTH_MS;
+  } else if (TOW_trunc * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+    /* invalid TOW case */
+    TOW_ms = TOW_INVALID;
+  } else {
+    TOW_ms = TOW_trunc * GPS_TOW_TRUNC_TO_TOW_S * SECS_MS -
+             TOW_OFFSET_BITS * GPS_L1CA_BIT_LENGTH_MS;
+  }
+
+  return TOW_ms;
+}
+
+static s32 seek_subframe(nav_msg_t *n) {
+  /* We're going to look for the preamble at 360 nav bits ago.
+   * This means we have whole subframe in buffer (10 * 30 bits),
+   * and TLM + HOW word of the next subframe (30 + 30).
+   *
+   * We declare preamble found if:
+   * 1. Preambles or inverted preambles are found at correct locations.
+   * 2. Last 2 parity bits of Word 10 and HOW are zeros.
+   *    see IS-GPS-200H, pages 75 & 89.
+   * 3. TOWs are within valid range (= within one week).
+   *    TOW matches with the TOW in next subframe
+   * 4. Alert flags OK.
+   * 5. Subframe IDs are valid (= 1..5) and incrementing
+   * 6. Parity check of all TOW & HOW words passes. */
+
+  u16 bit_offset = SUBFRAME_BUFFER_OFFSET;
+
+  /* Step 1.
+   * Check whether there's a preamble at the start of the circular
+   * subframe_bits buffer. */
+  u8 preamble_candidate = extract_word(
+      n, n->subframe_bit_index + bit_offset, GPS_L1CA_PREAMBLE_LENGTH_BITS, 0);
+
+  if (GPS_L1CA_PREAMBLE_NORMAL == preamble_candidate) {
+    n->subframe_start_index = n->subframe_bit_index + bit_offset + 1;
+  } else if (GPS_L1CA_PREAMBLE_INVERTED == preamble_candidate) {
+    n->subframe_start_index = -(n->subframe_bit_index + bit_offset + 1);
+  } else {
+    /* Preamble was not found, no need to continue. */
+    return TOW_INVALID;
+  }
+
+  if (GPS_L1CA_PREAMBLE_NORMAL !=
+      extract_word(n, 300, GPS_L1CA_PREAMBLE_LENGTH_BITS, 0)) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Step 2.
+   * Confirm that last 2 parity bits of Word 10 and HOW are zeros. */
+
+  /* Adjust subframe start index temporarily to enable extraction of 2 last
+   * parity bits of Word 10. That is 2 bits before subframe start. */
+  n->subframe_start_index -= 2;
+  u32 last_bits_word10 = extract_word(n, 0, 2, 0);
+  /* Revert subframe start index adjustment. */
+  n->subframe_start_index += 2;
+  u32 zero_bits = last_bits_word10 | extract_word(n, 58, 2, 0);
+  zero_bits |= extract_word(n, 298, 2, 0);
+  zero_bits |= extract_word(n, 358, 2, 0);
+  if (zero_bits) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  u8 parity_bit1 = extract_word(n, 29, 1, 0);
+  u8 parity_bit2 = extract_word(n, 329, 1, 0);
+
+  /* Step 3.
+   * Check TOW1 validity */
+  u32 TOW_trunc1 = extract_word(n, 30, 17, parity_bit1);
+  if (TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+  /* Check TOW2 validity */
+  u32 TOW_trunc2 = extract_word(n, 330, 17, parity_bit2);
+  if (TOW_trunc2 * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Check that incremented TOW1 matches with next TOW2. */
+  TOW_trunc1++;
+  /* Handle end of week roll over. */
+  if (TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S == WEEK_SECS) {
+    TOW_trunc1 = 0;
+  }
+
+  if (TOW_trunc1 != TOW_trunc2) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Step 4.
+   * Check Alert flags. */
+  u32 alert = extract_word(n, 47, 1, parity_bit1);
+  alert |= extract_word(n, 347, 1, parity_bit2);
+  if (alert) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Step 5.
+   * Check subframe ID validity. */
+  u32 sf_id1 = extract_word(n, 49, 3, parity_bit1);
+  if (sf_id1 < GPS_LNAV_SUBFRAME_MIN || sf_id1 > GPS_LNAV_SUBFRAME_MAX) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  u32 sf_id2 = extract_word(n, 349, 3, parity_bit2);
+  if (sf_id2 < GPS_LNAV_SUBFRAME_MIN || sf_id2 > GPS_LNAV_SUBFRAME_MAX) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Check that incremented subframe ID matches with next subframe ID. */
+  sf_id1++;
+  /* Handle subframe ID roll over. */
+  if (sf_id1 > GPS_LNAV_SUBFRAME_MAX) {
+    sf_id1 = GPS_LNAV_SUBFRAME_MIN;
+  }
+
+  if (sf_id1 != sf_id2) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Step 6.
+   *  Check parities. */
+
+  /* Shift parity bits of first Word 10. */
+  last_bits_word10 <<= 30;
+  /* Extract Word 1. */
+  u32 sf_word1 = extract_word(n, 0, 30, 0);
+  /* Combine parity bits and Word 1. */
+  sf_word1 |= last_bits_word10;
+  if (nav_parity(&sf_word1)) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Extract 2 last parity bits of Word 1 + full Word 2. */
+  u32 sf_word2 = extract_word(n, 28, 32, 0);
+  if (nav_parity(&sf_word2)) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Extract 2 last parity bits of next Word 10 + full Word 1 of next subframe.
+   */
+  sf_word1 = extract_word(n, 298, 32, 0);
+  if (nav_parity(&sf_word1)) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Extract 2 last parity bits of next Word 1 + full Word 2 of next subframe.
+   */
+  sf_word2 = extract_word(n, 328, 32, 0);
+  if (nav_parity(&sf_word2)) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* All checks passed.
+   * Pretty certain that we've found correct preamble now. */
+  s32 TOW_ms = adjust_tow(TOW_trunc1);
+
+  n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL
+                                                  : BIT_POLARITY_INVERTED;
+
+  return TOW_ms;
+}
+
+static void seek_bit_polarity(nav_msg_t *n) {
+  /* We're going to look for the preamble at 60 nav bits ago.
+   * This means we have TLM + HOW words in buffer (30 + 30 bits).
+   *
+   * We declare preamble found if:
+   * 1. Preamble or inverted preamble is found at correct location.
+   * 2. Last 2 parity bits of Word 10 and HOW are zeros.
+   *    see IS-GPS-200H, pages 75 & 89.
+   * 3. TOW is within valid range (= within one week).
+   * 4. Alert flag OK.
+   * 5. Subframe ID is valid (= 1..5)
+   * 6. Parity check of TOW & HOW words passes. */
+
+  u16 bit_offset = BIT_POLARITY_BUFFER_OFFSET;
+
+  /* Step 1.
+   * Check whether there's a preamble at the start of the circular
+   * subframe_bits buffer. */
+  u8 preamble_candidate = extract_word(
+      n, n->subframe_bit_index + bit_offset, GPS_L1CA_PREAMBLE_LENGTH_BITS, 0);
+
+  if (GPS_L1CA_PREAMBLE_NORMAL == preamble_candidate) {
+    n->subframe_start_index = n->subframe_bit_index + bit_offset + 1;
+  } else if (GPS_L1CA_PREAMBLE_INVERTED == preamble_candidate) {
+    n->subframe_start_index = -(n->subframe_bit_index + bit_offset + 1);
+  } else {
+    /* Preamble was not found, no need to continue. */
+    return;
+  }
+
+  /* Step 2.
+   * Confirm that last 2 parity bits of Word 10 and HOW are zeros. */
+
+  /* Adjust subframe start index temporarily to enable extraction of 2 last
+   * parity bits of Word 10. That is 2 bits before subframe start.
+   * Revert subframe start index adjustment after extraction. */
+  u32 last_bits_word10 = 0;
+  if (n->subframe_start_index > 0) {
+    n->subframe_start_index -= 2;
+    last_bits_word10 = extract_word(n, 0, 2, 0);
+    n->subframe_start_index += 2;
+  } else {
+    n->subframe_start_index += 2;
+    last_bits_word10 = extract_word(n, 0, 2, 0);
+    n->subframe_start_index -= 2;
+  }
+
+  u32 last_bits_how = extract_word(n, 58, 2, 0);
+  if (last_bits_word10 || last_bits_how) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  u8 parity_bit = extract_word(n, 29, 1, 0);
+
+  /* Step 3.
+   * Check TOW validity */
+  u32 TOW_trunc = extract_word(n, 30, 17, parity_bit);
+  if (TOW_trunc * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  /* Step 4.
+   * Check Alert flag. */
+  u32 alert = extract_word(n, 47, 1, parity_bit);
+  if (alert) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  /* Step 5.
+   * Check subframe ID validity. */
+  u32 sf_id = extract_word(n, 49, 3, parity_bit);
+  if (sf_id < GPS_LNAV_SUBFRAME_MIN || sf_id > GPS_LNAV_SUBFRAME_MAX) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  /* Step 6.
+   *  Check parities. */
+
+  /* Shift parity bits of Word 10. */
+  last_bits_word10 <<= 30;
+  /* Extract Word 1. */
+  u32 sf_word1 = extract_word(n, 0, 30, 0);
+  /* Combine 2 last parity bits of Word 10 + full Word 1. */
+  sf_word1 |= last_bits_word10;
+  if (nav_parity(&sf_word1)) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  /* Extract 2 last parity bits of Word 1 + full Word 2. */
+  u32 sf_word2 = extract_word(n, 28, 32, 0);
+  if (nav_parity(&sf_word2)) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  /* All checks passed.
+   * Pretty certain that we've found correct preamble now. */
+
+  n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL
+                                                  : BIT_POLARITY_INVERTED;
+
+  /* Subframe start index is reset,
+   * because full subframe is not yet available. */
+  n->subframe_start_index = 0;
+
+  return;
+}
+
 /** Navigation message decoding update.
  * Called once per nav bit interval. Performs the necessary steps to
  * store the nav bits and decode them.
@@ -158,12 +466,12 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val) {
      * being used.
      */
     n->overrun = true;
-    return -2;
+    return BUFFER_OVERRUN;
   }
 
   if (n->subframe_bit_index >= NAV_MSG_SUBFRAME_BITS_LEN) {
     log_error("subframe bit index gone wild %d", (int)n->subframe_bit_index);
-    return -22;
+    return BIT_INDEX_INVALID;
   }
 
   if (bit_val) {
@@ -180,82 +488,27 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val) {
     n->subframe_bit_index = 0;
   }
 
-  /* Yo dawg, are we still looking for the preamble? */
-  if (!n->subframe_start_index) {
-/* We're going to look for the preamble at a time 360 nav bits ago,
- * then again 60 nav bits ago. */
-#define SUBFRAME_START_BUFFER_OFFSET (NAV_MSG_SUBFRAME_BITS_LEN - 360)
+  /* Increment number of bits decoded until
+   * it reaches enough bits for subframe seek. */
+  if (n->bits_decoded < BITS_DECODED_FOR_SUBFRAME) {
+    n->bits_decoded++;
+  }
 
-    /* Check whether there's a preamble at the start of the circular
-     * subframe_bits buffer. */
-    u8 preamble_candidate = extract_word(
-        n, n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET, 8, 0);
+  if (n->subframe_start_index) {
+    /* Subframe start has been found, no need to continue. */
+    return TOW_ms;
+  }
 
-    if (preamble_candidate == 0x8B) {
-      n->subframe_start_index =
-          n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1;
-    } else if (preamble_candidate == 0x74) {
-      n->subframe_start_index =
-          -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
-    }
+  /* When bit polarity is unknown, first step is to find it.
+   * Start seek if enough bits have been decoded. */
+  if (BIT_POLARITY_UNKNOWN == n->bit_polarity &&
+      n->bits_decoded >= BITS_DECODED_FOR_POLARITY) {
+    seek_bit_polarity(n);
+  }
 
-    if (n->subframe_start_index) {
-      // Looks like we found a preamble, but let's confirm.
-      if (extract_word(n, 300, 8, 0) == 0x8B) {
-        // There's another preamble in the following subframe.  Looks good so
-        // far.
-        // Extract the TOW:
-        unsigned int TOW_trunc =
-            extract_word(n, 30, 17, extract_word(n, 29, 1, 0));
-        /* (bit 29 is D30* for the second word, where the TOW resides) */
-        if (TOW_trunc < 7 * 24 * 60 * 10) {
-          /* TOW in valid range */
-          TOW_trunc++;  // Increment it, to see what we expect at the start of
-                        // the next subframe
-          if (TOW_trunc == 7 * 24 * 60 * 10) {  // Handle end of week rollover
-            TOW_trunc = 0;
-          }
-
-          if (TOW_trunc ==
-              extract_word(n, 330, 17, extract_word(n, 329, 1, 0))) {
-            /* Check parity */
-            /* Extract word 2 and the last two parity bits of word 1
-               of the full subframe in our buffer. */
-            u32 sf_word2 = extract_word(n, 28, 32, 0);
-            if (nav_parity(&sf_word2)) {
-              n->subframe_start_index = 0;
-              return TOW_INVALID;
-            }
-            /* Extract word 2 and the last two parity bits of word 1
-               of the partial subframe in our buffer. */
-            sf_word2 = extract_word(n, 300 + 28, 32, 0);
-            if (nav_parity(&sf_word2)) {
-              n->subframe_start_index = 0;
-              return TOW_INVALID;
-            }
-            // We got two appropriately spaced preambles, and two matching TOW
-            // counts.  Pretty certain now.
-            // The TOW in the message is for the start of the NEXT subframe.
-            // That is, 240 nav bits' time from now, since we are 60 nav bits
-            // into the second subframe that we recorded.
-            if (TOW_trunc == 0) {
-              /* end-of-week special case */
-              TOW_ms = WEEK_MS - (300 - 60) * 20;
-            } else {
-              TOW_ms = TOW_trunc * 6000 - (300 - 60) * 20;
-            }
-            n->bit_polarity = (n->subframe_start_index > 0)
-                                  ? BIT_POLARITY_NORMAL
-                                  : BIT_POLARITY_INVERTED;
-          }
-        }
-      }
-      /* If we didn't find a matching pair of preambles + TOWs,
-       * this offset can't be right. Move on. */
-      if (TOW_ms < 0) {
-        n->subframe_start_index = 0;
-      }
-    }
+  /* Whole subframe is searched if enough bits have been decoded. */
+  if (n->bits_decoded >= BITS_DECODED_FOR_SUBFRAME) {
+    TOW_ms = seek_subframe(n);
   }
 
   return TOW_ms;
@@ -275,7 +528,7 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val) {
  * \return 0 if the parity is correct,
  *         otherwise returns the number of the first incorrect parity bit.
  */
-static u8 nav_parity(u32 *word) {
+u8 nav_parity(u32 *word) {
   if (*word & 1u << 30) { /* Inspect D30* */
     *word ^= 0x3FFFFFC0;  /* D30* = 1, invert all the data bits! */
   }
@@ -308,7 +561,9 @@ static u8 nav_parity(u32 *word) {
   return 0;
 }
 
-bool subframe_ready(nav_msg_t *n) { return (n->subframe_start_index != 0); }
+bool subframe_ready(const nav_msg_t *n) {
+  return (n->subframe_start_index != 0);
+}
 
 /**
  * Internal helper for increase cached subframe data age.
