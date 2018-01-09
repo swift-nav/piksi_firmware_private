@@ -544,13 +544,12 @@ static void me_calc_pvt_thread(void *arg) {
     /* check if we have a solution, if yes calc iono and tropo correction */
     if (lgf.position_quality >= POSITION_GUESS) {
       ionosphere_t i_params;
-      ionosphere_t *p_i_params = &i_params;
-      /* get iono parameters if available */
-      if (ndb_iono_corr_read(p_i_params) != NDB_ERR_NONE) {
-        p_i_params = NULL;
+      /* get iono parameters if available, otherwise use default ones */
+      if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
+        i_params = DEFAULT_IONO_PARAMS;
       }
       calc_iono_tropo(
-          n_ready, nav_meas, lgf.position_solution.pos_ecef, p_i_params);
+          n_ready, nav_meas, lgf.position_solution.pos_ecef, &i_params);
     }
 
     if (sid_set_get_sat_count(&codes) < 4) {
