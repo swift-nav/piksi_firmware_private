@@ -28,6 +28,10 @@ void boardRevInit(void) {
   /* Enable PCAP CLK */
   *(volatile uint32_t *)0xF8000168 |= (1 << 0);
 
+  /* Increase CAN clock */
+  // Default 0x00501903.
+  *(volatile uint32_t *)0xF800015C = 0x00301000;
+
   palSetLineMode(SPI_SS_IMU_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_IMU_GPIO_LINE);
 
