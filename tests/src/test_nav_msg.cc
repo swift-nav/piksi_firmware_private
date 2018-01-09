@@ -193,13 +193,13 @@ TEST(nav_msg_tests, adjust_tow_trunc) {
   s32 TOW_ms = TOW_INVALID;
 
   /* Test all valid TOW_trunc values. */
-  for (u32 i = 0; i < WEEK_SECS / GPS_TOW_TRUNC_TO_TOW_S; i++) {
+  for (u32 i = 0; i < WEEK_SECS / GPS_TOW_MULTIPLIER; i++) {
     TOW_ms = adjust_tow(TOW_trunc_s + i);
     EXPECT_TRUE(TOW_ms >= 0 && TOW_ms < WEEK_MS);
   }
 
   /* Test invalid TOW_trunc value. */
-  TOW_trunc_s = WEEK_SECS / GPS_TOW_TRUNC_TO_TOW_S;
+  TOW_trunc_s = WEEK_SECS / GPS_TOW_MULTIPLIER;
   TOW_ms = adjust_tow(TOW_trunc_s);
   EXPECT_EQ(TOW_ms, TOW_INVALID);
 }
@@ -505,15 +505,15 @@ TEST(nav_msg_tests, extract_word) {
   u8 parity_bit2 = extract_word(&n1, 329, 1, 0);
 
   u32 TOW_trunc1 = extract_word(&n1, 30, 17, parity_bit1);
-  EXPECT_LT(TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S, WEEK_SECS);
+  EXPECT_LT(TOW_trunc1 * GPS_TOW_MULTIPLIER, WEEK_SECS);
 
   u32 TOW_trunc2 = extract_word(&n1, 330, 17, parity_bit2);
-  EXPECT_LT(TOW_trunc2 * GPS_TOW_TRUNC_TO_TOW_S, WEEK_SECS);
+  EXPECT_LT(TOW_trunc2 * GPS_TOW_MULTIPLIER, WEEK_SECS);
 
   /* Check that incremented TOW1 matches with next TOW2. */
   TOW_trunc1++;
   /* Handle end of week roll over. */
-  if (TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S == WEEK_SECS) {
+  if (TOW_trunc1 * GPS_TOW_MULTIPLIER == WEEK_SECS) {
     TOW_trunc1 = 0;
   }
 
@@ -547,15 +547,15 @@ TEST(nav_msg_tests, extract_word) {
   parity_bit2 = extract_word(&n2, 329, 1, 0);
 
   TOW_trunc1 = extract_word(&n2, 30, 17, parity_bit1);
-  EXPECT_LT(TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S, WEEK_SECS);
+  EXPECT_LT(TOW_trunc1 * GPS_TOW_MULTIPLIER, WEEK_SECS);
 
   TOW_trunc2 = extract_word(&n2, 330, 17, parity_bit2);
-  EXPECT_LT(TOW_trunc2 * GPS_TOW_TRUNC_TO_TOW_S, WEEK_SECS);
+  EXPECT_LT(TOW_trunc2 * GPS_TOW_MULTIPLIER, WEEK_SECS);
 
   /* Check that incremented TOW1 matches with next TOW2. */
   TOW_trunc1++;
   /* Handle end of week roll over. */
-  if (TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S == WEEK_SECS) {
+  if (TOW_trunc1 * GPS_TOW_MULTIPLIER == WEEK_SECS) {
     TOW_trunc1 = 0;
   }
 

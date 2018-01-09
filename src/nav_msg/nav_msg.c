@@ -42,14 +42,14 @@
 /** Sequence of 14 1/0 bit pairs (28 bits MSB) */
 #define GPS_LNAV_ONE_ZERO_BITS2 UINT32_C(0x2AAAAAA8)
 /** Total number of words matching 01 or 10 bit pattern */
-#define GPS_LNAV_BAD_DATA_WORDS 8
+#define GPS_LNAV_BAD_DATA_WORDS (8)
 
 /** TOW adjustment offset in bits.*/
-#define TOW_OFFSET_BITS 240
+#define TOW_OFFSET_BITS (240)
 /** Bit offset where to look for preamble candidate for bit polarity */
-#define BIT_POLARITY_PREAMBLE_OFFSET 60
+#define BIT_POLARITY_PREAMBLE_OFFSET (60)
 /** Bit offset where to look for preamble candidate for subframe processing */
-#define SUBFRAME_PREAMBLE_OFFSET 360
+#define SUBFRAME_PREAMBLE_OFFSET (360)
 /** Bit index offset where preamble candidate for bit polarity starts */
 #define BIT_POLARITY_BUFFER_OFFSET \
   (NAV_MSG_SUBFRAME_BITS_LEN - BIT_POLARITY_PREAMBLE_OFFSET)
@@ -100,7 +100,7 @@ void nav_msg_clear_decoded(nav_msg_t *n) {
  *
  * \return Extracted bits
  */
-u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
+u32 extract_word(const nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert) {
   assert(n_bits > 0 && n_bits <= 32);
 
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
@@ -147,11 +147,11 @@ s32 adjust_tow(u32 TOW_trunc) {
   if (TOW_trunc == 0) {
     /* end-of-week special case */
     TOW_ms = WEEK_MS - TOW_OFFSET_BITS * GPS_L1CA_BIT_LENGTH_MS;
-  } else if (TOW_trunc * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+  } else if (TOW_trunc * GPS_TOW_MULTIPLIER >= WEEK_SECS) {
     /* invalid TOW case */
     TOW_ms = TOW_INVALID;
   } else {
-    TOW_ms = TOW_trunc * GPS_TOW_TRUNC_TO_TOW_S * SECS_MS -
+    TOW_ms = TOW_trunc * GPS_TOW_MULTIPLIER * SECS_MS -
              TOW_OFFSET_BITS * GPS_L1CA_BIT_LENGTH_MS;
   }
 
@@ -200,11 +200,19 @@ static s32 seek_subframe(nav_msg_t *n) {
    * Confirm that last 2 parity bits of Word 10 and HOW are zeros. */
 
   /* Adjust subframe start index temporarily to enable extraction of 2 last
-   * parity bits of Word 10. That is 2 bits before subframe start. */
-  n->subframe_start_index -= 2;
-  u32 last_bits_word10 = extract_word(n, 0, 2, 0);
-  /* Revert subframe start index adjustment. */
-  n->subframe_start_index += 2;
+   * parity bits of Word 10. That is 2 bits before subframe start.
+   * Revert subframe start index adjustment after extraction. */
+  u32 last_bits_word10 = 0;
+  if (n->subframe_start_index > 0) {
+    n->subframe_start_index -= 2;
+    last_bits_word10 = extract_word(n, 0, 2, 0);
+    n->subframe_start_index += 2;
+  } else {
+    n->subframe_start_index += 2;
+    last_bits_word10 = extract_word(n, 0, 2, 0);
+    n->subframe_start_index -= 2;
+  }
+
   u32 zero_bits = last_bits_word10 | extract_word(n, 58, 2, 0);
   zero_bits |= extract_word(n, 298, 2, 0);
   zero_bits |= extract_word(n, 358, 2, 0);
@@ -219,13 +227,13 @@ static s32 seek_subframe(nav_msg_t *n) {
   /* Step 3.
    * Check TOW1 validity */
   u32 TOW_trunc1 = extract_word(n, 30, 17, parity_bit1);
-  if (TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+  if (TOW_trunc1 * GPS_TOW_MULTIPLIER >= WEEK_SECS) {
     n->subframe_start_index = 0;
     return TOW_INVALID;
   }
   /* Check TOW2 validity */
   u32 TOW_trunc2 = extract_word(n, 330, 17, parity_bit2);
-  if (TOW_trunc2 * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+  if (TOW_trunc2 * GPS_TOW_MULTIPLIER >= WEEK_SECS) {
     n->subframe_start_index = 0;
     return TOW_INVALID;
   }
@@ -233,7 +241,7 @@ static s32 seek_subframe(nav_msg_t *n) {
   /* Check that incremented TOW1 matches with next TOW2. */
   TOW_trunc1++;
   /* Handle end of week roll over. */
-  if (TOW_trunc1 * GPS_TOW_TRUNC_TO_TOW_S == WEEK_SECS) {
+  if (TOW_trunc1 * GPS_TOW_MULTIPLIER == WEEK_SECS) {
     TOW_trunc1 = 0;
   }
 
@@ -382,7 +390,7 @@ static void seek_bit_polarity(nav_msg_t *n) {
   /* Step 3.
    * Check TOW validity */
   u32 TOW_trunc = extract_word(n, 30, 17, parity_bit);
-  if (TOW_trunc * GPS_TOW_TRUNC_TO_TOW_S >= WEEK_SECS) {
+  if (TOW_trunc * GPS_TOW_MULTIPLIER >= WEEK_SECS) {
     n->subframe_start_index = 0;
     return;
   }
@@ -494,7 +502,7 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val) {
     n->bits_decoded++;
   }
 
-  if (n->subframe_start_index) {
+  if (0 != n->subframe_start_index) {
     /* Subframe start has been found, no need to continue. */
     return TOW_ms;
   }
@@ -562,7 +570,7 @@ u8 nav_parity(u32 *word) {
 }
 
 bool subframe_ready(const nav_msg_t *n) {
-  return (n->subframe_start_index != 0);
+  return (0 != n->subframe_start_index);
 }
 
 /**

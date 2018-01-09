@@ -23,17 +23,17 @@ extern "C" {
 #endif /* __cplusplus */
 
 /** GPS LNAV decode buffer size (480 bits) [32-bit words] */
-#define NAV_MSG_SUBFRAME_WORDS_LEN 15
+#define NAV_MSG_SUBFRAME_WORDS_LEN (15)
 /** GPS LNAV decode buffer size (480 bits) [bits] */
 #define NAV_MSG_SUBFRAME_BITS_LEN (NAV_MSG_SUBFRAME_WORDS_LEN * 32)
 
-#define TOW_INVALID -1
-#define BUFFER_OVERRUN -2
-#define BIT_INDEX_INVALID -22
+#define TOW_INVALID (-1)
+#define BUFFER_OVERRUN (-2)
+#define BIT_INDEX_INVALID (-22)
 
-#define BIT_POLARITY_NORMAL 0
-#define BIT_POLARITY_INVERTED 1
-#define BIT_POLARITY_UNKNOWN -1
+#define BIT_POLARITY_NORMAL (0)
+#define BIT_POLARITY_INVERTED (1)
+#define BIT_POLARITY_UNKNOWN (-1)
 
 #define GPS_L1CA_PREAMBLE_NORMAL (0x8B)
 #define GPS_L1CA_PREAMBLE_INVERTED (0x74)
@@ -43,7 +43,7 @@ extern "C" {
  *  TOW is in units of [1.5 seconds] => multiplier of 1.5
  *  Truncated tow ignores 2 LSBs => multiplier of 4
  *  => Total multiplier of 1.5 * 4 = 6. */
-#define GPS_TOW_TRUNC_TO_TOW_S 6
+#define GPS_TOW_MULTIPLIER (6)
 
 /** Number of bits that needs to be decoded for polarity seek.
  *  Guarantees 2 last bits of previous Word 10 + TLM + HOW. */
@@ -54,13 +54,13 @@ extern "C" {
 #define BITS_DECODED_FOR_SUBFRAME (362)
 
 /** Minimum GPS LNAV valid subframe number */
-#define GPS_LNAV_SUBFRAME_MIN 1
+#define GPS_LNAV_SUBFRAME_MIN (1)
 /** Maximum GPS LNAV valid subframe number */
-#define GPS_LNAV_SUBFRAME_MAX 5
+#define GPS_LNAV_SUBFRAME_MAX (5)
 #define GPS_LNAV_SUBFRAME_CNT \
   (GPS_LNAV_SUBFRAME_MAX - GPS_LNAV_SUBFRAME_MIN + 1)
 /** Number of words we want to store */
-#define GPS_LNAV_WORD_STORE_CNT 8
+#define GPS_LNAV_WORD_STORE_CNT (8)
 
 /** Special value to marking maximum subframe cache entry age [6 seconds] */
 #define GPS_LNAV_SUBFRAME_AGE_INVALID ((u8)-1)
@@ -128,7 +128,7 @@ typedef struct {
   bool invalid_control_or_data;
 } gps_l1ca_decoded_data_t;
 
-u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert);
+u32 extract_word(const nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert);
 s32 adjust_tow(u32 TOW_trunc);
 void nav_msg_init(nav_msg_t *n);
 void nav_msg_clear_decoded(nav_msg_t *n);
