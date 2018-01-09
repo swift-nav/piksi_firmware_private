@@ -62,7 +62,7 @@
  *
  * \private
  */
-static u32 _sbas_compute_crc(sbas_v27_part_t *part) {
+static u32 sbas_compute_crc(sbas_v27_part_t *part) {
   u32 crc = crc24q_bits(0, part->decoded, SBAS_MSG_DATA_LENGTH, part->invert);
 
   return crc;
@@ -78,7 +78,7 @@ static u32 _sbas_compute_crc(sbas_v27_part_t *part) {
  *
  * \private
  */
-static u32 _sbas_extract_crc(const sbas_v27_part_t *part) {
+static u32 sbas_extract_crc(const sbas_v27_part_t *part) {
   u32 crc = getbitu(part->decoded, SBAS_MSG_DATA_LENGTH, SBAS_MSG_CRC_LENGTH);
   if (part->invert) {
     crc ^= 0xFFFFFF;
@@ -100,7 +100,7 @@ static u32 _sbas_extract_crc(const sbas_v27_part_t *part) {
  *
  * \private
  */
-static void _sbas_rescan_preamble(sbas_v27_part_t *part) {
+static void sbas_rescan_preamble(sbas_v27_part_t *part) {
   part->preamble_seen = false;
   u8 preamble = 0;
   u8 preamble_inv = 0;
@@ -115,7 +115,7 @@ static void _sbas_rescan_preamble(sbas_v27_part_t *part) {
     preamble_inv = SBAS_PREAMBLE3_INV;
   } else {
     part->n_preamble = 0;
-    log_warn("sbas premable index gone wild!");
+    log_debug("SBAS preamble index gone wild!");
   }
 
   if (part->n_decoded > SBAS_PREAMBLE_LENGTH + 1) {
@@ -157,11 +157,12 @@ static void _sbas_rescan_preamble(sbas_v27_part_t *part) {
  *
  * \private
  */
-static void _sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
+static void sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
   part->symbols[part->n_symbols++] = s;
 
   if (part->init) {
-    /* Initial step - load more symbols without decoding. */
+    /* Initial step - load more symbols without decoding. Ensures that Viterbi
+     * trellis is fully populated before attempting to decode. */
     if (part->n_symbols < (SBAS_V27_INIT_BITS + SBAS_V27_DECODE_BITS) * 2) {
       return;
     }
@@ -180,9 +181,8 @@ static void _sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
    * - N - Number of bits to put into decoded buffer
    * - M - Number of bits in the tail to ignore.
    */
-  unsigned char
-      tmp_bits[(SBAS_V27_DECODE_BITS + SBAS_V27_DELAY_BITS + CHAR_BIT - 1) /
-               CHAR_BIT];
+  u8 tmp_bits[(SBAS_V27_DECODE_BITS + SBAS_V27_DELAY_BITS + CHAR_BIT - 1) /
+              CHAR_BIT];
 
   v27_chainback_likely(
       &part->dec, tmp_bits, SBAS_V27_DECODE_BITS + SBAS_V27_DELAY_BITS);
@@ -191,72 +191,51 @@ static void _sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
   bitcopy(part->decoded, part->n_decoded, tmp_bits, 0, SBAS_V27_DECODE_BITS);
   part->n_decoded += SBAS_V27_DECODE_BITS;
 
-  /* Depending on the decoder state, one of the following actions are
-   * possible:
-   * - If no message lock
-   *   - If no preamble seen - look for preamble
-   *   - If preamble seen - collect 250 bits
-   *     - If 250 bits are collected - verify CRC
-   *       - If CRC is OK - message lock is acquired
-   *       - If CRC fails - rescan for preamble
-   *         - If found - continue collecting 250 bits
-   *         - If not found - continue preamble wait
-   * - If message lock
-   *   - If 250 bits collected, compute CRC
-   *     - If CRC is OK, message can be decoded
-   *     - If CRC is not OK, discard data
-   */
-
   bool retry = true;
   while (retry) {
     retry = false;
 
     if (!part->preamble_seen) {
       /* Rescan for preamble if possible. The first bit is ignored. */
-      _sbas_rescan_preamble(part);
+      sbas_rescan_preamble(part);
     }
-    if (part->preamble_seen && SBAS_MSG_LENGTH <= part->n_decoded) {
-      /* We have collected 250 bits starting from message preamble. Now try
-       * to compute CRC-24Q */
-      u32 crc = _sbas_compute_crc(part);
-      u32 crc2 = _sbas_extract_crc(part);
 
-      if (part->message_lock) {
-        /* We have message lock */
-        part->crc_ok = (crc == crc2);
-        if (part->crc_ok) {
-          /* Reset message lock counter */
-          part->n_crc_fail = 0;
-        } else {
-          /* Increment message lock counter */
-          part->n_crc_fail++;
-          if (part->n_crc_fail > SBAS_LOCK_MAX_CRC_FAILS) {
-            /* CRC has failed too many times - drop the lock. */
-            part->n_crc_fail = 0;
-            part->message_lock = false;
-            part->preamble_seen = false;
-            part->n_preamble = 0;
-            /* Try to find a new preamble, reuse data from buffer. */
-            retry = true;
-          }
-        }
-      } else if (crc == crc2) {
-        /* CRC match - message can be decoded */
-        part->message_lock = true;
-        part->crc_ok = true;
+    if (!part->preamble_seen || SBAS_MSG_LENGTH > part->n_decoded) {
+      /* No preamble or less than 250 bits decoded.
+       * No need to continue. */
+      break;
+    }
+
+    /* We have collected 250 bits starting from message preamble.
+     * Now try to compute CRC-24Q */
+    part->crc_ok = (sbas_compute_crc(part) == sbas_extract_crc(part));
+
+    if (part->message_lock && part->crc_ok) {
+      /* New message available. Just reset message lock counter */
+      part->n_crc_fail = 0;
+    } else if (part->message_lock && !part->crc_ok) {
+      /* Increment message lock counter */
+      part->n_crc_fail++;
+      if (part->n_crc_fail > SBAS_LOCK_MAX_CRC_FAILS) {
+        /* CRC has failed too many times - drop the lock. */
         part->n_crc_fail = 0;
-      } else {
-        /* There is no message lock and the CRC check fails. Assume there is
-         * false positive lock - rescan for preamble. */
-        part->crc_ok = false;
+        part->message_lock = false;
         part->preamble_seen = false;
         part->n_preamble = 0;
-
-        /* CRC mismatch - try to re-scan for preamble */
+        /* Try to find a new preamble, reuse data from buffer. */
         retry = true;
       }
+    } else if (!part->message_lock && part->crc_ok) {
+      /* CRC match - First message can be decoded */
+      part->message_lock = true;
+      part->crc_ok = true;
+      part->n_crc_fail = 0;
     } else {
-      /* No preamble or preamble and less than 250 bits decoded */
+      /* There is no message lock and the CRC check fails.
+       * Assume there is false positive lock - rescan for preamble. */
+      part->preamble_seen = false;
+      part->n_preamble = 0;
+      retry = true;
     }
   }
 }
@@ -270,7 +249,7 @@ static void _sbas_add_symbol(sbas_v27_part_t *part, u8 s) {
  *
  * \return None
  */
-static void _sbas_msg_invert(sbas_v27_part_t *part) {
+static void sbas_msg_invert(sbas_v27_part_t *part) {
   for (size_t i = 0; i < sizeof(part->decoded); i++) {
     part->decoded[i] ^= 0xFFu;
   }
@@ -296,52 +275,55 @@ static void _sbas_msg_invert(sbas_v27_part_t *part) {
  *
  * \private
  */
-static bool _sbas_msg_decode(sbas_v27_part_t *part,
-                             sbas_msg_t *msg,
-                             u32 *delay) {
+static bool sbas_msg_decode(sbas_v27_part_t *part,
+                            sbas_msg_t *msg,
+                            u32 *delay) {
   bool res = false;
-  if (SBAS_MSG_LENGTH <= part->n_decoded) {
-    if (part->crc_ok) {
-      /* CRC is OK */
-      if (part->invert) {
-        _sbas_msg_invert(part);
-      }
 
-      msg->bit_polarity =
-          part->invert ? BIT_POLARITY_INVERTED : BIT_POLARITY_NORMAL;
-      msg->prn = 1;
-      msg->msg_id = getbitu(part->decoded, 8, 6);
-      msg->tow = 0;
-      msg->alert = 0;
-
-      switch (msg->msg_id) {
-        case 12:
-          msg->tow = getbitu(part->decoded, 121, 20); /* Seconds */
-          break;
-        default:
-          /* log_info_sid(construct_sid(CODE_SBAS_L1CA, msg->prn),
-                          "Unsupported SBAS message type %d",
-                          msg->msg_id); */
-          break;
-      }
-
-      /* TODO: Generate SBAS raw data SBP msg here. */
-
-      *delay = (part->n_decoded - SBAS_MSG_LENGTH + SBAS_V27_DELAY_BITS +
-                SBAS_V27_CONSTRAINT_LENGTH - 1) *
-                   2 +
-               part->n_symbols;
-
-      if (part->invert) {
-        _sbas_msg_invert(part);
-      }
-      res = true;
-    } else {
-      /* CRC mismatch - no decoding */
-    }
-    bitshl(part->decoded, sizeof(part->decoded), SBAS_MSG_LENGTH);
-    part->n_decoded -= SBAS_MSG_LENGTH;
+  if (SBAS_MSG_LENGTH > part->n_decoded) {
+    return res;
   }
+
+  if (part->crc_ok) {
+    /* CRC is OK */
+    if (part->invert) {
+      sbas_msg_invert(part);
+    }
+
+    msg->bit_polarity =
+        part->invert ? BIT_POLARITY_INVERTED : BIT_POLARITY_NORMAL;
+    msg->prn = 1;
+    msg->msg_id = getbitu(part->decoded, 8, 6);
+    msg->tow = 0;
+    msg->alert = 0;
+
+    switch (msg->msg_id) {
+      case 12:
+        msg->tow = getbitu(part->decoded, 121, 20); /* Seconds */
+        break;
+      default:
+        /* log_info_sid(construct_sid(CODE_SBAS_L1CA, msg->prn),
+                        "Unsupported SBAS message type %d",
+                        msg->msg_id); */
+        break;
+    }
+
+    /* TODO: Generate SBAS raw data SBP msg here. */
+
+    *delay = (part->n_decoded - SBAS_MSG_LENGTH + SBAS_V27_DELAY_BITS +
+              SBAS_V27_CONSTRAINT_LENGTH - 1) *
+                 2 +
+             part->n_symbols;
+
+    if (part->invert) {
+      sbas_msg_invert(part);
+    }
+    res = true;
+  } else {
+    /* CRC mismatch - no decoding */
+  }
+  bitshl(part->decoded, sizeof(part->decoded), SBAS_MSG_LENGTH);
+  part->n_decoded -= SBAS_MSG_LENGTH;
 
   return res;
 }
@@ -370,7 +352,7 @@ void sbas_msg_decoder_init(sbas_msg_decoder_t *dec) {
            0);
   dec->part1.init = true;
   dec->part2.init = true;
-  _sbas_add_symbol(&dec->part2, 0x80);
+  sbas_add_symbol(&dec->part2, 0x80);
 }
 /**
  * Adds a received symbol to decoder.
@@ -398,20 +380,20 @@ bool sbas_msg_decoder_add_symbol(sbas_msg_decoder_t *dec,
                                  u8 symbol,
                                  sbas_msg_t *msg,
                                  u32 *pdelay) {
-  _sbas_add_symbol(&dec->part1, symbol);
-  _sbas_add_symbol(&dec->part2, symbol);
+  sbas_add_symbol(&dec->part1, symbol);
+  sbas_add_symbol(&dec->part2, symbol);
 
   if (dec->part1.message_lock) {
     /* Flush data in decoder. */
     dec->part2.n_decoded = 0;
     dec->part2.n_symbols = 0;
-    return _sbas_msg_decode(&dec->part1, msg, pdelay);
+    return sbas_msg_decode(&dec->part1, msg, pdelay);
   }
   if (dec->part2.message_lock) {
     /* Flush data in decoder. */
     dec->part1.n_decoded = 0;
     dec->part1.n_symbols = 0;
-    return _sbas_msg_decode(&dec->part2, msg, pdelay);
+    return sbas_msg_decode(&dec->part2, msg, pdelay);
   }
 
   return false;
@@ -433,7 +415,7 @@ const v27_poly_t *sbas_msg_decoder_get_poly(void) {
 
   if (!initialized) {
     /* Coefficients for polynomial object */
-    const signed char coeffs[2] = {SBAS_V27_POLY_A, SBAS_V27_POLY_B};
+    const s8 coeffs[2] = {SBAS_V27_POLY_A, SBAS_V27_POLY_B};
 
     /* Racing condition handling: the data can be potential initialized more
      * than once in case multiple threads request concurrent access. However,
