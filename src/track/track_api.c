@@ -337,7 +337,14 @@ static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
   return ++tracking_lock_counters[mesid_to_global_index(mesid)];
 }
 
-bool tracker_sid_available(tracker_t *tracker, gnss_signal_t *sid) {
+/**
+ * Checks if signal ID is available for the given tracker and returns it.
+ * \param tracker tracker to check
+ * \param[out] sid the resulting sid, if available
+ * \retval true signal ID is available and returned in sid parameter
+ * \retval false no signal ID available, no signal ID is returned in sid
+ */
+bool tracker_sid_available(const tracker_t *tracker, gnss_signal_t *sid) {
   me_gnss_signal_t mesid = tracker->mesid;
 
   if (IS_GLO(mesid) && !glo_slot_id_is_valid(tracker->glo_orbit_slot)) {

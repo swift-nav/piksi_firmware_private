@@ -44,6 +44,10 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
 /**
  * Sets RAIM exclusion flag to a channel with a given signal identifier
  *
+ * The API is supposed to be called from a thread other than
+ * nap_track_irq_thread. So the implementation uses
+ * tracker_lock() and tracker_unlock() APIs.
+ *
  * \param[in] sid signal identifier for channel to set
  *
  * \return None

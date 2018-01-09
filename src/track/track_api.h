@@ -55,7 +55,8 @@ update_count_t update_count_diff(const tracker_t *tracker_channel,
                                  const update_count_t *val);
 void tracker_cleanup(tracker_t *tracker_channel);
 
-bool tracker_sid_available(tracker_t *tracker_channel, gnss_signal_t *sid);
+bool tracker_sid_available(const tracker_t *tracker_channel,
+                           gnss_signal_t *sid);
 void tracker_tow_cache(tracker_t *tracker_channel);
 
 void tracker_lock(tracker_t *tracker_channel);
