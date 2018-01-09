@@ -30,19 +30,7 @@ void boardRevInit(void) {
 
   /* Increase CAN clock */
   // Default 0x00501903.
-  uint32_t can_clk_ctrl = *(volatile uint32_t *)0xF800015C;
-  uint32_t divisor0 = (can_clk_ctrl >> 8) & 0x3F;
-  uint32_t divisor1 = (can_clk_ctrl >> 20) & 0x3F;
-  if (divisor0 > 1) {
-    divisor0 /= 2;
-  }
-  if (divisor1 > 1) {
-    divisor1 /= 2;
-  }
-  can_clk_ctrl &= 0xFC0FC0FF;
-  can_clk_ctrl |= divisor0 << 8;
-  can_clk_ctrl |= divisor1 << 20;
-  *(volatile uint32_t *)0xF800015C = can_clk_ctrl & 0xFFFFFFF0;
+  *(volatile uint32_t *)0xF800015C = 0x00301000;
 
   palSetLineMode(SPI_SS_IMU_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_IMU_GPIO_LINE);
