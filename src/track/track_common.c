@@ -337,7 +337,8 @@ u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker_channel) {
-  if (tracker_channel->has_next_params) {
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  if (tracker_channel->has_next_params || !confirmed) {
     /* If the mode switch has been initiated - do nothing */
     return;
   }
@@ -355,8 +356,9 @@ static void mode_change_init(tracker_t *tracker_channel) {
    * bit update interval in ms. */
   u8 bit_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
 
-  bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
-  if (!bsync || (bsync && tracker_next_bit_aligned(tracker_channel, bit_ms))) {
+  if (tracker_next_bit_aligned(tracker_channel, bit_ms)) {
+    /* When the bit sync is available and the next integration interval is the
+     * last one in the bit, check if the profile switch is required. */
     if (tp_profile_has_new_profile(tracker_channel)) {
       /* Initiate profile change */
       tracker_channel->has_next_params = true;

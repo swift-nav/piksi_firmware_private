@@ -41,6 +41,7 @@ typedef enum {
   IDX_NONE = -1,
   IDX_INIT_0,
   IDX_INIT_1,
+  IDX_INIT_2,
   IDX_1MS,
   IDX_2MS,
   IDX_5MS,
@@ -119,20 +120,30 @@ enum {
   TP_LD_PARAMS_FREQ_INI_GPS,
   TP_LD_PARAMS_FREQ_INI_GLO,
 
-  TP_LD_PARAMS_PHASE_1MS,
-  TP_LD_PARAMS_FREQ_1MS,
+  TP_LD_PARAMS_PHASE_1MS_GPS,
+  TP_LD_PARAMS_PHASE_1MS_GLO,
+  TP_LD_PARAMS_FREQ_1MS_GPS,
+  TP_LD_PARAMS_FREQ_1MS_GLO,
 
-  TP_LD_PARAMS_PHASE_2MS,
-  TP_LD_PARAMS_FREQ_2MS,
+  TP_LD_PARAMS_PHASE_2MS_GPS,
+  TP_LD_PARAMS_PHASE_2MS_GLO,
+  TP_LD_PARAMS_FREQ_2MS_GPS,
+  TP_LD_PARAMS_FREQ_2MS_GLO,
 
-  TP_LD_PARAMS_PHASE_5MS,
-  TP_LD_PARAMS_FREQ_5MS,
+  TP_LD_PARAMS_PHASE_5MS_GPS,
+  TP_LD_PARAMS_PHASE_5MS_GLO,
+  TP_LD_PARAMS_FREQ_5MS_GPS,
+  TP_LD_PARAMS_FREQ_5MS_GLO,
 
-  TP_LD_PARAMS_PHASE_10MS,
-  TP_LD_PARAMS_FREQ_10MS,
+  TP_LD_PARAMS_PHASE_10MS_GPS,
+  TP_LD_PARAMS_PHASE_10MS_GLO,
+  TP_LD_PARAMS_FREQ_10MS_GPS,
+  TP_LD_PARAMS_FREQ_10MS_GLO,
 
-  TP_LD_PARAMS_PHASE_20MS,
-  TP_LD_PARAMS_FREQ_20MS,
+  TP_LD_PARAMS_PHASE_20MS_GPS,
+  TP_LD_PARAMS_PHASE_20MS_GLO,
+  TP_LD_PARAMS_FREQ_20MS_GPS,
+  TP_LD_PARAMS_FREQ_20MS_GLO,
 };
 
 #define UNUSED 0.
@@ -148,20 +159,30 @@ static const tp_lock_detect_params_t ld_params[] = {
     [TP_LD_PARAMS_FREQ_INI_GPS]  = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_INI_GLO]  = { 0.10f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS]     = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]      = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GPS] = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GLO] = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_GPS]  = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_GLO]  = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS]     = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]      = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_PHASE_2MS_GPS] = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_GLO] = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_FREQ_2MS_GPS]  = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_2MS_GLO]  = { 0.07f, UNUSED, 40 },
 
-    [TP_LD_PARAMS_PHASE_5MS]     = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_5MS]      = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_PHASE_5MS_GPS] = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_GLO] = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_FREQ_5MS_GPS]  = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_5MS_GLO]  = { 0.08f, UNUSED, 20 },
 
-    [TP_LD_PARAMS_PHASE_10MS]    = { 0.02f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS]     = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_PHASE_10MS_GPS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_GLO] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_10MS_GPS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_10MS_GLO]  = {  0.1f, UNUSED, 15 },
 
-    [TP_LD_PARAMS_PHASE_20MS]    = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]     = {  0.1f, UNUSED, 10 }
+    [TP_LD_PARAMS_PHASE_20MS_GPS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS_GLO] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_20MS_GPS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS_GLO]  = {  0.1f, UNUSED, 10 }
 };
 /* clang-format on */
 
@@ -231,26 +252,35 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_0] =
   { {   10,             7,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-       TP_LD_PARAMS_FREQ_INI_GPS,  TP_LD_PARAMS_FREQ_INI_GLO,
-      TP_LD_PARAMS_PHASE_INI_GPS, TP_LD_PARAMS_PHASE_INI_GLO,
+          TP_LD_PARAMS_FREQ_INI_GPS,  TP_LD_PARAMS_FREQ_INI_GLO,
+          TP_LD_PARAMS_PHASE_INI_GPS, TP_LD_PARAMS_PHASE_INI_GLO,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED},
+      TP_UNAIDED | TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
-  { { BW_DYN,     BW_DYN,             10,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-       TP_LD_PARAMS_FREQ_INI_GPS,  TP_LD_PARAMS_FREQ_INI_GLO,
-      TP_LD_PARAMS_PHASE_INI_GPS, TP_LD_PARAMS_PHASE_INI_GLO,
-          50,             0,            0,
+          TP_LD_PARAMS_FREQ_INI_GPS,  TP_LD_PARAMS_FREQ_INI_GLO,
+          TP_LD_PARAMS_PHASE_INI_GPS, TP_LD_PARAMS_PHASE_INI_GLO,
+       100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_FLOCK | TP_UNAIDED },
+      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
+
+  [IDX_INIT_2] =
+  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
+          TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
+          TP_LD_PARAMS_FREQ_1MS_GPS,  TP_LD_PARAMS_FREQ_1MS_GLO,
+          TP_LD_PARAMS_PHASE_1MS_GPS, TP_LD_PARAMS_PHASE_1MS_GLO,
+       100,             0,            0,
+       IDX_NONE, IDX_NONE,     IDX_NONE,
+       TP_WAIT_PLOCK },
 
   [IDX_1MS] =
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-           TP_LD_PARAMS_FREQ_1MS,      TP_LD_PARAMS_FREQ_1MS,
-          TP_LD_PARAMS_PHASE_1MS,     TP_LD_PARAMS_PHASE_1MS,
+          TP_LD_PARAMS_FREQ_1MS_GPS,  TP_LD_PARAMS_FREQ_1MS_GLO,
+          TP_LD_PARAMS_PHASE_1MS_GPS, TP_LD_PARAMS_PHASE_1MS_GLO,
            40,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
@@ -258,8 +288,8 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_2MS] =
   { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
-           TP_LD_PARAMS_FREQ_2MS,      TP_LD_PARAMS_FREQ_2MS,
-          TP_LD_PARAMS_PHASE_2MS,     TP_LD_PARAMS_PHASE_2MS,
+          TP_LD_PARAMS_FREQ_2MS_GPS,  TP_LD_PARAMS_FREQ_2MS_GLO,
+          TP_LD_PARAMS_PHASE_2MS_GPS, TP_LD_PARAMS_PHASE_2MS_GLO,
            40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
@@ -267,8 +297,8 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_5MS] =
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
           TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
-           TP_LD_PARAMS_FREQ_5MS,      TP_LD_PARAMS_FREQ_5MS,
-          TP_LD_PARAMS_PHASE_5MS,     TP_LD_PARAMS_PHASE_5MS,
+          TP_LD_PARAMS_FREQ_5MS_GPS,  TP_LD_PARAMS_FREQ_5MS_GLO,
+          TP_LD_PARAMS_PHASE_5MS_GPS, TP_LD_PARAMS_PHASE_5MS_GLO,
            40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
@@ -276,8 +306,8 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_10MS] =
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
         TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
-          TP_LD_PARAMS_FREQ_10MS,     TP_LD_PARAMS_FREQ_10MS,
-         TP_LD_PARAMS_PHASE_10MS,    TP_LD_PARAMS_PHASE_10MS,
+        TP_LD_PARAMS_FREQ_10MS_GPS,  TP_LD_PARAMS_FREQ_10MS_GLO,
+        TP_LD_PARAMS_PHASE_10MS_GPS, TP_LD_PARAMS_PHASE_10MS_GLO,
            40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
@@ -285,8 +315,8 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_20MS] =
   { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
-          TP_LD_PARAMS_FREQ_20MS,     TP_LD_PARAMS_FREQ_20MS,
-         TP_LD_PARAMS_PHASE_20MS,    TP_LD_PARAMS_PHASE_20MS,
+      TP_LD_PARAMS_FREQ_20MS_GPS,  TP_LD_PARAMS_FREQ_20MS_GLO,
+      TP_LD_PARAMS_PHASE_20MS_GPS, TP_LD_PARAMS_PHASE_20MS_GLO,
            40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
@@ -295,8 +325,8 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_SENS] =
   { {      0,           1.0,          .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
-          TP_LD_PARAMS_FREQ_20MS,     TP_LD_PARAMS_FREQ_20MS,
-         TP_LD_PARAMS_PHASE_20MS,    TP_LD_PARAMS_PHASE_20MS,
+      TP_LD_PARAMS_FREQ_20MS_GPS,  TP_LD_PARAMS_FREQ_20MS_GLO,
+      TP_LD_PARAMS_PHASE_20MS_GPS, TP_LD_PARAMS_PHASE_20MS_GLO,
         100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
