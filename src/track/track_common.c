@@ -837,6 +837,62 @@ void tp_tracker_update_fll(tracker_channel_t *tracker_channel,
   }
 }
 
+static void update_cf_acc_history(tracker_channel_t *track,
+       tl_rates_t *rates)
+{
+  u32 elapsed_ms = track->update_count - track->cf_acc_timestamp_ms;
+  if (elapsed_ms >= TL_CF_ACC_CHECK_UPDATE_MS) {
+    track->cf_acc_check[track->cf_acc_index] = *rates;
+    track->cf_acc_index++;
+    if (ARRAY_SIZE(track->cf_acc_check) == track->cf_acc_index) {
+      track->cf_acc_valid = true;
+      track->cf_acc_index = 0;
+    }
+    track->cf_acc_timestamp_ms = track->update_count;
+  }
+}
+
+static void update_cf_vel_history(tracker_channel_t *track,
+       tl_rates_t *rates)
+{
+  u32 elapsed_ms = track->update_count - track->cf_vel_timestamp_ms;
+  if (elapsed_ms >= TL_CF_VEL_CHECK_UPDATE_MS) {
+    track->cf_vel_check[track->cf_vel_index] = *rates;
+    track->cf_vel_index++;
+    if (ARRAY_SIZE(track->cf_vel_check) == track->cf_vel_index) {
+      track->cf_vel_valid = true;
+      track->cf_vel_index = 0;
+    }
+    track->cf_vel_timestamp_ms = track->update_count;
+  }
+}
+
+/* Acceleration sanity check */
+static void flag_acc_outliers(tracker_channel_t *track, tl_rates_t *rates)
+{
+  static const double rate_hz_per_s = 9. * STD_GRAVITY_ACCELERATION / 0.19;
+
+  double tdiff_ms = track->update_count - track->cf_acc_timestamp_ms;
+  tdiff_ms += TL_CF_ACC_CHECK_UPDATE_MS * ARRAY_SIZE(track->cf_acc_check);
+  double tdiff_s = tdiff_ms / SECS_MS;
+  double fdiff_max_hz = rate_hz_per_s * tdiff_s;
+
+  double carr_freq_prev_hz = track->cf_acc_check[track->cf_acc_index].carr_freq;
+  if ((fabs(rates->carr_freq - carr_freq_prev_hz) > fdiff_max_hz)) {
+    track->flags |= TRACKER_FLAG_OUTLIER;
+  }
+}
+
+/* Velocity sanity check. */
+static void flag_vel_outliers(tracker_channel_t *track, tl_rates_t *rates)
+{
+  static const double fdiff_max_hz = 1.5 * MAX_USER_VELOCITY_MPS / 0.19;
+  double carr_freq_prev_hz = track->cf_vel_check[track->cf_vel_index].carr_freq;
+  if ((fabs(rates->carr_freq - carr_freq_prev_hz) > fdiff_max_hz)) {
+    track->flags |= TRACKER_FLAG_OUTLIER;
+  }
+}
+
 /**
  * Runs PLL and DLL controller updates.
  *
@@ -929,37 +985,21 @@ static void tp_tracker_flag_outliers(tracker_channel_t *tracker) {
     (tracker->flags) |= TRACKER_FLAG_OUTLIER;
   }
 
-  /* Check the maximum carrier frequency rate.
-     Assume that the maximum expected acceleration is 7g and the carrier
-     wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
-     purpose. */
-  static const double max_freq_rate_hz_per_s =
-      7. * STD_GRAVITY_ACCELERATION / 0.19;
-  /* The carrier freq diff threshold we do not want to exceed */
-  static const double max_freq_diff_hz = 70;
-  /* work out the time difference needed to check the actual freq rate
-     against max_freq_diff_hz threshold */
-  static const u32 diff_interval_ms =
-      (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
+  if (0 == (tracker->flags & TRACKER_FLAG_CONFIRMED)) {
+    return;
+  }
 
-  u32 elapsed_ms = tracker->update_count - tracker->carrier_freq_timestamp_ms;
-  if (elapsed_ms >= diff_interval_ms) {
-    if (!tracker->carrier_freq_prev_valid) {
-      tracker->carrier_freq_prev = tracker->carrier_freq;
-      tracker->carrier_freq_prev_valid = true;
-    }
+  tl_rates_t rates;
+  tp_tl_get_rates(&tracker->tl_state, &rates);
 
-    double diff_hz = tracker->carrier_freq - tracker->carrier_freq_prev;
-    double elapsed_s = (double)elapsed_ms / SECS_MS;
-    /* the elapsed time could be slightly larger than diff_interval_ms.
-       So let's account for it in max_diff_hz */
-    double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
-    if ((fabs(diff_hz) > max_diff_hz)) {
-      tracker->flags |= TRACKER_FLAG_OUTLIER;
-    }
+  update_cf_acc_history(tracker, &rates);
+  update_cf_vel_history(tracker, &rates);
 
-    tracker->carrier_freq_prev = tracker->carrier_freq;
-    tracker->carrier_freq_timestamp_ms = tracker->update_count;
+  if (tracker->cf_acc_valid) {
+    flag_acc_outliers(tracker, &rates);
+  }
+  if (tracker->cf_vel_valid) {
+    flag_vel_outliers(tracker, &rates);
   }
 }
 
