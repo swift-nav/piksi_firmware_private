@@ -15,6 +15,15 @@
 
 #include <libswiftnav/signal.h>
 
+/** Unit test input data type */
+typedef struct {
+  u32 now_ms;
+  u32 vis_mask, known_mask, track_mask;
+  u32 lgf_stamp_ms;
+  u32 deep_mask,     /**< Expected results */
+      fallback_mask; /**< Expected results */
+} test_case_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
