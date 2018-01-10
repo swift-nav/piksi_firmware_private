@@ -154,28 +154,28 @@ enum {
 /* clang-format off */
 static const tp_lock_detect_params_t ld_params[] = {
                                 /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_INI_GPS] = { 0.15f,   1.5f, 50 },
-    [TP_LD_PARAMS_PHASE_INI_GLO] = { 0.04f,    .8f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_GPS] = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_GLO] = { 0.09f,    1.f, 50 },
     [TP_LD_PARAMS_FREQ_INI_GPS]  = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_INI_GLO]  = { 0.10f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_INI_GLO]  = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS_GPS] = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS_GLO] = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GPS] = { 0.19f,   3.0f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GLO] = { 0.25f,   2.5f, 50 },
     [TP_LD_PARAMS_FREQ_1MS_GPS]  = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_1MS_GLO]  = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS_GPS] = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS_GLO] = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_GPS] = { 0.18f,   2.5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_GLO] = { 0.22f,   2.0f, 50 },
     [TP_LD_PARAMS_FREQ_2MS_GPS]  = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_2MS_GLO]  = { 0.07f, UNUSED, 40 },
 
-    [TP_LD_PARAMS_PHASE_5MS_GPS] = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS_GLO] = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_GPS] = { 0.16f,   2.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_GLO] = { 0.20f,   1.7f, 50 },
     [TP_LD_PARAMS_FREQ_5MS_GPS]  = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_5MS_GLO]  = { 0.08f, UNUSED, 20 },
 
-    [TP_LD_PARAMS_PHASE_10MS_GPS] = { 0.02f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS_GLO] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_GPS] = { 0.12f,   1.5f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_GLO] = { 0.10f,   1.4f, 50 },
     [TP_LD_PARAMS_FREQ_10MS_GPS]  = {  0.1f, UNUSED, 15 },
     [TP_LD_PARAMS_FREQ_10MS_GLO]  = {  0.1f, UNUSED, 15 },
 
