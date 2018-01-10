@@ -141,8 +141,16 @@ typedef struct {
     and scheduler */
 extern acq_jobs_state_t acq_all_jobs_state_data;
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 void sm_init(acq_jobs_state_t *data);
 void sm_constellation_select(acq_jobs_state_t *jobs_data);
 void sm_run(acq_jobs_state_t *jobs_data);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif /* SWIFTNAV_SEARCH_MANAGER_API_H */

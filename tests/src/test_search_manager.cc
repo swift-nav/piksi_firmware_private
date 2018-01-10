@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Swift Navigation Inc.
- * Contact: Perttu Salmela <psalmela@exafore.com>
+ * Copyright (C) 2016-2017 Swift Navigation Inc.
+ * Contact: Swift Navigation <dev@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "gtest/gtest.h"
 #include "search_manager_api.h"
 
 /* Compile unit test in src/reacq directory with:
@@ -116,7 +117,7 @@ bool sm_is_healthy(gnss_signal_t sid) {
  *
  * \return true is SV is tracked, false otherwise
  */
-bool sid_is_tracked(gnss_signal_t sid) {
+bool mesid_is_tracked(gnss_signal_t sid) {
   if (0 != (test_case->track_mask & (1 << sid_to_code_index(sid)))) {
     return true;
   }
@@ -145,16 +146,16 @@ bool sm_lgf_stamp(u64 *lgf_stamp) {
  *
  * \return 1 on failure, 0 othersiwe
  */
-int main(int argc, char **argv) {
+TEST(search_manager_test, test_search_manager) {
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  int test_ix;
+  u16 test_ix;
 
   sm_init(data);
 
   for (test_ix = 0; test_ix < sizeof(test_cases) / sizeof(test_cases[0]);
        test_ix++) {
     u32 gps_run_mask[ACQ_NUM_JOB_TYPES];
-    acq_job_types_e type;
+    u8 type;
     u32 i;
 
     test_case = &test_cases[test_ix];
@@ -171,12 +172,12 @@ int main(int argc, char **argv) {
 
     /* Fill bit masks of jobs which are flagged to run */
     memset(gps_run_mask, 0, sizeof(gps_run_mask));
-    for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
+    for (type = (u8)ACQ_JOB_DEEP_SEARCH; type < (u8)ACQ_NUM_JOB_TYPES; type++) {
       for (i = 0; i < ACQ_NUM_SVS; i++) {
-        if (data->jobs[type][i].needs_to_run) {
-          if (CODE_GPS_L1CA == data->jobs[type][i].sid.code) {
+        if (data->jobs_gps[type][i].needs_to_run) {
+          if (CODE_GPS_L1CA == data->jobs_gps[type][i].sid.code) {
             gps_run_mask[type] |=
-                1 << (data->jobs[type][i].sid.sat - GPS_FIRST_PRN);
+                1 << (data->jobs_gps[type][i].sid.sat - GPS_FIRST_PRN);
           }
         }
       }
@@ -184,14 +185,8 @@ int main(int argc, char **argv) {
     printf("Search gps deep=0x%08x fallback=0x%08x",
            gps_run_mask[ACQ_JOB_DEEP_SEARCH],
            gps_run_mask[ACQ_JOB_FALLBACK_SEARCH]);
-    if (gps_run_mask[ACQ_JOB_DEEP_SEARCH] != test_case->deep_mask ||
-        gps_run_mask[ACQ_JOB_FALLBACK_SEARCH] != test_case->fallback_mask) {
-      printf("\tFAIL\n");
-      return 1;
-    } else {
-      printf("\tOK\n");
-    }
+    EXPECT_TRUE(gps_run_mask[ACQ_JOB_DEEP_SEARCH] == test_case->deep_mask &&
+                gps_run_mask[ACQ_JOB_FALLBACK_SEARCH] ==
+                    test_case->fallback_mask);
   } /* for */
-
-  return 0;
 }

@@ -30,6 +30,7 @@ TEST_DIR = .
 
 OBJDIR = obj
 TEST_SRC_DIR = src
+STUBS_DIR = stubs
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -45,7 +46,7 @@ CXXFLAGS += -g -Wall -Wextra -Werror --coverage
 # Compiler include directories.
 INCLUDE_DIRS :=
 INCLUDE_DIRS += -I./
-INCLUDE_DIRS += -I./stubs
+INCLUDE_DIRS += -I$(STUBS_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I../libswiftnav/include
@@ -56,6 +57,7 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -129,6 +131,8 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/gnss_capabilities \
           $(USER_SRC_DIR)/utils/sbas_select \
           $(USER_SRC_DIR)/calc \
+          $(USER_SRC_DIR)/reacq \
+          $(STUBS_DIR) \
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -149,6 +153,8 @@ C_SRCS = fixed_fft_r2.c \
          nav_msg_glo.c \
          run_stats.c \
          gnss_capabilities.c \
+         search_manager.c \
+         stubs.c
          nav_msg.c \
 
 # Test source files
