@@ -155,6 +155,10 @@ static void post_observations(u8 n,
       log_error("Mailbox should have space!");
       chPoolFree(&time_matched_obs_buff_pool, obs);
     } else {
+      if (0 > t->tow) {
+        log_error(
+            "last_time_matched_rover_obs_post set to %f %d", t->tow, t->wn);
+      }
       last_time_matched_rover_obs_post = *t;
     }
   }
