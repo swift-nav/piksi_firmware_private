@@ -1125,7 +1125,13 @@ static void time_matched_obs_thread(void *arg) {
     if (gps_time_valid(&last_time_matched_rover_obs_post) &&
         gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
             BASE_LATENCY_TIMEOUT) {
-      log_info("Communication Latency exceeds 15 seconds");
+      log_info(
+          "Communication Latency exceeds 15 seconds, start tow: %f; start wn: "
+          "%d; end tow: %f; end wn: %d",
+          base_obs->tor.tow,
+          base_obs->tor.wn,
+          last_time_matched_rover_obs_post.tow,
+          last_time_matched_rover_obs_post.wn);
     }
 
     base_obss_copy = *base_obs;
