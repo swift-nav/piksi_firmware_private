@@ -13,7 +13,14 @@
 #ifndef STUBS_MANAGE_H
 #define STUBS_MANAGE_H
 
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/signal.h>
+
+#include "position/position.h"
+
+#define ACQ_FULL_CF_STEP ((99.375e6 / 25) / (16 * 1024))
+
+#define ACQ_THRESHOLD 38.0 /* dBHz */
 
 /** Unit test input data type */
 typedef struct {
@@ -39,6 +46,15 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 u64 timing_getms(void);
 bool sm_lgf_stamp(u64 *lgf_stamp);
+gps_time_t get_current_time(void);
+void dum_get_doppler_wndw(const gnss_signal_t *sid,
+                          const gps_time_t *t,
+                          const last_good_fix_t *lgf,
+                          float speed,
+                          float *doppler_min,
+                          float *doppler_max);
+float code_to_tcxo_doppler_min(code_t code);
+float code_to_tcxo_doppler_max(code_t code);
 
 #ifdef __cplusplus
 } /* extern "C" */

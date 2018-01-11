@@ -13,6 +13,19 @@
 #include "ch.h"
 #include "manage.h"
 
+/* Piksi V3 TCXO nominal temperature frequency stability [ppm] */
+#define TCXO_FREQ_STAB_PPM 0.28f
+/* Maximum TCXO offset. Includes TCXO nominal temperature frequency stability,
+   aging and soldering [ppm] */
+#define TCXO_FREQ_OFFSET_MAX_PPM (TCXO_FREQ_STAB_PPM + 2.42)
+
+#define TCXO_FREQ_HZ 10e6 /* TCXO nominal frequency [Hz] */
+
+/* TCXO offset to Hz conversion factor.
+   With TCXO frequency set to 10MHz the GLO L1 IF is computed like this:
+   GLO_L1_HZ - 10e6 * 159 = 1602.0e6 - 10e6 * 159 = 12.0e6 [Hz] */
+#define GLO_L1_TCXO_PPM_TO_HZ (TCXO_FREQ_HZ * 1e-6 * 159.)
+
 extern test_case_t *test_case;
 extern test_case_t test_cases;
 
@@ -32,6 +45,7 @@ systime_t chThdSleepS(systime_t time) {
   return 1;
 }
 
+/*** SEARCH MANAGER UNIT TESTS STUBS ***/
 /** Check if SV is tracked
  *
  * \param sid SV identifier
@@ -96,4 +110,42 @@ u64 timing_getms(void) { return (u64)test_case->now_ms; }
 bool sm_lgf_stamp(u64 *lgf_stamp) {
   *lgf_stamp = (u64)test_case->lgf_stamp_ms;
   return true;
+}
+
+/*** TASK GENERATOR UNIT TESTS STUBS ***/
+/* Stub functions */
+gps_time_t get_current_time(void) {
+  gps_time_t t;
+  t.wn = 0;
+  t.tow = TOW_UNKNOWN;
+  return t;
+}
+
+void dum_get_doppler_wndw(const gnss_signal_t *sid,
+                          const gps_time_t *t,
+                          const last_good_fix_t *lgf,
+                          float speed,
+                          float *doppler_min,
+                          float *doppler_max) {
+  (void)sid;
+  (void)t;
+  (void)lgf;
+  (void)speed;
+  *doppler_min = 100;
+  *doppler_max = 200;
+}
+
+float code_to_tcxo_doppler_min(code_t code) {
+  (void)code;
+  return -TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
+}
+
+/** Return the maximum Doppler value for a code induced by TCXO error.
+ *
+ * \param code The code to use.
+ * \return Maximum Doppler value [Hz]
+ */
+float code_to_tcxo_doppler_max(code_t code) {
+  (void)code;
+  return TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
 }

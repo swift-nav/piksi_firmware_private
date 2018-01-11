@@ -154,6 +154,7 @@ C_SRCS = fixed_fft_r2.c \
          run_stats.c \
          gnss_capabilities.c \
          search_manager.c \
+         task_generator.c \
          stubs.c
          nav_msg.c \
 
