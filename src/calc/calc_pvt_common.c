@@ -111,7 +111,7 @@ bool gate_covariance(gnss_solution *soln) {
 
   double pos_accuracy, pos_h_accuracy, pos_v_accuracy, vel_accuracy,
       vel_h_accuracy, vel_v_accuracy;
-  // We don't need the full covariance matrices for the gates at this time
+  /* We don't need the full covariance matrices for the gates at this time */
   pvt_engine_covariance_to_accuracy(full_covariance,
                                     soln->pos_ecef,
                                     &pos_accuracy,
