@@ -234,11 +234,11 @@ void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
 }
 
 void sbp_make_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov,
-                       const double v_ecef[3],
-                       const double ecef_cov[5],
-                       const gps_time_t *gps_t,
-                       u8 n_sats_used,
-                       u8 flags) {
+                           const double v_ecef[3],
+                           const double ecef_cov[5],
+                           const gps_time_t *gps_t,
+                           u8 n_sats_used,
+                           u8 flags) {
   vel_ecef_cov->tow = round_tow_ms(gps_t->tow);
   vel_ecef_cov->x = round(v_ecef[0] * 1e3);
   vel_ecef_cov->y = round(v_ecef[1] * 1e3);
@@ -998,19 +998,19 @@ void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading) {
   memset(baseline_heading, 0, sizeof(msg_baseline_heading_t));
 }
 
-void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov){
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov) {
   memset(pos_ecef_cov, 0, sizeof(msg_pos_ecef_cov_t));
 }
 
-void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov){
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov) {
   memset(vel_ecef_cov, 0, sizeof(msg_vel_ecef_cov_t));
 }
 
-void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov){
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov) {
   memset(pos_llh_cov, 0, sizeof(msg_pos_llh_cov_t));
 }
 
-void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov){
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov) {
   memset(vel_ned_cov, 0, sizeof(msg_vel_ned_cov_t));
 }
 

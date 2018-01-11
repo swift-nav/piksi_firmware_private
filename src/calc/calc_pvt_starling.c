@@ -275,11 +275,11 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                           SPP_POSITION);
 
     sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
-                          pos_llh,
-                          pos_ned_cov,
-                          &soln->time,
-                          soln->num_sats_used,
-                          SPP_POSITION);
+                         pos_llh,
+                         pos_ned_cov,
+                         &soln->time,
+                         soln->num_sats_used,
+                         SPP_POSITION);
 
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
                            pos_ecef,
