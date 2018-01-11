@@ -155,7 +155,7 @@ static void imu_thread(void *arg) {
     u64 tc = nap_sample_time_to_count(nap_tc);
 
     /* Calculate the GPS time of the observation, if possible. */
-    if (get_time_quality() >= TIME_FINE) {
+    if (get_time_quality() >= TIME_PROPAGATED) {
       /* We know the GPS time to high accuracy, this allows us to convert a
        * timing count value into a GPS time. */
       gps_time_t t = napcount2gpstime(tc);
