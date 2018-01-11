@@ -250,7 +250,6 @@ void tp_tracker_init(tracker_t *tracker_channel,
   tp_report_t report;
   memset(&report, 0, sizeof(report));
   report.cn0 = tracker_channel->cn0;
-  report.time_ms = 0;
 
   tp_profile_init(tracker_channel, &report);
 
@@ -854,7 +853,7 @@ void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
     }
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
 
-    tp_profile_report_data(tracker_channel, &tracker_channel->profile, &report);
+    tp_profile_report_data(&tracker_channel->profile, &report);
   }
 }
 

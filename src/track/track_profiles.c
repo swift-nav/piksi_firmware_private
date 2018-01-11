@@ -941,14 +941,10 @@ u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
  * The method takes tracking loop data and merges it with previously collected
  * information from other tracking loops.
  *
- * \param[in]     tracker_channel Tracker channel state.
  * \param[in,out] profile     Tracking profile data to update
  * \param[in]     data        Tracking loop report.
  */
-void tp_profile_report_data(tracker_t *tracker_channel,
-                            tp_profile_t *profile,
-                            const tp_report_t *data) {
-  assert(tracker_channel);
+void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
   assert(profile);
   assert(data);
 
