@@ -126,6 +126,26 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
   pos_llh->flags = flags;
 }
 
+void sbp_make_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov,
+                          const double llh[3],
+                          const double llh_cov[5],
+                          const gps_time_t *gps_t,
+                          u8 n_sats_used,
+                          u8 flags) {
+  pos_llh_cov->tow = round_tow_ms(gps_t->tow);
+  pos_llh_cov->lat = llh[0] * R2D;
+  pos_llh_cov->lon = llh[1] * R2D;
+  pos_llh_cov->height = llh[2];
+  pos_llh_cov->cov_n_n = llh_cov[0];
+  pos_llh_cov->cov_n_e = llh_cov[1];
+  pos_llh_cov->cov_n_d = llh_cov[3];
+  pos_llh_cov->cov_e_e = llh_cov[2];
+  pos_llh_cov->cov_e_d = llh_cov[4];
+  pos_llh_cov->cov_d_d = llh_cov[5];
+  pos_llh_cov->n_sats = n_sats_used;
+  pos_llh_cov->flags = flags;
+}
+
 void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef,
                             const double ecef[3],
                             double accuracy,
@@ -139,6 +159,26 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef,
   pos_ecef->accuracy = MIN(round(1e3 * accuracy), UINT16_MAX);
   pos_ecef->n_sats = n_sats_used;
   pos_ecef->flags = flags;
+}
+
+void sbp_make_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov,
+                           const double ecef[3],
+                           const double ecef_cov[9],
+                           const gps_time_t *gps_t,
+                           u8 n_sats_used,
+                           u8 flags) {
+  pos_ecef_cov->tow = round_tow_ms(gps_t->tow);
+  pos_ecef_cov->x = ecef[0];
+  pos_ecef_cov->y = ecef[1];
+  pos_ecef_cov->z = ecef[2];
+  pos_ecef_cov->cov_x_x = ecef_cov[0];
+  pos_ecef_cov->cov_x_y = ecef_cov[1];
+  pos_ecef_cov->cov_x_z = ecef_cov[3];
+  pos_ecef_cov->cov_y_y = ecef_cov[2];
+  pos_ecef_cov->cov_y_z = ecef_cov[4];
+  pos_ecef_cov->cov_z_z = ecef_cov[5];
+  pos_ecef_cov->n_sats = n_sats_used;
+  pos_ecef_cov->flags = flags;
 }
 
 void sbp_make_vel_ned(msg_vel_ned_t *vel_ned,
@@ -158,6 +198,26 @@ void sbp_make_vel_ned(msg_vel_ned_t *vel_ned,
   vel_ned->flags = flags;
 }
 
+void sbp_make_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov,
+                          const double v_ned[3],
+                          const double ned_cov[5],
+                          const gps_time_t *gps_t,
+                          u8 n_sats_used,
+                          u8 flags) {
+  vel_ned_cov->tow = round_tow_ms(gps_t->tow);
+  vel_ned_cov->n = round(v_ned[0] * 1e3);
+  vel_ned_cov->e = round(v_ned[1] * 1e3);
+  vel_ned_cov->d = round(v_ned[2] * 1e3);
+  vel_ned_cov->cov_n_n = ned_cov[0];
+  vel_ned_cov->cov_n_e = ned_cov[1];
+  vel_ned_cov->cov_n_d = ned_cov[3];
+  vel_ned_cov->cov_e_e = ned_cov[2];
+  vel_ned_cov->cov_e_d = ned_cov[4];
+  vel_ned_cov->cov_d_d = ned_cov[5];
+  vel_ned_cov->n_sats = n_sats_used;
+  vel_ned_cov->flags = flags;
+}
+
 void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
                        const double v_ecef[3],
                        double accuracy,
@@ -171,6 +231,26 @@ void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
   vel_ecef->accuracy = MIN(round(1e3 * accuracy), UINT16_MAX);
   vel_ecef->n_sats = n_sats_used;
   vel_ecef->flags = flags;
+}
+
+void sbp_make_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov,
+                           const double v_ecef[3],
+                           const double ecef_cov[5],
+                           const gps_time_t *gps_t,
+                           u8 n_sats_used,
+                           u8 flags) {
+  vel_ecef_cov->tow = round_tow_ms(gps_t->tow);
+  vel_ecef_cov->x = round(v_ecef[0] * 1e3);
+  vel_ecef_cov->y = round(v_ecef[1] * 1e3);
+  vel_ecef_cov->z = round(v_ecef[2] * 1e3);
+  vel_ecef_cov->cov_x_x = ecef_cov[0];
+  vel_ecef_cov->cov_x_y = ecef_cov[1];
+  vel_ecef_cov->cov_x_z = ecef_cov[3];
+  vel_ecef_cov->cov_y_y = ecef_cov[2];
+  vel_ecef_cov->cov_y_z = ecef_cov[4];
+  vel_ecef_cov->cov_z_z = ecef_cov[5];
+  vel_ecef_cov->n_sats = n_sats_used;
+  vel_ecef_cov->flags = flags;
 }
 
 void sbp_make_dops(msg_dops_t *dops_out,
@@ -916,6 +996,22 @@ void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned) {
 
 void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading) {
   memset(baseline_heading, 0, sizeof(msg_baseline_heading_t));
+}
+
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov) {
+  memset(pos_ecef_cov, 0, sizeof(msg_pos_ecef_cov_t));
+}
+
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov) {
+  memset(vel_ecef_cov, 0, sizeof(msg_vel_ecef_cov_t));
+}
+
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov) {
+  memset(pos_llh_cov, 0, sizeof(msg_pos_llh_cov_t));
+}
+
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov) {
+  memset(vel_ned_cov, 0, sizeof(msg_vel_ned_cov_t));
 }
 
 /** \} */

@@ -14,6 +14,7 @@
 #define STARLING_CALC_PVT_H
 
 #include <libsbp/navigation.h>
+#include <libsbp/orientation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
@@ -52,6 +53,10 @@ typedef struct {
   msg_baseline_ecef_t baseline_ecef;
   msg_baseline_ned_t baseline_ned;
   msg_baseline_heading_t baseline_heading;
+  msg_pos_ecef_cov_t pos_ecef_cov;
+  msg_vel_ecef_cov_t vel_ecef_cov;
+  msg_pos_llh_cov_t pos_llh_cov;
+  msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
 
 typedef struct {
