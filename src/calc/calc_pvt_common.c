@@ -115,12 +115,16 @@ bool gate_covariance(gnss_solution *soln) {
                                     soln->pos_ecef,
                                     &pos_accuracy,
                                     &pos_h_accuracy,
-                                    &pos_v_accuracy);
+                                    &pos_v_accuracy,
+                                    NULL,
+                                    NULL);
   pvt_engine_covariance_to_accuracy(vel_covariance,
                                     soln->pos_ecef,
                                     &vel_accuracy,
                                     &vel_h_accuracy,
-                                    &vel_v_accuracy);
+                                    &vel_v_accuracy,
+                                    NULL,
+                                    NULL);
   return check_covariance(pos_accuracy, vel_accuracy);
 }
 

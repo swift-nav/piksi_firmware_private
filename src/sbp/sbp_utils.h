@@ -17,6 +17,7 @@
 #include <libsbp/common.h>
 #include <libsbp/gnss.h>
 #include <libsbp/navigation.h>
+#include <libsbp/orientation.h>
 #include <libsbp/ndb.h>
 #include <libsbp/observation.h>
 #include <libsbp/system.h>
@@ -79,6 +80,10 @@ void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
 void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef);
 void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned);
 void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading);
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov);
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov);
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov);
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov);
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
@@ -88,9 +93,21 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
                            const gps_time_t *gps_t,
                            u8 n_sats_used,
                            u8 flags);
+void sbp_make_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov,
+                          const double llh[3],
+                          const double llh_cov[5],
+                          const gps_time_t *gps_t,
+                          u8 n_sats_used,
+                          u8 flags);
 void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef,
                             const double ecef[3],
                             double accuracy,
+                            const gps_time_t *gps_t,
+                            u8 n_sats_used,
+                            u8 flags);
+void sbp_make_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov,
+                            const double ecef[3],
+                            const double ecef_cov[5],
                             const gps_time_t *gps_t,
                             u8 n_sats_used,
                             u8 flags);
@@ -101,12 +118,24 @@ void sbp_make_vel_ned(msg_vel_ned_t *vel_ned,
                       const gps_time_t *gps_t,
                       u8 n_sats_used,
                       u8 flags);
+void sbp_make_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov,
+                          const double v_ned[3],
+                          const double ned_cov[5],
+                          const gps_time_t *gps_t,
+                          u8 n_sats_used,
+                          u8 flags);
 void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
                        const double v_ecef[3],
                        double accuracy,
                        const gps_time_t *gps_t,
                        u8 n_sats_used,
                        u8 flags);
+void sbp_make_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov,
+                          const double v_ecef[3],
+                          const double ecef_cov[5],
+                          const gps_time_t *gps_t,
+                          u8 n_sats_used,
+                          u8 flags);
 void sbp_make_dops(msg_dops_t *dops_out,
                    const dops_t *dops_in,
                    u32 tow,

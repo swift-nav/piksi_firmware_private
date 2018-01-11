@@ -247,23 +247,36 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
     wgsecef2llh(pos_ecef, pos_llh);
 
     double accuracy, h_accuracy, v_accuracy;
+    double pos_ecef_cov[5], pos_ned_cov[5];
     pvt_engine_covariance_to_accuracy(soln->baseline_covariance,
                                       pos_ecef,
                                       &accuracy,
                                       &h_accuracy,
-                                      &v_accuracy);
+                                      &v_accuracy,
+                                      pos_ecef_cov,
+                                      pos_ned_cov);
 
     double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
+    double vel_ecef_cov[5], vel_ned_cov[5];
     pvt_engine_covariance_to_accuracy(soln->velocity_covariance,
                                       pos_ecef,
                                       &vel_accuracy,
                                       &vel_h_accuracy,
-                                      &vel_v_accuracy);
+                                      &vel_v_accuracy,
+                                      vel_ecef_cov,
+                                      vel_ned_cov);
 
     sbp_make_pos_llh_vect(&sbp_messages->pos_llh,
                           pos_llh,
                           h_accuracy,
                           v_accuracy,
+                          &soln->time,
+                          soln->num_sats_used,
+                          SPP_POSITION);
+
+    sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
+                          pos_llh,
+                          pos_ned_cov,
                           &soln->time,
                           soln->num_sats_used,
                           SPP_POSITION);
@@ -274,6 +287,13 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                            &soln->time,
                            soln->num_sats_used,
                            SPP_POSITION);
+
+    sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
+                          pos_ecef,
+                          pos_ecef_cov,
+                          &soln->time,
+                          soln->num_sats_used,
+                          SPP_POSITION);
 
     if (soln->velocity_valid) {
       double vel_ned[3];
@@ -286,12 +306,26 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        soln->num_sats_used,
                        SPP_POSITION);
 
+      sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
+                           vel_ned,
+                           vel_ned_cov,
+                           &soln->time,
+                           soln->num_sats_used,
+                           SPP_POSITION);
+
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
                         soln->velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
                         SPP_POSITION);
+
+      sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
+                            soln->velocity,
+                            vel_ecef_cov,
+                            &soln->time,
+                            soln->num_sats_used,
+                            SPP_POSITION);
     }
 
     /* DOP message can be sent even if solution fails to compute */
@@ -346,6 +380,18 @@ static void solution_send_pos_messages(
     sbp_send_msg(SBP_MSG_DOPS,
                  sizeof(sbp_messages->sbp_dops),
                  (u8 *)&sbp_messages->sbp_dops);
+    sbp_send_msg(SBP_MSG_POS_ECEF_COV,
+                 sizeof(sbp_messages->pos_ecef_cov),
+                 (u8 *)&sbp_messages->pos_ecef_cov);
+    sbp_send_msg(SBP_MSG_VEL_ECEF_COV,
+                 sizeof(sbp_messages->vel_ecef_cov),
+                 (u8 *)&sbp_messages->vel_ecef_cov);
+    sbp_send_msg(SBP_MSG_POS_LLH_COV,
+                 sizeof(sbp_messages->pos_llh_cov),
+                 (u8 *)&sbp_messages->pos_llh_cov);
+    sbp_send_msg(SBP_MSG_VEL_NED_COV,
+                 sizeof(sbp_messages->vel_ned_cov),
+                 (u8 *)&sbp_messages->vel_ned_cov);
 
     if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
       sbp_send_msg(SBP_MSG_BASELINE_ECEF,
@@ -446,11 +492,13 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   double b_ned[3];
   wgsecef2ned(result->baseline, ecef_pos, b_ned);
 
-  double accuracy, h_accuracy, v_accuracy;
+  double accuracy, h_accuracy, v_accuracy, pos_ecef_cov[5], pos_ned_cov[5];
   pvt_engine_covariance_to_accuracy(result->baseline_covariance,
                                     ecef_pos,
                                     &accuracy,
                                     &h_accuracy,
+                                    pos_ecef_cov,
+                                    pos_ned_cov,
                                     &v_accuracy);
 
   sbp_make_baseline_ecef(&sbp_messages->baseline_ecef,
@@ -504,12 +552,24 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                           &result->time,
                           result->num_sats_used,
                           result->flags);
+    sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
+                         pseudo_absolute_llh,
+                         pos_ned_cov,
+                         &result->time,
+                         result->num_sats_used,
+                         result->flags);
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
                            pseudo_absolute_ecef,
                            accuracy,
                            &result->time,
                            result->num_sats_used,
                            result->flags);
+    sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
+                          pseudo_absolute_ecef,
+                          pos_ecef_cov,
+                          &result->time,
+                          result->num_sats_used,
+                          result->flags);
   }
   sbp_make_dops(
       &sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, result->flags);
@@ -661,6 +721,10 @@ void sbp_messages_init(sbp_messages_t *sbp_messages) {
   sbp_init_baseline_ecef(&sbp_messages->baseline_ecef);
   sbp_init_baseline_ned(&sbp_messages->baseline_ned);
   sbp_init_baseline_heading(&sbp_messages->baseline_heading);
+  sbp_init_pos_ecef_cov(&sbp_messages->pos_ecef_cov);
+  sbp_init_vel_ecef_cov(&sbp_messages->vel_ecef_cov);
+  sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov);
+  sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov);
 }
 
 static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);

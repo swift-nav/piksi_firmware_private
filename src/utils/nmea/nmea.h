@@ -14,6 +14,7 @@
 #define SWIFTNAV_NMEA_H
 
 #include <libsbp/navigation.h>
+#include <libsbp/orientation.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/single_epoch_solver.h>
