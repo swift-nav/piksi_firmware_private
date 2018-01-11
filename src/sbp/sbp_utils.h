@@ -17,9 +17,9 @@
 #include <libsbp/common.h>
 #include <libsbp/gnss.h>
 #include <libsbp/navigation.h>
-#include <libsbp/orientation.h>
 #include <libsbp/ndb.h>
 #include <libsbp/observation.h>
+#include <libsbp/orientation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/ephemeris.h>
