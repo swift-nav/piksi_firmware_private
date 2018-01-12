@@ -24,6 +24,7 @@ void chSysUnlock(void);
 systime_t chVTGetSystemTimeX(void);
 systime_t chThdSleep(systime_t time);
 systime_t chThdSleepS(systime_t time);
+systime_t chThdSleepMilliseconds(systime_t time);
 
 #define TIME_INFINITE (systime_t)(-1)
 

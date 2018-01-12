@@ -58,6 +58,8 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
+INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -155,6 +157,7 @@ C_SRCS = fixed_fft_r2.c \
          gnss_capabilities.c \
          search_manager.c \
          task_generator.c \
+         scheduler.c \
          stubs.c
          nav_msg.c \
 

@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "ch.h"
 #include "manage.h"
 
 /* Piksi V3 TCXO nominal temperature frequency stability [ppm] */
@@ -29,6 +28,11 @@
 extern test_case_t *test_case;
 extern test_case_t test_cases;
 
+extern bool hw_has_run;   /** Set if acq_search is called */
+extern u32 hw_code_index; /** Set to code index for which hw was run */
+
+u32 stubs_now_ms = 0;
+
 void chSysLock(){};
 
 void chSysUnlock(){};
@@ -42,6 +46,11 @@ systime_t chThdSleep(systime_t time) {
 
 systime_t chThdSleepS(systime_t time) {
   (void)time;
+  return 1;
+}
+
+systime_t chThdSleepMilliseconds(systime_t time) {
+  stubs_now_ms += (u32)time;
   return 1;
 }
 
@@ -100,7 +109,7 @@ void sm_calc_all_glo_visibility_flags(void){};
  *
  * \return HW time in milliseconds
  */
-u64 timing_getms(void) { return (u64)test_case->now_ms; }
+u64 timing_getms(void) { return (u64)stubs_now_ms; }
 
 /** Get HW time of the last good fix (LGF)
  *
@@ -148,4 +157,63 @@ float code_to_tcxo_doppler_min(code_t code) {
 float code_to_tcxo_doppler_max(code_t code) {
   (void)code;
   return TCXO_FREQ_OFFSET_MAX_PPM * GLO_L1_TCXO_PPM_TO_HZ;
+}
+
+/*** SCHEDULER UNIT TESTS STUBS ***/
+u16 get_orbit_slot(const u16 fcn) {
+  (void)fcn;
+  return GLO_ORBIT_SLOT_UNKNOWN;
+}
+
+u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
+  /* Remove from acquisition */
+  acq_jobs_state_t *data = &acq_all_jobs_state_data;
+  data->jobs_gps[0][mesid_to_code_index(startup_params->mesid)].needs_to_run =
+      false;
+  data->jobs_gps[1][mesid_to_code_index(startup_params->mesid)].needs_to_run =
+      false;
+  return 0;
+}
+
+void sch_send_acq_profile_msg(const acq_job_t *job,
+                              const acq_result_t *acq_result,
+                              bool peak_found) {
+  (void)job;
+  (void)acq_result;
+  (void)peak_found;
+}
+
+void dum_report_reacq_result(const gnss_signal_t *sid, bool res) {
+  (void)sid;
+  (void)res;
+}
+
+void acq_result_send(const me_gnss_signal_t mesid,
+                     float cn0,
+                     float cp,
+                     float cf) {
+  (void)mesid;
+  (void)cn0;
+  (void)cp;
+  (void)cf;
+}
+
+bool soft_multi_acq_search(const me_gnss_signal_t mesid,
+                           float _fCarrFreqMin,
+                           float _fCarrFreqMax,
+                           acq_result_t *p_acqres) {
+  (void)_fCarrFreqMin;
+  (void)_fCarrFreqMax;
+  (void)p_acqres;
+  u32 i = mesid_to_code_index(mesid);
+  hw_has_run = true;
+  hw_code_index = i;
+  stubs_now_ms++;
+  if (i <= 15) {
+    return false;
+  }
+  p_acqres->cf = i * 100;
+  p_acqres->cn0 = 30.0f + (float)i;
+  p_acqres->cp = i * 10;
+  return true;
 }

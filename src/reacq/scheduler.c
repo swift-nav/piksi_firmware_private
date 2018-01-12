@@ -11,8 +11,8 @@
  */
 #include <assert.h>
 #include <libswiftnav/glo_map.h>
-#include <manage.h>
 #include "dum/dum.h"
+#include "manage.h"
 #include "scheduler_api.h"
 #include "task_generator_api.h"
 #include "timing/timing.h"

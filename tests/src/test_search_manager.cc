@@ -18,6 +18,8 @@
 
 //#define DBGOUT
 
+extern u32 stubs_now_ms;
+
 /** Current unit test case */
 test_case_t *test_case;
 
@@ -70,6 +72,7 @@ TEST(search_manager_test, test_search_manager) {
     u32 i;
 
     test_case = &test_cases[test_ix];
+    stubs_now_ms = test_case->now_ms;
 #ifdef DBGOUT
     printf("now=%u vis=0x%x knw=0x%x trk=0x%x lgf=%u\n",
            test_case->now_ms,

@@ -16,7 +16,11 @@
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/signal.h>
 
+#include "ch.h"
 #include "position/position.h"
+#include "search_manager_api.h"
+#include "soft_macq_main.h"
+#include "track_cfg.h"
 
 #define ACQ_FULL_CF_STEP ((99.375e6 / 25) / (16 * 1024))
 
@@ -30,6 +34,17 @@ typedef struct {
   u32 deep_mask,     /**< Expected results */
       fallback_mask; /**< Expected results */
 } test_case_t;
+
+typedef struct {
+  me_gnss_signal_t mesid; /**< ME signal identifier. */
+  u16 glo_slot_id;        /**< GLO orbital slot. */
+  u64 sample_count;       /**< Reference NAP sample count. */
+  float carrier_freq;     /**< Carrier frequency Doppler (Hz). */
+  double code_phase;      /**< Code phase (chips). */
+  u32 chips_to_correlate; /**< Chips to integrate over. */
+  float cn0_init;         /**< C/N0 estimate (dBHz). */
+  s8 elevation;           /**< Elevation (deg). */
+} tracking_startup_params_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,9 +68,29 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           float speed,
                           float *doppler_min,
                           float *doppler_max);
-float code_to_tcxo_doppler_min(code_t code);
-float code_to_tcxo_doppler_max(code_t code);
-
+u16 get_orbit_slot(const u16 fcn);
+u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
+void sch_send_acq_profile_msg(const acq_job_t *job,
+                              const acq_result_t *acq_result,
+                              bool peak_found);
+void dum_report_reacq_result(const gnss_signal_t *sid, bool res);
+void acq_result_send(const me_gnss_signal_t mesid,
+                     float cn0,
+                     float cp,
+                     float cf);
+void sch_initialize_cost(acq_job_t *init_job,
+                         const acq_jobs_state_t *all_jobs_data,
+                         constellation_t gnss);
+bool soft_multi_acq_search(const me_gnss_signal_t mesid,
+                           float _fCarrFreqMin,
+                           float _fCarrFreqMax,
+                           acq_result_t *p_acqres);
+acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data);
+void sch_run(acq_jobs_state_t *jobs_data);
+bool soft_multi_acq_search(const me_gnss_signal_t mesid,
+                           float _fCarrFreqMin,
+                           float _fCarrFreqMax,
+                           acq_result_t *p_acqres);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
