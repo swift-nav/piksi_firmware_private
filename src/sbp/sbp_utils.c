@@ -128,7 +128,7 @@ void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
 
 void sbp_make_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov,
                           const double llh[3],
-                          const double llh_cov[5],
+                          const double llh_cov[6],
                           const gps_time_t *gps_t,
                           u8 n_sats_used,
                           u8 flags) {
@@ -163,7 +163,7 @@ void sbp_make_pos_ecef_vect(msg_pos_ecef_t *pos_ecef,
 
 void sbp_make_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov,
                            const double ecef[3],
-                           const double ecef_cov[9],
+                           const double ecef_cov[6],
                            const gps_time_t *gps_t,
                            u8 n_sats_used,
                            u8 flags) {
@@ -200,7 +200,7 @@ void sbp_make_vel_ned(msg_vel_ned_t *vel_ned,
 
 void sbp_make_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov,
                           const double v_ned[3],
-                          const double ned_cov[5],
+                          const double ned_cov[6],
                           const gps_time_t *gps_t,
                           u8 n_sats_used,
                           u8 flags) {
@@ -235,7 +235,7 @@ void sbp_make_vel_ecef(msg_vel_ecef_t *vel_ecef,
 
 void sbp_make_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov,
                            const double v_ecef[3],
-                           const double ecef_cov[5],
+                           const double ecef_cov[6],
                            const gps_time_t *gps_t,
                            u8 n_sats_used,
                            u8 flags) {
