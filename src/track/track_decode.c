@@ -82,8 +82,9 @@ static void data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
 void tracker_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
-  if ((from_decoder->TOW_ms < 0) ||
-      (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity)) {
+  if ((SYNC_POL != from_decoder->sync_flags) &&
+      ((from_decoder->TOW_ms < 0) ||
+       (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity))) {
     return;
   }
   data_sync(id, from_decoder);
