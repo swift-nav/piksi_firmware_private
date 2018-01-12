@@ -247,7 +247,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
     wgsecef2llh(pos_ecef, pos_llh);
 
     double accuracy, h_accuracy, v_accuracy;
-    double pos_ecef_cov[5], pos_ned_cov[5];
+    double pos_ecef_cov[6], pos_ned_cov[6];
     pvt_engine_covariance_to_accuracy(soln->baseline_covariance,
                                       pos_ecef,
                                       &accuracy,
@@ -257,7 +257,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                                       pos_ned_cov);
 
     double vel_accuracy, vel_h_accuracy, vel_v_accuracy;
-    double vel_ecef_cov[5], vel_ned_cov[5];
+    double vel_ecef_cov[6], vel_ned_cov[6];
     pvt_engine_covariance_to_accuracy(soln->velocity_covariance,
                                       pos_ecef,
                                       &vel_accuracy,
@@ -492,7 +492,7 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   double b_ned[3];
   wgsecef2ned(result->baseline, ecef_pos, b_ned);
 
-  double accuracy, h_accuracy, v_accuracy, pos_ecef_cov[5], pos_ned_cov[5];
+  double accuracy, h_accuracy, v_accuracy, pos_ecef_cov[6], pos_ned_cov[6];
   pvt_engine_covariance_to_accuracy(result->baseline_covariance,
                                     ecef_pos,
                                     &accuracy,
