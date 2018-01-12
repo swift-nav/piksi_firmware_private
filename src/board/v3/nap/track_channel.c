@@ -20,6 +20,7 @@
 #include "signal_db/signal_db.h"
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
+#include "utils/gnss_capabilities/gnss_capabilities.h"
 
 #include <ch.h>
 
@@ -185,6 +186,14 @@ void nap_track_init(u8 channel,
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
+  if (mesid.code == CODE_BDS2_B2) {
+    log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
+              mesid.sat,
+              channel,
+              (uintptr_t)t,
+              (uintptr_t)s);
+  }
+
   if (swiftnap_code_map[channel] != mesid_to_nap_code(mesid)) {
     log_error_mesid(
         mesid, "Tracking channel %u doesn't support this signal.", channel);
@@ -280,6 +289,14 @@ void nap_track_init(u8 channel,
       num_codes = GLO_L1CA_SYMBOL_LENGTH_MS / GLO_PRN_PERIOD_MS;
     } else if (CODE_GPS_L2CM == mesid.code) {
       num_codes = GPS_L2C_SYMBOL_LENGTH_MS / GPS_L2CM_PRN_PERIOD_MS;
+    } else if (CODE_QZS_L2CM == mesid.code) {
+      num_codes = QZS_L2C_SYMBOL_LENGTH_MS / QZS_L2CM_PRN_PERIOD_MS;
+    } else if (CODE_BDS2_B2 == mesid.code) {
+      if (bds_d2nav(mesid)) {
+        num_codes = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
+      } else {
+        num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
+      }
     } else {
       assert(0);
     }

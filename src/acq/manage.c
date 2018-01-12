@@ -1297,6 +1297,7 @@ static void manage_tracking_startup(void) {
 
     /* Make sure a tracking channel and a decoder channel are available */
     u8 chan = manage_track_new_acq(startup_params.mesid);
+
     if (chan == MANAGE_NO_CHANNELS_FREE) {
       if (code_requires_direct_acq(acq->mesid.code)) {
         float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +

@@ -60,6 +60,10 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS;
     case CONSTELLATION_SBAS:
       return NUM_SATS_GPS + NUM_SATS_GLO;
+    case CONSTELLATION_BDS2:
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS;
+    case CONSTELLATION_QZSS:
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS2;
     default:
       assert(!"Incorrect constellation");
   }

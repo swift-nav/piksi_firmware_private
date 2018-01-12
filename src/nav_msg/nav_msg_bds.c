@@ -30,10 +30,31 @@
 #define BDS_WORD_BITMASK (0x3fffffff)
 /* this bit mask does not work for n==0 and n==32 */
 #define BITMASK(n) ((1U << n) - 1)
+#define BDS_WORD_SUBFR_MASK BITMASK(BDS_WORD_SUBFR)
+
+static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
+                                  [0b0001] = 0b000000000000001,
+                                  [0b0010] = 0b000000000000010,
+                                  [0b0011] = 0b000000000010000,
+                                  [0b0100] = 0b000000000000100,
+                                  [0b0101] = 0b000000100000000,
+                                  [0b0110] = 0b000000000100000,
+                                  [0b0111] = 0b000010000000000,
+                                  [0b1000] = 0b000000000001000,
+                                  [0b1001] = 0b100000000000000,
+                                  [0b1010] = 0b000001000000000,
+                                  [0b1011] = 0b000000010000000,
+                                  [0b1100] = 0b000000001000000,
+                                  [0b1101] = 0b010000000000000,
+                                  [0b1110] = 0b000100000000000,
+                                  [0b1111] = 0b001000000000000};
 
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);
 static void pack_buffer(nav_msg_bds_t *n);
-static u32 deint(const u32 word);
+
+static void deint(u32 *hi, u32 *lo, const u32 dw);
+static bool bch1511(u32 *pdw);
+static bool crc_check(nav_msg_bds_t *n);
 
 static void process_d1_fraid1(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
@@ -114,6 +135,11 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
                pream_candidate_last);
       return false;
     }
+    /* check that there are no bit errors */
+    if (!crc_check(n)) {
+      return false;
+    }
+
     n->subfr_sync = true;
     n->subfr_bit_index = n->bit_index;
     n->bit_polarity = (BDS_PREAMBLE == pream_candidate_prev)
@@ -132,10 +158,14 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
         /* reset everything */
         n->subfr_sync = false;
         n->bit_polarity = BDS_BIT_POLARITY_UNKNOWN;
-        log_info("C%02d lost sync prev %" PRIx32 " last %" PRIx32,
+        log_info("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
                  n->prn,
                  pream_candidate_prev,
                  pream_candidate_last);
+        return false;
+      }
+      /* check that there are no bit errors */
+      if (!crc_check(n)) {
         return false;
       }
       /* subframe start confirmed */
@@ -161,9 +191,9 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
   (void)mesid;
   (void)data;
 
-  s32 TOWms = (((n->frame_words[0]) >> 4) & 0xffU) << 12;
-  TOWms |= (((n->frame_words[1]) >> 18) & 0x3FFU);
-  if (TOWms > 86400) {
+  s32 TOW_s = (((n->frame_words[0]) >> 4) & 0xffU) << 12;
+  TOW_s |= (((n->frame_words[1]) >> 18) & 0x3FFU);
+  if (TOW_s > 86400) {
     return BDS_TOW_INVALID;
   }
 
@@ -198,7 +228,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
       break;
   }
 
-  return TOWms * 1000;
+  return TOW_s * 1000;
 }
 
 /** D2 parsing
@@ -215,13 +245,13 @@ s32 bds_d2_process_subframe(nav_msg_bds_t *n,
   (void)mesid;
   (void)data;
 
-  s32 TOWms = (((n->frame_words[0]) >> 4) & 0xffU) << 12;
-  TOWms |= (((n->frame_words[1]) >> 18) & 0x3FFU);
-  if (TOWms > 86400) {
+  s32 TOW_s = (((n->frame_words[0]) >> 4) & 0xffU) << 12;
+  TOW_s |= (((n->frame_words[1]) >> 18) & 0x3FFU);
+  if (TOW_s > 86400) {
     return BDS_TOW_INVALID;
   }
 
-  return TOWms * 1000;
+  return TOW_s * 1000;
 }
 
 /** Shifts bits properly in the bit array */
@@ -241,18 +271,72 @@ static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval) {
   words[k] &= BDS_WORD_BITMASK;
 }
 
-/** Deinterleaves a word, from http://programming.sirrida.de/calcperm.php */
-static u32 deint(const u32 x) {
-  return (x & 0x20000181) | ((x & 0x08000020) << 1) | ((x & 0x02000008) << 2) |
-         ((x & 0x00800002) << 3) | ((x & 0x00200000) << 4) |
-         ((x & 0x00080000) << 5) | ((x & 0x00020000) << 6) |
-         ((x & 0x00008000) << 7) | ((x & 0x00002000) << 8) |
-         ((x & 0x00000800) << 9) | ((x & 0x00000200) << 10) |
-         ((x & 0x10000000) >> 10) | ((x & 0x04000000) >> 9) |
-         ((x & 0x01000000) >> 8) | ((x & 0x00400000) >> 7) |
-         ((x & 0x00100000) >> 6) | ((x & 0x00040000) >> 5) |
-         ((x & 0x00010000) >> 4) | ((x & 0x00004040) >> 3) |
-         ((x & 0x00001010) >> 2) | ((x & 0x00000404) >> 1);
+/** morton1 - extract even bits */
+static u32 morton(u32 x) {
+  x = x & 0x55555555;
+  x = (x | (x >> 1)) & 0x33333333;
+  x = (x | (x >> 2)) & 0x0F0F0F0F;
+  x = (x | (x >> 4)) & 0x00FF00FF;
+  x = (x | (x >> 8)) & 0x0000FFFF;
+  return x;
+}
+
+/** deint - deinterleave every second bit */
+static void deint(u32 *hi, u32 *lo, const u32 dw) {
+  *hi = morton(dw >> 1);
+  *lo = morton(dw);
+}
+
+/** BCH1511 decoder
+ * Note: works as CRC and single bit error correction, assuming one trusts it
+ * */
+static bool bch1511(u32 *pdw) {
+  u16 in = (*pdw) & 0x7fff;
+  u8 crc = 0, bit = 0;
+  for (s8 k = 14; k >= 0; k--) {
+    bit = ((crc >> 3) & 0x1);
+    crc ^= bit;
+    crc <<= 1;
+    crc |= (bit ^ ((in >> k) & 0x1));
+  }
+  crc &= 0xf;
+  (*pdw) = (in ^ bch_table[crc]); /* 1-bit error correction */
+  return (0 == crc);              /* crc pass/fail */
+}
+
+/** BCH(15,11) check on all received bits */
+static bool crc_check(nav_msg_bds_t *n) {
+  u32 goodwords = 0;
+  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
+    u32 hi, lo;
+    bool good;
+    if (k == 0) {
+      hi = (n->subframe_bits[k] >> 15) & 0x7fff;
+      lo = (n->subframe_bits[k]) & 0x7fff;
+      good = bch1511(&lo);
+    } else {
+      deint(&hi, &lo, n->subframe_bits[k]);
+      good = bch1511(&hi) && bch1511(&lo);
+    }
+    if (good) {
+      goodwords |= (1 << k);
+    }
+    n->subframe_bits[k] = (hi << 15) | lo;
+    /* with this ^ the deinterleave is done, but location of CRC in the 30-bits
+     * is still wrong */
+  }
+  /* check if all words passed the CRC check */
+  if (goodwords != BDS_WORD_SUBFR_MASK) {
+    log_info("C%02" PRIu8 " goodwords %" PRIx32, n->prn, goodwords);
+    return false;
+  }
+  return true;
+}
+
+/** pack CRC bits at the end as 11a+11b+4a+4b */
+static u32 packdw(const u32 dw) {
+  return (((dw >> 19) & 0x7ff) << 19) | (((dw >> 4) & 0x7ff) << 8) |
+         (((dw >> 15) & 0x00f) << 4) | (((dw) & 0x00f));
 }
 
 /** Deinterleaves signal in subframe structure */
@@ -262,7 +346,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     tmp = n->subframe_bits[k];
     tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
-    n->frame_words[k] = (k > 0) ? deint(tmp) : tmp;
+    n->frame_words[k] = (k == 0) ? tmp : packdw(tmp);
   }
 }
 

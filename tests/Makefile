@@ -123,7 +123,6 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/filters \
           $(USER_SRC_DIR)/utils/track_loop \
           $(USER_SRC_DIR)/soft_macq \
-          $(USER_SRC_DIR)/utils/correlate \
           $(USER_SRC_DIR)/utils/sv_visibility \
           $(USER_SRC_DIR)/nav_msg \
           $(USER_SRC_DIR)/utils/bit_sync \
@@ -148,7 +147,6 @@ C_SRCS = fixed_fft_r2.c \
          clock_filter.c \
          calc_nav_meas.c \
          piksi_systime.c \
-         correlate.c \
          sv_visibility.c \
          cnav_msg.c \
          bit_sync.c \
