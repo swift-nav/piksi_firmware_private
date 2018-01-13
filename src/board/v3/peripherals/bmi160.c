@@ -18,6 +18,8 @@
 
 static const SPIConfig spi_config = IMU_SPI_CONFIG;
 
+static bmm150_trim_t bmm150_trim_param;
+
 #define SPI_READ_MASK (1 << 7)
 
 /** Open and lock the SPI but that the BMI160 is on. */
@@ -102,6 +104,28 @@ static u8 bmi160_read_bmm150_reg(u8 reg) {
   return data;
 }
 
+static u16 read_bmm150_trim_u16(u8 bmm150_lsb) {
+  u16 ret = bmi160_read_bmm150_reg(bmm150_lsb);
+  ret += bmi160_read_bmm150_reg(bmm150_lsb + 1) << 8;
+  return ret;
+}
+
+/** Read the magnetometer trim settings. These are
+ * set in the factory and only need to be read once */
+static void read_mag_trim(void) {
+  bmm150_trim_param.dig_x1 = bmi160_read_bmm150_reg(BMM150_DIG_X1);
+  bmm150_trim_param.dig_y1 = bmi160_read_bmm150_reg(BMM150_DIG_Y1);
+  bmm150_trim_param.dig_x2 = bmi160_read_bmm150_reg(BMM150_DIG_X2);
+  bmm150_trim_param.dig_y2 = bmi160_read_bmm150_reg(BMM150_DIG_Y2);
+  bmm150_trim_param.dig_z1 = read_bmm150_trim_u16(BMM150_DIG_Z1_LSB);
+  bmm150_trim_param.dig_z2 = read_bmm150_trim_u16(BMM150_DIG_Z2_LSB);
+  bmm150_trim_param.dig_z3 = read_bmm150_trim_u16(BMM150_DIG_Z3_LSB);
+  bmm150_trim_param.dig_z4 = read_bmm150_trim_u16(BMM150_DIG_Z4_LSB);
+  bmm150_trim_param.dig_xy1 = bmi160_read_bmm150_reg(BMM150_DIG_XY1);
+  bmm150_trim_param.dig_xy2 = bmi160_read_bmm150_reg(BMM150_DIG_XY2);
+  bmm150_trim_param.dig_xyz1 = read_bmm150_trim_u16(BMM150_DIG_XYZ1_LSB);
+}
+
 void bmi160_init(void) {
   /* Delay required to prevent IMU initialization conflicting with the
    * front-end configuration, resulting in no signals being acquired or
@@ -144,6 +168,7 @@ void bmi160_init(void) {
     log_error("Mag: BMM150 ID didn't match expected value (%u)", mag_id);
     return;
   }
+  read_mag_trim();
   bmi160_mag_set_enabled(false);
 
   /* Configure IMU_INT1, interrupt on data ready */
@@ -210,6 +235,159 @@ void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag) {
   *new_mag = status & BMI160_STATUS_MAG_RDY_Msk;
 }
 
+/*!
+ *	@brief This API used to get the compensated X data
+ *	the out put of X as s16
+ *
+ *
+ *
+ *  @param  mag_data_x : The value of raw X data
+ *	@param  data_r : The value of R data
+ *
+ *	@return results of compensated X data value output as s16
+ *
+*/
+s16 bmm150_compensate_X(s16 mag_data_x, u16 data_r)
+{
+	s16 inter_retval = BMM150_INIT_VALUE;
+	/* no overflow */
+	if (mag_data_x != BMM150_FLIP_OVERFLOW_ADCVAL) {
+		if ((data_r != BMM150_INIT_VALUE)
+		&& (bmm150_trim_param.dig_xyz1 != BMM150_INIT_VALUE)) {
+			inter_retval = ((s16)(((u16)
+			((((s32)bmm150_trim_param.dig_xyz1)
+			<< 14)/
+			 (data_r != BMM150_INIT_VALUE ?
+			 data_r : bmm150_trim_param.dig_xyz1))) -
+			((u16)0x4000)));
+		} else {
+			inter_retval = BMM150_OVERFLOW_OUTPUT;
+			return inter_retval;
+		}
+		inter_retval = ((s16)((((s32)mag_data_x) *
+				((((((((s32)bmm150_trim_param.dig_xy2) *
+				((((s32)inter_retval) *
+				((s32)inter_retval)) >>
+				7)) +
+			     (((s32)inter_retval) *
+			      ((s32)(((s16)bmm150_trim_param.dig_xy1)
+			      << 7))))
+				  >> 9) +
+			   ((s32)0x100000)) *
+			  ((s32)(((s16)bmm150_trim_param.dig_x2) +
+			  ((s16)0xA0)))) >>
+			  12))
+			  >> 13)) +
+			(((s16)bmm150_trim_param.dig_x1)
+			<< 3);
+	} else {
+		/* overflow */
+		inter_retval = BMM150_OVERFLOW_OUTPUT;
+	}
+	return inter_retval;
+}
+
+/*!
+ *	@brief This API used to get the compensated Y data
+ *	the out put of Y as s16
+ *
+ *
+ *
+ *  @param  mag_data_y : The value of raw Y data
+ *	@param  data_r : The value of R data
+ *
+ *	@return results of compensated Y data value output as s16
+ *
+*/
+s16 bmm150_compensate_Y(s16 mag_data_y, u16 data_r)
+{
+	s16 inter_retval = BMM150_INIT_VALUE;
+	 /* no overflow */
+	if (mag_data_y != BMM150_FLIP_OVERFLOW_ADCVAL) {
+		if ((data_r != BMM150_INIT_VALUE)
+		&& (bmm150_trim_param.dig_xyz1 != BMM150_INIT_VALUE)) {
+			inter_retval = ((s16)(((u16)(((
+			(s32)bmm150_trim_param.dig_xyz1)
+			<< 14)/
+			(data_r != BMM150_INIT_VALUE ?
+			 data_r : bmm150_trim_param.dig_xyz1))) -
+			((u16)0x4000)));
+		} else {
+			inter_retval = BMM150_OVERFLOW_OUTPUT;
+			return inter_retval;
+		}
+		inter_retval = ((s16)((((s32)mag_data_y) * ((((((((s32)
+			bmm150_trim_param.dig_xy2) * ((((s32) inter_retval) *
+			((s32)inter_retval)) >>
+			7))
+			+ (((s32)inter_retval) *
+			((s32)(((s16)bmm150_trim_param.dig_xy1) <<
+			7))))
+			>> 9) +
+			((s32)0x100000)) *
+			((s32)(((s16)bmm150_trim_param.dig_y2)
+			+ ((s16)0xA0))))
+			>> 12))
+			>> 13)) +
+			(((s16)bmm150_trim_param.dig_y1)
+			<< 3);
+	} else {
+		/* overflow */
+		inter_retval = BMM150_OVERFLOW_OUTPUT;
+	}
+	return inter_retval;
+}
+
+/*!
+ *	@brief This API used to get the compensated Z data
+ *	the out put of Z as s16
+ *
+ *
+ *
+ *  @param  mag_data_z : The value of raw Z data
+ *	@param  data_r : The value of R data
+ *
+ *	@return results of compensated Z data value output as s16
+ *
+*/
+s16 bmm150_compensate_Z(s16 mag_data_z, u16 data_r)
+{
+	s32 retval = BMM150_INIT_VALUE;
+
+	if ((mag_data_z != BMM150_HALL_OVERFLOW_ADCVAL)	/* no overflow */
+	   ) {
+		if ((bmm150_trim_param.dig_z2 != BMM150_INIT_VALUE)
+		&& (bmm150_trim_param.dig_z1 != BMM150_INIT_VALUE)
+		&& (data_r != BMM150_INIT_VALUE)
+		&& (bmm150_trim_param.dig_xyz1 != BMM150_INIT_VALUE)) {
+			retval = (((((s32)(mag_data_z - bmm150_trim_param.dig_z4))
+			<< 15) -
+			((((s32)bmm150_trim_param.dig_z3) * ((s32)(((s16)data_r) -
+			((s16) bmm150_trim_param.dig_xyz1))))
+			>> 2))/
+			(bmm150_trim_param.dig_z2 + ((s16)(((((s32)
+			bmm150_trim_param.dig_z1) * ((((s16)data_r)
+			<< 1)))+
+			(1 << 15))
+			>> 16))));
+		} else {
+			retval = BMM150_OVERFLOW_OUTPUT;
+			return retval;
+		}
+		/* saturate result to +/- 2 microTesla */
+		if (retval > BMM150_POSITIVE_SATURATION_Z) {
+			retval =  BMM150_POSITIVE_SATURATION_Z;
+		} else {
+			if (retval < BMM150_NEGATIVE_SATURATION_Z)
+				retval = BMM150_NEGATIVE_SATURATION_Z;
+		}
+	} else {
+		/* overflow */
+		retval = BMM150_OVERFLOW_OUTPUT;
+	}
+	return (s16)retval;
+}
+
 /** Read the sensor data from the BMI160 and BMM150.
  * If parameter mag==NULL skip the mag data (reading mag when not ready causes
  * errors)
@@ -236,7 +414,14 @@ void bmi160_get_data(s16 acc[static 3],
 
   /* Extract data from data buffer */
   if (mag != NULL) {
-    memcpy(mag, &buf[1 + BMI160_DATA_MAG_OFFSET], 2 * 3);
+    s16 mag_raw[4];
+    memcpy(mag_raw, &buf[1 + BMI160_DATA_MAG_OFFSET], 2 * 4);
+    /* Report temperature/bias compensated measurements
+     * 12:4 fixed point
+    */
+    mag[0] = bmm150_compensate_X(mag_raw[0], mag_raw[3]);
+    mag[1] = bmm150_compensate_Y(mag_raw[1], mag_raw[3]);
+    mag[2] = bmm150_compensate_Z(mag_raw[2], mag_raw[3]);
   }
   memcpy(gyro, &buf[1 + BMI160_DATA_GYRO_OFFSET], 2 * 3);
   memcpy(acc, &buf[1 + BMI160_DATA_ACC_OFFSET], 2 * 3);
