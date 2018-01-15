@@ -22,6 +22,11 @@
 #include "soft_macq_main.h"
 #include "track_cfg.h"
 
+#ifdef NDB_WEAK
+#undef NDB_WEAK
+#define NDB_WEAK
+#endif
+
 #define ACQ_FULL_CF_STEP ((99.375e6 / 25) / (16 * 1024))
 
 #define ACQ_THRESHOLD 38.0 /* dBHz */
