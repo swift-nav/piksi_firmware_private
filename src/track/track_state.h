@@ -44,7 +44,6 @@ void trackers_missed(u64 channels_mask);
 
 /* Send state */
 void tracking_send_state(void);
-void tracking_send_detailed_state(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

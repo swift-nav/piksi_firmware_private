@@ -23,7 +23,6 @@
 #include "track_common.h"
 #include "track_flags.h"
 #include "track_interface.h"
-#include "track_sbp.h"
 #include "track_utils.h"
 
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
@@ -47,11 +46,6 @@ typedef enum {
 } event_t;
 
 static tracker_t trackers[NUM_TRACKER_CHANNELS];
-
-/** send_trk_detailed setting is a stop gap to suppress this
-  * bandwidth intensive msg until a more complete "debug"
-  * strategy is designed and implemented. */
-static bool send_trk_detailed = 0;
 
 static u16 iq_output_mask = 0;
 
@@ -88,7 +82,6 @@ void track_setup(void) {
                  iq_output_mask,
                  TYPE_INT,
                  track_iq_output_notify);
-  SETTING("track", "send_trk_detailed", send_trk_detailed, TYPE_BOOL);
   SETTING_NOTIFY("track",
                  "max_pll_integration_time_ms",
                  max_pll_integration_time_ms,
@@ -660,52 +653,4 @@ void tracking_send_state(void) {
   }
 
   sbp_send_msg(SBP_MSG_TRACKING_STATE, sizeof(states), (u8 *)states);
-}
-
-/** Send tracking detailed state SBP message.
- * Send information on each tracking channel to host.
- */
-void tracking_send_detailed_state(void) {
-  if (!send_trk_detailed) {
-    return;
-  }
-
-  last_good_fix_t lgf;
-  last_good_fix_t *plgf = &lgf;
-
-  if ((NDB_ERR_NONE != ndb_lgf_read(&lgf)) || !lgf.position_solution.valid) {
-    plgf = NULL;
-  }
-
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    tracker_info_t channel_info;
-    tracker_freq_info_t freq_info;
-    tracker_time_info_t time_info;
-    tracker_ctrl_info_t ctrl_info;
-    tracker_misc_info_t misc_info;
-    msg_tracking_state_detailed_t sbp;
-
-    tracker_get_values(
-        i, &channel_info, &time_info, &freq_info, &ctrl_info, &misc_info);
-
-    if (0 == (channel_info.flags & TRACKER_FLAG_ACTIVE) ||
-        0 == (channel_info.flags & TRACKER_FLAG_CONFIRMED)) {
-      continue;
-    }
-
-    /* TODO GLO: Handle GLO orbit slot properly. */
-    if (IS_GLO(channel_info.mesid)) {
-      continue;
-    }
-
-    track_sbp_get_detailed_state(&sbp,
-                                 &channel_info,
-                                 &freq_info,
-                                 &time_info,
-                                 &ctrl_info,
-                                 &misc_info,
-                                 plgf);
-
-    sbp_send_msg(SBP_MSG_TRACKING_STATE_DETAILED, sizeof(sbp), (u8 *)&sbp);
-  }
 }
