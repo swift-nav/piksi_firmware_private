@@ -158,7 +158,8 @@ C_SRCS = fixed_fft_r2.c \
          search_manager.c \
          task_generator.c \
          scheduler.c \
-         stubs.c
+         stubs.c \
+         ch_stubs.c \
          nav_msg.c \
 
 # Test source files

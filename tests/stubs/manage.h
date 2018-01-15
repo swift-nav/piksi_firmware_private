@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 - 2017 Swift Navigation Inc.
+ * Copyright (C) 2018 Swift Navigation Inc.
  * Contact: Dmitry Tatarinov <dmitry.tatarinov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must

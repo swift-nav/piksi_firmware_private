@@ -16,7 +16,7 @@
 #include "manage.h"
 #include "search_manager_api.h"
 
-//#define DBGOUT
+/* #define DBGOUT */
 
 extern u32 stubs_now_ms;
 
@@ -89,11 +89,10 @@ TEST(search_manager_test, test_search_manager) {
     memset(gps_run_mask, 0, sizeof(gps_run_mask));
     for (type = (u8)ACQ_JOB_DEEP_SEARCH; type < (u8)ACQ_NUM_JOB_TYPES; type++) {
       for (i = 0; i < ACQ_NUM_SVS; i++) {
-        if (data->jobs_gps[type][i].needs_to_run) {
-          if (CODE_GPS_L1CA == data->jobs_gps[type][i].sid.code) {
-            gps_run_mask[type] |=
-                1 << (data->jobs_gps[type][i].sid.sat - GPS_FIRST_PRN);
-          }
+        if (data->jobs_gps[type][i].needs_to_run &&
+            (CODE_GPS_L1CA == data->jobs_gps[type][i].sid.code)) {
+          gps_run_mask[type] |=
+              1 << (data->jobs_gps[type][i].sid.sat - GPS_FIRST_PRN);
         }
       }
     }

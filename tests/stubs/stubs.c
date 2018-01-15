@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Swift Navigation Inc.
+ * Copyright (C) 2018 Swift Navigation Inc.
  * Contact: Dmitry Tatarinov <dmitry.tatarinov@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -11,6 +11,8 @@
  */
 
 #include "manage.h"
+
+#define MAX_ACQUIRED_SV_INDEX 15
 
 /* Piksi V3 TCXO nominal temperature frequency stability [ppm] */
 #define TCXO_FREQ_STAB_PPM 0.28f
@@ -31,28 +33,7 @@ extern test_case_t test_cases;
 extern bool hw_has_run;   /** Set if acq_search is called */
 extern u32 hw_code_index; /** Set to code index for which hw was run */
 
-u32 stubs_now_ms = 0;
-
-void chSysLock(){};
-
-void chSysUnlock(){};
-
-systime_t chVTGetSystemTimeX() { return 0; };
-
-systime_t chThdSleep(systime_t time) {
-  (void)time;
-  return 1;
-}
-
-systime_t chThdSleepS(systime_t time) {
-  (void)time;
-  return 1;
-}
-
-systime_t chThdSleepMilliseconds(systime_t time) {
-  stubs_now_ms += (u32)time;
-  return 1;
-}
+extern u32 stubs_now_ms;
 
 /*** SEARCH MANAGER UNIT TESTS STUBS ***/
 /** Check if SV is tracked
@@ -209,7 +190,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   hw_has_run = true;
   hw_code_index = i;
   stubs_now_ms++;
-  if (i <= 15) {
+  if (i <= MAX_ACQUIRED_SV_INDEX) {
     return false;
   }
   p_acqres->cf = i * 100;
