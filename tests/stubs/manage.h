@@ -17,6 +17,7 @@
 #include <libswiftnav/signal.h>
 
 #include "ch.h"
+#include "ndb/ndb_common.h"
 #include "position/position.h"
 #include "search_manager_api.h"
 #include "soft_macq_main.h"
@@ -96,6 +97,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
                            acq_result_t *p_acqres);
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

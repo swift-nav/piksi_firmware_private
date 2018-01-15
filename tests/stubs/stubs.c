@@ -198,3 +198,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
   p_acqres->cp = i * 10;
   return true;
 }
+
+ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
+  (void)lgf;
+  return NDB_ERR_NONE;
+}
