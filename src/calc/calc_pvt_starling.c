@@ -118,6 +118,7 @@ static void post_observations(u8 n,
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
+    log_warning("Time matched obs pool full!");
     ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
@@ -1154,13 +1155,20 @@ static void time_matched_obs_thread(void *arg) {
     while (chMBFetch(&time_matched_obs_mailbox,
                      (msg_t *)&obss,
                      TIME_IMMEDIATE) == MSG_OK) {
+      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
-        // Not doing any DGNSS.  Toss the obs away.
+        /* Not doing any DGNSS.  Toss the obs away. */
         chPoolFree(&time_matched_obs_buff_pool, obss);
+        log_warn(
+            "dgnss_soln_mode == SOLN_MODE_NO_DGNSS "
+            "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})",
+            dt,
+            obss->tor.wn,
+            obss->tor.tow,
+            base_obss_copy.tor.wn,
+            base_obss_copy.tor.tow);
         continue;
       }
-
-      double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD) {
         /* We need to form the SBP messages derived from the SPP at this
@@ -1217,6 +1225,14 @@ static void time_matched_obs_thread(void *arg) {
       } else {
         /* Time of base obs later than time of local obs,
          * keep moving through the mailbox. */
+        log_warn(
+            "Obs Matching: t_rover < t_base "
+            "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})",
+            dt,
+            obss->tor.wn,
+            obss->tor.tow,
+            base_obss_copy.tor.wn,
+            base_obss_copy.tor.tow);
         chPoolFree(&time_matched_obs_buff_pool, obss);
       }
     }
