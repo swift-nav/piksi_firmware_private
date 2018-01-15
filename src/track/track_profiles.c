@@ -159,17 +159,17 @@ static const tp_lock_detect_params_t ld_params[] = {
     [TP_LD_PARAMS_FREQ_INI_GPS]  = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_INI_GLO]  = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS_GPS] = { 0.29f,   0.5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GPS] = { 0.29f,   0.7f, 50 },
     [TP_LD_PARAMS_PHASE_1MS_GLO] = { 0.25f,   1.0f, 50 },
     [TP_LD_PARAMS_FREQ_1MS_GPS]  = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_1MS_GLO]  = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS_GPS] = { 0.28f,   0.5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_GPS] = { 0.28f,   0.8f, 50 },
     [TP_LD_PARAMS_PHASE_2MS_GLO] = { 0.22f,   1.0f, 50 },
     [TP_LD_PARAMS_FREQ_2MS_GPS]  = { 0.07f, UNUSED, 40 },
     [TP_LD_PARAMS_FREQ_2MS_GLO]  = { 0.07f, UNUSED, 40 },
 
-    [TP_LD_PARAMS_PHASE_5MS_GPS] = { 0.26f,   0.8f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_GPS] = { 0.26f,   1.0f, 50 },
     [TP_LD_PARAMS_PHASE_5MS_GLO] = { 0.20f,   1.2f, 50 },
     [TP_LD_PARAMS_FREQ_5MS_GPS]  = { 0.08f, UNUSED, 20 },
     [TP_LD_PARAMS_FREQ_5MS_GLO]  = { 0.08f, UNUSED, 20 },
