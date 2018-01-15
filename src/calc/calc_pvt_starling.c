@@ -1162,67 +1162,62 @@ static void time_matched_obs_thread(void *arg) {
 
       double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
-      if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
-        // We need to form the SBP messages derived from the SPP at this
-        // solution time before we
-        // do the differential solution so that the various messages can be
-        // overwritten as appropriate,
-        // the exception is the DOP messages, as we don't have the SPP DOP and
-        // it will always be overwritten by the differential
-        pvt_engine_result_t soln_copy = obss->soln;
+      if (fabs(dt) < TIME_MATCH_THRESHOLD) {
+        /* We need to form the SBP messages derived from the SPP at this
+         * solution time before we
+         * do the differential solution so that the various messages can be
+         * overwritten as appropriate,
+         * the exception is the DOP messages, as we don't have the SPP DOP and
+         * it will always be overwritten by the differential */
+        if (base_obss_copy.has_pos) {
+          pvt_engine_result_t soln_copy = obss->soln;
+          solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
-        /* Init the messages we want to send */
-        gps_time_t epoch_time = base_obss_copy.tor;
-        sbp_messages_init(&sbp_messages, &epoch_time);
+          static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
+          if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
+              dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+            process_matched_obs(obss, &base_obss_copy, &sbp_messages);
+            last_update_time = obss->tor;
+          }
 
-        solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
-        static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
-            dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-          process_matched_obs(obss, &base_obss_copy, &sbp_messages);
-          last_update_time = obss->tor;
-        }
-
-        if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(
-              base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
+          if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
+            solution_send_pos_messages(
+                base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
+          }
         }
         chPoolFree(&time_matched_obs_buff_pool, obss);
         break;
-      } else {
-        if (dt > 0) {
-          /* Time of base obs before time of local obs, we must not have a local
-           * observation matching this base observation, break and wait for a
-           * new base observation. */
+      } else if (dt > 0) {
+        /* Time of base obs before time of local obs, we must not have a local
+         * observation matching this base observation, break and wait for a
+         * new base observation. */
 
-          /* In practice this should only happen when we initially start
-           * receiving corrections, or if the ntrip/skylark corrections are old
-           * due to connection problems.
-           */
-          log_warn(
-              "Obs Matching: t_base < t_rover "
-              "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})",
-              dt,
-              obss->tor.wn,
-              obss->tor.tow,
-              base_obss_copy.tor.wn,
-              base_obss_copy.tor.tow);
-          /* Return the buffer to the mailbox so we can try it again later. */
-          const msg_t post_ret = chMBPostAhead(
-              &time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
-          if (post_ret != MSG_OK) {
-            /* Something went wrong with returning it to the buffer, better just
-             * free it and carry on. */
-            log_warn("Obs Matching: mailbox full, discarding observation!");
-            chPoolFree(&time_matched_obs_buff_pool, obss);
-          }
-          break;
-        } else {
-          /* Time of base obs later than time of local obs,
-           * keep moving through the mailbox. */
+        /* In practice this should only happen when we initially start
+         * receiving corrections, or if the ntrip/skylark corrections are old
+         * due to connection problems.
+         */
+        log_warn(
+            "Obs Matching: t_base < t_rover "
+            "(dt=%f obss.t={%d,%f} base_obss.t={%d,%f})",
+            dt,
+            obss->tor.wn,
+            obss->tor.tow,
+            base_obss_copy.tor.wn,
+            base_obss_copy.tor.tow);
+        /* Return the buffer to the mailbox so we can try it again later. */
+        const msg_t post_ret = chMBPostAhead(
+            &time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
+        if (post_ret != MSG_OK) {
+          /* Something went wrong with returning it to the buffer, better just
+           * free it and carry on. */
+          log_warn("Obs Matching: mailbox full, discarding observation!");
           chPoolFree(&time_matched_obs_buff_pool, obss);
         }
+        break;
+      } else {
+        /* Time of base obs later than time of local obs,
+         * keep moving through the mailbox. */
+        chPoolFree(&time_matched_obs_buff_pool, obss);
       }
     }
   }
