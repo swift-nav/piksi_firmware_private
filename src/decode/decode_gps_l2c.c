@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <libswiftnav/constants.h>
+#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
 #include <string.h>
 
@@ -19,6 +20,7 @@
 #include "decode_common.h"
 #include "decode_gps_l2c.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
+#include "ndb/ndb_utc.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"
@@ -161,6 +163,14 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       cnav_msg_put(&data->cnav_msg);
 
       sbp_send_group_delay(&data->cnav_msg);
+    }
+
+    if (CNAV_MSG_TYPE_33 == data->cnav_msg.msg_id) {
+      utc_params_t utc;
+      if (cnav_33_to_utc(&data->cnav_msg.data.type_33, &utc)) {
+        ndb_utc_params_store(
+            &l2c_sid, &utc, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID);
+      }
     }
 
     tow_ms =
