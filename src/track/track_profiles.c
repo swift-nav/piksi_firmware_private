@@ -80,10 +80,18 @@ typedef struct tp_profile_entry {
     tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
   } profile;
 
-  u8 ld_freq_params_gps;  /**< One of LD_FREQ_... constants */
-  u8 ld_freq_params_glo;  /**< One of LD_FREQ_... constants */
-  u8 ld_phase_params_gps; /**< One of LD_PHASE_... constants */
-  u8 ld_phase_params_glo; /**< One of LD_PHASE_... constants */
+  u8 ld_freq_params_gps;   /**< One of LD_FREQ_... constants */
+  u8 ld_freq_params_glo;   /**< One of LD_FREQ_... constants */
+  u8 ld_freq_params_sbas;  /**< One of LD_FREQ_... constants */
+  u8 ld_freq_params_bds2;  /**< One of LD_FREQ_... constants */
+  u8 ld_freq_params_qzs;   /**< One of LD_FREQ_... constants */
+  u8 ld_freq_params_gal;   /**< One of LD_FREQ_... constants */
+  u8 ld_phase_params_gps;  /**< One of LD_PHASE_... constants */
+  u8 ld_phase_params_glo;  /**< One of LD_PHASE_... constants */
+  u8 ld_phase_params_sbas; /**< One of LD_PHASE_... constants */
+  u8 ld_phase_params_bds2; /**< One of LD_PHASE_... constants */
+  u8 ld_phase_params_qzs;  /**< One of LD_PHASE_... constants */
+  u8 ld_phase_params_gal;  /**< One of LD_PHASE_... constants */
 
   u16 lock_time_ms;         /**< Profile stabilization time [ms] */
   float cn0_low_threshold;  /**< Low CN0 threshold [dB-Hz] */
@@ -117,33 +125,81 @@ static const tp_cn0_params_t cn0_params_default = {
 enum {
   TP_LD_PARAMS_PHASE_INI_GPS,
   TP_LD_PARAMS_PHASE_INI_GLO,
+  TP_LD_PARAMS_PHASE_INI_SBAS,
+  TP_LD_PARAMS_PHASE_INI_BDS2,
+  TP_LD_PARAMS_PHASE_INI_QZS,
+  TP_LD_PARAMS_PHASE_INI_GAL,
   TP_LD_PARAMS_FREQ_INI_GPS,
   TP_LD_PARAMS_FREQ_INI_GLO,
+  TP_LD_PARAMS_FREQ_INI_SBAS,
+  TP_LD_PARAMS_FREQ_INI_BDS2,
+  TP_LD_PARAMS_FREQ_INI_QZS,
+  TP_LD_PARAMS_FREQ_INI_GAL,
 
   TP_LD_PARAMS_PHASE_1MS_GPS,
   TP_LD_PARAMS_PHASE_1MS_GLO,
+  TP_LD_PARAMS_PHASE_1MS_SBAS,
+  TP_LD_PARAMS_PHASE_1MS_BDS2,
+  TP_LD_PARAMS_PHASE_1MS_QZS,
+  TP_LD_PARAMS_PHASE_1MS_GAL,
   TP_LD_PARAMS_FREQ_1MS_GPS,
   TP_LD_PARAMS_FREQ_1MS_GLO,
+  TP_LD_PARAMS_FREQ_1MS_SBAS,
+  TP_LD_PARAMS_FREQ_1MS_BDS2,
+  TP_LD_PARAMS_FREQ_1MS_QZS,
+  TP_LD_PARAMS_FREQ_1MS_GAL,
 
   TP_LD_PARAMS_PHASE_2MS_GPS,
   TP_LD_PARAMS_PHASE_2MS_GLO,
+  TP_LD_PARAMS_PHASE_2MS_SBAS,
+  TP_LD_PARAMS_PHASE_2MS_BDS2,
+  TP_LD_PARAMS_PHASE_2MS_QZS,
+  TP_LD_PARAMS_PHASE_2MS_GAL,
   TP_LD_PARAMS_FREQ_2MS_GPS,
   TP_LD_PARAMS_FREQ_2MS_GLO,
+  TP_LD_PARAMS_FREQ_2MS_SBAS,
+  TP_LD_PARAMS_FREQ_2MS_BDS2,
+  TP_LD_PARAMS_FREQ_2MS_QZS,
+  TP_LD_PARAMS_FREQ_2MS_GAL,
 
   TP_LD_PARAMS_PHASE_5MS_GPS,
   TP_LD_PARAMS_PHASE_5MS_GLO,
+  TP_LD_PARAMS_PHASE_5MS_SBAS,
+  TP_LD_PARAMS_PHASE_5MS_BDS2,
+  TP_LD_PARAMS_PHASE_5MS_QZS,
+  TP_LD_PARAMS_PHASE_5MS_GAL,
   TP_LD_PARAMS_FREQ_5MS_GPS,
   TP_LD_PARAMS_FREQ_5MS_GLO,
+  TP_LD_PARAMS_FREQ_5MS_SBAS,
+  TP_LD_PARAMS_FREQ_5MS_BDS2,
+  TP_LD_PARAMS_FREQ_5MS_QZS,
+  TP_LD_PARAMS_FREQ_5MS_GAL,
 
   TP_LD_PARAMS_PHASE_10MS_GPS,
   TP_LD_PARAMS_PHASE_10MS_GLO,
+  TP_LD_PARAMS_PHASE_10MS_SBAS,
+  TP_LD_PARAMS_PHASE_10MS_BDS2,
+  TP_LD_PARAMS_PHASE_10MS_QZS,
+  TP_LD_PARAMS_PHASE_10MS_GAL,
   TP_LD_PARAMS_FREQ_10MS_GPS,
   TP_LD_PARAMS_FREQ_10MS_GLO,
+  TP_LD_PARAMS_FREQ_10MS_SBAS,
+  TP_LD_PARAMS_FREQ_10MS_BDS2,
+  TP_LD_PARAMS_FREQ_10MS_QZS,
+  TP_LD_PARAMS_FREQ_10MS_GAL,
 
   TP_LD_PARAMS_PHASE_20MS_GPS,
   TP_LD_PARAMS_PHASE_20MS_GLO,
+  TP_LD_PARAMS_PHASE_20MS_SBAS,
+  TP_LD_PARAMS_PHASE_20MS_BDS2,
+  TP_LD_PARAMS_PHASE_20MS_QZS,
+  TP_LD_PARAMS_PHASE_20MS_GAL,
   TP_LD_PARAMS_FREQ_20MS_GPS,
   TP_LD_PARAMS_FREQ_20MS_GLO,
+  TP_LD_PARAMS_FREQ_20MS_SBAS,
+  TP_LD_PARAMS_FREQ_20MS_BDS2,
+  TP_LD_PARAMS_FREQ_20MS_QZS,
+  TP_LD_PARAMS_FREQ_20MS_GAL,
 };
 
 #define UNUSED 0.
@@ -153,36 +209,84 @@ enum {
  */
 /* clang-format off */
 static const tp_lock_detect_params_t ld_params[] = {
-                                /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_INI_GPS] = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_INI_GLO] = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_FREQ_INI_GPS]  = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_INI_GLO]  = { 0.07f, UNUSED, 50 },
+                                      /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI_GPS]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_GLO]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_SBAS] = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_BDS2] = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_QZS]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_INI_GAL]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_FREQ_INI_GPS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_INI_GLO]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_INI_SBAS]  = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_INI_BDS2]  = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_INI_QZS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_INI_GAL]   = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_1MS_GPS] = { 0.29f,   0.7f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS_GLO] = { 0.25f,   1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_1MS_GPS]  = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS_GLO]  = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GPS]  = { 0.29f,   0.7f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GLO]  = { 0.25f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_SBAS] = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_BDS2] = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_QZS]  = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS_GAL]  = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_GPS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_GLO]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_SBAS]  = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_BDS2]  = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_QZS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS_GAL]   = { 0.07f, UNUSED, 50 },
 
-    [TP_LD_PARAMS_PHASE_2MS_GPS] = { 0.28f,   0.8f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS_GLO] = { 0.22f,   1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_2MS_GPS]  = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_2MS_GLO]  = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_PHASE_2MS_GPS]  = { 0.28f,   0.8f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_GLO]  = { 0.22f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_SBAS] = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_BDS2] = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_QZS]  = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS_GAL]  = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_FREQ_2MS_GPS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_2MS_GLO]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_2MS_SBAS]  = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_2MS_BDS2]  = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_2MS_QZS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_2MS_GAL]   = { 0.07f, UNUSED, 40 },
 
-    [TP_LD_PARAMS_PHASE_5MS_GPS] = { 0.26f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS_GLO] = { 0.20f,   1.2f, 50 },
-    [TP_LD_PARAMS_FREQ_5MS_GPS]  = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_5MS_GLO]  = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_PHASE_5MS_GPS]  = { 0.26f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_GLO]  = { 0.20f,   1.2f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_SBAS] = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_BDS2] = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_QZS]  = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS_GAL]  = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_FREQ_5MS_GPS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_5MS_GLO]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_5MS_SBAS]  = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_5MS_BDS2]  = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_5MS_QZS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_5MS_GAL]   = { 0.08f, UNUSED, 20 },
 
-    [TP_LD_PARAMS_PHASE_10MS_GPS] = { 0.22f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS_GLO] = { 0.20f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS_GPS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_10MS_GLO]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_PHASE_10MS_GPS]  = { 0.22f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_GLO]  = { 0.20f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_SBAS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_BDS2] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_QZS]  = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS_GAL]  = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_10MS_GPS]   = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_10MS_GLO]   = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_10MS_SBAS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_10MS_BDS2]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_10MS_QZS]   = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_10MS_GAL]   = {  0.1f, UNUSED, 15 },
 
-    [TP_LD_PARAMS_PHASE_20MS_GPS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS_GLO] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS_GPS]  = {  0.1f, UNUSED, 10 },
-    [TP_LD_PARAMS_FREQ_20MS_GLO]  = {  0.1f, UNUSED, 10 }
+    [TP_LD_PARAMS_PHASE_20MS_GPS]  = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS_GLO]  = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS_SBAS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS_BDS2] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS_QZS]  = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS_GAL]  = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_20MS_GPS]   = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS_GLO]   = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS_SBAS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS_BDS2]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS_QZS]   = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_20MS_GAL]   = {  0.1f, UNUSED, 10 }
 };
 /* clang-format on */
 
@@ -242,8 +346,12 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   in the same order below.
   { { pll_bw,      fll_bw,       dll_bw,     controller,
       tracking_mode_gps, tracking_mode_glo, tracking_mode_sbas, tracking_mode_bds2 },
-     ld_freq_params_gps,ld_freq_params_glo,
-    ld_phase_params_gps,ld_phase_params_glo,
+      ld_freq_params_gps,ld_freq_params_glo,
+      ld_freq_params_sbas,ld_freq_params_bds2,
+      ld_freq_params_qzs,ld_freq_params_gal,
+     ld_phase_params_gps,ld_phase_params_glo,
+     ld_phase_params_sbas,ld_phase_params_bds2,
+     ld_phase_params_qzs,ld_phase_params_gal,
     time_ms,   cn0_low_thr,   cn0_high_thr,
        next,       cn0_low,       cn0_high,
      flags }
@@ -253,7 +361,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {   10,             7,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
           TP_LD_PARAMS_FREQ_INI_GPS,  TP_LD_PARAMS_FREQ_INI_GLO,
-          TP_LD_PARAMS_PHASE_INI_GPS, TP_LD_PARAMS_PHASE_INI_GLO,
+          TP_LD_PARAMS_FREQ_INI_SBAS, TP_LD_PARAMS_FREQ_INI_BDS2,
+          TP_LD_PARAMS_FREQ_INI_QZS,  TP_LD_PARAMS_FREQ_INI_GAL,
+         TP_LD_PARAMS_PHASE_INI_GPS,  TP_LD_PARAMS_PHASE_INI_GLO,
+         TP_LD_PARAMS_PHASE_INI_SBAS, TP_LD_PARAMS_PHASE_INI_BDS2,
+         TP_LD_PARAMS_PHASE_INI_QZS,  TP_LD_PARAMS_PHASE_INI_GAL,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED | TP_WAIT_FLOCK},
@@ -262,7 +374,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
           TP_LD_PARAMS_FREQ_INI_GPS,  TP_LD_PARAMS_FREQ_INI_GLO,
-          TP_LD_PARAMS_PHASE_INI_GPS, TP_LD_PARAMS_PHASE_INI_GLO,
+          TP_LD_PARAMS_FREQ_INI_SBAS, TP_LD_PARAMS_FREQ_INI_BDS2,
+          TP_LD_PARAMS_FREQ_INI_QZS,  TP_LD_PARAMS_FREQ_INI_GAL,
+         TP_LD_PARAMS_PHASE_INI_GPS,  TP_LD_PARAMS_PHASE_INI_GLO,
+         TP_LD_PARAMS_PHASE_INI_SBAS, TP_LD_PARAMS_PHASE_INI_BDS2,
+         TP_LD_PARAMS_PHASE_INI_QZS,  TP_LD_PARAMS_PHASE_INI_GAL,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
@@ -271,7 +387,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
           TP_LD_PARAMS_FREQ_1MS_GPS,  TP_LD_PARAMS_FREQ_1MS_GLO,
-          TP_LD_PARAMS_PHASE_1MS_GPS, TP_LD_PARAMS_PHASE_1MS_GLO,
+          TP_LD_PARAMS_FREQ_1MS_SBAS, TP_LD_PARAMS_FREQ_1MS_BDS2,
+          TP_LD_PARAMS_FREQ_1MS_QZS,  TP_LD_PARAMS_FREQ_1MS_GAL,
+         TP_LD_PARAMS_PHASE_1MS_GPS,  TP_LD_PARAMS_PHASE_1MS_GLO,
+         TP_LD_PARAMS_PHASE_1MS_SBAS, TP_LD_PARAMS_PHASE_1MS_BDS2,
+         TP_LD_PARAMS_PHASE_1MS_QZS,  TP_LD_PARAMS_PHASE_1MS_GAL,
        100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
@@ -280,7 +400,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
           TP_LD_PARAMS_FREQ_1MS_GPS,  TP_LD_PARAMS_FREQ_1MS_GLO,
-          TP_LD_PARAMS_PHASE_1MS_GPS, TP_LD_PARAMS_PHASE_1MS_GLO,
+          TP_LD_PARAMS_FREQ_1MS_SBAS, TP_LD_PARAMS_FREQ_1MS_BDS2,
+          TP_LD_PARAMS_FREQ_1MS_QZS,  TP_LD_PARAMS_FREQ_1MS_GAL,
+         TP_LD_PARAMS_PHASE_1MS_GPS,  TP_LD_PARAMS_PHASE_1MS_GLO,
+         TP_LD_PARAMS_PHASE_1MS_SBAS, TP_LD_PARAMS_PHASE_1MS_BDS2,
+         TP_LD_PARAMS_PHASE_1MS_QZS,  TP_LD_PARAMS_PHASE_1MS_GAL,
            40,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
@@ -289,7 +413,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
           TP_LD_PARAMS_FREQ_2MS_GPS,  TP_LD_PARAMS_FREQ_2MS_GLO,
-          TP_LD_PARAMS_PHASE_2MS_GPS, TP_LD_PARAMS_PHASE_2MS_GLO,
+          TP_LD_PARAMS_FREQ_2MS_SBAS, TP_LD_PARAMS_FREQ_2MS_BDS2,
+          TP_LD_PARAMS_FREQ_2MS_QZS,  TP_LD_PARAMS_FREQ_2MS_GAL,
+         TP_LD_PARAMS_PHASE_2MS_GPS,  TP_LD_PARAMS_PHASE_2MS_GLO,
+         TP_LD_PARAMS_PHASE_2MS_SBAS, TP_LD_PARAMS_PHASE_2MS_BDS2,
+         TP_LD_PARAMS_PHASE_2MS_QZS,  TP_LD_PARAMS_PHASE_2MS_GAL,
            40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
@@ -298,7 +426,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
           TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
           TP_LD_PARAMS_FREQ_5MS_GPS,  TP_LD_PARAMS_FREQ_5MS_GLO,
-          TP_LD_PARAMS_PHASE_5MS_GPS, TP_LD_PARAMS_PHASE_5MS_GLO,
+          TP_LD_PARAMS_FREQ_5MS_SBAS, TP_LD_PARAMS_FREQ_5MS_BDS2,
+          TP_LD_PARAMS_FREQ_5MS_QZS,  TP_LD_PARAMS_FREQ_5MS_GAL,
+         TP_LD_PARAMS_PHASE_5MS_GPS,  TP_LD_PARAMS_PHASE_5MS_GLO,
+         TP_LD_PARAMS_PHASE_5MS_SBAS, TP_LD_PARAMS_PHASE_5MS_BDS2,
+         TP_LD_PARAMS_PHASE_5MS_QZS,  TP_LD_PARAMS_PHASE_5MS_GAL,
            40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
@@ -307,7 +439,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
         TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
         TP_LD_PARAMS_FREQ_10MS_GPS,  TP_LD_PARAMS_FREQ_10MS_GLO,
-        TP_LD_PARAMS_PHASE_10MS_GPS, TP_LD_PARAMS_PHASE_10MS_GLO,
+        TP_LD_PARAMS_FREQ_10MS_SBAS, TP_LD_PARAMS_FREQ_10MS_BDS2,
+        TP_LD_PARAMS_FREQ_10MS_QZS,  TP_LD_PARAMS_FREQ_10MS_GAL,
+       TP_LD_PARAMS_PHASE_10MS_GPS,  TP_LD_PARAMS_PHASE_10MS_GLO,
+       TP_LD_PARAMS_PHASE_10MS_SBAS, TP_LD_PARAMS_PHASE_10MS_BDS2,
+       TP_LD_PARAMS_PHASE_10MS_QZS,  TP_LD_PARAMS_PHASE_10MS_GAL,
            40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
@@ -316,7 +452,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
       TP_LD_PARAMS_FREQ_20MS_GPS,  TP_LD_PARAMS_FREQ_20MS_GLO,
-      TP_LD_PARAMS_PHASE_20MS_GPS, TP_LD_PARAMS_PHASE_20MS_GLO,
+      TP_LD_PARAMS_FREQ_20MS_SBAS, TP_LD_PARAMS_FREQ_20MS_BDS2,
+      TP_LD_PARAMS_FREQ_20MS_QZS,  TP_LD_PARAMS_FREQ_20MS_GAL,
+     TP_LD_PARAMS_PHASE_20MS_GPS,  TP_LD_PARAMS_PHASE_20MS_GLO,
+     TP_LD_PARAMS_PHASE_20MS_SBAS, TP_LD_PARAMS_PHASE_20MS_BDS2,
+     TP_LD_PARAMS_PHASE_20MS_QZS,  TP_LD_PARAMS_PHASE_20MS_GAL,
            40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
@@ -326,7 +466,11 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { {      0,           1.0,          .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
       TP_LD_PARAMS_FREQ_20MS_GPS,  TP_LD_PARAMS_FREQ_20MS_GLO,
-      TP_LD_PARAMS_PHASE_20MS_GPS, TP_LD_PARAMS_PHASE_20MS_GLO,
+      TP_LD_PARAMS_FREQ_20MS_SBAS, TP_LD_PARAMS_FREQ_20MS_BDS2,
+      TP_LD_PARAMS_FREQ_20MS_QZS,  TP_LD_PARAMS_FREQ_20MS_GAL,
+     TP_LD_PARAMS_PHASE_20MS_GPS,  TP_LD_PARAMS_PHASE_20MS_GLO,
+     TP_LD_PARAMS_PHASE_20MS_SBAS, TP_LD_PARAMS_PHASE_20MS_BDS2,
+     TP_LD_PARAMS_PHASE_20MS_QZS,  TP_LD_PARAMS_PHASE_20MS_GAL,
         100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
@@ -520,6 +664,18 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   } else if (IS_GLO(mesid)) {
     profile->ld_phase_params = ld_params[cur_profile->ld_phase_params_glo];
     profile->ld_freq_params = ld_params[cur_profile->ld_freq_params_glo];
+  } else if (IS_SBAS(mesid)) {
+    profile->ld_phase_params = ld_params[cur_profile->ld_phase_params_sbas];
+    profile->ld_freq_params = ld_params[cur_profile->ld_freq_params_sbas];
+  } else if (IS_BDS2(mesid)) {
+    profile->ld_phase_params = ld_params[cur_profile->ld_phase_params_bds2];
+    profile->ld_freq_params = ld_params[cur_profile->ld_freq_params_bds2];
+  } else if (IS_QZSS(mesid)) {
+    profile->ld_phase_params = ld_params[cur_profile->ld_phase_params_qzs];
+    profile->ld_freq_params = ld_params[cur_profile->ld_freq_params_qzs];
+  } else if (IS_GAL(mesid)) {
+    profile->ld_phase_params = ld_params[cur_profile->ld_phase_params_gal];
+    profile->ld_freq_params = ld_params[cur_profile->ld_freq_params_gal];
   } else {
     assert(!"Unsupported constellation");
   }
