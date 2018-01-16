@@ -18,6 +18,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/edc.h>
+#include <libswiftnav/gnss_time.h>
 
 #include <limits.h>
 #include <math.h>
@@ -91,6 +92,22 @@ typedef struct {
 } cnav_msg_type_30_t;
 
 /**
+ * GPS CNAV message type 33 data.
+ *
+ */
+typedef struct {
+  s16 a0;     /**< seconds, scale factor 2^-35 */
+  s16 a1;     /**< s/s, scale factor 2^-51 */
+  s8 a2;      /**< s/s^2, scale factor 2^-68 */
+  s8 dt_ls;   /**< current or past leap second count */
+  u16 tot;    /**< Time data reference time of week, scale factor 2^4 */
+  u16 wn_ot;  /**< Time data reference week number */
+  u16 wn_lsf; /**< Leap second reference week number */
+  u8 dn;      /**< Leap second reference day number */
+  s8 dt_lsf;  /**< current or future leap second count */
+} cnav_msg_type_33_t;
+
+/**
  * GPS CNAV message type 10 data.
  *
  */
@@ -114,6 +131,7 @@ typedef struct {
   union {
     cnav_msg_type_30_t type_30;
     cnav_msg_type_10_t type_10;
+    cnav_msg_type_33_t type_33;
   } data;
 } cnav_msg_t;
 
@@ -164,6 +182,7 @@ bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
                                  unsigned char symbol,
                                  cnav_msg_t *msg,
                                  u32 *delay);
+bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u);
 
 #ifdef __cplusplus
 } /* extern "C" */
