@@ -570,16 +570,24 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
   }
 }
 
+u32 adel_time_us(void);
+void adel_channel_stats(u32 channel, u32 spent_us);
+
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
  */
 void trackers_update(u64 channels_mask) {
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
+    u32 start_us = adel_time_us();
+
     tracker_t *tracker_channel = tracker_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
+
+    u32 spent_us = adel_time_us() - start_us;
+    adel_channel_stats(channel, spent_us);
   }
 }
 
