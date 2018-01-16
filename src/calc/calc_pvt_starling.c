@@ -225,25 +225,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
-
-    u8 utc_flags = SPP_POSITION;
-    utc_params_t utc_params;
-    utc_params_t *p_utc_params = &utc_params;
-    bool is_nv;
-    /* try to read UTC parameters from NDB */
-    if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
-      if (is_nv) {
-        utc_flags |= (NVM_UTC << 3);
-      } else {
-        utc_flags |= (DECODED_UTC << 3);
-      }
-    } else {
-      p_utc_params = NULL;
-      utc_flags |= (DEFAULT_UTC << 3);
-    }
-
-    sbp_make_utc_time(
-        &sbp_messages->utc_time, &soln->time, utc_flags, p_utc_params);
+    sbp_make_utc_time(&sbp_messages->utc_time, &soln->time, SPP_POSITION);
 
     /* In SPP, `baseline` is actually absolute position in ECEF. */
     double pos_ecef[3], pos_llh[3];
@@ -343,10 +325,6 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
     /* Update stats */
     piksi_systime_get(&last_pvt_stats.systime);
     last_pvt_stats.signals_used = soln->num_sigs_used;
-
-  } else {
-    gps_time_t time_guess = get_current_time();
-    sbp_make_gps_time(&sbp_messages->gps_time, &time_guess, 0);
   }
 }
 
@@ -712,23 +690,23 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
   }
 }
 
-void sbp_messages_init(sbp_messages_t *sbp_messages) {
-  sbp_init_gps_time(&sbp_messages->gps_time);
-  sbp_init_utc_time(&sbp_messages->utc_time);
-  sbp_init_pos_llh(&sbp_messages->pos_llh);
-  sbp_init_pos_ecef(&sbp_messages->pos_ecef);
-  sbp_init_vel_ned(&sbp_messages->vel_ned);
-  sbp_init_vel_ecef(&sbp_messages->vel_ecef);
-  sbp_init_sbp_dops(&sbp_messages->sbp_dops);
-  sbp_init_age_corrections(&sbp_messages->age_corrections);
+void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t) {
+  sbp_init_gps_time(&sbp_messages->gps_time, t);
+  sbp_init_utc_time(&sbp_messages->utc_time, t);
+  sbp_init_pos_llh(&sbp_messages->pos_llh, t);
+  sbp_init_pos_ecef(&sbp_messages->pos_ecef, t);
+  sbp_init_vel_ned(&sbp_messages->vel_ned, t);
+  sbp_init_vel_ecef(&sbp_messages->vel_ecef, t);
+  sbp_init_sbp_dops(&sbp_messages->sbp_dops, t);
+  sbp_init_age_corrections(&sbp_messages->age_corrections, t);
   sbp_init_dgnss_status(&sbp_messages->dgnss_status);
-  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef);
-  sbp_init_baseline_ned(&sbp_messages->baseline_ned);
-  sbp_init_baseline_heading(&sbp_messages->baseline_heading);
-  sbp_init_pos_ecef_cov(&sbp_messages->pos_ecef_cov);
-  sbp_init_vel_ecef_cov(&sbp_messages->vel_ecef_cov);
-  sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov);
-  sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov);
+  sbp_init_baseline_ecef(&sbp_messages->baseline_ecef, t);
+  sbp_init_baseline_ned(&sbp_messages->baseline_ned, t);
+  sbp_init_baseline_heading(&sbp_messages->baseline_heading, t);
+  sbp_init_pos_ecef_cov(&sbp_messages->pos_ecef_cov, t);
+  sbp_init_vel_ecef_cov(&sbp_messages->vel_ecef_cov, t);
+  sbp_init_pos_llh_cov(&sbp_messages->pos_llh_cov, t);
+  sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
 static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
@@ -755,9 +733,6 @@ static void starling_thread(void *arg) {
   while (TRUE) {
     watchdog_notify(WD_NOTIFY_STARLING);
 
-    // Init the messages we want to send
-    sbp_messages_init(&sbp_messages);
-
     rover_channel_epoch = NULL;
     ret = chMBFetch(
         &obs_mailbox, (msg_t *)&rover_channel_epoch, DGNSS_TIMEOUT_MS);
@@ -768,6 +743,19 @@ static void starling_thread(void *arg) {
       }
       continue;
     }
+
+    /* Init the messages we want to send */
+
+    gps_time_t epoch_time = rover_channel_epoch->obs_time;
+    if (!gps_time_valid(&epoch_time) && TIME_PROPAGATED <= get_time_quality()) {
+      /* observations do not have valid time, but we have a reasonable estimate
+       * of current GPS time, so round that to nearest epoch and use it
+       */
+      epoch_time = get_current_time();
+      epoch_time = gps_time_round_to_epoch(&epoch_time, soln_freq_setting);
+    }
+
+    sbp_messages_init(&sbp_messages, &epoch_time);
 
     /* Here we do all the nice simulation-related stuff. */
     if (simulation_enabled()) {
@@ -1137,9 +1125,6 @@ static void time_matched_obs_thread(void *arg) {
     base_obss_copy = *base_obs;
     chPoolFree(&base_obs_buff_pool, base_obs);
 
-    // Init the messages we want to send
-    sbp_messages_init(&sbp_messages);
-
     // Check if the el mask has changed and update
     chMtxLock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
@@ -1173,6 +1158,11 @@ static void time_matched_obs_thread(void *arg) {
         // the exception is the DOP messages, as we don't have the SPP DOP and
         // it will always be overwritten by the differential
         pvt_engine_result_t soln_copy = obss->soln;
+
+        /* Init the messages we want to send */
+        gps_time_t epoch_time = base_obss_copy.tor;
+        sbp_messages_init(&sbp_messages, &epoch_time);
+
         solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
