@@ -97,7 +97,6 @@ void track_setup(void) {
   }
 
   track_cn0_params_init();
-  tp_init();
 
   platform_track_setup();
 

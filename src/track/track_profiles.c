@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 #include <libswiftnav/constants.h>
 
 #include <board.h>
@@ -509,60 +508,6 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
 }
 
 /**
- * Helper method to incorporate tracking loop information into statistics.
- *
- * \param[in,out] tracker_channel Tracker channel data
- * \param[in,out] profile     Satellite profile.
- * \param[in]     data        Data from tracking loop.
- *
- * \return None
- */
-static void update_stats(tracker_t *tracker_channel,
-                         tp_profile_t *profile,
-                         const tp_report_t *data) {
-  float cn0;
-  u32 cur_time_ms = tracker_channel->update_count;
-
-  /* Profile lock time count down */
-  if (profile->lock_time_ms > data->time_ms) {
-    profile->lock_time_ms -= data->time_ms;
-  } else {
-    profile->lock_time_ms = 0;
-  }
-
-  /* Debug print interval count down */
-  if (profile->print_time >= data->time_ms) {
-    profile->print_time -= data->time_ms;
-  } else {
-    profile->print_time = 0;
-  }
-
-  if ((TP_DELAY_UNKNOWN == profile->bs_delay_ms) && data->bsync) {
-    /* just got bit sync */
-    profile->bs_delay_ms = cur_time_ms - profile->time_snapshot_ms;
-  }
-
-  if (TP_DELAY_UNKNOWN == profile->plock_delay_ms && data->plock) {
-    /* just got pessimistic lock */
-    profile->plock_delay_ms = cur_time_ms - profile->time_snapshot_ms;
-  }
-
-  if (TP_DELAY_UNKNOWN != profile->plock_delay_ms && !data->plock) {
-    /* just lost pessimistic lock */
-    profile->plock_delay_ms = TP_DELAY_UNKNOWN;
-    profile->time_snapshot_ms = cur_time_ms;
-  }
-
-  profile->plock = data->plock;
-  profile->flock = data->flock;
-  profile->bsync_sticky |= data->bsync;
-
-  cn0 = data->cn0;
-
-  profile->filt_cn0 = cn0;
-}
-
-/**
  * Internal helper for naming loop controller types.
  *
  * \param[in] v Loop controller type.
@@ -609,12 +554,10 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
 
   log_debug_mesid(mesid,
-                  "%s: plock=%" PRId16 " bs=%" PRId16
+                  "%s:"
                   " cn0=%.1f "
                   "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
                   reason,
-                  state->plock_delay_ms,
-                  state->bs_delay_ms,
                   state->filt_cn0,
                   /* old state */
                   tp_get_mode_str(cur_track_mode),
@@ -626,47 +569,6 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
                   state->next.pll_bw,
                   state->next.fll_bw,
                   get_ctrl_str(next_profile->profile.controller_type));
-}
-
-/**
- * Helper method to dump tracking statistics into log.
- *
- * The method logs average and RMS values for analyzes.
- *
- * \param[in]     mesid   ME signal identifier.
- * \param[in,out] profile GNSS satellite profile.
- *
- * \return None
- */
-static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile) {
-  if (profile->print_time > 0) {
-    return;
-  }
-
-  profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
-
-  const tp_profile_entry_t *cur_profile =
-      &profile->profiles[profile->cur.index];
-  tp_tm_e tracking_mode = get_track_mode(mesid, cur_profile);
-  int dll_ms = tp_get_dll_ms(tracking_mode);
-
-  const char *m1 = tp_get_mode_str(tracking_mode);
-  const char *c1 = get_ctrl_str(cur_profile->profile.controller_type);
-
-  /*
-   * PRINT: integration time, loop mode, controller mode,
-   *        C/N0 estimator, C/N0 value, SNR value (dBm),
-   *        PR rate, PR rate change,
-   *        PLL lock detector ratio, FLL/DLL error
-   */
-
-  log_debug_mesid(mesid,
-                  "AVG: %dms %s %s CN0_BASIC:=%.2f (%.2f)",
-                  dll_ms,
-                  m1,
-                  c1,
-                  profile->filt_cn0,
-                  TRACK_CN0_TO_SNR(profile->filt_cn0));
 }
 
 /** Integration time is not explicitly available in gnss_track_profiles.
@@ -876,17 +778,20 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
     return true;
   }
 
-  if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
+  bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
+  if ((0 != (flags & TP_WAIT_BSYNC)) && !bsync) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wbsync");
   }
 
-  if (0 != (flags & TP_WAIT_FLOCK) && !state->flock) {
+  bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
+  if (0 != (flags & TP_WAIT_FLOCK) && !flock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wflock");
   }
 
-  if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
+  bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+  if (0 != (flags & TP_WAIT_PLOCK) && !plock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wplock");
   }
@@ -939,16 +844,6 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
 }
 
 /**
- * Initializes the subsystem.
- *
- * This method shall be invoked before any other methods from the subsystem.
- *
- * \return 0  On success.
- * \return -1 On error.
- */
-tp_result_e tp_init(void) { return TP_RESULT_SUCCESS; }
-
-/**
  * Registers GNSS satellite in facility.
  *
  * The method registers GNSS signal and returns initial tracking parameters.
@@ -969,18 +864,9 @@ void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data) {
 
   profile->cur = get_profile_vars(mesid, data->cn0);
 
-  profile->bsync_sticky = 0;
-
   profile->cn0_est = TRACK_CN0_EST_BASIC;
 
   profile->profile_update = 0;
-
-  profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
-
-  profile->time_snapshot_ms = 0;
-
-  profile->bs_delay_ms = TP_DELAY_UNKNOWN;
-  profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
   tp_profile_update_config(tracker_channel);
 
@@ -1003,15 +889,11 @@ void tp_profile_switch(tracker_t *tracker_channel) {
  *
  * \param[in]  profile    Tracking profile data to check
  * \param[out] cn0_params Container for C/N0 limits.
- *
- * \retval TP_RESULT_SUCCESS C/N0 thresholds have been retrieved.
- * \retval TP_RESULT_ERROR   On error.
  */
-tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
-                                      tp_cn0_params_t *cn0_params) {
-  if ((NULL == cn0_params) || (NULL == profile)) {
-    return TP_RESULT_ERROR;
-  }
+void tp_profile_get_cn0_params(const tp_profile_t *profile,
+                               tp_cn0_params_t *cn0_params) {
+  assert(cn0_params);
+  assert(profile);
 
   *cn0_params = cn0_params_default;
 
@@ -1033,8 +915,6 @@ tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
   if (cn0_params->track_cn0_ambiguity_thres_dbhz < threshold_dbhz) {
     cn0_params->track_cn0_ambiguity_thres_dbhz = threshold_dbhz;
   }
-
-  return TP_RESULT_SUCCESS;
 }
 
 /**
@@ -1061,17 +941,19 @@ u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
  * The method takes tracking loop data and merges it with previously collected
  * information from other tracking loops.
  *
- * \param[in]     mesid       ME signal identifier.
  * \param[in,out] profile     Tracking profile data to update
  * \param[in]     data        Tracking loop report.
  */
-void tp_profile_report_data(tracker_t *tracker_channel,
-                            tp_profile_t *profile,
-                            const tp_report_t *data) {
-  assert(tracker_channel);
+void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
   assert(profile);
   assert(data);
 
-  update_stats(tracker_channel, profile, data);
-  print_stats(tracker_channel->mesid, profile);
+  /* Profile lock time count down */
+  if (profile->lock_time_ms > data->time_ms) {
+    profile->lock_time_ms -= data->time_ms;
+  } else {
+    profile->lock_time_ms = 0;
+  }
+
+  profile->filt_cn0 = data->cn0;
 }

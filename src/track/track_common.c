@@ -247,13 +247,8 @@ void tp_tracker_init(tracker_t *tracker_channel,
 
   /* Do tracking report to manager */
   tp_report_t report;
-  report.bsync = false;
-  report.carr_freq = tracker_channel->carrier_freq;
-  report.code_phase_rate = tracker_channel->code_phase_rate;
-  report.cn0 = report.cn0_raw = tracker_channel->cn0;
-  report.plock = false;
-  report.sample_count = tracker_channel->sample_count;
-  report.time_ms = 0;
+  memset(&report, 0, sizeof(report));
+  report.cn0 = tracker_channel->cn0;
 
   tp_profile_init(tracker_channel, &report);
 
@@ -849,22 +844,15 @@ void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
 
     /* Do tracking report to manager */
     tp_report_t report;
-    report.bsync = tracker_has_bit_sync(tracker_channel);
-    report.carr_freq = tracker_channel->carrier_freq;
-    report.code_phase_rate = tracker_channel->code_phase_rate;
-    report.cn0_raw = tracker_channel->cn0;
+    memset(&report, 0, sizeof(report));
     if (0 == (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
       report.cn0 = tracker_channel->cn0_est.cn0_0;
     } else {
       report.cn0 = tracker_channel->cn0;
     }
-    report.plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
-    report.flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-    report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
-    report.acceleration = rates.acceleration;
 
-    tp_profile_report_data(tracker_channel, &tracker_channel->profile, &report);
+    tp_profile_report_data(&tracker_channel->profile, &report);
   }
 }
 
