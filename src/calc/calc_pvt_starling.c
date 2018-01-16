@@ -118,7 +118,7 @@ static void post_observations(u8 n,
   if (obs == NULL) {
     /* Pool is empty, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    log_warning("Time matched obs pool full!");
+    log_warn("Time matched obs pool full!");
     ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
     if (ret != MSG_OK) {
       log_error("Pool full and mailbox empty!");
