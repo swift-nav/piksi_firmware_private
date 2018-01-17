@@ -34,7 +34,7 @@ typedef struct {
    * station observations. */
   double pos_ecef[3];
   /** Is the `pos_ecef` field valid? */
-  u8 has_pos;
+  bool has_pos;
   /** The known, surveyed base position. */
   double known_pos_ecef[3];
   /** Observation Solution */

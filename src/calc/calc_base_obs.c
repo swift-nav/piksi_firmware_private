@@ -265,7 +265,7 @@ static void update_obss(obss_t *new_obss) {
       }
       old_base_sender_id = base_obss.sender_id;
 
-      base_obss.has_pos = 1;
+      base_obss.has_pos = true;
 
       obss_t *new_base_obs = chPoolAlloc(&base_obs_buff_pool);
       if (new_base_obs == NULL) {
@@ -285,7 +285,7 @@ static void update_obss(obss_t *new_obss) {
         chPoolFree(&base_obs_buff_pool, new_base_obs);
       }
     } else {
-      base_obss.has_pos = 0;
+      base_obss.has_pos = false;
       /* TODO(dsk) check for repair failure */
       /* There was an error calculating the position solution. */
       log_warn("Error calculating base station position: (%s).",
@@ -318,7 +318,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* As we receive observation messages we assemble them into a working
    * `obss_t` (`base_obss_rx`) so as not to disturb the global `base_obss`
    * state that may be in use. */
-  static obss_t base_obss_rx = {.has_pos = 0};
+  static obss_t base_obss_rx = {.has_pos = false};
 
   /* An SBP sender ID of zero means that the messages are relayed observations
    * from the console, not from the base station. We don't want to use them and
