@@ -127,27 +127,6 @@ static void post_observations(u8 n,
       /* Should not be a possible state */
       assert(!"Rover obs pool exhausted and mailbox empty!");
     }
-
-    /* Try to find corresponding base obs, if pairing is  */
-    obss_t *base_obs = NULL;
-    ret = chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);
-
-    if (MSG_OK == ret && NULL != base_obs) {
-      double dt = gpsdifftime(&obs->tor, &base_obs->tor);
-      if (fabs(dt) < TIME_MATCH_THRESHOLD) {
-        /* Matching base obs found, discard it to keep obs pairing */
-        chPoolFree(&base_obs_buff_pool, base_obs);
-      } else {
-        /* No match, return base obs to mailbox and let time mathed obs thread
-         * sort it out */
-        ret = chMBPostAhead(&base_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
-        if (MSG_OK != ret) {
-          /* Something went wrong with returning it to the buffer, better just
-           * free it and carry on. */
-          chPoolFree(&base_obs_buff_pool, base_obs);
-        }
-      }
-    }
   }
 
   obs->tor = *t;
