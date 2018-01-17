@@ -1106,7 +1106,6 @@ static void time_matched_obs_thread(void *arg) {
 
   obss_t *base_obs;
   static obss_t base_obss_copy;
-  init_filters();
 
   // Declare all SBP messages
   sbp_messages_t sbp_messages;
@@ -1301,6 +1300,9 @@ void starling_calc_pvt_setup() {
   chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
   static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+
+  /* Need to init filters here so they exist before we setup SBP callbacks */
+  init_filters();
 
   /* Start solution thread */
   chThdCreateStatic(wa_starling_thread,
