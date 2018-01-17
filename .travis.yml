@@ -64,10 +64,10 @@ install:
 
 script:
   # setup.sh PATH update doesn't seem to work on Travis, add manually for now
+  - git fetch --tags --unshallow
   - ./travis.sh
 
 after_success:
-  - git fetch --tags --unshallow
   - ./travis_pr_describe.sh
   - ./publish.sh requirements.yaml
   - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf
