@@ -127,6 +127,9 @@ static bool decimate_observations(const gps_time_t *_t) {
   /* We can use the solution setting directly here as we have no
    * later dependencies on being consistent, all we want to know
    * is should this epoch be decimated from output. */
+  if (!gps_time_valid(_t)) {
+    return false;
+  }
   gps_time_t epoch =
       gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
   return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
@@ -454,6 +457,19 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* get NAP at the epoch with a round GPS time */
       epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
+
+      /* Adjust the next solution deadline by the difference between current and
+       * epoch nap counts to get the next wake-up to land closer to epoch. */
+      double dt = ((s64)epoch_tc - (s64)current_tc) * RX_DT_NOMINAL;
+
+      if (fabs(dt) < OBS_PROPAGATION_LIMIT) {
+        /* dampen small adjustments to get stabler corrections */
+        dt *= 0.5;
+      }
+
+      /* Reset timer period with the count that we will estimate will being
+       * us up to the next solution time. */
+      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
@@ -702,28 +718,9 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* adjust the RX to GPS time conversion */
       adjust_rcvtime_offset(dt);
-    }
 
-    /* */
-    double delta_tc = -((s64)current_tc - (s64)epoch_tc);
-
-    /* The difference between the current nap count and the nap count we
-     * would have wanted the observations at is the amount we want to
-     * adjust our deadline by at the end of the solution */
-    double dt = delta_tc * RX_DT_NOMINAL + smoothed_offset / soln_freq;
-
-    /* Limit dt to twice the max soln rate */
-    double max_deadline = ((1.0 / soln_freq) * 2.0);
-    if (fabs(dt) > max_deadline) {
-      dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
-    }
-
-    /* Reset timer period with the count that we will estimate will being
-     * us up to the next solution time. dt as microseconds. */
-    if (0 < dt) {
-      piksi_systime_inc_us(&next_epoch, round(dt * SECS_US));
-    } else if (0 > dt) {
-      piksi_systime_dec_us(&next_epoch, round(-dt * SECS_US));
+      /* adjust the next solution deadline */
+      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
   }
 }
