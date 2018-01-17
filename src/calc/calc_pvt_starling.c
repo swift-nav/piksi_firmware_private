@@ -497,9 +497,9 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                     ecef_pos,
                                     &accuracy,
                                     &h_accuracy,
+                                    &v_accuracy,
                                     pos_ecef_cov,
-                                    pos_ned_cov,
-                                    &v_accuracy);
+                                    pos_ned_cov);
 
   sbp_make_baseline_ecef(&sbp_messages->baseline_ecef,
                          &result->time,
