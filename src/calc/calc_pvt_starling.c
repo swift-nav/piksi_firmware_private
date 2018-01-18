@@ -161,15 +161,15 @@ static void post_observations(u8 n,
 
 void set_known_ref_pos(const double base_pos[3]) {
   if (time_matched_filter_manager) {
-     filter_manager_set_known_ref_pos(
-         (FilterManagerRTK *) time_matched_filter_manager, base_pos);
+    filter_manager_set_known_ref_pos(
+        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
   }
 }
 
 void set_known_glonass_biases(const glo_biases_t biases) {
   if (time_matched_filter_manager) {
     filter_manager_set_known_glonass_biases(
-        (FilterManagerRTK *) time_matched_filter_manager, biases);
+        (FilterManagerRTK *)time_matched_filter_manager, biases);
   }
 }
 
