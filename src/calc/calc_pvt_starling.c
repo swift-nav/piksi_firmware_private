@@ -160,13 +160,17 @@ static void post_observations(u8 n,
 }
 
 void set_known_ref_pos(const double base_pos[3]) {
-  filter_manager_set_known_ref_pos(
-      (FilterManagerRTK *)time_matched_filter_manager, base_pos);
+  if (time_matched_filter_manager) {
+    filter_manager_set_known_ref_pos(
+        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
+  }
 }
 
 void set_known_glonass_biases(const glo_biases_t biases) {
-  filter_manager_set_known_glonass_biases(
-      (FilterManagerRTK *)time_matched_filter_manager, biases);
+  if (time_matched_filter_manager) {
+    filter_manager_set_known_glonass_biases(
+        (FilterManagerRTK *)time_matched_filter_manager, biases);
+  }
 }
 
 void reset_rtk_filter(void) {
@@ -1301,6 +1305,11 @@ void starling_calc_pvt_setup() {
   chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
   static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+
+  /* Need to init filters here so they exist before we setup SBP callbacks */
+  spp_filter_manager = NULL;
+  time_matched_filter_manager = NULL;
+  low_latency_filter_manager = NULL;
 
   /* Start solution thread */
   chThdCreateStatic(wa_starling_thread,
