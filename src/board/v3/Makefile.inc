@@ -91,7 +91,6 @@ BOARDSRC := \
         $(BOARDDIR)/manage_pv.o \
         $(BOARDDIR)/imu.o \
         $(BOARDDIR)/pl330_dmac.o \
-        $(BOARDDIR)/manage_rtc.o \
         $(BOARDDIR)/nap/axi_dma.o \
         $(BOARDDIR)/nap/grabber.o \
         $(BOARDDIR)/nap/track_dma.o \
