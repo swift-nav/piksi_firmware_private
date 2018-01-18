@@ -118,7 +118,7 @@ static void post_observations(u8 n,
 
   if (NULL == obs) {
     /* Should not be a possible state as the consumer is higher priority */
-      assert(!"Rover obs pool exhausted!");
+    assert(!"Rover obs pool exhausted!");
   }
 
   obs->tor = *t;
@@ -1139,7 +1139,7 @@ static void time_matched_obs_thread(void *arg) {
 
     /* Get the oldest base obs */
     msg_t base_ret =
-         chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);
+        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);
 
     if (MSG_OK != base_ret) {
       /* No base obs available, discard rover obs */
