@@ -54,7 +54,7 @@
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
-#define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (HIGHPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
@@ -117,38 +117,8 @@ static void post_observations(u8 n,
   obss_t *obs = chPoolAlloc(&time_matched_obs_buff_pool);
 
   if (NULL == obs) {
-    /* Rover obs pool is exhausted, grab a buffer from the mailbox instead, i.e.
-     * overwrite the oldest item in the queue. */
-    log_warn("Time matched obs pool exhausted, overwrite oldest rover obs and"
-             "remove base obs pair!");
-
-    ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
-
-    if ((MSG_OK != ret) || (NULL == obs)) {
-      /* Should not be a possible state */
-      assert(!"Rover obs pool exhausted and mailbox empty!");
-    }
-
-    /* Try to find corresponding base obs  */		
-    obss_t *base_obs = NULL;		
-    ret = chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);		
-		
-    if (MSG_OK == ret && NULL != base_obs) {		
-      double dt = gpsdifftime(&obs->tor, &base_obs->tor);		
-      if (fabs(dt) < TIME_MATCH_THRESHOLD) {		
-        /* Matching base obs found, discard it to keep obs pairing */		
-        chPoolFree(&base_obs_buff_pool, base_obs);		
-      } else {		
-        /* No match, return base obs to mailbox and let time mathed obs thread		
-         * sort it out */		
-        ret = chMBPostAhead(&base_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);		
-        if (MSG_OK != ret) {		
-          /* Something went wrong with returning it to the buffer, better just		
-           * free it and carry on. */		
-          chPoolFree(&base_obs_buff_pool, base_obs);		
-        }		
-      }		
-    }
+    /* Should not be a possible state as the consumer is higher priority */
+      assert(!"Rover obs pool exhausted!");
   }
 
   obs->tor = *t;
