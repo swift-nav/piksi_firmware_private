@@ -1124,19 +1124,27 @@ static void time_matched_obs_thread(void *arg) {
 
     /* Get the oldest rover obs */
     msg_t rover_ret =
-        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, DGNSS_TIMEOUT_MS);
+        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, 1000);
+
+    if (MSG_OK != rover_ret) {
+      /* No base rover available, no use for the existing base obs,
+       * flush the mailbox to make room for new base obs */
+      chMBReset(&base_obs_mailbox);
+
+      if (NULL != obss) {
+        chPoolFree(&time_matched_obs_buff_pool, obss);
+      }
+      continue;
+    }
 
     /* Get the oldest base obs */
     msg_t base_ret =
          chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);
 
-    if ((MSG_OK != rover_ret) || (MSG_OK != base_ret)) {
-      if (NULL != obss) {
-        log_error("Rover obs mailbox fetch failed with %" PRIi32, rover_ret);
-        chPoolFree(&time_matched_obs_buff_pool, obss);
-      }
+    if (MSG_OK != base_ret) {
+      /* No base obs available, discard rover obs */
+      chPoolFree(&time_matched_obs_buff_pool, obss);
       if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %" PRIi32, base_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
