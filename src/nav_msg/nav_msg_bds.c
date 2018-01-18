@@ -207,14 +207,14 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
                             const me_gnss_signal_t mesid,
                             bds_d1_decoded_data_t *data) {
   u8 subfr = 1;
-  for (u8 s=2; s<=BDS_SUBFRAME_MAX; s++) {
-    if ((n->subfr_times[subfr-1]) < (n->subfr_times[s-1])) {
+  for (u8 s = 2; s <= BDS_SUBFRAME_MAX; s++) {
+    if ((n->subfr_times[subfr - 1]) < (n->subfr_times[s - 1])) {
       subfr = s;
     }
   }
-  u32 *subfr_words = &(n->page_words[(subfr-1)*BDS_WORD_SUBFR]);
-  s32 TOW_s = (((subfr_words[0]) >> 4) & 0xffU) << 12;
-  TOW_s |= ((subfr_words[1]) >> 18) & 0x3FFU;
+  u32 *subfr_words = &(n->page_words[(subfr - 1) * BDS_WORD_SUBFR]);
+  s32 TOW_s = (((subfr_words[0]) >> 4) & 0xff) << 12;
+  TOW_s |= ((subfr_words[1]) >> 18) & 0xfff;
   if (TOW_s > WEEK_SECS) {
     return BDS_TOW_INVALID;
   }
@@ -239,22 +239,47 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     ephemeris_t *e = &(data->ephemeris);
     ephemeris_kepler_t *k = &(data->ephemeris.kepler);
     make_utc_tm(&(k->toc), &date);
-    log_info("C%02" PRIu8
-             " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-             "%19.11E%19.11E%19.11E  ",
+    log_info("C%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+             " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
              mesid.sat,
-             date.year, date.month, date.month_day, date.hour, date.minute, date.second_int,
-             k->af0, k->af1, k->af2);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ", (double) k->iode, k->crs, k->dn, k->m0);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ", (double) e->toe.tow, k->cic, k->omega0, -k->cis);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ", k->inc_dot, 0.0, (double) e->toe.wn - BDS_WEEK_TO_GPS_WEEK, 0.0);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ", e->ura, (double) e->health_bits, k->tgd, k->tgd);
-    log_info("    %19.11E%19.11E ", rint(TOW_s), (double) k->iodc);
+             date.year,
+             date.month,
+             date.month_day,
+             date.hour,
+             date.minute,
+             date.second_int,
+             k->af0,
+             k->af1,
+             k->af2);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
+             (double)k->iode,
+             k->crs,
+             k->dn * M_PI,
+             k->m0 * M_PI);
+    log_info(
+        "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
+             (double)e->toe.tow,
+             k->cic,
+             k->omega0 * M_PI,
+             -k->cis);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
+             k->inc * M_PI,
+             k->crc,
+             k->w * M_PI,
+             k->omegadot * M_PI);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
+             k->inc_dot * M_PI,
+             0.0,
+             (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
+             0.0);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
+             e->ura,
+             (double)e->health_bits,
+             k->tgd,
+             k->tgd);
+    log_info("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
     n->goodwords_mask = 0;
-  } else {
-    //~ log_info("C%02" PRIu8 " goodwords %013" PRIx64, mesid.sat, n->goodwords_mask);
   }
 
   return TOW_s * 1000;
@@ -398,12 +423,13 @@ static void pack_buffer(nav_msg_bds_t *n) {
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     tmp = n->subframe_bits[k];
     tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
-    n->page_words[(subfr-1)*BDS_WORD_SUBFR + k] = (0 == k) ? tmp : packdw(tmp);
+    n->page_words[(subfr - 1) * BDS_WORD_SUBFR + k] =
+        (0 == k) ? tmp : packdw(tmp);
   }
   /* store correctly decoded words into mask */
-  n->goodwords_mask |= (0x3ffULL << (10*(5-subfr)));
+  n->goodwords_mask |= (0x3ffULL << (10 * (5 - subfr)));
   /* store subframe rx time */
-  n->subfr_times[subfr-1] = timing_getms();
+  n->subfr_times[subfr - 1] = timing_getms();
   /* debug message to verify decoder output */
   //~ dump_navmsg(n, subfr);
 }
@@ -455,7 +481,7 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   /* Keplerian params */
   k->tgd = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
   k->toc.wn = e->toe.wn;
-  k->toc.tow = (double) toc * C_2P3;
+  k->toc.tow = (double)toc * C_2P3;
   k->af0 = BITS_SIGN_EXTEND_32(24, a[0]) * C_1_2P33;
   k->af1 = BITS_SIGN_EXTEND_32(22, a[1]) * C_1_2P50;
   k->af2 = BITS_SIGN_EXTEND_32(11, a[2]) * C_1_2P66;
@@ -479,22 +505,22 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   ephemeris_t *e = &(data->ephemeris);
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
 
-  u32 deltan = (((n->page_words[11]) >>  8) & 0x3ff) <<  6;
-  deltan    |= (((n->page_words[12]) >> 24) & 0x3f);
-  u32 cuc = (((n->page_words[12]) >>  8) & 0xffff) <<  2;
-  cuc    |= (((n->page_words[13]) >> 28) & 0x3);
-  u32 m0 = (((n->page_words[13]) >>  8) & 0xfffff) << 12;
-  m0    |= (((n->page_words[14]) >> 18) & 0xfff);
-  u32 ecc = (((n->page_words[14]) >>  8) & 0x3ff) << 22;
-  ecc    |= (((n->page_words[15]) >>  8) & 0x3fffff);
+  u32 deltan = (((n->page_words[11]) >> 8) & 0x3ff) << 6;
+  deltan |= (((n->page_words[12]) >> 24) & 0x3f);
+  u32 cuc = (((n->page_words[12]) >> 8) & 0xffff) << 2;
+  cuc |= (((n->page_words[13]) >> 28) & 0x3);
+  u32 m0 = (((n->page_words[13]) >> 8) & 0xfffff) << 12;
+  m0 |= (((n->page_words[14]) >> 18) & 0xfff);
+  u32 ecc = (((n->page_words[14]) >> 8) & 0x3ff) << 22;
+  ecc |= (((n->page_words[15]) >> 8) & 0x3fffff);
   u32 cus = (((n->page_words[16]) >> 12) & 0x3ffff);
-  u32 crc = (((n->page_words[16]) >>  8) & 0xf) << 14;
-  crc    |= (((n->page_words[17]) >> 16) & 0x3fff);
-  u32 crs = (((n->page_words[17]) >>  8) & 0xff) << 10;
-  crs    |= (((n->page_words[18]) >> 20) & 0x3ff);
-  u32 sqrta = (((n->page_words[18]) >>  8) & 0xfff) << 20;
-  sqrta    |= (((n->page_words[19]) >> 10) & 0xfffff);
-  u32 toe_msb = (((n->page_words[19]) >>  8) & 0x3);
+  u32 crc = (((n->page_words[16]) >> 8) & 0xf) << 14;
+  crc |= (((n->page_words[17]) >> 16) & 0x3fff);
+  u32 crs = (((n->page_words[17]) >> 8) & 0xff) << 10;
+  crs |= (((n->page_words[18]) >> 20) & 0x3ff);
+  u32 sqrta = (((n->page_words[18]) >> 8) & 0xfff) << 20;
+  sqrta |= (((n->page_words[19]) >> 10) & 0xfffff);
+  u32 toe_msb = (((n->page_words[19]) >> 8) & 0x3);
 
   /* Beidou specific data */
   data->split_toe &= ~(0x3 << 15);
@@ -503,9 +529,9 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   /* Ephemeris params */
   e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   /* Keplerian params */
-  k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43 * M_PI;
+  k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43;
   k->cuc = BITS_SIGN_EXTEND_32(18, cuc) * C_1_2P31;
-  k->m0 = BITS_SIGN_EXTEND_32(32, m0) * C_1_2P31 * M_PI;
+  k->m0 = BITS_SIGN_EXTEND_32(32, m0) * C_1_2P31;
   k->ecc = ecc * C_1_2P33;
   k->cus = BITS_SIGN_EXTEND_32(18, cus) * C_1_2P31;
   k->crc = BITS_SIGN_EXTEND_32(18, crc) * C_1_2P6;
@@ -520,22 +546,22 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
   ephemeris_kepler_t *k = &(data->ephemeris.kepler);
   double new_toe;
 
-  u32 toe_lsb = (((n->page_words[21]) >>  8) & 0x3ff) <<  5;
-  toe_lsb    |= (((n->page_words[22]) >> 25) & 0x1f);
-  u32 i0 = (((n->page_words[22]) >>  8) & 0x1ffff) << 15;
-  i0    |= (((n->page_words[23]) >> 15) & 0x7fff);
-  u32 cic = (((n->page_words[23]) >>  8) & 0x7f) << 11;
-  cic    |= (((n->page_words[24]) >> 19) & 0x7ff);
-  u32 omegadot = (((n->page_words[24]) >>  8) & 0x7ff) << 13;
-  omegadot    |= (((n->page_words[25]) >> 17) & 0x1fff);
-  u32 cis = (((n->page_words[25]) >>  8) & 0x1ff) <<  9;
-  cis    |= (((n->page_words[26]) >> 21) & 0x1ff);
-  u32 idot = (((n->page_words[26]) >>  8) & 0x1fff) <<  1;
-  idot    |= (((n->page_words[27]) >> 29) & 0x1);
-  u32 omegazero = (((n->page_words[27]) >>  8) & 0x1fffff) << 11;
-  omegazero    |= (((n->page_words[28]) >> 19) & 0x7ff);
-  u32 omega = (((n->page_words[28]) >>  8) & 0x7ff) << 21;
-  omega    |= (((n->page_words[29]) >>  9) & 0x1fffff);
+  u32 toe_lsb = (((n->page_words[21]) >> 8) & 0x3ff) << 5;
+  toe_lsb |= (((n->page_words[22]) >> 25) & 0x1f);
+  u32 i0 = (((n->page_words[22]) >> 8) & 0x1ffff) << 15;
+  i0 |= (((n->page_words[23]) >> 15) & 0x7fff);
+  u32 cic = (((n->page_words[23]) >> 8) & 0x7f) << 11;
+  cic |= (((n->page_words[24]) >> 19) & 0x7ff);
+  u32 omegadot = (((n->page_words[24]) >> 8) & 0x7ff) << 13;
+  omegadot |= (((n->page_words[25]) >> 17) & 0x1fff);
+  u32 cis = (((n->page_words[25]) >> 8) & 0x1ff) << 9;
+  cis |= (((n->page_words[26]) >> 21) & 0x1ff);
+  u32 idot = (((n->page_words[26]) >> 8) & 0x1fff) << 1;
+  idot |= (((n->page_words[27]) >> 29) & 0x1);
+  u32 omegazero = (((n->page_words[27]) >> 8) & 0x1fffff) << 11;
+  omegazero |= (((n->page_words[28]) >> 19) & 0x7ff);
+  u32 omega = (((n->page_words[28]) >> 8) & 0x7ff) << 21;
+  omega |= (((n->page_words[29]) >> 9) & 0x1fffff);
 
   /* Beidou specific data */
   data->split_toe &= ~(0x7ff);
@@ -551,13 +577,13 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
     e->toe.tow = new_toe;
   }
   /* Keplerian params */
-  k->inc = BITS_SIGN_EXTEND_32(32, i0) * C_1_2P31 * M_PI;
+  k->inc = BITS_SIGN_EXTEND_32(32, i0) * C_1_2P31;
   k->cic = BITS_SIGN_EXTEND_32(18, cic) * C_1_2P31;
-  k->omegadot = BITS_SIGN_EXTEND_32(24, omegadot) * C_1_2P43 * M_PI;
+  k->omegadot = BITS_SIGN_EXTEND_32(24, omegadot) * C_1_2P43;
   k->cis = BITS_SIGN_EXTEND_32(32, cis) * C_1_2P31;
-  k->inc_dot = BITS_SIGN_EXTEND_32(14, idot) * C_1_2P43 * M_PI;
-  k->omega0 = BITS_SIGN_EXTEND_32(32, omegazero) * C_1_2P31 * M_PI;
-  k->w = BITS_SIGN_EXTEND_32(32, omega) * C_1_2P31 * M_PI;
+  k->inc_dot = BITS_SIGN_EXTEND_32(14, idot) * C_1_2P43;
+  k->omega0 = BITS_SIGN_EXTEND_32(32, omegazero) * C_1_2P31;
+  k->w = BITS_SIGN_EXTEND_32(32, omega) * C_1_2P31;
 }
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
