@@ -25,6 +25,7 @@
 
 #include "main.h"
 #include "manage.h"
+#include "timing/timing.h"
 #include "system_monitor/system_monitor.h"
 #include "track/track_state.h"
 
@@ -85,6 +86,11 @@ u64 nap_timing_count(void) {
 
   chMtxUnlock(&timing_count_mutex);
   return total_count;
+}
+
+u32 adel_time_us(void) {
+  u32 count = NAP->TIMING_COUNT;
+  return (u32)(count * (RX_DT_NOMINAL * 1e6));
 }
 
 /**
@@ -167,12 +173,71 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(void) {
+union adel_channels{
+  u32 word;
+  struct {
+    u16 spent_us;
+    u8 sat;
+    u8 code : 6;
+    u8 state : 2;
+  } str;
+};
+
+static union adel_channels adel_channels[48] = {0};
+
+void adel_channel_stats(u32 channel, u32 spent_us)
+{
+  assert(channel < 48);
+
+  tracker_t *tracker = tracker_get(channel);
+
+  adel_channels[channel].str.state = tracker_state_get(tracker);
+  adel_channels[channel].str.code = tracker->mesid.code;
+  adel_channels[channel].str.sat = tracker->mesid.sat;
+  assert(spent_us < 0xFFFF);
+  adel_channels[channel].str.spent_us = (u16)spent_us;
+}
+
+void adel_clear_cpu(void)
+{
+  thread_t *tp = chRegFirstThread();
+  while (tp) {
+    tp->p_ctime = 0; /* Reset thread CPU cycle count */
+    tp = chRegNextThread(tp);
+  }
+  g_ctime = 0;
+}
+
+void adel_send_cpu(void)
+{
+  thread_t *tp = chRegFirstThread();
+  log_info("g_ctime=%" PRIu64, g_ctime);
+  while (tp && g_ctime) {
+    float cpu = 100.f * tp->p_ctime / (float)g_ctime;
+    const char *name = chRegGetThreadNameX(tp);
+
+    log_info("%s:%f", name, cpu);
+
+    tp->p_ctime = 0; /* Reset thread CPU cycle count */
+    tp = chRegNextThread(tp);
+  }
+  g_ctime = 0;
+}
+
+static void handle_nap_track_irq(const u32 elapsed_us[]) {
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
+  memset(adel_channels, 0, sizeof(adel_channels));
+  adel_clear_cpu();
+
+  u32 start_us = adel_time_us();
+
   trackers_update(irq);
+
+  u32 elapsed_last_us = adel_time_us() - start_us;
+
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
@@ -181,12 +246,28 @@ static void handle_nap_track_irq(void) {
   u32 err0 = NAP->TRK_IRQ_ERRORS0;
   u32 err1 = NAP->TRK_IRQ_ERRORS1;
   u64 err = ((u64)err1 << 32) | err0;
+
   if (err) {
     NAP->TRK_IRQ_ERRORS0 = err0;
     NAP->TRK_IRQ_ERRORS1 = err1;
-    log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32,
-             err1,
-             err0);
+
+    adel_send_cpu();
+    log_warn("adel: %" PRIu32 " %" PRIu32 " %" PRIu32
+                  " %" PRIu32 " %" PRIu32 " %" PRIu32 " %" PRIu32,
+             elapsed_us[0], elapsed_us[1],
+             elapsed_us[2], elapsed_us[3],
+             elapsed_us[4], elapsed_us[5], elapsed_last_us);
+
+    for (size_t i = 0; i < 6; i++) {
+      size_t indx = i * 8;
+      log_warn("adel: %" PRIx32 " %" PRIx32 " %" PRIx32 " %" PRIx32
+                    " %" PRIx32 " %" PRIx32 " %" PRIx32 " %" PRIx32,
+               adel_channels[indx + 0].word, adel_channels[indx + 1].word,
+               adel_channels[indx + 2].word, adel_channels[indx + 3].word,
+               adel_channels[indx + 4].word, adel_channels[indx + 5].word,
+               adel_channels[indx + 6].word, adel_channels[indx + 7].word);
+    }
+
     trackers_missed(err);
   }
 
@@ -210,22 +291,38 @@ void nap_track_irq_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
+  u32 elapsed_us[6] = {0};
+
   while (TRUE) {
     piksi_systime_get(&sys_time);
 
-    handle_nap_track_irq();
+    u32 start_us = adel_time_us();
+
+    handle_nap_track_irq(elapsed_us);
+
+    elapsed_us[0] = adel_time_us() - start_us;
 
     sanitize_trackers();
 
+    elapsed_us[1] = adel_time_us() - start_us;
+
     DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
 
+    elapsed_us[2] = adel_time_us() - start_us;
+
     DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
+
+    elapsed_us[3] = adel_time_us() - start_us;
 
     DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state();
                tracking_send_detailed_state(););
 
+    elapsed_us[4] = adel_time_us() - start_us;
+
     /* Sleep until 500 microseconds is full. */
     piksi_systime_sleep_until_windowed_us(&sys_time, 500);
+
+    elapsed_us[5] = adel_time_us() - start_us;
   }
 }
 
