@@ -119,7 +119,8 @@ static void post_observations(u8 n,
   if (NULL == obs) {
     /* Rover obs pool is exhausted, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    log_warn("Time matched obs pool exhausted, overwrite oldest rover obs!");
+    log_warn("Time matched obs pool exhausted, overwrite oldest rover obs and"
+             "remove base obs pair!");
 
     ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
 
@@ -1130,6 +1131,7 @@ static void time_matched_obs_thread(void *arg) {
   chRegSetThreadName("time matched obs");
 
   obss_t *base_obs;
+  obss_t *obss;
   init_filters();
 
   /* Declare all SBP messages */
@@ -1137,6 +1139,7 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     base_obs = NULL;
+    obss = NULL;
 
     /* Check if the el mask has changed and update */
     chMtxLock(&time_matched_filter_manager_lock);
@@ -1149,13 +1152,21 @@ static void time_matched_obs_thread(void *arg) {
                                     starling_frequency);
     chMtxUnlock(&time_matched_filter_manager_lock);
 
-    /* Get the oldest base obs */
-    msg_t ret =
-        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
+    /* Get the oldest rover obs */
+    msg_t rover_ret =
+        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, DGNSS_TIMEOUT_MS);
 
-    if (MSG_OK != ret) {
+    /* Get the oldest base obs */
+    msg_t base_ret =
+         chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);
+
+    if ((MSG_OK != rover_ret) || (MSG_OK != base_ret)) {
+      if (NULL != obss) {
+        log_error("Rover obs mailbox fetch failed with %" PRIi32, rover_ret);
+        chPoolFree(&time_matched_obs_buff_pool, obss);
+      }
       if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
+        log_error("Base obs mailbox fetch failed with %" PRIi32, base_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
@@ -1171,15 +1182,6 @@ static void time_matched_obs_thread(void *arg) {
           base_obs->tor.wn,
           last_time_matched_rover_obs_post.tow,
           last_time_matched_rover_obs_post.wn);
-    }
-
-    obss_t *obss;
-    /* Get the oldest rover obs */
-    ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE);
-    if (MSG_OK != ret) {
-      /* No rover obs available, keep consuming base obs */
-      chPoolFree(&base_obs_buff_pool, base_obs);
-      continue;
     }
 
     /* Compare obs ages.
