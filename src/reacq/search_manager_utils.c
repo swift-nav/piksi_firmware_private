@@ -129,3 +129,25 @@ void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known) {
   *visible = glo_sv_vis[sat - 1].visible;
   *known = glo_sv_vis[sat - 1].known;
 }
+
+/**
+ * The function returns start job index according to gnss
+ * \param[in] gnss Constellation
+ * \param[out] start_idx Start job index
+ * \return Number of SV of GNSS in question
+ */
+u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx) {
+  switch ((s8)gnss) {
+    case CONSTELLATION_GPS:
+      *start_idx = 0;
+      return NUM_SATS_GPS;
+    case CONSTELLATION_GLO:
+      *start_idx = NUM_SATS_GPS;
+      return NUM_SATS_GLO;
+    case CONSTELLATION_SBAS:
+      *start_idx = NUM_SATS_GPS + NUM_SATS_GLO;
+      return NUM_SATS_SBAS;
+    default:
+      assert(!"Incorrect constellation");
+  }
+}

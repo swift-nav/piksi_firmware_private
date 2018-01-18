@@ -85,8 +85,7 @@ void acq_result_send(const me_gnss_signal_t mesid,
                      float cp,
                      float cf);
 void sch_initialize_cost(acq_job_t *init_job,
-                         const acq_jobs_state_t *all_jobs_data,
-                         constellation_t gnss);
+                         const acq_jobs_state_t *all_jobs_data);
 bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
@@ -98,6 +97,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMax,
                            acq_result_t *p_acqres);
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf);
+u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

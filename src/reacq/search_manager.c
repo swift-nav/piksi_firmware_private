@@ -47,6 +47,7 @@ bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
+u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx);
 
 /**
  * The function calculates how many SV of defined GNSS are in track
@@ -58,22 +59,9 @@ static u8 sv_track_count(acq_jobs_state_t *jobs_data, constellation_t gnss) {
   u8 num_sats = 0;
   u8 sv_tracked = 0;
   acq_job_t *job_ptr;
-  switch ((s8)gnss) {
-    case CONSTELLATION_GPS:
-      num_sats = NUM_SATS_GPS;
-      job_ptr = &jobs_data->jobs_gps[0][0];
-      break;
-    case CONSTELLATION_GLO:
-      num_sats = NUM_SATS_GLO;
-      job_ptr = &jobs_data->jobs_glo[0][0];
-      break;
-    case CONSTELLATION_SBAS:
-      num_sats = NUM_SATS_SBAS;
-      job_ptr = &jobs_data->jobs_sbas[0][0];
-      break;
-    default:
-      assert(!"Incorrect constellation");
-  }
+  u16 idx = 0;
+  num_sats = sm_constellation_to_start_index(gnss, &idx);
+  job_ptr = &jobs_data->jobs[0][idx];
   for (u8 i = 0; i < num_sats; i++) {
     if (mesid_is_tracked(job_ptr[i].mesid)) {
       sv_tracked++;
@@ -95,9 +83,11 @@ static u32 sbas_limit_mask(acq_jobs_state_t *jobs_data,
   u32 ret = 0;
   if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
     u8 i;
-    for (i = 0; i < NUM_SATS_SBAS; i++) {
+    u16 idx = 0;
+    sm_constellation_to_start_index(CONSTELLATION_SBAS, &idx);
+    for (i = idx; i < idx + NUM_SATS_SBAS; i++) {
       /* mark all jobs as not needed to run */
-      jobs_data->jobs_sbas[job_type][i].needs_to_run = false;
+      jobs_data->jobs[job_type][i].needs_to_run = false;
     }
     return ret;
   }
@@ -129,39 +119,44 @@ void sm_init(acq_jobs_state_t *data) {
 
   acq_job_types_e type;
 
-  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
-    u32 i;
-    for (i = 0; i < NUM_SATS_GPS; i++) {
-      data->jobs_gps[type][i].mesid =
-          construct_mesid(CODE_GPS_L1CA, GPS_FIRST_PRN + i);
-      /* for GPS SID it's just copy of MESID */
-      data->jobs_gps[type][i].sid =
-          construct_sid(CODE_GPS_L1CA, GPS_FIRST_PRN + i);
-      data->jobs_gps[type][i].job_type = type;
-    }
-    for (i = 0; i < NUM_SATS_GLO; i++) {
-      data->jobs_glo[type][i].sid =
-          construct_sid(CODE_GLO_L1OF, GLO_FIRST_PRN + i);
-      /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
-       * blind searches are immediately done with whole range of FCNs */
-      data->jobs_glo[type][i].mesid =
-          construct_mesid(CODE_GLO_L1OF, GLO_FIRST_PRN + (i % GLO_MAX_FCN));
+  struct init_struct {
+    constellation_t gnss;
+    u16 first_prn;
+  } init_data[REACQ_SUPPORTED_GNSS_NUM] = {
+      {CONSTELLATION_GPS, GPS_FIRST_PRN},
+      {CONSTELLATION_GLO, GLO_FIRST_PRN},
+      {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
 
-      data->jobs_glo[type][i].job_type = type;
-    }
-    for (i = 0; i < NUM_SATS_SBAS; i++) {
-      data->jobs_sbas[type][i].sid =
-          construct_sid(CODE_SBAS_L1CA, SBAS_FIRST_PRN + i);
-      /* for SBAS SID it's just copy of MESID */
-      data->jobs_sbas[type][i].mesid =
-          construct_mesid(CODE_SBAS_L1CA, SBAS_FIRST_PRN + i);
-      data->jobs_sbas[type][i].job_type = type;
+  for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
+    u32 i, k;
+    u16 idx;
+    for (k = 0; k < REACQ_SUPPORTED_GNSS_NUM; k++) {
+      u16 num_sv = sm_constellation_to_start_index(init_data[k].gnss, &idx);
+      code_t code = constellation_to_l1_code(init_data[k].gnss);
+      for (i = 0; i < num_sv; i++) {
+        if (CONSTELLATION_GLO == init_data[k].gnss) {
+          /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
+             * blind searches are immediately done with whole range of FCNs */
+          data->jobs[type][idx + i].mesid =
+              construct_mesid(code, init_data[k].first_prn + (i % GLO_MAX_FCN));
+        } else {
+          data->jobs[type][idx + i].mesid =
+              construct_mesid(code, init_data[k].first_prn + i);
+        }
+        data->jobs[type][idx + i].sid =
+            construct_sid(code, init_data[k].first_prn + i);
+        data->jobs[type][idx + i].job_type = type;
+      }
     }
   }
   /* When constellation is initialized with CONSTELLATION_INVALID,
    * sm_constellation_select() will choose GPS as the first constellation. */
   data->constellation = CONSTELLATION_INVALID;
 }
+
+// static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
+//  u32 i;
+//}
 
 /** Checks if deep searches need to run for GPS SV
  *
@@ -171,8 +166,10 @@ void sm_init(acq_jobs_state_t *data) {
  */
 static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data) {
   u32 i;
-  for (i = 0; i < NUM_SATS_GPS; i++) {
-    acq_job_t *deep_job = &jobs_data->jobs_gps[ACQ_JOB_DEEP_SEARCH][i];
+  u16 idx;
+  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
     me_gnss_signal_t mesid = deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
 
@@ -200,6 +197,7 @@ static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data) {
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
+      log_info_sid(sid, "RUN");
     }
   } /* loop SVs */
 }
@@ -216,8 +214,10 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
   }
 
   u32 i;
-  for (i = 0; i < NUM_SATS_GLO; i++) {
-    acq_job_t *deep_job = &jobs_data->jobs_glo[ACQ_JOB_DEEP_SEARCH][i];
+  u16 idx;
+  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
     u16 glo_fcn = GLO_FCN_UNKNOWN;
@@ -251,11 +251,13 @@ static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
+      log_info_sid(sid, "RUN");
     } else if (!glo_map_valid(sid)) {
       deep_job->cost_hint = ACQ_COST_AVG;
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
+      log_info_sid(sid, "RUN");
     }
   } /* loop SVs */
 }
@@ -273,12 +275,14 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
     return;
   }
   u32 i;
-  for (i = 0; i < NUM_SATS_SBAS; i++) {
+  u16 idx;
+  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  for (i = 0; i < num_sv; i++) {
     if (!((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
       continue;
     }
-    acq_job_t *deep_job = &jobs_data->jobs_sbas[ACQ_JOB_DEEP_SEARCH][i];
+    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
     me_gnss_signal_t mesid = deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
 
@@ -327,8 +331,11 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
                                        u64 now_ms,
                                        u64 lgf_age_ms) {
   u32 i;
-  for (i = 0; i < NUM_SATS_GPS; i++) {
-    acq_job_t *fallback_job = &jobs_data->jobs_gps[ACQ_JOB_FALLBACK_SEARCH][i];
+  u16 idx;
+  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *fallback_job =
+        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
     me_gnss_signal_t mesid = fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
 
@@ -358,6 +365,7 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      log_info_sid(sid, "RUN");
     } else if (!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
@@ -365,6 +373,7 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      log_info_sid(sid, "RUN");
     } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
@@ -372,6 +381,7 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      log_info_sid(sid, "RUN");
     }
   } /* loop SVs */
 }
@@ -392,8 +402,11 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
   }
 
   u32 i;
-  for (i = 0; i < NUM_SATS_GLO; i++) {
-    acq_job_t *fallback_job = &jobs_data->jobs_glo[ACQ_JOB_FALLBACK_SEARCH][i];
+  u16 idx;
+  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  for (i = 0; i < num_sv; i++) {
+    acq_job_t *fallback_job =
+        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
     me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
     u16 glo_fcn = GLO_FCN_UNKNOWN;
@@ -430,6 +443,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      log_info_sid(sid, "RUN");
     } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                 now_ms - fallback_job->stop_time >
                     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
@@ -438,6 +452,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      log_info_sid(sid, "RUN");
     } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
@@ -445,6 +460,7 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
+      log_info_sid(sid, "RUN");
     }
   } /* loop SVs */
 }
@@ -466,12 +482,15 @@ static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
     return;
   }
   u32 i;
-  for (i = 0; i < NUM_SATS_SBAS; i++) {
+  u16 idx;
+  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  for (i = 0; i < num_sv; i++) {
     if (!((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
       continue;
     }
-    acq_job_t *fallback_job = &jobs_data->jobs_sbas[ACQ_JOB_FALLBACK_SEARCH][i];
+    acq_job_t *fallback_job =
+        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
     me_gnss_signal_t mesid = fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
 
@@ -663,4 +682,10 @@ void sm_run(acq_jobs_state_t *jobs_data) {
     sm_deep_search_run_sbas(jobs_data);
     sm_fallback_search_run_sbas(jobs_data, now_ms, lgf_age_ms);
   }
+  //
+  //  if (CONSTELLATION_GLO == jobs_data->constellation) {
+  //    sm_calc_all_glo_visibility_flags();
+  //  }
+  //  sm_deep_search_run(jobs_data);
+  //  sm_fallback_search_run(jobs_data, now_ms, lgf_age_ms);
 }

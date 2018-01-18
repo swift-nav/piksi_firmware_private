@@ -149,9 +149,11 @@ u16 get_orbit_slot(const u16 fcn) {
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   /* Remove from acquisition */
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  data->jobs_gps[0][mesid_to_code_index(startup_params->mesid)].needs_to_run =
+  u16 idx;
+  sm_constellation_to_start_index(data->constellation, &idx);
+  data->jobs[0][mesid_to_code_index(startup_params->mesid) + idx].needs_to_run =
       false;
-  data->jobs_gps[1][mesid_to_code_index(startup_params->mesid)].needs_to_run =
+  data->jobs[1][mesid_to_code_index(startup_params->mesid) + idx].needs_to_run =
       false;
   return 0;
 }
@@ -202,4 +204,27 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
   (void)lgf;
   return NDB_ERR_NONE;
+}
+
+/**
+ * The function returns start job index according to gnss
+ * \param[in] gnss Constellation
+ * \param[out] start_idx Start job index
+ * \return Number of SV of GNSS in question
+ */
+u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx) {
+  switch ((s8)gnss) {
+    case CONSTELLATION_GPS:
+      *start_idx = 0;
+      return NUM_SATS_GPS;
+    case CONSTELLATION_GLO:
+      *start_idx = NUM_SATS_GPS;
+      return NUM_SATS_GLO;
+    case CONSTELLATION_SBAS:
+      *start_idx = NUM_SATS_GPS + NUM_SATS_GLO;
+      return NUM_SATS_SBAS;
+    default:
+      *start_idx = 0;
+      return 0;
+  }
 }
