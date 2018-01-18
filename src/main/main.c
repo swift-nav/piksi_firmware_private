@@ -129,9 +129,9 @@ int main(void) {
   manage_acq_setup();
   system_monitor_setup();
 
-  base_obs_setup();
   me_calc_pvt_setup();
   starling_calc_pvt_setup();
+  base_obs_setup();
 
   simulator_setup();
 
