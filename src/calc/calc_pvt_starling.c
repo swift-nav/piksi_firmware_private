@@ -119,13 +119,34 @@ static void post_observations(u8 n,
   if (NULL == obs) {
     /* Rover obs pool is exhausted, grab a buffer from the mailbox instead, i.e.
      * overwrite the oldest item in the queue. */
-    log_warn("Time matched obs pool exhausted, discard oldest obs pair!");
+    log_warn("Time matched obs pool exhausted, overwrite oldest rover obs!");
 
     ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
 
     if ((MSG_OK != ret) || (NULL == obs)) {
       /* Should not be a possible state */
       assert(!"Rover obs pool exhausted and mailbox empty!");
+    }
+
+    /* Try to find corresponding base obs  */		
+    obss_t *base_obs = NULL;		
+    ret = chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);		
+		
+    if (MSG_OK == ret && NULL != base_obs) {		
+      double dt = gpsdifftime(&obs->tor, &base_obs->tor);		
+      if (fabs(dt) < TIME_MATCH_THRESHOLD) {		
+        /* Matching base obs found, discard it to keep obs pairing */		
+        chPoolFree(&base_obs_buff_pool, base_obs);		
+      } else {		
+        /* No match, return base obs to mailbox and let time mathed obs thread		
+         * sort it out */		
+        ret = chMBPostAhead(&base_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);		
+        if (MSG_OK != ret) {		
+          /* Something went wrong with returning it to the buffer, better just		
+           * free it and carry on. */		
+          chPoolFree(&base_obs_buff_pool, base_obs);		
+        }		
+      }		
     }
   }
 
@@ -1111,15 +1132,28 @@ static void time_matched_obs_thread(void *arg) {
   obss_t *base_obs;
   init_filters();
 
-  // Declare all SBP messages
+  /* Declare all SBP messages */
   sbp_messages_t sbp_messages;
 
   while (1) {
     base_obs = NULL;
-    const msg_t fetch_ret =
+
+    /* Check if the el mask has changed and update */
+    chMtxLock(&time_matched_filter_manager_lock);
+    set_pvt_engine_elevation_mask(time_matched_filter_manager,
+                                  get_solution_elevation_mask());
+    set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
+    set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
+                                             glonass_downweight_factor);
+    set_pvt_engine_update_frequency(time_matched_filter_manager,
+                                    starling_frequency);
+    chMtxUnlock(&time_matched_filter_manager_lock);
+
+    /* Get the oldest base obs */
+    msg_t ret =
         chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
 
-    if (fetch_ret != MSG_OK) {
+    if (MSG_OK != ret) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
         chPoolFree(&base_obs_buff_pool, base_obs);
@@ -1139,31 +1173,20 @@ static void time_matched_obs_thread(void *arg) {
           last_time_matched_rover_obs_post.wn);
     }
 
-    /* Init the messages we want to send */
-    sbp_messages_init(&sbp_messages);
-
-    /* Check if the el mask has changed and update */
-    chMtxLock(&time_matched_filter_manager_lock);
-    set_pvt_engine_elevation_mask(time_matched_filter_manager,
-                                  get_solution_elevation_mask());
-    set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
-    set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
-                                             glonass_downweight_factor);
-    set_pvt_engine_update_frequency(time_matched_filter_manager,
-                                    starling_frequency);
-    chMtxUnlock(&time_matched_filter_manager_lock);
-
     obss_t *obss;
-    /* Look through the mailbox (FIFO queue) of locally generated observations
-     * looking for one that matches in time. */
-    const msg_t ret =
-        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE);
+    /* Get the oldest rover obs */
+    ret = chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE);
     if (MSG_OK != ret) {
       /* No rover obs available, keep consuming base obs */
       chPoolFree(&base_obs_buff_pool, base_obs);
       continue;
     }
 
+    /* Compare obs ages.
+     * If rover obs is newer (ie. obss->tor has a bigger value) dt shall be
+     * positive.
+     * If base obs is newer (ie. base_obs->tor has a bigger value) dt shall be
+     * negative. */
     const double dt = gpsdifftime(&obss->tor, &base_obs->tor);
 
     if (fabs(dt) < TIME_MATCH_THRESHOLD) {
@@ -1175,6 +1198,9 @@ static void time_matched_obs_thread(void *arg) {
        * it will always be overwritten by the differential */
       if (base_obs->has_pos && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
         pvt_engine_result_t soln_copy = obss->soln;
+
+        /* Init the messages we want to send */
+        sbp_messages_init(&sbp_messages);
         solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
@@ -1194,16 +1220,13 @@ static void time_matched_obs_thread(void *arg) {
       chPoolFree(&time_matched_obs_buff_pool, obss);
       chPoolFree(&base_obs_buff_pool, base_obs);
     } else if (dt > 0) {
-      /* Time of base obs before time of local obs, we must not have a local
-       * observation matching this base observation, break and wait for a
-       * new base observation. */
-
-      /* In practice this should only happen when we initially start
+      /* The oldest rover obs is newer than the oldest base obs.
+       * In practice this should only happen when we initially start
        * receiving corrections, or if the ntrip/skylark corrections are old
        * due to connection problems.
        */
       log_warn(
-          "Obs Matching: t_base < t_rover "
+          "Obs Matching: tor_base < tor_rover "
           "(dt=%f obss.t={%d,%f} base_obs.t={%d,%f})",
           dt,
           obss->tor.wn,
