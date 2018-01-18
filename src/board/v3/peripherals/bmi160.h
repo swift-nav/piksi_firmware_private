@@ -163,5 +163,6 @@ void bmi160_mag_set_enabled(bool enabled);
 s16 bmi160_read_temp(void);
 u8 bmi160_read_status(void);
 u8 bmi160_read_error(void);
+bool bmm150_unit_test(void);
 
 #endif

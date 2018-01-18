@@ -133,6 +133,10 @@ void bmi160_init(void) {
   /* TODO: Investigate why this delay is required. */
   chThdSleepMilliseconds(1);
 
+  if (!bmm150_unit_test()) {
+    log_error("MAG: Compensation Unit Test Failed");
+  }
+
   /* Pulse SS to trigger BMI160 to use SPI */
   bmi160_open_spi();
   bmi160_close_spi();
@@ -407,3 +411,26 @@ u8 bmi160_read_status(void) { return bmi160_read_reg(BMI160_REG_STATUS); }
 
 /** Read the error register from the BMI160. */
 u8 bmi160_read_error(void) { return bmi160_read_reg(BMI160_REG_ERR_REG); }
+
+bool bmm150_unit_test(void) {
+  /* Returns true if magnetometer compensation calculations match expectation
+   * Float: x: -21.812500 y: 19.937500 z: 75.687500
+   * Fixed: x: -349 y: 319 z: 1211
+   * Based on:
+   * https://drive.google.com/open?id=0B8rYj-Dy3tcDM3I1bmhWS05wblhpcHZPUkwtRkhvWmg2Wjdn
+   */
+  const s16 raw_data_x = -60;
+  const s16 raw_data_y = 55;
+  const s16 raw_data_z = 202;
+  const s16 raw_data_r = 6828;
+  const bmm150_trim_t dummy_bmm050_trim = {
+      0, 0, 26, 26, 22752, 737, -1035, 0, 29, -3, 6753};
+  bool passed = true;
+  s16 comp_x = bmm150_compensate_X(&dummy_bmm050_trim, raw_data_x, raw_data_r);
+  s16 comp_y = bmm150_compensate_Y(&dummy_bmm050_trim, raw_data_y, raw_data_r);
+  s16 comp_z = bmm150_compensate_Z(&dummy_bmm050_trim, raw_data_z, raw_data_r);
+  passed &= comp_x == -349;
+  passed &= comp_y == 319;
+  passed &= comp_z == 1211;
+  return passed;
+}
