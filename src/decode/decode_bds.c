@@ -43,8 +43,6 @@ static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
 static void decoder_bds_process(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data);
 
-static void dump_navmsg(const nav_msg_bds_t *n);
-
 static const decoder_interface_t decoder_interface_bds = {
     .code = CODE_BDS2_B11,
     .init = decoder_bds_init,
@@ -79,20 +77,6 @@ static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
   (void)decoder_data;
 }
 
-static void dump_navmsg(const nav_msg_bds_t *n) {
-  char bitstream[256];
-  char tempstr[64];
-  u32 tow = (((n->frame_words[0] >> 4) << 12) |
-             ((n->frame_words[1] >> 18) & 0xfffU)) &
-            0xfffffU;
-  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->prn, tow);
-  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
-    sprintf(tempstr, "%08" PRIx32 " ", n->frame_words[k]);
-    strcat(bitstream, tempstr);
-  }
-  log_info("%s", bitstream);
-}
-
 static void decoder_bds_process(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data) {
   bds_d1_decoded_data_t dd_d1nav;
@@ -116,17 +100,19 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
 
     bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
     if (tlm_rx) {
-      dump_navmsg(&data->nav_msg);
-
       s32 TOWms = BDS_TOW_INVALID;
       nav_data_sync_t from_decoder;
       tracker_data_sync_init(&from_decoder);
       if (bds_d2nav(mesid)) {
         TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
-        from_decoder.TOW_ms = TOWms - 60;
+        if (BDS_TOW_INVALID != TOWms) {
+          from_decoder.TOW_ms = TOWms - 60;
+        }
       } else {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
-        from_decoder.TOW_ms = TOWms - 600;
+        if (BDS_TOW_INVALID != TOWms) {
+          from_decoder.TOW_ms = TOWms - 600;
+        }
       }
       from_decoder.bit_polarity = data->nav_msg.bit_polarity;
       tracker_data_sync(channel_info->tracking_channel, &from_decoder);

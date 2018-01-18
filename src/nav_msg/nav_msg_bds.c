@@ -21,6 +21,7 @@
 #include <libswiftnav/logging.h>
 
 #include "nav_msg/nav_msg_bds.h"
+#include "timing/timing.h"
 
 /* `11 1000 1001 0` 11 bit modified Barker code from BDS ICD v2.1 English p.23
  */
@@ -49,9 +50,26 @@ static const u16 bch_table[16] = {[0b0000] = 0b000000000000000,
                                   [0b1110] = 0b000100000000000,
                                   [0b1111] = 0b001000000000000};
 
+static const float bds_ura_table[16] = {[0] = 2.0f,
+                                        [1] = 2.8f,
+                                        [2] = 4.0f,
+                                        [3] = 5.7f,
+                                        [4] = 8.0f,
+                                        [5] = 11.3f,
+                                        [6] = 16.0f,
+                                        [7] = 32.0f,
+                                        [8] = 64.0f,
+                                        [9] = 128.0f,
+                                        [10] = 256.0f,
+                                        [11] = 512.0f,
+                                        [12] = 1024.0f,
+                                        [13] = 2048.0f,
+                                        [14] = 4096.0f,
+                                        [15] = 8192.0f};
+
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval);
 static void pack_buffer(nav_msg_bds_t *n);
-
+//~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
 static void deint(u32 *hi, u32 *lo, const u32 dw);
 static bool bch1511(u32 *pdw);
 static bool crc_check(nav_msg_bds_t *n);
@@ -98,7 +116,7 @@ void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn) {
  * \param n BDS message decoder object
  */
 void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
-  memset(n->frame_words, 0, sizeof(n->frame_words));
+  memset(n->page_words, 0, sizeof(n->page_words));
 }
 
 /** Navigation message decoding update.
@@ -139,7 +157,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     if (!crc_check(n)) {
       return false;
     }
-
+    /* subframe start found */
     n->subfr_sync = true;
     n->subfr_bit_index = n->bit_index;
     n->bit_polarity = (BDS_PREAMBLE == pream_candidate_prev)
@@ -155,7 +173,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     } else { /* should be the subframe start */
       /* check if it repeats (including polarity) on second TLM */
       if (pream_candidate_prev != pream_candidate_last) {
-        /* reset everything */
+        /* reset subframe sync and polarity */
         n->subfr_sync = false;
         n->bit_polarity = BDS_BIT_POLARITY_UNKNOWN;
         log_info("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
@@ -188,44 +206,55 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
 s32 bds_d1_process_subframe(nav_msg_bds_t *n,
                             const me_gnss_signal_t mesid,
                             bds_d1_decoded_data_t *data) {
-  (void)mesid;
-  (void)data;
-
-  s32 TOW_s = (((n->frame_words[0]) >> 4) & 0xffU) << 12;
-  TOW_s |= (((n->frame_words[1]) >> 18) & 0x3FFU);
-  if (TOW_s > 86400) {
+  u8 subfr = 1;
+  for (u8 s=2; s<=BDS_SUBFRAME_MAX; s++) {
+    if ((n->subfr_times[subfr-1]) < (n->subfr_times[s-1])) {
+      subfr = s;
+    }
+  }
+  u32 *subfr_words = &(n->page_words[(subfr-1)*BDS_WORD_SUBFR]);
+  s32 TOW_s = (((subfr_words[0]) >> 4) & 0xffU) << 12;
+  TOW_s |= ((subfr_words[1]) >> 18) & 0x3FFU;
+  if (TOW_s > WEEK_SECS) {
     return BDS_TOW_INVALID;
   }
 
-  u8 fraid = ((n->frame_words[0]) >> 12) & 0x7U;
-  if ((fraid < 1) || (fraid > 5)) {
-    return BDS_TOW_INVALID;
+  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
+    process_d1_fraid1(n, mesid, data);
+    process_d1_fraid2(n, mesid, data);
+    process_d1_fraid3(n, mesid, data);
   }
 
-  switch (fraid) {
-    case 1:
-      process_d1_fraid1(n, mesid, data);
-      break;
+  if (0x3ffULL == ((n->goodwords_mask >> 10) & 0x3ffULL)) {
+    process_d1_fraid4(n, mesid, data);
+  }
 
-    case 2:
-      process_d1_fraid2(n, mesid, data);
-      break;
+  if (0x3ffULL == ((n->goodwords_mask) & 0x3ffULL)) {
+    process_d1_fraid5(n, mesid, data);
+  }
 
-    case 3:
-      process_d1_fraid3(n, mesid, data);
-      break;
-
-    case 4:
-      process_d1_fraid4(n, mesid, data);
-      break;
-
-    case 5:
-      process_d1_fraid5(n, mesid, data);
-      break;
-
-    default:
-      return BDS_TOW_INVALID;
-      break;
+  /* debug information */
+  if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
+    utc_tm date;
+    ephemeris_t *e = &(data->ephemeris);
+    ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+    make_utc_tm(&(k->toc), &date);
+    log_info("C%02" PRIu8
+             " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+             "%19.11E%19.11E%19.11E  ",
+             mesid.sat,
+             date.year, date.month, date.month_day, date.hour, date.minute, date.second_int,
+             k->af0, k->af1, k->af2);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ", (double) k->iode, k->crs, k->dn, k->m0);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ", (double) e->toe.tow, k->cic, k->omega0, -k->cis);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ", k->inc, k->crc, k->w, k->omegadot);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ", k->inc_dot, 0.0, (double) e->toe.wn - BDS_WEEK_TO_GPS_WEEK, 0.0);
+    log_info("    %19.11E%19.11E%19.11E%19.11E  ", e->ura, (double) e->health_bits, k->tgd, k->tgd);
+    log_info("    %19.11E%19.11E ", rint(TOW_s), (double) k->iodc);
+    n->goodwords_mask = 0;
+  } else {
+    //~ log_info("C%02" PRIu8 " goodwords %013" PRIx64, mesid.sat, n->goodwords_mask);
   }
 
   return TOW_s * 1000;
@@ -245,14 +274,31 @@ s32 bds_d2_process_subframe(nav_msg_bds_t *n,
   (void)mesid;
   (void)data;
 
-  s32 TOW_s = (((n->frame_words[0]) >> 4) & 0xffU) << 12;
-  TOW_s |= (((n->frame_words[1]) >> 18) & 0x3FFU);
-  if (TOW_s > 86400) {
+  s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
+  TOW_s |= (((n->page_words[1]) >> 18) & 0x3FFU);
+  if (TOW_s > WEEK_SECS) {
     return BDS_TOW_INVALID;
   }
 
   return TOW_s * 1000;
 }
+
+/*
+static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr) {
+  char bitstream[256];
+  char tempstr[64];
+  const u32 *subfr_words = &(n->page_words[(subfr-1)*BDS_WORD_SUBFR]);
+  u32 tow = (((subfr_words[0] >> 4) << 12) |
+             ((subfr_words[1] >> 18) & 0xfffU)) &
+            0xfffffU;
+  sprintf(bitstream, " 3 %02d %6" PRIu32 "  ", n->prn, tow);
+  for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
+    sprintf(tempstr, "%08" PRIx32 " ", subfr_words[k]);
+    strcat(bitstream, tempstr);
+  }
+  log_info("%s", bitstream);
+}
+*/
 
 /** Shifts bits properly in the bit array */
 static void dw30_1bit_pushr(u32 *words, u8 numel, bool bitval) {
@@ -306,11 +352,11 @@ static bool bch1511(u32 *pdw) {
 
 /** BCH(15,11) check on all received bits */
 static bool crc_check(nav_msg_bds_t *n) {
-  u32 goodwords = 0;
+  u32 good_words = 0;
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     u32 hi, lo;
     bool good;
-    if (k == 0) {
+    if (0 == k) {
       hi = (n->subframe_bits[k] >> 15) & 0x7fff;
       lo = (n->subframe_bits[k]) & 0x7fff;
       good = bch1511(&lo);
@@ -319,15 +365,15 @@ static bool crc_check(nav_msg_bds_t *n) {
       good = bch1511(&hi) && bch1511(&lo);
     }
     if (good) {
-      goodwords |= (1 << k);
+      good_words |= (1 << k);
     }
     n->subframe_bits[k] = (hi << 15) | lo;
-    /* with this ^ the deinterleave is done, but location of CRC in the 30-bits
-     * is still wrong */
+    /* with this ^ the deinterleave is done, but location of 4+4 bit CRC
+     * in the 30-bits is still wrong */
   }
   /* check if all words passed the CRC check */
-  if (goodwords != BDS_WORD_SUBFR_MASK) {
-    log_info("C%02" PRIu8 " goodwords %" PRIx32, n->prn, goodwords);
+  if (good_words != BDS_WORD_SUBFR_MASK) {
+    log_info("C%02" PRIu8 " good_words %08" PRIx32, n->prn, good_words);
     return false;
   }
   return true;
@@ -336,111 +382,182 @@ static bool crc_check(nav_msg_bds_t *n) {
 /** pack CRC bits at the end as 11a+11b+4a+4b */
 static u32 packdw(const u32 dw) {
   return (((dw >> 19) & 0x7ff) << 19) | (((dw >> 4) & 0x7ff) << 8) |
-         (((dw >> 15) & 0x00f) << 4) | (((dw) & 0x00f));
+         (((dw >> 15) & 0x00f) << 4) | (((dw)&0x00f));
 }
 
 /** Deinterleaves signal in subframe structure */
 static void pack_buffer(nav_msg_bds_t *n) {
-  u32 tmp = 0;
+  u32 tmp = n->subframe_bits[0];
   bool flip = (BDS_BIT_POLARITY_INVERTED == (n->bit_polarity)) ? true : false;
+  tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
+  u8 subfr = (tmp >> 12) & 0x7;
+  if ((subfr < 1) || (subfr > 5)) {
+    log_error("C%02" PRIu8 " subframe %" PRIu8 "error", n->prn, subfr);
+    return;
+  }
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     tmp = n->subframe_bits[k];
     tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
-    n->frame_words[k] = (k == 0) ? tmp : packdw(tmp);
+    n->page_words[(subfr-1)*BDS_WORD_SUBFR + k] = (0 == k) ? tmp : packdw(tmp);
   }
+  /* store correctly decoded words into mask */
+  n->goodwords_mask |= (0x3ffULL << (10*(5-subfr)));
+  /* store subframe rx time */
+  n->subfr_times[subfr-1] = timing_getms();
+  /* debug message to verify decoder output */
+  //~ dump_navmsg(n, subfr);
 }
 
 static void process_d1_fraid1(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
                               bds_d1_decoded_data_t *data) {
-  (void)n;
-  (void)mesid;
-  (void)data;
+  ephemeris_t *e = &(data->ephemeris);
+  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  ionosphere_t *i = &(data->iono);
 
-  /*
-  u8 sath1 = (((n->frame_words[1]) >> 17) & 0x1);
-  u8 aodc = (((n->frame_words[1]) >> 12) & 0x1f);
-  u8 urai = (((n->frame_words[1]) >>  8) & 0xf);
-  u16 weekno = (((n->frame_words[2]) >> 17) & 0x1fff);
-  u32 toc = (((n->frame_words[2]) >>  8) & 0x1ff) <<  8;
-  toc    |= (((n->frame_words[3]) >> 22) & 0xff);
-  u16 tgd1 = (((n->frame_words[3]) >> 12) & 0x3ff);
-  u16 tgd2 = (((n->frame_words[3]) >>  8) & 0xf) << 6;
-  tgd2    |= (((n->frame_words[4]) >> 24) & 0x3f);
-  u8 alpha[4];
-  alpha[0] = (((n->frame_words[4]) >> 16) & 0xff);
-  alpha[1] = (((n->frame_words[4]) >>  8) & 0xff);
-  alpha[2] = (((n->frame_words[5]) >> 22) & 0xff);
-  alpha[3] = (((n->frame_words[5]) >> 14) & 0xff);
-  u8 beta[4];
-  beta[0]  = (((n->frame_words[5]) >>  8) & 0x3f) << 2;
-  beta[0] |= (((n->frame_words[6]) >> 28) & 0x3);
-  beta[1]  = (((n->frame_words[6]) >> 20) & 0xff);
-  beta[2]  = (((n->frame_words[6]) >> 12) & 0xff);
-  beta[3]  = (((n->frame_words[6]) >>  8) & 0xf) << 4;
-  beta[3] |= (((n->frame_words[7]) >> 26) & 0xf);
+  u8 sath1 = (((n->page_words[1]) >> 17) & 0x1);
+  u8 aodc = (((n->page_words[1]) >> 12) & 0x1f);
+  u8 urai = (((n->page_words[1]) >> 8) & 0xf);
+  u16 weekno = (((n->page_words[2]) >> 17) & 0x1fff);
+  u32 toc = (((n->page_words[2]) >> 8) & 0x1ff) << 8;
+  toc |= (((n->page_words[3]) >> 22) & 0xff);
+  u16 tgd1 = (((n->page_words[3]) >> 12) & 0x3ff);
+  u16 tgd2 = (((n->page_words[3]) >> 8) & 0xf) << 6;
+  tgd2 |= (((n->page_words[4]) >> 24) & 0x3f);
+  s8 alpha[4];
+  alpha[0] = (((n->page_words[4]) >> 16) & 0xff);
+  alpha[1] = (((n->page_words[4]) >> 8) & 0xff);
+  alpha[2] = (((n->page_words[5]) >> 22) & 0xff);
+  alpha[3] = (((n->page_words[5]) >> 14) & 0xff);
+  s8 beta[4];
+  beta[0] = (((n->page_words[5]) >> 8) & 0x3f) << 2;
+  beta[0] |= (((n->page_words[6]) >> 28) & 0x3);
+  beta[1] = (((n->page_words[6]) >> 20) & 0xff);
+  beta[2] = (((n->page_words[6]) >> 12) & 0xff);
+  beta[3] = (((n->page_words[6]) >> 8) & 0xf) << 4;
+  beta[3] |= (((n->page_words[7]) >> 26) & 0xf);
   u32 a[3];
-  a[2]  = (((n->frame_words[7]) >> 15) & 0x7ff);
-  a[0]  = (((n->frame_words[7]) >>  8) & 0x7f) << 17;
-  a[0] |= (((n->frame_words[8]) >> 13) & 0x7ffff);
-  a[1]  = (((n->frame_words[8]) >>  8) & 0x1f) << 17;
-  a[1] |= (((n->frame_words[9]) >> 13) & 0x7ffff);
-  u8 aode = (((n->frame_words[9]) >>  8) & 0x1f);
-  */
+  a[2] = (((n->page_words[7]) >> 15) & 0x7ff);
+  a[0] = (((n->page_words[7]) >> 8) & 0x7f) << 17;
+  a[0] |= (((n->page_words[8]) >> 13) & 0x7ffff);
+  a[1] = (((n->page_words[8]) >> 8) & 0x1f) << 17;
+  a[1] |= (((n->page_words[9]) >> 13) & 0x1ffff);
+  u8 aode = (((n->page_words[9]) >> 8) & 0x1f);
+
+  /* Beidou specific data */
+  data->aodc = aodc;
+  data->aode = aode;
+  /* Ephemeris params */
+  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  e->health_bits = sath1;
+  e->ura = bds_ura_table[urai];
+  e->toe.wn = BDS_WEEK_TO_GPS_WEEK + weekno;
+  /* Keplerian params */
+  k->tgd = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
+  k->toc.wn = e->toe.wn;
+  k->toc.tow = (double) toc * C_2P3;
+  k->af0 = BITS_SIGN_EXTEND_32(24, a[0]) * C_1_2P33;
+  k->af1 = BITS_SIGN_EXTEND_32(22, a[1]) * C_1_2P50;
+  k->af2 = BITS_SIGN_EXTEND_32(11, a[2]) * C_1_2P66;
+  k->iodc = 1;
+  k->iode = 1;
+  /* IONO params */
+  i->toa.wn = e->toe.wn;
+  i->a0 = (double)(alpha[0] * C_1_2P30);
+  i->a1 = (double)(alpha[1] * C_1_2P27);
+  i->a2 = (double)(alpha[2] * C_1_2P24);
+  i->a3 = (double)(alpha[3] * C_1_2P24);
+  i->b0 = (double)(beta[0] * C_2P11);
+  i->b1 = (double)(beta[1] * C_2P14);
+  i->b2 = (double)(beta[2] * C_2P16);
+  i->b3 = (double)(beta[3] * C_2P16);
 }
 
 static void process_d1_fraid2(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
                               bds_d1_decoded_data_t *data) {
-  (void)n;
-  (void)mesid;
-  (void)data;
+  ephemeris_t *e = &(data->ephemeris);
+  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
 
-  /*
-  u32 deltan = (((n->frame_words[1]) >>  8) & 0x3ff) <<  6;
-  deltan    |= (((n->frame_words[2]) >> 24) & 0x3f);
-  u32 cuc = (((n->frame_words[2]) >>  8) & 0xffff) <<  2;
-  cuc    |= (((n->frame_words[3]) >> 28) & 0x3);
-  u32 m0 = (((n->frame_words[3]) >>  8) & 0xfffff) << 12;
-  m0    |= (((n->frame_words[4]) >> 18) & 0xfff);
-  u32 ecc = (((n->frame_words[4]) >>  8) & 0x3ff) << 22;
-  ecc    |= (((n->frame_words[5]) >>  8) & 0x3fffff);
-  u32 cus = (((n->frame_words[6]) >> 12) & 0x3ffff);
-  u32 crc = (((n->frame_words[6]) >>  8) & 0xf) << 14;
-  crc    |= (((n->frame_words[7]) >> 16) & 0x3fff);
-  u32 crs = (((n->frame_words[7]) >>  8) & 0xff) << 10;
-  crs    |= (((n->frame_words[8]) >> 20) & 0x3ff);
-  u32 sqrta = (((n->frame_words[8]) >>  8) & 0xfff) << 20;
-  sqrta    |= (((n->frame_words[9]) >> 10) & 0xfffff);
-  u32 toe_msb = (((n->frame_words[9]) >>  8) & 0x3);
-  */
+  u32 deltan = (((n->page_words[11]) >>  8) & 0x3ff) <<  6;
+  deltan    |= (((n->page_words[12]) >> 24) & 0x3f);
+  u32 cuc = (((n->page_words[12]) >>  8) & 0xffff) <<  2;
+  cuc    |= (((n->page_words[13]) >> 28) & 0x3);
+  u32 m0 = (((n->page_words[13]) >>  8) & 0xfffff) << 12;
+  m0    |= (((n->page_words[14]) >> 18) & 0xfff);
+  u32 ecc = (((n->page_words[14]) >>  8) & 0x3ff) << 22;
+  ecc    |= (((n->page_words[15]) >>  8) & 0x3fffff);
+  u32 cus = (((n->page_words[16]) >> 12) & 0x3ffff);
+  u32 crc = (((n->page_words[16]) >>  8) & 0xf) << 14;
+  crc    |= (((n->page_words[17]) >> 16) & 0x3fff);
+  u32 crs = (((n->page_words[17]) >>  8) & 0xff) << 10;
+  crs    |= (((n->page_words[18]) >> 20) & 0x3ff);
+  u32 sqrta = (((n->page_words[18]) >>  8) & 0xfff) << 20;
+  sqrta    |= (((n->page_words[19]) >> 10) & 0xfffff);
+  u32 toe_msb = (((n->page_words[19]) >>  8) & 0x3);
+
+  /* Beidou specific data */
+  data->split_toe &= ~(0x3 << 15);
+  data->split_toe |= (toe_msb << 15);
+  data->split_toe_mask |= (0x3 << 15);
+  /* Ephemeris params */
+  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  /* Keplerian params */
+  k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43 * M_PI;
+  k->cuc = BITS_SIGN_EXTEND_32(18, cuc) * C_1_2P31;
+  k->m0 = BITS_SIGN_EXTEND_32(32, m0) * C_1_2P31 * M_PI;
+  k->ecc = ecc * C_1_2P33;
+  k->cus = BITS_SIGN_EXTEND_32(18, cus) * C_1_2P31;
+  k->crc = BITS_SIGN_EXTEND_32(18, crc) * C_1_2P6;
+  k->crs = BITS_SIGN_EXTEND_32(18, crs) * C_1_2P6;
+  k->sqrta = sqrta * C_1_2P19;
 }
 
 static void process_d1_fraid3(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
                               bds_d1_decoded_data_t *data) {
-  (void)n;
-  (void)mesid;
-  (void)data;
+  ephemeris_t *e = &(data->ephemeris);
+  ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+  double new_toe;
 
-  /*
-  u32 toe_lsb = (((n->frame_words[1]) >>  8) & 0x3ff) <<  5;
-  toe_lsb    |= (((n->frame_words[2]) >> 25) & 0x1f);
-  u32 i0 = (((n->frame_words[2]) >>  8) & 0x1ffff) << 15;
-  i0    |= (((n->frame_words[3]) >> 15) & 0x7fff);
-  u32 cic = (((n->frame_words[3]) >>  8) & 0x7f) << 11;
-  cic    |= (((n->frame_words[4]) >> 19) & 0x7ff);
-  u32 omegadot = (((n->frame_words[4]) >>  8) & 0x7ff) << 13;
-  omegadot    |= (((n->frame_words[5]) >> 17) & 0x1fff);
-  u32 cis = (((n->frame_words[5]) >>  8) & 0x1ff) <<  9;
-  cis    |= (((n->frame_words[6]) >> 21) & 0x1ff);
-  u32 idot = (((n->frame_words[6]) >>  8) & 0x1fff) <<  1;
-  idot    |= (((n->frame_words[7]) >> 29) & 0x1);
-  u32 omegazero = (((n->frame_words[7]) >>  8) & 0x1fffff) << 11;
-  omegazero    |= (((n->frame_words[8]) >> 19) & 0x7ff);
-  u32 omega = (((n->frame_words[8]) >>  8) & 0x7ff) << 21;
-  omega    |= (((n->frame_words[9]) >>  9) & 0x1fffff);
-  */
+  u32 toe_lsb = (((n->page_words[21]) >>  8) & 0x3ff) <<  5;
+  toe_lsb    |= (((n->page_words[22]) >> 25) & 0x1f);
+  u32 i0 = (((n->page_words[22]) >>  8) & 0x1ffff) << 15;
+  i0    |= (((n->page_words[23]) >> 15) & 0x7fff);
+  u32 cic = (((n->page_words[23]) >>  8) & 0x7f) << 11;
+  cic    |= (((n->page_words[24]) >> 19) & 0x7ff);
+  u32 omegadot = (((n->page_words[24]) >>  8) & 0x7ff) << 13;
+  omegadot    |= (((n->page_words[25]) >> 17) & 0x1fff);
+  u32 cis = (((n->page_words[25]) >>  8) & 0x1ff) <<  9;
+  cis    |= (((n->page_words[26]) >> 21) & 0x1ff);
+  u32 idot = (((n->page_words[26]) >>  8) & 0x1fff) <<  1;
+  idot    |= (((n->page_words[27]) >> 29) & 0x1);
+  u32 omegazero = (((n->page_words[27]) >>  8) & 0x1fffff) << 11;
+  omegazero    |= (((n->page_words[28]) >> 19) & 0x7ff);
+  u32 omega = (((n->page_words[28]) >>  8) & 0x7ff) << 21;
+  omega    |= (((n->page_words[29]) >>  9) & 0x1fffff);
+
+  /* Beidou specific data */
+  data->split_toe &= ~(0x7ff);
+  data->split_toe |= toe_lsb;
+  data->split_toe_mask |= (0x7ff);
+  /* Ephemeris params */
+  e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  if (data->split_toe_mask) {
+    new_toe = data->split_toe * C_2P3;
+    if (e->toe.tow != new_toe) {
+      data->split_toe_mask = 0;
+    }
+    e->toe.tow = new_toe;
+  }
+  /* Keplerian params */
+  k->inc = BITS_SIGN_EXTEND_32(32, i0) * C_1_2P31 * M_PI;
+  k->cic = BITS_SIGN_EXTEND_32(18, cic) * C_1_2P31;
+  k->omegadot = BITS_SIGN_EXTEND_32(24, omegadot) * C_1_2P43 * M_PI;
+  k->cis = BITS_SIGN_EXTEND_32(32, cis) * C_1_2P31;
+  k->inc_dot = BITS_SIGN_EXTEND_32(14, idot) * C_1_2P43 * M_PI;
+  k->omega0 = BITS_SIGN_EXTEND_32(32, omegazero) * C_1_2P31 * M_PI;
+  k->w = BITS_SIGN_EXTEND_32(32, omega) * C_1_2P31 * M_PI;
 }
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
@@ -454,11 +571,7 @@ static void process_d1_common_alm(nav_msg_bds_t *n,
 static void process_d1_fraid4(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
                               bds_d1_decoded_data_t *data) {
-  (void)n;
-  (void)mesid;
-  (void)data;
-
-  u32 pnum = (((n->frame_words[1]) >> 10) & 0x7f);
+  u32 pnum = (((n->page_words[31]) >> 10) & 0x7f);
 
   if ((pnum == 0) || (pnum > 24)) return;
 
@@ -468,11 +581,7 @@ static void process_d1_fraid4(nav_msg_bds_t *n,
 static void process_d1_fraid5(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
                               bds_d1_decoded_data_t *data) {
-  (void)n;
-  (void)mesid;
-  (void)data;
-
-  u32 pnum = (((n->frame_words[1]) >> 10) & 0x7f);
+  u32 pnum = (((n->page_words[41]) >> 10) & 0x7f);
 
   if ((pnum == 0) || (pnum > 24)) return;
 
