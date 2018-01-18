@@ -114,11 +114,21 @@ static void post_observations(u8 n,
    * observation from the mailbox for no good reason. */
 
   msg_t ret;
-  obss_t *obs = chPoolAlloc(&time_matched_obs_buff_pool);
+
+  /* Make atomic  */
+  chSysLock();
+  obss_t *obs = chPoolAllocI(&time_matched_obs_buff_pool);
 
   if (NULL == obs) {
-    /* Should not be a possible state as the consumer is higher priority */
-    assert(!"Rover obs pool exhausted!");
+    /* Rover obs pool is exhausted, grab a buffer from the mailbox instead, i.e.
+     * overwrite the oldest item in the queue.  Mailbox is guaranteed to have
+     * items as context switch is not possible within syslock. */
+    ret = chMBFetchS(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
+
+    if (MSG_OK != ret) {
+      /* Should not be a possible state */
+      assert(!"Rover obs pool exhausted and mailbox empty!");
+    }
   }
 
   obs->tor = *t;
@@ -144,17 +154,20 @@ static void post_observations(u8 n,
     obs->soln.velocity_valid = 0;
   }
 
-  ret = chMBPost(&time_matched_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+  ret = chMBPostS(&time_matched_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+
   if (ret != MSG_OK) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
      * are equal then we should have already handled the case where the
      * mailbox is full when we handled the case that the pool was full.
      * */
+    chSysUnlock();
     log_error("Mailbox should have space!");
     chPoolFree(&time_matched_obs_buff_pool, obs);
   } else {
     last_time_matched_rover_obs_post = *t;
+    chSysUnlock();
   }
 }
 
@@ -1122,28 +1135,27 @@ static void time_matched_obs_thread(void *arg) {
                                     starling_frequency);
     chMtxUnlock(&time_matched_filter_manager_lock);
 
-    /* Get the oldest rover obs */
-    msg_t rover_ret =
-        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, 1000);
+    /* Get the oldest base obs */
+    msg_t base_ret =
+        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
 
-    if (MSG_OK != rover_ret) {
-      /* No base rover available, no use for the existing base obs,
-       * flush the mailbox to make room for new base obs */
-      chMBReset(&base_obs_mailbox);
-
-      if (NULL != obss) {
-        chPoolFree(&time_matched_obs_buff_pool, obss);
+    if (MSG_OK != base_ret) {
+      /* No base obs available */
+      if (NULL != base_obs) {
+        chPoolFree(&base_obs_buff_pool, base_obs);
       }
       continue;
     }
 
-    /* Get the oldest base obs */
-    msg_t base_ret =
-        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, TIME_IMMEDIATE);
+    /* Get the oldest rover obs */
+    msg_t rover_ret =
+        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE);
 
-    if (MSG_OK != base_ret) {
-      /* No base obs available, discard rover obs */
-      chPoolFree(&time_matched_obs_buff_pool, obss);
+    if (MSG_OK != rover_ret) {
+      /* No rover obs available */
+      if (NULL != obss) {
+        chPoolFree(&time_matched_obs_buff_pool, obss);
+      }
       if (NULL != base_obs) {
         chPoolFree(&base_obs_buff_pool, base_obs);
       }
