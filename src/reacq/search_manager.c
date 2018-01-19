@@ -48,6 +48,7 @@ void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
 u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx);
+bool is_constellation_enabled(constellation_t con);
 
 /**
  * The function calculates how many SV of defined GNSS are in track
@@ -67,6 +68,7 @@ static u8 sv_track_count(acq_jobs_state_t *jobs_data, constellation_t gnss) {
       sv_tracked++;
     }
   }
+  log_info("SBAS in track %u", sv_tracked);
   return sv_tracked;
 }
 
@@ -154,148 +156,66 @@ void sm_init(acq_jobs_state_t *data) {
   data->constellation = CONSTELLATION_INVALID;
 }
 
-// static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
-//  u32 i;
-//}
-
-/** Checks if deep searches need to run for GPS SV
+/** Checks if deep searches need to run for SV
  *
  * \param jobs_data pointer to job data
  *
  * \return none
  */
-static void sm_deep_search_run_gps(acq_jobs_state_t *jobs_data) {
-  u32 i;
-  u16 idx;
-  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
-    me_gnss_signal_t mesid = deep_job->mesid;
-    gnss_signal_t sid = deep_job->sid;
+static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
+  assert(jobs_data != NULL);
 
-    bool visible, known;
+  constellation_t con = jobs_data->constellation;
 
-    assert(mesid_valid(mesid));
-    assert(sid_valid(sid));
-    assert(IS_GPS(mesid));
-
-    assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
-
-    /* Initialize jobs to not run */
-    deep_job->needs_to_run = false;
-
-    /* Check if jobs need to run */
-    if (mesid_is_tracked(mesid)) {
-      continue;
-    }
-
-    sm_get_visibility_flags(sid, &visible, &known);
-    visible = visible && known;
-
-    if (visible) {
-      deep_job->cost_hint = ACQ_COST_MIN;
-      deep_job->cost_delta = 0;
-      deep_job->needs_to_run = true;
-      deep_job->oneshot = false;
-      log_info_sid(sid, "RUN");
-    }
-  } /* loop SVs */
-}
-
-/** Checks if deep searches need to run for GLO SV
- *
- * \param jobs_data pointer to job data
- *
- * \return none
- */
-static void sm_deep_search_run_glo(acq_jobs_state_t *jobs_data) {
-  if (!is_glo_enabled()) {
+  if (!is_constellation_enabled(con)) {
     return;
+  }
+
+  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
+  u32 sbas_mask = 0;
+  if (CONSTELLATION_SBAS == con) {
+    sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_DEEP_SEARCH);
+    if (0 == sbas_mask) {
+      return;
+    }
   }
 
   u32 i;
   u16 idx;
   u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+
   for (i = 0; i < num_sv; i++) {
+    if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
+      /* don't set job for those SBAS SV which are not in our SBAS range */
+      continue;
+    }
+
     acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
-    me_gnss_signal_t *mesid = &deep_job->mesid;
+    me_gnss_signal_t mesid = deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
-    u16 glo_fcn = GLO_FCN_UNKNOWN;
+
     bool visible = false;
     bool known = false;
 
     /* Initialize jobs to not run */
     deep_job->needs_to_run = false;
 
-    if (glo_map_valid(sid)) {
-      glo_fcn = glo_map_get_fcn(sid);
-
-      *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-
-      assert(mesid_valid(*mesid));
-      assert(sid_valid(sid));
-      assert(IS_GLO(*mesid));
-      assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
-
-      /* Check if jobs need to run */
-      if (mesid_is_tracked(*mesid)) {
-        continue;
+    if (CONSTELLATION_GLO == con) {
+      u16 glo_fcn = GLO_FCN_UNKNOWN;
+      if (glo_map_valid(sid)) {
+        glo_fcn = glo_map_get_fcn(sid);
+        mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+        assert(IS_GLO(mesid));
       }
-
-      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
-      visible = visible && known;
+    } else if (CONSTELLATION_GPS == con){
+      assert(IS_GPS(mesid));
+    } else if (CONSTELLATION_SBAS == con) {
+      assert(IS_SBAS(mesid));
     }
-
-    if (visible) {
-      deep_job->cost_hint = ACQ_COST_MIN;
-      deep_job->cost_delta = 0;
-      deep_job->needs_to_run = true;
-      deep_job->oneshot = false;
-      log_info_sid(sid, "RUN");
-    } else if (!glo_map_valid(sid)) {
-      deep_job->cost_hint = ACQ_COST_AVG;
-      deep_job->cost_delta = 0;
-      deep_job->needs_to_run = true;
-      deep_job->oneshot = false;
-      log_info_sid(sid, "RUN");
-    }
-  } /* loop SVs */
-}
-
-/** Checks if deep searches need to run for SBAS SV
- *
- * \param jobs_data pointer to job data
- *
- * \return none
- */
-static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
-  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
-  u32 sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_DEEP_SEARCH);
-  if (0 == sbas_mask) {
-    return;
-  }
-  u32 i;
-  u16 idx;
-  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
-  for (i = 0; i < num_sv; i++) {
-    if (!((sbas_mask >> i) & 1)) {
-      /* don't set job for those SBAS SV which are not in our SBAS range */
-      continue;
-    }
-    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
-    me_gnss_signal_t mesid = deep_job->mesid;
-    gnss_signal_t sid = deep_job->sid;
-
-    bool visible, known;
 
     assert(mesid_valid(mesid));
     assert(sid_valid(sid));
-    assert(IS_SBAS(mesid));
-
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
-
-    /* Initialize jobs to not run */
-    deep_job->needs_to_run = false;
 
     /* Check if jobs need to run */
     if (mesid_is_tracked(mesid)) {
@@ -303,7 +223,6 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
     }
 
     sm_get_visibility_flags(sid, &visible, &known);
-
     visible = visible && known;
 
     if (visible) {
@@ -311,15 +230,20 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
       deep_job->cost_delta = 0;
       deep_job->needs_to_run = true;
       deep_job->oneshot = false;
-      sbas_limit--;
     }
-    if (0 == sbas_limit) {
-      return;
+
+    if (CONSTELLATION_GLO == con && !glo_map_valid(sid)) {
+      deep_job->cost_hint = ACQ_COST_AVG;
+    } else if (CONSTELLATION_SBAS == con) {
+      sbas_limit--;
+      if (0 == sbas_limit) {
+        return;
+      }
     }
   } /* loop SVs */
 }
 
-/** Checks if fallback searches need to run for GPS SV
+/** Checks if fallback searches need to run for SV
  *
  * \param jobs_data pointer to job data
  * \param now_ms current time (ms)
@@ -327,27 +251,64 @@ static void sm_deep_search_run_sbas(acq_jobs_state_t *jobs_data) {
  *
  * \return none
  */
-static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
-                                       u64 now_ms,
-                                       u64 lgf_age_ms) {
+static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
+                                   u64 now_ms,
+                                   u64 lgf_age_ms) {
+  assert(jobs_data != NULL);
+
+  constellation_t con = jobs_data->constellation;
+
+  if (!is_constellation_enabled(con)) {
+    return;
+  }
+
+  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
+  u32 sbas_mask = 0;
+  if (CONSTELLATION_SBAS == con) {
+    sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_FALLBACK_SEARCH);
+    if (0 == sbas_mask) {
+      return;
+    }
+  }
+
   u32 i;
   u16 idx;
   u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+
   for (i = 0; i < num_sv; i++) {
+    if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
+      /* don't set job for those SBAS SV which are not in our SBAS range */
+      continue;
+    }
+
     acq_job_t *fallback_job =
         &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
     me_gnss_signal_t mesid = fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
 
-    bool visible, invisible, known;
-
-    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
-
-    assert(mesid_valid(mesid));
-    assert(IS_GPS(mesid));
+    bool visible = false;
+    bool known = false;
+    bool invisible = false;
 
     /* Initialize jobs to not run */
     fallback_job->needs_to_run = false;
+
+    if (CONSTELLATION_GLO == con) {
+      u16 glo_fcn = GLO_FCN_UNKNOWN;
+      if (glo_map_valid(sid)) {
+        glo_fcn = glo_map_get_fcn(sid);
+        mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+        assert(IS_GLO(mesid));
+      }
+    } else if (CONSTELLATION_GPS == con){
+      assert(IS_GPS(mesid));
+    } else if (CONSTELLATION_SBAS == con) {
+      assert(IS_SBAS(mesid));
+    }
+
+    assert(mesid_valid(mesid));
+    assert(sid_valid(sid));
+    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
     /* Check if jobs need to run */
     if (mesid_is_tracked(mesid)) {
@@ -365,94 +326,20 @@ static void sm_fallback_search_run_gps(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      log_info_sid(sid, "RUN");
-    } else if (!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-               now_ms - fallback_job->stop_time >
-                   ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
-      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
-      fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-      log_info_sid(sid, "RUN");
-    } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
-               now_ms - fallback_job->stop_time >
-                   ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
-      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
-      fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-      log_info_sid(sid, "RUN");
-    }
-  } /* loop SVs */
-}
-
-/** Checks if fallback searches need to run for GLO SV
- *
- * \param jobs_data pointer to job data
- * \param now_ms current time (ms)
- * \param lgf_age_ms age of the last good fix (ms)
- *
- * \return none
- */
-static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
-                                       u64 now_ms,
-                                       u64 lgf_age_ms) {
-  if (!is_glo_enabled()) {
-    return;
-  }
-
-  u32 i;
-  u16 idx;
-  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
-  for (i = 0; i < num_sv; i++) {
-    acq_job_t *fallback_job =
-        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
-    me_gnss_signal_t *mesid = &fallback_job->mesid;
-    gnss_signal_t sid = fallback_job->sid;
-    u16 glo_fcn = GLO_FCN_UNKNOWN;
-    bool visible = false;
-    bool invisible = false;
-    bool known = false;
-
-    /* Initialize jobs to not run */
-    fallback_job->needs_to_run = false;
-
-    if (glo_map_valid(sid)) {
-      glo_fcn = glo_map_get_fcn(sid);
-
-      *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-      assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
-      assert(mesid_valid(*mesid));
-      assert(sid_valid(sid));
-      assert(IS_GLO(*mesid));
-
-      /* Check if jobs need to run */
-      if (mesid_is_tracked(*mesid)) {
-        continue;
+      if (CONSTELLATION_SBAS == con) {
+        sbas_limit--;
       }
-
-      sm_get_glo_visibility_flags(sid.sat, &visible, &known);
-      visible = visible && known;
-      invisible = !visible && known;
-    }
-
-    if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-        now_ms - fallback_job->stop_time >
-            ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
-      fallback_job->cost_hint = ACQ_COST_AVG;
-      fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-      log_info_sid(sid, "RUN");
     } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                 now_ms - fallback_job->stop_time >
                     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
-               !glo_map_valid(sid)) {
+               (CONSTELLATION_GLO == con && !glo_map_valid(sid))) {
       fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      log_info_sid(sid, "RUN");
+      if (CONSTELLATION_SBAS == con) {
+        sbas_limit--;
+      }
     } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
@@ -460,85 +347,11 @@ static void sm_fallback_search_run_glo(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      log_info_sid(sid, "RUN");
+      if (CONSTELLATION_SBAS == con) {
+        sbas_limit--;
+      }
     }
-  } /* loop SVs */
-}
-
-/** Checks if fallback searches need to run for SBAS SV
- *
- * \param jobs_data pointer to job data
- * \param now_ms current time (ms)
- * \param lgf_age_ms age of the last good fix (ms)
- *
- * \return none
- */
-static void sm_fallback_search_run_sbas(acq_jobs_state_t *jobs_data,
-                                        u64 now_ms,
-                                        u64 lgf_age_ms) {
-  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
-  u32 sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_FALLBACK_SEARCH);
-  if (0 == sbas_mask) {
-    return;
-  }
-  u32 i;
-  u16 idx;
-  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
-  for (i = 0; i < num_sv; i++) {
-    if (!((sbas_mask >> i) & 1)) {
-      /* don't set job for those SBAS SV which are not in our SBAS range */
-      continue;
-    }
-    acq_job_t *fallback_job =
-        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
-    me_gnss_signal_t mesid = fallback_job->mesid;
-    gnss_signal_t sid = fallback_job->sid;
-
-    bool visible, invisible, known;
-
-    assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
-
-    assert(mesid_valid(mesid));
-    assert(IS_SBAS(mesid));
-
-    /* Initialize jobs to not run */
-    fallback_job->needs_to_run = false;
-
-    /* Check if jobs need to run */
-    if (mesid_is_tracked(mesid)) {
-      continue;
-    }
-
-    sm_get_visibility_flags(sid, &visible, &known);
-    visible = visible && known;
-    invisible = !visible && known;
-
-    if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-        now_ms - fallback_job->stop_time >
-            ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
-      fallback_job->cost_hint = ACQ_COST_AVG;
-      fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-      sbas_limit--;
-    } else if (!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
-               now_ms - fallback_job->stop_time >
-                   ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) {
-      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
-      fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-      sbas_limit--;
-    } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
-               now_ms - fallback_job->stop_time >
-                   ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
-      fallback_job->cost_hint = ACQ_COST_MAX_PLUS;
-      fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
-      fallback_job->needs_to_run = true;
-      fallback_job->oneshot = true;
-      sbas_limit--;
-    }
-    if (0 == sbas_limit) {
+    if (CONSTELLATION_SBAS == con && 0 == sbas_limit) {
       return;
     }
   } /* loop SVs */
@@ -671,21 +484,9 @@ void sm_run(acq_jobs_state_t *jobs_data) {
         MAX(ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS, ACQ_LGF_TIMEOUT_INVIS_MS);
   }
 
-  if (CONSTELLATION_GPS == jobs_data->constellation) {
-    sm_deep_search_run_gps(jobs_data);
-    sm_fallback_search_run_gps(jobs_data, now_ms, lgf_age_ms);
-  } else if (CONSTELLATION_GLO == jobs_data->constellation) {
+  if (CONSTELLATION_GLO == jobs_data->constellation) {
     sm_calc_all_glo_visibility_flags();
-    sm_deep_search_run_glo(jobs_data);
-    sm_fallback_search_run_glo(jobs_data, now_ms, lgf_age_ms);
-  } else if (CONSTELLATION_SBAS == jobs_data->constellation) {
-    sm_deep_search_run_sbas(jobs_data);
-    sm_fallback_search_run_sbas(jobs_data, now_ms, lgf_age_ms);
   }
-  //
-  //  if (CONSTELLATION_GLO == jobs_data->constellation) {
-  //    sm_calc_all_glo_visibility_flags();
-  //  }
-  //  sm_deep_search_run(jobs_data);
-  //  sm_fallback_search_run(jobs_data, now_ms, lgf_age_ms);
+  sm_deep_search_run(jobs_data);
+  sm_fallback_search_run(jobs_data, now_ms, lgf_age_ms);
 }
