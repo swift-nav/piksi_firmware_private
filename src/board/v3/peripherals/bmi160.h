@@ -95,6 +95,53 @@ typedef enum {
 #define BMM150_REG_NXY 0x51
 #define BMM150_REG_NZ 0x52
 
+/* BMI150 Trim Extended Registers */
+#define BMM150_DIG_X1 (0x5D)
+#define BMM150_DIG_Y1 (0x5E)
+#define BMM150_DIG_Z4_LSB (0x62)
+#define BMM150_DIG_Z4_MSB (0x63)
+#define BMM150_DIG_X2 (0x64)
+#define BMM150_DIG_Y2 (0x65)
+#define BMM150_DIG_Z2_LSB (0x68)
+#define BMM150_DIG_Z2_MSB (0x69)
+#define BMM150_DIG_Z1_LSB (0x6A)
+#define BMM150_DIG_Z1_MSB (0x6B)
+#define BMM150_DIG_XYZ1_LSB (0x6C)
+#define BMM150_DIG_XYZ1_MSB (0x6D)
+#define BMM150_DIG_Z3_LSB (0x6E)
+#define BMM150_DIG_Z3_MSB (0x6F)
+#define BMM150_DIG_XY2 (0x70)
+#define BMM150_DIG_XY1 (0x71)
+
+/* BMI150 Computation Constants */
+#define BMM150_INIT_VALUE (0)
+#define BMM150_OVERFLOW_OUTPUT (-32768)
+#define BMM150_OVERFLOW_OUTPUT_S32 ((s32)(-2147483647 - 1))
+#define BMM150_OVERFLOW_OUTPUT_FLOAT (0.0f)
+#define BMM150_FLIP_OVERFLOW_ADCVAL (-4096)
+#define BMM150_HALL_OVERFLOW_ADCVAL (-16384)
+#define BMM150_NEGATIVE_SATURATION_Z (-32767)
+#define BMM150_POSITIVE_SATURATION_Z (32767)
+
+/* Structure containing mag trim parameters */
+typedef struct bmm050_t {
+  s8 dig_x1; /**< trim x1 data */
+  s8 dig_y1; /**< trim y1 data */
+
+  s8 dig_x2; /**< trim x2 data */
+  s8 dig_y2; /**< trim y2 data */
+
+  u16 dig_z1; /**< trim z1 data */
+  s16 dig_z2; /**< trim z2 data */
+  s16 dig_z3; /**< trim z3 data */
+  s16 dig_z4; /**< trim z4 data */
+
+  u8 dig_xy1; /**< trim xy1 data */
+  s8 dig_xy2; /**< trim xy2 data */
+
+  u16 dig_xyz1; /**< trim xyz1 data */
+} bmm150_trim_t;
+
 /* I2C Slave Address of BMM150 */
 #define BMM150_I2C_SLV_ADDR 0x13
 
@@ -116,5 +163,6 @@ void bmi160_mag_set_enabled(bool enabled);
 s16 bmi160_read_temp(void);
 u8 bmi160_read_status(void);
 u8 bmi160_read_error(void);
+bool bmm150_unit_test(void);
 
 #endif

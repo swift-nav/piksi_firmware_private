@@ -18,6 +18,8 @@
 
 static const SPIConfig spi_config = IMU_SPI_CONFIG;
 
+static bmm150_trim_t bmm150_trim_param;
+
 #define SPI_READ_MASK (1 << 7)
 
 /** Open and lock the SPI but that the BMI160 is on. */
@@ -102,12 +104,38 @@ static u8 bmi160_read_bmm150_reg(u8 reg) {
   return data;
 }
 
+static u16 read_bmm150_trim_u16(u8 bmm150_lsb) {
+  u16 ret = bmi160_read_bmm150_reg(bmm150_lsb);
+  ret += bmi160_read_bmm150_reg(bmm150_lsb + 1) << 8;
+  return ret;
+}
+
+/** Read the magnetometer trim settings. These are
+ * set in the factory and only need to be read once */
+static void read_mag_trim(bmm150_trim_t* trim_param) {
+  trim_param->dig_x1 = bmi160_read_bmm150_reg(BMM150_DIG_X1);
+  trim_param->dig_y1 = bmi160_read_bmm150_reg(BMM150_DIG_Y1);
+  trim_param->dig_x2 = bmi160_read_bmm150_reg(BMM150_DIG_X2);
+  trim_param->dig_y2 = bmi160_read_bmm150_reg(BMM150_DIG_Y2);
+  trim_param->dig_z1 = read_bmm150_trim_u16(BMM150_DIG_Z1_LSB);
+  trim_param->dig_z2 = read_bmm150_trim_u16(BMM150_DIG_Z2_LSB);
+  trim_param->dig_z3 = read_bmm150_trim_u16(BMM150_DIG_Z3_LSB);
+  trim_param->dig_z4 = read_bmm150_trim_u16(BMM150_DIG_Z4_LSB);
+  trim_param->dig_xy1 = bmi160_read_bmm150_reg(BMM150_DIG_XY1);
+  trim_param->dig_xy2 = bmi160_read_bmm150_reg(BMM150_DIG_XY2);
+  trim_param->dig_xyz1 = read_bmm150_trim_u16(BMM150_DIG_XYZ1_LSB);
+}
+
 void bmi160_init(void) {
   /* Delay required to prevent IMU initialization conflicting with the
    * front-end configuration, resulting in no signals being acquired or
    * tracked. */
   /* TODO: Investigate why this delay is required. */
   chThdSleepMilliseconds(1);
+
+  if (!bmm150_unit_test()) {
+    log_error("MAG: Compensation Unit Test Failed");
+  }
 
   /* Pulse SS to trigger BMI160 to use SPI */
   bmi160_open_spi();
@@ -144,6 +172,7 @@ void bmi160_init(void) {
     log_error("Mag: BMM150 ID didn't match expected value (%u)", mag_id);
     return;
   }
+  read_mag_trim(&bmm150_trim_param);
   bmi160_mag_set_enabled(false);
 
   /* Configure IMU_INT1, interrupt on data ready */
@@ -210,6 +239,124 @@ void bmi160_new_data_available(bool* new_acc, bool* new_gyro, bool* new_mag) {
   *new_mag = status & BMI160_STATUS_MAG_RDY_Msk;
 }
 
+static s16 bmm150_compensate_X(const bmm150_trim_t* trim_param,
+                               s16 mag_data_x,
+                               u16 data_r) {
+  /* Get the compensated X magnetometer output from the raw mag measurement
+   * and the hall sensor resistance as 12:4 fixed point uT.
+   * Based on https://github.com/BoschSensortec/BMM050_driver */
+  s16 inter_retval = BMM150_INIT_VALUE;
+  /* no overflow */
+  if (mag_data_x != BMM150_FLIP_OVERFLOW_ADCVAL) {
+    if ((data_r != BMM150_INIT_VALUE) &&
+        (trim_param->dig_xyz1 != BMM150_INIT_VALUE)) {
+      inter_retval =
+          ((s16)(((u16)((((s32)trim_param->dig_xyz1) << 14) /
+                        (data_r != BMM150_INIT_VALUE ? data_r
+                                                     : trim_param->dig_xyz1))) -
+                 ((u16)0x4000)));
+    } else {
+      inter_retval = BMM150_OVERFLOW_OUTPUT;
+      return inter_retval;
+    }
+    inter_retval =
+        ((s16)((((s32)mag_data_x) *
+                ((((((((s32)trim_param->dig_xy2) *
+                      ((((s32)inter_retval) * ((s32)inter_retval)) >> 7)) +
+                     (((s32)inter_retval) *
+                      ((s32)(((s16)trim_param->dig_xy1) << 7)))) >>
+                    9) +
+                   ((s32)0x100000)) *
+                  ((s32)(((s16)trim_param->dig_x2) + ((s16)0xA0)))) >>
+                 12)) >>
+               13)) +
+        (((s16)trim_param->dig_x1) << 3);
+  } else {
+    /* overflow */
+    inter_retval = BMM150_OVERFLOW_OUTPUT;
+  }
+  return inter_retval;
+}
+
+static s16 bmm150_compensate_Y(const bmm150_trim_t* trim_param,
+                               s16 mag_data_y,
+                               u16 data_r) {
+  /* Get the compensated Y magnetometer output from the raw mag measurement
+   * and the hall sensor resistance as 12:4 fixed point uT.
+   * Based on https://github.com/BoschSensortec/BMM050_driver */
+  s16 inter_retval = BMM150_INIT_VALUE;
+  /* no overflow */
+  if (mag_data_y != BMM150_FLIP_OVERFLOW_ADCVAL) {
+    if ((data_r != BMM150_INIT_VALUE) &&
+        (trim_param->dig_xyz1 != BMM150_INIT_VALUE)) {
+      inter_retval =
+          ((s16)(((u16)((((s32)trim_param->dig_xyz1) << 14) /
+                        (data_r != BMM150_INIT_VALUE ? data_r
+                                                     : trim_param->dig_xyz1))) -
+                 ((u16)0x4000)));
+    } else {
+      inter_retval = BMM150_OVERFLOW_OUTPUT;
+      return inter_retval;
+    }
+    inter_retval =
+        ((s16)((((s32)mag_data_y) *
+                ((((((((s32)trim_param->dig_xy2) *
+                      ((((s32)inter_retval) * ((s32)inter_retval)) >> 7)) +
+                     (((s32)inter_retval) *
+                      ((s32)(((s16)trim_param->dig_xy1) << 7)))) >>
+                    9) +
+                   ((s32)0x100000)) *
+                  ((s32)(((s16)trim_param->dig_y2) + ((s16)0xA0)))) >>
+                 12)) >>
+               13)) +
+        (((s16)trim_param->dig_y1) << 3);
+  } else {
+    /* overflow */
+    inter_retval = BMM150_OVERFLOW_OUTPUT;
+  }
+  return inter_retval;
+}
+
+static s16 bmm150_compensate_Z(const bmm150_trim_t* trim_param,
+                               s16 mag_data_z,
+                               u16 data_r) {
+  /* Get the compensated Z magnetometer output from the raw mag measurement
+   * and the hall sensor resistance as 12:4 fixed point uT.
+   * Based on https://github.com/BoschSensortec/BMM050_driver */
+  s32 retval = BMM150_INIT_VALUE;
+
+  if ((mag_data_z != BMM150_HALL_OVERFLOW_ADCVAL) /* no overflow */
+      ) {
+    if ((trim_param->dig_z2 != BMM150_INIT_VALUE) &&
+        (trim_param->dig_z1 != BMM150_INIT_VALUE) &&
+        (data_r != BMM150_INIT_VALUE) &&
+        (trim_param->dig_xyz1 != BMM150_INIT_VALUE)) {
+      retval = (((((s32)(mag_data_z - trim_param->dig_z4)) << 15) -
+                 ((((s32)trim_param->dig_z3) *
+                   ((s32)(((s16)data_r) - ((s16)trim_param->dig_xyz1)))) >>
+                  2)) /
+                (trim_param->dig_z2 +
+                 ((s16)(((((s32)trim_param->dig_z1) * ((((s16)data_r) << 1))) +
+                         (1 << 15)) >>
+                        16))));
+    } else {
+      retval = BMM150_OVERFLOW_OUTPUT;
+      return retval;
+    }
+    /* saturate result to +/- 2 microTesla */
+    if (retval > BMM150_POSITIVE_SATURATION_Z) {
+      retval = BMM150_POSITIVE_SATURATION_Z;
+    } else {
+      if (retval < BMM150_NEGATIVE_SATURATION_Z)
+        retval = BMM150_NEGATIVE_SATURATION_Z;
+    }
+  } else {
+    /* overflow */
+    retval = BMM150_OVERFLOW_OUTPUT;
+  }
+  return (s16)retval;
+}
+
 /** Read the sensor data from the BMI160 and BMM150.
  * If parameter mag==NULL skip the mag data (reading mag when not ready causes
  * errors)
@@ -236,7 +383,14 @@ void bmi160_get_data(s16 acc[static 3],
 
   /* Extract data from data buffer */
   if (mag != NULL) {
-    memcpy(mag, &buf[1 + BMI160_DATA_MAG_OFFSET], 2 * 3);
+    s16 mag_raw[4];
+    memcpy(mag_raw, &buf[1 + BMI160_DATA_MAG_OFFSET], 2 * 4);
+    /* Report temperature/bias compensated measurements
+     * 12:4 fixed point
+    */
+    mag[0] = bmm150_compensate_X(&bmm150_trim_param, mag_raw[0], mag_raw[3]);
+    mag[1] = bmm150_compensate_Y(&bmm150_trim_param, mag_raw[1], mag_raw[3]);
+    mag[2] = bmm150_compensate_Z(&bmm150_trim_param, mag_raw[2], mag_raw[3]);
   }
   memcpy(gyro, &buf[1 + BMI160_DATA_GYRO_OFFSET], 2 * 3);
   memcpy(acc, &buf[1 + BMI160_DATA_ACC_OFFSET], 2 * 3);
@@ -257,3 +411,26 @@ u8 bmi160_read_status(void) { return bmi160_read_reg(BMI160_REG_STATUS); }
 
 /** Read the error register from the BMI160. */
 u8 bmi160_read_error(void) { return bmi160_read_reg(BMI160_REG_ERR_REG); }
+
+bool bmm150_unit_test(void) {
+  /* Returns true if magnetometer compensation calculations match expectation
+   * Float: x: -21.812500 y: 19.937500 z: 75.687500
+   * Fixed: x: -349 y: 319 z: 1211
+   * Based on:
+   * https://drive.google.com/open?id=0B8rYj-Dy3tcDM3I1bmhWS05wblhpcHZPUkwtRkhvWmg2Wjdn
+   */
+  const s16 raw_data_x = -60;
+  const s16 raw_data_y = 55;
+  const s16 raw_data_z = 202;
+  const s16 raw_data_r = 6828;
+  const bmm150_trim_t dummy_bmm050_trim = {
+      0, 0, 26, 26, 22752, 737, -1035, 0, 29, -3, 6753};
+  bool passed = true;
+  s16 comp_x = bmm150_compensate_X(&dummy_bmm050_trim, raw_data_x, raw_data_r);
+  s16 comp_y = bmm150_compensate_Y(&dummy_bmm050_trim, raw_data_y, raw_data_r);
+  s16 comp_z = bmm150_compensate_Z(&dummy_bmm050_trim, raw_data_z, raw_data_r);
+  passed &= comp_x == -349;
+  passed &= comp_y == 319;
+  passed &= comp_z == 1211;
+  return passed;
+}

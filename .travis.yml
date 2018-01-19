@@ -48,6 +48,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc5 --enable-cxx; fi
   - pip install --user --upgrade awscli
+  - git fetch --tags --unshallow
 
 install:
   # If it's a cron build, pull libswiftnav-private master; otherwise
@@ -67,7 +68,6 @@ script:
   - ./travis.sh
 
 after_success:
-  - git fetch --tags --unshallow
   - ./travis_pr_describe.sh
   - ./publish.sh requirements.yaml
   - PRODUCT_VERSION=v3 ./publish.sh build_v3_prod/piksi_firmware_v3_prod*.elf

@@ -69,7 +69,7 @@ static void tracker_sbas_l1ca_init(tracker_t *tracker_channel) {
 /**
  * Performs ToW caching and propagation.
  *
- * SBAS L2 tracker performs ToW update/propagation only on bit edge. This makes
+ * SBAS L1 tracker performs ToW update/propagation only on bit edge. This makes
  * it more robust to propagation errors.
  *
  * \param[in,out  tracker_channel Tracker channel data
@@ -99,14 +99,14 @@ static void update_tow_sbas_l1ca(tracker_t *tracker_channel, u32 cycle_flags) {
     /*
      * Verify ToW alignment
      * Current block assumes the bit sync has been reached and current
-     * interval has closed a bit interval. ToW shall be aligned by bit
-     * duration, which is 20ms for SBAS L1.
+     * interval has closed a bit interval. ToW shall be aligned by symbol
+     * duration, which is 2ms for SBAS L1.
      */
-    u8 tail = tracker_channel->TOW_ms % SBAS_L1CA_BIT_LENGTH_MS;
+    u8 tail = tracker_channel->TOW_ms % SBAS_L1CA_SYMBOL_LENGTH_MS;
     if (0 != tail) {
-      s8 error_ms = tail < (SBAS_L1CA_BIT_LENGTH_MS >> 1)
+      s8 error_ms = tail < (SBAS_L1CA_SYMBOL_LENGTH_MS >> 1)
                         ? -tail
-                        : SBAS_L1CA_BIT_LENGTH_MS - tail;
+                        : SBAS_L1CA_SYMBOL_LENGTH_MS - tail;
 
       log_error_mesid(mesid,
                       "[+%" PRIu32
@@ -128,7 +128,7 @@ static void update_tow_sbas_l1ca(tracker_t *tracker_channel, u32 cycle_flags) {
     double error_ms = 0;
     u64 time_delta_tk = sample_time_tk - tow_entry.sample_time_tk;
     u8 ms_align =
-        aligned ? SBAS_L1CA_BIT_LENGTH_MS : SBAS_L1CA_PSYMBOL_LENGTH_MS;
+        aligned ? SBAS_L1CA_BIT_LENGTH_MS : SBAS_L1CA_SYMBOL_LENGTH_MS;
 
     ToW_ms =
         tp_tow_compute(tow_entry.TOW_ms, time_delta_tk, ms_align, &error_ms);
