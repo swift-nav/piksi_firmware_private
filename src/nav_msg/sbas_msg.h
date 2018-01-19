@@ -18,6 +18,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/edc.h>
+#include <libswiftnav/signal.h>
 
 #include <limits.h>
 #include <math.h>
@@ -46,11 +47,9 @@ extern "C" {
  * @sa sbas_msg_decoder_add_symbol
  */
 typedef struct {
-  u8 prn;          /**< SV PRN. 120..138 */
-  u8 msg_id;       /**< Message id */
-  u32 tow;         /**< SBAS ToW */
-  bool alert;      /**< SBAS message alert flag */
-  s8 bit_polarity; /**< Polarity of data bits */
+  gnss_signal_t sid; /**< SV identifier */
+  s32 tow_ms;        /**< SBAS TOW [ms] */
+  s8 bit_polarity;   /**< Polarity of data bits */
 } sbas_msg_t;
 
 /**
@@ -96,8 +95,7 @@ const v27_poly_t *sbas_msg_decoder_get_poly(void);
 void sbas_msg_decoder_init(sbas_msg_decoder_t *dec);
 bool sbas_msg_decoder_add_symbol(sbas_msg_decoder_t *dec,
                                  unsigned char symbol,
-                                 sbas_msg_t *msg,
-                                 u32 *delay);
+                                 sbas_msg_t *msg);
 
 #ifdef __cplusplus
 } /* extern "C" */

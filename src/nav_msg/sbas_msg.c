@@ -12,6 +12,7 @@
 
 #include "nav_msg/sbas_msg.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
+#include "timing/timing.h"
 
 #include <limits.h>
 #include <string.h>
@@ -268,16 +269,15 @@ static void sbas_msg_invert(sbas_v27_part_t *part) {
  *
  * \param[in,out] part Decoder component.
  * \param[out]    msg  Container for a decoded message.
- * \param[out]    delay Delay of the message in symbols.
  *
  * \retval true The message has been decoded, and \a msg container is populated.
  * \retval false Not enough data or CRC is not correct.
  *
  * \private
  */
-static bool sbas_msg_decode(sbas_v27_part_t *part,
-                            sbas_msg_t *msg,
-                            u32 *delay) {
+static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
+  u32 delay = 0;
+  u8 msg_id = 0;
   bool res = false;
 
   if (SBAS_MSG_LENGTH > part->n_decoded) {
@@ -292,28 +292,54 @@ static bool sbas_msg_decode(sbas_v27_part_t *part,
 
     msg->bit_polarity =
         part->invert ? BIT_POLARITY_INVERTED : BIT_POLARITY_NORMAL;
-    msg->prn = 1;
-    msg->msg_id = getbitu(part->decoded, 8, 6);
-    msg->tow = 0;
-    msg->alert = 0;
+    msg_id = getbitu(part->decoded, 8, 6);
 
-    switch (msg->msg_id) {
+    delay = (part->n_decoded - SBAS_MSG_LENGTH + SBAS_V27_DELAY_BITS +
+             SBAS_V27_CONSTRAINT_LENGTH - 1) *
+                2 +
+            part->n_symbols;
+
+    switch (msg_id) {
       case 12:
-        msg->tow = getbitu(part->decoded, 121, 20); /* Seconds */
+        msg->tow_ms = getbitu(part->decoded, 121, 20) + 1; /* seconds */
+        msg->tow_ms *= SECS_MS; /* convert to milliseconds */
+        /* Compensate Viterbi delay. */
+        msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
+        if (msg->tow_ms >= WEEK_MS) {
+          msg->tow_ms -= WEEK_MS;
+        }
         break;
+
       default:
-        /* log_info_sid(construct_sid(CODE_SBAS_L1CA, msg->prn),
-                        "Unsupported SBAS message type %d",
-                        msg->msg_id); */
+        log_debug_sid(msg->sid, "Unsupported SBAS message type %d", msg_id);
         break;
     }
 
-    /* TODO: Generate SBAS raw data SBP msg here. */
+    /* Read current GPS time for SBAS raw data SBP message. */
+    gps_time_t gps_time = get_current_time();
+    double gps_time_ms = gps_time.tow * SECS_MS;
+    /* Compensate Viterbi delay. */
+    gps_time_ms -= delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
+    if (gps_time_ms < 0.0) {
+      gps_time_ms += WEEK_MS;
+    }
 
-    *delay = (part->n_decoded - SBAS_MSG_LENGTH + SBAS_V27_DELAY_BITS +
-              SBAS_V27_CONSTRAINT_LENGTH - 1) *
-                 2 +
-             part->n_symbols;
+    /* Timestamp is around ~120-140 ms after the last integer gps_time_second.
+     * This is due to the transit delay, i.e. the time signals travels from
+     * satellite to receiver, which we currently cannot account for.
+     * If receiver would be located on equator, and the satellite is directly
+     * in zenith, then 36000km / 3e8 ~= 120 ms */
+
+    /*TODO SBAS: If ephemeris is available for SBAS, the transit delay could
+     * be compensated. */
+    gps_time_ms = floor(gps_time_ms);
+
+    /* TODO: Generate SBAS raw data SBP msg here.
+     * sid: msg->sid
+     * tow: gps_time_ms
+     * message_type: msg_id
+     * data: available from part->decoded
+     */
 
     if (part->invert) {
       sbas_msg_invert(part);
@@ -371,15 +397,13 @@ void sbas_msg_decoder_init(sbas_msg_decoder_t *dec) {
  *                       0xFF - 100% of 1.
  * \param[out]    msg    Buffer for decoded message. The message is available
  *                       only when message lock is acquired and CRC is correct.
- * \param[out]    pdelay Delay of message generation in symbols.
  *
  * \retval true  The message has been decoded. ToW parameter is available.
  * \retval false More data is required.
  */
 bool sbas_msg_decoder_add_symbol(sbas_msg_decoder_t *dec,
                                  u8 symbol,
-                                 sbas_msg_t *msg,
-                                 u32 *pdelay) {
+                                 sbas_msg_t *msg) {
   sbas_add_symbol(&dec->part1, symbol);
   sbas_add_symbol(&dec->part2, symbol);
 
@@ -387,13 +411,13 @@ bool sbas_msg_decoder_add_symbol(sbas_msg_decoder_t *dec,
     /* Flush data in decoder. */
     dec->part2.n_decoded = 0;
     dec->part2.n_symbols = 0;
-    return sbas_msg_decode(&dec->part1, msg, pdelay);
+    return sbas_msg_decode(&dec->part1, msg);
   }
   if (dec->part2.message_lock) {
     /* Flush data in decoder. */
     dec->part1.n_decoded = 0;
     dec->part1.n_symbols = 0;
-    return sbas_msg_decode(&dec->part2, msg, pdelay);
+    return sbas_msg_decode(&dec->part2, msg);
   }
 
   return false;

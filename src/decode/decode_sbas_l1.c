@@ -68,9 +68,11 @@ void decode_sbas_l1_register(void) {
 
 static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
                                  decoder_data_t *decoder_data) {
-  (void)channel_info;
   sbas_l1_decoder_data_t *data = decoder_data;
   memset(data, 0, sizeof(sbas_l1_decoder_data_t));
+  data->sbas_msg.sid =
+      construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
+  data->sbas_msg.tow_ms = TOW_INVALID;
   data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
   sbas_msg_decoder_init(&data->sbas_msg_decoder);
 }
@@ -97,28 +99,26 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     }
     /* Update TOW */
     u8 symbol_probability;
-    u32 delay;
-    s32 tow_ms;
+    data->sbas_msg.tow_ms = TOW_INVALID;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
     symbol_probability = nav_bit.soft_bit + POW_TWO_7;
 
     bool decoded = sbas_msg_decoder_add_symbol(
-        &data->sbas_msg_decoder, symbol_probability, &data->sbas_msg, &delay);
+        &data->sbas_msg_decoder, symbol_probability, &data->sbas_msg);
 
-    if (!decoded || 0 == data->sbas_msg.tow) {
+    if (!decoded) {
       continue;
-    }
-
-    tow_ms = data->sbas_msg.tow * SECS_MS;
-    tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
-    if (tow_ms >= WEEK_MS) {
-      tow_ms -= WEEK_MS;
     }
 
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
-    from_decoder.TOW_ms = tow_ms;
+
+    if (TOW_INVALID == data->sbas_msg.tow_ms) {
+      from_decoder.sync_flags = (SYNC_POL | SYNC_EPH);
+    }
+
+    from_decoder.TOW_ms = data->sbas_msg.tow_ms;
     from_decoder.bit_polarity = data->sbas_msg.bit_polarity;
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
