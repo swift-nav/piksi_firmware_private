@@ -56,9 +56,6 @@
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE (30)
 
-/* Number of supported constellations in Reacq */
-#define REACQ_SUPPORTED_GNSS_NUM 3
-
 /** Re-acq priority levels. */
 typedef enum reacq_prio_level_e {
   REACQ_NORMAL_PRIO,

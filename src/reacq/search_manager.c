@@ -139,29 +139,30 @@ void sm_init(acq_jobs_state_t *data) {
   struct init_struct {
     constellation_t gnss;
     u16 first_prn;
-  } init_data[REACQ_SUPPORTED_GNSS_NUM] = {
+  } reacq_gnss[] = {
       {CONSTELLATION_GPS, GPS_FIRST_PRN},
       {CONSTELLATION_GLO, GLO_FIRST_PRN},
       {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i, k;
-    for (k = 0; k < REACQ_SUPPORTED_GNSS_NUM; k++) {
-      constellation_t gnss = init_data[k].gnss;
+    for (k = 0; k < ARRAY_SIZE(reacq_gnss); k++) {
+      constellation_t gnss = reacq_gnss[k].gnss;
       u16 idx = sm_constellation_to_start_index(gnss);
       u16 num_sv = constellation_to_sat_count(gnss);
       code_t code = constellation_to_l1_code(gnss);
       acq_job_t *job = &data->jobs[type][idx];
+      u16 first_prn = reacq_gnss[k].first_prn;
       for (i = 0; i < num_sv; i++) {
         if (CONSTELLATION_GLO == gnss) {
           /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
              * blind searches are immediately done with whole range of FCNs */
           job[i].mesid =
-              construct_mesid(code, init_data[k].first_prn + (i % GLO_MAX_FCN));
+              construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
         } else {
-          job[i].mesid = construct_mesid(code, init_data[k].first_prn + i);
+          job[i].mesid = construct_mesid(code, first_prn + i);
         }
-        job[i].sid = construct_sid(code, init_data[k].first_prn + i);
+        job[i].sid = construct_sid(code, first_prn + i);
         job[i].job_type = type;
       }
     }
@@ -220,10 +221,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       if (glo_map_valid(sid)) {
         glo_fcn = glo_map_get_fcn(sid);
         mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-        assert(IS_GLO(mesid));
       }
-    } else if (CONSTELLATION_SBAS == con) {
-      assert(IS_SBAS(mesid));
     }
 
     assert(mesid_valid(mesid));
@@ -311,10 +309,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       if (glo_map_valid(sid)) {
         glo_fcn = glo_map_get_fcn(sid);
         mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
-        assert(IS_GLO(mesid));
       }
-    } else if (CONSTELLATION_SBAS == con) {
-      assert(IS_SBAS(mesid));
     }
 
     assert(mesid_valid(mesid));
