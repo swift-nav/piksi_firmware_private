@@ -159,11 +159,9 @@ void sm_init(acq_jobs_state_t *data) {
           job[i].mesid =
               construct_mesid(code, init_data[k].first_prn + (i % GLO_MAX_FCN));
         } else {
-          job[i].mesid =
-              construct_mesid(code, init_data[k].first_prn + i);
+          job[i].mesid = construct_mesid(code, init_data[k].first_prn + i);
         }
-        job[i].sid =
-            construct_sid(code, init_data[k].first_prn + i);
+        job[i].sid = construct_sid(code, init_data[k].first_prn + i);
         job[i].job_type = type;
       }
     }
