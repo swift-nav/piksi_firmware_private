@@ -99,7 +99,7 @@ static gps_time_t glo2gps_with_utc_params_stub(me_gnss_signal_t mesid,
   return glo2gps(glo_t, /* utc_params = */ NULL);
 }
 
-TEST(nav_msg_glo_tests, extract_glo_word) {
+TEST(nav_mag_glo_tests, extract_glo_word) {
   u32 ret = 0;
   me_gnss_signal_t mesid;
   mesid.sat = 1;
@@ -139,7 +139,7 @@ TEST(nav_msg_glo_tests, extract_glo_word) {
   EXPECT_EQ(ret, 0x4321);
 }
 
-TEST(nav_msg_glo_tests, process_string_glo) {
+TEST(nav_mag_glo_tests, process_string_glo) {
   u32 time_tag_ms = 0;
   me_gnss_signal_t mesid;
   mesid.sat = 1;
@@ -209,12 +209,12 @@ void msg_update_test(bool inverted) {
   }
 }
 
-TEST(nav_msg_glo_tests, nav_msg_update_glo) {
+TEST(nav_mag_glo_tests, nav_msg_update_glo) {
   msg_update_test(false);
   msg_update_test(true);
 }
 
-TEST(nav_msg_glo_tests, error_correction_glo) {
+TEST(nav_mag_glo_tests, error_correction_glo) {
   const struct {
     u32 str_in[3]; /**< input string for test  */
     s8 ret;        /** result of the test */
@@ -261,7 +261,7 @@ TEST(nav_msg_glo_tests, error_correction_glo) {
   }
 }
 
-TEST(nav_msg_glo_tests, get_tow_glo) {
+TEST(nav_mag_glo_tests, get_tow_glo) {
   u32 time_tag_ms = 0;
   me_gnss_signal_t mesid;
   mesid.sat = 1;
