@@ -23,7 +23,7 @@
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
-u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx);
+u16 sm_constellation_to_start_index(constellation_t gnss);
 
 /* Scheduler constants */
 
@@ -51,9 +51,8 @@ void sch_initialize_cost(acq_job_t *init_job,
   bool max_found = false;
   u32 avg = 0;
   u32 num_jobs = 0;
-  u16 idx;
-  u16 num_sats =
-      sm_constellation_to_start_index(all_jobs_data->constellation, &idx);
+  u16 idx = sm_constellation_to_start_index(all_jobs_data->constellation);
+  u16 num_sats = constellation_to_sat_count(all_jobs_data->constellation);
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     const acq_job_t *job = &all_jobs_data->jobs[type][idx];
@@ -123,9 +122,8 @@ static void sch_limit_costs(acq_jobs_state_t *all_jobs_data, u32 cost) {
   acq_job_types_e type;
   u32 min_cost = cost;
 
-  u16 idx;
-  u16 num_sats =
-      sm_constellation_to_start_index(all_jobs_data->constellation, &idx);
+  u16 idx = sm_constellation_to_start_index(all_jobs_data->constellation);
+  u16 num_sats = constellation_to_sat_count(all_jobs_data->constellation);
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     acq_job_t *job = &all_jobs_data->jobs[type][idx];
@@ -169,9 +167,8 @@ acq_job_t *sch_select_job(acq_jobs_state_t *jobs_data) {
   acq_job_types_e type;
   acq_job_t *job_to_run = NULL;
 
-  u16 idx;
-  u16 num_sats =
-      sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  u16 idx = sm_constellation_to_start_index(jobs_data->constellation);
+  u16 num_sats = constellation_to_sat_count(jobs_data->constellation);
 
   /* Update state and initialize first cost with max, min, avg cost hints */
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {

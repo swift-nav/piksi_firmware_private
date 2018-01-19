@@ -47,8 +47,25 @@ bool sm_lgf_stamp(u64 *lgf_stamp);
 void sm_get_visibility_flags(gnss_signal_t sid, bool *visible, bool *known);
 void sm_calc_all_glo_visibility_flags(void);
 void sm_get_glo_visibility_flags(u16 sat, bool *visible, bool *known);
-u16 sm_constellation_to_start_index(constellation_t gnss, u16 *start_idx);
 bool is_constellation_enabled(constellation_t con);
+
+/**
+ * The function returns start job index according to gnss
+ * \param[in] gnss Constellation
+ * \return Start index of GNSS in job array
+ */
+u16 sm_constellation_to_start_index(constellation_t gnss) {
+  switch ((s8)gnss) {
+    case CONSTELLATION_GPS:
+      return 0;
+    case CONSTELLATION_GLO:
+      return NUM_SATS_GPS;
+    case CONSTELLATION_SBAS:
+      return NUM_SATS_GPS + NUM_SATS_GLO;
+    default:
+      assert(!"Incorrect constellation");
+  }
+}
 
 /**
  * The function calculates how many SV of defined GNSS are in track
@@ -60,15 +77,14 @@ static u8 sv_track_count(acq_jobs_state_t *jobs_data, constellation_t gnss) {
   u8 num_sats = 0;
   u8 sv_tracked = 0;
   acq_job_t *job_ptr;
-  u16 idx = 0;
-  num_sats = sm_constellation_to_start_index(gnss, &idx);
+  u16 idx = sm_constellation_to_start_index(gnss);
+  num_sats = constellation_to_sat_count(gnss);
   job_ptr = &jobs_data->jobs[0][idx];
   for (u8 i = 0; i < num_sats; i++) {
     if (mesid_is_tracked(job_ptr[i].mesid)) {
       sv_tracked++;
     }
   }
-  log_info("SBAS in track %u", sv_tracked);
   return sv_tracked;
 }
 
@@ -85,8 +101,7 @@ static u32 sbas_limit_mask(acq_jobs_state_t *jobs_data,
   u32 ret = 0;
   if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
     u8 i;
-    u16 idx = 0;
-    sm_constellation_to_start_index(CONSTELLATION_SBAS, &idx);
+    u16 idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
     for (i = idx; i < idx + NUM_SATS_SBAS; i++) {
       /* mark all jobs as not needed to run */
       jobs_data->jobs[job_type][i].needs_to_run = false;
@@ -131,23 +146,25 @@ void sm_init(acq_jobs_state_t *data) {
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i, k;
-    u16 idx;
     for (k = 0; k < REACQ_SUPPORTED_GNSS_NUM; k++) {
-      u16 num_sv = sm_constellation_to_start_index(init_data[k].gnss, &idx);
-      code_t code = constellation_to_l1_code(init_data[k].gnss);
+      constellation_t gnss = init_data[k].gnss;
+      u16 idx = sm_constellation_to_start_index(gnss);
+      u16 num_sv = constellation_to_sat_count(gnss);
+      code_t code = constellation_to_l1_code(gnss);
+      acq_job_t *job = &data->jobs[type][idx];
       for (i = 0; i < num_sv; i++) {
-        if (CONSTELLATION_GLO == init_data[k].gnss) {
+        if (CONSTELLATION_GLO == gnss) {
           /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
              * blind searches are immediately done with whole range of FCNs */
-          data->jobs[type][idx + i].mesid =
+          job[i].mesid =
               construct_mesid(code, init_data[k].first_prn + (i % GLO_MAX_FCN));
         } else {
-          data->jobs[type][idx + i].mesid =
+          job[i].mesid =
               construct_mesid(code, init_data[k].first_prn + i);
         }
-        data->jobs[type][idx + i].sid =
+        job[i].sid =
             construct_sid(code, init_data[k].first_prn + i);
-        data->jobs[type][idx + i].job_type = type;
+        job[i].job_type = type;
       }
     }
   }
@@ -181,8 +198,8 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
   }
 
   u32 i;
-  u16 idx;
-  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  u16 idx = sm_constellation_to_start_index(con);
+  u16 num_sv = constellation_to_sat_count(con);
 
   for (i = 0; i < num_sv; i++) {
     if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
@@ -207,8 +224,6 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
         mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
         assert(IS_GLO(mesid));
       }
-    } else if (CONSTELLATION_GPS == con) {
-      assert(IS_GPS(mesid));
     } else if (CONSTELLATION_SBAS == con) {
       assert(IS_SBAS(mesid));
     }
@@ -272,8 +287,8 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   }
 
   u32 i;
-  u16 idx;
-  u16 num_sv = sm_constellation_to_start_index(jobs_data->constellation, &idx);
+  u16 idx = sm_constellation_to_start_index(con);
+  u16 num_sv = constellation_to_sat_count(con);
 
   for (i = 0; i < num_sv; i++) {
     if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
@@ -300,8 +315,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
         mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
         assert(IS_GLO(mesid));
       }
-    } else if (CONSTELLATION_GPS == con) {
-      assert(IS_GPS(mesid));
     } else if (CONSTELLATION_SBAS == con) {
       assert(IS_SBAS(mesid));
     }
