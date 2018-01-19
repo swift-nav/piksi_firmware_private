@@ -54,7 +54,9 @@
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
-#define TIME_MATCHED_OBS_THREAD_PRIORITY (HIGHPRIO - 3)
+/* Time matched obs priority needs to be higher than starling to guarantee
+ * context switch free handling of the mailboxes */
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (STARLING_THREAD_PRIORITY + 1)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
