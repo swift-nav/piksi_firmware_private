@@ -72,15 +72,30 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
 
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
-                       u8 flags,
-                       const utc_params_t *utc_params) {
+                       u8 flags) {
   if (!gps_time_valid(t_in)) {
     memset(t_out, 0, sizeof(msg_utc_time_t));
     return;
   }
+
+  utc_params_t utc_params;
+  utc_params_t *p_utc_params = &utc_params;
+  bool is_nv;
+  /* try to read UTC parameters from NDB */
+  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
+    if (is_nv) {
+      flags |= (NVM_UTC << 3);
+    } else {
+      flags |= (DECODED_UTC << 3);
+    }
+  } else {
+    p_utc_params = NULL;
+    flags |= (DEFAULT_UTC << 3);
+  }
+
   /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
   utc_tm utc_time;
-  gps2utc(t_in, &utc_time, utc_params);
+  gps2utc(t_in, &utc_time, p_utc_params);
 
   t_out->tow = round_tow_ms(t_in->tow);
   t_out->year = utc_time.year;
@@ -945,73 +960,112 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
   }
 }
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time) {
+void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
-  gps_time_t current_time = get_current_time();
-  sbp_make_gps_time(gps_time, &current_time, NO_POSITION);
+  sbp_make_gps_time(gps_time, t, NO_POSITION);
 }
 
-void sbp_init_utc_time(msg_utc_time_t *utc_time) {
-  gps_time_t current_time = get_current_time();
-  utc_params_t utc_params;
-  ndb_utc_params_read(&utc_params, NULL);
+void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t) {
   memset(utc_time, 0, sizeof(msg_utc_time_t));
-  sbp_make_utc_time(utc_time, &current_time, NO_POSITION, &utc_params);
+  sbp_make_utc_time(utc_time, t, NO_POSITION);
 }
 
-void sbp_init_pos_llh(msg_pos_llh_t *pos_llh) {
+void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
   memset(pos_llh, 0, sizeof(msg_pos_llh_t));
+  if (gps_time_valid(t)) {
+    pos_llh->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef) {
+void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef, gps_time_t *t) {
   memset(pos_ecef, 0, sizeof(msg_pos_ecef_t));
+  if (gps_time_valid(t)) {
+    pos_ecef->tow = round_tow_ms(t->tow);
+  }
 }
-void sbp_init_vel_ned(msg_vel_ned_t *vel_ned) {
+
+void sbp_init_vel_ned(msg_vel_ned_t *vel_ned, gps_time_t *t) {
   memset(vel_ned, 0, sizeof(msg_vel_ned_t));
+  if (gps_time_valid(t)) {
+    vel_ned->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef) {
+void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef, gps_time_t *t) {
   memset(vel_ecef, 0, sizeof(msg_vel_ecef_t));
-}
-void sbp_init_sbp_dops(msg_dops_t *sbp_dops) {
-  memset(sbp_dops, 0, sizeof(msg_dops_t));
+  if (gps_time_valid(t)) {
+    vel_ecef->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_age_corrections(msg_age_corrections_t *age_corrections) {
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops, gps_time_t *t) {
+  memset(sbp_dops, 0, sizeof(msg_dops_t));
+  if (gps_time_valid(t)) {
+    sbp_dops->tow = round_tow_ms(t->tow);
+  }
+}
+
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
+                              gps_time_t *t) {
   memset(age_corrections, 0, sizeof(msg_age_corrections_t));
   age_corrections->age = 0xFFFF;
+  if (gps_time_valid(t)) {
+    age_corrections->tow = round_tow_ms(t->tow);
+  }
 }
 
 void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status) {
   memset(dgnss_status, 0, sizeof(msg_dgnss_status_t));
 }
 
-void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef) {
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, gps_time_t *t) {
   memset(baseline_ecef, 0, sizeof(msg_baseline_ecef_t));
+  if (gps_time_valid(t)) {
+    baseline_ecef->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned) {
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned, gps_time_t *t) {
   memset(baseline_ned, 0, sizeof(msg_baseline_ned_t));
+  if (gps_time_valid(t)) {
+    baseline_ned->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading) {
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading,
+                               gps_time_t *t) {
   memset(baseline_heading, 0, sizeof(msg_baseline_heading_t));
+  if (gps_time_valid(t)) {
+    baseline_heading->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov) {
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov, gps_time_t *t) {
   memset(pos_ecef_cov, 0, sizeof(msg_pos_ecef_cov_t));
+  if (gps_time_valid(t)) {
+    pos_ecef_cov->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov) {
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov, gps_time_t *t) {
   memset(vel_ecef_cov, 0, sizeof(msg_vel_ecef_cov_t));
+  if (gps_time_valid(t)) {
+    vel_ecef_cov->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov) {
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov, gps_time_t *t) {
   memset(pos_llh_cov, 0, sizeof(msg_pos_llh_cov_t));
+  if (gps_time_valid(t)) {
+    pos_llh_cov->tow = round_tow_ms(t->tow);
+  }
 }
 
-void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov) {
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t) {
   memset(vel_ned_cov, 0, sizeof(msg_vel_ned_cov_t));
+  if (gps_time_valid(t)) {
+    vel_ned_cov->tow = round_tow_ms(t->tow);
+  }
 }
 
 /** \} */
