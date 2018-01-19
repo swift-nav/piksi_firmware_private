@@ -115,22 +115,12 @@ static void post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  msg_t ret;
-
-  /* Make atomic  */
-  chSysLock();
-  obss_t *obs = chPoolAllocI(&time_matched_obs_buff_pool);
+  obss_t *obs = chPoolAlloc(&time_matched_obs_buff_pool);
 
   if (NULL == obs) {
-    /* Rover obs pool is exhausted, grab a buffer from the mailbox instead, i.e.
-     * overwrite the oldest item in the queue.  Mailbox is guaranteed to have
-     * items as context switch is not possible within syslock. */
-    ret = chMBFetchS(&time_matched_obs_mailbox, (msg_t *)&obs, TIME_IMMEDIATE);
-
-    if (MSG_OK != ret) {
-      /* Should not be a possible state */
-      assert(!"Rover obs pool exhausted and mailbox empty!");
-    }
+    /* Rover obs mailbox is full */
+    log_warn("Rover obs mailbox full, base obs lagging");
+    return;
   }
 
   obs->tor = *t;
@@ -156,21 +146,10 @@ static void post_observations(u8 n,
     obs->soln.velocity_valid = 0;
   }
 
-  ret = chMBPostS(&time_matched_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
+  msg_t ret = chMBPost(&time_matched_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
 
-  if (ret != MSG_OK) {
-    /* We could grab another item from the mailbox, discard it and then
-     * post our obs again but if the size of the mailbox and the pool
-     * are equal then we should have already handled the case where the
-     * mailbox is full when we handled the case that the pool was full.
-     * */
-    chSysUnlock();
-    log_error("Mailbox should have space!");
-    chPoolFree(&time_matched_obs_buff_pool, obs);
-  } else {
-    last_time_matched_rover_obs_post = *t;
-    chSysUnlock();
-  }
+  /* Only thread posting, there shall be space in the mailbox */
+  assert(MSG_OK == ret);
 }
 
 void set_known_ref_pos(const double base_pos[3]) {
@@ -1195,19 +1174,6 @@ static void time_matched_obs_thread(void *arg) {
         }
         continue;
       }
-    }
-
-    if (gps_time_valid(&last_time_matched_rover_obs_post) &&
-        gpsdifftime(&last_time_matched_rover_obs_post, &base_obs->tor) >
-            BASE_LATENCY_TIMEOUT) {
-      log_warn(
-          "Communication Latency exceeds %f seconds, start tow: %f; start wn: "
-          "%d; end tow: %f; end wn: %d",
-          BASE_LATENCY_TIMEOUT / 1000.0,
-          base_obs->tor.tow,
-          base_obs->tor.wn,
-          last_time_matched_rover_obs_post.tow,
-          last_time_matched_rover_obs_post.wn);
     }
 
     /* Compare obs ages.
