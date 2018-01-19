@@ -139,10 +139,9 @@ void sm_init(acq_jobs_state_t *data) {
   struct init_struct {
     constellation_t gnss;
     u16 first_prn;
-  } reacq_gnss[] = {
-      {CONSTELLATION_GPS, GPS_FIRST_PRN},
-      {CONSTELLATION_GLO, GLO_FIRST_PRN},
-      {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
+  } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
+                    {CONSTELLATION_GLO, GLO_FIRST_PRN},
+                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i, k;
@@ -157,8 +156,7 @@ void sm_init(acq_jobs_state_t *data) {
         if (CONSTELLATION_GLO == gnss) {
           /* NOTE: GLO MESID is initialized evenly with all FCNs, so that
              * blind searches are immediately done with whole range of FCNs */
-          job[i].mesid =
-              construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
+          job[i].mesid = construct_mesid(code, first_prn + (i % GLO_MAX_FCN));
         } else {
           job[i].mesid = construct_mesid(code, first_prn + i);
         }
