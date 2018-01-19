@@ -1109,23 +1109,48 @@ void init_filters(void) {
                  set_max_age);
 }
 
+static void process_obs_pair(obss_t *base_obs, obss_t *rover_obs) {
+  /* Declare all SBP messages */
+  sbp_messages_t sbp_messages;
+
+  /* We need to form the SBP messages derived from the SPP at this
+   * solution time before we
+   * do the differential solution so that the various messages can be
+   * overwritten as appropriate,
+   * the exception is the DOP messages, as we don't have the SPP DOP and
+   * it will always be overwritten by the differential */
+  if (base_obs->has_pos && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+    pvt_engine_result_t soln_copy = rover_obs->soln;
+
+    /* Init the messages we want to send */
+    sbp_messages_init(&sbp_messages);
+    solution_make_sbp(&soln_copy, NULL, &sbp_messages);
+
+    static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
+    if (update_time_matched(&last_update_time, &rover_obs->tor, rover_obs->n) ||
+        dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+      process_matched_obs(rover_obs, base_obs, &sbp_messages);
+      last_update_time = rover_obs->tor;
+    }
+
+    if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
+      solution_send_pos_messages(
+          base_obs->sender_id, &sbp_messages, rover_obs->n, rover_obs->nm);
+    }
+  }
+}
+
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
 
-  obss_t *base_obs;
-  obss_t *obss;
+  obss_t *base_obs = NULL;
+  obss_t *rover_obs = NULL;
   init_filters();
 
-  /* Declare all SBP messages */
-  sbp_messages_t sbp_messages;
-
-  while (1) {
-    base_obs = NULL;
-    obss = NULL;
-
+  while (true) {
     /* Check if the el mask has changed and update */
     chMtxLock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
@@ -1137,31 +1162,39 @@ static void time_matched_obs_thread(void *arg) {
                                     starling_frequency);
     chMtxUnlock(&time_matched_filter_manager_lock);
 
-    /* Get the oldest base obs */
-    msg_t base_ret =
-        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
+    /* Do obs pair matching */
+    if (NULL == base_obs) {
+      /* Get the oldest base obs */
+      const msg_t base_ret =
+          chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
 
-    if (MSG_OK != base_ret) {
-      /* No base obs available */
-      if (NULL != base_obs) {
-        chPoolFree(&base_obs_buff_pool, base_obs);
+      if (MSG_OK != base_ret) {
+        /* No base obs available */
+        if (NULL != base_obs) {
+          chPoolFree(&base_obs_buff_pool, base_obs);
+          base_obs = NULL;
+        }
+        continue;
       }
-      continue;
     }
 
-    /* Get the oldest rover obs */
-    msg_t rover_ret =
-        chMBFetch(&time_matched_obs_mailbox, (msg_t *)&obss, TIME_IMMEDIATE);
+    if (NULL == rover_obs) {
+      /* Get the oldest rover obs */
+      const msg_t rover_ret = chMBFetch(
+          &time_matched_obs_mailbox, (msg_t *)&rover_obs, TIME_IMMEDIATE);
 
-    if (MSG_OK != rover_ret) {
-      /* No rover obs available */
-      if (NULL != obss) {
-        chPoolFree(&time_matched_obs_buff_pool, obss);
+      if (MSG_OK != rover_ret) {
+        /* No rover obs available */
+        if (NULL != rover_obs) {
+          chPoolFree(&time_matched_obs_buff_pool, rover_obs);
+          rover_obs = NULL;
+        }
+        if (NULL != base_obs) {
+          chPoolFree(&base_obs_buff_pool, base_obs);
+          base_obs = NULL;
+        }
+        continue;
       }
-      if (NULL != base_obs) {
-        chPoolFree(&base_obs_buff_pool, base_obs);
-      }
-      continue;
     }
 
     if (gps_time_valid(&last_time_matched_rover_obs_post) &&
@@ -1178,86 +1211,51 @@ static void time_matched_obs_thread(void *arg) {
     }
 
     /* Compare obs ages.
-     * If rover obs is newer (ie. obss->tor has a bigger value) dt shall be
+     * If rover obs is newer (ie. rover_obs->tor has a bigger value) dt shall be
      * positive.
      * If base obs is newer (ie. base_obs->tor has a bigger value) dt shall be
      * negative. */
-    const double dt = gpsdifftime(&obss->tor, &base_obs->tor);
+    double dt = gpsdifftime(&rover_obs->tor, &base_obs->tor);
 
     if (fabs(dt) < TIME_MATCH_THRESHOLD) {
-      /* We need to form the SBP messages derived from the SPP at this
-       * solution time before we
-       * do the differential solution so that the various messages can be
-       * overwritten as appropriate,
-       * the exception is the DOP messages, as we don't have the SPP DOP and
-       * it will always be overwritten by the differential */
-      if (base_obs->has_pos && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
-        pvt_engine_result_t soln_copy = obss->soln;
-
-        /* Init the messages we want to send */
-        sbp_messages_init(&sbp_messages);
-        solution_make_sbp(&soln_copy, NULL, &sbp_messages);
-
-        static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
-            dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
-          process_matched_obs(obss, base_obs, &sbp_messages);
-          last_update_time = obss->tor;
-        }
-
-        if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
-          solution_send_pos_messages(
-              base_obs->sender_id, &sbp_messages, obss->n, obss->nm);
-        }
-      }
-
-      /* base - rover obs pair matched and processed */
-      chPoolFree(&time_matched_obs_buff_pool, obss);
+      process_obs_pair(base_obs, rover_obs);
+      chPoolFree(&time_matched_obs_buff_pool, rover_obs);
+      rover_obs = NULL;
       chPoolFree(&base_obs_buff_pool, base_obs);
-    } else if (dt > 0) {
+      base_obs = NULL;
+
+      /* Base - rover obs pair found and processed. */
+      continue;
+    }
+
+    if (dt > 0) {
       /* The oldest rover obs is newer than the oldest base obs.
        * In practice this should only happen when we initially start
        * receiving corrections, or if the ntrip/skylark corrections are old
-       * due to connection problems.
-       */
+       * due to connection problems. */
       log_warn(
           "Obs Matching: tor_base < tor_rover "
-          "(dt=%f obss.t={%d,%f} base_obs.t={%d,%f})",
+          "(dt=%f rover_obs.t={%d,%f} base_obs.t={%d,%f})",
           dt,
-          obss->tor.wn,
-          obss->tor.tow,
+          rover_obs->tor.wn,
+          rover_obs->tor.tow,
           base_obs->tor.wn,
           base_obs->tor.tow);
-      /* Return the rover obs to the mailbox so we can try it again with newer
-       * base obs. */
-      const msg_t post_ret =
-          chMBPostAhead(&time_matched_obs_mailbox, (msg_t)obss, TIME_IMMEDIATE);
-      if (post_ret != MSG_OK) {
-        /* Something went wrong with returning it to the buffer, better just
-         * free it and carry on. */
-        log_warn("Obs Matching: mailbox full, discarding observation!");
-        chPoolFree(&time_matched_obs_buff_pool, obss);
-      }
 
       /* Discard base obs as there is not going to be matching rover obs pair
-       * available. */
+       * available. Keep the current rover obs and try with newer base obs. */
       chPoolFree(&base_obs_buff_pool, base_obs);
-    } else {
+      base_obs = NULL;
+      continue;
+    }
+
+    if (dt < 0) {
       /* The oldest base obs is newer than the oldest rover obs,
        * discard rover obs as there is not going to be matching base obs pair
-       * available. */
-      chPoolFree(&time_matched_obs_buff_pool, obss);
-
-      /* Return the base obs to the mailbox so we can try it again with newer
-       * rover obs next loop. */
-      const msg_t post_ret =
-          chMBPostAhead(&base_obs_mailbox, (msg_t)base_obs, TIME_IMMEDIATE);
-      if (post_ret != MSG_OK) {
-        /* Something went wrong with returning it to the buffer, better just
-         * free it and carry on. */
-        log_warn("Obs Matching: mailbox full, discarding base obs!");
-        chPoolFree(&base_obs_buff_pool, base_obs);
-      }
+       * available. Keep the current base obs and try with newer rover obs. */
+      chPoolFree(&time_matched_obs_buff_pool, rover_obs);
+      rover_obs = NULL;
+      continue;
     }
   }
 }
