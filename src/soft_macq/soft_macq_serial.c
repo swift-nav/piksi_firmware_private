@@ -25,12 +25,12 @@
 #include "soft_macq_defines.h"
 #include "soft_macq_main.h"
 
-#define SOFTMACQ_SAMPLE_RATE_Hz (SOFTMACQ_RAW_FS / SOFTMACQ_DECFACT_GPSL1CA)
-#define CODE_SPMS (SOFTMACQ_SAMPLE_RATE_Hz / 1000)
+#define FAU_SAMPLE_RATE_Hz (FAU_RAW_FS / FAU_DECFACT)
+#define CODE_SPMS (FAU_SAMPLE_RATE_Hz / 1000)
 
-#define SOFTMACQ_FFTLEN_LOG2 14
-#define SOFTMACQ_FFTLEN (1 << SOFTMACQ_FFTLEN_LOG2)
-#define SOFTMACQ_BIN_WIDTH (SOFTMACQ_SAMPLE_RATE_Hz / SOFTMACQ_FFTLEN)
+#define FAU_FFTLEN_LOG2 14
+#define FAU_FFTLEN (1 << FAU_FFTLEN_LOG2)
+#define FAU_BIN_WIDTH (FAU_SAMPLE_RATE_Hz / FAU_FFTLEN)
 #define CODE_MULT 16384
 #define RESULT_DIV 2048
 #define FFT_SCALE_SCHED_CODE (0x01555555)
@@ -69,13 +69,13 @@ static sc16_t sample_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
 static sc16_t result_fft[INTFFT_MAXSIZE] __attribute__((aligned(32)));
 
-static FFT_DECL(SOFTMACQ_FFTLEN, sFftConfig);
+static FFT_DECL(FAU_FFTLEN, sFftConfig);
 
 static u32 puMaxIdx[4];
 static u32 puMaxVal[4];
 static u32 puSumVal[4];
 
-float soft_acq_bin_width(void) { return SOFTMACQ_BIN_WIDTH; }
+float soft_acq_bin_width(void) { return FAU_BIN_WIDTH; }
 
 bool soft_acq_search(const sc16_t *_cSignal,
                      const me_gnss_signal_t mesid,
@@ -84,31 +84,28 @@ bool soft_acq_search(const sc16_t *_cSignal,
                      float cf_bin_width,
                      acq_result_t *acq_result) {
   /* Configuration */
-  if (sFftConfig.N != SOFTMACQ_FFTLEN) {
-    InitIntFFTr2(&sFftConfig, SOFTMACQ_FFTLEN);
+  if (sFftConfig.N != FAU_FFTLEN) {
+    InitIntFFTr2(&sFftConfig, FAU_FFTLEN);
   }
 
-  float chips_per_sample =
-      code_to_chip_rate(mesid.code) / SOFTMACQ_SAMPLE_RATE_Hz;
+  float chips_per_sample = code_to_chip_rate(mesid.code) / FAU_SAMPLE_RATE_Hz;
 
   /* For constellations with frequent symbol transitions, do 1x4 CxNC */
   if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
     code_resample(mesid,
                   chips_per_sample,
-                  code_fft + CODE_SPMS * (SOFTMACQ_FFTLEN / CODE_SPMS - 1),
+                  code_fft + CODE_SPMS * (FAU_FFTLEN / CODE_SPMS - 1),
                   CODE_SPMS);
   } else {
     /* Generate, resample, and FFT code */
-    code_resample(mesid, chips_per_sample, code_fft, SOFTMACQ_FFTLEN);
+    code_resample(mesid, chips_per_sample, code_fft, FAU_FFTLEN);
   }
 
   DoFwdIntFFTr2(&sFftConfig, code_fft, FFT_SCALE_SCHED_CODE, 1);
 
   /** Perform the FFT samples without over-writing the input buffer */
-  MEMCPY_S(sample_fft,
-           sizeof(sample_fft),
-           _cSignal,
-           sizeof(sc16_t) * SOFTMACQ_FFTLEN);
+  MEMCPY_S(
+      sample_fft, sizeof(sample_fft), _cSignal, sizeof(sc16_t) * FAU_FFTLEN);
   DoFwdIntFFTr2(&sFftConfig, sample_fft, FFT_SCALE_SCHED_SAMPLES, 1);
 
   /* simple notch filter */
@@ -180,19 +177,15 @@ bool soft_acq_search(const sc16_t *_cSignal,
     /* Multiply and do IFFT */
     ifft_operations(doppler_bin,
                     cf_bin_width,
-                    SOFTMACQ_FFTLEN,
-                    SOFTMACQ_BIN_WIDTH,
+                    FAU_FFTLEN,
+                    FAU_BIN_WIDTH,
                     code_fft,
                     sample_fft,
                     &doppler);
 
     /* Find highest peak of the current doppler bin */
-    if (!peak_search(mesid,
-                     result_fft,
-                     SOFTMACQ_FFTLEN,
-                     doppler,
-                     SOFTMACQ_BIN_WIDTH,
-                     &peak)) {
+    if (!peak_search(
+            mesid, result_fft, FAU_FFTLEN, doppler, FAU_BIN_WIDTH, &peak)) {
       return false;
     }
 

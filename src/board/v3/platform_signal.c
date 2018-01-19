@@ -70,6 +70,4 @@ void platform_ndb_init(void) {
   ndb_utc_params_init();
 }
 
-void platform_ndb_sbp_updates(void) {
-  ndb_almanac_sbp_update();
-}
+void platform_ndb_sbp_updates(void) { ndb_almanac_sbp_update(); }

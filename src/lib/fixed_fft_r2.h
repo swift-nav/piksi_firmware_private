@@ -14,6 +14,12 @@ typedef struct _sc16 {
   s16 i;
 } sc16_t;
 
+/** Default complex FFT sample */
+typedef struct _sc32 {
+  s32 r;
+  s32 i;
+} sc32_t;
+
 /** MACRO called to declare and initialize a FFT */
 #define FFT_DECL(SIZE, NAME)                                           \
   struct {                                                             \
