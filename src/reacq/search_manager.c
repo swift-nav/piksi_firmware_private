@@ -207,7 +207,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
         mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
         assert(IS_GLO(mesid));
       }
-    } else if (CONSTELLATION_GPS == con){
+    } else if (CONSTELLATION_GPS == con) {
       assert(IS_GPS(mesid));
     } else if (CONSTELLATION_SBAS == con) {
       assert(IS_SBAS(mesid));
@@ -300,7 +300,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
         mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
         assert(IS_GLO(mesid));
       }
-    } else if (CONSTELLATION_GPS == con){
+    } else if (CONSTELLATION_GPS == con) {
       assert(IS_GPS(mesid));
     } else if (CONSTELLATION_SBAS == con) {
       assert(IS_SBAS(mesid));
