@@ -25,6 +25,12 @@
 #define SETTINGS_REGISTER_TIMEOUT 5000
 #define SETTINGS_REGISTER_TRIES 5
 
+enum {
+  SBP_WRITE_STATUS_OK,
+  SBP_WRITE_STATUS_VALUE_REJECTED,
+  SBP_WRITE_STATUS_SETTING_REJECTED,
+};
+
 static struct setting *settings_head;
 
 static const char *const bool_enum[] = {"False", "True", NULL};
@@ -327,12 +333,10 @@ static void settings_write_callback(u16 sender_id,
   const char *section = NULL, *setting = NULL, *value = NULL;
 
   if (len == 0) {
-    log_error("Error in settings write message");
     return;
   }
 
   if (msg[len - 1] != '\0') {
-    log_error("Error in settings write message");
     return;
   }
 
@@ -353,14 +357,12 @@ static void settings_write_callback(u16 sender_id,
         case 3:
           if (i == len - 1) break;
         default:
-          log_error("Error in settings write message");
           return;
       }
     }
   }
 
   if (value == NULL) {
-    log_error("Error in settings write message");
     return;
   }
 
@@ -369,14 +371,13 @@ static void settings_write_callback(u16 sender_id,
     return;
   }
 
+  char buf[256] = {SBP_WRITE_STATUS_OK};
   /* This is an assignment, call notify function */
   if (!s->notify(s, value)) {
-    log_error("Error in settings write message");
-    return;
+    buf[0] = SBP_WRITE_STATUS_VALUE_REJECTED;
   }
 
-  char buf[256];
-  u8 buflen = settings_format_setting(s, buf, sizeof(buf));
-  sbp_send_msg(SBP_MSG_SETTINGS_READ_RESP, buflen, (void *)buf);
+  u8 buflen = settings_format_setting(s, buf + 1, sizeof(buf) - 1) + 1;
+  sbp_send_msg(SBP_MSG_SETTINGS_WRITE_RESP, buflen, (void *)buf);
   return;
 }
