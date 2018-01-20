@@ -223,10 +223,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
     return false;
   }
 
-  s32 corrected_sample_offset = peak.sample_offset;
-
   /* Compute code phase */
-  float cp = chips_per_sample * corrected_sample_offset;
+  float cp = chips_per_sample * (peak.sample_offset);
   log_debug_mesid(
       mesid, "cp %.1f cf %.1f cn0 %.1f", cp, peak.doppler, peak.cn0);
 

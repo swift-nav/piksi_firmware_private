@@ -23,10 +23,10 @@
 #define FAU_SBASL1_PRN_BASE (120)
 #define FAU_SBASL1_CODE_CHIPS (1023)
 
-#define FAU_BDS2B1_FREQ (1561098000)
-#define FAU_BDS2B2_FREQ (1207014000)
-#define FAU_BDS2B11_CODE_MS (1)
-#define FAU_BDS2B11_CODE_CHIPS (2046)
+#define FAU_BDSB1_FREQ (1561098000)
+#define FAU_BDSB2_FREQ (1207014000)
+#define FAU_BDSB11_CODE_MS (1)
+#define FAU_BDSB11_CODE_CHIPS (2046)
 
 #define TWOPI (2.0 * M_PI)
 #define POW_TWO_P32 (4294967296.0)
@@ -44,14 +44,14 @@ typedef struct _sFauParams {
   u8 iCohCodes;       /* coherent integration time */
   u8 iNcohAcc;        /* coherent integration time */
   u8 iPostCorrDec;    /* decimation to apply to code resolution post xcorr */
-  s8 code_sec[128];   /* hopefully no secondary codes longer than 128 bits? */
-  u32 code_sec_len;   /* secondary code length (assuming 1 secondary chip is 1
+  s8 uSecCode[128];   /* hopefully no secondary codes longer than 128 bits? */
+  u32 uSecCodeLen;    /* secondary code length (assuming 1 secondary chip is 1
                          primary code long!) */
 } sFauParams_t;
 
 typedef struct _acqResults_t {
-  int iUsi;               //! The flag controlling the acquisition
-  int iAcqFlag;           //! The flag controlling the acquisition
+  int iUsi;               //! Universal satellite indentifier
+  bool bAcquired;         //! The flag controlling the acquisition
   float fMaxCorr;         //! The correlation peak, in some measure
   float fDoppFreq;        //! In Hertz
   float fCodeDelay;       //! The delay in [code]: 0 <= codeDelay < 1
@@ -59,43 +59,41 @@ typedef struct _acqResults_t {
 } acqResults_t;
 
 /* you be careful when touching these things below >:| */
-#define NT1035_VCO1_FREQ (1590000000)
-#define NT1035_VCO2_FREQ (1235000000)
+#define NT1035_VCO1_FREQ 1590000000
+#define NT1035_VCO2_FREQ 1235000000
 
-#define FAU_RAW_FS (99375000) /* current RAW sampling frequency */
-
+/* current RAW sampling frequency */
+#define FAU_RAW_FS 99375000
+/* samples per ms */
 #define FAU_RAW_SPMS (FAU_RAW_FS / 1000)
-
-#define FAU_FC_GPSL1 \
-  (FAU_GPSL1_FREQ - NT1035_VCO1_FREQ) /* IF of GPS L1 -high side injection */
-
-#define FAU_FC_GLOG1 \
-  (FAU_GLOG1_FREQ -  \
-   NT1035_VCO1_FREQ) /* IF of Glonass G1 - low side injection */
-
-#define FAU_FC_BDS2B1 (FAU_BDS2B1_FREQ - NT1035_VCO1_FREQ) /* IF of Beidou B1 \
-                                                              */
-
-#define FAU_DECFACT (25)
-#define FAU_CODE_SLICES (15)
+/* GPS L1 IF */
+#define FAU_FC_GPSL1 (FAU_GPSL1_FREQ - NT1035_VCO1_FREQ)
+/* Glonass L1 IF */
+#define FAU_FC_GLOG1 (FAU_GLOG1_FREQ - NT1035_VCO1_FREQ)
+/* Beidou B1 IF */
+#define FAU_FC_BDSB1 (FAU_BDSB1_FREQ - NT1035_VCO1_FREQ)
+/* Decimation factor to apply to FAU_RAW_FS to get an integer FS */
+#define FAU_DECFACT 25
+/* Number of slices to cut 1 ms into */
+#define FAU_MDBZP_MS_SLICES 15
+/* Decimated samples per ms */
 #define FAU_SPMS (FAU_RAW_SPMS / FAU_DECFACT)
-#define FAU_CODE_SIZE (FAU_SPMS * FAU_GPSL1CA_CODE_MS)
+/* Samples per code for all 1 ms codes - will have to change with Galileo */
+#define FAU_CODE_SIZE (FAU_SPMS)
+/* Coherent-noncoherent choice for different constellations */
+#define FAU_GPSL1CA_COHE 4
+#define FAU_GPSL1CA_NONC 1
 
-#define FAU_GPSL1CA_COHE (4)
-#define FAU_GPSL1CA_NONC (1)
+#define FAU_GLOG1_COHE 2
+#define FAU_GLOG1_NONC 2
 
-#define FAU_GLOG1_COHE (2)
-#define FAU_GLOG1_NONC (2)
-#define FAU_GLOG1_CODE_SLICES (15)
+#define FAU_SBASL1_COHE 1
+#define FAU_SBASL1_NONC 4
 
-#define FAU_SBASL1_COHE (1)
-#define FAU_SBASL1_NONC (4)
-#define FAU_SBASL1_CODE_SLICES (5)
+#define FAU_BDSB11_COHE 1
+#define FAU_BDSB11_NONC 4
 
-#define FAU_BDS2B11_COHE (1)
-#define FAU_BDS2B11_NONC (4)
-#define FAU_BDS2B11_CODE_SLICES (5)
-
-#define FAU_MAX_MS (1 + (FAU_GPSL1CA_COHE * FAU_GPSL1CA_NONC))
+/* Max number of ms to process at best */
+#define FAU_MS_MAX 5
 
 #endif /* SOFT_MACQ_DEFINES_H_ */

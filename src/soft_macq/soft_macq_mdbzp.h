@@ -7,7 +7,10 @@
 extern "C" {
 #endif
 
-bool mdbzp_static( sc16_t *_cSignal, int8_t *_piCode, sFauParams_t *_pPar, acqResults_t *_pRes );
+bool mdbzp_static(sc16_t *_cSignal,
+                  int8_t *_piCode,
+                  sFauParams_t *_pPar,
+                  acqResults_t *_pRes);
 
 #ifdef __cplusplus
 }

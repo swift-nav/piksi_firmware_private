@@ -147,7 +147,12 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    * NOTE: right now this is just to have he compiler going down
    * this route, but eventually could swap serial search */
   if ((_fCarrFreqMax - _fCarrFreqMin) > 5000) {
-    return SoftMacqMdbzp(mesid, &sLocalResult);
+    bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
+    p_acqres->cp =
+        (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
+    p_acqres->cf = sLocalResult.fDoppFreq;
+    p_acqres->cn0 = ACQ_EARLY_THRESHOLD;
+    return ret;
   }
 
   /** call serial-frequency search acquisition with current sensitivity
@@ -230,7 +235,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
 
     case CODE_BDS2_B11:
       samples_ms = FAU_RAW_SPMS / FAU_DECFACT;
-      uNcoStep = CirclesToUint32((double)(FAU_FC_BDS2B1) / (double)FAU_RAW_FS);
+      uNcoStep = CirclesToUint32((double)(FAU_FC_BDSB1) / (double)FAU_RAW_FS);
 
       for (k = 0, h = 0, uNco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
         uSample = ((sample_buff[k] >> 0) & 0x3)
@@ -285,7 +290,11 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
   return true;
 }
 
-/*************    MDBZP *****************/
+/** Prepares for Modified Double Block Zero Padding
+ *
+ * \param mesid MESID of the acquisition
+ * \param pacq_res Acquisition results.
+ */
 static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                           acqResults_t *pacq_res) {
   u32 h;
@@ -302,11 +311,11 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
   switch (mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_QZS_L1CA:
-      sParams.iNumCodeSlices = FAU_CODE_SLICES;
+      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_GPSL1CA_CODE_MS;
       sParams.iCodeTimeMs = FAU_GPSL1CA_CODE_MS;
       sParams.iCohCodes = FAU_GPSL1CA_COHE;
       sParams.iNcohAcc = FAU_GPSL1CA_NONC;
-      sParams.code_sec_len = 0;
+      sParams.uSecCodeLen = 0;
 
       uNcoStep = FAU_GPSL1CA_CODE_CHIPS;
       uChipInd = 0;
@@ -321,11 +330,11 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
 
     case CODE_GLO_L1OF:
-      sParams.iNumCodeSlices = FAU_CODE_SLICES;
+      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_GLOG1_CODE_MS;
       sParams.iCodeTimeMs = FAU_GLOG1_CODE_MS;
       sParams.iCohCodes = FAU_GLOG1_COHE;
       sParams.iNcohAcc = FAU_GLOG1_NONC;
-      sParams.code_sec_len = 0;
+      sParams.uSecCodeLen = 0;
 
       uNcoStep = FAU_GLOG1_CODE_CHIPS;
       uChipInd = 0;
@@ -340,11 +349,11 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
 
     case CODE_SBAS_L1CA:
-      sParams.iNumCodeSlices = FAU_CODE_SLICES;
+      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_SBASL1_CODE_MS;
       sParams.iCodeTimeMs = FAU_SBASL1_CODE_MS;
       sParams.iCohCodes = FAU_SBASL1_COHE;
       sParams.iNcohAcc = FAU_SBASL1_NONC;
-      sParams.code_sec_len = 0;
+      sParams.uSecCodeLen = 0;
 
       uNcoStep = FAU_SBASL1_CODE_CHIPS;
       uChipInd = 0;
@@ -359,20 +368,20 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
 
     case CODE_BDS2_B11:
-      sParams.iNumCodeSlices = FAU_CODE_SLICES;
-      sParams.iCodeTimeMs = FAU_BDS2B11_CODE_MS;
-      sParams.iCohCodes = FAU_BDS2B11_COHE;
-      sParams.iNcohAcc = FAU_BDS2B11_NONC;
-      sParams.code_sec_len = 0;
+      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_BDSB11_CODE_MS;
+      sParams.iCodeTimeMs = FAU_BDSB11_CODE_MS;
+      sParams.iCohCodes = FAU_BDSB11_COHE;
+      sParams.iNcohAcc = FAU_BDSB11_NONC;
+      sParams.uSecCodeLen = 0;
 
-      uNcoStep = FAU_BDS2B11_CODE_CHIPS;
+      uNcoStep = FAU_BDSB11_CODE_CHIPS;
       uChipInd = 0;
       for (h = 0, uNco = 0; h < samples_ms; h++) {
         pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
         uNco += uNcoStep;
         if (uNco >= samples_ms) {
           uNco -= samples_ms;
-          uChipInd = (uChipInd + 1) % FAU_BDS2B11_CODE_CHIPS;
+          uChipInd = (uChipInd + 1) % FAU_BDSB11_CODE_CHIPS;
         }
       }
       break;
@@ -413,5 +422,15 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       break;
   }
   /** call now MDBZP */
-  return mdbzp_static(pBaseBand, pResampCode, &sParams, pacq_res);
+  bool ret = mdbzp_static(pBaseBand, pResampCode, &sParams, pacq_res);
+  if (ret) {
+    log_info_mesid(mesid,
+                   "%16" PRIu64
+                   "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
+                   pacq_res->uFirstLocIdx,
+                   pacq_res->fMaxCorr,
+                   pacq_res->fDoppFreq,
+                   pacq_res->fCodeDelay);
+  }
+  return ret;
 }
