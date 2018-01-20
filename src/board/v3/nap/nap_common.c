@@ -190,7 +190,7 @@ static void handle_nap_track_irq(void) {
     trackers_missed(err);
   }
 
-  watchdog_notify(WD_NOTIFY_NAP_ISR);
+  DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
 }
 
 static void nap_irq_thread(void *arg) {
