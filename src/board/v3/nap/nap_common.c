@@ -184,38 +184,38 @@ static struct adel_profile adel_profile = {0};
 
 void nap_profile_rd(u32 elapsed_us)
 {
-  if (elapsed_us <= 10) {
+  if (elapsed_us <= 1) {
     adel_profile.naprd[0]++;
-  } else if (elapsed_us <= 20) {
+  } else if (elapsed_us <= 2) {
     adel_profile.naprd[1]++;
-  } else if (elapsed_us <= 30) {
+  } else if (elapsed_us <= 3) {
     adel_profile.naprd[2]++;
-  } else if (elapsed_us <= 40) {
+  } else if (elapsed_us <= 4) {
     adel_profile.naprd[3]++;
-  } else if (elapsed_us <= 50) {
+  } else if (elapsed_us <= 5) {
     adel_profile.naprd[4]++;
-  } else if (elapsed_us <= 60) {
+  } else if (elapsed_us <= 6) {
     adel_profile.naprd[5]++;
-  } else if (elapsed_us <= 70) {
+  } else {
     adel_profile.naprd[6]++;
   }
 }
 
 void nap_profile_wr(u32 elapsed_us)
 {
-  if (elapsed_us <= 10) {
+  if (elapsed_us <= 1) {
     adel_profile.napwr[0]++;
-  } else if (elapsed_us <= 20) {
+  } else if (elapsed_us <= 2) {
     adel_profile.napwr[1]++;
-  } else if (elapsed_us <= 30) {
+  } else if (elapsed_us <= 3) {
     adel_profile.napwr[2]++;
-  } else if (elapsed_us <= 40) {
+  } else if (elapsed_us <= 4) {
     adel_profile.napwr[3]++;
-  } else if (elapsed_us <= 50) {
+  } else if (elapsed_us <= 5) {
     adel_profile.napwr[4]++;
-  } else if (elapsed_us <= 60) {
+  } else if (elapsed_us <= 6) {
     adel_profile.napwr[5]++;
-  } else if (elapsed_us <= 70) {
+  } else {
     adel_profile.napwr[6]++;
   }
 }
