@@ -25,6 +25,7 @@
 
 #include "main.h"
 #include "manage.h"
+#include "timing/timing.h"
 #include "system_monitor/system_monitor.h"
 #include "track/track_state.h"
 
@@ -85,6 +86,11 @@ u64 nap_timing_count(void) {
 
   chMtxUnlock(&timing_count_mutex);
   return total_count;
+}
+
+u32 adel_time_us(void) {
+  u32 count = NAP->TIMING_COUNT;
+  return (u32)(count * (RX_DT_NOMINAL * 1e6));
 }
 
 /**
@@ -167,12 +173,50 @@ static void handle_nap_irq(void) {
   }
 }
 
+struct adel_profile {
+  u64 all_us[6];
+  /* u64 last_us[6]; */
+  /* u64 interval_ms[6][5]; */
+};
+
+static struct adel_profile adel_profile = {0};
+
 static void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
+  u32 start_us = adel_time_us();
+
   trackers_update(irq);
+
+  u64 now_us = adel_time_us();
+  u32 elapsed_us = now_us - start_us;
+
+  u64 *all_us = adel_profile.all_us;
+
+  if (elapsed_us <= 100) {
+    adel_profile.all_us[0]++;
+  } else if (elapsed_us <= 200) {
+    adel_profile.all_us[1]++;
+  } else if (elapsed_us <= 300) {
+    adel_profile.all_us[2]++;
+  } else if (elapsed_us <= 400) {
+    adel_profile.all_us[3]++;
+  } else if (elapsed_us <= 500) {
+    adel_profile.all_us[4]++;
+  } else if (elapsed_us <= 600) {
+    adel_profile.all_us[5]++;
+  }
+  if (elapsed_us > 450) {
+    log_warn("adel hist1:"
+             " %" PRIu32 " %" PRIu32,
+             start_us, elapsed_us);
+    log_warn("adel hist2:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             all_us[0], all_us[1], all_us[2], all_us[3], all_us[4], all_us[5]);
+  }
+
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
