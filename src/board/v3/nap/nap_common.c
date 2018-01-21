@@ -174,12 +174,51 @@ static void handle_nap_irq(void) {
 }
 
 struct adel_profile {
-  u64 all_us[6];
-  /* u64 last_us[6]; */
+  u64 allnum[6];
+  u64 naprd[7];
+  u64 napwr[7];
   /* u64 interval_ms[6][5]; */
 };
 
 static struct adel_profile adel_profile = {0};
+
+void nap_profile_rd(u32 elapsed_us)
+{
+  if (elapsed_us <= 10) {
+    adel_profile.naprd[0]++;
+  } else if (elapsed_us <= 20) {
+    adel_profile.naprd[1]++;
+  } else if (elapsed_us <= 30) {
+    adel_profile.naprd[2]++;
+  } else if (elapsed_us <= 40) {
+    adel_profile.naprd[3]++;
+  } else if (elapsed_us <= 50) {
+    adel_profile.naprd[4]++;
+  } else if (elapsed_us <= 60) {
+    adel_profile.naprd[5]++;
+  } else if (elapsed_us <= 70) {
+    adel_profile.naprd[6]++;
+  }
+}
+
+void nap_profile_wr(u32 elapsed_us)
+{
+  if (elapsed_us <= 10) {
+    adel_profile.napwr[0]++;
+  } else if (elapsed_us <= 20) {
+    adel_profile.napwr[1]++;
+  } else if (elapsed_us <= 30) {
+    adel_profile.napwr[2]++;
+  } else if (elapsed_us <= 40) {
+    adel_profile.napwr[3]++;
+  } else if (elapsed_us <= 50) {
+    adel_profile.napwr[4]++;
+  } else if (elapsed_us <= 60) {
+    adel_profile.napwr[5]++;
+  } else if (elapsed_us <= 70) {
+    adel_profile.napwr[6]++;
+  }
+}
 
 static void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS0;
@@ -193,28 +232,40 @@ static void handle_nap_track_irq(void) {
   u64 now_us = adel_time_us();
   u32 elapsed_us = now_us - start_us;
 
-  u64 *all_us = adel_profile.all_us;
+  u64 *allnum = adel_profile.allnum;
+  u64 *naprd = adel_profile.naprd;
+  u64 *napwr = adel_profile.napwr;
 
   if (elapsed_us <= 100) {
-    adel_profile.all_us[0]++;
+    allnum[0]++;
   } else if (elapsed_us <= 200) {
-    adel_profile.all_us[1]++;
+    allnum[1]++;
   } else if (elapsed_us <= 300) {
-    adel_profile.all_us[2]++;
+    allnum[2]++;
   } else if (elapsed_us <= 400) {
-    adel_profile.all_us[3]++;
+    allnum[3]++;
   } else if (elapsed_us <= 500) {
-    adel_profile.all_us[4]++;
+    allnum[4]++;
   } else if (elapsed_us <= 600) {
-    adel_profile.all_us[5]++;
+    allnum[5]++;
   }
   if (elapsed_us > 450) {
-    log_warn("adel hist1:"
+    log_warn("adel hist:"
              " %" PRIu32 " %" PRIu32,
              start_us, elapsed_us);
-    log_warn("adel hist2:"
+    log_warn("adel allnum:"
              " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
-             all_us[0], all_us[1], all_us[2], all_us[3], all_us[4], all_us[5]);
+             allnum[0], allnum[1], allnum[2], allnum[3], allnum[4], allnum[5]);
+    log_warn("adel naprd:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             naprd[0], naprd[1], naprd[2], naprd[3],
+             naprd[4], naprd[5], naprd[6]);
+    log_warn("adel napwr:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             napwr[0], napwr[1], napwr[2], napwr[3],
+             napwr[4], napwr[5], napwr[6]);
   }
 
   NAP->TRK_IRQS0 = irq0;
