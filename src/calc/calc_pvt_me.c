@@ -227,7 +227,7 @@ static void me_send_failed_obs(u8 _num_obs,
 
   me_post_observations(_num_obs, _meas, _ephem, _t);
   /* Output observations only every obs_output_divisor times, taking
-  * care to ensure that the observations are aligned. */
+   * care to ensure that the observations are aligned. */
   if (decimate_observations(_t) && !simulation_enabled()) {
     send_observations(_num_obs, msg_obs_max_size, _meas, _t);
   }
@@ -663,6 +663,7 @@ static void me_calc_pvt_thread(void *arg) {
                                 &(nm->tot),
                                 nm->sat_pos,
                                 nm->sat_vel,
+                                nm->sat_acc,
                                 &(nm->sat_clock_err),
                                 &(nm->sat_clock_err_rate),
                                 &(nm->IODC),
