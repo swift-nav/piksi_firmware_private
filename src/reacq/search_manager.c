@@ -185,7 +185,6 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     return;
   }
 
-  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
   u32 sbas_mask = 0;
   if (CONSTELLATION_SBAS == con) {
     sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_DEEP_SEARCH);
@@ -246,11 +245,6 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
 
     if (CONSTELLATION_GLO == con && !glo_map_valid(sid)) {
       deep_job->cost_hint = ACQ_COST_AVG;
-    } else if (CONSTELLATION_SBAS == con) {
-      sbas_limit--;
-      if (0 == sbas_limit) {
-        return;
-      }
     }
   } /* loop SVs */
 }
@@ -274,7 +268,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     return;
   }
 
-  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
   u32 sbas_mask = 0;
   if (CONSTELLATION_SBAS == con) {
     sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_FALLBACK_SEARCH);
@@ -336,9 +329,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      if (CONSTELLATION_SBAS == con) {
-        sbas_limit--;
-      }
     } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                 now_ms - fallback_job->stop_time >
                     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
@@ -347,9 +337,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      if (CONSTELLATION_SBAS == con) {
-        sbas_limit--;
-      }
     } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
@@ -357,12 +344,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      if (CONSTELLATION_SBAS == con) {
-        sbas_limit--;
-      }
-    }
-    if (CONSTELLATION_SBAS == con && 0 == sbas_limit) {
-      return;
     }
   } /* loop SVs */
 }
