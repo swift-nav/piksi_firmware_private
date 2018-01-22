@@ -205,7 +205,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     }
 
     acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
-    me_gnss_signal_t mesid = deep_job->mesid;
+    me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
 
     bool visible = false;
@@ -218,20 +218,23 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
       if (glo_map_valid(sid)) {
         glo_fcn = glo_map_get_fcn(sid);
-        mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+        *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+        sm_get_visibility_flags(sid, &visible, &known);
       }
     }
 
-    assert(mesid_valid(mesid));
+    assert(mesid_valid(*mesid));
     assert(sid_valid(sid));
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
     /* Check if jobs need to run */
-    if (mesid_is_tracked(mesid)) {
+    if (mesid_is_tracked(*mesid)) {
       continue;
     }
 
-    sm_get_visibility_flags(sid, &visible, &known);
+    if (con != CONSTELLATION_GLO) {
+      sm_get_visibility_flags(sid, &visible, &known);
+    }
     visible = visible && known;
 
     if (visible) {
@@ -292,7 +295,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
 
     acq_job_t *fallback_job =
         &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
-    me_gnss_signal_t mesid = fallback_job->mesid;
+    me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
 
     bool visible = false;
@@ -306,20 +309,23 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       u16 glo_fcn = GLO_FCN_UNKNOWN;
       if (glo_map_valid(sid)) {
         glo_fcn = glo_map_get_fcn(sid);
-        mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+        *mesid = construct_mesid(CODE_GLO_L1OF, glo_fcn);
+        sm_get_visibility_flags(sid, &visible, &known);
       }
     }
 
-    assert(mesid_valid(mesid));
+    assert(mesid_valid(*mesid));
     assert(sid_valid(sid));
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
     /* Check if jobs need to run */
-    if (mesid_is_tracked(mesid)) {
+    if (mesid_is_tracked(*mesid)) {
       continue;
     }
 
-    sm_get_visibility_flags(sid, &visible, &known);
+    if (con != CONSTELLATION_GLO) {
+      sm_get_visibility_flags(sid, &visible, &known);
+    }
     visible = visible && known;
     invisible = !visible && known;
 
