@@ -826,6 +826,28 @@ void sbp_send_group_delay(const cnav_msg_t *cnav) {
   sbp_send_msg(SBP_MSG_GROUP_DELAY, sizeof(msg_group_delay_t), (u8 *)&msg_cnav);
 }
 
+/** This is helper function packs and sends SBAS raw data capabilities over SBP
+ *
+ * \param sid          GNSS signal identifier
+ * \param tow_ms       GPS TOW [ms]
+ * \param msg          SBAS message type
+ * \param decoded      Unpacked decoded data
+ */
+void sbp_send_sbas_raw_data(const gnss_signal_t sid,
+                            u32 tow_ms,
+                            u8 msg,
+                            const u8 *decoded) {
+  msg_sbas_raw_t sbas_raw_msg;
+  memset(sbas_raw_msg.data, 0, sizeof(sbas_raw_msg.data));
+  sbas_raw_msg.sid = sid_to_sbp(sid);
+  sbas_raw_msg.tow = tow_ms;
+  sbas_raw_msg.message_type = msg;
+  memcpy(sbas_raw_msg.data, decoded, sizeof(sbas_raw_msg.data));
+  sbas_raw_msg.data[26] &= 0xF0; /* Pad with zeros. */
+
+  sbp_send_msg(SBP_MSG_SBAS_RAW, sizeof(sbas_raw_msg), (u8 *)&sbas_raw_msg);
+}
+
 /**
  * Helper function for rounding tow to integer milliseconds, taking care of
  * week roll-over

@@ -12,6 +12,7 @@
 
 #include "nav_msg/sbas_msg.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
+#include "sbp_utils.h"
 #include "timing/timing.h"
 
 #include <limits.h>
@@ -257,6 +258,41 @@ static void sbas_msg_invert(sbas_v27_part_t *part) {
 }
 
 /**
+ * Get GPS timestamp for decoded SBAS message.
+ *
+ * \param[in] delay Delay of Viterbi decoding [symbols].
+ *
+ * \return GPS timestamp in milliseconds
+ */
+static u32 sbas_get_timestamp(u32 delay) {
+  /* Read current GPS time. */
+  gps_time_t gps_time = get_current_time();
+  /* Convert to milliseconds. */
+  u32 gps_time_ms = round(gps_time.tow * SECS_MS);
+  if (gps_time_ms >= WEEK_MS) {
+    gps_time_ms -= WEEK_MS;
+  }
+  /* Compensate for Viterbi delay. */
+  gps_time_ms -= delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
+  if (gps_time_ms < 0.0) {
+    gps_time_ms += WEEK_MS;
+  }
+
+  /* Timestamp is around ~120-140 ms after the last integer gps_time_second.
+   * This is due to the transit delay, i.e. the time signals travels from
+   * satellite to receiver, which we currently cannot account for.
+   * If receiver would be located on equator, and the satellite is directly
+   * in zenith, then 36000km / 3e8 ~= 120 ms */
+
+  /* Another potential delay comes from nav_bit_FIFO. */
+
+  /* TODO SBAS: If ephemeris is available for SBAS, the transit delay could
+   * be compensated. */
+
+  return gps_time_ms;
+}
+
+/**
  * Performs SBAS message decoding.
  *
  * This function decoded SBAS message, if the following conditions are met:
@@ -317,34 +353,11 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
         break;
     }
 
-    /* Read current GPS time for SBAS raw data SBP message. */
-    gps_time_t gps_time = get_current_time();
-    double gps_time_ms = gps_time.tow * SECS_MS;
-    /* Compensate for Viterbi delay. */
-    gps_time_ms -= delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
-    if (gps_time_ms < 0.0) {
-      gps_time_ms += WEEK_MS;
-    }
+    /* Get current GPS time for SBAS raw data SBP message. */
+    u32 gps_time_ms = sbas_get_timestamp(delay);
 
-    /* Timestamp is around ~120-140 ms after the last integer gps_time_second.
-     * This is due to the transit delay, i.e. the time signals travels from
-     * satellite to receiver, which we currently cannot account for.
-     * If receiver would be located on equator, and the satellite is directly
-     * in zenith, then 36000km / 3e8 ~= 120 ms */
-
-    /* TODO SBAS: If ephemeris is available for SBAS, the transit delay could
-     * be compensated. */
-
-    /* Another potential delay comes from nav_bit_FIFO. */
-
-    gps_time_ms = round(gps_time_ms);
-
-    /* TODO SBAS: Generate SBAS raw data SBP msg here.
-     * sid: msg->sid
-     * tow: gps_time_ms
-     * message_type: msg_id
-     * data: available from part->decoded
-     */
+    /* Send SBAS raw data SBP msg. */
+    sbp_send_sbas_raw_data(msg->sid, gps_time_ms, msg_id, part->decoded);
 
     if (part->invert) {
       sbas_msg_invert(part);
