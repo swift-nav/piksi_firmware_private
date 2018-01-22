@@ -1102,7 +1102,7 @@ static void process_obs_pair(obss_t *base_obs, obss_t *rover_obs) {
     pvt_engine_result_t soln_copy = rover_obs->soln;
 
     /* Init the messages we want to send */
-    sbp_messages_init(&sbp_messages);
+    sbp_messages_init(&sbp_messages, &base_obs->tor);
     solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
     static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
