@@ -405,12 +405,17 @@ TEST(piksi_systime_tests, sub_ms) {
   st2.rollover_cnt = 1;
 
   diff = piksi_systime_sub_ms(&st2, &st1);
+  u64 freq_hz = (u64)CH_CFG_ST_FREQUENCY;
+  s64 expected_ticks = (s64)TIME_INFINITE + 1;
+  s64 expected_ms = (expected_ticks * SECS_MS + (freq_hz - 1)) / freq_hz;
   // diff should be one positive rollover in ms
-  EXPECT_EQ(diff, ((s64)TIME_INFINITE + 1) * SECS_MS / CH_CFG_ST_FREQUENCY);
+  EXPECT_EQ(diff, expected_ms);
 
   diff = piksi_systime_sub_ms(&st1, &st2);
+  expected_ticks = -(s64)TIME_INFINITE - 1;
+  expected_ms = (expected_ticks * SECS_MS - (s64)(freq_hz - 1)) / (s64)freq_hz;
   // diff should be one negative rollover in ms
-  EXPECT_EQ(diff, (-(s64)TIME_INFINITE - 1) * SECS_MS / CH_CFG_ST_FREQUENCY);
+  EXPECT_EQ(diff, expected_ms);
 }
 
 TEST(piksi_systime_tests, sub_s) {
