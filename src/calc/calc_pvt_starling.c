@@ -114,6 +114,9 @@ static void post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
+  assert(NULL != soln);
+  assert(NULL != t);
+
   obss_t *obs = chPoolAlloc(&time_matched_obs_buff_pool);
 
   if (NULL == obs) {
@@ -138,12 +141,7 @@ static void post_observations(u8 n,
     obs->has_pos = false;
   }
 
-  if (soln) {
-    obs->soln = *soln;
-  } else {
-    obs->soln.valid = 0;
-    obs->soln.velocity_valid = 0;
-  }
+  obs->soln = *soln;
 
   msg_t ret = chMBPost(&time_matched_obs_mailbox, (msg_t)obs, TIME_IMMEDIATE);
 
