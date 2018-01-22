@@ -248,6 +248,7 @@ static void handle_nap_track_irq(void) {
 
   trackers_update(irq);
 
+  static u64 last_print_us = 0;
   u64 now_us = adel_time_us();
   u32 elapsed_us = now_us - start_us;
 
@@ -266,7 +267,9 @@ static void handle_nap_track_irq(void) {
   } else if (elapsed_us <= 600) {
     allnum[5]++;
   }
-  if (elapsed_us > 450) {
+  u64 since_last_print_us = now_us - last_print_us;
+  if ((elapsed_us > 450) || (since_last_print_us > (5 * 1e6))) {
+    last_print_us = now_us;
     log_warn("adel hist:"
              " %" PRIu32 " %" PRIu32,
              start_us, elapsed_us);
