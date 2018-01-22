@@ -108,6 +108,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
         &data->sbas_msg_decoder, symbol_probability, &data->sbas_msg);
 
     if (!decoded) {
+      /* Nothing decoded, no need to continue. */
       continue;
     }
 
@@ -115,7 +116,9 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     tracker_data_sync_init(&from_decoder);
 
     if (TOW_INVALID == data->sbas_msg.tow_ms) {
-      from_decoder.sync_flags = (SYNC_POL | SYNC_EPH);
+      /* SBAS message without TOW has been decoded.
+       * Bit polarity can still be updated. */
+      from_decoder.sync_flags &= ~SYNC_TOW;
     }
 
     from_decoder.TOW_ms = data->sbas_msg.tow_ms;

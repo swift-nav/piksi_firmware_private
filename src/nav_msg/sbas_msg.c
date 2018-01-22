@@ -278,6 +278,7 @@ static void sbas_msg_invert(sbas_v27_part_t *part) {
 static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
   u32 delay = 0;
   u8 msg_id = 0;
+  s32 tow_s;
   bool res = false;
 
   if (SBAS_MSG_LENGTH > part->n_decoded) {
@@ -301,9 +302,9 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
 
     switch (msg_id) {
       case 12:
-        msg->tow_ms = getbitu(part->decoded, 121, 20) + 1; /* seconds */
-        msg->tow_ms *= SECS_MS; /* convert to milliseconds */
-        /* Compensate Viterbi delay. */
+        tow_s = getbitu(part->decoded, 121, 20) + 1; /* seconds */
+        msg->tow_ms = tow_s * SECS_MS; /* convert to milliseconds */
+        /* Compensate for Viterbi delay. */
         msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
         if (msg->tow_ms >= WEEK_MS) {
           msg->tow_ms -= WEEK_MS;
@@ -318,7 +319,7 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
     /* Read current GPS time for SBAS raw data SBP message. */
     gps_time_t gps_time = get_current_time();
     double gps_time_ms = gps_time.tow * SECS_MS;
-    /* Compensate Viterbi delay. */
+    /* Compensate for Viterbi delay. */
     gps_time_ms -= delay * SBAS_L1CA_SYMBOL_LENGTH_MS;
     if (gps_time_ms < 0.0) {
       gps_time_ms += WEEK_MS;
@@ -330,11 +331,14 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
      * If receiver would be located on equator, and the satellite is directly
      * in zenith, then 36000km / 3e8 ~= 120 ms */
 
-    /*TODO SBAS: If ephemeris is available for SBAS, the transit delay could
+    /* TODO SBAS: If ephemeris is available for SBAS, the transit delay could
      * be compensated. */
-    gps_time_ms = floor(gps_time_ms);
 
-    /* TODO: Generate SBAS raw data SBP msg here.
+    /* Another potential delay comes from nav_bit_FIFO. */
+
+    gps_time_ms = round(gps_time_ms);
+
+    /* TODO SBAS: Generate SBAS raw data SBP msg here.
      * sid: msg->sid
      * tow: gps_time_ms
      * message_type: msg_id
