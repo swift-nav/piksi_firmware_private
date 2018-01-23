@@ -124,15 +124,13 @@ typedef struct {
 
 /** Container for all the jobs */
 typedef struct {
-  acq_job_t jobs_gps[ACQ_NUM_JOB_TYPES]
-                    [NUM_SATS_GPS]; /**< job for GPS SV for each
-                                         job type */
-  acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES]
-                    [NUM_SATS_GLO]; /**< job for GLO SV for each
-                                         job type */
-  acq_job_t jobs_sbas[ACQ_NUM_JOB_TYPES]
-                     [NUM_SATS_SBAS]; /**< job for SBAS SV for each
-                                           job type */
+  /**< jobs for GPS, GLO and SBAS for each job type.
+   * Sequence of the job must be fixed: GPS, GLO, SBAS. New constellation
+   * must be added at the end.
+   * Start index of any used GNSS can be obtain using function
+   * sm_constellation_to_start_index() */
+  acq_job_t jobs[ACQ_NUM_JOB_TYPES]
+                [NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS];
   constellation_t constellation;
   u8 priority_counter;
 } acq_jobs_state_t;

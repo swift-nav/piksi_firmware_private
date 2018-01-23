@@ -149,9 +149,10 @@ u16 get_orbit_slot(const u16 fcn) {
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   /* Remove from acquisition */
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
-  data->jobs_gps[0][mesid_to_code_index(startup_params->mesid)].needs_to_run =
+  u16 idx = sm_constellation_to_start_index(data->constellation);
+  data->jobs[0][mesid_to_code_index(startup_params->mesid) + idx].needs_to_run =
       false;
-  data->jobs_gps[1][mesid_to_code_index(startup_params->mesid)].needs_to_run =
+  data->jobs[1][mesid_to_code_index(startup_params->mesid) + idx].needs_to_run =
       false;
   return 0;
 }
