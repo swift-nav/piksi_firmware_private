@@ -32,6 +32,9 @@
 
 #define ACQ_THRESHOLD 38.0 /* dBHz */
 
+/** How many SBAS SV can be tracked */
+#define SBAS_SV_NUM_LIMIT 3
+
 /** Unit test input data type */
 typedef struct {
   u32 now_ms;
@@ -98,6 +101,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            acq_result_t *p_acqres);
 ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf);
 u16 sm_constellation_to_start_index(constellation_t gnss);
+u8 sv_track_count(constellation_t gnss);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
