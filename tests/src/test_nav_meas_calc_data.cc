@@ -201,6 +201,9 @@ static navigation_measurement_t nm1 = {
     {4,              /* sat_vel[0] */
      5,              /* sat_vel[1] */
      6},             /* sat_vel[2] */
+    {7,              /* sat_acc[0] */
+     8,              /* sat_acc[1] */
+     9},             /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -231,6 +234,9 @@ static navigation_measurement_t nm1_2 = {
     {10,             /* sat_vel[0] */
      11,             /* sat_vel[1] */
      12},            /* sat_vel[2] */
+    {13,             /* sat_acc[0] */
+     14,             /* sat_acc[1] */
+     15},            /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -261,6 +267,9 @@ static navigation_measurement_t nm2 = {
     {4,              /* sat_vel[0] */
      5,              /* sat_vel[1] */
      6},             /* sat_vel[2] */
+    {7,              /* sat_acc[0] */
+     8,              /* sat_acc[1] */
+     9},             /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -291,6 +300,9 @@ static navigation_measurement_t nm2_2 = {
     {16,             /* sat_vel[0] */
      17,             /* sat_vel[1] */
      18},            /* sat_vel[2] */
+    {19,             /* sat_acc[0] */
+     20,             /* sat_acc[1] */
+     21},            /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -321,6 +333,9 @@ static navigation_measurement_t nm3 = {
     {4,              /* sat_vel[0] */
      5,              /* sat_vel[1] */
      6},             /* sat_vel[2] */
+    {7,              /* sat_acc[0] */
+     8,              /* sat_acc[1] */
+     9},             /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -514,6 +529,9 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
       {-1000,          /* sat_vel[0] */
        3000,           /* sat_vel[1] */
        2000},          /* sat_vel[2] */
+      {-10,            /* sat_acc[0] */
+       30,             /* sat_acc[1] */
+       20},            /* sat_acc[2] */
       0,               /* IODE */
       0.0,             /* sat_clock_err */
       0.0,             /* sat_clock_err_rate */
