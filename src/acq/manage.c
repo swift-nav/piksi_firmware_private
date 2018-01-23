@@ -1551,8 +1551,7 @@ static void manage_tracking_startup(void) {
     /* Make sure we tracked less than SBAS_SV_NUM_LIMIT SBAS SVs */
     if (IS_SBAS(acq->mesid) &&
         sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-        log_info("SBAS limit");
-        continue;
+      continue;
     }
 
     /* Make sure the SID is not already tracked and healthy */
