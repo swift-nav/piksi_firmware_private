@@ -1525,14 +1525,13 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
 
 /**
  * The function calculates how many SV of defined GNSS are in track
- * \param[in] jobs_data Pointer to all jobs
  * \param[in] gnss GNSS constellation type
  */
 u8 sv_track_count(constellation_t gnss) {
   u8 sv_tracked = 0;
   for (u8 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
     if (mesid_to_constellation(acq_status[i].mesid) == gnss &&
-        acq_status[i].state == ACQ_PRN_TRACKING) {
+        ACQ_PRN_TRACKING == acq_status[i].state) {
       sv_tracked++;
     }
   }
