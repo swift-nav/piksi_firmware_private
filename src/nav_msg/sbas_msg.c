@@ -302,7 +302,8 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
 
     switch (msg_id) {
       case 12:
-        tow_s = getbitu(part->decoded, 121, 20) + 1; /* seconds */
+        msg->wn = getbitu(part->decoded, 141, 10);   /* GPS Week Number */
+        tow_s = getbitu(part->decoded, 121, 20) + 1; /* GPS TOW [s] */
         msg->tow_ms = tow_s * SECS_MS; /* convert to milliseconds */
         /* Compensate for Viterbi delay. */
         msg->tow_ms += delay * SBAS_L1CA_SYMBOL_LENGTH_MS;

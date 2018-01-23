@@ -48,7 +48,8 @@ extern "C" {
  */
 typedef struct {
   gnss_signal_t sid; /**< SV identifier */
-  s32 tow_ms;        /**< SBAS TOW [ms] */
+  s32 tow_ms;        /**< GPS TOW [ms] */
+  s16 wn;            /**< GPS Week Number */
   s8 bit_polarity;   /**< Polarity of data bits */
 } sbas_msg_t;
 

@@ -73,6 +73,7 @@ static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
   data->sbas_msg.sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
   data->sbas_msg.tow_ms = TOW_INVALID;
+  data->sbas_msg.wn = TOW_INVALID;
   data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
   sbas_msg_decoder_init(&data->sbas_msg_decoder);
 }
@@ -100,6 +101,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     /* Update TOW */
     u8 symbol_probability;
     data->sbas_msg.tow_ms = TOW_INVALID;
+    data->sbas_msg.wn = TOW_INVALID;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
     symbol_probability = nav_bit.soft_bit + POW_TWO_7;
