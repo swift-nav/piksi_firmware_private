@@ -32,9 +32,14 @@
 
 /** Clock state */
 static volatile clock_est_state_t persistent_clock_state;
+static volatile time_quality_t current_time_quality;
 
 /** Mutex for guarding clock state access */
 static MUTEX_DECL(clock_mutex);
+
+static const char *time_quality_names[] = {
+    "Unknown", "Coarse", "Propagated", "Fine", "Finest",
+};
 
 /* The thresholds for time qualities */
 #define TIME_COARSE_THRESHOLD_S 10e-3
@@ -57,6 +62,20 @@ static time_quality_t clock_var_to_time_quality(double clock_var) {
   if (clock_confidence < TIME_COARSE_THRESHOLD_S) return TIME_COARSE;
 
   return TIME_UNKNOWN;
+}
+
+/* log the changes of time quality */
+static void log_time_quality(time_quality_t new_quality) {
+  chMtxLock(&clock_mutex);
+  time_quality_t old_quality = current_time_quality;
+  current_time_quality = new_quality;
+  chMtxUnlock(&clock_mutex);
+
+  if (new_quality != old_quality) {
+    log_info("Quality of time solution changed from %s to %s",
+             time_quality_names[old_quality],
+             time_quality_names[new_quality]);
+  }
 }
 
 /** Update GPS time estimate.
@@ -94,7 +113,8 @@ void update_time(u64 tc, const gnss_solution *sol) {
     time_quality_t time_quality =
         clock_var_to_time_quality(clock_state.P[0][0]);
     time_t unix_time = gps2time(&sol->time);
-    log_info("(quality=%d) Time set to: %s", time_quality, ctime(&unix_time));
+    log_info("Time set to: %s", ctime(&unix_time));
+    log_time_quality(time_quality);
 
     chMtxLock(&clock_mutex);
     persistent_clock_state = clock_state;
@@ -104,11 +124,9 @@ void update_time(u64 tc, const gnss_solution *sol) {
   }
 
   if (gpsdifftime(&sol->time, &clock_state.t_gps) < 0) {
-    log_warn("Tried to update time with ad old solution");
+    log_warn("Tried to update time with an old solution");
     return;
   }
-
-  time_quality_t old_quality = clock_var_to_time_quality(clock_state.P[0][0]);
 
   /* propagate the previous clock state estimate to current epoch tc */
   propagate_clock_state(&clock_state, tc);
@@ -125,11 +143,9 @@ void update_time(u64 tc, const gnss_solution *sol) {
   persistent_clock_state = clock_state;
   chMtxUnlock(&clock_mutex);
 
+  /* finally log the updated time quality */
   time_quality_t new_quality = clock_var_to_time_quality(clock_state.P[0][0]);
-
-  if (new_quality != old_quality) {
-    log_info("Time quality changed: %d -> %d", old_quality, new_quality);
-  }
+  log_time_quality(new_quality);
 }
 
 /** Set/initialize clock model with coarse time from ephemeris or peer. If
@@ -172,7 +188,11 @@ time_quality_t get_time_quality(void) {
   }
 
   propagate_clock_state(&clock_state, nap_timing_count());
-  return clock_var_to_time_quality(clock_state.P[0][0]);
+
+  time_quality_t new_quality = clock_var_to_time_quality(clock_state.P[0][0]);
+  log_time_quality(new_quality);
+
+  return new_quality;
 }
 
 /** Fine adjust the receiver time offset (to keep the current receiver time

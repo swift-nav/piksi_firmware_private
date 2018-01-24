@@ -54,6 +54,9 @@
 /** Minimum number of satellites to use with PVT */
 #define MINIMUM_SV_COUNT 5
 
+/* Maximum time to maintain POSITION_FIX after last successful solution */
+#define POSITION_FIX_TIMEOUT_S 60
+
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
@@ -426,11 +429,11 @@ static void me_calc_pvt_thread(void *arg) {
        * calculation with the local GPS time of reception. */
       gps_time_t rcv_time = napcount2gpstime(current_tc);
 
-      if (gpsdifftime(&rcv_time, &lgf.position_solution.time) >
-          MAX_TIME_PROPAGATED_S) {
-        if (lgf.position_quality > POSITION_STATIC) {
-          lgf.position_quality = POSITION_STATIC;
-        }
+      /* degrade LGF position quality if there has been no fix for some time */
+      if (lgf.position_quality > POSITION_STATIC &&
+          gpsdifftime(&rcv_time, &lgf.position_solution.time) >
+              POSITION_FIX_TIMEOUT_S) {
+        lgf.position_quality = POSITION_STATIC;
       }
 
       /* round current estimated GPS time to the epoch boundary */
