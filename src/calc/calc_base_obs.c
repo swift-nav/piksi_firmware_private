@@ -280,6 +280,7 @@ static void update_obss(obss_t *new_obss) {
 
       const msg_t post_ret =
           chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
+      detailed_log_info("base_obs_mailbox posted, %lf", new_base_obs->tor.tow);
       if (post_ret != MSG_OK) {
         log_error("Base obs mailbox should have space!");
         chPoolFree(&base_obs_buff_pool, new_base_obs);
