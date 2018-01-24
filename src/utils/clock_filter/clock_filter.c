@@ -33,6 +33,11 @@
 void propagate_clock_state(clock_est_state_t *clock_state, u64 tc) {
   u64 ref_tc = clock_state->tc;
 
+  if (tc < ref_tc) {
+    /* do not propagate backwards */
+    return;
+  }
+
   double x[2];
   double P[2][2];
 

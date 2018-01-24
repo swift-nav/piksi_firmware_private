@@ -35,11 +35,8 @@ typedef enum {
   TIME_FINE,       /**< GPS time is known precisely with reference to the local
                       SwiftNAP timer, accurate within 100 ns. */
   TIME_FINEST      /**< GPS time is known precisely with reference to the local
-                      SwiftNAP timer and verified by RAIM, accurate within 10 ns. */
+                      SwiftNAP timer, accurate within 10 ns. */
 } time_quality_t;
-
-/* Maximum time to maintain TIME_PROPAGATED after losing fix */
-#define MAX_TIME_PROPAGATED_S 60
 
 /** \} */
 
