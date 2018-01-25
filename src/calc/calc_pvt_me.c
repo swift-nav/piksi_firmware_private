@@ -459,7 +459,7 @@ static void me_calc_pvt_thread(void *arg) {
       }
 
       /* get NAP count at the epoch with a round GPS time */
-      epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
+      epoch_tc = rcvtime2napcount(&epoch_time);
 
       /* time difference of current NAP count from the closest epoch */
       double dt = ((s64)epoch_tc - (s64)current_tc) * RX_DT_NOMINAL;

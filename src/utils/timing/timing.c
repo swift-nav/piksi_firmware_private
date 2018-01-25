@@ -282,14 +282,14 @@ gps_time_t napcount2rcvtime(const double tc) {
  * \param t gps_time_t to convert.
  * \return Timing count in units of RX_DT_NOMINAL.
  */
-double gpstime2napcount(const gps_time_t *t) {
+u64 gpstime2napcount(const gps_time_t *t) {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = persistent_clock_state.t_gps;
   double rate = persistent_clock_state.clock_rate;
-  double ref_tc = (double)persistent_clock_state.tc;
+  u64 ref_tc = persistent_clock_state.tc;
   chMtxUnlock(&clock_mutex);
 
-  return ref_tc + gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate);
+  return ref_tc + round(gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate));
 }
 
 /** Convert Rcv time to rx time.
@@ -299,12 +299,12 @@ double gpstime2napcount(const gps_time_t *t) {
  * \param t gps_time_t to convert.
  * \return Timing count in units of RX_DT_NOMINAL.
  */
-double rcvtime2napcount(const gps_time_t *t) {
+u64 rcvtime2napcount(const gps_time_t *t) {
   chMtxLock(&clock_mutex);
   gps_time_t ref_time = persistent_clock_state.t0_gps;
   chMtxUnlock(&clock_mutex);
 
-  return gpsdifftime(t, &ref_time) / RX_DT_NOMINAL;
+  return round(gpsdifftime(t, &ref_time) / RX_DT_NOMINAL);
 }
 
 /** Callback to set receiver GPS time estimate. */

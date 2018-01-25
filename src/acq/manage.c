@@ -878,7 +878,7 @@ void sanitize_tracker(tracker_t *tracker_channel,
 static bool compute_cpo(u64 ref_tc,
                         const tracker_info_t *info,
                         const channel_measurement_t *meas,
-                        double *carrier_phase_offset) {
+                        s64 *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
   bool ret = tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
@@ -904,7 +904,7 @@ static bool compute_cpo(u64 ref_tc,
     *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
 
     log_debug_mesid(info->mesid,
-                    "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
+                    "raw_pseudorange %lf rcv_clk_error %e CPO to %" PRId64,
                     raw_pseudorange,
                     rcv_clk_error,
                     *carrier_phase_offset);
@@ -1032,7 +1032,7 @@ u32 get_tracking_channel_meas(u8 i,
      * For now, compute pseudorange for all measurements even when phase is
      * not available.
      */
-    double carrier_phase_offset = misc_info.carrier_phase_offset.value;
+    s64 carrier_phase_offset = misc_info.carrier_phase_offset.value;
     bool cpo_ok = true;
     if ((TIME_PROPAGATED <= get_time_quality()) &&
         (0.0 == carrier_phase_offset) &&
@@ -1042,7 +1042,7 @@ u32 get_tracking_channel_meas(u8 i,
     }
     if (0.0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
-      meas->carrier_phase += carrier_phase_offset;
+      meas->carrier_phase += (double)carrier_phase_offset;
     }
     meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
     meas->elevation = (double)track_sid_db_elevation_degrees_get(meas->sid);
