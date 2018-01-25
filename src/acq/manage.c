@@ -922,36 +922,31 @@ static bool compute_cpo(u64 ref_tc,
  * Computes channel measurement flags from input.
  *
  * \param[in] flags Tracker manager flags
- * \param[in] phase_offset_ok Phase offset flag
  * \param[in] mesid ME SID
  *
  * \return Channel measurement flags
  */
 static chan_meas_flags_t compute_meas_flags(u32 flags,
-                                            bool phase_offset_ok,
                                             const me_gnss_signal_t mesid) {
   chan_meas_flags_t meas_flags = 0;
 
-  if (phase_offset_ok) {
-    if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
-      meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+  if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+      (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
+    meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
-      /* Make sense to set half cycle known flag when carrier phase is valid
-       */
-      if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
-        /* Bit polarity is known */
-        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
-      }
+    /* Make sense to set half cycle known flag when carrier phase is valid */
+    if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
+      /* Bit polarity is known */
+      meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
     }
+  }
 
-    /* sanity check */
-    if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
-        (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
-      /* Somehow we managed to decode TOW when phase lock lost.
-       * This should not happen, so print out warning. */
-      log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
-    }
+  /* sanity check */
+  if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+      (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
+    /* Somehow we managed to decode TOW when phase lock lost.
+     * This should not happen, so print out warning. */
+    log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
   }
 
   if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) ||
@@ -1028,23 +1023,26 @@ u32 get_tracking_channel_meas(u8 i,
      * The initial integer offset shall be adjusted only when conditions that
      * have caused initial offset reset are not longer present. See callers of
      * tracker_ambiguity_unknown() for more details.
-     *
-     * For now, compute pseudorange for all measurements even when phase is
-     * not available.
      */
     s64 carrier_phase_offset = misc_info.carrier_phase_offset.value;
-    bool cpo_ok = true;
-    if ((TIME_PROPAGATED <= get_time_quality()) &&
-        (0.0 == carrier_phase_offset) &&
+
+    /* try to compute cpo if it is not computed yet but could be */
+    if ((0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
-      cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
+        (0 != (flags & TRACKER_FLAG_TOW_VALID)) &&
+        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) &&
+        (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+        (TIME_PROPAGATED <= get_time_quality())) {
+      if (compute_cpo(ref_tc, &info, meas, &carrier_phase_offset)) {
+        tracker_set_carrier_phase_offset(&info, carrier_phase_offset);
+      }
     }
-    if (0.0 != carrier_phase_offset) {
+    /* apply the cpo if it is available */
+    if (0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
       meas->carrier_phase += (double)carrier_phase_offset;
     }
-    meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
+    meas->flags = compute_meas_flags(flags, info.mesid);
     meas->elevation = (double)track_sid_db_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));
