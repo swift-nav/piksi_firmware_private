@@ -196,8 +196,8 @@ void sbp_process_messages() {
 
   while (io_support_n_read(SD_SBP) > 0) {
     ret = sbp_process(&sbp_state, &sbp_read);
-    if (ret == SBP_CRC_ERROR) {
-      /* TODO: Expose this somehow */
+    if (SBP_CRC_ERROR == ret) {
+      log_warn("Received SBP message with CRC error");
     }
   }
 

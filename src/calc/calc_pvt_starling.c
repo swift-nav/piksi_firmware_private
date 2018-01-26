@@ -1213,6 +1213,14 @@ static void time_matched_obs_thread(void *arg) {
     }
 
     if (dt < 0) {
+      log_warn(
+          "Obs Matching: tor_rover < tor_base "
+          "(dt=%f rover_obs.t={%d,%f} base_obs.t={%d,%f})",
+          dt,
+          rover_obs->tor.wn,
+          rover_obs->tor.tow,
+          base_obs->tor.wn,
+          base_obs->tor.tow);
       /* The oldest base obs is newer than the oldest rover obs,
        * discard rover obs as there is not going to be matching base obs pair
        * available. Keep the current base obs and try with newer rover obs. */
