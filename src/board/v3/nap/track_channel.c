@@ -13,6 +13,7 @@
 #include "nap/track_channel.h"
 #include "filters/filter_common.h"
 #include "main.h"
+#include "me_constants.h"
 #include "nap/nap_common.h"
 #include "nap_constants.h"
 #include "nap_hw.h"

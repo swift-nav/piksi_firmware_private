@@ -26,6 +26,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "me_constants.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
