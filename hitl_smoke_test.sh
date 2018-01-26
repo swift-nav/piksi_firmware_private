@@ -46,9 +46,9 @@ TRAVIS_BUILD_URL="https://travis-ci.com/swift-nav/piksi_firmware_private/builds/
 
 # HITL scenarios to kick off, and # of runs for each scenario.
 SCENARIOS=\
-("live-roof-1543-mission"
-"live-roof-1543-mission-dropouts-zero-baseline"
-"live-roof-1543-mission-skylark"
+("live-roof-650-townsend"
+"live-roof-650-townsend-dropouts-zero-baseline"
+"live-roof-650-townsend-skylark"
 )
 RUNS=\
 ("1"
