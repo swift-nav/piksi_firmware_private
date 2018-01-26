@@ -29,7 +29,7 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
-SCENARIO="live-roof-1543-mission"
+SCENARIO="live-roof-650-townsend"
 
 STATUS_HITL_CONTEXT="hitl/pass-fail"
 
