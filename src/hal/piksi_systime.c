@@ -479,7 +479,7 @@ void piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
  * tick boundary.
  *
  * \param[in,out] t         Pointer to piksi_systime_t variable.
- * \param[in] delta           Microsecond value to be added.
+ * \param[in] delta         Microsecond value to be added.
  */
 void piksi_systime_add_us(piksi_systime_t *t, s64 delta) {
   if (delta > 0) {

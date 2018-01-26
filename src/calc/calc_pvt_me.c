@@ -150,13 +150,13 @@ static void me_send_emptyobs(void) {
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
    * otherwise we'll default to using receiver time. */
-  gps_time_t _t = get_current_time();
-  if (!gps_time_valid(&_t)) {
+  gps_time_t current_time = get_current_time();
+  if (!gps_time_valid(&current_time)) {
     /* gps time not available, so fill the tow with seconds from restart */
-    _t.tow = nap_timing_count() * RX_DT_NOMINAL;
+    current_time.tow = nap_timing_count() * RX_DT_NOMINAL;
+    current_time = gps_time_round_to_epoch(&current_time, soln_freq_setting);
   }
-
-  if (decimate_observations(&_t) && !simulation_enabled()) {
+  if (decimate_observations(&current_time) && !simulation_enabled()) {
     send_observations(0, msg_obs_max_size, NULL, NULL);
   }
 }
