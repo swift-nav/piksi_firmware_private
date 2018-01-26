@@ -127,9 +127,6 @@ static bool decimate_observations(const gps_time_t *_t) {
   /* We can use the solution setting directly here as we have no
    * later dependencies on being consistent, all we want to know
    * is should this epoch be decimated from output. */
-  if (!gps_time_valid(_t)) {
-    return false;
-  }
   gps_time_t epoch =
       gps_time_round_to_epoch(_t, soln_freq_setting / obs_output_divisor);
   return fabs(gpsdifftime(_t, &epoch)) < TIME_MATCH_THRESHOLD;
@@ -153,7 +150,12 @@ static void me_send_emptyobs(void) {
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
    * otherwise we'll default to using receiver time. */
-  const gps_time_t _t = get_current_time();
+  gps_time_t _t = get_current_time();
+  if (!gps_time_valid(&_t)) {
+    /* gps time not available, so fill the tow with seconds from restart */
+    _t.tow = nap_timing_count() * RX_DT_NOMINAL;
+  }
+
   if (decimate_observations(&_t) && !simulation_enabled()) {
     send_observations(0, msg_obs_max_size, NULL, NULL);
   }
@@ -455,11 +457,10 @@ static void me_calc_pvt_thread(void *arg) {
         continue;
       }
 
-      /* get NAP at the epoch with a round GPS time */
+      /* get NAP count at the epoch with a round GPS time */
       epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
 
-      /* Adjust the next solution deadline by the difference between current and
-       * epoch nap counts to get the next wake-up to land closer to epoch. */
+      /* time difference of current NAP count from the closest epoch */
       double dt = ((s64)epoch_tc - (s64)current_tc) * RX_DT_NOMINAL;
 
       if (fabs(dt) < OBS_PROPAGATION_LIMIT) {
@@ -467,8 +468,10 @@ static void me_calc_pvt_thread(void *arg) {
         dt *= 0.5;
       }
 
-      /* Reset timer period with the count that we will estimate will being
-       * us up to the next solution time. */
+      /* Adjust the deadline for the next wake-up to get it to land closer to
+       * the epoch. Note that the sleep time can be set only at the resolution
+       * of system tick frequency, and also due to other CPU load, we can expect
+       * this adjustment to be somewhere between +-0.5 milliseconds */
       piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
 
