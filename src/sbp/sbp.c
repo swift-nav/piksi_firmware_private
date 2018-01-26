@@ -81,11 +81,11 @@ static void sbp_thread(void *arg) {
   corr_stats.obs_period.current = -1;
 
   while (TRUE) {
-    chThdSleepMilliseconds(10);
+    piksi_systime_sleep_ms(1);
     sbp_process_messages();
 
-    DO_EVERY(
-        100,
+    DO_EACH_MS(
+        1000,
         if (latency_count > 0) {
           corr_stats.latency.avg = (s32)(latency_accum_ms / latency_count);
           corr_stats.obs_period.avg = (s32)(period_accum_ms / latency_count);
