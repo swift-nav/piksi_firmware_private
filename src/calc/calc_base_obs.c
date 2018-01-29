@@ -278,6 +278,7 @@ static void update_obss(obss_t *new_obss) {
 
       *new_base_obs = base_obss;
 
+        
       const msg_t post_ret =
           chMBPost(&base_obs_mailbox, (msg_t)new_base_obs, TIME_IMMEDIATE);
       if (post_ret != MSG_OK) {
