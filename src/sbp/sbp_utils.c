@@ -842,8 +842,10 @@ void sbp_send_sbas_raw_data(const gnss_signal_t sid,
   sbas_raw_msg.sid = sid_to_sbp(sid);
   sbas_raw_msg.tow = tow_ms;
   sbas_raw_msg.message_type = msg;
-  memcpy(sbas_raw_msg.data, decoded, sizeof(sbas_raw_msg.data));
-  sbas_raw_msg.data[26] &= 0xF0; /* Pad with zeros. */
+  /* Copy data ignoring preamble + msg_id (8 + 6) bits. */
+  bitcopy(sbas_raw_msg.data, 0, decoded, 14, 212);
+  /* Pad with zeros. */
+  sbas_raw_msg.data[26] &= 0xF0;
 
   sbp_send_msg(SBP_MSG_SBAS_RAW, sizeof(sbas_raw_msg), (u8 *)&sbas_raw_msg);
 }
