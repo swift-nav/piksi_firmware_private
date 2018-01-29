@@ -195,21 +195,6 @@ time_quality_t get_time_quality(void) {
   return new_quality;
 }
 
-/** Fine adjust the receiver time offset (to keep the current receiver time
- * close to GPS time)
- *
- * \param dt clock adjustment (s)
- */
-void adjust_rcvtime_offset(const double dt) {
-  chMtxLock(&clock_mutex);
-  gps_time_t gps_time = persistent_clock_state.t0_gps;
-  double clock_rate = persistent_clock_state.clock_rate;
-  gps_time.tow -= dt / clock_rate;
-  normalize_gps_time(&gps_time);
-  persistent_clock_state.t0_gps = gps_time;
-  chMtxUnlock(&clock_mutex);
-}
-
 /** Get current GPS time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality

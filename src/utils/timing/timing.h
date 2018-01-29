@@ -48,7 +48,6 @@ gps_time_t get_current_time(void);
 void set_time(u64 tc, const gps_time_t* t, double accuracy);
 void update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
-void adjust_rcvtime_offset(const double dt);
 gps_time_t napcount2gpstime(const double tc);
 gps_time_t napcount2rcvtime(const double tc);
 u64 gpstime2napcount(const gps_time_t* t);
