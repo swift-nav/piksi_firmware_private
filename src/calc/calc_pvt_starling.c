@@ -941,6 +941,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     filter_manager_init(time_matched_filter_manager);
   }
 
+  detailed_log_info("process_matched_obs started: %lf",
+                    rover_channel_meass->tor.tow);
   if (filter_manager_is_initialized(time_matched_filter_manager)) {
     filter_manager_overwrite_ephemerides(time_matched_filter_manager,
                                          stored_ephs);
@@ -968,6 +970,8 @@ void process_matched_obs(const obss_t *rover_channel_meass,
          update_rov_obs == PVT_ENGINE_NO_OBS ||
          update_rov_obs == PVT_ENGINE_INSUFFICIENT_OBS) &&
         update_ref_obs == PVT_ENGINE_SUCCESS) {
+      detailed_log_info("process_matched_obs update: %lf",
+                        rover_channel_meass->tor.tow);
       update_filter_ret = update_filter(time_matched_filter_manager);
     }
 
@@ -983,10 +987,11 @@ void process_matched_obs(const obss_t *rover_channel_meass,
           (FilterManagerRTK *)low_latency_filter_manager,
           (const FilterManagerRTK *)time_matched_filter_manager);
       u32 end = NAP->TIMING_COUNT;
-      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %" PRIu32 " ticks",
-                low_latency_filter_manager,
-                time_matched_filter_manager,
-                (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
+      detailed_log_info(
+          "copy_filter_manager_rtk DST %p   SRC %p in %" PRIu32 " ticks",
+          low_latency_filter_manager,
+          time_matched_filter_manager,
+          (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&base_glonass_biases_lock);
       chMtxUnlock(&base_pos_lock);
@@ -1024,6 +1029,9 @@ bool update_time_matched(gps_time_t *last_update_time,
     update_rate_limit = 1.99;
   }
   if (update_dt < update_rate_limit) {
+    if (update_dt < 0.0) {
+      detailed_log_info("update_dt < 0.0, %lf", current_time->tow);
+    }
     return false;
   }
   return true;
@@ -1145,6 +1153,8 @@ static void time_matched_obs_thread(void *arg) {
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
         // Not doing any DGNSS.  Toss the obs away.
         chPoolFree(&time_matched_obs_buff_pool, obss);
+        detailed_log_info("dgnss_soln_mode == SOLN_MODE_NO_DGNSS, %lf",
+                          obss->tor.tow);
         continue;
       }
 
@@ -1179,6 +1189,10 @@ static void time_matched_obs_thread(void *arg) {
         chPoolFree(&time_matched_obs_buff_pool, obss);
         break;
       } else {
+        if (base_obss_copy.has_pos != 1) {
+          detailed_log_info("has_pos non zero: %" PRIu8 "",
+                            base_obss_copy.has_pos);
+        }
         if (dt > 0) {
           /* Time of base obs before time of local obs, we must not have a local
            * observation matching this base observation, break and wait for a
