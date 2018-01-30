@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "calc_nav_meas.h"
+#include "me_constants.h"
 
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/cycle_slip.h>

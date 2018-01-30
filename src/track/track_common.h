@@ -18,6 +18,7 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/signal.h>
 
+#include "me_constants.h"
 #include "track/tracker.h"
 
 /**

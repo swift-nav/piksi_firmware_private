@@ -16,6 +16,7 @@
 #include "decode_common.h"
 #include "decode_gps_l1ca.h"
 #include "ephemeris/ephemeris.h"
+#include "me_constants.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
 #include "sbp.h"

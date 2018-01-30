@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <ndb/ndb.h>
 #include "dum/dum.h"
+#include "me_constants.h"
 #include "search_manager_api.h"
 #include "task_generator_api.h"
 #include "timing/timing.h"
