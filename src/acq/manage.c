@@ -1523,6 +1523,21 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   return result;
 }
 
+/**
+ * The function calculates how many SV of defined GNSS are in track
+ * \param[in] gnss GNSS constellation type
+ */
+u8 sv_track_count(constellation_t gnss) {
+  u8 sv_tracked = 0;
+  for (u8 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+    if (mesid_to_constellation(acq_status[i].mesid) == gnss &&
+        ACQ_PRN_TRACKING == acq_status[i].state) {
+      sv_tracked++;
+    }
+  }
+  return sv_tracked;
+}
+
 /** Read tracking startup requests from the FIFO and attempt to start
  * tracking and decoding.
  */
@@ -1531,6 +1546,12 @@ static void manage_tracking_startup(void) {
   while (tracking_startup_fifo_read(&tracking_startup_fifo, &startup_params)) {
     acq_status_t *acq =
         &acq_status[mesid_to_global_index(startup_params.mesid)];
+
+    /* Make sure we tracked less than SBAS_SV_NUM_LIMIT SBAS SVs */
+    if (IS_SBAS(acq->mesid) &&
+        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+      continue;
+    }
 
     /* Make sure the SID is not already tracked and healthy */
     if ((acq->state == ACQ_PRN_TRACKING) ||

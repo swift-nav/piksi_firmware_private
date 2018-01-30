@@ -18,8 +18,6 @@
 #include "sbas_select/sbas_select.h"
 #include "search_manager_api.h"
 #include "timing/timing.h"
-/** How many SBAS SV can be tracked */
-#define SBAS_SV_NUM_LIMIT 3
 
 /** Re-acq normal priority masks. */
 static const u32 reacq_normal_prio[] = {
@@ -68,56 +66,19 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
 }
 
 /**
- * The function calculates how many SV of defined GNSS are in track
- * \param[in] jobs_data Pointer to all jobs
- * \param[in] gnss GNSS constellation type
+ * Helper function. Return SBAS mask depending on user position
+ * \return mask for SBAS SV.
  */
-static u8 sv_track_count(acq_jobs_state_t *jobs_data, constellation_t gnss) {
-  assert(jobs_data != NULL);
-  u8 num_sats = 0;
-  u8 sv_tracked = 0;
-  acq_job_t *job_ptr;
-  u16 idx = sm_constellation_to_start_index(gnss);
-  num_sats = constellation_to_sat_count(gnss);
-  job_ptr = &jobs_data->jobs[0][idx];
-  for (u8 i = 0; i < num_sats; i++) {
-    if (mesid_is_tracked(job_ptr[i].mesid)) {
-      sv_tracked++;
-    }
-  }
-  return sv_tracked;
-}
-
-/**
- * Helper function. Return SBAS mask depending on user position and limit SBAS
- * SV that needs to be acquired
- * \param[in] jobs pointer to jobs list
- * \param[in] job_type Job type
- * \return mask for SBAS SV. 0 mask means no SBAS SV need to be acquired,
- * because we already reach the limit.
- */
-static u32 sbas_limit_mask(acq_jobs_state_t *jobs_data,
-                           acq_job_types_e job_type) {
-  u32 ret = 0;
-  if (sv_track_count(jobs_data, CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-    u8 i;
-    u16 idx = sm_constellation_to_start_index(CONSTELLATION_SBAS);
-    for (i = idx; i < idx + NUM_SATS_SBAS; i++) {
-      /* mark all jobs as not needed to run */
-      jobs_data->jobs[job_type][i].needs_to_run = false;
-    }
-    return ret;
-  }
+static u32 sbas_limit_mask(void) {
   /* read LGF */
   last_good_fix_t lgf;
   if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
     /* cannot read LGF for some reason, so set mask for all possible SBAS SV*/
-    ret = sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
-          sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
+    return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
+           sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
   } else {
-    ret = sbas_select_prn_mask(sbas_select_provider(&lgf));
+    return sbas_select_prn_mask(sbas_select_provider(&lgf));
   }
-  return ret;
 }
 
 /** Global search job data */
@@ -185,18 +146,23 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     return;
   }
 
-  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
-  u32 sbas_mask = 0;
-  if (CONSTELLATION_SBAS == con) {
-    sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_DEEP_SEARCH);
-    if (0 == sbas_mask) {
-      return;
-    }
-  }
-
   u32 i;
   u16 idx = sm_constellation_to_start_index(con);
   u16 num_sv = constellation_to_sat_count(con);
+
+  u32 sbas_mask = 0;
+  if (CONSTELLATION_SBAS == con) {
+    sbas_mask = sbas_limit_mask();
+    if (0 == sbas_mask ||
+        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+      /* mark all SBAS SV as not needed to run*/
+      for (i = 0; i < num_sv; i++) {
+        jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i].needs_to_run = false;
+      }
+      /* exit to prevent unnecessary reacq */
+      return;
+    }
+  }
 
   for (i = 0; i < num_sv; i++) {
     if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
@@ -246,11 +212,6 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
 
     if (CONSTELLATION_GLO == con && !glo_map_valid(sid)) {
       deep_job->cost_hint = ACQ_COST_AVG;
-    } else if (CONSTELLATION_SBAS == con) {
-      sbas_limit--;
-      if (0 == sbas_limit) {
-        return;
-      }
     }
   } /* loop SVs */
 }
@@ -274,18 +235,23 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     return;
   }
 
-  u8 sbas_limit = SBAS_SV_NUM_LIMIT;
-  u32 sbas_mask = 0;
-  if (CONSTELLATION_SBAS == con) {
-    sbas_mask = sbas_limit_mask(jobs_data, ACQ_JOB_FALLBACK_SEARCH);
-    if (0 == sbas_mask) {
-      return;
-    }
-  }
-
   u32 i;
   u16 idx = sm_constellation_to_start_index(con);
   u16 num_sv = constellation_to_sat_count(con);
+
+  u32 sbas_mask = 0;
+  if (CONSTELLATION_SBAS == con) {
+    sbas_mask = sbas_limit_mask();
+    if (0 == sbas_mask ||
+        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+      /* mark all SBAS SV as not needed to run */
+      for (i = 0; i < num_sv; i++) {
+        jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i].needs_to_run = false;
+      }
+      /* exit to prevent unnecessary reacq */
+      return;
+    }
+  }
 
   for (i = 0; i < num_sv; i++) {
     if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
@@ -336,9 +302,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_VISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      if (CONSTELLATION_SBAS == con) {
-        sbas_limit--;
-      }
     } else if ((!known && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
                 now_ms - fallback_job->stop_time >
                     ACQ_FALLBACK_SEARCH_TIMEOUT_VIS_AND_UNKNOWN_MS) ||
@@ -347,9 +310,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_UNKNOWN_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      if (CONSTELLATION_SBAS == con) {
-        sbas_limit--;
-      }
     } else if (invisible && lgf_age_ms >= ACQ_LGF_TIMEOUT_INVIS_MS &&
                now_ms - fallback_job->stop_time >
                    ACQ_FALLBACK_SEARCH_TIMEOUT_INVIS_MS) {
@@ -357,12 +317,6 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       fallback_job->cost_delta = ACQ_COST_DELTA_INVISIBLE_MS;
       fallback_job->needs_to_run = true;
       fallback_job->oneshot = true;
-      if (CONSTELLATION_SBAS == con) {
-        sbas_limit--;
-      }
-    }
-    if (CONSTELLATION_SBAS == con && 0 == sbas_limit) {
-      return;
     }
   } /* loop SVs */
 }
