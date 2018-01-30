@@ -62,6 +62,24 @@ typedef enum {
   TP_UNAIDED = (1 << 11)
 } tp_profile_flags_t;
 
+/**
+ * Lock detector parameter set enumeration
+ */
+typedef enum {
+  TP_LD_PARAMS_PHASE_INI,
+  TP_LD_PARAMS_PHASE_1MS,
+  TP_LD_PARAMS_PHASE_2MS,
+  TP_LD_PARAMS_PHASE_5MS,
+  TP_LD_PARAMS_PHASE_10MS,
+  TP_LD_PARAMS_PHASE_20MS,
+  TP_LD_PARAMS_FREQ_INI,
+  TP_LD_PARAMS_FREQ_1MS,
+  TP_LD_PARAMS_FREQ_2MS,
+  TP_LD_PARAMS_FREQ_5MS,
+  TP_LD_PARAMS_FREQ_10MS,
+  TP_LD_PARAMS_FREQ_20MS,
+} tp_ld_e;
+
 /** Time interval in ms for printing channel statistics (when DEBUG is
  * enabled)*/
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
@@ -80,8 +98,8 @@ typedef struct tp_profile_entry {
     tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
   } profile;
 
-  u8 ld_phase_params; /**< One of TP_LD_PARAMS_... constants */
-  u8 ld_freq_params;  /**< One of TP_LD_PARAMS_... constants */
+  tp_ld_e ld_phase_params; /**< Phase lock detector parameter set */
+  tp_ld_e ld_freq_params;  /**< Frequency lock detector parameter set */
 
   u16 lock_time_ms;         /**< Profile stabilization time [ms] */
   float cn0_low_threshold;  /**< Low CN0 threshold [dB-Hz] */
@@ -109,52 +127,101 @@ static const tp_cn0_params_t cn0_params_default = {
     .track_cn0_use_thres_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
     .track_cn0_ambiguity_thres_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
 
-/**
- * Lock detector parameters
- */
-enum {
-  TP_LD_PARAMS_PHASE_INI,
-  TP_LD_PARAMS_FREQ_INI,
-
-  TP_LD_PARAMS_PHASE_1MS,
-  TP_LD_PARAMS_FREQ_1MS,
-
-  TP_LD_PARAMS_PHASE_2MS,
-  TP_LD_PARAMS_FREQ_2MS,
-
-  TP_LD_PARAMS_PHASE_5MS,
-  TP_LD_PARAMS_FREQ_5MS,
-
-  TP_LD_PARAMS_PHASE_10MS,
-  TP_LD_PARAMS_FREQ_10MS,
-
-  TP_LD_PARAMS_PHASE_20MS,
-  TP_LD_PARAMS_FREQ_20MS,
-};
+#define UNUSED 0.
 
 /**
  * Lock detector profiles
  */
 /* clang-format off */
-static const tp_lock_detect_params_t ld_params[] = {
-                                /*    k1,   k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = {  0.07f,  .6f, 50 },
-
-    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f,  .5f, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = {  0.07f,  .6f, 50 },
-
-    [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f,  .5f, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = {  0.07f,  .6f, 40 },
-
-    [TP_LD_PARAMS_PHASE_5MS]  = {  0.06f, 1.0f, 50 },
-    [TP_LD_PARAMS_FREQ_5MS]   = {  0.08f,  .6f, 20 },
-
-    [TP_LD_PARAMS_PHASE_10MS] = {  0.02f, 1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f,  .6f, 15 },
-
-    [TP_LD_PARAMS_PHASE_20MS] = {  0.01f, 1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f,  .6f, 10 }
+static const tp_lock_detect_params_t ld_params_gps[] = {
+                                  /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.29f,   0.7f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.28f,   0.8f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.26f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.22f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+};
+static const tp_lock_detect_params_t ld_params_glo[] = {
+                                  /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.25f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.22f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.20f,   1.2f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.20f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+};
+static const tp_lock_detect_params_t ld_params_sbas[] = {
+                                  /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+};
+static const tp_lock_detect_params_t ld_params_bds2[] = {
+                                  /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+};
+static const tp_lock_detect_params_t ld_params_qzss[] = {
+                                  /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+};
+static const tp_lock_detect_params_t ld_params_gal[] = {
+                                  /* k1,     k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
+    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
+    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
+    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
+    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 }
 };
 /* clang-format on */
 
@@ -214,16 +281,16 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   in the same order below.
   { { pll_bw,      fll_bw,       dll_bw,     controller,
       tracking_mode_gps, tracking_mode_glo, tracking_mode_sbas, tracking_mode_bds2 },
-    ld_phase_params,        ld_freq_params,
+      ld_phase_params,   ld_freq_params,
     time_ms,   cn0_low_thr,   cn0_high_thr,
        next,       cn0_low,       cn0_high,
      flags }
 */
 
   [IDX_INIT_0] =
-  { {   10,             7,           20,   TP_CTRL_PLL3,
+  { {     10,           7,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED | TP_WAIT_FLOCK},
@@ -231,7 +298,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_1] =
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-    TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
@@ -239,56 +306,56 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-    TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
   [IDX_1MS] =
-  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,            3,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-    TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
-           40,          48,           0,
+          TP_LD_PARAMS_PHASE_1MS, TP_LD_PARAMS_FREQ_1MS,
+           40,         48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
-    TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
+          TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
            40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_5MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
           TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
-    TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
+          TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
            40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_10MS] =
-  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
         TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
-    TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+        TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
-    TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {      0,           1.0,          .5,   TP_CTRL_PLL3,
+  { {      0,         1.0,           .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
-    TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
@@ -476,8 +543,27 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur.index];
 
-  profile->ld_phase_params = ld_params[cur_profile->ld_phase_params];
-  profile->ld_freq_params = ld_params[cur_profile->ld_freq_params];
+  if (IS_GPS(mesid)) {
+    profile->ld_phase_params = ld_params_gps[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_gps[cur_profile->ld_freq_params];
+  } else if (IS_GLO(mesid)) {
+    profile->ld_phase_params = ld_params_glo[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_glo[cur_profile->ld_freq_params];
+  } else if (IS_SBAS(mesid)) {
+    profile->ld_phase_params = ld_params_sbas[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_sbas[cur_profile->ld_freq_params];
+  } else if (IS_BDS2(mesid)) {
+    profile->ld_phase_params = ld_params_bds2[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_bds2[cur_profile->ld_freq_params];
+  } else if (IS_QZSS(mesid)) {
+    profile->ld_phase_params = ld_params_qzss[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_qzss[cur_profile->ld_freq_params];
+  } else if (IS_GAL(mesid)) {
+    profile->ld_phase_params = ld_params_gal[cur_profile->ld_phase_params];
+    profile->ld_freq_params = ld_params_gal[cur_profile->ld_freq_params];
+  } else {
+    assert(!"Unsupported constellation");
+  }
 
   /* fill out the tracking loop parameters */
   profile->loop_params = loop_params_template;
