@@ -25,6 +25,7 @@
 
 #include "main.h"
 #include "manage.h"
+#include "timing/timing.h"
 #include "system_monitor/system_monitor.h"
 #include "track/track_state.h"
 
@@ -85,6 +86,11 @@ u64 nap_timing_count(void) {
 
   chMtxUnlock(&timing_count_mutex);
   return total_count;
+}
+
+u32 adel_time_us(void) {
+  u32 count = NAP->TIMING_COUNT;
+  return (u32)(count * (RX_DT_NOMINAL * 1e6));
 }
 
 /**
@@ -167,12 +173,139 @@ static void handle_nap_irq(void) {
   }
 }
 
+struct adel_profile {
+  u64 allnum[6];
+  u64 naprd[7];
+  u64 napwr[7];
+  u64 lastrd[7];
+  u64 lastwr[7];
+  /* u64 interval_ms[6][5]; */
+};
+
+static struct adel_profile adel_profile = {0};
+
+void nap_profile_rd(u32 elapsed_us)
+{
+  if (elapsed_us <= 1) {
+    adel_profile.naprd[0]++;
+    adel_profile.lastrd[0]++;
+  } else if (elapsed_us <= 2) {
+    adel_profile.naprd[1]++;
+    adel_profile.lastrd[1]++;
+  } else if (elapsed_us <= 3) {
+    adel_profile.naprd[2]++;
+    adel_profile.lastrd[2]++;
+  } else if (elapsed_us <= 4) {
+    adel_profile.naprd[3]++;
+    adel_profile.lastrd[3]++;
+  } else if (elapsed_us <= 5) {
+    adel_profile.naprd[4]++;
+    adel_profile.lastrd[4]++;
+  } else if (elapsed_us <= 6) {
+    adel_profile.naprd[5]++;
+    adel_profile.lastrd[5]++;
+  } else {
+    adel_profile.naprd[6]++;
+    adel_profile.lastrd[6]++;
+  }
+}
+
+void nap_profile_wr(u32 elapsed_us)
+{
+  if (elapsed_us <= 1) {
+    adel_profile.napwr[0]++;
+    adel_profile.lastwr[0]++;
+  } else if (elapsed_us <= 2) {
+    adel_profile.napwr[1]++;
+    adel_profile.lastwr[1]++;
+  } else if (elapsed_us <= 3) {
+    adel_profile.napwr[2]++;
+    adel_profile.lastwr[2]++;
+  } else if (elapsed_us <= 4) {
+    adel_profile.napwr[3]++;
+    adel_profile.lastwr[3]++;
+  } else if (elapsed_us <= 5) {
+    adel_profile.napwr[4]++;
+    adel_profile.lastwr[4]++;
+  } else if (elapsed_us <= 6) {
+    adel_profile.napwr[5]++;
+    adel_profile.lastwr[5]++;
+  } else {
+    adel_profile.napwr[6]++;
+    adel_profile.lastwr[6]++;
+  }
+}
+
 static void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
+  u32 start_us = adel_time_us();
+
+  memset(adel_profile.lastrd, 0, sizeof(adel_profile.lastrd));
+  memset(adel_profile.lastwr, 0, sizeof(adel_profile.lastwr));
+
   trackers_update(irq);
+
+  static u64 last_print_us = 0;
+  u64 now_us = adel_time_us();
+  u32 elapsed_us = now_us - start_us;
+
+  u64 *allnum = adel_profile.allnum;
+
+  if (elapsed_us <= 100) {
+    allnum[0]++;
+  } else if (elapsed_us <= 200) {
+    allnum[1]++;
+  } else if (elapsed_us <= 300) {
+    allnum[2]++;
+  } else if (elapsed_us <= 400) {
+    allnum[3]++;
+  } else if (elapsed_us <= 500) {
+    allnum[4]++;
+  } else if (elapsed_us <= 600) {
+    allnum[5]++;
+  }
+  u64 since_last_print_us = now_us - last_print_us;
+  if ((elapsed_us > 450) || (since_last_print_us > (5 * 1e6))) {
+    last_print_us = now_us;
+    log_warn("adel hist:"
+             " %" PRIu32 " %" PRIu32,
+             start_us, elapsed_us);
+    log_warn("adel allnum:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             allnum[0], allnum[1], allnum[2], allnum[3], allnum[4], allnum[5]);
+
+    u64 *naprd = adel_profile.naprd;
+    log_warn("adel naprd:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             naprd[0], naprd[1], naprd[2], naprd[3],
+             naprd[4], naprd[5], naprd[6]);
+
+    u64 *napwr = adel_profile.napwr;
+    log_warn("adel napwr:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             napwr[0], napwr[1], napwr[2], napwr[3],
+             napwr[4], napwr[5], napwr[6]);
+
+    u64 *lastrd = adel_profile.lastrd;
+    log_warn("adel lastrd:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             lastrd[0], lastrd[1], lastrd[2], lastrd[3],
+             lastrd[4], lastrd[5], lastrd[6]);
+
+    u64 *lastwr = adel_profile.lastwr;
+    log_warn("adel lastwr:"
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             lastwr[0], lastwr[1], lastwr[2], lastwr[3],
+             lastwr[4], lastwr[5], lastwr[6]);
+  }
+
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
