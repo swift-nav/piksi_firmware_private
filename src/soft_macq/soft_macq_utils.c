@@ -170,62 +170,70 @@ void Sc16ArrayAddAbsTo(float *_fOut, sc16_t *_fIn, u32 _iSize) {
  *  \brief takes in a matrix in array form and produces the maximum
  * value along with relevant code and frequency indexes
  */
-int IsAcquired3D(float *vec,
-                 u32 _iCodeSh,
-                 u32 _iFreqSh,
+int IsAcquired3D(const float *vec,
+                 const u32 _iCodeSh,
+                 const u32 _iFreqSh,
+                 const u32 _iNonCoh,
                  float *_fMval,
-                 u32 *_piCodeMaxI,
-                 u32 *_piFreqMaxI) {
+                 float *_pfCodeMaxI,
+                 float *_pfFreqMaxI) {
   u32 k, i;
-  u32 iCodeLen4th, iFreqMaxI;
+  u32 code_len_4th, max_freq_index;
   float m[4] = {0.0};
-  float max = 0;
-  int im[4] = {0};
-  int imax = 0, kmax = 0;
+  float max = 0.0f;
+  u32 im[4] = {0};
+  u32 imax = 0, kmax = 0;
 
-  iCodeLen4th = _iCodeSh / 4;
+  code_len_4th = _iCodeSh / 4;
 
+  /* first absolute (2D) maximum */
   for (i = 0; i < _iCodeSh * _iFreqSh; i++) {
     if (vec[i] > max) {
       max = vec[i];
       imax = i;
     }
   }
-  iFreqMaxI = imax % _iFreqSh;
+  max_freq_index = imax % _iFreqSh;
 
-  (*_fMval) = 0.0;
-  (*_piCodeMaxI) = 0;
-  (*_piFreqMaxI) = 0;
+  (*_fMval) = 0.0f;
+  (*_pfCodeMaxI) = 0.0f;
+  (*_pfFreqMaxI) = 0.0f;
 
-  for (k = 0; k < 1 * iCodeLen4th; k++) {
-    i = k * _iFreqSh + iFreqMaxI;
+  /* first slice of code-dimension correlation */
+  for (k = 0; k < 1 * code_len_4th; k++) {
+    i = k * _iFreqSh + max_freq_index;
     if (vec[i] > m[0]) {
       m[0] = vec[i];
       im[0] = i;
     }
   }
-  for (; k < 2 * iCodeLen4th; k++) {
-    i = k * _iFreqSh + iFreqMaxI;
+  /* second slice */
+  for (; k < 2 * code_len_4th; k++) {
+    i = k * _iFreqSh + max_freq_index;
     if (vec[i] > m[1]) {
       m[1] = vec[i];
       im[1] = i;
     }
   }
-  for (; k < 3 * iCodeLen4th; k++) {
-    i = k * _iFreqSh + iFreqMaxI;
+  /* third slice  */
+  for (; k < 3 * code_len_4th; k++) {
+    i = k * _iFreqSh + max_freq_index;
     if (vec[i] > m[2]) {
       m[2] = vec[i];
       im[2] = i;
     }
   }
+  /* fourth slice */
   for (; k < _iCodeSh; k++) {
-    i = k * _iFreqSh + iFreqMaxI;
+    i = k * _iFreqSh + max_freq_index;
     if (vec[i] > m[3]) {
       m[3] = vec[i];
       im[3] = i;
     }
   }
 
+  /* find highest of four peaks */
+  max = 0.0f;
   for (k = 0; k < 4; k++) {
     if (m[k] > max) {
       max = m[k];
@@ -233,11 +241,36 @@ int IsAcquired3D(float *vec,
       kmax = k;
     }
   }
-  k = (kmax + 2) % 4;
   (*_fMval) = max;
-  if (max > (3 * m[k])) {
-    (*_piCodeMaxI) = imax / _iFreqSh;
-    (*_piFreqMaxI) = iFreqMaxI;
+
+  k = (kmax + 2) % 4;
+
+  /* compute mean far from peak */
+  float mean_clean = 0.0f;
+  for (u32 idx = (k * code_len_4th); idx < ((k + 1) * code_len_4th); idx++) {
+    i = idx * _iFreqSh + max_freq_index;
+    mean_clean += vec[i];
+  }
+  mean_clean /= (float)code_len_4th;
+
+  /* is threshold higher? */
+  if (max > (23.0f * mean_clean / _iNonCoh)) {
+    /* code */
+    (*_pfCodeMaxI) = (float)imax / _iFreqSh;
+
+    /* quadratic fit on freq (it's a sinc actually) */
+    u32 max_code_idx = _iFreqSh * (imax / _iFreqSh);
+    float ea = (float)vec[max_code_idx + ((max_freq_index - 1) % _iFreqSh)];
+    float la = (float)vec[max_code_idx + ((max_freq_index + 1) % _iFreqSh)];
+    float freq_delta = 0.0f;
+    if ((0.0f != ea) && (0.0f != la)) {
+      freq_delta = 0.5f * (la - ea) / (la + ea);
+    }
+    if ((0 == max_freq_index) && (0.0f > freq_delta)) {
+      (*_pfFreqMaxI) = (float)_iFreqSh + freq_delta;
+    } else {
+      (*_pfFreqMaxI) = (float)max_freq_index + freq_delta;
+    }
     return 1;
   }
   return 0;

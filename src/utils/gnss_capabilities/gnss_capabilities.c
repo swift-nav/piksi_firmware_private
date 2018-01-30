@@ -31,7 +31,7 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   .bds_d2nav = 0x000001001fULL,
                                   .bds_b2 = 0x0000003fffULL,
 
-                                  .qzss_active = 0xf,
+                                  .qzss_active = 0x3ff,
 
                                   .gal_active = 0x022ae2ddbULL,
                                   .gal_e5 = 0x022a62ddbULL,

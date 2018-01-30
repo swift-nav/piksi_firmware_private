@@ -76,7 +76,7 @@ bool mdbzp_static(sc16_t *_cSignal,
   /***********************************
    *         STORE CODE FFTs         *
    ************************************/
-  u32 scale_mask = 0x0000;
+  u32 scale_mask = 0x0003;
   for (u32 j = 0; j < code_slices; j++) {
     memset(cFftWork, 0, samples_block * sizeof(sc16_t));
 
@@ -150,10 +150,6 @@ bool mdbzp_static(sc16_t *_cSignal,
       }
     }
   }
-//  for(k=0; k<(num_codes*code_slices)*(samples_code); k++) {
-//    pCorrMat[k].r /= samples_block;
-//    pCorrMat[k].i /= samples_block;
-//  }
 #ifdef DEBUG_MDZP
   sprintf(fName, "G%02d_mdbzp.sc16", _pRes->iUsi + 1);
   fid = fopen(fName, "wb");
@@ -175,7 +171,7 @@ bool mdbzp_static(sc16_t *_cSignal,
 
   /** alloc final code-frequency matrix */
   memset(pFreqCodeMat, 0, freqfft_sz * samples_code * sizeof(float));
-  scale_mask = 0x001f;
+  scale_mask = 0x003f;
 
   for (u32 m = 0; m < samples_code; m++) {
     for (u32 n = 0; n < code_nonc; n++) {
@@ -198,17 +194,18 @@ bool mdbzp_static(sc16_t *_cSignal,
   }
 #endif
 
-  u32 max_freqidx, max_codeidx;
+  float max_freqidx, max_codeidx;
   _pRes->bAcquired = IsAcquired3D(pFreqCodeMat,
                                   samples_code,
                                   freqfft_sz,
+                                  code_nonc,
                                   &_pRes->fMaxCorr,
                                   &max_codeidx,
                                   &max_freqidx);
-  _pRes->fCodeDelay = (float)max_codeidx / samples_code;
+  _pRes->fCodeDelay = max_codeidx / samples_code;
   _pRes->fDoppFreq = (max_freqidx < (freqfft_sz / 2))
-                         ? (float)max_freqidx
-                         : ((float)max_freqidx - freqfft_sz);
+                         ? max_freqidx
+                         : (max_freqidx - freqfft_sz);
   _pRes->fDoppFreq *= freq_resolution;
 
   return _pRes->bAcquired;

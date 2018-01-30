@@ -42,7 +42,7 @@ typedef struct _sFauParams {
   u32 iNumCodeSlices; /* this dictates the carrier Doppler search space, more
                          slices is wider */
   u8 iCohCodes;       /* coherent integration time */
-  u8 iNcohAcc;        /* coherent integration time */
+  u8 iNcohAcc;        /* non-coherent integration time */
   u8 iPostCorrDec;    /* decimation to apply to code resolution post xcorr */
   s8 uSecCode[128];   /* hopefully no secondary codes longer than 128 bits? */
   u32 uSecCodeLen;    /* secondary code length (assuming 1 secondary chip is 1

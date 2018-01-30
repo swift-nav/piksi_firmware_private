@@ -69,7 +69,7 @@ void InitIntFFTr2(void *_pFFT, u32 _N) {
 
   intFFTr2_t *pIntFFT = (intFFTr2_t *)_pFFT;
 
-  log_info("_pFFT %08" PRIuPTR " _N %" PRIu32, (uintptr_t)_pFFT, _N);
+  log_debug("_pFFT %08" PRIuPTR " _N %" PRIu32, (uintptr_t)_pFFT, _N);
 
   uintptr_t pMemStart = (uintptr_t) & (pIntFFT->pMem);
   pIntFFT->W = (sc16_t *)(pMemStart + 0);
@@ -86,13 +86,13 @@ void InitIntFFTr2(void *_pFFT, u32 _N) {
   InitW(pIntFFT);
   InitBR(pIntFFT);
 
-  log_info("M %" PRIu32 "  N %" PRIu32 "  W %08" PRIuPTR "  tmpBRX %08" PRIuPTR
-           "  BR %08" PRIuPTR,
-           pIntFFT->M,
-           pIntFFT->N,
-           (uintptr_t)pIntFFT->W,
-           (uintptr_t)pIntFFT->tmpBRX,
-           (uintptr_t)pIntFFT->BR);
+  log_debug("M %" PRIu32 "  N %" PRIu32 "  W %08" PRIuPTR "  tmpBRX %08" PRIuPTR
+            "  BR %08" PRIuPTR,
+            pIntFFT->M,
+            pIntFFT->N,
+            (uintptr_t)pIntFFT->W,
+            (uintptr_t)pIntFFT->tmpBRX,
+            (uintptr_t)pIntFFT->BR);
 }
 
 /*! \fn void DoFwdIntFFTr2

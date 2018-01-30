@@ -84,8 +84,6 @@ typedef struct {
 
 void manage_acq_setup(void);
 
-void manage_set_obs_hint(gnss_signal_t sid);
-
 void me_settings_setup(void);
 
 float get_solution_elevation_mask(void);

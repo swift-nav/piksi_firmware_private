@@ -204,7 +204,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (h == FAU_BASEBAND_SIZE) break;
+        if (FAU_BASEBAND_SIZE == h) break;
 
         pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
         pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
@@ -225,7 +225,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (h == FAU_BASEBAND_SIZE) break;
+        if (FAU_BASEBAND_SIZE == h) break;
 
         pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
         pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
@@ -243,7 +243,7 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
         uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
 
         h = k / FAU_DECFACT;
-        if (h == FAU_BASEBAND_SIZE) break;
+        if (FAU_BASEBAND_SIZE == h) break;
 
         pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
         pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
@@ -424,13 +424,14 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
   /** call now MDBZP */
   bool ret = mdbzp_static(pBaseBand, pResampCode, &sParams, pacq_res);
   if (ret) {
-    log_info_mesid(mesid,
-                   "%16" PRIu64
-                   "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
-                   pacq_res->uFirstLocIdx,
-                   pacq_res->fMaxCorr,
-                   pacq_res->fDoppFreq,
-                   pacq_res->fCodeDelay);
+    log_debug_mesid(mesid,
+                    "%16" PRIu64
+                    "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
+                    pacq_res->uFirstLocIdx,
+                    pacq_res->fMaxCorr,
+                    pacq_res->fDoppFreq,
+                    pacq_res->fCodeDelay);
+    /* ret = false; */
   }
   return ret;
 }
