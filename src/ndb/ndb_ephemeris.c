@@ -65,7 +65,7 @@ typedef struct {
   bool erase_ephemeris;   /**< Erase ephemeris data on boot */
   s16 valid_alm_accuracy; /**< Cross-checking accuracy with valid almanac [m] */
   s16 valid_eph_accuracy; /**< Cross-checking accuracy with valid ephemeris [m]
-                             */
+                           */
   s16 alm_fit_interval;   /**< Almanac fit interval (days) */
 } ndb_ephe_config_t;
 
@@ -206,8 +206,10 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
 
       ok = false;
 
-      if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
-          0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _, &iodc, &iode)) {
+      if (0 ==
+              calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _, _) &&
+          0 == calc_sat_state_n(
+                   new, &t, eph_sat_pos, _, _, _, _, &iodc, &iode)) {
         /* Compute distance [m] */
         double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
 
@@ -244,8 +246,9 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
       ok = false;
 
       if (0 == calc_sat_state_n(
-                   existing_e, &t, old_sat_pos, _, _, _, &iodc, &iode) &&
-          0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _, &iodc, &iode)) {
+                   existing_e, &t, old_sat_pos, _, _, _, _, &iodc, &iode) &&
+          0 == calc_sat_state_n(
+                   new, &t, new_sat_pos, _, _, _, _, &iodc, &iode)) {
         /* Compute distance [m] */
         double d = vector_distance(3, old_sat_pos, new_sat_pos);
 
