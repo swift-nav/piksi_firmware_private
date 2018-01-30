@@ -51,10 +51,10 @@
 #define SOLN_THD_CPU_MAX (0.60f)
 
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
+#define STARLING_THREAD_STACK (8 * 1024 * 1024)
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
+#define TIME_MATCHED_OBS_THREAD_STACK (8 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
