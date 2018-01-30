@@ -327,12 +327,15 @@ static void update_l2_xcorr_from_l1(tracker_t *tracker_channel) {
 }
 
 static void tracker_gps_l2c_update(tracker_t *tracker) {
+  nap_profile(CHUNK_START);
   u32 cflags = tp_tracker_update(tracker, &gps_l2c_config);
+  nap_profile(CHUNK_UPDATE);
 
   bool bit_aligned =
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker));
 
   if (!bit_aligned) {
+    nap_profile(CHUNK_REST);
     return;
   }
 
@@ -374,4 +377,5 @@ static void tracker_gps_l2c_update(tracker_t *tracker) {
     }
     tracker_update_bit_polarity_flags(tracker);
   }
+  nap_profile(CHUNK_REST);
 }

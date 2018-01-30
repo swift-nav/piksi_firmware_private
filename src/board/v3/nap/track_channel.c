@@ -337,16 +337,11 @@ void nap_track_init(u8 channel,
   }
 }
 
-u32 adel_time_us(void);
-void nap_profile_wr(u32 elapsed_us);
-
 void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
                       u8 corr_spacing) {
-  u32 start_us = adel_time_us();
-
   (void)corr_spacing; /* This is always written as 0, for now */
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
@@ -395,22 +390,13 @@ void nap_track_update(u8 channel,
   s->carr_pinc[0] = carr_pinc;
 
   t->CARR_PINC = carr_pinc;
-
-  u64 now_us = adel_time_us();
-  u32 elapsed_us = now_us - start_us;
-
-  nap_profile_wr(elapsed_us);
 }
-
-void nap_profile_rd(u32 elapsed_us);
 
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
-
-  u32 start_us = adel_time_us();
 
   static swiftnap_tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
@@ -525,11 +511,6 @@ void nap_track_read_results(u8 channel,
                     (hw_code_phase & 0x7));
   }
 #endif /* PIKSI_RELEASE */
-
-  u64 now_us = adel_time_us();
-  u32 elapsed_us = now_us - start_us;
-
-  nap_profile_rd(elapsed_us);
 }
 
 void nap_track_enable(u8 channel) {

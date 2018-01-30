@@ -61,6 +61,14 @@ void tracker_tow_cache(tracker_t *tracker_channel);
 void tracker_lock(tracker_t *tracker_channel);
 void tracker_unlock(tracker_t *tracker_channel);
 
+enum chunk_profile {
+  CHUNK_START,
+  CHUNK_UPDATE,
+  CHUNK_REST
+};
+
+void nap_profile(int chunk);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
