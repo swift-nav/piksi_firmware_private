@@ -88,9 +88,9 @@ u64 nap_timing_count(void) {
   return total_count;
 }
 
-u32 adel_time_us(void) {
-  u32 count = NAP->TIMING_COUNT;
-  return (u32)(count * (RX_DT_NOMINAL * 1e6));
+u64 adel_time_us(void) {
+  u64 count = NAP->TIMING_COUNT;
+  return (u64)(count * (RX_DT_NOMINAL * 1e6));
 }
 
 /**
@@ -174,14 +174,14 @@ static void handle_nap_irq(void) {
 }
 
 struct adel_profile_last {
-  u64 update_last[8];
-  u64 rest_last[8];
+  u64 update_last[10];
+  u64 rest_last[10];
 };
 
 struct adel_profile {
   u64 allnum[6];
-  u64 update[8];
-  u64 rest[8];
+  u64 update[10];
+  u64 rest[10];
 
   struct adel_profile_last last;
 
@@ -236,26 +236,36 @@ void nap_profile(int chunk)
   } else if (elapsed_us <= 30) {
     hist[5]++;
     last[5]++;
-  } else {
+  } else if (elapsed_us <= 40) {
     hist[6]++;
     last[6]++;
+  } else if (elapsed_us <= 80) {
+    hist[7]++;
+    last[7]++;
+  } else if (elapsed_us <= 160) {
+    hist[8]++;
+    last[8]++;
+  } else  {
+    hist[9]++;
+    last[9]++;
   }
 }
 
 static void handle_nap_track_irq(void) {
+  static u16 prof_cycle = 0;
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
   memset(&adel_profile.last, 0, sizeof(adel_profile.last));
 
-  u32 start_us = adel_time_us();
+  u64 start_us = adel_time_us();
 
   trackers_update(irq);
 
   u64 now_us = adel_time_us();
 
-  u32 elapsed_us = now_us - start_us;
+  u64 elapsed_us = now_us - start_us;
 
   u64 *allnum = adel_profile.allnum;
 
@@ -272,41 +282,50 @@ static void handle_nap_track_irq(void) {
   } else if (elapsed_us <= 600) {
     allnum[5]++;
   }
-  if (elapsed_us > 450) {
-    log_warn("adel hist:"
-             " %" PRIu32 " %" PRIu32,
-             start_us, elapsed_us);
+  prof_cycle++;
+  if (elapsed_us > 450 || (prof_cycle == 1000)) {
+    prof_cycle = 0;
+    /* log_warn("adel hist:" */
+    /*          " %" PRIu32 " %" PRIu32, */
+    /*          start_us, elapsed_us); */
     log_warn("adel allnum:"
              " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
              allnum[0], allnum[1], allnum[2], allnum[3], allnum[4], allnum[5]);
+    allnum[0] = allnum[1] = allnum[2] = allnum[3] = allnum[4] = allnum[5];
 
     u64 *update = adel_profile.update;
     log_warn("adel update:"
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-             " %" PRIu64 " %" PRIu64 " %" PRIu64,
-             update[0], update[1], update[2], update[3],
-             update[4], update[5], update[6]);
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             update[0], update[1], update[2], update[3], update[4],
+             update[5], update[6], update[7], update[8], update[9]);
+
+    update[0] = update[1] = update[2] = update[3] = update[4] =
+    update[5] = update[6] = update[7] = update[8] = update[9] = 0;
 
     u64 *rest = adel_profile.rest;
     log_warn("adel rest:"
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-             " %" PRIu64 " %" PRIu64 " %" PRIu64,
-             rest[0], rest[1], rest[2], rest[3],
-             rest[4], rest[5], rest[6]);
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
+             rest[0], rest[1], rest[2], rest[3], rest[4],
+             rest[5], rest[6], rest[7], rest[8], rest[9]);
 
-    u64 *update_last = adel_profile.last.update_last;
-    log_warn("adel update_last:"
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-             " %" PRIu64 " %" PRIu64 " %" PRIu64,
-             update_last[0], update_last[1], update_last[2], update_last[3],
-             update_last[4], update_last[5], update_last[6]);
+    rest[0] = rest[1] = rest[2] = rest[3] = rest[4] =
+    rest[5] = rest[6] = rest[7] = rest[8] = rest[9] = 0;
 
-    u64 *rest_last = adel_profile.last.rest_last;
-    log_warn("adel rest_last:"
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-             " %" PRIu64 " %" PRIu64 " %" PRIu64,
-             rest_last[0], rest_last[1], rest_last[2], rest_last[3],
-             rest_last[4], rest_last[5], rest_last[6]);
+    /* u64 *update_last = adel_profile.last.update_last; */
+    /* log_warn("adel update_last:" */
+    /*          " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 */
+    /*          " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64, */
+    /*          update_last[0], update_last[1], update_last[2], update_last[3], update_last[4], */
+    /*          update_last[5], update_last[6], update_last[7], update_last[8], update_last[9]); */
+
+    /* u64 *rest_last = adel_profile.last.rest_last; */
+    /* log_warn("adel rest_last:" */
+    /*          " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 */
+    /*          " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64, */
+    /*          rest_last[0], rest_last[1], rest_last[2], rest_last[3], rest_last[4], */
+    /*          rest_last[5], rest_last[6], rest_last[7], rest_last[8], rest_last[9]); */
   }
 
   NAP->TRK_IRQS0 = irq0;
