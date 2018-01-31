@@ -349,6 +349,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* if tor is invalid this obs message was sent before a time was solved, so we
    * should ignore */
   if (!gps_time_valid(&tor)) {
+    log_warn("Base obs time of receive invalid. t={%d,%f}", tor->wn, tor->tow);
     return;
   }
 
@@ -370,7 +371,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     prev_count = 0;
   } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
              prev_tor.wn != tor.wn || prev_count + 1 != count) {
-    log_info("Dropped one of the observation packets! Skipping this sequence.");
+    log_warn("Dropped one of the observation packets! Skipping this sequence.");
     prev_count = -1;
     return;
   } else {
