@@ -54,8 +54,8 @@
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
 
-/* Make the consumer higher priority than producer */
-#define TIME_MATCHED_OBS_THREAD_PRIORITY (STARLING_THREAD_PRIORITY + 1)
+/* Make the time matching lower priority than starling */
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (STARLING_THREAD_PRIORITY - 1)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */

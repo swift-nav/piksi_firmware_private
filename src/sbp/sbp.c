@@ -49,7 +49,7 @@ msg_uart_state_t corr_stats;
 #define PERIOD_SMOOTHING 0.5
 #define LOG_OBS_WINDOW_DURATION_MS 3000
 
-#define SBP_THREAD_PRIORITY (HIGHPRIO - 4)
+#define SBP_THREAD_PRIORITY (HIGHPRIO - 6)
 #define SBP_THREAD_STACK (512 * 1024)
 
 double latency_count;
