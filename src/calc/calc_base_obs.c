@@ -349,7 +349,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   /* if tor is invalid this obs message was sent before a time was solved, so we
    * should ignore */
   if (!gps_time_valid(&tor)) {
-    log_warn("Base obs time of receive invalid. t={%d,%f}", tor->wn, tor->tow);
+    log_warn("Base obs time of receive invalid. t={%d,%f}", tor.wn, tor.tow);
     return;
   }
 
