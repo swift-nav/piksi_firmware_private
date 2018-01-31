@@ -107,7 +107,7 @@ void sbp_make_utc_time(msg_utc_time_t *t_out,
   assert(utc_time.second_frac >= 0.0);
   assert(utc_time.second_frac < 1.0);
   /* round the nanosecond part down to stop it rounding up to the next second */
-  t_out->ns = floor(utc_time.second_frac * 1e9);
+  t_out->ns = floor(utc_time.second_frac * 10e9);
   t_out->flags = flags;
 }
 
