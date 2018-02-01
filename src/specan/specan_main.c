@@ -53,8 +53,9 @@ static struct {
   u8 payload[TRACE_SBP_POINTS];
 } curr_trace;
 
+static FFT_DECL(SPECAN_FFT_SIZE, sFFT);
+
 static float pSpecTrace[SPECAN_NUMLINES];
-static intFFTr2_t sFFT;
 static uint32_t uTraceStep;
 
 static void SpecanCore(uint8_t _uWhichBand);

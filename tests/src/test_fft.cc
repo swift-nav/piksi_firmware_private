@@ -1,8 +1,10 @@
 #include "gtest/gtest.h"
 #include "lib/fixed_fft_r2.h"
 
+#define FFT_SIZE 16
+
 TEST(fft_tests, init) {
-  intFFTr2_t fft_conf;
-  InitIntFFTr2(&fft_conf, 10);
-  EXPECT_EQ(fft_conf.N, 10);
+  FFT_DECL(FFT_SIZE, fft_conf);
+  InitIntFFTr2(&fft_conf, FFT_SIZE);
+  EXPECT_EQ(fft_conf.N, FFT_SIZE);
 }

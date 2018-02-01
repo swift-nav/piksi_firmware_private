@@ -11,7 +11,7 @@
  */
 #ifndef OBSERVATION_BIASES_CALIBRATION_H
 #define OBSERVATION_BIASES_CALIBRATION_H
-#include <assert.h>
+
 #include <libswiftnav/glo_map.h>
 #include <libswiftnav/glonass_phase_biases.h>
 #include "calc_base_obs.h"

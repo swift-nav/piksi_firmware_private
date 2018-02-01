@@ -29,6 +29,7 @@
 #include "decode.h"
 #include "dum/dum.h"
 #include "ephemeris/ephemeris.h"
+#include "gnss_capabilities/gnss_capabilities.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
@@ -73,16 +74,6 @@ typedef enum {
   CH_DROP_REASON_RAIM          /**< Signal removed by RAIM */
 } ch_drop_reason_t;
 
-/** Different hints on satellite info to aid the acqusition */
-enum acq_hint {
-  ACQ_HINT_WARMSTART,  /**< Information from almanac or ephemeris */
-  ACQ_HINT_PREV_ACQ,   /**< Previous successful acqusition. */
-  ACQ_HINT_PREV_TRACK, /**< Previously tracked satellite. */
-  ACQ_HINT_REMOTE_OBS, /**< Observation from reference station. */
-
-  ACQ_HINT_NUM
-};
-
 /** Status of acquisition for a particular ME SID. */
 typedef struct {
   enum {
@@ -90,23 +81,15 @@ typedef struct {
     ACQ_PRN_ACQUIRING,
     ACQ_PRN_TRACKING,
     ACQ_PRN_UNHEALTHY
-  } state;                 /**< Management status of signal. */
-  bool masked;             /**< Prevent acquisition. */
-  u16 score[ACQ_HINT_NUM]; /**< Acquisition preference of signal. */
-  float dopp_hint_low;     /**< Low bound of doppler search hint. */
-  float dopp_hint_high;    /**< High bound of doppler search hint. */
-  me_gnss_signal_t mesid;  /**< ME signal identifier. */
+  } state;                /**< Management status of signal. */
+  bool masked;            /**< Prevent acquisition. */
+  float dopp_hint_low;    /**< Low bound of doppler search hint. */
+  float dopp_hint_high;   /**< High bound of doppler search hint. */
+  me_gnss_signal_t mesid; /**< ME signal identifier. */
 } acq_status_t;
 
 static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
-
-#define SCORE_COLDSTART 100
-#define SCORE_WARMSTART 200
-#define SCORE_BELOWMASK 0
-#define SCORE_ACQ 100
-#define SCORE_TRACK 200
-#define SCORE_OBS 200
 
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM 500
@@ -143,14 +126,6 @@ static MUTEX_DECL(tracking_startup_mutex);
 static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
-
-/* Bootstrap acquisiton by suggesting which PRN are active in the
- * constellation - effective for not FOC systems.
- * TODO: put this into NDB, similar to L2C capability */
-static const u32 sbas_mask = 0x7ffff;
-static const u64 beidou2_mask = 0x07c0013fffULL;
-static const u32 qzss_mask = 0x7;
-static const u64 galileo_mask = 0x022a62ddbULL;
 
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
@@ -379,27 +354,17 @@ void manage_acq_setup() {
       acq_status[i].masked = !glo_enabled;
     }
     if (IS_SBAS(mesid)) {
-      acq_status[i].masked =
-          !sbas_enabled ||
-          (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN)) & 1));
+      acq_status[i].masked = !sbas_enabled || sbas_active(mesid);
     }
     if (IS_BDS2(mesid)) {
-      acq_status[i].masked =
-          !bds2_enabled ||
-          (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN)) & 1));
+      acq_status[i].masked = !bds2_enabled || bds_active(mesid);
     }
     if (IS_QZSS(mesid)) {
-      acq_status[i].masked =
-          !qzss_enabled ||
-          (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN)) & 1));
+      acq_status[i].masked = !qzss_enabled || qzss_active(mesid);
     }
     if (IS_GAL(mesid)) {
-      acq_status[i].masked =
-          !galileo_enabled ||
-          (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN)) & 1));
+      acq_status[i].masked = !galileo_enabled || gal_active(mesid);
     }
-
-    memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
 
     if (code_requires_direct_acq(mesid.code)) {
       acq_status[i].dopp_hint_low = code_to_sv_doppler_min(mesid.code) +
@@ -424,249 +389,24 @@ void manage_acq_setup() {
                     NULL);
 }
 
-/** Using available almanac and ephemeris information, determine
- * whether a satellite is in view and the range of doppler frequencies
- * in which we expect to find it.
- *
- * \param mesid ME signal id
- * \param t     Time at which to evaluate ephemeris and almanac (typically
- * system's
- *              estimate of current time)
- * \param dopp_hint_low, dopp_hint_high Pointers to store doppler search range
- *  from ephemeris or almanac, if available and elevation > mask
- * \return Score (higher is better)
- */
-static u16 manage_warm_start(const me_gnss_signal_t mesid,
-                             const gps_time_t *t,
-                             float *dopp_hint_low,
-                             float *dopp_hint_high) {
-  return SCORE_COLDSTART;
-
-  /* Do we have any idea where/when we are?  If not, no score. */
-  /* TODO: Stricter requirement on time and position uncertainty?
-     We ought to keep track of a quantitative uncertainty estimate. */
-  last_good_fix_t lgf;
-  if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
-      lgf.position_quality < POSITION_GUESS ||
-      get_time_quality() == TIME_UNKNOWN) {
-    return SCORE_COLDSTART;
-  }
-
-  /* TODO GLO: Handle GLO orbit slot properly. */
-  if (CODE_GPS_L1CA != mesid.code) return SCORE_COLDSTART;
-
-  gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
-  float el = TRACKING_ELEVATION_UNKNOWN;
-  el = track_sid_db_elevation_degrees_get(sid);
-  if (el < tracking_elevation_mask) {
-    return SCORE_BELOWMASK;
-  }
-
-  double dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
-  bool ready = false;
-  /* Do we have a suitable ephemeris for this sat?  If so, use
-     that in preference to the almanac. */
-  union {
-    ephemeris_t e;
-    almanac_t a;
-  } orbit;
-
-  u8 eph_valid = 0;
-  ndb_op_code_t ndb_ret = NDB_ERR_NO_DATA;
-  ndb_ret = ndb_ephemeris_read(sid, &orbit.e);
-
-  s8 ss_ret;
-  double sat_pos[3], sat_vel[3], sat_acc[3], el_d;
-
-  eph_valid = NDB_ERR_NONE == ndb_ret && ephemeris_valid(&orbit.e, t);
-  if (eph_valid) {
-    double unused;
-    u8 iode;
-    u16 iodc;
-    ss_ret = calc_sat_state(&orbit.e,
-                            t,
-                            sat_pos,
-                            sat_vel,
-                            sat_acc,
-                            /* double *clock_err = */ &unused,
-                            /* double *clock_rate_err = */ &unused,
-                            &iodc,
-                            &iode);
-  }
-
-  if (eph_valid && (ss_ret == 0)) {
-    double dopp_hint_sat_vel; /* Doppler hint induced by sat velocity */
-    double dopp_hint_clock;   /* Doppler hint induced by clock drift */
-    vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
-    vector_normalize(3, sat_pos);
-    /* sat_pos now holds unit vector from us to satellite */
-    vector_subtract(3, sat_vel, lgf.position_solution.vel_ecef, sat_vel);
-    /* sat_vel now holds velocity of sat relative to us */
-    dopp_hint_sat_vel = -sid_to_carr_freq(orbit.e.sid) *
-                        vector_dot(3, sat_pos, sat_vel) / GPS_C;
-    /* TODO: Check sign of receiver frequency offset correction.
-             There seems to be a sign flip somewhere in 'clock_bias'
-             computation that gets compensated here */
-    dopp_hint_clock =
-        -sid_to_carr_freq(orbit.e.sid) * lgf.position_solution.clock_drift;
-    dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
-    if (get_time_quality() >= TIME_FINE) {
-      dopp_uncertainty = DOPP_UNCERT_EPHEM;
-    }
-    ready = true;
-
-    if ((dopp_hint_sat_vel < code_to_sv_doppler_min(mesid.code)) ||
-        (dopp_hint_sat_vel > code_to_sv_doppler_max(mesid.code)) ||
-        (dopp_hint_clock < code_to_tcxo_doppler_min(mesid.code)) ||
-        (dopp_hint_clock > code_to_tcxo_doppler_max(mesid.code))) {
-      log_error_mesid(mesid,
-                      "Acq: bogus ephe/clock dopp hints "
-                      "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
-                      "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
-                      dopp_uncertainty,
-                      dopp_hint_sat_vel,
-                      dopp_hint_clock,
-                      lgf.position_solution.pos_ecef[0],
-                      lgf.position_solution.pos_ecef[1],
-                      lgf.position_solution.pos_ecef[2],
-                      lgf.position_solution.clock_drift,
-                      el);
-      return SCORE_COLDSTART;
-    }
-  }
-
-  float doppler_min =
-      code_to_sv_doppler_min(mesid.code) + code_to_tcxo_doppler_min(mesid.code);
-  float doppler_max =
-      code_to_sv_doppler_max(mesid.code) + code_to_tcxo_doppler_max(mesid.code);
-
-  if (!ready) {
-    double unused;
-
-    if (almanacs_enabled && (NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a)) &&
-        almanac_valid(&orbit.a, t) &&
-        calc_sat_az_el_almanac(&orbit.a,
-                               t,
-                               lgf.position_solution.pos_ecef,
-                               /* double *az = */ &unused,
-                               &el_d) == 0) {
-      el = (float)(el_d * R2D);
-      if (el < tracking_elevation_mask) {
-        return SCORE_BELOWMASK;
-      }
-      if (calc_sat_doppler_almanac(
-              &orbit.a, t, lgf.position_solution.pos_ecef, &dopp_hint) != 0) {
-        return SCORE_COLDSTART;
-      }
-      dopp_hint = -dopp_hint;
-
-      if ((dopp_hint < doppler_min) || (dopp_hint > doppler_max)) {
-        log_error_mesid(mesid,
-                        "Acq: bogus alm dopp_hint "
-                        "(unc,sat_hint,lgf_pos[0..2],ele) "
-                        "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
-                        dopp_uncertainty,
-                        dopp_hint,
-                        lgf.position_solution.pos_ecef[0],
-                        lgf.position_solution.pos_ecef[1],
-                        lgf.position_solution.pos_ecef[2],
-                        el);
-        return SCORE_COLDSTART;
-      }
-    } else {
-      return SCORE_COLDSTART; /* Couldn't determine satellite state. */
-    }
-  }
-
-  /* Return the doppler hints and a score proportional to elevation */
-  *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, doppler_min);
-  *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, doppler_max);
-  return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
-}
-
 static acq_status_t *choose_acq_sat(void) {
-  u32 total_score = 0;
-  gps_time_t t = get_current_time();
+  static u32 sat_idx = 0;
 
-  /* Prevent SBAS in normal acquisition. Current design document specifies that
-   * SBAS is only searched in re-acquisition.
-   * https://paper.dropbox.com/doc/SBAS-Task-Plan-10FUSrKqc1nZybQ2JYvN9 */
-  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
-        (CODE_SBAS_L1CA == acq_status[i].mesid.code) ||
-        (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
-      continue;
-    }
+  if ((!code_requires_direct_acq(acq_status[sat_idx].mesid.code)) ||
+      (CODE_SBAS_L1CA == acq_status[sat_idx].mesid.code) ||
+      (acq_status[sat_idx].state != ACQ_PRN_ACQUIRING) ||
+      (acq_status[sat_idx].masked)) {
+    log_debug_mesid(acq_status[sat_idx].mesid, "skipped");
 
-    acq_status[i].score[ACQ_HINT_WARMSTART] =
-        manage_warm_start(acq_status[i].mesid,
-                          &t,
-                          &acq_status[i].dopp_hint_low,
-                          &acq_status[i].dopp_hint_high);
-
-    for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++) {
-      total_score += acq_status[i].score[hint];
-    }
-  }
-
-  if (total_score == 0) {
-    log_error("Failed to pick a sat for acquisition!");
+    sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
     return NULL;
   }
 
-  u32 pick = rand() % total_score;
+  u32 this = sat_idx;
+  log_debug_mesid(acq_status[sat_idx].mesid, "chosen");
 
-  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
-        (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
-      continue;
-    }
-
-    u32 sat_score = 0;
-    for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++) {
-      sat_score += acq_status[i].score[hint];
-    }
-    if (pick < sat_score) {
-      return &acq_status[i];
-    } else {
-      pick -= sat_score;
-    }
-  }
-
-  assert(!"Error picking a sat for acquisition");
-  return NULL;
-}
-
-/** Hint acqusition at satellites observed by peer.
-
-RTK relies on a common set of measurements, have the receivers focus search
-efforts on satellites both are likely to be able to see. Receiver will need
-to be sufficiently close for RTK to function, and so should have a similar
-view of the constellation, even if obstructed this may change if the receivers
-move or the satellite arcs across the sky.
-
-cturvey 10-Feb-2015
-*/
-void manage_set_obs_hint(gnss_signal_t sid) {
-  bool valid = sid_supported(sid);
-  assert(valid);
-  if (valid) {
-    /* TODO GLO: Handle GLO signals properly. */
-    me_gnss_signal_t mesid;
-    if (IS_GLO(sid)) {
-      if (!glo_map_valid(sid)) {
-        /* no guarantee that we have FCN mapping for an observation
-         * received from peer */
-        return;
-      }
-      u16 fcn = glo_map_get_fcn(sid);
-      mesid = construct_mesid(sid.code, fcn);
-    } else {
-      mesid = construct_mesid(sid.code, sid.sat);
-    }
-    acq_status[mesid_to_global_index(mesid)].score[ACQ_HINT_REMOTE_OBS] =
-        SCORE_OBS;
-  }
+  sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
+  return &acq_status[this];
 }
 
 /** Manages acquisition searches and starts tracking channels after successful
@@ -713,12 +453,6 @@ static void manage_acq(void) {
       float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
       acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, doppler_max);
       acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, doppler_min);
-      /* Decay hint scores */
-      for (u8 i = 0; i < ACQ_HINT_NUM; i++) {
-        acq->score[i] = (acq->score[i] * 3) / 4;
-      }
-      /* Reset hint score for acquisition. */
-      acq->score[ACQ_HINT_PREV_ACQ] = 0;
       return;
     }
 
@@ -937,7 +671,6 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
             mesid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
       } else {
         /* FIXME other constellations/bands */
-        acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
         acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP, doppler_min);
         acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
       }
@@ -1530,7 +1263,7 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
  */
 u8 sv_track_count(constellation_t gnss) {
   u8 sv_tracked = 0;
-  for (u8 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
+  for (u16 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
     if (mesid_to_constellation(acq_status[i].mesid) == gnss &&
         ACQ_PRN_TRACKING == acq_status[i].state) {
       sv_tracked++;
@@ -1574,8 +1307,6 @@ static void manage_tracking_startup(void) {
          * later using another fine acq.
          */
         if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
-          acq->score[ACQ_HINT_PREV_ACQ] =
-              SCORE_ACQ + (startup_params.cn0_init - ACQ_THRESHOLD);
           /* Check that reported carrier frequency is within Doppler bounds */
           float freq = startup_params.carrier_freq;
           if (freq < doppler_min) {
