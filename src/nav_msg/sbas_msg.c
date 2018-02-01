@@ -11,6 +11,7 @@
  */
 
 #include "nav_msg/sbas_msg.h"
+#include "me_msg/me_msg.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
 #include "sbp_utils.h"
 #include "timing/timing.h"
@@ -293,6 +294,26 @@ static u32 sbas_get_timestamp(u32 delay) {
 }
 
 /**
+ * Posts SBAS raw data message to the mailbox.
+ * The processing is expected to be done on the Starling side.
+ */
+static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
+  me_msg_t *me_msg = chPoolAlloc(&me_msg_buff_pool);
+  if (me_msg == NULL) {
+    log_error("ME: Could not allocate pool for SBAS!");
+    return;
+  }
+  me_msg->id = ME_MSG_SBAS_RAW;
+  me_msg->msg.sbas = *sbas_raw_msg;
+
+  msg_t ret = chMBPost(&me_msg_mailbox, (msg_t)me_msg, TIME_IMMEDIATE);
+  if (ret != MSG_OK) {
+    log_error("ME: Mailbox should have space for SBAS!");
+    chPoolFree(&me_msg_buff_pool, me_msg);
+  }
+}
+
+/**
  * Performs SBAS message decoding.
  *
  * This function decoded SBAS message, if the following conditions are met:
@@ -356,8 +377,11 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
     /* Get current GPS time for SBAS raw data SBP message. */
     u32 gps_time_ms = sbas_get_timestamp(delay);
 
-    /* Send SBAS raw data SBP msg. */
-    sbp_send_sbas_raw_data(msg->sid, gps_time_ms, msg_id, part->decoded);
+    msg_sbas_raw_t raw;
+    sbp_pack_sbas_raw_data(msg->sid, gps_time_ms, msg_id, part->decoded, &raw);
+
+    sbp_send_msg(SBP_MSG_SBAS_RAW, sizeof(raw), (u8 *)&raw);
+    sbas_post_me_msg(&raw);
 
     if (part->invert) {
       sbas_msg_invert(part);

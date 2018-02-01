@@ -29,6 +29,7 @@
 #include "calc_pvt_me.h"
 #include "main.h"
 #include "manage.h"
+#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "obs_bias/obs_bias.h"
@@ -60,9 +61,6 @@
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
 
-memory_pool_t obs_buff_pool;
-mailbox_t obs_mailbox;
-
 double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 2;
 
@@ -86,12 +84,14 @@ static void me_post_observations(u8 n,
    * pushing the message into the mailbox then we just wasted an
    * observation from the mailbox for no good reason. */
 
-  me_msg_obs_t *me_msg_obs = chPoolAlloc(&obs_buff_pool);
-  msg_t ret;
-  if (me_msg_obs == NULL) {
-    log_error("ME: Could not allocate pool!");
+  me_msg_t *me_msg = chPoolAlloc(&me_msg_buff_pool);
+  if (me_msg == NULL) {
+    log_error("ME: Could not allocate pool for obs!");
     return;
   }
+
+  me_msg->id = ME_MSG_OBS;
+  me_msg_obs_t *me_msg_obs = &me_msg->msg.obs;
 
   me_msg_obs->size = n;
   if (n) {
@@ -111,15 +111,15 @@ static void me_post_observations(u8 n,
     me_msg_obs->obs_time.tow = TOW_UNKNOWN;
   }
 
-  ret = chMBPost(&obs_mailbox, (msg_t)me_msg_obs, TIME_IMMEDIATE);
+  msg_t ret = chMBPost(&me_msg_mailbox, (msg_t)me_msg, TIME_IMMEDIATE);
   if (ret != MSG_OK) {
     /* We could grab another item from the mailbox, discard it and then
      * post our obs again but if the size of the mailbox and the pool
      * are equal then we should have already handled the case where the
      * mailbox is full when we handled the case that the pool was full.
      * */
-    log_error("ME: Mailbox should have space!");
-    chPoolFree(&obs_buff_pool, me_msg_obs);
+    log_error("ME: Mailbox should have space for obs!");
+    chPoolFree(&me_msg_buff_pool, me_msg);
   }
 }
 
@@ -734,16 +734,6 @@ void me_calc_pvt_setup() {
   SETTING("solution", "soln_freq", soln_freq_setting, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
-
-  static msg_t obs_mailbox_buff[OBS_N_BUFF];
-
-  chMBObjectInit(&obs_mailbox, obs_mailbox_buff, OBS_N_BUFF);
-
-  chPoolObjectInit(&obs_buff_pool, sizeof(me_msg_obs_t), NULL);
-
-  static me_msg_obs_t obs_buff[OBS_N_BUFF];
-
-  chPoolLoadArray(&obs_buff_pool, obs_buff, OBS_N_BUFF);
 
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
