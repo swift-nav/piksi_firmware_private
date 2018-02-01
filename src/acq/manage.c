@@ -389,7 +389,6 @@ void manage_acq_setup() {
                     NULL);
 }
 
-
 static acq_status_t *choose_acq_sat(void) {
   static u32 sat_idx = 0;
 
