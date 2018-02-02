@@ -85,7 +85,7 @@ static void me_post_observations(u8 n,
    * observation from the mailbox for no good reason. */
 
   me_msg_t *me_msg = chPoolAlloc(&me_msg_buff_pool);
-  if (me_msg == NULL) {
+  if (NULL == me_msg) {
     log_error("ME: Could not allocate pool for obs!");
     return;
   }

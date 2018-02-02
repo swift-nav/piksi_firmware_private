@@ -299,7 +299,7 @@ static u32 sbas_get_timestamp(u32 delay) {
  */
 static void sbas_post_me_msg(const msg_sbas_raw_t *sbas_raw_msg) {
   me_msg_t *me_msg = chPoolAlloc(&me_msg_buff_pool);
-  if (me_msg == NULL) {
+  if (NULL == me_msg) {
     log_error("ME: Could not allocate pool for SBAS!");
     return;
   }
