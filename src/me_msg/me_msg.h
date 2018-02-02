@@ -20,10 +20,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/nav_meas.h>
 
-enum {
-  ME_MSG_OBS = 1,
-  ME_MSG_SBAS_RAW = 2
-};
+enum { ME_MSG_OBS = 1, ME_MSG_SBAS_RAW = 2 };
 
 typedef struct _me_msg_obs_t {
   size_t size;
