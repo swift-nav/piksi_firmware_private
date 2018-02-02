@@ -60,10 +60,14 @@ void send_observations(u8 n,
       }
     }
 
-    sbp_send_msg(
+    s8 ret = sbp_send_msg(
         SBP_MSG_OBS,
         sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
         buff);
+
+    if (SBP_OK != ret) {
+      log_error("SBP_MSG_OBS sending failed: %d", ret);
+    }
   }
 }
 

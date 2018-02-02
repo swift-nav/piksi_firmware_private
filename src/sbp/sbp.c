@@ -175,9 +175,14 @@ s8 sbp_send_msg_(u16 msg_type, u8 len, u8 buff[], u16 sender_id) {
       &sbp_state, msg_type, sender_id, len, buff, &sbp_buffer_write);
 
   /* TODO: Put back check for sender_id == 0 somewhere */
-  io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
+  u32 io_ret = io_support_write(SD_SBP, sbp_buffer, sbp_buffer_length);
 
   chMtxUnlock(&send_mutex);
+
+  if (0 == io_ret) {
+    return -10;
+  }
+
   return ret;
 }
 
