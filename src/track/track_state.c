@@ -571,8 +571,8 @@ typedef struct {
 } tracker_sort_t;
 
 int trackers_sort_cmp(const void* leftv, const void* rightv) {
-  tracker_sort_t* left = (tracker_sort_t*) leftv;
-  tracker_sort_t* right = (tracker_sort_t*) rightv;
+  tracker_sort_t *left = (tracker_sort_t *)leftv;
+  tracker_sort_t *right = (tracker_sort_t *)rightv;
   return left->timing_snapshot - right->timing_snapshot;
 }
 
