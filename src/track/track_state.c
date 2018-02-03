@@ -25,8 +25,8 @@
 #include "track_interface.h"
 #include "track_utils.h"
 
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
 #define NAP_TRACK_IRQ_THREAD_STACK (32 * 1024)
