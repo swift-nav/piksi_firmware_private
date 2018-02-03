@@ -568,12 +568,19 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
 typedef struct {
   u32 timing_snapshot;
   u8 channel;
+  bool update_required;
 } tracker_sort_t;
 
 int trackers_sort_cmp(const void *leftv, const void *rightv) {
   tracker_sort_t *left = (tracker_sort_t *)leftv;
   tracker_sort_t *right = (tracker_sort_t *)rightv;
-  return left->timing_snapshot - right->timing_snapshot;
+  if (!left->update_required && !right->update_required)
+    return 0;
+  if (!left->update_required || !right->update_required)
+    return !right->update_required ? -1 : 1;
+  if (left->timing_snapshot == right->timing_snapshot)
+    return 0;
+  return left->timing_snapshot < right->timing_snapshot ? -1 : 1;
 }
 
 /** Handles pending IRQs and background tasks for tracking channels.
@@ -582,14 +589,17 @@ int trackers_sort_cmp(const void *leftv, const void *rightv) {
  */
 void trackers_update(u64 channels_mask) {
   static swiftnap_tracking_rd_t trk_ch;
-  tracker_sort_t trackers_sorted[nap_track_n_channels];
+  static tracker_sort_t trackers_sorted[MAX_CHANNELS];
   for (u8 channel = 0; channel < nap_track_n_channels; channel++) {
     swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
     memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
     u32 timing_snapshot = GET_NAP_TRK_CH_TIMING_SNAPSHOT_VALUE(trk_ch.STATUS);
+    bool update_required = (channels_mask & 1) ? true : false;
     trackers_sorted[channel] = (tracker_sort_t){
         .timing_snapshot = timing_snapshot, .channel = channel,
+        .update_required = update_required,
     };
+    channels_mask >>= 1;
   }
   qsort(trackers_sorted,
         nap_track_n_channels,
@@ -598,7 +608,7 @@ void trackers_update(u64 channels_mask) {
   for (u8 index = 0; index < nap_track_n_channels; index++) {
     u8 channel = trackers_sorted[index].channel;
     tracker_t *tracker_channel = tracker_get(channel);
-    bool update_required = (channels_mask & (1 << channel)) ? true : false;
+    bool update_required = trackers_sorted[index].update_required;
     tracker_channel_process(tracker_channel, update_required);
   }
 }
