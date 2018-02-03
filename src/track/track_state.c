@@ -25,6 +25,9 @@
 #include "track_interface.h"
 #include "track_utils.h"
 
+#include <string.h>
+#include <stdlib.h>
+
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
 #define NAP_TRACK_IRQ_THREAD_STACK (32 * 1024)
 
@@ -562,12 +565,37 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
   }
 }
 
+typedef struct {
+  u32 timing_snapshot;
+  u8 channel;
+} tracker_sort_t;
+
+int trackers_sort_cmp(const void* leftv, const void* rightv) {
+  tracker_sort_t* left = (tracker_sort_t*) leftv;
+  tracker_sort_t* right = (tracker_sort_t*) rightv;
+  return left->timing_snapshot - right->timing_snapshot;
+}
+
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
  */
 void trackers_update(u64 channels_mask) {
-  for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
+  static swiftnap_tracking_rd_t trk_ch;
+  tracker_sort_t trackers_sorted[nap_track_n_channels];
+  for (u8 channel = 0; channel < nap_track_n_channels; channel++) {
+    swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
+    memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
+    u32 timing_snapshot = GET_NAP_TRK_CH_TIMING_SNAPSHOT_VALUE(trk_ch.STATUS);
+    trackers_sorted[channel] = (tracker_sort_t) {
+      .timing_snapshot = timing_snapshot,
+      .channel = channel,
+    };
+  }
+  qsort(trackers_sorted, nap_track_n_channels, sizeof(trackers_sorted[0]),
+        trackers_sort_cmp);
+  for (u8 channel = 0; channel < nap_track_n_channels; channel++) {
+    channel = trackers_sorted[channel].channel;
     tracker_t *tracker_channel = tracker_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
