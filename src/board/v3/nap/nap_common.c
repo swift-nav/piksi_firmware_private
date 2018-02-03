@@ -223,8 +223,8 @@ void nap_track_irq_thread(void *arg) {
 
     DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state(););
 
-    /* Sleep until 500 microseconds is full. */
-    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
+    /* Sleep until 250 microseconds is full. */
+    piksi_systime_sleep_until_windowed_us(&sys_time, 250);
   }
 }
 
