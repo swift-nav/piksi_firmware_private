@@ -40,8 +40,10 @@
   (NAP_IRQS_EXT_EVENT0_Msk | NAP_IRQS_EXT_EVENT1_Msk | NAP_IRQS_EXT_EVENT2_Msk)
 
 static void nap_isr(void *context);
+static void nap_track_isr(void *context);
 
 static BSEMAPHORE_DECL(nap_irq_sem, TRUE);
+static BSEMAPHORE_DECL(nap_track_irq_sem, TRUE);
 
 static THD_WORKING_AREA(wa_nap_irq, NAP_IRQ_THREAD_STACK);
 
@@ -66,6 +68,12 @@ void nap_setup(void) {
   gic_irq_sensitivity_set(IRQ_ID_NAP, IRQ_SENSITIVITY_EDGE);
   gic_irq_priority_set(IRQ_ID_NAP, NAP_IRQ_PRIORITY);
   gic_irq_enable(IRQ_ID_NAP);
+
+  /* Enable NAP tracking interrupt */
+  gic_handler_register(IRQ_ID_NAP_TRACK, nap_track_isr, NULL);
+  gic_irq_sensitivity_set(IRQ_ID_NAP_TRACK, IRQ_SENSITIVITY_EDGE);
+  gic_irq_priority_set(IRQ_ID_NAP_TRACK, NAP_TRACK_IRQ_PRIORITY);
+  gic_irq_enable(IRQ_ID_NAP_TRACK);
 }
 
 u64 nap_timing_count(void) {
@@ -146,6 +154,16 @@ static void nap_isr(void *context) {
   chSysUnlockFromISR();
 }
 
+static void nap_track_isr(void *context) {
+  (void)context;
+  chSysLockFromISR();
+
+  /* Wake up processing thread */
+  chBSemSignalI(&nap_track_irq_sem);
+
+  chSysUnlockFromISR();
+}
+
 static void handle_nap_irq(void) {
   u32 irq = NAP->IRQS;
 
@@ -206,12 +224,15 @@ static void nap_irq_thread(void *arg) {
 }
 
 void nap_track_irq_thread(void *arg) {
-  piksi_systime_t sys_time;
+  //~ piksi_systime_t sys_time;
   (void)arg;
   chRegSetThreadName("NAP Tracking");
 
   while (TRUE) {
-    piksi_systime_get(&sys_time);
+    //~ piksi_systime_get(&sys_time);
+
+    /* Waiting for the IRQ to happen.*/
+    chBSemWaitTimeout(&nap_track_irq_sem, MS2ST(PROCESS_PERIOD_MS));
 
     handle_nap_track_irq();
 
@@ -224,7 +245,7 @@ void nap_track_irq_thread(void *arg) {
     DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state(););
 
     /* Sleep until 500 microseconds is full. */
-    piksi_systime_sleep_until_windowed_us(&sys_time, 500);
+    //~ piksi_systime_sleep_until_windowed_us(&sys_time, 500);
   }
 }
 
