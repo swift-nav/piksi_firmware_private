@@ -576,9 +576,9 @@ int trackers_sort_cmp(const void *leftv, const void *rightv) {
   tracker_sort_t *right = (tracker_sort_t *)rightv;
   if (!left->update_required && !right->update_required) return 0;
   if (!left->update_required || !right->update_required)
-    return !right->update_required ? -1 : 1;
+    return !right->update_required ? 1 : -1;
   if (left->timing_snapshot == right->timing_snapshot) return 0;
-  return left->timing_snapshot < right->timing_snapshot ? -1 : 1;
+  return left->timing_snapshot < right->timing_snapshot ? 1 : -1;
 }
 
 /** Handles pending IRQs and background tasks for tracking channels.
