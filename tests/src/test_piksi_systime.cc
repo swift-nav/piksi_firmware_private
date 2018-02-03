@@ -72,7 +72,8 @@ TEST(piksi_systime_tests, to_s) {
   s = piksi_systime_to_s(&st);
   // should be 4,294,967,295 positive rollovers + one min step in s
   u64 expected_ticks = ((u32)(-1) * ((u64)TIME_INFINITE + 1) + 1);
-  EXPECT_EQ(s, (expected_ticks + (CH_CFG_ST_FREQUENCY-1)) / CH_CFG_ST_FREQUENCY);
+  EXPECT_EQ(s,
+            (expected_ticks + (CH_CFG_ST_FREQUENCY - 1)) / CH_CFG_ST_FREQUENCY);
 }
 
 TEST(piksi_systime_tests, inc_us) {
