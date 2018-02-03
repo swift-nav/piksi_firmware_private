@@ -593,7 +593,7 @@ void trackers_update(u64 channels_mask) {
   for (u8 channel = 0; channel < nap_track_n_channels; channel++) {
     swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
     memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
-    u32 timing_snapshot = GET_NAP_TRK_CH_TIMING_SNAPSHOT_VALUE(trk_ch.STATUS);
+    u32 timing_snapshot = GET_NAP_TRK_CH_TIMING_SNAPSHOT_VALUE(trk_ch.TIMING_SNAPSHOT);
     bool update_required = (channels_mask & 1) ? true : false;
     trackers_sorted[channel] = (tracker_sort_t){
         .timing_snapshot = timing_snapshot, .channel = channel,
