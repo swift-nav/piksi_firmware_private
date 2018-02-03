@@ -570,7 +570,7 @@ typedef struct {
   u8 channel;
 } tracker_sort_t;
 
-int trackers_sort_cmp(const void* leftv, const void* rightv) {
+int trackers_sort_cmp(const void *leftv, const void *rightv) {
   tracker_sort_t *left = (tracker_sort_t *)leftv;
   tracker_sort_t *right = (tracker_sort_t *)rightv;
   return left->timing_snapshot - right->timing_snapshot;
@@ -588,11 +588,12 @@ void trackers_update(u64 channels_mask) {
     memcpy(&trk_ch, t, NAP_NUM_TRACKING_READABLE * sizeof(u32));
     u32 timing_snapshot = GET_NAP_TRK_CH_TIMING_SNAPSHOT_VALUE(trk_ch.STATUS);
     trackers_sorted[channel] = (tracker_sort_t) {
-      .timing_snapshot = timing_snapshot,
-      .channel = channel,
+      .timing_snapshot = timing_snapshot, .channel = channel,
     };
   }
-  qsort(trackers_sorted, nap_track_n_channels, sizeof(trackers_sorted[0]),
+  qsort(trackers_sorted,
+        nap_track_n_channels,
+        sizeof(trackers_sorted[0]),
         trackers_sort_cmp);
   for (u8 channel = 0; channel < nap_track_n_channels; channel++) {
     channel = trackers_sorted[channel].channel;
