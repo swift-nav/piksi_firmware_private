@@ -51,10 +51,10 @@
 #define SOLN_THD_CPU_MAX (0.60f)
 
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
+#define STARLING_THREAD_STACK (8 * 1024 * 1024)
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
+#define TIME_MATCHED_OBS_THREAD_STACK (8 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
@@ -867,6 +867,8 @@ static void starling_thread(void *arg) {
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
+      filter_manager_set_SPP_pos(
+          time_matched_filter_manager, result_spp.baseline, &obs_time);
       successful_spp = true;
     } else {
       if (dgnss_soln_mode != SOLN_MODE_TIME_MATCHED) {
@@ -1166,8 +1168,10 @@ static void time_matched_obs_thread(void *arg) {
         solution_make_sbp(&soln_copy, NULL, &sbp_messages);
 
         static gps_time_t last_update_time = {.wn = 0, .tow = 0.0};
-        if (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
-            dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+        if (filter_manager_has_recent_spp_position(time_matched_filter_manager,
+                                                   &obss->tor) &&
+            (update_time_matched(&last_update_time, &obss->tor, obss->n) ||
+             dgnss_soln_mode == SOLN_MODE_TIME_MATCHED)) {
           process_matched_obs(obss, &base_obss_copy, &sbp_messages);
           last_update_time = obss->tor;
         }
