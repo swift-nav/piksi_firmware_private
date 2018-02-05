@@ -439,6 +439,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
                                &nm->tot,
                                nm->sat_pos,
                                nm->sat_vel,
+                               nm->sat_acc,
                                &nm->sat_clock_err,
                                &nm->sat_clock_err_rate,
                                &nm->IODC,

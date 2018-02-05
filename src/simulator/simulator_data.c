@@ -7,6 +7,8 @@ double simulation_sats_pos[33][3];
 
 double simulation_sats_vel[33][3];
 
+double simulation_sats_acc[33][3];
+
 u32 simulation_fake_carrier_bias[33];
 
 u8 simulation_num_almanacs = 33;
