@@ -68,7 +68,7 @@ hitl_test_runs_link () {
 }
 
 LINKS=\
-("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION&runs=10"
+("https://gnss-analysis.swiftnav.com/schedule/firmware=$BUILD_VERSION&build_type=$HITL_BUILD_SOURCE&num_runs=10"
 $(hitl_pass_fail_link)
 $(hitl_high_level_link)
 $(hitl_test_runs_link)
