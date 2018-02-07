@@ -189,7 +189,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/specan/specan_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/prns.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
-        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_mdbzp.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(SWIFTNAV_ROOT)/src/utils/sbas_select/sbas_select.o \

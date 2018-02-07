@@ -24,8 +24,8 @@
 
 #include "lib/fixed_fft_r2.h"
 #include "soft_macq_defines.h"
+#include "soft_macq_main.h"
 #include "soft_macq_mdbzp.h"
-#include "soft_macq_serial.h"
 #include "soft_macq_utils.h"
 
 #define FAU_MAX_AGE_S (0.5)
@@ -65,11 +65,6 @@ static bool bModuleInit;
 
 static bool BbMixAndDecimate(const me_gnss_signal_t mesid);
 
-static bool SoftMacqSerial(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
-                           acq_result_t *_sAcqResult);
-
 static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                           acqResults_t *_sAcqResult);
 
@@ -92,6 +87,9 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
                            acq_result_t *p_acqres) {
+  (void) _fCarrFreqMin;
+  (void) _fCarrFreqMax;
+
   u64 tmp_timetag = 0;
   u32 buff_size = 0;
   acqResults_t sLocalResult = {0};
@@ -146,39 +144,17 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
    *
    * NOTE: right now this is just to have he compiler going down
    * this route, but eventually could swap serial search */
-  if ((_fCarrFreqMax - _fCarrFreqMin) > 5000) {
-    bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
-    p_acqres->cp =
-        (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
-    p_acqres->cf = sLocalResult.fDoppFreq;
-    p_acqres->cn0 = ACQ_EARLY_THRESHOLD;
-    return ret;
-  }
-
-  /** call serial-frequency search acquisition with current sensitivity
-   * parameters */
-  return SoftMacqSerial(mesid, _fCarrFreqMin, _fCarrFreqMax, p_acqres);
+  bool ret = SoftMacqMdbzp(mesid, &sLocalResult);
+  p_acqres->cp =
+      (1.0f - sLocalResult.fCodeDelay) * code_to_chip_count(mesid.code);
+  p_acqres->cf = sLocalResult.fDoppFreq;
+  p_acqres->cn0 = ACQ_EARLY_THRESHOLD;
+  return ret;
 }
 
 /**********************************
  * STATIC FUNCTION DEFINITIONS
  ***********************************/
-
-/************* Serial frequency search *****************/
-
-static bool SoftMacqSerial(const me_gnss_signal_t mesid,
-                           float _fCarrFreqMin,
-                           float _fCarrFreqMax,
-                           acq_result_t *_psLegacyResult) {
-  float cf_bin_width = soft_acq_bin_width();
-
-  return soft_acq_search(pBaseBand,
-                         mesid,
-                         _fCarrFreqMin,
-                         _fCarrFreqMax,
-                         cf_bin_width,
-                         _psLegacyResult);
-}
 
 /*! \fn bool BbMixAndDecimate
  *  \brief
