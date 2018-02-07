@@ -87,8 +87,8 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
                            float _fCarrFreqMin,
                            float _fCarrFreqMax,
                            acq_result_t *p_acqres) {
-  (void) _fCarrFreqMin;
-  (void) _fCarrFreqMax;
+  (void)_fCarrFreqMin;
+  (void)_fCarrFreqMax;
 
   u64 tmp_timetag = 0;
   u32 buff_size = 0;
