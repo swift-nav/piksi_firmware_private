@@ -33,6 +33,7 @@
 #include "calc_pvt_starling.h"
 #include "main.h"
 #include "manage.h"
+#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
@@ -713,7 +714,6 @@ static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 static void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
-  me_msg_obs_t *rover_channel_epoch;
 
   chRegSetThreadName("starling");
 
@@ -733,16 +733,22 @@ static void starling_thread(void *arg) {
   while (TRUE) {
     watchdog_notify(WD_NOTIFY_STARLING);
 
-    rover_channel_epoch = NULL;
-    ret = chMBFetch(
-        &obs_mailbox, (msg_t *)&rover_channel_epoch, DGNSS_TIMEOUT_MS);
+    me_msg_t *me_msg = NULL;
+    ret = chMBFetch(&me_msg_mailbox, (msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
     if (ret != MSG_OK) {
-      if (NULL != rover_channel_epoch) {
+      if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
-        chPoolFree(&obs_buff_pool, rover_channel_epoch);
+        chPoolFree(&me_msg_buff_pool, me_msg);
       }
       continue;
     }
+
+    if (me_msg->id != ME_MSG_OBS) {
+      chPoolFree(&me_msg_buff_pool, me_msg);
+      continue;
+    }
+
+    me_msg_obs_t *rover_channel_epoch = &me_msg->msg.obs;
 
     /* Init the messages we want to send */
 
@@ -765,13 +771,13 @@ static void starling_thread(void *arg) {
                                        &sbp_messages,
                                        rover_channel_epoch->size,
                                        rover_channel_epoch->obs);
-      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      chPoolFree(&me_msg_buff_pool, me_msg);
       continue;
     }
 
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
-      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      chPoolFree(&me_msg_buff_pool, me_msg);
       solution_send_low_latency_output(0, &sbp_messages, 0, nav_meas);
       continue;
     }
@@ -780,7 +786,7 @@ static void starling_thread(void *arg) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
-      chPoolFree(&obs_buff_pool, rover_channel_epoch);
+      chPoolFree(&me_msg_buff_pool, me_msg);
       continue;
     }
 
@@ -807,7 +813,7 @@ static void starling_thread(void *arg) {
 
     obs_time = rover_channel_epoch->obs_time;
 
-    chPoolFree(&obs_buff_pool, rover_channel_epoch);
+    chPoolFree(&me_msg_buff_pool, me_msg);
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
