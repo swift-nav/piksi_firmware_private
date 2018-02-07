@@ -319,6 +319,7 @@ typedef struct {
  * GPS L1 C/A tracker data container type.
  */
 typedef struct {
+  u32 xcorr_comp_count;           /**< Cross-correlation computation counter */
   u16 xcorr_counts[NUM_SATS_GPS]; /**< L1 Cross-correlation interval counters */
   u16 xcorr_count_l2;             /**< L2 Cross-correlation interval counter */
   u16 xcorr_whitelist_counts
@@ -333,6 +334,7 @@ typedef struct {
  * GPS L2C tracker data container type.
  */
 typedef struct {
+  u32 xcorr_comp_count;    /**< Cross-correlation computation counter */
   u16 xcorr_count_l1;      /**< L1 Cross-correlation interval count */
   bool xcorr_whitelist;    /**< Cross-correlation whitelist status */
   bool xcorr_whitelist_l1; /**< L1 Cross-correlation whitelist status */

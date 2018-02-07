@@ -79,6 +79,9 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker_channel) {
   /* TOW manipulation on bit edge */
   tracker_tow_cache(tracker_channel);
 
+  /* TODO QZSS: XCORR implementation.
+   * See GPS L1CA for example. */
+
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));

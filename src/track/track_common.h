@@ -40,7 +40,7 @@ typedef struct {
  */
 #define TP_TRACKER_DEFAULT_CONFIG    \
   {                                  \
-    false, 10.f, 0.1f, 1.f, { 0, 0 } \
+    false, 10.f, 0.5f, 5.f, { 0, 0 } \
   }
 
 /**

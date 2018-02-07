@@ -157,7 +157,7 @@
 /** GPS L1 C/A CN0 threshold for confirmed xcorr [dB-Hz] */
 #define XCORR_CONFIRM_THRESHOLD -20.f
 /** cross-correlation update rate [Hz] */
-#define XCORR_UPDATE_RATE (SECS_MS / GPS_L1CA_BIT_LENGTH_MS)
+#define XCORR_UPDATE_RATE (SECS_MS / (50 * GPS_L1CA_BIT_LENGTH_MS))
 /** Carrier phases within tolerance are declared equal. [cycles]
  *  Stable PLL remains within +-15 degree from correct phase.
  *  360 * 0.08 ~= 30 degrees
