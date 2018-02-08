@@ -979,7 +979,7 @@ void tp_tracker_filter_doppler(tracker_t *tracker_channel,
       tracker_channel->flags |= TRACKER_FLAG_XCORR_FILTER_ACTIVE;
     }
 
-    tracker_channel->xcorr_freq = xcorr_freq;
+    tracker_channel->xcorr_freq_hz = xcorr_freq;
   }
 }
 

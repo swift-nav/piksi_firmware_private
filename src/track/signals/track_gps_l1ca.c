@@ -62,7 +62,7 @@ static tracker_interface_list_element_t
  */
 void track_gps_l1ca_register(void) {
   lp1_filter_compute_params(&gps_l1ca_config.xcorr_f_params,
-                            gps_l1ca_config.xcorr_cof,
+                            gps_l1ca_config.xcorr_cof_hz,
                             SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
 
   tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
@@ -90,7 +90,7 @@ static void tracker_gps_l1ca_update(tracker_t *tracker) {
   tracker_tow_cache(tracker);
 
   /* Cross-correlation check for GPS signals */
-  tracker_xcorr_update(tracker, &gps_l1ca_config);
+  tracker_xcorr_update(tracker);
 
   bool confirmed = (0 != (tracker->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker->flags & TRACKER_FLAG_HAS_PLOCK)) ||

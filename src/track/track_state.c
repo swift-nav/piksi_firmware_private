@@ -182,8 +182,6 @@ static void tracking_channel_compute_values(tracker_t *tracker_channel,
     info->lock_counter = tracker_channel->lock_counter;
     /* Sample counter */
     info->sample_count = tracker_channel->sample_count;
-    /* Cross-correlation doppler frequency [hz] */
-    info->xcorr_freq = tracker_channel->xcorr_freq;
   }
   if (NULL != time_info) {
     time_info->cn0_drop_ms = update_count_diff(

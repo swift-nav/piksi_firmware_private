@@ -195,9 +195,6 @@ typedef struct {
                               update timestamp [ms] */
   u32 sample_count;        /**< Last measurement sample counter */
   u16 lock_counter;        /**< Lock state counter */
-  float xcorr_freq;        /**< Cross-correlation doppler [hz] */
-  u16 xcorr_count;         /**< Cross-correlation counter */
-  bool xcorr_wl;           /**< Is signal xcorr whitelisted? */
 } tracker_info_t;
 
 /**
@@ -403,9 +400,6 @@ typedef struct {
   update_count_t ld_pess_change_count;
   /**< update_count value when pessimistic
        phase detector has changed last time. */
-  update_count_t xcorr_change_count;
-  /**< update count value when cross-correlation
-       flag has changed last time */
   s32 TOW_ms;                /**< TOW in ms. */
   s32 TOW_ms_prev;           /**< previous TOW in ms. */
   s32 TOW_residual_ns;       /**< Residual to TOW_ms [ns] */
@@ -426,7 +420,7 @@ typedef struct {
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
+  float xcorr_freq_hz;         /**< Doppler for cross-correlation [Hz] */
   u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
   u64 update_timestamp_ms;     /**< Tracking channel last update
                                     timestamp [ms] */

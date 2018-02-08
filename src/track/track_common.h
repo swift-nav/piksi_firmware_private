@@ -27,20 +27,16 @@
 typedef struct {
   bool show_unconfirmed_trackers; /**< Flag to control reporting of unconfirmed
                                    *   tracker channels */
-  float xcorr_delta; /**< Frequency delta error for cross-correlation [hz] */
-  float
-      xcorr_cof; /**< LPF cut-off frequency for cross-correlation filter [hz] */
-  float xcorr_time; /**< Cross-correlation time threshold [s] */
-  lp1_filter_params_t
-      xcorr_f_params; /**< Cross-correlation filter parameters */
+  float xcorr_cof_hz; /**< LPF cut-off frequency for xcorr filter [Hz] */
+  lp1_filter_params_t xcorr_f_params; /**< Xcorr filter parameters */
 } tp_tracker_config_t;
 
 /**
  * Macro for default tracker parameters initialization
  */
-#define TP_TRACKER_DEFAULT_CONFIG    \
-  {                                  \
-    false, 10.f, 0.5f, 5.f, { 0, 0 } \
+#define TP_TRACKER_DEFAULT_CONFIG \
+  {                               \
+    false, 0.1f, { 0, 0 }         \
   }
 
 /**

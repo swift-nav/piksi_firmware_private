@@ -183,7 +183,7 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
     entry.id = id;
     entry.mesid = tracker_channel->mesid;
     entry.flags = tracker_channel->flags;
-    entry.freq = tracker_channel->xcorr_freq;
+    entry.freq_hz = tracker_channel->xcorr_freq_hz;
     entry.cn0 = tracker_channel->cn0;
 
     if (0 != (entry.flags & TRACKER_FLAG_ACTIVE) &&

@@ -61,7 +61,7 @@ static tracker_interface_list_element_t
  */
 void track_qzss_l2c_register(void) {
   lp1_filter_compute_params(&qzss_l2c_config.xcorr_f_params,
-                            qzss_l2c_config.xcorr_cof,
+                            qzss_l2c_config.xcorr_cof_hz,
                             SECS_MS / QZS_L2C_SYMBOL_LENGTH_MS);
 
   tracker_interface_register(&tracker_interface_list_element_qzss_l2c);

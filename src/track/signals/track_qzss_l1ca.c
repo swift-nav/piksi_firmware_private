@@ -58,6 +58,9 @@ static tracker_interface_list_element_t
  *  framework.
  */
 void track_qzss_l1ca_register(void) {
+  lp1_filter_compute_params(&qzss_l1ca_config.xcorr_f_params,
+                            qzss_l1ca_config.xcorr_cof_hz,
+                            SECS_MS / QZS_L1CA_BIT_LENGTH_MS);
   tracker_interface_register(&tracker_interface_list_element_qzss_l1ca);
 }
 

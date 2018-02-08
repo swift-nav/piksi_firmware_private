@@ -20,7 +20,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-void tracker_xcorr_update(tracker_t *tracker, tp_tracker_config_t *config);
+void tracker_xcorr_update(tracker_t *tracker);
 
 #ifdef __cplusplus
 } /* extern "C" */
