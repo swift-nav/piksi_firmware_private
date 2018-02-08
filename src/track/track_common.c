@@ -429,7 +429,7 @@ static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
 
   bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
   bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-  log_warn_mesid(tracker_channel->mesid,
+  log_info_mesid(tracker_channel->mesid,
                  "False freq detected: %.1f Hz (plock=%d,flock=%d)",
                  err_hz,
                  (int)plock,
@@ -596,26 +596,26 @@ void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
      * last post-filter sample instead */
     if (0 == tracker_channel->corrs.corr_cn0.prompt.I &&
         0 == tracker_channel->corrs.corr_cn0.prompt.Q) {
-      log_warn_mesid(tracker_channel->mesid,
-                     "Prompt I/Q: %" PRIi32 "/%" PRIi32,
-                     tracker_channel->corrs.corr_cn0.prompt.I,
-                     tracker_channel->corrs.corr_cn0.prompt.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Early I/Q: %" PRIi32 "/%" PRIi32,
-                     tracker_channel->corrs.corr_cn0.early.I,
-                     tracker_channel->corrs.corr_cn0.early.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Late I/Q: %" PRIi32 "/%" PRIi32,
-                     tracker_channel->corrs.corr_cn0.late.I,
-                     tracker_channel->corrs.corr_cn0.late.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Very Early I/Q: %" PRIi32 "/%" PRIi32,
-                     tracker_channel->corrs.corr_cn0.very_early.I,
-                     tracker_channel->corrs.corr_cn0.very_early.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Very Late I/Q: %" PRIi32 "/%" PRIi32,
-                     tracker_channel->corrs.corr_cn0.very_late.I,
-                     tracker_channel->corrs.corr_cn0.very_late.Q);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Prompt I/Q: %" PRIi32 "/%" PRIi32,
+                      tracker_channel->corrs.corr_cn0.prompt.I,
+                      tracker_channel->corrs.corr_cn0.prompt.Q);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Early I/Q: %" PRIi32 "/%" PRIi32,
+                      tracker_channel->corrs.corr_cn0.early.I,
+                      tracker_channel->corrs.corr_cn0.early.Q);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Late I/Q: %" PRIi32 "/%" PRIi32,
+                      tracker_channel->corrs.corr_cn0.late.I,
+                      tracker_channel->corrs.corr_cn0.late.Q);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Very Early I/Q: %" PRIi32 "/%" PRIi32,
+                      tracker_channel->corrs.corr_cn0.very_early.I,
+                      tracker_channel->corrs.corr_cn0.very_early.Q);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Very Late I/Q: %" PRIi32 "/%" PRIi32,
+                      tracker_channel->corrs.corr_cn0.very_late.I,
+                      tracker_channel->corrs.corr_cn0.very_late.Q);
     } else {
       /* Update C/N0 estimate */
       cn0 = track_cn0_update(tracker_channel->mesid,
