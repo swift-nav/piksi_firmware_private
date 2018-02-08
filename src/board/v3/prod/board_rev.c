@@ -30,7 +30,7 @@ void boardRevInit(void) {
 
   /* Increase(?) CAN clock */
   /* Hardware default is 0x00501903, but uboot sets it at 0x00200500. */
-  *(volatile uint32_t *)0xF800015C = 0x00301000;
+  /* *(volatile uint32_t *)0xF800015C = 0x00301000; */
 
   palSetLineMode(SPI_SS_IMU_GPIO_LINE, PAL_MODE_OUTPUT);
   palSetLine(SPI_SS_IMU_GPIO_LINE);
