@@ -198,22 +198,7 @@ static s32 seek_subframe(nav_msg_t *n) {
 
   /* Step 2.
    * Confirm that last 2 parity bits of Word 10 and HOW are zeros. */
-
-  /* Adjust subframe start index temporarily to enable extraction of 2 last
-   * parity bits of Word 10. That is 2 bits before subframe start.
-   * Revert subframe start index adjustment after extraction. */
-  u32 last_bits_word10 = 0;
-  if (n->subframe_start_index > 0) {
-    n->subframe_start_index -= 2;
-    last_bits_word10 = extract_word(n, 0, 2, 0);
-    n->subframe_start_index += 2;
-  } else {
-    n->subframe_start_index += 2;
-    last_bits_word10 = extract_word(n, 0, 2, 0);
-    n->subframe_start_index -= 2;
-  }
-
-  u32 zero_bits = last_bits_word10 | extract_word(n, 58, 2, 0);
+  u32 zero_bits = extract_word(n, 58, 2, 0);
   zero_bits |= extract_word(n, 298, 2, 0);
   zero_bits |= extract_word(n, 358, 2, 0);
   if (zero_bits) {
@@ -288,17 +273,6 @@ static s32 seek_subframe(nav_msg_t *n) {
   /* Step 6.
    *  Check parities. */
 
-  /* Shift parity bits of first Word 10. */
-  last_bits_word10 <<= 30;
-  /* Extract Word 1. */
-  u32 sf_word1 = extract_word(n, 0, 30, 0);
-  /* Combine parity bits and Word 1. */
-  sf_word1 |= last_bits_word10;
-  if (nav_parity(&sf_word1)) {
-    n->subframe_start_index = 0;
-    return TOW_INVALID;
-  }
-
   /* Extract 2 last parity bits of Word 1 + full Word 2. */
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
@@ -308,7 +282,7 @@ static s32 seek_subframe(nav_msg_t *n) {
 
   /* Extract 2 last parity bits of next Word 10 + full Word 1 of next subframe.
    */
-  sf_word1 = extract_word(n, 298, 32, 0);
+  u32 sf_word1 = extract_word(n, 298, 32, 0);
   if (nav_parity(&sf_word1)) {
     n->subframe_start_index = 0;
     return TOW_INVALID;
