@@ -231,8 +231,14 @@ static void update_obss(obss_t *new_obss) {
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
-    s32 ret = calc_PVT(
-        new_obss->n, new_obss->nm, disable_raim, true, &soln, &dops, NULL);
+    s32 ret = calc_PVT(new_obss->n,
+                       new_obss->nm,
+                       disable_raim,
+                       true,
+                       GPSOnly,
+                       &soln,
+                       &dops,
+                       NULL);
 
     if (ret >= 0 && soln.valid) {
       /* Copy over the time. */
