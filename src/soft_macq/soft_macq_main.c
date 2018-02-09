@@ -110,6 +110,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
       log_error("grabber failed, buff_size %" PRIu32 " tmp_timetag %" PRIu64,
                 buff_size,
                 tmp_timetag);
+      assert(0);
       return false;
     }
     /** update signal time tag */
