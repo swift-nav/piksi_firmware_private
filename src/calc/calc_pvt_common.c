@@ -65,9 +65,7 @@ void send_observations(u8 n,
         sizeof(observation_header_t) + curr_n * sizeof(packed_obs_content_t),
         buff);
 
-    if (SBP_OK != ret) {
-      log_error("SBP_MSG_OBS sending failed: %d", ret);
-    }
+    assert(SBP_OK == ret);
   }
 }
 
