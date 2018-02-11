@@ -140,7 +140,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
      * mesid */
     BbMixAndDecimate(mesid);
   }
-  
+
   /** store now last used mesid */
   mesid_last = mesid;
 
