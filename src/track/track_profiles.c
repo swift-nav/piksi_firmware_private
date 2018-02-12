@@ -39,7 +39,6 @@ typedef enum {
   IDX_NONE = -1,
   IDX_INIT_0,
   IDX_INIT_1,
-  IDX_INIT_2,
   IDX_2MS,
   IDX_5MS,
   IDX_10MS,
@@ -965,6 +964,4 @@ void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid) {
   const tp_profile_entry_t *profile_entry;
-  profile_entry = &profile->profiles[profile->next.index];
-  return get_track_mode(mesid, profile_entry);
-}
+  profile_entry = &profile->profiles[profil
