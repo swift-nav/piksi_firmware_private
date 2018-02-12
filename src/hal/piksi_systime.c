@@ -579,11 +579,11 @@ systime_t piksi_systime_sleep_until_windowed_internal(const piksi_systime_t *t,
 }
 
 void piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
-                                          u32 window_len_us) {
+                                           u32 window_len_us) {
   piksi_systime_sleep_until_windowed_internal(t, us2st(window_len_us));
 }
 
 void piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
-                                          u32 window_len_ms) {
+                                           u32 window_len_ms) {
   piksi_systime_sleep_until_windowed_internal(t, ms2st(window_len_ms));
 }
