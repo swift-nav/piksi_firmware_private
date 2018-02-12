@@ -321,7 +321,7 @@ static s32 seek_subframe(nav_msg_t *n) {
 
   s32 TOW_ms = TOW_INVALID;
   if (!alert) {
-    adjust_tow(TOW_trunc1);
+    TOW_ms = adjust_tow(TOW_trunc1);
   }
 
   n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL
