@@ -84,6 +84,7 @@ u64 nap_timing_count(void) {
   u64 total_count = (u64)count | ((u64)rollover_count << 32);
 
   chMtxUnlock(&timing_count_mutex);
+
   return total_count;
 }
 

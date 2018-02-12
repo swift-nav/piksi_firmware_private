@@ -29,8 +29,6 @@
 #define NAP_TRACK_IRQ_THREAD_PRIORITY (HIGHPRIO - 1)
 #define NAP_TRACK_IRQ_THREAD_STACK (32 * 1024)
 
-#define CHANNEL_DISABLE_WAIT_TIME_MS 100
-
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
 u16 max_pll_integration_time_ms = 20;
@@ -41,9 +39,7 @@ void nap_track_irq_thread(void *arg);
 
 typedef enum {
   EVENT_ENABLE,
-  EVENT_DISABLE_REQUEST,
-  EVENT_DISABLE,
-  EVENT_DISABLE_WAIT_COMPLETE
+  EVENT_DISABLE
 } event_t;
 
 static tracker_t trackers[NUM_TRACKER_CHANNELS];
@@ -329,18 +325,8 @@ static void event(tracker_t *tracker_channel, event_t event) {
       tracker_channel->state = STATE_ENABLED;
     } break;
 
-    case EVENT_DISABLE_REQUEST: {
-      assert(tracker_channel->state == STATE_ENABLED);
-      tracker_channel->state = STATE_DISABLE_REQUESTED;
-    } break;
-
     case EVENT_DISABLE: {
-      assert(tracker_channel->state == STATE_DISABLE_REQUESTED);
-      tracker_channel->state = STATE_DISABLE_WAIT;
-    } break;
-
-    case EVENT_DISABLE_WAIT_COMPLETE: {
-      assert(tracker_channel->state == STATE_DISABLE_WAIT);
+      assert(tracker_channel->state == STATE_ENABLED);
       /* Sequence point for disable is setting channel state = STATE_DISABLED
        * and/or tracker active = false (order of these two is irrelevant here)
        */
@@ -457,7 +443,7 @@ bool tracker_init(tracker_id_t id,
 bool tracker_disable(tracker_id_t id) {
   /* Request disable */
   tracker_t *tracker_channel = tracker_get(id);
-  event(tracker_channel, EVENT_DISABLE_REQUEST);
+  event(tracker_channel, EVENT_DISABLE);
   return true;
 }
 
@@ -511,62 +497,42 @@ static void error_flags_add(tracker_t *tracker_channel,
  * \param update_required   True when correlations are pending for the
  *                          tracking channel.
  */
-static void tracker_channel_process(tracker_t *tracker, bool update_required) {
+static void tracker_channel_process(tracker_t *tracker) {
+  /* Channel public data blocks for transferring between locks */
+  tracker_info_t info;
+  tracker_time_info_t time_info;
+  tracker_freq_info_t freq_info;
+  tracker_ctrl_info_t ctrl_params;
+  bool reset_cpo;
+
   switch (tracker_state_get(tracker)) {
-    case STATE_ENABLED: {
-      if (update_required) {
-        /* Channel public data blocks for transferring between locks */
-        tracker_info_t info;
-        tracker_time_info_t time_info;
-        tracker_freq_info_t freq_info;
-        tracker_ctrl_info_t ctrl_params;
-        bool reset_cpo;
+    case STATE_ENABLED:
+      tracker_lock(tracker);
 
-        tracker_lock(tracker);
-        {
-          tracker_interface_lookup(tracker->mesid)->update(tracker);
+      tracker_interface_lookup(tracker->mesid)->update(tracker);
 
-          /* Read channel public data while in channel lock */
-          tracking_channel_compute_values(
-              tracker, &info, &time_info, &freq_info, &ctrl_params, &reset_cpo);
-        }
-        tracker_unlock(tracker);
+      /* Read channel public data while in channel lock */
+      tracking_channel_compute_values(
+          tracker, &info, &time_info, &freq_info, &ctrl_params, &reset_cpo);
+
+      tracker_unlock(tracker);
 
         /* Update channel public data outside of channel lock */
-        tracking_channel_update_values(
-            tracker, &info, &time_info, &freq_info, &ctrl_params, reset_cpo);
-      }
-    } break;
+      tracking_channel_update_values(
+          tracker, &info, &time_info, &freq_info, &ctrl_params, reset_cpo);
+      break;
 
-    case STATE_DISABLE_REQUESTED: {
+    case STATE_DISABLED:
       nap_channel_disable(tracker);
       tracker_lock(tracker);
-      {
-        tracker_interface_lookup(tracker->mesid)->disable(tracker);
-        piksi_systime_get(&tracker->disable_time);
-        event(tracker, EVENT_DISABLE);
-      }
+      tracker_interface_lookup(tracker->mesid)->disable(tracker);
+      piksi_systime_get(&tracker->disable_time);
       tracker_unlock(tracker);
-    } break;
+      break;
 
-    case STATE_DISABLE_WAIT: {
-      if (piksi_systime_elapsed_since_ms(&tracker->disable_time) >=
-          CHANNEL_DISABLE_WAIT_TIME_MS) {
-        event(tracker, EVENT_DISABLE_WAIT_COMPLETE);
-      }
-    } break;
-
-    case STATE_DISABLED: {
-      if (update_required) {
-        /* Tracking channel is not owned by the update thread, but the update
-         * register must be written to clear the interrupt flag. Set error
-         * flag to indicate that NAP is in an unknown state. */
-        nap_channel_disable(tracker);
-        error_flags_add(tracker, ERROR_FLAG_INTERRUPT_WHILE_DISABLED);
-      }
-    } break;
-
-    default: { assert(!"Invalid tracking channel state"); } break;
+    default:
+      assert(!"Invalid tracking channel state");
+      break;
   }
 }
 
@@ -575,10 +541,12 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
  *                        an IRQ is pending.
  */
 void trackers_update(u64 channels_mask) {
-  for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
-    tracker_t *tracker_channel = tracker_get(channel);
-    bool update_required = (channels_mask & 1) ? true : false;
-    tracker_channel_process(tracker_channel, update_required);
+  tracker_t *tracker = NULL;
+  for (u8 ch_idx = 0; ch_idx < nap_track_n_channels; ch_idx++) {
+    if (channels_mask & 0x1) {
+      tracker = tracker_get(ch_idx);
+      tracker_channel_process(tracker);
+    }
     channels_mask >>= 1;
   }
 }

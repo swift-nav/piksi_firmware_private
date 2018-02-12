@@ -324,7 +324,10 @@ void timing_setup(void) {
  * \return HW time in milliseconds
  */
 u64 timing_getms(void) {
-  return (u64)(nap_timing_count() * (RX_DT_NOMINAL * 1000.0));
+  /* in an attempt to optimize the CPU, the code below works best when
+   * NAP_FRONTEND_RAW_SAMPLE_RATE_Hz / NAP_TRACK_DECIMATION_RATE is integer */
+  static const u64 nap_ticks_1ms = NAP_TRACK_SAMPLE_RATE_Hz / 1000;
+  return nap_timing_count() / nap_ticks_1ms;
 }
 
 /** A convenience wrapper for glo2gps() API. Adds UTC params reading from NDB.
