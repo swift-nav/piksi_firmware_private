@@ -188,6 +188,8 @@ static void handle_nap_track_irq(void) {
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
+  asm("dsb");
+
   u32 err0 = NAP_DMA->TRK_IRQ_ERRORS0;
   u32 err1 = NAP_DMA->TRK_IRQ_ERRORS1;
   u64 err = ((u64)err1 << 32) | err0;
