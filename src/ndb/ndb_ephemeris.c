@@ -30,7 +30,7 @@
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 
-#define NDB_EPHE_FILE_NAME "persistent/ephemeris"
+#define NDB_EPHE_FILE_NAME "tmp/ephemeris"
 #define NDB_EPHE_FILE_TYPE "ephemeris"
 static ephemeris_t ndb_ephemeris[NUM_SATS];
 static ndb_element_metadata_t ndb_ephemeris_md[ARRAY_SIZE(ndb_ephemeris)];
