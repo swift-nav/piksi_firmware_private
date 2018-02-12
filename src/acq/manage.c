@@ -1007,7 +1007,9 @@ static bool leap_second_is_imminent(void) {
  * cross-correlation purposes. */
 void sanitize_trackers(void) {
   const u64 now_ms = timing_getms();
-  bool leap_second_event = leap_second_is_imminent();
+  bool leap_second_event = false;
+
+  DO_EACH_MS(400, leap_second_event = leap_second_is_imminent());
 
   /* Clear GLO satellites TOW cache if it is leap second event */
   if (leap_second_event) {
