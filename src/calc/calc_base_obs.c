@@ -204,7 +204,9 @@ static void update_obss(obss_t *new_obss) {
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < new_obss->n; i++) {
-    sid_set_add(&codes, new_obss->nm[i].sid);
+    if (sid_to_constellation(new_obss->nm[i].sid) == CONSTELLATION_GPS) {
+      sid_set_add(&codes, new_obss->nm[i].sid);
+    }
   }
 
   /* Require at least 5 distinct satellites */
@@ -231,8 +233,14 @@ static void update_obss(obss_t *new_obss) {
     /* disable_raim controlled by external setting (see solution.c). */
     /* Skip velocity solving for the base incase we have bad doppler values
      * due to a cycle slip. */
-    s32 ret = calc_PVT(
-        new_obss->n, new_obss->nm, disable_raim, true, &soln, &dops, NULL);
+    s32 ret = calc_PVT(new_obss->n,
+                       new_obss->nm,
+                       disable_raim,
+                       true,
+                       GPS_ONLY,
+                       &soln,
+                       &dops,
+                       NULL);
 
     if (ret >= 0 && soln.valid) {
       /* Copy over the time. */
