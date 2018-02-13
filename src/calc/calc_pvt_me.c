@@ -572,7 +572,7 @@ static void me_calc_pvt_thread(void *arg) {
                           nav_meas,
                           disable_raim,
                           false,
-                          AllConstellations,
+                          ALL_CONSTELLATIONS,
                           &current_fix,
                           &dops,
                           &raim_removed_sids);

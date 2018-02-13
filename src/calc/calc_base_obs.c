@@ -204,7 +204,9 @@ static void update_obss(obss_t *new_obss) {
   gnss_sid_set_t codes;
   sid_set_init(&codes);
   for (u8 i = 0; i < new_obss->n; i++) {
-    sid_set_add(&codes, new_obss->nm[i].sid);
+    if (sid_to_constellation(new_obss->nm[i].sid) == CONSTELLATION_GPS) {
+      sid_set_add(&codes, new_obss->nm[i].sid);
+    }
   }
 
   /* Require at least 5 distinct satellites */
@@ -235,7 +237,7 @@ static void update_obss(obss_t *new_obss) {
                        new_obss->nm,
                        disable_raim,
                        true,
-                       GPSOnly,
+                       GPS_ONLY,
                        &soln,
                        &dops,
                        NULL);
