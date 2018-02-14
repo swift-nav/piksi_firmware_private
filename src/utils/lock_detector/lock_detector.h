@@ -30,16 +30,19 @@ struct loop_detect_lpf {
  *  indicators.
  */
 typedef struct {
-  struct loop_detect_lpf lpfi; /**< I path LPF state. */
-  struct loop_detect_lpf lpfq; /**< Q path LPF state. */
-  float k1;                    /**< Filter coefficient. */
-  float k2;                    /**< I Scale factor. */
+  struct loop_detect_lpf lpfi;  /**< I path LPF state. */
+  struct loop_detect_lpf lpfi2; /**< Used for freq lock detector only */
+  struct loop_detect_lpf lpfq;  /**< Q path LPF state. */
+  float k1;                     /**< Filter coefficient. */
+  float k2;                     /**< I Scale factor. */
   u16 lo, lp;           /**< Optimistic and pessimistic count threshold. */
   u16 pcount1, pcount2; /**< Counter state variables. */
   bool outo, outp;      /**< Optimistic and pessimistic indicator. */
 } lock_detect_t;
 
 void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
+void freq_lock_detect_init(
+    lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
 void freq_lock_detect_update(lock_detect_t *l, float err);
