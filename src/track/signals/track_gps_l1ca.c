@@ -445,8 +445,10 @@ static void tracker_gps_l1ca_update(tracker_t *tracker_channel) {
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool tow_valid = (TOW_UNKNOWN != (tracker_channel->TOW_ms));
+  bool cn0_high = (tracker_channel->cn0 >= TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ);
 
-  if (inlock && confirmed && (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
+  if (inlock && confirmed && tow_valid && cn0_high) {
     /* Start L2C tracker if not running */
     do_l1ca_to_l2c_handover(tracker_channel->sample_count,
                             tracker_channel->mesid.sat,

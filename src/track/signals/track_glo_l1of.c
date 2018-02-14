@@ -88,8 +88,9 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  bool cn0_high = (tracker_channel->cn0 >= TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ);
 
-  if (inlock && confirmed) {
+  if (inlock && confirmed && cn0_high) {
     /* Start GLO L2CA tracker if not running */
     do_glo_l1of_to_l2of_handover(tracker_channel->sample_count,
                                  tracker_channel->mesid.sat,
