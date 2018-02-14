@@ -23,12 +23,7 @@ void track_internal_setup(void);
 
 /* Tracker instance API functions. Must be called from within an
  * interface function. */
-void tracker_correlations_read(u8 nap_channel,
-                               corr_t *cs,
-                               u32 *sample_count,
-                               double *code_phase,
-                               double *carrier_phase);
-void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate);
+
 s32 tracker_tow_update(tracker_t *tracker_channel,
                        s32 current_TOW_ms,
                        u32 int_ms,

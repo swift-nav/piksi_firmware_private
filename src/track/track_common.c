@@ -17,6 +17,7 @@
 #include "lock_detector/lock_detector.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
+#include "board/nap/track_channel.h"
 #include "track_api.h"
 #include "track_cfg.h"
 #include "track_common.h"
@@ -453,12 +454,12 @@ void tp_tracker_update_correlators(tracker_t *tracker_channel,
   double carrier_phase;     /**< Carrier phase from FPGA */
   u8 int_ms = 0;            /**< Current cycle duration in ms */
 
-  /* Read correlations. */
-  tracker_correlations_read(tracker_channel->nap_channel,
-                            cs_now.epl,
-                            &sample_count,
-                            &code_phase_prompt,
-                            &carrier_phase);
+  /* Read NAP CORR register */
+  nap_track_read_results(tracker_channel->nap_channel,
+                          &sample_count,
+                          cs_now.epl,
+                          &code_phase_prompt,
+                          &carrier_phase);
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker_channel->corrs);
 
@@ -661,14 +662,12 @@ void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
     /* Update the latest time we were below the threshold. */
     tracker_channel->cn0_below_use_thres_count = tracker_channel->update_count;
     /* Flag as low CN0 measurements. */
-    tracker_channel->flags &= ~TRACKER_FLAG_CN0_LONG;
     tracker_channel->flags &= ~TRACKER_FLAG_CN0_SHORT;
   }
 
   if (cn0 >
       (cn0_params.track_cn0_use_thres_dbhz + TRACK_CN0_HYSTERESIS_THRES_DBHZ)) {
     /* Flag as high CN0 measurements. */
-    tracker_channel->flags |= TRACKER_FLAG_CN0_LONG;
     tracker_channel->flags |= TRACKER_FLAG_CN0_SHORT;
   }
 }
@@ -1023,7 +1022,11 @@ u32 tp_tracker_update(tracker_t *tracker_channel,
   tp_tracker_update_mode(tracker_channel);
 
   u32 chips_to_correlate = tp_tracker_compute_rollover_count(tracker_channel);
-  tracker_retune(tracker_channel, chips_to_correlate);
+  /* Write NAP UPDATE register. */
+  nap_track_update(tracker_channel->nap_channel,
+                   tracker_channel->carrier_freq,
+                   tracker_channel->code_phase_rate,
+                   chips_to_correlate);
 
   tp_tracker_update_cycle_counter(tracker_channel);
 
