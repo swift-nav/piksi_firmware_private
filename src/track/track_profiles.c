@@ -144,9 +144,9 @@ static const tp_lock_detect_params_t ld_params_gps[] = {
     [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 40 },
 };
 static const tp_lock_detect_params_t ld_params_glo[] = {
                                   /* k1,     k2, lp */
@@ -159,9 +159,9 @@ static const tp_lock_detect_params_t ld_params_glo[] = {
     [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
     [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
+    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 40 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 40 },
 };
 static const tp_lock_detect_params_t ld_params_sbas[] = {
                                   /* k1,     k2, lp */
