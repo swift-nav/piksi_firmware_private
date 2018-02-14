@@ -40,6 +40,20 @@ void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo) {
   lock_detect_reinit(l, k1, k2, lp, lo);
 }
 
+/** Initialise the frequency lock detector state.
+ * \param l
+ * \param k1 LPF coefficient.
+ * \param k2 I Scale factor.
+ * \param lp Pessimistic count threshold.
+ * \param lo Optimistic count threshold
+ */
+void freq_lock_detect_init(
+    lock_detect_t *l, float k1, float k2, u16 lp, u16 lo) {
+  lock_detect_init(l, k1, k2, lp, lo);
+  l->lpfi.y = TP_FLL_SATURATION_THRESHOLD_HZ;
+  l->lpfi2.y = -TP_FLL_SATURATION_THRESHOLD_HZ;
+}
+
 /** Update the lock detector parameters, preserving internal state.
  * \param l
  * \param k1 LPF coefficient.
@@ -110,15 +124,17 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT) {
 void freq_lock_detect_update(lock_detect_t *l, float err) {
   /* Calculate filtered frequency error */
   l->lpfi.y += l->k1 * (err - l->lpfi.y);
+  l->lpfi2.y += l->k1 * (err - l->lpfi2.y);
 
   /* Saturate filter */
-  if (l->lpfi.y > TP_FLL_SATURATION_THRESHOLD_HZ) {
-    l->lpfi.y = TP_FLL_SATURATION_THRESHOLD_HZ;
-  } else if (l->lpfi.y < -TP_FLL_SATURATION_THRESHOLD_HZ) {
-    l->lpfi.y = -TP_FLL_SATURATION_THRESHOLD_HZ;
-  }
+  l->lpfi.y = MAX(l->lpfi.y, TP_FLL_SATURATION_THRESHOLD_HZ);
+  l->lpfi.y = MIN(l->lpfi.y, -TP_FLL_SATURATION_THRESHOLD_HZ);
 
-  if (fabsf(l->lpfi.y) < TP_FLL_ERR_THRESHOLD_HZ) {
+  l->lpfi2.y = MAX(l->lpfi2.y, TP_FLL_SATURATION_THRESHOLD_HZ);
+  l->lpfi2.y = MIN(l->lpfi2.y, -TP_FLL_SATURATION_THRESHOLD_HZ);
+
+  if ((fabsf(l->lpfi.y) < TP_FLL_ERR_THRESHOLD_HZ) &&
+      (fabsf(l->lpfi2.y) < TP_FLL_ERR_THRESHOLD_HZ)) {
     /* error < threshold, looks like we're locked */
     l->outo = true;
     l->pcount2 = 0;
