@@ -311,7 +311,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
   /* Keep track of where in the sequence of messages we were last time around
    * so we can verify we haven't dropped a message. */
-  static u8 prev_count = 0;
+  static s16 prev_count = 0;
 
   static gps_time_t prev_tor = GPS_TIME_UNKNOWN;
 
@@ -374,6 +374,7 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
              (prev_tor.wn != tor.wn) || ((prev_count + 1) != count)) {
     log_info("Dropped one base observation packet, skipping this base epoch.");
+    prev_count = -1;
     return;
   } else {
     prev_count = count;
