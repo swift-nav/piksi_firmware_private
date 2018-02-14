@@ -128,10 +128,10 @@ void freq_lock_detect_update(lock_detect_t *l, float err) {
 
   /* Saturate filter */
   l->lpfi.y = MAX(l->lpfi.y, TP_FLL_SATURATION_THRESHOLD_HZ);
-  l->lpfi.y = MIN(l->lpfi.y, -TP_FLL_SATURATION_THRESHOLD_HZ);
+  l->lpfi.y = MAX(l->lpfi.y, -TP_FLL_SATURATION_THRESHOLD_HZ);
 
   l->lpfi2.y = MAX(l->lpfi2.y, TP_FLL_SATURATION_THRESHOLD_HZ);
-  l->lpfi2.y = MIN(l->lpfi2.y, -TP_FLL_SATURATION_THRESHOLD_HZ);
+  l->lpfi2.y = MAX(l->lpfi2.y, -TP_FLL_SATURATION_THRESHOLD_HZ);
 
   if ((fabsf(l->lpfi.y) < TP_FLL_ERR_THRESHOLD_HZ) &&
       (fabsf(l->lpfi2.y) < TP_FLL_ERR_THRESHOLD_HZ)) {
