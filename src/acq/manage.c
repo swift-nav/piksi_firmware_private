@@ -513,6 +513,17 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
     }
   }
 
+  char avail[256];
+  char sv_str[16];
+  memset(avail, 0, 256);
+  for (u8 k=0; k<nap_track_n_channels; k++) {
+    if (tracker_runnable(tracker_get(k))) {
+      sprintf(sv_str, "%02d ", k);
+      strcat(avail, sv_str);
+    }
+  }
+  log_info_mesid(mesid, " no chan free, available are %s ", avail);
+
   return MANAGE_NO_CHANNELS_FREE;
 }
 

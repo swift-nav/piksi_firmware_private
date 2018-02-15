@@ -180,13 +180,14 @@ void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
  * \param bit_integrate   Signed bit integration value.
  */
 static s8 nav_bit_quantize(s32 bit_integrate) {
-  //  0 through  2^24 - 1 ->  0 = weakest positive bit
-  // -1 through -2^24     -> -1 = weakest negative bit
+  /*  0 through  2^24 - 1 ->  0 = weakest positive bit */
+  /* -1 through -2^24     -> -1 = weakest negative bit */
 
-  if (bit_integrate >= 0)
-    return bit_integrate / (1 << 24);
-  else
-    return ((bit_integrate + 1) / (1 << 24)) - 1;
+  if (bit_integrate >= 0) {
+    return (bit_integrate >> 24);
+  } else {
+    return ((bit_integrate + 1) >> 24) - 1;
+  }
 }
 
 /** Update bit sync and output navigation message bits for a tracker channel.
