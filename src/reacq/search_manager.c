@@ -106,7 +106,9 @@ void sm_init(acq_jobs_state_t *data) {
     u16 first_prn;
   } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
                     {CONSTELLATION_GLO, GLO_FIRST_PRN},
-                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
+                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN},
+                    {CONSTELLATION_BDS2, BDS2_FIRST_PRN},
+                    {CONSTELLATION_QZS, QZS_FIRST_PRN}};
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i, k;
