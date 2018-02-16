@@ -473,6 +473,22 @@ void piksi_systime_dec_s(piksi_systime_t *t, u64 dec) {
   piksi_systime_dec_internal(t, s2st(dec));
 }
 
+/** Increment/decrement piksi_system_t with signed microsecond value.
+ *
+ * \note time -> system tick conversion result is rounded upward to the next
+ * tick boundary.
+ *
+ * \param[in,out] t         Pointer to piksi_systime_t variable.
+ * \param[in] delta         Microsecond value to be added.
+ */
+void piksi_systime_add_us(piksi_systime_t *t, s64 delta) {
+  if (delta > 0) {
+    piksi_systime_inc_internal(t, us2st(delta));
+  } else if (delta < 0) {
+    piksi_systime_dec_internal(t, us2st(-delta));
+  }
+}
+
 /** Compare a and b.
  *
  * \param[in] a           1st variable to compare.

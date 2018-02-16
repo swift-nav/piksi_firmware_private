@@ -150,8 +150,13 @@ static void me_send_emptyobs(void) {
   /* When we don't have a time solve, we still want to decimate our
    * observation output, we can use the GPS time if we have one,
    * otherwise we'll default to using receiver time. */
-  const gps_time_t _t = get_current_time();
-  if (decimate_observations(&_t) && !simulation_enabled()) {
+  gps_time_t current_time = get_current_time();
+  if (!gps_time_valid(&current_time)) {
+    /* gps time not available, so fill the tow with seconds from restart */
+    current_time.tow = nap_timing_count() * RX_DT_NOMINAL;
+    current_time = gps_time_round_to_epoch(&current_time, soln_freq_setting);
+  }
+  if (decimate_observations(&current_time) && !simulation_enabled()) {
     send_observations(0, msg_obs_max_size, NULL, NULL);
   }
 }
@@ -452,8 +457,22 @@ static void me_calc_pvt_thread(void *arg) {
         continue;
       }
 
-      /* get NAP at the epoch with a round GPS time */
+      /* get NAP count at the epoch with a round GPS time */
       epoch_tc = (u64)round(rcvtime2napcount(&epoch_time));
+
+      /* time difference of current NAP count from the closest epoch */
+      double dt = ((s64)epoch_tc - (s64)current_tc) * RX_DT_NOMINAL;
+
+      if (fabs(dt) < OBS_PROPAGATION_LIMIT) {
+        /* dampen small adjustments to get stabler corrections */
+        dt *= 0.5;
+      }
+
+      /* Adjust the deadline for the next wake-up to get it to land closer to
+       * the epoch. Note that the sleep time can be set only at the resolution
+       * of system tick frequency, and also due to other CPU load, we can expect
+       * this adjustment to be somewhere between +-0.5 milliseconds */
+      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
@@ -703,28 +722,9 @@ static void me_calc_pvt_thread(void *arg) {
 
       /* adjust the RX to GPS time conversion */
       adjust_rcvtime_offset(dt);
-    }
 
-    /* */
-    double delta_tc = -((s64)current_tc - (s64)epoch_tc);
-
-    /* The difference between the current nap count and the nap count we
-     * would have wanted the observations at is the amount we want to
-     * adjust our deadline by at the end of the solution */
-    double dt = delta_tc * RX_DT_NOMINAL + smoothed_offset / soln_freq;
-
-    /* Limit dt to twice the max soln rate */
-    double max_deadline = ((1.0 / soln_freq) * 2.0);
-    if (fabs(dt) > max_deadline) {
-      dt = (dt > 0.0) ? max_deadline : -1.0 * max_deadline;
-    }
-
-    /* Reset timer period with the count that we will estimate will being
-     * us up to the next solution time. dt as microseconds. */
-    if (0 < dt) {
-      piksi_systime_inc_us(&next_epoch, round(dt * SECS_US));
-    } else if (0 > dt) {
-      piksi_systime_dec_us(&next_epoch, round(-dt * SECS_US));
+      /* adjust the next solution deadline */
+      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
     }
   }
 }
