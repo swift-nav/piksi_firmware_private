@@ -14,10 +14,10 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
 
+#include "board/nap/track_channel.h"
 #include "lock_detector/lock_detector.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
-#include "board/nap/track_channel.h"
 #include "track_api.h"
 #include "track_cfg.h"
 #include "track_common.h"
@@ -456,10 +456,10 @@ void tp_tracker_update_correlators(tracker_t *tracker_channel,
 
   /* Read NAP CORR register */
   nap_track_read_results(tracker_channel->nap_channel,
-                          &sample_count,
-                          cs_now.epl,
-                          &code_phase_prompt,
-                          &carrier_phase);
+                         &sample_count,
+                         cs_now.epl,
+                         &code_phase_prompt,
+                         &carrier_phase);
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker_channel->corrs);
 

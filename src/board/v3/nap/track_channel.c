@@ -359,7 +359,6 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate) {
-
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
