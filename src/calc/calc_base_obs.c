@@ -364,11 +364,14 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
       gps_time_round_to_epoch(&tor, soln_freq_setting / obs_output_divisor);
   double dt = gpsdifftime(&epoch, &tor);
   if (fabs(dt) > TIME_MATCH_THRESHOLD) {
-    log_warn(
-        "Unaligned observation from base station ignored, "
-        "tow = %.3f, dt = %.3f",
-        tor.tow,
-        dt);
+    if (count == 0) {
+      log_warn(
+          "Unaligned observation from base ignored, tow = %.3f, dt = %.3f."
+          " Base station observation rate and solution frequency   may be "
+          "mismatched.",
+          tor.tow,
+          dt);
+    }
     return;
   }
 
@@ -377,18 +380,13 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     prev_tor = tor;
     prev_count = 0;
   } else if ((fabs(gpsdifftime(&tor, &prev_tor)) > FLOAT_EQUALITY_EPS) ||
-             prev_tor.wn != tor.wn || prev_count + 1 != count) {
-    log_info("Dropped one of the observation packets! Skipping this sequence.");
+             (prev_tor.wn != tor.wn) || ((prev_count + 1) != count)) {
+    log_info("Dropped one base observation packet, skipping this base epoch.");
     prev_count = -1;
     return;
   } else {
     prev_count = count;
   }
-
-  /* Calculate the number of observations in this message by looking at the SBP
-   * `len` field. */
-  u8 obs_in_msg =
-      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
 
   /* If this is the first packet in the sequence then reset the base_obss_rx
    * state. */
@@ -397,9 +395,15 @@ static void obs_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
     base_obss_rx.tor = tor;
   }
 
+  /* Calculate the number of observations in this message by looking at the SBP
+   * `len` field. */
+  u8 obs_in_msg =
+      (len - sizeof(observation_header_t)) / sizeof(packed_obs_content_t);
+
   /* Pull out the contents of the message. */
   packed_obs_content_t *obs =
       (packed_obs_content_t *)(msg + sizeof(observation_header_t));
+
   for (u8 i = 0; i < obs_in_msg && base_obss_rx.n < MAX_CHANNELS; i++) {
     gnss_signal_t sid = sid_from_sbp(obs[i].sid);
     if (!sid_supported(sid)) {
