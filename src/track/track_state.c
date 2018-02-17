@@ -409,7 +409,9 @@ bool tracker_init(tracker_id_t id,
     tracker_channel->glo_orbit_slot = glo_orbit_slot;
 
     nav_bit_fifo_init(&tracker_channel->nav_bit_fifo);
+
     nav_data_sync_init(&tracker_channel->nav_data_sync);
+
     bit_sync_init(&tracker_channel->bit_sync, mesid);
 
     tracker_interface_lookup(mesid)->init(tracker_channel);

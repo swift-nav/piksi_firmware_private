@@ -56,6 +56,8 @@ static tracker_interface_list_element_t tracker_interface_list_element_bds2_b2 =
 
 static void tracker_bds2_b2_init(tracker_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &bds2_b2_config);
+
+  tracker_bit_sync_set(tracker_channel, /* bit_phase_ref = */ 0);
 }
 
 static void tracker_bds2_b2_update(tracker_t *tracker_channel) {
@@ -116,7 +118,7 @@ void bds_b11_to_b2_handover(u32 sample_count,
 
   switch (tracking_startup_request(&startup_params)) {
     case 0:
-      log_info_mesid(mesid_B2, "B2 handover done");
+      log_debug_mesid(mesid_B2, "B2 handover done");
       break;
 
     case 1:

@@ -60,6 +60,10 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS;
     case CONSTELLATION_SBAS:
       return NUM_SATS_GPS + NUM_SATS_GLO;
+    case CONSTELLATION_BDS2:
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS;
+    case CONSTELLATION_QZS:
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS2;
     default:
       assert(!"Incorrect constellation");
   }
@@ -102,7 +106,9 @@ void sm_init(acq_jobs_state_t *data) {
     u16 first_prn;
   } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
                     {CONSTELLATION_GLO, GLO_FIRST_PRN},
-                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
+                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN},
+                    {CONSTELLATION_BDS2, BDS2_FIRST_PRN},
+                    {CONSTELLATION_QZS, QZS_FIRST_PRN}};
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i, k;
