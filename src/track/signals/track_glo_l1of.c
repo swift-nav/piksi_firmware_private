@@ -88,7 +88,9 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-  bool cn0_high = (tracker_channel->cn0 >= TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ);
+  double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
+  cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
+  bool cn0_high = (tracker_channel->cn0 > cn0_threshold_dbhz);
 
   if (inlock && confirmed && cn0_high) {
     /* Start GLO L2CA tracker if not running */
