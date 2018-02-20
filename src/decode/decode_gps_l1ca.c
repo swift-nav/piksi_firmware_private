@@ -465,10 +465,8 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   if (dd.almanac_upd_flag && (0 != dd.almanac.health_bits)) {
     /* If almanac health bits indicate problems,
-     * clear NDB and TOW cache */
-    erase_nav_data(l1ca_sid, l1ca_sid);
-    /* Clear decoded subframe data */
-    nav_msg_clear_decoded(&data->nav_msg);
+     * clear NDB and TOW cache of the SV the almanac is for. */
+    erase_nav_data(dd.almanac.sid, l1ca_sid);
     return;
   }
 
