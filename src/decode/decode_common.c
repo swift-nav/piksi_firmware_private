@@ -184,6 +184,11 @@ void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
    *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
    *       SV Health). These details indicate which of the subframes are bad.
    */
+  if (NDB_ERR_NONE == ndb_almanac_erase(target_sid)) {
+    log_info_sid(
+        target_sid, "almanac deleted (health flags from %s)", hf_sid_str);
+  }
+
   if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
     log_info_sid(target_sid,
                  "decoded almanacs deleted (health flags from %s)",
