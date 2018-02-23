@@ -23,6 +23,7 @@
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
@@ -743,7 +744,25 @@ static void starling_thread(void *arg) {
       continue;
     }
 
-    if (me_msg->id != ME_MSG_OBS) {
+    /* forward SBAS raw message to SPP filter manager*/
+    if (ME_MSG_SBAS_RAW == me_msg->id) {
+      const gps_time_t current_time = get_current_time();
+      if (gps_time_valid(&current_time)) {
+        sbas_raw_data_t sbas_data;
+        unpack_sbas_raw_data(&me_msg->msg.sbas, &sbas_data);
+
+        /* fill the week number from current time */
+        gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+
+        chMtxLock(&spp_filter_manager_lock);
+        filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
+        chMtxUnlock(&spp_filter_manager_lock);
+      }
+      chPoolFree(&me_msg_buff_pool, me_msg);
+      continue;
+    }
+
+    if (ME_MSG_OBS != me_msg->id) {
       chPoolFree(&me_msg_buff_pool, me_msg);
       continue;
     }
