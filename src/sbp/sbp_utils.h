@@ -24,6 +24,7 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
+#include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/single_epoch_solver.h>
 
@@ -251,5 +252,6 @@ void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
                             u8 msg,
                             const u8 *decoded,
                             msg_sbas_raw_t *sbas_raw_msg);
+void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d);
 
 #endif /* SWIFTNAV_SBP_UTILS_H */

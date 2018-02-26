@@ -853,6 +853,13 @@ void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
   sbas_raw_msg->data[26] &= 0xF0;
 }
 
+void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
+  d->sid = sid_from_sbp(m->sid);
+  d->message_type = m->message_type;
+  d->time_of_transmission.tow = ((double)m->tow) / SECS_MS;
+  MEMCPY_S(d->data, SBAS_RAW_PAYLOAD_LENGTH, m->data, SBAS_RAW_PAYLOAD_LENGTH);
+}
+
 /**
  * Helper function for rounding tow to integer milliseconds, taking care of
  * week roll-over
