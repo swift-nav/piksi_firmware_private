@@ -856,7 +856,7 @@ void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
 void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
   d->sid = sid_from_sbp(m->sid);
   d->message_type = m->message_type;
-  d->time_of_transmission.tow = ((double)m->tow) * (1e-3);
+  d->time_of_transmission.tow = ((double)m->tow) / SECS_MS;
   MEMCPY_S(d->data, SBAS_RAW_PAYLOAD_LENGTH, m->data, SBAS_RAW_PAYLOAD_LENGTH);
 }
 
