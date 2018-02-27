@@ -578,18 +578,12 @@ systime_t piksi_systime_sleep_until_windowed_internal(const piksi_systime_t *t,
   return sleep_len;
 }
 
-u32 piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
-                                          u32 window_len_us) {
-  systime_t ret =
-      piksi_systime_sleep_until_windowed_internal(t, us2st(window_len_us));
-
-  return st2us(ret);
+void piksi_systime_sleep_until_windowed_us(const piksi_systime_t *t,
+                                           u32 window_len_us) {
+  piksi_systime_sleep_until_windowed_internal(t, us2st(window_len_us));
 }
 
-u32 piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
-                                          u32 window_len_ms) {
-  systime_t ret =
-      piksi_systime_sleep_until_windowed_internal(t, ms2st(window_len_ms));
-
-  return st2ms(ret);
+void piksi_systime_sleep_until_windowed_ms(const piksi_systime_t *t,
+                                           u32 window_len_ms) {
+  piksi_systime_sleep_until_windowed_internal(t, ms2st(window_len_ms));
 }

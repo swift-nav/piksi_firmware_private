@@ -1037,9 +1037,10 @@ void sanitize_trackers(void) {
       continue;
     }
 
-    /* Drop GLO satellites if it is leap second event */
-    if (leap_second_event && IS_GLO(mesid)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
+    /* Is tracking masked? */
+    u16 global_index = mesid_to_global_index(mesid);
+    if (track_mask[global_index]) {
+      drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
       continue;
     }
 
@@ -1049,16 +1050,15 @@ void sanitize_trackers(void) {
       continue;
     }
 
-    /* Is tracking masked? */
-    u16 global_index = mesid_to_global_index(mesid);
-    if (track_mask[global_index]) {
-      drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
-      continue;
-    }
-
     /* Do we have a large measurement outlier? */
     if (flags & TRACKER_FLAG_OUTLIER) {
       drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
+      continue;
+    }
+
+    /* Drop GLO satellites if it is leap second event */
+    if (leap_second_event && IS_GLO(mesid)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
       continue;
     }
 

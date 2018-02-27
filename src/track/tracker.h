@@ -172,12 +172,7 @@ typedef struct {
 
 typedef u8 tracker_id_t;
 
-typedef enum {
-  STATE_DISABLED,
-  STATE_ENABLED,
-  STATE_DISABLE_REQUESTED,
-  STATE_DISABLE_WAIT
-} state_t;
+typedef enum { STATE_DISABLED, STATE_ENABLED } state_t;
 
 /* Bitfield */
 typedef enum {
