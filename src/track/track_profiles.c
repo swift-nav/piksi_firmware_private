@@ -41,7 +41,6 @@ typedef enum {
   IDX_NONE = -1,
   IDX_INIT_0,
   IDX_INIT_1,
-  IDX_INIT_2,
   IDX_1MS,
   IDX_2MS,
   IDX_5MS,
@@ -288,28 +287,20 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {     10,           7,           20,   TP_CTRL_PLL3,
+  { {    0,             7,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
           TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED | TP_WAIT_FLOCK},
+      TP_UNAIDED | TP_WAIT_FLOCK | TP_WAIT_BSYNC},
 
   [IDX_INIT_1] =
-  { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
-          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+  { { BW_DYN,      BW_DYN,           10,   TP_CTRL_PLL3,
+          TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS},
+    TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
-
-  [IDX_INIT_2] =
-  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-          TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
-       100,             0,            0,
-       IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_PLOCK },
+      TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_1MS] =
   { { BW_DYN,      BW_DYN,            3,   TP_CTRL_PLL3,
@@ -583,7 +574,7 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
   tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
-  if (profile->cur.pll_bw <= 0) {
+  if (profile->cur.index == IDX_SENS) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
