@@ -28,6 +28,8 @@
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 
+#include <starling/platform/mutex.h>
+
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
@@ -71,7 +73,7 @@ static FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
 static FilterManager *spp_filter_manager;
 
-MUTEX_DECL(time_matched_filter_manager_lock);
+starling_mutex_t *time_matched_filter_manager_lock;
 MUTEX_DECL(low_latency_filter_manager_lock);
 MUTEX_DECL(spp_filter_manager_lock);
 
@@ -176,9 +178,9 @@ void set_known_glonass_biases(const glo_biases_t biases) {
 }
 
 void reset_rtk_filter(void) {
-  chMtxLock(&time_matched_filter_manager_lock);
+  starling_mutex_lock(time_matched_filter_manager_lock);
   filter_manager_init(time_matched_filter_manager);
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  starling_mutex_unlock(time_matched_filter_manager_lock);
 }
 
 /** Determine if we have had a DGNSS timeout.
@@ -960,7 +962,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     }
   }
 
-  chMtxLock(&time_matched_filter_manager_lock);
+  starling_mutex_lock(time_matched_filter_manager_lock);
 
   if (!filter_manager_is_initialized(time_matched_filter_manager)) {
     filter_manager_init(time_matched_filter_manager);
@@ -1032,7 +1034,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
         get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
   }
 
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  starling_mutex_unlock(time_matched_filter_manager_lock);
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
     solution_make_baseline_sbp(
@@ -1062,9 +1064,9 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   }
 
   bool enable_fix = value == 0 ? false : true;
-  chMtxLock(&time_matched_filter_manager_lock);
+  starling_mutex_lock(time_matched_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  starling_mutex_unlock(time_matched_filter_manager_lock);
   chMtxLock(&low_latency_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
   chMtxUnlock(&low_latency_filter_manager_lock);
@@ -1082,17 +1084,17 @@ static bool set_max_age(struct setting *s, const char *val) {
   chMtxLock(&low_latency_filter_manager_lock);
   set_max_correction_age(low_latency_filter_manager, value);
   chMtxUnlock(&low_latency_filter_manager_lock);
-  chMtxLock(&time_matched_filter_manager_lock);
+  starling_mutex_lock(time_matched_filter_manager_lock);
   set_max_correction_age(time_matched_filter_manager, value);
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  starling_mutex_unlock(time_matched_filter_manager_lock);
   *(int *)s->addr = value;
   return ret;
 }
 
 void init_filters(void) {
-  chMtxLock(&time_matched_filter_manager_lock);
+  starling_mutex_lock(time_matched_filter_manager_lock);
   time_matched_filter_manager = create_filter_manager_rtk();
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  starling_mutex_unlock(time_matched_filter_manager_lock);
 
   chMtxLock(&low_latency_filter_manager_lock);
   low_latency_filter_manager = create_filter_manager_rtk();
@@ -1151,7 +1153,7 @@ static void time_matched_obs_thread(void *arg) {
     chPoolFree(&base_obs_buff_pool, base_obs);
 
     // Check if the el mask has changed and update
-    chMtxLock(&time_matched_filter_manager_lock);
+    starling_mutex_lock(time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
@@ -1159,7 +1161,7 @@ static void time_matched_obs_thread(void *arg) {
                                              glonass_downweight_factor);
     set_pvt_engine_update_frequency(time_matched_filter_manager,
                                     starling_frequency);
-    chMtxUnlock(&time_matched_filter_manager_lock);
+    starling_mutex_unlock(time_matched_filter_manager_lock);
 
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations
@@ -1284,6 +1286,9 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
 }
 
 void starling_calc_pvt_setup() {
+  time_matched_filter_manager_lock = starling_mutex_create();
+  assert(time_matched_filter_manager_lock);
+
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
