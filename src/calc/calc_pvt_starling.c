@@ -73,15 +73,15 @@ static FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
 static FilterManager *spp_filter_manager;
 
-starling_mutex_t *time_matched_filter_manager_lock;
-MUTEX_DECL(low_latency_filter_manager_lock);
-MUTEX_DECL(spp_filter_manager_lock);
+static starling_mutex_t *time_matched_filter_manager_lock;
+static starling_mutex_t *low_latency_filter_manager_lock;
+static starling_mutex_t *spp_filter_manager_lock;
 
-MUTEX_DECL(time_matched_iono_params_lock);
+static starling_mutex_t *time_matched_iono_params_lock;
 bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
-MUTEX_DECL(last_sbp_lock);
+static starling_mutex_t *last_sbp_lock;
 static gps_time_t last_dgnss;
 static gps_time_t last_spp;
 static gps_time_t last_time_matched_rover_obs_post;
@@ -106,6 +106,19 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
+
+static void init_locks(void) {
+  time_matched_filter_manager_lock = starling_mutex_create();
+  low_latency_filter_manager_lock = starling_mutex_create();
+  spp_filter_manager_lock = starling_mutex_create();
+  time_matched_iono_params_lock = starling_mutex_create();
+  last_sbp_lock = starling_mutex_create();
+  assert(time_matched_filter_manager_lock);
+  assert(low_latency_filter_manager_lock);
+  assert(spp_filter_manager_lock);
+  assert(time_matched_iono_params_lock);
+  assert(last_sbp_lock);
+}
 
 static void post_observations(u8 n,
                               const navigation_measurement_t m[],
@@ -214,9 +227,9 @@ bool spp_timeout(const gps_time_t *_last_spp,
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
   }
-  chMtxLock(&last_sbp_lock);
+  starling_mutex_lock(last_sbp_lock);
   double time_diff = gpsdifftime(_last_dgnss, _last_spp);
-  chMtxUnlock(&last_sbp_lock);
+  starling_mutex_unlock(last_sbp_lock);
 
   // Need to compare timeout threshold in MS to system time elapsed (in system
   // ticks)
@@ -446,10 +459,10 @@ static void solution_send_low_latency_output(
 
   if (!wait_for_timeout) {
     solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
-    chMtxLock(&last_sbp_lock);
+    starling_mutex_lock(last_sbp_lock);
     last_spp.wn = sbp_messages->gps_time.wn;
     last_spp.tow = sbp_messages->gps_time.tow * 0.001;
-    chMtxUnlock(&last_sbp_lock);
+    starling_mutex_unlock(last_sbp_lock);
   }
 }
 
@@ -560,10 +573,10 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
   sbp_make_dops(
       &sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, result->flags);
 
-  chMtxLock(&last_sbp_lock);
+  starling_mutex_lock(last_sbp_lock);
   last_dgnss.wn = result->time.wn;
   last_dgnss.tow = result->time.tow;
-  chMtxUnlock(&last_sbp_lock);
+  starling_mutex_unlock(last_sbp_lock);
 
   /* Update stats */
   piksi_systime_get(&last_dgnss_stats.systime);
@@ -726,10 +739,10 @@ static void starling_thread(void *arg) {
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
 
-  chMtxLock(&spp_filter_manager_lock);
+  starling_mutex_lock(spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
   filter_manager_init(spp_filter_manager);
-  chMtxUnlock(&spp_filter_manager_lock);
+  starling_mutex_unlock(spp_filter_manager_lock);
 
   u8 base_station_sender_id = 0;
 
@@ -756,9 +769,9 @@ static void starling_thread(void *arg) {
         /* fill the week number from current time */
         gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
 
-        chMtxLock(&spp_filter_manager_lock);
+        starling_mutex_lock(spp_filter_manager_lock);
         filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
-        chMtxUnlock(&spp_filter_manager_lock);
+        starling_mutex_unlock(spp_filter_manager_lock);
       }
       chPoolFree(&me_msg_buff_pool, me_msg);
       continue;
@@ -841,13 +854,13 @@ static void starling_thread(void *arg) {
     if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
       i_params = DEFAULT_IONO_PARAMS;
     }
-    chMtxLock(&time_matched_iono_params_lock);
+    starling_mutex_lock(time_matched_iono_params_lock);
     has_time_matched_iono_params = true;
     time_matched_iono_params = i_params;
-    chMtxUnlock(&time_matched_iono_params_lock);
-    chMtxLock(&spp_filter_manager_lock);
+    starling_mutex_unlock(time_matched_iono_params_lock);
+    starling_mutex_lock(spp_filter_manager_lock);
     filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
-    chMtxUnlock(&spp_filter_manager_lock);
+    starling_mutex_unlock(spp_filter_manager_lock);
 
     dops_t dops;
 
@@ -880,7 +893,7 @@ static void starling_thread(void *arg) {
     result_spp.valid = false;
     bool successful_spp = false;
 
-    chMtxLock(&spp_filter_manager_lock);
+    starling_mutex_lock(spp_filter_manager_lock);
     const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
         call_pvt_engine_filter(spp_filter_manager,
                                &obs_time,
@@ -890,7 +903,7 @@ static void starling_thread(void *arg) {
                                starling_frequency,
                                &result_spp,
                                &dops);
-    chMtxUnlock(&spp_filter_manager_lock);
+    starling_mutex_unlock(spp_filter_manager_lock);
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
@@ -907,7 +920,7 @@ static void starling_thread(void *arg) {
     }
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
-      chMtxLock(&low_latency_filter_manager_lock);
+      starling_mutex_lock(low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;
       result_rtk.valid = false;
@@ -921,7 +934,7 @@ static void starling_thread(void *arg) {
                                  &result_rtk,
                                  &dops);
       base_station_sender_id = current_base_sender_id;
-      chMtxUnlock(&low_latency_filter_manager_lock);
+      starling_mutex_unlock(low_latency_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
         solution_make_baseline_sbp(
@@ -972,13 +985,13 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     filter_manager_overwrite_ephemerides(time_matched_filter_manager,
                                          stored_ephs);
 
-    chMtxLock(&time_matched_iono_params_lock);
+    starling_mutex_lock(time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
                                             &time_matched_iono_params,
                                             disable_klobuchar);
     }
-    chMtxUnlock(&time_matched_iono_params_lock);
+    starling_mutex_unlock(time_matched_iono_params_lock);
 
     update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager,
                                                    &rover_channel_meass->tor,
@@ -1002,7 +1015,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
         update_filter_ret == PVT_ENGINE_SUCCESS) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
-      chMtxLock(&low_latency_filter_manager_lock);
+      starling_mutex_lock(low_latency_filter_manager_lock);
       chMtxLock(&base_pos_lock);
       chMtxLock(&base_glonass_biases_lock);
       u32 begin = NAP->TIMING_COUNT;
@@ -1017,7 +1030,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
       current_base_sender_id = reference_obss->sender_id;
       chMtxUnlock(&base_glonass_biases_lock);
       chMtxUnlock(&base_pos_lock);
-      chMtxUnlock(&low_latency_filter_manager_lock);
+      starling_mutex_unlock(low_latency_filter_manager_lock);
     }
   }
 
@@ -1067,9 +1080,9 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   starling_mutex_lock(time_matched_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
   starling_mutex_unlock(time_matched_filter_manager_lock);
-  chMtxLock(&low_latency_filter_manager_lock);
+  starling_mutex_lock(low_latency_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
-  chMtxUnlock(&low_latency_filter_manager_lock);
+  starling_mutex_unlock(low_latency_filter_manager_lock);
   *(dgnss_filter_t *)s->addr = value;
   return ret;
 }
@@ -1081,9 +1094,9 @@ static bool set_max_age(struct setting *s, const char *val) {
     return ret;
   }
 
-  chMtxLock(&low_latency_filter_manager_lock);
+  starling_mutex_lock(low_latency_filter_manager_lock);
   set_max_correction_age(low_latency_filter_manager, value);
-  chMtxUnlock(&low_latency_filter_manager_lock);
+  starling_mutex_unlock(low_latency_filter_manager_lock);
   starling_mutex_lock(time_matched_filter_manager_lock);
   set_max_correction_age(time_matched_filter_manager, value);
   starling_mutex_unlock(time_matched_filter_manager_lock);
@@ -1096,9 +1109,9 @@ void init_filters(void) {
   time_matched_filter_manager = create_filter_manager_rtk();
   starling_mutex_unlock(time_matched_filter_manager_lock);
 
-  chMtxLock(&low_latency_filter_manager_lock);
+  starling_mutex_lock(low_latency_filter_manager_lock);
   low_latency_filter_manager = create_filter_manager_rtk();
-  chMtxUnlock(&low_latency_filter_manager_lock);
+  starling_mutex_unlock(low_latency_filter_manager_lock);
 
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
@@ -1286,8 +1299,8 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
 }
 
 void starling_calc_pvt_setup() {
-  time_matched_filter_manager_lock = starling_mutex_create();
-  assert(time_matched_filter_manager_lock);
+  /* Set up all of the mutexes used in this implementation. */
+  init_locks();
 
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
