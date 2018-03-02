@@ -17,6 +17,7 @@
 #include "board/nap/track_channel.h"
 #include "calc_nav_meas.h"
 #include "timing/timing.h"
+#include "track_api.h"
 #include "track_flags.h"
 #include "track_state.h"
 #include "track_utils.h"
@@ -113,27 +114,20 @@ void tracker_get_values(tracker_id_t id,
                         tracker_time_info_t *time_info,
                         tracker_freq_info_t *freq_info,
                         tracker_ctrl_info_t *ctrl_params,
-                        tracker_misc_info_t *misc_params) {
+                        tracker_misc_info_t *misc_info) {
   tracker_t *tracker_channel = tracker_get(id);
-  tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
 
-  chMtxLock(&tracker_channel->mutex_pub);
-  if (NULL != info) {
-    *info = pub_data->gen_info;
+  tracker_lock(tracker_channel);
+
+  bool reset_cpo;
+  tracking_channel_compute_values(
+      tracker_channel, info, time_info, freq_info, ctrl_params, &reset_cpo);
+  *misc_info = tracker_channel->misc_info;
+  if (reset_cpo) {
+    tracker_channel->misc_info.carrier_phase_offset.value = 0;
   }
-  if (NULL != time_info) {
-    *time_info = pub_data->time_info;
-  }
-  if (NULL != freq_info) {
-    *freq_info = pub_data->freq_info;
-  }
-  if (NULL != ctrl_params) {
-    *ctrl_params = pub_data->ctrl_info;
-  }
-  if (NULL != misc_params) {
-    *misc_params = pub_data->misc_info;
-  }
-  chMtxUnlock(&tracker_channel->mutex_pub);
+
+  tracker_unlock(tracker_channel);
 }
 
 /**
@@ -214,17 +208,17 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
                                       double carrier_phase_offset) {
   bool adjusted = false;
   tracker_t *tracker_channel = tracker_get(info->id);
-  tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
 
-  chMtxLock(&tracker_channel->mutex_pub);
-  if (0 != (pub_data->gen_info.flags & TRACKER_FLAG_ACTIVE) &&
-      mesid_is_equal(info->mesid, pub_data->gen_info.mesid) &&
-      info->lock_counter == pub_data->gen_info.lock_counter) {
-    pub_data->misc_info.carrier_phase_offset.value = carrier_phase_offset;
-    pub_data->misc_info.carrier_phase_offset.timestamp_ms = timing_getms();
+  tracker_lock(tracker_channel);
+  if (0 != (tracker_channel->flags & TRACKER_FLAG_ACTIVE) &&
+      mesid_is_equal(info->mesid, tracker_channel->mesid) &&
+      info->lock_counter == tracker_channel->lock_counter) {
+    tracker_misc_info_t *misc_info = &tracker_channel->misc_info;
+    misc_info->carrier_phase_offset.value = carrier_phase_offset;
+    misc_info->carrier_phase_offset.timestamp_ms = timing_getms();
     adjusted = true;
   }
-  chMtxUnlock(&tracker_channel->mutex_pub);
+  tracker_unlock(tracker_channel);
 
   if (adjusted) {
     log_debug_mesid(info->mesid,
@@ -243,33 +237,31 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
 void tracker_carrier_phase_offsets_adjust(double dt) {
   /* Carrier phase offsets are adjusted for all signals matching SPP criteria */
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    me_gnss_signal_t mesid;
     double carrier_phase_offset = 0.0;
     bool adjusted = false;
 
     tracker_t *tracker_channel = tracker_get(i);
-    tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
-    volatile tracker_misc_info_t *misc_info = &pub_data->misc_info;
 
-    chMtxLock(&tracker_channel->mutex_pub);
-    if (0 != (pub_data->gen_info.flags & TRACKER_FLAG_ACTIVE)) {
+    tracker_lock(tracker_channel);
+    if (0 != (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_misc_info_t *misc_info = &tracker_channel->misc_info;
       carrier_phase_offset = misc_info->carrier_phase_offset.value;
 
       /* touch only channels that have the initial offset set */
       if (carrier_phase_offset != 0.0) {
-        mesid = pub_data->gen_info.mesid;
-        carrier_phase_offset -= mesid_to_carr_freq(mesid) * dt;
+        carrier_phase_offset -= mesid_to_carr_freq(tracker_channel->mesid) * dt;
         misc_info->carrier_phase_offset.value = carrier_phase_offset;
         /* Note that because code-carrier difference does not change here,
          * we do not reset the lock time carrier_phase_offset.timestamp_ms */
         adjusted = true;
       }
     }
-    chMtxUnlock(&tracker_channel->mutex_pub);
+    tracker_unlock(tracker_channel);
 
     if (adjusted) {
-      log_debug_mesid(
-          mesid, "Adjusting carrier phase offset to %f", carrier_phase_offset);
+      log_debug_mesid(tracker_channel->mesid,
+                      "Adjusting carrier phase offset to %f",
+                      carrier_phase_offset);
     }
   }
 }

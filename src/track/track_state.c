@@ -93,7 +93,6 @@ void track_setup(void) {
   for (u32 i = 0; i < NUM_TRACKER_CHANNELS; i++) {
     trackers[i].state = STATE_DISABLED;
     chMtxObjectInit(&trackers[i].mutex);
-    chMtxObjectInit(&trackers[i].mutex_pub);
   }
 
   track_cn0_params_init();
@@ -153,12 +152,12 @@ bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
  * \return None
  */
 
-static void tracking_channel_compute_values(tracker_t *tracker_channel,
-                                            tracker_info_t *info,
-                                            tracker_time_info_t *time_info,
-                                            tracker_freq_info_t *freq_info,
-                                            tracker_ctrl_info_t *ctrl_params,
-                                            bool *reset_cpo) {
+void tracking_channel_compute_values(tracker_t *tracker_channel,
+                                     tracker_info_t *info,
+                                     tracker_time_info_t *time_info,
+                                     tracker_freq_info_t *freq_info,
+                                     tracker_ctrl_info_t *ctrl_params,
+                                     bool *reset_cpo) {
   if (NULL != info) {
     /* Tracker identifier */
     info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
@@ -257,51 +256,6 @@ static void tracking_channel_compute_values(tracker_t *tracker_channel,
  */
 static void error_flags_clear(tracker_t *tracker_channel) {
   tracker_channel->flags &= ~TRACKER_FLAG_ERROR;
-}
-
-/**
- * Method atomically updates tracking channel public informational block.
- *
- * The channel locks public informational block and updates it according to
- * input parameters.
- *
- * \note Carrier phase offset can't be updated by this method. It can be only
- *       reset to 0 if \a reset_cpo is set to \a true.
- *
- * \param[in,out] tracker_channel Tracker channel data
- * \param[in]     info        Generic information block.
- * \param[in]     time_info   Timing information block.
- * \param[in]     freq_info   Frequency and phase information block.
- * \param[in]     ctrl_params Control loop information block.
- * \param[in]     reset_cpo   Flag, if carrier phase offset shall be reset.
- *
- * \return None
- *
- * \sa tracking_channel_get_values
- * \sa tracking_channel_set_carrier_phase_offset
- * \sa tracking_channel_carrier_phase_offsets_adjust
- */
-static void tracking_channel_update_values(
-    tracker_t *tracker_channel,
-    const tracker_info_t *info,
-    const tracker_time_info_t *time_info,
-    const tracker_freq_info_t *freq_info,
-    const tracker_ctrl_info_t *ctrl_params,
-    bool reset_cpo) {
-  tracker_pub_data_t *pub_data = &tracker_channel->pub_data;
-
-  chMtxLock(&tracker_channel->mutex_pub);
-  pub_data->gen_info = *info;
-  pub_data->time_info = *time_info;
-  pub_data->freq_info = *freq_info;
-  if (reset_cpo) {
-    /* Do CPO reset */
-    /* no need to update timestamp for zero offset as it keeps count
-       time on this channel at zero anyways */
-    pub_data->misc_info.carrier_phase_offset.value = 0;
-  }
-  pub_data->ctrl_info = *ctrl_params;
-  chMtxUnlock(&tracker_channel->mutex_pub);
 }
 
 /** Update the state of a tracker channel and its associated tracker instance.
@@ -435,10 +389,6 @@ bool tracker_init(tracker_id_t id,
                  code_phase,
                  chips_to_correlate);
 
-  /* Update channel public data outside of channel lock */
-  tracking_channel_update_values(
-      tracker_channel, &info, &time_info, &freq_info, &ctrl_params, true);
-
   return true;
 }
 
@@ -509,26 +459,9 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
   switch (tracker_state_get(tracker)) {
     case STATE_ENABLED: {
       if (update_required) {
-        /* Channel public data blocks for transferring between locks */
-        tracker_info_t info;
-        tracker_time_info_t time_info;
-        tracker_freq_info_t freq_info;
-        tracker_ctrl_info_t ctrl_params;
-        bool reset_cpo;
-
         tracker_lock(tracker);
-        {
-          tracker_interface_lookup(tracker->mesid)->update(tracker);
-
-          /* Read channel public data while in channel lock */
-          tracking_channel_compute_values(
-              tracker, &info, &time_info, &freq_info, &ctrl_params, &reset_cpo);
-        }
+        tracker_interface_lookup(tracker->mesid)->update(tracker);
         tracker_unlock(tracker);
-
-        /* Update channel public data outside of channel lock */
-        tracking_channel_update_values(
-            tracker, &info, &time_info, &freq_info, &ctrl_params, reset_cpo);
       }
     } break;
 
@@ -606,7 +539,8 @@ void tracking_send_state(void) {
     if (num_sats < nap_track_n_channels) {
       for (u8 i = num_sats; i < nap_track_n_channels; i++) {
         states[i].sid = (sbp_gnss_signal_t){
-            .sat = 0, .code = 0,
+            .sat = 0,
+            .code = 0,
         };
         states[i].cn0 = 0;
       }
@@ -631,7 +565,8 @@ void tracking_send_state(void) {
 
       if (!running || !confirmed) {
         states[i].sid = (sbp_gnss_signal_t){
-            .sat = 0, .code = 0,
+            .sat = 0,
+            .code = 0,
         };
         states[i].fcn = 0;
         states[i].cn0 = 0;

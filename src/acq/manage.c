@@ -865,57 +865,6 @@ void sanitize_trackers(void) {
 }
 
 /**
- * Provides a set of base channel flags
- *
- * The method queries tracking channel status and combines it as a set of flags.
- * Because flag computation involves loading of data from external sources, the
- * caller may optionally provide data destination pointers to avoid data
- * reloading.
- *
- * \param[in]  i         Channel index.
- * \param[out] info      Optional destination for tracker generic information.
- * \param[out] time_info Optional destination for tracker time information.
- * \param[out] freq_info Optional destination for tracker carrier and phase
- *                       information.
- * \param[out] ctrl_info Optional destination for tracker controller
- * information.
- *
- * \return Tracker status flags combined in a single set.
- *
- * \sa get_tracking_channel_sid_flags
- *
- * \sa use_tracking_channel
- * \sa tracking_channels_ready
- * \sa tracking_channel_lock
- * \sa tracking_channel_unlock
- */
-static u32 get_tracking_channel_flags_info(u8 i,
-                                           tracker_info_t *info,
-                                           tracker_time_info_t *time_info,
-                                           tracker_freq_info_t *freq_info,
-                                           tracker_ctrl_info_t *ctrl_info,
-                                           tracker_misc_info_t *misc_info) {
-  tracker_info_t tmp_info;
-  tracker_time_info_t tmp_time_info;
-
-  if (NULL == info) {
-    info = &tmp_info;
-  }
-  if (NULL == time_info) {
-    time_info = &tmp_time_info;
-  }
-
-  tracker_get_values(i,
-                     info,      /* Generic info */
-                     time_info, /* Timers */
-                     freq_info, /* Frequencies */
-                     ctrl_info, /* Loop controller values */
-                     misc_info);
-
-  return info->flags;
-}
-
-/**
  * Computes carrier phase offset.
  *
  * \param[in]  ref_tc Reference time
@@ -1035,22 +984,15 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
-  u32 flags = 0;                 /* Result */
-  tracker_info_t info;           /* Container for generic info */
-  tracker_freq_info_t freq_info; /* Container for measurements */
-  tracker_time_info_t time_info; /* Container for time info */
-  tracker_misc_info_t misc_info; /* Container for measurements */
+  tracker_info_t info;
+  tracker_freq_info_t freq_info;
+  tracker_time_info_t time_info;
+  tracker_misc_info_t misc_info;
 
   memset(meas, 0, sizeof(*meas));
 
-  /* Load information from tracker: info locks */
-  flags = get_tracking_channel_flags_info(i,           /* Channel index */
-                                          &info,       /* General */
-                                          &time_info,  /* Time info */
-                                          &freq_info,  /* Freq info */
-                                          NULL,        /* Ctrl info */
-                                          &misc_info); /* Misc info */
-
+  tracker_get_values(i, &info, &time_info, &freq_info, NULL, &misc_info);
+  u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
     return flags | TRACKER_FLAG_MASKED;
@@ -1112,28 +1054,6 @@ u32 get_tracking_channel_meas(u8 i,
   return flags;
 }
 
-/**
- * Retrieve tracking loop controller parameters for weights computation.
- *
- * \param[in]  i       Channel index.
- * \param[out] pparams Loop controller parameters.
- *
- * \return None
- */
-void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
-  tracker_ctrl_info_t tmp;
-
-  tracker_get_values(i,
-                     NULL,  /* Generic info */
-                     NULL,  /* Timers */
-                     NULL,  /* Frequencies */
-                     &tmp,  /* Loop controller values */
-                     NULL); /* Misc info */
-  pparams->pll_bw = tmp.pll_bw;
-  pparams->fll_bw = tmp.fll_bw;
-  pparams->dll_bw = tmp.dll_bw;
-  pparams->int_ms = tmp.int_ms;
-}
 /**
  * Compute extended tracking flags for GNSS signal.
  *
