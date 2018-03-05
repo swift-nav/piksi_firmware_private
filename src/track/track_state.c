@@ -135,108 +135,112 @@ bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
 }
 
 /**
- * Computes tracking channel public information.
+ * Atomically loads tracking channel measurement data.
  *
- * This function must be called from tracking channel lock scope.
- *
- * \param[in,out] tracker_channel  Tracking channel as a data source
- * \param[out]    info             Optional destination for generic data block.
- * \param[out]    time_info        Optional destination for timing data block.
- * \param[out]    freq_info        Optional destination for frequency and phase
- *                                 data block.
- * \param[out]    reset_cpo        Optional destination for carrier phase
- *                                 ambiguity reset flag.
+ * \param[in]  id           Tracking channel identifier.
+ * \param[out] info         generic information.
+ * \param[out] time_info    timing information.
+ * \param[out] freq_info    frequency and phase information.
+ * \param[out] misc_info    misc information.
  *
  * \return None
  */
+void tracker_get_state(tracker_id_t id,
+                       tracker_info_t *info,
+                       tracker_time_info_t *time_info,
+                       tracker_freq_info_t *freq_info,
+                       tracker_misc_info_t *misc_info) {
+  assert(info);
+  assert(time_info);
+  assert(freq_info);
+  assert(misc_info);
 
-void tracking_channel_compute_values(tracker_t *tracker_channel,
-                                     tracker_info_t *info,
-                                     tracker_time_info_t *time_info,
-                                     tracker_freq_info_t *freq_info,
-                                     bool *reset_cpo) {
-  if (NULL != info) {
-    /* Tracker identifier */
-    info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
-    /* Translate/expand flags from tracker internal scope */
-    info->flags = tracker_channel->flags;
-    /* Signal identifier */
-    info->mesid = tracker_channel->mesid;
-    /* GLO slot ID */
-    info->glo_orbit_slot = tracker_channel->glo_orbit_slot;
-    /* Current C/N0 [dB/Hz] */
-    info->cn0 = tracker_channel->cn0;
-    /* Current time of week for a tracker channel [ms] */
-    info->tow_ms = tracker_channel->TOW_ms;
-    /* Current time of week residual for tow_ms of the tracker channel [ns] */
-    info->tow_residual_ns = tracker_channel->TOW_residual_ns;
-    /* Tracking channel init time [ms] */
-    info->init_timestamp_ms = tracker_channel->init_timestamp_ms;
-    /* Tracking channel update time [ms] */
-    info->update_timestamp_ms = tracker_channel->update_timestamp_ms;
-    /* Lock counter */
-    info->lock_counter = tracker_channel->lock_counter;
-    /* Sample counter */
-    info->sample_count = tracker_channel->sample_count;
-    /* Cross-correlation doppler frequency [hz] */
-    info->xcorr_freq = tracker_channel->xcorr_freq;
-  }
-  if (NULL != time_info) {
-    time_info->cn0_drop_ms = update_count_diff(
-        tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
-    time_info->cn0_usable_ms = update_count_diff(
-        tracker_channel, &tracker_channel->cn0_below_use_thres_count);
+  tracker_t *tracker_channel = tracker_get(id);
 
-    if (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
-      time_info->ld_pess_locked_ms = update_count_diff(
-          tracker_channel, &tracker_channel->ld_pess_change_count);
-    } else {
-      time_info->ld_pess_locked_ms = 0;
-    }
+  tracker_lock(tracker_channel);
 
-    /* The time in ms for which the FLL/PLL pessimistic lock detector has
-     * reported
-     * being unlocked for a tracker channel.
-     *
-     * If tracker channel is run by FLL, then time of absence of FLL pessimistic
-     * lock is reported.
-     * If tracker channel is run by PLL, then time of absence of PLL pessimistic
-     * lock is reported.
-     */
-    if (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK) ||
-        0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)) {
-      time_info->ld_pess_unlocked_ms = 0;
-    } else {
-      time_info->ld_pess_unlocked_ms = update_count_diff(
-          tracker_channel, &tracker_channel->ld_pess_change_count);
-    }
+  /* Tracker identifier */
+  info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
+  /* Translate/expand flags from tracker internal scope */
+  info->flags = tracker_channel->flags;
+  /* Signal identifier */
+  info->mesid = tracker_channel->mesid;
+  /* GLO slot ID */
+  info->glo_orbit_slot = tracker_channel->glo_orbit_slot;
+  /* Current C/N0 [dB/Hz] */
+  info->cn0 = tracker_channel->cn0;
+  /* Current time of week for a tracker channel [ms] */
+  info->tow_ms = tracker_channel->TOW_ms;
+  /* Current time of week residual for tow_ms of the tracker channel [ns] */
+  info->tow_residual_ns = tracker_channel->TOW_residual_ns;
+  /* Tracking channel init time [ms] */
+  info->init_timestamp_ms = tracker_channel->init_timestamp_ms;
+  /* Tracking channel update time [ms] */
+  info->update_timestamp_ms = tracker_channel->update_timestamp_ms;
+  /* Lock counter */
+  info->lock_counter = tracker_channel->lock_counter;
+  /* Sample counter */
+  info->sample_count = tracker_channel->sample_count;
+  /* Cross-correlation doppler frequency [hz] */
+  info->xcorr_freq = tracker_channel->xcorr_freq;
+
+  time_info->cn0_drop_ms = update_count_diff(
+      tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
+  time_info->cn0_usable_ms = update_count_diff(
+      tracker_channel, &tracker_channel->cn0_below_use_thres_count);
+
+  if (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) {
+    time_info->ld_pess_locked_ms = update_count_diff(
+        tracker_channel, &tracker_channel->ld_pess_change_count);
+  } else {
+    time_info->ld_pess_locked_ms = 0;
   }
-  if (NULL != freq_info) {
-    /* Current carrier frequency for a tracker channel. */
-    freq_info->carrier_freq = tracker_channel->carrier_freq;
-    /* Carrier frequency snapshot at the moment of latest PLL/FLL pessimistic
-     * lock
-     * condition for a tracker channel.
-     *
-     * The returned carrier frequency is not necessarily the latest reading of
-     * the
-     * carrier frequency. It is the latest carrier frequency snapshot, when the
-     * tracking channel was in PLL/FLL pessimistic lock state.
-     */
-    freq_info->carrier_freq_at_lock = tracker_channel->carrier_freq_at_lock;
-    /* Current carrier frequency for a tracker channel. */
-    freq_info->carrier_phase = tracker_channel->carrier_phase;
-    /* Code phase in chips */
-    freq_info->code_phase_chips = tracker_channel->code_phase_prompt;
-    /* Code phase rate in chips/s */
-    freq_info->code_phase_rate = tracker_channel->code_phase_rate;
-    /* Acceleration [g] */
-    freq_info->acceleration = tracker_channel->acceleration;
+
+  /* The time in ms for which the FLL/PLL pessimistic lock detector has
+   * reported
+   * being unlocked for a tracker channel.
+   *
+   * If tracker channel is run by FLL, then time of absence of FLL pessimistic
+   * lock is reported.
+   * If tracker channel is run by PLL, then time of absence of PLL pessimistic
+   * lock is reported.
+   */
+  if (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK) ||
+      0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)) {
+    time_info->ld_pess_unlocked_ms = 0;
+  } else {
+    time_info->ld_pess_unlocked_ms = update_count_diff(
+        tracker_channel, &tracker_channel->ld_pess_change_count);
   }
-  if (NULL != reset_cpo) {
-    *reset_cpo = tracker_channel->reset_cpo;
+
+  /* Current carrier frequency for a tracker channel. */
+  freq_info->carrier_freq = tracker_channel->carrier_freq;
+  /* Carrier frequency snapshot at the moment of latest PLL/FLL pessimistic
+   * lock
+   * condition for a tracker channel.
+   *
+   * The returned carrier frequency is not necessarily the latest reading of
+   * the
+   * carrier frequency. It is the latest carrier frequency snapshot, when the
+   * tracking channel was in PLL/FLL pessimistic lock state.
+   */
+  freq_info->carrier_freq_at_lock = tracker_channel->carrier_freq_at_lock;
+  /* Current carrier frequency for a tracker channel. */
+  freq_info->carrier_phase = tracker_channel->carrier_phase;
+  /* Code phase in chips */
+  freq_info->code_phase_chips = tracker_channel->code_phase_prompt;
+  /* Code phase rate in chips/s */
+  freq_info->code_phase_rate = tracker_channel->code_phase_rate;
+  /* Acceleration [g] */
+  freq_info->acceleration = tracker_channel->acceleration;
+
+  *misc_info = tracker_channel->misc_info;
+  if (tracker_channel->reset_cpo) {
+    tracker_channel->misc_info.carrier_phase_offset.value = 0;
     tracker_channel->reset_cpo = false;
   }
+
+  tracker_unlock(tracker_channel);
 }
 
 /** Clear the error flags for a tracker channel.

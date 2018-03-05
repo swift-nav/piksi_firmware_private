@@ -90,38 +90,6 @@ bool tracker_calc_pseudorange(u64 ref_tc,
 }
 
 /**
- * Atomically loads tracking channel measurement data.
- *
- * \param[in]  id           Tracking channel identifier.
- * \param[out] info         Optional destination for generic information.
- * \param[out] time_info    Optional destination for timing information.
- * \param[out] freq_info    Optional destination for frequency and phase
- *                          information.
- * \param[out] misc_info  The destination for misc information.
- *
- * \return None
- */
-void tracker_get_values(tracker_id_t id,
-                        tracker_info_t *info,
-                        tracker_time_info_t *time_info,
-                        tracker_freq_info_t *freq_info,
-                        tracker_misc_info_t *misc_info) {
-  tracker_t *tracker_channel = tracker_get(id);
-
-  tracker_lock(tracker_channel);
-
-  bool reset_cpo;
-  tracking_channel_compute_values(
-      tracker_channel, info, time_info, freq_info, &reset_cpo);
-  *misc_info = tracker_channel->misc_info;
-  if (reset_cpo) {
-    tracker_channel->misc_info.carrier_phase_offset.value = 0;
-  }
-
-  tracker_unlock(tracker_channel);
-}
-
-/**
  * Computes the lock time from tracking channel time info.
  *
  * \param[in]  time_info Time information block.

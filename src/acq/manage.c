@@ -991,7 +991,7 @@ u32 get_tracking_channel_meas(u8 i,
   tracker_freq_info_t freq_info;
   tracker_misc_info_t misc_info;
 
-  tracker_get_values(i, &info, &time_info, &freq_info, &misc_info);
+  tracker_get_state(i, &info, &time_info, &freq_info, &misc_info);
   u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
