@@ -97,8 +97,6 @@ bool tracker_calc_pseudorange(u64 ref_tc,
  * \param[out] time_info    Optional destination for timing information.
  * \param[out] freq_info    Optional destination for frequency and phase
  *                          information.
- * \param[out] ctrl_params  Optional destination for loop controller
- *                          information.
  * \param[out] misc_info  The destination for misc information.
  *
  * \return None
@@ -107,7 +105,6 @@ void tracker_get_values(tracker_id_t id,
                         tracker_info_t *info,
                         tracker_time_info_t *time_info,
                         tracker_freq_info_t *freq_info,
-                        tracker_ctrl_info_t *ctrl_params,
                         tracker_misc_info_t *misc_info) {
   tracker_t *tracker_channel = tracker_get(id);
 
@@ -115,7 +112,7 @@ void tracker_get_values(tracker_id_t id,
 
   bool reset_cpo;
   tracking_channel_compute_values(
-      tracker_channel, info, time_info, freq_info, ctrl_params, &reset_cpo);
+      tracker_channel, info, time_info, freq_info, &reset_cpo);
   *misc_info = tracker_channel->misc_info;
   if (reset_cpo) {
     tracker_channel->misc_info.carrier_phase_offset.value = 0;

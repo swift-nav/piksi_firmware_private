@@ -42,7 +42,6 @@ void tracking_channel_compute_values(tracker_t *tracker_channel,
                                      tracker_info_t *info,
                                      tracker_time_info_t *time_info,
                                      tracker_freq_info_t *freq_info,
-                                     tracker_ctrl_info_t *ctrl_params,
                                      bool *reset_cpo);
 
 /* Update interface */

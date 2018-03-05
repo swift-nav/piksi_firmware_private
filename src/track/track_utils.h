@@ -60,7 +60,6 @@ void tracker_get_values(tracker_id_t id,
                         tracker_info_t *info,
                         tracker_time_info_t *time_info,
                         tracker_freq_info_t *freq_info,
-                        tracker_ctrl_info_t *ctrl_params,
                         tracker_misc_info_t *misc_params);
 double tracker_get_lock_time(const tracker_time_info_t *time_info,
                              const tracker_misc_info_t *misc_info);

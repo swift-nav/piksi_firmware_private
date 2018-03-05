@@ -144,8 +144,6 @@ bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
  * \param[out]    time_info        Optional destination for timing data block.
  * \param[out]    freq_info        Optional destination for frequency and phase
  *                                 data block.
- * \param[out]    ctrl_params      Optional destination for tracking loop
- *                                 controller data block.
  * \param[out]    reset_cpo        Optional destination for carrier phase
  *                                 ambiguity reset flag.
  *
@@ -156,7 +154,6 @@ void tracking_channel_compute_values(tracker_t *tracker_channel,
                                      tracker_info_t *info,
                                      tracker_time_info_t *time_info,
                                      tracker_freq_info_t *freq_info,
-                                     tracker_ctrl_info_t *ctrl_params,
                                      bool *reset_cpo) {
   if (NULL != info) {
     /* Tracker identifier */
@@ -235,14 +232,6 @@ void tracking_channel_compute_values(tracker_t *tracker_channel,
     freq_info->code_phase_rate = tracker_channel->code_phase_rate;
     /* Acceleration [g] */
     freq_info->acceleration = tracker_channel->acceleration;
-  }
-  if (NULL != ctrl_params) {
-    /* Copy loop controller parameters */
-    tp_profile_t *profile = &tracker_channel->profile;
-    ctrl_params->pll_bw = profile->loop_params.carr_bw;
-    ctrl_params->fll_bw = profile->loop_params.fll_bw;
-    ctrl_params->dll_bw = profile->loop_params.code_bw;
-    ctrl_params->int_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
   }
   if (NULL != reset_cpo) {
     *reset_cpo = tracker_channel->reset_cpo;
@@ -326,12 +315,6 @@ bool tracker_init(tracker_id_t id,
     return false;
   }
 
-  /* Channel public data blocks */
-  tracker_info_t info;
-  tracker_time_info_t time_info;
-  tracker_freq_info_t freq_info;
-  tracker_ctrl_info_t ctrl_params;
-
   tracker_lock(tracker_channel);
   {
     tracker_cleanup(tracker_channel);
@@ -375,10 +358,6 @@ bool tracker_init(tracker_id_t id,
 
     /* Change the channel state to ENABLED. */
     event(tracker_channel, EVENT_ENABLE);
-
-    /* Load channel public data while in channel lock */
-    tracking_channel_compute_values(
-        tracker_channel, &info, &time_info, &freq_info, &ctrl_params, NULL);
   }
   tracker_unlock(tracker_channel);
 
