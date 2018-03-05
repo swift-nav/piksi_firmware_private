@@ -984,12 +984,12 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
-  tracker_info_t info;
-  tracker_freq_info_t freq_info;
-  tracker_time_info_t time_info;
-  tracker_misc_info_t misc_info;
-
   memset(meas, 0, sizeof(*meas));
+
+  tracker_info_t info;
+  tracker_time_info_t time_info;
+  tracker_freq_info_t freq_info;
+  tracker_misc_info_t misc_info;
 
   tracker_get_values(i, &info, &time_info, &freq_info, NULL, &misc_info);
   u32 flags = info.flags;

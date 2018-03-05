@@ -90,10 +90,7 @@ bool tracker_calc_pseudorange(u64 ref_tc,
 }
 
 /**
- * Atomically loads tracking channel public informational block.
- *
- * The channel locks public informational block and loads data from it into
- * output parameters.
+ * Atomically loads tracking channel measurement data.
  *
  * \param[in]  id           Tracking channel identifier.
  * \param[out] info         Optional destination for generic information.
@@ -101,13 +98,10 @@ bool tracker_calc_pseudorange(u64 ref_tc,
  * \param[out] freq_info    Optional destination for frequency and phase
  *                          information.
  * \param[out] ctrl_params  Optional destination for loop controller
- * information.
- * \param[out] misc_params  Optional destination for misc information.
- * \param[in] reset_stats   Reset channel statistics
+ *                          information.
+ * \param[out] misc_info  The destination for misc information.
  *
  * \return None
- *
- * \sa tracking_channel_update_values
  */
 void tracker_get_values(tracker_id_t id,
                         tracker_info_t *info,
