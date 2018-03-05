@@ -215,8 +215,6 @@ void nap_track_irq_thread(void *arg) {
 
     handle_nap_track_irq();
 
-    sanitize_trackers();
-
     DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
 
     DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););

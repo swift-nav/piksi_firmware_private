@@ -11,6 +11,7 @@
  */
 
 #include "track_state.h"
+#include "acq/manage.h"
 #include "board/nap/track_channel.h"
 #include "ndb/ndb.h"
 #include "platform_signal.h"
@@ -19,6 +20,7 @@
 #include "settings/settings.h"
 #include "simulator/simulator.h"
 #include "timing/timing.h"
+#include "track/track_sid_db.h"
 #include "track_api.h"
 #include "track_common.h"
 #include "track_flags.h"
@@ -569,11 +571,21 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
  *                        an IRQ is pending.
  */
 void trackers_update(u64 channels_mask) {
+  const u64 now_ms = timing_getms();
+  bool leap_second_event = false;
+
+  DO_EACH_MS(400, leap_second_event = leap_second_is_imminent(););
+
+  if (leap_second_event) {
+    track_sid_db_clear_glo_tow();
+  }
+
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_t *tracker_channel = tracker_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
+    sanitize_tracker(tracker_channel, now_ms, leap_second_event);
   }
 }
 

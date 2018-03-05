@@ -706,7 +706,7 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-static bool leap_second_is_imminent(void) {
+bool leap_second_is_imminent(void) {
   /* Check if GPS time is known.
    * If GPS time is not known,
    * leap second event cannot be detected. */
@@ -734,133 +734,122 @@ static bool leap_second_is_imminent(void) {
   return leap_second_event;
 }
 
-/** Disable any tracking channel that has errored, too weak, lost phase lock
+/** Disable the tracking channel if it has errored, too weak, lost phase lock
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_trackers(void) {
-  const u64 now_ms = timing_getms();
-  bool leap_second_event = false;
-
-  DO_EACH_MS(400, leap_second_event = leap_second_is_imminent());
-
-  /* Clear GLO satellites TOW cache if it is leap second event */
-  if (leap_second_event) {
-    track_sid_db_clear_glo_tow();
+void sanitize_tracker(tracker_t *tracker_channel,
+                      u64 now_ms,
+                      bool leap_second_event) {
+  /*! Addressing the problem where we try to disable a channel that is
+   * not in `STATE_ENABLED` in the first place. It remains to check
+   * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
+   * */
+  state_t state = tracker_channel->state;
+  COMPILER_BARRIER();
+  if (STATE_ENABLED != state) {
+    return;
   }
 
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    /*! Addressing the problem where we try to disable a channel that is
-     * not in `STATE_ENABLED` in the first place. It remains to check
-     * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
-     * */
-    tracker_t *tracker_channel = tracker_get(i);
+  u32 flags = tracker_channel->flags;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
 
-    state_t state = tracker_channel->state;
-    COMPILER_BARRIER();
-    if (STATE_ENABLED != state) {
-      continue;
-    }
+  /* Skip channels that aren't in use */
+  if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
+    return;
+  }
 
-    u32 flags = tracker_channel->flags;
-    me_gnss_signal_t mesid = tracker_channel->mesid;
+  /* Drop GLO satellites if it is leap second event */
+  if (leap_second_event && IS_GLO(mesid)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
+    return;
+  }
 
-    /* Skip channels that aren't in use */
-    if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
-      continue;
-    }
+  /* Has an error occurred? */
+  if (0 != (flags & TRACKER_FLAG_ERROR)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
+    return;
+  }
 
-    /* Drop GLO satellites if it is leap second event */
-    if (leap_second_event && IS_GLO(mesid)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
-      continue;
-    }
+  /* Is tracking masked? */
+  u16 global_index = mesid_to_global_index(mesid);
+  if (track_mask[global_index]) {
+    drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
+    return;
+  }
 
-    /* Has an error occurred? */
-    if (0 != (flags & TRACKER_FLAG_ERROR)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
-      continue;
-    }
+  /* Do we have a large measurement outlier? */
+  if (flags & TRACKER_FLAG_OUTLIER) {
+    drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
+    return;
+  }
 
-    /* Is tracking masked? */
-    u16 global_index = mesid_to_global_index(mesid);
-    if (track_mask[global_index]) {
-      drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
-      continue;
-    }
+  /* Give newly-initialized channels a chance to converge. */
+  u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
+  u32 wait_ms = code_requires_direct_acq(mesid.code)
+                    ? TRACK_INIT_FROM_ACQ_MS
+                    : TRACK_INIT_FROM_HANDOVER_MS;
+  if (age_ms < wait_ms) {
+    return;
+  }
 
-    /* Do we have a large measurement outlier? */
-    if (flags & TRACKER_FLAG_OUTLIER) {
-      drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
-      continue;
-    }
-
-    /* Give newly-initialized channels a chance to converge. */
-    u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
-    u32 wait_ms = code_requires_direct_acq(mesid.code)
-                      ? TRACK_INIT_FROM_ACQ_MS
-                      : TRACK_INIT_FROM_HANDOVER_MS;
-    if (age_ms < wait_ms) {
-      continue;
-    }
-
+  if (now_ms > tracker_channel->update_timestamp_ms) {
     u32 update_delay_ms = now_ms - tracker_channel->update_timestamp_ms;
     if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
       drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
-      continue;
+      return;
     }
+  }
 
-    /* Do we not have nav bit sync yet? */
-    if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
-      continue;
-    }
+  /* Do we not have nav bit sync yet? */
+  if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
+    return;
+  }
 
-    /* PLL/FLL pessimistic lock detector "unlocked" for a while?
-       We could get rid of this check althogether if not the
-       observed cases, when tracker could not achieve the pessimistic
-       lock state for a long time (minutes?) and yet managed to pass
-       CN0 sanity checks.*/
-    u32 unlocked_ms = 0;
-    if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
-      unlocked_ms = update_count_diff(tracker_channel,
-                                      &tracker_channel->ld_pess_change_count);
-    }
-    if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
-      drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
-      continue;
-    }
+  /* PLL/FLL pessimistic lock detector "unlocked" for a while?
+     We could get rid of this check althogether if not the
+     observed cases, when tracker could not achieve the pessimistic
+     lock state for a long time (minutes?) and yet managed to pass
+     CN0 sanity checks.*/
+  u32 unlocked_ms = 0;
+  if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+      (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
+    unlocked_ms = update_count_diff(tracker_channel,
+                                    &tracker_channel->ld_pess_change_count);
+  }
+  if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
+    drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
+    return;
+  }
 
-    /* CN0 below threshold for a while? */
-    u32 cn0_drop_ms = update_count_diff(
-        tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
-    if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
-      drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
-      continue;
-    }
+  /* CN0 below threshold for a while? */
+  u32 cn0_drop_ms = update_count_diff(
+      tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
+  if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
+    drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
+    return;
+  }
 
-    /* Do we have confirmed cross-correlation? */
-    if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
-      continue;
-    }
+  /* Do we have confirmed cross-correlation? */
+  if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
+    return;
+  }
 
-    /* Drop GLO if the SV is unhealthy */
-    if (IS_GLO(mesid)) {
-      bool glo_health_decoded =
-          (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-      if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
-        drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
-        continue;
-      }
+  /* Drop GLO if the SV is unhealthy */
+  if (IS_GLO(mesid)) {
+    bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
+    if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+      return;
     }
+  }
 
-    /* Drop channel if signal was excluded by RAIM */
-    if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
-      continue;
-    }
+  /* Drop channel if signal was excluded by RAIM */
+  if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
+    return;
   }
 }
 
