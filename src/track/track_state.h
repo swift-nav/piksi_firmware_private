@@ -38,12 +38,6 @@ bool tracker_disable(tracker_id_t id);
 bool tracker_runnable(const tracker_t *tracker_channel);
 state_t tracker_state_get(const tracker_t *tracker_channel);
 
-/* void tracking_channel_compute_values(tracker_t *tracker_channel, */
-/*                                      tracker_info_t *info, */
-/*                                      tracker_time_info_t *time_info, */
-/*                                      tracker_freq_info_t *freq_info, */
-/*                                      bool *reset_cpo); */
-
 /* Update interface */
 void trackers_update(u64 channels_mask);
 void trackers_missed(u64 channels_mask);
