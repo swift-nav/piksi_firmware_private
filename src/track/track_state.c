@@ -574,7 +574,7 @@ void trackers_update(u64 channels_mask) {
   const u64 now_ms = timing_getms();
   bool leap_second_event = false;
 
-  DO_EACH_MS(400, leap_second_event = leap_second_is_imminent(););
+  DO_EACH_MS(400, leap_second_event = leap_second_imminent(););
 
   if (leap_second_event) {
     track_sid_db_clear_glo_tow();

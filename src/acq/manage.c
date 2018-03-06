@@ -706,7 +706,7 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-bool leap_second_is_imminent(void) {
+bool leap_second_imminent(void) {
   /* Check if GPS time is known.
    * If GPS time is not known,
    * leap second event cannot be detected. */
@@ -779,7 +779,7 @@ void sanitize_tracker(tracker_t *tracker_channel,
   }
 
   /* Do we have a large measurement outlier? */
-  if (flags & TRACKER_FLAG_OUTLIER) {
+  if (0 != (flags & TRACKER_FLAG_OUTLIER)) {
     drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
     return;
   }

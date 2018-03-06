@@ -114,7 +114,7 @@ bool is_sbas_enabled(void);
 bool is_bds2_enabled(void);
 bool is_qzss_enabled(void);
 bool is_galileo_enabled(void);
-bool leap_second_is_imminent(void);
+bool leap_second_imminent(void);
 void sanitize_tracker(tracker_t *tracker_channel,
                       u64 now_ms,
                       bool leap_second_event);
