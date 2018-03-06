@@ -121,6 +121,7 @@ void restore_acq(const tracker_t *tracker_channel);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);
 double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc);
-u8 sv_track_count(constellation_t gnss);
+u8 code_track_count(code_t code);
+u8 constellation_track_count(constellation_t gnss);
 
 #endif
