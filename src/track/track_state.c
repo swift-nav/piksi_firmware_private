@@ -20,7 +20,6 @@
 #include "settings/settings.h"
 #include "simulator/simulator.h"
 #include "timing/timing.h"
-#include "track/track_sid_db.h"
 #include "track_api.h"
 #include "track_common.h"
 #include "track_flags.h"
@@ -569,16 +568,10 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
+ * \param leap_second_event Leap second is to be handled
  */
-void trackers_update(u64 channels_mask) {
+void trackers_update(u64 channels_mask, bool leap_second_event) {
   const u64 now_ms = timing_getms();
-  bool leap_second_event = false;
-
-  DO_EACH_MS(400, leap_second_event = leap_second_imminent(););
-
-  if (leap_second_event) {
-    track_sid_db_clear_glo_tow();
-  }
 
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_t *tracker_channel = tracker_get(channel);

@@ -26,6 +26,7 @@
 #include "main.h"
 #include "manage.h"
 #include "system_monitor/system_monitor.h"
+#include "track/track_sid_db.h"
 #include "track/track_state.h"
 
 #include <math.h>
@@ -167,12 +168,12 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(void) {
+static void handle_nap_track_irq(bool leap_second_event) {
   u32 irq0 = NAP->TRK_IRQS0;
   u32 irq1 = NAP->TRK_IRQS1;
   u64 irq = ((u64)irq1 << 32) | irq0;
 
-  trackers_update(irq);
+  trackers_update(irq, leap_second_event);
   NAP->TRK_IRQS0 = irq0;
   NAP->TRK_IRQS1 = irq1;
 
@@ -213,7 +214,11 @@ void nap_track_irq_thread(void *arg) {
   while (TRUE) {
     piksi_systime_get(&sys_time);
 
-    handle_nap_track_irq();
+    bool leap_second_event = false;
+    DO_EACH_MS(400, leap_second_event = leap_second_imminent();
+               if (leap_second_event) { track_sid_db_clear_glo_tow(); });
+
+    handle_nap_track_irq(leap_second_event);
 
     DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
 
