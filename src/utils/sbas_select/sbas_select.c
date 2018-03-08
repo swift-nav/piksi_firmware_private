@@ -114,6 +114,8 @@ static const char *get_sbas_name(sbas_type_t sbas_type) {
       return "GAGAN";
     case SBAS_MSAS:
       return "MSAS";
+    case SBAS_UNKNOWN:
+    case SBAS_COUNT:
     default:
       break;
   }
