@@ -103,6 +103,23 @@ static const sbas_coverage_t sbas_coverage[] = {
 /** SBAS system currently in use */
 static sbas_type_t used_sbas = SBAS_UNKNOWN;
 
+/** Convert SBAS system provider ID (type) to a descriptive name */
+static const char *get_sbas_name(sbas_type_t sbas_type) {
+  switch (sbas_type) {
+    case SBAS_WAAS:
+      return "WAAS";
+    case SBAS_EGNOS:
+      return "EGNOS";
+    case SBAS_GAGAN:
+      return "GAGAN";
+    case SBAS_MSAS:
+      return "MSAS";
+    default:
+      break;
+  }
+  return "UNKNOWN";
+}
+
 /**
  * Helper function. Finds index of sbas_map array corresponds to SBAS.
  * \param[in] sbas SBAS type
@@ -169,9 +186,9 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
                         lgf->position_solution.pos_llh[0] * R2D,
                         lgf->position_solution.pos_llh[1] * R2D)) {
       if (sbas_coverage[i].sbas != used_sbas) {
-        log_info("SBAS system changed: old %" PRId8 ", new %" PRId8,
-                 (s8)used_sbas,
-                 (s8)sbas_coverage[i].sbas);
+        log_info("SBAS system changed: %s -> %s",
+                 get_sbas_name(used_sbas),
+                 get_sbas_name(sbas_coverage[i].sbas));
         /* update used SBAS info */
         used_sbas = sbas_coverage[i].sbas;
       }
