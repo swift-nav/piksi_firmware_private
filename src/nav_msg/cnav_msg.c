@@ -251,7 +251,7 @@ static void decode_cnav_msg_type_10(cnav_msg_t *msg,
    * 0 = Signal OK,
    * 1 = Signal bad or unavailable.
    * */
-  msg->data.type_10.l1_health = getbitu(part->decoded, 51, 1) ? false : true;
+  msg->data.type_10.l1_health = true; /* getbitu(part->decoded, 51, 1) ? false : true; */
   msg->data.type_10.l2_health = getbitu(part->decoded, 52, 1) ? false : true;
   msg->data.type_10.l5_health = getbitu(part->decoded, 53, 1) ? false : true;
 }
