@@ -24,7 +24,7 @@ static uint32_t mutex_array_bitfield = 0;
 _Static_assert(sizeof(mutex_array_bitfield) * 8 >= MAX_NUM_MUTEXES, 
                "Mismatched mutex bitfield size.");
 
-MUTEX_DECL(internal_lock);
+static MUTEX_DECL(internal_lock);
 
 static bool is_mutex_in_use(unsigned int i) {
   return mutex_array_bitfield & (1 << i);
