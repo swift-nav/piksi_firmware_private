@@ -244,27 +244,6 @@ typedef struct {
 } tracker_freq_info_t;
 
 /**
- * Public data segment.
- *
- * Public data segment belongs to a tracking channel and is locked only for
- * a quick update or data fetch operations.
- *
- * The data is grouped according to functional blocks.
- */
-typedef struct {
-  /** Generic info for externals */
-  volatile tracker_info_t gen_info;
-  /** Timing info for externals */
-  volatile tracker_time_info_t time_info;
-  /** Frequency info for externals */
-  volatile tracker_freq_info_t freq_info;
-  /** Controller parameters */
-  volatile tracker_ctrl_info_t ctrl_info;
-  /** Miscellaneous parameters */
-  volatile tracker_misc_info_t misc_info;
-} tracker_pub_data_t;
-
-/**
  * Tracker loop state.
  */
 typedef struct {
@@ -348,8 +327,7 @@ typedef struct {
 
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
-  /** Mutex used to permit atomic updates of public channel data. */
-  mutex_t mutex_pub;
+
   /** When tracker is disabled in NAP, all tracker state below
       cleanup_region_start in this structure is cleaned up.
       Tracker is not reused immediately. There is time window of
@@ -432,8 +410,7 @@ typedef struct {
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   glo_health_t health;         /**< GLO SV health info */
 
-  /** Publicly accessible data */
-  tracker_pub_data_t pub_data;
+  tracker_misc_info_t misc_info;
 
   tp_profile_t profile; /**< Profile controller state. */
 
