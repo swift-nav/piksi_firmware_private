@@ -49,7 +49,6 @@ static const tracker_interface_t tracker_interface_bds2_b11 = {
     .update = tracker_bds2_b11_update,
 };
 
-
 static void tracker_bds2_b11_init(tracker_t *tracker_channel) {
   bds2_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &bds2_l1ca_config);

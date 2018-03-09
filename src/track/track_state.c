@@ -53,7 +53,6 @@ static bool track_iq_output_notify(struct setting *s, const char *val) {
   return false;
 }
 
-
 /** Set up the tracking module. */
 void track_setup(void) {
   SETTING_NOTIFY("track",
@@ -409,6 +408,7 @@ static void tracker_channel_process(tracker_t *tracker) {
     } break;
 
     case STATE_DISABLED: {
+      nap_channel_disable(tracker);
       tracker_lock(tracker);
       tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
       tracker_unlock(tracker);
@@ -426,14 +426,15 @@ static void tracker_channel_process(tracker_t *tracker) {
  * \param leap_second_event Leap second is to be handled
  */
 void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
-  while (channels_mask) {
-    bool update_required = (channels_mask & 1) ? true : false;
+  const u64 now_ms = timing_getms();
+
+  for (u8 chan_cnt = 0; chan_cnt < 32; chan_cnt++) {
+    tracker_t *tracker_channel = tracker_get(start_chan + chan_cnt);
+    bool update_required = (channels_mask & 0x1) ? true : false;
     if (update_required) {
-      tracker_t *tracker_channel = tracker_get(start_chan);
       tracker_channel_process(tracker_channel);
     }
     channels_mask >>= 1;
-    start_chan++;
     sanitize_tracker(tracker_channel, now_ms, leap_second_event);
   }
 }
@@ -445,7 +446,7 @@ void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
 void trackers_missed(u32 channels_mask, u8 start_chan) {
   while (channels_mask) {
     tracker_t *tracker_channel = tracker_get(start_chan);
-    bool error = (channels_mask & 1) ? true : false;
+    bool error = (channels_mask & 0x1) ? true : false;
     if (error) {
       error_flags_add(tracker_channel, ERROR_FLAG_MISSED_UPDATE);
     }

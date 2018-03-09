@@ -49,7 +49,6 @@ static const tracker_interface_t tracker_interface_qzss_l1ca = {
     .update = tracker_qzss_l1ca_update,
 };
 
-
 /** Register QZSS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
