@@ -284,6 +284,10 @@ static void sch_run_common(acq_jobs_state_t *jobs_data, acq_job_t *job) {
 
   assert(mesid_valid(job->mesid));
 
+  if (is_sbas(job->mesid.code)) {
+    log_error_mesid(job->mesid, "NOW");
+  }
+
   job->start_time = timing_getms();
 
   peak_found = soft_multi_acq_search(job->mesid,
