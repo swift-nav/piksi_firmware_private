@@ -93,18 +93,17 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
   nav_bit_fifo_element_t nav_bit;
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (nav_bit.sensitivity_mode) {
+    if (0 == nav_bit) {
       data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       sbas_msg_decoder_init(&data->sbas_msg_decoder);
       continue;
     }
     /* Update TOW */
-    u8 symbol_probability;
     data->sbas_msg.tow_ms = TOW_INVALID;
     data->sbas_msg.wn = TOW_INVALID;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    symbol_probability = nav_bit.soft_bit + POW_TWO_7;
+    u8 symbol_probability = nav_bit + C_2P7;
 
     bool decoded = sbas_msg_decoder_add_symbol(
         &data->sbas_msg_decoder, symbol_probability, &data->sbas_msg);

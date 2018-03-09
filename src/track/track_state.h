@@ -39,8 +39,8 @@ bool tracker_runnable(const tracker_t *tracker_channel);
 state_t tracker_state_get(const tracker_t *tracker_channel);
 
 /* Update interface */
-void trackers_update(u64 channels_mask, bool leap_second_event);
-void trackers_missed(u64 channels_mask);
+void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event);
+void trackers_missed(u32 channels_mask, u8 start_chan);
 
 /* Send state */
 void tracking_send_state(void);

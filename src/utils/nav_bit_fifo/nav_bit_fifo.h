@@ -21,10 +21,7 @@
 #define NAV_BIT_FIFO_INDEX_DIFF(write_index, read_index) \
   ((nav_bit_fifo_index_t)((write_index) - (read_index)))
 
-typedef struct {
-  s8 soft_bit;
-  bool sensitivity_mode;
-} nav_bit_fifo_element_t;
+typedef s8 nav_bit_fifo_element_t;
 
 typedef u8 nav_bit_fifo_index_t;
 

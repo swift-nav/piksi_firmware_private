@@ -19,7 +19,7 @@
 typedef void(tracker_interface_function_t)(tracker_t *tracker_channel);
 
 /** Interface to a tracker implementation. */
-typedef struct tracker_interface {
+typedef struct _tracker_interface_t {
   /** Code type for which the implementation may be used. */
   code_t code;
   /** Init function. Called to set up tracker instance when tracking begins. */
@@ -30,22 +30,14 @@ typedef struct tracker_interface {
   tracker_interface_function_t *update;
 } tracker_interface_t;
 
-/** List element passed to tracker_interface_register(). */
-typedef struct tracker_interface_list_element_t {
-  const tracker_interface_t *interface;
-  struct tracker_interface_list_element_t *next;
-} tracker_interface_list_element_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-tracker_interface_list_element_t **tracker_interface_list_ptr_get(void);
+void tracker_interface_register(const tracker_interface_t *element);
 
-void tracker_interface_register(tracker_interface_list_element_t *element);
-
-const tracker_interface_t *tracker_interface_lookup(
-    const me_gnss_signal_t mesid);
+const tracker_interface_t *tracker_interface_lookup(const code_t code);
 
 #ifdef __cplusplus
 } /* extern "C" */
