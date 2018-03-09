@@ -50,7 +50,6 @@ static const tracker_interface_t tracker_interface_glo_l1of = {
     .update = tracker_glo_l1of_update,
 };
 
-
 /** Register GLO L1CA tracker into the the tracker interface & settings
  *  framework.
  */

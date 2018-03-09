@@ -30,7 +30,6 @@ typedef struct _tracker_interface_t {
   tracker_interface_function_t *update;
 } tracker_interface_t;
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
