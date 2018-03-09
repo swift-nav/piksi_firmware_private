@@ -444,14 +444,13 @@ void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
  *                        a missed update error has occurred.
  */
 void trackers_missed(u32 channels_mask, u8 start_chan) {
-  while (channels_mask) {
-    tracker_t *tracker_channel = tracker_get(start_chan);
+  for (u8 chan_cnt = 0; chan_cnt < 32; chan_cnt++) {
+    tracker_t *tracker_channel = tracker_get(start_chan + chan_cnt);
     bool error = (channels_mask & 0x1) ? true : false;
     if (error) {
       error_flags_add(tracker_channel, ERROR_FLAG_MISSED_UPDATE);
     }
     channels_mask >>= 1;
-    start_chan++;
   }
 }
 
