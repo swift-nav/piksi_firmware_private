@@ -11,6 +11,7 @@
  */
 
 #include "track_state.h"
+#include "acq/manage.h"
 #include "board/nap/track_channel.h"
 #include "ndb/ndb.h"
 #include "platform_signal.h"
@@ -483,13 +484,17 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
+ * \param leap_second_event Leap second is to be handled
  */
-void trackers_update(u64 channels_mask) {
+void trackers_update(u64 channels_mask, bool leap_second_event) {
+  const u64 now_ms = timing_getms();
+
   for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
     tracker_t *tracker_channel = tracker_get(channel);
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
+    sanitize_tracker(tracker_channel, now_ms, leap_second_event);
   }
 }
 
