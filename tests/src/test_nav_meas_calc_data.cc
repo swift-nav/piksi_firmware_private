@@ -587,4 +587,12 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
   EXPECT_FLOAT_EQ(nav_meas_tdcp.measured_doppler, doppler_tropo_corrected);
 
   EXPECT_FLOAT_EQ(nav_meas_tdcp.computed_doppler, doppler_tropo_corrected);
+
+  nav_meas_tdcp.pseudorange = 22932174.156858064;
+  nav_meas_tdcp.measured_doppler = 1000;
+  nav_meas_tdcp.computed_doppler = 1000;
+
+  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, (ionosphere_t *)NULL);
+
+  EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_tropo_corrected);
 }
