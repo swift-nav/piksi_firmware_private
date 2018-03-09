@@ -84,12 +84,12 @@ static void decoder_qzss_l1ca_process(
   nav_bit_fifo_element_t nav_bit;
   while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (nav_bit.sensitivity_mode) {
+    if (0 == nav_bit) {
       nav_msg_init(&data->nav_msg);
       continue;
     }
     /* Update TOW */
-    bool bit_val = nav_bit.soft_bit >= 0;
+    bool bit_val = nav_bit > 0;
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
     from_decoder.TOW_ms = nav_msg_update(&data->nav_msg, bit_val);

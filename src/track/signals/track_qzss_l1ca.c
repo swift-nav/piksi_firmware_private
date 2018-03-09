@@ -49,16 +49,12 @@ static const tracker_interface_t tracker_interface_qzss_l1ca = {
     .update = tracker_qzss_l1ca_update,
 };
 
-/** QZSS L1 C/A tracker interface list element */
-static tracker_interface_list_element_t
-    tracker_interface_list_element_qzss_l1ca = {
-        .interface = &tracker_interface_qzss_l1ca, .next = 0};
 
 /** Register QZSS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
 void track_qzss_l1ca_register(void) {
-  tracker_interface_register(&tracker_interface_list_element_qzss_l1ca);
+  tracker_interface_register(&tracker_interface_qzss_l1ca);
 }
 
 static void tracker_qzss_l1ca_init(tracker_t *tracker_channel) {

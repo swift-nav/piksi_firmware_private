@@ -86,7 +86,7 @@ static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Decode GLO ephemeris. */
     glo_decode_status_t status =
-        glo_data_decoding(&data->nav_msg, mesid, &nav_bit);
+        glo_data_decoding(&data->nav_msg, mesid, nav_bit);
     /* Sync tracker with decoder data */
     if (!glo_data_sync(&data->nav_msg, mesid, channel, status)) {
       return;

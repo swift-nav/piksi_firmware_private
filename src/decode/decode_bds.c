@@ -96,7 +96,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {
-    bool bit_val = (nav_bit.soft_bit) >= 0;
+    bool bit_val = nav_bit > 0;
 
     bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
     if (tlm_rx) {
