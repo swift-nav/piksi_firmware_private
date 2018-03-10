@@ -16,6 +16,7 @@
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/correct_iono_tropo.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/glonass_phase_biases.h>
 #include <libswiftnav/linear_algebra.h>
@@ -140,10 +141,6 @@ static void base_glonass_biases_callback(u16 sender_id,
   sbp_send_msg_(SBP_MSG_GLO_BIASES, len, msg, MSG_FORWARD_SENDER_ID);
 }
 
-static inline bool not_l2p_sid(navigation_measurement_t a) {
-  return a.sid.code != CODE_GPS_L2P;
-}
-
 static inline bool shm_suitable_wrapper(navigation_measurement_t meas) {
   return shm_navigation_suitable(meas.sid);
 }
@@ -179,15 +176,7 @@ static void update_obss(obss_t *new_obss) {
    *  details, see:
    *  https://github.com/swift-nav/estimation_team_planning/issues/215.
    */
-  if (new_obss->n > 0 && has_mixed_l2_obs(new_obss->n, new_obss->nm)) {
-    log_warn("Base observations have mixed L2 tracking types. Discarding L2P!");
-    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, not_l2p_sid);
-  }
-
-  /* Filter out any observation without a valid pseudorange observation. */
-  if (new_obss->n > 0) {
-    new_obss->n = filter_nav_meas(new_obss->n, new_obss->nm, pseudorange_valid);
-  }
+  filter_base_meas(&new_obss->n, new_obss->nm);
 
   /* Filter out any observation not marked healthy by the ndb. */
   if (new_obss->n > 0) {
@@ -223,7 +212,8 @@ static void update_obss(obss_t *new_obss) {
       }
       /* Use the previous ECEF position to get the iono/tropo for the new
        * measurements */
-      calc_iono_tropo(new_obss->n, new_obss->nm, base_obss.pos_ecef, &i_params);
+      correct_tropo(base_obss.pos_ecef, new_obss->n, new_obss->nm);
+      correct_iono(base_obss.pos_ecef, &i_params, new_obss->n, new_obss->nm);
     }
 
     gnss_solution soln;

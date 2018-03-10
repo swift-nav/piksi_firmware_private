@@ -16,6 +16,7 @@
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/correct_iono_tropo.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
@@ -509,7 +510,7 @@ TEST(test_tdcp_doppler, second_test) {
 }
 
 TEST(iono_tropo_usage_test, iono_tropo_test) {
-  /*NOTE: this unit test checks calc_iono_tropo function usage only.
+  /*NOTE: this unit test checks correct_iono/correct_tropo function usage only.
    * The iono and tropo correction unit tests are in LNSP */
   u8 n_ready_tdcp = 1;
 
@@ -566,7 +567,8 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
                     0.6554e5,
                     0.3277e6};
 
-  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, &i);
+  correct_tropo(pos_ecef, n_ready_tdcp, &nav_meas_tdcp);
+  correct_iono(pos_ecef, &i, n_ready_tdcp, &nav_meas_tdcp);
 
   EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_iono_tropo_corrected);
 
@@ -578,7 +580,7 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
   nav_meas_tdcp.measured_doppler = 1000;
   nav_meas_tdcp.computed_doppler = 1000;
 
-  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, (ionosphere_t *)NULL);
+  correct_tropo(pos_ecef, n_ready_tdcp, &nav_meas_tdcp);
 
   EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_tropo_corrected);
 
