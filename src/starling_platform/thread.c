@@ -46,7 +46,7 @@ static thread_info_t thread_info_array[MAX_NUM_THREADS] = {
  * the internal bookkeeping. The argument is assumed to point to
  * one of the static thread info elements.
  */
-static void wrap_thread_fn(void* arg) {
+static THD_FUNCTION(wrap_thread_fn, arg) {
   thread_info_t *thread_info = (thread_info_t*)arg;
   // If this function is running, the thread must be "in_use".
   assert(thread_info->in_use);
@@ -64,6 +64,10 @@ static void wrap_thread_fn(void* arg) {
   // WORKING AREA FOR ITS OWN OS-SPECIFIC DATA STRUCTURES. THE CURRENT ASSUMPTION
   // IS THAT IT ALLOCATES THREAD STATE IN AN OS-PROTECTED AREA SO THE ONLY
   // CODE THAT EVER TOUCHES THE WORKING AREA IS THE USER FUNCTION.
+  // TODO(kevin) 3/8/2018
+  // It turns out this assumption is invalid. The ChibiOS thread module makes
+  // use of the lower part of the thread workspace. This implementation is 
+  // 100% incorrect.
 }
 
 /**
