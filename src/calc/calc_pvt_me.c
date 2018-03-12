@@ -71,6 +71,8 @@ static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
+bool azimuth_dropouts_enabled = true;
+
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
 
@@ -637,6 +639,41 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
+    #define NAV_MEAS_FLAG_CODE_VALID ((nav_meas_flags_t)1 << 0)
+    #define NAV_MEAS_FLAG_PHASE_VALID ((nav_meas_flags_t)1 << 1)
+    #define NAV_MEAS_FLAG_MEAS_DOPPLER_VALID ((nav_meas_flags_t)1 << 2)
+    #define NAV_MEAS_FLAG_COMP_DOPPLER_VALID ((nav_meas_flags_t)1 << 3)
+    #define NAV_MEAS_FLAG_HALF_CYCLE_KNOWN ((nav_meas_flags_t)1 << 4)
+    #define NAV_MEAS_FLAG_CN0_VALID ((nav_meas_flags_t)1 << 5)
+    #define NAV_MEAS_FLAG_RAIM_EXCLUSION ((nav_meas_flags_t)1 << 6)
+
+    /* Azimuth mask HITL scenario: calculate satellite azimuth, and mask off
+     * satellties that fall within the azimuth mask. */
+    #define AZ_HIGH 180
+    #define AZ_LOW 0
+    DO_EVERY(50, 
+      if (azimuth_dropouts_enabled) {
+        for (u8 i = 0; i < n_ready; i++) {
+          double az, el;
+          if (0 == calc_sat_az_el(&e_meas[i],
+                                  &(nm->tot),
+                                  &(current_fix->pos_ecef),
+                                  &az,
+                                  &el,
+                                  false)) {
+              log_warn_sid(nav_meas[i].sid, "Azimuth: %f", az);
+              /* if 
+               *  log_warn_sid(nav_meas[i].sid,
+               *               "RAIM repair, setting observation invalid.");
+               * nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION; */
+             
+          } else {
+            log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth");
+          }
+        }
+      }
+    )
+
     time_quality_t old_time_quality = get_time_quality();
 
     /* Update the relationship between the solved GPS time and NAP count tc.*/
@@ -737,6 +774,7 @@ void me_calc_pvt_setup() {
   SETTING("solution", "soln_freq", soln_freq_setting, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
+  SETTING("azimuth_dropouts", "enabled", azimuth_dropouts_enabled, TYPE_BOOL);
 
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
