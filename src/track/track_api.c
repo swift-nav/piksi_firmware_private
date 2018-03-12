@@ -37,41 +37,6 @@ static s32 normalize_tow(s32 tow) {
   return tow % GPS_WEEK_LENGTH_ms;
 }
 
-/** Read correlations from the NAP for a tracker channel.
- *
- * \param nap_channel     NAP tracking channel.
- * \param cs              Output array of correlations.
- * \param sample_count    Output sample count.
- * \param code_phase      Output code phase (chips).
- * \param carrier_phase   Output carrier phase (cycles).
- */
-void tracker_correlations_read(u8 nap_channel,
-                               corr_t *cs,
-                               u32 *sample_count,
-                               double *code_phase,
-                               double *carrier_phase) {
-  /* Read NAP CORR register */
-  nap_track_read_results(
-      nap_channel, sample_count, cs, code_phase, carrier_phase);
-}
-
-/** Write the NAP update register for a tracker channel.
- *
- * \param[in]     tracker_channel Tracker channel data
- * \param chips_to_correlate  Number of code chips to integrate over.
- */
-void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate) {
-  double doppler_freq_hz = tracker_channel->carrier_freq;
-  double code_phase_rate = tracker_channel->code_phase_rate;
-
-  /* Write NAP UPDATE register. */
-  nap_track_update(tracker_channel->nap_channel,
-                   doppler_freq_hz,
-                   code_phase_rate,
-                   chips_to_correlate,
-                   0);
-}
-
 /** Adjust TOW for FIFO delay.
  *
  * \param[in] tracker_channel Tracker channel data
@@ -215,13 +180,14 @@ void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
  * \param bit_integrate   Signed bit integration value.
  */
 static s8 nav_bit_quantize(s32 bit_integrate) {
-  //  0 through  2^24 - 1 ->  0 = weakest positive bit
-  // -1 through -2^24     -> -1 = weakest negative bit
+  /*  0 through  2^24 - 1 ->  0 = weakest positive bit */
+  /* -1 through -2^24     -> -1 = weakest negative bit */
 
-  if (bit_integrate >= 0)
-    return bit_integrate / (1 << 24);
-  else
-    return ((bit_integrate + 1) / (1 << 24)) - 1;
+  if (bit_integrate >= 0) {
+    return (bit_integrate >> 24);
+  } else {
+    return ((bit_integrate + 1) >> 24) - 1;
+  }
 }
 
 /** Update bit sync and output navigation message bits for a tracker channel.
