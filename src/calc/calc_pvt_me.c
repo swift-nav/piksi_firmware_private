@@ -639,13 +639,13 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
-    #define NAV_MEAS_FLAG_CODE_VALID ((nav_meas_flags_t)1 << 0)
-    #define NAV_MEAS_FLAG_PHASE_VALID ((nav_meas_flags_t)1 << 1)
-    #define NAV_MEAS_FLAG_MEAS_DOPPLER_VALID ((nav_meas_flags_t)1 << 2)
-    #define NAV_MEAS_FLAG_COMP_DOPPLER_VALID ((nav_meas_flags_t)1 << 3)
-    #define NAV_MEAS_FLAG_HALF_CYCLE_KNOWN ((nav_meas_flags_t)1 << 4)
-    #define NAV_MEAS_FLAG_CN0_VALID ((nav_meas_flags_t)1 << 5)
-    #define NAV_MEAS_FLAG_RAIM_EXCLUSION ((nav_meas_flags_t)1 << 6)
+    /* #define NAV_MEAS_FLAG_CODE_VALID ((nav_meas_flags_t)1 << 0)
+     * #define NAV_MEAS_FLAG_PHASE_VALID ((nav_meas_flags_t)1 << 1)
+     * #define NAV_MEAS_FLAG_MEAS_DOPPLER_VALID ((nav_meas_flags_t)1 << 2)
+     * #define NAV_MEAS_FLAG_COMP_DOPPLER_VALID ((nav_meas_flags_t)1 << 3)
+     * #define NAV_MEAS_FLAG_HALF_CYCLE_KNOWN ((nav_meas_flags_t)1 << 4)
+     * #define NAV_MEAS_FLAG_CN0_VALID ((nav_meas_flags_t)1 << 5)
+     * #define NAV_MEAS_FLAG_RAIM_EXCLUSION ((nav_meas_flags_t)1 << 6) */
 
     /* Azimuth mask HITL scenario: calculate satellite azimuth, and mask off
      * satellties that fall within the azimuth mask. */
