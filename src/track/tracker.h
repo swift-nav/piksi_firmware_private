@@ -162,7 +162,7 @@ typedef struct {
 /** \addtogroup tracking
  * \{ */
 typedef enum {
-  STATE_DISABLED=0,
+  STATE_DISABLED = 0,
   STATE_ENABLED,
   STATE_DISABLE_REQUESTED,
   STATE_DISABLE_WAIT
