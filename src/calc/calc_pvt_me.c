@@ -667,14 +667,14 @@ static void me_calc_pvt_thread(void *arg) {
       ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
 
       /* Record if we've had a LGF yet for warning below. */
-      if (NDB_ERR_NONE == ret) {
+      if (NDB_ERR_NONE == ret && az_drops_lgf.position_solution.valid) {
         had_a_lgf = true;
       }
 
       if (NDB_ERR_NONE != ret) {
         log_error("azimuth_dropouts: ndb_lgf_read returned %d", ret);
       } else if (!az_drops_lgf.position_solution.valid && had_a_lgf) {
-        log_warn("azimuth_dropouts: lost valid lgf position solution");
+        log_warn("azimuth_dropouts: lgf position solution turned invalid");
       } else {
         /* Check if enough time has elapsed to change the azimuth mask. */
         u64 current_ms = timing_getms();
