@@ -90,7 +90,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   u8 channel = channel_info->tracking_channel;
-  nav_bit_fifo_element_t nav_bit;
+  nav_bit_t nav_bit;
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
     if (0 == nav_bit) {

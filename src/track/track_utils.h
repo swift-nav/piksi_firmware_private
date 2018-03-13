@@ -24,7 +24,7 @@
  * \sa tracker_cc_data_t
  */
 typedef struct {
-  tracker_id_t id;        /**< Tracking channel id */
+  u8 id;                  /**< Tracking channel id */
   u32 flags;              /**< Tracker flags TRACKER_FLAG_... */
   me_gnss_signal_t mesid; /**< Tracked GNSS ME signal identifier */
   float freq;             /**< Doppler frequency for cross-correlation [hz] */
@@ -56,7 +56,7 @@ bool tracker_calc_pseudorange(u64 ref_tc,
                               const channel_measurement_t *meas,
                               double *raw_pseudorange);
 
-void tracker_get_state(tracker_id_t id,
+void tracker_get_state(u8 id,
                        tracker_info_t *info,
                        tracker_time_info_t *time_info,
                        tracker_freq_info_t *freq_info,
