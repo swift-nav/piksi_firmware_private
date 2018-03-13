@@ -11,6 +11,7 @@
  */
 #include <assert.h>
 #include <stdio.h>
+#include <math.h>
 
 #include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
@@ -71,7 +72,16 @@ static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
-bool azimuth_dropouts_enabled = true;
+/* Enable azimuth observation dropouts. */
+bool az_drops_enabled = true;
+/* How much of the sky is masked in degrees. */
+float az_drops_mask_size = 90;
+/* How many degrees the mask changes by each step. */
+float az_drops_step_size = 90;
+/* Minimum time between steps (random between min/max). */
+u32 az_drops_min_step_ms = 1000;
+/* Maximum time between steps. */
+u32 az_drops_max_step_ms = 5000;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -649,28 +659,52 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Azimuth mask HITL scenario: calculate satellite azimuth, and mask off
      * satellties that fall within the azimuth mask. */
-    #define AZ_HIGH 180
-    #define AZ_LOW 0
-    if (azimuth_dropouts_enabled) {
-      for (u8 i = 0; i < n_ready; i++) {
-        double az, el;
-        if (0 == calc_sat_az_el(&e_meas[i],
-                                &(nav_meas[i].tot),
-                                current_fix.pos_ecef,
-                                &az,
-                                &el,
-                                false)) {
-            log_warn_sid(nav_meas[i].sid, "Azimuth: %f", 180*az/M_PI);
-            /* if 
-             *  log_warn_sid(nav_meas[i].sid,
-             *               "RAIM repair, setting observation invalid.");
-             * nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION; */
-           
-        } else {
-          log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth");
+    static last_good_fix_t az_drops_lgf;
+    static bool had_a_lgf = false;
+    static u64 next_step_ms = 0;
+
+    if (az_drops_enabled) {
+      ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
+
+      /* Record if we've had a LGF yet for warning below. */
+      if (NDB_ERR_NONE == ret) {
+        had_a_lgf = true;
+      }
+
+      if (NDB_ERR_NONE != ret) {
+        log_error("azimuth_dropouts: ndb_lgf_read returned %d", ret);
+      } else if (!az_drops_lgf.position_solution.valid && had_a_lgf) {
+        log_warn("azimuth_dropouts: lost valid lgf position solution");
+      } else {
+        /* Check if enough time has elapsed to change the azimuth mask. */
+        u64 current_ms = timing_getms();
+        if (current_ms >= next_step_ms) {
+          /* Compute next time azimuth mask should be changed. */
+          u32 step_ms = (u32)((float)(az_drops_max_step_ms-az_drops_min_step_ms)*((float)rand()/RAND_MAX)) + az_drops_min_step_ms;
+          next_step_ms = current_ms + step_ms;
+          log_error("step_ms = %lu", step_ms);
+//          for (u8 i = 0; i < n_ready; i++) {
+//            double az, el;
+//            if (0 == calc_sat_az_el(&e_meas[i],
+//                                    &(nav_meas[i].tot),
+//                                    az_drops_lgf.position_solution.pos_ecef,
+//                                    &az,
+//                                    &el,
+//                                    false)) {
+//                log_warn_sid(nav_meas[i].sid, "Azimuth: %f", 180*az/M_PI);
+//                /* if 
+//                 *  log_warn_sid(nav_meas[i].sid,
+//                 *               "RAIM repair, setting observation invalid.");
+//                 * nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION; */
+//               
+//            } else {
+//              log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth");
+//            }
+//          }
         }
       }
     }
+    
 
     time_quality_t old_time_quality = get_time_quality();
 
@@ -772,7 +806,11 @@ void me_calc_pvt_setup() {
   SETTING("solution", "soln_freq", soln_freq_setting, TYPE_FLOAT);
   SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
   SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
-  SETTING("azimuth_dropouts", "enabled", azimuth_dropouts_enabled, TYPE_BOOL);
+  SETTING("azimuth_dropouts", "enabled", az_drops_enabled, TYPE_BOOL);
+  SETTING("azimuth_dropouts", "mask_size", az_drops_mask_size, TYPE_FLOAT);
+  SETTING("azimuth_dropouts", "step_size", az_drops_step_size, TYPE_FLOAT);
+  SETTING("azimuth_dropouts", "min_step_time", az_drops_min_step_ms, TYPE_INT);
+  SETTING("azimuth_dropouts", "max_step_time", az_drops_max_step_ms, TYPE_INT);
 
   /* Start solution thread */
   chThdCreateStatic(wa_me_calc_pvt_thread,
