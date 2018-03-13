@@ -65,7 +65,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &glo_l1of_config);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
-  if (GLO_SV_UNHEALTHY == tracker_channel->health) {
+  if (SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker_channel->mesid.sat);
     tracker_drop_unhealthy_glo(mesid_drop);

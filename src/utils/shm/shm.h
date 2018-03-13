@@ -24,8 +24,8 @@ typedef enum {
   CODE_NAV_STATE_VALID,
 } code_nav_state_t;
 
-/* GLO satellite health states */
-typedef enum { GLO_SV_HEALTHY, GLO_SV_UNHEALTHY } glo_health_t;
+/* Satellite health states */
+typedef enum { SV_HEALTHY, SV_UNHEALTHY } health_t;
 
 void shm_gps_set_shi1(u16 sat, u8 new_value);
 void shm_gps_set_shi4(u16 sat, bool new_value);

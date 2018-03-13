@@ -269,7 +269,7 @@ void tracker_drop_unhealthy_glo(const me_gnss_signal_t mesid) {
     return;
   }
   tracker_channel->flags |= TRACKER_FLAG_GLO_HEALTH_DECODED;
-  tracker_channel->health = GLO_SV_UNHEALTHY;
+  tracker_channel->health = SV_UNHEALTHY;
 }
 
 /**

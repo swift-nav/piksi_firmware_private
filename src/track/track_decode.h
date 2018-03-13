@@ -24,7 +24,6 @@ bool tracker_nav_bit_get(u8 id, nav_bit_t *nav_bit);
 bool tracker_health_sync(u8 id, u8 health);
 void tracker_data_sync_init(nav_data_sync_t *data_sync);
 void tracker_data_sync(u8 id, nav_data_sync_t *from_decoder);
-void tracker_glo_data_sync(u8 id, nav_data_sync_t *from_decoder);
 
 #ifdef __cplusplus
 }

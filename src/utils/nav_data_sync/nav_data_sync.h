@@ -30,7 +30,7 @@ typedef struct {
   s8 bit_polarity;
   u16 glo_orbit_slot;
   u8 read_index;
-  glo_health_t glo_health;
+  health_t health;
   bool valid;
   decode_sync_flags_t sync_flags;
 } nav_data_sync_t;

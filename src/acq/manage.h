@@ -53,7 +53,7 @@
 #define MANAGE_NO_CHANNELS_FREE 255
 
 /** How many SBAS SV can be tracked */
-#define SBAS_SV_NUM_LIMIT 3
+#define SBAS_SV_NUM_LIMIT 1
 
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
@@ -118,8 +118,6 @@ void sanitize_tracker(tracker_t *tracker_channel,
                       u64 now_ms,
                       bool leap_second_event);
 void restore_acq(const tracker_t *tracker_channel);
-
-void check_clear_glo_unhealthy(void);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);
 double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc);

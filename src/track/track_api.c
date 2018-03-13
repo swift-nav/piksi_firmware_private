@@ -140,7 +140,7 @@ static void update_eph(tracker_t *tracker_channel,
     log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
   }
   tracker_channel->glo_orbit_slot = data_sync->glo_orbit_slot;
-  tracker_channel->health = data_sync->glo_health;
+  tracker_channel->health = data_sync->health;
 }
 
 /** Update the TOW for a tracker channel.
@@ -389,7 +389,7 @@ u16 tracker_glo_orbit_slot_get(tracker_t *tracker_channel) {
  *
  * \return GLO health information
  */
-glo_health_t tracker_glo_sv_health_get(tracker_t *tracker_channel) {
+health_t tracker_glo_sv_health_get(tracker_t *tracker_channel) {
   assert(IS_GLO(tracker_channel->mesid));
   return tracker_channel->health;
 }
