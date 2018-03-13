@@ -179,8 +179,8 @@ static void remove_clock_offset(navigation_measurement_t *nm,
   nm->raw_carrier_phase -= corr_cycles;
 
   /* Compensate for NAP counter drift since cpo computation */
-  double cpo_correction = subsecond_cpo_correction(current_tc);
-  nm->raw_carrier_phase += cpo_correction * sid_to_carr_freq(nm->sid);
+  double cpo_drift = subsecond_cpo_correction(current_tc);
+  nm->raw_carrier_phase += cpo_drift * sid_to_carr_freq(nm->sid);
 
   /* Also apply the time correction to the time of transmission so the
    * satellite positions can be calculated for the correct time. */
