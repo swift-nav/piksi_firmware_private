@@ -651,28 +651,26 @@ static void me_calc_pvt_thread(void *arg) {
      * satellties that fall within the azimuth mask. */
     #define AZ_HIGH 180
     #define AZ_LOW 0
-    DO_EVERY(50, 
-      if (azimuth_dropouts_enabled) {
-        for (u8 i = 0; i < n_ready; i++) {
-          double az, el;
-          if (0 == calc_sat_az_el(&e_meas[i],
-                                  &(nm->tot),
-                                  &(current_fix->pos_ecef),
-                                  &az,
-                                  &el,
-                                  false)) {
-              log_warn_sid(nav_meas[i].sid, "Azimuth: %f", az);
-              /* if 
-               *  log_warn_sid(nav_meas[i].sid,
-               *               "RAIM repair, setting observation invalid.");
-               * nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION; */
-             
-          } else {
-            log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth");
-          }
+    if (azimuth_dropouts_enabled) {
+      for (u8 i = 0; i < n_ready; i++) {
+        double az, el;
+        if (0 == calc_sat_az_el(&e_meas[i],
+                                &(nav_meas[i].tot),
+                                current_fix.pos_ecef,
+                                &az,
+                                &el,
+                                false)) {
+            log_warn_sid(nav_meas[i].sid, "Azimuth: %f", 180*az/M_PI);
+            /* if 
+             *  log_warn_sid(nav_meas[i].sid,
+             *               "RAIM repair, setting observation invalid.");
+             * nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION; */
+           
+        } else {
+          log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth");
         }
       }
-    )
+    }
 
     time_quality_t old_time_quality = get_time_quality();
 
