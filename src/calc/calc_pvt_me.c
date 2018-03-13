@@ -674,7 +674,7 @@ static void me_calc_pvt_thread(void *arg) {
       if (NDB_ERR_NONE != ret) {
         log_error("azimuth_dropouts: ndb_lgf_read returned %d", ret);
       } else if (!az_drops_lgf.position_solution.valid && had_a_lgf) {
-        log_warn("azimuth_dropouts: lgf position solution turned invalid");
+        log_error("azimuth_dropouts: lgf position solution turned invalid");
       } else {
         /* Check if enough time has elapsed to change the azimuth mask. */
         u64 current_ms = timing_getms();
