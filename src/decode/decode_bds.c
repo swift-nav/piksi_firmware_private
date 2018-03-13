@@ -92,7 +92,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
   me_gnss_signal_t mesid = channel_info->mesid;
 
   /* Process incoming nav bits */
-  nav_bit_fifo_element_t nav_bit;
+  nav_bit_t nav_bit;
   u8 channel = channel_info->tracking_channel;
 
   while (tracker_nav_bit_get(channel, &nav_bit)) {

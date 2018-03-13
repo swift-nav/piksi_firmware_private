@@ -23,6 +23,7 @@
 #include "track_flags.h"
 #include "track_sid_db.h"
 #include "track_utils.h"
+#include "manage.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -280,6 +281,10 @@ void tp_tracker_disable(tracker_t *tracker_channel) {
                   tracker_channel->update_count,
                   tracker_channel->TOW_ms);
 
+  /* restore acq for this tracked SV */
+  restore_acq(tracker_channel);
+
+  /* final cleanup */
   tracker_cleanup(tracker_channel);
 }
 

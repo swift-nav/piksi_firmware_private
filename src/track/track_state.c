@@ -85,7 +85,7 @@ void track_setup(void) {
  *
  * \return Associated tracker channel.
  */
-tracker_t *tracker_get(tracker_id_t id) {
+tracker_t *tracker_get(u8 id) {
   assert(id < NUM_TRACKER_CHANNELS);
   return &trackers[id];
 }
@@ -97,7 +97,7 @@ tracker_t *tracker_get(tracker_id_t id) {
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
+bool tracker_available(u8 id, const me_gnss_signal_t mesid) {
   const tracker_t *tracker_channel = tracker_get(id);
 
   if (!nap_track_supports(id, mesid)) {
@@ -118,7 +118,7 @@ bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
  *
  * \return None
  */
-void tracker_get_state(tracker_id_t id,
+void tracker_get_state(u8 id,
                        tracker_info_t *info,
                        tracker_time_info_t *time_info,
                        tracker_freq_info_t *freq_info,
@@ -133,7 +133,7 @@ void tracker_get_state(tracker_id_t id,
   tracker_lock(tracker_channel);
 
   /* Tracker identifier */
-  info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
+  info->id = (u8)(tracker_channel - &trackers[0]);
   /* Translate/expand flags from tracker internal scope */
   info->flags = tracker_channel->flags;
   /* Signal identifier */
@@ -266,7 +266,7 @@ static void event(tracker_t *tracker_channel, event_t event) {
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
-bool tracker_init(tracker_id_t id,
+bool tracker_init(u8 id,
                   const me_gnss_signal_t mesid,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
@@ -342,9 +342,9 @@ bool tracker_init(tracker_id_t id,
  *
  * \return true if the tracker channel was disabled, false otherwise.
  */
-bool tracker_disable(tracker_id_t id) {
-  /* Request disable */
+bool tracker_disable(u8 id) {
   tracker_t *tracker_channel = tracker_get(id);
+  /* Mark the channel for cleanup at the next update */
   event(tracker_channel, EVENT_DISABLE);
   return true;
 }
@@ -374,14 +374,6 @@ state_t tracker_state_get(const tracker_t *tracker_channel) {
   return state;
 }
 
-/** Disable the NAP tracking channel associated with a tracker channel.
- *
- * \param tracker_channel   Tracker channel to use.
- */
-static void nap_channel_disable(const tracker_t *tracker_channel) {
-  nap_track_disable(tracker_channel->nap_channel);
-}
-
 /** Add an error flag to a tracker channel.
  *
  * \param tracker_channel   Tracker channel to use.
@@ -408,7 +400,8 @@ static void tracker_channel_process(tracker_t *tracker) {
     } break;
 
     case STATE_DISABLED: {
-      nap_channel_disable(tracker);
+      /* disable NAP as we drop a channel */
+      nap_track_disable(tracker->nap_channel);
       tracker_lock(tracker);
       tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
       tracker_unlock(tracker);
@@ -428,8 +421,8 @@ static void tracker_channel_process(tracker_t *tracker) {
 void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
   const u64 now_ms = timing_getms();
 
-  for (u8 chan_cnt = 0; chan_cnt < 32; chan_cnt++) {
-    tracker_t *tracker_channel = tracker_get(start_chan + chan_cnt);
+  for (u8 chan_cnt = start_chan; chan_cnt < nap_track_n_channels; chan_cnt++) {
+    tracker_t *tracker_channel = tracker_get(chan_cnt);
     bool update_required = (channels_mask & 0x1) ? true : false;
     if (update_required) {
       tracker_channel_process(tracker_channel);
@@ -444,8 +437,8 @@ void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
  *                        a missed update error has occurred.
  */
 void trackers_missed(u32 channels_mask, u8 start_chan) {
-  for (u8 chan_cnt = 0; chan_cnt < 32; chan_cnt++) {
-    tracker_t *tracker_channel = tracker_get(start_chan + chan_cnt);
+  for (u8 chan_cnt = start_chan; chan_cnt < nap_track_n_channels; chan_cnt++) {
+    tracker_t *tracker_channel = tracker_get(chan_cnt);
     bool error = (channels_mask & 0x1) ? true : false;
     if (error) {
       error_flags_add(tracker_channel, ERROR_FLAG_MISSED_UPDATE);
