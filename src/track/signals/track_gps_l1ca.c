@@ -51,11 +51,6 @@ static const tracker_interface_t tracker_interface_gps_l1ca = {
     .update = tracker_gps_l1ca_update,
 };
 
-/** GPS L1 C/A tracker interface list element */
-static tracker_interface_list_element_t
-    tracker_interface_list_element_gps_l1ca = {
-        .interface = &tracker_interface_gps_l1ca, .next = 0};
-
 /** Register GPS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
@@ -64,7 +59,7 @@ void track_gps_l1ca_register(void) {
                             gps_l1ca_config.xcorr_cof,
                             SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
 
-  tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
+  tracker_interface_register(&tracker_interface_gps_l1ca);
 }
 
 static void tracker_gps_l1ca_init(tracker_t *tracker_channel) {

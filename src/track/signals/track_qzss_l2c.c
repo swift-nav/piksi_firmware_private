@@ -51,11 +51,6 @@ static const tracker_interface_t tracker_interface_qzss_l2c = {
     .update = tracker_qzss_l2c_update,
 };
 
-/** QZSS L2C tracker interface list element */
-static tracker_interface_list_element_t
-    tracker_interface_list_element_qzss_l2c = {
-        .interface = &tracker_interface_qzss_l2c, .next = 0};
-
 /** Register L2 CM tracker into the the tracker interface & settings
  *  framework.
  */
@@ -64,7 +59,7 @@ void track_qzss_l2c_register(void) {
                             qzss_l2c_config.xcorr_cof,
                             SECS_MS / QZS_L2C_SYMBOL_LENGTH_MS);
 
-  tracker_interface_register(&tracker_interface_list_element_qzss_l2c);
+  tracker_interface_register(&tracker_interface_qzss_l2c);
 }
 
 /** Do L1CA to L2C handover.
