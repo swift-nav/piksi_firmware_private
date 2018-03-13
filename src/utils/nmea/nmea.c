@@ -395,7 +395,7 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
   return id;
 }
 
-/** Assemble a NMEA GSA string and send it out NMEA USARTs.
+/** Print a NMEA GSA string and send it out NMEA USARTs.
  * NMEA GSA message contains GNSS DOP and Active Satellites.
  *
  * \param prns         Array of PRNs to output.
@@ -404,7 +404,7 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
  * \param sbp_dops     Pointer to SBP MSG DOP struct (PDOP, HDOP, VDOP).
  * \param talker       Talker ID to use.
  */
-void nmea_gsa(u8 *prns,
+void nmea_gsa_print(u8 *prns,
               const u8 num_prns,
               const msg_pos_llh_t *sbp_pos_llh,
               const msg_dops_t *sbp_dops,
@@ -480,7 +480,7 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
  * \param n_meas       Number of measurements
  * \param nav_meas     Array of navigation measurements
  */
-static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
+static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
                               const msg_dops_t *sbp_dops,
                               const u8 n_meas,
                               const navigation_measurement_t nav_meas[]) {
@@ -520,12 +520,12 @@ static void nmea_assemble_gsa(const msg_pos_llh_t *sbp_pos,
   /* Send GSA messages */
   if (0 != num_prns_gp && 0 != num_prns_gl) {
     /* At least two constellations detected, use GN talker ID */
-    nmea_gsa(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GN");
-    nmea_gsa(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GN");
+    nmea_gsa_print(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GN");
+    nmea_gsa_print(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GN");
   } else {
-    nmea_gsa(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
+    nmea_gsa_print(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
     if (enable_glonass) {
-      nmea_gsa(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GL");
+      nmea_gsa_print(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GL");
     }
   }
 }
@@ -547,7 +547,7 @@ int compare_ch_meas(const void *a, const void *b) {
   return nmea_get_id((*ca)->sid) - nmea_get_id((*cb)->sid);
 }
 
-/** Assemble a NMEA GSV message string and send it out NMEA USARTs.
+/** Print a NMEA GSV message string and send it out NMEA USARTs.
  * NMEA GSV  message contains GNSS Satellites In View (in this case observed).
  *
  * \param[in] n_used      size of ch_meas
@@ -1040,7 +1040,7 @@ void nmea_send_msgs(const msg_pos_llh_t *sbp_pos_llh,
   }
   if (sbp_dops && sbp_pos_llh && sbp_msg_time) {
     if (send_nmea(gsa_msg_rate, piksi_time_ms)) {
-      nmea_assemble_gsa(sbp_pos_llh, sbp_dops, n_meas, nav_meas);
+      nmea_gsa(sbp_pos_llh, sbp_dops, n_meas, nav_meas);
     }
   }
 }
