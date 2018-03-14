@@ -145,7 +145,7 @@ static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
-  acq_status_t *status; /**< Pointer to acq status for the GLO SV */
+  acq_status_t *status; /**< Pointer to acq status for the SV */
 } acq_timer_t;
 
 /* The array keeps time when GLO SV was detected as unhealthy */
