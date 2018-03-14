@@ -730,7 +730,8 @@ static void me_calc_pvt_thread(void *arg) {
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_CN0_VALID;
             }
           } else {
-            /* log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth"); */
+            /* log_warn_sid(nav_meas[i].sid,
+             *              "azimuth dropouts: Couldn't compute azimuth."); */
             log_error_sid(nav_meas[i].sid,
                           "azimuth dropouts: Couldn't compute azimuth.");
           }
