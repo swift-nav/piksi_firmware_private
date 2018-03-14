@@ -677,7 +677,7 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Do azimuth dropouts. */
-    if (az_drops_enabled and az_drops_settings_sane) {
+    if (az_drops_enabled && az_drops_settings_sane) {
       ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
 
       /* Record if we've had a last good fix yet for warning below. */
