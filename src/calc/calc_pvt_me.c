@@ -656,7 +656,230 @@ static void me_calc_pvt_thread(void *arg) {
     static u64 next_step_ms = 0;
     static float az_mask_start_angle = 0;
 
-    if (az_drops_enabled) {
+    /* Apply some sanity checks to azimuth dropouts settings. */
+    bool az_drops_settings_sane = true;
+    if (az_drops_mask_size <= 0) {
+      log_error("azimuth dropouts: az_drops_mask_size <= 0");
+      az_drops_settings_sane = false;
+    }
+    if (az_drops_step_size <= 0) {
+      log_error("azimuth dropouts: az_drops_step_size <= 0");
+      az_drops_settings_sane = false;
+    }
+    if (az_drops_min_step_ms <= 0) {
+      log_error("azimuth dropouts: az_drops_step_size <= 0");
+      az_drops_settings_sane = false;
+    }
+    if (az_drops_min_step_ms > az_drops_max_step_ms) {
+      log_error("azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
+      az_drops_settings_sane = false;
+    }
+
+    /* Do azimuth dropouts. */
+    if (az_drops_enabled and az_drops_settings_sane) {
+
+      ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
+
+      /* Record if we've had a last good fix yet for warning below. */
+      if (NDB_ERR_NONE == ret && az_drops_lgf.position_solution.valid) {
+        had_a_lgf = true;
+      }
+
+      /* Check if we have a valid last good fix to compute azimuth with. */
+      if (NDB_ERR_NONE != ret) {
+        log_error(
+            "azimuth dropouts: ndb_lgf_read returned %d. No mask applied.",
+            ret);
+      } else if (!az_drops_lgf.position_solution.valid && had_a_lgf) {
+        log_error(
+            "azimuth dropouts: lgf position solution became invalid. No mask "
+            "applied.");
+      } else {
+        /* Check if enough time has elapsed to change the azimuth mask. */
+        u64 current_ms = timing_getms();
+        if (current_ms >= next_step_ms) {
+          /* Compute next time azimuth mask should be changed. */
+          u32 step_range_ms = az_drops_max_step_ms - az_drops_min_step_ms;
+          u32 step_ms =
+              (u32)((float)(step_range_ms) * ((float)rand() / RAND_MAX)) +
+              az_drops_min_step_ms;
+          next_step_ms += step_ms;
+
+          /* Update azimuth mask starting angle. */
+          az_mask_start_angle =
+              fmod(az_mask_start_angle + az_drops_step_size, 360.0f);
+
+          log_info("-----------------------");
+          log_info("az_drops_max_step_ms: %lu", az_drops_max_step_ms);
+          log_info("az_drops_min_step_ms: %lu", az_drops_min_step_ms);
+          log_info("step_range_ms: %lu", step_range_ms);
+          log_info("step_ms: %lu", step_ms);
+          log_info("next_step_ms: %llu", next_step_ms);
+          log_info("az_mask_start_angle: %f", az_mask_start_angle);
+          log_info("az_drops_step_size: %f", az_drops_step_size);
+        }
+
+        /* Loop through sats and mark unusable those that are inside mask. */
+        for (u8 i = 0; i < n_ready; i++) {
+          double az, el;
+          double az_deg;
+          if (0 == calc_sat_az_el(&e_meas[i],
+                                  &(nav_meas[i].tot),
+                                  az_drops_lgf.position_solution.pos_ecef,
+                                  &az,
+                                  &el,
+                                  false)) {
+            az_deg = 180 * az / M_PI;
+
+            /* If satellite is within the azimuth mask, mark it unusable.
+             * Handle wrapping around 360 degree. */
+            float az_end_angle_wrapped =
+                fmod(az_mask_start_angle + az_drops_mask_size, 360.0f);
+            if ((az_deg < az_end_angle_wrapped &&
+                 az_end_angle_wrapped < az_mask_start_angle) ||
+                (az_deg < az_end_angle_wrapped &&
+                 az_deg > az_mask_start_angle) ||
+                (az_deg > az_mask_start_angle &&
+                 az_end_angle_wrapped < az_mask_start_angle)) {
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_PHASE_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_COMP_DOPPLER_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_CN0_VALID;
+            }
+          } else {
+            /* log_warn_sid(nav_meas[i].sid,
+             *              "azimuth dropouts: Couldn't compute azimuth."); */
+            log_error_sid(nav_meas[i].sid,
+                          "azimuth dropouts: Couldn't compute azimuth.");
+          }
+        }
+      }
+    }
+
+    time_quality_t old_time_quality = get_time_quality();
+
+    /* Update the relationship between the solved GPS time and NAP count tc.*/
+    update_time(epoch_tc, &current_fix);
+
+    /* Get the updated time and drift */
+    gps_time_t smoothed_time = napcount2gpstime(epoch_tc);
+    double smoothed_drift = get_clock_drift();
+    double smoothed_offset = gpsdifftime(&epoch_time, &smoothed_time);
+
+    /* Update global position solution state. */
+    lgf.position_solution = current_fix;
+    lgf.position_quality = POSITION_FIX;
+    /* Store the smoothed clock solution into lgf */
+    lgf.position_solution.time = smoothed_time;
+    lgf.position_solution.clock_drift = smoothed_drift;
+    ndb_lgf_store(&lgf);
+
+    if (TIME_PROPAGATED > old_time_quality) {
+      /* If the time quality was not at least TIME_PROPAGATED then this solution
+       * likely causes a clock jump and should be discarded.
+       *
+       * Note that the lack of knowledge of the receiver clock bias does NOT
+       * degrade the quality of the position solution but the rapid change in
+       * bias after the time estimate is first improved may cause issues for
+       * e.g. carrier smoothing. Easier just to discard this first solution.
+       */
+
+      log_info("first fix clk_offset %.3e clk_drift %.3e",
+               current_fix.clock_offset,
+               current_fix.clock_drift);
+
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
+      continue;
+    }
+
+    /* Only send observations that are closely aligned with the desired
+     * solution epochs to ensure they haven't been propagated too far. */
+    if (fabs(smoothed_offset) < OBS_PROPAGATION_LIMIT) {
+      for (u8 i = 0; i < n_ready; i++) {
+        navigation_measurement_t *nm = &nav_meas[i];
+
+        /* remove clock offset from the measurement */
+        remove_clock_offset(nm, smoothed_offset, smoothed_drift, epoch_tc);
+
+        /* Recompute satellite position, velocity and clock errors */
+        /* NOTE: calc_sat_state changes `tot` */
+        if (0 != calc_sat_state(&e_meas[i],
+                                &(nm->tot),
+                                nm->sat_pos,
+                                nm->sat_vel,
+                                nm->sat_acc,
+                                &(nm->sat_clock_err),
+                                &(nm->sat_clock_err_rate),
+                                &(nm->IODC),
+                                &(nm->IODE))) {
+          log_error_sid(nm->sid, "Recomputing sat state failed");
+          continue;
+        }
+      }
+
+      /* Send the observations. */
+      me_send_all(n_ready, nav_meas, e_meas, &epoch_time);
+    } else {
+      log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
+               smoothed_offset);
+      /* Send the observations, but marked unusable */
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &epoch_time);
+    }
+
+    /* difference between receiver and GPS time too large, adjust the receiver
+     * time initial offset */
+    if (fabs(smoothed_offset) > MAX_CLOCK_ERROR_S) {
+      /* round the time adjustment to even milliseconds */
+      double dt = round(smoothed_offset * (SECS_MS / 2)) / (SECS_MS / 2);
+
+      log_info("Receiver clock offset larger than %g ms, applying %g ms jump",
+               MAX_CLOCK_ERROR_S * SECS_MS,
+               dt * SECS_MS);
+
+      /* adjust all the carrier phase offsets */
+      /* note that the adjustment is always in even cycles because millisecond
+       * breaks up exactly into carrier cycles */
+      tracker_carrier_phase_offsets_adjust(dt);
+
+      /* adjust the RX to GPS time conversion */
+      adjust_rcvtime_offset(dt);
+
+      /* adjust the next solution deadline */
+      piksi_systime_add_us(&next_epoch, round(dt * SECS_US));
+    }
+  }
+}
+
+soln_stats_t solution_last_stats_get(void) { return last_stats; }
+
+void me_calc_pvt_setup() {
+  SETTING("solution", "soln_freq", soln_freq_setting, TYPE_FLOAT);
+  SETTING("solution", "output_every_n_obs", obs_output_divisor, TYPE_INT);
+  SETTING("sbp", "obs_msg_max_size", msg_obs_max_size, TYPE_INT);
+  SETTING("azimuth_dropouts", "enabled", az_drops_enabled, TYPE_BOOL);
+  SETTING("azimuth_dropouts", "mask_size", az_drops_mask_size, TYPE_FLOAT);
+  SETTING("azimuth_dropouts", "step_size", az_drops_step_size, TYPE_FLOAT);
+  SETTING("azimuth_dropouts", "min_step_time", az_drops_min_step_ms, TYPE_INT);
+  SETTING("azimuth_dropouts", "max_step_time", az_drops_max_step_ms, TYPE_INT);
+
+  /* Start solution thread */
+  chThdCreateStatic(wa_me_calc_pvt_thread,
+                    sizeof(wa_me_calc_pvt_thread),
+                    ME_CALC_PVT_THREAD_PRIORITY,
+                    me_calc_pvt_thread,
+                    NULL);
+}
+    if (az_drops_enabled and az_drops_settings_sane) {
+float az_drops_mask_size = 90;
+/* How many degrees the mask changes by each step. */
+float az_drops_step_size = 90;
+/* Minimum time between steps (random between min/max). */
+u32 az_drops_min_step_ms = 4500;
+/* Maximum time between steps. */
+u32 az_drops_max_step_ms = 5500;
+
       ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
 
       /* Record if we've had a last good fix yet for warning below. */
