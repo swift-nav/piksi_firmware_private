@@ -75,13 +75,13 @@ static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 /* Enable azimuth observation dropouts. */
 bool az_drops_enabled = true;
 /* How much of the sky is masked in degrees. */
-float az_drops_mask_size = 90;
+float az_drops_mask_size = 30;
 /* How many degrees the mask changes by each step. */
-float az_drops_step_size = 90;
+float az_drops_step_size = 15;
 /* Minimum time between steps (random between min/max). */
-u32 az_drops_min_step_ms = 4500;
+u32 az_drops_min_step_ms = 900;
 /* Maximum time between steps. */
-u32 az_drops_max_step_ms = 5500;
+u32 az_drops_max_step_ms = 1100;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
