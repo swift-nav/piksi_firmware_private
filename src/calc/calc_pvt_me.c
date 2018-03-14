@@ -400,6 +400,115 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   }
 }
 
+
+/* Azimuth mask state machine: calculate satellite azimuth, and mask off
+ * satellties that fall within the azimuth mask by clearing their
+ * measurement validity flags. Change azimuth mask periodically per
+ * azimuth mask settings.*/
+static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
+                                    navigation_measurement_t *nav_meas) {
+
+  static last_good_fix_t lgf;
+  static bool had_a_lgf = false;
+  static u64 next_step_ms = 0;
+  static float az_mask_start_angle = 0;
+
+  /* Sanity checks. */
+  if (az_drops_mask_size <= 0) {
+    log_error("azimuth dropouts: az_drops_mask_size <= 0");
+    return;
+  }
+  if (az_drops_step_size <= 0) {
+    log_error("azimuth dropouts: az_drops_step_size <= 0");
+    return;
+  }
+  if (az_drops_min_step_ms <= 0) {
+    log_error("azimuth dropouts: az_drops_step_size <= 0");
+    return;
+  }
+  if (az_drops_min_step_ms > az_drops_max_step_ms) {
+    log_error(
+        "azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
+    return;
+  }
+
+  /* Read most current last good fix. */
+  ndb_op_code_t ndb_lgf_read_ret = ndb_lgf_read(&lgf);
+
+  /* Record if we've had a last good fix yet. */
+  if (NDB_ERR_NONE == ndb_lgf_read_ret &&
+      lgf.position_solution.valid) {
+    had_a_lgf = true;
+  }
+
+  /* More sanity checks. */
+  if (NDB_ERR_NONE != ndb_lgf_read_ret) {
+    log_error("azimuth dropouts: ndb_lgf_read returned %d.", ndb_lgf_read_ret);
+    return;
+  }
+  if (!lgf.position_solution.valid && had_a_lgf) {
+    log_error("azimuth dropouts: lgf position solution became invalid.");
+    return;
+  }
+
+  /* Change the azimuth mask start angle if enough time has elapsed. */
+  u64 current_ms = timing_getms();
+  if (current_ms >= next_step_ms) {
+    /* Compute next time azimuth mask should be changed. */
+    u32 step_range_ms = az_drops_max_step_ms - az_drops_min_step_ms;
+    u32 step_ms =
+        (u32)((float)(step_range_ms) * ((float)rand() / RAND_MAX)) +
+        az_drops_min_step_ms;
+    next_step_ms += step_ms;
+
+    /* Update azimuth mask starting angle. */
+    az_mask_start_angle =
+        fmod(az_mask_start_angle + az_drops_step_size, 360.0f);
+
+    log_info("azimuth dropouts: step_ms: %lu", step_ms);
+    log_info("azimuth dropouts: next_step_ms: %llu", next_step_ms);
+    log_info("azimuth dropouts: az_mask_start_angle: %f", az_mask_start_angle);
+  }
+
+  /* Loop through sats and mark unusable those that are inside mask. */
+  for (u8 i = 0; i < n_ready; i++) {
+    double az, el;
+    double az_deg;
+    if (0 == calc_sat_az_el(&e_meas[i],
+                            &(nav_meas[i].tot),
+                            lgf.position_solution.pos_ecef,
+                            &az,
+                            &el,
+                            false)) {
+      az_deg = 180 * az / M_PI;
+
+      /* If satellite is within the azimuth mask, mark it unusable.
+       * Handle wrapping around 360 degree. */
+      float az_end_angle_wrapped =
+          fmod(az_mask_start_angle + az_drops_mask_size, 360.0f);
+      if ((az_deg < az_end_angle_wrapped &&
+           az_end_angle_wrapped < az_mask_start_angle) ||
+          (az_deg < az_end_angle_wrapped &&
+           az_deg > az_mask_start_angle) ||
+          (az_deg > az_mask_start_angle &&
+           az_end_angle_wrapped < az_mask_start_angle)) {
+        nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
+        nav_meas[i].flags &= ~NAV_MEAS_FLAG_PHASE_VALID;
+        nav_meas[i].flags &= ~NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
+        nav_meas[i].flags &= ~NAV_MEAS_FLAG_COMP_DOPPLER_VALID;
+        nav_meas[i].flags &= ~NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
+        nav_meas[i].flags &= ~NAV_MEAS_FLAG_CN0_VALID;
+      }
+    } else {
+      /* log_warn_sid(nav_meas[i].sid,
+       *              "azimuth dropouts: Couldn't compute azimuth."); */
+      log_error_sid(nav_meas[i].sid,
+                    "azimuth dropouts: Couldn't compute azimuth.");
+    }
+  }
+
+}
+
 static void me_calc_pvt_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("me_calc_pvt");
@@ -649,113 +758,8 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
-    /* Azimuth mask HITL scenario: calculate satellite azimuth, and mask off
-     * satellties that fall within the azimuth mask. */
-    static last_good_fix_t az_drops_lgf;
-    static bool had_a_lgf = false;
-    static u64 next_step_ms = 0;
-    static float az_mask_start_angle = 0;
-
-    /* Apply some sanity checks to azimuth dropouts settings. */
-    bool az_drops_settings_sane = true;
-    if (az_drops_mask_size <= 0) {
-      log_error("azimuth dropouts: az_drops_mask_size <= 0");
-      az_drops_settings_sane = false;
-    }
-    if (az_drops_step_size <= 0) {
-      log_error("azimuth dropouts: az_drops_step_size <= 0");
-      az_drops_settings_sane = false;
-    }
-    if (az_drops_min_step_ms <= 0) {
-      log_error("azimuth dropouts: az_drops_step_size <= 0");
-      az_drops_settings_sane = false;
-    }
-    if (az_drops_min_step_ms > az_drops_max_step_ms) {
-      log_error(
-          "azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
-      az_drops_settings_sane = false;
-    }
-
-    /* Do azimuth dropouts. */
-    if (az_drops_enabled && az_drops_settings_sane) {
-      ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
-
-      /* Record if we've had a last good fix yet for warning below. */
-      if (NDB_ERR_NONE == ret && az_drops_lgf.position_solution.valid) {
-        had_a_lgf = true;
-      }
-
-      /* Check if we have a valid last good fix to compute azimuth with. */
-      if (NDB_ERR_NONE != ret) {
-        log_error(
-            "azimuth dropouts: ndb_lgf_read returned %d. No mask applied.",
-            ret);
-      } else if (!az_drops_lgf.position_solution.valid && had_a_lgf) {
-        log_error(
-            "azimuth dropouts: lgf position solution became invalid. No mask "
-            "applied.");
-      } else {
-        /* Check if enough time has elapsed to change the azimuth mask. */
-        u64 current_ms = timing_getms();
-        if (current_ms >= next_step_ms) {
-          /* Compute next time azimuth mask should be changed. */
-          u32 step_range_ms = az_drops_max_step_ms - az_drops_min_step_ms;
-          u32 step_ms =
-              (u32)((float)(step_range_ms) * ((float)rand() / RAND_MAX)) +
-              az_drops_min_step_ms;
-          next_step_ms += step_ms;
-
-          /* Update azimuth mask starting angle. */
-          az_mask_start_angle =
-              fmod(az_mask_start_angle + az_drops_step_size, 360.0f);
-
-          log_info("-----------------------");
-          log_info("az_drops_max_step_ms: %lu", az_drops_max_step_ms);
-          log_info("az_drops_min_step_ms: %lu", az_drops_min_step_ms);
-          log_info("step_range_ms: %lu", step_range_ms);
-          log_info("step_ms: %lu", step_ms);
-          log_info("next_step_ms: %llu", next_step_ms);
-          log_info("az_mask_start_angle: %f", az_mask_start_angle);
-          log_info("az_drops_step_size: %f", az_drops_step_size);
-        }
-
-        /* Loop through sats and mark unusable those that are inside mask. */
-        for (u8 i = 0; i < n_ready; i++) {
-          double az, el;
-          double az_deg;
-          if (0 == calc_sat_az_el(&e_meas[i],
-                                  &(nav_meas[i].tot),
-                                  az_drops_lgf.position_solution.pos_ecef,
-                                  &az,
-                                  &el,
-                                  false)) {
-            az_deg = 180 * az / M_PI;
-
-            /* If satellite is within the azimuth mask, mark it unusable.
-             * Handle wrapping around 360 degree. */
-            float az_end_angle_wrapped =
-                fmod(az_mask_start_angle + az_drops_mask_size, 360.0f);
-            if ((az_deg < az_end_angle_wrapped &&
-                 az_end_angle_wrapped < az_mask_start_angle) ||
-                (az_deg < az_end_angle_wrapped &&
-                 az_deg > az_mask_start_angle) ||
-                (az_deg > az_mask_start_angle &&
-                 az_end_angle_wrapped < az_mask_start_angle)) {
-              nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
-              nav_meas[i].flags &= ~NAV_MEAS_FLAG_PHASE_VALID;
-              nav_meas[i].flags &= ~NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
-              nav_meas[i].flags &= ~NAV_MEAS_FLAG_COMP_DOPPLER_VALID;
-              nav_meas[i].flags &= ~NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
-              nav_meas[i].flags &= ~NAV_MEAS_FLAG_CN0_VALID;
-            }
-          } else {
-            /* log_warn_sid(nav_meas[i].sid,
-             *              "azimuth dropouts: Couldn't compute azimuth."); */
-            log_error_sid(nav_meas[i].sid,
-                          "azimuth dropouts: Couldn't compute azimuth.");
-          }
-        }
-      }
+    if (az_drops_enabled) {
+      manage_azimuth_dropouts(e_meas, n_ready, nav_meas);
     }
 
     time_quality_t old_time_quality = get_time_quality();
