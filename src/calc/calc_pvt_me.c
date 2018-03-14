@@ -400,10 +400,15 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   }
 }
 
-/* Azimuth mask state machine: calculate satellite azimuth, and mask off
- * satellties that fall within the azimuth mask by clearing their
- * measurement validity flags. Change azimuth mask periodically per
- * azimuth mask settings.*/
+/** Azimuth mask state machine: Mask off satellties that fall within the
+ * azimuth mask by clearing their measurement validity flags. Change azimuth
+ * mask periodically per azimuth mask settings.
+ *
+ * \param e_meas Ephemerides for satellites in nav_meas
+ * \param n_ready Length of e_meas / nav_meas
+ * \param nav_meas Navigation measurements for satellites
+ *
+ */
 static void manage_azimuth_dropouts(const ephemeris_t *e_meas,
                                     u8 n_ready,
                                     navigation_measurement_t *nav_meas) {
