@@ -400,14 +400,13 @@ static void drop_gross_outlier(const navigation_measurement_t *nav_meas,
   }
 }
 
-
 /* Azimuth mask state machine: calculate satellite azimuth, and mask off
  * satellties that fall within the azimuth mask by clearing their
  * measurement validity flags. Change azimuth mask periodically per
  * azimuth mask settings.*/
-static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
+static void manage_azimuth_dropouts(const ephemeris_t *e_meas,
+                                    u8 n_ready,
                                     navigation_measurement_t *nav_meas) {
-
   static last_good_fix_t lgf;
   static bool had_a_lgf = false;
   static u64 next_step_ms = 0;
@@ -427,8 +426,7 @@ static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
     return;
   }
   if (az_drops_min_step_ms > az_drops_max_step_ms) {
-    log_error(
-        "azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
+    log_error("azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
     return;
   }
 
@@ -436,8 +434,7 @@ static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
   ndb_op_code_t ndb_lgf_read_ret = ndb_lgf_read(&lgf);
 
   /* Record if we've had a last good fix yet. */
-  if (NDB_ERR_NONE == ndb_lgf_read_ret &&
-      lgf.position_solution.valid) {
+  if (NDB_ERR_NONE == ndb_lgf_read_ret && lgf.position_solution.valid) {
     had_a_lgf = true;
   }
 
@@ -456,9 +453,8 @@ static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
   if (current_ms >= next_step_ms) {
     /* Compute next time azimuth mask should be changed. */
     u32 step_range_ms = az_drops_max_step_ms - az_drops_min_step_ms;
-    u32 step_ms =
-        (u32)((float)(step_range_ms) * ((float)rand() / RAND_MAX)) +
-        az_drops_min_step_ms;
+    u32 step_ms = (u32)((float)(step_range_ms) * ((float)rand() / RAND_MAX)) +
+                  az_drops_min_step_ms;
     next_step_ms += step_ms;
 
     /* Update azimuth mask starting angle. */
@@ -488,8 +484,7 @@ static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
           fmod(az_mask_start_angle + az_drops_mask_size, 360.0f);
       if ((az_deg < az_end_angle_wrapped &&
            az_end_angle_wrapped < az_mask_start_angle) ||
-          (az_deg < az_end_angle_wrapped &&
-           az_deg > az_mask_start_angle) ||
+          (az_deg < az_end_angle_wrapped && az_deg > az_mask_start_angle) ||
           (az_deg > az_mask_start_angle &&
            az_end_angle_wrapped < az_mask_start_angle)) {
         nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
@@ -506,7 +501,6 @@ static void manage_azimuth_dropouts(const ephemeris_t *e_meas, u8 n_ready,
                     "azimuth dropouts: Couldn't compute azimuth.");
     }
   }
-
 }
 
 static void me_calc_pvt_thread(void *arg) {
