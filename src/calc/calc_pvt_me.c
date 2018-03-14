@@ -79,9 +79,9 @@ float az_drops_mask_size = 90;
 /* How many degrees the mask changes by each step. */
 float az_drops_step_size = 90;
 /* Minimum time between steps (random between min/max). */
-u32 az_drops_min_step_ms = 1000;
+u32 az_drops_min_step_ms = 4500;
 /* Maximum time between steps. */
-u32 az_drops_max_step_ms = 5000;
+u32 az_drops_max_step_ms = 5500;
 
 /* RFT_TODO *
  * check that Klobuchar is used in SPP solver */
@@ -680,6 +680,15 @@ static void me_calc_pvt_thread(void *arg) {
 
           /* Update azimuth mask starting angle. */
           az_mask_start_angle = fmod(az_mask_start_angle + az_drops_step_size, 360.0f);
+
+          log_info("-----------------------");
+          log_info("az_drops_max_step_ms: %lu", az_drops_max_step_ms);
+          log_info("az_drops_min_step_ms: %lu", az_drops_min_step_ms);
+          log_info("step_range_ms: %lu", step_range_ms);
+          log_info("step_ms: %lu", step_ms);
+          log_info("next_step_ms: %llu", next_step_ms);
+          log_info("az_mask_start_angle: %f", az_mask_start_angle);
+          log_info("az_drops_step_size: %f", az_drops_step_size);
         }
 
         /* Loop through sats and mark unusable those that are inside mask. */
@@ -694,9 +703,11 @@ static void me_calc_pvt_thread(void *arg) {
                                   false)) {
             az_deg = 180*az/M_PI;
 
-            /* If satellite is within the azimuth mask, mark it unusable. */
-            if (az_deg < fmod(az_mask_start_angle + az_drops_mask_size, 360.0f) && \
-                az_deg > az_mask_start_angle) {
+            /* If satellite is within the azimuth mask, mark it unusable.
+             * Handle wrapping around 360 degree. */
+            if ((az_deg < fmod(az_mask_start_angle + az_drops_mask_size, 360.0f) && fmod(az_mask_start_angle + az_drops_mask_size, 360.0f) < az_mask_start_angle) ||
+                (az_deg < fmod(az_mask_start_angle + az_drops_mask_size, 360.0f) && az_deg > az_mask_start_angle) ||
+                (az_deg > az_mask_start_angle && fmod(az_mask_start_angle + az_drops_mask_size, 360.0f) < az_mask_start_angle)) {
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_PHASE_VALID;
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
