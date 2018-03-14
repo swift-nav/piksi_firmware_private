@@ -712,15 +712,14 @@ static void me_calc_pvt_thread(void *arg) {
 
             /* If satellite is within the azimuth mask, mark it unusable.
              * Handle wrapping around 360 degree. */
-            float az_end_angle_wrapped = fmod(az_mask_start_angle + az_drops_mask_size, 360.0f)
-            if ((az_deg < az_end_angle_wrapped && az_end_angle_wrapped <
-                     az_mask_start_angle) ||
-                (az_deg <
-                     az_end_angle_wrapped &&
+            float az_end_angle_wrapped =
+                fmod(az_mask_start_angle + az_drops_mask_size, 360.0f);
+            if ((az_deg < az_end_angle_wrapped &&
+                 az_end_angle_wrapped < az_mask_start_angle) ||
+                (az_deg < az_end_angle_wrapped &&
                  az_deg > az_mask_start_angle) ||
                 (az_deg > az_mask_start_angle &&
-                 az_end_angle_wrapped <
-                     az_mask_start_angle)) {
+                 az_end_angle_wrapped < az_mask_start_angle)) {
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_PHASE_VALID;
               nav_meas[i].flags &= ~NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
