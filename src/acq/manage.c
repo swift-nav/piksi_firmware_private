@@ -685,7 +685,7 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
  *
  * \return
  */
-void restore_acq(tracker_t *tracker_channel) {
+void restore_acq(const tracker_t *tracker_channel) {
   u32 flags = tracker_channel->flags;
   me_gnss_signal_t mesid = tracker_channel->mesid;
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];

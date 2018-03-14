@@ -117,7 +117,7 @@ bool leap_second_imminent(void);
 void sanitize_tracker(tracker_t *tracker_channel,
                       u64 now_ms,
                       bool leap_second_event);
-void restore_acq(tracker_t *tracker_channel);
+void restore_acq(const tracker_t *tracker_channel);
 
 void check_clear_glo_unhealthy(void);
 void check_clear_unhealthy(void);
