@@ -671,7 +671,8 @@ static void me_calc_pvt_thread(void *arg) {
       az_drops_settings_sane = false;
     }
     if (az_drops_min_step_ms > az_drops_max_step_ms) {
-      log_error("azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
+      log_error(
+          "azimuth dropouts: az_drops_min_step_ms > az_drops_max_step_ms");
       az_drops_settings_sane = false;
     }
 
