@@ -73,7 +73,7 @@ static bool disable_raim = false;
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
 /* Enable azimuth observation dropouts. */
-bool az_drops_enabled = true;
+bool az_drops_enabled = false;
 /* How much of the sky is masked in degrees. */
 float az_drops_mask_size = 30;
 /* How many degrees the mask changes by each step. */
