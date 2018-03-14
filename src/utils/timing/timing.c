@@ -274,7 +274,8 @@ u64 gpstime2napcount(const gps_time_t *t) {
   u64 ref_tc = persistent_clock_state.tc;
   chMtxUnlock(&clock_mutex);
 
-  return ref_tc + round(gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate));
+  return ref_tc +
+         (s64)round(gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate));
 }
 
 /** Convert Rcv time to rx time.
