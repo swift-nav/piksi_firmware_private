@@ -649,62 +649,68 @@ static void me_calc_pvt_thread(void *arg) {
       }
     }
 
-    /* #define NAV_MEAS_FLAG_CODE_VALID ((nav_meas_flags_t)1 << 0)
-     * #define NAV_MEAS_FLAG_PHASE_VALID ((nav_meas_flags_t)1 << 1)
-     * #define NAV_MEAS_FLAG_MEAS_DOPPLER_VALID ((nav_meas_flags_t)1 << 2)
-     * #define NAV_MEAS_FLAG_COMP_DOPPLER_VALID ((nav_meas_flags_t)1 << 3)
-     * #define NAV_MEAS_FLAG_HALF_CYCLE_KNOWN ((nav_meas_flags_t)1 << 4)
-     * #define NAV_MEAS_FLAG_CN0_VALID ((nav_meas_flags_t)1 << 5)
-     * #define NAV_MEAS_FLAG_RAIM_EXCLUSION ((nav_meas_flags_t)1 << 6) */
-
     /* Azimuth mask HITL scenario: calculate satellite azimuth, and mask off
      * satellties that fall within the azimuth mask. */
     static last_good_fix_t az_drops_lgf;
     static bool had_a_lgf = false;
     static u64 next_step_ms = 0;
+    static float az_mask_start_angle = 0;
 
     if (az_drops_enabled) {
       ndb_op_code_t ret = ndb_lgf_read(&az_drops_lgf);
 
-      /* Record if we've had a LGF yet for warning below. */
+      /* Record if we've had a last good fix yet for warning below. */
       if (NDB_ERR_NONE == ret && az_drops_lgf.position_solution.valid) {
         had_a_lgf = true;
       }
 
+      /* Check if we have a valid last good fix to compute azimuth with. */
       if (NDB_ERR_NONE != ret) {
-        log_error("azimuth_dropouts: ndb_lgf_read returned %d", ret);
+        log_error("azimuth dropouts: ndb_lgf_read returned %d. No mask applied.", ret);
       } else if (!az_drops_lgf.position_solution.valid && had_a_lgf) {
-        log_error("azimuth_dropouts: lgf position solution turned invalid");
+        log_error("azimuth dropouts: lgf position solution became invalid. No mask applied.");
       } else {
         /* Check if enough time has elapsed to change the azimuth mask. */
         u64 current_ms = timing_getms();
         if (current_ms >= next_step_ms) {
           /* Compute next time azimuth mask should be changed. */
-          u32 step_ms = (u32)((float)(az_drops_max_step_ms-az_drops_min_step_ms)*((float)rand()/RAND_MAX)) + az_drops_min_step_ms;
-          next_step_ms = current_ms + step_ms;
-          log_error("step_ms = %lu", step_ms);
-//          for (u8 i = 0; i < n_ready; i++) {
-//            double az, el;
-//            if (0 == calc_sat_az_el(&e_meas[i],
-//                                    &(nav_meas[i].tot),
-//                                    az_drops_lgf.position_solution.pos_ecef,
-//                                    &az,
-//                                    &el,
-//                                    false)) {
-//                log_warn_sid(nav_meas[i].sid, "Azimuth: %f", 180*az/M_PI);
-//                /* if 
-//                 *  log_warn_sid(nav_meas[i].sid,
-//                 *               "RAIM repair, setting observation invalid.");
-//                 * nav_meas[i].flags |= NAV_MEAS_FLAG_RAIM_EXCLUSION; */
-//               
-//            } else {
-//              log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth");
-//            }
-//          }
+          u32 step_range_ms = az_drops_max_step_ms - az_drops_min_step_ms;
+          u32 step_ms = (u32)((float)(step_range_ms)*((float)rand()/RAND_MAX)) + az_drops_min_step_ms;
+          next_step_ms += step_ms;
+
+          /* Update azimuth mask starting angle. */
+          az_mask_start_angle = fmod(az_mask_start_angle + az_drops_step_size, 360.0f);
+        }
+
+        /* Loop through sats and mark unusable those that are inside mask. */
+        for (u8 i = 0; i < n_ready; i++) {
+          double az, el;
+          double az_deg;
+          if (0 == calc_sat_az_el(&e_meas[i],
+                                  &(nav_meas[i].tot),
+                                  az_drops_lgf.position_solution.pos_ecef,
+                                  &az,
+                                  &el,
+                                  false)) {
+            az_deg = 180*az/M_PI;
+
+            /* If satellite is within the azimuth mask, mark it unusable. */
+            if (az_deg < fmod(az_mask_start_angle + az_drops_mask_size, 360.0f) && \
+                az_deg > az_mask_start_angle) {
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_CODE_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_PHASE_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_MEAS_DOPPLER_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_COMP_DOPPLER_VALID;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_HALF_CYCLE_KNOWN;
+              nav_meas[i].flags &= ~NAV_MEAS_FLAG_CN0_VALID;
+            }
+          } else {
+            /* log_warn_sid(nav_meas[i].sid, "Couldn't compute azimuth"); */
+            log_error_sid(nav_meas[i].sid, "azimuth dropouts: Couldn't compute azimuth.");
+          }
         }
       }
     }
-    
 
     time_quality_t old_time_quality = get_time_quality();
 
