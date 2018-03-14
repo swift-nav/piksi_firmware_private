@@ -144,7 +144,7 @@ static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
 typedef struct {
-  piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
+  piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
   acq_status_t *status; /**< Pointer to acq status for the GLO SV */
 } acq_timer_t;
 
@@ -521,7 +521,9 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
   return MANAGE_NO_CHANNELS_FREE;
 }
 
-static void mclr(acq_timer_t *timer, size_t size, u32 timeout_s) {
+static void revert_expired_unhealthiness(acq_timer_t *timer,
+                                         size_t size,
+                                         u32 timeout_s) {
   for (u8 i = 0; i < size; i++) {
     if (NULL == timer[i].status) {
       continue;
@@ -529,20 +531,24 @@ static void mclr(acq_timer_t *timer, size_t size, u32 timeout_s) {
     if (ACQ_PRN_UNHEALTHY != timer[i].status->state) {
       continue;
     }
-    if (piksi_systime_elapsed_since_s(&timer[i].tick) > timeout_s) {
-      timer[i].status->state = ACQ_PRN_ACQUIRING;
-      log_info_mesid(timer[i].status->mesid, "is back to aquisition");
+    if (piksi_systime_elapsed_since_s(&timer[i].tick) <= timeout_s) {
+      continue;
     }
+
+    timer[i].status->state = ACQ_PRN_ACQUIRING;
+    log_info_mesid(timer[i].status->mesid, "is back to aquisition");
   }
 }
 
 /** Check SV unhealthy flags and clear after constellation specific timeout */
 void check_clear_unhealthy(void) {
   if (is_glo_enabled()) {
-    mclr(glo_acq_timer, ARRAY_SIZE(glo_acq_timer), ACQ_GLO_EPH_VALID_TIME_SEC);
+    revert_expired_unhealthiness(
+        glo_acq_timer, ARRAY_SIZE(glo_acq_timer), ACQ_GLO_EPH_VALID_TIME_SEC);
   }
   if (is_sbas_enabled()) {
-    mclr(sbas_acq_timer, ARRAY_SIZE(sbas_acq_timer), ACQ_SBAS_MSG0_TIMEOUT_SEC);
+    revert_expired_unhealthiness(
+        sbas_acq_timer, ARRAY_SIZE(sbas_acq_timer), ACQ_SBAS_MSG0_TIMEOUT_SEC);
   }
 }
 
@@ -699,12 +705,14 @@ void restore_acq(const tracker_t *tracker_channel) {
       glo_acq_timer[index].status = acq;
       piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
     }
-  } else if (IS_SBAS(mesid) && (SV_UNHEALTHY == tracker_channel->health)) {
-    acq->state = ACQ_PRN_UNHEALTHY;
-    size_t index = (size_t)tracker_channel->mesid.sat - SBAS_FIRST_PRN;
-    assert(index < ARRAY_SIZE(sbas_acq_timer));
-    sbas_acq_timer[index].status = acq;
-    piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
+  } else if (IS_SBAS(mesid)) {
+    if (SV_UNHEALTHY == tracker_channel->health) {
+      acq->state = ACQ_PRN_UNHEALTHY;
+      size_t index = (size_t)tracker_channel->mesid.sat - SBAS_FIRST_PRN;
+      assert(index < ARRAY_SIZE(sbas_acq_timer));
+      sbas_acq_timer[index].status = acq;
+      piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
+    }
   }
 }
 
@@ -856,12 +864,11 @@ void sanitize_tracker(tracker_t *tracker_channel,
       drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
       return;
     }
-  }
-
-  /* Drop SBAS if the SV is unhealthy */
-  if (IS_SBAS(mesid) && (SV_UNHEALTHY == tracker_channel->health)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
-    return;
+  } else if (IS_SBAS(mesid)) {
+    if (SV_UNHEALTHY == tracker_channel->health) {
+      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+      return;
+    }
   }
 
   /* Drop channel if signal was excluded by RAIM */
