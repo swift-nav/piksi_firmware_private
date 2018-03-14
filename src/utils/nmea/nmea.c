@@ -53,7 +53,7 @@ static u32 gsa_msg_rate = 10;
  * Send messages in NMEA 2.30 format.
  * \{ */
 
-/* Convert GLO sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 99 */
+/* Convert GLO sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 96 */
 #define NMEA_SV_ID_GLO(x) (x + 64)
 
 /* Convert SBAS sid.sat to NMEA SV ID format: SBAS SV IDs are from 33 to 54 */
@@ -388,7 +388,7 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
     case CONSTELLATION_COUNT:
     case CONSTELLATION_INVALID:
     default:
-      log_error("Unsupported constellation");
+      log_error("NMEA: Unsupported constellation");
       break;
   }
 
@@ -405,10 +405,10 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
  * \param talker       Talker ID to use.
  */
 void nmea_gsa_print(u8 *prns,
-              const u8 num_prns,
-              const msg_pos_llh_t *sbp_pos_llh,
-              const msg_dops_t *sbp_dops,
-              const char *talker) {
+                    const u8 num_prns,
+                    const msg_pos_llh_t *sbp_pos_llh,
+                    const msg_dops_t *sbp_dops,
+                    const char *talker) {
   assert(prns);
   assert(sbp_dops);
   assert(sbp_pos_llh);
@@ -481,9 +481,9 @@ static bool in_set(u8 prns[], u8 count, u8 prn) {
  * \param nav_meas     Array of navigation measurements
  */
 static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
-                              const msg_dops_t *sbp_dops,
-                              const u8 n_meas,
-                              const navigation_measurement_t nav_meas[]) {
+                     const msg_dops_t *sbp_dops,
+                     const u8 n_meas,
+                     const navigation_measurement_t nav_meas[]) {
   assert(sbp_pos);
   assert(sbp_dops);
   assert(nav_meas);
@@ -517,16 +517,29 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
     }
   }
 
-  /* Send GSA messages */
+  if (0 == num_prns_gp && 0 == num_prns_gl) {
+    /* At bare minimum, print empty GPGSA and be done with it */
+    nmea_gsa_print(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
+    return;
+  }
+
+  bool use_gn = false;
+
   if (0 != num_prns_gp && 0 != num_prns_gl) {
     /* At least two constellations detected, use GN talker ID */
-    nmea_gsa_print(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GN");
-    nmea_gsa_print(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GN");
-  } else {
-    nmea_gsa_print(prns_gp, num_prns_gp, sbp_pos, sbp_dops, "GP");
-    if (enable_glonass) {
-      nmea_gsa_print(prns_gl, num_prns_gl, sbp_pos, sbp_dops, "GL");
-    }
+    use_gn = true;
+  }
+
+  /* Print active GP identified SVs */
+  if (0 != num_prns_gp) {
+    nmea_gsa_print(
+        prns_gp, num_prns_gp, sbp_pos, sbp_dops, use_gn ? "GN" : "GP");
+  }
+
+  /* Print active GL identified SVs */
+  if (0 != num_prns_gl) {
+    nmea_gsa_print(
+        prns_gl, num_prns_gl, sbp_pos, sbp_dops, use_gn ? "GN" : "GL");
   }
 }
 
@@ -620,7 +633,6 @@ static void nmea_gsv_print(const u8 n_used,
  *
  * \param[in] n_used      size of ch_meas
  * \param[in] ch_meas     array of ch_measurement structs from SVs in track
- * \param[in] talker      indicator which talker ID to use
  */
 static void nmea_gsv(u8 n_used, const channel_measurement_t *ch_meas) {
   if (0 == n_used || NULL == ch_meas) {
