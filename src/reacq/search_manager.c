@@ -199,8 +199,10 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     assert(sid_valid(sid));
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
-    /* Check if jobs need to run */
     if (mesid_is_tracked(*mesid)) {
+      continue;
+    }
+    if (!mesid_waits_acquisition(*mesid)) {
       continue;
     }
 
@@ -290,8 +292,10 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     assert(sid_valid(sid));
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
-    /* Check if jobs need to run */
     if (mesid_is_tracked(*mesid)) {
+      continue;
+    }
+    if (!mesid_waits_acquisition(*mesid)) {
       continue;
     }
 

@@ -1217,16 +1217,21 @@ static void manage_tracking_startup(void) {
     acq_status_t *acq =
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
-    /* Make sure we tracked less than SBAS_SV_NUM_LIMIT SBAS SVs */
-    if (IS_SBAS(acq->mesid) &&
-        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    if (ACQ_PRN_TRACKING == acq->state) {
       continue;
     }
 
-    /* Make sure the SID is not already tracked and healthy */
-    if ((acq->state == ACQ_PRN_TRACKING) ||
-        (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
-      continue;
+    if (IS_SBAS(acq->mesid)) {
+      if (sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+        continue;
+      }
+      if (ACQ_PRN_UNHEALTHY == acq->state) {
+        continue;
+      }
+    } else if (IS_GLO(acq->mesid)) {
+      if (ACQ_PRN_UNHEALTHY == acq->state) {
+        continue;
+      }
     }
 
     /* Make sure a tracking channel and a decoder channel are available */
@@ -1359,6 +1364,18 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
   return acq->state == ACQ_PRN_TRACKING;
+}
+
+/**
+ * Checks if mesid waits for acquisition
+ * \param mesid ME signal ID to check.
+ * \retval true mesid waits for acquisition
+ * \retval false mesid does not wait for acquisition
+ */
+bool mesid_waits_acquisition(const me_gnss_signal_t mesid) {
+  u16 global_index = mesid_to_global_index(mesid);
+  acq_status_t *acq = &acq_status[global_index];
+  return ACQ_PRN_ACQUIRING == acq->state;
 }
 
 /** Checks if GLONASS enabled
