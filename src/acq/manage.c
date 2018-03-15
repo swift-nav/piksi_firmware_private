@@ -646,11 +646,9 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
                    time_in_track_ms,
                    get_ch_drop_reason_str(reason));
   }
-  /*
-   * TODO add generation of a tracker state change message
-   */
 
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
+
   if (code_requires_direct_acq(mesid.code)) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
@@ -677,6 +675,22 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
     }
   }
 
+  /* Disable the decoder and tracking channels */
+  decoder_channel_disable(tracker_channel->nap_channel);
+  tracker_disable(tracker_channel->nap_channel);
+}
+
+/**
+ * Restores acquisition for a satellite that has been disposed.
+ *
+ * \return
+ */
+void restore_acq(const tracker_t *tracker_channel) {
+  u32 flags = tracker_channel->flags;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
+
+  /* Now restore satellite acq */
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
     if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
@@ -690,10 +704,6 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
   } else {
     acq->state = ACQ_PRN_ACQUIRING;
   }
-
-  /* Finally disable the decoder and tracking channels */
-  decoder_channel_disable(tracker_channel->nap_channel);
-  tracker_disable(tracker_channel->nap_channel);
 }
 
 /**

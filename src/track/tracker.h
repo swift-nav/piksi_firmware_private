@@ -161,11 +161,8 @@ typedef struct {
 
 /** \addtogroup tracking
  * \{ */
-
-typedef u8 tracker_id_t;
-
 typedef enum {
-  STATE_DISABLED,
+  STATE_DISABLED = 0,
   STATE_ENABLED,
   STATE_DISABLE_REQUESTED,
   STATE_DISABLE_WAIT
@@ -182,7 +179,7 @@ typedef enum {
  * Generic tracking channel information for external use.
  */
 typedef struct {
-  tracker_id_t id;         /**< Channel identifier */
+  u8 id;                   /**< Channel identifier */
   me_gnss_signal_t mesid;  /**< ME signal identifier */
   u16 glo_orbit_slot;      /**< GLO orbital slot */
   u32 flags;               /**< Tracker flags TRACKER_FLAG_... */

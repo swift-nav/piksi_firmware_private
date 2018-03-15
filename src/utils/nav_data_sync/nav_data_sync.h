@@ -29,7 +29,7 @@ typedef struct {
   s32 TOW_residual_ns; /**< Residual to TOW_ms [ns] */
   s8 bit_polarity;
   u16 glo_orbit_slot;
-  nav_bit_fifo_index_t read_index;
+  u8 read_index;
   glo_health_t glo_health;
   bool valid;
   decode_sync_flags_t sync_flags;

@@ -33,8 +33,6 @@
 
 #define MAX_VAL_CN0 (255.0 / 4.0)
 
-u16 max_pll_integration_time_ms = 20;
-
 static THD_WORKING_AREA(wa_nap_track_irq, NAP_TRACK_IRQ_THREAD_STACK);
 
 void nap_track_irq_thread(void *arg);
@@ -62,20 +60,6 @@ static bool track_iq_output_notify(struct setting *s, const char *val) {
   return false;
 }
 
-/** Max PLL integration time change notification callback */
-static bool max_pll_integration_time_notify(struct setting *s,
-                                            const char *val) {
-  /* update global max_pll_integration_time_ms using the default notify */
-  bool ret = settings_default_notify(s, val);
-  if (max_pll_integration_time_ms < 1) {
-    max_pll_integration_time_ms = 1; /* 1ms integration time is the smallest */
-  }
-  log_info("Max configured PLL integration time update: %" PRIu16 " ms",
-           max_pll_integration_time_ms);
-
-  return ret;
-}
-
 /** Set up the tracking module. */
 void track_setup(void) {
   SETTING_NOTIFY("track",
@@ -83,11 +67,6 @@ void track_setup(void) {
                  iq_output_mask,
                  TYPE_INT,
                  track_iq_output_notify);
-  SETTING_NOTIFY("track",
-                 "max_pll_integration_time_ms",
-                 max_pll_integration_time_ms,
-                 TYPE_INT,
-                 max_pll_integration_time_notify);
 
   track_internal_setup();
 
@@ -113,7 +92,7 @@ void track_setup(void) {
  *
  * \return Associated tracker channel.
  */
-tracker_t *tracker_get(tracker_id_t id) {
+tracker_t *tracker_get(u8 id) {
   assert(id < NUM_TRACKER_CHANNELS);
   return &trackers[id];
 }
@@ -125,7 +104,7 @@ tracker_t *tracker_get(tracker_id_t id) {
  *
  * \return true if the tracker channel is available, false otherwise.
  */
-bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
+bool tracker_available(u8 id, const me_gnss_signal_t mesid) {
   const tracker_t *tracker_channel = tracker_get(id);
 
   if (!nap_track_supports(id, mesid)) {
@@ -146,7 +125,7 @@ bool tracker_available(tracker_id_t id, const me_gnss_signal_t mesid) {
  *
  * \return None
  */
-void tracker_get_state(tracker_id_t id,
+void tracker_get_state(u8 id,
                        tracker_info_t *info,
                        tracker_time_info_t *time_info,
                        tracker_freq_info_t *freq_info,
@@ -161,7 +140,7 @@ void tracker_get_state(tracker_id_t id,
   tracker_lock(tracker_channel);
 
   /* Tracker identifier */
-  info->id = (tracker_id_t)(tracker_channel - &trackers[0]);
+  info->id = (u8)(tracker_channel - &trackers[0]);
   /* Translate/expand flags from tracker internal scope */
   info->flags = tracker_channel->flags;
   /* Signal identifier */
@@ -306,7 +285,7 @@ static void event(tracker_t *tracker_channel, event_t event) {
  *
  * \return true if the tracker channel was initialized, false otherwise.
  */
-bool tracker_init(tracker_id_t id,
+bool tracker_init(u8 id,
                   const me_gnss_signal_t mesid,
                   u16 glo_orbit_slot,
                   u64 ref_sample_count,
@@ -356,7 +335,7 @@ bool tracker_init(tracker_id_t id,
 
     bit_sync_init(&tracker_channel->bit_sync, mesid);
 
-    tracker_interface_lookup(mesid)->init(tracker_channel);
+    tracker_interface_lookup(mesid.code)->init(tracker_channel);
 
     /* Clear error flags before starting NAP tracking channel */
     error_flags_clear(tracker_channel);
@@ -382,7 +361,7 @@ bool tracker_init(tracker_id_t id,
  *
  * \return true if the tracker channel was disabled, false otherwise.
  */
-bool tracker_disable(tracker_id_t id) {
+bool tracker_disable(u8 id) {
   /* Request disable */
   tracker_t *tracker_channel = tracker_get(id);
   event(tracker_channel, EVENT_DISABLE_REQUEST);
@@ -444,7 +423,7 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
     case STATE_ENABLED: {
       if (update_required) {
         tracker_lock(tracker);
-        tracker_interface_lookup(tracker->mesid)->update(tracker);
+        tracker_interface_lookup(tracker->mesid.code)->update(tracker);
         tracker_unlock(tracker);
       }
     } break;
@@ -453,7 +432,7 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
       nap_channel_disable(tracker);
       tracker_lock(tracker);
       {
-        tracker_interface_lookup(tracker->mesid)->disable(tracker);
+        tracker_interface_lookup(tracker->mesid.code)->disable(tracker);
         piksi_systime_get(&tracker->disable_time);
         event(tracker, EVENT_DISABLE);
       }
@@ -486,11 +465,12 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
  *                        an IRQ is pending.
  * \param leap_second_event Leap second is to be handled
  */
-void trackers_update(u64 channels_mask, bool leap_second_event) {
+void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
   const u64 now_ms = timing_getms();
 
-  for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
-    tracker_t *tracker_channel = tracker_get(channel);
+  for (u8 ci = 0; (ci < 32) && ((start_chan + ci) < nap_track_n_channels);
+       ci++) {
+    tracker_t *tracker_channel = tracker_get(start_chan + ci);
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
@@ -502,9 +482,9 @@ void trackers_update(u64 channels_mask, bool leap_second_event) {
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        a missed update error has occurred.
  */
-void trackers_missed(u64 channels_mask) {
-  for (u32 channel = 0; channel < nap_track_n_channels; channel++) {
-    tracker_t *tracker_channel = tracker_get(channel);
+void trackers_missed(u32 channels_mask, u8 start_chan) {
+  for (u8 ci = start_chan; channels_mask && (ci < nap_track_n_channels); ci++) {
+    tracker_t *tracker_channel = tracker_get(ci);
     bool error = (channels_mask & 1) ? true : false;
     if (error) {
       error_flags_add(tracker_channel, ERROR_FLAG_MISSED_UPDATE);

@@ -50,10 +50,6 @@ static const tracker_interface_t tracker_interface_bds2_b2 = {
     .update = tracker_bds2_b2_update,
 };
 
-/** BDS2 B2 tracker interface list element */
-static tracker_interface_list_element_t tracker_interface_list_element_bds2_b2 =
-    {.interface = &tracker_interface_bds2_b2, .next = 0};
-
 static void tracker_bds2_b2_init(tracker_t *tracker_channel) {
   tp_tracker_init(tracker_channel, &bds2_b2_config);
 
@@ -68,7 +64,7 @@ static void tracker_bds2_b2_update(tracker_t *tracker_channel) {
  *  framework.
  */
 void track_bds2_b2_register(void) {
-  tracker_interface_register(&tracker_interface_list_element_bds2_b2);
+  tracker_interface_register(&tracker_interface_bds2_b2);
 }
 
 /** Do B1 to B2 handover.

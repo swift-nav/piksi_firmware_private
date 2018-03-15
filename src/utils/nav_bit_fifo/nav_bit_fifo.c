@@ -45,15 +45,9 @@ bool nav_bit_fifo_full(nav_bit_fifo_t *fifo) {
  *
  * \return true if element was read, false otherwise.
  */
-bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
-                        const nav_bit_fifo_element_t *element) {
+bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) < NAV_BIT_FIFO_SIZE) {
-    COMPILER_BARRIER(); /* Prevent compiler reordering */
-    MEMCPY_S(&fifo->elements[fifo->write_index & NAV_BIT_FIFO_INDEX_MASK],
-             sizeof(nav_bit_fifo_element_t),
-             element,
-             sizeof(nav_bit_fifo_element_t));
-    COMPILER_BARRIER(); /* Prevent compiler reordering */
+    fifo->elements[fifo->write_index & NAV_BIT_FIFO_INDEX_MASK] = (*element);
     fifo->write_index++;
     return true;
   }
@@ -70,14 +64,9 @@ bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
  *
  * \return true if element was read, false otherwise.
  */
-bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element) {
+bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element) {
   if (NAV_BIT_FIFO_LENGTH(fifo) > 0) {
-    COMPILER_BARRIER(); /* Prevent compiler reordering */
-    MEMCPY_S(element,
-             sizeof(nav_bit_fifo_element_t),
-             &fifo->elements[fifo->read_index & NAV_BIT_FIFO_INDEX_MASK],
-             sizeof(nav_bit_fifo_element_t));
-    COMPILER_BARRIER(); /* Prevent compiler reordering */
+    (*element) = fifo->elements[fifo->read_index & NAV_BIT_FIFO_INDEX_MASK];
     fifo->read_index++;
     return true;
   }

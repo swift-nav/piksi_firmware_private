@@ -129,7 +129,7 @@ double tracker_get_lock_time(const tracker_time_info_t *time_info,
 u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
   u16 cnt = 0;
 
-  for (tracker_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     tracker_t *tracker_channel = tracker_get(id);
     tracker_cc_entry_t entry;
 

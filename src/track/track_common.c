@@ -15,6 +15,7 @@
 #include <libswiftnav/gnss_time.h>
 
 #include "lock_detector/lock_detector.h"
+#include "manage.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
@@ -280,6 +281,10 @@ void tp_tracker_disable(tracker_t *tracker_channel) {
                   tracker_channel->update_count,
                   tracker_channel->TOW_ms);
 
+  /* restore acq for this tracked SV */
+  restore_acq(tracker_channel);
+
+  /* final cleanup */
   tracker_cleanup(tracker_channel);
 }
 
