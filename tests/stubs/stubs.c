@@ -49,6 +49,11 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
   return false;
 }
 
+bool mesid_waits_acquisition(const me_gnss_signal_t mesid) {
+  (void)mesid;
+  return true;
+}
+
 bool is_glo_enabled(void) { return true; }
 
 bool is_sbas_enabled(void) { return true; }
