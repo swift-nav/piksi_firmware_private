@@ -49,11 +49,6 @@ static const tracker_interface_t tracker_interface_bds2_b11 = {
     .update = tracker_bds2_b11_update,
 };
 
-/** BDS2 B11 tracker interface list element */
-static tracker_interface_list_element_t
-    tracker_interface_list_element_bds2_b11 = {
-        .interface = &tracker_interface_bds2_b11, .next = 0};
-
 static void tracker_bds2_b11_init(tracker_t *tracker_channel) {
   bds2_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &bds2_l1ca_config);
@@ -90,5 +85,5 @@ static void tracker_bds2_b11_update(tracker_t *tracker_channel) {
  *  framework.
  */
 void track_bds2_b11_register(void) {
-  tracker_interface_register(&tracker_interface_list_element_bds2_b11);
+  tracker_interface_register(&tracker_interface_bds2_b11);
 }

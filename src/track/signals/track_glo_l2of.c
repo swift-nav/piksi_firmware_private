@@ -58,14 +58,11 @@ static const tracker_interface_t tracker_interface_glo_l2of = {
     .update = tracker_glo_l2of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
-    .interface = &tracker_interface_glo_l2of, .next = 0};
-
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
 void track_glo_l2of_register(void) {
-  tracker_interface_register(&tracker_interface_list_glo_l2of);
+  tracker_interface_register(&tracker_interface_glo_l2of);
 }
 
 /** Do GLO L1OF to L2OF handover.

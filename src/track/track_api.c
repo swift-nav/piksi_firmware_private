@@ -83,7 +83,7 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker_channel,
                                         const nav_data_sync_t *to_tracker) {
   s32 TOW_ms = TOW_INVALID;
   /* Compute time since the pending data was read from the FIFO */
-  nav_bit_fifo_index_t fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
+  u8 fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
       tracker_channel->nav_bit_fifo.write_index, to_tracker->read_index);
   u32 fifo_time_diff_ms = fifo_length * tracker_channel->bit_sync.bit_length;
 
@@ -215,13 +215,9 @@ void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
  * \param bit_integrate   Signed bit integration value.
  */
 static s8 nav_bit_quantize(s32 bit_integrate) {
-  //  0 through  2^24 - 1 ->  0 = weakest positive bit
-  // -1 through -2^24     -> -1 = weakest negative bit
+  /* compress s32 into a balanced s8, 0 reserved for sensitivity mode */
 
-  if (bit_integrate >= 0)
-    return bit_integrate / (1 << 24);
-  else
-    return ((bit_integrate + 1) / (1 << 24)) - 1;
+  return (s8)(((bit_integrate >> 25) << 1) + 1);
 }
 
 /** Update bit sync and output navigation message bits for a tracker channel.
@@ -258,8 +254,7 @@ void tracker_bit_sync_update(tracker_t *tracker_channel,
   s8 soft_bit = nav_bit_quantize(bit_integrate);
 
   /* write to FIFO */
-  nav_bit_fifo_element_t element = {.soft_bit = soft_bit,
-                                    .sensitivity_mode = sensitivity_mode};
+  nav_bit_t element = sensitivity_mode ? 0 : soft_bit;
   if (nav_bit_fifo_write(&tracker_channel->nav_bit_fifo, &element)) {
     /* warn if the FIFO has become full */
     if (nav_bit_fifo_full(&tracker_channel->nav_bit_fifo)) {

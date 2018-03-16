@@ -646,11 +646,9 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
                    time_in_track_ms,
                    get_ch_drop_reason_str(reason));
   }
-  /*
-   * TODO add generation of a tracker state change message
-   */
 
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
+
   if (code_requires_direct_acq(mesid.code)) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
@@ -677,6 +675,22 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
     }
   }
 
+  /* Disable the decoder and tracking channels */
+  decoder_channel_disable(tracker_channel->nap_channel);
+  tracker_disable(tracker_channel->nap_channel);
+}
+
+/**
+ * Restores acquisition for a satellite that has been disposed.
+ *
+ * \return
+ */
+void restore_acq(const tracker_t *tracker_channel) {
+  u32 flags = tracker_channel->flags;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+  acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
+
+  /* Now restore satellite acq */
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
     if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
@@ -690,10 +704,6 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
   } else {
     acq->state = ACQ_PRN_ACQUIRING;
   }
-
-  /* Finally disable the decoder and tracking channels */
-  decoder_channel_disable(tracker_channel->nap_channel);
-  tracker_disable(tracker_channel->nap_channel);
 }
 
 /**
@@ -706,7 +716,7 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-static bool leap_second_is_imminent(void) {
+bool leap_second_imminent(void) {
   /* Check if GPS time is known.
    * If GPS time is not known,
    * leap second event cannot be detected. */
@@ -734,185 +744,123 @@ static bool leap_second_is_imminent(void) {
   return leap_second_event;
 }
 
-/** Disable any tracking channel that has errored, too weak, lost phase lock
+/** Disable the tracking channel if it has errored, too weak, lost phase lock
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_trackers(void) {
-  const u64 now_ms = timing_getms();
-  bool leap_second_event = false;
-
-  DO_EACH_MS(400, leap_second_event = leap_second_is_imminent());
-
-  /* Clear GLO satellites TOW cache if it is leap second event */
-  if (leap_second_event) {
-    track_sid_db_clear_glo_tow();
+void sanitize_tracker(tracker_t *tracker_channel,
+                      u64 now_ms,
+                      bool leap_second_event) {
+  /*! Addressing the problem where we try to disable a channel that is
+   * not in `STATE_ENABLED` in the first place. It remains to check
+   * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
+   * */
+  state_t state = tracker_channel->state;
+  COMPILER_BARRIER();
+  if (STATE_ENABLED != state) {
+    return;
   }
 
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    /*! Addressing the problem where we try to disable a channel that is
-     * not in `STATE_ENABLED` in the first place. It remains to check
-     * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
-     * */
-    tracker_t *tracker_channel = tracker_get(i);
+  u32 flags = tracker_channel->flags;
+  me_gnss_signal_t mesid = tracker_channel->mesid;
 
-    state_t state = tracker_channel->state;
-    COMPILER_BARRIER();
-    if (STATE_ENABLED != state) {
-      continue;
-    }
+  /* Skip channels that aren't in use */
+  if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
+    return;
+  }
 
-    u32 flags = tracker_channel->flags;
-    me_gnss_signal_t mesid = tracker_channel->mesid;
+  /* Drop GLO satellites if it is leap second event */
+  if (leap_second_event && IS_GLO(mesid)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
+    return;
+  }
 
-    /* Skip channels that aren't in use */
-    if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
-      continue;
-    }
+  /* Has an error occurred? */
+  if (0 != (flags & TRACKER_FLAG_ERROR)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
+    return;
+  }
 
-    /* Drop GLO satellites if it is leap second event */
-    if (leap_second_event && IS_GLO(mesid)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
-      continue;
-    }
+  /* Is tracking masked? */
+  u16 global_index = mesid_to_global_index(mesid);
+  if (track_mask[global_index]) {
+    drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
+    return;
+  }
 
-    /* Has an error occurred? */
-    if (0 != (flags & TRACKER_FLAG_ERROR)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
-      continue;
-    }
+  /* Do we have a large measurement outlier? */
+  if (0 != (flags & TRACKER_FLAG_OUTLIER)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
+    return;
+  }
 
-    /* Is tracking masked? */
-    u16 global_index = mesid_to_global_index(mesid);
-    if (track_mask[global_index]) {
-      drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
-      continue;
-    }
+  /* Give newly-initialized channels a chance to converge. */
+  u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
+  u32 wait_ms = code_requires_direct_acq(mesid.code)
+                    ? TRACK_INIT_FROM_ACQ_MS
+                    : TRACK_INIT_FROM_HANDOVER_MS;
+  if (age_ms < wait_ms) {
+    return;
+  }
 
-    /* Do we have a large measurement outlier? */
-    if (flags & TRACKER_FLAG_OUTLIER) {
-      drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
-      continue;
-    }
-
-    /* Give newly-initialized channels a chance to converge. */
-    u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
-    u32 wait_ms = code_requires_direct_acq(mesid.code)
-                      ? TRACK_INIT_FROM_ACQ_MS
-                      : TRACK_INIT_FROM_HANDOVER_MS;
-    if (age_ms < wait_ms) {
-      continue;
-    }
-
+  if (now_ms > tracker_channel->update_timestamp_ms) {
     u32 update_delay_ms = now_ms - tracker_channel->update_timestamp_ms;
     if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
       drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
-      continue;
-    }
-
-    /* Do we not have nav bit sync yet? */
-    if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
-      continue;
-    }
-
-    /* PLL/FLL pessimistic lock detector "unlocked" for a while?
-       We could get rid of this check althogether if not the
-       observed cases, when tracker could not achieve the pessimistic
-       lock state for a long time (minutes?) and yet managed to pass
-       CN0 sanity checks.*/
-    u32 unlocked_ms = 0;
-    if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
-      unlocked_ms = update_count_diff(tracker_channel,
-                                      &tracker_channel->ld_pess_change_count);
-    }
-    if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
-      drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
-      continue;
-    }
-
-    /* CN0 below threshold for a while? */
-    u32 cn0_drop_ms = update_count_diff(
-        tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
-    if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
-      drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
-      continue;
-    }
-
-    /* Do we have confirmed cross-correlation? */
-    if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
-      continue;
-    }
-
-    /* Drop GLO if the SV is unhealthy */
-    if (IS_GLO(mesid)) {
-      bool glo_health_decoded =
-          (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-      if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
-        drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
-        continue;
-      }
-    }
-
-    /* Drop channel if signal was excluded by RAIM */
-    if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
-      continue;
+      return;
     }
   }
-}
 
-/**
- * Provides a set of base channel flags
- *
- * The method queries tracking channel status and combines it as a set of flags.
- * Because flag computation involves loading of data from external sources, the
- * caller may optionally provide data destination pointers to avoid data
- * reloading.
- *
- * \param[in]  i         Channel index.
- * \param[out] info      Optional destination for tracker generic information.
- * \param[out] time_info Optional destination for tracker time information.
- * \param[out] freq_info Optional destination for tracker carrier and phase
- *                       information.
- * \param[out] ctrl_info Optional destination for tracker controller
- * information.
- *
- * \return Tracker status flags combined in a single set.
- *
- * \sa get_tracking_channel_sid_flags
- *
- * \sa use_tracking_channel
- * \sa tracking_channels_ready
- * \sa tracking_channel_lock
- * \sa tracking_channel_unlock
- */
-static u32 get_tracking_channel_flags_info(u8 i,
-                                           tracker_info_t *info,
-                                           tracker_time_info_t *time_info,
-                                           tracker_freq_info_t *freq_info,
-                                           tracker_ctrl_info_t *ctrl_info,
-                                           tracker_misc_info_t *misc_info) {
-  tracker_info_t tmp_info;
-  tracker_time_info_t tmp_time_info;
-
-  if (NULL == info) {
-    info = &tmp_info;
-  }
-  if (NULL == time_info) {
-    time_info = &tmp_time_info;
+  /* Do we not have nav bit sync yet? */
+  if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
+    return;
   }
 
-  tracker_get_values(i,
-                     info,      /* Generic info */
-                     time_info, /* Timers */
-                     freq_info, /* Frequencies */
-                     ctrl_info, /* Loop controller values */
-                     misc_info);
+  /* PLL/FLL pessimistic lock detector "unlocked" for a while?
+     We could get rid of this check althogether if not the
+     observed cases, when tracker could not achieve the pessimistic
+     lock state for a long time (minutes?) and yet managed to pass
+     CN0 sanity checks.*/
+  u32 unlocked_ms = 0;
+  if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+      (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
+    unlocked_ms = update_count_diff(tracker_channel,
+                                    &tracker_channel->ld_pess_change_count);
+  }
+  if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
+    drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
+    return;
+  }
 
-  return info->flags;
+  /* CN0 below threshold for a while? */
+  u32 cn0_drop_ms = update_count_diff(
+      tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
+  if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
+    drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
+    return;
+  }
+
+  /* Do we have confirmed cross-correlation? */
+  if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
+    return;
+  }
+
+  /* Drop GLO if the SV is unhealthy */
+  if (IS_GLO(mesid)) {
+    bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
+    if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+      return;
+    }
+  }
+
+  /* Drop channel if signal was excluded by RAIM */
+  if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
+    return;
+  }
 }
 
 /**
@@ -1035,22 +983,15 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
-  u32 flags = 0;                 /* Result */
-  tracker_info_t info;           /* Container for generic info */
-  tracker_freq_info_t freq_info; /* Container for measurements */
-  tracker_time_info_t time_info; /* Container for time info */
-  tracker_misc_info_t misc_info; /* Container for measurements */
-
   memset(meas, 0, sizeof(*meas));
 
-  /* Load information from tracker: info locks */
-  flags = get_tracking_channel_flags_info(i,           /* Channel index */
-                                          &info,       /* General */
-                                          &time_info,  /* Time info */
-                                          &freq_info,  /* Freq info */
-                                          NULL,        /* Ctrl info */
-                                          &misc_info); /* Misc info */
+  tracker_info_t info;
+  tracker_time_info_t time_info;
+  tracker_freq_info_t freq_info;
+  tracker_misc_info_t misc_info;
 
+  tracker_get_state(i, &info, &time_info, &freq_info, &misc_info);
+  u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
     return flags | TRACKER_FLAG_MASKED;
@@ -1112,28 +1053,6 @@ u32 get_tracking_channel_meas(u8 i,
   return flags;
 }
 
-/**
- * Retrieve tracking loop controller parameters for weights computation.
- *
- * \param[in]  i       Channel index.
- * \param[out] pparams Loop controller parameters.
- *
- * \return None
- */
-void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
-  tracker_ctrl_info_t tmp;
-
-  tracker_get_values(i,
-                     NULL,  /* Generic info */
-                     NULL,  /* Timers */
-                     NULL,  /* Frequencies */
-                     &tmp,  /* Loop controller values */
-                     NULL); /* Misc info */
-  pparams->pll_bw = tmp.pll_bw;
-  pparams->fll_bw = tmp.fll_bw;
-  pparams->dll_bw = tmp.dll_bw;
-  pparams->int_ms = tmp.int_ms;
-}
 /**
  * Compute extended tracking flags for GNSS signal.
  *

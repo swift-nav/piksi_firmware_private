@@ -95,8 +95,7 @@ slack_links(){
 github_links(){
     echo -n "## $BUILD_VERSION"
     echo -n "\nNote:"
-    echo -n "\n- You must manually submit the form in the link for 'Run a HITL test set for this build' in order to get data for the 'HITL Results' links."
-    echo -n "\n- Check the status of HITL runs through the [hitl-dashboard](http://hitl-dashboard.swiftnav.com)."
+    echo -n "\n- Check the status of HITL runs through the [hitl-viewer](https://gnss-analysis.swiftnav.com/jobs)."
     echo -n "\n"
     echo -n "\nThe following links are for this Pull Request's ***merge*** commit:"
     for index in ${!LINKS[@]}; do

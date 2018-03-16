@@ -33,8 +33,6 @@
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
 
-extern u16 max_pll_integration_time_ms;
-
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
   /** Placeholder for an index. Indicates an unused index field. */
@@ -657,67 +655,6 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
                   get_ctrl_str(next_profile->profile.controller_type));
 }
 
-/** Integration time is not explicitly available in gnss_track_profiles.
- *  This API infers the integration time from the profiles' array index.
- *  \param mesid ME signal ID
- *  \param state Profiles array.
- *  \param index Profiles array index.
- *  \return Integration time of the profile at the given index [ms]
- */
-static u8 profile_integration_time(const me_gnss_signal_t mesid,
-                                   const tp_profile_t *state,
-                                   const profile_indices_t index) {
-  static const u8 int_times[] = {[TP_TM_INITIAL] = 1,
-
-                                 [TP_TM_1MS_20MS] = 1,
-                                 [TP_TM_1MS_10MS] = 1,
-                                 [TP_TM_1MS_2MS] = 1,
-                                 [TP_TM_1MS_NH20MS] = 1,
-
-                                 [TP_TM_2MS_20MS] = 2,
-                                 [TP_TM_2MS_10MS] = 2,
-                                 [TP_TM_2MS_2MS] = 2,
-                                 [TP_TM_2MS_NH20MS] = 2,
-
-                                 [TP_TM_5MS_20MS] = 5,
-                                 [TP_TM_5MS_10MS] = 5,
-                                 [TP_TM_5MS_NH20MS] = 5,
-
-                                 [TP_TM_10MS_20MS] = 10,
-                                 [TP_TM_10MS_10MS] = 10,
-                                 [TP_TM_10MS_NH20MS] = 10,
-
-                                 [TP_TM_20MS_20MS] = 20,
-                                 [TP_TM_20MS_NH20MS] = 20};
-  tp_tm_e track_mode;
-  if (IS_GPS(mesid) || IS_QZSS(mesid)) {
-    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
-        (CODE_QZS_L5I == mesid.code) || (CODE_QZS_L5Q == mesid.code)) {
-      track_mode = state->profiles[index].profile.tm_nh20ms;
-    } else {
-      track_mode = state->profiles[index].profile.tm_20ms;
-    }
-  } else if (IS_GLO(mesid)) {
-    track_mode = state->profiles[index].profile.tm_10ms;
-  } else if (IS_SBAS(mesid)) {
-    track_mode = state->profiles[index].profile.tm_2ms;
-  } else if (IS_BDS2(mesid)) {
-    if (bds_d2nav(mesid)) {
-      track_mode = state->profiles[index].profile.tm_2ms;
-    } else {
-      track_mode = state->profiles[index].profile.tm_nh20ms;
-    }
-  } else {
-    assert(!"Unsupported constellation");
-  }
-  assert(track_mode < ARRAY_SIZE(int_times));
-  u8 int_time = int_times[track_mode];
-  assert(int_time != 0);
-  assert(int_time <= 20);
-
-  return int_time;
-}
-
 static bool pll_bw_changed(tracker_t *tracker_channel,
                            profile_indices_t index) {
   tp_profile_t *state = &tracker_channel->profile;
@@ -804,17 +741,8 @@ static bool profile_switch_requested(tracker_t *tracker_channel,
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
 
-  const me_gnss_signal_t mesid = tracker_channel->mesid;
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
-
-  u8 int_time = profile_integration_time(mesid, state, index);
-  bool pll = (next->profile.pll_bw > 0) || /*fixed*/
-             (next->profile.pll_bw < 0);   /*dynamic*/
-  if (pll && (int_time > max_pll_integration_time_ms)) {
-    /* setting prevents us doing longer PLL integration time */
-    index = state->cur.index;
-  }
 
   bool pll_changed = pll_bw_changed(tracker_channel, index);
   bool fll_changed = fll_bw_changed(tracker_channel, index);

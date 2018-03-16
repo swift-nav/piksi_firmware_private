@@ -96,7 +96,6 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
-void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
 u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                    s32 tow_ms,
                                    const ephemeris_t *pephe);
@@ -114,7 +113,12 @@ bool is_sbas_enabled(void);
 bool is_bds2_enabled(void);
 bool is_qzss_enabled(void);
 bool is_galileo_enabled(void);
-void sanitize_trackers(void);
+bool leap_second_imminent(void);
+void sanitize_tracker(tracker_t *tracker_channel,
+                      u64 now_ms,
+                      bool leap_second_event);
+void restore_acq(const tracker_t *tracker_channel);
+
 void check_clear_glo_unhealthy(void);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);

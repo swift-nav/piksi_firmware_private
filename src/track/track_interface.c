@@ -12,16 +12,7 @@
 
 #include "track_interface.h"
 
-static const tracker_interface_t tracker_interface_default = {
-    .code = CODE_INVALID, .init = 0, .disable = 0, .update = 0,
-};
-
-static tracker_interface_list_element_t *tracker_interface_list = NULL;
-
-/** Return a pointer to the tracker interface list. */
-tracker_interface_list_element_t **tracker_interface_list_ptr_get(void) {
-  return &tracker_interface_list;
-}
+static tracker_interface_t const *tracker_interface[CODE_COUNT];
 
 /** Register a tracker interface to enable tracking for a code type.
  *
@@ -29,34 +20,16 @@ tracker_interface_list_element_t **tracker_interface_list_ptr_get(void) {
  *
  * \param element   Struct describing the interface to register.
  */
-void tracker_interface_register(tracker_interface_list_element_t *element) {
-  /* p_next = address of next pointer which must be updated */
-  tracker_interface_list_element_t **p_next = tracker_interface_list_ptr_get();
-
-  while (NULL != *p_next) {
-    p_next = &(*p_next)->next;
-  }
-
-  element->next = NULL;
-  *p_next = element;
+void tracker_interface_register(const tracker_interface_t *element) {
+  tracker_interface[element->code] = element;
 }
 
 /** Look up the tracker interface for the specified mesid.
  *
- * \param mesid ME signal to be tracked.
+ * \param code
  *
  * \return Associated tracker interface. May be the default interface.
  */
-const tracker_interface_t *tracker_interface_lookup(
-    const me_gnss_signal_t mesid) {
-  const tracker_interface_list_element_t *e = *tracker_interface_list_ptr_get();
-  while (NULL != e) {
-    const tracker_interface_t *interface = e->interface;
-    if (interface->code == mesid.code) {
-      return interface;
-    }
-    e = e->next;
-  }
-
-  return &tracker_interface_default;
+const tracker_interface_t *tracker_interface_lookup(const code_t code) {
+  return tracker_interface[code];
 }

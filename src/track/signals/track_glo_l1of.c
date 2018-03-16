@@ -50,14 +50,11 @@ static const tracker_interface_t tracker_interface_glo_l1of = {
     .update = tracker_glo_l1of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l1of = {
-    .interface = &tracker_interface_glo_l1of, .next = 0};
-
 /** Register GLO L1CA tracker into the the tracker interface & settings
  *  framework.
  */
 void track_glo_l1of_register(void) {
-  tracker_interface_register(&tracker_interface_list_glo_l1of);
+  tracker_interface_register(&tracker_interface_glo_l1of);
 }
 
 static void tracker_glo_l1of_init(tracker_t *tracker_channel) {

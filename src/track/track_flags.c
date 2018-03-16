@@ -25,7 +25,7 @@
  */
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
   /* Find SV ID for L1CA and L2CM and set the flag  */
-  for (tracker_id_t id = 0; id < NUM_TRACKER_CHANNELS; id++) {
+  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; id++) {
     tracker_t *tracker_channel = tracker_get(id);
     tracker_lock(tracker_channel);
     if (IS_GPS(tracker_channel->mesid) &&
@@ -72,7 +72,7 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
  * \return None
  */
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
-  for (tracker_id_t id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
+  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
     /* Find matching tracker and set the flag  */
     tracker_t *tracker_channel = tracker_get(id);
     tracker_lock(tracker_channel);
