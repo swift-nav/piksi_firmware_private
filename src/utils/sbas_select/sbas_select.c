@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/coord_system.h>
+#include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/signal.h>
 
 #include "sbas_select.h"
@@ -42,7 +44,14 @@
 
 /* Hysteresis for SBAS coverage area borders to avoid switching SBAS systems
  * back and forth if user's position is closed to a border in degrees */
-#define SBAS_SELECT_HYST_DEG 1
+#define SBAS_SELECT_LON_HYST_DEG 1
+
+/* Do not change SBAS provider if user is closer to a pole than this distance */
+#define SBAS_SELECT_LAT_AT_POLE_HYST_KM 50
+
+#define LAT_DEG_PER_KM (360 / (2 * WGS84_A * M_PI))
+#define SBAS_SELECT_LAT_AT_POLE_HYST_DEG \
+  (SBAS_SELECT_LAT_AT_POLE_HYST_KM * LAT_DEG_PER_KM)
 
 typedef struct {
   s16 lat_deg; /**< Latitude [deg] of SBAS coverage area border */
@@ -55,8 +64,8 @@ typedef struct {
 } sbas_coverage_t;
 
 /* The SBAS range below must follow these rules:
- * 1. A border can be in the range from -180+SBAS_SELECT_HYST_DEG deg
- *    to 180-SBAS_SELECT_HYST_DEG longitude deg
+ * 1. A border can be in the range from -180+SBAS_SELECT_LON_HYST_DEG deg
+ *    to 180-SBAS_SELECT_LON_HYST_DEG longitude deg
  * 2. Right border has greater longitude
  */
 
@@ -66,7 +75,7 @@ typedef struct {
  *  -180 and 180 deg are exception, so don't use hysteresis for the border,
  *  substract it in advance */
 static point_coord_t waas_range[] = {
-    {0, -180 + SBAS_SELECT_HYST_DEG}, {0, -50},
+    {0, -180 + SBAS_SELECT_LON_HYST_DEG}, {0, -50},
 };
 
 /** EGNOS coverage area based on
@@ -161,8 +170,8 @@ static bool point_in_region(const point_coord_t *border,
      * less than 1 sec) */
     tmp_lon = -180.f;
   }
-  return ((double)(border[0].lon_deg - SBAS_SELECT_HYST_DEG) <= tmp_lon) &&
-         ((double)(border[1].lon_deg + SBAS_SELECT_HYST_DEG) >= tmp_lon);
+  return ((double)(border[0].lon_deg - SBAS_SELECT_LON_HYST_DEG) <= tmp_lon) &&
+         ((double)(border[1].lon_deg + SBAS_SELECT_LON_HYST_DEG) >= tmp_lon);
 }
 
 /**
@@ -176,17 +185,23 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
   if (lgf->position_quality == POSITION_UNKNOWN) {
     return SBAS_UNKNOWN;
   }
+
+  double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
+  if (double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG)) {
+    /* LGF is close to a pole, where longitudes are changing rapidly. */
+    if (used_sbas != SBAS_UNKNOWN) {
+      return used_sbas;
+    }
+  }
+  double lgf_lon_deg = lgf->position_solution.pos_llh[1] * R2D;
   /* Check all SBAS systems if user position is in its coverage area.
    * Start checking from currently using SBAS system. If user still in it
    * just return, don't check others to avoid unwanted SBAS switch */
   u8 i = get_sbas_area_index(used_sbas);
   /* go through all hardcoded SBAS area */
-  u8 j;
-  for (j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
+  for (u8 j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
     /* check if user position is in SBAS area under testing */
-    if (point_in_region(sbas_coverage[i].borders,
-                        lgf->position_solution.pos_llh[0] * R2D,
-                        lgf->position_solution.pos_llh[1] * R2D)) {
+    if (point_in_region(sbas_coverage[i].borders, lgf_lat_deg, lgf_lon_deg)) {
       if (sbas_coverage[i].sbas != used_sbas) {
         log_info("SBAS system changed: %s -> %s",
                  get_sbas_name(used_sbas),
