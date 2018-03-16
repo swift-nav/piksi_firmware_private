@@ -876,7 +876,7 @@ void sanitize_tracker(tracker_t *tracker_channel,
  */
 static bool compute_cpo(u64 ref_tc,
                         const channel_measurement_t *meas,
-                        s64 *carrier_phase_offset) {
+                        s32 *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
   if (!tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange)) {
@@ -1000,7 +1000,7 @@ u32 get_tracking_channel_meas(u8 i,
      * have caused initial offset reset are not longer present. See callers of
      * tracker_ambiguity_unknown() for more details.
      */
-    s64 carrier_phase_offset = misc_info.carrier_phase_offset.value;
+    s32 carrier_phase_offset = misc_info.carrier_phase_offset.value;
 
     /* try to compute cpo if it is not computed yet but could be */
     if ((0 == carrier_phase_offset) &&

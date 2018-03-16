@@ -222,7 +222,7 @@ typedef struct {
 /** Tracking channel miscellaneous info */
 typedef struct {
   struct {
-    s64 value;            /**< Carrier phase offset value [cycles] */
+    s32 value;            /**< Carrier phase offset value [cycles] */
     u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
   } carrier_phase_offset; /**< Carrier phase offset */
 } tracker_misc_info_t;

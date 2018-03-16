@@ -407,10 +407,11 @@ static void me_calc_pvt_thread(void *arg) {
 
     /* Take the current nap count as the reception time*/
     u64 current_tc = nap_timing_count();
-    gps_time_t rcv_time = napcount2gpstime(current_tc);
+    gps_time_t current_time = napcount2gpstime(current_tc);
 
-    /* The desired output at solution epoch closest to current GPS time */
-    gps_time_t output_time = gps_time_round_to_epoch(&rcv_time, soln_freq);
+    /* The desired output time is at the closest solution epoch to current GPS
+     * time  */
+    gps_time_t output_time = gps_time_round_to_epoch(&current_time, soln_freq);
 
     if (gps_time_valid(&output_time) &&
         gps_time_valid(&lgf.position_solution.time)) {
@@ -434,11 +435,11 @@ static void me_calc_pvt_thread(void *arg) {
         continue;
       }
 
-      /* get NAP count at the epoch with a round GPS time */
-      u64 epoch_tc = gpstime2napcount(&output_time);
+      /* get NAP count at the desired output time */
+      u64 output_tc = gpstime2napcount(&output_time);
 
-      /* time difference of current NAP count from the closest epoch */
-      double dt = ((s64)epoch_tc - (s64)current_tc) * RX_DT_NOMINAL;
+      /* time difference of current NAP count from the output epoch */
+      double dt = ((s64)output_tc - (s64)current_tc) * RX_DT_NOMINAL;
 
       if (fabs(dt) < OBS_PROPAGATION_LIMIT) {
         /* dampen small adjustments to get stabler corrections */
@@ -453,7 +454,7 @@ static void me_calc_pvt_thread(void *arg) {
     }
 
     /* Collect measurements from trackers, load ephemerides and compute flags.
-     * Reference the measurements to the solution epoch. */
+     * Reference the measurements to the current time. */
     u8 n_ready = 0;
     u8 n_inview = 0;
     u8 n_total = 0;
@@ -514,7 +515,7 @@ static void me_calc_pvt_thread(void *arg) {
         n_ready,
         p_meas,
         p_nav_meas,
-        gps_time_valid(&rcv_time) ? &rcv_time : NULL);
+        gps_time_valid(&current_time) ? &current_time : NULL);
 
     if (nm_ret != 0) {
       log_error("calc_navigation_measurement() returned an error");
@@ -554,7 +555,7 @@ static void me_calc_pvt_thread(void *arg) {
 
     if (sid_set_get_sat_count(&codes) < 4) {
       /* Not enough sats to compute PVT, send them as unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &rcv_time);
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
       continue;
     }
 
@@ -588,7 +589,7 @@ static void me_calc_pvt_thread(void *arg) {
       /* If we can't report a SPP position, something is wrong and no point
        * continuing to process this epoch - mark observations unusable but send
        * them out to enable debugging. */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &rcv_time);
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
 
       /* If we already had a good fix, degrade its quality to STATIC */
       if (lgf.position_quality > POSITION_STATIC) {
@@ -654,7 +655,7 @@ static void me_calc_pvt_thread(void *arg) {
                current_fix.clock_offset,
                current_fix.clock_drift);
 
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &rcv_time);
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
       continue;
     }
 
@@ -697,7 +698,7 @@ static void me_calc_pvt_thread(void *arg) {
       log_warn("clock_offset %.9lf greater than OBS_PROPAGATION_LIMIT",
                output_offset);
       /* Send the observations, but marked unusable */
-      me_send_failed_obs(n_ready, nav_meas, e_meas, &rcv_time);
+      me_send_failed_obs(n_ready, nav_meas, e_meas, &current_time);
     }
 
     if (fabs(current_fix.clock_offset) > MAX_CLOCK_ERROR_S) {
