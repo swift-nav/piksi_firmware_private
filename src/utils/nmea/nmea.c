@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libswiftnav/array_tools.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/gnss_time.h>
@@ -53,11 +54,11 @@ static u32 gsa_msg_rate = 10;
  * Send messages in NMEA 2.30 format.
  * \{ */
 
-/* Convert GLO sid.sat to NMEA SV ID format: GLO SV IDs are from 65 to 96 */
-#define NMEA_SV_ID_GLO(x) (x + 64)
+/* GLO NMEA SV IDs are from 65 to 96 */
+#define NMEA_SV_ID_OFFSET_GLO (64)
 
-/* Convert SBAS sid.sat to NMEA SV ID format: SBAS SV IDs are from 33 to 54 */
-#define NMEA_SV_ID_SBAS(x) (x - 87)
+/* SBAS NMEA SV IDs are from 33 to 54 */
+#define NMEA_SV_ID_OFFSET_SBAS (-87)
 
 /* Max SVs reported per GSA message */
 #define GSA_MAX_SV 12
@@ -377,10 +378,10 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
       id = sid.sat;
       break;
     case CONSTELLATION_GLO:
-      id = NMEA_SV_ID_GLO(sid.sat);
+      id = NMEA_SV_ID_OFFSET_GLO + sid.sat;
       break;
     case CONSTELLATION_SBAS:
-      id = NMEA_SV_ID_SBAS(sid.sat);
+      id = NMEA_SV_ID_OFFSET_SBAS + sid.sat;
       break;
     case CONSTELLATION_BDS2:
     case CONSTELLATION_QZS:
@@ -444,22 +445,6 @@ void nmea_gsa_print(u8 *prns,
   NMEA_SENTENCE_DONE();
 }
 
-/** Check if prn is in array.
- *
- * \param prns Array of prns
- * \param count Length of prns
- * \param prn PRN to check
- */
-static bool in_set(u8 prns[], u8 count, u8 prn) {
-  for (u8 i = 0; i < count; i++) {
-    if (prns[i] == prn) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 /** Group measurements by constellation and forward information to GSA
  *  printing function.
  *
@@ -505,13 +490,13 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
      *   - if SV is reported already by another signal (eg. GPS L1CA vs L2C)
      */
     if ((IS_GPS(info.sid) || IS_SBAS(info.sid)) && num_prns_gp < GSA_MAX_SV &&
-        !in_set(prns_gp, num_prns_gp, nmea_get_id(info.sid))) {
+        !is_value_in_array(prns_gp, num_prns_gp, nmea_get_id(info.sid))) {
       prns_gp[num_prns_gp++] = nmea_get_id(info.sid);
       continue;
     }
 
     if (enable_glonass && IS_GLO(info.sid) && num_prns_gl < GSA_MAX_SV &&
-        !in_set(prns_gl, num_prns_gl, nmea_get_id(info.sid))) {
+        !is_value_in_array(prns_gl, num_prns_gl, nmea_get_id(info.sid))) {
       prns_gl[num_prns_gl++] = nmea_get_id(info.sid);
       continue;
     }
