@@ -29,6 +29,7 @@
 #include <libswiftnav/troposphere.h>
 
 #include <starling/platform/mutex.h>
+#include <starling/platform/thread.h>
 
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
@@ -55,10 +56,7 @@
 #define SOLN_THD_CPU_MAX (0.60f)
 
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
-
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
@@ -106,6 +104,9 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
+
+static starling_thread_t *low_latency_thread;
+static starling_thread_t *time_matched_thread;
 
 static void init_locks(void) {
   time_matched_filter_manager_lock = starling_mutex_create();
@@ -726,7 +727,6 @@ void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t) {
   sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 static void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
@@ -1130,8 +1130,6 @@ void init_filters(void) {
                  set_max_age);
 }
 
-static THD_WORKING_AREA(wa_time_matched_obs_thread,
-                        TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
@@ -1344,17 +1342,13 @@ void starling_calc_pvt_setup() {
   time_matched_filter_manager = NULL;
   low_latency_filter_manager = NULL;
 
-  /* Start solution thread */
-  chThdCreateStatic(wa_starling_thread,
-                    sizeof(wa_starling_thread),
-                    STARLING_THREAD_PRIORITY,
-                    starling_thread,
-                    NULL);
-  chThdCreateStatic(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread),
-                    TIME_MATCHED_OBS_THREAD_PRIORITY,
-                    time_matched_obs_thread,
-                    NULL);
+  // Spin up both threads. Neither of these calls block.
+  low_latency_thread = starling_thread_create(STARLING_THREAD_PRIORITY,
+                                              starling_thread,
+                                              NULL);
+  time_matched_thread = starling_thread_create(TIME_MATCHED_OBS_THREAD_PRIORITY,
+                                               time_matched_obs_thread,
+                                               NULL);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
