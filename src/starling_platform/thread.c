@@ -66,20 +66,19 @@ THD_WORKING_AREA(wa_thread_2, THREAD_STACK_SIZE);
 static unsigned int next_thread_id = THREAD_ID_INITIAL;
 
 /**
- * Used for internal bookkeeping. This implementation relies on the 
- * thread_id, so reads and writes to this variable must be synchronized.
- *
- * TODO(kevin) Note about using in_use and thread_id transactionally.
+ * Used for internal bookkeeping. Note that the variables "in_use" and
+ * "thread_id" are always used together in a transactional manner, and
+ * must thus be synchronized correctly with the implementation internal lock.
  */
-typedef struct working_area_t {
-  void *const ptr;          // Immutable working area pointer.
-  thread_t *chibi_tp;          // Pointer to the underlying Chibi thread struct.
+typedef struct starling_thread_t {
+  void *const working_area;  // Immutable working area pointer.
+  thread_t *chibi_tp;        // Pointer to the underlying Chibi thread struct.
   bool in_use;               // Indicates if this working area is in use or not.
   unsigned int thread_id;    // Monotonically increasing unique thread ID.
-} working_area_t;
+} starling_thread_t;
 
 // Initialize working area info blocks. Note that the working area pointers are immutable.
-static working_area_t working_area_info[MAX_NUM_THREADS] = {
+static starling_thread_t starling_thread_info[MAX_NUM_THREADS] = {
   {wa_thread_1, NULL, false, THREAD_ID_UNINITIALIZED},
   {wa_thread_2, NULL, false, THREAD_ID_UNINITIALIZED},
 };
@@ -98,11 +97,11 @@ static void reclaim_dead_working_areas(void) {
   chMtxLock(&internal_lock);
   chSysLock();
   for (unsigned int i = 0; i < MAX_NUM_THREADS; ++i) {
-    working_area_t *wa = &working_area_info[i];
+    starling_thread_t *thd = &starling_thread_info[i];
     // Working areas that are marked in_use are candidates for being reclaimed.
-    if (wa->in_use && wa->chibi_tp->p_state == CH_STATE_FINAL) {
-      wa->in_use = false;
-      wa->thread_id = THREAD_ID_UNINITIALIZED;
+    if (thd->in_use && thd->chibi_tp->p_state == CH_STATE_FINAL) {
+      thd->in_use = false;
+      thd->thread_id = THREAD_ID_UNINITIALIZED;
     }
   }
   chSysUnlock();
@@ -114,20 +113,20 @@ static void reclaim_dead_working_areas(void) {
  * careful to synchronize against other accesses of the is_available
  * field.
  */
-static working_area_t *find_available_working_area(void) {
-  working_area_t *wa = NULL;
+static starling_thread_t *find_available_working_area(void) {
+  starling_thread_t *thd = NULL;
   chMtxLock(&internal_lock);
   for (unsigned int i = 0; i < MAX_NUM_THREADS; ++i) {
-    working_area_t *curr = &working_area_info[i];
+    starling_thread_t *curr = &starling_thread_info[i];
     if (!curr->in_use) {
-      wa = curr;
-      wa->in_use = true;
-      wa->thread_id = next_thread_id++;
+      thd = curr;
+      thd->in_use = true;
+      thd->thread_id = next_thread_id++;
       break;
     }
   }
   chMtxUnlock(&internal_lock);
-  return wa;
+  return thd;
 }
 
 /**
@@ -142,7 +141,7 @@ bool is_thread_id_active(unsigned int thread_id) {
   bool match_found = false;
   chMtxLock(&internal_lock);
   for (unsigned int i = 0; i < MAX_NUM_THREADS; ++i) {
-    if (working_area_info[i].thread_id == thread_id) {
+    if (starling_thread_info[i].thread_id == thread_id) {
       match_found = true;
       break;
     }
@@ -162,13 +161,13 @@ starling_thread_t* starling_thread_create(unsigned int priority,
     return NULL;
   }
   reclaim_dead_working_areas();
-  working_area_t *wa = find_available_working_area();
-  if (wa) {
-    wa->chibi_tp = chThdCreateStatic(wa->ptr, 
+  starling_thread_t *thd = find_available_working_area();
+  if (thd) {
+    thd->chibi_tp = chThdCreateStatic(thd->working_area, 
                                      THREAD_STACK_SIZE,
                                      priority, fn, user); 
   }
-  return (starling_thread_t*)wa;
+  return thd;
 }
 
 /**
@@ -177,12 +176,11 @@ starling_thread_t* starling_thread_create(unsigned int priority,
  */
 void starling_thread_join(starling_thread_t* thd) {
   assert(thd);
-  working_area_t *wa = (working_area_t*)thd;
   // TODO(kevin) This is techinically an incorrect implementation.
   // A thread could become non-current between checking and waiting on it.
   // This would mean the call to chThdWait has a potentially invalid pointer.
-  if (is_thread_id_active(wa->thread_id)) {
-    chThdWait(wa->chibi_tp);
+  if (is_thread_id_active(thd->thread_id)) {
+    chThdWait(thd->chibi_tp);
   }
 }
 
@@ -191,10 +189,9 @@ void starling_thread_join(starling_thread_t* thd) {
  * to terminate a dead or non-existant thread returns immediately. */
 void starling_thread_terminate(starling_thread_t* thd) {
   assert(thd);
-  working_area_t *wa = (working_area_t*)thd;
   // TODO(kevin) Incorrect for same reason as above.
-  if (is_thread_id_active(wa->thread_id)) {
-    chThdTerminate(wa->chibi_tp);
+  if (is_thread_id_active(thd->thread_id)) {
+    chThdTerminate(thd->chibi_tp);
   } 
 }
 
