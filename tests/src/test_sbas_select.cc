@@ -13,7 +13,7 @@ void log_(u8 level, const char *msg, ...) {
 TEST(sbas_select_tests, masks) {
   EXPECT_EQ(sbas_select_prn_mask(SBAS_UNKNOWN), 0);
 
-  EXPECT_EQ(sbas_select_prn_mask(SBAS_WAAS), 0x4e804);
+  EXPECT_EQ(sbas_select_prn_mask(SBAS_WAAS), 0x48800);
 
   EXPECT_EQ(sbas_select_prn_mask(SBAS_EGNOS), 0x10009);
 
@@ -79,7 +79,7 @@ TEST(sbas_select_tests, provider) {
        lgf.position_solution.pos_llh[1] <= 41.f * D2R;
        lgf.position_solution.pos_llh[1] =
            lgf.position_solution.pos_llh[1] + .1 * D2R) {
-    sbas_type_t s = sbas_select_provider(&lgf);
+    sbas_system_t s = sbas_select_provider(&lgf);
     EXPECT_EQ(s, SBAS_EGNOS);
   }
   lgf.position_solution.pos_llh[1] = 41.1f * D2R;  // set to GAGAN
@@ -88,7 +88,7 @@ TEST(sbas_select_tests, provider) {
        lgf.position_solution.pos_llh[1] >= 39.f * D2R;
        lgf.position_solution.pos_llh[1] =
            lgf.position_solution.pos_llh[1] - .1 * D2R) {
-    sbas_type_t s = sbas_select_provider(&lgf);
+    sbas_system_t s = sbas_select_provider(&lgf);
     EXPECT_EQ(s, SBAS_GAGAN);
   }
   lgf.position_solution.pos_llh[1] = 38.9f * D2R;  // set to GAGAN

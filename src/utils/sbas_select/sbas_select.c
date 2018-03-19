@@ -19,29 +19,6 @@
 #include <assert.h>
 #include <math.h>
 
-/** PRN mask for WAAS, https://wiki2.org/en/WAAS#Space_segment */
-#define SBAS_SELECT_WAAS_MASK                                      \
-  ((1 << (122 - SBAS_FIRST_PRN)) | (1 << (131 - SBAS_FIRST_PRN)) | \
-   (1 << (133 - SBAS_FIRST_PRN)) | (1 << (134 - SBAS_FIRST_PRN)) | \
-   (1 << (135 - SBAS_FIRST_PRN)) | (1 << (138 - SBAS_FIRST_PRN)))
-
-/** PRN mask for EGNOS,
- *  https://egnos-user-support.essp-as.eu/new_egnos_ops/egnos_system_realtime*/
-#define SBAS_SELECT_EGNOS_MASK                                     \
-  ((1 << (120 - SBAS_FIRST_PRN)) | (1 << (123 - SBAS_FIRST_PRN)) | \
-   (1 << (136 - SBAS_FIRST_PRN)))
-
-/** PRN mask for GAGAN,
- *  http://www.insidegnss.com/auto/janfeb16-GAGAN.pdf (pg. 44) */
-#define SBAS_SELECT_GAGAN_MASK                                     \
-  ((1 << (127 - SBAS_FIRST_PRN)) | (1 << (128 - SBAS_FIRST_PRN)) | \
-   (1 << (132 - SBAS_FIRST_PRN)))
-
-/** PRN mask for MSAS,
- *  https://wiki2.org/en/Multi-functional_Satellite_Augmentation_System */
-#define SBAS_SELECT_MSAS_MASK \
-  ((1 << (129 - SBAS_FIRST_PRN)) | (1 << (137 - SBAS_FIRST_PRN)))
-
 /* Hysteresis for SBAS coverage area borders to avoid switching SBAS systems
  * back and forth if user's position is closed to a border in degrees */
 #define SBAS_SELECT_LON_HYST_DEG 1
@@ -61,7 +38,7 @@ typedef struct {
 } point_coord_t;
 
 typedef struct {
-  sbas_type_t sbas;       /**< SBAS type */
+  sbas_system_t sbas;     /**< SBAS type */
   point_coord_t *borders; /**< Pointer to array of SBAS coverage area borders */
 } sbas_coverage_t;
 
@@ -112,10 +89,10 @@ static const sbas_coverage_t sbas_coverage[] = {
 };
 
 /** SBAS system currently in use */
-static sbas_type_t used_sbas = SBAS_UNKNOWN;
+static sbas_system_t used_sbas = SBAS_UNKNOWN;
 
 /** Convert SBAS system provider ID (type) to a descriptive name */
-static const char *get_sbas_name(sbas_type_t sbas_type) {
+static const char *get_sbas_name(sbas_system_t sbas_type) {
   switch (sbas_type) {
     case SBAS_WAAS:
       return "WAAS";
@@ -138,7 +115,7 @@ static const char *get_sbas_name(sbas_type_t sbas_type) {
  * \param[in] sbas SBAS type
  * \return Index of sbas_map array
  */
-static u8 get_sbas_area_index(sbas_type_t sbas) {
+static u8 get_sbas_area_index(sbas_system_t sbas) {
   if (SBAS_UNKNOWN == sbas) {
     return 0;
   }
@@ -182,7 +159,7 @@ static bool point_in_region(const point_coord_t *border,
  * \param[in] lgf LGF structure
  * \return SBAS type corresponding to user's position
  */
-sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
+sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
   assert(lgf != NULL);
   if (lgf->position_quality == POSITION_UNKNOWN) {
     return SBAS_UNKNOWN;
@@ -236,19 +213,16 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
  * \return 32-bit mask, where bit 0 is responsible for PRN 120,
  *         bit 18 - PRN 138, bits 19 through 31 not used
  */
-u32 sbas_select_prn_mask(sbas_type_t sbas) {
-  switch ((s8)sbas) {
-    case SBAS_UNKNOWN:
-      return 0;
-    case SBAS_WAAS:
-      return SBAS_SELECT_WAAS_MASK;
-    case SBAS_EGNOS:
-      return SBAS_SELECT_EGNOS_MASK;
-    case SBAS_MSAS:
-      return SBAS_SELECT_MSAS_MASK;
-    case SBAS_GAGAN:
-      return SBAS_SELECT_GAGAN_MASK;
-    default:
-      assert(!"SBAS not supported");
+u32 sbas_select_prn_mask(sbas_system_t sbas) {
+  u32 mask = 0;
+  if (SBAS_UNKNOWN == sbas) {
+    return mask;
   }
+  const u8 *prn_list = get_sbas_prn_list(sbas);
+  for (u8 i = 0; i < MAX_SBAS_SATS_PER_SYSTEM; i++) {
+    if (prn_list[i] >= SBAS_FIRST_PRN) {
+      mask |= 1 << (prn_list[i] - SBAS_FIRST_PRN);
+    }
+  }
+  return mask;
 }
