@@ -46,7 +46,9 @@
  * back and forth if user's position is closed to a border in degrees */
 #define SBAS_SELECT_LON_HYST_DEG 1
 
-/* Do not change SBAS provider if user is closer to a pole than this distance */
+/* Do not change SBAS provider if user is closer to a pole than this distance.
+   50km was chosen somewhat arbitrary. It is the distance to horizon if LGF
+   is at altitudes above 150m. */
 #define SBAS_SELECT_LAT_AT_POLE_HYST_KM 50
 
 #define LAT_DEG_PER_KM (360 / (2 * WGS84_A * M_PI))
@@ -188,7 +190,11 @@ sbas_type_t sbas_select_provider(const last_good_fix_t *lgf) {
 
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
   if (double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG)) {
-    /* LGF is close to a pole, where longitudes are changing rapidly. */
+    /* LGF is close to a pole, where longitudes are changing rapidly.
+       If first LGF is acquired close to a pole, then no SBAS provider is is use
+       In this case we want to start using some SBAS provider and
+       stick to it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius
+       area from the pole. */
     if (used_sbas != SBAS_UNKNOWN) {
       return used_sbas;
     }
