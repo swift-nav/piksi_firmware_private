@@ -8,6 +8,7 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
+#pragma message ("TODO(kevin): WIP thread implementation. There may still be bugs.")
 
 #include <starling/platform/thread.h>
 #include <ch.h>
