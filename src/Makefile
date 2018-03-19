@@ -131,6 +131,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_api.o \
         $(SWIFTNAV_ROOT)/src/track/track_cn0.o \
         $(SWIFTNAV_ROOT)/src/track/track_common.o \
+        $(SWIFTNAV_ROOT)/src/track/track_outliers.o \
         $(SWIFTNAV_ROOT)/src/track/track_decode.o \
         $(SWIFTNAV_ROOT)/src/track/track_flags.o \
         $(SWIFTNAV_ROOT)/src/track/track_interface.o \

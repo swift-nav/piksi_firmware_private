@@ -315,6 +315,37 @@ typedef struct {
   u8 xcorr_flag : 1;       /**< Cross-correlation flag */
 } gps_l2cm_tracker_data_t;
 
+#define TRACK_HISTORY_STEP_MS 400
+#define TRACK_HISTORY_ARRAY_SIZE 8 /* must be power of 2 */
+
+#define TRACK_HISTORY_STEP_NUM_PER(n) ((n * SECS_MS) / TRACK_HISTORY_STEP_MS)
+#define ACC_OLD_INDEX(index)                                                  \
+  (((index) + TRACK_HISTORY_ARRAY_SIZE - TRACK_HISTORY_STEP_NUM_PER(1) - 1) & \
+   (TRACK_HISTORY_ARRAY_SIZE - 1))
+#define CN0_OLD_INDEX(index)                                                  \
+  (((index) + TRACK_HISTORY_ARRAY_SIZE - TRACK_HISTORY_STEP_NUM_PER(2) - 1) & \
+   (TRACK_HISTORY_ARRAY_SIZE - 1))
+
+/* The maximum user velocity change induced Doppler [Hz]  */
+#define VEL_DOPPLER_CHANGE_MAX_HZ (4.0 * MAX_USER_VELOCITY_MPS / GPS_L1_LAMBDA)
+
+#define ACC_DOPPLER_CHANGE_MAX_HZ_PER_S \
+  ((MAX_USER_ACCELERATION_G + 2) * STD_GRAVITY_ACCELERATION / GPS_L1_LAMBDA)
+#define ACC_DOPPLER_CHANGE_MAX_HZ                                    \
+  (ACC_DOPPLER_CHANGE_MAX_HZ_PER_S * TRACK_HISTORY_STEP_NUM_PER(2) * \
+   (float)TRACK_HISTORY_STEP_MS / SECS_MS)
+
+#define CN0_OUTLIER_THRESHOLD_DBHZ 33.
+#define CN0_DROP_DOPPLER_DIFF_HZ 150.
+
+struct track_history {
+  float doppler_hz[TRACK_HISTORY_ARRAY_SIZE];
+  float cn0_dbhz[TRACK_HISTORY_ARRAY_SIZE];
+  bool valid;             /* doppler_hz[] is full */
+  u8 index;               /* the index into doppler_hz[] */
+  update_count_t last_ms; /* The timestamp of last update of history */
+};
+
 /** Top-level generic tracker channel. */
 typedef struct {
   /* This portion of the structure is not cleaned-up at tracker channel start */
@@ -388,24 +419,24 @@ typedef struct {
   double carrier_phase;      /**< Carrier phase in cycles. */
   double carrier_phase_prev; /**< Previous carrier phase in cycles. */
   double carrier_freq;       /**< Carrier frequency Hz. */
-  double carrier_freq_prev;  /**< Carrier frequency Hz. */
-  bool carrier_freq_prev_valid;             /**< carrier_freq_prev is valid. */
   update_count_t carrier_freq_timestamp_ms; /**< carrier_freq_prev timestamp */
 
   double carrier_freq_at_lock; /**< Carrier frequency snapshot in the presence
                                     of PLL/FLL pessimistic locks [Hz]. */
   float unfiltered_freq_error; /**< Unfiltered frequency error at the FLL
                                     discriminator output [Hz]. */
-  float cn0;                   /**< Current estimate of C/N0. */
-  u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
-  float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
-  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;     /**< Tracking channel last update
-                                    timestamp [ms] */
-  bool updated_once;           /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  health_t health;             /**< GLO SV health info */
+  struct track_history track_history;
+
+  float cn0;               /**< Current estimate of C/N0. */
+  u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
+  float acceleration;      /**< Acceleration [g] */
+  float xcorr_freq;        /**< Doppler for cross-correlation [Hz] */
+  u64 init_timestamp_ms;   /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms; /**< Tracking channel last update
+                                timestamp [ms] */
+  bool updated_once;       /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync;       /**< Half-cycle ambiguity resolution */
+  health_t health;         /**< GLO SV health info */
 
   tracker_misc_info_t misc_info;
 

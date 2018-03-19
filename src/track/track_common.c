@@ -22,6 +22,7 @@
 #include "track_cfg.h"
 #include "track_common.h"
 #include "track_flags.h"
+#include "track_outliers.h"
 #include "track_sid_db.h"
 #include "track_utils.h"
 
@@ -855,63 +856,6 @@ void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
 
     tp_profile_report_data(&tracker_channel->profile, &report);
-  }
-}
-
-/**
- * Drops channels with measurement outliers.
- *
- * Check if an unexpected measurement is done and if so, flags the
- * channel for disposal
- *
- * \param[in,out] tracker Tracker channel data
- *
- * \return None
- */
-static void tp_tracker_flag_outliers(tracker_t *tracker) {
-  const float fMaxDoppler = code_to_sv_doppler_max(tracker->mesid.code) +
-                            code_to_tcxo_doppler_max(tracker->mesid.code);
-
-  /* remove channels with a large positive Doppler outlier */
-  if (fabsf(tracker->carrier_freq) > fMaxDoppler) {
-    log_debug_mesid(
-        tracker->mesid, "Doppler %.2f too high", tracker->carrier_freq);
-    (tracker->flags) |= TRACKER_FLAG_OUTLIER;
-  }
-
-  /* Check the maximum carrier frequency rate.
-     Assume that the maximum expected acceleration is 7g and the carrier
-     wavelength is of GPS L1CA (0.19m), which is a safe generalization for this
-     purpose. */
-  static const double max_freq_rate_hz_per_s =
-      7. * STD_GRAVITY_ACCELERATION / 0.19;
-  /* The carrier freq diff threshold we do not want to exceed */
-  static const double max_freq_diff_hz = 70;
-  /* work out the time difference needed to check the actual freq rate
-     against max_freq_diff_hz threshold */
-  static const u32 diff_interval_ms =
-      (u32)(SECS_MS * max_freq_diff_hz / max_freq_rate_hz_per_s);
-
-  u32 elapsed_ms = tracker->update_count - tracker->carrier_freq_timestamp_ms;
-  if (elapsed_ms >= diff_interval_ms) {
-    if (!tracker->carrier_freq_prev_valid) {
-      tracker->carrier_freq_prev = tracker->carrier_freq;
-      tracker->carrier_freq_prev_valid = true;
-    }
-
-    double diff_hz = tracker->carrier_freq - tracker->carrier_freq_prev;
-    double elapsed_s = (double)elapsed_ms / SECS_MS;
-    /* the elapsed time could be slightly larger than diff_interval_ms.
-       So let's account for it in max_diff_hz */
-    double max_diff_hz = max_freq_rate_hz_per_s * elapsed_s;
-    if ((fabs(diff_hz) > max_diff_hz)) {
-      log_debug_mesid(
-          tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
-      tracker->flags |= TRACKER_FLAG_OUTLIER;
-    }
-
-    tracker->carrier_freq_prev = tracker->carrier_freq;
-    tracker->carrier_freq_timestamp_ms = tracker->update_count;
   }
 }
 
