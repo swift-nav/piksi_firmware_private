@@ -266,9 +266,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     */
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
-      if (shi.shi_set && (GLO_SV_UNHEALTHY == shi.shi)) {
+      if (shi.shi_set && (SV_UNHEALTHY == shi.shi)) {
         return CODE_NAV_STATE_INVALID;
-      } else if (shi.shi_set && (GLO_SV_HEALTHY == shi.shi)) {
+      } else if (shi.shi_set && (SV_HEALTHY == shi.shi)) {
         return CODE_NAV_STATE_VALID;
       }
       return CODE_NAV_STATE_UNKNOWN;

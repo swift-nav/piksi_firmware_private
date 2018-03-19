@@ -74,6 +74,7 @@ static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
   data->sbas_msg.tow_ms = TOW_INVALID;
   data->sbas_msg.wn = TOW_INVALID;
+  data->sbas_msg.health = SV_HEALTHY;
   data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
   sbas_msg_decoder_init(&data->sbas_msg_decoder);
 }
@@ -101,6 +102,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
     /* Update TOW */
     data->sbas_msg.tow_ms = TOW_INVALID;
     data->sbas_msg.wn = TOW_INVALID;
+    data->sbas_msg.health = SV_HEALTHY;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
     u8 symbol_probability = nav_bit + C_2P7;
@@ -124,6 +126,7 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
 
     from_decoder.TOW_ms = data->sbas_msg.tow_ms;
     from_decoder.bit_polarity = data->sbas_msg.bit_polarity;
+    from_decoder.health = data->sbas_msg.health;
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 }

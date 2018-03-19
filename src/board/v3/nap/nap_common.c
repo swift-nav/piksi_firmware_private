@@ -220,9 +220,7 @@ void nap_track_irq_thread(void *arg) {
 
     handle_nap_track_irq(leap_second_event);
 
-    DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
-
-    DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
+    DO_EACH_MS(60 * SECS_MS, check_clear_unhealthy(););
 
     DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state(););
 
