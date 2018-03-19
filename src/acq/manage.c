@@ -700,7 +700,7 @@ void restore_acq(const tracker_t *tracker_channel) {
     if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health) &&
         (tracker_channel->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
       acq->state = ACQ_PRN_UNHEALTHY;
-      size_t index = tracker_channel->glo_orbit_slot - 1;
+      u16 index = tracker_channel->glo_orbit_slot - 1;
       assert(index < ARRAY_SIZE(glo_acq_timer));
       glo_acq_timer[index].status = acq;
       piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
@@ -708,7 +708,7 @@ void restore_acq(const tracker_t *tracker_channel) {
   } else if (IS_SBAS(mesid)) {
     if (SV_UNHEALTHY == tracker_channel->health) {
       acq->state = ACQ_PRN_UNHEALTHY;
-      size_t index = (size_t)tracker_channel->mesid.sat - SBAS_FIRST_PRN;
+      u16 index = tracker_channel->mesid.sat - SBAS_FIRST_PRN;
       assert(index < ARRAY_SIZE(sbas_acq_timer));
       sbas_acq_timer[index].status = acq;
       piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
