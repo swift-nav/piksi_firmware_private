@@ -195,21 +195,6 @@ time_quality_t get_time_quality(void) {
   return new_quality;
 }
 
-/** Fine adjust the receiver time offset (to keep the current receiver time
- * close to GPS time)
- *
- * \param dt clock adjustment (s)
- */
-void adjust_rcvtime_offset(const double dt) {
-  chMtxLock(&clock_mutex);
-  gps_time_t gps_time = persistent_clock_state.t0_gps;
-  double clock_rate = persistent_clock_state.clock_rate;
-  gps_time.tow -= dt / clock_rate;
-  normalize_gps_time(&gps_time);
-  persistent_clock_state.t0_gps = gps_time;
-  chMtxUnlock(&clock_mutex);
-}
-
 /** Get current GPS time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality
@@ -251,28 +236,6 @@ gps_time_t napcount2gpstime(const double tc) {
   return t;
 }
 
-/** Convert receiver time to receiver time in GPS time frame.
- *
- * \note The GPS time may only be a guess or completely unknown. Rcv time
- *  should be continuous with ms jumps
- *
- * \param tc Timing count in units of RX_DT_NOMINAL.
- * \return Rcv time in GPS time frame corresponding to Timing count.
- */
-gps_time_t napcount2rcvtime(const double tc) {
-  chMtxLock(&clock_mutex);
-  gps_time_t t = persistent_clock_state.t0_gps;
-  chMtxUnlock(&clock_mutex);
-
-  if (!gps_time_valid(&t)) {
-    return GPS_TIME_UNKNOWN;
-  }
-
-  t.tow += tc * RX_DT_NOMINAL;
-  normalize_gps_time(&t);
-  return t;
-}
-
 /** Convert GPS time to receiver time.
  *
  * \note The GPS time may only be a guess or completely unknown. time_quality
@@ -282,29 +245,15 @@ gps_time_t napcount2rcvtime(const double tc) {
  * \param t gps_time_t to convert.
  * \return Timing count in units of RX_DT_NOMINAL.
  */
-double gpstime2napcount(const gps_time_t *t) {
+u64 gpstime2napcount(const gps_time_t *t) {
   chMtxLock(&clock_mutex);
   gps_time_t gps_time = persistent_clock_state.t_gps;
   double rate = persistent_clock_state.clock_rate;
-  double ref_tc = (double)persistent_clock_state.tc;
+  u64 ref_tc = persistent_clock_state.tc;
   chMtxUnlock(&clock_mutex);
 
-  return ref_tc + gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate);
-}
-
-/** Convert Rcv time to rx time.
- *
- * \note The RCV time may only be a guess or completely unknown.
- *
- * \param t gps_time_t to convert.
- * \return Timing count in units of RX_DT_NOMINAL.
- */
-double rcvtime2napcount(const gps_time_t *t) {
-  chMtxLock(&clock_mutex);
-  gps_time_t ref_time = persistent_clock_state.t0_gps;
-  chMtxUnlock(&clock_mutex);
-
-  return gpsdifftime(t, &ref_time) / RX_DT_NOMINAL;
+  return ref_tc +
+         (s64)round(gpsdifftime(t, &gps_time) / (RX_DT_NOMINAL * rate));
 }
 
 /** Callback to set receiver GPS time estimate. */
@@ -393,6 +342,19 @@ double get_clock_drift() {
   chMtxUnlock(&clock_mutex);
 
   return 1.0 - clock_rate;
+}
+
+/* Compute the sub-second portion of difference between NAP counter and gps time
+ */
+double subsecond_cpo_correction(u64 ref_tc) {
+  /* Careful with numerical cancellation, we need this correction accurate to
+   * the 10th decimal place. */
+  gps_time_t ref_time = napcount2gpstime(ref_tc);
+  double time_subsecond = ref_time.tow - round(ref_time.tow);
+  u64 tc_subsecond = ref_tc % (u64)NAP_FRONTEND_SAMPLE_RATE_Hz;
+  double cpo_correction = time_subsecond - RX_DT_NOMINAL * tc_subsecond;
+
+  return cpo_correction - round(cpo_correction);
 }
 
 /** \} */

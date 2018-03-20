@@ -164,7 +164,7 @@ u16 tracker_load_cc_data(tracker_cc_data_t *cc_data) {
  * \return None
  */
 void tracker_set_carrier_phase_offset(const tracker_info_t *info,
-                                      double carrier_phase_offset) {
+                                      s64 carrier_phase_offset) {
   bool adjusted = false;
   tracker_t *tracker_channel = tracker_get(info->id);
 
@@ -181,47 +181,8 @@ void tracker_set_carrier_phase_offset(const tracker_info_t *info,
 
   if (adjusted) {
     log_debug_mesid(info->mesid,
-                    "Adjusting carrier phase offset to %lf",
+                    "Adjusting carrier phase offset to %" PRId64,
                     carrier_phase_offset);
-  }
-}
-
-/** Adjust all carrier phase offsets with a receiver clock correction.
- * Note that as this change to carrier is equal to the change caused to
- * pseudoranges by the clock correction, the code-carrier difference does
- * not change and thus we do not reset the lock counter.
- *
- * \param dt      Receiver clock change (s)
- */
-void tracker_carrier_phase_offsets_adjust(double dt) {
-  /* Carrier phase offsets are adjusted for all signals matching SPP criteria */
-  for (u8 i = 0; i < nap_track_n_channels; i++) {
-    double carrier_phase_offset = 0.0;
-    bool adjusted = false;
-
-    tracker_t *tracker_channel = tracker_get(i);
-
-    tracker_lock(tracker_channel);
-    if (0 != (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
-      tracker_misc_info_t *misc_info = &tracker_channel->misc_info;
-      carrier_phase_offset = misc_info->carrier_phase_offset.value;
-
-      /* touch only channels that have the initial offset set */
-      if (carrier_phase_offset != 0.0) {
-        carrier_phase_offset -= mesid_to_carr_freq(tracker_channel->mesid) * dt;
-        misc_info->carrier_phase_offset.value = carrier_phase_offset;
-        /* Note that because code-carrier difference does not change here,
-         * we do not reset the lock time carrier_phase_offset.timestamp_ms */
-        adjusted = true;
-      }
-    }
-    tracker_unlock(tracker_channel);
-
-    if (adjusted) {
-      log_debug_mesid(tracker_channel->mesid,
-                      "Adjusting carrier phase offset to %f",
-                      carrier_phase_offset);
-    }
   }
 }
 
