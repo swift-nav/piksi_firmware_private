@@ -203,6 +203,15 @@ void starling_thread_yield(void) {
   chThdYield();
 }
 
+/**
+ * Set a name for the calling thread in the ChibiOS registry.
+ */
+void starling_thread_set_name(const char *name) {
+  if (name) {
+    chRegSetThreadName(name);
+  }
+}
+
 
 
 

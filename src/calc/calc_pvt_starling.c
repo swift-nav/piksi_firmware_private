@@ -58,6 +58,9 @@
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 
+#define LOW_LATENCY_THREAD_NAME  "starling"
+#define TIME_MATCHED_THREAD_NAME "time matched obs"
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
@@ -731,7 +734,7 @@ static void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
 
-  chRegSetThreadName("starling");
+  starling_thread_set_name("starling");
 
   sbp_messages_t sbp_messages;
 
@@ -1132,7 +1135,7 @@ void init_filters(void) {
 
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
-  chRegSetThreadName("time matched obs");
+  starling_thread_set_name("time matched obs");
 
   obss_t *base_obs;
   static obss_t base_obss_copy;
@@ -1346,6 +1349,7 @@ void starling_calc_pvt_setup() {
   low_latency_thread = starling_thread_create(STARLING_THREAD_PRIORITY,
                                               starling_thread,
                                               NULL);
+
   time_matched_thread = starling_thread_create(TIME_MATCHED_OBS_THREAD_PRIORITY,
                                                time_matched_obs_thread,
                                                NULL);
