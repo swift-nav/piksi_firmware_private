@@ -19,9 +19,6 @@ TEST(tracking_loop_test, test_costas_discriminator) {
   } test_cases[] = {
       {.i = 0.0, .q = 0, .res = 0, .valid = true},
       {.i = 0.1, .q = 0, .res = 0, .valid = true},
-      {.i = 1.0, .q = M_PI, .res = 0.20095336902385319, .valid = true},
-      {.i = 2.0, .q = -M_PI, .res = -0.20095336902385319, .valid = false},
-      {.i = 1.0, .q = -M_PI, .res = -0.20095336902385319, .valid = true},
   };
 
   for (u32 i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
