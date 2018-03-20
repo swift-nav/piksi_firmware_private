@@ -222,7 +222,7 @@ typedef struct {
 /** Tracking channel miscellaneous info */
 typedef struct {
   struct {
-    double value;         /**< Carrier phase offset value [cycles]. */
+    s32 value;            /**< Carrier phase offset value [cycles] */
     u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
   } carrier_phase_offset; /**< Carrier phase offset */
 } tracker_misc_info_t;
@@ -405,7 +405,7 @@ typedef struct {
                                     timestamp [ms] */
   bool updated_once;           /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  glo_health_t health;         /**< GLO SV health info */
+  health_t health;             /**< GLO SV health info */
 
   tracker_misc_info_t misc_info;
 

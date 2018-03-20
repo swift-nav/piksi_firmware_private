@@ -324,7 +324,7 @@ bool tracker_init(u8 id,
     tracker_channel->updated_once = false;
     tracker_channel->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
     tracker_channel->cp_sync.synced = false;
-    tracker_channel->health = GLO_SV_HEALTHY;
+    tracker_channel->health = SV_HEALTHY;
 
     tracker_channel->bit_polarity = BIT_POLARITY_UNKNOWN;
     tracker_channel->glo_orbit_slot = glo_orbit_slot;

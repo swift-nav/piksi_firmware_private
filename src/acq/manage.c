@@ -107,6 +107,9 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
 /* Refer also internal NDB definition NDB_NV_GLO_EPHEMERIS_AGE_SECS */
 #define ACQ_GLO_EPH_VALID_TIME_SEC (30 * MINUTE_SECS)
 
+/* Refer to SBAS MOPS section A.4.4.1 */
+#define ACQ_SBAS_MSG0_TIMEOUT_SEC (MINUTE_SECS)
+
 #define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
 #define MANAGE_ACQ_THREAD_STACK (32 * 1024)
 
@@ -141,13 +144,15 @@ static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
 typedef struct {
-  piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
-  acq_status_t *status; /**< Pointer to acq status for the GLO SV */
-} glo_acq_state_t;
+  piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
+  acq_status_t *status; /**< Pointer to acq status for the SV */
+} acq_timer_t;
 
-/* The array keeps time when GLO SV was detected as unhealthy
- * Number of elemnts is n+1 to avoid index adjusting */
-static glo_acq_state_t glo_acq_timer[NUM_SATS_GLO + 1] = {0};
+/* The array keeps time when GLO SV was detected as unhealthy */
+static acq_timer_t glo_acq_timer[NUM_SATS_GLO] = {0};
+
+/* The array keeps time when SBAS SV was detected as unhealthy. */
+static acq_timer_t sbas_acq_timer[NUM_SATS_SBAS] = {0};
 
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
@@ -516,36 +521,34 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
   return MANAGE_NO_CHANNELS_FREE;
 }
 
-/** Clear unhealthy flags after some time, so we eventually retry
-    those sats in case they recover from their sickness.  Call this
-    function regularly, and once per day it will reset the flags. */
-void check_clear_unhealthy(void) {
-  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
-      acq_status[i].state = ACQ_PRN_ACQUIRING;
+static void revert_expired_unhealthiness(acq_timer_t *timer,
+                                         size_t size,
+                                         u32 timeout_s) {
+  for (u8 i = 0; i < size; i++) {
+    if (NULL == timer[i].status) {
+      continue;
     }
+    if (ACQ_PRN_UNHEALTHY != timer[i].status->state) {
+      continue;
+    }
+    if (piksi_systime_elapsed_since_s(&timer[i].tick) <= timeout_s) {
+      continue;
+    }
+
+    timer[i].status->state = ACQ_PRN_ACQUIRING;
+    log_info_mesid(timer[i].status->mesid, "is back to aquisition");
   }
 }
 
-/** Check GLO unhealthy flags and clear after GLO ephemeris valid time
- * This function blocks acquiring GLO SV for some time if the SV is unhealthy */
-void check_clear_glo_unhealthy(void) {
-  if (!is_glo_enabled()) {
-    return;
+/** Check SV unhealthy flags and clear after constellation specific timeout */
+void check_clear_unhealthy(void) {
+  if (is_glo_enabled()) {
+    revert_expired_unhealthiness(
+        glo_acq_timer, ARRAY_SIZE(glo_acq_timer), ACQ_GLO_EPH_VALID_TIME_SEC);
   }
-
-  for (u32 i = 1; i <= NUM_SATS_GLO; i++) {
-    if (glo_acq_timer[i].status &&
-        (ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state)) {
-      /* check if time since channel dropped due to SV unhealthy greater
-       * than GLO ephemeris valid time (30 min) */
-      if (piksi_systime_elapsed_since_s(&glo_acq_timer[i].tick) >
-          ACQ_GLO_EPH_VALID_TIME_SEC) {
-        /* enable GLO aqcuisition again */
-        glo_acq_timer[i].status->state = ACQ_PRN_ACQUIRING;
-        log_info_mesid(glo_acq_timer[i].status->mesid, "is back to aquisition");
-      }
-    }
+  if (is_sbas_enabled()) {
+    revert_expired_unhealthiness(
+        sbas_acq_timer, ARRAY_SIZE(sbas_acq_timer), ACQ_SBAS_MSG0_TIMEOUT_SEC);
   }
 }
 
@@ -691,18 +694,25 @@ void restore_acq(const tracker_t *tracker_channel) {
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
 
   /* Now restore satellite acq */
+  acq->state = ACQ_PRN_ACQUIRING;
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
+    if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health) &&
+        (tracker_channel->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
       acq->state = ACQ_PRN_UNHEALTHY;
-      glo_acq_timer[tracker_channel->glo_orbit_slot].status = acq;
-      /* store system time when GLO channel dropped */
-      piksi_systime_get(&glo_acq_timer[tracker_channel->glo_orbit_slot].tick);
-    } else {
-      acq->state = ACQ_PRN_ACQUIRING;
+      u16 index = tracker_channel->glo_orbit_slot - 1;
+      assert(index < ARRAY_SIZE(glo_acq_timer));
+      glo_acq_timer[index].status = acq;
+      piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
     }
-  } else {
-    acq->state = ACQ_PRN_ACQUIRING;
+  } else if (IS_SBAS(mesid)) {
+    if (SV_UNHEALTHY == tracker_channel->health) {
+      acq->state = ACQ_PRN_UNHEALTHY;
+      u16 index = tracker_channel->mesid.sat - SBAS_FIRST_PRN;
+      assert(index < ARRAY_SIZE(sbas_acq_timer));
+      sbas_acq_timer[index].status = acq;
+      piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
+    }
   }
 }
 
@@ -850,7 +860,12 @@ void sanitize_tracker(tracker_t *tracker_channel,
   /* Drop GLO if the SV is unhealthy */
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
+    if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+      return;
+    }
+  } else if (IS_SBAS(mesid)) {
+    if (SV_UNHEALTHY == tracker_channel->health) {
       drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
       return;
     }
@@ -867,7 +882,6 @@ void sanitize_tracker(tracker_t *tracker_channel,
  * Computes carrier phase offset.
  *
  * \param[in]  ref_tc Reference time
- * \param[in]  info   Generic tracker data for update
  * \param[in]  meas   Pre-populated channel measurement
  * \param[out] carrier_phase_offset Result
  *
@@ -876,82 +890,54 @@ void sanitize_tracker(tracker_t *tracker_channel,
  * \retval false Error in computation.
  */
 static bool compute_cpo(u64 ref_tc,
-                        const tracker_info_t *info,
                         const channel_measurement_t *meas,
-                        double *carrier_phase_offset) {
+                        s32 *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
-  bool ret = tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
-  if (ret) {
-    /* We don't want to adjust for the recevier clock drift,
-     * so we need to calculate an estimate of that before we
-     * calculate the carrier phase offset */
-    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
-    gps_time_t gps_time = napcount2gpstime(ref_tc);
-
-    double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
-
-    /* pseudorange in circles */
-    double pseudorange_circ = (sid_to_carr_freq(meas->sid) *
-                               (raw_pseudorange / GPS_C - rcv_clk_error));
-
-    /* Remove the fractional 2-ms residual FCN contribution */
-    if (IS_GLO(meas->sid)) {
-      pseudorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
-    }
-
-    /* initialize the carrier phase offset with the pseudorange measurement */
-    *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
-
-    log_debug_mesid(info->mesid,
-                    "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
-                    raw_pseudorange,
-                    rcv_clk_error,
-                    *carrier_phase_offset);
-
-    if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
-      /* Remember offset for the future use */
-      tracker_set_carrier_phase_offset(info, *carrier_phase_offset);
-    }
+  if (!tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange)) {
+    return false;
   }
-  return ret;
+
+  /* remove subsecond part of the clock error */
+  double cpo_correction = subsecond_cpo_correction(ref_tc);
+  double pseudorange_circ =
+      sid_to_carr_freq(meas->sid) * (raw_pseudorange / GPS_C - cpo_correction);
+
+  /* initialize the carrier phase offset with the pseudorange measurement */
+  *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
+
+  return true;
 }
 
 /**
  * Computes channel measurement flags from input.
  *
  * \param[in] flags Tracker manager flags
- * \param[in] phase_offset_ok Phase offset flag
  * \param[in] mesid ME SID
  *
  * \return Channel measurement flags
  */
 static chan_meas_flags_t compute_meas_flags(u32 flags,
-                                            bool phase_offset_ok,
                                             const me_gnss_signal_t mesid) {
   chan_meas_flags_t meas_flags = 0;
 
-  if (phase_offset_ok) {
-    if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
-      meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+  if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+      (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
+    meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
-      /* Make sense to set half cycle known flag when carrier phase is valid
-       */
-      if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
-        /* Bit polarity is known */
-        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
-      }
+    /* Make sense to set half cycle known flag when carrier phase is valid */
+    if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
+      /* Bit polarity is known */
+      meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
     }
+  }
 
-    /* sanity check */
-    if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
-        (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
-      /* Somehow we managed to decode TOW when phase lock lost.
-       * This should not happen, so print out warning. */
-      log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
-    }
+  /* sanity check */
+  if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+      (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
+    /* Somehow we managed to decode TOW when phase lock lost.
+     * This should not happen, so print out warning. */
+    log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
   }
 
   if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) ||
@@ -1028,23 +1014,26 @@ u32 get_tracking_channel_meas(u8 i,
      * The initial integer offset shall be adjusted only when conditions that
      * have caused initial offset reset are not longer present. See callers of
      * tracker_ambiguity_unknown() for more details.
-     *
-     * For now, compute pseudorange for all measurements even when phase is
-     * not available.
      */
-    double carrier_phase_offset = misc_info.carrier_phase_offset.value;
-    bool cpo_ok = true;
-    if ((TIME_PROPAGATED <= get_time_quality()) &&
-        (0.0 == carrier_phase_offset) &&
+    s32 carrier_phase_offset = misc_info.carrier_phase_offset.value;
+
+    /* try to compute cpo if it is not computed yet but could be */
+    if ((0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
-      cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
+        (0 != (flags & TRACKER_FLAG_TOW_VALID)) &&
+        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) &&
+        (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+        (TIME_FINE <= get_time_quality())) {
+      if (compute_cpo(ref_tc, meas, &carrier_phase_offset)) {
+        tracker_set_carrier_phase_offset(&info, carrier_phase_offset);
+      }
     }
-    if (0.0 != carrier_phase_offset) {
+    /* apply the cpo if it is available */
+    if (0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
-      meas->carrier_phase += carrier_phase_offset;
+      meas->carrier_phase += (double)carrier_phase_offset;
     }
-    meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
+    meas->flags = compute_meas_flags(flags, info.mesid);
     meas->elevation = (double)track_sid_db_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));
@@ -1202,16 +1191,21 @@ static void manage_tracking_startup(void) {
     acq_status_t *acq =
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
-    /* Make sure we tracked less than SBAS_SV_NUM_LIMIT SBAS SVs */
-    if (IS_SBAS(acq->mesid) &&
-        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    if (ACQ_PRN_TRACKING == acq->state) {
       continue;
     }
 
-    /* Make sure the SID is not already tracked and healthy */
-    if ((acq->state == ACQ_PRN_TRACKING) ||
-        (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
-      continue;
+    if (IS_SBAS(acq->mesid)) {
+      if (sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+        continue;
+      }
+      if (ACQ_PRN_UNHEALTHY == acq->state) {
+        continue;
+      }
+    } else if (IS_GLO(acq->mesid)) {
+      if (ACQ_PRN_UNHEALTHY == acq->state) {
+        continue;
+      }
     }
 
     /* Make sure a tracking channel and a decoder channel are available */
@@ -1344,6 +1338,18 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
   return acq->state == ACQ_PRN_TRACKING;
+}
+
+/**
+ * Checks if mesid waits for acquisition
+ * \param mesid ME signal ID to check.
+ * \retval true mesid waits for acquisition
+ * \retval false mesid does not wait for acquisition
+ */
+bool mesid_waits_acquisition(const me_gnss_signal_t mesid) {
+  u16 global_index = mesid_to_global_index(mesid);
+  acq_status_t *acq = &acq_status[global_index];
+  return ACQ_PRN_ACQUIRING == acq->state;
 }
 
 /** Checks if GLONASS enabled

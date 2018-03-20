@@ -43,6 +43,7 @@
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "position/position.h"
+#include "sbas_select/sbas_select.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
@@ -107,6 +108,7 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
+static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
 static starling_thread_t *low_latency_thread;
 static starling_thread_t *time_matched_thread;
@@ -772,9 +774,18 @@ static void starling_thread(void *arg) {
         /* fill the week number from current time */
         gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
 
+        sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
+
         starling_mutex_lock(spp_filter_manager_lock);
+        if (sbas_system != current_sbas_system &&
+            SBAS_UNKNOWN != current_sbas_system) {
+          /* clear existing SBAS corrections when provider changes */
+          filter_manager_reinitialize_sbas(spp_filter_manager);
+        }
         filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
         starling_mutex_unlock(spp_filter_manager_lock);
+
+        current_sbas_system = sbas_system;
       }
       chPoolFree(&me_msg_buff_pool, me_msg);
       continue;

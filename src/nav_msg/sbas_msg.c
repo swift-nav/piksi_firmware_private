@@ -348,6 +348,7 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
       sbas_msg_invert(part);
     }
 
+    msg->health = SV_HEALTHY;
     msg->bit_polarity =
         part->invert ? BIT_POLARITY_INVERTED : BIT_POLARITY_NORMAL;
     msg_id = getbitu(part->decoded, 8, 6);
@@ -358,6 +359,9 @@ static bool sbas_msg_decode(sbas_v27_part_t *part, sbas_msg_t *msg) {
             part->n_symbols;
 
     switch (msg_id) {
+      case 0:
+        msg->health = SV_UNHEALTHY;
+        break;
       case 12:
         msg->wn = getbitu(part->decoded, 141, 10);   /* GPS Week Number */
         tow_s = getbitu(part->decoded, 121, 20) + 1; /* GPS TOW [s] */
