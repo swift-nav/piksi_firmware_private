@@ -759,14 +759,15 @@ static void starling_thread(void *arg) {
         sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
 
         chMtxLock(&spp_filter_manager_lock);
-        if (sbas_system != current_sbas_system) {
+        if (sbas_system != current_sbas_system &&
+            SBAS_UNKNOWN != current_sbas_system) {
           /* clear existing SBAS corrections when provider changes */
           filter_manager_reinitialize_sbas(spp_filter_manager);
-          current_sbas_system = sbas_system;
         }
-
         filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
         chMtxUnlock(&spp_filter_manager_lock);
+
+        current_sbas_system = sbas_system;
       }
       chPoolFree(&me_msg_buff_pool, me_msg);
       continue;
