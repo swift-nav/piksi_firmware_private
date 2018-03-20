@@ -30,6 +30,10 @@
 #include <math.h>
 #include <string.h>
 
+/* This much time it takes for trackers to stabilize and
+   therefore avoid reporting bad measurements [ms] */
+#define TRACK_CONFIRM_DELAY_MIN_TIME_MS 800
+
 /**
  * Computes number of chips in the integration interval
  *
@@ -339,8 +343,7 @@ u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
  * \return None
  */
 static void mode_change_init(tracker_t *tracker_channel) {
-  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  if (tracker_channel->has_next_params || !confirmed) {
+  if (tracker_channel->has_next_params) {
     /* If the mode switch has been initiated - do nothing */
     return;
   }
@@ -354,13 +357,10 @@ static void mode_change_init(tracker_t *tracker_channel) {
     return;
   }
 
-  /* The switch is possible only when bit sync counter is updated: get the
-   * bit update interval in ms. */
   u8 bit_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
 
-  if (tracker_next_bit_aligned(tracker_channel, bit_ms)) {
-    /* When the bit sync is available and the next integration interval is the
-     * last one in the bit, check if the profile switch is required. */
+  bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
+  if (!bsync || (bsync && tracker_next_bit_aligned(tracker_channel, bit_ms))) {
     if (tp_profile_has_new_profile(tracker_channel)) {
       /* Initiate profile change */
       tracker_channel->has_next_params = true;
@@ -554,22 +554,20 @@ void tp_tracker_update_correlators(tracker_t *tracker_channel,
  * \return None
  */
 void tp_tracker_update_bsync(tracker_t *tracker_channel, u32 cycle_flags) {
-  if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
-    bool sensitivity_mode =
-        (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
-    /* Bit sync / data decoding update counter. */
-    u8 update_count_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
-    /* Bit sync advance / message decoding */
-    tracker_bit_sync_update(tracker_channel,
-                            update_count_ms,
-                            tracker_channel->corrs.corr_bit.I,
-                            tracker_channel->corrs.corr_bit.Q,
-                            sensitivity_mode);
-
-    /* TODO Update BS from ToW when appropriate. */
-    /* TODO Add fast BS detection. */
-    /* TODO Add bad BS recovery. */
+  if (0 == (cycle_flags & TPF_BSYNC_UPD)) {
+    return;
   }
+
+  bool sensitivity_mode =
+      (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
+  /* Bit sync / data decoding update counter. */
+  u8 update_count_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
+  /* Bit sync advance / message decoding */
+  tracker_bit_sync_update(tracker_channel,
+                          update_count_ms,
+                          tracker_channel->corrs.corr_bit.I,
+                          tracker_channel->corrs.corr_bit.Q,
+                          sensitivity_mode);
 }
 
 /**
@@ -632,8 +630,11 @@ void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
   bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
+  u64 now_ms = tracker_channel->update_timestamp_ms;
+  u32 time_in_track_ms = (u32)(now_ms - tracker_channel->init_timestamp_ms);
+  bool stabilized = (time_in_track_ms >= TRACK_CONFIRM_DELAY_MIN_TIME_MS);
   if (cn0 > cn0_params.track_cn0_drop_thres_dbhz && !confirmed && inlock &&
-      tracker_has_bit_sync(tracker_channel)) {
+      tracker_has_bit_sync(tracker_channel) && stabilized) {
     tracker_channel->flags |= TRACKER_FLAG_CONFIRMED;
     log_debug_mesid(tracker_channel->mesid,
                     "CONFIRMED from %f to %d",
