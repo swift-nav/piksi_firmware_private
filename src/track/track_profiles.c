@@ -39,7 +39,6 @@ typedef enum {
   IDX_NONE = -1,
   IDX_INIT_0,
   IDX_INIT_1,
-  IDX_INIT_2,
   IDX_1MS,
   IDX_2MS,
   IDX_5MS,
@@ -49,12 +48,13 @@ typedef enum {
 } profile_indices_t;
 
 typedef enum {
-  TP_LOW_CN0 = (1 << 0),    /**< Watch low CN0 value */
-  TP_HIGH_CN0 = (1 << 1),   /**< Watch high CN0 value */
-  TP_WAIT_BSYNC = (1 << 5), /**< Wait for bit sync */
-  TP_WAIT_PLOCK = (1 << 6), /**< Wait for phase lock */
-  TP_WAIT_FLOCK = (1 << 7), /**< Wait for frequency lock */
-  TP_USE_NEXT = (1 << 8),   /**< Use next index to choose next profile */
+  TP_LOW_CN0 = (1 << 0),      /**< Watch low CN0 value */
+  TP_HIGH_CN0 = (1 << 1),     /**< Watch high CN0 value */
+  TP_WAIT_CONFIRM = (1 << 2), /**< Wait for the signal confirmation */
+  TP_WAIT_BSYNC = (1 << 5),   /**< Wait for bit sync */
+  TP_WAIT_PLOCK = (1 << 6),   /**< Wait for phase lock */
+  TP_WAIT_FLOCK = (1 << 7),   /**< Wait for frequency lock */
+  TP_USE_NEXT = (1 << 8),     /**< Use next index to choose next profile */
 
   /** Do not use carrier aiding */
   TP_UNAIDED = (1 << 11)
@@ -280,13 +280,13 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   { { pll_bw,      fll_bw,       dll_bw,     controller,
       tracking_mode_gps, tracking_mode_glo, tracking_mode_sbas, tracking_mode_bds2 },
       ld_phase_params,   ld_freq_params,
-    time_ms,   cn0_low_thr,   cn0_high_thr,
+    lock_time_ms,   cn0_low_thr,   cn0_high_thr,
        next,       cn0_low,       cn0_high,
      flags }
 */
 
   [IDX_INIT_0] =
-  { {     10,           7,           20,   TP_CTRL_PLL3,
+  { {      0,          7,            20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
           TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
@@ -296,18 +296,10 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_1] =
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
-       100,             0,            0,
+    TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
+          40,         0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
-
-  [IDX_INIT_2] =
-  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-          TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
-       100,             0,            0,
-       IDX_NONE, IDX_NONE,     IDX_NONE,
-       TP_WAIT_PLOCK },
+      TP_WAIT_BSYNC | TP_WAIT_CONFIRM},
 
   [IDX_1MS] =
   { { BW_DYN,      BW_DYN,            3,   TP_CTRL_PLL3,
@@ -494,8 +486,8 @@ static u8 get_profile_index(code_t code,
   return 0;
 }
 
-static struct profile_vars get_profile_vars(const me_gnss_signal_t mesid,
-                                            float cn0) {
+static struct profile_vars get_start_profile_vars(const me_gnss_signal_t mesid,
+                                                  float cn0) {
   size_t num_profiles = 0;
   const tp_profile_entry_t *profiles = mesid_to_profiles(mesid, &num_profiles);
   assert(profiles);
@@ -581,7 +573,7 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
   tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
-  if (profile->cur.pll_bw <= 0) {
+  if (IDX_SENS == profile->cur.index) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
@@ -746,8 +738,9 @@ static bool profile_switch_requested(tracker_t *tracker_channel,
 
   bool pll_changed = pll_bw_changed(tracker_channel, index);
   bool fll_changed = fll_bw_changed(tracker_channel, index);
+  bool loop_changed = pll_changed || fll_changed;
 
-  if ((index == state->cur.index) && !pll_changed && !fll_changed) {
+  if ((index == state->cur.index) && !loop_changed) {
     return false;
   }
 
@@ -788,36 +781,38 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
   if ((0 != (flags & TP_LOW_CN0)) &&
       (state->filt_cn0 < cur_profile->cn0_low_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_low, "low cn0")) {
+          tracker_channel, cur_profile->next_cn0_low, "lowcn0")) {
     return true;
+  }
+
+  if (state->lock_time_ms > 0) {
+    return false; /* Tracking loop has not settled yet.*/
   }
 
   bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
   if ((0 != (flags & TP_WAIT_BSYNC)) && !bsync) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, "wbsync");
+    return profile_switch_requested(tracker_channel, state->cur.index, "bsync");
+  }
+
+  bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+  if ((0 != (flags & TP_WAIT_CONFIRM)) && !confirmed) {
+    return profile_switch_requested(tracker_channel, state->cur.index, "conf");
   }
 
   bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
   if (0 != (flags & TP_WAIT_FLOCK) && !flock) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, "wflock");
+    return profile_switch_requested(tracker_channel, state->cur.index, "flock");
   }
 
   bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
   if (0 != (flags & TP_WAIT_PLOCK) && !plock) {
-    return profile_switch_requested(
-        tracker_channel, state->cur.index, "wplock");
-  }
-
-  if (state->lock_time_ms > 0) {
-    return false; /* tracking loop has not settled yet */
+    return profile_switch_requested(tracker_channel, state->cur.index, "plock");
   }
 
   if ((0 != (flags & TP_HIGH_CN0)) &&
       (state->filt_cn0 > cur_profile->cn0_high_threshold) &&
       profile_switch_requested(
-          tracker_channel, cur_profile->next_cn0_high, "high cno")) {
+          tracker_channel, cur_profile->next_cn0_high, "highcno")) {
     return true;
   }
 
@@ -876,13 +871,16 @@ void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data) {
   profile->filt_cn0 = data->cn0;
   profile->profiles = mesid_to_profiles(mesid, /* num_profiles = */ NULL);
 
-  profile->cur = get_profile_vars(mesid, data->cn0);
+  profile->cur = profile->next = get_start_profile_vars(mesid, data->cn0);
 
   profile->cn0_est = TRACK_CN0_EST_BASIC;
 
   profile->profile_update = 0;
 
   tp_profile_update_config(tracker_channel);
+
+  const tp_profile_entry_t *entry = &profile->profiles[profile->cur.index];
+  profile->lock_time_ms = entry->lock_time_ms;
 
   log_switch(tracker_channel, "init");
 }

@@ -120,7 +120,9 @@ typedef struct {
   u32 cn0_est : 2;        /**< C/N0 estimator type */
   u32 use_alias_detection : 1;
 
-  u16 lock_time_ms;         /**< Profile lock count down timer */
+  /* to ensure an adequate settle time for trackers at regular switches */
+  u16 lock_time_ms; /**< Profile regular lock count down timer [ms] */
+
   struct profile_vars cur;  /**< Current profile variables */
   struct profile_vars next; /**< Next profile variables */
 
