@@ -28,7 +28,7 @@
    is at altitudes above 150m. */
 #define SBAS_SELECT_LAT_AT_POLE_HYST_KM 50
 
-#define LAT_DEG_PER_KM (360 / (2 * WGS84_A * M_PI))
+#define LAT_DEG_PER_KM (360 / (2 * (WGS84_A / 1000.) * M_PI))
 #define SBAS_SELECT_LAT_AT_POLE_HYST_DEG \
   (SBAS_SELECT_LAT_AT_POLE_HYST_KM * LAT_DEG_PER_KM)
 
