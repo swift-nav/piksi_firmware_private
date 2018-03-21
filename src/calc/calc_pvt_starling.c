@@ -53,6 +53,8 @@
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
+#include "calc/calc_pvt_thread_time_matched.h"
+
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
@@ -60,10 +62,6 @@
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 
 #define LOW_LATENCY_THREAD_NAME  "starling"
-#define TIME_MATCHED_THREAD_NAME "time matched obs"
-
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
 
 static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
@@ -1143,8 +1141,6 @@ void init_filters(void) {
                  TYPE_INT,
                  set_max_age);
 }
-
-extern void time_matched_obs_thread(void*);
 
 void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   (void)sender_id;

@@ -10,4 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#define TIME_MATCHED_THREAD_NAME "time matched obs"
+
+/** number of milliseconds before SPP resumes in pseudo-absolute mode */
+#define DGNSS_TIMEOUT_MS 5000
+
 void time_matched_obs_thread(void *arg);
