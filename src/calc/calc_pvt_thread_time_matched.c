@@ -14,22 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <libswiftnav/constants.h>
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/ephemeris.h>
-#include <libswiftnav/linear_algebra.h>
-#include <libswiftnav/logging.h>
-#include <libswiftnav/memcpy_s.h>
-#include <libswiftnav/observation.h>
-#include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/sbas_raw_data.h>
-#include <libswiftnav/sid_set.h>
-#include <libswiftnav/single_epoch_solver.h>
-#include <libswiftnav/troposphere.h>
-
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
-//#include "calc_pvt_starling.h"
 #include "calc_pvt_thread_time_matched.h"
 
 #include <starling/platform/mutex.h>
