@@ -63,17 +63,17 @@
 
 #define LOW_LATENCY_THREAD_NAME  "starling"
 
-static memory_pool_t time_matched_obs_buff_pool;
-static mailbox_t time_matched_obs_mailbox;
+memory_pool_t time_matched_obs_buff_pool;
+mailbox_t time_matched_obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
-static FilterManager *time_matched_filter_manager;
+FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
 static FilterManager *spp_filter_manager;
 
-static starling_mutex_t *time_matched_filter_manager_lock;
+starling_mutex_t *time_matched_filter_manager_lock;
 static starling_mutex_t *low_latency_filter_manager_lock;
 static starling_mutex_t *spp_filter_manager_lock;
 
@@ -82,11 +82,12 @@ bool has_time_matched_iono_params = false;
 static ionosphere_t time_matched_iono_params;
 
 static starling_mutex_t *last_sbp_lock;
-static gps_time_t last_dgnss;
-static gps_time_t last_spp;
-static gps_time_t last_time_matched_rover_obs_post;
 
-static double starling_frequency;
+gps_time_t last_dgnss;
+gps_time_t last_spp;
+gps_time_t last_time_matched_rover_obs_post;
+
+double starling_frequency;
 u32 max_age_of_differential = 30;
 
 bool disable_raim = false;
@@ -356,7 +357,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
  * @param n_meas nav_meas len
  * @param nav_meas Valid navigation measurements
  */
-static void solution_send_pos_messages(
+void solution_send_pos_messages(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,

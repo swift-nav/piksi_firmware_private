@@ -9,7 +9,6 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#if 0
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -50,7 +49,8 @@
 #include "simulator.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
-#endif
+
+#include "calc/calc_pvt_thread_time_matched.h"
 
 #include <starling/platform/mutex.h>
 #include <starling/platform/thread.h>
@@ -59,11 +59,39 @@
  * Dependencies of time matched thread.
  */
 extern void init_filters(void);
+extern void solution_send_pos_messages(u8 base_sender_id,
+                                       const sbp_messages_t *sbp_messages,
+                                       u8 n_meas,
+                                       const navigation_measurement_t nav_meas[]);
+extern void process_matched_obs(const obss_t *rover_channel_meass,
+                                const obss_t *reference_obss,
+                                sbp_messages_t *sbp_messages); 
+extern bool update_time_matched(gps_time_t *last_update_time,
+                                gps_time_t *current_time,
+                                u8 num_obs);
+void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t);
+bool spp_timeout(const gps_time_t *_last_spp,
+                 const gps_time_t *_last_dgnss,
+                 dgnss_solution_mode_t _dgnss_soln_mode);
+
+
+
+
+extern starling_mutex_t *time_matched_filter_manager_lock;
+extern FilterManager    *time_matched_filter_manager;
+extern gps_time_t last_dgnss;
+extern gps_time_t last_spp;
+extern gps_time_t last_time_matched_rover_obs_post;
+extern double starling_frequency;
+extern float glonass_downweight_factor;
+extern memory_pool_t time_matched_obs_buff_pool;
+extern mailbox_t time_matched_obs_mailbox;
+extern dgnss_solution_mode_t dgnss_soln_mode;
 
 /**
  * Time matched thread implementation.
  */
-static void time_matched_obs_thread(void *arg) {
+void time_matched_obs_thread(void *arg) {
   (void)arg;
   starling_thread_set_name("time matched obs");
 
