@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <libsbp/sbp.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/ephemeris.h>
@@ -30,33 +29,19 @@
 
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
-#include "calc_pvt_me.h"
-#include "calc_pvt_starling.h"
-#include "main.h"
-#include "manage.h"
-#include "me_msg/me_msg.h"
-#include "ndb/ndb.h"
-#include "nmea/nmea.h"
-#include "peripherals/leds.h"
-#include "piksi_systime.h"
-#include "position/position.h"
-#include "sbas_select/sbas_select.h"
-#include "sbp.h"
-#include "sbp_utils.h"
-#include "settings/settings.h"
-#include "shm/shm.h"
-#include "signal_db/signal_db.h"
-#include "simulator.h"
-#include "system_monitor/system_monitor.h"
-#include "timing/timing.h"
-
-#include "calc/calc_pvt_thread_time_matched.h"
+//#include "calc_pvt_starling.h"
+#include "calc_pvt_thread_time_matched.h"
 
 #include <starling/platform/mutex.h>
 #include <starling/platform/thread.h>
 
 /**
- * Dependencies of time matched thread.
+ * Type dependencies.
+ */
+typedef struct sbp_messages_t sbp_messages_t;
+
+/**
+ * Function dependencies.
  */
 extern void init_filters(void);
 extern void solution_send_pos_messages(u8 base_sender_id,
@@ -74,9 +59,9 @@ bool spp_timeout(const gps_time_t *_last_spp,
                  const gps_time_t *_last_dgnss,
                  dgnss_solution_mode_t _dgnss_soln_mode);
 
-
-
-
+/**
+ * Global variable dependencies.
+ */
 extern starling_mutex_t *time_matched_filter_manager_lock;
 extern FilterManager    *time_matched_filter_manager;
 extern gps_time_t last_dgnss;
@@ -87,6 +72,7 @@ extern float glonass_downweight_factor;
 extern memory_pool_t time_matched_obs_buff_pool;
 extern mailbox_t time_matched_obs_mailbox;
 extern dgnss_solution_mode_t dgnss_soln_mode;
+extern bool enable_glonass;
 
 /**
  * Time matched thread implementation.

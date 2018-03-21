@@ -14,8 +14,17 @@
 
 #define TIME_MATCHED_THREAD_NAME "time matched obs"
 
+/* Warn on 15 second base station observation latency */
+#define BASE_LATENCY_TIMEOUT 15
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
+
+typedef enum {
+  SOLN_MODE_LOW_LATENCY,
+  SOLN_MODE_TIME_MATCHED,
+  SOLN_MODE_NO_DGNSS
+} dgnss_solution_mode_t;
 
 void time_matched_obs_thread(void *arg);
 

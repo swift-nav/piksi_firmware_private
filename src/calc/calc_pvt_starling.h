@@ -25,12 +25,6 @@
 #include "piksi_systime.h"
 
 typedef enum {
-  SOLN_MODE_LOW_LATENCY,
-  SOLN_MODE_TIME_MATCHED,
-  SOLN_MODE_NO_DGNSS
-} dgnss_solution_mode_t;
-
-typedef enum {
   FILTER_FLOAT,
   FILTER_FIXED,
 } dgnss_filter_t;
@@ -67,9 +61,6 @@ typedef struct {
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
-
-/* Warn on 15 second base station observation latency */
-#define BASE_LATENCY_TIMEOUT 15
 
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
