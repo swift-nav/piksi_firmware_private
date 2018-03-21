@@ -36,11 +36,6 @@
 #include <starling/platform/thread.h>
 
 /**
- * Type dependencies.
- */
-typedef struct sbp_messages_t sbp_messages_t;
-
-/**
  * Function dependencies.
  */
 extern void init_filters(void);
