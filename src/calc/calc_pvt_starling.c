@@ -262,28 +262,28 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                           v_accuracy,
                           &soln->time,
                           soln->num_sats_used,
-                          SPP_POSITION);
+                          soln->flags);
 
     sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
                          pos_llh,
                          pos_ned_cov,
                          &soln->time,
                          soln->num_sats_used,
-                         SPP_POSITION);
+                         soln->flags);
 
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
                            pos_ecef,
                            accuracy,
                            &soln->time,
                            soln->num_sats_used,
-                           SPP_POSITION);
+                           soln->flags);
 
     sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
                           pos_ecef,
                           pos_ecef_cov,
                           &soln->time,
                           soln->num_sats_used,
-                          SPP_POSITION);
+                          soln->flags);
 
     if (soln->velocity_valid) {
       double vel_ned[3];
@@ -294,28 +294,28 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        vel_v_accuracy,
                        &soln->time,
                        soln->num_sats_used,
-                       SPP_POSITION);
+                       soln->flags);
 
       sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
                            vel_ned,
                            vel_ned_cov,
                            &soln->time,
                            soln->num_sats_used,
-                           SPP_POSITION);
+                           soln->flags);
 
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
                         soln->velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
-                        SPP_POSITION);
+                        soln->flags);
 
       sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
                             soln->velocity,
                             vel_ecef_cov,
                             &soln->time,
                             soln->num_sats_used,
-                            SPP_POSITION);
+                            soln->flags);
     }
 
     /* DOP message can be sent even if solution fails to compute */
@@ -323,7 +323,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
       sbp_make_dops(&sbp_messages->sbp_dops,
                     dops,
                     sbp_messages->pos_llh.tow,
-                    SPP_POSITION);
+                    soln->flags);
     }
 
     /* Update stats */
