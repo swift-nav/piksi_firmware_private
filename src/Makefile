@@ -156,6 +156,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/position/position.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_starling.o \
+        $(SWIFTNAV_ROOT)/src/calc/calc_pvt_thread_time_matched.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \
@@ -218,6 +219,8 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
         $(SWIFTNAV_ROOT)/src/me_msg/me_msg.o \
+	$(SWIFTNAV_ROOT)/src/starling_platform/mutex.o \
+	$(SWIFTNAV_ROOT)/src/starling_platform/thread.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 
