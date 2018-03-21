@@ -68,6 +68,7 @@ struct profile_vars {
   u8 index;
   float pll_bw;
   float fll_bw;
+  float dll_bw;
 };
 
 /**
@@ -120,7 +121,12 @@ typedef struct {
   u32 cn0_est : 2;        /**< C/N0 estimator type */
   u32 use_alias_detection : 1;
 
-  u16 lock_time_ms;         /**< Profile lock count down timer */
+  /* to ensure an adequate settle time for trackers DLL at start and
+     when recovering from sensitivity mode */
+  u16 dll_recovery_time_ms; /**< DLL recovery count down timer [ms] */
+  /* to ensure an adequate settle time for trackers at regular switches */
+  u16 lock_time_ms; /**< Profile regular lock count down timer [ms] */
+
   struct profile_vars cur;  /**< Current profile variables */
   struct profile_vars next; /**< Next profile variables */
 
@@ -401,6 +407,7 @@ typedef struct {
   float acceleration;          /**< Acceleration [g] */
   float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
   u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
+  u64 profile_timestamp_ms;    /**< The current profile activation time [ms] */
   u64 update_timestamp_ms;     /**< Tracking channel last update
                                     timestamp [ms] */
   bool updated_once;           /**< Tracker was updated at least once flag. */
