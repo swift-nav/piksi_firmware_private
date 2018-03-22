@@ -64,6 +64,28 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
 }
 
 /**
+ * Initiates SBAS tracker drop procedure
+ */
+void tracker_set_sbas_provider_change_flag(void) {
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    tracker_t *tracker_channel = tracker_get(i);
+
+    tracker_lock(tracker_channel);
+
+    bool sbas_found = IS_SBAS(tracker_channel->mesid);
+    if (sbas_found) {
+      tracker_channel->flags |= TRACKER_FLAG_SBAS_PROVIDER_CHANGE;
+    }
+
+    tracker_unlock(tracker_channel);
+
+    if (sbas_found) {
+      break;
+    }
+  }
+}
+
+/**
  * Sets cross-correlation flag to a channel with a given ME signal identifier
  *
  * \param[in] mesid ME signal identifier for channel to set cross-correlation

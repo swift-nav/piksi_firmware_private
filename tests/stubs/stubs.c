@@ -151,6 +151,8 @@ u16 get_orbit_slot(const u16 fcn) {
   return GLO_ORBIT_SLOT_UNKNOWN;
 }
 
+void tracker_set_sbas_provider_change_flag(void) {}
+
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   /* Remove from acquisition */
   acq_jobs_state_t *data = &acq_all_jobs_state_data;
