@@ -22,7 +22,9 @@
 extern "C" {
 #endif
 
-sbas_system_t sbas_select_provider(const last_good_fix_t *lgf);
+const char *sbas_get_name(sbas_system_t sbas_type);
+sbas_system_t sbas_select_provider(const last_good_fix_t *lgf,
+                                   const sbas_system_t *cur_sbas_provider);
 u32 sbas_select_prn_mask(sbas_system_t sbas);
 
 #ifdef __cplusplus

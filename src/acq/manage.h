@@ -117,7 +117,8 @@ bool is_galileo_enabled(void);
 bool leap_second_imminent(void);
 void sanitize_tracker(tracker_t *tracker_channel,
                       u64 now_ms,
-                      bool leap_second_event);
+                      bool leap_second_event,
+                      bool sbas_provider_change_event);
 void restore_acq(const tracker_t *tracker_channel);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);
