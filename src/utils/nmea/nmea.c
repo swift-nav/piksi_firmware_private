@@ -1053,6 +1053,7 @@ char get_nmea_status(u8 flags) {
       return 'V';
     case SPP_POSITION: /* autonomous mode */
     case DGNSS_POSITION:
+    case SBAS_POSITION:
     case FLOAT_POSITION:
     case FIXED_POSITION:
       return 'A';
@@ -1074,6 +1075,7 @@ char get_nmea_mode_indicator(u8 flags) {
     case SPP_POSITION: /* autonomous mode */
       return 'A';
     case DGNSS_POSITION: /* differential mode */
+    case SBAS_POSITION:
     case FLOAT_POSITION:
     case FIXED_POSITION:
       return 'D';
@@ -1095,6 +1097,7 @@ u8 get_nmea_quality_indicator(u8 flags) {
     case SPP_POSITION:
       return NMEA_GGA_QI_GPS;
     case DGNSS_POSITION:
+    case SBAS_POSITION:
       return NMEA_GGA_QI_DGPS;
     case FLOAT_POSITION:
       return NMEA_GGA_QI_FLOAT;
