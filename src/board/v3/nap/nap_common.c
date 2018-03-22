@@ -211,14 +211,15 @@ static void nap_irq_thread(void *arg) {
   }
 }
 
-bool sbas_provider_changed(void) {
+static bool sbas_provider_changed(void) {
   last_good_fix_t lgf;
   if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
     return false;
   }
   static sbas_system_t sbas_provider = SBAS_UNKNOWN;
   sbas_system_t selected_provider = sbas_select_provider(&lgf, &sbas_provider);
-  bool changed = (selected_provider != sbas_provider);
+  bool changed =
+      (selected_provider != sbas_provider) && (SBAS_UNKNOWN != sbas_provider);
 
   if (changed) {
     log_info("SBAS system changed: %s -> %s",
