@@ -16,11 +16,14 @@
 #include "utils/me_constants.h"
 
 /* Doppler sanity checks. */
-static void flag_outliers(tracker_t *tracker, float doppler_hz) {
+static void flag_outliers(tracker_t *tracker) {
   struct track_history *history = &tracker->track_history;
   u32 elapsed_ms = tracker->update_count - history->last_ms;
+  float doppler_hz = tracker->carrier_freq;
   if (elapsed_ms >= TRACK_HISTORY_STEP_MS) {
-    history->doppler_hz[history->index++] = doppler_hz;
+    history->doppler_hz[history->index] = doppler_hz;
+    history->cn0_dbhz[history->index] = tracker->cn0;
+    history->index++;
     if (ARRAY_SIZE(history->doppler_hz) == history->index) {
       history->valid = true;
       history->index = 0;
@@ -108,5 +111,5 @@ void tp_tracker_flag_outliers(tracker_t *tracker) {
   if (IS_SBAS(tracker->mesid)) { /* not used for ranging */
     return;
   }
-  flag_outliers(tracker, tracker->carrier_freq);
+  flag_outliers(tracker);
 }
