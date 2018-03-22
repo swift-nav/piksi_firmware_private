@@ -88,11 +88,8 @@ static const sbas_coverage_t sbas_coverage[] = {
     {SBAS_MSAS, msas_range},
 };
 
-/** SBAS system currently in use */
-static sbas_system_t used_sbas = SBAS_UNKNOWN;
-
 /** Convert SBAS system provider ID (type) to a descriptive name */
-static const char *get_sbas_name(sbas_system_t sbas_type) {
+const char *sbas_get_name(sbas_system_t sbas_type) {
   switch (sbas_type) {
     case SBAS_WAAS:
       return "WAAS";
@@ -154,17 +151,21 @@ static bool point_in_region(const point_coord_t *border,
 }
 
 /**
- * The function calculates what SBAS system is available
- * depending on user position.
+ * Selects SBAS provider as a function of user position in LGF
  * \param[in] lgf LGF structure
- * \return SBAS type corresponding to user's position
+ * \param[in] cur_sbas_provider currect SBAS provider
+ * \return Selected SBAS provider
  */
-sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
+sbas_system_t sbas_select_provider(const last_good_fix_t *lgf,
+                                   const sbas_system_t *cur_sbas_provider) {
   assert(lgf != NULL);
+  assert(cur_sbas_provider != NULL);
+
   if (lgf->position_quality == POSITION_UNKNOWN) {
     return SBAS_UNKNOWN;
   }
 
+  sbas_system_t used_sbas = *cur_sbas_provider;
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
   if (double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG)) {
     /* LGF is close to a pole, where longitudes are changing rapidly.
@@ -186,9 +187,6 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
     /* check if user position is in SBAS area under testing */
     if (point_in_region(sbas_coverage[i].borders, lgf_lat_deg, lgf_lon_deg)) {
       if (sbas_coverage[i].sbas != used_sbas) {
-        log_info("SBAS system changed: %s -> %s",
-                 get_sbas_name(used_sbas),
-                 get_sbas_name(sbas_coverage[i].sbas));
         /* update used SBAS info */
         used_sbas = sbas_coverage[i].sbas;
       }

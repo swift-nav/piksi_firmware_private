@@ -71,7 +71,8 @@ typedef enum {
   CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
                                     drop GLO satellites */
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
-  CH_DROP_REASON_RAIM          /**< Signal removed by RAIM */
+  CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
+  CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
 } ch_drop_reason_t;
 
 /** Status of acquisition for a particular ME SID. */
@@ -601,6 +602,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_OUTLIER:
       str = "SV measurement outlier, dropping";
       break;
+    case CH_DROP_REASON_SBAS_PROVIDER_CHANGE:
+      str = "SBAS provider change, dropping";
+      break;
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
@@ -760,7 +764,8 @@ bool leap_second_imminent(void) {
  * cross-correlation purposes. */
 void sanitize_tracker(tracker_t *tracker_channel,
                       u64 now_ms,
-                      bool leap_second_event) {
+                      bool leap_second_event,
+                      bool sbas_provider_change_event) {
   /*! Addressing the problem where we try to disable a channel that is
    * not in `STATE_ENABLED` in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
@@ -867,6 +872,10 @@ void sanitize_tracker(tracker_t *tracker_channel,
   } else if (IS_SBAS(mesid)) {
     if (SV_UNHEALTHY == tracker_channel->health) {
       drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+      return;
+    }
+    if (sbas_provider_change_event) {
+      drop_channel(tracker_channel, CH_DROP_REASON_SBAS_PROVIDER_CHANGE);
       return;
     }
   }

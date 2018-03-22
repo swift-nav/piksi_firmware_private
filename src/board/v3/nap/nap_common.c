@@ -25,6 +25,10 @@
 
 #include "main.h"
 #include "manage.h"
+#include "ndb/ndb_common.h"
+#include "ndb/ndb_lgf.h"
+#include "position/position.h"
+#include "sbas_select/sbas_select.h"
 #include "system_monitor/system_monitor.h"
 #include "track/track_sid_db.h"
 #include "track/track_state.h"
@@ -168,13 +172,14 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(bool leap_second_event) {
+static void handle_nap_track_irq(bool leap_second_event,
+                                 bool sbas_provider_change_event) {
   u32 irq0 = NAP->TRK_IRQS0;
-  trackers_update(irq0, 0, leap_second_event);
+  trackers_update(irq0, 0, leap_second_event, sbas_provider_change_event);
   NAP->TRK_IRQS0 = irq0;
 
   u32 irq1 = NAP->TRK_IRQS1;
-  trackers_update(irq1, 32, leap_second_event);
+  trackers_update(irq1, 32, leap_second_event, sbas_provider_change_event);
   NAP->TRK_IRQS1 = irq1;
 
   asm("dsb");
@@ -206,6 +211,27 @@ static void nap_irq_thread(void *arg) {
   }
 }
 
+static bool sbas_provider_changed(void) {
+  last_good_fix_t lgf;
+  if (NDB_ERR_NONE != ndb_lgf_read(&lgf)) {
+    return false;
+  }
+  static sbas_system_t sbas_provider = SBAS_UNKNOWN;
+  sbas_system_t selected_provider = sbas_select_provider(&lgf, &sbas_provider);
+  bool changed =
+      (selected_provider != sbas_provider) && (SBAS_UNKNOWN != sbas_provider);
+
+  if (changed) {
+    log_info("SBAS system changed: %s -> %s",
+             sbas_get_name(sbas_provider),
+             sbas_get_name(selected_provider));
+  }
+
+  sbas_provider = selected_provider;
+
+  return changed;
+}
+
 void nap_track_irq_thread(void *arg) {
   piksi_systime_t sys_time;
   (void)arg;
@@ -218,7 +244,10 @@ void nap_track_irq_thread(void *arg) {
     DO_EACH_MS(400, leap_second_event = leap_second_imminent();
                if (leap_second_event) { track_sid_db_clear_glo_tow(); });
 
-    handle_nap_track_irq(leap_second_event);
+    bool sbas_provider_change_event = false;
+    DO_EACH_MS(SECS_MS, sbas_provider_change_event = sbas_provider_changed());
+
+    handle_nap_track_irq(leap_second_event, sbas_provider_change_event);
 
     DO_EACH_MS(60 * SECS_MS, check_clear_unhealthy(););
 

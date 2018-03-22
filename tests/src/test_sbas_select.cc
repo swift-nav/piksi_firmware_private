@@ -27,97 +27,98 @@ TEST(sbas_select_tests, masks) {
 #define LAT_DEG_PER_KM (360 / (2 * WGS84_A * M_PI))
 
 TEST(sbas_select_tests, provider) {
+  sbas_system_t *sbas_provider = SBAS_UNKNOWN;
   last_good_fix_t lgf;
   // check UNKNOWN user position
   lgf.position_quality = POSITION_UNKNOWN;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_UNKNOWN);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_UNKNOWN);
 
   // check WAAS range and test that latitude does not affect
   // if it is not too close to a pole
   lgf.position_quality = POSITION_FIX;
   lgf.position_solution.pos_llh[0] = 30 * D2R;
   lgf.position_solution.pos_llh[1] = -100 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_WAAS);
   lgf.position_solution.pos_llh[0] = -30 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_WAAS);
 
   // check EGNOS range
   lgf.position_solution.pos_llh[1] = 10 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
 
   // check GAGAN range
   lgf.position_solution.pos_llh[1] = 50 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_GAGAN);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_GAGAN);
 
   // check MSAS range
   lgf.position_solution.pos_llh[1] = 120 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_MSAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_MSAS);
 
   // check out of any range
   lgf.position_solution.pos_llh[1] = 170 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_UNKNOWN);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_UNKNOWN);
 
   // check Borders
   lgf.position_solution.pos_llh[1] = -180 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_WAAS);
   lgf.position_solution.pos_llh[1] = -50 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_WAAS);
   lgf.position_solution.pos_llh[1] = 40 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 100 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_GAGAN);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_GAGAN);
   lgf.position_solution.pos_llh[1] = 160 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_MSAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_MSAS);
   lgf.position_solution.pos_llh[1] = 180 * D2R;
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_WAAS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_WAAS);
 
   // check border crossing
   lgf.position_solution.pos_llh[1] = 0.f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
   // move through EGNOS-GAGAN border
   for (lgf.position_solution.pos_llh[1] = 39.f * D2R;
        lgf.position_solution.pos_llh[1] <= 41.f * D2R;
        lgf.position_solution.pos_llh[1] =
            lgf.position_solution.pos_llh[1] + .1 * D2R) {
-    sbas_system_t s = sbas_select_provider(&lgf);
+    sbas_system_t s = sbas_select_provider(&lgf, &sbas_provider);
     EXPECT_EQ(s, SBAS_EGNOS);
   }
   lgf.position_solution.pos_llh[1] = 41.1f * D2R;  // set to GAGAN
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_GAGAN);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_GAGAN);
   for (lgf.position_solution.pos_llh[1] = 41.f * D2R;
        lgf.position_solution.pos_llh[1] >= 39.f * D2R;
        lgf.position_solution.pos_llh[1] =
            lgf.position_solution.pos_llh[1] - .1 * D2R) {
-    sbas_system_t s = sbas_select_provider(&lgf);
+    sbas_system_t s = sbas_select_provider(&lgf, &sbas_provider);
     EXPECT_EQ(s, SBAS_GAGAN);
   }
   lgf.position_solution.pos_llh[1] = 38.9f * D2R;  // set to GAGAN
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
 
   // check longitude debouncing
   lgf.position_solution.pos_llh[1] = 0.f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 40.f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 40.1f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
 
   // check poles vicinity areas
   const u8 distance_to_pole_deg = 25 * LAT_DEG_PER_KM;
   lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
 
   // check north pole
   lgf.position_solution.pos_llh[0] = (90 - distance_to_pole_deg) * D2R;
   lgf.position_solution.pos_llh[1] = -100 * D2R;  // set to WAAS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
 
   // check south pole
   lgf.position_solution.pos_llh[0] = (-90 + distance_to_pole_deg) * D2R;
   lgf.position_solution.pos_llh[1] = -100 * D2R;  // set to WAAS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
+  EXPECT_EQ(sbas_select_provider(&lgf, &sbas_provider), SBAS_EGNOS);
 }
