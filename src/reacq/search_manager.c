@@ -81,7 +81,13 @@ static u32 sbas_limit_mask(void) {
     return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
            sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
   } else {
-    return sbas_select_prn_mask(sbas_select_provider(&lgf));
+    static sbas_system_t sbas_provider = SBAS_UNKNOWN;
+    sbas_system_t new_provider = sbas_select_provider(&lgf);
+    if ((sbas_provider != new_provider) && (SBAS_UNKNOWN != sbas_provider)) {
+      tracker_set_sbas_provider_change_flag();
+    }
+    sbas_provider = new_provider;
+    return sbas_select_prn_mask(sbas_provider);
   }
 }
 
