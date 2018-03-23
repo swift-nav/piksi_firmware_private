@@ -71,6 +71,7 @@ static void flag_outliers(tracker_t *tracker) {
   float old_dbhz = history->cn0_dbhz[old_index];
   bool cn0_drop = (old_dbhz >= CN0_OUTLIER_THRESHOLD_DBHZ) &&
                   (tracker->cn0 < CN0_OUTLIER_THRESHOLD_DBHZ);
+  cn0_drop |= (old_dbhz - tracker->cn0) > CN0_OUTLIER_DIFF_DBHZ;
   old_hz = history->doppler_hz[old_index];
   diff_hz = fabs(doppler_hz - old_hz);
 
