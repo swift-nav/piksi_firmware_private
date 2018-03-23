@@ -86,6 +86,23 @@ void tracker_set_sbas_provider_change_flag(void) {
 }
 
 /**
+ * Initiates GLO signals drop procedure due to leap second event
+ */
+void tracker_set_leap_second_flag(void) {
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    tracker_t *tracker_channel = tracker_get(i);
+
+    tracker_lock(tracker_channel);
+
+    if (IS_GLO(tracker_channel->mesid)) {
+      tracker_channel->flags |= TRACKER_FLAG_LEAP_SECOND;
+    }
+
+    tracker_unlock(tracker_channel);
+  }
+}
+
+/**
  * Sets cross-correlation flag to a channel with a given ME signal identifier
  *
  * \param[in] mesid ME signal identifier for channel to set cross-correlation
