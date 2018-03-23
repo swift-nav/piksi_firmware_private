@@ -80,7 +80,7 @@ void tracker_set_sbas_provider_change_flag(void) {
     tracker_unlock(tracker_channel);
 
     if (sbas_found) {
-      break;
+      break; /* by design, only one SBAS signal is expected in tracker */
     }
   }
 }
