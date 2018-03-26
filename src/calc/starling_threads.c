@@ -160,7 +160,7 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
 
   for (u8 i = 0; i < rover_channel_meass->n; i++) {
     const navigation_measurement_t *nm = &rover_channel_meass->nm[i];
-    if (NDB_ERR_NONE == platform_try_read_ephemeris(nm->sid, &ephs[i])) {
+    if (platform_try_read_ephemeris(nm->sid, &ephs[i])) {
       if (1 == ephemeris_valid(&ephs[i], &nm->tot)) {
         stored_ephs[i] = &ephs[i];
       }
@@ -406,7 +406,7 @@ void starling_thread(void *arg) {
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
-    if (platform_try_read_iono_corr(&i_params) != NDB_ERR_NONE) {
+    if (!platform_try_read_iono_corr(&i_params)) {
       i_params = DEFAULT_IONO_PARAMS;
     }
     platform_mutex_lock(&time_matched_iono_params_lock);

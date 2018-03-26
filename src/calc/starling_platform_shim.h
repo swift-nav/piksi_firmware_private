@@ -168,12 +168,14 @@ inline void platform_thread_create_static(void *wa, size_t wa_size, int prio,
   chThdCreateStatic(wa, wa_size, prio, fn, user);
 }
 
+// Return true on success.
 inline bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
-  return ndb_ephemeris_read(sid, eph); 
+  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE); 
 }
 
+// Return true on success.
 inline bool platform_try_read_iono_corr(ionosphere_t *params) {
-  return ndb_iono_corr_read(params);
+  return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
 }
 
 #define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)
