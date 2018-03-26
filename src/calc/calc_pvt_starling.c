@@ -60,14 +60,6 @@ mailbox_t time_matched_obs_mailbox;
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
-FilterManager *time_matched_filter_manager;
-FilterManager *low_latency_filter_manager;
-FilterManager *spp_filter_manager;
-
-MUTEX_DECL(time_matched_filter_manager_lock);
-MUTEX_DECL(low_latency_filter_manager_lock);
-MUTEX_DECL(spp_filter_manager_lock);
-
 MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
 ionosphere_t time_matched_iono_params;

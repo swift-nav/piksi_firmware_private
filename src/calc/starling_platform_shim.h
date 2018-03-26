@@ -179,4 +179,6 @@ inline void platform_thread_create_static(void *wa, size_t wa_size, int prio,
 
 #define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)
 
+#define PLATFORM_MUTEX_DECL(m) MUTEX_DECL(m)
+
 #endif

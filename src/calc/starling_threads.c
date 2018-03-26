@@ -27,6 +27,14 @@ static PLATFORM_THD_WORKING_AREA(wa_starling_thread,
 static PLATFORM_THD_WORKING_AREA(wa_time_matched_obs_thread,
                                  TIME_MATCHED_OBS_THREAD_STACK);
 
+FilterManager *time_matched_filter_manager;
+FilterManager *low_latency_filter_manager;
+FilterManager *spp_filter_manager;
+
+PLATFORM_MUTEX_DECL(time_matched_filter_manager_lock);
+PLATFORM_MUTEX_DECL(low_latency_filter_manager_lock);
+PLATFORM_MUTEX_DECL(spp_filter_manager_lock);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////
