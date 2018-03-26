@@ -19,6 +19,8 @@
 #include <libswiftnav/gnss_time.h>
 #include <ch.h>
 
+#include "ndb/ndb.h"
+
 /**
  * This is the dumping ground header for everything required
  * to get the starling threads to compile correctly from 

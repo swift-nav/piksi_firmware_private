@@ -3,6 +3,9 @@
 #include <libswiftnav/logging.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <libswiftnav/memcpy_s.h>
+
+#include <string.h>
 
 #include "starling_threads.h"
 #include "starling_platform_shim.h"
