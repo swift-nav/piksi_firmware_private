@@ -764,33 +764,4 @@ void platform_initialize_memory_pools() {
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
-void starling_calc_pvt_setup() {
-  /* Set time of last differential solution in the past. */
-  last_dgnss = GPS_TIME_UNKNOWN;
-  last_spp = GPS_TIME_UNKNOWN;
-  last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
 
-  platform_initialize_settings();
-  platform_initialize_memory_pools();
-
-  /* Need to init filters here so they exist before we setup SBP callbacks */
-  spp_filter_manager = NULL;
-  time_matched_filter_manager = NULL;
-  low_latency_filter_manager = NULL;
-
-  /* Start solution thread */
-  chThdCreateStatic(wa_starling_thread,
-                    sizeof(wa_starling_thread),
-                    STARLING_THREAD_PRIORITY,
-                    starling_thread,
-                    NULL);
-  chThdCreateStatic(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread),
-                    TIME_MATCHED_OBS_THREAD_PRIORITY,
-                    time_matched_obs_thread,
-                    NULL);
-
-  static sbp_msg_callbacks_node_t reset_filters_node;
-  sbp_register_cbk(
-      SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
-}
