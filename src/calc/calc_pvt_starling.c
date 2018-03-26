@@ -147,20 +147,6 @@ void post_observations(u8 n,
   }
 }
 
-void set_known_ref_pos(const double base_pos[3]) {
-  if (time_matched_filter_manager) {
-    filter_manager_set_known_ref_pos(
-        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
-  }
-}
-
-void set_known_glonass_biases(const glo_biases_t biases) {
-  if (time_matched_filter_manager) {
-    filter_manager_set_known_glonass_biases(
-        (FilterManagerRTK *)time_matched_filter_manager, biases);
-  }
-}
-
 /** Determine if we have had a DGNSS timeout.
  *
  * \param _last_dgnss. Last time of DGNSS solution
@@ -608,17 +594,10 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   }
 
   bool enable_fix = value == 0 ? false : true;
-  chMtxLock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
-  }
-  chMtxUnlock(&time_matched_filter_manager_lock);
-  chMtxLock(&low_latency_filter_manager_lock);
-  if (low_latency_filter_manager) {
-    set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
-  }
-  chMtxUnlock(&low_latency_filter_manager_lock);
-  *(dgnss_filter_t *)s->addr = value;
+
+  starling_threads_set_enable_fix_mode(enable_fix);
+
+    *(dgnss_filter_t *)s->addr = value;
   return ret;
 }
 

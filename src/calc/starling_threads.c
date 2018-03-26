@@ -27,13 +27,13 @@ static PLATFORM_THD_WORKING_AREA(wa_starling_thread,
 static PLATFORM_THD_WORKING_AREA(wa_time_matched_obs_thread,
                                  TIME_MATCHED_OBS_THREAD_STACK);
 
-FilterManager *time_matched_filter_manager;
-FilterManager *low_latency_filter_manager;
-FilterManager *spp_filter_manager;
+static FilterManager *time_matched_filter_manager;
+static FilterManager *low_latency_filter_manager;
+static FilterManager *spp_filter_manager;
 
-PLATFORM_MUTEX_DECL(time_matched_filter_manager_lock);
-PLATFORM_MUTEX_DECL(low_latency_filter_manager_lock);
-PLATFORM_MUTEX_DECL(spp_filter_manager_lock);
+static PLATFORM_MUTEX_DECL(time_matched_filter_manager_lock);
+static PLATFORM_MUTEX_DECL(low_latency_filter_manager_lock);
+static PLATFORM_MUTEX_DECL(spp_filter_manager_lock);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -663,9 +663,36 @@ void starling_calc_pvt_setup() {
 }
 
 void reset_rtk_filter(void) {
-  chMtxLock(&time_matched_filter_manager_lock);
+  platform_mutex_lock(&time_matched_filter_manager_lock);
   filter_manager_init(time_matched_filter_manager);
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+void set_known_ref_pos(const double base_pos[3]) {
+  if (time_matched_filter_manager) {
+    filter_manager_set_known_ref_pos(
+        (FilterManagerRTK *)time_matched_filter_manager, base_pos);
+  }
+}
+
+void set_known_glonass_biases(const glo_biases_t biases) {
+  if (time_matched_filter_manager) {
+    filter_manager_set_known_glonass_biases(
+        (FilterManagerRTK *)time_matched_filter_manager, biases);
+  }
+}
+
+void starling_threads_set_enable_fix_mode(bool enable_fix) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  if (low_latency_filter_manager) {
+    set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
+  }
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
 }
 
 

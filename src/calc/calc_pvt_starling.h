@@ -44,8 +44,6 @@ extern bool send_heading;
 double calc_heading(const double b_ned[3]);
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
-void set_known_ref_pos(const double base_pos[3]);
-void set_known_glonass_biases(const glo_biases_t biases);
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 

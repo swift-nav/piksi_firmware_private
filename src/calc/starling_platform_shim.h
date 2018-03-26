@@ -94,14 +94,6 @@ extern mailbox_t time_matched_obs_mailbox;
 extern dgnss_solution_mode_t dgnss_soln_mode;
 extern dgnss_filter_t dgnss_filter;
 
-extern FilterManager *time_matched_filter_manager;
-extern FilterManager *low_latency_filter_manager;
-extern FilterManager *spp_filter_manager;
-
-extern mutex_t time_matched_filter_manager_lock;
-extern mutex_t low_latency_filter_manager_lock;
-extern mutex_t spp_filter_manager_lock;
-
 extern mutex_t time_matched_iono_params_lock;
 extern bool has_time_matched_iono_params;
 extern ionosphere_t time_matched_iono_params;

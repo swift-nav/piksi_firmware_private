@@ -33,4 +33,14 @@ void time_matched_obs_thread(void *arg);
 // Reset the time matched filter.
 void reset_rtk_filter(void);
 
+// Set the reference position for the time-matched filter.
+void set_known_ref_pos(const double base_pos[3]);
+
+// Set the glonass biases for the time-matched filter. 
+void set_known_glonass_biases(const glo_biases_t biases);
+
+// Set the fix mode.
+void starling_threads_set_enable_fix_mode(bool enable_fix);
+
+
 #endif
