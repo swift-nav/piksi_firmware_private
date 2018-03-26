@@ -251,7 +251,7 @@ void starling_thread(void *arg) {
     if (ret != MSG_OK) {
       if (NULL != me_msg) {
         log_error("STARLING: mailbox fetch failed with %" PRIi32, ret);
-        chPoolFree(&me_msg_buff_pool, me_msg);
+        platform_pool_free(&me_msg_buff_pool, me_msg);
       }
       continue;
     }
@@ -279,12 +279,12 @@ void starling_thread(void *arg) {
 
         current_sbas_system = sbas_system;
       }
-      chPoolFree(&me_msg_buff_pool, me_msg);
+      platform_pool_free(&me_msg_buff_pool, me_msg);
       continue;
     }
 
     if (ME_MSG_OBS != me_msg->id) {
-      chPoolFree(&me_msg_buff_pool, me_msg);
+      platform_pool_free(&me_msg_buff_pool, me_msg);
       continue;
     }
 
@@ -311,13 +311,13 @@ void starling_thread(void *arg) {
                                        &sbp_messages,
                                        rover_channel_epoch->size,
                                        rover_channel_epoch->obs);
-      chPoolFree(&me_msg_buff_pool, me_msg);
+      platform_pool_free(&me_msg_buff_pool, me_msg);
       continue;
     }
 
     if (rover_channel_epoch->size == 0 ||
         !gps_time_valid(&rover_channel_epoch->obs_time)) {
-      chPoolFree(&me_msg_buff_pool, me_msg);
+      platform_pool_free(&me_msg_buff_pool, me_msg);
       solution_send_low_latency_output(0, &sbp_messages, 0, nav_meas);
       continue;
     }
@@ -326,7 +326,7 @@ void starling_thread(void *arg) {
       /* When we change the solution rate down, we sometimes can round the
        * time to an epoch earlier than the previous one processed, in that
        * case we want to ignore any epochs with an earlier timestamp */
-      chPoolFree(&me_msg_buff_pool, me_msg);
+      platform_pool_free(&me_msg_buff_pool, me_msg);
       continue;
     }
 
@@ -353,7 +353,7 @@ void starling_thread(void *arg) {
 
     obs_time = rover_channel_epoch->obs_time;
 
-    chPoolFree(&me_msg_buff_pool, me_msg);
+    platform_pool_free(&me_msg_buff_pool, me_msg);
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
@@ -477,7 +477,7 @@ void time_matched_obs_thread(void *arg) {
     if (fetch_ret != MSG_OK) {
       if (NULL != base_obs) {
         log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
-        chPoolFree(&base_obs_buff_pool, base_obs);
+        platform_pool_free(&base_obs_buff_pool, base_obs);
       }
       continue;
     }
@@ -489,7 +489,7 @@ void time_matched_obs_thread(void *arg) {
     }
 
     base_obss_copy = *base_obs;
-    chPoolFree(&base_obs_buff_pool, base_obs);
+    platform_pool_free(&base_obs_buff_pool, base_obs);
 
     // Check if the el mask has changed and update
     platform_mutex_lock(&time_matched_filter_manager_lock);
@@ -510,7 +510,7 @@ void time_matched_obs_thread(void *arg) {
                      TIME_IMMEDIATE) == MSG_OK) {
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
         // Not doing any DGNSS.  Toss the obs away.
-        chPoolFree(&time_matched_obs_buff_pool, obss);
+        platform_pool_free(&time_matched_obs_buff_pool, obss);
         continue;
       }
 
@@ -542,7 +542,7 @@ void time_matched_obs_thread(void *arg) {
           solution_send_pos_messages(
               base_obss_copy.sender_id, &sbp_messages, obss->n, obss->nm);
         }
-        chPoolFree(&time_matched_obs_buff_pool, obss);
+        platform_pool_free(&time_matched_obs_buff_pool, obss);
         break;
       } else {
         if (dt > 0) {
@@ -569,13 +569,13 @@ void time_matched_obs_thread(void *arg) {
             /* Something went wrong with returning it to the buffer, better just
              * free it and carry on. */
             log_warn("Obs Matching: mailbox full, discarding observation!");
-            chPoolFree(&time_matched_obs_buff_pool, obss);
+            platform_pool_free(&time_matched_obs_buff_pool, obss);
           }
           break;
         } else {
           /* Time of base obs later than time of local obs,
            * keep moving through the mailbox. */
-          chPoolFree(&time_matched_obs_buff_pool, obss);
+          platform_pool_free(&time_matched_obs_buff_pool, obss);
         }
       }
     }

@@ -167,6 +167,10 @@ inline void platform_mutex_unlock(mutex_t *mtx) {
   chMtxUnlock(mtx);
 }
 
+inline void platform_pool_free(void *pool, void *buf) {
+  chPoolFree(pool, buf);
+}
+
 
 
 #endif
