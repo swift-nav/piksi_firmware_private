@@ -79,4 +79,6 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                 const dops_t *dops,
                                 sbp_messages_t *sbp_messages);
 
+void init_filters(void);
+
 #endif
