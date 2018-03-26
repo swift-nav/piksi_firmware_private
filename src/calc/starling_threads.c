@@ -1,5 +1,7 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 
 #include "starling_threads.h"

@@ -23,41 +23,7 @@
 #include <libswiftnav/single_epoch_solver.h>
 
 #include "piksi_systime.h"
-
-typedef enum {
-  SOLN_MODE_LOW_LATENCY,
-  SOLN_MODE_TIME_MATCHED,
-  SOLN_MODE_NO_DGNSS
-} dgnss_solution_mode_t;
-
-typedef enum {
-  FILTER_FLOAT,
-  FILTER_FIXED,
-} dgnss_filter_t;
-
-typedef struct {
-  piksi_systime_t systime;
-  dgnss_filter_t mode;
-} soln_dgnss_stats_t;
-
-typedef struct {
-  msg_gps_time_t gps_time;
-  msg_utc_time_t utc_time;
-  msg_pos_llh_t pos_llh;
-  msg_pos_ecef_t pos_ecef;
-  msg_vel_ned_t vel_ned;
-  msg_vel_ecef_t vel_ecef;
-  msg_dops_t sbp_dops;
-  msg_age_corrections_t age_corrections;
-  msg_dgnss_status_t dgnss_status;
-  msg_baseline_ecef_t baseline_ecef;
-  msg_baseline_ned_t baseline_ned;
-  msg_baseline_heading_t baseline_heading;
-  msg_pos_ecef_cov_t pos_ecef_cov;
-  msg_vel_ecef_cov_t vel_ecef_cov;
-  msg_pos_llh_cov_t pos_llh_cov;
-  msg_vel_ned_cov_t vel_ned_cov;
-} sbp_messages_t;
+#include "starling_platform_shim.h"
 
 typedef struct {
   piksi_systime_t systime;
