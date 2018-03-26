@@ -169,12 +169,6 @@ void set_known_glonass_biases(const glo_biases_t biases) {
   }
 }
 
-void reset_rtk_filter(void) {
-  chMtxLock(&time_matched_filter_manager_lock);
-  filter_manager_init(time_matched_filter_manager);
-  chMtxUnlock(&time_matched_filter_manager_lock);
-}
-
 /** Determine if we have had a DGNSS timeout.
  *
  * \param _last_dgnss. Last time of DGNSS solution
@@ -673,20 +667,6 @@ void init_filters(void) {
                  max_age_of_differential,
                  TYPE_INT,
                  set_max_age);
-}
-
-void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
-  (void)sender_id;
-  (void)len;
-  (void)context;
-  switch (msg[0]) {
-    case 0:
-      log_info("Filter reset requested");
-      reset_rtk_filter();
-      break;
-    default:
-      break;
-  }
 }
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {

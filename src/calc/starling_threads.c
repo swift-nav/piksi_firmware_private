@@ -47,6 +47,20 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
   return get_baseline_ret;
 }
 
+static void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+  (void)sender_id;
+  (void)len;
+  (void)context;
+  switch (msg[0]) {
+    case 0:
+      log_info("Filter reset requested");
+      reset_rtk_filter();
+      break;
+    default:
+      break;
+  }
+}
+
 static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
@@ -628,3 +642,11 @@ void starling_calc_pvt_setup() {
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 }
+
+void reset_rtk_filter(void) {
+  chMtxLock(&time_matched_filter_manager_lock);
+  filter_manager_init(time_matched_filter_manager);
+  chMtxUnlock(&time_matched_filter_manager_lock);
+}
+
+
