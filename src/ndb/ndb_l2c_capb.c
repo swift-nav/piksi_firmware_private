@@ -22,7 +22,7 @@
 #include "settings/settings.h"
 
 /** L2C capabilities file name */
-#define GPS_L2C_CAPB_FILE_NAME "persistent/l2c_capb"
+#define GPS_L2C_CAPB_FILE_NAME "persistent/ndb/l2c_capb"
 /** L2C capabilities file type */
 #define GPS_L2C_CAPB_FILE_TYPE "l2c capabilities"
 /** L2C capability default value */

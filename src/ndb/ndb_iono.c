@@ -23,7 +23,7 @@
 #include "settings/settings.h"
 
 /** Ionospheric corrections file name */
-#define IONO_CORR_FILE_NAME "persistent/iono"
+#define IONO_CORR_FILE_NAME "persistent/ndb/iono"
 /** Ionospheric corrections file type */
 #define IONO_CORR_FILE_TYPE "iono corrections"
 
