@@ -392,7 +392,7 @@ static void me_calc_pvt_thread(void *arg) {
     double soln_freq = soln_freq_setting;
     chSysUnlock();
 
-    DO_EACH_MS(400, drop_glo_signals_on_leap_second(););
+    drop_glo_signals_on_leap_second();
 
     /* sleep until next epoch, and update the deadline */
     me_thd_sleep(&next_epoch, SECS_US / soln_freq);
