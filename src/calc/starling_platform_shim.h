@@ -19,12 +19,12 @@
 #include <libswiftnav/gnss_time.h>
 #include <ch.h>
 
+// All of these need to go.
 #include "ndb/ndb.h"
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/calc_base_obs.h"
 #include "me_msg/me_msg.h"
-
 
 /**
  * This is the dumping ground header for everything required
@@ -83,7 +83,6 @@ typedef struct {
   msg_pos_llh_cov_t pos_llh_cov;
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Globals
@@ -167,6 +166,14 @@ inline void platform_pool_free(void *pool, void *buf) {
 inline void platform_thread_create_static(void *wa, size_t wa_size, int prio,
     void(*fn)(void*), void *user) {
   chThdCreateStatic(wa, wa_size, prio, fn, user);
+}
+
+inline bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
+  return ndb_ephemeris_read(sid, eph); 
+}
+
+inline bool platform_try_read_iono_corr(ionosphere_t *params) {
+  return ndb_iono_corr_read(params);
 }
 
 #define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)

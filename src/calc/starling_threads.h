@@ -19,6 +19,9 @@
  *
  * This is *not* a dumping ground for all the intermediary dependencies
  * of "starling_threads". Those will go into a shim layer.
+ *
+ * This set of functions is the supposed to be the minimum interface expected
+ * by the rest of the piksi firmware.
  */
 
 // Setup the starling engine threads.
