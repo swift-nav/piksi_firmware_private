@@ -617,10 +617,14 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
 
   bool enable_fix = value == 0 ? false : true;
   chMtxLock(&time_matched_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
+  if (time_matched_filter_manager) {
+    set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
+  }
   chMtxUnlock(&time_matched_filter_manager_lock);
   chMtxLock(&low_latency_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
+  if (low_latency_filter_manager) {
+    set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
+  }
   chMtxUnlock(&low_latency_filter_manager_lock);
   *(dgnss_filter_t *)s->addr = value;
   return ret;
@@ -634,10 +638,14 @@ static bool set_max_age(struct setting *s, const char *val) {
   }
 
   chMtxLock(&low_latency_filter_manager_lock);
-  set_max_correction_age(low_latency_filter_manager, value);
+  if (low_latency_filter_manager) {
+    set_max_correction_age(low_latency_filter_manager, value);
+  }
   chMtxUnlock(&low_latency_filter_manager_lock);
   chMtxLock(&time_matched_filter_manager_lock);
-  set_max_correction_age(time_matched_filter_manager, value);
+  if (time_matched_filter_manager) {
+    set_max_correction_age(time_matched_filter_manager, value);
+  }
   chMtxUnlock(&time_matched_filter_manager_lock);
   *(int *)s->addr = value;
   return ret;
@@ -652,21 +660,6 @@ void init_filters(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   chMtxUnlock(&low_latency_filter_manager_lock);
 
-  static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
-  static struct setting_type dgnss_filter_setting;
-  int TYPE_GNSS_FILTER =
-      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
-
-  SETTING_NOTIFY("solution",
-                 "dgnss_filter",
-                 dgnss_filter,
-                 TYPE_GNSS_FILTER,
-                 enable_fix_mode);
-  SETTING_NOTIFY("solution",
-                 "correction_age_max",
-                 max_age_of_differential,
-                 TYPE_INT,
-                 set_max_age);
 }
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
@@ -721,6 +714,23 @@ void platform_initialize_settings() {
           "glonass_measurement_std_downweight_factor",
           glonass_downweight_factor,
           TYPE_FLOAT);
+
+  static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
+  static struct setting_type dgnss_filter_setting;
+  int TYPE_GNSS_FILTER =
+      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
+
+  SETTING_NOTIFY("solution",
+                 "dgnss_filter",
+                 dgnss_filter,
+                 TYPE_GNSS_FILTER,
+                 enable_fix_mode);
+  SETTING_NOTIFY("solution",
+                 "correction_age_max",
+                 max_age_of_differential,
+                 TYPE_INT,
+                 set_max_age);
+
 }
 
 void platform_initialize_memory_pools() {
