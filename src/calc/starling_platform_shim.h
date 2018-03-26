@@ -20,6 +20,8 @@
 #include <ch.h>
 
 #include "ndb/ndb.h"
+#include "calc/calc_pvt_common.h"
+#include "calc/calc_pvt_me.h"
 
 /**
  * This is the dumping ground header for everything required
@@ -38,6 +40,8 @@
 #define SPP_ECEF_SIZE 3
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
+/* Warn on 15 second base station observation latency */
+#define BASE_LATENCY_TIMEOUT 15
 
 ////////////////////////////////////////////////////////////////////////////////
 // Types 
@@ -107,6 +111,7 @@ extern gps_time_t last_time_matched_rover_obs_post;
 extern double starling_frequency;
 
 extern bool disable_klobuchar;
+extern bool enable_glonass;
 extern float glonass_downweight_factor;
 
 extern u8 current_base_sender_id;
@@ -144,4 +149,7 @@ void solution_make_baseline_sbp(const pvt_engine_result_t *result,
 
 void init_filters(void);
 
+void solution_make_sbp(const pvt_engine_result_t *soln,
+                       dops_t *dops,
+                       sbp_messages_t *sbp_messages);
 #endif

@@ -23,6 +23,7 @@
 #include <libswiftnav/single_epoch_solver.h>
 
 #include "piksi_systime.h"
+#include "starling_threads.h"
 #include "starling_platform_shim.h"
 
 typedef struct {
@@ -34,24 +35,15 @@ typedef struct {
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
 
-/* Warn on 15 second base station observation latency */
-#define BASE_LATENCY_TIMEOUT 15
-
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
 extern u32 max_age_of_differential;
-extern bool enable_glonass;
 extern bool send_heading;
-
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages);
 
 double calc_heading(const double b_ned[3]);
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
-void starling_calc_pvt_setup(void);
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);

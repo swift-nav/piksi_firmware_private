@@ -21,6 +21,9 @@
  * of "starling_threads". Those will go into a shim layer.
  */
 
+// Setup the starling engine threads.
+void starling_calc_pvt_setup(void);
+
 // Function to run on the starling thread.
 void starling_thread(void *arg);
 
