@@ -69,9 +69,9 @@ static mailbox_t time_matched_obs_mailbox;
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
-static FilterManager *time_matched_filter_manager;
-static FilterManager *low_latency_filter_manager;
-static FilterManager *spp_filter_manager;
+FilterManager *time_matched_filter_manager;
+FilterManager *low_latency_filter_manager;
+FilterManager *spp_filter_manager;
 
 MUTEX_DECL(time_matched_filter_manager_lock);
 MUTEX_DECL(low_latency_filter_manager_lock);
@@ -79,12 +79,12 @@ MUTEX_DECL(spp_filter_manager_lock);
 
 MUTEX_DECL(time_matched_iono_params_lock);
 bool has_time_matched_iono_params = false;
-static ionosphere_t time_matched_iono_params;
+ionosphere_t time_matched_iono_params;
 
 MUTEX_DECL(last_sbp_lock);
-static gps_time_t last_dgnss;
-static gps_time_t last_spp;
-static gps_time_t last_time_matched_rover_obs_post;
+gps_time_t last_dgnss;
+gps_time_t last_spp;
+gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 u32 max_age_of_differential = 30;
