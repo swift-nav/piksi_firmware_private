@@ -22,6 +22,9 @@
 #include "ndb/ndb.h"
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
+#include "calc/calc_base_obs.h"
+#include "me_msg/me_msg.h"
+
 
 /**
  * This is the dumping ground header for everything required
