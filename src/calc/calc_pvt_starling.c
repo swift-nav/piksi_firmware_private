@@ -728,12 +728,7 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
   return ret;
 }
 
-void starling_calc_pvt_setup() {
-  /* Set time of last differential solution in the past. */
-  last_dgnss = GPS_TIME_UNKNOWN;
-  last_spp = GPS_TIME_UNKNOWN;
-  last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
-
+void platform_initialize_settings() {
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
   static struct setting_type dgnss_soln_mode_setting;
@@ -757,7 +752,9 @@ void starling_calc_pvt_setup() {
           "glonass_measurement_std_downweight_factor",
           glonass_downweight_factor,
           TYPE_FLOAT);
+}
 
+void platform_initialize_memory_pools() {
   static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
   chMBObjectInit(&time_matched_obs_mailbox,
                  time_matched_obs_mailbox_buff,
@@ -765,6 +762,16 @@ void starling_calc_pvt_setup() {
   chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
   static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+}
+
+void starling_calc_pvt_setup() {
+  /* Set time of last differential solution in the past. */
+  last_dgnss = GPS_TIME_UNKNOWN;
+  last_spp = GPS_TIME_UNKNOWN;
+  last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
+
+  platform_initialize_settings();
+  platform_initialize_memory_pools();
 
   /* Need to init filters here so they exist before we setup SBP callbacks */
   spp_filter_manager = NULL;

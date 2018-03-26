@@ -156,6 +156,9 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
 
+void platform_initialize_settings(void);
+void platform_initialize_memory_pools(void);
+
 ////////////////////////////////////////////////////////////////////////////////
 // ChibiOS Shim Functions 
 ////////////////////////////////////////////////////////////////////////////////
