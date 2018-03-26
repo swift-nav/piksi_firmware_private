@@ -1,4 +1,5 @@
 #include "starling_threads.h"
+#include "starling_platform_shim.h"
 
 void starling_thread(void *arg) {
   (void)arg;
