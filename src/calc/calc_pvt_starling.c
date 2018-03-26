@@ -651,17 +651,6 @@ static bool set_max_age(struct setting *s, const char *val) {
   return ret;
 }
 
-void init_filters(void) {
-  chMtxLock(&time_matched_filter_manager_lock);
-  time_matched_filter_manager = create_filter_manager_rtk();
-  chMtxUnlock(&time_matched_filter_manager_lock);
-
-  chMtxLock(&low_latency_filter_manager_lock);
-  low_latency_filter_manager = create_filter_manager_rtk();
-  chMtxUnlock(&low_latency_filter_manager_lock);
-
-}
-
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
   return last_dgnss_stats;
 }

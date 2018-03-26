@@ -30,6 +30,17 @@ static PLATFORM_THD_WORKING_AREA(wa_time_matched_obs_thread,
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////
+
+static void init_filters(void) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  time_matched_filter_manager = create_filter_manager_rtk();
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  low_latency_filter_manager = create_filter_manager_rtk();
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+}
+
 static PVT_ENGINE_INTERFACE_RC get_baseline(
     const FilterManager *filter_manager,
     const bool use_time_matched_baseline,
