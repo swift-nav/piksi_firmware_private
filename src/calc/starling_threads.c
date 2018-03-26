@@ -4,6 +4,220 @@
 #include "starling_threads.h"
 #include "starling_platform_shim.h"
 
+////////////////////////////////////////////////////////////////////////////////
+// Helpers
+////////////////////////////////////////////////////////////////////////////////
+
+static PVT_ENGINE_INTERFACE_RC get_baseline(
+    const FilterManager *filter_manager,
+    const bool use_time_matched_baseline,
+    dops_t *dops,
+    pvt_engine_result_t *result) {
+  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+
+  get_baseline_ret = filter_manager_get_result(
+      filter_manager, use_time_matched_baseline, result);
+
+  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
+    *dops = filter_manager_get_dop_values(filter_manager);
+  }
+
+  return get_baseline_ret;
+}
+
+static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
+  PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
+  if (filter_manager_is_initialized(filter_manager)) {
+    ret = filter_manager_update(filter_manager);
+  } else {
+    log_info("Starling Filter not initialized.");
+  }
+  return ret;
+}
+
+static bool update_time_matched(gps_time_t *last_update_time,
+                         gps_time_t *current_time,
+                         u8 num_obs) {
+  double update_dt = gpsdifftime(current_time, last_update_time);
+  double update_rate_limit = 0.99;
+  if (num_obs > 16) {
+    update_rate_limit = 1.99;
+  }
+  if (update_dt < update_rate_limit) {
+    return false;
+  }
+  return true;
+}
+
+static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
+    FilterManager *filter_manager,
+    const gps_time_t *obs_time,
+    const u8 num_obs,
+    const navigation_measurement_t *nav_meas,
+    const ephemeris_t *ephemerides[MAX_CHANNELS],
+    const double solution_frequency,
+    pvt_engine_result_t *result,
+    dops_t *dops) {
+  PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+
+  bool is_initialized = filter_manager_is_initialized(filter_manager);
+
+  if (is_initialized) {
+    set_pvt_engine_elevation_mask(filter_manager,
+                                  get_solution_elevation_mask());
+    set_pvt_engine_enable_glonass(filter_manager, enable_glonass);
+    set_pvt_engine_glonass_downweight_factor(filter_manager,
+                                             glonass_downweight_factor);
+    set_pvt_engine_update_frequency(filter_manager, solution_frequency);
+
+    filter_manager_overwrite_ephemerides(filter_manager, ephemerides);
+
+    update_rov_obs = filter_manager_update_rov_obs(
+        filter_manager, obs_time, num_obs, nav_meas);
+  }
+
+  if (update_rov_obs == PVT_ENGINE_SUCCESS) {
+    update_filter_ret = update_filter(filter_manager);
+  }
+
+  if (update_filter_ret == PVT_ENGINE_SUCCESS) {
+    get_baseline_ret = get_baseline(filter_manager, false, dops, result);
+  }
+
+  return get_baseline_ret;
+}
+
+static void process_matched_obs(const obss_t *rover_channel_meass,
+                         const obss_t *reference_obss,
+                         sbp_messages_t *sbp_messages) {
+  PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
+  PVT_ENGINE_INTERFACE_RC get_baseline_ret = PVT_ENGINE_FAILURE;
+  dops_t RTK_dops;
+  pvt_engine_result_t result;
+
+  ephemeris_t ephs[MAX_CHANNELS];
+  const ephemeris_t *stored_ephs[MAX_CHANNELS];
+  memset(stored_ephs, 0, sizeof(stored_ephs));
+
+  for (u8 i = 0; i < rover_channel_meass->n; i++) {
+    const navigation_measurement_t *nm = &rover_channel_meass->nm[i];
+    if (NDB_ERR_NONE == ndb_ephemeris_read(nm->sid, &ephs[i])) {
+      if (1 == ephemeris_valid(&ephs[i], &nm->tot)) {
+        stored_ephs[i] = &ephs[i];
+      }
+    }
+  }
+
+  chMtxLock(&time_matched_filter_manager_lock);
+
+  if (!filter_manager_is_initialized(time_matched_filter_manager)) {
+    filter_manager_init(time_matched_filter_manager);
+  }
+
+  if (filter_manager_is_initialized(time_matched_filter_manager)) {
+    filter_manager_overwrite_ephemerides(time_matched_filter_manager,
+                                         stored_ephs);
+
+    chMtxLock(&time_matched_iono_params_lock);
+    if (has_time_matched_iono_params) {
+      filter_manager_update_iono_parameters(time_matched_filter_manager,
+                                            &time_matched_iono_params,
+                                            disable_klobuchar);
+    }
+    chMtxUnlock(&time_matched_iono_params_lock);
+
+    update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager,
+                                                   &rover_channel_meass->tor,
+                                                   rover_channel_meass->n,
+                                                   rover_channel_meass->nm);
+    update_ref_obs = filter_manager_update_ref_obs(
+        (FilterManagerRTK *)time_matched_filter_manager,
+        &reference_obss->tor,
+        reference_obss->n,
+        reference_obss->nm,
+        reference_obss->pos_ecef);
+
+    if ((update_rov_obs == PVT_ENGINE_SUCCESS ||
+         update_rov_obs == PVT_ENGINE_NO_OBS ||
+         update_rov_obs == PVT_ENGINE_INSUFFICIENT_OBS) &&
+        update_ref_obs == PVT_ENGINE_SUCCESS) {
+      update_filter_ret = update_filter(time_matched_filter_manager);
+    }
+
+    if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY &&
+        update_filter_ret == PVT_ENGINE_SUCCESS) {
+      /* If we're in low latency mode we need to copy/update the low latency
+         filter manager from the time matched filter manager. */
+      chMtxLock(&low_latency_filter_manager_lock);
+      chMtxLock(&base_pos_lock);
+      chMtxLock(&base_glonass_biases_lock);
+      u32 begin = NAP->TIMING_COUNT;
+      copy_filter_manager_rtk(
+          (FilterManagerRTK *)low_latency_filter_manager,
+          (const FilterManagerRTK *)time_matched_filter_manager);
+      u32 end = NAP->TIMING_COUNT;
+      log_debug("copy_filter_manager_rtk DST %p   SRC %p in %" PRIu32 " ticks",
+                low_latency_filter_manager,
+                time_matched_filter_manager,
+                (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
+      current_base_sender_id = reference_obss->sender_id;
+      chMtxUnlock(&base_glonass_biases_lock);
+      chMtxUnlock(&base_pos_lock);
+      chMtxUnlock(&low_latency_filter_manager_lock);
+    }
+  }
+
+  /* If we are in time matched mode then calculate and output the baseline
+   * for this observation. */
+  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !simulation_enabled() &&
+      update_filter_ret == PVT_ENGINE_SUCCESS) {
+    /* Note: in time match mode we send the physically incorrect time of the
+     * observation message (which can be receiver clock time, or rounded GPS
+     * time) instead of the true GPS time of the solution. */
+    result.time = rover_channel_meass->tor;
+    result.propagation_time = 0;
+    get_baseline_ret =
+        get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
+  }
+
+  chMtxUnlock(&time_matched_filter_manager_lock);
+
+  if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
+    solution_make_baseline_sbp(
+        &result, rover_channel_meass->pos_ecef, &RTK_dops, sbp_messages);
+  }
+}
+
+/** Determine if we have had a SPP timeout.
+ *
+ * \param _last_spp. Last time of SPP solution
+ * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
+ *
+ */
+static bool spp_timeout(const gps_time_t *_last_spp,
+                 const gps_time_t *_last_dgnss,
+                 dgnss_solution_mode_t _dgnss_soln_mode) {
+  // No timeout needed in low latency mode;
+  if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+    return false;
+  }
+  chMtxLock(&last_sbp_lock);
+  double time_diff = gpsdifftime(_last_dgnss, _last_spp);
+  chMtxUnlock(&last_sbp_lock);
+
+  // Need to compare timeout threshold in MS to system time elapsed (in system
+  // ticks)
+  return (time_diff > 0.0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Interface 
+////////////////////////////////////////////////////////////////////////////////
+
 void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
