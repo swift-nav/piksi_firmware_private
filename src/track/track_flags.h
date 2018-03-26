@@ -69,6 +69,7 @@
 
 #define TRACKER_FLAG_SENSITIVITY_MODE (1 << 29)
 #define TRACKER_FLAG_SBAS_PROVIDER_CHANGE (1 << 30)
+#define TRACKER_FLAG_LEAP_SECOND (1 << 31)
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,6 +77,7 @@ extern "C" {
 
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 void tracker_set_sbas_provider_change_flag(void);
+void tracker_set_leap_second_flag(void);
 void tracker_set_raim_flag(const gnss_signal_t sid);
 void tracker_set_xcorr_flag(const me_gnss_signal_t mesid);
 void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
