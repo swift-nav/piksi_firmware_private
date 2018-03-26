@@ -108,10 +108,10 @@ static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
 static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
-static void post_observations(u8 n,
-                              const navigation_measurement_t m[],
-                              const gps_time_t *t,
-                              const pvt_engine_result_t *soln) {
+void post_observations(u8 n,
+                       const navigation_measurement_t m[],
+                       const gps_time_t *t,
+                       const pvt_engine_result_t *soln) {
   /* TODO: use a buffer from the pool from the start instead of
    * allocating nav_meas_tdcp as well. Downside, if we don't end up
    * pushing the message into the mailbox then we just wasted an
@@ -340,7 +340,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
  * @param n_meas nav_meas len
  * @param nav_meas Valid navigation measurements
  */
-static void solution_send_pos_messages(
+void solution_send_pos_messages(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
@@ -432,7 +432,7 @@ static void solution_send_pos_messages(
                  nav_meas);
 }
 
-static void solution_send_low_latency_output(
+void solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
@@ -639,7 +639,7 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   return get_baseline_ret;
 }
 
-static void solution_simulation(sbp_messages_t *sbp_messages) {
+void solution_simulation(sbp_messages_t *sbp_messages) {
   simulation_step();
 
   /* TODO: The simulator's handling of time is a bit crazy. This is a hack

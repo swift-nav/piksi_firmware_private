@@ -27,6 +27,9 @@
  * Ultimately, the contents of this file should be reduced to 0.
  */
 
+////////////////////////////////////////////////////////////////////////////////
+// Globals
+////////////////////////////////////////////////////////////////////////////////
 extern dgnss_solution_mode_t dgnss_soln_mode;
 extern dgnss_filter_t dgnss_filter;
 
@@ -34,17 +37,46 @@ extern FilterManager *time_matched_filter_manager;
 extern FilterManager *low_latency_filter_manager;
 extern FilterManager *spp_filter_manager;
 
-extern MUTEX_DECL(time_matched_filter_manager_lock);
-extern MUTEX_DECL(low_latency_filter_manager_lock);
-extern MUTEX_DECL(spp_filter_manager_lock);
+extern mutex_t time_matched_filter_manager_lock;
+extern mutex_t low_latency_filter_manager_lock;
+extern mutex_t spp_filter_manager_lock;
 
-extern MUTEX_DECL(time_matched_iono_params_lock);
+extern mutex_t time_matched_iono_params_lock;
 extern bool has_time_matched_iono_params;
 extern ionosphere_t time_matched_iono_params;
 
-extern MUTEX_DECL(last_sbp_lock);
+extern mutex_t last_sbp_lock;
 extern gps_time_t last_dgnss;
 extern gps_time_t last_spp;
 extern gps_time_t last_time_matched_rover_obs_post;
+
+////////////////////////////////////////////////////////////////////////////////
+// Functions 
+////////////////////////////////////////////////////////////////////////////////
+void post_observations(u8 n,
+                       const navigation_measurement_t m[],
+                       const gps_time_t *t,
+                       const pvt_engine_result_t *soln);
+ 
+void solution_send_low_latency_output(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]);
+
+void solution_simulation(sbp_messages_t *sbp_messages);
+
+void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t);
+
+void solution_send_pos_messages(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]);
+
+void solution_make_baseline_sbp(const pvt_engine_result_t *result,
+                                const double spp_ecef[SPP_ECEF_SIZE],
+                                const dops_t *dops,
+                                sbp_messages_t *sbp_messages);
 
 #endif
