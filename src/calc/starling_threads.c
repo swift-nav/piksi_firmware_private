@@ -118,7 +118,7 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
     }
   }
 
-  chMtxLock(&time_matched_filter_manager_lock);
+  platform_mutex_lock(&time_matched_filter_manager_lock);
 
   if (!filter_manager_is_initialized(time_matched_filter_manager)) {
     filter_manager_init(time_matched_filter_manager);
@@ -128,13 +128,13 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
     filter_manager_overwrite_ephemerides(time_matched_filter_manager,
                                          stored_ephs);
 
-    chMtxLock(&time_matched_iono_params_lock);
+    platform_mutex_lock(&time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
                                             &time_matched_iono_params,
                                             disable_klobuchar);
     }
-    chMtxUnlock(&time_matched_iono_params_lock);
+    platform_mutex_unlock(&time_matched_iono_params_lock);
 
     update_rov_obs = filter_manager_update_rov_obs(time_matched_filter_manager,
                                                    &rover_channel_meass->tor,
@@ -158,9 +158,9 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
         update_filter_ret == PVT_ENGINE_SUCCESS) {
       /* If we're in low latency mode we need to copy/update the low latency
          filter manager from the time matched filter manager. */
-      chMtxLock(&low_latency_filter_manager_lock);
-      chMtxLock(&base_pos_lock);
-      chMtxLock(&base_glonass_biases_lock);
+      platform_mutex_lock(&low_latency_filter_manager_lock);
+      platform_mutex_lock(&base_pos_lock);
+      platform_mutex_lock(&base_glonass_biases_lock);
       u32 begin = NAP->TIMING_COUNT;
       copy_filter_manager_rtk(
           (FilterManagerRTK *)low_latency_filter_manager,
@@ -171,9 +171,9 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
                 time_matched_filter_manager,
                 (end > begin) ? (end - begin) : (begin + (4294967295U - end)));
       current_base_sender_id = reference_obss->sender_id;
-      chMtxUnlock(&base_glonass_biases_lock);
-      chMtxUnlock(&base_pos_lock);
-      chMtxUnlock(&low_latency_filter_manager_lock);
+      platform_mutex_unlock(&base_glonass_biases_lock);
+      platform_mutex_unlock(&base_pos_lock);
+      platform_mutex_unlock(&low_latency_filter_manager_lock);
     }
   }
 
@@ -190,7 +190,7 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
         get_baseline(time_matched_filter_manager, true, &RTK_dops, &result);
   }
 
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
     solution_make_baseline_sbp(
@@ -211,9 +211,9 @@ static bool spp_timeout(const gps_time_t *_last_spp,
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
   }
-  chMtxLock(&last_sbp_lock);
+  platform_mutex_lock(&last_sbp_lock);
   double time_diff = gpsdifftime(_last_dgnss, _last_spp);
-  chMtxUnlock(&last_sbp_lock);
+  platform_mutex_unlock(&last_sbp_lock);
 
   // Need to compare timeout threshold in MS to system time elapsed (in system
   // ticks)
@@ -236,10 +236,10 @@ void starling_thread(void *arg) {
   static ephemeris_t e_meas[MAX_CHANNELS];
   static gps_time_t obs_time;
 
-  chMtxLock(&spp_filter_manager_lock);
+  platform_mutex_lock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
   filter_manager_init(spp_filter_manager);
-  chMtxUnlock(&spp_filter_manager_lock);
+  platform_mutex_unlock(&spp_filter_manager_lock);
 
   u8 base_station_sender_id = 0;
 
@@ -268,14 +268,14 @@ void starling_thread(void *arg) {
 
         sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
 
-        chMtxLock(&spp_filter_manager_lock);
+        platform_mutex_lock(&spp_filter_manager_lock);
         if (sbas_system != current_sbas_system &&
             SBAS_UNKNOWN != current_sbas_system) {
           /* clear existing SBAS corrections when provider changes */
           filter_manager_reinitialize_sbas(spp_filter_manager);
         }
         filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
-        chMtxUnlock(&spp_filter_manager_lock);
+        platform_mutex_unlock(&spp_filter_manager_lock);
 
         current_sbas_system = sbas_system;
       }
@@ -360,13 +360,13 @@ void starling_thread(void *arg) {
     if (ndb_iono_corr_read(&i_params) != NDB_ERR_NONE) {
       i_params = DEFAULT_IONO_PARAMS;
     }
-    chMtxLock(&time_matched_iono_params_lock);
+    platform_mutex_lock(&time_matched_iono_params_lock);
     has_time_matched_iono_params = true;
     time_matched_iono_params = i_params;
-    chMtxUnlock(&time_matched_iono_params_lock);
-    chMtxLock(&spp_filter_manager_lock);
+    platform_mutex_unlock(&time_matched_iono_params_lock);
+    platform_mutex_lock(&spp_filter_manager_lock);
     filter_manager_update_iono_parameters(spp_filter_manager, &i_params, false);
-    chMtxUnlock(&spp_filter_manager_lock);
+    platform_mutex_unlock(&spp_filter_manager_lock);
 
     dops_t dops;
 
@@ -399,7 +399,7 @@ void starling_thread(void *arg) {
     result_spp.valid = false;
     bool successful_spp = false;
 
-    chMtxLock(&spp_filter_manager_lock);
+    platform_mutex_lock(&spp_filter_manager_lock);
     const PVT_ENGINE_INTERFACE_RC spp_call_filter_ret =
         call_pvt_engine_filter(spp_filter_manager,
                                &obs_time,
@@ -409,7 +409,7 @@ void starling_thread(void *arg) {
                                starling_frequency,
                                &result_spp,
                                &dops);
-    chMtxUnlock(&spp_filter_manager_lock);
+    platform_mutex_unlock(&spp_filter_manager_lock);
 
     if (spp_call_filter_ret == PVT_ENGINE_SUCCESS) {
       solution_make_sbp(&result_spp, &dops, &sbp_messages);
@@ -426,7 +426,7 @@ void starling_thread(void *arg) {
     }
 
     if (dgnss_soln_mode == SOLN_MODE_LOW_LATENCY && successful_spp) {
-      chMtxLock(&low_latency_filter_manager_lock);
+      platform_mutex_lock(&low_latency_filter_manager_lock);
 
       pvt_engine_result_t result_rtk;
       result_rtk.valid = false;
@@ -440,7 +440,7 @@ void starling_thread(void *arg) {
                                  &result_rtk,
                                  &dops);
       base_station_sender_id = current_base_sender_id;
-      chMtxUnlock(&low_latency_filter_manager_lock);
+      platform_mutex_unlock(&low_latency_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
         solution_make_baseline_sbp(
@@ -492,7 +492,7 @@ void time_matched_obs_thread(void *arg) {
     chPoolFree(&base_obs_buff_pool, base_obs);
 
     // Check if the el mask has changed and update
-    chMtxLock(&time_matched_filter_manager_lock);
+    platform_mutex_lock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
@@ -500,7 +500,7 @@ void time_matched_obs_thread(void *arg) {
                                              glonass_downweight_factor);
     set_pvt_engine_update_frequency(time_matched_filter_manager,
                                     starling_frequency);
-    chMtxUnlock(&time_matched_filter_manager_lock);
+    platform_mutex_unlock(&time_matched_filter_manager_lock);
 
     obss_t *obss;
     /* Look through the mailbox (FIFO queue) of locally generated observations

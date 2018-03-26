@@ -122,7 +122,7 @@ extern u8 current_base_sender_id;
 extern sbas_system_t current_sbas_system;
 
 ////////////////////////////////////////////////////////////////////////////////
-// Functions 
+// Function Dependencies
 ////////////////////////////////////////////////////////////////////////////////
 void post_observations(u8 n,
                        const navigation_measurement_t m[],
@@ -155,4 +155,18 @@ void init_filters(void);
 void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
+
+////////////////////////////////////////////////////////////////////////////////
+// ChibiOS Shim Functions 
+////////////////////////////////////////////////////////////////////////////////
+inline void platform_mutex_lock(mutex_t *mtx) {
+  chMtxLock(mtx); 
+}
+
+inline void platform_mutex_unlock(mutex_t *mtx) {
+  chMtxUnlock(mtx);
+}
+
+
+
 #endif
