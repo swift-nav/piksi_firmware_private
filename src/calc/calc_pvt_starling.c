@@ -47,6 +47,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_threads.c"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 

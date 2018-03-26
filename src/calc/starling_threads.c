@@ -1,4 +1,6 @@
-static void starling_thread(void *arg) {
+#include "starling_threads.h"
+
+void starling_thread(void *arg) {
   (void)arg;
   msg_t ret;
 
@@ -232,7 +234,7 @@ static void starling_thread(void *arg) {
   }
 }
 
-static void time_matched_obs_thread(void *arg) {
+void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
 
