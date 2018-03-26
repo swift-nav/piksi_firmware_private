@@ -54,12 +54,6 @@
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
-#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
-
-#define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
-#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
-
 memory_pool_t time_matched_obs_buff_pool;
 mailbox_t time_matched_obs_mailbox;
 
@@ -620,8 +614,6 @@ void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t) {
   sbp_init_vel_ned_cov(&sbp_messages->vel_ned_cov, t);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
-
 static bool enable_fix_mode(struct setting *s, const char *val) {
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
@@ -682,9 +674,6 @@ void init_filters(void) {
                  TYPE_INT,
                  set_max_age);
 }
-
-static THD_WORKING_AREA(wa_time_matched_obs_thread,
-                        TIME_MATCHED_OBS_THREAD_STACK);
 
 void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
   (void)sender_id;

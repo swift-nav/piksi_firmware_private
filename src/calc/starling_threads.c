@@ -11,9 +11,25 @@
 #include "starling_platform_shim.h"
 
 ////////////////////////////////////////////////////////////////////////////////
+// Constants 
+////////////////////////////////////////////////////////////////////////////////
+#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
+#define STARLING_THREAD_STACK (6 * 1024 * 1024)
+
+#define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
+#define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
+
+////////////////////////////////////////////////////////////////////////////////
+// Global Variables 
+////////////////////////////////////////////////////////////////////////////////
+static PLATFORM_THD_WORKING_AREA(wa_starling_thread, 
+                                 STARLING_THREAD_STACK);
+static PLATFORM_THD_WORKING_AREA(wa_time_matched_obs_thread,
+                                 TIME_MATCHED_OBS_THREAD_STACK);
+
+////////////////////////////////////////////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////
-
 static PVT_ENGINE_INTERFACE_RC get_baseline(
     const FilterManager *filter_manager,
     const bool use_time_matched_baseline,
@@ -597,12 +613,12 @@ void starling_calc_pvt_setup() {
   low_latency_filter_manager = NULL;
 
   /* Start solution thread */
-  chThdCreateStatic(wa_starling_thread,
+  platform_thread_create_static(wa_starling_thread,
                     sizeof(wa_starling_thread),
                     STARLING_THREAD_PRIORITY,
                     starling_thread,
                     NULL);
-  chThdCreateStatic(wa_time_matched_obs_thread,
+  platform_thread_create_static(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread),
                     TIME_MATCHED_OBS_THREAD_PRIORITY,
                     time_matched_obs_thread,

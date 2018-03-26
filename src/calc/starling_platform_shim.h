@@ -174,6 +174,11 @@ inline void platform_pool_free(void *pool, void *buf) {
   chPoolFree(pool, buf);
 }
 
+inline void platform_thread_create_static(void *wa, size_t wa_size, int prio,
+    void(*fn)(void*), void *user) {
+  chThdCreateStatic(wa, wa_size, prio, fn, user);
+}
 
+#define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)
 
 #endif
