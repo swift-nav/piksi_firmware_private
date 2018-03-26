@@ -1,5 +1,6 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
+#include <libswiftnav/pvt_engine/firmware_binding.h>
 
 #include "starling_threads.h"
 #include "starling_platform_shim.h"

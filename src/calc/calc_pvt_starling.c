@@ -47,6 +47,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_platform_shim.h"
 #include "starling_threads.c"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
@@ -59,9 +60,6 @@
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
-
-/** number of milliseconds before SPP resumes in pseudo-absolute mode */
-#define DGNSS_TIMEOUT_MS 5000
 
 memory_pool_t time_matched_obs_buff_pool;
 mailbox_t time_matched_obs_mailbox;
@@ -439,8 +437,6 @@ double calc_heading(const double b_ned[3]) {
   }
   return heading * R2D;
 }
-
-#define SPP_ECEF_SIZE 3
 
 void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                 const double spp_ecef[SPP_ECEF_SIZE],
