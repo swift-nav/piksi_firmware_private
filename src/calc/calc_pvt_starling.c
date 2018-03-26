@@ -608,16 +608,8 @@ static bool set_max_age(struct setting *s, const char *val) {
     return ret;
   }
 
-  chMtxLock(&low_latency_filter_manager_lock);
-  if (low_latency_filter_manager) {
-    set_max_correction_age(low_latency_filter_manager, value);
-  }
-  chMtxUnlock(&low_latency_filter_manager_lock);
-  chMtxLock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    set_max_correction_age(time_matched_filter_manager, value);
-  }
-  chMtxUnlock(&time_matched_filter_manager_lock);
+  starling_threads_set_max_age(value);
+
   *(int *)s->addr = value;
   return ret;
 }

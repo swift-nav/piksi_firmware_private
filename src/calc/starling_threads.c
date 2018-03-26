@@ -695,4 +695,15 @@ void starling_threads_set_enable_fix_mode(bool enable_fix) {
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 }
 
-
+void starling_threads_set_max_age(int value) {
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  if (low_latency_filter_manager) {
+    set_max_correction_age(low_latency_filter_manager, value);
+  }
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    set_max_correction_age(time_matched_filter_manager, value);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+}

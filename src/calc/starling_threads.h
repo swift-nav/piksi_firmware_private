@@ -39,8 +39,11 @@ void set_known_ref_pos(const double base_pos[3]);
 // Set the glonass biases for the time-matched filter. 
 void set_known_glonass_biases(const glo_biases_t biases);
 
-// Set the fix mode.
+// Set the fix mode for the solution.
 void starling_threads_set_enable_fix_mode(bool enable_fix);
+
+// Set the maximum age for the starling threads.
+void starling_threads_set_max_age(int value);
 
 
 #endif
