@@ -463,9 +463,8 @@ static void tracker_channel_process(tracker_t *tracker, bool update_required) {
 /** Handles pending IRQs and background tasks for tracking channels.
  * \param channels_mask   Bitfield indicating the tracking channels for which
  *                        an IRQ is pending.
- * \param leap_second_event Leap second is to be handled
  */
-void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
+void trackers_update(u32 channels_mask, u8 start_chan) {
   const u64 now_ms = timing_getms();
 
   for (u8 ci = 0; (ci < 32) && ((start_chan + ci) < nap_track_n_channels);
@@ -474,7 +473,7 @@ void trackers_update(u32 channels_mask, u8 start_chan, bool leap_second_event) {
     bool update_required = (channels_mask & 1) ? true : false;
     tracker_channel_process(tracker_channel, update_required);
     channels_mask >>= 1;
-    sanitize_tracker(tracker_channel, now_ms, leap_second_event);
+    sanitize_tracker(tracker_channel, now_ms);
   }
 }
 
