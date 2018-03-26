@@ -63,8 +63,8 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-static memory_pool_t time_matched_obs_buff_pool;
-static mailbox_t time_matched_obs_mailbox;
+memory_pool_t time_matched_obs_buff_pool;
+mailbox_t time_matched_obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FIXED;
@@ -86,7 +86,7 @@ gps_time_t last_dgnss;
 gps_time_t last_spp;
 gps_time_t last_time_matched_rover_obs_post;
 
-static double starling_frequency;
+double starling_frequency;
 u32 max_age_of_differential = 30;
 
 bool disable_raim = false;
@@ -100,13 +100,13 @@ bool enable_glonass = true;
 
 float glonass_downweight_factor = 4;
 
-static u8 current_base_sender_id;
+u8 current_base_sender_id;
 
 static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
-static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
+sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
 void post_observations(u8 n,
                        const navigation_measurement_t m[],

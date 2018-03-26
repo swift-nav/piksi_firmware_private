@@ -29,7 +29,11 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Globals
+//
 ////////////////////////////////////////////////////////////////////////////////
+extern memory_pool_t time_matched_obs_buff_pool;
+extern mailbox_t time_matched_obs_mailbox;
+
 extern dgnss_solution_mode_t dgnss_soln_mode;
 extern dgnss_filter_t dgnss_filter;
 
@@ -49,6 +53,15 @@ extern mutex_t last_sbp_lock;
 extern gps_time_t last_dgnss;
 extern gps_time_t last_spp;
 extern gps_time_t last_time_matched_rover_obs_post;
+
+extern double starling_frequency;
+
+extern bool disable_klobuchar;
+extern float glonass_downweight_factor;
+
+extern u8 current_base_sender_id;
+
+extern sbas_system_t current_sbas_system;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Functions 
