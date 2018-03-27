@@ -124,7 +124,7 @@ static void update_tow(tracker_t *tracker_channel,
     log_error_mesid(
         mesid, "TOW mismatch: %" PRId32 ", %" PRId32, *current_TOW_ms, TOW_ms);
     /* This is rude, but safe. Do not expect it to happen normally. */
-    tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+    tracker_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
   }
   *current_TOW_ms = TOW_ms;
   *decoded_tow = (TOW_ms >= 0);

@@ -58,23 +58,6 @@
  * tracking channels that have lost lock on their satellites.
  * \{ */
 
-/** Supported channel drop reasons */
-typedef enum {
-  CH_DROP_REASON_ERROR,        /**< Tracking channel error */
-  CH_DROP_REASON_MASKED,       /**< Tracking channel is disabled by mask */
-  CH_DROP_REASON_NO_BIT_SYNC,  /**< Bit sync timeout */
-  CH_DROP_REASON_NO_PLOCK,     /**< Pessimistic lock timeout */
-  CH_DROP_REASON_LOW_CN0,      /**< Low C/N0 for too long */
-  CH_DROP_REASON_XCORR,        /**< Confirmed cross-correlation */
-  CH_DROP_REASON_NO_UPDATES,   /**< No tracker updates for too long */
-  CH_DROP_REASON_SV_UNHEALTHY, /**< The SV is Unhealthy */
-  CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
-                                    drop GLO satellites */
-  CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
-  CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
-  CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
-} ch_drop_reason_t;
-
 /** Status of acquisition for a particular ME SID. */
 typedef struct {
   enum {
@@ -663,7 +646,7 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
     u32 unlocked_time_ms = update_count_diff(
         tracker_channel, &tracker_channel->ld_pess_change_count);
     bool long_unlocked = unlocked_time_ms > TRACK_REACQ_MS;
-    bool was_xcorr = (flags & TRACKER_FLAG_XCORR_CONFIRMED);
+    bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL);
 
     if (long_in_track && had_locks && !long_unlocked && !was_xcorr) {
       double carrier_freq = tracker_channel->carrier_freq_at_lock;
@@ -790,16 +773,8 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
     return;
   }
 
-  /* Drop GLO satellites if it is leap second event */
-  if (0 != (flags & TRACKER_FLAG_LEAP_SECOND)) {
-    assert(IS_GLO(mesid));
-    drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
-    return;
-  }
-
-  /* Has an error occurred? */
-  if (0 != (flags & TRACKER_FLAG_ERROR)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
+  if (0 != (flags & TRACKER_FLAG_DROP_CHANNEL)) {
+    drop_channel(tracker_channel, tracker_channel->ch_drop_reason);
     return;
   }
 
@@ -810,18 +785,9 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
     return;
   }
 
-  /* Do we have a large measurement outlier? */
-  if (0 != (flags & TRACKER_FLAG_OUTLIER)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
-    return;
-  }
-
   /* Give newly-initialized channels a chance to converge. */
   u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
-  u32 wait_ms = code_requires_direct_acq(mesid.code)
-                    ? TRACK_INIT_FROM_ACQ_MS
-                    : TRACK_INIT_FROM_HANDOVER_MS;
-  if (age_ms < wait_ms) {
+  if (age_ms < tracker_channel->settle_time_ms) {
     return;
   }
 
@@ -863,12 +829,6 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
     return;
   }
 
-  /* Do we have confirmed cross-correlation? */
-  if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
-    return;
-  }
-
   /* Drop GLO if the SV is unhealthy */
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
@@ -881,16 +841,6 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
       drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
       return;
     }
-    if (0 != (flags & TRACKER_FLAG_SBAS_PROVIDER_CHANGE)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_SBAS_PROVIDER_CHANGE);
-      return;
-    }
-  }
-
-  /* Drop channel if signal was excluded by RAIM */
-  if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
-    return;
   }
 }
 
@@ -1001,7 +951,7 @@ u32 get_tracking_channel_meas(u8 i,
 
   if ((0 != (flags & TRACKER_FLAG_ACTIVE)) &&
       (0 != (flags & TRACKER_FLAG_CONFIRMED)) &&
-      (0 == (flags & TRACKER_FLAG_ERROR)) &&
+      (0 == (flags & TRACKER_FLAG_DROP_CHANNEL)) &&
       (0 == (flags & TRACKER_FLAG_XCORR_SUSPECT))) {
     gnss_signal_t sid = mesid2sid(info.mesid, info.glo_orbit_slot);
     ndb_op_code_t res = ndb_ephemeris_read(sid, ephe);

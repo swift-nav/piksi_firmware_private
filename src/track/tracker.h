@@ -64,6 +64,23 @@ typedef enum {
   TP_CTRL_FLL2, /**< 2nd order FLL */
 } tp_ctrl_e;
 
+/** Supported channel drop reasons */
+typedef enum {
+  CH_DROP_REASON_ERROR,        /**< Tracking channel error */
+  CH_DROP_REASON_MASKED,       /**< Tracking channel is disabled by mask */
+  CH_DROP_REASON_NO_BIT_SYNC,  /**< Bit sync timeout */
+  CH_DROP_REASON_NO_PLOCK,     /**< Pessimistic lock timeout */
+  CH_DROP_REASON_LOW_CN0,      /**< Low C/N0 for too long */
+  CH_DROP_REASON_XCORR,        /**< Confirmed cross-correlation */
+  CH_DROP_REASON_NO_UPDATES,   /**< No tracker updates for too long */
+  CH_DROP_REASON_SV_UNHEALTHY, /**< The SV is Unhealthy */
+  CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
+                                    drop GLO satellites */
+  CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
+  CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
+  CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
+} ch_drop_reason_t;
+
 struct profile_vars {
   u8 index;
   float pll_bw;
@@ -398,11 +415,14 @@ typedef struct {
                                     discriminator output [Hz]. */
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
+  ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
   float acceleration;          /**< Acceleration [g] */
   float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
   u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
   u64 update_timestamp_ms;     /**< Tracking channel last update
                                     timestamp [ms] */
+  u32 settle_time_ms;          /**< Apply some sanity checks once settled */
+
   bool updated_once;           /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   health_t health;             /**< GLO SV health info */
