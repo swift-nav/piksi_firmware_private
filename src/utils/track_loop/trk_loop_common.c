@@ -147,7 +147,7 @@ float costas_discriminator(float I, float Q) {
   if (I == 0) {
     return 0;
   }
-  return ((M_PI / 6.) * sinf(2 * atanf(Q / I))) / (2 * M_PI);
+  return ((1 / 2.) * sinf(2 * atanf(Q / I))) / (2 * M_PI);
 }
 
 /** Frequency discriminator for a FLL, used to aid the PLL.
