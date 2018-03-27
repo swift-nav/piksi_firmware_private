@@ -277,7 +277,7 @@ static bool spp_timeout(const gps_time_t *_last_spp,
 // Interface 
 ////////////////////////////////////////////////////////////////////////////////
 
-void starling_thread(void *arg) {
+static void starling_main_thread(void *arg) {
   (void)arg;
   msg_t ret;
 
@@ -511,7 +511,7 @@ void starling_thread(void *arg) {
   }
 }
 
-void time_matched_obs_thread(void *arg) {
+static void time_matched_obs_thread(void *arg) {
   (void)arg;
   chRegSetThreadName("time matched obs");
 
@@ -653,7 +653,7 @@ void starling_calc_pvt_setup() {
   platform_thread_create_static(wa_starling_thread,
                     sizeof(wa_starling_thread),
                     STARLING_THREAD_PRIORITY,
-                    starling_thread,
+                    starling_main_thread,
                     NULL);
   platform_thread_create_static(wa_time_matched_obs_thread,
                     sizeof(wa_time_matched_obs_thread),

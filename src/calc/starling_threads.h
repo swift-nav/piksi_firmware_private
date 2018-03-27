@@ -27,12 +27,6 @@
 // Setup the starling engine threads.
 void starling_calc_pvt_setup(void);
 
-// Function to run on the starling thread.
-void starling_thread(void *arg);
-
-// Function to run on the time-matched thread.
-void time_matched_obs_thread(void *arg);
-
 // Reset the time matched filter.
 void reset_rtk_filter(void);
 
