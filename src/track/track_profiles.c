@@ -40,7 +40,6 @@ typedef enum {
   IDX_INIT_0,
   IDX_INIT_1,
   IDX_INIT_2,
-  IDX_1MS,
   IDX_2MS,
   IDX_5MS,
   IDX_10MS,
@@ -309,21 +308,13 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
-  [IDX_1MS] =
-  { { BW_DYN,      BW_DYN,            3,   TP_CTRL_PLL3,
-          TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-          TP_LD_PARAMS_PHASE_1MS, TP_LD_PARAMS_FREQ_1MS,
-           40,         48,           0,
-      IDX_1MS,     IDX_2MS,    IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT},
-
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
           TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
-           40,          43,          51,
-      IDX_2MS,     IDX_5MS,     IDX_1MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
+           40,          43,           0,
+      IDX_2MS,     IDX_5MS,    IDX_NONE,
+      TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_5MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
