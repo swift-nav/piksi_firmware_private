@@ -642,6 +642,9 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
   return ret;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Platform Support Layer
+////////////////////////////////////////////////////////////////////////////////
 void platform_initialize_settings() {
   static const char *const dgnss_soln_mode_enum[] = {
       "Low Latency", "Time Matched", "No DGNSS", NULL};
@@ -695,4 +698,29 @@ void platform_initialize_memory_pools() {
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
+void platform_mutex_lock(mutex_t *mtx) {
+  chMtxLock(mtx); 
+}
 
+void platform_mutex_unlock(mutex_t *mtx) {
+  chMtxUnlock(mtx);
+}
+
+void platform_pool_free(void *pool, void *buf) {
+  chPoolFree(pool, buf);
+}
+
+void platform_thread_create_static(void *wa, size_t wa_size, int prio,
+    void(*fn)(void*), void *user) {
+  chThdCreateStatic(wa, wa_size, prio, fn, user);
+}
+
+// Return true on success.
+bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
+  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE); 
+}
+
+// Return true on success.
+bool platform_try_read_iono_corr(ionosphere_t *params) {
+  return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
+}

@@ -20,7 +20,6 @@
 #include <ch.h>
 
 // All of these need to go.
-#include "ndb/ndb.h"
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
 #include "calc/calc_base_obs.h"
@@ -145,38 +144,20 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
 
+////////////////////////////////////////////////////////////////////////////////
+// Platform Shim Functions 
+////////////////////////////////////////////////////////////////////////////////
 void platform_initialize_settings(void);
 void platform_initialize_memory_pools(void);
-
-////////////////////////////////////////////////////////////////////////////////
-// ChibiOS Shim Functions 
-////////////////////////////////////////////////////////////////////////////////
-inline void platform_mutex_lock(mutex_t *mtx) {
-  chMtxLock(mtx); 
-}
-
-inline void platform_mutex_unlock(mutex_t *mtx) {
-  chMtxUnlock(mtx);
-}
-
-inline void platform_pool_free(void *pool, void *buf) {
-  chPoolFree(pool, buf);
-}
-
-inline void platform_thread_create_static(void *wa, size_t wa_size, int prio,
-    void(*fn)(void*), void *user) {
-  chThdCreateStatic(wa, wa_size, prio, fn, user);
-}
-
+void platform_mutex_lock(mutex_t *mtx);
+void platform_mutex_unlock(mutex_t *mtx);
+void platform_pool_free(void *pool, void *buf);
+void platform_thread_create_static(void *wa, size_t wa_size, int prio,
+    void(*fn)(void*), void *user);
 // Return true on success.
-inline bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
-  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE); 
-}
-
+bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 // Return true on success.
-inline bool platform_try_read_iono_corr(ionosphere_t *params) {
-  return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
-}
+bool platform_try_read_iono_corr(ionosphere_t *params);
 
 #define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)
 
