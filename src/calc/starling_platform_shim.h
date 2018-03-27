@@ -13,21 +13,21 @@
 #ifndef STARLING_CALC_STARLING_PLATFORM_SHIM_H
 #define STARLING_CALC_STARLING_PLATFORM_SHIM_H
 
+#include <ch.h>
 #include <libsbp/navigation.h>
 #include <libsbp/orientation.h>
 #include <libsbp/system.h>
 #include <libswiftnav/gnss_time.h>
-#include <ch.h>
 
 // All of these need to go.
+#include "calc/calc_base_obs.h"
 #include "calc/calc_pvt_common.h"
 #include "calc/calc_pvt_me.h"
-#include "calc/calc_base_obs.h"
 #include "me_msg/me_msg.h"
 
 /**
  * This is the dumping ground header for everything required
- * to get the starling threads to compile correctly from 
+ * to get the starling threads to compile correctly from
  * outside of the firmware.
  *
  * Here you will find the definitions of types and functions
@@ -37,7 +37,7 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////
-// Constants 
+// Constants
 ////////////////////////////////////////////////////////////////////////////////
 #define SPP_ECEF_SIZE 3
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
@@ -46,7 +46,7 @@
 #define BASE_LATENCY_TIMEOUT 15
 
 ////////////////////////////////////////////////////////////////////////////////
-// Types 
+// Types
 ////////////////////////////////////////////////////////////////////////////////
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
@@ -114,7 +114,7 @@ void post_observations(u8 n,
                        const navigation_measurement_t m[],
                        const gps_time_t *t,
                        const pvt_engine_result_t *soln);
- 
+
 void solution_send_low_latency_output(
     u8 base_sender_id,
     const sbp_messages_t *sbp_messages,
@@ -125,11 +125,10 @@ void solution_simulation(sbp_messages_t *sbp_messages);
 
 void sbp_messages_init(sbp_messages_t *sbp_messages, gps_time_t *t);
 
-void solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]);
+void solution_send_pos_messages(u8 base_sender_id,
+                                const sbp_messages_t *sbp_messages,
+                                u8 n_meas,
+                                const navigation_measurement_t nav_meas[]);
 
 void solution_make_baseline_sbp(const pvt_engine_result_t *result,
                                 const double spp_ecef[SPP_ECEF_SIZE],
@@ -141,15 +140,15 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        sbp_messages_t *sbp_messages);
 
 ////////////////////////////////////////////////////////////////////////////////
-// Platform Shim Functions 
+// Platform Shim Functions
 ////////////////////////////////////////////////////////////////////////////////
 void platform_initialize_settings(void);
 void platform_initialize_memory_pools(void);
 void platform_mutex_lock(mutex_t *mtx);
 void platform_mutex_unlock(mutex_t *mtx);
 void platform_pool_free(void *pool, void *buf);
-void platform_thread_create_static(void *wa, size_t wa_size, int prio,
-    void(*fn)(void*), void *user);
+void platform_thread_create_static(
+    void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user);
 // Return true on success.
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 // Return true on success.

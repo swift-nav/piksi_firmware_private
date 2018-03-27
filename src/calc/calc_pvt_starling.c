@@ -277,11 +277,10 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
  * @param n_meas nav_meas len
  * @param nav_meas Valid navigation measurements
  */
-void solution_send_pos_messages(
-    u8 base_sender_id,
-    const sbp_messages_t *sbp_messages,
-    u8 n_meas,
-    const navigation_measurement_t nav_meas[]) {
+void solution_send_pos_messages(u8 base_sender_id,
+                                const sbp_messages_t *sbp_messages,
+                                u8 n_meas,
+                                const navigation_measurement_t nav_meas[]) {
   if (sbp_messages) {
     sbp_send_msg(SBP_MSG_GPS_TIME,
                  sizeof(sbp_messages->gps_time),
@@ -593,7 +592,7 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
 
   starling_threads_set_enable_fix_mode(enable_fix);
 
-    *(dgnss_filter_t *)s->addr = value;
+  *(dgnss_filter_t *)s->addr = value;
   return ret;
 }
 
@@ -681,7 +680,6 @@ void platform_initialize_settings() {
                  max_age_of_differential,
                  TYPE_INT,
                  set_max_age);
-
 }
 
 void platform_initialize_memory_pools() {
@@ -694,26 +692,20 @@ void platform_initialize_memory_pools() {
   chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
 }
 
-void platform_mutex_lock(mutex_t *mtx) {
-  chMtxLock(mtx); 
-}
+void platform_mutex_lock(mutex_t *mtx) { chMtxLock(mtx); }
 
-void platform_mutex_unlock(mutex_t *mtx) {
-  chMtxUnlock(mtx);
-}
+void platform_mutex_unlock(mutex_t *mtx) { chMtxUnlock(mtx); }
 
-void platform_pool_free(void *pool, void *buf) {
-  chPoolFree(pool, buf);
-}
+void platform_pool_free(void *pool, void *buf) { chPoolFree(pool, buf); }
 
-void platform_thread_create_static(void *wa, size_t wa_size, int prio,
-    void(*fn)(void*), void *user) {
+void platform_thread_create_static(
+    void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user) {
   chThdCreateStatic(wa, wa_size, prio, fn, user);
 }
 
 // Return true on success.
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
-  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE); 
+  return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
 }
 
 // Return true on success.

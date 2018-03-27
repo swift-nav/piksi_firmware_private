@@ -23,8 +23,8 @@
 #include <libswiftnav/single_epoch_solver.h>
 
 #include "piksi_systime.h"
-#include "starling_threads.h"
 #include "starling_platform_shim.h"
+#include "starling_threads.h"
 
 typedef struct {
   piksi_systime_t systime;

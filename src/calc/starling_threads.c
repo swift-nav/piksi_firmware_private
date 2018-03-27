@@ -1,17 +1,17 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
+#include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
-#include <libswiftnav/memcpy_s.h>
 
 #include <string.h>
 
-#include "starling_threads.h"
 #include "starling_platform_shim.h"
+#include "starling_threads.h"
 
 ////////////////////////////////////////////////////////////////////////////////
-// Constants 
+// Constants
 ////////////////////////////////////////////////////////////////////////////////
 #define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
 #define STARLING_THREAD_STACK (6 * 1024 * 1024)
@@ -20,10 +20,9 @@
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
 ////////////////////////////////////////////////////////////////////////////////
-// Global Variables 
+// Global Variables
 ////////////////////////////////////////////////////////////////////////////////
-static PLATFORM_THD_WORKING_AREA(wa_starling_thread, 
-                                 STARLING_THREAD_STACK);
+static PLATFORM_THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 static PLATFORM_THD_WORKING_AREA(wa_time_matched_obs_thread,
                                  TIME_MATCHED_OBS_THREAD_STACK);
 
@@ -70,7 +69,10 @@ static PVT_ENGINE_INTERFACE_RC get_baseline(
   return get_baseline_ret;
 }
 
-static void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
+static void reset_filters_callback(u16 sender_id,
+                                   u8 len,
+                                   u8 msg[],
+                                   void *context) {
   (void)sender_id;
   (void)len;
   (void)context;
@@ -95,8 +97,8 @@ static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
 }
 
 static bool update_time_matched(gps_time_t *last_update_time,
-                         gps_time_t *current_time,
-                         u8 num_obs) {
+                                gps_time_t *current_time,
+                                u8 num_obs) {
   double update_dt = gpsdifftime(current_time, last_update_time);
   double update_rate_limit = 0.99;
   if (num_obs > 16) {
@@ -149,8 +151,8 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
 }
 
 static void process_matched_obs(const obss_t *rover_channel_meass,
-                         const obss_t *reference_obss,
-                         sbp_messages_t *sbp_messages) {
+                                const obss_t *reference_obss,
+                                sbp_messages_t *sbp_messages) {
   PVT_ENGINE_INTERFACE_RC update_rov_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_ref_obs = PVT_ENGINE_FAILURE;
   PVT_ENGINE_INTERFACE_RC update_filter_ret = PVT_ENGINE_FAILURE;
@@ -258,8 +260,8 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
  *
  */
 static bool spp_timeout(const gps_time_t *_last_spp,
-                 const gps_time_t *_last_dgnss,
-                 dgnss_solution_mode_t _dgnss_soln_mode) {
+                        const gps_time_t *_last_dgnss,
+                        dgnss_solution_mode_t _dgnss_soln_mode) {
   // No timeout needed in low latency mode;
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
@@ -274,7 +276,7 @@ static bool spp_timeout(const gps_time_t *_last_spp,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Interface 
+// Interface
 ////////////////////////////////////////////////////////////////////////////////
 
 static void starling_main_thread(void *arg) {
@@ -651,15 +653,15 @@ void starling_calc_pvt_setup() {
 
   /* Start solution thread */
   platform_thread_create_static(wa_starling_thread,
-                    sizeof(wa_starling_thread),
-                    STARLING_THREAD_PRIORITY,
-                    starling_main_thread,
-                    NULL);
+                                sizeof(wa_starling_thread),
+                                STARLING_THREAD_PRIORITY,
+                                starling_main_thread,
+                                NULL);
   platform_thread_create_static(wa_time_matched_obs_thread,
-                    sizeof(wa_time_matched_obs_thread),
-                    TIME_MATCHED_OBS_THREAD_PRIORITY,
-                    time_matched_obs_thread,
-                    NULL);
+                                sizeof(wa_time_matched_obs_thread),
+                                TIME_MATCHED_OBS_THREAD_PRIORITY,
+                                time_matched_obs_thread,
+                                NULL);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
