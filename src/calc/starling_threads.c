@@ -35,6 +35,10 @@ static PLATFORM_MUTEX_DECL(time_matched_filter_manager_lock);
 static PLATFORM_MUTEX_DECL(low_latency_filter_manager_lock);
 static PLATFORM_MUTEX_DECL(spp_filter_manager_lock);
 
+static PLATFORM_MUTEX_DECL(time_matched_iono_params_lock);
+static bool has_time_matched_iono_params = false;
+static ionosphere_t time_matched_iono_params;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////

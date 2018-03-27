@@ -92,10 +92,6 @@ extern mailbox_t time_matched_obs_mailbox;
 extern dgnss_solution_mode_t dgnss_soln_mode;
 extern dgnss_filter_t dgnss_filter;
 
-extern mutex_t time_matched_iono_params_lock;
-extern bool has_time_matched_iono_params;
-extern ionosphere_t time_matched_iono_params;
-
 extern mutex_t last_sbp_lock;
 extern gps_time_t last_dgnss;
 extern gps_time_t last_spp;

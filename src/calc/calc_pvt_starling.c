@@ -60,10 +60,6 @@ mailbox_t time_matched_obs_mailbox;
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
-MUTEX_DECL(time_matched_iono_params_lock);
-bool has_time_matched_iono_params = false;
-ionosphere_t time_matched_iono_params;
-
 MUTEX_DECL(last_sbp_lock);
 gps_time_t last_dgnss;
 gps_time_t last_spp;
