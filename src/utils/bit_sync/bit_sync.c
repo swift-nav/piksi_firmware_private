@@ -185,9 +185,9 @@ static void histogram_update(bit_sync_t *b,
 
     /* rotate the histogram left */
     s8 hist_head = b->bitsync_histogram[0];
-    if (2 * BITSYNC_THRES_HI < hist_head) {
-      /* bound the hist values by scaling large ones */
-      hist_head >>= 1;
+    if ((3 * BITSYNC_THRES_HI / 2) < hist_head) {
+      /* FIXME: resetting te histogram is a bit brutal.. */
+      memset(b->bitsync_histogram, 0, sizeof(b->bitsync_histogram));
     }
     memmove(&(b->bitsync_histogram[0]),
             &(b->bitsync_histogram[1]),
@@ -200,7 +200,7 @@ static void histogram_update(bit_sync_t *b,
       /* transitions on the first element don't count: they are data */
       sum += b->bitsync_histogram[i] * (1 - 2 * nh20_xans[i]);
     }
-    if (sum >= BITSYNC_THRES_HI * SYMBOL_LENGTH_NH20_MS) {
+    if (ABS(sum) >= (BITSYNC_THRES_HI * SYMBOL_LENGTH_NH20_MS)) {
       /* We are synchronized! */
       log_info_mesid(b->mesid,
                      "BSYNC"

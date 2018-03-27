@@ -384,7 +384,11 @@ void pack_obs_header(const gps_time_t *t,
                      u8 total,
                      u8 count,
                      observation_header_t *msg) {
-  round_time_nano(t, &msg->t);
+  if (gps_time_valid(t)) {
+    round_time_nano(t, &msg->t);
+  } else {
+    memset(&msg->t, 0, sizeof(sbp_gps_time_t));
+  }
   msg->n_obs =
       ((total << MSG_OBS_HEADER_SEQ_SHIFT) | (count & MSG_OBS_HEADER_SEQ_MASK));
 }
@@ -849,6 +853,13 @@ void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
   sbas_raw_msg->data[26] &= 0xF0;
 }
 
+void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
+  d->sid = sid_from_sbp(m->sid);
+  d->message_type = m->message_type;
+  d->time_of_transmission.tow = ((double)m->tow) / SECS_MS;
+  MEMCPY_S(d->data, SBAS_RAW_PAYLOAD_LENGTH, m->data, SBAS_RAW_PAYLOAD_LENGTH);
+}
+
 /**
  * Helper function for rounding tow to integer milliseconds, taking care of
  * week roll-over
@@ -865,7 +876,7 @@ u32 round_tow_ms(double tow) {
 }
 
 /**
- * Helper function for converting GPS tiem to integer milliseconds with
+ * Helper function for converting GPS time to integer milliseconds with
  * nanosecond remainder, taking care of week roll-over
  * @param[in] t_in GPS time
  * @param[out] t_out SBP time

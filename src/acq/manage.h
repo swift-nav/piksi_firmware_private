@@ -53,7 +53,7 @@
 #define MANAGE_NO_CHANNELS_FREE 255
 
 /** How many SBAS SV can be tracked */
-#define SBAS_SV_NUM_LIMIT 3
+#define SBAS_SV_NUM_LIMIT 1
 
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
@@ -96,7 +96,6 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
-void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
 u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                    s32 tow_ms,
                                    const ephemeris_t *pephe);
@@ -109,13 +108,16 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 bool l1ca_l2cm_handover_reserve(u8 sat);
 void l1ca_l2cm_handover_release(u8 sat);
 bool mesid_is_tracked(const me_gnss_signal_t mesid);
+bool mesid_waits_acquisition(const me_gnss_signal_t mesid);
 bool is_glo_enabled(void);
 bool is_sbas_enabled(void);
 bool is_bds2_enabled(void);
 bool is_qzss_enabled(void);
 bool is_galileo_enabled(void);
-void sanitize_trackers(void);
-void check_clear_glo_unhealthy(void);
+bool leap_second_imminent(void);
+void drop_glo_signals_on_leap_second(void);
+void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms);
+void restore_acq(const tracker_t *tracker_channel);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);
 double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc);

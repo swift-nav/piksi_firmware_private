@@ -49,16 +49,11 @@ static const tracker_interface_t tracker_interface_qzss_l1ca = {
     .update = tracker_qzss_l1ca_update,
 };
 
-/** QZSS L1 C/A tracker interface list element */
-static tracker_interface_list_element_t
-    tracker_interface_list_element_qzss_l1ca = {
-        .interface = &tracker_interface_qzss_l1ca, .next = 0};
-
 /** Register QZSS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
 void track_qzss_l1ca_register(void) {
-  tracker_interface_register(&tracker_interface_list_element_qzss_l1ca);
+  tracker_interface_register(&tracker_interface_qzss_l1ca);
 }
 
 static void tracker_qzss_l1ca_init(tracker_t *tracker_channel) {
@@ -80,7 +75,7 @@ static void tracker_qzss_l1ca_update(tracker_t *tracker_channel) {
   tracker_tow_cache(tracker_channel);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
 
   if (inlock && confirmed && (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {

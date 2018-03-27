@@ -58,14 +58,11 @@ static const tracker_interface_t tracker_interface_glo_l2of = {
     .update = tracker_glo_l2of_update,
 };
 
-static tracker_interface_list_element_t tracker_interface_list_glo_l2of = {
-    .interface = &tracker_interface_glo_l2of, .next = 0};
-
 /** Register GLO L2CA tracker into the the tracker interface & settings
  *  framework.
  */
 void track_glo_l2of_register(void) {
-  tracker_interface_register(&tracker_interface_list_glo_l2of);
+  tracker_interface_register(&tracker_interface_glo_l2of);
 }
 
 /** Do GLO L1OF to L2OF handover.
@@ -151,7 +148,7 @@ static void tracker_glo_l2of_update(tracker_t *tracker_channel) {
   u32 cflags = tp_tracker_update(tracker_channel, &glo_l2of_config);
 
   /* If GLO SV is marked unhealthy from L2, also drop L1 tracker */
-  if (GLO_SV_UNHEALTHY == tracker_channel->health) {
+  if (SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L1OF, tracker_channel->mesid.sat);
     tracker_drop_unhealthy_glo(mesid_drop);

@@ -212,7 +212,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_bw2.o \
-        $(SWIFTNAV_ROOT)/src/utils/correlate/correlate.o \
         $(SWIFTNAV_ROOT)/src/utils/sv_visibility/sv_visibility.o \
         $(SWIFTNAV_ROOT)/src/utils/bit_sync/bit_sync.o \
         $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \

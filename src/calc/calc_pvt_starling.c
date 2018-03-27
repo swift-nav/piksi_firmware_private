@@ -23,6 +23,7 @@
 #include <libswiftnav/memcpy_s.h>
 #include <libswiftnav/observation.h>
 #include <libswiftnav/pvt_engine/firmware_binding.h>
+#include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/sid_set.h>
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
@@ -39,6 +40,7 @@
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "position/position.h"
+#include "sbas_select/sbas_select.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
@@ -103,6 +105,7 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
                                           .signals_used = 0};
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
+static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
 
 static void post_observations(u8 n,
                               const navigation_measurement_t m[],
@@ -259,28 +262,28 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                           v_accuracy,
                           &soln->time,
                           soln->num_sats_used,
-                          SPP_POSITION);
+                          soln->flags);
 
     sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
                          pos_llh,
                          pos_ned_cov,
                          &soln->time,
                          soln->num_sats_used,
-                         SPP_POSITION);
+                         soln->flags);
 
     sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
                            pos_ecef,
                            accuracy,
                            &soln->time,
                            soln->num_sats_used,
-                           SPP_POSITION);
+                           soln->flags);
 
     sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
                           pos_ecef,
                           pos_ecef_cov,
                           &soln->time,
                           soln->num_sats_used,
-                          SPP_POSITION);
+                          soln->flags);
 
     if (soln->velocity_valid) {
       double vel_ned[3];
@@ -291,28 +294,28 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
                        vel_v_accuracy,
                        &soln->time,
                        soln->num_sats_used,
-                       SPP_POSITION);
+                       soln->flags);
 
       sbp_make_vel_ned_cov(&sbp_messages->vel_ned_cov,
                            vel_ned,
                            vel_ned_cov,
                            &soln->time,
                            soln->num_sats_used,
-                           SPP_POSITION);
+                           soln->flags);
 
       sbp_make_vel_ecef(&sbp_messages->vel_ecef,
                         soln->velocity,
                         vel_accuracy,
                         &soln->time,
                         soln->num_sats_used,
-                        SPP_POSITION);
+                        soln->flags);
 
       sbp_make_vel_ecef_cov(&sbp_messages->vel_ecef_cov,
                             soln->velocity,
                             vel_ecef_cov,
                             &soln->time,
                             soln->num_sats_used,
-                            SPP_POSITION);
+                            soln->flags);
     }
 
     /* DOP message can be sent even if solution fails to compute */
@@ -320,7 +323,7 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
       sbp_make_dops(&sbp_messages->sbp_dops,
                     dops,
                     sbp_messages->pos_llh.tow,
-                    SPP_POSITION);
+                    soln->flags);
     }
 
     /* Update stats */
@@ -743,7 +746,34 @@ static void starling_thread(void *arg) {
       continue;
     }
 
-    if (me_msg->id != ME_MSG_OBS) {
+    /* forward SBAS raw message to SPP filter manager*/
+    if (ME_MSG_SBAS_RAW == me_msg->id) {
+      const gps_time_t current_time = get_current_time();
+      if (gps_time_valid(&current_time)) {
+        sbas_raw_data_t sbas_data;
+        unpack_sbas_raw_data(&me_msg->msg.sbas, &sbas_data);
+
+        /* fill the week number from current time */
+        gps_time_match_weeks(&sbas_data.time_of_transmission, &current_time);
+
+        sbas_system_t sbas_system = get_sbas_system(sbas_data.sid);
+
+        chMtxLock(&spp_filter_manager_lock);
+        if (sbas_system != current_sbas_system &&
+            SBAS_UNKNOWN != current_sbas_system) {
+          /* clear existing SBAS corrections when provider changes */
+          filter_manager_reinitialize_sbas(spp_filter_manager);
+        }
+        filter_manager_process_sbas_message(spp_filter_manager, &sbas_data);
+        chMtxUnlock(&spp_filter_manager_lock);
+
+        current_sbas_system = sbas_system;
+      }
+      chPoolFree(&me_msg_buff_pool, me_msg);
+      continue;
+    }
+
+    if (ME_MSG_OBS != me_msg->id) {
       chPoolFree(&me_msg_buff_pool, me_msg);
       continue;
     }

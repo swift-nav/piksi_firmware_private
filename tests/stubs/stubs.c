@@ -49,6 +49,11 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
   return false;
 }
 
+bool mesid_waits_acquisition(const me_gnss_signal_t mesid) {
+  (void)mesid;
+  return true;
+}
+
 bool is_glo_enabled(void) { return true; }
 
 bool is_sbas_enabled(void) { return true; }
@@ -145,6 +150,8 @@ u16 get_orbit_slot(const u16 fcn) {
   (void)fcn;
   return GLO_ORBIT_SLOT_UNKNOWN;
 }
+
+void tracker_set_sbas_provider_change_flag(void) {}
 
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   /* Remove from acquisition */

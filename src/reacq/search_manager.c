@@ -60,6 +60,10 @@ u16 sm_constellation_to_start_index(constellation_t gnss) {
       return NUM_SATS_GPS;
     case CONSTELLATION_SBAS:
       return NUM_SATS_GPS + NUM_SATS_GLO;
+    case CONSTELLATION_BDS2:
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS;
+    case CONSTELLATION_QZS:
+      return NUM_SATS_GPS + NUM_SATS_GLO + NUM_SATS_SBAS + NUM_SATS_BDS2;
     default:
       assert(!"Incorrect constellation");
   }
@@ -77,7 +81,13 @@ static u32 sbas_limit_mask(void) {
     return sbas_select_prn_mask(SBAS_WAAS) | sbas_select_prn_mask(SBAS_EGNOS) |
            sbas_select_prn_mask(SBAS_GAGAN) | sbas_select_prn_mask(SBAS_MSAS);
   } else {
-    return sbas_select_prn_mask(sbas_select_provider(&lgf));
+    static sbas_system_t sbas_provider = SBAS_UNKNOWN;
+    sbas_system_t new_provider = sbas_select_provider(&lgf);
+    if ((sbas_provider != new_provider) && (SBAS_UNKNOWN != sbas_provider)) {
+      tracker_set_sbas_provider_change_flag();
+    }
+    sbas_provider = new_provider;
+    return sbas_select_prn_mask(sbas_provider);
   }
 }
 
@@ -102,7 +112,9 @@ void sm_init(acq_jobs_state_t *data) {
     u16 first_prn;
   } reacq_gnss[] = {{CONSTELLATION_GPS, GPS_FIRST_PRN},
                     {CONSTELLATION_GLO, GLO_FIRST_PRN},
-                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN}};
+                    {CONSTELLATION_SBAS, SBAS_FIRST_PRN},
+                    {CONSTELLATION_BDS2, BDS2_FIRST_PRN},
+                    {CONSTELLATION_QZS, QZS_FIRST_PRN}};
 
   for (type = 0; type < ACQ_NUM_JOB_TYPES; type++) {
     u32 i, k;
@@ -193,8 +205,10 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     assert(sid_valid(sid));
     assert(deep_job->job_type < ACQ_NUM_JOB_TYPES);
 
-    /* Check if jobs need to run */
     if (mesid_is_tracked(*mesid)) {
+      continue;
+    }
+    if (!mesid_waits_acquisition(*mesid)) {
       continue;
     }
 
@@ -284,8 +298,10 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     assert(sid_valid(sid));
     assert(fallback_job->job_type < ACQ_NUM_JOB_TYPES);
 
-    /* Check if jobs need to run */
     if (mesid_is_tracked(*mesid)) {
+      continue;
+    }
+    if (!mesid_waits_acquisition(*mesid)) {
       continue;
     }
 

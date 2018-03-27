@@ -26,6 +26,7 @@
 #include "main.h"
 #include "manage.h"
 #include "system_monitor/system_monitor.h"
+#include "track/track_sid_db.h"
 #include "track/track_state.h"
 
 #include <math.h>
@@ -169,28 +170,28 @@ static void handle_nap_irq(void) {
 
 static void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS0;
-  u32 irq1 = NAP->TRK_IRQS1;
-  u64 irq = ((u64)irq1 << 32) | irq0;
-
-  trackers_update(irq);
+  trackers_update(irq0, 0);
   NAP->TRK_IRQS0 = irq0;
+
+  u32 irq1 = NAP->TRK_IRQS1;
+  trackers_update(irq1, 32);
   NAP->TRK_IRQS1 = irq1;
 
   asm("dsb");
 
   u32 err0 = NAP->TRK_IRQ_ERRORS0;
   u32 err1 = NAP->TRK_IRQ_ERRORS1;
-  u64 err = ((u64)err1 << 32) | err0;
-  if (err) {
+  if (err0 || err1) {
     NAP->TRK_IRQ_ERRORS0 = err0;
     NAP->TRK_IRQ_ERRORS1 = err1;
     log_warn("Too many NAP tracking interrupts: 0x%08" PRIX32 "%08" PRIX32,
              err1,
              err0);
-    trackers_missed(err);
+    trackers_missed(err0, 0);
+    trackers_missed(err1, 32);
   }
 
-  watchdog_notify(WD_NOTIFY_NAP_ISR);
+  DO_EVERY(4096, watchdog_notify(WD_NOTIFY_NAP_ISR));
 }
 
 static void nap_irq_thread(void *arg) {
@@ -215,11 +216,7 @@ void nap_track_irq_thread(void *arg) {
 
     handle_nap_track_irq();
 
-    sanitize_trackers();
-
-    DO_EACH_MS(1 * SECS_MS, check_clear_glo_unhealthy(););
-
-    DO_EACH_MS(DAY_SECS * SECS_MS, check_clear_unhealthy(););
+    DO_EACH_MS(60 * SECS_MS, check_clear_unhealthy(););
 
     DO_EACH_MS(PROCESS_PERIOD_MS, tracking_send_state(););
 

@@ -60,6 +60,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 bool mesid_is_tracked(const me_gnss_signal_t mesid);
+bool mesid_waits_acquisition(const me_gnss_signal_t mesid);
 bool is_glo_enabled(void);
 bool is_sbas_enabled(void);
 bool is_bds2_enabled(void);
@@ -78,6 +79,7 @@ void dum_get_doppler_wndw(const gnss_signal_t *sid,
                           float *doppler_min,
                           float *doppler_max);
 u16 get_orbit_slot(const u16 fcn);
+void tracker_set_sbas_provider_change_flag(void);
 u8 tracking_startup_request(const tracking_startup_params_t *startup_params);
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
