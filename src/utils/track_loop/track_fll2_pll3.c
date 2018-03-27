@@ -226,6 +226,10 @@ void aided_tl_fll2_pll3_discr_update(aided_tl_state_fll2_pll3_t *s,
     if (halfq && (ABS(angle_circ) > 0.25f)) {
       angle_circ = SIGN(angle_circ) * (ABS(angle_circ) - 0.5f);
     }
+
+    float angle_rad = angle_circ * 2 * (float)M_PI;
+    angle_circ = sinf(angle_rad) / (float)3.;
+
     float mean_period_s = ((s->prev_period_s) + (s->discr_period_s)) / 2.0f;
     s->discr_sum_hz += (angle_circ / mean_period_s);
     s->discr_cnt++;

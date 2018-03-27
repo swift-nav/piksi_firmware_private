@@ -130,15 +130,10 @@ void calc_loop_gains2(float bw, float zeta, float k, float *c1, float *c2) {
   *c2 = omega_n * omega_n / k;
 }
 
-/** Phase discriminator for a Costas loop.
+/**
+ * Phase discriminator for a Costas loop.
  *
- * \image html costas_loop.png Costas loop block diagram.
- *
- * Implements the \f$\tan^{-1}\f$ Costas loop discriminator.
- *
- * \f[
- *   \varepsilon_k = \tan^{-1} \left(\frac{I_k}{Q_k}\right)
- * \f]
+ * Implements the Ips * Qps equivalent of Costas loop discriminator.
  *
  * References:
  *  -# Understanding GPS: Principles and Applications.
@@ -150,12 +145,9 @@ void calc_loop_gains2(float bw, float zeta, float k, float *c1, float *c2) {
  */
 float costas_discriminator(float I, float Q) {
   if (I == 0) {
-    // Technically, it should be +/- 0.25, but then we'd have to keep track
-    //  of the previous sign do it right, so it's simple enough to just return
-    //  the average of 0.25 and -0.25 in the face of that ambiguity, so zero.
     return 0;
   }
-  return atanf(Q / I) * (float)(1 / (2 * M_PI));
+  return ((M_PI / 6.) * sinf(2 * atanf(Q / I))) / (2 * M_PI);
 }
 
 /** Frequency discriminator for a FLL, used to aid the PLL.
