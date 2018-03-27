@@ -41,9 +41,9 @@ matrix:
           packages:
             - clang-format-4.0
       env: TESTENV=lint
-    - os: osx
-      osx_image: xcode8
-      env: C_COMPILER=gcc-5 CXX_COMPILER=g++-5
+#    - os: osx
+#      osx_image: xcode8
+#      env: C_COMPILER=gcc-5 CXX_COMPILER=g++-5
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
