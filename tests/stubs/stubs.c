@@ -49,7 +49,7 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
   return false;
 }
 
-bool mesid_waits_acquisition(const me_gnss_signal_t mesid) {
+bool tracking_startup_ready(const me_gnss_signal_t mesid) {
   (void)mesid;
   return true;
 }
