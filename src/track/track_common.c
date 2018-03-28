@@ -876,7 +876,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
   if (fabsf(tracker->carrier_freq) > fMaxDoppler) {
     log_debug_mesid(
         tracker->mesid, "Doppler %.2f too high", tracker->carrier_freq);
-    tracker_drop(tracker, CH_DROP_REASON_OUTLIER);
+    tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
   }
 
   /* Check the maximum carrier frequency rate.
@@ -907,7 +907,7 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
     if ((fabs(diff_hz) > max_diff_hz)) {
       log_debug_mesid(
           tracker->mesid, "Doppler difference %.2f is too high", diff_hz);
-      tracker_drop(tracker, CH_DROP_REASON_OUTLIER);
+      tracker_flag_drop(tracker, CH_DROP_REASON_OUTLIER);
     }
 
     tracker->carrier_freq_prev = tracker->carrier_freq;
@@ -1064,7 +1064,7 @@ static bool tow_is_bit_aligned(tracker_t *tracker_channel) {
                     tracker_channel->TOW_ms);
 
     /* This is rude, but safe. Do not expect it to happen normally. */
-    tracker_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
+    tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
     return false;
   }
   return true;

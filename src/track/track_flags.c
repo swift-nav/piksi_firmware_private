@@ -16,7 +16,7 @@
 #include "track_api.h"
 #include "track_state.h"
 
-void tracker_drop(tracker_t *tracker, ch_drop_reason_t reason) {
+void tracker_flag_drop(tracker_t *tracker, ch_drop_reason_t reason) {
   tracker->flags |= TRACKER_FLAG_DROP_CHANNEL;
   tracker->ch_drop_reason = reason;
 }
@@ -62,7 +62,7 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
     if (can_compare && sid_is_equal(mesid2sid(tracker_channel->mesid,
                                               tracker_channel->glo_orbit_slot),
                                     sid)) {
-      tracker_drop(tracker_channel, CH_DROP_REASON_RAIM);
+      tracker_flag_drop(tracker_channel, CH_DROP_REASON_RAIM);
     }
     tracker_unlock(tracker_channel);
   }
@@ -79,7 +79,7 @@ void tracker_set_sbas_provider_change_flag(void) {
 
     bool sbas_found = IS_SBAS(tracker_channel->mesid);
     if (sbas_found) {
-      tracker_drop(tracker_channel, CH_DROP_REASON_SBAS_PROVIDER_CHANGE);
+      tracker_flag_drop(tracker_channel, CH_DROP_REASON_SBAS_PROVIDER_CHANGE);
     }
 
     tracker_unlock(tracker_channel);
@@ -100,7 +100,7 @@ void tracker_set_leap_second_flag(void) {
     tracker_lock(tracker_channel);
 
     if (IS_GLO(tracker_channel->mesid)) {
-      tracker_drop(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
+      tracker_flag_drop(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
     }
 
     tracker_unlock(tracker_channel);

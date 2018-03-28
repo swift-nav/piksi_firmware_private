@@ -646,7 +646,8 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
     u32 unlocked_time_ms = update_count_diff(
         tracker_channel, &tracker_channel->ld_pess_change_count);
     bool long_unlocked = unlocked_time_ms > TRACK_REACQ_MS;
-    bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL);
+    bool was_xcorr = (flags & TRACKER_FLAG_DROP_CHANNEL) &&
+                     (CH_DROP_REASON_XCORR == tracker_channel->ch_drop_reason);
 
     if (long_in_track && had_locks && !long_unlocked && !was_xcorr) {
       double carrier_freq = tracker_channel->carrier_freq_at_lock;

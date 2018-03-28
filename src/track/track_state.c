@@ -412,7 +412,7 @@ static void nap_channel_disable(const tracker_t *tracker_channel) {
 static void error_flags_add(tracker_t *tracker_channel,
                             error_flag_t error_flag) {
   if (error_flag != ERROR_FLAG_NONE) {
-    tracker_drop(tracker_channel, CH_DROP_REASON_ERROR);
+    tracker_flag_drop(tracker_channel, CH_DROP_REASON_ERROR);
   }
 }
 
