@@ -149,6 +149,7 @@ void platform_mutex_unlock(mutex_t *mtx);
 void platform_pool_free(void *pool, void *buf);
 void platform_thread_create_static(
     void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user);
+void platform_thread_set_name(const char *name);
 // Return true on success.
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 // Return true on success.

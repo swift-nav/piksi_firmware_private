@@ -295,7 +295,7 @@ static void starling_main_thread(void *arg) {
   (void)arg;
   msg_t ret;
 
-  chRegSetThreadName("starling");
+  platform_thread_set_name("starling");
 
   sbp_messages_t sbp_messages;
 
@@ -527,7 +527,7 @@ static void starling_main_thread(void *arg) {
 
 static void time_matched_obs_thread(void *arg) {
   (void)arg;
-  chRegSetThreadName("time matched obs");
+  platform_thread_set_name("time matched obs");
 
   obss_t *base_obs;
   static obss_t base_obss_copy;
