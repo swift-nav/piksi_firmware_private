@@ -19,9 +19,9 @@
 #include <libswiftnav/gnss_time.h>
 
 // All of these need to go.
-#include "me_msg/me_msg.h"
 #include "calc_base_obs.h"
 #include "manage.h"
+#include "me_msg/me_msg.h"
 #include "sbp_utils.h"
 #include "simulator.h"
 

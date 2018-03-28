@@ -703,9 +703,7 @@ void platform_thread_create_static(
   chThdCreateStatic(wa, wa_size, prio, fn, user);
 }
 
-void platform_thread_set_name(const char *name) {
-  chRegSetThreadName(name);
-}
+void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
 // Return true on success.
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
@@ -718,6 +716,5 @@ bool platform_try_read_iono_corr(ionosphere_t *params) {
 }
 
 void platform_watchdog_notify_starling_main_thread() {
-    watchdog_notify(WD_NOTIFY_STARLING);
+  watchdog_notify(WD_NOTIFY_STARLING);
 }
-
