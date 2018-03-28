@@ -13,7 +13,6 @@
 #ifndef STARLING_CALC_STARLING_PLATFORM_SHIM_H
 #define STARLING_CALC_STARLING_PLATFORM_SHIM_H
 
-#include <ch.h>
 #include <libsbp/navigation.h>
 #include <libsbp/orientation.h>
 #include <libsbp/system.h>
@@ -154,6 +153,7 @@ void platform_thread_set_name(const char *name);
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 // Return true on success.
 bool platform_try_read_iono_corr(ionosphere_t *params);
+void platform_watchdog_notify_starling_main_thread(void);
 
 #define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)
 

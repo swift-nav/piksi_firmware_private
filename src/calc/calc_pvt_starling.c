@@ -716,3 +716,8 @@ bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
 bool platform_try_read_iono_corr(ionosphere_t *params) {
   return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
 }
+
+void platform_watchdog_notify_starling_main_thread() {
+    watchdog_notify(WD_NOTIFY_STARLING);
+}
+

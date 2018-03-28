@@ -311,7 +311,7 @@ static void starling_main_thread(void *arg) {
   u8 base_station_sender_id = 0;
 
   while (TRUE) {
-    watchdog_notify(WD_NOTIFY_STARLING);
+    platform_watchdog_notify_starling_main_thread();
 
     me_msg_t *me_msg = NULL;
     ret = chMBFetch(&me_msg_mailbox, (msg_t *)&me_msg, DGNSS_TIMEOUT_MS);
