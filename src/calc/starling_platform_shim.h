@@ -21,7 +21,6 @@
 // All of these need to go.
 #include "calc/calc_base_obs.h"
 #include "calc/calc_pvt_common.h"
-#include "calc/calc_pvt_me.h"
 #include "me_msg/me_msg.h"
 
 /**
@@ -105,6 +104,11 @@ extern float glonass_downweight_factor;
 extern u8 current_base_sender_id;
 
 extern sbas_system_t current_sbas_system;
+
+// This regrettable hack is necessary because of the header spaghetti elsewhere.
+#ifndef ME_CALC_PVT_H
+extern double soln_freq_setting;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Function Dependencies
