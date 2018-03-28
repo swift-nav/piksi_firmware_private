@@ -360,16 +360,16 @@ void manage_acq_setup() {
       acq_status[i].masked = !glo_enabled;
     }
     if (IS_SBAS(mesid)) {
-      acq_status[i].masked = !sbas_enabled || sbas_active(mesid);
+      acq_status[i].masked = !sbas_enabled || !sbas_active(mesid);
     }
     if (IS_BDS2(mesid)) {
-      acq_status[i].masked = !bds2_enabled || bds_active(mesid);
+      acq_status[i].masked = !bds2_enabled || !bds_active(mesid);
     }
     if (IS_QZSS(mesid)) {
-      acq_status[i].masked = !qzss_enabled || qzss_active(mesid);
+      acq_status[i].masked = !qzss_enabled || !qzss_active(mesid);
     }
     if (IS_GAL(mesid)) {
-      acq_status[i].masked = !galileo_enabled || gal_active(mesid);
+      acq_status[i].masked = !galileo_enabled || !gal_active(mesid);
     }
 
     if (code_requires_direct_acq(mesid.code)) {
@@ -1346,18 +1346,6 @@ bool mesid_is_tracked(const me_gnss_signal_t mesid) {
   u16 global_index = mesid_to_global_index(mesid);
   acq_status_t *acq = &acq_status[global_index];
   return acq->state == ACQ_PRN_TRACKING;
-}
-
-/**
- * Checks if mesid waits for acquisition
- * \param mesid ME signal ID to check.
- * \retval true mesid waits for acquisition
- * \retval false mesid does not wait for acquisition
- */
-bool mesid_waits_acquisition(const me_gnss_signal_t mesid) {
-  u16 global_index = mesid_to_global_index(mesid);
-  acq_status_t *acq = &acq_status[global_index];
-  return ACQ_PRN_ACQUIRING == acq->state;
 }
 
 /** Checks if GLONASS enabled

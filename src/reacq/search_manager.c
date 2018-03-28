@@ -208,7 +208,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     if (mesid_is_tracked(*mesid)) {
       continue;
     }
-    if (!mesid_waits_acquisition(*mesid)) {
+    if (!tracking_startup_ready(*mesid)) {
       continue;
     }
 
@@ -301,7 +301,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     if (mesid_is_tracked(*mesid)) {
       continue;
     }
-    if (!mesid_waits_acquisition(*mesid)) {
+    if (!tracking_startup_ready(*mesid)) {
       continue;
     }
 
