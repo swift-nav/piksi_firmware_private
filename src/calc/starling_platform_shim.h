@@ -19,9 +19,11 @@
 #include <libswiftnav/gnss_time.h>
 
 // All of these need to go.
-#include "calc/calc_base_obs.h"
-#include "calc/calc_pvt_common.h"
 #include "me_msg/me_msg.h"
+#include "calc_base_obs.h"
+#include "manage.h"
+#include "sbp_utils.h"
+#include "simulator.h"
 
 /**
  * This is the dumping ground header for everything required
