@@ -722,3 +722,16 @@ void platform_watchdog_notify_starling_main_thread() {
 bool platform_simulation_enabled() {
   return simulation_enabled();
 }
+
+void platform_fetch_new_base_obs(obss_t **pp_obs) {
+  const msg_t fetch_ret =
+        chMBFetch(&base_obs_mailbox, (msg_t *)pp_obs, DGNSS_TIMEOUT_MS);
+
+    if (fetch_ret != MSG_OK) {
+      log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
+      if (NULL != (*pp_obs)) {
+        platform_pool_free(&base_obs_buff_pool, (*pp_obs));
+      }
+      *pp_obs = NULL;
+    }
+}

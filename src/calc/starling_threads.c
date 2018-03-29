@@ -538,14 +538,11 @@ static void time_matched_obs_thread(void *arg) {
 
   while (1) {
     base_obs = NULL;
-    const msg_t fetch_ret =
-        chMBFetch(&base_obs_mailbox, (msg_t *)&base_obs, DGNSS_TIMEOUT_MS);
 
-    if (fetch_ret != MSG_OK) {
-      if (NULL != base_obs) {
-        log_error("Base obs mailbox fetch failed with %" PRIi32, fetch_ret);
-        platform_pool_free(&base_obs_buff_pool, base_obs);
-      }
+    // Get a new base observation. The pointer will be set to NULL if 
+    // there aren't any.
+    platform_fetch_new_base_obs(&base_obs);
+    if (!base_obs) {
       continue;
     }
 
