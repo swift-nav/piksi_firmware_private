@@ -198,7 +198,7 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
                         tracker_channel->TOW_ms);
 
         /* This is rude, but safe. Do not expect it to happen normally. */
-        tracker_channel->flags |= TRACKER_FLAG_OUTLIER;
+        tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
       }
     }
 

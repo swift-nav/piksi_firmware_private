@@ -228,7 +228,7 @@ void tracker_get_state(u8 id,
  * \param tracker_channel   Tracker channel to use.
  */
 static void error_flags_clear(tracker_t *tracker_channel) {
-  tracker_channel->flags &= ~TRACKER_FLAG_ERROR;
+  tracker_channel->flags &= ~TRACKER_FLAG_DROP_CHANNEL;
 }
 
 /** Update the state of a tracker channel and its associated tracker instance.
@@ -320,6 +320,9 @@ bool tracker_init(u8 id,
     tracker_channel->cn0 = cn0_init;
     u32 now = timing_getms();
     tracker_channel->init_timestamp_ms = now;
+    tracker_channel->settle_time_ms = code_requires_direct_acq(mesid.code)
+                                          ? TRACK_INIT_FROM_ACQ_MS
+                                          : TRACK_INIT_FROM_HANDOVER_MS;
     tracker_channel->update_timestamp_ms = now;
     tracker_channel->updated_once = false;
     tracker_channel->cp_sync.polarity = BIT_POLARITY_UNKNOWN;
@@ -409,7 +412,7 @@ static void nap_channel_disable(const tracker_t *tracker_channel) {
 static void error_flags_add(tracker_t *tracker_channel,
                             error_flag_t error_flag) {
   if (error_flag != ERROR_FLAG_NONE) {
-    tracker_channel->flags |= TRACKER_FLAG_ERROR;
+    tracker_flag_drop(tracker_channel, CH_DROP_REASON_ERROR);
   }
 }
 
