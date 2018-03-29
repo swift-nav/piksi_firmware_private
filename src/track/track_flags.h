@@ -35,8 +35,6 @@
 /** Tracker flag: tracker has decoded TOW. */
 #define TRACKER_FLAG_TOW_DECODED (1 << 8)
 #define TRACKER_FLAG_TOW_VALID (1 << 9)
-/** Tracker flag: tracker is a cross-correlate confirmed */
-#define TRACKER_FLAG_XCORR_CONFIRMED (1 << 10)
 /** Tracker flag: tracker is a cross-correlate suspect */
 #define TRACKER_FLAG_XCORR_SUSPECT (1 << 11)
 /** Tracker flag: tracker xcorr doppler filter is active */
@@ -47,10 +45,6 @@
 #define TRACKER_FLAG_GLO_HEALTH_DECODED (1 << 14)
 /** Tracker flag: signal is healthy. */
 #define TRACKER_FLAG_HEALTHY (1 << 15)
-/** Tracker flag: Doppler outlier */
-#define TRACKER_FLAG_OUTLIER (1 << 16)
-/** Tracker error was detected */
-#define TRACKER_FLAG_ERROR (1 << 17)
 
 #define TRACKER_FLAG_BIT_POLARITY_KNOWN (1 << 18)
 #define TRACKER_FLAG_BIT_INVERTED (1 << 19)
@@ -64,17 +58,14 @@
 #define TRACKER_FLAG_CARRIER_PHASE_OFFSET (1 << 26)
 #define TRACKER_FLAG_MASKED (1 << 27)
 
-/** Tracker flag: measurement was excluded by RAIM */
-#define TRACKER_FLAG_RAIM_EXCLUSION (1 << 28)
-
 #define TRACKER_FLAG_SENSITIVITY_MODE (1 << 29)
-#define TRACKER_FLAG_SBAS_PROVIDER_CHANGE (1 << 30)
-#define TRACKER_FLAG_LEAP_SECOND (1 << 31)
+#define TRACKER_FLAG_DROP_CHANNEL (1 << 31)
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
+void tracker_flag_drop(tracker_t *tracker, ch_drop_reason_t reason);
 void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val);
 void tracker_set_sbas_provider_change_flag(void);
 void tracker_set_leap_second_flag(void);

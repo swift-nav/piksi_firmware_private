@@ -179,7 +179,7 @@ static void check_L1_xcorr_flags(tracker_t *tracker_channel,
         *xcorr_suspect = true;
       } else if (xcorr_cn0_diffs[idx] <= XCORR_CONFIRM_THRESHOLD) {
         /* If CN0 difference is large, mark as confirmed xcorr */
-        tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
+        tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
       }
     }
   } else {
@@ -273,13 +273,13 @@ static void check_L2_xcorr_flag(tracker_t *tracker_channel,
     } else {
       if (data->xcorr_whitelist[index] && data->xcorr_whitelist_l2) {
         /* If both signals are whitelisted, mark as confirmed xcorr */
-        tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
+        tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
       } else if (!data->xcorr_whitelist[index] && !data->xcorr_whitelist_l2) {
         /* If neither signal is whitelisted, mark as xcorr suspect */
         *xcorr_suspect = true;
       } else if (!data->xcorr_whitelist[index]) {
         /* Otherwise if L1 signal is not whitelisted, mark as confirmed xcorr */
-        tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
+        tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
       }
     }
   } else {
@@ -314,7 +314,7 @@ static void update_l1_xcorr(tracker_t *tracker_channel) {
 
   if (tracker_get_xcorr_flag(tracker_channel)) {
     /* Cross-correlation is set by external thread */
-    tracker_channel->flags |= TRACKER_FLAG_XCORR_CONFIRMED;
+    tracker_flag_drop(tracker_channel, CH_DROP_REASON_XCORR);
     return;
   }
 
