@@ -12,6 +12,7 @@
 
 #include "platform_signal.h"
 #include "decode/decode_bds.h"
+#include "decode/decode_bds_b2.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
 #include "decode/decode_gps_l1ca.h"
@@ -58,6 +59,9 @@ void platform_decode_setup(void) {
 #endif
 #ifdef CODE_BDS2_B11_SUPPORT
   decode_bds_register();
+#endif
+#ifdef CODE_BDS2_B2_SUPPORT
+  decode_bds_b2_register();
 #endif
 }
 
