@@ -23,7 +23,6 @@
 #include "manage.h"
 #include "me_msg/me_msg.h"
 #include "sbp_utils.h"
-#include "simulator.h"
 
 /**
  * This is the dumping ground header for everything required
@@ -160,6 +159,7 @@ bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 // Return true on success.
 bool platform_try_read_iono_corr(ionosphere_t *params);
 void platform_watchdog_notify_starling_main_thread(void);
+bool platform_simulation_enabled(void);
 
 #define PLATFORM_THD_WORKING_AREA(s, n) THD_WORKING_AREA(s, n)
 

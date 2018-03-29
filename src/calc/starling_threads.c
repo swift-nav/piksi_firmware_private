@@ -246,7 +246,7 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
 
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
-  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !simulation_enabled() &&
+  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !platform_simulation_enabled() &&
       update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
@@ -371,7 +371,7 @@ static void starling_main_thread(void *arg) {
     sbp_messages_init(&sbp_messages, &epoch_time);
 
     /* Here we do all the nice simulation-related stuff. */
-    if (simulation_enabled()) {
+    if (platform_simulation_enabled()) {
       solution_simulation(&sbp_messages);
       const u8 fake_base_sender_id = 1;
       solution_send_low_latency_output(fake_base_sender_id,
