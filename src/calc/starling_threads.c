@@ -246,7 +246,8 @@ static void process_matched_obs(const obss_t *rover_channel_meass,
 
   /* If we are in time matched mode then calculate and output the baseline
    * for this observation. */
-  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED && !platform_simulation_enabled() &&
+  if (dgnss_soln_mode == SOLN_MODE_TIME_MATCHED &&
+      !platform_simulation_enabled() &&
       update_filter_ret == PVT_ENGINE_SUCCESS) {
     /* Note: in time match mode we send the physically incorrect time of the
      * observation message (which can be receiver clock time, or rounded GPS
@@ -539,7 +540,7 @@ static void time_matched_obs_thread(void *arg) {
   while (1) {
     base_obs = NULL;
 
-    // Get a new base observation. The pointer will be set to NULL if 
+    // Get a new base observation. The pointer will be set to NULL if
     // there aren't any.
     platform_fetch_new_base_obs(&base_obs);
     if (!base_obs) {
