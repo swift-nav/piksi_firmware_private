@@ -21,7 +21,7 @@
 #include "sbp_utils.h"
 #include "settings/settings.h"
 
-#define UTC_PARAMS_FILE_NAME "persistent/utc_params"
+#define UTC_PARAMS_FILE_NAME "persistent/ndb/utc_params"
 #define UTC_PARAMS_FILE_TYPE "utc parameters"
 
 static utc_params_t utc_params;

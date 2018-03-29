@@ -28,7 +28,7 @@
 /** Default NDB LGF distance update threshold [m] */
 #define NDB_LGF_UPDATE_DISTANCE_M (10e3)
 
-#define LGF_FILE_NAME "persistent/lgf"
+#define LGF_FILE_NAME "persistent/ndb/lgf"
 #define LGF_FILE_TYPE "LGF"
 
 static last_good_fix_t last_good_fix; /**< Locally cached LGF */

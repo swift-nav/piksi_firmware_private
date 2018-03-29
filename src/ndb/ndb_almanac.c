@@ -26,12 +26,12 @@
 #include "timing/timing.h"
 
 /** Almanac file name */
-#define NDB_ALMA_FILE_NAME "persistent/almanac"
+#define NDB_ALMA_FILE_NAME "persistent/ndb/almanac"
 /** Almanac file type */
 #define NDB_ALMA_FILE_TYPE "almanac"
 
 /** Almanac week number file name */
-#define NDB_ALMA_WN_FILE_NAME "persistent/almanac_wn"
+#define NDB_ALMA_WN_FILE_NAME "persistent/ndb/almanac_wn"
 /** Almanac week number file type */
 #define NDB_ALMA_WN_FILE_TYPE "almanac WN"
 
