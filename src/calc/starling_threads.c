@@ -31,7 +31,6 @@
 #include "calc_base_obs.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "calc_pvt_starling.h"
 #include "main.h"
 #include "manage.h"
 #include "me_msg/me_msg.h"
@@ -47,6 +46,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_threads.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 

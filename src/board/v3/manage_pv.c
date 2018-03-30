@@ -18,9 +18,9 @@
 #include <hal.h>
 
 #include "calc_pvt_me.h"
-#include "calc_pvt_starling.h"
 #include "peripherals/antenna.h"
 #include "piksi_systime.h"
+#include "starling_threads.h"
 
 #define MANAGE_PV_THREAD_PERIOD_MS 10
 

@@ -155,7 +155,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/ext_events/ext_events.o \
         $(SWIFTNAV_ROOT)/src/utils/position/position.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_common.o \
-        $(SWIFTNAV_ROOT)/src/calc/calc_pvt_starling.o \
+        $(SWIFTNAV_ROOT)/src/calc/starling_threads.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_pvt_me.o \
         $(SWIFTNAV_ROOT)/src/calc/calc_nav_meas.o \
         $(SWIFTNAV_ROOT)/src/utils/obs_bias/obs_bias.o \

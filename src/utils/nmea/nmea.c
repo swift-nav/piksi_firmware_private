@@ -26,7 +26,6 @@
 
 #include "board/nap/track_channel.h"
 #include "calc_pvt_me.h"
-#include "calc_pvt_starling.h"
 #include "io_support.h"
 #include "main.h"
 #include "nmea.h"
@@ -34,6 +33,7 @@
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
+#include "starling_threads.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 
