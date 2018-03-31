@@ -59,6 +59,9 @@ RUNS=\
 # Capture IDs of kicked off jobs.
 capture_ids=()
 
+# Clear out metrics.yaml
+echo >metrics.yaml
+
 # Kick off jobs, record capture ID of each job. If a job fails to be kicked off,
 # post a comment to the Pull Request. Note: this doesn't fail Travis, since it
 # is part of `after_success`.
@@ -72,8 +75,16 @@ for index in ${!SCENARIOS[@]}; do
         echo "There was an error using the HITL API. Posted comment to GitHub PR, exiting."
         exit 1
     fi
+
+    cat >>metrics.yaml <<EOF
+- scenario_minimum: ${RUNS[$index]}
+  scenario_name: ${SCENARIOS[$index]}
+EOF
+
 done
 set -e
+
+./publish.sh metrics.yaml
 
 # Comment on the PR with links to gnss-analysis.
 hitl_links(){

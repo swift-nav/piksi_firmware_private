@@ -27,7 +27,6 @@ BUCKET="swiftnav-artifacts-pull-requests"
 BUILD_SOURCE="pull-request"
 BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
-ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
 SCENARIO="live-roof-650-townsend"
 
@@ -35,7 +34,6 @@ STATUS_HITL_CONTEXT="hitl/pass-fail"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     BUCKET="swiftnav-artifacts"
-    ARTIFACTS_PATH="$BUILD_PATH"
     BUILD_SOURCE="release"
 fi
 
