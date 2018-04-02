@@ -88,7 +88,6 @@ static gps_time_t last_time_matched_rover_obs_post;
 static double starling_frequency;
 u32 max_age_of_differential = 30;
 
-bool disable_raim = false;
 bool send_heading = false;
 
 double heading_offset = 0.0;
@@ -1260,7 +1259,6 @@ void starling_calc_pvt_setup() {
   SETTING(
       "solution", "dgnss_solution_mode", dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
 
-  SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
   SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
   SETTING_NOTIFY("solution",
                  "heading_offset",
