@@ -15,8 +15,9 @@
 /**
  * This file "integrates" the Starling engine into the firmware.
  *
- * The engine is operated via well-defined API calls (no shared global variables).
- * Ultimately, this should be the only header including the starling_threads.h.
+ * The engine is operated via well-defined API calls (no shared global
+ * variables). Ultimately, this should be the only header including the
+ * starling_threads.h.
  */
 
 void starling_calc_pvt_setup(void);

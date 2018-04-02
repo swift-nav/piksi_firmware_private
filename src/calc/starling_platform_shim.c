@@ -55,29 +55,6 @@
 // Local Helpers
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool enable_fix_mode(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  bool enable_fix = value == 0 ? false : true;
-  starling_set_enable_fix_mode(enable_fix);
-  *(dgnss_filter_t *)s->addr = value;
-  return ret;
-}
-
-static bool set_max_age(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-  starling_set_max_correction_age(value);
-  *(int *)s->addr = value;
-  return ret;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Platform Shim Calls
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,26 +87,3 @@ void platform_watchdog_notify_starling_main_thread() {
 }
 
 bool platform_simulation_enabled() { return simulation_enabled(); }
-
-void platform_initialize_starling_filter_settings() {
-  static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
-  static struct setting_type dgnss_filter_setting;
-  static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
-  int TYPE_GNSS_FILTER =
-      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
-
-  SETTING_NOTIFY("solution",
-                 "dgnss_filter",
-                 dgnss_filter_mode,
-                 TYPE_GNSS_FILTER,
-                 enable_fix_mode);
-
-  static u32 max_age_of_differential = 0;
-  SETTING_NOTIFY("solution",
-                 "correction_age_max",
-                 max_age_of_differential,
-                 TYPE_INT,
-                 set_max_age);
-}
-
-void platform_initialize_starling_settings(void) {}
