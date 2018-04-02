@@ -1061,8 +1061,6 @@ void init_filters(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 
-  platform_initialize_starling_filter_settings();
-
   /* We also need to be careful to set any initial values which may
    * later be updated by settings changes. */
   starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
@@ -1077,7 +1075,6 @@ static void time_matched_obs_thread(void *arg) {
 
   obss_t *base_obs;
   static obss_t base_obss_copy;
-  init_filters();
 
   /* Declare all SBP messages */
   sbp_messages_t sbp_messages;
@@ -1278,6 +1275,8 @@ void starling_setup() {
   spp_filter_manager = NULL;
   time_matched_filter_manager = NULL;
   low_latency_filter_manager = NULL;
+
+  init_filters();
 
   /* Start solution thread */
   platform_thread_create_static(wa_starling_thread,
