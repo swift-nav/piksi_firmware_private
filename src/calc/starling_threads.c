@@ -60,6 +60,10 @@
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
+// Initial settings values.
+#define INIT_ENABLE_FIX_MODE FILTER_FIXED
+#define INIT_MAX_AGE_DIFFERENTIAL 30
+
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
@@ -86,17 +90,16 @@ static gps_time_t last_spp;
 static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
-u32 max_age_of_differential = 30;
 
 bool send_heading = false;
 
 double heading_offset = 0.0;
 
-bool disable_klobuchar = false;
+static bool disable_klobuchar = false;
 
 bool enable_glonass = true;
 
-float glonass_downweight_factor = 4;
+static float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;
 
@@ -1073,8 +1076,12 @@ void init_filters(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 
-  platform_initialize_filter_settings();
+  platform_initialize_starling_filter_settings();
 
+  // We also need to be careful to set any initial values which may
+  // later be updated by settings changes.
+  starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
+  starling_set_max_correction_age(INIT_MAX_AGE_DIFFERENTIAL);
 }
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
@@ -1323,5 +1330,3 @@ void starling_set_max_correction_age(int max_age) {
   set_max_correction_age(time_matched_filter_manager, max_age);
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
-
-

@@ -27,6 +27,7 @@ bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph);
 bool platform_try_read_iono_corr(ionosphere_t *params);
 void platform_watchdog_notify_starling_main_thread(void);
 bool platform_simulation_enabled(void);
-void platform_initialize_filter_settings(void);
+void platform_initialize_starling_filter_settings(void);
+void platform_initialize_starling_settings(void);
 
 #endif

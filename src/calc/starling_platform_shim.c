@@ -51,7 +51,6 @@
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Local Helpers
 ////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +79,7 @@ static bool set_max_age(struct setting *s, const char *val) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Platform Shim Calls 
+// Platform Shim Calls
 ////////////////////////////////////////////////////////////////////////////////
 
 void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
@@ -112,7 +111,7 @@ void platform_watchdog_notify_starling_main_thread() {
 
 bool platform_simulation_enabled() { return simulation_enabled(); }
 
-void platform_initialize_filter_settings() {
+void platform_initialize_starling_filter_settings() {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
   static dgnss_filter_t dgnss_filter_mode = FILTER_FIXED;
@@ -124,6 +123,8 @@ void platform_initialize_filter_settings() {
                  dgnss_filter_mode,
                  TYPE_GNSS_FILTER,
                  enable_fix_mode);
+
+  static u32 max_age_of_differential = 0;
   SETTING_NOTIFY("solution",
                  "correction_age_max",
                  max_age_of_differential,
@@ -131,4 +132,4 @@ void platform_initialize_filter_settings() {
                  set_max_age);
 }
 
-
+void platform_initialize_starling_settings(void) {}

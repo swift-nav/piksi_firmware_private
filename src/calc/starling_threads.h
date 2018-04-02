@@ -74,7 +74,6 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
-extern u32 max_age_of_differential;
 extern bool enable_glonass;
 extern bool send_heading;
 
