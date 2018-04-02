@@ -67,7 +67,6 @@ static memory_pool_t time_matched_obs_buff_pool;
 static mailbox_t time_matched_obs_mailbox;
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
-dgnss_filter_t dgnss_filter = FILTER_FIXED;
 
 static FilterManager *time_matched_filter_manager;
 static FilterManager *low_latency_filter_manager;
@@ -1066,41 +1065,6 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-static bool enable_fix_mode(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  bool enable_fix = value == 0 ? false : true;
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, enable_fix);
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, enable_fix);
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
-  *(dgnss_filter_t *)s->addr = value;
-  return ret;
-}
-
-static bool set_max_age(struct setting *s, const char *val) {
-  int value = 0;
-  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  set_max_correction_age(low_latency_filter_manager, value);
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  set_max_correction_age(time_matched_filter_manager, value);
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-  *(int *)s->addr = value;
-  return ret;
-}
-
 void init_filters(void) {
   platform_mutex_lock(&time_matched_filter_manager_lock);
   time_matched_filter_manager = create_filter_manager_rtk();
@@ -1110,21 +1074,8 @@ void init_filters(void) {
   low_latency_filter_manager = create_filter_manager_rtk();
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 
-  static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
-  static struct setting_type dgnss_filter_setting;
-  int TYPE_GNSS_FILTER =
-      settings_type_register_enum(dgnss_filter_enum, &dgnss_filter_setting);
+  platform_initialize_filter_settings();
 
-  SETTING_NOTIFY("solution",
-                 "dgnss_filter",
-                 dgnss_filter,
-                 TYPE_GNSS_FILTER,
-                 enable_fix_mode);
-  SETTING_NOTIFY("solution",
-                 "correction_age_max",
-                 max_age_of_differential,
-                 TYPE_INT,
-                 set_max_age);
 }
 
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
@@ -1354,3 +1305,25 @@ void starling_calc_pvt_setup() {
   sbp_register_cbk(
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 }
+
+// Enable fixed RTK mode in the Starling engine.
+void starling_set_enable_fix_mode(bool is_fix_enabled) {
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(time_matched_filter_manager, is_fix_enabled);
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  set_pvt_engine_enable_fix_mode(low_latency_filter_manager, is_fix_enabled);
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+}
+
+// Indicate for how long corrections should persist.
+void starling_set_max_correction_age(int max_age) {
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  set_max_correction_age(low_latency_filter_manager, max_age);
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  set_max_correction_age(time_matched_filter_manager, max_age);
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+
