@@ -1252,7 +1252,7 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
   return ret;
 }
 
-void starling_calc_pvt_setup() {
+void starling_setup() {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
