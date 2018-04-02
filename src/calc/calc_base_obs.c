@@ -29,7 +29,6 @@
 #include "calc_base_obs.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_me.h"
-#include "calc_pvt_starling.h"
 #include "manage.h"
 #include "nav_msg/cnav_msg_storage.h"
 #include "ndb/ndb.h"
@@ -42,6 +41,7 @@
 #include "shm/shm.h"
 #include "signal_db/signal_db.h"
 #include "simulator.h"
+#include "starling_threads.h"
 #include "timing/timing.h"
 
 extern bool disable_raim;

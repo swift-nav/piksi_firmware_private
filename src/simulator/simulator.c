@@ -26,12 +26,12 @@
 #include "settings/settings.h"
 
 #include "calc_pvt_me.h"
-#include "calc_pvt_starling.h"
 #include "peripherals/leds.h"
 #include "piksi_systime.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "simulator.h"
+#include "starling_threads.h"
 
 #include "simulator_data.h"
 
