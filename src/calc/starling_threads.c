@@ -28,28 +28,13 @@
 #include <libswiftnav/single_epoch_solver.h>
 #include <libswiftnav/troposphere.h>
 
-#include "calc_base_obs.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
-#include "main.h"
-#include "manage.h"
 #include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
-#include "nmea/nmea.h"
-#include "peripherals/leds.h"
-#include "piksi_systime.h"
-#include "position/position.h"
-#include "sbas_select/sbas_select.h"
-#include "sbp.h"
-#include "sbp_utils.h"
 #include "settings/settings.h"
-#include "shm/shm.h"
-#include "signal_db/signal_db.h"
-#include "simulator.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
-#include "system_monitor/system_monitor.h"
-#include "timing/timing.h"
 
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
@@ -849,7 +834,7 @@ static void starling_thread(void *arg) {
 
     ionosphere_t i_params;
     /* get iono parameters if available, otherwise use default ones */
-    if (platform_try_read_iono_corr(&i_params) != NDB_ERR_NONE) {
+    if (!platform_try_read_iono_corr(&i_params)) {
       i_params = DEFAULT_IONO_PARAMS;
     }
     platform_mutex_lock(&time_matched_iono_params_lock);
@@ -966,7 +951,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
 
   for (u8 i = 0; i < rover_channel_meass->n; i++) {
     const navigation_measurement_t *nm = &rover_channel_meass->nm[i];
-    if (NDB_ERR_NONE == platform_try_read_ephemeris(nm->sid, &ephs[i])) {
+    if (platform_try_read_ephemeris(nm->sid, &ephs[i])) {
       if (1 == ephemeris_valid(&ephs[i], &nm->tot)) {
         stored_ephs[i] = &ephs[i];
       }
