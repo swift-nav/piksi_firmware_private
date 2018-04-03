@@ -11,7 +11,7 @@
  */
 
 #include "platform_signal.h"
-#include "decode/decode_bds.h"
+#include "decode/decode_bds_b1.h"
 #include "decode/decode_bds_b2.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
@@ -58,7 +58,7 @@ void platform_decode_setup(void) {
   decode_qzss_l1ca_register();
 #endif
 #ifdef CODE_BDS2_B11_SUPPORT
-  decode_bds_register();
+  decode_bds_b1_register();
 #endif
 #ifdef CODE_BDS2_B2_SUPPORT
   decode_bds_b2_register();
