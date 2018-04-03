@@ -58,6 +58,7 @@ typedef struct {
 #define BASE_OBS_N_BUFF 5
 
 /* \} */
+extern bool disable_raim;
 
 extern memory_pool_t base_obs_buff_pool;
 extern mailbox_t base_obs_mailbox;

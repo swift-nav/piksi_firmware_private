@@ -45,7 +45,7 @@
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
-// Initial settings values.
+/* Initial settings values. */
 #define INIT_ENABLE_FIX_MODE FILTER_FIXED
 #define INIT_MAX_AGE_DIFFERENTIAL 30
 
