@@ -25,6 +25,7 @@
 #include <libswiftnav/troposphere.h>
 
 #include "board/nap/track_channel.h"
+#include "calc_base_obs.h"
 #include "calc_nav_meas.h"
 #include "calc_pvt_common.h"
 #include "calc_pvt_me.h"
@@ -66,8 +67,6 @@ double soln_freq_setting = 10.0;
 u32 obs_output_divisor = 2;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
-
-static bool disable_raim = false;
 
 static soln_stats_t last_stats = {.signals_tracked = 0, .signals_useable = 0};
 
