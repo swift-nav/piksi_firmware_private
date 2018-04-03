@@ -309,9 +309,10 @@ u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
                 (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
   u32 result_ms = 0;
   if (tracker_channel->has_next_params) {
-    tp_profile_update_config(tracker_channel);
     tp_profile_t *profile = &tracker_channel->profile;
-    result_ms = tp_get_current_cycle_duration(profile->loop_params.mode, 0);
+    tp_tm_e mode =
+        tp_profile_get_next_track_mode(profile, tracker_channel->mesid);
+    result_ms = tp_get_current_cycle_duration(mode, 0);
   } else {
     result_ms = tp_get_rollover_cycle_duration(tracker_channel->tracking_mode,
                                                tracker_channel->cycle_no);
