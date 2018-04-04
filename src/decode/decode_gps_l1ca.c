@@ -32,6 +32,8 @@
 #include <assert.h>
 #include <string.h>
 
+#define IONO_HYSTERESIS_MS 1000
+
 /** GPS L1 C/A decoder data */
 typedef struct { nav_msg_t nav_msg; } gps_l1ca_decoder_data_t;
 
@@ -167,7 +169,7 @@ static void check_almanac_wn_xcorr(s16 wn, s32 toa) {
  * \param sid   GNSS signal identifier for which to check almanac toa
  * \param iono  Decoded ionosphere data
  *
- * return True  if toa is valid and newer than the one in NDB.
+ * return True  if toa is valid and not older than the one in NDB.
  *        False otherwise
  */
 static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono) {
@@ -197,9 +199,9 @@ static bool check_iono_timestamp(gnss_signal_t sid, ionosphere_t *iono) {
   iono_valid = (NDB_ERR_NONE == oc || NDB_ERR_GPS_TIME_MISSING == oc);
 
   if (iono_valid) {
-    /* Check if decoded data is newer that the one stored in NDB. */
+    /* Check if decoded data is not older that the one stored in NDB. */
     double age = gpsdifftime(&existing_a.toa, &existing_i.toa);
-    return age > 0.0f;
+    return age >= 0.0f;
   } else {
     /* If NDB has no previously saved data, or contains aged data */
     return true;
@@ -524,12 +526,16 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   }
 
   if (dd.iono_corr_upd_flag) {
-    /* store new iono parameters */
-    if (check_iono_timestamp(l1ca_sid, &dd.iono) &&
-        (ndb_iono_corr_store(
-             &l1ca_sid, &dd.iono, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID) ==
-         NDB_ERR_NONE)) {
-      sbp_send_iono(&dd.iono);
+    /* check if IONO info isn't older than the TOA */
+    if (check_iono_timestamp(l1ca_sid, &dd.iono)) {
+      /* send IONO SBP unless another satellite sent it recently  */
+      DO_EACH_MS(IONO_HYSTERESIS_MS, sbp_send_iono(&dd.iono););
+      /* store the new IONO (will return NDB_ERR_NO_CHANGE if no diff) */
+      ndb_op_code_t oc = ndb_iono_corr_store(
+          &l1ca_sid, &dd.iono, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID);
+      if ((NDB_ERR_NO_CHANGE != oc) && (NDB_ERR_NONE != oc)) {
+        log_error_mesid(channel_info->mesid, "error storing IONO params");
+      }
     }
   }
 
