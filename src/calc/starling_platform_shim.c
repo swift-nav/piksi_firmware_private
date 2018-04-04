@@ -51,13 +51,36 @@
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
-////////////////////////////////////////////////////////////////////////////////
-// Local Helpers
-////////////////////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ * Local Helpers
+ ******************************************************************************/
 
-////////////////////////////////////////////////////////////////////////////////
-// Platform Shim Calls
-////////////////////////////////////////////////////////////////////////////////
+static bool enable_fix_mode(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool enable_fix = value == 0 ? false : true;
+  starling_set_enable_fix_mode(enable_fix);
+  *(dgnss_filter_t *)s->addr = value;
+  return ret;
+}
+
+static bool set_max_age(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  starling_set_max_correction_age(value);
+  *(int *)s->addr = value;
+  return ret;
+}
+
+/*******************************************************************************
+ * Platform Shim Calls 
+ ******************************************************************************/
 
 void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }
 
@@ -72,12 +95,12 @@ void platform_thread_create_static(
 
 void platform_thread_set_name(const char *name) { chRegSetThreadName(name); }
 
-// Return true on success.
+/* Return true on success. */
 bool platform_try_read_ephemeris(const gnss_signal_t sid, ephemeris_t *eph) {
   return (ndb_ephemeris_read(sid, eph) == NDB_ERR_NONE);
 }
 
-// Return true on success.
+/* Return true on success. */
 bool platform_try_read_iono_corr(ionosphere_t *params) {
   return (ndb_iono_corr_read(params) == NDB_ERR_NONE);
 }
