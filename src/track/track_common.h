@@ -127,6 +127,7 @@ void tp_tracker_filter_doppler(tracker_t *tracker_channel,
                                const tp_tracker_config_t *config);
 void tp_tracker_update_mode(tracker_t *tracker_channel);
 u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel);
-void tp_tracker_update_cycle_counter(tracker_t *tracker_channel);
+tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
+                                       me_gnss_signal_t mesid);
 
 #endif

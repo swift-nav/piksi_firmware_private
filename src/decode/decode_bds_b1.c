@@ -15,7 +15,7 @@
 #include <libswiftnav/logging.h>
 
 #include "decode.h"
-#include "decode_bds.h"
+#include "decode_bds_b1.h"
 #include "decode_common.h"
 #include "gnss_capabilities/gnss_capabilities.h"
 #include "nav_msg/nav_msg_bds.h"
@@ -27,58 +27,58 @@
 #include "track/track_decode.h"
 #include "track/track_sid_db.h"
 
-/** BDS decoder data */
-typedef struct { nav_msg_bds_t nav_msg; } bds_decoder_data_t;
+/** BDS B1 decoder data */
+typedef struct { nav_msg_bds_t nav_msg; } bds_b1_decoder_data_t;
 
-static decoder_t bds_decoders[NUM_BDS2_B11_DECODERS];
+static decoder_t bds_b1_decoders[NUM_BDS2_B11_DECODERS];
 
-static bds_decoder_data_t bds_decoder_data[ARRAY_SIZE(bds_decoders)];
+static bds_b1_decoder_data_t bds_b1_decoder_data[ARRAY_SIZE(bds_b1_decoders)];
 
-static void decoder_bds_init(const decoder_channel_info_t *channel_info,
-                             decoder_data_t *decoder_data);
-
-static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
+static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data);
 
-static void decoder_bds_process(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data);
+static void decoder_bds_b1_disable(const decoder_channel_info_t *channel_info,
+                                   decoder_data_t *decoder_data);
 
-static const decoder_interface_t decoder_interface_bds = {
+static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
+                                   decoder_data_t *decoder_data);
+
+static const decoder_interface_t decoder_interface_bds_b1 = {
     .code = CODE_BDS2_B11,
-    .init = decoder_bds_init,
-    .disable = decoder_bds_disable,
-    .process = decoder_bds_process,
-    .decoders = bds_decoders,
-    .num_decoders = ARRAY_SIZE(bds_decoders)};
+    .init = decoder_bds_b1_init,
+    .disable = decoder_bds_b1_disable,
+    .process = decoder_bds_b1_process,
+    .decoders = bds_b1_decoders,
+    .num_decoders = ARRAY_SIZE(bds_b1_decoders)};
 
-static decoder_interface_list_element_t list_element_bds = {
-    .interface = &decoder_interface_bds, .next = NULL};
+static decoder_interface_list_element_t list_element_bds_b1 = {
+    .interface = &decoder_interface_bds_b1, .next = NULL};
 
-void decode_bds_register(void) {
-  for (u32 i = 0; i < ARRAY_SIZE(bds_decoders); i++) {
-    bds_decoders[i].active = false;
-    bds_decoders[i].data = &bds_decoder_data[i];
+void decode_bds_b1_register(void) {
+  for (u32 i = 0; i < ARRAY_SIZE(bds_b1_decoders); i++) {
+    bds_b1_decoders[i].active = false;
+    bds_b1_decoders[i].data = &bds_b1_decoder_data[i];
   }
 
-  decoder_interface_register(&list_element_bds);
+  decoder_interface_register(&list_element_bds_b1);
 }
 
-static void decoder_bds_init(const decoder_channel_info_t *channel_info,
-                             decoder_data_t *decoder_data) {
-  bds_decoder_data_t *data = decoder_data;
+static void decoder_bds_b1_init(const decoder_channel_info_t *channel_info,
+                                decoder_data_t *decoder_data) {
+  bds_b1_decoder_data_t *data = decoder_data;
 
   memset(data, 0, sizeof(*data));
   bds_nav_msg_init(&data->nav_msg, channel_info->mesid.sat);
 }
 
-static void decoder_bds_disable(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
+static void decoder_bds_b1_disable(const decoder_channel_info_t *channel_info,
+                                   decoder_data_t *decoder_data) {
   (void)channel_info;
   (void)decoder_data;
 }
 
-static void decoder_bds_process(const decoder_channel_info_t *channel_info,
-                                decoder_data_t *decoder_data) {
+static void decoder_bds_b1_process(const decoder_channel_info_t *channel_info,
+                                   decoder_data_t *decoder_data) {
   bds_d1_decoded_data_t dd_d1nav;
   bds_d2_decoded_data_t dd_d2nav;
 
@@ -88,7 +88,7 @@ static void decoder_bds_process(const decoder_channel_info_t *channel_info,
   memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
   memset(&dd_d2nav, 0, sizeof(bds_d2_decoded_data_t));
 
-  bds_decoder_data_t *data = decoder_data;
+  bds_b1_decoder_data_t *data = decoder_data;
   me_gnss_signal_t mesid = channel_info->mesid;
 
   /* Process incoming nav bits */

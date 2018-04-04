@@ -962,3 +962,10 @@ void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
 
   profile->filt_cn0 = data->cn0;
 }
+
+tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
+                                       me_gnss_signal_t mesid) {
+  const tp_profile_entry_t *profile_entry;
+  profile_entry = &profile->profiles[profile->next.index];
+  return get_track_mode(mesid, profile_entry);
+}

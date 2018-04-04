@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Swift Navigation Inc.
+ * Copyright (C) 2018 Swift Navigation Inc.
  * Contact: Swift Navigation <dev@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -9,9 +9,9 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef DECODE_BDS_H
-#define DECODE_BDS_H
+#ifndef DECODE_BDS_B2_H
+#define DECODE_BDS_B2_H
 
-void decode_bds_register(void);
+void decode_bds_b2_register(void);
 
-#endif /* DECODE_BDS_H */
+#endif /* DECODE_BDS_B2_H */
