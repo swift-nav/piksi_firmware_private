@@ -50,21 +50,18 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
  */
 void tracker_set_raim_flag(const gnss_signal_t sid) {
   for (u8 i = 0; i < nap_track_n_channels; i++) {
-    /* Find the corresponding channel and flag it. (Note that searching by sid
-     * instead of mesid is a bit tricky.. */
-    tracker_t *tracker_channel = tracker_get(i);
-    tracker_lock(tracker_channel);
-    /* Is this channel's mesid + orbit slot combination valid? */
-    bool can_compare = mesid_valid(tracker_channel->mesid);
-    if (IS_GLO(tracker_channel->mesid)) {
-      can_compare &= glo_slot_id_is_valid(tracker_channel->glo_orbit_slot);
+    tracker_t *tracker = tracker_get(i);
+
+    tracker_lock(tracker);
+    gnss_signal_t tracker_sid;
+    if (tracker_sid_available(tracker, &tracker_sid)) {
+      if (sid_is_equal(sid, tracker_sid)) {
+        tracker_flag_drop(tracker, CH_DROP_REASON_RAIM);
+        tracker_unlock(tracker);
+        break;
+      }
     }
-    if (can_compare && sid_is_equal(mesid2sid(tracker_channel->mesid,
-                                              tracker_channel->glo_orbit_slot),
-                                    sid)) {
-      tracker_flag_drop(tracker_channel, CH_DROP_REASON_RAIM);
-    }
-    tracker_unlock(tracker_channel);
+    tracker_unlock(tracker);
   }
 }
 
