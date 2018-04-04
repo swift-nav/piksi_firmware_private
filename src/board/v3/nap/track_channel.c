@@ -397,6 +397,7 @@ void nap_track_read_results(u8 channel,
                             corr_t corrs[],
                             double *code_phase_prompt,
                             double *carrier_phase) {
+
   static swiftnap_tracking_rd_t trk_ch;
   swiftnap_tracking_rd_t *t = &NAP->TRK_CH_RD[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];

@@ -65,13 +65,16 @@ static void tracker_glo_l1of_init(tracker_t *tracker_channel) {
 }
 
 static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
+  nap_profile(CHUNK_START);
   u32 cflags = tp_tracker_update(tracker_channel, &glo_l1of_config);
+  nap_profile(CHUNK_UPDATE);
 
   /* If GLO SV is marked unhealthy from L1, also drop L2 tracker */
   if (GLO_SV_UNHEALTHY == tracker_channel->health) {
     me_gnss_signal_t mesid_drop;
     mesid_drop = construct_mesid(CODE_GLO_L2OF, tracker_channel->mesid.sat);
     tracker_drop_unhealthy_glo(mesid_drop);
+    nap_profile(CHUNK_REST);
     return;
   }
 
@@ -79,6 +82,7 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
       ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
 
   if (!bit_aligned) {
+    nap_profile(CHUNK_REST);
     return;
   }
 
@@ -97,4 +101,5 @@ static void tracker_glo_l1of_update(tracker_t *tracker_channel) {
                                  tracker_channel->carrier_freq,
                                  tracker_channel->cn0);
   }
+  nap_profile(CHUNK_REST);
 }
