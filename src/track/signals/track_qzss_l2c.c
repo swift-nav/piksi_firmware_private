@@ -198,7 +198,8 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
                         tracker_channel->TOW_ms);
 
         /* This is rude, but safe. Do not expect it to happen normally. */
-        tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
+        clear_tow_in_sid_db(sid);
+        tracker_flag_drop(tracker_channel, CH_DROP_REASON_TOW_ERROR);
       }
     }
 
@@ -234,6 +235,7 @@ static void update_tow_qzss_l2c(tracker_t *tracker_channel, u32 cycle_flags) {
                           tracker_channel->TOW_ms);
           tracker_channel->TOW_ms = TOW_UNKNOWN;
           tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+          clear_tow_in_sid_db(sid);
         }
       }
     }

@@ -358,28 +358,6 @@ bool track_sid_db_update_positions(const gnss_signal_t sid,
   return result;
 }
 
-static bool tow_cache_sid_available(tracker_t *tracker_channel,
-                                    gnss_signal_t *sid) {
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-  u16 glo_orbit_slot = 0;
-
-  if (IS_GPS(mesid) || IS_SBAS(mesid) || IS_BDS2(mesid) || IS_QZSS(mesid)) {
-    *sid = construct_sid(mesid.code, mesid.sat);
-  } else if (IS_GLO(mesid)) {
-    /* Check that GLO orbit slot ID is available */
-    glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
-    if (!glo_slot_id_is_valid(glo_orbit_slot)) {
-      /* If no GLO orbit slot ID is available,
-       * then cannot proceed with TOW cache write. */
-      return false;
-    }
-    *sid = construct_sid(mesid.code, glo_orbit_slot);
-  } else {
-    assert(!"Unsupported TOW cache constellation");
-  }
-  return true;
-}
-
 /**
  * Stores TOW info into the cache.
  *
@@ -387,7 +365,7 @@ static bool tow_cache_sid_available(tracker_t *tracker_channel,
  */
 void update_tow_in_sid_db(tracker_t *tracker_channel) {
   gnss_signal_t sid;
-  if (!tow_cache_sid_available(tracker_channel, &sid)) {
+  if (!tracker_sid_available(tracker_channel, &sid)) {
     return;
   }
 
@@ -409,7 +387,7 @@ void update_tow_in_sid_db(tracker_t *tracker_channel) {
 void propagate_tow_from_sid_db(tracker_t *tracker_channel) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
   gnss_signal_t sid;
-  if (!tow_cache_sid_available(tracker_channel, &sid)) {
+  if (!tracker_sid_available(tracker_channel, &sid)) {
     return;
   }
 
@@ -455,6 +433,7 @@ void propagate_tow_from_sid_db(tracker_t *tracker_channel) {
     tracker_channel->TOW_residual_ns = 0;
     tracker_channel->TOW_ms = TOW_UNKNOWN;
     tracker_channel->flags &= ~TRACKER_FLAG_TOW_VALID;
+    clear_tow_in_sid_db(sid);
   }
 }
 

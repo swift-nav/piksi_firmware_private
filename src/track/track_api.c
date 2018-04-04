@@ -23,6 +23,7 @@
 #include "signal_db/signal_db.h"
 #include "track_api.h"
 #include "track_flags.h"
+#include "track_sid_db.h"
 
 #define GPS_WEEK_LENGTH_ms (1000 * WEEK_SECS)
 
@@ -124,7 +125,11 @@ static void update_tow(tracker_t *tracker_channel,
     log_error_mesid(
         mesid, "TOW mismatch: %" PRId32 ", %" PRId32, *current_TOW_ms, TOW_ms);
     /* This is rude, but safe. Do not expect it to happen normally. */
-    tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
+    gnss_signal_t sid;
+    if (tracker_sid_available(tracker_channel, &sid)) {
+      clear_tow_in_sid_db(sid);
+    }
+    tracker_flag_drop(tracker_channel, CH_DROP_REASON_TOW_ERROR);
   }
   *current_TOW_ms = TOW_ms;
   *decoded_tow = (TOW_ms >= 0);
@@ -330,6 +335,28 @@ void track_internal_setup(void) {
  */
 static u16 tracking_lock_counter_increment(const me_gnss_signal_t mesid) {
   return ++tracking_lock_counters[mesid_to_global_index(mesid)];
+}
+
+bool tracker_sid_available(tracker_t *tracker_channel, gnss_signal_t *sid) {
+  me_gnss_signal_t mesid = tracker_channel->mesid;
+
+  if (IS_GPS(mesid) || IS_SBAS(mesid) || IS_BDS2(mesid) || IS_QZSS(mesid)) {
+    *sid = construct_sid(mesid.code, mesid.sat);
+    return true;
+  }
+
+  if (IS_GLO(mesid)) {
+    u16 glo_orbit_slot = tracker_glo_orbit_slot_get(tracker_channel);
+    if (!glo_slot_id_is_valid(glo_orbit_slot)) {
+      return false;
+    }
+    *sid = construct_sid(mesid.code, glo_orbit_slot);
+    return true;
+  }
+
+  assert(!"Unsupported constellation");
+
+  return false;
 }
 
 /** Sets a channel's carrier phase ambiguity to unknown.

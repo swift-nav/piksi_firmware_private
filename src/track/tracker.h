@@ -77,6 +77,7 @@ typedef enum {
   CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
                                     drop GLO satellites */
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
+  CH_DROP_REASON_TOW_ERROR,    /**< TOW error detected */
   CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
   CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
 } ch_drop_reason_t;

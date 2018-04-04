@@ -585,6 +585,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_OUTLIER:
       str = "SV measurement outlier, dropping";
       break;
+    case CH_DROP_REASON_TOW_ERROR:
+      str = "TOW error, dropping";
+      break;
     case CH_DROP_REASON_SBAS_PROVIDER_CHANGE:
       str = "SBAS provider change, dropping";
       break;

@@ -1065,7 +1065,11 @@ static bool tow_is_bit_aligned(tracker_t *tracker_channel) {
                     tracker_channel->TOW_ms);
 
     /* This is rude, but safe. Do not expect it to happen normally. */
-    tracker_flag_drop(tracker_channel, CH_DROP_REASON_OUTLIER);
+    gnss_signal_t sid;
+    if (tracker_sid_available(tracker_channel, &sid)) {
+      clear_tow_in_sid_db(sid);
+    }
+    tracker_flag_drop(tracker_channel, CH_DROP_REASON_TOW_ERROR);
     return false;
   }
   return true;
