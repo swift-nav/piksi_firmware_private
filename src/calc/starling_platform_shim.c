@@ -79,7 +79,7 @@ static bool set_max_age(struct setting *s, const char *val) {
 }
 
 /*******************************************************************************
- * Platform Shim Calls 
+ * Platform Shim Calls
  ******************************************************************************/
 
 void platform_mutex_lock(void *mtx) { chMtxLock((mutex_t *)mtx); }

@@ -1135,9 +1135,8 @@ static void time_matched_obs_thread(void *arg) {
         do the differential solution so that the various messages can be
         overwritten as appropriate,
         the exception is the DOP messages, as we don't have the SPP DOP and
-        it will always be overwritten by the differential
+        it will always be overwritten by the differential */
         pvt_engine_result_t soln_copy = obss->soln;
-        */
 
         /* Init the messages we want to send */
         gps_time_t epoch_time = base_obss_copy.tor;
@@ -1318,4 +1317,3 @@ void starling_set_max_correction_age(int max_age) {
   set_max_correction_age(time_matched_filter_manager, max_age);
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
-

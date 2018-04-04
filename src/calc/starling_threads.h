@@ -90,6 +90,9 @@ void set_known_glonass_biases(const glo_biases_t biases);
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
+/* Initialize the Starling engine. Should be called before any subsequent API
+ * calls. */
+void starling_setup(void);
 /* Enable fixed RTK mode in the Starling engine. */
 void starling_set_enable_fix_mode(bool is_fix_enabled);
 /* Indicate for how long corrections should persist. */
