@@ -74,7 +74,6 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
-extern u32 max_age_of_differential;
 extern bool enable_glonass;
 extern bool send_heading;
 
@@ -91,5 +90,10 @@ void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
+
+// Enable fixed RTK mode in the Starling engine.
+void starling_set_enable_fix_mode(bool is_fix_enabled);
+// Indicate for how long corrections should persist.
+void starling_set_max_correction_age(int max_age);
 
 #endif

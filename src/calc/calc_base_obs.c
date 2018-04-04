@@ -44,7 +44,7 @@
 #include "starling_threads.h"
 #include "timing/timing.h"
 
-extern bool disable_raim;
+static bool disable_raim;
 
 /** \defgroup base_obs Base station observation handling
  * \{ */
@@ -521,6 +521,9 @@ static void ics_msg_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
 
 /** Setup the base station observation handling subsystem. */
 void base_obs_setup() {
+  // The base obs can optionally enable RAIM exclusion algorithm.
+  SETTING("solution", "disable_raim", disable_raim, TYPE_BOOL);
+
   /* Register callbacks on base station messages. */
 
   static msg_t base_obs_mailbox_buff[BASE_OBS_N_BUFF];
