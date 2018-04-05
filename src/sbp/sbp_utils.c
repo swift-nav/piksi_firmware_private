@@ -725,6 +725,12 @@ static ephe_type_table_element_t ephe_type_table[CONSTELLATION_COUNT] = {
     {{SBP_MSG_EPHEMERIS_GLO, sizeof(msg_ephemeris_glo_t)},
      pack_ephemeris_glo,
      unpack_ephemeris_glo,
+     {0}},
+
+    /* BDS */
+    {{SBP_MSG_EPHEMERIS_GPS, sizeof(msg_ephemeris_gps_t)},
+     pack_ephemeris_gps,
+     unpack_ephemeris_gps,
      {0}}};
 
 void unpack_ephemeris(const msg_ephemeris_t *msg, ephemeris_t *e) {
