@@ -45,7 +45,7 @@
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
-// Initial settings values.
+/* Initial settings values. */
 #define INIT_ENABLE_FIX_MODE FILTER_FIXED
 #define INIT_MAX_AGE_DIFFERENTIAL 30
 
@@ -197,7 +197,7 @@ bool dgnss_timeout(piksi_systime_t *_last_dgnss,
 bool spp_timeout(const gps_time_t *_last_spp,
                  const gps_time_t *_last_dgnss,
                  dgnss_solution_mode_t _dgnss_soln_mode) {
-  // No timeout needed in low latency mode;
+  /* No timeout needed in low latency mode; */
   if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
     return false;
   }
@@ -205,8 +205,8 @@ bool spp_timeout(const gps_time_t *_last_spp,
   double time_diff = gpsdifftime(_last_dgnss, _last_spp);
   platform_mutex_unlock(&last_sbp_lock);
 
-  // Need to compare timeout threshold in MS to system time elapsed (in system
-  // ticks)
+  /* Need to compare timeout threshold in MS to system time elapsed (in system
+   * ticks) */
   return (time_diff > 0.0);
 }
 
@@ -423,8 +423,8 @@ static void solution_send_low_latency_output(
     const sbp_messages_t *sbp_messages,
     u8 n_meas,
     const navigation_measurement_t nav_meas[]) {
-  // Work out if we need to wait for a certain period of no time matched
-  // positions before we output a SBP position
+  /* Work out if we need to wait for a certain period of no time matched
+   * positions before we output a SBP position */
   bool wait_for_timeout = false;
   if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
       SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
@@ -847,8 +847,8 @@ static void starling_thread(void *arg) {
 
     dops_t dops;
 
-    // This will duplicate pointers to satellites with mutliple frequencies,
-    // but this scenario is expected and handled
+    /* This will duplicate pointers to satellites with mutliple frequencies,
+     * but this scenario is expected and handled */
     const ephemeris_t *stored_ephs[MAX_CHANNELS];
     memset(stored_ephs, 0, sizeof(stored_ephs));
     for (u8 i = 0; i < n_ready; i++) {
@@ -1063,8 +1063,8 @@ void init_filters(void) {
 
   platform_initialize_starling_filter_settings();
 
-  // We also need to be careful to set any initial values which may
-  // later be updated by settings changes.
+  /* We also need to be careful to set any initial values which may
+   * later be updated by settings changes. */
   starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
   starling_set_max_correction_age(INIT_MAX_AGE_DIFFERENTIAL);
 }
@@ -1079,7 +1079,7 @@ static void time_matched_obs_thread(void *arg) {
   static obss_t base_obss_copy;
   init_filters();
 
-  // Declare all SBP messages
+  /* Declare all SBP messages */
   sbp_messages_t sbp_messages;
 
   while (1) {
@@ -1104,7 +1104,7 @@ static void time_matched_obs_thread(void *arg) {
     base_obss_copy = *base_obs;
     platform_pool_free(&base_obs_buff_pool, base_obs);
 
-    // Check if the el mask has changed and update
+    /* Check if the el mask has changed and update */
     platform_mutex_lock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
@@ -1122,7 +1122,7 @@ static void time_matched_obs_thread(void *arg) {
                      (msg_t *)&obss,
                      TIME_IMMEDIATE) == MSG_OK) {
       if (dgnss_soln_mode == SOLN_MODE_NO_DGNSS) {
-        // Not doing any DGNSS.  Toss the obs away.
+        /* Not doing any DGNSS.  Toss the obs away. */
         platform_pool_free(&time_matched_obs_buff_pool, obss);
         continue;
       }
@@ -1130,12 +1130,12 @@ static void time_matched_obs_thread(void *arg) {
       double dt = gpsdifftime(&obss->tor, &base_obss_copy.tor);
 
       if (fabs(dt) < TIME_MATCH_THRESHOLD && base_obss_copy.has_pos == 1) {
-        // We need to form the SBP messages derived from the SPP at this
-        // solution time before we
-        // do the differential solution so that the various messages can be
-        // overwritten as appropriate,
-        // the exception is the DOP messages, as we don't have the SPP DOP and
-        // it will always be overwritten by the differential
+        /* We need to form the SBP messages derived from the SPP at this
+         * solution time before we
+         * do the differential solution so that the various messages can be
+         * overwritten as appropriate,
+         * the exception is the DOP messages, as we don't have the SPP DOP and
+         * it will always be overwritten by the differential */
         pvt_engine_result_t soln_copy = obss->soln;
 
         /* Init the messages we want to send */
@@ -1296,7 +1296,7 @@ void starling_setup() {
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 }
 
-// Enable fixed RTK mode in the Starling engine.
+/* Enable fixed RTK mode in the Starling engine. */
 void starling_set_enable_fix_mode(bool is_fix_enabled) {
   platform_mutex_lock(&time_matched_filter_manager_lock);
   set_pvt_engine_enable_fix_mode(time_matched_filter_manager, is_fix_enabled);
@@ -1306,7 +1306,7 @@ void starling_set_enable_fix_mode(bool is_fix_enabled) {
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 }
 
-// Indicate for how long corrections should persist.
+/* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age) {
   platform_mutex_lock(&low_latency_filter_manager_lock);
   set_max_correction_age(low_latency_filter_manager, max_age);
