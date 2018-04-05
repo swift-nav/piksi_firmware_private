@@ -255,17 +255,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       return CODE_NAV_STATE_UNKNOWN;
     }
 
-    /*
-    * Same functionality applies for both GLO signals.
-    *
-    * Return SV_NAV_STATE_INVALID if:
-    * - SHI is available and indicates signal unhealthy
-    *
-    * Return CODE_NAV_STATE_VALID if:
-    * - SHI is available and indicates signal healthy
-    *
-    * Return CODE_NAV_STATE_UNKNOWN otherwise
-    */
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
       if (shi.shi_set && (SV_UNHEALTHY == shi.shi)) {
@@ -275,17 +264,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
       return CODE_NAV_STATE_UNKNOWN;
 
-    /*
-    * Same functionality applies for both BDS signals.
-    *
-    * Return SV_NAV_STATE_INVALID if:
-    * - SHI is available and indicates signal unhealthy
-    *
-    * Return CODE_NAV_STATE_VALID if:
-    * - SHI is available and indicates signal healthy
-    *
-    * Return CODE_NAV_STATE_UNKNOWN otherwise
-    */
     case CODE_BDS2_B11:
     case CODE_BDS2_B2:
       if (shi_bds.shi_set && (SV_UNHEALTHY == shi_bds.shi)) {

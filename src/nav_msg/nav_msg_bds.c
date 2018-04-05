@@ -21,7 +21,6 @@
 #include <libswiftnav/logging.h>
 
 #include "nav_msg/nav_msg_bds.h"
-#include "shm/shm.h"
 #include "timing/timing.h"
 
 /* `11 1000 1001 0` 11 bit modified Barker code from BDS ICD v2.1 English p.23
@@ -281,8 +280,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
              k->tgd);
     log_info("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
     n->goodwords_mask = 0;
-
-    shm_bds_set_shi(e->sid.sat, e->health_bits);
+    data->ephemeris_upd_flag = true;
   }
 
   return TOW_s * 1000;
