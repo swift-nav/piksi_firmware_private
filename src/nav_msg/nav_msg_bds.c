@@ -20,6 +20,7 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
 
+#include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 
@@ -285,6 +286,19 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
     add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
     add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
+    /* Mark ephemeris from B2 as if it was coming from B1. */
+    if (CODE_BDS2_B2 == mesid.code) {
+      e->sid.code = CODE_BDS2_B11;
+    }
+    e->fit_interval = 2 * HOUR_SECS;
+    e->valid = 1;
+    eph_new_status_t r = ephemeris_new(e);
+    if (EPH_NEW_OK != r) {
+      log_warn_mesid(mesid,
+                     "Error in BDS ephemeris processing. "
+                     "Eph status: %" PRIu8 " ",
+                     r);
+    }
   }
 
   TOW_s += BDS_SECOND_TO_GPS_SECOND;
