@@ -1045,7 +1045,7 @@ u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
     }
   }
 
-  if (IS_GPS(sid) && shm_navigation_suitable(sid)) {
+  if ((IS_GPS(sid) || IS_BDS2(sid)) && shm_navigation_suitable(sid)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;
   } else if (IS_GLO(sid) && (flags & TRACKER_FLAG_HEALTHY)) {
     flags |= TRACKER_FLAG_NAV_SUITABLE;
