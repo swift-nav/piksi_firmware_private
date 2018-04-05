@@ -51,6 +51,11 @@
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 
+/*******************************************************************************
+ * Constants
+ ******************************************************************************/
+#define INIT_MAX_AGE_OF_DIFFERENTIAL 30
+
 ////////////////////////////////////////////////////////////////////////////////
 // Local Helpers
 ////////////////////////////////////////////////////////////////////////////////
@@ -124,7 +129,7 @@ void platform_initialize_starling_filter_settings() {
                  TYPE_GNSS_FILTER,
                  enable_fix_mode);
 
-  static u32 max_age_of_differential = 0;
+  static u32 max_age_of_differential = INIT_MAX_AGE_OF_DIFFERENTIAL;
   SETTING_NOTIFY("solution",
                  "correction_age_max",
                  max_age_of_differential,
