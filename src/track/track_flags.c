@@ -126,31 +126,6 @@ void tracker_set_leap_second_flag(void) {
 }
 
 /**
- * Sets cross-correlation flag to a channel with a given ME signal identifier
- *
- * \param[in] mesid ME signal identifier for channel to set cross-correlation
- *                  flag.
- *
- * \return None
- */
-void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
-  for (u8 id = 0; id < NUM_TRACKER_CHANNELS; ++id) {
-    /* Find matching tracker and set the flag  */
-    tracker_t *tracker = tracker_get(id);
-    tracker_lock(tracker);
-    /* Skip inactive channels */
-    if (0 == (tracker->flags & TRACKER_FLAG_ACTIVE)) {
-      tracker_unlock(tracker);
-      continue;
-    }
-    if (mesid_is_equal(tracker->mesid, mesid)) {
-      tracker->xcorr_flag = true;
-    }
-    tracker_unlock(tracker);
-  }
-}
-
-/**
  * Sets and clears the L1 & L2 xcorr_suspect flag.
  *
  * This function checks if the xcorr_suspect status has changed for the
@@ -172,13 +147,13 @@ void tracker_set_xcorr_suspect_flag(tracker_t *tracker,
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }
-    data->xcorr_flag = xcorr_suspect;
+    // data->xcorr_flag = xcorr_suspect;
   } else {
     gps_l2cm_tracker_data_t *data = &tracker->gps_l2cm;
     if ((data->xcorr_flag) == xcorr_suspect) {
       return;
     }
-    data->xcorr_flag = xcorr_suspect;
+    // data->xcorr_flag = xcorr_suspect;
   }
 
   if (xcorr_suspect) {

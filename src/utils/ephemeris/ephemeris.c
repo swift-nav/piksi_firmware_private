@@ -291,7 +291,6 @@ static bool xcorr_check_eph_to_eph(const ephemeris_t *e) {
         /* Stored SV is ghost one, so remove it from NDB */
         delete_ghost_ephe(test_e.sid);
         /* and immediately drop tracked ghost signal */
-        tracker_set_xcorr_flag(tc_test->mesid);
         return false; /* exit and notify that new ephemeris from real SV and
                          it can be stored in NDB */
       } else {
@@ -394,11 +393,11 @@ eph_new_status_t ephemeris_new(const ephemeris_t *e) {
   /* compare new ephemeris against all other ephemeris to make sure there is
    * no ephemeris-to-ephemeris cross-correlation */
   if (xcorr_check_eph_to_eph(e)) {
-    return EPH_NEW_XCORR;
+    // return EPH_NEW_XCORR;
   }
 
   /* TODO GLO: Implement ephemeris - almanac cross-checking for GLO */
-  if (IS_GPS(e->sid)) {
+  if (false && IS_GPS(e->sid)) {
     xcorr_positions_t alm_pos;
     xcorr_positions_t eph_pos;
     s32 time_s = e->toe.wn * WEEK_SECS + (s32)e->toe.tow;
