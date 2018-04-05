@@ -61,7 +61,7 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   if (!ret) {
     return ret;
   }
-  bool enable_fix = value == 0 ? false : true;
+  bool enable_fix = (value != 0);
   starling_set_enable_fix_mode(enable_fix);
   *(dgnss_filter_t *)s->addr = value;
   return ret;
