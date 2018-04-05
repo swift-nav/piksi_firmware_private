@@ -238,6 +238,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     utc_tm date;
     ephemeris_t *e = &(data->ephemeris);
     ephemeris_kepler_t *k = &(data->ephemeris.kepler);
+    ionosphere_t *iono = &(data->iono);
     make_utc_tm(&(k->toc), &date);
     log_info("C%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
              " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
@@ -281,8 +282,15 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     log_info("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
     n->goodwords_mask = 0;
     data->ephemeris_upd_flag = true;
+    add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
+    add_secs(&k->toc, BDS_SECOND_TO_GPS_SECOND);
+    add_secs(&iono->toa, BDS_SECOND_TO_GPS_SECOND);
   }
 
+  TOW_s += BDS_SECOND_TO_GPS_SECOND;
+  if (TOW_s >= WEEK_SECS) {
+    TOW_s -= WEEK_SECS;
+  }
   return TOW_s * 1000;
 }
 
