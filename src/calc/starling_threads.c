@@ -204,9 +204,9 @@ bool spp_timeout(const gps_time_t *_last_spp,
   return (time_diff > 0.0);
 }
 
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages) {
+static void solution_make_sbp(const pvt_engine_result_t *soln,
+                              dops_t *dops,
+                              sbp_messages_t *sbp_messages) {
   if (soln && soln->valid) {
     /* Send GPS_TIME message first. */
     sbp_make_gps_time(&sbp_messages->gps_time, &soln->time, SPP_POSITION);
@@ -434,7 +434,7 @@ static void solution_send_low_latency_output(
   }
 }
 
-double calc_heading(const double b_ned[3]) {
+static double calc_heading(const double b_ned[3]) {
   double heading = atan2(b_ned[1], b_ned[0]);
   if (heading < 0) {
     heading += 2 * M_PI;
@@ -811,21 +811,6 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-void init_filters(void) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  time_matched_filter_manager = create_filter_manager_rtk();
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  low_latency_filter_manager = create_filter_manager_rtk();
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-  /* We also need to be careful to set any initial values which may
-   * later be updated by settings changes. */
-  starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
-  starling_set_max_correction_age(INIT_MAX_AGE_DIFFERENTIAL);
-}
-
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
@@ -970,7 +955,6 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
 
-/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
 static void init_filters(void) {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;

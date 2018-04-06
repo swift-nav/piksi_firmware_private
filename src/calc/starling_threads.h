@@ -83,12 +83,6 @@ extern double heading_offset;
 extern bool disable_klobuchar;
 extern float glonass_downweight_factor;
 
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages);
-
-double calc_heading(const double b_ned[3]);
-
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
