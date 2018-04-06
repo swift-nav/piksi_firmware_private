@@ -91,18 +91,6 @@ void platform_watchdog_notify_starling_main_thread() {
 
 bool platform_simulation_enabled() { return simulation_enabled(); }
 
-int32_t platform_mailbox_fetch(void *mb, int32_t *msg, uint32_t timeout) {
-  return chMBFetch((mailbox_t *)mb, (msg_t *)msg, (systime_t)timeout);
-}
-
-int32_t platform_mailbox_post(void *mb, int32_t msg, uint32_t timeout) {
-  return chMBPost((mailbox_t *)mb, (msg_t)msg, (systime_t)timeout);
-}
-
-int32_t platform_mailbox_post_ahead(void *mb, int32_t msg, uint32_t timeout) {
-  return chMBPostAhead((mailbox_t *)mb, (msg_t)msg, (systime_t)timeout);
-}
-
 void platform_time_matched_obs_mailbox_init() {
   static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
   chMBObjectInit(&time_matched_obs_mailbox,
@@ -139,7 +127,12 @@ void platform_base_obs_free(obss_t *ptr) {
   chPoolFree(&base_obs_buff_pool, ptr);
 }
 
+void platform_me_msg_free(me_msg_t *ptr) { chPoolFree(&me_msg_buff_pool, ptr); }
+
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout) {
   return chMBFetch(&base_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
 }
 
+int32_t platform_me_msg_mailbox_fetch(int32_t *msg, uint32_t timeout) {
+  return chMBFetch(&me_msg_mailbox, (msg_t *)msg, (systime_t)timeout);
+}

@@ -17,13 +17,13 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/signal.h>
 
+/* TODO(kevin) Put required types into separate header. */
 #include "calc_base_obs.h"
+#include "me_msg/me_msg.h"
 
 /* Mutex */
 void platform_mutex_lock(void *mtx);
 void platform_mutex_unlock(void *mtx);
-/* Object Pool */
-void platform_pool_free(void *pool, void *buf);
 /* Thread */
 void platform_thread_create_static(
     void *wa, size_t wa_size, int prio, void (*fn)(void *), void *user);
@@ -46,8 +46,12 @@ int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 obss_t *platform_time_matched_obs_alloc(void);
 void platform_time_matched_obs_free(obss_t *ptr);
 void platform_base_obs_free(obss_t *ptr);
+void platform_me_msg_free(me_msg_t *ptr);
 
 /* used for receiving obs messages */
 int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
+
+/* used for receiving me messages */
+int32_t platform_me_msg_mailbox_fetch(int32_t *msg, uint32_t timeout);
 
 #endif
