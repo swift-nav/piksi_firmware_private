@@ -50,6 +50,8 @@ void sv_visibility_status_get(const sv_vis_config_t *config,
     case CODE_GPS_L1CA:
     case CODE_GPS_L2CL:
     case CODE_GPS_L2CM:
+    case CODE_BDS2_B11:
+    case CODE_BDS2_B2:
       sv_max_vis_angle_deg = SV_VIS_MAX_ANGLE_FROM_LGF_GPS_DEG;
       break;
     case CODE_GLO_L1OF:
