@@ -84,16 +84,18 @@ void solution_make_sbp(const pvt_engine_result_t *soln,
 double calc_heading(const double b_ned[3]);
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
-void starling_calc_pvt_setup(void);
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
-// Enable fixed RTK mode in the Starling engine.
+/* Initialize the Starling engine. Should be called before any subsequent API
+ * calls. */
+void starling_setup(void);
+/* Enable fixed RTK mode in the Starling engine. */
 void starling_set_enable_fix_mode(bool is_fix_enabled);
-// Indicate for how long corrections should persist.
+/* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
 
 #endif

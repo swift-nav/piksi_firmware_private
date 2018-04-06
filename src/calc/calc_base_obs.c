@@ -44,7 +44,7 @@
 #include "starling_threads.h"
 #include "timing/timing.h"
 
-static bool disable_raim;
+bool disable_raim = false;
 
 /** \defgroup base_obs Base station observation handling
  * \{ */
