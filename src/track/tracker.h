@@ -20,6 +20,7 @@
 #include "lock_detector/lock_detector.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_data_sync/nav_data_sync.h"
+#include "sbas_watchdog/sbas_watchdog.h"
 #include "track_cfg.h"
 #include "track_cn0.h"
 #include "track_loop/trk_loop_common.h"
@@ -78,6 +79,7 @@ typedef enum {
                                     drop GLO satellites */
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
   CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
+  CH_DROP_REASON_SBAS_WATCHDOG,        /**< Signal removed by SBAS watchdog */
   CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
 } ch_drop_reason_t;
 
@@ -426,6 +428,8 @@ typedef struct {
   bool updated_once;           /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   health_t health;             /**< GLO SV health info */
+
+  struct sbas_watchdog sbas_watchdog;
 
   tracker_misc_info_t misc_info;
 

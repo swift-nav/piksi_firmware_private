@@ -37,6 +37,7 @@
 #include "piksi_systime.h"
 #include "position/position.h"
 #include "reacq/reacq_api.h"
+#include "sbas_watchdog/sbas_watchdog.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
@@ -591,6 +592,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
+    case CH_DROP_REASON_SBAS_WATCHDOG:
+      str = "No SBAS data, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
@@ -783,6 +787,12 @@ void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
   u16 global_index = mesid_to_global_index(mesid);
   if (track_mask[global_index]) {
     drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
+    return;
+  }
+
+  if (IS_SBAS(mesid) &&
+      sbas_watchdog_is_triggered(&tracker_channel->sbas_watchdog)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_SBAS_WATCHDOG);
     return;
   }
 
