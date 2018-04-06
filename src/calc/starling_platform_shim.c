@@ -52,6 +52,13 @@
 #include "timing/timing.h"
 
 /*******************************************************************************
+ * Local Variables
+ ******************************************************************************/
+
+static memory_pool_t time_matched_obs_buff_pool;
+static mailbox_t time_matched_obs_mailbox;
+
+/*******************************************************************************
  * Platform Shim Calls
  ******************************************************************************/
 
@@ -83,3 +90,47 @@ void platform_watchdog_notify_starling_main_thread() {
 }
 
 bool platform_simulation_enabled() { return simulation_enabled(); }
+
+int32_t platform_mailbox_fetch(void *mb, int32_t *msg, uint32_t timeout) {
+  return chMBFetch((mailbox_t *)mb, (msg_t *)msg, (systime_t)timeout);
+}
+
+int32_t platform_mailbox_post(void *mb, int32_t msg, uint32_t timeout) {
+  return chMBPost((mailbox_t *)mb, (msg_t)msg, (systime_t)timeout);
+}
+
+int32_t platform_mailbox_post_ahead(void *mb, int32_t msg, uint32_t timeout) {
+  return chMBPostAhead((mailbox_t *)mb, (msg_t)msg, (systime_t)timeout);
+}
+
+void platform_time_matched_obs_mailbox_init() {
+  static msg_t time_matched_obs_mailbox_buff[STARLING_OBS_N_BUFF];
+  chMBObjectInit(&time_matched_obs_mailbox,
+                 time_matched_obs_mailbox_buff,
+                 STARLING_OBS_N_BUFF);
+  chPoolObjectInit(&time_matched_obs_buff_pool, sizeof(obss_t), NULL);
+  static obss_t obs_buff[STARLING_OBS_N_BUFF] _CCM;
+  chPoolLoadArray(&time_matched_obs_buff_pool, obs_buff, STARLING_OBS_N_BUFF);
+}
+
+int32_t platform_time_matched_obs_mailbox_post(int32_t msg, uint32_t timeout) {
+  return chMBPost(&time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
+}
+
+int32_t platform_time_matched_obs_mailbox_post_ahead(int32_t msg,
+                                                     uint32_t timeout) {
+  return chMBPostAhead(
+      &time_matched_obs_mailbox, (msg_t)msg, (systime_t)timeout);
+}
+
+int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg,
+                                                uint32_t timeout) {
+  return chMBFetch(&time_matched_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
+}
+
+obss_t *platform_time_matched_obs_alloc(void) {
+  return chPoolAlloc(&time_matched_obs_buff_pool);
+}
+void platform_time_matched_obs_free(obss_t *ptr) {
+  chPoolFree(&time_matched_obs_buff_pool, ptr);
+}
