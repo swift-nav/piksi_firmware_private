@@ -54,12 +54,9 @@ typedef struct {
 static ephemeris_candidate_t ephe_candidates[EPHE_CAND_LIST_LEN];
 static MUTEX_DECL(cand_list_access);
 
-/** Minimum interval between two ephemeris transmission inside one transmission
-    epoch [cycles] */
-#define NDB_EPHE_MESSAGE_SPACING (150 / NV_WRITE_REQ_TIMEOUT)
-/** Minimum interval between ephemeris transmit epoch starts, can be longer
-    if the amount of sent messages makes epoch longer [cycles] */
-#define NDB_EPHE_TRANSMIT_EPOCH_SPACING (30000 / NV_WRITE_REQ_TIMEOUT)
+/* identically received ephemeris are resent every N seconds */
+#define SBP_EPHEMERIS_RESEND_PERIOD_S 30
+static MUTEX_DECL(ephemeris_send_counter_lock);
 
 typedef struct {
   bool erase_ephemeris;   /**< Erase ephemeris data on boot */
@@ -75,6 +72,8 @@ static ndb_ephe_config_t ndb_ephe_config = {
     .valid_eph_accuracy = 100,
     .alm_fit_interval = 6,
 };
+
+static piksi_systime_t ephemeris_send_time[NUM_SATS];
 
 /** Flag if almanacs can be used in ephemeris candidate validation */
 static bool almanacs_enabled = false;
@@ -324,7 +323,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   }
 
   ephemeris_t tmp_ephep;
-  bool ep_eq;
+  bool ep_eq = false;
   if (ephep) {
     ep_eq = ephemeris_equal(ephep, new);
     MEMCPY_S(&tmp_ephep, sizeof(tmp_ephep), ephep, sizeof(tmp_ephep));
@@ -551,7 +550,23 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                      NULL,
                      sender_id);
 
-  if (NDB_ERR_NO_CHANGE != res) {
+  bool send_sbp = false;
+  piksi_systime_t now;
+  piksi_systime_get(&now);
+  u16 idx = sid_to_sv_index(e->sid);
+
+  /* ephemeris is sent over SBP always on the first reception, and after that
+   * periodically */
+
+  chMtxLock(&ephemeris_send_counter_lock);
+  s64 timediff = piksi_systime_sub_s(&now, &ephemeris_send_time[idx]);
+  if (NDB_ERR_NO_CHANGE != res || (timediff >= SBP_EPHEMERIS_RESEND_PERIOD_S)) {
+    send_sbp = true;
+    ephemeris_send_time[idx] = now;
+  }
+  chMtxUnlock(&ephemeris_send_counter_lock);
+
+  if (send_sbp) {
     msg_ephemeris_t msg;
     msg_info_t info = pack_ephemeris(e, &msg);
     sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);
