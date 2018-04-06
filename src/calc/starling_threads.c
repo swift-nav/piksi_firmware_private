@@ -32,7 +32,6 @@
 #include "calc_pvt_me.h"
 #include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
-#include "settings/settings.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
 
@@ -52,7 +51,6 @@
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
 
-dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 
 static FilterManager *time_matched_filter_manager = NULL;
 static FilterManager *low_latency_filter_manager = NULL;
@@ -73,15 +71,13 @@ static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
 
+/* These are all externally visible settings (for now...) */
+dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 bool send_heading = false;
-
 double heading_offset = 0.0;
-
-static bool disable_klobuchar = false;
-
+bool disable_klobuchar = false;
 bool enable_glonass = true;
-
-static float glonass_downweight_factor = 4;
+float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;
 
@@ -975,55 +971,11 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
 
 /* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static bool heading_offset_changed(struct setting *s, const char *val) {
-  double offset = 0;
-  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  if (fabs(offset) > 180.0) {
-    log_error(
-        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, "
-        "leaving heading offset at %3.1f",
-        offset,
-        180.0,
-        -180.0,
-        heading_offset);
-    ret = false;
-  }
-  *(double *)s->addr = offset;
-  return ret;
-}
-
-static void init_filters_and_settings(void) {
+static void init_filters(void) {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
   last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
-
-  static const char *const dgnss_soln_mode_enum[] = {
-      "Low Latency", "Time Matched", "No DGNSS", NULL};
-  static struct setting_type dgnss_soln_mode_setting;
-  int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(
-      dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
-  SETTING(
-      "solution", "dgnss_solution_mode", dgnss_soln_mode, TYPE_GNSS_SOLN_MODE);
-
-  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
-  SETTING_NOTIFY("solution",
-                 "heading_offset",
-                 heading_offset,
-                 TYPE_FLOAT,
-                 heading_offset_changed);
-
-  SETTING(
-      "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
-  SETTING("solution", "enable_glonass", enable_glonass, TYPE_BOOL);
-  SETTING("solution",
-          "glonass_measurement_std_downweight_factor",
-          glonass_downweight_factor,
-          TYPE_FLOAT);
 
   platform_time_matched_obs_mailbox_init();
 
@@ -1052,8 +1004,8 @@ static void starling_thread(void *arg) {
 
   platform_thread_set_name("starling");
 
-  /* Initialize all filters, settings, and SBP callbacks. */
-  init_filters_and_settings();
+  /* Initialize all filters, and SBP callbacks. */
+  init_filters();
 
   /* Spawn the time_matched thread. */
   platform_thread_create_static(wa_time_matched_obs_thread,
