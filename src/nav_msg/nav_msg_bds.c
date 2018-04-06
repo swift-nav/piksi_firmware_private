@@ -20,7 +20,6 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
 
-#include "ephemeris/ephemeris.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 
@@ -290,15 +289,8 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     if (CODE_BDS2_B2 == mesid.code) {
       e->sid.code = CODE_BDS2_B11;
     }
-    e->fit_interval = 2 * HOUR_SECS;
+    e->fit_interval = BDS_FIT_INTERVAL_SECONDS;
     e->valid = 1;
-    eph_new_status_t r = ephemeris_new(e);
-    if (EPH_NEW_OK != r) {
-      log_warn_mesid(mesid,
-                     "Error in BDS ephemeris processing. "
-                     "Eph status: %" PRIu8 " ",
-                     r);
-    }
   }
 
   TOW_s += BDS_SECOND_TO_GPS_SECOND;

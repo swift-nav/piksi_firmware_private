@@ -432,11 +432,11 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
   } else if (IS_GLO(sid)) {
     ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
   } else if (IS_SBAS(sid)) {
-    ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
+    ndb_eph_age = NDB_NV_SBAS_EPHEMERIS_AGE_SECS;
   } else if (IS_BDS2(sid)) {
-    ndb_eph_age = NDB_NV_GPS_EPHEMERIS_AGE_SECS;
+    ndb_eph_age = NDB_NV_BDS2_EPHEMERIS_AGE_SECS;
   } else if (IS_QZSS(sid)) {
-    ndb_eph_age = NDB_NV_GLO_EPHEMERIS_AGE_SECS;
+    ndb_eph_age = NDB_NV_QZSS_EPHEMERIS_AGE_SECS;
   } else {
     assert(!"Constellation is not supported");
   }
