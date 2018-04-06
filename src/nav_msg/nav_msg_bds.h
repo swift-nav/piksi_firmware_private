@@ -49,6 +49,9 @@ extern "C" {
 #define BDS_WEEK_TO_GPS_WEEK 1356
 #define BDS_SECOND_TO_GPS_SECOND 14
 
+/** TODO: Check Beidou fit_interval definition */
+#define BDS_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
+
 /**
  * BDS D1 and D2 message decoder object.
  *

@@ -111,6 +111,13 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
         if (dd_d2nav.ephemeris_upd_flag) {
           shm_bds_set_shi(dd_d2nav.ephemeris.sid.sat,
                           dd_d2nav.ephemeris.health_bits);
+          eph_new_status_t r = ephemeris_new(&dd_d2nav.ephemeris);
+          if (EPH_NEW_OK != r) {
+            log_warn_mesid(mesid,
+                           "Error in BDS d2nav ephemeris processing. "
+                           "Eph status: %" PRIu8 " ",
+                           r);
+          }
           dd_d2nav.ephemeris_upd_flag = false;
         }
       } else {
@@ -121,6 +128,13 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
         if (dd_d1nav.ephemeris_upd_flag) {
           shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat,
                           dd_d1nav.ephemeris.health_bits);
+          eph_new_status_t r = ephemeris_new(&dd_d1nav.ephemeris);
+          if (EPH_NEW_OK != r) {
+            log_warn_mesid(mesid,
+                           "Error in BDS d1nav ephemeris processing. "
+                           "Eph status: %" PRIu8 " ",
+                           r);
+          }
           dd_d1nav.ephemeris_upd_flag = false;
         }
       }
