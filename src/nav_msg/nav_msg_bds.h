@@ -47,6 +47,7 @@ extern "C" {
 #define BDS_SUBFRAME_AGE_MAX ((u8)100)
 
 #define BDS_WEEK_TO_GPS_WEEK 1356
+#define BDS_SECOND_TO_GPS_SECOND 14
 
 /**
  * BDS D1 and D2 message decoder object.
