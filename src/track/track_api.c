@@ -18,6 +18,7 @@
 
 #include "board/nap/track_channel.h"
 #include "decode.h"
+#include "sbas_watchdog/sbas_watchdog.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "signal_db/signal_db.h"
@@ -171,6 +172,10 @@ s32 tracker_tow_update(tracker_t *tracker,
   if (nav_data_sync_get(&to_tracker, &tracker->nav_data_sync)) {
     decode_sync_flags_t flags = to_tracker.sync_flags;
 
+    if (IS_SBAS(tracker->mesid)) {
+      sbas_watchdog_hnd_message(&tracker->sbas_watchdog);
+    }
+
     if (0 != (flags & SYNC_POL)) {
       update_polarity(tracker, to_tracker.bit_polarity);
       tracker_update_bit_polarity_flags(tracker);
@@ -260,6 +265,10 @@ void tracker_bit_sync_update(tracker_t *tracker_channel,
     if (nav_bit_fifo_full(&tracker_channel->nav_bit_fifo)) {
       log_warn_mesid(mesid, "nav bit FIFO full");
     }
+  }
+
+  if (IS_SBAS(tracker_channel->mesid)) {
+    sbas_watchdog_hnd_symbol(&tracker_channel->sbas_watchdog);
   }
 
   /* clear nav bit TOW offset */

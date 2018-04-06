@@ -19,6 +19,8 @@
 #include "track/track_sid_db.h"
 #include "track/track_utils.h"
 
+#include "sbas_watchdog/sbas_watchdog.h"
+
 /* Non-local headers */
 #include <manage.h>
 #include <platform_track.h>
@@ -59,6 +61,7 @@ void track_sbas_l1_register(void) {
 static void tracker_sbas_l1ca_init(tracker_t *tracker_channel) {
   sbas_l1ca_config.show_unconfirmed_trackers = true;
   tp_tracker_init(tracker_channel, &sbas_l1ca_config);
+  sbas_watchdog_init(&tracker_channel->sbas_watchdog);
 }
 
 /**

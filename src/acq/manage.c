@@ -37,6 +37,7 @@
 #include "piksi_systime.h"
 #include "position/position.h"
 #include "reacq/reacq_api.h"
+#include "sbas_watchdog/sbas_watchdog.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "settings/settings.h"
@@ -72,6 +73,7 @@ typedef enum {
                                     drop GLO satellites */
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
   CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
+  CH_DROP_REASON_SBAS_WATCHDOG,        /**< Signal removed by SBAS watchdog */
   CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
 } ch_drop_reason_t;
 
@@ -608,6 +610,9 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
+    case CH_DROP_REASON_SBAS_WATCHDOG:
+      str = "No SBAS data, dropping";
+      break;
     default:
       assert(!"Unknown channel drop reason");
   }
@@ -805,6 +810,12 @@ void sanitize_tracker(tracker_t *tracker_channel,
   /* Do we have a large measurement outlier? */
   if (0 != (flags & TRACKER_FLAG_OUTLIER)) {
     drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
+    return;
+  }
+
+  if (IS_SBAS(mesid) &&
+      sbas_watchdog_is_triggered(&tracker_channel->sbas_watchdog)) {
+    drop_channel(tracker_channel, CH_DROP_REASON_SBAS_WATCHDOG);
     return;
   }
 
