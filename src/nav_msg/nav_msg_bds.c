@@ -255,22 +255,22 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     log_info("    %19.11E%19.11E%19.11E%19.11E  ",
              (double)k->iode,
              k->crs,
-             k->dn * M_PI,
-             k->m0 * M_PI);
+             k->dn,
+             k->m0);
     log_info(
         "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
     log_info("    %19.11E%19.11E%19.11E%19.11E  ",
              (double)e->toe.tow,
              k->cic,
-             k->omega0 * M_PI,
+             k->omega0,
              -k->cis);
     log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             k->inc * M_PI,
+             k->inc,
              k->crc,
-             k->w * M_PI,
-             k->omegadot * M_PI);
+             k->w,
+             k->omegadot);
     log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             k->inc_dot * M_PI,
+             k->inc_dot,
              0.0,
              (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
              0.0);
@@ -474,7 +474,7 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   u32 a[3];
   a[2] = (((n->page_words[7]) >> 15) & 0x7ff);
   a[0] = (((n->page_words[7]) >> 8) & 0x7f) << 17;
-  a[0] |= (((n->page_words[8]) >> 13) & 0x7ffff);
+  a[0] |= (((n->page_words[8]) >> 13) & 0x1ffff);
   a[1] = (((n->page_words[8]) >> 8) & 0x1f) << 17;
   a[1] |= (((n->page_words[9]) >> 13) & 0x1ffff);
   u8 aode = (((n->page_words[9]) >> 8) & 0x1f);
@@ -538,9 +538,9 @@ static void process_d1_fraid2(nav_msg_bds_t *n,
   /* Ephemeris params */
   e->sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
   /* Keplerian params */
-  k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43;
+  k->dn = BITS_SIGN_EXTEND_32(16, deltan) * C_1_2P43 * GPS_PI;
   k->cuc = BITS_SIGN_EXTEND_32(18, cuc) * C_1_2P31;
-  k->m0 = BITS_SIGN_EXTEND_32(32, m0) * C_1_2P31;
+  k->m0 = BITS_SIGN_EXTEND_32(32, m0) * C_1_2P31 * GPS_PI;
   k->ecc = ecc * C_1_2P33;
   k->cus = BITS_SIGN_EXTEND_32(18, cus) * C_1_2P31;
   k->crc = BITS_SIGN_EXTEND_32(18, crc) * C_1_2P6;
@@ -586,13 +586,13 @@ static void process_d1_fraid3(nav_msg_bds_t *n,
     e->toe.tow = new_toe;
   }
   /* Keplerian params */
-  k->inc = BITS_SIGN_EXTEND_32(32, i0) * C_1_2P31;
+  k->inc = BITS_SIGN_EXTEND_32(32, i0) * C_1_2P31 * GPS_PI;
   k->cic = BITS_SIGN_EXTEND_32(18, cic) * C_1_2P31;
-  k->omegadot = BITS_SIGN_EXTEND_32(24, omegadot) * C_1_2P43;
-  k->cis = BITS_SIGN_EXTEND_32(32, cis) * C_1_2P31;
-  k->inc_dot = BITS_SIGN_EXTEND_32(14, idot) * C_1_2P43;
-  k->omega0 = BITS_SIGN_EXTEND_32(32, omegazero) * C_1_2P31;
-  k->w = BITS_SIGN_EXTEND_32(32, omega) * C_1_2P31;
+  k->omegadot = BITS_SIGN_EXTEND_32(24, omegadot) * C_1_2P43 * GPS_PI;
+  k->cis = BITS_SIGN_EXTEND_32(18, cis) * C_1_2P31;
+  k->inc_dot = BITS_SIGN_EXTEND_32(14, idot) * C_1_2P43 * GPS_PI;
+  k->omega0 = BITS_SIGN_EXTEND_32(32, omegazero) * C_1_2P31 * GPS_PI;
+  k->w = BITS_SIGN_EXTEND_32(32, omega) * C_1_2P31 * GPS_PI;
 }
 
 static void process_d1_common_alm(nav_msg_bds_t *n,
