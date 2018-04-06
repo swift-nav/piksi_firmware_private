@@ -134,3 +134,12 @@ obss_t *platform_time_matched_obs_alloc(void) {
 void platform_time_matched_obs_free(obss_t *ptr) {
   chPoolFree(&time_matched_obs_buff_pool, ptr);
 }
+
+void platform_base_obs_free(obss_t *ptr) {
+  chPoolFree(&base_obs_buff_pool, ptr);
+}
+
+int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout) {
+  return chMBFetch(&base_obs_mailbox, (msg_t *)msg, (systime_t)timeout);
+}
+

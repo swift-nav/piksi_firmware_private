@@ -22,10 +22,6 @@
 /* Mutex */
 void platform_mutex_lock(void *mtx);
 void platform_mutex_unlock(void *mtx);
-/* Mailbox */
-int32_t platform_mailbox_fetch(void *mb, int32_t *msg, uint32_t timeout);
-int32_t platform_mailbox_post(void *mb, int32_t msg, uint32_t timeout);
-int32_t platform_mailbox_post_ahead(void *mb, int32_t msg, uint32_t timeout);
 /* Object Pool */
 void platform_pool_free(void *pool, void *buf);
 /* Thread */
@@ -49,5 +45,9 @@ int32_t platform_time_matched_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 /* memory management for internal communication */
 obss_t *platform_time_matched_obs_alloc(void);
 void platform_time_matched_obs_free(obss_t *ptr);
+void platform_base_obs_free(obss_t *ptr);
+
+/* used for receiving obs messages */
+int32_t platform_base_obs_mailbox_fetch(int32_t *msg, uint32_t timeout);
 
 #endif
