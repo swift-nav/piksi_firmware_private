@@ -30,6 +30,7 @@ static MUTEX_DECL(shm_data_access);
 
 static gps_sat_health_indicators_t gps_shis[NUM_SATS_GPS];
 static glo_sat_health_indicators_t glo_shis[NUM_SATS_GLO];
+static bds_sat_health_indicators_t bds_shis[NUM_SATS_BDS2];
 
 static void bool_shi_2_str(bool set, bool shi, char* str) {
   str[0] = set ? (shi ? 'Y' : 'N') : '?';
@@ -91,6 +92,7 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   chMtxLock(&shm_data_access);
   gps_sat_health_indicators_t shis = gps_shis[sid.sat - GPS_FIRST_PRN];
   glo_sat_health_indicators_t shi = glo_shis[sid.sat - GLO_FIRST_PRN];
+  bds_sat_health_indicators_t shi_bds = bds_shis[sid.sat - BDS2_FIRST_PRN];
   chMtxUnlock(&shm_data_access);
 
   /* Check common GPS */
@@ -253,22 +255,20 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       return CODE_NAV_STATE_UNKNOWN;
     }
 
-    /*
-    * Same functionality applies for both GLO signals.
-    *
-    * Return SV_NAV_STATE_INVALID if:
-    * - SHI is available and indicates signal unhealthy
-    *
-    * Return CODE_NAV_STATE_VALID if:
-    * - SHI is available and indicates signal healthy
-    *
-    * Return CODE_NAV_STATE_UNKNOWN otherwise
-    */
     case CODE_GLO_L1OF:
     case CODE_GLO_L2OF:
       if (shi.shi_set && (SV_UNHEALTHY == shi.shi)) {
         return CODE_NAV_STATE_INVALID;
       } else if (shi.shi_set && (SV_HEALTHY == shi.shi)) {
+        return CODE_NAV_STATE_VALID;
+      }
+      return CODE_NAV_STATE_UNKNOWN;
+
+    case CODE_BDS2_B11:
+    case CODE_BDS2_B2:
+      if (shi_bds.shi_set && (SV_UNHEALTHY == shi_bds.shi)) {
+        return CODE_NAV_STATE_INVALID;
+      } else if (shi_bds.shi_set && (SV_HEALTHY == shi_bds.shi)) {
         return CODE_NAV_STATE_VALID;
       }
       return CODE_NAV_STATE_UNKNOWN;
@@ -284,8 +284,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
     case CODE_GPS_L5X:
-    case CODE_BDS2_B11:
-    case CODE_BDS2_B2:
     case CODE_GAL_E1B:
     case CODE_GAL_E1C:
     case CODE_GAL_E1X:
@@ -415,6 +413,20 @@ void shm_glo_set_shi(u16 sat, u8 new_value) {
   chMtxLock(&shm_data_access);
   glo_shis[sat - GLO_FIRST_PRN].shi = new_value;
   glo_shis[sat - GLO_FIRST_PRN].shi_set = true;
+  chMtxUnlock(&shm_data_access);
+}
+
+/** Update SHI for BDS satellite.
+ *  Refer to libswiftnav/shm.h for details of SHI.
+ *
+ * \param sat BDS satellite ID
+ * \param new_value value to set SHI to
+ */
+void shm_bds_set_shi(u16 sat, u8 new_value) {
+  assert(sat >= BDS2_FIRST_PRN && sat < BDS2_FIRST_PRN + NUM_SATS_BDS2);
+  chMtxLock(&shm_data_access);
+  bds_shis[sat - BDS2_FIRST_PRN].shi = new_value;
+  bds_shis[sat - BDS2_FIRST_PRN].shi_set = true;
   chMtxUnlock(&shm_data_access);
 }
 

@@ -280,6 +280,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
              k->tgd);
     log_info("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
     n->goodwords_mask = 0;
+    data->ephemeris_upd_flag = true;
   }
 
   return TOW_s * 1000;
