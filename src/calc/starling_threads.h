@@ -22,7 +22,8 @@
 #include <libswiftnav/pvt_engine/firmware_binding.h>
 #include <libswiftnav/single_epoch_solver.h>
 
-#include "piksi_systime.h"
+/** number of milliseconds before SPP resumes in pseudo-absolute mode */
+#define DGNSS_TIMEOUT_MS 5000
 
 typedef enum {
   SOLN_MODE_LOW_LATENCY,
@@ -35,10 +36,13 @@ typedef enum {
   FILTER_FIXED,
 } dgnss_filter_t;
 
-typedef struct {
-  piksi_systime_t systime;
+typedef struct soln_info_pvt_t {
+  u8 num_signals_used;
+} soln_info_pvt_t;
+
+typedef struct soln_info_dgnss_t {
   dgnss_filter_t mode;
-} soln_dgnss_stats_t;
+} soln_info_dgnss_t;
 
 typedef struct {
   msg_gps_time_t gps_time;
@@ -59,11 +63,6 @@ typedef struct {
   msg_vel_ned_cov_t vel_ned_cov;
 } sbp_messages_t;
 
-typedef struct {
-  piksi_systime_t systime;
-  u8 signals_used;
-} soln_pvt_stats_t;
-
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
@@ -82,13 +81,12 @@ extern bool send_heading;
 extern double heading_offset;
 extern bool disable_klobuchar;
 extern float glonass_downweight_factor;
+extern double soln_freq_setting;
+extern u32 obs_output_divisor;
 
-soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void reset_rtk_filter(void);
 void set_known_ref_pos(const double base_pos[3]);
 void set_known_glonass_biases(const glo_biases_t biases);
-
-soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
 /*******************************************************************************
  * Formal Starling API
@@ -100,5 +98,39 @@ void starling_setup(void);
 void starling_set_enable_fix_mode(bool is_fix_enabled);
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
+
+/* Callback type for receiving the position solution messages. */
+typedef void (*pos_messages_cb_t)(u8 base_sender_id,
+                                  const sbp_messages_t *sbp_messages,
+                                  u8 n_meas,
+                                  const navigation_measurement_t nav_meas[]);
+
+/* Callback type for receiving PVT solution statistics. */
+typedef void (*soln_info_pvt_cb_t)(const soln_info_pvt_t *info);
+
+/* Callback type for receiving DGNSS solution statistics. */
+typedef void (*soln_info_dgnss_cb_t)(const soln_info_dgnss_t *info);
+
+/* Callback for receiving the low-latency results. */
+typedef void (*filter_output_cb_t)(u8 base_sender_id,
+                                   const sbp_messages_t *sbp_messages,
+                                   u8 n_meas,
+                                   const navigation_measurement_t nav_meas[]);
+
+/* Callback for receiving updated baselines. */
+#define SPP_ECEF_SIZE 3
+typedef void (*update_baseline_cb_t)(const pvt_engine_result_t *result,
+                                     const double spp_ecef[SPP_ECEF_SIZE],
+                                     const dops_t *dops,
+                                     sbp_messages_t *sbp_messages);
+
+/* NOT THREAD SAFE, JUST DO THESE ONCE AT THE START
+ * TODO(kevin) Formalize this part of the API. */
+void starling_set_pos_messages_callback(pos_messages_cb_t cb);
+void starling_set_soln_info_pvt_callback(soln_info_pvt_cb_t cb);
+void starling_set_soln_info_dgnss_callback(soln_info_dgnss_cb_t cb);
+void starling_set_low_latency_output_callback(filter_output_cb_t cb);
+void starling_set_time_matched_output_callback(filter_output_cb_t cb);
+void starling_set_update_baseline_callback(update_baseline_cb_t cb);
 
 #endif

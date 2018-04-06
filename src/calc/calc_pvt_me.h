@@ -44,9 +44,6 @@ typedef struct {
  * drop the channel and the corresponding ephemeris */
 #define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
 
-extern u32 obs_output_divisor;
-extern double soln_freq_setting;
-
 soln_stats_t solution_last_stats_get(void);
 
 void me_calc_pvt_setup(void);

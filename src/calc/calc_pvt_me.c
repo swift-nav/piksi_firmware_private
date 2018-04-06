@@ -42,6 +42,7 @@
 #include "settings/settings.h"
 #include "shm/shm.h"
 #include "simulator.h"
+#include "starling_threads.h"
 #include "system_monitor/system_monitor.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
@@ -62,9 +63,6 @@
 
 #define ME_CALC_PVT_THREAD_PRIORITY (HIGHPRIO - 3)
 #define ME_CALC_PVT_THREAD_STACK (64 * 1024)
-
-double soln_freq_setting = 10.0;
-u32 obs_output_divisor = 2;
 
 s16 msg_obs_max_size = SBP_FRAMING_MAX_PAYLOAD_SIZE;
 

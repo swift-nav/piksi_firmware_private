@@ -20,6 +20,22 @@
  * starling_threads.h.
  */
 
+#include "piksi_systime.h"
+#include "starling_threads.h"
+
+typedef struct {
+  piksi_systime_t systime;
+  dgnss_filter_t mode;
+} soln_dgnss_stats_t;
+
+typedef struct {
+  piksi_systime_t systime;
+  u8 signals_used;
+} soln_pvt_stats_t;
+
+soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
+soln_pvt_stats_t solution_last_pvt_stats_get(void);
+
 void starling_calc_pvt_setup(void);
 
 #endif

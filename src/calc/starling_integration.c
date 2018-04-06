@@ -10,9 +10,33 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <ch.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/memcpy_s.h>
+
 #include "starling_integration.h"
+
+#include "ndb/ndb.h"
+#include "sbp/sbp.h"
+#include "sbp/sbp_utils.h"
 #include "settings/settings.h"
+#include "simulator/simulator.h"
 #include "starling_threads.h"
+#include "utils/nmea/nmea.h"
+#include "utils/sv_visibility/sv_visibility.h"
+
+/*******************************************************************************
+ * Local Variables
+ ******************************************************************************/
+
+static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
+                                          .signals_used = 0};
+static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
+                                              .mode = 0};
+
+MUTEX_DECL(last_sbp_lock);
+static gps_time_t last_dgnss = GPS_TIME_UNKNOWN;
+static gps_time_t last_spp = GPS_TIME_UNKNOWN;
 
 /*******************************************************************************
  * Local Helpers
@@ -41,6 +65,14 @@ static bool set_max_age(struct setting *s, const char *val) {
   return ret;
 }
 
+static double calc_heading(const double b_ned[3]) {
+  double heading = atan2(b_ned[1], b_ned[0]);
+  if (heading < 0) {
+    heading += 2 * M_PI;
+  }
+  return heading * R2D;
+}
+
 static bool heading_offset_changed(struct setting *s, const char *val) {
   double offset = 0;
   bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
@@ -60,6 +92,284 @@ static bool heading_offset_changed(struct setting *s, const char *val) {
   }
   *(double *)s->addr = offset;
   return ret;
+}
+
+/**
+ *
+ * @param base_sender_id sender id of base obs
+ * @param sbp_messages struct of sbp messages
+ * @param n_meas nav_meas len
+ * @param nav_meas Valid navigation measurements
+ */
+static void solution_send_pos_messages(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]) {
+  if (sbp_messages) {
+    sbp_send_msg(SBP_MSG_GPS_TIME,
+                 sizeof(sbp_messages->gps_time),
+                 (u8 *)&sbp_messages->gps_time);
+    sbp_send_msg(SBP_MSG_UTC_TIME,
+                 sizeof(sbp_messages->utc_time),
+                 (u8 *)&sbp_messages->utc_time);
+    sbp_send_msg(SBP_MSG_POS_LLH,
+                 sizeof(sbp_messages->pos_llh),
+                 (u8 *)&sbp_messages->pos_llh);
+    sbp_send_msg(SBP_MSG_POS_ECEF,
+                 sizeof(sbp_messages->pos_ecef),
+                 (u8 *)&sbp_messages->pos_ecef);
+    sbp_send_msg(SBP_MSG_VEL_NED,
+                 sizeof(sbp_messages->vel_ned),
+                 (u8 *)&sbp_messages->vel_ned);
+    sbp_send_msg(SBP_MSG_VEL_ECEF,
+                 sizeof(sbp_messages->vel_ecef),
+                 (u8 *)&sbp_messages->vel_ecef);
+    sbp_send_msg(SBP_MSG_DOPS,
+                 sizeof(sbp_messages->sbp_dops),
+                 (u8 *)&sbp_messages->sbp_dops);
+    sbp_send_msg(SBP_MSG_POS_ECEF_COV,
+                 sizeof(sbp_messages->pos_ecef_cov),
+                 (u8 *)&sbp_messages->pos_ecef_cov);
+    sbp_send_msg(SBP_MSG_VEL_ECEF_COV,
+                 sizeof(sbp_messages->vel_ecef_cov),
+                 (u8 *)&sbp_messages->vel_ecef_cov);
+    sbp_send_msg(SBP_MSG_POS_LLH_COV,
+                 sizeof(sbp_messages->pos_llh_cov),
+                 (u8 *)&sbp_messages->pos_llh_cov);
+    sbp_send_msg(SBP_MSG_VEL_NED_COV,
+                 sizeof(sbp_messages->vel_ned_cov),
+                 (u8 *)&sbp_messages->vel_ned_cov);
+
+    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_BASELINE_ECEF,
+                   sizeof(sbp_messages->baseline_ecef),
+                   (u8 *)&sbp_messages->baseline_ecef);
+    }
+
+    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_BASELINE_NED,
+                   sizeof(sbp_messages->baseline_ned),
+                   (u8 *)&sbp_messages->baseline_ned);
+    }
+
+    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_AGE_CORRECTIONS,
+                   sizeof(sbp_messages->age_corrections),
+                   (u8 *)&sbp_messages->age_corrections);
+    }
+
+    if (dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_DGNSS_STATUS,
+                   sizeof(sbp_messages->dgnss_status),
+                   (u8 *)&sbp_messages->dgnss_status);
+    }
+
+    if (send_heading && dgnss_soln_mode != SOLN_MODE_NO_DGNSS) {
+      sbp_send_msg(SBP_MSG_BASELINE_HEADING,
+                   sizeof(sbp_messages->baseline_heading),
+                   (u8 *)&sbp_messages->baseline_heading);
+    }
+  }
+
+  utc_params_t utc_params;
+  utc_params_t *p_utc_params = &utc_params;
+  /* read UTC parameters from NDB if they exist*/
+  if (NDB_ERR_NONE != ndb_utc_params_read(&utc_params, NULL)) {
+    p_utc_params = NULL;
+  }
+
+  /* Send NMEA alongside the sbp */
+  double propagation_time = sbp_messages->age_corrections.age * 0.1;
+  nmea_send_msgs(&sbp_messages->pos_llh,
+                 &sbp_messages->vel_ned,
+                 &sbp_messages->sbp_dops,
+                 &sbp_messages->gps_time,
+                 propagation_time,
+                 base_sender_id,
+                 p_utc_params,
+                 &sbp_messages->baseline_heading,
+                 n_meas,
+                 nav_meas);
+}
+
+/** Determine if we have had a DGNSS timeout.
+ *
+ * \param _last_dgnss. Last time of DGNSS solution
+ * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
+ *
+ */
+static bool dgnss_timeout(piksi_systime_t *_last_dgnss,
+                          dgnss_solution_mode_t _dgnss_soln_mode) {
+  /* No timeout needed in low latency mode */
+  if (SOLN_MODE_LOW_LATENCY == _dgnss_soln_mode) {
+    return false;
+  }
+
+  /* Need to compare timeout threshold in MS to system time elapsed (in system
+   * ticks) */
+  return (piksi_systime_elapsed_since_ms(_last_dgnss) > DGNSS_TIMEOUT_MS);
+}
+
+/** Determine if we have had a SPP timeout.
+ *
+ * \param _last_spp. Last time of SPP solution
+ * \param _dgnss_soln_mode.  Enumeration of the DGNSS solution mode
+ *
+ */
+static bool spp_timeout(const gps_time_t *_last_spp,
+                        const gps_time_t *_last_dgnss,
+                        dgnss_solution_mode_t _dgnss_soln_mode) {
+  /* No timeout needed in low latency mode; */
+  if (_dgnss_soln_mode == SOLN_MODE_LOW_LATENCY) {
+    return false;
+  }
+  chMtxLock(&last_sbp_lock);
+  double time_diff = gpsdifftime(_last_dgnss, _last_spp);
+  chMtxUnlock(&last_sbp_lock);
+
+  /* Need to compare timeout threshold in MS to system time elapsed (in system
+   * ticks) */
+  return (time_diff > 0.0);
+}
+
+static void solution_send_low_latency_output(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]) {
+  /* Work out if we need to wait for a certain period of no time matched
+   * positions before we output a SBP position */
+  bool wait_for_timeout = false;
+  if (!(dgnss_timeout(&last_dgnss_stats.systime, dgnss_soln_mode)) &&
+      SOLN_MODE_TIME_MATCHED == dgnss_soln_mode) {
+    wait_for_timeout = true;
+  }
+
+  if (!wait_for_timeout) {
+    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
+    chMtxLock(&last_sbp_lock);
+    last_spp.wn = sbp_messages->gps_time.wn;
+    last_spp.tow = sbp_messages->gps_time.tow * 0.001;
+    chMtxUnlock(&last_sbp_lock);
+  }
+}
+
+static void solution_make_baseline_sbp(const pvt_engine_result_t *result,
+                                       const double spp_ecef[SPP_ECEF_SIZE],
+                                       const dops_t *dops,
+                                       sbp_messages_t *sbp_messages) {
+  double ecef_pos[3];
+  if (result->has_known_reference_pos) {
+    vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
+  } else {
+    MEMCPY_S(
+        ecef_pos, sizeof(ecef_pos), spp_ecef, SPP_ECEF_SIZE * sizeof(double));
+  }
+
+  double b_ned[3];
+  wgsecef2ned(result->baseline, ecef_pos, b_ned);
+
+  double accuracy, h_accuracy, v_accuracy, pos_ecef_cov[6], pos_ned_cov[6];
+  pvt_engine_covariance_to_accuracy(result->baseline_covariance,
+                                    ecef_pos,
+                                    &accuracy,
+                                    &h_accuracy,
+                                    &v_accuracy,
+                                    pos_ecef_cov,
+                                    pos_ned_cov);
+
+  sbp_make_baseline_ecef(&sbp_messages->baseline_ecef,
+                         &result->time,
+                         result->num_sats_used,
+                         result->baseline,
+                         accuracy,
+                         result->flags);
+
+  sbp_make_baseline_ned(&sbp_messages->baseline_ned,
+                        &result->time,
+                        result->num_sats_used,
+                        b_ned,
+                        h_accuracy,
+                        v_accuracy,
+                        result->flags);
+
+  sbp_make_age_corrections(
+      &sbp_messages->age_corrections, &result->time, result->propagation_time);
+
+  sbp_make_dgnss_status(&sbp_messages->dgnss_status,
+                        result->num_sats_used,
+                        result->propagation_time,
+                        result->flags);
+
+  if (result->flags == FIXED_POSITION &&
+      dgnss_soln_mode == SOLN_MODE_TIME_MATCHED) {
+    double heading = calc_heading(b_ned);
+    sbp_make_heading(&sbp_messages->baseline_heading,
+                     &result->time,
+                     heading + heading_offset,
+                     result->num_sats_used,
+                     result->flags);
+  }
+
+  if (result->has_known_reference_pos ||
+      (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
+       simulation_enabled_for(SIMULATION_MODE_RTK))) {
+    double pseudo_absolute_ecef[3];
+    double pseudo_absolute_llh[3];
+
+    vector_add(
+        3, result->known_reference_pos, result->baseline, pseudo_absolute_ecef);
+    wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
+
+    /* now send pseudo absolute sbp message */
+    sbp_make_pos_llh_vect(&sbp_messages->pos_llh,
+                          pseudo_absolute_llh,
+                          h_accuracy,
+                          v_accuracy,
+                          &result->time,
+                          result->num_sats_used,
+                          result->flags);
+    sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
+                         pseudo_absolute_llh,
+                         pos_ned_cov,
+                         &result->time,
+                         result->num_sats_used,
+                         result->flags);
+    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
+                           pseudo_absolute_ecef,
+                           accuracy,
+                           &result->time,
+                           result->num_sats_used,
+                           result->flags);
+    sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
+                          pseudo_absolute_ecef,
+                          pos_ecef_cov,
+                          &result->time,
+                          result->num_sats_used,
+                          result->flags);
+  }
+  sbp_make_dops(
+      &sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, result->flags);
+
+  chMtxLock(&last_sbp_lock);
+  last_dgnss.wn = result->time.wn;
+  last_dgnss.tow = result->time.tow;
+  chMtxUnlock(&last_sbp_lock);
+
+  piksi_systime_get(&last_dgnss_stats.systime);
+  last_dgnss_stats.mode =
+      (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
+}
+
+static void time_matched_output_callback(
+    u8 base_sender_id,
+    const sbp_messages_t *sbp_messages,
+    u8 n_meas,
+    const navigation_measurement_t nav_meas[]) {
+  if (spp_timeout(&last_spp, &last_dgnss, dgnss_soln_mode)) {
+    solution_send_pos_messages(base_sender_id, sbp_messages, n_meas, nav_meas);
+  }
 }
 
 static void initialize_starling_settings(void) {
@@ -106,11 +416,35 @@ static void initialize_starling_settings(void) {
           TYPE_FLOAT);
 }
 
+/* NEITHER OF THESE ARE THREAD-SAFE.
+ * This is how they were before, it remains to be seen
+ * what the reasoning behind not synchronizing these is.
+ * TODO(kevin) investigate further, come up with a better mechanism. */
+static void soln_info_pvt_callback(const soln_info_pvt_t *info) {
+  /* Update stats */
+  piksi_systime_get(&last_pvt_stats.systime);
+  last_pvt_stats.signals_used = info->num_signals_used;
+}
+
 /*******************************************************************************
  * Starling Integration API
  ******************************************************************************/
 
 void starling_calc_pvt_setup() {
+  /* We do all this callback registration first because
+   * otherwise it is *technically* a race condition. */
+  starling_set_pos_messages_callback(solution_send_pos_messages);
+  starling_set_soln_info_pvt_callback(soln_info_pvt_callback);
+  starling_set_low_latency_output_callback(solution_send_low_latency_output);
+  starling_set_time_matched_output_callback(time_matched_output_callback);
+  starling_set_update_baseline_callback(solution_make_baseline_sbp);
+
   starling_setup();
   initialize_starling_settings();
 }
+
+soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
+  return last_dgnss_stats;
+}
+
+soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
