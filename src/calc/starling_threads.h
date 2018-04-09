@@ -74,14 +74,14 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
+/* Totally non-thread-safe access to settings.
+ * TODO(kevin) Come up with a better solution.*/
+extern dgnss_solution_mode_t dgnss_soln_mode;
 extern bool enable_glonass;
 extern bool send_heading;
-
-void solution_make_sbp(const pvt_engine_result_t *soln,
-                       dops_t *dops,
-                       sbp_messages_t *sbp_messages);
-
-double calc_heading(const double b_ned[3]);
+extern double heading_offset;
+extern bool disable_klobuchar;
+extern float glonass_downweight_factor;
 
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void);
 void reset_rtk_filter(void);
