@@ -16,6 +16,10 @@
 #include <string.h>
 #include <utils/me_constants.h>
 
+#define SBAS_SYMBOLS_PER_MSG (SECS_MS / SBAS_L1CA_SYMBOL_LENGTH_MS)
+#define SBAS_LOST_MSG_THRESHOLD \
+  (SBAS_SYMBOLS_PER_MSG + SBAS_SYMBOLS_PER_MSG / 2)
+
 /** SBAS watchdog intialization */
 void sbas_watchdog_init(sbas_watchdog_t *wdog) {
   memset(wdog, 0, sizeof(*wdog));
@@ -30,9 +34,10 @@ void sbas_watchdog_hnd_message(sbas_watchdog_t *wdog) {
 /** Handles SBAS symbol. Called once per #SBAS_L1CA_SYMBOL_LENGTH_MS */
 void sbas_watchdog_hnd_symbol(sbas_watchdog_t *wdog) {
   wdog->symbol_cnt++;
-  if (wdog->symbol_cnt < (2 * SECS_MS / SBAS_L1CA_SYMBOL_LENGTH_MS)) {
+  if (wdog->symbol_cnt < SBAS_LOST_MSG_THRESHOLD) {
     return;
   }
+  wdog->symbol_cnt -= SBAS_SYMBOLS_PER_MSG;
   wdog->msg_mask <<= 1;
   wdog->msg_mask |= 1;
 

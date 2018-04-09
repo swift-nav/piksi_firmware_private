@@ -14,6 +14,10 @@
 
 #include <libswiftnav/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   u16 msg_mask;
   u16 symbol_cnt;
@@ -24,5 +28,9 @@ void sbas_watchdog_init(sbas_watchdog_t *wdog);
 void sbas_watchdog_hnd_message(sbas_watchdog_t *wdog);
 void sbas_watchdog_hnd_symbol(sbas_watchdog_t *wdog);
 bool sbas_watchdog_is_triggered(const sbas_watchdog_t *wdog);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SBAS_WATCHDOG_H */

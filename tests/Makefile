@@ -131,6 +131,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/hal \
           $(USER_SRC_DIR)/utils/gnss_capabilities \
           $(USER_SRC_DIR)/utils/sbas_select \
+          $(USER_SRC_DIR)/utils/sbas_watchdog \
           $(USER_SRC_DIR)/calc \
           $(USER_SRC_DIR)/reacq \
           $(STUBS_DIR) \
@@ -140,6 +141,7 @@ vpath %.cc $(TEST_SRC_DIR)
 # Code to test
 C_SRCS = fixed_fft_r2.c \
          sbas_select.c \
+         sbas_watchdog.c \
          $(notdir $(shell find $(USER_SRC_DIR)/cn0_est -name '*.c')) \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/filters -name '*.c')) \
          $(notdir $(shell find $(USER_SRC_DIR)/utils/track_loop -name '*.c')) \
