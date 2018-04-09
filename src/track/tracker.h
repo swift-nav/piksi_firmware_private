@@ -408,7 +408,7 @@ typedef struct {
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
   health_t health;             /**< GLO SV health info */
 
-  struct sbas_watchdog sbas_watchdog;
+  sbas_watchdog_t sbas_watchdog;
 
   tracker_misc_info_t misc_info;
 

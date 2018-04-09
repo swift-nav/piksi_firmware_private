@@ -17,18 +17,18 @@
 #include <utils/me_constants.h>
 
 /** SBAS watchdog intialization */
-void sbas_watchdog_init(struct sbas_watchdog *wdog) {
+void sbas_watchdog_init(sbas_watchdog_t *wdog) {
   memset(wdog, 0, sizeof(*wdog));
 }
 
 /** Handles decoded raw SBAS message. Called once per second. */
-void sbas_watchdog_hnd_message(struct sbas_watchdog *wdog) {
-  wdog->msg_mask <<= 0;
+void sbas_watchdog_hnd_message(sbas_watchdog_t *wdog) {
+  wdog->msg_mask <<= 1;
   wdog->symbol_cnt = 0;
 }
 
 /** Handles SBAS symbol. Called once per #SBAS_L1CA_SYMBOL_LENGTH_MS */
-void sbas_watchdog_hnd_symbol(struct sbas_watchdog *wdog) {
+void sbas_watchdog_hnd_symbol(sbas_watchdog_t *wdog) {
   wdog->symbol_cnt++;
   if (wdog->symbol_cnt < (2 * SECS_MS / SBAS_L1CA_SYMBOL_LENGTH_MS)) {
     return;
@@ -36,7 +36,8 @@ void sbas_watchdog_hnd_symbol(struct sbas_watchdog *wdog) {
   wdog->msg_mask <<= 1;
   wdog->msg_mask |= 1;
 
-  if (8 == (wdog->msg_mask & 0xFF)) {
+  if (0xFF == (wdog->msg_mask & 0xFF)) {
+    /* 8 missed SBAS raw messages in a row */
     wdog->triggered = true;
     return;
   }
@@ -52,6 +53,6 @@ void sbas_watchdog_hnd_symbol(struct sbas_watchdog *wdog) {
  * \retval true triggered
  * \retval false not triggered
  */
-bool sbas_watchdog_is_triggered(const struct sbas_watchdog *wdog) {
+bool sbas_watchdog_is_triggered(const sbas_watchdog_t *wdog) {
   return wdog->triggered;
 }

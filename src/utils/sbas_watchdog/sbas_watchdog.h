@@ -14,15 +14,15 @@
 
 #include <libswiftnav/common.h>
 
-struct sbas_watchdog {
+typedef struct {
   u16 msg_mask;
   u16 symbol_cnt;
   bool triggered;
-};
+} sbas_watchdog_t;
 
-void sbas_watchdog_init(struct sbas_watchdog *wdog);
-void sbas_watchdog_hnd_message(struct sbas_watchdog *wdog);
-void sbas_watchdog_hnd_symbol(struct sbas_watchdog *wdog);
-bool sbas_watchdog_is_triggered(const struct sbas_watchdog *wdog);
+void sbas_watchdog_init(sbas_watchdog_t *wdog);
+void sbas_watchdog_hnd_message(sbas_watchdog_t *wdog);
+void sbas_watchdog_hnd_symbol(sbas_watchdog_t *wdog);
+bool sbas_watchdog_is_triggered(const sbas_watchdog_t *wdog);
 
 #endif /* SBAS_WATCHDOG_H */
