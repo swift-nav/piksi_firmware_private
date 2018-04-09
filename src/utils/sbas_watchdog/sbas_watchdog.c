@@ -48,6 +48,7 @@ void sbas_watchdog_hnd_symbol(sbas_watchdog_t *wdog) {
   }
   u8 dropnum = count_bits_u16(wdog->msg_mask, 1);
   if (dropnum > 8) {
+    /* more than 8 missed SBAS raw messages in last 16 seconds */
     wdog->triggered = true;
   }
 }
