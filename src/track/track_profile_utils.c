@@ -142,11 +142,9 @@ static const state_table_t mode_1ms_2ms = {
   .bit_ms = 2,
   .ent_cnt = 2,
   .entries = {
-    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_SET |
-                                                     TPF_FLL_USE |
-                                                     TPF_FLL_HALFQ},
-    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_FLL_SET |
-                       TPF_CN0_USE | TPF_BSYNC_UPD | TPF_FLL_USE}
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
+                       TPF_CN0_USE | TPF_BSYNC_UPD}
   }
 };
 
