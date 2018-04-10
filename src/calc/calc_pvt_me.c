@@ -572,7 +572,7 @@ static void me_calc_pvt_thread(void *arg) {
                           nav_meas,
                           disable_raim,
                           false,
-                          ALL_CONSTELLATIONS,
+                          GPS_L1CA_WHEN_POSSIBLE,
                           &current_fix,
                           &dops,
                           &raim_removed_sids);
