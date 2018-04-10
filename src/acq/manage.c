@@ -664,6 +664,11 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
         acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
       }
     }
+    if (IS_SBAS(mesid) && long_in_track && had_locks &&
+        (reason != CH_DROP_REASON_SV_UNHEALTHY) &&
+        (reason != CH_DROP_REASON_SBAS_PROVIDER_CHANGE)) {
+      sbas_reacq_prioritize(&mesid);
+    }
   }
 
   /* Disable the decoder and tracking channels */

@@ -15,6 +15,7 @@
 #include "manage.h"
 #include "ndb/ndb_lgf.h"
 #include "position/position.h"
+#include "sbas_reacq.h"
 #include "sbas_select/sbas_select.h"
 #include "search_manager_api.h"
 #include "timing/timing.h"
@@ -174,6 +175,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       /* exit to prevent unnecessary reacq */
       return;
     }
+    sbas_mask = sbas_reacq_get_priority_mask(sbas_mask);
   }
 
   for (i = 0; i < num_sv; i++) {
@@ -269,6 +271,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
       /* exit to prevent unnecessary reacq */
       return;
     }
+    sbas_mask = sbas_reacq_get_priority_mask(sbas_mask);
   }
 
   for (i = 0; i < num_sv; i++) {

@@ -12,6 +12,7 @@
 #ifndef SWIFTNAV_SEARCH_MANAGER_API_H
 #define SWIFTNAV_SEARCH_MANAGER_API_H
 
+#include "hal/piksi_systime.h"
 #include "signal_db/signal_db.h"
 
 /* Search manager constants */
@@ -103,6 +104,13 @@ typedef struct {
   acq_task_search_params_t task_array[ACQ_MAX_NUM_TASKS];
 } acq_task_t;
 
+/** acq priority data */
+typedef struct {
+  u8 duration_s;              /* priority status duration */
+  piksi_systime_t started_at; /* when the priority status was raised */
+  volatile bool raise;        /* set by tracker thread, cleared by acq thread */
+} acq_priority_t;
+
 /** Search jobs */
 typedef struct {
   me_gnss_signal_t mesid;    /**< ME SV identifier */
@@ -120,6 +128,8 @@ typedef struct {
   acq_job_scheduling_state_e state; /**< Scheduling state */
   bool needs_restart;   /**< Set if this job needs to be restarted */
   acq_task_t task_data; /**< Search area is divided into smaller tasks */
+
+  acq_priority_t priority;
 } acq_job_t;
 
 /** Container for all the jobs */
@@ -147,6 +157,8 @@ extern "C" {
 void sm_init(acq_jobs_state_t *data);
 void sm_constellation_select(acq_jobs_state_t *jobs_data);
 void sm_run(acq_jobs_state_t *jobs_data);
+
+u16 sm_constellation_to_start_index(constellation_t gnss);
 
 #ifdef __cplusplus
 } /* extern "C" */

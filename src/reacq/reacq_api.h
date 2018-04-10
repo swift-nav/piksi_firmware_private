@@ -12,6 +12,8 @@
 #ifndef SWIFTNAV_REACQ_API_H
 #define SWIFTNAV_REACQ_API_H
 
+#include "sbas_reacq.h"
+
 /** \addtogroup reacq Reacqusition Framework
  * \{ */
 

@@ -23,7 +23,6 @@
 void sch_send_acq_profile_msg(const acq_job_t *job,
                               const acq_result_t *acq_result,
                               bool peak_found);
-u16 sm_constellation_to_start_index(constellation_t gnss);
 
 /* Scheduler constants */
 
