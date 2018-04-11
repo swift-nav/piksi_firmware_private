@@ -219,7 +219,7 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
     visible = visible && known;
 
     if (CONSTELLATION_SBAS == con) {
-      /* sbas_mask SVs are visible as they were selected by location. */
+      /* SBAS SVs were selected by location, so treated as visible */
       visible = true;
     }
 
@@ -318,7 +318,7 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     invisible = !visible && known;
 
     if (CONSTELLATION_SBAS == con) {
-      /* sbas_mask SVs are visible as they were selected by location. */
+      /* SBAS SVs were selected by location, so treated as visible */
       visible = true;
     }
 

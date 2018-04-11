@@ -216,3 +216,5 @@ u8 sv_track_count(constellation_t gnss) {
   (void)gnss;
   return 0;
 }
+
+u32 sbas_reacq_get_priority_mask(u32 mask) { return mask; }
