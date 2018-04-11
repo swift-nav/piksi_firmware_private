@@ -53,9 +53,6 @@ u32 sbas_reacq_get_priority_mask(u32 mask) {
       job->priority.duration_s = SBAS_REACQ_PRIORITY_TIMEOUT_S;
       piksi_systime_get(&job->priority.started_at);
       job->priority.raise = false;
-      log_info_mesid(job->mesid,
-                     "re-acq prioritized for %" PRIu8 " seconds",
-                     job->priority.duration_s);
     }
 
     if (0 == (mask & ((u32)1 << i))) {
