@@ -270,8 +270,8 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   u32 sbas_mask = 0;
   if (CONSTELLATION_SBAS == con) {
     sbas_mask = sbas_limit_mask();
-    if (0 == sbas_mask ||
-        constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    if ((0 == sbas_mask) ||
+        (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
       /* mark all SBAS SV as not needed to run */
       for (i = 0; i < num_sv; i++) {
         jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i].needs_to_run = false;
