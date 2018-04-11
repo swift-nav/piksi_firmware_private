@@ -16,6 +16,7 @@
 
 #include "gnss_capabilities.h"
 
+/* as of March 2018 */
 gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   .gps_l2c = 0x0f7814bf5ULL,
                                   .gps_l5 = 0x0a78003a5ULL,
@@ -24,18 +25,18 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   .glo_l2of = 0x03ffffff,
                                   .glo_l3 = 0x00080100,
 
-                                  .sbas_active = 0x0007ffff,
-                                  .sbas_l5 = 0x0005b8c8,
+                                  .sbas_active = 0x7ffff,
+                                  .sbas_l5 = 0x5b8c8,
 
-                                  .bds_active = 0x1fc00d3fffULL,
+                                  .bds_active = 0x1fcc3d3fffULL,
                                   .bds_d2nav = 0x000001001fULL,
-                                  .bds_b2 = 0x0000003fffULL,
+                                  .bds_b2 = 0x0000013fffULL,
 
                                   .qzss_active = 0x3ff,
 
-                                  .gal_active = 0x022ae2ddbULL,
-                                  .gal_e5 = 0x022a62ddbULL,
-                                  .gps_e6 = 0x022a62ddbULL};
+                                  .gal_active = 0x67be2ddfULL,
+                                  .gal_e5 = 0x67b62ddfULL,
+                                  .gps_e6 = 0x67b62ddfULL};
 
 /** \defgroup gnss_capabilities Constellation capabilities
  * Functions used in gnss capabilities

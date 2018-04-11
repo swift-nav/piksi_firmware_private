@@ -5,28 +5,43 @@
 #include <stdint.h>
 #include "lib/fixed_fft_r2.h"
 
-#define FAU_GPSL1_FREQ (1575420000)
-#define FAU_GPSL1CA_CODE_CHIPS (1023)
-#define FAU_GPSL1CA_PRN_BASE (1)
-#define FAU_GPSL1CA_CODE_MS (1)
-#define FAU_GPSL2_FREQ (1227600000)
+#define FZERO 1.023e6
 
-#define FAU_GLOG1_FREQ (1602000000)
-#define FAU_GLOG1_FOFF (562500)
-#define FAU_GLOG1_CODE_CHIPS (511)
-#define FAU_GLOG1_PRN_BASE (1)
-#define FAU_GLOG1_CODE_MS (1)
-#define FAU_GLOG2_FREQ (1246000000)
-#define FAU_GLOG2_FOFF (437500)
+#define FAU_GPSL1_FREQ (1540 * FZERO)
+#define FAU_GPSL1CA_CODE_CHIPS 1023
+#define FAU_GPSL1CA_PRN_BASE 1
+#define FAU_GPSL1CA_CODE_MS 1
+#define FAU_GPSL2_FREQ (1200 * FZERO)
 
-#define FAU_SBASL1_CODE_MS (1)
-#define FAU_SBASL1_PRN_BASE (120)
-#define FAU_SBASL1_CODE_CHIPS (1023)
+#define FAU_GLOG1_FREQ 1602000000
+#define FAU_GLOG1_FOFF 562500
+#define FAU_GLOG1_CODE_CHIPS 511
+#define FAU_GLOG1_PRN_BASE 1
+#define FAU_GLOG1_CODE_MS 1
+#define FAU_GLOG2_FREQ 1246000000
+#define FAU_GLOG2_FOFF 437500
 
-#define FAU_BDSB1_FREQ (1561098000)
-#define FAU_BDSB2_FREQ (1207014000)
-#define FAU_BDSB11_CODE_MS (1)
-#define FAU_BDSB11_CODE_CHIPS (2046)
+#define FAU_SBASL1_CODE_MS 1
+#define FAU_SBASL1_PRN_BASE 120
+#define FAU_SBASL1_CODE_CHIPS 1023
+
+#define FAU_BDSB1_FREQ (1526 * FZERO)
+#define FAU_BDSB2_FREQ (1180 * FZERO)
+#define FAU_BDSB11_CODE_MS 1
+#define FAU_BDSB11_CODE_CHIPS 2046
+
+#define FAU_GALE1_FREQ (1540 * FZERO)
+#define FAU_GALE5_FREQ (1150 * FZERO)
+#define FAU_GALE7_FREQ (1180 * FZERO)
+#define FAU_GALE6_FREQ (1250 * FZERO)
+#define FAU_GALE1BC_CODE_MS 4
+#define FAU_GALE5_CODE_MS 1
+#define FAU_GALE7_CODE_MS 1
+#define FAU_GALE6_CODE_MS 1
+#define FAU_GALE1BC_CODE_CHIPS 4092
+#define FAU_GALE5_CODE_CHIPS 10230
+#define FAU_GALE7_CODE_CHIPS 10230
+#define FAU_GALE6_CODE_CHIPS 5115
 
 #define TWOPI (2.0 * M_PI)
 #define POW_TWO_P32 (4294967296.0)
@@ -72,6 +87,8 @@ typedef struct _acqResults_t {
 #define FAU_FC_GLOG1 (FAU_GLOG1_FREQ - NT1035_VCO1_FREQ)
 /* Beidou B1 IF */
 #define FAU_FC_BDSB1 (FAU_BDSB1_FREQ - NT1035_VCO1_FREQ)
+/* Galileo E5b IF */
+#define FAU_FC_GALE7 (FAU_GALE7_FREQ - NT1035_VCO2_FREQ)
 /* Decimation factor to apply to FAU_RAW_FS to get an integer FS */
 #define FAU_DECFACT 25
 /* Number of slices to cut 1 ms into */
@@ -92,6 +109,9 @@ typedef struct _acqResults_t {
 
 #define FAU_BDSB11_COHE 1
 #define FAU_BDSB11_NONC 4
+
+#define FAU_GALE7_COHE 2
+#define FAU_GALE7_NONC 2
 
 /* Max number of ms to process at best */
 #define FAU_MS_MAX 5

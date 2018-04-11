@@ -15,6 +15,9 @@
 #include <math.h>
 #include <string.h>
 
+#include <libswiftnav/bits.h>
+#include "soft_macq/gal_prns.h"
+
 #include "bit_sync.h"
 
 /* Approx number of nav bit edges needed to accept bit sync for a
@@ -23,13 +26,26 @@
 #define BITSYNC_THRES_LO 3
 
 #define SYMBOL_LENGTH_NH20_MS 20
+#define GAL_CS100_MS 100
 
-/* The sync hisotgram should be as follows for Beidou2 NH20 code
- * NH20 = [0 0 0 0 0 1 0 0 1 1 0 1 0 1 0 0 1 1 1 0]
- * XANS = ?,0,0,0,0,1,1,0,1,0,1,1,1,1,1,0,1,0,0,1
+/* The sync hisotgram should be as follows for NH20 code
+ * NH20 = [0 0 0 0 0  1 0 0 1 1  0 1 0 1 0  0 1 1 1 0]
+ * XANS = 0,0,0,0,0, 1,1,0,1,0, 1,1,1,1,1, 0,1,0,0,1
  */
-static const s8 nh20_xans[20] = {0, 0, 0, 0, 0, 1, 1, 0, 1, 0,
-                                 1, 1, 1, 1, 1, 0, 1, 0, 0, 1};
+static const s8 nh20_xans[20] = {+1, +1, +1, +1, +1, -1, -1, +1, -1, +1,
+                                 -1, -1, -1, -1, -1, +1, -1, +1, +1, -1};
+
+/* The sync histogram should be as follows for CS4 code
+ * CS4  = [1 1 1 0]
+ * XANS = 1,0,0,1
+ */
+//~ static const s8 e7i_xans[4] = {-1, +1, +1, -1};
+
+/* Galileo E5aQ transitions array, built per satellite */
+static s8 e5q_xans[NUM_SATS_GAL][GAL_CS100_MS];
+
+/* Galileo E5bQ transitions array, built per satellite */
+static s8 e7q_xans[NUM_SATS_GAL][GAL_CS100_MS];
 
 static void histogram_update(bit_sync_t *b,
                              s32 corr_prompt_real,
@@ -50,8 +66,10 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
   memset(b, 0, sizeof(bit_sync_t));
   b->bit_phase_ref = BITSYNC_UNSYNCED;
   b->mesid = mesid;
-
+  u8 sat = mesid.sat - 1;
   u8 bit_length = 1;
+  u8 prev_chip, curr_chip;
+
   switch (mesid.code) {
     case CODE_GPS_L1CA:
     case CODE_GPS_L2CM:
@@ -84,6 +102,29 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E5X:
+      bit_length = 20;
+      /* TODO: add this GAL_CS100_MS to constants.h in LSNP, or me_constants.h
+       */
+      prev_chip = getbitu(gal_e5q_sec_codes[sat], GAL_CS100_MS - 1, 1);
+      for (u8 sec_chip_idx = 0; sec_chip_idx < GAL_CS100_MS; sec_chip_idx++) {
+        curr_chip = getbitu(gal_e5q_sec_codes[sat], sec_chip_idx, 1);
+        e5q_xans[sat][sec_chip_idx] = (curr_chip != prev_chip) ? -1 : +1;
+        prev_chip = curr_chip;
+      }
+      break;
+    case CODE_GAL_E7X:
+      bit_length = 4;
+      /* TODO: add this GAL_CS100_MS to constants.h in LSNP, or me_constants.h
+       */
+      prev_chip = getbitu(gal_e7q_sec_codes[sat], GAL_CS100_MS - 1, 1);
+      for (u8 sec_chip_idx = 0; sec_chip_idx < GAL_CS100_MS; sec_chip_idx++) {
+        curr_chip = getbitu(gal_e7q_sec_codes[sat], sec_chip_idx, 1);
+        e7q_xans[sat][sec_chip_idx] = (curr_chip != prev_chip) ? -1 : +1;
+        prev_chip = curr_chip;
+      }
+      break;
+
     case CODE_GPS_L1P:
     case CODE_GPS_L2P:
     case CODE_GPS_L2CX:
@@ -96,11 +137,9 @@ void bit_sync_init(bit_sync_t *b, const me_gnss_signal_t mesid) {
     case CODE_GAL_E6X:
     case CODE_GAL_E7I:
     case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
     case CODE_QZS_L2CX:
     case CODE_QZS_L5X:
     case CODE_INVALID:
@@ -183,63 +222,96 @@ static void histogram_update(bit_sync_t *b,
       (CODE_GPS_L5I == b->mesid.code) || (CODE_GPS_L5Q == b->mesid.code)) {
     /* Codes with NH20 are a little special */
 
-    /* rotate the histogram left */
-    s8 hist_head = b->bitsync_histogram[0];
-    if ((3 * BITSYNC_THRES_HI / 2) < hist_head) {
-      /* FIXME: resetting te histogram is a bit brutal.. */
-      memset(b->bitsync_histogram, 0, sizeof(b->bitsync_histogram));
+    /* FIXME: resetting te histogram is a bit brutal.. */
+    if (ABS(b->histogram[0]) > 9) {
+      memset(b->histogram, 0, sizeof(b->histogram));
     }
-    memmove(&(b->bitsync_histogram[0]),
-            &(b->bitsync_histogram[1]),
+    /* rotate the histogram left */
+    s8 hist_head = b->histogram[0];
+    memmove(&(b->histogram[0]),
+            &(b->histogram[1]),
             sizeof(s8) * (SYMBOL_LENGTH_NH20_MS - 1));
     /* adjust the histogram element if there was a transition */
     hist_head += SIGN(dot_prod_real);
-    b->bitsync_histogram[SYMBOL_LENGTH_NH20_MS - 1] = hist_head;
+    b->histogram[SYMBOL_LENGTH_NH20_MS - 1] = hist_head;
     s32 sum = 0;
+    /* cross-correlate transitions at the current symbol */
+    /* transitions on the first element shouldn't count: it's data */
     for (u8 i = 1; i < SYMBOL_LENGTH_NH20_MS; i++) {
-      /* transitions on the first element don't count: they are data */
-      sum += b->bitsync_histogram[i] * (1 - 2 * nh20_xans[i]);
+      sum += b->histogram[i] * (nh20_xans[i]);
     }
-    if (ABS(sum) >= (BITSYNC_THRES_HI * SYMBOL_LENGTH_NH20_MS)) {
+    if (sum >= 100) {
       /* We are synchronized! */
-      log_info_mesid(b->mesid,
-                     "BSYNC"
-                     " %+3d %+3d %+3d %+3d %+3d %+3d %+3d %+3d %+3d %+3d"
-                     " %+3d %+3d %+3d %+3d %+3d %+3d %+3d %+3d %+3d %+3d",
-                     b->bitsync_histogram[0],
-                     b->bitsync_histogram[1],
-                     b->bitsync_histogram[2],
-                     b->bitsync_histogram[3],
-                     b->bitsync_histogram[4],
-                     b->bitsync_histogram[5],
-                     b->bitsync_histogram[6],
-                     b->bitsync_histogram[7],
-                     b->bitsync_histogram[8],
-                     b->bitsync_histogram[9],
-                     b->bitsync_histogram[10],
-                     b->bitsync_histogram[11],
-                     b->bitsync_histogram[12],
-                     b->bitsync_histogram[13],
-                     b->bitsync_histogram[14],
-                     b->bitsync_histogram[15],
-                     b->bitsync_histogram[16],
-                     b->bitsync_histogram[17],
-                     b->bitsync_histogram[18],
-                     b->bitsync_histogram[19]);
       b->bit_phase_ref = b->bit_phase;
+    }
+
+  } else if (CODE_GAL_E7X == b->mesid.code) {
+    /* Galileo E7Q has a SC100 secondary code */
+
+    /* FIXME: resetting the histogram is a bit brutal.. */
+    if (ABS(b->histogram[0]) > 3) {
+      memset(b->histogram, 0, sizeof(b->histogram));
+    }
+    /* rotate the histogram left */
+    s8 hist_head = b->histogram[0];
+    memmove(&(b->histogram[0]),
+            &(b->histogram[1]),
+            sizeof(s8) * (GAL_CS100_MS - 1));
+    /* if there was a transition subtract 1 */
+    hist_head += SIGN(dot_prod_real);
+    b->histogram[(GAL_CS100_MS - 1)] = hist_head;
+    s32 sum = 0;
+    u8 sat = b->mesid.sat - 1;
+    /* cross-correlate transitions at the current symbol */
+    /* the FPGA is working on the new bit already, so one needs to anticipate by
+     * 1 */
+    for (u8 i = 2; i < GAL_CS100_MS; i++) {
+      sum += b->histogram[i] * (e7q_xans[sat][i - 2]);
+    }
+    if (sum >= (2 * GAL_CS100_MS)) {
+      /* We are synchronized! */
+      /* might be a +2 or a -2.. we'll know when we do the same for NH20s */
+      b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
+    }
+
+  } else if (CODE_GAL_E5X == b->mesid.code) {
+    /* Galileo E5Q has a SC100 secondary code */
+
+    /* FIXME: resetting the histogram is a bit brutal.. */
+    if (ABS(b->histogram[0]) > 3) {
+      memset(b->histogram, 0, sizeof(b->histogram));
+    }
+    /* rotate the histogram left */
+    s8 hist_head = b->histogram[0];
+    memmove(&(b->histogram[0]),
+            &(b->histogram[1]),
+            sizeof(s8) * (GAL_CS100_MS - 1));
+    /* if there was a transition subtract 1 */
+    hist_head += SIGN(dot_prod_real);
+    b->histogram[(GAL_CS100_MS - 1)] = hist_head;
+    s32 sum = 0;
+    u8 sat = b->mesid.sat - 1;
+    /* cross-correlate transitions at the current symbol */
+    /* transitions on the first element shouldn't count: it's data */
+    for (u8 i = 1; i < GAL_CS100_MS; i++) {
+      sum += b->histogram[i] * (e5q_xans[sat][i]);
+    }
+    if (sum >= (2 * GAL_CS100_MS)) {
+      /* might be a +2 or a -2.. we'll know when we do the same for NH20s */
+      b->bit_phase_ref = (b->bit_phase + 2) % b->bit_length;
     }
 
   } else {
     /* check one in the histogram if the above is negative */
     if (dot_prod_real < 0) {
-      b->bitsync_histogram[b->bit_phase] += 1;
+      b->histogram[b->bit_phase] += 1;
     }
 
     /* Find the two highest values. */
     s8 max = 0, next_best = 0;
     u8 max_i = 0;
     for (u8 i = 0; i < (b->bit_length); i++) {
-      s8 v = b->bitsync_histogram[i];
+      s8 v = b->histogram[i];
       if (v > max) {
         next_best = max;
         max = v;
@@ -256,7 +328,7 @@ static void histogram_update(bit_sync_t *b,
         b->bit_phase_ref = ((max_i + (b->bit_length) - 1) % b->bit_length);
       } else {
         /* FIXME: resetting te histogram is a bit brutal.. */
-        memset(b->bitsync_histogram, 0, sizeof(b->bitsync_histogram));
+        memset(b->histogram, 0, sizeof(b->histogram));
       }
     }
   }

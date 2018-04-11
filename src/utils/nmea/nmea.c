@@ -375,6 +375,7 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
 
   switch (sid_to_constellation(sid)) {
     case CONSTELLATION_GPS:
+    case CONSTELLATION_GAL:
       id = sid.sat;
       break;
     case CONSTELLATION_GLO:
@@ -385,7 +386,6 @@ static u8 nmea_get_id(const gnss_signal_t sid) {
       break;
     case CONSTELLATION_BDS2:
     case CONSTELLATION_QZS:
-    case CONSTELLATION_GAL:
     case CONSTELLATION_COUNT:
     case CONSTELLATION_INVALID:
     default:
@@ -560,8 +560,10 @@ static void nmea_gsv_print(const u8 n_used,
     gnss_s = "GPGSV";
   } else if (CONSTELLATION_GLO == talker) {
     gnss_s = "GLGSV";
+  } else if (CONSTELLATION_GAL == talker) {
+    gnss_s = "GAGSV";
   } else {
-    log_error("Unsupported GNSS type");
+    log_error("NMEA: Unsupported GNSS type");
     return;
   }
 

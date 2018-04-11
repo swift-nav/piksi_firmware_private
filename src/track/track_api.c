@@ -63,13 +63,15 @@ void tracker_correlations_read(u8 nap_channel,
 void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker_channel->carrier_freq;
   double code_phase_rate = tracker_channel->code_phase_rate;
-
+  bool has_pilot = ((CODE_GAL_E5X == tracker_channel->mesid.code) ||
+                    (CODE_GAL_E7X == tracker_channel->mesid.code)) &&
+                   (0 != (TRACKER_FLAG_BIT_SYNC & tracker_channel->flags));
   /* Write NAP UPDATE register. */
   nap_track_update(tracker_channel->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
-                   0);
+                   has_pilot);
 }
 
 /** Adjust TOW for FIFO delay.
@@ -229,17 +231,16 @@ static s8 nav_bit_quantize(s32 bit_integrate) {
  */
 void tracker_bit_sync_update(tracker_t *tracker_channel,
                              u32 int_ms,
-                             s32 corr_prompt_real,
-                             s32 corr_prompt_imag,
                              bool sensitivity_mode) {
   /* Update bit sync */
   s32 bit_integrate;
   bool integrated = bit_sync_update(&tracker_channel->bit_sync,
-                                    corr_prompt_real,
-                                    corr_prompt_imag,
+                                    tracker_channel->corrs.corr_bit.I,
+                                    tracker_channel->corrs.corr_bit.Q,
                                     int_ms,
                                     &bit_integrate);
 
+  /* port sync information to flags */
   if (BITSYNC_UNSYNCED == tracker_channel->bit_sync.bit_phase_ref) {
     tracker_channel->flags &= ~TRACKER_FLAG_BIT_SYNC;
   } else {
@@ -249,6 +250,15 @@ void tracker_bit_sync_update(tracker_t *tracker_channel,
   me_gnss_signal_t mesid = tracker_channel->mesid;
   if (!integrated || !code_requires_decoder(mesid.code)) {
     return;
+  }
+
+  if (CODE_GAL_E7X == mesid.code) {
+    log_debug("E%02d energy %+4ld %+4ld  %+4ld %+4ld",
+              mesid.sat,
+              tracker_channel->corrs.corr_cn0.prompt.I,
+              tracker_channel->corrs.corr_cn0.prompt.Q,
+              tracker_channel->corrs.corr_cn0.very_late.I,
+              tracker_channel->corrs.corr_cn0.very_late.Q);
   }
 
   s8 soft_bit = nav_bit_quantize(bit_integrate);

@@ -25,7 +25,8 @@
 #define CODE_QZSS_L2C_SUPPORT 0
 #define CODE_BDS2_B11_SUPPORT 0
 #define CODE_BDS2_B2_SUPPORT 0
-#define CODE_GAL_E1B_SUPPORT 0
+#define CODE_GAL_E1_SUPPORT 0
+#define CODE_GAL_E7_SUPPORT 1
 
 /* Tracker configuration */
 #define NUM_TRACKER_CHANNELS MAX_CHANNELS
@@ -40,6 +41,7 @@
 #define NUM_BDS2_B2_DECODERS NAP_NUM_BDS_B2_CHANNELS
 #define NUM_QZSS_L1CA_DECODERS NAP_NUM_GPS_L1_CHANNELS
 #define NUM_SBAS_L1_DECODERS NAP_NUM_GPS_L1_CHANNELS
+#define NUM_GAL_E7_DECODERS NAP_NUM_GAL_E7_CHANNELS
 
 void platform_track_setup(void);
 void platform_decode_setup(void);

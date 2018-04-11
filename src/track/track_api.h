@@ -38,9 +38,8 @@ s32 tracker_tow_update(tracker_t *tracker_channel,
 void tracker_bit_sync_set(tracker_t *tracker_channel, s8 bit_phase_ref);
 void tracker_bit_sync_update(tracker_t *tracker_channel,
                              u32 int_ms,
-                             s32 corr_prompt_real,
-                             s32 corr_prompt_imag,
                              bool sensitivity_mode);
+
 u8 tracker_bit_length_get(tracker_t *tracker_channel);
 bool tracker_bit_aligned(tracker_t *tracker_channel);
 bool tracker_has_bit_sync(tracker_t *tracker_channel);

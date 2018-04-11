@@ -93,6 +93,7 @@ typedef struct tp_profile_entry {
     tp_tm_e tm_10ms;           /**< typical GLO Tracking mode */
     tp_tm_e tm_2ms;            /**< typical SBAS Tracking mode */
     tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
+    tp_tm_e tm_sc4;            /**< E7 tracking mode */
   } profile;
 
   tp_ld_e ld_phase_params; /**< Phase lock detector parameter set */
@@ -285,65 +286,65 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {     10,           7,           20,   TP_CTRL_PLL3,
-          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+{ {     10,           7,           20,   TP_CTRL_PLL3,
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED | TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
-          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
 
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
-          TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+        TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
-          TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
-          TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
-           40,          43,           0,
-      IDX_2MS,     IDX_5MS,    IDX_NONE,
-      TP_LOW_CN0 | TP_USE_NEXT},
+      TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS,  TP_TM_1MS_SC4 },
+      TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
+       100,          43,          0,
+      IDX_2MS,     IDX_5MS,     IDX_NONE,
+      TP_USE_NEXT | TP_LOW_CN0},
 
   [IDX_5MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-          TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
-          TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
-           40,          35,          46,
+      TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS,  TP_TM_1MS_SC4 },
+      TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
+       100,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
-      TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
+      TP_USE_NEXT | TP_LOW_CN0 | TP_HIGH_CN0},
 
   [IDX_10MS] =
   { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
-        TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
-        TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
-           40,          32,          38,
+    TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS,  TP_TM_1MS_SC4 },
+    TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+       100,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
   { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_1MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
-           40,          25,          35,
+           100,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
   { {      0,         1.0,           .5,   TP_CTRL_PLL3,
-      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
+      TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS,  TP_TM_1MS_SC4 },
       TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
@@ -373,13 +374,13 @@ static const tp_profile_entry_t *mesid_to_profiles(const me_gnss_signal_t mesid,
     case CONSTELLATION_SBAS:
     case CONSTELLATION_BDS2:
     case CONSTELLATION_QZS:
+    case CONSTELLATION_GAL:
       profiles = gnss_track_profiles;
       if (num_profiles) {
         *num_profiles = ARRAY_SIZE(gnss_track_profiles);
       }
       break;
 
-    case CONSTELLATION_GAL:
     case CONSTELLATION_INVALID:
     case CONSTELLATION_COUNT:
     default:
@@ -415,6 +416,12 @@ static tp_tm_e get_track_mode(me_gnss_signal_t mesid,
       track_mode = entry->profile.tm_2ms;
     } else {
       track_mode = entry->profile.tm_nh20ms;
+    }
+  } else if (IS_GAL(mesid)) {
+    if ((CODE_GAL_E1B == mesid.code) || (CODE_GAL_E1C == mesid.code)) {
+      /* add another mode for this? it's so ugly.. */
+    } else {
+      track_mode = entry->profile.tm_sc4;
     }
   } else {
     log_error_mesid(mesid, "unknown entry?");

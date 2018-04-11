@@ -58,6 +58,7 @@ typedef struct {
   (0) /* Currently we don't decode SBAS ephemeris */
 #define NDB_NV_BDS2_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
 #define NDB_NV_QZSS_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
+#define NDB_NV_GAL_EPHEMERIS_AGE_SECS (2 * HOUR_SECS)
 
 /** Volatile flag: IE needs to be written to NVM */
 #define NDB_VFLAG_IE_DIRTY (1 << 0)
