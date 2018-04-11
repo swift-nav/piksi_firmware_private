@@ -177,20 +177,19 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
   }
 
   for (i = 0; i < num_sv; i++) {
-    if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
+    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
+    deep_job->needs_to_run = false;
+
+    if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
       continue;
     }
 
-    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
 
     bool visible = false;
     bool known = false;
-
-    /* Initialize jobs to not run */
-    deep_job->needs_to_run = false;
 
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
@@ -216,6 +215,11 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       sm_get_visibility_flags(sid, &visible, &known);
     }
     visible = visible && known;
+
+    if (CONSTELLATION_SBAS == con) {
+      /* sbas_mask SVs are visible as they were selected by location. */
+      visible = true;
+    }
 
     if (visible) {
       deep_job->cost_hint = ACQ_COST_MIN;
@@ -268,22 +272,21 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   }
 
   for (i = 0; i < num_sv; i++) {
-    if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
+    acq_job_t *fallback_job;
+    fallback_job = &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
+    fallback_job->needs_to_run = false;
+
+    if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
       continue;
     }
 
-    acq_job_t *fallback_job =
-        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
     me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
 
     bool visible = false;
     bool known = false;
     bool invisible = false;
-
-    /* Initialize jobs to not run */
-    fallback_job->needs_to_run = false;
 
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
@@ -310,6 +313,11 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     }
     visible = visible && known;
     invisible = !visible && known;
+
+    if (CONSTELLATION_SBAS == con) {
+      /* sbas_mask SVs are visible as they were selected by location. */
+      visible = true;
+    }
 
     if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
