@@ -387,7 +387,7 @@ bool check_priority_mask(reacq_prio_level_t prio_level,
       assert(!"Unsupported re-acq priority mask");
   }
 
-  priority_mask >>= (REACQ_PRIORITY_CYCLE - jobs_data->priority_counter);
+  priority_mask >>= jobs_data->priority_counter;
   priority_mask &= 0x1;
   return priority_mask;
 }
