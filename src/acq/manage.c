@@ -1135,14 +1135,30 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
 }
 
 /**
+ * Calculates how many SV of the given code are in track
+ * \param code code type
+ * \return the count of tracked SVs of the given code
+ */
+u8 code_track_count(code_t code) {
+  u8 sv_tracked = 0;
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if ((acq_status[i].mesid.code == code) &&
+        (ACQ_PRN_TRACKING == acq_status[i].state)) {
+      sv_tracked++;
+    }
+  }
+  return sv_tracked;
+}
+
+/**
  * The function calculates how many SV of defined GNSS are in track
  * \param[in] gnss GNSS constellation type
  */
-u8 sv_track_count(constellation_t gnss) {
+u8 constellation_track_count(constellation_t gnss) {
   u8 sv_tracked = 0;
-  for (u16 i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
-    if (mesid_to_constellation(acq_status[i].mesid) == gnss &&
-        ACQ_PRN_TRACKING == acq_status[i].state) {
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if ((mesid_to_constellation(acq_status[i].mesid) == gnss) &&
+        (ACQ_PRN_TRACKING == acq_status[i].state)) {
       sv_tracked++;
     }
   }
@@ -1163,7 +1179,7 @@ static void manage_tracking_startup(void) {
     }
 
     if (IS_SBAS(acq->mesid)) {
-      if (sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+      if (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
         continue;
       }
       if (ACQ_PRN_UNHEALTHY == acq->state) {
