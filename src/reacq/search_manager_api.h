@@ -56,16 +56,10 @@
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE (30)
 
-/** GPS will have high re-acq priority if less than limit SVs is tracked */
-#define LOW_GPS_L1CA_SV_LIMIT (6)
-/** SBAS will have high re-acq priority if less than limit SVs is tracked */
-#define LOW_SBAS_L1CA_SV_LIMIT (1)
-
 /** Re-acq priority levels. */
 typedef enum reacq_prio_level_e {
   REACQ_NORMAL_PRIO,
-  REACQ_GPS_HIGH_PRIO,
-  REACQ_SBAS_HIGH_PRIO,
+  REACQ_LOW_PRIO,
   REACQ_PRIO_COUNT,
 } reacq_prio_level_t;
 
