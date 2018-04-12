@@ -178,11 +178,9 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
    * Start checking from currently using SBAS system. If user still in it
    * just return, don't check others to avoid unwanted SBAS switch */
   u8 i = get_sbas_area_index(used_sbas);
-  /* If we apply hysteresis and no SBAS provider was previously chosen,
-     then effectively we end up with no hysteresis on west WAAS and
-     east MSAS borders. */
-  double hyst_deg = (SBAS_UNKNOWN == used_sbas) ? 0 : SBAS_SELECT_LON_HYST_DEG;
   for (u8 j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
+    double hyst_deg =
+        (used_sbas == sbas_coverage[i].sbas) ? SBAS_SELECT_LON_HYST_DEG : 0;
     /* check if user position is in SBAS area under testing */
     if (point_in_region(sbas_coverage[i].borders, lgf_lon_deg, hyst_deg)) {
       if (sbas_coverage[i].sbas != used_sbas) {
