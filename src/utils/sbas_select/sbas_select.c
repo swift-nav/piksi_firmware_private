@@ -50,11 +50,9 @@ typedef struct {
 
 /** WAAS coverage area based on http://www.nstb.tc.faa.gov/24Hr_WaasLPV.htm,
  *  for the 1st phase of the implementation the area defined by 2 longitudes --
- *  left and right borders. Latitude is not used for now
- *  -180 and 180 deg are exception, so don't use hysteresis for the border,
- *  substract it in advance */
+ *  left and right borders. Latitude is not used for now. */
 static point_coord_t waas_range[] = {
-    {0, -180 + SBAS_SELECT_LON_HYST_DEG}, {0, -50},
+    {0, -180}, {0, -50},
 };
 
 /** EGNOS coverage area based on
@@ -130,27 +128,24 @@ static u8 get_sbas_area_index(sbas_system_t sbas) {
 }
 
 /**
- * The function checks if point is in region.
+ * Checks if user's longitude is between two longitudes of border parameter.
  * \param[in] border Pointer to border array
- * \param[in] lat  latitude [deg] of point under test
- * \param[in] lon  longitude [deg] of point under test
- * \return true if the point in the region, otherwise false
+ * \param lon_deg user's position longitude [-180 deg .. +180 deg]
+ * \param hyst_deg longitude hysteresis width to apply [deg]
+ * \return true if the user's position is in the region, otherwise false
  */
 static bool point_in_region(const point_coord_t *border,
-                            const double lat_deg,
-                            const double lon_deg) {
-  /* for the first phase just check if user's position in between two longitudes
-   */
-  (void)lat_deg;
-  double tmp_lon = lon_deg;
-  if (lon_deg > 0.f && fabs(180.f - lon_deg) < 1.f / 3600.f) {
-    /* handle an exception: 180 deg is same as -180 deg
-     * (actually check that difference between user's longitude and 180 deg is
-     * less than 1 sec) */
-    tmp_lon = -180.f;
+                            const double lon_deg,
+                            const double hyst_deg) {
+  double west_deg = border[0].lon_deg - hyst_deg;
+  double east_deg = border[1].lon_deg + hyst_deg;
+  if ((west_deg <= lon_deg) && (lon_deg <= east_deg)) {
+    return true;
   }
-  return ((double)(border[0].lon_deg - SBAS_SELECT_LON_HYST_DEG) <= tmp_lon) &&
-         ((double)(border[1].lon_deg + SBAS_SELECT_LON_HYST_DEG) >= tmp_lon);
+  if ((west_deg <= (lon_deg + 360)) && ((lon_deg + 360) <= east_deg)) {
+    return true;
+  }
+  return ((west_deg <= (lon_deg - 360)) && ((lon_deg - 360) <= east_deg));
 }
 
 /**
@@ -167,8 +162,8 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
 
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
   if (double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG)) {
-    /* LGF is close to a pole, where longitudes are changing rapidly.
-       If first LGF is acquired close to a pole, then no SBAS provider is is use
+    /* LGF is close to a pole, where longitudes can change rapidly.
+       If first LGF is acquired close to a pole, then no SBAS provider is in use
        In this case we want to start using some SBAS provider and
        stick to it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius
        area from the pole. */
@@ -177,19 +172,23 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
     }
   }
   double lgf_lon_deg = lgf->position_solution.pos_llh[1] * R2D;
+  assert(-180 <= lgf_lon_deg);
+  assert(lgf_lon_deg <= 180);
   /* Check all SBAS systems if user position is in its coverage area.
    * Start checking from currently using SBAS system. If user still in it
    * just return, don't check others to avoid unwanted SBAS switch */
   u8 i = get_sbas_area_index(used_sbas);
-  /* go through all hardcoded SBAS area */
+  /* If we apply hysteresis and no SBAS provider was previously chosen,
+     then effectively we end up with no hysteresis on west WAAS and
+     east MSAS borders. */
+  double hyst_deg = (SBAS_UNKNOWN == used_sbas) ? 0 : SBAS_SELECT_LON_HYST_DEG;
   for (u8 j = 0; j < ARRAY_SIZE(sbas_coverage); j++) {
     /* check if user position is in SBAS area under testing */
-    if (point_in_region(sbas_coverage[i].borders, lgf_lat_deg, lgf_lon_deg)) {
+    if (point_in_region(sbas_coverage[i].borders, lgf_lon_deg, hyst_deg)) {
       if (sbas_coverage[i].sbas != used_sbas) {
         log_info("SBAS system changed: %s -> %s",
                  get_sbas_name(used_sbas),
                  get_sbas_name(sbas_coverage[i].sbas));
-        /* update used SBAS info */
         used_sbas = sbas_coverage[i].sbas;
       }
       /* SBAS area found */
