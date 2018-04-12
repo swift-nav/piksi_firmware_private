@@ -45,13 +45,28 @@
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
-/* Initial settings values. */
-#define INIT_ENABLE_FIX_MODE FILTER_FIXED
-#define INIT_MAX_AGE_DIFFERENTIAL 30
-#define INIT_ENABLE_GLONASS true
-
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
+
+/* Settings which control the filter behavior of the Starling engine. */
+typedef struct StarlingSettings {
+  bool is_glonass_enabled;
+  bool is_fix_enabled;
+  int max_age_differential;
+} StarlingSettings;
+
+/* Initial settings values (internal to Starling). */
+#define INIT_IS_GLONASS_ENABLED true
+#define INIT_IS_FIX_ENABLED true
+#define INIT_MAX_AGE_DIFFERENTIAL 30
+
+/* Local settings object and mutex protection. */
+static MUTEX_DECL(global_settings_lock);
+static StarlingSettings global_settings = {
+    .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
+    .is_fix_enabled = INIT_IS_FIX_ENABLED,
+    .max_age_differential = INIT_MAX_AGE_DIFFERENTIAL,
+};
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
 
@@ -89,6 +104,32 @@ static soln_pvt_stats_t last_pvt_stats = {.systime = PIKSI_SYSTIME_INIT,
 static soln_dgnss_stats_t last_dgnss_stats = {.systime = PIKSI_SYSTIME_INIT,
                                               .mode = 0};
 static sbas_system_t current_sbas_system = SBAS_UNKNOWN;
+
+/**
+ * Use this to update the settings for the provided filter manager
+ * from any thread. This will apply the current value for
+ * each of the settings to the given filter manager.
+ *
+ * The caller should take care to correctly synchronize access
+ * to the provided filter manager. It is an error to call with
+ * an invalid Filter Manager pointer.
+ *
+ * TODO(kevin) Once this lives inside LSNP, it may be better
+ * to avoid synchronizing (and copying) the entire settings
+ * struct every time and instead use C++ atomics for each
+ * individual setting.
+ */
+static void update_filter_manager_settings(FilterManager *fm) {
+  platform_mutex_lock(&global_settings_lock);
+  StarlingSettings settings = global_settings;
+  platform_mutex_unlock(&global_settings_lock);
+
+  /* Apply the most recent settings values to the Filter Manager. */
+  assert(fm);
+  set_pvt_engine_enable_glonass(fm, settings.is_glonass_enabled);
+  set_pvt_engine_enable_fix_mode(fm, settings.is_fix_enabled);
+  set_max_correction_age(fm, settings.max_age_differential);
+}
 
 static void post_observations(u8 n,
                               const navigation_measurement_t m[],
@@ -598,6 +639,8 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   bool is_initialized = filter_manager_is_initialized(filter_manager);
 
   if (is_initialized) {
+    update_filter_manager_settings(filter_manager);
+
     set_pvt_engine_elevation_mask(filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_glonass_downweight_factor(filter_manager,
@@ -849,6 +892,9 @@ static void time_matched_obs_thread(void *arg) {
 
     /* Check if the el mask has changed and update */
     platform_mutex_lock(&time_matched_filter_manager_lock);
+    /* Grab the latest settings. */
+    update_filter_manager_settings(time_matched_filter_manager);
+
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
@@ -1015,12 +1061,6 @@ static void init_filters_and_settings(void) {
   platform_mutex_lock(&low_latency_filter_manager_lock);
   low_latency_filter_manager = create_filter_manager_rtk();
   platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-  /* We also need to be careful to set any initial values which may
-   * later be updated by settings changes. */
-  starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
-  starling_set_max_correction_age(INIT_MAX_AGE_DIFFERENTIAL);
-  starling_set_is_glonass_enabled(INIT_ENABLE_GLONASS);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
@@ -1281,56 +1321,30 @@ void starling_setup() {
                                 NULL);
 }
 
-/* Enable fixed RTK mode in the Starling engine. */
-void starling_set_enable_fix_mode(bool is_fix_enabled) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    set_pvt_engine_enable_fix_mode(time_matched_filter_manager, is_fix_enabled);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+/*******************************************************************************
+ * Settings Update Functions
+ * -------------------------
+ * Take care to never hold a FilterManager lock inside the scope of a
+ * global_settings_lock. Doing so may result in deadlock.
+ ******************************************************************************/
 
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  if (low_latency_filter_manager) {
-    set_pvt_engine_enable_fix_mode(low_latency_filter_manager, is_fix_enabled);
-  }
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
+/* Enable glonass constellation in the Starling engine. */
+void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.is_glonass_enabled = is_glonass_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Enable fixed RTK mode in the Starling engine. */
+void starling_set_is_fix_enabled(bool is_fix_enabled) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.is_fix_enabled = is_fix_enabled;
+  platform_mutex_unlock(&global_settings_lock);
 }
 
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age) {
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  if (low_latency_filter_manager) {
-    set_max_correction_age(low_latency_filter_manager, max_age);
-  }
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    set_max_correction_age(time_matched_filter_manager, max_age);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-}
-
-/* Enable glonass constellation in the Starling engine. */
-void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
-  /* This setting is used by all filters (SPP, LL, TM). */
-  platform_mutex_lock(&spp_filter_manager_lock);
-  if (spp_filter_manager) {
-    set_pvt_engine_enable_glonass(spp_filter_manager, is_glonass_enabled);
-  }
-  platform_mutex_unlock(&spp_filter_manager_lock);
-
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  if (low_latency_filter_manager) {
-    set_pvt_engine_enable_glonass(low_latency_filter_manager,
-                                  is_glonass_enabled);
-  }
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  if (time_matched_filter_manager) {
-    set_pvt_engine_enable_glonass(time_matched_filter_manager,
-                                  is_glonass_enabled);
-  }
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.max_age_differential = max_age;
+  platform_mutex_unlock(&global_settings_lock);
 }

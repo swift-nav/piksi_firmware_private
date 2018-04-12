@@ -95,11 +95,10 @@ soln_pvt_stats_t solution_last_pvt_stats_get(void);
 
 /* Initialize starling threads and begin computing a pvt solution. */
 void starling_setup(void);
-/* Enable fixed RTK mode in the Starling engine. */
-void starling_set_enable_fix_mode(bool is_fix_enabled);
-/* Indicate for how long corrections should persist. */
-void starling_set_max_correction_age(int max_age);
 /* Enable glonass constellation in the Starling engine. */
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
-
+/* Enable fixed RTK mode in the Starling engine. */
+void starling_set_is_fix_enabled(bool is_fix_enabled);
+/* Indicate for how long corrections should persist. */
+void starling_set_max_correction_age(int max_age);
 #endif
