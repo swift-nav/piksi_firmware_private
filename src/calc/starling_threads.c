@@ -815,21 +815,6 @@ bool update_time_matched(gps_time_t *last_update_time,
   return true;
 }
 
-void init_filters(void) {
-  platform_mutex_lock(&time_matched_filter_manager_lock);
-  time_matched_filter_manager = create_filter_manager_rtk();
-  platform_mutex_unlock(&time_matched_filter_manager_lock);
-
-  platform_mutex_lock(&low_latency_filter_manager_lock);
-  low_latency_filter_manager = create_filter_manager_rtk();
-  platform_mutex_unlock(&low_latency_filter_manager_lock);
-
-  /* We also need to be careful to set any initial values which may
-   * later be updated by settings changes. */
-  starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
-  starling_set_max_correction_age(INIT_MAX_AGE_DIFFERENTIAL);
-}
-
 static THD_WORKING_AREA(wa_time_matched_obs_thread,
                         TIME_MATCHED_OBS_THREAD_STACK);
 static void time_matched_obs_thread(void *arg) {
