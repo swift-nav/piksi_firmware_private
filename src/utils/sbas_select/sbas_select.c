@@ -163,9 +163,11 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
   }
 
   double lgf_lat_deg = lgf->position_solution.pos_llh[0] * R2D;
-  if (double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG)) {
+  bool close_to_pole =
+      double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG);
+  if (close_to_pole) {
     /* LGF is close to a pole, where longitudes can change rapidly.
-       If first LGF is acquired close to a pole, then no SBAS provider is in use
+       If first LGF is acquired close to a pole, then no SBAS provider is in use.
        In this case we want to start using some SBAS provider and
        stick to it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius
        area from the pole. */
@@ -202,6 +204,14 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
     }
   }
   /* User is not in any SBAS coverage area */
+
+  if (close_to_pole) {
+    /* The uncovered longitudes range is between WAAS and MSAS.
+       The selection of WAAS is arbitrary. */
+    used_sbas = SBAS_WAAS;
+    return used_sbas;
+  }
+
   used_sbas = SBAS_UNKNOWN;
   return SBAS_UNKNOWN;
 }
