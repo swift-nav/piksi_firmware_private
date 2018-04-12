@@ -74,7 +74,6 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
-extern bool enable_glonass;
 extern bool send_heading;
 
 void solution_make_sbp(const pvt_engine_result_t *soln,
@@ -100,5 +99,7 @@ void starling_setup(void);
 void starling_set_enable_fix_mode(bool is_fix_enabled);
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
+/* Enable glonass constellation in the Starling engine. */
+void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 
 #endif

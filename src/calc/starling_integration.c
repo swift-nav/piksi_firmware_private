@@ -15,6 +15,11 @@
 #include "starling_threads.h"
 
 /*******************************************************************************
+ * Globals
+ ******************************************************************************/
+bool enable_glonass = true;
+
+/*******************************************************************************
  * Local Helpers
  ******************************************************************************/
 
@@ -24,7 +29,7 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   if (!ret) {
     return ret;
   }
-  bool enable_fix = value == 0 ? false : true;
+  bool enable_fix = (value != 0);
   starling_set_enable_fix_mode(enable_fix);
   *(dgnss_filter_t *)s->addr = value;
   return ret;
@@ -38,6 +43,18 @@ static bool set_max_age(struct setting *s, const char *val) {
   }
   starling_set_max_correction_age(value);
   *(int *)s->addr = value;
+  return ret;
+}
+
+static bool set_is_glonass_enabled(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool is_glonass_enabled = (value != 0);
+  starling_set_is_glonass_enabled(is_glonass_enabled);
+  *(dgnss_filter_t *)s->addr = value;
   return ret;
 }
 
@@ -60,6 +77,11 @@ static void initialize_starling_settings(void) {
                  max_age_of_differential,
                  TYPE_INT,
                  set_max_age);
+  SETTING_NOTIFY("solution",
+                 "enable_glonass",
+                 enable_glonass,
+                 TYPE_BOOL,
+                 set_is_glonass_enabled);
 }
 
 /*******************************************************************************

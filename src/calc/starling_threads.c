@@ -48,6 +48,7 @@
 /* Initial settings values. */
 #define INIT_ENABLE_FIX_MODE FILTER_FIXED
 #define INIT_MAX_AGE_DIFFERENTIAL 30
+#define INIT_ENABLE_GLONASS true
 
 /** number of milliseconds before SPP resumes in pseudo-absolute mode */
 #define DGNSS_TIMEOUT_MS 5000
@@ -78,8 +79,6 @@ bool send_heading = false;
 double heading_offset = 0.0;
 
 static bool disable_klobuchar = false;
-
-bool enable_glonass = true;
 
 static float glonass_downweight_factor = 4;
 
@@ -601,7 +600,6 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
   if (is_initialized) {
     set_pvt_engine_elevation_mask(filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_enable_glonass(filter_manager, enable_glonass);
     set_pvt_engine_glonass_downweight_factor(filter_manager,
                                              glonass_downweight_factor);
     set_pvt_engine_update_frequency(filter_manager, solution_frequency);
@@ -853,7 +851,6 @@ static void time_matched_obs_thread(void *arg) {
     platform_mutex_lock(&time_matched_filter_manager_lock);
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
     set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
                                              glonass_downweight_factor);
     set_pvt_engine_update_frequency(time_matched_filter_manager,
@@ -1004,7 +1001,6 @@ static void init_filters_and_settings(void) {
 
   SETTING(
       "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
-  SETTING("solution", "enable_glonass", enable_glonass, TYPE_BOOL);
   SETTING("solution",
           "glonass_measurement_std_downweight_factor",
           glonass_downweight_factor,
@@ -1024,6 +1020,7 @@ static void init_filters_and_settings(void) {
    * later be updated by settings changes. */
   starling_set_enable_fix_mode(INIT_ENABLE_FIX_MODE);
   starling_set_max_correction_age(INIT_MAX_AGE_DIFFERENTIAL);
+  starling_set_is_glonass_enabled(INIT_ENABLE_GLONASS);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
   sbp_register_cbk(
@@ -1310,6 +1307,30 @@ void starling_set_max_correction_age(int max_age) {
   platform_mutex_lock(&time_matched_filter_manager_lock);
   if (time_matched_filter_manager) {
     set_max_correction_age(time_matched_filter_manager, max_age);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
+}
+
+/* Enable glonass constellation in the Starling engine. */
+void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
+  /* This setting is used by all filters (SPP, LL, TM). */
+  platform_mutex_lock(&spp_filter_manager_lock);
+  if (spp_filter_manager) {
+    set_pvt_engine_enable_glonass(spp_filter_manager, is_glonass_enabled);
+  }
+  platform_mutex_unlock(&spp_filter_manager_lock);
+
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  if (low_latency_filter_manager) {
+    set_pvt_engine_enable_glonass(low_latency_filter_manager,
+                                  is_glonass_enabled);
+  }
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    set_pvt_engine_enable_glonass(time_matched_filter_manager,
+                                  is_glonass_enabled);
   }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
