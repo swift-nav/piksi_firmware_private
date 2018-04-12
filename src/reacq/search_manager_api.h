@@ -129,7 +129,7 @@ typedef struct {
   bool needs_restart;   /**< Set if this job needs to be restarted */
   acq_task_t task_data; /**< Search area is divided into smaller tasks */
 
-  acq_priority_t priority;
+  acq_priority_t priority; /**< acquisition priority data */
 } acq_job_t;
 
 /** Container for all the jobs */
