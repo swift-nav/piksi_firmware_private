@@ -64,7 +64,7 @@ extern "C" {
  */
 typedef struct {
   u8 prn;
-  /**< Decoder buffer (384 bits) */
+  /**< Decoder buffer (330 bits) */
   u32 subframe_bits[BDS_NAV_MSG_SUBFRAME_WORDS_LEN];
   /**< Received bit counter */
   u16 bit_index;

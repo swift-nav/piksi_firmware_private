@@ -123,7 +123,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
       } else {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
         if (BDS_TOW_INVALID != TOWms) {
-          from_decoder.TOW_ms = TOWms - 600;
+          from_decoder.TOW_ms = TOWms;
         }
         if (dd_d1nav.ephemeris_upd_flag) {
           shm_bds_set_shi(dd_d1nav.ephemeris.sid.sat,

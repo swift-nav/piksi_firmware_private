@@ -20,6 +20,7 @@
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
 
+#include "me_constants.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 
@@ -129,7 +130,7 @@ void bds_nav_msg_clear_decoded(nav_msg_bds_t *n) {
  * \param n Nav message decode state struct
  * \param bit_val State of the nav bit to process
  *
- * \return true if a new subframe started with this bit
+ * \return true if first word of a new subframe ended with this bit
  */
 bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
   /* add new bit to buffer */
@@ -297,7 +298,8 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
   if (TOW_s >= WEEK_SECS) {
     TOW_s -= WEEK_SECS;
   }
-  return TOW_s * 1000;
+  /* Current time is 330 bits from TOW. */
+  return TOW_s * SECS_MS + BDS2_B11_D1NAV_SYMBOL_LENGTH_MS * 330;
 }
 
 /** D2 parsing
