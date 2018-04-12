@@ -498,7 +498,7 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
       continue;
     }
 
-    if (enable_glonass && IS_GLO(info.sid) && num_prns_gl < GSA_MAX_SV &&
+    if (IS_GLO(info.sid) && num_prns_gl < GSA_MAX_SV &&
         !is_value_in_array(prns_gl, num_prns_gl, nmea_get_id(info.sid))) {
       prns_gl[num_prns_gl++] = nmea_get_id(info.sid);
       continue;
@@ -520,15 +520,10 @@ static void nmea_gsa(const msg_pos_llh_t *sbp_pos,
   bool use_gn = false;
 
   u8 constellations = 0;
-  if (0 != num_prns_gp) {
-    constellations += 1;
-  }
-  if (0 != num_prns_gl) {
-    constellations += 1;
-  }
-  if (0 != num_prns_bd) {
-    constellations += 1;
-  }
+  constellations += (0 != num_prns_gp) ? 1 : 0;
+  constellations += (0 != num_prns_gl) ? 1 : 0;
+  constellations += (0 != num_prns_bd) ? 1 : 0;
+
   if (constellations >= 2) {
     /* At least two constellations detected, use GN talker ID */
     use_gn = true;
