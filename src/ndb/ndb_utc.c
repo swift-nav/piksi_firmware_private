@@ -12,10 +12,10 @@
 
 #define NDB_WEAK
 
-#include "ndb.h"
 #include <libsbp/sbp.h>
 #include <libswiftnav/logging.h>
 #include <string.h>
+#include "ndb.h"
 #include "ndb_internal.h"
 #include "sbp.h"
 #include "sbp_utils.h"
