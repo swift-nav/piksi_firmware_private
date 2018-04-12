@@ -308,8 +308,8 @@ nav_msg_status_t get_data_bits_glo(nav_msg_glo_t *n, bool symbol) {
   n->meander_bits_cnt++;
   n->manchester <<= 1;
   n->manchester |= symbol; /* store incoming symbol */
-  /* did we take 2 symbols of line code?
-   * if no, stay at the state */
+                           /* did we take 2 symbols of line code?
+                            * if no, stay at the state */
   if (2 != n->meander_bits_cnt) {
     return ret;
   }

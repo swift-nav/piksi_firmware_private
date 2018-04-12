@@ -13,11 +13,11 @@
 #define DEBUG 0
 #define NDB_WEAK
 
+#include "ndb.h"
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/logging.h>
 #include <string.h>
-#include "ndb.h"
 #include "ndb_fs_access.h"
 #include "ndb_internal.h"
 #include "sbp_utils.h"

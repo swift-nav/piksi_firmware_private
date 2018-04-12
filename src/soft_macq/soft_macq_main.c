@@ -463,9 +463,12 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
   bool ret = mdbzp_static(pBaseBand, pResampCode, &sParams, pacq_res);
   if (ret) {
     log_debug_mesid(mesid,
-        "%16" PRIu64 "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
-        pacq_res->uFirstLocIdx, pacq_res->fMaxCorr, pacq_res->fDoppFreq,
-        pacq_res->fCodeDelay);
+                    "%16" PRIu64
+                    "  fMaxCorr %.1e  fDoppFreq %.1f  fCodeDelay %.4f",
+                    pacq_res->uFirstLocIdx,
+                    pacq_res->fMaxCorr,
+                    pacq_res->fDoppFreq,
+                    pacq_res->fCodeDelay);
   }
   return ret;
 }
