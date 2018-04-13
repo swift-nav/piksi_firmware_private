@@ -602,8 +602,10 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
     set_pvt_engine_elevation_mask(filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_enable_glonass(filter_manager, enable_glonass);
-    set_pvt_engine_glonass_downweight_factor(filter_manager,
-                                             glonass_downweight_factor);
+    set_pvt_engine_obs_downweight_factor(
+        filter_manager, glonass_downweight_factor, CODE_GLO_L1OF);
+    set_pvt_engine_obs_downweight_factor(
+        filter_manager, glonass_downweight_factor, CODE_GLO_L2OF);
     set_pvt_engine_update_frequency(filter_manager, solution_frequency);
 
     filter_manager_overwrite_ephemerides(filter_manager, ephemerides);
@@ -869,8 +871,10 @@ static void time_matched_obs_thread(void *arg) {
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
     set_pvt_engine_enable_glonass(time_matched_filter_manager, enable_glonass);
-    set_pvt_engine_glonass_downweight_factor(time_matched_filter_manager,
-                                             glonass_downweight_factor);
+    set_pvt_engine_obs_downweight_factor(
+        time_matched_filter_manager, glonass_downweight_factor, CODE_GLO_L1OF);
+    set_pvt_engine_obs_downweight_factor(
+        time_matched_filter_manager, glonass_downweight_factor, CODE_GLO_L2OF);
     set_pvt_engine_update_frequency(time_matched_filter_manager,
                                     starling_frequency);
     platform_mutex_unlock(&time_matched_filter_manager_lock);
