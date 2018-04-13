@@ -39,9 +39,6 @@
 /* Maximum CPU time the solution thread is allowed to use. */
 #define SOLN_THD_CPU_MAX (0.60f)
 
-#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
-#define STARLING_THREAD_STACK (6 * 1024 * 1024)
-
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
 
@@ -1067,12 +1064,8 @@ static void init_filters_and_settings(void) {
       SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 }
 
-static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
-static void starling_thread(void *arg) {
-  (void)arg;
+static void starling_thread(void) {
   msg_t ret;
-
-  platform_thread_set_name("starling");
 
   /* Initialize all filters, settings, and SBP callbacks. */
   init_filters_and_settings();
@@ -1312,14 +1305,8 @@ static void starling_thread(void *arg) {
   }
 }
 
-void starling_setup() {
-  /* Start solution thread */
-  platform_thread_create_static(wa_starling_thread,
-                                sizeof(wa_starling_thread),
-                                STARLING_THREAD_PRIORITY,
-                                starling_thread,
-                                NULL);
-}
+/* Run the starling engine on the current thread. Blocks indefinitely. */
+void starling_run(void) { starling_thread(); }
 
 /*******************************************************************************
  * Settings Update Functions

@@ -93,8 +93,8 @@ soln_pvt_stats_t solution_last_pvt_stats_get(void);
  * Formal Starling API
  ******************************************************************************/
 
-/* Initialize starling threads and begin computing a pvt solution. */
-void starling_setup(void);
+/* Run the starling engine on the current thread. Blocks indefinitely. */
+void starling_run(void);
 /* Enable glonass constellation in the Starling engine. */
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 /* Enable fixed RTK mode in the Starling engine. */

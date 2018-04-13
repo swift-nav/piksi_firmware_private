@@ -10,14 +10,29 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <ch.h>
+
 #include "starling_integration.h"
 #include "settings/settings.h"
 #include "starling_threads.h"
 
 /*******************************************************************************
+ * Constants
+ ******************************************************************************/
+#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
+#define STARLING_THREAD_STACK (6 * 1024 * 1024)
+
+/*******************************************************************************
  * Globals
  ******************************************************************************/
 bool enable_glonass = true;
+
+/*******************************************************************************
+ * Locals
+ ******************************************************************************/
+
+/* Working area for the main starling thread. */
+static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 
 /*******************************************************************************
  * Local Helpers
@@ -84,11 +99,28 @@ static void initialize_starling_settings(void) {
                  set_is_glonass_enabled);
 }
 
+static THD_FUNCTION(initialize_and_run_starling, arg) {
+  (void)arg;
+  chRegSetThreadName("starling");
+
+  initialize_starling_settings();
+
+  /* This runs forever. */
+  starling_run();
+  /* Never get here. */
+  for (;;) {
+  }
+}
+
 /*******************************************************************************
  * Starling Integration API
  ******************************************************************************/
 
 void starling_calc_pvt_setup() {
-  starling_setup();
-  initialize_starling_settings();
+  /* Start main starling thread. */
+  chThdCreateStatic(wa_starling_thread,
+                    sizeof(wa_starling_thread),
+                    STARLING_THREAD_PRIORITY,
+                    initialize_and_run_starling,
+                    NULL);
 }
