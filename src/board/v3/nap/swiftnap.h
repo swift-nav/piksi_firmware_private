@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* SwiftNAP v3.10.0 register map */
+/* SwiftNAP v3.11.0 register map */
 
 #ifndef SWIFTNAP_H
 #define SWIFTNAP_H
@@ -18,10 +18,10 @@
 #include <libswiftnav/common.h>
 
 /* Version */
-#define NAP_VERSION (0x030a0000)
+#define NAP_VERSION (0x030b0000)
 
 /* Number of tracking channels */
-#define NAP_NUM_TRACKING_CHANNELS (63U)
+#define NAP_NUM_TRACKING_CHANNELS (64U)
 
 // Number of GPS L1 tracking channels
 #define NAP_NUM_GPS_L1_CHANNELS (16U)
@@ -35,6 +35,8 @@
 #define NAP_NUM_BDS_B1_CHANNELS (9U)
 // Number of Beidou B2 tracking channels
 #define NAP_NUM_BDS_B2_CHANNELS (9U)
+// Number of Galileo E7 tracking channels
+#define NAP_NUM_GAL_E7_CHANNELS (1U)
 
 /* Number of readable tracking channel registers */
 #define NAP_NUM_TRACKING_READABLE (7U)
@@ -49,6 +51,7 @@ typedef enum {
   NAP_TRK_CODE_GLO_G2 = 3,
   NAP_TRK_CODE_BDS_B1 = 4,
   NAP_TRK_CODE_BDS_B2 = 5,
+  NAP_TRK_CODE_GAL_E7 = 6,
 } swiftnap_code_t;
 
 static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
@@ -83,7 +86,7 @@ static const swiftnap_code_t swiftnap_code_map[NAP_NUM_TRACKING_CHANNELS] =
      [56] = NAP_TRK_CODE_BDS_B2, [57] = NAP_TRK_CODE_BDS_B2,
      [58] = NAP_TRK_CODE_BDS_B2, [59] = NAP_TRK_CODE_BDS_B2,
      [60] = NAP_TRK_CODE_BDS_B2, [61] = NAP_TRK_CODE_BDS_B2,
-     [62] = NAP_TRK_CODE_BDS_B2};
+     [62] = NAP_TRK_CODE_BDS_B2, [63] = NAP_TRK_CODE_GAL_E7};
 
 /* Tracking channel readable register structure */
 typedef struct {
@@ -98,7 +101,7 @@ typedef struct {
 
 /* Tracking channel writeable register structure */
 typedef struct {
-  volatile u32 LENGTH;
+  volatile u32 CORR_SET;
   volatile u32 SPACING;
   volatile u32 CARR_PINC;
   volatile u32 CODE_PINC;
@@ -132,6 +135,10 @@ typedef struct {
   volatile u32 TRK_CODE_LFSR1_INIT;
   volatile u32 TRK_CODE_LFSR1_RESET;
   volatile u32 TRK_CODE_LFSR1_LAST;
+  volatile u32 TRK_SEC_CODE0;
+  volatile u32 TRK_SEC_CODE1;
+  volatile u32 TRK_SEC_CODE2;
+  volatile u32 TRK_SEC_CODE3;
   const volatile u32 TRK_STATUS0;
   const volatile u32 TRK_STATUS1;
   volatile u32 TRK_CONTROL0;
@@ -650,6 +657,42 @@ typedef struct {
   (((REG) & ~NAP_TRK_CODE_LFSR1_LAST_VALUE_Msk) |   \
    ((VAL) << NAP_TRK_CODE_LFSR1_LAST_VALUE_Pos))
 
+/* Register: NAP_TRK_SEC_CODE0 */
+#define NAP_TRK_SEC_CODE0_VALUE_Pos (0U)
+#define NAP_TRK_SEC_CODE0_VALUE_Len (32U)
+#define NAP_TRK_SEC_CODE0_VALUE_Rst (0x0U)
+#define NAP_TRK_SEC_CODE0_VALUE_Msk (0xFFFFFFFFU << NAP_TRK_SEC_CODE0_VALUE_Pos)
+#define SET_NAP_TRK_SEC_CODE0_VALUE(REG, VAL) \
+  (((REG) & ~NAP_TRK_SEC_CODE0_VALUE_Msk) |   \
+   ((VAL) << NAP_TRK_SEC_CODE0_VALUE_Pos))
+
+/* Register: NAP_TRK_SEC_CODE1 */
+#define NAP_TRK_SEC_CODE1_VALUE_Pos (0U)
+#define NAP_TRK_SEC_CODE1_VALUE_Len (32U)
+#define NAP_TRK_SEC_CODE1_VALUE_Rst (0x0U)
+#define NAP_TRK_SEC_CODE1_VALUE_Msk (0xFFFFFFFFU << NAP_TRK_SEC_CODE1_VALUE_Pos)
+#define SET_NAP_TRK_SEC_CODE1_VALUE(REG, VAL) \
+  (((REG) & ~NAP_TRK_SEC_CODE1_VALUE_Msk) |   \
+   ((VAL) << NAP_TRK_SEC_CODE1_VALUE_Pos))
+
+/* Register: NAP_TRK_SEC_CODE2 */
+#define NAP_TRK_SEC_CODE2_VALUE_Pos (0U)
+#define NAP_TRK_SEC_CODE2_VALUE_Len (32U)
+#define NAP_TRK_SEC_CODE2_VALUE_Rst (0x0U)
+#define NAP_TRK_SEC_CODE2_VALUE_Msk (0xFFFFFFFFU << NAP_TRK_SEC_CODE2_VALUE_Pos)
+#define SET_NAP_TRK_SEC_CODE2_VALUE(REG, VAL) \
+  (((REG) & ~NAP_TRK_SEC_CODE2_VALUE_Msk) |   \
+   ((VAL) << NAP_TRK_SEC_CODE2_VALUE_Pos))
+
+/* Register: NAP_TRK_SEC_CODE3 */
+#define NAP_TRK_SEC_CODE3_VALUE_Pos (0U)
+#define NAP_TRK_SEC_CODE3_VALUE_Len (32U)
+#define NAP_TRK_SEC_CODE3_VALUE_Rst (0x0U)
+#define NAP_TRK_SEC_CODE3_VALUE_Msk (0xFFFFFFFFU << NAP_TRK_SEC_CODE3_VALUE_Pos)
+#define SET_NAP_TRK_SEC_CODE3_VALUE(REG, VAL) \
+  (((REG) & ~NAP_TRK_SEC_CODE3_VALUE_Msk) |   \
+   ((VAL) << NAP_TRK_SEC_CODE3_VALUE_Pos))
+
 /* Register: NAP_TRK_STATUS0 */
 #define NAP_TRK_STATUS0_CH0_RUNNING_Pos (0U)
 #define NAP_TRK_STATUS0_CH0_RUNNING_Len (1U)
@@ -1155,6 +1198,14 @@ typedef struct {
   (0x1U << NAP_TRK_STATUS1_CH62_RUNNING_Pos)
 #define GET_NAP_TRK_STATUS1_CH62_RUNNING(REG) \
   (((REG)&NAP_TRK_STATUS1_CH62_RUNNING_Msk) >> NAP_TRK_STATUS1_CH62_RUNNING_Pos)
+
+#define NAP_TRK_STATUS1_CH63_RUNNING_Pos (31U)
+#define NAP_TRK_STATUS1_CH63_RUNNING_Len (1U)
+#define NAP_TRK_STATUS1_CH63_RUNNING_Rst (0x0U)
+#define NAP_TRK_STATUS1_CH63_RUNNING_Msk \
+  (0x1U << NAP_TRK_STATUS1_CH63_RUNNING_Pos)
+#define GET_NAP_TRK_STATUS1_CH63_RUNNING(REG) \
+  (((REG)&NAP_TRK_STATUS1_CH63_RUNNING_Msk) >> NAP_TRK_STATUS1_CH63_RUNNING_Pos)
 
 /* Register: NAP_TRK_CONTROL0 */
 #define NAP_TRK_CONTROL0_RUN_CH0_Pos (0U)
@@ -1788,6 +1839,16 @@ typedef struct {
   (((REG) & ~NAP_TRK_CONTROL1_RUN_CH62_Msk) |   \
    ((VAL) << NAP_TRK_CONTROL1_RUN_CH62_Pos))
 
+#define NAP_TRK_CONTROL1_RUN_CH63_Pos (31U)
+#define NAP_TRK_CONTROL1_RUN_CH63_Len (1U)
+#define NAP_TRK_CONTROL1_RUN_CH63_Rst (0x0U)
+#define NAP_TRK_CONTROL1_RUN_CH63_Msk (0x1U << NAP_TRK_CONTROL1_RUN_CH63_Pos)
+#define GET_NAP_TRK_CONTROL1_RUN_CH63(REG) \
+  (((REG)&NAP_TRK_CONTROL1_RUN_CH63_Msk) >> NAP_TRK_CONTROL1_RUN_CH63_Pos)
+#define SET_NAP_TRK_CONTROL1_RUN_CH63(REG, VAL) \
+  (((REG) & ~NAP_TRK_CONTROL1_RUN_CH63_Msk) |   \
+   ((VAL) << NAP_TRK_CONTROL1_RUN_CH63_Pos))
+
 /* Register: NAP_TRK_IRQS0 */
 #define NAP_TRK_IRQS0_CH0_Pos (0U)
 #define NAP_TRK_IRQS0_CH0_Len (1U)
@@ -2356,6 +2417,15 @@ typedef struct {
   (((REG)&NAP_TRK_IRQS1_CH62_Msk) >> NAP_TRK_IRQS1_CH62_Pos)
 #define SET_NAP_TRK_IRQS1_CH62(REG, VAL) \
   (((REG) & ~NAP_TRK_IRQS1_CH62_Msk) | ((VAL) << NAP_TRK_IRQS1_CH62_Pos))
+
+#define NAP_TRK_IRQS1_CH63_Pos (31U)
+#define NAP_TRK_IRQS1_CH63_Len (1U)
+#define NAP_TRK_IRQS1_CH63_Rst (0x0U)
+#define NAP_TRK_IRQS1_CH63_Msk (0x1U << NAP_TRK_IRQS1_CH63_Pos)
+#define GET_NAP_TRK_IRQS1_CH63(REG) \
+  (((REG)&NAP_TRK_IRQS1_CH63_Msk) >> NAP_TRK_IRQS1_CH63_Pos)
+#define SET_NAP_TRK_IRQS1_CH63(REG, VAL) \
+  (((REG) & ~NAP_TRK_IRQS1_CH63_Msk) | ((VAL) << NAP_TRK_IRQS1_CH63_Pos))
 
 /* Register: NAP_TRK_IRQ_ERRORS0 */
 #define NAP_TRK_IRQ_ERRORS0_CH0_Pos (0U)
@@ -2989,6 +3059,16 @@ typedef struct {
   (((REG) & ~NAP_TRK_IRQ_ERRORS1_CH62_Msk) |   \
    ((VAL) << NAP_TRK_IRQ_ERRORS1_CH62_Pos))
 
+#define NAP_TRK_IRQ_ERRORS1_CH63_Pos (31U)
+#define NAP_TRK_IRQ_ERRORS1_CH63_Len (1U)
+#define NAP_TRK_IRQ_ERRORS1_CH63_Rst (0x0U)
+#define NAP_TRK_IRQ_ERRORS1_CH63_Msk (0x1U << NAP_TRK_IRQ_ERRORS1_CH63_Pos)
+#define GET_NAP_TRK_IRQ_ERRORS1_CH63(REG) \
+  (((REG)&NAP_TRK_IRQ_ERRORS1_CH63_Msk) >> NAP_TRK_IRQ_ERRORS1_CH63_Pos)
+#define SET_NAP_TRK_IRQ_ERRORS1_CH63(REG, VAL) \
+  (((REG) & ~NAP_TRK_IRQ_ERRORS1_CH63_Msk) |   \
+   ((VAL) << NAP_TRK_IRQ_ERRORS1_CH63_Pos))
+
 /* Register: NAP_TRK_CH_STATUS */
 #define NAP_TRK_CH_STATUS_CORR_OVERFLOW_Pos (0U)
 #define NAP_TRK_CH_STATUS_CORR_OVERFLOW_Len (1U)
@@ -3120,14 +3200,24 @@ typedef struct {
 #define GET_NAP_TRK_CH_CORR4_Q(REG) \
   (((REG)&NAP_TRK_CH_CORR4_Q_Msk) >> NAP_TRK_CH_CORR4_Q_Pos)
 
-/* Register: NAP_TRK_CH_LENGTH */
-#define NAP_TRK_CH_LENGTH_VALUE_Pos (0U)
-#define NAP_TRK_CH_LENGTH_VALUE_Len (20U)
-#define NAP_TRK_CH_LENGTH_VALUE_Rst (0x64U)
-#define NAP_TRK_CH_LENGTH_VALUE_Msk (0xFFFFFU << NAP_TRK_CH_LENGTH_VALUE_Pos)
-#define SET_NAP_TRK_CH_LENGTH_VALUE(REG, VAL) \
-  (((REG) & ~NAP_TRK_CH_LENGTH_VALUE_Msk) |   \
-   ((VAL) << NAP_TRK_CH_LENGTH_VALUE_Pos))
+/* Register: NAP_TRK_CH_CORR_SET */
+#define NAP_TRK_CH_CORR_SET_LENGTH_Pos (0U)
+#define NAP_TRK_CH_CORR_SET_LENGTH_Len (20U)
+#define NAP_TRK_CH_CORR_SET_LENGTH_Rst (0x64U)
+#define NAP_TRK_CH_CORR_SET_LENGTH_Msk \
+  (0xFFFFFU << NAP_TRK_CH_CORR_SET_LENGTH_Pos)
+#define SET_NAP_TRK_CH_CORR_SET_LENGTH(REG, VAL) \
+  (((REG) & ~NAP_TRK_CH_CORR_SET_LENGTH_Msk) |   \
+   ((VAL) << NAP_TRK_CH_CORR_SET_LENGTH_Pos))
+
+#define NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos (20U)
+#define NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Len (1U)
+#define NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Rst (0x0U)
+#define NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Msk \
+  (0x1U << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos)
+#define SET_NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE(REG, VAL) \
+  (((REG) & ~NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Msk) |   \
+   ((VAL) << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos))
 
 /* Register: NAP_TRK_CH_SPACING */
 #define NAP_TRK_CH_SPACING_OFFSET0_Pos (0U)

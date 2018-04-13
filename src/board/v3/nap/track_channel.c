@@ -255,7 +255,7 @@ void nap_track_init(u8 channel,
                    length,
                    chip_rate);
   }
-  t->LENGTH = SET_NAP_CORR_LEN(length);
+  t->CORR_SET = SET_NAP_CORR_LEN(length);
   s->length_adjust = delta_samples;
   /* Carrier phase rate */
   double carrier_dopp_hz = -(s->fcn_freq_hz + doppler_freq_hz);
@@ -385,7 +385,7 @@ void nap_track_update(u8 channel,
   s->length[1] = s->length[0];
   s->length[0] = length;
 
-  t->LENGTH = SET_NAP_CORR_LEN(length);
+  t->CORR_SET = SET_NAP_CORR_LEN(length);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
