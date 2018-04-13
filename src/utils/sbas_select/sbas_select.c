@@ -167,10 +167,10 @@ sbas_system_t sbas_select_provider(const last_good_fix_t *lgf) {
       double_within(fabs(lgf_lat_deg), 90., SBAS_SELECT_LAT_AT_POLE_HYST_DEG);
   if (close_to_pole) {
     /* LGF is close to a pole, where longitudes can change rapidly.
-       If first LGF is acquired close to a pole, then no SBAS provider is in use.
-       In this case we want to start using some SBAS provider and
-       stick to it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius
-       area from the pole. */
+       If first LGF is acquired close to a pole, then no SBAS provider is in
+       use. In this case we want to start using some SBAS provider and stick to
+       it until LGF leaves the #SBAS_SELECT_LAT_AT_POLE_HYST_DEG radius area
+       from the pole. */
     if (used_sbas != SBAS_UNKNOWN) {
       return used_sbas;
     }
