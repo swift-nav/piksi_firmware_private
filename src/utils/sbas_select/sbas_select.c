@@ -142,9 +142,11 @@ static bool point_in_region(const point_coord_t *border,
   if ((west_deg <= lon_deg) && (lon_deg <= east_deg)) {
     return true;
   }
+  /* check if lon_deg from [-180 .. (-180 + hyst_deg)] fall into the region */
   if ((west_deg <= (lon_deg + 360)) && ((lon_deg + 360) <= east_deg)) {
     return true;
   }
+  /* check if lon_deg from [(180 - hyst_deg) .. 180] fall into the region */
   return ((west_deg <= (lon_deg - 360)) && ((lon_deg - 360) <= east_deg));
 }
 
