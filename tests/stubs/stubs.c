@@ -212,7 +212,12 @@ ndb_op_code_t ndb_lgf_read(last_good_fix_t *lgf) {
   return NDB_ERR_NONE;
 }
 
-u8 sv_track_count(constellation_t gnss) {
+u8 code_track_count(code_t code) {
+  (void)code;
+  return 0;
+}
+
+u8 constellation_track_count(constellation_t gnss) {
   (void)gnss;
   return 0;
 }

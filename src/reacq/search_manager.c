@@ -29,10 +29,20 @@ static const u32 reacq_normal_prio[] = {
     0b101010101010101010101010101010  /* GAL */
 };
 
-/** Re-acq low priority masks. */
-static const u32 reacq_low_prio[] = {
+/** Re-acq gps high priority masks. */
+static const u32 reacq_gps_high_prio[] = {
     0b111111111111111111111111111111, /* GPS */
     0b000000000000000000000000000001, /* SBAS */
+    0b000010000100001000010000100001, /* GLO */
+    0b000100001000010000100001000010, /* BDS2 */
+    0b001000010000100001000010000100, /* QZSS */
+    0b010000100001000010000100001000  /* GAL */
+};
+
+/** Re-acq sbas high priority masks. */
+static const u32 reacq_sbas_high_prio[] = {
+    0b111111111111111111111111111111, /* GPS */
+    0b101010101010101010101010101010, /* SBAS */
     0b000010000100001000010000100001, /* GLO */
     0b000100001000010000100001000010, /* BDS2 */
     0b001000010000100001000010000100, /* QZSS */
@@ -165,8 +175,8 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
   u32 sbas_mask = 0;
   if (CONSTELLATION_SBAS == con) {
     sbas_mask = sbas_limit_mask();
-    if (0 == sbas_mask ||
-        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    if ((0 == sbas_mask) ||
+        (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
       /* mark all SBAS SV as not needed to run*/
       for (i = 0; i < num_sv; i++) {
         jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i].needs_to_run = false;
@@ -177,20 +187,19 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
   }
 
   for (i = 0; i < num_sv; i++) {
-    if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
+    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
+    deep_job->needs_to_run = false;
+
+    if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
       continue;
     }
 
-    acq_job_t *deep_job = &jobs_data->jobs[ACQ_JOB_DEEP_SEARCH][idx + i];
     me_gnss_signal_t *mesid = &deep_job->mesid;
     gnss_signal_t sid = deep_job->sid;
 
     bool visible = false;
     bool known = false;
-
-    /* Initialize jobs to not run */
-    deep_job->needs_to_run = false;
 
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
@@ -216,6 +225,11 @@ static void sm_deep_search_run(acq_jobs_state_t *jobs_data) {
       sm_get_visibility_flags(sid, &visible, &known);
     }
     visible = visible && known;
+
+    if (CONSTELLATION_SBAS == con) {
+      /* sbas_mask SVs are visible as they were selected by location. */
+      visible = true;
+    }
 
     if (visible) {
       deep_job->cost_hint = ACQ_COST_MIN;
@@ -256,8 +270,8 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   u32 sbas_mask = 0;
   if (CONSTELLATION_SBAS == con) {
     sbas_mask = sbas_limit_mask();
-    if (0 == sbas_mask ||
-        sv_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
+    if ((0 == sbas_mask) ||
+        (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT)) {
       /* mark all SBAS SV as not needed to run */
       for (i = 0; i < num_sv; i++) {
         jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i].needs_to_run = false;
@@ -268,22 +282,21 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
   }
 
   for (i = 0; i < num_sv; i++) {
-    if (!((sbas_mask >> i) & 1) && CONSTELLATION_SBAS == con) {
+    acq_job_t *fallback_job;
+    fallback_job = &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
+    fallback_job->needs_to_run = false;
+
+    if ((CONSTELLATION_SBAS == con) && !((sbas_mask >> i) & 1)) {
       /* don't set job for those SBAS SV which are not in our SBAS range */
       continue;
     }
 
-    acq_job_t *fallback_job =
-        &jobs_data->jobs[ACQ_JOB_FALLBACK_SEARCH][idx + i];
     me_gnss_signal_t *mesid = &fallback_job->mesid;
     gnss_signal_t sid = fallback_job->sid;
 
     bool visible = false;
     bool known = false;
     bool invisible = false;
-
-    /* Initialize jobs to not run */
-    fallback_job->needs_to_run = false;
 
     if (CONSTELLATION_GLO == con) {
       u16 glo_fcn = GLO_FCN_UNKNOWN;
@@ -310,6 +323,11 @@ static void sm_fallback_search_run(acq_jobs_state_t *jobs_data,
     }
     visible = visible && known;
     invisible = !visible && known;
+
+    if (CONSTELLATION_SBAS == con) {
+      /* sbas_mask SVs are visible as they were selected by location. */
+      visible = true;
+    }
 
     if (visible && lgf_age_ms >= ACQ_LGF_TIMEOUT_VIS_AND_UNKNOWN_MS &&
         now_ms - fallback_job->stop_time >
@@ -354,9 +372,14 @@ bool check_priority_mask(reacq_prio_level_t prio_level,
       priority_mask = reacq_normal_prio[jobs_data->constellation];
       break;
 
-    case REACQ_LOW_PRIO:
-      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_low_prio));
-      priority_mask = reacq_low_prio[jobs_data->constellation];
+    case REACQ_GPS_HIGH_PRIO:
+      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_gps_high_prio));
+      priority_mask = reacq_gps_high_prio[jobs_data->constellation];
+      break;
+
+    case REACQ_SBAS_HIGH_PRIO:
+      assert((u8)jobs_data->constellation < ARRAY_SIZE(reacq_sbas_high_prio));
+      priority_mask = reacq_sbas_high_prio[jobs_data->constellation];
       break;
 
     case REACQ_PRIO_COUNT:
@@ -364,7 +387,7 @@ bool check_priority_mask(reacq_prio_level_t prio_level,
       assert(!"Unsupported re-acq priority mask");
   }
 
-  priority_mask >>= (REACQ_PRIORITY_CYCLE - jobs_data->priority_counter);
+  priority_mask >>= jobs_data->priority_counter;
   priority_mask &= 0x1;
   return priority_mask;
 }
@@ -410,6 +433,16 @@ bool is_constellation_enabled(constellation_t con) {
   return false;
 }
 
+static reacq_prio_level_t get_dynamic_prio(void) {
+  if (code_track_count(CODE_GPS_L1CA) < LOW_GPS_L1CA_SV_LIMIT) {
+    return REACQ_GPS_HIGH_PRIO;
+  }
+  if (code_track_count(CODE_SBAS_L1CA) < LOW_SBAS_L1CA_SV_LIMIT) {
+    return REACQ_SBAS_HIGH_PRIO;
+  }
+  return REACQ_NORMAL_PRIO;
+}
+
 /**
  * Check if current constellation is supported and scheduled for reacqusition.
  *
@@ -417,8 +450,7 @@ bool is_constellation_enabled(constellation_t con) {
  *         false otherwise
  */
 bool reacq_scheduled(acq_jobs_state_t *jobs_data) {
-  /* TODO: Add logic to select priority level based on tracked GPS count. */
-  reacq_prio_level_t prio_level = REACQ_NORMAL_PRIO;
+  reacq_prio_level_t prio_level = get_dynamic_prio();
 
   return (is_constellation_enabled(jobs_data->constellation) &&
           check_priority_mask(prio_level, jobs_data));
