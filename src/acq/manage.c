@@ -1157,8 +1157,8 @@ u8 code_track_count(code_t code) {
 u8 constellation_track_count(constellation_t gnss) {
   u8 sv_tracked = 0;
   for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if ((mesid_to_constellation(acq_status[i].mesid) == gnss) &&
-        (ACQ_PRN_TRACKING == acq_status[i].state)) {
+    if ((ACQ_PRN_TRACKING == acq_status[i].state) &&
+        (mesid_to_constellation(acq_status[i].mesid) == gnss)) {
       sv_tracked++;
     }
   }
