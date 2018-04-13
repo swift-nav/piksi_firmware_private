@@ -21,6 +21,7 @@
 #include <libswiftnav/logging.h>
 
 #include "me_constants.h"
+#include "nav_msg/nav_msg.h"
 #include "nav_msg/nav_msg_bds.h"
 #include "timing/timing.h"
 
@@ -162,8 +163,8 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     n->subfr_sync = true;
     n->subfr_bit_index = n->bit_index;
     n->bit_polarity = (BDS_PREAMBLE == pream_candidate_prev)
-                          ? BDS_BIT_POLARITY_NORMAL
-                          : BDS_BIT_POLARITY_INVERTED;
+                          ? BIT_POLARITY_NORMAL
+                          : BIT_POLARITY_INVERTED;
     pack_buffer(n);
     return true;
 
@@ -176,7 +177,7 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
       if (pream_candidate_prev != pream_candidate_last) {
         /* reset subframe sync and polarity */
         n->subfr_sync = false;
-        n->bit_polarity = BDS_BIT_POLARITY_UNKNOWN;
+        n->bit_polarity = BIT_POLARITY_UNKNOWN;
         log_info("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
                  n->prn,
                  pream_candidate_prev,
@@ -217,7 +218,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
   s32 TOW_s = (((subfr_words[0]) >> 4) & 0xff) << 12;
   TOW_s |= ((subfr_words[1]) >> 18) & 0xfff;
   if (TOW_s > WEEK_SECS) {
-    return BDS_TOW_INVALID;
+    return TOW_INVALID;
   }
 
   if (0x3fffffffULL == ((n->goodwords_mask >> 20) & 0x3fffffffULL)) {
@@ -319,7 +320,7 @@ s32 bds_d2_process_subframe(nav_msg_bds_t *n,
   s32 TOW_s = (((n->page_words[0]) >> 4) & 0xffU) << 12;
   TOW_s |= (((n->page_words[1]) >> 18) & 0x3FFU);
   if (TOW_s > WEEK_SECS) {
-    return BDS_TOW_INVALID;
+    return TOW_INVALID;
   }
 
   return TOW_s * 1000;
@@ -430,7 +431,7 @@ static u32 packdw(const u32 dw) {
 /** Deinterleaves signal in subframe structure */
 static void pack_buffer(nav_msg_bds_t *n) {
   u32 tmp = n->subframe_bits[0];
-  bool flip = (BDS_BIT_POLARITY_INVERTED == (n->bit_polarity)) ? true : false;
+  bool flip = (BIT_POLARITY_INVERTED == (n->bit_polarity)) ? true : false;
   tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
   u8 subfr = (tmp >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {

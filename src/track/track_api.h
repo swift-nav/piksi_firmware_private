@@ -40,6 +40,7 @@ void tracker_bit_sync_update(tracker_t *tracker_channel,
                              u32 int_ms,
                              bool sensitivity_mode);
 
+bool tracker_has_pilot_sync(const tracker_t *tracker_channel);
 u8 tracker_bit_length_get(tracker_t *tracker_channel);
 bool tracker_bit_aligned(tracker_t *tracker_channel);
 bool tracker_has_bit_sync(tracker_t *tracker_channel);

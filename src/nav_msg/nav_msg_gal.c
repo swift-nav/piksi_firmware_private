@@ -71,6 +71,8 @@ bool gal_inav_msg_update(nav_msg_gal_t *n, bool bit_val) {
              n->subframe_bits[7]);
     n->bit_index = 0;
   }
+
+  /* data decoding not implemented yet, but soon! */
   return false;
 }
 

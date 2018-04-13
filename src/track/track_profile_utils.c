@@ -321,7 +321,7 @@ static const state_table_t mode_2ms_sc4 = {
         TPF_EPL_USE  |                               TPF_PLD_USE | TPF_FLL_USE
                                                                  | TPF_FLL_HALFQ},
     {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
-        TPF_EPL_USE  |                               TPF_PLD_USE | TPF_FLL_USE},
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE},
   }
 };
 

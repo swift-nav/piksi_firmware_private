@@ -840,15 +840,13 @@ static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
     bool costas = true;
     tp_epl_corr_t corr_all = tracker_channel->corrs.corr_all;
 
-    bool has_pilot = ((CODE_GAL_E5X == tracker_channel->mesid.code) ||
-                      (CODE_GAL_E7X == tracker_channel->mesid.code)) &&
-                     (0 != (TRACKER_FLAG_BIT_SYNC & tracker_channel->flags));
+    bool has_pilot_sync = tracker_has_pilot_sync(tracker_channel);
 
     if ((CODE_GPS_L2CM == tracker_channel->mesid.code)) {
       /* The L2CM and L2CL codes are in phase */
       corr_all.prompt = corr_all.very_late;
       costas = false;
-    } else if (has_pilot) {
+    } else if (has_pilot_sync) {
       /* The E5bI and E5bQ codes are in quadrature */
       corr_all.prompt.I = -corr_all.very_late.Q;
       corr_all.prompt.Q = +corr_all.very_late.I;

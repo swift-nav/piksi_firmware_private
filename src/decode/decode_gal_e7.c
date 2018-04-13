@@ -37,16 +37,13 @@ static gal_e7_decoder_data_t gal_e7_decoder_data[ARRAY_SIZE(gal_e7_decoders)];
 static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data);
 
-static void decoder_gal_e7_disable(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
-
 static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_gal = {
     .code = CODE_GAL_E7X,
     .init = decoder_gal_e7_init,
-    .disable = decoder_gal_e7_disable,
+    .disable = decoder_disable,
     .process = decoder_gal_e7_process,
     .decoders = gal_e7_decoders,
     .num_decoders = ARRAY_SIZE(gal_e7_decoders)};
@@ -69,12 +66,6 @@ static void decoder_gal_e7_init(const decoder_channel_info_t *channel_info,
 
   memset(data, 0, sizeof(*data));
   gal_inav_msg_init(&data->nav_msg, channel_info->mesid.sat);
-}
-
-static void decoder_gal_e7_disable(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
-  (void)channel_info;
-  (void)decoder_data;
 }
 
 static void decoder_gal_e7_process(const decoder_channel_info_t *channel_info,

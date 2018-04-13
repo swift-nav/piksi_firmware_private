@@ -216,8 +216,8 @@ void nap_track_init(u8 channel,
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
   } else if (CODE_GAL_E7X == mesid.code) {
-    s->spacing[0] =
-        (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS, .samples = 1};
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
   } else {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
@@ -381,7 +381,7 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
-                      bool has_pilot) {
+                      bool has_pilot_sync) {
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
@@ -405,8 +405,9 @@ void nap_track_update(u8 channel,
   s->length[1] = s->length[0];
   s->length[0] = length;
 
-  t->CORR_SET = SET_NAP_CORR_LEN(length) +
-                ((u32)has_pilot << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos);
+  t->CORR_SET =
+      SET_NAP_CORR_LEN(length) +
+      ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -499,18 +500,18 @@ void nap_track_read_results(u8 channel,
 
 #ifndef PIKSI_RELEASE
   /* Useful for debugging correlators */
-  /*
-   if (s->mesid.code == CODE_GAL_E7X) {
-   log_info("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
-   s->mesid.sat,
-   corrs[3].I >> 6,
-   corrs[3].Q >> 6,
-   corrs[1].I >> 6,
-   corrs[1].Q >> 6,
-   corrs[4].I >> 6,
-   corrs[4].Q >> 6);
-   }
-   */
+
+  if (s->mesid.code == CODE_GAL_E7X) {
+    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
+              s->mesid.sat,
+              corrs[3].I >> 6,
+              corrs[3].Q >> 6,
+              corrs[1].I >> 6,
+              corrs[1].Q >> 6,
+              corrs[4].I >> 6,
+              corrs[4].Q >> 6);
+  }
+
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid, "Tracking correlator overflow.");
   }

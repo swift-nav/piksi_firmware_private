@@ -15,6 +15,7 @@
 
 #include <libswiftnav/logging.h>
 
+#include "decode_common.h"
 #include "nav_msg/nav_msg.h"
 #include "sbp.h"
 #include "sbp_utils.h"
@@ -36,15 +37,14 @@ static qzss_l1ca_decoder_data_t
 
 static void decoder_qzss_l1ca_init(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
-static void decoder_qzss_l1ca_disable(
-    const decoder_channel_info_t *channel_info, decoder_data_t *decoder_data);
+
 static void decoder_qzss_l1ca_process(
     const decoder_channel_info_t *channel_info, decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_qzss_l1ca = {
     .code = CODE_QZS_L1CA,
     .init = decoder_qzss_l1ca_init,
-    .disable = decoder_qzss_l1ca_disable,
+    .disable = decoder_disable,
     .process = decoder_qzss_l1ca_process,
     .decoders = qzss_l1ca_decoders,
     .num_decoders = ARRAY_SIZE(qzss_l1ca_decoders)};
@@ -68,12 +68,6 @@ static void decoder_qzss_l1ca_init(const decoder_channel_info_t *channel_info,
 
   memset(data, 0, sizeof(*data));
   nav_msg_init(&data->nav_msg);
-}
-
-static void decoder_qzss_l1ca_disable(
-    const decoder_channel_info_t *channel_info, decoder_data_t *decoder_data) {
-  (void)channel_info;
-  (void)decoder_data;
 }
 
 static void decoder_qzss_l1ca_process(

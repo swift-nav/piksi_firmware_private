@@ -36,7 +36,7 @@
 /** GAL E7 configuration container */
 static tp_tracker_config_t gal_e7_config = TP_TRACKER_DEFAULT_CONFIG;
 
-/* Forward declarations of interface methods for Beidou2 B11 */
+/* Forward declarations of interface methods for Galileo E5b */
 static tracker_interface_function_t tracker_gal_e7_init;
 static tracker_interface_function_t tracker_gal_e7_update;
 
@@ -49,7 +49,7 @@ static const tracker_interface_t tracker_interface_gal_e7 = {
 };
 
 static void tracker_gal_e7_init(tracker_t *tracker_channel) {
-  gal_e7_config.show_unconfirmed_trackers = true;
+  gal_e7_config.show_unconfirmed_trackers = false;
   tp_tracker_init(tracker_channel, &gal_e7_config);
 }
 
@@ -62,9 +62,6 @@ static void tracker_gal_e7_update(tracker_t *tracker_channel) {
   if (!bit_aligned) {
     return;
   }
-
-  /* TOW manipulation on bit edge */
-  //~ tracker_tow_cache(tracker_channel);
 }
 
 /** Register GAL E7 tracker into the the interface & settings framework.

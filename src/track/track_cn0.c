@@ -39,7 +39,7 @@
 #define INTEG_PERIOD_4_MS 4
 /** Integration interval: 5ms */
 #define INTEG_PERIOD_5_MS 5
-/** Integration interval: 5ms */
+/** Integration interval: 10ms */
 #define INTEG_PERIOD_10_MS 10
 /** Integration interval: 20ms */
 #define INTEG_PERIOD_20_MS 20
@@ -48,7 +48,7 @@
 #define TRACK_CN0_OFFSET_1MS_DBHZ 0
 /** C/N0 offset for 2ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_2MS_DBHZ 3
-/** C/N0 offset for 2ms estimator interval [dB/Hz] */
+/** C/N0 offset for 4ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_4MS_DBHZ 6
 /** C/N0 offset for 5ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_5MS_DBHZ 7

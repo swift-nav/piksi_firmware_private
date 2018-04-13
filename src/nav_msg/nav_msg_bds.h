@@ -22,12 +22,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define BDS_TOW_INVALID -1
-
-#define BDS_BIT_POLARITY_NORMAL +1
-#define BDS_BIT_POLARITY_INVERTED -1
-#define BDS_BIT_POLARITY_UNKNOWN 0
-
 /** Minimum BDS valid subframe number */
 #define BDS_SUBFRAME_MIN 1
 /** Maximum BDS valid subframe number */

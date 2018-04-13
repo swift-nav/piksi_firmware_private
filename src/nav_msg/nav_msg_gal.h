@@ -22,12 +22,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define GAL_TOW_INVALID -1
-
-#define GAL_BIT_POLARITY_NORMAL +1
-#define GAL_BIT_POLARITY_INVERTED -1
-#define GAL_BIT_POLARITY_UNKNOWN 0
-
 /** Minimum GAL valid subframe number */
 #define GAL_INAV_SUBFR_MIN 1
 /** Maximum GAL valid subframe number */
