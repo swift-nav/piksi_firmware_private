@@ -18,12 +18,14 @@
 #include "nap_constants.h"
 #include "nap_hw.h"
 #include "signal_db/signal_db.h"
+#include "soft_macq/gal_prns.h"
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
 #include "utils/gnss_capabilities/gnss_capabilities.h"
 
 #include <ch.h>
 
+#include <libswiftnav/bits.h>
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/signal.h>
@@ -121,6 +123,9 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GPS_L2P:
       assert(!"Unsupported SID");
       break;
+    case CODE_GAL_E7X:
+      ret = NAP_TRK_CODE_GAL_E7;
+      break;
     case CODE_GPS_L2CX:
     case CODE_GPS_L5I:
     case CODE_GPS_L5Q:
@@ -133,7 +138,6 @@ static u8 mesid_to_nap_code(const me_gnss_signal_t mesid) {
     case CODE_GAL_E6X:
     case CODE_GAL_E7I:
     case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
@@ -181,7 +185,7 @@ void nap_track_init(u8 channel,
          (mesid.code == CODE_GLO_L2OF) || (mesid.code == CODE_SBAS_L1CA) ||
          (mesid.code == CODE_BDS2_B11) || (mesid.code == CODE_BDS2_B2) ||
          (mesid.code == CODE_QZS_L1CA) || (mesid.code == CODE_QZS_L2CM) ||
-         (mesid.code == CODE_QZS_L2CL));
+         (mesid.code == CODE_QZS_L2CL) || (mesid.code == CODE_GAL_E7X));
 
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
@@ -211,6 +215,9 @@ void nap_track_init(u8 channel,
   } else if (IS_BDS2(mesid)) {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_BDS2_SPACING_SAMPLES};
+  } else if (CODE_GAL_E7X == mesid.code) {
+    s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
+                                    .samples = NAP_VE_E_GALE7_SPACING_SAMPLES};
   } else {
     s->spacing[0] = (nap_spacing_t){.chips = NAP_VE_E_SPACING_CHIPS,
                                     .samples = NAP_VE_E_GPS_SPACING_SAMPLES};
@@ -333,6 +340,21 @@ void nap_track_init(u8 channel,
   NAP->TRK_CODE_LFSR1_RESET = mesid_to_lfsr1_init(mesid1, 0);
   NAP->TRK_CODE_LFSR1_LAST = mesid_to_lfsr1_last(mesid1);
 
+  if (mesid.code == CODE_GAL_E5X) {
+    index = mesid.sat - 1;
+    NAP->TRK_SEC_CODE3 = getbitu(gal_e5q_sec_codes[index], 0, 4);
+    NAP->TRK_SEC_CODE2 = getbitu(gal_e5q_sec_codes[index], 4, 32);
+    NAP->TRK_SEC_CODE1 = getbitu(gal_e5q_sec_codes[index], 36, 32);
+    NAP->TRK_SEC_CODE0 = getbitu(gal_e5q_sec_codes[index], 68, 32);
+  }
+  if (mesid.code == CODE_GAL_E7X) {
+    index = mesid.sat - 1;
+    NAP->TRK_SEC_CODE3 = getbitu(gal_e7q_sec_codes[index], 0, 4);
+    NAP->TRK_SEC_CODE2 = getbitu(gal_e7q_sec_codes[index], 4, 32);
+    NAP->TRK_SEC_CODE1 = getbitu(gal_e7q_sec_codes[index], 36, 32);
+    NAP->TRK_SEC_CODE0 = getbitu(gal_e7q_sec_codes[index], 68, 32);
+  }
+
   /* port FCN-induced NCO phase to a common receiver clock point */
   s->reckoned_carr_phase = (s->fcn_freq_hz) *
                            (tc_next_rollover % FCN_NCO_RESET_COUNT) /
@@ -359,9 +381,7 @@ void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double chip_rate,
                       u32 chips_to_correlate,
-                      u8 corr_spacing) {
-  (void)corr_spacing; /* This is always written as 0, for now */
-
+                      bool has_pilot_sync) {
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
@@ -385,7 +405,9 @@ void nap_track_update(u8 channel,
   s->length[1] = s->length[0];
   s->length[0] = length;
 
-  t->CORR_SET = SET_NAP_CORR_LEN(length);
+  t->CORR_SET =
+      SET_NAP_CORR_LEN(length) +
+      ((u32)has_pilot_sync << NAP_TRK_CH_CORR_SET_SEC_CODE_ENABLE_Pos);
 
   if ((length < NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MIN_MS)) ||
       (length > NAP_MS_2_SAMPLES(NAP_CORR_LENGTH_MAX_MS))) {
@@ -426,6 +448,10 @@ void nap_track_read_results(u8 channel,
 
   *count_snapshot = trk_ch.TIMING_SNAPSHOT;
 
+  /* VE correlator */
+  corrs[3].I = (s16)(trk_ch.CORR0 & 0xFFFF);
+  corrs[3].Q = (s16)((trk_ch.CORR0 >> 16) & 0xFFFF);
+
   /* E correlator */
   corrs[0].I = (s16)(trk_ch.CORR1 & 0xFFFF);
   corrs[0].Q = (s16)((trk_ch.CORR1 >> 16) & 0xFFFF);
@@ -437,10 +463,6 @@ void nap_track_read_results(u8 channel,
   /* L correlator */
   corrs[2].I = (s16)(trk_ch.CORR3 & 0xFFFF);
   corrs[2].Q = (s16)((trk_ch.CORR3 >> 16) & 0xFFFF);
-
-  /* VE correlator */
-  corrs[3].I = (s16)(trk_ch.CORR0 & 0xFFFF);
-  corrs[3].Q = (s16)((trk_ch.CORR0 >> 16) & 0xFFFF);
 
   /* VL correlator */
   corrs[4].I = (s16)(trk_ch.CORR4 & 0xFFFF);
@@ -477,24 +499,18 @@ void nap_track_read_results(u8 channel,
   *carrier_phase = (s->reckoned_carr_phase);
 
 #ifndef PIKSI_RELEASE
-  /* Useful for debugging correlators
-  if (s->mesid.code == CODE_GPS_L2CM && s->mesid.sat == 15) {
-    log_info("VEEPLVL IQ \
-        %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d",
-        s->mesid.sat,
-        s->mesid.code,
-        corrs[3].I,
-        corrs[3].Q,
-        corrs[0].I,
-        corrs[0].Q,
-        corrs[1].I,
-        corrs[1].Q,
-        corrs[2].I,
-        corrs[2].Q,
-        corrs[4].I,
-        corrs[4].Q);
+  /* Useful for debugging correlators */
+
+  if (s->mesid.code == CODE_GAL_E7X) {
+    log_debug("EPL %02d   %+3ld %+3ld   %+3ld %+3ld   %+3ld %+3ld",
+              s->mesid.sat,
+              corrs[3].I >> 6,
+              corrs[3].Q >> 6,
+              corrs[1].I >> 6,
+              corrs[1].Q >> 6,
+              corrs[4].I >> 6,
+              corrs[4].Q >> 6);
   }
-  */
 
   if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
     log_warn_mesid(s->mesid, "Tracking correlator overflow.");

@@ -13,6 +13,7 @@
 #ifndef SWIFTNAV_DECODE_COMMON_H
 #define SWIFTNAV_DECODE_COMMON_H
 
+#include "decode.h"
 #include "nav_bit_fifo/nav_bit_fifo.h"
 #include "nav_data_sync/nav_data_sync.h"
 #include "nav_msg/cnav_msg_storage.h"
@@ -44,5 +45,8 @@ bool glo_data_sync(nav_msg_glo_t *n,
 
 void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
 void erase_cnav_data(gnss_signal_t target_sid, gnss_signal_t src_sid);
+
+void decoder_disable(const decoder_channel_info_t *channel_info,
+                     decoder_data_t *decoder_data);
 
 #endif /* #ifndef SWIFTNAV_DECODE_COMMON_H */

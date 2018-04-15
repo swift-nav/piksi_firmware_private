@@ -343,7 +343,7 @@ static void tracker_gps_l2c_update(tracker_t *tracker) {
 
   if (in_phase_lock && confirmed) {
     /* naturally synched as we track */
-    s8 symb_sign = SIGN(tracker->corrs.corr_epl.very_late.I);
+    s8 symb_sign = SIGN(tracker->corrs.corr_all.very_late.I);
     s8 pol_sign = SIGN(tracker->cp_sync.polarity);
     log_debug("G%02d L2C %+2d %+3d",
               tracker->mesid.sat,

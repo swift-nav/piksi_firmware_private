@@ -28,7 +28,7 @@ extern "C" {
 
 #define BITSYNC_UNSYNCED -1
 
-#define BIT_LENGTH_MAX 20
+#define BIT_LENGTH_MAX 100
 
 /** Structure containing bit sync state for a signal */
 typedef struct {
@@ -38,7 +38,7 @@ typedef struct {
   s8 bit_phase_ref; /**< -1 = not synced.*/
   s32 bit_integrate;
 
-  s8 bitsync_histogram[BIT_LENGTH_MAX];
+  s8 histogram[BIT_LENGTH_MAX];
   s32 prev_real;
   s32 prev_imag;
 

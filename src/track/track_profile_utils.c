@@ -148,6 +148,28 @@ static const state_table_t mode_1ms_2ms = {
   }
 };
 
+
+/**
+ * 1 ms tracking mode for Galileo E7I nav
+ */
+static const state_table_t mode_1ms_sc4 = {
+  .int_ms = 1,
+  .cn0_ms = 4,
+  .lockdet_ms = 1,
+  .alias_ms = 0, /* not used as equal to flld_ms */
+  .flld_ms = 1,
+  .flll_ms = 1,
+  .bit_ms = 4,
+  .ent_cnt = 4,
+  .entries = {
+    {1, TP_FLAGS_1MS | TPF_CN0_SET | TPF_BSYNC_SET | TPF_FLL_HALFQ},
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD },
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD },
+    {1, TP_FLAGS_1MS | TPF_CN0_ADD | TPF_BSYNC_ADD |
+                       TPF_CN0_USE | TPF_BSYNC_UPD}
+  }
+};
+
 /**
  * 1 ms tracking mode for Beidou with D1 nav and GPS L5
  */
@@ -280,6 +302,30 @@ static const state_table_t mode_2ms_2ms = {
   }
 };
 
+
+/**
+ * 2 ms tracking mode for Galileo E7I nav
+ */
+static const state_table_t mode_2ms_sc4 = {
+  .int_ms = 2,
+  .cn0_ms = 4,
+  .lockdet_ms = 2,
+  .alias_ms = 0, /* not used as equal to flld_ms */
+  .flld_ms = 2,
+  .flll_ms = 2,
+  .bit_ms = 4,
+  .ent_cnt = 3,
+  .entries = {
+    {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {1, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE  |                               TPF_PLD_USE | TPF_FLL_USE
+                                                                 | TPF_FLL_HALFQ},
+    {2, TPF_EPL_SET  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE},
+  }
+};
+
+
 /**
  * 2 ms integration profile for Beidou with D1 nav and GPS L5
  */
@@ -334,6 +380,27 @@ static const state_table_t mode_2ms_nh20ms = {
         TPF_EPL_SET | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_SET | TPF_FLL_SET},
     {1, TPF_EPL_ADD | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
         TPF_EPL_USE | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE},
+  }
+};
+
+
+/**
+ * 4 ms tracking mode for Galileo E7I nav
+ */
+static const state_table_t mode_4ms_sc4 = {
+  .int_ms = 4,
+  .cn0_ms = 4,
+  .lockdet_ms = 4,
+  .alias_ms = 0, /* not used as equal to flld_ms */
+  .flld_ms = 4,
+  .flll_ms = 4,
+  .bit_ms = 4,
+  .ent_cnt = 2,
+  .entries = {
+    {1, TPF_EPL_SET  | TPF_CN0_SET | TPF_BSYNC_SET | TPF_PLD_SET | TPF_FLL_SET},
+    {3, TPF_EPL_ADD  | TPF_CN0_ADD | TPF_BSYNC_ADD | TPF_PLD_ADD | TPF_FLL_ADD |
+        TPF_EPL_USE  | TPF_CN0_USE | TPF_BSYNC_UPD | TPF_PLD_USE | TPF_FLL_USE |
+                                                                   TPF_FLL_HALFQ}
   }
 };
 
@@ -697,6 +764,15 @@ static const state_table_t *select_table(tp_tm_e tracking_mode) {
     case TP_TM_20MS_NH20MS:
       return &mode_20ms_nh20ms;
 
+    case TP_TM_1MS_SC4:
+      return &mode_1ms_sc4;
+
+    case TP_TM_2MS_SC4:
+      return &mode_2ms_sc4;
+
+    case TP_TM_4MS_SC4:
+      return &mode_4ms_sc4;
+
     default:
       assert(!"Invalid mode");
       break;
@@ -991,6 +1067,15 @@ const char *tp_get_mode_str(tp_tm_e v) {
       break;
     case TP_TM_20MS_NH20MS:
       str = "TM 20/NH20 MS";
+      break;
+    case TP_TM_1MS_SC4:
+      str = "TM 1/SC4 MS";
+      break;
+    case TP_TM_2MS_SC4:
+      str = "TM 2/SC4 MS";
+      break;
+    case TP_TM_4MS_SC4:
+      str = "TM 4/SC4 MS";
       break;
     default:
       assert(false);

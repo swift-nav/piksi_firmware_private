@@ -147,6 +147,7 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg_storage.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
+        $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_gal.o \
         $(SWIFTNAV_ROOT)/src/utils/glo_map_setup/glo_map_setup.o \
         $(SWIFTNAV_ROOT)/src/acq/manage.o \
         $(SWIFTNAV_ROOT)/src/utils/settings/settings.o \
@@ -190,6 +191,9 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/reacq/task_generator.o \
         $(SWIFTNAV_ROOT)/src/specan/specan_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/prns.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/gal_prns.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/bds2_prns.o \
+        $(SWIFTNAV_ROOT)/src/soft_macq/qzss_prns.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_mdbzp.o \

@@ -11,6 +11,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/bits.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/gnss_time.h>
 
@@ -302,7 +303,7 @@ void tp_tracker_disable(tracker_t *tracker_channel) {
  *
  * \return Computed number of chips.
  */
-u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
+static u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel) {
   double code_phase_chips = tracker_channel->code_phase_prompt;
 
   bool plock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
@@ -447,8 +448,8 @@ static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
  * \param[in]     tracker_channel Tracker channel data
  * \param[in]     cycle_flags  Current cycle flags.
  */
-void tp_tracker_update_correlators(tracker_t *tracker_channel,
-                                   u32 cycle_flags) {
+static void tp_tracker_update_correlators(tracker_t *tracker_channel,
+                                          u32 cycle_flags) {
   me_gnss_signal_t mesid = tracker_channel->mesid;
   tp_epl_corr_t cs_now;     /**< Correlations from FPGA */
   u32 sample_count;         /**< Sample count from FPGA */
@@ -458,10 +459,20 @@ void tp_tracker_update_correlators(tracker_t *tracker_channel,
 
   /* Read correlations. */
   tracker_correlations_read(tracker_channel->nap_channel,
-                            cs_now.epl,
+                            cs_now.five,
                             &sample_count,
                             &code_phase_prompt,
                             &carrier_phase);
+
+  bool try_lock_pilot = ((CODE_GAL_E5X == tracker_channel->mesid.code) ||
+                         (CODE_GAL_E7X == tracker_channel->mesid.code)) &&
+                        (0 == (TRACKER_FLAG_BIT_SYNC & tracker_channel->flags));
+  if (try_lock_pilot) {
+    /* overwrite data with pilot until bit-sync has been achieved,
+     * so that sync can be achieved on the 100-chip secondary code */
+    cs_now.prompt.I = -cs_now.very_late.Q;
+    cs_now.prompt.Q = +cs_now.very_late.I;
+  }
 
   tp_update_correlators(cycle_flags, &cs_now, &tracker_channel->corrs);
 
@@ -554,18 +565,15 @@ void tp_tracker_update_correlators(tracker_t *tracker_channel,
  *
  * \return None
  */
-void tp_tracker_update_bsync(tracker_t *tracker_channel, u32 cycle_flags) {
+static void tp_tracker_update_bsync(tracker_t *tracker_channel,
+                                    u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD)) {
     bool sensitivity_mode =
         (0 != (tracker_channel->flags & TRACKER_FLAG_SENSITIVITY_MODE));
     /* Bit sync / data decoding update counter. */
-    u8 update_count_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
+    u8 int_ms = tp_get_bit_ms(tracker_channel->tracking_mode);
     /* Bit sync advance / message decoding */
-    tracker_bit_sync_update(tracker_channel,
-                            update_count_ms,
-                            tracker_channel->corrs.corr_bit.I,
-                            tracker_channel->corrs.corr_bit.Q,
-                            sensitivity_mode);
+    tracker_bit_sync_update(tracker_channel, int_ms, sensitivity_mode);
 
     /* TODO Update BS from ToW when appropriate. */
     /* TODO Add fast BS detection. */
@@ -581,7 +589,7 @@ void tp_tracker_update_bsync(tracker_t *tracker_channel, u32 cycle_flags) {
  *
  * \return None
  */
-void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
+static void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
   float cn0 = tracker_channel->cn0_est.filter.yn;
   tp_cn0_params_t cn0_params;
   tp_profile_get_cn0_params(&tracker_channel->profile, &cn0_params);
@@ -594,25 +602,21 @@ void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
     if (0 == tracker_channel->corrs.corr_cn0.prompt.I &&
         0 == tracker_channel->corrs.corr_cn0.prompt.Q) {
       log_warn_mesid(tracker_channel->mesid,
-                     "Prompt I/Q: %" PRIi32 "/%" PRIi32,
+                     "Prompt I/Q: %" PRIi32 "/%" PRIi32 " Ea I/Q: %" PRIi32
+                     "/%" PRIi32 " La I/Q: %" PRIi32 "/%" PRIi32
+                     " VEa I/Q: %" PRIi32 "/%" PRIi32 " VLa I/Q: %" PRIi32
+                     "/%" PRIi32,
                      tracker_channel->corrs.corr_cn0.prompt.I,
-                     tracker_channel->corrs.corr_cn0.prompt.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Early I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.prompt.Q,
                      tracker_channel->corrs.corr_cn0.early.I,
-                     tracker_channel->corrs.corr_cn0.early.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Late I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.early.Q,
                      tracker_channel->corrs.corr_cn0.late.I,
-                     tracker_channel->corrs.corr_cn0.late.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Very Early I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.late.Q,
                      tracker_channel->corrs.corr_cn0.very_early.I,
-                     tracker_channel->corrs.corr_cn0.very_early.Q);
-      log_warn_mesid(tracker_channel->mesid,
-                     "Very Late I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.very_early.Q,
                      tracker_channel->corrs.corr_cn0.very_late.I,
                      tracker_channel->corrs.corr_cn0.very_late.Q);
+
     } else {
       /* Update C/N0 estimate */
       cn0 = track_cn0_update(tracker_channel->mesid,
@@ -717,7 +721,8 @@ static void update_ld_freq(tracker_t *tracker_channel) {
  *
  * \return None
  */
-void tp_tracker_update_locks(tracker_t *tracker_channel, u32 cycle_flags) {
+static void tp_tracker_update_locks(tracker_t *tracker_channel,
+                                    u32 cycle_flags) {
   /* Phase lock and frequency lock detectors are updated asynchronously. */
   if (0 != (cycle_flags & TPF_PLD_USE) || 0 != (cycle_flags & TPF_FLL_USE)) {
     bool outp_prev =
@@ -801,12 +806,13 @@ void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags) {
  *
  * \return None
  */
-void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
+static void tp_tracker_update_pll_dll(tracker_t *tracker_channel,
+                                      u32 cycle_flags) {
   if (0 != (cycle_flags & TPF_EPL_USE)) {
     /* Output I/Q correlations using SBP if enabled for this channel */
     if (tracker_channel->tracking_mode != TP_TM_INITIAL) {
       tracker_correlations_send(tracker_channel,
-                                tracker_channel->corrs.corr_epl.epl);
+                                tracker_channel->corrs.corr_all.five);
     }
 
     if (tracker_channel->has_next_params) {
@@ -823,8 +829,8 @@ void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
         float k2 = (float)old_dll_ms / new_dll_ms;
         float k1 = sqrtf(k2);
         for (u32 i = 0; i < 3; i++) {
-          tracker_channel->corrs.corr_epl.epl[i].I *= k1;
-          tracker_channel->corrs.corr_epl.epl[i].Q *= k2;
+          tracker_channel->corrs.corr_all.five[i].I *= k1;
+          tracker_channel->corrs.corr_all.five[i].Q *= k2;
         }
       }
     }
@@ -832,12 +838,21 @@ void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
     tl_rates_t rates = {0};
 
     bool costas = true;
-    tp_epl_corr_t corr_epl = tracker_channel->corrs.corr_epl;
-    if (CODE_GPS_L2CM == tracker_channel->mesid.code) {
-      corr_epl.prompt = corr_epl.very_late;
+    tp_epl_corr_t corr_all = tracker_channel->corrs.corr_all;
+
+    bool has_pilot_sync = tracker_has_pilot_sync(tracker_channel);
+
+    if ((CODE_GPS_L2CM == tracker_channel->mesid.code)) {
+      /* The L2CM and L2CL codes are in phase */
+      corr_all.prompt = corr_all.very_late;
+      costas = false;
+    } else if (has_pilot_sync) {
+      /* The E5bI and E5bQ codes are in quadrature */
+      corr_all.prompt.I = -corr_all.very_late.Q;
+      corr_all.prompt.Q = +corr_all.very_late.I;
       costas = false;
     }
-    tp_tl_update(&tracker_channel->tl_state, &corr_epl, costas);
+    tp_tl_update(&tracker_channel->tl_state, &corr_all, costas);
     tp_tl_get_rates(&tracker_channel->tl_state, &rates);
 
     tracker_channel->carrier_freq = rates.carr_freq;
@@ -924,7 +939,8 @@ static void tp_tracker_flag_outliers(tracker_t *tracker) {
  *
  * \return None
  */
-void tp_tracker_update_alias(tracker_t *tracker_channel, u32 cycle_flags) {
+static void tp_tracker_update_alias(tracker_t *tracker_channel,
+                                    u32 cycle_flags) {
   if (!tracker_channel->use_alias_detection) {
     return;
   }
@@ -966,9 +982,9 @@ void tp_tracker_update_alias(tracker_t *tracker_channel, u32 cycle_flags) {
  *
  * \return None
  */
-void tp_tracker_filter_doppler(tracker_t *tracker_channel,
-                               u32 cycle_flags,
-                               const tp_tracker_config_t *config) {
+static void tp_tracker_filter_doppler(tracker_t *tracker_channel,
+                                      u32 cycle_flags,
+                                      const tp_tracker_config_t *config) {
   if (0 != (cycle_flags & TPF_BSYNC_UPD) &&
       tracker_bit_aligned(tracker_channel)) {
     float xcorr_freq = tracker_channel->carrier_freq;
@@ -993,7 +1009,7 @@ void tp_tracker_filter_doppler(tracker_t *tracker_channel,
  *
  * \return None
  */
-void tp_tracker_update_mode(tracker_t *tracker_channel) {
+static void tp_tracker_update_mode(tracker_t *tracker_channel) {
   mode_change_complete(tracker_channel);
   mode_change_init(tracker_channel);
 }

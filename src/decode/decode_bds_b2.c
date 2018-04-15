@@ -37,16 +37,13 @@ static bds_b2_decoder_data_t bds_b2_decoder_data[ARRAY_SIZE(bds_b2_decoders)];
 static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
                                 decoder_data_t *decoder_data);
 
-static void decoder_bds_b2_disable(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data);
-
 static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
                                    decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_bds_b2 = {
     .code = CODE_BDS2_B2,
     .init = decoder_bds_b2_init,
-    .disable = decoder_bds_b2_disable,
+    .disable = decoder_disable,
     .process = decoder_bds_b2_process,
     .decoders = bds_b2_decoders,
     .num_decoders = ARRAY_SIZE(bds_b2_decoders)};
@@ -69,12 +66,6 @@ static void decoder_bds_b2_init(const decoder_channel_info_t *channel_info,
 
   memset(data, 0, sizeof(*data));
   bds_nav_msg_init(&data->nav_msg, channel_info->mesid.sat);
-}
-
-static void decoder_bds_b2_disable(const decoder_channel_info_t *channel_info,
-                                   decoder_data_t *decoder_data) {
-  (void)channel_info;
-  (void)decoder_data;
 }
 
 static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
@@ -100,12 +91,12 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
 
     bool tlm_rx = bds_nav_msg_update(&data->nav_msg, bit_val);
     if (tlm_rx) {
-      s32 TOWms = BDS_TOW_INVALID;
+      s32 TOWms = TOW_INVALID;
       nav_data_sync_t from_decoder;
       tracker_data_sync_init(&from_decoder);
       if (bds_d2nav(mesid)) {
         TOWms = bds_d2_process_subframe(&data->nav_msg, mesid, &dd_d2nav);
-        if (BDS_TOW_INVALID != TOWms) {
+        if (TOW_INVALID != TOWms) {
           from_decoder.TOW_ms = TOWms - 60;
         }
         if (dd_d2nav.ephemeris_upd_flag) {
@@ -122,7 +113,7 @@ static void decoder_bds_b2_process(const decoder_channel_info_t *channel_info,
         }
       } else {
         TOWms = bds_d1_process_subframe(&data->nav_msg, mesid, &dd_d1nav);
-        if (BDS_TOW_INVALID != TOWms) {
+        if (TOW_INVALID != TOWms) {
           from_decoder.TOW_ms = TOWms;
         }
         if (dd_d1nav.ephemeris_upd_flag) {

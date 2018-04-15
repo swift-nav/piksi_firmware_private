@@ -91,7 +91,8 @@ bool soft_acq_search(const sc16_t *_cSignal,
   float chips_per_sample = code_to_chip_rate(mesid.code) / FAU_SAMPLE_RATE_Hz;
 
   /* For constellations with frequent symbol transitions, do 1x4 CxNC */
-  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code)) {
+  if ((CODE_SBAS_L1CA == mesid.code) || (CODE_BDS2_B11 == mesid.code) ||
+      (CODE_GAL_E7X == mesid.code)) {
     code_resample(mesid,
                   chips_per_sample,
                   code_fft + CODE_SPMS * (FAU_FFTLEN / CODE_SPMS - 1),

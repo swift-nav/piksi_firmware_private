@@ -55,6 +55,15 @@ void tracker_correlations_read(u8 nap_channel,
       nap_channel, sample_count, cs, code_phase, carrier_phase);
 }
 
+bool tracker_has_pilot_sync(const tracker_t *tracker_channel) {
+  const code_t code = tracker_channel->mesid.code;
+  const u32 flags = tracker_channel->flags;
+
+  bool has_pilot_sync = ((CODE_GAL_E5X == code) || (CODE_GAL_E7X == code)) &&
+                        (0 != (TRACKER_FLAG_BIT_SYNC & flags));
+  return has_pilot_sync;
+}
+
 /** Write the NAP update register for a tracker channel.
  *
  * \param[in]     tracker_channel Tracker channel data
@@ -63,13 +72,13 @@ void tracker_correlations_read(u8 nap_channel,
 void tracker_retune(tracker_t *tracker_channel, u32 chips_to_correlate) {
   double doppler_freq_hz = tracker_channel->carrier_freq;
   double code_phase_rate = tracker_channel->code_phase_rate;
-
+  bool has_pilot_sync = tracker_has_pilot_sync(tracker_channel);
   /* Write NAP UPDATE register. */
   nap_track_update(tracker_channel->nap_channel,
                    doppler_freq_hz,
                    code_phase_rate,
                    chips_to_correlate,
-                   0);
+                   has_pilot_sync);
 }
 
 /** Adjust TOW for FIFO delay.
@@ -224,22 +233,20 @@ static s8 nav_bit_quantize(s32 bit_integrate) {
  *
  * \param[in] tracker_channel Tracker channel data
  * \param int_ms            Integration period (ms).
- * \param corr_prompt_real  Real part of the prompt correlation.
  * \param sensitivity_mode  Flag indicating tracking channel sensitivity mode.
  */
 void tracker_bit_sync_update(tracker_t *tracker_channel,
                              u32 int_ms,
-                             s32 corr_prompt_real,
-                             s32 corr_prompt_imag,
                              bool sensitivity_mode) {
   /* Update bit sync */
   s32 bit_integrate;
   bool integrated = bit_sync_update(&tracker_channel->bit_sync,
-                                    corr_prompt_real,
-                                    corr_prompt_imag,
+                                    tracker_channel->corrs.corr_bit.I,
+                                    tracker_channel->corrs.corr_bit.Q,
                                     int_ms,
                                     &bit_integrate);
 
+  /* port sync information to flags */
   if (BITSYNC_UNSYNCED == tracker_channel->bit_sync.bit_phase_ref) {
     tracker_channel->flags &= ~TRACKER_FLAG_BIT_SYNC;
   } else {
@@ -249,6 +256,15 @@ void tracker_bit_sync_update(tracker_t *tracker_channel,
   me_gnss_signal_t mesid = tracker_channel->mesid;
   if (!integrated || !code_requires_decoder(mesid.code)) {
     return;
+  }
+
+  if (CODE_GAL_E7X == mesid.code) {
+    log_debug("E%02d energy %+4ld %+4ld  %+4ld %+4ld",
+              mesid.sat,
+              tracker_channel->corrs.corr_cn0.prompt.I,
+              tracker_channel->corrs.corr_cn0.prompt.Q,
+              tracker_channel->corrs.corr_cn0.very_late.I,
+              tracker_channel->corrs.corr_cn0.very_late.Q);
   }
 
   s8 soft_bit = nav_bit_quantize(bit_integrate);
