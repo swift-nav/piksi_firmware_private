@@ -24,7 +24,7 @@
 #include "timing/timing.h"
 
 #define PPS_THREAD_INTERVAL_MS (10)
-#define PPS_THREAD_STACK (1 * 1024)
+#define PPS_THREAD_STACK (2 * 1024)
 #define PPS_THREAD_PRIORITY (NORMALPRIO + 15)
 
 #define PPS_FW_OFFSET_S 570e-9
