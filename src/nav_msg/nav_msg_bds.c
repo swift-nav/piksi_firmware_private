@@ -109,6 +109,7 @@ static void process_d1_fraid5(nav_msg_bds_t *n,
 void bds_nav_msg_init(nav_msg_bds_t *n, u8 prn) {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(*n));
+  n->bit_polarity = BIT_POLARITY_UNKNOWN;
   n->prn = prn;
 }
 
