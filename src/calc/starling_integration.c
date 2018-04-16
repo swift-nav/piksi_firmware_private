@@ -69,7 +69,7 @@ static bool set_is_glonass_enabled(struct setting *s, const char *val) {
   }
   bool is_glonass_enabled = (value != 0);
   starling_set_is_glonass_enabled(is_glonass_enabled);
-  *(dgnss_filter_t *)s->addr = value;
+  *(bool *)s->addr = value;
   return ret;
 }
 
@@ -92,6 +92,7 @@ static void initialize_starling_settings(void) {
                  max_age_of_differential,
                  TYPE_INT,
                  set_max_age);
+
   SETTING_NOTIFY("solution",
                  "enable_glonass",
                  enable_glonass,
