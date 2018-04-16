@@ -51,6 +51,11 @@ static const tracker_interface_t tracker_interface_gps_l1ca = {
     .update = tracker_gps_l1ca_update,
 };
 
+/** GPS L1 C/A tracker interface list element */
+static tracker_interface_list_element_t
+    tracker_interface_list_element_gps_l1ca = {
+        .interface = &tracker_interface_gps_l1ca, .next = 0};
+
 /** Register GPS L1 C/A tracker into the the tracker interface & settings
  *  framework.
  */
@@ -59,7 +64,7 @@ void track_gps_l1ca_register(void) {
                             gps_l1ca_config.xcorr_cof,
                             SECS_MS / GPS_L1CA_BIT_LENGTH_MS);
 
-  tracker_interface_register(&tracker_interface_gps_l1ca);
+  tracker_interface_register(&tracker_interface_list_element_gps_l1ca);
 }
 
 static void tracker_gps_l1ca_init(tracker_t *tracker_channel) {
@@ -438,14 +443,10 @@ static void tracker_gps_l1ca_update(tracker_t *tracker_channel) {
   update_l1_xcorr_from_l2(tracker_channel);
 
   bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
-  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+  bool inlock = ((0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK)) ||
                  (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK)));
-  bool tow_valid = (TOW_UNKNOWN != (tracker_channel->TOW_ms));
-  double cn0_threshold_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ;
-  cn0_threshold_dbhz += TRACK_CN0_HYSTERESIS_THRES_DBHZ;
-  bool cn0_high = (tracker_channel->cn0 > cn0_threshold_dbhz);
 
-  if (inlock && confirmed && tow_valid && cn0_high) {
+  if (inlock && confirmed && (TOW_UNKNOWN != (tracker_channel->TOW_ms))) {
     /* Start L2C tracker if not running */
     do_l1ca_to_l2c_handover(tracker_channel->sample_count,
                             tracker_channel->mesid.sat,

@@ -10,7 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "obs_bias.h"
-#include <assert.h>
 #include "sbp_utils.h"
 
 /* exported setting */

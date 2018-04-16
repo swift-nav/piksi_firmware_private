@@ -56,19 +56,10 @@
 /** Re-acq priority mask length in bits */
 #define REACQ_PRIORITY_CYCLE (30)
 
-/** GPS will have high re-acq priority if less than limit SVs is tracked */
-#define LOW_GPS_L1CA_SV_LIMIT (6)
-/**
-  SBAS will have high re-acq priority if less than limit SVs is tracked
-  and GPS is not already prioritized.
-*/
-#define LOW_SBAS_L1CA_SV_LIMIT (1)
-
 /** Re-acq priority levels. */
 typedef enum reacq_prio_level_e {
   REACQ_NORMAL_PRIO,
-  REACQ_GPS_HIGH_PRIO,
-  REACQ_SBAS_HIGH_PRIO,
+  REACQ_LOW_PRIO,
   REACQ_PRIO_COUNT,
 } reacq_prio_level_t;
 
@@ -133,14 +124,15 @@ typedef struct {
 
 /** Container for all the jobs */
 typedef struct {
-  /**< jobs for GPS, GLO and SBAS for each job type.
-   * Sequence of the job must be fixed: GPS, GLO, SBAS. New constellation
-   * must be added at the end.
-   * Start index of any used GNSS can be obtain using function
-   * sm_constellation_to_start_index() */
-  acq_job_t jobs[ACQ_NUM_JOB_TYPES][NUM_SATS_GPS + NUM_SATS_GLO +
-                                    NUM_SATS_SBAS + NUM_SATS_BDS2 +
-                                    NUM_SATS_QZS];
+  acq_job_t jobs_gps[ACQ_NUM_JOB_TYPES]
+                    [NUM_SATS_GPS]; /**< job for GPS SV for each
+                                         job type */
+  acq_job_t jobs_glo[ACQ_NUM_JOB_TYPES]
+                    [NUM_SATS_GLO]; /**< job for GLO SV for each
+                                         job type */
+  acq_job_t jobs_sbas[ACQ_NUM_JOB_TYPES]
+                     [NUM_SATS_SBAS]; /**< job for SBAS SV for each
+                                           job type */
   constellation_t constellation;
   u8 priority_counter;
 } acq_jobs_state_t;
@@ -149,16 +141,8 @@ typedef struct {
     and scheduler */
 extern acq_jobs_state_t acq_all_jobs_state_data;
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 void sm_init(acq_jobs_state_t *data);
 void sm_constellation_select(acq_jobs_state_t *jobs_data);
 void sm_run(acq_jobs_state_t *jobs_data);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
 
 #endif /* SWIFTNAV_SEARCH_MANAGER_API_H */

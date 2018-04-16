@@ -14,7 +14,6 @@
 #define SWIFTNAV_BIT_SYNC_H
 
 #include <libswiftnav/common.h>
-#include <libswiftnav/constants.h>
 #include <libswiftnav/signal.h>
 
 #include "gnss_capabilities/gnss_capabilities.h"

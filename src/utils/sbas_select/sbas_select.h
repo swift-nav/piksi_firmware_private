@@ -14,16 +14,24 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/signal.h>
 
 #include "position/position.h"
+
+typedef enum sbas_e {
+  SBAS_UNKNOWN = -1,
+  SBAS_WAAS = 0,
+  SBAS_EGNOS,
+  SBAS_GAGAN,
+  SBAS_MSAS,
+  SBAS_COUNT
+} sbas_type_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-sbas_system_t sbas_select_provider(const last_good_fix_t *lgf);
-u32 sbas_select_prn_mask(sbas_system_t sbas);
+sbas_type_t sbas_select_provider(const last_good_fix_t *lgf);
+u32 sbas_select_prn_mask(sbas_type_t sbas);
 
 #ifdef __cplusplus
 }

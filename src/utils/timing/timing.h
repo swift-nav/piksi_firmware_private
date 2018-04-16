@@ -35,8 +35,11 @@ typedef enum {
   TIME_FINE,       /**< GPS time is known precisely with reference to the local
                       SwiftNAP timer, accurate within 100 ns. */
   TIME_FINEST      /**< GPS time is known precisely with reference to the local
-                      SwiftNAP timer, accurate within 10 ns. */
+                      SwiftNAP timer and verified by RAIM, accurate within 10 ns. */
 } time_quality_t;
+
+/* Maximum time to maintain TIME_PROPAGATED after losing fix */
+#define MAX_TIME_PROPAGATED_S 60
 
 /** \} */
 
@@ -48,14 +51,16 @@ gps_time_t get_current_time(void);
 void set_time(u64 tc, const gps_time_t* t, double accuracy);
 void update_time(u64 tc, const gnss_solution* sol);
 time_quality_t get_time_quality(void);
+void adjust_rcvtime_offset(const double dt);
 gps_time_t napcount2gpstime(const double tc);
-u64 gpstime2napcount(const gps_time_t* t);
+gps_time_t napcount2rcvtime(const double tc);
+double gpstime2napcount(const gps_time_t* t);
+double rcvtime2napcount(const gps_time_t* t);
 u64 timing_getms(void);
 gps_time_t glo2gps_with_utc_params(me_gnss_signal_t mesid,
                                    const glo_time_t* glo_t);
 gps_time_t gps_time_round_to_epoch(const gps_time_t* time, double soln_freq);
 double get_clock_drift(void);
-double subsecond_cpo_correction(u64 tc);
 
 #ifdef __cplusplus
 }

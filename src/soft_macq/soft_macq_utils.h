@@ -23,18 +23,6 @@ int InitBBConvLut(void);
 
 uint32_t CirclesToUint32(double dCircles);
 
-void Sc16ArrayMulX(sc16_t *_pr, sc16_t *_pa, sc16_t *_pb, u32 _iSize);
-
-void Sc16ArrayAddAbsTo(float *_fOut, sc16_t *_fIn, u32 _iSize);
-
-int IsAcquired3D(const float *vec,
-                 const u32 _iCodeSh,
-                 const u32 _iFreqSh,
-                 const u32 _iNonCoh,
-                 float *_fMval,
-                 float *_pfCodeMaxI,
-                 float *_pfFreqMaxI);
-
 #ifdef __cplusplus
 }
 #endif

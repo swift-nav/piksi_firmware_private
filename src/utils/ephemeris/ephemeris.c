@@ -68,9 +68,9 @@ bool xcorr_calc_alm_positions(gnss_signal_t sid,
   }
 
   double _[3];
-  calc_sat_state_almanac(&a, &t0, pos->early.xyz, _, _, _, _);
-  calc_sat_state_almanac(&a, &t1, pos->prompt.xyz, _, _, _, _);
-  calc_sat_state_almanac(&a, &t2, pos->late.xyz, _, _, _, _);
+  calc_sat_state_almanac(&a, &t0, pos->early.xyz, _, _, _);
+  calc_sat_state_almanac(&a, &t1, pos->prompt.xyz, _, _, _);
+  calc_sat_state_almanac(&a, &t2, pos->late.xyz, _, _, _);
   pos->time_s = time_s;
   pos->interval_s = interval_s;
   return true;
@@ -101,9 +101,9 @@ bool xcorr_calc_eph_positions(const ephemeris_t *e,
   double _[3];
   u8 iode;
   u16 iodc;
-  calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _, _, &iodc, &iode);
-  calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _, _, &iodc, &iode);
-  calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t0, pos->early.xyz, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t1, pos->prompt.xyz, _, _, _, &iodc, &iode);
+  calc_sat_state_n(e, &t2, pos->late.xyz, _, _, _, &iodc, &iode);
   pos->time_s = time_s;
   pos->interval_s = interval_s;
   return true;

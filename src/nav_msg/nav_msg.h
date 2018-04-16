@@ -18,8 +18,6 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 
-#include "me_constants.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */

@@ -30,7 +30,6 @@
 #include "init.h"
 #include "io_support.h"
 #include "manage.h"
-#include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
 #include "nmea/nmea.h"
 #include "peripherals/leds.h"
@@ -63,7 +62,6 @@ int main(void) {
 
   io_support_init();
   sbp_setup();
-  me_msg_setup();
   settings_setup();
 
   log_info("Piksi Starting...");
@@ -131,9 +129,9 @@ int main(void) {
   manage_acq_setup();
   system_monitor_setup();
 
+  base_obs_setup();
   me_calc_pvt_setup();
   starling_calc_pvt_setup();
-  base_obs_setup();
 
   simulator_setup();
 

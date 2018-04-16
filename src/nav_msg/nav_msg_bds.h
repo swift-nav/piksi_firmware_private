@@ -46,8 +46,6 @@ extern "C" {
 /** Special value to marking maximum subframe cache entry age [6 seconds] */
 #define BDS_SUBFRAME_AGE_MAX ((u8)100)
 
-#define BDS_WEEK_TO_GPS_WEEK 1356
-
 /**
  * BDS D1 and D2 message decoder object.
  *
@@ -71,18 +69,10 @@ typedef struct {
   /**< Polarity of the data */
   s8 bit_polarity;
   /**< Decoded subframe data */
-  u32 page_words[BDS_WORD_SUBFR * BDS_SUBFRAME_MAX];
-  /**< Successfully decoded words in page */
-  u64 subfr_times[BDS_SUBFRAME_MAX];
-  /**< Successfully decoded words in page */
-  u64 goodwords_mask;
+  u32 frame_words[BDS_WORD_SUBFR];
 } nav_msg_bds_t;
 
 typedef struct _bds_d1_decoded_data {
-  u32 split_toe;
-  u32 split_toe_mask;
-  u32 aodc, aode;
-
   ephemeris_t ephemeris;
   bool ephemeris_upd_flag;
 

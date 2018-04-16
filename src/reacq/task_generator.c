@@ -10,12 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "manage.h"
-
 #include <assert.h>
 #include <ndb/ndb.h>
 #include "dum/dum.h"
-#include "me_constants.h"
+#include "manage.h"
 #include "search_manager_api.h"
 #include "task_generator_api.h"
 #include "timing/timing.h"

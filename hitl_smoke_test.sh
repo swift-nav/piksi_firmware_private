@@ -46,9 +46,9 @@ TRAVIS_BUILD_URL="https://travis-ci.com/swift-nav/piksi_firmware_private/builds/
 
 # HITL scenarios to kick off, and # of runs for each scenario.
 SCENARIOS=\
-("live-roof-650-townsend"
-"live-roof-650-townsend-dropouts-zero-baseline"
-"live-roof-650-townsend-skylark"
+("live-roof-1543-mission"
+"live-roof-1543-mission-dropouts-zero-baseline"
+"live-roof-1543-mission-skylark"
 )
 RUNS=\
 ("1"
@@ -75,13 +75,13 @@ for index in ${!SCENARIOS[@]}; do
 done
 set -e
 
-# Comment on the PR with links to gnss-analysis.
+# Comment on the PR with links to the hitl-dashboard and gnss-analysis.
 hitl_links(){
     echo -n "$COMMENT_HEADER"
     echo -n "\nThese test runs are kicked off whenever you push a new commit to this PR. All passfail metrics in these runs must pass for the \`hitl/pass-fail\` status to be marked successful."
     echo -n "\n### job status"
     for index in ${!capture_ids[@]}; do
-        echo -n "\n+ "[${SCENARIOS[$index]} runs]"("https://gnss-analysis.swiftnav.com/jobs/id=${capture_ids[$index]}")"
+        echo -n "\n+ "[${SCENARIOS[$index]} runs]"("http://hitl-dashboard.swiftnav.com/job/${capture_ids[$index]}")"
     done
     echo -n "\n### gnss-analysis results"
     echo -n "\nAt least one run must complete for these links to have data."

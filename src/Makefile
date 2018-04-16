@@ -139,11 +139,11 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/track/track_profile_loop.o \
         $(SWIFTNAV_ROOT)/src/track/track_profile_corrs.o \
         $(SWIFTNAV_ROOT)/src/track/track_sid_db.o \
+        $(SWIFTNAV_ROOT)/src/track/track_sbp.o \
         $(SWIFTNAV_ROOT)/src/track/track_state.o \
         $(SWIFTNAV_ROOT)/src/track/track_utils.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg.o \
-        $(SWIFTNAV_ROOT)/src/nav_msg/sbas_msg.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/cnav_msg_storage.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_bds.o \
         $(SWIFTNAV_ROOT)/src/nav_msg/nav_msg_glo.o \
@@ -190,7 +190,6 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/soft_macq/prns.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_main.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_serial.o \
-        $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_mdbzp.o \
         $(SWIFTNAV_ROOT)/src/soft_macq/soft_macq_utils.o \
         $(SWIFTNAV_ROOT)/src/utils/sbas_select/sbas_select.o \
         $(SWIFTNAV_ROOT)/src/utils/alias_detector/alias_detector.o \
@@ -212,12 +211,12 @@ CSRC := $(STARTUPSRC) \
         $(SWIFTNAV_ROOT)/src/utils/track_loop/trk_loop_common.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_lp1.o \
         $(SWIFTNAV_ROOT)/src/utils/filters/filter_bw2.o \
+        $(SWIFTNAV_ROOT)/src/utils/correlate/correlate.o \
         $(SWIFTNAV_ROOT)/src/utils/sv_visibility/sv_visibility.o \
         $(SWIFTNAV_ROOT)/src/utils/bit_sync/bit_sync.o \
         $(SWIFTNAV_ROOT)/src/utils/run_stats/run_stats.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_bit_fifo/nav_bit_fifo.o \
         $(SWIFTNAV_ROOT)/src/utils/nav_data_sync/nav_data_sync.o \
-        $(SWIFTNAV_ROOT)/src/me_msg/me_msg.o \
         $(BOARDDIR)/ndb_fs_access.o \
         $(SWIFTNAV_ROOT)/src/main/main.o
 

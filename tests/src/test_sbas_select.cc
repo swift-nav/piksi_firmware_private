@@ -1,7 +1,5 @@
 #include "gtest/gtest.h"
 
-#include <libswiftnav/coord_system.h>
-#include <libswiftnav/linear_algebra.h>
 #include "sbas_select/sbas_select.h"
 
 void log_(u8 level, const char *msg, ...) {
@@ -13,7 +11,7 @@ void log_(u8 level, const char *msg, ...) {
 TEST(sbas_select_tests, masks) {
   EXPECT_EQ(sbas_select_prn_mask(SBAS_UNKNOWN), 0);
 
-  EXPECT_EQ(sbas_select_prn_mask(SBAS_WAAS), 0x48800);
+  EXPECT_EQ(sbas_select_prn_mask(SBAS_WAAS), 0x4e804);
 
   EXPECT_EQ(sbas_select_prn_mask(SBAS_EGNOS), 0x10009);
 
@@ -24,8 +22,6 @@ TEST(sbas_select_tests, masks) {
   EXPECT_DEATH(sbas_select_prn_mask(SBAS_COUNT), "");
 }
 
-#define LAT_DEG_PER_KM (360 / (2 * WGS84_A * M_PI))
-
 TEST(sbas_select_tests, provider) {
   last_good_fix_t lgf;
   // check UNKNOWN user position
@@ -33,7 +29,6 @@ TEST(sbas_select_tests, provider) {
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_UNKNOWN);
 
   // check WAAS range and test that latitude does not affect
-  // if it is not too close to a pole
   lgf.position_quality = POSITION_FIX;
   lgf.position_solution.pos_llh[0] = 30 * D2R;
   lgf.position_solution.pos_llh[1] = -100 * D2R;
@@ -79,7 +74,7 @@ TEST(sbas_select_tests, provider) {
        lgf.position_solution.pos_llh[1] <= 41.f * D2R;
        lgf.position_solution.pos_llh[1] =
            lgf.position_solution.pos_llh[1] + .1 * D2R) {
-    sbas_system_t s = sbas_select_provider(&lgf);
+    sbas_type_t s = sbas_select_provider(&lgf);
     EXPECT_EQ(s, SBAS_EGNOS);
   }
   lgf.position_solution.pos_llh[1] = 41.1f * D2R;  // set to GAGAN
@@ -88,13 +83,13 @@ TEST(sbas_select_tests, provider) {
        lgf.position_solution.pos_llh[1] >= 39.f * D2R;
        lgf.position_solution.pos_llh[1] =
            lgf.position_solution.pos_llh[1] - .1 * D2R) {
-    sbas_system_t s = sbas_select_provider(&lgf);
+    sbas_type_t s = sbas_select_provider(&lgf);
     EXPECT_EQ(s, SBAS_GAGAN);
   }
   lgf.position_solution.pos_llh[1] = 38.9f * D2R;  // set to GAGAN
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
 
-  // check longitude debouncing
+  // check debouncing
   lgf.position_solution.pos_llh[1] = 0.f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 40.f * D2R;  // set to EGNOS
@@ -104,20 +99,5 @@ TEST(sbas_select_tests, provider) {
   lgf.position_solution.pos_llh[1] = 40.1f * D2R;  // set to EGNOS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
   lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-
-  // check poles vicinity areas
-  const u8 distance_to_pole_deg = 25 * LAT_DEG_PER_KM;
-  lgf.position_solution.pos_llh[1] = 39.9f * D2R;  // set to EGNOS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-
-  // check north pole
-  lgf.position_solution.pos_llh[0] = (90 - distance_to_pole_deg) * D2R;
-  lgf.position_solution.pos_llh[1] = -100 * D2R;  // set to WAAS
-  EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
-
-  // check south pole
-  lgf.position_solution.pos_llh[0] = (-90 + distance_to_pole_deg) * D2R;
-  lgf.position_solution.pos_llh[1] = -100 * D2R;  // set to WAAS
   EXPECT_EQ(sbas_select_provider(&lgf), SBAS_EGNOS);
 }

@@ -52,9 +52,6 @@
 
 #define MANAGE_NO_CHANNELS_FREE 255
 
-/** How many SBAS SV can be tracked */
-#define SBAS_SV_NUM_LIMIT 1
-
 typedef struct {
   me_gnss_signal_t mesid; /**< ME signal identifier. */
   u16 glo_slot_id;        /**< GLO orbital slot. */
@@ -84,6 +81,8 @@ typedef struct {
 
 void manage_acq_setup(void);
 
+void manage_set_obs_hint(gnss_signal_t sid);
+
 void me_settings_setup(void);
 
 float get_solution_elevation_mask(void);
@@ -96,6 +95,7 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe);
+void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams);
 u32 get_tracking_channel_sid_flags(const gnss_signal_t sid,
                                    s32 tow_ms,
                                    const ephemeris_t *pephe);
@@ -113,15 +113,10 @@ bool is_sbas_enabled(void);
 bool is_bds2_enabled(void);
 bool is_qzss_enabled(void);
 bool is_galileo_enabled(void);
-bool leap_second_imminent(void);
-void sanitize_tracker(tracker_t *tracker_channel,
-                      u64 now_ms,
-                      bool leap_second_event);
-void restore_acq(const tracker_t *tracker_channel);
+void sanitize_trackers(void);
+void check_clear_glo_unhealthy(void);
 void check_clear_unhealthy(void);
 u16 get_orbit_slot(const u16 fcn);
 double glo_2ms_fcn_residual(const gnss_signal_t sid, u64 ref_tc);
-u8 code_track_count(code_t code);
-u8 constellation_track_count(constellation_t gnss);
 
 #endif

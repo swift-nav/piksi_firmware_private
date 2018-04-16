@@ -15,13 +15,13 @@
 #include <libswiftnav/gnss_time.h>
 
 #include "lock_detector/lock_detector.h"
-#include "manage.h"
 #include "signal_db/signal_db.h"
 #include "timing/timing.h"
 #include "track_api.h"
 #include "track_cfg.h"
 #include "track_common.h"
 #include "track_flags.h"
+#include "track_sbp.h"
 #include "track_sid_db.h"
 #include "track_utils.h"
 
@@ -248,8 +248,13 @@ void tp_tracker_init(tracker_t *tracker_channel,
 
   /* Do tracking report to manager */
   tp_report_t report;
-  memset(&report, 0, sizeof(report));
-  report.cn0 = tracker_channel->cn0;
+  report.bsync = false;
+  report.carr_freq = tracker_channel->carrier_freq;
+  report.code_phase_rate = tracker_channel->code_phase_rate;
+  report.cn0 = report.cn0_raw = tracker_channel->cn0;
+  report.plock = false;
+  report.sample_count = tracker_channel->sample_count;
+  report.time_ms = 0;
 
   tp_profile_init(tracker_channel, &report);
 
@@ -265,7 +270,10 @@ void tp_tracker_init(tracker_t *tracker_channel,
 void tracker_cleanup(tracker_t *tracker_channel) {
   size_t cleanup_region_size =
       sizeof(tracker_t) - offsetof(tracker_t, cleanup_region_start);
+
+  chMtxLock(&tracker_channel->mutex_pub);
   memset(&tracker_channel->cleanup_region_start, 0, cleanup_region_size);
+  chMtxUnlock(&tracker_channel->mutex_pub);
 }
 
 /**
@@ -281,10 +289,6 @@ void tp_tracker_disable(tracker_t *tracker_channel) {
                   tracker_channel->update_count,
                   tracker_channel->TOW_ms);
 
-  /* restore acq for this tracked SV */
-  restore_acq(tracker_channel);
-
-  /* final cleanup */
   tracker_cleanup(tracker_channel);
 }
 
@@ -425,7 +429,7 @@ static void process_alias_error(tracker_t *tracker_channel, float I, float Q) {
 
   bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
   bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-  log_info_mesid(tracker_channel->mesid,
+  log_warn_mesid(tracker_channel->mesid,
                  "False freq detected: %.1f Hz (plock=%d,flock=%d)",
                  err_hz,
                  (int)plock,
@@ -592,26 +596,26 @@ void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags) {
      * last post-filter sample instead */
     if (0 == tracker_channel->corrs.corr_cn0.prompt.I &&
         0 == tracker_channel->corrs.corr_cn0.prompt.Q) {
-      log_debug_mesid(tracker_channel->mesid,
-                      "Prompt I/Q: %" PRIi32 "/%" PRIi32,
-                      tracker_channel->corrs.corr_cn0.prompt.I,
-                      tracker_channel->corrs.corr_cn0.prompt.Q);
-      log_debug_mesid(tracker_channel->mesid,
-                      "Early I/Q: %" PRIi32 "/%" PRIi32,
-                      tracker_channel->corrs.corr_cn0.early.I,
-                      tracker_channel->corrs.corr_cn0.early.Q);
-      log_debug_mesid(tracker_channel->mesid,
-                      "Late I/Q: %" PRIi32 "/%" PRIi32,
-                      tracker_channel->corrs.corr_cn0.late.I,
-                      tracker_channel->corrs.corr_cn0.late.Q);
-      log_debug_mesid(tracker_channel->mesid,
-                      "Very Early I/Q: %" PRIi32 "/%" PRIi32,
-                      tracker_channel->corrs.corr_cn0.very_early.I,
-                      tracker_channel->corrs.corr_cn0.very_early.Q);
-      log_debug_mesid(tracker_channel->mesid,
-                      "Very Late I/Q: %" PRIi32 "/%" PRIi32,
-                      tracker_channel->corrs.corr_cn0.very_late.I,
-                      tracker_channel->corrs.corr_cn0.very_late.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Prompt I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.prompt.I,
+                     tracker_channel->corrs.corr_cn0.prompt.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Early I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.early.I,
+                     tracker_channel->corrs.corr_cn0.early.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Late I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.late.I,
+                     tracker_channel->corrs.corr_cn0.late.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Very Early I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.very_early.I,
+                     tracker_channel->corrs.corr_cn0.very_early.Q);
+      log_warn_mesid(tracker_channel->mesid,
+                     "Very Late I/Q: %" PRIi32 "/%" PRIi32,
+                     tracker_channel->corrs.corr_cn0.very_late.I,
+                     tracker_channel->corrs.corr_cn0.very_late.Q);
     } else {
       /* Update C/N0 estimate */
       cn0 = track_cn0_update(tracker_channel->mesid,
@@ -846,15 +850,22 @@ void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags) {
 
     /* Do tracking report to manager */
     tp_report_t report;
-    memset(&report, 0, sizeof(report));
+    report.bsync = tracker_has_bit_sync(tracker_channel);
+    report.carr_freq = tracker_channel->carrier_freq;
+    report.code_phase_rate = tracker_channel->code_phase_rate;
+    report.cn0_raw = tracker_channel->cn0;
     if (0 == (tracker_channel->flags & TRACKER_FLAG_CONFIRMED)) {
       report.cn0 = tracker_channel->cn0_est.cn0_0;
     } else {
       report.cn0 = tracker_channel->cn0;
     }
+    report.plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
+    report.flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
+    report.sample_count = tracker_channel->sample_count;
     report.time_ms = tp_get_dll_ms(tracker_channel->tracking_mode);
+    report.acceleration = rates.acceleration;
 
-    tp_profile_report_data(&tracker_channel->profile, &report);
+    tp_profile_report_data(tracker_channel, &tracker_channel->profile, &report);
   }
 }
 

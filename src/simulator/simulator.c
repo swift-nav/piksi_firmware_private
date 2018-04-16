@@ -264,7 +264,6 @@ void simulation_step_tracking_and_observations(double elapsed) {
                                   &t,
                                   simulation_sats_pos[i],
                                   simulation_sats_vel[i],
-                                  simulation_sats_acc[i],
                                   &clock_err,
                                   &clock_rate_err);
     assert(r == 0);

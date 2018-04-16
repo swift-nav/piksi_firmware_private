@@ -30,7 +30,6 @@ TEST_DIR = .
 
 OBJDIR = obj
 TEST_SRC_DIR = src
-STUBS_DIR = stubs
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -46,7 +45,7 @@ CXXFLAGS += -g -Wall -Wextra -Werror --coverage
 # Compiler include directories.
 INCLUDE_DIRS :=
 INCLUDE_DIRS += -I./
-INCLUDE_DIRS += -I$(STUBS_DIR)
+INCLUDE_DIRS += -I./stubs
 INCLUDE_DIRS += -I$(USER_SRC_DIR)
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/board/v3/
 INCLUDE_DIRS += -I../libswiftnav/include
@@ -57,9 +56,6 @@ INCLUDE_DIRS += -I$(USER_SRC_DIR)/utils
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/hal
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/calc
 INCLUDE_DIRS += -I$(USER_SRC_DIR)/cfg
-INCLUDE_DIRS += -I$(USER_SRC_DIR)/reacq
-INCLUDE_DIRS += -I$(USER_SRC_DIR)/soft_macq
-INCLUDE_DIRS += -I$(USER_SRC_DIR)/track
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -123,6 +119,7 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/filters \
           $(USER_SRC_DIR)/utils/track_loop \
           $(USER_SRC_DIR)/soft_macq \
+          $(USER_SRC_DIR)/utils/correlate \
           $(USER_SRC_DIR)/utils/sv_visibility \
           $(USER_SRC_DIR)/nav_msg \
           $(USER_SRC_DIR)/utils/bit_sync \
@@ -132,8 +129,6 @@ vpath %.c $(USER_SRC_DIR) \
           $(USER_SRC_DIR)/utils/gnss_capabilities \
           $(USER_SRC_DIR)/utils/sbas_select \
           $(USER_SRC_DIR)/calc \
-          $(USER_SRC_DIR)/reacq \
-          $(STUBS_DIR) \
 
 vpath %.cc $(TEST_SRC_DIR)
 
@@ -147,17 +142,13 @@ C_SRCS = fixed_fft_r2.c \
          clock_filter.c \
          calc_nav_meas.c \
          piksi_systime.c \
+         correlate.c \
          sv_visibility.c \
          cnav_msg.c \
          bit_sync.c \
          nav_msg_glo.c \
          run_stats.c \
          gnss_capabilities.c \
-         search_manager.c \
-         task_generator.c \
-         scheduler.c \
-         stubs.c \
-         ch_stubs.c \
          nav_msg.c \
 
 # Test source files

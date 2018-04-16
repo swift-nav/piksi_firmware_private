@@ -19,14 +19,19 @@
 #define NAV_BIT_FIFO_SIZE 64 /* Size of nav bit FIFO. Must be a power of 2 */
 
 #define NAV_BIT_FIFO_INDEX_DIFF(write_index, read_index) \
-  ((u8)((write_index) - (read_index)))
-
-typedef s8 nav_bit_t;
+  ((nav_bit_fifo_index_t)((write_index) - (read_index)))
 
 typedef struct {
-  u8 read_index;
-  u8 write_index;
-  nav_bit_t elements[NAV_BIT_FIFO_SIZE];
+  s8 soft_bit;
+  bool sensitivity_mode;
+} nav_bit_fifo_element_t;
+
+typedef u8 nav_bit_fifo_index_t;
+
+typedef struct {
+  nav_bit_fifo_index_t read_index;
+  nav_bit_fifo_index_t write_index;
+  nav_bit_fifo_element_t elements[NAV_BIT_FIFO_SIZE];
 } nav_bit_fifo_t;
 
 #ifdef __cplusplus
@@ -35,8 +40,9 @@ extern "C" {
 
 void nav_bit_fifo_init(nav_bit_fifo_t *fifo);
 bool nav_bit_fifo_full(nav_bit_fifo_t *fifo);
-bool nav_bit_fifo_write(nav_bit_fifo_t *fifo, const nav_bit_t *element);
-bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_t *element);
+bool nav_bit_fifo_write(nav_bit_fifo_t *fifo,
+                        const nav_bit_fifo_element_t *element);
+bool nav_bit_fifo_read(nav_bit_fifo_t *fifo, nav_bit_fifo_element_t *element);
 
 #ifdef __cplusplus
 } /* extern "C" */

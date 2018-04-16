@@ -55,7 +55,7 @@ static void pps_thread(void *arg) {
       t.tow = (t.tow - fmod(t.tow, pps_period)) + pps_period +
               ((double)pps_offset_microseconds / 1.0e6) + PPS_FW_OFFSET_S;
 
-      u64 next = gpstime2napcount(&t);
+      u64 next = round(gpstime2napcount(&t));
       nap_pps((u32)next);
     }
     chThdSleepMilliseconds(PPS_THREAD_INTERVAL_MS);

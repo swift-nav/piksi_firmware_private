@@ -83,7 +83,7 @@ static s32 adjust_tow_by_bit_fifo_delay(tracker_t *tracker_channel,
                                         const nav_data_sync_t *to_tracker) {
   s32 TOW_ms = TOW_INVALID;
   /* Compute time since the pending data was read from the FIFO */
-  u8 fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
+  nav_bit_fifo_index_t fifo_length = NAV_BIT_FIFO_INDEX_DIFF(
       tracker_channel->nav_bit_fifo.write_index, to_tracker->read_index);
   u32 fifo_time_diff_ms = fifo_length * tracker_channel->bit_sync.bit_length;
 
@@ -137,10 +137,10 @@ static void update_eph(tracker_t *tracker_channel,
 
   if ((GLO_ORBIT_SLOT_UNKNOWN != tracker_channel->glo_orbit_slot) &&
       (tracker_channel->glo_orbit_slot != data_sync->glo_orbit_slot)) {
-    log_info_mesid(mesid, "GLO orbit slot change");
+    log_warn_mesid(mesid, "Unexpected GLO orbit slot change");
   }
   tracker_channel->glo_orbit_slot = data_sync->glo_orbit_slot;
-  tracker_channel->health = data_sync->health;
+  tracker_channel->health = data_sync->glo_health;
 }
 
 /** Update the TOW for a tracker channel.
@@ -215,9 +215,13 @@ void tracker_bit_sync_set(tracker_t *tracker, s8 bit_phase_ref) {
  * \param bit_integrate   Signed bit integration value.
  */
 static s8 nav_bit_quantize(s32 bit_integrate) {
-  /* compress s32 into a balanced s8, 0 reserved for sensitivity mode */
+  //  0 through  2^24 - 1 ->  0 = weakest positive bit
+  // -1 through -2^24     -> -1 = weakest negative bit
 
-  return (s8)(((bit_integrate >> 25) << 1) + 1);
+  if (bit_integrate >= 0)
+    return bit_integrate / (1 << 24);
+  else
+    return ((bit_integrate + 1) / (1 << 24)) - 1;
 }
 
 /** Update bit sync and output navigation message bits for a tracker channel.
@@ -254,7 +258,8 @@ void tracker_bit_sync_update(tracker_t *tracker_channel,
   s8 soft_bit = nav_bit_quantize(bit_integrate);
 
   /* write to FIFO */
-  nav_bit_t element = sensitivity_mode ? 0 : soft_bit;
+  nav_bit_fifo_element_t element = {.soft_bit = soft_bit,
+                                    .sensitivity_mode = sensitivity_mode};
   if (nav_bit_fifo_write(&tracker_channel->nav_bit_fifo, &element)) {
     /* warn if the FIFO has become full */
     if (nav_bit_fifo_full(&tracker_channel->nav_bit_fifo)) {
@@ -389,7 +394,7 @@ u16 tracker_glo_orbit_slot_get(tracker_t *tracker_channel) {
  *
  * \return GLO health information
  */
-health_t tracker_glo_sv_health_get(tracker_t *tracker_channel) {
+glo_health_t tracker_glo_sv_health_get(tracker_t *tracker_channel) {
   assert(IS_GLO(tracker_channel->mesid));
   return tracker_channel->health;
 }
