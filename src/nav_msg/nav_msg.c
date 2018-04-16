@@ -982,7 +982,7 @@ s8 process_subframe(nav_msg_t *n,
   /* Alert flag, bit 18 */
   n->alert = sf_word2 >> (30 - 18) & 0x01;
   if (n->alert) {
-    log_warn_mesid(mesid, "alert flag set! Ignoring satellite.");
+    log_info_mesid(mesid, "Alert flag set in HOW, ignoring satellite.");
   }
 
   /* Which of 5 possible subframes is it? bits 20-22 */
