@@ -54,6 +54,11 @@ void tracker_set_raim_flag(const gnss_signal_t sid) {
      * instead of mesid is a bit tricky.. */
     tracker_t *tracker_channel = tracker_get(i);
     tracker_lock(tracker_channel);
+    /* Skip inactive channels */
+    if (0 == (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_unlock(tracker_channel);
+      continue;
+    }
     /* Is this channel's mesid + orbit slot combination valid? */
     bool can_compare = mesid_valid(tracker_channel->mesid);
     if (IS_GLO(tracker_channel->mesid)) {
