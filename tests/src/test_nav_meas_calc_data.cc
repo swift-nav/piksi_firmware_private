@@ -16,7 +16,6 @@
 #include <libswiftnav/ch_meas.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/coord_system.h>
-#include <libswiftnav/correct_iono_tropo.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/ionosphere.h>
 #include <libswiftnav/logging.h>
@@ -202,9 +201,6 @@ static navigation_measurement_t nm1 = {
     {4,              /* sat_vel[0] */
      5,              /* sat_vel[1] */
      6},             /* sat_vel[2] */
-    {7,              /* sat_acc[0] */
-     8,              /* sat_acc[1] */
-     9},             /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -235,9 +231,6 @@ static navigation_measurement_t nm1_2 = {
     {10,             /* sat_vel[0] */
      11,             /* sat_vel[1] */
      12},            /* sat_vel[2] */
-    {13,             /* sat_acc[0] */
-     14,             /* sat_acc[1] */
-     15},            /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -268,9 +261,6 @@ static navigation_measurement_t nm2 = {
     {4,              /* sat_vel[0] */
      5,              /* sat_vel[1] */
      6},             /* sat_vel[2] */
-    {7,              /* sat_acc[0] */
-     8,              /* sat_acc[1] */
-     9},             /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -301,9 +291,6 @@ static navigation_measurement_t nm2_2 = {
     {16,             /* sat_vel[0] */
      17,             /* sat_vel[1] */
      18},            /* sat_vel[2] */
-    {19,             /* sat_acc[0] */
-     20,             /* sat_acc[1] */
-     21},            /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -334,9 +321,6 @@ static navigation_measurement_t nm3 = {
     {4,              /* sat_vel[0] */
      5,              /* sat_vel[1] */
      6},             /* sat_vel[2] */
-    {7,              /* sat_acc[0] */
-     8,              /* sat_acc[1] */
-     9},             /* sat_acc[2] */
     0,               /* IODE */
     0.0,             /* sat_clock_err */
     0.0,             /* sat_clock_err_rate */
@@ -510,7 +494,7 @@ TEST(test_tdcp_doppler, second_test) {
 }
 
 TEST(iono_tropo_usage_test, iono_tropo_test) {
-  /*NOTE: this unit test checks correct_iono/correct_tropo function usage only.
+  /*NOTE: this unit test checks calc_iono_tropo function usage only.
    * The iono and tropo correction unit tests are in LNSP */
   u8 n_ready_tdcp = 1;
 
@@ -530,9 +514,6 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
       {-1000,          /* sat_vel[0] */
        3000,           /* sat_vel[1] */
        2000},          /* sat_vel[2] */
-      {-10,            /* sat_acc[0] */
-       30,             /* sat_acc[1] */
-       20},            /* sat_acc[2] */
       0,               /* IODE */
       0.0,             /* sat_clock_err */
       0.0,             /* sat_clock_err_rate */
@@ -567,8 +548,7 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
                     0.6554e5,
                     0.3277e6};
 
-  correct_tropo(pos_ecef, n_ready_tdcp, &nav_meas_tdcp);
-  correct_iono(pos_ecef, &i, n_ready_tdcp, &nav_meas_tdcp);
+  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, &i);
 
   EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_iono_tropo_corrected);
 
@@ -580,7 +560,7 @@ TEST(iono_tropo_usage_test, iono_tropo_test) {
   nav_meas_tdcp.measured_doppler = 1000;
   nav_meas_tdcp.computed_doppler = 1000;
 
-  correct_tropo(pos_ecef, n_ready_tdcp, &nav_meas_tdcp);
+  calc_iono_tropo(n_ready_tdcp, &nav_meas_tdcp, pos_ecef, (ionosphere_t *)NULL);
 
   EXPECT_FLOAT_EQ(nav_meas_tdcp.pseudorange, pr_tropo_corrected);
 

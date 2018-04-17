@@ -13,14 +13,12 @@
 #include "nap/track_channel.h"
 #include "filters/filter_common.h"
 #include "main.h"
-#include "me_constants.h"
 #include "nap/nap_common.h"
 #include "nap_constants.h"
 #include "nap_hw.h"
 #include "signal_db/signal_db.h"
 #include "soft_macq/prns.h"
 #include "timing/timing.h"
-#include "utils/gnss_capabilities/gnss_capabilities.h"
 
 #include <ch.h>
 
@@ -186,14 +184,6 @@ void nap_track_init(u8 channel,
   swiftnap_tracking_wr_t *t = &NAP->TRK_CH_WR[channel];
   struct nap_ch_state *s = &nap_ch_desc[channel];
 
-  if (mesid.code == CODE_BDS2_B2) {
-    log_debug("C%02" PRIu8 " channel %" PRIu8 " t %" PRIxPTR " s %" PRIxPTR,
-              mesid.sat,
-              channel,
-              (uintptr_t)t,
-              (uintptr_t)s);
-  }
-
   if (swiftnap_code_map[channel] != mesid_to_nap_code(mesid)) {
     log_error_mesid(
         mesid, "Tracking channel %u doesn't support this signal.", channel);
@@ -289,14 +279,6 @@ void nap_track_init(u8 channel,
       num_codes = GLO_L1CA_SYMBOL_LENGTH_MS / GLO_PRN_PERIOD_MS;
     } else if (CODE_GPS_L2CM == mesid.code) {
       num_codes = GPS_L2C_SYMBOL_LENGTH_MS / GPS_L2CM_PRN_PERIOD_MS;
-    } else if (CODE_QZS_L2CM == mesid.code) {
-      num_codes = QZS_L2C_SYMBOL_LENGTH_MS / QZS_L2CM_PRN_PERIOD_MS;
-    } else if (CODE_BDS2_B2 == mesid.code) {
-      if (bds_d2nav(mesid)) {
-        num_codes = BDS2_B11_D2NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
-      } else {
-        num_codes = BDS2_B11_D1NAV_SYMBOL_LENGTH_MS / BDS2_B11_SYMB_LENGTH_MS;
-      }
     } else {
       assert(0);
     }
@@ -475,6 +457,59 @@ void nap_track_read_results(u8 channel,
       s->fcn_freq_hz * (s->length[1] / NAP_TRACK_SAMPLE_RATE_Hz);
 
   *carrier_phase = (s->reckoned_carr_phase);
+
+#ifndef PIKSI_RELEASE
+  /* Useful for debugging correlators
+  if (s->mesid.code == CODE_GPS_L2CM && s->mesid.sat == 15) {
+    log_info("VEEPLVL IQ \
+        %02d %02d %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d  %+6d %+6d",
+        s->mesid.sat,
+        s->mesid.code,
+        corrs[3].I,
+        corrs[3].Q,
+        corrs[0].I,
+        corrs[0].Q,
+        corrs[1].I,
+        corrs[1].Q,
+        corrs[2].I,
+        corrs[2].Q,
+        corrs[4].I,
+        corrs[4].Q);
+  }
+  */
+
+  if (GET_NAP_TRK_CH_STATUS_CORR_OVERFLOW(trk_ch.STATUS)) {
+    log_warn_mesid(s->mesid, "Tracking correlator overflow.");
+  }
+
+  /* Check carrier phase reckoning */
+  u8 sw_carr_phase = (s->sw_carr_phase >> 29) & 0x3F;
+  u8 hw_carr_phase = GET_NAP_TRK_CH_STATUS_CARR_PHASE_INT(trk_ch.STATUS)
+                         << NAP_TRK_CH_STATUS_CARR_PHASE_FRAC_Len |
+                     GET_NAP_TRK_CH_STATUS_CARR_PHASE_FRAC(trk_ch.STATUS);
+  if (sw_carr_phase != hw_carr_phase) {
+    log_error_mesid(s->mesid,
+                    "Carrier reckoning: SW=%u.%u, HW=%u.%u",
+                    (sw_carr_phase >> 3),
+                    (sw_carr_phase & 0x7),
+                    (hw_carr_phase >> 3),
+                    (hw_carr_phase & 0x7));
+  }
+
+  /* Check code phase reckoning */
+  u8 sw_code_phase = (s->sw_code_phase >> 29) & 0x3F;
+  u8 hw_code_phase = GET_NAP_TRK_CH_STATUS_CODE_PHASE_INT(trk_ch.STATUS)
+                         << NAP_TRK_CH_STATUS_CODE_PHASE_FRAC_Len |
+                     GET_NAP_TRK_CH_STATUS_CODE_PHASE_FRAC(trk_ch.STATUS);
+  if (sw_code_phase != hw_code_phase) {
+    log_error_mesid(s->mesid,
+                    "Code reckoning: SW=%u.%u, HW=%u.%u",
+                    (sw_code_phase >> 3),
+                    (sw_code_phase & 0x7),
+                    (hw_code_phase >> 3),
+                    (hw_code_phase & 0x7));
+  }
+#endif /* PIKSI_RELEASE */
 }
 
 void nap_track_enable(u8 channel) {

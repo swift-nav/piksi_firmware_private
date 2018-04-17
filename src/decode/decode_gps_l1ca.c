@@ -16,7 +16,6 @@
 #include "decode_common.h"
 #include "decode_gps_l1ca.h"
 #include "ephemeris/ephemeris.h"
-#include "me_constants.h"
 #include "nav_msg/nav_msg.h"
 #include "ndb/ndb.h"
 #include "sbp.h"
@@ -424,16 +423,16 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
   gps_l1ca_decoder_data_t *data = decoder_data;
 
   /* Process incoming nav bits */
-  nav_bit_t nav_bit;
+  nav_bit_fifo_element_t nav_bit;
   s8 prev_polarity = BIT_POLARITY_UNKNOWN;
   while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (0 == nav_bit) {
+    if (nav_bit.sensitivity_mode) {
       nav_msg_init(&data->nav_msg);
       continue;
     }
     /* Update TOW */
-    bool bit_val = nav_bit > 0;
+    bool bit_val = nav_bit.soft_bit >= 0;
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
     prev_polarity = data->nav_msg.bit_polarity;
@@ -463,13 +462,6 @@ static void decoder_gps_l1ca_process(const decoder_channel_info_t *channel_info,
 
   gnss_signal_t l1ca_sid =
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
-
-  if (dd.almanac_upd_flag && (0 != dd.almanac.health_bits)) {
-    /* If almanac health bits indicate problems,
-     * clear NDB and TOW cache of the SV the almanac is for. */
-    erase_nav_data(dd.almanac.sid, l1ca_sid);
-    return;
-  }
 
   if (dd.invalid_control_or_data) {
     log_info_mesid(channel_info->mesid, "Invalid control or data element");

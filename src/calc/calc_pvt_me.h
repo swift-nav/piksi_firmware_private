@@ -29,9 +29,18 @@ typedef struct {
   u8 signals_useable;
 } soln_stats_t;
 
+typedef struct _me_msg_obs_t {
+  size_t size;
+  navigation_measurement_t obs[MAX_CHANNELS];
+  ephemeris_t ephem[MAX_CHANNELS];
+  gps_time_t obs_time;
+} me_msg_obs_t;
+
 /** Maximum time that an observation will be propagated for to align it with a
  * solution epoch before it is discarded.  */
 #define OBS_PROPAGATION_LIMIT 10e-3
+
+#define OBS_N_BUFF 2
 
 /* Maximum receiver clock error before it is adjusted back to GPS time.
  * The value of 1.01 ms keeps the receiver close enough to GPS time to
@@ -45,6 +54,8 @@ typedef struct {
 #define RAIM_DROP_CHANNEL_THRESHOLD_M 1000
 
 extern u32 obs_output_divisor;
+extern memory_pool_t obs_buff_pool;
+extern mailbox_t obs_mailbox;
 extern double soln_freq_setting;
 
 soln_stats_t solution_last_stats_get(void);

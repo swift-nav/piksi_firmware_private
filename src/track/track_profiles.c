@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+
 #include <libswiftnav/constants.h>
 
 #include <board.h>
@@ -32,6 +33,8 @@
 
 /** Unknown delay indicator */
 #define TP_DELAY_UNKNOWN -1
+
+extern u16 max_pll_integration_time_ms;
 
 /** Indices of specific entries in gnss_track_profiles[] table below */
 typedef enum {
@@ -60,24 +63,6 @@ typedef enum {
   TP_UNAIDED = (1 << 11)
 } tp_profile_flags_t;
 
-/**
- * Lock detector parameter set enumeration
- */
-typedef enum {
-  TP_LD_PARAMS_PHASE_INI,
-  TP_LD_PARAMS_PHASE_1MS,
-  TP_LD_PARAMS_PHASE_2MS,
-  TP_LD_PARAMS_PHASE_5MS,
-  TP_LD_PARAMS_PHASE_10MS,
-  TP_LD_PARAMS_PHASE_20MS,
-  TP_LD_PARAMS_FREQ_INI,
-  TP_LD_PARAMS_FREQ_1MS,
-  TP_LD_PARAMS_FREQ_2MS,
-  TP_LD_PARAMS_FREQ_5MS,
-  TP_LD_PARAMS_FREQ_10MS,
-  TP_LD_PARAMS_FREQ_20MS,
-} tp_ld_e;
-
 /** Time interval in ms for printing channel statistics (when DEBUG is
  * enabled)*/
 #define DEBUG_PRINT_TIME_INTERVAL_MS (20000)
@@ -96,8 +81,8 @@ typedef struct tp_profile_entry {
     tp_tm_e tm_nh20ms;         /**< typical BDS and GPS L5 Tracking mode */
   } profile;
 
-  tp_ld_e ld_phase_params; /**< Phase lock detector parameter set */
-  tp_ld_e ld_freq_params;  /**< Frequency lock detector parameter set */
+  u8 ld_phase_params; /**< One of TP_LD_PARAMS_... constants */
+  u8 ld_freq_params;  /**< One of TP_LD_PARAMS_... constants */
 
   u16 lock_time_ms;         /**< Profile stabilization time [ms] */
   float cn0_low_threshold;  /**< Low CN0 threshold [dB-Hz] */
@@ -125,101 +110,52 @@ static const tp_cn0_params_t cn0_params_default = {
     .track_cn0_use_thres_dbhz = TP_DEFAULT_CN0_USE_THRESHOLD_DBHZ,
     .track_cn0_ambiguity_thres_dbhz = TP_DEFAULT_CN0_AMBIGUITY_THRESHOLD_DBHZ};
 
-#define UNUSED 0.
+/**
+ * Lock detector parameters
+ */
+enum {
+  TP_LD_PARAMS_PHASE_INI,
+  TP_LD_PARAMS_FREQ_INI,
+
+  TP_LD_PARAMS_PHASE_1MS,
+  TP_LD_PARAMS_FREQ_1MS,
+
+  TP_LD_PARAMS_PHASE_2MS,
+  TP_LD_PARAMS_FREQ_2MS,
+
+  TP_LD_PARAMS_PHASE_5MS,
+  TP_LD_PARAMS_FREQ_5MS,
+
+  TP_LD_PARAMS_PHASE_10MS,
+  TP_LD_PARAMS_FREQ_10MS,
+
+  TP_LD_PARAMS_PHASE_20MS,
+  TP_LD_PARAMS_FREQ_20MS,
+};
 
 /**
  * Lock detector profiles
  */
 /* clang-format off */
-static const tp_lock_detect_params_t ld_params_gps[] = {
-                                  /* k1,     k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.29f,   0.7f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.28f,   0.8f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.26f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.22f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
-};
-static const tp_lock_detect_params_t ld_params_glo[] = {
-                                  /* k1,     k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.25f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.22f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.20f,   1.2f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.20f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
-};
-static const tp_lock_detect_params_t ld_params_sbas[] = {
-                                  /* k1,     k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
-};
-static const tp_lock_detect_params_t ld_params_bds2[] = {
-                                  /* k1,     k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
-};
-static const tp_lock_detect_params_t ld_params_qzss[] = {
-                                  /* k1,     k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 },
-};
-static const tp_lock_detect_params_t ld_params_gal[] = {
-                                  /* k1,     k2, lp */
-    [TP_LD_PARAMS_PHASE_INI]  = { 0.09f,    1.f, 50 },
-    [TP_LD_PARAMS_PHASE_1MS]  = { 0.09f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_2MS]  = { 0.08f,    .5f, 50 },
-    [TP_LD_PARAMS_PHASE_5MS]  = { 0.06f,   1.0f, 50 },
-    [TP_LD_PARAMS_PHASE_10MS] = { 0.02f,   1.4f, 50 },
-    [TP_LD_PARAMS_PHASE_20MS] = { 0.01f,   1.4f, 50 },
-    [TP_LD_PARAMS_FREQ_INI]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_1MS]   = { 0.07f, UNUSED, 50 },
-    [TP_LD_PARAMS_FREQ_2MS]   = { 0.07f, UNUSED, 40 },
-    [TP_LD_PARAMS_FREQ_5MS]   = { 0.08f, UNUSED, 20 },
-    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f, UNUSED, 15 },
-    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f, UNUSED, 10 }
+static const tp_lock_detect_params_t ld_params[] = {
+                                /*    k1,   k2, lp */
+    [TP_LD_PARAMS_PHASE_INI]  = {  0.09f,  1.f, 50 },
+    [TP_LD_PARAMS_FREQ_INI]   = {  0.07f,  .6f, 50 },
+
+    [TP_LD_PARAMS_PHASE_1MS]  = {  0.09f,  .5f, 50 },
+    [TP_LD_PARAMS_FREQ_1MS]   = {  0.07f,  .6f, 50 },
+
+    [TP_LD_PARAMS_PHASE_2MS]  = {  0.08f,  .5f, 50 },
+    [TP_LD_PARAMS_FREQ_2MS]   = {  0.07f,  .6f, 40 },
+
+    [TP_LD_PARAMS_PHASE_5MS]  = {  0.06f, 1.0f, 50 },
+    [TP_LD_PARAMS_FREQ_5MS]   = {  0.08f,  .6f, 20 },
+
+    [TP_LD_PARAMS_PHASE_10MS] = {  0.02f, 1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_10MS]  = {  0.1f,  .6f, 15 },
+
+    [TP_LD_PARAMS_PHASE_20MS] = {  0.01f, 1.4f, 50 },
+    [TP_LD_PARAMS_FREQ_20MS]  = {  0.1f,  .6f, 10 }
 };
 /* clang-format on */
 
@@ -279,16 +215,16 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   in the same order below.
   { { pll_bw,      fll_bw,       dll_bw,     controller,
       tracking_mode_gps, tracking_mode_glo, tracking_mode_sbas, tracking_mode_bds2 },
-      ld_phase_params,   ld_freq_params,
+    ld_phase_params,        ld_freq_params,
     time_ms,   cn0_low_thr,   cn0_high_thr,
        next,       cn0_low,       cn0_high,
      flags }
 */
 
   [IDX_INIT_0] =
-  { {     10,           7,           20,   TP_CTRL_PLL3,
+  { {   10,             7,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+          TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_UNAIDED | TP_WAIT_FLOCK},
@@ -296,7 +232,7 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_1] =
   { { BW_DYN,      BW_DYN,           20,   TP_CTRL_PLL3,
           TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+    TP_LD_PARAMS_PHASE_INI,  TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
       TP_WAIT_BSYNC | TP_WAIT_PLOCK | TP_UNAIDED },
@@ -304,56 +240,56 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
   [IDX_INIT_2] =
   { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+    TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
        100,             0,            0,
        IDX_NONE, IDX_NONE,     IDX_NONE,
        TP_WAIT_PLOCK },
 
   [IDX_1MS] =
-  { { BW_DYN,      BW_DYN,            3,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           3,   TP_CTRL_PLL3,
           TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS },
-          TP_LD_PARAMS_PHASE_1MS, TP_LD_PARAMS_FREQ_1MS,
-           40,         48,           0,
+    TP_LD_PARAMS_PHASE_1MS,  TP_LD_PARAMS_FREQ_1MS,
+           40,          48,           0,
       IDX_1MS,     IDX_2MS,    IDX_NONE,
       TP_LOW_CN0 | TP_USE_NEXT},
 
   [IDX_2MS] =
-  { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           2,   TP_CTRL_PLL3,
           TP_TM_2MS_20MS,  TP_TM_2MS_10MS,  TP_TM_2MS_2MS,  TP_TM_2MS_NH20MS },
-          TP_LD_PARAMS_PHASE_2MS, TP_LD_PARAMS_FREQ_2MS,
+    TP_LD_PARAMS_PHASE_2MS,  TP_LD_PARAMS_FREQ_2MS,
            40,          43,          51,
       IDX_2MS,     IDX_5MS,     IDX_1MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_5MS] =
-  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
           TP_TM_5MS_20MS,  TP_TM_5MS_10MS,  TP_TM_2MS_2MS,  TP_TM_5MS_NH20MS },
-          TP_LD_PARAMS_PHASE_5MS, TP_LD_PARAMS_FREQ_5MS,
+    TP_LD_PARAMS_PHASE_5MS,  TP_LD_PARAMS_FREQ_5MS,
            40,          35,          46,
       IDX_5MS,    IDX_10MS,     IDX_2MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT},
 
   [IDX_10MS] =
-  { { BW_DYN,      BW_DYN,            1,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,           1,   TP_CTRL_PLL3,
         TP_TM_10MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS, TP_TM_10MS_NH20MS },
-        TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
+    TP_LD_PARAMS_PHASE_10MS, TP_LD_PARAMS_FREQ_10MS,
            40,          32,          38,
      IDX_10MS,    IDX_20MS,     IDX_5MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   [IDX_20MS] =
-  { { BW_DYN,      BW_DYN,           .5,   TP_CTRL_PLL3,
+  { {  BW_DYN,      BW_DYN,          .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
-      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+    TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
            40,          25,          35,
       IDX_20MS,   IDX_SENS,     IDX_10MS,
       TP_LOW_CN0 | TP_HIGH_CN0 | TP_USE_NEXT },
 
   /* sensitivity profile */
   [IDX_SENS] =
-  { {      0,         1.0,           .5,   TP_CTRL_PLL3,
+  { {      0,           1.0,          .5,   TP_CTRL_PLL3,
       TP_TM_20MS_20MS,  TP_TM_10MS_10MS,  TP_TM_2MS_2MS,  TP_TM_20MS_NH20MS },
-      TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
+    TP_LD_PARAMS_PHASE_20MS, TP_LD_PARAMS_FREQ_20MS,
         100,             0,          32,
       IDX_SENS,  IDX_NONE,     IDX_20MS,
       TP_HIGH_CN0 | TP_USE_NEXT }
@@ -541,27 +477,8 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   const tp_profile_entry_t *cur_profile =
       &profile->profiles[profile->cur.index];
 
-  if (IS_GPS(mesid)) {
-    profile->ld_phase_params = ld_params_gps[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_gps[cur_profile->ld_freq_params];
-  } else if (IS_GLO(mesid)) {
-    profile->ld_phase_params = ld_params_glo[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_glo[cur_profile->ld_freq_params];
-  } else if (IS_SBAS(mesid)) {
-    profile->ld_phase_params = ld_params_sbas[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_sbas[cur_profile->ld_freq_params];
-  } else if (IS_BDS2(mesid)) {
-    profile->ld_phase_params = ld_params_bds2[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_bds2[cur_profile->ld_freq_params];
-  } else if (IS_QZSS(mesid)) {
-    profile->ld_phase_params = ld_params_qzss[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_qzss[cur_profile->ld_freq_params];
-  } else if (IS_GAL(mesid)) {
-    profile->ld_phase_params = ld_params_gal[cur_profile->ld_phase_params];
-    profile->ld_freq_params = ld_params_gal[cur_profile->ld_freq_params];
-  } else {
-    assert(!"Unsupported constellation");
-  }
+  profile->ld_phase_params = ld_params[cur_profile->ld_phase_params];
+  profile->ld_freq_params = ld_params[cur_profile->ld_freq_params];
 
   /* fill out the tracking loop parameters */
   profile->loop_params = loop_params_template;
@@ -589,6 +506,60 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   profile->use_alias_detection =
       (TP_TM_10MS_10MS == mode) || (TP_TM_20MS_20MS == mode);
   tp_profile_get_cn0_params(profile, &profile->cn0_params);
+}
+
+/**
+ * Helper method to incorporate tracking loop information into statistics.
+ *
+ * \param[in,out] tracker_channel Tracker channel data
+ * \param[in,out] profile     Satellite profile.
+ * \param[in]     data        Data from tracking loop.
+ *
+ * \return None
+ */
+static void update_stats(tracker_t *tracker_channel,
+                         tp_profile_t *profile,
+                         const tp_report_t *data) {
+  float cn0;
+  u32 cur_time_ms = tracker_channel->update_count;
+
+  /* Profile lock time count down */
+  if (profile->lock_time_ms > data->time_ms) {
+    profile->lock_time_ms -= data->time_ms;
+  } else {
+    profile->lock_time_ms = 0;
+  }
+
+  /* Debug print interval count down */
+  if (profile->print_time >= data->time_ms) {
+    profile->print_time -= data->time_ms;
+  } else {
+    profile->print_time = 0;
+  }
+
+  if ((TP_DELAY_UNKNOWN == profile->bs_delay_ms) && data->bsync) {
+    /* just got bit sync */
+    profile->bs_delay_ms = cur_time_ms - profile->time_snapshot_ms;
+  }
+
+  if (TP_DELAY_UNKNOWN == profile->plock_delay_ms && data->plock) {
+    /* just got pessimistic lock */
+    profile->plock_delay_ms = cur_time_ms - profile->time_snapshot_ms;
+  }
+
+  if (TP_DELAY_UNKNOWN != profile->plock_delay_ms && !data->plock) {
+    /* just lost pessimistic lock */
+    profile->plock_delay_ms = TP_DELAY_UNKNOWN;
+    profile->time_snapshot_ms = cur_time_ms;
+  }
+
+  profile->plock = data->plock;
+  profile->flock = data->flock;
+  profile->bsync_sticky |= data->bsync;
+
+  cn0 = data->cn0;
+
+  profile->filt_cn0 = cn0;
 }
 
 /**
@@ -638,10 +609,12 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
   tp_tm_e next_track_mode = get_track_mode(mesid, next_profile);
 
   log_debug_mesid(mesid,
-                  "%s:"
+                  "%s: plock=%" PRId16 " bs=%" PRId16
                   " cn0=%.1f "
                   "(mode,pll,fll,ctrl): (%s,%.1f,%.1f,%s)->(%s,%.1f,%.1f,%s)",
                   reason,
+                  state->plock_delay_ms,
+                  state->bs_delay_ms,
                   state->filt_cn0,
                   /* old state */
                   tp_get_mode_str(cur_track_mode),
@@ -653,6 +626,108 @@ static void log_switch(tracker_t *tracker_channel, const char *reason) {
                   state->next.pll_bw,
                   state->next.fll_bw,
                   get_ctrl_str(next_profile->profile.controller_type));
+}
+
+/**
+ * Helper method to dump tracking statistics into log.
+ *
+ * The method logs average and RMS values for analyzes.
+ *
+ * \param[in]     mesid   ME signal identifier.
+ * \param[in,out] profile GNSS satellite profile.
+ *
+ * \return None
+ */
+static void print_stats(const me_gnss_signal_t mesid, tp_profile_t *profile) {
+  if (profile->print_time > 0) {
+    return;
+  }
+
+  profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
+
+  const tp_profile_entry_t *cur_profile =
+      &profile->profiles[profile->cur.index];
+  tp_tm_e tracking_mode = get_track_mode(mesid, cur_profile);
+  int dll_ms = tp_get_dll_ms(tracking_mode);
+
+  const char *m1 = tp_get_mode_str(tracking_mode);
+  const char *c1 = get_ctrl_str(cur_profile->profile.controller_type);
+
+  /*
+   * PRINT: integration time, loop mode, controller mode,
+   *        C/N0 estimator, C/N0 value, SNR value (dBm),
+   *        PR rate, PR rate change,
+   *        PLL lock detector ratio, FLL/DLL error
+   */
+
+  log_debug_mesid(mesid,
+                  "AVG: %dms %s %s CN0_BASIC:=%.2f (%.2f)",
+                  dll_ms,
+                  m1,
+                  c1,
+                  profile->filt_cn0,
+                  TRACK_CN0_TO_SNR(profile->filt_cn0));
+}
+
+/** Integration time is not explicitly available in gnss_track_profiles.
+ *  This API infers the integration time from the profiles' array index.
+ *  \param mesid ME signal ID
+ *  \param state Profiles array.
+ *  \param index Profiles array index.
+ *  \return Integration time of the profile at the given index [ms]
+ */
+static u8 profile_integration_time(const me_gnss_signal_t mesid,
+                                   const tp_profile_t *state,
+                                   const profile_indices_t index) {
+  static const u8 int_times[] = {[TP_TM_INITIAL] = 1,
+
+                                 [TP_TM_1MS_20MS] = 1,
+                                 [TP_TM_1MS_10MS] = 1,
+                                 [TP_TM_1MS_2MS] = 1,
+                                 [TP_TM_1MS_NH20MS] = 1,
+
+                                 [TP_TM_2MS_20MS] = 2,
+                                 [TP_TM_2MS_10MS] = 2,
+                                 [TP_TM_2MS_2MS] = 2,
+                                 [TP_TM_2MS_NH20MS] = 2,
+
+                                 [TP_TM_5MS_20MS] = 5,
+                                 [TP_TM_5MS_10MS] = 5,
+                                 [TP_TM_5MS_NH20MS] = 5,
+
+                                 [TP_TM_10MS_20MS] = 10,
+                                 [TP_TM_10MS_10MS] = 10,
+                                 [TP_TM_10MS_NH20MS] = 10,
+
+                                 [TP_TM_20MS_20MS] = 20,
+                                 [TP_TM_20MS_NH20MS] = 20};
+  tp_tm_e track_mode;
+  if (IS_GPS(mesid) || IS_QZSS(mesid)) {
+    if ((CODE_GPS_L5I == mesid.code) || (CODE_GPS_L5Q == mesid.code) ||
+        (CODE_QZS_L5I == mesid.code) || (CODE_QZS_L5Q == mesid.code)) {
+      track_mode = state->profiles[index].profile.tm_nh20ms;
+    } else {
+      track_mode = state->profiles[index].profile.tm_20ms;
+    }
+  } else if (IS_GLO(mesid)) {
+    track_mode = state->profiles[index].profile.tm_10ms;
+  } else if (IS_SBAS(mesid)) {
+    track_mode = state->profiles[index].profile.tm_2ms;
+  } else if (IS_BDS2(mesid)) {
+    if (bds_d2nav(mesid)) {
+      track_mode = state->profiles[index].profile.tm_2ms;
+    } else {
+      track_mode = state->profiles[index].profile.tm_nh20ms;
+    }
+  } else {
+    assert(!"Unsupported constellation");
+  }
+  assert(track_mode < ARRAY_SIZE(int_times));
+  u8 int_time = int_times[track_mode];
+  assert(int_time != 0);
+  assert(int_time <= 20);
+
+  return int_time;
 }
 
 static bool pll_bw_changed(tracker_t *tracker_channel,
@@ -741,8 +816,17 @@ static bool profile_switch_requested(tracker_t *tracker_channel,
   assert(index != IDX_NONE);
   assert((size_t)index < ARRAY_SIZE(gnss_track_profiles));
 
+  const me_gnss_signal_t mesid = tracker_channel->mesid;
   tp_profile_t *state = &tracker_channel->profile;
   const tp_profile_entry_t *next = &state->profiles[index];
+
+  u8 int_time = profile_integration_time(mesid, state, index);
+  bool pll = (next->profile.pll_bw > 0) || /*fixed*/
+             (next->profile.pll_bw < 0);   /*dynamic*/
+  if (pll && (int_time > max_pll_integration_time_ms)) {
+    /* setting prevents us doing longer PLL integration time */
+    index = state->cur.index;
+  }
 
   bool pll_changed = pll_bw_changed(tracker_channel, index);
   bool fll_changed = fll_bw_changed(tracker_channel, index);
@@ -792,20 +876,17 @@ bool tp_profile_has_new_profile(tracker_t *tracker_channel) {
     return true;
   }
 
-  bool bsync = (0 != (tracker_channel->flags & TRACKER_FLAG_BIT_SYNC));
-  if ((0 != (flags & TP_WAIT_BSYNC)) && !bsync) {
+  if ((0 != (flags & TP_WAIT_BSYNC)) && !state->bsync_sticky) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wbsync");
   }
 
-  bool flock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_FLOCK));
-  if (0 != (flags & TP_WAIT_FLOCK) && !flock) {
+  if (0 != (flags & TP_WAIT_FLOCK) && !state->flock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wflock");
   }
 
-  bool plock = (0 != (tracker_channel->flags & TRACKER_FLAG_HAS_PLOCK));
-  if (0 != (flags & TP_WAIT_PLOCK) && !plock) {
+  if (0 != (flags & TP_WAIT_PLOCK) && !state->plock) {
     return profile_switch_requested(
         tracker_channel, state->cur.index, "wplock");
   }
@@ -858,6 +939,16 @@ static float compute_cn0_offset(const me_gnss_signal_t mesid,
 }
 
 /**
+ * Initializes the subsystem.
+ *
+ * This method shall be invoked before any other methods from the subsystem.
+ *
+ * \return 0  On success.
+ * \return -1 On error.
+ */
+tp_result_e tp_init(void) { return TP_RESULT_SUCCESS; }
+
+/**
  * Registers GNSS satellite in facility.
  *
  * The method registers GNSS signal and returns initial tracking parameters.
@@ -878,9 +969,18 @@ void tp_profile_init(tracker_t *tracker_channel, const tp_report_t *data) {
 
   profile->cur = get_profile_vars(mesid, data->cn0);
 
+  profile->bsync_sticky = 0;
+
   profile->cn0_est = TRACK_CN0_EST_BASIC;
 
   profile->profile_update = 0;
+
+  profile->print_time = DEBUG_PRINT_TIME_INTERVAL_MS;
+
+  profile->time_snapshot_ms = 0;
+
+  profile->bs_delay_ms = TP_DELAY_UNKNOWN;
+  profile->plock_delay_ms = TP_DELAY_UNKNOWN;
 
   tp_profile_update_config(tracker_channel);
 
@@ -903,11 +1003,15 @@ void tp_profile_switch(tracker_t *tracker_channel) {
  *
  * \param[in]  profile    Tracking profile data to check
  * \param[out] cn0_params Container for C/N0 limits.
+ *
+ * \retval TP_RESULT_SUCCESS C/N0 thresholds have been retrieved.
+ * \retval TP_RESULT_ERROR   On error.
  */
-void tp_profile_get_cn0_params(const tp_profile_t *profile,
-                               tp_cn0_params_t *cn0_params) {
-  assert(cn0_params);
-  assert(profile);
+tp_result_e tp_profile_get_cn0_params(const tp_profile_t *profile,
+                                      tp_cn0_params_t *cn0_params) {
+  if ((NULL == cn0_params) || (NULL == profile)) {
+    return TP_RESULT_ERROR;
+  }
 
   *cn0_params = cn0_params_default;
 
@@ -929,6 +1033,8 @@ void tp_profile_get_cn0_params(const tp_profile_t *profile,
   if (cn0_params->track_cn0_ambiguity_thres_dbhz < threshold_dbhz) {
     cn0_params->track_cn0_ambiguity_thres_dbhz = threshold_dbhz;
   }
+
+  return TP_RESULT_SUCCESS;
 }
 
 /**
@@ -955,19 +1061,17 @@ u8 tp_profile_get_next_loop_params_ms(const me_gnss_signal_t mesid,
  * The method takes tracking loop data and merges it with previously collected
  * information from other tracking loops.
  *
+ * \param[in]     mesid       ME signal identifier.
  * \param[in,out] profile     Tracking profile data to update
  * \param[in]     data        Tracking loop report.
  */
-void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
+void tp_profile_report_data(tracker_t *tracker_channel,
+                            tp_profile_t *profile,
+                            const tp_report_t *data) {
+  assert(tracker_channel);
   assert(profile);
   assert(data);
 
-  /* Profile lock time count down */
-  if (profile->lock_time_ms > data->time_ms) {
-    profile->lock_time_ms -= data->time_ms;
-  } else {
-    profile->lock_time_ms = 0;
-  }
-
-  profile->filt_cn0 = data->cn0;
+  update_stats(tracker_channel, profile, data);
+  print_stats(tracker_channel->mesid, profile);
 }

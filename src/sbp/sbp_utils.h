@@ -24,7 +24,6 @@
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/gnss_time.h>
-#include <libswiftnav/sbas_raw_data.h>
 #include <libswiftnav/signal.h>
 #include <libswiftnav/single_epoch_solver.h>
 
@@ -69,24 +68,22 @@ typedef enum {
 
 #define NDB_EVENT_SENDER_ID_VOID 0
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t);
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t);
-void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t);
-void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef, gps_time_t *t);
-void sbp_init_vel_ned(msg_vel_ned_t *vel_ned, gps_time_t *t);
-void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef, gps_time_t *t);
-void sbp_init_sbp_dops(msg_dops_t *sbp_dops, gps_time_t *t);
-void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
-                              gps_time_t *t);
+void sbp_init_gps_time(msg_gps_time_t *gps_time);
+void sbp_init_utc_time(msg_utc_time_t *utc_time);
+void sbp_init_pos_llh(msg_pos_llh_t *pos_llh);
+void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef);
+void sbp_init_vel_ned(msg_vel_ned_t *vel_ned);
+void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef);
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops);
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections);
 void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status);
-void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, gps_time_t *t);
-void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned, gps_time_t *t);
-void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading,
-                               gps_time_t *t);
-void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov, gps_time_t *t);
-void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov, gps_time_t *t);
-void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov, gps_time_t *t);
-void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t);
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef);
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned);
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading);
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov);
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov);
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov);
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov);
 
 void sbp_make_gps_time(msg_gps_time_t *t_out, const gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh_vect(msg_pos_llh_t *pos_llh,
@@ -168,7 +165,10 @@ void sbp_make_dgnss_status(msg_dgnss_status_t *dgnss_status,
                            u8 num_sats,
                            double obs_latency,
                            u8 flags);
-void sbp_make_utc_time(msg_utc_time_t *t_out, const gps_time_t *t_in, u8 flags);
+void sbp_make_utc_time(msg_utc_time_t *t_out,
+                       const gps_time_t *t_in,
+                       u8 flags,
+                       const utc_params_t *utc_params);
 void sbp_send_ndb_event(u8 event,
                         u8 obj_type,
                         u8 result,
@@ -247,11 +247,5 @@ sbp_gnss_signal_t sid_to_sbp(const gnss_signal_t from);
 void sbp_send_iono(const ionosphere_t *iono);
 void sbp_send_l2c_capabilities(const u32 *l2c_cap);
 void sbp_send_group_delay(const cnav_msg_t *cnav);
-void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
-                            u32 tow_ms,
-                            u8 msg,
-                            const u8 *decoded,
-                            msg_sbas_raw_t *sbas_raw_msg);
-void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d);
 
 #endif /* SWIFTNAV_SBP_UTILS_H */

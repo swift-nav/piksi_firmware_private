@@ -123,8 +123,8 @@ function bootstrap_osx () {
     # Download and install Ansible
     if ! which ansible &>/dev/null; then
         log_info "Installing Ansible..."
-        sudo pip install ansible
-        #brew install ansible
+        #sudo pip install ansible
+        brew install ansible
     fi
 }
 

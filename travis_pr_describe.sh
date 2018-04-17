@@ -40,6 +40,7 @@ DESCRIPTION_FILE="build_v3_prod/pr_description.yaml"
 echo "---
 commit:
   sha: $TRAVIS_COMMIT
+  message: $TRAVIS_COMMIT_MESSAGE
   range: $TRAVIS_COMMIT_RANGE
 pr:
   number: $TRAVIS_PULL_REQUEST

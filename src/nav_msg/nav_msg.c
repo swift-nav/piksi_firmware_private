@@ -169,8 +169,9 @@ static s32 seek_subframe(nav_msg_t *n) {
    *    see IS-GPS-200H, pages 75 & 89.
    * 3. TOWs are within valid range (= within one week).
    *    TOW matches with the TOW in next subframe
-   * 4. Subframe IDs are valid (= 1..5) and incrementing
-   * 5. Parity check of all TOW & HOW words passes. */
+   * 4. Alert flags OK.
+   * 5. Subframe IDs are valid (= 1..5) and incrementing
+   * 6. Parity check of all TOW & HOW words passes. */
 
   u16 bit_offset = SUBFRAME_BUFFER_OFFSET;
 
@@ -250,6 +251,15 @@ static s32 seek_subframe(nav_msg_t *n) {
   }
 
   /* Step 4.
+   * Check Alert flags. */
+  u32 alert = extract_word(n, 47, 1, parity_bit1);
+  alert |= extract_word(n, 347, 1, parity_bit2);
+  if (alert) {
+    n->subframe_start_index = 0;
+    return TOW_INVALID;
+  }
+
+  /* Step 5.
    * Check subframe ID validity. */
   u32 sf_id1 = extract_word(n, 49, 3, parity_bit1);
   if (sf_id1 < GPS_LNAV_SUBFRAME_MIN || sf_id1 > GPS_LNAV_SUBFRAME_MAX) {
@@ -275,7 +285,7 @@ static s32 seek_subframe(nav_msg_t *n) {
     return TOW_INVALID;
   }
 
-  /* Step 5.
+  /* Step 6.
    *  Check parities. */
 
   /* Shift parity bits of first Word 10. */
@@ -314,15 +324,7 @@ static s32 seek_subframe(nav_msg_t *n) {
 
   /* All checks passed.
    * Pretty certain that we've found correct preamble now. */
-
-  /* Check Alert flags. */
-  u32 alert = extract_word(n, 47, 1, parity_bit1);
-  alert |= extract_word(n, 347, 1, parity_bit2);
-
-  s32 TOW_ms = TOW_INVALID;
-  if (!alert) {
-    TOW_ms = adjust_tow(TOW_trunc1);
-  }
+  s32 TOW_ms = adjust_tow(TOW_trunc1);
 
   n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL
                                                   : BIT_POLARITY_INVERTED;
@@ -339,10 +341,9 @@ static void seek_bit_polarity(nav_msg_t *n) {
    * 2. Last 2 parity bits of Word 10 and HOW are zeros.
    *    see IS-GPS-200H, pages 75 & 89.
    * 3. TOW is within valid range (= within one week).
-   * 4. Subframe ID is valid (= 1..5)
-   * 5. Parity check of TOW & HOW words passes.
-   *
-   * If alert flag is set, it does not affect the bit polarity detection */
+   * 4. Alert flag OK.
+   * 5. Subframe ID is valid (= 1..5)
+   * 6. Parity check of TOW & HOW words passes. */
 
   u16 bit_offset = BIT_POLARITY_BUFFER_OFFSET;
 
@@ -395,6 +396,14 @@ static void seek_bit_polarity(nav_msg_t *n) {
   }
 
   /* Step 4.
+   * Check Alert flag. */
+  u32 alert = extract_word(n, 47, 1, parity_bit);
+  if (alert) {
+    n->subframe_start_index = 0;
+    return;
+  }
+
+  /* Step 5.
    * Check subframe ID validity. */
   u32 sf_id = extract_word(n, 49, 3, parity_bit);
   if (sf_id < GPS_LNAV_SUBFRAME_MIN || sf_id > GPS_LNAV_SUBFRAME_MAX) {
@@ -402,7 +411,7 @@ static void seek_bit_polarity(nav_msg_t *n) {
     return;
   }
 
-  /* Step 5.
+  /* Step 6.
    *  Check parities. */
 
   /* Shift parity bits of Word 10. */

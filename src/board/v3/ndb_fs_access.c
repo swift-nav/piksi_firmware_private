@@ -91,7 +91,6 @@ ssize_t ndb_fs_reserve(const char *name, size_t size) {
     }
     size -= to_write;
     res += to_write;
-    offset += to_write;
   }
 
   return res;

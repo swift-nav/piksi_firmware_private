@@ -25,10 +25,10 @@
  *
  * \return true if valid nav_bit is available, false otherwise.
  */
-bool tracker_nav_bit_get(u8 id, nav_bit_t *nav_bit) {
+bool tracker_nav_bit_get(tracker_id_t id, nav_bit_fifo_element_t *nav_bit) {
   tracker_t *tracker_channel = tracker_get(id);
 
-  nav_bit_t element;
+  nav_bit_fifo_element_t element;
   if (nav_bit_fifo_read(&tracker_channel->nav_bit_fifo, &element)) {
     *nav_bit = element;
     return true;
@@ -43,7 +43,7 @@ bool tracker_nav_bit_get(u8 id, nav_bit_t *nav_bit) {
 void tracker_data_sync_init(nav_data_sync_t *nav_data_sync) {
   memset(nav_data_sync, 0, sizeof(*nav_data_sync));
   nav_data_sync->glo_orbit_slot = GLO_ORBIT_SLOT_UNKNOWN;
-  nav_data_sync->health = SV_UNHEALTHY;
+  nav_data_sync->glo_health = GLO_SV_UNHEALTHY;
   nav_data_sync->sync_flags = SYNC_ALL;
 }
 
@@ -58,7 +58,7 @@ void tracker_data_sync_init(nav_data_sync_t *nav_data_sync) {
  * \param id           ID of the tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.
  */
-static void data_sync(u8 id, nav_data_sync_t *from_decoder) {
+static void data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
 
   tracker_t *tracker_channel = tracker_get(id);
@@ -68,29 +68,41 @@ static void data_sync(u8 id, nav_data_sync_t *from_decoder) {
   }
 }
 
-/** Propagate decoded information back to a tracker channel.
+/** Propagate decoded GPS time of week and bit polarity back to a tracker
+ * channel.
  *
  * \note This function should be called from the same thread as
  * tracker_nav_bit_get().
  * \note It is assumed that the specified data is synchronized with the most
  * recent nav bit read from the FIFO using tracker_nav_bit_get().
  *
- * \param id           ID of the tracker channel to synchronize.
+ * \param id           ID of the GPS tracker channel to synchronize.
  * \param from_decoder struct to sync tracker with.
  */
-void tracker_data_sync(u8 id, nav_data_sync_t *from_decoder) {
+void tracker_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
   assert(from_decoder);
-
-  tracker_t *tracker = tracker_get(id);
-  if (IS_SBAS(tracker->mesid) || IS_GLO(tracker->mesid)) {
-    data_sync(id, from_decoder);
-    return;
-  }
 
   if ((SYNC_POL != from_decoder->sync_flags) &&
       ((from_decoder->TOW_ms < 0) ||
        (BIT_POLARITY_UNKNOWN == from_decoder->bit_polarity))) {
     return;
   }
+  data_sync(id, from_decoder);
+}
+
+/** Propagate decoded GLO time of week, bit polarity and glo orbit slot
+ *  back to a tracker channel.
+ *
+ * \note This function should be called from the same thread as
+ * tracker_nav_bit_get().
+ * \note It is assumed that the specified data is synchronized with the most
+ * recent nav bit read from the FIFO using tracker_nav_bit_get().
+ *
+ * \param id           ID of the GLO tracker channel to synchronize.
+ * \param from_decoder struct to sync tracker with.
+ */
+void tracker_glo_data_sync(tracker_id_t id, nav_data_sync_t *from_decoder) {
+  assert(from_decoder);
+
   data_sync(id, from_decoder);
 }

@@ -54,15 +54,18 @@ typedef struct {
 static ephemeris_candidate_t ephe_candidates[EPHE_CAND_LIST_LEN];
 static MUTEX_DECL(cand_list_access);
 
-/* identically received ephemeris are resent every N seconds */
-#define SBP_EPHEMERIS_RESEND_PERIOD_S 30
-static MUTEX_DECL(ephemeris_send_counter_lock);
+/** Minimum interval between two ephemeris transmission inside one transmission
+    epoch [cycles] */
+#define NDB_EPHE_MESSAGE_SPACING (150 / NV_WRITE_REQ_TIMEOUT)
+/** Minimum interval between ephemeris transmit epoch starts, can be longer
+    if the amount of sent messages makes epoch longer [cycles] */
+#define NDB_EPHE_TRANSMIT_EPOCH_SPACING (30000 / NV_WRITE_REQ_TIMEOUT)
 
 typedef struct {
   bool erase_ephemeris;   /**< Erase ephemeris data on boot */
   s16 valid_alm_accuracy; /**< Cross-checking accuracy with valid almanac [m] */
   s16 valid_eph_accuracy; /**< Cross-checking accuracy with valid ephemeris [m]
-                           */
+                             */
   s16 alm_fit_interval;   /**< Almanac fit interval (days) */
 } ndb_ephe_config_t;
 
@@ -72,8 +75,6 @@ static ndb_ephe_config_t ndb_ephe_config = {
     .valid_eph_accuracy = 100,
     .alm_fit_interval = 6,
 };
-
-static piksi_systime_t ephemeris_send_time[NUM_SATS];
 
 /** Flag if almanacs can be used in ephemeris candidate validation */
 static bool almanacs_enabled = false;
@@ -205,10 +206,8 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
 
       ok = false;
 
-      if (0 ==
-              calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _, _) &&
-          0 == calc_sat_state_n(
-                   new, &t, eph_sat_pos, _, _, _, _, &iodc, &iode)) {
+      if (0 == calc_sat_state_almanac(existing_a, &t, alm_sat_pos, _, _, _) &&
+          0 == calc_sat_state_n(new, &t, eph_sat_pos, _, _, _, &iodc, &iode)) {
         /* Compute distance [m] */
         double d = vector_distance(3, alm_sat_pos, eph_sat_pos);
 
@@ -245,9 +244,8 @@ static bool ndb_can_confirm_ephemeris(const ephemeris_t *new,
       ok = false;
 
       if (0 == calc_sat_state_n(
-                   existing_e, &t, old_sat_pos, _, _, _, _, &iodc, &iode) &&
-          0 == calc_sat_state_n(
-                   new, &t, new_sat_pos, _, _, _, _, &iodc, &iode)) {
+                   existing_e, &t, old_sat_pos, _, _, _, &iodc, &iode) &&
+          0 == calc_sat_state_n(new, &t, new_sat_pos, _, _, _, &iodc, &iode)) {
         /* Compute distance [m] */
         double d = vector_distance(3, old_sat_pos, new_sat_pos);
 
@@ -323,7 +321,7 @@ static ndb_cand_status_t ndb_get_ephemeris_status(const ephemeris_t *new) {
   }
 
   ephemeris_t tmp_ephep;
-  bool ep_eq = false;
+  bool ep_eq;
   if (ephep) {
     ep_eq = ephemeris_equal(ephep, new);
     MEMCPY_S(&tmp_ephep, sizeof(tmp_ephep), ephep, sizeof(tmp_ephep));
@@ -550,23 +548,7 @@ ndb_op_code_t ndb_ephemeris_store(const ephemeris_t *e,
                      NULL,
                      sender_id);
 
-  bool send_sbp = false;
-  piksi_systime_t now;
-  piksi_systime_get(&now);
-  u16 idx = sid_to_sv_index(e->sid);
-
-  /* ephemeris is sent over SBP always on the first reception, and after that
-   * periodically */
-
-  chMtxLock(&ephemeris_send_counter_lock);
-  s64 timediff = piksi_systime_sub_s(&now, &ephemeris_send_time[idx]);
-  if (NDB_ERR_NO_CHANGE != res || (timediff >= SBP_EPHEMERIS_RESEND_PERIOD_S)) {
-    send_sbp = true;
-    ephemeris_send_time[idx] = now;
-  }
-  chMtxUnlock(&ephemeris_send_counter_lock);
-
-  if (send_sbp) {
+  if (NDB_ERR_NO_CHANGE != res) {
     msg_ephemeris_t msg;
     msg_info_t info = pack_ephemeris(e, &msg);
     sbp_send_msg(info.msg_id, info.size, (u8 *)&msg);

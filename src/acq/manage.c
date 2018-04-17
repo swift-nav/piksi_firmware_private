@@ -29,7 +29,6 @@
 #include "decode.h"
 #include "dum/dum.h"
 #include "ephemeris/ephemeris.h"
-#include "gnss_capabilities/gnss_capabilities.h"
 #include "main.h"
 #include "manage.h"
 #include "ndb/ndb.h"
@@ -71,9 +70,18 @@ typedef enum {
   CH_DROP_REASON_LEAP_SECOND,  /**< Leap second event is imminent,
                                     drop GLO satellites */
   CH_DROP_REASON_OUTLIER,      /**< Doppler outlier */
-  CH_DROP_REASON_SBAS_PROVIDER_CHANGE, /**< SBAS provider change */
-  CH_DROP_REASON_RAIM                  /**< Signal removed by RAIM */
+  CH_DROP_REASON_RAIM          /**< Signal removed by RAIM */
 } ch_drop_reason_t;
+
+/** Different hints on satellite info to aid the acqusition */
+enum acq_hint {
+  ACQ_HINT_WARMSTART,  /**< Information from almanac or ephemeris */
+  ACQ_HINT_PREV_ACQ,   /**< Previous successful acqusition. */
+  ACQ_HINT_PREV_TRACK, /**< Previously tracked satellite. */
+  ACQ_HINT_REMOTE_OBS, /**< Observation from reference station. */
+
+  ACQ_HINT_NUM
+};
 
 /** Status of acquisition for a particular ME SID. */
 typedef struct {
@@ -82,15 +90,23 @@ typedef struct {
     ACQ_PRN_ACQUIRING,
     ACQ_PRN_TRACKING,
     ACQ_PRN_UNHEALTHY
-  } state;                /**< Management status of signal. */
-  bool masked;            /**< Prevent acquisition. */
-  float dopp_hint_low;    /**< Low bound of doppler search hint. */
-  float dopp_hint_high;   /**< High bound of doppler search hint. */
-  me_gnss_signal_t mesid; /**< ME signal identifier. */
+  } state;                 /**< Management status of signal. */
+  bool masked;             /**< Prevent acquisition. */
+  u16 score[ACQ_HINT_NUM]; /**< Acquisition preference of signal. */
+  float dopp_hint_low;     /**< Low bound of doppler search hint. */
+  float dopp_hint_high;    /**< High bound of doppler search hint. */
+  me_gnss_signal_t mesid;  /**< ME signal identifier. */
 } acq_status_t;
 
 static acq_status_t acq_status[PLATFORM_ACQ_TRACK_COUNT];
 static bool track_mask[ARRAY_SIZE(acq_status)];
+
+#define SCORE_COLDSTART 100
+#define SCORE_WARMSTART 200
+#define SCORE_BELOWMASK 0
+#define SCORE_ACQ 100
+#define SCORE_TRACK 200
+#define SCORE_OBS 200
 
 #define DOPP_UNCERT_ALMANAC 4000
 #define DOPP_UNCERT_EPHEM 500
@@ -107,9 +123,6 @@ static bool track_mask[ARRAY_SIZE(acq_status)];
                                     (p_fifo)->read_index))
 /* Refer also internal NDB definition NDB_NV_GLO_EPHEMERIS_AGE_SECS */
 #define ACQ_GLO_EPH_VALID_TIME_SEC (30 * MINUTE_SECS)
-
-/* Refer to SBAS MOPS section A.4.4.1 */
-#define ACQ_SBAS_MSG0_TIMEOUT_SEC (MINUTE_SECS)
 
 #define MANAGE_ACQ_THREAD_PRIORITY (LOWPRIO)
 #define MANAGE_ACQ_THREAD_STACK (32 * 1024)
@@ -131,6 +144,14 @@ static float tracking_elevation_mask = 0.0;
 /* Elevation mask for solution, degrees */
 static float solution_elevation_mask = 10.0;
 
+/* Bootstrap acquisiton by suggesting which PRN are active in the
+ * constellation - effective for not FOC systems.
+ * TODO: put this into NDB, similar to L2C capability */
+static const u32 sbas_mask = 0x7ffff;
+static const u64 beidou2_mask = 0x07c0013fffULL;
+static const u32 qzss_mask = 0x7;
+static const u64 galileo_mask = 0x022a62ddbULL;
+
 /** Flag if almanacs can be used in acq */
 static bool almanacs_enabled = false;
 /** Flag if GLONASS enabled */
@@ -145,15 +166,13 @@ static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
 
 typedef struct {
-  piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
-  acq_status_t *status; /**< Pointer to acq status for the SV */
-} acq_timer_t;
+  piksi_systime_t tick; /**< Time when GLO SV was detected as unhealthy */
+  acq_status_t *status; /**< Pointer to acq status for the GLO SV */
+} glo_acq_state_t;
 
-/* The array keeps time when GLO SV was detected as unhealthy */
-static acq_timer_t glo_acq_timer[NUM_SATS_GLO] = {0};
-
-/* The array keeps time when SBAS SV was detected as unhealthy. */
-static acq_timer_t sbas_acq_timer[NUM_SATS_SBAS] = {0};
+/* The array keeps time when GLO SV was detected as unhealthy
+ * Number of elemnts is n+1 to avoid index adjusting */
+static glo_acq_state_t glo_acq_timer[NUM_SATS_GLO + 1] = {0};
 
 static u8 manage_track_new_acq(const me_gnss_signal_t mesid);
 static void manage_acq(void);
@@ -360,17 +379,27 @@ void manage_acq_setup() {
       acq_status[i].masked = !glo_enabled;
     }
     if (IS_SBAS(mesid)) {
-      acq_status[i].masked = !sbas_enabled || !sbas_active(mesid);
+      acq_status[i].masked =
+          !sbas_enabled ||
+          (0 == ((sbas_mask >> (mesid.sat - SBAS_FIRST_PRN)) & 1));
     }
     if (IS_BDS2(mesid)) {
-      acq_status[i].masked = !bds2_enabled || !bds_active(mesid);
+      acq_status[i].masked =
+          !bds2_enabled ||
+          (0 == ((beidou2_mask >> (mesid.sat - BDS2_FIRST_PRN)) & 1));
     }
     if (IS_QZSS(mesid)) {
-      acq_status[i].masked = !qzss_enabled || !qzss_active(mesid);
+      acq_status[i].masked =
+          !qzss_enabled ||
+          (0 == ((qzss_mask >> (mesid.sat - QZS_FIRST_PRN)) & 1));
     }
     if (IS_GAL(mesid)) {
-      acq_status[i].masked = !galileo_enabled || !gal_active(mesid);
+      acq_status[i].masked =
+          !galileo_enabled ||
+          (0 == ((galileo_mask >> (mesid.sat - GAL_FIRST_PRN)) & 1));
     }
+
+    memset(&acq_status[i].score, 0, sizeof(acq_status[i].score));
 
     if (code_requires_direct_acq(mesid.code)) {
       acq_status[i].dopp_hint_low = code_to_sv_doppler_min(mesid.code) +
@@ -395,24 +424,248 @@ void manage_acq_setup() {
                     NULL);
 }
 
+/** Using available almanac and ephemeris information, determine
+ * whether a satellite is in view and the range of doppler frequencies
+ * in which we expect to find it.
+ *
+ * \param mesid ME signal id
+ * \param t     Time at which to evaluate ephemeris and almanac (typically
+ * system's
+ *              estimate of current time)
+ * \param dopp_hint_low, dopp_hint_high Pointers to store doppler search range
+ *  from ephemeris or almanac, if available and elevation > mask
+ * \return Score (higher is better)
+ */
+static u16 manage_warm_start(const me_gnss_signal_t mesid,
+                             const gps_time_t *t,
+                             float *dopp_hint_low,
+                             float *dopp_hint_high) {
+  return SCORE_COLDSTART;
+
+  /* Do we have any idea where/when we are?  If not, no score. */
+  /* TODO: Stricter requirement on time and position uncertainty?
+     We ought to keep track of a quantitative uncertainty estimate. */
+  last_good_fix_t lgf;
+  if (ndb_lgf_read(&lgf) != NDB_ERR_NONE ||
+      lgf.position_quality < POSITION_GUESS ||
+      get_time_quality() == TIME_UNKNOWN) {
+    return SCORE_COLDSTART;
+  }
+
+  /* TODO GLO: Handle GLO orbit slot properly. */
+  if (CODE_GPS_L1CA != mesid.code) return SCORE_COLDSTART;
+
+  gnss_signal_t sid = mesid2sid(mesid, GLO_ORBIT_SLOT_UNKNOWN);
+  float el = TRACKING_ELEVATION_UNKNOWN;
+  el = track_sid_db_elevation_degrees_get(sid);
+  if (el < tracking_elevation_mask) {
+    return SCORE_BELOWMASK;
+  }
+
+  double dopp_hint = 0, dopp_uncertainty = DOPP_UNCERT_ALMANAC;
+  bool ready = false;
+  /* Do we have a suitable ephemeris for this sat?  If so, use
+     that in preference to the almanac. */
+  union {
+    ephemeris_t e;
+    almanac_t a;
+  } orbit;
+
+  u8 eph_valid = 0;
+  ndb_op_code_t ndb_ret = NDB_ERR_NO_DATA;
+  ndb_ret = ndb_ephemeris_read(sid, &orbit.e);
+
+  s8 ss_ret;
+  double sat_pos[3], sat_vel[3], el_d;
+
+  eph_valid = NDB_ERR_NONE == ndb_ret && ephemeris_valid(&orbit.e, t);
+  if (eph_valid) {
+    double unused;
+    u8 iode;
+    u16 iodc;
+    ss_ret = calc_sat_state(&orbit.e,
+                            t,
+                            sat_pos,
+                            sat_vel,
+                            /* double *clock_err = */ &unused,
+                            /* double *clock_rate_err = */ &unused,
+                            &iodc,
+                            &iode);
+  }
+
+  if (eph_valid && (ss_ret == 0)) {
+    double dopp_hint_sat_vel; /* Doppler hint induced by sat velocity */
+    double dopp_hint_clock;   /* Doppler hint induced by clock drift */
+    vector_subtract(3, sat_pos, lgf.position_solution.pos_ecef, sat_pos);
+    vector_normalize(3, sat_pos);
+    /* sat_pos now holds unit vector from us to satellite */
+    vector_subtract(3, sat_vel, lgf.position_solution.vel_ecef, sat_vel);
+    /* sat_vel now holds velocity of sat relative to us */
+    dopp_hint_sat_vel = -sid_to_carr_freq(orbit.e.sid) *
+                        vector_dot(3, sat_pos, sat_vel) / GPS_C;
+    /* TODO: Check sign of receiver frequency offset correction.
+             There seems to be a sign flip somewhere in 'clock_bias'
+             computation that gets compensated here */
+    dopp_hint_clock =
+        -sid_to_carr_freq(orbit.e.sid) * lgf.position_solution.clock_drift;
+    dopp_hint = dopp_hint_sat_vel + dopp_hint_clock;
+    if (get_time_quality() >= TIME_FINE) {
+      dopp_uncertainty = DOPP_UNCERT_EPHEM;
+    }
+    ready = true;
+
+    if ((dopp_hint_sat_vel < code_to_sv_doppler_min(mesid.code)) ||
+        (dopp_hint_sat_vel > code_to_sv_doppler_max(mesid.code)) ||
+        (dopp_hint_clock < code_to_tcxo_doppler_min(mesid.code)) ||
+        (dopp_hint_clock > code_to_tcxo_doppler_max(mesid.code))) {
+      log_error_mesid(mesid,
+                      "Acq: bogus ephe/clock dopp hints "
+                      "(unc,sat_hint,clk_hint,lgf_pos[0..2],drift,ele) "
+                      "(%.1lf,%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%g,%.1f)",
+                      dopp_uncertainty,
+                      dopp_hint_sat_vel,
+                      dopp_hint_clock,
+                      lgf.position_solution.pos_ecef[0],
+                      lgf.position_solution.pos_ecef[1],
+                      lgf.position_solution.pos_ecef[2],
+                      lgf.position_solution.clock_drift,
+                      el);
+      return SCORE_COLDSTART;
+    }
+  }
+
+  float doppler_min =
+      code_to_sv_doppler_min(mesid.code) + code_to_tcxo_doppler_min(mesid.code);
+  float doppler_max =
+      code_to_sv_doppler_max(mesid.code) + code_to_tcxo_doppler_max(mesid.code);
+
+  if (!ready) {
+    double unused;
+
+    if (almanacs_enabled && (NDB_ERR_NONE == ndb_almanac_read(sid, &orbit.a)) &&
+        almanac_valid(&orbit.a, t) &&
+        calc_sat_az_el_almanac(&orbit.a,
+                               t,
+                               lgf.position_solution.pos_ecef,
+                               /* double *az = */ &unused,
+                               &el_d) == 0) {
+      el = (float)(el_d * R2D);
+      if (el < tracking_elevation_mask) {
+        return SCORE_BELOWMASK;
+      }
+      if (calc_sat_doppler_almanac(
+              &orbit.a, t, lgf.position_solution.pos_ecef, &dopp_hint) != 0) {
+        return SCORE_COLDSTART;
+      }
+      dopp_hint = -dopp_hint;
+
+      if ((dopp_hint < doppler_min) || (dopp_hint > doppler_max)) {
+        log_error_mesid(mesid,
+                        "Acq: bogus alm dopp_hint "
+                        "(unc,sat_hint,lgf_pos[0..2],ele) "
+                        "(%.1lf,%.1lf,[%.1lf,%.1lf,%.1lf],%.1f)",
+                        dopp_uncertainty,
+                        dopp_hint,
+                        lgf.position_solution.pos_ecef[0],
+                        lgf.position_solution.pos_ecef[1],
+                        lgf.position_solution.pos_ecef[2],
+                        el);
+        return SCORE_COLDSTART;
+      }
+    } else {
+      return SCORE_COLDSTART; /* Couldn't determine satellite state. */
+    }
+  }
+
+  /* Return the doppler hints and a score proportional to elevation */
+  *dopp_hint_low = MAX(dopp_hint - dopp_uncertainty, doppler_min);
+  *dopp_hint_high = MIN(dopp_hint + dopp_uncertainty, doppler_max);
+  return SCORE_COLDSTART + SCORE_WARMSTART * el / 90.f;
+}
+
 static acq_status_t *choose_acq_sat(void) {
-  static u32 sat_idx = 0;
+  u32 total_score = 0;
+  gps_time_t t = get_current_time();
 
-  if ((!code_requires_direct_acq(acq_status[sat_idx].mesid.code)) ||
-      (CODE_SBAS_L1CA == acq_status[sat_idx].mesid.code) ||
-      (acq_status[sat_idx].state != ACQ_PRN_ACQUIRING) ||
-      (acq_status[sat_idx].masked)) {
-    log_debug_mesid(acq_status[sat_idx].mesid, "skipped");
+  /* Prevent SBAS in normal acquisition. Current design document specifies that
+   * SBAS is only searched in re-acquisition.
+   * https://paper.dropbox.com/doc/SBAS-Task-Plan-10FUSrKqc1nZybQ2JYvN9 */
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
+        (CODE_SBAS_L1CA == acq_status[i].mesid.code) ||
+        (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
+      continue;
+    }
 
-    sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
+    acq_status[i].score[ACQ_HINT_WARMSTART] =
+        manage_warm_start(acq_status[i].mesid,
+                          &t,
+                          &acq_status[i].dopp_hint_low,
+                          &acq_status[i].dopp_hint_high);
+
+    for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++) {
+      total_score += acq_status[i].score[hint];
+    }
+  }
+
+  if (total_score == 0) {
+    log_error("Failed to pick a sat for acquisition!");
     return NULL;
   }
 
-  u32 this = sat_idx;
-  log_debug_mesid(acq_status[sat_idx].mesid, "chosen");
+  u32 pick = rand() % total_score;
 
-  sat_idx = (sat_idx + 1) % ARRAY_SIZE(acq_status);
-  return &acq_status[this];
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if ((!code_requires_direct_acq(acq_status[i].mesid.code)) ||
+        (acq_status[i].state != ACQ_PRN_ACQUIRING) || (acq_status[i].masked)) {
+      continue;
+    }
+
+    u32 sat_score = 0;
+    for (enum acq_hint hint = 0; hint < ACQ_HINT_NUM; hint++) {
+      sat_score += acq_status[i].score[hint];
+    }
+    if (pick < sat_score) {
+      return &acq_status[i];
+    } else {
+      pick -= sat_score;
+    }
+  }
+
+  assert(!"Error picking a sat for acquisition");
+  return NULL;
+}
+
+/** Hint acqusition at satellites observed by peer.
+
+RTK relies on a common set of measurements, have the receivers focus search
+efforts on satellites both are likely to be able to see. Receiver will need
+to be sufficiently close for RTK to function, and so should have a similar
+view of the constellation, even if obstructed this may change if the receivers
+move or the satellite arcs across the sky.
+
+cturvey 10-Feb-2015
+*/
+void manage_set_obs_hint(gnss_signal_t sid) {
+  bool valid = sid_supported(sid);
+  assert(valid);
+  if (valid) {
+    /* TODO GLO: Handle GLO signals properly. */
+    me_gnss_signal_t mesid;
+    if (IS_GLO(sid)) {
+      if (!glo_map_valid(sid)) {
+        /* no guarantee that we have FCN mapping for an observation
+         * received from peer */
+        return;
+      }
+      u16 fcn = glo_map_get_fcn(sid);
+      mesid = construct_mesid(sid.code, fcn);
+    } else {
+      mesid = construct_mesid(sid.code, sid.sat);
+    }
+    acq_status[mesid_to_global_index(mesid)].score[ACQ_HINT_REMOTE_OBS] =
+        SCORE_OBS;
+  }
 }
 
 /** Manages acquisition searches and starts tracking channels after successful
@@ -459,6 +712,12 @@ static void manage_acq(void) {
       float dilute = (acq->dopp_hint_high - acq->dopp_hint_low) / 2;
       acq->dopp_hint_high = MIN(acq->dopp_hint_high + dilute, doppler_max);
       acq->dopp_hint_low = MAX(acq->dopp_hint_low - dilute, doppler_min);
+      /* Decay hint scores */
+      for (u8 i = 0; i < ACQ_HINT_NUM; i++) {
+        acq->score[i] = (acq->score[i] * 3) / 4;
+      }
+      /* Reset hint score for acquisition. */
+      acq->score[ACQ_HINT_PREV_ACQ] = 0;
       return;
     }
 
@@ -522,34 +781,36 @@ static u8 manage_track_new_acq(const me_gnss_signal_t mesid) {
   return MANAGE_NO_CHANNELS_FREE;
 }
 
-static void revert_expired_unhealthiness(acq_timer_t *timer,
-                                         size_t size,
-                                         u32 timeout_s) {
-  for (u8 i = 0; i < size; i++) {
-    if (NULL == timer[i].status) {
-      continue;
+/** Clear unhealthy flags after some time, so we eventually retry
+    those sats in case they recover from their sickness.  Call this
+    function regularly, and once per day it will reset the flags. */
+void check_clear_unhealthy(void) {
+  for (u32 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if (ACQ_PRN_UNHEALTHY == acq_status[i].state) {
+      acq_status[i].state = ACQ_PRN_ACQUIRING;
     }
-    if (ACQ_PRN_UNHEALTHY != timer[i].status->state) {
-      continue;
-    }
-    if (piksi_systime_elapsed_since_s(&timer[i].tick) <= timeout_s) {
-      continue;
-    }
-
-    timer[i].status->state = ACQ_PRN_ACQUIRING;
-    log_info_mesid(timer[i].status->mesid, "is back to aquisition");
   }
 }
 
-/** Check SV unhealthy flags and clear after constellation specific timeout */
-void check_clear_unhealthy(void) {
-  if (is_glo_enabled()) {
-    revert_expired_unhealthiness(
-        glo_acq_timer, ARRAY_SIZE(glo_acq_timer), ACQ_GLO_EPH_VALID_TIME_SEC);
+/** Check GLO unhealthy flags and clear after GLO ephemeris valid time
+ * This function blocks acquiring GLO SV for some time if the SV is unhealthy */
+void check_clear_glo_unhealthy(void) {
+  if (!is_glo_enabled()) {
+    return;
   }
-  if (is_sbas_enabled()) {
-    revert_expired_unhealthiness(
-        sbas_acq_timer, ARRAY_SIZE(sbas_acq_timer), ACQ_SBAS_MSG0_TIMEOUT_SEC);
+
+  for (u32 i = 1; i <= NUM_SATS_GLO; i++) {
+    if (glo_acq_timer[i].status &&
+        (ACQ_PRN_UNHEALTHY == glo_acq_timer[i].status->state)) {
+      /* check if time since channel dropped due to SV unhealthy greater
+       * than GLO ephemeris valid time (30 min) */
+      if (piksi_systime_elapsed_since_s(&glo_acq_timer[i].tick) >
+          ACQ_GLO_EPH_VALID_TIME_SEC) {
+        /* enable GLO aqcuisition again */
+        glo_acq_timer[i].status->state = ACQ_PRN_ACQUIRING;
+        log_info_mesid(glo_acq_timer[i].status->mesid, "is back to aquisition");
+      }
+    }
   }
 }
 
@@ -602,9 +863,6 @@ static const char *get_ch_drop_reason_str(ch_drop_reason_t reason) {
     case CH_DROP_REASON_OUTLIER:
       str = "SV measurement outlier, dropping";
       break;
-    case CH_DROP_REASON_SBAS_PROVIDER_CHANGE:
-      str = "SBAS provider change, dropping";
-      break;
     case CH_DROP_REASON_RAIM:
       str = "Measurement flagged by RAIM, dropping";
       break;
@@ -653,9 +911,11 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
                    time_in_track_ms,
                    get_ch_drop_reason_str(reason));
   }
+  /*
+   * TODO add generation of a tracker state change message
+   */
 
   acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
-
   if (code_requires_direct_acq(mesid.code)) {
     bool had_locks =
         (0 != (flags & (TRACKER_FLAG_HAD_PLOCK | TRACKER_FLAG_HAD_FLOCK)));
@@ -676,48 +936,30 @@ static void drop_channel(tracker_t *tracker_channel, ch_drop_reason_t reason) {
             mesid, "Acq: bogus carr freq: %lf. Rejected.", carrier_freq);
       } else {
         /* FIXME other constellations/bands */
+        acq->score[ACQ_HINT_PREV_TRACK] = SCORE_TRACK;
         acq->dopp_hint_low = MAX(carrier_freq - ACQ_FULL_CF_STEP, doppler_min);
         acq->dopp_hint_high = MIN(carrier_freq + ACQ_FULL_CF_STEP, doppler_max);
       }
     }
   }
 
-  /* Disable the decoder and tracking channels */
-  decoder_channel_disable(tracker_channel->nap_channel);
-  tracker_disable(tracker_channel->nap_channel);
-}
-
-/**
- * Restores acquisition for a satellite that has been disposed.
- *
- * \return
- */
-void restore_acq(const tracker_t *tracker_channel) {
-  u32 flags = tracker_channel->flags;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
-  acq_status_t *acq = &acq_status[mesid_to_global_index(mesid)];
-
-  /* Now restore satellite acq */
-  acq->state = ACQ_PRN_ACQUIRING;
   if (IS_GLO(mesid)) {
     bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health) &&
-        (tracker_channel->glo_orbit_slot != GLO_ORBIT_SLOT_UNKNOWN)) {
+    if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
       acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker_channel->glo_orbit_slot - 1;
-      assert(index < ARRAY_SIZE(glo_acq_timer));
-      glo_acq_timer[index].status = acq;
-      piksi_systime_get(&glo_acq_timer[index].tick); /* channel drop time */
+      glo_acq_timer[tracker_channel->glo_orbit_slot].status = acq;
+      /* store system time when GLO channel dropped */
+      piksi_systime_get(&glo_acq_timer[tracker_channel->glo_orbit_slot].tick);
+    } else {
+      acq->state = ACQ_PRN_ACQUIRING;
     }
-  } else if (IS_SBAS(mesid)) {
-    if (SV_UNHEALTHY == tracker_channel->health) {
-      acq->state = ACQ_PRN_UNHEALTHY;
-      u16 index = tracker_channel->mesid.sat - SBAS_FIRST_PRN;
-      assert(index < ARRAY_SIZE(sbas_acq_timer));
-      sbas_acq_timer[index].status = acq;
-      piksi_systime_get(&sbas_acq_timer[index].tick); /* channel drop time */
-    }
+  } else {
+    acq->state = ACQ_PRN_ACQUIRING;
   }
+
+  /* Finally disable the decoder and tracking channels */
+  decoder_channel_disable(tracker_channel->nap_channel);
+  tracker_disable(tracker_channel->nap_channel);
 }
 
 /**
@@ -730,7 +972,7 @@ void restore_acq(const tracker_t *tracker_channel) {
  *
  * \return true if leap second event is imminent, false otherwise.
  */
-bool leap_second_imminent(void) {
+static bool leap_second_is_imminent(void) {
   /* Check if GPS time is known.
    * If GPS time is not known,
    * leap second event cannot be detected. */
@@ -758,138 +1000,190 @@ bool leap_second_imminent(void) {
   return leap_second_event;
 }
 
-/** Disable the tracking channel if it has errored, too weak, lost phase lock
+/** Disable any tracking channel that has errored, too weak, lost phase lock
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_tracker(tracker_t *tracker_channel,
-                      u64 now_ms,
-                      bool leap_second_event) {
-  /*! Addressing the problem where we try to disable a channel that is
-   * not in `STATE_ENABLED` in the first place. It remains to check
-   * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
-   * */
-  state_t state = tracker_channel->state;
-  COMPILER_BARRIER();
-  if (STATE_ENABLED != state) {
-    return;
+void sanitize_trackers(void) {
+  const u64 now_ms = timing_getms();
+  bool leap_second_event = leap_second_is_imminent();
+
+  /* Clear GLO satellites TOW cache if it is leap second event */
+  if (leap_second_event) {
+    track_sid_db_clear_glo_tow();
   }
 
-  u32 flags = tracker_channel->flags;
-  me_gnss_signal_t mesid = tracker_channel->mesid;
+  for (u8 i = 0; i < nap_track_n_channels; i++) {
+    /*! Addressing the problem where we try to disable a channel that is
+     * not in `STATE_ENABLED` in the first place. It remains to check
+     * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
+     * */
+    tracker_t *tracker_channel = tracker_get(i);
 
-  /* Skip channels that aren't in use */
-  if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
-    return;
-  }
+    state_t state = tracker_channel->state;
+    COMPILER_BARRIER();
+    if (STATE_ENABLED != state) {
+      continue;
+    }
 
-  /* Drop GLO satellites if it is leap second event */
-  if (leap_second_event && IS_GLO(mesid)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
-    return;
-  }
+    u32 flags = tracker_channel->flags;
+    me_gnss_signal_t mesid = tracker_channel->mesid;
 
-  /* Has an error occurred? */
-  if (0 != (flags & TRACKER_FLAG_ERROR)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
-    return;
-  }
+    /* Skip channels that aren't in use */
+    if (0 == (flags & TRACKER_FLAG_ACTIVE)) {
+      continue;
+    }
 
-  /* Is tracking masked? */
-  u16 global_index = mesid_to_global_index(mesid);
-  if (track_mask[global_index]) {
-    drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
-    return;
-  }
+    /* Drop GLO satellites if it is leap second event */
+    if (leap_second_event && IS_GLO(mesid)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
+      continue;
+    }
 
-  /* Do we have a large measurement outlier? */
-  if (0 != (flags & TRACKER_FLAG_OUTLIER)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
-    return;
-  }
+    /* Has an error occurred? */
+    if (0 != (flags & TRACKER_FLAG_ERROR)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_ERROR);
+      continue;
+    }
 
-  /* Give newly-initialized channels a chance to converge. */
-  u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
-  u32 wait_ms = code_requires_direct_acq(mesid.code)
-                    ? TRACK_INIT_FROM_ACQ_MS
-                    : TRACK_INIT_FROM_HANDOVER_MS;
-  if (age_ms < wait_ms) {
-    return;
-  }
+    /* Is tracking masked? */
+    u16 global_index = mesid_to_global_index(mesid);
+    if (track_mask[global_index]) {
+      drop_channel(tracker_channel, CH_DROP_REASON_MASKED);
+      continue;
+    }
 
-  if (now_ms > tracker_channel->update_timestamp_ms) {
+    /* Do we have a large measurement outlier? */
+    if (flags & TRACKER_FLAG_OUTLIER) {
+      drop_channel(tracker_channel, CH_DROP_REASON_OUTLIER);
+      continue;
+    }
+
+    /* Give newly-initialized channels a chance to converge. */
+    u32 age_ms = now_ms - tracker_channel->init_timestamp_ms;
+    u32 wait_ms = code_requires_direct_acq(mesid.code)
+                      ? TRACK_INIT_FROM_ACQ_MS
+                      : TRACK_INIT_FROM_HANDOVER_MS;
+    if (age_ms < wait_ms) {
+      continue;
+    }
+
     u32 update_delay_ms = now_ms - tracker_channel->update_timestamp_ms;
     if (update_delay_ms > NAP_CORR_LENGTH_MAX_MS) {
       drop_channel(tracker_channel, CH_DROP_REASON_NO_UPDATES);
-      return;
+      continue;
+    }
+
+    /* Do we not have nav bit sync yet? */
+    if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
+      continue;
+    }
+
+    /* PLL/FLL pessimistic lock detector "unlocked" for a while?
+       We could get rid of this check althogether if not the
+       observed cases, when tracker could not achieve the pessimistic
+       lock state for a long time (minutes?) and yet managed to pass
+       CN0 sanity checks.*/
+    u32 unlocked_ms = 0;
+    if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
+      unlocked_ms = update_count_diff(tracker_channel,
+                                      &tracker_channel->ld_pess_change_count);
+    }
+    if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
+      drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
+      continue;
+    }
+
+    /* CN0 below threshold for a while? */
+    u32 cn0_drop_ms = update_count_diff(
+        tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
+    if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
+      drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
+      continue;
+    }
+
+    /* Do we have confirmed cross-correlation? */
+    if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
+      continue;
+    }
+
+    /* Drop GLO if the SV is unhealthy */
+    if (IS_GLO(mesid)) {
+      bool glo_health_decoded =
+          (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
+      if (glo_health_decoded && (GLO_SV_UNHEALTHY == tracker_channel->health)) {
+        drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
+        continue;
+      }
+    }
+
+    /* Drop channel if signal was excluded by RAIM */
+    if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
+      drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
+      continue;
     }
   }
+}
 
-  /* Do we not have nav bit sync yet? */
-  if (0 == (flags & TRACKER_FLAG_BIT_SYNC)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_NO_BIT_SYNC);
-    return;
-  }
+/**
+ * Provides a set of base channel flags
+ *
+ * The method queries tracking channel status and combines it as a set of flags.
+ * Because flag computation involves loading of data from external sources, the
+ * caller may optionally provide data destination pointers to avoid data
+ * reloading.
+ *
+ * \param[in]  i         Channel index.
+ * \param[out] info      Optional destination for tracker generic information.
+ * \param[out] time_info Optional destination for tracker time information.
+ * \param[out] freq_info Optional destination for tracker carrier and phase
+ *                       information.
+ * \param[out] ctrl_info Optional destination for tracker controller
+ * information.
+ *
+ * \return Tracker status flags combined in a single set.
+ *
+ * \sa get_tracking_channel_sid_flags
+ *
+ * \sa use_tracking_channel
+ * \sa tracking_channels_ready
+ * \sa tracking_channel_lock
+ * \sa tracking_channel_unlock
+ */
+static u32 get_tracking_channel_flags_info(u8 i,
+                                           tracker_info_t *info,
+                                           tracker_time_info_t *time_info,
+                                           tracker_freq_info_t *freq_info,
+                                           tracker_ctrl_info_t *ctrl_info,
+                                           tracker_misc_info_t *misc_info) {
+  tracker_info_t tmp_info;
+  tracker_time_info_t tmp_time_info;
 
-  /* PLL/FLL pessimistic lock detector "unlocked" for a while?
-     We could get rid of this check althogether if not the
-     observed cases, when tracker could not achieve the pessimistic
-     lock state for a long time (minutes?) and yet managed to pass
-     CN0 sanity checks.*/
-  u32 unlocked_ms = 0;
-  if ((0 == (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-      (0 == (flags & TRACKER_FLAG_HAS_FLOCK))) {
-    unlocked_ms = update_count_diff(tracker_channel,
-                                    &tracker_channel->ld_pess_change_count);
+  if (NULL == info) {
+    info = &tmp_info;
   }
-  if (unlocked_ms > TRACK_DROP_UNLOCKED_MS) {
-    drop_channel(tracker_channel, CH_DROP_REASON_NO_PLOCK);
-    return;
-  }
-
-  /* CN0 below threshold for a while? */
-  u32 cn0_drop_ms = update_count_diff(
-      tracker_channel, &tracker_channel->cn0_above_drop_thres_count);
-  if (cn0_drop_ms > TRACK_DROP_CN0_MS) {
-    drop_channel(tracker_channel, CH_DROP_REASON_LOW_CN0);
-    return;
-  }
-
-  /* Do we have confirmed cross-correlation? */
-  if (0 != (flags & TRACKER_FLAG_XCORR_CONFIRMED)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_XCORR);
-    return;
-  }
-
-  /* Drop GLO if the SV is unhealthy */
-  if (IS_GLO(mesid)) {
-    bool glo_health_decoded = (0 != (flags & TRACKER_FLAG_GLO_HEALTH_DECODED));
-    if (glo_health_decoded && (SV_UNHEALTHY == tracker_channel->health)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
-      return;
-    }
-  } else if (IS_SBAS(mesid)) {
-    if (SV_UNHEALTHY == tracker_channel->health) {
-      drop_channel(tracker_channel, CH_DROP_REASON_SV_UNHEALTHY);
-      return;
-    }
-    if (0 != (flags & TRACKER_FLAG_SBAS_PROVIDER_CHANGE)) {
-      drop_channel(tracker_channel, CH_DROP_REASON_SBAS_PROVIDER_CHANGE);
-      return;
-    }
+  if (NULL == time_info) {
+    time_info = &tmp_time_info;
   }
 
-  /* Drop channel if signal was excluded by RAIM */
-  if (0 != (flags & TRACKER_FLAG_RAIM_EXCLUSION)) {
-    drop_channel(tracker_channel, CH_DROP_REASON_RAIM);
-    return;
-  }
+  tracker_get_values(i,
+                     info,      /* Generic info */
+                     time_info, /* Timers */
+                     freq_info, /* Frequencies */
+                     ctrl_info, /* Loop controller values */
+                     misc_info);
+
+  return info->flags;
 }
 
 /**
  * Computes carrier phase offset.
  *
  * \param[in]  ref_tc Reference time
+ * \param[in]  info   Generic tracker data for update
  * \param[in]  meas   Pre-populated channel measurement
  * \param[out] carrier_phase_offset Result
  *
@@ -898,54 +1192,82 @@ void sanitize_tracker(tracker_t *tracker_channel,
  * \retval false Error in computation.
  */
 static bool compute_cpo(u64 ref_tc,
+                        const tracker_info_t *info,
                         const channel_measurement_t *meas,
-                        s32 *carrier_phase_offset) {
+                        double *carrier_phase_offset) {
   /* compute the pseudorange for this signal */
   double raw_pseudorange;
-  if (!tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange)) {
-    return false;
+  bool ret = tracker_calc_pseudorange(ref_tc, meas, &raw_pseudorange);
+  if (ret) {
+    /* We don't want to adjust for the recevier clock drift,
+     * so we need to calculate an estimate of that before we
+     * calculate the carrier phase offset */
+    gps_time_t receiver_time = napcount2rcvtime(ref_tc);
+    gps_time_t gps_time = napcount2gpstime(ref_tc);
+
+    double rcv_clk_error = gpsdifftime(&gps_time, &receiver_time);
+
+    /* pseudorange in circles */
+    double pseudorange_circ = (sid_to_carr_freq(meas->sid) *
+                               (raw_pseudorange / GPS_C - rcv_clk_error));
+
+    /* Remove the fractional 2-ms residual FCN contribution */
+    if (IS_GLO(meas->sid)) {
+      pseudorange_circ -= glo_2ms_fcn_residual(meas->sid, ref_tc);
+    }
+
+    /* initialize the carrier phase offset with the pseudorange measurement */
+    *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
+
+    log_debug_mesid(info->mesid,
+                    "raw_pseudorange %lf rcv_clk_error %e CPO to %lf",
+                    raw_pseudorange,
+                    rcv_clk_error,
+                    *carrier_phase_offset);
+
+    if ((0 != (info->flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 != (info->flags & TRACKER_FLAG_CN0_SHORT))) {
+      /* Remember offset for the future use */
+      tracker_set_carrier_phase_offset(info, *carrier_phase_offset);
+    }
   }
-
-  /* remove subsecond part of the clock error */
-  double cpo_correction = subsecond_cpo_correction(ref_tc);
-  double pseudorange_circ =
-      sid_to_carr_freq(meas->sid) * (raw_pseudorange / GPS_C - cpo_correction);
-
-  /* initialize the carrier phase offset with the pseudorange measurement */
-  *carrier_phase_offset = round(pseudorange_circ - meas->carrier_phase);
-
-  return true;
+  return ret;
 }
 
 /**
  * Computes channel measurement flags from input.
  *
  * \param[in] flags Tracker manager flags
+ * \param[in] phase_offset_ok Phase offset flag
  * \param[in] mesid ME SID
  *
  * \return Channel measurement flags
  */
 static chan_meas_flags_t compute_meas_flags(u32 flags,
+                                            bool phase_offset_ok,
                                             const me_gnss_signal_t mesid) {
   chan_meas_flags_t meas_flags = 0;
 
-  if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-      (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
-    meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
+  if (phase_offset_ok) {
+    if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
+        (0 != (flags & TRACKER_FLAG_CARRIER_PHASE_OFFSET))) {
+      meas_flags |= CHAN_MEAS_FLAG_PHASE_VALID;
 
-    /* Make sense to set half cycle known flag when carrier phase is valid */
-    if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
-      /* Bit polarity is known */
-      meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
+      /* Make sense to set half cycle known flag when carrier phase is valid
+       */
+      if (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) {
+        /* Bit polarity is known */
+        meas_flags |= CHAN_MEAS_FLAG_HALF_CYCLE_KNOWN;
+      }
     }
-  }
 
-  /* sanity check */
-  if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
-      (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
-    /* Somehow we managed to decode TOW when phase lock lost.
-     * This should not happen, so print out warning. */
-    log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
+    /* sanity check */
+    if ((0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
+        (0 == (flags & TRACKER_FLAG_HAS_PLOCK))) {
+      /* Somehow we managed to decode TOW when phase lock lost.
+       * This should not happen, so print out warning. */
+      log_warn_mesid(mesid, "Half cycle known, but no phase lock!");
+    }
   }
 
   if ((0 != (flags & TRACKER_FLAG_HAS_PLOCK)) ||
@@ -977,15 +1299,22 @@ u32 get_tracking_channel_meas(u8 i,
                               u64 ref_tc,
                               channel_measurement_t *meas,
                               ephemeris_t *ephe) {
+  u32 flags = 0;                 /* Result */
+  tracker_info_t info;           /* Container for generic info */
+  tracker_freq_info_t freq_info; /* Container for measurements */
+  tracker_time_info_t time_info; /* Container for time info */
+  tracker_misc_info_t misc_info; /* Container for measurements */
+
   memset(meas, 0, sizeof(*meas));
 
-  tracker_info_t info;
-  tracker_time_info_t time_info;
-  tracker_freq_info_t freq_info;
-  tracker_misc_info_t misc_info;
+  /* Load information from tracker: info locks */
+  flags = get_tracking_channel_flags_info(i,           /* Channel index */
+                                          &info,       /* General */
+                                          &time_info,  /* Time info */
+                                          &freq_info,  /* Freq info */
+                                          NULL,        /* Ctrl info */
+                                          &misc_info); /* Misc info */
 
-  tracker_get_state(i, &info, &time_info, &freq_info, &misc_info);
-  u32 flags = info.flags;
   if (IS_GLO(info.mesid) && !glo_slot_id_is_valid(info.glo_orbit_slot)) {
     memset(meas, 0, sizeof(*meas));
     return flags | TRACKER_FLAG_MASKED;
@@ -1022,26 +1351,23 @@ u32 get_tracking_channel_meas(u8 i,
      * The initial integer offset shall be adjusted only when conditions that
      * have caused initial offset reset are not longer present. See callers of
      * tracker_ambiguity_unknown() for more details.
+     *
+     * For now, compute pseudorange for all measurements even when phase is
+     * not available.
      */
-    s32 carrier_phase_offset = misc_info.carrier_phase_offset.value;
-
-    /* try to compute cpo if it is not computed yet but could be */
-    if ((0 == carrier_phase_offset) &&
+    double carrier_phase_offset = misc_info.carrier_phase_offset.value;
+    bool cpo_ok = true;
+    if ((TIME_PROPAGATED <= get_time_quality()) &&
+        (0.0 == carrier_phase_offset) &&
         (0 != (flags & TRACKER_FLAG_HAS_PLOCK)) &&
-        (0 != (flags & TRACKER_FLAG_TOW_VALID)) &&
-        (0 != (flags & TRACKER_FLAG_CN0_SHORT)) &&
-        (0 != (flags & TRACKER_FLAG_BIT_POLARITY_KNOWN)) &&
-        (TIME_FINE <= get_time_quality())) {
-      if (compute_cpo(ref_tc, meas, &carrier_phase_offset)) {
-        tracker_set_carrier_phase_offset(&info, carrier_phase_offset);
-      }
+        (0 != (flags & TRACKER_FLAG_TOW_VALID))) {
+      cpo_ok = compute_cpo(ref_tc, &info, meas, &carrier_phase_offset);
     }
-    /* apply the cpo if it is available */
-    if (0 != carrier_phase_offset) {
+    if (0.0 != carrier_phase_offset) {
       flags |= TRACKER_FLAG_CARRIER_PHASE_OFFSET;
-      meas->carrier_phase += (double)carrier_phase_offset;
+      meas->carrier_phase += carrier_phase_offset;
     }
-    meas->flags = compute_meas_flags(flags, info.mesid);
+    meas->flags = compute_meas_flags(flags, cpo_ok, info.mesid);
     meas->elevation = (double)track_sid_db_elevation_degrees_get(meas->sid);
   } else {
     memset(meas, 0, sizeof(*meas));
@@ -1050,6 +1376,28 @@ u32 get_tracking_channel_meas(u8 i,
   return flags;
 }
 
+/**
+ * Retrieve tracking loop controller parameters for weights computation.
+ *
+ * \param[in]  i       Channel index.
+ * \param[out] pparams Loop controller parameters.
+ *
+ * \return None
+ */
+void get_tracking_channel_ctrl_params(u8 i, tracking_ctrl_params_t *pparams) {
+  tracker_ctrl_info_t tmp;
+
+  tracker_get_values(i,
+                     NULL,  /* Generic info */
+                     NULL,  /* Timers */
+                     NULL,  /* Frequencies */
+                     &tmp,  /* Loop controller values */
+                     NULL); /* Misc info */
+  pparams->pll_bw = tmp.pll_bw;
+  pparams->fll_bw = tmp.fll_bw;
+  pparams->dll_bw = tmp.dll_bw;
+  pparams->int_ms = tmp.int_ms;
+}
 /**
  * Compute extended tracking flags for GNSS signal.
  *
@@ -1175,37 +1523,6 @@ u8 tracking_startup_request(const tracking_startup_params_t *startup_params) {
   return result;
 }
 
-/**
- * Calculates how many SV of the given code are in track
- * \param code code type
- * \return the count of tracked SVs of the given code
- */
-u8 code_track_count(code_t code) {
-  u8 sv_tracked = 0;
-  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if ((acq_status[i].mesid.code == code) &&
-        (ACQ_PRN_TRACKING == acq_status[i].state)) {
-      sv_tracked++;
-    }
-  }
-  return sv_tracked;
-}
-
-/**
- * The function calculates how many SV of defined GNSS are in track
- * \param[in] gnss GNSS constellation type
- */
-u8 constellation_track_count(constellation_t gnss) {
-  u8 sv_tracked = 0;
-  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
-    if ((mesid_to_constellation(acq_status[i].mesid) == gnss) &&
-        (ACQ_PRN_TRACKING == acq_status[i].state)) {
-      sv_tracked++;
-    }
-  }
-  return sv_tracked;
-}
-
 /** Read tracking startup requests from the FIFO and attempt to start
  * tracking and decoding.
  */
@@ -1215,26 +1532,14 @@ static void manage_tracking_startup(void) {
     acq_status_t *acq =
         &acq_status[mesid_to_global_index(startup_params.mesid)];
 
-    if (ACQ_PRN_TRACKING == acq->state) {
+    /* Make sure the SID is not already tracked and healthy */
+    if ((acq->state == ACQ_PRN_TRACKING) ||
+        (acq->state == ACQ_PRN_UNHEALTHY && IS_GLO(acq->mesid))) {
       continue;
-    }
-
-    if (IS_SBAS(acq->mesid)) {
-      if (constellation_track_count(CONSTELLATION_SBAS) >= SBAS_SV_NUM_LIMIT) {
-        continue;
-      }
-      if (ACQ_PRN_UNHEALTHY == acq->state) {
-        continue;
-      }
-    } else if (IS_GLO(acq->mesid)) {
-      if (ACQ_PRN_UNHEALTHY == acq->state) {
-        continue;
-      }
     }
 
     /* Make sure a tracking channel and a decoder channel are available */
     u8 chan = manage_track_new_acq(startup_params.mesid);
-
     if (chan == MANAGE_NO_CHANNELS_FREE) {
       if (code_requires_direct_acq(acq->mesid.code)) {
         float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
@@ -1247,6 +1552,8 @@ static void manage_tracking_startup(void) {
          * later using another fine acq.
          */
         if (startup_params.cn0_init > ACQ_RETRY_THRESHOLD) {
+          acq->score[ACQ_HINT_PREV_ACQ] =
+              SCORE_ACQ + (startup_params.cn0_init - ACQ_THRESHOLD);
           /* Check that reported carrier frequency is within Doppler bounds */
           float freq = startup_params.carrier_freq;
           if (freq < doppler_min) {
@@ -1258,8 +1565,8 @@ static void manage_tracking_startup(void) {
           acq->dopp_hint_high = MIN(freq + ACQ_FULL_CF_STEP, doppler_max);
         }
       }
-      log_debug_mesid(startup_params.mesid,
-                      "No free tracking channel available.");
+      log_info_mesid(startup_params.mesid,
+                     "No free tracking channel available.");
       continue;
     }
 

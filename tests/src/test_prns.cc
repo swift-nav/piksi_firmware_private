@@ -36,47 +36,21 @@ TEST(test_prns_ca_code, code) {
   const u8* ptr;
   me_gnss_signal_t mesid;
 
-  for (u8 k = 0; k < 32; k++) {
-    mesid = construct_mesid(CODE_GPS_L1CA, k + GPS_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
+  mesid = construct_mesid(CODE_GPS_L1CA, 1);
+  ptr = ca_code(mesid);
+  EXPECT_TRUE(NULL != ptr);
 
-  for (u8 k = 0; k < 14; k++) {
-    mesid = construct_mesid(CODE_GLO_L1OF, k + GLO_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
+  mesid = construct_mesid(CODE_GLO_L1OF, 1);
+  ptr = ca_code(mesid);
+  EXPECT_TRUE(NULL != ptr);
 
-  for (u8 k = 0; k < 14; k++) {
-    mesid = construct_mesid(CODE_GLO_L2OF, k + GLO_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
+  mesid = construct_mesid(CODE_GLO_L2OF, 14);
+  ptr = ca_code(mesid);
+  EXPECT_TRUE(NULL != ptr);
 
-  for (u8 k = 0; k < 19; k++) {
-    mesid = construct_mesid(CODE_SBAS_L1CA, k + SBAS_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
-
-  for (u8 k = 0; k < 37; k++) {
-    mesid = construct_mesid(CODE_BDS2_B11, k + BDS2_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
-
-  for (u8 k = 0; k < 30; k++) {
-    mesid = construct_mesid(CODE_GAL_E1B, k + GAL_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
-
-  for (u8 k = 0; k < 30; k++) {
-    mesid = construct_mesid(CODE_GAL_E1C, k + GAL_FIRST_PRN);
-    ptr = ca_code(mesid);
-    EXPECT_TRUE(NULL != ptr);
-  }
+  mesid = construct_mesid(CODE_SBAS_L1CA, SBAS_FIRST_PRN);
+  ptr = ca_code(mesid);
+  EXPECT_TRUE(NULL != ptr);
 }
 
 TEST(test_prns_get_chip, get_chip) {

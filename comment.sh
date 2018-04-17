@@ -29,7 +29,7 @@ BUILD_VERSION="$(git describe --tags --dirty --always)"
 BUILD_PATH="$REPO/$BUILD_VERSION"
 ARTIFACTS_PATH="pull-requests/$BUILD_PATH"
 
-SCENARIO="live-roof-650-townsend"
+SCENARIO="live-roof-1543-mission"
 
 STATUS_HITL_CONTEXT="hitl/pass-fail"
 
@@ -68,7 +68,7 @@ hitl_test_runs_link () {
 }
 
 LINKS=\
-("https://gnss-analysis.swiftnav.com/schedule/firmware=$BUILD_VERSION&build_type=$HITL_BUILD_SOURCE&num_runs=10"
+("http://hitl-dashboard.swiftnav.com/hitl?source=$BUILD_SOURCE&build=$BUILD_VERSION&runs=10"
 $(hitl_pass_fail_link)
 $(hitl_high_level_link)
 $(hitl_test_runs_link)
@@ -95,7 +95,8 @@ slack_links(){
 github_links(){
     echo -n "## $BUILD_VERSION"
     echo -n "\nNote:"
-    echo -n "\n- Check the status of HITL runs through the [hitl-viewer](https://gnss-analysis.swiftnav.com/jobs)."
+    echo -n "\n- You must manually submit the form in the link for 'Run a HITL test set for this build' in order to get data for the 'HITL Results' links."
+    echo -n "\n- Check the status of HITL runs through the [hitl-dashboard](http://hitl-dashboard.swiftnav.com)."
     echo -n "\n"
     echo -n "\nThe following links are for this Pull Request's ***merge*** commit:"
     for index in ${!LINKS[@]}; do

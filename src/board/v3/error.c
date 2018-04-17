@@ -93,13 +93,12 @@ void __assert_func(const char *_file,
                    int _line,
                    const char *_func,
                    const char *_expr) {
-  char pos[255] = {'\0'};
-  char msg[255] = {'\0'};
+  char pos[255];
+  char msg[255];
+  sprintf(pos, "%s:%s():%d", _file, _func, _line);
+  sprintf(msg, "assertion '%s' failed", _expr);
 
-  snprintf(pos, 254, "%s:%s():%d", _file, _func, _line);
-  snprintf(msg, 254, "assertion '%s' failed", _expr);
   log_error("%s %s", pos, msg);
-
   piksi_systime_sleep_ms(3000);
 
   _screaming_death(pos, msg);

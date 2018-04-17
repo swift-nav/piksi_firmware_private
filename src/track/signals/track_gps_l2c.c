@@ -57,6 +57,10 @@ static const tracker_interface_t tracker_interface_gps_l2c = {
     .update = tracker_gps_l2c_update,
 };
 
+/** GPS L2C tracker interface list element */
+static tracker_interface_list_element_t tracker_interface_list_element_gps_l2c =
+    {.interface = &tracker_interface_gps_l2c, .next = 0};
+
 /** Register L2 CM tracker into the the tracker interface & settings
  *  framework.
  */
@@ -65,7 +69,7 @@ void track_gps_l2c_register(void) {
                             gps_l2c_config.xcorr_cof,
                             SECS_MS / GPS_L2C_SYMBOL_LENGTH_MS);
 
-  tracker_interface_register(&tracker_interface_gps_l2c);
+  tracker_interface_register(&tracker_interface_list_element_gps_l2c);
 }
 
 /** Do L1CA to L2C handover.

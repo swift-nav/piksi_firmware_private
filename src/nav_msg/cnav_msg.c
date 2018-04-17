@@ -245,58 +245,13 @@ static void decode_cnav_msg_type_30(cnav_msg_t *msg,
       INVALID_GROUP_DELAY_VALUE != msg->data.type_30.isc_l2c;
 }
 
-static void decode_cnav_msg_type_33(cnav_msg_t *msg,
-                                    const cnav_v27_part_t *part) {
-  /* ref: ICD Figure 30-6 */
-  msg->data.type_33.a0 = (s16)getbits(part->decoded, 127, 16);
-  msg->data.type_33.a1 = (s16)getbits(part->decoded, 143, 13);
-  msg->data.type_33.a2 = (s8)getbits(part->decoded, 156, 7);
-  msg->data.type_33.dt_ls = (s8)getbits(part->decoded, 163, 8);
-  msg->data.type_33.tot = (u16)getbitu(part->decoded, 171, 16);
-  msg->data.type_33.wn_ot = (u16)getbitu(part->decoded, 187, 13);
-  msg->data.type_33.wn_lsf = (u16)getbitu(part->decoded, 200, 13);
-  msg->data.type_33.dn = (u8)getbitu(part->decoded, 213, 4);
-  msg->data.type_33.dt_lsf = (s8)getbits(part->decoded, 217, 8);
-}
-
-bool cnav_33_to_utc(const cnav_msg_type_33_t *msg, utc_params_t *u) {
-  memset(u, 0, sizeof(*u));
-
-  u->a2 = msg->a2 * GPS_CNAV_UTC_SF_A2;
-  u->a1 = msg->a1 * GPS_CNAV_UTC_SF_A1;
-  u->a0 = msg->a0 * GPS_CNAV_UTC_SF_A0;
-  u->tot.tow = msg->tot * GPS_CNAV_UTC_SF_TOT;
-  u->tot.wn = gps_adjust_week_cycle256(msg->wn_ot, GPS_WEEK_REFERENCE);
-  u->dt_ls = msg->dt_ls;
-  u->t_lse.wn = gps_adjust_week_cycle256(msg->wn_lsf, GPS_WEEK_REFERENCE);
-  if ((msg->dn < GPS_LNAV_UTC_MIN_DN) || (msg->dn > GPS_LNAV_UTC_MAX_DN)) {
-    log_warn("Invalid day number in CNAV UTC message: %d", msg->dn);
-    return false;
-  }
-  u->t_lse.tow = msg->dn * DAY_SECS;
-  normalize_gps_time(&u->t_lse);
-  u->dt_lsf = msg->dt_lsf;
-
-  /* t_lse now points to the midnight near the leap second event. Add
-   * the current leap second value and polynomial UTC correction to set t_lse
-   * to the beginning of the leap second event */
-  double dt = gpsdifftime(&u->t_lse, &u->tot);
-  u->t_lse.tow += u->dt_ls + u->a0 + u->a1 * dt + u->a2 * dt * dt;
-  normalize_gps_time(&u->t_lse);
-
-  return true;
-}
-
 static void decode_cnav_msg_type_10(cnav_msg_t *msg,
                                     const cnav_v27_part_t *part) {
   /* 30.3.3.1.1.2 Signal Health (L1/L2/L5).
    * 0 = Signal OK,
    * 1 = Signal bad or unavailable.
    * */
-  /* Hotfix for March 7 CNAV health message.
-   * We may want to revert to the following in the future:
-   * getbitu(part->decoded, 51, 1) ? false : true; */
-  msg->data.type_10.l1_health = true;
+  msg->data.type_10.l1_health = getbitu(part->decoded, 51, 1) ? false : true;
   msg->data.type_10.l2_health = getbitu(part->decoded, 52, 1) ? false : true;
   msg->data.type_10.l5_health = getbitu(part->decoded, 53, 1) ? false : true;
 }
@@ -346,11 +301,9 @@ static bool _cnav_msg_decode(cnav_v27_part_t *part,
         case CNAV_MSG_TYPE_10:
           decode_cnav_msg_type_10(msg, part);
           break;
-        case CNAV_MSG_TYPE_33:
-          decode_cnav_msg_type_33(msg, part);
-          break;
         case CNAV_MSG_TYPE_11:
         case CNAV_MSG_TYPE_32:
+        case CNAV_MSG_TYPE_33:
           /* No data to decode. This is added to store messages headers that
            * contain alert bit.
            */

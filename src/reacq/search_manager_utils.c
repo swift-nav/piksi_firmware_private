@@ -11,7 +11,6 @@
  */
 #include <board/nap/nap_common.h>
 #include "manage.h"
-#include "me_constants.h"
 #include "ndb/ndb.h"
 #include "search_manager_api.h"
 #include "shm/shm.h"

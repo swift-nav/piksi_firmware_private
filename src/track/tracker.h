@@ -115,6 +115,10 @@ typedef struct {
   float cn0_offset; /**< C/N0 offset in dB to tune thresholds */
   float filt_cn0;   /**< C/N0 value for decision logic */
 
+  u32 plock : 1;          /**< Pessimistic phase lock flag */
+  u32 flock : 1;          /**< Pessimistic frequency lock flag */
+  u32 bsync : 1;          /**< Bit sync flag */
+  u32 bsync_sticky : 1;   /**< Bit sync flag */
   u32 profile_update : 1; /**< Flag if the profile update is required */
   u32 dll_init : 1;       /**< DLL init required */
   u32 cn0_est : 2;        /**< C/N0 estimator type */
@@ -123,6 +127,10 @@ typedef struct {
   u16 lock_time_ms;         /**< Profile lock count down timer */
   struct profile_vars cur;  /**< Current profile variables */
   struct profile_vars next; /**< Next profile variables */
+  u16 print_time;           /**< Time till next debug print [ms] */
+  u32 time_snapshot_ms;     /**< Time snapshot [ms] */
+  s16 bs_delay_ms;          /**< Bit sync delay [ms] or TP_DELAY_UNKNOWN */
+  s16 plock_delay_ms; /**< Pessimistic lock delay [ms] or TP_DELAY_UNKNOWN */
 
   tp_loop_params_t loop_params; /**< Tracking loop parameters */
   /** Phase lock detector parameters */
@@ -161,8 +169,11 @@ typedef struct {
 
 /** \addtogroup tracking
  * \{ */
+
+typedef u8 tracker_id_t;
+
 typedef enum {
-  STATE_DISABLED = 0,
+  STATE_DISABLED,
   STATE_ENABLED,
   STATE_DISABLE_REQUESTED,
   STATE_DISABLE_WAIT
@@ -179,7 +190,7 @@ typedef enum {
  * Generic tracking channel information for external use.
  */
 typedef struct {
-  u8 id;                   /**< Channel identifier */
+  tracker_id_t id;         /**< Channel identifier */
   me_gnss_signal_t mesid;  /**< ME signal identifier */
   u16 glo_orbit_slot;      /**< GLO orbital slot */
   u32 flags;               /**< Tracker flags TRACKER_FLAG_... */
@@ -222,7 +233,7 @@ typedef struct {
 /** Tracking channel miscellaneous info */
 typedef struct {
   struct {
-    s32 value;            /**< Carrier phase offset value [cycles] */
+    double value;         /**< Carrier phase offset value [cycles]. */
     u64 timestamp_ms;     /**< Carrier phase offset timestamp [ms] */
   } carrier_phase_offset; /**< Carrier phase offset */
 } tracker_misc_info_t;
@@ -239,6 +250,27 @@ typedef struct {
       carrier_freq_at_lock; /**< Carrier frequency in Hz at last lock time. */
   float acceleration;       /**< Acceleration [g] */
 } tracker_freq_info_t;
+
+/**
+ * Public data segment.
+ *
+ * Public data segment belongs to a tracking channel and is locked only for
+ * a quick update or data fetch operations.
+ *
+ * The data is grouped according to functional blocks.
+ */
+typedef struct {
+  /** Generic info for externals */
+  volatile tracker_info_t gen_info;
+  /** Timing info for externals */
+  volatile tracker_time_info_t time_info;
+  /** Frequency info for externals */
+  volatile tracker_freq_info_t freq_info;
+  /** Controller parameters */
+  volatile tracker_ctrl_info_t ctrl_info;
+  /** Miscellaneous parameters */
+  volatile tracker_misc_info_t misc_info;
+} tracker_pub_data_t;
 
 /**
  * Tracker loop state.
@@ -324,7 +356,8 @@ typedef struct {
 
   /** Mutex used to permit atomic reads of channel data. */
   mutex_t mutex;
-
+  /** Mutex used to permit atomic updates of public channel data. */
+  mutex_t mutex_pub;
   /** When tracker is disabled in NAP, all tracker state below
       cleanup_region_start in this structure is cleaned up.
       Tracker is not reused immediately. There is time window of
@@ -405,9 +438,10 @@ typedef struct {
                                     timestamp [ms] */
   bool updated_once;           /**< Tracker was updated at least once flag. */
   cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  health_t health;             /**< GLO SV health info */
+  glo_health_t health;         /**< GLO SV health info */
 
-  tracker_misc_info_t misc_info;
+  /** Publicly accessible data */
+  tracker_pub_data_t pub_data;
 
   tp_profile_t profile; /**< Profile controller state. */
 

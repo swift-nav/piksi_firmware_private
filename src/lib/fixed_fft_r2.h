@@ -3,43 +3,44 @@
 
 #include <stdint.h>
 
-#include <libswiftnav/common.h>
-
 #define MAX_FFTR2_RANKS (14)
 #define INTFFT_MAXSIZE (1 << MAX_FFTR2_RANKS)
 
-/** Default complex FFT sample */
-typedef struct _sc16 {
-  s16 r;
-  s16 i;
+typedef struct _sc16_t {
+  int16_t r;
+  int16_t i;
 } sc16_t;
 
-/** Default complex FFT sample */
-typedef struct _sc32 {
-  s32 r;
-  s32 i;
-} sc32_t;
+/*! \struct _intFFT_t
+ *  \brief
+ */
+typedef struct _intFFTr2_t {
+  sc16_t W[INTFFT_MAXSIZE]; /* Twiddle factors table */
 
-/** MACRO called to declare and initialize a FFT */
-#define FFT_DECL(SIZE, NAME)                                           \
-  struct {                                                             \
-    u32 M;                                                             \
-    u32 N;                                                             \
-    sc16_t *W;                                                         \
-    u32 *tmpBRX;                                                       \
-    u16 *BR;                                                           \
-    u8 uFftMem[(SIZE) * (sizeof(sc16_t) + sizeof(u32) + sizeof(u16))]; \
-  } NAME;
+  uint16_t BR[INTFFT_MAXSIZE];     /* Bit-reversal */
+  uint32_t tmpBRX[INTFFT_MAXSIZE]; /* Shuffle temp array */
+
+  uint32_t N; /* FFT length */
+  uint32_t M; /* FFT order */
+} intFFTr2_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void InitIntFFTr2(void *_pIntFFT, u32 _N);
+int InitIntFFTr2(intFFTr2_t *_pIntFFT, int _N);
 
-void DoFwdIntFFTr2(void *_pIntFFT, sc16_t *_x, u32 _uScale, int _iShuf);
+void FreeIntFFTr2(intFFTr2_t *_pIntFFT);
 
-void DoBwdIntFFTr2(void *_pIntFFT, sc16_t *_x, u32 _uScale, int _iShuf);
+void DoFwdIntFFTr2(intFFTr2_t *_pIntFFT,
+                   sc16_t *_x,
+                   uint32_t _uScale,
+                   int _iShuf);
+
+void DoBwdIntFFTr2(intFFTr2_t *_pIntFFT,
+                   sc16_t *_x,
+                   uint32_t _uScale,
+                   int _iShuf);
 
 #ifdef __cplusplus
 }

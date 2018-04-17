@@ -482,9 +482,10 @@ static ndb_op_code_t ndb_create_file(const ndb_file_t *file) {
   ssize_t read_res = ndb_fs_read(file->name, 0, ver, sizeof(ver));
   if (read_res > 0) {
     log_warn("NDB %s: failed to remove file", file->type);
-    /* Write empty file (all zeros) */
-    ndb_fs_reserve(file->name, file_size);
   }
+
+  /* Create empty file (all zeros) */
+  ndb_fs_reserve(file->name, file_size);
 
   /* Write file version */
   if (ndb_fs_write(file->name, 0, ndb_file_version, sizeof(ndb_file_version)) !=

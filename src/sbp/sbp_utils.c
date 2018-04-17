@@ -72,30 +72,15 @@ void sbp_make_gps_time(msg_gps_time_t *t_out,
 
 void sbp_make_utc_time(msg_utc_time_t *t_out,
                        const gps_time_t *t_in,
-                       u8 flags) {
+                       u8 flags,
+                       const utc_params_t *utc_params) {
   if (!gps_time_valid(t_in)) {
     memset(t_out, 0, sizeof(msg_utc_time_t));
     return;
   }
-
-  utc_params_t utc_params;
-  utc_params_t *p_utc_params = &utc_params;
-  bool is_nv;
-  /* try to read UTC parameters from NDB */
-  if (NDB_ERR_NONE == ndb_utc_params_read(&utc_params, &is_nv)) {
-    if (is_nv) {
-      flags |= (NVM_UTC << 3);
-    } else {
-      flags |= (DECODED_UTC << 3);
-    }
-  } else {
-    p_utc_params = NULL;
-    flags |= (DEFAULT_UTC << 3);
-  }
-
   /* convert to UTC (falls back to a hard-coded table if the pointer is null) */
   utc_tm utc_time;
-  gps2utc(t_in, &utc_time, p_utc_params);
+  gps2utc(t_in, &utc_time, utc_params);
 
   t_out->tow = round_tow_ms(t_in->tow);
   t_out->year = utc_time.year;
@@ -384,11 +369,7 @@ void pack_obs_header(const gps_time_t *t,
                      u8 total,
                      u8 count,
                      observation_header_t *msg) {
-  if (gps_time_valid(t)) {
-    round_time_nano(t, &msg->t);
-  } else {
-    memset(&msg->t, 0, sizeof(sbp_gps_time_t));
-  }
+  round_time_nano(t, &msg->t);
   msg->n_obs =
       ((total << MSG_OBS_HEADER_SEQ_SHIFT) | (count & MSG_OBS_HEADER_SEQ_MASK));
 }
@@ -830,36 +811,6 @@ void sbp_send_group_delay(const cnav_msg_t *cnav) {
   sbp_send_msg(SBP_MSG_GROUP_DELAY, sizeof(msg_group_delay_t), (u8 *)&msg_cnav);
 }
 
-/** This is helper function packs SBAS raw data structure.
- *
- * \param sid          GNSS signal identifier
- * \param tow_ms       GPS TOW [ms]
- * \param msg          SBAS message type
- * \param decoded      Unpacked decoded data
- * \param sbas_raw_msg The destination structure
- */
-void sbp_pack_sbas_raw_data(const gnss_signal_t sid,
-                            u32 tow_ms,
-                            u8 msg,
-                            const u8 *decoded,
-                            msg_sbas_raw_t *sbas_raw_msg) {
-  memset(sbas_raw_msg->data, 0, sizeof(sbas_raw_msg->data));
-  sbas_raw_msg->sid = sid_to_sbp(sid);
-  sbas_raw_msg->tow = tow_ms;
-  sbas_raw_msg->message_type = msg;
-  /* Copy data ignoring preamble + msg_id (8 + 6) bits. */
-  bitcopy(sbas_raw_msg->data, 0, decoded, 14, 212);
-  /* Pad with zeros. */
-  sbas_raw_msg->data[26] &= 0xF0;
-}
-
-void unpack_sbas_raw_data(const msg_sbas_raw_t *m, sbas_raw_data_t *d) {
-  d->sid = sid_from_sbp(m->sid);
-  d->message_type = m->message_type;
-  d->time_of_transmission.tow = ((double)m->tow) / SECS_MS;
-  MEMCPY_S(d->data, SBAS_RAW_PAYLOAD_LENGTH, m->data, SBAS_RAW_PAYLOAD_LENGTH);
-}
-
 /**
  * Helper function for rounding tow to integer milliseconds, taking care of
  * week roll-over
@@ -876,7 +827,7 @@ u32 round_tow_ms(double tow) {
 }
 
 /**
- * Helper function for converting GPS time to integer milliseconds with
+ * Helper function for converting GPS tiem to integer milliseconds with
  * nanosecond remainder, taking care of week roll-over
  * @param[in] t_in GPS time
  * @param[out] t_out SBP time
@@ -994,112 +945,73 @@ void sbp_alma_reg_cbks(void (*almanac_msg_callback)(u16, u8, u8 *, void *)) {
   }
 }
 
-void sbp_init_gps_time(msg_gps_time_t *gps_time, gps_time_t *t) {
+void sbp_init_gps_time(msg_gps_time_t *gps_time) {
   memset(gps_time, 0, sizeof(msg_gps_time_t));
-  sbp_make_gps_time(gps_time, t, NO_POSITION);
+  gps_time_t current_time = get_current_time();
+  sbp_make_gps_time(gps_time, &current_time, NO_POSITION);
 }
 
-void sbp_init_utc_time(msg_utc_time_t *utc_time, gps_time_t *t) {
+void sbp_init_utc_time(msg_utc_time_t *utc_time) {
+  gps_time_t current_time = get_current_time();
+  utc_params_t utc_params;
+  ndb_utc_params_read(&utc_params, NULL);
   memset(utc_time, 0, sizeof(msg_utc_time_t));
-  sbp_make_utc_time(utc_time, t, NO_POSITION);
+  sbp_make_utc_time(utc_time, &current_time, NO_POSITION, &utc_params);
 }
 
-void sbp_init_pos_llh(msg_pos_llh_t *pos_llh, gps_time_t *t) {
+void sbp_init_pos_llh(msg_pos_llh_t *pos_llh) {
   memset(pos_llh, 0, sizeof(msg_pos_llh_t));
-  if (gps_time_valid(t)) {
-    pos_llh->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef, gps_time_t *t) {
+void sbp_init_pos_ecef(msg_pos_ecef_t *pos_ecef) {
   memset(pos_ecef, 0, sizeof(msg_pos_ecef_t));
-  if (gps_time_valid(t)) {
-    pos_ecef->tow = round_tow_ms(t->tow);
-  }
 }
-
-void sbp_init_vel_ned(msg_vel_ned_t *vel_ned, gps_time_t *t) {
+void sbp_init_vel_ned(msg_vel_ned_t *vel_ned) {
   memset(vel_ned, 0, sizeof(msg_vel_ned_t));
-  if (gps_time_valid(t)) {
-    vel_ned->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef, gps_time_t *t) {
+void sbp_init_vel_ecef(msg_vel_ecef_t *vel_ecef) {
   memset(vel_ecef, 0, sizeof(msg_vel_ecef_t));
-  if (gps_time_valid(t)) {
-    vel_ecef->tow = round_tow_ms(t->tow);
-  }
 }
-
-void sbp_init_sbp_dops(msg_dops_t *sbp_dops, gps_time_t *t) {
+void sbp_init_sbp_dops(msg_dops_t *sbp_dops) {
   memset(sbp_dops, 0, sizeof(msg_dops_t));
-  if (gps_time_valid(t)) {
-    sbp_dops->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_age_corrections(msg_age_corrections_t *age_corrections,
-                              gps_time_t *t) {
+void sbp_init_age_corrections(msg_age_corrections_t *age_corrections) {
   memset(age_corrections, 0, sizeof(msg_age_corrections_t));
   age_corrections->age = 0xFFFF;
-  if (gps_time_valid(t)) {
-    age_corrections->tow = round_tow_ms(t->tow);
-  }
 }
 
 void sbp_init_dgnss_status(msg_dgnss_status_t *dgnss_status) {
   memset(dgnss_status, 0, sizeof(msg_dgnss_status_t));
 }
 
-void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef, gps_time_t *t) {
+void sbp_init_baseline_ecef(msg_baseline_ecef_t *baseline_ecef) {
   memset(baseline_ecef, 0, sizeof(msg_baseline_ecef_t));
-  if (gps_time_valid(t)) {
-    baseline_ecef->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned, gps_time_t *t) {
+void sbp_init_baseline_ned(msg_baseline_ned_t *baseline_ned) {
   memset(baseline_ned, 0, sizeof(msg_baseline_ned_t));
-  if (gps_time_valid(t)) {
-    baseline_ned->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading,
-                               gps_time_t *t) {
+void sbp_init_baseline_heading(msg_baseline_heading_t *baseline_heading) {
   memset(baseline_heading, 0, sizeof(msg_baseline_heading_t));
-  if (gps_time_valid(t)) {
-    baseline_heading->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov, gps_time_t *t) {
+void sbp_init_pos_ecef_cov(msg_pos_ecef_cov_t *pos_ecef_cov) {
   memset(pos_ecef_cov, 0, sizeof(msg_pos_ecef_cov_t));
-  if (gps_time_valid(t)) {
-    pos_ecef_cov->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov, gps_time_t *t) {
+void sbp_init_vel_ecef_cov(msg_vel_ecef_cov_t *vel_ecef_cov) {
   memset(vel_ecef_cov, 0, sizeof(msg_vel_ecef_cov_t));
-  if (gps_time_valid(t)) {
-    vel_ecef_cov->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov, gps_time_t *t) {
+void sbp_init_pos_llh_cov(msg_pos_llh_cov_t *pos_llh_cov) {
   memset(pos_llh_cov, 0, sizeof(msg_pos_llh_cov_t));
-  if (gps_time_valid(t)) {
-    pos_llh_cov->tow = round_tow_ms(t->tow);
-  }
 }
 
-void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov, gps_time_t *t) {
+void sbp_init_vel_ned_cov(msg_vel_ned_cov_t *vel_ned_cov) {
   memset(vel_ned_cov, 0, sizeof(msg_vel_ned_cov_t));
-  if (gps_time_valid(t)) {
-    vel_ned_cov->tow = round_tow_ms(t->tow);
-  }
 }
 
 /** \} */

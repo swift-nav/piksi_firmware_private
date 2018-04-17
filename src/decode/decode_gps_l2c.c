@@ -12,7 +12,6 @@
 
 #include <assert.h>
 #include <libswiftnav/constants.h>
-#include <libswiftnav/gnss_time.h>
 #include <libswiftnav/logging.h>
 #include <string.h>
 
@@ -20,7 +19,6 @@
 #include "decode_common.h"
 #include "decode_gps_l2c.h"
 #include "nav_msg/nav_msg.h" /* For BIT_POLARITY_... constants */
-#include "ndb/ndb_utc.h"
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"
@@ -87,20 +85,21 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
 
   /* Process incoming nav bits */
-  nav_bit_t nav_bit;
+  nav_bit_fifo_element_t nav_bit;
   while (tracker_nav_bit_get(channel_info->tracking_channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (0 == nav_bit) {
+    if (nav_bit.sensitivity_mode) {
       data->cnav_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
       cnav_msg_decoder_init(&data->cnav_msg_decoder);
       continue;
     }
     /* Update TOW */
+    u8 symbol_probability;
     u32 delay;
     s32 tow_ms;
 
     /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    u8 symbol_probability = nav_bit + C_2P7;
+    symbol_probability = nav_bit.soft_bit + POW_TWO_7;
 
     bool decoded = cnav_msg_decoder_add_symbol(
         &data->cnav_msg_decoder, symbol_probability, &data->cnav_msg, &delay);
@@ -162,14 +161,6 @@ static void decoder_gps_l2c_process(const decoder_channel_info_t *channel_info,
       cnav_msg_put(&data->cnav_msg);
 
       sbp_send_group_delay(&data->cnav_msg);
-    }
-
-    if (CNAV_MSG_TYPE_33 == data->cnav_msg.msg_id) {
-      utc_params_t utc;
-      if (cnav_33_to_utc(&data->cnav_msg.data.type_33, &utc)) {
-        ndb_utc_params_store(
-            &l2c_sid, &utc, NDB_DS_RECEIVER, NDB_EVENT_SENDER_ID_VOID);
-      }
     }
 
     tow_ms =

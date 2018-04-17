@@ -34,9 +34,9 @@ void nav_msg_init_glo_with_cb(nav_msg_glo_t *n, me_gnss_signal_t mesid) {
 
 glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
                                       me_gnss_signal_t mesid,
-                                      nav_bit_t nav_bit) {
+                                      const nav_bit_fifo_element_t *nav_bit) {
   /* Don't trust polarity information while in sensitivity mode. */
-  if (0 == nav_bit) {
+  if (nav_bit->sensitivity_mode) {
     glo_decode_status_t status = GLO_DECODE_SENSITIVITY;
     if (BIT_POLARITY_UNKNOWN != n->bit_polarity) {
       /* If polarity was previously known, report polarity loss. */
@@ -47,7 +47,7 @@ glo_decode_status_t glo_data_decoding(nav_msg_glo_t *n,
   }
 
   /* Update GLO data decoder */
-  bool bit_val = nav_bit > 0;
+  bool bit_val = nav_bit->soft_bit >= 0;
   nav_msg_status_t msg_status = nav_msg_update_glo(n, bit_val);
   if (GLO_STRING_READY != msg_status) {
     return GLO_DECODE_WAIT;
@@ -166,11 +166,11 @@ bool glo_data_sync(nav_msg_glo_t *n,
   from_decoder.bit_polarity = n->bit_polarity;
   from_decoder.glo_orbit_slot = n->eph.sid.sat;
   if (shm_ephe_healthy(&n->eph, n->mesid.code)) {
-    from_decoder.health = SV_HEALTHY;
+    from_decoder.glo_health = GLO_SV_HEALTHY;
   } else {
-    from_decoder.health = SV_UNHEALTHY;
+    from_decoder.glo_health = GLO_SV_UNHEALTHY;
   }
-  tracker_data_sync(tracking_channel, &from_decoder);
+  tracker_glo_data_sync(tracking_channel, &from_decoder);
   return true;
 }
 
@@ -184,11 +184,6 @@ void erase_nav_data(gnss_signal_t target_sid, gnss_signal_t src_sid) {
    *       the code given in Table 20-VII" (IS-GPS-200H chapter 20.3.3.5.1.3
    *       SV Health). These details indicate which of the subframes are bad.
    */
-  if (NDB_ERR_NONE == ndb_almanac_erase(target_sid)) {
-    log_info_sid(
-        target_sid, "almanac deleted (health flags from %s)", hf_sid_str);
-  }
-
   if (NDB_ERR_NONE == ndb_almanac_erase_by_src(target_sid)) {
     log_info_sid(target_sid,
                  "decoded almanacs deleted (health flags from %s)",

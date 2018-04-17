@@ -66,7 +66,7 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
 /**
  * Store UTC parameters information
  *
- * \param[in] sid         GNSS signal identifier for the source of UTC data in
+ * \param[in] sid         GNSS signal identifier for the source of utc data in
  *                        case of data source being NDB_DS_RECEIVER, NULL for
  *                        other cases.
  * \param[in] utc_params  UTC parameters structure
@@ -76,7 +76,7 @@ ndb_op_code_t ndb_utc_params_read(utc_params_t *utc_params_p, bool *is_nv) {
  *
  * \retval NDB_ERR_NONE            On success. UTC parameters updated.
  * \retval NDB_ERR_NO_CHANGE       UTC parameters unchanged.
- * \retval NDB_ERR_OLDER_DATA      More relevant parameters already in NDB.
+ * \retval NDB_ERR_OLDER_DATA      Parameters older than ones already in NDB.
  * \retval NDB_ERR_BAD_PARAM       Parameter errors.
  */
 ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
@@ -86,41 +86,25 @@ ndb_op_code_t ndb_utc_params_store(const gnss_signal_t *sid,
   ndb_op_code_t res;
   utc_params_t current;
   bool is_nv;
-  bool have_current_params =
-      (NDB_ERR_NONE == ndb_utc_params_read(&current, &is_nv));
 
-  if (is_nv) {
-    /* always overwrite parameters loaded from NV */
-    have_current_params = false;
-  }
-
-  gps_time_t now = get_current_time();
-
-  if (have_current_params && gps_time_valid(&now) &&
-      fabs(gpsdifftime(&current.tot, &now)) <
-          fabs(gpsdifftime(&utc_params_p->tot, &now))) {
-    /* keep the current parameters if their reference time is closer to current
-     * time than that of the candidate parameters */
+  if (NDB_ERR_NONE == ndb_utc_params_read(&current, &is_nv) && !is_nv &&
+      gpsdifftime(&utc_params_p->tot, &current.tot) <= 0) {
+    /* already have a newer parameter set decoded during this session */
     res = NDB_ERR_OLDER_DATA;
+
   } else {
     res = ndb_update(utc_params_p, src, &utc_params_md);
 
     if (NULL != utc_params_p && NDB_ERR_NONE == res) {
-      double offset = get_gps_utc_offset(&now, utc_params_p);
       log_info_sid(*sid,
-                   "Updating UTC parameters: tow=%.0f, a0=%.2g, a1=%.2g, "
-                   "a2=%.2g, t_lse=(%d,%.1f), ls=%d, lsf=%d. Current offset: "
-                   "%.0f s + %.3g ns",
-                   utc_params_p->tot.tow,
+                   "Updating UTC parameters: a0=%.1g, a1=%.1g, "
+                   "t_lse=(%d,%.1f), ls=%d, lsf=%d",
                    utc_params_p->a0,
                    utc_params_p->a1,
-                   utc_params_p->a2,
                    utc_params_p->t_lse.wn,
                    utc_params_p->t_lse.tow,
                    utc_params_p->dt_ls,
-                   utc_params_p->dt_lsf,
-                   round(offset),
-                   1e9 * (offset - round(offset)));
+                   utc_params_p->dt_lsf);
     }
   }
 

@@ -16,8 +16,6 @@
 #include <libswiftnav/logging.h>
 
 #include "nav_msg/nav_msg.h"
-#include "nav_msg/sbas_msg.h"
-
 #include "sbp.h"
 #include "sbp_utils.h"
 #include "shm/shm.h"
@@ -30,10 +28,7 @@
 #include <string.h>
 
 /** SBAS L1 decoder data */
-typedef struct {
-  sbas_msg_t sbas_msg;
-  sbas_msg_decoder_t sbas_msg_decoder;
-} sbas_l1_decoder_data_t;
+typedef struct { nav_msg_t nav_msg; } sbas_l1_decoder_data_t;
 
 static decoder_t sbas_l1_decoders[NUM_SBAS_L1_DECODERS];
 static sbas_l1_decoder_data_t
@@ -68,15 +63,11 @@ void decode_sbas_l1_register(void) {
 
 static void decoder_sbas_l1_init(const decoder_channel_info_t *channel_info,
                                  decoder_data_t *decoder_data) {
+  (void)channel_info;
   sbas_l1_decoder_data_t *data = decoder_data;
-  memset(data, 0, sizeof(sbas_l1_decoder_data_t));
-  data->sbas_msg.sid =
-      construct_sid(channel_info->mesid.code, channel_info->mesid.sat);
-  data->sbas_msg.tow_ms = TOW_INVALID;
-  data->sbas_msg.wn = TOW_INVALID;
-  data->sbas_msg.health = SV_HEALTHY;
-  data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
-  sbas_msg_decoder_init(&data->sbas_msg_decoder);
+
+  memset(data, 0, sizeof(*data));
+  nav_msg_init(&data->nav_msg);
 }
 
 static void decoder_sbas_l1_disable(const decoder_channel_info_t *channel_info,
@@ -91,42 +82,26 @@ static void decoder_sbas_l1_process(const decoder_channel_info_t *channel_info,
 
   /* Process incoming nav bits */
   u8 channel = channel_info->tracking_channel;
-  nav_bit_t nav_bit;
+  nav_bit_fifo_element_t nav_bit;
   while (tracker_nav_bit_get(channel, &nav_bit)) {
     /* Don't decode data while in sensitivity mode. */
-    if (0 == nav_bit) {
-      data->sbas_msg.bit_polarity = BIT_POLARITY_UNKNOWN;
-      sbas_msg_decoder_init(&data->sbas_msg_decoder);
+    if (nav_bit.sensitivity_mode) {
+      nav_msg_init(&data->nav_msg);
       continue;
     }
     /* Update TOW */
-    data->sbas_msg.tow_ms = TOW_INVALID;
-    data->sbas_msg.wn = TOW_INVALID;
-    data->sbas_msg.health = SV_HEALTHY;
-
-    /* Symbol value probability, where 0x00 - 100% of 0, 0xFF - 100% of 1. */
-    u8 symbol_probability = nav_bit + C_2P7;
-
-    bool decoded = sbas_msg_decoder_add_symbol(
-        &data->sbas_msg_decoder, symbol_probability, &data->sbas_msg);
-
-    if (!decoded) {
-      /* Nothing decoded, no need to continue. */
-      continue;
-    }
-
     nav_data_sync_t from_decoder;
     tracker_data_sync_init(&from_decoder);
 
-    if (TOW_INVALID == data->sbas_msg.tow_ms) {
-      /* SBAS message without TOW has been decoded.
-       * Bit polarity can still be updated. */
-      from_decoder.sync_flags &= ~SYNC_TOW;
-    }
+    /* TODO: implement this below using SOFT Viterbi */
+    /* s8 soft_bit = nav_bit.soft_bit; */
+    /* from_decoder.TOW_ms = sbas_nav_msg_update(&data->nav_msg, soft_bit); */
 
-    from_decoder.TOW_ms = data->sbas_msg.tow_ms;
-    from_decoder.bit_polarity = data->sbas_msg.bit_polarity;
-    from_decoder.health = data->sbas_msg.health;
+    log_debug_mesid(channel_info->mesid,
+                    "from_decoder.TOW_ms %6" PRId32,
+                    from_decoder.TOW_ms);
+
+    from_decoder.bit_polarity = data->nav_msg.bit_polarity;
     tracker_data_sync(channel_info->tracking_channel, &from_decoder);
   }
 }

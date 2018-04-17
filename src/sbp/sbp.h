@@ -19,7 +19,6 @@
 #include <libsbp/logging.h>
 #include <libsbp/observation.h>
 #include <libsbp/piksi.h>
-#include <libsbp/sbas.h>
 #include <libsbp/sbp.h>
 #include <libsbp/tracking.h>
 

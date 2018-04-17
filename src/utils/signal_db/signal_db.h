@@ -91,9 +91,6 @@
    PLATFORM_SIGNAL_COUNT_QZS)
 
 /* \} */
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
 
 void signal_db_init(void);
 gnss_signal_t sid_from_global_index(u16 global_index);
@@ -111,9 +108,5 @@ float code_to_tcxo_doppler_max(code_t code);
 gnss_signal_t sv_index_to_sid(u16 sv_index);
 u16 sid_to_sv_index(gnss_signal_t sid);
 double mesid_to_carr_fcn_hz(const me_gnss_signal_t mesid);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
 
 #endif /* SWIFTNAV_SIGNAL_H */
