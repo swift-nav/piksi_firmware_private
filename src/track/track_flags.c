@@ -33,6 +33,11 @@ void tracker_set_prn_fail_flag(const me_gnss_signal_t mesid, bool val) {
   for (u8 id = 0; id < NUM_TRACKER_CHANNELS; id++) {
     tracker_t *tracker_channel = tracker_get(id);
     tracker_lock(tracker_channel);
+    /* Skip inactive channels */
+    if (0 == (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_unlock(tracker_channel);
+      continue;
+    }
     if (IS_GPS(tracker_channel->mesid) &&
         tracker_channel->mesid.sat == mesid.sat) {
       tracker_channel->prn_check_fail = val;
@@ -81,6 +86,11 @@ void tracker_set_sbas_provider_change_flag(void) {
     tracker_t *tracker_channel = tracker_get(i);
 
     tracker_lock(tracker_channel);
+    /* Skip inactive channels */
+    if (0 == (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_unlock(tracker_channel);
+      continue;
+    }
 
     bool sbas_found = IS_SBAS(tracker_channel->mesid);
     if (sbas_found) {
@@ -103,6 +113,11 @@ void tracker_set_leap_second_flag(void) {
     tracker_t *tracker_channel = tracker_get(i);
 
     tracker_lock(tracker_channel);
+    /* Skip inactive channels */
+    if (0 == (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_unlock(tracker_channel);
+      continue;
+    }
 
     if (IS_GLO(tracker_channel->mesid)) {
       tracker_flag_drop(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
@@ -125,6 +140,11 @@ void tracker_set_xcorr_flag(const me_gnss_signal_t mesid) {
     /* Find matching tracker and set the flag  */
     tracker_t *tracker_channel = tracker_get(id);
     tracker_lock(tracker_channel);
+    /* Skip inactive channels */
+    if (0 == (tracker_channel->flags & TRACKER_FLAG_ACTIVE)) {
+      tracker_unlock(tracker_channel);
+      continue;
+    }
     if (mesid_is_equal(tracker_channel->mesid, mesid)) {
       tracker_channel->xcorr_flag = true;
     }
