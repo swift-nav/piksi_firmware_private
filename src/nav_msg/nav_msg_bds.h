@@ -40,9 +40,6 @@ extern "C" {
 /** Special value to marking maximum subframe cache entry age [6 seconds] */
 #define BDS_SUBFRAME_AGE_MAX ((u8)100)
 
-#define BDS_WEEK_TO_GPS_WEEK 1356
-#define BDS_SECOND_TO_GPS_SECOND 14
-
 /** TODO: Check Beidou fit_interval definition */
 #define BDS_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)
 
