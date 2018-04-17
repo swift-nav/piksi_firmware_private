@@ -581,8 +581,7 @@ static void tracking_send_state_85(void) {
     }
 
   } else {
-    u8 uMaxObs =
-        (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
+    u8 uMaxObs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
     for (u8 i = 0; (i < nap_track_n_channels) && (i < uMaxObs); i++) {
       tracker_t *tracker_channel = tracker_get(i);
       bool running;
@@ -604,7 +603,8 @@ static void tracking_send_state_85(void) {
         meas_states[i].cn0 = 0;
       } else {
         if (IS_GLO(mesid)) {
-          meas_states[i].mesid.sat = odd_run ? glo_slot_id : (100 + mesid.sat - 8);
+          meas_states[i].mesid.sat =
+              odd_run ? glo_slot_id : (100 + mesid.sat - 8);
           meas_states[i].mesid.code = mesid.code;
         } else {
           meas_states[i].mesid.sat = mesid.sat;
@@ -617,9 +617,9 @@ static void tracking_send_state_85(void) {
     }
   }
   odd_run = !odd_run;
-  sbp_send_msg(SBP_MSG_MEASUREMENT_STATE, sizeof(meas_states), (u8 *)meas_states);
+  sbp_send_msg(
+      SBP_MSG_MEASUREMENT_STATE, sizeof(meas_states), (u8 *)meas_states);
 }
-
 
 /** Send either MSG_TRACKING_STATE or MSG_MEASUREMENT_STATE message.
  * Send information on each tracking channel to host,

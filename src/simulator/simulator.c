@@ -322,7 +322,8 @@ void simulation_step_tracking_and_observations(double elapsed) {
           .sat = simulation_almanacs[i].sid.sat + SIM_PRN_OFFSET};
       sim_state.tracking_channel[num_sats_selected].sid.sat = sid.sat;
       sim_state.tracking_channel[num_sats_selected].sid.code = sid.code;
-      sim_state.tracking_channel[num_sats_selected].fcn = 0; /* FIXME: do properly */
+      sim_state.tracking_channel[num_sats_selected].fcn =
+          0; /* FIXME: do properly */
       sim_state.state_meas[num_sats_selected].mesid.sat = sid.sat;
       sim_state.state_meas[num_sats_selected].mesid.code = sid.code;
       float fTmpCN0 = sim_state.nav_meas[num_sats_selected].cn0;
