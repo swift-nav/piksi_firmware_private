@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <ch.h>
 
 #include "starling_integration.h"
@@ -108,7 +109,10 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
 
   /* This runs forever. */
   starling_run();
+
   /* Never get here. */
+  log_error("Starling Engine has unexpectedly terminated.");
+  assert(0);
   for (;;) {
   }
 }
