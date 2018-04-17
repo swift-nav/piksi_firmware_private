@@ -559,7 +559,7 @@ static void tracking_send_state_63(void) {
   sbp_send_msg(SBP_MSG_TRACKING_STATE, sizeof(states), (u8 *)states);
 }
 
-/** Send tracking state SBP message.
+/** Send measurement state SBP message.
  * Send information on each tracking channel to host.
  */
 static void tracking_send_state_85(void) {
@@ -621,8 +621,10 @@ static void tracking_send_state_85(void) {
 }
 
 
-/** Send tracking state SBP message.
- * Send information on each tracking channel to host.
+/** Send either MSG_TRACKING_STATE or MSG_MEASUREMENT_STATE message.
+ * Send information on each tracking channel to host,
+ * calls the legacy function if the number of channels is lower than 63
+ * so that we can incrementally move to 85 channels.
  */
 void tracking_send_state(void) {
   if (nap_track_n_channels < 64) {
