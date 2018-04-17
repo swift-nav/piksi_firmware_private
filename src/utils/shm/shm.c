@@ -275,8 +275,13 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
 
     case CODE_GPS_L2CL:
       return CODE_NAV_STATE_UNKNOWN;
+
     case CODE_SBAS_L1CA:
       assert(!"Unsupported code");
+
+    case CODE_GAL_E5X:
+    case CODE_GAL_E7X:
+      return CODE_NAV_STATE_UNKNOWN;
 
     case CODE_INVALID:
     case CODE_COUNT:
@@ -292,11 +297,9 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
     case CODE_GAL_E6X:
     case CODE_GAL_E7I:
     case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
-    case CODE_GAL_E5X:
     case CODE_QZS_L1CA:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:

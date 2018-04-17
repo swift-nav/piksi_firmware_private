@@ -36,11 +36,15 @@ typedef enum {
   TP_TM_1MS_10MS,   /**< 1 ms */
   TP_TM_1MS_2MS,    /**< 1 ms */
   TP_TM_1MS_NH20MS, /**< 1 ms */
+  TP_TM_1MS_SC4,    /**< 1 ms */
 
   TP_TM_2MS_20MS,   /**< 2 ms */
   TP_TM_2MS_10MS,   /**< 2 ms */
   TP_TM_2MS_2MS,    /**< 2 ms */
   TP_TM_2MS_NH20MS, /**< 2 ms */
+  TP_TM_2MS_SC4,    /**< 2 ms */
+
+  TP_TM_4MS_SC4, /**< 4 ms */
 
   TP_TM_5MS_20MS,   /**< 5 ms */
   TP_TM_5MS_10MS,   /**< 5 ms */
@@ -276,7 +280,7 @@ typedef struct {
 typedef struct {
   union {
     corr_t
-        epl[TP_DLL_PLL_MEAS_DIM]; /**< E|P|L|VE|VL accumulators as a vector */
+        five[TP_DLL_PLL_MEAS_DIM]; /**< E|P|L|VE|VL accumulators as a vector */
     struct {
       corr_t early;      /**< Early accumulator */
       corr_t prompt;     /**< Prompt accumulator */
@@ -299,7 +303,7 @@ typedef struct {
  * - Bit synchronization and message decoding
  */
 typedef struct {
-  tp_epl_corr_t corr_epl; /**< EPL correlation results for DLL and PLL
+  tp_epl_corr_t corr_all; /**< EPL correlation results for DLL and PLL
                            *   in correlation period. */
   tp_epl_corr_t corr_cn0; /**< C/N0 accumulators */
   corr_t corr_fll;        /**< FLL accumulator */
@@ -416,16 +420,16 @@ typedef struct {
   float cn0;                   /**< Current estimate of C/N0. */
   u32 flags;                   /**< Tracker flags TRACKER_FLAG_... */
   ch_drop_reason_t ch_drop_reason; /* Drop reason if TRACKER_FLAG_DROP is set */
-  float acceleration;          /**< Acceleration [g] */
-  float xcorr_freq;            /**< Doppler for cross-correlation [Hz] */
-  u64 init_timestamp_ms;       /**< Tracking channel init timestamp [ms] */
-  u64 update_timestamp_ms;     /**< Tracking channel last update
-                                    timestamp [ms] */
-  u32 settle_time_ms;          /**< Apply some sanity checks once settled */
+  float acceleration;              /**< Acceleration [g] */
+  float xcorr_freq;                /**< Doppler for cross-correlation [Hz] */
+  u64 init_timestamp_ms;           /**< Tracking channel init timestamp [ms] */
+  u64 update_timestamp_ms;         /**< Tracking channel last update
+                                        timestamp [ms] */
+  u32 settle_time_ms;              /**< Apply some sanity checks once settled */
 
-  bool updated_once;           /**< Tracker was updated at least once flag. */
-  cp_sync_t cp_sync;           /**< Half-cycle ambiguity resolution */
-  health_t health;             /**< GLO SV health info */
+  bool updated_once; /**< Tracker was updated at least once flag. */
+  cp_sync_t cp_sync; /**< Half-cycle ambiguity resolution */
+  health_t health;   /**< GLO SV health info */
 
   tracker_misc_info_t misc_info;
 

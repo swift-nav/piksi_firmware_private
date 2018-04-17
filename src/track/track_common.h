@@ -115,18 +115,7 @@ void tp_tracker_init(tracker_t *tracker_channel,
 void tp_tracker_disable(tracker_t *tracker_channel);
 u32 tp_tracker_update(tracker_t *tracker_channel,
                       const tp_tracker_config_t *config);
-void tp_tracker_update_correlators(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_bsync(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_cn0(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_locks(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_fll(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_pll_dll(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_update_alias(tracker_t *tracker_channel, u32 cycle_flags);
-void tp_tracker_filter_doppler(tracker_t *tracker_channel,
-                               u32 cycle_flags,
-                               const tp_tracker_config_t *config);
-void tp_tracker_update_mode(tracker_t *tracker_channel);
-u32 tp_tracker_compute_rollover_count(tracker_t *tracker_channel);
+
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid);
 

@@ -22,12 +22,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define BDS_TOW_INVALID -1
-
-#define BDS_BIT_POLARITY_NORMAL +1
-#define BDS_BIT_POLARITY_INVERTED -1
-#define BDS_BIT_POLARITY_UNKNOWN 0
-
 /** Minimum BDS valid subframe number */
 #define BDS_SUBFRAME_MIN 1
 /** Maximum BDS valid subframe number */
@@ -45,9 +39,6 @@ extern "C" {
 #define BDS_SUBFRAME_AGE_INVALID ((u8)-1)
 /** Special value to marking maximum subframe cache entry age [6 seconds] */
 #define BDS_SUBFRAME_AGE_MAX ((u8)100)
-
-#define BDS_WEEK_TO_GPS_WEEK 1356
-#define BDS_SECOND_TO_GPS_SECOND 14
 
 /** TODO: Check Beidou fit_interval definition */
 #define BDS_FIT_INTERVAL_SECONDS (2 * HOUR_SECS)

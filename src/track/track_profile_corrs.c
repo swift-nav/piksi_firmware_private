@@ -51,7 +51,7 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
                                           const tp_epl_corr_t *restrict b,
                                           tp_epl_corr_t *restrict res) {
   for (unsigned i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
-    res->epl[i] = corr_add(a->epl[i], b->epl[i]);
+    res->five[i] = corr_add(a->five[i], b->five[i]);
 
   return res;
 }
@@ -66,7 +66,7 @@ static inline tp_epl_corr_t *corr_epl_add(const tp_epl_corr_t *restrict a,
 static inline tp_epl_corr_t *corr_epl_inv(const tp_epl_corr_t *restrict a,
                                           tp_epl_corr_t *restrict res) {
   for (u8 i = 0; i < TP_DLL_PLL_MEAS_DIM; ++i)
-    res->epl[i] = corr_inv(a->epl[i]);
+    res->five[i] = corr_inv(a->five[i]);
 
   return res;
 }
@@ -98,10 +98,10 @@ void tp_update_correlators(u32 cycle_flags,
   }
 
   if (0 != (cycle_flags & TPF_EPL_SET))
-    corr_state->corr_epl = *cs_straight;
+    corr_state->corr_all = *cs_straight;
   else if (0 != (cycle_flags & TPF_EPL_ADD))
-    corr_state->corr_epl =
-        *corr_epl_add(&corr_state->corr_epl, cs_straight, &tmp_epl);
+    corr_state->corr_all =
+        *corr_epl_add(&corr_state->corr_all, cs_straight, &tmp_epl);
 
   /* C/N0 estimator accumulators updates */
   if (0 != (cycle_flags & TPF_CN0_SET))

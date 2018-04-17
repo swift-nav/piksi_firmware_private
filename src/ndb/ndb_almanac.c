@@ -124,9 +124,9 @@ static u16 map_sid_to_index(gnss_signal_t sid) {
       NUM_SATS_GPS + NUM_SATS_SBAS +
           NUM_SATS_GLO, /* CONSTELLATION_BDS2 offset */
       NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO +
-          NUM_SATS_BDS2, /* CONSTELLATION_GAL offset */
+          NUM_SATS_BDS2, /* CONSTELLATION_QZS offset */
       NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO + NUM_SATS_BDS2 +
-          NUM_SATS_GAL /* CONSTELLATION_QZS offset */
+          NUM_SATS_QZS /* CONSTELLATION_GAL offset */
   };
   /* Current architecture uses one almanac per satellite. */
   constellation_t constellation = sid_to_constellation(sid);

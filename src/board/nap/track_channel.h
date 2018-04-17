@@ -32,11 +32,12 @@ void nap_track_init(u8 channel,
                     float doppler_freq_hz,
                     double code_phase,
                     u32 chips_to_correlate);
+
 void nap_track_update(u8 channel,
                       double doppler_freq_hz,
                       double code_phase_rate,
                       u32 chips_to_correlate,
-                      u8 corr_spacing);
+                      bool has_pilot_sync);
 
 void nap_track_read_results(u8 channel,
                             u32 *count_snapshot,

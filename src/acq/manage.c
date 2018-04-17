@@ -125,7 +125,7 @@ static bool bds2_enabled = CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT;
 /** Flag if QZSS enabled */
 static bool qzss_enabled = CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT;
 /** Flag if Galileo enabled */
-static bool galileo_enabled = CODE_GAL_E1B_SUPPORT;
+static bool galileo_enabled = CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT;
 
 typedef struct {
   piksi_systime_t tick; /**< Time when SV was detected as unhealthy */
@@ -230,85 +230,111 @@ static void manage_acq_thread(void *arg) {
 /* The function masks/unmasks all GLO satellite,
  * NOTE: this function does not check if GLO SV is already masked or not */
 static bool glo_enable_notify(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
-    if (glo_enabled && !(CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT)) {
-      /* user tries enable GLONASS on the platform that does not support it */
-      log_error("The platform does not support GLONASS");
-      glo_enabled = false;
-      return false;
-    }
-    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
-      if (IS_GLO(acq_status[i].mesid)) {
-        acq_status[i].masked = !glo_enabled;
-      }
-    }
-    return true;
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
   }
-  return false;
+  log_debug("GLONASS status (1 - on, 0 - off): %u", glo_enabled);
+  if (glo_enabled && !(CODE_GLO_L1OF_SUPPORT || CODE_GLO_L2OF_SUPPORT)) {
+    /* user tries enable GLONASS on the platform that does not support it */
+    log_error("The platform does not support GLONASS");
+    glo_enabled = false;
+    return false;
+  }
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if (IS_GLO(acq_status[i].mesid)) {
+      acq_status[i].masked = !glo_enabled;
+    }
+  }
+  return true;
 }
 
 /* The function masks/unmasks all SBAS satellites,
  * NOTE: this function does not check if SBAS SV is already masked or not */
 static bool sbas_enable_notify(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_debug("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
-    if (sbas_enabled && !(CODE_SBAS_L1CA_SUPPORT)) {
-      /* user tries enable SBAS on the platform that does not support it */
-      log_error("The platform does not support SBAS");
-      sbas_enabled = false;
-      return false;
-    }
-    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
-      if (IS_SBAS(acq_status[i].mesid)) {
-        acq_status[i].masked = !sbas_enabled;
-      }
-    }
-    return true;
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
   }
-  return false;
+  log_debug("SBAS status (1 - on, 0 - off): %u", sbas_enabled);
+  if (sbas_enabled && !(CODE_SBAS_L1CA_SUPPORT)) {
+    /* user tries enable SBAS on the platform that does not support it */
+    log_error("The platform does not support SBAS");
+    sbas_enabled = false;
+    return false;
+  }
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if (IS_SBAS(acq_status[i].mesid)) {
+      acq_status[i].masked = !sbas_enabled;
+    }
+  }
+  return true;
 }
 
 /* The function masks/unmasks all Beidou satellites,
  * NOTE: this function does not check if BDS2 SV is already masked or not */
 static bool bds2_enable_notify(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
-    if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
-      /* user tries enable Beidou2 on the platform that does not support it */
-      log_error("The platform does not support BDS2");
-      bds2_enabled = false;
-      return false;
-    }
-    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
-      if (IS_BDS2(acq_status[i].mesid)) {
-        acq_status[i].masked = !bds2_enabled;
-      }
-    }
-    return true;
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
   }
-  return false;
+  log_debug("BEIDOU status (1 - on, 0 - off): %u", bds2_enabled);
+  if (bds2_enabled && !(CODE_BDS2_B11_SUPPORT || CODE_BDS2_B2_SUPPORT)) {
+    /* user tries enable Beidou2 on the platform that does not support it */
+    log_error("The platform does not support BDS2");
+    bds2_enabled = false;
+    return false;
+  }
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if (IS_BDS2(acq_status[i].mesid)) {
+      acq_status[i].masked = !bds2_enabled;
+    }
+  }
+  return true;
 }
 
 /* The function masks/unmasks all QZSS satellites,
  * NOTE: this function does not check if QZSS SV is already masked or not */
 static bool qzss_enable_notify(struct setting *s, const char *val) {
-  if (s->type->from_string(s->type->priv, s->addr, s->len, val)) {
-    log_debug("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
-    if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT)) {
-      /* user tries enable QZSS on the platform that does not support it */
-      log_error("The platform does not support QZSS");
-      qzss_enabled = false;
-      return false;
-    }
-    for (int i = 0; i < PLATFORM_ACQ_TRACK_COUNT; i++) {
-      if (IS_QZSS(acq_status[i].mesid)) {
-        acq_status[i].masked = !qzss_enabled;
-      }
-    }
-    return true;
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
   }
-  return false;
+  log_debug("QZSS status (1 - on, 0 - off): %u", qzss_enabled);
+  if (qzss_enabled && !(CODE_QZSS_L1CA_SUPPORT || CODE_QZSS_L2C_SUPPORT)) {
+    /* user tries enable QZSS on the platform that does not support it */
+    log_error("The platform does not support QZSS");
+    qzss_enabled = false;
+    return false;
+  }
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if (IS_QZSS(acq_status[i].mesid)) {
+      acq_status[i].masked = !qzss_enabled;
+    }
+  }
+  return true;
+}
+
+/* The function masks/unmasks all Galileo satellites,
+ * NOTE: this function does not check if Galileo SV is already masked or not */
+static bool galileo_enable_notify(struct setting *s, const char *val) {
+  bool res = s->type->from_string(s->type->priv, s->addr, s->len, val);
+  if (!res) {
+    return false;
+  }
+  log_debug("Galileo status (1 - on, 0 - off): %u", galileo_enabled);
+  if (galileo_enabled && !(CODE_GAL_E1_SUPPORT || CODE_GAL_E7_SUPPORT)) {
+    /* user tries enable Galileo on the platform that does not support it */
+    log_error("The platform does not support Galileo");
+    galileo_enabled = false;
+    return false;
+  }
+  for (u16 i = 0; i < ARRAY_SIZE(acq_status); i++) {
+    if (IS_GAL(acq_status[i].mesid)) {
+      acq_status[i].masked = !galileo_enabled;
+    }
+  }
+  return true;
 }
 
 void manage_acq_setup() {
@@ -333,6 +359,11 @@ void manage_acq_setup() {
                  qzss_enabled,
                  TYPE_BOOL,
                  qzss_enable_notify);
+  SETTING_NOTIFY("acquisition",
+                 "galileo_acquisition_enabled",
+                 galileo_enabled,
+                 TYPE_BOOL,
+                 galileo_enable_notify);
 
   tracking_startup_fifo_init(&tracking_startup_fifo);
 
@@ -411,7 +442,8 @@ static void manage_acq(void) {
          (CODE_GLO_L1OF == acq->mesid.code) ||
          (CODE_SBAS_L1CA == acq->mesid.code) ||
          (CODE_BDS2_B11 == acq->mesid.code) ||
-         (CODE_QZS_L1CA == acq->mesid.code));
+         (CODE_QZS_L1CA == acq->mesid.code) ||
+         (CODE_GAL_E7X == acq->mesid.code));
 
   float doppler_min = code_to_sv_doppler_min(acq->mesid.code) +
                       code_to_tcxo_doppler_min(acq->mesid.code);

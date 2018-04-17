@@ -121,6 +121,7 @@ bool soft_multi_acq_search(const me_gnss_signal_t mesid,
       assert(0);
       return false;
     }
+
     /** update signal time tag */
     last_timetag = tmp_timetag;
   }
@@ -253,6 +254,24 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
       }
       break;
 
+    case CODE_GAL_E7X:
+      samples_ms = FAU_RAW_SPMS / FAU_DECFACT;
+      uNcoStep = CirclesToUint32((double)(FAU_FC_GALE7) / (double)FAU_RAW_FS);
+
+      for (k = 0, h = 0, uNco = 0; k < FAU_SAMPLE_GRABBER_LENGTH; k++) {
+        /* B7-B6 are Channel 4 */
+        uSample = ((sample_buff[k] >> 6) & 0x3) << BBNCO_CARRPH_BITS;
+        uNcoVal = (uNco >> (32 - BBNCO_CARRPH_BITS)) & BBNCO_CARRPH_MASK;
+
+        h = k / FAU_DECFACT;
+        if (FAU_BASEBAND_SIZE == h) break;
+
+        pBaseBand[h].r += bbConvTable[(uSample | uNcoVal)].r;
+        pBaseBand[h].i += bbConvTable[(uSample | uNcoVal)].i;
+        uNco += uNcoStep;
+      }
+      break;
+
     case CODE_INVALID:
     case CODE_GLO_L2OF:
     case CODE_GPS_L2CM:
@@ -270,13 +289,12 @@ static bool BbMixAndDecimate(const me_gnss_signal_t mesid) {
     case CODE_GAL_E6B:
     case CODE_GAL_E6C:
     case CODE_GAL_E6X:
-    case CODE_GAL_E7I:
-    case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
     case CODE_GAL_E5X:
+    case CODE_GAL_E7I:
+    case CODE_GAL_E7Q:
     case CODE_QZS_L2CM:
     case CODE_QZS_L2CL:
     case CODE_QZS_L2CX:
@@ -388,6 +406,25 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
       }
       break;
 
+    case CODE_GAL_E7X:
+      sParams.iNumCodeSlices = FAU_MDBZP_MS_SLICES * FAU_GALE7_CODE_MS;
+      sParams.iCodeTimeMs = FAU_GALE7_CODE_MS;
+      sParams.iCohCodes = FAU_GALE7_COHE;
+      sParams.iNcohAcc = FAU_GALE7_NONC;
+      sParams.uSecCodeLen = 0;
+
+      uNcoStep = FAU_GALE7_CODE_CHIPS;
+      uChipInd = 0;
+      for (h = 0, uNco = 0; h < samples_ms; h++) {
+        pResampCode[h] = get_chip((u8 *)_pLocalCode, uChipInd);
+        uNco += uNcoStep;
+        while (uNco >= samples_ms) {
+          uNco -= samples_ms;
+          uChipInd = (uChipInd + 1) % FAU_GALE7_CODE_CHIPS;
+        }
+      }
+      break;
+
     case CODE_INVALID:
     case CODE_GLO_L2OF:
     case CODE_GPS_L2CM:
@@ -407,7 +444,6 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
     case CODE_GAL_E6X:
     case CODE_GAL_E7I:
     case CODE_GAL_E7Q:
-    case CODE_GAL_E7X:
     case CODE_GAL_E8:
     case CODE_GAL_E5I:
     case CODE_GAL_E5Q:
@@ -433,7 +469,6 @@ static bool SoftMacqMdbzp(const me_gnss_signal_t mesid,
                     pacq_res->fMaxCorr,
                     pacq_res->fDoppFreq,
                     pacq_res->fCodeDelay);
-    /* ret = false; */
   }
   return ret;
 }

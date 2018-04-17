@@ -35,9 +35,11 @@
 #define INTEG_PERIOD_1_MS 1
 /** Integration interval: 2ms */
 #define INTEG_PERIOD_2_MS 2
+/** Integration interval: 4ms */
+#define INTEG_PERIOD_4_MS 4
 /** Integration interval: 5ms */
 #define INTEG_PERIOD_5_MS 5
-/** Integration interval: 5ms */
+/** Integration interval: 10ms */
 #define INTEG_PERIOD_10_MS 10
 /** Integration interval: 20ms */
 #define INTEG_PERIOD_20_MS 20
@@ -46,6 +48,8 @@
 #define TRACK_CN0_OFFSET_1MS_DBHZ 0
 /** C/N0 offset for 2ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_2MS_DBHZ 3
+/** C/N0 offset for 4ms estimator interval [dB/Hz] */
+#define TRACK_CN0_OFFSET_4MS_DBHZ 6
 /** C/N0 offset for 5ms estimator interval [dB/Hz] */
 #define TRACK_CN0_OFFSET_5MS_DBHZ 7
 /** C/N0 offset for 10ms estimator interval [dB/Hz] */
@@ -355,6 +359,10 @@ float track_cn0_get_offset(u8 cn0_ms) {
 
     case INTEG_PERIOD_2_MS:
       cn0_offset = TRACK_CN0_OFFSET_2MS_DBHZ;
+      break;
+
+    case INTEG_PERIOD_4_MS:
+      cn0_offset = TRACK_CN0_OFFSET_4MS_DBHZ;
       break;
 
     case INTEG_PERIOD_5_MS:

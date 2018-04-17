@@ -35,15 +35,13 @@ static glo_l1of_decoder_data_t
 
 static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
                                   decoder_data_t *decoder_data);
-static void decoder_glo_l1of_disable(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data);
 static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,
                                      decoder_data_t *decoder_data);
 
 static const decoder_interface_t decoder_interface_glo_l1of = {
     .code = CODE_GLO_L1OF,
     .init = decoder_glo_l1of_init,
-    .disable = decoder_glo_l1of_disable,
+    .disable = decoder_disable,
     .process = decoder_glo_l1of_process,
     .decoders = glo_l1of_decoders,
     .num_decoders = ARRAY_SIZE(glo_l1of_decoders)};
@@ -66,12 +64,6 @@ static void decoder_glo_l1of_init(const decoder_channel_info_t *channel_info,
 
   memset(data, 0, sizeof(*data));
   nav_msg_init_glo_with_cb(&data->nav_msg, channel_info->mesid);
-}
-
-static void decoder_glo_l1of_disable(const decoder_channel_info_t *channel_info,
-                                     decoder_data_t *decoder_data) {
-  (void)channel_info;
-  (void)decoder_data;
 }
 
 static void decoder_glo_l1of_process(const decoder_channel_info_t *channel_info,

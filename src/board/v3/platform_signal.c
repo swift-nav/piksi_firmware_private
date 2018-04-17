@@ -13,6 +13,7 @@
 #include "platform_signal.h"
 #include "decode/decode_bds_b1.h"
 #include "decode/decode_bds_b2.h"
+#include "decode/decode_gal_e7.h"
 #include "decode/decode_glo_l1of.h"
 #include "decode/decode_glo_l2of.h"
 #include "decode/decode_gps_l1ca.h"
@@ -44,6 +45,9 @@ void platform_track_setup(void) {
 #ifdef CODE_BDS2_B2_SUPPORT
   track_bds2_b2_register();
 #endif
+#ifdef CODE_GAL_E7_SUPPORT
+  track_gal_e7_register();
+#endif
 }
 
 void platform_decode_setup(void) {
@@ -62,6 +66,9 @@ void platform_decode_setup(void) {
 #endif
 #ifdef CODE_BDS2_B2_SUPPORT
   decode_bds_b2_register();
+#endif
+#ifdef CODE_GAL_E7_SUPPORT
+  decode_gal_e7_register();
 #endif
 }
 

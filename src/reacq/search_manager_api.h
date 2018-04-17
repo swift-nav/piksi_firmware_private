@@ -140,7 +140,7 @@ typedef struct {
    * sm_constellation_to_start_index() */
   acq_job_t jobs[ACQ_NUM_JOB_TYPES][NUM_SATS_GPS + NUM_SATS_GLO +
                                     NUM_SATS_SBAS + NUM_SATS_BDS2 +
-                                    NUM_SATS_QZS];
+                                    NUM_SATS_QZS + NUM_SATS_GAL];
   constellation_t constellation;
   u8 priority_counter;
 } acq_jobs_state_t;

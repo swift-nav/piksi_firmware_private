@@ -400,10 +400,10 @@ static void me_calc_pvt_thread(void *arg) {
     if (TIME_UNKNOWN != get_time_quality() && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
-       * (currently once every 30 seconds) */
-      DO_EVERY((u32)soln_freq * MAX_AZ_EL_AGE_SEC / 2,
-               update_sat_azel(lgf.position_solution.pos_ecef,
-                               lgf.position_solution.time));
+       * (currently once every 60 seconds) */
+      DO_EACH_MS(MAX_AZ_EL_AGE_SEC * SECS_MS,
+                 update_sat_azel(lgf.position_solution.pos_ecef,
+                                 lgf.position_solution.time));
     }
 
     /* Take the current nap count as the reception time*/
@@ -581,10 +581,11 @@ static void me_calc_pvt_thread(void *arg) {
       if (pvt_ret < 0) {
         /* An error occurred with calc_PVT! */
         /* pvt_err_msg defined in libswiftnav/pvt.c */
-        DO_EVERY((u32)soln_freq,
-                 log_warn("PVT solver: %s (code %d)",
-                          pvt_err_msg[-pvt_ret - 1],
-                          pvt_ret););
+        /* Print out max. once per second */
+        DO_EACH_MS(SECS_MS,
+                   log_warn("PVT solver: %s (code %d)",
+                            pvt_err_msg[-pvt_ret - 1],
+                            pvt_ret));
       }
 
       /* If we can't report a SPP position, something is wrong and no point

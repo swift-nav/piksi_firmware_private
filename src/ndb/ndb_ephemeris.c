@@ -437,6 +437,8 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
     ndb_eph_age = NDB_NV_BDS2_EPHEMERIS_AGE_SECS;
   } else if (IS_QZSS(sid)) {
     ndb_eph_age = NDB_NV_QZSS_EPHEMERIS_AGE_SECS;
+  } else if (IS_GAL(sid)) {
+    ndb_eph_age = NDB_NV_GAL_EPHEMERIS_AGE_SECS;
   } else {
     assert(!"Constellation is not supported");
   }

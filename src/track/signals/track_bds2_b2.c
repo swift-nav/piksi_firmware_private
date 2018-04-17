@@ -57,7 +57,17 @@ static void tracker_bds2_b2_init(tracker_t *tracker_channel) {
 }
 
 static void tracker_bds2_b2_update(tracker_t *tracker_channel) {
-  tp_tracker_update(tracker_channel, &bds2_b2_config);
+  u32 cflags = tp_tracker_update(tracker_channel, &bds2_b2_config);
+
+  bool bit_aligned =
+      ((0 != (cflags & TPF_BSYNC_UPD)) && tracker_bit_aligned(tracker_channel));
+
+  if (!bit_aligned) {
+    return;
+  }
+
+  /* TOW manipulation on bit edge */
+  tracker_tow_cache(tracker_channel);
 }
 
 /** Register BDS2 B2 tracker into the the tracker interface & settings
