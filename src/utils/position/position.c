@@ -24,7 +24,9 @@
  */
 void position_setup(void) {
   last_good_fix_t lgf;
-  if (ndb_lgf_read(&lgf) == NDB_ERR_NONE && lgf.position_solution.valid) {
+  ndb_op_code_t res = ndb_lgf_read(&lgf);
+  if ((NDB_ERR_NONE == res || NDB_ERR_GPS_TIME_MISSING == res) &&
+      lgf.position_solution.valid) {
     log_info("Loaded last position solution from file: %.4f %.4f %.1f",
              lgf.position_solution.pos_llh[0] * (180 / M_PI),
              lgf.position_solution.pos_llh[1] * (180 / M_PI),
