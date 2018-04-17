@@ -66,6 +66,7 @@ struct {
   u8 num_sats_selected;
 
   tracking_channel_state_t tracking_channel[MAX_CHANNELS];
+  measurement_state_t state_meas[MAX_CHANNELS];
   navigation_measurement_t nav_meas[MAX_CHANNELS];
   navigation_measurement_t base_nav_meas[MAX_CHANNELS];
   dops_t dops;
@@ -79,6 +80,7 @@ struct {
     .baseline = {0.0, 0.0, 0.0},
     .covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
     .num_sats_selected = 0,
+    /* .state_meas left uninitialized */
     /* .tracking_channel left uninitialized */
     /* .nav_meas left uninitialized */
     /* .base_nav_meas left uninitialized */
@@ -320,12 +322,14 @@ void simulation_step_tracking_and_observations(double elapsed) {
           .sat = simulation_almanacs[i].sid.sat + SIM_PRN_OFFSET};
       sim_state.tracking_channel[num_sats_selected].sid.sat = sid.sat;
       sim_state.tracking_channel[num_sats_selected].sid.code = sid.code;
-      /* FIXME: do properly for Glonass, if needed */
-      sim_state.tracking_channel[num_sats_selected].fcn = 0;
+      sim_state.tracking_channel[num_sats_selected].fcn = 0; /* FIXME: do properly */
+      sim_state.state_meas[num_sats_selected].mesid.sat = sid.sat;
+      sim_state.state_meas[num_sats_selected].mesid.code = sid.code;
       float fTmpCN0 = sim_state.nav_meas[num_sats_selected].cn0;
       fTmpCN0 = (fTmpCN0 <= 0) ? 0 : fTmpCN0;
       fTmpCN0 = (fTmpCN0 >= 63.75) ? 63.75 : fTmpCN0;
       sim_state.tracking_channel[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
+      sim_state.state_meas[num_sats_selected].cn0 = rintf(fTmpCN0 * 4.0);
 
       num_sats_selected++;
     }
@@ -430,6 +434,18 @@ tracking_channel_state_t simulation_current_tracking_state(u8 channel) {
     channel = simulation_current_num_sats() - 1;
   }
   return sim_state.tracking_channel[channel];
+}
+
+/** Returns the current simulated tracking loops state simulated.
+* This contains only noise, no interesting simulation information.
+*
+* \param channel The simulated tracking channel.
+*/
+measurement_state_t simulation_measurement_state(u8 channel) {
+  if (channel >= simulation_current_num_sats()) {
+    channel = simulation_current_num_sats() - 1;
+  }
+  return sim_state.state_meas[channel];
 }
 
 /** Returns the simulated navigation measurement of our moving position.
