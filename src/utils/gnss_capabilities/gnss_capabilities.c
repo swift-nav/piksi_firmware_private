@@ -28,7 +28,11 @@ gnss_capabilities_t gnss_capab = {.gps_active = 0x0ffffffffULL,
                                   .sbas_active = 0x7ffff,
                                   .sbas_l5 = 0x5b8c8,
 
-                                  .bds_active = 0x1fcc3d3fffULL,
+                                  /* Note: BDS GEO SVs are marked as inactive,
+                                   * in order to prevent their acquisition. */
+                                  /* Special note: PRN17 is also a GEO,
+                                   * as of April 2018 */
+                                  .bds_active = 0x1fcc3d2ffe0ULL,
                                   .bds_d2nav = 0x000001001fULL,
                                   .bds_b2 = 0x0000013fffULL,
 
