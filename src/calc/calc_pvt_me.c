@@ -678,6 +678,15 @@ static void me_calc_pvt_thread(void *arg) {
         /* remove clock offset from the measurement */
         remove_clock_offset(nm, output_offset, smoothed_drift, current_tc);
 
+        double code_carrier_difference =
+            nav_meas[i].raw_pseudorange -
+            sid_to_lambda(nav_meas[i].sid) * (nav_meas[i].raw_carrier_phase);
+
+        if (fabs(code_carrier_difference) > 10) {
+          log_warn_sid(
+              nav_meas[i].sid, "code-carrier %.1f m", code_carrier_difference);
+        }
+
         /* Recompute satellite position, velocity and clock errors */
         /* NOTE: calc_sat_state changes `tot` */
         if (0 != calc_sat_state(&e_meas[i],
