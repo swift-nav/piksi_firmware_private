@@ -231,7 +231,8 @@ static void me_send_failed_obs(u8 _num_obs,
  * \param rcv_pos Approximate receiver position
  * \param t Approximate time
  */
-static void update_sat_azel(const double rcv_pos[static 3], const gps_time_t t) {
+static void update_sat_azel(const double rcv_pos[static 3],
+                            const gps_time_t t) {
   ephemeris_t ephemeris;
   almanac_t almanac;
   double az, el;
@@ -297,13 +298,14 @@ static void me_thd_sleep(piksi_systime_t *next_epoch, u32 interval_us) {
  *
  * \return None
  */
-static void collect_measurements(u64 rec_tc,
-                                 channel_measurement_t meas[static MAX_CHANNELS],
-                                 channel_measurement_t in_view[static MAX_CHANNELS],
-                                 ephemeris_t ephe[static MAX_CHANNELS],
-                                 u8 *pn_ready,
-                                 u8 *pn_inview,
-                                 u8 *pn_total) {
+static void collect_measurements(
+    u64 rec_tc,
+    channel_measurement_t meas[static MAX_CHANNELS],
+    channel_measurement_t in_view[static MAX_CHANNELS],
+    ephemeris_t ephe[static MAX_CHANNELS],
+    u8 *pn_ready,
+    u8 *pn_inview,
+    u8 *pn_total) {
   u8 n_collected = 0;
   u8 n_inview = 0;
   u8 n_active = 0;
@@ -342,17 +344,18 @@ static void collect_measurements(u64 rec_tc,
         n_collected++;
       } else {
         if (CODE_GPS_L2CM == meas[n_collected].sid.code) {
-          log_warn_sid(meas[n_collected].sid, "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
-              (0 != (flags & TRACKER_FLAG_HEALTHY)) ?      "Y":"N",
-              (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y":"N",
-              (0 != (flags & TRACKER_FLAG_ELEVATION)) ?    "Y":"N",
-              (0 != (flags & TRACKER_FLAG_TOW_VALID)) ?    "Y":"N",
-              (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ?     "Y":"N",
-              (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ?    "Y":"N");
+          log_warn_sid(meas[n_collected].sid,
+                       "HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
+                       (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_NAV_SUITABLE)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_ELEVATION)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_TOW_VALID)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_HAS_EPHE)) ? "Y" : "N",
+                       (0 != (flags & TRACKER_FLAG_CN0_SHORT)) ? "Y" : "N");
         }
       }
     } else {
-      if (CODE_GPS_L2CM ==meas[n_collected].sid.code) {
+      if (CODE_GPS_L2CM == meas[n_collected].sid.code) {
         log_warn_sid(meas[n_collected].sid, "flags0 %08" PRIx32, flags);
       }
     }
@@ -488,11 +491,12 @@ static void me_calc_pvt_thread(void *arg) {
       if (CODE_GPS_L2CM == meas[i].sid.code) n_l2++;
     }
     log_warn("Selected %" PRIu8 " measurement(s) out of %" PRIu8
-              " in view "
-              " (total=%" PRIu8 ") (L2C=%" PRIu8 ")",
-              n_ready,
-              n_inview,
-              n_total, n_l2);
+             " in view "
+             " (total=%" PRIu8 ") (L2C=%" PRIu8 ")",
+             n_ready,
+             n_inview,
+             n_total,
+             n_l2);
 
     /* Update stats */
     last_stats.signals_tracked = n_total;
