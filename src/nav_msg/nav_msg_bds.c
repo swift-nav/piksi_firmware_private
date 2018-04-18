@@ -280,8 +280,8 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     log_info("    %19.11E%19.11E%19.11E%19.11E  ",
              e->ura,
              (double)e->health_bits,
-             k->tgd[0],
-             k->tgd[1]);
+             k->tgd_bds_s[0],
+             k->tgd_bds_s[1]);
     log_info("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
     n->goodwords_mask = 0;
     data->ephemeris_upd_flag = true;
@@ -498,8 +498,8 @@ static void process_d1_fraid1(nav_msg_bds_t *n,
   e->ura = bds_ura_table[urai];
   e->toe.wn = BDS_WEEK_TO_GPS_WEEK + weekno;
   /* Keplerian params */
-  k->tgd[0] = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
-  k->tgd[1] = BITS_SIGN_EXTEND_32(10, tgd2) * 1e-10;
+  k->tgd_bds_s[0] = BITS_SIGN_EXTEND_32(10, tgd1) * 1e-10;
+  k->tgd_bds_s[1] = BITS_SIGN_EXTEND_32(10, tgd2) * 1e-10;
   k->toc.wn = e->toe.wn;
   k->toc.tow = (double)toc * C_2P3;
   k->af0 = BITS_SIGN_EXTEND_32(24, a[0]) * C_1_2P33;

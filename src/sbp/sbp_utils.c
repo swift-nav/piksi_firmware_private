@@ -594,7 +594,7 @@ static void pack_ephemeris_common(const ephemeris_t *e,
 static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e) {
   const msg_ephemeris_gps_t *msg = &m->gps;
   unpack_ephemeris_common(&msg->common, e);
-  e->kepler.tgd[0] = msg->tgd;
+  e->kepler.tgd_gps_s = msg->tgd;
   e->kepler.crs = msg->c_rs;
   e->kepler.crc = msg->c_rc;
   e->kepler.cuc = msg->c_uc;
@@ -622,7 +622,7 @@ static void unpack_ephemeris_gps(const msg_ephemeris_t *m, ephemeris_t *e) {
 static void pack_ephemeris_gps(const ephemeris_t *e, msg_ephemeris_t *m) {
   msg_ephemeris_gps_t *msg = &m->gps;
   pack_ephemeris_common(e, &msg->common);
-  msg->tgd = e->kepler.tgd[0];
+  msg->tgd = e->kepler.tgd_gps_s;
   msg->c_rs = e->kepler.crs;
   msg->c_rc = e->kepler.crc;
   msg->c_uc = e->kepler.cuc;
