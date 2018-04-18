@@ -992,6 +992,9 @@ u32 get_tracking_channel_meas(u8 i,
     /* TTFF shortcut: accept also unconfirmed ephemeris candidate when there
      * is no confirmed candidate */
     if ((NDB_ERR_NONE != res) && (NDB_ERR_UNCONFIRMED_DATA != res)) {
+      /*if (CODE_GPS_L2CM == info.mesid.code) {
+        log_warn("G%02d L2C ndb_ephemeris_read() %d", info.mesid.sat, res);
+      }*/
       ephe = NULL;
     }
 

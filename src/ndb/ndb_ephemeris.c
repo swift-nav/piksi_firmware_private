@@ -450,7 +450,9 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
     /* Handle the situation when ndb_retrieve returns NDB_ERR_BAD_PARAM.
      * This may happen when we've already read ephemerides during startup from
      * NV RAM, so check that locally stored ephemeris not aged out */
+    if (CODE_GPS_L2CM == sid.code) log_info_sid(sid, "ndb_retrieve() %d", res);
     res = ndb_check_age(&ndb_ephemeris[idx].toe, ndb_eph_age);
+    if (CODE_GPS_L2CM == sid.code) log_info_sid(sid, "ndb_check_age() %d", res);
   }
 
   if (NDB_ERR_NONE != res) {

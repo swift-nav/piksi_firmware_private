@@ -343,9 +343,9 @@ static void collect_measurements(
         any_gps |= IS_GPS(meas[n_collected].sid);
         n_collected++;
       } else {
-        if (IS_GPS(meas[n_collected].sid)) {
+        if (CODE_GPS_L2CM == (meas[n_collected].sid.code)) {
           log_warn(
-              "G%2d %s HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
+              "G%02d %s HEALTH %s  NAV %s  ELEV %s  TOW %s  EPHE %s  CN0 %s",
               meas[n_collected].sid.sat,
               (CODE_GPS_L2CM == meas[n_collected].sid.code) ? "L2C" : "L1CA",
               (0 != (flags & TRACKER_FLAG_HEALTHY)) ? "Y" : "N",
