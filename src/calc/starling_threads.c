@@ -47,6 +47,7 @@
 
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
+  /* This comment is here so that clang-format 5.0 and 6.0 behave the same. */
   bool is_glonass_enabled;
 } StarlingSettings;
 
