@@ -101,4 +101,7 @@ void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 void starling_set_is_fix_enabled(bool is_fix_enabled);
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
+/* Modify the relative weighting of glonass observations. */
+void starling_set_glonass_downweight_factor(float factor);
+
 #endif

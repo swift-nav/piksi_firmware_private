@@ -74,6 +74,17 @@ static bool set_is_glonass_enabled(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool set_glonass_downweight_factor(struct setting *s, const char *val) {
+  float value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  starling_set_glonass_downweight_factor(value);
+  *(float *)s->addr = value;
+  return ret;
+}
+
 static void initialize_starling_settings(void) {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
@@ -99,6 +110,13 @@ static void initialize_starling_settings(void) {
                  enable_glonass,
                  TYPE_BOOL,
                  set_is_glonass_enabled);
+
+  static float glonass_downweight_factor = 4.0;
+  SETTING_NOTIFY("solution",
+                 "glonass_measurement_std_downweight_factor",
+                 glonass_downweight_factor,
+                 TYPE_FLOAT,
+                 set_glonass_downweight_factor);
 }
 
 static THD_FUNCTION(initialize_and_run_starling, arg) {

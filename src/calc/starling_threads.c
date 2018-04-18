@@ -49,15 +49,18 @@
 typedef struct StarlingSettings {
   /* This comment is here so that clang-format 5.0 and 6.0 behave the same. */
   bool is_glonass_enabled;
+  float glonass_downweight_factor;
 } StarlingSettings;
 
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
+#define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0
 
 /* Local settings object and mutex protection. */
 static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
+    .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
 };
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
@@ -86,8 +89,6 @@ bool send_heading = false;
 double heading_offset = 0.0;
 
 static bool disable_klobuchar = false;
-
-static float glonass_downweight_factor = 4;
 
 static u8 current_base_sender_id;
 
@@ -119,6 +120,10 @@ static void update_filter_manager_settings(FilterManager *fm) {
   /* Apply the most recent settings values to the Filter Manager. */
   assert(fm);
   set_pvt_engine_enable_glonass(fm, settings.is_glonass_enabled);
+  set_pvt_engine_obs_downweight_factor(
+      fm, settings.glonass_downweight_factor, CODE_GLO_L1OF);
+  set_pvt_engine_obs_downweight_factor(
+      fm, settings.glonass_downweight_factor, CODE_GLO_L2OF);
 }
 
 static void post_observations(u8 n,
@@ -633,10 +638,6 @@ static PVT_ENGINE_INTERFACE_RC call_pvt_engine_filter(
 
     set_pvt_engine_elevation_mask(filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_obs_downweight_factor(
-        filter_manager, glonass_downweight_factor, CODE_GLO_L1OF);
-    set_pvt_engine_obs_downweight_factor(
-        filter_manager, glonass_downweight_factor, CODE_GLO_L2OF);
     set_pvt_engine_update_frequency(filter_manager, solution_frequency);
 
     filter_manager_overwrite_ephemerides(filter_manager, ephemerides);
@@ -889,10 +890,6 @@ static void time_matched_obs_thread(void *arg) {
 
     set_pvt_engine_elevation_mask(time_matched_filter_manager,
                                   get_solution_elevation_mask());
-    set_pvt_engine_obs_downweight_factor(
-        time_matched_filter_manager, glonass_downweight_factor, CODE_GLO_L1OF);
-    set_pvt_engine_obs_downweight_factor(
-        time_matched_filter_manager, glonass_downweight_factor, CODE_GLO_L2OF);
     set_pvt_engine_update_frequency(time_matched_filter_manager,
                                     starling_frequency);
     platform_mutex_unlock(&time_matched_filter_manager_lock);
@@ -1041,19 +1038,17 @@ static void init_filters_and_settings(void) {
 
   SETTING(
       "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
-  SETTING("solution",
-          "glonass_measurement_std_downweight_factor",
-          glonass_downweight_factor,
-          TYPE_FLOAT);
 
   platform_time_matched_obs_mailbox_init();
 
   platform_mutex_lock(&time_matched_filter_manager_lock);
   time_matched_filter_manager = create_filter_manager_rtk();
+  assert(time_matched_filter_manager);
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 
   platform_mutex_lock(&low_latency_filter_manager_lock);
   low_latency_filter_manager = create_filter_manager_rtk();
+  assert(low_latency_filter_manager);
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 
   static sbp_msg_callbacks_node_t reset_filters_node;
@@ -1082,6 +1077,7 @@ static void starling_thread(void) {
 
   platform_mutex_lock(&spp_filter_manager_lock);
   spp_filter_manager = create_filter_manager_spp();
+  assert(spp_filter_manager);
   filter_manager_init(spp_filter_manager);
   platform_mutex_unlock(&spp_filter_manager_lock);
 
@@ -1316,6 +1312,13 @@ void starling_run(void) { starling_thread(); }
 void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
   platform_mutex_lock(&global_settings_lock);
   global_settings.is_glonass_enabled = is_glonass_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Modify the relative weighting of glonass observations. */
+void starling_set_glonass_downweight_factor(float factor) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.glonass_downweight_factor = factor;
   platform_mutex_unlock(&global_settings_lock);
 }
 
