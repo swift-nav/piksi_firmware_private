@@ -48,21 +48,15 @@
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
   bool is_glonass_enabled;
-  bool is_fix_enabled;
-  int max_age_differential;
 } StarlingSettings;
 
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
-#define INIT_IS_FIX_ENABLED true
-#define INIT_MAX_AGE_DIFFERENTIAL 30
 
 /* Local settings object and mutex protection. */
 static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
-    .is_fix_enabled = INIT_IS_FIX_ENABLED,
-    .max_age_differential = INIT_MAX_AGE_DIFFERENTIAL,
 };
 
 dgnss_solution_mode_t dgnss_soln_mode = SOLN_MODE_LOW_LATENCY;
@@ -124,8 +118,6 @@ static void update_filter_manager_settings(FilterManager *fm) {
   /* Apply the most recent settings values to the Filter Manager. */
   assert(fm);
   set_pvt_engine_enable_glonass(fm, settings.is_glonass_enabled);
-  set_pvt_engine_enable_fix_mode(fm, settings.is_fix_enabled);
-  set_max_correction_age(fm, settings.max_age_differential);
 }
 
 static void post_observations(u8 n,
@@ -1328,14 +1320,30 @@ void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
 
 /* Enable fixed RTK mode in the Starling engine. */
 void starling_set_is_fix_enabled(bool is_fix_enabled) {
-  platform_mutex_lock(&global_settings_lock);
-  global_settings.is_fix_enabled = is_fix_enabled;
-  platform_mutex_unlock(&global_settings_lock);
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  if (low_latency_filter_manager) {
+    set_pvt_engine_enable_fix_mode(low_latency_filter_manager, is_fix_enabled);
+  }
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    set_pvt_engine_enable_fix_mode(time_matched_filter_manager, is_fix_enabled);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age) {
-  platform_mutex_lock(&global_settings_lock);
-  global_settings.max_age_differential = max_age;
-  platform_mutex_unlock(&global_settings_lock);
+  platform_mutex_lock(&low_latency_filter_manager_lock);
+  if (low_latency_filter_manager) {
+    set_max_correction_age(low_latency_filter_manager, max_age);
+  }
+  platform_mutex_unlock(&low_latency_filter_manager_lock);
+
+  platform_mutex_lock(&time_matched_filter_manager_lock);
+  if (time_matched_filter_manager) {
+    set_max_correction_age(time_matched_filter_manager, max_age);
+  }
+  platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
