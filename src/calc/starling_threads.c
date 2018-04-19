@@ -47,19 +47,21 @@
 
 /* Settings which control the filter behavior of the Starling engine. */
 typedef struct StarlingSettings {
-  /* This comment is here so that clang-format 5.0 and 6.0 behave the same. */
   bool is_glonass_enabled;
+  bool is_time_matched_klobuchar_enabled;
   float glonass_downweight_factor;
 } StarlingSettings;
 
 /* Initial settings values (internal to Starling). */
 #define INIT_IS_GLONASS_ENABLED true
+#define INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED true
 #define INIT_GLONASS_DOWNWEIGHT_FACTOR 4.0
 
 /* Local settings object and mutex protection. */
 static MUTEX_DECL(global_settings_lock);
 static StarlingSettings global_settings = {
     .is_glonass_enabled = INIT_IS_GLONASS_ENABLED,
+    .is_time_matched_klobuchar_enabled = INIT_IS_TIME_MATCHED_KLOBUCHAR_ENABLED,
     .glonass_downweight_factor = INIT_GLONASS_DOWNWEIGHT_FACTOR,
 };
 
@@ -87,8 +89,6 @@ static double starling_frequency;
 bool send_heading = false;
 
 double heading_offset = 0.0;
-
-static bool disable_klobuchar = false;
 
 static u8 current_base_sender_id;
 
@@ -765,6 +765,11 @@ void process_matched_obs(const obss_t *rover_channel_meass,
     filter_manager_overwrite_ephemerides(time_matched_filter_manager,
                                          stored_ephs);
 
+    /* Grab the most recent klobuchar enable setting. */
+    platform_mutex_lock(&global_settings_lock);
+    bool disable_klobuchar = !global_settings.is_time_matched_klobuchar_enabled;
+    platform_mutex_unlock(&global_settings_lock);
+
     platform_mutex_lock(&time_matched_iono_params_lock);
     if (has_time_matched_iono_params) {
       filter_manager_update_iono_parameters(time_matched_filter_manager,
@@ -1035,9 +1040,6 @@ static void init_filters_and_settings(void) {
                  heading_offset,
                  TYPE_FLOAT,
                  heading_offset_changed);
-
-  SETTING(
-      "solution", "disable_klobuchar_correction", disable_klobuchar, TYPE_BOOL);
 
   platform_time_matched_obs_mailbox_init();
 
@@ -1312,6 +1314,13 @@ void starling_run(void) { starling_thread(); }
 void starling_set_is_glonass_enabled(bool is_glonass_enabled) {
   platform_mutex_lock(&global_settings_lock);
   global_settings.is_glonass_enabled = is_glonass_enabled;
+  platform_mutex_unlock(&global_settings_lock);
+}
+
+/* Enable klobuchar corrections in the time-matched filter. */
+void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled) {
+  platform_mutex_lock(&global_settings_lock);
+  global_settings.is_time_matched_klobuchar_enabled = is_klobuchar_enabled;
   platform_mutex_unlock(&global_settings_lock);
 }
 

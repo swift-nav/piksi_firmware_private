@@ -99,6 +99,8 @@ void starling_run(void);
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 /* Enable fixed RTK mode in the Starling engine. */
 void starling_set_is_fix_enabled(bool is_fix_enabled);
+/* Enable klobuchar corrections in the time-matched filter. */
+void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled);
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
 /* Modify the relative weighting of glonass observations. */

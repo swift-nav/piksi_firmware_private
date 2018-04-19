@@ -70,7 +70,7 @@ static bool set_is_glonass_enabled(struct setting *s, const char *val) {
   }
   bool is_glonass_enabled = (value != 0);
   starling_set_is_glonass_enabled(is_glonass_enabled);
-  *(bool *)s->addr = value;
+  *(bool *)s->addr = is_glonass_enabled;
   return ret;
 }
 
@@ -82,6 +82,18 @@ static bool set_glonass_downweight_factor(struct setting *s, const char *val) {
   }
   starling_set_glonass_downweight_factor(value);
   *(float *)s->addr = value;
+  return ret;
+}
+
+static bool set_disable_klobuchar(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool disable_klobuchar = (value != 0);
+  starling_set_is_time_matched_klobuchar_enabled(!disable_klobuchar);
+  *(bool *)s->addr = disable_klobuchar;
   return ret;
 }
 
@@ -117,6 +129,13 @@ static void initialize_starling_settings(void) {
                  glonass_downweight_factor,
                  TYPE_FLOAT,
                  set_glonass_downweight_factor);
+
+  static bool disable_klobuchar = false;
+  SETTING_NOTIFY("solution",
+                 "disable_klobuchar_correction",
+                 disable_klobuchar,
+                 TYPE_BOOL,
+                 set_disable_klobuchar);
 }
 
 static THD_FUNCTION(initialize_and_run_starling, arg) {
