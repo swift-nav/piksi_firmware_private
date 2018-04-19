@@ -285,20 +285,20 @@ static const tp_profile_entry_t gnss_track_profiles[] = {
 */
 
   [IDX_INIT_0] =
-  { {    0,             7,           20,   TP_CTRL_PLL3,
-          TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL },
-          TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+{ {      0,           7,           20,   TP_CTRL_PLL3,
+        TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL,  TP_TM_INITIAL},
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
        100,             0,            0,
       IDX_NONE,  IDX_NONE,     IDX_NONE,
-      TP_UNAIDED | TP_WAIT_FLOCK | TP_WAIT_BSYNC},
+      TP_UNAIDED | TP_WAIT_FLOCK},
 
   [IDX_INIT_1] =
-  { { BW_DYN,      BW_DYN,            5,   TP_CTRL_PLL3,
+  { { BW_DYN,      BW_DYN,          10,   TP_CTRL_PLL3,
       TP_TM_1MS_20MS,  TP_TM_1MS_10MS,  TP_TM_1MS_2MS,  TP_TM_1MS_NH20MS,  TP_TM_1MS_SC4 },
-      TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
-      100,             0,            0,
-      IDX_NONE, IDX_NONE,     IDX_NONE,
-      TP_UNAIDED | TP_WAIT_PLOCK },
+        TP_LD_PARAMS_PHASE_INI, TP_LD_PARAMS_FREQ_INI,
+       100,             0,            0,
+      IDX_NONE,  IDX_NONE,     IDX_NONE,
+      TP_UNAIDED | TP_WAIT_BSYNC | TP_WAIT_PLOCK },
 
   [IDX_2MS] =
   { { BW_DYN,      BW_DYN,            2,   TP_CTRL_PLL3,
@@ -570,7 +570,7 @@ void tp_profile_update_config(tracker_t *tracker_channel) {
   profile->loop_params.ctrl = cur_profile->profile.controller_type;
 
   tracker_channel->flags &= ~TRACKER_FLAG_SENSITIVITY_MODE;
-  if (profile->cur.index == IDX_SENS) {
+  if (profile->cur.pll_bw <= 0) {
     tracker_channel->flags |= TRACKER_FLAG_SENSITIVITY_MODE;
   }
 
@@ -964,4 +964,6 @@ void tp_profile_report_data(tp_profile_t *profile, const tp_report_t *data) {
 tp_tm_e tp_profile_get_next_track_mode(const tp_profile_t *profile,
                                        me_gnss_signal_t mesid) {
   const tp_profile_entry_t *profile_entry;
-  profile_entry = &profile->profiles[profil
+  profile_entry = &profile->profiles[profile->next.index];
+  return get_track_mode(mesid, profile_entry);
+}
