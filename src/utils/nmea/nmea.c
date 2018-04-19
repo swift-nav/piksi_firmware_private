@@ -34,7 +34,6 @@
 #include "sbp_utils.h"
 #include "settings/settings.h"
 #include "starling_integration.h"
-#include "starling_threads.h"
 #include "timing/timing.h"
 #include "track/track_sid_db.h"
 

@@ -22,6 +22,7 @@
 #include <stdbool.h>
 
 extern bool enable_glonass;
+extern bool send_heading;
 
 void starling_calc_pvt_setup(void);
 
