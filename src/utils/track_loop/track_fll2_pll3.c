@@ -222,14 +222,16 @@ void aided_tl_fll2_pll3_discr_update(aided_tl_state_fll2_pll3_t *s,
     /* Skip update if the previous integration period was 0 */
     float dot = I * s->prev_I + Q * s->prev_Q;
     float cross = s->prev_I * Q - I * s->prev_Q;
-    float magsq0 = I * I + Q * Q;
-    float magsq1 = s->prev_I * s->prev_I + s->prev_Q * s->prev_Q;
 
     float angle_circ = atan2f(cross, dot) / (2.0f * (float)M_PI);
     if (halfq && (ABS(angle_circ) > 0.25f)) {
       angle_circ = SIGN(angle_circ) * (ABS(angle_circ) - 0.5f);
     }
-    angle_circ -= (cross * dot) / (magsq0 * magsq1) / (2.0f * (float)M_PI);
+    float magsq0 = I * I + Q * Q;
+    float magsq1 = s->prev_I * s->prev_I + s->prev_Q * s->prev_Q;
+    if ((magsq0 * magsq1) > 0.0f) {
+      angle_circ -= (cross * dot) / (magsq0 * magsq1) / (2.0f * (float)M_PI);
+    }
 
     float mean_period_s = ((s->prev_period_s) + (s->discr_period_s)) / 2.0f;
     s->discr_sum_hz += (angle_circ / mean_period_s);
