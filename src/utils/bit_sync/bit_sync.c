@@ -22,8 +22,8 @@
 
 /* Approx number of nav bit edges needed to accept bit sync for a
    strong signal (sync will take longer on a weak signal) */
-#define BITSYNC_THRES_HI 11
-#define BITSYNC_THRES_LO 3
+#define BITSYNC_THRES_HI 5
+#define BITSYNC_THRES_LO 2
 
 #define SYMBOL_LENGTH_NH20_MS 20
 #define GAL_CS100_MS 100
