@@ -195,7 +195,9 @@ void set_known_glonass_biases(const glo_biases_t biases) {
 
 void reset_rtk_filter(void) {
   platform_mutex_lock(&time_matched_filter_manager_lock);
-  filter_manager_init(time_matched_filter_manager);
+  if (time_matched_filter_manager) {
+    filter_manager_init(time_matched_filter_manager);
+  }
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
@@ -982,20 +984,6 @@ static void time_matched_obs_thread(void *arg) {
   }
 }
 
-void reset_filters_callback(u16 sender_id, u8 len, u8 msg[], void *context) {
-  (void)sender_id;
-  (void)len;
-  (void)context;
-  switch (msg[0]) {
-    case 0:
-      log_info("Filter reset requested");
-      reset_rtk_filter();
-      break;
-    default:
-      break;
-  }
-}
-
 soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
   return last_dgnss_stats;
 }
@@ -1020,9 +1008,6 @@ static void init_filters_and_settings(void) {
   assert(low_latency_filter_manager);
   platform_mutex_unlock(&low_latency_filter_manager_lock);
 
-  static sbp_msg_callbacks_node_t reset_filters_node;
-  sbp_register_cbk(
-      SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 }
 
 static void starling_thread(void) {

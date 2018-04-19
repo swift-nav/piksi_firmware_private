@@ -13,9 +13,10 @@
 #include <assert.h>
 #include <ch.h>
 
-#include "starling_integration.h"
+#include "calc/starling_integration.h"
+#include "calc/starling_threads.h"
+#include "sbp/sbp.h"
 #include "settings/settings.h"
-#include "starling_threads.h"
 
 /*******************************************************************************
  * Constants
@@ -133,6 +134,23 @@ static bool set_disable_klobuchar(struct setting *s, const char *val) {
   return ret;
 }
 
+static void reset_filters_callback(u16 sender_id,
+                                   u8 len,
+                                   u8 msg[],
+                                   void *context) {
+  (void)sender_id;
+  (void)len;
+  (void)context;
+  switch (msg[0]) {
+    case 0:
+      log_info("Filter reset requested");
+      reset_rtk_filter();
+      break;
+    default:
+      break;
+  }
+}
+
 static void initialize_starling_settings(void) {
   static const char *const dgnss_filter_enum[] = {"Float", "Fixed", NULL};
   static struct setting_type dgnss_filter_setting;
@@ -198,6 +216,11 @@ static THD_FUNCTION(initialize_and_run_starling, arg) {
   chRegSetThreadName("starling");
 
   initialize_starling_settings();
+
+  /* Register a reset callback. */
+  static sbp_msg_callbacks_node_t reset_filters_node;
+  sbp_register_cbk(
+      SBP_MSG_RESET_FILTERS, &reset_filters_callback, &reset_filters_node);
 
   /* This runs forever. */
   starling_run();
