@@ -51,6 +51,18 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   return ret;
 }
 
+static bool set_dgnss_soln_mode(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  dgnss_solution_mode_t dgnss_soln_mode = value;
+  starling_set_solution_mode(dgnss_soln_mode);
+  *(dgnss_solution_mode_t *)s->addr = dgnss_soln_mode;
+  return ret;
+}
+
 static bool set_max_age(struct setting *s, const char *val) {
   int value = 0;
   bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
@@ -136,6 +148,18 @@ static void initialize_starling_settings(void) {
                  disable_klobuchar,
                  TYPE_BOOL,
                  set_disable_klobuchar);
+
+  static const char *const dgnss_soln_mode_enum[] = {
+      "Low Latency", "Time Matched", "No DGNSS", NULL};
+  static struct setting_type dgnss_soln_mode_setting;
+  int TYPE_GNSS_SOLN_MODE = settings_type_register_enum(
+      dgnss_soln_mode_enum, &dgnss_soln_mode_setting);
+  static dgnss_solution_mode_t dgnss_soln_mode = STARLING_SOLN_MODE_LOW_LATENCY;
+  SETTING_NOTIFY("solution",
+                 "dgnss_solution_mode",
+                 dgnss_soln_mode,
+                 TYPE_GNSS_SOLN_MODE,
+                 set_dgnss_soln_mode);
 }
 
 static THD_FUNCTION(initialize_and_run_starling, arg) {
