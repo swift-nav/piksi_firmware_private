@@ -27,6 +27,8 @@
  * Globals
  ******************************************************************************/
 bool enable_glonass = true;
+bool send_heading = false;
+double heading_offset = 0.0;
 
 /*******************************************************************************
  * Locals
@@ -38,6 +40,28 @@ static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 /*******************************************************************************
  * Local Helpers
  ******************************************************************************/
+
+/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
+static bool heading_offset_changed(struct setting *s, const char *val) {
+  double offset = 0;
+  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+
+  if (fabs(offset) > 180.0) {
+    log_error(
+        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, "
+        "leaving heading offset at %3.1f",
+        offset,
+        180.0,
+        -180.0,
+        heading_offset);
+    ret = false;
+  }
+  *(double *)s->addr = offset;
+  return ret;
+}
 
 static bool enable_fix_mode(struct setting *s, const char *val) {
   int value = 0;
@@ -160,6 +184,13 @@ static void initialize_starling_settings(void) {
                  dgnss_soln_mode,
                  TYPE_GNSS_SOLN_MODE,
                  set_dgnss_soln_mode);
+
+  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
+  SETTING_NOTIFY("solution",
+                 "heading_offset",
+                 heading_offset,
+                 TYPE_FLOAT,
+                 heading_offset_changed);
 }
 
 static THD_FUNCTION(initialize_and_run_starling, arg) {

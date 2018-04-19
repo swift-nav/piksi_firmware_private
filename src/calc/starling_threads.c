@@ -32,9 +32,11 @@
 #include "calc_pvt_me.h"
 #include "me_msg/me_msg.h"
 #include "ndb/ndb.h"
-#include "settings/settings.h"
 #include "starling_platform_shim.h"
 #include "starling_threads.h"
+
+extern bool send_heading;
+extern double heading_offset;
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -83,10 +85,6 @@ static gps_time_t last_spp;
 static gps_time_t last_time_matched_rover_obs_post;
 
 static double starling_frequency;
-
-bool send_heading = false;
-
-double heading_offset = 0.0;
 
 static u8 current_base_sender_id;
 
@@ -1004,40 +1002,11 @@ soln_dgnss_stats_t solution_last_dgnss_stats_get(void) {
 
 soln_pvt_stats_t solution_last_pvt_stats_get(void) { return last_pvt_stats; }
 
-/* Check that -180.0 <= new heading_offset setting value <= 180.0. */
-static bool heading_offset_changed(struct setting *s, const char *val) {
-  double offset = 0;
-  bool ret = s->type->from_string(s->type->priv, &offset, s->len, val);
-  if (!ret) {
-    return ret;
-  }
-
-  if (fabs(offset) > 180.0) {
-    log_error(
-        "Invalid heading offset setting of %3.1f, max is %3.1f, min is %3.1f, "
-        "leaving heading offset at %3.1f",
-        offset,
-        180.0,
-        -180.0,
-        heading_offset);
-    ret = false;
-  }
-  *(double *)s->addr = offset;
-  return ret;
-}
-
 static void init_filters_and_settings(void) {
   /* Set time of last differential solution in the past. */
   last_dgnss = GPS_TIME_UNKNOWN;
   last_spp = GPS_TIME_UNKNOWN;
   last_time_matched_rover_obs_post = GPS_TIME_UNKNOWN;
-
-  SETTING("solution", "send_heading", send_heading, TYPE_BOOL);
-  SETTING_NOTIFY("solution",
-                 "heading_offset",
-                 heading_offset,
-                 TYPE_FLOAT,
-                 heading_offset_changed);
 
   platform_time_matched_obs_mailbox_init();
 
