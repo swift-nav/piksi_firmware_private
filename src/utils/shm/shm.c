@@ -98,10 +98,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
   /* Check common GPS */
   if (IS_GPS(sid)) {
     if (shis.shi1_set && !check_6bit_health_word(shis.shi1, sid.code)) {
-      if (CODE_GPS_L2CM == sid.code) {
-        log_warn("G%2d L2CM shis.shi1_set && check_6bit_health_word(shis.shi1, sid.code)==%d as health_bits %u",
-            sid.sat, check_6bit_health_word(shis.shi1, sid.code), (u8) shis.shi1);
-      }
       return CODE_NAV_STATE_INVALID;
     }
 
@@ -204,15 +200,12 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
        * Otherwise return CODE_NAV_STATE_UNKNOWN
        */
       if (shis.shi6_set && !shis.shi6) {
-        log_warn("G%2d L2CM shis.shi6_set && shi6 %u", sid.sat, (u8) shis.shi6);
         return CODE_NAV_STATE_INVALID;
       }
 
       cnav_msg_t cnav_msg10;
       bool msg10_available = cnav_msg_get(sid, CNAV_MSG_TYPE_10, &cnav_msg10);
       if (msg10_available && !cnav_msg10.data.type_10.l2_health) {
-        log_warn("G%2d L2CM msg10_available && cnav_msg10.data.type_10.l2_health %u",
-            sid.sat, (u8) cnav_msg10.data.type_10.l2_health);
         return CODE_NAV_STATE_INVALID;
       }
 

@@ -87,12 +87,19 @@ void ndb_ephemeris_init(void) {
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
+static bool sid_sibling(const gnss_signal_t sid1, const gnss_signal_t sid2) {
+  if (sid_to_constellation(sid1) == sid_to_constellation(sid2)) {
+    return (sid1.sat == sid2.sat);
+  }
+  return false;
+}
+
 static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
-  int i;
-  for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
+  for (u16 i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     if (ephe_candidates[i].used &&
-        sid_is_equal(ephe_candidates[i].ephe.sid, sid))
+        sid_sibling(ephe_candidates[i].ephe.sid, sid)) {
       return i;
+    }
   }
   return -1;
 }
@@ -450,9 +457,7 @@ ndb_op_code_t ndb_ephemeris_read(gnss_signal_t sid, ephemeris_t *e) {
     /* Handle the situation when ndb_retrieve returns NDB_ERR_BAD_PARAM.
      * This may happen when we've already read ephemerides during startup from
      * NV RAM, so check that locally stored ephemeris not aged out */
-    if (CODE_GPS_L2CM == sid.code) log_info_sid(sid, "ndb_retrieve() %d", res);
     res = ndb_check_age(&ndb_ephemeris[idx].toe, ndb_eph_age);
-    if (CODE_GPS_L2CM == sid.code) log_info_sid(sid, "ndb_check_age() %d", res);
   }
 
   if (NDB_ERR_NONE != res) {
