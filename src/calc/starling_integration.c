@@ -10,9 +10,30 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
+#include <ch.h>
+
 #include "starling_integration.h"
 #include "settings/settings.h"
 #include "starling_threads.h"
+
+/*******************************************************************************
+ * Constants
+ ******************************************************************************/
+#define STARLING_THREAD_PRIORITY (HIGHPRIO - 4)
+#define STARLING_THREAD_STACK (6 * 1024 * 1024)
+
+/*******************************************************************************
+ * Globals
+ ******************************************************************************/
+bool enable_glonass = true;
+
+/*******************************************************************************
+ * Locals
+ ******************************************************************************/
+
+/* Working area for the main starling thread. */
+static THD_WORKING_AREA(wa_starling_thread, STARLING_THREAD_STACK);
 
 /*******************************************************************************
  * Local Helpers
@@ -24,8 +45,8 @@ static bool enable_fix_mode(struct setting *s, const char *val) {
   if (!ret) {
     return ret;
   }
-  bool enable_fix = value == 0 ? false : true;
-  starling_set_enable_fix_mode(enable_fix);
+  bool is_fix_enabled = (value != 0);
+  starling_set_is_fix_enabled(is_fix_enabled);
   *(dgnss_filter_t *)s->addr = value;
   return ret;
 }
@@ -38,6 +59,29 @@ static bool set_max_age(struct setting *s, const char *val) {
   }
   starling_set_max_correction_age(value);
   *(int *)s->addr = value;
+  return ret;
+}
+
+static bool set_is_glonass_enabled(struct setting *s, const char *val) {
+  int value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  bool is_glonass_enabled = (value != 0);
+  starling_set_is_glonass_enabled(is_glonass_enabled);
+  *(bool *)s->addr = value;
+  return ret;
+}
+
+static bool set_glonass_downweight_factor(struct setting *s, const char *val) {
+  float value = 0;
+  bool ret = s->type->from_string(s->type->priv, &value, s->len, val);
+  if (!ret) {
+    return ret;
+  }
+  starling_set_glonass_downweight_factor(value);
+  *(float *)s->addr = value;
   return ret;
 }
 
@@ -60,6 +104,35 @@ static void initialize_starling_settings(void) {
                  max_age_of_differential,
                  TYPE_INT,
                  set_max_age);
+
+  SETTING_NOTIFY("solution",
+                 "enable_glonass",
+                 enable_glonass,
+                 TYPE_BOOL,
+                 set_is_glonass_enabled);
+
+  static float glonass_downweight_factor = 4.0;
+  SETTING_NOTIFY("solution",
+                 "glonass_measurement_std_downweight_factor",
+                 glonass_downweight_factor,
+                 TYPE_FLOAT,
+                 set_glonass_downweight_factor);
+}
+
+static THD_FUNCTION(initialize_and_run_starling, arg) {
+  (void)arg;
+  chRegSetThreadName("starling");
+
+  initialize_starling_settings();
+
+  /* This runs forever. */
+  starling_run();
+
+  /* Never get here. */
+  log_error("Starling Engine has unexpectedly terminated.");
+  assert(0);
+  for (;;) {
+  }
 }
 
 /*******************************************************************************
@@ -67,6 +140,10 @@ static void initialize_starling_settings(void) {
  ******************************************************************************/
 
 void starling_calc_pvt_setup() {
-  starling_setup();
-  initialize_starling_settings();
+  /* Start main starling thread. */
+  chThdCreateStatic(wa_starling_thread,
+                    sizeof(wa_starling_thread),
+                    STARLING_THREAD_PRIORITY,
+                    initialize_and_run_starling,
+                    NULL);
 }

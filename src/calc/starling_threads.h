@@ -74,7 +74,6 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
-extern bool enable_glonass;
 extern bool send_heading;
 
 void solution_make_sbp(const pvt_engine_result_t *soln,
@@ -94,11 +93,15 @@ soln_pvt_stats_t solution_last_pvt_stats_get(void);
  * Formal Starling API
  ******************************************************************************/
 
-/* Initialize starling threads and begin computing a pvt solution. */
-void starling_setup(void);
+/* Run the starling engine on the current thread. Blocks indefinitely. */
+void starling_run(void);
+/* Enable glonass constellation in the Starling engine. */
+void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 /* Enable fixed RTK mode in the Starling engine. */
-void starling_set_enable_fix_mode(bool is_fix_enabled);
+void starling_set_is_fix_enabled(bool is_fix_enabled);
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
+/* Modify the relative weighting of glonass observations. */
+void starling_set_glonass_downweight_factor(float factor);
 
 #endif

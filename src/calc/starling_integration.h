@@ -19,6 +19,9 @@
  * variables). Ultimately, this should be the only header including the
  * starling_threads.h.
  */
+#include <stdbool.h>
+
+extern bool enable_glonass;
 
 void starling_calc_pvt_setup(void);
 
