@@ -720,6 +720,15 @@ void restore_acq(const tracker_t *tracker_channel) {
   }
 }
 
+/** Initiates the drop of all GLO signals from tracker on leap second event */
+void drop_glo_signals_on_leap_second(void) {
+  if (!leap_second_imminent()) {
+    return;
+  }
+  track_sid_db_clear_glo_tow();
+  tracker_set_leap_second_flag();
+}
+
 /**
  * Check if leap second event is taking place within the next two seconds.
  *
@@ -762,9 +771,7 @@ bool leap_second_imminent(void) {
  * or bit sync, or is flagged as cross-correlation, etc.
  * Keep tracking unhealthy (except GLO) and low-elevation satellites for
  * cross-correlation purposes. */
-void sanitize_tracker(tracker_t *tracker_channel,
-                      u64 now_ms,
-                      bool leap_second_event) {
+void sanitize_tracker(tracker_t *tracker_channel, u64 now_ms) {
   /*! Addressing the problem where we try to disable a channel that is
    * not in `STATE_ENABLED` in the first place. It remains to check
    * why `TRACKING_CHANNEL_FLAG_ACTIVE` might not be effective here?
@@ -784,7 +791,8 @@ void sanitize_tracker(tracker_t *tracker_channel,
   }
 
   /* Drop GLO satellites if it is leap second event */
-  if (leap_second_event && IS_GLO(mesid)) {
+  if (0 != (flags & TRACKER_FLAG_LEAP_SECOND)) {
+    assert(IS_GLO(mesid));
     drop_channel(tracker_channel, CH_DROP_REASON_LEAP_SECOND);
     return;
   }

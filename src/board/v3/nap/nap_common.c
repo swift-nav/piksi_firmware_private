@@ -168,13 +168,13 @@ static void handle_nap_irq(void) {
   }
 }
 
-static void handle_nap_track_irq(bool leap_second_event) {
+static void handle_nap_track_irq(void) {
   u32 irq0 = NAP->TRK_IRQS0;
-  trackers_update(irq0, 0, leap_second_event);
+  trackers_update(irq0, 0);
   NAP->TRK_IRQS0 = irq0;
 
   u32 irq1 = NAP->TRK_IRQS1;
-  trackers_update(irq1, 32, leap_second_event);
+  trackers_update(irq1, 32);
   NAP->TRK_IRQS1 = irq1;
 
   asm("dsb");
@@ -214,11 +214,7 @@ void nap_track_irq_thread(void *arg) {
   while (TRUE) {
     piksi_systime_get(&sys_time);
 
-    bool leap_second_event = false;
-    DO_EACH_MS(400, leap_second_event = leap_second_imminent();
-               if (leap_second_event) { track_sid_db_clear_glo_tow(); });
-
-    handle_nap_track_irq(leap_second_event);
+    handle_nap_track_irq();
 
     DO_EACH_MS(60 * SECS_MS, check_clear_unhealthy(););
 
