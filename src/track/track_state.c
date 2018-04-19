@@ -516,21 +516,15 @@ static void tracking_send_state_63(void) {
     }
 
   } else {
-    u8 uMaxObs =
+    u8 max_obs =
         (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(tracking_channel_state_t));
-    for (u8 i = 0; (i < nap_track_n_channels) && (i < uMaxObs); i++) {
+    for (u8 i = 0; (i < nap_track_n_channels) && (i < max_obs); i++) {
       tracker_t *tracker_channel = tracker_get(i);
-      bool running;
-      bool confirmed;
-      me_gnss_signal_t mesid;
-      u16 glo_slot_id;
-      float cn0;
-
-      running = (tracker_state_get(tracker_channel) == STATE_ENABLED);
-      mesid = tracker_channel->mesid;
-      glo_slot_id = tracker_channel->glo_orbit_slot;
-      cn0 = tracker_channel->cn0;
-      confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+      bool running = (tracker_state_get(tracker_channel) == STATE_ENABLED);
+      me_gnss_signal_t mesid = tracker_channel->mesid;
+      u16 glo_slot_id = tracker_channel->glo_orbit_slot;
+      float cn0 = tracker_channel->cn0;
+      bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
 
       if (!running || !confirmed) {
         states[i].sid = (sbp_gnss_signal_t){
@@ -538,21 +532,20 @@ static void tracking_send_state_63(void) {
         };
         states[i].fcn = 0;
         states[i].cn0 = 0;
-      } else {
-        /* TODO GLO: Handle GLO orbit slot properly. */
-        if (IS_GLO(mesid)) {
-          states[i].sid.sat = glo_slot_id;
-          states[i].sid.code = mesid.code;
-          states[i].fcn = mesid.sat;
-        } else {
-          states[i].sid.sat = mesid.sat;
-          states[i].sid.code = mesid.code;
-          states[i].fcn = 0;
-        }
-        cn0 = (cn0 <= 0) ? 0 : cn0;
-        cn0 = (cn0 >= MAX_VAL_CN0) ? MAX_VAL_CN0 : cn0;
-        states[i].cn0 = rintf(cn0 * 4.0);
+        continue;
       }
+      if (IS_GLO(mesid)) {
+        states[i].sid.sat = glo_slot_id;
+        states[i].sid.code = mesid.code;
+        states[i].fcn = mesid.sat;
+      } else {
+        states[i].sid.sat = mesid.sat;
+        states[i].sid.code = mesid.code;
+        states[i].fcn = 0;
+      }
+      cn0 = (cn0 <= 0) ? 0 : cn0;
+      cn0 = (cn0 >= MAX_VAL_CN0) ? MAX_VAL_CN0 : cn0;
+      states[i].cn0 = rintf(cn0 * 4.0);
     }
   }
 
@@ -579,41 +572,37 @@ static void tracking_send_state_85(void) {
         meas_states[i].cn0 = 0;
       }
     }
-
   } else {
-    u8 uMaxObs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
-    for (u8 i = 0; (i < nap_track_n_channels) && (i < uMaxObs); i++) {
+    u8 max_obs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
+    for (u8 i = 0; (i < nap_track_n_channels) && (i < max_obs); i++) {
       tracker_t *tracker_channel = tracker_get(i);
-      bool running;
-      bool confirmed;
-      me_gnss_signal_t mesid;
-      u16 glo_slot_id;
-      float cn0;
-
-      running = (tracker_state_get(tracker_channel) == STATE_ENABLED);
-      mesid = tracker_channel->mesid;
-      glo_slot_id = tracker_channel->glo_orbit_slot;
-      cn0 = tracker_channel->cn0;
-      confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
+      bool running = (tracker_state_get(tracker_channel) == STATE_ENABLED);
+      me_gnss_signal_t mesid = tracker_channel->mesid;
+      u16 glo_slot_id = tracker_channel->glo_orbit_slot;
+      float cn0 = tracker_channel->cn0;
+      bool confirmed = (0 != (tracker_channel->flags & TRACKER_FLAG_CONFIRMED));
 
       if (!running || !confirmed) {
         meas_states[i].mesid = (sbp_gnss_signal_t){
             .sat = 0, .code = 0,
         };
         meas_states[i].cn0 = 0;
-      } else {
-        if (IS_GLO(mesid)) {
-          meas_states[i].mesid.sat =
-              odd_run ? glo_slot_id : (100 + mesid.sat - 8);
-          meas_states[i].mesid.code = mesid.code;
-        } else {
-          meas_states[i].mesid.sat = mesid.sat;
-          meas_states[i].mesid.code = mesid.code;
-        }
-        cn0 = (cn0 <= 0) ? 0 : cn0;
-        cn0 = (cn0 >= MAX_VAL_CN0) ? MAX_VAL_CN0 : cn0;
-        meas_states[i].cn0 = rintf(cn0 * 4.0);
+        continue;
       }
+      if (IS_GLO(mesid)) {
+        /* the odd_run flag below will alternate between `100+FCN` and `SLOT`
+         * (as per SBP specs) mainly so that the console can display both and
+         * maintain the current user experience */
+        meas_states[i].mesid.sat =
+            odd_run ? glo_slot_id : (100 + mesid.sat - GLO_FCN_OFFSET);
+        meas_states[i].mesid.code = mesid.code;
+      } else {
+        meas_states[i].mesid.sat = mesid.sat;
+        meas_states[i].mesid.code = mesid.code;
+      }
+      cn0 = (cn0 <= 0) ? 0 : cn0;
+      cn0 = (cn0 >= MAX_VAL_CN0) ? MAX_VAL_CN0 : cn0;
+      meas_states[i].cn0 = rintf(cn0 * 4.0);
     }
   }
   odd_run = !odd_run;

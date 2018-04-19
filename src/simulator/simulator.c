@@ -431,20 +431,22 @@ u8 simulation_current_num_sats(void) {
 * \param channel The simulated tracking channel.
 */
 tracking_channel_state_t simulation_current_tracking_state(u8 channel) {
-  if (channel >= simulation_current_num_sats()) {
-    channel = simulation_current_num_sats() - 1;
+  u8 num_sat = simulation_current_num_sats();
+  if (channel >= num_sat) {
+    channel = num_sat - 1;
   }
   return sim_state.tracking_channel[channel];
 }
 
-/** Returns the current simulated tracking loops state simulated.
+/** Returns the current simulated measurement state simulated.
 * This contains only noise, no interesting simulation information.
 *
 * \param channel The simulated tracking channel.
 */
 measurement_state_t simulation_measurement_state(u8 channel) {
-  if (channel >= simulation_current_num_sats()) {
-    channel = simulation_current_num_sats() - 1;
+  u8 num_sat = simulation_current_num_sats();
+  if (channel >= num_sat) {
+    channel = num_sat - 1;
   }
   return sim_state.state_meas[channel];
 }
