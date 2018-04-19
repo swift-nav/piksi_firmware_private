@@ -506,15 +506,12 @@ static void tracking_send_state_63(void) {
     for (u8 i = 0; i < num_sats; i++) {
       states[i] = simulation_current_tracking_state(i);
     }
-    if (num_sats < nap_track_n_channels) {
-      for (u8 i = num_sats; i < nap_track_n_channels; i++) {
-        states[i].sid = (sbp_gnss_signal_t){
-            .sat = 0, .code = 0,
-        };
-        states[i].cn0 = 0;
-      }
+    for (u8 i = num_sats; i < nap_track_n_channels; i++) {
+      states[i].sid = (sbp_gnss_signal_t){
+          .sat = 0, .code = 0,
+      };
+      states[i].cn0 = 0;
     }
-
   } else {
     u8 max_obs =
         (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(tracking_channel_state_t));
@@ -564,13 +561,11 @@ static void tracking_send_state_85(void) {
     for (u8 i = 0; i < num_sats; i++) {
       meas_states[i] = simulation_measurement_state(i);
     }
-    if (num_sats < nap_track_n_channels) {
-      for (u8 i = num_sats; i < nap_track_n_channels; i++) {
-        meas_states[i].mesid = (sbp_gnss_signal_t){
-            .sat = 0, .code = 0,
-        };
-        meas_states[i].cn0 = 0;
-      }
+    for (u8 i = num_sats; i < nap_track_n_channels; i++) {
+      meas_states[i].mesid = (sbp_gnss_signal_t){
+          .sat = 0, .code = 0,
+      };
+      meas_states[i].cn0 = 0;
     }
   } else {
     u8 max_obs = (SBP_FRAMING_MAX_PAYLOAD_SIZE / sizeof(measurement_state_t));
