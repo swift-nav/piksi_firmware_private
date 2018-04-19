@@ -206,4 +206,4 @@
 #define PLL_BW_MAX (20.0f)
 
 #define FLL_BW_MIN (1.5f)
-#define FLL_BW_MAX (3.0f)
+#define FLL_BW_MAX (3.5f)

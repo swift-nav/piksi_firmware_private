@@ -149,7 +149,7 @@ void aided_tl_fll2_pll3_update_dll(aided_tl_state_fll2_pll3_t *s,
   } else if (cs[1].I != 0.0f) {
     /* Otherwise use coherent discriminator */
     carr_error =
-        atan2f(cs[1].Q, cs[1].I) * (float)(1 / (2 * M_PI)); /* [cycles] */
+        atan2f(cs[1].Q, cs[1].I) * (1.0f / (2.0f * (float)M_PI)); /* [cycles] */
   }
 
   float carr_acc_change =
@@ -222,10 +222,15 @@ void aided_tl_fll2_pll3_discr_update(aided_tl_state_fll2_pll3_t *s,
     /* Skip update if the previous integration period was 0 */
     float dot = I * s->prev_I + Q * s->prev_Q;
     float cross = s->prev_I * Q - I * s->prev_Q;
-    float angle_circ = atan2f(cross, dot) / (2.0f * M_PI);
+    float magsq0 = I * I + Q * Q;
+    float magsq1 = s->prev_I * s->prev_I + s->prev_Q * s->prev_Q;
+
+    float angle_circ = atan2f(cross, dot) / (2.0f * (float)M_PI);
     if (halfq && (ABS(angle_circ) > 0.25f)) {
       angle_circ = SIGN(angle_circ) * (ABS(angle_circ) - 0.5f);
     }
+    angle_circ -= (cross * dot) / (magsq0 * magsq1) / (2.0f * (float)M_PI);
+
     float mean_period_s = ((s->prev_period_s) + (s->discr_period_s)) / 2.0f;
     s->discr_sum_hz += (angle_circ / mean_period_s);
     s->discr_cnt++;
