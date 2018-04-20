@@ -96,7 +96,8 @@ static u32 sbas_limit_mask(void) {
   } else {
     static sbas_system_t sbas_provider = SBAS_UNKNOWN;
     sbas_system_t new_provider = sbas_select_provider(&lgf);
-    if ((sbas_provider != new_provider) && (SBAS_UNKNOWN != sbas_provider)) {
+    if ((sbas_provider != new_provider) &&
+        ((SBAS_UNKNOWN != sbas_provider) || (SBAS_NONE != sbas_provider))) {
       tracker_set_sbas_provider_change_flag();
     }
     sbas_provider = new_provider;
