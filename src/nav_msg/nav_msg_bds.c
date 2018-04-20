@@ -150,10 +150,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
     }
     /* check if it repeats (including polarity) on second TLM */
     if (pream_candidate_prev != pream_candidate_last) {
-      log_info("C%02d prev %" PRIx32 " last %" PRIx32,
-               n->prn,
-               pream_candidate_prev,
-               pream_candidate_last);
+      log_debug("C%02d prev %" PRIx32 " last %" PRIx32,
+                n->prn,
+                pream_candidate_prev,
+                pream_candidate_last);
       return false;
     }
     /* check that there are no bit errors */
@@ -179,10 +179,10 @@ bool bds_nav_msg_update(nav_msg_bds_t *n, bool bit_val) {
         /* reset subframe sync and polarity */
         n->subfr_sync = false;
         n->bit_polarity = BIT_POLARITY_UNKNOWN;
-        log_info("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
-                 n->prn,
-                 pream_candidate_prev,
-                 pream_candidate_last);
+        log_debug("C%02" PRIu8 " lost sync prev %" PRIx32 " last %" PRIx32,
+                  n->prn,
+                  pream_candidate_prev,
+                  pream_candidate_last);
         return false;
       }
       /* check that there are no bit errors */
@@ -243,46 +243,46 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     ephemeris_kepler_t *k = &(data->ephemeris.kepler);
     ionosphere_t *iono = &(data->iono);
     make_utc_tm(&(k->toc), &date);
-    log_info("C%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
-             " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
-             mesid.sat,
-             date.year,
-             date.month,
-             date.month_day,
-             date.hour,
-             date.minute,
-             date.second_int,
-             k->af0,
-             k->af1,
-             k->af2);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             (double)k->iode,
-             k->crs,
-             k->dn,
-             k->m0);
-    log_info(
+    log_debug("C%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+              " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
+              mesid.sat,
+              date.year,
+              date.month,
+              date.month_day,
+              date.hour,
+              date.minute,
+              date.second_int,
+              k->af0,
+              k->af1,
+              k->af2);
+    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+              (double)k->iode,
+              k->crs,
+              k->dn,
+              k->m0);
+    log_debug(
         "    %19.11E%19.11E%19.11E%19.11E  ", k->cuc, k->ecc, k->cus, k->sqrta);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             (double)e->toe.tow,
-             k->cic,
-             k->omega0,
-             -k->cis);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             k->inc,
-             k->crc,
-             k->w,
-             k->omegadot);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             k->inc_dot,
-             0.0,
-             (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
-             0.0);
-    log_info("    %19.11E%19.11E%19.11E%19.11E  ",
-             e->ura,
-             (double)e->health_bits,
-             k->tgd_bds_s[0],
-             k->tgd_bds_s[1]);
-    log_info("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
+    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+              (double)e->toe.tow,
+              k->cic,
+              k->omega0,
+              -k->cis);
+    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+              k->inc,
+              k->crc,
+              k->w,
+              k->omegadot);
+    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+              k->inc_dot,
+              0.0,
+              (double)e->toe.wn - BDS_WEEK_TO_GPS_WEEK,
+              0.0);
+    log_debug("    %19.11E%19.11E%19.11E%19.11E  ",
+              e->ura,
+              (double)e->health_bits,
+              k->tgd_bds_s[0],
+              k->tgd_bds_s[1]);
+    log_debug("    %19.11E%19.11E ", rint(TOW_s), (double)k->iodc);
     n->goodwords_mask = 0;
     data->ephemeris_upd_flag = true;
     add_secs(&e->toe, BDS_SECOND_TO_GPS_SECOND);
@@ -417,7 +417,7 @@ static bool crc_check(nav_msg_bds_t *n) {
   }
   /* check if all words passed the CRC check */
   if (good_words != BDS_WORD_SUBFR_MASK) {
-    log_info("C%02" PRIu8 " good_words %08" PRIx32, n->prn, good_words);
+    log_debug("C%02" PRIu8 " good_words %08" PRIx32, n->prn, good_words);
     return false;
   }
   return true;
@@ -436,7 +436,7 @@ static void pack_buffer(nav_msg_bds_t *n) {
   tmp = flip ? (tmp ^ BDS_WORD_BITMASK) : tmp;
   u8 subfr = (tmp >> 12) & 0x7;
   if ((subfr < 1) || (subfr > 5)) {
-    log_error("C%02" PRIu8 " subframe %" PRIu8 "error", n->prn, subfr);
+    log_warn("C%02" PRIu8 " subframe %" PRIu8 "error", n->prn, subfr);
     return;
   }
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
