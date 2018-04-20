@@ -400,8 +400,8 @@ static void me_calc_pvt_thread(void *arg) {
     if (TIME_UNKNOWN != get_time_quality() && lgf.position_solution.valid &&
         lgf.position_quality >= POSITION_GUESS) {
       /* Update the satellite elevation angles so that they stay current
-       * (currently once every 60 seconds) */
-      DO_EACH_MS(MAX_AZ_EL_AGE_SEC * SECS_MS,
+       * (currently once every 30 seconds) */
+      DO_EACH_MS(MAX_AZ_EL_AGE_SEC * SECS_MS / 2,
                  update_sat_azel(lgf.position_solution.pos_ecef,
                                  lgf.position_solution.time));
     }
