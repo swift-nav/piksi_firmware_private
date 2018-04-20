@@ -87,12 +87,19 @@ void ndb_ephemeris_init(void) {
   ndb_load_data(&ndb_ephe_file, ndb_ephe_config.erase_ephemeris);
 }
 
+static bool sid_sibling(const gnss_signal_t sid1, const gnss_signal_t sid2) {
+  if (sid_to_constellation(sid1) == sid_to_constellation(sid2)) {
+    return (sid1.sat == sid2.sat);
+  }
+  return false;
+}
+
 static s16 ndb_ephe_find_candidate(gnss_signal_t sid) {
-  int i;
-  for (i = 0; i < EPHE_CAND_LIST_LEN; i++) {
+  for (u16 i = 0; i < EPHE_CAND_LIST_LEN; i++) {
     if (ephe_candidates[i].used &&
-        sid_is_equal(ephe_candidates[i].ephe.sid, sid))
+        sid_sibling(ephe_candidates[i].ephe.sid, sid)) {
       return i;
+    }
   }
   return -1;
 }

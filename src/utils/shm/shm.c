@@ -210,7 +210,6 @@ static code_nav_state_t shm_get_sat_state(gnss_signal_t sid) {
       }
 
       if ((shis.shi1_set && check_6bit_health_word(shis.shi1, sid.code)) &&
-          (msg10_available && cnav_msg10.data.type_10.l2_health) &&
           (shis.shi6_set && shis.shi6)) {
         return CODE_NAV_STATE_VALID;
       }
