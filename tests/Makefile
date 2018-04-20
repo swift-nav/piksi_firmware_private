@@ -75,8 +75,7 @@ all : lsnp run_tests
 lsnp :
 	@printf "BUILD libswiftnav\n"; \
 	mkdir -p $(LIBSWIFTNAV_BUILDDIR); cd $(LIBSWIFTNAV_BUILDDIR); \
-	cmake -DMAX_CHANNELS=45 \
-	      -DPIKSI_MULTI_UNIT_TEST=ON \
+	cmake -DPIKSI_MULTI_UNIT_TEST=ON \
 	      -DCMAKE_C_COMPILER=gcc-5 \
 	      -DCMAKE_CXX_COMPILER=g++-5 \
 	      -DENABLE_AUTOFORMAT=OFF \
