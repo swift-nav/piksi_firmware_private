@@ -24,11 +24,19 @@
 
 #include "piksi_systime.h"
 
-typedef enum {
-  SOLN_MODE_LOW_LATENCY,
-  SOLN_MODE_TIME_MATCHED,
-  SOLN_MODE_NO_DGNSS
-} dgnss_solution_mode_t;
+/**
+ * Various solution output modes supported by the Starling Engine.
+ *
+ * LOW_LATENCY:  Output a solution immediately for every rover observation.
+ * TIME_MATCHED: Output a solution whenever a base observation is received.
+ * NO_DGNSS:     Output single-point low-latency solution.
+ */
+enum {
+  STARLING_SOLN_MODE_LOW_LATENCY,
+  STARLING_SOLN_MODE_TIME_MATCHED,
+  STARLING_SOLN_MODE_NO_DGNSS
+};
+typedef int32_t dgnss_solution_mode_t;
 
 typedef enum {
   FILTER_FLOAT,
@@ -74,8 +82,6 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
-extern bool send_heading;
-
 void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
@@ -99,9 +105,16 @@ void starling_run(void);
 void starling_set_is_glonass_enabled(bool is_glonass_enabled);
 /* Enable fixed RTK mode in the Starling engine. */
 void starling_set_is_fix_enabled(bool is_fix_enabled);
+/* Enable klobuchar corrections in the time-matched filter. */
+void starling_set_is_time_matched_klobuchar_enabled(bool is_klobuchar_enabled);
 /* Indicate for how long corrections should persist. */
 void starling_set_max_correction_age(int max_age);
 /* Modify the relative weighting of glonass observations. */
 void starling_set_glonass_downweight_factor(float factor);
+
+/* Set the desired solution mode for the Starling engine. */
+void starling_set_solution_mode(dgnss_solution_mode_t mode);
+/* Get the current solution mode for the Starling engine. */
+dgnss_solution_mode_t starling_get_solution_mode(void);
 
 #endif
