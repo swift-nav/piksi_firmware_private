@@ -74,7 +74,6 @@ static void pack_buffer(nav_msg_bds_t *n);
 //~ static void dump_navmsg(const nav_msg_bds_t *n, const u8 subfr);
 static void deint(u32 *hi, u32 *lo, const u32 dw);
 static bool bch1511(u32 *pdw);
-static bool crc_check(nav_msg_bds_t *n);
 
 static void process_d1_fraid1(nav_msg_bds_t *n,
                               const me_gnss_signal_t mesid,
@@ -395,7 +394,7 @@ static bool bch1511(u32 *pdw) {
 }
 
 /** BCH(15,11) check on all received bits */
-static bool crc_check(nav_msg_bds_t *n) {
+bool crc_check(nav_msg_bds_t *n) {
   u32 good_words = 0;
   for (u8 k = 0; k < BDS_WORD_SUBFR; k++) {
     u32 hi, lo;
