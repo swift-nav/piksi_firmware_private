@@ -31,12 +31,11 @@
  * TIME_MATCHED: Output a solution whenever a base observation is received.
  * NO_DGNSS:     Output single-point low-latency solution.
  */
-enum {
+typedef enum {
   STARLING_SOLN_MODE_LOW_LATENCY,
   STARLING_SOLN_MODE_TIME_MATCHED,
   STARLING_SOLN_MODE_NO_DGNSS
-};
-typedef int32_t dgnss_solution_mode_t;
+} dgnss_solution_mode_t;
 
 typedef enum {
   FILTER_FLOAT,
