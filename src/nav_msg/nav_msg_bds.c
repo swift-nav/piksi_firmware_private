@@ -242,7 +242,7 @@ s32 bds_d1_process_subframe(nav_msg_bds_t *n,
     ephemeris_kepler_t *k = &(data->ephemeris.kepler);
     ionosphere_t *iono = &(data->iono);
     make_utc_tm(&(k->toc), &date);
-    log_debug("C%02" PRIu8 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
+    log_debug("C%02" PRIu16 " %4" PRIu16 " %2" PRIu8 " %2" PRIu8 " %2" PRIu8
               " %2" PRIu8 " %2" PRIu8 "%19.11E%19.11E%19.11E  ",
               mesid.sat,
               date.year,
