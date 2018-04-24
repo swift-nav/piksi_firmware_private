@@ -17,7 +17,10 @@ u16 bch_encoder(u16 input) {
   u16 output = 0;
   u8 gate1 = 1;
   u8 gate2 = 0;
-  u8 d0, d1, d2, d3 = 0;
+  u8 d0 = 0;
+  u8 d1 = 0;
+  u8 d2 = 0;
+  u8 d3 = 0;
   for (s8 i = 14; i >= 0; i--) {
     if (i < 4) {
       gate1 = 0;
