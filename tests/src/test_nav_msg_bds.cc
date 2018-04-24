@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <cmath>
 
 #include <libswiftnav/logging.h>
 
@@ -10,8 +9,76 @@
 #undef log_error
 #define log_error(...)
 
-#define LOW_TOL 1e-6
-#define HIGH_TOL 1e-1
+/* Reference BDS ephemeris */
+static const ephemeris_t ref_eph = {
+    {10,                      /* sid.sat */
+     CODE_BDS2_B11},          /* sid.code */
+    {2.01600000000E+05,       /* toe.tow */
+     1998},                   /* toe.wn */
+    2.00000000000E+00,        /* ura */
+    7200,                     /* fit_interval */
+    1,                        /* valid */
+    0,                        /* health_bits */
+    {{{5.60000000000E-09},    /* kepler.tgd_bds_s[0] */
+      /* 3.00000000000E-09 */ /* kepler.tgd_bds_s[1] */
+      -3.47640625000E+02,     /* kepler.crc */
+      -1.20656250000E+02,     /* kepler.crs */
+      -3.98792326450E-06,     /* kepler.cuc */
+      1.90609134734E-05,      /* kepler.cus */
+      -2.18860805035E-08,     /* kepler.cic */
+      -3.92086803913E-07,     /* kepler.cis */
+      1.08933108930E-09,      /* kepler.dn */
+      -1.43540489556E+00,     /* kepler.m0 */
+      4.98019636143E-03,      /* kepler.ecc */
+      6.49363065910E+03,      /* kepler.sqrta */
+      1.69518318499E+00,      /* kepler.omega0 */
+      -2.13366030409E-09,     /* kepler.omegadot */
+      -2.75182959435E+00,     /* kepler.w */
+      9.20638105072E-01,      /* kepler.inc */
+      -9.93255658799E-10,     /* kepler.inc_dot */
+      -1.81104638614E-04,     /* kepler.af0 */
+      -2.85078627371E-11,     /* kepler.af1 */
+      0.00000000000E+00,      /* kepler.af2 */
+      {2.01600000000E+05,     /* kepler.toc.tow */
+       1998},                 /* kepler.toc.wn */
+      1,                      /* kepler.iodc */
+      1}}                     /* kepler.iode */
+
+};
+
+/* Reference BDS subframe 1 */
+static const u32 ref_subfr1[10] = {0x38901313,
+                                   0x12380030,
+                                   0x05046242,
+                                   0x1c0380cc,
+                                   0x1e0a1484,
+                                   0x3a0b8ffe,
+                                   0x0ef13020,
+                                   0x20007494,
+                                   0x08647f83,
+                                   0x3053e192};
+/* Reference BDS subframe 2 */
+static const u32 ref_subfr2[10] = {0x38902311,
+                                   0x12502f78,
+                                   0x2af7a35a,
+                                   0x0c5842f1,
+                                   0x3c440ae4,
+                                   0x0cc3a9fe,
+                                   0x09fe5e27,
+                                   0x2917f8a6,
+                                   0x1d6cae2c,
+                                   0x342e5c51};
+/* Reference BDS subframe 3 */
+static const u32 ref_subfr3[10] = {0x3890331e,
+                                   0x126b13e2,
+                                   0x204b051d,
+                                   0x0d487f3a,
+                                   0x3e8fff4f,
+                                   0x1155fea1,
+                                   0x16da91f5,
+                                   0x28a22cf0,
+                                   0x374c7ff3,
+                                   0x02c09a96};
 
 u16 bch_encoder(u16 input) {
   u16 output = 0;
@@ -145,4 +212,70 @@ TEST(nav_msg_bds_tests, bch_decoder_random_data) {
     /* CRC should pass with correct data. */
     EXPECT_TRUE(crc_check(&nav_msg));
   }
+}
+
+TEST(nav_msg_bds_tests, ephemeris_decoding) {
+  me_gnss_signal_t mesid = {10, CODE_BDS2_B11};
+  nav_msg_bds_t nav_msg;
+  bds_nav_msg_init(&nav_msg, mesid.sat);
+
+  /* Copy reference subframes 1-3 for processing. */
+  memcpy(&nav_msg.page_words[0], &ref_subfr1, sizeof(ref_subfr1));
+  memcpy(&nav_msg.page_words[10], &ref_subfr2, sizeof(ref_subfr2));
+  memcpy(&nav_msg.page_words[20], &ref_subfr3, sizeof(ref_subfr3));
+  /* Mark all words good to enable decoding. */
+  nav_msg.goodwords_mask = -1;
+
+  bds_d1_decoded_data_t dd_d1nav;
+  memset(&dd_d1nav, 0, sizeof(bds_d1_decoded_data_t));
+  bds_d1_process_subframe(&nav_msg, mesid, &dd_d1nav);
+
+  ephemeris_t tmp_eph;
+  memcpy(&tmp_eph, &ref_eph, sizeof(ref_eph));
+  /* Set TGD2 into copy of ref_eph. */
+  tmp_eph.kepler.tgd_bds_s[1] = 3.00000000000E-09;
+  /* Adjust ref_eph times to GPS time. */
+  add_secs(&tmp_eph.toe, BDS_SECOND_TO_GPS_SECOND);
+  add_secs(&tmp_eph.kepler.toc, BDS_SECOND_TO_GPS_SECOND);
+
+  /* Introduce few helper variables to make following lines shorter. */
+  ephemeris_t decoded_eph = dd_d1nav.ephemeris;
+  ephemeris_kepler_t decoded_k = dd_d1nav.ephemeris.kepler;
+  ephemeris_kepler_t tmp_k = tmp_eph.kepler;
+
+  /* Check that decoded ephemeris matches with reference ephemeris. */
+  /* Note that ephemeris_equal() function would fail due to float precision.
+   */
+  EXPECT_EQ(tmp_eph.sid.sat, decoded_eph.sid.sat);
+  EXPECT_EQ(tmp_eph.sid.code, decoded_eph.sid.code);
+  EXPECT_FLOAT_EQ(tmp_eph.toe.tow, decoded_eph.toe.tow);
+  EXPECT_EQ(tmp_eph.toe.wn, decoded_eph.toe.wn);
+  EXPECT_FLOAT_EQ(tmp_eph.ura, decoded_eph.ura);
+  EXPECT_EQ(tmp_eph.fit_interval, decoded_eph.fit_interval);
+  EXPECT_EQ(tmp_eph.valid, decoded_eph.valid);
+  EXPECT_EQ(tmp_eph.health_bits, decoded_eph.health_bits);
+  EXPECT_FLOAT_EQ(tmp_k.tgd_bds_s[0], decoded_k.tgd_bds_s[0]);
+  EXPECT_FLOAT_EQ(tmp_k.tgd_bds_s[1], decoded_k.tgd_bds_s[1]);
+  EXPECT_FLOAT_EQ(tmp_k.crc, decoded_k.crc);
+  EXPECT_FLOAT_EQ(tmp_k.crs, decoded_k.crs);
+  EXPECT_FLOAT_EQ(tmp_k.cuc, decoded_k.cuc);
+  EXPECT_FLOAT_EQ(tmp_k.cus, decoded_k.cus);
+  EXPECT_FLOAT_EQ(tmp_k.cic, decoded_k.cic);
+  EXPECT_FLOAT_EQ(tmp_k.cis, decoded_k.cis);
+  EXPECT_FLOAT_EQ(tmp_k.dn, decoded_k.dn);
+  EXPECT_FLOAT_EQ(tmp_k.m0, decoded_k.m0);
+  EXPECT_FLOAT_EQ(tmp_k.ecc, decoded_k.ecc);
+  EXPECT_FLOAT_EQ(tmp_k.sqrta, decoded_k.sqrta);
+  EXPECT_FLOAT_EQ(tmp_k.omega0, decoded_k.omega0);
+  EXPECT_FLOAT_EQ(tmp_k.omegadot, decoded_k.omegadot);
+  EXPECT_FLOAT_EQ(tmp_k.w, decoded_k.w);
+  EXPECT_FLOAT_EQ(tmp_k.inc, decoded_k.inc);
+  EXPECT_FLOAT_EQ(tmp_k.inc_dot, decoded_k.inc_dot);
+  EXPECT_FLOAT_EQ(tmp_k.af0, decoded_k.af0);
+  EXPECT_FLOAT_EQ(tmp_k.af1, decoded_k.af1);
+  EXPECT_FLOAT_EQ(tmp_k.af2, decoded_k.af2);
+  EXPECT_FLOAT_EQ(tmp_k.toc.tow, decoded_k.toc.tow);
+  EXPECT_EQ(tmp_k.toc.wn, decoded_k.toc.wn);
+  EXPECT_EQ(tmp_k.iodc, decoded_k.iodc);
+  EXPECT_EQ(tmp_k.iode, decoded_k.iode);
 }
