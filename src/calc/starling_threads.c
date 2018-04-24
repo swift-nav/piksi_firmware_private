@@ -51,7 +51,11 @@ extern void starling_integration_solution_make_sbp(
     const pvt_engine_result_t *soln,
     dops_t *dops,
     sbp_messages_t *sbp_messages);
-
+extern void starling_integration_solution_make_baseline_sbp(
+    const pvt_engine_result_t *result,
+    const double spp_ecef[SPP_ECEF_SIZE],
+    const dops_t *dops,
+    sbp_messages_t *sbp_messages); 
 
 #define TIME_MATCHED_OBS_THREAD_PRIORITY (NORMALPRIO - 3)
 #define TIME_MATCHED_OBS_THREAD_STACK (6 * 1024 * 1024)
@@ -206,126 +210,6 @@ void reset_rtk_filter(void) {
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 }
 
-double calc_heading(const double b_ned[3]) {
-  double heading = atan2(b_ned[1], b_ned[0]);
-  if (heading < 0) {
-    heading += 2 * M_PI;
-  }
-  return heading * R2D;
-}
-
-#define SPP_ECEF_SIZE 3
-
-void solution_make_baseline_sbp(const pvt_engine_result_t *result,
-                                const double spp_ecef[SPP_ECEF_SIZE],
-                                const dops_t *dops,
-                                sbp_messages_t *sbp_messages) {
-  double ecef_pos[3];
-  if (result->has_known_reference_pos) {
-    vector_add(3, result->known_reference_pos, result->baseline, ecef_pos);
-  } else {
-    MEMCPY_S(
-        ecef_pos, sizeof(ecef_pos), spp_ecef, SPP_ECEF_SIZE * sizeof(double));
-  }
-
-  double b_ned[3];
-  wgsecef2ned(result->baseline, ecef_pos, b_ned);
-
-  double accuracy, h_accuracy, v_accuracy, pos_ecef_cov[6], pos_ned_cov[6];
-  pvt_engine_covariance_to_accuracy(result->baseline_covariance,
-                                    ecef_pos,
-                                    &accuracy,
-                                    &h_accuracy,
-                                    &v_accuracy,
-                                    pos_ecef_cov,
-                                    pos_ned_cov);
-
-  sbp_make_baseline_ecef(&sbp_messages->baseline_ecef,
-                         &result->time,
-                         result->num_sats_used,
-                         result->baseline,
-                         accuracy,
-                         result->flags);
-
-  sbp_make_baseline_ned(&sbp_messages->baseline_ned,
-                        &result->time,
-                        result->num_sats_used,
-                        b_ned,
-                        h_accuracy,
-                        v_accuracy,
-                        result->flags);
-
-  sbp_make_age_corrections(
-      &sbp_messages->age_corrections, &result->time, result->propagation_time);
-
-  sbp_make_dgnss_status(&sbp_messages->dgnss_status,
-                        result->num_sats_used,
-                        result->propagation_time,
-                        result->flags);
-
-  dgnss_solution_mode_t dgnss_soln_mode = starling_get_solution_mode();
-
-  if (result->flags == FIXED_POSITION &&
-      dgnss_soln_mode == STARLING_SOLN_MODE_TIME_MATCHED) {
-    double heading = calc_heading(b_ned);
-    sbp_make_heading(&sbp_messages->baseline_heading,
-                     &result->time,
-                     heading + heading_offset,
-                     result->num_sats_used,
-                     result->flags);
-  }
-
-  if (result->has_known_reference_pos ||
-      (simulation_enabled_for(SIMULATION_MODE_FLOAT) ||
-       simulation_enabled_for(SIMULATION_MODE_RTK))) {
-    double pseudo_absolute_ecef[3];
-    double pseudo_absolute_llh[3];
-
-    vector_add(
-        3, result->known_reference_pos, result->baseline, pseudo_absolute_ecef);
-    wgsecef2llh(pseudo_absolute_ecef, pseudo_absolute_llh);
-
-    /* now send pseudo absolute sbp message */
-    sbp_make_pos_llh_vect(&sbp_messages->pos_llh,
-                          pseudo_absolute_llh,
-                          h_accuracy,
-                          v_accuracy,
-                          &result->time,
-                          result->num_sats_used,
-                          result->flags);
-    sbp_make_pos_llh_cov(&sbp_messages->pos_llh_cov,
-                         pseudo_absolute_llh,
-                         pos_ned_cov,
-                         &result->time,
-                         result->num_sats_used,
-                         result->flags);
-    sbp_make_pos_ecef_vect(&sbp_messages->pos_ecef,
-                           pseudo_absolute_ecef,
-                           accuracy,
-                           &result->time,
-                           result->num_sats_used,
-                           result->flags);
-    sbp_make_pos_ecef_cov(&sbp_messages->pos_ecef_cov,
-                          pseudo_absolute_ecef,
-                          pos_ecef_cov,
-                          &result->time,
-                          result->num_sats_used,
-                          result->flags);
-  }
-  sbp_make_dops(
-      &sbp_messages->sbp_dops, dops, sbp_messages->pos_llh.tow, result->flags);
-
-  platform_mutex_lock(&last_sbp_lock);
-  last_dgnss.wn = result->time.wn;
-  last_dgnss.tow = result->time.tow;
-  platform_mutex_unlock(&last_sbp_lock);
-
-  /* Update stats */
-  piksi_systime_get(&last_dgnss_stats.systime);
-  last_dgnss_stats.mode =
-      (result->flags == FIXED_POSITION) ? FILTER_FIXED : FILTER_FLOAT;
-}
-
 static PVT_ENGINE_INTERFACE_RC update_filter(FilterManager *filter_manager) {
   PVT_ENGINE_INTERFACE_RC ret = PVT_ENGINE_FAILURE;
   if (filter_manager_is_initialized(filter_manager)) {
@@ -430,7 +314,7 @@ static void solution_simulation(sbp_messages_t *sbp_messages) {
              simulation_ref_ecef(),
              sizeof(result.known_reference_pos));
 
-    solution_make_baseline_sbp(&result,
+    starling_integration_solution_make_baseline_sbp(&result,
                                simulation_ref_ecef(),
                                simulation_current_dops_solution(),
                                sbp_messages);
@@ -572,7 +456,7 @@ void process_matched_obs(const obss_t *rover_channel_meass,
   platform_mutex_unlock(&time_matched_filter_manager_lock);
 
   if (get_baseline_ret == PVT_ENGINE_SUCCESS) {
-    solution_make_baseline_sbp(
+    starling_integration_solution_make_baseline_sbp(
         &result, rover_channel_meass->pos_ecef, &RTK_dops, sbp_messages);
   }
 }
@@ -959,7 +843,7 @@ static void starling_thread(void) {
       platform_mutex_unlock(&low_latency_filter_manager_lock);
 
       if (rtk_call_filter_ret == PVT_ENGINE_SUCCESS) {
-        solution_make_baseline_sbp(
+        starling_integration_solution_make_baseline_sbp(
             &result_rtk, result_spp.baseline, &dops, &sbp_messages);
       }
     }

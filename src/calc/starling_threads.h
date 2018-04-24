@@ -72,6 +72,9 @@ typedef struct {
 /* Make the buffer large enough to handle 15 second latency at 10Hz */
 #define STARLING_OBS_N_BUFF BASE_LATENCY_TIMEOUT * 10
 
+/* Size of an spp solution in ECEF. */
+#define SPP_ECEF_SIZE 3
+
 void solution_make_sbp(const pvt_engine_result_t *soln,
                        dops_t *dops,
                        sbp_messages_t *sbp_messages);
